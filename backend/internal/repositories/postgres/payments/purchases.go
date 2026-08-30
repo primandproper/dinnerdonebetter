@@ -8,11 +8,11 @@ import (
 	paymentskeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/keys"
 	generated "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/payments/generated"
 
-	"github.com/primandproper/platform-go/v12/database"
-	platformerrors "github.com/primandproper/platform-go/v12/errors"
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/observability"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v13/database"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/observability"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 )
 
 const (
@@ -41,7 +41,7 @@ func (r *repository) CreatePurchase(ctx context.Context, input *payments.Purchas
 		ExternalTransactionID: database.NullStringFromString(input.ExternalTransactionID),
 	}
 
-	if err := r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err := r.WithTransaction(ctx, func(tx database.Tx) error {
 		if err := r.generatedQuerier.CreatePurchase(ctx, tx, arg); err != nil {
 			return err
 		}
@@ -99,7 +99,7 @@ func (r *repository) GetPurchasesForAccount(ctx context.Context, accountID strin
 		CreatedBefore:    database.NullTimeFromTimePointer(filter.CreatedBefore),
 		UpdatedBefore:    database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:     database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		Cursor:           database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:       database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:      database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived:  database.NullBoolFromBoolPointer(filter.IncludeArchived),
 	}

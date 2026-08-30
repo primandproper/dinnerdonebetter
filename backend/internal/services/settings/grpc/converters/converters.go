@@ -5,7 +5,7 @@ import (
 	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/converters"
 	settingssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/settings"
 
-	"github.com/primandproper/platform-go/v12/identifiers"
+	"github.com/primandproper/platform-go/v13/identifiers"
 )
 
 func ConvertGPRCServiceSettingCreationRequestInputToServiceSettingDatabaseCreationInput(input *settingssvc.ServiceSettingCreationRequestInput) *settings.ServiceSettingDatabaseCreationInput {

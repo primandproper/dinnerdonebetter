@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v12/database/querygen"
+	"github.com/primandproper/platform-go/v13/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -107,12 +107,12 @@ GROUP BY %s.%s
 						pgGen.FilterCountSelect(mealPlanEventsTableName, mealPlanEventsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealPlanEventsTableName, belongsToMealPlanColumn, mealPlanIDColumn)),
 						pgGen.TotalCountSelect(mealPlanEventsTableName, mealPlanEventsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealPlanEventsTableName, belongsToMealPlanColumn, mealPlanIDColumn)),
 						mealPlanEventsTableName,
-						pgGen.FilterConditions(mealPlanEventsTableName, mealPlanEventsColumns,
+						pgGen.FilterConditions(mealPlanEventsTableName, mealPlanEventsColumns, querygen.Ascending,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealPlanEventsTableName, belongsToMealPlanColumn, mealPlanIDColumn),
 						),
 						mealPlanEventsTableName,
 						idColumn,
-						pgGen.CursorLimitClause(mealPlanEventsTableName),
+						pgGen.CursorLimitClause(mealPlanEventsTableName, querygen.Ascending),
 					)),
 				},
 				{

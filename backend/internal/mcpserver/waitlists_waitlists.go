@@ -5,37 +5,37 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists"
 
-	"github.com/primandproper/platform-go/v12/filtering"
+	"github.com/primandproper/platform-go/v13/filtering"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 var waitlistSchema = map[string]any{
-	"ID":            stringField("The ID of the waitlist"),
-	"Name":          stringField("The waitlist name"),
-	"Description":   stringField("The waitlist description"),
-	"ValidUntil":    timestampField("When the waitlist expires"),
-	"CreatedAt":     timestampField("When the waitlist was created"),
-	"LastUpdatedAt": timestampField("When the waitlist was last updated"),
-	"ArchivedAt":    timestampField("When the waitlist was archived"),
+	"ID":               stringField("The ID of the waitlist"),
+	fieldName:          stringField("The waitlist name"),
+	fieldDescription:   stringField("The waitlist description"),
+	"ValidUntil":       timestampField("When the waitlist expires"),
+	fieldCreatedAt:     timestampField("When the waitlist was created"),
+	fieldLastUpdatedAt: timestampField("When the waitlist was last updated"),
+	fieldArchivedAt:    timestampField("When the waitlist was archived"),
 }
 
 var waitlistSignupSchema = map[string]any{
-	"ID":                stringField("The ID of the waitlist signup"),
-	"Notes":             stringField("Notes about the signup"),
-	"BelongsToWaitlist": stringField("The ID of the waitlist"),
-	"BelongsToUser":     stringField("The ID of the user who signed up"),
-	"BelongsToAccount":  stringField("The ID of the account"),
-	"CreatedAt":         timestampField("When the signup was created"),
-	"LastUpdatedAt":     timestampField("When the signup was last updated"),
-	"ArchivedAt":        timestampField("When the signup was archived"),
+	"ID":                  stringField("The ID of the waitlist signup"),
+	fieldNotes:            stringField("Notes about the signup"),
+	"BelongsToWaitlist":   stringField("The ID of the waitlist"),
+	"BelongsToUser":       stringField("The ID of the user who signed up"),
+	fieldBelongsToAccount: stringField("The ID of the account"),
+	fieldCreatedAt:        timestampField("When the signup was created"),
+	fieldLastUpdatedAt:    timestampField("When the signup was last updated"),
+	fieldArchivedAt:       timestampField("When the signup was archived"),
 }
 
 var getWaitlistTool = &mcp.Tool{
 	Name:        "GetWaitlist",
 	Description: "Get a waitlist by its ID",
 	InputSchema: schemaObject(map[string]any{
-		"WaitlistID": stringField("The ID of the waitlist to get"),
+		fieldWaitlistID: stringField("The ID of the waitlist to get"),
 	}),
 	OutputSchema: schemaObject(waitlistSchema),
 }
@@ -58,10 +58,10 @@ var getWaitlistsTool = &mcp.Tool{
 	Name:        "GetWaitlists",
 	Description: "Get waitlists with optional filtering",
 	InputSchema: schemaObject(map[string]any{
-		"Filter": filtering.QueryFilterSchema(),
+		fieldFilter: filtering.QueryFilterSchema(),
 	}),
 	OutputSchema: schemaObject(map[string]any{
-		"Results": arrayType(schemaObject(waitlistSchema)),
+		fieldResults: arrayType(schemaObject(waitlistSchema)),
 	}),
 }
 
@@ -90,10 +90,10 @@ var getActiveWaitlistsTool = &mcp.Tool{
 	Name:        "GetActiveWaitlists",
 	Description: "Get waitlists that are currently active (not expired)",
 	InputSchema: schemaObject(map[string]any{
-		"Filter": filtering.QueryFilterSchema(),
+		fieldFilter: filtering.QueryFilterSchema(),
 	}),
 	OutputSchema: schemaObject(map[string]any{
-		"Results": arrayType(schemaObject(waitlistSchema)),
+		fieldResults: arrayType(schemaObject(waitlistSchema)),
 	}),
 }
 
@@ -123,7 +123,7 @@ var getWaitlistSignupTool = &mcp.Tool{
 	Description: "Get a specific waitlist signup",
 	InputSchema: schemaObject(map[string]any{
 		"WaitlistSignupID": stringField("The ID of the waitlist signup"),
-		"WaitlistID":       stringField("The ID of the waitlist"),
+		fieldWaitlistID:    stringField("The ID of the waitlist"),
 	}),
 	OutputSchema: schemaObject(waitlistSignupSchema),
 }
@@ -147,11 +147,11 @@ var getWaitlistSignupsForWaitlistTool = &mcp.Tool{
 	Name:        "GetWaitlistSignupsForWaitlist",
 	Description: "Get all signups for a specific waitlist",
 	InputSchema: schemaObject(map[string]any{
-		"WaitlistID": stringField("The ID of the waitlist"),
-		"Filter":     filtering.QueryFilterSchema(),
+		fieldWaitlistID: stringField("The ID of the waitlist"),
+		fieldFilter:     filtering.QueryFilterSchema(),
 	}),
 	OutputSchema: schemaObject(map[string]any{
-		"Results": arrayType(schemaObject(waitlistSignupSchema)),
+		fieldResults: arrayType(schemaObject(waitlistSignupSchema)),
 	}),
 }
 

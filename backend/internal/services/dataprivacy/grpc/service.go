@@ -13,12 +13,12 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/grpc/converters"
 
-	platformdataprivacy "github.com/primandproper/platform-go/v12/dataprivacy"
-	platformerrors "github.com/primandproper/platform-go/v12/errors"
-	errorsgrpc "github.com/primandproper/platform-go/v12/errors/grpc"
-	"github.com/primandproper/platform-go/v12/observability"
-	"github.com/primandproper/platform-go/v12/observability/logging"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	platformdataprivacy "github.com/primandproper/platform-go/v13/dataprivacy"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	errorsgrpc "github.com/primandproper/platform-go/v13/errors/grpc"
+	"github.com/primandproper/platform-go/v13/observability"
+	"github.com/primandproper/platform-go/v13/observability/logging"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 
 	"google.golang.org/grpc/codes"
 )

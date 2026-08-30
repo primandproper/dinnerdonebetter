@@ -29,14 +29,14 @@ const (
 func schemaObject(properties map[string]any) map[string]any {
 	return map[string]any{
 		"$schema":    jsonSchemaVersion,
-		"type":       objType,
+		keyType:      objType,
 		"properties": properties,
 	}
 }
 
 func objectType(fieldSchema map[string]any, requiredFields ...string) map[string]any {
 	x := map[string]any{
-		"type":       objType,
+		keyType:      objType,
 		"properties": fieldSchema,
 	}
 
@@ -49,37 +49,37 @@ func objectType(fieldSchema map[string]any, requiredFields ...string) map[string
 
 func arrayType(fieldSchema map[string]any) map[string]any {
 	return map[string]any{
-		"type":  arrType,
+		keyType: arrType,
 		"items": fieldSchema,
 	}
 }
 
 func floatField(description string) map[string]any {
 	return map[string]any{
-		"type":        numberType,
-		"description": description,
+		keyType:        numberType,
+		keyDescription: description,
 	}
 }
 
 func uintField(description string) map[string]any {
 	return map[string]any{
-		"type":        intType,
-		"description": description,
-		"minimum":     0,
+		keyType:        intType,
+		keyDescription: description,
+		"minimum":      0,
 	}
 }
 
 func boolField(description string) map[string]any {
 	return map[string]any{
-		"type":        boolType,
-		"description": description,
+		keyType:        boolType,
+		keyDescription: description,
 	}
 }
 
 func stringField(description string) map[string]any {
 	x := map[string]any{
-		"type":        strType,
-		"description": description,
+		keyType:        strType,
+		keyDescription: description,
 	}
 
 	return x
@@ -91,9 +91,9 @@ func timestampField(description string) map[string]any {
 
 func stringFieldWithFormat(description, format string) map[string]any {
 	x := map[string]any{
-		"type":        strType,
-		"description": description,
-		"format":      format,
+		keyType:        strType,
+		keyDescription: description,
+		"format":       format,
 	}
 
 	return x

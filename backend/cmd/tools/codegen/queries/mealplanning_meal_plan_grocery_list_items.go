@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v12/database/querygen"
+	"github.com/primandproper/platform-go/v13/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -28,7 +28,7 @@ var mealPlanGroceryListItemsColumns = []string{
 	"purchased_upc",
 	"purchase_price",
 	"status_explanation",
-	"status",
+	statusColumn,
 	createdAtColumn,
 	lastUpdatedAtColumn,
 	archivedAtColumn,
@@ -36,7 +36,7 @@ var mealPlanGroceryListItemsColumns = []string{
 	recipeIDColumn,
 	recipeStepIDColumn,
 	"ingredient_index",
-	"option_index",
+	optionIndexColumn,
 }
 
 func buildMealPlanGroceryListItemsQueries(database string) []*Query {
@@ -164,7 +164,7 @@ GROUP BY %s.%s,
 						validMeasurementUnitColumn,
 						validMeasurementUnitsTableName,
 						idColumn,
-						pgGen.FilterConditions(mealPlanGroceryListItemsTableName, mealPlanGroceryListItemsColumns,
+						pgGen.FilterConditions(mealPlanGroceryListItemsTableName, mealPlanGroceryListItemsColumns, querygen.Ascending,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealPlanGroceryListItemsTableName, belongsToMealPlanColumn, mealPlanIDColumn),
 							fmt.Sprintf("%s.%s IS NULL", validMeasurementUnitsTableName, archivedAtColumn),
 							fmt.Sprintf("%s.%s IS NULL", validIngredientsTableName, archivedAtColumn),
@@ -179,7 +179,7 @@ GROUP BY %s.%s,
 						idColumn,
 						mealPlansTableName,
 						idColumn,
-						pgGen.CursorLimitClause(mealPlanGroceryListItemsTableName),
+						pgGen.CursorLimitClause(mealPlanGroceryListItemsTableName, querygen.Ascending),
 					)),
 				},
 				{

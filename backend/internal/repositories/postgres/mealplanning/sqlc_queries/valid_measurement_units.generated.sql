@@ -76,7 +76,7 @@ WHERE archived_at IS NULL
 SELECT valid_measurement_units.id
 FROM valid_measurement_units
 WHERE valid_measurement_units.archived_at IS NULL
-	AND valid_measurement_units.id COLLATE "C" > sqlc.arg(cursor)
+	AND valid_measurement_units.id COLLATE "C" > sqlc.arg(page_cursor)
 ORDER BY valid_measurement_units.id COLLATE "C"
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
@@ -133,7 +133,7 @@ WHERE valid_measurement_units.created_at > COALESCE(sqlc.narg(created_after), (S
 		OR valid_measurement_units.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_measurement_units.archived_at IS NULL)
-	AND valid_measurement_units.id > COALESCE(sqlc.narg(cursor), '')
+	AND valid_measurement_units.id > COALESCE(sqlc.narg(page_cursor), '')
 GROUP BY valid_measurement_units.id
 ORDER BY valid_measurement_units.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
@@ -187,7 +187,7 @@ WHERE valid_measurement_units.created_at > COALESCE(sqlc.narg(created_after), (S
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_measurement_units.archived_at IS NULL)
 	AND valid_measurement_units.universal = TRUE
-	AND valid_measurement_units.id > COALESCE(sqlc.narg(cursor), '')
+	AND valid_measurement_units.id > COALESCE(sqlc.narg(page_cursor), '')
 GROUP BY valid_measurement_units.id
 ORDER BY valid_measurement_units.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
@@ -290,7 +290,7 @@ WHERE valid_measurement_units.created_at > COALESCE(sqlc.narg(created_after), (S
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_measurement_units.archived_at IS NULL)
 	AND valid_measurement_units.name ILIKE '%' || sqlc.arg(name_query)::text || '%'
-	AND valid_measurement_units.id > COALESCE(sqlc.narg(cursor), '')
+	AND valid_measurement_units.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY valid_measurement_units.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
@@ -354,6 +354,6 @@ WHERE valid_measurement_units.created_at > COALESCE(sqlc.narg(created_after), (S
 		)
 	AND valid_ingredients.archived_at IS NULL
 	AND valid_ingredient_measurement_units.archived_at IS NULL
-	AND valid_measurement_units.id > COALESCE(sqlc.narg(cursor), '')
+	AND valid_measurement_units.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY valid_measurement_units.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);

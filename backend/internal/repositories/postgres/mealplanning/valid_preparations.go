@@ -8,12 +8,12 @@ import (
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
-	"github.com/primandproper/platform-go/v12/database"
-	platformerrors "github.com/primandproper/platform-go/v12/errors"
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/observability"
-	platformkeys "github.com/primandproper/platform-go/v12/observability/keys"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v13/database"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/observability"
+	platformkeys "github.com/primandproper/platform-go/v13/observability/keys"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 )
 
 var (
@@ -150,7 +150,7 @@ func (q *repository) SearchForValidPreparations(ctx context.Context, query strin
 		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
 		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
 	})
@@ -215,7 +215,7 @@ func (q *repository) GetValidPreparations(ctx context.Context, filter *filtering
 		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
 		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
 	})
@@ -327,7 +327,7 @@ func (q *repository) ScanValidPreparationIDsForReindex(ctx context.Context, afte
 	defer span.End()
 
 	results, err := q.generatedQuerier.ScanValidPreparationIDsForReindex(ctx, q.readDB, &generated.ScanValidPreparationIDsForReindexParams{
-		Cursor:      after,
+		PageCursor:  after,
 		ResultLimit: limit,
 	})
 	if err != nil {
@@ -351,7 +351,7 @@ func (q *repository) CreateValidPreparation(ctx context.Context, input *mealplan
 	// create the valid preparation.
 	if err := q.withEvent(ctx, logger, mealplanning.ValidPreparationCreatedServiceEventType, "", map[string]any{
 		mealplanningkeys.ValidPreparationIDKey: input.ID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		return q.generatedQuerier.CreateValidPreparation(ctx, tx, &generated.CreateValidPreparationParams{
 			ID:                          input.ID,
 			Name:                        input.Name,
@@ -418,7 +418,7 @@ func (q *repository) UpdateValidPreparation(ctx context.Context, updated *mealpl
 
 	if err := q.withEvent(ctx, logger, mealplanning.ValidPreparationUpdatedServiceEventType, "", map[string]any{
 		mealplanningkeys.ValidPreparationIDKey: updated.ID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		_, updateErr := q.generatedQuerier.UpdateValidPreparation(ctx, tx, &generated.UpdateValidPreparationParams{
 			Description:                 updated.Description,
 			IconPath:                    updated.IconPath,
@@ -491,7 +491,7 @@ func (q *repository) ArchiveValidPreparation(ctx context.Context, validPreparati
 
 	return q.withEvent(ctx, logger, mealplanning.ValidPreparationArchivedServiceEventType, "", map[string]any{
 		mealplanningkeys.ValidPreparationIDKey: validPreparationID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		rowsAffected, archiveErr := q.generatedQuerier.ArchiveValidPreparation(ctx, tx, validPreparationID)
 		if archiveErr != nil {
 			return observability.PrepareAndLogError(archiveErr, logger, span, "updating valid preparation")

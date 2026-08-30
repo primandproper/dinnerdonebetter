@@ -9,11 +9,11 @@ import (
 	paymentskeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/keys"
 	generated "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/payments/generated"
 
-	"github.com/primandproper/platform-go/v12/database"
-	platformerrors "github.com/primandproper/platform-go/v12/errors"
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/observability"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v13/database"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/observability"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 )
 
 const (
@@ -43,7 +43,7 @@ func (r *repository) CreatePaymentTransaction(ctx context.Context, input *paymen
 		Status:                generated.PaymentTransactionStatus(input.Status),
 	}
 
-	if err := r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err := r.WithTransaction(ctx, func(tx database.Tx) error {
 		if err := r.generatedQuerier.CreatePaymentTransaction(ctx, tx, arg); err != nil {
 			return err
 		}
@@ -90,7 +90,7 @@ func (r *repository) GetPaymentTransactionsForAccount(ctx context.Context, accou
 		BelongsToAccount: accountID,
 		CreatedAfter:     database.NullTimeFromTimePointer(filter.CreatedAfter),
 		CreatedBefore:    database.NullTimeFromTimePointer(filter.CreatedBefore),
-		Cursor:           database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:       database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:      database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 	}
 

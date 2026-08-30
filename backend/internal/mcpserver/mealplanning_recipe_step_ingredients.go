@@ -5,7 +5,7 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 
-	"github.com/primandproper/platform-go/v12/filtering"
+	"github.com/primandproper/platform-go/v13/filtering"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -20,23 +20,23 @@ type (
 
 var recipeStepIngredientsSchema = map[string]any{
 	"ID":                     stringField("The ID of the recipe step ingredient"),
-	"CreatedAt":              timestampField("When the recipe step ingredient was created"),
-	"LastUpdatedAt":          timestampField("When the recipe step ingredient was last updated"),
-	"ArchivedAt":             timestampField("When the recipe step ingredient was soft deleted"),
-	"BelongsToRecipeStep":    stringField("The ID of the recipe step this ingredient belongs to"),
-	"Name":                   stringField("Name of the ingredient"),
+	fieldCreatedAt:           timestampField("When the recipe step ingredient was created"),
+	fieldLastUpdatedAt:       timestampField("When the recipe step ingredient was last updated"),
+	fieldArchivedAt:          timestampField("When the recipe step ingredient was soft deleted"),
+	fieldBelongsToRecipeStep: stringField("The ID of the recipe step this ingredient belongs to"),
+	fieldName:                stringField("Name of the ingredient"),
 	"QuantityNotes":          stringField("Notes about the quantity"),
 	"IngredientNotes":        stringField("Notes about the ingredient"),
-	"Ingredient":             objectType(validIngredientsSchema),
-	"MeasurementUnit":        objectType(validMeasurementUnitsSchema),
-	"MinQuantity":            floatField("Minimum quantity of this ingredient (required)"),
-	"MaxQuantity":            floatField("Maximum quantity of this ingredient (optional)"),
-	"RecipeStepProductID":    stringField("The ID of the recipe step product this ingredient is associated with, if any"),
+	fieldIngredient:          objectType(validIngredientsSchema),
+	fieldMeasurementUnit:     objectType(validMeasurementUnitsSchema),
+	fieldMinQuantity:         floatField("Minimum quantity of this ingredient (required)"),
+	fieldMaxQuantity:         floatField("Maximum quantity of this ingredient (optional)"),
+	fieldRecipeStepProductID: stringField("The ID of the recipe step product this ingredient is associated with, if any"),
 	"ProductOfRecipeID":      stringField("The ID of the recipe that produces this ingredient, if any"),
 	"ProductPercentageToUse": floatField("The percentage of the product to use, if any"),
 	"VesselIndex":            uintField("The index of the vessel this ingredient is in, if any"),
 	"OptionIndex":            uintField("The option index for this ingredient"),
-	"Optional":               boolField("Whether this ingredient is optional"),
+	fieldOptional:            boolField("Whether this ingredient is optional"),
 	"ToTaste":                boolField("Whether this ingredient is 'to taste'"),
 }
 
@@ -44,8 +44,8 @@ var getRecipeStepIngredientTool = &mcp.Tool{
 	Name:        "GetRecipeStepIngredient",
 	Description: "Get a recipe step ingredient by it's ID",
 	InputSchema: schemaObject(map[string]any{
-		"RecipeID":               stringField("The ID of the recipe"),
-		"RecipeStepID":           stringField("The ID of the recipe step"),
+		fieldRecipeID:            stringField("The ID of the recipe"),
+		fieldRecipeStepID:        stringField("The ID of the recipe step"),
 		"RecipeStepIngredientID": stringField("The ID of the recipe step ingredient to get"),
 	}),
 	OutputSchema: schemaObject(recipeStepIngredientsSchema),
@@ -82,12 +82,12 @@ var getRecipeStepIngredientsTool = &mcp.Tool{
 	Name:        "GetRecipeStepIngredients",
 	Description: "Get recipe step ingredients with optional filtering",
 	InputSchema: schemaObject(map[string]any{
-		"RecipeID":     stringField("The ID of the recipe"),
-		"RecipeStepID": stringField("The ID of the recipe step"),
-		"Filter":       filtering.QueryFilterSchema(),
+		fieldRecipeID:     stringField("The ID of the recipe"),
+		fieldRecipeStepID: stringField("The ID of the recipe step"),
+		fieldFilter:       filtering.QueryFilterSchema(),
 	}),
 	OutputSchema: schemaObject(map[string]any{
-		"Results": arrayType(schemaObject(recipeStepIngredientsSchema)),
+		fieldResults: arrayType(schemaObject(recipeStepIngredientsSchema)),
 	}),
 }
 

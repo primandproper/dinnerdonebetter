@@ -216,7 +216,7 @@ type GetProductsParams struct {
 	UpdatedAfter    sql.NullTime
 	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -243,7 +243,7 @@ func (q *Queries) GetProducts(ctx context.Context, db DBTX, arg *GetProductsPara
 		arg.UpdatedAfter,
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {
@@ -339,7 +339,7 @@ type SearchForProductsParams struct {
 	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	NameQuery       string
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -367,7 +367,7 @@ func (q *Queries) SearchForProducts(ctx context.Context, db DBTX, arg *SearchFor
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.NameQuery,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {

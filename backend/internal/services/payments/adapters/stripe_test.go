@@ -8,9 +8,10 @@ import (
 	"testing"
 	"time"
 
-	capstripe "github.com/primandproper/platform-go/v12/capitalism/stripe"
-	loggingnoop "github.com/primandproper/platform-go/v12/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v12/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v13/capitalism"
+	capstripe "github.com/primandproper/platform-go/v13/capitalism/stripe"
+	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
+	tracingnoop "github.com/primandproper/platform-go/v13/observability/tracing/noop"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -50,7 +51,7 @@ func buildSignedStripeRequest(t *testing.T, body string) *http.Request {
 	now := time.Now()
 	signature := webhook.ComputeSignature(now, []byte(body), exampleWebhookSecret)
 
-	req := httptest.NewRequest(http.MethodPost, "/api/payments/webhooks/stripe", strings.NewReader(body))
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/api/payments/webhooks/stripe", strings.NewReader(body))
 	req.Header.Set("Stripe-Signature", fmt.Sprintf("t=%d,v1=%x", now.Unix(), signature))
 
 	return req
@@ -169,7 +170,7 @@ func TestParseStripeEvent(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		actual, err := parseStripeEvent(&capstripe.Event{
+		actual, err := parseStripeEvent(&capitalism.Event{
 			ID:      "evt_example",
 			Type:    "customer.subscription.deleted",
 			Payload: []byte(`{"id": "sub_example", "status": "canceled", "customer": "cus_example"}`),
@@ -189,7 +190,7 @@ func TestParseStripeEvent(T *testing.T) {
 
 		// Stripe renders a relation as a bare ID or as the whole object depending on what the
 		// endpoint expanded; stripe-go's decoding is what makes both land in the same field.
-		actual, err := parseStripeEvent(&capstripe.Event{
+		actual, err := parseStripeEvent(&capitalism.Event{
 			ID:      "evt_example",
 			Type:    "customer.subscription.created",
 			Payload: []byte(`{"id": "sub_example", "status": "active", "customer": {"id": "cus_example", "email": "user@example.com"}}`),
@@ -203,7 +204,7 @@ func TestParseStripeEvent(T *testing.T) {
 	T.Run("with malformed payload", func(t *testing.T) {
 		t.Parallel()
 
-		actual, err := parseStripeEvent(&capstripe.Event{
+		actual, err := parseStripeEvent(&capitalism.Event{
 			ID:      "evt_example",
 			Type:    "customer.subscription.updated",
 			Payload: []byte(`{"id":`),

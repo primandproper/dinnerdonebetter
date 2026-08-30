@@ -4,9 +4,9 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
 
-	oauth2servercfg "github.com/primandproper/platform-go/v12/authentication/oauth2server/config"
-	databasecfg "github.com/primandproper/platform-go/v12/database/config"
-	"github.com/primandproper/platform-go/v12/observability"
+	oauth2servercfg "github.com/primandproper/platform-go/v13/authentication/oauth2server/config"
+	databasecfg "github.com/primandproper/platform-go/v13/database/config"
+	"github.com/primandproper/platform-go/v13/observability"
 
 	"github.com/samber/do/v2"
 )

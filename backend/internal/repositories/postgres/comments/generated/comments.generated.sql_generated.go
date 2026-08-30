@@ -160,7 +160,7 @@ type GetCommentsForReferenceParams struct {
 	IncludeArchived sql.NullBool
 	TargetType      CommentTargetType
 	ReferencedID    string
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -187,7 +187,7 @@ func (q *Queries) GetCommentsForReference(ctx context.Context, db DBTX, arg *Get
 		arg.IncludeArchived,
 		arg.TargetType,
 		arg.ReferencedID,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {
@@ -281,7 +281,7 @@ type GetCommentsForUserParams struct {
 	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	BelongsToUser   string
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -307,7 +307,7 @@ func (q *Queries) GetCommentsForUser(ctx context.Context, db DBTX, arg *GetComme
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.BelongsToUser,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {

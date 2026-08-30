@@ -8,12 +8,12 @@ import (
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
-	"github.com/primandproper/platform-go/v12/database"
-	platformerrors "github.com/primandproper/platform-go/v12/errors"
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/observability"
-	platformkeys "github.com/primandproper/platform-go/v12/observability/keys"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v13/database"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/observability"
+	platformkeys "github.com/primandproper/platform-go/v13/observability/keys"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 )
 
 var (
@@ -130,7 +130,7 @@ func (q *repository) SearchForValidInstruments(ctx context.Context, query string
 		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
 		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
 	})
@@ -188,7 +188,7 @@ func (q *repository) SearchForValidInstrumentsNotOwnedByAccount(ctx context.Cont
 		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
 		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
 	})
@@ -244,7 +244,7 @@ func (q *repository) GetValidInstruments(ctx context.Context, filter *filtering.
 		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
 		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
 	})
@@ -335,7 +335,7 @@ func (q *repository) ScanValidInstrumentIDsForReindex(ctx context.Context, after
 	defer span.End()
 
 	results, err := q.generatedQuerier.ScanValidInstrumentIDsForReindex(ctx, q.readDB, &generated.ScanValidInstrumentIDsForReindexParams{
-		Cursor:      after,
+		PageCursor:  after,
 		ResultLimit: limit,
 	})
 	if err != nil {
@@ -359,7 +359,7 @@ func (q *repository) CreateValidInstrument(ctx context.Context, input *types.Val
 	// create the valid instrument.
 	if err := q.withEvent(ctx, logger, types.ValidInstrumentCreatedServiceEventType, "", map[string]any{
 		mealplanningkeys.ValidInstrumentIDKey: input.ID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		return q.generatedQuerier.CreateValidInstrument(ctx, tx, &generated.CreateValidInstrumentParams{
 			ID:                             input.ID,
 			Name:                           input.Name,
@@ -406,7 +406,7 @@ func (q *repository) UpdateValidInstrument(ctx context.Context, updated *types.V
 
 	if err := q.withEvent(ctx, logger, types.ValidInstrumentUpdatedServiceEventType, "", map[string]any{
 		mealplanningkeys.ValidInstrumentIDKey: updated.ID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		_, updateErr := q.generatedQuerier.UpdateValidInstrument(ctx, tx, &generated.UpdateValidInstrumentParams{
 			Name:                           updated.Name,
 			PluralName:                     updated.PluralName,
@@ -469,7 +469,7 @@ func (q *repository) ArchiveValidInstrument(ctx context.Context, validInstrument
 
 	return q.withEvent(ctx, logger, types.ValidInstrumentArchivedServiceEventType, "", map[string]any{
 		mealplanningkeys.ValidInstrumentIDKey: validInstrumentID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		rowsAffected, archiveErr := q.generatedQuerier.ArchiveValidInstrument(ctx, tx, validInstrumentID)
 		if archiveErr != nil {
 			return observability.PrepareAndLogError(archiveErr, logger, span, "archiving valid instrument")

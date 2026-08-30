@@ -5,7 +5,7 @@ package converters
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists"
 
-	"github.com/primandproper/platform-go/v12/identifiers"
+	"github.com/primandproper/platform-go/v13/identifiers"
 )
 
 // ConvertWaitlistToWaitlistCreationRequestInput builds a WaitlistCreationRequestInput from a Waitlist.

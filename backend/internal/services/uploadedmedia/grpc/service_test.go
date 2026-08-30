@@ -6,10 +6,10 @@ import (
 	uploadedmediamock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia/mock"
 	uploadedmediasvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
 
-	meteringmock "github.com/primandproper/platform-go/v12/metering/mock"
-	loggingnoop "github.com/primandproper/platform-go/v12/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v12/observability/tracing/noop"
-	mockuploads "github.com/primandproper/platform-go/v12/uploads/mock"
+	meteringmock "github.com/primandproper/platform-go/v13/metering/mock"
+	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
+	tracingnoop "github.com/primandproper/platform-go/v13/observability/tracing/noop"
+	mockuploads "github.com/primandproper/platform-go/v13/uploads/mock"
 
 	"github.com/stretchr/testify/assert"
 )

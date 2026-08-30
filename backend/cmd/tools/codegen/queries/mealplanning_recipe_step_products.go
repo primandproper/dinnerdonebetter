@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v12/database/querygen"
+	"github.com/primandproper/platform-go/v13/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -28,12 +28,12 @@ var recipeStepProductsColumns = []string{
 	"quantity_notes",
 	"compostable",
 	"maximum_storage_duration_in_seconds",
-	"minimum_storage_temperature_in_celsius",
-	"maximum_storage_temperature_in_celsius",
-	"storage_instructions",
+	minimumStorageTemperatureInCelsiusColumn,
+	maximumStorageTemperatureInCelsiusColumn,
+	storageInstructionsColumn,
 	"is_liquid",
 	"is_waste",
-	"index",
+	indexColumn,
 	"contained_in_vessel_index",
 	createdAtColumn,
 	lastUpdatedAtColumn,
@@ -169,7 +169,7 @@ WHERE %s
 						measurementUnitColumn,
 						validMeasurementUnitsTableName,
 						idColumn,
-						pgGen.FilterConditions(recipeStepProductsTableName, recipeStepProductsColumns,
+						pgGen.FilterConditions(recipeStepProductsTableName, recipeStepProductsColumns, querygen.Ascending,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeStepProductsTableName, belongsToRecipeStepColumn, recipeStepIDColumn),
 							"recipe_steps.archived_at IS NULL",
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeStepsTableName, idColumn, recipeStepIDColumn),
@@ -177,7 +177,7 @@ WHERE %s
 							"recipes.archived_at IS NULL",
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipesTableName, idColumn, recipeIDColumn),
 						),
-						pgGen.CursorLimitClause(recipeStepProductsTableName),
+						pgGen.CursorLimitClause(recipeStepProductsTableName, querygen.Ascending),
 					)),
 				},
 				{

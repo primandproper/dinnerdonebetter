@@ -149,7 +149,7 @@ WHERE recipe_step_completion_conditions.created_at > COALESCE(sqlc.narg(created_
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR recipe_step_completion_conditions.archived_at IS NULL)
 	AND recipe_step_completion_conditions.belongs_to_recipe_step = sqlc.arg(recipe_step_id)
-	AND recipe_step_completion_conditions.id > COALESCE(sqlc.narg(cursor), '')
+	AND recipe_step_completion_conditions.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY recipe_step_completion_conditions.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 

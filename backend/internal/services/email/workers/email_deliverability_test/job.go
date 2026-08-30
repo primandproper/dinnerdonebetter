@@ -8,9 +8,9 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	queuemessages "github.com/primandproper/dinnerdonebetter/backend/internal/queues/messages"
 
-	"github.com/primandproper/platform-go/v12/email"
-	"github.com/primandproper/platform-go/v12/observability/logging"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v13/email"
+	"github.com/primandproper/platform-go/v13/observability/logging"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 )
 
 const (
@@ -59,13 +59,11 @@ func (j *Job) Do(ctx context.Context) error {
 	sentAt := time.Now().UTC().Format(time.RFC3339)
 
 	msg := &queuemessages.OutboundEmailMessage{
-		OutboundEmailMessage: email.OutboundEmailMessage{
-			ToAddress:   j.recipientEmail,
-			FromAddress: branding.FromEmail,
-			FromName:    branding.CompanyName,
-			Subject:     fmt.Sprintf("%s – Email Deliverability Test", branding.CompanyName),
-			HTMLContent: fmt.Sprintf("<p>Test sent at %s</p>", sentAt),
-		},
+		ToAddress:   j.recipientEmail,
+		FromAddress: branding.FromEmail,
+		FromName:    branding.CompanyName,
+		Subject:     fmt.Sprintf("%s – Email Deliverability Test", branding.CompanyName),
+		HTMLContent: fmt.Sprintf("<p>Test sent at %s</p>", sentAt),
 	}
 
 	if err := j.emailer.SendEmail(ctx, &msg.OutboundEmailMessage); err != nil {

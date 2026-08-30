@@ -5,7 +5,7 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 
-	"github.com/primandproper/platform-go/v12/filtering"
+	"github.com/primandproper/platform-go/v13/filtering"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -17,19 +17,19 @@ type (
 )
 
 var validMeasurementUnitsSchema = map[string]any{
-	"ID":            stringField("The ID of the valid measurement unit"),
-	"CreatedAt":     timestampField("When the valid measurement unit was created"),
-	"LastUpdatedAt": timestampField("When the valid measurement unit was last updated"),
-	"ArchivedAt":    timestampField("When the valid measurement unit was soft deleted"),
-	"Name":          stringField("Name of the measurement unit"),
-	"Description":   stringField("Description of the measurement unit"),
-	"IconPath":      stringField("The URL for the icon for the item"),
-	"PluralName":    stringField("The plural name for the measurement unit. So for a unit named 'cup', this would be 'cups'"),
-	"Slug":          stringField("An easy-to-use URL slug for the measurement unit"),
-	"Volumetric":    boolField("Whether or not the valid measurement unit is volumetric"),
-	"Universal":     boolField("Whether or not the valid measurement unit is universal (valid for all ingredients). For instance, 'grams' is a universal measurement unit"),
-	"Metric":        boolField("Whether or not the valid measurement unit is metric"),
-	"Imperial":      boolField("Whether or not the valid measurement unit is imperial"),
+	"ID":               stringField("The ID of the valid measurement unit"),
+	fieldCreatedAt:     timestampField("When the valid measurement unit was created"),
+	fieldLastUpdatedAt: timestampField("When the valid measurement unit was last updated"),
+	fieldArchivedAt:    timestampField("When the valid measurement unit was soft deleted"),
+	fieldName:          stringField("Name of the measurement unit"),
+	fieldDescription:   stringField("Description of the measurement unit"),
+	fieldIconPath:      stringField("The URL for the icon for the item"),
+	fieldPluralName:    stringField("The plural name for the measurement unit. So for a unit named 'cup', this would be 'cups'"),
+	fieldSlug:          stringField("An easy-to-use URL slug for the measurement unit"),
+	"Volumetric":       boolField("Whether or not the valid measurement unit is volumetric"),
+	"Universal":        boolField("Whether or not the valid measurement unit is universal (valid for all ingredients). For instance, 'grams' is a universal measurement unit"),
+	"Metric":           boolField("Whether or not the valid measurement unit is metric"),
+	"Imperial":         boolField("Whether or not the valid measurement unit is imperial"),
 }
 
 var getValidMeasurementUnitTool = &mcp.Tool{
@@ -71,14 +71,14 @@ var searchForValidMeasurementUnitsTool = &mcp.Tool{
 	Name:        "SearchForValidMeasurementUnits",
 	Description: "Search for valid measurement units with optional filtering and query string",
 	InputSchema: schemaObject(map[string]any{
-		"Filter": filtering.QueryFilterSchema(),
-		"Query": map[string]any{
-			"type":        strType,
-			"description": "The measurement unit name query",
+		fieldFilter: filtering.QueryFilterSchema(),
+		fieldQuery: map[string]any{
+			keyType:        strType,
+			keyDescription: "The measurement unit name query",
 		},
 	}),
 	OutputSchema: schemaObject(map[string]any{
-		"Results": arrayType(schemaObject(validMeasurementUnitsSchema)),
+		fieldResults: arrayType(schemaObject(validMeasurementUnitsSchema)),
 	}),
 }
 

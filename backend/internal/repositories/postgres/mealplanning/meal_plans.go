@@ -11,12 +11,12 @@ import (
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
-	"github.com/primandproper/platform-go/v12/database"
-	platformerrors "github.com/primandproper/platform-go/v12/errors"
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/identifiers"
-	"github.com/primandproper/platform-go/v12/observability"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v13/database"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/identifiers"
+	"github.com/primandproper/platform-go/v13/observability"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 )
 
 const (
@@ -155,7 +155,7 @@ func (q *repository) GetMealPlansForAccount(ctx context.Context, accountID strin
 		CreatedAfter:     database.NullTimeFromTimePointer(filter.CreatedAfter),
 		UpdatedBefore:    database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:     database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		Cursor:           database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:       database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:      database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived:  database.NullBoolFromBoolPointer(filter.IncludeArchived),
 	})
@@ -229,7 +229,7 @@ func (q *repository) CreateMealPlan(ctx context.Context, input *types.MealPlanDa
 
 	var err error
 	var x *types.MealPlan
-	if err = q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err = q.WithTransaction(ctx, func(tx database.Tx) error {
 		// create the meal plan.
 		if err = q.generatedQuerier.CreateMealPlan(ctx, tx, &generated.CreateMealPlanParams{
 			ID:               input.ID,
@@ -382,7 +382,7 @@ func (q *repository) UpdateMealPlan(ctx context.Context, updated *types.MealPlan
 
 	// The update, its audit log entry, and its data change event share a transaction so a
 	// failure part-way through leaves none of the three rather than some of them.
-	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err := q.WithTransaction(ctx, func(tx database.Tx) error {
 		rowsAffected, updateErr := q.generatedQuerier.UpdateMealPlan(ctx, tx, &generated.UpdateMealPlanParams{
 			Notes:            updated.Notes,
 			Status:           generated.MealPlanStatus(updated.Status),
@@ -444,7 +444,7 @@ func (q *repository) ArchiveMealPlan(ctx context.Context, mealPlanID, accountID 
 
 	// As with UpdateMealPlan: the archive, its audit log entry, and its data change event
 	// share a transaction.
-	return q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	return q.WithTransaction(ctx, func(tx database.Tx) error {
 		rowsAffected, archiveErr := q.generatedQuerier.ArchiveMealPlan(ctx, tx, &generated.ArchiveMealPlanParams{
 			BelongsToAccount: accountID,
 			ID:               mealPlanID,
@@ -515,7 +515,7 @@ func (q *repository) AttemptToFinalizeMealPlan(ctx context.Context, mealPlanID, 
 
 	usersWhoHaveNotVoted := []string{}
 	allVotesAreSubmitted := true
-	if err = q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err = q.WithTransaction(ctx, func(tx database.Tx) error {
 		for _, event := range mealPlan.Events {
 			if len(event.Options) == 0 {
 				continue
@@ -656,7 +656,7 @@ func (q *repository) AttachMealPlanFinalizationSaga(ctx context.Context, mealPla
 	}
 
 	var sagaID string
-	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err := q.WithTransaction(ctx, func(tx database.Tx) error {
 		// The instance row first, so its ID exists to be claimed with. Both writes are in this
 		// transaction, so losing the claim below takes the instance with it.
 		id, startErr := start(ctx, tx)

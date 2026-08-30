@@ -8,11 +8,11 @@ import (
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
-	"github.com/primandproper/platform-go/v12/database"
-	platformerrors "github.com/primandproper/platform-go/v12/errors"
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/observability"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v13/database"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/observability"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 )
 
 var (
@@ -319,7 +319,7 @@ func (q *repository) GetRecipeStepIngredients(ctx context.Context, recipeID, rec
 		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
 		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
 	})
@@ -534,7 +534,7 @@ func (q *repository) CreateRecipeStepIngredient(ctx context.Context, recipeID st
 		mealplanningkeys.RecipeIDKey:               recipeID,
 		mealplanningkeys.RecipeStepIDKey:           input.BelongsToRecipeStep,
 		mealplanningkeys.RecipeStepIngredientIDKey: input.ID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		var createErr error
 		created, createErr = q.createRecipeStepIngredient(ctx, tx, input)
 
@@ -577,7 +577,7 @@ func (q *repository) UpdateRecipeStepIngredient(ctx context.Context, recipeID st
 		mealplanningkeys.RecipeIDKey:               recipeID,
 		mealplanningkeys.RecipeStepIDKey:           updated.BelongsToRecipeStep,
 		mealplanningkeys.RecipeStepIngredientIDKey: updated.ID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		_, updateErr := q.generatedQuerier.UpdateRecipeStepIngredient(ctx, tx, &generated.UpdateRecipeStepIngredientParams{
 			IngredientID:              database.NullStringFromStringPointer(ingredientID),
 			Name:                      updated.Name,
@@ -632,7 +632,7 @@ func (q *repository) ArchiveRecipeStepIngredient(ctx context.Context, recipeID, 
 		mealplanningkeys.RecipeIDKey:               recipeID,
 		mealplanningkeys.RecipeStepIDKey:           recipeStepID,
 		mealplanningkeys.RecipeStepIngredientIDKey: recipeStepIngredientID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		rowsAffected, archiveErr := q.generatedQuerier.ArchiveRecipeStepIngredient(ctx, tx, &generated.ArchiveRecipeStepIngredientParams{
 			BelongsToRecipeStep: recipeStepID,
 			ID:                  recipeStepIngredientID,

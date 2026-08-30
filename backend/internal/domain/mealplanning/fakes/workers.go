@@ -3,7 +3,7 @@ package fakes
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 
-	"github.com/primandproper/platform-go/v12/fake"
+	"github.com/primandproper/platform-go/v13/fake"
 )
 
 // BuildFakeFinalizeMealPlansRequest builds a faked FinalizeMealPlansRequest.

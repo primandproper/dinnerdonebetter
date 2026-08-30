@@ -384,7 +384,7 @@ type GetServiceSettingConfigurationsForAccountParams struct {
 	UpdatedBefore    sql.NullTime
 	IncludeArchived  sql.NullBool
 	BelongsToAccount string
-	Cursor           sql.NullString
+	PageCursor       sql.NullString
 	ResultLimit      interface{}
 }
 
@@ -419,7 +419,7 @@ func (q *Queries) GetServiceSettingConfigurationsForAccount(ctx context.Context,
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.BelongsToAccount,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {
@@ -533,7 +533,7 @@ type GetServiceSettingConfigurationsForUserParams struct {
 	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	BelongsToUser   string
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -568,7 +568,7 @@ func (q *Queries) GetServiceSettingConfigurationsForUser(ctx context.Context, db
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.BelongsToUser,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {

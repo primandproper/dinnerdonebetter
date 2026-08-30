@@ -79,6 +79,6 @@ WHERE meal_lists.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR meal_lists.archived_at IS NULL)
 	AND meal_lists.belongs_to_user = sqlc.arg(belongs_to_user)
-	AND meal_lists.id > COALESCE(sqlc.narg(cursor), '')
+	AND meal_lists.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY meal_lists.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);

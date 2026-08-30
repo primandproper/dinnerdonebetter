@@ -13,8 +13,8 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity/generated"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	"github.com/primandproper/platform-go/v12/fake"
-	"github.com/primandproper/platform-go/v12/filtering"
+	"github.com/primandproper/platform-go/v13/fake"
+	"github.com/primandproper/platform-go/v13/filtering"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

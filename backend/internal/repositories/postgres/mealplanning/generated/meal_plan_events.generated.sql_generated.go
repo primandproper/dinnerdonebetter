@@ -242,7 +242,7 @@ type GetMealPlanEventsParams struct {
 	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	MealPlanID      string
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -268,7 +268,7 @@ func (q *Queries) GetMealPlanEvents(ctx context.Context, db DBTX, arg *GetMealPl
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.MealPlanID,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {

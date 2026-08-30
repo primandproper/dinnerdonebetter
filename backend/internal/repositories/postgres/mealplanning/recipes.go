@@ -13,13 +13,13 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
-	"github.com/primandproper/platform-go/v12/database"
-	platformerrors "github.com/primandproper/platform-go/v12/errors"
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/identifiers"
-	"github.com/primandproper/platform-go/v12/observability"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
-	"github.com/primandproper/platform-go/v12/pointer"
+	"github.com/primandproper/platform-go/v13/database"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/identifiers"
+	"github.com/primandproper/platform-go/v13/observability"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
+	"github.com/primandproper/platform-go/v13/pointer"
 )
 
 var (
@@ -422,7 +422,7 @@ func (q *repository) GetRecipes(ctx context.Context, status string, filter *filt
 		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
 		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
 		Status:          generated.NullRecipeStatus{RecipeStatus: generated.RecipeStatus(status), Valid: true},
@@ -497,7 +497,7 @@ func (q *repository) GetRecipesCreatedByUser(ctx context.Context, userID string,
 		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
 		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
 	})
@@ -680,7 +680,7 @@ func (q *repository) ScanRecipeIDsForReindex(ctx context.Context, after string, 
 	defer span.End()
 
 	results, err := q.generatedQuerier.ScanRecipeIDsForReindex(ctx, q.readDB, &generated.ScanRecipeIDsForReindexParams{
-		Cursor:      after,
+		PageCursor:  after,
 		ResultLimit: limit,
 	})
 	if err != nil {
@@ -708,7 +708,7 @@ func (q *repository) SearchForRecipes(ctx context.Context, recipeNameQuery strin
 		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
 		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
 		Query:           recipeNameQuery,
@@ -777,7 +777,7 @@ func (q *repository) SearchForMealEligibleRecipes(ctx context.Context, recipeNam
 		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
 		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
 		Query:           recipeNameQuery,
@@ -846,7 +846,7 @@ func (q *repository) SearchForRecipesWithInstrumentOwnership(ctx context.Context
 		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
 		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
 		Query:           recipeNameQuery,
@@ -967,7 +967,7 @@ func (q *repository) CreateRecipe(ctx context.Context, input *mealplanning.Recip
 
 	var err error
 	var x *mealplanning.Recipe
-	if err = q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err = q.WithTransaction(ctx, func(tx database.Tx) error {
 		// create the recipe.
 		if err = q.generatedQuerier.CreateRecipe(ctx, tx, &generated.CreateRecipeParams{
 			MinEstimatedPortions: database.StringFromFloat32(input.MinEstimatedPortions),
@@ -1231,7 +1231,7 @@ func (q *repository) UpdateRecipe(ctx context.Context, updated *mealplanning.Rec
 
 	return q.withEvent(ctx, logger, mealplanning.RecipeUpdatedServiceEventType, "", map[string]any{
 		mealplanningkeys.RecipeIDKey: updated.ID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		rowsAffected, err := q.generatedQuerier.UpdateRecipe(ctx, tx, &generated.UpdateRecipeParams{
 			Name:                 updated.Name,
 			Slug:                 updated.Slug,
@@ -1277,7 +1277,7 @@ func (q *repository) UpdateRecipeStatus(ctx context.Context, recipeID, newStatus
 
 	return q.withEvent(ctx, logger, mealplanning.RecipeUpdatedServiceEventType, "", map[string]any{
 		mealplanningkeys.RecipeIDKey: recipeID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		rowsAffected, err := q.generatedQuerier.UpdateRecipeStatus(ctx, tx, &generated.UpdateRecipeStatusParams{
 			Status: generated.RecipeStatus(newStatus),
 			ID:     recipeID,
@@ -1461,7 +1461,7 @@ func (q *repository) ArchiveRecipe(ctx context.Context, recipeID, userID string)
 
 	return q.withEvent(ctx, logger, mealplanning.RecipeArchivedServiceEventType, "", map[string]any{
 		mealplanningkeys.RecipeIDKey: recipeID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		rowsAffected, err := q.generatedQuerier.ArchiveRecipe(ctx, tx, &generated.ArchiveRecipeParams{
 			CreatedByUser: userID,
 			ID:            recipeID,

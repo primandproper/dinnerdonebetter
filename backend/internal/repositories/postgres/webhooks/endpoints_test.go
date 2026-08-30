@@ -11,10 +11,10 @@ import (
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 	generated "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhooks/generated"
 
-	"github.com/primandproper/platform-go/v12/fake"
-	"github.com/primandproper/platform-go/v12/identifiers"
-	"github.com/primandproper/platform-go/v12/tenancy"
-	"github.com/primandproper/platform-go/v12/webhooks"
+	"github.com/primandproper/platform-go/v13/fake"
+	"github.com/primandproper/platform-go/v13/identifiers"
+	"github.com/primandproper/platform-go/v13/tenancy"
+	"github.com/primandproper/platform-go/v13/webhooks"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -62,7 +62,7 @@ func TestIntegration_WebhookEndpoint_Scope(t *testing.T) {
 
 	// Unqualified: the same string the catalog holds, and the same one a subscriber reads out
 	// of X-Platform-Event.
-	assert.Equal(t, []webhooks.EventType{webhooks.EventType(webhook.TriggerConfigs[0].EventType)}, endpoint.Events)
+	assert.Equal(t, []webhooks.EventType{webhooks.EventType(webhook.TriggerConfigs[0].EventType)}, endpoint.EventTypes())
 
 	// Another account's read of the same ID finds nothing, which is what the scope buys — and
 	// so does the global scope, which matches only itself.
@@ -103,13 +103,13 @@ func TestIntegration_WebhookEndpoint_Subscriptions(t *testing.T) {
 	assert.ElementsMatch(t, []webhooks.EventType{
 		webhooks.EventType(firstEventType),
 		webhooks.EventType(secondEventType),
-	}, endpoint.Events)
+	}, endpoint.EventTypes())
 
 	require.NoError(t, dbc.ArchiveWebhookTriggerConfig(ctx, webhook.ID, accountID, secondConfig.ID))
 
 	endpoint, err = dbc.endpoints.GetEndpoint(ctx, scope, webhook.ID)
 	require.NoError(t, err)
-	assert.Equal(t, []webhooks.EventType{webhooks.EventType(firstEventType)}, endpoint.Events)
+	assert.Equal(t, []webhooks.EventType{webhooks.EventType(firstEventType)}, endpoint.EventTypes())
 
 	// Unsubscribing from the last event type leaves an endpoint that is registered and
 	// subscribed to nothing. It is a real state — inert, because fan-out reads the
@@ -119,7 +119,7 @@ func TestIntegration_WebhookEndpoint_Subscriptions(t *testing.T) {
 
 	endpoint, err = dbc.endpoints.GetEndpoint(ctx, scope, webhook.ID)
 	require.NoError(t, err)
-	assert.Empty(t, endpoint.Events)
+	assert.Empty(t, endpoint.EventTypes())
 }
 
 // TestIntegration_RotateWebhookSecret covers the rotation window: both keys sign every delivery
@@ -193,7 +193,7 @@ func TestIntegration_RotateWebhookSecret_RegistersMissingEndpoint(t *testing.T) 
 	assert.Equal(t, decodeSecret(t, secret), endpoint.Secret.Current)
 	// Registered, not rotated: there is no outgoing key to keep signing under.
 	assert.Empty(t, endpoint.Secret.Previous)
-	assert.Equal(t, []webhooks.EventType{webhooks.EventType(exampleWebhook.TriggerConfigs[0].EventType)}, endpoint.Events)
+	assert.Equal(t, []webhooks.EventType{webhooks.EventType(exampleWebhook.TriggerConfigs[0].EventType)}, endpoint.EventTypes())
 }
 
 // TestIntegration_ArchiveWebhook_RetiresEndpoint asserts the endpoint stops matching fan-out when

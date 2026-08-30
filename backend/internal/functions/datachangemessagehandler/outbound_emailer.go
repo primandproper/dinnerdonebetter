@@ -9,8 +9,8 @@ import (
 
 	queuemessages "github.com/primandproper/dinnerdonebetter/backend/internal/queues/messages"
 
-	"github.com/primandproper/platform-go/v12/observability"
-	"github.com/primandproper/platform-go/v12/retry"
+	"github.com/primandproper/platform-go/v13/observability"
+	"github.com/primandproper/platform-go/v13/retry"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"

@@ -12,11 +12,11 @@ import (
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity/generated"
 
-	"github.com/primandproper/platform-go/v12/database"
-	platformerrors "github.com/primandproper/platform-go/v12/errors"
-	"github.com/primandproper/platform-go/v12/identifiers"
-	"github.com/primandproper/platform-go/v12/observability"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v13/database"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	"github.com/primandproper/platform-go/v13/identifiers"
+	"github.com/primandproper/platform-go/v13/observability"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 )
 
 const (
@@ -144,7 +144,7 @@ func (r *repository) GetDefaultAccountIDForUser(ctx context.Context, userID stri
 }
 
 // markAccountAsUserDefault marks a given account as the user's default.
-func (r *repository) markAccountAsUserDefault(ctx context.Context, querier database.SQLQueryExecutor, userID, accountID string) error {
+func (r *repository) markAccountAsUserDefault(ctx context.Context, querier database.Tx, userID, accountID string) error {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -161,7 +161,7 @@ func (r *repository) markAccountAsUserDefault(ctx context.Context, querier datab
 	tracing.AttachToSpan(span, identitykeys.AccountIDKey, accountID)
 
 	var err error
-	if err = r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err = r.WithTransaction(ctx, func(tx database.Tx) error {
 		if err = r.generatedQuerier.MarkAccountUserMembershipAsUserDefault(ctx, querier, &generated.MarkAccountUserMembershipAsUserDefaultParams{
 			BelongsToUser:    userID,
 			BelongsToAccount: accountID,
@@ -205,7 +205,7 @@ func (r *repository) MarkAccountAsUserDefault(ctx context.Context, userID, accou
 	return r.withEvent(ctx, r.logger, identity.UserChangedActiveAccountServiceEventType, accountID, map[string]any{
 		identitykeys.AccountIDKey: accountID,
 		identitykeys.UserIDKey:    userID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		return r.markAccountAsUserDefault(ctx, tx, userID, accountID)
 	})
 }
@@ -261,7 +261,7 @@ func (r *repository) ModifyUserPermissions(ctx context.Context, accountID, userI
 	}
 
 	var err error
-	if err = r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err = r.WithTransaction(ctx, func(tx database.Tx) error {
 		// Update the user's account-level role assignment.
 		if err = r.generatedQuerier.UpdateAccountRoleAssignment(ctx, tx, &generated.UpdateAccountRoleAssignmentParams{
 			NewRoleID: newRole.ID,
@@ -325,7 +325,7 @@ func (r *repository) TransferAccountOwnership(ctx context.Context, accountID str
 	tracing.AttachToSpan(span, identitykeys.UserIDKey, input.NewOwner)
 	tracing.AttachToSpan(span, identitykeys.AccountIDKey, accountID)
 
-	if err := r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err := r.WithTransaction(ctx, func(tx database.Tx) error {
 		// create the membership.
 		if err := r.generatedQuerier.TransferAccountOwnership(ctx, tx, &generated.TransferAccountOwnershipParams{
 			NewOwner:  input.NewOwner,
@@ -392,7 +392,7 @@ func (r *repository) TransferAccountOwnership(ctx context.Context, accountID str
 }
 
 // addUserToAccount does a thing.
-func (r *repository) addUserToAccount(ctx context.Context, querier database.SQLQueryExecutor, input *identity.AccountUserMembershipDatabaseCreationInput) error {
+func (r *repository) addUserToAccount(ctx context.Context, querier database.Tx, input *identity.AccountUserMembershipDatabaseCreationInput) error {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -442,7 +442,7 @@ func (r *repository) addUserToAccount(ctx context.Context, querier database.SQLQ
 }
 
 // removeUserFromAccount removes a user's membership to an account.
-func (r *repository) removeUserFromAccount(ctx context.Context, querier database.SQLQueryExecutor, userID, accountID string) error {
+func (r *repository) removeUserFromAccount(ctx context.Context, querier database.Tx, userID, accountID string) error {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -527,7 +527,7 @@ func (r *repository) RemoveUserFromAccount(ctx context.Context, userID, accountI
 	})
 
 	var err error
-	if err = r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err = r.WithTransaction(ctx, func(tx database.Tx) error {
 		if err = r.removeUserFromAccount(ctx, tx, userID, accountID); err != nil {
 			return observability.PrepareAndLogError(err, logger, span, "removing user from account")
 		}

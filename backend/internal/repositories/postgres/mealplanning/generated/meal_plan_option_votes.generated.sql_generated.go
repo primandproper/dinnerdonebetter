@@ -241,7 +241,7 @@ type GetMealPlanOptionVotesParams struct {
 	MealPlanOptionID string
 	MealPlanEventID  sql.NullString
 	MealPlanID       string
-	Cursor           sql.NullString
+	PageCursor       sql.NullString
 	ResultLimit      interface{}
 }
 
@@ -269,7 +269,7 @@ func (q *Queries) GetMealPlanOptionVotes(ctx context.Context, db DBTX, arg *GetM
 		arg.MealPlanOptionID,
 		arg.MealPlanEventID,
 		arg.MealPlanID,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {

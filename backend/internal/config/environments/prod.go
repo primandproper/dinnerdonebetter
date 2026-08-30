@@ -19,45 +19,45 @@ import (
 	uploadedmediacfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/testutils"
 
-	analyticscfg "github.com/primandproper/platform-go/v12/analytics/config"
-	analyticsposthog "github.com/primandproper/platform-go/v12/analytics/posthog"
-	oauth2servercfg "github.com/primandproper/platform-go/v12/authentication/oauth2server/config"
-	oauth2database "github.com/primandproper/platform-go/v12/authentication/oauth2server/database"
-	tokenscfg "github.com/primandproper/platform-go/v12/authentication/tokens/config"
-	platformwebauthn "github.com/primandproper/platform-go/v12/authentication/webauthn"
-	webauthncfg "github.com/primandproper/platform-go/v12/authentication/webauthn/config"
-	capitalismcfg "github.com/primandproper/platform-go/v12/capitalism/config"
-	circuitbreakingcfg "github.com/primandproper/platform-go/v12/circuitbreaking/config"
-	encryptioncfg "github.com/primandproper/platform-go/v12/cryptography/encryption/config"
-	databasecfg "github.com/primandproper/platform-go/v12/database/config"
-	emailcfg "github.com/primandproper/platform-go/v12/email/config"
-	"github.com/primandproper/platform-go/v12/email/resend"
-	"github.com/primandproper/platform-go/v12/encoding"
-	featureflagscfg "github.com/primandproper/platform-go/v12/featureflags/config"
-	"github.com/primandproper/platform-go/v12/featureflags/posthog"
-	msgconfig "github.com/primandproper/platform-go/v12/messagequeue/config"
-	"github.com/primandproper/platform-go/v12/messagequeue/pubsub"
-	"github.com/primandproper/platform-go/v12/notifications/mobile/apns"
-	notificationscfg "github.com/primandproper/platform-go/v12/notifications/mobile/config"
-	"github.com/primandproper/platform-go/v12/notifications/mobile/fcm"
-	"github.com/primandproper/platform-go/v12/observability"
-	"github.com/primandproper/platform-go/v12/observability/logging"
-	loggingcfg "github.com/primandproper/platform-go/v12/observability/logging/config"
-	logotelgrpc "github.com/primandproper/platform-go/v12/observability/logging/otelgrpc"
-	metricscfg "github.com/primandproper/platform-go/v12/observability/metrics/config"
-	"github.com/primandproper/platform-go/v12/observability/metrics/otelgrpc"
-	profilingcfg "github.com/primandproper/platform-go/v12/observability/profiling/config"
-	"github.com/primandproper/platform-go/v12/observability/profiling/pyroscope"
-	tracingcfg "github.com/primandproper/platform-go/v12/observability/tracing/config"
-	"github.com/primandproper/platform-go/v12/observability/tracing/oteltrace"
-	"github.com/primandproper/platform-go/v12/routing/backends/chi"
-	routingcfg "github.com/primandproper/platform-go/v12/routing/config"
-	"github.com/primandproper/platform-go/v12/search/text/algolia"
-	textsearchcfg "github.com/primandproper/platform-go/v12/search/text/config"
-	"github.com/primandproper/platform-go/v12/server/grpc"
-	"github.com/primandproper/platform-go/v12/server/http"
-	uploadscfg "github.com/primandproper/platform-go/v12/uploads/config"
-	"github.com/primandproper/platform-go/v12/uploads/objectstorage"
+	analyticscfg "github.com/primandproper/platform-go/v13/analytics/config"
+	analyticsposthog "github.com/primandproper/platform-go/v13/analytics/posthog"
+	oauth2servercfg "github.com/primandproper/platform-go/v13/authentication/oauth2server/config"
+	oauth2database "github.com/primandproper/platform-go/v13/authentication/oauth2server/database"
+	tokenscfg "github.com/primandproper/platform-go/v13/authentication/tokens/config"
+	platformwebauthn "github.com/primandproper/platform-go/v13/authentication/webauthn"
+	webauthncfg "github.com/primandproper/platform-go/v13/authentication/webauthn/config"
+	capitalismcfg "github.com/primandproper/platform-go/v13/capitalism/config"
+	circuitbreakingcfg "github.com/primandproper/platform-go/v13/circuitbreaking/config"
+	encryptioncfg "github.com/primandproper/platform-go/v13/cryptography/encryption/config"
+	databasecfg "github.com/primandproper/platform-go/v13/database/config"
+	emailcfg "github.com/primandproper/platform-go/v13/email/config"
+	"github.com/primandproper/platform-go/v13/email/resend"
+	"github.com/primandproper/platform-go/v13/encoding"
+	featureflagscfg "github.com/primandproper/platform-go/v13/featureflags/config"
+	"github.com/primandproper/platform-go/v13/featureflags/posthog"
+	msgconfig "github.com/primandproper/platform-go/v13/messagequeue/config"
+	"github.com/primandproper/platform-go/v13/messagequeue/pubsub"
+	"github.com/primandproper/platform-go/v13/notifications/mobile/apns"
+	notificationscfg "github.com/primandproper/platform-go/v13/notifications/mobile/config"
+	"github.com/primandproper/platform-go/v13/notifications/mobile/fcm"
+	"github.com/primandproper/platform-go/v13/observability"
+	"github.com/primandproper/platform-go/v13/observability/logging"
+	loggingcfg "github.com/primandproper/platform-go/v13/observability/logging/config"
+	logotelgrpc "github.com/primandproper/platform-go/v13/observability/logging/otelgrpc"
+	metricscfg "github.com/primandproper/platform-go/v13/observability/metrics/config"
+	"github.com/primandproper/platform-go/v13/observability/metrics/otelgrpc"
+	profilingcfg "github.com/primandproper/platform-go/v13/observability/profiling/config"
+	"github.com/primandproper/platform-go/v13/observability/profiling/pyroscope"
+	tracingcfg "github.com/primandproper/platform-go/v13/observability/tracing/config"
+	"github.com/primandproper/platform-go/v13/observability/tracing/oteltrace"
+	"github.com/primandproper/platform-go/v13/routing/backends/chi"
+	routingcfg "github.com/primandproper/platform-go/v13/routing/config"
+	"github.com/primandproper/platform-go/v13/search/text/algolia"
+	textsearchcfg "github.com/primandproper/platform-go/v13/search/text/config"
+	"github.com/primandproper/platform-go/v13/server/grpc"
+	"github.com/primandproper/platform-go/v13/server/http"
+	uploadscfg "github.com/primandproper/platform-go/v13/uploads/config"
+	"github.com/primandproper/platform-go/v13/uploads/objectstorage"
 )
 
 const (
@@ -198,17 +198,17 @@ func BuildProdConfig() *config.APIServiceConfig {
 				ConnMaxLifetime: 30 * time.Minute,
 				ReadConnection: databasecfg.ConnectionDetails{
 					Username:   "api_db_user",
-					Password:   "REPLACE_AT_DEPLOY", /* #nosec G101 */
-					Database:   "dinner-done-better",
-					Host:       "REPLACE_AT_DEPLOY",
+					Password:   replaceAtDeploy, /* #nosec G101 */
+					Database:   serviceName,
+					Host:       replaceAtDeploy,
 					Port:       5432,
 					DisableSSL: false,
 				},
 				WriteConnection: databasecfg.ConnectionDetails{
 					Username:   "api_db_user",
-					Password:   "REPLACE_AT_DEPLOY", /* #nosec G101 */
-					Database:   "dinner-done-better",
-					Host:       "REPLACE_AT_DEPLOY",
+					Password:   replaceAtDeploy, /* #nosec G101 */
+					Database:   serviceName,
+					Host:       replaceAtDeploy,
 					Port:       5432,
 					DisableSSL: false,
 				},
@@ -218,7 +218,7 @@ func BuildProdConfig() *config.APIServiceConfig {
 		Email: emailcfg.Config{
 			Provider: emailcfg.ProviderResend,
 			Resend: &resend.Config{
-				APIToken: "placeholder", // overridden by env from api-service-config secret
+				APIToken: placeholderValue, // overridden by env from api-service-config secret
 			},
 			CircuitBreaker: circuitbreakingcfg.Config{
 				Name:                   "prod_emailer",
@@ -228,20 +228,20 @@ func BuildProdConfig() *config.APIServiceConfig {
 		},
 		Analytics: analyticscfg.Config{
 			ProxySources: analyticscfg.ProxySourcesConfig{
-				"ios": {
+				iosPlatform: {
 					Provider: analyticscfg.ProviderPostHog,
-					Posthog:  &analyticsposthog.Config{APIKey: "placeholder"}, // overridden by env from api-service-config secret
+					Posthog:  &analyticsposthog.Config{APIKey: placeholderValue}, // overridden by env from api-service-config secret
 					CircuitBreaker: circuitbreakingcfg.Config{
-						Name:                   "ios_analytics",
+						Name:                   iosAnalyticsSource,
 						ErrorRate:              .5,
 						MinimumSampleThreshold: 100,
 					},
 				},
-				"web": {
+				webPlatform: {
 					Provider: analyticscfg.ProviderPostHog,
-					Posthog:  &analyticsposthog.Config{APIKey: "placeholder"}, // overridden by env from api-service-config secret
+					Posthog:  &analyticsposthog.Config{APIKey: placeholderValue}, // overridden by env from api-service-config secret
 					CircuitBreaker: circuitbreakingcfg.Config{
-						Name:                   "web_analytics",
+						Name:                   webAnalyticsSource,
 						ErrorRate:              .5,
 						MinimumSampleThreshold: 100,
 					},
@@ -249,7 +249,7 @@ func BuildProdConfig() *config.APIServiceConfig {
 			},
 			SourceConfig: analyticscfg.SourceConfig{
 				Provider: analyticscfg.ProviderPostHog,
-				Posthog:  &analyticsposthog.Config{APIKey: "placeholder"}, // overridden by env from api-service-config secret
+				Posthog:  &analyticsposthog.Config{APIKey: placeholderValue}, // overridden by env from api-service-config secret
 				CircuitBreaker: circuitbreakingcfg.Config{
 					Name:                   "api_analytics",
 					ErrorRate:              .5,
@@ -260,8 +260,8 @@ func BuildProdConfig() *config.APIServiceConfig {
 		TextSearch: textsearchcfg.Config{
 			Provider: textsearchcfg.AlgoliaProvider,
 			Algolia: &algolia.Config{
-				AppID:  "placeholder", // overridden by env from the algolia-credentials secret
-				APIKey: "placeholder",
+				AppID:  placeholderValue, // overridden by env from the algolia-credentials secret
+				APIKey: placeholderValue,
 			},
 			CircuitBreaker: circuitbreakingcfg.Config{
 				Name:                   "prod_text_searcher",
@@ -276,9 +276,9 @@ func BuildProdConfig() *config.APIServiceConfig {
 			// evaluation without one — so a config naming only the project key used to
 			// validate clean and then fail to serve a single flag. It is a real secret this
 			// deployment now has to supply.
-			PostHog: &posthog.Config{ProjectAPIKey: "placeholder", PersonalAPIKey: "placeholder"},
+			PostHog: &posthog.Config{ProjectAPIKey: placeholderValue, PersonalAPIKey: placeholderValue},
 			CircuitBreaker: circuitbreakingcfg.Config{
-				Name:                   "feature_flagger",
+				Name:                   featureFlaggerSource,
 				ErrorRate:              .5,
 				MinimumSampleThreshold: 100,
 			},
@@ -306,7 +306,7 @@ func BuildProdConfig() *config.APIServiceConfig {
 			Tokens: authcfg.TokensConfig{
 				Config: tokenscfg.Config{
 					Provider:                tokenscfg.ProviderPASETO,
-					Issuer:                  "dinner-done-better",
+					Issuer:                  serviceName,
 					Audience:                prodTokensAudience,
 					Base64EncodedSigningKey: base64.URLEncoding.EncodeToString([]byte(testutils.Example32ByteKey)),
 				},
@@ -357,7 +357,7 @@ func BuildProdConfig() *config.APIServiceConfig {
 				Tokens: authcfg.TokensConfig{
 					Config: tokenscfg.Config{
 						Provider:                tokenscfg.ProviderPASETO,
-						Issuer:                  "dinner-done-better",
+						Issuer:                  serviceName,
 						Audience:                prodTokensAudience,
 						Base64EncodedSigningKey: base64.URLEncoding.EncodeToString([]byte(testutils.Example32ByteKey)),
 					},

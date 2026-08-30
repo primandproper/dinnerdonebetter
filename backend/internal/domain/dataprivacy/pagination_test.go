@@ -5,8 +5,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/identifiers"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/identifiers"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -42,7 +42,7 @@ func TestCollectAllPages(T *testing.T) {
 		fetchCalls := 0
 		actual, err := CollectAllPages(t.Context(), func(_ context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[testRow], error) {
 			fetchCalls++
-			assert.EqualValues(t, filtering.MaxQueryFilterLimit, *filter.MaxResponseSize)
+			assert.Equal(t, filtering.MaxQueryFilterLimit, *filter.MaxResponseSize)
 			return expected, nil
 		})
 
@@ -54,7 +54,7 @@ func TestCollectAllPages(T *testing.T) {
 	T.Run("exhausts multiple pages", func(t *testing.T) {
 		t.Parallel()
 
-		fullPage := buildTestPage(filtering.MaxQueryFilterLimit)
+		fullPage := buildTestPage(int(filtering.MaxQueryFilterLimit))
 		lastPage := buildTestPage(7)
 
 		var cursorsSeen []*string
@@ -70,7 +70,7 @@ func TestCollectAllPages(T *testing.T) {
 
 		require.NoError(t, err)
 		assert.Equal(t, 2, fetchCalls)
-		assert.Len(t, actual, filtering.MaxQueryFilterLimit+7)
+		assert.Len(t, actual, int(filtering.MaxQueryFilterLimit)+7)
 
 		require.Len(t, cursorsSeen, 2)
 		assert.Nil(t, cursorsSeen[0], "first request must not carry a cursor")
@@ -94,7 +94,7 @@ func TestCollectAllPages(T *testing.T) {
 	T.Run("halts when the cursor stops advancing", func(t *testing.T) {
 		t.Parallel()
 
-		stuckPage := buildTestPage(filtering.MaxQueryFilterLimit)
+		stuckPage := buildTestPage(int(filtering.MaxQueryFilterLimit))
 
 		fetchCalls := 0
 		actual, err := CollectAllPages(t.Context(), func(_ context.Context, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[testRow], error) {
@@ -104,6 +104,6 @@ func TestCollectAllPages(T *testing.T) {
 
 		require.NoError(t, err)
 		assert.Equal(t, 2, fetchCalls, "an unmoving cursor must terminate the loop")
-		assert.Len(t, actual, 2*filtering.MaxQueryFilterLimit)
+		assert.Len(t, actual, 2*int(filtering.MaxQueryFilterLimit))
 	})
 }

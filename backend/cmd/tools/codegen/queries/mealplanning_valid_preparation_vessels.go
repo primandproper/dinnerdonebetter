@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v12/database/querygen"
+	"github.com/primandproper/platform-go/v13/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -89,13 +89,13 @@ WHERE %s
 						capacityUnitColumn,
 						validMeasurementUnitsTableName,
 						idColumn,
-						pgGen.FilterConditions(validPreparationVesselsTableName, validPreparationVesselsColumns,
+						pgGen.FilterConditions(validPreparationVesselsTableName, validPreparationVesselsColumns, querygen.Ascending,
 							"valid_vessels.archived_at IS NULL",
 							"valid_preparations.archived_at IS NULL",
 							"valid_measurement_units.archived_at IS NULL",
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", validPreparationVesselsTableName, validPreparationIDColumn, idColumn),
 						),
-						pgGen.CursorLimitClause(validPreparationVesselsTableName),
+						pgGen.CursorLimitClause(validPreparationVesselsTableName, querygen.Ascending),
 					)),
 				},
 				{
@@ -132,13 +132,13 @@ WHERE %s
 						capacityUnitColumn,
 						validMeasurementUnitsTableName,
 						idColumn,
-						pgGen.FilterConditions(validPreparationVesselsTableName, validPreparationVesselsColumns,
+						pgGen.FilterConditions(validPreparationVesselsTableName, validPreparationVesselsColumns, querygen.Ascending,
 							"valid_vessels.archived_at IS NULL",
 							"valid_preparations.archived_at IS NULL",
 							"valid_measurement_units.archived_at IS NULL",
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", validPreparationVesselsTableName, validVesselIDColumn, idColumn),
 						),
-						pgGen.CursorLimitClause(validPreparationVesselsTableName),
+						pgGen.CursorLimitClause(validPreparationVesselsTableName, querygen.Ascending),
 					)),
 				},
 				{
@@ -175,12 +175,12 @@ WHERE %s
 						capacityUnitColumn,
 						validMeasurementUnitsTableName,
 						idColumn,
-						pgGen.FilterConditions(validPreparationVesselsTableName, validPreparationVesselsColumns,
+						pgGen.FilterConditions(validPreparationVesselsTableName, validPreparationVesselsColumns, querygen.Ascending,
 							"valid_vessels.archived_at IS NULL",
 							"valid_preparations.archived_at IS NULL",
 							"valid_measurement_units.archived_at IS NULL",
 						),
-						pgGen.CursorLimitClause(validPreparationVesselsTableName),
+						pgGen.CursorLimitClause(validPreparationVesselsTableName, querygen.Ascending),
 					)),
 				},
 				{

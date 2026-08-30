@@ -9,11 +9,11 @@ import (
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
-	"github.com/primandproper/platform-go/v12/database"
-	platformerrors "github.com/primandproper/platform-go/v12/errors"
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/observability"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v13/database"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/observability"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 )
 
 const (
@@ -179,7 +179,7 @@ func (q *repository) GetMealPlanEvents(ctx context.Context, mealPlanID string, f
 		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
 		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
 	})
@@ -247,7 +247,7 @@ func (q *repository) MealPlanEventIsEligibleForVoting(ctx context.Context, mealP
 }
 
 // createMealPlanEvent creates a meal plan event in the database.
-func (q *repository) createMealPlanEvent(ctx context.Context, querier database.SQLQueryExecutor, input *types.MealPlanEventDatabaseCreationInput) (*types.MealPlanEvent, error) {
+func (q *repository) createMealPlanEvent(ctx context.Context, querier database.Tx, input *types.MealPlanEventDatabaseCreationInput) (*types.MealPlanEvent, error) {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -312,7 +312,7 @@ func (q *repository) CreateMealPlanEvent(ctx context.Context, input *types.MealP
 	}
 
 	var x *types.MealPlanEvent
-	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err := q.WithTransaction(ctx, func(tx database.Tx) error {
 		created, err := q.createMealPlanEvent(ctx, tx, input)
 		if err != nil {
 			return observability.PrepareError(err, span, "creating meal plan event")
@@ -350,7 +350,7 @@ func (q *repository) UpdateMealPlanEvent(ctx context.Context, updated *types.Mea
 	if err := q.withEvent(ctx, logger, types.MealPlanEventUpdatedServiceEventType, "", map[string]any{
 		mealplanningkeys.MealPlanIDKey:      updated.BelongsToMealPlan,
 		mealplanningkeys.MealPlanEventIDKey: updated.ID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		if _, updateErr := q.generatedQuerier.UpdateMealPlanEvent(ctx, tx, &generated.UpdateMealPlanEventParams{
 			Notes:             updated.Notes,
 			StartsAt:          updated.StartsAt,
@@ -407,7 +407,7 @@ func (q *repository) SwapMealPlanEvents(ctx context.Context, mealPlanID, mealPla
 	eventA.StartsAt, eventA.EndsAt = eventBStartsAt, eventBEndsAt
 	eventB.StartsAt, eventB.EndsAt = eventAStartsAt, eventAEndsAt
 
-	if err = q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err = q.WithTransaction(ctx, func(tx database.Tx) error {
 		if _, err = q.generatedQuerier.UpdateMealPlanEvent(ctx, tx, &generated.UpdateMealPlanEventParams{
 			Notes:             eventA.Notes,
 			StartsAt:          eventA.StartsAt,
@@ -486,7 +486,7 @@ func (q *repository) ArchiveMealPlanEvent(ctx context.Context, mealPlanID, mealP
 	return q.withEvent(ctx, logger, types.MealPlanEventArchivedServiceEventType, "", map[string]any{
 		mealplanningkeys.MealPlanIDKey:      mealPlanID,
 		mealplanningkeys.MealPlanEventIDKey: mealPlanEventID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		rowsAffected, archiveErr := q.generatedQuerier.ArchiveMealPlanEvent(ctx, tx, &generated.ArchiveMealPlanEventParams{
 			ID:                mealPlanEventID,
 			BelongsToMealPlan: mealPlanID,

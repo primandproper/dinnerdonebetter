@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v12/database/querygen"
+	"github.com/primandproper/platform-go/v13/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -135,11 +135,11 @@ WHERE %s
 						serviceSettingIDColumn,
 						serviceSettingsTableName,
 						idColumn,
-						pgGen.FilterConditions(serviceSettingConfigurationsTableName, serviceSettingConfigurationsColumns,
+						pgGen.FilterConditions(serviceSettingConfigurationsTableName, serviceSettingConfigurationsColumns, querygen.Ascending,
 							"service_settings.archived_at IS NULL",
 							"service_setting_configurations.belongs_to_account = sqlc.arg(belongs_to_account)",
 						),
-						pgGen.CursorLimitClause(serviceSettingConfigurationsTableName),
+						pgGen.CursorLimitClause(serviceSettingConfigurationsTableName, querygen.Ascending),
 					)),
 				},
 				{
@@ -164,11 +164,11 @@ WHERE %s
 						serviceSettingIDColumn,
 						serviceSettingsTableName,
 						idColumn,
-						pgGen.FilterConditions(serviceSettingConfigurationsTableName, serviceSettingConfigurationsColumns,
+						pgGen.FilterConditions(serviceSettingConfigurationsTableName, serviceSettingConfigurationsColumns, querygen.Ascending,
 							"service_settings.archived_at IS NULL",
 							"service_setting_configurations.belongs_to_user = sqlc.arg(belongs_to_user)",
 						),
-						pgGen.CursorLimitClause(serviceSettingConfigurationsTableName),
+						pgGen.CursorLimitClause(serviceSettingConfigurationsTableName, querygen.Ascending),
 					)),
 				},
 			},

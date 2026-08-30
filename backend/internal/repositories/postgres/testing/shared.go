@@ -11,8 +11,8 @@ import (
 
 	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
 
-	"github.com/primandproper/platform-go/v12/testutils/containers"
-	"github.com/primandproper/platform-go/v12/testutils/containers/pgtest"
+	"github.com/primandproper/platform-go/v13/testutils/containers"
+	"github.com/primandproper/platform-go/v13/testutils/containers/pgtest"
 
 	"github.com/stretchr/testify/require"
 )

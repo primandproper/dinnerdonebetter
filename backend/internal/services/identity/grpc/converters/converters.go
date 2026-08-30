@@ -8,7 +8,7 @@ import (
 	uploadedmediasvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
 	uploadedmediaconverters "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/grpc/converters"
 
-	"github.com/primandproper/platform-go/v12/pointer"
+	"github.com/primandproper/platform-go/v13/pointer"
 )
 
 func convertUserAvatarToGRPC(avatar *uploadedmedia.UploadedMedia) *uploadedmediasvc.UploadedMedia {

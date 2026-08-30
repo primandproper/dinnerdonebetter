@@ -45,10 +45,10 @@ import (
 	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
 	mealplanningindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
-	"github.com/primandproper/platform-go/v12/database"
-	platformerrors "github.com/primandproper/platform-go/v12/errors"
-	"github.com/primandproper/platform-go/v12/outbox"
-	searchsync "github.com/primandproper/platform-go/v12/search/sync"
+	"github.com/primandproper/platform-go/v13/database"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	"github.com/primandproper/platform-go/v13/outbox"
+	searchsync "github.com/primandproper/platform-go/v13/search/sync"
 )
 
 // SideEffectName identifies this effect on the Writer. It appears in the error a duplicate or
@@ -158,7 +158,7 @@ var byEventType = map[string]Spec{
 //
 // The executor is unused: every row this needs is already in the message. It is in the signature
 // because an effect that has to read the database to decide is the reason the signature has one.
-func SideEffect(_ context.Context, _ database.SQLQueryExecutor, msgs []outbox.Message) ([]outbox.Message, error) {
+func SideEffect(_ context.Context, _ database.Tx, msgs []outbox.Message) ([]outbox.Message, error) {
 	var derived []outbox.Message
 
 	for i := range msgs {

@@ -130,7 +130,7 @@ WHERE valid_ingredient_state_ingredients.created_at > COALESCE(sqlc.narg(created
 	AND valid_ingredients.archived_at IS NULL
 	AND valid_ingredient_states.archived_at IS NULL
 	AND valid_ingredient_state_ingredients.valid_ingredient = sqlc.arg(valid_ingredient)
-	AND valid_ingredient_state_ingredients.id > COALESCE(sqlc.narg(cursor), '')
+	AND valid_ingredient_state_ingredients.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY valid_ingredient_state_ingredients.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
@@ -230,7 +230,7 @@ WHERE valid_ingredient_state_ingredients.created_at > COALESCE(sqlc.narg(created
 	AND valid_ingredients.archived_at IS NULL
 	AND valid_ingredient_states.archived_at IS NULL
 	AND valid_ingredient_state_ingredients.valid_ingredient_state = sqlc.arg(valid_ingredient_state)
-	AND valid_ingredient_state_ingredients.id > COALESCE(sqlc.narg(cursor), '')
+	AND valid_ingredient_state_ingredients.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY valid_ingredient_state_ingredients.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
@@ -329,7 +329,7 @@ WHERE valid_ingredient_state_ingredients.created_at > COALESCE(sqlc.narg(created
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_ingredient_state_ingredients.archived_at IS NULL)
 	AND valid_ingredients.archived_at IS NULL
 	AND valid_ingredient_states.archived_at IS NULL
-	AND valid_ingredient_state_ingredients.id > COALESCE(sqlc.narg(cursor), '')
+	AND valid_ingredient_state_ingredients.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY valid_ingredient_state_ingredients.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 

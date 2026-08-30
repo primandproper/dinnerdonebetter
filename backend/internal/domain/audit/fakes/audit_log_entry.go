@@ -3,8 +3,8 @@ package fakes
 import (
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 
-	"github.com/primandproper/platform-go/v12/fake"
-	"github.com/primandproper/platform-go/v12/filtering"
+	"github.com/primandproper/platform-go/v13/fake"
+	"github.com/primandproper/platform-go/v13/filtering"
 )
 
 // BuildFakeAuditLogEntry builds a faked audit log entry.

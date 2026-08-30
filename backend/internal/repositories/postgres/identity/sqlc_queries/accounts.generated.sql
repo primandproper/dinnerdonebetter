@@ -193,7 +193,7 @@ WHERE accounts.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_T
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR accounts.archived_at IS NULL)
 	AND account_user_memberships.archived_at IS NULL
 	AND account_user_memberships.belongs_to_user = sqlc.arg(belongs_to_user)
-	AND accounts.id > COALESCE(sqlc.narg(cursor), '')
+	AND accounts.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY accounts.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 

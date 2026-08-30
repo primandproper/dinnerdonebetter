@@ -5,7 +5,7 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 
-	"github.com/primandproper/platform-go/v12/filtering"
+	"github.com/primandproper/platform-go/v13/filtering"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -17,13 +17,13 @@ type (
 )
 
 var validPreparationVesselsSchema = map[string]any{
-	"ID":            stringField("The ID of the valid preparation vessel"),
-	"CreatedAt":     timestampField("When the valid preparation vessel was created"),
-	"LastUpdatedAt": timestampField("When the valid preparation vessel was last updated"),
-	"ArchivedAt":    timestampField("When the valid preparation vessel was soft deleted"),
-	"Notes":         stringField("Notes about the preparation vessel"),
-	"Vessel":        objectType(validVesselsSchema),
-	"Preparation":   objectType(validPreparationsSchema),
+	"ID":               stringField("The ID of the valid preparation vessel"),
+	fieldCreatedAt:     timestampField("When the valid preparation vessel was created"),
+	fieldLastUpdatedAt: timestampField("When the valid preparation vessel was last updated"),
+	fieldArchivedAt:    timestampField("When the valid preparation vessel was soft deleted"),
+	fieldNotes:         stringField("Notes about the preparation vessel"),
+	"Vessel":           objectType(validVesselsSchema),
+	fieldPreparation:   objectType(validPreparationsSchema),
 }
 
 var getValidPreparationVesselTool = &mcp.Tool{
@@ -64,10 +64,10 @@ var getValidPreparationVesselsTool = &mcp.Tool{
 	Name:        "GetValidPreparationVessels",
 	Description: "Get valid preparation vessels with optional filtering",
 	InputSchema: schemaObject(map[string]any{
-		"Filter": filtering.QueryFilterSchema(),
+		fieldFilter: filtering.QueryFilterSchema(),
 	}),
 	OutputSchema: schemaObject(map[string]any{
-		"Results": arrayType(schemaObject(validPreparationVesselsSchema)),
+		fieldResults: arrayType(schemaObject(validPreparationVesselsSchema)),
 	}),
 }
 

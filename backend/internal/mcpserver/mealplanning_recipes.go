@@ -5,7 +5,7 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 
-	"github.com/primandproper/platform-go/v12/filtering"
+	"github.com/primandproper/platform-go/v13/filtering"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -18,16 +18,16 @@ type (
 
 var recipesSchema = map[string]any{
 	"ID":                   stringField("The ID of the recipe"),
-	"CreatedAt":            timestampField("When the recipe was created"),
-	"LastUpdatedAt":        timestampField("When the recipe was last updated"),
-	"ArchivedAt":           timestampField("When the recipe was soft deleted"),
+	fieldCreatedAt:         timestampField("When the recipe was created"),
+	fieldLastUpdatedAt:     timestampField("When the recipe was last updated"),
+	fieldArchivedAt:        timestampField("When the recipe was soft deleted"),
 	"InspiredByRecipeID":   stringField("The ID of the recipe this recipe was inspired by, if any"),
-	"Name":                 stringField("Name of the recipe"),
-	"Description":          stringField("Description of the recipe"),
+	fieldName:              stringField("Name of the recipe"),
+	fieldDescription:       stringField("Description of the recipe"),
 	"Source":               stringField("Source of the recipe"),
 	"SourceISBN":           stringField("ISBN of the recipe source book, if any"),
-	"Slug":                 stringField("An easy-to-use URL slug for the recipe"),
-	"CreatedByUser":        stringField("The ID of the user who created the recipe"),
+	fieldSlug:              stringField("An easy-to-use URL slug for the recipe"),
+	fieldCreatedByUser:     stringField("The ID of the user who created the recipe"),
 	"PortionName":          stringField("Name for a single portion (e.g., 'serving', 'piece')"),
 	"PluralPortionName":    stringField("Plural name for portions (e.g., 'servings', 'pieces')"),
 	"YieldsComponentType":  stringField("The type of component this recipe yields"),
@@ -44,7 +44,7 @@ var getRecipeTool = &mcp.Tool{
 	Name:        "GetRecipe",
 	Description: "Get a recipe by it's ID",
 	InputSchema: schemaObject(map[string]any{
-		"RecipeID": stringField("The ID of the recipe to get"),
+		fieldRecipeID: stringField("The ID of the recipe to get"),
 	}),
 	OutputSchema: schemaObject(recipesSchema),
 }
@@ -78,10 +78,10 @@ var getRecipesTool = &mcp.Tool{
 	Name:        "GetRecipes",
 	Description: "Get recipes with optional filtering",
 	InputSchema: schemaObject(map[string]any{
-		"Filter": filtering.QueryFilterSchema(),
+		fieldFilter: filtering.QueryFilterSchema(),
 	}),
 	OutputSchema: schemaObject(map[string]any{
-		"Results": arrayType(schemaObject(recipesSchema)),
+		fieldResults: arrayType(schemaObject(recipesSchema)),
 	}),
 }
 
@@ -117,11 +117,11 @@ var searchForRecipesTool = &mcp.Tool{
 	Name:        "SearchForRecipes",
 	Description: "Search for recipes with optional filtering",
 	InputSchema: schemaObject(map[string]any{
-		"Query":  stringField("The search query string"),
-		"Filter": filtering.QueryFilterSchema(),
+		fieldQuery:  stringField("The search query string"),
+		fieldFilter: filtering.QueryFilterSchema(),
 	}),
 	OutputSchema: schemaObject(map[string]any{
-		"Results": arrayType(schemaObject(recipesSchema)),
+		fieldResults: arrayType(schemaObject(recipesSchema)),
 	}),
 }
 

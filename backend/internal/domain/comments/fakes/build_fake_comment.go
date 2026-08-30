@@ -3,8 +3,8 @@ package fakes
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments"
 
-	"github.com/primandproper/platform-go/v12/fake"
-	"github.com/primandproper/platform-go/v12/filtering"
+	"github.com/primandproper/platform-go/v13/fake"
+	"github.com/primandproper/platform-go/v13/filtering"
 )
 
 // commentTargetType is the kind of thing these fakes comment on.

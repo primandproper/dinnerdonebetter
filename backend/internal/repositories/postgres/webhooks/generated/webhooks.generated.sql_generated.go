@@ -249,7 +249,7 @@ type GetWebhooksForAccountParams struct {
 	UpdatedBefore    sql.NullTime
 	IncludeArchived  sql.NullBool
 	BelongsToAccount string
-	Cursor           sql.NullString
+	PageCursor       sql.NullString
 	ResultLimit      interface{}
 }
 
@@ -281,7 +281,7 @@ func (q *Queries) GetWebhooksForAccount(ctx context.Context, db DBTX, arg *GetWe
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.BelongsToAccount,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {

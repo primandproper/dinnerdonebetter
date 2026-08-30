@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v12/database/querygen"
+	"github.com/primandproper/platform-go/v13/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -63,10 +63,10 @@ WHERE %s
 						pgGen.TotalCountSelect(mealListsTableName, mealListsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealListsTableName, belongsToUserColumn, belongsToUserColumn)),
 						mealListsTableName,
 						mealListItemsTableName, mealListItemsTableName, "belongs_to_meal_list", mealListsTableName, idColumn, mealListItemsTableName, archivedAtColumn,
-						pgGen.FilterConditions(mealListsTableName, mealListsColumns,
+						pgGen.FilterConditions(mealListsTableName, mealListsColumns, querygen.Ascending,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealListsTableName, belongsToUserColumn, belongsToUserColumn),
 						),
-						pgGen.CursorLimitClause(mealListsTableName),
+						pgGen.CursorLimitClause(mealListsTableName, querygen.Ascending),
 					)),
 				},
 			},

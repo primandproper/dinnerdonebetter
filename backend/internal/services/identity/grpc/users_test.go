@@ -13,10 +13,10 @@ import (
 	identitysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
 	uploadedmediasvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
 
-	"github.com/primandproper/platform-go/v12/fake"
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/uploads"
-	mockuploads "github.com/primandproper/platform-go/v12/uploads/mock"
+	"github.com/primandproper/platform-go/v13/fake"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/uploads"
+	mockuploads "github.com/primandproper/platform-go/v13/uploads/mock"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

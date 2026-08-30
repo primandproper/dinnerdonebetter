@@ -10,11 +10,11 @@ import (
 	uploadedmediakeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia/keys"
 	generated "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/uploadedmedia/generated"
 
-	"github.com/primandproper/platform-go/v12/database"
-	platformerrors "github.com/primandproper/platform-go/v12/errors"
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/observability"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v13/database"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/observability"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 )
 
 const (
@@ -116,7 +116,7 @@ func (r *repository) GetUploadedMediaForUser(ctx context.Context, userID string,
 		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
 		CreatedByUser:   userID,
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 	})
 	if err != nil {
@@ -172,7 +172,7 @@ func (r *repository) CreateUploadedMedia(ctx context.Context, input *types.Uploa
 
 	var err error
 	var x *types.UploadedMedia
-	if err = r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err = r.WithTransaction(ctx, func(tx database.Tx) error {
 		if err = r.generatedQuerier.CreateUploadedMedia(ctx, tx, &generated.CreateUploadedMediaParams{
 			ID:            input.ID,
 			StoragePath:   input.StoragePath,
@@ -223,7 +223,7 @@ func (r *repository) UpdateUploadedMedia(ctx context.Context, uploadedMedia *typ
 	logger = logger.WithValue(uploadedmediakeys.UploadedMediaIDKey, uploadedMedia.ID)
 	tracing.AttachToSpan(span, uploadedmediakeys.UploadedMediaIDKey, uploadedMedia.ID)
 
-	if err := r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err := r.WithTransaction(ctx, func(tx database.Tx) error {
 		rowsAffected, err := r.generatedQuerier.UpdateUploadedMedia(ctx, tx, &generated.UpdateUploadedMediaParams{
 			StoragePath: uploadedMedia.StoragePath,
 			MimeType:    generated.UploadedMediaMimeType(uploadedMedia.MimeType),
@@ -270,7 +270,7 @@ func (r *repository) ArchiveUploadedMedia(ctx context.Context, uploadedMediaID s
 	logger = logger.WithValue(uploadedmediakeys.UploadedMediaIDKey, uploadedMediaID)
 	tracing.AttachToSpan(span, uploadedmediakeys.UploadedMediaIDKey, uploadedMediaID)
 
-	if err := r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err := r.WithTransaction(ctx, func(tx database.Tx) error {
 		rowsAffected, err := r.generatedQuerier.ArchiveUploadedMedia(ctx, tx, uploadedMediaID)
 		if err != nil {
 			return observability.PrepareAndLogError(err, logger, span, "archiving uploaded media")

@@ -5,8 +5,8 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 
-	"github.com/primandproper/platform-go/v12/database"
-	"github.com/primandproper/platform-go/v12/outbox"
+	"github.com/primandproper/platform-go/v13/database"
+	"github.com/primandproper/platform-go/v13/outbox"
 )
 
 /*
@@ -47,7 +47,7 @@ thing every write owes into a thing a call site could forget.
 // It runs the same side effect over the same shape of message, so such a write reads out of the
 // same table as every other. The message itself is never enqueued; only what the effect derives
 // from it is.
-func (e *Emitter) EmitIndex(ctx context.Context, q database.SQLQueryExecutor, trigger string, metadata map[string]any) error {
+func (e *Emitter) EmitIndex(ctx context.Context, q database.Tx, trigger string, metadata map[string]any) error {
 	if e == nil || e.sideEffect == nil {
 		return nil
 	}

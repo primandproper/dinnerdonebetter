@@ -9,8 +9,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	queuemessages "github.com/primandproper/dinnerdonebetter/backend/internal/queues/messages"
 
-	"github.com/primandproper/platform-go/v12/email"
-
 	"github.com/matcornic/hermes/v2"
 )
 
@@ -62,13 +60,11 @@ func BuildMealPlanCreatedEmail(recipient *identity.User, mealPlan *mealplanning.
 	}
 
 	msg := &queuemessages.OutboundEmailMessage{
-		OutboundEmailMessage: email.OutboundEmailMessage{
-			ToAddress:   recipient.EmailAddress,
-			FromAddress: branding.FromEmail,
-			FromName:    branding.CompanyName,
-			Subject:     "A new meal plan has been created!",
-			HTMLContent: htmlContent,
-		},
+		ToAddress:   recipient.EmailAddress,
+		FromAddress: branding.FromEmail,
+		FromName:    branding.CompanyName,
+		Subject:     "A new meal plan has been created!",
+		HTMLContent: htmlContent,
 	}
 
 	return msg, nil

@@ -117,7 +117,7 @@ WHERE recipe_ratings.created_at > COALESCE(sqlc.narg(created_after), (SELECT CUR
 	AND recipe_ratings.archived_at IS NULL AND
 		recipe_ratings.belongs_to_recipe = sqlc.arg(belongs_to_recipe)
 	AND recipe_ratings.belongs_to_recipe = sqlc.arg(belongs_to_recipe)
-	AND recipe_ratings.id > COALESCE(sqlc.narg(cursor), '')
+	AND recipe_ratings.id > COALESCE(sqlc.narg(page_cursor), '')
 GROUP BY recipe_ratings.id
 ORDER BY recipe_ratings.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
@@ -173,7 +173,7 @@ WHERE recipe_ratings.created_at > COALESCE(sqlc.narg(created_after), (SELECT CUR
 	AND recipe_ratings.archived_at IS NULL AND
 		recipe_ratings.created_by_user = sqlc.arg(created_by_user)
 	AND recipe_ratings.created_by_user = sqlc.arg(created_by_user)
-	AND recipe_ratings.id > COALESCE(sqlc.narg(cursor), '')
+	AND recipe_ratings.id > COALESCE(sqlc.narg(page_cursor), '')
 GROUP BY recipe_ratings.id
 ORDER BY recipe_ratings.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);

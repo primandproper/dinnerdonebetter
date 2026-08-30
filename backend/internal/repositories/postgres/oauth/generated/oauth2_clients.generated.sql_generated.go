@@ -164,7 +164,7 @@ type GetOAuth2ClientsParams struct {
 	CreatedAfter    sql.NullTime
 	CreatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -186,7 +186,7 @@ func (q *Queries) GetOAuth2Clients(ctx context.Context, db DBTX, arg *GetOAuth2C
 		arg.CreatedAfter,
 		arg.CreatedBefore,
 		arg.IncludeArchived,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {

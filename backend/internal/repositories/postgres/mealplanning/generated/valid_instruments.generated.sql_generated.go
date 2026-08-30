@@ -268,7 +268,7 @@ type GetValidInstrumentsParams struct {
 	UpdatedAfter    sql.NullTime
 	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -297,7 +297,7 @@ func (q *Queries) GetValidInstruments(ctx context.Context, db DBTX, arg *GetVali
 		arg.UpdatedAfter,
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {
@@ -467,12 +467,12 @@ LIMIT COALESCE($2, 50)
 `
 
 type ScanValidInstrumentIDsForReindexParams struct {
-	Cursor      string
+	PageCursor  string
 	ResultLimit interface{}
 }
 
 func (q *Queries) ScanValidInstrumentIDsForReindex(ctx context.Context, db DBTX, arg *ScanValidInstrumentIDsForReindexParams) ([]string, error) {
-	rows, err := db.QueryContext(ctx, scanValidInstrumentIDsForReindex, arg.Cursor, arg.ResultLimit)
+	rows, err := db.QueryContext(ctx, scanValidInstrumentIDsForReindex, arg.PageCursor, arg.ResultLimit)
 	if err != nil {
 		return nil, err
 	}
@@ -554,7 +554,7 @@ type SearchForValidInstrumentsParams struct {
 	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	NameQuery       string
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -584,7 +584,7 @@ func (q *Queries) SearchForValidInstruments(ctx context.Context, db DBTX, arg *S
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.NameQuery,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {
@@ -688,7 +688,7 @@ type SearchForValidInstrumentsNotOwnedByAccountParams struct {
 	IncludeArchived sql.NullBool
 	AccountID       string
 	NameQuery       string
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -719,7 +719,7 @@ func (q *Queries) SearchForValidInstrumentsNotOwnedByAccount(ctx context.Context
 		arg.IncludeArchived,
 		arg.AccountID,
 		arg.NameQuery,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {

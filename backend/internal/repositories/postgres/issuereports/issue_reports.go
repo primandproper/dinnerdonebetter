@@ -10,11 +10,11 @@ import (
 	issuereportkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports/keys"
 	generated "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/issuereports/generated"
 
-	"github.com/primandproper/platform-go/v12/database"
-	platformerrors "github.com/primandproper/platform-go/v12/errors"
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/observability"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v13/database"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/observability"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 )
 
 const (
@@ -78,7 +78,7 @@ func (r *repository) GetIssueReports(ctx context.Context, filter *filtering.Quer
 		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 	})
 	if err != nil {
@@ -146,7 +146,7 @@ func (r *repository) GetIssueReportsForAccount(ctx context.Context, accountID st
 		UpdatedAfter:     database.NullTimeFromTimePointer(filter.UpdatedAfter),
 		IncludeArchived:  database.NullBoolFromBoolPointer(filter.IncludeArchived),
 		BelongsToAccount: accountID,
-		Cursor:           database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:       database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:      database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 	})
 	if err != nil {
@@ -205,7 +205,7 @@ func (r *repository) CreateIssueReport(ctx context.Context, input *types.IssueRe
 
 	var err error
 	var x *types.IssueReport
-	if err = r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err = r.WithTransaction(ctx, func(tx database.Tx) error {
 		if err = r.generatedQuerier.CreateIssueReport(ctx, tx, &generated.CreateIssueReportParams{
 			ID:               input.ID,
 			IssueType:        input.IssueType,
@@ -270,7 +270,7 @@ func (r *repository) UpdateIssueReport(ctx context.Context, issueReport *types.I
 	logger = logger.WithValue(issuereportkeys.IssueReportIDKey, issueReport.ID)
 	tracing.AttachToSpan(span, issuereportkeys.IssueReportIDKey, issueReport.ID)
 
-	if err := r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err := r.WithTransaction(ctx, func(tx database.Tx) error {
 		rowsAffected, err := r.generatedQuerier.UpdateIssueReport(ctx, tx, &generated.UpdateIssueReportParams{
 			ID:               issueReport.ID,
 			IssueType:        issueReport.IssueType,
@@ -337,7 +337,7 @@ func (r *repository) GetIssueReportsForTable(ctx context.Context, tableName stri
 		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 	})
 	if err != nil {
@@ -412,7 +412,7 @@ func (r *repository) GetIssueReportsForRecord(ctx context.Context, tableName, re
 		UpdatedBefore:    database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:     database.NullTimeFromTimePointer(filter.UpdatedAfter),
 		IncludeArchived:  database.NullBoolFromBoolPointer(filter.IncludeArchived),
-		Cursor:           database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:       database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:      database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 	})
 	if err != nil {
@@ -471,7 +471,7 @@ func (r *repository) ArchiveIssueReport(ctx context.Context, issueReportID strin
 		return observability.PrepareAndLogError(getErr, logger, span, "fetching issue report for archive")
 	}
 
-	if err := r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err := r.WithTransaction(ctx, func(tx database.Tx) error {
 		rowsAffected, err := r.generatedQuerier.ArchiveIssueReport(ctx, tx, issueReportID)
 		if err != nil {
 			return observability.PrepareAndLogError(err, logger, span, "archiving issue report")

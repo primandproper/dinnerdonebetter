@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v12/database/querygen"
+	"github.com/primandproper/platform-go/v13/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -21,7 +21,7 @@ var recipeMediaColumns = []string{
 	"mime_type",
 	"internal_path",
 	"external_path",
-	"index",
+	indexColumn,
 	createdAtColumn,
 	lastUpdatedAtColumn,
 	archivedAtColumn,

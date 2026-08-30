@@ -81,6 +81,6 @@ WHERE purchases.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR purchases.archived_at IS NULL)
 	AND purchases.belongs_to_account = sqlc.arg(belongs_to_account)
 	AND purchases.belongs_to_account = sqlc.arg(belongs_to_account)
-	AND purchases.id > COALESCE(sqlc.narg(cursor), '')
+	AND purchases.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY purchases.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);

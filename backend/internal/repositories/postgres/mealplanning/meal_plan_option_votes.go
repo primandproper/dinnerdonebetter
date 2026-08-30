@@ -8,11 +8,11 @@ import (
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
-	"github.com/primandproper/platform-go/v12/database"
-	platformerrors "github.com/primandproper/platform-go/v12/errors"
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/observability"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v13/database"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/observability"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 )
 
 var (
@@ -210,7 +210,7 @@ func (q *repository) GetMealPlanOptionVotes(ctx context.Context, mealPlanID, mea
 		CreatedAfter:     database.NullTimeFromTimePointer(filter.CreatedAfter),
 		UpdatedBefore:    database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:     database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		Cursor:           database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:       database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:      database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived:  database.NullBoolFromBoolPointer(filter.IncludeArchived),
 	})
@@ -263,7 +263,7 @@ func (q *repository) CreateMealPlanOptionVote(ctx context.Context, input *types.
 		err   error
 		votes []*types.MealPlanOptionVote
 	)
-	if err = q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err = q.WithTransaction(ctx, func(tx database.Tx) error {
 		votes = []*types.MealPlanOptionVote{}
 		for _, vote := range input.Votes {
 			l := logger.WithValue(mealplanningkeys.MealPlanOptionIDKey, vote.BelongsToMealPlanOption).
@@ -328,7 +328,7 @@ func (q *repository) UpdateMealPlanOptionVote(ctx context.Context, updated *type
 	if err := q.withEvent(ctx, logger, types.MealPlanOptionVoteUpdatedServiceEventType, "", map[string]any{
 		mealplanningkeys.MealPlanOptionIDKey:     updated.BelongsToMealPlanOption,
 		mealplanningkeys.MealPlanOptionVoteIDKey: updated.ID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		_, updateErr := q.generatedQuerier.UpdateMealPlanOptionVote(ctx, tx, &generated.UpdateMealPlanOptionVoteParams{
 			Notes:                   updated.Notes,
 			ByUser:                  updated.ByUser,
@@ -384,7 +384,7 @@ func (q *repository) ArchiveMealPlanOptionVote(ctx context.Context, mealPlanID, 
 		mealplanningkeys.MealPlanEventIDKey:      mealPlanEventID,
 		mealplanningkeys.MealPlanOptionIDKey:     mealPlanOptionID,
 		mealplanningkeys.MealPlanOptionVoteIDKey: mealPlanOptionVoteID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		rowsAffected, archiveErr := q.generatedQuerier.ArchiveMealPlanOptionVote(ctx, tx, &generated.ArchiveMealPlanOptionVoteParams{
 			BelongsToMealPlanOption: mealPlanOptionID,
 			ID:                      mealPlanOptionVoteID,

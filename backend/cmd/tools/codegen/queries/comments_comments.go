@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v12/database/querygen"
+	"github.com/primandproper/platform-go/v13/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -59,11 +59,11 @@ WHERE %s
 							fmt.Sprintf("%s.%s = sqlc.arg(target_type)", commentsTableName, "target_type"),
 							fmt.Sprintf("%s.%s = sqlc.arg(referenced_id)", commentsTableName, "referenced_id")),
 						commentsTableName,
-						pgGen.FilterConditions(commentsTableName, commentsColumns,
+						pgGen.FilterConditions(commentsTableName, commentsColumns, querygen.Ascending,
 							fmt.Sprintf("%s.%s = sqlc.arg(target_type)", commentsTableName, "target_type"),
 							fmt.Sprintf("%s.%s = sqlc.arg(referenced_id)", commentsTableName, "referenced_id"),
 						),
-						pgGen.CursorLimitClause(commentsTableName),
+						pgGen.CursorLimitClause(commentsTableName, querygen.Ascending),
 					)),
 				},
 				{
@@ -86,10 +86,10 @@ WHERE %s
 						pgGen.TotalCountSelect(commentsTableName, commentsColumns, []string{},
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", commentsTableName, belongsToUserColumn, belongsToUserColumn)),
 						commentsTableName,
-						pgGen.FilterConditions(commentsTableName, commentsColumns,
+						pgGen.FilterConditions(commentsTableName, commentsColumns, querygen.Ascending,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", commentsTableName, belongsToUserColumn, belongsToUserColumn),
 						),
-						pgGen.CursorLimitClause(commentsTableName),
+						pgGen.CursorLimitClause(commentsTableName, querygen.Ascending),
 					)),
 				},
 				{

@@ -266,7 +266,7 @@ WHERE recipe_step_vessels.created_at > COALESCE(sqlc.narg(created_after), (SELEC
 	AND recipe_steps.id = sqlc.arg(recipe_step_id)
 	AND recipes.archived_at IS NULL
 	AND recipes.id = sqlc.arg(recipe_id)
-	AND recipe_step_vessels.id > COALESCE(sqlc.narg(cursor), '')
+	AND recipe_step_vessels.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY recipe_step_vessels.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 

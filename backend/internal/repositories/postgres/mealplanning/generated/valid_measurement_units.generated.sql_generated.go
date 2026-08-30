@@ -220,7 +220,7 @@ type GetUniversalValidMeasurementUnitsParams struct {
 	UpdatedAfter    sql.NullTime
 	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -250,7 +250,7 @@ func (q *Queries) GetUniversalValidMeasurementUnits(ctx context.Context, db DBTX
 		arg.UpdatedAfter,
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {
@@ -411,7 +411,7 @@ type GetValidMeasurementUnitsParams struct {
 	UpdatedAfter    sql.NullTime
 	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -441,7 +441,7 @@ func (q *Queries) GetValidMeasurementUnits(ctx context.Context, db DBTX, arg *Ge
 		arg.UpdatedAfter,
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {
@@ -615,12 +615,12 @@ LIMIT COALESCE($2, 50)
 `
 
 type ScanValidMeasurementUnitIDsForReindexParams struct {
-	Cursor      string
+	PageCursor  string
 	ResultLimit interface{}
 }
 
 func (q *Queries) ScanValidMeasurementUnitIDsForReindex(ctx context.Context, db DBTX, arg *ScanValidMeasurementUnitIDsForReindexParams) ([]string, error) {
-	rows, err := db.QueryContext(ctx, scanValidMeasurementUnitIDsForReindex, arg.Cursor, arg.ResultLimit)
+	rows, err := db.QueryContext(ctx, scanValidMeasurementUnitIDsForReindex, arg.PageCursor, arg.ResultLimit)
 	if err != nil {
 		return nil, err
 	}
@@ -703,7 +703,7 @@ type SearchForValidMeasurementUnitsParams struct {
 	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	NameQuery       string
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -734,7 +734,7 @@ func (q *Queries) SearchForValidMeasurementUnits(ctx context.Context, db DBTX, a
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.NameQuery,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {
@@ -847,7 +847,7 @@ type SearchValidMeasurementUnitsByIngredientIDParams struct {
 	UpdatedBefore     sql.NullTime
 	IncludeArchived   sql.NullBool
 	ValidIngredientID string
-	Cursor            sql.NullString
+	PageCursor        sql.NullString
 	ResultLimit       interface{}
 }
 
@@ -878,7 +878,7 @@ func (q *Queries) SearchValidMeasurementUnitsByIngredientID(ctx context.Context,
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.ValidIngredientID,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {

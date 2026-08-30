@@ -5,7 +5,7 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 
-	"github.com/primandproper/platform-go/v12/filtering"
+	"github.com/primandproper/platform-go/v13/filtering"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -18,10 +18,10 @@ type (
 
 var validMeasurementUnitConversionsSchema = map[string]any{
 	"ID":                stringField("The ID of the valid measurement unit conversion"),
-	"CreatedAt":         timestampField("When the valid measurement unit conversion was created"),
-	"LastUpdatedAt":     timestampField("When the valid measurement unit conversion was last updated"),
-	"ArchivedAt":        timestampField("When the valid measurement unit conversion was soft deleted"),
-	"Notes":             stringField("Notes about the measurement unit conversion"),
+	fieldCreatedAt:      timestampField("When the valid measurement unit conversion was created"),
+	fieldLastUpdatedAt:  timestampField("When the valid measurement unit conversion was last updated"),
+	fieldArchivedAt:     timestampField("When the valid measurement unit conversion was soft deleted"),
+	fieldNotes:          stringField("Notes about the measurement unit conversion"),
 	"Modifier":          floatField("The conversion modifier (multiplier to convert from 'From' unit to 'To' unit)"),
 	"From":              objectType(validMeasurementUnitsSchema),
 	"To":                objectType(validMeasurementUnitsSchema),
@@ -67,11 +67,11 @@ var getValidMeasurementUnitConversionsForUnitTool = &mcp.Tool{
 	Name:        "GetValidMeasurementUnitConversionsForUnit",
 	Description: "Get valid measurement unit conversions for a specific measurement unit with optional filtering",
 	InputSchema: schemaObject(map[string]any{
-		"Filter":                 filtering.QueryFilterSchema(),
+		fieldFilter:              filtering.QueryFilterSchema(),
 		"ValidMeasurementUnitID": stringField("The ID of the valid measurement unit"),
 	}),
 	OutputSchema: schemaObject(map[string]any{
-		"Results": arrayType(schemaObject(validMeasurementUnitConversionsSchema)),
+		fieldResults: arrayType(schemaObject(validMeasurementUnitConversionsSchema)),
 	}),
 }
 
@@ -109,7 +109,7 @@ var getValidMeasurementUnitConversionsForIngredientsTool = &mcp.Tool{
 		"ValidIngredientIDs": arrayType(stringField("A valid ingredient ID")),
 	}),
 	OutputSchema: schemaObject(map[string]any{
-		"Results": arrayType(schemaObject(validMeasurementUnitConversionsSchema)),
+		fieldResults: arrayType(schemaObject(validMeasurementUnitConversionsSchema)),
 	}),
 }
 

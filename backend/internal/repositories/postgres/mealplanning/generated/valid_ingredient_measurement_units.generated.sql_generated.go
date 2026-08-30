@@ -395,7 +395,7 @@ type GetValidIngredientMeasurementUnitsParams struct {
 	UpdatedAfter    sql.NullTime
 	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -471,7 +471,7 @@ func (q *Queries) GetValidIngredientMeasurementUnits(ctx context.Context, db DBT
 		arg.UpdatedAfter,
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {
@@ -888,7 +888,7 @@ type GetValidIngredientMeasurementUnitsForIngredientParams struct {
 	UpdatedBefore     sql.NullTime
 	IncludeArchived   sql.NullBool
 	ValidIngredientID string
-	Cursor            sql.NullString
+	PageCursor        sql.NullString
 	ResultLimit       interface{}
 }
 
@@ -965,7 +965,7 @@ func (q *Queries) GetValidIngredientMeasurementUnitsForIngredient(ctx context.Co
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.ValidIngredientID,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {
@@ -1163,7 +1163,7 @@ type GetValidIngredientMeasurementUnitsForMeasurementUnitParams struct {
 	UpdatedBefore          sql.NullTime
 	IncludeArchived        sql.NullBool
 	ValidMeasurementUnitID string
-	Cursor                 sql.NullString
+	PageCursor             sql.NullString
 	ResultLimit            interface{}
 }
 
@@ -1240,7 +1240,7 @@ func (q *Queries) GetValidIngredientMeasurementUnitsForMeasurementUnit(ctx conte
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.ValidMeasurementUnitID,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {

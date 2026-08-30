@@ -11,8 +11,9 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	"github.com/primandproper/platform-go/v12/fake"
-	"github.com/primandproper/platform-go/v12/filtering"
+	"github.com/primandproper/platform-go/v13/database"
+	"github.com/primandproper/platform-go/v13/fake"
+	"github.com/primandproper/platform-go/v13/filtering"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -226,7 +227,7 @@ func TestQuerier_CreateMealRecipe(T *testing.T) {
 
 		exampleInput := converters.ConvertMealComponentToMealComponentDatabaseCreationInput(exampleMeal.Components[0])
 
-		err := c.CreateMealComponent(ctx, c.writeDB, "", exampleInput)
+		err := c.CreateMealComponent(ctx, database.NewTxForTesting(c.writeDB), "", exampleInput)
 		assert.Error(t, err)
 	})
 
@@ -238,7 +239,7 @@ func TestQuerier_CreateMealRecipe(T *testing.T) {
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
 
-		err := c.CreateMealComponent(ctx, c.writeDB, exampleMeal.ID, nil)
+		err := c.CreateMealComponent(ctx, database.NewTxForTesting(c.writeDB), exampleMeal.ID, nil)
 		assert.Error(t, err)
 	})
 }

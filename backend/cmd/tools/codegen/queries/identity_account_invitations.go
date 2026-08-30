@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v12/database/querygen"
+	"github.com/primandproper/platform-go/v13/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -65,7 +65,7 @@ func buildAccountInvitationsQueries(database string) []*Query {
 		return slices.Concat(
 			pgGen.StandardCRUD(accountInvitationsTableName, accountInvitationsColumns,
 				querygen.WithEntity("AccountInvitation", "AccountInvitations"),
-				querygen.WithDatabaseOwned("status", accountInvitationsStatusNoteColumn),
+				querygen.WithDatabaseOwned(statusColumn, accountInvitationsStatusNoteColumn),
 				querygen.WithOmitted(querygen.ArchiveQuery, querygen.GetQuery, querygen.ListQuery, querygen.UpdateQuery),
 			),
 			[]*Query{
@@ -233,11 +233,11 @@ WHERE %s
 						usersTableName,
 						idColumn,
 						avatarJoinClause,
-						pgGen.FilterConditions(accountInvitationsTableName, accountInvitationsColumns,
+						pgGen.FilterConditions(accountInvitationsTableName, accountInvitationsColumns, querygen.Ascending,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", accountInvitationsTableName, fromUserColumn, fromUserColumn),
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", accountInvitationsTableName, accountInvitationsStatusColumn, accountInvitationsStatusColumn),
 						),
-						pgGen.CursorLimitClause(accountInvitationsTableName),
+						pgGen.CursorLimitClause(accountInvitationsTableName, querygen.Ascending),
 					)),
 				},
 				{
@@ -270,11 +270,11 @@ WHERE %s
 						usersTableName,
 						idColumn,
 						avatarJoinClause,
-						pgGen.FilterConditions(accountInvitationsTableName, accountInvitationsColumns,
+						pgGen.FilterConditions(accountInvitationsTableName, accountInvitationsColumns, querygen.Ascending,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", accountInvitationsTableName, toUserColumn, toUserColumn),
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", accountInvitationsTableName, accountInvitationsStatusColumn, accountInvitationsStatusColumn),
 						),
-						pgGen.CursorLimitClause(accountInvitationsTableName),
+						pgGen.CursorLimitClause(accountInvitationsTableName, querygen.Ascending),
 					)),
 				},
 				{

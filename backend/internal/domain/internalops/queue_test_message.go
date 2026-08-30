@@ -6,8 +6,12 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	queuemessages "github.com/primandproper/dinnerdonebetter/backend/internal/queues/messages"
 
-	notifications "github.com/primandproper/platform-go/v12/notifications/mobile"
+	notifications "github.com/primandproper/platform-go/v13/notifications/mobile"
 )
+
+// testMessageMarker is the title, body and request type of the probe message this
+// queue check enqueues; nothing reads it back apart from the check itself.
+const testMessageMarker = "test"
 
 // BuildQueueTestMessage returns a message with TestID set for the given topic. Non-empty TestID triggers queue test behavior.
 func BuildQueueTestMessage(topicName, testID, userID string) (any, error) {
@@ -23,7 +27,7 @@ func BuildQueueTestMessage(topicName, testID, userID string) (any, error) {
 	// nowhere to put a TestID, since a Syncer reads the row named by the event rather than
 	// anything the message carries. Probing those means probing an index, not a queue.
 	case "mobile_notifications":
-		return &notifications.MobileNotificationRequest{TestID: testID, Title: "test", Body: "test", RequestType: "test"}, nil
+		return &notifications.MobileNotificationRequest{TestID: testID, Title: testMessageMarker, Body: testMessageMarker, RequestType: testMessageMarker}, nil
 	default:
 		return nil, fmt.Errorf("unknown queue: %s", topicName)
 	}

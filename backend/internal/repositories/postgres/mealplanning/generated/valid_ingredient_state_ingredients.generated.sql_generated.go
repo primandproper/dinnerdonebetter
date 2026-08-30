@@ -397,7 +397,7 @@ type GetValidIngredientStateIngredientsParams struct {
 	UpdatedAfter    sql.NullTime
 	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -470,7 +470,7 @@ func (q *Queries) GetValidIngredientStateIngredients(ctx context.Context, db DBT
 		arg.UpdatedAfter,
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {
@@ -662,7 +662,7 @@ type GetValidIngredientStateIngredientsForIngredientParams struct {
 	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	ValidIngredient string
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -736,7 +736,7 @@ func (q *Queries) GetValidIngredientStateIngredientsForIngredient(ctx context.Co
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.ValidIngredient,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {
@@ -928,7 +928,7 @@ type GetValidIngredientStateIngredientsForIngredientStateParams struct {
 	UpdatedBefore        sql.NullTime
 	IncludeArchived      sql.NullBool
 	ValidIngredientState string
-	Cursor               sql.NullString
+	PageCursor           sql.NullString
 	ResultLimit          interface{}
 }
 
@@ -1002,7 +1002,7 @@ func (q *Queries) GetValidIngredientStateIngredientsForIngredientState(ctx conte
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.ValidIngredientState,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {

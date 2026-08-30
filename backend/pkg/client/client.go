@@ -25,9 +25,9 @@ import (
 	waitlistsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/waitlists"
 	webhooksgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/webhooks"
 
-	"github.com/primandproper/platform-go/v12/authentication/oauth2server"
-	"github.com/primandproper/platform-go/v12/httpclient"
-	"github.com/primandproper/platform-go/v12/random"
+	"github.com/primandproper/platform-go/v13/authentication/oauth2server"
+	"github.com/primandproper/platform-go/v13/httpclient"
+	"github.com/primandproper/platform-go/v13/random"
 
 	"golang.org/x/oauth2"
 	"google.golang.org/grpc"
@@ -202,7 +202,7 @@ func WithOAuth2Credentials(
 		return http.ErrUseLastResponse
 	}
 
-	res, err := c.Do(req) //nolint:gosec // G704: authCodeURL from OAuth config (authServerAddress), not user-controlled
+	res, err := c.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get oauth2 code: %w", err)
 	}

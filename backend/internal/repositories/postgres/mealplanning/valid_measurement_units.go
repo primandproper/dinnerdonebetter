@@ -8,12 +8,12 @@ import (
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
-	"github.com/primandproper/platform-go/v12/database"
-	platformerrors "github.com/primandproper/platform-go/v12/errors"
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/observability"
-	platformkeys "github.com/primandproper/platform-go/v12/observability/keys"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v13/database"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/observability"
+	platformkeys "github.com/primandproper/platform-go/v13/observability/keys"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 )
 
 var (
@@ -132,7 +132,7 @@ func (q *repository) SearchForValidMeasurementUnits(ctx context.Context, query s
 		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
 		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
 	})
@@ -194,7 +194,7 @@ func (q *repository) ValidMeasurementUnitsForIngredientID(ctx context.Context, v
 		CreatedAfter:      database.NullTimeFromTimePointer(filter.CreatedAfter),
 		UpdatedBefore:     database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:      database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		Cursor:            database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:        database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:       database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived:   database.NullBoolFromBoolPointer(filter.IncludeArchived),
 		ValidIngredientID: validIngredientID,
@@ -260,7 +260,7 @@ func (q *repository) GetValidMeasurementUnits(ctx context.Context, filter *filte
 		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
 		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
 	})
@@ -353,7 +353,7 @@ func (q *repository) ScanValidMeasurementUnitIDsForReindex(ctx context.Context, 
 	defer span.End()
 
 	results, err := q.generatedQuerier.ScanValidMeasurementUnitIDsForReindex(ctx, q.readDB, &generated.ScanValidMeasurementUnitIDsForReindexParams{
-		Cursor:      after,
+		PageCursor:  after,
 		ResultLimit: limit,
 	})
 	if err != nil {
@@ -377,7 +377,7 @@ func (q *repository) CreateValidMeasurementUnit(ctx context.Context, input *type
 	// create the valid measurement unit.
 	if err := q.withEvent(ctx, logger, types.ValidMeasurementUnitCreatedServiceEventType, "", map[string]any{
 		mealplanningkeys.ValidMeasurementUnitIDKey: input.ID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		return q.generatedQuerier.CreateValidMeasurementUnit(ctx, tx, &generated.CreateValidMeasurementUnitParams{
 			Name:        input.Name,
 			Description: input.Description,
@@ -426,7 +426,7 @@ func (q *repository) UpdateValidMeasurementUnit(ctx context.Context, updated *ty
 
 	if err := q.withEvent(ctx, logger, types.ValidMeasurementUnitUpdatedServiceEventType, "", map[string]any{
 		mealplanningkeys.ValidMeasurementUnitIDKey: updated.ID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		_, updateErr := q.generatedQuerier.UpdateValidMeasurementUnit(ctx, tx, &generated.UpdateValidMeasurementUnitParams{
 			Name:        updated.Name,
 			Description: updated.Description,
@@ -490,7 +490,7 @@ func (q *repository) ArchiveValidMeasurementUnit(ctx context.Context, validMeasu
 
 	return q.withEvent(ctx, logger, types.ValidMeasurementUnitArchivedServiceEventType, "", map[string]any{
 		mealplanningkeys.ValidMeasurementUnitIDKey: validMeasurementUnitID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		rowsAffected, archiveErr := q.generatedQuerier.ArchiveValidMeasurementUnit(ctx, tx, validMeasurementUnitID)
 		if archiveErr != nil {
 			return observability.PrepareAndLogError(archiveErr, logger, span, "archiving valid measurement unit")

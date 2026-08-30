@@ -10,11 +10,11 @@ import (
 	authkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auth/generated"
 
-	"github.com/primandproper/platform-go/v12/database"
-	platformerrors "github.com/primandproper/platform-go/v12/errors"
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/observability"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v13/database"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/observability"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 )
 
 const (
@@ -52,7 +52,7 @@ func (r *repository) CreateUserSession(ctx context.Context, input *auth.UserSess
 	tracing.AttachToSpan(span, authkeys.UserSessionIDKey, input.ID)
 
 	var err error
-	if err = r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err = r.WithTransaction(ctx, func(tx database.Tx) error {
 		if err = r.generatedQuerier.CreateUserSession(ctx, tx, &generated.CreateUserSessionParams{
 			ID:             input.ID,
 			BelongsToUser:  input.BelongsToUser,

@@ -8,8 +8,8 @@ import (
 	analyticsevents "github.com/primandproper/dinnerdonebetter/backend/internal/domain/analytics"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 
-	"github.com/primandproper/platform-go/v12/observability"
-	"github.com/primandproper/platform-go/v12/retry"
+	"github.com/primandproper/platform-go/v13/observability"
+	"github.com/primandproper/platform-go/v13/retry"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"

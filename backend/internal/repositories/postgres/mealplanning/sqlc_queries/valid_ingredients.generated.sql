@@ -176,7 +176,7 @@ WHERE archived_at IS NULL
 SELECT valid_ingredients.id
 FROM valid_ingredients
 WHERE valid_ingredients.archived_at IS NULL
-	AND valid_ingredients.id COLLATE "C" > sqlc.arg(cursor)
+	AND valid_ingredients.id COLLATE "C" > sqlc.arg(page_cursor)
 ORDER BY valid_ingredients.id COLLATE "C"
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
@@ -258,7 +258,7 @@ WHERE valid_ingredients.created_at > COALESCE(sqlc.narg(created_after), (SELECT 
 		OR valid_ingredients.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_ingredients.archived_at IS NULL)
-	AND valid_ingredients.id > COALESCE(sqlc.narg(cursor), '')
+	AND valid_ingredients.id > COALESCE(sqlc.narg(page_cursor), '')
 GROUP BY valid_ingredients.id
 ORDER BY valid_ingredients.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
@@ -436,7 +436,7 @@ WHERE valid_ingredients.created_at > COALESCE(sqlc.narg(created_after), (SELECT 
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_ingredients.archived_at IS NULL)
 	AND valid_ingredients.name ILIKE '%' || sqlc.arg(name_query)::text || '%'
-	AND valid_ingredients.id > COALESCE(sqlc.narg(cursor), '')
+	AND valid_ingredients.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY valid_ingredients.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 

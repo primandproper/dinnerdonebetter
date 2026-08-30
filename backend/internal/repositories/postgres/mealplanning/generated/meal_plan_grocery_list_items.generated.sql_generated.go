@@ -529,7 +529,7 @@ type GetMealPlanGroceryListItemsForMealPlanParams struct {
 	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	MealPlanID      string
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -617,7 +617,7 @@ func (q *Queries) GetMealPlanGroceryListItemsForMealPlan(ctx context.Context, db
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.MealPlanID,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {

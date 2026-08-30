@@ -102,7 +102,7 @@ WHERE issue_reports.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURR
 		OR issue_reports.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR issue_reports.archived_at IS NULL)
-	AND issue_reports.id > COALESCE(sqlc.narg(cursor), '')
+	AND issue_reports.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY issue_reports.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
@@ -153,7 +153,7 @@ WHERE issue_reports.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURR
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR issue_reports.archived_at IS NULL)
 	AND issue_reports.belongs_to_account = sqlc.arg(belongs_to_account)
-	AND issue_reports.id > COALESCE(sqlc.narg(cursor), '')
+	AND issue_reports.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY issue_reports.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
@@ -204,7 +204,7 @@ WHERE issue_reports.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURR
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR issue_reports.archived_at IS NULL)
 	AND issue_reports.relevant_table = sqlc.arg(relevant_table)
-	AND issue_reports.id > COALESCE(sqlc.narg(cursor), '')
+	AND issue_reports.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY issue_reports.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
@@ -258,6 +258,6 @@ WHERE issue_reports.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURR
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR issue_reports.archived_at IS NULL)
 	AND issue_reports.relevant_table = sqlc.arg(relevant_table)
 	AND issue_reports.relevant_record_id = sqlc.arg(relevant_record_id)
-	AND issue_reports.id > COALESCE(sqlc.narg(cursor), '')
+	AND issue_reports.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY issue_reports.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);

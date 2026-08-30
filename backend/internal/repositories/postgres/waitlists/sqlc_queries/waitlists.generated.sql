@@ -98,7 +98,7 @@ WHERE waitlists.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_
 		OR waitlists.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR waitlists.archived_at IS NULL)
-	AND waitlists.id > COALESCE(sqlc.narg(cursor), '')
+	AND waitlists.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY waitlists.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
@@ -146,6 +146,6 @@ WHERE waitlists.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR waitlists.archived_at IS NULL)
 	AND waitlists.valid_until >= CURRENT_TIMESTAMP
-	AND waitlists.id > COALESCE(sqlc.narg(cursor), '')
+	AND waitlists.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY waitlists.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);

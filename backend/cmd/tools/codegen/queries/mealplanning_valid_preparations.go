@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v12/database/querygen"
+	"github.com/primandproper/platform-go/v13/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -72,10 +72,10 @@ GROUP BY %s.%s
 						pgGen.FilterCountSelect(validPreparationsTableName, validPreparationsColumns, []string{}),
 						pgGen.TotalCountSelect(validPreparationsTableName, validPreparationsColumns, []string{}),
 						validPreparationsTableName,
-						pgGen.FilterConditions(validPreparationsTableName, validPreparationsColumns),
+						pgGen.FilterConditions(validPreparationsTableName, validPreparationsColumns, querygen.Ascending),
 						validPreparationsTableName,
 						idColumn,
-						pgGen.CursorLimitClause(validPreparationsTableName),
+						pgGen.CursorLimitClause(validPreparationsTableName, querygen.Ascending),
 					)),
 				},
 				{
@@ -150,10 +150,10 @@ WHERE %s
 						pgGen.FilterCountSelect(validPreparationsTableName, validPreparationsColumns, []string{}),
 						pgGen.TotalCountSelect(validPreparationsTableName, validPreparationsColumns, []string{}),
 						validPreparationsTableName,
-						pgGen.FilterConditions(validPreparationsTableName, validPreparationsColumns,
+						pgGen.FilterConditions(validPreparationsTableName, validPreparationsColumns, querygen.Ascending,
 							fmt.Sprintf("%s.%s %s", validPreparationsTableName, nameColumn, buildILIKEForArgument("name_query")),
 						),
-						pgGen.CursorLimitClause(validPreparationsTableName),
+						pgGen.CursorLimitClause(validPreparationsTableName, querygen.Ascending),
 					)),
 				},
 			},

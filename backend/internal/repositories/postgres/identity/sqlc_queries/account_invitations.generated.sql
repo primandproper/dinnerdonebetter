@@ -445,7 +445,7 @@ WHERE account_invitations.created_at > COALESCE(sqlc.narg(created_after), (SELEC
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR account_invitations.archived_at IS NULL)
 	AND account_invitations.from_user = sqlc.arg(from_user)
 	AND account_invitations.status = sqlc.arg(status)
-	AND account_invitations.id > COALESCE(sqlc.narg(cursor), '')
+	AND account_invitations.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY account_invitations.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
@@ -552,7 +552,7 @@ WHERE account_invitations.created_at > COALESCE(sqlc.narg(created_after), (SELEC
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR account_invitations.archived_at IS NULL)
 	AND account_invitations.to_user = sqlc.arg(to_user)
 	AND account_invitations.status = sqlc.arg(status)
-	AND account_invitations.id > COALESCE(sqlc.narg(cursor), '')
+	AND account_invitations.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY account_invitations.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 

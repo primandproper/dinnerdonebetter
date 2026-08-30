@@ -5,7 +5,7 @@ package converters
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
 
-	"github.com/primandproper/platform-go/v12/identifiers"
+	"github.com/primandproper/platform-go/v13/identifiers"
 )
 
 // ConvertOAuth2ClientToOAuth2ClientCreationRequestInput builds an OAuth2ClientCreationRequestInput from an OAuth2Client.

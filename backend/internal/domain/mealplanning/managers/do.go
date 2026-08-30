@@ -8,11 +8,11 @@ import (
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 	mealplanfinalization "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_finalization"
 
-	"github.com/primandproper/platform-go/v12/messagequeue"
-	"github.com/primandproper/platform-go/v12/observability/logging"
-	"github.com/primandproper/platform-go/v12/observability/metrics"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
-	textsearchcfg "github.com/primandproper/platform-go/v12/search/text/config"
+	"github.com/primandproper/platform-go/v13/messagequeue"
+	"github.com/primandproper/platform-go/v13/observability/logging"
+	"github.com/primandproper/platform-go/v13/observability/metrics"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
+	textsearchcfg "github.com/primandproper/platform-go/v13/search/text/config"
 
 	"github.com/samber/do/v2"
 )

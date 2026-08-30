@@ -191,7 +191,7 @@ WHERE recipe_steps.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRE
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR recipe_steps.archived_at IS NULL)
 	AND recipe_steps.belongs_to_recipe = sqlc.arg(recipe_id)
 	AND recipes.archived_at IS NULL
-	AND recipe_steps.id > COALESCE(sqlc.narg(cursor), '')
+	AND recipe_steps.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY recipe_steps.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 

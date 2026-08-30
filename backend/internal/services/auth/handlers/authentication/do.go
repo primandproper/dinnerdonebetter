@@ -8,14 +8,14 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
 
-	"github.com/primandproper/platform-go/v12/authentication/oauth2server"
-	oauth2servercfg "github.com/primandproper/platform-go/v12/authentication/oauth2server/config"
-	"github.com/primandproper/platform-go/v12/authentication/tokens"
-	"github.com/primandproper/platform-go/v12/authentication/totp"
-	"github.com/primandproper/platform-go/v12/database"
-	"github.com/primandproper/platform-go/v12/observability/logging"
-	"github.com/primandproper/platform-go/v12/observability/metrics"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v13/authentication/oauth2server"
+	oauth2servercfg "github.com/primandproper/platform-go/v13/authentication/oauth2server/config"
+	"github.com/primandproper/platform-go/v13/authentication/tokens"
+	"github.com/primandproper/platform-go/v13/authentication/totp"
+	"github.com/primandproper/platform-go/v13/database"
+	"github.com/primandproper/platform-go/v13/observability/logging"
+	"github.com/primandproper/platform-go/v13/observability/metrics"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 
 	"github.com/samber/do/v2"
 )

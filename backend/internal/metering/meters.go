@@ -3,8 +3,8 @@ package metering
 import (
 	"math"
 
-	"github.com/primandproper/platform-go/v12/errors"
-	platformmetering "github.com/primandproper/platform-go/v12/metering"
+	"github.com/primandproper/platform-go/v13/errors"
+	platformmetering "github.com/primandproper/platform-go/v13/metering"
 )
 
 const (

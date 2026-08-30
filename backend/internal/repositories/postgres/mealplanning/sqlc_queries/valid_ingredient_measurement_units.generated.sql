@@ -139,7 +139,7 @@ WHERE valid_ingredient_measurement_units.created_at > COALESCE(sqlc.narg(created
 	AND valid_measurement_units.archived_at IS NULL
 	AND valid_ingredients.archived_at IS NULL
 	AND valid_ingredient_measurement_units.valid_ingredient_id = sqlc.arg(valid_ingredient_id)
-	AND valid_ingredient_measurement_units.id > COALESCE(sqlc.narg(cursor), '')
+	AND valid_ingredient_measurement_units.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY valid_ingredient_measurement_units.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
@@ -242,7 +242,7 @@ WHERE valid_ingredient_measurement_units.created_at > COALESCE(sqlc.narg(created
 	AND valid_measurement_units.archived_at IS NULL
 	AND valid_ingredients.archived_at IS NULL
 	AND valid_ingredient_measurement_units.valid_measurement_unit_id = sqlc.arg(valid_measurement_unit_id)
-	AND valid_ingredient_measurement_units.id > COALESCE(sqlc.narg(cursor), '')
+	AND valid_ingredient_measurement_units.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY valid_ingredient_measurement_units.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
@@ -344,7 +344,7 @@ WHERE valid_ingredient_measurement_units.created_at > COALESCE(sqlc.narg(created
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_ingredient_measurement_units.archived_at IS NULL)
 	AND valid_measurement_units.archived_at IS NULL
 	AND valid_ingredients.archived_at IS NULL
-	AND valid_ingredient_measurement_units.id > COALESCE(sqlc.narg(cursor), '')
+	AND valid_ingredient_measurement_units.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY valid_ingredient_measurement_units.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 

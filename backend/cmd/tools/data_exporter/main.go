@@ -14,14 +14,14 @@ import (
 	identityrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity"
 	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
 
-	"github.com/primandproper/platform-go/v12/database"
-	databasecfg "github.com/primandproper/platform-go/v12/database/config"
-	"github.com/primandproper/platform-go/v12/database/postgres"
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/observability/logging"
-	loggingnoop "github.com/primandproper/platform-go/v12/observability/logging/noop"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
-	tracingnoop "github.com/primandproper/platform-go/v12/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v13/database"
+	databasecfg "github.com/primandproper/platform-go/v13/database/config"
+	"github.com/primandproper/platform-go/v13/database/postgres"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/observability/logging"
+	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
+	tracingnoop "github.com/primandproper/platform-go/v13/observability/tracing/noop"
 
 	"github.com/spf13/cobra"
 )
@@ -179,7 +179,7 @@ func fetchAll[T any](
 ) ([]*T, error) {
 	var all []*T
 	filter := filtering.DefaultQueryFilter()
-	pageSize := uint16(filtering.MaxQueryFilterLimit)
+	pageSize := filtering.MaxQueryFilterLimit
 	filter.MaxResponseSize = &pageSize
 
 	var cursor *string
@@ -348,7 +348,7 @@ func exportEnumerations(ctx context.Context, repo mealplanning.Repository, expor
 func exportRecipes(ctx context.Context, repo mealplanning.Repository, export *ExportData) error {
 	// First get all recipe IDs via pagination
 	filter := filtering.DefaultQueryFilter()
-	pageSize := uint16(filtering.MaxQueryFilterLimit)
+	pageSize := filtering.MaxQueryFilterLimit
 	filter.MaxResponseSize = &pageSize
 
 	var recipeIDs []string

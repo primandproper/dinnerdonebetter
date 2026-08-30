@@ -35,20 +35,20 @@ import (
 	webhooksrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhooks"
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
 
-	"github.com/primandproper/platform-go/v12/authentication/argon2"
-	"github.com/primandproper/platform-go/v12/authentication/oauth2server"
-	"github.com/primandproper/platform-go/v12/database"
-	databasecfg "github.com/primandproper/platform-go/v12/database/config"
-	"github.com/primandproper/platform-go/v12/httpclient"
-	"github.com/primandproper/platform-go/v12/identifiers"
-	msgconfig "github.com/primandproper/platform-go/v12/messagequeue/config"
-	"github.com/primandproper/platform-go/v12/messagequeue/redis"
-	"github.com/primandproper/platform-go/v12/observability/logging"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
-	tracingnoop "github.com/primandproper/platform-go/v12/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v12/random"
-	"github.com/primandproper/platform-go/v12/testutils/containers/redistest"
-	webhookscfg "github.com/primandproper/platform-go/v12/webhooks/config"
+	"github.com/primandproper/platform-go/v13/authentication/argon2"
+	"github.com/primandproper/platform-go/v13/authentication/oauth2server"
+	"github.com/primandproper/platform-go/v13/database"
+	databasecfg "github.com/primandproper/platform-go/v13/database/config"
+	"github.com/primandproper/platform-go/v13/httpclient"
+	"github.com/primandproper/platform-go/v13/identifiers"
+	msgconfig "github.com/primandproper/platform-go/v13/messagequeue/config"
+	"github.com/primandproper/platform-go/v13/messagequeue/redis"
+	"github.com/primandproper/platform-go/v13/observability/logging"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
+	tracingnoop "github.com/primandproper/platform-go/v13/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v13/random"
+	"github.com/primandproper/platform-go/v13/testutils/containers/redistest"
+	webhookscfg "github.com/primandproper/platform-go/v13/webhooks/config"
 
 	"golang.org/x/oauth2"
 	"google.golang.org/grpc"
@@ -410,7 +410,7 @@ func exchangeAuthorizationCodeWithJWT(ctx context.Context, oauth2Config *oauth2.
 		return nil, err
 	}
 
-	res, err := httpClient.Do(req) //nolint:gosec // G704: authCodeURL from OAuth config (httpServerAddress), not user-controlled
+	res, err := httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("fetching OAuth2 code: %w", err)
 	}

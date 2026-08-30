@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v12/database/querygen"
+	"github.com/primandproper/platform-go/v13/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -59,13 +59,13 @@ GROUP BY %s.%s
 						pgGen.FilterCountSelect(recipeRatingsTableName, recipeRatingsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeRatingsTableName, belongsToRecipeColumn, belongsToRecipeColumn)),
 						pgGen.TotalCountSelect(recipeRatingsTableName, recipeRatingsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeRatingsTableName, belongsToRecipeColumn, belongsToRecipeColumn)),
 						recipeRatingsTableName,
-						pgGen.FilterConditions(recipeRatingsTableName, recipeRatingsColumns,
+						pgGen.FilterConditions(recipeRatingsTableName, recipeRatingsColumns, querygen.Ascending,
 							fmt.Sprintf("%s.%s IS NULL AND\n\t%s.%s = sqlc.arg(%s)", recipeRatingsTableName, archivedAtColumn, recipeRatingsTableName, belongsToRecipeColumn, belongsToRecipeColumn),
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeRatingsTableName, belongsToRecipeColumn, belongsToRecipeColumn),
 						),
 						recipeRatingsTableName,
 						idColumn,
-						pgGen.CursorLimitClause(recipeRatingsTableName),
+						pgGen.CursorLimitClause(recipeRatingsTableName, querygen.Ascending),
 					)),
 				},
 				{
@@ -87,13 +87,13 @@ GROUP BY %s.%s
 						pgGen.FilterCountSelect(recipeRatingsTableName, recipeRatingsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeRatingsTableName, createdByUserColumn, createdByUserColumn)),
 						pgGen.TotalCountSelect(recipeRatingsTableName, recipeRatingsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeRatingsTableName, createdByUserColumn, createdByUserColumn)),
 						recipeRatingsTableName,
-						pgGen.FilterConditions(recipeRatingsTableName, recipeRatingsColumns,
+						pgGen.FilterConditions(recipeRatingsTableName, recipeRatingsColumns, querygen.Ascending,
 							fmt.Sprintf("%s.%s IS NULL AND\n\t%s.%s = sqlc.arg(%s)", recipeRatingsTableName, archivedAtColumn, recipeRatingsTableName, createdByUserColumn, createdByUserColumn),
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeRatingsTableName, createdByUserColumn, createdByUserColumn),
 						),
 						recipeRatingsTableName,
 						idColumn,
-						pgGen.CursorLimitClause(recipeRatingsTableName),
+						pgGen.CursorLimitClause(recipeRatingsTableName, querygen.Ascending),
 					)),
 				},
 			},

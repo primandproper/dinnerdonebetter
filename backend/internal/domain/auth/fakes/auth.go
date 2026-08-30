@@ -6,7 +6,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 
-	"github.com/primandproper/platform-go/v12/fake"
+	"github.com/primandproper/platform-go/v13/fake"
 
 	gofakeit "github.com/brianvoe/gofakeit/v7"
 )

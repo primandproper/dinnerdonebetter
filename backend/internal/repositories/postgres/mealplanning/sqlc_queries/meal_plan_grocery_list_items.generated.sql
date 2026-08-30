@@ -206,7 +206,7 @@ WHERE meal_plan_grocery_list_items.created_at > COALESCE(sqlc.narg(created_after
 	AND valid_ingredients.archived_at IS NULL
 	AND meal_plans.archived_at IS NULL
 	AND (meal_plan_grocery_list_items.belongs_to_meal_plan_option IS NULL OR NOT EXISTS (SELECT 1 FROM meal_plan_options o JOIN meal_plan_events e ON o.belongs_to_meal_plan_event = e.id WHERE o.id = meal_plan_grocery_list_items.belongs_to_meal_plan_option AND e.archived_at IS NOT NULL))
-	AND meal_plan_grocery_list_items.id > COALESCE(sqlc.narg(cursor), '')
+	AND meal_plan_grocery_list_items.id > COALESCE(sqlc.narg(page_cursor), '')
 GROUP BY meal_plan_grocery_list_items.id,
 	valid_ingredients.id,
 	valid_measurement_units.id,

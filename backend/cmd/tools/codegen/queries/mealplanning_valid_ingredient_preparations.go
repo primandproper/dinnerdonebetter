@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v12/database/querygen"
+	"github.com/primandproper/platform-go/v13/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -78,10 +78,10 @@ WHERE %s
 						validPreparationIDColumn,
 						validPreparationsTableName,
 						idColumn,
-						pgGen.FilterConditions(validIngredientPreparationsTableName, validIngredientPreparationsColumns,
+						pgGen.FilterConditions(validIngredientPreparationsTableName, validIngredientPreparationsColumns, querygen.Ascending,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", validIngredientPreparationsTableName, validIngredientIDColumn, idColumn),
 						),
-						pgGen.CursorLimitClause(validIngredientPreparationsTableName),
+						pgGen.CursorLimitClause(validIngredientPreparationsTableName, querygen.Ascending),
 					)),
 				},
 				{
@@ -112,10 +112,10 @@ WHERE %s
 						validPreparationIDColumn,
 						validPreparationsTableName,
 						idColumn,
-						pgGen.FilterConditions(validIngredientPreparationsTableName, validIngredientPreparationsColumns,
+						pgGen.FilterConditions(validIngredientPreparationsTableName, validIngredientPreparationsColumns, querygen.Ascending,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", validIngredientPreparationsTableName, validPreparationIDColumn, idColumn),
 						),
-						pgGen.CursorLimitClause(validIngredientPreparationsTableName),
+						pgGen.CursorLimitClause(validIngredientPreparationsTableName, querygen.Ascending),
 					)),
 				},
 				{
@@ -146,8 +146,8 @@ WHERE %s
 						validPreparationIDColumn,
 						validPreparationsTableName,
 						idColumn,
-						pgGen.FilterConditions(validIngredientPreparationsTableName, validIngredientPreparationsColumns),
-						pgGen.CursorLimitClause(validIngredientPreparationsTableName),
+						pgGen.FilterConditions(validIngredientPreparationsTableName, validIngredientPreparationsColumns, querygen.Ascending),
+						pgGen.CursorLimitClause(validIngredientPreparationsTableName, querygen.Ascending),
 					)),
 				},
 				{
@@ -274,13 +274,13 @@ WHERE %s
 						validPreparationIDColumn,
 						validPreparationsTableName,
 						idColumn,
-						pgGen.FilterConditions(validIngredientPreparationsTableName, validIngredientPreparationsColumns,
+						pgGen.FilterConditions(validIngredientPreparationsTableName, validIngredientPreparationsColumns, querygen.Ascending,
 							"valid_ingredients.archived_at IS NULL",
 							"valid_preparations.archived_at IS NULL",
 							fmt.Sprintf("%s.%s %s", validIngredientsTableName, nameColumn, buildILIKEForArgument("name_query")),
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", validPreparationsTableName, idColumn, idColumn),
 						),
-						pgGen.CursorLimitClause(validIngredientPreparationsTableName),
+						pgGen.CursorLimitClause(validIngredientPreparationsTableName, querygen.Ascending),
 					)),
 				},
 			},

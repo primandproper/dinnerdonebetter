@@ -176,7 +176,7 @@ type GetIssueReportsParams struct {
 	UpdatedAfter    sql.NullTime
 	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -202,7 +202,7 @@ func (q *Queries) GetIssueReports(ctx context.Context, db DBTX, arg *GetIssueRep
 		arg.UpdatedAfter,
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {
@@ -298,7 +298,7 @@ type GetIssueReportsForAccountParams struct {
 	UpdatedBefore    sql.NullTime
 	IncludeArchived  sql.NullBool
 	BelongsToAccount string
-	Cursor           sql.NullString
+	PageCursor       sql.NullString
 	ResultLimit      interface{}
 }
 
@@ -325,7 +325,7 @@ func (q *Queries) GetIssueReportsForAccount(ctx context.Context, db DBTX, arg *G
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.BelongsToAccount,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {
@@ -425,7 +425,7 @@ type GetIssueReportsForRecordParams struct {
 	IncludeArchived  sql.NullBool
 	RelevantTable    sql.NullString
 	RelevantRecordID sql.NullString
-	Cursor           sql.NullString
+	PageCursor       sql.NullString
 	ResultLimit      interface{}
 }
 
@@ -453,7 +453,7 @@ func (q *Queries) GetIssueReportsForRecord(ctx context.Context, db DBTX, arg *Ge
 		arg.IncludeArchived,
 		arg.RelevantTable,
 		arg.RelevantRecordID,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {
@@ -549,7 +549,7 @@ type GetIssueReportsForTableParams struct {
 	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	RelevantTable   sql.NullString
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -576,7 +576,7 @@ func (q *Queries) GetIssueReportsForTable(ctx context.Context, db DBTX, arg *Get
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.RelevantTable,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {

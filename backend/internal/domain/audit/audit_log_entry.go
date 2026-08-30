@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	platformaudit "github.com/primandproper/platform-go/v12/audit"
-	"github.com/primandproper/platform-go/v12/database"
-	"github.com/primandproper/platform-go/v12/filtering"
+	platformaudit "github.com/primandproper/platform-go/v13/audit"
+	"github.com/primandproper/platform-go/v13/database"
+	"github.com/primandproper/platform-go/v13/filtering"
 )
 
 const (
@@ -101,9 +101,9 @@ type (
 	AuditLogEntryDataManager interface {
 		GetAuditLogEntry(ctx context.Context, auditLogID string) (*AuditLogEntry, error)
 		GetAuditLogEntriesForUser(ctx context.Context, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[AuditLogEntry], error)
-		GetAuditLogEntriesForUserAndResourceTypes(ctx context.Context, userID string, resourceTypes []string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[AuditLogEntry], error)
+		GetAuditLogEntriesForUserAndResourceTypes(ctx context.Context, userID, resourceType string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[AuditLogEntry], error)
 		GetAuditLogEntriesForAccount(ctx context.Context, accountID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[AuditLogEntry], error)
-		GetAuditLogEntriesForAccountAndResourceTypes(ctx context.Context, accountID string, resourceTypes []string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[AuditLogEntry], error)
+		GetAuditLogEntriesForAccountAndResourceTypes(ctx context.Context, accountID, resourceType string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[AuditLogEntry], error)
 
 		// Record appends entries to the log inside the caller's transaction, so an
 		// entry commits with the change it describes or not at all. It writes each
@@ -113,7 +113,7 @@ type (
 		// It is variadic because a transaction touching three resources should pay
 		// one chain-head lookup and one INSERT rather than three of each. Prefer one
 		// call with three entries to three calls with one.
-		Record(ctx context.Context, querier database.SQLQueryExecutor, entries ...*AuditLogEntry) error
+		Record(ctx context.Context, querier database.Tx, entries ...*AuditLogEntry) error
 
 		// VerifyChain walks one scope's hash chain over a time range and reports the
 		// first break, or that there was none. See ScopeFor for what a scope is here.

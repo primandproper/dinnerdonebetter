@@ -85,7 +85,7 @@ WHERE meal_plan_recipe_option_selections.created_at > COALESCE(sqlc.narg(created
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR meal_plan_recipe_option_selections.archived_at IS NULL)
 	AND belongs_to_meal_plan_option = sqlc.arg(meal_plan_option_id)
 	AND meal_plan_recipe_option_selections.belongs_to_meal_plan_option = sqlc.arg(meal_plan_option_id)
-	AND meal_plan_recipe_option_selections.id > COALESCE(sqlc.narg(cursor), '')
+	AND meal_plan_recipe_option_selections.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY meal_plan_recipe_option_selections.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
@@ -144,7 +144,7 @@ WHERE meal_plan_recipe_option_selections.created_at > COALESCE(sqlc.narg(created
 	AND meal_plan_events.belongs_to_meal_plan = sqlc.arg(meal_plan_id)
 	AND meal_plan_options.archived_at IS NULL
 	AND meal_plan_events.archived_at IS NULL
-	AND meal_plan_recipe_option_selections.id > COALESCE(sqlc.narg(cursor), '')
+	AND meal_plan_recipe_option_selections.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY meal_plan_recipe_option_selections.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 

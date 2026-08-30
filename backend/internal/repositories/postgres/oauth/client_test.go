@@ -13,12 +13,12 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	"github.com/primandproper/platform-go/v12/database"
-	databasecfg "github.com/primandproper/platform-go/v12/database/config"
-	mockdatabase "github.com/primandproper/platform-go/v12/database/mock"
-	"github.com/primandproper/platform-go/v12/database/postgres"
-	loggingnoop "github.com/primandproper/platform-go/v12/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v12/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v13/database"
+	databasecfg "github.com/primandproper/platform-go/v13/database/config"
+	mockdatabase "github.com/primandproper/platform-go/v13/database/mock"
+	"github.com/primandproper/platform-go/v13/database/postgres"
+	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
+	tracingnoop "github.com/primandproper/platform-go/v13/observability/tracing/noop"
 
 	"github.com/stretchr/testify/require"
 )
@@ -67,15 +67,13 @@ func buildInertClientForTest(t *testing.T) *repository {
 	t.Helper()
 
 	config := &dbcfg.Config{
-		Config: databasecfg.Config{
-			Provider:        databasecfg.ProviderPostgres,
-			ReadConnection:  databasecfg.ConnectionDetails{},
-			Debug:           false,
-			LogQueries:      false,
-			RunMigrations:   true,
-			MaxPingAttempts: 10,
-			PingWaitPeriod:  time.Second,
-		},
+		Provider:        databasecfg.ProviderPostgres,
+		ReadConnection:  databasecfg.ConnectionDetails{},
+		Debug:           false,
+		LogQueries:      false,
+		RunMigrations:   true,
+		MaxPingAttempts: 10,
+		PingWaitPeriod:  time.Second,
 	}
 
 	c := ProvideOAuthRepository(t.Context(), loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, config, &mockdatabase.ClientMock{ReaderFunc: func() database.SQLQueryExecutor { return nil }, WriterFunc: func() database.SQLQueryExecutor { return nil }})

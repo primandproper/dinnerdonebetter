@@ -87,7 +87,7 @@ WHERE webhooks.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_T
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR webhooks.archived_at IS NULL)
 	AND webhooks.belongs_to_account = sqlc.arg(belongs_to_account)
 	AND webhook_trigger_configs.archived_at IS NULL
-	AND webhooks.id > COALESCE(sqlc.narg(cursor), '')
+	AND webhooks.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY webhooks.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 

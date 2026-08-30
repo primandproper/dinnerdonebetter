@@ -8,10 +8,10 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity/generated"
 
-	"github.com/primandproper/platform-go/v12/database"
-	"github.com/primandproper/platform-go/v12/observability/logging"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
-	"github.com/primandproper/platform-go/v12/random"
+	"github.com/primandproper/platform-go/v13/database"
+	"github.com/primandproper/platform-go/v13/observability/logging"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
+	"github.com/primandproper/platform-go/v13/random"
 )
 
 const (
@@ -66,9 +66,9 @@ func (r *repository) withEvent(
 	logger logging.Logger,
 	eventType, accountID string,
 	metadata map[string]any,
-	write func(tx database.SQLQueryExecutor) error,
+	write func(tx database.Tx) error,
 ) error {
-	return r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	return r.WithTransaction(ctx, func(tx database.Tx) error {
 		if err := write(tx); err != nil {
 			return err
 		}

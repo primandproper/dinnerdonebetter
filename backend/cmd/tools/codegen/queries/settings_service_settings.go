@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v12/database/querygen"
+	"github.com/primandproper/platform-go/v13/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -68,8 +68,8 @@ WHERE %s
 						pgGen.FilterCountSelect(serviceSettingsTableName, serviceSettingsColumns, []string{}),
 						pgGen.TotalCountSelect(serviceSettingsTableName, serviceSettingsColumns, []string{}),
 						serviceSettingsTableName,
-						pgGen.FilterConditions(serviceSettingsTableName, serviceSettingsColumns),
-						pgGen.CursorLimitClause(serviceSettingsTableName),
+						pgGen.FilterConditions(serviceSettingsTableName, serviceSettingsColumns, querygen.Ascending),
+						pgGen.CursorLimitClause(serviceSettingsTableName, querygen.Ascending),
 					)),
 				},
 				{
@@ -90,10 +90,10 @@ WHERE %s
 						pgGen.FilterCountSelect(serviceSettingsTableName, serviceSettingsColumns, []string{}),
 						pgGen.TotalCountSelect(serviceSettingsTableName, serviceSettingsColumns, []string{}),
 						serviceSettingsTableName,
-						pgGen.FilterConditions(serviceSettingsTableName, serviceSettingsColumns,
+						pgGen.FilterConditions(serviceSettingsTableName, serviceSettingsColumns, querygen.Ascending,
 							fmt.Sprintf("%s.%s %s", serviceSettingsTableName, nameColumn, buildILIKEForArgument("name_query")),
 						),
-						pgGen.CursorLimitClause(serviceSettingsTableName),
+						pgGen.CursorLimitClause(serviceSettingsTableName, querygen.Ascending),
 					)),
 				},
 			},

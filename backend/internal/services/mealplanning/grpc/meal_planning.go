@@ -12,13 +12,20 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
 	converters "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/grpc/converters"
 
-	platformerrors "github.com/primandproper/platform-go/v12/errors"
-	errorsgrpc "github.com/primandproper/platform-go/v12/errors/grpc"
-	"github.com/primandproper/platform-go/v12/observability"
-	"github.com/primandproper/platform-go/v12/observability/logging"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	errorsgrpc "github.com/primandproper/platform-go/v13/errors/grpc"
+	"github.com/primandproper/platform-go/v13/observability"
+	"github.com/primandproper/platform-go/v13/observability/logging"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 
 	"google.golang.org/grpc/codes"
+)
+
+// The selection attributes recorded on more than one span below.
+const (
+	selectionTypeKey   = "selection_type"
+	recipeStepIDKey    = "recipe_step_id"
+	ingredientIndexKey = "ingredient_index"
 )
 
 // verifyMealPlanAccess fetches the session context and confirms the meal plan belongs to the
@@ -963,9 +970,9 @@ func (s *serviceImpl) GetMealPlanRecipeOptionSelection(ctx context.Context, requ
 
 	logger := observability.ObserveValues(map[string]any{
 		mealplanningkeys.MealPlanOptionIDKey: request.MealPlanOptionId,
-		"recipe_step_id":                     request.RecipeStepId,
-		"ingredient_index":                   request.IngredientIndex,
-		"selection_type":                     request.SelectionType,
+		recipeStepIDKey:                      request.RecipeStepId,
+		ingredientIndexKey:                   request.IngredientIndex,
+		selectionTypeKey:                     request.SelectionType,
 	}, span, s.logger)
 
 	if err := s.verifyMealPlanOptionAccess(ctx, request.MealPlanOptionId, logger, span); err != nil {
@@ -1062,9 +1069,9 @@ func (s *serviceImpl) UpdateMealPlanRecipeOptionSelection(ctx context.Context, r
 
 	logger := observability.ObserveValues(map[string]any{
 		mealplanningkeys.MealPlanOptionIDKey: request.MealPlanOptionId,
-		"recipe_step_id":                     request.RecipeStepId,
-		"ingredient_index":                   request.IngredientIndex,
-		"selection_type":                     request.SelectionType,
+		recipeStepIDKey:                      request.RecipeStepId,
+		ingredientIndexKey:                   request.IngredientIndex,
+		selectionTypeKey:                     request.SelectionType,
 	}, span, s.logger)
 
 	if err := s.verifyMealPlanOptionAccess(ctx, request.MealPlanOptionId, logger, span); err != nil {
@@ -1099,9 +1106,9 @@ func (s *serviceImpl) ArchiveMealPlanRecipeOptionSelection(ctx context.Context, 
 
 	logger := observability.ObserveValues(map[string]any{
 		mealplanningkeys.MealPlanOptionIDKey: request.MealPlanOptionId,
-		"recipe_step_id":                     request.RecipeStepId,
-		"ingredient_index":                   request.IngredientIndex,
-		"selection_type":                     request.SelectionType,
+		recipeStepIDKey:                      request.RecipeStepId,
+		ingredientIndexKey:                   request.IngredientIndex,
+		selectionTypeKey:                     request.SelectionType,
 	}, span, s.logger)
 
 	if err := s.verifyMealPlanOptionAccess(ctx, request.MealPlanOptionId, logger, span); err != nil {

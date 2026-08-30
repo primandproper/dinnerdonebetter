@@ -5,7 +5,7 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 
-	"github.com/primandproper/platform-go/v12/filtering"
+	"github.com/primandproper/platform-go/v13/filtering"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -20,31 +20,31 @@ type (
 
 var recipeStepCompletionConditionIngredientSchema = map[string]any{
 	"ID":                                     stringField("The ID of the recipe step completion condition ingredient"),
-	"CreatedAt":                              timestampField("When the recipe step completion condition ingredient was created"),
-	"LastUpdatedAt":                          timestampField("When the recipe step completion condition ingredient was last updated"),
-	"ArchivedAt":                             timestampField("When the recipe step completion condition ingredient was soft deleted"),
+	fieldCreatedAt:                           timestampField("When the recipe step completion condition ingredient was created"),
+	fieldLastUpdatedAt:                       timestampField("When the recipe step completion condition ingredient was last updated"),
+	fieldArchivedAt:                          timestampField("When the recipe step completion condition ingredient was soft deleted"),
 	"BelongsToRecipeStepCompletionCondition": stringField("The ID of the recipe step completion condition this ingredient belongs to"),
 	"RecipeStepIngredient":                   stringField("The ID of the recipe step ingredient"),
 }
 
 var recipeStepCompletionConditionsSchema = map[string]any{
-	"ID":                  stringField("The ID of the recipe step completion condition"),
-	"CreatedAt":           timestampField("When the recipe step completion condition was created"),
-	"LastUpdatedAt":       timestampField("When the recipe step completion condition was last updated"),
-	"ArchivedAt":          timestampField("When the recipe step completion condition was soft deleted"),
-	"BelongsToRecipeStep": stringField("The ID of the recipe step this completion condition belongs to"),
-	"IngredientState":     objectType(validIngredientStatesSchema),
-	"Notes":               stringField("Notes about the completion condition"),
-	"Ingredients":         arrayType(schemaObject(recipeStepCompletionConditionIngredientSchema)),
-	"Optional":            boolField("Whether this completion condition is optional"),
+	"ID":                     stringField("The ID of the recipe step completion condition"),
+	fieldCreatedAt:           timestampField("When the recipe step completion condition was created"),
+	fieldLastUpdatedAt:       timestampField("When the recipe step completion condition was last updated"),
+	fieldArchivedAt:          timestampField("When the recipe step completion condition was soft deleted"),
+	fieldBelongsToRecipeStep: stringField("The ID of the recipe step this completion condition belongs to"),
+	"IngredientState":        objectType(validIngredientStatesSchema),
+	fieldNotes:               stringField("Notes about the completion condition"),
+	"Ingredients":            arrayType(schemaObject(recipeStepCompletionConditionIngredientSchema)),
+	fieldOptional:            boolField("Whether this completion condition is optional"),
 }
 
 var getRecipeStepCompletionConditionTool = &mcp.Tool{
 	Name:        "GetRecipeStepCompletionCondition",
 	Description: "Get a recipe step completion condition by it's ID",
 	InputSchema: schemaObject(map[string]any{
-		"RecipeID":                        stringField("The ID of the recipe"),
-		"RecipeStepID":                    stringField("The ID of the recipe step"),
+		fieldRecipeID:                     stringField("The ID of the recipe"),
+		fieldRecipeStepID:                 stringField("The ID of the recipe step"),
 		"RecipeStepCompletionConditionID": stringField("The ID of the recipe step completion condition to get"),
 	}),
 	OutputSchema: schemaObject(recipeStepCompletionConditionsSchema),
@@ -81,12 +81,12 @@ var getRecipeStepCompletionConditionsTool = &mcp.Tool{
 	Name:        "GetRecipeStepCompletionConditions",
 	Description: "Get recipe step completion conditions with optional filtering",
 	InputSchema: schemaObject(map[string]any{
-		"RecipeID":     stringField("The ID of the recipe"),
-		"RecipeStepID": stringField("The ID of the recipe step"),
-		"Filter":       filtering.QueryFilterSchema(),
+		fieldRecipeID:     stringField("The ID of the recipe"),
+		fieldRecipeStepID: stringField("The ID of the recipe step"),
+		fieldFilter:       filtering.QueryFilterSchema(),
 	}),
 	OutputSchema: schemaObject(map[string]any{
-		"Results": arrayType(schemaObject(recipeStepCompletionConditionsSchema)),
+		fieldResults: arrayType(schemaObject(recipeStepCompletionConditionsSchema)),
 	}),
 }
 

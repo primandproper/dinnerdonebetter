@@ -7,11 +7,11 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 
-	"github.com/primandproper/platform-go/v12/database"
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/observability"
-	"github.com/primandproper/platform-go/v12/observability/logging"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v13/database"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/observability"
+	"github.com/primandproper/platform-go/v13/observability/logging"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 )
 
 const (
@@ -56,11 +56,11 @@ func (m *auditManager) GetAuditLogEntriesForUser(ctx context.Context, userID str
 	return m.repo.GetAuditLogEntriesForUser(ctx, userID, filter)
 }
 
-func (m *auditManager) GetAuditLogEntriesForUserAndResourceTypes(ctx context.Context, userID string, resourceTypes []string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[audit.AuditLogEntry], error) {
+func (m *auditManager) GetAuditLogEntriesForUserAndResourceTypes(ctx context.Context, userID, resourceType string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[audit.AuditLogEntry], error) {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
-	return m.repo.GetAuditLogEntriesForUserAndResourceTypes(ctx, userID, resourceTypes, filter)
+	return m.repo.GetAuditLogEntriesForUserAndResourceTypes(ctx, userID, resourceType, filter)
 }
 
 func (m *auditManager) GetAuditLogEntriesForAccount(ctx context.Context, accountID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[audit.AuditLogEntry], error) {
@@ -70,14 +70,14 @@ func (m *auditManager) GetAuditLogEntriesForAccount(ctx context.Context, account
 	return m.repo.GetAuditLogEntriesForAccount(ctx, accountID, filter)
 }
 
-func (m *auditManager) GetAuditLogEntriesForAccountAndResourceTypes(ctx context.Context, accountID string, resourceTypes []string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[audit.AuditLogEntry], error) {
+func (m *auditManager) GetAuditLogEntriesForAccountAndResourceTypes(ctx context.Context, accountID, resourceType string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[audit.AuditLogEntry], error) {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
-	return m.repo.GetAuditLogEntriesForAccountAndResourceTypes(ctx, accountID, resourceTypes, filter)
+	return m.repo.GetAuditLogEntriesForAccountAndResourceTypes(ctx, accountID, resourceType, filter)
 }
 
-func (m *auditManager) Record(ctx context.Context, querier database.SQLQueryExecutor, entries ...*audit.AuditLogEntry) error {
+func (m *auditManager) Record(ctx context.Context, querier database.Tx, entries ...*audit.AuditLogEntry) error {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 

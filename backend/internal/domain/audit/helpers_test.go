@@ -6,8 +6,8 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 
-	"github.com/primandproper/platform-go/v12/fake"
-	loggingnoop "github.com/primandproper/platform-go/v12/observability/logging/noop"
+	"github.com/primandproper/platform-go/v13/fake"
+	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
 
 	"github.com/stretchr/testify/assert"
 )

@@ -8,12 +8,12 @@ import (
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
-	"github.com/primandproper/platform-go/v12/database"
-	platformerrors "github.com/primandproper/platform-go/v12/errors"
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/observability"
-	platformkeys "github.com/primandproper/platform-go/v12/observability/keys"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v13/database"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/observability"
+	platformkeys "github.com/primandproper/platform-go/v13/observability/keys"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 )
 
 var (
@@ -152,7 +152,7 @@ func (q *repository) SearchForValidIngredientGroups(ctx context.Context, query s
 		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
 		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
 	})
@@ -261,7 +261,7 @@ func (q *repository) GetValidIngredientGroups(ctx context.Context, filter *filte
 		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
 		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
 	})
@@ -379,7 +379,7 @@ func (q *repository) CreateValidIngredientGroup(ctx context.Context, input *meal
 		CreatedAt:   q.CurrentTime(),
 	}
 
-	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err := q.WithTransaction(ctx, func(tx database.Tx) error {
 		// create the valid ingredient group.
 		if err := q.generatedQuerier.CreateValidIngredientGroup(ctx, tx, &generated.CreateValidIngredientGroupParams{
 			ID:          input.ID,
@@ -457,7 +457,7 @@ func (q *repository) UpdateValidIngredientGroup(ctx context.Context, updated *me
 
 	if err := q.withEvent(ctx, logger, mealplanning.ValidIngredientGroupUpdatedServiceEventType, "", map[string]any{
 		mealplanningkeys.ValidIngredientGroupIDKey: updated.ID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		_, updateErr := q.generatedQuerier.UpdateValidIngredientGroup(ctx, tx, &generated.UpdateValidIngredientGroupParams{
 			Name:        updated.Name,
 			Description: updated.Description,
@@ -490,7 +490,7 @@ func (q *repository) ArchiveValidIngredientGroup(ctx context.Context, validIngre
 
 	return q.withEvent(ctx, logger, mealplanning.ValidIngredientGroupArchivedServiceEventType, "", map[string]any{
 		mealplanningkeys.ValidIngredientGroupIDKey: validIngredientGroupID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		rowsAffected, archiveErr := q.generatedQuerier.ArchiveValidIngredientGroup(ctx, tx, validIngredientGroupID)
 		if archiveErr != nil {
 			return observability.PrepareAndLogError(archiveErr, logger, span, "archiving valid ingredient group")

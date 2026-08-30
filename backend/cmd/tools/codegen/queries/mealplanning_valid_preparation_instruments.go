@@ -5,12 +5,17 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v12/database/querygen"
+	"github.com/primandproper/platform-go/v13/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
 
 const (
+	// The two joins every read of this bridge table makes, spelled once so the
+	// projections below cannot drift apart.
+	joinValidInstruments  = "JOIN valid_instruments ON valid_preparation_instruments.valid_instrument_id = valid_instruments.id"
+	joinValidPreparations = "JOIN valid_preparations ON valid_preparation_instruments.valid_preparation_id = valid_preparations.id"
+
 	validPreparationInstrumentsTableName = "valid_preparation_instruments"
 )
 
@@ -73,8 +78,8 @@ GROUP BY
 							validPreparationInstrumentsTableName,
 							validPreparationInstrumentsColumns,
 							[]string{
-								"JOIN valid_instruments ON valid_preparation_instruments.valid_instrument_id = valid_instruments.id",
-								"JOIN valid_preparations ON valid_preparation_instruments.valid_preparation_id = valid_preparations.id",
+								joinValidInstruments,
+								joinValidPreparations,
 							},
 							fmt.Sprintf("%s.%s IS NULL", validInstrumentsTableName, archivedAtColumn),
 							fmt.Sprintf("%s.%s IS NULL", validPreparationsTableName, archivedAtColumn),
@@ -84,8 +89,8 @@ GROUP BY
 							validPreparationInstrumentsTableName,
 							validPreparationInstrumentsColumns,
 							[]string{
-								"JOIN valid_instruments ON valid_preparation_instruments.valid_instrument_id = valid_instruments.id",
-								"JOIN valid_preparations ON valid_preparation_instruments.valid_preparation_id = valid_preparations.id",
+								joinValidInstruments,
+								joinValidPreparations,
 							},
 							fmt.Sprintf("%s.%s IS NULL", validInstrumentsTableName, archivedAtColumn),
 							fmt.Sprintf("%s.%s IS NULL", validPreparationsTableName, archivedAtColumn),
@@ -102,7 +107,7 @@ GROUP BY
 						validPreparationIDColumn,
 						validPreparationsTableName,
 						idColumn,
-						pgGen.FilterConditions(validPreparationInstrumentsTableName, validPreparationInstrumentsColumns,
+						pgGen.FilterConditions(validPreparationInstrumentsTableName, validPreparationInstrumentsColumns, querygen.Ascending,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", validPreparationInstrumentsTableName, validInstrumentIDColumn, idColumn),
 							fmt.Sprintf("%s.%s IS NULL", ///
 								validInstrumentsTableName, archivedAtColumn),
@@ -114,7 +119,7 @@ GROUP BY
 						idColumn,
 						validInstrumentsTableName,
 						idColumn,
-						pgGen.CursorLimitClause(validPreparationInstrumentsTableName),
+						pgGen.CursorLimitClause(validPreparationInstrumentsTableName, querygen.Ascending),
 					)),
 				},
 				{
@@ -140,8 +145,8 @@ GROUP BY
 							validPreparationInstrumentsTableName,
 							validPreparationInstrumentsColumns,
 							[]string{
-								"JOIN valid_instruments ON valid_preparation_instruments.valid_instrument_id = valid_instruments.id",
-								"JOIN valid_preparations ON valid_preparation_instruments.valid_preparation_id = valid_preparations.id",
+								joinValidInstruments,
+								joinValidPreparations,
 							},
 							fmt.Sprintf("%s.%s IS NULL", validInstrumentsTableName, archivedAtColumn),
 							fmt.Sprintf("%s.%s IS NULL", validPreparationsTableName, archivedAtColumn),
@@ -151,8 +156,8 @@ GROUP BY
 							validPreparationInstrumentsTableName,
 							validPreparationInstrumentsColumns,
 							[]string{
-								"JOIN valid_instruments ON valid_preparation_instruments.valid_instrument_id = valid_instruments.id",
-								"JOIN valid_preparations ON valid_preparation_instruments.valid_preparation_id = valid_preparations.id",
+								joinValidInstruments,
+								joinValidPreparations,
 							},
 							fmt.Sprintf("%s.%s IS NULL", validInstrumentsTableName, archivedAtColumn),
 							fmt.Sprintf("%s.%s IS NULL", validPreparationsTableName, archivedAtColumn),
@@ -169,7 +174,7 @@ GROUP BY
 						validPreparationIDColumn,
 						validPreparationsTableName,
 						idColumn,
-						pgGen.FilterConditions(validPreparationInstrumentsTableName, validPreparationInstrumentsColumns,
+						pgGen.FilterConditions(validPreparationInstrumentsTableName, validPreparationInstrumentsColumns, querygen.Ascending,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", validPreparationInstrumentsTableName, validPreparationIDColumn, idColumn),
 							fmt.Sprintf("%s.%s IS NULL", ///
 								validInstrumentsTableName, archivedAtColumn),
@@ -181,7 +186,7 @@ GROUP BY
 						idColumn,
 						validInstrumentsTableName,
 						idColumn,
-						pgGen.CursorLimitClause(validPreparationInstrumentsTableName),
+						pgGen.CursorLimitClause(validPreparationInstrumentsTableName, querygen.Ascending),
 					)),
 				},
 				{
@@ -207,8 +212,8 @@ GROUP BY
 							validPreparationInstrumentsTableName,
 							validPreparationInstrumentsColumns,
 							[]string{
-								"JOIN valid_instruments ON valid_preparation_instruments.valid_instrument_id = valid_instruments.id",
-								"JOIN valid_preparations ON valid_preparation_instruments.valid_preparation_id = valid_preparations.id",
+								joinValidInstruments,
+								joinValidPreparations,
 							},
 							fmt.Sprintf("%s.%s IS NULL", validInstrumentsTableName, archivedAtColumn),
 							fmt.Sprintf("%s.%s IS NULL", validPreparationsTableName, archivedAtColumn),
@@ -217,8 +222,8 @@ GROUP BY
 							validPreparationInstrumentsTableName,
 							validPreparationInstrumentsColumns,
 							[]string{
-								"JOIN valid_instruments ON valid_preparation_instruments.valid_instrument_id = valid_instruments.id",
-								"JOIN valid_preparations ON valid_preparation_instruments.valid_preparation_id = valid_preparations.id",
+								joinValidInstruments,
+								joinValidPreparations,
 							},
 							fmt.Sprintf("%s.%s IS NULL", validInstrumentsTableName, archivedAtColumn),
 							fmt.Sprintf("%s.%s IS NULL", validPreparationsTableName, archivedAtColumn),
@@ -234,7 +239,7 @@ GROUP BY
 						validPreparationIDColumn,
 						validPreparationsTableName,
 						idColumn,
-						pgGen.FilterConditions(validPreparationInstrumentsTableName, validPreparationInstrumentsColumns,
+						pgGen.FilterConditions(validPreparationInstrumentsTableName, validPreparationInstrumentsColumns, querygen.Ascending,
 							"valid_instruments.archived_at IS NULL",
 							"valid_preparations.archived_at IS NULL",
 						),
@@ -244,7 +249,7 @@ GROUP BY
 						idColumn,
 						validInstrumentsTableName,
 						idColumn,
-						pgGen.CursorLimitClause(validPreparationInstrumentsTableName),
+						pgGen.CursorLimitClause(validPreparationInstrumentsTableName, querygen.Ascending),
 					)),
 				},
 				{

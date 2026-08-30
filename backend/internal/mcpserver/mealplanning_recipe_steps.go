@@ -5,7 +5,7 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 
-	"github.com/primandproper/platform-go/v12/filtering"
+	"github.com/primandproper/platform-go/v13/filtering"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -18,26 +18,26 @@ type (
 )
 
 var recipeMediaSchema = map[string]any{
-	"ID":                  stringField("The ID of the recipe media"),
-	"CreatedAt":           timestampField("When the recipe media was created"),
-	"LastUpdatedAt":       timestampField("When the recipe media was last updated"),
-	"ArchivedAt":          timestampField("When the recipe media was soft deleted"),
-	"BelongsToRecipe":     stringField("The ID of the recipe this media belongs to, if any"),
-	"BelongsToRecipeStep": stringField("The ID of the recipe step this media belongs to, if any"),
-	"MimeType":            stringField("The MIME type of the media"),
-	"InternalPath":        stringField("The internal path to the media file"),
-	"ExternalPath":        stringField("The external path to the media file"),
-	"Index":               uintField("The index of the media"),
+	"ID":                     stringField("The ID of the recipe media"),
+	fieldCreatedAt:           timestampField("When the recipe media was created"),
+	fieldLastUpdatedAt:       timestampField("When the recipe media was last updated"),
+	fieldArchivedAt:          timestampField("When the recipe media was soft deleted"),
+	fieldBelongsToRecipe:     stringField("The ID of the recipe this media belongs to, if any"),
+	fieldBelongsToRecipeStep: stringField("The ID of the recipe step this media belongs to, if any"),
+	"MimeType":               stringField("The MIME type of the media"),
+	"InternalPath":           stringField("The internal path to the media file"),
+	"ExternalPath":           stringField("The external path to the media file"),
+	fieldIndex:               uintField("The index of the media"),
 }
 
 var recipeStepsSchema = map[string]any{
 	"ID":                        stringField("The ID of the recipe step"),
-	"CreatedAt":                 timestampField("When the recipe step was created"),
-	"LastUpdatedAt":             timestampField("When the recipe step was last updated"),
-	"ArchivedAt":                timestampField("When the recipe step was soft deleted"),
-	"BelongsToRecipe":           stringField("The ID of the recipe this step belongs to"),
+	fieldCreatedAt:              timestampField("When the recipe step was created"),
+	fieldLastUpdatedAt:          timestampField("When the recipe step was last updated"),
+	fieldArchivedAt:             timestampField("When the recipe step was soft deleted"),
+	fieldBelongsToRecipe:        stringField("The ID of the recipe this step belongs to"),
 	"ConditionExpression":       stringField("The condition expression for this step"),
-	"Notes":                     stringField("Notes about the step"),
+	fieldNotes:                  stringField("Notes about the step"),
 	"ExplicitInstructions":      stringField("Explicit instructions for this step"),
 	"Media":                     arrayType(schemaObject(recipeMediaSchema)),
 	"Products":                  arrayType(schemaObject(recipeStepProductsSchema)),
@@ -45,9 +45,9 @@ var recipeStepsSchema = map[string]any{
 	"Vessels":                   arrayType(schemaObject(recipeStepVesselsSchema)),
 	"CompletionConditions":      arrayType(schemaObject(recipeStepCompletionConditionsSchema)),
 	"Ingredients":               arrayType(schemaObject(recipeStepIngredientsSchema)),
-	"Preparation":               objectType(validPreparationsSchema),
-	"Index":                     uintField("The index of the step within the recipe"),
-	"Optional":                  boolField("Whether this step is optional"),
+	fieldPreparation:            objectType(validPreparationsSchema),
+	fieldIndex:                  uintField("The index of the step within the recipe"),
+	fieldOptional:               boolField("Whether this step is optional"),
 	"StartTimerAutomatically":   boolField("Whether to start a timer automatically for this step"),
 	"MinEstimatedTimeInSeconds": uintField("Minimum estimated time in seconds (optional)"),
 	"MaxEstimatedTimeInSeconds": uintField("Maximum estimated time in seconds (optional)"),
@@ -59,8 +59,8 @@ var getRecipeStepTool = &mcp.Tool{
 	Name:        "GetRecipeStep",
 	Description: "Get a recipe step by it's ID",
 	InputSchema: schemaObject(map[string]any{
-		"RecipeID":     stringField("The ID of the recipe"),
-		"RecipeStepID": stringField("The ID of the recipe step to get"),
+		fieldRecipeID:     stringField("The ID of the recipe"),
+		fieldRecipeStepID: stringField("The ID of the recipe step to get"),
 	}),
 	OutputSchema: schemaObject(recipeStepsSchema),
 }
@@ -95,11 +95,11 @@ var getRecipeStepsTool = &mcp.Tool{
 	Name:        "GetRecipeSteps",
 	Description: "Get recipe steps with optional filtering",
 	InputSchema: schemaObject(map[string]any{
-		"RecipeID": stringField("The ID of the recipe"),
-		"Filter":   filtering.QueryFilterSchema(),
+		fieldRecipeID: stringField("The ID of the recipe"),
+		fieldFilter:   filtering.QueryFilterSchema(),
 	}),
 	OutputSchema: schemaObject(map[string]any{
-		"Results": arrayType(schemaObject(recipeStepsSchema)),
+		fieldResults: arrayType(schemaObject(recipeStepsSchema)),
 	}),
 }
 

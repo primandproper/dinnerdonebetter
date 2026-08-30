@@ -14,29 +14,37 @@ import (
 	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
-	analyticscfg "github.com/primandproper/platform-go/v12/analytics/config"
-	oauth2servercfg "github.com/primandproper/platform-go/v12/authentication/oauth2server/config"
-	platformconfig "github.com/primandproper/platform-go/v12/config"
-	emailcfg "github.com/primandproper/platform-go/v12/email/config"
-	"github.com/primandproper/platform-go/v12/encoding"
-	featureflagscfg "github.com/primandproper/platform-go/v12/featureflags/config"
-	httpclientcfg "github.com/primandproper/platform-go/v12/httpclient"
-	idempotencycfg "github.com/primandproper/platform-go/v12/idempotency/config"
-	"github.com/primandproper/platform-go/v12/jobs"
-	msgconfig "github.com/primandproper/platform-go/v12/messagequeue/config"
-	meteringcfg "github.com/primandproper/platform-go/v12/metering/config"
-	notificationscfg "github.com/primandproper/platform-go/v12/notifications/mobile/config"
-	"github.com/primandproper/platform-go/v12/observability"
-	operationscfg "github.com/primandproper/platform-go/v12/operations/config"
-	routingcfg "github.com/primandproper/platform-go/v12/routing/config"
-	textsearchcfg "github.com/primandproper/platform-go/v12/search/text/config"
-	"github.com/primandproper/platform-go/v12/server/grpc"
-	"github.com/primandproper/platform-go/v12/server/http"
-	webhookscfg "github.com/primandproper/platform-go/v12/webhooks/config"
+	analyticscfg "github.com/primandproper/platform-go/v13/analytics/config"
+	oauth2servercfg "github.com/primandproper/platform-go/v13/authentication/oauth2server/config"
+	platformconfig "github.com/primandproper/platform-go/v13/config"
+	emailcfg "github.com/primandproper/platform-go/v13/email/config"
+	"github.com/primandproper/platform-go/v13/encoding"
+	featureflagscfg "github.com/primandproper/platform-go/v13/featureflags/config"
+	httpclientcfg "github.com/primandproper/platform-go/v13/httpclient"
+	idempotencycfg "github.com/primandproper/platform-go/v13/idempotency/config"
+	"github.com/primandproper/platform-go/v13/jobs"
+	msgconfig "github.com/primandproper/platform-go/v13/messagequeue/config"
+	meteringcfg "github.com/primandproper/platform-go/v13/metering/config"
+	notificationscfg "github.com/primandproper/platform-go/v13/notifications/mobile/config"
+	"github.com/primandproper/platform-go/v13/observability"
+	operationscfg "github.com/primandproper/platform-go/v13/operations/config"
+	routingcfg "github.com/primandproper/platform-go/v13/routing/config"
+	textsearchcfg "github.com/primandproper/platform-go/v13/search/text/config"
+	"github.com/primandproper/platform-go/v13/server/grpc"
+	"github.com/primandproper/platform-go/v13/server/http"
+	webhookscfg "github.com/primandproper/platform-go/v13/webhooks/config"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/hashicorp/go-multierror"
 	"github.com/joho/godotenv"
+)
+
+// The config sections named by more than one validation table below.
+const (
+	sectionAnalytics     = "Analytics"
+	sectionDatabase      = "Database"
+	sectionObservability = "Observability"
+	sectionQueues        = "Queues"
 )
 
 const (
@@ -231,7 +239,7 @@ func (cfg *APIServiceConfig) EncodeToFile(path string, marshaller func(v any) ([
 		return err
 	}
 
-	return os.WriteFile(path, byteSlice, 0o600) //nolint:gosec // G703: path from caller; caller must pass trusted path
+	return os.WriteFile(path, byteSlice, 0o600)
 }
 
 func (cfg *APIServiceConfig) Commit() string {
@@ -253,21 +261,21 @@ func (cfg *APIServiceConfig) ValidateWithContext(ctx context.Context) error {
 	result := &multierror.Error{}
 
 	validators := map[string]func(context.Context) error{
-		"Routing":       cfg.Routing.ValidateWithContext,
-		"Meta":          cfg.Meta.ValidateWithContext,
-		"Queues":        cfg.Queues.ValidateWithContext,
-		"Encoding":      cfg.Encoding.ValidateWithContext,
-		"Analytics":     cfg.Analytics.ValidateWithContext,
-		"Observability": cfg.Observability.ValidateWithContext,
-		"Database":      cfg.Database.ValidateWithContext,
-		"HTTPServer":    cfg.HTTPServer.ValidateWithContext,
-		"Email":         cfg.Email.ValidateWithContext,
-		"FeatureFlags":  cfg.FeatureFlags.ValidateWithContext,
-		"TextSearch":    cfg.TextSearch.ValidateWithContext,
-		"Idempotency":   cfg.Idempotency.ValidateWithContext,
-		"Webhooks":      cfg.Webhooks.ValidateWithContext,
-		"Metering":      cfg.Metering.ValidateWithContext,
-		"Operations":    cfg.Operations.ValidateWithContext,
+		"Routing":            cfg.Routing.ValidateWithContext,
+		"Meta":               cfg.Meta.ValidateWithContext,
+		sectionQueues:        cfg.Queues.ValidateWithContext,
+		"Encoding":           cfg.Encoding.ValidateWithContext,
+		sectionAnalytics:     cfg.Analytics.ValidateWithContext,
+		sectionObservability: cfg.Observability.ValidateWithContext,
+		sectionDatabase:      cfg.Database.ValidateWithContext,
+		"HTTPServer":         cfg.HTTPServer.ValidateWithContext,
+		"Email":              cfg.Email.ValidateWithContext,
+		"FeatureFlags":       cfg.FeatureFlags.ValidateWithContext,
+		"TextSearch":         cfg.TextSearch.ValidateWithContext,
+		"Idempotency":        cfg.Idempotency.ValidateWithContext,
+		"Webhooks":           cfg.Webhooks.ValidateWithContext,
+		"Metering":           cfg.Metering.ValidateWithContext,
+		"Operations":         cfg.Operations.ValidateWithContext,
 		// no "Events" here, that's a collection of publisher/subscriber configs that can each optionally be setup
 	}
 
@@ -291,8 +299,8 @@ func (cfg *DBCleanerConfig) ValidateWithContext(ctx context.Context) error {
 	result := &multierror.Error{}
 
 	validators := map[string]func(context.Context) error{
-		"Observability": cfg.Observability.ValidateWithContext,
-		"Database":      cfg.Database.ValidateWithContext,
+		sectionObservability: cfg.Observability.ValidateWithContext,
+		sectionDatabase:      cfg.Database.ValidateWithContext,
 	}
 
 	for name, validator := range validators {
@@ -336,13 +344,13 @@ func (cfg *AsyncMessageHandlerConfig) ValidateWithContext(ctx context.Context) e
 	result := &multierror.Error{}
 
 	validators := map[string]func(context.Context) error{
-		"Queues":        cfg.Queues.ValidateWithContext,
-		"Analytics":     cfg.Analytics.ValidateWithContext,
-		"Observability": cfg.Observability.ValidateWithContext,
-		"Database":      cfg.Database.ValidateWithContext,
-		"Email":         cfg.Email.ValidateWithContext,
-		"TextSearch":    cfg.Search.ValidateWithContext,
-		"Pools":         cfg.Pools.ValidateWithContext,
+		sectionQueues:        cfg.Queues.ValidateWithContext,
+		sectionAnalytics:     cfg.Analytics.ValidateWithContext,
+		sectionObservability: cfg.Observability.ValidateWithContext,
+		sectionDatabase:      cfg.Database.ValidateWithContext,
+		"Email":              cfg.Email.ValidateWithContext,
+		"TextSearch":         cfg.Search.ValidateWithContext,
+		"Pools":              cfg.Pools.ValidateWithContext,
 	}
 
 	for name, validator := range validators {
@@ -374,12 +382,12 @@ func (cfg *MCPServiceConfig) ValidateWithContext(ctx context.Context) error {
 	result := &multierror.Error{}
 
 	validators := map[string]func(context.Context) error{
-		"Database":      cfg.Database.ValidateWithContext,
-		"Meta":          cfg.Meta.ValidateWithContext,
-		"Observability": cfg.Observability.ValidateWithContext,
-		"Routing":       cfg.Routing.ValidateWithContext,
-		"HTTPServer":    cfg.HTTPServer.ValidateWithContext,
-		"OAuth2":        cfg.OAuth2.ValidateWithContext,
+		sectionDatabase:      cfg.Database.ValidateWithContext,
+		"Meta":               cfg.Meta.ValidateWithContext,
+		sectionObservability: cfg.Observability.ValidateWithContext,
+		"Routing":            cfg.Routing.ValidateWithContext,
+		"HTTPServer":         cfg.HTTPServer.ValidateWithContext,
+		"OAuth2":             cfg.OAuth2.ValidateWithContext,
 	}
 
 	for name, validator := range validators {

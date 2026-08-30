@@ -6,11 +6,11 @@ import (
 
 	identitymock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/mock"
 
-	"github.com/primandproper/platform-go/v12/database"
-	platformerrors "github.com/primandproper/platform-go/v12/errors"
-	"github.com/primandproper/platform-go/v12/identifiers"
-	loggingnoop "github.com/primandproper/platform-go/v12/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v12/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v13/database"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	"github.com/primandproper/platform-go/v13/identifiers"
+	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
+	tracingnoop "github.com/primandproper/platform-go/v13/observability/tracing/noop"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -28,7 +28,7 @@ func TestEraser_Erase(T *testing.T) {
 		// asserted is that the eraser passes through the one it was handed instead of
 		// reaching for a handle of its own, because that is what makes the erasure
 		// atomic across every domain's eraser.
-		executor := database.SQLQueryExecutor(nil)
+		executor := database.Tx(nil)
 
 		repo := &identitymock.RepositoryMock{
 			EraseUserFunc: func(_ context.Context, actualExecutor database.SQLQueryExecutor, actualUserID string) (int64, error) {

@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v12/database/querygen"
+	"github.com/primandproper/platform-go/v13/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -20,9 +20,9 @@ var paymentTransactionsColumns = []string{
 	"subscription_id",
 	"purchase_id",
 	"external_transaction_id",
-	"amount_cents",
-	"currency",
-	"status",
+	amountCentsColumn,
+	currencyColumn,
+	statusColumn,
 	createdAtColumn,
 }
 
@@ -56,11 +56,11 @@ WHERE %s
 						pgGen.FilterCountSelect(paymentTransactionsTableName, paymentTransactionsColumns, nil, accountCondition),
 						pgGen.TotalCountSelect(paymentTransactionsTableName, paymentTransactionsColumns, nil, accountCondition),
 						paymentTransactionsTableName,
-						pgGen.FilterConditions(paymentTransactionsTableName, paymentTransactionsColumns,
+						pgGen.FilterConditions(paymentTransactionsTableName, paymentTransactionsColumns, querygen.Ascending,
 							accountCondition,
 							accountCondition,
 						),
-						pgGen.CursorLimitClause(paymentTransactionsTableName),
+						pgGen.CursorLimitClause(paymentTransactionsTableName, querygen.Ascending),
 					)),
 				},
 			},

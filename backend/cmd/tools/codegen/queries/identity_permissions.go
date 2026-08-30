@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v12/database/querygen"
+	"github.com/primandproper/platform-go/v13/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -70,8 +70,8 @@ WHERE %s
 						pgGen.FilterCountSelect(permissionsTableName, permissionsColumns, []string{}),
 						pgGen.TotalCountSelect(permissionsTableName, permissionsColumns, []string{}),
 						permissionsTableName,
-						pgGen.FilterConditions(permissionsTableName, permissionsColumns),
-						pgGen.CursorLimitClause(permissionsTableName),
+						pgGen.FilterConditions(permissionsTableName, permissionsColumns, querygen.Ascending),
+						pgGen.CursorLimitClause(permissionsTableName, querygen.Ascending),
 					)),
 				},
 			},

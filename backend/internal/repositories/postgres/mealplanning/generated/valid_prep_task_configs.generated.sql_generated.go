@@ -467,7 +467,7 @@ type GetValidPrepTaskConfigsParams struct {
 	UpdatedAfter    sql.NullTime
 	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -557,7 +557,7 @@ func (q *Queries) GetValidPrepTaskConfigs(ctx context.Context, db DBTX, arg *Get
 		arg.UpdatedAfter,
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {
@@ -781,7 +781,7 @@ type GetValidPrepTaskConfigsForIngredientParams struct {
 	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	ID              string
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -872,7 +872,7 @@ func (q *Queries) GetValidPrepTaskConfigsForIngredient(ctx context.Context, db D
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.ID,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {
@@ -1098,7 +1098,7 @@ type GetValidPrepTaskConfigsForIngredientAndPreparationParams struct {
 	IncludeArchived    sql.NullBool
 	ValidIngredientID  string
 	ValidPreparationID string
-	Cursor             sql.NullString
+	PageCursor         sql.NullString
 	ResultLimit        interface{}
 }
 
@@ -1190,7 +1190,7 @@ func (q *Queries) GetValidPrepTaskConfigsForIngredientAndPreparation(ctx context
 		arg.IncludeArchived,
 		arg.ValidIngredientID,
 		arg.ValidPreparationID,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {
@@ -1414,7 +1414,7 @@ type GetValidPrepTaskConfigsForPreparationParams struct {
 	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	ID              string
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -1505,7 +1505,7 @@ func (q *Queries) GetValidPrepTaskConfigsForPreparation(ctx context.Context, db 
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.ID,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {

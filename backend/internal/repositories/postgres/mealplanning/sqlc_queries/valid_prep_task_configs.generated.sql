@@ -166,7 +166,7 @@ WHERE valid_prep_task_configs.created_at > COALESCE(sqlc.narg(created_after), (S
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_prep_task_configs.archived_at IS NULL)
 	AND valid_prep_task_configs.valid_ingredient_id = sqlc.arg(id)
-	AND valid_prep_task_configs.id > COALESCE(sqlc.narg(cursor), '')
+	AND valid_prep_task_configs.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY valid_prep_task_configs.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
@@ -281,7 +281,7 @@ WHERE valid_prep_task_configs.created_at > COALESCE(sqlc.narg(created_after), (S
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_prep_task_configs.archived_at IS NULL)
 	AND valid_prep_task_configs.valid_preparation_id = sqlc.arg(id)
-	AND valid_prep_task_configs.id > COALESCE(sqlc.narg(cursor), '')
+	AND valid_prep_task_configs.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY valid_prep_task_configs.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
@@ -397,7 +397,7 @@ WHERE valid_prep_task_configs.created_at > COALESCE(sqlc.narg(created_after), (S
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_prep_task_configs.archived_at IS NULL)
 	AND valid_prep_task_configs.valid_ingredient_id = sqlc.arg(valid_ingredient_id)
 	AND valid_prep_task_configs.valid_preparation_id = sqlc.arg(valid_preparation_id)
-	AND valid_prep_task_configs.id > COALESCE(sqlc.narg(cursor), '')
+	AND valid_prep_task_configs.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY valid_prep_task_configs.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
@@ -511,7 +511,7 @@ WHERE valid_prep_task_configs.created_at > COALESCE(sqlc.narg(created_after), (S
 		OR valid_prep_task_configs.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_prep_task_configs.archived_at IS NULL)
-	AND valid_prep_task_configs.id > COALESCE(sqlc.narg(cursor), '')
+	AND valid_prep_task_configs.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY valid_prep_task_configs.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 

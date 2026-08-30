@@ -9,9 +9,9 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 
-	"github.com/primandproper/platform-go/v12/authentication/oauth2server"
-	"github.com/primandproper/platform-go/v12/authentication/tokens"
-	"github.com/primandproper/platform-go/v12/authentication/totp"
+	"github.com/primandproper/platform-go/v13/authentication/oauth2server"
+	"github.com/primandproper/platform-go/v13/authentication/tokens"
+	"github.com/primandproper/platform-go/v13/authentication/totp"
 )
 
 // ClaimAccountID is the Subject claim naming the account a token acts on behalf of.

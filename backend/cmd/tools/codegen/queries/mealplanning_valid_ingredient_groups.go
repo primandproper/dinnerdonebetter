@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v12/database/querygen"
+	"github.com/primandproper/platform-go/v13/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -68,10 +68,10 @@ GROUP BY %s.%s
 						pgGen.FilterCountSelect(validIngredientGroupsTableName, validIngredientGroupsColumns, []string{}),
 						pgGen.TotalCountSelect(validIngredientGroupsTableName, validIngredientGroupsColumns, []string{}),
 						validIngredientGroupsTableName,
-						pgGen.FilterConditions(validIngredientGroupsTableName, validIngredientGroupsColumns),
+						pgGen.FilterConditions(validIngredientGroupsTableName, validIngredientGroupsColumns, querygen.Ascending),
 						validIngredientGroupsTableName,
 						idColumn,
-						pgGen.CursorLimitClause(validIngredientGroupsTableName),
+						pgGen.CursorLimitClause(validIngredientGroupsTableName, querygen.Ascending),
 					)),
 				},
 				{
@@ -116,12 +116,12 @@ GROUP BY %s.%s
 						pgGen.FilterCountSelect(validIngredientGroupsTableName, validIngredientGroupsColumns, []string{}, fmt.Sprintf("%s.%s %s", validIngredientGroupsTableName, nameColumn, buildILIKEForArgument("name"))),
 						pgGen.TotalCountSelect(validIngredientGroupsTableName, validIngredientGroupsColumns, []string{}),
 						validIngredientGroupsTableName,
-						pgGen.FilterConditions(validIngredientGroupsTableName, validIngredientGroupsColumns,
+						pgGen.FilterConditions(validIngredientGroupsTableName, validIngredientGroupsColumns, querygen.Ascending,
 							fmt.Sprintf("%s.%s %s", validIngredientGroupsTableName, nameColumn, buildILIKEForArgument("name")),
 						),
 						validIngredientGroupsTableName,
 						idColumn,
-						pgGen.CursorLimitClause(validIngredientGroupsTableName),
+						pgGen.CursorLimitClause(validIngredientGroupsTableName, querygen.Ascending),
 					)),
 				},
 				{

@@ -9,12 +9,12 @@ import (
 	commentskeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments/keys"
 	generated "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/comments/generated"
 
-	"github.com/primandproper/platform-go/v12/database"
-	platformerrors "github.com/primandproper/platform-go/v12/errors"
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/identifiers"
-	"github.com/primandproper/platform-go/v12/observability"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v13/database"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/identifiers"
+	"github.com/primandproper/platform-go/v13/observability"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 )
 
 const (
@@ -91,7 +91,7 @@ func (q *repository) CreateComment(ctx context.Context, input *types.CommentData
 		CreatedAt:       q.CurrentTime(),
 	}
 
-	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err := q.WithTransaction(ctx, func(tx database.Tx) error {
 		if err := q.generatedQuerier.CreateComment(ctx, tx, &generated.CreateCommentParams{
 			ID:              input.ID,
 			Content:         input.Content,
@@ -183,7 +183,7 @@ func (q *repository) GetCommentsForReference(ctx context.Context, targetType, re
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
 		TargetType:      targetTypeToGenerated(targetType),
 		ReferencedID:    referencedID,
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:     limit,
 	})
 	if err != nil {
@@ -235,7 +235,7 @@ func (q *repository) GetCommentsForUser(ctx context.Context, userID string, filt
 		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
 		BelongsToUser:   userID,
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 	})
 	if err != nil {
@@ -282,7 +282,7 @@ func (q *repository) UpdateComment(ctx context.Context, id, belongsToUser, conte
 	logger := q.logger.WithValue(commentskeys.CommentIDKey, id)
 	tracing.AttachToSpan(span, commentskeys.CommentIDKey, id)
 
-	return q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	return q.WithTransaction(ctx, func(tx database.Tx) error {
 		rowsAffected, err := q.generatedQuerier.UpdateComment(ctx, tx, &generated.UpdateCommentParams{
 			Content:       content,
 			ID:            id,
@@ -333,7 +333,7 @@ func (q *repository) ArchiveComment(ctx context.Context, id string) error {
 		return observability.PrepareAndLogError(getErr, logger, span, "fetching comment for archive")
 	}
 
-	return q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	return q.WithTransaction(ctx, func(tx database.Tx) error {
 		rowsAffected, err := q.generatedQuerier.ArchiveComment(ctx, tx, id)
 		if err != nil {
 			return observability.PrepareAndLogError(err, logger, span, "archiving comment")

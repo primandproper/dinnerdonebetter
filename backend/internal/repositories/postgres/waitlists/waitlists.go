@@ -10,11 +10,11 @@ import (
 	waitlistkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists/keys"
 	generated "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/waitlists/generated"
 
-	"github.com/primandproper/platform-go/v12/database"
-	platformerrors "github.com/primandproper/platform-go/v12/errors"
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/observability"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v13/database"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/observability"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 )
 
 const (
@@ -106,7 +106,7 @@ func (r *Repository) GetWaitlists(ctx context.Context, filter *filtering.QueryFi
 		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 	})
 	if err != nil {
@@ -164,7 +164,7 @@ func (r *Repository) GetActiveWaitlists(ctx context.Context, filter *filtering.Q
 		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 	})
 	if err != nil {
@@ -217,7 +217,7 @@ func (r *Repository) CreateWaitlist(ctx context.Context, input *types.WaitlistDa
 
 	if err := r.withEvent(ctx, logger, types.WaitlistCreatedServiceEventType, "", map[string]any{
 		waitlistkeys.WaitlistIDKey: input.ID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		if err := r.generatedQuerier.CreateWaitlist(ctx, tx, &generated.CreateWaitlistParams{
 			ID:          input.ID,
 			Name:        input.Name,
@@ -265,7 +265,7 @@ func (r *Repository) UpdateWaitlist(ctx context.Context, updated *types.Waitlist
 
 	if err := r.withEvent(ctx, logger, types.WaitlistUpdatedServiceEventType, "", map[string]any{
 		waitlistkeys.WaitlistIDKey: updated.ID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		if _, updateErr := r.generatedQuerier.UpdateWaitlist(ctx, tx, &generated.UpdateWaitlistParams{
 			Name:        updated.Name,
 			Description: updated.Description,
@@ -300,7 +300,7 @@ func (r *Repository) ArchiveWaitlist(ctx context.Context, waitlistID string) err
 
 	return r.withEvent(ctx, logger, types.WaitlistArchivedServiceEventType, "", map[string]any{
 		waitlistkeys.WaitlistIDKey: waitlistID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		recordsChanged, err := r.generatedQuerier.ArchiveWaitlist(ctx, tx, waitlistID)
 		if err != nil {
 			return observability.PrepareAndLogError(err, logger, span, "archiving waitlist")
@@ -423,7 +423,7 @@ func (r *Repository) GetWaitlistSignupsForWaitlist(ctx context.Context, waitlist
 		UpdatedBefore:     database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:      database.NullTimeFromTimePointer(filter.UpdatedAfter),
 		IncludeArchived:   database.NullBoolFromBoolPointer(filter.IncludeArchived),
-		Cursor:            database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:        database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:       database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 	})
 	if err != nil {
@@ -489,7 +489,7 @@ func (r *Repository) GetWaitlistSignupsForUser(ctx context.Context, userID strin
 		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 	})
 	if err != nil {
@@ -542,7 +542,7 @@ func (r *Repository) CreateWaitlistSignup(ctx context.Context, input *types.Wait
 	if err := r.withEvent(ctx, logger, types.WaitlistSignupCreatedServiceEventType, "", map[string]any{
 		waitlistkeys.WaitlistSignupIDKey: input.ID,
 		waitlistkeys.WaitlistIDKey:       input.BelongsToWaitlist,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		if err := r.generatedQuerier.CreateWaitlistSignup(ctx, tx, &generated.CreateWaitlistSignupParams{
 			ID:                input.ID,
 			Notes:             input.Notes,
@@ -594,7 +594,7 @@ func (r *Repository) UpdateWaitlistSignup(ctx context.Context, updated *types.Wa
 	return r.withEvent(ctx, logger, types.WaitlistSignupUpdatedServiceEventType, "", map[string]any{
 		waitlistkeys.WaitlistSignupIDKey: updated.ID,
 		waitlistkeys.WaitlistIDKey:       updated.BelongsToWaitlist,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		if _, err := r.generatedQuerier.UpdateWaitlistSignup(ctx, tx, &generated.UpdateWaitlistSignupParams{
 			Notes: updated.Notes,
 			ID:    updated.ID,
@@ -628,7 +628,7 @@ func (r *Repository) ArchiveWaitlistSignup(ctx context.Context, waitlistSignupID
 
 	return r.withEvent(ctx, logger, types.WaitlistSignupArchivedServiceEventType, "", map[string]any{
 		waitlistkeys.WaitlistSignupIDKey: waitlistSignupID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		recordsChanged, err := r.generatedQuerier.ArchiveWaitlistSignup(ctx, tx, waitlistSignupID)
 		if err != nil {
 			return observability.PrepareAndLogError(err, logger, span, "archiving waitlist signup")

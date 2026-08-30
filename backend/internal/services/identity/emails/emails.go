@@ -9,8 +9,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	queuemessages "github.com/primandproper/dinnerdonebetter/backend/internal/queues/messages"
 
-	"github.com/primandproper/platform-go/v12/email"
-
 	"github.com/matcornic/hermes/v2"
 )
 
@@ -44,15 +42,13 @@ func BuildInviteMemberEmail(recipient *identity.User, accountInvitation *identit
 	}
 
 	msg := &queuemessages.OutboundEmailMessage{
-		OutboundEmailMessage: email.OutboundEmailMessage{
-			ToAddress:   accountInvitation.ToEmail,
-			ToName:      recipient.FullName(),
-			FromAddress: branding.FromEmail,
-			FromName:    branding.CompanyName,
-			Subject:     "You've been invited!",
-			HTMLContent: htmlContent,
-		},
-		UserID: recipient.ID,
+		ToAddress:   accountInvitation.ToEmail,
+		ToName:      recipient.FullName(),
+		FromAddress: branding.FromEmail,
+		FromName:    branding.CompanyName,
+		Subject:     "You've been invited!",
+		HTMLContent: htmlContent,
+		UserID:      recipient.ID,
 	}
 
 	return msg, nil
@@ -91,15 +87,13 @@ func BuildGeneratedPasswordResetTokenEmail(recipient *identity.User, passwordRes
 	}
 
 	msg := &queuemessages.OutboundEmailMessage{
-		OutboundEmailMessage: email.OutboundEmailMessage{
-			ToAddress:   recipient.EmailAddress,
-			ToName:      recipient.FullName(),
-			FromAddress: branding.FromEmail,
-			FromName:    branding.CompanyName,
-			Subject:     fmt.Sprintf("A password reset link was requested for your %s account", branding.CompanyName),
-			HTMLContent: htmlContent,
-		},
-		UserID: recipient.ID,
+		ToAddress:   recipient.EmailAddress,
+		ToName:      recipient.FullName(),
+		FromAddress: branding.FromEmail,
+		FromName:    branding.CompanyName,
+		Subject:     fmt.Sprintf("A password reset link was requested for your %s account", branding.CompanyName),
+		HTMLContent: htmlContent,
+		UserID:      recipient.ID,
 	}
 
 	return msg, nil
@@ -129,15 +123,13 @@ func BuildUsernameReminderEmail(recipient *identity.User, baseURL string) (*queu
 	}
 
 	msg := &queuemessages.OutboundEmailMessage{
-		OutboundEmailMessage: email.OutboundEmailMessage{
-			ToName:      recipient.FullName(),
-			ToAddress:   recipient.EmailAddress,
-			FromAddress: branding.FromEmail,
-			FromName:    branding.CompanyName,
-			Subject:     fmt.Sprintf("A password reset link was requested for your %s account", branding.CompanyName),
-			HTMLContent: htmlContent,
-		},
-		UserID: recipient.ID,
+		ToName:      recipient.FullName(),
+		ToAddress:   recipient.EmailAddress,
+		FromAddress: branding.FromEmail,
+		FromName:    branding.CompanyName,
+		Subject:     fmt.Sprintf("A password reset link was requested for your %s account", branding.CompanyName),
+		HTMLContent: htmlContent,
+		UserID:      recipient.ID,
 	}
 
 	return msg, nil
@@ -167,15 +159,13 @@ func BuildPasswordResetTokenRedeemedEmail(recipient *identity.User, baseURL stri
 	}
 
 	msg := &queuemessages.OutboundEmailMessage{
-		OutboundEmailMessage: email.OutboundEmailMessage{
-			ToAddress:   recipient.EmailAddress,
-			ToName:      recipient.FullName(),
-			FromAddress: branding.FromEmail,
-			FromName:    branding.CompanyName,
-			Subject:     fmt.Sprintf("Your %s account password has been changed.", branding.CompanyName),
-			HTMLContent: htmlContent,
-		},
-		UserID: recipient.ID,
+		ToAddress:   recipient.EmailAddress,
+		ToName:      recipient.FullName(),
+		FromAddress: branding.FromEmail,
+		FromName:    branding.CompanyName,
+		Subject:     fmt.Sprintf("Your %s account password has been changed.", branding.CompanyName),
+		HTMLContent: htmlContent,
+		UserID:      recipient.ID,
 	}
 
 	return msg, nil
@@ -205,15 +195,13 @@ func BuildPasswordChangedEmail(recipient *identity.User, baseURL string) (*queue
 	}
 
 	msg := &queuemessages.OutboundEmailMessage{
-		OutboundEmailMessage: email.OutboundEmailMessage{
-			ToAddress:   recipient.EmailAddress,
-			ToName:      recipient.FullName(),
-			FromAddress: branding.FromEmail,
-			FromName:    branding.CompanyName,
-			Subject:     fmt.Sprintf("Your %s account password has been changed.", branding.CompanyName),
-			HTMLContent: htmlContent,
-		},
-		UserID: recipient.ID,
+		ToAddress:   recipient.EmailAddress,
+		ToName:      recipient.FullName(),
+		FromAddress: branding.FromEmail,
+		FromName:    branding.CompanyName,
+		Subject:     fmt.Sprintf("Your %s account password has been changed.", branding.CompanyName),
+		HTMLContent: htmlContent,
+		UserID:      recipient.ID,
 	}
 
 	return msg, nil
@@ -258,15 +246,13 @@ func BuildVerifyEmailAddressEmail(recipient *identity.User, emailVerificationTok
 	}
 
 	msg := &queuemessages.OutboundEmailMessage{
-		OutboundEmailMessage: email.OutboundEmailMessage{
-			ToAddress:   recipient.EmailAddress,
-			ToName:      recipient.FullName(),
-			FromAddress: branding.FromEmail,
-			FromName:    branding.CompanyName,
-			Subject:     fmt.Sprintf("Verify your email with %s", branding.CompanyName),
-			HTMLContent: htmlContent,
-		},
-		UserID: recipient.ID,
+		ToAddress:   recipient.EmailAddress,
+		ToName:      recipient.FullName(),
+		FromAddress: branding.FromEmail,
+		FromName:    branding.CompanyName,
+		Subject:     fmt.Sprintf("Verify your email with %s", branding.CompanyName),
+		HTMLContent: htmlContent,
+		UserID:      recipient.ID,
 	}
 
 	return msg, nil

@@ -15,15 +15,15 @@ import (
 	appmetering "github.com/primandproper/dinnerdonebetter/backend/internal/metering"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/grpc/converters"
 
-	platformerrors "github.com/primandproper/platform-go/v12/errors"
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/identifiers"
-	"github.com/primandproper/platform-go/v12/metering"
-	meteringmock "github.com/primandproper/platform-go/v12/metering/mock"
-	loggingnoop "github.com/primandproper/platform-go/v12/observability/logging/noop"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
-	"github.com/primandproper/platform-go/v12/uploads"
-	mockuploads "github.com/primandproper/platform-go/v12/uploads/mock"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/identifiers"
+	"github.com/primandproper/platform-go/v13/metering"
+	meteringmock "github.com/primandproper/platform-go/v13/metering/mock"
+	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
+	"github.com/primandproper/platform-go/v13/uploads"
+	mockuploads "github.com/primandproper/platform-go/v13/uploads/mock"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -470,10 +470,8 @@ func TestServiceImpl_GetUploadedMediaForUser(t *testing.T) {
 				uploadedmediafakes.BuildFakeUploadedMedia(),
 				uploadedmediafakes.BuildFakeUploadedMedia(),
 			},
-			Pagination: filtering.Pagination{
-				TotalCount:    2,
-				FilteredCount: 2,
-			},
+			TotalCount:    2,
+			FilteredCount: 2,
 		}
 
 		mockRepo.GetUploadedMediaForUserFunc = func(_ context.Context, userID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[uploadedmedia.UploadedMedia], error) {

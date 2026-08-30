@@ -805,7 +805,7 @@ type GetValidMeasurementUnitConversionsForMeasurementUnitParams struct {
 	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	ID              string
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -898,7 +898,7 @@ func (q *Queries) GetValidMeasurementUnitConversionsForMeasurementUnit(ctx conte
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.ID,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {

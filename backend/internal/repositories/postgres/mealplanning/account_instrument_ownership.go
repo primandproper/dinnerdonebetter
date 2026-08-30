@@ -10,11 +10,11 @@ import (
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
-	"github.com/primandproper/platform-go/v12/database"
-	platformerrors "github.com/primandproper/platform-go/v12/errors"
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/observability"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v13/database"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/observability"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 )
 
 const (
@@ -134,7 +134,7 @@ func (q *repository) GetAccountInstrumentOwnerships(ctx context.Context, account
 		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
 		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
 	})
@@ -197,7 +197,7 @@ func (q *repository) CreateAccountInstrumentOwnership(ctx context.Context, input
 	// create the account instrument ownership.
 	if err := q.withEvent(ctx, logger, types.AccountInstrumentOwnershipCreatedServiceEventType, input.BelongsToAccount, map[string]any{
 		mealplanningkeys.AccountInstrumentOwnershipIDKey: input.ID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		if err := q.generatedQuerier.CreateAccountInstrumentOwnership(ctx, tx, &generated.CreateAccountInstrumentOwnershipParams{
 			ID:                input.ID,
 			Notes:             input.Notes,
@@ -245,7 +245,7 @@ func (q *repository) UpdateAccountInstrumentOwnership(ctx context.Context, updat
 
 	if err := q.withEvent(ctx, logger, types.AccountInstrumentOwnershipUpdatedServiceEventType, updated.BelongsToAccount, map[string]any{
 		mealplanningkeys.AccountInstrumentOwnershipIDKey: updated.ID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		if _, updateErr := q.generatedQuerier.UpdateAccountInstrumentOwnership(ctx, tx, &generated.UpdateAccountInstrumentOwnershipParams{
 			Notes:             updated.Notes,
 			ValidInstrumentID: updated.Instrument.ID,
@@ -292,7 +292,7 @@ func (q *repository) ArchiveAccountInstrumentOwnership(ctx context.Context, acco
 
 	return q.withEvent(ctx, logger, types.AccountInstrumentOwnershipArchivedServiceEventType, accountID, map[string]any{
 		mealplanningkeys.AccountInstrumentOwnershipIDKey: accountInstrumentOwnershipID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		rowsAffected, archiveErr := q.generatedQuerier.ArchiveAccountInstrumentOwnership(ctx, tx, &generated.ArchiveAccountInstrumentOwnershipParams{
 			ID:               accountInstrumentOwnershipID,
 			BelongsToAccount: accountID,

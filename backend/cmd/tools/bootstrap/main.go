@@ -19,16 +19,16 @@ import (
 	identityrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity"
 	oauthrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/oauth"
 
-	"github.com/primandproper/platform-go/v12/authentication/argon2"
-	"github.com/primandproper/platform-go/v12/database"
-	databasecfg "github.com/primandproper/platform-go/v12/database/config"
-	"github.com/primandproper/platform-go/v12/database/postgres"
-	"github.com/primandproper/platform-go/v12/identifiers"
-	loggingnoop "github.com/primandproper/platform-go/v12/observability/logging/noop"
-	metricsnoop "github.com/primandproper/platform-go/v12/observability/metrics/noop"
-	tracingnoop "github.com/primandproper/platform-go/v12/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v12/random"
-	"github.com/primandproper/platform-go/v12/secrets/kubernetes"
+	"github.com/primandproper/platform-go/v13/authentication/argon2"
+	"github.com/primandproper/platform-go/v13/database"
+	databasecfg "github.com/primandproper/platform-go/v13/database/config"
+	"github.com/primandproper/platform-go/v13/database/postgres"
+	"github.com/primandproper/platform-go/v13/identifiers"
+	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
+	metricsnoop "github.com/primandproper/platform-go/v13/observability/metrics/noop"
+	tracingnoop "github.com/primandproper/platform-go/v13/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v13/random"
+	"github.com/primandproper/platform-go/v13/secrets/kubernetes"
 
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/tools/clientcmd"
@@ -184,13 +184,11 @@ func runInit(db *dbFlags, adminUsername, adminPassword, adminEmail, apiServerURL
 	}
 
 	dbConfig := &dbcfg.Config{
-		Config: databasecfg.Config{
-			Provider:        databasecfg.ProviderPostgres,
-			MaxPingAttempts: 10,
-			PingWaitPeriod:  time.Second,
-			ReadConnection:  connDetails,
-			WriteConnection: connDetails,
-		},
+		Provider:        databasecfg.ProviderPostgres,
+		MaxPingAttempts: 10,
+		PingWaitPeriod:  time.Second,
+		ReadConnection:  connDetails,
+		WriteConnection: connDetails,
 	}
 
 	clientConfig := &bootstrapClientConfig{connDetails: connDetails}

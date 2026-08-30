@@ -70,6 +70,6 @@ WHERE recipe_list_items.created_at > COALESCE(sqlc.narg(created_after), (SELECT 
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR recipe_list_items.archived_at IS NULL)
 	AND recipe_list_items.belongs_to_recipe_list = sqlc.arg(recipe_list_id)
-	AND recipe_list_items.id > COALESCE(sqlc.narg(cursor), '')
+	AND recipe_list_items.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY recipe_list_items.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);

@@ -5,7 +5,7 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 
-	"github.com/primandproper/platform-go/v12/filtering"
+	"github.com/primandproper/platform-go/v13/filtering"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -18,14 +18,14 @@ type (
 
 var validVesselsSchema = map[string]any{
 	"ID":                             stringField("The ID of the valid vessel"),
-	"CreatedAt":                      timestampField("When the valid vessel was created"),
-	"LastUpdatedAt":                  timestampField("When the valid vessel was last updated"),
-	"ArchivedAt":                     timestampField("When the valid vessel was soft deleted"),
-	"Name":                           stringField("Name of the vessel"),
-	"Description":                    stringField("Description of the vessel"),
-	"IconPath":                       stringField("The URL for the icon for the item"),
-	"PluralName":                     stringField("The plural name for the vessel. So for a vessel named 'pan', this would be 'pans'"),
-	"Slug":                           stringField("An easy-to-use URL slug for the vessel"),
+	fieldCreatedAt:                   timestampField("When the valid vessel was created"),
+	fieldLastUpdatedAt:               timestampField("When the valid vessel was last updated"),
+	fieldArchivedAt:                  timestampField("When the valid vessel was soft deleted"),
+	fieldName:                        stringField("Name of the vessel"),
+	fieldDescription:                 stringField("Description of the vessel"),
+	fieldIconPath:                    stringField("The URL for the icon for the item"),
+	fieldPluralName:                  stringField("The plural name for the vessel. So for a vessel named 'pan', this would be 'pans'"),
+	fieldSlug:                        stringField("An easy-to-use URL slug for the vessel"),
 	"Shape":                          stringField("The shape of the vessel (hemisphere, rectangle, cone, pyramid, cylinder, sphere, cube, or other)"),
 	"WidthInMillimeters":             floatField("Width of the vessel in millimeters"),
 	"LengthInMillimeters":            floatField("Length of the vessel in millimeters"),
@@ -76,14 +76,14 @@ var searchForValidVesselsTool = &mcp.Tool{
 	Name:        "SearchForValidVessels",
 	Description: "Search for valid vessels with optional filtering and query string",
 	InputSchema: schemaObject(map[string]any{
-		"Filter": filtering.QueryFilterSchema(),
-		"Query": map[string]any{
-			"type":        strType,
-			"description": "The vessel name query",
+		fieldFilter: filtering.QueryFilterSchema(),
+		fieldQuery: map[string]any{
+			keyType:        strType,
+			keyDescription: "The vessel name query",
 		},
 	}),
 	OutputSchema: schemaObject(map[string]any{
-		"Results": arrayType(schemaObject(validVesselsSchema)),
+		fieldResults: arrayType(schemaObject(validVesselsSchema)),
 	}),
 }
 

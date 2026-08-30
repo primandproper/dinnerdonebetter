@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v12/database/querygen"
+	"github.com/primandproper/platform-go/v13/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -96,11 +96,11 @@ WHERE %s
 						idColumn,
 						webhookTriggerConfigsTableName,
 						belongsToWebhookColumn,
-						pgGen.FilterConditions(webhooksTableName, webhooksColumns,
+						pgGen.FilterConditions(webhooksTableName, webhooksColumns, querygen.Ascending,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", webhooksTableName, belongsToAccountColumn, belongsToAccountColumn),
 							fmt.Sprintf("%s.%s IS NULL", webhookTriggerConfigsTableName, archivedAtColumn),
 						),
-						pgGen.CursorLimitClause(webhooksTableName),
+						pgGen.CursorLimitClause(webhooksTableName, querygen.Ascending),
 					)),
 				},
 				{

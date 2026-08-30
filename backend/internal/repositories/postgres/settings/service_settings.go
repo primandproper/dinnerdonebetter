@@ -10,12 +10,12 @@ import (
 	settingskeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings/keys"
 	generated "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/settings/generated"
 
-	"github.com/primandproper/platform-go/v12/database"
-	platformerrors "github.com/primandproper/platform-go/v12/errors"
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/observability"
-	platformkeys "github.com/primandproper/platform-go/v12/observability/keys"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v13/database"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/observability"
+	platformkeys "github.com/primandproper/platform-go/v13/observability/keys"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 )
 
 const (
@@ -119,7 +119,7 @@ func (q *Repository) SearchForServiceSettings(ctx context.Context, query string,
 		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
 		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
 	})
@@ -190,7 +190,7 @@ func (q *Repository) GetServiceSettings(ctx context.Context, filter *filtering.Q
 		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
 		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
 	})
@@ -253,7 +253,7 @@ func (q *Repository) CreateServiceSetting(ctx context.Context, input *types.Serv
 
 	var err error
 	var x *types.ServiceSetting
-	if err = q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err = q.WithTransaction(ctx, func(tx database.Tx) error {
 		// create the service setting.
 		if err = q.generatedQuerier.CreateServiceSetting(ctx, tx, &generated.CreateServiceSettingParams{
 			ID:           input.ID,
@@ -317,7 +317,7 @@ func (q *Repository) ArchiveServiceSetting(ctx context.Context, serviceSettingID
 	logger = logger.WithValue(settingskeys.ServiceSettingIDKey, serviceSettingID)
 	tracing.AttachToSpan(span, settingskeys.ServiceSettingIDKey, serviceSettingID)
 
-	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err := q.WithTransaction(ctx, func(tx database.Tx) error {
 		rowsAffected, err := q.generatedQuerier.ArchiveServiceSetting(ctx, tx, serviceSettingID)
 		if err != nil {
 			return observability.PrepareAndLogError(err, logger, span, "updating service setting")

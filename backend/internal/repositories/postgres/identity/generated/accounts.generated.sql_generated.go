@@ -405,7 +405,7 @@ type GetAccountsForUserParams struct {
 	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	BelongsToUser   string
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -443,7 +443,7 @@ func (q *Queries) GetAccountsForUser(ctx context.Context, db DBTX, arg *GetAccou
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.BelongsToUser,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {

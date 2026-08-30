@@ -9,10 +9,10 @@ import (
 	paymentssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/payments"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc/interceptors"
 
-	platformauthz "github.com/primandproper/platform-go/v12/authorization"
-	"github.com/primandproper/platform-go/v12/authorization/static"
-	loggingnoop "github.com/primandproper/platform-go/v12/observability/logging/noop"
-	metricsnoop "github.com/primandproper/platform-go/v12/observability/metrics/noop"
+	platformauthz "github.com/primandproper/platform-go/v13/authorization"
+	"github.com/primandproper/platform-go/v13/authorization/static"
+	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
+	metricsnoop "github.com/primandproper/platform-go/v13/observability/metrics/noop"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

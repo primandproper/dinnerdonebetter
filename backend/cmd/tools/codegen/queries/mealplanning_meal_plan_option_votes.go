@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v12/database/querygen"
+	"github.com/primandproper/platform-go/v13/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -160,7 +160,7 @@ GROUP BY
 						belongsToMealPlanColumn,
 						mealPlansTableName,
 						idColumn,
-						pgGen.FilterConditions(mealPlanOptionVotesTableName, mealPlanOptionVotesColumns,
+						pgGen.FilterConditions(mealPlanOptionVotesTableName, mealPlanOptionVotesColumns, querygen.Ascending,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealPlanOptionVotesTableName, belongsToMealPlanOptionColumn, mealPlanOptionIDColumn),
 							"meal_plan_options.archived_at IS NULL",
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealPlanOptionsTableName, belongsToMealPlanEventColumn, mealPlanEventIDColumn),
@@ -179,7 +179,7 @@ GROUP BY
 						idColumn,
 						mealPlansTableName,
 						idColumn,
-						pgGen.CursorLimitClause(mealPlanOptionVotesTableName),
+						pgGen.CursorLimitClause(mealPlanOptionVotesTableName, querygen.Ascending),
 					)),
 				},
 				{

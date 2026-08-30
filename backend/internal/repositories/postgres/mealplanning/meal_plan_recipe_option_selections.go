@@ -9,11 +9,11 @@ import (
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
-	"github.com/primandproper/platform-go/v12/database"
-	platformerrors "github.com/primandproper/platform-go/v12/errors"
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/observability"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v13/database"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/observability"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 )
 
 var (
@@ -100,7 +100,7 @@ func (q *repository) GetSelectionsForMealPlanOption(ctx context.Context, mealPla
 		UpdatedAfter:     database.NullTimeFromTimePointer(filter.UpdatedAfter),
 		IncludeArchived:  database.NullBoolFromBoolPointer(filter.IncludeArchived),
 		MealPlanOptionID: mealPlanOptionID,
-		Cursor:           database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:       database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:      database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 	})
 	if err != nil {
@@ -165,7 +165,7 @@ func (q *repository) GetSelectionsForMealPlan(ctx context.Context, mealPlanID st
 		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:     nil, // fetch everything always
 	})
 	if err != nil {
@@ -213,7 +213,7 @@ func (q *repository) CreateMealPlanRecipeOptionSelection(ctx context.Context, in
 	if err := q.withEvent(ctx, logger, types.MealPlanRecipeOptionSelectionCreatedServiceEventType, "", map[string]any{
 		"meal_plan_recipe_option_selection_id": input.ID,
 		mealplanningkeys.MealPlanOptionIDKey:   input.BelongsToMealPlanOption,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		return q.generatedQuerier.CreateMealPlanRecipeOptionSelection(ctx, tx, &generated.CreateMealPlanRecipeOptionSelectionParams{
 			ID:                      input.ID,
 			BelongsToMealPlanOption: input.BelongsToMealPlanOption,
@@ -288,7 +288,7 @@ func (q *repository) UpdateMealPlanRecipeOptionSelection(ctx context.Context, me
 
 	if err = q.withEvent(ctx, logger, types.MealPlanRecipeOptionSelectionUpdatedServiceEventType, "", map[string]any{
 		mealplanningkeys.MealPlanOptionIDKey: mealPlanOptionID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		rowsAffected, updateErr := q.generatedQuerier.UpdateMealPlanRecipeOptionSelection(ctx, tx, &generated.UpdateMealPlanRecipeOptionSelectionParams{
 			RecipeID:            existing.RecipeID,
 			MealPlanOptionID:    mealPlanOptionID,
@@ -345,7 +345,7 @@ func (q *repository) ArchiveMealPlanRecipeOptionSelection(ctx context.Context, m
 		"recipe_step_id":                     recipeStepID,
 		"ingredient_index":                   ingredientIndex,
 		"selection_type":                     selectionType,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		rowsAffected, archiveErr := q.generatedQuerier.ArchiveMealPlanRecipeOptionSelection(ctx, tx, &generated.ArchiveMealPlanRecipeOptionSelectionParams{
 			MealPlanOptionID: mealPlanOptionID,
 			RecipeStepID:     recipeStepID,

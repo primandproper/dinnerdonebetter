@@ -161,7 +161,7 @@ type GetUploadedMediaForUserParams struct {
 	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	CreatedByUser   string
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -185,7 +185,7 @@ func (q *Queries) GetUploadedMediaForUser(ctx context.Context, db DBTX, arg *Get
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.CreatedByUser,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {

@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v12/database/querygen"
+	"github.com/primandproper/platform-go/v13/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -104,12 +104,12 @@ WHERE %s
 						validMeasurementUnitConversionsOnlyForIngredientColumn,
 						validIngredientsTableName,
 						idColumn,
-						pgGen.FilterConditions(validMeasurementUnitConversionsTableName, validMeasurementUnitConversionsColumns,
+						pgGen.FilterConditions(validMeasurementUnitConversionsTableName, validMeasurementUnitConversionsColumns, querygen.Ascending,
 							"(valid_measurement_units_from.id = sqlc.arg(id) OR valid_measurement_units_to.id = sqlc.arg(id))",
 							"valid_measurement_units_from.archived_at IS NULL",
 							"valid_measurement_units_to.archived_at IS NULL",
 						),
-						pgGen.CursorLimitClause(validMeasurementUnitConversionsTableName),
+						pgGen.CursorLimitClause(validMeasurementUnitConversionsTableName, querygen.Ascending),
 					)),
 				},
 				{

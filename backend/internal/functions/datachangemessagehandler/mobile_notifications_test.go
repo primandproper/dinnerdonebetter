@@ -11,8 +11,8 @@ import (
 	domainnotifications "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
 	notificationsmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/mock"
 
-	"github.com/primandproper/platform-go/v12/filtering"
-	notifications "github.com/primandproper/platform-go/v12/notifications/mobile"
+	"github.com/primandproper/platform-go/v13/filtering"
+	notifications "github.com/primandproper/platform-go/v13/notifications/mobile"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

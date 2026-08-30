@@ -7,9 +7,9 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	"github.com/primandproper/platform-go/v12/identifiers"
-	"github.com/primandproper/platform-go/v12/metering"
-	loggingnoop "github.com/primandproper/platform-go/v12/observability/logging/noop"
+	"github.com/primandproper/platform-go/v13/identifiers"
+	"github.com/primandproper/platform-go/v13/metering"
+	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

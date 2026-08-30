@@ -126,7 +126,7 @@ about HTTP.
 ### The Stripe adapter and `capitalism`
 
 `StripePaymentProcessor` owns none of the Stripe protocol. It builds a
-`capitalism.PaymentManager` from `platform-go/v11/capitalism/stripe`, which reads the body (capped
+`capitalism.PaymentManager` from `platform-go/v13/capitalism/stripe`, which reads the body (capped
 at 64 KiB), verifies the `Stripe-Signature` header, and hands back a platform-owned
 `capstripe.Event` carrying the event ID, its type, and the raw JSON of its data object.
 

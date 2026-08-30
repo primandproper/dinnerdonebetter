@@ -12,13 +12,13 @@ import (
 	identitymanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/manager"
 	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
 
-	platformwebauthn "github.com/primandproper/platform-go/v12/authentication/webauthn"
-	webauthncfg "github.com/primandproper/platform-go/v12/authentication/webauthn/config"
-	"github.com/primandproper/platform-go/v12/database"
-	"github.com/primandproper/platform-go/v12/featureflags"
-	"github.com/primandproper/platform-go/v12/observability/logging"
-	"github.com/primandproper/platform-go/v12/observability/metrics"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	platformwebauthn "github.com/primandproper/platform-go/v13/authentication/webauthn"
+	webauthncfg "github.com/primandproper/platform-go/v13/authentication/webauthn/config"
+	"github.com/primandproper/platform-go/v13/database"
+	"github.com/primandproper/platform-go/v13/featureflags"
+	"github.com/primandproper/platform-go/v13/observability/logging"
+	"github.com/primandproper/platform-go/v13/observability/metrics"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 
 	"github.com/samber/do/v2"
 )

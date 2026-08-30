@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v12/database/querygen"
+	"github.com/primandproper/platform-go/v13/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -21,20 +21,20 @@ const (
 var recipeStepIngredientsColumns = []string{
 	idColumn,
 	nameColumn,
-	"optional",
+	optionalColumn,
 	ingredientIDColumn,
 	measurementUnitColumn,
 	"minimum_quantity_value",
 	"maximum_quantity_value",
 	"quantity_notes",
-	"recipe_step_product_id",
+	recipeStepProductIDColumn,
 	"ingredient_notes",
-	"index",
-	"option_index",
+	indexColumn,
+	optionIndexColumn,
 	"to_taste",
 	"product_percentage_to_use",
 	"vessel_index",
-	"scale_factor",
+	scaleFactorColumn,
 	createdAtColumn,
 	lastUpdatedAtColumn,
 	archivedAtColumn,
@@ -198,13 +198,13 @@ WHERE %s
 						measurementUnitColumn,
 						validMeasurementUnitsTableName,
 						idColumn,
-						pgGen.FilterConditions(recipeStepIngredientsTableName, recipeStepIngredientsColumns,
+						pgGen.FilterConditions(recipeStepIngredientsTableName, recipeStepIngredientsColumns, querygen.Ascending,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipesTableName, idColumn, recipeIDColumn),
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeStepsTableName, idColumn, recipeStepIDColumn),
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeStepsTableName, belongsToRecipeColumn, recipeIDColumn),
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeStepIngredientsTableName, belongsToRecipeStepColumn, recipeStepIDColumn),
 						),
-						pgGen.CursorLimitClause(recipeStepIngredientsTableName),
+						pgGen.CursorLimitClause(recipeStepIngredientsTableName, querygen.Ascending),
 					)),
 				},
 				{

@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v12/database/querygen"
+	"github.com/primandproper/platform-go/v13/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -329,8 +329,8 @@ WHERE %s
 						pgGen.TotalCountSelect(usersTableName, usersColumns, []string{}),
 						usersTableName,
 						avatarJoinClause,
-						pgGen.FilterConditions(usersTableName, usersColumns),
-						pgGen.CursorLimitClause(usersTableName),
+						pgGen.FilterConditions(usersTableName, usersColumns, querygen.Ascending),
+						pgGen.CursorLimitClause(usersTableName, querygen.Ascending),
 					)),
 				},
 				{
@@ -361,11 +361,11 @@ WHERE %s
 						belongsToUserColumn,
 						usersTableName,
 						idColumn,
-						pgGen.FilterConditions(usersTableName, usersColumns,
+						pgGen.FilterConditions(usersTableName, usersColumns, querygen.Ascending,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", accountUserMembershipsTableName, belongsToAccountColumn, belongsToAccountColumn),
 							fmt.Sprintf("%s.%s IS NULL", accountUserMembershipsTableName, archivedAtColumn),
 						),
-						pgGen.CursorLimitClause(usersTableName),
+						pgGen.CursorLimitClause(usersTableName, querygen.Ascending),
 					)),
 				},
 				{
@@ -572,10 +572,10 @@ WHERE %s
 						pgGen.TotalCountSelect(usersTableName, usersColumns, []string{}),
 						usersTableName,
 						avatarJoinClause,
-						pgGen.FilterConditions(usersTableName, usersColumns,
+						pgGen.FilterConditions(usersTableName, usersColumns, querygen.Ascending,
 							fmt.Sprintf("%s.%s %s", usersTableName, usernameColumn, buildILIKEForArgument(usernameColumn)),
 						),
-						pgGen.CursorLimitClause(usersTableName),
+						pgGen.CursorLimitClause(usersTableName, querygen.Ascending),
 					)),
 				},
 				{

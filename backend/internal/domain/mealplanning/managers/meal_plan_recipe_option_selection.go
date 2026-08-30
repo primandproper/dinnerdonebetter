@@ -8,10 +8,17 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 
-	platformerrors "github.com/primandproper/platform-go/v12/errors"
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/observability"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/observability"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
+)
+
+// The selection attributes recorded on more than one span below.
+const (
+	selectionTypeKey   = "selection_type"
+	recipeStepIDKey    = "recipe_step_id"
+	ingredientIndexKey = "ingredient_index"
 )
 
 func (m *mealPlanningManager) GetMealPlanRecipeOptionSelection(ctx context.Context, mealPlanOptionID, recipeStepID string, ingredientIndex uint16, selectionType string) (*types.MealPlanRecipeOptionSelection, error) {
@@ -20,14 +27,14 @@ func (m *mealPlanningManager) GetMealPlanRecipeOptionSelection(ctx context.Conte
 
 	logger := m.logger.WithSpan(span).WithValues(map[string]any{
 		mealplanningkeys.MealPlanOptionIDKey: mealPlanOptionID,
-		"recipe_step_id":                     recipeStepID,
-		"ingredient_index":                   ingredientIndex,
-		"selection_type":                     selectionType,
+		recipeStepIDKey:                      recipeStepID,
+		ingredientIndexKey:                   ingredientIndex,
+		selectionTypeKey:                     selectionType,
 	})
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanOptionIDKey, mealPlanOptionID)
-	tracing.AttachToSpan(span, "recipe_step_id", recipeStepID)
-	tracing.AttachToSpan(span, "ingredient_index", ingredientIndex)
-	tracing.AttachToSpan(span, "selection_type", selectionType)
+	tracing.AttachToSpan(span, recipeStepIDKey, recipeStepID)
+	tracing.AttachToSpan(span, ingredientIndexKey, ingredientIndex)
+	tracing.AttachToSpan(span, selectionTypeKey, selectionType)
 
 	result, err := m.db.GetMealPlanRecipeOptionSelection(ctx, mealPlanOptionID, recipeStepID, ingredientIndex, selectionType)
 	if err != nil {
@@ -92,14 +99,14 @@ func (m *mealPlanningManager) UpdateMealPlanRecipeOptionSelection(ctx context.Co
 
 	logger := m.logger.WithSpan(span).WithValues(map[string]any{
 		mealplanningkeys.MealPlanOptionIDKey: mealPlanOptionID,
-		"recipe_step_id":                     recipeStepID,
-		"ingredient_index":                   ingredientIndex,
-		"selection_type":                     selectionType,
+		recipeStepIDKey:                      recipeStepID,
+		ingredientIndexKey:                   ingredientIndex,
+		selectionTypeKey:                     selectionType,
 	})
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanOptionIDKey, mealPlanOptionID)
-	tracing.AttachToSpan(span, "recipe_step_id", recipeStepID)
-	tracing.AttachToSpan(span, "ingredient_index", ingredientIndex)
-	tracing.AttachToSpan(span, "selection_type", selectionType)
+	tracing.AttachToSpan(span, recipeStepIDKey, recipeStepID)
+	tracing.AttachToSpan(span, ingredientIndexKey, ingredientIndex)
+	tracing.AttachToSpan(span, selectionTypeKey, selectionType)
 
 	existingSelection, err := m.db.GetMealPlanRecipeOptionSelection(ctx, mealPlanOptionID, recipeStepID, ingredientIndex, selectionType)
 	if err != nil {
@@ -122,14 +129,14 @@ func (m *mealPlanningManager) ArchiveMealPlanRecipeOptionSelection(ctx context.C
 
 	logger := m.logger.WithSpan(span).WithValues(map[string]any{
 		mealplanningkeys.MealPlanOptionIDKey: mealPlanOptionID,
-		"recipe_step_id":                     recipeStepID,
-		"ingredient_index":                   ingredientIndex,
-		"selection_type":                     selectionType,
+		recipeStepIDKey:                      recipeStepID,
+		ingredientIndexKey:                   ingredientIndex,
+		selectionTypeKey:                     selectionType,
 	})
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanOptionIDKey, mealPlanOptionID)
-	tracing.AttachToSpan(span, "recipe_step_id", recipeStepID)
-	tracing.AttachToSpan(span, "ingredient_index", ingredientIndex)
-	tracing.AttachToSpan(span, "selection_type", selectionType)
+	tracing.AttachToSpan(span, recipeStepIDKey, recipeStepID)
+	tracing.AttachToSpan(span, ingredientIndexKey, ingredientIndex)
+	tracing.AttachToSpan(span, selectionTypeKey, selectionType)
 
 	if err := m.db.ArchiveMealPlanRecipeOptionSelection(ctx, mealPlanOptionID, recipeStepID, ingredientIndex, selectionType); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "archiving meal plan recipe option selection")

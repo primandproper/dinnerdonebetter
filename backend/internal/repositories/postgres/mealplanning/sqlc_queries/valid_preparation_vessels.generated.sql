@@ -135,7 +135,7 @@ WHERE valid_preparation_vessels.created_at > COALESCE(sqlc.narg(created_after), 
 	AND valid_preparations.archived_at IS NULL
 	AND valid_measurement_units.archived_at IS NULL
 	AND valid_preparation_vessels.valid_preparation_id = sqlc.arg(id)
-	AND valid_preparation_vessels.id > COALESCE(sqlc.narg(cursor), '')
+	AND valid_preparation_vessels.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY valid_preparation_vessels.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
@@ -240,7 +240,7 @@ WHERE valid_preparation_vessels.created_at > COALESCE(sqlc.narg(created_after), 
 	AND valid_preparations.archived_at IS NULL
 	AND valid_measurement_units.archived_at IS NULL
 	AND valid_preparation_vessels.valid_vessel_id = sqlc.arg(id)
-	AND valid_preparation_vessels.id > COALESCE(sqlc.narg(cursor), '')
+	AND valid_preparation_vessels.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY valid_preparation_vessels.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
@@ -344,7 +344,7 @@ WHERE valid_preparation_vessels.created_at > COALESCE(sqlc.narg(created_after), 
 	AND valid_vessels.archived_at IS NULL
 	AND valid_preparations.archived_at IS NULL
 	AND valid_measurement_units.archived_at IS NULL
-	AND valid_preparation_vessels.id > COALESCE(sqlc.narg(cursor), '')
+	AND valid_preparation_vessels.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY valid_preparation_vessels.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 

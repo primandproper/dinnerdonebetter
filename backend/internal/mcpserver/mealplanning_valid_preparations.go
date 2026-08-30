@@ -5,7 +5,7 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 
-	"github.com/primandproper/platform-go/v12/filtering"
+	"github.com/primandproper/platform-go/v13/filtering"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -18,13 +18,13 @@ type (
 
 var validPreparationsSchema = map[string]any{
 	"ID":                          stringField("The ID of the valid preparation"),
-	"CreatedAt":                   timestampField("When the valid preparation was created"),
-	"LastUpdatedAt":               timestampField("When the valid preparation was last updated"),
-	"ArchivedAt":                  timestampField("When the valid preparation was soft deleted"),
-	"Name":                        stringField("Name of the preparation"),
-	"Description":                 stringField("Description of the preparation"),
-	"IconPath":                    stringField("The URL for the icon for the item"),
-	"Slug":                        stringField("An easy-to-use URL slug for the preparation"),
+	fieldCreatedAt:                timestampField("When the valid preparation was created"),
+	fieldLastUpdatedAt:            timestampField("When the valid preparation was last updated"),
+	fieldArchivedAt:               timestampField("When the valid preparation was soft deleted"),
+	fieldName:                     stringField("Name of the preparation"),
+	fieldDescription:              stringField("Description of the preparation"),
+	fieldIconPath:                 stringField("The URL for the icon for the item"),
+	fieldSlug:                     stringField("An easy-to-use URL slug for the preparation"),
 	"PastTense":                   stringField("The past tense form of the preparation name (e.g., 'chopped' for 'chop')"),
 	"MinInstrumentCount":          uintField("Minimum number of instruments required"),
 	"MaxInstrumentCount":          uintField("Maximum number of instruments allowed (optional)"),
@@ -45,7 +45,7 @@ var getValidPreparationTool = &mcp.Tool{
 	Name:        "GetValidPreparation",
 	Description: "Get a valid preparation by it's ID",
 	InputSchema: schemaObject(map[string]any{
-		"ValidPreparationID": stringField("The ID of the valid preparation to get"),
+		fieldValidPreparationID: stringField("The ID of the valid preparation to get"),
 	}),
 	OutputSchema: schemaObject(validPreparationsSchema),
 }
@@ -80,14 +80,14 @@ var searchForValidPreparationsTool = &mcp.Tool{
 	Name:        "SearchForValidPreparations",
 	Description: "Search for valid preparations with optional filtering and query string",
 	InputSchema: schemaObject(map[string]any{
-		"Filter": filtering.QueryFilterSchema(),
-		"Query": map[string]any{
-			"type":        strType,
-			"description": "The preparation name query",
+		fieldFilter: filtering.QueryFilterSchema(),
+		fieldQuery: map[string]any{
+			keyType:        strType,
+			keyDescription: "The preparation name query",
 		},
 	}),
 	OutputSchema: schemaObject(map[string]any{
-		"Results": arrayType(schemaObject(validPreparationsSchema)),
+		fieldResults: arrayType(schemaObject(validPreparationsSchema)),
 	}),
 }
 

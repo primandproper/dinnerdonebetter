@@ -10,11 +10,11 @@ import (
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
-	"github.com/primandproper/platform-go/v12/database"
-	platformerrors "github.com/primandproper/platform-go/v12/errors"
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/observability"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v13/database"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/observability"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 )
 
 var (
@@ -108,7 +108,7 @@ func (q *repository) GetMealPlanTask(ctx context.Context, mealPlanTaskID string)
 }
 
 // createMealPlanTask creates a meal plan task.
-func (q *repository) createMealPlanTask(ctx context.Context, querier database.SQLQueryExecutor, input *types.MealPlanTaskDatabaseCreationInput) (*types.MealPlanTask, error) {
+func (q *repository) createMealPlanTask(ctx context.Context, querier database.Tx, input *types.MealPlanTaskDatabaseCreationInput) (*types.MealPlanTask, error) {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -167,7 +167,7 @@ func (q *repository) CreateMealPlanTask(ctx context.Context, input *types.MealPl
 	logger = logger.WithValue(mealplanningkeys.MealPlanTaskIDKey, input.ID)
 
 	var x *types.MealPlanTask
-	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err := q.WithTransaction(ctx, func(tx database.Tx) error {
 		created, err := q.createMealPlanTask(ctx, tx, input)
 		if err != nil {
 			return observability.PrepareAndLogError(err, logger, span, "creating meal plan task")
@@ -332,7 +332,7 @@ func (q *repository) CreateMealPlanTasksForMealPlan(ctx context.Context, mealPla
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanIDKey, mealPlanID)
 
 	outputs := []*types.MealPlanTask{}
-	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err := q.WithTransaction(ctx, func(tx database.Tx) error {
 		for _, input := range inputs {
 			mealPlanTask, createMealPlanTaskErr := q.createMealPlanTask(ctx, tx, input)
 			if createMealPlanTaskErr != nil {
@@ -393,7 +393,7 @@ func (q *repository) UndoMealPlanTaskCreation(ctx context.Context, mealPlanID st
 		WithValue("task_count", len(taskIDs))
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanIDKey, mealPlanID)
 
-	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err := q.WithTransaction(ctx, func(tx database.Tx) error {
 		if len(taskIDs) > 0 {
 			if deleteErr := q.generatedQuerier.DeleteMealPlanTasks(ctx, tx, taskIDs); deleteErr != nil {
 				return observability.PrepareAndLogError(deleteErr, logger, span, "deleting meal plan tasks")
@@ -439,7 +439,7 @@ func (q *repository) ChangeMealPlanTaskStatus(ctx context.Context, input *types.
 
 	return q.withEvent(ctx, logger, types.MealPlanTaskStatusChangedServiceEventType, "", map[string]any{
 		mealplanningkeys.MealPlanTaskIDKey: input.MealPlanTaskID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		if err := q.generatedQuerier.ChangeMealPlanTaskStatus(ctx, tx, &generated.ChangeMealPlanTaskStatusParams{
 			ID:                input.MealPlanTaskID,
 			Status:            generated.PrepStepStatus(newStatus),

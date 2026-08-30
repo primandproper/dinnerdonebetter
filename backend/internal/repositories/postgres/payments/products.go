@@ -8,11 +8,11 @@ import (
 	paymentskeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/keys"
 	generated "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/payments/generated"
 
-	"github.com/primandproper/platform-go/v12/database"
-	platformerrors "github.com/primandproper/platform-go/v12/errors"
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/observability"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v13/database"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/observability"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 )
 
 const (
@@ -44,7 +44,7 @@ func (r *repository) CreateProduct(ctx context.Context, input *payments.ProductD
 
 	if err := r.withEvent(ctx, logger, payments.ProductCreatedServiceEventType, "", map[string]any{
 		paymentskeys.ProductIDKey: input.ID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		if err := r.generatedQuerier.CreateProduct(ctx, tx, arg); err != nil {
 			return err
 		}
@@ -115,7 +115,7 @@ func (r *repository) GetProducts(ctx context.Context, filter *filtering.QueryFil
 		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
 		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
 	}
@@ -153,7 +153,7 @@ func (r *repository) UpdateProduct(ctx context.Context, product *payments.Produc
 
 	return r.withEvent(ctx, logger, payments.ProductUpdatedServiceEventType, "", map[string]any{
 		paymentskeys.ProductIDKey: product.ID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		_, err := r.generatedQuerier.UpdateProduct(ctx, tx, arg)
 		if err != nil {
 			return observability.PrepareAndLogError(err, logger, span, "updating product")
@@ -184,7 +184,7 @@ func (r *repository) ArchiveProduct(ctx context.Context, id string) error {
 
 	return r.withEvent(ctx, logger, payments.ProductArchivedServiceEventType, "", map[string]any{
 		paymentskeys.ProductIDKey: id,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		_, err := r.generatedQuerier.ArchiveProduct(ctx, tx, id)
 		if err != nil {
 			return observability.PrepareAndLogError(err, logger, span, "archiving product")

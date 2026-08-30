@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/primandproper/platform-go/v12/database/querygen"
+	"github.com/primandproper/platform-go/v13/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -24,6 +24,16 @@ const (
 	lastIndexedAtColumn    = "last_indexed_at"
 	belongsToAccountColumn = "belongs_to_account"
 	belongsToUserColumn    = "belongs_to_user"
+
+	// Columns several tables share, spelled here rather than once per table.
+	optionalColumn                           = "optional"
+	optionIndexColumn                        = "option_index"
+	scaleFactorColumn                        = "scale_factor"
+	amountCentsColumn                        = "amount_cents"
+	currencyColumn                           = "currency"
+	storageInstructionsColumn                = "storage_instructions"
+	minimumStorageTemperatureInCelsiusColumn = "minimum_storage_temperature_in_celsius"
+	maximumStorageTemperatureInCelsiusColumn = "maximum_storage_temperature_in_celsius"
 
 	// idsArg is querygen's name for the id-list argument of a bulk stamp, taken from
 	// there rather than spelled again so the hand-written stamps below match the

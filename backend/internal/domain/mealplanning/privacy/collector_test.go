@@ -10,11 +10,11 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
 
-	platformdataprivacy "github.com/primandproper/platform-go/v12/dataprivacy"
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/identifiers"
-	loggingnoop "github.com/primandproper/platform-go/v12/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v12/observability/tracing/noop"
+	platformdataprivacy "github.com/primandproper/platform-go/v13/dataprivacy"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/identifiers"
+	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
+	tracingnoop "github.com/primandproper/platform-go/v13/observability/tracing/noop"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -64,7 +64,7 @@ func TestCollector_Collect(T *testing.T) {
 		userID := identifiers.New()
 
 		// recipes span two pages: a full first page proves the collector keeps paging.
-		fullPage := buildRecipePage(filtering.MaxQueryFilterLimit)
+		fullPage := buildRecipePage(int(filtering.MaxQueryFilterLimit))
 		lastPage := buildRecipePage(3)
 
 		exampleMeal := fakes.BuildFakeMeal()
@@ -103,7 +103,7 @@ func TestCollector_Collect(T *testing.T) {
 
 		collection := collect(t, repo, noAccounts, userID)
 
-		assert.Len(t, collection.Recipes, filtering.MaxQueryFilterLimit+3, "both recipe pages must be collected")
+		assert.Len(t, collection.Recipes, int(filtering.MaxQueryFilterLimit)+3, "both recipe pages must be collected")
 		assert.Len(t, collection.Meals, 1)
 		assert.Empty(t, collection.UserIngredientPreferences)
 		assert.Len(t, collection.RecipeRatings, 1)

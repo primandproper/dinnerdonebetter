@@ -79,6 +79,6 @@ WHERE permissions.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURREN
 		OR permissions.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR permissions.archived_at IS NULL)
-	AND permissions.id > COALESCE(sqlc.narg(cursor), '')
+	AND permissions.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY permissions.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);

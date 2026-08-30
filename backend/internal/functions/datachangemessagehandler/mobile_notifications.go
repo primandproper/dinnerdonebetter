@@ -12,11 +12,11 @@ import (
 	mealplanningnotifications "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/notifications"
 	domainnotifications "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
 
-	"github.com/primandproper/platform-go/v12/filtering"
-	notifications "github.com/primandproper/platform-go/v12/notifications/mobile"
-	"github.com/primandproper/platform-go/v12/observability"
-	"github.com/primandproper/platform-go/v12/observability/logging"
-	"github.com/primandproper/platform-go/v12/retry"
+	"github.com/primandproper/platform-go/v13/filtering"
+	notifications "github.com/primandproper/platform-go/v13/notifications/mobile"
+	"github.com/primandproper/platform-go/v13/observability"
+	"github.com/primandproper/platform-go/v13/observability/logging"
+	"github.com/primandproper/platform-go/v13/retry"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"

@@ -5,7 +5,7 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 
-	"github.com/primandproper/platform-go/v12/filtering"
+	"github.com/primandproper/platform-go/v13/filtering"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -17,16 +17,16 @@ type (
 )
 
 var validIngredientStatesSchema = map[string]any{
-	"ID":            stringField("The ID of the valid ingredient state"),
-	"CreatedAt":     timestampField("When the valid ingredient state was created"),
-	"LastUpdatedAt": timestampField("When the valid ingredient state was last updated"),
-	"ArchivedAt":    timestampField("When the valid ingredient state was soft deleted"),
-	"Name":          stringField("Name of the ingredient state"),
-	"Description":   stringField("Description of the ingredient state"),
-	"IconPath":      stringField("The URL for the icon for the item"),
-	"Slug":          stringField("An easy-to-use URL slug for the ingredient state"),
-	"PastTense":     stringField("The past tense form of the ingredient state name (e.g., 'chopped' for 'chop')"),
-	"AttributeType": stringField("The attribute type of the ingredient state (texture, consistency, temperature, color, appearance, odor, taste, sound, or other)"),
+	"ID":               stringField("The ID of the valid ingredient state"),
+	fieldCreatedAt:     timestampField("When the valid ingredient state was created"),
+	fieldLastUpdatedAt: timestampField("When the valid ingredient state was last updated"),
+	fieldArchivedAt:    timestampField("When the valid ingredient state was soft deleted"),
+	fieldName:          stringField("Name of the ingredient state"),
+	fieldDescription:   stringField("Description of the ingredient state"),
+	fieldIconPath:      stringField("The URL for the icon for the item"),
+	fieldSlug:          stringField("An easy-to-use URL slug for the ingredient state"),
+	"PastTense":        stringField("The past tense form of the ingredient state name (e.g., 'chopped' for 'chop')"),
+	"AttributeType":    stringField("The attribute type of the ingredient state (texture, consistency, temperature, color, appearance, odor, taste, sound, or other)"),
 }
 
 var getValidIngredientStateTool = &mcp.Tool{
@@ -68,14 +68,14 @@ var searchForValidIngredientStatesTool = &mcp.Tool{
 	Name:        "SearchForValidIngredientStates",
 	Description: "Search for valid ingredient states with optional filtering and query string",
 	InputSchema: schemaObject(map[string]any{
-		"Filter": filtering.QueryFilterSchema(),
-		"Query": map[string]any{
-			"type":        strType,
-			"description": "The ingredient state name query",
+		fieldFilter: filtering.QueryFilterSchema(),
+		fieldQuery: map[string]any{
+			keyType:        strType,
+			keyDescription: "The ingredient state name query",
 		},
 	}),
 	OutputSchema: schemaObject(map[string]any{
-		"Results": arrayType(schemaObject(validIngredientStatesSchema)),
+		fieldResults: arrayType(schemaObject(validIngredientStatesSchema)),
 	}),
 }
 

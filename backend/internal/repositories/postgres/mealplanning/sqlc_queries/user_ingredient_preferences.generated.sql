@@ -126,7 +126,7 @@ WHERE user_ingredient_preferences.created_at > COALESCE(sqlc.narg(created_after)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR user_ingredient_preferences.archived_at IS NULL)
 	AND user_ingredient_preferences.belongs_to_user = sqlc.arg(belongs_to_user)
 	AND valid_ingredients.archived_at IS NULL
-	AND user_ingredient_preferences.id > COALESCE(sqlc.narg(cursor), '')
+	AND user_ingredient_preferences.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY user_ingredient_preferences.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 

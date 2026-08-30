@@ -16,7 +16,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/mcpserver"
 
-	"github.com/primandproper/platform-go/v12/authentication/oauth2server"
+	"github.com/primandproper/platform-go/v13/authentication/oauth2server"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/pquerna/otp/totp"
@@ -350,7 +350,7 @@ func do(t *testing.T, req *http.Request) *http.Response {
 		CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
 	}
 
-	res, err := client.Do(req) //nolint:gosec // G704: every address here is a listener this suite bound on loopback.
+	res, err := client.Do(req)
 	require.NoError(t, err)
 
 	return res

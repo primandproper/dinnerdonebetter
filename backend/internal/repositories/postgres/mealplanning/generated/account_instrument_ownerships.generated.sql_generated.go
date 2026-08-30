@@ -247,7 +247,7 @@ type GetAccountInstrumentOwnershipsParams struct {
 	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	AccountID       string
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -284,7 +284,7 @@ func (q *Queries) GetAccountInstrumentOwnerships(ctx context.Context, db DBTX, a
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.AccountID,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {

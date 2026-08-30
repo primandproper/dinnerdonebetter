@@ -3,7 +3,7 @@ package dataprivacy
 import (
 	"context"
 
-	"github.com/primandproper/platform-go/v12/filtering"
+	"github.com/primandproper/platform-go/v13/filtering"
 )
 
 // CollectAllPages exhaustively pages through a cursor-paginated list accessor and returns
@@ -13,7 +13,7 @@ func CollectAllPages[T any](ctx context.Context, fetch func(ctx context.Context,
 	var out []*T
 
 	filter := filtering.DefaultQueryFilter()
-	filter.MaxResponseSize = new(uint16(filtering.MaxQueryFilterLimit))
+	filter.MaxResponseSize = new(filtering.MaxQueryFilterLimit)
 
 	for {
 		page, err := fetch(ctx, filter)

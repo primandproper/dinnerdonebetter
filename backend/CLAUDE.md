@@ -26,7 +26,7 @@ Never edit files in `*/generated/` directories. Modify the generators in `cmd/to
 
 ## Architecture
 
-The platform framework (database, cache, observability, messaging, uploads, search, encoding, etc.) is an external dependency at `github.com/primandproper/platform-go/v11`. Application code lives under `internal/`:
+The platform framework (database, cache, observability, messaging, uploads, search, encoding, etc.) is an external dependency at `github.com/primandproper/platform-go/v13`. Application code lives under `internal/`:
 
 | Layer              | Path                       | Role                                                      |
 |--------------------|----------------------------|-----------------------------------------------------------|
@@ -94,6 +94,7 @@ Two-stage config: JSON file (path from `CONFIGURATION_FILEPATH` env var) + envir
 - `docs/writing_go.md` — Go conventions, testing, naming, patterns
 - `docs/adding_a_new_domain.md` — Step-by-step domain creation checklist
 - `docs/migrations.md` — Database migration workflow
+- `docs/platform-go-v13-adoption.md` — The v12 → v13 port: what changed, and what it left for later
 - `docs/configuration.md` — Config loading, env vars, deployment
 - `docs/payments.md` — Payments domain architecture
 - `docs/metering.md` — Usage metering: what is counted, why nothing is limited or billed yet

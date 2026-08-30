@@ -15,15 +15,22 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity/generated"
 
-	"github.com/primandproper/platform-go/v12/database"
-	platformerrors "github.com/primandproper/platform-go/v12/errors"
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/identifiers"
-	"github.com/primandproper/platform-go/v12/observability"
-	platformkeys "github.com/primandproper/platform-go/v12/observability/keys"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v13/database"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/identifiers"
+	"github.com/primandproper/platform-go/v13/observability"
+	platformkeys "github.com/primandproper/platform-go/v13/observability/keys"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 
 	"github.com/jackc/pgx/v5/pgconn"
+)
+
+// The redacted field and the two standings its audit entries record.
+const (
+	twoFactorSecretField = "two_factor_secret" //nolint:gosec // G101: a column name, not a credential
+	twoFactorVerified    = "verified"
+	twoFactorUnverified  = "unverified"
 )
 
 const (
@@ -287,7 +294,7 @@ func (r *repository) SearchForUsersByUsername(ctx context.Context, usernameQuery
 		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
 		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
 		Username:        usernameQuery,
@@ -357,7 +364,7 @@ func (r *repository) GetUsers(ctx context.Context, filter *filtering.QueryFilter
 		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
 		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
 	})
@@ -440,7 +447,7 @@ func (r *repository) GetUsersForAccount(ctx context.Context, accountID string, f
 		CreatedAfter:     database.NullTimeFromTimePointer(filter.CreatedAfter),
 		UpdatedBefore:    database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:     database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		Cursor:           database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:       database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:      database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived:  database.NullBoolFromBoolPointer(filter.IncludeArchived),
 	})
@@ -534,7 +541,7 @@ func (r *repository) ScanUserIDsForReindex(ctx context.Context, after string, li
 	defer span.End()
 
 	results, err := r.generatedQuerier.ScanUserIDsForReindex(ctx, r.readDB, &generated.ScanUserIDsForReindexParams{
-		Cursor:      after,
+		PageCursor:  after,
 		ResultLimit: limit,
 	})
 	if err != nil {
@@ -587,7 +594,7 @@ func (r *repository) CreateUser(ctx context.Context, input *identity.UserDatabas
 
 	// begin user creation transaction
 	var user *identity.User
-	if err := r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err := r.WithTransaction(ctx, func(tx database.Tx) error {
 		token, err := r.secretGenerator.GenerateBase64EncodedString(ctx, 32)
 		if err != nil {
 			return observability.PrepareError(err, span, "generating email verification token")
@@ -608,8 +615,7 @@ func (r *repository) CreateUser(ctx context.Context, input *identity.UserDatabas
 			UserAccountStatusExplanation:  "",
 			RequiresPasswordChange:        false,
 		}); err != nil {
-			var pgErr *pgconn.PgError
-			if errors.As(err, &pgErr) {
+			if pgErr, ok := errors.AsType[*pgconn.PgError](err); ok {
 				if pgErr.Code == postgresDuplicateEntryErrorCode {
 					return database.ErrUserAlreadyExists
 				}
@@ -697,7 +703,7 @@ func (r *repository) CreateUser(ctx context.Context, input *identity.UserDatabas
 	return user, nil
 }
 
-func (r *repository) createAccountForUser(ctx context.Context, querier database.SQLQueryExecutor, hasValidInvite bool, accountName, userID string) (*identity.Account, error) {
+func (r *repository) createAccountForUser(ctx context.Context, querier database.Tx, hasValidInvite bool, accountName, userID string) (*identity.Account, error) {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -817,7 +823,7 @@ func (r *repository) UpdateUserUsername(ctx context.Context, userID, newUsername
 	logger = logger.WithValue(identitykeys.UsernameKey, newUsername)
 	tracing.AttachToSpan(span, identitykeys.UsernameKey, newUsername)
 
-	if err := r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err := r.WithTransaction(ctx, func(tx database.Tx) error {
 		user, err := r.GetUser(ctx, userID)
 		if err != nil {
 			return observability.PrepareAndLogError(err, logger, span, "fetching user")
@@ -879,7 +885,7 @@ func (r *repository) UpdateUserEmailAddress(ctx context.Context, userID, newEmai
 	}
 	tracing.AttachToSpan(span, identitykeys.UserEmailAddressKey, newEmailAddress)
 
-	if err := r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err := r.WithTransaction(ctx, func(tx database.Tx) error {
 		user, err := r.GetUser(ctx, userID)
 		if err != nil {
 			return observability.PrepareAndLogError(err, logger, span, "fetching user")
@@ -940,7 +946,7 @@ func (r *repository) UpdateUserDetails(ctx context.Context, userID string, input
 	tracing.AttachToSpan(span, identitykeys.UserIDKey, userID)
 	logger := r.logger.WithValue(identitykeys.UserIDKey, userID)
 
-	if err := r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err := r.WithTransaction(ctx, func(tx database.Tx) error {
 		user, err := r.GetUser(ctx, userID)
 		if err != nil {
 			return observability.PrepareAndLogError(err, logger, span, "fetching user")
@@ -1012,7 +1018,7 @@ func (r *repository) SetUserAvatar(ctx context.Context, userID, uploadedMediaID 
 	logger := r.logger.WithValue(identitykeys.UserIDKey, userID)
 
 	var err error
-	if err = r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err = r.WithTransaction(ctx, func(tx database.Tx) error {
 		if err = r.generatedQuerier.ArchiveUserAvatar(ctx, tx, userID); err != nil {
 			return observability.PrepareAndLogError(err, logger, span, "archiving previous user avatar")
 		}
@@ -1071,7 +1077,7 @@ func (r *repository) UpdateUserPassword(ctx context.Context, userID, newHash str
 	logger := r.logger.WithValue(identitykeys.UserIDKey, userID)
 
 	var err error
-	if err = r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err = r.WithTransaction(ctx, func(tx database.Tx) error {
 		if _, err = r.generatedQuerier.UpdateUserPassword(ctx, tx, &generated.UpdateUserPasswordParams{
 			HashedPassword: newHash,
 			ID:             userID,
@@ -1117,7 +1123,7 @@ func (r *repository) UpdateUserTwoFactorSecret(ctx context.Context, userID, newS
 	logger := r.logger.WithValue(identitykeys.UserIDKey, userID)
 
 	var err error
-	if err = r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err = r.WithTransaction(ctx, func(tx database.Tx) error {
 		if _, err = r.generatedQuerier.UpdateUserTwoFactorSecret(ctx, tx, &generated.UpdateUserTwoFactorSecretParams{
 			TwoFactorSecret: newSecret,
 			ID:              userID,
@@ -1131,7 +1137,7 @@ func (r *repository) UpdateUserTwoFactorSecret(ctx context.Context, userID, newS
 			EventType:     audit.AuditLogEventTypeUpdated,
 			BelongsToUser: userID,
 			Changes: map[string]audit.Change{
-				"two_factor_secret": {},
+				twoFactorSecretField: {},
 			},
 		}); err != nil {
 			return observability.PrepareError(err, span, "creating audit log entry")
@@ -1159,7 +1165,7 @@ func (r *repository) MarkUserTwoFactorSecretAsVerified(ctx context.Context, user
 	logger := r.logger.WithValue(identitykeys.UserIDKey, userID)
 
 	var err error
-	if err = r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err = r.WithTransaction(ctx, func(tx database.Tx) error {
 		if err = r.generatedQuerier.MarkTwoFactorSecretAsVerified(ctx, tx, userID); err != nil {
 			return observability.PrepareAndLogError(err, logger, span, "writing verified two factor status to database")
 		}
@@ -1170,9 +1176,9 @@ func (r *repository) MarkUserTwoFactorSecretAsVerified(ctx context.Context, user
 			EventType:     audit.AuditLogEventTypeUpdated,
 			BelongsToUser: userID,
 			Changes: map[string]audit.Change{
-				"two_factor_secret": {
-					Old: "unverified",
-					New: "verified",
+				twoFactorSecretField: {
+					Old: twoFactorUnverified,
+					New: twoFactorVerified,
 				},
 			},
 		}); err != nil {
@@ -1205,7 +1211,7 @@ func (r *repository) MarkUserTwoFactorSecretAsUnverified(ctx context.Context, us
 	logger := r.logger.WithValue(identitykeys.UserIDKey, userID)
 
 	var err error
-	if err = r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err = r.WithTransaction(ctx, func(tx database.Tx) error {
 		if err = r.generatedQuerier.MarkTwoFactorSecretAsUnverified(ctx, tx, &generated.MarkTwoFactorSecretAsUnverifiedParams{
 			TwoFactorSecret: newSecret,
 			ID:              userID,
@@ -1229,9 +1235,9 @@ func (r *repository) MarkUserTwoFactorSecretAsUnverified(ctx context.Context, us
 				EventType:     audit.AuditLogEventTypeCreated,
 				BelongsToUser: userID,
 				Changes: map[string]audit.Change{
-					"two_factor_secret": {
-						Old: "verified",
-						New: "unverified",
+					twoFactorSecretField: {
+						Old: twoFactorVerified,
+						New: twoFactorUnverified,
 					},
 				},
 			},
@@ -1261,7 +1267,7 @@ func (r *repository) ArchiveUser(ctx context.Context, userID string) error {
 	logger := r.logger.WithValue(identitykeys.UserIDKey, userID)
 
 	// begin archive user transaction
-	if err := r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err := r.WithTransaction(ctx, func(tx database.Tx) error {
 		changed, err := r.generatedQuerier.ArchiveUser(ctx, tx, userID)
 		if err != nil {
 			return observability.PrepareAndLogError(err, logger, span, "archiving user")
@@ -1372,7 +1378,7 @@ func (r *repository) MarkUserEmailAddressAsVerified(ctx context.Context, userID,
 	}
 
 	var err error
-	if err = r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err = r.WithTransaction(ctx, func(tx database.Tx) error {
 		if err = r.generatedQuerier.MarkEmailAddressAsVerified(ctx, tx, &generated.MarkEmailAddressAsVerifiedParams{
 			ID:                            userID,
 			EmailAddressVerificationToken: database.NullStringFromString(token),
@@ -1391,8 +1397,8 @@ func (r *repository) MarkUserEmailAddressAsVerified(ctx context.Context, userID,
 			BelongsToUser: userID,
 			Changes: map[string]audit.Change{
 				"email_address_verification": {
-					Old: "unverified",
-					New: "verified",
+					Old: twoFactorUnverified,
+					New: twoFactorVerified,
 				},
 			},
 		}); err != nil {
@@ -1427,7 +1433,7 @@ func (r *repository) MarkUserEmailAddressAsUnverified(ctx context.Context, userI
 	logger = logger.WithValue(identitykeys.UserIDKey, userID)
 
 	var err error
-	if err = r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err = r.WithTransaction(ctx, func(tx database.Tx) error {
 		if err = r.generatedQuerier.MarkEmailAddressAsUnverified(ctx, tx, userID); err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				return err
@@ -1443,8 +1449,8 @@ func (r *repository) MarkUserEmailAddressAsUnverified(ctx context.Context, userI
 			BelongsToUser: userID,
 			Changes: map[string]audit.Change{
 				"email_address_verification": {
-					Old: "verified",
-					New: "unverified",
+					Old: twoFactorVerified,
+					New: twoFactorUnverified,
 				},
 			},
 		}); err != nil {
@@ -1480,7 +1486,7 @@ func (r *repository) UpdateUserAccountStatus(ctx context.Context, userID string,
 
 	return r.withEvent(ctx, logger, identity.UserStatusChangedServiceEventType, "", map[string]any{
 		identitykeys.UserIDKey: userID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		rowsChanged, err := r.generatedQuerier.SetUserAccountStatus(ctx, tx, &generated.SetUserAccountStatusParams{
 			UserAccountStatus:            input.NewStatus,
 			UserAccountStatusExplanation: input.Reason,
@@ -1513,7 +1519,7 @@ func (r *repository) SetUserRequiresPasswordChange(ctx context.Context, userID s
 
 	return r.withEvent(ctx, logger, identity.UserPasswordChangeRequiredServiceEventType, "", map[string]any{
 		identitykeys.UserIDKey: userID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		rowsChanged, err := r.generatedQuerier.SetUserRequiresPasswordChange(ctx, tx, &generated.SetUserRequiresPasswordChangeParams{
 			RequiresPasswordChange: requiresChange,
 			ID:                     userID,

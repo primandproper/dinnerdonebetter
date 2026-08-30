@@ -651,7 +651,7 @@ type GetRecipesParams struct {
 	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	Status          NullRecipeStatus
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -688,7 +688,7 @@ func (q *Queries) GetRecipes(ctx context.Context, db DBTX, arg *GetRecipesParams
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.Status,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {
@@ -804,7 +804,7 @@ type GetRecipesCreatedByUserParams struct {
 	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	CreatedByUser   string
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -841,7 +841,7 @@ func (q *Queries) GetRecipesCreatedByUser(ctx context.Context, db DBTX, arg *Get
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.CreatedByUser,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {
@@ -1213,7 +1213,7 @@ type RecipeSearchParams struct {
 	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	Query           string
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -1250,7 +1250,7 @@ func (q *Queries) RecipeSearch(ctx context.Context, db DBTX, arg *RecipeSearchPa
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.Query,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {
@@ -1307,12 +1307,12 @@ LIMIT COALESCE($2, 50)
 `
 
 type ScanRecipeIDsForReindexParams struct {
-	Cursor      string
+	PageCursor  string
 	ResultLimit interface{}
 }
 
 func (q *Queries) ScanRecipeIDsForReindex(ctx context.Context, db DBTX, arg *ScanRecipeIDsForReindexParams) ([]string, error) {
-	rows, err := db.QueryContext(ctx, scanRecipeIDsForReindex, arg.Cursor, arg.ResultLimit)
+	rows, err := db.QueryContext(ctx, scanRecipeIDsForReindex, arg.PageCursor, arg.ResultLimit)
 	if err != nil {
 		return nil, err
 	}
@@ -1403,7 +1403,7 @@ type SearchForMealEligibleRecipesParams struct {
 	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	Query           string
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -1440,7 +1440,7 @@ func (q *Queries) SearchForMealEligibleRecipes(ctx context.Context, db DBTX, arg
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.Query,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {
@@ -1568,7 +1568,7 @@ type SearchForRecipesWithInstrumentOwnershipParams struct {
 	IncludeArchived sql.NullBool
 	Query           string
 	AccountID       string
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -1606,7 +1606,7 @@ func (q *Queries) SearchForRecipesWithInstrumentOwnership(ctx context.Context, d
 		arg.IncludeArchived,
 		arg.Query,
 		arg.AccountID,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {
