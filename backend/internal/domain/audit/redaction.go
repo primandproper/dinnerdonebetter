@@ -54,8 +54,11 @@ var Redactions = map[string]Redaction{
 			"apiKey",
 		},
 	},
-	// A password reset token's whole value is that it is unguessable, and this
-	// table outlives the token by years. The digest still answers the question an
+	// A password reset token's whole value is that it is unguessable, and this table
+	// outlives the token by years. The reset store itself no longer has a plaintext
+	// token to hand anybody — it keeps a digest — so this is a guard rather than a
+	// filter that fires: it is what happens if a "token" field ever reappears in a
+	// Diff of a struct nobody thought about. The digest still answers the question an
 	// investigation asks — whether the token presented was the token issued.
 	"password_reset_tokens": {
 		Hash: []string{"token"},

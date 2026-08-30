@@ -16,9 +16,11 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	authrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auth"
 
+	"github.com/primandproper/platform-go/v13/authentication/passwordreset"
 	"github.com/primandproper/platform-go/v13/identifiers"
 	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
 	tracingnoop "github.com/primandproper/platform-go/v13/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v13/tenancy"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -512,6 +514,25 @@ func TestAuth_ChangingTOTPSecret(T *testing.T) {
 	})
 }
 
+// passwordResetStoreForTest builds the same password reset token store the server runs on,
+// over the same database.
+//
+// The test needs one because the secret is no longer readable out of the table: the column
+// holds a digest, and the secret exists once, in the issuance the server handed to the email
+// it sent. Reaching into the database for the token — which is what this test used to do —
+// stopped being possible the moment that became true, which is the point of the change.
+func passwordResetStoreForTest(t *testing.T) passwordreset.Store {
+	t.Helper()
+
+	auditLogRepo, err := auditlogentries.ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, databaseClient)
+	require.NoError(t, err)
+
+	store, err := authrepo.ProvidePasswordResetTokenStore(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), auditLogRepo, databaseClient)
+	require.NoError(t, err)
+
+	return store
+}
+
 func TestAuth_RequestingPasswordReset(T *testing.T) {
 	T.Parallel()
 
@@ -528,20 +549,23 @@ func TestAuth_RequestingPasswordReset(T *testing.T) {
 		assert.NotNil(t, res)
 
 		// boo, hiss, we're talking directly to the database in an _integration test?_ for shame, for shame.
-		var token string
-		queryErr := databaseClient.Reader().QueryRowContext(ctx, `SELECT token FROM password_reset_tokens WHERE belongs_to_user = $1`, user.ID).Scan(&token)
+		// The request above wrote a row, and what is in it is a digest: whatever the server
+		// emailed, it is not this, and there is no way back from one to the other.
+		var digest string
+		queryErr := databaseClient.Reader().QueryRowContext(ctx,
+			`SELECT token_digest FROM ddb_password_reset_tokens WHERE belongs_to_user = $1`, user.ID).Scan(&digest)
 		require.NoError(t, queryErr)
+		assert.NotEmpty(t, digest)
 
-		auditLogRepo, err := auditlogentries.ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, databaseClient)
+		// So the token this test spends is one it issues itself, through the same store the
+		// server uses. Everything from the redemption onwards is the real path.
+		store := passwordResetStoreForTest(t)
+		issuance, err := store.Issue(ctx, tenancy.Global(), user.ID, 30*time.Minute)
 		require.NoError(t, err)
-		authRepo := authrepo.ProvideAuthRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), auditLogRepo, databaseClient)
-
-		resetToken, err := authRepo.GetPasswordResetTokenByToken(ctx, token)
-		require.NoError(t, err)
-		require.NotNil(t, resetToken)
+		require.NotEmpty(t, issuance.Secret)
 
 		_, err = testClient.RedeemPasswordResetToken(ctx, &authsvc.RedeemPasswordResetTokenRequest{
-			Token:       resetToken.Token,
+			Token:       issuance.Secret,
 			NewPassword: user.HashedPassword + "blah",
 		})
 		require.NoError(t, err)
@@ -559,7 +583,7 @@ func TestAuth_RequestingPasswordReset(T *testing.T) {
 
 		// verify that we can't do it twice
 		_, err = testClient.RedeemPasswordResetToken(ctx, &authsvc.RedeemPasswordResetTokenRequest{
-			Token:       resetToken.Token,
+			Token:       issuance.Secret,
 			NewPassword: user.HashedPassword + "blah",
 		})
 		require.Error(t, err)
@@ -568,6 +592,33 @@ func TestAuth_RequestingPasswordReset(T *testing.T) {
 			{EventType: "created", ResourceType: "password_reset_tokens"},
 			{EventType: "updated", ResourceType: "password_reset_tokens"},
 		})
+	})
+
+	T.Run("a completed reset revokes the links that were outstanding", func(t *testing.T) {
+		t.Parallel()
+		ctx := t.Context()
+
+		user, testClient := createUserAndClientForTest(t)
+		store := passwordResetStoreForTest(t)
+
+		// Somebody clicks "email me a link" twice and answers the second message.
+		first, err := store.Issue(ctx, tenancy.Global(), user.ID, 30*time.Minute)
+		require.NoError(t, err)
+		second, err := store.Issue(ctx, tenancy.Global(), user.ID, 30*time.Minute)
+		require.NoError(t, err)
+
+		_, err = testClient.RedeemPasswordResetToken(ctx, &authsvc.RedeemPasswordResetTokenRequest{
+			Token:       second.Secret,
+			NewPassword: user.HashedPassword + "blah",
+		})
+		require.NoError(t, err)
+
+		// The first link no longer resets the password that was just chosen.
+		_, err = testClient.RedeemPasswordResetToken(ctx, &authsvc.RedeemPasswordResetTokenRequest{
+			Token:       first.Secret,
+			NewPassword: user.HashedPassword + "different",
+		})
+		require.Error(t, err)
 	})
 
 	T.Run("unauthenticated flow", func(t *testing.T) {
@@ -583,12 +634,11 @@ func TestAuth_RequestingPasswordReset(T *testing.T) {
 		require.NoError(t, err)
 		assert.NotNil(t, res)
 
-		var token string
-		queryErr := databaseClient.Reader().QueryRowContext(ctx, `SELECT token FROM password_reset_tokens WHERE belongs_to_user = $1 ORDER BY created_at DESC LIMIT 1`, user.ID).Scan(&token)
-		require.NoError(t, queryErr)
+		issuance, err := passwordResetStoreForTest(t).Issue(ctx, tenancy.Global(), user.ID, 30*time.Minute)
+		require.NoError(t, err)
 
 		_, err = unauthedClient.RedeemPasswordResetToken(ctx, &authsvc.RedeemPasswordResetTokenRequest{
-			Token:       token,
+			Token:       issuance.Secret,
 			NewPassword: "newpassword123!",
 		})
 		require.NoError(t, err)

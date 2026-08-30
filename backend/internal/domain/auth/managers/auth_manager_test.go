@@ -10,14 +10,18 @@ import (
 	mockauthn "github.com/primandproper/dinnerdonebetter/backend/internal/authentication/mock"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 	authfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/fakes"
+	authkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/keys"
 	authmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/mock"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	identityfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
 	identitymock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/mock"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
+	"github.com/primandproper/platform-go/v13/authentication/passwordreset"
+	passwordresetmock "github.com/primandproper/platform-go/v13/authentication/passwordreset/mock"
 	platformtotp "github.com/primandproper/platform-go/v13/authentication/totp"
 	mocktotp "github.com/primandproper/platform-go/v13/authentication/totp/mock"
 	"github.com/primandproper/platform-go/v13/fake"
@@ -30,6 +34,7 @@ import (
 	"github.com/primandproper/platform-go/v13/qrcodes"
 	"github.com/primandproper/platform-go/v13/random"
 	randommock "github.com/primandproper/platform-go/v13/random/mock"
+	"github.com/primandproper/platform-go/v13/tenancy"
 
 	"github.com/pquerna/otp/totp"
 	"github.com/stretchr/testify/assert"
@@ -55,7 +60,7 @@ func TestProvideAuthManager(t *testing.T) {
 			ctx,
 			loggingnoop.NewLogger(),
 			tracingnoop.NewTracerProvider(),
-			&authmock.PasswordResetTokenDataManagerMock{},
+			&passwordresetmock.StoreMock{},
 			&authmock.UserSessionDataManagerMock{},
 			&identitymock.RepositoryMock{},
 			&mockauthn.AuthenticatorMock{},
@@ -175,7 +180,7 @@ func TestProvideAuthManager_NilConfig(t *testing.T) {
 		ctx,
 		loggingnoop.NewLogger(),
 		tracingnoop.NewTracerProvider(),
-		&authmock.PasswordResetTokenDataManagerMock{},
+		&passwordresetmock.StoreMock{},
 		&authmock.UserSessionDataManagerMock{},
 		&identitymock.RepositoryMock{},
 		&mockauthn.AuthenticatorMock{},
@@ -409,40 +414,47 @@ func TestAuthManager_CreatePasswordResetToken_Success(t *testing.T) {
 		},
 	}
 
-	secretGen := &randommock.GeneratorMock{
-		GenerateBase32EncodedStringFunc: func(_ context.Context, _ int) (string, error) {
-			return "faketoken123", nil
+	issuance := &passwordreset.Issuance{
+		Token:  &passwordreset.Token{ID: fake.BuildFakeID(), UserID: user.ID},
+		Secret: fake.BuildFakeString(),
+	}
+
+	tokenStore := &passwordresetmock.StoreMock{
+		IssueFunc: func(_ context.Context, scope tenancy.Scope, userID string, ttl time.Duration) (*passwordreset.Issuance, error) {
+			assert.Equal(t, tenancy.Global(), scope)
+			assert.Equal(t, user.ID, userID)
+			assert.Equal(t, passwordResetTokenLifetime, ttl)
+			return issuance, nil
 		},
 	}
 
-	createdToken := authfakes.BuildFakePasswordResetToken()
-	createdToken.BelongsToUser = user.ID
-	prtManager := &authmock.PasswordResetTokenDataManagerMock{
-		CreatePasswordResetTokenFunc: func(_ context.Context, dbInput *auth.PasswordResetTokenDatabaseCreationInput) (*auth.PasswordResetToken, error) {
-			assert.NotNil(t, dbInput)
-			return createdToken, nil
-		},
-	}
-
+	var published []*audit.DataChangeMessage
 	publisher := &mockpublishers.PublisherMock{
-		PublishAsyncFunc: func(_ context.Context, _ any, _ ...messagequeue.PublishOption) {},
+		PublishAsyncFunc: func(_ context.Context, msg any, _ ...messagequeue.PublishOption) {
+			published = append(published, msg.(*audit.DataChangeMessage))
+		},
 	}
 
 	ctx = sessions.AttachToContext(ctx, &sessions.ContextData{})
 	manager := &AuthManager{
-		userDataManager:               userDataManager,
-		passwordResetTokenDataManager: prtManager,
-		secretGenerator:               secretGen,
-		dataChangesPublisher:          publisher,
-		logger:                        loggingnoop.NewLogger().WithName("auth_manager"),
-		tracer:                        tracing.NewTracerForTest("auth_manager"),
+		userDataManager:      userDataManager,
+		passwordResetTokens:  tokenStore,
+		dataChangesPublisher: publisher,
+		logger:               loggingnoop.NewLogger().WithName("auth_manager"),
+		tracer:               tracing.NewTracerForTest("auth_manager"),
 	}
 
 	err := manager.CreatePasswordResetToken(ctx, input)
 
 	require.NoError(t, err)
 	assert.Len(t, userDataManager.GetUserByEmailCalls(), 1)
-	assert.Len(t, prtManager.CreatePasswordResetTokenCalls(), 1)
+	assert.Len(t, tokenStore.IssueCalls(), 1)
+
+	// The secret rides on the message because the store keeps only a digest of it, and the
+	// email handler has nowhere else to get it.
+	require.Len(t, published, 1)
+	assert.Equal(t, issuance.Secret, published[0].Context[authkeys.PasswordResetTokenSecretKey])
+	assert.Equal(t, issuance.Token.ID, published[0].Context[authkeys.PasswordResetTokenIDKey])
 }
 
 func TestAuthManager_CreatePasswordResetToken_UserNotFound(t *testing.T) {
@@ -773,21 +785,19 @@ func TestAuthManager_PasswordResetTokenRedemption_Success(t *testing.T) {
 
 	ctx := t.Context()
 	user := identityfakes.BuildFakeUser()
-	token := authfakes.BuildFakePasswordResetToken()
-	token.BelongsToUser = user.ID
-	token.Token = "reset-token-123"
+	token := &passwordreset.Token{ID: fake.BuildFakeID(), UserID: user.ID}
 	input := authfakes.BuildFakePasswordResetTokenRedemptionRequestInput()
-	input.Token = token.Token
 	input.NewPassword = "Abcdefghij123!@#$%^&*()"
 
-	prtManager := &authmock.PasswordResetTokenDataManagerMock{
-		GetPasswordResetTokenByTokenFunc: func(_ context.Context, passwordResetTokenID string) (*auth.PasswordResetToken, error) {
-			assert.Equal(t, token.Token, passwordResetTokenID)
+	tokenStore := &passwordresetmock.StoreMock{
+		ConsumeFunc: func(_ context.Context, scope tenancy.Scope, secret string) (*passwordreset.Token, error) {
+			assert.Equal(t, tenancy.Global(), scope)
+			assert.Equal(t, input.Token, secret)
 			return token, nil
 		},
-		RedeemPasswordResetTokenFunc: func(_ context.Context, passwordResetTokenID string) error {
-			assert.Equal(t, token.ID, passwordResetTokenID)
-			return nil
+		RevokeForUserFunc: func(_ context.Context, _ tenancy.Scope, userID string) (int64, error) {
+			assert.Equal(t, user.ID, userID)
+			return 0, nil
 		},
 	}
 
@@ -816,22 +826,23 @@ func TestAuthManager_PasswordResetTokenRedemption_Success(t *testing.T) {
 
 	ctx = sessions.AttachToContext(ctx, &sessions.ContextData{})
 	manager := &AuthManager{
-		passwordResetTokenDataManager: prtManager,
-		userDataManager:               userDataManager,
-		authenticator:                 authenticator,
-		dataChangesPublisher:          publisher,
-		logger:                        loggingnoop.NewLogger().WithName("auth_manager"),
-		tracer:                        tracing.NewTracerForTest("auth_manager"),
+		passwordResetTokens:  tokenStore,
+		userDataManager:      userDataManager,
+		authenticator:        authenticator,
+		dataChangesPublisher: publisher,
+		logger:               loggingnoop.NewLogger().WithName("auth_manager"),
+		tracer:               tracing.NewTracerForTest("auth_manager"),
 	}
 
 	err := manager.PasswordResetTokenRedemption(ctx, input)
 
 	require.NoError(t, err)
-	assert.Len(t, prtManager.GetPasswordResetTokenByTokenCalls(), 1)
-	assert.Len(t, prtManager.RedeemPasswordResetTokenCalls(), 1)
+	assert.Len(t, tokenStore.ConsumeCalls(), 1)
 	assert.Len(t, userDataManager.GetUserCalls(), 1)
 	assert.Len(t, userDataManager.UpdateUserPasswordCalls(), 1)
 	assert.Len(t, authenticator.HashPasswordCalls(), 1)
+	// A completed reset takes the user's other outstanding links with it.
+	assert.Len(t, tokenStore.RevokeForUserCalls(), 1)
 }
 
 func TestAuthManager_NewTOTPSecret_Success(t *testing.T) {
@@ -917,65 +928,81 @@ func TestAuthManager_PasswordResetTokenRedemption_TokenNotFound(t *testing.T) {
 
 	ctx := t.Context()
 	input := authfakes.BuildFakePasswordResetTokenRedemptionRequestInput()
+	input.NewPassword = "Abcdefghij123!@#$%^&*()"
 
-	prtManager := &authmock.PasswordResetTokenDataManagerMock{
-		GetPasswordResetTokenByTokenFunc: func(_ context.Context, passwordResetTokenID string) (*auth.PasswordResetToken, error) {
-			assert.Equal(t, input.Token, passwordResetTokenID)
-			return nil, sql.ErrNoRows
+	tokenStore := &passwordresetmock.StoreMock{
+		ConsumeFunc: func(_ context.Context, _ tenancy.Scope, secret string) (*passwordreset.Token, error) {
+			assert.Equal(t, input.Token, secret)
+			return nil, passwordreset.ErrTokenNotFound
 		},
 	}
 
 	ctx = sessions.AttachToContext(ctx, &sessions.ContextData{})
 	manager := &AuthManager{
-		passwordResetTokenDataManager: prtManager,
-		logger:                        loggingnoop.NewLogger().WithName("auth_manager"),
-		tracer:                        tracing.NewTracerForTest("auth_manager"),
+		passwordResetTokens: tokenStore,
+		logger:              loggingnoop.NewLogger().WithName("auth_manager"),
+		tracer:              tracing.NewTracerForTest("auth_manager"),
 	}
 
 	err := manager.PasswordResetTokenRedemption(ctx, input)
 
 	require.Error(t, err)
-	assert.Len(t, prtManager.GetPasswordResetTokenByTokenCalls(), 1)
+	assert.Len(t, tokenStore.ConsumeCalls(), 1)
+}
+
+func TestAuthManager_PasswordResetTokenRedemption_TokenAlreadyRedeemed(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	input := authfakes.BuildFakePasswordResetTokenRedemptionRequestInput()
+	input.NewPassword = "Abcdefghij123!@#$%^&*()"
+
+	userDataManager := &identitymock.RepositoryMock{}
+
+	tokenStore := &passwordresetmock.StoreMock{
+		ConsumeFunc: func(_ context.Context, _ tenancy.Scope, _ string) (*passwordreset.Token, error) {
+			return nil, passwordreset.ErrTokenRedeemed
+		},
+	}
+
+	ctx = sessions.AttachToContext(ctx, &sessions.ContextData{})
+	manager := &AuthManager{
+		passwordResetTokens: tokenStore,
+		userDataManager:     userDataManager,
+		logger:              loggingnoop.NewLogger().WithName("auth_manager"),
+		tracer:              tracing.NewTracerForTest("auth_manager"),
+	}
+
+	err := manager.PasswordResetTokenRedemption(ctx, input)
+
+	// A token spent once is refused by the store, and nothing downstream of it runs: the
+	// password is never written for a link somebody else already answered.
+	require.ErrorIs(t, err, passwordreset.ErrTokenRedeemed)
+	assert.Empty(t, userDataManager.UpdateUserPasswordCalls())
 }
 
 func TestAuthManager_PasswordResetTokenRedemption_InvalidPassword(t *testing.T) {
 	t.Parallel()
 
 	ctx := t.Context()
-	user := identityfakes.BuildFakeUser()
-	token := authfakes.BuildFakePasswordResetToken()
-	token.BelongsToUser = user.ID
 	input := authfakes.BuildFakePasswordResetTokenRedemptionRequestInput()
-	input.Token = token.Token
 	input.NewPassword = "a" // too weak for entropy 60
 
-	prtManager := &authmock.PasswordResetTokenDataManagerMock{
-		GetPasswordResetTokenByTokenFunc: func(_ context.Context, passwordResetTokenID string) (*auth.PasswordResetToken, error) {
-			assert.Equal(t, token.Token, passwordResetTokenID)
-			return token, nil
-		},
-	}
-
-	userDataManager := &identitymock.RepositoryMock{
-		GetUserFunc: func(_ context.Context, userID string) (*identity.User, error) {
-			assert.Equal(t, user.ID, userID)
-			return user, nil
-		},
-	}
+	tokenStore := &passwordresetmock.StoreMock{}
 
 	ctx = sessions.AttachToContext(ctx, &sessions.ContextData{})
 	manager := &AuthManager{
-		passwordResetTokenDataManager: prtManager,
-		userDataManager:               userDataManager,
-		logger:                        loggingnoop.NewLogger().WithName("auth_manager"),
-		tracer:                        tracing.NewTracerForTest("auth_manager"),
+		passwordResetTokens: tokenStore,
+		logger:              loggingnoop.NewLogger().WithName("auth_manager"),
+		tracer:              tracing.NewTracerForTest("auth_manager"),
 	}
 
 	err := manager.PasswordResetTokenRedemption(ctx, input)
 
 	require.Error(t, err)
-	assert.Len(t, prtManager.GetPasswordResetTokenByTokenCalls(), 1)
-	assert.Len(t, userDataManager.GetUserCalls(), 1)
+	// The password is vetted before the token is spent, so a rejected password does not
+	// cost the user their link.
+	assert.Empty(t, tokenStore.ConsumeCalls())
 }
 
 func TestAuthManager_VerifyUserEmailAddress_UserNotFound(t *testing.T) {

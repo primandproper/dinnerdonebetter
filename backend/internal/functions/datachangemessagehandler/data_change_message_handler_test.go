@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 	identitymock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/mock"
 	internalopsmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/internalops/mock"
 	mealplanningmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
@@ -29,22 +28,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel/metric"
 )
-
-// noopPasswordResetTokenDataManager implements auth.PasswordResetTokenDataManager for tests that do not exercise the password reset flow.
-type noopPasswordResetTokenDataManager struct{}
-
-func (noopPasswordResetTokenDataManager) GetPasswordResetTokenByID(context.Context, string) (*auth.PasswordResetToken, error) {
-	return nil, nil
-}
-func (noopPasswordResetTokenDataManager) GetPasswordResetTokenByToken(context.Context, string) (*auth.PasswordResetToken, error) {
-	return nil, nil
-}
-func (noopPasswordResetTokenDataManager) CreatePasswordResetToken(context.Context, *auth.PasswordResetTokenDatabaseCreationInput) (*auth.PasswordResetToken, error) {
-	return nil, nil
-}
-func (noopPasswordResetTokenDataManager) RedeemPasswordResetToken(context.Context, string) error {
-	return nil
-}
 
 //nolint:gocritic // I know this returns too many things
 func buildTestAsyncDataChangeMessageHandler(t *testing.T) (*AsyncDataChangeMessageHandler, *identitymock.RepositoryMock, *msgqueuemock.ConsumerProviderMock, *msgqueuemock.PublisherProviderMock, *analyticsmock.EventReporterMock, *emailmock.EmailerMock, *mockmetrics.ProviderMock, *encodingmock.ServerEncoderDecoderMock) {
@@ -112,12 +95,11 @@ func buildTestAsyncDataChangeMessageHandler(t *testing.T) (*AsyncDataChangeMessa
 		queuesConfig: queuescfg.Config{
 			SearchIndexRequestsTopicName: "search-index-requests",
 		},
-		outboundEmailsPublisher:       mockPublisher,
-		mobileNotificationsPublisher:  mockPublisher,
-		mealPlanRepo:                  mealPlanRepo,
-		passwordResetTokenDataManager: noopPasswordResetTokenDataManager{},
-		notificationsRepo:             notificationsRepo,
-		pushNotificationSender:        pushNotificationSender,
+		outboundEmailsPublisher:      mockPublisher,
+		mobileNotificationsPublisher: mockPublisher,
+		mealPlanRepo:                 mealPlanRepo,
+		notificationsRepo:            notificationsRepo,
+		pushNotificationSender:       pushNotificationSender,
 	}
 
 	handler.outboundNotificationHandlers = []OutboundNotificationHandler{
@@ -183,7 +165,6 @@ func TestNewAsyncDataChangeMessageHandler(t *testing.T) {
 
 		internalOpsRepo := &internalopsmock.InternalOpsDataManagerMock{}
 		mealPlanRepo := &mealplanningmock.RepositoryMock{}
-		prtManager := noopPasswordResetTokenDataManager{}
 		notificationsRepo := &notificationsmock.RepositoryMock{}
 		pushNotificationSender := noopnotifications.NewPushNotificationSender()
 
@@ -202,7 +183,6 @@ func TestNewAsyncDataChangeMessageHandler(t *testing.T) {
 			decoder,
 			searchSyncers,
 			mealPlanRepo,
-			prtManager,
 			notificationsRepo,
 			pushNotificationSender,
 		)

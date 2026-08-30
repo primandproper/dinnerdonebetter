@@ -118,15 +118,17 @@ sequenced separately — none is required to compile.
 | `waitlists` | `postgres/waitlists` | #452 |
 | `billing` | `postgres/payments`, partly | #454 |
 | `notifications` (store half) | `postgres/notifications` | #390, #439 |
-| `authentication/passwordreset` | `postgres/auth/password_reset_tokens.go` | #387 |
+| ~~`authentication/passwordreset`~~ (adopted, #1372) | `postgres/auth/password_reset_tokens.go` | #387 |
 | `sessions` | `postgres/auth/user_sessions.go` | #399, #430 |
 | `uploads/registry` | `postgres/uploadedmedia` | #389 |
 | ~~`filtering/filteringpb` + `filtering/grpc`~~ (adopted, #1370) | `proto/filtering.proto` + `internal/grpc/converters/query_filter.go` | #311 |
 | `oauth2server` resource server | the MCP server's resource-server half | #451 |
 
 `filtering` had the best value-to-risk ratio — it deleted a page-size clamp this repo restated by
-hand — and was the only one that reached `frontend/` and `ios/`; #1370 did it. `identity` is the
-largest by far and should be its own epic.
+hand — and was the only one that reached `frontend/` and `ios/`; #1370 did it.
+`authentication/passwordreset` had the best *security* return, which is a different axis: it
+moved single use from the call site into the store and stopped the reset token being stored as
+itself; #1372 did it. `identity` is the largest by far and should be its own epic.
 
 ## Verification
 

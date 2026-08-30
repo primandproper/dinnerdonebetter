@@ -72,19 +72,6 @@ func BuildFakeTOTPSecretVerificationInput(user *identity.User) *types.TOTPSecret
 	}
 }
 
-// BuildFakePasswordResetToken builds a faked PasswordResetToken.
-func BuildFakePasswordResetToken() *types.PasswordResetToken {
-	token := fake.BuildFakeRecord[types.PasswordResetToken]()
-
-	token.Token = fake.BuildFakeString()
-
-	// A window rather than two arbitrary instants: a token whose expiry faker picked
-	// has an even chance of having expired before the test redeems it.
-	token.ExpiresAt = token.CreatedAt.Add(30 * time.Minute)
-
-	return token
-}
-
 // BuildFakeUsernameReminderRequestInput builds a faked UsernameReminderRequestInput.
 func BuildFakeUsernameReminderRequestInput() *types.UsernameReminderRequestInput {
 	return &types.UsernameReminderRequestInput{

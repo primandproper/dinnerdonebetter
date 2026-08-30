@@ -1,5 +1,10 @@
 -- Auth Domain Migration
 -- Password reset functionality
+--
+-- SUPERSEDED. The table below is dropped at version 34, which replaces it with
+-- ddb_password_reset_tokens, rendered from platform-go's own DDL. Nothing here is read by
+-- any running code; the file stays because renumbering or removing an applied migration is
+-- how goose loses track of what a database has already run.
 
 CREATE TABLE IF NOT EXISTS password_reset_tokens (
     id TEXT NOT NULL PRIMARY KEY,

@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	queuemessages "github.com/primandproper/dinnerdonebetter/backend/internal/queues/messages"
 
@@ -54,8 +53,12 @@ func BuildInviteMemberEmail(recipient *identity.User, accountInvitation *identit
 	return msg, nil
 }
 
-// BuildGeneratedPasswordResetTokenEmail builds an email notifying a user that they've been invited to join an account.
-func BuildGeneratedPasswordResetTokenEmail(recipient *identity.User, passwordResetToken *auth.PasswordResetToken, baseURL string) (*queuemessages.OutboundEmailMessage, error) {
+// BuildGeneratedPasswordResetTokenEmail builds the email carrying somebody's password reset link.
+//
+// It takes the token as a bare string rather than a record, because a record is not
+// available: the store keeps a digest, and the secret exists once, in the issuance that
+// produced it. This function is the last place it goes.
+func BuildGeneratedPasswordResetTokenEmail(recipient *identity.User, passwordResetToken, baseURL string) (*queuemessages.OutboundEmailMessage, error) {
 	if recipient.EmailAddressVerifiedAt == nil {
 		return nil, ErrUnverifiedEmailRecipient
 	}
@@ -71,7 +74,7 @@ func BuildGeneratedPasswordResetTokenEmail(recipient *identity.User, passwordRes
 					Instructions: "Click the button below to reset your password:",
 					Button: hermes.Button{
 						Text: "Reset your password",
-						Link: fmt.Sprintf("%s/reset_password?t=%s", baseURL, passwordResetToken.Token),
+						Link: fmt.Sprintf("%s/reset_password?t=%s", baseURL, passwordResetToken),
 					},
 				},
 			},

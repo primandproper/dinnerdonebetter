@@ -18,10 +18,10 @@ import (
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
+	"github.com/primandproper/platform-go/v13/authentication/passwordreset"
 	platformtotp "github.com/primandproper/platform-go/v13/authentication/totp"
 	perrors "github.com/primandproper/platform-go/v13/errors"
 	"github.com/primandproper/platform-go/v13/filtering"
-	"github.com/primandproper/platform-go/v13/identifiers"
 	"github.com/primandproper/platform-go/v13/messagequeue"
 	"github.com/primandproper/platform-go/v13/observability"
 	platformkeys "github.com/primandproper/platform-go/v13/observability/keys"
@@ -29,15 +29,23 @@ import (
 	"github.com/primandproper/platform-go/v13/observability/tracing"
 	"github.com/primandproper/platform-go/v13/qrcodes"
 	"github.com/primandproper/platform-go/v13/random"
+	"github.com/primandproper/platform-go/v13/tenancy"
 
 	passwordvalidator "github.com/wagslane/go-password-validator"
 )
 
 const (
 	o11yName               = "auth_manager"
-	passwordResetTokenSize = 32
 	totpSecretSize         = 64
 	minimumPasswordEntropy = 60
+
+	// passwordResetTokenLifetime is how long a reset link is good for.
+	//
+	// It is passed per issuance because the store takes it that way: a TTL is a policy
+	// decision, and a configured default would be the value nobody chose. Thirty minutes is
+	// long enough to walk to a phone and short enough that a link left in an inbox is not a
+	// standing key to the account.
+	passwordResetTokenLifetime = 30 * time.Minute
 )
 
 // sessionContextDataForTracing adapts *sessions.ContextData to the tracing package's
@@ -64,24 +72,24 @@ func (a servicePermissionCheckerAdapter) IsServiceAdmin() bool {
 }
 
 type AuthManager struct {
-	passwordResetTokenDataManager auth.PasswordResetTokenDataManager
-	sessionDataManager            auth.UserSessionDataManager
-	userDataManager               identity.UserDataManager
-	tracer                        tracing.Tracer
-	authenticator                 authentication.Authenticator
-	totpVerifier                  platformtotp.Verifier
-	logger                        logging.Logger
-	dataChangesPublisher          messagequeue.Publisher
-	secretGenerator               random.Generator
-	qrCodeBuilder                 qrcodes.Builder
-	minimumPasswordLength         uint8
+	passwordResetTokens   passwordreset.Store
+	sessionDataManager    auth.UserSessionDataManager
+	userDataManager       identity.UserDataManager
+	tracer                tracing.Tracer
+	authenticator         authentication.Authenticator
+	totpVerifier          platformtotp.Verifier
+	logger                logging.Logger
+	dataChangesPublisher  messagequeue.Publisher
+	secretGenerator       random.Generator
+	qrCodeBuilder         qrcodes.Builder
+	minimumPasswordLength uint8
 }
 
 func ProvideAuthManager(
 	ctx context.Context,
 	logger logging.Logger,
 	tracerProvider tracing.Provider,
-	passwordResetTokenDataManager auth.PasswordResetTokenDataManager,
+	passwordResetTokens passwordreset.Store,
 	sessionDataManager auth.UserSessionDataManager,
 	userDataManager identity.UserDataManager,
 	authenticator authentication.Authenticator,
@@ -101,17 +109,17 @@ func ProvideAuthManager(
 	}
 
 	return &AuthManager{
-		logger:                        logging.NewNamedLogger(logger, o11yName),
-		tracer:                        tracing.NewNamedTracer(tracerProvider, o11yName),
-		passwordResetTokenDataManager: passwordResetTokenDataManager,
-		sessionDataManager:            sessionDataManager,
-		userDataManager:               userDataManager,
-		authenticator:                 authenticator,
-		totpVerifier:                  totpVerifier,
-		secretGenerator:               secretGenerator,
-		qrCodeBuilder:                 qrCodeBuilder,
-		dataChangesPublisher:          dataChangesPublisher,
-		minimumPasswordLength:         0,
+		logger:                logging.NewNamedLogger(logger, o11yName),
+		tracer:                tracing.NewNamedTracer(tracerProvider, o11yName),
+		passwordResetTokens:   passwordResetTokens,
+		sessionDataManager:    sessionDataManager,
+		userDataManager:       userDataManager,
+		authenticator:         authenticator,
+		totpVerifier:          totpVerifier,
+		secretGenerator:       secretGenerator,
+		qrCodeBuilder:         qrCodeBuilder,
+		dataChangesPublisher:  dataChangesPublisher,
+		minimumPasswordLength: 0,
 	}, nil
 }
 
@@ -510,28 +518,26 @@ func (l *AuthManager) CreatePasswordResetToken(ctx context.Context, input *auth.
 		return observability.PrepareAndLogError(err, logger, span, "fetching user")
 	}
 
-	token, err := l.secretGenerator.GenerateBase32EncodedString(ctx, passwordResetTokenSize)
-	if err != nil {
-		return observability.PrepareError(err, span, "generating secret")
-	}
-
-	dbInput := &auth.PasswordResetTokenDatabaseCreationInput{
-		ID:            identifiers.New(),
-		Token:         token,
-		BelongsToUser: u.ID,
-		ExpiresAt:     time.Now().Add(30 * time.Minute),
-	}
-
-	t, err := l.passwordResetTokenDataManager.CreatePasswordResetToken(ctx, dbInput)
+	// Global scope: a reset identifies a person, not a person within an account. The user
+	// asking for one is not signed in and has no active account to name, and a link that
+	// only worked in the account they happened to have selected last would be a link that
+	// stops working when they switch.
+	issuance, err := l.passwordResetTokens.Issue(ctx, tenancy.Global(), u.ID, passwordResetTokenLifetime)
 	if err != nil {
 		return observability.PrepareError(err, span, "creating password reset token")
 	}
 
+	// The secret rides on the message rather than being fetched back out of the store,
+	// because it cannot be fetched back: the row holds a digest, and this issuance is the
+	// only place the secret will ever exist. The email handler is its one consumer, and it
+	// puts it in a link and nowhere else. The email verification token travels the same
+	// way for the same reason.
 	dcm := &audit.DataChangeMessage{
 		EventType: auth.PasswordResetTokenCreatedEventType,
 		UserID:    u.ID,
 		Context: map[string]any{
-			authkeys.PasswordResetTokenIDKey: t.ID,
+			authkeys.PasswordResetTokenIDKey:     issuance.Token.ID,
+			authkeys.PasswordResetTokenSecretKey: issuance.Secret,
 		},
 	}
 
@@ -540,6 +546,14 @@ func (l *AuthManager) CreatePasswordResetToken(ctx context.Context, input *auth.
 	return nil
 }
 
+// PasswordResetTokenRedemption spends a reset link and writes the password it was issued for.
+//
+// The order is the one that fails safe. The password is vetted first, because rejecting a
+// weak password should not cost the user their link; then the token is consumed, which is
+// the store's atomic decision about which of two racing requests owns it; then the password
+// is written. Consuming after the write would leave a live reset link for an account whose
+// password has just changed, which is the worse of the two failures — the other costs an
+// email.
 func (l *AuthManager) PasswordResetTokenRedemption(ctx context.Context, input *auth.PasswordResetTokenRedemptionRequestInput) error {
 	ctx, span := l.tracer.StartSpan(ctx)
 	defer span.End()
@@ -555,14 +569,22 @@ func (l *AuthManager) PasswordResetTokenRedemption(ctx context.Context, input *a
 		return observability.PrepareError(err, span, "provided input was invalid")
 	}
 
-	t, err := l.passwordResetTokenDataManager.GetPasswordResetTokenByToken(ctx, input.Token)
-	if errors.Is(err, sql.ErrNoRows) {
-		return observability.PrepareError(err, span, "password reset token not found")
-	} else if err != nil {
-		return observability.PrepareError(err, span, "fetching password reset token")
+	// ensure the password isn't garbage-tier
+	newPassword := strings.TrimSpace(input.NewPassword)
+	if err := passwordvalidator.Validate(newPassword, minimumPasswordEntropy); err != nil {
+		return observability.PrepareError(err, span, "provided password was invalid")
 	}
 
-	u, err := l.userDataManager.GetUser(ctx, t.BelongsToUser)
+	// Single use is decided here, by the store, in one statement. Two requests answering the
+	// same link at the same instant both find the row live; exactly one of them gets a token
+	// back and the other is told it has already been redeemed.
+	t, err := l.passwordResetTokens.Consume(ctx, tenancy.Global(), input.Token)
+	if err != nil {
+		return observability.PrepareError(err, span, "redeeming password reset token")
+	}
+	tracing.AttachToSpan(span, authkeys.PasswordResetTokenIDKey, t.ID)
+
+	u, err := l.userDataManager.GetUser(ctx, t.UserID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return observability.PrepareError(err, span, "user not found")
@@ -570,13 +592,8 @@ func (l *AuthManager) PasswordResetTokenRedemption(ctx context.Context, input *a
 		return observability.PrepareError(err, span, "fetching user")
 	}
 
-	// ensure the password isn't garbage-tier
-	if err = passwordvalidator.Validate(strings.TrimSpace(input.NewPassword), minimumPasswordEntropy); err != nil {
-		return observability.PrepareError(err, span, "provided password was invalid")
-	}
-
 	// hash the new password.
-	newPasswordHash, err := l.authenticator.HashPassword(ctx, strings.TrimSpace(input.NewPassword))
+	newPasswordHash, err := l.authenticator.HashPassword(ctx, newPassword)
 	if err != nil {
 		return observability.PrepareError(err, span, "hashing password")
 	}
@@ -591,18 +608,18 @@ func (l *AuthManager) PasswordResetTokenRedemption(ctx context.Context, input *a
 		return observability.PrepareError(err, span, "updating user")
 	}
 
-	if redemptionErr := l.passwordResetTokenDataManager.RedeemPasswordResetToken(ctx, t.ID); redemptionErr != nil {
-		observability.AcknowledgeError(redemptionErr, logger, span, "redeeming password reset token")
-		if errors.Is(redemptionErr, sql.ErrNoRows) {
-			return observability.PrepareError(redemptionErr, span, "redeeming password reset token not found")
-		}
-
-		return observability.PrepareError(redemptionErr, span, "redeeming password reset token")
+	// Every other link this user was holding stops working. Somebody who asked for a reset
+	// twice and completed the second one should not be left with a first link that still
+	// resets the password they just chose.
+	if _, err = l.passwordResetTokens.RevokeForUser(ctx, tenancy.Global(), u.ID); err != nil {
+		// The reset itself succeeded, so this is reported rather than returned: failing the
+		// request here would tell the user their password did not change when it did.
+		observability.AcknowledgeError(err, logger, span, "revoking outstanding password reset tokens")
 	}
 
 	dcm := &audit.DataChangeMessage{
 		EventType: auth.PasswordResetTokenRedeemedEventType,
-		UserID:    t.BelongsToUser,
+		UserID:    t.UserID,
 	}
 
 	l.dataChangesPublisher.PublishAsync(ctx, dcm)

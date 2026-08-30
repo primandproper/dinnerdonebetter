@@ -2,6 +2,7 @@ package dbcleaner
 
 import (
 	"github.com/primandproper/platform-go/v13/authentication/oauth2server"
+	"github.com/primandproper/platform-go/v13/authentication/passwordreset"
 	"github.com/primandproper/platform-go/v13/observability/logging"
 	"github.com/primandproper/platform-go/v13/observability/metrics"
 	"github.com/primandproper/platform-go/v13/observability/tracing"
@@ -17,6 +18,7 @@ func RegisterDBCleaner(i do.Injector) {
 			do.MustInvoke[tracing.Provider](i),
 			do.MustInvoke[metrics.Provider](i),
 			do.MustInvoke[oauth2server.Store](i),
+			do.MustInvoke[*passwordreset.SQLStore](i),
 		)
 	})
 }

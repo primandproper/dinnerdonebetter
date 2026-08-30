@@ -10,14 +10,10 @@ import (
 
 type Querier interface {
 	CleanupExpiredSessions(ctx context.Context, db DBTX) (int64, error)
-	CreatePasswordResetToken(ctx context.Context, db DBTX, arg *CreatePasswordResetTokenParams) error
 	CreateUserSession(ctx context.Context, db DBTX, arg *CreateUserSessionParams) error
 	GetActiveSessionsForUser(ctx context.Context, db DBTX, arg *GetActiveSessionsForUserParams) ([]*GetActiveSessionsForUserRow, error)
-	GetPasswordResetToken(ctx context.Context, db DBTX, token string) (*GetPasswordResetTokenRow, error)
-	GetPasswordResetTokenByID(ctx context.Context, db DBTX, id string) (*GetPasswordResetTokenByIDRow, error)
 	GetUserSessionByRefreshTokenID(ctx context.Context, db DBTX, refreshTokenID string) (*UserSessions, error)
 	GetUserSessionBySessionTokenID(ctx context.Context, db DBTX, sessionTokenID string) (*UserSessions, error)
-	RedeemPasswordResetToken(ctx context.Context, db DBTX, id string) error
 	RevokeAllSessionsForUser(ctx context.Context, db DBTX, belongsToUser string) (int64, error)
 	RevokeAllSessionsForUserExcept(ctx context.Context, db DBTX, arg *RevokeAllSessionsForUserExceptParams) (int64, error)
 	RevokeUserSession(ctx context.Context, db DBTX, arg *RevokeUserSessionParams) (int64, error)

@@ -75,7 +75,6 @@ func main() {
 		"identity/sqlc_queries/account_user_memberships":                         buildAccountUserMembershipsQueries(databaseToUse),
 		"identity/sqlc_queries/accounts":                                         buildAccountsQueries(databaseToUse),
 		"identity/sqlc_queries/admin":                                            buildAdminQueries(databaseToUse),
-		"auth/sqlc_queries/password_reset_tokens":                                buildPasswordResetTokensQueries(databaseToUse),
 		"auth/sqlc_queries/user_sessions":                                        buildUserSessionsQueries(databaseToUse),
 		"identity/sqlc_queries/users":                                            buildUsersQueries(databaseToUse),
 		"settings/sqlc_queries/service_settings":                                 buildServiceSettingQueries(databaseToUse),

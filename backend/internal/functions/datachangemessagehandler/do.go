@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/internalops"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
@@ -43,7 +42,6 @@ func RegisterAsyncDataChangeMessageHandler(i do.Injector) {
 			do.MustInvoke[encoding.ServerEncoderDecoder](i),
 			searchSyncers(i),
 			do.MustInvoke[mealplanning.Repository](i),
-			do.MustInvoke[auth.PasswordResetTokenDataManager](i),
 			do.MustInvoke[notificationsmanager.NotificationsDataManager](i),
 			do.MustInvoke[notifications.PushNotificationSender](i),
 		)

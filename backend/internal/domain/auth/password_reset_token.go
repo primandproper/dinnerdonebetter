@@ -3,30 +3,26 @@ package auth
 import (
 	"context"
 	"encoding/gob"
-	"time"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
 
 func init() {
-	gob.Register(new(PasswordResetToken))
 	gob.Register(new(PasswordResetTokenCreationRequestInput))
 }
 
+// The stored side of a password reset token is not here. The row — its digest, its
+// deadline, and its redemption — belongs to platform-go's
+// authentication/passwordreset, whose Store is what this domain's manager depends on.
+// What remains here is the request surface: what a caller sends to ask for a reset,
+// and what they send to spend one.
+//
+// There is deliberately no type in this package holding a token's plaintext. The
+// secret exists once, in the passwordreset.Issuance that produced it, and travels
+// from there to exactly one email. A struct with a Token field is how a copy of it
+// ends up in a log line, a response body, or a database column.
+
 type (
-	// PasswordResetToken represents a password reset token.
-	PasswordResetToken struct {
-		_ struct{} `json:"-"`
-
-		CreatedAt     time.Time  `json:"createdAt"`
-		ExpiresAt     time.Time  `json:"expiresAt"`
-		RedeemedAt    *time.Time `json:"archivedAt"`
-		LastUpdatedAt *time.Time `json:"lastUpdatedAt"`
-		ID            string     `json:"id"`
-		Token         string     `json:"token"`
-		BelongsToUser string     `json:"belongsToUser"`
-	}
-
 	// UsernameReminderRequestInput represents what a user could set as input for creating password reset tokens.
 	UsernameReminderRequestInput struct {
 		_ struct{} `json:"-"`
@@ -41,30 +37,12 @@ type (
 		EmailAddress string `json:"emailAddress"`
 	}
 
-	// PasswordResetTokenDatabaseCreationInput represents what a user could set as input for creating password reset tokens.
-	PasswordResetTokenDatabaseCreationInput struct {
-		_ struct{} `json:"-"`
-
-		ExpiresAt     time.Time `json:"-"`
-		ID            string    `json:"-"`
-		Token         string    `json:"-"`
-		BelongsToUser string    `json:"-"`
-	}
-
 	// PasswordResetTokenRedemptionRequestInput represents what a user could set as input for creating password reset tokens.
 	PasswordResetTokenRedemptionRequestInput struct {
 		_ struct{} `json:"-"`
 
 		Token       string `json:"token"`
 		NewPassword string `json:"newPassword"`
-	}
-
-	// PasswordResetTokenDataManager describes a structure capable of storing password reset tokens permanently.
-	PasswordResetTokenDataManager interface {
-		GetPasswordResetTokenByID(ctx context.Context, passwordResetTokenID string) (*PasswordResetToken, error)
-		GetPasswordResetTokenByToken(ctx context.Context, passwordResetTokenID string) (*PasswordResetToken, error)
-		CreatePasswordResetToken(ctx context.Context, input *PasswordResetTokenDatabaseCreationInput) (*PasswordResetToken, error)
-		RedeemPasswordResetToken(ctx context.Context, passwordResetTokenID string) error
 	}
 )
 
@@ -99,19 +77,5 @@ func (x *PasswordResetTokenRedemptionRequestInput) ValidateWithContext(ctx conte
 		x,
 		validation.Field(&x.Token, validation.Required),
 		validation.Field(&x.NewPassword, validation.Required),
-	)
-}
-
-var _ validation.ValidatableWithContext = (*PasswordResetTokenDatabaseCreationInput)(nil)
-
-// ValidateWithContext validates a PasswordResetTokenDatabaseCreationInput.
-func (x *PasswordResetTokenDatabaseCreationInput) ValidateWithContext(ctx context.Context) error {
-	return validation.ValidateStructWithContext(
-		ctx,
-		x,
-		validation.Field(&x.ID, validation.Required),
-		validation.Field(&x.Token, validation.Required),
-		validation.Field(&x.ExpiresAt, validation.Required),
-		validation.Field(&x.BelongsToUser, validation.Required),
 	)
 }
