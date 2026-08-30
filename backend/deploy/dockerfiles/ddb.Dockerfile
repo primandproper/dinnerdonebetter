@@ -1,5 +1,5 @@
 # build stage
-FROM golang:1.26-trixie AS build-stage
+FROM golang:1.27-trixie AS build-stage
 
 WORKDIR /go/src/github.com/primandproper/dinnerdonebetter/backend
 

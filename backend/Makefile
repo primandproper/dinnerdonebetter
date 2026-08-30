@@ -24,7 +24,7 @@ CONTAINER_LINTER_IMAGE := openpolicyagent/conftest:v0.54.0
 SQL_GENERATOR_IMAGE    := sqlc/sqlc:1.26.0
 LINTER_IMAGE           := golangci/golangci-lint:v2.13.1
 SHELLCHECK_IMAGE       := koalaman/shellcheck:stable
-GO_IMAGE               := golang:1.26-trixie
+GO_IMAGE               := golang:1.27-trixie
 
 # COMMANDS
 CONTAINER_RUNNER      := docker
