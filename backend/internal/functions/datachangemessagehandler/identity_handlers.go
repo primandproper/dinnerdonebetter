@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 	authkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
@@ -71,21 +70,14 @@ func (a *AsyncDataChangeMessageHandler) handleIdentityOutboundNotification(
 
 	case identity.PasswordResetTokenCreatedEventType:
 		emailType = "password reset request"
-		tokenID := stringFromEventContext(changeMessage, authkeys.PasswordResetTokenIDKey)
-		if tokenID == "" {
-			return true, emailType, nil, observability.PrepareError(fmt.Errorf("password reset token created event requires password_reset_token.id in context"), span, "building password reset email")
+		// The secret arrives on the message, and there is nowhere to read it back from: the
+		// store holds a digest of it. Same shape as the email verification token above.
+		resetToken := stringFromEventContext(changeMessage, authkeys.PasswordResetTokenSecretKey)
+		if resetToken == "" {
+			return true, emailType, nil, observability.PrepareError(fmt.Errorf("password reset token created event requires %s in context", authkeys.PasswordResetTokenSecretKey), span, "building password reset email")
 		}
 
-		var prt *auth.PasswordResetToken
-		prt, err = a.passwordResetTokenDataManager.GetPasswordResetTokenByID(ctx, tokenID)
-		if err != nil {
-			return true, emailType, nil, observability.PrepareAndLogError(err, logger, span, "getting password reset token")
-		}
-		if prt == nil {
-			return true, emailType, nil, observability.PrepareError(fmt.Errorf("password reset token not found"), span, "building password reset email")
-		}
-
-		msg, err = coreemails.BuildGeneratedPasswordResetTokenEmail(user, prt, a.baseURL)
+		msg, err = coreemails.BuildGeneratedPasswordResetTokenEmail(user, resetToken, a.baseURL)
 		if err != nil {
 			return true, emailType, nil, observability.PrepareAndLogError(err, logger, span, "building password reset token created email")
 		}

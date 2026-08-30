@@ -8,51 +8,15 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auth/generated"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	"github.com/primandproper/platform-go/v13/database"
-	mockdatabase "github.com/primandproper/platform-go/v13/database/mock"
 	"github.com/primandproper/platform-go/v13/database/postgres"
 	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
 	tracingnoop "github.com/primandproper/platform-go/v13/observability/tracing/noop"
 
-	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-const (
-	exampleQuantity = 3
-)
-
-type sqlmockExpecterWrapper struct {
-	sqlmock.Sqlmock
-}
-
-func (e *sqlmockExpecterWrapper) AssertExpectations(t assert.TestingT) bool {
-	return assert.NoError(t, e.ExpectationsWereMet(), "not all database expectations were met")
-}
-
-func buildMockSQLTestClient(t *testing.T) (*repository, *sqlmockExpecterWrapper) {
-	t.Helper()
-
-	fakeDB, sqlMock, err := sqlmock.New(sqlmock.MonitorPingsOption(true))
-	require.NoError(t, err)
-
-	c := &repository{
-		Client:           pgtesting.NewSQLMockDatabaseClient(fakeDB),
-		readDB:           fakeDB,
-		writeDB:          fakeDB,
-		logger:           loggingnoop.NewLogger(),
-		generatedQuerier: generated.New(),
-		tracer:           tracing.NewTracerForTest("test"),
-	}
-
-	return c, &sqlmockExpecterWrapper{Sqlmock: sqlMock}
-}
 
 // TestMain starts the one postgres container this package's tests share and migrates
 // the template database each of them is cloned from, so that a test costs a database
@@ -87,12 +51,4 @@ func buildDatabaseClientForTest(t *testing.T) (*repository, audit.Repository) {
 	c := ProvideAuthRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), auditLogRepo, pgc)
 
 	return c.(*repository), auditLogRepo
-}
-
-func buildInertClientForTest(t *testing.T) *repository {
-	t.Helper()
-
-	c := ProvideAuthRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, &mockdatabase.ClientMock{ReaderFunc: func() database.SQLQueryExecutor { return nil }, WriterFunc: func() database.SQLQueryExecutor { return nil }})
-
-	return c.(*repository)
 }

@@ -5,8 +5,9 @@ import (
 	"time"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
-	authfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/fakes"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
+
+	"github.com/primandproper/platform-go/v13/fake"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -20,12 +21,14 @@ func TestBuildGeneratedPasswordResetTokenEmail(T *testing.T) {
 
 		user := fakes.BuildFakeUser()
 		user.EmailAddressVerifiedAt = new(time.Now())
-		token := authfakes.BuildFakePasswordResetToken()
+		token := fake.BuildFakeString()
 
 		actual, err := BuildGeneratedPasswordResetTokenEmail(user, token, "https://example.com")
 		require.NoError(t, err)
 		assert.NotNil(t, actual)
 		assert.Contains(t, actual.HTMLContent, branding.LogoURL)
+		// The link is the only place the secret goes, and it has to actually be in it.
+		assert.Contains(t, actual.HTMLContent, token)
 	})
 }
 

@@ -104,6 +104,46 @@ which drives a virtual ES256 authenticator (`auth_passkey_authenticator.go`) aga
 Postgres: registration, username login, usernameless login, replay of both an attestation and an
 assertion, and the sign count advancing between logins.
 
+## Password Reset
+
+Reset tokens are platform-go's `authentication/passwordreset`, not this repo's. What that buys
+is three properties a hand-written store gets wrong, and this one did:
+
+**The token is stored as a digest, never as itself.** `ddb_password_reset_tokens.token_digest`
+holds SHA-256 of the secret, hex-encoded. The secret exists exactly once, in the `Issuance` that
+`Store.Issue` returns. A database copy — a backup, a read replica, a support engineer's SELECT —
+is therefore not a password reset for every account with an outstanding link.
+
+**Single use is the store's job, not the caller's.** `Store.Consume` reads the row and stamps
+its redemption inside one transaction, and it is the stamp's affected-row count that decides who
+owns the token. Two requests answering one link at the same instant both find the row live; one
+gets the token, the other gets `ErrTokenRedeemed`. Deciding on the read, with an update
+afterwards, leaves a window exactly as wide as the password write that follows.
+
+**Expiry is refused rather than swept.** A row past its deadline is dead to `Verify` and
+`Consume` whether or not anything has deleted it. The `ddb job db-cleaner` sweep reclaims the
+rows; it is not what makes a link expire.
+
+The redemption runs in the order that fails safe: vet the password, consume the token, write the
+password, then `RevokeForUser` so the user's other outstanding links stop working. Consuming
+after the write would leave a live reset link for an account whose password just changed.
+
+### Where the secret travels
+
+`CreatePasswordResetToken` issues the token and publishes a data change message; the async
+handler turns that into the email. The secret rides **on the message**, under
+`password_reset_token.secret`, because there is nowhere to read it back from — the row holds a
+digest. The email verification token travels the same way for the same reason.
+
+That is the one place it appears, and the email link is the one place it lands. It is never
+attached to a span, a log line, or an audit entry; `RelevantID` on the audit entries below is the
+row's ID, which cannot be exchanged for a token.
+
+Issuing and redeeming are both recorded in the audit log as `password_reset_tokens`
+created/updated, by a thin wrapper around the platform store — the platform has no opinion about
+who wants a record of a reset, and "was a link issued for this account before the takeover, and
+was it used?" is a question asked months later, after the sweeper has removed the row.
+
 ## Web App Auth Flow (Consumer / Admin)
 
 The consumer and admin frontends use the same pattern:
@@ -277,6 +317,9 @@ Tokens issued before session management (without a `sid` claim) continue to work
 | Web app auth middleware                       | `internal/platform/webappauth/middleware.go`                                        |
 | Client builder (OAuth2 + JWT)                 | `internal/platform/webappauth/client_builder.go`                                    |
 | gRPC client (OAuth2, Bearer)                  | `pkg/client/client.go`                                                              |
+| Password reset store (audit wrapper)          | `internal/repositories/postgres/auth/password_reset_tokens.go`                      |
+| Password reset flow (issue, redeem)           | `internal/domain/auth/managers/auth_manager.go`                                     |
+| Expired-row sweep (oauth2 + password reset)   | `internal/services/oauth/workers/db_cleaner/db_cleaner.go`                          |
 | Session domain model + interfaces             | `internal/domain/auth/user_session.go`                                              |
 | Session DB repository                         | `internal/repositories/postgres/auth/user_sessions.go`                              |
 | Session DB migration                          | `internal/repositories/postgres/migrations/migration_files/00023_user_sessions.sql` |

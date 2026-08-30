@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
+	authrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auth"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/internalops"
 	dbcleaner "github.com/primandproper/dinnerdonebetter/backend/internal/services/oauth/workers/db_cleaner"
 
@@ -38,6 +39,7 @@ func BuildInjector(
 	postgres.RegisterDatabaseClient(i)
 	internalops.RegisterInternalOpsRepository(i)
 	oauth2servercfg.RegisterStore(i)
+	authrepo.RegisterPasswordResetTokenSQLStore(i)
 	dbcleaner.RegisterDBCleaner(i)
 
 	return i

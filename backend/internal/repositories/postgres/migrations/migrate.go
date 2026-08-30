@@ -6,11 +6,13 @@ import (
 	"strings"
 
 	ddbaudit "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
+	ddbauth "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 	ddbdataprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
 	ddboauth "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
 
 	auditmigrations "github.com/primandproper/platform-go/v13/audit/migrations"
 	oauth2migrations "github.com/primandproper/platform-go/v13/authentication/oauth2server/database/migrations"
+	passwordresetmigrations "github.com/primandproper/platform-go/v13/authentication/passwordreset/migrations"
 	webauthndatabase "github.com/primandproper/platform-go/v13/authentication/webauthn/database"
 	webauthnmigrations "github.com/primandproper/platform-go/v13/authentication/webauthn/database/migrations"
 	"github.com/primandproper/platform-go/v13/database/dialect"
@@ -48,15 +50,16 @@ const lockKey = "dinnerdonebetter"
 // filename and must never be renumbered once applied. Adding another means taking the next
 // free number, whichever side it comes from.
 const (
-	outboxMigrationVersion      = 22
-	sagaMigrationVersion        = 24
-	webhooksMigrationVersion    = 25
-	auditMigrationVersion       = 27
-	dataPrivacyMigrationVersion = 28
-	meteringMigrationVersion    = 30
-	operationsMigrationVersion  = 31
-	webauthnMigrationVersion    = 32
-	oauth2MigrationVersion      = 33
+	outboxMigrationVersion        = 22
+	sagaMigrationVersion          = 24
+	webhooksMigrationVersion      = 25
+	auditMigrationVersion         = 27
+	dataPrivacyMigrationVersion   = 28
+	meteringMigrationVersion      = 30
+	operationsMigrationVersion    = 31
+	webauthnMigrationVersion      = 32
+	oauth2MigrationVersion        = 33
+	passwordResetMigrationVersion = 34
 )
 
 // NewMigrator creates a new postgres Migrator over the embedded migration files.
@@ -137,6 +140,11 @@ func NewMigrator(logger logging.Logger) (*migrate.Migrator, error) {
 		return nil, errors.Wrap(err, "rendering oauth2 server migration")
 	}
 
+	passwordResetDDL, err := renderPasswordResetDDL()
+	if err != nil {
+		return nil, err
+	}
+
 	migrator, err := migrate.New(
 		dialect.Postgres,
 		migrationFiles,
@@ -151,12 +159,35 @@ func NewMigrator(logger logging.Logger) (*migrate.Migrator, error) {
 		migrate.WithGeneratedMigration(operationsMigrationVersion, "create_operations_table", operationsDDL),
 		migrate.WithGeneratedMigration(webauthnMigrationVersion, "create_webauthn_sessions_table", webauthnDDL),
 		migrate.WithGeneratedMigration(oauth2MigrationVersion, "create_oauth2_server_tables", oauth2DDL),
+		migrate.WithGeneratedMigration(passwordResetMigrationVersion, "create_password_reset_tokens_table", passwordResetDDL),
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "building migrator")
 	}
 
 	return migrator, nil
+}
+
+// renderPasswordResetDDL renders the password reset token table, dropping the one
+// 00003_auth.sql created first.
+//
+// The drop is not a migration of the old table, and nothing is carried across. A row is
+// one outstanding reset link, the links last thirty minutes, and the column the old table
+// stored the token in held the token itself — so there is nothing to translate into the
+// new digest column that would not amount to writing the secrets back down. The worst
+// case at deploy is a handful of people clicking "email me a link" again.
+//
+// The old table is dropped rather than left in place because it is dead weight holding
+// live credentials: a table of plaintext reset tokens that nothing reads, and that no
+// sweeper empties, is a backup waiting to leak. Its name is also the platform schema's,
+// which is why the new table carries auth.TablePrefix — see that constant.
+func renderPasswordResetDDL() (string, error) {
+	schema, err := passwordresetmigrations.SQL(dialect.Postgres, ddbauth.TablePrefix)
+	if err != nil {
+		return "", errors.Wrap(err, "rendering password reset token migration")
+	}
+
+	return "DROP TABLE IF EXISTS password_reset_tokens;\n\n" + schema, nil
 }
 
 // renderWebAuthnDDL renders the passkey ceremony session table, dropping the one this

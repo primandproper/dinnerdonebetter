@@ -7,7 +7,6 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/internalops"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
@@ -73,7 +72,6 @@ type AsyncDataChangeMessageHandler struct {
 	badDeviceTokensArchivedCounter            metrics.Int64Counter
 	pushNotificationsSentCounter              metrics.Int64Counter
 	mealPlanRepo                              mealplanning.Repository
-	passwordResetTokenDataManager             auth.PasswordResetTokenDataManager
 	notificationsRepo                         notificationsmanager.NotificationsDataManager
 	pushNotificationSender                    platformnotifications.PushNotificationSender
 	handlerErrorsCounter                      metrics.Int64Counter
@@ -115,7 +113,6 @@ func NewAsyncDataChangeMessageHandler(
 	decoder encoding.ServerEncoderDecoder,
 	searchSyncers []SearchSyncer,
 	mealPlanRepo mealplanning.Repository,
-	passwordResetTokenDataManager auth.PasswordResetTokenDataManager,
 	notificationsRepo notificationsmanager.NotificationsDataManager,
 	pushNotificationSender platformnotifications.PushNotificationSender,
 ) (*AsyncDataChangeMessageHandler, error) {
@@ -218,7 +215,6 @@ func NewAsyncDataChangeMessageHandler(
 		decoder:                                   decoder,
 		searchSyncers:                             searchSyncers,
 		mealPlanRepo:                              mealPlanRepo,
-		passwordResetTokenDataManager:             passwordResetTokenDataManager,
 		notificationsRepo:                         notificationsRepo,
 		pushNotificationSender:                    pushNotificationSender,
 		baseURL:                                   cfg.BaseURL,
