@@ -115,29 +115,23 @@ func (q *repository) GetOAuth2Clients(ctx context.Context, filter *filtering.Que
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching oauth2 clients")
 	}
 
-	var (
-		data                      = []*types.OAuth2Client{}
-		filteredCount, totalCount uint64
-	)
-	for _, result := range results {
-		data = append(data, &types.OAuth2Client{
-			CreatedAt:    result.CreatedAt,
-			ArchivedAt:   database.TimePointerFromNullTime(result.ArchivedAt),
-			Name:         result.Name,
-			Description:  result.Description,
-			ClientID:     result.ClientID,
-			ID:           result.ID,
-			ClientSecret: result.ClientSecret,
-			RedirectURIs: result.RedirectUris,
-		})
-		filteredCount = uint64(result.FilteredCount)
-		totalCount = uint64(result.TotalCount)
-	}
-
-	x := filtering.NewQueryFilteredResult(
-		data,
-		filteredCount,
-		totalCount,
+	x := filtering.Drain(
+		results,
+		func(result *generated.GetOAuth2ClientsRow) *types.OAuth2Client {
+			return &types.OAuth2Client{
+				CreatedAt:    result.CreatedAt,
+				ArchivedAt:   database.TimePointerFromNullTime(result.ArchivedAt),
+				Name:         result.Name,
+				Description:  result.Description,
+				ClientID:     result.ClientID,
+				ID:           result.ID,
+				ClientSecret: result.ClientSecret,
+				RedirectURIs: result.RedirectUris,
+			}
+		},
+		func(result *generated.GetOAuth2ClientsRow) (int64, int64) {
+			return result.FilteredCount, result.TotalCount
+		},
 		func(t *types.OAuth2Client) string {
 			return t.ID
 		},

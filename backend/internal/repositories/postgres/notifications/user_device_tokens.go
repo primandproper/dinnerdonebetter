@@ -132,29 +132,22 @@ func (q *Repository) GetUserDeviceTokens(ctx context.Context, userID string, fil
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing user device tokens list retrieval query")
 	}
 
-	var (
-		data                      = []*types.UserDeviceToken{}
-		filteredCount, totalCount uint64
-	)
-	for _, result := range results {
-		token := &types.UserDeviceToken{
-			CreatedAt:     result.CreatedAt,
-			LastUpdatedAt: database.TimePointerFromNullTime(result.LastUpdatedAt),
-			ArchivedAt:    database.TimePointerFromNullTime(result.ArchivedAt),
-			ID:            result.ID,
-			DeviceToken:   result.DeviceToken,
-			Platform:      result.Platform,
-			BelongsToUser: result.BelongsToUser,
-		}
-		data = append(data, token)
-		filteredCount = uint64(result.FilteredCount)
-		totalCount = uint64(result.TotalCount)
-	}
-
-	x := filtering.NewQueryFilteredResult(
-		data,
-		filteredCount,
-		totalCount,
+	x := filtering.Drain(
+		results,
+		func(result *generated.GetUserDeviceTokensForUserRow) *types.UserDeviceToken {
+			return &types.UserDeviceToken{
+				CreatedAt:     result.CreatedAt,
+				LastUpdatedAt: database.TimePointerFromNullTime(result.LastUpdatedAt),
+				ArchivedAt:    database.TimePointerFromNullTime(result.ArchivedAt),
+				ID:            result.ID,
+				DeviceToken:   result.DeviceToken,
+				Platform:      result.Platform,
+				BelongsToUser: result.BelongsToUser,
+			}
+		},
+		func(result *generated.GetUserDeviceTokensForUserRow) (int64, int64) {
+			return result.FilteredCount, result.TotalCount
+		},
 		func(t *types.UserDeviceToken) string {
 			return t.ID
 		},

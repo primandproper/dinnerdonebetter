@@ -109,34 +109,28 @@ func (q *repository) GetSelectionsForMealPlanOption(ctx context.Context, mealPla
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing meal plan recipe option selections list retrieval query")
 	}
 
-	var (
-		x                         = []*types.MealPlanRecipeOptionSelection{}
-		filteredCount, totalCount uint64
+	y := filtering.Drain(
+		results,
+		func(result *generated.GetMealPlanRecipeOptionSelectionsForMealPlanOptionRow) *types.MealPlanRecipeOptionSelection {
+			return &types.MealPlanRecipeOptionSelection{
+				ID:                      result.ID,
+				BelongsToMealPlanOption: result.BelongsToMealPlanOption,
+				RecipeID:                result.RecipeID,
+				RecipeStepID:            result.RecipeStepID,
+				IngredientIndex:         uint16(result.IngredientIndex),
+				SelectedOptionIndex:     uint16(result.SelectedOptionIndex),
+				SelectionType:           result.SelectionType,
+				CreatedAt:               result.CreatedAt,
+				LastUpdatedAt:           database.TimePointerFromNullTime(result.LastUpdatedAt),
+				ArchivedAt:              database.TimePointerFromNullTime(result.ArchivedAt),
+			}
+		},
+		func(result *generated.GetMealPlanRecipeOptionSelectionsForMealPlanOptionRow) (int64, int64) {
+			return result.FilteredCount, result.TotalCount
+		},
+		func(s *types.MealPlanRecipeOptionSelection) string { return s.ID },
+		filter,
 	)
-
-	for _, result := range results {
-		selection := &types.MealPlanRecipeOptionSelection{
-			ID:                      result.ID,
-			BelongsToMealPlanOption: result.BelongsToMealPlanOption,
-			RecipeID:                result.RecipeID,
-			RecipeStepID:            result.RecipeStepID,
-			IngredientIndex:         uint16(result.IngredientIndex),
-			SelectedOptionIndex:     uint16(result.SelectedOptionIndex),
-			SelectionType:           result.SelectionType,
-			CreatedAt:               result.CreatedAt,
-			LastUpdatedAt:           database.TimePointerFromNullTime(result.LastUpdatedAt),
-			ArchivedAt:              database.TimePointerFromNullTime(result.ArchivedAt),
-		}
-
-		if filteredCount == 0 {
-			filteredCount = uint64(result.FilteredCount)
-			totalCount = uint64(result.TotalCount)
-		}
-
-		x = append(x, selection)
-	}
-
-	y := filtering.NewQueryFilteredResult(x, filteredCount, totalCount, func(s *types.MealPlanRecipeOptionSelection) string { return s.ID }, filter)
 
 	return y, nil
 }

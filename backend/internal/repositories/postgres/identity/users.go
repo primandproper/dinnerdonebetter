@@ -376,43 +376,35 @@ func (r *repository) GetUsers(ctx context.Context, filter *filtering.QueryFilter
 		return nil, observability.PrepareError(err, span, "scanning user")
 	}
 
-	var (
-		data                      = []*identity.User{}
-		filteredCount, totalCount uint64
-	)
-	for _, result := range results {
-		u := &identity.User{
-			CreatedAt:                  result.CreatedAt,
-			PasswordLastChangedAt:      database.TimePointerFromNullTime(result.PasswordLastChangedAt),
-			LastUpdatedAt:              database.TimePointerFromNullTime(result.LastUpdatedAt),
-			LastAcceptedTermsOfService: database.TimePointerFromNullTime(result.LastAcceptedTermsOfService),
-			LastAcceptedPrivacyPolicy:  database.TimePointerFromNullTime(result.LastAcceptedPrivacyPolicy),
-			TwoFactorSecretVerifiedAt:  database.TimePointerFromNullTime(result.TwoFactorSecretVerifiedAt),
-			Birthday:                   database.TimePointerFromNullTime(result.Birthday),
-			ArchivedAt:                 database.TimePointerFromNullTime(result.ArchivedAt),
-			AccountStatusExplanation:   result.UserAccountStatusExplanation,
-			TwoFactorSecret:            result.TwoFactorSecret,
-			HashedPassword:             result.HashedPassword,
-			ID:                         result.ID,
-			AccountStatus:              result.UserAccountStatus,
-			Username:                   result.Username,
-			FirstName:                  result.FirstName,
-			LastName:                   result.LastName,
-			EmailAddress:               result.EmailAddress,
-			EmailAddressVerifiedAt:     database.TimePointerFromNullTime(result.EmailAddressVerifiedAt),
-			Avatar:                     avatarFromRow(result.AvatarID, result.AvatarStoragePath, result.AvatarMimeType, result.AvatarCreatedAt, result.AvatarLastUpdatedAt, result.AvatarArchivedAt, result.AvatarCreatedByUser),
-			RequiresPasswordChange:     result.RequiresPasswordChange,
-		}
-
-		data = append(data, u)
-		filteredCount = uint64(result.FilteredCount)
-		totalCount = uint64(result.TotalCount)
-	}
-
-	x := filtering.NewQueryFilteredResult(
-		data,
-		filteredCount,
-		totalCount,
+	x := filtering.Drain(
+		results,
+		func(result *generated.GetUsersRow) *identity.User {
+			return &identity.User{
+				CreatedAt:                  result.CreatedAt,
+				PasswordLastChangedAt:      database.TimePointerFromNullTime(result.PasswordLastChangedAt),
+				LastUpdatedAt:              database.TimePointerFromNullTime(result.LastUpdatedAt),
+				LastAcceptedTermsOfService: database.TimePointerFromNullTime(result.LastAcceptedTermsOfService),
+				LastAcceptedPrivacyPolicy:  database.TimePointerFromNullTime(result.LastAcceptedPrivacyPolicy),
+				TwoFactorSecretVerifiedAt:  database.TimePointerFromNullTime(result.TwoFactorSecretVerifiedAt),
+				Birthday:                   database.TimePointerFromNullTime(result.Birthday),
+				ArchivedAt:                 database.TimePointerFromNullTime(result.ArchivedAt),
+				AccountStatusExplanation:   result.UserAccountStatusExplanation,
+				TwoFactorSecret:            result.TwoFactorSecret,
+				HashedPassword:             result.HashedPassword,
+				ID:                         result.ID,
+				AccountStatus:              result.UserAccountStatus,
+				Username:                   result.Username,
+				FirstName:                  result.FirstName,
+				LastName:                   result.LastName,
+				EmailAddress:               result.EmailAddress,
+				EmailAddressVerifiedAt:     database.TimePointerFromNullTime(result.EmailAddressVerifiedAt),
+				Avatar:                     avatarFromRow(result.AvatarID, result.AvatarStoragePath, result.AvatarMimeType, result.AvatarCreatedAt, result.AvatarLastUpdatedAt, result.AvatarArchivedAt, result.AvatarCreatedByUser),
+				RequiresPasswordChange:     result.RequiresPasswordChange,
+			}
+		},
+		func(result *generated.GetUsersRow) (int64, int64) {
+			return result.FilteredCount, result.TotalCount
+		},
 		func(t *identity.User) string {
 			return t.ID
 		},

@@ -110,29 +110,28 @@ func (q *repository) SearchForValidIngredientStates(ctx context.Context, query s
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing valid ingredient states list retrieval query")
 	}
 
-	var (
-		data                      []*types.ValidIngredientState
-		filteredCount, totalCount uint64
+	x := filtering.Drain(
+		results,
+		func(result *generated.SearchForValidIngredientStatesRow) *types.ValidIngredientState {
+			return &types.ValidIngredientState{
+				CreatedAt:     result.CreatedAt,
+				ArchivedAt:    database.TimePointerFromNullTime(result.ArchivedAt),
+				LastUpdatedAt: database.TimePointerFromNullTime(result.LastUpdatedAt),
+				PastTense:     result.PastTense,
+				Description:   result.Description,
+				IconPath:      result.IconPath,
+				ID:            result.ID,
+				Name:          result.Name,
+				AttributeType: string(result.AttributeType),
+				Slug:          result.Slug,
+			}
+		},
+		func(result *generated.SearchForValidIngredientStatesRow) (int64, int64) {
+			return result.FilteredCount, result.TotalCount
+		},
+		func(vis *types.ValidIngredientState) string { return vis.ID },
+		filter,
 	)
-
-	for _, result := range results {
-		data = append(data, &types.ValidIngredientState{
-			CreatedAt:     result.CreatedAt,
-			ArchivedAt:    database.TimePointerFromNullTime(result.ArchivedAt),
-			LastUpdatedAt: database.TimePointerFromNullTime(result.LastUpdatedAt),
-			PastTense:     result.PastTense,
-			Description:   result.Description,
-			IconPath:      result.IconPath,
-			ID:            result.ID,
-			Name:          result.Name,
-			AttributeType: string(result.AttributeType),
-			Slug:          result.Slug,
-		})
-		filteredCount = uint64(result.FilteredCount)
-		totalCount = uint64(result.TotalCount)
-	}
-
-	x := filtering.NewQueryFilteredResult(data, filteredCount, totalCount, func(vis *types.ValidIngredientState) string { return vis.ID }, filter)
 
 	return x, nil
 }
@@ -165,35 +164,25 @@ func (q *repository) GetValidIngredientStates(ctx context.Context, filter *filte
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing valid ingredient states list retrieval query")
 	}
 
-	var (
-		data          []*types.ValidIngredientState
-		filteredCount uint64
-		totalCount    uint64
-	)
-
-	for _, result := range results {
-		if totalCount == 0 {
-			filteredCount = uint64(result.FilteredCount)
-			totalCount = uint64(result.TotalCount)
-		}
-		data = append(data, &types.ValidIngredientState{
-			CreatedAt:     result.CreatedAt,
-			ArchivedAt:    database.TimePointerFromNullTime(result.ArchivedAt),
-			LastUpdatedAt: database.TimePointerFromNullTime(result.LastUpdatedAt),
-			PastTense:     result.PastTense,
-			Description:   result.Description,
-			IconPath:      result.IconPath,
-			ID:            result.ID,
-			Name:          result.Name,
-			AttributeType: string(result.AttributeType),
-			Slug:          result.Slug,
-		})
-	}
-
-	x = filtering.NewQueryFilteredResult(
-		data,
-		filteredCount,
-		totalCount,
+	x = filtering.Drain(
+		results,
+		func(result *generated.GetValidIngredientStatesRow) *types.ValidIngredientState {
+			return &types.ValidIngredientState{
+				CreatedAt:     result.CreatedAt,
+				ArchivedAt:    database.TimePointerFromNullTime(result.ArchivedAt),
+				LastUpdatedAt: database.TimePointerFromNullTime(result.LastUpdatedAt),
+				PastTense:     result.PastTense,
+				Description:   result.Description,
+				IconPath:      result.IconPath,
+				ID:            result.ID,
+				Name:          result.Name,
+				AttributeType: string(result.AttributeType),
+				Slug:          result.Slug,
+			}
+		},
+		func(result *generated.GetValidIngredientStatesRow) (int64, int64) {
+			return result.FilteredCount, result.TotalCount
+		},
 		func(vis *types.ValidIngredientState) string { return vis.ID },
 		filter,
 	)

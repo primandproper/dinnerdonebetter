@@ -364,65 +364,53 @@ func (q *repository) GetValidIngredients(ctx context.Context, filter *filtering.
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing valid ingredients list retrieval query")
 	}
 
-	var (
-		data          []*mealplanning.ValidIngredient
-		filteredCount uint64
-		totalCount    uint64
-	)
-
-	for _, result := range results {
-		if totalCount == 0 {
-			filteredCount = uint64(result.FilteredCount)
-			totalCount = uint64(result.TotalCount)
-		}
-		validIngredient := &mealplanning.ValidIngredient{
-			CreatedAt:                      result.CreatedAt,
-			LastUpdatedAt:                  database.TimePointerFromNullTime(result.LastUpdatedAt),
-			ArchivedAt:                     database.TimePointerFromNullTime(result.ArchivedAt),
-			MinStorageTemperatureInCelsius: database.Float32PointerFromNullString(result.MinimumIdealStorageTemperatureInCelsius),
-			MaxStorageTemperatureInCelsius: database.Float32PointerFromNullString(result.MaximumIdealStorageTemperatureInCelsius),
-			IconPath:                       result.IconPath,
-			Warning:                        result.Warning,
-			PluralName:                     result.PluralName,
-			StorageInstructions:            result.StorageInstructions,
-			Name:                           result.Name,
-			ID:                             result.ID,
-			Description:                    result.Description,
-			Slug:                           result.Slug,
-			ShoppingSuggestions:            result.ShoppingSuggestions,
-			ContainsShellfish:              result.ContainsShellfish,
-			IsLiquid:                       database.BoolFromNullBool(result.IsLiquid),
-			ContainsPeanut:                 result.ContainsPeanut,
-			ContainsTreeNut:                result.ContainsTreeNut,
-			ContainsEgg:                    result.ContainsEgg,
-			ContainsWheat:                  result.ContainsWheat,
-			ContainsSoy:                    result.ContainsSoy,
-			AnimalDerived:                  result.AnimalDerived,
-			RestrictToPreparations:         result.RestrictToPreparations,
-			ContaminatesEquipment:          result.ContaminatesEquipment,
-			ContainsSesame:                 result.ContainsSesame,
-			ContainsFish:                   result.ContainsFish,
-			ContainsGluten:                 result.ContainsGluten,
-			ContainsDairy:                  result.ContainsDairy,
-			ContainsAlcohol:                result.ContainsAlcohol,
-			AnimalFlesh:                    result.AnimalFlesh,
-			IsStarch:                       result.IsStarch,
-			IsProtein:                      result.IsProtein,
-			IsGrain:                        result.IsGrain,
-			IsFruit:                        result.IsFruit,
-			IsSalt:                         result.IsSalt,
-			IsFat:                          result.IsFat,
-			IsAcid:                         result.IsAcid,
-			IsHeat:                         result.IsHeat,
-		}
-
-		data = append(data, validIngredient)
-	}
-
-	x = filtering.NewQueryFilteredResult(
-		data,
-		filteredCount,
-		totalCount,
+	x = filtering.Drain(
+		results,
+		func(result *generated.GetValidIngredientsRow) *mealplanning.ValidIngredient {
+			return &mealplanning.ValidIngredient{
+				CreatedAt:                      result.CreatedAt,
+				LastUpdatedAt:                  database.TimePointerFromNullTime(result.LastUpdatedAt),
+				ArchivedAt:                     database.TimePointerFromNullTime(result.ArchivedAt),
+				MinStorageTemperatureInCelsius: database.Float32PointerFromNullString(result.MinimumIdealStorageTemperatureInCelsius),
+				MaxStorageTemperatureInCelsius: database.Float32PointerFromNullString(result.MaximumIdealStorageTemperatureInCelsius),
+				IconPath:                       result.IconPath,
+				Warning:                        result.Warning,
+				PluralName:                     result.PluralName,
+				StorageInstructions:            result.StorageInstructions,
+				Name:                           result.Name,
+				ID:                             result.ID,
+				Description:                    result.Description,
+				Slug:                           result.Slug,
+				ShoppingSuggestions:            result.ShoppingSuggestions,
+				ContainsShellfish:              result.ContainsShellfish,
+				IsLiquid:                       database.BoolFromNullBool(result.IsLiquid),
+				ContainsPeanut:                 result.ContainsPeanut,
+				ContainsTreeNut:                result.ContainsTreeNut,
+				ContainsEgg:                    result.ContainsEgg,
+				ContainsWheat:                  result.ContainsWheat,
+				ContainsSoy:                    result.ContainsSoy,
+				AnimalDerived:                  result.AnimalDerived,
+				RestrictToPreparations:         result.RestrictToPreparations,
+				ContaminatesEquipment:          result.ContaminatesEquipment,
+				ContainsSesame:                 result.ContainsSesame,
+				ContainsFish:                   result.ContainsFish,
+				ContainsGluten:                 result.ContainsGluten,
+				ContainsDairy:                  result.ContainsDairy,
+				ContainsAlcohol:                result.ContainsAlcohol,
+				AnimalFlesh:                    result.AnimalFlesh,
+				IsStarch:                       result.IsStarch,
+				IsProtein:                      result.IsProtein,
+				IsGrain:                        result.IsGrain,
+				IsFruit:                        result.IsFruit,
+				IsSalt:                         result.IsSalt,
+				IsFat:                          result.IsFat,
+				IsAcid:                         result.IsAcid,
+				IsHeat:                         result.IsHeat,
+			}
+		},
+		func(result *generated.GetValidIngredientsRow) (int64, int64) {
+			return result.FilteredCount, result.TotalCount
+		},
 		func(vi *mealplanning.ValidIngredient) string { return vi.ID },
 		filter,
 	)

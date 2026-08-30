@@ -167,73 +167,63 @@ func (q *repository) GetUserIngredientPreferences(ctx context.Context, userID st
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing user ingredient preferences list retrieval query")
 	}
 
-	var (
-		data          []*mealplanning.UserIngredientPreference
-		filteredCount uint64
-		totalCount    uint64
-	)
-
-	for _, result := range results {
-		if totalCount == 0 {
-			filteredCount = uint64(result.FilteredCount)
-			totalCount = uint64(result.TotalCount)
-		}
-		data = append(data, &mealplanning.UserIngredientPreference{
-			CreatedAt:     result.CreatedAt,
-			LastUpdatedAt: database.TimePointerFromNullTime(result.LastUpdatedAt),
-			ArchivedAt:    database.TimePointerFromNullTime(result.ArchivedAt),
-			ID:            result.ID,
-			Notes:         result.Notes,
-			CreatedByUser: result.BelongsToUser,
-			Rating:        int8(result.Rating),
-			Allergy:       result.Allergy,
-			Ingredient: mealplanning.ValidIngredient{
-				CreatedAt:                      result.ValidIngredientCreatedAt,
-				LastUpdatedAt:                  database.TimePointerFromNullTime(result.ValidIngredientLastUpdatedAt),
-				ArchivedAt:                     database.TimePointerFromNullTime(result.ValidIngredientArchivedAt),
-				MinStorageTemperatureInCelsius: database.Float32PointerFromNullString(result.ValidIngredientMinimumIdealStorageTemperatureInCelsius),
-				MaxStorageTemperatureInCelsius: database.Float32PointerFromNullString(result.ValidIngredientMaximumIdealStorageTemperatureInCelsius),
-				IconPath:                       result.ValidIngredientIconPath,
-				Warning:                        result.ValidIngredientWarning,
-				PluralName:                     result.ValidIngredientPluralName,
-				StorageInstructions:            result.ValidIngredientStorageInstructions,
-				Name:                           result.ValidIngredientName,
-				ID:                             result.ValidIngredientID,
-				Description:                    result.ValidIngredientDescription,
-				Slug:                           result.ValidIngredientSlug,
-				ShoppingSuggestions:            result.ValidIngredientShoppingSuggestions,
-				ContainsShellfish:              result.ValidIngredientContainsShellfish,
-				IsLiquid:                       database.BoolFromNullBool(result.ValidIngredientIsLiquid),
-				ContainsPeanut:                 result.ValidIngredientContainsPeanut,
-				ContainsTreeNut:                result.ValidIngredientContainsTreeNut,
-				ContainsEgg:                    result.ValidIngredientContainsEgg,
-				ContainsWheat:                  result.ValidIngredientContainsWheat,
-				ContainsSoy:                    result.ValidIngredientContainsSoy,
-				AnimalDerived:                  result.ValidIngredientAnimalDerived,
-				RestrictToPreparations:         result.ValidIngredientRestrictToPreparations,
-				ContaminatesEquipment:          result.ValidIngredientContaminatesEquipment,
-				ContainsSesame:                 result.ValidIngredientContainsSesame,
-				ContainsFish:                   result.ValidIngredientContainsFish,
-				ContainsGluten:                 result.ValidIngredientContainsGluten,
-				ContainsDairy:                  result.ValidIngredientContainsDairy,
-				ContainsAlcohol:                result.ValidIngredientContainsAlcohol,
-				AnimalFlesh:                    result.ValidIngredientAnimalFlesh,
-				IsStarch:                       result.ValidIngredientIsStarch,
-				IsProtein:                      result.ValidIngredientIsProtein,
-				IsGrain:                        result.ValidIngredientIsGrain,
-				IsFruit:                        result.ValidIngredientIsFruit,
-				IsSalt:                         result.ValidIngredientIsSalt,
-				IsFat:                          result.ValidIngredientIsFat,
-				IsAcid:                         result.ValidIngredientIsAcid,
-				IsHeat:                         result.ValidIngredientIsHeat,
-			},
-		})
-	}
-
-	x = filtering.NewQueryFilteredResult(
-		data,
-		filteredCount,
-		totalCount,
+	x = filtering.Drain(
+		results,
+		func(result *generated.GetUserIngredientPreferencesForUserRow) *mealplanning.UserIngredientPreference {
+			return &mealplanning.UserIngredientPreference{
+				CreatedAt:     result.CreatedAt,
+				LastUpdatedAt: database.TimePointerFromNullTime(result.LastUpdatedAt),
+				ArchivedAt:    database.TimePointerFromNullTime(result.ArchivedAt),
+				ID:            result.ID,
+				Notes:         result.Notes,
+				CreatedByUser: result.BelongsToUser,
+				Rating:        int8(result.Rating),
+				Allergy:       result.Allergy,
+				Ingredient: mealplanning.ValidIngredient{
+					CreatedAt:                      result.ValidIngredientCreatedAt,
+					LastUpdatedAt:                  database.TimePointerFromNullTime(result.ValidIngredientLastUpdatedAt),
+					ArchivedAt:                     database.TimePointerFromNullTime(result.ValidIngredientArchivedAt),
+					MinStorageTemperatureInCelsius: database.Float32PointerFromNullString(result.ValidIngredientMinimumIdealStorageTemperatureInCelsius),
+					MaxStorageTemperatureInCelsius: database.Float32PointerFromNullString(result.ValidIngredientMaximumIdealStorageTemperatureInCelsius),
+					IconPath:                       result.ValidIngredientIconPath,
+					Warning:                        result.ValidIngredientWarning,
+					PluralName:                     result.ValidIngredientPluralName,
+					StorageInstructions:            result.ValidIngredientStorageInstructions,
+					Name:                           result.ValidIngredientName,
+					ID:                             result.ValidIngredientID,
+					Description:                    result.ValidIngredientDescription,
+					Slug:                           result.ValidIngredientSlug,
+					ShoppingSuggestions:            result.ValidIngredientShoppingSuggestions,
+					ContainsShellfish:              result.ValidIngredientContainsShellfish,
+					IsLiquid:                       database.BoolFromNullBool(result.ValidIngredientIsLiquid),
+					ContainsPeanut:                 result.ValidIngredientContainsPeanut,
+					ContainsTreeNut:                result.ValidIngredientContainsTreeNut,
+					ContainsEgg:                    result.ValidIngredientContainsEgg,
+					ContainsWheat:                  result.ValidIngredientContainsWheat,
+					ContainsSoy:                    result.ValidIngredientContainsSoy,
+					AnimalDerived:                  result.ValidIngredientAnimalDerived,
+					RestrictToPreparations:         result.ValidIngredientRestrictToPreparations,
+					ContaminatesEquipment:          result.ValidIngredientContaminatesEquipment,
+					ContainsSesame:                 result.ValidIngredientContainsSesame,
+					ContainsFish:                   result.ValidIngredientContainsFish,
+					ContainsGluten:                 result.ValidIngredientContainsGluten,
+					ContainsDairy:                  result.ValidIngredientContainsDairy,
+					ContainsAlcohol:                result.ValidIngredientContainsAlcohol,
+					AnimalFlesh:                    result.ValidIngredientAnimalFlesh,
+					IsStarch:                       result.ValidIngredientIsStarch,
+					IsProtein:                      result.ValidIngredientIsProtein,
+					IsGrain:                        result.ValidIngredientIsGrain,
+					IsFruit:                        result.ValidIngredientIsFruit,
+					IsSalt:                         result.ValidIngredientIsSalt,
+					IsFat:                          result.ValidIngredientIsFat,
+					IsAcid:                         result.ValidIngredientIsAcid,
+					IsHeat:                         result.ValidIngredientIsHeat,
+				},
+			}
+		},
+		func(result *generated.GetUserIngredientPreferencesForUserRow) (int64, int64) {
+			return result.FilteredCount, result.TotalCount
+		},
 		func(uip *mealplanning.UserIngredientPreference) string { return uip.ID },
 		filter,
 	)

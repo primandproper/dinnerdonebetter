@@ -160,41 +160,40 @@ func (q *repository) SearchForValidPreparations(ctx context.Context, query strin
 		return nil, observability.PrepareAndLogError(err, logger, span, "performing valid preparations search")
 	}
 
-	var (
-		data                      = []*mealplanning.ValidPreparation{}
-		filteredCount, totalCount uint64
+	x := filtering.Drain(
+		results,
+		func(result *generated.SearchForValidPreparationsRow) *mealplanning.ValidPreparation {
+			return &mealplanning.ValidPreparation{
+				CreatedAt:                   result.CreatedAt,
+				ArchivedAt:                  database.TimePointerFromNullTime(result.ArchivedAt),
+				LastUpdatedAt:               database.TimePointerFromNullTime(result.LastUpdatedAt),
+				IconPath:                    result.IconPath,
+				PastTense:                   result.PastTense,
+				ID:                          result.ID,
+				Name:                        result.Name,
+				Description:                 result.Description,
+				Slug:                        result.Slug,
+				MinIngredientCount:          uint16(result.MinimumIngredientCount),
+				MaxIngredientCount:          database.Uint16PointerFromNullInt32(result.MaximumIngredientCount),
+				MinInstrumentCount:          uint16(result.MinimumInstrumentCount),
+				MaxInstrumentCount:          database.Uint16PointerFromNullInt32(result.MaximumInstrumentCount),
+				MinVesselCount:              uint16(result.MinimumVesselCount),
+				MaxVesselCount:              database.Uint16PointerFromNullInt32(result.MaximumVesselCount),
+				RestrictToIngredients:       result.RestrictToIngredients,
+				TemperatureRequired:         result.TemperatureRequired,
+				TimeEstimateRequired:        result.TimeEstimateRequired,
+				ConditionExpressionRequired: result.ConditionExpressionRequired,
+				ConsumesVessel:              result.ConsumesVessel,
+				OnlyForVessels:              result.OnlyForVessels,
+				YieldsNothing:               result.YieldsNothing,
+			}
+		},
+		func(result *generated.SearchForValidPreparationsRow) (int64, int64) {
+			return result.FilteredCount, result.TotalCount
+		},
+		func(vp *mealplanning.ValidPreparation) string { return vp.ID },
+		filter,
 	)
-
-	for _, result := range results {
-		data = append(data, &mealplanning.ValidPreparation{
-			CreatedAt:                   result.CreatedAt,
-			ArchivedAt:                  database.TimePointerFromNullTime(result.ArchivedAt),
-			LastUpdatedAt:               database.TimePointerFromNullTime(result.LastUpdatedAt),
-			IconPath:                    result.IconPath,
-			PastTense:                   result.PastTense,
-			ID:                          result.ID,
-			Name:                        result.Name,
-			Description:                 result.Description,
-			Slug:                        result.Slug,
-			MinIngredientCount:          uint16(result.MinimumIngredientCount),
-			MaxIngredientCount:          database.Uint16PointerFromNullInt32(result.MaximumIngredientCount),
-			MinInstrumentCount:          uint16(result.MinimumInstrumentCount),
-			MaxInstrumentCount:          database.Uint16PointerFromNullInt32(result.MaximumInstrumentCount),
-			MinVesselCount:              uint16(result.MinimumVesselCount),
-			MaxVesselCount:              database.Uint16PointerFromNullInt32(result.MaximumVesselCount),
-			RestrictToIngredients:       result.RestrictToIngredients,
-			TemperatureRequired:         result.TemperatureRequired,
-			TimeEstimateRequired:        result.TimeEstimateRequired,
-			ConditionExpressionRequired: result.ConditionExpressionRequired,
-			ConsumesVessel:              result.ConsumesVessel,
-			OnlyForVessels:              result.OnlyForVessels,
-			YieldsNothing:               result.YieldsNothing,
-		})
-		filteredCount = uint64(result.FilteredCount)
-		totalCount = uint64(result.TotalCount)
-	}
-
-	x := filtering.NewQueryFilteredResult(data, filteredCount, totalCount, func(vp *mealplanning.ValidPreparation) string { return vp.ID }, filter)
 
 	return x, nil
 }
@@ -227,45 +226,37 @@ func (q *repository) GetValidPreparations(ctx context.Context, filter *filtering
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing valid preparations list retrieval query")
 	}
 
-	var (
-		data          []*mealplanning.ValidPreparation
-		filteredCount uint64
-		totalCount    uint64
-	)
-
-	for _, result := range results {
-		filteredCount = uint64(result.FilteredCount)
-		totalCount = uint64(result.TotalCount)
-		data = append(data, &mealplanning.ValidPreparation{
-			CreatedAt:                   result.CreatedAt,
-			MinIngredientCount:          uint16(result.MinimumIngredientCount),
-			MaxIngredientCount:          database.Uint16PointerFromNullInt32(result.MaximumIngredientCount),
-			MinInstrumentCount:          uint16(result.MinimumInstrumentCount),
-			MaxInstrumentCount:          database.Uint16PointerFromNullInt32(result.MaximumInstrumentCount),
-			MinVesselCount:              uint16(result.MinimumVesselCount),
-			MaxVesselCount:              database.Uint16PointerFromNullInt32(result.MaximumVesselCount),
-			ArchivedAt:                  database.TimePointerFromNullTime(result.ArchivedAt),
-			LastUpdatedAt:               database.TimePointerFromNullTime(result.LastUpdatedAt),
-			IconPath:                    result.IconPath,
-			PastTense:                   result.PastTense,
-			ID:                          result.ID,
-			Name:                        result.Name,
-			Description:                 result.Description,
-			Slug:                        result.Slug,
-			RestrictToIngredients:       result.RestrictToIngredients,
-			TemperatureRequired:         result.TemperatureRequired,
-			TimeEstimateRequired:        result.TimeEstimateRequired,
-			ConditionExpressionRequired: result.ConditionExpressionRequired,
-			ConsumesVessel:              result.ConsumesVessel,
-			OnlyForVessels:              result.OnlyForVessels,
-			YieldsNothing:               result.YieldsNothing,
-		})
-	}
-
-	x = filtering.NewQueryFilteredResult(
-		data,
-		filteredCount,
-		totalCount,
+	x = filtering.Drain(
+		results,
+		func(result *generated.GetValidPreparationsRow) *mealplanning.ValidPreparation {
+			return &mealplanning.ValidPreparation{
+				CreatedAt:                   result.CreatedAt,
+				MinIngredientCount:          uint16(result.MinimumIngredientCount),
+				MaxIngredientCount:          database.Uint16PointerFromNullInt32(result.MaximumIngredientCount),
+				MinInstrumentCount:          uint16(result.MinimumInstrumentCount),
+				MaxInstrumentCount:          database.Uint16PointerFromNullInt32(result.MaximumInstrumentCount),
+				MinVesselCount:              uint16(result.MinimumVesselCount),
+				MaxVesselCount:              database.Uint16PointerFromNullInt32(result.MaximumVesselCount),
+				ArchivedAt:                  database.TimePointerFromNullTime(result.ArchivedAt),
+				LastUpdatedAt:               database.TimePointerFromNullTime(result.LastUpdatedAt),
+				IconPath:                    result.IconPath,
+				PastTense:                   result.PastTense,
+				ID:                          result.ID,
+				Name:                        result.Name,
+				Description:                 result.Description,
+				Slug:                        result.Slug,
+				RestrictToIngredients:       result.RestrictToIngredients,
+				TemperatureRequired:         result.TemperatureRequired,
+				TimeEstimateRequired:        result.TimeEstimateRequired,
+				ConditionExpressionRequired: result.ConditionExpressionRequired,
+				ConsumesVessel:              result.ConsumesVessel,
+				OnlyForVessels:              result.OnlyForVessels,
+				YieldsNothing:               result.YieldsNothing,
+			}
+		},
+		func(result *generated.GetValidPreparationsRow) (int64, int64) {
+			return result.FilteredCount, result.TotalCount
+		},
 		func(vp *mealplanning.ValidPreparation) string { return vp.ID },
 		filter,
 	)

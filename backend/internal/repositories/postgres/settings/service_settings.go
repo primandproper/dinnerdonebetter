@@ -129,42 +129,32 @@ func (q *Repository) SearchForServiceSettings(ctx context.Context, query string,
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing service settings list retrieval query")
 	}
 
-	var (
-		data                      = []*types.ServiceSetting{}
-		filteredCount, totalCount uint64
-	)
-
-	for _, result := range results {
-		rawEnumeration := strings.Split(result.Enumeration, serviceSettingsEnumDelimiter)
-		usableEnumeration := []string{}
-		for _, y := range rawEnumeration {
-			if strings.TrimSpace(y) != "" {
-				usableEnumeration = append(usableEnumeration, y)
+	result := filtering.Drain(
+		results,
+		func(result *generated.SearchForServiceSettingsRow) *types.ServiceSetting {
+			rawEnumeration := strings.Split(result.Enumeration, serviceSettingsEnumDelimiter)
+			usableEnumeration := []string{}
+			for _, y := range rawEnumeration {
+				if strings.TrimSpace(y) != "" {
+					usableEnumeration = append(usableEnumeration, y)
+				}
 			}
-		}
-
-		serviceSetting := &types.ServiceSetting{
-			CreatedAt:     result.CreatedAt,
-			DefaultValue:  database.StringPointerFromNullString(result.DefaultValue),
-			LastUpdatedAt: database.TimePointerFromNullTime(result.LastUpdatedAt),
-			ArchivedAt:    database.TimePointerFromNullTime(result.ArchivedAt),
-			ID:            result.ID,
-			Name:          result.Name,
-			Type:          string(result.Type),
-			Description:   result.Description,
-			Enumeration:   usableEnumeration,
-			AdminsOnly:    result.AdminsOnly,
-		}
-
-		filteredCount = uint64(result.FilteredCount)
-		totalCount = uint64(result.TotalCount)
-		data = append(data, serviceSetting)
-	}
-
-	result := filtering.NewQueryFilteredResult(
-		data,
-		filteredCount,
-		totalCount,
+			return &types.ServiceSetting{
+				CreatedAt:     result.CreatedAt,
+				DefaultValue:  database.StringPointerFromNullString(result.DefaultValue),
+				LastUpdatedAt: database.TimePointerFromNullTime(result.LastUpdatedAt),
+				ArchivedAt:    database.TimePointerFromNullTime(result.ArchivedAt),
+				ID:            result.ID,
+				Name:          result.Name,
+				Type:          string(result.Type),
+				Description:   result.Description,
+				Enumeration:   usableEnumeration,
+				AdminsOnly:    result.AdminsOnly,
+			}
+		},
+		func(result *generated.SearchForServiceSettingsRow) (int64, int64) {
+			return result.FilteredCount, result.TotalCount
+		},
 		func(t *types.ServiceSetting) string {
 			return t.ID
 		},
@@ -202,39 +192,32 @@ func (q *Repository) GetServiceSettings(ctx context.Context, filter *filtering.Q
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing service settings list retrieval query")
 	}
 
-	var (
-		data                      = []*types.ServiceSetting{}
-		filteredCount, totalCount uint64
-	)
-	for _, result := range results {
-		rawEnumeration := strings.Split(result.Enumeration, serviceSettingsEnumDelimiter)
-		usableEnumeration := []string{}
-		for _, y := range rawEnumeration {
-			if strings.TrimSpace(y) != "" {
-				usableEnumeration = append(usableEnumeration, y)
+	x := filtering.Drain(
+		results,
+		func(result *generated.GetServiceSettingsRow) *types.ServiceSetting {
+			rawEnumeration := strings.Split(result.Enumeration, serviceSettingsEnumDelimiter)
+			usableEnumeration := []string{}
+			for _, y := range rawEnumeration {
+				if strings.TrimSpace(y) != "" {
+					usableEnumeration = append(usableEnumeration, y)
+				}
 			}
-		}
-
-		data = append(data, &types.ServiceSetting{
-			CreatedAt:     result.CreatedAt,
-			DefaultValue:  database.StringPointerFromNullString(result.DefaultValue),
-			LastUpdatedAt: database.TimePointerFromNullTime(result.LastUpdatedAt),
-			ArchivedAt:    database.TimePointerFromNullTime(result.ArchivedAt),
-			ID:            result.ID,
-			Name:          result.Name,
-			Type:          string(result.Type),
-			Description:   result.Description,
-			Enumeration:   usableEnumeration,
-			AdminsOnly:    result.AdminsOnly,
-		})
-		filteredCount = uint64(result.FilteredCount)
-		totalCount = uint64(result.TotalCount)
-	}
-
-	x := filtering.NewQueryFilteredResult(
-		data,
-		filteredCount,
-		totalCount,
+			return &types.ServiceSetting{
+				CreatedAt:     result.CreatedAt,
+				DefaultValue:  database.StringPointerFromNullString(result.DefaultValue),
+				LastUpdatedAt: database.TimePointerFromNullTime(result.LastUpdatedAt),
+				ArchivedAt:    database.TimePointerFromNullTime(result.ArchivedAt),
+				ID:            result.ID,
+				Name:          result.Name,
+				Type:          string(result.Type),
+				Description:   result.Description,
+				Enumeration:   usableEnumeration,
+				AdminsOnly:    result.AdminsOnly,
+			}
+		},
+		func(result *generated.GetServiceSettingsRow) (int64, int64) {
+			return result.FilteredCount, result.TotalCount
+		},
 		func(t *types.ServiceSetting) string {
 			return t.ID
 		},

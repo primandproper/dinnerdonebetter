@@ -161,33 +161,32 @@ func (r *repository) GetActiveSessionsForUser(ctx context.Context, userID string
 		return nil, observability.PrepareAndLogError(err, r.logger, span, "getting active sessions for user")
 	}
 
-	var (
-		data                      = []*auth.UserSession{}
-		filteredCount, totalCount uint64
-	)
-	for _, result := range results {
-		s := &auth.UserSession{
-			ID:             result.ID,
-			BelongsToUser:  result.BelongsToUser,
-			SessionTokenID: result.SessionTokenID,
-			RefreshTokenID: result.RefreshTokenID,
-			ClientIP:       result.ClientIp,
-			UserAgent:      result.UserAgent,
-			DeviceName:     result.DeviceName,
-			LoginMethod:    result.LoginMethod,
-			CreatedAt:      result.CreatedAt,
-			LastActiveAt:   result.LastActiveAt,
-			ExpiresAt:      result.ExpiresAt,
-			RevokedAt:      database.TimePointerFromNullTime(result.RevokedAt),
-		}
-		data = append(data, s)
-		filteredCount = uint64(result.FilteredCount)
-		totalCount = uint64(result.TotalCount)
-	}
-
-	return filtering.NewQueryFilteredResult(data, filteredCount, totalCount, func(t *auth.UserSession) string {
-		return t.ID
-	}, filter), nil
+	return filtering.Drain(
+		results,
+		func(result *generated.GetActiveSessionsForUserRow) *auth.UserSession {
+			return &auth.UserSession{
+				ID:             result.ID,
+				BelongsToUser:  result.BelongsToUser,
+				SessionTokenID: result.SessionTokenID,
+				RefreshTokenID: result.RefreshTokenID,
+				ClientIP:       result.ClientIp,
+				UserAgent:      result.UserAgent,
+				DeviceName:     result.DeviceName,
+				LoginMethod:    result.LoginMethod,
+				CreatedAt:      result.CreatedAt,
+				LastActiveAt:   result.LastActiveAt,
+				ExpiresAt:      result.ExpiresAt,
+				RevokedAt:      database.TimePointerFromNullTime(result.RevokedAt),
+			}
+		},
+		func(result *generated.GetActiveSessionsForUserRow) (int64, int64) {
+			return result.FilteredCount, result.TotalCount
+		},
+		func(t *auth.UserSession) string {
+			return t.ID
+		},
+		filter,
+	), nil
 }
 
 // RevokeUserSession revokes a specific user session.

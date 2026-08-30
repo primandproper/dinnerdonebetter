@@ -167,12 +167,6 @@ func (q *repository) GetMealPlanEvents(ctx context.Context, mealPlanID string, f
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
-	var (
-		data          []*types.MealPlanEvent
-		filteredCount uint64
-		totalCount    uint64
-	)
-
 	filterArgs := filtering.ToSQLArgs(filter)
 
 	results, err := q.generatedQuerier.GetMealPlanEvents(ctx, q.readDB, &generated.GetMealPlanEventsParams{
@@ -189,28 +183,24 @@ func (q *repository) GetMealPlanEvents(ctx context.Context, mealPlanID string, f
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing meal plan events list retrieval query")
 	}
 
-	for _, result := range results {
-		if totalCount == 0 {
-			filteredCount = uint64(result.FilteredCount)
-			totalCount = uint64(result.TotalCount)
-		}
-		data = append(data, &types.MealPlanEvent{
-			CreatedAt:         result.CreatedAt,
-			StartsAt:          result.StartsAt,
-			EndsAt:            result.EndsAt,
-			ArchivedAt:        database.TimePointerFromNullTime(result.ArchivedAt),
-			LastUpdatedAt:     database.TimePointerFromNullTime(result.LastUpdatedAt),
-			MealName:          string(result.MealName),
-			Notes:             result.Notes,
-			BelongsToMealPlan: result.BelongsToMealPlan,
-			ID:                result.ID,
-		})
-	}
-
-	x = filtering.NewQueryFilteredResult(
-		data,
-		filteredCount,
-		totalCount,
+	x = filtering.Drain(
+		results,
+		func(result *generated.GetMealPlanEventsRow) *types.MealPlanEvent {
+			return &types.MealPlanEvent{
+				CreatedAt:         result.CreatedAt,
+				StartsAt:          result.StartsAt,
+				EndsAt:            result.EndsAt,
+				ArchivedAt:        database.TimePointerFromNullTime(result.ArchivedAt),
+				LastUpdatedAt:     database.TimePointerFromNullTime(result.LastUpdatedAt),
+				MealName:          string(result.MealName),
+				Notes:             result.Notes,
+				BelongsToMealPlan: result.BelongsToMealPlan,
+				ID:                result.ID,
+			}
+		},
+		func(result *generated.GetMealPlanEventsRow) (int64, int64) {
+			return result.FilteredCount, result.TotalCount
+		},
 		func(mpe *types.MealPlanEvent) string { return mpe.ID },
 		filter,
 	)

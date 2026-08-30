@@ -299,12 +299,6 @@ func (q *repository) GetMealPlanOptions(ctx context.Context, mealPlanID, mealPla
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
-	var (
-		data          []*mealplanning.MealPlanOption
-		filteredCount uint64
-		totalCount    uint64
-	)
-
 	filterArgs := filtering.ToSQLArgs(filter)
 
 	results, err := q.generatedQuerier.GetMealPlanOptions(ctx, q.readDB, &generated.GetMealPlanOptionsParams{
@@ -322,34 +316,30 @@ func (q *repository) GetMealPlanOptions(ctx context.Context, mealPlanID, mealPla
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing meal plan options list retrieval query")
 	}
 
-	for _, result := range results {
-		if totalCount == 0 {
-			filteredCount = uint64(result.FilteredCount)
-			totalCount = uint64(result.TotalCount)
-		}
-		data = append(data, &mealplanning.MealPlanOption{
-			CreatedAt:              result.CreatedAt,
-			LastUpdatedAt:          database.TimePointerFromNullTime(result.LastUpdatedAt),
-			AssignedCook:           database.StringPointerFromNullString(result.AssignedCook),
-			ArchivedAt:             database.TimePointerFromNullTime(result.ArchivedAt),
-			AssignedDishwasher:     database.StringPointerFromNullString(result.AssignedDishwasher),
-			Notes:                  result.Notes,
-			BelongsToMealPlanEvent: database.StringFromNullString(result.BelongsToMealPlanEvent),
-			ID:                     result.ID,
-			Votes:                  nil,
-			Meal: mealplanning.Meal{
-				ID: result.MealID,
-			},
-			MealScale: database.Float32FromString(result.MealScale),
-			Chosen:    result.Chosen,
-			TieBroken: result.Tiebroken,
-		})
-	}
-
-	x = filtering.NewQueryFilteredResult(
-		data,
-		filteredCount,
-		totalCount,
+	x = filtering.Drain(
+		results,
+		func(result *generated.GetMealPlanOptionsRow) *mealplanning.MealPlanOption {
+			return &mealplanning.MealPlanOption{
+				CreatedAt:              result.CreatedAt,
+				LastUpdatedAt:          database.TimePointerFromNullTime(result.LastUpdatedAt),
+				AssignedCook:           database.StringPointerFromNullString(result.AssignedCook),
+				ArchivedAt:             database.TimePointerFromNullTime(result.ArchivedAt),
+				AssignedDishwasher:     database.StringPointerFromNullString(result.AssignedDishwasher),
+				Notes:                  result.Notes,
+				BelongsToMealPlanEvent: database.StringFromNullString(result.BelongsToMealPlanEvent),
+				ID:                     result.ID,
+				Votes:                  nil,
+				Meal: mealplanning.Meal{
+					ID: result.MealID,
+				},
+				MealScale: database.Float32FromString(result.MealScale),
+				Chosen:    result.Chosen,
+				TieBroken: result.Tiebroken,
+			}
+		},
+		func(result *generated.GetMealPlanOptionsRow) (int64, int64) {
+			return result.FilteredCount, result.TotalCount
+		},
 		func(mpo *mealplanning.MealPlanOption) string { return mpo.ID },
 		filter,
 	)

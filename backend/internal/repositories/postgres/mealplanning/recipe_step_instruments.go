@@ -158,12 +158,6 @@ func (q *repository) GetRecipeStepInstruments(ctx context.Context, recipeID, rec
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
-	var (
-		data          []*mealplanning.RecipeStepInstrument
-		filteredCount uint64
-		totalCount    uint64
-	)
-
 	filterArgs := filtering.ToSQLArgs(filter)
 
 	results, err := q.generatedQuerier.GetRecipeStepInstruments(ctx, q.readDB, &generated.GetRecipeStepInstrumentsParams{
@@ -181,58 +175,52 @@ func (q *repository) GetRecipeStepInstruments(ctx context.Context, recipeID, rec
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing recipe step instruments list retrieval query")
 	}
 
-	for _, result := range results {
-		if totalCount == 0 {
-			filteredCount = uint64(result.FilteredCount)
-			totalCount = uint64(result.TotalCount)
-		}
-		scaleFactor := database.Float32FromString(result.ScaleFactor)
-		if scaleFactor <= 0 {
-			scaleFactor = 1.0
-		}
-		recipeStepInstrument := &mealplanning.RecipeStepInstrument{
-			CreatedAt:           result.CreatedAt,
-			Instrument:          nil,
-			LastUpdatedAt:       database.TimePointerFromNullTime(result.LastUpdatedAt),
-			RecipeStepProductID: database.StringPointerFromNullString(result.RecipeStepProductID),
-			ArchivedAt:          database.TimePointerFromNullTime(result.ArchivedAt),
-			Notes:               result.Notes,
-			Name:                result.Name,
-			BelongsToRecipeStep: result.BelongsToRecipeStep,
-			ID:                  result.ID,
-			MinQuantity:         uint32(result.MinimumQuantity),
-			MaxQuantity:         database.Uint32PointerFromNullInt32(result.MaximumQuantity),
-			Index:               uint16(result.Index),
-			OptionIndex:         uint16(result.OptionIndex),
-			PreferenceRank:      uint8(result.PreferenceRank),
-			Optional:            result.Optional,
-			ScaleFactor:         scaleFactor,
-		}
-
-		if result.ValidInstrumentID.Valid {
-			recipeStepInstrument.Instrument = &mealplanning.ValidInstrument{
-				CreatedAt:                      result.ValidInstrumentCreatedAt.Time,
-				LastUpdatedAt:                  database.TimePointerFromNullTime(result.ValidInstrumentLastUpdatedAt),
-				ArchivedAt:                     database.TimePointerFromNullTime(result.ValidInstrumentArchivedAt),
-				IconPath:                       result.ValidInstrumentIconPath.String,
-				ID:                             result.ValidInstrumentID.String,
-				Name:                           result.ValidInstrumentName.String,
-				PluralName:                     result.ValidInstrumentPluralName.String,
-				Description:                    result.ValidInstrumentDescription.String,
-				Slug:                           result.ValidInstrumentSlug.String,
-				DisplayInSummaryLists:          result.ValidInstrumentDisplayInSummaryLists.Bool,
-				IncludeInGeneratedInstructions: result.ValidInstrumentIncludeInGeneratedInstructions.Bool,
-				UsableForStorage:               result.ValidInstrumentUsableForStorage.Bool,
+	x = filtering.Drain(
+		results,
+		func(result *generated.GetRecipeStepInstrumentsRow) *mealplanning.RecipeStepInstrument {
+			scaleFactor := database.Float32FromString(result.ScaleFactor)
+			if scaleFactor <= 0 {
+				scaleFactor = 1.0
 			}
-		}
-
-		data = append(data, recipeStepInstrument)
-	}
-
-	x = filtering.NewQueryFilteredResult(
-		data,
-		filteredCount,
-		totalCount,
+			recipeStepInstrument := &mealplanning.RecipeStepInstrument{
+				CreatedAt:           result.CreatedAt,
+				Instrument:          nil,
+				LastUpdatedAt:       database.TimePointerFromNullTime(result.LastUpdatedAt),
+				RecipeStepProductID: database.StringPointerFromNullString(result.RecipeStepProductID),
+				ArchivedAt:          database.TimePointerFromNullTime(result.ArchivedAt),
+				Notes:               result.Notes,
+				Name:                result.Name,
+				BelongsToRecipeStep: result.BelongsToRecipeStep,
+				ID:                  result.ID,
+				MinQuantity:         uint32(result.MinimumQuantity),
+				MaxQuantity:         database.Uint32PointerFromNullInt32(result.MaximumQuantity),
+				Index:               uint16(result.Index),
+				OptionIndex:         uint16(result.OptionIndex),
+				PreferenceRank:      uint8(result.PreferenceRank),
+				Optional:            result.Optional,
+				ScaleFactor:         scaleFactor,
+			}
+			if result.ValidInstrumentID.Valid {
+				recipeStepInstrument.Instrument = &mealplanning.ValidInstrument{
+					CreatedAt:                      result.ValidInstrumentCreatedAt.Time,
+					LastUpdatedAt:                  database.TimePointerFromNullTime(result.ValidInstrumentLastUpdatedAt),
+					ArchivedAt:                     database.TimePointerFromNullTime(result.ValidInstrumentArchivedAt),
+					IconPath:                       result.ValidInstrumentIconPath.String,
+					ID:                             result.ValidInstrumentID.String,
+					Name:                           result.ValidInstrumentName.String,
+					PluralName:                     result.ValidInstrumentPluralName.String,
+					Description:                    result.ValidInstrumentDescription.String,
+					Slug:                           result.ValidInstrumentSlug.String,
+					DisplayInSummaryLists:          result.ValidInstrumentDisplayInSummaryLists.Bool,
+					IncludeInGeneratedInstructions: result.ValidInstrumentIncludeInGeneratedInstructions.Bool,
+					UsableForStorage:               result.ValidInstrumentUsableForStorage.Bool,
+				}
+			}
+			return recipeStepInstrument
+		},
+		func(result *generated.GetRecipeStepInstrumentsRow) (int64, int64) {
+			return result.FilteredCount, result.TotalCount
+		},
 		func(rsi *mealplanning.RecipeStepInstrument) string { return rsi.ID },
 		filter,
 	)

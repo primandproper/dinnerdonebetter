@@ -170,24 +170,12 @@ func (q *repository) GetValidPrepTaskConfigs(ctx context.Context, filter *filter
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing valid prep task configs list retrieval query")
 	}
 
-	var (
-		data          []*mealplanning.ValidPrepTaskConfig
-		filteredCount uint64
-		totalCount    uint64
-	)
-
-	for _, result := range results {
-		if totalCount == 0 {
-			filteredCount = uint64(result.FilteredCount)
-			totalCount = uint64(result.TotalCount)
-		}
-		data = append(data, convertValidPrepTaskConfigsRow(result))
-	}
-
-	x = filtering.NewQueryFilteredResult(
-		data,
-		filteredCount,
-		totalCount,
+	x = filtering.Drain(
+		results,
+		convertValidPrepTaskConfigsRow,
+		func(result *generated.GetValidPrepTaskConfigsRow) (int64, int64) {
+			return result.FilteredCount, result.TotalCount
+		},
 		func(vptc *mealplanning.ValidPrepTaskConfig) string { return vptc.ID },
 		filter,
 	)
@@ -311,24 +299,12 @@ func (q *repository) GetValidPrepTaskConfigsForPreparation(ctx context.Context, 
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing valid prep task configs for preparation list retrieval query")
 	}
 
-	var (
-		data          []*mealplanning.ValidPrepTaskConfig
-		filteredCount uint64
-		totalCount    uint64
-	)
-
-	for _, result := range results {
-		if totalCount == 0 {
-			filteredCount = uint64(result.FilteredCount)
-			totalCount = uint64(result.TotalCount)
-		}
-		data = append(data, convertValidPrepTaskConfigsForPreparationRow(result))
-	}
-
-	x = filtering.NewQueryFilteredResult(
-		data,
-		filteredCount,
-		totalCount,
+	x = filtering.Drain(
+		results,
+		convertValidPrepTaskConfigsForPreparationRow,
+		func(result *generated.GetValidPrepTaskConfigsForPreparationRow) (int64, int64) {
+			return result.FilteredCount, result.TotalCount
+		},
 		func(vptc *mealplanning.ValidPrepTaskConfig) string { return vptc.ID },
 		filter,
 	)
@@ -452,24 +428,12 @@ func (q *repository) GetValidPrepTaskConfigsForIngredient(ctx context.Context, i
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing valid prep task configs for ingredient list retrieval query")
 	}
 
-	var (
-		data          []*mealplanning.ValidPrepTaskConfig
-		filteredCount uint64
-		totalCount    uint64
-	)
-
-	for _, result := range results {
-		if totalCount == 0 {
-			filteredCount = uint64(result.FilteredCount)
-			totalCount = uint64(result.TotalCount)
-		}
-		data = append(data, convertValidPrepTaskConfigsForIngredientRow(result))
-	}
-
-	x = filtering.NewQueryFilteredResult(
-		data,
-		filteredCount,
-		totalCount,
+	x = filtering.Drain(
+		results,
+		convertValidPrepTaskConfigsForIngredientRow,
+		func(result *generated.GetValidPrepTaskConfigsForIngredientRow) (int64, int64) {
+			return result.FilteredCount, result.TotalCount
+		},
 		func(vptc *mealplanning.ValidPrepTaskConfig) string { return vptc.ID },
 		filter,
 	)
@@ -600,24 +564,12 @@ func (q *repository) GetValidPrepTaskConfigsForIngredientAndPreparation(ctx cont
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing valid prep task configs for ingredient and preparation list retrieval query")
 	}
 
-	var (
-		data          []*mealplanning.ValidPrepTaskConfig
-		filteredCount uint64
-		totalCount    uint64
-	)
-
-	for _, result := range results {
-		if totalCount == 0 {
-			filteredCount = uint64(result.FilteredCount)
-			totalCount = uint64(result.TotalCount)
-		}
-		data = append(data, convertValidPrepTaskConfigsForIngredientAndPreparationRow(result))
-	}
-
-	x = filtering.NewQueryFilteredResult(
-		data,
-		filteredCount,
-		totalCount,
+	x = filtering.Drain(
+		results,
+		convertValidPrepTaskConfigsForIngredientAndPreparationRow,
+		func(result *generated.GetValidPrepTaskConfigsForIngredientAndPreparationRow) (int64, int64) {
+			return result.FilteredCount, result.TotalCount
+		},
 		func(vptc *mealplanning.ValidPrepTaskConfig) string { return vptc.ID },
 		filter,
 	)

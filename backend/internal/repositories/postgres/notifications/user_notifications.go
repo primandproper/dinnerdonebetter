@@ -127,26 +127,18 @@ func (q *Repository) GetUserNotifications(ctx context.Context, userID string, fi
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing user notifications list retrieval query")
 	}
 
-	var (
-		data                      = []*types.UserNotification{}
-		filteredCount, totalCount uint64
-	)
-	for _, result := range results {
-		userNotification := &types.UserNotification{
-			CreatedAt:     result.CreatedAt,
-			LastUpdatedAt: database.TimePointerFromNullTime(result.LastUpdatedAt),
-			ID:            result.ID,
-		}
-
-		data = append(data, userNotification)
-		filteredCount = uint64(result.FilteredCount)
-		totalCount = uint64(result.TotalCount)
-	}
-
-	x := filtering.NewQueryFilteredResult(
-		data,
-		filteredCount,
-		totalCount,
+	x := filtering.Drain(
+		results,
+		func(result *generated.GetUserNotificationsForUserRow) *types.UserNotification {
+			return &types.UserNotification{
+				CreatedAt:     result.CreatedAt,
+				LastUpdatedAt: database.TimePointerFromNullTime(result.LastUpdatedAt),
+				ID:            result.ID,
+			}
+		},
+		func(result *generated.GetUserNotificationsForUserRow) (int64, int64) {
+			return result.FilteredCount, result.TotalCount
+		},
 		func(t *types.UserNotification) string {
 			return t.ID
 		},

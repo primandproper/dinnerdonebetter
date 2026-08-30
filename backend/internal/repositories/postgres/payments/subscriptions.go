@@ -261,28 +261,25 @@ func convertSubscriptionFromGenerated(m *generated.Subscriptions) *payments.Subs
 }
 
 func convertSubscriptionsResult(rows []*generated.GetSubscriptionsForAccountRow, filter *filtering.QueryFilter) *filtering.QueryFilteredResult[payments.Subscription] {
-	data := make([]*payments.Subscription, 0, len(rows))
-	var filteredCount, totalCount uint64
-	for _, row := range rows {
-		data = append(data, &payments.Subscription{
-			ID:                     row.ID,
-			BelongsToAccount:       row.BelongsToAccount,
-			ProductID:              row.ProductID,
-			ExternalSubscriptionID: database.StringFromNullString(row.ExternalSubscriptionID),
-			Status:                 string(row.Status),
-			CurrentPeriodStart:     row.CurrentPeriodStart,
-			CurrentPeriodEnd:       row.CurrentPeriodEnd,
-			CreatedAt:              row.CreatedAt,
-			LastUpdatedAt:          database.TimePointerFromNullTime(row.LastUpdatedAt),
-			ArchivedAt:             database.TimePointerFromNullTime(row.ArchivedAt),
-		})
-		filteredCount = uint64(row.FilteredCount)
-		totalCount = uint64(row.TotalCount)
-	}
-	return filtering.NewQueryFilteredResult(
-		data,
-		filteredCount,
-		totalCount,
+	return filtering.Drain(
+		rows,
+		func(row *generated.GetSubscriptionsForAccountRow) *payments.Subscription {
+			return &payments.Subscription{
+				ID:                     row.ID,
+				BelongsToAccount:       row.BelongsToAccount,
+				ProductID:              row.ProductID,
+				ExternalSubscriptionID: database.StringFromNullString(row.ExternalSubscriptionID),
+				Status:                 string(row.Status),
+				CurrentPeriodStart:     row.CurrentPeriodStart,
+				CurrentPeriodEnd:       row.CurrentPeriodEnd,
+				CreatedAt:              row.CreatedAt,
+				LastUpdatedAt:          database.TimePointerFromNullTime(row.LastUpdatedAt),
+				ArchivedAt:             database.TimePointerFromNullTime(row.ArchivedAt),
+			}
+		},
+		func(row *generated.GetSubscriptionsForAccountRow) (int64, int64) {
+			return row.FilteredCount, row.TotalCount
+		},
 		func(p *payments.Subscription) string { return p.ID },
 		filter,
 	)

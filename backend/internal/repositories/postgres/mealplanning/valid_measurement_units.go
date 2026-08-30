@@ -142,32 +142,31 @@ func (q *repository) SearchForValidMeasurementUnits(ctx context.Context, query s
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing valid measurement units list retrieval query")
 	}
 
-	var (
-		data                      = []*types.ValidMeasurementUnit{}
-		filteredCount, totalCount uint64
+	x := filtering.Drain(
+		results,
+		func(result *generated.SearchForValidMeasurementUnitsRow) *types.ValidMeasurementUnit {
+			return &types.ValidMeasurementUnit{
+				CreatedAt:     result.CreatedAt,
+				LastUpdatedAt: database.TimePointerFromNullTime(result.LastUpdatedAt),
+				ArchivedAt:    database.TimePointerFromNullTime(result.ArchivedAt),
+				Name:          result.Name,
+				IconPath:      result.IconPath,
+				ID:            result.ID,
+				Description:   result.Description,
+				PluralName:    result.PluralName,
+				Slug:          result.Slug,
+				Volumetric:    database.BoolFromNullBool(result.Volumetric),
+				Universal:     result.Universal,
+				Metric:        result.Metric,
+				Imperial:      result.Imperial,
+			}
+		},
+		func(result *generated.SearchForValidMeasurementUnitsRow) (int64, int64) {
+			return result.FilteredCount, result.TotalCount
+		},
+		func(vmu *types.ValidMeasurementUnit) string { return vmu.ID },
+		filter,
 	)
-	for _, result := range results {
-		data = append(data, &types.ValidMeasurementUnit{
-			CreatedAt:     result.CreatedAt,
-			LastUpdatedAt: database.TimePointerFromNullTime(result.LastUpdatedAt),
-			ArchivedAt:    database.TimePointerFromNullTime(result.ArchivedAt),
-			Name:          result.Name,
-			IconPath:      result.IconPath,
-			ID:            result.ID,
-			Description:   result.Description,
-			PluralName:    result.PluralName,
-			Slug:          result.Slug,
-			Volumetric:    database.BoolFromNullBool(result.Volumetric),
-			Universal:     result.Universal,
-			Metric:        result.Metric,
-			Imperial:      result.Imperial,
-		})
-
-		filteredCount = uint64(result.FilteredCount)
-		totalCount = uint64(result.TotalCount)
-	}
-
-	x := filtering.NewQueryFilteredResult(data, filteredCount, totalCount, func(vmu *types.ValidMeasurementUnit) string { return vmu.ID }, filter)
 
 	return x, nil
 }
@@ -207,38 +206,28 @@ func (q *repository) ValidMeasurementUnitsForIngredientID(ctx context.Context, v
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing valid measurement units list retrieval query")
 	}
 
-	var (
-		data          []*types.ValidMeasurementUnit
-		filteredCount uint64
-		totalCount    uint64
-	)
-
-	for _, result := range results {
-		if totalCount == 0 {
-			filteredCount = uint64(result.FilteredCount)
-			totalCount = uint64(result.TotalCount)
-		}
-		data = append(data, &types.ValidMeasurementUnit{
-			CreatedAt:     result.CreatedAt,
-			LastUpdatedAt: database.TimePointerFromNullTime(result.LastUpdatedAt),
-			ArchivedAt:    database.TimePointerFromNullTime(result.ArchivedAt),
-			Name:          result.Name,
-			IconPath:      result.IconPath,
-			ID:            result.ID,
-			Description:   result.Description,
-			PluralName:    result.PluralName,
-			Slug:          result.Slug,
-			Volumetric:    database.BoolFromNullBool(result.Volumetric),
-			Universal:     result.Universal,
-			Metric:        result.Metric,
-			Imperial:      result.Imperial,
-		})
-	}
-
-	x := filtering.NewQueryFilteredResult(
-		data,
-		filteredCount,
-		totalCount,
+	x := filtering.Drain(
+		results,
+		func(result *generated.SearchValidMeasurementUnitsByIngredientIDRow) *types.ValidMeasurementUnit {
+			return &types.ValidMeasurementUnit{
+				CreatedAt:     result.CreatedAt,
+				LastUpdatedAt: database.TimePointerFromNullTime(result.LastUpdatedAt),
+				ArchivedAt:    database.TimePointerFromNullTime(result.ArchivedAt),
+				Name:          result.Name,
+				IconPath:      result.IconPath,
+				ID:            result.ID,
+				Description:   result.Description,
+				PluralName:    result.PluralName,
+				Slug:          result.Slug,
+				Volumetric:    database.BoolFromNullBool(result.Volumetric),
+				Universal:     result.Universal,
+				Metric:        result.Metric,
+				Imperial:      result.Imperial,
+			}
+		},
+		func(result *generated.SearchValidMeasurementUnitsByIngredientIDRow) (int64, int64) {
+			return result.FilteredCount, result.TotalCount
+		},
 		func(vmu *types.ValidMeasurementUnit) string { return vmu.ID },
 		filter,
 	)
@@ -274,38 +263,28 @@ func (q *repository) GetValidMeasurementUnits(ctx context.Context, filter *filte
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing valid measurement units list retrieval query")
 	}
 
-	var (
-		data          []*types.ValidMeasurementUnit
-		filteredCount uint64
-		totalCount    uint64
-	)
-
-	for _, result := range results {
-		if totalCount == 0 {
-			filteredCount = uint64(result.FilteredCount)
-			totalCount = uint64(result.TotalCount)
-		}
-		data = append(data, &types.ValidMeasurementUnit{
-			CreatedAt:     result.CreatedAt,
-			LastUpdatedAt: database.TimePointerFromNullTime(result.LastUpdatedAt),
-			ArchivedAt:    database.TimePointerFromNullTime(result.ArchivedAt),
-			Name:          result.Name,
-			IconPath:      result.IconPath,
-			ID:            result.ID,
-			Description:   result.Description,
-			PluralName:    result.PluralName,
-			Slug:          result.Slug,
-			Volumetric:    database.BoolFromNullBool(result.Volumetric),
-			Universal:     result.Universal,
-			Metric:        result.Metric,
-			Imperial:      result.Imperial,
-		})
-	}
-
-	x = filtering.NewQueryFilteredResult(
-		data,
-		filteredCount,
-		totalCount,
+	x = filtering.Drain(
+		results,
+		func(result *generated.GetValidMeasurementUnitsRow) *types.ValidMeasurementUnit {
+			return &types.ValidMeasurementUnit{
+				CreatedAt:     result.CreatedAt,
+				LastUpdatedAt: database.TimePointerFromNullTime(result.LastUpdatedAt),
+				ArchivedAt:    database.TimePointerFromNullTime(result.ArchivedAt),
+				Name:          result.Name,
+				IconPath:      result.IconPath,
+				ID:            result.ID,
+				Description:   result.Description,
+				PluralName:    result.PluralName,
+				Slug:          result.Slug,
+				Volumetric:    database.BoolFromNullBool(result.Volumetric),
+				Universal:     result.Universal,
+				Metric:        result.Metric,
+				Imperial:      result.Imperial,
+			}
+		},
+		func(result *generated.GetValidMeasurementUnitsRow) (int64, int64) {
+			return result.FilteredCount, result.TotalCount
+		},
 		func(vmu *types.ValidMeasurementUnit) string { return vmu.ID },
 		filter,
 	)

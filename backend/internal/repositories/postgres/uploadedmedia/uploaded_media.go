@@ -125,29 +125,22 @@ func (r *repository) GetUploadedMediaForUser(ctx context.Context, userID string,
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching uploaded media from database")
 	}
 
-	var (
-		data                      []*types.UploadedMedia
-		filteredCount, totalCount uint64
-	)
-	for _, result := range results {
-		data = append(data, &types.UploadedMedia{
-			ID:            result.ID,
-			StoragePath:   result.StoragePath,
-			MimeType:      string(result.MimeType),
-			CreatedAt:     result.CreatedAt,
-			LastUpdatedAt: database.TimePointerFromNullTime(result.LastUpdatedAt),
-			ArchivedAt:    database.TimePointerFromNullTime(result.ArchivedAt),
-			CreatedByUser: result.CreatedByUser,
-		})
-
-		filteredCount = uint64(result.FilteredCount)
-		totalCount = uint64(result.TotalCount)
-	}
-
-	x := filtering.NewQueryFilteredResult(
-		data,
-		filteredCount,
-		totalCount,
+	x := filtering.Drain(
+		results,
+		func(result *generated.GetUploadedMediaForUserRow) *types.UploadedMedia {
+			return &types.UploadedMedia{
+				ID:            result.ID,
+				StoragePath:   result.StoragePath,
+				MimeType:      string(result.MimeType),
+				CreatedAt:     result.CreatedAt,
+				LastUpdatedAt: database.TimePointerFromNullTime(result.LastUpdatedAt),
+				ArchivedAt:    database.TimePointerFromNullTime(result.ArchivedAt),
+				CreatedByUser: result.CreatedByUser,
+			}
+		},
+		func(result *generated.GetUploadedMediaForUserRow) (int64, int64) {
+			return result.FilteredCount, result.TotalCount
+		},
 		func(t *types.UploadedMedia) string {
 			return t.ID
 		},
