@@ -1,5 +1,6 @@
 import { redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
+import { QueryFilter } from '@dinnerdonebetter/api-client';
 import {
   getUser,
   getAccountsForUser,
@@ -32,7 +33,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
       try {
         const accRes = (await getAccountsForUser(token, {
           userId: user.id as string,
-          filter: { maxResponseSize: 50 },
+          filter: QueryFilter.create({ maxResponseSize: 50 }),
         })) as { results?: unknown[] };
         accounts = accRes?.results ?? [];
       } catch {
@@ -41,7 +42,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
       try {
         const auditRes = (await getAuditLogEntriesForUser(token, {
           userId: user.id as string,
-          filter: { maxResponseSize: 20 },
+          filter: QueryFilter.create({ maxResponseSize: 20 }),
         })) as { results?: unknown[] };
         auditLog = auditRes?.results ?? [];
       } catch {

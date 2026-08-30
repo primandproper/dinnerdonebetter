@@ -2,8 +2,9 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { getValidPreparationVesselsByPreparation, getValidVessels, searchForValidVessels } from '$lib/grpc/clients';
 import { logger } from '$lib/logger';
+import { QueryFilter } from '@dinnerdonebetter/api-client';
 
-const DEFAULT_LIST_FILTER = { maxResponseSize: 100 };
+const DEFAULT_LIST_FILTER = QueryFilter.create({ maxResponseSize: 100 });
 
 export const GET: RequestHandler = async ({ url, locals }) => {
   const token = locals.oauthToken;

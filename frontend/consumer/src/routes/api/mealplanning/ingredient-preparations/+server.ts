@@ -2,6 +2,7 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { getValidIngredientPreparationsByPreparation } from '$lib/grpc/clients';
 import { logger } from '$lib/logger';
+import { QueryFilter } from '@dinnerdonebetter/api-client';
 
 export const GET: RequestHandler = async ({ url, locals }) => {
   const token = locals.oauthToken;
@@ -17,7 +18,7 @@ export const GET: RequestHandler = async ({ url, locals }) => {
   try {
     const res = await getValidIngredientPreparationsByPreparation(token, {
       validPreparationId: preparationId,
-      filter: { maxResponseSize: 50 },
+      filter: QueryFilter.create({ maxResponseSize: 50 }),
     });
     return json({ results: res.results ?? [] });
   } catch (e) {

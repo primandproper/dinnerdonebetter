@@ -1,5 +1,6 @@
 import { redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
+import { QueryFilter } from '@dinnerdonebetter/api-client';
 import {
   getActiveAccount,
   getSelf,
@@ -55,7 +56,7 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
     }
 
     const invRes = await getSentAccountInvitations(token, {
-      filter: { maxResponseSize: 50 },
+      filter: QueryFilter.create({ maxResponseSize: 50 }),
     });
     const invitations = (invRes.results ?? []).filter((inv) => inv.destinationAccount?.id === account.id);
 

@@ -1,5 +1,6 @@
 import { redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
+import { QueryFilter } from '@dinnerdonebetter/api-client';
 import {
   getActiveAccount,
   getServiceSettings,
@@ -71,8 +72,8 @@ export const load: PageServerLoad = async ({ locals, url }) => {
     }
 
     const [settingsRes, configsRes] = await Promise.all([
-      getServiceSettings(token, { filter: { maxResponseSize: 100 } }),
-      getServiceSettingConfigurationsForUser(token, { filter: { maxResponseSize: 100 } }),
+      getServiceSettings(token, { filter: QueryFilter.create({ maxResponseSize: 100 }) }),
+      getServiceSettingConfigurationsForUser(token, { filter: QueryFilter.create({ maxResponseSize: 100 }) }),
     ]);
 
     const configurableSettings = mergeAndFilterSettings(

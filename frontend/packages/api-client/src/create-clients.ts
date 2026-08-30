@@ -4,6 +4,7 @@
  */
 
 import * as grpc from '@grpc/grpc-js';
+import { QueryFilter } from './primandproper/platform/filtering/v1/filtering.js';
 import { AuthServiceClient } from './auth/auth_service.js';
 import type {
   LoginForTokenRequest,
@@ -133,7 +134,10 @@ function promisifyUnary<TRequest, TResponse>(
 }
 
 const UPLOAD_AVATAR_CHUNK_SIZE = 64 * 1024; // 64 KB, match iOS
-const defaultSearchFilter = { maxResponseSize: 20 };
+// QueryFilter is platform's schema, and its four timestamp windows are message
+// fields rather than `optional` scalars, so a bare object literal is not one.
+// The generated factory fills every field, which is what it is for.
+const defaultSearchFilter = QueryFilter.create({ maxResponseSize: 20 });
 
 export function createGrpcClients(config: GrpcClientConfig) {
   const credentials = config.insecure ? grpc.credentials.createInsecure() : grpc.credentials.createSsl();
