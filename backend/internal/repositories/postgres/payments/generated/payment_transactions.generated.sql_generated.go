@@ -95,7 +95,7 @@ type GetPaymentTransactionsForAccountParams struct {
 	CreatedAfter     sql.NullTime
 	CreatedBefore    sql.NullTime
 	BelongsToAccount string
-	Cursor           sql.NullString
+	PageCursor       sql.NullString
 	ResultLimit      interface{}
 }
 
@@ -118,7 +118,7 @@ func (q *Queries) GetPaymentTransactionsForAccount(ctx context.Context, db DBTX,
 		arg.CreatedAfter,
 		arg.CreatedBefore,
 		arg.BelongsToAccount,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {

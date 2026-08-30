@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/primandproper/platform-go/v12/authentication/oauth2server"
+	"github.com/primandproper/platform-go/v13/authentication/oauth2server"
 )
 
 // The authorization server's HTTP surface is the platform's, and these methods exist only to

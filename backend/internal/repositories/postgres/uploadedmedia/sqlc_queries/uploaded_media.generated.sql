@@ -104,6 +104,6 @@ WHERE uploaded_media.created_at > COALESCE(sqlc.narg(created_after), (SELECT CUR
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR uploaded_media.archived_at IS NULL)
 	AND uploaded_media.created_by_user = sqlc.arg(created_by_user)
-	AND uploaded_media.id > COALESCE(sqlc.narg(cursor), '')
+	AND uploaded_media.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY uploaded_media.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);

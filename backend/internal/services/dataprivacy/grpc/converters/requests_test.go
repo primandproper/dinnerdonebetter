@@ -4,9 +4,9 @@ import (
 	"testing"
 	"time"
 
-	platformdataprivacy "github.com/primandproper/platform-go/v12/dataprivacy"
-	"github.com/primandproper/platform-go/v12/identifiers"
-	"github.com/primandproper/platform-go/v12/pointer"
+	platformdataprivacy "github.com/primandproper/platform-go/v13/dataprivacy"
+	"github.com/primandproper/platform-go/v13/identifiers"
+	"github.com/primandproper/platform-go/v13/pointer"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -27,7 +27,7 @@ func TestConvertRequestToGRPCRequest(T *testing.T) {
 			Subject:       platformdataprivacy.Subject{ID: subjectID, Type: platformdataprivacy.SubjectUser},
 			Type:          platformdataprivacy.RequestExport,
 			Status:        platformdataprivacy.StatusCompleted,
-			RequestedAt:   now,
+			CreatedAt:     now,
 			DueAt:         now.Add(30 * 24 * time.Hour),
 			ExpiresAt:     now.Add(7 * 24 * time.Hour),
 			CompletedAt:   pointer.To(now.Add(time.Minute)),

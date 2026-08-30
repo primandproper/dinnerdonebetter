@@ -22,16 +22,16 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	"github.com/primandproper/platform-go/v12/cryptography/requestsigning"
-	"github.com/primandproper/platform-go/v12/database"
-	"github.com/primandproper/platform-go/v12/database/dialect"
-	"github.com/primandproper/platform-go/v12/database/postgres"
-	loggingnoop "github.com/primandproper/platform-go/v12/observability/logging/noop"
-	metricsnoop "github.com/primandproper/platform-go/v12/observability/metrics/noop"
-	tracingnoop "github.com/primandproper/platform-go/v12/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v12/outbox"
-	"github.com/primandproper/platform-go/v12/webhooks"
-	webhookscfg "github.com/primandproper/platform-go/v12/webhooks/config"
+	"github.com/primandproper/platform-go/v13/cryptography/requestsigning"
+	"github.com/primandproper/platform-go/v13/database"
+	"github.com/primandproper/platform-go/v13/database/dialect"
+	"github.com/primandproper/platform-go/v13/database/postgres"
+	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
+	metricsnoop "github.com/primandproper/platform-go/v13/observability/metrics/noop"
+	tracingnoop "github.com/primandproper/platform-go/v13/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v13/outbox"
+	"github.com/primandproper/platform-go/v13/webhooks"
+	webhookscfg "github.com/primandproper/platform-go/v13/webhooks/config"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -180,7 +180,7 @@ func TestIntegration_WebhookDelivery(t *testing.T) {
 
 	// Dispatch through the same seam every repository write uses: inside a transaction, on the
 	// caller's executor, so the delivery commits with whatever else that transaction did.
-	require.NoError(t, pgc.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	require.NoError(t, pgc.WithTransaction(ctx, func(tx database.Tx) error {
 		return emitter.Emit(ctx, tx, loggingnoop.NewLogger(), eventType, account.ID, map[string]any{
 			"webhook.id": response.Webhook.ID,
 		})
@@ -272,7 +272,7 @@ func TestIntegration_WebhookDelivery_NotDeliveredToOtherAccounts(t *testing.T) {
 	})
 
 	// Only account A's event is emitted.
-	require.NoError(t, pgc.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	require.NoError(t, pgc.WithTransaction(ctx, func(tx database.Tx) error {
 		return emitter.Emit(ctx, tx, loggingnoop.NewLogger(), eventType, accountA.ID, nil)
 	}))
 
@@ -322,7 +322,7 @@ func TestIntegration_WebhookDelivery_ExcludedEventIsNotDeliverable(t *testing.T)
 	// event describes, so failing here would not fail a webhook — it would fail the sign-in.
 	// The event still reaches the outbox and every other consumer; only webhook delivery is
 	// withheld.
-	require.NoError(t, pgc.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	require.NoError(t, pgc.WithTransaction(ctx, func(tx database.Tx) error {
 		return emitter.Emit(ctx, tx, loggingnoop.NewLogger(), "user_logged_in", account.ID, nil)
 	}))
 

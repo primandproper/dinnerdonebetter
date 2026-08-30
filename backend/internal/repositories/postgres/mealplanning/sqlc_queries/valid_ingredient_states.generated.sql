@@ -64,7 +64,7 @@ WHERE archived_at IS NULL
 SELECT valid_ingredient_states.id
 FROM valid_ingredient_states
 WHERE valid_ingredient_states.archived_at IS NULL
-	AND valid_ingredient_states.id COLLATE "C" > sqlc.arg(cursor)
+	AND valid_ingredient_states.id COLLATE "C" > sqlc.arg(page_cursor)
 ORDER BY valid_ingredient_states.id COLLATE "C"
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
@@ -118,7 +118,7 @@ WHERE valid_ingredient_states.created_at > COALESCE(sqlc.narg(created_after), (S
 		OR valid_ingredient_states.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_ingredient_states.archived_at IS NULL)
-	AND valid_ingredient_states.id > COALESCE(sqlc.narg(cursor), '')
+	AND valid_ingredient_states.id > COALESCE(sqlc.narg(page_cursor), '')
 GROUP BY valid_ingredient_states.id
 ORDER BY valid_ingredient_states.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
@@ -195,6 +195,6 @@ WHERE valid_ingredient_states.created_at > COALESCE(sqlc.narg(created_after), (S
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_ingredient_states.archived_at IS NULL)
 	AND valid_ingredient_states.name ILIKE '%' || sqlc.arg(name_query)::text || '%'
-	AND valid_ingredient_states.id > COALESCE(sqlc.narg(cursor), '')
+	AND valid_ingredient_states.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY valid_ingredient_states.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);

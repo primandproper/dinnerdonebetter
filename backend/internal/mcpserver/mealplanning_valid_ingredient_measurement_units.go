@@ -5,7 +5,7 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 
-	"github.com/primandproper/platform-go/v12/filtering"
+	"github.com/primandproper/platform-go/v13/filtering"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -18,14 +18,14 @@ type (
 
 var validIngredientMeasurementUnitsSchema = map[string]any{
 	"ID":                   stringField("The ID of the valid ingredient measurement unit"),
-	"CreatedAt":            timestampField("When the valid ingredient measurement unit was created"),
-	"LastUpdatedAt":        timestampField("When the valid ingredient measurement unit was last updated"),
-	"ArchivedAt":           timestampField("When the valid ingredient measurement unit was soft deleted"),
-	"Notes":                stringField("Notes about the ingredient measurement unit"),
+	fieldCreatedAt:         timestampField("When the valid ingredient measurement unit was created"),
+	fieldLastUpdatedAt:     timestampField("When the valid ingredient measurement unit was last updated"),
+	fieldArchivedAt:        timestampField("When the valid ingredient measurement unit was soft deleted"),
+	fieldNotes:             stringField("Notes about the ingredient measurement unit"),
 	"MinAllowableQuantity": floatField("Minimum allowable quantity (required)"),
 	"MaxAllowableQuantity": floatField("Maximum allowable quantity (optional)"),
-	"MeasurementUnit":      objectType(validMeasurementUnitsSchema),
-	"Ingredient":           objectType(validIngredientsSchema),
+	fieldMeasurementUnit:   objectType(validMeasurementUnitsSchema),
+	fieldIngredient:        objectType(validIngredientsSchema),
 }
 
 var getValidIngredientMeasurementUnitTool = &mcp.Tool{
@@ -66,10 +66,10 @@ var getValidIngredientMeasurementUnitsTool = &mcp.Tool{
 	Name:        "GetValidIngredientMeasurementUnits",
 	Description: "Get valid ingredient measurement units with optional filtering",
 	InputSchema: schemaObject(map[string]any{
-		"Filter": filtering.QueryFilterSchema(),
+		fieldFilter: filtering.QueryFilterSchema(),
 	}),
 	OutputSchema: schemaObject(map[string]any{
-		"Results": arrayType(schemaObject(validIngredientMeasurementUnitsSchema)),
+		fieldResults: arrayType(schemaObject(validIngredientMeasurementUnitsSchema)),
 	}),
 }
 

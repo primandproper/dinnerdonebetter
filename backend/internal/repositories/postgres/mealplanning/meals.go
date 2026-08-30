@@ -11,12 +11,12 @@ import (
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
-	"github.com/primandproper/platform-go/v12/database"
-	platformerrors "github.com/primandproper/platform-go/v12/errors"
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/identifiers"
-	"github.com/primandproper/platform-go/v12/observability"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v13/database"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/identifiers"
+	"github.com/primandproper/platform-go/v13/observability"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 )
 
 var (
@@ -220,7 +220,7 @@ func (q *repository) GetMeals(ctx context.Context, filter *filtering.QueryFilter
 		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
 		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
 	})
@@ -325,7 +325,7 @@ func (q *repository) GetMealsCreatedByUser(ctx context.Context, userID string, f
 		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
 		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
 	})
@@ -477,7 +477,7 @@ func (q *repository) ScanMealIDsForReindex(ctx context.Context, after string, li
 	defer span.End()
 
 	results, err := q.generatedQuerier.ScanMealIDsForReindex(ctx, q.readDB, &generated.ScanMealIDsForReindexParams{
-		Cursor:      after,
+		PageCursor:  after,
 		ResultLimit: limit,
 	})
 	if err != nil {
@@ -512,7 +512,7 @@ func (q *repository) SearchForMeals(ctx context.Context, mealNameQuery string, f
 		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
 		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
 	})
@@ -580,7 +580,7 @@ func (q *repository) SearchForMeals(ctx context.Context, mealNameQuery string, f
 }
 
 // CreateMeal creates a meal in the database.
-func (q *repository) createMeal(ctx context.Context, querier database.SQLQueryExecutor, input *mealplanning.MealDatabaseCreationInput) (*mealplanning.Meal, error) {
+func (q *repository) createMeal(ctx context.Context, querier database.Tx, input *mealplanning.MealDatabaseCreationInput) (*mealplanning.Meal, error) {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -635,7 +635,7 @@ func (q *repository) CreateMeal(ctx context.Context, input *mealplanning.MealDat
 	}
 
 	var x *mealplanning.Meal
-	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err := q.WithTransaction(ctx, func(tx database.Tx) error {
 		created, err := q.createMeal(ctx, tx, input)
 		if err != nil {
 			return observability.PrepareError(err, span, "creating meal")
@@ -660,7 +660,7 @@ func (q *repository) CreateMeal(ctx context.Context, input *mealplanning.MealDat
 }
 
 // CreateMealComponent creates a meal component in the database.
-func (q *repository) CreateMealComponent(ctx context.Context, querier database.SQLQueryExecutor, mealID string, input *mealplanning.MealComponentDatabaseCreationInput) error {
+func (q *repository) CreateMealComponent(ctx context.Context, querier database.Tx, mealID string, input *mealplanning.MealComponentDatabaseCreationInput) error {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -736,7 +736,7 @@ func (q *repository) ArchiveMeal(ctx context.Context, mealID, userID string) err
 
 	if err := q.withEvent(ctx, logger, mealplanning.MealArchivedServiceEventType, "", map[string]any{
 		mealplanningkeys.MealIDKey: mealID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		rowsAffected, archiveErr := q.generatedQuerier.ArchiveMeal(ctx, tx, &generated.ArchiveMealParams{
 			CreatedByUser: userID,
 			ID:            mealID,

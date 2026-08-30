@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v12/database/querygen"
+	"github.com/primandproper/platform-go/v13/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -95,8 +95,8 @@ WHERE %s
 						pgGen.FilterCountSelect(issueReportsTableName, issueReportsColumns, nil),
 						pgGen.TotalCountSelect(issueReportsTableName, issueReportsColumns, nil),
 						issueReportsTableName,
-						pgGen.FilterConditions(issueReportsTableName, issueReportsColumns),
-						pgGen.CursorLimitClause(issueReportsTableName),
+						pgGen.FilterConditions(issueReportsTableName, issueReportsColumns, querygen.Ascending),
+						pgGen.CursorLimitClause(issueReportsTableName, querygen.Ascending),
 					)),
 				},
 				{
@@ -115,10 +115,10 @@ WHERE %s
 						pgGen.FilterCountSelect(issueReportsTableName, issueReportsColumns, nil, fmt.Sprintf("%s.%s = sqlc.arg(%s)", issueReportsTableName, belongsToAccountColumn, belongsToAccountColumn)),
 						pgGen.TotalCountSelect(issueReportsTableName, issueReportsColumns, nil, fmt.Sprintf("%s.%s = sqlc.arg(%s)", issueReportsTableName, belongsToAccountColumn, belongsToAccountColumn)),
 						issueReportsTableName,
-						pgGen.FilterConditions(issueReportsTableName, issueReportsColumns,
+						pgGen.FilterConditions(issueReportsTableName, issueReportsColumns, querygen.Ascending,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", issueReportsTableName, belongsToAccountColumn, belongsToAccountColumn),
 						),
-						pgGen.CursorLimitClause(issueReportsTableName),
+						pgGen.CursorLimitClause(issueReportsTableName, querygen.Ascending),
 					)),
 				},
 				{
@@ -137,10 +137,10 @@ WHERE %s
 						pgGen.FilterCountSelect(issueReportsTableName, issueReportsColumns, nil, fmt.Sprintf("%s.%s = sqlc.arg(%s)", issueReportsTableName, relevantTableColumn, relevantTableColumn)),
 						pgGen.TotalCountSelect(issueReportsTableName, issueReportsColumns, nil, fmt.Sprintf("%s.%s = sqlc.arg(%s)", issueReportsTableName, relevantTableColumn, relevantTableColumn)),
 						issueReportsTableName,
-						pgGen.FilterConditions(issueReportsTableName, issueReportsColumns,
+						pgGen.FilterConditions(issueReportsTableName, issueReportsColumns, querygen.Ascending,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", issueReportsTableName, relevantTableColumn, relevantTableColumn),
 						),
-						pgGen.CursorLimitClause(issueReportsTableName),
+						pgGen.CursorLimitClause(issueReportsTableName, querygen.Ascending),
 					)),
 				},
 				{
@@ -163,11 +163,11 @@ WHERE %s
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", issueReportsTableName, relevantTableColumn, relevantTableColumn),
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", issueReportsTableName, relevantRecordIDColumn, relevantRecordIDColumn)),
 						issueReportsTableName,
-						pgGen.FilterConditions(issueReportsTableName, issueReportsColumns,
+						pgGen.FilterConditions(issueReportsTableName, issueReportsColumns, querygen.Ascending,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", issueReportsTableName, relevantTableColumn, relevantTableColumn),
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", issueReportsTableName, relevantRecordIDColumn, relevantRecordIDColumn),
 						),
-						pgGen.CursorLimitClause(issueReportsTableName),
+						pgGen.CursorLimitClause(issueReportsTableName, querygen.Ascending),
 					)),
 				},
 			},

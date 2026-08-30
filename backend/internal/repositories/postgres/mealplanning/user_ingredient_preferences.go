@@ -9,12 +9,12 @@ import (
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
-	"github.com/primandproper/platform-go/v12/database"
-	platformerrors "github.com/primandproper/platform-go/v12/errors"
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/identifiers"
-	"github.com/primandproper/platform-go/v12/observability"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v13/database"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/identifiers"
+	"github.com/primandproper/platform-go/v13/observability"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 )
 
 var (
@@ -156,7 +156,7 @@ func (q *repository) GetUserIngredientPreferences(ctx context.Context, userID st
 		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
 		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
 		BelongsToUser:   userID,
@@ -268,7 +268,7 @@ func (q *repository) CreateUserIngredientPreference(ctx context.Context, input *
 	logger.Debug("creating user ingredient preferences")
 
 	output := []*mealplanning.UserIngredientPreference{}
-	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err := q.WithTransaction(ctx, func(tx database.Tx) error {
 		for _, validIngredientID := range validIngredientIDs {
 			l := logger.WithValue(mealplanningkeys.ValidIngredientIDKey, validIngredientID)
 			if validIngredientID == "" {
@@ -335,7 +335,7 @@ func (q *repository) UpdateUserIngredientPreference(ctx context.Context, updated
 
 	if err := q.withEvent(ctx, logger, mealplanning.UserIngredientPreferenceUpdatedServiceEventType, "", map[string]any{
 		mealplanningkeys.UserIngredientPreferenceIDKey: updated.ID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		_, updateErr := q.generatedQuerier.UpdateUserIngredientPreference(ctx, tx, &generated.UpdateUserIngredientPreferenceParams{
 			Ingredient:    updated.Ingredient.ID,
 			Notes:         updated.Notes,
@@ -376,7 +376,7 @@ func (q *repository) ArchiveUserIngredientPreference(ctx context.Context, userIn
 
 	if err := q.withEvent(ctx, logger, mealplanning.UserIngredientPreferenceArchivedServiceEventType, userID, map[string]any{
 		mealplanningkeys.UserIngredientPreferenceIDKey: userIngredientPreferenceID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		rowsAffected, archiveErr := q.generatedQuerier.ArchiveUserIngredientPreference(ctx, tx, &generated.ArchiveUserIngredientPreferenceParams{
 			ID:            userIngredientPreferenceID,
 			BelongsToUser: userID,

@@ -11,10 +11,10 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 
-	"github.com/primandproper/platform-go/v12/identifiers"
-	"github.com/primandproper/platform-go/v12/observability"
-	"github.com/primandproper/platform-go/v12/observability/logging"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v13/identifiers"
+	"github.com/primandproper/platform-go/v13/observability"
+	"github.com/primandproper/platform-go/v13/observability/logging"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 
 	"github.com/dustin/go-humanize/english"
 	"github.com/hako/durafmt"
@@ -531,8 +531,8 @@ func (g *recipeAnalyzer) makeDAGForRecipe(ctx context.Context, recipe *mealplann
 			}
 
 			if err = recipeGraph.AddEdge(producerStepID, consumerID); err != nil {
-				var dupeErr dag.EdgeDuplicateError
-				if errors.As(err, &dupeErr) {
+				//nolint:errcheck // the probe's value is the error itself; only the match matters here
+				if _, ok := errors.AsType[dag.EdgeDuplicateError](err); ok {
 					continue
 				}
 				return nil, fmt.Errorf("adding instrument step edge: %w", err)
@@ -550,8 +550,8 @@ func (g *recipeAnalyzer) makeDAGForRecipe(ctx context.Context, recipe *mealplann
 			}
 
 			if err = recipeGraph.AddEdge(producerStepID, consumerID); err != nil {
-				var dupeErr dag.EdgeDuplicateError
-				if errors.As(err, &dupeErr) {
+				//nolint:errcheck // the probe's value is the error itself; only the match matters here
+				if _, ok := errors.AsType[dag.EdgeDuplicateError](err); ok {
 					continue
 				}
 				return nil, fmt.Errorf("adding vessel step edge: %w", err)

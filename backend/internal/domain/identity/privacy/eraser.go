@@ -6,11 +6,11 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 
-	"github.com/primandproper/platform-go/v12/database"
-	platformdataprivacy "github.com/primandproper/platform-go/v12/dataprivacy"
-	"github.com/primandproper/platform-go/v12/observability"
-	"github.com/primandproper/platform-go/v12/observability/logging"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v13/database"
+	platformdataprivacy "github.com/primandproper/platform-go/v13/dataprivacy"
+	"github.com/primandproper/platform-go/v13/observability"
+	"github.com/primandproper/platform-go/v13/observability/logging"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 )
 
 const eraserO11yName = "identity_privacy_eraser"
@@ -67,7 +67,7 @@ func NewEraser(repo identity.Repository, logger logging.Logger, tracerProvider t
 // erased".
 func (e *Eraser) Erase(
 	ctx context.Context,
-	q database.SQLQueryExecutor,
+	q database.Tx,
 	subject platformdataprivacy.Subject,
 ) (platformdataprivacy.ErasureOutcome, error) {
 	ctx, span := e.tracer.StartSpan(ctx)

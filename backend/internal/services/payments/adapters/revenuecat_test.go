@@ -8,8 +8,8 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 
-	loggingnoop "github.com/primandproper/platform-go/v12/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v12/observability/tracing/noop"
+	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
+	tracingnoop "github.com/primandproper/platform-go/v13/observability/tracing/noop"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -27,8 +27,10 @@ func buildRevenueCatProcessorForTest(t *testing.T) *RevenueCatPaymentProcessor {
 	)
 }
 
-func buildRevenueCatRequest(body, authHeader string) *http.Request {
-	req := httptest.NewRequest(http.MethodPost, "/api/payments/webhooks/revenuecat", strings.NewReader(body))
+func buildRevenueCatRequest(t *testing.T, body, authHeader string) *http.Request {
+	t.Helper()
+
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/api/payments/webhooks/revenuecat", strings.NewReader(body))
 	if authHeader != "" {
 		req.Header.Set("Authorization", authHeader)
 	}
@@ -46,7 +48,7 @@ func TestRevenueCatPaymentProcessor_HandleWebhook(T *testing.T) {
 
 		body := `{"type": "INITIAL_PURCHASE", "app_user_id": "account_example", "transaction_id": "txn_example", "product_id": "product_example"}`
 
-		actual, err := processor.HandleWebhook(buildRevenueCatRequest(body, exampleRevenueCatAuthHeader))
+		actual, err := processor.HandleWebhook(buildRevenueCatRequest(t, body, exampleRevenueCatAuthHeader))
 		require.NoError(t, err)
 		require.NotNil(t, actual)
 
@@ -64,7 +66,7 @@ func TestRevenueCatPaymentProcessor_HandleWebhook(T *testing.T) {
 
 		body := `{"type": "EXPIRATION", "app_user_id": "account_example", "transaction_id": "txn_example"}`
 
-		actual, err := processor.HandleWebhook(buildRevenueCatRequest(body, exampleRevenueCatAuthHeader))
+		actual, err := processor.HandleWebhook(buildRevenueCatRequest(t, body, exampleRevenueCatAuthHeader))
 		require.NoError(t, err)
 		require.NotNil(t, actual)
 
@@ -78,7 +80,7 @@ func TestRevenueCatPaymentProcessor_HandleWebhook(T *testing.T) {
 
 		body := `{"type": "INITIAL_PURCHASE", "app_user_id": "account_example"}`
 
-		actual, err := processor.HandleWebhook(buildRevenueCatRequest(body, "Bearer wrong_token"))
+		actual, err := processor.HandleWebhook(buildRevenueCatRequest(t, body, "Bearer wrong_token"))
 		require.ErrorIs(t, err, ErrInvalidWebhookSignature)
 		assert.Nil(t, actual)
 	})
@@ -90,7 +92,7 @@ func TestRevenueCatPaymentProcessor_HandleWebhook(T *testing.T) {
 
 		body := `{"type": "INITIAL_PURCHASE", "app_user_id": "account_example"}`
 
-		actual, err := processor.HandleWebhook(buildRevenueCatRequest(body, ""))
+		actual, err := processor.HandleWebhook(buildRevenueCatRequest(t, body, ""))
 		require.ErrorIs(t, err, ErrInvalidWebhookSignature)
 		assert.Nil(t, actual)
 	})
@@ -108,7 +110,7 @@ func TestRevenueCatPaymentProcessor_HandleWebhook(T *testing.T) {
 
 		body := `{"type": "RENEWAL", "app_user_id": "account_example", "transaction_id": "txn_example"}`
 
-		actual, err := processor.HandleWebhook(buildRevenueCatRequest(body, ""))
+		actual, err := processor.HandleWebhook(buildRevenueCatRequest(t, body, ""))
 		require.NoError(t, err)
 		require.NotNil(t, actual)
 
@@ -120,7 +122,7 @@ func TestRevenueCatPaymentProcessor_HandleWebhook(T *testing.T) {
 
 		processor := buildRevenueCatProcessorForTest(t)
 
-		actual, err := processor.HandleWebhook(buildRevenueCatRequest(`{"type":`, exampleRevenueCatAuthHeader))
+		actual, err := processor.HandleWebhook(buildRevenueCatRequest(t, `{"type":`, exampleRevenueCatAuthHeader))
 		require.Error(t, err)
 		assert.Nil(t, actual)
 	})

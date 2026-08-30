@@ -52,7 +52,7 @@ WHERE archived_at IS NULL
 SELECT recipes.id
 FROM recipes
 WHERE recipes.archived_at IS NULL
-	AND recipes.id COLLATE "C" > sqlc.arg(cursor)
+	AND recipes.id COLLATE "C" > sqlc.arg(page_cursor)
 ORDER BY recipes.id COLLATE "C"
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
@@ -249,7 +249,7 @@ WHERE recipes.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TI
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR recipes.archived_at IS NULL)
 	AND recipes.status = COALESCE(sqlc.narg(status), 'approved')::recipe_status
-	AND recipes.id > COALESCE(sqlc.narg(cursor), '')
+	AND recipes.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY recipes.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
@@ -310,7 +310,7 @@ WHERE recipes.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TI
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR recipes.archived_at IS NULL)
 	AND recipes.created_by_user = sqlc.arg(created_by_user)
-	AND recipes.id > COALESCE(sqlc.narg(cursor), '')
+	AND recipes.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY recipes.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
@@ -436,7 +436,7 @@ WHERE recipes.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TI
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR recipes.archived_at IS NULL)
 	AND recipes.name ILIKE '%' || sqlc.arg(query)::text || '%'
-	AND recipes.id > COALESCE(sqlc.narg(cursor), '')
+	AND recipes.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY recipes.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
@@ -497,7 +497,7 @@ WHERE recipes.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TI
 	AND recipes.eligible_for_meals = true
 	AND recipes.status = 'approved'
 	AND recipes.name ILIKE '%' || sqlc.arg(query)::text || '%'
-	AND recipes.id > COALESCE(sqlc.narg(cursor), '')
+	AND recipes.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY recipes.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
@@ -569,7 +569,7 @@ WHERE recipes.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TI
 						WHERE belongs_to_account = sqlc.arg(account_id) AND archived_at IS NULL
 					)
 		)
-	AND recipes.id > COALESCE(sqlc.narg(cursor), '')
+	AND recipes.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY recipes.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 

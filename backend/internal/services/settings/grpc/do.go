@@ -4,8 +4,8 @@ import (
 	settingsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings/manager"
 	settingssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/settings"
 
-	"github.com/primandproper/platform-go/v12/observability/logging"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v13/observability/logging"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 
 	"github.com/samber/do/v2"
 )

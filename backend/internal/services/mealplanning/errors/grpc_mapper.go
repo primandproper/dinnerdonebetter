@@ -6,7 +6,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
 
-	"github.com/primandproper/platform-go/v12/errors/grpc"
+	"github.com/primandproper/platform-go/v13/errors/grpc"
 
 	"google.golang.org/grpc/codes"
 )

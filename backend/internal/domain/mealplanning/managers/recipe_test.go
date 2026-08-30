@@ -11,10 +11,10 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/recipeanalysis"
 	eatingindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
-	"github.com/primandproper/platform-go/v12/fake"
-	"github.com/primandproper/platform-go/v12/filtering"
-	textsearch "github.com/primandproper/platform-go/v12/search/text"
-	mocksearch "github.com/primandproper/platform-go/v12/search/text/mock"
+	"github.com/primandproper/platform-go/v13/fake"
+	"github.com/primandproper/platform-go/v13/filtering"
+	textsearch "github.com/primandproper/platform-go/v13/search/text"
+	mocksearch "github.com/primandproper/platform-go/v13/search/text/mock"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

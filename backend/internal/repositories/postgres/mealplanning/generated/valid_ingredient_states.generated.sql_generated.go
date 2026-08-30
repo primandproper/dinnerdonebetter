@@ -195,7 +195,7 @@ type GetValidIngredientStatesParams struct {
 	UpdatedAfter    sql.NullTime
 	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -222,7 +222,7 @@ func (q *Queries) GetValidIngredientStates(ctx context.Context, db DBTX, arg *Ge
 		arg.UpdatedAfter,
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {
@@ -384,12 +384,12 @@ LIMIT COALESCE($2, 50)
 `
 
 type ScanValidIngredientStateIDsForReindexParams struct {
-	Cursor      string
+	PageCursor  string
 	ResultLimit interface{}
 }
 
 func (q *Queries) ScanValidIngredientStateIDsForReindex(ctx context.Context, db DBTX, arg *ScanValidIngredientStateIDsForReindexParams) ([]string, error) {
-	rows, err := db.QueryContext(ctx, scanValidIngredientStateIDsForReindex, arg.Cursor, arg.ResultLimit)
+	rows, err := db.QueryContext(ctx, scanValidIngredientStateIDsForReindex, arg.PageCursor, arg.ResultLimit)
 	if err != nil {
 		return nil, err
 	}
@@ -469,7 +469,7 @@ type SearchForValidIngredientStatesParams struct {
 	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	NameQuery       string
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -497,7 +497,7 @@ func (q *Queries) SearchForValidIngredientStates(ctx context.Context, db DBTX, a
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.NameQuery,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {

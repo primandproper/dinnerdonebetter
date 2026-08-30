@@ -3,8 +3,8 @@ package metering
 import (
 	"testing"
 
-	"github.com/primandproper/platform-go/v12/identifiers"
-	platformmetering "github.com/primandproper/platform-go/v12/metering"
+	"github.com/primandproper/platform-go/v13/identifiers"
+	platformmetering "github.com/primandproper/platform-go/v13/metering"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

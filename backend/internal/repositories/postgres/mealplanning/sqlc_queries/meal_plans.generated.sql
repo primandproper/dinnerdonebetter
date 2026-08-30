@@ -179,7 +179,7 @@ WHERE meal_plans.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR meal_plans.archived_at IS NULL)
 	AND meal_plans.belongs_to_account = sqlc.arg(belongs_to_account)
-	AND meal_plans.id > COALESCE(sqlc.narg(cursor), '')
+	AND meal_plans.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY meal_plans.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 

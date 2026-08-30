@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/primandproper/platform-go/v12/database/querygen"
+	"github.com/primandproper/platform-go/v13/database/querygen"
 )
 
 const (

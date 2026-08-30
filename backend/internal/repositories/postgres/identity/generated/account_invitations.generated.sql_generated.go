@@ -1102,7 +1102,7 @@ type GetPendingInvitesForUserParams struct {
 	IncludeArchived sql.NullBool
 	ToUser          sql.NullString
 	Status          InvitationState
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -1183,7 +1183,7 @@ func (q *Queries) GetPendingInvitesForUser(ctx context.Context, db DBTX, arg *Ge
 		arg.IncludeArchived,
 		arg.ToUser,
 		arg.Status,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {
@@ -1389,7 +1389,7 @@ type GetPendingInvitesFromUserParams struct {
 	IncludeArchived sql.NullBool
 	FromUser        string
 	Status          InvitationState
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -1470,7 +1470,7 @@ func (q *Queries) GetPendingInvitesFromUser(ctx context.Context, db DBTX, arg *G
 		arg.IncludeArchived,
 		arg.FromUser,
 		arg.Status,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {

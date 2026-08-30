@@ -10,9 +10,9 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
 	_ "github.com/primandproper/dinnerdonebetter/backend/internal/services/errors"
 
-	"github.com/primandproper/platform-go/v12/observability/logging"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
-	"github.com/primandproper/platform-go/v12/uploads"
+	"github.com/primandproper/platform-go/v13/observability/logging"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
+	"github.com/primandproper/platform-go/v13/uploads"
 )
 
 const (

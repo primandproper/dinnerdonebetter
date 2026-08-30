@@ -15,11 +15,11 @@ import (
 	identityfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
 	identitymock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/mock"
 
-	"github.com/primandproper/platform-go/v12/authentication/oauth2server"
-	"github.com/primandproper/platform-go/v12/authentication/tokens"
-	tokensmock "github.com/primandproper/platform-go/v12/authentication/tokens/mock"
-	"github.com/primandproper/platform-go/v12/authentication/totp"
-	totpmock "github.com/primandproper/platform-go/v12/authentication/totp/mock"
+	"github.com/primandproper/platform-go/v13/authentication/oauth2server"
+	"github.com/primandproper/platform-go/v13/authentication/tokens"
+	tokensmock "github.com/primandproper/platform-go/v13/authentication/tokens/mock"
+	"github.com/primandproper/platform-go/v13/authentication/totp"
+	totpmock "github.com/primandproper/platform-go/v13/authentication/totp/mock"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -29,7 +29,7 @@ import (
 func formRequest(t *testing.T, values url.Values) *http.Request {
 	t.Helper()
 
-	req := httptest.NewRequest(http.MethodPost, "/authorize", strings.NewReader(values.Encode()))
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/authorize", strings.NewReader(values.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	return req
@@ -40,7 +40,7 @@ func formRequest(t *testing.T, values url.Values) *http.Request {
 func bearerRequest(t *testing.T, token string) *http.Request {
 	t.Helper()
 
-	req := httptest.NewRequest(http.MethodPost, "/authorize", http.NoBody)
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/authorize", http.NoBody)
 	req.Header.Set("Authorization", "Bearer "+token)
 
 	return req
@@ -297,7 +297,7 @@ func TestBearerTokenFrom(T *testing.T) {
 	T.Run("with no header", func(t *testing.T) {
 		t.Parallel()
 
-		assert.Empty(t, bearerTokenFrom(httptest.NewRequest(http.MethodPost, "/authorize", http.NoBody)))
+		assert.Empty(t, bearerTokenFrom(httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/authorize", http.NoBody)))
 	})
 
 	T.Run("with a non-bearer scheme", func(t *testing.T) {
@@ -305,7 +305,7 @@ func TestBearerTokenFrom(T *testing.T) {
 
 		// Basic credentials at /authorize are the client's, not the resource owner's. Reading
 		// them as a session token would be authenticating the wrong party.
-		req := httptest.NewRequest(http.MethodPost, "/authorize", http.NoBody)
+		req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/authorize", http.NoBody)
 		req.Header.Set("Authorization", "Basic Zm9vOmJhcg==")
 
 		assert.Empty(t, bearerTokenFrom(req))

@@ -9,7 +9,7 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
 
-	"github.com/primandproper/platform-go/v12/filtering"
+	"github.com/primandproper/platform-go/v13/filtering"
 )
 
 // Ensure, that RepositoryMock does implement oauth.Repository.

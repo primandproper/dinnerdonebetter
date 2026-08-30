@@ -5,7 +5,7 @@ package converters
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 
-	"github.com/primandproper/platform-go/v12/identifiers"
+	"github.com/primandproper/platform-go/v13/identifiers"
 )
 
 // ConvertUploadedMediaToUploadedMediaCreationRequestInput builds an UploadedMediaCreationRequestInput from an UploadedMedia.

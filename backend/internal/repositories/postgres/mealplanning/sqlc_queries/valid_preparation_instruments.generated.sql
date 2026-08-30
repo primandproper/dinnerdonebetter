@@ -124,7 +124,7 @@ WHERE valid_preparation_instruments.created_at > COALESCE(sqlc.narg(created_afte
 	AND valid_preparation_instruments.valid_instrument_id = sqlc.arg(id)
 	AND valid_instruments.archived_at IS NULL
 	AND valid_preparations.archived_at IS NULL
-	AND valid_preparation_instruments.id > COALESCE(sqlc.narg(cursor), '')
+	AND valid_preparation_instruments.id > COALESCE(sqlc.narg(page_cursor), '')
 GROUP BY
 	valid_preparation_instruments.id,
 	valid_preparations.id,
@@ -222,7 +222,7 @@ WHERE valid_preparation_instruments.created_at > COALESCE(sqlc.narg(created_afte
 	AND valid_preparation_instruments.valid_preparation_id = sqlc.arg(id)
 	AND valid_instruments.archived_at IS NULL
 	AND valid_preparations.archived_at IS NULL
-	AND valid_preparation_instruments.id > COALESCE(sqlc.narg(cursor), '')
+	AND valid_preparation_instruments.id > COALESCE(sqlc.narg(page_cursor), '')
 GROUP BY
 	valid_preparation_instruments.id,
 	valid_preparations.id,
@@ -317,7 +317,7 @@ WHERE valid_preparation_instruments.created_at > COALESCE(sqlc.narg(created_afte
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_preparation_instruments.archived_at IS NULL)
 	AND valid_instruments.archived_at IS NULL
 	AND valid_preparations.archived_at IS NULL
-	AND valid_preparation_instruments.id > COALESCE(sqlc.narg(cursor), '')
+	AND valid_preparation_instruments.id > COALESCE(sqlc.narg(page_cursor), '')
 GROUP BY
 	valid_preparation_instruments.id,
 	valid_preparations.id,

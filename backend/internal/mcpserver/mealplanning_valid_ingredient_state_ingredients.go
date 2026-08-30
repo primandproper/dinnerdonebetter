@@ -5,7 +5,7 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 
-	"github.com/primandproper/platform-go/v12/filtering"
+	"github.com/primandproper/platform-go/v13/filtering"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -17,13 +17,13 @@ type (
 )
 
 var validIngredientStateIngredientsSchema = map[string]any{
-	"ID":              stringField("The ID of the valid ingredient state ingredient"),
-	"CreatedAt":       timestampField("When the valid ingredient state ingredient was created"),
-	"LastUpdatedAt":   timestampField("When the valid ingredient state ingredient was last updated"),
-	"ArchivedAt":      timestampField("When the valid ingredient state ingredient was soft deleted"),
-	"Notes":           stringField("Notes about the ingredient state ingredient"),
-	"IngredientState": objectType(validIngredientStatesSchema),
-	"Ingredient":      objectType(validIngredientsSchema),
+	"ID":               stringField("The ID of the valid ingredient state ingredient"),
+	fieldCreatedAt:     timestampField("When the valid ingredient state ingredient was created"),
+	fieldLastUpdatedAt: timestampField("When the valid ingredient state ingredient was last updated"),
+	fieldArchivedAt:    timestampField("When the valid ingredient state ingredient was soft deleted"),
+	fieldNotes:         stringField("Notes about the ingredient state ingredient"),
+	"IngredientState":  objectType(validIngredientStatesSchema),
+	fieldIngredient:    objectType(validIngredientsSchema),
 }
 
 var getValidIngredientStateIngredientTool = &mcp.Tool{
@@ -64,10 +64,10 @@ var getValidIngredientStateIngredientsTool = &mcp.Tool{
 	Name:        "GetValidIngredientStateIngredients",
 	Description: "Get valid ingredient state ingredients with optional filtering",
 	InputSchema: schemaObject(map[string]any{
-		"Filter": filtering.QueryFilterSchema(),
+		fieldFilter: filtering.QueryFilterSchema(),
 	}),
 	OutputSchema: schemaObject(map[string]any{
-		"Results": arrayType(schemaObject(validIngredientStateIngredientsSchema)),
+		fieldResults: arrayType(schemaObject(validIngredientStateIngredientsSchema)),
 	}),
 }
 

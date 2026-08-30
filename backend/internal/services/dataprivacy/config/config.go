@@ -14,10 +14,10 @@ package config
 import (
 	"context"
 
-	"github.com/primandproper/platform-go/v12/compression"
-	encryptioncfg "github.com/primandproper/platform-go/v12/cryptography/encryption/config"
-	platformdataprivacycfg "github.com/primandproper/platform-go/v12/dataprivacy/config"
-	uploadscfg "github.com/primandproper/platform-go/v12/uploads/config"
+	"github.com/primandproper/platform-go/v13/compression"
+	encryptioncfg "github.com/primandproper/platform-go/v13/cryptography/encryption/config"
+	platformdataprivacycfg "github.com/primandproper/platform-go/v13/dataprivacy/config"
+	uploadscfg "github.com/primandproper/platform-go/v13/uploads/config"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )

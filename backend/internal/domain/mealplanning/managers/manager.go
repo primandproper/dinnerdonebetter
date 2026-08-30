@@ -9,15 +9,15 @@ import (
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 	eatingindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
-	platformerrors "github.com/primandproper/platform-go/v12/errors"
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/messagequeue"
-	"github.com/primandproper/platform-go/v12/observability"
-	"github.com/primandproper/platform-go/v12/observability/logging"
-	"github.com/primandproper/platform-go/v12/observability/metrics"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
-	textsearch "github.com/primandproper/platform-go/v12/search/text"
-	textsearchcfg "github.com/primandproper/platform-go/v12/search/text/config"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/messagequeue"
+	"github.com/primandproper/platform-go/v13/observability"
+	"github.com/primandproper/platform-go/v13/observability/logging"
+	"github.com/primandproper/platform-go/v13/observability/metrics"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
+	textsearch "github.com/primandproper/platform-go/v13/search/text"
+	textsearchcfg "github.com/primandproper/platform-go/v13/search/text/config"
 )
 
 const (

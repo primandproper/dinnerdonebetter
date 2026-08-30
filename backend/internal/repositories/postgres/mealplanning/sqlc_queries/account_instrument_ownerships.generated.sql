@@ -97,7 +97,7 @@ WHERE account_instrument_ownerships.created_at > COALESCE(sqlc.narg(created_afte
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR account_instrument_ownerships.archived_at IS NULL)
 	AND account_instrument_ownerships.belongs_to_account = sqlc.arg(account_id)
-	AND account_instrument_ownerships.id > COALESCE(sqlc.narg(cursor), '')
+	AND account_instrument_ownerships.id > COALESCE(sqlc.narg(page_cursor), '')
 GROUP BY
 	account_instrument_ownerships.id,
 	valid_instruments.id

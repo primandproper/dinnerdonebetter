@@ -72,7 +72,7 @@ WHERE archived_at IS NULL
 SELECT valid_instruments.id
 FROM valid_instruments
 WHERE valid_instruments.archived_at IS NULL
-	AND valid_instruments.id COLLATE "C" > sqlc.arg(cursor)
+	AND valid_instruments.id COLLATE "C" > sqlc.arg(page_cursor)
 ORDER BY valid_instruments.id COLLATE "C"
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
@@ -128,7 +128,7 @@ WHERE valid_instruments.created_at > COALESCE(sqlc.narg(created_after), (SELECT 
 		OR valid_instruments.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_instruments.archived_at IS NULL)
-	AND valid_instruments.id > COALESCE(sqlc.narg(cursor), '')
+	AND valid_instruments.id > COALESCE(sqlc.narg(page_cursor), '')
 GROUP BY valid_instruments.id
 ORDER BY valid_instruments.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
@@ -228,7 +228,7 @@ WHERE valid_instruments.created_at > COALESCE(sqlc.narg(created_after), (SELECT 
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_instruments.archived_at IS NULL)
 	AND valid_instruments.name ILIKE '%' || sqlc.arg(name_query)::text || '%'
-	AND valid_instruments.id > COALESCE(sqlc.narg(cursor), '')
+	AND valid_instruments.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY valid_instruments.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
@@ -283,6 +283,6 @@ WHERE valid_instruments.created_at > COALESCE(sqlc.narg(created_after), (SELECT 
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_instruments.archived_at IS NULL)
 	AND valid_instruments.name ILIKE '%' || sqlc.arg(name_query)::text || '%'
 	AND valid_instruments.id NOT IN (SELECT valid_instrument_id FROM account_instrument_ownerships WHERE account_instrument_ownerships.belongs_to_account = sqlc.arg(account_id) AND account_instrument_ownerships.archived_at IS NULL)
-	AND valid_instruments.id > COALESCE(sqlc.narg(cursor), '')
+	AND valid_instruments.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY valid_instruments.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);

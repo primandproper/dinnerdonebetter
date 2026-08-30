@@ -5,12 +5,12 @@ import (
 
 	paymentsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/manager"
 
-	"github.com/primandproper/platform-go/v12/capitalism"
-	"github.com/primandproper/platform-go/v12/database"
-	platformmetering "github.com/primandproper/platform-go/v12/metering"
-	meteringcfg "github.com/primandproper/platform-go/v12/metering/config"
-	"github.com/primandproper/platform-go/v12/observability"
-	"github.com/primandproper/platform-go/v12/observability/logging"
+	"github.com/primandproper/platform-go/v13/capitalism"
+	"github.com/primandproper/platform-go/v13/database"
+	platformmetering "github.com/primandproper/platform-go/v13/metering"
+	meteringcfg "github.com/primandproper/platform-go/v13/metering/config"
+	"github.com/primandproper/platform-go/v13/observability"
+	"github.com/primandproper/platform-go/v13/observability/logging"
 
 	"github.com/samber/do/v2"
 )

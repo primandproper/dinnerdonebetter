@@ -168,7 +168,7 @@ WHERE valid_measurement_unit_conversions.created_at > COALESCE(sqlc.narg(created
 	AND (valid_measurement_units_from.id = sqlc.arg(id) OR valid_measurement_units_to.id = sqlc.arg(id))
 	AND valid_measurement_units_from.archived_at IS NULL
 	AND valid_measurement_units_to.archived_at IS NULL
-	AND valid_measurement_unit_conversions.id > COALESCE(sqlc.narg(cursor), '')
+	AND valid_measurement_unit_conversions.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY valid_measurement_unit_conversions.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 

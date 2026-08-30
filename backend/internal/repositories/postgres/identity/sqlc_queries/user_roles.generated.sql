@@ -84,6 +84,6 @@ WHERE user_roles.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT
 		OR user_roles.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR user_roles.archived_at IS NULL)
-	AND user_roles.id > COALESCE(sqlc.narg(cursor), '')
+	AND user_roles.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY user_roles.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);

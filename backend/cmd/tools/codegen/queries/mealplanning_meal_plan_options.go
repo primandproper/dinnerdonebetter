@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v12/database/querygen"
+	"github.com/primandproper/platform-go/v13/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -178,14 +178,14 @@ WHERE %s
 						strings.Join(fullSelectColumns, ",\n\t"),
 						pgGen.FilterCountSelect(mealPlanOptionsTableName, mealPlanOptionsColumns, []string{}, "meal_plan_options.belongs_to_meal_plan_event = sqlc.arg(meal_plan_event_id)"),
 						pgGen.TotalCountSelect(mealPlanOptionsTableName, mealPlanOptionsColumns, []string{}),
-						pgGen.FilterConditions(mealPlanOptionsTableName, mealPlanOptionsColumns,
+						pgGen.FilterConditions(mealPlanOptionsTableName, mealPlanOptionsColumns, querygen.Ascending,
 							"meal_plan_events.id = sqlc.arg(meal_plan_event_id)",
 							"meal_plan_events.belongs_to_meal_plan = sqlc.arg(meal_plan_id)",
 							"meal_plans.archived_at IS NULL",
 							"meal_plans.id = sqlc.arg(meal_plan_id)",
 							"meal_plan_options.belongs_to_meal_plan_event = sqlc.arg(meal_plan_event_id)",
 						),
-						pgGen.CursorLimitClause(mealPlanOptionsTableName),
+						pgGen.CursorLimitClause(mealPlanOptionsTableName, querygen.Ascending),
 					)),
 				},
 				{

@@ -175,7 +175,7 @@ WHERE meal_plan_options.created_at > COALESCE(sqlc.narg(created_after), (SELECT 
 	AND meal_plans.archived_at IS NULL
 	AND meal_plans.id = sqlc.arg(meal_plan_id)
 	AND meal_plan_options.belongs_to_meal_plan_event = sqlc.arg(meal_plan_event_id)
-	AND meal_plan_options.id > COALESCE(sqlc.narg(cursor), '')
+	AND meal_plan_options.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY meal_plan_options.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 

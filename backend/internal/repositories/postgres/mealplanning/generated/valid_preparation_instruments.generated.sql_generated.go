@@ -324,7 +324,7 @@ type GetValidPreparationInstrumentsParams struct {
 	UpdatedAfter    sql.NullTime
 	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -381,7 +381,7 @@ func (q *Queries) GetValidPreparationInstruments(ctx context.Context, db DBTX, a
 		arg.UpdatedAfter,
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {
@@ -718,7 +718,7 @@ type GetValidPreparationInstrumentsForInstrumentParams struct {
 	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	ID              string
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -776,7 +776,7 @@ func (q *Queries) GetValidPreparationInstrumentsForInstrument(ctx context.Contex
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.ID,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {
@@ -950,7 +950,7 @@ type GetValidPreparationInstrumentsForPreparationParams struct {
 	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	ID              string
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -1008,7 +1008,7 @@ func (q *Queries) GetValidPreparationInstrumentsForPreparation(ctx context.Conte
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.ID,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {

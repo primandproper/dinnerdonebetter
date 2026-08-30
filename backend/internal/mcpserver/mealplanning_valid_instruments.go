@@ -5,7 +5,7 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 
-	"github.com/primandproper/platform-go/v12/filtering"
+	"github.com/primandproper/platform-go/v13/filtering"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -18,14 +18,14 @@ type (
 
 var validInstrumentsSchema = map[string]any{
 	"ID":                             stringField("The ID of the valid instrument"),
-	"CreatedAt":                      timestampField("When the valid instrument was created"),
-	"LastUpdatedAt":                  timestampField("When the valid instrument was last updated"),
-	"ArchivedAt":                     timestampField("When the valid instrument was soft deleted"),
-	"Name":                           stringField("Name of the instrument"),
-	"Description":                    stringField("Description of the instrument"),
-	"IconPath":                       stringField("The URL for the icon for the item"),
-	"PluralName":                     stringField("The plural name for the instrument. So for an instrument named 'knife', this would be 'knives'"),
-	"Slug":                           stringField("An easy-to-use URL slug for the instrument"),
+	fieldCreatedAt:                   timestampField("When the valid instrument was created"),
+	fieldLastUpdatedAt:               timestampField("When the valid instrument was last updated"),
+	fieldArchivedAt:                  timestampField("When the valid instrument was soft deleted"),
+	fieldName:                        stringField("Name of the instrument"),
+	fieldDescription:                 stringField("Description of the instrument"),
+	fieldIconPath:                    stringField("The URL for the icon for the item"),
+	fieldPluralName:                  stringField("The plural name for the instrument. So for an instrument named 'knife', this would be 'knives'"),
+	fieldSlug:                        stringField("An easy-to-use URL slug for the instrument"),
 	"IncludeInGeneratedInstructions": boolField("Whether or not the valid instrument should be included in generated instructions"),
 	"DisplayInSummaryLists":          boolField("Whether or not the valid instrument should be displayed in summary lists"),
 	"UsableForStorage":               boolField("Whether or not the valid instrument is usable for storage"),
@@ -70,14 +70,14 @@ var searchForValidInstrumentsTool = &mcp.Tool{
 	Name:        "SearchForValidInstruments",
 	Description: "Search for valid instruments with optional filtering and query string",
 	InputSchema: schemaObject(map[string]any{
-		"Filter": filtering.QueryFilterSchema(),
-		"Query": map[string]any{
-			"type":        strType,
-			"description": "The instrument name query",
+		fieldFilter: filtering.QueryFilterSchema(),
+		fieldQuery: map[string]any{
+			keyType:        strType,
+			keyDescription: "The instrument name query",
 		},
 	}),
 	OutputSchema: schemaObject(map[string]any{
-		"Results": arrayType(schemaObject(validInstrumentsSchema)),
+		fieldResults: arrayType(schemaObject(validInstrumentsSchema)),
 	}),
 }
 

@@ -110,7 +110,7 @@ WHERE waitlist_signups.created_at > COALESCE(sqlc.narg(created_after), (SELECT C
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR waitlist_signups.archived_at IS NULL)
 	AND waitlist_signups.belongs_to_waitlist = sqlc.arg(belongs_to_waitlist)
-	AND waitlist_signups.id > COALESCE(sqlc.narg(cursor), '')
+	AND waitlist_signups.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY waitlist_signups.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
@@ -159,6 +159,6 @@ WHERE waitlist_signups.created_at > COALESCE(sqlc.narg(created_after), (SELECT C
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR waitlist_signups.archived_at IS NULL)
 	AND waitlist_signups.belongs_to_user = sqlc.arg(belongs_to_user)
-	AND waitlist_signups.id > COALESCE(sqlc.narg(cursor), '')
+	AND waitlist_signups.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY waitlist_signups.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);

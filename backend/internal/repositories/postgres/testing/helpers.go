@@ -17,13 +17,12 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity/generated"
 
-	"github.com/primandproper/platform-go/v12/database"
-	databasecfg "github.com/primandproper/platform-go/v12/database/config"
-	mockdatabase "github.com/primandproper/platform-go/v12/database/mock"
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/identifiers"
-	"github.com/primandproper/platform-go/v12/testutils/containers"
-	"github.com/primandproper/platform-go/v12/testutils/containers/pgtest"
+	"github.com/primandproper/platform-go/v13/database"
+	mockdatabase "github.com/primandproper/platform-go/v13/database/mock"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/identifiers"
+	"github.com/primandproper/platform-go/v13/testutils/containers"
+	"github.com/primandproper/platform-go/v13/testutils/containers/pgtest"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/stretchr/testify/assert"
@@ -165,9 +164,7 @@ func credentialsFor(name string) (dbName, username, password string) {
 // repositories expect.
 func databaseConfigForConnectionString(connectionString string) (*dbcfg.Config, error) {
 	dbConfig := &dbcfg.Config{
-		Config: databasecfg.Config{
-			RunMigrations: false,
-		},
+		RunMigrations: false,
 	}
 
 	if err := dbConfig.LoadConnectionDetailsFromURL(connectionString); err != nil {
@@ -542,7 +539,7 @@ func NewSQLMockDatabaseClient(db *sql.DB) database.Client {
 		WriterFunc:      func() database.SQLQueryExecutor { return db },
 		CurrentTimeFunc: time.Now,
 		CloseFunc:       db.Close,
-		WithTransactionFunc: func(ctx context.Context, fn func(tx database.SQLQueryExecutor) error) error {
+		WithTransactionFunc: func(ctx context.Context, fn func(tx database.Tx) error) error {
 			return database.RunInTransaction(ctx, db, rollbackTestTransaction, fn)
 		},
 	}

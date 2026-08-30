@@ -1,7 +1,7 @@
 package audit
 
 import (
-	platformaudit "github.com/primandproper/platform-go/v12/audit"
+	platformaudit "github.com/primandproper/platform-go/v13/audit"
 )
 
 // Redaction declares what happens to a resource type's named fields on the way

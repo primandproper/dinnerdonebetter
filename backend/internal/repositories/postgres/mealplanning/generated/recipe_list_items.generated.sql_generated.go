@@ -118,7 +118,7 @@ type GetRecipeListItemsParams struct {
 	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	RecipeListID    string
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -142,7 +142,7 @@ func (q *Queries) GetRecipeListItems(ctx context.Context, db DBTX, arg *GetRecip
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.RecipeListID,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {

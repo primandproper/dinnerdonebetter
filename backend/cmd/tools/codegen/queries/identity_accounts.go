@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v12/database/querygen"
+	"github.com/primandproper/platform-go/v13/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -158,11 +158,11 @@ WHERE %s
 						belongsToAccountColumn,
 						accountsTableName,
 						idColumn,
-						pgGen.FilterConditions(accountsTableName, accountsColumns,
+						pgGen.FilterConditions(accountsTableName, accountsColumns, querygen.Ascending,
 							"account_user_memberships.archived_at IS NULL",
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", accountUserMembershipsTableName, belongsToUserColumn, belongsToUserColumn),
 						),
-						pgGen.CursorLimitClause(accountsTableName),
+						pgGen.CursorLimitClause(accountsTableName, querygen.Ascending),
 					)),
 				},
 				{

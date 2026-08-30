@@ -10,11 +10,11 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/internalops"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
-	"github.com/primandproper/platform-go/v12/identifiers"
-	"github.com/primandproper/platform-go/v12/messagequeue"
-	"github.com/primandproper/platform-go/v12/observability/logging"
-	"github.com/primandproper/platform-go/v12/observability/metrics"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v13/identifiers"
+	"github.com/primandproper/platform-go/v13/messagequeue"
+	"github.com/primandproper/platform-go/v13/observability/logging"
+	"github.com/primandproper/platform-go/v13/observability/metrics"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"

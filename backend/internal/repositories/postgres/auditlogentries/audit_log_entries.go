@@ -8,12 +8,12 @@ import (
 	auditkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit/keys"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 
-	platformaudit "github.com/primandproper/platform-go/v12/audit"
-	"github.com/primandproper/platform-go/v12/database"
-	platformerrors "github.com/primandproper/platform-go/v12/errors"
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/observability"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	platformaudit "github.com/primandproper/platform-go/v13/audit"
+	"github.com/primandproper/platform-go/v13/database"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/observability"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 )
 
 var (
@@ -55,20 +55,20 @@ func (q *repository) GetAuditLogEntriesForUser(ctx context.Context, userID strin
 }
 
 // GetAuditLogEntriesForUserAndResourceTypes fetches a list of audit log entries from the database that meet a particular filter.
-func (q *repository) GetAuditLogEntriesForUserAndResourceTypes(ctx context.Context, userID string, resourceTypes []string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[audit.AuditLogEntry], error) {
+func (q *repository) GetAuditLogEntriesForUserAndResourceTypes(ctx context.Context, userID, resourceType string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[audit.AuditLogEntry], error) {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
 	if userID == "" {
 		return nil, platformerrors.ErrInvalidIDProvided
 	}
-	if len(resourceTypes) == 0 {
+	if resourceType == "" {
 		return nil, platformerrors.ErrEmptyInputProvided
 	}
 
-	tracing.AttachToSpan(span, auditkeys.AuditLogEntryResourceTypesKey, resourceTypes)
+	tracing.AttachToSpan(span, auditkeys.AuditLogEntryResourceTypesKey, resourceType)
 
-	return q.list(ctx, span, &platformaudit.Query{ActorID: userID, ResourceTypes: resourceTypes}, filter,
+	return q.list(ctx, span, &platformaudit.Query{ActorID: userID, ResourceType: resourceType}, filter,
 		identitykeys.UserIDKey, userID)
 }
 
@@ -89,20 +89,20 @@ func (q *repository) GetAuditLogEntriesForAccount(ctx context.Context, accountID
 }
 
 // GetAuditLogEntriesForAccountAndResourceTypes fetches a list of audit log entries from the database that meet a particular filter.
-func (q *repository) GetAuditLogEntriesForAccountAndResourceTypes(ctx context.Context, accountID string, resourceTypes []string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[audit.AuditLogEntry], error) {
+func (q *repository) GetAuditLogEntriesForAccountAndResourceTypes(ctx context.Context, accountID, resourceType string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[audit.AuditLogEntry], error) {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
 	if accountID == "" {
 		return nil, platformerrors.ErrInvalidIDProvided
 	}
-	if len(resourceTypes) == 0 {
+	if resourceType == "" {
 		return nil, platformerrors.ErrEmptyInputProvided
 	}
 
-	tracing.AttachToSpan(span, auditkeys.AuditLogEntryResourceTypesKey, resourceTypes)
+	tracing.AttachToSpan(span, auditkeys.AuditLogEntryResourceTypesKey, resourceType)
 
-	return q.list(ctx, span, &platformaudit.Query{Scope: &accountID, ResourceTypes: resourceTypes}, filter,
+	return q.list(ctx, span, &platformaudit.Query{Scope: &accountID, ResourceType: resourceType}, filter,
 		identitykeys.AccountIDKey, accountID)
 }
 
@@ -149,7 +149,7 @@ func (q *repository) list(
 }
 
 // Record appends audit log entries inside the caller's transaction.
-func (q *repository) Record(ctx context.Context, querier database.SQLQueryExecutor, entries ...*audit.AuditLogEntry) error {
+func (q *repository) Record(ctx context.Context, querier database.Tx, entries ...*audit.AuditLogEntry) error {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 

@@ -138,7 +138,7 @@ WHERE valid_ingredient_preparations.created_at > COALESCE(sqlc.narg(created_afte
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_ingredient_preparations.archived_at IS NULL)
 	AND valid_ingredient_preparations.valid_ingredient_id = sqlc.arg(id)
-	AND valid_ingredient_preparations.id > COALESCE(sqlc.narg(cursor), '')
+	AND valid_ingredient_preparations.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY valid_ingredient_preparations.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
@@ -246,7 +246,7 @@ WHERE valid_ingredient_preparations.created_at > COALESCE(sqlc.narg(created_afte
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_ingredient_preparations.archived_at IS NULL)
 	AND valid_ingredient_preparations.valid_preparation_id = sqlc.arg(id)
-	AND valid_ingredient_preparations.id > COALESCE(sqlc.narg(cursor), '')
+	AND valid_ingredient_preparations.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY valid_ingredient_preparations.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
@@ -353,7 +353,7 @@ WHERE valid_ingredient_preparations.created_at > COALESCE(sqlc.narg(created_afte
 		OR valid_ingredient_preparations.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_ingredient_preparations.archived_at IS NULL)
-	AND valid_ingredient_preparations.id > COALESCE(sqlc.narg(cursor), '')
+	AND valid_ingredient_preparations.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY valid_ingredient_preparations.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
@@ -631,6 +631,6 @@ WHERE valid_ingredient_preparations.created_at > COALESCE(sqlc.narg(created_afte
 	AND valid_preparations.archived_at IS NULL
 	AND valid_ingredients.name ILIKE '%' || sqlc.arg(name_query)::text || '%'
 	AND valid_preparations.id = sqlc.arg(id)
-	AND valid_ingredient_preparations.id > COALESCE(sqlc.narg(cursor), '')
+	AND valid_ingredient_preparations.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY valid_ingredient_preparations.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);

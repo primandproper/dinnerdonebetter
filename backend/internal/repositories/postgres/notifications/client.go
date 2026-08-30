@@ -5,10 +5,10 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/notifications/generated"
 
-	"github.com/primandproper/platform-go/v12/database"
-	databasecfg "github.com/primandproper/platform-go/v12/database/config"
-	"github.com/primandproper/platform-go/v12/observability/logging"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v13/database"
+	databasecfg "github.com/primandproper/platform-go/v13/database/config"
+	"github.com/primandproper/platform-go/v13/observability/logging"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 )
 
 const (

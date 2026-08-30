@@ -8,11 +8,11 @@ import (
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
-	"github.com/primandproper/platform-go/v12/database"
-	platformerrors "github.com/primandproper/platform-go/v12/errors"
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/observability"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v13/database"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/observability"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 )
 
 var (
@@ -118,7 +118,7 @@ func (q *repository) GetRecipePrepTask(ctx context.Context, recipeID, recipePrep
 }
 
 // createRecipePrepTask creates a recipe prep task.
-func (q *repository) createRecipePrepTask(ctx context.Context, querier database.SQLQueryExecutor, input *mealplanning.RecipePrepTaskDatabaseCreationInput) (*mealplanning.RecipePrepTask, error) {
+func (q *repository) createRecipePrepTask(ctx context.Context, querier database.Tx, input *mealplanning.RecipePrepTaskDatabaseCreationInput) (*mealplanning.RecipePrepTask, error) {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -192,7 +192,7 @@ func (q *repository) CreateRecipePrepTask(ctx context.Context, input *mealplanni
 	logger = logger.WithValue(mealplanningkeys.RecipePrepTaskIDKey, input.ID)
 
 	var x *mealplanning.RecipePrepTask
-	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err := q.WithTransaction(ctx, func(tx database.Tx) error {
 		created, err := q.createRecipePrepTask(ctx, tx, input)
 		if err != nil {
 			return observability.PrepareAndLogError(err, logger, span, "creating recipe prep task")
@@ -220,7 +220,7 @@ func (q *repository) CreateRecipePrepTask(ctx context.Context, input *mealplanni
 }
 
 // createRecipePrepTaskStep creates a recipe prep task step.
-func (q *repository) createRecipePrepTaskStep(ctx context.Context, querier database.SQLQueryExecutor, input *mealplanning.RecipePrepTaskStepDatabaseCreationInput) (*mealplanning.RecipePrepTaskStep, error) {
+func (q *repository) createRecipePrepTaskStep(ctx context.Context, querier database.Tx, input *mealplanning.RecipePrepTaskStepDatabaseCreationInput) (*mealplanning.RecipePrepTaskStep, error) {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -377,7 +377,7 @@ func (q *repository) UpdateRecipePrepTask(ctx context.Context, updated *mealplan
 	if err := q.withEvent(ctx, logger, mealplanning.RecipePrepTaskUpdatedServiceEventType, "", map[string]any{
 		mealplanningkeys.RecipeIDKey:         updated.BelongsToRecipe,
 		mealplanningkeys.RecipePrepTaskIDKey: updated.ID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		_, updateErr := q.generatedQuerier.UpdateRecipePrepTask(ctx, tx, &generated.UpdateRecipePrepTaskParams{
 			Name:                                   updated.Name,
 			Description:                            updated.Description,
@@ -425,7 +425,7 @@ func (q *repository) ArchiveRecipePrepTask(ctx context.Context, recipeID, recipe
 	if err := q.withEvent(ctx, logger, mealplanning.RecipePrepTaskArchivedServiceEventType, "", map[string]any{
 		mealplanningkeys.RecipeIDKey:         recipeID,
 		mealplanningkeys.RecipePrepTaskIDKey: recipePrepTaskID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		rowsAffected, archiveErr := q.generatedQuerier.ArchiveRecipePrepTask(ctx, tx, recipePrepTaskID)
 		if archiveErr != nil {
 			return observability.PrepareAndLogError(archiveErr, logger, span, "updating recipe prep task")

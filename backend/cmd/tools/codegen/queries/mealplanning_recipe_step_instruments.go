@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v12/database/querygen"
+	"github.com/primandproper/platform-go/v13/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -20,16 +20,16 @@ const (
 var recipeStepInstrumentsColumns = []string{
 	idColumn,
 	instrumentIDColumn,
-	"recipe_step_product_id",
+	recipeStepProductIDColumn,
 	nameColumn,
 	notesColumn,
 	"preference_rank",
-	"optional",
+	optionalColumn,
 	"minimum_quantity",
 	"maximum_quantity",
-	"index",
-	"option_index",
-	"scale_factor",
+	indexColumn,
+	optionIndexColumn,
+	scaleFactorColumn,
 	createdAtColumn,
 	lastUpdatedAtColumn,
 	archivedAtColumn,
@@ -186,7 +186,7 @@ WHERE %s
 						belongsToRecipeColumn,
 						recipesTableName,
 						idColumn,
-						pgGen.FilterConditions(recipeStepInstrumentsTableName, recipeStepInstrumentsColumns,
+						pgGen.FilterConditions(recipeStepInstrumentsTableName, recipeStepInstrumentsColumns, querygen.Ascending,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeStepInstrumentsTableName, belongsToRecipeStepColumn, recipeStepIDColumn),
 							"recipe_steps.archived_at IS NULL",
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeStepsTableName, belongsToRecipeColumn, recipeIDColumn),
@@ -194,7 +194,7 @@ WHERE %s
 							"recipes.archived_at IS NULL",
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipesTableName, idColumn, recipeIDColumn),
 						),
-						pgGen.CursorLimitClause(recipeStepInstrumentsTableName),
+						pgGen.CursorLimitClause(recipeStepInstrumentsTableName, querygen.Ascending),
 					)),
 				},
 			},

@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v12/database/querygen"
+	"github.com/primandproper/platform-go/v13/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -21,15 +21,15 @@ var recipeStepVesselsColumns = []string{
 	nameColumn,
 	notesColumn,
 	belongsToRecipeStepColumn,
-	"recipe_step_product_id",
+	recipeStepProductIDColumn,
 	"valid_vessel_id",
 	"vessel_predicate",
 	"minimum_quantity",
 	"maximum_quantity",
 	"unavailable_after_step",
-	"index",
-	"option_index",
-	"scale_factor",
+	indexColumn,
+	optionIndexColumn,
+	scaleFactorColumn,
 	createdAtColumn,
 	lastUpdatedAtColumn,
 	archivedAtColumn,
@@ -201,7 +201,7 @@ WHERE %s
 						belongsToRecipeColumn,
 						recipesTableName,
 						idColumn,
-						pgGen.FilterConditions(recipeStepVesselsTableName, recipeStepVesselsColumns,
+						pgGen.FilterConditions(recipeStepVesselsTableName, recipeStepVesselsColumns, querygen.Ascending,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeStepVesselsTableName, belongsToRecipeStepColumn, recipeStepIDColumn),
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeStepsTableName, belongsToRecipeColumn, recipeIDColumn),
 							"recipe_steps.archived_at IS NULL",
@@ -209,7 +209,7 @@ WHERE %s
 							"recipes.archived_at IS NULL",
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipesTableName, idColumn, recipeIDColumn),
 						),
-						pgGen.CursorLimitClause(recipeStepVesselsTableName),
+						pgGen.CursorLimitClause(recipeStepVesselsTableName, querygen.Ascending),
 					)),
 				},
 				{

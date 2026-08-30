@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v12/database/querygen"
+	"github.com/primandproper/platform-go/v13/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -39,7 +39,7 @@ var validIngredientsColumns = []string{
 	"contaminates_equipment",
 	"minimum_ideal_storage_temperature_in_celsius",
 	"maximum_ideal_storage_temperature_in_celsius",
-	"storage_instructions",
+	storageInstructionsColumn,
 	slugColumn,
 	"contains_alcohol",
 	"shopping_suggestions",
@@ -90,10 +90,10 @@ GROUP BY %s.%s
 						pgGen.FilterCountSelect(validIngredientsTableName, validIngredientsColumns, []string{}),
 						pgGen.TotalCountSelect(validIngredientsTableName, validIngredientsColumns, []string{}),
 						validIngredientsTableName,
-						pgGen.FilterConditions(validIngredientsTableName, validIngredientsColumns),
+						pgGen.FilterConditions(validIngredientsTableName, validIngredientsColumns, querygen.Ascending),
 						validIngredientsTableName,
 						idColumn,
-						pgGen.CursorLimitClause(validIngredientsTableName),
+						pgGen.CursorLimitClause(validIngredientsTableName, querygen.Ascending),
 					)),
 				},
 				{
@@ -176,10 +176,10 @@ WHERE %s
 						pgGen.FilterCountSelect(validIngredientsTableName, validIngredientsColumns, []string{}),
 						pgGen.TotalCountSelect(validIngredientsTableName, validIngredientsColumns, []string{}),
 						validIngredientsTableName,
-						pgGen.FilterConditions(validIngredientsTableName, validIngredientsColumns,
+						pgGen.FilterConditions(validIngredientsTableName, validIngredientsColumns, querygen.Ascending,
 							fmt.Sprintf("%s.%s %s", validIngredientsTableName, nameColumn, buildILIKEForArgument("name_query")),
 						),
-						pgGen.CursorLimitClause(validIngredientsTableName),
+						pgGen.CursorLimitClause(validIngredientsTableName, querygen.Ascending),
 					)),
 				},
 				{

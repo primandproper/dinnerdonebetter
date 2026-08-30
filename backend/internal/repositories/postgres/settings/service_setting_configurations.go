@@ -11,11 +11,11 @@ import (
 	settingskeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/settings/generated"
 
-	"github.com/primandproper/platform-go/v12/database"
-	platformerrors "github.com/primandproper/platform-go/v12/errors"
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/observability"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v13/database"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/observability"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 )
 
 const (
@@ -243,7 +243,7 @@ func (q *Repository) GetServiceSettingConfigurationsForUser(ctx context.Context,
 		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
 		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
 		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
 	})
@@ -329,7 +329,7 @@ func (q *Repository) GetServiceSettingConfigurationsForAccount(ctx context.Conte
 		CreatedBefore:    database.NullTimeFromTimePointer(filter.CreatedBefore),
 		UpdatedAfter:     database.NullTimeFromTimePointer(filter.UpdatedAfter),
 		UpdatedBefore:    database.NullTimeFromTimePointer(filter.UpdatedBefore),
-		Cursor:           database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:       database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:      database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived:  database.NullBoolFromBoolPointer(filter.IncludeArchived),
 	})
@@ -403,7 +403,7 @@ func (q *Repository) CreateServiceSettingConfiguration(ctx context.Context, inpu
 
 	// begin account creation transaction
 	var x *types.ServiceSettingConfiguration
-	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err := q.WithTransaction(ctx, func(tx database.Tx) error {
 		// create the service setting configuration.
 		if err := q.generatedQuerier.CreateServiceSettingConfiguration(ctx, tx, &generated.CreateServiceSettingConfigurationParams{
 			ID:               input.ID,
@@ -472,7 +472,7 @@ func (q *Repository) UpdateServiceSettingConfiguration(ctx context.Context, upda
 
 	// begin account creation transaction
 	var err error
-	if err = q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err = q.WithTransaction(ctx, func(tx database.Tx) error {
 		if _, err = q.generatedQuerier.UpdateServiceSettingConfiguration(ctx, tx, &generated.UpdateServiceSettingConfigurationParams{
 			Value:            updated.Value,
 			Notes:            updated.Notes,
@@ -526,7 +526,7 @@ func (q *Repository) ArchiveServiceSettingConfiguration(ctx context.Context, ser
 	tracing.AttachToSpan(span, settingskeys.ServiceSettingConfigurationIDKey, serviceSettingConfigurationID)
 
 	// begin account creation transaction
-	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err := q.WithTransaction(ctx, func(tx database.Tx) error {
 		rowsAffected, err := q.generatedQuerier.ArchiveServiceSettingConfiguration(ctx, tx, serviceSettingConfigurationID)
 		if err != nil {
 			return observability.PrepareAndLogError(err, logger, span, "archiving service setting configuration")

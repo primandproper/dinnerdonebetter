@@ -11,7 +11,8 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	"github.com/primandproper/platform-go/v12/fake"
+	"github.com/primandproper/platform-go/v13/database"
+	"github.com/primandproper/platform-go/v13/fake"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -268,7 +269,7 @@ func TestSQLQuerier_setInvitationStatus(T *testing.T) {
 
 		c := buildInertClientForTest(t)
 
-		err := c.setInvitationStatus(ctx, c.writeDB, "", exampleAccountInvitation.Note, exampleAccountInvitation.Status)
+		err := c.setInvitationStatus(ctx, database.NewTxForTesting(c.writeDB), "", exampleAccountInvitation.Note, exampleAccountInvitation.Status)
 		assert.Error(t, err)
 	})
 }
@@ -312,7 +313,7 @@ func TestSQLQuerier_attachInvitationsToUser(T *testing.T) {
 
 		c := buildInertClientForTest(t)
 
-		err := c.attachInvitationsToUser(ctx, c.writeDB, "", exampleUser.ID)
+		err := c.attachInvitationsToUser(ctx, database.NewTxForTesting(c.writeDB), "", exampleUser.ID)
 		assert.Error(t, err)
 	})
 
@@ -324,7 +325,7 @@ func TestSQLQuerier_attachInvitationsToUser(T *testing.T) {
 
 		c := buildInertClientForTest(t)
 
-		err := c.attachInvitationsToUser(ctx, c.writeDB, exampleUser.EmailAddress, "")
+		err := c.attachInvitationsToUser(ctx, database.NewTxForTesting(c.writeDB), exampleUser.EmailAddress, "")
 		assert.Error(t, err)
 	})
 }

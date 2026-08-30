@@ -449,7 +449,7 @@ type GetValidVesselsParams struct {
 	UpdatedAfter    sql.NullTime
 	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -484,7 +484,7 @@ func (q *Queries) GetValidVessels(ctx context.Context, db DBTX, arg *GetValidVes
 		arg.UpdatedAfter,
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {
@@ -686,12 +686,12 @@ LIMIT COALESCE($2, 50)
 `
 
 type ScanValidVesselIDsForReindexParams struct {
-	Cursor      string
+	PageCursor  string
 	ResultLimit interface{}
 }
 
 func (q *Queries) ScanValidVesselIDsForReindex(ctx context.Context, db DBTX, arg *ScanValidVesselIDsForReindexParams) ([]string, error) {
-	rows, err := db.QueryContext(ctx, scanValidVesselIDsForReindex, arg.Cursor, arg.ResultLimit)
+	rows, err := db.QueryContext(ctx, scanValidVesselIDsForReindex, arg.PageCursor, arg.ResultLimit)
 	if err != nil {
 		return nil, err
 	}
@@ -779,7 +779,7 @@ type SearchForValidVesselsParams struct {
 	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	NameQuery       string
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -815,7 +815,7 @@ func (q *Queries) SearchForValidVessels(ctx context.Context, db DBTX, arg *Searc
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.NameQuery,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {

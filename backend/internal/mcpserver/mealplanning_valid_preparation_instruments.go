@@ -5,7 +5,7 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 
-	"github.com/primandproper/platform-go/v12/filtering"
+	"github.com/primandproper/platform-go/v13/filtering"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -17,13 +17,13 @@ type (
 )
 
 var validPreparationInstrumentsSchema = map[string]any{
-	"ID":            stringField("The ID of the valid preparation instrument"),
-	"CreatedAt":     timestampField("When the valid preparation instrument was created"),
-	"LastUpdatedAt": timestampField("When the valid preparation instrument was last updated"),
-	"ArchivedAt":    timestampField("When the valid preparation instrument was soft deleted"),
-	"Notes":         stringField("Notes about the preparation instrument"),
-	"Instrument":    objectType(validInstrumentsSchema),
-	"Preparation":   objectType(validPreparationsSchema),
+	"ID":               stringField("The ID of the valid preparation instrument"),
+	fieldCreatedAt:     timestampField("When the valid preparation instrument was created"),
+	fieldLastUpdatedAt: timestampField("When the valid preparation instrument was last updated"),
+	fieldArchivedAt:    timestampField("When the valid preparation instrument was soft deleted"),
+	fieldNotes:         stringField("Notes about the preparation instrument"),
+	"Instrument":       objectType(validInstrumentsSchema),
+	fieldPreparation:   objectType(validPreparationsSchema),
 }
 
 var getValidPreparationInstrumentTool = &mcp.Tool{
@@ -64,10 +64,10 @@ var getValidPreparationInstrumentsTool = &mcp.Tool{
 	Name:        "GetValidPreparationInstruments",
 	Description: "Get valid preparation instruments with optional filtering",
 	InputSchema: schemaObject(map[string]any{
-		"Filter": filtering.QueryFilterSchema(),
+		fieldFilter: filtering.QueryFilterSchema(),
 	}),
 	OutputSchema: schemaObject(map[string]any{
-		"Results": arrayType(schemaObject(validPreparationInstrumentsSchema)),
+		fieldResults: arrayType(schemaObject(validPreparationInstrumentsSchema)),
 	}),
 }
 

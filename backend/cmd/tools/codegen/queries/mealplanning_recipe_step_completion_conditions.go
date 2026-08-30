@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v12/database/querygen"
+	"github.com/primandproper/platform-go/v13/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -19,7 +19,7 @@ const (
 
 var recipeStepCompletionConditionsColumns = []string{
 	idColumn,
-	"optional",
+	optionalColumn,
 	notesColumn,
 	belongsToRecipeStepColumn,
 	ingredientStateColumn,
@@ -176,10 +176,10 @@ WHERE %s
 						ingredientStateColumn,
 						validIngredientStatesTableName,
 						idColumn,
-						pgGen.FilterConditions(recipeStepCompletionConditionsTableName, recipeStepCompletionConditionsColumns,
+						pgGen.FilterConditions(recipeStepCompletionConditionsTableName, recipeStepCompletionConditionsColumns, querygen.Ascending,
 							"recipe_step_completion_conditions.belongs_to_recipe_step = sqlc.arg(recipe_step_id)",
 						),
-						pgGen.CursorLimitClause(recipeStepCompletionConditionsTableName),
+						pgGen.CursorLimitClause(recipeStepCompletionConditionsTableName, querygen.Ascending),
 					)),
 				},
 				{

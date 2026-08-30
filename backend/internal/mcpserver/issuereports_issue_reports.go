@@ -5,22 +5,22 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports"
 
-	"github.com/primandproper/platform-go/v12/filtering"
+	"github.com/primandproper/platform-go/v13/filtering"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 var issueReportSchema = map[string]any{
-	"ID":               stringField("The ID of the issue report"),
-	"IssueType":        stringField("The type of issue"),
-	"Details":          stringField("Detailed description of the issue"),
-	"RelevantTable":    stringField("The database table the issue is related to, if any"),
-	"RelevantRecordID": stringField("The ID of the record the issue is related to, if any"),
-	"CreatedByUser":    stringField("The ID of the user who created the report"),
-	"BelongsToAccount": stringField("The ID of the account this report belongs to"),
-	"CreatedAt":        timestampField("When the report was created"),
-	"LastUpdatedAt":    timestampField("When the report was last updated"),
-	"ArchivedAt":       timestampField("When the report was archived"),
+	"ID":                  stringField("The ID of the issue report"),
+	"IssueType":           stringField("The type of issue"),
+	"Details":             stringField("Detailed description of the issue"),
+	"RelevantTable":       stringField("The database table the issue is related to, if any"),
+	"RelevantRecordID":    stringField("The ID of the record the issue is related to, if any"),
+	fieldCreatedByUser:    stringField("The ID of the user who created the report"),
+	fieldBelongsToAccount: stringField("The ID of the account this report belongs to"),
+	fieldCreatedAt:        timestampField("When the report was created"),
+	fieldLastUpdatedAt:    timestampField("When the report was last updated"),
+	fieldArchivedAt:       timestampField("When the report was archived"),
 }
 
 var getIssueReportTool = &mcp.Tool{
@@ -50,10 +50,10 @@ var getIssueReportsTool = &mcp.Tool{
 	Name:        "GetIssueReports",
 	Description: "Get issue reports with optional filtering",
 	InputSchema: schemaObject(map[string]any{
-		"Filter": filtering.QueryFilterSchema(),
+		fieldFilter: filtering.QueryFilterSchema(),
 	}),
 	OutputSchema: schemaObject(map[string]any{
-		"Results": arrayType(schemaObject(issueReportSchema)),
+		fieldResults: arrayType(schemaObject(issueReportSchema)),
 	}),
 }
 
@@ -82,10 +82,10 @@ var getIssueReportsForAccountTool = &mcp.Tool{
 	Name:        "GetIssueReportsForAccount",
 	Description: "Get issue reports belonging to a specific account",
 	InputSchema: schemaObject(map[string]any{
-		"Filter": filtering.QueryFilterSchema(),
+		fieldFilter: filtering.QueryFilterSchema(),
 	}),
 	OutputSchema: schemaObject(map[string]any{
-		"Results": arrayType(schemaObject(issueReportSchema)),
+		fieldResults: arrayType(schemaObject(issueReportSchema)),
 	}),
 }
 

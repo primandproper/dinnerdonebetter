@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v12/database/querygen"
+	"github.com/primandproper/platform-go/v13/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -19,8 +19,8 @@ var productsColumns = []string{
 	nameColumn,
 	descriptionColumn,
 	"kind",
-	"amount_cents",
-	"currency",
+	amountCentsColumn,
+	currencyColumn,
 	"billing_interval_months",
 	"external_product_id",
 	createdAtColumn,
@@ -86,8 +86,8 @@ WHERE %s
 						pgGen.FilterCountSelect(productsTableName, productsColumns, []string{}),
 						pgGen.TotalCountSelect(productsTableName, productsColumns, []string{}),
 						productsTableName,
-						pgGen.FilterConditions(productsTableName, productsColumns),
-						pgGen.CursorLimitClause(productsTableName),
+						pgGen.FilterConditions(productsTableName, productsColumns, querygen.Ascending),
+						pgGen.CursorLimitClause(productsTableName, querygen.Ascending),
 					)),
 				},
 				{
@@ -106,10 +106,10 @@ WHERE %s
 						pgGen.FilterCountSelect(productsTableName, productsColumns, []string{}),
 						pgGen.TotalCountSelect(productsTableName, productsColumns, []string{}),
 						productsTableName,
-						pgGen.FilterConditions(productsTableName, productsColumns,
+						pgGen.FilterConditions(productsTableName, productsColumns, querygen.Ascending,
 							fmt.Sprintf("%s.%s %s", productsTableName, nameColumn, buildILIKEForArgument("name_query")),
 						),
-						pgGen.CursorLimitClause(productsTableName),
+						pgGen.CursorLimitClause(productsTableName, querygen.Ascending),
 					)),
 				},
 			},

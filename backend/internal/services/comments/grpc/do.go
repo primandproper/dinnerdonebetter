@@ -4,8 +4,8 @@ import (
 	commentsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments/manager"
 	commentssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/comments"
 
-	"github.com/primandproper/platform-go/v12/observability/logging"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v13/observability/logging"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 
 	"github.com/samber/do/v2"
 )

@@ -14,10 +14,10 @@ import (
 	grpctypes "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/notifications/grpc/converters"
 
-	platformerrors "github.com/primandproper/platform-go/v12/errors"
-	errorsgrpc "github.com/primandproper/platform-go/v12/errors/grpc"
-	"github.com/primandproper/platform-go/v12/identifiers"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	errorsgrpc "github.com/primandproper/platform-go/v13/errors/grpc"
+	"github.com/primandproper/platform-go/v13/identifiers"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 
 	"google.golang.org/grpc/codes"
 )

@@ -4,8 +4,8 @@ import (
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 
-	"github.com/primandproper/platform-go/v12/fake"
-	"github.com/primandproper/platform-go/v12/filtering"
+	"github.com/primandproper/platform-go/v13/fake"
+	"github.com/primandproper/platform-go/v13/filtering"
 )
 
 // BuildFakeValidIngredientGroup builds a faked valid ingredient group.

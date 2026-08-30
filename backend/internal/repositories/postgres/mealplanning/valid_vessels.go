@@ -9,12 +9,12 @@ import (
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
-	"github.com/primandproper/platform-go/v12/database"
-	platformerrors "github.com/primandproper/platform-go/v12/errors"
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/observability"
-	platformkeys "github.com/primandproper/platform-go/v12/observability/keys"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v13/database"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/observability"
+	platformkeys "github.com/primandproper/platform-go/v13/observability/keys"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 )
 
 var (
@@ -171,7 +171,7 @@ func (q *repository) SearchForValidVessels(ctx context.Context, query string, fi
 		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
 		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
 	})
@@ -244,7 +244,7 @@ func (q *repository) GetValidVessels(ctx context.Context, filter *filtering.Quer
 		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
 		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
 	})
@@ -373,7 +373,7 @@ func (q *repository) ScanValidVesselIDsForReindex(ctx context.Context, after str
 	defer span.End()
 
 	results, err := q.generatedQuerier.ScanValidVesselIDsForReindex(ctx, q.readDB, &generated.ScanValidVesselIDsForReindexParams{
-		Cursor:      after,
+		PageCursor:  after,
 		ResultLimit: limit,
 	})
 	if err != nil {
@@ -396,7 +396,7 @@ func (q *repository) CreateValidVessel(ctx context.Context, input *types.ValidVe
 	// create the valid vessel.
 	if err := q.withEvent(ctx, logger, types.ValidVesselCreatedServiceEventType, "", map[string]any{
 		mealplanningkeys.ValidVesselIDKey: input.ID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		return q.generatedQuerier.CreateValidVessel(ctx, tx, &generated.CreateValidVesselParams{
 			Slug:                           input.Slug,
 			ID:                             input.ID,
@@ -463,7 +463,7 @@ func (q *repository) UpdateValidVessel(ctx context.Context, updated *types.Valid
 
 	if err := q.withEvent(ctx, logger, types.ValidVesselUpdatedServiceEventType, "", map[string]any{
 		mealplanningkeys.ValidVesselIDKey: updated.ID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		_, updateErr := q.generatedQuerier.UpdateValidVessel(ctx, tx, &generated.UpdateValidVesselParams{
 			Name:                           updated.Name,
 			PluralName:                     updated.PluralName,
@@ -532,7 +532,7 @@ func (q *repository) ArchiveValidVessel(ctx context.Context, validVesselID strin
 
 	return q.withEvent(ctx, logger, types.ValidVesselArchivedServiceEventType, "", map[string]any{
 		mealplanningkeys.ValidVesselIDKey: validVesselID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		rowsAffected, archiveErr := q.generatedQuerier.ArchiveValidVessel(ctx, tx, validVesselID)
 		if archiveErr != nil {
 			return observability.PrepareAndLogError(archiveErr, logger, span, "archiving valid vessel")

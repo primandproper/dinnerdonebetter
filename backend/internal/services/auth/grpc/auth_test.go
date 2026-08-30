@@ -16,9 +16,9 @@ import (
 	identityfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
 	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
 
-	"github.com/primandproper/platform-go/v12/fake"
-	"github.com/primandproper/platform-go/v12/featureflags"
-	"github.com/primandproper/platform-go/v12/filtering"
+	"github.com/primandproper/platform-go/v13/fake"
+	"github.com/primandproper/platform-go/v13/featureflags"
+	"github.com/primandproper/platform-go/v13/filtering"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -1444,10 +1444,8 @@ func TestServiceImpl_ListActiveSessions(t *testing.T) {
 					ExpiresAt:    now.Add(30 * time.Minute),
 				},
 			},
-			Pagination: filtering.Pagination{
-				TotalCount:    2,
-				FilteredCount: 2,
-			},
+			TotalCount:    2,
+			FilteredCount: 2,
 		}
 
 		authManager.GetActiveSessionsForUserFunc = func(_ context.Context, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[auth.UserSession], error) {

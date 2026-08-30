@@ -7,10 +7,10 @@ import (
 	identitymanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/manager"
 	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
 
-	"github.com/primandproper/platform-go/v12/encoding"
-	"github.com/primandproper/platform-go/v12/featureflags"
-	"github.com/primandproper/platform-go/v12/observability/logging"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v13/encoding"
+	"github.com/primandproper/platform-go/v13/featureflags"
+	"github.com/primandproper/platform-go/v13/observability/logging"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 )
 
 const (

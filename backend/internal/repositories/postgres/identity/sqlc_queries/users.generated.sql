@@ -39,7 +39,7 @@ WHERE archived_at IS NULL
 SELECT users.id
 FROM users
 WHERE users.archived_at IS NULL
-	AND users.id COLLATE "C" > sqlc.arg(cursor)
+	AND users.id COLLATE "C" > sqlc.arg(page_cursor)
 ORDER BY users.id COLLATE "C"
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
@@ -319,7 +319,7 @@ WHERE users.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIME
 		OR users.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR users.archived_at IS NULL)
-	AND users.id > COALESCE(sqlc.narg(cursor), '')
+	AND users.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY users.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
@@ -391,7 +391,7 @@ WHERE users.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIME
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR users.archived_at IS NULL)
 	AND account_user_memberships.belongs_to_account = sqlc.arg(belongs_to_account)
 	AND account_user_memberships.archived_at IS NULL
-	AND users.id > COALESCE(sqlc.narg(cursor), '')
+	AND users.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY users.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
@@ -615,7 +615,7 @@ WHERE users.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIME
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR users.archived_at IS NULL)
 	AND users.username ILIKE '%' || sqlc.arg(username)::text || '%'
-	AND users.id > COALESCE(sqlc.narg(cursor), '')
+	AND users.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY users.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 

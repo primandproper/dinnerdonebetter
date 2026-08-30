@@ -14,7 +14,7 @@ import (
 	converters "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/grpc/converters"
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
 
-	"github.com/primandproper/platform-go/v12/fake"
+	"github.com/primandproper/platform-go/v13/fake"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

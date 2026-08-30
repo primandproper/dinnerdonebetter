@@ -106,7 +106,7 @@ WHERE valid_ingredient_groups.created_at > COALESCE(sqlc.narg(created_after), (S
 		OR valid_ingredient_groups.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_ingredient_groups.archived_at IS NULL)
-	AND valid_ingredient_groups.id > COALESCE(sqlc.narg(cursor), '')
+	AND valid_ingredient_groups.id > COALESCE(sqlc.narg(page_cursor), '')
 GROUP BY valid_ingredient_groups.id
 ORDER BY valid_ingredient_groups.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
@@ -207,7 +207,7 @@ WHERE valid_ingredient_groups.created_at > COALESCE(sqlc.narg(created_after), (S
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_ingredient_groups.archived_at IS NULL)
 	AND valid_ingredient_groups.name ILIKE '%' || sqlc.arg(name)::text || '%'
-	AND valid_ingredient_groups.id > COALESCE(sqlc.narg(cursor), '')
+	AND valid_ingredient_groups.id > COALESCE(sqlc.narg(page_cursor), '')
 GROUP BY valid_ingredient_groups.id
 ORDER BY valid_ingredient_groups.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);

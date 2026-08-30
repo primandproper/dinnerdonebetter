@@ -11,9 +11,10 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	"github.com/primandproper/platform-go/v12/fake"
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/identifiers"
+	"github.com/primandproper/platform-go/v13/database"
+	"github.com/primandproper/platform-go/v13/fake"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/identifiers"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -472,7 +473,7 @@ func TestSQLQuerier_createRecipeStep(T *testing.T) {
 		ctx := t.Context()
 		c := buildInertClientForTest(t)
 
-		actual, err := c.createRecipeStep(ctx, c.writeDB, nil)
+		actual, err := c.createRecipeStep(ctx, database.NewTxForTesting(c.writeDB), nil)
 		require.Error(t, err)
 		assert.Nil(t, actual)
 	})

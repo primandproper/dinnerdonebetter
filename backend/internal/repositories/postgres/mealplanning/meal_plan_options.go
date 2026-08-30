@@ -11,11 +11,11 @@ import (
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
-	"github.com/primandproper/platform-go/v12/database"
-	platformerrors "github.com/primandproper/platform-go/v12/errors"
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/observability"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v13/database"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/observability"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 
 	"resenje.org/schulze"
 )
@@ -312,7 +312,7 @@ func (q *repository) GetMealPlanOptions(ctx context.Context, mealPlanID, mealPla
 		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
 		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
 	})
@@ -429,7 +429,7 @@ func (q *repository) CreateMealPlanOption(ctx context.Context, input *mealplanni
 	// The write and its event share a transaction.
 	if err := q.withEvent(ctx, q.logger, mealplanning.MealPlanOptionCreatedServiceEventType, "", map[string]any{
 		mealplanningkeys.MealPlanOptionIDKey: input.ID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		var createErr error
 		created, createErr = q.createMealPlanOption(ctx, tx, input, false)
 
@@ -455,7 +455,7 @@ func (q *repository) UpdateMealPlanOption(ctx context.Context, updated *mealplan
 	if err := q.withEvent(ctx, logger, mealplanning.MealPlanOptionUpdatedServiceEventType, "", map[string]any{
 		mealplanningkeys.MealPlanEventIDKey:  updated.BelongsToMealPlanEvent,
 		mealplanningkeys.MealPlanOptionIDKey: updated.ID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		_, updateErr := q.generatedQuerier.UpdateMealPlanOption(ctx, tx, &generated.UpdateMealPlanOptionParams{
 			MealID:             updated.Meal.ID,
 			Notes:              updated.Notes,
@@ -505,7 +505,7 @@ func (q *repository) ArchiveMealPlanOption(ctx context.Context, mealPlanID, meal
 		mealplanningkeys.MealPlanIDKey:       mealPlanID,
 		mealplanningkeys.MealPlanEventIDKey:  mealPlanEventID,
 		mealplanningkeys.MealPlanOptionIDKey: mealPlanOptionID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		rowsAffected, archiveErr := q.generatedQuerier.ArchiveMealPlanOption(ctx, tx, &generated.ArchiveMealPlanOptionParams{
 			ID:                     mealPlanOptionID,
 			BelongsToMealPlanEvent: sql.NullString{String: mealPlanEventID, Valid: true},

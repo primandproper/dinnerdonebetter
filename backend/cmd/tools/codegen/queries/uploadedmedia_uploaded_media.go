@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v12/database/querygen"
+	"github.com/primandproper/platform-go/v13/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -106,10 +106,10 @@ WHERE %s
 						pgGen.FilterCountSelect(uploadedMediaTableName, uploadedMediaColumns, nil, fmt.Sprintf("%s.%s = sqlc.arg(%s)", uploadedMediaTableName, createdByUserColumn, createdByUserColumn)),
 						pgGen.TotalCountSelect(uploadedMediaTableName, uploadedMediaColumns, nil, fmt.Sprintf("%s.%s = sqlc.arg(%s)", uploadedMediaTableName, createdByUserColumn, createdByUserColumn)),
 						uploadedMediaTableName,
-						pgGen.FilterConditions(uploadedMediaTableName, uploadedMediaColumns,
+						pgGen.FilterConditions(uploadedMediaTableName, uploadedMediaColumns, querygen.Ascending,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", uploadedMediaTableName, createdByUserColumn, createdByUserColumn),
 						),
-						pgGen.CursorLimitClause(uploadedMediaTableName),
+						pgGen.CursorLimitClause(uploadedMediaTableName, querygen.Ascending),
 					)),
 				},
 			},

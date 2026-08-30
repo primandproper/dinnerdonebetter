@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v12/database/querygen"
+	"github.com/primandproper/platform-go/v13/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -79,10 +79,10 @@ GROUP BY %s.%s
 						pgGen.FilterCountSelect(validVesselsTableName, validVesselsColumns, []string{}),
 						pgGen.TotalCountSelect(validVesselsTableName, validVesselsColumns, []string{}),
 						validVesselsTableName,
-						pgGen.FilterConditions(validVesselsTableName, validVesselsColumns),
+						pgGen.FilterConditions(validVesselsTableName, validVesselsColumns, querygen.Ascending),
 						validVesselsTableName,
 						idColumn,
-						pgGen.CursorLimitClause(validVesselsTableName),
+						pgGen.CursorLimitClause(validVesselsTableName, querygen.Ascending),
 					)),
 				},
 				{
@@ -206,10 +206,10 @@ WHERE %s
 						pgGen.FilterCountSelect(validVesselsTableName, validVesselsColumns, []string{}),
 						pgGen.TotalCountSelect(validVesselsTableName, validVesselsColumns, []string{}),
 						validVesselsTableName,
-						pgGen.FilterConditions(validVesselsTableName, validVesselsColumns,
+						pgGen.FilterConditions(validVesselsTableName, validVesselsColumns, querygen.Ascending,
 							fmt.Sprintf("%s.%s %s", validVesselsTableName, nameColumn, buildILIKEForArgument("name_query")),
 						),
-						pgGen.CursorLimitClause(validVesselsTableName),
+						pgGen.CursorLimitClause(validVesselsTableName, querygen.Ascending),
 					)),
 				},
 			},

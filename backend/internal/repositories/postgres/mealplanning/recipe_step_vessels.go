@@ -8,11 +8,11 @@ import (
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
-	"github.com/primandproper/platform-go/v12/database"
-	platformerrors "github.com/primandproper/platform-go/v12/errors"
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/observability"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v13/database"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/observability"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 )
 
 var (
@@ -189,7 +189,7 @@ func (q *repository) GetRecipeStepVessels(ctx context.Context, recipeID, recipeS
 		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
 		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
 	})
@@ -377,7 +377,7 @@ func (q *repository) getRecipeStepVesselsForRecipe(ctx context.Context, recipeID
 }
 
 // CreateRecipeStepVessel creates a recipe step vessel in the database.
-func (q *repository) createRecipeStepVessel(ctx context.Context, querier database.SQLQueryExecutor, input *mealplanning.RecipeStepVesselDatabaseCreationInput) (*mealplanning.RecipeStepVessel, error) {
+func (q *repository) createRecipeStepVessel(ctx context.Context, querier database.Tx, input *mealplanning.RecipeStepVesselDatabaseCreationInput) (*mealplanning.RecipeStepVessel, error) {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -445,7 +445,7 @@ func (q *repository) CreateRecipeStepVessel(ctx context.Context, recipeID string
 		mealplanningkeys.RecipeIDKey:           recipeID,
 		mealplanningkeys.RecipeStepIDKey:       input.BelongsToRecipeStep,
 		mealplanningkeys.RecipeStepVesselIDKey: input.ID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		var createErr error
 		created, createErr = q.createRecipeStepVessel(ctx, tx, input)
 
@@ -477,7 +477,7 @@ func (q *repository) UpdateRecipeStepVessel(ctx context.Context, recipeID string
 		mealplanningkeys.RecipeIDKey:           recipeID,
 		mealplanningkeys.RecipeStepIDKey:       updated.BelongsToRecipeStep,
 		mealplanningkeys.RecipeStepVesselIDKey: updated.ID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		_, updateErr := q.generatedQuerier.UpdateRecipeStepVessel(ctx, tx, &generated.UpdateRecipeStepVesselParams{
 			Name:                 updated.Name,
 			Notes:                updated.Notes,
@@ -527,7 +527,7 @@ func (q *repository) ArchiveRecipeStepVessel(ctx context.Context, recipeID, reci
 		mealplanningkeys.RecipeIDKey:           recipeID,
 		mealplanningkeys.RecipeStepIDKey:       recipeStepID,
 		mealplanningkeys.RecipeStepVesselIDKey: recipeStepVesselID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		rowsAffected, archiveErr := q.generatedQuerier.ArchiveRecipeStepVessel(ctx, tx, &generated.ArchiveRecipeStepVesselParams{
 			BelongsToRecipeStep: recipeStepID,
 			ID:                  recipeStepVesselID,

@@ -7,8 +7,9 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
 
-	"github.com/primandproper/platform-go/v12/fake"
-	"github.com/primandproper/platform-go/v12/identifiers"
+	"github.com/primandproper/platform-go/v13/database"
+	"github.com/primandproper/platform-go/v13/fake"
+	"github.com/primandproper/platform-go/v13/identifiers"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -31,7 +32,7 @@ func TestQuerier_Integration_AccountUserMemberships(t *testing.T) {
 
 	for range exampleQuantity {
 		newMember := createUserForTest(t, ctx, nil, dbc)
-		require.NoError(t, dbc.addUserToAccount(ctx, dbc.writeDB, &identity.AccountUserMembershipDatabaseCreationInput{
+		require.NoError(t, dbc.addUserToAccount(ctx, database.NewTxForTesting(dbc.writeDB), &identity.AccountUserMembershipDatabaseCreationInput{
 			ID:        identifiers.New(),
 			Reason:    "testing",
 			UserID:    newMember.ID,
@@ -202,7 +203,7 @@ func TestSQLQuerier_addUserToAccount(T *testing.T) {
 
 		c := buildInertClientForTest(t)
 
-		err := c.addUserToAccount(ctx, c.writeDB, nil)
+		err := c.addUserToAccount(ctx, database.NewTxForTesting(c.writeDB), nil)
 		assert.Error(t, err)
 	})
 }

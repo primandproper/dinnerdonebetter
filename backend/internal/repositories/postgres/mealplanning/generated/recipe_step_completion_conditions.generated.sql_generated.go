@@ -416,7 +416,7 @@ type GetRecipeStepCompletionConditionsParams struct {
 	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	RecipeStepID    string
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -458,7 +458,7 @@ func (q *Queries) GetRecipeStepCompletionConditions(ctx context.Context, db DBTX
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.RecipeStepID,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {

@@ -391,7 +391,7 @@ type GetValidPreparationVesselsParams struct {
 	UpdatedAfter    sql.NullTime
 	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -467,7 +467,7 @@ func (q *Queries) GetValidPreparationVessels(ctx context.Context, db DBTX, arg *
 		arg.UpdatedAfter,
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {
@@ -888,7 +888,7 @@ type GetValidPreparationVesselsForPreparationParams struct {
 	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	ID              string
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -965,7 +965,7 @@ func (q *Queries) GetValidPreparationVesselsForPreparation(ctx context.Context, 
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.ID,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {
@@ -1165,7 +1165,7 @@ type GetValidPreparationVesselsForVesselParams struct {
 	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	ID              string
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -1242,7 +1242,7 @@ func (q *Queries) GetValidPreparationVesselsForVessel(ctx context.Context, db DB
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.ID,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {

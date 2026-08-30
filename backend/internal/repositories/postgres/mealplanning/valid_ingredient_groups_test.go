@@ -11,8 +11,8 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/identifiers"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/identifiers"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

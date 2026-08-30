@@ -9,11 +9,11 @@ import (
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
-	"github.com/primandproper/platform-go/v12/database"
-	platformerrors "github.com/primandproper/platform-go/v12/errors"
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/observability"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v13/database"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/observability"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 )
 
 var (
@@ -120,7 +120,7 @@ func (q *repository) GetRecipeRatingsForRecipe(ctx context.Context, recipeID str
 		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
 		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
 	})
@@ -191,7 +191,7 @@ func (q *repository) GetRecipeRatingsForUser(ctx context.Context, userID string,
 		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
 		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
 	})
@@ -246,7 +246,7 @@ func (q *repository) CreateRecipeRating(ctx context.Context, input *types.Recipe
 	if err := q.withEvent(ctx, logger, types.RecipeRatingCreatedServiceEventType, "", map[string]any{
 		mealplanningkeys.RecipeIDKey:       input.BelongsToRecipe,
 		mealplanningkeys.RecipeRatingIDKey: input.ID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		return q.generatedQuerier.CreateRecipeRating(ctx, tx, &generated.CreateRecipeRatingParams{
 			ID:              input.ID,
 			BelongsToRecipe: input.BelongsToRecipe,
@@ -295,7 +295,7 @@ func (q *repository) UpdateRecipeRating(ctx context.Context, updated *types.Reci
 	if err := q.withEvent(ctx, logger, types.RecipeRatingUpdatedServiceEventType, "", map[string]any{
 		mealplanningkeys.RecipeIDKey:       updated.BelongsToRecipe,
 		mealplanningkeys.RecipeRatingIDKey: updated.ID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		_, updateErr := q.generatedQuerier.UpdateRecipeRating(ctx, tx, &generated.UpdateRecipeRatingParams{
 			BelongsToRecipe: updated.BelongsToRecipe,
 			Taste:           database.NullStringFromFloat32(updated.Taste),
@@ -339,7 +339,7 @@ func (q *repository) ArchiveRecipeRating(ctx context.Context, recipeID, recipeRa
 	if err := q.withEvent(ctx, logger, types.RecipeRatingArchivedServiceEventType, "", map[string]any{
 		mealplanningkeys.RecipeIDKey:       recipeID,
 		mealplanningkeys.RecipeRatingIDKey: recipeRatingID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		rowsAffected, archiveErr := q.generatedQuerier.ArchiveRecipeRating(ctx, tx, recipeRatingID)
 		if archiveErr != nil {
 			return observability.PrepareAndLogError(archiveErr, logger, span, "archiving recipe rating")

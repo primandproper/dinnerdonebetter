@@ -9,14 +9,14 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/fakes"
 
-	"github.com/primandproper/platform-go/v12/database"
-	"github.com/primandproper/platform-go/v12/database/dialect"
-	mockdatabase "github.com/primandproper/platform-go/v12/database/mock"
-	"github.com/primandproper/platform-go/v12/fake"
-	"github.com/primandproper/platform-go/v12/outbox"
-	"github.com/primandproper/platform-go/v12/tenancy"
-	"github.com/primandproper/platform-go/v12/webhooks"
-	webhooksmock "github.com/primandproper/platform-go/v12/webhooks/mock"
+	"github.com/primandproper/platform-go/v13/database"
+	"github.com/primandproper/platform-go/v13/database/dialect"
+	mockdatabase "github.com/primandproper/platform-go/v13/database/mock"
+	"github.com/primandproper/platform-go/v13/fake"
+	"github.com/primandproper/platform-go/v13/outbox"
+	"github.com/primandproper/platform-go/v13/tenancy"
+	"github.com/primandproper/platform-go/v13/webhooks"
+	webhooksmock "github.com/primandproper/platform-go/v13/webhooks/mock"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -36,9 +36,9 @@ func TestEmitter_dispatchWebhooks(T *testing.T) {
 
 		var dispatched *webhooks.Delivery
 
-		executor := &mockdatabase.SQLQueryExecutorMock{}
+		executor := database.NewTxForTesting(&mockdatabase.SQLQueryExecutorMock{})
 		dispatcher := &webhooksmock.DispatcherMock{
-			DispatchFunc: func(_ context.Context, q database.SQLQueryExecutor, delivery *webhooks.Delivery) error {
+			DispatchFunc: func(_ context.Context, q database.Tx, delivery *webhooks.Delivery) error {
 				assert.Same(t, executor, q)
 				dispatched = delivery
 
@@ -83,7 +83,7 @@ func TestEmitter_dispatchWebhooks(T *testing.T) {
 			EventType: identity.UserLoggedInServiceEventType,
 		}
 
-		err := buildEmitterForTest(dispatcher).dispatchWebhooks(t.Context(), &mockdatabase.SQLQueryExecutorMock{}, msg, &emitConfig{})
+		err := buildEmitterForTest(dispatcher).dispatchWebhooks(t.Context(), database.NewTxForTesting(&mockdatabase.SQLQueryExecutorMock{}), msg, &emitConfig{})
 		require.NoError(t, err)
 		assert.Empty(t, dispatcher.DispatchCalls())
 	})
@@ -98,7 +98,7 @@ func TestEmitter_dispatchWebhooks(T *testing.T) {
 			EventType: "reciped_created",
 		}
 
-		err := buildEmitterForTest(dispatcher).dispatchWebhooks(t.Context(), &mockdatabase.SQLQueryExecutorMock{}, msg, &emitConfig{})
+		err := buildEmitterForTest(dispatcher).dispatchWebhooks(t.Context(), database.NewTxForTesting(&mockdatabase.SQLQueryExecutorMock{}), msg, &emitConfig{})
 		require.NoError(t, err)
 		assert.Empty(t, dispatcher.DispatchCalls())
 	})
@@ -113,7 +113,7 @@ func TestEmitter_dispatchWebhooks(T *testing.T) {
 
 		msg := &audit.DataChangeMessage{EventType: fakes.BuildFakeWebhookEventType()}
 
-		err := buildEmitterForTest(dispatcher).dispatchWebhooks(t.Context(), &mockdatabase.SQLQueryExecutorMock{}, msg, &emitConfig{})
+		err := buildEmitterForTest(dispatcher).dispatchWebhooks(t.Context(), database.NewTxForTesting(&mockdatabase.SQLQueryExecutorMock{}), msg, &emitConfig{})
 		require.NoError(t, err)
 		assert.Empty(t, dispatcher.DispatchCalls())
 	})
@@ -127,7 +127,7 @@ func TestEmitter_dispatchWebhooks(T *testing.T) {
 			EventType: fakes.BuildFakeWebhookEventType(),
 		}
 
-		err := buildEmitterForTest(nil).dispatchWebhooks(t.Context(), &mockdatabase.SQLQueryExecutorMock{}, msg, &emitConfig{})
+		err := buildEmitterForTest(nil).dispatchWebhooks(t.Context(), database.NewTxForTesting(&mockdatabase.SQLQueryExecutorMock{}), msg, &emitConfig{})
 		require.NoError(t, err)
 	})
 }

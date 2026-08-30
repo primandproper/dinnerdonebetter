@@ -172,7 +172,7 @@ type GetServiceSettingsParams struct {
 	UpdatedAfter    sql.NullTime
 	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -198,7 +198,7 @@ func (q *Queries) GetServiceSettings(ctx context.Context, db DBTX, arg *GetServi
 		arg.UpdatedAfter,
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {
@@ -292,7 +292,7 @@ type SearchForServiceSettingsParams struct {
 	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	NameQuery       string
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -319,7 +319,7 @@ func (q *Queries) SearchForServiceSettings(ctx context.Context, db DBTX, arg *Se
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.NameQuery,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {

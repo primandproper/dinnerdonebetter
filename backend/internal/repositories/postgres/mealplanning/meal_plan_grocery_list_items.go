@@ -8,11 +8,11 @@ import (
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
-	"github.com/primandproper/platform-go/v12/database"
-	platformerrors "github.com/primandproper/platform-go/v12/errors"
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/observability"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v13/database"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/observability"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 )
 
 var (
@@ -228,7 +228,7 @@ func (q *repository) GetMealPlanGroceryListItemsForMealPlan(ctx context.Context,
 		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
 		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
 		MealPlanID:      mealPlanID,
@@ -351,7 +351,7 @@ func (q *repository) GetMealPlanGroceryListItemsForMealPlan(ctx context.Context,
 }
 
 // createMealPlanGroceryListItem creates a meal plan grocery list in the database.
-func (q *repository) createMealPlanGroceryListItem(ctx context.Context, querier database.SQLQueryExecutor, input *mealplanning.MealPlanGroceryListItemDatabaseCreationInput) (*mealplanning.MealPlanGroceryListItem, error) {
+func (q *repository) createMealPlanGroceryListItem(ctx context.Context, querier database.Tx, input *mealplanning.MealPlanGroceryListItemDatabaseCreationInput) (*mealplanning.MealPlanGroceryListItem, error) {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -425,7 +425,7 @@ func (q *repository) CreateMealPlanGroceryListItem(ctx context.Context, input *m
 	// The write and its event share a transaction.
 	if err := q.withEvent(ctx, q.logger, mealplanning.MealPlanGroceryListItemCreatedServiceEventType, "", map[string]any{
 		mealplanningkeys.MealPlanGroceryListItemIDKey: input.ID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		var createErr error
 		created, createErr = q.createMealPlanGroceryListItem(ctx, tx, input)
 
@@ -463,7 +463,7 @@ func (q *repository) InitializeMealPlanGroceryList(ctx context.Context, mealPlan
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanIDKey, mealPlanID)
 
 	created := []*mealplanning.MealPlanGroceryListItem{}
-	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err := q.WithTransaction(ctx, func(tx database.Tx) error {
 		for _, input := range inputs {
 			item, createErr := q.createMealPlanGroceryListItem(ctx, tx, input)
 			if createErr != nil {
@@ -515,7 +515,7 @@ func (q *repository) UndoMealPlanGroceryListInitialization(ctx context.Context, 
 		WithValue("item_count", len(itemIDs))
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanIDKey, mealPlanID)
 
-	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err := q.WithTransaction(ctx, func(tx database.Tx) error {
 		if len(itemIDs) > 0 {
 			if deleteErr := q.generatedQuerier.DeleteMealPlanGroceryListItems(ctx, tx, itemIDs); deleteErr != nil {
 				return observability.PrepareAndLogError(deleteErr, logger, span, "deleting meal plan grocery list items")
@@ -555,7 +555,7 @@ func (q *repository) UpdateMealPlanGroceryListItem(ctx context.Context, updated 
 	if err := q.withEvent(ctx, logger, mealplanning.MealPlanGroceryListItemUpdatedServiceEventType, "", map[string]any{
 		mealplanningkeys.MealPlanIDKey:                updated.BelongsToMealPlan,
 		mealplanningkeys.MealPlanGroceryListItemIDKey: updated.ID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		_, updateErr := q.generatedQuerier.UpdateMealPlanGroceryListItem(ctx, tx, &generated.UpdateMealPlanGroceryListItemParams{
 			BelongsToMealPlanOption:  database.NullStringFromStringPointer(updated.BelongsToMealPlanOption),
 			RecipeID:                 database.NullStringFromStringPointer(updated.RecipeID),
@@ -601,7 +601,7 @@ func (q *repository) ArchiveMealPlanGroceryListItem(ctx context.Context, mealPla
 
 	return q.withEvent(ctx, logger, mealplanning.MealPlanGroceryListItemArchivedServiceEventType, "", map[string]any{
 		mealplanningkeys.MealPlanGroceryListItemIDKey: mealPlanGroceryListItemID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		rowsAffected, archiveErr := q.generatedQuerier.ArchiveMealPlanGroceryListItem(ctx, tx, mealPlanGroceryListItemID)
 		if archiveErr != nil {
 			return observability.PrepareAndLogError(archiveErr, logger, span, "archiving meal plan grocery list")

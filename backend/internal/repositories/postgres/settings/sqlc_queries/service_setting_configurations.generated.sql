@@ -177,7 +177,7 @@ WHERE service_setting_configurations.created_at > COALESCE(sqlc.narg(created_aft
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR service_setting_configurations.archived_at IS NULL)
 	AND service_settings.archived_at IS NULL
 	AND service_setting_configurations.belongs_to_account = sqlc.arg(belongs_to_account)
-	AND service_setting_configurations.id > COALESCE(sqlc.narg(cursor), '')
+	AND service_setting_configurations.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY service_setting_configurations.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
@@ -238,6 +238,6 @@ WHERE service_setting_configurations.created_at > COALESCE(sqlc.narg(created_aft
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR service_setting_configurations.archived_at IS NULL)
 	AND service_settings.archived_at IS NULL
 	AND service_setting_configurations.belongs_to_user = sqlc.arg(belongs_to_user)
-	AND service_setting_configurations.id > COALESCE(sqlc.narg(cursor), '')
+	AND service_setting_configurations.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY service_setting_configurations.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);

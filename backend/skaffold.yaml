@@ -31,7 +31,7 @@ profiles:
               - -X github.com/primandproper/platform-go/v10/version.BuildTime={{ trim (cmd "bash" "-c" "date -u -Iseconds 2>/dev/null || echo unknown") }}
               - -X github.com/primandproper/platform-go/v10/version.Version={{ default "dev" .VERSION }}
             main: ./cmd/ddb
-            fromImage: golang:1.26-trixie
+            fromImage: golang:1.27-trixie
 
     manifests:
       kustomize:
@@ -71,7 +71,7 @@ profiles:
               - -X github.com/primandproper/platform-go/v10/version.BuildTime={{ trim (cmd "bash" "-c" "date -u -Iseconds 2>/dev/null || echo unknown") }}
               - -X github.com/primandproper/platform-go/v10/version.Version={{ default "dev" .VERSION }}
             main: ./cmd/ddb
-            fromImage: golang:1.26-trixie
+            fromImage: golang:1.27-trixie
 
     manifests:
       kustomize:

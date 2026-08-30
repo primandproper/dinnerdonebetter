@@ -24,8 +24,8 @@ import (
 	waitlistsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/waitlists/grpc"
 	webhooksgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/webhooks/grpc"
 
-	loggingnoop "github.com/primandproper/platform-go/v12/observability/logging/noop"
-	metricsnoop "github.com/primandproper/platform-go/v12/observability/metrics/noop"
+	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
+	metricsnoop "github.com/primandproper/platform-go/v13/observability/metrics/noop"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

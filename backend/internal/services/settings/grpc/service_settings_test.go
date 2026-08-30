@@ -12,10 +12,10 @@ import (
 	grpcfiltering "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/filtering"
 	settingssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/settings"
 
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/identifiers"
-	loggingnoop "github.com/primandproper/platform-go/v12/observability/logging/noop"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/identifiers"
+	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

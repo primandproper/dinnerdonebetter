@@ -9,8 +9,8 @@ import (
 	// database, the same way cmd/workers/scheduler does.
 	_ "time/tzdata"
 
-	"github.com/primandproper/platform-go/v12/distributedlock/noop"
-	"github.com/primandproper/platform-go/v12/jobs"
+	"github.com/primandproper/platform-go/v13/distributedlock/noop"
+	"github.com/primandproper/platform-go/v13/jobs"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

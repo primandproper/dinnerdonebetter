@@ -8,11 +8,11 @@ import (
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
-	"github.com/primandproper/platform-go/v12/database"
-	platformerrors "github.com/primandproper/platform-go/v12/errors"
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/observability"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v13/database"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/observability"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 )
 
 var (
@@ -160,7 +160,7 @@ func (q *repository) GetValidPrepTaskConfigs(ctx context.Context, filter *filter
 		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
 		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
 	})
@@ -299,7 +299,7 @@ func (q *repository) GetValidPrepTaskConfigsForPreparation(ctx context.Context, 
 		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
 		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
 	})
@@ -438,7 +438,7 @@ func (q *repository) GetValidPrepTaskConfigsForIngredient(ctx context.Context, i
 		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
 		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
 	})
@@ -584,7 +584,7 @@ func (q *repository) GetValidPrepTaskConfigsForIngredientAndPreparation(ctx cont
 		CreatedAfter:       database.NullTimeFromTimePointer(filter.CreatedAfter),
 		UpdatedBefore:      database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:       database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		Cursor:             database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:         database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:        database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived:    database.NullBoolFromBoolPointer(filter.IncludeArchived),
 	})
@@ -712,7 +712,7 @@ func (q *repository) CreateValidPrepTaskConfig(ctx context.Context, input *mealp
 	// create the valid prep task config.
 	if err := q.withEvent(ctx, logger, mealplanning.ValidPrepTaskConfigCreatedServiceEventType, "", map[string]any{
 		mealplanningkeys.ValidPrepTaskConfigIDKey: input.ID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		return q.generatedQuerier.CreateValidPrepTaskConfig(ctx, tx, &generated.CreateValidPrepTaskConfigParams{
 			ID:                                 input.ID,
 			ValidIngredientID:                  input.ValidIngredientID,
@@ -779,7 +779,7 @@ func (q *repository) UpdateValidPrepTaskConfig(ctx context.Context, updated *mea
 
 	if err := q.withEvent(ctx, logger, mealplanning.ValidPrepTaskConfigUpdatedServiceEventType, "", map[string]any{
 		mealplanningkeys.ValidPrepTaskConfigIDKey: updated.ID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		_, updateErr := q.generatedQuerier.UpdateValidPrepTaskConfig(ctx, tx, &generated.UpdateValidPrepTaskConfigParams{
 			ValidIngredientID:                  updated.Ingredient.ID,
 			ValidPreparationID:                 updated.Preparation.ID,
@@ -819,7 +819,7 @@ func (q *repository) ArchiveValidPrepTaskConfig(ctx context.Context, validPrepTa
 
 	return q.withEvent(ctx, logger, mealplanning.ValidPrepTaskConfigArchivedServiceEventType, "", map[string]any{
 		mealplanningkeys.ValidPrepTaskConfigIDKey: validPrepTaskConfigID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		rowsAffected, archiveErr := q.generatedQuerier.ArchiveValidPrepTaskConfig(ctx, tx, validPrepTaskConfigID)
 		if archiveErr != nil {
 			return observability.PrepareAndLogError(archiveErr, logger, span, "archiving valid prep task config")

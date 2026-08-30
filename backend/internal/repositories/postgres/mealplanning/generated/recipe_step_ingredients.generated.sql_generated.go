@@ -794,7 +794,7 @@ type GetRecipeStepIngredientsParams struct {
 	IncludeArchived sql.NullBool
 	RecipeID        string
 	RecipeStepID    string
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -884,7 +884,7 @@ func (q *Queries) GetRecipeStepIngredients(ctx context.Context, db DBTX, arg *Ge
 		arg.IncludeArchived,
 		arg.RecipeID,
 		arg.RecipeStepID,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {

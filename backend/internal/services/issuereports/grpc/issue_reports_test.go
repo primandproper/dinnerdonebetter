@@ -13,10 +13,10 @@ import (
 	issuereportssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/issue_reports"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/issuereports/grpc/converters"
 
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/identifiers"
-	loggingnoop "github.com/primandproper/platform-go/v12/observability/logging/noop"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/identifiers"
+	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -231,10 +231,8 @@ func TestServiceImpl_GetIssueReports(t *testing.T) {
 				issuereportfakes.BuildFakeIssueReport(),
 				issuereportfakes.BuildFakeIssueReport(),
 			},
-			Pagination: filtering.Pagination{
-				TotalCount:    2,
-				FilteredCount: 2,
-			},
+			TotalCount:    2,
+			FilteredCount: 2,
 		}
 
 		mockRepo := &issuereportmock.RepositoryMock{
@@ -290,10 +288,8 @@ func TestServiceImpl_GetIssueReportsForAccount(t *testing.T) {
 				issuereportfakes.BuildFakeIssueReport(),
 				issuereportfakes.BuildFakeIssueReport(),
 			},
-			Pagination: filtering.Pagination{
-				TotalCount:    2,
-				FilteredCount: 2,
-			},
+			TotalCount:    2,
+			FilteredCount: 2,
 		}
 
 		mockRepo := &issuereportmock.RepositoryMock{
@@ -351,10 +347,8 @@ func TestServiceImpl_GetIssueReportsForTable(t *testing.T) {
 			Data: []*issuereports.IssueReport{
 				issuereportfakes.BuildFakeIssueReport(),
 			},
-			Pagination: filtering.Pagination{
-				TotalCount:    1,
-				FilteredCount: 1,
-			},
+			TotalCount:    1,
+			FilteredCount: 1,
 		}
 
 		mockRepo := &issuereportmock.RepositoryMock{
@@ -412,10 +406,8 @@ func TestServiceImpl_GetIssueReportsForRecord(t *testing.T) {
 			Data: []*issuereports.IssueReport{
 				issuereportfakes.BuildFakeIssueReport(),
 			},
-			Pagination: filtering.Pagination{
-				TotalCount:    1,
-				FilteredCount: 1,
-			},
+			TotalCount:    1,
+			FilteredCount: 1,
 		}
 
 		mockRepo := &issuereportmock.RepositoryMock{

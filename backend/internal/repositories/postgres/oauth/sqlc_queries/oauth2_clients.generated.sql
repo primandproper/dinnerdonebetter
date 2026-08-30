@@ -75,6 +75,6 @@ FROM oauth2_clients
 WHERE oauth2_clients.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	AND oauth2_clients.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR oauth2_clients.archived_at IS NULL)
-	AND oauth2_clients.id > COALESCE(sqlc.narg(cursor), '')
+	AND oauth2_clients.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY oauth2_clients.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);

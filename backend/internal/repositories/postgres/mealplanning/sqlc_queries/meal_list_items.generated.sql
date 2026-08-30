@@ -81,6 +81,6 @@ WHERE meal_list_items.created_at > COALESCE(sqlc.narg(created_after), (SELECT CU
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR meal_list_items.archived_at IS NULL)
 	AND meal_list_items.belongs_to_meal_list = sqlc.arg(meal_list_id)
 	AND EXISTS (SELECT 1 FROM meal_lists WHERE meal_lists.id = meal_list_items.belongs_to_meal_list AND meal_lists.belongs_to_user = sqlc.arg(belongs_to_user))
-	AND meal_list_items.id > COALESCE(sqlc.narg(cursor), '')
+	AND meal_list_items.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY meal_list_items.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);

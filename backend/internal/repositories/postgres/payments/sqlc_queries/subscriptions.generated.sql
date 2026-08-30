@@ -110,7 +110,7 @@ WHERE subscriptions.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURR
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR subscriptions.archived_at IS NULL)
 	AND subscriptions.belongs_to_account = sqlc.arg(belongs_to_account)
 	AND subscriptions.belongs_to_account = sqlc.arg(belongs_to_account)
-	AND subscriptions.id > COALESCE(sqlc.narg(cursor), '')
+	AND subscriptions.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY subscriptions.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 

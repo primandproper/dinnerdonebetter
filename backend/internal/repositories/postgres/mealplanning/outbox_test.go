@@ -12,9 +12,9 @@ import (
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 	mealplanningindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
-	"github.com/primandproper/platform-go/v12/database"
-	"github.com/primandproper/platform-go/v12/identifiers"
-	searchsync "github.com/primandproper/platform-go/v12/search/sync"
+	"github.com/primandproper/platform-go/v13/database"
+	"github.com/primandproper/platform-go/v13/identifiers"
+	searchsync "github.com/primandproper/platform-go/v13/search/sync"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

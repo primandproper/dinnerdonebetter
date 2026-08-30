@@ -29,7 +29,7 @@ SELECT EXISTS (
 SELECT meals.id
 FROM meals
 WHERE meals.archived_at IS NULL
-	AND meals.id COLLATE "C" > sqlc.arg(cursor)
+	AND meals.id COLLATE "C" > sqlc.arg(page_cursor)
 ORDER BY meals.id COLLATE "C"
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
@@ -158,7 +158,7 @@ WHERE meals.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIME
 		OR meals.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR meals.archived_at IS NULL)
-	AND meals.id > COALESCE(sqlc.narg(cursor), '')
+	AND meals.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY meals.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
@@ -249,7 +249,7 @@ WHERE meals.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIME
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR meals.archived_at IS NULL)
 	AND meals.created_by_user = sqlc.arg(created_by_user)
-	AND meals.id > COALESCE(sqlc.narg(cursor), '')
+	AND meals.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY meals.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
@@ -310,7 +310,7 @@ WHERE meals.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIME
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR meals.archived_at IS NULL)
 	AND meals.name ILIKE '%' || sqlc.arg(query)::text || '%'
-	AND meals.id > COALESCE(sqlc.narg(cursor), '')
+	AND meals.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY meals.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 

@@ -413,7 +413,7 @@ type GetValidIngredientPreparationsParams struct {
 	UpdatedAfter    sql.NullTime
 	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -496,7 +496,7 @@ func (q *Queries) GetValidIngredientPreparations(ctx context.Context, db DBTX, a
 		arg.UpdatedAfter,
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {
@@ -946,7 +946,7 @@ type GetValidIngredientPreparationsForIngredientParams struct {
 	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	ID              string
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -1030,7 +1030,7 @@ func (q *Queries) GetValidIngredientPreparationsForIngredient(ctx context.Contex
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.ID,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {
@@ -1240,7 +1240,7 @@ type GetValidIngredientPreparationsForPreparationParams struct {
 	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	ID              string
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -1324,7 +1324,7 @@ func (q *Queries) GetValidIngredientPreparationsForPreparation(ctx context.Conte
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.ID,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {
@@ -1540,7 +1540,7 @@ type SearchValidIngredientPreparationsByPreparationAndIngredientNameParams struc
 	IncludeArchived sql.NullBool
 	ID              string
 	NameQuery       string
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -1625,7 +1625,7 @@ func (q *Queries) SearchValidIngredientPreparationsByPreparationAndIngredientNam
 		arg.IncludeArchived,
 		arg.ID,
 		arg.NameQuery,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {

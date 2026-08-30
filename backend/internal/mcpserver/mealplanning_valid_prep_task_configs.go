@@ -5,7 +5,7 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 
-	"github.com/primandproper/platform-go/v12/filtering"
+	"github.com/primandproper/platform-go/v13/filtering"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -17,20 +17,20 @@ type (
 )
 
 var validPrepTaskConfigsSchema = map[string]any{
-	"ID":                             stringField("The ID of the valid prep task config"),
-	"CreatedAt":                      timestampField("When the valid prep task config was created"),
-	"LastUpdatedAt":                  timestampField("When the valid prep task config was last updated"),
-	"ArchivedAt":                     timestampField("When the valid prep task config was soft deleted"),
-	"MinStorageDurationInSeconds":    uintField("Minimum storage duration in seconds (required)"),
-	"MaxStorageDurationInSeconds":    uintField("Maximum storage duration in seconds (optional)"),
-	"MinStorageTemperatureInCelsius": floatField("Minimum storage temperature in Celsius (optional)"),
-	"MaxStorageTemperatureInCelsius": floatField("Maximum storage temperature in Celsius (optional)"),
-	"StorageType":                    stringField("The type of storage container (e.g., covered, airtight, uncovered)"),
-	"StorageInstructions":            stringField("Instructions for how to store the prepped ingredient"),
-	"Notes":                          stringField("Additional notes about the prep task config"),
-	"Source":                         stringField("The source of this prep task config information"),
-	"Preparation":                    objectType(validPreparationsSchema),
-	"Ingredient":                     objectType(validIngredientsSchema),
+	"ID":                                stringField("The ID of the valid prep task config"),
+	fieldCreatedAt:                      timestampField("When the valid prep task config was created"),
+	fieldLastUpdatedAt:                  timestampField("When the valid prep task config was last updated"),
+	fieldArchivedAt:                     timestampField("When the valid prep task config was soft deleted"),
+	"MinStorageDurationInSeconds":       uintField("Minimum storage duration in seconds (required)"),
+	"MaxStorageDurationInSeconds":       uintField("Maximum storage duration in seconds (optional)"),
+	fieldMinStorageTemperatureInCelsius: floatField("Minimum storage temperature in Celsius (optional)"),
+	fieldMaxStorageTemperatureInCelsius: floatField("Maximum storage temperature in Celsius (optional)"),
+	"StorageType":                       stringField("The type of storage container (e.g., covered, airtight, uncovered)"),
+	fieldStorageInstructions:            stringField("Instructions for how to store the prepped ingredient"),
+	fieldNotes:                          stringField("Additional notes about the prep task config"),
+	"Source":                            stringField("The source of this prep task config information"),
+	fieldPreparation:                    objectType(validPreparationsSchema),
+	fieldIngredient:                     objectType(validIngredientsSchema),
 }
 
 var getValidPrepTaskConfigTool = &mcp.Tool{
@@ -71,10 +71,10 @@ var getValidPrepTaskConfigsTool = &mcp.Tool{
 	Name:        "GetValidPrepTaskConfigs",
 	Description: "Get valid prep task configs with optional filtering. Prep task configs define how long prepped ingredients can be stored.",
 	InputSchema: schemaObject(map[string]any{
-		"Filter": filtering.QueryFilterSchema(),
+		fieldFilter: filtering.QueryFilterSchema(),
 	}),
 	OutputSchema: schemaObject(map[string]any{
-		"Results": arrayType(schemaObject(validPrepTaskConfigsSchema)),
+		fieldResults: arrayType(schemaObject(validPrepTaskConfigsSchema)),
 	}),
 }
 
@@ -106,11 +106,11 @@ var getValidPrepTaskConfigsByIngredientTool = &mcp.Tool{
 	Name:        "GetValidPrepTaskConfigsByIngredient",
 	Description: "Get valid prep task configs for a specific ingredient. Use this to find storage information for a particular ingredient.",
 	InputSchema: schemaObject(map[string]any{
-		"ValidIngredientID": stringField("The ID of the ingredient to get prep task configs for"),
-		"Filter":            filtering.QueryFilterSchema(),
+		fieldValidIngredientID: stringField("The ID of the ingredient to get prep task configs for"),
+		fieldFilter:            filtering.QueryFilterSchema(),
 	}),
 	OutputSchema: schemaObject(map[string]any{
-		"Results": arrayType(schemaObject(validPrepTaskConfigsSchema)),
+		fieldResults: arrayType(schemaObject(validPrepTaskConfigsSchema)),
 	}),
 }
 
@@ -142,11 +142,11 @@ var getValidPrepTaskConfigsByPreparationTool = &mcp.Tool{
 	Name:        "GetValidPrepTaskConfigsByPreparation",
 	Description: "Get valid prep task configs for a specific preparation method. Use this to find storage information for ingredients prepared a certain way.",
 	InputSchema: schemaObject(map[string]any{
-		"ValidPreparationID": stringField("The ID of the preparation to get prep task configs for"),
-		"Filter":             filtering.QueryFilterSchema(),
+		fieldValidPreparationID: stringField("The ID of the preparation to get prep task configs for"),
+		fieldFilter:             filtering.QueryFilterSchema(),
 	}),
 	OutputSchema: schemaObject(map[string]any{
-		"Results": arrayType(schemaObject(validPrepTaskConfigsSchema)),
+		fieldResults: arrayType(schemaObject(validPrepTaskConfigsSchema)),
 	}),
 }
 
@@ -179,12 +179,12 @@ var getValidPrepTaskConfigsByIngredientAndPreparationTool = &mcp.Tool{
 	Name:        "GetValidPrepTaskConfigsByIngredientAndPreparation",
 	Description: "Get valid prep task configs for a specific ingredient and preparation combination. Use this to find exactly how long a specific prepped ingredient (e.g., diced onions) can be stored.",
 	InputSchema: schemaObject(map[string]any{
-		"ValidIngredientID":  stringField("The ID of the ingredient"),
-		"ValidPreparationID": stringField("The ID of the preparation"),
-		"Filter":             filtering.QueryFilterSchema(),
+		fieldValidIngredientID:  stringField("The ID of the ingredient"),
+		fieldValidPreparationID: stringField("The ID of the preparation"),
+		fieldFilter:             filtering.QueryFilterSchema(),
 	}),
 	OutputSchema: schemaObject(map[string]any{
-		"Results": arrayType(schemaObject(validPrepTaskConfigsSchema)),
+		fieldResults: arrayType(schemaObject(validPrepTaskConfigsSchema)),
 	}),
 }
 

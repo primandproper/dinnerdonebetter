@@ -11,8 +11,8 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 
-	"github.com/primandproper/platform-go/v12/database"
-	"github.com/primandproper/platform-go/v12/filtering"
+	"github.com/primandproper/platform-go/v13/database"
+	"github.com/primandproper/platform-go/v13/filtering"
 )
 
 // Ensure, that RepositoryMock does implement identity.Repository.

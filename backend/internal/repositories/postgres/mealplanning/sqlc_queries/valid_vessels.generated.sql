@@ -71,7 +71,7 @@ WHERE archived_at IS NULL
 SELECT valid_vessels.id
 FROM valid_vessels
 WHERE valid_vessels.archived_at IS NULL
-	AND valid_vessels.id COLLATE "C" > sqlc.arg(cursor)
+	AND valid_vessels.id COLLATE "C" > sqlc.arg(page_cursor)
 ORDER BY valid_vessels.id COLLATE "C"
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
@@ -133,7 +133,7 @@ WHERE valid_vessels.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURR
 		OR valid_vessels.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_vessels.archived_at IS NULL)
-	AND valid_vessels.id > COALESCE(sqlc.narg(cursor), '')
+	AND valid_vessels.id > COALESCE(sqlc.narg(page_cursor), '')
 GROUP BY valid_vessels.id
 ORDER BY valid_vessels.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
@@ -321,6 +321,6 @@ WHERE valid_vessels.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURR
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_vessels.archived_at IS NULL)
 	AND valid_vessels.name ILIKE '%' || sqlc.arg(name_query)::text || '%'
-	AND valid_vessels.id > COALESCE(sqlc.narg(cursor), '')
+	AND valid_vessels.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY valid_vessels.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);

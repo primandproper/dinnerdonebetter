@@ -9,9 +9,9 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	mealplanningmocks "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
 
-	searchsync "github.com/primandproper/platform-go/v12/search/sync"
-	syncsource "github.com/primandproper/platform-go/v12/search/sync/source"
-	textsearchmock "github.com/primandproper/platform-go/v12/search/text/mock"
+	searchsync "github.com/primandproper/platform-go/v13/search/sync"
+	syncsource "github.com/primandproper/platform-go/v13/search/sync/source"
+	textsearchmock "github.com/primandproper/platform-go/v13/search/text/mock"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

@@ -4,8 +4,8 @@ import (
 	paymentsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/manager"
 	paymentssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/payments"
 
-	"github.com/primandproper/platform-go/v12/observability/logging"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v13/observability/logging"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 )
 
 const (

@@ -10,11 +10,11 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists/fakes"
 	waitlistmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists/mock"
 
-	platformerrors "github.com/primandproper/platform-go/v12/errors"
-	"github.com/primandproper/platform-go/v12/fake"
-	"github.com/primandproper/platform-go/v12/filtering"
-	loggingnoop "github.com/primandproper/platform-go/v12/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v12/observability/tracing/noop"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	"github.com/primandproper/platform-go/v13/fake"
+	"github.com/primandproper/platform-go/v13/filtering"
+	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
+	tracingnoop "github.com/primandproper/platform-go/v13/observability/tracing/noop"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

@@ -6,8 +6,8 @@ import (
 	notificationsmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/mock"
 	notificationssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/notifications"
 
-	loggingnoop "github.com/primandproper/platform-go/v12/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v12/observability/tracing/noop"
+	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
+	tracingnoop "github.com/primandproper/platform-go/v13/observability/tracing/noop"
 
 	"github.com/stretchr/testify/assert"
 )

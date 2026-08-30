@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v12/database/querygen"
+	"github.com/primandproper/platform-go/v13/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -112,10 +112,10 @@ WHERE %s
 						pgGen.FilterCountSelect(waitlistSignupsTableName, waitlistSignupColumns, nil, fmt.Sprintf("%s.%s = sqlc.arg(%s)", waitlistSignupsTableName, belongsToWaitlistColumn, belongsToWaitlistColumn)),
 						pgGen.TotalCountSelect(waitlistSignupsTableName, waitlistSignupColumns, nil, fmt.Sprintf("%s.%s = sqlc.arg(%s)", waitlistSignupsTableName, belongsToWaitlistColumn, belongsToWaitlistColumn)),
 						waitlistSignupsTableName,
-						pgGen.FilterConditions(waitlistSignupsTableName, waitlistSignupColumns,
+						pgGen.FilterConditions(waitlistSignupsTableName, waitlistSignupColumns, querygen.Ascending,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", waitlistSignupsTableName, belongsToWaitlistColumn, belongsToWaitlistColumn),
 						),
-						pgGen.CursorLimitClause(waitlistSignupsTableName),
+						pgGen.CursorLimitClause(waitlistSignupsTableName, querygen.Ascending),
 					)),
 				},
 				{
@@ -134,10 +134,10 @@ WHERE %s
 						pgGen.FilterCountSelect(waitlistSignupsTableName, waitlistSignupColumns, nil, fmt.Sprintf("%s.%s = sqlc.arg(%s)", waitlistSignupsTableName, belongsToUserColumn, belongsToUserColumn)),
 						pgGen.TotalCountSelect(waitlistSignupsTableName, waitlistSignupColumns, nil, fmt.Sprintf("%s.%s = sqlc.arg(%s)", waitlistSignupsTableName, belongsToUserColumn, belongsToUserColumn)),
 						waitlistSignupsTableName,
-						pgGen.FilterConditions(waitlistSignupsTableName, waitlistSignupColumns,
+						pgGen.FilterConditions(waitlistSignupsTableName, waitlistSignupColumns, querygen.Ascending,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", waitlistSignupsTableName, belongsToUserColumn, belongsToUserColumn),
 						),
-						pgGen.CursorLimitClause(waitlistSignupsTableName),
+						pgGen.CursorLimitClause(waitlistSignupsTableName, querygen.Ascending),
 					)),
 				},
 			},

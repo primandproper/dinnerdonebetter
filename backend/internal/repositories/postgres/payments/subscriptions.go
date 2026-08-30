@@ -9,11 +9,11 @@ import (
 	paymentskeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/keys"
 	generated "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/payments/generated"
 
-	"github.com/primandproper/platform-go/v12/database"
-	platformerrors "github.com/primandproper/platform-go/v12/errors"
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/observability"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v13/database"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/observability"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 )
 
 const (
@@ -44,7 +44,7 @@ func (r *repository) CreateSubscription(ctx context.Context, input *payments.Sub
 
 	if err := r.withEvent(ctx, logger, payments.SubscriptionCreatedServiceEventType, "", map[string]any{
 		paymentskeys.SubscriptionIDKey: input.ID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		if err := r.generatedQuerier.CreateSubscription(ctx, tx, arg); err != nil {
 			return err
 		}
@@ -119,7 +119,7 @@ func (r *repository) GetSubscriptionsForAccount(ctx context.Context, accountID s
 		CreatedBefore:    database.NullTimeFromTimePointer(filter.CreatedBefore),
 		UpdatedBefore:    database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:     database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		Cursor:           database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:       database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:      database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived:  database.NullBoolFromBoolPointer(filter.IncludeArchived),
 	}
@@ -154,7 +154,7 @@ func (r *repository) UpdateSubscription(ctx context.Context, sub *payments.Subsc
 
 	return r.withEvent(ctx, logger, payments.SubscriptionUpdatedServiceEventType, "", map[string]any{
 		paymentskeys.SubscriptionIDKey: sub.ID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		_, err := r.generatedQuerier.UpdateSubscription(ctx, tx, arg)
 		if err != nil {
 			return observability.PrepareAndLogError(err, logger, span, "updating subscription")
@@ -189,7 +189,7 @@ func (r *repository) UpdateSubscriptionStatus(ctx context.Context, id, status st
 		Status: generated.SubscriptionStatus(status),
 	}
 
-	if err := r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err := r.WithTransaction(ctx, func(tx database.Tx) error {
 		if _, updateErr := r.generatedQuerier.UpdateSubscriptionStatus(ctx, tx, arg); updateErr != nil {
 			return updateErr
 		}
@@ -221,7 +221,7 @@ func (r *repository) ArchiveSubscription(ctx context.Context, id string) error {
 
 	return r.withEvent(ctx, logger, payments.SubscriptionArchivedServiceEventType, "", map[string]any{
 		paymentskeys.SubscriptionIDKey: id,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		_, err := r.generatedQuerier.ArchiveSubscription(ctx, tx, id)
 		if err != nil {
 			return observability.PrepareAndLogError(err, logger, span, "archiving subscription")

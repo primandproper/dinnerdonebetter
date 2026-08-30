@@ -10,20 +10,20 @@ import (
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
 
-	analyticscfg "github.com/primandproper/platform-go/v12/analytics/config"
-	auditcfg "github.com/primandproper/platform-go/v12/audit/config"
-	capitalismcfg "github.com/primandproper/platform-go/v12/capitalism/config"
-	distributedlockcfg "github.com/primandproper/platform-go/v12/distributedlock/config"
-	"github.com/primandproper/platform-go/v12/jobs"
-	msgconfig "github.com/primandproper/platform-go/v12/messagequeue/config"
-	meteringcfg "github.com/primandproper/platform-go/v12/metering/config"
-	"github.com/primandproper/platform-go/v12/observability"
-	operationscfg "github.com/primandproper/platform-go/v12/operations/config"
-	"github.com/primandproper/platform-go/v12/outbox"
-	"github.com/primandproper/platform-go/v12/retention"
-	"github.com/primandproper/platform-go/v12/saga"
-	textsearchcfg "github.com/primandproper/platform-go/v12/search/text/config"
-	webhookscfg "github.com/primandproper/platform-go/v12/webhooks/config"
+	analyticscfg "github.com/primandproper/platform-go/v13/analytics/config"
+	auditcfg "github.com/primandproper/platform-go/v13/audit/config"
+	capitalismcfg "github.com/primandproper/platform-go/v13/capitalism/config"
+	distributedlockcfg "github.com/primandproper/platform-go/v13/distributedlock/config"
+	"github.com/primandproper/platform-go/v13/jobs"
+	msgconfig "github.com/primandproper/platform-go/v13/messagequeue/config"
+	meteringcfg "github.com/primandproper/platform-go/v13/metering/config"
+	"github.com/primandproper/platform-go/v13/observability"
+	operationscfg "github.com/primandproper/platform-go/v13/operations/config"
+	"github.com/primandproper/platform-go/v13/outbox"
+	"github.com/primandproper/platform-go/v13/retention"
+	"github.com/primandproper/platform-go/v13/saga"
+	textsearchcfg "github.com/primandproper/platform-go/v13/search/text/config"
+	webhookscfg "github.com/primandproper/platform-go/v13/webhooks/config"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/hashicorp/go-multierror"
@@ -293,21 +293,21 @@ func (cfg *SchedulerConfig) ValidateWithContext(ctx context.Context) error {
 	result := &multierror.Error{}
 
 	validators := map[string]func(context.Context) error{
-		"Queues":        cfg.Queues.ValidateWithContext,
-		"Analytics":     cfg.Analytics.ValidateWithContext,
-		"Observability": cfg.Observability.ValidateWithContext,
-		"Database":      cfg.Database.ValidateWithContext,
-		"Search":        cfg.Search.ValidateWithContext,
-		"DataPrivacy":   cfg.DataPrivacy.ValidateWithContext,
-		"Operations":    cfg.Operations.ValidateWithContext,
-		"Jobs":          cfg.Jobs.ValidateWithContext,
-		"Outbox":        cfg.Outbox.ValidateWithContext,
-		"Audit":         cfg.Audit.ValidateWithContext,
-		"Webhooks":      cfg.Webhooks.ValidateWithContext,
-		"Sagas":         cfg.Sagas.ValidateWithContext,
-		"Retention":     cfg.Retention.ValidateWithContext,
-		"Metering":      cfg.Metering.ValidateWithContext,
-		"Capitalism":    cfg.Capitalism.ValidateWithContext,
+		sectionQueues:        cfg.Queues.ValidateWithContext,
+		sectionAnalytics:     cfg.Analytics.ValidateWithContext,
+		sectionObservability: cfg.Observability.ValidateWithContext,
+		sectionDatabase:      cfg.Database.ValidateWithContext,
+		"Search":             cfg.Search.ValidateWithContext,
+		"DataPrivacy":        cfg.DataPrivacy.ValidateWithContext,
+		"Operations":         cfg.Operations.ValidateWithContext,
+		"Jobs":               cfg.Jobs.ValidateWithContext,
+		"Outbox":             cfg.Outbox.ValidateWithContext,
+		"Audit":              cfg.Audit.ValidateWithContext,
+		"Webhooks":           cfg.Webhooks.ValidateWithContext,
+		"Sagas":              cfg.Sagas.ValidateWithContext,
+		"Retention":          cfg.Retention.ValidateWithContext,
+		"Metering":           cfg.Metering.ValidateWithContext,
+		"Capitalism":         cfg.Capitalism.ValidateWithContext,
 	}
 
 	for name, validator := range validators {

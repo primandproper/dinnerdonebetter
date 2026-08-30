@@ -3,7 +3,7 @@ package mealplanning
 import (
 	"context"
 
-	"github.com/primandproper/platform-go/v12/database"
+	"github.com/primandproper/platform-go/v13/database"
 )
 
 const (
@@ -76,5 +76,5 @@ type (
 	// started in its own transaction, after the claim has committed, is a plan claimed by a
 	// saga that does not exist if the process dies in between — and nothing would ever pick
 	// the plan up again, because the claim is exactly what the starter's query filters on.
-	MealPlanFinalizationSagaStarter func(ctx context.Context, q database.SQLQueryExecutor) (string, error)
+	MealPlanFinalizationSagaStarter func(ctx context.Context, q database.Tx) (string, error)
 )

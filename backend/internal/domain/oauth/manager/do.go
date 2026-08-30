@@ -6,10 +6,10 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
-	"github.com/primandproper/platform-go/v12/messagequeue"
-	"github.com/primandproper/platform-go/v12/observability/logging"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
-	"github.com/primandproper/platform-go/v12/random"
+	"github.com/primandproper/platform-go/v13/messagequeue"
+	"github.com/primandproper/platform-go/v13/observability/logging"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
+	"github.com/primandproper/platform-go/v13/random"
 
 	"github.com/samber/do/v2"
 )

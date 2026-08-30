@@ -8,11 +8,11 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
 
-	platformdataprivacy "github.com/primandproper/platform-go/v12/dataprivacy"
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/observability"
-	"github.com/primandproper/platform-go/v12/observability/logging"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	platformdataprivacy "github.com/primandproper/platform-go/v13/dataprivacy"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/observability"
+	"github.com/primandproper/platform-go/v13/observability/logging"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 )
 
 const o11yName = "notifications_privacy_collector"

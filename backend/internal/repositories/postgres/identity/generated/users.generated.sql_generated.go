@@ -1001,7 +1001,7 @@ type GetUsersParams struct {
 	UpdatedAfter    sql.NullTime
 	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -1045,7 +1045,7 @@ func (q *Queries) GetUsers(ctx context.Context, db DBTX, arg *GetUsersParams) ([
 		arg.UpdatedAfter,
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {
@@ -1180,7 +1180,7 @@ type GetUsersForAccountParams struct {
 	UpdatedBefore    sql.NullTime
 	IncludeArchived  sql.NullBool
 	BelongsToAccount string
-	Cursor           sql.NullString
+	PageCursor       sql.NullString
 	ResultLimit      interface{}
 }
 
@@ -1225,7 +1225,7 @@ func (q *Queries) GetUsersForAccount(ctx context.Context, db DBTX, arg *GetUsers
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.BelongsToAccount,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {
@@ -1490,12 +1490,12 @@ LIMIT COALESCE($2, 50)
 `
 
 type ScanUserIDsForReindexParams struct {
-	Cursor      string
+	PageCursor  string
 	ResultLimit interface{}
 }
 
 func (q *Queries) ScanUserIDsForReindex(ctx context.Context, db DBTX, arg *ScanUserIDsForReindexParams) ([]string, error) {
-	rows, err := db.QueryContext(ctx, scanUserIDsForReindex, arg.Cursor, arg.ResultLimit)
+	rows, err := db.QueryContext(ctx, scanUserIDsForReindex, arg.PageCursor, arg.ResultLimit)
 	if err != nil {
 		return nil, err
 	}
@@ -1594,7 +1594,7 @@ type SearchUsersByUsernameParams struct {
 	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	Username        string
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -1639,7 +1639,7 @@ func (q *Queries) SearchUsersByUsername(ctx context.Context, db DBTX, arg *Searc
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.Username,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {

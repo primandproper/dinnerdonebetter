@@ -1,13 +1,13 @@
 package authentication
 
 import (
-	platformauth "github.com/primandproper/platform-go/v12/authentication"
-	"github.com/primandproper/platform-go/v12/authentication/argon2"
-	"github.com/primandproper/platform-go/v12/authentication/totp"
-	platformerrors "github.com/primandproper/platform-go/v12/errors"
+	platformauth "github.com/primandproper/platform-go/v13/authentication"
+	"github.com/primandproper/platform-go/v13/authentication/argon2"
+	"github.com/primandproper/platform-go/v13/authentication/totp"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
 )
 
-// Re-exports of types that now live in github.com/primandproper/platform-go/v12/authentication.
+// Re-exports of types that now live in github.com/primandproper/platform-go/v13/authentication.
 // These aliases let existing consumers keep using the `authentication` package while the
 // interface and argon2 provider definitions live in the shared platform module.
 type (

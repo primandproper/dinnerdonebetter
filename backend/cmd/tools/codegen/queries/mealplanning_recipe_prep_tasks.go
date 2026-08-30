@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v12/database/querygen"
+	"github.com/primandproper/platform-go/v13/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -20,13 +20,13 @@ var recipePrepTasksColumns = []string{
 	nameColumn,
 	descriptionColumn,
 	notesColumn,
-	"optional",
+	optionalColumn,
 	"explicit_storage_instructions",
 	"minimum_time_buffer_before_recipe_in_seconds",
 	"maximum_time_buffer_before_recipe_in_seconds",
 	"storage_type",
-	"minimum_storage_temperature_in_celsius",
-	"maximum_storage_temperature_in_celsius",
+	minimumStorageTemperatureInCelsiusColumn,
+	maximumStorageTemperatureInCelsiusColumn,
 	createdAtColumn,
 	lastUpdatedAtColumn,
 	archivedAtColumn,

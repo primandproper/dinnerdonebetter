@@ -10,11 +10,11 @@ import (
 	notificationkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/keys"
 	generated "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/notifications/generated"
 
-	"github.com/primandproper/platform-go/v12/database"
-	platformerrors "github.com/primandproper/platform-go/v12/errors"
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/observability"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v13/database"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/observability"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 )
 
 const (
@@ -183,7 +183,7 @@ func (q *Repository) UpsertUserDeviceToken(ctx context.Context, input *types.Use
 	var result *generated.UserDeviceTokens
 
 	// The upsert and its event share a transaction.
-	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err := q.WithTransaction(ctx, func(tx database.Tx) error {
 		var upsertErr error
 		if result, upsertErr = q.generatedQuerier.UpsertUserDeviceToken(ctx, tx, &generated.UpsertUserDeviceTokenParams{
 			ID:            input.ID,
@@ -230,7 +230,7 @@ func (q *Repository) UpdateUserDeviceToken(ctx context.Context, updated *types.U
 	tracing.AttachToSpan(span, notificationkeys.UserDeviceTokenIDKey, updated.ID)
 
 	var err error
-	if err = q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err = q.WithTransaction(ctx, func(tx database.Tx) error {
 		if _, err = q.generatedQuerier.UpdateUserDeviceToken(ctx, tx, &generated.UpdateUserDeviceTokenParams{
 			Platform:      updated.Platform,
 			ID:            updated.ID,
@@ -279,7 +279,7 @@ func (q *Repository) ArchiveUserDeviceToken(ctx context.Context, userID, tokenID
 	logger := q.logger.WithValue(notificationkeys.UserDeviceTokenIDKey, tokenID)
 	tracing.AttachToSpan(span, notificationkeys.UserDeviceTokenIDKey, tokenID)
 
-	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err := q.WithTransaction(ctx, func(tx database.Tx) error {
 		rows, err := q.generatedQuerier.ArchiveUserDeviceToken(ctx, tx, &generated.ArchiveUserDeviceTokenParams{
 			ID:            tokenID,
 			BelongsToUser: userID,

@@ -1,7 +1,7 @@
 package config
 
 import (
-	capitalismcfg "github.com/primandproper/platform-go/v12/capitalism/config"
+	capitalismcfg "github.com/primandproper/platform-go/v13/capitalism/config"
 )
 
 // Config holds payments service configuration.

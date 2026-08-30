@@ -19,7 +19,7 @@ func TestAuthenticationService_AuthorizeHandler(T *testing.T) {
 		// Answered in the browser rather than by redirecting: until the client and its redirect
 		// URI are known, there is nowhere safe to send an error to.
 		res := httptest.NewRecorder()
-		buildTestService(t).AuthorizeHandler(res, httptest.NewRequest(http.MethodGet, "/authorize", http.NoBody))
+		buildTestService(t).AuthorizeHandler(res, httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/authorize", http.NoBody))
 
 		assert.Equal(t, http.StatusBadRequest, res.Code)
 		assert.Empty(t, res.Header().Get("Location"))
@@ -33,7 +33,7 @@ func TestAuthenticationService_TokenHandler(T *testing.T) {
 		t.Parallel()
 
 		res := httptest.NewRecorder()
-		buildTestService(t).TokenHandler(res, httptest.NewRequest(http.MethodPost, "/token", http.NoBody))
+		buildTestService(t).TokenHandler(res, httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/token", http.NoBody))
 
 		assert.GreaterOrEqual(t, res.Code, http.StatusBadRequest)
 	})
@@ -46,7 +46,7 @@ func TestAuthenticationService_RevokeHandler(T *testing.T) {
 		t.Parallel()
 
 		res := httptest.NewRecorder()
-		buildTestService(t).RevokeHandler(res, httptest.NewRequest(http.MethodPost, "/revoke", http.NoBody))
+		buildTestService(t).RevokeHandler(res, httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/revoke", http.NoBody))
 
 		assert.GreaterOrEqual(t, res.Code, http.StatusBadRequest)
 	})
@@ -59,7 +59,7 @@ func TestAuthenticationService_AuthorizationServerMetadataHandler(T *testing.T) 
 		t.Parallel()
 
 		res := httptest.NewRecorder()
-		req := httptest.NewRequest(http.MethodGet, "/.well-known/oauth-authorization-server", http.NoBody)
+		req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/.well-known/oauth-authorization-server", http.NoBody)
 
 		buildTestService(t).AuthorizationServerMetadataHandler(res, req)
 

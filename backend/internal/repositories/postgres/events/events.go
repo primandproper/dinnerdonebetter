@@ -28,12 +28,12 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/catalog"
 
-	"github.com/primandproper/platform-go/v12/database"
-	platformerrors "github.com/primandproper/platform-go/v12/errors"
-	"github.com/primandproper/platform-go/v12/observability/logging"
-	"github.com/primandproper/platform-go/v12/outbox"
-	"github.com/primandproper/platform-go/v12/tenancy"
-	"github.com/primandproper/platform-go/v12/webhooks"
+	"github.com/primandproper/platform-go/v13/database"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	"github.com/primandproper/platform-go/v13/observability/logging"
+	"github.com/primandproper/platform-go/v13/outbox"
+	"github.com/primandproper/platform-go/v13/tenancy"
+	"github.com/primandproper/platform-go/v13/webhooks"
 )
 
 // Emitter enqueues data change events into the outbox and fans them out to webhooks.
@@ -96,7 +96,7 @@ func WithOrderingKey(key string) EmitOption {
 // the context and should be passed whenever the repository knows it, because a background job
 // has no session: the finalizer reaches the same repository method as a user request does, and
 // on that path the context carries nobody. Pass "" only when the event genuinely has no account.
-func (e *Emitter) Emit(ctx context.Context, q database.SQLQueryExecutor, logger logging.Logger, eventType, accountID string, metadata map[string]any, opts ...EmitOption) error {
+func (e *Emitter) Emit(ctx context.Context, q database.Tx, logger logging.Logger, eventType, accountID string, metadata map[string]any, opts ...EmitOption) error {
 	if e == nil {
 		return nil
 	}
@@ -152,7 +152,7 @@ func (e *Emitter) Emit(ctx context.Context, q database.SQLQueryExecutor, logger 
 // The cost is on the same ledger: a webhook table failure now fails the business transaction. It
 // is the same trade the outbox already makes one line above, and for the same reason — the
 // alternative is durable state and delivery diverging with nothing able to detect it.
-func (e *Emitter) dispatchWebhooks(ctx context.Context, q database.SQLQueryExecutor, msg *audit.DataChangeMessage, cfg *emitConfig) error {
+func (e *Emitter) dispatchWebhooks(ctx context.Context, q database.Tx, msg *audit.DataChangeMessage, cfg *emitConfig) error {
 	// A process wired without webhooks still writes rows and emits events.
 	if e.dispatcher == nil {
 		return nil

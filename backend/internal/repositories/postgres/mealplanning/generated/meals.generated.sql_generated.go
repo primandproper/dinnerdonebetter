@@ -249,7 +249,7 @@ type GetMealsParams struct {
 	UpdatedAfter    sql.NullTime
 	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -284,7 +284,7 @@ func (q *Queries) GetMeals(ctx context.Context, db DBTX, arg *GetMealsParams) ([
 		arg.UpdatedAfter,
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {
@@ -501,7 +501,7 @@ type GetMealsCreatedByUserParams struct {
 	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	CreatedByUser   string
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -537,7 +537,7 @@ func (q *Queries) GetMealsCreatedByUser(ctx context.Context, db DBTX, arg *GetMe
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.CreatedByUser,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {
@@ -735,12 +735,12 @@ LIMIT COALESCE($2, 50)
 `
 
 type ScanMealIDsForReindexParams struct {
-	Cursor      string
+	PageCursor  string
 	ResultLimit interface{}
 }
 
 func (q *Queries) ScanMealIDsForReindex(ctx context.Context, db DBTX, arg *ScanMealIDsForReindexParams) ([]string, error) {
-	rows, err := db.QueryContext(ctx, scanMealIDsForReindex, arg.Cursor, arg.ResultLimit)
+	rows, err := db.QueryContext(ctx, scanMealIDsForReindex, arg.PageCursor, arg.ResultLimit)
 	if err != nil {
 		return nil, err
 	}
@@ -831,7 +831,7 @@ type SearchForMealsParams struct {
 	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	Query           string
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -867,7 +867,7 @@ func (q *Queries) SearchForMeals(ctx context.Context, db DBTX, arg *SearchForMea
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.Query,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {

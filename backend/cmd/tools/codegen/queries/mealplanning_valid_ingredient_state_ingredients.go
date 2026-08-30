@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v12/database/querygen"
+	"github.com/primandproper/platform-go/v13/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -79,12 +79,12 @@ WHERE %s
 						validIngredientStateColumn,
 						validIngredientStatesTableName,
 						idColumn,
-						pgGen.FilterConditions(validIngredientStateIngredientsTableName, validIngredientStateIngredientsColumns,
+						pgGen.FilterConditions(validIngredientStateIngredientsTableName, validIngredientStateIngredientsColumns, querygen.Ascending,
 							"valid_ingredients.archived_at IS NULL",
 							"valid_ingredient_states.archived_at IS NULL",
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", validIngredientStateIngredientsTableName, validIngredientColumn, validIngredientColumn),
 						),
-						pgGen.CursorLimitClause(validIngredientStateIngredientsTableName),
+						pgGen.CursorLimitClause(validIngredientStateIngredientsTableName, querygen.Ascending),
 					)),
 				},
 				{
@@ -115,12 +115,12 @@ WHERE %s
 						validIngredientStateColumn,
 						validIngredientStatesTableName,
 						idColumn,
-						pgGen.FilterConditions(validIngredientStateIngredientsTableName, validIngredientStateIngredientsColumns,
+						pgGen.FilterConditions(validIngredientStateIngredientsTableName, validIngredientStateIngredientsColumns, querygen.Ascending,
 							"valid_ingredients.archived_at IS NULL",
 							"valid_ingredient_states.archived_at IS NULL",
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", validIngredientStateIngredientsTableName, validIngredientStateColumn, validIngredientStateColumn),
 						),
-						pgGen.CursorLimitClause(validIngredientStateIngredientsTableName),
+						pgGen.CursorLimitClause(validIngredientStateIngredientsTableName, querygen.Ascending),
 					)),
 				},
 				{
@@ -151,11 +151,11 @@ WHERE %s
 						validIngredientStateColumn,
 						validIngredientStatesTableName,
 						idColumn,
-						pgGen.FilterConditions(validIngredientStateIngredientsTableName, validIngredientStateIngredientsColumns,
+						pgGen.FilterConditions(validIngredientStateIngredientsTableName, validIngredientStateIngredientsColumns, querygen.Ascending,
 							"valid_ingredients.archived_at IS NULL",
 							"valid_ingredient_states.archived_at IS NULL",
 						),
-						pgGen.CursorLimitClause(validIngredientStateIngredientsTableName),
+						pgGen.CursorLimitClause(validIngredientStateIngredientsTableName, querygen.Ascending),
 					)),
 				},
 				{

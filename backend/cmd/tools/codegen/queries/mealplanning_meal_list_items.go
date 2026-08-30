@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v12/database/querygen"
+	"github.com/primandproper/platform-go/v13/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -74,11 +74,11 @@ WHERE %s
 						pgGen.FilterCountSelect(mealListItemsTableName, mealListItemsColumns, []string{}, fmt.Sprintf("%s.belongs_to_meal_list = sqlc.arg(%s)", mealListItemsTableName, mealListIDColumn), fmt.Sprintf("EXISTS (SELECT 1 FROM %s WHERE %s.%s = %s.belongs_to_meal_list AND %s.%s = sqlc.arg(%s))", mealListsTableName, mealListsTableName, idColumn, mealListItemsTableName, mealListsTableName, belongsToUserColumn, belongsToUserColumn)),
 						pgGen.TotalCountSelect(mealListItemsTableName, mealListItemsColumns, []string{}),
 						mealListItemsTableName,
-						pgGen.FilterConditions(mealListItemsTableName, mealListItemsColumns,
+						pgGen.FilterConditions(mealListItemsTableName, mealListItemsColumns, querygen.Ascending,
 							fmt.Sprintf("%s.belongs_to_meal_list = sqlc.arg(%s)", mealListItemsTableName, mealListIDColumn),
 							fmt.Sprintf("EXISTS (SELECT 1 FROM %s WHERE %s.%s = %s.belongs_to_meal_list AND %s.%s = sqlc.arg(%s))", mealListsTableName, mealListsTableName, idColumn, mealListItemsTableName, mealListsTableName, belongsToUserColumn, belongsToUserColumn),
 						),
-						pgGen.CursorLimitClause(mealListItemsTableName),
+						pgGen.CursorLimitClause(mealListItemsTableName, querygen.Ascending),
 					)),
 				},
 			},

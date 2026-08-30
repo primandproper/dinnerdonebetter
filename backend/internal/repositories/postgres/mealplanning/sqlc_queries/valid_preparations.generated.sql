@@ -112,7 +112,7 @@ WHERE archived_at IS NULL
 SELECT valid_preparations.id
 FROM valid_preparations
 WHERE valid_preparations.archived_at IS NULL
-	AND valid_preparations.id COLLATE "C" > sqlc.arg(cursor)
+	AND valid_preparations.id COLLATE "C" > sqlc.arg(page_cursor)
 ORDER BY valid_preparations.id COLLATE "C"
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
@@ -178,7 +178,7 @@ WHERE valid_preparations.created_at > COALESCE(sqlc.narg(created_after), (SELECT
 		OR valid_preparations.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_preparations.archived_at IS NULL)
-	AND valid_preparations.id > COALESCE(sqlc.narg(cursor), '')
+	AND valid_preparations.id > COALESCE(sqlc.narg(page_cursor), '')
 GROUP BY valid_preparations.id
 ORDER BY valid_preparations.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
@@ -308,6 +308,6 @@ WHERE valid_preparations.created_at > COALESCE(sqlc.narg(created_after), (SELECT
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR valid_preparations.archived_at IS NULL)
 	AND valid_preparations.name ILIKE '%' || sqlc.arg(name_query)::text || '%'
-	AND valid_preparations.id > COALESCE(sqlc.narg(cursor), '')
+	AND valid_preparations.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY valid_preparations.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);

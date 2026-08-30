@@ -8,12 +8,12 @@ import (
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
-	"github.com/primandproper/platform-go/v12/database"
-	platformerrors "github.com/primandproper/platform-go/v12/errors"
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/observability"
-	platformkeys "github.com/primandproper/platform-go/v12/observability/keys"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v13/database"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/observability"
+	platformkeys "github.com/primandproper/platform-go/v13/observability/keys"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 )
 
 var (
@@ -100,7 +100,7 @@ func (q *repository) SearchForValidIngredientStates(ctx context.Context, query s
 		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
 		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
 	})
@@ -153,7 +153,7 @@ func (q *repository) GetValidIngredientStates(ctx context.Context, filter *filte
 		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
 		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
 	})
@@ -240,7 +240,7 @@ func (q *repository) ScanValidIngredientStateIDsForReindex(ctx context.Context, 
 	defer span.End()
 
 	results, err := q.generatedQuerier.ScanValidIngredientStateIDsForReindex(ctx, q.readDB, &generated.ScanValidIngredientStateIDsForReindexParams{
-		Cursor:      after,
+		PageCursor:  after,
 		ResultLimit: limit,
 	})
 	if err != nil {
@@ -264,7 +264,7 @@ func (q *repository) CreateValidIngredientState(ctx context.Context, input *type
 	// create the valid ingredient state.
 	if err := q.withEvent(ctx, logger, types.ValidIngredientStateCreatedServiceEventType, "", map[string]any{
 		mealplanningkeys.ValidIngredientStateIDKey: input.ID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		return q.generatedQuerier.CreateValidIngredientState(ctx, tx, &generated.CreateValidIngredientStateParams{
 			ID:            input.ID,
 			Name:          input.Name,
@@ -308,7 +308,7 @@ func (q *repository) UpdateValidIngredientState(ctx context.Context, updated *ty
 
 	if err := q.withEvent(ctx, logger, types.ValidIngredientStateUpdatedServiceEventType, "", map[string]any{
 		mealplanningkeys.ValidIngredientStateIDKey: updated.ID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		_, updateErr := q.generatedQuerier.UpdateValidIngredientState(ctx, tx, &generated.UpdateValidIngredientStateParams{
 			Name:          updated.Name,
 			Description:   updated.Description,
@@ -369,7 +369,7 @@ func (q *repository) ArchiveValidIngredientState(ctx context.Context, validIngre
 
 	return q.withEvent(ctx, logger, types.ValidIngredientStateArchivedServiceEventType, "", map[string]any{
 		mealplanningkeys.ValidIngredientStateIDKey: validIngredientStateID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		rowsAffected, archiveErr := q.generatedQuerier.ArchiveValidIngredientState(ctx, tx, validIngredientStateID)
 		if archiveErr != nil {
 			return observability.PrepareAndLogError(archiveErr, logger, span, "archiving valid ingredient state")

@@ -12,12 +12,12 @@ import (
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity/generated"
 
-	"github.com/primandproper/platform-go/v12/database"
-	platformerrors "github.com/primandproper/platform-go/v12/errors"
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/identifiers"
-	"github.com/primandproper/platform-go/v12/observability"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v13/database"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/identifiers"
+	"github.com/primandproper/platform-go/v13/observability"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 )
 
 const (
@@ -412,7 +412,7 @@ func (r *repository) CreateAccountInvitation(ctx context.Context, input *identit
 		identitykeys.AccountInvitationIDKey:  input.ID,
 		identitykeys.UserIDKey:               input.FromUser,
 		identitykeys.DestinationAccountIDKey: input.DestinationAccountID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		if err := r.generatedQuerier.CreateAccountInvitation(ctx, tx, &generated.CreateAccountInvitationParams{
 			ExpiresAt:          input.ExpiresAt,
 			ID:                 input.ID,
@@ -476,7 +476,7 @@ func (r *repository) GetPendingAccountInvitationsFromUser(ctx context.Context, u
 		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
 		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
 		Status:          generated.InvitationState(identity.PendingAccountInvitationStatus),
@@ -582,7 +582,7 @@ func (r *repository) GetPendingAccountInvitationsForUser(ctx context.Context, us
 		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
 		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
 		Status:          generated.InvitationState(identity.PendingAccountInvitationStatus),
@@ -672,7 +672,7 @@ func (r *repository) GetPendingAccountInvitationsForUser(ctx context.Context, us
 	return x, nil
 }
 
-func (r *repository) setInvitationStatus(ctx context.Context, querier database.SQLQueryExecutor, accountInvitationID, note, status string) error {
+func (r *repository) setInvitationStatus(ctx context.Context, querier database.Tx, accountInvitationID, note, status string) error {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -701,7 +701,7 @@ func (r *repository) setInvitationStatus(ctx context.Context, querier database.S
 func (r *repository) CancelAccountInvitation(ctx context.Context, accountID, accountInvitationID, note string) error {
 	return r.withEvent(ctx, r.logger, identity.AccountInvitationCanceledServiceEventType, accountID, map[string]any{
 		identitykeys.AccountInvitationIDKey: accountInvitationID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		return r.setInvitationStatus(ctx, tx, accountInvitationID, note, string(identity.CancelledAccountInvitationStatus))
 	})
 }
@@ -723,7 +723,7 @@ func (r *repository) AcceptAccountInvitation(ctx context.Context, accountID, acc
 		return platformerrors.ErrNilInputParameter
 	}
 
-	if err := r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err := r.WithTransaction(ctx, func(tx database.Tx) error {
 		invitation, err := r.GetAccountInvitationByTokenAndID(ctx, token, accountInvitationID)
 		if err != nil {
 			return observability.PrepareAndLogError(err, logger, span, "fetching account invitation")
@@ -766,12 +766,12 @@ func (r *repository) AcceptAccountInvitation(ctx context.Context, accountID, acc
 func (r *repository) RejectAccountInvitation(ctx context.Context, accountID, accountInvitationID, note string) error {
 	return r.withEvent(ctx, r.logger, identity.AccountInvitationRejectedServiceEventType, accountID, map[string]any{
 		identitykeys.AccountInvitationIDKey: accountInvitationID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		return r.setInvitationStatus(ctx, tx, accountInvitationID, note, string(identity.RejectedAccountInvitationStatus))
 	})
 }
 
-func (r *repository) attachInvitationsToUser(ctx context.Context, querier database.SQLQueryExecutor, userEmail, userID string) error {
+func (r *repository) attachInvitationsToUser(ctx context.Context, querier database.Tx, userEmail, userID string) error {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -802,7 +802,7 @@ func (r *repository) attachInvitationsToUser(ctx context.Context, querier databa
 	return nil
 }
 
-func (r *repository) acceptInvitationForUser(ctx context.Context, querier database.SQLQueryExecutor, input *identity.UserDatabaseCreationInput) error {
+func (r *repository) acceptInvitationForUser(ctx context.Context, querier database.Tx, input *identity.UserDatabaseCreationInput) error {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 

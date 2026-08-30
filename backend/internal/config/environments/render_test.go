@@ -8,7 +8,7 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 
-	platformconfig "github.com/primandproper/platform-go/v12/config"
+	platformconfig "github.com/primandproper/platform-go/v13/config"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

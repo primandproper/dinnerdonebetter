@@ -8,11 +8,11 @@ import (
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
-	"github.com/primandproper/platform-go/v12/database"
-	platformerrors "github.com/primandproper/platform-go/v12/errors"
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/observability"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v13/database"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/observability"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 )
 
 var (
@@ -271,7 +271,7 @@ func (q *repository) GetValidMeasurementUnitConversionsForUnit(ctx context.Conte
 		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
 		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
 	})
@@ -411,7 +411,7 @@ func (q *repository) CreateValidMeasurementUnitConversion(ctx context.Context, i
 	// create the valid measurement conversion.
 	if err := q.withEvent(ctx, logger, mealplanning.ValidMeasurementUnitConversionCreatedServiceEventType, "", map[string]any{
 		mealplanningkeys.ValidMeasurementUnitConversionIDKey: input.ID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		return q.generatedQuerier.CreateValidMeasurementUnitConversion(ctx, tx, &generated.CreateValidMeasurementUnitConversionParams{
 			ID:                input.ID,
 			FromUnit:          fromUnit,
@@ -487,7 +487,7 @@ func (q *repository) UpdateValidMeasurementUnitConversion(ctx context.Context, u
 
 	if err := q.withEvent(ctx, logger, mealplanning.ValidMeasurementUnitConversionUpdatedServiceEventType, "", map[string]any{
 		mealplanningkeys.ValidMeasurementUnitConversionIDKey: updated.ID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		_, updateErr := q.generatedQuerier.UpdateValidMeasurementUnitConversion(ctx, tx, &generated.UpdateValidMeasurementUnitConversionParams{
 			FromUnit:          updated.From.ID,
 			ToUnit:            updated.To.ID,
@@ -522,7 +522,7 @@ func (q *repository) ArchiveValidMeasurementUnitConversion(ctx context.Context, 
 
 	return q.withEvent(ctx, logger, mealplanning.ValidMeasurementUnitConversionArchivedServiceEventType, "", map[string]any{
 		mealplanningkeys.ValidMeasurementUnitConversionIDKey: validMeasurementUnitConversionID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		rowsAffected, archiveErr := q.generatedQuerier.ArchiveValidMeasurementUnitConversion(ctx, tx, validMeasurementUnitConversionID)
 		if archiveErr != nil {
 			return observability.PrepareAndLogError(archiveErr, logger, span, "archiving valid measurement conversion")

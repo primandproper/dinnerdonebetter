@@ -5,9 +5,9 @@ import (
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	generated "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/uploadedmedia/generated"
 
-	"github.com/primandproper/platform-go/v12/database"
-	"github.com/primandproper/platform-go/v12/observability/logging"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v13/database"
+	"github.com/primandproper/platform-go/v13/observability/logging"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 )
 
 const (

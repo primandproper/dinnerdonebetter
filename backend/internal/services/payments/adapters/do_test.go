@@ -6,9 +6,9 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 	paymentscfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/config"
 
-	capitalismcfg "github.com/primandproper/platform-go/v12/capitalism/config"
-	loggingnoop "github.com/primandproper/platform-go/v12/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v12/observability/tracing/noop"
+	capitalismcfg "github.com/primandproper/platform-go/v13/capitalism/config"
+	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
+	tracingnoop "github.com/primandproper/platform-go/v13/observability/tracing/noop"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

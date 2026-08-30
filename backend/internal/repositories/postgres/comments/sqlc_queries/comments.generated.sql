@@ -85,7 +85,7 @@ WHERE comments.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_T
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR comments.archived_at IS NULL)
 	AND comments.target_type = sqlc.arg(target_type)
 	AND comments.referenced_id = sqlc.arg(referenced_id)
-	AND comments.id > COALESCE(sqlc.narg(cursor), '')
+	AND comments.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY comments.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 
@@ -135,7 +135,7 @@ WHERE comments.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_T
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR comments.archived_at IS NULL)
 	AND comments.belongs_to_user = sqlc.arg(belongs_to_user)
-	AND comments.id > COALESCE(sqlc.narg(cursor), '')
+	AND comments.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY comments.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 

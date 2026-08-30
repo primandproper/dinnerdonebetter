@@ -8,11 +8,11 @@ import (
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
-	"github.com/primandproper/platform-go/v12/database"
-	platformerrors "github.com/primandproper/platform-go/v12/errors"
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/observability"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v13/database"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/observability"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 )
 
 var (
@@ -139,7 +139,7 @@ func (q *repository) GetValidIngredientStateIngredients(ctx context.Context, fil
 		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
 		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
 	})
@@ -256,7 +256,7 @@ func (q *repository) GetValidIngredientStateIngredientsForIngredientState(ctx co
 		CreatedAfter:         database.NullTimeFromTimePointer(filter.CreatedAfter),
 		UpdatedBefore:        database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:         database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		Cursor:               database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:           database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:          database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived:      database.NullBoolFromBoolPointer(filter.IncludeArchived),
 		ValidIngredientState: ingredientStateID,
@@ -374,7 +374,7 @@ func (q *repository) GetValidIngredientStateIngredientsForIngredient(ctx context
 		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
 		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
 		ValidIngredient: ingredientID,
@@ -482,7 +482,7 @@ func (q *repository) CreateValidIngredientStateIngredient(ctx context.Context, i
 	// create the valid ingredient state ingredient.
 	if err := q.withEvent(ctx, logger, mealplanning.ValidIngredientStateIngredientCreatedServiceEventType, "", map[string]any{
 		mealplanningkeys.ValidIngredientStateIngredientIDKey: input.ID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		return q.generatedQuerier.CreateValidIngredientStateIngredient(ctx, tx, &generated.CreateValidIngredientStateIngredientParams{
 			ID:                   input.ID,
 			Notes:                input.Notes,
@@ -538,7 +538,7 @@ func (q *repository) UpdateValidIngredientStateIngredient(ctx context.Context, u
 
 	if err := q.withEvent(ctx, logger, mealplanning.ValidIngredientStateIngredientUpdatedServiceEventType, "", map[string]any{
 		mealplanningkeys.ValidIngredientStateIngredientIDKey: updated.ID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		_, updateErr := q.generatedQuerier.UpdateValidIngredientStateIngredient(ctx, tx, &generated.UpdateValidIngredientStateIngredientParams{
 			Notes:                updated.Notes,
 			ValidIngredientState: updated.IngredientState.ID,
@@ -571,7 +571,7 @@ func (q *repository) ArchiveValidIngredientStateIngredient(ctx context.Context, 
 
 	return q.withEvent(ctx, logger, mealplanning.ValidIngredientStateIngredientArchivedServiceEventType, "", map[string]any{
 		mealplanningkeys.ValidIngredientStateIngredientIDKey: validIngredientStateIngredientID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		rowsAffected, archiveErr := q.generatedQuerier.ArchiveValidIngredientStateIngredient(ctx, tx, validIngredientStateIngredientID)
 		if archiveErr != nil {
 			return observability.PrepareAndLogError(archiveErr, logger, span, "archiving valid ingredient state ingredient")

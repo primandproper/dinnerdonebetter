@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v12/database/querygen"
+	"github.com/primandproper/platform-go/v13/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -29,7 +29,7 @@ var recipeStepsColumns = []string{
 	notesColumn,
 	"explicit_instructions",
 	"condition_expression",
-	"optional",
+	optionalColumn,
 	"start_timer_automatically",
 	createdAtColumn,
 	lastUpdatedAtColumn,
@@ -137,11 +137,11 @@ WHERE %s
 						preparationIDColumn,
 						validPreparationsTableName,
 						idColumn,
-						pgGen.FilterConditions(recipeStepsTableName, recipeStepsColumns,
+						pgGen.FilterConditions(recipeStepsTableName, recipeStepsColumns, querygen.Ascending,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeStepsTableName, belongsToRecipeColumn, recipeIDColumn),
 							"recipes.archived_at IS NULL",
 						),
-						pgGen.CursorLimitClause(recipeStepsTableName),
+						pgGen.CursorLimitClause(recipeStepsTableName, querygen.Ascending),
 					)),
 				},
 				{

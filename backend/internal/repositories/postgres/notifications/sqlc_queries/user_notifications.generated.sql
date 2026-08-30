@@ -72,7 +72,7 @@ WHERE user_notifications.created_at > COALESCE(sqlc.narg(created_after), (SELECT
 	)
 	AND user_notifications.status != 'dismissed'
 	AND user_notifications.belongs_to_user = sqlc.arg(user_id)
-	AND user_notifications.id > COALESCE(sqlc.narg(cursor), '')
+	AND user_notifications.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY user_notifications.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 

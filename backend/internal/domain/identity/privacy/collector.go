@@ -19,11 +19,11 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 
-	platformdataprivacy "github.com/primandproper/platform-go/v12/dataprivacy"
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/observability"
-	"github.com/primandproper/platform-go/v12/observability/logging"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	platformdataprivacy "github.com/primandproper/platform-go/v13/dataprivacy"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/observability"
+	"github.com/primandproper/platform-go/v13/observability/logging"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 )
 
 const o11yName = "identity_privacy_collector"

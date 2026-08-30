@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v12/database/querygen"
+	"github.com/primandproper/platform-go/v13/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -80,12 +80,12 @@ WHERE %s
 						validIngredientIDColumn,
 						validIngredientsTableName,
 						idColumn,
-						pgGen.FilterConditions(validIngredientMeasurementUnitsTableName, validIngredientMeasurementUnitsColumns,
+						pgGen.FilterConditions(validIngredientMeasurementUnitsTableName, validIngredientMeasurementUnitsColumns, querygen.Ascending,
 							"valid_measurement_units.archived_at IS NULL",
 							"valid_ingredients.archived_at IS NULL",
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", validIngredientMeasurementUnitsTableName, validIngredientIDColumn, validIngredientIDColumn),
 						),
-						pgGen.CursorLimitClause(validIngredientMeasurementUnitsTableName),
+						pgGen.CursorLimitClause(validIngredientMeasurementUnitsTableName, querygen.Ascending),
 					)),
 				},
 				{
@@ -116,12 +116,12 @@ WHERE %s
 						validIngredientIDColumn,
 						validIngredientsTableName,
 						idColumn,
-						pgGen.FilterConditions(validIngredientMeasurementUnitsTableName, validIngredientMeasurementUnitsColumns,
+						pgGen.FilterConditions(validIngredientMeasurementUnitsTableName, validIngredientMeasurementUnitsColumns, querygen.Ascending,
 							"valid_measurement_units.archived_at IS NULL",
 							"valid_ingredients.archived_at IS NULL",
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", validIngredientMeasurementUnitsTableName, validMeasurementUnitIDColumn, validMeasurementUnitIDColumn),
 						),
-						pgGen.CursorLimitClause(validIngredientMeasurementUnitsTableName),
+						pgGen.CursorLimitClause(validIngredientMeasurementUnitsTableName, querygen.Ascending),
 					)),
 				},
 				{
@@ -152,11 +152,11 @@ WHERE %s
 						validIngredientIDColumn,
 						validIngredientsTableName,
 						idColumn,
-						pgGen.FilterConditions(validIngredientMeasurementUnitsTableName, validIngredientMeasurementUnitsColumns,
+						pgGen.FilterConditions(validIngredientMeasurementUnitsTableName, validIngredientMeasurementUnitsColumns, querygen.Ascending,
 							"valid_measurement_units.archived_at IS NULL",
 							"valid_ingredients.archived_at IS NULL",
 						),
-						pgGen.CursorLimitClause(validIngredientMeasurementUnitsTableName),
+						pgGen.CursorLimitClause(validIngredientMeasurementUnitsTableName, querygen.Ascending),
 					)),
 				},
 				{

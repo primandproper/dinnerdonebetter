@@ -5,7 +5,7 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
 
-	"github.com/primandproper/platform-go/v12/filtering"
+	"github.com/primandproper/platform-go/v13/filtering"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -14,27 +14,27 @@ var webhookTriggerConfigSchema = map[string]any{
 	"ID":               stringField("The ID of the trigger config"),
 	"BelongsToWebhook": stringField("The ID of the webhook this config belongs to"),
 	"EventType":        stringField("The catalog event type this webhook is subscribed to"),
-	"CreatedAt":        timestampField("When the trigger config was created"),
-	"ArchivedAt":       timestampField("When the trigger config was archived"),
+	fieldCreatedAt:     timestampField("When the trigger config was created"),
+	fieldArchivedAt:    timestampField("When the trigger config was archived"),
 }
 
 var webhookSchema = map[string]any{
-	"ID":               stringField("The ID of the webhook"),
-	"Name":             stringField("The webhook name"),
-	"URL":              stringField("The webhook URL"),
-	"Method":           stringField("The HTTP method deliveries are made with; always POST"),
-	"ContentType":      stringField("The content type; always application/json"),
-	"BelongsToAccount": stringField("The ID of the account this webhook belongs to"),
-	"CreatedByUser":    stringField("The ID of the user who created this webhook"),
-	"TriggerConfigs":   arrayType(schemaObject(webhookTriggerConfigSchema)),
-	"CreatedAt":        timestampField("When the webhook was created"),
-	"LastUpdatedAt":    timestampField("When the webhook was last updated"),
-	"ArchivedAt":       timestampField("When the webhook was archived"),
+	"ID":                  stringField("The ID of the webhook"),
+	fieldName:             stringField("The webhook name"),
+	"URL":                 stringField("The webhook URL"),
+	"Method":              stringField("The HTTP method deliveries are made with; always POST"),
+	"ContentType":         stringField("The content type; always application/json"),
+	fieldBelongsToAccount: stringField("The ID of the account this webhook belongs to"),
+	fieldCreatedByUser:    stringField("The ID of the user who created this webhook"),
+	"TriggerConfigs":      arrayType(schemaObject(webhookTriggerConfigSchema)),
+	fieldCreatedAt:        timestampField("When the webhook was created"),
+	fieldLastUpdatedAt:    timestampField("When the webhook was last updated"),
+	fieldArchivedAt:       timestampField("When the webhook was archived"),
 }
 
 var webhookEventTypeSchema = map[string]any{
-	"Type":        stringField("The event type, as it appears in a webhook subscription"),
-	"Description": stringField("Prose explaining when the event fires"),
+	"Type":           stringField("The event type, as it appears in a webhook subscription"),
+	fieldDescription: stringField("Prose explaining when the event fires"),
 }
 
 var getWebhookTool = &mcp.Tool{
@@ -69,10 +69,10 @@ var getWebhooksTool = &mcp.Tool{
 	Name:        "GetWebhooks",
 	Description: "Get webhooks with optional filtering",
 	InputSchema: schemaObject(map[string]any{
-		"Filter": filtering.QueryFilterSchema(),
+		fieldFilter: filtering.QueryFilterSchema(),
 	}),
 	OutputSchema: schemaObject(map[string]any{
-		"Results": arrayType(schemaObject(webhookSchema)),
+		fieldResults: arrayType(schemaObject(webhookSchema)),
 	}),
 }
 
@@ -107,7 +107,7 @@ var getWebhookEventTypesTool = &mcp.Tool{
 	Description: "Get the event types a webhook can subscribe to",
 	InputSchema: schemaObject(map[string]any{}),
 	OutputSchema: schemaObject(map[string]any{
-		"Results": arrayType(schemaObject(webhookEventTypeSchema)),
+		fieldResults: arrayType(schemaObject(webhookEventTypeSchema)),
 	}),
 }
 

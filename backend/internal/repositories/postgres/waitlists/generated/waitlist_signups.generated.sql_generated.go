@@ -209,7 +209,7 @@ type GetWaitlistSignupsForUserParams struct {
 	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	BelongsToUser   sql.NullString
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -234,7 +234,7 @@ func (q *Queries) GetWaitlistSignupsForUser(ctx context.Context, db DBTX, arg *G
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.BelongsToUser,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {
@@ -326,7 +326,7 @@ type GetWaitlistSignupsForWaitlistParams struct {
 	UpdatedBefore     sql.NullTime
 	IncludeArchived   sql.NullBool
 	BelongsToWaitlist sql.NullString
-	Cursor            sql.NullString
+	PageCursor        sql.NullString
 	ResultLimit       interface{}
 }
 
@@ -351,7 +351,7 @@ func (q *Queries) GetWaitlistSignupsForWaitlist(ctx context.Context, db DBTX, ar
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.BelongsToWaitlist,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {

@@ -17,33 +17,33 @@ import (
 	uploadedmediacfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/testutils"
 
-	analyticscfg "github.com/primandproper/platform-go/v12/analytics/config"
-	oauth2servercfg "github.com/primandproper/platform-go/v12/authentication/oauth2server/config"
-	oauth2database "github.com/primandproper/platform-go/v12/authentication/oauth2server/database"
-	tokenscfg "github.com/primandproper/platform-go/v12/authentication/tokens/config"
-	platformwebauthn "github.com/primandproper/platform-go/v12/authentication/webauthn"
-	webauthncfg "github.com/primandproper/platform-go/v12/authentication/webauthn/config"
-	capitalismcfg "github.com/primandproper/platform-go/v12/capitalism/config"
-	circuitbreakingcfg "github.com/primandproper/platform-go/v12/circuitbreaking/config"
-	encryptioncfg "github.com/primandproper/platform-go/v12/cryptography/encryption/config"
-	databasecfg "github.com/primandproper/platform-go/v12/database/config"
-	emailcfg "github.com/primandproper/platform-go/v12/email/config"
-	"github.com/primandproper/platform-go/v12/encoding"
-	featureflagscfg "github.com/primandproper/platform-go/v12/featureflags/config"
-	msgconfig "github.com/primandproper/platform-go/v12/messagequeue/config"
-	"github.com/primandproper/platform-go/v12/messagequeue/redis"
-	notificationscfg "github.com/primandproper/platform-go/v12/notifications/mobile/config"
-	"github.com/primandproper/platform-go/v12/observability"
-	"github.com/primandproper/platform-go/v12/observability/logging"
-	loggingcfg "github.com/primandproper/platform-go/v12/observability/logging/config"
-	tracingcfg "github.com/primandproper/platform-go/v12/observability/tracing/config"
-	"github.com/primandproper/platform-go/v12/routing/backends/chi"
-	routingcfg "github.com/primandproper/platform-go/v12/routing/config"
-	textsearchcfg "github.com/primandproper/platform-go/v12/search/text/config"
-	"github.com/primandproper/platform-go/v12/server/grpc"
-	"github.com/primandproper/platform-go/v12/server/http"
-	uploadscfg "github.com/primandproper/platform-go/v12/uploads/config"
-	"github.com/primandproper/platform-go/v12/uploads/objectstorage"
+	analyticscfg "github.com/primandproper/platform-go/v13/analytics/config"
+	oauth2servercfg "github.com/primandproper/platform-go/v13/authentication/oauth2server/config"
+	oauth2database "github.com/primandproper/platform-go/v13/authentication/oauth2server/database"
+	tokenscfg "github.com/primandproper/platform-go/v13/authentication/tokens/config"
+	platformwebauthn "github.com/primandproper/platform-go/v13/authentication/webauthn"
+	webauthncfg "github.com/primandproper/platform-go/v13/authentication/webauthn/config"
+	capitalismcfg "github.com/primandproper/platform-go/v13/capitalism/config"
+	circuitbreakingcfg "github.com/primandproper/platform-go/v13/circuitbreaking/config"
+	encryptioncfg "github.com/primandproper/platform-go/v13/cryptography/encryption/config"
+	databasecfg "github.com/primandproper/platform-go/v13/database/config"
+	emailcfg "github.com/primandproper/platform-go/v13/email/config"
+	"github.com/primandproper/platform-go/v13/encoding"
+	featureflagscfg "github.com/primandproper/platform-go/v13/featureflags/config"
+	msgconfig "github.com/primandproper/platform-go/v13/messagequeue/config"
+	"github.com/primandproper/platform-go/v13/messagequeue/redis"
+	notificationscfg "github.com/primandproper/platform-go/v13/notifications/mobile/config"
+	"github.com/primandproper/platform-go/v13/observability"
+	"github.com/primandproper/platform-go/v13/observability/logging"
+	loggingcfg "github.com/primandproper/platform-go/v13/observability/logging/config"
+	tracingcfg "github.com/primandproper/platform-go/v13/observability/tracing/config"
+	"github.com/primandproper/platform-go/v13/routing/backends/chi"
+	routingcfg "github.com/primandproper/platform-go/v13/routing/config"
+	textsearchcfg "github.com/primandproper/platform-go/v13/search/text/config"
+	"github.com/primandproper/platform-go/v13/server/grpc"
+	"github.com/primandproper/platform-go/v13/server/http"
+	uploadscfg "github.com/primandproper/platform-go/v13/uploads/config"
+	"github.com/primandproper/platform-go/v13/uploads/objectstorage"
 )
 
 // BuildIntegrationTestsConfig returns the configuration the integration test environment runs with.
@@ -133,7 +133,7 @@ func BuildIntegrationTestsConfig() *config.APIServiceConfig {
 			// we're using a noop version of this in dev right now, but it still tries to instantiate a circuit breaker.
 			Provider: textsearchcfg.ProviderNoop,
 			CircuitBreaker: circuitbreakingcfg.Config{
-				Name:                   "feature_flagger",
+				Name:                   featureFlaggerSource,
 				ErrorRate:              .5,
 				MinimumSampleThreshold: 100,
 			},
@@ -142,7 +142,7 @@ func BuildIntegrationTestsConfig() *config.APIServiceConfig {
 			// we're using a noop version of this in dev right now, but it still tries to instantiate a circuit breaker.
 			Provider: featureflagscfg.ProviderNoop,
 			CircuitBreaker: circuitbreakingcfg.Config{
-				Name:                   "feature_flagger",
+				Name:                   featureFlaggerSource,
 				ErrorRate:              .5,
 				MinimumSampleThreshold: 100,
 			},
@@ -158,18 +158,18 @@ func BuildIntegrationTestsConfig() *config.APIServiceConfig {
 			// to the ambient reporter; in v10 it is ErrUnknownSource, which surfaces to the
 			// caller as a failed TrackEvent.
 			ProxySources: analyticscfg.ProxySourcesConfig{
-				"ios": {
+				iosPlatform: {
 					Provider: analyticscfg.ProviderNoop,
 					CircuitBreaker: circuitbreakingcfg.Config{
-						Name:                   "ios_analytics",
+						Name:                   iosAnalyticsSource,
 						ErrorRate:              .5,
 						MinimumSampleThreshold: 100,
 					},
 				},
-				"web": {
+				webPlatform: {
 					Provider: analyticscfg.ProviderNoop,
 					CircuitBreaker: circuitbreakingcfg.Config{
-						Name:                   "web_analytics",
+						Name:                   webAnalyticsSource,
 						ErrorRate:              .5,
 						MinimumSampleThreshold: 100,
 					},
@@ -180,7 +180,7 @@ func BuildIntegrationTestsConfig() *config.APIServiceConfig {
 				// leaving it to an unset value. The circuit breaker is still built.
 				Provider: analyticscfg.ProviderNoop,
 				CircuitBreaker: circuitbreakingcfg.Config{
-					Name:                   "feature_flagger",
+					Name:                   featureFlaggerSource,
 					ErrorRate:              .5,
 					MinimumSampleThreshold: 100,
 				},
@@ -237,7 +237,7 @@ func BuildIntegrationTestsConfig() *config.APIServiceConfig {
 				Tokens: authcfg.TokensConfig{
 					Config: tokenscfg.Config{
 						Provider:                tokenscfg.ProviderPASETO,
-						Issuer:                  "dinner-done-better",
+						Issuer:                  serviceName,
 						Audience:                "https://api.dinnerdonebetter.dev",
 						Base64EncodedSigningKey: base64.URLEncoding.EncodeToString([]byte(testutils.Example32ByteKey)),
 					},

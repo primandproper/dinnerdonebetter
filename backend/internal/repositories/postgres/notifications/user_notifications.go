@@ -9,11 +9,11 @@ import (
 	notificationkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/keys"
 	generated "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/notifications/generated"
 
-	"github.com/primandproper/platform-go/v12/database"
-	platformerrors "github.com/primandproper/platform-go/v12/errors"
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/observability"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v13/database"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/observability"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 )
 
 const (
@@ -118,7 +118,7 @@ func (q *Repository) GetUserNotifications(ctx context.Context, userID string, fi
 		CreatedAfter:  database.NullTimeFromTimePointer(filter.CreatedAfter),
 		UpdatedBefore: database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:  database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		Cursor:        database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:    database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:   database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 	})
 	if err != nil {
@@ -167,7 +167,7 @@ func (q *Repository) CreateUserNotification(ctx context.Context, input *types.Us
 
 	var err error
 	var x *types.UserNotification
-	if err = q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err = q.WithTransaction(ctx, func(tx database.Tx) error {
 		// create the user notification.
 		if err = q.generatedQuerier.CreateUserNotification(ctx, tx, &generated.CreateUserNotificationParams{
 			ID:            input.ID,
@@ -224,7 +224,7 @@ func (q *Repository) UpdateUserNotification(ctx context.Context, updated *types.
 	tracing.AttachToSpan(span, notificationkeys.UserNotificationIDKey, updated.ID)
 
 	var err error
-	if err = q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err = q.WithTransaction(ctx, func(tx database.Tx) error {
 		if _, err = q.generatedQuerier.UpdateUserNotification(ctx, tx, &generated.UpdateUserNotificationParams{
 			Status: generated.UserNotificationStatus(updated.Status),
 			ID:     updated.ID,

@@ -28,12 +28,12 @@ import (
 	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers"
 
-	"github.com/primandproper/platform-go/v12/database"
-	"github.com/primandproper/platform-go/v12/observability"
-	"github.com/primandproper/platform-go/v12/observability/logging"
-	"github.com/primandproper/platform-go/v12/observability/metrics"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
-	"github.com/primandproper/platform-go/v12/saga"
+	"github.com/primandproper/platform-go/v13/database"
+	"github.com/primandproper/platform-go/v13/observability"
+	"github.com/primandproper/platform-go/v13/observability/logging"
+	"github.com/primandproper/platform-go/v13/observability/metrics"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
+	"github.com/primandproper/platform-go/v13/saga"
 
 	"github.com/hashicorp/go-multierror"
 )
@@ -154,7 +154,7 @@ func (w *Starter) EnsureStarted(ctx context.Context, mealPlanID, accountID strin
 // start writes one instance and claims its plan, in one transaction.
 func (w *Starter) start(ctx context.Context, candidate *mealplanning.MealPlanFinalizationCandidate) (string, error) {
 	return w.dataManager.AttachMealPlanFinalizationSaga(ctx, candidate.MealPlanID,
-		func(ctx context.Context, q database.SQLQueryExecutor) (string, error) {
+		func(ctx context.Context, q database.Tx) (string, error) {
 			instance, err := w.runner.StartInTransaction(ctx, q, mealplanning.MealPlanFinalizationSagaName,
 				mealplanning.MealPlanFinalizationState{
 					MealPlanID: candidate.MealPlanID,

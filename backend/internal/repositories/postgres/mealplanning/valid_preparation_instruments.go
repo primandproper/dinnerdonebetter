@@ -8,11 +8,11 @@ import (
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
-	"github.com/primandproper/platform-go/v12/database"
-	platformerrors "github.com/primandproper/platform-go/v12/errors"
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/observability"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v13/database"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/observability"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 )
 
 var (
@@ -119,7 +119,7 @@ func (q *repository) GetValidPreparationInstruments(ctx context.Context, filter 
 		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
 		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
 	})
@@ -220,7 +220,7 @@ func (q *repository) GetValidPreparationInstrumentsForPreparation(ctx context.Co
 		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
 		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
 	})
@@ -321,7 +321,7 @@ func (q *repository) GetValidPreparationInstrumentsForInstrument(ctx context.Con
 		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
 		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
 	})
@@ -480,7 +480,7 @@ func (q *repository) CreateValidPreparationInstrument(ctx context.Context, input
 	// create the valid preparation instrument.
 	if err := q.withEvent(ctx, logger, mealplanning.ValidPreparationInstrumentCreatedServiceEventType, "", map[string]any{
 		mealplanningkeys.ValidPreparationInstrumentIDKey: input.ID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		return q.generatedQuerier.CreateValidPreparationInstrument(ctx, tx, &generated.CreateValidPreparationInstrumentParams{
 			ID:                 input.ID,
 			Notes:              input.Notes,
@@ -536,7 +536,7 @@ func (q *repository) UpdateValidPreparationInstrument(ctx context.Context, updat
 
 	if err := q.withEvent(ctx, logger, mealplanning.ValidPreparationInstrumentUpdatedServiceEventType, "", map[string]any{
 		mealplanningkeys.ValidPreparationInstrumentIDKey: updated.ID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		_, updateErr := q.generatedQuerier.UpdateValidPreparationInstrument(ctx, tx, &generated.UpdateValidPreparationInstrumentParams{
 			Notes:              updated.Notes,
 			ValidPreparationID: updated.Preparation.ID,
@@ -567,7 +567,7 @@ func (q *repository) ArchiveValidPreparationInstrument(ctx context.Context, vali
 
 	return q.withEvent(ctx, logger, mealplanning.ValidPreparationInstrumentArchivedServiceEventType, "", map[string]any{
 		mealplanningkeys.ValidPreparationInstrumentIDKey: validPreparationInstrumentID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		rowsAffected, archiveErr := q.generatedQuerier.ArchiveValidPreparationInstrument(ctx, tx, validPreparationInstrumentID)
 		if archiveErr != nil {
 			return observability.PrepareAndLogError(archiveErr, logger, span, "updating valid preparation instrument")

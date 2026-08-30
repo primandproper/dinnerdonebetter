@@ -8,12 +8,12 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit/fakes"
 	auditmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit/mock"
 
-	"github.com/primandproper/platform-go/v12/database"
-	mockdatabase "github.com/primandproper/platform-go/v12/database/mock"
-	"github.com/primandproper/platform-go/v12/fake"
-	"github.com/primandproper/platform-go/v12/filtering"
-	loggingnoop "github.com/primandproper/platform-go/v12/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v12/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v13/database"
+	mockdatabase "github.com/primandproper/platform-go/v13/database/mock"
+	"github.com/primandproper/platform-go/v13/fake"
+	"github.com/primandproper/platform-go/v13/filtering"
+	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
+	tracingnoop "github.com/primandproper/platform-go/v13/observability/tracing/noop"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -99,10 +99,10 @@ func TestAuditDataManager_Record(t *testing.T) {
 		ctx := t.Context()
 
 		exampleEntry := fakes.BuildFakeAuditLogEntry()
-		querier := &mockdatabase.SQLQueryExecutorMock{}
+		querier := database.NewTxForTesting(&mockdatabase.SQLQueryExecutorMock{})
 
 		repo := &auditmock.RepositoryMock{
-			RecordFunc: func(_ context.Context, _ database.SQLQueryExecutor, entries ...*types.AuditLogEntry) error {
+			RecordFunc: func(_ context.Context, _ database.Tx, entries ...*types.AuditLogEntry) error {
 				require.Len(t, entries, 1)
 				assert.Equal(t, exampleEntry.ID, entries[0].ID)
 				assert.Equal(t, exampleEntry.BelongsToUser, entries[0].BelongsToUser)
@@ -126,10 +126,10 @@ func TestAuditDataManager_Record(t *testing.T) {
 		ctx := t.Context()
 
 		first, second := fakes.BuildFakeAuditLogEntry(), fakes.BuildFakeAuditLogEntry()
-		querier := &mockdatabase.SQLQueryExecutorMock{}
+		querier := database.NewTxForTesting(&mockdatabase.SQLQueryExecutorMock{})
 
 		repo := &auditmock.RepositoryMock{
-			RecordFunc: func(_ context.Context, _ database.SQLQueryExecutor, entries ...*types.AuditLogEntry) error {
+			RecordFunc: func(_ context.Context, _ database.Tx, entries ...*types.AuditLogEntry) error {
 				require.Len(t, entries, 2)
 				assert.Equal(t, first.ID, entries[0].ID)
 				assert.Equal(t, second.ID, entries[1].ID)

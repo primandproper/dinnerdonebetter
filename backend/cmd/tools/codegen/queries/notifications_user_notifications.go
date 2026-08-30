@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v12/database/querygen"
+	"github.com/primandproper/platform-go/v13/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -20,7 +20,7 @@ var (
 	userNotificationsColumns = []string{
 		idColumn,
 		"content",
-		"status",
+		statusColumn,
 		belongsToUserColumn,
 		createdAtColumn,
 		lastUpdatedAtColumn,
@@ -38,7 +38,7 @@ func buildUserNotificationQueries(database string) []*Query {
 		return slices.Concat(
 			pgGen.StandardCRUD(userNotificationsTableName, userNotificationsColumns,
 				querygen.WithEntity("UserNotification", "UserNotifications"),
-				querygen.WithDatabaseOwned("status"),
+				querygen.WithDatabaseOwned(statusColumn),
 				querygen.WithOmitted(querygen.ExistsQuery, querygen.GetQuery, querygen.ListQuery, querygen.UpdateQuery),
 			),
 			[]*Query{
@@ -105,11 +105,11 @@ WHERE %s
 							"user_notifications.belongs_to_user = sqlc.arg(user_id)",
 						),
 						userNotificationsTableName,
-						pgGen.FilterConditions(userNotificationsTableName, userNotificationsColumns,
+						pgGen.FilterConditions(userNotificationsTableName, userNotificationsColumns, querygen.Ascending,
 							fmt.Sprintf("user_notifications.status != '%s'", userNotificationStatusDismissed),
 							"user_notifications.belongs_to_user = sqlc.arg(user_id)",
 						),
-						pgGen.CursorLimitClause(userNotificationsTableName),
+						pgGen.CursorLimitClause(userNotificationsTableName, querygen.Ascending),
 					)),
 				},
 				{

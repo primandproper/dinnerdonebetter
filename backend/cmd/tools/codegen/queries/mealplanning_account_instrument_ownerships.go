@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v12/database/querygen"
+	"github.com/primandproper/platform-go/v13/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -71,14 +71,14 @@ GROUP BY
 						validInstrumentIDColumn,
 						validInstrumentsTableName,
 						idColumn,
-						pgGen.FilterConditions(accountInstrumentOwnershipsTableName, accountInstrumentOwnershipsColumns,
+						pgGen.FilterConditions(accountInstrumentOwnershipsTableName, accountInstrumentOwnershipsColumns, querygen.Ascending,
 							"account_instrument_ownerships.belongs_to_account = sqlc.arg(account_id)",
 						),
 						accountInstrumentOwnershipsTableName,
 						idColumn,
 						validInstrumentsTableName,
 						idColumn,
-						pgGen.CursorLimitClause(accountInstrumentOwnershipsTableName),
+						pgGen.CursorLimitClause(accountInstrumentOwnershipsTableName, querygen.Ascending),
 					)),
 				},
 				{

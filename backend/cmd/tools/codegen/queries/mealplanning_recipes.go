@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v12/database/querygen"
+	"github.com/primandproper/platform-go/v13/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -151,10 +151,10 @@ WHERE %s
 						pgGen.FilterCountSelect(recipesTableName, recipesColumns, []string{}),
 						pgGen.TotalCountSelect(recipesTableName, recipesColumns, []string{}),
 						recipesTableName,
-						pgGen.FilterConditions(recipesTableName, recipesColumns,
+						pgGen.FilterConditions(recipesTableName, recipesColumns, querygen.Ascending,
 							fmt.Sprintf("%s.%s = COALESCE(sqlc.narg(%s), 'approved')::recipe_status", recipesTableName, statusColumn, statusColumn),
 						),
-						pgGen.CursorLimitClause(recipesTableName),
+						pgGen.CursorLimitClause(recipesTableName, querygen.Ascending),
 					)),
 				},
 				{
@@ -175,10 +175,10 @@ WHERE %s
 						pgGen.FilterCountSelect(recipesTableName, recipesColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipesTableName, createdByUserColumn, createdByUserColumn)),
 						pgGen.TotalCountSelect(recipesTableName, recipesColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipesTableName, createdByUserColumn, createdByUserColumn)),
 						recipesTableName,
-						pgGen.FilterConditions(recipesTableName, recipesColumns,
+						pgGen.FilterConditions(recipesTableName, recipesColumns, querygen.Ascending,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipesTableName, createdByUserColumn, createdByUserColumn),
 						),
-						pgGen.CursorLimitClause(recipesTableName),
+						pgGen.CursorLimitClause(recipesTableName, querygen.Ascending),
 					)),
 				},
 				{
@@ -221,10 +221,10 @@ WHERE %s
 						pgGen.FilterCountSelect(recipesTableName, recipesColumns, []string{}),
 						pgGen.TotalCountSelect(recipesTableName, recipesColumns, []string{}),
 						recipesTableName,
-						pgGen.FilterConditions(recipesTableName, recipesColumns,
+						pgGen.FilterConditions(recipesTableName, recipesColumns, querygen.Ascending,
 							fmt.Sprintf("%s.%s %s", recipesTableName, nameColumn, buildILIKEForArgument("query")),
 						),
-						pgGen.CursorLimitClause(recipesTableName),
+						pgGen.CursorLimitClause(recipesTableName, querygen.Ascending),
 					)),
 				},
 				{
@@ -245,12 +245,12 @@ WHERE %s
 						pgGen.FilterCountSelect(recipesTableName, recipesColumns, []string{}),
 						pgGen.TotalCountSelect(recipesTableName, recipesColumns, []string{}),
 						recipesTableName,
-						pgGen.FilterConditions(recipesTableName, recipesColumns,
+						pgGen.FilterConditions(recipesTableName, recipesColumns, querygen.Ascending,
 							fmt.Sprintf("%s.%s = true", recipesTableName, eligibleForMealsColumn),
 							fmt.Sprintf("%s.%s = 'approved'", recipesTableName, statusColumn),
 							fmt.Sprintf("%s.%s %s", recipesTableName, nameColumn, buildILIKEForArgument("query")),
 						),
-						pgGen.CursorLimitClause(recipesTableName),
+						pgGen.CursorLimitClause(recipesTableName, querygen.Ascending),
 					)),
 				},
 				{
@@ -271,11 +271,11 @@ WHERE %s
 						pgGen.FilterCountSelect(recipesTableName, recipesColumns, []string{}),
 						pgGen.TotalCountSelect(recipesTableName, recipesColumns, []string{}),
 						recipesTableName,
-						pgGen.FilterConditions(recipesTableName, recipesColumns,
+						pgGen.FilterConditions(recipesTableName, recipesColumns, querygen.Ascending,
 							fmt.Sprintf("%s.%s %s", recipesTableName, nameColumn, buildILIKEForArgument("query")),
 							"NOT EXISTS (\n\t\tSELECT 1 FROM recipe_step_instruments rsi\n\t\tJOIN recipe_steps rs ON rsi.belongs_to_recipe_step = rs.id\n\t\tWHERE rs.belongs_to_recipe = recipes.id\n\t\t\t\tAND rsi.archived_at IS NULL\n\t\t\t\tAND rs.archived_at IS NULL\n\t\t\t\tAND rsi.optional = false\n\t\t\t\tAND rsi.instrument_id IS NOT NULL\n\t\t\t\tAND rsi.instrument_id NOT IN (\n\t\t\t\t\tSELECT valid_instrument_id FROM account_instrument_ownerships\n\t\t\t\t\tWHERE belongs_to_account = sqlc.arg(account_id) AND archived_at IS NULL\n\t\t\t\t)\n\t)",
 						),
-						pgGen.CursorLimitClause(recipesTableName),
+						pgGen.CursorLimitClause(recipesTableName, querygen.Ascending),
 					)),
 				},
 				{

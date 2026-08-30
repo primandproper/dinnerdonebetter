@@ -196,7 +196,7 @@ type GetRecipeRatingsForRecipeParams struct {
 	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	BelongsToRecipe string
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -225,7 +225,7 @@ func (q *Queries) GetRecipeRatingsForRecipe(ctx context.Context, db DBTX, arg *G
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.BelongsToRecipe,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {
@@ -328,7 +328,7 @@ type GetRecipeRatingsForUserParams struct {
 	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	CreatedByUser   string
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -357,7 +357,7 @@ func (q *Queries) GetRecipeRatingsForUser(ctx context.Context, db DBTX, arg *Get
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.CreatedByUser,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {

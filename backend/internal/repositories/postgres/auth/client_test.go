@@ -12,12 +12,12 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	"github.com/primandproper/platform-go/v12/database"
-	mockdatabase "github.com/primandproper/platform-go/v12/database/mock"
-	"github.com/primandproper/platform-go/v12/database/postgres"
-	loggingnoop "github.com/primandproper/platform-go/v12/observability/logging/noop"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
-	tracingnoop "github.com/primandproper/platform-go/v12/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v13/database"
+	mockdatabase "github.com/primandproper/platform-go/v13/database/mock"
+	"github.com/primandproper/platform-go/v13/database/postgres"
+	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
+	tracingnoop "github.com/primandproper/platform-go/v13/observability/tracing/noop"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/assert"

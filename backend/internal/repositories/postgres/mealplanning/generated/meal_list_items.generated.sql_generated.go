@@ -143,7 +143,7 @@ type GetMealListItemsParams struct {
 	IncludeArchived sql.NullBool
 	MealListID      string
 	BelongsToUser   string
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -168,7 +168,7 @@ func (q *Queries) GetMealListItems(ctx context.Context, db DBTX, arg *GetMealLis
 		arg.IncludeArchived,
 		arg.MealListID,
 		arg.BelongsToUser,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {

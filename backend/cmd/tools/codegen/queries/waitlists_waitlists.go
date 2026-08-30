@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v12/database/querygen"
+	"github.com/primandproper/platform-go/v13/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -106,8 +106,8 @@ WHERE %s
 						pgGen.FilterCountSelect(waitlistsTableName, waitlistsColumns, nil),
 						pgGen.TotalCountSelect(waitlistsTableName, waitlistsColumns, nil),
 						waitlistsTableName,
-						pgGen.FilterConditions(waitlistsTableName, waitlistsColumns),
-						pgGen.CursorLimitClause(waitlistsTableName),
+						pgGen.FilterConditions(waitlistsTableName, waitlistsColumns, querygen.Ascending),
+						pgGen.CursorLimitClause(waitlistsTableName, querygen.Ascending),
 					)),
 				},
 				{
@@ -126,10 +126,10 @@ WHERE %s
 						pgGen.FilterCountSelect(waitlistsTableName, waitlistsColumns, nil, fmt.Sprintf("%s.valid_until >= %s", waitlistsTableName, querygen.NowExpression)),
 						pgGen.TotalCountSelect(waitlistsTableName, waitlistsColumns, nil, fmt.Sprintf("%s.valid_until >= %s", waitlistsTableName, querygen.NowExpression)),
 						waitlistsTableName,
-						pgGen.FilterConditions(waitlistsTableName, waitlistsColumns,
+						pgGen.FilterConditions(waitlistsTableName, waitlistsColumns, querygen.Ascending,
 							fmt.Sprintf("%s.valid_until >= %s", waitlistsTableName, querygen.NowExpression),
 						),
-						pgGen.CursorLimitClause(waitlistsTableName),
+						pgGen.CursorLimitClause(waitlistsTableName, querygen.Ascending),
 					)),
 				},
 			},

@@ -201,7 +201,7 @@ type GetMealPlanRecipeOptionSelectionsForMealPlanParams struct {
 	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	MealPlanID      string
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -228,7 +228,7 @@ func (q *Queries) GetMealPlanRecipeOptionSelectionsForMealPlan(ctx context.Conte
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.MealPlanID,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {
@@ -325,7 +325,7 @@ type GetMealPlanRecipeOptionSelectionsForMealPlanOptionParams struct {
 	UpdatedBefore    sql.NullTime
 	IncludeArchived  sql.NullBool
 	MealPlanOptionID string
-	Cursor           sql.NullString
+	PageCursor       sql.NullString
 	ResultLimit      interface{}
 }
 
@@ -352,7 +352,7 @@ func (q *Queries) GetMealPlanRecipeOptionSelectionsForMealPlanOption(ctx context
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.MealPlanOptionID,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {

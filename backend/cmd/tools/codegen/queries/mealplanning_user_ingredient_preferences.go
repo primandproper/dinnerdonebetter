@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v12/database/querygen"
+	"github.com/primandproper/platform-go/v13/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -71,11 +71,11 @@ WHERE %s
 						idColumn,
 						userIngredientPreferencesTableName,
 						userIngredientPreferencesIngredientColumn,
-						pgGen.FilterConditions(userIngredientPreferencesTableName, userIngredientPreferencesColumns,
+						pgGen.FilterConditions(userIngredientPreferencesTableName, userIngredientPreferencesColumns, querygen.Ascending,
 							"user_ingredient_preferences.belongs_to_user = sqlc.arg(belongs_to_user)",
 							"valid_ingredients.archived_at IS NULL",
 						),
-						pgGen.CursorLimitClause(userIngredientPreferencesTableName),
+						pgGen.CursorLimitClause(userIngredientPreferencesTableName, querygen.Ascending),
 					)),
 				},
 				{

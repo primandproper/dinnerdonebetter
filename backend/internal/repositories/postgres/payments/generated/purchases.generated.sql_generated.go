@@ -149,7 +149,7 @@ type GetPurchasesForAccountParams struct {
 	UpdatedBefore    sql.NullTime
 	IncludeArchived  sql.NullBool
 	BelongsToAccount string
-	Cursor           sql.NullString
+	PageCursor       sql.NullString
 	ResultLimit      interface{}
 }
 
@@ -176,7 +176,7 @@ func (q *Queries) GetPurchasesForAccount(ctx context.Context, db DBTX, arg *GetP
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.BelongsToAccount,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {

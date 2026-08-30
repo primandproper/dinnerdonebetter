@@ -16,7 +16,7 @@ import (
 	waitlistssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/waitlists"
 	webhookssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/webhooks"
 
-	"github.com/primandproper/platform-go/v12/server/grpc"
+	"github.com/primandproper/platform-go/v13/server/grpc"
 )
 
 type GRPCService struct {

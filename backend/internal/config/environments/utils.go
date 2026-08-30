@@ -6,10 +6,25 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 
-	circuitbreakingcfg "github.com/primandproper/platform-go/v12/circuitbreaking/config"
-	retrycfg "github.com/primandproper/platform-go/v12/retry/config"
-	"github.com/primandproper/platform-go/v12/webhooks"
-	webhookscfg "github.com/primandproper/platform-go/v12/webhooks/config"
+	circuitbreakingcfg "github.com/primandproper/platform-go/v13/circuitbreaking/config"
+	retrycfg "github.com/primandproper/platform-go/v13/retry/config"
+	"github.com/primandproper/platform-go/v13/webhooks"
+	webhookscfg "github.com/primandproper/platform-go/v13/webhooks/config"
+)
+
+// Names the environment builders below repeat: the service's own name, the analytics
+// and feature-flag sources, and the two placeholder markers a rendered prod config
+// carries until deploy substitutes them.
+const (
+	serviceName          = "dinner-done-better"
+	webPlatform          = "web"
+	iosPlatform          = "ios"
+	webAnalyticsSource   = "web_analytics"
+	iosAnalyticsSource   = "ios_analytics"
+	featureFlaggerSource = "feature_flagger"
+	otelCollectorAddress = "otel_collector:4317"
+	placeholderValue     = "placeholder"
+	replaceAtDeploy      = "REPLACE_AT_DEPLOY"
 )
 
 // passkeyCeremonyTimeout bounds a WebAuthn ceremony everywhere it is bounded: the timeout the

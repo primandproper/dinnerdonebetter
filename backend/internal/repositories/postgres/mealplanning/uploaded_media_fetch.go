@@ -6,9 +6,9 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 
-	"github.com/primandproper/platform-go/v12/database"
-	platformerrors "github.com/primandproper/platform-go/v12/errors"
-	"github.com/primandproper/platform-go/v12/observability"
+	"github.com/primandproper/platform-go/v13/database"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	"github.com/primandproper/platform-go/v13/observability"
 )
 
 var _ mealplanning.UploadedMediaFetcher = (*repository)(nil)

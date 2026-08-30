@@ -10,8 +10,8 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 
-	"github.com/primandproper/platform-go/v12/database"
-	"github.com/primandproper/platform-go/v12/filtering"
+	"github.com/primandproper/platform-go/v13/database"
+	"github.com/primandproper/platform-go/v13/filtering"
 )
 
 // Ensure, that RepositoryMock does implement audit.Repository.
@@ -27,19 +27,19 @@ var _ audit.Repository = &RepositoryMock{}
 //			GetAuditLogEntriesForAccountFunc: func(ctx context.Context, accountID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[audit.AuditLogEntry], error) {
 //				panic("mock out the GetAuditLogEntriesForAccount method")
 //			},
-//			GetAuditLogEntriesForAccountAndResourceTypesFunc: func(ctx context.Context, accountID string, resourceTypes []string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[audit.AuditLogEntry], error) {
+//			GetAuditLogEntriesForAccountAndResourceTypesFunc: func(ctx context.Context, accountID, resourceType string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[audit.AuditLogEntry], error) {
 //				panic("mock out the GetAuditLogEntriesForAccountAndResourceTypes method")
 //			},
 //			GetAuditLogEntriesForUserFunc: func(ctx context.Context, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[audit.AuditLogEntry], error) {
 //				panic("mock out the GetAuditLogEntriesForUser method")
 //			},
-//			GetAuditLogEntriesForUserAndResourceTypesFunc: func(ctx context.Context, userID string, resourceTypes []string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[audit.AuditLogEntry], error) {
+//			GetAuditLogEntriesForUserAndResourceTypesFunc: func(ctx context.Context, userID, resourceType string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[audit.AuditLogEntry], error) {
 //				panic("mock out the GetAuditLogEntriesForUserAndResourceTypes method")
 //			},
 //			GetAuditLogEntryFunc: func(ctx context.Context, auditLogID string) (*audit.AuditLogEntry, error) {
 //				panic("mock out the GetAuditLogEntry method")
 //			},
-//			RecordFunc: func(ctx context.Context, querier database.SQLQueryExecutor, entries ...*audit.AuditLogEntry) error {
+//			RecordFunc: func(ctx context.Context, querier database.Tx, entries ...*audit.AuditLogEntry) error {
 //				panic("mock out the Record method")
 //			},
 //			VerifyChainFunc: func(ctx context.Context, scope string, from time.Time, to time.Time) (*audit.VerificationResult, error) {
@@ -56,19 +56,19 @@ type RepositoryMock struct {
 	GetAuditLogEntriesForAccountFunc func(ctx context.Context, accountID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[audit.AuditLogEntry], error)
 
 	// GetAuditLogEntriesForAccountAndResourceTypesFunc mocks the GetAuditLogEntriesForAccountAndResourceTypes method.
-	GetAuditLogEntriesForAccountAndResourceTypesFunc func(ctx context.Context, accountID string, resourceTypes []string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[audit.AuditLogEntry], error)
+	GetAuditLogEntriesForAccountAndResourceTypesFunc func(ctx context.Context, accountID, resourceType string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[audit.AuditLogEntry], error)
 
 	// GetAuditLogEntriesForUserFunc mocks the GetAuditLogEntriesForUser method.
 	GetAuditLogEntriesForUserFunc func(ctx context.Context, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[audit.AuditLogEntry], error)
 
 	// GetAuditLogEntriesForUserAndResourceTypesFunc mocks the GetAuditLogEntriesForUserAndResourceTypes method.
-	GetAuditLogEntriesForUserAndResourceTypesFunc func(ctx context.Context, userID string, resourceTypes []string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[audit.AuditLogEntry], error)
+	GetAuditLogEntriesForUserAndResourceTypesFunc func(ctx context.Context, userID, resourceType string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[audit.AuditLogEntry], error)
 
 	// GetAuditLogEntryFunc mocks the GetAuditLogEntry method.
 	GetAuditLogEntryFunc func(ctx context.Context, auditLogID string) (*audit.AuditLogEntry, error)
 
 	// RecordFunc mocks the Record method.
-	RecordFunc func(ctx context.Context, querier database.SQLQueryExecutor, entries ...*audit.AuditLogEntry) error
+	RecordFunc func(ctx context.Context, querier database.Tx, entries ...*audit.AuditLogEntry) error
 
 	// VerifyChainFunc mocks the VerifyChain method.
 	VerifyChainFunc func(ctx context.Context, scope string, from time.Time, to time.Time) (*audit.VerificationResult, error)
@@ -91,7 +91,7 @@ type RepositoryMock struct {
 			// AccountID is the accountID argument value.
 			AccountID string
 			// ResourceTypes is the resourceTypes argument value.
-			ResourceTypes []string
+			ResourceType string
 			// Filter is the filter argument value.
 			Filter *filtering.QueryFilter
 		}
@@ -111,7 +111,7 @@ type RepositoryMock struct {
 			// UserID is the userID argument value.
 			UserID string
 			// ResourceTypes is the resourceTypes argument value.
-			ResourceTypes []string
+			ResourceType string
 			// Filter is the filter argument value.
 			Filter *filtering.QueryFilter
 		}
@@ -193,25 +193,25 @@ func (mock *RepositoryMock) GetAuditLogEntriesForAccountCalls() []struct {
 }
 
 // GetAuditLogEntriesForAccountAndResourceTypes calls GetAuditLogEntriesForAccountAndResourceTypesFunc.
-func (mock *RepositoryMock) GetAuditLogEntriesForAccountAndResourceTypes(ctx context.Context, accountID string, resourceTypes []string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[audit.AuditLogEntry], error) {
+func (mock *RepositoryMock) GetAuditLogEntriesForAccountAndResourceTypes(ctx context.Context, accountID, resourceType string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[audit.AuditLogEntry], error) {
 	if mock.GetAuditLogEntriesForAccountAndResourceTypesFunc == nil {
 		panic("RepositoryMock.GetAuditLogEntriesForAccountAndResourceTypesFunc: method is nil but Repository.GetAuditLogEntriesForAccountAndResourceTypes was just called")
 	}
 	callInfo := struct {
-		Ctx           context.Context
-		AccountID     string
-		ResourceTypes []string
-		Filter        *filtering.QueryFilter
+		Ctx          context.Context
+		AccountID    string
+		ResourceType string
+		Filter       *filtering.QueryFilter
 	}{
-		Ctx:           ctx,
-		AccountID:     accountID,
-		ResourceTypes: resourceTypes,
-		Filter:        filter,
+		Ctx:          ctx,
+		AccountID:    accountID,
+		ResourceType: resourceType,
+		Filter:       filter,
 	}
 	mock.lockGetAuditLogEntriesForAccountAndResourceTypes.Lock()
 	mock.calls.GetAuditLogEntriesForAccountAndResourceTypes = append(mock.calls.GetAuditLogEntriesForAccountAndResourceTypes, callInfo)
 	mock.lockGetAuditLogEntriesForAccountAndResourceTypes.Unlock()
-	return mock.GetAuditLogEntriesForAccountAndResourceTypesFunc(ctx, accountID, resourceTypes, filter)
+	return mock.GetAuditLogEntriesForAccountAndResourceTypesFunc(ctx, accountID, resourceType, filter)
 }
 
 // GetAuditLogEntriesForAccountAndResourceTypesCalls gets all the calls that were made to GetAuditLogEntriesForAccountAndResourceTypes.
@@ -219,16 +219,16 @@ func (mock *RepositoryMock) GetAuditLogEntriesForAccountAndResourceTypes(ctx con
 //
 //	len(mockedRepository.GetAuditLogEntriesForAccountAndResourceTypesCalls())
 func (mock *RepositoryMock) GetAuditLogEntriesForAccountAndResourceTypesCalls() []struct {
-	Ctx           context.Context
-	AccountID     string
-	ResourceTypes []string
-	Filter        *filtering.QueryFilter
+	Ctx          context.Context
+	AccountID    string
+	ResourceType string
+	Filter       *filtering.QueryFilter
 } {
 	var calls []struct {
-		Ctx           context.Context
-		AccountID     string
-		ResourceTypes []string
-		Filter        *filtering.QueryFilter
+		Ctx          context.Context
+		AccountID    string
+		ResourceType string
+		Filter       *filtering.QueryFilter
 	}
 	mock.lockGetAuditLogEntriesForAccountAndResourceTypes.RLock()
 	calls = mock.calls.GetAuditLogEntriesForAccountAndResourceTypes
@@ -277,25 +277,25 @@ func (mock *RepositoryMock) GetAuditLogEntriesForUserCalls() []struct {
 }
 
 // GetAuditLogEntriesForUserAndResourceTypes calls GetAuditLogEntriesForUserAndResourceTypesFunc.
-func (mock *RepositoryMock) GetAuditLogEntriesForUserAndResourceTypes(ctx context.Context, userID string, resourceTypes []string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[audit.AuditLogEntry], error) {
+func (mock *RepositoryMock) GetAuditLogEntriesForUserAndResourceTypes(ctx context.Context, userID, resourceType string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[audit.AuditLogEntry], error) {
 	if mock.GetAuditLogEntriesForUserAndResourceTypesFunc == nil {
 		panic("RepositoryMock.GetAuditLogEntriesForUserAndResourceTypesFunc: method is nil but Repository.GetAuditLogEntriesForUserAndResourceTypes was just called")
 	}
 	callInfo := struct {
-		Ctx           context.Context
-		UserID        string
-		ResourceTypes []string
-		Filter        *filtering.QueryFilter
+		Ctx          context.Context
+		UserID       string
+		ResourceType string
+		Filter       *filtering.QueryFilter
 	}{
-		Ctx:           ctx,
-		UserID:        userID,
-		ResourceTypes: resourceTypes,
-		Filter:        filter,
+		Ctx:          ctx,
+		UserID:       userID,
+		ResourceType: resourceType,
+		Filter:       filter,
 	}
 	mock.lockGetAuditLogEntriesForUserAndResourceTypes.Lock()
 	mock.calls.GetAuditLogEntriesForUserAndResourceTypes = append(mock.calls.GetAuditLogEntriesForUserAndResourceTypes, callInfo)
 	mock.lockGetAuditLogEntriesForUserAndResourceTypes.Unlock()
-	return mock.GetAuditLogEntriesForUserAndResourceTypesFunc(ctx, userID, resourceTypes, filter)
+	return mock.GetAuditLogEntriesForUserAndResourceTypesFunc(ctx, userID, resourceType, filter)
 }
 
 // GetAuditLogEntriesForUserAndResourceTypesCalls gets all the calls that were made to GetAuditLogEntriesForUserAndResourceTypes.
@@ -303,16 +303,16 @@ func (mock *RepositoryMock) GetAuditLogEntriesForUserAndResourceTypes(ctx contex
 //
 //	len(mockedRepository.GetAuditLogEntriesForUserAndResourceTypesCalls())
 func (mock *RepositoryMock) GetAuditLogEntriesForUserAndResourceTypesCalls() []struct {
-	Ctx           context.Context
-	UserID        string
-	ResourceTypes []string
-	Filter        *filtering.QueryFilter
+	Ctx          context.Context
+	UserID       string
+	ResourceType string
+	Filter       *filtering.QueryFilter
 } {
 	var calls []struct {
-		Ctx           context.Context
-		UserID        string
-		ResourceTypes []string
-		Filter        *filtering.QueryFilter
+		Ctx          context.Context
+		UserID       string
+		ResourceType string
+		Filter       *filtering.QueryFilter
 	}
 	mock.lockGetAuditLogEntriesForUserAndResourceTypes.RLock()
 	calls = mock.calls.GetAuditLogEntriesForUserAndResourceTypes
@@ -357,7 +357,7 @@ func (mock *RepositoryMock) GetAuditLogEntryCalls() []struct {
 }
 
 // Record calls RecordFunc.
-func (mock *RepositoryMock) Record(ctx context.Context, querier database.SQLQueryExecutor, entries ...*audit.AuditLogEntry) error {
+func (mock *RepositoryMock) Record(ctx context.Context, querier database.Tx, entries ...*audit.AuditLogEntry) error {
 	if mock.RecordFunc == nil {
 		panic("RepositoryMock.RecordFunc: method is nil but Repository.Record was just called")
 	}

@@ -10,9 +10,9 @@ import (
 	identityfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	platformaudit "github.com/primandproper/platform-go/v12/audit"
-	"github.com/primandproper/platform-go/v12/database"
-	"github.com/primandproper/platform-go/v12/identifiers"
+	platformaudit "github.com/primandproper/platform-go/v13/audit"
+	"github.com/primandproper/platform-go/v13/database"
+	"github.com/primandproper/platform-go/v13/identifiers"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -39,7 +39,7 @@ func recordForTest(t *testing.T, ctx context.Context, dbc *repository, client da
 		EventType:        audit.AuditLogEventTypeUpdated,
 	}
 
-	require.NoError(t, client.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	require.NoError(t, client.WithTransaction(ctx, func(tx database.Tx) error {
 		return dbc.Record(ctx, tx, entry)
 	}))
 
@@ -139,7 +139,7 @@ func TestQuerier_Integration_AuditLogRedaction(t *testing.T) {
 		},
 	}
 
-	require.NoError(t, client.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	require.NoError(t, client.WithTransaction(ctx, func(tx database.Tx) error {
 		return dbc.Record(ctx, tx, entry)
 	}))
 

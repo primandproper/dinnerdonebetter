@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v12/database/querygen"
+	"github.com/primandproper/platform-go/v13/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -168,8 +168,8 @@ WHERE %s
 						recipeIDColumn,
 						recipesTableName,
 						archivedAtColumn,
-						pgGen.FilterConditions(mealsTableName, mealsColumns),
-						pgGen.CursorLimitClause(mealsTableName),
+						pgGen.FilterConditions(mealsTableName, mealsColumns, querygen.Ascending),
+						pgGen.CursorLimitClause(mealsTableName, querygen.Ascending),
 					)),
 				},
 				{
@@ -229,10 +229,10 @@ WHERE %s
 						recipeIDColumn,
 						recipesTableName,
 						archivedAtColumn,
-						pgGen.FilterConditions(mealsTableName, mealsColumns,
+						pgGen.FilterConditions(mealsTableName, mealsColumns, querygen.Ascending,
 							fmt.Sprintf("%s.%s = sqlc.arg(%s)", mealsTableName, createdByUserColumn, createdByUserColumn),
 						),
-						pgGen.CursorLimitClause(mealsTableName),
+						pgGen.CursorLimitClause(mealsTableName, querygen.Ascending),
 					)),
 				},
 				{
@@ -268,10 +268,10 @@ WHERE %s
 						recipeIDColumn,
 						recipesTableName,
 						archivedAtColumn,
-						pgGen.FilterConditions(mealsTableName, mealsColumns,
+						pgGen.FilterConditions(mealsTableName, mealsColumns, querygen.Ascending,
 							fmt.Sprintf("%s.%s %s", mealsTableName, nameColumn, buildILIKEForArgument("query")),
 						),
-						pgGen.CursorLimitClause(mealsTableName),
+						pgGen.CursorLimitClause(mealsTableName, querygen.Ascending),
 					)),
 				},
 				{

@@ -5,14 +5,14 @@ import (
 	"go/format"
 	"strings"
 
-	"github.com/primandproper/platform-go/v12/errors"
+	"github.com/primandproper/platform-go/v13/errors"
 )
 
 // domainImportPath is where a domain package lives, given its directory name.
 const domainImportPath = "github.com/primandproper/dinnerdonebetter/backend/internal/domain/%s"
 
 // identifiersImportPath is the only other import a generated converter can need.
-const identifiersImportPath = "github.com/primandproper/platform-go/v12/identifiers"
+const identifiersImportPath = "github.com/primandproper/platform-go/v13/identifiers"
 
 // render emits one domain's generated converters, gofmt'd.
 //

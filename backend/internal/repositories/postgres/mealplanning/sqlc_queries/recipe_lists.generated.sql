@@ -76,6 +76,6 @@ WHERE recipe_lists.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRE
 		OR recipe_lists.last_updated_at < COALESCE(sqlc.narg(updated_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE(sqlc.narg(include_archived), false)::boolean OR recipe_lists.archived_at IS NULL)
-	AND recipe_lists.id > COALESCE(sqlc.narg(cursor), '')
+	AND recipe_lists.id > COALESCE(sqlc.narg(page_cursor), '')
 ORDER BY recipe_lists.id ASC
 LIMIT COALESCE(sqlc.narg(result_limit), 50);

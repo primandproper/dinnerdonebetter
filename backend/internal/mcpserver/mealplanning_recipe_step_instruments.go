@@ -5,7 +5,7 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 
-	"github.com/primandproper/platform-go/v12/filtering"
+	"github.com/primandproper/platform-go/v13/filtering"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -19,28 +19,28 @@ type (
 )
 
 var recipeStepInstrumentsSchema = map[string]any{
-	"ID":                  stringField("The ID of the recipe step instrument"),
-	"CreatedAt":           timestampField("When the recipe step instrument was created"),
-	"LastUpdatedAt":       timestampField("When the recipe step instrument was last updated"),
-	"ArchivedAt":          timestampField("When the recipe step instrument was soft deleted"),
-	"BelongsToRecipeStep": stringField("The ID of the recipe step this instrument belongs to"),
-	"Name":                stringField("Name of the instrument"),
-	"Notes":               stringField("Notes about the instrument"),
-	"Instrument":          objectType(validInstrumentsSchema),
-	"RecipeStepProductID": stringField("The ID of the recipe step product this instrument is associated with, if any"),
-	"MinQuantity":         uintField("Minimum quantity of this instrument (required)"),
-	"MaxQuantity":         uintField("Maximum quantity of this instrument (optional)"),
-	"OptionIndex":         uintField("The option index for this instrument"),
-	"PreferenceRank":      uintField("The preference rank for this instrument (0-255)"),
-	"Optional":            boolField("Whether this instrument is optional"),
+	"ID":                     stringField("The ID of the recipe step instrument"),
+	fieldCreatedAt:           timestampField("When the recipe step instrument was created"),
+	fieldLastUpdatedAt:       timestampField("When the recipe step instrument was last updated"),
+	fieldArchivedAt:          timestampField("When the recipe step instrument was soft deleted"),
+	fieldBelongsToRecipeStep: stringField("The ID of the recipe step this instrument belongs to"),
+	fieldName:                stringField("Name of the instrument"),
+	fieldNotes:               stringField("Notes about the instrument"),
+	"Instrument":             objectType(validInstrumentsSchema),
+	fieldRecipeStepProductID: stringField("The ID of the recipe step product this instrument is associated with, if any"),
+	fieldMinQuantity:         uintField("Minimum quantity of this instrument (required)"),
+	fieldMaxQuantity:         uintField("Maximum quantity of this instrument (optional)"),
+	"OptionIndex":            uintField("The option index for this instrument"),
+	"PreferenceRank":         uintField("The preference rank for this instrument (0-255)"),
+	fieldOptional:            boolField("Whether this instrument is optional"),
 }
 
 var getRecipeStepInstrumentTool = &mcp.Tool{
 	Name:        "GetRecipeStepInstrument",
 	Description: "Get a recipe step instrument by it's ID",
 	InputSchema: schemaObject(map[string]any{
-		"RecipeID":               stringField("The ID of the recipe"),
-		"RecipeStepID":           stringField("The ID of the recipe step"),
+		fieldRecipeID:            stringField("The ID of the recipe"),
+		fieldRecipeStepID:        stringField("The ID of the recipe step"),
 		"RecipeStepInstrumentID": stringField("The ID of the recipe step instrument to get"),
 	}),
 	OutputSchema: schemaObject(recipeStepInstrumentsSchema),
@@ -77,12 +77,12 @@ var getRecipeStepInstrumentsTool = &mcp.Tool{
 	Name:        "GetRecipeStepInstruments",
 	Description: "Get recipe step instruments with optional filtering",
 	InputSchema: schemaObject(map[string]any{
-		"RecipeID":     stringField("The ID of the recipe"),
-		"RecipeStepID": stringField("The ID of the recipe step"),
-		"Filter":       filtering.QueryFilterSchema(),
+		fieldRecipeID:     stringField("The ID of the recipe"),
+		fieldRecipeStepID: stringField("The ID of the recipe step"),
+		fieldFilter:       filtering.QueryFilterSchema(),
 	}),
 	OutputSchema: schemaObject(map[string]any{
-		"Results": arrayType(schemaObject(recipeStepInstrumentsSchema)),
+		fieldResults: arrayType(schemaObject(recipeStepInstrumentsSchema)),
 	}),
 }
 

@@ -11,12 +11,12 @@ import (
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	generated "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity/generated"
 
-	"github.com/primandproper/platform-go/v12/database"
-	platformerrors "github.com/primandproper/platform-go/v12/errors"
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/identifiers"
-	"github.com/primandproper/platform-go/v12/observability"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v13/database"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/identifiers"
+	"github.com/primandproper/platform-go/v13/observability"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 )
 
 const (
@@ -131,7 +131,7 @@ func (r *repository) getAccountsForUser(ctx context.Context, querier database.SQ
 		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
 		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
 	}
@@ -206,7 +206,7 @@ func (r *repository) CreateAccount(ctx context.Context, input *identity.AccountD
 	// begin account creation transaction
 	var err error
 	var account *identity.Account
-	if err = r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err = r.WithTransaction(ctx, func(tx database.Tx) error {
 		// create the account.
 		if writeErr := r.generatedQuerier.CreateAccount(ctx, tx, &generated.CreateAccountParams{
 			City:              input.City,
@@ -337,7 +337,7 @@ func (r *repository) UpdateAccount(ctx context.Context, updated *identity.Accoun
 	logger := r.logger.WithValue(identitykeys.AccountIDKey, updated.ID)
 	tracing.AttachToSpan(span, identitykeys.AccountIDKey, updated.ID)
 
-	if err := r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err := r.WithTransaction(ctx, func(tx database.Tx) error {
 		account, err := r.GetAccount(ctx, updated.ID)
 		if err != nil {
 			return observability.PrepareError(err, span, "fetching account")
@@ -416,7 +416,7 @@ func (r *repository) ArchiveAccount(ctx context.Context, accountID, ownerID stri
 	logger = logger.WithValue(identitykeys.AccountIDKey, accountID)
 
 	var err error
-	if err = r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err = r.WithTransaction(ctx, func(tx database.Tx) error {
 		rowsAffected, archiveErr := r.generatedQuerier.ArchiveAccount(ctx, tx, &generated.ArchiveAccountParams{
 			BelongsToUser: ownerID,
 			ID:            accountID,

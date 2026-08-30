@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/primandproper/platform-go/v12/database/querygen"
+	"github.com/primandproper/platform-go/v13/database/querygen"
 
 	"github.com/cristalhq/builq"
 )
@@ -20,7 +20,7 @@ var subscriptionsColumns = []string{
 	belongsToAccountColumn,
 	"product_id",
 	externalSubscriptionIDColumn,
-	"status",
+	statusColumn,
 	"current_period_start",
 	"current_period_end",
 	createdAtColumn,
@@ -88,11 +88,11 @@ WHERE %s
 						pgGen.FilterCountSelect(subscriptionsTableName, subscriptionsColumns, nil, accountCondition),
 						pgGen.TotalCountSelect(subscriptionsTableName, subscriptionsColumns, nil, accountCondition),
 						subscriptionsTableName,
-						pgGen.FilterConditions(subscriptionsTableName, subscriptionsColumns,
+						pgGen.FilterConditions(subscriptionsTableName, subscriptionsColumns, querygen.Ascending,
 							accountCondition,
 							accountCondition,
 						),
-						pgGen.CursorLimitClause(subscriptionsTableName),
+						pgGen.CursorLimitClause(subscriptionsTableName, querygen.Ascending),
 					)),
 				},
 				{

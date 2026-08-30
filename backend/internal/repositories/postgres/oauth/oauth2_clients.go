@@ -10,11 +10,11 @@ import (
 	oauthkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/oauth/generated"
 
-	"github.com/primandproper/platform-go/v12/database"
-	platformerrors "github.com/primandproper/platform-go/v12/errors"
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/observability"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v13/database"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/observability"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 )
 
 const (
@@ -105,7 +105,7 @@ func (q *repository) GetOAuth2Clients(ctx context.Context, filter *filtering.Que
 	results, err := q.generatedQuerier.GetOAuth2Clients(ctx, q.readDB, &generated.GetOAuth2ClientsParams{
 		CreatedBefore:   database.NullTimeFromTimePointer(filter.CreatedBefore),
 		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
 	})
@@ -159,7 +159,7 @@ func (q *repository) CreateOAuth2Client(ctx context.Context, input *types.OAuth2
 	})
 
 	var err error
-	if err = q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err = q.WithTransaction(ctx, func(tx database.Tx) error {
 		if writeErr := q.generatedQuerier.CreateOAuth2Client(ctx, tx, &generated.CreateOAuth2ClientParams{
 			ID:           input.ID,
 			Description:  input.Description,
@@ -212,7 +212,7 @@ func (q *repository) ArchiveOAuth2Client(ctx context.Context, clientID string) e
 	tracing.AttachToSpan(span, oauthkeys.OAuth2ClientClientIDKey, clientID)
 	logger := q.logger.WithValue(oauthkeys.OAuth2ClientIDKey, clientID)
 
-	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err := q.WithTransaction(ctx, func(tx database.Tx) error {
 		rowsAffected, archiveErr := q.generatedQuerier.ArchiveOAuth2Client(ctx, tx, clientID)
 		if archiveErr != nil {
 			return archiveErr

@@ -3,7 +3,7 @@ package converters
 import (
 	dataprivacysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/dataprivacy"
 
-	platformdataprivacy "github.com/primandproper/platform-go/v12/dataprivacy"
+	platformdataprivacy "github.com/primandproper/platform-go/v13/dataprivacy"
 
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -25,7 +25,7 @@ func ConvertRequestToGRPCRequest(input *platformdataprivacy.Request) *dataprivac
 		SubjectId:     input.Subject.ID,
 		RequestType:   string(input.Type),
 		Status:        string(input.Status),
-		RequestedAt:   timestamppb.New(input.RequestedAt),
+		RequestedAt:   timestamppb.New(input.CreatedAt),
 		DueAt:         timestamppb.New(input.DueAt),
 		Failures:      input.Failures,
 		Retained:      input.Retained,

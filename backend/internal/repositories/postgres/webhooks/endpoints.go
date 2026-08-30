@@ -9,9 +9,9 @@ import (
 
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
 
-	platformerrors "github.com/primandproper/platform-go/v12/errors"
-	"github.com/primandproper/platform-go/v12/tenancy"
-	"github.com/primandproper/platform-go/v12/webhooks"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	"github.com/primandproper/platform-go/v13/tenancy"
+	"github.com/primandproper/platform-go/v13/webhooks"
 )
 
 // The delivery side of a webhook: the endpoint it is delivered to, its signing secret, and the
@@ -69,11 +69,11 @@ func (r *repository) registerEndpoint(ctx context.Context, webhook *types.Webhoo
 		// webhook in each of two tables, joined by nothing but a shared key, is what keeps
 		// "the endpoint for this webhook" from being a lookup that can return the wrong
 		// answer.
-		ID:          webhook.ID,
-		URL:         webhook.URL,
-		ContentType: webhook.ContentType,
-		Secret:      webhooks.Secret{Current: secret},
-		Events:      subscriptions(webhook),
+		ID:            webhook.ID,
+		URL:           webhook.URL,
+		ContentType:   webhook.ContentType,
+		Secret:        webhooks.Secret{Current: secret},
+		Subscriptions: subscriptions(webhook),
 	}); err != nil {
 		return "", err
 	}
@@ -149,7 +149,7 @@ func (r *repository) setSubscriptions(ctx context.Context, webhook *types.Webhoo
 		return err
 	}
 
-	endpoint.Events = subscriptions(webhook)
+	endpoint.Subscriptions = subscriptions(webhook)
 
 	return r.endpoints.SaveEndpoint(ctx, endpoint)
 }
@@ -168,12 +168,12 @@ func (r *repository) archiveEndpoint(ctx context.Context, webhookID, accountID s
 // They are unqualified — the account is on the endpoint, not smuggled into the event type — so
 // what is stored here is the same string the catalog holds and the same one a subscriber reads
 // out of X-Platform-Event.
-func subscriptions(webhook *types.Webhook) []webhooks.EventType {
+func subscriptions(webhook *types.Webhook) []webhooks.Subscription {
 	eventTypes := webhook.EventTypes()
 
-	events := make([]webhooks.EventType, 0, len(eventTypes))
+	events := make([]webhooks.Subscription, 0, len(eventTypes))
 	for _, eventType := range eventTypes {
-		events = append(events, webhooks.EventType(eventType))
+		events = append(events, webhooks.Subscription{EventType: webhooks.EventType(eventType)})
 	}
 
 	return events

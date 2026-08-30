@@ -408,7 +408,7 @@ type GetRecipeStepVesselsParams struct {
 	IncludeArchived sql.NullBool
 	RecipeStepID    string
 	RecipeID        string
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -473,7 +473,7 @@ func (q *Queries) GetRecipeStepVessels(ctx context.Context, db DBTX, arg *GetRec
 		arg.IncludeArchived,
 		arg.RecipeStepID,
 		arg.RecipeID,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {

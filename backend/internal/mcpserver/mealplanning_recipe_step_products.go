@@ -5,7 +5,7 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 
-	"github.com/primandproper/platform-go/v12/filtering"
+	"github.com/primandproper/platform-go/v13/filtering"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -19,38 +19,38 @@ type (
 )
 
 var recipeStepProductsSchema = map[string]any{
-	"ID":                             stringField("The ID of the recipe step product"),
-	"CreatedAt":                      timestampField("When the recipe step product was created"),
-	"LastUpdatedAt":                  timestampField("When the recipe step product was last updated"),
-	"ArchivedAt":                     timestampField("When the recipe step product was soft deleted"),
-	"BelongsToRecipeStep":            stringField("The ID of the recipe step this product belongs to"),
-	"Name":                           stringField("Name of the product"),
-	"Type":                           stringField("The type of product (e.g., 'ingredient', 'waste', 'intermediate')"),
-	"QuantityNotes":                  stringField("Notes about the quantity"),
-	"StorageInstructions":            stringField("Storage instructions for the product"),
-	"MeasurementUnit":                objectType(validMeasurementUnitsSchema),
-	"MinMeasurementQuantity":         floatField("Minimum measurement quantity"),
-	"MaxMeasurementQuantity":         floatField("Maximum measurement quantity"),
-	"MinItemQuantity":                floatField("Minimum item quantity"),
-	"MaxItemQuantity":                floatField("Maximum item quantity"),
-	"MinStorageTemperatureInCelsius": floatField("Minimum storage temperature in celsius"),
-	"MaxStorageTemperatureInCelsius": floatField("Maximum storage temperature in celsius"),
-	"MinStorageDurationInSeconds":    uintField("Minimum storage duration in seconds"),
-	"MaxStorageDurationInSeconds":    uintField("Maximum storage duration in seconds"),
-	"ContainedInVesselIndex":         uintField("The index of the vessel this product is contained in, if any"),
-	"Index":                          uintField("The display index/order of this product"),
-	"IsWaste":                        boolField("Whether this product is waste"),
-	"IsLiquid":                       boolField("Whether this product is a liquid"),
-	"Compostable":                    boolField("Whether this product is compostable"),
+	"ID":                                stringField("The ID of the recipe step product"),
+	fieldCreatedAt:                      timestampField("When the recipe step product was created"),
+	fieldLastUpdatedAt:                  timestampField("When the recipe step product was last updated"),
+	fieldArchivedAt:                     timestampField("When the recipe step product was soft deleted"),
+	fieldBelongsToRecipeStep:            stringField("The ID of the recipe step this product belongs to"),
+	fieldName:                           stringField("Name of the product"),
+	"Type":                              stringField("The type of product (e.g., 'ingredient', 'waste', 'intermediate')"),
+	"QuantityNotes":                     stringField("Notes about the quantity"),
+	fieldStorageInstructions:            stringField("Storage instructions for the product"),
+	fieldMeasurementUnit:                objectType(validMeasurementUnitsSchema),
+	"MinMeasurementQuantity":            floatField("Minimum measurement quantity"),
+	"MaxMeasurementQuantity":            floatField("Maximum measurement quantity"),
+	"MinItemQuantity":                   floatField("Minimum item quantity"),
+	"MaxItemQuantity":                   floatField("Maximum item quantity"),
+	fieldMinStorageTemperatureInCelsius: floatField("Minimum storage temperature in celsius"),
+	fieldMaxStorageTemperatureInCelsius: floatField("Maximum storage temperature in celsius"),
+	"MinStorageDurationInSeconds":       uintField("Minimum storage duration in seconds"),
+	"MaxStorageDurationInSeconds":       uintField("Maximum storage duration in seconds"),
+	"ContainedInVesselIndex":            uintField("The index of the vessel this product is contained in, if any"),
+	fieldIndex:                          uintField("The display index/order of this product"),
+	"IsWaste":                           boolField("Whether this product is waste"),
+	"IsLiquid":                          boolField("Whether this product is a liquid"),
+	"Compostable":                       boolField("Whether this product is compostable"),
 }
 
 var getRecipeStepProductTool = &mcp.Tool{
 	Name:        "GetRecipeStepProduct",
 	Description: "Get a recipe step product by it's ID",
 	InputSchema: schemaObject(map[string]any{
-		"RecipeID":            stringField("The ID of the recipe"),
-		"RecipeStepID":        stringField("The ID of the recipe step"),
-		"RecipeStepProductID": stringField("The ID of the recipe step product to get"),
+		fieldRecipeID:            stringField("The ID of the recipe"),
+		fieldRecipeStepID:        stringField("The ID of the recipe step"),
+		fieldRecipeStepProductID: stringField("The ID of the recipe step product to get"),
 	}),
 	OutputSchema: schemaObject(recipeStepProductsSchema),
 }
@@ -86,12 +86,12 @@ var getRecipeStepProductsTool = &mcp.Tool{
 	Name:        "GetRecipeStepProducts",
 	Description: "Get recipe step products with optional filtering",
 	InputSchema: schemaObject(map[string]any{
-		"RecipeID":     stringField("The ID of the recipe"),
-		"RecipeStepID": stringField("The ID of the recipe step"),
-		"Filter":       filtering.QueryFilterSchema(),
+		fieldRecipeID:     stringField("The ID of the recipe"),
+		fieldRecipeStepID: stringField("The ID of the recipe step"),
+		fieldFilter:       filtering.QueryFilterSchema(),
 	}),
 	OutputSchema: schemaObject(map[string]any{
-		"Results": arrayType(schemaObject(recipeStepProductsSchema)),
+		fieldResults: arrayType(schemaObject(recipeStepProductsSchema)),
 	}),
 }
 

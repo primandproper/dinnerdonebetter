@@ -3,10 +3,10 @@ package repositories
 import (
 	postgresmigrations "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
 
-	"github.com/primandproper/platform-go/v12/database"
-	databasecfg "github.com/primandproper/platform-go/v12/database/config"
-	"github.com/primandproper/platform-go/v12/errors"
-	"github.com/primandproper/platform-go/v12/observability/logging"
+	"github.com/primandproper/platform-go/v13/database"
+	databasecfg "github.com/primandproper/platform-go/v13/database/config"
+	"github.com/primandproper/platform-go/v13/errors"
+	"github.com/primandproper/platform-go/v13/observability/logging"
 )
 
 // ErrUnsupportedDatabaseProvider indicates the configured provider has no migrator.

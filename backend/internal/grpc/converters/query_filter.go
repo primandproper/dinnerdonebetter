@@ -3,7 +3,7 @@ package grpcconverters
 import (
 	grpcfiltering "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/filtering"
 
-	"github.com/primandproper/platform-go/v12/filtering"
+	"github.com/primandproper/platform-go/v13/filtering"
 )
 
 func ConvertGRPCQueryFilterToQueryFilter(qf *grpcfiltering.QueryFilter) *filtering.QueryFilter {
@@ -22,8 +22,7 @@ func ConvertGRPCQueryFilterToQueryFilter(qf *grpcfiltering.QueryFilter) *filteri
 		UpdatedBefore:   ConvertPBTimestampToTimePointer(qf.UpdatedBefore),
 	}
 	if qf.MaxResponseSize != nil {
-		size := min(*qf.MaxResponseSize, filtering.MaxQueryFilterLimit)
-		filter.MaxResponseSize = new(uint16(size))
+		filter.SetMaxResponseSize(uint64(*qf.MaxResponseSize))
 	}
 
 	return filter

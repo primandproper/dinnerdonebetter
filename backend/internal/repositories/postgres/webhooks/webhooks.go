@@ -10,11 +10,11 @@ import (
 	webhookkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/keys"
 	generated "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhooks/generated"
 
-	"github.com/primandproper/platform-go/v12/database"
-	platformerrors "github.com/primandproper/platform-go/v12/errors"
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/observability"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v13/database"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/observability"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 )
 
 const (
@@ -144,7 +144,7 @@ func (r *repository) GetWebhooks(ctx context.Context, accountID string, filter *
 		CreatedAfter:     database.NullTimeFromTimePointer(filter.CreatedAfter),
 		UpdatedBefore:    database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:     database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		Cursor:           database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:       database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:      database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived:  database.NullBoolFromBoolPointer(filter.IncludeArchived),
 	})
@@ -213,7 +213,7 @@ func (r *repository) CreateWebhook(ctx context.Context, input *types.WebhookData
 
 	var err error
 	var x *types.Webhook
-	if err = r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err = r.WithTransaction(ctx, func(tx database.Tx) error {
 		if err = r.generatedQuerier.CreateWebhook(ctx, tx, &generated.CreateWebhookParams{
 			ID:               input.ID,
 			Name:             input.Name,
@@ -283,7 +283,7 @@ func (r *repository) CreateWebhook(ctx context.Context, input *types.WebhookData
 }
 
 // createWebhookTriggerConfig creates a webhook trigger config (join table row) in the database.
-func (r *repository) createWebhookTriggerConfig(ctx context.Context, querier database.SQLQueryExecutor, accountID string, input *types.WebhookTriggerConfigDatabaseCreationInput) (*types.WebhookTriggerConfig, error) {
+func (r *repository) createWebhookTriggerConfig(ctx context.Context, querier database.Tx, accountID string, input *types.WebhookTriggerConfigDatabaseCreationInput) (*types.WebhookTriggerConfig, error) {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -368,7 +368,7 @@ func (r *repository) ArchiveWebhook(ctx context.Context, webhookID, accountID st
 		return observability.PrepareAndLogError(err, logger, span, "archiving webhook delivery endpoint")
 	}
 
-	if err = r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err = r.WithTransaction(ctx, func(tx database.Tx) error {
 		rowsAffected, archiveErr := r.generatedQuerier.ArchiveWebhook(ctx, tx, &generated.ArchiveWebhookParams{
 			BelongsToAccount: accountID,
 			ID:               webhookID,
@@ -428,7 +428,7 @@ func (r *repository) AddWebhookTriggerConfig(ctx context.Context, accountID stri
 	})
 
 	var created *types.WebhookTriggerConfig
-	if err := r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err := r.WithTransaction(ctx, func(tx database.Tx) error {
 		result, err := r.createWebhookTriggerConfig(ctx, tx, accountID, input)
 		if err != nil {
 			return observability.PrepareAndLogError(err, logger, span, "performing webhook trigger config creation")
@@ -486,7 +486,7 @@ func (r *repository) ArchiveWebhookTriggerConfig(ctx context.Context, webhookID,
 	})
 
 	var err error
-	if err = r.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err = r.WithTransaction(ctx, func(tx database.Tx) error {
 		rowsAffected, archiveErr := r.generatedQuerier.ArchiveWebhookTriggerConfig(ctx, tx, &generated.ArchiveWebhookTriggerConfigParams{
 			BelongsToWebhook: webhookID,
 			BelongsToAccount: accountID,

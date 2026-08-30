@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	platformconfig "github.com/primandproper/platform-go/v12/config"
+	platformconfig "github.com/primandproper/platform-go/v13/config"
 )
 
 const (

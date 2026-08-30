@@ -10,11 +10,11 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/indexevents"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
-	"github.com/primandproper/platform-go/v12/database"
-	platformerrors "github.com/primandproper/platform-go/v12/errors"
-	"github.com/primandproper/platform-go/v12/filtering"
-	"github.com/primandproper/platform-go/v12/observability"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	"github.com/primandproper/platform-go/v13/database"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/observability"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 )
 
 var (
@@ -361,7 +361,7 @@ func (q *repository) GetRecipeSteps(ctx context.Context, recipeID string, filter
 		CreatedAfter:    database.NullTimeFromTimePointer(filter.CreatedAfter),
 		UpdatedBefore:   database.NullTimeFromTimePointer(filter.UpdatedBefore),
 		UpdatedAfter:    database.NullTimeFromTimePointer(filter.UpdatedAfter),
-		Cursor:          database.NullStringFromStringPointer(filter.Cursor),
+		PageCursor:      database.NullStringFromStringPointer(filter.Cursor),
 		ResultLimit:     database.NullInt32FromUint16Pointer(filter.MaxResponseSize),
 		IncludeArchived: database.NullBoolFromBoolPointer(filter.IncludeArchived),
 		RecipeID:        recipeID,
@@ -507,7 +507,7 @@ func (q *repository) GetRecipeSteps(ctx context.Context, recipeID string, filter
 }
 
 // CreateRecipeStep creates a recipe step in the database.
-func (q *repository) createRecipeStep(ctx context.Context, db database.SQLQueryExecutor, input *mealplanning.RecipeStepDatabaseCreationInput) (*mealplanning.RecipeStep, error) {
+func (q *repository) createRecipeStep(ctx context.Context, db database.Tx, input *mealplanning.RecipeStepDatabaseCreationInput) (*mealplanning.RecipeStep, error) {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -638,7 +638,7 @@ func (q *repository) CreateRecipeStep(ctx context.Context, input *mealplanning.R
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeIDKey, input.BelongsToRecipe)
 
 	var created *mealplanning.RecipeStep
-	if err := q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+	if err := q.WithTransaction(ctx, func(tx database.Tx) error {
 		var createErr error
 		if created, createErr = q.createRecipeStep(ctx, tx, input); createErr != nil {
 			return createErr
@@ -668,7 +668,7 @@ func (q *repository) UpdateRecipeStep(ctx context.Context, updated *mealplanning
 	if err := q.withEvent(ctx, logger, mealplanning.RecipeStepUpdatedServiceEventType, "", map[string]any{
 		mealplanningkeys.RecipeIDKey:     updated.BelongsToRecipe,
 		mealplanningkeys.RecipeStepIDKey: updated.ID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		_, updateErr := q.generatedQuerier.UpdateRecipeStep(ctx, tx, &generated.UpdateRecipeStepParams{
 			ConditionExpression:           updated.ConditionExpression,
 			PreparationID:                 updated.Preparation.ID,
@@ -715,7 +715,7 @@ func (q *repository) ArchiveRecipeStep(ctx context.Context, recipeID, recipeStep
 	if err := q.withEvent(ctx, logger, mealplanning.RecipeStepArchivedServiceEventType, "", map[string]any{
 		mealplanningkeys.RecipeIDKey:     recipeID,
 		mealplanningkeys.RecipeStepIDKey: recipeStepID,
-	}, func(tx database.SQLQueryExecutor) error {
+	}, func(tx database.Tx) error {
 		rowsAffected, archiveErr := q.generatedQuerier.ArchiveRecipeStep(ctx, tx, &generated.ArchiveRecipeStepParams{
 			BelongsToRecipe: recipeID,
 			ID:              recipeStepID,

@@ -3,9 +3,9 @@ package grpc
 import (
 	dataprivacysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/dataprivacy"
 
-	platformdataprivacy "github.com/primandproper/platform-go/v12/dataprivacy"
-	"github.com/primandproper/platform-go/v12/observability/logging"
-	"github.com/primandproper/platform-go/v12/observability/tracing"
+	platformdataprivacy "github.com/primandproper/platform-go/v13/dataprivacy"
+	"github.com/primandproper/platform-go/v13/observability/logging"
+	"github.com/primandproper/platform-go/v13/observability/tracing"
 
 	"github.com/samber/do/v2"
 )

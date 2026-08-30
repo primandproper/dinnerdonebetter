@@ -378,7 +378,7 @@ type GetValidIngredientGroupsParams struct {
 	UpdatedAfter    sql.NullTime
 	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -401,7 +401,7 @@ func (q *Queries) GetValidIngredientGroups(ctx context.Context, db DBTX, arg *Ge
 		arg.UpdatedAfter,
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {
@@ -546,7 +546,7 @@ type SearchForValidIngredientGroupsParams struct {
 	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
 	Name            string
-	Cursor          sql.NullString
+	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
 
@@ -570,7 +570,7 @@ func (q *Queries) SearchForValidIngredientGroups(ctx context.Context, db DBTX, a
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
 		arg.Name,
-		arg.Cursor,
+		arg.PageCursor,
 		arg.ResultLimit,
 	)
 	if err != nil {
