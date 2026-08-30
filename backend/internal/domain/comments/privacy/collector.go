@@ -3,49 +3,17 @@ package privacy
 
 import (
 	"context"
-	"encoding/json"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
 
 	platformdataprivacy "github.com/primandproper/platform-go/v13/dataprivacy"
 	"github.com/primandproper/platform-go/v13/filtering"
-	"github.com/primandproper/platform-go/v13/observability"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
 )
 
-const o11yName = "comments_privacy_collector"
-
-// Collector collects the comments a subject authored.
-type Collector struct {
-	repo   comments.Repository
-	tracer tracing.Tracer
-	logger logging.Logger
-}
-
-var _ platformdataprivacy.Collector = (*Collector)(nil)
-
-// NewCollector builds the comments collector.
-func NewCollector(repo comments.Repository, logger logging.Logger, tracerProvider tracing.Provider) *Collector {
-	return &Collector{
-		repo:   repo,
-		tracer: tracing.NewNamedTracer(tracerProvider, o11yName),
-		logger: logging.NewNamedLogger(logger, o11yName),
-	}
-}
-
-// Collect implements platformdataprivacy.Collector.
-func (c *Collector) Collect(ctx context.Context, subject platformdataprivacy.Subject) (json.RawMessage, error) {
-	ctx, span := c.tracer.StartSpan(ctx)
-	defer span.End()
-
-	authored, err := dataprivacy.CollectAllValues(ctx, func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[comments.Comment], error) {
-		return c.repo.GetCommentsForUser(ctx, subject.ID, filter)
+// NewCollector builds the comments collector: every comment the subject
+// authored, paged to the end and encoded, or nothing if they authored none.
+func NewCollector(repo comments.Repository) platformdataprivacy.Collector {
+	return platformdataprivacy.CollectorFor(func(ctx context.Context, subject platformdataprivacy.Subject, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[comments.Comment], error) {
+		return repo.GetCommentsForUser(ctx, subject.ID, filter)
 	})
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, c.logger.WithSpan(span), span, "fetching comments")
-	}
-
-	return dataprivacy.Fragment(len(authored) > 0, authored)
 }

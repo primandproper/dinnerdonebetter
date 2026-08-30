@@ -58,5 +58,5 @@ func (c *Collector) Collect(ctx context.Context, subject platformdataprivacy.Sub
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching issue reports")
 	}
 
-	return dataprivacy.Fragment(len(reports) > 0, reports)
+	return platformdataprivacy.Fragment(len(reports) > 0, reports)
 }

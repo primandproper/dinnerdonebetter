@@ -76,7 +76,7 @@ func (c *Collector) Collect(ctx context.Context, subject platformdataprivacy.Sub
 
 	held := len(subscriptions) > 0 || len(purchases) > 0 || len(transactions) > 0
 
-	return dataprivacy.Fragment(held, &payments.UserDataCollection{
+	return platformdataprivacy.Fragment(held, &payments.UserDataCollection{
 		Subscriptions:       subscriptions,
 		Purchases:           purchases,
 		PaymentTransactions: transactions,

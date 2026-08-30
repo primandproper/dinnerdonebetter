@@ -84,6 +84,15 @@ func buildRegistry(i do.Injector) (*platformdataprivacy.Registry, error) {
 	// cost is visible in one place.
 	resolveAccounts := identityprivacy.ResolveAccountIDs(identityRepo)
 
+	// Four of these take a repository and nothing else, because a collector whose
+	// whole body is "page one list read and encode the rows" is
+	// platformdataprivacy.CollectorFor and has no observability of its own to do.
+	// The Fulfiller already opens a span per section, tags it with the section key
+	// and the subject, times it, and records the error, so a second span inside the
+	// collector added a name and no information. What still carries a logger and a
+	// tracer is the collector that has something to say between reads — several
+	// reads to attribute an error to, an account hop, a user record whose absence is
+	// a different failure from an empty section.
 	collectors := map[string]platformdataprivacy.Collector{
 		ddbdataprivacy.CollectorKeyIdentity: identityprivacy.NewCollector(
 			identityRepo, logger, tracerProvider),
@@ -97,16 +106,12 @@ func buildRegistry(i do.Injector) (*platformdataprivacy.Registry, error) {
 			do.MustInvoke[notifications.Repository](i), logger, tracerProvider),
 		ddbdataprivacy.CollectorKeyPayments: paymentsprivacy.NewCollector(
 			do.MustInvoke[payments.Repository](i), resolveAccounts, logger, tracerProvider),
-		ddbdataprivacy.CollectorKeyAuditLog: auditprivacy.NewCollector(
-			do.MustInvoke[auditdomain.Repository](i), logger, tracerProvider),
+		ddbdataprivacy.CollectorKeyAuditLog: auditprivacy.NewCollector(do.MustInvoke[auditdomain.Repository](i)),
 		ddbdataprivacy.CollectorKeyIssueReports: issuereportsprivacy.NewCollector(
 			do.MustInvoke[issuereports.Repository](i), resolveAccounts, logger, tracerProvider),
-		ddbdataprivacy.CollectorKeyUploadedMedia: uploadedmediaprivacy.NewCollector(
-			do.MustInvoke[uploadedmedia.Repository](i), logger, tracerProvider),
-		ddbdataprivacy.CollectorKeyWaitlists: waitlistsprivacy.NewCollector(
-			do.MustInvoke[waitlists.Repository](i), logger, tracerProvider),
-		ddbdataprivacy.CollectorKeyComments: commentsprivacy.NewCollector(
-			do.MustInvoke[comments.Repository](i), logger, tracerProvider),
+		ddbdataprivacy.CollectorKeyUploadedMedia: uploadedmediaprivacy.NewCollector(do.MustInvoke[uploadedmedia.Repository](i)),
+		ddbdataprivacy.CollectorKeyWaitlists:     waitlistsprivacy.NewCollector(do.MustInvoke[waitlists.Repository](i)),
+		ddbdataprivacy.CollectorKeyComments:      commentsprivacy.NewCollector(do.MustInvoke[comments.Repository](i)),
 	}
 
 	for key, collector := range collectors {

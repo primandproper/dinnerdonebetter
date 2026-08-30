@@ -55,28 +55,28 @@ func (c *Collector) Collect(ctx context.Context, subject platformdataprivacy.Sub
 
 	logger := c.logger.WithSpan(span)
 
-	recipes, err := dataprivacy.CollectAllValues(ctx, func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.Recipe], error) {
+	recipes, err := platformdataprivacy.CollectAll(ctx, func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.Recipe], error) {
 		return c.repo.GetRecipesCreatedByUser(ctx, subject.ID, filter)
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching recipes")
 	}
 
-	meals, err := dataprivacy.CollectAllValues(ctx, func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.Meal], error) {
+	meals, err := platformdataprivacy.CollectAll(ctx, func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.Meal], error) {
 		return c.repo.GetMealsCreatedByUser(ctx, subject.ID, filter)
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching meals")
 	}
 
-	preferences, err := dataprivacy.CollectAllValues(ctx, func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.UserIngredientPreference], error) {
+	preferences, err := platformdataprivacy.CollectAll(ctx, func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.UserIngredientPreference], error) {
 		return c.repo.GetUserIngredientPreferences(ctx, subject.ID, filter)
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching ingredient preferences")
 	}
 
-	ratings, err := dataprivacy.CollectAllValues(ctx, func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.RecipeRating], error) {
+	ratings, err := platformdataprivacy.CollectAll(ctx, func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.RecipeRating], error) {
 		return c.repo.GetRecipeRatingsForUser(ctx, subject.ID, filter)
 	})
 	if err != nil {
@@ -101,7 +101,7 @@ func (c *Collector) Collect(ctx context.Context, subject platformdataprivacy.Sub
 	held := len(recipes) > 0 || len(meals) > 0 || len(preferences) > 0 ||
 		len(ratings) > 0 || len(mealPlans) > 0 || len(ownerships) > 0
 
-	return dataprivacy.Fragment(held, &mealplanning.UserDataCollection{
+	return platformdataprivacy.Fragment(held, &mealplanning.UserDataCollection{
 		Recipes:                     recipes,
 		Meals:                       meals,
 		UserIngredientPreferences:   preferences,

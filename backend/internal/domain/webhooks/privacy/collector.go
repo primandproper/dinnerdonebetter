@@ -61,7 +61,7 @@ func (c *Collector) Collect(ctx context.Context, subject platformdataprivacy.Sub
 	collection := webhooks.UserDataCollection{Data: map[string][]webhooks.Webhook{}}
 
 	for _, accountID := range accountIDs {
-		hooks, hooksErr := dataprivacy.CollectAllValues(ctx, func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[webhooks.Webhook], error) {
+		hooks, hooksErr := platformdataprivacy.CollectAll(ctx, func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[webhooks.Webhook], error) {
 			return c.repo.GetWebhooks(ctx, accountID, filter)
 		})
 		if hooksErr != nil {
@@ -73,5 +73,5 @@ func (c *Collector) Collect(ctx context.Context, subject platformdataprivacy.Sub
 		}
 	}
 
-	return dataprivacy.Fragment(len(collection.Data) > 0, &collection)
+	return platformdataprivacy.Fragment(len(collection.Data) > 0, &collection)
 }

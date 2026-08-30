@@ -77,6 +77,19 @@ failed the whole export.
 A collector that holds nothing returns `nil`, and the section is omitted rather than written as
 `null`. An export's sections are the domains that actually held something.
 
+Neither that rule nor the paging beneath it is restated per domain. `dataprivacy.CollectAll`
+walks a cursor-paginated read to its end, `dataprivacy.Fragment` turns "did this domain hold
+anything" into a fragment or a `nil`, and `dataprivacy.CollectorFor` is both of those wrapped
+around a single list read — which is the whole body of the `audit_log`, `comments`,
+`uploaded_media`, and `waitlists` collectors, so those are one call each with no type of their
+own. A collector that stopped after one page would produce a truncated export that is
+well-formed, present in the manifest, and wrong only in the rows nobody can see are missing;
+that is the failure these live in platform-go to prevent.
+
+The one hop that stays here is `CollectAcrossAccounts` in `internal/domain/dataprivacy`, because
+"a subject's data hangs off the accounts they belong to" is a fact about this schema rather than
+about subject access requests. It pages each account through `CollectAll` and concatenates.
+
 ## Erasers: what a deletion removes
 
 Two erasers are registered, and they run **serially inside one transaction** along with the
