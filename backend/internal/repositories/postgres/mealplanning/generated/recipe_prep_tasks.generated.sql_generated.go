@@ -235,6 +235,7 @@ WHERE recipe_prep_tasks.archived_at IS NULL
 	AND recipe_steps.archived_at IS NULL
 	AND recipes.archived_at IS NULL
 	AND recipes.id = $1
+ORDER BY recipe_prep_tasks.id ASC, recipe_prep_task_steps.id ASC
 `
 
 type ListAllRecipePrepTasksByRecipeRow struct {

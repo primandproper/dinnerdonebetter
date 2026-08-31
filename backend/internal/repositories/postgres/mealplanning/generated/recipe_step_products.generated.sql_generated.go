@@ -544,6 +544,7 @@ WHERE recipe_step_products.archived_at IS NULL
 	AND recipe_steps.belongs_to_recipe = $1
 	AND recipes.archived_at IS NULL
 	AND recipes.id = $1
+ORDER BY recipe_step_products.id ASC
 `
 
 type GetRecipeStepProductsForRecipeRow struct {

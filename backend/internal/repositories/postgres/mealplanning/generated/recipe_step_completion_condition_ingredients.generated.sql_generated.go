@@ -62,6 +62,7 @@ WHERE recipe_step_completion_conditions.archived_at IS NULL
 	AND recipe_step_completion_condition_ingredients.archived_at IS NULL
 	AND recipe_step_completion_condition_ingredients.belongs_to_recipe_step_completion_condition = ANY($1::text[])
 	AND valid_ingredient_states.archived_at IS NULL
+ORDER BY recipe_step_completion_condition_ingredients.id ASC
 `
 
 type GetAllRecipeStepCompletionConditionIngredientsForRecipeCompletionIDsRow struct {

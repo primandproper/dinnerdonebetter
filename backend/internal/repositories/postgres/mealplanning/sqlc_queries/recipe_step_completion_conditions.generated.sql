@@ -83,7 +83,8 @@ WHERE recipe_step_completion_conditions.archived_at IS NULL
 GROUP BY
 	recipe_step_completion_conditions.id,
 	recipe_step_completion_condition_ingredients.id,
-	valid_ingredient_states.id;
+	valid_ingredient_states.id
+ORDER BY recipe_step_completion_conditions.id ASC, recipe_step_completion_condition_ingredients.id ASC;
 
 -- name: GetRecipeStepCompletionConditions :many
 SELECT

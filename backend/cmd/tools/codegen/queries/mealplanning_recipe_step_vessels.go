@@ -111,7 +111,8 @@ WHERE %s.%s IS NULL
 	AND %s.%s IS NULL
 	AND %s.%s = sqlc.arg(%s)
 	AND %s.%s IS NULL
-	AND %s.%s = sqlc.arg(%s);`,
+	AND %s.%s = sqlc.arg(%s)
+ORDER BY %s.%s ASC;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
 						recipeStepVesselsTableName,
 						validVesselsTableName, recipeStepVesselsTableName, validVesselIDColumn, validVesselsTableName, idColumn,
@@ -123,6 +124,7 @@ WHERE %s.%s IS NULL
 						recipeStepsTableName, belongsToRecipeColumn, recipeIDColumn,
 						recipesTableName, archivedAtColumn,
 						recipesTableName, idColumn, recipeIDColumn,
+						recipeStepVesselsTableName, idColumn,
 					)),
 				},
 				{
