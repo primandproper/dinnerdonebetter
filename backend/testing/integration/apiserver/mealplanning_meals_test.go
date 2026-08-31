@@ -12,7 +12,9 @@ import (
 	converters "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/grpc/converters"
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
 
+	"github.com/primandproper/platform-go/v13/filtering"
 	"github.com/primandproper/platform-go/v13/filtering/filteringpb"
+	"github.com/primandproper/platform-go/v13/pointer"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -77,6 +79,48 @@ func createMealForTest(t *testing.T, clientToUse client.Client, mealInput *types
 	assert.ElementsMatch(t, createdRecipeIDs, componentRecipeIDs)
 
 	return createdMeal
+}
+
+// findListedMeal walks GetMeals for one particular meal. GetMeals lists every
+// meal globally in ascending ID order, and an ID sorts by when it was minted,
+// so a five-minute CreatedAfter window answers with the oldest meals in that
+// window rather than the one just created -- the rest of the suite's meals sit
+// in between, and the page ends long before ours. Anchoring the window a
+// second before this meal was created puts it at the head of the first page,
+// and the cursor covers whatever the other parallel tests wrote inside that
+// second.
+func findListedMeal(t *testing.T, clientToUse client.Client, createdMeal *types.Meal) *types.Meal {
+	t.Helper()
+
+	ctx := t.Context()
+
+	filter := &filteringpb.QueryFilter{
+		CreatedAfter:    timestamppb.New(createdMeal.CreatedAt.Add(-time.Second)),
+		MaxResponseSize: pointer.To(uint32(filtering.MaxQueryFilterLimit)),
+	}
+
+	// Bounded so a repository that answers an exhausted cursor with a full page
+	// fails here rather than spinning.
+	for range 10 {
+		page, err := clientToUse.GetMeals(ctx, &mealplanninggrpc.GetMealsRequest{Filter: filter})
+		require.NoError(t, err)
+
+		for _, result := range page.Results {
+			if result.Id == createdMeal.ID {
+				return converters.ConvertGRPCMealSummaryToMeal(result)
+			}
+		}
+
+		if len(page.Results) == 0 || page.Pagination.GetCursor() == "" {
+			break
+		}
+
+		filter.Cursor = pointer.To(page.Pagination.GetCursor())
+	}
+
+	require.FailNow(t, "created meal was not in the list", "meal %s", createdMeal.ID)
+
+	return nil
 }
 
 func TestMeals_CompleteLifecycle(T *testing.T) {
@@ -158,21 +202,9 @@ func TestMeals_Listing(T *testing.T) {
 
 		_, userClient := createUserAndClientForTest(t)
 
-		createdAfter := timestamppb.New(time.Now().UTC().Add(-5 * time.Minute))
 		createdMeal := createMealForTest(t, userClient, nil)
 
-		actual, err := userClient.GetMeals(ctx, &mealplanninggrpc.GetMealsRequest{
-			Filter: &filteringpb.QueryFilter{CreatedAfter: createdAfter},
-		})
-		require.NoError(t, err)
-
-		var listed *types.Meal
-		for _, result := range actual.Results {
-			if result.Id == createdMeal.ID {
-				listed = converters.ConvertGRPCMealSummaryToMeal(result)
-			}
-		}
-		require.NotNil(t, listed, "created meal %s was not in the list", createdMeal.ID)
+		listed := findListedMeal(t, userClient, createdMeal)
 
 		// A MealSummary keeps its components and each one's recipe identity.
 		// What it drops is everything hanging off that recipe, which is why a
@@ -191,7 +223,7 @@ func TestMeals_Listing(T *testing.T) {
 			assert.Empty(t, component.Recipe.Steps)
 		}
 
-		_, err = userClient.ArchiveMeal(ctx, &mealplanninggrpc.ArchiveMealRequest{MealId: createdMeal.ID})
+		_, err := userClient.ArchiveMeal(ctx, &mealplanninggrpc.ArchiveMealRequest{MealId: createdMeal.ID})
 		assert.NoError(t, err)
 	})
 
