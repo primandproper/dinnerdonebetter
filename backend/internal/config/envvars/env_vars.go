@@ -1095,6 +1095,75 @@ const (
 	// to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanFinalizationStarter.Timeout`.
 	JobsMealPlanningMealPlanFinalizationStarterTimeoutEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_FINALIZATION_STARTER_TIMEOUT"
 
+	// JobsMealPlanningMealPlanTaskNotificationsEnabledEnvVarKey is the environment variable name
+	// to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanTaskNotifications.Enabled`.
+	JobsMealPlanningMealPlanTaskNotificationsEnabledEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_TASK_NOTIFICATIONS_ENABLED"
+
+	// JobsMealPlanningMealPlanTaskNotificationsIntervalEnvVarKey is the environment variable name
+	// to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanTaskNotifications.Interval`.
+	JobsMealPlanningMealPlanTaskNotificationsIntervalEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_TASK_NOTIFICATIONS_INTERVAL"
+
+	// JobsMealPlanningMealPlanTaskNotificationsLeaseTTLEnvVarKey is the environment variable name
+	// to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanTaskNotifications.LeaseTTL`.
+	JobsMealPlanningMealPlanTaskNotificationsLeaseTTLEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_TASK_NOTIFICATIONS_LEASE_TTL"
+
+	// JobsMealPlanningMealPlanTaskNotificationsRunOnStartEnvVarKey is the environment variable
+	// name to set to override
+	// `SchedulerConfig.Jobs.MealPlanning.MealPlanTaskNotifications.RunOnStart`.
+	JobsMealPlanningMealPlanTaskNotificationsRunOnStartEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_TASK_NOTIFICATIONS_RUN_ON_START"
+
+	// JobsMealPlanningMealPlanTaskNotificationsScheduleEnvVarKey is the environment variable name
+	// to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanTaskNotifications.Schedule`.
+	JobsMealPlanningMealPlanTaskNotificationsScheduleEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_TASK_NOTIFICATIONS_SCHEDULE"
+
+	// JobsMealPlanningMealPlanTaskNotificationsTimeoutEnvVarKey is the environment variable name
+	// to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanTaskNotifications.Timeout`.
+	JobsMealPlanningMealPlanTaskNotificationsTimeoutEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_TASK_NOTIFICATIONS_TIMEOUT"
+
+	// JobsMealPlanningMealPlanTaskNotificationQueueMaxAttemptsEnvVarKey is the environment
+	// variable name to set to override
+	// `SchedulerConfig.Jobs.MealPlanning.MealPlanTaskNotificationQueue.MaxAttempts`.
+	JobsMealPlanningMealPlanTaskNotificationQueueMaxAttemptsEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_TASK_NOTIFICATION_QUEUE_MAX_ATTEMPTS"
+
+	// JobsMealPlanningMealPlanTaskNotificationQueueMaxClaimBatchEnvVarKey is the environment
+	// variable name to set to override
+	// `SchedulerConfig.Jobs.MealPlanning.MealPlanTaskNotificationQueue.MaxClaimBatch`.
+	JobsMealPlanningMealPlanTaskNotificationQueueMaxClaimBatchEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_TASK_NOTIFICATION_QUEUE_MAX_CLAIM_BATCH"
+
+	// JobsMealPlanningMealPlanTaskNotificationQueueMinWakeIntervalEnvVarKey is the environment
+	// variable name to set to override
+	// `SchedulerConfig.Jobs.MealPlanning.MealPlanTaskNotificationQueue.MinWakeInterval`.
+	JobsMealPlanningMealPlanTaskNotificationQueueMinWakeIntervalEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_TASK_NOTIFICATION_QUEUE_MIN_WAKE_INTERVAL"
+
+	// JobsMealPlanningMealPlanTaskNotificationQueueNameEnvVarKey is the environment variable name
+	// to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanTaskNotificationQueue.Name`.
+	JobsMealPlanningMealPlanTaskNotificationQueueNameEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_TASK_NOTIFICATION_QUEUE_NAME"
+
+	// JobsMealPlanningMealPlanTaskNotificationQueueNotifyChannelEnvVarKey is the environment
+	// variable name to set to override
+	// `SchedulerConfig.Jobs.MealPlanning.MealPlanTaskNotificationQueue.NotifyChannel`.
+	JobsMealPlanningMealPlanTaskNotificationQueueNotifyChannelEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_TASK_NOTIFICATION_QUEUE_NOTIFY_CHANNEL"
+
+	// JobsMealPlanningMealPlanTaskNotificationQueueReapBatchSizeEnvVarKey is the environment
+	// variable name to set to override
+	// `SchedulerConfig.Jobs.MealPlanning.MealPlanTaskNotificationQueue.ReapBatchSize`.
+	JobsMealPlanningMealPlanTaskNotificationQueueReapBatchSizeEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_TASK_NOTIFICATION_QUEUE_REAP_BATCH_SIZE"
+
+	// JobsMealPlanningMealPlanTaskNotificationQueueRetentionEnvVarKey is the environment variable
+	// name to set to override
+	// `SchedulerConfig.Jobs.MealPlanning.MealPlanTaskNotificationQueue.Retention`.
+	JobsMealPlanningMealPlanTaskNotificationQueueRetentionEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_TASK_NOTIFICATION_QUEUE_RETENTION"
+
+	// JobsMealPlanningMealPlanTaskNotificationQueueTablePrefixEnvVarKey is the environment
+	// variable name to set to override
+	// `SchedulerConfig.Jobs.MealPlanning.MealPlanTaskNotificationQueue.TablePrefix`.
+	JobsMealPlanningMealPlanTaskNotificationQueueTablePrefixEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_TASK_NOTIFICATION_QUEUE_TABLE_PREFIX"
+
+	// JobsMealPlanningMealPlanTaskNotificationQueueWriteAttemptsEnvVarKey is the environment
+	// variable name to set to override
+	// `SchedulerConfig.Jobs.MealPlanning.MealPlanTaskNotificationQueue.WriteAttempts`.
+	JobsMealPlanningMealPlanTaskNotificationQueueWriteAttemptsEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_TASK_NOTIFICATION_QUEUE_WRITE_ATTEMPTS"
+
 	// JobsMeteringFlusherEnabledEnvVarKey is the environment variable name to set to override
 	// `SchedulerConfig.Jobs.MeteringFlusher.Enabled`.
 	JobsMeteringFlusherEnabledEnvVarKey = "DINNER_DONE_BETTER_JOBS_METERING_FLUSHER_ENABLED"
@@ -1118,30 +1187,6 @@ const (
 	// JobsMeteringFlusherTimeoutEnvVarKey is the environment variable name to set to override
 	// `SchedulerConfig.Jobs.MeteringFlusher.Timeout`.
 	JobsMeteringFlusherTimeoutEnvVarKey = "DINNER_DONE_BETTER_JOBS_METERING_FLUSHER_TIMEOUT"
-
-	// JobsMobileNotificationSchedulerEnabledEnvVarKey is the environment variable name to set to
-	// override `SchedulerConfig.Jobs.MobileNotificationScheduler.Enabled`.
-	JobsMobileNotificationSchedulerEnabledEnvVarKey = "DINNER_DONE_BETTER_JOBS_MOBILE_NOTIFICATION_SCHEDULER_ENABLED"
-
-	// JobsMobileNotificationSchedulerIntervalEnvVarKey is the environment variable name to set to
-	// override `SchedulerConfig.Jobs.MobileNotificationScheduler.Interval`.
-	JobsMobileNotificationSchedulerIntervalEnvVarKey = "DINNER_DONE_BETTER_JOBS_MOBILE_NOTIFICATION_SCHEDULER_INTERVAL"
-
-	// JobsMobileNotificationSchedulerLeaseTTLEnvVarKey is the environment variable name to set to
-	// override `SchedulerConfig.Jobs.MobileNotificationScheduler.LeaseTTL`.
-	JobsMobileNotificationSchedulerLeaseTTLEnvVarKey = "DINNER_DONE_BETTER_JOBS_MOBILE_NOTIFICATION_SCHEDULER_LEASE_TTL"
-
-	// JobsMobileNotificationSchedulerRunOnStartEnvVarKey is the environment variable name to set
-	// to override `SchedulerConfig.Jobs.MobileNotificationScheduler.RunOnStart`.
-	JobsMobileNotificationSchedulerRunOnStartEnvVarKey = "DINNER_DONE_BETTER_JOBS_MOBILE_NOTIFICATION_SCHEDULER_RUN_ON_START"
-
-	// JobsMobileNotificationSchedulerScheduleEnvVarKey is the environment variable name to set to
-	// override `SchedulerConfig.Jobs.MobileNotificationScheduler.Schedule`.
-	JobsMobileNotificationSchedulerScheduleEnvVarKey = "DINNER_DONE_BETTER_JOBS_MOBILE_NOTIFICATION_SCHEDULER_SCHEDULE"
-
-	// JobsMobileNotificationSchedulerTimeoutEnvVarKey is the environment variable name to set to
-	// override `SchedulerConfig.Jobs.MobileNotificationScheduler.Timeout`.
-	JobsMobileNotificationSchedulerTimeoutEnvVarKey = "DINNER_DONE_BETTER_JOBS_MOBILE_NOTIFICATION_SCHEDULER_TIMEOUT"
 
 	// JobsQueueTestEnabledEnvVarKey is the environment variable name to set to override
 	// `SchedulerConfig.Jobs.QueueTest.Enabled`.
@@ -1994,36 +2039,42 @@ const (
 
 	// PushNotificationsApnsAuthKeyPathEnvVarKey is the environment variable name to set to
 	// override `APIServiceConfig.PushNotifications.APNs.AuthKeyPath`,
+	// `SchedulerConfig.PushNotifications.APNs.AuthKeyPath`,
 	// `AsyncMessageHandlerConfig.PushNotifications.APNs.AuthKeyPath`.
 	PushNotificationsApnsAuthKeyPathEnvVarKey = "DINNER_DONE_BETTER_PUSH_NOTIFICATIONS_APNS_AUTH_KEY_PATH"
 
 	// PushNotificationsApnsBundleIDEnvVarKey is the environment variable name to set to override
 	// `APIServiceConfig.PushNotifications.APNs.BundleID`,
+	// `SchedulerConfig.PushNotifications.APNs.BundleID`,
 	// `AsyncMessageHandlerConfig.PushNotifications.APNs.BundleID`.
 	PushNotificationsApnsBundleIDEnvVarKey = "DINNER_DONE_BETTER_PUSH_NOTIFICATIONS_APNS_BUNDLE_ID"
 
 	// PushNotificationsApnsKeyIDEnvVarKey is the environment variable name to set to override
 	// `APIServiceConfig.PushNotifications.APNs.KeyID`,
+	// `SchedulerConfig.PushNotifications.APNs.KeyID`,
 	// `AsyncMessageHandlerConfig.PushNotifications.APNs.KeyID`.
 	PushNotificationsApnsKeyIDEnvVarKey = "DINNER_DONE_BETTER_PUSH_NOTIFICATIONS_APNS_KEY_ID"
 
 	// PushNotificationsApnsProductionEnvVarKey is the environment variable name to set to override
 	// `APIServiceConfig.PushNotifications.APNs.Production`,
+	// `SchedulerConfig.PushNotifications.APNs.Production`,
 	// `AsyncMessageHandlerConfig.PushNotifications.APNs.Production`.
 	PushNotificationsApnsProductionEnvVarKey = "DINNER_DONE_BETTER_PUSH_NOTIFICATIONS_APNS_PRODUCTION"
 
 	// PushNotificationsApnsTeamIDEnvVarKey is the environment variable name to set to override
 	// `APIServiceConfig.PushNotifications.APNs.TeamID`,
+	// `SchedulerConfig.PushNotifications.APNs.TeamID`,
 	// `AsyncMessageHandlerConfig.PushNotifications.APNs.TeamID`.
 	PushNotificationsApnsTeamIDEnvVarKey = "DINNER_DONE_BETTER_PUSH_NOTIFICATIONS_APNS_TEAM_ID"
 
 	// PushNotificationsFcmCredentialsPathEnvVarKey is the environment variable name to set to
 	// override `APIServiceConfig.PushNotifications.FCM.CredentialsPath`,
+	// `SchedulerConfig.PushNotifications.FCM.CredentialsPath`,
 	// `AsyncMessageHandlerConfig.PushNotifications.FCM.CredentialsPath`.
 	PushNotificationsFcmCredentialsPathEnvVarKey = "DINNER_DONE_BETTER_PUSH_NOTIFICATIONS_FCM_CREDENTIALS_PATH"
 
 	// PushNotificationsProviderEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.PushNotifications.Provider`,
+	// `APIServiceConfig.PushNotifications.Provider`, `SchedulerConfig.PushNotifications.Provider`,
 	// `AsyncMessageHandlerConfig.PushNotifications.Provider`.
 	PushNotificationsProviderEnvVarKey = "DINNER_DONE_BETTER_PUSH_NOTIFICATIONS_PROVIDER"
 

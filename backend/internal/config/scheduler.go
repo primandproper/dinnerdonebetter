@@ -17,6 +17,7 @@ import (
 	"github.com/primandproper/platform-go/v13/jobs"
 	msgconfig "github.com/primandproper/platform-go/v13/messagequeue/config"
 	meteringcfg "github.com/primandproper/platform-go/v13/metering/config"
+	notificationscfg "github.com/primandproper/platform-go/v13/notifications/mobile/config"
 	"github.com/primandproper/platform-go/v13/observability"
 	operationscfg "github.com/primandproper/platform-go/v13/operations/config"
 	"github.com/primandproper/platform-go/v13/outbox"
@@ -41,6 +42,15 @@ type (
 		_ struct{} `json:"-"`
 
 		Queues queuescfg.Config `envPrefix:"QUEUES_" json:"queues,omitzero"`
+
+		// PushNotifications is the sender the meal plan task notification worker delivers
+		// through. It lives here because that worker sends under its queue lease rather
+		// than by publishing a message — see internal/services/mealplanning/workers/
+		// meal_plan_task_notifications for why the send cannot be somebody else's job.
+		//
+		// The async message handler carries the same struct for the notifications that
+		// genuinely are message-driven, so both processes push through one configuration.
+		PushNotifications notificationscfg.Config `envPrefix:"PUSH_NOTIFICATIONS_" json:"pushNotifications,omitzero"`
 
 		// Capitalism is where the flusher's usage reporter comes from. It lives in this
 		// process rather than the API server's because usage reporting happens on a
@@ -128,9 +138,8 @@ type (
 		// single-replica deployment, wrong the moment it scales.
 		Lock distributedlockcfg.Config `envPrefix:"LOCK_" json:"lock,omitzero"`
 
-		SearchDataIndexScheduler    ScheduledJobConfig `envPrefix:"SEARCH_DATA_INDEX_SCHEDULER_"   json:"searchDataIndexScheduler,omitzero"`
-		MobileNotificationScheduler ScheduledJobConfig `envPrefix:"MOBILE_NOTIFICATION_SCHEDULER_" json:"mobileNotificationScheduler,omitzero"`
-		QueueTest                   ScheduledJobConfig `envPrefix:"QUEUE_TEST_"                    json:"queueTest,omitzero"`
+		SearchDataIndexScheduler ScheduledJobConfig `envPrefix:"SEARCH_DATA_INDEX_SCHEDULER_" json:"searchDataIndexScheduler,omitzero"`
+		QueueTest                ScheduledJobConfig `envPrefix:"QUEUE_TEST_"                  json:"queueTest,omitzero"`
 
 		// DataPrivacySweep expires export artifacts, lapses unconfirmed erasures, and
 		// samples the overdue gauge. Disabling it does not pause expiry so much as
@@ -266,15 +275,14 @@ func (cfg *ScheduledJobsConfig) ValidateWithContext(ctx context.Context) error {
 	result := &multierror.Error{}
 
 	validators := map[string]func(context.Context) error{
-		"Scheduler":                   cfg.Scheduler.ValidateWithContext,
-		"Lock":                        cfg.Lock.ValidateWithContext,
-		"SearchDataIndexScheduler":    cfg.SearchDataIndexScheduler.ValidateWithContext,
-		"MobileNotificationScheduler": cfg.MobileNotificationScheduler.ValidateWithContext,
-		"QueueTest":                   cfg.QueueTest.ValidateWithContext,
-		"DataPrivacySweep":            cfg.DataPrivacySweep.ValidateWithContext,
-		"AuditRetentionSweeper":       cfg.AuditRetentionSweeper.ValidateWithContext,
-		"MeteringFlusher":             cfg.MeteringFlusher.ValidateWithContext,
-		"MealPlanning":                cfg.MealPlanning.ValidateWithContext,
+		"Scheduler":                cfg.Scheduler.ValidateWithContext,
+		"Lock":                     cfg.Lock.ValidateWithContext,
+		"SearchDataIndexScheduler": cfg.SearchDataIndexScheduler.ValidateWithContext,
+		"QueueTest":                cfg.QueueTest.ValidateWithContext,
+		"DataPrivacySweep":         cfg.DataPrivacySweep.ValidateWithContext,
+		"AuditRetentionSweeper":    cfg.AuditRetentionSweeper.ValidateWithContext,
+		"MeteringFlusher":          cfg.MeteringFlusher.ValidateWithContext,
+		"MealPlanning":             cfg.MealPlanning.ValidateWithContext,
 	}
 
 	for name, validator := range validators {
@@ -292,6 +300,10 @@ var _ validation.ValidatableWithContext = (*SchedulerConfig)(nil)
 func (cfg *SchedulerConfig) ValidateWithContext(ctx context.Context) error {
 	result := &multierror.Error{}
 
+	// PushNotifications is not among these, for the same reason it is absent from the API
+	// server's and the async handler's: its APNs credentials arrive as environment variables at
+	// startup, so a rendered config file has none of them and validating one here would reject
+	// every file this repository writes.
 	validators := map[string]func(context.Context) error{
 		sectionQueues:        cfg.Queues.ValidateWithContext,
 		sectionAnalytics:     cfg.Analytics.ValidateWithContext,

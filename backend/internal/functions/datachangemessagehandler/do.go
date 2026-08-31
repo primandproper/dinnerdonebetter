@@ -7,7 +7,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/internalops"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
-	notificationsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/manager"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/push"
 	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
 	mealplanningindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
@@ -15,7 +15,6 @@ import (
 	"github.com/primandproper/platform-go/v13/email"
 	"github.com/primandproper/platform-go/v13/encoding"
 	"github.com/primandproper/platform-go/v13/messagequeue"
-	notifications "github.com/primandproper/platform-go/v13/notifications/mobile"
 	"github.com/primandproper/platform-go/v13/observability/logging"
 	"github.com/primandproper/platform-go/v13/observability/metrics"
 	"github.com/primandproper/platform-go/v13/observability/tracing"
@@ -42,8 +41,7 @@ func RegisterAsyncDataChangeMessageHandler(i do.Injector) {
 			do.MustInvoke[encoding.ServerEncoderDecoder](i),
 			searchSyncers(i),
 			do.MustInvoke[mealplanning.Repository](i),
-			do.MustInvoke[notificationsmanager.NotificationsDataManager](i),
-			do.MustInvoke[notifications.PushNotificationSender](i),
+			do.MustInvoke[*push.Fanout](i),
 		)
 	})
 }

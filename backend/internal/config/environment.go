@@ -95,28 +95,6 @@ func defaultScheduledJobsConfig() ScheduledJobsConfig {
 			Timeout:    5 * time.Minute,
 			LeaseTTL:   10 * time.Minute,
 		},
-		// Push notifications, so the hours are the point: this fires on the hour from 08:00
-		// to 21:00 US Central and never overnight. It carries its own zone because it is the
-		// one job here whose correctness is a fact about people rather than about load, and
-		// because the scheduler's own default is deliberately UTC.
-		//
-		// Hourly rather than once in the morning: the query is "every prep task not yet
-		// notified, for an event that has not started", and each task notifies exactly once.
-		// A task created after the day's last fire waits for the next one, and is dropped
-		// entirely if its event starts first — so the gap between fires bounds how much
-		// short notice the app can give.
-		//
-		// Per-user timezones are the real answer here and a much larger conversation; one
-		// zone's waking hours are strictly better than every two minutes in the meantime.
-		MobileNotificationScheduler: ScheduledJobConfig{
-			Enabled:  true,
-			Schedule: "CRON_TZ=America/Chicago 0 8-21 * * *",
-			// An hour's worth of accumulated tasks per run instead of two minutes'
-			// worth, and a few queries per task, so the old one-minute bound is no
-			// longer generous.
-			Timeout:  5 * time.Minute,
-			LeaseTTL: 10 * time.Minute,
-		},
 		QueueTest: ScheduledJobConfig{
 			Enabled:  true,
 			Interval: 15 * time.Minute,
@@ -481,17 +459,20 @@ func (s *EnvironmentConfigSet) Render(ctx context.Context, outputDir string) err
 	// One config for every interval-shaped periodic job, because they now share one process.
 	schedulerConfig := &SchedulerConfig{
 		Observability: s.RootConfig.Observability,
-		Analytics:     s.RootConfig.Analytics,
-		Events:        s.RootConfig.Events,
-		Search:        s.RootConfig.TextSearch,
-		Database:      databaseConfigForService(&s.RootConfig.Database, s.ServiceDatabaseUsers, schedulerConfigObservabilityServiceName),
-		Queues:        s.RootConfig.Queues,
-		DataPrivacy:   s.RootConfig.Services.DataPrivacy,
-		Jobs:          defaultScheduledJobsConfig(),
-		Outbox:        defaultOutboxRelayConfig(),
-		Audit:         defaultAuditSweeperConfig(),
-		Retention:     defaultRetentionSweeperConfig(),
-		Sagas:         defaultSagaWorkerConfig(),
+		// The same sender the async message handler pushes through, so a device token
+		// this process sends to is one that process would have sent to.
+		PushNotifications: s.RootConfig.PushNotifications,
+		Analytics:         s.RootConfig.Analytics,
+		Events:            s.RootConfig.Events,
+		Search:            s.RootConfig.TextSearch,
+		Database:          databaseConfigForService(&s.RootConfig.Database, s.ServiceDatabaseUsers, schedulerConfigObservabilityServiceName),
+		Queues:            s.RootConfig.Queues,
+		DataPrivacy:       s.RootConfig.Services.DataPrivacy,
+		Jobs:              defaultScheduledJobsConfig(),
+		Outbox:            defaultOutboxRelayConfig(),
+		Audit:             defaultAuditSweeperConfig(),
+		Retention:         defaultRetentionSweeperConfig(),
+		Sagas:             defaultSagaWorkerConfig(),
 		// This process runs the operations worker, so it carries the whole tier. The API
 		// server carries the same struct for the enqueue-and-read half.
 		Operations: DefaultOperationsConfig(),

@@ -10,7 +10,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/internalops"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
-	notificationsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/manager"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/push"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 	queuemessages "github.com/primandproper/dinnerdonebetter/backend/internal/queues/messages"
 
@@ -19,7 +19,6 @@ import (
 	"github.com/primandproper/platform-go/v13/encoding"
 	"github.com/primandproper/platform-go/v13/jobs"
 	"github.com/primandproper/platform-go/v13/messagequeue"
-	platformnotifications "github.com/primandproper/platform-go/v13/notifications/mobile"
 	"github.com/primandproper/platform-go/v13/observability/logging"
 	"github.com/primandproper/platform-go/v13/observability/metrics"
 	"github.com/primandproper/platform-go/v13/observability/tracing"
@@ -69,11 +68,8 @@ type AsyncDataChangeMessageHandler struct {
 	emailer                                   email.Emailer
 	identityRepo                              identity.Repository
 	consumerProvider                          messagequeue.ConsumerProvider
-	badDeviceTokensArchivedCounter            metrics.Int64Counter
-	pushNotificationsSentCounter              metrics.Int64Counter
 	mealPlanRepo                              mealplanning.Repository
-	notificationsRepo                         notificationsmanager.NotificationsDataManager
-	pushNotificationSender                    platformnotifications.PushNotificationSender
+	pushFanout                                *push.Fanout
 	handlerErrorsCounter                      metrics.Int64Counter
 	messageDecodeErrorsCounter                metrics.Int64Counter
 	messagesProcessedCounter                  metrics.Int64Counter
@@ -113,8 +109,7 @@ func NewAsyncDataChangeMessageHandler(
 	decoder encoding.ServerEncoderDecoder,
 	searchSyncers []SearchSyncer,
 	mealPlanRepo mealplanning.Repository,
-	notificationsRepo notificationsmanager.NotificationsDataManager,
-	pushNotificationSender platformnotifications.PushNotificationSender,
+	pushFanout *push.Fanout,
 ) (*AsyncDataChangeMessageHandler, error) {
 	dataChangesExecutionTimeHistogram, err := metricsProvider.NewFloat64Histogram("data_changes_execution_time")
 	if err != nil {
@@ -154,16 +149,6 @@ func NewAsyncDataChangeMessageHandler(
 	emailsFailedCounter, err := metricsProvider.NewInt64Counter("emails_failed_total")
 	if err != nil {
 		return nil, fmt.Errorf("setting up emails failed counter: %w", err)
-	}
-
-	pushNotificationsSentCounter, err := metricsProvider.NewInt64Counter("push_notifications_sent_total")
-	if err != nil {
-		return nil, fmt.Errorf("setting up push notifications sent counter: %w", err)
-	}
-
-	badDeviceTokensArchivedCounter, err := metricsProvider.NewInt64Counter("bad_device_tokens_archived_total")
-	if err != nil {
-		return nil, fmt.Errorf("setting up bad device tokens archived counter: %w", err)
 	}
 
 	outboundEmailsPublisher, err := publisherProvider.NewPublisher(ctx, cfg.Queues.OutboundEmailsTopicName)
@@ -210,13 +195,10 @@ func NewAsyncDataChangeMessageHandler(
 		handlerErrorsCounter:                      handlerErrorsCounter,
 		emailsSentCounter:                         emailsSentCounter,
 		emailsFailedCounter:                       emailsFailedCounter,
-		pushNotificationsSentCounter:              pushNotificationsSentCounter,
-		badDeviceTokensArchivedCounter:            badDeviceTokensArchivedCounter,
 		decoder:                                   decoder,
 		searchSyncers:                             searchSyncers,
 		mealPlanRepo:                              mealPlanRepo,
-		notificationsRepo:                         notificationsRepo,
-		pushNotificationSender:                    pushNotificationSender,
+		pushFanout:                                pushFanout,
 		baseURL:                                   cfg.BaseURL,
 	}
 

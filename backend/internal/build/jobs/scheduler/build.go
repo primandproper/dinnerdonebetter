@@ -4,13 +4,12 @@ import (
 	"context"
 
 	dataprivacybuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/dataprivacy"
-	mobilenotificationscheduler "github.com/primandproper/dinnerdonebetter/backend/internal/build/jobs/mobile_notification_scheduler"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/build/sagas"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/grocerylistpreparation"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/recipeanalysis"
+	notificationsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/manager"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/push"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	commentsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/comments"
@@ -19,7 +18,6 @@ import (
 	internalopsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/internalops"
 	issuereportsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/issuereports"
 	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
-	notificationsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/notifications"
 	paymentsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/payments"
 	settingsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/settings"
 	uploadedmediarepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/uploadedmedia"
@@ -30,6 +28,7 @@ import (
 	queuetest "github.com/primandproper/dinnerdonebetter/backend/internal/services/internalops/workers/queue_test"
 	mealplanningindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 	mealplanfinalization "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_finalization"
+	mealplantasknotifications "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_task_notifications"
 
 	"github.com/primandproper/platform-go/v13/database"
 	databasecfg "github.com/primandproper/platform-go/v13/database/config"
@@ -37,8 +36,8 @@ import (
 	"github.com/primandproper/platform-go/v13/distributedlock"
 	distributedlockcfg "github.com/primandproper/platform-go/v13/distributedlock/config"
 	"github.com/primandproper/platform-go/v13/jobs"
-	"github.com/primandproper/platform-go/v13/messagequeue"
 	msgconfig "github.com/primandproper/platform-go/v13/messagequeue/config"
+	notificationscfg "github.com/primandproper/platform-go/v13/notifications/mobile/config"
 	"github.com/primandproper/platform-go/v13/observability"
 	"github.com/primandproper/platform-go/v13/observability/logging"
 	loggingcfg "github.com/primandproper/platform-go/v13/observability/logging/config"
@@ -76,6 +75,10 @@ func BuildInjector(
 	databasecfg.RegisterClientConfig(i)
 	postgres.RegisterDatabaseClient(i)
 	msgconfig.RegisterMessageQueue(i)
+	// The push sender. This process delivers prep task reminders itself rather than handing
+	// them to the async message handler over a topic — see the meal plan task notification
+	// worker for why the send has to happen under the queue lease that claimed the task.
+	notificationscfg.RegisterPushSender(i)
 
 	// repositories
 	//
@@ -89,7 +92,6 @@ func BuildInjector(
 	identityrepo.RegisterIdentityRepository(i)
 	internalopsrepo.RegisterInternalOpsRepository(i)
 	issuereportsrepo.RegisterIssueReportsRepository(i)
-	notificationsrepo.RegisterNotificationsRepository(i)
 	paymentsrepo.RegisterPaymentsRepository(i)
 	settingsrepo.RegisterSettingsRepository(i)
 	uploadedmediarepo.RegisterUploadedMediaRepository(i)
@@ -98,6 +100,14 @@ func BuildInjector(
 	// directions: dispatch happens inside the transaction that causes the event, and the meal
 	// plan finalizer emits events like any request does.
 	webhooksrepo.RegisterWebhooksRepository(i)
+
+	// The notifications manager and the push fan-out over it. The manager registers the
+	// notifications repository on its own, which is why that one is absent from the list
+	// above. The fan-out is the part of mobile notifications that has nothing to do with why
+	// one is owed: device tokens in, pushes out, dead tokens retired — and the async message
+	// handler builds the same one.
+	notificationsmanager.RegisterNotificationsDataManager(i)
+	push.RegisterFanout(i)
 
 	// The data privacy machinery: the bucket and cipher artifacts are written with, the
 	// registry of who holds data about a person, the worker that fulfills, and the sweeper
@@ -133,27 +143,11 @@ func BuildInjector(
 		return &queuetest.JobParams{Queues: *do.MustInvoke[*queuescfg.Config](i)}, nil
 	})
 
-	// The mobile notification scheduler is constructed here rather than through its own
-	// RegisterConfigs: that one also registers a bare messagequeue.Publisher bound to the
-	// mobile notifications topic, which in a container shared with five other jobs would be
-	// an unlabeled publisher that anything asking for "a publisher" would receive.
-	do.Provide[*mobilenotificationscheduler.Scheduler](i, func(i do.Injector) (*mobilenotificationscheduler.Scheduler, error) {
-		publisher, err := do.MustInvoke[messagequeue.PublisherProvider](i).NewPublisher(
-			do.MustInvoke[context.Context](i),
-			do.MustInvoke[*queuescfg.Config](i).MobileNotificationsTopicName,
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		return mobilenotificationscheduler.NewScheduler(
-			do.MustInvoke[logging.Logger](i),
-			do.MustInvoke[tracing.Provider](i),
-			do.MustInvoke[mealplanning.Repository](i),
-			do.MustInvoke[identity.Repository](i),
-			publisher,
-		), nil
-	})
+	// The prep task reminder queue and the worker that fills and drains it. The queue owns a
+	// goroutine and is closed by cmd/ddb's shutdown rather than by the container, which is
+	// what every other background component in this process does with its Close.
+	mealplantasknotifications.RegisterQueue(i)
+	mealplantasknotifications.RegisterWorker(i)
 
 	// The Reindexers this process drives on a schedule. They come from the same registration
 	// as the Syncers the consumer runs, because the two are halves of keeping one index right.

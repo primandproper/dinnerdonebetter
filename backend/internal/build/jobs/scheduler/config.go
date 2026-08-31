@@ -11,11 +11,13 @@ import (
 	databasecfg "github.com/primandproper/platform-go/v13/database/config"
 	msgconfig "github.com/primandproper/platform-go/v13/messagequeue/config"
 	meteringcfg "github.com/primandproper/platform-go/v13/metering/config"
+	notificationscfg "github.com/primandproper/platform-go/v13/notifications/mobile/config"
 	"github.com/primandproper/platform-go/v13/observability"
 	operationscfg "github.com/primandproper/platform-go/v13/operations/config"
 	"github.com/primandproper/platform-go/v13/saga"
 	textsearchcfg "github.com/primandproper/platform-go/v13/search/text/config"
 	webhookscfg "github.com/primandproper/platform-go/v13/webhooks/config"
+	"github.com/primandproper/platform-go/v13/workqueue"
 
 	"github.com/samber/do/v2"
 )
@@ -63,5 +65,15 @@ func RegisterConfigs(i do.Injector) {
 	})
 	do.Provide[*webhookscfg.Config](i, func(i do.Injector) (*webhookscfg.Config, error) {
 		return &do.MustInvoke[*config.SchedulerConfig](i).Webhooks, nil
+	})
+	do.Provide[notificationscfg.Config](i, func(i do.Injector) (notificationscfg.Config, error) {
+		return do.MustInvoke[*config.SchedulerConfig](i).PushNotifications, nil
+	})
+	// The one work queue this process runs. It is provided as the bare *workqueue.Config the
+	// platform's constructor takes, because there is exactly one — a second would need a name
+	// to tell them apart in the container, which is the point at which this stops being a
+	// single unnamed provider.
+	do.Provide[*workqueue.Config](i, func(i do.Injector) (*workqueue.Config, error) {
+		return &do.MustInvoke[*config.ScheduledJobsConfig](i).MealPlanning.MealPlanTaskNotificationQueue, nil
 	})
 }

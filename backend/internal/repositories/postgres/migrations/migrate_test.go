@@ -6,10 +6,12 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
+	mealplantasknotifications "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_task_notifications"
 
 	"github.com/primandproper/platform-go/v13/identifiers"
 	"github.com/primandproper/platform-go/v13/metering"
 	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
+	"github.com/primandproper/platform-go/v13/workqueue"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -93,6 +95,37 @@ func TestQuerier_Migrate(T *testing.T) {
 		require.NoError(t, insert("uploaded_media_bytes"))
 		require.NoError(t, insert("api_requests"), "one key feeding two meters must record twice")
 		require.Error(t, insert("api_requests"), "the same key on the same meter must record once")
+	})
+
+	// The work queue's one table serves every logical queue, partitioned by queue_name, which
+	// is the leading column of its primary key. Two queues holding the same key is therefore
+	// two rows and not a conflict — and until this migration existed the table did not, which
+	// meant the operations tier had been dispatching through a table nothing created.
+	T.Run("one work queue table serves every logical queue", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		db, _ := pgtesting.BuildDatabaseContainerForTest(t)
+		migrator, err := NewMigrator(loggingnoop.NewLogger())
+		require.NoError(t, err)
+		require.NoError(t, migrator.Migrate(ctx, db))
+
+		items := workqueue.DefaultTablePrefix + "work_queue_items"
+		key := identifiers.New()
+
+		enqueue := func(queueName string) error {
+			_, execErr := db.ExecContext(ctx,
+				`INSERT INTO `+items+`
+				 (queue_name, item_key, priority, attempts, enqueued_at, available_at, lease_until)
+				 VALUES ($1, $2, 0, 0, NOW(), NOW(), TIMESTAMPTZ 'epoch')`,
+				queueName, key)
+
+			return execErr
+		}
+
+		require.NoError(t, enqueue(mealplantasknotifications.QueueName))
+		require.NoError(t, enqueue("operations"), "one key in two queues must be two rows")
+		require.Error(t, enqueue("operations"), "one key in one queue must be one row")
 	})
 }
 
