@@ -171,6 +171,18 @@ const (
 	// `APIServiceConfig.Auth.Passkey.SweepInterval`.
 	AuthPasskeySweepIntervalEnvVarKey = "DINNER_DONE_BETTER_AUTH_PASSKEY_SWEEP_INTERVAL"
 
+	// AuthSessionsAbsoluteTimeoutEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Auth.Sessions.AbsoluteTimeout`.
+	AuthSessionsAbsoluteTimeoutEnvVarKey = "DINNER_DONE_BETTER_AUTH_SESSIONS_ABSOLUTE_TIMEOUT"
+
+	// AuthSessionsIdleTimeoutEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Auth.Sessions.IdleTimeout`.
+	AuthSessionsIdleTimeoutEnvVarKey = "DINNER_DONE_BETTER_AUTH_SESSIONS_IDLE_TIMEOUT"
+
+	// AuthSessionsTouchIntervalEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Auth.Sessions.TouchInterval`.
+	AuthSessionsTouchIntervalEnvVarKey = "DINNER_DONE_BETTER_AUTH_SESSIONS_TOUCH_INTERVAL"
+
 	// AuthTokensAudienceEnvVarKey is the environment variable name to set to override
 	// `APIServiceConfig.Auth.Tokens.Config.Audience`.
 	AuthTokensAudienceEnvVarKey = "DINNER_DONE_BETTER_AUTH_TOKENS_AUDIENCE"

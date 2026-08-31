@@ -18,7 +18,7 @@ import (
 
 	"github.com/primandproper/platform-go/v13/fake"
 	"github.com/primandproper/platform-go/v13/featureflags"
-	"github.com/primandproper/platform-go/v13/filtering"
+	platformsessions "github.com/primandproper/platform-go/v13/sessions"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -1421,36 +1421,37 @@ func TestServiceImpl_ListActiveSessions(t *testing.T) {
 		otherSessionID := fake.BuildFakeID()
 
 		now := time.Now()
-		fakeSessions := &filtering.QueryFilteredResult[auth.UserSession]{
-			Data: []*auth.UserSession{
-				{
-					ID:           currentSessionID,
-					ClientIP:     "192.168.1.1",
-					UserAgent:    "TestBrowser/1.0",
-					DeviceName:   "My Laptop",
-					LoginMethod:  auth.LoginMethodPassword,
-					CreatedAt:    now.Add(-time.Hour),
-					LastActiveAt: now,
-					ExpiresAt:    now.Add(time.Hour),
+		fakeSessions := []*auth.UserSession{
+			{
+				ID: currentSessionID,
+				Metadata: platformsessions.Metadata{
+					IPAddress:   "192.168.1.1",
+					UserAgent:   "TestBrowser/1.0",
+					DeviceName:  "My Laptop",
+					LoginMethod: auth.LoginMethodPassword,
 				},
-				{
-					ID:           otherSessionID,
-					ClientIP:     "10.0.0.1",
-					UserAgent:    "OtherBrowser/2.0",
-					DeviceName:   "My Phone",
-					LoginMethod:  auth.LoginMethodPasskey,
-					CreatedAt:    now.Add(-2 * time.Hour),
-					LastActiveAt: now.Add(-30 * time.Minute),
-					ExpiresAt:    now.Add(30 * time.Minute),
-				},
+				CreatedAt:  now.Add(-time.Hour),
+				LastSeenAt: now,
+				ExpiresAt:  now.Add(time.Hour),
+				IsCurrent:  true,
 			},
-			TotalCount:    2,
-			FilteredCount: 2,
+			{
+				ID: otherSessionID,
+				Metadata: platformsessions.Metadata{
+					IPAddress:   "10.0.0.1",
+					UserAgent:   "OtherBrowser/2.0",
+					DeviceName:  "My Phone",
+					LoginMethod: auth.LoginMethodPasskey,
+				},
+				CreatedAt:  now.Add(-2 * time.Hour),
+				LastSeenAt: now.Add(-30 * time.Minute),
+				ExpiresAt:  now.Add(30 * time.Minute),
+			},
 		}
 
-		authManager.GetActiveSessionsForUserFunc = func(_ context.Context, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[auth.UserSession], error) {
+		authManager.GetActiveSessionsForUserFunc = func(_ context.Context, userID, actualCurrentSessionID string) ([]*auth.UserSession, error) {
 			assert.Equal(t, sessionData.GetUserID(), userID)
-			assert.NotNil(t, filter)
+			assert.Equal(t, currentSessionID, actualCurrentSessionID)
 			return fakeSessions, nil
 		}
 
@@ -1464,11 +1465,12 @@ func TestServiceImpl_ListActiveSessions(t *testing.T) {
 		assert.NotEmpty(t, response.ResponseDetails.TraceId)
 		assert.Len(t, response.Sessions, 2)
 
-		// First session should be marked as current.
+		// The store decides which session is current; the handler carries the flag through.
 		assert.Equal(t, currentSessionID, response.Sessions[0].Id)
 		assert.True(t, response.Sessions[0].IsCurrent)
+		assert.Equal(t, "192.168.1.1", response.Sessions[0].ClientIp)
+		assert.Equal(t, "My Laptop", response.Sessions[0].DeviceName)
 
-		// Second session should NOT be marked as current.
 		assert.Equal(t, otherSessionID, response.Sessions[1].Id)
 		assert.False(t, response.Sessions[1].IsCurrent)
 
@@ -1499,9 +1501,8 @@ func TestServiceImpl_ListActiveSessions(t *testing.T) {
 		service, _, authManager, _, _ := buildTestService(t)
 		ctx, sessionData := buildContextWithSessionDataAndSessionID(t)
 
-		authManager.GetActiveSessionsForUserFunc = func(_ context.Context, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[auth.UserSession], error) {
+		authManager.GetActiveSessionsForUserFunc = func(_ context.Context, userID, _ string) ([]*auth.UserSession, error) {
 			assert.Equal(t, sessionData.GetUserID(), userID)
-			assert.NotNil(t, filter)
 			return nil, errors.New("database error")
 		}
 

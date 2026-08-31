@@ -159,3 +159,78 @@ func TestAuth_RevokeAllOtherSessions(T *testing.T) {
 		assert.Error(t, err)
 	})
 }
+
+// The two properties this store exists for, end to end. Both were unenforceable before it:
+// a revoked session was a flag the reads had to remember to check, and an access token
+// stayed usable after the refresh that replaced it.
+func TestAuth_SessionEnforcement(T *testing.T) {
+	T.Parallel()
+
+	T.Run("a revoked session's token stops authenticating", func(t *testing.T) {
+		t.Parallel()
+		ctx := t.Context()
+
+		user, _ := createUserAndClientForTest(t)
+
+		jwt := fetchLoginTokenForUserForTest(t, user)
+		jwtClient, err := buildAuthedGRPCClientWithBearerToken(jwt)
+		require.NoError(t, err)
+
+		_, err = jwtClient.GetAuthStatus(ctx, &authsvc.GetAuthStatusRequest{})
+		require.NoError(t, err)
+
+		_, err = jwtClient.RevokeCurrentSession(ctx, &authsvc.RevokeCurrentSessionRequest{})
+		require.NoError(t, err)
+
+		// The token is still perfectly valid and unexpired. The session it names is gone,
+		// and that is what the interceptor refuses on.
+		_, err = jwtClient.GetAuthStatus(ctx, &authsvc.GetAuthStatusRequest{})
+		require.Error(t, err)
+		st, ok := status.FromError(err)
+		require.True(t, ok)
+		assert.Equal(t, codes.Unauthenticated, st.Code())
+	})
+
+	T.Run("a refresh retires the tokens it replaced", func(t *testing.T) {
+		t.Parallel()
+		ctx := t.Context()
+
+		user, _ := createUserAndClientForTest(t)
+
+		unauthedClient := buildUnauthenticatedGRPCClientForTest(t)
+		first, err := unauthedClient.LoginForToken(ctx, &authsvc.LoginForTokenRequest{
+			Input: &authsvc.UserLoginInput{
+				Username:  user.Username,
+				Password:  user.HashedPassword,
+				TotpToken: generateTOTPCodeForUserForTest(t, user),
+			},
+		})
+		require.NoError(t, err)
+		require.NotEmpty(t, first.Result.RefreshToken)
+
+		firstClient, err := buildAuthedGRPCClientWithBearerToken(first.Result.AccessToken)
+		require.NoError(t, err)
+
+		exchanged, err := firstClient.ExchangeToken(ctx, &authsvc.ExchangeTokenRequest{
+			RefreshToken: first.Result.RefreshToken,
+		})
+		require.NoError(t, err)
+		require.NotEqual(t, first.Result.AccessToken, exchanged.AccessToken)
+
+		// The new access token works.
+		secondClient, err := buildAuthedGRPCClientWithBearerToken(exchanged.AccessToken)
+		require.NoError(t, err)
+		_, err = secondClient.GetAuthStatus(ctx, &authsvc.GetAuthStatusRequest{})
+		require.NoError(t, err)
+
+		// The one it replaced does not, though the session is live and the token unexpired.
+		_, err = firstClient.GetAuthStatus(ctx, &authsvc.GetAuthStatusRequest{})
+		require.Error(t, err)
+
+		// And the spent refresh token cannot be replayed for a third pair.
+		_, err = secondClient.ExchangeToken(ctx, &authsvc.ExchangeTokenRequest{
+			RefreshToken: first.Result.RefreshToken,
+		})
+		require.Error(t, err)
+	})
+}

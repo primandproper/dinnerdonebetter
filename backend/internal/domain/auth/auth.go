@@ -8,20 +8,22 @@ import (
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
 
-// TablePrefix namespaces platform-go's password reset token table, rendering
-// ddb_password_reset_tokens.
+// TablePrefix namespaces the platform-go tables this domain owns, rendering
+// ddb_password_reset_tokens and ddb_sessions.
 //
-// A prefix rather than the platform's empty default, and here the collision is not
-// hypothetical: the platform's table is named password_reset_tokens, which is exactly the
-// name 00003_auth.sql gave the hand-written one this replaces. Its DDL says CREATE TABLE
-// IF NOT EXISTS, so against a database still holding the old table the platform's schema
-// would be a silent no-op followed by a store reading columns that are not there. The
-// migration drops the old table as well, and the prefix means a database where that drop
-// somehow did not run fails loudly rather than quietly reading the wrong rows.
+// A prefix rather than the platform's empty default, and for the reset tokens the
+// collision is not hypothetical: the platform's table is named password_reset_tokens,
+// which is exactly the name 00003_auth.sql gave the hand-written one it replaces. Its DDL
+// says CREATE TABLE IF NOT EXISTS, so against a database still holding the old table the
+// platform's schema would be a silent no-op followed by a store reading columns that are
+// not there. The session table's name is "sessions", generic enough that the same thing
+// would eventually happen to it in a shared database. Both migrations drop the old table
+// as well, and the prefix means a database where a drop somehow did not run fails loudly
+// rather than quietly reading the wrong rows.
 //
-// It is referenced by the migration that creates the table and by the Store that reads and
-// writes it; a prefix that differs between the two is the misconfiguration nobody notices
-// until a reset link says it was never issued.
+// It is referenced by the migrations that create the tables and by the stores that read
+// and write them; a prefix that differs between the two is the misconfiguration nobody
+// notices until a reset link says it was never issued, or a sign-in says it never happened.
 const TablePrefix = "ddb"
 
 const (

@@ -46,7 +46,7 @@ func RegisterAuth(i do.Injector) {
 			do.MustInvoke[logging.Logger](i),
 			do.MustInvoke[messagequeue.PublisherProvider](i),
 			do.MustInvoke[identity.Repository](i),
-			do.MustInvoke[auth.Repository](i),
+			do.MustInvoke[auth.SessionStore](i),
 			do.MustInvoke[*authcfg.TokensConfig](i),
 		)
 	})

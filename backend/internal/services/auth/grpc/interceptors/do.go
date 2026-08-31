@@ -20,7 +20,7 @@ func RegisterAuthInterceptor(i do.Injector) {
 			do.MustInvoke[tracing.Provider](i),
 			do.MustInvoke[logging.Logger](i),
 			do.MustInvoke[identitymanager.IdentityDataManager](i),
-			do.MustInvoke[auth.Repository](i),
+			do.MustInvoke[auth.SessionStore](i),
 			do.MustInvoke[*oauth2server.Server](i),
 			resourceIdentifier(do.MustInvoke[*oauth2servercfg.Config](i)),
 			do.MustInvoke[tokens.Issuer](i),

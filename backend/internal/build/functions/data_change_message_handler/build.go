@@ -10,7 +10,6 @@ import (
 	waitlistsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists/manager"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/functions/datachangemessagehandler"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auth"
 	commentsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/comments"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity"
 	internalopsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/internalops"
@@ -68,7 +67,6 @@ func BuildInjector(
 
 	// repos
 	auditlogentries.RegisterAuditLogRepository(i)
-	auth.RegisterAuthRepository(i)
 	commentsrepo.RegisterCommentsRepository(i)
 	paymentsrepo.RegisterPaymentsRepository(i)
 	identity.RegisterIdentityRepository(i)

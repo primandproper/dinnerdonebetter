@@ -27,7 +27,7 @@ func RegisterAuthManager(i do.Injector) {
 			do.MustInvoke[logging.Logger](i),
 			do.MustInvoke[tracing.Provider](i),
 			do.MustInvoke[passwordreset.Store](i),
-			do.MustInvoke[auth.UserSessionDataManager](i),
+			do.MustInvoke[auth.SessionStore](i),
 			do.MustInvoke[identity.UserDataManager](i),
 			do.MustInvoke[authentication.Authenticator](i),
 			do.MustInvoke[totp.Verifier](i),

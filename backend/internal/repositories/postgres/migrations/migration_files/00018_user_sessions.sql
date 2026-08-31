@@ -1,3 +1,11 @@
+-- User Sessions Migration
+-- Active login session tracking for users
+--
+-- SUPERSEDED. The table below is dropped at version 35, which replaces it with
+-- ddb_sessions, rendered from platform-go's own DDL. Nothing here is read by any running
+-- code; the file stays because renumbering or removing an applied migration is how goose
+-- loses track of what a database has already run.
+
 CREATE TABLE IF NOT EXISTS user_sessions (
     id TEXT NOT NULL PRIMARY KEY,
     belongs_to_user TEXT NOT NULL REFERENCES users("id") ON DELETE CASCADE,

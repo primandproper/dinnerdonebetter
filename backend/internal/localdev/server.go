@@ -13,7 +13,6 @@ import (
 	apiserver "github.com/primandproper/dinnerdonebetter/backend/internal/build/services/api"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	identityconverters "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/converters"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
@@ -37,6 +36,7 @@ import (
 
 	"github.com/primandproper/platform-go/v13/authentication/argon2"
 	"github.com/primandproper/platform-go/v13/authentication/oauth2server"
+	"github.com/primandproper/platform-go/v13/authentication/passwordreset"
 	"github.com/primandproper/platform-go/v13/database"
 	databasecfg "github.com/primandproper/platform-go/v13/database/config"
 	"github.com/primandproper/platform-go/v13/httpclient"
@@ -225,16 +225,19 @@ func WithOAuth2Repository(fn func(ctx context.Context, repo oauth.Repository, lo
 	}
 }
 
-// WithAuthRepository provides an auth repository for custom operations.
-// The provided function receives a fully configured auth.Repository along with logger and tracer.
-func WithAuthRepository(fn func(ctx context.Context, repo auth.Repository, logger logging.Logger, tracerProvider tracing.Provider) error) DatabaseInitFunc {
+// WithPasswordResetTokenStore provides the password reset token store for custom operations.
+// The provided function receives a fully configured passwordreset.Store along with logger and tracer.
+func WithPasswordResetTokenStore(fn func(ctx context.Context, store passwordreset.Store, logger logging.Logger, tracerProvider tracing.Provider) error) DatabaseInitFunc {
 	return func(ctx context.Context, dbClient database.Client, dbCfg *dbcfg.Config, logger logging.Logger, tracerProvider tracing.Provider) error {
 		auditLogRepo, err := auditlogentries.ProvideAuditLogRepository(logger, tracerProvider, nil, dbClient)
 		if err != nil {
 			return err
 		}
-		authRepo := authrepo.ProvideAuthRepository(logger, tracerProvider, auditLogRepo, dbClient)
-		return fn(ctx, authRepo, logger, tracerProvider)
+		store, err := authrepo.ProvidePasswordResetTokenStore(logger, tracerProvider, auditLogRepo, dbClient)
+		if err != nil {
+			return err
+		}
+		return fn(ctx, store, logger, tracerProvider)
 	}
 }
 

@@ -6,7 +6,6 @@ import "auth/auth_messages.proto";
 import "common.proto";
 import "google/protobuf/timestamp.proto";
 import "identity/identity_messages.proto";
-import "primandproper/platform/filtering/v1/filtering.proto";
 
 option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth";
 
@@ -283,13 +282,14 @@ message ArchivePasskeyResponse {
 }
 
 message ListActiveSessionsRequest {
-  primandproper.platform.filtering.v1.QueryFilter filter = 1;
 }
 
+// ListActiveSessionsResponse carries the whole set rather than a page of it. A person's
+// live sessions are the devices they are signed in on, which is a handful, and the store
+// that holds them enumerates a holder's sessions rather than windowing them.
 message ListActiveSessionsResponse {
   common.ResponseDetails response_details = 1;
-  primandproper.platform.filtering.v1.Pagination pagination = 2;
-  repeated UserSession sessions = 3;
+  repeated UserSession sessions = 2;
 }
 
 message RevokeSessionRequest {
@@ -316,7 +316,6 @@ message RevokeCurrentSessionResponse {
 
 message AdminListSessionsForUserRequest {
   string user_id = 1;
-  primandproper.platform.filtering.v1.QueryFilter filter = 2;
 }
 
 message AdminRevokeUserSessionRequest {

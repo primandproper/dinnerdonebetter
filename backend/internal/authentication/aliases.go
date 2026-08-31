@@ -33,6 +33,10 @@ var (
 	// It must be an explicit non-nil error: observability.PrepareError returns nil when handed a nil
 	// error, which would otherwise turn the ban check into a silent no-op that returns success.
 	ErrUserBanned = platformerrors.New("user is banned")
+	// ErrSessionSuperseded is returned when a refresh token names a live session that has
+	// since been issued a newer pair of tokens. The session is fine; this particular
+	// refresh token has been spent, and replaying it must not mint a third pair.
+	ErrSessionSuperseded = platformerrors.New("session has been issued newer tokens")
 
 	// NewArgon2Authenticator returns an argon2 powered Authenticator.
 	NewArgon2Authenticator = argon2.NewArgon2Authenticator

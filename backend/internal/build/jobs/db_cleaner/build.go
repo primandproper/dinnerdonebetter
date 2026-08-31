@@ -40,6 +40,7 @@ func BuildInjector(
 	internalops.RegisterInternalOpsRepository(i)
 	oauth2servercfg.RegisterStore(i)
 	authrepo.RegisterPasswordResetTokenSQLStore(i)
+	authrepo.RegisterUserSessionBackend(i)
 	dbcleaner.RegisterDBCleaner(i)
 
 	return i

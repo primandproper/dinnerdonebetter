@@ -1,11 +1,14 @@
 package dbcleaner
 
 import (
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
+
 	"github.com/primandproper/platform-go/v13/authentication/oauth2server"
 	"github.com/primandproper/platform-go/v13/authentication/passwordreset"
 	"github.com/primandproper/platform-go/v13/observability/logging"
 	"github.com/primandproper/platform-go/v13/observability/metrics"
 	"github.com/primandproper/platform-go/v13/observability/tracing"
+	sessionsdatabase "github.com/primandproper/platform-go/v13/sessions/database"
 
 	"github.com/samber/do/v2"
 )
@@ -19,6 +22,7 @@ func RegisterDBCleaner(i do.Injector) {
 			do.MustInvoke[metrics.Provider](i),
 			do.MustInvoke[oauth2server.Store](i),
 			do.MustInvoke[*passwordreset.SQLStore](i),
+			do.MustInvoke[*sessionsdatabase.Backend[auth.SessionPayload]](i),
 		)
 	})
 }

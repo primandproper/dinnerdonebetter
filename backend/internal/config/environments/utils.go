@@ -38,6 +38,29 @@ const (
 // ceremony that runs over is a login that fails rather than one that merely should have.
 const passkeyCeremonyTimeout = 2 * time.Minute
 
+// The user session store's expiry policy, shared by every environment.
+//
+// Two timeouts, because they answer different questions. Idle asks how long somebody may
+// close the app and come back to it; absolute asks how long a session may exist at all,
+// which is the only bound on a refresh token somebody stole — a thief is not idle.
+//
+// A week idle and thirty days absolute is the shape of a consumer application that people
+// use a few times a week and expect to stay signed in to on their phone. Neither number is
+// the platform's default, and the defaults are the reason to say so here: half an hour idle
+// and a day absolute are a bank's numbers, and shipping them would sign this application's
+// users out every morning.
+//
+// The touch interval is what keeps the idle timeout from costing a write per request. At one
+// hour against a week, an active session is written to about twenty-four times a day instead
+// of once per API call, and the price is an idle deadline that can be up to an hour stale —
+// in the direction that expires a session early rather than late, which is the only direction
+// a security control may be wrong in.
+const (
+	sessionIdleTimeout     = 7 * 24 * time.Hour
+	sessionAbsoluteTimeout = 30 * 24 * time.Hour
+	sessionTouchInterval   = time.Hour
+)
+
 func internalKubernetesEndpoint(serviceName, namespace string, port int) string {
 	return fmt.Sprintf("%s.%s.svc.cluster.local:%d", serviceName, namespace, port)
 }

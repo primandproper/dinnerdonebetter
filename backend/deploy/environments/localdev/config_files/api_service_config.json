@@ -135,6 +135,11 @@
 				],
 				"ceremonyTimeout": 120000000000
 			}
+		},
+		"sessions": {
+			"absoluteTimeout": 2592000000000000,
+			"idleTimeout": 604800000000000,
+			"touchInterval": 3600000000000
 		}
 	},
 	"database": {

@@ -9,7 +9,6 @@ import { BinaryReader, BinaryWriter } from '@bufbuild/protobuf/wire';
 import { ResponseDetails } from '../common';
 import { Timestamp } from '../google/protobuf/timestamp';
 import { Account, User } from '../identity/identity_messages';
-import { Pagination, QueryFilter } from '../primandproper/platform/filtering/v1/filtering';
 import { UserLoginInput, UserSession } from './auth_messages';
 
 export const protobufPackage = 'auth';
@@ -286,13 +285,15 @@ export interface ArchivePasskeyResponse {
   responseDetails: ResponseDetails | undefined;
 }
 
-export interface ListActiveSessionsRequest {
-  filter: QueryFilter | undefined;
-}
+export interface ListActiveSessionsRequest {}
 
+/**
+ * ListActiveSessionsResponse carries the whole set rather than a page of it. A person's
+ * live sessions are the devices they are signed in on, which is a handful, and the store
+ * that holds them enumerates a holder's sessions rather than windowing them.
+ */
 export interface ListActiveSessionsResponse {
   responseDetails: ResponseDetails | undefined;
-  pagination: Pagination | undefined;
   sessions: UserSession[];
 }
 
@@ -318,7 +319,6 @@ export interface RevokeCurrentSessionResponse {
 
 export interface AdminListSessionsForUserRequest {
   userId: string;
-  filter: QueryFilter | undefined;
 }
 
 export interface AdminRevokeUserSessionRequest {
@@ -5018,14 +5018,11 @@ export const ArchivePasskeyResponse: MessageFns<ArchivePasskeyResponse> = {
 };
 
 function createBaseListActiveSessionsRequest(): ListActiveSessionsRequest {
-  return { filter: undefined };
+  return {};
 }
 
 export const ListActiveSessionsRequest: MessageFns<ListActiveSessionsRequest> = {
-  encode(message: ListActiveSessionsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.filter !== undefined) {
-      QueryFilter.encode(message.filter, writer.uint32(10).fork()).join();
-    }
+  encode(_: ListActiveSessionsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     return writer;
   },
 
@@ -5036,14 +5033,6 @@ export const ListActiveSessionsRequest: MessageFns<ListActiveSessionsRequest> = 
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
-
-          message.filter = QueryFilter.decode(reader, reader.uint32());
-          continue;
-        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -5053,31 +5042,26 @@ export const ListActiveSessionsRequest: MessageFns<ListActiveSessionsRequest> = 
     return message;
   },
 
-  fromJSON(object: any): ListActiveSessionsRequest {
-    return { filter: isSet(object.filter) ? QueryFilter.fromJSON(object.filter) : undefined };
+  fromJSON(_: any): ListActiveSessionsRequest {
+    return {};
   },
 
-  toJSON(message: ListActiveSessionsRequest): unknown {
+  toJSON(_: ListActiveSessionsRequest): unknown {
     const obj: any = {};
-    if (message.filter !== undefined) {
-      obj.filter = QueryFilter.toJSON(message.filter);
-    }
     return obj;
   },
 
   create<I extends Exact<DeepPartial<ListActiveSessionsRequest>, I>>(base?: I): ListActiveSessionsRequest {
     return ListActiveSessionsRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ListActiveSessionsRequest>, I>>(object: I): ListActiveSessionsRequest {
+  fromPartial<I extends Exact<DeepPartial<ListActiveSessionsRequest>, I>>(_: I): ListActiveSessionsRequest {
     const message = createBaseListActiveSessionsRequest();
-    message.filter =
-      object.filter !== undefined && object.filter !== null ? QueryFilter.fromPartial(object.filter) : undefined;
     return message;
   },
 };
 
 function createBaseListActiveSessionsResponse(): ListActiveSessionsResponse {
-  return { responseDetails: undefined, pagination: undefined, sessions: [] };
+  return { responseDetails: undefined, sessions: [] };
 }
 
 export const ListActiveSessionsResponse: MessageFns<ListActiveSessionsResponse> = {
@@ -5085,11 +5069,8 @@ export const ListActiveSessionsResponse: MessageFns<ListActiveSessionsResponse> 
     if (message.responseDetails !== undefined) {
       ResponseDetails.encode(message.responseDetails, writer.uint32(10).fork()).join();
     }
-    if (message.pagination !== undefined) {
-      Pagination.encode(message.pagination, writer.uint32(18).fork()).join();
-    }
     for (const v of message.sessions) {
-      UserSession.encode(v!, writer.uint32(26).fork()).join();
+      UserSession.encode(v!, writer.uint32(18).fork()).join();
     }
     return writer;
   },
@@ -5114,14 +5095,6 @@ export const ListActiveSessionsResponse: MessageFns<ListActiveSessionsResponse> 
             break;
           }
 
-          message.pagination = Pagination.decode(reader, reader.uint32());
-          continue;
-        }
-        case 3: {
-          if (tag !== 26) {
-            break;
-          }
-
           message.sessions.push(UserSession.decode(reader, reader.uint32()));
           continue;
         }
@@ -5141,7 +5114,6 @@ export const ListActiveSessionsResponse: MessageFns<ListActiveSessionsResponse> 
         : isSet(object.response_details)
           ? ResponseDetails.fromJSON(object.response_details)
           : undefined,
-      pagination: isSet(object.pagination) ? Pagination.fromJSON(object.pagination) : undefined,
       sessions: globalThis.Array.isArray(object?.sessions)
         ? object.sessions.map((e: any) => UserSession.fromJSON(e))
         : [],
@@ -5152,9 +5124,6 @@ export const ListActiveSessionsResponse: MessageFns<ListActiveSessionsResponse> 
     const obj: any = {};
     if (message.responseDetails !== undefined) {
       obj.responseDetails = ResponseDetails.toJSON(message.responseDetails);
-    }
-    if (message.pagination !== undefined) {
-      obj.pagination = Pagination.toJSON(message.pagination);
     }
     if (message.sessions?.length) {
       obj.sessions = message.sessions.map((e) => UserSession.toJSON(e));
@@ -5170,10 +5139,6 @@ export const ListActiveSessionsResponse: MessageFns<ListActiveSessionsResponse> 
     message.responseDetails =
       object.responseDetails !== undefined && object.responseDetails !== null
         ? ResponseDetails.fromPartial(object.responseDetails)
-        : undefined;
-    message.pagination =
-      object.pagination !== undefined && object.pagination !== null
-        ? Pagination.fromPartial(object.pagination)
         : undefined;
     message.sessions = object.sessions?.map((e) => UserSession.fromPartial(e)) || [];
     return message;
@@ -5534,16 +5499,13 @@ export const RevokeCurrentSessionResponse: MessageFns<RevokeCurrentSessionRespon
 };
 
 function createBaseAdminListSessionsForUserRequest(): AdminListSessionsForUserRequest {
-  return { userId: '', filter: undefined };
+  return { userId: '' };
 }
 
 export const AdminListSessionsForUserRequest: MessageFns<AdminListSessionsForUserRequest> = {
   encode(message: AdminListSessionsForUserRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.userId !== '') {
       writer.uint32(10).string(message.userId);
-    }
-    if (message.filter !== undefined) {
-      QueryFilter.encode(message.filter, writer.uint32(18).fork()).join();
     }
     return writer;
   },
@@ -5563,14 +5525,6 @@ export const AdminListSessionsForUserRequest: MessageFns<AdminListSessionsForUse
           message.userId = reader.string();
           continue;
         }
-        case 2: {
-          if (tag !== 18) {
-            break;
-          }
-
-          message.filter = QueryFilter.decode(reader, reader.uint32());
-          continue;
-        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -5587,7 +5541,6 @@ export const AdminListSessionsForUserRequest: MessageFns<AdminListSessionsForUse
         : isSet(object.user_id)
           ? globalThis.String(object.user_id)
           : '',
-      filter: isSet(object.filter) ? QueryFilter.fromJSON(object.filter) : undefined,
     };
   },
 
@@ -5595,9 +5548,6 @@ export const AdminListSessionsForUserRequest: MessageFns<AdminListSessionsForUse
     const obj: any = {};
     if (message.userId !== '') {
       obj.userId = message.userId;
-    }
-    if (message.filter !== undefined) {
-      obj.filter = QueryFilter.toJSON(message.filter);
     }
     return obj;
   },
@@ -5610,8 +5560,6 @@ export const AdminListSessionsForUserRequest: MessageFns<AdminListSessionsForUse
   ): AdminListSessionsForUserRequest {
     const message = createBaseAdminListSessionsForUserRequest();
     message.userId = object.userId ?? '';
-    message.filter =
-      object.filter !== undefined && object.filter !== null ? QueryFilter.fromPartial(object.filter) : undefined;
     return message;
   },
 };

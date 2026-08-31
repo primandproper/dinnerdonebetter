@@ -129,6 +129,9 @@ func RegisterConfigs(i do.Injector) {
 	do.Provide[*tokenscfg.Config](i, func(i do.Injector) (*tokenscfg.Config, error) {
 		return &do.MustInvoke[*authcfg.TokensConfig](i).Config, nil
 	})
+	do.Provide[*authcfg.SessionsConfig](i, func(i do.Injector) (*authcfg.SessionsConfig, error) {
+		return &do.MustInvoke[*authcfg.Config](i).Sessions, nil
+	})
 	do.Provide[*oauth2servercfg.Config](i, func(i do.Injector) (*oauth2servercfg.Config, error) {
 		cfg := do.MustInvoke[*authentication.Config](i)
 		return &cfg.OAuth2, nil

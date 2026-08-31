@@ -10,7 +10,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
   }
 
   try {
-    const res = await adminListSessionsForUser(token, { userId, filter: undefined });
+    const res = await adminListSessionsForUser(token, { userId });
     const sessions = res.sessions ?? [];
     const error = url.searchParams.get('error');
     const revoked = url.searchParams.get('revoked') === '1';
