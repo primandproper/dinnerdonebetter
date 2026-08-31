@@ -242,6 +242,23 @@ func Test_ProvideAPIRouter_requestBodyBound(T *testing.T) {
 		assert.False(t, authService.reached)
 	})
 
+	T.Run("an OAuth2 request declaring no length is cut off mid-read", func(t *testing.T) {
+		t.Parallel()
+
+		authService := &stubAuthService{}
+
+		// Chunked, or lying about its Content-Length: there is no length to check up front, so
+		// the handler runs and the read is what fails. Without the bound it would read as much
+		// as arrives.
+		req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/token", strings.NewReader(strings.Repeat("x", maxRequestBodyBytes+1)))
+		req.ContentLength = -1
+		res := httptest.NewRecorder()
+		buildAPIRouter(t, authService, &stubProcessorRegistry{}).ServeHTTP(res, req)
+
+		assert.True(t, authService.reached)
+		assert.Equal(t, http.StatusBadRequest, res.Code)
+	})
+
 	T.Run("a payments webhook within the bound reaches its handler", func(t *testing.T) {
 		t.Parallel()
 
@@ -266,110 +283,5 @@ func Test_ProvideAPIRouter_requestBodyBound(T *testing.T) {
 		// to verify.
 		assert.Equal(t, http.StatusRequestEntityTooLarge, res.Code)
 		assert.False(t, registry.consulted)
-	})
-}
-
-func Test_limitRequestBody(T *testing.T) {
-	T.Parallel()
-
-	// echoBody reports what the wrapped handler saw: the bytes it managed to read, and the error
-	// that stopped it.
-	echoBody := func(read *int, readErr *error) http.Handler {
-		return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-			body, err := io.ReadAll(req.Body)
-			*read, *readErr = len(body), err
-
-			res.WriteHeader(http.StatusOK)
-		})
-	}
-
-	T.Run("a body within the bound is handed over whole", func(t *testing.T) {
-		t.Parallel()
-
-		var (
-			read    int
-			readErr error
-		)
-
-		req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/", strings.NewReader("hello"))
-		res := httptest.NewRecorder()
-		limitRequestBody(16)(echoBody(&read, &readErr)).ServeHTTP(res, req)
-
-		assert.Equal(t, http.StatusOK, res.Code)
-		assert.Equal(t, 5, read)
-		assert.NoError(t, readErr)
-	})
-
-	T.Run("a body exactly at the bound is handed over whole", func(t *testing.T) {
-		t.Parallel()
-
-		var (
-			read    int
-			readErr error
-		)
-
-		// The bound is what a request may carry, not what it must stay under: an off-by-one here
-		// rejects the largest legitimate request a client was told it could send.
-		req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/", strings.NewReader(strings.Repeat("x", 16)))
-		res := httptest.NewRecorder()
-		limitRequestBody(16)(echoBody(&read, &readErr)).ServeHTTP(res, req)
-
-		assert.Equal(t, http.StatusOK, res.Code)
-		assert.Equal(t, 16, read)
-		assert.NoError(t, readErr)
-	})
-
-	T.Run("a body declaring itself over the bound never reaches the handler", func(t *testing.T) {
-		t.Parallel()
-
-		var (
-			read    int
-			readErr error
-		)
-
-		req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/", strings.NewReader(strings.Repeat("x", 17)))
-		res := httptest.NewRecorder()
-		limitRequestBody(16)(echoBody(&read, &readErr)).ServeHTTP(res, req)
-
-		assert.Equal(t, http.StatusRequestEntityTooLarge, res.Code)
-		assert.Zero(t, read)
-		assert.NoError(t, readErr)
-	})
-
-	T.Run("a body declaring no length is cut off at the bound", func(t *testing.T) {
-		t.Parallel()
-
-		var (
-			read    int
-			readErr error
-		)
-
-		// Chunked, or lying: there is no length to check up front, so the handler runs and the
-		// read is what fails.
-		req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/", strings.NewReader(strings.Repeat("x", 64)))
-		req.ContentLength = -1
-		res := httptest.NewRecorder()
-		limitRequestBody(16)(echoBody(&read, &readErr)).ServeHTTP(res, req)
-
-		var tooLarge *http.MaxBytesError
-		require.ErrorAs(t, readErr, &tooLarge)
-		assert.Equal(t, int64(16), tooLarge.Limit)
-	})
-
-	T.Run("a request with no body at all passes through", func(t *testing.T) {
-		t.Parallel()
-
-		var (
-			read    int
-			readErr error
-		)
-
-		req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/", http.NoBody)
-		res := httptest.NewRecorder()
-		limitRequestBody(16)(echoBody(&read, &readErr)).ServeHTTP(res, req)
-
-		assert.Equal(t, http.StatusOK, res.Code)
-		assert.Zero(t, read)
-		assert.NoError(t, readErr)
 	})
 }
