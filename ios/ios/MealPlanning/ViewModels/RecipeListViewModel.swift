@@ -13,8 +13,8 @@ import SwiftUI
 @Observable
 @MainActor
 class RecipeListViewModel {
-  var recipes: [Mealplanning_Recipe] = []
-  var searchResults: [Mealplanning_Recipe] = []
+  var recipes: [Mealplanning_RecipeSummary] = []
+  var searchResults: [Mealplanning_RecipeSummary] = []
   var isLoading = false
   var isSearching = false
   var errorMessage: String?
@@ -33,7 +33,7 @@ class RecipeListViewModel {
     self.authManager = authManager
   }
 
-  var displayedRecipes: [Mealplanning_Recipe] {
+  var displayedRecipes: [Mealplanning_RecipeSummary] {
     // If we have search results, show those; otherwise show all recipes
     return searchResults.isEmpty ? recipes : searchResults
   }

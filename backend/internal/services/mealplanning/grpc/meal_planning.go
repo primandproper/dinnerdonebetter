@@ -1369,7 +1369,7 @@ func (s *serviceImpl) GetMeals(ctx context.Context, request *mealplanningsvc.Get
 	}
 
 	for _, meal := range mealsResult.Data {
-		x.Results = append(x.Results, converters.ConvertMealToGRPCMeal(meal))
+		x.Results = append(x.Results, converters.ConvertMealToGRPCMealSummary(meal))
 	}
 
 	return x, nil
@@ -1535,7 +1535,7 @@ func (s *serviceImpl) SearchForMeals(ctx context.Context, request *mealplannings
 	}
 
 	for _, meal := range meals.Data {
-		x.Results = append(x.Results, converters.ConvertMealToGRPCMeal(meal))
+		x.Results = append(x.Results, converters.ConvertMealToGRPCMealSummary(meal))
 	}
 
 	return x, nil

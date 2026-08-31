@@ -2063,6 +2063,141 @@ public struct Mealplanning_Recipe: @unchecked Sendable {
   fileprivate var _storage = _StorageClass.defaultInstance
 }
 
+/// RecipeSummary is the shape a Recipe takes in a list or search response. It
+/// carries the recipe's own columns and nothing that hangs off it: no steps,
+/// prep tasks, media, or associated recipes.
+///
+/// The omissions are not cosmetic. A RecipeStepIngredient embeds a whole
+/// ValidIngredient and ValidMeasurementUnit and a RecipeStep a whole
+/// ValidPreparation, so a hydrated Recipe runs 19-36 KiB; associated_recipes is
+/// self-recursive, so a hydrated Recipe has no size bound at all. Multiplied by
+/// filtering.MaxQueryFilterLimit's 250 that clears the 4 MiB gRPC message
+/// bound, and no page size provably fits while the recursion is on the wire.
+/// RecipeSummary has a fixed per-item ceiling, so a max-limit page does fit.
+///
+/// Fetch a single recipe by ID for the full object.
+public struct Mealplanning_RecipeSummary: @unchecked Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  public var createdAt: SwiftProtobuf.Google_Protobuf_Timestamp {
+    get {return _storage._createdAt ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
+    set {_uniqueStorage()._createdAt = newValue}
+  }
+  /// Returns true if `createdAt` has been explicitly set.
+  public var hasCreatedAt: Bool {return _storage._createdAt != nil}
+  /// Clears the value of `createdAt`. Subsequent reads from it will return its default value.
+  public mutating func clearCreatedAt() {_uniqueStorage()._createdAt = nil}
+
+  public var inspiredByRecipeID: String {
+    get {return _storage._inspiredByRecipeID ?? String()}
+    set {_uniqueStorage()._inspiredByRecipeID = newValue}
+  }
+  /// Returns true if `inspiredByRecipeID` has been explicitly set.
+  public var hasInspiredByRecipeID: Bool {return _storage._inspiredByRecipeID != nil}
+  /// Clears the value of `inspiredByRecipeID`. Subsequent reads from it will return its default value.
+  public mutating func clearInspiredByRecipeID() {_uniqueStorage()._inspiredByRecipeID = nil}
+
+  public var lastUpdatedAt: SwiftProtobuf.Google_Protobuf_Timestamp {
+    get {return _storage._lastUpdatedAt ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
+    set {_uniqueStorage()._lastUpdatedAt = newValue}
+  }
+  /// Returns true if `lastUpdatedAt` has been explicitly set.
+  public var hasLastUpdatedAt: Bool {return _storage._lastUpdatedAt != nil}
+  /// Clears the value of `lastUpdatedAt`. Subsequent reads from it will return its default value.
+  public mutating func clearLastUpdatedAt() {_uniqueStorage()._lastUpdatedAt = nil}
+
+  public var archivedAt: SwiftProtobuf.Google_Protobuf_Timestamp {
+    get {return _storage._archivedAt ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
+    set {_uniqueStorage()._archivedAt = newValue}
+  }
+  /// Returns true if `archivedAt` has been explicitly set.
+  public var hasArchivedAt: Bool {return _storage._archivedAt != nil}
+  /// Clears the value of `archivedAt`. Subsequent reads from it will return its default value.
+  public mutating func clearArchivedAt() {_uniqueStorage()._archivedAt = nil}
+
+  public var minEstimatedPortions: Float {
+    get {return _storage._minEstimatedPortions}
+    set {_uniqueStorage()._minEstimatedPortions = newValue}
+  }
+
+  public var maxEstimatedPortions: Float {
+    get {return _storage._maxEstimatedPortions ?? 0}
+    set {_uniqueStorage()._maxEstimatedPortions = newValue}
+  }
+  /// Returns true if `maxEstimatedPortions` has been explicitly set.
+  public var hasMaxEstimatedPortions: Bool {return _storage._maxEstimatedPortions != nil}
+  /// Clears the value of `maxEstimatedPortions`. Subsequent reads from it will return its default value.
+  public mutating func clearMaxEstimatedPortions() {_uniqueStorage()._maxEstimatedPortions = nil}
+
+  public var pluralPortionName: String {
+    get {return _storage._pluralPortionName}
+    set {_uniqueStorage()._pluralPortionName = newValue}
+  }
+
+  public var description_p: String {
+    get {return _storage._description_p}
+    set {_uniqueStorage()._description_p = newValue}
+  }
+
+  public var name: String {
+    get {return _storage._name}
+    set {_uniqueStorage()._name = newValue}
+  }
+
+  public var portionName: String {
+    get {return _storage._portionName}
+    set {_uniqueStorage()._portionName = newValue}
+  }
+
+  public var id: String {
+    get {return _storage._id}
+    set {_uniqueStorage()._id = newValue}
+  }
+
+  public var createdByUser: String {
+    get {return _storage._createdByUser}
+    set {_uniqueStorage()._createdByUser = newValue}
+  }
+
+  public var source: String {
+    get {return _storage._source}
+    set {_uniqueStorage()._source = newValue}
+  }
+
+  public var sourceIsbn: String {
+    get {return _storage._sourceIsbn}
+    set {_uniqueStorage()._sourceIsbn = newValue}
+  }
+
+  public var slug: String {
+    get {return _storage._slug}
+    set {_uniqueStorage()._slug = newValue}
+  }
+
+  public var yieldsComponentType: Mealplanning_MealComponentType {
+    get {return _storage._yieldsComponentType}
+    set {_uniqueStorage()._yieldsComponentType = newValue}
+  }
+
+  public var status: String {
+    get {return _storage._status}
+    set {_uniqueStorage()._status = newValue}
+  }
+
+  public var eligibleForMeals: Bool {
+    get {return _storage._eligibleForMeals}
+    set {_uniqueStorage()._eligibleForMeals = newValue}
+  }
+
+  public var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  public init() {}
+
+  fileprivate var _storage = _StorageClass.defaultInstance
+}
+
 public struct Mealplanning_RecipeMedia: Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
@@ -3262,6 +3397,102 @@ public struct Mealplanning_MealComponent: Sendable {
   public init() {}
 
   fileprivate var _recipe: Mealplanning_Recipe? = nil
+}
+
+/// MealSummary is the shape a Meal takes in a list or search response. It keeps
+/// the components, because a meal without them says almost nothing, but each
+/// one carries a RecipeSummary rather than a whole Recipe -- see that message
+/// for why a hydrated Recipe cannot be paginated.
+///
+/// Fetch a single meal by ID for components carrying full recipes.
+public struct Mealplanning_MealSummary: Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  public var createdAt: SwiftProtobuf.Google_Protobuf_Timestamp {
+    get {return _createdAt ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
+    set {_createdAt = newValue}
+  }
+  /// Returns true if `createdAt` has been explicitly set.
+  public var hasCreatedAt: Bool {return self._createdAt != nil}
+  /// Clears the value of `createdAt`. Subsequent reads from it will return its default value.
+  public mutating func clearCreatedAt() {self._createdAt = nil}
+
+  public var archivedAt: SwiftProtobuf.Google_Protobuf_Timestamp {
+    get {return _archivedAt ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
+    set {_archivedAt = newValue}
+  }
+  /// Returns true if `archivedAt` has been explicitly set.
+  public var hasArchivedAt: Bool {return self._archivedAt != nil}
+  /// Clears the value of `archivedAt`. Subsequent reads from it will return its default value.
+  public mutating func clearArchivedAt() {self._archivedAt = nil}
+
+  public var lastUpdatedAt: SwiftProtobuf.Google_Protobuf_Timestamp {
+    get {return _lastUpdatedAt ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
+    set {_lastUpdatedAt = newValue}
+  }
+  /// Returns true if `lastUpdatedAt` has been explicitly set.
+  public var hasLastUpdatedAt: Bool {return self._lastUpdatedAt != nil}
+  /// Clears the value of `lastUpdatedAt`. Subsequent reads from it will return its default value.
+  public mutating func clearLastUpdatedAt() {self._lastUpdatedAt = nil}
+
+  public var minEstimatedPortions: Float = 0
+
+  public var maxEstimatedPortions: Float {
+    get {return _maxEstimatedPortions ?? 0}
+    set {_maxEstimatedPortions = newValue}
+  }
+  /// Returns true if `maxEstimatedPortions` has been explicitly set.
+  public var hasMaxEstimatedPortions: Bool {return self._maxEstimatedPortions != nil}
+  /// Clears the value of `maxEstimatedPortions`. Subsequent reads from it will return its default value.
+  public mutating func clearMaxEstimatedPortions() {self._maxEstimatedPortions = nil}
+
+  public var id: String = String()
+
+  public var description_p: String = String()
+
+  public var createdByUser: String = String()
+
+  public var name: String = String()
+
+  public var components: [Mealplanning_MealComponentSummary] = []
+
+  public var eligibleForMealPlans: Bool = false
+
+  public var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  public init() {}
+
+  fileprivate var _createdAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
+  fileprivate var _archivedAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
+  fileprivate var _lastUpdatedAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
+  fileprivate var _maxEstimatedPortions: Float? = nil
+}
+
+public struct Mealplanning_MealComponentSummary: Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  public var componentType: Mealplanning_MealComponentType = .unspecified
+
+  public var recipe: Mealplanning_RecipeSummary {
+    get {return _recipe ?? Mealplanning_RecipeSummary()}
+    set {_recipe = newValue}
+  }
+  /// Returns true if `recipe` has been explicitly set.
+  public var hasRecipe: Bool {return self._recipe != nil}
+  /// Clears the value of `recipe`. Subsequent reads from it will return its default value.
+  public mutating func clearRecipe() {self._recipe = nil}
+
+  public var recipeScale: Float = 0
+
+  public var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  public init() {}
+
+  fileprivate var _recipe: Mealplanning_RecipeSummary? = nil
 }
 
 public struct Mealplanning_MealPlan: @unchecked Sendable {
@@ -6602,6 +6833,195 @@ extension Mealplanning_Recipe: SwiftProtobuf.Message, SwiftProtobuf._MessageImpl
   }
 }
 
+extension Mealplanning_RecipeSummary: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".RecipeSummary"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}created_at\0\u{3}inspired_by_recipe_id\0\u{3}last_updated_at\0\u{3}archived_at\0\u{3}min_estimated_portions\0\u{3}max_estimated_portions\0\u{3}plural_portion_name\0\u{1}description\0\u{1}name\0\u{3}portion_name\0\u{1}id\0\u{3}created_by_user\0\u{1}source\0\u{3}source_isbn\0\u{1}slug\0\u{3}yields_component_type\0\u{1}status\0\u{3}eligible_for_meals\0")
+
+  fileprivate class _StorageClass {
+    var _createdAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
+    var _inspiredByRecipeID: String? = nil
+    var _lastUpdatedAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
+    var _archivedAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
+    var _minEstimatedPortions: Float = 0
+    var _maxEstimatedPortions: Float? = nil
+    var _pluralPortionName: String = String()
+    var _description_p: String = String()
+    var _name: String = String()
+    var _portionName: String = String()
+    var _id: String = String()
+    var _createdByUser: String = String()
+    var _source: String = String()
+    var _sourceIsbn: String = String()
+    var _slug: String = String()
+    var _yieldsComponentType: Mealplanning_MealComponentType = .unspecified
+    var _status: String = String()
+    var _eligibleForMeals: Bool = false
+
+      // This property is used as the initial default value for new instances of the type.
+      // The type itself is protecting the reference to its storage via CoW semantics.
+      // This will force a copy to be made of this reference when the first mutation occurs;
+      // hence, it is safe to mark this as `nonisolated(unsafe)`.
+      static nonisolated(unsafe) let defaultInstance = _StorageClass()
+
+    private init() {}
+
+    init(copying source: _StorageClass) {
+      _createdAt = source._createdAt
+      _inspiredByRecipeID = source._inspiredByRecipeID
+      _lastUpdatedAt = source._lastUpdatedAt
+      _archivedAt = source._archivedAt
+      _minEstimatedPortions = source._minEstimatedPortions
+      _maxEstimatedPortions = source._maxEstimatedPortions
+      _pluralPortionName = source._pluralPortionName
+      _description_p = source._description_p
+      _name = source._name
+      _portionName = source._portionName
+      _id = source._id
+      _createdByUser = source._createdByUser
+      _source = source._source
+      _sourceIsbn = source._sourceIsbn
+      _slug = source._slug
+      _yieldsComponentType = source._yieldsComponentType
+      _status = source._status
+      _eligibleForMeals = source._eligibleForMeals
+    }
+  }
+
+  fileprivate mutating func _uniqueStorage() -> _StorageClass {
+    if !isKnownUniquelyReferenced(&_storage) {
+      _storage = _StorageClass(copying: _storage)
+    }
+    return _storage
+  }
+
+  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    _ = _uniqueStorage()
+    try withExtendedLifetime(_storage) { (_storage: _StorageClass) in
+      while let fieldNumber = try decoder.nextFieldNumber() {
+        // The use of inline closures is to circumvent an issue where the compiler
+        // allocates stack space for every case branch when no optimizations are
+        // enabled. https://github.com/apple/swift-protobuf/issues/1034
+        switch fieldNumber {
+        case 1: try { try decoder.decodeSingularMessageField(value: &_storage._createdAt) }()
+        case 2: try { try decoder.decodeSingularStringField(value: &_storage._inspiredByRecipeID) }()
+        case 3: try { try decoder.decodeSingularMessageField(value: &_storage._lastUpdatedAt) }()
+        case 4: try { try decoder.decodeSingularMessageField(value: &_storage._archivedAt) }()
+        case 5: try { try decoder.decodeSingularFloatField(value: &_storage._minEstimatedPortions) }()
+        case 6: try { try decoder.decodeSingularFloatField(value: &_storage._maxEstimatedPortions) }()
+        case 7: try { try decoder.decodeSingularStringField(value: &_storage._pluralPortionName) }()
+        case 8: try { try decoder.decodeSingularStringField(value: &_storage._description_p) }()
+        case 9: try { try decoder.decodeSingularStringField(value: &_storage._name) }()
+        case 10: try { try decoder.decodeSingularStringField(value: &_storage._portionName) }()
+        case 11: try { try decoder.decodeSingularStringField(value: &_storage._id) }()
+        case 12: try { try decoder.decodeSingularStringField(value: &_storage._createdByUser) }()
+        case 13: try { try decoder.decodeSingularStringField(value: &_storage._source) }()
+        case 14: try { try decoder.decodeSingularStringField(value: &_storage._sourceIsbn) }()
+        case 15: try { try decoder.decodeSingularStringField(value: &_storage._slug) }()
+        case 16: try { try decoder.decodeSingularEnumField(value: &_storage._yieldsComponentType) }()
+        case 17: try { try decoder.decodeSingularStringField(value: &_storage._status) }()
+        case 18: try { try decoder.decodeSingularBoolField(value: &_storage._eligibleForMeals) }()
+        default: break
+        }
+      }
+    }
+  }
+
+  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    try withExtendedLifetime(_storage) { (_storage: _StorageClass) in
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every if/case branch local when no optimizations
+      // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
+      // https://github.com/apple/swift-protobuf/issues/1182
+      try { if let v = _storage._createdAt {
+        try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
+      } }()
+      try { if let v = _storage._inspiredByRecipeID {
+        try visitor.visitSingularStringField(value: v, fieldNumber: 2)
+      } }()
+      try { if let v = _storage._lastUpdatedAt {
+        try visitor.visitSingularMessageField(value: v, fieldNumber: 3)
+      } }()
+      try { if let v = _storage._archivedAt {
+        try visitor.visitSingularMessageField(value: v, fieldNumber: 4)
+      } }()
+      if _storage._minEstimatedPortions.bitPattern != 0 {
+        try visitor.visitSingularFloatField(value: _storage._minEstimatedPortions, fieldNumber: 5)
+      }
+      try { if let v = _storage._maxEstimatedPortions {
+        try visitor.visitSingularFloatField(value: v, fieldNumber: 6)
+      } }()
+      if !_storage._pluralPortionName.isEmpty {
+        try visitor.visitSingularStringField(value: _storage._pluralPortionName, fieldNumber: 7)
+      }
+      if !_storage._description_p.isEmpty {
+        try visitor.visitSingularStringField(value: _storage._description_p, fieldNumber: 8)
+      }
+      if !_storage._name.isEmpty {
+        try visitor.visitSingularStringField(value: _storage._name, fieldNumber: 9)
+      }
+      if !_storage._portionName.isEmpty {
+        try visitor.visitSingularStringField(value: _storage._portionName, fieldNumber: 10)
+      }
+      if !_storage._id.isEmpty {
+        try visitor.visitSingularStringField(value: _storage._id, fieldNumber: 11)
+      }
+      if !_storage._createdByUser.isEmpty {
+        try visitor.visitSingularStringField(value: _storage._createdByUser, fieldNumber: 12)
+      }
+      if !_storage._source.isEmpty {
+        try visitor.visitSingularStringField(value: _storage._source, fieldNumber: 13)
+      }
+      if !_storage._sourceIsbn.isEmpty {
+        try visitor.visitSingularStringField(value: _storage._sourceIsbn, fieldNumber: 14)
+      }
+      if !_storage._slug.isEmpty {
+        try visitor.visitSingularStringField(value: _storage._slug, fieldNumber: 15)
+      }
+      if _storage._yieldsComponentType != .unspecified {
+        try visitor.visitSingularEnumField(value: _storage._yieldsComponentType, fieldNumber: 16)
+      }
+      if !_storage._status.isEmpty {
+        try visitor.visitSingularStringField(value: _storage._status, fieldNumber: 17)
+      }
+      if _storage._eligibleForMeals != false {
+        try visitor.visitSingularBoolField(value: _storage._eligibleForMeals, fieldNumber: 18)
+      }
+    }
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  public static func ==(lhs: Mealplanning_RecipeSummary, rhs: Mealplanning_RecipeSummary) -> Bool {
+    if lhs._storage !== rhs._storage {
+      let storagesAreEqual: Bool = withExtendedLifetime((lhs._storage, rhs._storage)) { (_args: (_StorageClass, _StorageClass)) in
+        let _storage = _args.0
+        let rhs_storage = _args.1
+        if _storage._createdAt != rhs_storage._createdAt {return false}
+        if _storage._inspiredByRecipeID != rhs_storage._inspiredByRecipeID {return false}
+        if _storage._lastUpdatedAt != rhs_storage._lastUpdatedAt {return false}
+        if _storage._archivedAt != rhs_storage._archivedAt {return false}
+        if _storage._minEstimatedPortions != rhs_storage._minEstimatedPortions {return false}
+        if _storage._maxEstimatedPortions != rhs_storage._maxEstimatedPortions {return false}
+        if _storage._pluralPortionName != rhs_storage._pluralPortionName {return false}
+        if _storage._description_p != rhs_storage._description_p {return false}
+        if _storage._name != rhs_storage._name {return false}
+        if _storage._portionName != rhs_storage._portionName {return false}
+        if _storage._id != rhs_storage._id {return false}
+        if _storage._createdByUser != rhs_storage._createdByUser {return false}
+        if _storage._source != rhs_storage._source {return false}
+        if _storage._sourceIsbn != rhs_storage._sourceIsbn {return false}
+        if _storage._slug != rhs_storage._slug {return false}
+        if _storage._yieldsComponentType != rhs_storage._yieldsComponentType {return false}
+        if _storage._status != rhs_storage._status {return false}
+        if _storage._eligibleForMeals != rhs_storage._eligibleForMeals {return false}
+        return true
+      }
+      if !storagesAreEqual {return false}
+    }
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
 extension Mealplanning_RecipeMedia: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".RecipeMedia"
   public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}created_at\0\u{3}archived_at\0\u{3}last_updated_at\0\u{1}id\0\u{3}belongs_to_recipe\0\u{3}belongs_to_recipe_step\0\u{3}mime_type\0\u{3}internal_path\0\u{3}external_path\0\u{1}index\0")
@@ -8303,6 +8723,134 @@ extension Mealplanning_MealComponent: SwiftProtobuf.Message, SwiftProtobuf._Mess
   }
 
   public static func ==(lhs: Mealplanning_MealComponent, rhs: Mealplanning_MealComponent) -> Bool {
+    if lhs.componentType != rhs.componentType {return false}
+    if lhs._recipe != rhs._recipe {return false}
+    if lhs.recipeScale != rhs.recipeScale {return false}
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+extension Mealplanning_MealSummary: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".MealSummary"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}created_at\0\u{3}archived_at\0\u{3}last_updated_at\0\u{3}min_estimated_portions\0\u{3}max_estimated_portions\0\u{1}id\0\u{1}description\0\u{3}created_by_user\0\u{1}name\0\u{1}components\0\u{3}eligible_for_meal_plans\0")
+
+  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularMessageField(value: &self._createdAt) }()
+      case 2: try { try decoder.decodeSingularMessageField(value: &self._archivedAt) }()
+      case 3: try { try decoder.decodeSingularMessageField(value: &self._lastUpdatedAt) }()
+      case 4: try { try decoder.decodeSingularFloatField(value: &self.minEstimatedPortions) }()
+      case 5: try { try decoder.decodeSingularFloatField(value: &self._maxEstimatedPortions) }()
+      case 6: try { try decoder.decodeSingularStringField(value: &self.id) }()
+      case 7: try { try decoder.decodeSingularStringField(value: &self.description_p) }()
+      case 8: try { try decoder.decodeSingularStringField(value: &self.createdByUser) }()
+      case 9: try { try decoder.decodeSingularStringField(value: &self.name) }()
+      case 10: try { try decoder.decodeRepeatedMessageField(value: &self.components) }()
+      case 11: try { try decoder.decodeSingularBoolField(value: &self.eligibleForMealPlans) }()
+      default: break
+      }
+    }
+  }
+
+  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    // The use of inline closures is to circumvent an issue where the compiler
+    // allocates stack space for every if/case branch local when no optimizations
+    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
+    // https://github.com/apple/swift-protobuf/issues/1182
+    try { if let v = self._createdAt {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
+    } }()
+    try { if let v = self._archivedAt {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
+    } }()
+    try { if let v = self._lastUpdatedAt {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 3)
+    } }()
+    if self.minEstimatedPortions.bitPattern != 0 {
+      try visitor.visitSingularFloatField(value: self.minEstimatedPortions, fieldNumber: 4)
+    }
+    try { if let v = self._maxEstimatedPortions {
+      try visitor.visitSingularFloatField(value: v, fieldNumber: 5)
+    } }()
+    if !self.id.isEmpty {
+      try visitor.visitSingularStringField(value: self.id, fieldNumber: 6)
+    }
+    if !self.description_p.isEmpty {
+      try visitor.visitSingularStringField(value: self.description_p, fieldNumber: 7)
+    }
+    if !self.createdByUser.isEmpty {
+      try visitor.visitSingularStringField(value: self.createdByUser, fieldNumber: 8)
+    }
+    if !self.name.isEmpty {
+      try visitor.visitSingularStringField(value: self.name, fieldNumber: 9)
+    }
+    if !self.components.isEmpty {
+      try visitor.visitRepeatedMessageField(value: self.components, fieldNumber: 10)
+    }
+    if self.eligibleForMealPlans != false {
+      try visitor.visitSingularBoolField(value: self.eligibleForMealPlans, fieldNumber: 11)
+    }
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  public static func ==(lhs: Mealplanning_MealSummary, rhs: Mealplanning_MealSummary) -> Bool {
+    if lhs._createdAt != rhs._createdAt {return false}
+    if lhs._archivedAt != rhs._archivedAt {return false}
+    if lhs._lastUpdatedAt != rhs._lastUpdatedAt {return false}
+    if lhs.minEstimatedPortions != rhs.minEstimatedPortions {return false}
+    if lhs._maxEstimatedPortions != rhs._maxEstimatedPortions {return false}
+    if lhs.id != rhs.id {return false}
+    if lhs.description_p != rhs.description_p {return false}
+    if lhs.createdByUser != rhs.createdByUser {return false}
+    if lhs.name != rhs.name {return false}
+    if lhs.components != rhs.components {return false}
+    if lhs.eligibleForMealPlans != rhs.eligibleForMealPlans {return false}
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+extension Mealplanning_MealComponentSummary: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".MealComponentSummary"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}component_type\0\u{1}recipe\0\u{3}recipe_scale\0")
+
+  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularEnumField(value: &self.componentType) }()
+      case 2: try { try decoder.decodeSingularMessageField(value: &self._recipe) }()
+      case 3: try { try decoder.decodeSingularFloatField(value: &self.recipeScale) }()
+      default: break
+      }
+    }
+  }
+
+  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    // The use of inline closures is to circumvent an issue where the compiler
+    // allocates stack space for every if/case branch local when no optimizations
+    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
+    // https://github.com/apple/swift-protobuf/issues/1182
+    if self.componentType != .unspecified {
+      try visitor.visitSingularEnumField(value: self.componentType, fieldNumber: 1)
+    }
+    try { if let v = self._recipe {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
+    } }()
+    if self.recipeScale.bitPattern != 0 {
+      try visitor.visitSingularFloatField(value: self.recipeScale, fieldNumber: 3)
+    }
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  public static func ==(lhs: Mealplanning_MealComponentSummary, rhs: Mealplanning_MealComponentSummary) -> Bool {
     if lhs.componentType != rhs.componentType {return false}
     if lhs._recipe != rhs._recipe {return false}
     if lhs.recipeScale != rhs.recipeScale {return false}

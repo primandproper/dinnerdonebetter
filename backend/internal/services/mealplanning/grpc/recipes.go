@@ -1395,7 +1395,7 @@ func (s *serviceImpl) GetRecipes(ctx context.Context, request *mealplanning.GetR
 	}
 
 	for _, recipe := range recipes.Data {
-		x.Results = append(x.Results, converters.ConvertRecipeToGRPCRecipe(recipe))
+		x.Results = append(x.Results, converters.ConvertRecipeToGRPCRecipeSummary(recipe))
 	}
 
 	return x, nil
@@ -1429,7 +1429,7 @@ func (s *serviceImpl) SearchForRecipes(ctx context.Context, request *mealplannin
 	}
 
 	for _, recipe := range recipes.Data {
-		x.Results = append(x.Results, converters.ConvertRecipeToGRPCRecipe(recipe))
+		x.Results = append(x.Results, converters.ConvertRecipeToGRPCRecipeSummary(recipe))
 	}
 
 	return x, nil
@@ -1463,7 +1463,7 @@ func (s *serviceImpl) SearchForMealEligibleRecipes(ctx context.Context, request 
 	}
 
 	for _, recipe := range recipes.Data {
-		x.Results = append(x.Results, converters.ConvertRecipeToGRPCRecipe(recipe))
+		x.Results = append(x.Results, converters.ConvertRecipeToGRPCRecipeSummary(recipe))
 	}
 
 	return x, nil
@@ -1502,7 +1502,7 @@ func (s *serviceImpl) SearchForRecipesWithInstrumentOwnership(ctx context.Contex
 	}
 
 	for _, recipe := range recipes.Data {
-		x.Results = append(x.Results, converters.ConvertRecipeToGRPCRecipe(recipe))
+		x.Results = append(x.Results, converters.ConvertRecipeToGRPCRecipeSummary(recipe))
 	}
 
 	return x, nil

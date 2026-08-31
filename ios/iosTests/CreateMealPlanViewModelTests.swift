@@ -19,6 +19,15 @@ func createMockMeal(id: String = "meal-1", name: String = "Test Meal") -> Mealpl
   return meal
 }
 
+func createMockMealSummary(id: String = "meal-1", name: String = "Test Meal")
+  -> Mealplanning_MealSummary
+{
+  var meal = Mealplanning_MealSummary()
+  meal.id = id
+  meal.name = name
+  return meal
+}
+
 func createMockAuthenticationManagerForMealPlan() -> AuthenticationManager {
   let manager = AuthenticationManager()
   manager.isAuthenticated = true
@@ -192,7 +201,11 @@ struct SearchTests {
     let meal3 = createMockMeal(id: "meal-3", name: "Burger")
     viewModel.assignMeal(meal1, to: viewModel.selectedDates[0])
     // assignMeal clears searchResults; set again to test filter (excludes meal assigned to this date)
-    viewModel.searchResults = [meal1, meal2, meal3]
+    viewModel.searchResults = [
+      createMockMealSummary(id: meal1.id, name: meal1.name),
+      createMockMealSummary(id: meal2.id, name: meal2.name),
+      createMockMealSummary(id: meal3.id, name: meal3.name),
+    ]
 
     let filtered = viewModel.filteredSearchResults(for: viewModel.selectedDates[0])
 
@@ -202,17 +215,16 @@ struct SearchTests {
     #expect(!filtered.contains(where: { $0.id == meal1.id }))
   }
 
-  @Test("meal forId finds meal in search results")
+  @Test("meal forId ignores search results, which are summaries")
   @MainActor
-  func testMealForIdFromSearch() async {
+  func testMealForIdIgnoresSearchResults() async {
     let authManager = createMockAuthenticationManagerForMealPlan()
     let viewModel = CreateMealPlanViewModel(authManager: authManager)
-    let meal = createMockMeal(id: "meal-1", name: "Pasta")
-    viewModel.searchResults = [meal]
+    viewModel.searchResults = [createMockMealSummary(id: "meal-1", name: "Pasta")]
 
-    let found = viewModel.meal(forId: "meal-1")
-
-    #expect(found?.id == "meal-1")
+    // A search result carries no steps, so it is not a meal anyone downstream
+    // can plan with. Only an assigned meal, fetched whole, answers here.
+    #expect(viewModel.meal(forId: "meal-1") == nil)
   }
 
   @Test("meal forId finds meal in dayMeals")

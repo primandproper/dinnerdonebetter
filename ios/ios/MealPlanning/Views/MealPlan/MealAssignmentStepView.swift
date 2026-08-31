@@ -118,7 +118,7 @@ struct MealAssignmentStepView: View {
                 eventReporterService.reporter.track(
                   event: "meal_plan_meal_assigned",
                   properties: ["meal_id": meal.id])
-                viewModel.assignMeal(meal, to: date)
+                Task { await viewModel.assignMeal(fromSearchResult: meal, to: date) }
               }
             )
           }

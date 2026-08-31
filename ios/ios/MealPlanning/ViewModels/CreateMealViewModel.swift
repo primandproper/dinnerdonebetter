@@ -30,7 +30,7 @@ class CreateMealViewModel {
 
   // Recipe search
   var searchQuery: String = ""
-  var searchResults: [Mealplanning_Recipe] = []
+  var searchResults: [Mealplanning_RecipeSummary] = []
   var isSearching: Bool = false
   var searchError: String?
 
@@ -126,7 +126,7 @@ class CreateMealViewModel {
   }
 
   /// Recipes from search that are not yet in the draft
-  func searchResultsNotInDraft() -> [Mealplanning_Recipe] {
+  func searchResultsNotInDraft() -> [Mealplanning_RecipeSummary] {
     let draftIDs = Set(draftComponents.map { $0.recipe.id })
     return searchResults.filter { !draftIDs.contains($0.id) }
   }
@@ -134,7 +134,7 @@ class CreateMealViewModel {
   // MARK: - Add Recipe
 
   /// Adds a recipe to the draft. Fetches full recipe via GetRecipe for validation (steps, vessels, temps).
-  func addRecipe(_ recipe: Mealplanning_Recipe) async {
+  func addRecipe(_ recipe: Mealplanning_RecipeSummary) async {
     let recipeID = recipe.id
     guard !draftComponents.contains(where: { $0.recipe.id == recipeID }) else { return }
 

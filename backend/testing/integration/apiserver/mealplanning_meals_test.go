@@ -152,6 +152,49 @@ func TestMeals_Listing(T *testing.T) {
 		}
 	})
 
+	T.Run("listed meals carry their components as summaries", func(t *testing.T) {
+		t.Parallel()
+		ctx := t.Context()
+
+		_, userClient := createUserAndClientForTest(t)
+
+		createdAfter := timestamppb.New(time.Now().UTC().Add(-5 * time.Minute))
+		createdMeal := createMealForTest(t, userClient, nil)
+
+		actual, err := userClient.GetMeals(ctx, &mealplanninggrpc.GetMealsRequest{
+			Filter: &filteringpb.QueryFilter{CreatedAfter: createdAfter},
+		})
+		require.NoError(t, err)
+
+		var listed *types.Meal
+		for _, result := range actual.Results {
+			if result.Id == createdMeal.ID {
+				listed = converters.ConvertGRPCMealSummaryToMeal(result)
+			}
+		}
+		require.NotNil(t, listed, "created meal %s was not in the list", createdMeal.ID)
+
+		// A MealSummary keeps its components and each one's recipe identity.
+		// What it drops is everything hanging off that recipe, which is why a
+		// max-limit page fits in a gRPC message -- GetMeal is where the whole
+		// thing lives.
+		require.Len(t, listed.Components, len(createdMeal.Components))
+		byRecipeID := map[string]*types.MealComponent{}
+		for _, component := range listed.Components {
+			byRecipeID[component.Recipe.ID] = component
+		}
+		for _, expectedComponent := range createdMeal.Components {
+			component, found := byRecipeID[expectedComponent.Recipe.ID]
+			require.True(t, found, "component for recipe %s missing from listed meal", expectedComponent.Recipe.ID)
+			assert.Equal(t, expectedComponent.Recipe.Name, component.Recipe.Name)
+			assert.Equal(t, expectedComponent.ComponentType, component.ComponentType)
+			assert.Empty(t, component.Recipe.Steps)
+		}
+
+		_, err = userClient.ArchiveMeal(ctx, &mealplanninggrpc.ArchiveMealRequest{MealId: createdMeal.ID})
+		assert.NoError(t, err)
+	})
+
 	T.Run("requires auth for listing", func(t *testing.T) {
 		t.Parallel()
 		ctx := t.Context()

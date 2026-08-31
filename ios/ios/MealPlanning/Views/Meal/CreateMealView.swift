@@ -129,10 +129,14 @@ struct CreateMealView: View {
             VStack(alignment: .leading, spacing: 4) {
               Text(recipe.name.isEmpty ? "Unnamed Recipe" : recipe.name)
                 .font(DSTheme.Typography.label)
-              if !recipe.steps.isEmpty {
-                Text("\(recipe.steps.count) steps")
+              // A search result is a RecipeSummary and carries no steps, so
+              // the description stands in for the step count that used to be
+              // here. The whole recipe arrives on add.
+              if !recipe.description_p.isEmpty {
+                Text(recipe.description_p)
                   .font(.caption)
                   .foregroundColor(.secondary)
+                  .lineLimit(2)
               }
             }
             Spacer()

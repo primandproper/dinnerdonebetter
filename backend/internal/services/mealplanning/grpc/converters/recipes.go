@@ -699,6 +699,65 @@ func ConvertRecipeToGRPCRecipe(input *mealplanning.Recipe) *mealplanningsvc.Reci
 	return recipe
 }
 
+// ConvertRecipeToGRPCRecipeSummary projects a Recipe onto the wire shape list
+// and search responses use. Everything that hangs off the recipe -- steps,
+// prep tasks, media, associated recipes -- is dropped, which is what keeps a
+// max-limit page inside the 4 MiB gRPC message bound. See the RecipeSummary
+// comment in mealplanning_messages.proto.
+func ConvertRecipeToGRPCRecipeSummary(input *mealplanning.Recipe) *mealplanningsvc.RecipeSummary {
+	return &mealplanningsvc.RecipeSummary{
+		MinEstimatedPortions: input.MinEstimatedPortions,
+		MaxEstimatedPortions: input.MaxEstimatedPortions,
+		CreatedAt:            grpcconverters.ConvertTimeToPBTimestamp(input.CreatedAt),
+		LastUpdatedAt:        grpcconverters.ConvertTimePointerToPBTimestamp(input.LastUpdatedAt),
+		ArchivedAt:           grpcconverters.ConvertTimePointerToPBTimestamp(input.ArchivedAt),
+		Id:                   input.ID,
+		YieldsComponentType:  ConvertStringToMealComponentType(input.YieldsComponentType),
+		Description:          input.Description,
+		Name:                 input.Name,
+		PortionName:          input.PortionName,
+		CreatedByUser:        input.CreatedByUser,
+		Source:               input.Source,
+		SourceIsbn:           input.SourceISBN,
+		Slug:                 input.Slug,
+		PluralPortionName:    input.PluralPortionName,
+		Status:               input.Status,
+		EligibleForMeals:     input.EligibleForMeals,
+		InspiredByRecipeId:   input.InspiredByRecipeID,
+	}
+}
+
+// ConvertGRPCRecipeSummaryToRecipe inflates a RecipeSummary into a Recipe with
+// empty nested collections. The summary carries no steps, prep tasks, media, or
+// associated recipes, so neither does the result -- fetch the recipe by ID for
+// those.
+func ConvertGRPCRecipeSummaryToRecipe(input *mealplanningsvc.RecipeSummary) *mealplanning.Recipe {
+	return &mealplanning.Recipe{
+		MinEstimatedPortions: input.MinEstimatedPortions,
+		MaxEstimatedPortions: input.MaxEstimatedPortions,
+		CreatedAt:            grpcconverters.ConvertPBTimestampToTime(input.CreatedAt),
+		LastUpdatedAt:        grpcconverters.ConvertPBTimestampToTimePointer(input.LastUpdatedAt),
+		ArchivedAt:           grpcconverters.ConvertPBTimestampToTimePointer(input.ArchivedAt),
+		ID:                   input.Id,
+		YieldsComponentType:  ConvertMealComponentTypeToString(input.YieldsComponentType),
+		Description:          input.Description,
+		Name:                 input.Name,
+		PortionName:          input.PortionName,
+		CreatedByUser:        input.CreatedByUser,
+		Source:               input.Source,
+		SourceISBN:           input.SourceIsbn,
+		Slug:                 input.Slug,
+		PluralPortionName:    input.PluralPortionName,
+		Status:               input.Status,
+		EligibleForMeals:     input.EligibleForMeals,
+		InspiredByRecipeID:   input.InspiredByRecipeId,
+		Steps:                []*mealplanning.RecipeStep{},
+		Media:                []*mealplanning.RecipeMedia{},
+		PrepTasks:            []*mealplanning.RecipePrepTask{},
+		AssociatedRecipes:    []*mealplanning.Recipe{},
+	}
+}
+
 func ConvertGRPCRecipeToRecipe(input *mealplanningsvc.Recipe) *mealplanning.Recipe {
 	recipeSteps := []*mealplanning.RecipeStep{}
 	for _, step := range input.Steps {

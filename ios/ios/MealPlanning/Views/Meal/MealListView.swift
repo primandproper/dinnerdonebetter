@@ -124,7 +124,7 @@ struct MealListView: View {
 // MARK: - Meal Card
 
 struct MealCard: View {
-  let meal: Mealplanning_Meal
+  let meal: Mealplanning_MealSummary
 
   var body: some View {
     DSCard(style: .outlined) {
@@ -142,18 +142,10 @@ struct MealCard: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
 
-        // Meal metadata - time, components, servings
+        // Meal metadata - components, servings. No time estimate: a
+        // MealComponentSummary's recipe carries no steps to estimate from, and
+        // the meal detail screen is where a whole meal is available.
         HStack(spacing: DSTheme.Spacing.md) {
-          if !meal.components.isEmpty, let totalTime = totalEstimatedTime(for: meal.components) {
-            Label(
-              RecipeTimeEstimation.format(
-                minSeconds: totalTime.minSeconds, maxSeconds: totalTime.maxSeconds),
-              systemImage: "clock"
-            )
-            .font(DSTheme.Typography.caption)
-            .foregroundColor(DSTheme.Colors.textSecondary)
-          }
-
           if !meal.components.isEmpty {
             Label(
               "\(meal.components.count) component\(meal.components.count == 1 ? "" : "s")",
@@ -194,7 +186,8 @@ struct MealCard: View {
   }
 
   /// Returns labels for component types: sides count (assume one main, don't show), beverage only if present.
-  private func componentTypeLabels(from components: [Mealplanning_MealComponent]) -> [String] {
+  private func componentTypeLabels(from components: [Mealplanning_MealComponentSummary]) -> [String]
+  {
     var labels: [String] = []
     var sideCount = 0
     var hasBeverage = false
@@ -221,26 +214,12 @@ struct MealCard: View {
     return labels
   }
 
-  private func formatComponentTypeSummary(_ components: [Mealplanning_MealComponent]) -> String {
+  private func formatComponentTypeSummary(_ components: [Mealplanning_MealComponentSummary])
+    -> String
+  {
     componentTypeLabels(from: components).joined(separator: ", ")
   }
 
-  private func totalEstimatedTime(for components: [Mealplanning_MealComponent])
-    -> RecipeTimeEstimate?
-  {
-    var totalMin: UInt32 = 0
-    var totalMax: UInt32 = 0
-    var hasAny = false
-    for component in components {
-      guard let estimate = RecipeTimeEstimation.estimate(steps: component.recipe.steps) else {
-        continue
-      }
-      totalMin = totalMin &+ estimate.minSeconds
-      totalMax = totalMax &+ estimate.maxSeconds
-      hasAny = true
-    }
-    return hasAny ? RecipeTimeEstimate(minSeconds: totalMin, maxSeconds: totalMax) : nil
-  }
 }
 
 // MARK: - Preview

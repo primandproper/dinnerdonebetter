@@ -2117,7 +2117,7 @@ message GetRecipesRequest {
 message GetRecipesResponse {
   common.ResponseDetails response_details = 1;
   primandproper.platform.filtering.v1.Pagination pagination = 2;
-  repeated Recipe results = 3;
+  repeated RecipeSummary results = 3;
 }
 
 message SearchForRecipesRequest {
@@ -2129,7 +2129,7 @@ message SearchForRecipesRequest {
 message SearchForRecipesResponse {
   common.ResponseDetails response_details = 1;
   primandproper.platform.filtering.v1.Pagination pagination = 2;
-  repeated Recipe results = 3;
+  repeated RecipeSummary results = 3;
 }
 
 message SearchForMealEligibleRecipesRequest {
@@ -2140,7 +2140,7 @@ message SearchForMealEligibleRecipesRequest {
 message SearchForMealEligibleRecipesResponse {
   common.ResponseDetails response_details = 1;
   primandproper.platform.filtering.v1.Pagination pagination = 2;
-  repeated Recipe results = 3;
+  repeated RecipeSummary results = 3;
 }
 
 message SearchForRecipesWithInstrumentOwnershipRequest {
@@ -2151,7 +2151,7 @@ message SearchForRecipesWithInstrumentOwnershipRequest {
 message SearchForRecipesWithInstrumentOwnershipResponse {
   common.ResponseDetails response_details = 1;
   primandproper.platform.filtering.v1.Pagination pagination = 2;
-  repeated Recipe results = 3;
+  repeated RecipeSummary results = 3;
 }
 
 message UpdateRecipeRequest {
@@ -2738,7 +2738,7 @@ message GetMealsRequest {
 message GetMealsResponse {
   common.ResponseDetails response_details = 1;
   primandproper.platform.filtering.v1.Pagination pagination = 2;
-  repeated Meal results = 3;
+  repeated MealSummary results = 3;
 }
 
 message GetMealListsRequest {
@@ -2924,7 +2924,7 @@ message SearchForMealsRequest {
 message SearchForMealsResponse {
   common.ResponseDetails response_details = 1;
   primandproper.platform.filtering.v1.Pagination pagination = 2;
-  repeated Meal results = 3;
+  repeated MealSummary results = 3;
 }
 
 message UpdateMealPlanRequest {

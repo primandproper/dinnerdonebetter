@@ -824,6 +824,42 @@ export interface Recipe {
   associatedRecipes: Recipe[];
 }
 
+/**
+ * RecipeSummary is the shape a Recipe takes in a list or search response. It
+ * carries the recipe's own columns and nothing that hangs off it: no steps,
+ * prep tasks, media, or associated recipes.
+ *
+ * The omissions are not cosmetic. A RecipeStepIngredient embeds a whole
+ * ValidIngredient and ValidMeasurementUnit and a RecipeStep a whole
+ * ValidPreparation, so a hydrated Recipe runs 19-36 KiB; associated_recipes is
+ * self-recursive, so a hydrated Recipe has no size bound at all. Multiplied by
+ * filtering.MaxQueryFilterLimit's 250 that clears the 4 MiB gRPC message
+ * bound, and no page size provably fits while the recursion is on the wire.
+ * RecipeSummary has a fixed per-item ceiling, so a max-limit page does fit.
+ *
+ * Fetch a single recipe by ID for the full object.
+ */
+export interface RecipeSummary {
+  createdAt: Date | undefined;
+  inspiredByRecipeId?: string | undefined;
+  lastUpdatedAt?: Date | undefined;
+  archivedAt?: Date | undefined;
+  minEstimatedPortions: number;
+  maxEstimatedPortions?: number | undefined;
+  pluralPortionName: string;
+  description: string;
+  name: string;
+  portionName: string;
+  id: string;
+  createdByUser: string;
+  source: string;
+  sourceIsbn: string;
+  slug: string;
+  yieldsComponentType: MealComponentType;
+  status: string;
+  eligibleForMeals: boolean;
+}
+
 export interface RecipeMedia {
   createdAt: Date | undefined;
   archivedAt?: Date | undefined;
@@ -1030,6 +1066,34 @@ export interface Meal {
 export interface MealComponent {
   componentType: MealComponentType;
   recipe: Recipe | undefined;
+  recipeScale: number;
+}
+
+/**
+ * MealSummary is the shape a Meal takes in a list or search response. It keeps
+ * the components, because a meal without them says almost nothing, but each
+ * one carries a RecipeSummary rather than a whole Recipe -- see that message
+ * for why a hydrated Recipe cannot be paginated.
+ *
+ * Fetch a single meal by ID for components carrying full recipes.
+ */
+export interface MealSummary {
+  createdAt: Date | undefined;
+  archivedAt?: Date | undefined;
+  lastUpdatedAt?: Date | undefined;
+  minEstimatedPortions: number;
+  maxEstimatedPortions?: number | undefined;
+  id: string;
+  description: string;
+  createdByUser: string;
+  name: string;
+  components: MealComponentSummary[];
+  eligibleForMealPlans: boolean;
+}
+
+export interface MealComponentSummary {
+  componentType: MealComponentType;
+  recipe: RecipeSummary | undefined;
   recipeScale: number;
 }
 
@@ -6585,6 +6649,405 @@ export const Recipe: MessageFns<Recipe> = {
   },
 };
 
+function createBaseRecipeSummary(): RecipeSummary {
+  return {
+    createdAt: undefined,
+    inspiredByRecipeId: undefined,
+    lastUpdatedAt: undefined,
+    archivedAt: undefined,
+    minEstimatedPortions: 0,
+    maxEstimatedPortions: undefined,
+    pluralPortionName: '',
+    description: '',
+    name: '',
+    portionName: '',
+    id: '',
+    createdByUser: '',
+    source: '',
+    sourceIsbn: '',
+    slug: '',
+    yieldsComponentType: 0,
+    status: '',
+    eligibleForMeals: false,
+  };
+}
+
+export const RecipeSummary: MessageFns<RecipeSummary> = {
+  encode(message: RecipeSummary, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.createdAt !== undefined) {
+      Timestamp.encode(toTimestamp(message.createdAt), writer.uint32(10).fork()).join();
+    }
+    if (message.inspiredByRecipeId !== undefined) {
+      writer.uint32(18).string(message.inspiredByRecipeId);
+    }
+    if (message.lastUpdatedAt !== undefined) {
+      Timestamp.encode(toTimestamp(message.lastUpdatedAt), writer.uint32(26).fork()).join();
+    }
+    if (message.archivedAt !== undefined) {
+      Timestamp.encode(toTimestamp(message.archivedAt), writer.uint32(34).fork()).join();
+    }
+    if (message.minEstimatedPortions !== 0) {
+      writer.uint32(45).float(message.minEstimatedPortions);
+    }
+    if (message.maxEstimatedPortions !== undefined) {
+      writer.uint32(53).float(message.maxEstimatedPortions);
+    }
+    if (message.pluralPortionName !== '') {
+      writer.uint32(58).string(message.pluralPortionName);
+    }
+    if (message.description !== '') {
+      writer.uint32(66).string(message.description);
+    }
+    if (message.name !== '') {
+      writer.uint32(74).string(message.name);
+    }
+    if (message.portionName !== '') {
+      writer.uint32(82).string(message.portionName);
+    }
+    if (message.id !== '') {
+      writer.uint32(90).string(message.id);
+    }
+    if (message.createdByUser !== '') {
+      writer.uint32(98).string(message.createdByUser);
+    }
+    if (message.source !== '') {
+      writer.uint32(106).string(message.source);
+    }
+    if (message.sourceIsbn !== '') {
+      writer.uint32(114).string(message.sourceIsbn);
+    }
+    if (message.slug !== '') {
+      writer.uint32(122).string(message.slug);
+    }
+    if (message.yieldsComponentType !== 0) {
+      writer.uint32(128).int32(message.yieldsComponentType);
+    }
+    if (message.status !== '') {
+      writer.uint32(138).string(message.status);
+    }
+    if (message.eligibleForMeals !== false) {
+      writer.uint32(144).bool(message.eligibleForMeals);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RecipeSummary {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRecipeSummary();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.createdAt = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.inspiredByRecipeId = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.lastUpdatedAt = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.archivedAt = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 5: {
+          if (tag !== 45) {
+            break;
+          }
+
+          message.minEstimatedPortions = reader.float();
+          continue;
+        }
+        case 6: {
+          if (tag !== 53) {
+            break;
+          }
+
+          message.maxEstimatedPortions = reader.float();
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.pluralPortionName = reader.string();
+          continue;
+        }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+
+          message.description = reader.string();
+          continue;
+        }
+        case 9: {
+          if (tag !== 74) {
+            break;
+          }
+
+          message.name = reader.string();
+          continue;
+        }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          message.portionName = reader.string();
+          continue;
+        }
+        case 11: {
+          if (tag !== 90) {
+            break;
+          }
+
+          message.id = reader.string();
+          continue;
+        }
+        case 12: {
+          if (tag !== 98) {
+            break;
+          }
+
+          message.createdByUser = reader.string();
+          continue;
+        }
+        case 13: {
+          if (tag !== 106) {
+            break;
+          }
+
+          message.source = reader.string();
+          continue;
+        }
+        case 14: {
+          if (tag !== 114) {
+            break;
+          }
+
+          message.sourceIsbn = reader.string();
+          continue;
+        }
+        case 15: {
+          if (tag !== 122) {
+            break;
+          }
+
+          message.slug = reader.string();
+          continue;
+        }
+        case 16: {
+          if (tag !== 128) {
+            break;
+          }
+
+          message.yieldsComponentType = reader.int32() as any;
+          continue;
+        }
+        case 17: {
+          if (tag !== 138) {
+            break;
+          }
+
+          message.status = reader.string();
+          continue;
+        }
+        case 18: {
+          if (tag !== 144) {
+            break;
+          }
+
+          message.eligibleForMeals = reader.bool();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): RecipeSummary {
+    return {
+      createdAt: isSet(object.createdAt)
+        ? fromJsonTimestamp(object.createdAt)
+        : isSet(object.created_at)
+          ? fromJsonTimestamp(object.created_at)
+          : undefined,
+      inspiredByRecipeId: isSet(object.inspiredByRecipeId)
+        ? globalThis.String(object.inspiredByRecipeId)
+        : isSet(object.inspired_by_recipe_id)
+          ? globalThis.String(object.inspired_by_recipe_id)
+          : undefined,
+      lastUpdatedAt: isSet(object.lastUpdatedAt)
+        ? fromJsonTimestamp(object.lastUpdatedAt)
+        : isSet(object.last_updated_at)
+          ? fromJsonTimestamp(object.last_updated_at)
+          : undefined,
+      archivedAt: isSet(object.archivedAt)
+        ? fromJsonTimestamp(object.archivedAt)
+        : isSet(object.archived_at)
+          ? fromJsonTimestamp(object.archived_at)
+          : undefined,
+      minEstimatedPortions: isSet(object.minEstimatedPortions)
+        ? globalThis.Number(object.minEstimatedPortions)
+        : isSet(object.min_estimated_portions)
+          ? globalThis.Number(object.min_estimated_portions)
+          : 0,
+      maxEstimatedPortions: isSet(object.maxEstimatedPortions)
+        ? globalThis.Number(object.maxEstimatedPortions)
+        : isSet(object.max_estimated_portions)
+          ? globalThis.Number(object.max_estimated_portions)
+          : undefined,
+      pluralPortionName: isSet(object.pluralPortionName)
+        ? globalThis.String(object.pluralPortionName)
+        : isSet(object.plural_portion_name)
+          ? globalThis.String(object.plural_portion_name)
+          : '',
+      description: isSet(object.description) ? globalThis.String(object.description) : '',
+      name: isSet(object.name) ? globalThis.String(object.name) : '',
+      portionName: isSet(object.portionName)
+        ? globalThis.String(object.portionName)
+        : isSet(object.portion_name)
+          ? globalThis.String(object.portion_name)
+          : '',
+      id: isSet(object.id) ? globalThis.String(object.id) : '',
+      createdByUser: isSet(object.createdByUser)
+        ? globalThis.String(object.createdByUser)
+        : isSet(object.created_by_user)
+          ? globalThis.String(object.created_by_user)
+          : '',
+      source: isSet(object.source) ? globalThis.String(object.source) : '',
+      sourceIsbn: isSet(object.sourceIsbn)
+        ? globalThis.String(object.sourceIsbn)
+        : isSet(object.source_isbn)
+          ? globalThis.String(object.source_isbn)
+          : '',
+      slug: isSet(object.slug) ? globalThis.String(object.slug) : '',
+      yieldsComponentType: isSet(object.yieldsComponentType)
+        ? mealComponentTypeFromJSON(object.yieldsComponentType)
+        : isSet(object.yields_component_type)
+          ? mealComponentTypeFromJSON(object.yields_component_type)
+          : 0,
+      status: isSet(object.status) ? globalThis.String(object.status) : '',
+      eligibleForMeals: isSet(object.eligibleForMeals)
+        ? globalThis.Boolean(object.eligibleForMeals)
+        : isSet(object.eligible_for_meals)
+          ? globalThis.Boolean(object.eligible_for_meals)
+          : false,
+    };
+  },
+
+  toJSON(message: RecipeSummary): unknown {
+    const obj: any = {};
+    if (message.createdAt !== undefined) {
+      obj.createdAt = message.createdAt.toISOString();
+    }
+    if (message.inspiredByRecipeId !== undefined) {
+      obj.inspiredByRecipeId = message.inspiredByRecipeId;
+    }
+    if (message.lastUpdatedAt !== undefined) {
+      obj.lastUpdatedAt = message.lastUpdatedAt.toISOString();
+    }
+    if (message.archivedAt !== undefined) {
+      obj.archivedAt = message.archivedAt.toISOString();
+    }
+    if (message.minEstimatedPortions !== 0) {
+      obj.minEstimatedPortions = message.minEstimatedPortions;
+    }
+    if (message.maxEstimatedPortions !== undefined) {
+      obj.maxEstimatedPortions = message.maxEstimatedPortions;
+    }
+    if (message.pluralPortionName !== '') {
+      obj.pluralPortionName = message.pluralPortionName;
+    }
+    if (message.description !== '') {
+      obj.description = message.description;
+    }
+    if (message.name !== '') {
+      obj.name = message.name;
+    }
+    if (message.portionName !== '') {
+      obj.portionName = message.portionName;
+    }
+    if (message.id !== '') {
+      obj.id = message.id;
+    }
+    if (message.createdByUser !== '') {
+      obj.createdByUser = message.createdByUser;
+    }
+    if (message.source !== '') {
+      obj.source = message.source;
+    }
+    if (message.sourceIsbn !== '') {
+      obj.sourceIsbn = message.sourceIsbn;
+    }
+    if (message.slug !== '') {
+      obj.slug = message.slug;
+    }
+    if (message.yieldsComponentType !== 0) {
+      obj.yieldsComponentType = mealComponentTypeToJSON(message.yieldsComponentType);
+    }
+    if (message.status !== '') {
+      obj.status = message.status;
+    }
+    if (message.eligibleForMeals !== false) {
+      obj.eligibleForMeals = message.eligibleForMeals;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<RecipeSummary>, I>>(base?: I): RecipeSummary {
+    return RecipeSummary.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<RecipeSummary>, I>>(object: I): RecipeSummary {
+    const message = createBaseRecipeSummary();
+    message.createdAt = object.createdAt ?? undefined;
+    message.inspiredByRecipeId = object.inspiredByRecipeId ?? undefined;
+    message.lastUpdatedAt = object.lastUpdatedAt ?? undefined;
+    message.archivedAt = object.archivedAt ?? undefined;
+    message.minEstimatedPortions = object.minEstimatedPortions ?? 0;
+    message.maxEstimatedPortions = object.maxEstimatedPortions ?? undefined;
+    message.pluralPortionName = object.pluralPortionName ?? '';
+    message.description = object.description ?? '';
+    message.name = object.name ?? '';
+    message.portionName = object.portionName ?? '';
+    message.id = object.id ?? '';
+    message.createdByUser = object.createdByUser ?? '';
+    message.source = object.source ?? '';
+    message.sourceIsbn = object.sourceIsbn ?? '';
+    message.slug = object.slug ?? '';
+    message.yieldsComponentType = object.yieldsComponentType ?? 0;
+    message.status = object.status ?? '';
+    message.eligibleForMeals = object.eligibleForMeals ?? false;
+    return message;
+  },
+};
+
 function createBaseRecipeMedia(): RecipeMedia {
   return {
     createdAt: undefined,
@@ -10541,6 +11004,369 @@ export const MealComponent: MessageFns<MealComponent> = {
     message.componentType = object.componentType ?? 0;
     message.recipe =
       object.recipe !== undefined && object.recipe !== null ? Recipe.fromPartial(object.recipe) : undefined;
+    message.recipeScale = object.recipeScale ?? 0;
+    return message;
+  },
+};
+
+function createBaseMealSummary(): MealSummary {
+  return {
+    createdAt: undefined,
+    archivedAt: undefined,
+    lastUpdatedAt: undefined,
+    minEstimatedPortions: 0,
+    maxEstimatedPortions: undefined,
+    id: '',
+    description: '',
+    createdByUser: '',
+    name: '',
+    components: [],
+    eligibleForMealPlans: false,
+  };
+}
+
+export const MealSummary: MessageFns<MealSummary> = {
+  encode(message: MealSummary, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.createdAt !== undefined) {
+      Timestamp.encode(toTimestamp(message.createdAt), writer.uint32(10).fork()).join();
+    }
+    if (message.archivedAt !== undefined) {
+      Timestamp.encode(toTimestamp(message.archivedAt), writer.uint32(18).fork()).join();
+    }
+    if (message.lastUpdatedAt !== undefined) {
+      Timestamp.encode(toTimestamp(message.lastUpdatedAt), writer.uint32(26).fork()).join();
+    }
+    if (message.minEstimatedPortions !== 0) {
+      writer.uint32(37).float(message.minEstimatedPortions);
+    }
+    if (message.maxEstimatedPortions !== undefined) {
+      writer.uint32(45).float(message.maxEstimatedPortions);
+    }
+    if (message.id !== '') {
+      writer.uint32(50).string(message.id);
+    }
+    if (message.description !== '') {
+      writer.uint32(58).string(message.description);
+    }
+    if (message.createdByUser !== '') {
+      writer.uint32(66).string(message.createdByUser);
+    }
+    if (message.name !== '') {
+      writer.uint32(74).string(message.name);
+    }
+    for (const v of message.components) {
+      MealComponentSummary.encode(v!, writer.uint32(82).fork()).join();
+    }
+    if (message.eligibleForMealPlans !== false) {
+      writer.uint32(88).bool(message.eligibleForMealPlans);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): MealSummary {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseMealSummary();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.createdAt = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.archivedAt = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.lastUpdatedAt = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 4: {
+          if (tag !== 37) {
+            break;
+          }
+
+          message.minEstimatedPortions = reader.float();
+          continue;
+        }
+        case 5: {
+          if (tag !== 45) {
+            break;
+          }
+
+          message.maxEstimatedPortions = reader.float();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.id = reader.string();
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.description = reader.string();
+          continue;
+        }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+
+          message.createdByUser = reader.string();
+          continue;
+        }
+        case 9: {
+          if (tag !== 74) {
+            break;
+          }
+
+          message.name = reader.string();
+          continue;
+        }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          message.components.push(MealComponentSummary.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 11: {
+          if (tag !== 88) {
+            break;
+          }
+
+          message.eligibleForMealPlans = reader.bool();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): MealSummary {
+    return {
+      createdAt: isSet(object.createdAt)
+        ? fromJsonTimestamp(object.createdAt)
+        : isSet(object.created_at)
+          ? fromJsonTimestamp(object.created_at)
+          : undefined,
+      archivedAt: isSet(object.archivedAt)
+        ? fromJsonTimestamp(object.archivedAt)
+        : isSet(object.archived_at)
+          ? fromJsonTimestamp(object.archived_at)
+          : undefined,
+      lastUpdatedAt: isSet(object.lastUpdatedAt)
+        ? fromJsonTimestamp(object.lastUpdatedAt)
+        : isSet(object.last_updated_at)
+          ? fromJsonTimestamp(object.last_updated_at)
+          : undefined,
+      minEstimatedPortions: isSet(object.minEstimatedPortions)
+        ? globalThis.Number(object.minEstimatedPortions)
+        : isSet(object.min_estimated_portions)
+          ? globalThis.Number(object.min_estimated_portions)
+          : 0,
+      maxEstimatedPortions: isSet(object.maxEstimatedPortions)
+        ? globalThis.Number(object.maxEstimatedPortions)
+        : isSet(object.max_estimated_portions)
+          ? globalThis.Number(object.max_estimated_portions)
+          : undefined,
+      id: isSet(object.id) ? globalThis.String(object.id) : '',
+      description: isSet(object.description) ? globalThis.String(object.description) : '',
+      createdByUser: isSet(object.createdByUser)
+        ? globalThis.String(object.createdByUser)
+        : isSet(object.created_by_user)
+          ? globalThis.String(object.created_by_user)
+          : '',
+      name: isSet(object.name) ? globalThis.String(object.name) : '',
+      components: globalThis.Array.isArray(object?.components)
+        ? object.components.map((e: any) => MealComponentSummary.fromJSON(e))
+        : [],
+      eligibleForMealPlans: isSet(object.eligibleForMealPlans)
+        ? globalThis.Boolean(object.eligibleForMealPlans)
+        : isSet(object.eligible_for_meal_plans)
+          ? globalThis.Boolean(object.eligible_for_meal_plans)
+          : false,
+    };
+  },
+
+  toJSON(message: MealSummary): unknown {
+    const obj: any = {};
+    if (message.createdAt !== undefined) {
+      obj.createdAt = message.createdAt.toISOString();
+    }
+    if (message.archivedAt !== undefined) {
+      obj.archivedAt = message.archivedAt.toISOString();
+    }
+    if (message.lastUpdatedAt !== undefined) {
+      obj.lastUpdatedAt = message.lastUpdatedAt.toISOString();
+    }
+    if (message.minEstimatedPortions !== 0) {
+      obj.minEstimatedPortions = message.minEstimatedPortions;
+    }
+    if (message.maxEstimatedPortions !== undefined) {
+      obj.maxEstimatedPortions = message.maxEstimatedPortions;
+    }
+    if (message.id !== '') {
+      obj.id = message.id;
+    }
+    if (message.description !== '') {
+      obj.description = message.description;
+    }
+    if (message.createdByUser !== '') {
+      obj.createdByUser = message.createdByUser;
+    }
+    if (message.name !== '') {
+      obj.name = message.name;
+    }
+    if (message.components?.length) {
+      obj.components = message.components.map((e) => MealComponentSummary.toJSON(e));
+    }
+    if (message.eligibleForMealPlans !== false) {
+      obj.eligibleForMealPlans = message.eligibleForMealPlans;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<MealSummary>, I>>(base?: I): MealSummary {
+    return MealSummary.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<MealSummary>, I>>(object: I): MealSummary {
+    const message = createBaseMealSummary();
+    message.createdAt = object.createdAt ?? undefined;
+    message.archivedAt = object.archivedAt ?? undefined;
+    message.lastUpdatedAt = object.lastUpdatedAt ?? undefined;
+    message.minEstimatedPortions = object.minEstimatedPortions ?? 0;
+    message.maxEstimatedPortions = object.maxEstimatedPortions ?? undefined;
+    message.id = object.id ?? '';
+    message.description = object.description ?? '';
+    message.createdByUser = object.createdByUser ?? '';
+    message.name = object.name ?? '';
+    message.components = object.components?.map((e) => MealComponentSummary.fromPartial(e)) || [];
+    message.eligibleForMealPlans = object.eligibleForMealPlans ?? false;
+    return message;
+  },
+};
+
+function createBaseMealComponentSummary(): MealComponentSummary {
+  return { componentType: 0, recipe: undefined, recipeScale: 0 };
+}
+
+export const MealComponentSummary: MessageFns<MealComponentSummary> = {
+  encode(message: MealComponentSummary, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.componentType !== 0) {
+      writer.uint32(8).int32(message.componentType);
+    }
+    if (message.recipe !== undefined) {
+      RecipeSummary.encode(message.recipe, writer.uint32(18).fork()).join();
+    }
+    if (message.recipeScale !== 0) {
+      writer.uint32(29).float(message.recipeScale);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): MealComponentSummary {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseMealComponentSummary();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.componentType = reader.int32() as any;
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.recipe = RecipeSummary.decode(reader, reader.uint32());
+          continue;
+        }
+        case 3: {
+          if (tag !== 29) {
+            break;
+          }
+
+          message.recipeScale = reader.float();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): MealComponentSummary {
+    return {
+      componentType: isSet(object.componentType)
+        ? mealComponentTypeFromJSON(object.componentType)
+        : isSet(object.component_type)
+          ? mealComponentTypeFromJSON(object.component_type)
+          : 0,
+      recipe: isSet(object.recipe) ? RecipeSummary.fromJSON(object.recipe) : undefined,
+      recipeScale: isSet(object.recipeScale)
+        ? globalThis.Number(object.recipeScale)
+        : isSet(object.recipe_scale)
+          ? globalThis.Number(object.recipe_scale)
+          : 0,
+    };
+  },
+
+  toJSON(message: MealComponentSummary): unknown {
+    const obj: any = {};
+    if (message.componentType !== 0) {
+      obj.componentType = mealComponentTypeToJSON(message.componentType);
+    }
+    if (message.recipe !== undefined) {
+      obj.recipe = RecipeSummary.toJSON(message.recipe);
+    }
+    if (message.recipeScale !== 0) {
+      obj.recipeScale = message.recipeScale;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<MealComponentSummary>, I>>(base?: I): MealComponentSummary {
+    return MealComponentSummary.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<MealComponentSummary>, I>>(object: I): MealComponentSummary {
+    const message = createBaseMealComponentSummary();
+    message.componentType = object.componentType ?? 0;
+    message.recipe =
+      object.recipe !== undefined && object.recipe !== null ? RecipeSummary.fromPartial(object.recipe) : undefined;
     message.recipeScale = object.recipeScale ?? 0;
     return message;
   },
