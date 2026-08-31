@@ -1,5 +1,7 @@
-# Push notification env vars for async message handler (APNs + FCM)
-# Applied only to async message handler; uses api-service-config for secrets
+# Push notification env vars (APNs + FCM), from api-service-config.
+#
+# Applied to both processes that push: the async message handler, and the scheduler, whose
+# meal plan task reminder job sends under its own work queue lease.
 - op: add
   path: "/spec/template/spec/containers/0/env/-"
   value:

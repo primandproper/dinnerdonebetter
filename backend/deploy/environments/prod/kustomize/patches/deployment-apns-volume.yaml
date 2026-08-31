@@ -1,4 +1,7 @@
-# Mount APNs .p8 key as file for push notifications (async message handler only)
+# Mount APNs .p8 key as file for push notifications.
+#
+# Applied to both processes that push: the async message handler, and the scheduler, whose
+# meal plan task reminder job sends under its own work queue lease.
 # The secret apns-credentials is created by Terraform from var.APNS_AUTH_KEY_P8
 - op: add
   path: "/spec/template/spec/volumes/-"

@@ -31,6 +31,8 @@ import (
 	sessionsmigrations "github.com/primandproper/platform-go/v13/sessions/database/migrations"
 	"github.com/primandproper/platform-go/v13/webhooks"
 	webhooksmigrations "github.com/primandproper/platform-go/v13/webhooks/migrations"
+	"github.com/primandproper/platform-go/v13/workqueue"
+	workqueuemigrations "github.com/primandproper/platform-go/v13/workqueue/migrations"
 )
 
 var (
@@ -62,6 +64,7 @@ const (
 	oauth2MigrationVersion        = 33
 	passwordResetMigrationVersion = 34
 	sessionsMigrationVersion      = 35
+	workQueueMigrationVersion     = 36
 )
 
 // NewMigrator creates a new postgres Migrator over the embedded migration files.
@@ -152,6 +155,23 @@ func NewMigrator(logger logging.Logger) (*migrate.Migrator, error) {
 		return nil, err
 	}
 
+	// And the leased work queue's one table, which meal plan task notifications are claimed
+	// from. Its two partial indexes are the claim and reap predicates: copied by hand, they
+	// are how a claim that should touch the ready backlog starts scanning every item the
+	// queue has ever held.
+	//
+	// One table serves every logical queue — the queue's name is the leading column of its
+	// primary key — so a second queue is a second Config, not a second migration. That is
+	// not hypothetical here: the operations tier is built on this same package and has been
+	// claiming from this table since #1367, against a table nothing created. Its migration
+	// creates the operations rows, not the queue rows the dispatch runs on, and the platform
+	// leaves the queue's DDL to the consumer precisely because migration numbers are ours.
+	// So this creates a table two queues share rather than one.
+	workQueueDDL, err := workqueuemigrations.SQL(dialect.Postgres, workqueue.DefaultTablePrefix)
+	if err != nil {
+		return nil, errors.Wrap(err, "rendering work queue migration")
+	}
+
 	migrator, err := migrate.New(
 		dialect.Postgres,
 		migrationFiles,
@@ -168,6 +188,7 @@ func NewMigrator(logger logging.Logger) (*migrate.Migrator, error) {
 		migrate.WithGeneratedMigration(oauth2MigrationVersion, "create_oauth2_server_tables", oauth2DDL),
 		migrate.WithGeneratedMigration(passwordResetMigrationVersion, "create_password_reset_tokens_table", passwordResetDDL),
 		migrate.WithGeneratedMigration(sessionsMigrationVersion, "create_sessions_table", sessionsDDL),
+		migrate.WithGeneratedMigration(workQueueMigrationVersion, "create_work_queue_items_table", workQueueDDL),
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "building migrator")

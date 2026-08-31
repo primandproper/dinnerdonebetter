@@ -122,7 +122,7 @@ flowchart TB
         MealPlanFinalizationStarter["Meal Plan Finalization Starter"]
         SagaWorker["Saga Worker"]
         SearchDataIndexScheduler["Search Data Index Scheduler"]
-        MobileNotificationScheduler["Mobile Notification Scheduler"]
+        MealPlanTaskNotifications["Meal Plan Task Notifications"]
         DBCleaner["DB Cleaner"]
     end
 
@@ -133,7 +133,7 @@ flowchart TB
 
     Cron["Cron"] --> MealPlanFinalizationStarter
     Cron --> SearchDataIndexScheduler
-    Cron --> MobileNotificationScheduler
+    Cron --> MealPlanTaskNotifications
     Cron --> DBCleaner
 
     MealPlanFinalizationStarter -->|starts a saga per plan| SagaWorker
@@ -145,7 +145,8 @@ flowchart TB
     DataChangesWorker --> Segment
 
     SearchDataIndexScheduler --> SearchDataIndexer
-    MobileNotificationScheduler -.->|mobile_notifications| DataChangesWorker
+    MealPlanTaskNotifications -->|claims from work_queue_items| Database
+    MealPlanTaskNotifications --> APNS
     SearchDataIndexer --> Algolia
     OutboundEmailer --> Sendgrid
     OutboundEmailer --> Segment

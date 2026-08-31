@@ -40,6 +40,16 @@ sagas; the worker is what steps them through, which is why `meal_plan_finalizati
 interval is the delay before a meal plan enters the finalization pipeline rather than the delay
 before it comes out the other end.
 
+It also holds two `workqueue.Queue` values over one `work_queue_items` table, told apart by
+`Config.Name`: the **operations** queue the operations worker dispatches through, and the
+**meal plan task notification** queue its own job fills and drains. One table serves any number
+of logical queues — the name is the leading column of its primary key — so a third is a third
+`Config`, not a third migration.
+
+Because that notification job sends its own pushes rather than publishing them, this process
+needs the APNs credentials the async message handler has: the env vars from `api-service-config`
+and the `.p8` key mounted at `/mnt/apns`. Both kustomize patches are applied to it.
+
 One long-lived process running `jobs.Scheduler` (from `platform-go/v13/jobs`). Every registered job fires on a schedule, and each execution is held under a `distributedlock` lease, so every replica ticks and only the one that wins the lock actually runs the job. A contended lock is the mechanism working, not an error.
 
 Jobs are registered in `internal/build/jobs/scheduler/jobs.go` and scheduled by `config.ScheduledJobsConfig`. Adding one means writing the entrypoint, adding a `ScheduledJobConfig` field, and adding a row to `registrations`.
@@ -59,7 +69,9 @@ Watch `jobs_scheduler_runs` against `jobs_scheduler_skipped` (together they are 
 
 Two jobs are on a calendar:
 
-- **`mobile_notification_scheduler`** — `CRON_TZ=America/Chicago 0 8-21 * * *`. Push notifications, so the hours are the point. Hourly rather than once in the morning because each task notifies exactly once and is dropped if its event starts first, so the gap between fires bounds how much short notice the app can give. Per-user timezones are the real answer and a larger conversation.
+- **`meal_plan_task_notifications`** — `CRON_TZ=America/Chicago 0 8-21 * * *`. Push notifications, so the hours are the point. Hourly rather than once in the morning because each task notifies exactly once and is dropped if its event starts first, so the gap between fires bounds how much short notice the app can give. Per-user timezones are the real answer and a larger conversation.
+
+  One pass enqueues every prep task still owed a reminder into a `workqueue.Queue`, then claims and sends under the lease. It is the only job here that both fills and drains a queue in one tick, which is deliberate: the send has to end with the same `notification_sent_at` stamp the discovery query reads, or the next pass rediscovers work that is already done. See `internal/services/mealplanning/workers/meal_plan_task_notifications`.
 - **`search_data_index_scheduler`** — `*/10 6-11 * * *`. A bulk sweep, so it belongs in the small hours rather than competing with daytime traffic. A window and not a single fire because `IndexScheduler.IndexTypes` sweeps one *randomly chosen* index type per run: with nine types registered, one fire a night would sweep a given type every nine days.
 
 The rest stay on intervals. `meal_plan_finalization_starter` is time-sensitive — a plan should finalize soon after its voting deadline, not at a fixed hour — and `queue_test` is a liveness probe, which wants a frequency by definition.

@@ -192,6 +192,19 @@ patches:
       version: v1
       kind: Deployment
       name: dinner-done-better-scheduler-deployment
+  ### ...and the APNs credentials, because the meal plan task reminder job sends its own
+  ### pushes rather than publishing them to the async message handler. The same two patches
+  ### that process gets: the credentials as env vars, and the .p8 key as a mounted file.
+  - path: patches/deployment-push-notifications-env.yaml
+    target:
+      version: v1
+      kind: Deployment
+      name: dinner-done-better-scheduler-deployment
+  - path: patches/deployment-apns-volume.yaml
+    target:
+      version: v1
+      kind: Deployment
+      name: dinner-done-better-scheduler-deployment
 
   ### MCP Server - OAuth credentials from mcp-server-config secret (API URLs are in config JSON)
   - patch: |-

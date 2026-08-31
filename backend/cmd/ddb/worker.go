@@ -14,6 +14,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/build/telemetry"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/functions/datachangemessagehandler"
+	mealplantasknotifications "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_task_notifications"
 
 	"github.com/primandproper/platform-go/v13/jobs"
 	"github.com/primandproper/platform-go/v13/observability/logging"
@@ -148,6 +149,9 @@ func runScheduler(ctx context.Context, cfg *config.SchedulerConfig) error {
 	sagaWorker := do.MustInvoke[*saga.Worker](i)
 	webhookWorker := do.MustInvoke[*webhooks.Worker](i)
 	operationsWorker := do.MustInvoke[*operations.Worker](i)
+	// The prep task reminder queue. It is not a loop — the scheduled job drives it — but it
+	// owns an enqueue-batching goroutine, so it is closed with the rest of them.
+	notificationQueue := do.MustInvoke[*mealplantasknotifications.TaskQueue](i)
 
 	signalChan := notifyShutdown()
 
@@ -185,7 +189,7 @@ func runScheduler(ctx context.Context, cfg *config.SchedulerConfig) error {
 	closeCtx, cancel := context.WithTimeout(ctx, schedulerDrainTimeout)
 	defer cancel()
 
-	// All four are closed even if an earlier one fails, so a scheduler that will not drain
+	// All five are closed even if an earlier one fails, so a scheduler that will not drain
 	// cannot leave the relay holding claims it is never going to publish, the saga worker
 	// holding leases on instances it is never going to advance, or the webhook worker holding
 	// leases on dispatches it is never going to deliver.
@@ -197,11 +201,16 @@ func runScheduler(ctx context.Context, cfg *config.SchedulerConfig) error {
 	// The audit sweeper and the data privacy sweep are not among them either: both run as
 	// scheduled jobs rather than loops of their own, so the scheduler's own drain is what
 	// waits for a sweep in flight.
+	//
+	// The notification queue is closed last of the five, after the scheduler has drained: a
+	// queue closed while its job is still running would refuse the enqueues that job is in
+	// the middle of making, and a refused enqueue is a reminder nobody ever sends.
 	return errors.Join(
 		wrapClose("scheduler", scheduler.Close(closeCtx)),
 		wrapClose("saga worker", sagaWorker.Close(closeCtx)),
 		wrapClose("outbox relay", relay.Close(closeCtx)),
 		wrapClose("webhook worker", webhookWorker.Close(closeCtx)),
+		wrapClose("meal plan task notification queue", notificationQueue.Close(closeCtx)),
 	)
 }
 

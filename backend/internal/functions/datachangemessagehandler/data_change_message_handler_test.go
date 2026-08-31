@@ -9,6 +9,7 @@ import (
 	internalopsmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/internalops/mock"
 	mealplanningmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
 	notificationsmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/mock"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/push"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
 	analyticsmock "github.com/primandproper/platform-go/v13/analytics/mock"
@@ -69,8 +70,9 @@ func buildTestAsyncDataChangeMessageHandler(t *testing.T) (*AsyncDataChangeMessa
 
 	internalOpsRepo := &internalopsmock.InternalOpsDataManagerMock{}
 	mealPlanRepo := &mealplanningmock.RepositoryMock{}
-	notificationsRepo := &notificationsmock.RepositoryMock{}
-	pushNotificationSender := noopnotifications.NewPushNotificationSender()
+
+	pushFanout, err := push.NewFanout(logger, &notificationsmock.RepositoryMock{}, noopnotifications.NewPushNotificationSender(), noopProvider)
+	require.NoError(t, err)
 
 	handler := &AsyncDataChangeMessageHandler{
 		identityRepo:                         identityRepo,
@@ -90,16 +92,13 @@ func buildTestAsyncDataChangeMessageHandler(t *testing.T) (*AsyncDataChangeMessa
 		handlerErrorsCounter:                      noopCounter,
 		emailsSentCounter:                         noopCounter,
 		emailsFailedCounter:                       noopCounter,
-		pushNotificationsSentCounter:              noopCounter,
-		badDeviceTokensArchivedCounter:            noopCounter,
 		queuesConfig: queuescfg.Config{
 			SearchIndexRequestsTopicName: "search-index-requests",
 		},
 		outboundEmailsPublisher:      mockPublisher,
 		mobileNotificationsPublisher: mockPublisher,
 		mealPlanRepo:                 mealPlanRepo,
-		notificationsRepo:            notificationsRepo,
-		pushNotificationSender:       pushNotificationSender,
+		pushFanout:                   pushFanout,
 	}
 
 	handler.outboundNotificationHandlers = []OutboundNotificationHandler{
@@ -165,8 +164,9 @@ func TestNewAsyncDataChangeMessageHandler(t *testing.T) {
 
 		internalOpsRepo := &internalopsmock.InternalOpsDataManagerMock{}
 		mealPlanRepo := &mealplanningmock.RepositoryMock{}
-		notificationsRepo := &notificationsmock.RepositoryMock{}
-		pushNotificationSender := noopnotifications.NewPushNotificationSender()
+
+		pushFanout, err := push.NewFanout(logger, &notificationsmock.RepositoryMock{}, noopnotifications.NewPushNotificationSender(), noopProvider)
+		require.NoError(t, err)
 
 		handler, err := NewAsyncDataChangeMessageHandler(
 			ctx,
@@ -183,8 +183,7 @@ func TestNewAsyncDataChangeMessageHandler(t *testing.T) {
 			decoder,
 			searchSyncers,
 			mealPlanRepo,
-			notificationsRepo,
-			pushNotificationSender,
+			pushFanout,
 		)
 
 		require.NoError(t, err)

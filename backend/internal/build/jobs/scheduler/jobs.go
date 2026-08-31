@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 
-	mobilenotificationscheduler "github.com/primandproper/dinnerdonebetter/backend/internal/build/jobs/mobile_notification_scheduler"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
 	queuetest "github.com/primandproper/dinnerdonebetter/backend/internal/services/internalops/workers/queue_test"
 	mealplanningindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 	mealplanfinalization "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_finalization"
+	mealplantasknotifications "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_task_notifications"
 
 	platformdataprivacy "github.com/primandproper/platform-go/v13/dataprivacy"
 	"github.com/primandproper/platform-go/v13/distributedlock"
@@ -28,8 +28,8 @@ import (
 // a new replica both run that job during a rollout.
 const (
 	jobMealPlanFinalizationStarter = "meal_plan_finalization_starter"
+	jobMealPlanTaskNotifications   = "meal_plan_task_notifications"
 	jobSearchDataIndexScheduler    = "search_data_index_scheduler"
-	jobMobileNotificationScheduler = "mobile_notification_scheduler"
 	jobQueueTest                   = "queue_test"
 	jobDataPrivacySweep            = "data_privacy_sweep"
 	jobAuditRetentionSweeper       = "audit_retention_sweeper"
@@ -84,9 +84,18 @@ func RegisterScheduler(i do.Injector) {
 				run: runReindexers(i),
 			},
 			{
-				name: jobMobileNotificationScheduler,
-				cfg:  &jobsCfg.MobileNotificationScheduler,
-				run:  do.MustInvoke[*mobilenotificationscheduler.Scheduler](i).ScheduleNotifications,
+				name: jobMealPlanTaskNotifications,
+				cfg:  &jobsCfg.MealPlanning.MealPlanTaskNotifications,
+				// One pass enqueues every task still owed a reminder, drains what the
+				// queue hands over, and sends under the lease. The count of pushes it
+				// sent has nowhere to go here — the queue and the fan-out both record
+				// their own counters — so it is dropped the way the finalization
+				// starter's is.
+				run: func(ctx context.Context) error {
+					_, workErr := do.MustInvoke[*mealplantasknotifications.Worker](i).Work(ctx)
+
+					return workErr
+				},
 			},
 			{
 				name: jobQueueTest,

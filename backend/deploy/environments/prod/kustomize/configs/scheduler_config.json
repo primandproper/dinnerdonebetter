@@ -5,6 +5,16 @@
 		"searchIndexRequestsTopicName": "search_index_requests",
 		"mobileNotificationsTopicName": "mobile_notifications"
 	},
+	"pushNotifications": {
+		"apns": {
+			"authKeyPath": "/mnt/apns/apns-auth-key.p8",
+			"teamID": "K8R2Q5UWQS",
+			"bundleID": "com.dinnerdonebetter.ios",
+			"production": true
+		},
+		"fcm": {},
+		"provider": "apns_fcm"
+	},
 	"capitalism": {
 		"provider": "noop"
 	},
@@ -139,12 +149,6 @@
 			"enabled": true,
 			"runOnStart": true
 		},
-		"mobileNotificationScheduler": {
-			"schedule": "CRON_TZ=America/Chicago 0 8-21 * * *",
-			"timeout": 300000000000,
-			"leaseTTL": 600000000000,
-			"enabled": true
-		},
 		"queueTest": {
 			"interval": 900000000000,
 			"timeout": 60000000000,
@@ -176,6 +180,17 @@
 				"timeout": 120000000000,
 				"leaseTTL": 300000000000,
 				"enabled": true
+			},
+			"mealPlanTaskNotifications": {
+				"schedule": "CRON_TZ=America/Chicago 0 8-21 * * *",
+				"timeout": 600000000000,
+				"leaseTTL": 1200000000000,
+				"enabled": true
+			},
+			"mealPlanTaskNotificationQueue": {
+				"retention": 86400000000000,
+				"maxAttempts": 5,
+				"maxClaimBatch": 100
 			}
 		}
 	},

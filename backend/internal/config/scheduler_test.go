@@ -267,9 +267,9 @@ func enabledDefaultJobs() map[string]ScheduledJobConfig {
 
 	all := map[string]ScheduledJobConfig{
 		"search_data_index_scheduler":    cfg.SearchDataIndexScheduler,
-		"mobile_notification_scheduler":  cfg.MobileNotificationScheduler,
 		"queue_test":                     cfg.QueueTest,
 		"meal_plan_finalization_starter": cfg.MealPlanning.MealPlanFinalizationStarter,
+		"meal_plan_task_notifications":   cfg.MealPlanning.MealPlanTaskNotifications,
 	}
 
 	for name := range all {

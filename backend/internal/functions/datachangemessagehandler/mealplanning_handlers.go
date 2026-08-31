@@ -9,61 +9,10 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	eatingemails "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/emails"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
-	mealplanningnotifications "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/notifications"
 	queuemessages "github.com/primandproper/dinnerdonebetter/backend/internal/queues/messages"
 
-	notifications "github.com/primandproper/platform-go/v13/notifications/mobile"
 	"github.com/primandproper/platform-go/v13/observability"
 )
-
-// handleMealPlanTaskNotification processes a meal plan task reminder notification.
-// It performs idempotency checks, sends push notifications to recipients, and marks the task as notified.
-func (a *AsyncDataChangeMessageHandler) handleMealPlanTaskNotification(ctx context.Context, req *notifications.MobileNotificationRequest) error {
-	ctx, span := a.tracer.StartSpan(ctx)
-	defer span.End()
-
-	mealPlanTaskID := ""
-	if req.Context != nil {
-		mealPlanTaskID = req.Context[mealplanningnotifications.MealPlanTaskIDContextKey]
-	}
-	if mealPlanTaskID == "" {
-		return fmt.Errorf("meal plan task notification requires mealPlanTaskID in context")
-	}
-
-	logger := a.logger.WithValue(mealplanningkeys.MealPlanTaskIDKey, mealPlanTaskID)
-
-	sent, err := a.mealPlanRepo.MealPlanTaskNotificationHasBeenSent(ctx, mealPlanTaskID)
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "checking if notification already sent")
-	}
-	if sent {
-		return nil // idempotent skip
-	}
-
-	if len(req.RecipientUserIDs) == 0 {
-		return a.mealPlanRepo.MarkMealPlanTaskNotificationSent(ctx, mealPlanTaskID)
-	}
-
-	deviceTokens, err := a.collectDeviceTokensForUsers(ctx, req.RecipientUserIDs)
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "collecting device tokens")
-	}
-	if len(deviceTokens) == 0 {
-		return a.mealPlanRepo.MarkMealPlanTaskNotificationSent(ctx, mealPlanTaskID)
-	}
-
-	atLeastOneSent := false
-	for _, t := range deviceTokens {
-		if a.sendPushToDevice(ctx, logger, t, req) {
-			atLeastOneSent = true
-		}
-	}
-
-	if !atLeastOneSent {
-		return nil // Don't mark as notified if every attempt failed; scheduler will retry
-	}
-	return a.mealPlanRepo.MarkMealPlanTaskNotificationSent(ctx, mealPlanTaskID)
-}
 
 // handleMealPlanningOutboundNotification handles outbound notifications for meal planning domain events.
 func (a *AsyncDataChangeMessageHandler) handleMealPlanningOutboundNotification(

@@ -6,6 +6,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	mealplanningregistration "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/registration"
 	notificationsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/manager"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/push"
 	settingsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings/manager"
 	waitlistsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists/manager"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/functions/datachangemessagehandler"
@@ -77,6 +78,9 @@ func BuildInjector(
 
 	// managers
 	notificationsmanager.RegisterNotificationsDataManager(i)
+	// The push fan-out over that manager. The scheduler builds the same one for the prep task
+	// reminders it now sends itself, so both processes deliver through one component.
+	push.RegisterFanout(i)
 	settingsmanager.RegisterSettingsDataManager(i)
 	waitlistsmanager.RegisterWaitlistDataManager(i)
 
