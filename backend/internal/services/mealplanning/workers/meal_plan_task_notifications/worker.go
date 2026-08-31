@@ -39,6 +39,11 @@ const (
 	// releaseDelay holds a failed task back before it is offered again. It is longer than the
 	// job's own timeout on purpose: a drain pass must never re-serve a task it has already
 	// failed this pass, or one bad task spends the whole pass being retried.
+	//
+	// It does not survive the next pass, and is not meant to. Enqueue can only move an
+	// outstanding item's availability *earlier* — LEAST of the delays — so the next discovery
+	// offers a released task immediately. The backoff between passes is the schedule, which is
+	// hourly; what stops a task that fails every time is MaxAttempts, not this.
 	releaseDelay = 15 * time.Minute
 )
 
@@ -138,10 +143,14 @@ func (w *Worker) Work(ctx context.Context) (int64, error) {
 
 // discover enqueues every task the database says is still owed a notification.
 //
-// It is a backstop rather than the only way work arrives — it re-derives the whole outstanding
-// set from the tasks themselves every pass, so a key that was never enqueued, or one whose
-// notification was un-stamped when its event moved, is picked up on the next tick rather than
-// lost.
+// It re-derives the whole outstanding set from the tasks themselves every pass, so a key that was
+// never enqueued, or one whose notification was un-stamped when its event moved, is picked up on
+// the next tick rather than lost.
+//
+// Re-enqueueing work already in the queue is cheap and nearly inert: an outstanding item keeps
+// its attempt count, and the only thing an enqueue can do to it is make it available sooner. That
+// last part is why a released task is retried on the next pass rather than after its delay — the
+// schedule is the backoff between passes, and MaxAttempts is what ends the retrying.
 func (w *Worker) discover(ctx context.Context) error {
 	ctx, span := w.tracer.StartSpan(ctx)
 	defer span.End()
@@ -172,7 +181,7 @@ func (w *Worker) discover(ctx context.Context) error {
 //
 // It terminates without a pass counter because nothing it does re-offers work inside this pass.
 // A completed task is gone, and a failed one is released with a delay far longer than the pass
-// is allowed to last.
+// is allowed to last — discovery, which is the only thing that could hurry it, has already run.
 func (w *Worker) drain(ctx context.Context) (int64, error) {
 	ctx, span := w.tracer.StartSpan(ctx)
 	defer span.End()
