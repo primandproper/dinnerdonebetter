@@ -48,6 +48,42 @@ The filter's `maxResponseSize` becomes `textsearch.SearchRequest.Limit`.
 - Both index backends cap a single page at 200, so a request for more comes back short with a cursor
   still set — which the rule above already covers.
 
+## What a page item carries
+
+Recipe and meal list and search responses return **summaries**, not whole records:
+`GetRecipesResponse`, `SearchForRecipesResponse`, `SearchForMealEligibleRecipesResponse` and
+`SearchForRecipesWithInstrumentOwnershipResponse` carry `RecipeSummary`; `GetMealsResponse` and
+`SearchForMealsResponse` carry `MealSummary`.
+
+A `RecipeSummary` is the recipe's own columns and nothing that hangs off it — no steps, prep tasks,
+media, or associated recipes. A `MealSummary` keeps its components, because a meal without them says
+almost nothing, but each component carries a `RecipeSummary` rather than a whole `Recipe`.
+
+This is what makes a max-limit page fit in a gRPC message. `server/grpc` bounds both directions at
+`DefaultMaxMessageSize` (4 MiB), and a hydrated `Recipe` is much larger than it reads: each
+`RecipeStepIngredient` embeds a whole `ValidIngredient` and `ValidMeasurementUnit`, and each
+`RecipeStep` a whole `ValidPreparation`. Measured against the fakes, 250 hydrated recipes marshal to
+4.67 MiB and 250 hydrated meals to 14.05 MiB; the same pages of summaries are 0.06 MiB and 0.23 MiB.
+`Recipe.associated_recipes` is also self-recursive, so a hydrated recipe has no size bound at all and
+no page size provably fits — which is why the fix is the projection rather than a larger bound.
+
+`internal/services/mealplanning/grpc/converters/message_size_test.go` pins this: adding a repeated
+field to either summary fails there rather than as a `ResourceExhausted` on a client we do not
+operate.
+
+**A client that needs the whole record fetches it by ID.** `GetRecipe` and `GetMeal` return the
+hydrated object. The iOS meal-plan wizard is the worked example — search hands back a `MealSummary`,
+and `CreateMealPlanViewModel.assignMeal(fromSearchResult:to:)` fetches the whole meal before the
+option-selection step reads step ingredients.
+
+Note that `GetRecipes` and the database-fallback searches never populated these nested collections in
+the first place (`internal/repositories/postgres/mealplanning/recipes.go`), so on those paths the
+summary makes an existing shape honest rather than removing anything.
+
+`GetMealPlansForAccountResponse` is **not** covered: a `MealPlan` embeds events, which embed options,
+which embed meals, so it has the same problem. It is tracked separately, because trimming it means
+reworking the clients that read `mealPlan.events` straight off the list.
+
 ## Totals
 
 Index-backed responses report `totalCount` as `0`, meaning unknown: the index reports whether another
@@ -113,3 +149,4 @@ so no `GetXWithIDs` is ever asked to read zero IDs.
 - `internal/domain/mealplanning/managers/` — index-backed searches with a database fallback
 - `internal/domain/identity/manager/user_data_manager.go` — `SearchForUsers`
 - `internal/grpc/converters/query_filter.go` — filter and pagination conversion at the gRPC boundary
+- `proto/mealplanning/mealplanning_messages.proto` — `RecipeSummary` and `MealSummary`

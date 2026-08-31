@@ -167,7 +167,8 @@ FROM recipe_step_ingredients
 WHERE
 	recipe_step_ingredients.archived_at IS NULL
 	AND recipes.id = sqlc.arg(recipe_id)
-	AND recipe_steps.belongs_to_recipe = sqlc.arg(recipe_id);
+	AND recipe_steps.belongs_to_recipe = sqlc.arg(recipe_id)
+ORDER BY recipe_step_ingredients.id ASC;
 
 -- name: GetRecipeStepIngredients :many
 SELECT

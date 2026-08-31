@@ -42,6 +42,7 @@ import {
   MealPlanTaskStatus,
   mealPlanTaskStatusFromJSON,
   mealPlanTaskStatusToJSON,
+  MealSummary,
   MeasurementUnitConversionMismatch,
   Recipe,
   RecipeList,
@@ -58,6 +59,7 @@ import {
   recipeStepProductTypeFromJSON,
   recipeStepProductTypeToJSON,
   RecipeStepVessel,
+  RecipeSummary,
   UserIngredientPreference,
   ValidIngredient,
   ValidIngredientGroup,
@@ -2184,7 +2186,7 @@ export interface GetRecipesRequest {
 export interface GetRecipesResponse {
   responseDetails: ResponseDetails | undefined;
   pagination: Pagination | undefined;
-  results: Recipe[];
+  results: RecipeSummary[];
 }
 
 export interface SearchForRecipesRequest {
@@ -2196,7 +2198,7 @@ export interface SearchForRecipesRequest {
 export interface SearchForRecipesResponse {
   responseDetails: ResponseDetails | undefined;
   pagination: Pagination | undefined;
-  results: Recipe[];
+  results: RecipeSummary[];
 }
 
 export interface SearchForMealEligibleRecipesRequest {
@@ -2207,7 +2209,7 @@ export interface SearchForMealEligibleRecipesRequest {
 export interface SearchForMealEligibleRecipesResponse {
   responseDetails: ResponseDetails | undefined;
   pagination: Pagination | undefined;
-  results: Recipe[];
+  results: RecipeSummary[];
 }
 
 export interface SearchForRecipesWithInstrumentOwnershipRequest {
@@ -2218,7 +2220,7 @@ export interface SearchForRecipesWithInstrumentOwnershipRequest {
 export interface SearchForRecipesWithInstrumentOwnershipResponse {
   responseDetails: ResponseDetails | undefined;
   pagination: Pagination | undefined;
-  results: Recipe[];
+  results: RecipeSummary[];
 }
 
 export interface UpdateRecipeRequest {
@@ -2805,7 +2807,7 @@ export interface GetMealsRequest {
 export interface GetMealsResponse {
   responseDetails: ResponseDetails | undefined;
   pagination: Pagination | undefined;
-  results: Meal[];
+  results: MealSummary[];
 }
 
 export interface GetMealListsRequest {
@@ -2988,7 +2990,7 @@ export interface SearchForMealsRequest {
 export interface SearchForMealsResponse {
   responseDetails: ResponseDetails | undefined;
   pagination: Pagination | undefined;
-  results: Meal[];
+  results: MealSummary[];
 }
 
 export interface UpdateMealPlanRequest {
@@ -40852,7 +40854,7 @@ export const GetRecipesResponse: MessageFns<GetRecipesResponse> = {
       Pagination.encode(message.pagination, writer.uint32(18).fork()).join();
     }
     for (const v of message.results) {
-      Recipe.encode(v!, writer.uint32(26).fork()).join();
+      RecipeSummary.encode(v!, writer.uint32(26).fork()).join();
     }
     return writer;
   },
@@ -40885,7 +40887,7 @@ export const GetRecipesResponse: MessageFns<GetRecipesResponse> = {
             break;
           }
 
-          message.results.push(Recipe.decode(reader, reader.uint32()));
+          message.results.push(RecipeSummary.decode(reader, reader.uint32()));
           continue;
         }
       }
@@ -40905,7 +40907,9 @@ export const GetRecipesResponse: MessageFns<GetRecipesResponse> = {
           ? ResponseDetails.fromJSON(object.response_details)
           : undefined,
       pagination: isSet(object.pagination) ? Pagination.fromJSON(object.pagination) : undefined,
-      results: globalThis.Array.isArray(object?.results) ? object.results.map((e: any) => Recipe.fromJSON(e)) : [],
+      results: globalThis.Array.isArray(object?.results)
+        ? object.results.map((e: any) => RecipeSummary.fromJSON(e))
+        : [],
     };
   },
 
@@ -40918,7 +40922,7 @@ export const GetRecipesResponse: MessageFns<GetRecipesResponse> = {
       obj.pagination = Pagination.toJSON(message.pagination);
     }
     if (message.results?.length) {
-      obj.results = message.results.map((e) => Recipe.toJSON(e));
+      obj.results = message.results.map((e) => RecipeSummary.toJSON(e));
     }
     return obj;
   },
@@ -40936,7 +40940,7 @@ export const GetRecipesResponse: MessageFns<GetRecipesResponse> = {
       object.pagination !== undefined && object.pagination !== null
         ? Pagination.fromPartial(object.pagination)
         : undefined;
-    message.results = object.results?.map((e) => Recipe.fromPartial(e)) || [];
+    message.results = object.results?.map((e) => RecipeSummary.fromPartial(e)) || [];
     return message;
   },
 };
@@ -41051,7 +41055,7 @@ export const SearchForRecipesResponse: MessageFns<SearchForRecipesResponse> = {
       Pagination.encode(message.pagination, writer.uint32(18).fork()).join();
     }
     for (const v of message.results) {
-      Recipe.encode(v!, writer.uint32(26).fork()).join();
+      RecipeSummary.encode(v!, writer.uint32(26).fork()).join();
     }
     return writer;
   },
@@ -41084,7 +41088,7 @@ export const SearchForRecipesResponse: MessageFns<SearchForRecipesResponse> = {
             break;
           }
 
-          message.results.push(Recipe.decode(reader, reader.uint32()));
+          message.results.push(RecipeSummary.decode(reader, reader.uint32()));
           continue;
         }
       }
@@ -41104,7 +41108,9 @@ export const SearchForRecipesResponse: MessageFns<SearchForRecipesResponse> = {
           ? ResponseDetails.fromJSON(object.response_details)
           : undefined,
       pagination: isSet(object.pagination) ? Pagination.fromJSON(object.pagination) : undefined,
-      results: globalThis.Array.isArray(object?.results) ? object.results.map((e: any) => Recipe.fromJSON(e)) : [],
+      results: globalThis.Array.isArray(object?.results)
+        ? object.results.map((e: any) => RecipeSummary.fromJSON(e))
+        : [],
     };
   },
 
@@ -41117,7 +41123,7 @@ export const SearchForRecipesResponse: MessageFns<SearchForRecipesResponse> = {
       obj.pagination = Pagination.toJSON(message.pagination);
     }
     if (message.results?.length) {
-      obj.results = message.results.map((e) => Recipe.toJSON(e));
+      obj.results = message.results.map((e) => RecipeSummary.toJSON(e));
     }
     return obj;
   },
@@ -41135,7 +41141,7 @@ export const SearchForRecipesResponse: MessageFns<SearchForRecipesResponse> = {
       object.pagination !== undefined && object.pagination !== null
         ? Pagination.fromPartial(object.pagination)
         : undefined;
-    message.results = object.results?.map((e) => Recipe.fromPartial(e)) || [];
+    message.results = object.results?.map((e) => RecipeSummary.fromPartial(e)) || [];
     return message;
   },
 };
@@ -41234,7 +41240,7 @@ export const SearchForMealEligibleRecipesResponse: MessageFns<SearchForMealEligi
       Pagination.encode(message.pagination, writer.uint32(18).fork()).join();
     }
     for (const v of message.results) {
-      Recipe.encode(v!, writer.uint32(26).fork()).join();
+      RecipeSummary.encode(v!, writer.uint32(26).fork()).join();
     }
     return writer;
   },
@@ -41267,7 +41273,7 @@ export const SearchForMealEligibleRecipesResponse: MessageFns<SearchForMealEligi
             break;
           }
 
-          message.results.push(Recipe.decode(reader, reader.uint32()));
+          message.results.push(RecipeSummary.decode(reader, reader.uint32()));
           continue;
         }
       }
@@ -41287,7 +41293,9 @@ export const SearchForMealEligibleRecipesResponse: MessageFns<SearchForMealEligi
           ? ResponseDetails.fromJSON(object.response_details)
           : undefined,
       pagination: isSet(object.pagination) ? Pagination.fromJSON(object.pagination) : undefined,
-      results: globalThis.Array.isArray(object?.results) ? object.results.map((e: any) => Recipe.fromJSON(e)) : [],
+      results: globalThis.Array.isArray(object?.results)
+        ? object.results.map((e: any) => RecipeSummary.fromJSON(e))
+        : [],
     };
   },
 
@@ -41300,7 +41308,7 @@ export const SearchForMealEligibleRecipesResponse: MessageFns<SearchForMealEligi
       obj.pagination = Pagination.toJSON(message.pagination);
     }
     if (message.results?.length) {
-      obj.results = message.results.map((e) => Recipe.toJSON(e));
+      obj.results = message.results.map((e) => RecipeSummary.toJSON(e));
     }
     return obj;
   },
@@ -41322,7 +41330,7 @@ export const SearchForMealEligibleRecipesResponse: MessageFns<SearchForMealEligi
       object.pagination !== undefined && object.pagination !== null
         ? Pagination.fromPartial(object.pagination)
         : undefined;
-    message.results = object.results?.map((e) => Recipe.fromPartial(e)) || [];
+    message.results = object.results?.map((e) => RecipeSummary.fromPartial(e)) || [];
     return message;
   },
 };
@@ -41429,7 +41437,7 @@ export const SearchForRecipesWithInstrumentOwnershipResponse: MessageFns<SearchF
         Pagination.encode(message.pagination, writer.uint32(18).fork()).join();
       }
       for (const v of message.results) {
-        Recipe.encode(v!, writer.uint32(26).fork()).join();
+        RecipeSummary.encode(v!, writer.uint32(26).fork()).join();
       }
       return writer;
     },
@@ -41462,7 +41470,7 @@ export const SearchForRecipesWithInstrumentOwnershipResponse: MessageFns<SearchF
               break;
             }
 
-            message.results.push(Recipe.decode(reader, reader.uint32()));
+            message.results.push(RecipeSummary.decode(reader, reader.uint32()));
             continue;
           }
         }
@@ -41482,7 +41490,9 @@ export const SearchForRecipesWithInstrumentOwnershipResponse: MessageFns<SearchF
             ? ResponseDetails.fromJSON(object.response_details)
             : undefined,
         pagination: isSet(object.pagination) ? Pagination.fromJSON(object.pagination) : undefined,
-        results: globalThis.Array.isArray(object?.results) ? object.results.map((e: any) => Recipe.fromJSON(e)) : [],
+        results: globalThis.Array.isArray(object?.results)
+          ? object.results.map((e: any) => RecipeSummary.fromJSON(e))
+          : [],
       };
     },
 
@@ -41495,7 +41505,7 @@ export const SearchForRecipesWithInstrumentOwnershipResponse: MessageFns<SearchF
         obj.pagination = Pagination.toJSON(message.pagination);
       }
       if (message.results?.length) {
-        obj.results = message.results.map((e) => Recipe.toJSON(e));
+        obj.results = message.results.map((e) => RecipeSummary.toJSON(e));
       }
       return obj;
     },
@@ -41517,7 +41527,7 @@ export const SearchForRecipesWithInstrumentOwnershipResponse: MessageFns<SearchF
         object.pagination !== undefined && object.pagination !== null
           ? Pagination.fromPartial(object.pagination)
           : undefined;
-      message.results = object.results?.map((e) => Recipe.fromPartial(e)) || [];
+      message.results = object.results?.map((e) => RecipeSummary.fromPartial(e)) || [];
       return message;
     },
   };
@@ -51628,7 +51638,7 @@ export const GetMealsResponse: MessageFns<GetMealsResponse> = {
       Pagination.encode(message.pagination, writer.uint32(18).fork()).join();
     }
     for (const v of message.results) {
-      Meal.encode(v!, writer.uint32(26).fork()).join();
+      MealSummary.encode(v!, writer.uint32(26).fork()).join();
     }
     return writer;
   },
@@ -51661,7 +51671,7 @@ export const GetMealsResponse: MessageFns<GetMealsResponse> = {
             break;
           }
 
-          message.results.push(Meal.decode(reader, reader.uint32()));
+          message.results.push(MealSummary.decode(reader, reader.uint32()));
           continue;
         }
       }
@@ -51681,7 +51691,7 @@ export const GetMealsResponse: MessageFns<GetMealsResponse> = {
           ? ResponseDetails.fromJSON(object.response_details)
           : undefined,
       pagination: isSet(object.pagination) ? Pagination.fromJSON(object.pagination) : undefined,
-      results: globalThis.Array.isArray(object?.results) ? object.results.map((e: any) => Meal.fromJSON(e)) : [],
+      results: globalThis.Array.isArray(object?.results) ? object.results.map((e: any) => MealSummary.fromJSON(e)) : [],
     };
   },
 
@@ -51694,7 +51704,7 @@ export const GetMealsResponse: MessageFns<GetMealsResponse> = {
       obj.pagination = Pagination.toJSON(message.pagination);
     }
     if (message.results?.length) {
-      obj.results = message.results.map((e) => Meal.toJSON(e));
+      obj.results = message.results.map((e) => MealSummary.toJSON(e));
     }
     return obj;
   },
@@ -51712,7 +51722,7 @@ export const GetMealsResponse: MessageFns<GetMealsResponse> = {
       object.pagination !== undefined && object.pagination !== null
         ? Pagination.fromPartial(object.pagination)
         : undefined;
-    message.results = object.results?.map((e) => Meal.fromPartial(e)) || [];
+    message.results = object.results?.map((e) => MealSummary.fromPartial(e)) || [];
     return message;
   },
 };
@@ -54708,7 +54718,7 @@ export const SearchForMealsResponse: MessageFns<SearchForMealsResponse> = {
       Pagination.encode(message.pagination, writer.uint32(18).fork()).join();
     }
     for (const v of message.results) {
-      Meal.encode(v!, writer.uint32(26).fork()).join();
+      MealSummary.encode(v!, writer.uint32(26).fork()).join();
     }
     return writer;
   },
@@ -54741,7 +54751,7 @@ export const SearchForMealsResponse: MessageFns<SearchForMealsResponse> = {
             break;
           }
 
-          message.results.push(Meal.decode(reader, reader.uint32()));
+          message.results.push(MealSummary.decode(reader, reader.uint32()));
           continue;
         }
       }
@@ -54761,7 +54771,7 @@ export const SearchForMealsResponse: MessageFns<SearchForMealsResponse> = {
           ? ResponseDetails.fromJSON(object.response_details)
           : undefined,
       pagination: isSet(object.pagination) ? Pagination.fromJSON(object.pagination) : undefined,
-      results: globalThis.Array.isArray(object?.results) ? object.results.map((e: any) => Meal.fromJSON(e)) : [],
+      results: globalThis.Array.isArray(object?.results) ? object.results.map((e: any) => MealSummary.fromJSON(e)) : [],
     };
   },
 
@@ -54774,7 +54784,7 @@ export const SearchForMealsResponse: MessageFns<SearchForMealsResponse> = {
       obj.pagination = Pagination.toJSON(message.pagination);
     }
     if (message.results?.length) {
-      obj.results = message.results.map((e) => Meal.toJSON(e));
+      obj.results = message.results.map((e) => MealSummary.toJSON(e));
     }
     return obj;
   },
@@ -54792,7 +54802,7 @@ export const SearchForMealsResponse: MessageFns<SearchForMealsResponse> = {
       object.pagination !== undefined && object.pagination !== null
         ? Pagination.fromPartial(object.pagination)
         : undefined;
-    message.results = object.results?.map((e) => Meal.fromPartial(e)) || [];
+    message.results = object.results?.map((e) => MealSummary.fromPartial(e)) || [];
     return message;
   },
 };

@@ -57,7 +57,8 @@ FROM %s
 WHERE %s.%s IS NULL
 	AND %s.%s IS NULL
 	AND %s.%s = ANY(sqlc.arg(ids)::text[])
-	AND %s.%s IS NULL;`,
+	AND %s.%s IS NULL
+ORDER BY %s.%s ASC;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
 						recipeStepCompletionConditionIngredientsTableName,
 						recipeStepCompletionConditionsTableName, recipeStepCompletionConditionIngredientsTableName, belongsToRecipeStepCompletionConditionColumn, recipeStepCompletionConditionsTableName, idColumn,
@@ -66,6 +67,7 @@ WHERE %s.%s IS NULL
 						recipeStepCompletionConditionIngredientsTableName, archivedAtColumn,
 						recipeStepCompletionConditionIngredientsTableName, belongsToRecipeStepCompletionConditionColumn,
 						validIngredientStatesTableName, archivedAtColumn,
+						recipeStepCompletionConditionIngredientsTableName, idColumn,
 					)),
 				},
 			},

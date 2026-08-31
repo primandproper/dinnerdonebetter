@@ -124,7 +124,8 @@ WHERE %s.%s IS NULL
 GROUP BY
 	%s.%s,
 	%s.%s,
-	%s.%s;`,
+	%s.%s
+ORDER BY %s.%s ASC, %s.%s ASC;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
 						recipeStepCompletionConditionIngredientsTableName,
 						recipeStepCompletionConditionsTableName, recipeStepCompletionConditionIngredientsTableName, belongsToRecipeStepCompletionConditionColumn, recipeStepCompletionConditionsTableName, idColumn,
@@ -140,6 +141,8 @@ GROUP BY
 						recipeStepCompletionConditionsTableName, idColumn,
 						recipeStepCompletionConditionIngredientsTableName, idColumn,
 						validIngredientStatesTableName, idColumn,
+						recipeStepCompletionConditionsTableName, idColumn,
+						recipeStepCompletionConditionIngredientsTableName, idColumn,
 					)),
 				},
 				{

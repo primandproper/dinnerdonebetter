@@ -292,6 +292,40 @@ message Recipe {
   repeated Recipe associated_recipes = 21;
 }
 
+// RecipeSummary is the shape a Recipe takes in a list or search response. It
+// carries the recipe's own columns and nothing that hangs off it: no steps,
+// prep tasks, media, or associated recipes.
+//
+// The omissions are not cosmetic. A RecipeStepIngredient embeds a whole
+// ValidIngredient and ValidMeasurementUnit and a RecipeStep a whole
+// ValidPreparation, so a hydrated Recipe runs 19-36 KiB; associated_recipes is
+// self-recursive, so a hydrated Recipe has no size bound at all. Multiplied by
+// filtering.MaxQueryFilterLimit's 250 that clears the 4 MiB gRPC message
+// bound, and no page size provably fits while the recursion is on the wire.
+// RecipeSummary has a fixed per-item ceiling, so a max-limit page does fit.
+//
+// Fetch a single recipe by ID for the full object.
+message RecipeSummary {
+  google.protobuf.Timestamp created_at = 1;
+  optional string inspired_by_recipe_id = 2;
+  optional google.protobuf.Timestamp last_updated_at = 3;
+  optional google.protobuf.Timestamp archived_at = 4;
+  float min_estimated_portions = 5;
+  optional float max_estimated_portions = 6;
+  string plural_portion_name = 7;
+  string description = 8;
+  string name = 9;
+  string portion_name = 10;
+  string id = 11;
+  string created_by_user = 12;
+  string source = 13;
+  string source_isbn = 14;
+  string slug = 15;
+  MealComponentType yields_component_type = 16;
+  string status = 17;
+  bool eligible_for_meals = 18;
+}
+
 message RecipeMedia {
   google.protobuf.Timestamp created_at = 1;
   optional google.protobuf.Timestamp archived_at = 2;
@@ -498,6 +532,32 @@ message Meal {
 message MealComponent {
   MealComponentType component_type = 1;
   Recipe recipe = 2;
+  float recipe_scale = 3;
+}
+
+// MealSummary is the shape a Meal takes in a list or search response. It keeps
+// the components, because a meal without them says almost nothing, but each
+// one carries a RecipeSummary rather than a whole Recipe -- see that message
+// for why a hydrated Recipe cannot be paginated.
+//
+// Fetch a single meal by ID for components carrying full recipes.
+message MealSummary {
+  google.protobuf.Timestamp created_at = 1;
+  optional google.protobuf.Timestamp archived_at = 2;
+  optional google.protobuf.Timestamp last_updated_at = 3;
+  float min_estimated_portions = 4;
+  optional float max_estimated_portions = 5;
+  string id = 6;
+  string description = 7;
+  string created_by_user = 8;
+  string name = 9;
+  repeated MealComponentSummary components = 10;
+  bool eligible_for_meal_plans = 11;
+}
+
+message MealComponentSummary {
+  MealComponentType component_type = 1;
+  RecipeSummary recipe = 2;
   float recipe_scale = 3;
 }
 

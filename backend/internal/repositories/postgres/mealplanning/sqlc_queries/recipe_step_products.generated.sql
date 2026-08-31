@@ -133,7 +133,8 @@ WHERE recipe_step_products.archived_at IS NULL
 	AND recipe_steps.archived_at IS NULL
 	AND recipe_steps.belongs_to_recipe = sqlc.arg(recipe_id)
 	AND recipes.archived_at IS NULL
-	AND recipes.id = sqlc.arg(recipe_id);
+	AND recipes.id = sqlc.arg(recipe_id)
+ORDER BY recipe_step_products.id ASC;
 
 -- name: GetRecipeStepProducts :many
 SELECT

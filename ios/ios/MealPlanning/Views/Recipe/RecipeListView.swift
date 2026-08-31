@@ -149,7 +149,7 @@ struct RecipeListView: View {
 // MARK: - Recipe Card
 
 struct RecipeCard: View {
-  let recipe: Mealplanning_Recipe
+  let recipe: Mealplanning_RecipeSummary
 
   var body: some View {
     DSCard(style: .outlined) {
@@ -167,27 +167,10 @@ struct RecipeCard: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
 
-        // Recipe metadata - primary row
+        // Recipe metadata - primary row. No step count or time estimate: a
+        // RecipeSummary carries no steps. GetRecipes never returned them
+        // either, so these labels have always been blank on this screen.
         HStack(spacing: DSTheme.Spacing.md) {
-          if !recipe.steps.isEmpty {
-            Label(
-              "\(recipe.steps.count) step\(recipe.steps.count == 1 ? "" : "s")",
-              systemImage: "list.number"
-            )
-            .font(DSTheme.Typography.caption)
-            .foregroundColor(DSTheme.Colors.textSecondary)
-          }
-
-          if let estimate = RecipeTimeEstimation.estimate(steps: recipe.steps) {
-            Label(
-              RecipeTimeEstimation.format(
-                minSeconds: estimate.minSeconds, maxSeconds: estimate.maxSeconds),
-              systemImage: "clock"
-            )
-            .font(DSTheme.Typography.caption)
-            .foregroundColor(DSTheme.Colors.textSecondary)
-          }
-
           Label(
             "\(PortionsFormatter.format(min: recipe.minEstimatedPortions, max: recipe.hasMaxEstimatedPortions ? recipe.maxEstimatedPortions : nil))",
             systemImage: "person.2"
@@ -216,14 +199,6 @@ struct RecipeCard: View {
             }
           }
 
-          if !recipe.prepTasks.isEmpty {
-            Label(
-              "\(recipe.prepTasks.count) prep task\(recipe.prepTasks.count == 1 ? "" : "s")",
-              systemImage: "checklist"
-            )
-            .font(DSTheme.Typography.caption)
-            .foregroundColor(DSTheme.Colors.textSecondary)
-          }
         }
       }
       .frame(maxWidth: .infinity, alignment: .leading)

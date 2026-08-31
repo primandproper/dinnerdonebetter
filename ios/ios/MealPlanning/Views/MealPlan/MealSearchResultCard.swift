@@ -11,7 +11,7 @@ import SwiftUI
 // MARK: - Meal Search Result Card
 
 struct MealSearchResultCard: View {
-  let meal: Mealplanning_Meal
+  let meal: Mealplanning_MealSummary
   let isSelected: Bool
   let assignedToOtherDayLabel: String?
   let onTap: () -> Void

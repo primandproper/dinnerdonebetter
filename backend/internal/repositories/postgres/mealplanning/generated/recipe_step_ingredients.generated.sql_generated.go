@@ -232,6 +232,7 @@ WHERE
 	recipe_step_ingredients.archived_at IS NULL
 	AND recipes.id = $1
 	AND recipe_steps.belongs_to_recipe = $1
+ORDER BY recipe_step_ingredients.id ASC
 `
 
 type GetAllRecipeStepIngredientsForRecipeRow struct {

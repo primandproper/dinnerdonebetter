@@ -11112,7 +11112,7 @@ public struct Mealplanning_GetRecipesResponse: Sendable {
   /// Clears the value of `pagination`. Subsequent reads from it will return its default value.
   public mutating func clearPagination() {self._pagination = nil}
 
-  public var results: [Mealplanning_Recipe] = []
+  public var results: [Mealplanning_RecipeSummary] = []
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
@@ -11170,7 +11170,7 @@ public struct Mealplanning_SearchForRecipesResponse: Sendable {
   /// Clears the value of `pagination`. Subsequent reads from it will return its default value.
   public mutating func clearPagination() {self._pagination = nil}
 
-  public var results: [Mealplanning_Recipe] = []
+  public var results: [Mealplanning_RecipeSummary] = []
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
@@ -11226,7 +11226,7 @@ public struct Mealplanning_SearchForMealEligibleRecipesResponse: Sendable {
   /// Clears the value of `pagination`. Subsequent reads from it will return its default value.
   public mutating func clearPagination() {self._pagination = nil}
 
-  public var results: [Mealplanning_Recipe] = []
+  public var results: [Mealplanning_RecipeSummary] = []
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
@@ -11282,7 +11282,7 @@ public struct Mealplanning_SearchForRecipesWithInstrumentOwnershipResponse: Send
   /// Clears the value of `pagination`. Subsequent reads from it will return its default value.
   public mutating func clearPagination() {self._pagination = nil}
 
-  public var results: [Mealplanning_Recipe] = []
+  public var results: [Mealplanning_RecipeSummary] = []
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
@@ -14122,7 +14122,7 @@ public struct Mealplanning_GetMealsResponse: Sendable {
   /// Clears the value of `pagination`. Subsequent reads from it will return its default value.
   public mutating func clearPagination() {self._pagination = nil}
 
-  public var results: [Mealplanning_Meal] = []
+  public var results: [Mealplanning_MealSummary] = []
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
@@ -15055,7 +15055,7 @@ public struct Mealplanning_SearchForMealsResponse: Sendable {
   /// Clears the value of `pagination`. Subsequent reads from it will return its default value.
   public mutating func clearPagination() {self._pagination = nil}
 
-  public var results: [Mealplanning_Meal] = []
+  public var results: [Mealplanning_MealSummary] = []
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 

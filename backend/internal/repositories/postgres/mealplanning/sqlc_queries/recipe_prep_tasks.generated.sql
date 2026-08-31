@@ -116,4 +116,5 @@ FROM recipe_prep_tasks
 WHERE recipe_prep_tasks.archived_at IS NULL
 	AND recipe_steps.archived_at IS NULL
 	AND recipes.archived_at IS NULL
-	AND recipes.id = sqlc.arg(recipe_id);
+	AND recipes.id = sqlc.arg(recipe_id)
+ORDER BY recipe_prep_tasks.id ASC, recipe_prep_task_steps.id ASC;

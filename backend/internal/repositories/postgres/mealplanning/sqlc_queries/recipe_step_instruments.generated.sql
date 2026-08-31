@@ -108,7 +108,8 @@ WHERE recipe_step_instruments.archived_at IS NULL
 	AND recipe_steps.archived_at IS NULL
 	AND recipe_steps.belongs_to_recipe = sqlc.arg(recipe_id)
 	AND recipes.archived_at IS NULL
-	AND recipes.id = sqlc.arg(recipe_id);
+	AND recipes.id = sqlc.arg(recipe_id)
+ORDER BY recipe_step_instruments.id ASC;
 
 -- name: GetRecipeStepInstrument :one
 SELECT

@@ -39,9 +39,11 @@ class CreateMealPlanViewModel {
 
   // Search state (for meal assignment step)
   var searchQuery: String = ""
-  var searchResults: [Mealplanning_Meal] = []
+  var searchResults: [Mealplanning_MealSummary] = []
   var isSearching: Bool = false
   var searchError: String?
+  var isAssigningMeal: Bool = false
+  var assignmentError: String?
 
   // Current day index when iterating through meal assignment (0-based)
   var currentDayIndex: Int = 0
@@ -198,12 +200,38 @@ class CreateMealPlanViewModel {
 
   // MARK: - Meal Assignment
 
+  /// Assigns an already-fetched meal to a day.
   func assignMeal(_ meal: Mealplanning_Meal, to date: Date) {
     let normalized = selectedDates.first { calendar.isDate($0, inSameDayAs: date) } ?? date
     dayMeals[normalized] = meal
     searchQuery = ""
     searchResults = []
     searchError = nil
+  }
+
+  /// Assigns a meal picked from search. Search returns MealSummary, whose
+  /// components carry recipes without steps, so the whole meal is fetched
+  /// first -- the option-selection step downstream reads step ingredients to
+  /// find option groups, and a summary has none.
+  func assignMeal(fromSearchResult summary: Mealplanning_MealSummary, to date: Date) async {
+    isAssigningMeal = true
+    assignmentError = nil
+
+    do {
+      var request = Mealplanning_GetMealRequest()
+      request.mealID = summary.id
+
+      let response = try await authManager.authenticatedCall("getMeal", idempotent: true) {
+        client, metadata, options in
+        try await client.mealPlanning.getMeal(request, metadata: metadata, options: options)
+      }
+
+      assignMeal(response.result, to: date)
+    } catch {
+      assignmentError = "Failed to add meal: \(error.localizedDescription)"
+    }
+
+    isAssigningMeal = false
   }
 
   func removeMeal(from date: Date) {
@@ -215,9 +243,10 @@ class CreateMealPlanViewModel {
     selectedDates.first { calendar.isDate($0, inSameDayAs: date) }.flatMap { dayMeals[$0] }
   }
 
-  /// Look up meal by ID from search results or assigned meals
+  /// Look up an assigned meal by ID. Search results are summaries and are not
+  /// consulted here -- a caller wanting a whole meal wants an assigned one.
   func meal(forId id: String) -> Mealplanning_Meal? {
-    searchResults.first { $0.id == id } ?? dayMeals.values.first { $0.id == id }
+    dayMeals.values.first { $0.id == id }
   }
 
   var allDaysHaveMeals: Bool {
@@ -308,7 +337,7 @@ class CreateMealPlanViewModel {
 
   /// Filter search results. Excludes only the meal for the given date so when going
   /// back to change a day, other meals (including those on other days) still appear.
-  func filteredSearchResults(for date: Date?) -> [Mealplanning_Meal] {
+  func filteredSearchResults(for date: Date?) -> [Mealplanning_MealSummary] {
     guard let date = date else { return searchResults }
     let currentMealID = mealForDate(date)?.id
     return searchResults.filter { currentMealID == nil || $0.id != currentMealID }

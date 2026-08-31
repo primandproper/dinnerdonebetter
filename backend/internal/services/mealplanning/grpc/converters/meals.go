@@ -135,6 +135,72 @@ func ConvertMealComponentToGRPCMealComponent(input *mealplanning.MealComponent) 
 	}
 }
 
+// ConvertMealToGRPCMealSummary projects a Meal onto the wire shape list and
+// search responses use. The components survive -- a meal without them says
+// almost nothing -- but each carries a RecipeSummary rather than a whole
+// Recipe, which is what keeps a max-limit page inside the 4 MiB gRPC message
+// bound. See the MealSummary comment in mealplanning_messages.proto.
+func ConvertMealToGRPCMealSummary(input *mealplanning.Meal) *mealplanningsvc.MealSummary {
+	var components []*mealplanningsvc.MealComponentSummary
+	for _, component := range input.Components {
+		components = append(components, ConvertMealComponentToGRPCMealComponentSummary(component))
+	}
+
+	return &mealplanningsvc.MealSummary{
+		CreatedAt:            grpcconverters.ConvertTimeToPBTimestamp(input.CreatedAt),
+		LastUpdatedAt:        grpcconverters.ConvertTimePointerToPBTimestamp(input.LastUpdatedAt),
+		ArchivedAt:           grpcconverters.ConvertTimePointerToPBTimestamp(input.ArchivedAt),
+		MinEstimatedPortions: input.MinEstimatedPortions,
+		MaxEstimatedPortions: input.MaxEstimatedPortions,
+		Id:                   input.ID,
+		Description:          input.Description,
+		CreatedByUser:        input.CreatedByUser,
+		Name:                 input.Name,
+		Components:           components,
+		EligibleForMealPlans: input.EligibleForMealPlans,
+	}
+}
+
+func ConvertMealComponentToGRPCMealComponentSummary(input *mealplanning.MealComponent) *mealplanningsvc.MealComponentSummary {
+	return &mealplanningsvc.MealComponentSummary{
+		Recipe:        ConvertRecipeToGRPCRecipeSummary(&input.Recipe),
+		ComponentType: ConvertStringToMealComponentType(input.ComponentType),
+		RecipeScale:   input.RecipeScale,
+	}
+}
+
+// ConvertGRPCMealSummaryToMeal inflates a MealSummary into a Meal whose
+// components carry recipes with empty nested collections. Fetch the meal by ID
+// for components carrying full recipes.
+func ConvertGRPCMealSummaryToMeal(input *mealplanningsvc.MealSummary) *mealplanning.Meal {
+	components := []*mealplanning.MealComponent{}
+	for _, component := range input.Components {
+		components = append(components, ConvertGRPCMealComponentSummaryToMealComponent(component))
+	}
+
+	return &mealplanning.Meal{
+		CreatedAt:            grpcconverters.ConvertPBTimestampToTime(input.CreatedAt),
+		LastUpdatedAt:        grpcconverters.ConvertPBTimestampToTimePointer(input.LastUpdatedAt),
+		ArchivedAt:           grpcconverters.ConvertPBTimestampToTimePointer(input.ArchivedAt),
+		MinEstimatedPortions: input.MinEstimatedPortions,
+		MaxEstimatedPortions: input.MaxEstimatedPortions,
+		ID:                   input.Id,
+		Description:          input.Description,
+		CreatedByUser:        input.CreatedByUser,
+		Name:                 input.Name,
+		Components:           components,
+		EligibleForMealPlans: input.EligibleForMealPlans,
+	}
+}
+
+func ConvertGRPCMealComponentSummaryToMealComponent(input *mealplanningsvc.MealComponentSummary) *mealplanning.MealComponent {
+	return &mealplanning.MealComponent{
+		Recipe:        *ConvertGRPCRecipeSummaryToRecipe(input.Recipe),
+		ComponentType: ConvertMealComponentTypeToString(input.ComponentType),
+		RecipeScale:   input.RecipeScale,
+	}
+}
+
 func ConvertGRPCMealToMeal(input *mealplanningsvc.Meal) *mealplanning.Meal {
 	var components []*mealplanning.MealComponent
 	for _, component := range input.Components {
