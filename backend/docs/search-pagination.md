@@ -103,8 +103,8 @@ a plan's dates a second round trip, so it does not.
 Two things the clients read out of the dropped options are projected back onto the summary rather
 than reached for by fetching each plan:
 
-| Field                                    | Replaces                                                |
-|------------------------------------------|---------------------------------------------------------|
+| Field                                    | Replaces                                                  |
+|------------------------------------------|-----------------------------------------------------------|
 | `MealPlanSummary.current_user_has_voted` | Walking `events[].options[].votes` for the session's user |
 | `MealPlanEventSummary.chosen_meal_name`  | Reading the chosen option's meal name                     |
 
