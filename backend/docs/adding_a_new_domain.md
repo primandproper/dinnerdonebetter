@@ -30,7 +30,7 @@ The repetition worth removing is not the SQL. It is the ceremony around each wri
 
 ### Read three instances instead of building a kit
 
-Platform ships `comments`, `issuereports` and `waitlists` — the same scoped-CRUD shape written out three times, tested against three dialects, with nobody owning an abstraction over them. Adopting them is section 2 of [#1368] and gets the benefit the kit was reaching for. `comments` is done ([#1375]); `issuereports` ([#1377]) and `waitlists` ([#1378]) are open.
+Platform ships `comments`, `issuereports` and `waitlists` — the same scoped-CRUD shape written out three times, tested against three dialects, with nobody owning an abstraction over them. Adopting them is section 2 of [#1368] and gets the benefit the kit was reaching for. `comments` ([#1375]) and `issuereports` ([#1377]) are done; `waitlists` ([#1378]) is open.
 
 **So, before following this checklist: check whether platform already ships the domain.** If it does, adopt it. If it does not, hand-roll it through the steps below — that is the intended cost, and it is cheaper than the alternative that was tried.
 

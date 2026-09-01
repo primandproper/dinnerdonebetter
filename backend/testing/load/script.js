@@ -89,8 +89,8 @@ const READ_ENDPOINTS = [
   { method: "notifications.UserNotificationsService/GetUserDeviceTokens", request: { filter: {} } },
   // Issue reports
   { method: "issue_reports.IssueReportsService/GetIssueReports", request: { filter: {} } },
-  { method: "issue_reports.IssueReportsService/GetIssueReportsForAccount", request: (d) => ({ account_id: d.accountId, filter: {} }) },
-  { method: "issue_reports.IssueReportsService/GetIssueReportsForTable", request: { table_name: "recipes", filter: {} } },
+  { method: "issue_reports.IssueReportsService/GetIssueReportsByStatus", request: { status: "open", filter: {} } },
+  { method: "issue_reports.IssueReportsService/GetIssueReportsBySubjectType", request: { subject_type: "recipes", filter: {} } },
   // Auth
   { method: "auth.AuthService/GetAuthStatus", request: {} },
   { method: "auth.AuthService/GetActiveAccount", request: {} },

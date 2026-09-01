@@ -18,7 +18,6 @@ import (
 	"errors"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports"
-	issuereportsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports/manager"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningmanagers "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/managers"
 
@@ -45,20 +44,21 @@ func Catalog() platformcomments.Targets {
 }
 
 // CatalogWithChecks is Catalog with an existence check on every type whose owning
-// domain can answer "is this there" without knowing who is asking.
+// domain can answer "is this there" from the scope and the ID alone.
 //
-// Meal plans are the exception and are deliberately left unchecked: reading one
-// takes an owner as well as an ID, and the check platform runs is given only the
-// scope and the target. The service that files a meal plan comment already reads
-// the plan as the caller before it delegates, which is a stronger check than this
-// one would be rather than a missing one.
+// Two types are deliberately left unchecked, for the same reason from opposite
+// directions: the check platform runs is handed the comment's scope and nothing
+// else. Reading a meal plan takes an owner as well as an ID, and reading an issue
+// report takes the account it was filed under — while comments in this deployment
+// are all filed globally, so the scope the hook receives is not one either read
+// can use. Both services read their target as the caller before they delegate,
+// which is a stronger check than this one would be rather than a missing one.
 //
 // A check narrows the window in which a comment can be written about something
 // that is not there; it does not close it. A target deleted between the check and
 // the insert is still a comment about nothing.
 func CatalogWithChecks(
 	mealPlanning mealplanningmanagers.MealPlanningManager,
-	issueReports issuereportsmanager.IssueReportsDataManager,
 ) platformcomments.Targets {
 	catalog := Catalog()
 
@@ -75,15 +75,6 @@ func CatalogWithChecks(
 		catalog[mealplanning.CommentTargetTypeMeals],
 		func(ctx context.Context, targetID string) error {
 			_, err := mealPlanning.ReadMeal(ctx, targetID)
-
-			return err
-		},
-	)
-
-	catalog[issuereports.CommentTargetTypeIssueReports] = withCheck(
-		catalog[issuereports.CommentTargetTypeIssueReports],
-		func(ctx context.Context, targetID string) error {
-			_, err := issueReports.GetIssueReport(ctx, targetID)
 
 			return err
 		},
@@ -120,7 +111,6 @@ func RegisterTargets(i do.Injector) {
 	do.Provide[platformcomments.Targets](i, func(i do.Injector) (platformcomments.Targets, error) {
 		return CatalogWithChecks(
 			do.MustInvoke[mealplanningmanagers.MealPlanningManager](i),
-			do.MustInvoke[issuereportsmanager.IssueReportsDataManager](i),
 		), nil
 	})
 }

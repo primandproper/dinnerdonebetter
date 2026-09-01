@@ -12,7 +12,6 @@ import (
 	auditmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit/manager"
 	authmgr "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/managers"
 	identitymgr "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/manager"
-	issuereportsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports/manager"
 	mealplanningregistration "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/registration"
 	notificationsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/manager"
 	oauthmgr "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth/manager"
@@ -162,7 +161,6 @@ func BuildInjector(
 	oauthmgr.RegisterOAuth2Manager(i)
 	webhooksmanager.RegisterWebhookDataManager(i)
 	waitlistsmanager.RegisterWaitlistDataManager(i)
-	issuereportsmanager.RegisterIssueReportsDataManager(i)
 	paymentsadapters.RegisterPaymentProcessorRegistry(i)
 
 	// services

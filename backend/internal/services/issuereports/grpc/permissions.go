@@ -20,16 +20,24 @@ func ProvideMethodPermissions() IssueReportsMethodPermissions {
 		issuereportssvc.IssueReportsService_GetIssueReports_FullMethodName: {
 			authorization.ReadIssueReportsPermission,
 		},
-		issuereportssvc.IssueReportsService_GetIssueReportsForAccount_FullMethodName: {
+		issuereportssvc.IssueReportsService_GetIssueReportsByStatus_FullMethodName: {
 			authorization.ReadIssueReportsPermission,
 		},
-		issuereportssvc.IssueReportsService_GetIssueReportsForTable_FullMethodName: {
+		issuereportssvc.IssueReportsService_GetIssueReportsBySubjectType_FullMethodName: {
 			authorization.ReadIssueReportsPermission,
 		},
-		issuereportssvc.IssueReportsService_GetIssueReportsForRecord_FullMethodName: {
+		issuereportssvc.IssueReportsService_GetIssueReportsForSubject_FullMethodName: {
 			authorization.ReadIssueReportsPermission,
 		},
 		issuereportssvc.IssueReportsService_UpdateIssueReport_FullMethodName: {
+			authorization.UpdateIssueReportsPermission,
+		},
+		// Triage is a write to the report and is gated by the same capability as a
+		// revision. It is not a permission of its own because this application has no
+		// role that may resolve a report but not edit one — the account admin who can
+		// do either can do both, and a permission nothing distinguishes is a line in
+		// the role grid that grants what the one beside it already granted.
+		issuereportssvc.IssueReportsService_TransitionIssueReport_FullMethodName: {
 			authorization.UpdateIssueReportsPermission,
 		},
 		issuereportssvc.IssueReportsService_ArchiveIssueReport_FullMethodName: {

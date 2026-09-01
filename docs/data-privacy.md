@@ -57,7 +57,7 @@ inside one.
 | `notifications` | `notifications/privacy` | In-app notifications |
 | `payments` | `payments/privacy` | Subscriptions, purchases, payment transactions |
 | `audit_log` | `audit/privacy` | Audit entries recorded about the subject |
-| `issue_reports` | `issuereports/privacy` | Issue reports from the subject's accounts |
+| `issue_reports` | `issuereports/privacy` over platform-go's | Issue reports the subject filed, in every account they appear in |
 | `uploaded_media` | `uploadedmedia/privacy` | Registry rows for objects the subject uploaded (not the bytes) |
 | `waitlists` | `waitlists/privacy` | Waitlist signups |
 | `comments` | platform-go's `comments/privacy` | Comments the subject authored |
@@ -120,13 +120,16 @@ might be.
 in this schema carries `ON DELETE CASCADE`, so that single `DELETE` is the erasure for every other
 domain.
 
-That includes uploads, and it does so only because this repository says so. platform-go's upload
-registry ships no foreign key on `owner_id` — it cannot, because it does not know which of a
-consumer's tables holds a principal — so `renderUploadsRegistryDDL` in
-`internal/repositories/postgres/migrations` adds one, pointing at `users` and cascading. Without
-it a deleted subject would leave rows nobody can name and nothing erases, exactly as comments
-would. Adopting a platform store is where a cascade quietly stops reaching; this one was kept
-rather than replaced with a fourth eraser, because in this application every uploader is a user.
+That includes uploads and issue reports, and it does so only because this repository says so.
+platform-go's upload registry ships no foreign key on `owner_id`, and its issue report table none
+on `reporter` — neither package knows which of a consumer's tables holds a principal — so
+`renderUploadsRegistryDDL` and `renderIssueReportsDDL` in
+`internal/repositories/postgres/migrations` add them, pointing at `users` and cascading. Without
+them a deleted subject would leave rows nobody can name and nothing erases, exactly as comments
+would. Adopting a platform store is where a cascade quietly stops reaching; both were kept rather
+than replaced with further erasers, because in this application every uploader and every reporter
+is a user. platform-go ships an `issuereports/privacy` eraser for consumers where that is not
+true; if that foreign key ever goes, it has to be registered.
 
 There is deliberately no eraser per domain beyond those. Eleven statements that can only agree
 with the one that ran first are eleven places for that agreement to rot. What makes a domain's own

@@ -32,10 +32,40 @@ public struct IssueReports_DataCollection: Sendable {
   public init() {}
 }
 
+/// IssueReport is one thing somebody told us was wrong, and where that report
+/// stands.
 public struct IssueReports_IssueReport: Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
+
+  public var id: String = String()
+
+  /// reporter is the ID of the user who filed it.
+  public var reporter: String = String()
+
+  /// kind is the category the report was filed under — bug, feature_request,
+  /// data_quality, performance, other. A triage queue groups and routes by it.
+  public var kind: String = String()
+
+  /// details is what the person actually said.
+  public var details: String = String()
+
+  /// subject_type is what the report is about, as the owning domain spells it.
+  /// Empty is a report about the product in general.
+  public var subjectType: String = String()
+
+  /// subject_id is which one of them. Empty is a report about a kind of thing
+  /// rather than about one of them.
+  public var subjectID: String = String()
+
+  /// status is where the report stands: open, acknowledged, resolved or
+  /// declined. It moves only through TransitionIssueReport.
+  public var status: String = String()
+
+  /// resolution is why the report is in the terminal status it is in — the note
+  /// a triager left when they resolved or declined it. Reopening clears it.
+  public var resolution: String = String()
 
   public var createdAt: SwiftProtobuf.Google_Protobuf_Timestamp {
     get {return _createdAt ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
@@ -46,15 +76,6 @@ public struct IssueReports_IssueReport: Sendable {
   /// Clears the value of `createdAt`. Subsequent reads from it will return its default value.
   public mutating func clearCreatedAt() {self._createdAt = nil}
 
-  public var archivedAt: SwiftProtobuf.Google_Protobuf_Timestamp {
-    get {return _archivedAt ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
-    set {_archivedAt = newValue}
-  }
-  /// Returns true if `archivedAt` has been explicitly set.
-  public var hasArchivedAt: Bool {return self._archivedAt != nil}
-  /// Clears the value of `archivedAt`. Subsequent reads from it will return its default value.
-  public mutating func clearArchivedAt() {self._archivedAt = nil}
-
   public var lastUpdatedAt: SwiftProtobuf.Google_Protobuf_Timestamp {
     get {return _lastUpdatedAt ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
     set {_lastUpdatedAt = newValue}
@@ -64,27 +85,35 @@ public struct IssueReports_IssueReport: Sendable {
   /// Clears the value of `lastUpdatedAt`. Subsequent reads from it will return its default value.
   public mutating func clearLastUpdatedAt() {self._lastUpdatedAt = nil}
 
-  public var id: String = String()
+  public var archivedAt: SwiftProtobuf.Google_Protobuf_Timestamp {
+    get {return _archivedAt ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
+    set {_archivedAt = newValue}
+  }
+  /// Returns true if `archivedAt` has been explicitly set.
+  public var hasArchivedAt: Bool {return self._archivedAt != nil}
+  /// Clears the value of `archivedAt`. Subsequent reads from it will return its default value.
+  public mutating func clearArchivedAt() {self._archivedAt = nil}
 
-  public var issueType: String = String()
-
-  public var details: String = String()
-
-  public var relevantTable: String = String()
-
-  public var relevantRecordID: String = String()
-
-  public var createdByUser: String = String()
-
-  public var belongsToAccount: String = String()
+  /// closed_at is when the report reached a terminal status, and unset while it
+  /// is still open or acknowledged. It is what a time-to-resolution number is
+  /// measured to; a boolean beside status would not answer "when".
+  public var closedAt: SwiftProtobuf.Google_Protobuf_Timestamp {
+    get {return _closedAt ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
+    set {_closedAt = newValue}
+  }
+  /// Returns true if `closedAt` has been explicitly set.
+  public var hasClosedAt: Bool {return self._closedAt != nil}
+  /// Clears the value of `closedAt`. Subsequent reads from it will return its default value.
+  public mutating func clearClosedAt() {self._closedAt = nil}
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
 
   fileprivate var _createdAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
-  fileprivate var _archivedAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
   fileprivate var _lastUpdatedAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
+  fileprivate var _archivedAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
+  fileprivate var _closedAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
 }
 
 // MARK: - Code below here is support for the SwiftProtobuf runtime.
@@ -123,7 +152,7 @@ extension IssueReports_DataCollection: SwiftProtobuf.Message, SwiftProtobuf._Mes
 
 extension IssueReports_IssueReport: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".IssueReport"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}created_at\0\u{3}archived_at\0\u{3}last_updated_at\0\u{1}id\0\u{3}issue_type\0\u{1}details\0\u{3}relevant_table\0\u{3}relevant_record_id\0\u{3}created_by_user\0\u{3}belongs_to_account\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}id\0\u{1}reporter\0\u{1}kind\0\u{1}details\0\u{3}subject_type\0\u{3}subject_id\0\u{1}status\0\u{1}resolution\0\u{3}created_at\0\u{3}last_updated_at\0\u{3}archived_at\0\u{3}closed_at\0")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -131,16 +160,18 @@ extension IssueReports_IssueReport: SwiftProtobuf.Message, SwiftProtobuf._Messag
       // allocates stack space for every case branch when no optimizations are
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
-      case 1: try { try decoder.decodeSingularMessageField(value: &self._createdAt) }()
-      case 2: try { try decoder.decodeSingularMessageField(value: &self._archivedAt) }()
-      case 3: try { try decoder.decodeSingularMessageField(value: &self._lastUpdatedAt) }()
-      case 4: try { try decoder.decodeSingularStringField(value: &self.id) }()
-      case 5: try { try decoder.decodeSingularStringField(value: &self.issueType) }()
-      case 6: try { try decoder.decodeSingularStringField(value: &self.details) }()
-      case 7: try { try decoder.decodeSingularStringField(value: &self.relevantTable) }()
-      case 8: try { try decoder.decodeSingularStringField(value: &self.relevantRecordID) }()
-      case 9: try { try decoder.decodeSingularStringField(value: &self.createdByUser) }()
-      case 10: try { try decoder.decodeSingularStringField(value: &self.belongsToAccount) }()
+      case 1: try { try decoder.decodeSingularStringField(value: &self.id) }()
+      case 2: try { try decoder.decodeSingularStringField(value: &self.reporter) }()
+      case 3: try { try decoder.decodeSingularStringField(value: &self.kind) }()
+      case 4: try { try decoder.decodeSingularStringField(value: &self.details) }()
+      case 5: try { try decoder.decodeSingularStringField(value: &self.subjectType) }()
+      case 6: try { try decoder.decodeSingularStringField(value: &self.subjectID) }()
+      case 7: try { try decoder.decodeSingularStringField(value: &self.status) }()
+      case 8: try { try decoder.decodeSingularStringField(value: &self.resolution) }()
+      case 9: try { try decoder.decodeSingularMessageField(value: &self._createdAt) }()
+      case 10: try { try decoder.decodeSingularMessageField(value: &self._lastUpdatedAt) }()
+      case 11: try { try decoder.decodeSingularMessageField(value: &self._archivedAt) }()
+      case 12: try { try decoder.decodeSingularMessageField(value: &self._closedAt) }()
       default: break
       }
     }
@@ -151,50 +182,58 @@ extension IssueReports_IssueReport: SwiftProtobuf.Message, SwiftProtobuf._Messag
     // allocates stack space for every if/case branch local when no optimizations
     // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
     // https://github.com/apple/swift-protobuf/issues/1182
-    try { if let v = self._createdAt {
-      try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
-    } }()
-    try { if let v = self._archivedAt {
-      try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
-    } }()
-    try { if let v = self._lastUpdatedAt {
-      try visitor.visitSingularMessageField(value: v, fieldNumber: 3)
-    } }()
     if !self.id.isEmpty {
-      try visitor.visitSingularStringField(value: self.id, fieldNumber: 4)
+      try visitor.visitSingularStringField(value: self.id, fieldNumber: 1)
     }
-    if !self.issueType.isEmpty {
-      try visitor.visitSingularStringField(value: self.issueType, fieldNumber: 5)
+    if !self.reporter.isEmpty {
+      try visitor.visitSingularStringField(value: self.reporter, fieldNumber: 2)
+    }
+    if !self.kind.isEmpty {
+      try visitor.visitSingularStringField(value: self.kind, fieldNumber: 3)
     }
     if !self.details.isEmpty {
-      try visitor.visitSingularStringField(value: self.details, fieldNumber: 6)
+      try visitor.visitSingularStringField(value: self.details, fieldNumber: 4)
     }
-    if !self.relevantTable.isEmpty {
-      try visitor.visitSingularStringField(value: self.relevantTable, fieldNumber: 7)
+    if !self.subjectType.isEmpty {
+      try visitor.visitSingularStringField(value: self.subjectType, fieldNumber: 5)
     }
-    if !self.relevantRecordID.isEmpty {
-      try visitor.visitSingularStringField(value: self.relevantRecordID, fieldNumber: 8)
+    if !self.subjectID.isEmpty {
+      try visitor.visitSingularStringField(value: self.subjectID, fieldNumber: 6)
     }
-    if !self.createdByUser.isEmpty {
-      try visitor.visitSingularStringField(value: self.createdByUser, fieldNumber: 9)
+    if !self.status.isEmpty {
+      try visitor.visitSingularStringField(value: self.status, fieldNumber: 7)
     }
-    if !self.belongsToAccount.isEmpty {
-      try visitor.visitSingularStringField(value: self.belongsToAccount, fieldNumber: 10)
+    if !self.resolution.isEmpty {
+      try visitor.visitSingularStringField(value: self.resolution, fieldNumber: 8)
     }
+    try { if let v = self._createdAt {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 9)
+    } }()
+    try { if let v = self._lastUpdatedAt {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 10)
+    } }()
+    try { if let v = self._archivedAt {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 11)
+    } }()
+    try { if let v = self._closedAt {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 12)
+    } }()
     try unknownFields.traverse(visitor: &visitor)
   }
 
   public static func ==(lhs: IssueReports_IssueReport, rhs: IssueReports_IssueReport) -> Bool {
-    if lhs._createdAt != rhs._createdAt {return false}
-    if lhs._archivedAt != rhs._archivedAt {return false}
-    if lhs._lastUpdatedAt != rhs._lastUpdatedAt {return false}
     if lhs.id != rhs.id {return false}
-    if lhs.issueType != rhs.issueType {return false}
+    if lhs.reporter != rhs.reporter {return false}
+    if lhs.kind != rhs.kind {return false}
     if lhs.details != rhs.details {return false}
-    if lhs.relevantTable != rhs.relevantTable {return false}
-    if lhs.relevantRecordID != rhs.relevantRecordID {return false}
-    if lhs.createdByUser != rhs.createdByUser {return false}
-    if lhs.belongsToAccount != rhs.belongsToAccount {return false}
+    if lhs.subjectType != rhs.subjectType {return false}
+    if lhs.subjectID != rhs.subjectID {return false}
+    if lhs.status != rhs.status {return false}
+    if lhs.resolution != rhs.resolution {return false}
+    if lhs._createdAt != rhs._createdAt {return false}
+    if lhs._lastUpdatedAt != rhs._lastUpdatedAt {return false}
+    if lhs._archivedAt != rhs._archivedAt {return false}
+    if lhs._closedAt != rhs._closedAt {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }

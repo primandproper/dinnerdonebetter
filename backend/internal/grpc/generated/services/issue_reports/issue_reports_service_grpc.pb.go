@@ -20,15 +20,16 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	IssueReportsService_AddCommentToIssueReport_FullMethodName   = "/issue_reports.IssueReportsService/AddCommentToIssueReport"
-	IssueReportsService_CreateIssueReport_FullMethodName         = "/issue_reports.IssueReportsService/CreateIssueReport"
-	IssueReportsService_GetIssueReport_FullMethodName            = "/issue_reports.IssueReportsService/GetIssueReport"
-	IssueReportsService_GetIssueReports_FullMethodName           = "/issue_reports.IssueReportsService/GetIssueReports"
-	IssueReportsService_GetIssueReportsForAccount_FullMethodName = "/issue_reports.IssueReportsService/GetIssueReportsForAccount"
-	IssueReportsService_GetIssueReportsForTable_FullMethodName   = "/issue_reports.IssueReportsService/GetIssueReportsForTable"
-	IssueReportsService_GetIssueReportsForRecord_FullMethodName  = "/issue_reports.IssueReportsService/GetIssueReportsForRecord"
-	IssueReportsService_UpdateIssueReport_FullMethodName         = "/issue_reports.IssueReportsService/UpdateIssueReport"
-	IssueReportsService_ArchiveIssueReport_FullMethodName        = "/issue_reports.IssueReportsService/ArchiveIssueReport"
+	IssueReportsService_AddCommentToIssueReport_FullMethodName      = "/issue_reports.IssueReportsService/AddCommentToIssueReport"
+	IssueReportsService_CreateIssueReport_FullMethodName            = "/issue_reports.IssueReportsService/CreateIssueReport"
+	IssueReportsService_GetIssueReport_FullMethodName               = "/issue_reports.IssueReportsService/GetIssueReport"
+	IssueReportsService_GetIssueReports_FullMethodName              = "/issue_reports.IssueReportsService/GetIssueReports"
+	IssueReportsService_GetIssueReportsByStatus_FullMethodName      = "/issue_reports.IssueReportsService/GetIssueReportsByStatus"
+	IssueReportsService_GetIssueReportsBySubjectType_FullMethodName = "/issue_reports.IssueReportsService/GetIssueReportsBySubjectType"
+	IssueReportsService_GetIssueReportsForSubject_FullMethodName    = "/issue_reports.IssueReportsService/GetIssueReportsForSubject"
+	IssueReportsService_UpdateIssueReport_FullMethodName            = "/issue_reports.IssueReportsService/UpdateIssueReport"
+	IssueReportsService_TransitionIssueReport_FullMethodName        = "/issue_reports.IssueReportsService/TransitionIssueReport"
+	IssueReportsService_ArchiveIssueReport_FullMethodName           = "/issue_reports.IssueReportsService/ArchiveIssueReport"
 )
 
 // IssueReportsServiceClient is the client API for IssueReportsService service.
@@ -39,10 +40,11 @@ type IssueReportsServiceClient interface {
 	CreateIssueReport(ctx context.Context, in *CreateIssueReportRequest, opts ...grpc.CallOption) (*CreateIssueReportResponse, error)
 	GetIssueReport(ctx context.Context, in *GetIssueReportRequest, opts ...grpc.CallOption) (*GetIssueReportResponse, error)
 	GetIssueReports(ctx context.Context, in *GetIssueReportsRequest, opts ...grpc.CallOption) (*GetIssueReportsResponse, error)
-	GetIssueReportsForAccount(ctx context.Context, in *GetIssueReportsForAccountRequest, opts ...grpc.CallOption) (*GetIssueReportsForAccountResponse, error)
-	GetIssueReportsForTable(ctx context.Context, in *GetIssueReportsForTableRequest, opts ...grpc.CallOption) (*GetIssueReportsForTableResponse, error)
-	GetIssueReportsForRecord(ctx context.Context, in *GetIssueReportsForRecordRequest, opts ...grpc.CallOption) (*GetIssueReportsForRecordResponse, error)
+	GetIssueReportsByStatus(ctx context.Context, in *GetIssueReportsByStatusRequest, opts ...grpc.CallOption) (*GetIssueReportsByStatusResponse, error)
+	GetIssueReportsBySubjectType(ctx context.Context, in *GetIssueReportsBySubjectTypeRequest, opts ...grpc.CallOption) (*GetIssueReportsBySubjectTypeResponse, error)
+	GetIssueReportsForSubject(ctx context.Context, in *GetIssueReportsForSubjectRequest, opts ...grpc.CallOption) (*GetIssueReportsForSubjectResponse, error)
 	UpdateIssueReport(ctx context.Context, in *UpdateIssueReportRequest, opts ...grpc.CallOption) (*UpdateIssueReportResponse, error)
+	TransitionIssueReport(ctx context.Context, in *TransitionIssueReportRequest, opts ...grpc.CallOption) (*TransitionIssueReportResponse, error)
 	ArchiveIssueReport(ctx context.Context, in *ArchiveIssueReportRequest, opts ...grpc.CallOption) (*ArchiveIssueReportResponse, error)
 }
 
@@ -94,30 +96,30 @@ func (c *issueReportsServiceClient) GetIssueReports(ctx context.Context, in *Get
 	return out, nil
 }
 
-func (c *issueReportsServiceClient) GetIssueReportsForAccount(ctx context.Context, in *GetIssueReportsForAccountRequest, opts ...grpc.CallOption) (*GetIssueReportsForAccountResponse, error) {
+func (c *issueReportsServiceClient) GetIssueReportsByStatus(ctx context.Context, in *GetIssueReportsByStatusRequest, opts ...grpc.CallOption) (*GetIssueReportsByStatusResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetIssueReportsForAccountResponse)
-	err := c.cc.Invoke(ctx, IssueReportsService_GetIssueReportsForAccount_FullMethodName, in, out, cOpts...)
+	out := new(GetIssueReportsByStatusResponse)
+	err := c.cc.Invoke(ctx, IssueReportsService_GetIssueReportsByStatus_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *issueReportsServiceClient) GetIssueReportsForTable(ctx context.Context, in *GetIssueReportsForTableRequest, opts ...grpc.CallOption) (*GetIssueReportsForTableResponse, error) {
+func (c *issueReportsServiceClient) GetIssueReportsBySubjectType(ctx context.Context, in *GetIssueReportsBySubjectTypeRequest, opts ...grpc.CallOption) (*GetIssueReportsBySubjectTypeResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetIssueReportsForTableResponse)
-	err := c.cc.Invoke(ctx, IssueReportsService_GetIssueReportsForTable_FullMethodName, in, out, cOpts...)
+	out := new(GetIssueReportsBySubjectTypeResponse)
+	err := c.cc.Invoke(ctx, IssueReportsService_GetIssueReportsBySubjectType_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *issueReportsServiceClient) GetIssueReportsForRecord(ctx context.Context, in *GetIssueReportsForRecordRequest, opts ...grpc.CallOption) (*GetIssueReportsForRecordResponse, error) {
+func (c *issueReportsServiceClient) GetIssueReportsForSubject(ctx context.Context, in *GetIssueReportsForSubjectRequest, opts ...grpc.CallOption) (*GetIssueReportsForSubjectResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetIssueReportsForRecordResponse)
-	err := c.cc.Invoke(ctx, IssueReportsService_GetIssueReportsForRecord_FullMethodName, in, out, cOpts...)
+	out := new(GetIssueReportsForSubjectResponse)
+	err := c.cc.Invoke(ctx, IssueReportsService_GetIssueReportsForSubject_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -128,6 +130,16 @@ func (c *issueReportsServiceClient) UpdateIssueReport(ctx context.Context, in *U
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(UpdateIssueReportResponse)
 	err := c.cc.Invoke(ctx, IssueReportsService_UpdateIssueReport_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *issueReportsServiceClient) TransitionIssueReport(ctx context.Context, in *TransitionIssueReportRequest, opts ...grpc.CallOption) (*TransitionIssueReportResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TransitionIssueReportResponse)
+	err := c.cc.Invoke(ctx, IssueReportsService_TransitionIssueReport_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -152,10 +164,11 @@ type IssueReportsServiceServer interface {
 	CreateIssueReport(context.Context, *CreateIssueReportRequest) (*CreateIssueReportResponse, error)
 	GetIssueReport(context.Context, *GetIssueReportRequest) (*GetIssueReportResponse, error)
 	GetIssueReports(context.Context, *GetIssueReportsRequest) (*GetIssueReportsResponse, error)
-	GetIssueReportsForAccount(context.Context, *GetIssueReportsForAccountRequest) (*GetIssueReportsForAccountResponse, error)
-	GetIssueReportsForTable(context.Context, *GetIssueReportsForTableRequest) (*GetIssueReportsForTableResponse, error)
-	GetIssueReportsForRecord(context.Context, *GetIssueReportsForRecordRequest) (*GetIssueReportsForRecordResponse, error)
+	GetIssueReportsByStatus(context.Context, *GetIssueReportsByStatusRequest) (*GetIssueReportsByStatusResponse, error)
+	GetIssueReportsBySubjectType(context.Context, *GetIssueReportsBySubjectTypeRequest) (*GetIssueReportsBySubjectTypeResponse, error)
+	GetIssueReportsForSubject(context.Context, *GetIssueReportsForSubjectRequest) (*GetIssueReportsForSubjectResponse, error)
 	UpdateIssueReport(context.Context, *UpdateIssueReportRequest) (*UpdateIssueReportResponse, error)
+	TransitionIssueReport(context.Context, *TransitionIssueReportRequest) (*TransitionIssueReportResponse, error)
 	ArchiveIssueReport(context.Context, *ArchiveIssueReportRequest) (*ArchiveIssueReportResponse, error)
 	mustEmbedUnimplementedIssueReportsServiceServer()
 }
@@ -179,17 +192,20 @@ func (UnimplementedIssueReportsServiceServer) GetIssueReport(context.Context, *G
 func (UnimplementedIssueReportsServiceServer) GetIssueReports(context.Context, *GetIssueReportsRequest) (*GetIssueReportsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetIssueReports not implemented")
 }
-func (UnimplementedIssueReportsServiceServer) GetIssueReportsForAccount(context.Context, *GetIssueReportsForAccountRequest) (*GetIssueReportsForAccountResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetIssueReportsForAccount not implemented")
+func (UnimplementedIssueReportsServiceServer) GetIssueReportsByStatus(context.Context, *GetIssueReportsByStatusRequest) (*GetIssueReportsByStatusResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetIssueReportsByStatus not implemented")
 }
-func (UnimplementedIssueReportsServiceServer) GetIssueReportsForTable(context.Context, *GetIssueReportsForTableRequest) (*GetIssueReportsForTableResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetIssueReportsForTable not implemented")
+func (UnimplementedIssueReportsServiceServer) GetIssueReportsBySubjectType(context.Context, *GetIssueReportsBySubjectTypeRequest) (*GetIssueReportsBySubjectTypeResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetIssueReportsBySubjectType not implemented")
 }
-func (UnimplementedIssueReportsServiceServer) GetIssueReportsForRecord(context.Context, *GetIssueReportsForRecordRequest) (*GetIssueReportsForRecordResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetIssueReportsForRecord not implemented")
+func (UnimplementedIssueReportsServiceServer) GetIssueReportsForSubject(context.Context, *GetIssueReportsForSubjectRequest) (*GetIssueReportsForSubjectResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetIssueReportsForSubject not implemented")
 }
 func (UnimplementedIssueReportsServiceServer) UpdateIssueReport(context.Context, *UpdateIssueReportRequest) (*UpdateIssueReportResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateIssueReport not implemented")
+}
+func (UnimplementedIssueReportsServiceServer) TransitionIssueReport(context.Context, *TransitionIssueReportRequest) (*TransitionIssueReportResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method TransitionIssueReport not implemented")
 }
 func (UnimplementedIssueReportsServiceServer) ArchiveIssueReport(context.Context, *ArchiveIssueReportRequest) (*ArchiveIssueReportResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ArchiveIssueReport not implemented")
@@ -287,56 +303,56 @@ func _IssueReportsService_GetIssueReports_Handler(srv interface{}, ctx context.C
 	return interceptor(ctx, in, info, handler)
 }
 
-func _IssueReportsService_GetIssueReportsForAccount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetIssueReportsForAccountRequest)
+func _IssueReportsService_GetIssueReportsByStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetIssueReportsByStatusRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(IssueReportsServiceServer).GetIssueReportsForAccount(ctx, in)
+		return srv.(IssueReportsServiceServer).GetIssueReportsByStatus(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: IssueReportsService_GetIssueReportsForAccount_FullMethodName,
+		FullMethod: IssueReportsService_GetIssueReportsByStatus_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(IssueReportsServiceServer).GetIssueReportsForAccount(ctx, req.(*GetIssueReportsForAccountRequest))
+		return srv.(IssueReportsServiceServer).GetIssueReportsByStatus(ctx, req.(*GetIssueReportsByStatusRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _IssueReportsService_GetIssueReportsForTable_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetIssueReportsForTableRequest)
+func _IssueReportsService_GetIssueReportsBySubjectType_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetIssueReportsBySubjectTypeRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(IssueReportsServiceServer).GetIssueReportsForTable(ctx, in)
+		return srv.(IssueReportsServiceServer).GetIssueReportsBySubjectType(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: IssueReportsService_GetIssueReportsForTable_FullMethodName,
+		FullMethod: IssueReportsService_GetIssueReportsBySubjectType_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(IssueReportsServiceServer).GetIssueReportsForTable(ctx, req.(*GetIssueReportsForTableRequest))
+		return srv.(IssueReportsServiceServer).GetIssueReportsBySubjectType(ctx, req.(*GetIssueReportsBySubjectTypeRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _IssueReportsService_GetIssueReportsForRecord_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetIssueReportsForRecordRequest)
+func _IssueReportsService_GetIssueReportsForSubject_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetIssueReportsForSubjectRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(IssueReportsServiceServer).GetIssueReportsForRecord(ctx, in)
+		return srv.(IssueReportsServiceServer).GetIssueReportsForSubject(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: IssueReportsService_GetIssueReportsForRecord_FullMethodName,
+		FullMethod: IssueReportsService_GetIssueReportsForSubject_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(IssueReportsServiceServer).GetIssueReportsForRecord(ctx, req.(*GetIssueReportsForRecordRequest))
+		return srv.(IssueReportsServiceServer).GetIssueReportsForSubject(ctx, req.(*GetIssueReportsForSubjectRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -355,6 +371,24 @@ func _IssueReportsService_UpdateIssueReport_Handler(srv interface{}, ctx context
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(IssueReportsServiceServer).UpdateIssueReport(ctx, req.(*UpdateIssueReportRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IssueReportsService_TransitionIssueReport_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TransitionIssueReportRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IssueReportsServiceServer).TransitionIssueReport(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IssueReportsService_TransitionIssueReport_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IssueReportsServiceServer).TransitionIssueReport(ctx, req.(*TransitionIssueReportRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -401,20 +435,24 @@ var IssueReportsService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _IssueReportsService_GetIssueReports_Handler,
 		},
 		{
-			MethodName: "GetIssueReportsForAccount",
-			Handler:    _IssueReportsService_GetIssueReportsForAccount_Handler,
+			MethodName: "GetIssueReportsByStatus",
+			Handler:    _IssueReportsService_GetIssueReportsByStatus_Handler,
 		},
 		{
-			MethodName: "GetIssueReportsForTable",
-			Handler:    _IssueReportsService_GetIssueReportsForTable_Handler,
+			MethodName: "GetIssueReportsBySubjectType",
+			Handler:    _IssueReportsService_GetIssueReportsBySubjectType_Handler,
 		},
 		{
-			MethodName: "GetIssueReportsForRecord",
-			Handler:    _IssueReportsService_GetIssueReportsForRecord_Handler,
+			MethodName: "GetIssueReportsForSubject",
+			Handler:    _IssueReportsService_GetIssueReportsForSubject_Handler,
 		},
 		{
 			MethodName: "UpdateIssueReport",
 			Handler:    _IssueReportsService_UpdateIssueReport_Handler,
+		},
+		{
+			MethodName: "TransitionIssueReport",
+			Handler:    _IssueReportsService_TransitionIssueReport_Handler,
 		},
 		{
 			MethodName: "ArchiveIssueReport",

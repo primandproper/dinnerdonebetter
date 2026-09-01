@@ -83,7 +83,6 @@ func main() {
 		"notifications/sqlc_queries/user_notifications":                          buildUserNotificationQueries(databaseToUse),
 		"waitlists/sqlc_queries/waitlists":                                       buildWaitlistsQueries(databaseToUse),
 		"waitlists/sqlc_queries/waitlist_signups":                                buildWaitlistSignupsQueries(databaseToUse),
-		"issuereports/sqlc_queries/issue_reports":                                buildIssueReportsQueries(databaseToUse),
 		"payments/sqlc_queries/products":                                         buildPaymentsProductsQueries(databaseToUse),
 		"payments/sqlc_queries/subscriptions":                                    buildPaymentsSubscriptionsQueries(databaseToUse),
 		"payments/sqlc_queries/purchases":                                        buildPaymentsPurchasesQueries(databaseToUse),

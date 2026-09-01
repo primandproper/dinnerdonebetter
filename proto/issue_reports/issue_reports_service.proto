@@ -11,9 +11,10 @@ service IssueReportsService {
   rpc CreateIssueReport(CreateIssueReportRequest) returns (CreateIssueReportResponse);
   rpc GetIssueReport(GetIssueReportRequest) returns (GetIssueReportResponse);
   rpc GetIssueReports(GetIssueReportsRequest) returns (GetIssueReportsResponse);
-  rpc GetIssueReportsForAccount(GetIssueReportsForAccountRequest) returns (GetIssueReportsForAccountResponse);
-  rpc GetIssueReportsForTable(GetIssueReportsForTableRequest) returns (GetIssueReportsForTableResponse);
-  rpc GetIssueReportsForRecord(GetIssueReportsForRecordRequest) returns (GetIssueReportsForRecordResponse);
+  rpc GetIssueReportsByStatus(GetIssueReportsByStatusRequest) returns (GetIssueReportsByStatusResponse);
+  rpc GetIssueReportsBySubjectType(GetIssueReportsBySubjectTypeRequest) returns (GetIssueReportsBySubjectTypeResponse);
+  rpc GetIssueReportsForSubject(GetIssueReportsForSubjectRequest) returns (GetIssueReportsForSubjectResponse);
   rpc UpdateIssueReport(UpdateIssueReportRequest) returns (UpdateIssueReportResponse);
+  rpc TransitionIssueReport(TransitionIssueReportRequest) returns (TransitionIssueReportResponse);
   rpc ArchiveIssueReport(ArchiveIssueReportRequest) returns (ArchiveIssueReportResponse);
 }

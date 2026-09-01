@@ -10,17 +10,22 @@ import "primandproper/platform/filtering/v1/filtering.proto";
 option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/issue_reports";
 
 message IssueReportCreationRequestInput {
-  string issue_type = 1;
+  string kind = 1;
   string details = 2;
-  string relevant_table = 3;
-  string relevant_record_id = 4;
+  string subject_type = 3;
+  string subject_id = 4;
 }
 
+// IssueReportUpdateRequestInput revises what the reporter said. It cannot move
+// the status: the lifecycle has one door and it is TransitionIssueReport, which
+// names the status the caller believed the report was in. A whole-row write that
+// also assigned the status would be a revision that silently reopened a report
+// somebody had just resolved.
 message IssueReportUpdateRequestInput {
-  optional string issue_type = 1;
+  optional string kind = 1;
   optional string details = 2;
-  optional string relevant_table = 3;
-  optional string relevant_record_id = 4;
+  optional string subject_type = 3;
+  optional string subject_id = 4;
 }
 
 message CreateIssueReportRequest {
@@ -41,6 +46,9 @@ message GetIssueReportResponse {
   IssueReport result = 2;
 }
 
+// GetIssueReportsRequest pages the active account's reports. There is no
+// cross-account listing: an issue report belongs to the account it was filed
+// under, and reading one is an account member permission.
 message GetIssueReportsRequest {
   primandproper.platform.filtering.v1.QueryFilter filter = 1;
 }
@@ -51,35 +59,45 @@ message GetIssueReportsResponse {
   repeated IssueReport results = 3;
 }
 
-message GetIssueReportsForAccountRequest {
-  string account_id = 1;
+// GetIssueReportsByStatusRequest is the triage queue: everything in one status.
+message GetIssueReportsByStatusRequest {
+  // status is one of open, acknowledged, resolved, declined. One this service
+  // does not serve is refused rather than answered with an empty page, because
+  // an empty page is what a misspelled queue looks like.
+  string status = 1;
   primandproper.platform.filtering.v1.QueryFilter filter = 2;
 }
 
-message GetIssueReportsForAccountResponse {
+message GetIssueReportsByStatusResponse {
+  common.ResponseDetails response_details = 1;
+  // pagination's filtered count is of everything in that status, not of this
+  // page — it is the count a console renders beside the queue.
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
+  repeated IssueReport results = 3;
+}
+
+// GetIssueReportsBySubjectTypeRequest reads every report about one kind of
+// thing: "everything anybody has said about recipes".
+message GetIssueReportsBySubjectTypeRequest {
+  string subject_type = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 2;
+}
+
+message GetIssueReportsBySubjectTypeResponse {
   common.ResponseDetails response_details = 1;
   primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated IssueReport results = 3;
 }
 
-message GetIssueReportsForTableRequest {
-  string table_name = 1;
-  primandproper.platform.filtering.v1.QueryFilter filter = 2;
-}
-
-message GetIssueReportsForTableResponse {
-  common.ResponseDetails response_details = 1;
-  primandproper.platform.filtering.v1.Pagination pagination = 2;
-  repeated IssueReport results = 3;
-}
-
-message GetIssueReportsForRecordRequest {
-  string table_name = 1;
-  string record_id = 2;
+// GetIssueReportsForSubjectRequest reads every report about one particular
+// thing.
+message GetIssueReportsForSubjectRequest {
+  string subject_type = 1;
+  string subject_id = 2;
   primandproper.platform.filtering.v1.QueryFilter filter = 3;
 }
 
-message GetIssueReportsForRecordResponse {
+message GetIssueReportsForSubjectResponse {
   common.ResponseDetails response_details = 1;
   primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated IssueReport results = 3;
@@ -93,6 +111,26 @@ message UpdateIssueReportRequest {
 message UpdateIssueReportResponse {
   common.ResponseDetails response_details = 1;
   IssueReport updated = 2;
+}
+
+// TransitionIssueReportRequest moves a report through the triage lifecycle.
+message TransitionIssueReportRequest {
+  string issue_report_id = 1;
+  // from_status is the status the caller believes the report is in, and it is
+  // sent rather than read server-side because that is what makes the move safe
+  // under concurrency: the statement requires the row to still hold it. Two
+  // triagers resolving the same report means one of them is told the report
+  // moved rather than both being told they won.
+  string from_status = 2;
+  string to_status = 3;
+  // resolution is the note a triager leaves. A move into a terminal status
+  // stores it; a move out of one clears it.
+  string resolution = 4;
+}
+
+message TransitionIssueReportResponse {
+  common.ResponseDetails response_details = 1;
+  IssueReport result = 2;
 }
 
 message ArchiveIssueReportRequest {

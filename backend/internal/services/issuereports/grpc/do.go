@@ -1,10 +1,10 @@
 package grpc
 
 import (
-	issuereportsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports/manager"
 	issuereportssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/issue_reports"
 
 	comments "github.com/primandproper/platform-go/v13/comments"
+	issuereports "github.com/primandproper/platform-go/v13/issuereports"
 	"github.com/primandproper/platform-go/v13/observability/logging"
 	"github.com/primandproper/platform-go/v13/observability/tracing"
 
@@ -21,7 +21,7 @@ func RegisterIssueReportsService(i do.Injector) {
 		return NewService(
 			do.MustInvoke[logging.Logger](i),
 			do.MustInvoke[tracing.Provider](i),
-			do.MustInvoke[issuereportsmanager.IssueReportsDataManager](i),
+			do.MustInvoke[issuereports.Store](i),
 			do.MustInvoke[comments.Store](i),
 		), nil
 	})

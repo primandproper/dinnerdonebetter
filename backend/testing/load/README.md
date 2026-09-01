@@ -86,7 +86,7 @@ Read-only only. Setup fetches `account_id` and `user_id` via GetActiveAccount/Ge
 
 **Notifications:** GetUserNotifications, GetUserDeviceTokens
 
-**Issue reports:** GetIssueReports, GetIssueReportsForAccount, GetIssueReportsForTable
+**Issue reports:** GetIssueReports, GetIssueReportsByStatus, GetIssueReportsBySubjectType
 
 **Auth:** GetAuthStatus, GetActiveAccount, GetSelf
 

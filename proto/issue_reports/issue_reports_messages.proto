@@ -10,15 +10,34 @@ message DataCollection {
   map<string, IssueReport> issue_reports = 1;
 }
 
+// IssueReport is one thing somebody told us was wrong, and where that report
+// stands.
 message IssueReport {
-  google.protobuf.Timestamp created_at = 1;
-  google.protobuf.Timestamp archived_at = 2;
-  google.protobuf.Timestamp last_updated_at = 3;
-  string id = 4;
-  string issue_type = 5;
-  string details = 6;
-  string relevant_table = 7;
-  string relevant_record_id = 8;
-  string created_by_user = 9;
-  string belongs_to_account = 10;
+  string id = 1;
+  // reporter is the ID of the user who filed it.
+  string reporter = 2;
+  // kind is the category the report was filed under — bug, feature_request,
+  // data_quality, performance, other. A triage queue groups and routes by it.
+  string kind = 3;
+  // details is what the person actually said.
+  string details = 4;
+  // subject_type is what the report is about, as the owning domain spells it.
+  // Empty is a report about the product in general.
+  string subject_type = 5;
+  // subject_id is which one of them. Empty is a report about a kind of thing
+  // rather than about one of them.
+  string subject_id = 6;
+  // status is where the report stands: open, acknowledged, resolved or
+  // declined. It moves only through TransitionIssueReport.
+  string status = 7;
+  // resolution is why the report is in the terminal status it is in — the note
+  // a triager left when they resolved or declined it. Reopening clears it.
+  string resolution = 8;
+  google.protobuf.Timestamp created_at = 9;
+  google.protobuf.Timestamp last_updated_at = 10;
+  google.protobuf.Timestamp archived_at = 11;
+  // closed_at is when the report reached a terminal status, and unset while it
+  // is still open or acknowledged. It is what a time-to-resolution number is
+  // measured to; a boolean beside status would not answer "when".
+  google.protobuf.Timestamp closed_at = 12;
 }

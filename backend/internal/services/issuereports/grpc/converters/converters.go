@@ -1,82 +1,128 @@
 package converters
 
 import (
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports"
+	ddbissuereports "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports"
 	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/converters"
 	issuereportssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/issue_reports"
 
-	"github.com/primandproper/platform-go/v13/identifiers"
+	issuereports "github.com/primandproper/platform-go/v13/issuereports"
 )
 
-func ConvertIssueReportToGRPCIssueReport(issueReport *issuereports.IssueReport) *issuereportssvc.IssueReport {
+// ConvertIssueReportToGRPCIssueReport converts a stored report to proto.
+//
+// The scope is deliberately not on the wire. It is the account the report was
+// filed under, every read is already restricted to the caller's account, and a
+// client that could see the column would be a client that could tell one account
+// from another by looking at a report.
+func ConvertIssueReportToGRPCIssueReport(input *issuereports.Report) *issuereportssvc.IssueReport {
+	if input == nil {
+		return nil
+	}
+
 	return &issuereportssvc.IssueReport{
-		CreatedAt:        grpcconverters.ConvertTimeToPBTimestamp(issueReport.CreatedAt),
-		ArchivedAt:       grpcconverters.ConvertTimePointerToPBTimestamp(issueReport.ArchivedAt),
-		LastUpdatedAt:    grpcconverters.ConvertTimePointerToPBTimestamp(issueReport.LastUpdatedAt),
-		Id:               issueReport.ID,
-		IssueType:        issueReport.IssueType,
-		Details:          issueReport.Details,
-		RelevantTable:    issueReport.RelevantTable,
-		RelevantRecordId: issueReport.RelevantRecordID,
-		CreatedByUser:    issueReport.CreatedByUser,
-		BelongsToAccount: issueReport.BelongsToAccount,
+		Id:            input.ID,
+		Reporter:      input.Reporter,
+		Kind:          input.Kind,
+		Details:       input.Details,
+		SubjectType:   input.SubjectType,
+		SubjectId:     input.SubjectID,
+		Status:        input.Status.String(),
+		Resolution:    input.Resolution,
+		CreatedAt:     grpcconverters.ConvertTimeToPBTimestamp(input.CreatedAt),
+		LastUpdatedAt: grpcconverters.ConvertTimePointerToPBTimestamp(input.LastUpdatedAt),
+		ArchivedAt:    grpcconverters.ConvertTimePointerToPBTimestamp(input.ArchivedAt),
+		ClosedAt:      grpcconverters.ConvertTimePointerToPBTimestamp(input.ClosedAt),
 	}
 }
 
-func ConvertGRPCIssueReportToIssueReport(issueReport *issuereportssvc.IssueReport) *issuereports.IssueReport {
-	return &issuereports.IssueReport{
-		CreatedAt:        grpcconverters.ConvertPBTimestampToTime(issueReport.CreatedAt),
-		ArchivedAt:       grpcconverters.ConvertPBTimestampToTimePointer(issueReport.ArchivedAt),
-		LastUpdatedAt:    grpcconverters.ConvertPBTimestampToTimePointer(issueReport.LastUpdatedAt),
-		ID:               issueReport.Id,
-		IssueType:        issueReport.IssueType,
-		Details:          issueReport.Details,
-		RelevantTable:    issueReport.RelevantTable,
-		RelevantRecordID: issueReport.RelevantRecordId,
-		CreatedByUser:    issueReport.CreatedByUser,
-		BelongsToAccount: issueReport.BelongsToAccount,
+// ConvertGRPCIssueReportToIssueReport converts a proto report back to the
+// platform's, for a client asserting against what it was handed.
+func ConvertGRPCIssueReportToIssueReport(input *issuereportssvc.IssueReport) *issuereports.Report {
+	if input == nil {
+		return nil
+	}
+
+	return &issuereports.Report{
+		ID:            input.GetId(),
+		Reporter:      input.GetReporter(),
+		Kind:          input.GetKind(),
+		Details:       input.GetDetails(),
+		SubjectType:   input.GetSubjectType(),
+		SubjectID:     input.GetSubjectId(),
+		Status:        issuereports.Status(input.GetStatus()),
+		Resolution:    input.GetResolution(),
+		CreatedAt:     grpcconverters.ConvertPBTimestampToTime(input.GetCreatedAt()),
+		LastUpdatedAt: grpcconverters.ConvertPBTimestampToTimePointer(input.GetLastUpdatedAt()),
+		ArchivedAt:    grpcconverters.ConvertPBTimestampToTimePointer(input.GetArchivedAt()),
+		ClosedAt:      grpcconverters.ConvertPBTimestampToTimePointer(input.GetClosedAt()),
 	}
 }
 
-func ConvertGRPCIssueReportCreationRequestInputToIssueReportDatabaseCreationInput(input *issuereportssvc.IssueReportCreationRequestInput, userID, accountID string) *issuereports.IssueReportDatabaseCreationInput {
-	return &issuereports.IssueReportDatabaseCreationInput{
-		ID:               identifiers.New(),
-		IssueType:        input.IssueType,
-		Details:          input.Details,
-		RelevantTable:    input.RelevantTable,
-		RelevantRecordID: input.RelevantRecordId,
-		CreatedByUser:    userID,
-		BelongsToAccount: accountID,
+// ConvertGRPCIssueReportCreationRequestInputToIssueReport builds the report the
+// store writes from what the client sent.
+//
+// The reporter and the scope are parameters rather than fields on the input,
+// because both come from the authenticated session: a report that could name its
+// own reporter is a report anybody could file as anybody, and one that could name
+// its own scope is one anybody could file into another account's queue. The
+// status is left unset, because a report is born open and the store refuses one
+// that arrives in any other status.
+func ConvertGRPCIssueReportCreationRequestInputToIssueReport(input *issuereportssvc.IssueReportCreationRequestInput, reporter, accountID string) *issuereports.Report {
+	if input == nil {
+		return nil
+	}
+
+	return &issuereports.Report{
+		Reporter:    reporter,
+		Kind:        input.GetKind(),
+		Details:     input.GetDetails(),
+		SubjectType: input.GetSubjectType(),
+		SubjectID:   input.GetSubjectId(),
+		Scope:       ddbissuereports.Scope(accountID),
 	}
 }
 
-func ConvertIssueReportCreationRequestInputToGRPCIssueReportCreationRequestInput(input *issuereports.IssueReportCreationRequestInput) *issuereportssvc.IssueReportCreationRequestInput {
+// ConvertIssueReportToGRPCIssueReportCreationRequestInput builds the creation
+// input a client would have sent to produce this report. It is what the
+// integration suite files its fakes with.
+func ConvertIssueReportToGRPCIssueReportCreationRequestInput(input *issuereports.Report) *issuereportssvc.IssueReportCreationRequestInput {
+	if input == nil {
+		return nil
+	}
+
 	return &issuereportssvc.IssueReportCreationRequestInput{
-		IssueType:        input.IssueType,
-		Details:          input.Details,
-		RelevantTable:    input.RelevantTable,
-		RelevantRecordId: input.RelevantRecordID,
+		Kind:        input.Kind,
+		Details:     input.Details,
+		SubjectType: input.SubjectType,
+		SubjectId:   input.SubjectID,
 	}
 }
 
-func ConvertGRPCIssueReportUpdateRequestInputToIssueReportUpdateRequestInput(input *issuereportssvc.IssueReportUpdateRequestInput) *issuereports.IssueReportUpdateRequestInput {
-	output := &issuereports.IssueReportUpdateRequestInput{}
+// ApplyGRPCIssueReportUpdateRequestInput merges an update input into a report
+// the caller has already read.
+//
+// It is a mutation of the read row rather than a conversion into a fresh one,
+// because platform's UpdateReport takes a whole Report: a value built from the
+// request alone would write empty strings over every field the client did not
+// send.
+func ApplyGRPCIssueReportUpdateRequestInput(report *issuereports.Report, input *issuereportssvc.IssueReportUpdateRequestInput) {
+	if report == nil || input == nil {
+		return
+	}
 
-	if input.IssueType != nil {
-		output.IssueType = input.IssueType
+	if input.Kind != nil {
+		report.Kind = input.GetKind()
 	}
 
 	if input.Details != nil {
-		output.Details = input.Details
+		report.Details = input.GetDetails()
 	}
 
-	if input.RelevantTable != nil {
-		output.RelevantTable = input.RelevantTable
+	if input.SubjectType != nil {
+		report.SubjectType = input.GetSubjectType()
 	}
 
-	if input.RelevantRecordId != nil {
-		output.RelevantRecordID = input.RelevantRecordId
+	if input.SubjectId != nil {
+		report.SubjectID = input.GetSubjectId()
 	}
-
-	return output
 }
