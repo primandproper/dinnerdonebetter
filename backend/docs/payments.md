@@ -63,15 +63,15 @@ flowchart TB
 
 ### Components
 
-| Component               | Location                                   | Role                                                                  |
-|-------------------------|--------------------------------------------|-----------------------------------------------------------------------|
-| **PaymentsDataManager** | `internal/domain/payments/manager/`        | Business logic: products, subscriptions, checkout, webhook processing |
-| **PaymentProcessor**    | `internal/domain/payments/processor.go`    | Interface for provider webhook verification and parsing               |
+| Component               | Location                                   | Role                                                                      |
+|-------------------------|--------------------------------------------|---------------------------------------------------------------------------|
+| **PaymentsDataManager** | `internal/domain/payments/manager/`        | Business logic: products, subscriptions, checkout, webhook processing     |
+| **PaymentProcessor**    | `internal/domain/payments/processor.go`    | Interface for provider webhook verification and parsing                   |
 | **Adapters**            | `internal/services/payments/adapters/`     | Stripe and RevenueCat (both via platform-go `capitalism`), and a dev stub |
-| **Repository**          | `internal/repositories/postgres/payments/` | Persistence for products, subscriptions, purchases, transactions      |
-| **gRPC Service**        | `internal/services/payments/grpc/`         | API for CreateProduct, GetSubscription, etc.                          |
-| **WebhookHandler**      | `internal/services/payments/http/`         | HTTP POST endpoint for provider webhooks                              |
-| **IdentityDataManager** | `internal/domain/identity/manager/`        | Updates account billing fields when subscriptions change              |
+| **Repository**          | `internal/repositories/postgres/payments/` | Persistence for products, subscriptions, purchases, transactions          |
+| **gRPC Service**        | `internal/services/payments/grpc/`         | API for CreateProduct, GetSubscription, etc.                              |
+| **WebhookHandler**      | `internal/services/payments/http/`         | HTTP POST endpoint for provider webhooks                                  |
+| **IdentityDataManager** | `internal/domain/identity/manager/`        | Updates account billing fields when subscriptions change                  |
 
 ---
 
@@ -118,11 +118,11 @@ about HTTP.
 
 ### Implementations
 
-| Implementation                 | Location                                            | Use case                                                                              |
-|--------------------------------|-----------------------------------------------------|---------------------------------------------------------------------------------------|
-| **StripePaymentProcessor**     | `internal/services/payments/adapters/stripe.go`     | Production Stripe. Delegates verification and decoding to platform-go's `capitalism`. |
+| Implementation                 | Location                                            | Use case                                                                                    |
+|--------------------------------|-----------------------------------------------------|---------------------------------------------------------------------------------------------|
+| **StripePaymentProcessor**     | `internal/services/payments/adapters/stripe.go`     | Production Stripe. Delegates verification and decoding to platform-go's `capitalism`.       |
 | **RevenueCatPaymentProcessor** | `internal/services/payments/adapters/revenuecat.go` | Mobile in-app purchases. Delegates verification and decoding to platform-go's `capitalism`. |
-| **StubPaymentProcessor**       | `internal/services/payments/adapters/stub.go`       | Local dev, integration tests. No external calls, accepts all webhooks.                |
+| **StubPaymentProcessor**       | `internal/services/payments/adapters/stub.go`       | Local dev, integration tests. No external calls, accepts all webhooks.                      |
 
 ### The adapters and `capitalism`
 
@@ -238,12 +238,12 @@ not to bill, and it is what selects `StubPaymentProcessor`.
 Each endpoint takes only the provider it is named for; naming the other one is an error rather
 than a swap, because the name in the registry is the name in the webhook URL.
 
-| Environment variable                                                       | Purpose                          |
-|----------------------------------------------------------------------------|----------------------------------|
-| `DINNER_DONE_BETTER_SERVICE_PAYMENTS_CAPITALISM_PROVIDER`                  | `stripe` or `noop`               |
-| `DINNER_DONE_BETTER_SERVICE_PAYMENTS_CAPITALISM_STRIPE_API_KEY`            | Stripe secret key                |
-| `DINNER_DONE_BETTER_SERVICE_PAYMENTS_CAPITALISM_STRIPE_WEBHOOK_SECRET`     | Stripe webhook signing secret    |
-| `DINNER_DONE_BETTER_SERVICE_PAYMENTS_MOBILE_PROVIDER`                      | `revenuecat` or `noop`           |
+| Environment variable                                                       | Purpose                           |
+|----------------------------------------------------------------------------|-----------------------------------|
+| `DINNER_DONE_BETTER_SERVICE_PAYMENTS_CAPITALISM_PROVIDER`                  | `stripe` or `noop`                |
+| `DINNER_DONE_BETTER_SERVICE_PAYMENTS_CAPITALISM_STRIPE_API_KEY`            | Stripe secret key                 |
+| `DINNER_DONE_BETTER_SERVICE_PAYMENTS_CAPITALISM_STRIPE_WEBHOOK_SECRET`     | Stripe webhook signing secret     |
+| `DINNER_DONE_BETTER_SERVICE_PAYMENTS_MOBILE_PROVIDER`                      | `revenuecat` or `noop`            |
 | `DINNER_DONE_BETTER_SERVICE_PAYMENTS_CAPITALISM_REVENUECAT_WEBHOOK_SECRET` | RevenueCat webhook signing secret |
 
 All generated environment configs ship with both providers set to `noop`; change them in
