@@ -26,7 +26,6 @@ import (
 	ddbdataprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	identityprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/privacy"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports"
 	issuereportsprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports/privacy"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/privacy"
@@ -50,6 +49,7 @@ import (
 	"github.com/primandproper/platform-go/v13/dataprivacy/auditerasure"
 	platformdataprivacycfg "github.com/primandproper/platform-go/v13/dataprivacy/config"
 	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	issuereports "github.com/primandproper/platform-go/v13/issuereports"
 	"github.com/primandproper/platform-go/v13/observability/logging"
 	"github.com/primandproper/platform-go/v13/observability/metrics"
 	"github.com/primandproper/platform-go/v13/observability/tracing"
@@ -92,6 +92,12 @@ func buildRegistry(i do.Injector) (*platformdataprivacy.Registry, error) {
 		return nil, commentsErr
 	}
 
+	issueReportsCollector, issueReportsErr := issuereportsprivacy.NewCollector(
+		do.MustInvoke[issuereports.Store](i), resolveAccounts)
+	if issueReportsErr != nil {
+		return nil, platformerrors.Wrap(issueReportsErr, "building the issue reports data privacy collector")
+	}
+
 	// Four of these take a repository and nothing else, because a collector whose
 	// whole body is "page one list read and encode the rows" is
 	// platformdataprivacy.CollectorFor and has no observability of its own to do.
@@ -114,9 +120,8 @@ func buildRegistry(i do.Injector) (*platformdataprivacy.Registry, error) {
 			do.MustInvoke[notifications.Repository](i), logger, tracerProvider),
 		ddbdataprivacy.CollectorKeyPayments: paymentsprivacy.NewCollector(
 			do.MustInvoke[payments.Repository](i), resolveAccounts, logger, tracerProvider),
-		ddbdataprivacy.CollectorKeyAuditLog: auditprivacy.NewCollector(do.MustInvoke[auditdomain.Repository](i)),
-		ddbdataprivacy.CollectorKeyIssueReports: issuereportsprivacy.NewCollector(
-			do.MustInvoke[issuereports.Repository](i), resolveAccounts, logger, tracerProvider),
+		ddbdataprivacy.CollectorKeyAuditLog:      auditprivacy.NewCollector(do.MustInvoke[auditdomain.Repository](i)),
+		ddbdataprivacy.CollectorKeyIssueReports:  issueReportsCollector,
 		ddbdataprivacy.CollectorKeyUploadedMedia: uploadedmediaprivacy.NewCollector(do.MustInvoke[uploadsregistry.Store](i)),
 		ddbdataprivacy.CollectorKeyWaitlists:     waitlistsprivacy.NewCollector(do.MustInvoke[waitlists.Repository](i)),
 		ddbdataprivacy.CollectorKeyComments:      commentsCollector,

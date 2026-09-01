@@ -114,7 +114,7 @@ sequenced separately — none is required to compile.
 | `identity` | `postgres/identity` + `identity_*.go` codegen | #306, #317, #341 |
 | `settings` | `postgres/settings` | #388 |
 | ~~`comments`~~ (adopted, #1375) | `postgres/comments` + `domain/comments` + `comments_*.go` codegen | #450 |
-| `issuereports` | `postgres/issuereports` | #449 |
+| ~~`issuereports`~~ (adopted, #1377) | `postgres/issuereports` + `domain/issuereports` + `issuereports_*.go` codegen | #449 |
 | `waitlists` | `postgres/waitlists` | #452 |
 | `billing` | `postgres/payments`, partly | #454 |
 | `notifications` (store half) | `postgres/notifications` | #390, #439 |
@@ -133,8 +133,11 @@ beside the sign-in into the one row a revocation actually removes, so a sign-out
 past; #1373 did it. `comments` was the smallest complete domain, and was taken first as the proof
 that a whole domain — table, types, manager, mocks and generated SQL — can be deleted rather than
 merely re-backed; #1375 did it. `uploads/registry` was the first adoption whose table other
-domains join against, and #1376 is the record of what that costs — see below. `identity` is the
-largest by far and should be its own epic.
+domains join against, and #1376 is the record of what that costs — see below. `issuereports` was
+the first adoption that *added* behavior rather than only re-backing it: the local table had no
+status column at all, so the triage lifecycle — open, acknowledged, resolved, declined, with a
+guarded move between them — arrived with the store; #1377 did it. `identity` is the largest by far
+and should be its own epic.
 
 ## What adopting a *referenced* table costs
 

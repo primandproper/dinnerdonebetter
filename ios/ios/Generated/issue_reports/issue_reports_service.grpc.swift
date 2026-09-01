@@ -68,40 +68,40 @@ internal enum IssueReports_IssueReportsService {
                 method: "GetIssueReports"
             )
         }
-        /// Namespace for "GetIssueReportsForAccount" metadata.
-        internal enum GetIssueReportsForAccount {
-            /// Request type for "GetIssueReportsForAccount".
-            internal typealias Input = IssueReports_GetIssueReportsForAccountRequest
-            /// Response type for "GetIssueReportsForAccount".
-            internal typealias Output = IssueReports_GetIssueReportsForAccountResponse
-            /// Descriptor for "GetIssueReportsForAccount".
+        /// Namespace for "GetIssueReportsByStatus" metadata.
+        internal enum GetIssueReportsByStatus {
+            /// Request type for "GetIssueReportsByStatus".
+            internal typealias Input = IssueReports_GetIssueReportsByStatusRequest
+            /// Response type for "GetIssueReportsByStatus".
+            internal typealias Output = IssueReports_GetIssueReportsByStatusResponse
+            /// Descriptor for "GetIssueReportsByStatus".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "issue_reports.IssueReportsService"),
-                method: "GetIssueReportsForAccount"
+                method: "GetIssueReportsByStatus"
             )
         }
-        /// Namespace for "GetIssueReportsForTable" metadata.
-        internal enum GetIssueReportsForTable {
-            /// Request type for "GetIssueReportsForTable".
-            internal typealias Input = IssueReports_GetIssueReportsForTableRequest
-            /// Response type for "GetIssueReportsForTable".
-            internal typealias Output = IssueReports_GetIssueReportsForTableResponse
-            /// Descriptor for "GetIssueReportsForTable".
+        /// Namespace for "GetIssueReportsBySubjectType" metadata.
+        internal enum GetIssueReportsBySubjectType {
+            /// Request type for "GetIssueReportsBySubjectType".
+            internal typealias Input = IssueReports_GetIssueReportsBySubjectTypeRequest
+            /// Response type for "GetIssueReportsBySubjectType".
+            internal typealias Output = IssueReports_GetIssueReportsBySubjectTypeResponse
+            /// Descriptor for "GetIssueReportsBySubjectType".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "issue_reports.IssueReportsService"),
-                method: "GetIssueReportsForTable"
+                method: "GetIssueReportsBySubjectType"
             )
         }
-        /// Namespace for "GetIssueReportsForRecord" metadata.
-        internal enum GetIssueReportsForRecord {
-            /// Request type for "GetIssueReportsForRecord".
-            internal typealias Input = IssueReports_GetIssueReportsForRecordRequest
-            /// Response type for "GetIssueReportsForRecord".
-            internal typealias Output = IssueReports_GetIssueReportsForRecordResponse
-            /// Descriptor for "GetIssueReportsForRecord".
+        /// Namespace for "GetIssueReportsForSubject" metadata.
+        internal enum GetIssueReportsForSubject {
+            /// Request type for "GetIssueReportsForSubject".
+            internal typealias Input = IssueReports_GetIssueReportsForSubjectRequest
+            /// Response type for "GetIssueReportsForSubject".
+            internal typealias Output = IssueReports_GetIssueReportsForSubjectResponse
+            /// Descriptor for "GetIssueReportsForSubject".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "issue_reports.IssueReportsService"),
-                method: "GetIssueReportsForRecord"
+                method: "GetIssueReportsForSubject"
             )
         }
         /// Namespace for "UpdateIssueReport" metadata.
@@ -114,6 +114,18 @@ internal enum IssueReports_IssueReportsService {
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "issue_reports.IssueReportsService"),
                 method: "UpdateIssueReport"
+            )
+        }
+        /// Namespace for "TransitionIssueReport" metadata.
+        internal enum TransitionIssueReport {
+            /// Request type for "TransitionIssueReport".
+            internal typealias Input = IssueReports_TransitionIssueReportRequest
+            /// Response type for "TransitionIssueReport".
+            internal typealias Output = IssueReports_TransitionIssueReportResponse
+            /// Descriptor for "TransitionIssueReport".
+            internal static let descriptor = GRPCCore.MethodDescriptor(
+                service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "issue_reports.IssueReportsService"),
+                method: "TransitionIssueReport"
             )
         }
         /// Namespace for "ArchiveIssueReport" metadata.
@@ -134,10 +146,11 @@ internal enum IssueReports_IssueReportsService {
             CreateIssueReport.descriptor,
             GetIssueReport.descriptor,
             GetIssueReports.descriptor,
-            GetIssueReportsForAccount.descriptor,
-            GetIssueReportsForTable.descriptor,
-            GetIssueReportsForRecord.descriptor,
+            GetIssueReportsByStatus.descriptor,
+            GetIssueReportsBySubjectType.descriptor,
+            GetIssueReportsForSubject.descriptor,
             UpdateIssueReport.descriptor,
+            TransitionIssueReport.descriptor,
             ArchiveIssueReport.descriptor
         ]
     }
@@ -234,61 +247,61 @@ extension IssueReports_IssueReportsService {
             onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<IssueReports_GetIssueReportsResponse>) async throws -> Result
         ) async throws -> Result where Result: Sendable
 
-        /// Call the "GetIssueReportsForAccount" method.
+        /// Call the "GetIssueReportsByStatus" method.
         ///
         /// - Parameters:
-        ///   - request: A request containing a single `IssueReports_GetIssueReportsForAccountRequest` message.
-        ///   - serializer: A serializer for `IssueReports_GetIssueReportsForAccountRequest` messages.
-        ///   - deserializer: A deserializer for `IssueReports_GetIssueReportsForAccountResponse` messages.
+        ///   - request: A request containing a single `IssueReports_GetIssueReportsByStatusRequest` message.
+        ///   - serializer: A serializer for `IssueReports_GetIssueReportsByStatusRequest` messages.
+        ///   - deserializer: A deserializer for `IssueReports_GetIssueReportsByStatusResponse` messages.
         ///   - options: Options to apply to this RPC.
         ///   - handleResponse: A closure which handles the response, the result of which is
         ///       returned to the caller. Returning from the closure will cancel the RPC if it
         ///       hasn't already finished.
         /// - Returns: The result of `handleResponse`.
-        func getIssueReportsForAccount<Result>(
-            request: GRPCCore.ClientRequest<IssueReports_GetIssueReportsForAccountRequest>,
-            serializer: some GRPCCore.MessageSerializer<IssueReports_GetIssueReportsForAccountRequest>,
-            deserializer: some GRPCCore.MessageDeserializer<IssueReports_GetIssueReportsForAccountResponse>,
+        func getIssueReportsByStatus<Result>(
+            request: GRPCCore.ClientRequest<IssueReports_GetIssueReportsByStatusRequest>,
+            serializer: some GRPCCore.MessageSerializer<IssueReports_GetIssueReportsByStatusRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<IssueReports_GetIssueReportsByStatusResponse>,
             options: GRPCCore.CallOptions,
-            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<IssueReports_GetIssueReportsForAccountResponse>) async throws -> Result
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<IssueReports_GetIssueReportsByStatusResponse>) async throws -> Result
         ) async throws -> Result where Result: Sendable
 
-        /// Call the "GetIssueReportsForTable" method.
+        /// Call the "GetIssueReportsBySubjectType" method.
         ///
         /// - Parameters:
-        ///   - request: A request containing a single `IssueReports_GetIssueReportsForTableRequest` message.
-        ///   - serializer: A serializer for `IssueReports_GetIssueReportsForTableRequest` messages.
-        ///   - deserializer: A deserializer for `IssueReports_GetIssueReportsForTableResponse` messages.
+        ///   - request: A request containing a single `IssueReports_GetIssueReportsBySubjectTypeRequest` message.
+        ///   - serializer: A serializer for `IssueReports_GetIssueReportsBySubjectTypeRequest` messages.
+        ///   - deserializer: A deserializer for `IssueReports_GetIssueReportsBySubjectTypeResponse` messages.
         ///   - options: Options to apply to this RPC.
         ///   - handleResponse: A closure which handles the response, the result of which is
         ///       returned to the caller. Returning from the closure will cancel the RPC if it
         ///       hasn't already finished.
         /// - Returns: The result of `handleResponse`.
-        func getIssueReportsForTable<Result>(
-            request: GRPCCore.ClientRequest<IssueReports_GetIssueReportsForTableRequest>,
-            serializer: some GRPCCore.MessageSerializer<IssueReports_GetIssueReportsForTableRequest>,
-            deserializer: some GRPCCore.MessageDeserializer<IssueReports_GetIssueReportsForTableResponse>,
+        func getIssueReportsBySubjectType<Result>(
+            request: GRPCCore.ClientRequest<IssueReports_GetIssueReportsBySubjectTypeRequest>,
+            serializer: some GRPCCore.MessageSerializer<IssueReports_GetIssueReportsBySubjectTypeRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<IssueReports_GetIssueReportsBySubjectTypeResponse>,
             options: GRPCCore.CallOptions,
-            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<IssueReports_GetIssueReportsForTableResponse>) async throws -> Result
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<IssueReports_GetIssueReportsBySubjectTypeResponse>) async throws -> Result
         ) async throws -> Result where Result: Sendable
 
-        /// Call the "GetIssueReportsForRecord" method.
+        /// Call the "GetIssueReportsForSubject" method.
         ///
         /// - Parameters:
-        ///   - request: A request containing a single `IssueReports_GetIssueReportsForRecordRequest` message.
-        ///   - serializer: A serializer for `IssueReports_GetIssueReportsForRecordRequest` messages.
-        ///   - deserializer: A deserializer for `IssueReports_GetIssueReportsForRecordResponse` messages.
+        ///   - request: A request containing a single `IssueReports_GetIssueReportsForSubjectRequest` message.
+        ///   - serializer: A serializer for `IssueReports_GetIssueReportsForSubjectRequest` messages.
+        ///   - deserializer: A deserializer for `IssueReports_GetIssueReportsForSubjectResponse` messages.
         ///   - options: Options to apply to this RPC.
         ///   - handleResponse: A closure which handles the response, the result of which is
         ///       returned to the caller. Returning from the closure will cancel the RPC if it
         ///       hasn't already finished.
         /// - Returns: The result of `handleResponse`.
-        func getIssueReportsForRecord<Result>(
-            request: GRPCCore.ClientRequest<IssueReports_GetIssueReportsForRecordRequest>,
-            serializer: some GRPCCore.MessageSerializer<IssueReports_GetIssueReportsForRecordRequest>,
-            deserializer: some GRPCCore.MessageDeserializer<IssueReports_GetIssueReportsForRecordResponse>,
+        func getIssueReportsForSubject<Result>(
+            request: GRPCCore.ClientRequest<IssueReports_GetIssueReportsForSubjectRequest>,
+            serializer: some GRPCCore.MessageSerializer<IssueReports_GetIssueReportsForSubjectRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<IssueReports_GetIssueReportsForSubjectResponse>,
             options: GRPCCore.CallOptions,
-            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<IssueReports_GetIssueReportsForRecordResponse>) async throws -> Result
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<IssueReports_GetIssueReportsForSubjectResponse>) async throws -> Result
         ) async throws -> Result where Result: Sendable
 
         /// Call the "UpdateIssueReport" method.
@@ -308,6 +321,25 @@ extension IssueReports_IssueReportsService {
             deserializer: some GRPCCore.MessageDeserializer<IssueReports_UpdateIssueReportResponse>,
             options: GRPCCore.CallOptions,
             onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<IssueReports_UpdateIssueReportResponse>) async throws -> Result
+        ) async throws -> Result where Result: Sendable
+
+        /// Call the "TransitionIssueReport" method.
+        ///
+        /// - Parameters:
+        ///   - request: A request containing a single `IssueReports_TransitionIssueReportRequest` message.
+        ///   - serializer: A serializer for `IssueReports_TransitionIssueReportRequest` messages.
+        ///   - deserializer: A deserializer for `IssueReports_TransitionIssueReportResponse` messages.
+        ///   - options: Options to apply to this RPC.
+        ///   - handleResponse: A closure which handles the response, the result of which is
+        ///       returned to the caller. Returning from the closure will cancel the RPC if it
+        ///       hasn't already finished.
+        /// - Returns: The result of `handleResponse`.
+        func transitionIssueReport<Result>(
+            request: GRPCCore.ClientRequest<IssueReports_TransitionIssueReportRequest>,
+            serializer: some GRPCCore.MessageSerializer<IssueReports_TransitionIssueReportRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<IssueReports_TransitionIssueReportResponse>,
+            options: GRPCCore.CallOptions,
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<IssueReports_TransitionIssueReportResponse>) async throws -> Result
         ) async throws -> Result where Result: Sendable
 
         /// Call the "ArchiveIssueReport" method.
@@ -466,29 +498,29 @@ extension IssueReports_IssueReportsService {
             )
         }
 
-        /// Call the "GetIssueReportsForAccount" method.
+        /// Call the "GetIssueReportsByStatus" method.
         ///
         /// - Parameters:
-        ///   - request: A request containing a single `IssueReports_GetIssueReportsForAccountRequest` message.
-        ///   - serializer: A serializer for `IssueReports_GetIssueReportsForAccountRequest` messages.
-        ///   - deserializer: A deserializer for `IssueReports_GetIssueReportsForAccountResponse` messages.
+        ///   - request: A request containing a single `IssueReports_GetIssueReportsByStatusRequest` message.
+        ///   - serializer: A serializer for `IssueReports_GetIssueReportsByStatusRequest` messages.
+        ///   - deserializer: A deserializer for `IssueReports_GetIssueReportsByStatusResponse` messages.
         ///   - options: Options to apply to this RPC.
         ///   - handleResponse: A closure which handles the response, the result of which is
         ///       returned to the caller. Returning from the closure will cancel the RPC if it
         ///       hasn't already finished.
         /// - Returns: The result of `handleResponse`.
-        internal func getIssueReportsForAccount<Result>(
-            request: GRPCCore.ClientRequest<IssueReports_GetIssueReportsForAccountRequest>,
-            serializer: some GRPCCore.MessageSerializer<IssueReports_GetIssueReportsForAccountRequest>,
-            deserializer: some GRPCCore.MessageDeserializer<IssueReports_GetIssueReportsForAccountResponse>,
+        internal func getIssueReportsByStatus<Result>(
+            request: GRPCCore.ClientRequest<IssueReports_GetIssueReportsByStatusRequest>,
+            serializer: some GRPCCore.MessageSerializer<IssueReports_GetIssueReportsByStatusRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<IssueReports_GetIssueReportsByStatusResponse>,
             options: GRPCCore.CallOptions = .defaults,
-            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<IssueReports_GetIssueReportsForAccountResponse>) async throws -> Result = { response in
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<IssueReports_GetIssueReportsByStatusResponse>) async throws -> Result = { response in
                 try response.message
             }
         ) async throws -> Result where Result: Sendable {
             try await self.client.unary(
                 request: request,
-                descriptor: IssueReports_IssueReportsService.Method.GetIssueReportsForAccount.descriptor,
+                descriptor: IssueReports_IssueReportsService.Method.GetIssueReportsByStatus.descriptor,
                 serializer: serializer,
                 deserializer: deserializer,
                 options: options,
@@ -496,29 +528,29 @@ extension IssueReports_IssueReportsService {
             )
         }
 
-        /// Call the "GetIssueReportsForTable" method.
+        /// Call the "GetIssueReportsBySubjectType" method.
         ///
         /// - Parameters:
-        ///   - request: A request containing a single `IssueReports_GetIssueReportsForTableRequest` message.
-        ///   - serializer: A serializer for `IssueReports_GetIssueReportsForTableRequest` messages.
-        ///   - deserializer: A deserializer for `IssueReports_GetIssueReportsForTableResponse` messages.
+        ///   - request: A request containing a single `IssueReports_GetIssueReportsBySubjectTypeRequest` message.
+        ///   - serializer: A serializer for `IssueReports_GetIssueReportsBySubjectTypeRequest` messages.
+        ///   - deserializer: A deserializer for `IssueReports_GetIssueReportsBySubjectTypeResponse` messages.
         ///   - options: Options to apply to this RPC.
         ///   - handleResponse: A closure which handles the response, the result of which is
         ///       returned to the caller. Returning from the closure will cancel the RPC if it
         ///       hasn't already finished.
         /// - Returns: The result of `handleResponse`.
-        internal func getIssueReportsForTable<Result>(
-            request: GRPCCore.ClientRequest<IssueReports_GetIssueReportsForTableRequest>,
-            serializer: some GRPCCore.MessageSerializer<IssueReports_GetIssueReportsForTableRequest>,
-            deserializer: some GRPCCore.MessageDeserializer<IssueReports_GetIssueReportsForTableResponse>,
+        internal func getIssueReportsBySubjectType<Result>(
+            request: GRPCCore.ClientRequest<IssueReports_GetIssueReportsBySubjectTypeRequest>,
+            serializer: some GRPCCore.MessageSerializer<IssueReports_GetIssueReportsBySubjectTypeRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<IssueReports_GetIssueReportsBySubjectTypeResponse>,
             options: GRPCCore.CallOptions = .defaults,
-            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<IssueReports_GetIssueReportsForTableResponse>) async throws -> Result = { response in
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<IssueReports_GetIssueReportsBySubjectTypeResponse>) async throws -> Result = { response in
                 try response.message
             }
         ) async throws -> Result where Result: Sendable {
             try await self.client.unary(
                 request: request,
-                descriptor: IssueReports_IssueReportsService.Method.GetIssueReportsForTable.descriptor,
+                descriptor: IssueReports_IssueReportsService.Method.GetIssueReportsBySubjectType.descriptor,
                 serializer: serializer,
                 deserializer: deserializer,
                 options: options,
@@ -526,29 +558,29 @@ extension IssueReports_IssueReportsService {
             )
         }
 
-        /// Call the "GetIssueReportsForRecord" method.
+        /// Call the "GetIssueReportsForSubject" method.
         ///
         /// - Parameters:
-        ///   - request: A request containing a single `IssueReports_GetIssueReportsForRecordRequest` message.
-        ///   - serializer: A serializer for `IssueReports_GetIssueReportsForRecordRequest` messages.
-        ///   - deserializer: A deserializer for `IssueReports_GetIssueReportsForRecordResponse` messages.
+        ///   - request: A request containing a single `IssueReports_GetIssueReportsForSubjectRequest` message.
+        ///   - serializer: A serializer for `IssueReports_GetIssueReportsForSubjectRequest` messages.
+        ///   - deserializer: A deserializer for `IssueReports_GetIssueReportsForSubjectResponse` messages.
         ///   - options: Options to apply to this RPC.
         ///   - handleResponse: A closure which handles the response, the result of which is
         ///       returned to the caller. Returning from the closure will cancel the RPC if it
         ///       hasn't already finished.
         /// - Returns: The result of `handleResponse`.
-        internal func getIssueReportsForRecord<Result>(
-            request: GRPCCore.ClientRequest<IssueReports_GetIssueReportsForRecordRequest>,
-            serializer: some GRPCCore.MessageSerializer<IssueReports_GetIssueReportsForRecordRequest>,
-            deserializer: some GRPCCore.MessageDeserializer<IssueReports_GetIssueReportsForRecordResponse>,
+        internal func getIssueReportsForSubject<Result>(
+            request: GRPCCore.ClientRequest<IssueReports_GetIssueReportsForSubjectRequest>,
+            serializer: some GRPCCore.MessageSerializer<IssueReports_GetIssueReportsForSubjectRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<IssueReports_GetIssueReportsForSubjectResponse>,
             options: GRPCCore.CallOptions = .defaults,
-            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<IssueReports_GetIssueReportsForRecordResponse>) async throws -> Result = { response in
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<IssueReports_GetIssueReportsForSubjectResponse>) async throws -> Result = { response in
                 try response.message
             }
         ) async throws -> Result where Result: Sendable {
             try await self.client.unary(
                 request: request,
-                descriptor: IssueReports_IssueReportsService.Method.GetIssueReportsForRecord.descriptor,
+                descriptor: IssueReports_IssueReportsService.Method.GetIssueReportsForSubject.descriptor,
                 serializer: serializer,
                 deserializer: deserializer,
                 options: options,
@@ -579,6 +611,36 @@ extension IssueReports_IssueReportsService {
             try await self.client.unary(
                 request: request,
                 descriptor: IssueReports_IssueReportsService.Method.UpdateIssueReport.descriptor,
+                serializer: serializer,
+                deserializer: deserializer,
+                options: options,
+                onResponse: handleResponse
+            )
+        }
+
+        /// Call the "TransitionIssueReport" method.
+        ///
+        /// - Parameters:
+        ///   - request: A request containing a single `IssueReports_TransitionIssueReportRequest` message.
+        ///   - serializer: A serializer for `IssueReports_TransitionIssueReportRequest` messages.
+        ///   - deserializer: A deserializer for `IssueReports_TransitionIssueReportResponse` messages.
+        ///   - options: Options to apply to this RPC.
+        ///   - handleResponse: A closure which handles the response, the result of which is
+        ///       returned to the caller. Returning from the closure will cancel the RPC if it
+        ///       hasn't already finished.
+        /// - Returns: The result of `handleResponse`.
+        internal func transitionIssueReport<Result>(
+            request: GRPCCore.ClientRequest<IssueReports_TransitionIssueReportRequest>,
+            serializer: some GRPCCore.MessageSerializer<IssueReports_TransitionIssueReportRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<IssueReports_TransitionIssueReportResponse>,
+            options: GRPCCore.CallOptions = .defaults,
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<IssueReports_TransitionIssueReportResponse>) async throws -> Result = { response in
+                try response.message
+            }
+        ) async throws -> Result where Result: Sendable {
+            try await self.client.unary(
+                request: request,
+                descriptor: IssueReports_IssueReportsService.Method.TransitionIssueReport.descriptor,
                 serializer: serializer,
                 deserializer: deserializer,
                 options: options,
@@ -721,76 +783,76 @@ extension IssueReports_IssueReportsService.ClientProtocol {
         )
     }
 
-    /// Call the "GetIssueReportsForAccount" method.
+    /// Call the "GetIssueReportsByStatus" method.
     ///
     /// - Parameters:
-    ///   - request: A request containing a single `IssueReports_GetIssueReportsForAccountRequest` message.
+    ///   - request: A request containing a single `IssueReports_GetIssueReportsByStatusRequest` message.
     ///   - options: Options to apply to this RPC.
     ///   - handleResponse: A closure which handles the response, the result of which is
     ///       returned to the caller. Returning from the closure will cancel the RPC if it
     ///       hasn't already finished.
     /// - Returns: The result of `handleResponse`.
-    internal func getIssueReportsForAccount<Result>(
-        request: GRPCCore.ClientRequest<IssueReports_GetIssueReportsForAccountRequest>,
+    internal func getIssueReportsByStatus<Result>(
+        request: GRPCCore.ClientRequest<IssueReports_GetIssueReportsByStatusRequest>,
         options: GRPCCore.CallOptions = .defaults,
-        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<IssueReports_GetIssueReportsForAccountResponse>) async throws -> Result = { response in
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<IssueReports_GetIssueReportsByStatusResponse>) async throws -> Result = { response in
             try response.message
         }
     ) async throws -> Result where Result: Sendable {
-        try await self.getIssueReportsForAccount(
+        try await self.getIssueReportsByStatus(
             request: request,
-            serializer: GRPCProtobuf.ProtobufSerializer<IssueReports_GetIssueReportsForAccountRequest>(),
-            deserializer: GRPCProtobuf.ProtobufDeserializer<IssueReports_GetIssueReportsForAccountResponse>(),
+            serializer: GRPCProtobuf.ProtobufSerializer<IssueReports_GetIssueReportsByStatusRequest>(),
+            deserializer: GRPCProtobuf.ProtobufDeserializer<IssueReports_GetIssueReportsByStatusResponse>(),
             options: options,
             onResponse: handleResponse
         )
     }
 
-    /// Call the "GetIssueReportsForTable" method.
+    /// Call the "GetIssueReportsBySubjectType" method.
     ///
     /// - Parameters:
-    ///   - request: A request containing a single `IssueReports_GetIssueReportsForTableRequest` message.
+    ///   - request: A request containing a single `IssueReports_GetIssueReportsBySubjectTypeRequest` message.
     ///   - options: Options to apply to this RPC.
     ///   - handleResponse: A closure which handles the response, the result of which is
     ///       returned to the caller. Returning from the closure will cancel the RPC if it
     ///       hasn't already finished.
     /// - Returns: The result of `handleResponse`.
-    internal func getIssueReportsForTable<Result>(
-        request: GRPCCore.ClientRequest<IssueReports_GetIssueReportsForTableRequest>,
+    internal func getIssueReportsBySubjectType<Result>(
+        request: GRPCCore.ClientRequest<IssueReports_GetIssueReportsBySubjectTypeRequest>,
         options: GRPCCore.CallOptions = .defaults,
-        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<IssueReports_GetIssueReportsForTableResponse>) async throws -> Result = { response in
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<IssueReports_GetIssueReportsBySubjectTypeResponse>) async throws -> Result = { response in
             try response.message
         }
     ) async throws -> Result where Result: Sendable {
-        try await self.getIssueReportsForTable(
+        try await self.getIssueReportsBySubjectType(
             request: request,
-            serializer: GRPCProtobuf.ProtobufSerializer<IssueReports_GetIssueReportsForTableRequest>(),
-            deserializer: GRPCProtobuf.ProtobufDeserializer<IssueReports_GetIssueReportsForTableResponse>(),
+            serializer: GRPCProtobuf.ProtobufSerializer<IssueReports_GetIssueReportsBySubjectTypeRequest>(),
+            deserializer: GRPCProtobuf.ProtobufDeserializer<IssueReports_GetIssueReportsBySubjectTypeResponse>(),
             options: options,
             onResponse: handleResponse
         )
     }
 
-    /// Call the "GetIssueReportsForRecord" method.
+    /// Call the "GetIssueReportsForSubject" method.
     ///
     /// - Parameters:
-    ///   - request: A request containing a single `IssueReports_GetIssueReportsForRecordRequest` message.
+    ///   - request: A request containing a single `IssueReports_GetIssueReportsForSubjectRequest` message.
     ///   - options: Options to apply to this RPC.
     ///   - handleResponse: A closure which handles the response, the result of which is
     ///       returned to the caller. Returning from the closure will cancel the RPC if it
     ///       hasn't already finished.
     /// - Returns: The result of `handleResponse`.
-    internal func getIssueReportsForRecord<Result>(
-        request: GRPCCore.ClientRequest<IssueReports_GetIssueReportsForRecordRequest>,
+    internal func getIssueReportsForSubject<Result>(
+        request: GRPCCore.ClientRequest<IssueReports_GetIssueReportsForSubjectRequest>,
         options: GRPCCore.CallOptions = .defaults,
-        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<IssueReports_GetIssueReportsForRecordResponse>) async throws -> Result = { response in
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<IssueReports_GetIssueReportsForSubjectResponse>) async throws -> Result = { response in
             try response.message
         }
     ) async throws -> Result where Result: Sendable {
-        try await self.getIssueReportsForRecord(
+        try await self.getIssueReportsForSubject(
             request: request,
-            serializer: GRPCProtobuf.ProtobufSerializer<IssueReports_GetIssueReportsForRecordRequest>(),
-            deserializer: GRPCProtobuf.ProtobufDeserializer<IssueReports_GetIssueReportsForRecordResponse>(),
+            serializer: GRPCProtobuf.ProtobufSerializer<IssueReports_GetIssueReportsForSubjectRequest>(),
+            deserializer: GRPCProtobuf.ProtobufDeserializer<IssueReports_GetIssueReportsForSubjectResponse>(),
             options: options,
             onResponse: handleResponse
         )
@@ -816,6 +878,31 @@ extension IssueReports_IssueReportsService.ClientProtocol {
             request: request,
             serializer: GRPCProtobuf.ProtobufSerializer<IssueReports_UpdateIssueReportRequest>(),
             deserializer: GRPCProtobuf.ProtobufDeserializer<IssueReports_UpdateIssueReportResponse>(),
+            options: options,
+            onResponse: handleResponse
+        )
+    }
+
+    /// Call the "TransitionIssueReport" method.
+    ///
+    /// - Parameters:
+    ///   - request: A request containing a single `IssueReports_TransitionIssueReportRequest` message.
+    ///   - options: Options to apply to this RPC.
+    ///   - handleResponse: A closure which handles the response, the result of which is
+    ///       returned to the caller. Returning from the closure will cancel the RPC if it
+    ///       hasn't already finished.
+    /// - Returns: The result of `handleResponse`.
+    internal func transitionIssueReport<Result>(
+        request: GRPCCore.ClientRequest<IssueReports_TransitionIssueReportRequest>,
+        options: GRPCCore.CallOptions = .defaults,
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<IssueReports_TransitionIssueReportResponse>) async throws -> Result = { response in
+            try response.message
+        }
+    ) async throws -> Result where Result: Sendable {
+        try await self.transitionIssueReport(
+            request: request,
+            serializer: GRPCProtobuf.ProtobufSerializer<IssueReports_TransitionIssueReportRequest>(),
+            deserializer: GRPCProtobuf.ProtobufDeserializer<IssueReports_TransitionIssueReportResponse>(),
             options: options,
             onResponse: handleResponse
         )
@@ -966,7 +1053,7 @@ extension IssueReports_IssueReportsService.ClientProtocol {
         )
     }
 
-    /// Call the "GetIssueReportsForAccount" method.
+    /// Call the "GetIssueReportsByStatus" method.
     ///
     /// - Parameters:
     ///   - message: request message to send.
@@ -976,26 +1063,26 @@ extension IssueReports_IssueReportsService.ClientProtocol {
     ///       returned to the caller. Returning from the closure will cancel the RPC if it
     ///       hasn't already finished.
     /// - Returns: The result of `handleResponse`.
-    internal func getIssueReportsForAccount<Result>(
-        _ message: IssueReports_GetIssueReportsForAccountRequest,
+    internal func getIssueReportsByStatus<Result>(
+        _ message: IssueReports_GetIssueReportsByStatusRequest,
         metadata: GRPCCore.Metadata = [:],
         options: GRPCCore.CallOptions = .defaults,
-        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<IssueReports_GetIssueReportsForAccountResponse>) async throws -> Result = { response in
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<IssueReports_GetIssueReportsByStatusResponse>) async throws -> Result = { response in
             try response.message
         }
     ) async throws -> Result where Result: Sendable {
-        let request = GRPCCore.ClientRequest<IssueReports_GetIssueReportsForAccountRequest>(
+        let request = GRPCCore.ClientRequest<IssueReports_GetIssueReportsByStatusRequest>(
             message: message,
             metadata: metadata
         )
-        return try await self.getIssueReportsForAccount(
+        return try await self.getIssueReportsByStatus(
             request: request,
             options: options,
             onResponse: handleResponse
         )
     }
 
-    /// Call the "GetIssueReportsForTable" method.
+    /// Call the "GetIssueReportsBySubjectType" method.
     ///
     /// - Parameters:
     ///   - message: request message to send.
@@ -1005,26 +1092,26 @@ extension IssueReports_IssueReportsService.ClientProtocol {
     ///       returned to the caller. Returning from the closure will cancel the RPC if it
     ///       hasn't already finished.
     /// - Returns: The result of `handleResponse`.
-    internal func getIssueReportsForTable<Result>(
-        _ message: IssueReports_GetIssueReportsForTableRequest,
+    internal func getIssueReportsBySubjectType<Result>(
+        _ message: IssueReports_GetIssueReportsBySubjectTypeRequest,
         metadata: GRPCCore.Metadata = [:],
         options: GRPCCore.CallOptions = .defaults,
-        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<IssueReports_GetIssueReportsForTableResponse>) async throws -> Result = { response in
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<IssueReports_GetIssueReportsBySubjectTypeResponse>) async throws -> Result = { response in
             try response.message
         }
     ) async throws -> Result where Result: Sendable {
-        let request = GRPCCore.ClientRequest<IssueReports_GetIssueReportsForTableRequest>(
+        let request = GRPCCore.ClientRequest<IssueReports_GetIssueReportsBySubjectTypeRequest>(
             message: message,
             metadata: metadata
         )
-        return try await self.getIssueReportsForTable(
+        return try await self.getIssueReportsBySubjectType(
             request: request,
             options: options,
             onResponse: handleResponse
         )
     }
 
-    /// Call the "GetIssueReportsForRecord" method.
+    /// Call the "GetIssueReportsForSubject" method.
     ///
     /// - Parameters:
     ///   - message: request message to send.
@@ -1034,19 +1121,19 @@ extension IssueReports_IssueReportsService.ClientProtocol {
     ///       returned to the caller. Returning from the closure will cancel the RPC if it
     ///       hasn't already finished.
     /// - Returns: The result of `handleResponse`.
-    internal func getIssueReportsForRecord<Result>(
-        _ message: IssueReports_GetIssueReportsForRecordRequest,
+    internal func getIssueReportsForSubject<Result>(
+        _ message: IssueReports_GetIssueReportsForSubjectRequest,
         metadata: GRPCCore.Metadata = [:],
         options: GRPCCore.CallOptions = .defaults,
-        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<IssueReports_GetIssueReportsForRecordResponse>) async throws -> Result = { response in
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<IssueReports_GetIssueReportsForSubjectResponse>) async throws -> Result = { response in
             try response.message
         }
     ) async throws -> Result where Result: Sendable {
-        let request = GRPCCore.ClientRequest<IssueReports_GetIssueReportsForRecordRequest>(
+        let request = GRPCCore.ClientRequest<IssueReports_GetIssueReportsForSubjectRequest>(
             message: message,
             metadata: metadata
         )
-        return try await self.getIssueReportsForRecord(
+        return try await self.getIssueReportsForSubject(
             request: request,
             options: options,
             onResponse: handleResponse
@@ -1076,6 +1163,35 @@ extension IssueReports_IssueReportsService.ClientProtocol {
             metadata: metadata
         )
         return try await self.updateIssueReport(
+            request: request,
+            options: options,
+            onResponse: handleResponse
+        )
+    }
+
+    /// Call the "TransitionIssueReport" method.
+    ///
+    /// - Parameters:
+    ///   - message: request message to send.
+    ///   - metadata: Additional metadata to send, defaults to empty.
+    ///   - options: Options to apply to this RPC, defaults to `.defaults`.
+    ///   - handleResponse: A closure which handles the response, the result of which is
+    ///       returned to the caller. Returning from the closure will cancel the RPC if it
+    ///       hasn't already finished.
+    /// - Returns: The result of `handleResponse`.
+    internal func transitionIssueReport<Result>(
+        _ message: IssueReports_TransitionIssueReportRequest,
+        metadata: GRPCCore.Metadata = [:],
+        options: GRPCCore.CallOptions = .defaults,
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<IssueReports_TransitionIssueReportResponse>) async throws -> Result = { response in
+            try response.message
+        }
+    ) async throws -> Result where Result: Sendable {
+        let request = GRPCCore.ClientRequest<IssueReports_TransitionIssueReportRequest>(
+            message: message,
+            metadata: metadata
+        )
+        return try await self.transitionIssueReport(
             request: request,
             options: options,
             onResponse: handleResponse

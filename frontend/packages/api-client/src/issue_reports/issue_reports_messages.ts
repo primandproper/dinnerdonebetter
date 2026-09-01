@@ -19,17 +19,50 @@ export interface DataCollection_IssueReportsEntry {
   value: IssueReport | undefined;
 }
 
+/**
+ * IssueReport is one thing somebody told us was wrong, and where that report
+ * stands.
+ */
 export interface IssueReport {
-  createdAt: Date | undefined;
-  archivedAt: Date | undefined;
-  lastUpdatedAt: Date | undefined;
   id: string;
-  issueType: string;
+  /** reporter is the ID of the user who filed it. */
+  reporter: string;
+  /**
+   * kind is the category the report was filed under — bug, feature_request,
+   * data_quality, performance, other. A triage queue groups and routes by it.
+   */
+  kind: string;
+  /** details is what the person actually said. */
   details: string;
-  relevantTable: string;
-  relevantRecordId: string;
-  createdByUser: string;
-  belongsToAccount: string;
+  /**
+   * subject_type is what the report is about, as the owning domain spells it.
+   * Empty is a report about the product in general.
+   */
+  subjectType: string;
+  /**
+   * subject_id is which one of them. Empty is a report about a kind of thing
+   * rather than about one of them.
+   */
+  subjectId: string;
+  /**
+   * status is where the report stands: open, acknowledged, resolved or
+   * declined. It moves only through TransitionIssueReport.
+   */
+  status: string;
+  /**
+   * resolution is why the report is in the terminal status it is in — the note
+   * a triager left when they resolved or declined it. Reopening clears it.
+   */
+  resolution: string;
+  createdAt: Date | undefined;
+  lastUpdatedAt: Date | undefined;
+  archivedAt: Date | undefined;
+  /**
+   * closed_at is when the report reached a terminal status, and unset while it
+   * is still open or acknowledged. It is what a time-to-resolution number is
+   * measured to; a boolean beside status would not answer "when".
+   */
+  closedAt: Date | undefined;
 }
 
 function createBaseDataCollection(): DataCollection {
@@ -208,50 +241,58 @@ export const DataCollection_IssueReportsEntry: MessageFns<DataCollection_IssueRe
 
 function createBaseIssueReport(): IssueReport {
   return {
-    createdAt: undefined,
-    archivedAt: undefined,
-    lastUpdatedAt: undefined,
     id: '',
-    issueType: '',
+    reporter: '',
+    kind: '',
     details: '',
-    relevantTable: '',
-    relevantRecordId: '',
-    createdByUser: '',
-    belongsToAccount: '',
+    subjectType: '',
+    subjectId: '',
+    status: '',
+    resolution: '',
+    createdAt: undefined,
+    lastUpdatedAt: undefined,
+    archivedAt: undefined,
+    closedAt: undefined,
   };
 }
 
 export const IssueReport: MessageFns<IssueReport> = {
   encode(message: IssueReport, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.createdAt !== undefined) {
-      Timestamp.encode(toTimestamp(message.createdAt), writer.uint32(10).fork()).join();
-    }
-    if (message.archivedAt !== undefined) {
-      Timestamp.encode(toTimestamp(message.archivedAt), writer.uint32(18).fork()).join();
-    }
-    if (message.lastUpdatedAt !== undefined) {
-      Timestamp.encode(toTimestamp(message.lastUpdatedAt), writer.uint32(26).fork()).join();
-    }
     if (message.id !== '') {
-      writer.uint32(34).string(message.id);
+      writer.uint32(10).string(message.id);
     }
-    if (message.issueType !== '') {
-      writer.uint32(42).string(message.issueType);
+    if (message.reporter !== '') {
+      writer.uint32(18).string(message.reporter);
+    }
+    if (message.kind !== '') {
+      writer.uint32(26).string(message.kind);
     }
     if (message.details !== '') {
-      writer.uint32(50).string(message.details);
+      writer.uint32(34).string(message.details);
     }
-    if (message.relevantTable !== '') {
-      writer.uint32(58).string(message.relevantTable);
+    if (message.subjectType !== '') {
+      writer.uint32(42).string(message.subjectType);
     }
-    if (message.relevantRecordId !== '') {
-      writer.uint32(66).string(message.relevantRecordId);
+    if (message.subjectId !== '') {
+      writer.uint32(50).string(message.subjectId);
     }
-    if (message.createdByUser !== '') {
-      writer.uint32(74).string(message.createdByUser);
+    if (message.status !== '') {
+      writer.uint32(58).string(message.status);
     }
-    if (message.belongsToAccount !== '') {
-      writer.uint32(82).string(message.belongsToAccount);
+    if (message.resolution !== '') {
+      writer.uint32(66).string(message.resolution);
+    }
+    if (message.createdAt !== undefined) {
+      Timestamp.encode(toTimestamp(message.createdAt), writer.uint32(74).fork()).join();
+    }
+    if (message.lastUpdatedAt !== undefined) {
+      Timestamp.encode(toTimestamp(message.lastUpdatedAt), writer.uint32(82).fork()).join();
+    }
+    if (message.archivedAt !== undefined) {
+      Timestamp.encode(toTimestamp(message.archivedAt), writer.uint32(90).fork()).join();
+    }
+    if (message.closedAt !== undefined) {
+      Timestamp.encode(toTimestamp(message.closedAt), writer.uint32(98).fork()).join();
     }
     return writer;
   },
@@ -268,7 +309,7 @@ export const IssueReport: MessageFns<IssueReport> = {
             break;
           }
 
-          message.createdAt = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
+          message.id = reader.string();
           continue;
         }
         case 2: {
@@ -276,7 +317,7 @@ export const IssueReport: MessageFns<IssueReport> = {
             break;
           }
 
-          message.archivedAt = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
+          message.reporter = reader.string();
           continue;
         }
         case 3: {
@@ -284,7 +325,7 @@ export const IssueReport: MessageFns<IssueReport> = {
             break;
           }
 
-          message.lastUpdatedAt = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
+          message.kind = reader.string();
           continue;
         }
         case 4: {
@@ -292,7 +333,7 @@ export const IssueReport: MessageFns<IssueReport> = {
             break;
           }
 
-          message.id = reader.string();
+          message.details = reader.string();
           continue;
         }
         case 5: {
@@ -300,7 +341,7 @@ export const IssueReport: MessageFns<IssueReport> = {
             break;
           }
 
-          message.issueType = reader.string();
+          message.subjectType = reader.string();
           continue;
         }
         case 6: {
@@ -308,7 +349,7 @@ export const IssueReport: MessageFns<IssueReport> = {
             break;
           }
 
-          message.details = reader.string();
+          message.subjectId = reader.string();
           continue;
         }
         case 7: {
@@ -316,7 +357,7 @@ export const IssueReport: MessageFns<IssueReport> = {
             break;
           }
 
-          message.relevantTable = reader.string();
+          message.status = reader.string();
           continue;
         }
         case 8: {
@@ -324,7 +365,7 @@ export const IssueReport: MessageFns<IssueReport> = {
             break;
           }
 
-          message.relevantRecordId = reader.string();
+          message.resolution = reader.string();
           continue;
         }
         case 9: {
@@ -332,7 +373,7 @@ export const IssueReport: MessageFns<IssueReport> = {
             break;
           }
 
-          message.createdByUser = reader.string();
+          message.createdAt = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
           continue;
         }
         case 10: {
@@ -340,7 +381,23 @@ export const IssueReport: MessageFns<IssueReport> = {
             break;
           }
 
-          message.belongsToAccount = reader.string();
+          message.lastUpdatedAt = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 11: {
+          if (tag !== 90) {
+            break;
+          }
+
+          message.archivedAt = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 12: {
+          if (tag !== 98) {
+            break;
+          }
+
+          message.closedAt = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
           continue;
         }
       }
@@ -354,82 +411,82 @@ export const IssueReport: MessageFns<IssueReport> = {
 
   fromJSON(object: any): IssueReport {
     return {
+      id: isSet(object.id) ? globalThis.String(object.id) : '',
+      reporter: isSet(object.reporter) ? globalThis.String(object.reporter) : '',
+      kind: isSet(object.kind) ? globalThis.String(object.kind) : '',
+      details: isSet(object.details) ? globalThis.String(object.details) : '',
+      subjectType: isSet(object.subjectType)
+        ? globalThis.String(object.subjectType)
+        : isSet(object.subject_type)
+          ? globalThis.String(object.subject_type)
+          : '',
+      subjectId: isSet(object.subjectId)
+        ? globalThis.String(object.subjectId)
+        : isSet(object.subject_id)
+          ? globalThis.String(object.subject_id)
+          : '',
+      status: isSet(object.status) ? globalThis.String(object.status) : '',
+      resolution: isSet(object.resolution) ? globalThis.String(object.resolution) : '',
       createdAt: isSet(object.createdAt)
         ? fromJsonTimestamp(object.createdAt)
         : isSet(object.created_at)
           ? fromJsonTimestamp(object.created_at)
-          : undefined,
-      archivedAt: isSet(object.archivedAt)
-        ? fromJsonTimestamp(object.archivedAt)
-        : isSet(object.archived_at)
-          ? fromJsonTimestamp(object.archived_at)
           : undefined,
       lastUpdatedAt: isSet(object.lastUpdatedAt)
         ? fromJsonTimestamp(object.lastUpdatedAt)
         : isSet(object.last_updated_at)
           ? fromJsonTimestamp(object.last_updated_at)
           : undefined,
-      id: isSet(object.id) ? globalThis.String(object.id) : '',
-      issueType: isSet(object.issueType)
-        ? globalThis.String(object.issueType)
-        : isSet(object.issue_type)
-          ? globalThis.String(object.issue_type)
-          : '',
-      details: isSet(object.details) ? globalThis.String(object.details) : '',
-      relevantTable: isSet(object.relevantTable)
-        ? globalThis.String(object.relevantTable)
-        : isSet(object.relevant_table)
-          ? globalThis.String(object.relevant_table)
-          : '',
-      relevantRecordId: isSet(object.relevantRecordId)
-        ? globalThis.String(object.relevantRecordId)
-        : isSet(object.relevant_record_id)
-          ? globalThis.String(object.relevant_record_id)
-          : '',
-      createdByUser: isSet(object.createdByUser)
-        ? globalThis.String(object.createdByUser)
-        : isSet(object.created_by_user)
-          ? globalThis.String(object.created_by_user)
-          : '',
-      belongsToAccount: isSet(object.belongsToAccount)
-        ? globalThis.String(object.belongsToAccount)
-        : isSet(object.belongs_to_account)
-          ? globalThis.String(object.belongs_to_account)
-          : '',
+      archivedAt: isSet(object.archivedAt)
+        ? fromJsonTimestamp(object.archivedAt)
+        : isSet(object.archived_at)
+          ? fromJsonTimestamp(object.archived_at)
+          : undefined,
+      closedAt: isSet(object.closedAt)
+        ? fromJsonTimestamp(object.closedAt)
+        : isSet(object.closed_at)
+          ? fromJsonTimestamp(object.closed_at)
+          : undefined,
     };
   },
 
   toJSON(message: IssueReport): unknown {
     const obj: any = {};
-    if (message.createdAt !== undefined) {
-      obj.createdAt = message.createdAt.toISOString();
-    }
-    if (message.archivedAt !== undefined) {
-      obj.archivedAt = message.archivedAt.toISOString();
-    }
-    if (message.lastUpdatedAt !== undefined) {
-      obj.lastUpdatedAt = message.lastUpdatedAt.toISOString();
-    }
     if (message.id !== '') {
       obj.id = message.id;
     }
-    if (message.issueType !== '') {
-      obj.issueType = message.issueType;
+    if (message.reporter !== '') {
+      obj.reporter = message.reporter;
+    }
+    if (message.kind !== '') {
+      obj.kind = message.kind;
     }
     if (message.details !== '') {
       obj.details = message.details;
     }
-    if (message.relevantTable !== '') {
-      obj.relevantTable = message.relevantTable;
+    if (message.subjectType !== '') {
+      obj.subjectType = message.subjectType;
     }
-    if (message.relevantRecordId !== '') {
-      obj.relevantRecordId = message.relevantRecordId;
+    if (message.subjectId !== '') {
+      obj.subjectId = message.subjectId;
     }
-    if (message.createdByUser !== '') {
-      obj.createdByUser = message.createdByUser;
+    if (message.status !== '') {
+      obj.status = message.status;
     }
-    if (message.belongsToAccount !== '') {
-      obj.belongsToAccount = message.belongsToAccount;
+    if (message.resolution !== '') {
+      obj.resolution = message.resolution;
+    }
+    if (message.createdAt !== undefined) {
+      obj.createdAt = message.createdAt.toISOString();
+    }
+    if (message.lastUpdatedAt !== undefined) {
+      obj.lastUpdatedAt = message.lastUpdatedAt.toISOString();
+    }
+    if (message.archivedAt !== undefined) {
+      obj.archivedAt = message.archivedAt.toISOString();
+    }
+    if (message.closedAt !== undefined) {
+      obj.closedAt = message.closedAt.toISOString();
     }
     return obj;
   },
@@ -439,16 +496,18 @@ export const IssueReport: MessageFns<IssueReport> = {
   },
   fromPartial<I extends Exact<DeepPartial<IssueReport>, I>>(object: I): IssueReport {
     const message = createBaseIssueReport();
-    message.createdAt = object.createdAt ?? undefined;
-    message.archivedAt = object.archivedAt ?? undefined;
-    message.lastUpdatedAt = object.lastUpdatedAt ?? undefined;
     message.id = object.id ?? '';
-    message.issueType = object.issueType ?? '';
+    message.reporter = object.reporter ?? '';
+    message.kind = object.kind ?? '';
     message.details = object.details ?? '';
-    message.relevantTable = object.relevantTable ?? '';
-    message.relevantRecordId = object.relevantRecordId ?? '';
-    message.createdByUser = object.createdByUser ?? '';
-    message.belongsToAccount = object.belongsToAccount ?? '';
+    message.subjectType = object.subjectType ?? '';
+    message.subjectId = object.subjectId ?? '';
+    message.status = object.status ?? '';
+    message.resolution = object.resolution ?? '';
+    message.createdAt = object.createdAt ?? undefined;
+    message.lastUpdatedAt = object.lastUpdatedAt ?? undefined;
+    message.archivedAt = object.archivedAt ?? undefined;
+    message.closedAt = object.closedAt ?? undefined;
     return message;
   },
 };

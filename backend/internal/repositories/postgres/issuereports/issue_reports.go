@@ -1,487 +1,184 @@
-package issue_reports
+/*
+Package issuereports records what an issue report write means to the rest of
+this application. The reports themselves are platform-go's: the schema, the
+paging, the tenancy column, the triage lifecycle and the erasure all live there,
+and this package neither reimplements nor wraps them.
+
+What it adds is the half platform cannot know about — an audit log entry naming
+who did what, and a data change event on the outbox that the webhook dispatcher
+fans out. issue_report_created, issue_report_updated, issue_report_transitioned
+and issue_report_archived are all in the webhook event catalog, so a subscriber
+can already ask for them; a write that skipped the pair would be a row with no
+provenance and a subscriber that never heard.
+
+# The transaction the events are not in
+
+Every hand-written repository here emits inside the transaction that wrote the
+row, so the event lives or dies with what it describes (see
+internal/repositories/postgres/events). This one cannot: platform's
+CreateReport, UpdateReport, TransitionReport and ArchiveReport own their
+transactions and take no executor, so the audit entry and the event are a second
+transaction after the first has committed.
+
+The gap that opens is the ordinary one — the report lands, the process dies, and
+nothing is recorded about it. It is narrow and it is one-directional: a report
+can exist with no event, but no event can name a report that was not written.
+Closing it needs platform's write methods to accept a database.Tx the way
+DeleteReportsByReporter already does. That is filed upstream as platform-go
+#457 rather than worked around here — a gap papered over locally stops being a
+gap anyone remembers.
+*/
+package issuereports
 
 import (
 	"context"
-	"database/sql"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
-	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
-	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports"
+	ddbissuereports "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports"
 	issuereportkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports/keys"
-	generated "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/issuereports/generated"
 
 	"github.com/primandproper/platform-go/v13/database"
-	platformerrors "github.com/primandproper/platform-go/v13/errors"
-	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/identifiers"
+	platformissuereports "github.com/primandproper/platform-go/v13/issuereports"
 	"github.com/primandproper/platform-go/v13/observability"
 	"github.com/primandproper/platform-go/v13/observability/tracing"
+	"github.com/primandproper/platform-go/v13/tenancy"
 )
 
-const (
-	resourceTypeIssueReports = "issue_reports"
-)
+// resourceTypeIssueReports is what an audit entry about an issue report names.
+const resourceTypeIssueReports = "issue_reports"
 
-var (
-	_ types.IssueReportDataManager = (*repository)(nil)
-)
+var _ platformissuereports.Store = (*repository)(nil)
 
-// GetIssueReport fetches an issue report from the database.
-func (r *repository) GetIssueReport(ctx context.Context, issueReportID string) (*types.IssueReport, error) {
+// CreateReport files the report, then records it.
+func (r *repository) CreateReport(ctx context.Context, report *platformissuereports.Report) error {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := r.logger.Clone()
-
-	if issueReportID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(issuereportkeys.IssueReportIDKey, issueReportID)
-	tracing.AttachToSpan(span, issuereportkeys.IssueReportIDKey, issueReportID)
-
-	result, err := r.generatedQuerier.GetIssueReport(ctx, r.readDB, issueReportID)
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "fetching issue report")
+	if err := r.Store.CreateReport(ctx, report); err != nil {
+		return err
 	}
 
-	issueReport := &types.IssueReport{
-		ID:               result.ID,
-		IssueType:        result.IssueType,
-		Details:          result.Details,
-		RelevantTable:    database.StringFromNullString(result.RelevantTable),
-		RelevantRecordID: database.StringFromNullString(result.RelevantRecordID),
-		CreatedAt:        result.CreatedAt,
-		LastUpdatedAt:    database.TimePointerFromNullTime(result.LastUpdatedAt),
-		ArchivedAt:       database.TimePointerFromNullTime(result.ArchivedAt),
-		CreatedByUser:    result.CreatedByUser,
-		BelongsToAccount: result.BelongsToAccount,
-	}
+	tracing.AttachToSpan(span, issuereportkeys.IssueReportIDKey, report.ID)
 
-	return issueReport, nil
+	return r.record(ctx, report, audit.AuditLogEventTypeCreated, ddbissuereports.IssueReportCreatedServiceEventType)
 }
 
-// GetIssueReports fetches a list of issue reports from the database that meet a particular filter.
-func (r *repository) GetIssueReports(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.IssueReport], error) {
+// UpdateReport revises what the reporter said, then records it.
+//
+// It does not move the status and cannot: the lifecycle's one door is
+// TransitionReport. So this always records an update, never a transition.
+func (r *repository) UpdateReport(ctx context.Context, report *platformissuereports.Report) error {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := r.logger.Clone()
-
-	if filter == nil {
-		filter = filtering.DefaultQueryFilter()
-	}
-	logger = filter.AttachToLogger(logger)
-	tracing.AttachQueryFilterToSpan(span, filter)
-
-	filterArgs := filtering.ToSQLArgs(filter)
-
-	results, err := r.generatedQuerier.GetIssueReports(ctx, r.readDB, &generated.GetIssueReportsParams{
-		CreatedAfter:    filterArgs.CreatedAfter,
-		CreatedBefore:   filterArgs.CreatedBefore,
-		UpdatedBefore:   filterArgs.UpdatedBefore,
-		UpdatedAfter:    filterArgs.UpdatedAfter,
-		IncludeArchived: filterArgs.IncludeArchived,
-		PageCursor:      filterArgs.Cursor,
-		ResultLimit:     filterArgs.ResultLimit,
-	})
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "fetching issue reports from database")
+	if err := r.Store.UpdateReport(ctx, report); err != nil {
+		return err
 	}
 
-	x := filtering.Drain(
-		results,
-		func(result *generated.GetIssueReportsRow) *types.IssueReport {
-			return &types.IssueReport{
-				ID:               result.ID,
-				IssueType:        result.IssueType,
-				Details:          result.Details,
-				RelevantTable:    database.StringFromNullString(result.RelevantTable),
-				RelevantRecordID: database.StringFromNullString(result.RelevantRecordID),
-				CreatedAt:        result.CreatedAt,
-				LastUpdatedAt:    database.TimePointerFromNullTime(result.LastUpdatedAt),
-				ArchivedAt:       database.TimePointerFromNullTime(result.ArchivedAt),
-				CreatedByUser:    result.CreatedByUser,
-				BelongsToAccount: result.BelongsToAccount,
-			}
-		},
-		func(result *generated.GetIssueReportsRow) (int64, int64) {
-			return result.FilteredCount, result.TotalCount
-		},
-		func(t *types.IssueReport) string {
-			return t.ID
-		},
-		filter,
-	)
+	tracing.AttachToSpan(span, issuereportkeys.IssueReportIDKey, report.ID)
 
-	return x, nil
+	return r.record(ctx, report, audit.AuditLogEventTypeUpdated, ddbissuereports.IssueReportUpdatedServiceEventType)
 }
 
-// GetIssueReportsForAccount fetches a list of issue reports for a specific account from the database that meet a particular filter.
-func (r *repository) GetIssueReportsForAccount(ctx context.Context, accountID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.IssueReport], error) {
+// TransitionReport moves the report through the triage lifecycle, then records
+// it.
+//
+// The report it records is the one platform returns rather than the one the
+// caller described, so the event names the status the row actually holds. A
+// transition whose guard did not match writes nothing and records nothing: the
+// caller's view of the row was one write out of date, which is not a fact about
+// the report worth putting in its audit trail.
+func (r *repository) TransitionReport(
+	ctx context.Context,
+	scope tenancy.Scope,
+	reportID string,
+	from, to platformissuereports.Status,
+	resolution string,
+) (*platformissuereports.Report, error) {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := r.logger.Clone()
+	tracing.AttachToSpan(span, issuereportkeys.IssueReportIDKey, reportID)
 
-	if accountID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(identitykeys.AccountIDKey, accountID)
-	tracing.AttachToSpan(span, identitykeys.AccountIDKey, accountID)
-
-	if filter == nil {
-		filter = filtering.DefaultQueryFilter()
-	}
-	logger = filter.AttachToLogger(logger)
-	tracing.AttachQueryFilterToSpan(span, filter)
-
-	filterArgs := filtering.ToSQLArgs(filter)
-
-	results, err := r.generatedQuerier.GetIssueReportsForAccount(ctx, r.readDB, &generated.GetIssueReportsForAccountParams{
-		CreatedAfter:     filterArgs.CreatedAfter,
-		CreatedBefore:    filterArgs.CreatedBefore,
-		UpdatedBefore:    filterArgs.UpdatedBefore,
-		UpdatedAfter:     filterArgs.UpdatedAfter,
-		IncludeArchived:  filterArgs.IncludeArchived,
-		BelongsToAccount: accountID,
-		PageCursor:       filterArgs.Cursor,
-		ResultLimit:      filterArgs.ResultLimit,
-	})
+	report, err := r.Store.TransitionReport(ctx, scope, reportID, from, to, resolution)
 	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "fetching issue reports from database")
-	}
-
-	x := filtering.Drain(
-		results,
-		func(result *generated.GetIssueReportsForAccountRow) *types.IssueReport {
-			return &types.IssueReport{
-				ID:               result.ID,
-				IssueType:        result.IssueType,
-				Details:          result.Details,
-				RelevantTable:    database.StringFromNullString(result.RelevantTable),
-				RelevantRecordID: database.StringFromNullString(result.RelevantRecordID),
-				CreatedAt:        result.CreatedAt,
-				LastUpdatedAt:    database.TimePointerFromNullTime(result.LastUpdatedAt),
-				ArchivedAt:       database.TimePointerFromNullTime(result.ArchivedAt),
-				CreatedByUser:    result.CreatedByUser,
-				BelongsToAccount: result.BelongsToAccount,
-			}
-		},
-		func(result *generated.GetIssueReportsForAccountRow) (int64, int64) {
-			return result.FilteredCount, result.TotalCount
-		},
-		func(t *types.IssueReport) string {
-			return t.ID
-		},
-		filter,
-	)
-
-	return x, nil
-}
-
-// CreateIssueReport creates an issue report in the database.
-func (r *repository) CreateIssueReport(ctx context.Context, input *types.IssueReportDatabaseCreationInput) (*types.IssueReport, error) {
-	ctx, span := r.tracer.StartSpan(ctx)
-	defer span.End()
-
-	logger := r.logger.Clone()
-
-	if input == nil {
-		return nil, platformerrors.ErrNilInputParameter
-	}
-	tracing.AttachToSpan(span, identitykeys.AccountIDKey, input.BelongsToAccount)
-	logger = logger.WithValue(identitykeys.AccountIDKey, input.BelongsToAccount)
-
-	logger.Debug("CreateIssueReport invoked")
-
-	var err error
-	var x *types.IssueReport
-	if err = r.WithTransaction(ctx, func(tx database.Tx) error {
-		if err = r.generatedQuerier.CreateIssueReport(ctx, tx, &generated.CreateIssueReportParams{
-			ID:               input.ID,
-			IssueType:        input.IssueType,
-			Details:          input.Details,
-			RelevantTable:    database.NullStringFromString(input.RelevantTable),
-			RelevantRecordID: database.NullStringFromString(input.RelevantRecordID),
-			CreatedByUser:    input.CreatedByUser,
-			BelongsToAccount: input.BelongsToAccount,
-		}); err != nil {
-			return observability.PrepareAndLogError(err, logger, span, "performing issue report creation query")
-		}
-
-		x = &types.IssueReport{
-			ID:               input.ID,
-			IssueType:        input.IssueType,
-			Details:          input.Details,
-			RelevantTable:    input.RelevantTable,
-			RelevantRecordID: input.RelevantRecordID,
-			CreatedByUser:    input.CreatedByUser,
-			BelongsToAccount: input.BelongsToAccount,
-			CreatedAt:        r.CurrentTime(),
-		}
-
-		if err = r.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
-			BelongsToAccount: &x.BelongsToAccount,
-			BelongsToUser:    x.CreatedByUser,
-			ResourceType:     resourceTypeIssueReports,
-			RelevantID:       x.ID,
-			EventType:        audit.AuditLogEventTypeCreated,
-		}); err != nil {
-			return observability.PrepareError(err, span, "creating audit log entry")
-		}
-
-		// The event is another statement in this transaction, so it commits with the
-		// rows it describes.
-		if emitErr := r.events.Emit(ctx, tx, logger, types.IssueReportCreatedServiceEventType, "", map[string]any{
-			issuereportkeys.IssueReportIDKey: input.ID,
-		}); emitErr != nil {
-			return observability.PrepareError(emitErr, span, "enqueuing data change event")
-		}
-
-		return nil
-	}); err != nil {
 		return nil, err
 	}
 
-	tracing.AttachToSpan(span, issuereportkeys.IssueReportIDKey, x.ID)
+	tracing.AttachToSpan(span, issuereportkeys.IssueReportStatusKey, report.Status.String())
 
-	return x, nil
+	if err = r.record(ctx, report, audit.AuditLogEventTypeUpdated, ddbissuereports.IssueReportTransitionedServiceEventType); err != nil {
+		return nil, err
+	}
+
+	return report, nil
 }
 
-// UpdateIssueReport updates an issue report in the database.
-func (r *repository) UpdateIssueReport(ctx context.Context, issueReport *types.IssueReport) error {
+// ArchiveReport removes the report from the queue, then records it.
+//
+// The report is read before the archive rather than after, because an audit
+// entry names whose row it was and the archived row is the one this method is
+// about. A read that fails is the archive's failure too: platform answers an
+// absent, archived, or other-scope report as ErrReportNotFound either way, so
+// returning it from here is the same answer one call earlier.
+func (r *repository) ArchiveReport(ctx context.Context, scope tenancy.Scope, reportID string) error {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := r.logger.Clone()
+	tracing.AttachToSpan(span, issuereportkeys.IssueReportIDKey, reportID)
 
-	if issueReport == nil {
-		return platformerrors.ErrNilInputParameter
+	report, err := r.GetReport(ctx, scope, reportID)
+	if err != nil {
+		return observability.PrepareError(err, span, "fetching issue report for archive")
 	}
-	logger = logger.WithValue(issuereportkeys.IssueReportIDKey, issueReport.ID)
-	tracing.AttachToSpan(span, issuereportkeys.IssueReportIDKey, issueReport.ID)
 
-	if err := r.WithTransaction(ctx, func(tx database.Tx) error {
-		rowsAffected, err := r.generatedQuerier.UpdateIssueReport(ctx, tx, &generated.UpdateIssueReportParams{
-			ID:               issueReport.ID,
-			IssueType:        issueReport.IssueType,
-			Details:          issueReport.Details,
-			RelevantTable:    database.NullStringFromString(issueReport.RelevantTable),
-			RelevantRecordID: database.NullStringFromString(issueReport.RelevantRecordID),
-		})
-		if err != nil {
-			return observability.PrepareAndLogError(err, logger, span, "updating issue report")
-		}
-
-		if rowsAffected == 0 {
-			return sql.ErrNoRows
-		}
-
-		if err = r.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
-			BelongsToAccount: &issueReport.BelongsToAccount,
-			ResourceType:     resourceTypeIssueReports,
-			RelevantID:       issueReport.ID,
-			EventType:        audit.AuditLogEventTypeUpdated,
-		}); err != nil {
-			return observability.PrepareError(err, span, "creating audit log entry")
-		}
-
-		// The event is another statement in this transaction, so it commits with the
-		// rows it describes.
-		if emitErr := r.events.Emit(ctx, tx, logger, types.IssueReportUpdatedServiceEventType, "", map[string]any{
-			issuereportkeys.IssueReportIDKey: issueReport.ID,
-		}); emitErr != nil {
-			return observability.PrepareError(emitErr, span, "enqueuing data change event")
-		}
-
-		return nil
-	}); err != nil {
+	if err = r.Store.ArchiveReport(ctx, scope, reportID); err != nil {
 		return err
 	}
 
-	return nil
+	return r.record(ctx, report, audit.AuditLogEventTypeArchived, ddbissuereports.IssueReportArchivedServiceEventType)
 }
 
-// GetIssueReportsForTable fetches a list of issue reports for a specific table from the database that meet a particular filter.
-func (r *repository) GetIssueReportsForTable(ctx context.Context, tableName string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.IssueReport], error) {
+// record writes the audit entry and enqueues the data change event, in one
+// transaction of their own.
+//
+// The two travel together because they answer the same question from opposite
+// sides — the audit log for whoever asks later who did this, the outbox for
+// whoever needs to know now — and a write that carried one without the other
+// would be a write nobody could tell was incomplete.
+//
+// The account comes off the report's scope rather than off the context, because
+// a report's tenant is the account it was filed under and that is the account a
+// webhook subscriber is resolved within. A background job reaching here has no
+// session, and an event with no account reaches no subscriber at all.
+func (r *repository) record(ctx context.Context, report *platformissuereports.Report, auditEventType, changeEventType string) error {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := r.logger.Clone()
+	logger := r.logger.WithSpan(span).WithValue(issuereportkeys.IssueReportIDKey, report.ID)
 
-	if tableName == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue("relevant_table", tableName)
-	tracing.AttachToSpan(span, "relevant_table", tableName)
+	accountID := report.Scope.Owner()
 
-	if filter == nil {
-		filter = filtering.DefaultQueryFilter()
-	}
-	logger = filter.AttachToLogger(logger)
-	tracing.AttachQueryFilterToSpan(span, filter)
-
-	filterArgs := filtering.ToSQLArgs(filter)
-
-	results, err := r.generatedQuerier.GetIssueReportsForTable(ctx, r.readDB, &generated.GetIssueReportsForTableParams{
-		RelevantTable:   database.NullStringFromString(tableName),
-		CreatedAfter:    filterArgs.CreatedAfter,
-		CreatedBefore:   filterArgs.CreatedBefore,
-		UpdatedBefore:   filterArgs.UpdatedBefore,
-		UpdatedAfter:    filterArgs.UpdatedAfter,
-		IncludeArchived: filterArgs.IncludeArchived,
-		PageCursor:      filterArgs.Cursor,
-		ResultLimit:     filterArgs.ResultLimit,
-	})
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "fetching issue reports from database")
-	}
-
-	x := filtering.Drain(
-		results,
-		func(result *generated.GetIssueReportsForTableRow) *types.IssueReport {
-			return &types.IssueReport{
-				ID:               result.ID,
-				IssueType:        result.IssueType,
-				Details:          result.Details,
-				RelevantTable:    database.StringFromNullString(result.RelevantTable),
-				RelevantRecordID: database.StringFromNullString(result.RelevantRecordID),
-				CreatedAt:        result.CreatedAt,
-				LastUpdatedAt:    database.TimePointerFromNullTime(result.LastUpdatedAt),
-				ArchivedAt:       database.TimePointerFromNullTime(result.ArchivedAt),
-				CreatedByUser:    result.CreatedByUser,
-				BelongsToAccount: result.BelongsToAccount,
-			}
-		},
-		func(result *generated.GetIssueReportsForTableRow) (int64, int64) {
-			return result.FilteredCount, result.TotalCount
-		},
-		func(t *types.IssueReport) string {
-			return t.ID
-		},
-		filter,
-	)
-
-	return x, nil
-}
-
-// GetIssueReportsForRecord fetches a list of issue reports for a specific table+record combination from the database that meet a particular filter.
-func (r *repository) GetIssueReportsForRecord(ctx context.Context, tableName, recordID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.IssueReport], error) {
-	ctx, span := r.tracer.StartSpan(ctx)
-	defer span.End()
-
-	logger := r.logger.Clone()
-
-	if tableName == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue("relevant_table", tableName)
-	tracing.AttachToSpan(span, "relevant_table", tableName)
-
-	if recordID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue("relevant_record_id", recordID)
-	tracing.AttachToSpan(span, "relevant_record_id", recordID)
-
-	if filter == nil {
-		filter = filtering.DefaultQueryFilter()
-	}
-	logger = filter.AttachToLogger(logger)
-	tracing.AttachQueryFilterToSpan(span, filter)
-
-	filterArgs := filtering.ToSQLArgs(filter)
-
-	results, err := r.generatedQuerier.GetIssueReportsForRecord(ctx, r.readDB, &generated.GetIssueReportsForRecordParams{
-		RelevantTable:    database.NullStringFromString(tableName),
-		RelevantRecordID: database.NullStringFromString(recordID),
-		CreatedAfter:     filterArgs.CreatedAfter,
-		CreatedBefore:    filterArgs.CreatedBefore,
-		UpdatedBefore:    filterArgs.UpdatedBefore,
-		UpdatedAfter:     filterArgs.UpdatedAfter,
-		IncludeArchived:  filterArgs.IncludeArchived,
-		PageCursor:       filterArgs.Cursor,
-		ResultLimit:      filterArgs.ResultLimit,
-	})
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "fetching issue reports from database")
-	}
-
-	x := filtering.Drain(
-		results,
-		func(result *generated.GetIssueReportsForRecordRow) *types.IssueReport {
-			return &types.IssueReport{
-				ID:               result.ID,
-				IssueType:        result.IssueType,
-				Details:          result.Details,
-				RelevantTable:    database.StringFromNullString(result.RelevantTable),
-				RelevantRecordID: database.StringFromNullString(result.RelevantRecordID),
-				CreatedAt:        result.CreatedAt,
-				LastUpdatedAt:    database.TimePointerFromNullTime(result.LastUpdatedAt),
-				ArchivedAt:       database.TimePointerFromNullTime(result.ArchivedAt),
-				CreatedByUser:    result.CreatedByUser,
-				BelongsToAccount: result.BelongsToAccount,
-			}
-		},
-		func(result *generated.GetIssueReportsForRecordRow) (int64, int64) {
-			return result.FilteredCount, result.TotalCount
-		},
-		func(t *types.IssueReport) string {
-			return t.ID
-		},
-		filter,
-	)
-
-	return x, nil
-}
-
-// ArchiveIssueReport archives an issue report from the database.
-func (r *repository) ArchiveIssueReport(ctx context.Context, issueReportID string) error {
-	ctx, span := r.tracer.StartSpan(ctx)
-	defer span.End()
-
-	if issueReportID == "" {
-		return platformerrors.ErrInvalidIDProvided
-	}
-	tracing.AttachToSpan(span, issuereportkeys.IssueReportIDKey, issueReportID)
-
-	logger := r.logger.WithValue(issuereportkeys.IssueReportIDKey, issueReportID)
-
-	issueReport, getErr := r.GetIssueReport(ctx, issueReportID)
-	if getErr != nil {
-		return observability.PrepareAndLogError(getErr, logger, span, "fetching issue report for archive")
-	}
-
-	if err := r.WithTransaction(ctx, func(tx database.Tx) error {
-		rowsAffected, err := r.generatedQuerier.ArchiveIssueReport(ctx, tx, issueReportID)
-		if err != nil {
-			return observability.PrepareAndLogError(err, logger, span, "archiving issue report")
-		}
-
-		if rowsAffected == 0 {
-			return sql.ErrNoRows
-		}
-
-		if err = r.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
-			BelongsToAccount: &issueReport.BelongsToAccount,
+	return r.client.WithTransaction(ctx, func(tx database.Tx) error {
+		if err := r.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
+			ID:               identifiers.New(),
 			ResourceType:     resourceTypeIssueReports,
-			RelevantID:       issueReportID,
-			EventType:        audit.AuditLogEventTypeArchived,
+			RelevantID:       report.ID,
+			EventType:        auditEventType,
+			BelongsToUser:    report.Reporter,
+			BelongsToAccount: &accountID,
 		}); err != nil {
-			return observability.PrepareError(err, span, "creating audit log entry")
+			return observability.PrepareAndLogError(err, logger, span, "creating audit log entry")
 		}
 
-		// The event is another statement in this transaction, so it commits with the
-		// rows it describes.
-		if emitErr := r.events.Emit(ctx, tx, logger, types.IssueReportArchivedServiceEventType, "", map[string]any{
-			issuereportkeys.IssueReportIDKey: issueReportID,
-		}); emitErr != nil {
-			return observability.PrepareError(emitErr, span, "enqueuing data change event")
+		if err := r.events.Emit(ctx, tx, logger, changeEventType, accountID, map[string]any{
+			issuereportkeys.IssueReportIDKey:     report.ID,
+			issuereportkeys.IssueReportStatusKey: report.Status.String(),
+		}); err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "enqueuing data change event")
 		}
 
 		return nil
-	}); err != nil {
-		return err
-	}
-
-	return nil
+	})
 }

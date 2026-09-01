@@ -9,6 +9,7 @@ import (
 	ddbauth "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 	ddbcomments "github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments"
 	ddbdataprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
+	ddbissuereports "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports"
 	ddboauth "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
 	ddbuploadedmedia "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 
@@ -23,6 +24,7 @@ import (
 	"github.com/primandproper/platform-go/v13/database/migrate"
 	dataprivacymigrations "github.com/primandproper/platform-go/v13/dataprivacy/migrations"
 	"github.com/primandproper/platform-go/v13/errors"
+	issuereportsmigrations "github.com/primandproper/platform-go/v13/issuereports/migrations"
 	"github.com/primandproper/platform-go/v13/metering"
 	meteringmigrations "github.com/primandproper/platform-go/v13/metering/migrations"
 	"github.com/primandproper/platform-go/v13/observability/logging"
@@ -72,6 +74,7 @@ const (
 	workQueueMigrationVersion       = 36
 	commentsMigrationVersion        = 37
 	uploadsRegistryMigrationVersion = 38
+	issueReportsMigrationVersion    = 39
 )
 
 // NewMigrator creates a new postgres Migrator over the embedded migration files.
@@ -189,6 +192,11 @@ func NewMigrator(logger logging.Logger) (*migrate.Migrator, error) {
 		return nil, err
 	}
 
+	issueReportsDDL, err := renderIssueReportsDDL()
+	if err != nil {
+		return nil, err
+	}
+
 	migrator, err := migrate.New(
 		dialect.Postgres,
 		migrationFiles,
@@ -208,12 +216,64 @@ func NewMigrator(logger logging.Logger) (*migrate.Migrator, error) {
 		migrate.WithGeneratedMigration(workQueueMigrationVersion, "create_work_queue_items_table", workQueueDDL),
 		migrate.WithGeneratedMigration(commentsMigrationVersion, "create_comments_table", commentsDDL),
 		migrate.WithGeneratedMigration(uploadsRegistryMigrationVersion, "create_uploads_objects_table", uploadsRegistryDDL),
+		migrate.WithGeneratedMigration(issueReportsMigrationVersion, "create_issue_reports_table", issueReportsDDL),
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "building migrator")
 	}
 
 	return migrator, nil
+}
+
+// renderIssueReportsDDL renders the issue report table, dropping the one
+// 00009_issue_reports.sql created first, and re-creating the two foreign keys
+// that table carried.
+//
+// Nothing is carried across, and the two tables could not carry it anyway: the
+// platform's names the columns differently (reporter, kind, subject_type,
+// subject_id), swaps belongs_to_account for the tenancy column every one of its
+// reads filters on, and adds the three columns this package was adopted for —
+// status, resolution and closed_at, which are what turn a pile of submissions
+// into a queue somebody can work.
+//
+// The old table is dropped rather than left in place because its name is the one
+// the platform's default prefix would render, and its DDL says CREATE TABLE IF
+// NOT EXISTS — so a deployment that kept it would eventually get a silent no-op
+// followed by a store reading columns that are not there. This renders
+// ddb_issue_reports; see ddbissuereports.TablePrefix.
+//
+// Both foreign keys are re-created, and neither is something platform could
+// ship: it does not know which of a consumer's tables holds a principal, and it
+// does not know that this consumer's tenants are rows in a table at all.
+//
+// The reporter key is the one that matters. It is what keeps the single identity
+// eraser in internal/build/dataprivacy covering issue reports — the details are
+// free text somebody typed, so a report that outlived its reporter would be
+// personal data no erasure reaches. Without it this domain would need an eraser
+// of its own; platform ships one (issuereports/privacy) for consumers whose
+// reporters are not rows they own.
+//
+// The scope key re-creates what belongs_to_account did: a hard-deleted account
+// takes its reports with it rather than stranding them in a scope nothing can
+// list. It is safe only because this application never files a report in the
+// global scope, whose stored identifier is the empty string and would match no
+// account — see ddbissuereports.Scope, which maps an empty account to the scope
+// the store refuses rather than to the global one.
+func renderIssueReportsDDL() (string, error) {
+	schema, err := issuereportsmigrations.SQL(dialect.Postgres, ddbissuereports.TablePrefix)
+	if err != nil {
+		return "", errors.Wrap(err, "rendering issue reports migration")
+	}
+
+	table := ddl.Qualify(ddbissuereports.TablePrefix) + "issue_reports"
+
+	body := &strings.Builder{}
+	body.WriteString("DROP TABLE IF EXISTS issue_reports;\n\n")
+	body.WriteString(schema)
+	body.WriteString("\n\nALTER TABLE " + table + "\n\tADD CONSTRAINT " + table + "_reporter_fk\n\tFOREIGN KEY (reporter) REFERENCES users(id) ON DELETE CASCADE;\n")
+	body.WriteString("\nALTER TABLE " + table + "\n\tADD CONSTRAINT " + table + "_scope_fk\n\tFOREIGN KEY (scope) REFERENCES accounts(id) ON DELETE CASCADE;\n")
+
+	return body.String(), nil
 }
 
 // renderCommentsDDL renders the comment table, dropping the one 00012_comments.sql

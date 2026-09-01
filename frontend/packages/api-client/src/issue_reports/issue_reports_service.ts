@@ -26,14 +26,16 @@ import {
   CreateIssueReportResponse,
   GetIssueReportRequest,
   GetIssueReportResponse,
-  GetIssueReportsForAccountRequest,
-  GetIssueReportsForAccountResponse,
-  GetIssueReportsForRecordRequest,
-  GetIssueReportsForRecordResponse,
-  GetIssueReportsForTableRequest,
-  GetIssueReportsForTableResponse,
+  GetIssueReportsByStatusRequest,
+  GetIssueReportsByStatusResponse,
+  GetIssueReportsBySubjectTypeRequest,
+  GetIssueReportsBySubjectTypeResponse,
+  GetIssueReportsForSubjectRequest,
+  GetIssueReportsForSubjectResponse,
   GetIssueReportsRequest,
   GetIssueReportsResponse,
+  TransitionIssueReportRequest,
+  TransitionIssueReportResponse,
   UpdateIssueReportRequest,
   UpdateIssueReportResponse,
 } from './issue_reports_service_types';
@@ -87,43 +89,43 @@ export const IssueReportsServiceService = {
       Buffer.from(GetIssueReportsResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): GetIssueReportsResponse => GetIssueReportsResponse.decode(value),
   },
-  getIssueReportsForAccount: {
-    path: '/issue_reports.IssueReportsService/GetIssueReportsForAccount' as const,
+  getIssueReportsByStatus: {
+    path: '/issue_reports.IssueReportsService/GetIssueReportsByStatus' as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: GetIssueReportsForAccountRequest): Buffer =>
-      Buffer.from(GetIssueReportsForAccountRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): GetIssueReportsForAccountRequest =>
-      GetIssueReportsForAccountRequest.decode(value),
-    responseSerialize: (value: GetIssueReportsForAccountResponse): Buffer =>
-      Buffer.from(GetIssueReportsForAccountResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): GetIssueReportsForAccountResponse =>
-      GetIssueReportsForAccountResponse.decode(value),
+    requestSerialize: (value: GetIssueReportsByStatusRequest): Buffer =>
+      Buffer.from(GetIssueReportsByStatusRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetIssueReportsByStatusRequest => GetIssueReportsByStatusRequest.decode(value),
+    responseSerialize: (value: GetIssueReportsByStatusResponse): Buffer =>
+      Buffer.from(GetIssueReportsByStatusResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetIssueReportsByStatusResponse =>
+      GetIssueReportsByStatusResponse.decode(value),
   },
-  getIssueReportsForTable: {
-    path: '/issue_reports.IssueReportsService/GetIssueReportsForTable' as const,
+  getIssueReportsBySubjectType: {
+    path: '/issue_reports.IssueReportsService/GetIssueReportsBySubjectType' as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: GetIssueReportsForTableRequest): Buffer =>
-      Buffer.from(GetIssueReportsForTableRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): GetIssueReportsForTableRequest => GetIssueReportsForTableRequest.decode(value),
-    responseSerialize: (value: GetIssueReportsForTableResponse): Buffer =>
-      Buffer.from(GetIssueReportsForTableResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): GetIssueReportsForTableResponse =>
-      GetIssueReportsForTableResponse.decode(value),
+    requestSerialize: (value: GetIssueReportsBySubjectTypeRequest): Buffer =>
+      Buffer.from(GetIssueReportsBySubjectTypeRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetIssueReportsBySubjectTypeRequest =>
+      GetIssueReportsBySubjectTypeRequest.decode(value),
+    responseSerialize: (value: GetIssueReportsBySubjectTypeResponse): Buffer =>
+      Buffer.from(GetIssueReportsBySubjectTypeResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetIssueReportsBySubjectTypeResponse =>
+      GetIssueReportsBySubjectTypeResponse.decode(value),
   },
-  getIssueReportsForRecord: {
-    path: '/issue_reports.IssueReportsService/GetIssueReportsForRecord' as const,
+  getIssueReportsForSubject: {
+    path: '/issue_reports.IssueReportsService/GetIssueReportsForSubject' as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: GetIssueReportsForRecordRequest): Buffer =>
-      Buffer.from(GetIssueReportsForRecordRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): GetIssueReportsForRecordRequest =>
-      GetIssueReportsForRecordRequest.decode(value),
-    responseSerialize: (value: GetIssueReportsForRecordResponse): Buffer =>
-      Buffer.from(GetIssueReportsForRecordResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): GetIssueReportsForRecordResponse =>
-      GetIssueReportsForRecordResponse.decode(value),
+    requestSerialize: (value: GetIssueReportsForSubjectRequest): Buffer =>
+      Buffer.from(GetIssueReportsForSubjectRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetIssueReportsForSubjectRequest =>
+      GetIssueReportsForSubjectRequest.decode(value),
+    responseSerialize: (value: GetIssueReportsForSubjectResponse): Buffer =>
+      Buffer.from(GetIssueReportsForSubjectResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetIssueReportsForSubjectResponse =>
+      GetIssueReportsForSubjectResponse.decode(value),
   },
   updateIssueReport: {
     path: '/issue_reports.IssueReportsService/UpdateIssueReport' as const,
@@ -135,6 +137,17 @@ export const IssueReportsServiceService = {
     responseSerialize: (value: UpdateIssueReportResponse): Buffer =>
       Buffer.from(UpdateIssueReportResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): UpdateIssueReportResponse => UpdateIssueReportResponse.decode(value),
+  },
+  transitionIssueReport: {
+    path: '/issue_reports.IssueReportsService/TransitionIssueReport' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: TransitionIssueReportRequest): Buffer =>
+      Buffer.from(TransitionIssueReportRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): TransitionIssueReportRequest => TransitionIssueReportRequest.decode(value),
+    responseSerialize: (value: TransitionIssueReportResponse): Buffer =>
+      Buffer.from(TransitionIssueReportResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): TransitionIssueReportResponse => TransitionIssueReportResponse.decode(value),
   },
   archiveIssueReport: {
     path: '/issue_reports.IssueReportsService/ArchiveIssueReport' as const,
@@ -154,10 +167,14 @@ export interface IssueReportsServiceServer extends UntypedServiceImplementation 
   createIssueReport: handleUnaryCall<CreateIssueReportRequest, CreateIssueReportResponse>;
   getIssueReport: handleUnaryCall<GetIssueReportRequest, GetIssueReportResponse>;
   getIssueReports: handleUnaryCall<GetIssueReportsRequest, GetIssueReportsResponse>;
-  getIssueReportsForAccount: handleUnaryCall<GetIssueReportsForAccountRequest, GetIssueReportsForAccountResponse>;
-  getIssueReportsForTable: handleUnaryCall<GetIssueReportsForTableRequest, GetIssueReportsForTableResponse>;
-  getIssueReportsForRecord: handleUnaryCall<GetIssueReportsForRecordRequest, GetIssueReportsForRecordResponse>;
+  getIssueReportsByStatus: handleUnaryCall<GetIssueReportsByStatusRequest, GetIssueReportsByStatusResponse>;
+  getIssueReportsBySubjectType: handleUnaryCall<
+    GetIssueReportsBySubjectTypeRequest,
+    GetIssueReportsBySubjectTypeResponse
+  >;
+  getIssueReportsForSubject: handleUnaryCall<GetIssueReportsForSubjectRequest, GetIssueReportsForSubjectResponse>;
   updateIssueReport: handleUnaryCall<UpdateIssueReportRequest, UpdateIssueReportResponse>;
+  transitionIssueReport: handleUnaryCall<TransitionIssueReportRequest, TransitionIssueReportResponse>;
   archiveIssueReport: handleUnaryCall<ArchiveIssueReportRequest, ArchiveIssueReportResponse>;
 }
 
@@ -222,50 +239,50 @@ export interface IssueReportsServiceClient extends Client {
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: GetIssueReportsResponse) => void,
   ): ClientUnaryCall;
-  getIssueReportsForAccount(
-    request: GetIssueReportsForAccountRequest,
-    callback: (error: ServiceError | null, response: GetIssueReportsForAccountResponse) => void,
+  getIssueReportsByStatus(
+    request: GetIssueReportsByStatusRequest,
+    callback: (error: ServiceError | null, response: GetIssueReportsByStatusResponse) => void,
   ): ClientUnaryCall;
-  getIssueReportsForAccount(
-    request: GetIssueReportsForAccountRequest,
+  getIssueReportsByStatus(
+    request: GetIssueReportsByStatusRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetIssueReportsForAccountResponse) => void,
+    callback: (error: ServiceError | null, response: GetIssueReportsByStatusResponse) => void,
   ): ClientUnaryCall;
-  getIssueReportsForAccount(
-    request: GetIssueReportsForAccountRequest,
-    metadata: Metadata,
-    options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetIssueReportsForAccountResponse) => void,
-  ): ClientUnaryCall;
-  getIssueReportsForTable(
-    request: GetIssueReportsForTableRequest,
-    callback: (error: ServiceError | null, response: GetIssueReportsForTableResponse) => void,
-  ): ClientUnaryCall;
-  getIssueReportsForTable(
-    request: GetIssueReportsForTableRequest,
-    metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetIssueReportsForTableResponse) => void,
-  ): ClientUnaryCall;
-  getIssueReportsForTable(
-    request: GetIssueReportsForTableRequest,
+  getIssueReportsByStatus(
+    request: GetIssueReportsByStatusRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetIssueReportsForTableResponse) => void,
+    callback: (error: ServiceError | null, response: GetIssueReportsByStatusResponse) => void,
   ): ClientUnaryCall;
-  getIssueReportsForRecord(
-    request: GetIssueReportsForRecordRequest,
-    callback: (error: ServiceError | null, response: GetIssueReportsForRecordResponse) => void,
+  getIssueReportsBySubjectType(
+    request: GetIssueReportsBySubjectTypeRequest,
+    callback: (error: ServiceError | null, response: GetIssueReportsBySubjectTypeResponse) => void,
   ): ClientUnaryCall;
-  getIssueReportsForRecord(
-    request: GetIssueReportsForRecordRequest,
+  getIssueReportsBySubjectType(
+    request: GetIssueReportsBySubjectTypeRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetIssueReportsForRecordResponse) => void,
+    callback: (error: ServiceError | null, response: GetIssueReportsBySubjectTypeResponse) => void,
   ): ClientUnaryCall;
-  getIssueReportsForRecord(
-    request: GetIssueReportsForRecordRequest,
+  getIssueReportsBySubjectType(
+    request: GetIssueReportsBySubjectTypeRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetIssueReportsForRecordResponse) => void,
+    callback: (error: ServiceError | null, response: GetIssueReportsBySubjectTypeResponse) => void,
+  ): ClientUnaryCall;
+  getIssueReportsForSubject(
+    request: GetIssueReportsForSubjectRequest,
+    callback: (error: ServiceError | null, response: GetIssueReportsForSubjectResponse) => void,
+  ): ClientUnaryCall;
+  getIssueReportsForSubject(
+    request: GetIssueReportsForSubjectRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetIssueReportsForSubjectResponse) => void,
+  ): ClientUnaryCall;
+  getIssueReportsForSubject(
+    request: GetIssueReportsForSubjectRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetIssueReportsForSubjectResponse) => void,
   ): ClientUnaryCall;
   updateIssueReport(
     request: UpdateIssueReportRequest,
@@ -281,6 +298,21 @@ export interface IssueReportsServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: UpdateIssueReportResponse) => void,
+  ): ClientUnaryCall;
+  transitionIssueReport(
+    request: TransitionIssueReportRequest,
+    callback: (error: ServiceError | null, response: TransitionIssueReportResponse) => void,
+  ): ClientUnaryCall;
+  transitionIssueReport(
+    request: TransitionIssueReportRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: TransitionIssueReportResponse) => void,
+  ): ClientUnaryCall;
+  transitionIssueReport(
+    request: TransitionIssueReportRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: TransitionIssueReportResponse) => void,
   ): ClientUnaryCall;
   archiveIssueReport(
     request: ArchiveIssueReportRequest,

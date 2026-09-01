@@ -39,6 +39,7 @@ var definitions = webhooks.Catalog{
 	"email_address_changed":                           {Description: "A user changed their email address."},
 	"issue_report_archived":                           {Description: "An issue report was archived."},
 	"issue_report_created":                            {Description: "An issue report was created."},
+	"issue_report_transitioned":                       {Description: "An issue report moved through the triage lifecycle."},
 	"issue_report_updated":                            {Description: "An issue report was updated."},
 	"meal_archived":                                   {Description: "A meal was archived."},
 	"meal_created":                                    {Description: "A meal was created."},

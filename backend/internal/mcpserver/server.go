@@ -13,13 +13,13 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
 	waitlistsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/waitlists"
 
 	"github.com/primandproper/platform-go/v13/authentication/oauth2server"
 	"github.com/primandproper/platform-go/v13/encoding"
+	issuereports "github.com/primandproper/platform-go/v13/issuereports"
 	"github.com/primandproper/platform-go/v13/observability"
 	"github.com/primandproper/platform-go/v13/routing"
 	routingcfg "github.com/primandproper/platform-go/v13/routing/config"
@@ -207,7 +207,7 @@ type mcpToolManager struct {
 	mealplanningRepo mealplanning.Repository
 	webhooksRepo     webhooks.Repository
 	waitlistsRepo    *waitlistsrepo.Repository
-	issueReportsRepo issuereports.Repository
+	issueReports     issuereports.Store
 }
 
 // userFromRequest resolves the authenticated user's account from the MCP request's auth token.
@@ -323,7 +323,7 @@ func (h *mcpToolManager) setupServer() *mcp.Server {
 	// Issue Reports (read-only)
 	mcp.AddTool(mcpServer, getIssueReportTool, h.GetIssueReport())
 	mcp.AddTool(mcpServer, getIssueReportsTool, h.GetIssueReports())
-	mcp.AddTool(mcpServer, getIssueReportsForAccountTool, h.GetIssueReportsForAccount())
+	mcp.AddTool(mcpServer, getIssueReportsByStatusTool, h.GetIssueReportsByStatus())
 
 	// Webhooks (read-only)
 	mcp.AddTool(mcpServer, getWebhookTool, h.GetWebhook())
