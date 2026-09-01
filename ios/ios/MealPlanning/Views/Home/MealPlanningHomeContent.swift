@@ -83,10 +83,9 @@ struct MealPlanningHomeContent: View {
 
       if let activeMealPlan = viewModel.activeMealPlan {
         NavigationLink(
-          destination: MealPlanDetailView(
-            mealPlan: activeMealPlan,
-            groceryListItems: nil
-          )
+          destination: LoadedMealPlanView(mealPlanID: activeMealPlan.id) { plan in
+            MealPlanDetailView(mealPlan: plan, groceryListItems: nil)
+          }
         ) {
           UpcomingMealCardContent(mealPlan: activeMealPlan)
         }
@@ -179,7 +178,11 @@ struct MealPlanningHomeContent: View {
       }
 
       ForEach(viewModel.pendingVoteMealPlans, id: \.id) { mealPlan in
-        NavigationLink(destination: VoteMealPlanView(mealPlan: mealPlan)) {
+        NavigationLink(
+          destination: LoadedMealPlanView(mealPlanID: mealPlan.id) { plan in
+            VoteMealPlanView(mealPlan: plan)
+          }
+        ) {
           PendingVoteCardContent(
             mealPlan: mealPlan,
             hasVoted: viewModel.hasUserVoted(on: mealPlan),
@@ -198,7 +201,7 @@ struct MealPlanningHomeContent: View {
   }
 
   private func activePlanTaskAndGrocery(
-    viewModel: HomeViewModel, mealPlan: Mealplanning_MealPlan
+    viewModel: HomeViewModel, mealPlan: any MealPlanDisplayable
   ) -> some View {
     VStack(alignment: .leading, spacing: DSTheme.Spacing.sm) {
       if let taskEntry = viewModel.mealPlansWithTasks.first(where: { $0.mealPlanID == mealPlan.id })
@@ -276,14 +279,13 @@ struct MealPlanningHomeContent: View {
   }
 
   private func futureMealPlanBlock(
-    viewModel: HomeViewModel, mealPlan: Mealplanning_MealPlan
+    viewModel: HomeViewModel, mealPlan: any MealPlanDisplayable
   ) -> some View {
     VStack(alignment: .leading, spacing: DSTheme.Spacing.sm) {
       NavigationLink(
-        destination: MealPlanDetailView(
-          mealPlan: mealPlan,
-          groceryListItems: nil
-        )
+        destination: LoadedMealPlanView(mealPlanID: mealPlan.id) { plan in
+          MealPlanDetailView(mealPlan: plan, groceryListItems: nil)
+        }
       ) {
         UpcomingMealCardContent(mealPlan: mealPlan)
       }
@@ -372,10 +374,9 @@ struct MealPlanningHomeContent: View {
 
       ForEach(viewModel.upcomingMealPlans, id: \.id) { mealPlan in
         NavigationLink(
-          destination: MealPlanDetailView(
-            mealPlan: mealPlan,
-            groceryListItems: nil
-          )
+          destination: LoadedMealPlanView(mealPlanID: mealPlan.id) { plan in
+            MealPlanDetailView(mealPlan: plan, groceryListItems: nil)
+          }
         ) {
           UpcomingMealCardContent(mealPlan: mealPlan)
         }
@@ -391,7 +392,7 @@ struct MealPlanningHomeContent: View {
   }
 
   private func taskSummary(
-    tasks: [Mealplanning_MealPlanTask], mealPlan: Mealplanning_MealPlan,
+    tasks: [Mealplanning_MealPlanTask], mealPlan: any MealPlanDisplayable,
     includeDateForFuture: Bool = false
   ) -> (text: String, color: Color) {
     let now = Date()
@@ -446,7 +447,7 @@ struct MealPlanningHomeContent: View {
   }
 
   private func taskStartDate(
-    task: Mealplanning_MealPlanTask, mealPlan: Mealplanning_MealPlan
+    task: Mealplanning_MealPlanTask, mealPlan: any MealPlanDisplayable
   ) -> Date? {
     guard task.hasRecipePrepTask,
       task.recipePrepTask.hasMaxTimeBufferBeforeRecipeInSeconds,
@@ -454,7 +455,7 @@ struct MealPlanningHomeContent: View {
     else { return nil }
     let eventID = task.mealPlanOption.belongsToMealPlanEvent
     guard !eventID.isEmpty,
-      let event = mealPlan.events.first(where: { $0.id == eventID })
+      let event = mealPlan.displayEvents.first(where: { $0.id == eventID })
     else { return nil }
     let eventTime = HomeViewModel.timestampToDate(event.startsAt)
     return eventTime.addingTimeInterval(
@@ -465,7 +466,7 @@ struct MealPlanningHomeContent: View {
 
 // MARK: - Pending Vote Card
 struct PendingVoteCard: View {
-  let mealPlan: Mealplanning_MealPlan
+  let mealPlan: any MealPlanDisplayable
   let hasVoted: Bool
   let timeUntilDeadline: String
   let onTap: () -> Void
@@ -484,7 +485,7 @@ struct PendingVoteCard: View {
 
 // MARK: - Pending Vote Card Content (reusable for NavigationLink)
 struct PendingVoteCardContent: View {
-  let mealPlan: Mealplanning_MealPlan
+  let mealPlan: any MealPlanDisplayable
   let hasVoted: Bool
   let timeUntilDeadline: String
 
@@ -553,7 +554,7 @@ struct PendingVoteCardContent: View {
 
 // MARK: - Upcoming Meal Card Content
 struct UpcomingMealCardContent: View {
-  let mealPlan: Mealplanning_MealPlan
+  let mealPlan: any MealPlanDisplayable
 
   private var isPast: Bool {
     MealPlanningHomeHelpers.isMealPlanInPast(mealPlan)
@@ -595,11 +596,11 @@ struct UpcomingMealCardContent: View {
           .foregroundColor(DSTheme.Colors.textTertiary)
       }
 
-      if !mealPlan.events.isEmpty {
+      if !mealPlan.displayEvents.isEmpty {
         DSDivider()
 
         VStack(spacing: DSTheme.Spacing.xs) {
-          ForEach(mealPlan.events.prefix(3), id: \.id) { event in
+          ForEach(mealPlan.displayEvents.prefix(3), id: \.id) { event in
             HStack {
               Circle()
                 .fill(mealColor(for: event.mealName))
@@ -620,8 +621,8 @@ struct UpcomingMealCardContent: View {
           }
         }
 
-        if mealPlan.events.count > 3 {
-          Text("+ \(mealPlan.events.count - 3) more")
+        if mealPlan.displayEvents.count > 3 {
+          Text("+ \(mealPlan.displayEvents.count - 3) more")
             .font(DSTheme.Typography.caption)
             .foregroundColor(DSTheme.Colors.textTertiary)
             .strikethrough(isPast)
@@ -637,26 +638,16 @@ struct UpcomingMealCardContent: View {
     )
   }
 
-  private func eventDisplayLabel(_ event: Mealplanning_MealPlanEvent) -> String {
+  private func eventDisplayLabel(_ event: any MealPlanEventDisplayable) -> String {
     guard mealPlan.status == .finalized,
-      let chosen = event.options.first(where: { $0.chosen })
+      let chosenMealName = event.chosenMealDisplayName
     else {
       return MealPlanningUtils.formatMealName(event.mealName)
     }
-    let meal = chosen.meal
-    if !meal.name.isEmpty {
-      return meal.name
-    }
-    let recipeNames = meal.components.compactMap { comp -> String? in
-      comp.recipe.name.isEmpty ? nil : comp.recipe.name
-    }
-    if !recipeNames.isEmpty {
-      return recipeNames.joined(separator: ", ")
-    }
-    return MealPlanningUtils.formatMealName(event.mealName)
+    return chosenMealName
   }
 
-  private func formatEventDate(_ event: Mealplanning_MealPlanEvent, compact: Bool) -> String {
+  private func formatEventDate(_ event: any MealPlanEventDisplayable, compact: Bool) -> String {
     let date = HomeViewModel.timestampToDate(event.startsAt)
     if compact {
       let weekdayFormatter = DateFormatter()
@@ -690,7 +681,7 @@ struct UpcomingMealCardContent: View {
 
 // MARK: - Upcoming Meal Card (legacy wrapper)
 struct UpcomingMealCard: View {
-  let mealPlan: Mealplanning_MealPlan
+  let mealPlan: any MealPlanDisplayable
   let onTap: () -> Void
 
   var body: some View {

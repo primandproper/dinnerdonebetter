@@ -561,6 +561,58 @@ message MealComponentSummary {
   float recipe_scale = 3;
 }
 
+// MealPlanSummary is the shape a MealPlan takes in a list response. It keeps the
+// events, because the dates on them are what a list of plans is read for, but each
+// one is a MealPlanEventSummary carrying no options.
+//
+// The options are the whole size problem. A MealPlanOption embeds a whole Meal,
+// whose components embed whole Recipes -- see RecipeSummary for why a hydrated
+// Recipe cannot be paginated. Measured against the fakes, 250 hydrated plans
+// marshal to 127.48 MiB against a 4 MiB gRPC message bound, and a page of eight
+// already clears it; the same page of summaries is 0.10 MiB. The events themselves
+// are scalars and cost about 130 bytes each, so dropping them too would buy 0.07
+// MiB and cost every caller that reads a plan's dates a second round trip.
+//
+// Fetch a single meal plan by ID for events carrying their options and votes.
+message MealPlanSummary {
+  google.protobuf.Timestamp created_at = 1;
+  google.protobuf.Timestamp voting_deadline = 2;
+  optional google.protobuf.Timestamp archived_at = 3;
+  optional google.protobuf.Timestamp last_updated_at = 4;
+  string id = 5;
+  MealPlanStatus status = 6;
+  string notes = 7;
+  MealPlanElectionMethod election_method = 8;
+  string belongs_to_account = 9;
+  string created_by_user = 10;
+  repeated MealPlanEventSummary events = 11;
+  bool grocery_list_initialized = 12;
+  bool tasks_created = 13;
+  // Whether the requesting user has cast a vote on any of this plan's events. It is a
+  // projection of the votes the options carried, which the list would otherwise have to
+  // fetch every plan in full to learn. Non-abstaining votes only, matching what the
+  // clients counted as having voted.
+  bool current_user_has_voted = 14;
+}
+
+// MealPlanEventSummary is the shape a MealPlanEvent takes inside a MealPlanSummary:
+// the event's own columns, and none of its options.
+message MealPlanEventSummary {
+  google.protobuf.Timestamp created_at = 1;
+  google.protobuf.Timestamp starts_at = 2;
+  google.protobuf.Timestamp ends_at = 3;
+  optional google.protobuf.Timestamp archived_at = 4;
+  optional google.protobuf.Timestamp last_updated_at = 5;
+  MealPlanEventName meal_name = 6;
+  string notes = 7;
+  string belongs_to_meal_plan = 8;
+  string id = 9;
+  // The name of the meal on this event's chosen option, absent until voting has picked
+  // one. Like current_user_has_voted it is a projection of the dropped options, here of
+  // the single string a list of plans displays.
+  optional string chosen_meal_name = 10;
+}
+
 message MealPlan {
   google.protobuf.Timestamp created_at = 1;
   google.protobuf.Timestamp voting_deadline = 2;

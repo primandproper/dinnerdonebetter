@@ -846,8 +846,16 @@ func (s *serviceImpl) GetMealPlansForAccount(ctx context.Context, request *mealp
 		Pagination: filteringgrpc.PaginationToProto(mealPlansResult.Pagination),
 	}
 
+	// The summary's chosen meal names and voted flag come from the options it does not
+	// carry, so they are read for the whole page at once rather than by fetching each
+	// plan in full.
+	annotations, err := s.mealPlanningManager.AnnotateMealPlanSummaries(ctx, sessionContextData.GetUserID(), mealPlansResult.Data)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to annotate meal plans")
+	}
+
 	for _, mealPlan := range mealPlansResult.Data {
-		x.Results = append(x.Results, converters.ConvertMealPlanToGRPCMealPlan(mealPlan))
+		x.Results = append(x.Results, converters.ConvertMealPlanToGRPCMealPlanSummary(mealPlan, annotations))
 	}
 
 	return x, nil

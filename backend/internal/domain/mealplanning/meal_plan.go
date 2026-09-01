@@ -109,11 +109,41 @@ type (
 		RecipeIDs        []string
 	}
 
+	// MealPlanSummaryAnnotations carries the parts of a MealPlanSummary that the listed
+	// meal plan itself cannot supply, because both are projections of the options the
+	// summary drops. The list endpoint reads them for a whole page at a time; nothing
+	// persists them, so they are not fields on MealPlan or MealPlanEvent.
+	MealPlanSummaryAnnotations struct {
+		_ struct{} `json:"-"`
+
+		// ChosenMealNamesByEventID holds the name of the meal on each event's chosen
+		// option. Events voting has not settled yet are absent.
+		ChosenMealNamesByEventID map[string]string `json:"chosenMealNamesByEventID"`
+		// VotedOnMealPlanIDs holds the IDs of the plans the user has cast a
+		// non-abstaining vote on.
+		VotedOnMealPlanIDs map[string]bool `json:"votedOnMealPlanIDs"`
+	}
+
 	// MealPlanDataManager describes a structure capable of storing meal plans permanently.
 	MealPlanDataManager interface {
 		MealPlanExists(ctx context.Context, mealPlanID, accountID string) (bool, error)
 		GetMealPlan(ctx context.Context, mealPlanID, accountID string) (*MealPlan, error)
+		// GetMealPlansForAccount returns a page of an account's meal plans, each carrying
+		// its events but not the options hanging off them. It answers the list endpoint.
 		GetMealPlansForAccount(ctx context.Context, accountID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[MealPlan], error)
+		// GetHydratedMealPlansForAccount returns the same page with every option, meal and
+		// selection attached. It is for the data-privacy collector, which serializes whole
+		// records; a single hydrated plan runs to hundreds of kilobytes, so nothing a
+		// client reads should use it.
+		GetHydratedMealPlansForAccount(ctx context.Context, accountID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[MealPlan], error)
+		// GetChosenMealNamesForMealPlans returns, keyed by meal plan event ID, the name of
+		// the meal on the option voting settled on. Events still awaiting a decision are
+		// absent. It projects what a list of plans reads out of the options its summaries
+		// drop.
+		GetChosenMealNamesForMealPlans(ctx context.Context, mealPlanIDs []string) (map[string]string, error)
+		// GetMealPlanIDsVotedOnByUser returns which of the given meal plans the user has
+		// cast a non-abstaining vote on.
+		GetMealPlanIDsVotedOnByUser(ctx context.Context, userID string, mealPlanIDs []string) ([]string, error)
 		CreateMealPlan(ctx context.Context, input *MealPlanDatabaseCreationInput) (*MealPlan, error)
 		UpdateMealPlan(ctx context.Context, updated *MealPlan) error
 		ArchiveMealPlan(ctx context.Context, mealPlanID, accountID string) error

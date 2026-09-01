@@ -14068,7 +14068,7 @@ public struct Mealplanning_GetMealPlansForAccountResponse: Sendable {
   /// Clears the value of `pagination`. Subsequent reads from it will return its default value.
   public mutating func clearPagination() {self._pagination = nil}
 
-  public var results: [Mealplanning_MealPlan] = []
+  public var results: [Mealplanning_MealPlanSummary] = []
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 

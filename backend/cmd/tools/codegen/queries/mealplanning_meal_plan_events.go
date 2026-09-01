@@ -138,6 +138,95 @@ ORDER BY %s.%s ASC;`,
 				},
 				{
 					Annotation: QueryAnnotation{
+						Name: "GetChosenMealNamesForMealPlans",
+						Type: ManyType,
+					},
+					// One row per event that voting has settled on an option for, for the
+					// list endpoint. MealPlanSummary projects the dropped options down to
+					// this one name per event, so reading it has to cost a query for the
+					// page rather than a fetch of every plan in full.
+					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
+	%s.%s,
+	%s.%s
+FROM %s
+	JOIN %s ON %s.%s = %s.%s AND %s.%s IS NULL
+	JOIN %s ON %s.%s = %s.%s AND %s.%s IS NULL
+WHERE
+	%s.%s IS NULL
+	AND %s.%s = ANY(sqlc.arg(%s)::text[])
+	AND %s.%s IS TRUE;`,
+						mealPlanEventsTableName, idColumn,
+						mealsTableName, nameColumn,
+						mealPlanEventsTableName,
+						mealPlanOptionsTableName, mealPlanOptionsTableName, belongsToMealPlanEventColumn, mealPlanEventsTableName, idColumn,
+						mealPlanOptionsTableName, archivedAtColumn,
+						mealsTableName, mealsTableName, idColumn, mealPlanOptionsTableName, mealIDColumn,
+						mealsTableName, archivedAtColumn,
+						mealPlanEventsTableName, archivedAtColumn,
+						mealPlanEventsTableName, belongsToMealPlanColumn, idsArg,
+						mealPlanOptionsTableName, mealPlanOptionsChosenColumn,
+					)),
+				},
+				{
+					Annotation: QueryAnnotation{
+						Name: "GetMealPlanIDsVotedOnByUser",
+						Type: ManyType,
+					},
+					// Which of the given plans the user has cast a non-abstaining vote on.
+					// The clients read this off the votes hanging under each option, which
+					// MealPlanSummary drops; DISTINCT because a plan is voted on once for
+					// this purpose however many events and options it has.
+					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT DISTINCT %s.%s
+FROM %s
+	JOIN %s ON %s.%s = %s.%s AND %s.%s IS NULL
+	JOIN %s ON %s.%s = %s.%s AND %s.%s IS NULL
+WHERE
+	%s.%s IS NULL
+	AND %s.%s IS NULL
+	AND %s.%s = ANY(sqlc.arg(%s)::text[])
+	AND %s.%s = sqlc.arg(%s)
+	AND %s.%s IS FALSE;`,
+						mealPlanEventsTableName, belongsToMealPlanColumn,
+						mealPlanOptionVotesTableName,
+						mealPlanOptionsTableName, mealPlanOptionsTableName, idColumn, mealPlanOptionVotesTableName, belongsToMealPlanOptionColumn,
+						mealPlanOptionsTableName, archivedAtColumn,
+						mealPlanEventsTableName, mealPlanEventsTableName, idColumn, mealPlanOptionsTableName, belongsToMealPlanEventColumn,
+						mealPlanEventsTableName, archivedAtColumn,
+						mealPlanOptionVotesTableName, archivedAtColumn,
+						mealPlanEventsTableName, archivedAtColumn,
+						mealPlanEventsTableName, belongsToMealPlanColumn, idsArg,
+						mealPlanOptionVotesTableName, byUserColumn, byUserColumn,
+						mealPlanOptionVotesTableName, abstainColumn,
+					)),
+				},
+				{
+					Annotation: QueryAnnotation{
+						Name: "GetAllMealPlanEventsForMealPlans",
+						Type: ManyType,
+					},
+					// The plural of GetAllMealPlanEventsForMealPlan, for the list
+					// endpoint: GetMealPlansForAccount answers with a MealPlanSummary
+					// per plan, and reading a page's events one plan at a time would
+					// put the N+1 back that the summary exists to remove.
+					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
+	%s
+FROM %s
+WHERE
+	%s.%s IS NULL
+	AND %s.%s = ANY(sqlc.arg(%s)::text[])
+ORDER BY %s.%s ASC, %s.%s ASC;`,
+						strings.Join(applyToEach(mealPlanEventsColumns, func(i int, s string) string {
+							return fmt.Sprintf("%s.%s", mealPlanEventsTableName, s)
+						}), ",\n\t"),
+						mealPlanEventsTableName,
+						mealPlanEventsTableName, archivedAtColumn,
+						mealPlanEventsTableName, belongsToMealPlanColumn, idsArg,
+						mealPlanEventsTableName, belongsToMealPlanColumn,
+						mealPlanEventsTableName, idColumn,
+					)),
+				},
+				{
+					Annotation: QueryAnnotation{
 						Name: "UpdateMealPlanEvent",
 						Type: ExecRowsType,
 					},

@@ -293,8 +293,14 @@ var _ mealplanning.Repository = &RepositoryMock{}
 //			GetAccountInstrumentOwnershipsFunc: func(ctx context.Context, accountID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.AccountInstrumentOwnership], error) {
 //				panic("mock out the GetAccountInstrumentOwnerships method")
 //			},
+//			GetChosenMealNamesForMealPlansFunc: func(ctx context.Context, mealPlanIDs []string) (map[string]string, error) {
+//				panic("mock out the GetChosenMealNamesForMealPlans method")
+//			},
 //			GetFinalizedMealPlanOptionsForMealPlanFunc: func(ctx context.Context, mealPlanID string) ([]*mealplanning.FinalizedMealPlanDatabaseResult, error) {
 //				panic("mock out the GetFinalizedMealPlanOptionsForMealPlan method")
+//			},
+//			GetHydratedMealPlansForAccountFunc: func(ctx context.Context, accountID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.MealPlan], error) {
+//				panic("mock out the GetHydratedMealPlansForAccount method")
 //			},
 //			GetIngredientMediaByIngredientFunc: func(ctx context.Context, validIngredientID string) ([]*mealplanning.IngredientMediaRow, error) {
 //				panic("mock out the GetIngredientMediaByIngredient method")
@@ -322,6 +328,9 @@ var _ mealplanning.Repository = &RepositoryMock{}
 //			},
 //			GetMealPlanGroceryListItemsForMealPlanFunc: func(ctx context.Context, mealPlanID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.MealPlanGroceryListItem], error) {
 //				panic("mock out the GetMealPlanGroceryListItemsForMealPlan method")
+//			},
+//			GetMealPlanIDsVotedOnByUserFunc: func(ctx context.Context, userID string, mealPlanIDs []string) ([]string, error) {
+//				panic("mock out the GetMealPlanIDsVotedOnByUser method")
 //			},
 //			GetMealPlanOptionFunc: func(ctx context.Context, mealPlanID string, mealPlanEventID string, mealPlanOptionID string) (*mealplanning.MealPlanOption, error) {
 //				panic("mock out the GetMealPlanOption method")
@@ -1242,8 +1251,14 @@ type RepositoryMock struct {
 	// GetAccountInstrumentOwnershipsFunc mocks the GetAccountInstrumentOwnerships method.
 	GetAccountInstrumentOwnershipsFunc func(ctx context.Context, accountID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.AccountInstrumentOwnership], error)
 
+	// GetChosenMealNamesForMealPlansFunc mocks the GetChosenMealNamesForMealPlans method.
+	GetChosenMealNamesForMealPlansFunc func(ctx context.Context, mealPlanIDs []string) (map[string]string, error)
+
 	// GetFinalizedMealPlanOptionsForMealPlanFunc mocks the GetFinalizedMealPlanOptionsForMealPlan method.
 	GetFinalizedMealPlanOptionsForMealPlanFunc func(ctx context.Context, mealPlanID string) ([]*mealplanning.FinalizedMealPlanDatabaseResult, error)
+
+	// GetHydratedMealPlansForAccountFunc mocks the GetHydratedMealPlansForAccount method.
+	GetHydratedMealPlansForAccountFunc func(ctx context.Context, accountID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.MealPlan], error)
 
 	// GetIngredientMediaByIngredientFunc mocks the GetIngredientMediaByIngredient method.
 	GetIngredientMediaByIngredientFunc func(ctx context.Context, validIngredientID string) ([]*mealplanning.IngredientMediaRow, error)
@@ -1271,6 +1286,9 @@ type RepositoryMock struct {
 
 	// GetMealPlanGroceryListItemsForMealPlanFunc mocks the GetMealPlanGroceryListItemsForMealPlan method.
 	GetMealPlanGroceryListItemsForMealPlanFunc func(ctx context.Context, mealPlanID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.MealPlanGroceryListItem], error)
+
+	// GetMealPlanIDsVotedOnByUserFunc mocks the GetMealPlanIDsVotedOnByUser method.
+	GetMealPlanIDsVotedOnByUserFunc func(ctx context.Context, userID string, mealPlanIDs []string) ([]string, error)
 
 	// GetMealPlanOptionFunc mocks the GetMealPlanOption method.
 	GetMealPlanOptionFunc func(ctx context.Context, mealPlanID string, mealPlanEventID string, mealPlanOptionID string) (*mealplanning.MealPlanOption, error)
@@ -2660,12 +2678,28 @@ type RepositoryMock struct {
 			// Filter is the filter argument value.
 			Filter *filtering.QueryFilter
 		}
+		// GetChosenMealNamesForMealPlans holds details about calls to the GetChosenMealNamesForMealPlans method.
+		GetChosenMealNamesForMealPlans []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// MealPlanIDs is the mealPlanIDs argument value.
+			MealPlanIDs []string
+		}
 		// GetFinalizedMealPlanOptionsForMealPlan holds details about calls to the GetFinalizedMealPlanOptionsForMealPlan method.
 		GetFinalizedMealPlanOptionsForMealPlan []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
 			// MealPlanID is the mealPlanID argument value.
 			MealPlanID string
+		}
+		// GetHydratedMealPlansForAccount holds details about calls to the GetHydratedMealPlansForAccount method.
+		GetHydratedMealPlansForAccount []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// AccountID is the accountID argument value.
+			AccountID string
+			// Filter is the filter argument value.
+			Filter *filtering.QueryFilter
 		}
 		// GetIngredientMediaByIngredient holds details about calls to the GetIngredientMediaByIngredient method.
 		GetIngredientMediaByIngredient []struct {
@@ -2745,6 +2779,15 @@ type RepositoryMock struct {
 			MealPlanID string
 			// Filter is the filter argument value.
 			Filter *filtering.QueryFilter
+		}
+		// GetMealPlanIDsVotedOnByUser holds details about calls to the GetMealPlanIDsVotedOnByUser method.
+		GetMealPlanIDsVotedOnByUser []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// UserID is the userID argument value.
+			UserID string
+			// MealPlanIDs is the mealPlanIDs argument value.
+			MealPlanIDs []string
 		}
 		// GetMealPlanOption holds details about calls to the GetMealPlanOption method.
 		GetMealPlanOption []struct {
@@ -4593,7 +4636,9 @@ type RepositoryMock struct {
 	lockFindMealWithSameComponents                           sync.RWMutex
 	lockGetAccountInstrumentOwnership                        sync.RWMutex
 	lockGetAccountInstrumentOwnerships                       sync.RWMutex
+	lockGetChosenMealNamesForMealPlans                       sync.RWMutex
 	lockGetFinalizedMealPlanOptionsForMealPlan               sync.RWMutex
+	lockGetHydratedMealPlansForAccount                       sync.RWMutex
 	lockGetIngredientMediaByIngredient                       sync.RWMutex
 	lockGetMeal                                              sync.RWMutex
 	lockGetMealListItems                                     sync.RWMutex
@@ -4603,6 +4648,7 @@ type RepositoryMock struct {
 	lockGetMealPlanEvents                                    sync.RWMutex
 	lockGetMealPlanGroceryListItem                           sync.RWMutex
 	lockGetMealPlanGroceryListItemsForMealPlan               sync.RWMutex
+	lockGetMealPlanIDsVotedOnByUser                          sync.RWMutex
 	lockGetMealPlanOption                                    sync.RWMutex
 	lockGetMealPlanOptionVote                                sync.RWMutex
 	lockGetMealPlanOptionVotes                               sync.RWMutex
@@ -8287,6 +8333,42 @@ func (mock *RepositoryMock) GetAccountInstrumentOwnershipsCalls() []struct {
 	return calls
 }
 
+// GetChosenMealNamesForMealPlans calls GetChosenMealNamesForMealPlansFunc.
+func (mock *RepositoryMock) GetChosenMealNamesForMealPlans(ctx context.Context, mealPlanIDs []string) (map[string]string, error) {
+	if mock.GetChosenMealNamesForMealPlansFunc == nil {
+		panic("RepositoryMock.GetChosenMealNamesForMealPlansFunc: method is nil but Repository.GetChosenMealNamesForMealPlans was just called")
+	}
+	callInfo := struct {
+		Ctx         context.Context
+		MealPlanIDs []string
+	}{
+		Ctx:         ctx,
+		MealPlanIDs: mealPlanIDs,
+	}
+	mock.lockGetChosenMealNamesForMealPlans.Lock()
+	mock.calls.GetChosenMealNamesForMealPlans = append(mock.calls.GetChosenMealNamesForMealPlans, callInfo)
+	mock.lockGetChosenMealNamesForMealPlans.Unlock()
+	return mock.GetChosenMealNamesForMealPlansFunc(ctx, mealPlanIDs)
+}
+
+// GetChosenMealNamesForMealPlansCalls gets all the calls that were made to GetChosenMealNamesForMealPlans.
+// Check the length with:
+//
+//	len(mockedRepository.GetChosenMealNamesForMealPlansCalls())
+func (mock *RepositoryMock) GetChosenMealNamesForMealPlansCalls() []struct {
+	Ctx         context.Context
+	MealPlanIDs []string
+} {
+	var calls []struct {
+		Ctx         context.Context
+		MealPlanIDs []string
+	}
+	mock.lockGetChosenMealNamesForMealPlans.RLock()
+	calls = mock.calls.GetChosenMealNamesForMealPlans
+	mock.lockGetChosenMealNamesForMealPlans.RUnlock()
+	return calls
+}
+
 // GetFinalizedMealPlanOptionsForMealPlan calls GetFinalizedMealPlanOptionsForMealPlanFunc.
 func (mock *RepositoryMock) GetFinalizedMealPlanOptionsForMealPlan(ctx context.Context, mealPlanID string) ([]*mealplanning.FinalizedMealPlanDatabaseResult, error) {
 	if mock.GetFinalizedMealPlanOptionsForMealPlanFunc == nil {
@@ -8320,6 +8402,46 @@ func (mock *RepositoryMock) GetFinalizedMealPlanOptionsForMealPlanCalls() []stru
 	mock.lockGetFinalizedMealPlanOptionsForMealPlan.RLock()
 	calls = mock.calls.GetFinalizedMealPlanOptionsForMealPlan
 	mock.lockGetFinalizedMealPlanOptionsForMealPlan.RUnlock()
+	return calls
+}
+
+// GetHydratedMealPlansForAccount calls GetHydratedMealPlansForAccountFunc.
+func (mock *RepositoryMock) GetHydratedMealPlansForAccount(ctx context.Context, accountID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.MealPlan], error) {
+	if mock.GetHydratedMealPlansForAccountFunc == nil {
+		panic("RepositoryMock.GetHydratedMealPlansForAccountFunc: method is nil but Repository.GetHydratedMealPlansForAccount was just called")
+	}
+	callInfo := struct {
+		Ctx       context.Context
+		AccountID string
+		Filter    *filtering.QueryFilter
+	}{
+		Ctx:       ctx,
+		AccountID: accountID,
+		Filter:    filter,
+	}
+	mock.lockGetHydratedMealPlansForAccount.Lock()
+	mock.calls.GetHydratedMealPlansForAccount = append(mock.calls.GetHydratedMealPlansForAccount, callInfo)
+	mock.lockGetHydratedMealPlansForAccount.Unlock()
+	return mock.GetHydratedMealPlansForAccountFunc(ctx, accountID, filter)
+}
+
+// GetHydratedMealPlansForAccountCalls gets all the calls that were made to GetHydratedMealPlansForAccount.
+// Check the length with:
+//
+//	len(mockedRepository.GetHydratedMealPlansForAccountCalls())
+func (mock *RepositoryMock) GetHydratedMealPlansForAccountCalls() []struct {
+	Ctx       context.Context
+	AccountID string
+	Filter    *filtering.QueryFilter
+} {
+	var calls []struct {
+		Ctx       context.Context
+		AccountID string
+		Filter    *filtering.QueryFilter
+	}
+	mock.lockGetHydratedMealPlansForAccount.RLock()
+	calls = mock.calls.GetHydratedMealPlansForAccount
+	mock.lockGetHydratedMealPlansForAccount.RUnlock()
 	return calls
 }
 
@@ -8676,6 +8798,46 @@ func (mock *RepositoryMock) GetMealPlanGroceryListItemsForMealPlanCalls() []stru
 	mock.lockGetMealPlanGroceryListItemsForMealPlan.RLock()
 	calls = mock.calls.GetMealPlanGroceryListItemsForMealPlan
 	mock.lockGetMealPlanGroceryListItemsForMealPlan.RUnlock()
+	return calls
+}
+
+// GetMealPlanIDsVotedOnByUser calls GetMealPlanIDsVotedOnByUserFunc.
+func (mock *RepositoryMock) GetMealPlanIDsVotedOnByUser(ctx context.Context, userID string, mealPlanIDs []string) ([]string, error) {
+	if mock.GetMealPlanIDsVotedOnByUserFunc == nil {
+		panic("RepositoryMock.GetMealPlanIDsVotedOnByUserFunc: method is nil but Repository.GetMealPlanIDsVotedOnByUser was just called")
+	}
+	callInfo := struct {
+		Ctx         context.Context
+		UserID      string
+		MealPlanIDs []string
+	}{
+		Ctx:         ctx,
+		UserID:      userID,
+		MealPlanIDs: mealPlanIDs,
+	}
+	mock.lockGetMealPlanIDsVotedOnByUser.Lock()
+	mock.calls.GetMealPlanIDsVotedOnByUser = append(mock.calls.GetMealPlanIDsVotedOnByUser, callInfo)
+	mock.lockGetMealPlanIDsVotedOnByUser.Unlock()
+	return mock.GetMealPlanIDsVotedOnByUserFunc(ctx, userID, mealPlanIDs)
+}
+
+// GetMealPlanIDsVotedOnByUserCalls gets all the calls that were made to GetMealPlanIDsVotedOnByUser.
+// Check the length with:
+//
+//	len(mockedRepository.GetMealPlanIDsVotedOnByUserCalls())
+func (mock *RepositoryMock) GetMealPlanIDsVotedOnByUserCalls() []struct {
+	Ctx         context.Context
+	UserID      string
+	MealPlanIDs []string
+} {
+	var calls []struct {
+		Ctx         context.Context
+		UserID      string
+		MealPlanIDs []string
+	}
+	mock.lockGetMealPlanIDsVotedOnByUser.RLock()
+	calls = mock.calls.GetMealPlanIDsVotedOnByUser
+	mock.lockGetMealPlanIDsVotedOnByUser.RUnlock()
 	return calls
 }
 

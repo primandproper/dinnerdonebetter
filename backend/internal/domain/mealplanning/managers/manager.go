@@ -36,6 +36,10 @@ type (
 
 		// Meal plans
 		ListMealPlans(ctx context.Context, ownerID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.MealPlan], error)
+		// AnnotateMealPlanSummaries returns the two things a MealPlanSummary carries that
+		// a listed meal plan cannot supply on its own, both projections of the options
+		// the summary drops.
+		AnnotateMealPlanSummaries(ctx context.Context, userID string, mealPlans []*types.MealPlan) (*types.MealPlanSummaryAnnotations, error)
 		CreateMealPlan(ctx context.Context, ownerID, creatorID string, input *types.MealPlanCreationRequestInput) (*types.MealPlan, error)
 		ReadMealPlan(ctx context.Context, mealPlanID, ownerID string) (*types.MealPlan, error)
 		UpdateMealPlan(ctx context.Context, mealPlanID, ownerID string, input *types.MealPlanUpdateRequestInput) error

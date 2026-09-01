@@ -2728,7 +2728,7 @@ message GetMealPlansForAccountRequest {
 message GetMealPlansForAccountResponse {
   common.ResponseDetails response_details = 1;
   primandproper.platform.filtering.v1.Pagination pagination = 2;
-  repeated MealPlan results = 3;
+  repeated MealPlanSummary results = 3;
 }
 
 message GetMealsRequest {

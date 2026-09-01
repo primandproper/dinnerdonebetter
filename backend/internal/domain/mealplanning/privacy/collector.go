@@ -88,7 +88,10 @@ func (c *Collector) Collect(ctx context.Context, subject platformdataprivacy.Sub
 		return nil, observability.PrepareAndLogError(err, logger, span, "resolving accounts")
 	}
 
-	mealPlans, err := dataprivacy.CollectAcrossAccounts(ctx, accountIDs, c.repo.GetMealPlansForAccount)
+	// The hydrated variant: this collection is the user's own copy of their data, so a
+	// meal plan in it has to carry its options, votes, meals and selections. The list
+	// endpoint's GetMealPlansForAccount drops all of those.
+	mealPlans, err := dataprivacy.CollectAcrossAccounts(ctx, accountIDs, c.repo.GetHydratedMealPlansForAccount)
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching meal plans")
 	}

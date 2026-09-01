@@ -44,6 +44,9 @@ var _ managers.MealPlanningManager = &MealPlanningManagerMock{}
 //			AddRecipeToRecipeListFunc: func(ctx context.Context, recipeListID string, recipeID string, notes string) (*types.RecipeListItem, error) {
 //				panic("mock out the AddRecipeToRecipeList method")
 //			},
+//			AnnotateMealPlanSummariesFunc: func(ctx context.Context, userID string, mealPlans []*types.MealPlan) (*types.MealPlanSummaryAnnotations, error) {
+//				panic("mock out the AnnotateMealPlanSummaries method")
+//			},
 //			ArchiveAccountInstrumentOwnershipFunc: func(ctx context.Context, ownerID string, instrumentOwnershipID string) error {
 //				panic("mock out the ArchiveAccountInstrumentOwnership method")
 //			},
@@ -734,6 +737,9 @@ type MealPlanningManagerMock struct {
 
 	// AddRecipeToRecipeListFunc mocks the AddRecipeToRecipeList method.
 	AddRecipeToRecipeListFunc func(ctx context.Context, recipeListID string, recipeID string, notes string) (*types.RecipeListItem, error)
+
+	// AnnotateMealPlanSummariesFunc mocks the AnnotateMealPlanSummaries method.
+	AnnotateMealPlanSummariesFunc func(ctx context.Context, userID string, mealPlans []*types.MealPlan) (*types.MealPlanSummaryAnnotations, error)
 
 	// ArchiveAccountInstrumentOwnershipFunc mocks the ArchiveAccountInstrumentOwnership method.
 	ArchiveAccountInstrumentOwnershipFunc func(ctx context.Context, ownerID string, instrumentOwnershipID string) error
@@ -1478,6 +1484,15 @@ type MealPlanningManagerMock struct {
 			RecipeID string
 			// Notes is the notes argument value.
 			Notes string
+		}
+		// AnnotateMealPlanSummaries holds details about calls to the AnnotateMealPlanSummaries method.
+		AnnotateMealPlanSummaries []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// UserID is the userID argument value.
+			UserID string
+			// MealPlans is the mealPlans argument value.
+			MealPlans []*types.MealPlan
 		}
 		// ArchiveAccountInstrumentOwnership holds details about calls to the ArchiveAccountInstrumentOwnership method.
 		ArchiveAccountInstrumentOwnership []struct {
@@ -3482,6 +3497,7 @@ type MealPlanningManagerMock struct {
 	lockAddRecipeImage                                         sync.RWMutex
 	lockAddRecipeStepImage                                     sync.RWMutex
 	lockAddRecipeToRecipeList                                  sync.RWMutex
+	lockAnnotateMealPlanSummaries                              sync.RWMutex
 	lockArchiveAccountInstrumentOwnership                      sync.RWMutex
 	lockArchiveMeal                                            sync.RWMutex
 	lockArchiveMealList                                        sync.RWMutex
@@ -4014,6 +4030,46 @@ func (mock *MealPlanningManagerMock) AddRecipeToRecipeListCalls() []struct {
 	mock.lockAddRecipeToRecipeList.RLock()
 	calls = mock.calls.AddRecipeToRecipeList
 	mock.lockAddRecipeToRecipeList.RUnlock()
+	return calls
+}
+
+// AnnotateMealPlanSummaries calls AnnotateMealPlanSummariesFunc.
+func (mock *MealPlanningManagerMock) AnnotateMealPlanSummaries(ctx context.Context, userID string, mealPlans []*types.MealPlan) (*types.MealPlanSummaryAnnotations, error) {
+	if mock.AnnotateMealPlanSummariesFunc == nil {
+		panic("MealPlanningManagerMock.AnnotateMealPlanSummariesFunc: method is nil but MealPlanningManager.AnnotateMealPlanSummaries was just called")
+	}
+	callInfo := struct {
+		Ctx       context.Context
+		UserID    string
+		MealPlans []*types.MealPlan
+	}{
+		Ctx:       ctx,
+		UserID:    userID,
+		MealPlans: mealPlans,
+	}
+	mock.lockAnnotateMealPlanSummaries.Lock()
+	mock.calls.AnnotateMealPlanSummaries = append(mock.calls.AnnotateMealPlanSummaries, callInfo)
+	mock.lockAnnotateMealPlanSummaries.Unlock()
+	return mock.AnnotateMealPlanSummariesFunc(ctx, userID, mealPlans)
+}
+
+// AnnotateMealPlanSummariesCalls gets all the calls that were made to AnnotateMealPlanSummaries.
+// Check the length with:
+//
+//	len(mockedMealPlanningManager.AnnotateMealPlanSummariesCalls())
+func (mock *MealPlanningManagerMock) AnnotateMealPlanSummariesCalls() []struct {
+	Ctx       context.Context
+	UserID    string
+	MealPlans []*types.MealPlan
+} {
+	var calls []struct {
+		Ctx       context.Context
+		UserID    string
+		MealPlans []*types.MealPlan
+	}
+	mock.lockAnnotateMealPlanSummaries.RLock()
+	calls = mock.calls.AnnotateMealPlanSummaries
+	mock.lockAnnotateMealPlanSummaries.RUnlock()
 	return calls
 }
 

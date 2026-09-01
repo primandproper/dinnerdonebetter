@@ -16,14 +16,14 @@ enum MealPlanningHomeHelpers {
     return Date(timeIntervalSince1970: seconds + nanos)
   }
 
-  static func formatMealPlanTimeRange(_ mealPlan: Mealplanning_MealPlan) -> String {
-    guard !mealPlan.events.isEmpty else {
+  static func formatMealPlanTimeRange(_ mealPlan: any MealPlanDisplayable) -> String {
+    guard !mealPlan.displayEvents.isEmpty else {
       return ""
     }
 
     let earliestStart =
-      mealPlan.events.map { timestampToDate($0.startsAt) }.min() ?? Date()
-    let latestEnd = mealPlan.events.map { timestampToDate($0.endsAt) }.max() ?? Date()
+      mealPlan.displayEvents.map { timestampToDate($0.startsAt) }.min() ?? Date()
+    let latestEnd = mealPlan.displayEvents.map { timestampToDate($0.endsAt) }.max() ?? Date()
 
     let dateFormatter = DateFormatter()
     dateFormatter.dateStyle = .medium
@@ -45,14 +45,14 @@ enum MealPlanningHomeHelpers {
   }
 
   /// Compact date range for subtitle when title already conveys meal info (e.g. "Mar 12–14" or "Tue, Thu 7:00 PM").
-  static func formatMealPlanTimeRangeCompact(_ mealPlan: Mealplanning_MealPlan) -> String {
-    guard !mealPlan.events.isEmpty else {
+  static func formatMealPlanTimeRangeCompact(_ mealPlan: any MealPlanDisplayable) -> String {
+    guard !mealPlan.displayEvents.isEmpty else {
       return ""
     }
 
-    let eventDates = mealPlan.events.map { timestampToDate($0.startsAt) }.sorted()
+    let eventDates = mealPlan.displayEvents.map { timestampToDate($0.startsAt) }.sorted()
     let earliestStart = eventDates.first ?? Date()
-    let latestEnd = mealPlan.events.map { timestampToDate($0.endsAt) }.max() ?? Date()
+    let latestEnd = mealPlan.displayEvents.map { timestampToDate($0.endsAt) }.max() ?? Date()
 
     let dateFormatter = DateFormatter()
     dateFormatter.dateFormat = "MMM d"
@@ -83,23 +83,13 @@ enum MealPlanningHomeHelpers {
     return "\(startString)–\(endString)"
   }
 
-  /// Display names from chosen meal options (meal name or recipe names).
-  static func chosenMealDisplayNames(from mealPlan: Mealplanning_MealPlan) -> [String] {
-    mealPlan.events.compactMap { event in
-      guard let chosen = event.options.first(where: { $0.chosen }) else { return nil }
-      let meal = chosen.meal
-      if !meal.name.isEmpty {
-        return meal.name
-      }
-      let recipeNames = meal.components.compactMap { comp -> String? in
-        comp.recipe.name.isEmpty ? nil : comp.recipe.name
-      }
-      return recipeNames.isEmpty ? nil : recipeNames.joined(separator: ", ")
-    }
+  /// Display names for the meals voting settled on, skipping events still undecided.
+  static func chosenMealDisplayNames(from mealPlan: any MealPlanDisplayable) -> [String] {
+    mealPlan.displayEvents.compactMap { $0.chosenMealDisplayName }
   }
 
   /// Whether notes is the auto-generated default from the wizard.
-  static func isDefaultMealPlanTitle(_ notes: String, mealPlan: Mealplanning_MealPlan) -> Bool {
+  static func isDefaultMealPlanTitle(_ notes: String, mealPlan: any MealPlanDisplayable) -> Bool {
     let trimmed = notes.trimmingCharacters(in: .whitespacesAndNewlines)
     guard !trimmed.isEmpty else { return true }
 
@@ -110,9 +100,9 @@ enum MealPlanningHomeHelpers {
       return true
     }
 
-    if mealPlan.events.count == 1, trimmed.hasPrefix("Meal Plan for ") {
+    if mealPlan.displayEvents.count == 1, trimmed.hasPrefix("Meal Plan for ") {
       let startDate =
-        mealPlan.events.map { timestampToDate($0.startsAt) }.min() ?? Date()
+        mealPlan.displayEvents.map { timestampToDate($0.startsAt) }.min() ?? Date()
       let formatter = DateFormatter()
       formatter.dateStyle = .medium
       formatter.timeStyle = .none
@@ -123,14 +113,15 @@ enum MealPlanningHomeHelpers {
   }
 
   /// Whether the meal plan's date range is entirely in the past (end date < now).
-  static func isMealPlanInPast(_ mealPlan: Mealplanning_MealPlan) -> Bool {
-    guard !mealPlan.events.isEmpty else { return false }
+  static func isMealPlanInPast(_ mealPlan: any MealPlanDisplayable) -> Bool {
+    guard !mealPlan.displayEvents.isEmpty else { return false }
     let latestEnd =
-      mealPlan.events.map { timestampToDate($0.endsAt) }.max() ?? Date.distantFuture
+      mealPlan.displayEvents.map { timestampToDate($0.endsAt) }.max() ?? Date.distantFuture
     return latestEnd < Date()
   }
 
-  static func mealPlanDisplayTitle(_ mealPlan: Mealplanning_MealPlan, fallback: String) -> String {
+  static func mealPlanDisplayTitle(_ mealPlan: any MealPlanDisplayable, fallback: String) -> String
+  {
     let title = mealPlan.notes.trimmingCharacters(in: .whitespacesAndNewlines)
 
     if !title.isEmpty && !isDefaultMealPlanTitle(title, mealPlan: mealPlan) {
@@ -142,13 +133,13 @@ enum MealPlanningHomeHelpers {
       return names.joined(separator: " & ")
     }
 
-    guard !mealPlan.events.isEmpty else {
+    guard !mealPlan.displayEvents.isEmpty else {
       return fallback
     }
 
     let earliestStart =
-      mealPlan.events.map { timestampToDate($0.startsAt) }.min() ?? Date()
-    let latestEnd = mealPlan.events.map { timestampToDate($0.endsAt) }.max() ?? Date()
+      mealPlan.displayEvents.map { timestampToDate($0.startsAt) }.min() ?? Date()
+    let latestEnd = mealPlan.displayEvents.map { timestampToDate($0.endsAt) }.max() ?? Date()
     let dateFormatter = DateFormatter()
     dateFormatter.dateFormat = "MMM d"
     let calendar = Calendar.current
@@ -159,7 +150,7 @@ enum MealPlanningHomeHelpers {
       compactRange =
         "\(dateFormatter.string(from: earliestStart))–\(dateFormatter.string(from: latestEnd))"
     }
-    let eventCount = mealPlan.events.count
+    let eventCount = mealPlan.displayEvents.count
     let mealType = eventCount == 1 ? "dinner" : "\(eventCount) dinners"
     return "\(mealType.capitalized) • \(compactRange)"
   }

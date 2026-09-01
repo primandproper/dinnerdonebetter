@@ -1097,6 +1097,66 @@ export interface MealComponentSummary {
   recipeScale: number;
 }
 
+/**
+ * MealPlanSummary is the shape a MealPlan takes in a list response. It keeps the
+ * events, because the dates on them are what a list of plans is read for, but each
+ * one is a MealPlanEventSummary carrying no options.
+ *
+ * The options are the whole size problem. A MealPlanOption embeds a whole Meal,
+ * whose components embed whole Recipes -- see RecipeSummary for why a hydrated
+ * Recipe cannot be paginated. Measured against the fakes, 250 hydrated plans
+ * marshal to 127.48 MiB against a 4 MiB gRPC message bound, and a page of eight
+ * already clears it; the same page of summaries is 0.10 MiB. The events themselves
+ * are scalars and cost about 130 bytes each, so dropping them too would buy 0.07
+ * MiB and cost every caller that reads a plan's dates a second round trip.
+ *
+ * Fetch a single meal plan by ID for events carrying their options and votes.
+ */
+export interface MealPlanSummary {
+  createdAt: Date | undefined;
+  votingDeadline: Date | undefined;
+  archivedAt?: Date | undefined;
+  lastUpdatedAt?: Date | undefined;
+  id: string;
+  status: MealPlanStatus;
+  notes: string;
+  electionMethod: MealPlanElectionMethod;
+  belongsToAccount: string;
+  createdByUser: string;
+  events: MealPlanEventSummary[];
+  groceryListInitialized: boolean;
+  tasksCreated: boolean;
+  /**
+   * Whether the requesting user has cast a vote on any of this plan's events. It is a
+   * projection of the votes the options carried, which the list would otherwise have to
+   * fetch every plan in full to learn. Non-abstaining votes only, matching what the
+   * clients counted as having voted.
+   */
+  currentUserHasVoted: boolean;
+}
+
+/**
+ * MealPlanEventSummary is the shape a MealPlanEvent takes inside a MealPlanSummary:
+ * the event's own columns, and none of its options.
+ */
+export interface MealPlanEventSummary {
+  createdAt: Date | undefined;
+  startsAt: Date | undefined;
+  endsAt: Date | undefined;
+  archivedAt?: Date | undefined;
+  lastUpdatedAt?: Date | undefined;
+  mealName: MealPlanEventName;
+  notes: string;
+  belongsToMealPlan: string;
+  id: string;
+  /**
+   * The name of the meal on this event's chosen option, absent until voting has picked
+   * one. Like current_user_has_voted it is a projection of the dropped options, here of
+   * the single string a list of plans displays.
+   */
+  chosenMealName?: string | undefined;
+}
+
 export interface MealPlan {
   createdAt: Date | undefined;
   votingDeadline: Date | undefined;
@@ -11368,6 +11428,578 @@ export const MealComponentSummary: MessageFns<MealComponentSummary> = {
     message.recipe =
       object.recipe !== undefined && object.recipe !== null ? RecipeSummary.fromPartial(object.recipe) : undefined;
     message.recipeScale = object.recipeScale ?? 0;
+    return message;
+  },
+};
+
+function createBaseMealPlanSummary(): MealPlanSummary {
+  return {
+    createdAt: undefined,
+    votingDeadline: undefined,
+    archivedAt: undefined,
+    lastUpdatedAt: undefined,
+    id: '',
+    status: 0,
+    notes: '',
+    electionMethod: 0,
+    belongsToAccount: '',
+    createdByUser: '',
+    events: [],
+    groceryListInitialized: false,
+    tasksCreated: false,
+    currentUserHasVoted: false,
+  };
+}
+
+export const MealPlanSummary: MessageFns<MealPlanSummary> = {
+  encode(message: MealPlanSummary, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.createdAt !== undefined) {
+      Timestamp.encode(toTimestamp(message.createdAt), writer.uint32(10).fork()).join();
+    }
+    if (message.votingDeadline !== undefined) {
+      Timestamp.encode(toTimestamp(message.votingDeadline), writer.uint32(18).fork()).join();
+    }
+    if (message.archivedAt !== undefined) {
+      Timestamp.encode(toTimestamp(message.archivedAt), writer.uint32(26).fork()).join();
+    }
+    if (message.lastUpdatedAt !== undefined) {
+      Timestamp.encode(toTimestamp(message.lastUpdatedAt), writer.uint32(34).fork()).join();
+    }
+    if (message.id !== '') {
+      writer.uint32(42).string(message.id);
+    }
+    if (message.status !== 0) {
+      writer.uint32(48).int32(message.status);
+    }
+    if (message.notes !== '') {
+      writer.uint32(58).string(message.notes);
+    }
+    if (message.electionMethod !== 0) {
+      writer.uint32(64).int32(message.electionMethod);
+    }
+    if (message.belongsToAccount !== '') {
+      writer.uint32(74).string(message.belongsToAccount);
+    }
+    if (message.createdByUser !== '') {
+      writer.uint32(82).string(message.createdByUser);
+    }
+    for (const v of message.events) {
+      MealPlanEventSummary.encode(v!, writer.uint32(90).fork()).join();
+    }
+    if (message.groceryListInitialized !== false) {
+      writer.uint32(96).bool(message.groceryListInitialized);
+    }
+    if (message.tasksCreated !== false) {
+      writer.uint32(104).bool(message.tasksCreated);
+    }
+    if (message.currentUserHasVoted !== false) {
+      writer.uint32(112).bool(message.currentUserHasVoted);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): MealPlanSummary {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseMealPlanSummary();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.createdAt = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.votingDeadline = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.archivedAt = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.lastUpdatedAt = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.id = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 48) {
+            break;
+          }
+
+          message.status = reader.int32() as any;
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.notes = reader.string();
+          continue;
+        }
+        case 8: {
+          if (tag !== 64) {
+            break;
+          }
+
+          message.electionMethod = reader.int32() as any;
+          continue;
+        }
+        case 9: {
+          if (tag !== 74) {
+            break;
+          }
+
+          message.belongsToAccount = reader.string();
+          continue;
+        }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          message.createdByUser = reader.string();
+          continue;
+        }
+        case 11: {
+          if (tag !== 90) {
+            break;
+          }
+
+          message.events.push(MealPlanEventSummary.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 12: {
+          if (tag !== 96) {
+            break;
+          }
+
+          message.groceryListInitialized = reader.bool();
+          continue;
+        }
+        case 13: {
+          if (tag !== 104) {
+            break;
+          }
+
+          message.tasksCreated = reader.bool();
+          continue;
+        }
+        case 14: {
+          if (tag !== 112) {
+            break;
+          }
+
+          message.currentUserHasVoted = reader.bool();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): MealPlanSummary {
+    return {
+      createdAt: isSet(object.createdAt)
+        ? fromJsonTimestamp(object.createdAt)
+        : isSet(object.created_at)
+          ? fromJsonTimestamp(object.created_at)
+          : undefined,
+      votingDeadline: isSet(object.votingDeadline)
+        ? fromJsonTimestamp(object.votingDeadline)
+        : isSet(object.voting_deadline)
+          ? fromJsonTimestamp(object.voting_deadline)
+          : undefined,
+      archivedAt: isSet(object.archivedAt)
+        ? fromJsonTimestamp(object.archivedAt)
+        : isSet(object.archived_at)
+          ? fromJsonTimestamp(object.archived_at)
+          : undefined,
+      lastUpdatedAt: isSet(object.lastUpdatedAt)
+        ? fromJsonTimestamp(object.lastUpdatedAt)
+        : isSet(object.last_updated_at)
+          ? fromJsonTimestamp(object.last_updated_at)
+          : undefined,
+      id: isSet(object.id) ? globalThis.String(object.id) : '',
+      status: isSet(object.status) ? mealPlanStatusFromJSON(object.status) : 0,
+      notes: isSet(object.notes) ? globalThis.String(object.notes) : '',
+      electionMethod: isSet(object.electionMethod)
+        ? mealPlanElectionMethodFromJSON(object.electionMethod)
+        : isSet(object.election_method)
+          ? mealPlanElectionMethodFromJSON(object.election_method)
+          : 0,
+      belongsToAccount: isSet(object.belongsToAccount)
+        ? globalThis.String(object.belongsToAccount)
+        : isSet(object.belongs_to_account)
+          ? globalThis.String(object.belongs_to_account)
+          : '',
+      createdByUser: isSet(object.createdByUser)
+        ? globalThis.String(object.createdByUser)
+        : isSet(object.created_by_user)
+          ? globalThis.String(object.created_by_user)
+          : '',
+      events: globalThis.Array.isArray(object?.events)
+        ? object.events.map((e: any) => MealPlanEventSummary.fromJSON(e))
+        : [],
+      groceryListInitialized: isSet(object.groceryListInitialized)
+        ? globalThis.Boolean(object.groceryListInitialized)
+        : isSet(object.grocery_list_initialized)
+          ? globalThis.Boolean(object.grocery_list_initialized)
+          : false,
+      tasksCreated: isSet(object.tasksCreated)
+        ? globalThis.Boolean(object.tasksCreated)
+        : isSet(object.tasks_created)
+          ? globalThis.Boolean(object.tasks_created)
+          : false,
+      currentUserHasVoted: isSet(object.currentUserHasVoted)
+        ? globalThis.Boolean(object.currentUserHasVoted)
+        : isSet(object.current_user_has_voted)
+          ? globalThis.Boolean(object.current_user_has_voted)
+          : false,
+    };
+  },
+
+  toJSON(message: MealPlanSummary): unknown {
+    const obj: any = {};
+    if (message.createdAt !== undefined) {
+      obj.createdAt = message.createdAt.toISOString();
+    }
+    if (message.votingDeadline !== undefined) {
+      obj.votingDeadline = message.votingDeadline.toISOString();
+    }
+    if (message.archivedAt !== undefined) {
+      obj.archivedAt = message.archivedAt.toISOString();
+    }
+    if (message.lastUpdatedAt !== undefined) {
+      obj.lastUpdatedAt = message.lastUpdatedAt.toISOString();
+    }
+    if (message.id !== '') {
+      obj.id = message.id;
+    }
+    if (message.status !== 0) {
+      obj.status = mealPlanStatusToJSON(message.status);
+    }
+    if (message.notes !== '') {
+      obj.notes = message.notes;
+    }
+    if (message.electionMethod !== 0) {
+      obj.electionMethod = mealPlanElectionMethodToJSON(message.electionMethod);
+    }
+    if (message.belongsToAccount !== '') {
+      obj.belongsToAccount = message.belongsToAccount;
+    }
+    if (message.createdByUser !== '') {
+      obj.createdByUser = message.createdByUser;
+    }
+    if (message.events?.length) {
+      obj.events = message.events.map((e) => MealPlanEventSummary.toJSON(e));
+    }
+    if (message.groceryListInitialized !== false) {
+      obj.groceryListInitialized = message.groceryListInitialized;
+    }
+    if (message.tasksCreated !== false) {
+      obj.tasksCreated = message.tasksCreated;
+    }
+    if (message.currentUserHasVoted !== false) {
+      obj.currentUserHasVoted = message.currentUserHasVoted;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<MealPlanSummary>, I>>(base?: I): MealPlanSummary {
+    return MealPlanSummary.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<MealPlanSummary>, I>>(object: I): MealPlanSummary {
+    const message = createBaseMealPlanSummary();
+    message.createdAt = object.createdAt ?? undefined;
+    message.votingDeadline = object.votingDeadline ?? undefined;
+    message.archivedAt = object.archivedAt ?? undefined;
+    message.lastUpdatedAt = object.lastUpdatedAt ?? undefined;
+    message.id = object.id ?? '';
+    message.status = object.status ?? 0;
+    message.notes = object.notes ?? '';
+    message.electionMethod = object.electionMethod ?? 0;
+    message.belongsToAccount = object.belongsToAccount ?? '';
+    message.createdByUser = object.createdByUser ?? '';
+    message.events = object.events?.map((e) => MealPlanEventSummary.fromPartial(e)) || [];
+    message.groceryListInitialized = object.groceryListInitialized ?? false;
+    message.tasksCreated = object.tasksCreated ?? false;
+    message.currentUserHasVoted = object.currentUserHasVoted ?? false;
+    return message;
+  },
+};
+
+function createBaseMealPlanEventSummary(): MealPlanEventSummary {
+  return {
+    createdAt: undefined,
+    startsAt: undefined,
+    endsAt: undefined,
+    archivedAt: undefined,
+    lastUpdatedAt: undefined,
+    mealName: 0,
+    notes: '',
+    belongsToMealPlan: '',
+    id: '',
+    chosenMealName: undefined,
+  };
+}
+
+export const MealPlanEventSummary: MessageFns<MealPlanEventSummary> = {
+  encode(message: MealPlanEventSummary, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.createdAt !== undefined) {
+      Timestamp.encode(toTimestamp(message.createdAt), writer.uint32(10).fork()).join();
+    }
+    if (message.startsAt !== undefined) {
+      Timestamp.encode(toTimestamp(message.startsAt), writer.uint32(18).fork()).join();
+    }
+    if (message.endsAt !== undefined) {
+      Timestamp.encode(toTimestamp(message.endsAt), writer.uint32(26).fork()).join();
+    }
+    if (message.archivedAt !== undefined) {
+      Timestamp.encode(toTimestamp(message.archivedAt), writer.uint32(34).fork()).join();
+    }
+    if (message.lastUpdatedAt !== undefined) {
+      Timestamp.encode(toTimestamp(message.lastUpdatedAt), writer.uint32(42).fork()).join();
+    }
+    if (message.mealName !== 0) {
+      writer.uint32(48).int32(message.mealName);
+    }
+    if (message.notes !== '') {
+      writer.uint32(58).string(message.notes);
+    }
+    if (message.belongsToMealPlan !== '') {
+      writer.uint32(66).string(message.belongsToMealPlan);
+    }
+    if (message.id !== '') {
+      writer.uint32(74).string(message.id);
+    }
+    if (message.chosenMealName !== undefined) {
+      writer.uint32(82).string(message.chosenMealName);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): MealPlanEventSummary {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseMealPlanEventSummary();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.createdAt = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.startsAt = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.endsAt = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.archivedAt = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.lastUpdatedAt = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 6: {
+          if (tag !== 48) {
+            break;
+          }
+
+          message.mealName = reader.int32() as any;
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.notes = reader.string();
+          continue;
+        }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+
+          message.belongsToMealPlan = reader.string();
+          continue;
+        }
+        case 9: {
+          if (tag !== 74) {
+            break;
+          }
+
+          message.id = reader.string();
+          continue;
+        }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          message.chosenMealName = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): MealPlanEventSummary {
+    return {
+      createdAt: isSet(object.createdAt)
+        ? fromJsonTimestamp(object.createdAt)
+        : isSet(object.created_at)
+          ? fromJsonTimestamp(object.created_at)
+          : undefined,
+      startsAt: isSet(object.startsAt)
+        ? fromJsonTimestamp(object.startsAt)
+        : isSet(object.starts_at)
+          ? fromJsonTimestamp(object.starts_at)
+          : undefined,
+      endsAt: isSet(object.endsAt)
+        ? fromJsonTimestamp(object.endsAt)
+        : isSet(object.ends_at)
+          ? fromJsonTimestamp(object.ends_at)
+          : undefined,
+      archivedAt: isSet(object.archivedAt)
+        ? fromJsonTimestamp(object.archivedAt)
+        : isSet(object.archived_at)
+          ? fromJsonTimestamp(object.archived_at)
+          : undefined,
+      lastUpdatedAt: isSet(object.lastUpdatedAt)
+        ? fromJsonTimestamp(object.lastUpdatedAt)
+        : isSet(object.last_updated_at)
+          ? fromJsonTimestamp(object.last_updated_at)
+          : undefined,
+      mealName: isSet(object.mealName)
+        ? mealPlanEventNameFromJSON(object.mealName)
+        : isSet(object.meal_name)
+          ? mealPlanEventNameFromJSON(object.meal_name)
+          : 0,
+      notes: isSet(object.notes) ? globalThis.String(object.notes) : '',
+      belongsToMealPlan: isSet(object.belongsToMealPlan)
+        ? globalThis.String(object.belongsToMealPlan)
+        : isSet(object.belongs_to_meal_plan)
+          ? globalThis.String(object.belongs_to_meal_plan)
+          : '',
+      id: isSet(object.id) ? globalThis.String(object.id) : '',
+      chosenMealName: isSet(object.chosenMealName)
+        ? globalThis.String(object.chosenMealName)
+        : isSet(object.chosen_meal_name)
+          ? globalThis.String(object.chosen_meal_name)
+          : undefined,
+    };
+  },
+
+  toJSON(message: MealPlanEventSummary): unknown {
+    const obj: any = {};
+    if (message.createdAt !== undefined) {
+      obj.createdAt = message.createdAt.toISOString();
+    }
+    if (message.startsAt !== undefined) {
+      obj.startsAt = message.startsAt.toISOString();
+    }
+    if (message.endsAt !== undefined) {
+      obj.endsAt = message.endsAt.toISOString();
+    }
+    if (message.archivedAt !== undefined) {
+      obj.archivedAt = message.archivedAt.toISOString();
+    }
+    if (message.lastUpdatedAt !== undefined) {
+      obj.lastUpdatedAt = message.lastUpdatedAt.toISOString();
+    }
+    if (message.mealName !== 0) {
+      obj.mealName = mealPlanEventNameToJSON(message.mealName);
+    }
+    if (message.notes !== '') {
+      obj.notes = message.notes;
+    }
+    if (message.belongsToMealPlan !== '') {
+      obj.belongsToMealPlan = message.belongsToMealPlan;
+    }
+    if (message.id !== '') {
+      obj.id = message.id;
+    }
+    if (message.chosenMealName !== undefined) {
+      obj.chosenMealName = message.chosenMealName;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<MealPlanEventSummary>, I>>(base?: I): MealPlanEventSummary {
+    return MealPlanEventSummary.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<MealPlanEventSummary>, I>>(object: I): MealPlanEventSummary {
+    const message = createBaseMealPlanEventSummary();
+    message.createdAt = object.createdAt ?? undefined;
+    message.startsAt = object.startsAt ?? undefined;
+    message.endsAt = object.endsAt ?? undefined;
+    message.archivedAt = object.archivedAt ?? undefined;
+    message.lastUpdatedAt = object.lastUpdatedAt ?? undefined;
+    message.mealName = object.mealName ?? 0;
+    message.notes = object.notes ?? '';
+    message.belongsToMealPlan = object.belongsToMealPlan ?? '';
+    message.id = object.id ?? '';
+    message.chosenMealName = object.chosenMealName ?? undefined;
     return message;
   },
 };

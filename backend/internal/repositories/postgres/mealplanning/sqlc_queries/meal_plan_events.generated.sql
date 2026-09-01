@@ -129,6 +129,47 @@ WHERE
 	AND meal_plan_events.belongs_to_meal_plan = sqlc.arg(meal_plan_id)
 ORDER BY meal_plan_events.id ASC;
 
+-- name: GetChosenMealNamesForMealPlans :many
+SELECT
+	meal_plan_events.id,
+	meals.name
+FROM meal_plan_events
+	JOIN meal_plan_options ON meal_plan_options.belongs_to_meal_plan_event = meal_plan_events.id AND meal_plan_options.archived_at IS NULL
+	JOIN meals ON meals.id = meal_plan_options.meal_id AND meals.archived_at IS NULL
+WHERE
+	meal_plan_events.archived_at IS NULL
+	AND meal_plan_events.belongs_to_meal_plan = ANY(sqlc.arg(ids)::text[])
+	AND meal_plan_options.chosen IS TRUE;
+
+-- name: GetMealPlanIDsVotedOnByUser :many
+SELECT DISTINCT meal_plan_events.belongs_to_meal_plan
+FROM meal_plan_option_votes
+	JOIN meal_plan_options ON meal_plan_options.id = meal_plan_option_votes.belongs_to_meal_plan_option AND meal_plan_options.archived_at IS NULL
+	JOIN meal_plan_events ON meal_plan_events.id = meal_plan_options.belongs_to_meal_plan_event AND meal_plan_events.archived_at IS NULL
+WHERE
+	meal_plan_option_votes.archived_at IS NULL
+	AND meal_plan_events.archived_at IS NULL
+	AND meal_plan_events.belongs_to_meal_plan = ANY(sqlc.arg(ids)::text[])
+	AND meal_plan_option_votes.by_user = sqlc.arg(by_user)
+	AND meal_plan_option_votes.abstain IS FALSE;
+
+-- name: GetAllMealPlanEventsForMealPlans :many
+SELECT
+	meal_plan_events.id,
+	meal_plan_events.notes,
+	meal_plan_events.starts_at,
+	meal_plan_events.ends_at,
+	meal_plan_events.meal_name,
+	meal_plan_events.belongs_to_meal_plan,
+	meal_plan_events.created_at,
+	meal_plan_events.last_updated_at,
+	meal_plan_events.archived_at
+FROM meal_plan_events
+WHERE
+	meal_plan_events.archived_at IS NULL
+	AND meal_plan_events.belongs_to_meal_plan = ANY(sqlc.arg(ids)::text[])
+ORDER BY meal_plan_events.belongs_to_meal_plan ASC, meal_plan_events.id ASC;
+
 -- name: UpdateMealPlanEvent :execrows
 UPDATE meal_plan_events SET
 	notes = sqlc.arg(notes),

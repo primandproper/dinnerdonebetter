@@ -124,6 +124,23 @@ SELECT
 	meal_components.created_at as component_created_at,
 	meal_components.last_updated_at as component_last_updated_at,
 	meal_components.archived_at as component_archived_at,
+	recipes.name as component_recipe_name,
+	recipes.slug as component_recipe_slug,
+	recipes.source as component_recipe_source,
+	recipes.source_isbn as component_recipe_source_isbn,
+	recipes.description as component_recipe_description,
+	recipes.status as component_recipe_status,
+	recipes.inspired_by_recipe_id as component_recipe_inspired_by_recipe_id,
+	recipes.min_estimated_portions as component_recipe_min_estimated_portions,
+	recipes.max_estimated_portions as component_recipe_max_estimated_portions,
+	recipes.portion_name as component_recipe_portion_name,
+	recipes.plural_portion_name as component_recipe_plural_portion_name,
+	recipes.eligible_for_meals as component_recipe_eligible_for_meals,
+	recipes.yields_component_type as component_recipe_yields_component_type,
+	recipes.created_at as component_recipe_created_at,
+	recipes.last_updated_at as component_recipe_last_updated_at,
+	recipes.archived_at as component_recipe_archived_at,
+	recipes.created_by_user as component_recipe_created_by_user,
 	(
 		SELECT COUNT(meals.id)
 		FROM meals
@@ -146,7 +163,7 @@ SELECT
 	) AS total_count
 FROM meals
 	LEFT JOIN meal_components ON meal_components.belongs_to_meal=meals.id AND meal_components.archived_at IS NULL
-		AND EXISTS (SELECT 1 FROM recipes WHERE recipes.id = meal_components.recipe_id AND recipes.archived_at IS NULL)
+	LEFT JOIN recipes ON recipes.id = meal_components.recipe_id AND recipes.archived_at IS NULL
 WHERE meals.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	AND meals.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
@@ -274,6 +291,23 @@ SELECT
 	meal_components.created_at as component_created_at,
 	meal_components.last_updated_at as component_last_updated_at,
 	meal_components.archived_at as component_archived_at,
+	recipes.name as component_recipe_name,
+	recipes.slug as component_recipe_slug,
+	recipes.source as component_recipe_source,
+	recipes.source_isbn as component_recipe_source_isbn,
+	recipes.description as component_recipe_description,
+	recipes.status as component_recipe_status,
+	recipes.inspired_by_recipe_id as component_recipe_inspired_by_recipe_id,
+	recipes.min_estimated_portions as component_recipe_min_estimated_portions,
+	recipes.max_estimated_portions as component_recipe_max_estimated_portions,
+	recipes.portion_name as component_recipe_portion_name,
+	recipes.plural_portion_name as component_recipe_plural_portion_name,
+	recipes.eligible_for_meals as component_recipe_eligible_for_meals,
+	recipes.yields_component_type as component_recipe_yields_component_type,
+	recipes.created_at as component_recipe_created_at,
+	recipes.last_updated_at as component_recipe_last_updated_at,
+	recipes.archived_at as component_recipe_archived_at,
+	recipes.created_by_user as component_recipe_created_by_user,
 	(
 		SELECT COUNT(meals.id)
 		FROM meals
@@ -297,7 +331,7 @@ SELECT
 FROM meals
 	JOIN meal_components ON meal_components.belongs_to_meal=meals.id
 		AND meal_components.archived_at IS NULL
-		AND EXISTS (SELECT 1 FROM recipes WHERE recipes.id = meal_components.recipe_id AND recipes.archived_at IS NULL)
+	JOIN recipes ON recipes.id = meal_components.recipe_id AND recipes.archived_at IS NULL
 WHERE meals.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	AND meals.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (

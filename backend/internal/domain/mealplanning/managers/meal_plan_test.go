@@ -44,6 +44,80 @@ func TestMealPlanningManager_ListMealPlans(T *testing.T) {
 	})
 }
 
+func TestMealPlanningManager_AnnotateMealPlanSummaries(T *testing.T) {
+	T.Parallel()
+
+	T.Run("standard", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		mpm := buildMealPlanManagerForTest(t)
+
+		votedOn := fakes.BuildFakeMealPlan()
+		notVotedOn := fakes.BuildFakeMealPlan()
+		exampleUserID := fake.BuildFakeID()
+		exampleChosenMealName := fake.BuildFakeID()
+
+		db := &mealplanningmock.RepositoryMock{
+			GetChosenMealNamesForMealPlansFunc: func(_ context.Context, mealPlanIDs []string) (map[string]string, error) {
+				assert.Equal(t, []string{votedOn.ID, notVotedOn.ID}, mealPlanIDs)
+
+				return map[string]string{votedOn.Events[0].ID: exampleChosenMealName}, nil
+			},
+			GetMealPlanIDsVotedOnByUserFunc: func(_ context.Context, userID string, mealPlanIDs []string) ([]string, error) {
+				assert.Equal(t, exampleUserID, userID)
+				assert.Equal(t, []string{votedOn.ID, notVotedOn.ID}, mealPlanIDs)
+
+				return []string{votedOn.ID}, nil
+			},
+		}
+		attachRepositoryToManager(mpm, db)
+
+		actual, err := mpm.AnnotateMealPlanSummaries(ctx, exampleUserID, []*types.MealPlan{votedOn, notVotedOn})
+		require.NoError(t, err)
+		require.NotNil(t, actual)
+
+		assert.Equal(t, exampleChosenMealName, actual.ChosenMealNamesByEventID[votedOn.Events[0].ID])
+		assert.True(t, actual.VotedOnMealPlanIDs[votedOn.ID])
+		assert.False(t, actual.VotedOnMealPlanIDs[notVotedOn.ID])
+
+		assert.Len(t, db.GetChosenMealNamesForMealPlansCalls(), 1)
+		assert.Len(t, db.GetMealPlanIDsVotedOnByUserCalls(), 1)
+	})
+
+	T.Run("with empty page", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		mpm := buildMealPlanManagerForTest(t)
+
+		db := &mealplanningmock.RepositoryMock{}
+		attachRepositoryToManager(mpm, db)
+
+		actual, err := mpm.AnnotateMealPlanSummaries(ctx, fake.BuildFakeID(), nil)
+		require.NoError(t, err)
+		require.NotNil(t, actual)
+
+		assert.Empty(t, actual.ChosenMealNamesByEventID)
+		assert.Empty(t, actual.VotedOnMealPlanIDs)
+
+		// An empty page asks the database nothing.
+		assert.Empty(t, db.GetChosenMealNamesForMealPlansCalls())
+		assert.Empty(t, db.GetMealPlanIDsVotedOnByUserCalls())
+	})
+
+	T.Run("with empty user ID", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		mpm := buildMealPlanManagerForTest(t)
+
+		actual, err := mpm.AnnotateMealPlanSummaries(ctx, "", []*types.MealPlan{fakes.BuildFakeMealPlan()})
+		assert.Nil(t, actual)
+		require.Error(t, err)
+	})
+}
+
 func TestMealPlanningManager_CreateMealPlan(T *testing.T) {
 	T.Parallel()
 

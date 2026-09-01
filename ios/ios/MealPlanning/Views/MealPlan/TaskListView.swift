@@ -14,7 +14,7 @@ struct TaskListView: View {
   @State private var viewModel: TaskListViewModel
 
   init(
-    mealPlan: Mealplanning_MealPlan,
+    mealPlan: any MealPlanDisplayable,
     tasks: [Mealplanning_MealPlanTask],
     authManager: AuthenticationManager,
     userSettingsService: UserSettingsService
@@ -388,7 +388,8 @@ struct TaskRow: View {
 
     if task.hasMealPlanOption {
       let eventID = task.mealPlanOption.belongsToMealPlanEvent
-      if !eventID.isEmpty, let event = viewModel.mealPlan.events.first(where: { $0.id == eventID })
+      if !eventID.isEmpty,
+        let event = viewModel.mealPlan.displayEvents.first(where: { $0.id == eventID })
       {
         eventName = MealPlanningUtils.formatMealName(event.mealName)
         eventTime = HomeViewModel.timestampToDate(event.startsAt)
@@ -577,7 +578,7 @@ struct TaskRow: View {
     guard task.hasMealPlanOption else { return nil }
     let eventID = task.mealPlanOption.belongsToMealPlanEvent
     guard !eventID.isEmpty,
-      let event = viewModel.mealPlan.events.first(where: { $0.id == eventID })
+      let event = viewModel.mealPlan.displayEvents.first(where: { $0.id == eventID })
     else {
       return nil
     }
