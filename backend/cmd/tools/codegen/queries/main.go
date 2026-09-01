@@ -89,7 +89,6 @@ func main() {
 		"payments/sqlc_queries/subscriptions":                                    buildPaymentsSubscriptionsQueries(databaseToUse),
 		"payments/sqlc_queries/purchases":                                        buildPaymentsPurchasesQueries(databaseToUse),
 		"payments/sqlc_queries/payment_transactions":                             buildPaymentsTransactionsQueries(databaseToUse),
-		"comments/sqlc_queries/comments":                                         buildCommentsQueries(databaseToUse),
 		"identity/sqlc_queries/user_roles":                                       buildUserRolesQueries(databaseToUse),
 		"identity/sqlc_queries/permissions":                                      buildPermissionsQueries(databaseToUse),
 		"identity/sqlc_queries/user_role_permissions":                            buildUserRolePermissionsQueries(databaseToUse),

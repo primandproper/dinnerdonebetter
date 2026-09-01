@@ -9,6 +9,7 @@ option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/
 service CommentsService {
   rpc CreateComment(CreateCommentRequest) returns (CreateCommentResponse);
   rpc ArchiveComment(ArchiveCommentRequest) returns (ArchiveCommentResponse);
-  rpc GetCommentsForReference(GetCommentsForReferenceRequest) returns (GetCommentsForReferenceResponse);
+  rpc GetRootComments(GetRootCommentsRequest) returns (GetRootCommentsResponse);
+  rpc GetCommentReplies(GetCommentRepliesRequest) returns (GetCommentRepliesResponse);
   rpc UpdateComment(UpdateCommentRequest) returns (UpdateCommentResponse);
 }

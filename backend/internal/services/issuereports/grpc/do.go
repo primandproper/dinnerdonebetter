@@ -1,10 +1,10 @@
 package grpc
 
 import (
-	commentsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments/manager"
 	issuereportsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports/manager"
 	issuereportssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/issue_reports"
 
+	comments "github.com/primandproper/platform-go/v13/comments"
 	"github.com/primandproper/platform-go/v13/observability/logging"
 	"github.com/primandproper/platform-go/v13/observability/tracing"
 
@@ -22,7 +22,7 @@ func RegisterIssueReportsService(i do.Injector) {
 			do.MustInvoke[logging.Logger](i),
 			do.MustInvoke[tracing.Provider](i),
 			do.MustInvoke[issuereportsmanager.IssueReportsDataManager](i),
-			do.MustInvoke[commentsmanager.CommentsDataManager](i),
+			do.MustInvoke[comments.Store](i),
 		), nil
 	})
 }

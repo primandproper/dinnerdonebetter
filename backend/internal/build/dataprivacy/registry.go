@@ -22,8 +22,7 @@ import (
 
 	auditdomain "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	auditprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit/privacy"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments"
-	commentsprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments/privacy"
+	ddbcomments "github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments"
 	ddbdataprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	identityprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/privacy"
@@ -45,6 +44,8 @@ import (
 	webhooksprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/privacy"
 	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
 
+	platformcomments "github.com/primandproper/platform-go/v13/comments"
+	commentsprivacy "github.com/primandproper/platform-go/v13/comments/privacy"
 	"github.com/primandproper/platform-go/v13/database"
 	platformdataprivacy "github.com/primandproper/platform-go/v13/dataprivacy"
 	"github.com/primandproper/platform-go/v13/dataprivacy/auditerasure"
@@ -84,6 +85,13 @@ func buildRegistry(i do.Injector) (*platformdataprivacy.Registry, error) {
 	// cost is visible in one place.
 	resolveAccounts := identityprivacy.ResolveAccountIDs(identityRepo)
 
+	// Named rather than plain err: the registration blocks below each take an err of
+	// their own, and an outer one declared here would make every one of them a shadow.
+	commentsCollector, commentsEraser, commentsErr := commentsPrivacy(i)
+	if commentsErr != nil {
+		return nil, commentsErr
+	}
+
 	// Four of these take a repository and nothing else, because a collector whose
 	// whole body is "page one list read and encode the rows" is
 	// platformdataprivacy.CollectorFor and has no observability of its own to do.
@@ -111,7 +119,7 @@ func buildRegistry(i do.Injector) (*platformdataprivacy.Registry, error) {
 			do.MustInvoke[issuereports.Repository](i), resolveAccounts, logger, tracerProvider),
 		ddbdataprivacy.CollectorKeyUploadedMedia: uploadedmediaprivacy.NewCollector(do.MustInvoke[uploadedmedia.Repository](i)),
 		ddbdataprivacy.CollectorKeyWaitlists:     waitlistsprivacy.NewCollector(do.MustInvoke[waitlists.Repository](i)),
-		ddbdataprivacy.CollectorKeyComments:      commentsprivacy.NewCollector(do.MustInvoke[comments.Repository](i)),
+		ddbdataprivacy.CollectorKeyComments:      commentsCollector,
 	}
 
 	for key, collector := range collectors {
@@ -120,8 +128,19 @@ func buildRegistry(i do.Injector) (*platformdataprivacy.Registry, error) {
 		}
 	}
 
-	// One application eraser, because every belongs_to_user and belongs_to_account
-	// foreign key in this schema cascades from the user row. See
+	// Comments erase through their own eraser rather than through the cascade,
+	// because platform-go's comment table has no foreign key to cascade from — see
+	// ddbdataprivacy.EraserKeyComments. Both halves resolve the same single scope
+	// this deployment files every comment under.
+	if err := registry.RegisterEraser(
+		ddbdataprivacy.EraserKeyComments,
+		commentsEraser,
+	); err != nil {
+		return nil, platformerrors.Wrap(err, "registering comments data privacy eraser")
+	}
+
+	// One application eraser for the cascading tables, because every belongs_to_user
+	// and belongs_to_account foreign key in this schema cascades from the user row. See
 	// internal/domain/identity/privacy for what that covers and what would make a
 	// second one worth writing.
 	if err := registry.RegisterEraser(
@@ -241,4 +260,29 @@ func prepareConfig(i do.Injector) *platformdataprivacycfg.Config {
 		do.MustInvoke[*dataprivacycfg.Config](i),
 		do.MustInvoke[database.Client](i),
 	)
+}
+
+// commentsPrivacy builds the comment collector and eraser, which are
+// platform-go's over platform-go's store.
+//
+// Both take a scope resolver rather than reading the subject's scope, because a
+// deployment that files comments per tenant has to be told which tenants to walk.
+// This one files them all in the single scope ddbcomments.Scope names, so the
+// resolver is fixed and shared — neither half can drift from the other about
+// which rows a subject's comments are.
+func commentsPrivacy(i do.Injector) (platformdataprivacy.Collector, platformdataprivacy.Eraser, error) {
+	store := do.MustInvoke[platformcomments.Store](i)
+	resolveScopes := commentsprivacy.FixedScopes(ddbcomments.Scope())
+
+	collector, err := commentsprivacy.NewCollector(store, resolveScopes)
+	if err != nil {
+		return nil, nil, platformerrors.Wrap(err, "building the comments data privacy collector")
+	}
+
+	eraser, err := commentsprivacy.NewEraser(store, resolveScopes)
+	if err != nil {
+		return nil, nil, platformerrors.Wrap(err, "building the comments data privacy eraser")
+	}
+
+	return collector, eraser, nil
 }

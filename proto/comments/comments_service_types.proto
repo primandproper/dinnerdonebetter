@@ -25,13 +25,29 @@ message ArchiveCommentResponse {
   common.ResponseDetails response_details = 1;
 }
 
-message GetCommentsForReferenceRequest {
-  string target_type = 1;
-  string referenced_id = 2;
+// GetRootCommentsRequest reads the top level of one target's discussion.
+message GetRootCommentsRequest {
+  CommentTarget target = 1;
+  primandproper.platform.filtering.v1.QueryFilter filter = 2;
+}
+
+message GetRootCommentsResponse {
+  common.ResponseDetails response_details = 1;
+  repeated Comment data = 2;
+  // pagination's filtered count is of the target's roots, not of this page — it
+  // is the count a client renders beside the discussion.
+  primandproper.platform.filtering.v1.Pagination pagination = 3;
+}
+
+// GetCommentRepliesRequest reads one root comment's replies. The target is named
+// as well as the parent because a reply carries both and the read keys on both.
+message GetCommentRepliesRequest {
+  CommentTarget target = 1;
+  string parent_id = 2;
   primandproper.platform.filtering.v1.QueryFilter filter = 3;
 }
 
-message GetCommentsForReferenceResponse {
+message GetCommentRepliesResponse {
   common.ResponseDetails response_details = 1;
   repeated Comment data = 2;
   primandproper.platform.filtering.v1.Pagination pagination = 3;

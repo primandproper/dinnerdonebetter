@@ -60,7 +60,7 @@ inside one.
 | `issue_reports` | `issuereports/privacy` | Issue reports from the subject's accounts |
 | `uploaded_media` | `uploadedmedia/privacy` | Media records (not the bytes) |
 | `waitlists` | `waitlists/privacy` | Waitlist signups |
-| `comments` | `comments/privacy` | Comments the subject authored |
+| `comments` | platform-go's `comments/privacy` | Comments the subject authored |
 
 Registration happens in one place, `internal/build/dataprivacy/registry.go`. **Adding a domain to
 an export is a line there and a collector beside the domain.** It replaces a `UserDataCollection`
@@ -80,9 +80,11 @@ A collector that holds nothing returns `nil`, and the section is omitted rather 
 Neither that rule nor the paging beneath it is restated per domain. `dataprivacy.CollectAll`
 walks a cursor-paginated read to its end, `dataprivacy.Fragment` turns "did this domain hold
 anything" into a fragment or a `nil`, and `dataprivacy.CollectorFor` is both of those wrapped
-around a single list read — which is the whole body of the `audit_log`, `comments`,
-`uploaded_media`, and `waitlists` collectors, so those are one call each with no type of their
-own. A collector that stopped after one page would produce a truncated export that is
+around a single list read — which is the whole body of the `audit_log`, `uploaded_media`, and
+`waitlists` collectors, so those are one call each with no type of their own. `comments` is the
+same shape and is not written here at all: platform-go's `comments/privacy` ships it.
+
+A collector that stopped after one page would produce a truncated export that is
 well-formed, present in the manifest, and wrong only in the rows nobody can see are missing;
 that is the failure these live in platform-go to prevent.
 
@@ -92,7 +94,7 @@ about subject access requests. It pages each account through `CollectAll` and co
 
 ## Erasers: what a deletion removes
 
-Two erasers are registered, and they run **serially inside one transaction** along with the
+Three erasers are registered, and they run **serially inside one transaction** along with the
 bookkeeping that records the erasure happened. A subject is never left deleted from eight domains
 and present in three.
 
@@ -102,20 +104,34 @@ entries from the middle of a chain — that would make `audit.Reader.Verify` rep
 the rest of that scope's history — so their actions inside *other people's* accounts are reported
 as retained, with a stated basis. See `backend/docs/audit.md`.
 
+**`comments`** (platform-go's `comments/privacy`) hard-deletes every comment the subject wrote. It
+is registered because comments are the one ordinary store the cascade below cannot reach: the
+table this repository used to own carried `belongs_to_user REFERENCES users ON DELETE CASCADE`,
+and platform-go's carries a plain `author` column, because that package does not own the directory
+people live in and has no table to point a foreign key at. Without this eraser a deletion would
+leave every comment the subject wrote in place, live and listable.
+
+It is a hard delete rather than an anonymization, and that is the right way round here. A
+comment's body is free text somebody typed, so what has to go is the words; stripping the author
+and keeping the sentence would remove the part that is not identifying and keep the part that
+might be.
+
 **`identity`** deletes the user row. Every `belongs_to_user` and `belongs_to_account` foreign key
 in this schema carries `ON DELETE CASCADE`, so that single `DELETE` is the erasure for every other
 domain.
 
-There is deliberately no eraser per domain. Eleven statements that can only agree with the one
-that ran first are eleven places for that agreement to rot. What makes a domain's own eraser worth
-writing is retention or anonymization — data kept under a legal basis, or a row a foreign key
-still points at. Neither applies yet; the likeliest first case is payment records, which tax law
-generally requires be retained for years. When it does, that domain registers its own `Eraser`
-under its own key and reports what it kept and why. Nothing here has to change for that.
+There is deliberately no eraser per domain beyond those. Eleven statements that can only agree
+with the one that ran first are eleven places for that agreement to rot. What makes a domain's own
+eraser worth writing is retention, anonymization, or — as with comments — no foreign key to
+cascade from. Retention is the case that has not arrived yet; the likeliest first instance is
+payment records, which tax law generally requires be retained for years. When it does, that domain
+registers its own `Eraser` under its own key and reports what it kept and why. Nothing here has to
+change for that.
 
-**Ordering is load-bearing.** Erasers run in sorted key order, and `audit` sorts before
+**Ordering is load-bearing.** Erasers run in sorted key order: `audit`, then `comments`, then
 `identity`. The audit eraser resolves its scopes by asking which accounts the subject owns, and
-that question has no answer once the user row is gone.
+that question has no answer once the user row is gone. `comments` sorting before `identity` costs
+nothing — there is no foreign key between them any more — and reads correctly anyway.
 
 ## The artifact
 

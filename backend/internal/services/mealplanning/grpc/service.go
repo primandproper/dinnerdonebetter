@@ -1,7 +1,6 @@
 package grpc
 
 import (
-	commentsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments/manager"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/managers"
 	uploadedmediamanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia/manager"
 	mealplanningsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
@@ -9,6 +8,7 @@ import (
 	_ "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/errors"
 	mealplanfinalization "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_finalization"
 
+	comments "github.com/primandproper/platform-go/v13/comments"
 	"github.com/primandproper/platform-go/v13/observability/logging"
 	"github.com/primandproper/platform-go/v13/observability/tracing"
 	"github.com/primandproper/platform-go/v13/uploads"
@@ -31,7 +31,7 @@ type (
 		// list are one saga now, and the only part of it left to run on demand is entering
 		// plans into it.
 		mealPlanFinalizationStarter *mealplanfinalization.Starter
-		commentsManager             commentsmanager.CommentsDataManager
+		comments                    comments.Store
 		uploadedMediaManager        uploadedmediamanager.UploadedMediaManager
 		uploadManager               uploads.UploadManager
 	}
@@ -42,7 +42,7 @@ func NewService(
 	tracerProvider tracing.Provider,
 	mealPlanningManager managers.MealPlanningManager,
 	mealPlanFinalizationStarter *mealplanfinalization.Starter,
-	commentsManager commentsmanager.CommentsDataManager,
+	commentStore comments.Store,
 	uploadedMediaManager uploadedmediamanager.UploadedMediaManager,
 	uploadManager uploads.UploadManager,
 ) mealplanningsvc.MealPlanningServiceServer {
@@ -51,7 +51,7 @@ func NewService(
 		tracer:                      tracing.NewNamedTracer(tracerProvider, o11yName),
 		mealPlanningManager:         mealPlanningManager,
 		mealPlanFinalizationStarter: mealPlanFinalizationStarter,
-		commentsManager:             commentsManager,
+		comments:                    commentStore,
 		uploadedMediaManager:        uploadedMediaManager,
 		uploadManager:               uploadManager,
 	}

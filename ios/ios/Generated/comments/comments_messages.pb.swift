@@ -20,6 +20,28 @@ fileprivate struct _GeneratedWithProtocGenSwiftVersion: SwiftProtobuf.ProtobufAP
   typealias Version = _2
 }
 
+/// CommentTarget is what a comment is about: a kind of thing, and one of them.
+///
+/// It is one message rather than two loose fields because a type without an id is
+/// not a target, and every call that takes one takes both — passing them
+/// separately is how a call site pairs one comment's type with another's id.
+public struct Comments_CommentTarget: Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  /// type is the kind of thing, as the target catalog spells it. A type the
+  /// catalog does not hold is refused at the write.
+  public var type: String = String()
+
+  /// id is which one, as the owning domain spells it.
+  public var id: String = String()
+
+  public var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  public init() {}
+}
+
 public struct Comments_Comment: Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
@@ -27,22 +49,25 @@ public struct Comments_Comment: Sendable {
 
   public var id: String = String()
 
-  public var content: String = String()
+  /// body is what the person actually said.
+  public var body: String = String()
 
-  public var targetType: String = String()
-
-  public var referencedID: String = String()
-
-  public var parentCommentID: String {
-    get {return _parentCommentID ?? String()}
-    set {_parentCommentID = newValue}
+  public var target: Comments_CommentTarget {
+    get {return _target ?? Comments_CommentTarget()}
+    set {_target = newValue}
   }
-  /// Returns true if `parentCommentID` has been explicitly set.
-  public var hasParentCommentID: Bool {return self._parentCommentID != nil}
-  /// Clears the value of `parentCommentID`. Subsequent reads from it will return its default value.
-  public mutating func clearParentCommentID() {self._parentCommentID = nil}
+  /// Returns true if `target` has been explicitly set.
+  public var hasTarget: Bool {return self._target != nil}
+  /// Clears the value of `target`. Subsequent reads from it will return its default value.
+  public mutating func clearTarget() {self._target = nil}
 
-  public var belongsToUser: String = String()
+  /// parent_id is the comment this one replies to, and the empty string is a
+  /// comment that replies to nothing. Threads are one level deep: a reply may not
+  /// itself be replied to.
+  public var parentID: String = String()
+
+  /// author is the ID of the user who wrote it.
+  public var author: String = String()
 
   public var createdAt: SwiftProtobuf.Google_Protobuf_Timestamp {
     get {return _createdAt ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
@@ -53,6 +78,8 @@ public struct Comments_Comment: Sendable {
   /// Clears the value of `createdAt`. Subsequent reads from it will return its default value.
   public mutating func clearCreatedAt() {self._createdAt = nil}
 
+  /// last_updated_at is when the body was last edited, and unset for a comment
+  /// nobody has revised. It is what a client renders an "edited" marker from.
   public var lastUpdatedAt: SwiftProtobuf.Google_Protobuf_Timestamp {
     get {return _lastUpdatedAt ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
     set {_lastUpdatedAt = newValue}
@@ -66,7 +93,7 @@ public struct Comments_Comment: Sendable {
 
   public init() {}
 
-  fileprivate var _parentCommentID: String? = nil
+  fileprivate var _target: Comments_CommentTarget? = nil
   fileprivate var _createdAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
   fileprivate var _lastUpdatedAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
 }
@@ -76,28 +103,27 @@ public struct Comments_CommentCreationRequestInput: Sendable {
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
 
-  public var content: String = String()
+  public var body: String = String()
 
-  public var parentCommentID: String {
-    get {return _parentCommentID ?? String()}
-    set {_parentCommentID = newValue}
+  /// parent_id makes this a reply. Empty is a root comment.
+  public var parentID: String = String()
+
+  /// target is required for CreateComment and ignored for AddCommentTo*, which
+  /// name the target in the request itself.
+  public var target: Comments_CommentTarget {
+    get {return _target ?? Comments_CommentTarget()}
+    set {_target = newValue}
   }
-  /// Returns true if `parentCommentID` has been explicitly set.
-  public var hasParentCommentID: Bool {return self._parentCommentID != nil}
-  /// Clears the value of `parentCommentID`. Subsequent reads from it will return its default value.
-  public mutating func clearParentCommentID() {self._parentCommentID = nil}
-
-  /// Required for CreateComment; ignored for AddCommentTo*
-  public var targetType: String = String()
-
-  /// Required for CreateComment; ignored for AddCommentTo*
-  public var referencedID: String = String()
+  /// Returns true if `target` has been explicitly set.
+  public var hasTarget: Bool {return self._target != nil}
+  /// Clears the value of `target`. Subsequent reads from it will return its default value.
+  public mutating func clearTarget() {self._target = nil}
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
 
-  fileprivate var _parentCommentID: String? = nil
+  fileprivate var _target: Comments_CommentTarget? = nil
 }
 
 public struct Comments_CommentUpdateRequestInput: Sendable {
@@ -105,7 +131,11 @@ public struct Comments_CommentUpdateRequestInput: Sendable {
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
 
-  public var content: String = String()
+  /// body is the only editable fact about a comment. The target is what it is
+  /// about, the parent is which conversation it is in, and the author is who said
+  /// it; an update that assigned any of the three would silently move somebody
+  /// else's words.
+  public var body: String = String()
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
@@ -116,9 +146,44 @@ public struct Comments_CommentUpdateRequestInput: Sendable {
 
 fileprivate let _protobuf_package = "comments"
 
+extension Comments_CommentTarget: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".CommentTarget"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}type\0\u{1}id\0")
+
+  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularStringField(value: &self.type) }()
+      case 2: try { try decoder.decodeSingularStringField(value: &self.id) }()
+      default: break
+      }
+    }
+  }
+
+  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    if !self.type.isEmpty {
+      try visitor.visitSingularStringField(value: self.type, fieldNumber: 1)
+    }
+    if !self.id.isEmpty {
+      try visitor.visitSingularStringField(value: self.id, fieldNumber: 2)
+    }
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  public static func ==(lhs: Comments_CommentTarget, rhs: Comments_CommentTarget) -> Bool {
+    if lhs.type != rhs.type {return false}
+    if lhs.id != rhs.id {return false}
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
 extension Comments_Comment: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".Comment"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}id\0\u{1}content\0\u{3}target_type\0\u{3}referenced_id\0\u{3}parent_comment_id\0\u{3}belongs_to_user\0\u{3}created_at\0\u{3}last_updated_at\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}id\0\u{1}body\0\u{1}target\0\u{3}parent_id\0\u{1}author\0\u{3}created_at\0\u{3}last_updated_at\0")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -127,13 +192,12 @@ extension Comments_Comment: SwiftProtobuf.Message, SwiftProtobuf._MessageImpleme
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
       case 1: try { try decoder.decodeSingularStringField(value: &self.id) }()
-      case 2: try { try decoder.decodeSingularStringField(value: &self.content) }()
-      case 3: try { try decoder.decodeSingularStringField(value: &self.targetType) }()
-      case 4: try { try decoder.decodeSingularStringField(value: &self.referencedID) }()
-      case 5: try { try decoder.decodeSingularStringField(value: &self._parentCommentID) }()
-      case 6: try { try decoder.decodeSingularStringField(value: &self.belongsToUser) }()
-      case 7: try { try decoder.decodeSingularMessageField(value: &self._createdAt) }()
-      case 8: try { try decoder.decodeSingularMessageField(value: &self._lastUpdatedAt) }()
+      case 2: try { try decoder.decodeSingularStringField(value: &self.body) }()
+      case 3: try { try decoder.decodeSingularMessageField(value: &self._target) }()
+      case 4: try { try decoder.decodeSingularStringField(value: &self.parentID) }()
+      case 5: try { try decoder.decodeSingularStringField(value: &self.author) }()
+      case 6: try { try decoder.decodeSingularMessageField(value: &self._createdAt) }()
+      case 7: try { try decoder.decodeSingularMessageField(value: &self._lastUpdatedAt) }()
       default: break
       }
     }
@@ -147,37 +211,33 @@ extension Comments_Comment: SwiftProtobuf.Message, SwiftProtobuf._MessageImpleme
     if !self.id.isEmpty {
       try visitor.visitSingularStringField(value: self.id, fieldNumber: 1)
     }
-    if !self.content.isEmpty {
-      try visitor.visitSingularStringField(value: self.content, fieldNumber: 2)
+    if !self.body.isEmpty {
+      try visitor.visitSingularStringField(value: self.body, fieldNumber: 2)
     }
-    if !self.targetType.isEmpty {
-      try visitor.visitSingularStringField(value: self.targetType, fieldNumber: 3)
-    }
-    if !self.referencedID.isEmpty {
-      try visitor.visitSingularStringField(value: self.referencedID, fieldNumber: 4)
-    }
-    try { if let v = self._parentCommentID {
-      try visitor.visitSingularStringField(value: v, fieldNumber: 5)
+    try { if let v = self._target {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 3)
     } }()
-    if !self.belongsToUser.isEmpty {
-      try visitor.visitSingularStringField(value: self.belongsToUser, fieldNumber: 6)
+    if !self.parentID.isEmpty {
+      try visitor.visitSingularStringField(value: self.parentID, fieldNumber: 4)
+    }
+    if !self.author.isEmpty {
+      try visitor.visitSingularStringField(value: self.author, fieldNumber: 5)
     }
     try { if let v = self._createdAt {
-      try visitor.visitSingularMessageField(value: v, fieldNumber: 7)
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 6)
     } }()
     try { if let v = self._lastUpdatedAt {
-      try visitor.visitSingularMessageField(value: v, fieldNumber: 8)
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 7)
     } }()
     try unknownFields.traverse(visitor: &visitor)
   }
 
   public static func ==(lhs: Comments_Comment, rhs: Comments_Comment) -> Bool {
     if lhs.id != rhs.id {return false}
-    if lhs.content != rhs.content {return false}
-    if lhs.targetType != rhs.targetType {return false}
-    if lhs.referencedID != rhs.referencedID {return false}
-    if lhs._parentCommentID != rhs._parentCommentID {return false}
-    if lhs.belongsToUser != rhs.belongsToUser {return false}
+    if lhs.body != rhs.body {return false}
+    if lhs._target != rhs._target {return false}
+    if lhs.parentID != rhs.parentID {return false}
+    if lhs.author != rhs.author {return false}
     if lhs._createdAt != rhs._createdAt {return false}
     if lhs._lastUpdatedAt != rhs._lastUpdatedAt {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
@@ -187,7 +247,7 @@ extension Comments_Comment: SwiftProtobuf.Message, SwiftProtobuf._MessageImpleme
 
 extension Comments_CommentCreationRequestInput: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".CommentCreationRequestInput"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}content\0\u{3}parent_comment_id\0\u{3}target_type\0\u{3}referenced_id\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}body\0\u{3}parent_id\0\u{1}target\0")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -195,10 +255,9 @@ extension Comments_CommentCreationRequestInput: SwiftProtobuf.Message, SwiftProt
       // allocates stack space for every case branch when no optimizations are
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
-      case 1: try { try decoder.decodeSingularStringField(value: &self.content) }()
-      case 2: try { try decoder.decodeSingularStringField(value: &self._parentCommentID) }()
-      case 3: try { try decoder.decodeSingularStringField(value: &self.targetType) }()
-      case 4: try { try decoder.decodeSingularStringField(value: &self.referencedID) }()
+      case 1: try { try decoder.decodeSingularStringField(value: &self.body) }()
+      case 2: try { try decoder.decodeSingularStringField(value: &self.parentID) }()
+      case 3: try { try decoder.decodeSingularMessageField(value: &self._target) }()
       default: break
       }
     }
@@ -209,26 +268,22 @@ extension Comments_CommentCreationRequestInput: SwiftProtobuf.Message, SwiftProt
     // allocates stack space for every if/case branch local when no optimizations
     // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
     // https://github.com/apple/swift-protobuf/issues/1182
-    if !self.content.isEmpty {
-      try visitor.visitSingularStringField(value: self.content, fieldNumber: 1)
+    if !self.body.isEmpty {
+      try visitor.visitSingularStringField(value: self.body, fieldNumber: 1)
     }
-    try { if let v = self._parentCommentID {
-      try visitor.visitSingularStringField(value: v, fieldNumber: 2)
+    if !self.parentID.isEmpty {
+      try visitor.visitSingularStringField(value: self.parentID, fieldNumber: 2)
+    }
+    try { if let v = self._target {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 3)
     } }()
-    if !self.targetType.isEmpty {
-      try visitor.visitSingularStringField(value: self.targetType, fieldNumber: 3)
-    }
-    if !self.referencedID.isEmpty {
-      try visitor.visitSingularStringField(value: self.referencedID, fieldNumber: 4)
-    }
     try unknownFields.traverse(visitor: &visitor)
   }
 
   public static func ==(lhs: Comments_CommentCreationRequestInput, rhs: Comments_CommentCreationRequestInput) -> Bool {
-    if lhs.content != rhs.content {return false}
-    if lhs._parentCommentID != rhs._parentCommentID {return false}
-    if lhs.targetType != rhs.targetType {return false}
-    if lhs.referencedID != rhs.referencedID {return false}
+    if lhs.body != rhs.body {return false}
+    if lhs.parentID != rhs.parentID {return false}
+    if lhs._target != rhs._target {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
@@ -236,7 +291,7 @@ extension Comments_CommentCreationRequestInput: SwiftProtobuf.Message, SwiftProt
 
 extension Comments_CommentUpdateRequestInput: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".CommentUpdateRequestInput"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}content\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}body\0")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -244,21 +299,21 @@ extension Comments_CommentUpdateRequestInput: SwiftProtobuf.Message, SwiftProtob
       // allocates stack space for every case branch when no optimizations are
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
-      case 1: try { try decoder.decodeSingularStringField(value: &self.content) }()
+      case 1: try { try decoder.decodeSingularStringField(value: &self.body) }()
       default: break
       }
     }
   }
 
   public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
-    if !self.content.isEmpty {
-      try visitor.visitSingularStringField(value: self.content, fieldNumber: 1)
+    if !self.body.isEmpty {
+      try visitor.visitSingularStringField(value: self.body, fieldNumber: 1)
     }
     try unknownFields.traverse(visitor: &visitor)
   }
 
   public static func ==(lhs: Comments_CommentUpdateRequestInput, rhs: Comments_CommentUpdateRequestInput) -> Bool {
-    if lhs.content != rhs.content {return false}
+    if lhs.body != rhs.body {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }

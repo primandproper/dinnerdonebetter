@@ -12,17 +12,17 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createCommentForRecipeForTest(t *testing.T, recipeID string, clientToUse client.Client, content string) *commentsgrpc.Comment {
+func createCommentForRecipeForTest(t *testing.T, recipeID string, clientToUse client.Client, body string) *commentsgrpc.Comment {
 	t.Helper()
 	ctx := t.Context()
 
-	if content == "" {
-		content = "test comment on recipe"
+	if body == "" {
+		body = "test comment on recipe"
 	}
 
 	res, err := clientToUse.AddCommentToRecipe(ctx, &mealplanninggrpc.AddCommentToRecipeRequest{
 		RecipeId: recipeID,
-		Input:    &commentsgrpc.CommentCreationRequestInput{Content: content},
+		Input:    &commentsgrpc.CommentCreationRequestInput{Body: body},
 	})
 	require.NoError(t, err)
 	require.NotNil(t, res)
@@ -43,15 +43,14 @@ func TestComments_RecipeCompleteLifecycle(T *testing.T) {
 		createdComment := createCommentForRecipeForTest(t, createdRecipe.ID, testClient, "initial content")
 
 		assert.NotEmpty(t, createdComment.Id)
-		assert.Equal(t, mealplanning.CommentTargetTypeRecipes, createdComment.TargetType)
-		assert.Equal(t, createdRecipe.ID, createdComment.ReferencedId)
-		assert.Equal(t, "initial content", createdComment.Content)
+		assert.Equal(t, mealplanning.CommentTargetTypeRecipes.String(), createdComment.Target.Type)
+		assert.Equal(t, createdRecipe.ID, createdComment.Target.Id)
+		assert.Equal(t, "initial content", createdComment.Body)
 		assert.NotNil(t, createdComment.CreatedAt)
 
 		// List comments
-		listRes, err := testClient.CommentsService().GetCommentsForReference(ctx, &commentsgrpc.GetCommentsForReferenceRequest{
-			TargetType:   mealplanning.CommentTargetTypeRecipes,
-			ReferencedId: createdRecipe.ID,
+		listRes, err := testClient.CommentsService().GetRootComments(ctx, &commentsgrpc.GetRootCommentsRequest{
+			Target: &commentsgrpc.CommentTarget{Type: mealplanning.CommentTargetTypeRecipes.String(), Id: createdRecipe.ID},
 		})
 		require.NoError(t, err)
 		require.NotNil(t, listRes)
@@ -60,29 +59,28 @@ func TestComments_RecipeCompleteLifecycle(T *testing.T) {
 		for _, c := range listRes.Data {
 			if c.Id == createdComment.Id {
 				found = true
-				assert.Equal(t, "initial content", c.Content)
+				assert.Equal(t, "initial content", c.Body)
 				break
 			}
 		}
 		assert.True(t, found, "created comment should appear in list")
 
 		// Update comment
-		updatedContent := "updated content"
+		updatedBody := "updated content"
 		_, err = testClient.CommentsService().UpdateComment(ctx, &commentsgrpc.UpdateCommentRequest{
 			CommentId: createdComment.Id,
-			Input:     &commentsgrpc.CommentUpdateRequestInput{Content: updatedContent},
+			Input:     &commentsgrpc.CommentUpdateRequestInput{Body: updatedBody},
 		})
 		require.NoError(t, err)
 
 		// List again and verify update
-		listRes2, err := testClient.CommentsService().GetCommentsForReference(ctx, &commentsgrpc.GetCommentsForReferenceRequest{
-			TargetType:   mealplanning.CommentTargetTypeRecipes,
-			ReferencedId: createdRecipe.ID,
+		listRes2, err := testClient.CommentsService().GetRootComments(ctx, &commentsgrpc.GetRootCommentsRequest{
+			Target: &commentsgrpc.CommentTarget{Type: mealplanning.CommentTargetTypeRecipes.String(), Id: createdRecipe.ID},
 		})
 		require.NoError(t, err)
 		for _, c := range listRes2.Data {
 			if c.Id == createdComment.Id {
-				assert.Equal(t, updatedContent, c.Content)
+				assert.Equal(t, updatedBody, c.Body)
 				break
 			}
 		}
@@ -94,9 +92,8 @@ func TestComments_RecipeCompleteLifecycle(T *testing.T) {
 		require.NoError(t, err)
 
 		// List again - archived comment may or may not appear depending on implementation
-		listRes3, err := testClient.CommentsService().GetCommentsForReference(ctx, &commentsgrpc.GetCommentsForReferenceRequest{
-			TargetType:   mealplanning.CommentTargetTypeRecipes,
-			ReferencedId: createdRecipe.ID,
+		listRes3, err := testClient.CommentsService().GetRootComments(ctx, &commentsgrpc.GetRootCommentsRequest{
+			Target: &commentsgrpc.CommentTarget{Type: mealplanning.CommentTargetTypeRecipes.String(), Id: createdRecipe.ID},
 		})
 		require.NoError(t, err)
 		for _, c := range listRes3.Data {
@@ -122,7 +119,7 @@ func TestComments_RecipeCompleteLifecycle(T *testing.T) {
 
 		res, err := c.AddCommentToRecipe(ctx, &mealplanninggrpc.AddCommentToRecipeRequest{
 			RecipeId: createdRecipe.ID,
-			Input:    &commentsgrpc.CommentCreationRequestInput{Content: "test"},
+			Input:    &commentsgrpc.CommentCreationRequestInput{Body: "test"},
 		})
 		require.Error(t, err)
 		assert.Nil(t, res)
@@ -139,9 +136,8 @@ func TestComments_RecipeCompleteLifecycle(T *testing.T) {
 		_ = createCommentForRecipeForTest(t, createdRecipe.ID, testClient, "")
 
 		c := buildUnauthenticatedGRPCClientForTest(t)
-		listRes, err := c.CommentsService().GetCommentsForReference(ctx, &commentsgrpc.GetCommentsForReferenceRequest{
-			TargetType:   mealplanning.CommentTargetTypeRecipes,
-			ReferencedId: createdRecipe.ID,
+		listRes, err := c.CommentsService().GetRootComments(ctx, &commentsgrpc.GetRootCommentsRequest{
+			Target: &commentsgrpc.CommentTarget{Type: mealplanning.CommentTargetTypeRecipes.String(), Id: createdRecipe.ID},
 		})
 		require.Error(t, err)
 		assert.Nil(t, listRes)
@@ -160,7 +156,7 @@ func TestComments_RecipeCompleteLifecycle(T *testing.T) {
 		c := buildUnauthenticatedGRPCClientForTest(t)
 		_, err := c.CommentsService().UpdateComment(ctx, &commentsgrpc.UpdateCommentRequest{
 			CommentId: createdComment.Id,
-			Input:     &commentsgrpc.CommentUpdateRequestInput{Content: "updated"},
+			Input:     &commentsgrpc.CommentUpdateRequestInput{Body: "updated"},
 		})
 		require.Error(t, err)
 
@@ -199,17 +195,16 @@ func TestComments_MealCompleteLifecycle(T *testing.T) {
 
 		res, err := userClient.AddCommentToMeal(ctx, &mealplanninggrpc.AddCommentToMealRequest{
 			MealId: createdMeal.ID,
-			Input:  &commentsgrpc.CommentCreationRequestInput{Content: "comment on meal"},
+			Input:  &commentsgrpc.CommentCreationRequestInput{Body: "comment on meal"},
 		})
 		require.NoError(t, err)
 		require.NotNil(t, res)
 		require.NotNil(t, res.Comment)
-		assert.Equal(t, mealplanning.CommentTargetTypeMeals, res.Comment.TargetType)
-		assert.Equal(t, createdMeal.ID, res.Comment.ReferencedId)
+		assert.Equal(t, mealplanning.CommentTargetTypeMeals.String(), res.Comment.Target.Type)
+		assert.Equal(t, createdMeal.ID, res.Comment.Target.Id)
 
-		listRes, err := userClient.CommentsService().GetCommentsForReference(ctx, &commentsgrpc.GetCommentsForReferenceRequest{
-			TargetType:   mealplanning.CommentTargetTypeMeals,
-			ReferencedId: createdMeal.ID,
+		listRes, err := userClient.CommentsService().GetRootComments(ctx, &commentsgrpc.GetRootCommentsRequest{
+			Target: &commentsgrpc.CommentTarget{Type: mealplanning.CommentTargetTypeMeals.String(), Id: createdMeal.ID},
 		})
 		require.NoError(t, err)
 		assert.GreaterOrEqual(t, len(listRes.Data), 1)
@@ -234,17 +229,16 @@ func TestComments_MealPlanCompleteLifecycle(T *testing.T) {
 
 		res, err := userClient.AddCommentToMealPlan(ctx, &mealplanninggrpc.AddCommentToMealPlanRequest{
 			MealPlanId: createdMealPlan.ID,
-			Input:      &commentsgrpc.CommentCreationRequestInput{Content: "comment on meal plan"},
+			Input:      &commentsgrpc.CommentCreationRequestInput{Body: "comment on meal plan"},
 		})
 		require.NoError(t, err)
 		require.NotNil(t, res)
 		require.NotNil(t, res.Comment)
-		assert.Equal(t, mealplanning.CommentTargetTypeMealPlans, res.Comment.TargetType)
-		assert.Equal(t, createdMealPlan.ID, res.Comment.ReferencedId)
+		assert.Equal(t, mealplanning.CommentTargetTypeMealPlans.String(), res.Comment.Target.Type)
+		assert.Equal(t, createdMealPlan.ID, res.Comment.Target.Id)
 
-		listRes, err := userClient.CommentsService().GetCommentsForReference(ctx, &commentsgrpc.GetCommentsForReferenceRequest{
-			TargetType:   mealplanning.CommentTargetTypeMealPlans,
-			ReferencedId: createdMealPlan.ID,
+		listRes, err := userClient.CommentsService().GetRootComments(ctx, &commentsgrpc.GetRootCommentsRequest{
+			Target: &commentsgrpc.CommentTarget{Type: mealplanning.CommentTargetTypeMealPlans.String(), Id: createdMealPlan.ID},
 		})
 		require.NoError(t, err)
 		assert.GreaterOrEqual(t, len(listRes.Data), 1)

@@ -44,16 +44,28 @@ internal enum Comments_CommentsService {
                 method: "ArchiveComment"
             )
         }
-        /// Namespace for "GetCommentsForReference" metadata.
-        internal enum GetCommentsForReference {
-            /// Request type for "GetCommentsForReference".
-            internal typealias Input = Comments_GetCommentsForReferenceRequest
-            /// Response type for "GetCommentsForReference".
-            internal typealias Output = Comments_GetCommentsForReferenceResponse
-            /// Descriptor for "GetCommentsForReference".
+        /// Namespace for "GetRootComments" metadata.
+        internal enum GetRootComments {
+            /// Request type for "GetRootComments".
+            internal typealias Input = Comments_GetRootCommentsRequest
+            /// Response type for "GetRootComments".
+            internal typealias Output = Comments_GetRootCommentsResponse
+            /// Descriptor for "GetRootComments".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "comments.CommentsService"),
-                method: "GetCommentsForReference"
+                method: "GetRootComments"
+            )
+        }
+        /// Namespace for "GetCommentReplies" metadata.
+        internal enum GetCommentReplies {
+            /// Request type for "GetCommentReplies".
+            internal typealias Input = Comments_GetCommentRepliesRequest
+            /// Response type for "GetCommentReplies".
+            internal typealias Output = Comments_GetCommentRepliesResponse
+            /// Descriptor for "GetCommentReplies".
+            internal static let descriptor = GRPCCore.MethodDescriptor(
+                service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "comments.CommentsService"),
+                method: "GetCommentReplies"
             )
         }
         /// Namespace for "UpdateComment" metadata.
@@ -72,7 +84,8 @@ internal enum Comments_CommentsService {
         internal static let descriptors: [GRPCCore.MethodDescriptor] = [
             CreateComment.descriptor,
             ArchiveComment.descriptor,
-            GetCommentsForReference.descriptor,
+            GetRootComments.descriptor,
+            GetCommentReplies.descriptor,
             UpdateComment.descriptor
         ]
     }
@@ -131,23 +144,42 @@ extension Comments_CommentsService {
             onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Comments_ArchiveCommentResponse>) async throws -> Result
         ) async throws -> Result where Result: Sendable
 
-        /// Call the "GetCommentsForReference" method.
+        /// Call the "GetRootComments" method.
         ///
         /// - Parameters:
-        ///   - request: A request containing a single `Comments_GetCommentsForReferenceRequest` message.
-        ///   - serializer: A serializer for `Comments_GetCommentsForReferenceRequest` messages.
-        ///   - deserializer: A deserializer for `Comments_GetCommentsForReferenceResponse` messages.
+        ///   - request: A request containing a single `Comments_GetRootCommentsRequest` message.
+        ///   - serializer: A serializer for `Comments_GetRootCommentsRequest` messages.
+        ///   - deserializer: A deserializer for `Comments_GetRootCommentsResponse` messages.
         ///   - options: Options to apply to this RPC.
         ///   - handleResponse: A closure which handles the response, the result of which is
         ///       returned to the caller. Returning from the closure will cancel the RPC if it
         ///       hasn't already finished.
         /// - Returns: The result of `handleResponse`.
-        func getCommentsForReference<Result>(
-            request: GRPCCore.ClientRequest<Comments_GetCommentsForReferenceRequest>,
-            serializer: some GRPCCore.MessageSerializer<Comments_GetCommentsForReferenceRequest>,
-            deserializer: some GRPCCore.MessageDeserializer<Comments_GetCommentsForReferenceResponse>,
+        func getRootComments<Result>(
+            request: GRPCCore.ClientRequest<Comments_GetRootCommentsRequest>,
+            serializer: some GRPCCore.MessageSerializer<Comments_GetRootCommentsRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Comments_GetRootCommentsResponse>,
             options: GRPCCore.CallOptions,
-            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Comments_GetCommentsForReferenceResponse>) async throws -> Result
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Comments_GetRootCommentsResponse>) async throws -> Result
+        ) async throws -> Result where Result: Sendable
+
+        /// Call the "GetCommentReplies" method.
+        ///
+        /// - Parameters:
+        ///   - request: A request containing a single `Comments_GetCommentRepliesRequest` message.
+        ///   - serializer: A serializer for `Comments_GetCommentRepliesRequest` messages.
+        ///   - deserializer: A deserializer for `Comments_GetCommentRepliesResponse` messages.
+        ///   - options: Options to apply to this RPC.
+        ///   - handleResponse: A closure which handles the response, the result of which is
+        ///       returned to the caller. Returning from the closure will cancel the RPC if it
+        ///       hasn't already finished.
+        /// - Returns: The result of `handleResponse`.
+        func getCommentReplies<Result>(
+            request: GRPCCore.ClientRequest<Comments_GetCommentRepliesRequest>,
+            serializer: some GRPCCore.MessageSerializer<Comments_GetCommentRepliesRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Comments_GetCommentRepliesResponse>,
+            options: GRPCCore.CallOptions,
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Comments_GetCommentRepliesResponse>) async throws -> Result
         ) async throws -> Result where Result: Sendable
 
         /// Call the "UpdateComment" method.
@@ -246,29 +278,59 @@ extension Comments_CommentsService {
             )
         }
 
-        /// Call the "GetCommentsForReference" method.
+        /// Call the "GetRootComments" method.
         ///
         /// - Parameters:
-        ///   - request: A request containing a single `Comments_GetCommentsForReferenceRequest` message.
-        ///   - serializer: A serializer for `Comments_GetCommentsForReferenceRequest` messages.
-        ///   - deserializer: A deserializer for `Comments_GetCommentsForReferenceResponse` messages.
+        ///   - request: A request containing a single `Comments_GetRootCommentsRequest` message.
+        ///   - serializer: A serializer for `Comments_GetRootCommentsRequest` messages.
+        ///   - deserializer: A deserializer for `Comments_GetRootCommentsResponse` messages.
         ///   - options: Options to apply to this RPC.
         ///   - handleResponse: A closure which handles the response, the result of which is
         ///       returned to the caller. Returning from the closure will cancel the RPC if it
         ///       hasn't already finished.
         /// - Returns: The result of `handleResponse`.
-        internal func getCommentsForReference<Result>(
-            request: GRPCCore.ClientRequest<Comments_GetCommentsForReferenceRequest>,
-            serializer: some GRPCCore.MessageSerializer<Comments_GetCommentsForReferenceRequest>,
-            deserializer: some GRPCCore.MessageDeserializer<Comments_GetCommentsForReferenceResponse>,
+        internal func getRootComments<Result>(
+            request: GRPCCore.ClientRequest<Comments_GetRootCommentsRequest>,
+            serializer: some GRPCCore.MessageSerializer<Comments_GetRootCommentsRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Comments_GetRootCommentsResponse>,
             options: GRPCCore.CallOptions = .defaults,
-            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Comments_GetCommentsForReferenceResponse>) async throws -> Result = { response in
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Comments_GetRootCommentsResponse>) async throws -> Result = { response in
                 try response.message
             }
         ) async throws -> Result where Result: Sendable {
             try await self.client.unary(
                 request: request,
-                descriptor: Comments_CommentsService.Method.GetCommentsForReference.descriptor,
+                descriptor: Comments_CommentsService.Method.GetRootComments.descriptor,
+                serializer: serializer,
+                deserializer: deserializer,
+                options: options,
+                onResponse: handleResponse
+            )
+        }
+
+        /// Call the "GetCommentReplies" method.
+        ///
+        /// - Parameters:
+        ///   - request: A request containing a single `Comments_GetCommentRepliesRequest` message.
+        ///   - serializer: A serializer for `Comments_GetCommentRepliesRequest` messages.
+        ///   - deserializer: A deserializer for `Comments_GetCommentRepliesResponse` messages.
+        ///   - options: Options to apply to this RPC.
+        ///   - handleResponse: A closure which handles the response, the result of which is
+        ///       returned to the caller. Returning from the closure will cancel the RPC if it
+        ///       hasn't already finished.
+        /// - Returns: The result of `handleResponse`.
+        internal func getCommentReplies<Result>(
+            request: GRPCCore.ClientRequest<Comments_GetCommentRepliesRequest>,
+            serializer: some GRPCCore.MessageSerializer<Comments_GetCommentRepliesRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Comments_GetCommentRepliesResponse>,
+            options: GRPCCore.CallOptions = .defaults,
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Comments_GetCommentRepliesResponse>) async throws -> Result = { response in
+                try response.message
+            }
+        ) async throws -> Result where Result: Sendable {
+            try await self.client.unary(
+                request: request,
+                descriptor: Comments_CommentsService.Method.GetCommentReplies.descriptor,
                 serializer: serializer,
                 deserializer: deserializer,
                 options: options,
@@ -361,26 +423,51 @@ extension Comments_CommentsService.ClientProtocol {
         )
     }
 
-    /// Call the "GetCommentsForReference" method.
+    /// Call the "GetRootComments" method.
     ///
     /// - Parameters:
-    ///   - request: A request containing a single `Comments_GetCommentsForReferenceRequest` message.
+    ///   - request: A request containing a single `Comments_GetRootCommentsRequest` message.
     ///   - options: Options to apply to this RPC.
     ///   - handleResponse: A closure which handles the response, the result of which is
     ///       returned to the caller. Returning from the closure will cancel the RPC if it
     ///       hasn't already finished.
     /// - Returns: The result of `handleResponse`.
-    internal func getCommentsForReference<Result>(
-        request: GRPCCore.ClientRequest<Comments_GetCommentsForReferenceRequest>,
+    internal func getRootComments<Result>(
+        request: GRPCCore.ClientRequest<Comments_GetRootCommentsRequest>,
         options: GRPCCore.CallOptions = .defaults,
-        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Comments_GetCommentsForReferenceResponse>) async throws -> Result = { response in
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Comments_GetRootCommentsResponse>) async throws -> Result = { response in
             try response.message
         }
     ) async throws -> Result where Result: Sendable {
-        try await self.getCommentsForReference(
+        try await self.getRootComments(
             request: request,
-            serializer: GRPCProtobuf.ProtobufSerializer<Comments_GetCommentsForReferenceRequest>(),
-            deserializer: GRPCProtobuf.ProtobufDeserializer<Comments_GetCommentsForReferenceResponse>(),
+            serializer: GRPCProtobuf.ProtobufSerializer<Comments_GetRootCommentsRequest>(),
+            deserializer: GRPCProtobuf.ProtobufDeserializer<Comments_GetRootCommentsResponse>(),
+            options: options,
+            onResponse: handleResponse
+        )
+    }
+
+    /// Call the "GetCommentReplies" method.
+    ///
+    /// - Parameters:
+    ///   - request: A request containing a single `Comments_GetCommentRepliesRequest` message.
+    ///   - options: Options to apply to this RPC.
+    ///   - handleResponse: A closure which handles the response, the result of which is
+    ///       returned to the caller. Returning from the closure will cancel the RPC if it
+    ///       hasn't already finished.
+    /// - Returns: The result of `handleResponse`.
+    internal func getCommentReplies<Result>(
+        request: GRPCCore.ClientRequest<Comments_GetCommentRepliesRequest>,
+        options: GRPCCore.CallOptions = .defaults,
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Comments_GetCommentRepliesResponse>) async throws -> Result = { response in
+            try response.message
+        }
+    ) async throws -> Result where Result: Sendable {
+        try await self.getCommentReplies(
+            request: request,
+            serializer: GRPCProtobuf.ProtobufSerializer<Comments_GetCommentRepliesRequest>(),
+            deserializer: GRPCProtobuf.ProtobufDeserializer<Comments_GetCommentRepliesResponse>(),
             options: options,
             onResponse: handleResponse
         )
@@ -473,7 +560,7 @@ extension Comments_CommentsService.ClientProtocol {
         )
     }
 
-    /// Call the "GetCommentsForReference" method.
+    /// Call the "GetRootComments" method.
     ///
     /// - Parameters:
     ///   - message: request message to send.
@@ -483,19 +570,48 @@ extension Comments_CommentsService.ClientProtocol {
     ///       returned to the caller. Returning from the closure will cancel the RPC if it
     ///       hasn't already finished.
     /// - Returns: The result of `handleResponse`.
-    internal func getCommentsForReference<Result>(
-        _ message: Comments_GetCommentsForReferenceRequest,
+    internal func getRootComments<Result>(
+        _ message: Comments_GetRootCommentsRequest,
         metadata: GRPCCore.Metadata = [:],
         options: GRPCCore.CallOptions = .defaults,
-        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Comments_GetCommentsForReferenceResponse>) async throws -> Result = { response in
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Comments_GetRootCommentsResponse>) async throws -> Result = { response in
             try response.message
         }
     ) async throws -> Result where Result: Sendable {
-        let request = GRPCCore.ClientRequest<Comments_GetCommentsForReferenceRequest>(
+        let request = GRPCCore.ClientRequest<Comments_GetRootCommentsRequest>(
             message: message,
             metadata: metadata
         )
-        return try await self.getCommentsForReference(
+        return try await self.getRootComments(
+            request: request,
+            options: options,
+            onResponse: handleResponse
+        )
+    }
+
+    /// Call the "GetCommentReplies" method.
+    ///
+    /// - Parameters:
+    ///   - message: request message to send.
+    ///   - metadata: Additional metadata to send, defaults to empty.
+    ///   - options: Options to apply to this RPC, defaults to `.defaults`.
+    ///   - handleResponse: A closure which handles the response, the result of which is
+    ///       returned to the caller. Returning from the closure will cancel the RPC if it
+    ///       hasn't already finished.
+    /// - Returns: The result of `handleResponse`.
+    internal func getCommentReplies<Result>(
+        _ message: Comments_GetCommentRepliesRequest,
+        metadata: GRPCCore.Metadata = [:],
+        options: GRPCCore.CallOptions = .defaults,
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Comments_GetCommentRepliesResponse>) async throws -> Result = { response in
+            try response.message
+        }
+    ) async throws -> Result where Result: Sendable {
+        let request = GRPCCore.ClientRequest<Comments_GetCommentRepliesRequest>(
+            message: message,
+            metadata: metadata
+        )
+        return try await self.getCommentReplies(
             request: request,
             options: options,
             onResponse: handleResponse

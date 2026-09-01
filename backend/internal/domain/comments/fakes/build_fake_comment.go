@@ -2,60 +2,48 @@ package fakes
 
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 
+	platformcomments "github.com/primandproper/platform-go/v13/comments"
 	"github.com/primandproper/platform-go/v13/fake"
 	"github.com/primandproper/platform-go/v13/filtering"
 )
 
-// commentTargetType is the kind of thing these fakes comment on.
-//
-// A comment's target is a table name, and the ones a comment may point at are a closed
-// set the domain knows and a random string is not in.
-const commentTargetType = "recipes"
-
 // BuildFakeComment builds a faked Comment.
-func BuildFakeComment() *comments.Comment {
-	comment := fake.BuildFakeRecord[comments.Comment]()
-	comment.TargetType = commentTargetType
+//
+// The target type is fixed rather than random because it is not a free string:
+// the store refuses one the target catalog does not hold, so a randomized value
+// would build a comment that could never be written.
+func BuildFakeComment() *platformcomments.Comment {
+	comment := fake.BuildFakeRecord[platformcomments.Comment]()
+	comment.Scope = comments.Scope()
+	comment.Target.Type = mealplanning.CommentTargetTypeRecipes
+	comment.ParentID = platformcomments.RootParentID
 
 	return comment
 }
 
-// BuildFakeCommentWithParent builds a faked Comment that is a reply.
-func BuildFakeCommentWithParent(parentID string) *comments.Comment {
-	c := BuildFakeComment()
-	c.ParentCommentID = &parentID
+// BuildFakeCommentReply builds a faked Comment that replies to parentID.
+//
+// It shares the parent's target, because a reply belongs to its parent's
+// discussion and one naming a different target is refused.
+func BuildFakeCommentReply(parent *platformcomments.Comment) *platformcomments.Comment {
+	reply := BuildFakeComment()
+	reply.ParentID = parent.ID
+	reply.Target = parent.Target
 
-	return c
+	return reply
 }
 
-// BuildFakeCommentList builds a faked Comment list.
+// BuildFakeCommentList builds a faked page of Comments about one target.
 //
-// The target is what the read path filtered on, so every element of the page carries
-// it: a page of comments about one recipe, which is the only page the read path
-// returns.
-func BuildFakeCommentList(targetType, referencedID string) *filtering.QueryFilteredResult[comments.Comment] {
-	return fake.BuildFakePage(func() *comments.Comment {
+// Every element carries the target, because that is what the read path filtered
+// on: a page of comments about one recipe is the only page the read path returns.
+func BuildFakeCommentList(target platformcomments.Target) *filtering.QueryFilteredResult[platformcomments.Comment] {
+	return fake.BuildFakePage(func() *platformcomments.Comment {
 		comment := BuildFakeComment()
-		comment.TargetType = targetType
-		comment.ReferencedID = referencedID
+		comment.Target = target
 
 		return comment
 	})
-}
-
-// BuildFakeCommentCreationRequestInput builds a faked CommentCreationRequestInput.
-func BuildFakeCommentCreationRequestInput() *comments.CommentCreationRequestInput {
-	input := fake.BuildFakeRecord[comments.CommentCreationRequestInput]()
-	input.TargetType = commentTargetType
-
-	return input
-}
-
-// BuildFakeCommentDatabaseCreationInput builds a faked CommentDatabaseCreationInput.
-func BuildFakeCommentDatabaseCreationInput() *comments.CommentDatabaseCreationInput {
-	input := fake.BuildFakeRecord[comments.CommentDatabaseCreationInput]()
-	input.TargetType = commentTargetType
-
-	return input
 }

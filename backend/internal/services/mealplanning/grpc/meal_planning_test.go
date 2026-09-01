@@ -5,12 +5,12 @@ import (
 	"testing"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
-	commentsmanagermock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments/manager/mock"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	mockmanagers "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/managers/mock"
 	mealplanninggrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
 
+	commentsmock "github.com/primandproper/platform-go/v13/comments/mock"
 	"github.com/primandproper/platform-go/v13/fake"
 	"github.com/primandproper/platform-go/v13/filtering"
 	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
@@ -24,9 +24,9 @@ func buildServiceImplForMealPlanningTest(t *testing.T) *serviceImpl {
 	t.Helper()
 
 	return &serviceImpl{
-		tracer:          tracing.NewTracerForTest(t.Name()),
-		logger:          loggingnoop.NewLogger(),
-		commentsManager: &noopCommentsManager{},
+		tracer:   tracing.NewTracerForTest(t.Name()),
+		logger:   loggingnoop.NewLogger(),
+		comments: &commentsmock.StoreMock{},
 		// The saga starter is nil for most tests: only the three admin RPCs reach it.
 		mealPlanFinalizationStarter: nil,
 	}
@@ -64,10 +64,10 @@ func TestServiceImpl_ArchiveMeal(T *testing.T) {
 		}
 		s.mealPlanningManager = mmpm
 
-		// A comments manager with no functions set: any call panics. Archiving a
+		// A comment store with no functions set: any call panics. Archiving a
 		// meal must not touch the comments on it — they belong to their authors.
-		cm := &commentsmanagermock.CommentsDataManagerMock{}
-		s.commentsManager = cm
+		cm := &commentsmock.StoreMock{}
+		s.comments = cm
 
 		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
 			Requester: sessions.RequesterInfo{
@@ -106,10 +106,10 @@ func TestServiceImpl_ArchiveMealPlan(T *testing.T) {
 		}
 		s.mealPlanningManager = mmpm
 
-		// A comments manager with no functions set: any call panics. Archiving a
+		// A comment store with no functions set: any call panics. Archiving a
 		// meal plan must not touch the comments on it — they belong to their authors.
-		cm := &commentsmanagermock.CommentsDataManagerMock{}
-		s.commentsManager = cm
+		cm := &commentsmock.StoreMock{}
+		s.comments = cm
 
 		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
 			ActiveAccountID: exampleAccountID,

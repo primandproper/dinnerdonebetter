@@ -77,10 +77,29 @@ const (
 	// CollectorKeyComments covers comments the subject authored.
 	CollectorKeyComments = "comments"
 
+	// EraserKeyComments is the eraser that destroys the comments a subject wrote.
+	//
+	// It is registered because comments are the one store the identity cascade no
+	// longer reaches. The table this repository used to own carried
+	// belongs_to_user REFERENCES users ON DELETE CASCADE; platform-go's carries a
+	// plain author column, because that package does not own the directory people
+	// live in and has no table to point a foreign key at. Without this eraser a
+	// user erasure would leave every comment they wrote in place, live and
+	// listable.
+	//
+	// The erasure is a hard delete rather than an anonymization. A comment's body
+	// is free text somebody typed, so what has to go is the words rather than a
+	// flag beside them: keeping the text and losing the author would be worse than
+	// either.
+	//
+	// It sorts before EraserKeyIdentity, which costs nothing — there is no foreign
+	// key between the two any more — and is the order that reads correctly anyway.
+	EraserKeyComments = "comments"
+
 	// EraserKeyIdentity is the eraser that deletes the user row, and with it
 	// everything hanging off it by ON DELETE CASCADE. See
 	// internal/domain/identity/privacy for what that covers and why it is the
-	// only application eraser registered.
+	// only application eraser registered for this schema's cascading tables.
 	//
 	// The other registered eraser is platform-go's own, under auditerasure.
 	// DefaultKey. That key sorts before this one, which is load-bearing: erasers

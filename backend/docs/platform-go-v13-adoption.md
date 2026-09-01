@@ -113,7 +113,7 @@ sequenced separately — none is required to compile.
 | --- | --- | --- |
 | `identity` | `postgres/identity` + `identity_*.go` codegen | #306, #317, #341 |
 | `settings` | `postgres/settings` | #388 |
-| `comments` | `postgres/comments` | #450 |
+| ~~`comments`~~ (adopted, #1375) | `postgres/comments` + `domain/comments` + `comments_*.go` codegen | #450 |
 | `issuereports` | `postgres/issuereports` | #449 |
 | `waitlists` | `postgres/waitlists` | #452 |
 | `billing` | `postgres/payments`, partly | #454 |
@@ -130,7 +130,9 @@ hand — and was the only one that reached `frontend/` and `ios/`; #1370 did it.
 moved single use from the call site into the store and stopped the reset token being stored as
 itself; #1372 did it. `sessions` was the same axis again — it collapsed a session table kept
 beside the sign-in into the one row a revocation actually removes, so a sign-out cannot be read
-past; #1373 did it. `identity` is the largest by far and should be its own epic.
+past; #1373 did it. `comments` was the smallest complete domain, and was taken first as the proof
+that a whole domain — table, types, manager, mocks and generated SQL — can be deleted rather than
+merely re-backed; #1375 did it. `identity` is the largest by far and should be its own epic.
 
 ## Verification
 

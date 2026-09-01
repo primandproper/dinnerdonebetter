@@ -1,9 +1,9 @@
 package grpc
 
 import (
-	commentsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments/manager"
 	commentssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/comments"
 
+	comments "github.com/primandproper/platform-go/v13/comments"
 	"github.com/primandproper/platform-go/v13/observability/logging"
 	"github.com/primandproper/platform-go/v13/observability/tracing"
 
@@ -20,7 +20,7 @@ func RegisterCommentsService(i do.Injector) {
 		return NewService(
 			do.MustInvoke[logging.Logger](i),
 			do.MustInvoke[tracing.Provider](i),
-			do.MustInvoke[commentsmanager.CommentsDataManager](i),
+			do.MustInvoke[comments.Store](i),
 		), nil
 	})
 }
