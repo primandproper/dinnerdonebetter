@@ -7,10 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
-
 	"github.com/primandproper/platform-go/v13/database"
 	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/uploads/registry"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/go-ozzo/ozzo-validation/v4/is"
@@ -48,27 +47,27 @@ type (
 
 	// User represents a User.
 	User struct {
-		_                          struct{}                     `json:"-"`
-		CreatedAt                  time.Time                    `json:"createdAt"`
-		EmailAddressVerifiedAt     *time.Time                   `json:"emailAddressVerifiedAt"`
-		PasswordLastChangedAt      *time.Time                   `json:"passwordLastChangedAt"`
-		LastUpdatedAt              *time.Time                   `json:"lastUpdatedAt"`
-		LastAcceptedTermsOfService *time.Time                   `json:"lastAcceptedTOS"`
-		LastAcceptedPrivacyPolicy  *time.Time                   `json:"lastAcceptedPrivacyPolicy"`
-		TwoFactorSecretVerifiedAt  *time.Time                   `json:"twoFactorSecretVerifiedAt"`
-		Avatar                     *uploadedmedia.UploadedMedia `json:"avatar"`
-		Birthday                   *time.Time                   `json:"birthday"`
-		ArchivedAt                 *time.Time                   `json:"archivedAt"`
-		AccountStatusExplanation   string                       `json:"accountStatusExplanation"`
-		HashedPassword             string                       `json:"-"`
-		ID                         string                       `json:"id"`
-		AccountStatus              string                       `json:"accountStatus"`
-		Username                   string                       `json:"username"`
-		FirstName                  string                       `json:"firstName"`
-		LastName                   string                       `json:"lastName"`
-		EmailAddress               string                       `json:"emailAddress"`
-		TwoFactorSecret            string                       `json:"-"`
-		RequiresPasswordChange     bool                         `json:"requiresPasswordChange"`
+		_                          struct{}         `json:"-"`
+		CreatedAt                  time.Time        `json:"createdAt"`
+		EmailAddressVerifiedAt     *time.Time       `json:"emailAddressVerifiedAt"`
+		PasswordLastChangedAt      *time.Time       `json:"passwordLastChangedAt"`
+		LastUpdatedAt              *time.Time       `json:"lastUpdatedAt"`
+		LastAcceptedTermsOfService *time.Time       `json:"lastAcceptedTOS"`
+		LastAcceptedPrivacyPolicy  *time.Time       `json:"lastAcceptedPrivacyPolicy"`
+		TwoFactorSecretVerifiedAt  *time.Time       `json:"twoFactorSecretVerifiedAt"`
+		Avatar                     *registry.Object `json:"avatar"`
+		Birthday                   *time.Time       `json:"birthday"`
+		ArchivedAt                 *time.Time       `json:"archivedAt"`
+		AccountStatusExplanation   string           `json:"accountStatusExplanation"`
+		HashedPassword             string           `json:"-"`
+		ID                         string           `json:"id"`
+		AccountStatus              string           `json:"accountStatus"`
+		Username                   string           `json:"username"`
+		FirstName                  string           `json:"firstName"`
+		LastName                   string           `json:"lastName"`
+		EmailAddress               string           `json:"emailAddress"`
+		TwoFactorSecret            string           `json:"-"`
+		RequiresPasswordChange     bool             `json:"requiresPasswordChange"`
 	}
 
 	// UserRegistrationInput represents the input required from users to register an account.

@@ -10,57 +10,6 @@ import { Timestamp } from '../google/protobuf/timestamp';
 
 export const protobufPackage = 'uploaded_media';
 
-export enum UploadedMediaMimeType {
-  UPLOADED_MEDIA_MIME_TYPE_UNSPECIFIED = 0,
-  UPLOADED_MEDIA_MIME_TYPE_IMAGE_PNG = 1,
-  UPLOADED_MEDIA_MIME_TYPE_IMAGE_JPEG = 2,
-  UPLOADED_MEDIA_MIME_TYPE_IMAGE_GIF = 3,
-  UPLOADED_MEDIA_MIME_TYPE_VIDEO_MP4 = 4,
-  UNRECOGNIZED = -1,
-}
-
-export function uploadedMediaMimeTypeFromJSON(object: any): UploadedMediaMimeType {
-  switch (object) {
-    case 0:
-    case 'UPLOADED_MEDIA_MIME_TYPE_UNSPECIFIED':
-      return UploadedMediaMimeType.UPLOADED_MEDIA_MIME_TYPE_UNSPECIFIED;
-    case 1:
-    case 'UPLOADED_MEDIA_MIME_TYPE_IMAGE_PNG':
-      return UploadedMediaMimeType.UPLOADED_MEDIA_MIME_TYPE_IMAGE_PNG;
-    case 2:
-    case 'UPLOADED_MEDIA_MIME_TYPE_IMAGE_JPEG':
-      return UploadedMediaMimeType.UPLOADED_MEDIA_MIME_TYPE_IMAGE_JPEG;
-    case 3:
-    case 'UPLOADED_MEDIA_MIME_TYPE_IMAGE_GIF':
-      return UploadedMediaMimeType.UPLOADED_MEDIA_MIME_TYPE_IMAGE_GIF;
-    case 4:
-    case 'UPLOADED_MEDIA_MIME_TYPE_VIDEO_MP4':
-      return UploadedMediaMimeType.UPLOADED_MEDIA_MIME_TYPE_VIDEO_MP4;
-    case -1:
-    case 'UNRECOGNIZED':
-    default:
-      return UploadedMediaMimeType.UNRECOGNIZED;
-  }
-}
-
-export function uploadedMediaMimeTypeToJSON(object: UploadedMediaMimeType): string {
-  switch (object) {
-    case UploadedMediaMimeType.UPLOADED_MEDIA_MIME_TYPE_UNSPECIFIED:
-      return 'UPLOADED_MEDIA_MIME_TYPE_UNSPECIFIED';
-    case UploadedMediaMimeType.UPLOADED_MEDIA_MIME_TYPE_IMAGE_PNG:
-      return 'UPLOADED_MEDIA_MIME_TYPE_IMAGE_PNG';
-    case UploadedMediaMimeType.UPLOADED_MEDIA_MIME_TYPE_IMAGE_JPEG:
-      return 'UPLOADED_MEDIA_MIME_TYPE_IMAGE_JPEG';
-    case UploadedMediaMimeType.UPLOADED_MEDIA_MIME_TYPE_IMAGE_GIF:
-      return 'UPLOADED_MEDIA_MIME_TYPE_IMAGE_GIF';
-    case UploadedMediaMimeType.UPLOADED_MEDIA_MIME_TYPE_VIDEO_MP4:
-      return 'UPLOADED_MEDIA_MIME_TYPE_VIDEO_MP4';
-    case UploadedMediaMimeType.UNRECOGNIZED:
-    default:
-      return 'UNRECOGNIZED';
-  }
-}
-
 export interface DataCollection {
   uploadedMedia: { [key: string]: UploadedMedia };
 }
@@ -86,24 +35,36 @@ export interface UploadResponse {
   sizeBytes: number;
 }
 
+/**
+ * UploadedMedia is one row of platform-go's upload registry: what an object in
+ * storage is, as opposed to the bytes themselves. object_key is where those
+ * bytes live and is what a client builds a media URL from.
+ */
 export interface UploadedMedia {
   createdAt: Date | undefined;
   archivedAt: Date | undefined;
   lastUpdatedAt: Date | undefined;
   id: string;
-  storagePath: string;
-  mimeType: UploadedMediaMimeType;
-  createdByUser: string;
+  objectKey: string;
+  contentType: string;
+  ownerId: string;
+  sizeBytes: number;
+  belongsToType: string;
+  belongsToId: string;
 }
 
+/**
+ * UploadedMediaCreationRequestInput registers an object a caller stored some
+ * other way — through a signed URL, or before adopting this service. Upload is
+ * the path that stores and registers together, and it is the only one whose
+ * size_bytes was counted rather than claimed.
+ */
 export interface UploadedMediaCreationRequestInput {
-  storagePath: string;
-  mimeType: UploadedMediaMimeType;
-}
-
-export interface UploadedMediaUpdateRequestInput {
-  storagePath?: string | undefined;
-  mimeType?: UploadedMediaMimeType | undefined;
+  objectKey: string;
+  contentType: string;
+  sizeBytes: number;
+  belongsToType: string;
+  belongsToId: string;
 }
 
 function createBaseDataCollection(): DataCollection {
@@ -549,9 +510,12 @@ function createBaseUploadedMedia(): UploadedMedia {
     archivedAt: undefined,
     lastUpdatedAt: undefined,
     id: '',
-    storagePath: '',
-    mimeType: 0,
-    createdByUser: '',
+    objectKey: '',
+    contentType: '',
+    ownerId: '',
+    sizeBytes: 0,
+    belongsToType: '',
+    belongsToId: '',
   };
 }
 
@@ -569,14 +533,23 @@ export const UploadedMedia: MessageFns<UploadedMedia> = {
     if (message.id !== '') {
       writer.uint32(34).string(message.id);
     }
-    if (message.storagePath !== '') {
-      writer.uint32(42).string(message.storagePath);
+    if (message.objectKey !== '') {
+      writer.uint32(42).string(message.objectKey);
     }
-    if (message.mimeType !== 0) {
-      writer.uint32(48).int32(message.mimeType);
+    if (message.contentType !== '') {
+      writer.uint32(50).string(message.contentType);
     }
-    if (message.createdByUser !== '') {
-      writer.uint32(58).string(message.createdByUser);
+    if (message.ownerId !== '') {
+      writer.uint32(58).string(message.ownerId);
+    }
+    if (message.sizeBytes !== 0) {
+      writer.uint32(64).int64(message.sizeBytes);
+    }
+    if (message.belongsToType !== '') {
+      writer.uint32(74).string(message.belongsToType);
+    }
+    if (message.belongsToId !== '') {
+      writer.uint32(82).string(message.belongsToId);
     }
     return writer;
   },
@@ -625,15 +598,15 @@ export const UploadedMedia: MessageFns<UploadedMedia> = {
             break;
           }
 
-          message.storagePath = reader.string();
+          message.objectKey = reader.string();
           continue;
         }
         case 6: {
-          if (tag !== 48) {
+          if (tag !== 50) {
             break;
           }
 
-          message.mimeType = reader.int32() as any;
+          message.contentType = reader.string();
           continue;
         }
         case 7: {
@@ -641,7 +614,31 @@ export const UploadedMedia: MessageFns<UploadedMedia> = {
             break;
           }
 
-          message.createdByUser = reader.string();
+          message.ownerId = reader.string();
+          continue;
+        }
+        case 8: {
+          if (tag !== 64) {
+            break;
+          }
+
+          message.sizeBytes = longToNumber(reader.int64());
+          continue;
+        }
+        case 9: {
+          if (tag !== 74) {
+            break;
+          }
+
+          message.belongsToType = reader.string();
+          continue;
+        }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          message.belongsToId = reader.string();
           continue;
         }
       }
@@ -671,20 +668,35 @@ export const UploadedMedia: MessageFns<UploadedMedia> = {
           ? fromJsonTimestamp(object.last_updated_at)
           : undefined,
       id: isSet(object.id) ? globalThis.String(object.id) : '',
-      storagePath: isSet(object.storagePath)
-        ? globalThis.String(object.storagePath)
-        : isSet(object.storage_path)
-          ? globalThis.String(object.storage_path)
+      objectKey: isSet(object.objectKey)
+        ? globalThis.String(object.objectKey)
+        : isSet(object.object_key)
+          ? globalThis.String(object.object_key)
           : '',
-      mimeType: isSet(object.mimeType)
-        ? uploadedMediaMimeTypeFromJSON(object.mimeType)
-        : isSet(object.mime_type)
-          ? uploadedMediaMimeTypeFromJSON(object.mime_type)
+      contentType: isSet(object.contentType)
+        ? globalThis.String(object.contentType)
+        : isSet(object.content_type)
+          ? globalThis.String(object.content_type)
+          : '',
+      ownerId: isSet(object.ownerId)
+        ? globalThis.String(object.ownerId)
+        : isSet(object.owner_id)
+          ? globalThis.String(object.owner_id)
+          : '',
+      sizeBytes: isSet(object.sizeBytes)
+        ? globalThis.Number(object.sizeBytes)
+        : isSet(object.size_bytes)
+          ? globalThis.Number(object.size_bytes)
           : 0,
-      createdByUser: isSet(object.createdByUser)
-        ? globalThis.String(object.createdByUser)
-        : isSet(object.created_by_user)
-          ? globalThis.String(object.created_by_user)
+      belongsToType: isSet(object.belongsToType)
+        ? globalThis.String(object.belongsToType)
+        : isSet(object.belongs_to_type)
+          ? globalThis.String(object.belongs_to_type)
+          : '',
+      belongsToId: isSet(object.belongsToId)
+        ? globalThis.String(object.belongsToId)
+        : isSet(object.belongs_to_id)
+          ? globalThis.String(object.belongs_to_id)
           : '',
     };
   },
@@ -703,14 +715,23 @@ export const UploadedMedia: MessageFns<UploadedMedia> = {
     if (message.id !== '') {
       obj.id = message.id;
     }
-    if (message.storagePath !== '') {
-      obj.storagePath = message.storagePath;
+    if (message.objectKey !== '') {
+      obj.objectKey = message.objectKey;
     }
-    if (message.mimeType !== 0) {
-      obj.mimeType = uploadedMediaMimeTypeToJSON(message.mimeType);
+    if (message.contentType !== '') {
+      obj.contentType = message.contentType;
     }
-    if (message.createdByUser !== '') {
-      obj.createdByUser = message.createdByUser;
+    if (message.ownerId !== '') {
+      obj.ownerId = message.ownerId;
+    }
+    if (message.sizeBytes !== 0) {
+      obj.sizeBytes = Math.round(message.sizeBytes);
+    }
+    if (message.belongsToType !== '') {
+      obj.belongsToType = message.belongsToType;
+    }
+    if (message.belongsToId !== '') {
+      obj.belongsToId = message.belongsToId;
     }
     return obj;
   },
@@ -724,24 +745,36 @@ export const UploadedMedia: MessageFns<UploadedMedia> = {
     message.archivedAt = object.archivedAt ?? undefined;
     message.lastUpdatedAt = object.lastUpdatedAt ?? undefined;
     message.id = object.id ?? '';
-    message.storagePath = object.storagePath ?? '';
-    message.mimeType = object.mimeType ?? 0;
-    message.createdByUser = object.createdByUser ?? '';
+    message.objectKey = object.objectKey ?? '';
+    message.contentType = object.contentType ?? '';
+    message.ownerId = object.ownerId ?? '';
+    message.sizeBytes = object.sizeBytes ?? 0;
+    message.belongsToType = object.belongsToType ?? '';
+    message.belongsToId = object.belongsToId ?? '';
     return message;
   },
 };
 
 function createBaseUploadedMediaCreationRequestInput(): UploadedMediaCreationRequestInput {
-  return { storagePath: '', mimeType: 0 };
+  return { objectKey: '', contentType: '', sizeBytes: 0, belongsToType: '', belongsToId: '' };
 }
 
 export const UploadedMediaCreationRequestInput: MessageFns<UploadedMediaCreationRequestInput> = {
   encode(message: UploadedMediaCreationRequestInput, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.storagePath !== '') {
-      writer.uint32(10).string(message.storagePath);
+    if (message.objectKey !== '') {
+      writer.uint32(10).string(message.objectKey);
     }
-    if (message.mimeType !== 0) {
-      writer.uint32(16).int32(message.mimeType);
+    if (message.contentType !== '') {
+      writer.uint32(18).string(message.contentType);
+    }
+    if (message.sizeBytes !== 0) {
+      writer.uint32(24).int64(message.sizeBytes);
+    }
+    if (message.belongsToType !== '') {
+      writer.uint32(34).string(message.belongsToType);
+    }
+    if (message.belongsToId !== '') {
+      writer.uint32(42).string(message.belongsToId);
     }
     return writer;
   },
@@ -758,15 +791,39 @@ export const UploadedMediaCreationRequestInput: MessageFns<UploadedMediaCreation
             break;
           }
 
-          message.storagePath = reader.string();
+          message.objectKey = reader.string();
           continue;
         }
         case 2: {
-          if (tag !== 16) {
+          if (tag !== 18) {
             break;
           }
 
-          message.mimeType = reader.int32() as any;
+          message.contentType = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.sizeBytes = longToNumber(reader.int64());
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.belongsToType = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.belongsToId = reader.string();
           continue;
         }
       }
@@ -780,26 +837,50 @@ export const UploadedMediaCreationRequestInput: MessageFns<UploadedMediaCreation
 
   fromJSON(object: any): UploadedMediaCreationRequestInput {
     return {
-      storagePath: isSet(object.storagePath)
-        ? globalThis.String(object.storagePath)
-        : isSet(object.storage_path)
-          ? globalThis.String(object.storage_path)
+      objectKey: isSet(object.objectKey)
+        ? globalThis.String(object.objectKey)
+        : isSet(object.object_key)
+          ? globalThis.String(object.object_key)
           : '',
-      mimeType: isSet(object.mimeType)
-        ? uploadedMediaMimeTypeFromJSON(object.mimeType)
-        : isSet(object.mime_type)
-          ? uploadedMediaMimeTypeFromJSON(object.mime_type)
+      contentType: isSet(object.contentType)
+        ? globalThis.String(object.contentType)
+        : isSet(object.content_type)
+          ? globalThis.String(object.content_type)
+          : '',
+      sizeBytes: isSet(object.sizeBytes)
+        ? globalThis.Number(object.sizeBytes)
+        : isSet(object.size_bytes)
+          ? globalThis.Number(object.size_bytes)
           : 0,
+      belongsToType: isSet(object.belongsToType)
+        ? globalThis.String(object.belongsToType)
+        : isSet(object.belongs_to_type)
+          ? globalThis.String(object.belongs_to_type)
+          : '',
+      belongsToId: isSet(object.belongsToId)
+        ? globalThis.String(object.belongsToId)
+        : isSet(object.belongs_to_id)
+          ? globalThis.String(object.belongs_to_id)
+          : '',
     };
   },
 
   toJSON(message: UploadedMediaCreationRequestInput): unknown {
     const obj: any = {};
-    if (message.storagePath !== '') {
-      obj.storagePath = message.storagePath;
+    if (message.objectKey !== '') {
+      obj.objectKey = message.objectKey;
     }
-    if (message.mimeType !== 0) {
-      obj.mimeType = uploadedMediaMimeTypeToJSON(message.mimeType);
+    if (message.contentType !== '') {
+      obj.contentType = message.contentType;
+    }
+    if (message.sizeBytes !== 0) {
+      obj.sizeBytes = Math.round(message.sizeBytes);
+    }
+    if (message.belongsToType !== '') {
+      obj.belongsToType = message.belongsToType;
+    }
+    if (message.belongsToId !== '') {
+      obj.belongsToId = message.belongsToId;
     }
     return obj;
   },
@@ -813,94 +894,11 @@ export const UploadedMediaCreationRequestInput: MessageFns<UploadedMediaCreation
     object: I,
   ): UploadedMediaCreationRequestInput {
     const message = createBaseUploadedMediaCreationRequestInput();
-    message.storagePath = object.storagePath ?? '';
-    message.mimeType = object.mimeType ?? 0;
-    return message;
-  },
-};
-
-function createBaseUploadedMediaUpdateRequestInput(): UploadedMediaUpdateRequestInput {
-  return { storagePath: undefined, mimeType: undefined };
-}
-
-export const UploadedMediaUpdateRequestInput: MessageFns<UploadedMediaUpdateRequestInput> = {
-  encode(message: UploadedMediaUpdateRequestInput, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.storagePath !== undefined) {
-      writer.uint32(10).string(message.storagePath);
-    }
-    if (message.mimeType !== undefined) {
-      writer.uint32(16).int32(message.mimeType);
-    }
-    return writer;
-  },
-
-  decode(input: BinaryReader | Uint8Array, length?: number): UploadedMediaUpdateRequestInput {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseUploadedMediaUpdateRequestInput();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
-
-          message.storagePath = reader.string();
-          continue;
-        }
-        case 2: {
-          if (tag !== 16) {
-            break;
-          }
-
-          message.mimeType = reader.int32() as any;
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
-
-  fromJSON(object: any): UploadedMediaUpdateRequestInput {
-    return {
-      storagePath: isSet(object.storagePath)
-        ? globalThis.String(object.storagePath)
-        : isSet(object.storage_path)
-          ? globalThis.String(object.storage_path)
-          : undefined,
-      mimeType: isSet(object.mimeType)
-        ? uploadedMediaMimeTypeFromJSON(object.mimeType)
-        : isSet(object.mime_type)
-          ? uploadedMediaMimeTypeFromJSON(object.mime_type)
-          : undefined,
-    };
-  },
-
-  toJSON(message: UploadedMediaUpdateRequestInput): unknown {
-    const obj: any = {};
-    if (message.storagePath !== undefined) {
-      obj.storagePath = message.storagePath;
-    }
-    if (message.mimeType !== undefined) {
-      obj.mimeType = uploadedMediaMimeTypeToJSON(message.mimeType);
-    }
-    return obj;
-  },
-
-  create<I extends Exact<DeepPartial<UploadedMediaUpdateRequestInput>, I>>(base?: I): UploadedMediaUpdateRequestInput {
-    return UploadedMediaUpdateRequestInput.fromPartial(base ?? ({} as any));
-  },
-  fromPartial<I extends Exact<DeepPartial<UploadedMediaUpdateRequestInput>, I>>(
-    object: I,
-  ): UploadedMediaUpdateRequestInput {
-    const message = createBaseUploadedMediaUpdateRequestInput();
-    message.storagePath = object.storagePath ?? undefined;
-    message.mimeType = object.mimeType ?? undefined;
+    message.objectKey = object.objectKey ?? '';
+    message.contentType = object.contentType ?? '';
+    message.sizeBytes = object.sizeBytes ?? 0;
+    message.belongsToType = object.belongsToType ?? '';
+    message.belongsToId = object.belongsToId ?? '';
     return message;
   },
 };

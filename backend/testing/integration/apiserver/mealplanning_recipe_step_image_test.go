@@ -81,7 +81,7 @@ func TestUploadRecipeStepImage(T *testing.T) {
 		require.NotNil(t, retrieved)
 		require.Len(t, retrieved.Result.StepImages, 1)
 		assert.Equal(t, uploadedMediaID, retrieved.Result.StepImages[0].Id)
-		assert.Equal(t, uploadedmediagrpc.UploadedMediaMimeType_UPLOADED_MEDIA_MIME_TYPE_IMAGE_JPEG, retrieved.Result.StepImages[0].MimeType)
+		assert.Equal(t, uploadedmedia.MimeTypeImageJPEG, retrieved.Result.StepImages[0].ContentType)
 
 		// Verify GetRecipe also returns step images for each step
 		fullRecipe, err := adminClient.GetRecipe(ctx, &mealplanningsvc.GetRecipeRequest{RecipeId: createdRecipe.ID})

@@ -1,20 +1,44 @@
+/*
+Package uploadedmedia is this application's half of platform-go's upload
+registry: the namespace its table carries, the tenancy every row is filed under,
+the content types this application accepts, and the data change events a write
+emits.
+
+The registry itself is platform-go's. It owns the schema, the paging, the
+tenancy column, the key uniqueness and the ownership check that decides who may
+read an object, because that half is the same in every application. What is not
+the same is which content types this application is willing to store, and that
+list stays here.
+
+# The row is not the bytes
+
+Nothing in the registry opens, reads or removes an object. uploads.UploadManager
+moves bytes and hands back a key; the registry row is what makes that key
+answerable — whose object it is, how big it was, and what it hangs off. Archival
+is metadata-only on purpose: the row is hidden and the object stays in the
+bucket until a retention policy removes it.
+*/
 package uploadedmedia
 
 import (
-	"context"
-	"encoding/gob"
-	"time"
-
-	"github.com/primandproper/platform-go/v13/filtering"
-
-	validation "github.com/go-ozzo/ozzo-validation/v4"
+	"github.com/primandproper/platform-go/v13/tenancy"
 )
 
+// TablePrefix namespaces the platform-go upload registry table, rendering
+// ddb_uploads_objects.
+//
+// The platform's own default is the empty prefix, which renders
+// "uploads_objects". Its DDL says CREATE TABLE IF NOT EXISTS, so a collision
+// with anything else sharing the database would be a silent no-op followed by a
+// store reading columns that are not there.
+const TablePrefix = "ddb"
+
+// The data change events an uploaded media write emits. They are declared in the
+// webhook event catalog (internal/domain/webhooks/catalog), so a subscriber is
+// already able to ask for them.
 const (
 	// UploadedMediaCreatedServiceEventType indicates uploaded media was created.
 	UploadedMediaCreatedServiceEventType = "uploaded_media_created"
-	// UploadedMediaUpdatedServiceEventType indicates uploaded media was updated.
-	UploadedMediaUpdatedServiceEventType = "uploaded_media_updated"
 	// UploadedMediaArchivedServiceEventType indicates uploaded media was archived.
 	UploadedMediaArchivedServiceEventType = "uploaded_media_archived"
 )
@@ -28,6 +52,12 @@ const (
 )
 
 // IsValidMimeType checks if a MIME type is supported.
+//
+// The registry stores whatever content type it is handed — a registry that
+// vetted the vocabulary would be one only this application's consumers could
+// use — so the list of what this deployment accepts is enforced at the service
+// boundary, before an object is stored. It is also what bounds the cardinality
+// of the mime_type dimension the upload meter records.
 func IsValidMimeType(mimeType string) bool {
 	switch mimeType {
 	case MimeTypeImagePNG, MimeTypeImageJPEG, MimeTypeImageGIF, MimeTypeVideoMP4:
@@ -37,128 +67,12 @@ func IsValidMimeType(mimeType string) bool {
 	}
 }
 
-func init() {
-	gob.Register(new(UploadedMedia))
-	gob.Register(new(UploadedMediaCreationRequestInput))
-	gob.Register(new(UploadedMediaDatabaseCreationInput))
-	gob.Register(new(UploadedMediaUpdateRequestInput))
-}
-
-type (
-	// UploadedMedia represents a media file uploaded by a user.
-	//
-	// It is not a duplicate of platform-go's uploads types. Those — ObjectInfo, Attributes —
-	// are blob-store descriptors: what the bucket says about a path, produced by the store and
-	// owned by it. This is the application's record that a user put something there, and it
-	// holds what the bucket cannot know: who uploaded it, when this application accepted it,
-	// and whether it has since been archived. StoragePath is the join between the two, and the
-	// direction of that join is the point — the row references the object, and the object has
-	// never heard of the row. The platform's uploader is consumed directly wherever a file is
-	// actually written; see internal/services/mealplanning/grpc/image_uploads.go.
-	UploadedMedia struct {
-		_             struct{}   `json:"-"`
-		CreatedAt     time.Time  `json:"createdAt"`
-		LastUpdatedAt *time.Time `json:"lastUpdatedAt"`
-		ArchivedAt    *time.Time `json:"archivedAt"`
-		ID            string     `json:"id"`
-		StoragePath   string     `json:"storagePath"`
-		MimeType      string     `json:"mimeType"`
-		CreatedByUser string     `json:"createdByUser"`
-	}
-
-	// UploadedMediaCreationRequestInput represents input for creating uploaded media.
-	UploadedMediaCreationRequestInput struct {
-		_           struct{} `json:"-"`
-		StoragePath string   `json:"storagePath"`
-		MimeType    string   `json:"mimeType"`
-	}
-
-	// UploadedMediaDatabaseCreationInput is used for creating uploaded media in persistence.
-	UploadedMediaDatabaseCreationInput struct {
-		_             struct{} `json:"-"`
-		ID            string   `json:"-"`
-		StoragePath   string   `json:"-"`
-		MimeType      string   `json:"-"`
-		CreatedByUser string   `json:"-"`
-	}
-
-	// UploadedMediaUpdateRequestInput represents input for updating uploaded media.
-	UploadedMediaUpdateRequestInput struct {
-		_           struct{} `json:"-"`
-		StoragePath *string  `json:"storagePath,omitempty"`
-		MimeType    *string  `json:"mimeType,omitempty"`
-	}
-
-	// UploadedMediaDataManager describes a structure capable of storing uploaded media.
-	UploadedMediaDataManager interface {
-		GetUploadedMedia(ctx context.Context, uploadedMediaID string) (*UploadedMedia, error)
-		GetUploadedMediaWithIDs(ctx context.Context, ids []string) ([]*UploadedMedia, error)
-		GetUploadedMediaForUser(ctx context.Context, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[UploadedMedia], error)
-		CreateUploadedMedia(ctx context.Context, input *UploadedMediaDatabaseCreationInput) (*UploadedMedia, error)
-		UpdateUploadedMedia(ctx context.Context, uploadedMedia *UploadedMedia) error
-		ArchiveUploadedMedia(ctx context.Context, uploadedMediaID string) error
-	}
-)
-
-// Update merges an UploadedMediaUpdateRequestInput into an UploadedMedia.
-func (u *UploadedMedia) Update(input *UploadedMediaUpdateRequestInput) {
-	if input.StoragePath != nil && *input.StoragePath != u.StoragePath {
-		u.StoragePath = *input.StoragePath
-	}
-	if input.MimeType != nil && *input.MimeType != u.MimeType {
-		u.MimeType = *input.MimeType
-	}
-}
-
-var _ validation.ValidatableWithContext = (*UploadedMediaCreationRequestInput)(nil)
-
-// ValidateWithContext validates an UploadedMediaCreationRequestInput.
-func (u *UploadedMediaCreationRequestInput) ValidateWithContext(ctx context.Context) error {
-	return validation.ValidateStructWithContext(
-		ctx,
-		u,
-		validation.Field(&u.StoragePath, validation.Required),
-		validation.Field(&u.MimeType, validation.Required, validation.In(
-			MimeTypeImagePNG,
-			MimeTypeImageJPEG,
-			MimeTypeImageGIF,
-			MimeTypeVideoMP4,
-		)),
-	)
-}
-
-var _ validation.ValidatableWithContext = (*UploadedMediaDatabaseCreationInput)(nil)
-
-// ValidateWithContext validates an UploadedMediaDatabaseCreationInput.
-func (u *UploadedMediaDatabaseCreationInput) ValidateWithContext(ctx context.Context) error {
-	return validation.ValidateStructWithContext(
-		ctx,
-		u,
-		validation.Field(&u.ID, validation.Required),
-		validation.Field(&u.StoragePath, validation.Required),
-		validation.Field(&u.MimeType, validation.Required, validation.In(
-			MimeTypeImagePNG,
-			MimeTypeImageJPEG,
-			MimeTypeImageGIF,
-			MimeTypeVideoMP4,
-		)),
-		validation.Field(&u.CreatedByUser, validation.Required),
-	)
-}
-
-var _ validation.ValidatableWithContext = (*UploadedMediaUpdateRequestInput)(nil)
-
-// ValidateWithContext validates an UploadedMediaUpdateRequestInput.
-func (u *UploadedMediaUpdateRequestInput) ValidateWithContext(ctx context.Context) error {
-	return validation.ValidateStructWithContext(
-		ctx,
-		u,
-		validation.Field(&u.StoragePath, validation.When(u.StoragePath != nil, validation.Required)),
-		validation.Field(&u.MimeType, validation.When(u.MimeType != nil, validation.Required, validation.In(
-			MimeTypeImagePNG,
-			MimeTypeImageJPEG,
-			MimeTypeImageGIF,
-			MimeTypeVideoMP4,
-		))),
-	)
-}
+// Scope is the tenancy every uploaded object in this deployment is filed under.
+//
+// It is global, and that is a decision rather than a default. An object's
+// readability is decided from its owner — the user who uploaded it — and the
+// checks the owning service runs before it serves one, not from a tenant
+// column: a recipe's step images are readable by everyone who can read the
+// recipe, across accounts, so scoping them by account would hide a photograph
+// from the household reading the recipe it belongs to.
+func Scope() tenancy.Scope { return tenancy.Global() }

@@ -145,7 +145,6 @@ var (
 		SearchServiceSettingsPermission,
 		CreateUploadedMediaPermission,
 		ReadUploadedMediaPermission,
-		UpdateUploadedMediaPermission,
 		ArchiveUploadedMediaPermission,
 		CreateMealsPermission,
 		ReadMealsPermission,

@@ -118,7 +118,11 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	identityRepo := identityrepo.ProvideIdentityRepository(pillars.Logger, pillars.TracerProvider, auditLogRepo, databaseClient, nil)
+	uploadsRegistryStore, err := localdev.UploadsRegistry(pillars.Logger, pillars.TracerProvider, databaseClient)
+	if err != nil {
+		log.Fatal(err)
+	}
+	identityRepo := identityrepo.ProvideIdentityRepository(pillars.Logger, pillars.TracerProvider, auditLogRepo, databaseClient, nil, uploadsRegistryStore)
 	notifsRepo = notificationsrepo.ProvideNotificationsRepository(nil, nil, auditLogRepo, &dbCfg.Config, databaseClient, nil)
 	adminUser, err := localdev.CreatePremadeAdminUser(ctx, pillars.Logger, pillars.TracerProvider, identityRepo, databaseClient, premadeAdminUser)
 	if err != nil {

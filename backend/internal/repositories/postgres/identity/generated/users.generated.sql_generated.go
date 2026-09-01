@@ -154,16 +154,9 @@ SELECT
 	users.created_at,
 	users.last_updated_at,
 	users.archived_at,
-	uploaded_media.id as avatar_id,
-	uploaded_media.storage_path as avatar_storage_path,
-	uploaded_media.mime_type as avatar_mime_type,
-	uploaded_media.created_at as avatar_created_at,
-	uploaded_media.last_updated_at as avatar_last_updated_at,
-	uploaded_media.archived_at as avatar_archived_at,
-	uploaded_media.created_by_user as avatar_created_by_user
+	user_avatars.uploaded_media_id as avatar_id
 FROM users
 	LEFT JOIN user_avatars ON user_avatars.belongs_to_user = users.id AND user_avatars.archived_at IS NULL
-	LEFT JOIN uploaded_media ON uploaded_media.id = user_avatars.uploaded_media_id AND uploaded_media.archived_at IS NULL
 	JOIN user_role_assignments ON user_role_assignments.user_id = users.id AND user_role_assignments.account_id IS NULL AND user_role_assignments.archived_at IS NULL
 	JOIN user_roles ON user_roles.id = user_role_assignments.role_id AND user_roles.archived_at IS NULL
 WHERE users.archived_at IS NULL
@@ -195,12 +188,6 @@ type GetAdminUserByUsernameRow struct {
 	LastUpdatedAt                 sql.NullTime
 	ArchivedAt                    sql.NullTime
 	AvatarID                      sql.NullString
-	AvatarStoragePath             sql.NullString
-	AvatarMimeType                NullUploadedMediaMimeType
-	AvatarCreatedAt               sql.NullTime
-	AvatarLastUpdatedAt           sql.NullTime
-	AvatarArchivedAt              sql.NullTime
-	AvatarCreatedByUser           sql.NullString
 }
 
 func (q *Queries) GetAdminUserByUsername(ctx context.Context, db DBTX, username string) (*GetAdminUserByUsernameRow, error) {
@@ -229,12 +216,6 @@ func (q *Queries) GetAdminUserByUsername(ctx context.Context, db DBTX, username 
 		&i.LastUpdatedAt,
 		&i.ArchivedAt,
 		&i.AvatarID,
-		&i.AvatarStoragePath,
-		&i.AvatarMimeType,
-		&i.AvatarCreatedAt,
-		&i.AvatarLastUpdatedAt,
-		&i.AvatarArchivedAt,
-		&i.AvatarCreatedByUser,
 	)
 	return &i, err
 }
@@ -278,16 +259,9 @@ SELECT
 	users.created_at,
 	users.last_updated_at,
 	users.archived_at,
-	uploaded_media.id as avatar_id,
-	uploaded_media.storage_path as avatar_storage_path,
-	uploaded_media.mime_type as avatar_mime_type,
-	uploaded_media.created_at as avatar_created_at,
-	uploaded_media.last_updated_at as avatar_last_updated_at,
-	uploaded_media.archived_at as avatar_archived_at,
-	uploaded_media.created_by_user as avatar_created_by_user
+	user_avatars.uploaded_media_id as avatar_id
 FROM users
 	LEFT JOIN user_avatars ON user_avatars.belongs_to_user = users.id AND user_avatars.archived_at IS NULL
-	LEFT JOIN uploaded_media ON uploaded_media.id = user_avatars.uploaded_media_id AND uploaded_media.archived_at IS NULL
 WHERE users.archived_at IS NULL
 	AND users.email_address = $1
 `
@@ -315,12 +289,6 @@ type GetUserByEmailRow struct {
 	LastUpdatedAt                 sql.NullTime
 	ArchivedAt                    sql.NullTime
 	AvatarID                      sql.NullString
-	AvatarStoragePath             sql.NullString
-	AvatarMimeType                NullUploadedMediaMimeType
-	AvatarCreatedAt               sql.NullTime
-	AvatarLastUpdatedAt           sql.NullTime
-	AvatarArchivedAt              sql.NullTime
-	AvatarCreatedByUser           sql.NullString
 }
 
 func (q *Queries) GetUserByEmail(ctx context.Context, db DBTX, emailAddress string) (*GetUserByEmailRow, error) {
@@ -349,12 +317,6 @@ func (q *Queries) GetUserByEmail(ctx context.Context, db DBTX, emailAddress stri
 		&i.LastUpdatedAt,
 		&i.ArchivedAt,
 		&i.AvatarID,
-		&i.AvatarStoragePath,
-		&i.AvatarMimeType,
-		&i.AvatarCreatedAt,
-		&i.AvatarLastUpdatedAt,
-		&i.AvatarArchivedAt,
-		&i.AvatarCreatedByUser,
 	)
 	return &i, err
 }
@@ -382,16 +344,9 @@ SELECT
 	users.created_at,
 	users.last_updated_at,
 	users.archived_at,
-	uploaded_media.id as avatar_id,
-	uploaded_media.storage_path as avatar_storage_path,
-	uploaded_media.mime_type as avatar_mime_type,
-	uploaded_media.created_at as avatar_created_at,
-	uploaded_media.last_updated_at as avatar_last_updated_at,
-	uploaded_media.archived_at as avatar_archived_at,
-	uploaded_media.created_by_user as avatar_created_by_user
+	user_avatars.uploaded_media_id as avatar_id
 FROM users
 	LEFT JOIN user_avatars ON user_avatars.belongs_to_user = users.id AND user_avatars.archived_at IS NULL
-	LEFT JOIN uploaded_media ON uploaded_media.id = user_avatars.uploaded_media_id AND uploaded_media.archived_at IS NULL
 WHERE users.archived_at IS NULL
 	AND users.email_address_verification_token = $1
 `
@@ -419,12 +374,6 @@ type GetUserByEmailAddressVerificationTokenRow struct {
 	LastUpdatedAt                 sql.NullTime
 	ArchivedAt                    sql.NullTime
 	AvatarID                      sql.NullString
-	AvatarStoragePath             sql.NullString
-	AvatarMimeType                NullUploadedMediaMimeType
-	AvatarCreatedAt               sql.NullTime
-	AvatarLastUpdatedAt           sql.NullTime
-	AvatarArchivedAt              sql.NullTime
-	AvatarCreatedByUser           sql.NullString
 }
 
 func (q *Queries) GetUserByEmailAddressVerificationToken(ctx context.Context, db DBTX, emailAddressVerificationToken sql.NullString) (*GetUserByEmailAddressVerificationTokenRow, error) {
@@ -453,12 +402,6 @@ func (q *Queries) GetUserByEmailAddressVerificationToken(ctx context.Context, db
 		&i.LastUpdatedAt,
 		&i.ArchivedAt,
 		&i.AvatarID,
-		&i.AvatarStoragePath,
-		&i.AvatarMimeType,
-		&i.AvatarCreatedAt,
-		&i.AvatarLastUpdatedAt,
-		&i.AvatarArchivedAt,
-		&i.AvatarCreatedByUser,
 	)
 	return &i, err
 }
@@ -486,16 +429,9 @@ SELECT
 	users.created_at,
 	users.last_updated_at,
 	users.archived_at,
-	uploaded_media.id as avatar_id,
-	uploaded_media.storage_path as avatar_storage_path,
-	uploaded_media.mime_type as avatar_mime_type,
-	uploaded_media.created_at as avatar_created_at,
-	uploaded_media.last_updated_at as avatar_last_updated_at,
-	uploaded_media.archived_at as avatar_archived_at,
-	uploaded_media.created_by_user as avatar_created_by_user
+	user_avatars.uploaded_media_id as avatar_id
 FROM users
 	LEFT JOIN user_avatars ON user_avatars.belongs_to_user = users.id AND user_avatars.archived_at IS NULL
-	LEFT JOIN uploaded_media ON uploaded_media.id = user_avatars.uploaded_media_id AND uploaded_media.archived_at IS NULL
 WHERE users.archived_at IS NULL
 	AND users.id = $1
 `
@@ -523,12 +459,6 @@ type GetUserByIDRow struct {
 	LastUpdatedAt                 sql.NullTime
 	ArchivedAt                    sql.NullTime
 	AvatarID                      sql.NullString
-	AvatarStoragePath             sql.NullString
-	AvatarMimeType                NullUploadedMediaMimeType
-	AvatarCreatedAt               sql.NullTime
-	AvatarLastUpdatedAt           sql.NullTime
-	AvatarArchivedAt              sql.NullTime
-	AvatarCreatedByUser           sql.NullString
 }
 
 func (q *Queries) GetUserByID(ctx context.Context, db DBTX, id string) (*GetUserByIDRow, error) {
@@ -557,12 +487,6 @@ func (q *Queries) GetUserByID(ctx context.Context, db DBTX, id string) (*GetUser
 		&i.LastUpdatedAt,
 		&i.ArchivedAt,
 		&i.AvatarID,
-		&i.AvatarStoragePath,
-		&i.AvatarMimeType,
-		&i.AvatarCreatedAt,
-		&i.AvatarLastUpdatedAt,
-		&i.AvatarArchivedAt,
-		&i.AvatarCreatedByUser,
 	)
 	return &i, err
 }
@@ -590,16 +514,9 @@ SELECT
 	users.created_at,
 	users.last_updated_at,
 	users.archived_at,
-	uploaded_media.id as avatar_id,
-	uploaded_media.storage_path as avatar_storage_path,
-	uploaded_media.mime_type as avatar_mime_type,
-	uploaded_media.created_at as avatar_created_at,
-	uploaded_media.last_updated_at as avatar_last_updated_at,
-	uploaded_media.archived_at as avatar_archived_at,
-	uploaded_media.created_by_user as avatar_created_by_user
+	user_avatars.uploaded_media_id as avatar_id
 FROM users
 	LEFT JOIN user_avatars ON user_avatars.belongs_to_user = users.id AND user_avatars.archived_at IS NULL
-	LEFT JOIN uploaded_media ON uploaded_media.id = user_avatars.uploaded_media_id AND uploaded_media.archived_at IS NULL
 WHERE users.archived_at IS NULL
 	AND users.username = $1
 `
@@ -627,12 +544,6 @@ type GetUserByUsernameRow struct {
 	LastUpdatedAt                 sql.NullTime
 	ArchivedAt                    sql.NullTime
 	AvatarID                      sql.NullString
-	AvatarStoragePath             sql.NullString
-	AvatarMimeType                NullUploadedMediaMimeType
-	AvatarCreatedAt               sql.NullTime
-	AvatarLastUpdatedAt           sql.NullTime
-	AvatarArchivedAt              sql.NullTime
-	AvatarCreatedByUser           sql.NullString
 }
 
 func (q *Queries) GetUserByUsername(ctx context.Context, db DBTX, username string) (*GetUserByUsernameRow, error) {
@@ -661,12 +572,6 @@ func (q *Queries) GetUserByUsername(ctx context.Context, db DBTX, username strin
 		&i.LastUpdatedAt,
 		&i.ArchivedAt,
 		&i.AvatarID,
-		&i.AvatarStoragePath,
-		&i.AvatarMimeType,
-		&i.AvatarCreatedAt,
-		&i.AvatarLastUpdatedAt,
-		&i.AvatarArchivedAt,
-		&i.AvatarCreatedByUser,
 	)
 	return &i, err
 }
@@ -739,16 +644,9 @@ SELECT
 	users.created_at,
 	users.last_updated_at,
 	users.archived_at,
-	uploaded_media.id as avatar_id,
-	uploaded_media.storage_path as avatar_storage_path,
-	uploaded_media.mime_type as avatar_mime_type,
-	uploaded_media.created_at as avatar_created_at,
-	uploaded_media.last_updated_at as avatar_last_updated_at,
-	uploaded_media.archived_at as avatar_archived_at,
-	uploaded_media.created_by_user as avatar_created_by_user
+	user_avatars.uploaded_media_id as avatar_id
 FROM users
 	LEFT JOIN user_avatars ON user_avatars.belongs_to_user = users.id AND user_avatars.archived_at IS NULL
-	LEFT JOIN uploaded_media ON uploaded_media.id = user_avatars.uploaded_media_id AND uploaded_media.archived_at IS NULL
 WHERE users.archived_at IS NULL
 	AND users.id = $1
 	AND users.two_factor_secret_verified_at IS NULL
@@ -777,12 +675,6 @@ type GetUserWithUnverifiedTwoFactorRow struct {
 	LastUpdatedAt                 sql.NullTime
 	ArchivedAt                    sql.NullTime
 	AvatarID                      sql.NullString
-	AvatarStoragePath             sql.NullString
-	AvatarMimeType                NullUploadedMediaMimeType
-	AvatarCreatedAt               sql.NullTime
-	AvatarLastUpdatedAt           sql.NullTime
-	AvatarArchivedAt              sql.NullTime
-	AvatarCreatedByUser           sql.NullString
 }
 
 func (q *Queries) GetUserWithUnverifiedTwoFactor(ctx context.Context, db DBTX, id string) (*GetUserWithUnverifiedTwoFactorRow, error) {
@@ -811,12 +703,6 @@ func (q *Queries) GetUserWithUnverifiedTwoFactor(ctx context.Context, db DBTX, i
 		&i.LastUpdatedAt,
 		&i.ArchivedAt,
 		&i.AvatarID,
-		&i.AvatarStoragePath,
-		&i.AvatarMimeType,
-		&i.AvatarCreatedAt,
-		&i.AvatarLastUpdatedAt,
-		&i.AvatarArchivedAt,
-		&i.AvatarCreatedByUser,
 	)
 	return &i, err
 }
@@ -844,16 +730,9 @@ SELECT
 	users.created_at,
 	users.last_updated_at,
 	users.archived_at,
-	uploaded_media.id as avatar_id,
-	uploaded_media.storage_path as avatar_storage_path,
-	uploaded_media.mime_type as avatar_mime_type,
-	uploaded_media.created_at as avatar_created_at,
-	uploaded_media.last_updated_at as avatar_last_updated_at,
-	uploaded_media.archived_at as avatar_archived_at,
-	uploaded_media.created_by_user as avatar_created_by_user
+	user_avatars.uploaded_media_id as avatar_id
 FROM users
 	LEFT JOIN user_avatars ON user_avatars.belongs_to_user = users.id AND user_avatars.archived_at IS NULL
-	LEFT JOIN uploaded_media ON uploaded_media.id = user_avatars.uploaded_media_id AND uploaded_media.archived_at IS NULL
 WHERE users.archived_at IS NULL
 	AND users.id = $1
 	AND users.two_factor_secret_verified_at IS NOT NULL
@@ -882,12 +761,6 @@ type GetUserWithVerifiedTwoFactorRow struct {
 	LastUpdatedAt                 sql.NullTime
 	ArchivedAt                    sql.NullTime
 	AvatarID                      sql.NullString
-	AvatarStoragePath             sql.NullString
-	AvatarMimeType                NullUploadedMediaMimeType
-	AvatarCreatedAt               sql.NullTime
-	AvatarLastUpdatedAt           sql.NullTime
-	AvatarArchivedAt              sql.NullTime
-	AvatarCreatedByUser           sql.NullString
 }
 
 func (q *Queries) GetUserWithVerifiedTwoFactor(ctx context.Context, db DBTX, id string) (*GetUserWithVerifiedTwoFactorRow, error) {
@@ -916,12 +789,6 @@ func (q *Queries) GetUserWithVerifiedTwoFactor(ctx context.Context, db DBTX, id 
 		&i.LastUpdatedAt,
 		&i.ArchivedAt,
 		&i.AvatarID,
-		&i.AvatarStoragePath,
-		&i.AvatarMimeType,
-		&i.AvatarCreatedAt,
-		&i.AvatarLastUpdatedAt,
-		&i.AvatarArchivedAt,
-		&i.AvatarCreatedByUser,
 	)
 	return &i, err
 }
@@ -949,13 +816,7 @@ SELECT
 	users.created_at,
 	users.last_updated_at,
 	users.archived_at,
-	uploaded_media.id as avatar_id,
-	uploaded_media.storage_path as avatar_storage_path,
-	uploaded_media.mime_type as avatar_mime_type,
-	uploaded_media.created_at as avatar_created_at,
-	uploaded_media.last_updated_at as avatar_last_updated_at,
-	uploaded_media.archived_at as avatar_archived_at,
-	uploaded_media.created_by_user as avatar_created_by_user,
+	user_avatars.uploaded_media_id as avatar_id,
 	(
 		SELECT COUNT(users.id)
 		FROM users
@@ -978,7 +839,6 @@ SELECT
 	) AS total_count
 FROM users
 	LEFT JOIN user_avatars ON user_avatars.belongs_to_user = users.id AND user_avatars.archived_at IS NULL
-	LEFT JOIN uploaded_media ON uploaded_media.id = user_avatars.uploaded_media_id AND uploaded_media.archived_at IS NULL
 WHERE users.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	AND users.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
@@ -1028,12 +888,6 @@ type GetUsersRow struct {
 	LastUpdatedAt                 sql.NullTime
 	ArchivedAt                    sql.NullTime
 	AvatarID                      sql.NullString
-	AvatarStoragePath             sql.NullString
-	AvatarMimeType                NullUploadedMediaMimeType
-	AvatarCreatedAt               sql.NullTime
-	AvatarLastUpdatedAt           sql.NullTime
-	AvatarArchivedAt              sql.NullTime
-	AvatarCreatedByUser           sql.NullString
 	FilteredCount                 int64
 	TotalCount                    int64
 }
@@ -1078,12 +932,6 @@ func (q *Queries) GetUsers(ctx context.Context, db DBTX, arg *GetUsersParams) ([
 			&i.LastUpdatedAt,
 			&i.ArchivedAt,
 			&i.AvatarID,
-			&i.AvatarStoragePath,
-			&i.AvatarMimeType,
-			&i.AvatarCreatedAt,
-			&i.AvatarLastUpdatedAt,
-			&i.AvatarArchivedAt,
-			&i.AvatarCreatedByUser,
 			&i.FilteredCount,
 			&i.TotalCount,
 		); err != nil {
@@ -1123,13 +971,7 @@ SELECT
 	users.created_at,
 	users.last_updated_at,
 	users.archived_at,
-	uploaded_media.id as avatar_id,
-	uploaded_media.storage_path as avatar_storage_path,
-	uploaded_media.mime_type as avatar_mime_type,
-	uploaded_media.created_at as avatar_created_at,
-	uploaded_media.last_updated_at as avatar_last_updated_at,
-	uploaded_media.archived_at as avatar_archived_at,
-	uploaded_media.created_by_user as avatar_created_by_user,
+	user_avatars.uploaded_media_id as avatar_id,
 	(
 		SELECT COUNT(users.id)
 		FROM users
@@ -1153,7 +995,6 @@ SELECT
 	) AS total_count
 FROM users
 	LEFT JOIN user_avatars ON user_avatars.belongs_to_user = users.id AND user_avatars.archived_at IS NULL
-	LEFT JOIN uploaded_media ON uploaded_media.id = user_avatars.uploaded_media_id AND uploaded_media.archived_at IS NULL
 JOIN account_user_memberships ON account_user_memberships.belongs_to_user = users.id
 WHERE users.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	AND users.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
@@ -1207,12 +1048,6 @@ type GetUsersForAccountRow struct {
 	LastUpdatedAt                 sql.NullTime
 	ArchivedAt                    sql.NullTime
 	AvatarID                      sql.NullString
-	AvatarStoragePath             sql.NullString
-	AvatarMimeType                NullUploadedMediaMimeType
-	AvatarCreatedAt               sql.NullTime
-	AvatarLastUpdatedAt           sql.NullTime
-	AvatarArchivedAt              sql.NullTime
-	AvatarCreatedByUser           sql.NullString
 	FilteredCount                 int64
 	TotalCount                    int64
 }
@@ -1258,12 +1093,6 @@ func (q *Queries) GetUsersForAccount(ctx context.Context, db DBTX, arg *GetUsers
 			&i.LastUpdatedAt,
 			&i.ArchivedAt,
 			&i.AvatarID,
-			&i.AvatarStoragePath,
-			&i.AvatarMimeType,
-			&i.AvatarCreatedAt,
-			&i.AvatarLastUpdatedAt,
-			&i.AvatarArchivedAt,
-			&i.AvatarCreatedByUser,
 			&i.FilteredCount,
 			&i.TotalCount,
 		); err != nil {
@@ -1303,16 +1132,9 @@ SELECT
 	users.created_at,
 	users.last_updated_at,
 	users.archived_at,
-	uploaded_media.id as avatar_id,
-	uploaded_media.storage_path as avatar_storage_path,
-	uploaded_media.mime_type as avatar_mime_type,
-	uploaded_media.created_at as avatar_created_at,
-	uploaded_media.last_updated_at as avatar_last_updated_at,
-	uploaded_media.archived_at as avatar_archived_at,
-	uploaded_media.created_by_user as avatar_created_by_user
+	user_avatars.uploaded_media_id as avatar_id
 FROM users
 	LEFT JOIN user_avatars ON user_avatars.belongs_to_user = users.id AND user_avatars.archived_at IS NULL
-	LEFT JOIN uploaded_media ON uploaded_media.id = user_avatars.uploaded_media_id AND uploaded_media.archived_at IS NULL
 WHERE users.archived_at IS NULL
 	AND users.id = ANY($1::text[])
 `
@@ -1340,12 +1162,6 @@ type GetUsersWithIDsRow struct {
 	LastUpdatedAt                 sql.NullTime
 	ArchivedAt                    sql.NullTime
 	AvatarID                      sql.NullString
-	AvatarStoragePath             sql.NullString
-	AvatarMimeType                NullUploadedMediaMimeType
-	AvatarCreatedAt               sql.NullTime
-	AvatarLastUpdatedAt           sql.NullTime
-	AvatarArchivedAt              sql.NullTime
-	AvatarCreatedByUser           sql.NullString
 }
 
 func (q *Queries) GetUsersWithIDs(ctx context.Context, db DBTX, ids []string) ([]*GetUsersWithIDsRow, error) {
@@ -1380,12 +1196,6 @@ func (q *Queries) GetUsersWithIDs(ctx context.Context, db DBTX, ids []string) ([
 			&i.LastUpdatedAt,
 			&i.ArchivedAt,
 			&i.AvatarID,
-			&i.AvatarStoragePath,
-			&i.AvatarMimeType,
-			&i.AvatarCreatedAt,
-			&i.AvatarLastUpdatedAt,
-			&i.AvatarArchivedAt,
-			&i.AvatarCreatedByUser,
 		); err != nil {
 			return nil, err
 		}
@@ -1540,13 +1350,7 @@ SELECT
 	users.created_at,
 	users.last_updated_at,
 	users.archived_at,
-	uploaded_media.id as avatar_id,
-	uploaded_media.storage_path as avatar_storage_path,
-	uploaded_media.mime_type as avatar_mime_type,
-	uploaded_media.created_at as avatar_created_at,
-	uploaded_media.last_updated_at as avatar_last_updated_at,
-	uploaded_media.archived_at as avatar_archived_at,
-	uploaded_media.created_by_user as avatar_created_by_user,
+	user_avatars.uploaded_media_id as avatar_id,
 	(
 		SELECT COUNT(users.id)
 		FROM users
@@ -1569,7 +1373,6 @@ SELECT
 	) AS total_count
 FROM users
 	LEFT JOIN user_avatars ON user_avatars.belongs_to_user = users.id AND user_avatars.archived_at IS NULL
-	LEFT JOIN uploaded_media ON uploaded_media.id = user_avatars.uploaded_media_id AND uploaded_media.archived_at IS NULL
 WHERE users.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	AND users.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
@@ -1621,12 +1424,6 @@ type SearchUsersByUsernameRow struct {
 	LastUpdatedAt                 sql.NullTime
 	ArchivedAt                    sql.NullTime
 	AvatarID                      sql.NullString
-	AvatarStoragePath             sql.NullString
-	AvatarMimeType                NullUploadedMediaMimeType
-	AvatarCreatedAt               sql.NullTime
-	AvatarLastUpdatedAt           sql.NullTime
-	AvatarArchivedAt              sql.NullTime
-	AvatarCreatedByUser           sql.NullString
 	FilteredCount                 int64
 	TotalCount                    int64
 }
@@ -1672,12 +1469,6 @@ func (q *Queries) SearchUsersByUsername(ctx context.Context, db DBTX, arg *Searc
 			&i.LastUpdatedAt,
 			&i.ArchivedAt,
 			&i.AvatarID,
-			&i.AvatarStoragePath,
-			&i.AvatarMimeType,
-			&i.AvatarCreatedAt,
-			&i.AvatarLastUpdatedAt,
-			&i.AvatarArchivedAt,
-			&i.AvatarCreatedByUser,
 			&i.FilteredCount,
 			&i.TotalCount,
 		); err != nil {

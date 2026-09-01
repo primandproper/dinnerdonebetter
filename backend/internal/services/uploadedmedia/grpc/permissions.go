@@ -26,9 +26,6 @@ func ProvideMethodPermissions() UploadedMediaMethodPermissions {
 		uploadedmediasvc.UploadedMediaService_GetUploadedMediaForUser_FullMethodName: {
 			authorization.ReadUploadedMediaPermission,
 		},
-		uploadedmediasvc.UploadedMediaService_UpdateUploadedMedia_FullMethodName: {
-			authorization.UpdateUploadedMediaPermission,
-		},
 		uploadedmediasvc.UploadedMediaService_ArchiveUploadedMedia_FullMethodName: {
 			authorization.ArchiveUploadedMediaPermission,
 		},

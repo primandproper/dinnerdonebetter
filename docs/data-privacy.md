@@ -58,7 +58,7 @@ inside one.
 | `payments` | `payments/privacy` | Subscriptions, purchases, payment transactions |
 | `audit_log` | `audit/privacy` | Audit entries recorded about the subject |
 | `issue_reports` | `issuereports/privacy` | Issue reports from the subject's accounts |
-| `uploaded_media` | `uploadedmedia/privacy` | Media records (not the bytes) |
+| `uploaded_media` | `uploadedmedia/privacy` | Registry rows for objects the subject uploaded (not the bytes) |
 | `waitlists` | `waitlists/privacy` | Waitlist signups |
 | `comments` | platform-go's `comments/privacy` | Comments the subject authored |
 
@@ -119,6 +119,14 @@ might be.
 **`identity`** deletes the user row. Every `belongs_to_user` and `belongs_to_account` foreign key
 in this schema carries `ON DELETE CASCADE`, so that single `DELETE` is the erasure for every other
 domain.
+
+That includes uploads, and it does so only because this repository says so. platform-go's upload
+registry ships no foreign key on `owner_id` — it cannot, because it does not know which of a
+consumer's tables holds a principal — so `renderUploadsRegistryDDL` in
+`internal/repositories/postgres/migrations` adds one, pointing at `users` and cascading. Without
+it a deleted subject would leave rows nobody can name and nothing erases, exactly as comments
+would. Adopting a platform store is where a cascade quietly stops reaching; this one was kept
+rather than replaced with a fourth eraser, because in this application every uploader is a user.
 
 There is deliberately no eraser per domain beyond those. Eleven statements that can only agree
 with the one that ran first are eleven places for that agreement to rot. What makes a domain's own

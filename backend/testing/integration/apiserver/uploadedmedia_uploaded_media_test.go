@@ -4,39 +4,51 @@ import (
 	"testing"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia/converters"
 	uploadedmediafakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia/fakes"
 	uploadedmediasvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
 	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/grpc/converters"
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
 
 	"github.com/primandproper/platform-go/v13/filtering/filteringpb"
+	"github.com/primandproper/platform-go/v13/uploads/registry"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
-func checkUploadedMediaEquality(t *testing.T, expected, actual *uploadedmedia.UploadedMedia) {
+func checkUploadedMediaEquality(t *testing.T, expected, actual *registry.Object) {
 	t.Helper()
 
 	assert.NotEmpty(t, actual.ID, "expected UploadedMedia to have ID")
 	assert.NotZero(t, actual.CreatedAt, "expected UploadedMedia to have CreatedAt")
 
-	assert.Equal(t, expected.StoragePath, actual.StoragePath, "expected UploadedMedia StoragePath")
-	assert.Equal(t, expected.MimeType, actual.MimeType, "expected UploadedMedia MimeType")
-	assert.NotEmpty(t, actual.CreatedByUser, "expected UploadedMedia to have CreatedByUser")
+	assert.Equal(t, expected.Key, actual.Key, "expected UploadedMedia Key")
+	assert.Equal(t, expected.ContentType, actual.ContentType, "expected UploadedMedia ContentType")
+	assert.NotEmpty(t, actual.OwnerID, "expected UploadedMedia to have OwnerID")
 }
 
-func createUploadedMediaForTest(t *testing.T, testClient client.Client) *uploadedmedia.UploadedMedia {
+// creationInputFor renders a fake object as the registration request's input. The
+// owner and the scope are deliberately absent: both come from the session, and a
+// caller who could name either could register an object as somebody else's.
+func creationInputFor(object *registry.Object) *uploadedmediasvc.UploadedMediaCreationRequestInput {
+	return &uploadedmediasvc.UploadedMediaCreationRequestInput{
+		ObjectKey:     object.Key,
+		ContentType:   object.ContentType,
+		SizeBytes:     object.Size,
+		BelongsToType: object.BelongsTo.Type,
+		BelongsToId:   object.BelongsTo.ID,
+	}
+}
+
+func createUploadedMediaForTest(t *testing.T, testClient client.Client) *registry.Object {
 	t.Helper()
 	ctx := t.Context()
 
 	exampleUploadedMedia := uploadedmediafakes.BuildFakeUploadedMedia()
-	exampleUploadedMediaInput := converters.ConvertUploadedMediaToUploadedMediaCreationRequestInput(exampleUploadedMedia)
 
-	input := grpcconverters.ConvertUploadedMediaCreationRequestInputToGRPCUploadedMediaCreationRequestInput(exampleUploadedMediaInput)
-
-	createdUploadedMedia, err := testClient.CreateUploadedMedia(ctx, &uploadedmediasvc.CreateUploadedMediaRequest{Input: input})
+	createdUploadedMedia, err := testClient.CreateUploadedMedia(ctx, &uploadedmediasvc.CreateUploadedMediaRequest{Input: creationInputFor(exampleUploadedMedia)})
 	require.NoError(t, err)
 	converted := grpcconverters.ConvertGRPCUploadedMediaToUploadedMedia(createdUploadedMedia.Created)
 	checkUploadedMediaEquality(t, exampleUploadedMedia, converted)
@@ -82,15 +94,29 @@ func TestUploadedMedia_Creating(T *testing.T) {
 
 		_, testClient := createUserAndClientForTest(t)
 
-		exampleUploadedMediaInput := &uploadedmedia.UploadedMediaCreationRequestInput{
-			StoragePath: "", // empty storage path should fail validation
-			MimeType:    "",
-		}
-
-		input := grpcconverters.ConvertUploadedMediaCreationRequestInputToGRPCUploadedMediaCreationRequestInput(exampleUploadedMediaInput)
-
-		_, err := testClient.CreateUploadedMedia(ctx, &uploadedmediasvc.CreateUploadedMediaRequest{Input: input})
+		// An empty key names no object and an empty content type is not one this
+		// deployment stores; either alone is enough to refuse the registration.
+		_, err := testClient.CreateUploadedMedia(ctx, &uploadedmediasvc.CreateUploadedMediaRequest{
+			Input: &uploadedmediasvc.UploadedMediaCreationRequestInput{},
+		})
 		assert.Error(t, err)
+	})
+
+	T.Run("a key already registered is a conflict", func(t *testing.T) {
+		t.Parallel()
+		ctx := t.Context()
+
+		// The key is unique within a scope, archived rows included: two rows for one
+		// object is the drift the registry exists to prevent. The client is told the key
+		// is spoken for rather than that the server broke, because the remedy is a new key.
+		_, testClient := createUserAndClientForTest(t)
+		created := createUploadedMediaForTest(t, testClient)
+
+		_, err := testClient.CreateUploadedMedia(ctx, &uploadedmediasvc.CreateUploadedMediaRequest{
+			Input: creationInputFor(created),
+		})
+		require.Error(t, err)
+		assert.Equal(t, codes.AlreadyExists, status.Code(err))
 	})
 }
 
@@ -154,7 +180,7 @@ func TestUploadedMedia_ReadingWithIDs(T *testing.T) {
 
 		_, testClient := createUserAndClientForTest(t)
 
-		createdUploadedMedia := []*uploadedmedia.UploadedMedia{}
+		createdUploadedMedia := []*registry.Object{}
 		ids := []string{}
 		for range exampleQuantity {
 			created := createUploadedMediaForTest(t, testClient)
@@ -225,7 +251,7 @@ func TestUploadedMedia_ListingForUser(T *testing.T) {
 
 		user, testClient := createUserAndClientForTest(t)
 
-		createdUploadedMedia := []*uploadedmedia.UploadedMedia{}
+		createdUploadedMedia := []*registry.Object{}
 		for range exampleQuantity {
 			createdUploadedMedia = append(createdUploadedMedia, createUploadedMediaForTest(t, testClient))
 		}
@@ -261,98 +287,6 @@ func TestUploadedMedia_ListingForUser(T *testing.T) {
 
 		c := buildUnauthenticatedGRPCClientForTest(t)
 		_, err := c.GetUploadedMediaForUser(ctx, &uploadedmediasvc.GetUploadedMediaForUserRequest{})
-		assert.Error(t, err)
-	})
-}
-
-func TestUploadedMedia_Updating(T *testing.T) {
-	T.Parallel()
-
-	T.Run("happy path", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		user, testClient := createUserAndClientForTest(t)
-		createdUploadedMedia := createUploadedMediaForTest(t, testClient)
-
-		newStoragePath := "updated/path/to/file.jpg"
-		newMimeType := uploadedmediasvc.UploadedMediaMimeType_UPLOADED_MEDIA_MIME_TYPE_IMAGE_JPEG
-
-		updateInput := &uploadedmediasvc.UploadedMediaUpdateRequestInput{
-			StoragePath: &newStoragePath,
-			MimeType:    &newMimeType,
-		}
-
-		updated, err := testClient.UpdateUploadedMedia(ctx, &uploadedmediasvc.UpdateUploadedMediaRequest{
-			UploadedMediaId: createdUploadedMedia.ID,
-			Input:           updateInput,
-		})
-		require.NoError(t, err)
-		assert.NotNil(t, updated)
-		assert.Equal(t, newStoragePath, updated.Updated.StoragePath)
-		assert.Equal(t, newMimeType, updated.Updated.MimeType)
-
-		// Verify the update persisted
-		retrieved, err := testClient.GetUploadedMedia(ctx, &uploadedmediasvc.GetUploadedMediaRequest{UploadedMediaId: createdUploadedMedia.ID})
-		require.NoError(t, err)
-		assert.Equal(t, newStoragePath, retrieved.Result.StoragePath)
-		assert.Equal(t, newMimeType, retrieved.Result.MimeType)
-
-		AssertAuditLogContainsFuzzyForUser(t, ctx, testClient, user.ID, 15, []*ExpectedAuditEntry{
-			{EventType: "created", ResourceType: "uploaded_media", RelevantID: createdUploadedMedia.ID},
-			{EventType: "updated", ResourceType: "uploaded_media", RelevantID: createdUploadedMedia.ID},
-		})
-	})
-
-	T.Run("nonexistent ID", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		_, testClient := createUserAndClientForTest(t)
-
-		newStoragePath := "updated/path.jpg"
-		updateInput := &uploadedmediasvc.UploadedMediaUpdateRequestInput{
-			StoragePath: &newStoragePath,
-		}
-
-		updated, err := testClient.UpdateUploadedMedia(ctx, &uploadedmediasvc.UpdateUploadedMediaRequest{
-			UploadedMediaId: nonexistentID,
-			Input:           updateInput,
-		})
-		require.Error(t, err)
-		assert.Nil(t, updated)
-	})
-
-	T.Run("cannot update other user's media", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		// Create media as user 1
-		_, testClient1 := createUserAndClientForTest(t)
-		createdUploadedMedia := createUploadedMediaForTest(t, testClient1)
-
-		// Try to update as user 2
-		_, testClient2 := createUserAndClientForTest(t)
-
-		newStoragePath := "hacked/path.jpg"
-		updateInput := &uploadedmediasvc.UploadedMediaUpdateRequestInput{
-			StoragePath: &newStoragePath,
-		}
-
-		updated, err := testClient2.UpdateUploadedMedia(ctx, &uploadedmediasvc.UpdateUploadedMediaRequest{
-			UploadedMediaId: createdUploadedMedia.ID,
-			Input:           updateInput,
-		})
-		require.Error(t, err)
-		assert.Nil(t, updated)
-	})
-
-	T.Run("requires auth", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		c := buildUnauthenticatedGRPCClientForTest(t)
-		_, err := c.UpdateUploadedMedia(ctx, &uploadedmediasvc.UpdateUploadedMediaRequest{})
 		assert.Error(t, err)
 	})
 }

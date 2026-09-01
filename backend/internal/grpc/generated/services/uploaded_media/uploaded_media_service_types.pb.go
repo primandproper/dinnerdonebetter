@@ -430,111 +430,6 @@ func (x *GetUploadedMediaForUserResponse) GetResults() []*UploadedMedia {
 	return nil
 }
 
-// UpdateUploadedMedia
-type UpdateUploadedMediaRequest struct {
-	state           protoimpl.MessageState           `protogen:"open.v1"`
-	UploadedMediaId string                           `protobuf:"bytes,1,opt,name=uploaded_media_id,json=uploadedMediaId,proto3" json:"uploaded_media_id,omitempty"`
-	Input           *UploadedMediaUpdateRequestInput `protobuf:"bytes,2,opt,name=input,proto3" json:"input,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
-}
-
-func (x *UpdateUploadedMediaRequest) Reset() {
-	*x = UpdateUploadedMediaRequest{}
-	mi := &file_uploaded_media_uploaded_media_service_types_proto_msgTypes[8]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *UpdateUploadedMediaRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*UpdateUploadedMediaRequest) ProtoMessage() {}
-
-func (x *UpdateUploadedMediaRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_uploaded_media_uploaded_media_service_types_proto_msgTypes[8]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use UpdateUploadedMediaRequest.ProtoReflect.Descriptor instead.
-func (*UpdateUploadedMediaRequest) Descriptor() ([]byte, []int) {
-	return file_uploaded_media_uploaded_media_service_types_proto_rawDescGZIP(), []int{8}
-}
-
-func (x *UpdateUploadedMediaRequest) GetUploadedMediaId() string {
-	if x != nil {
-		return x.UploadedMediaId
-	}
-	return ""
-}
-
-func (x *UpdateUploadedMediaRequest) GetInput() *UploadedMediaUpdateRequestInput {
-	if x != nil {
-		return x.Input
-	}
-	return nil
-}
-
-type UpdateUploadedMediaResponse struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	ResponseDetails *types.ResponseDetails `protobuf:"bytes,1,opt,name=response_details,json=responseDetails,proto3" json:"response_details,omitempty"`
-	Updated         *UploadedMedia         `protobuf:"bytes,2,opt,name=updated,proto3" json:"updated,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
-}
-
-func (x *UpdateUploadedMediaResponse) Reset() {
-	*x = UpdateUploadedMediaResponse{}
-	mi := &file_uploaded_media_uploaded_media_service_types_proto_msgTypes[9]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *UpdateUploadedMediaResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*UpdateUploadedMediaResponse) ProtoMessage() {}
-
-func (x *UpdateUploadedMediaResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_uploaded_media_uploaded_media_service_types_proto_msgTypes[9]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use UpdateUploadedMediaResponse.ProtoReflect.Descriptor instead.
-func (*UpdateUploadedMediaResponse) Descriptor() ([]byte, []int) {
-	return file_uploaded_media_uploaded_media_service_types_proto_rawDescGZIP(), []int{9}
-}
-
-func (x *UpdateUploadedMediaResponse) GetResponseDetails() *types.ResponseDetails {
-	if x != nil {
-		return x.ResponseDetails
-	}
-	return nil
-}
-
-func (x *UpdateUploadedMediaResponse) GetUpdated() *UploadedMedia {
-	if x != nil {
-		return x.Updated
-	}
-	return nil
-}
-
 // ArchiveUploadedMedia
 type ArchiveUploadedMediaRequest struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
@@ -545,7 +440,7 @@ type ArchiveUploadedMediaRequest struct {
 
 func (x *ArchiveUploadedMediaRequest) Reset() {
 	*x = ArchiveUploadedMediaRequest{}
-	mi := &file_uploaded_media_uploaded_media_service_types_proto_msgTypes[10]
+	mi := &file_uploaded_media_uploaded_media_service_types_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -557,7 +452,7 @@ func (x *ArchiveUploadedMediaRequest) String() string {
 func (*ArchiveUploadedMediaRequest) ProtoMessage() {}
 
 func (x *ArchiveUploadedMediaRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_uploaded_media_uploaded_media_service_types_proto_msgTypes[10]
+	mi := &file_uploaded_media_uploaded_media_service_types_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -570,7 +465,7 @@ func (x *ArchiveUploadedMediaRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ArchiveUploadedMediaRequest.ProtoReflect.Descriptor instead.
 func (*ArchiveUploadedMediaRequest) Descriptor() ([]byte, []int) {
-	return file_uploaded_media_uploaded_media_service_types_proto_rawDescGZIP(), []int{10}
+	return file_uploaded_media_uploaded_media_service_types_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *ArchiveUploadedMediaRequest) GetUploadedMediaId() string {
@@ -589,7 +484,7 @@ type ArchiveUploadedMediaResponse struct {
 
 func (x *ArchiveUploadedMediaResponse) Reset() {
 	*x = ArchiveUploadedMediaResponse{}
-	mi := &file_uploaded_media_uploaded_media_service_types_proto_msgTypes[11]
+	mi := &file_uploaded_media_uploaded_media_service_types_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -601,7 +496,7 @@ func (x *ArchiveUploadedMediaResponse) String() string {
 func (*ArchiveUploadedMediaResponse) ProtoMessage() {}
 
 func (x *ArchiveUploadedMediaResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_uploaded_media_uploaded_media_service_types_proto_msgTypes[11]
+	mi := &file_uploaded_media_uploaded_media_service_types_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -614,7 +509,7 @@ func (x *ArchiveUploadedMediaResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ArchiveUploadedMediaResponse.ProtoReflect.Descriptor instead.
 func (*ArchiveUploadedMediaResponse) Descriptor() ([]byte, []int) {
-	return file_uploaded_media_uploaded_media_service_types_proto_rawDescGZIP(), []int{11}
+	return file_uploaded_media_uploaded_media_service_types_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *ArchiveUploadedMediaResponse) GetResponseDetails() *types.ResponseDetails {
@@ -705,43 +600,24 @@ var file_uploaded_media_uploaded_media_service_types_proto_rawDesc = string([]by
 	0x65, 0x73, 0x75, 0x6c, 0x74, 0x73, 0x18, 0x03, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x1d, 0x2e, 0x75,
 	0x70, 0x6c, 0x6f, 0x61, 0x64, 0x65, 0x64, 0x5f, 0x6d, 0x65, 0x64, 0x69, 0x61, 0x2e, 0x55, 0x70,
 	0x6c, 0x6f, 0x61, 0x64, 0x65, 0x64, 0x4d, 0x65, 0x64, 0x69, 0x61, 0x52, 0x07, 0x72, 0x65, 0x73,
-	0x75, 0x6c, 0x74, 0x73, 0x22, 0x8f, 0x01, 0x0a, 0x1a, 0x55, 0x70, 0x64, 0x61, 0x74, 0x65, 0x55,
+	0x75, 0x6c, 0x74, 0x73, 0x22, 0x49, 0x0a, 0x1b, 0x41, 0x72, 0x63, 0x68, 0x69, 0x76, 0x65, 0x55,
 	0x70, 0x6c, 0x6f, 0x61, 0x64, 0x65, 0x64, 0x4d, 0x65, 0x64, 0x69, 0x61, 0x52, 0x65, 0x71, 0x75,
 	0x65, 0x73, 0x74, 0x12, 0x2a, 0x0a, 0x11, 0x75, 0x70, 0x6c, 0x6f, 0x61, 0x64, 0x65, 0x64, 0x5f,
 	0x6d, 0x65, 0x64, 0x69, 0x61, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0f,
-	0x75, 0x70, 0x6c, 0x6f, 0x61, 0x64, 0x65, 0x64, 0x4d, 0x65, 0x64, 0x69, 0x61, 0x49, 0x64, 0x12,
-	0x45, 0x0a, 0x05, 0x69, 0x6e, 0x70, 0x75, 0x74, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x2f,
-	0x2e, 0x75, 0x70, 0x6c, 0x6f, 0x61, 0x64, 0x65, 0x64, 0x5f, 0x6d, 0x65, 0x64, 0x69, 0x61, 0x2e,
-	0x55, 0x70, 0x6c, 0x6f, 0x61, 0x64, 0x65, 0x64, 0x4d, 0x65, 0x64, 0x69, 0x61, 0x55, 0x70, 0x64,
-	0x61, 0x74, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x49, 0x6e, 0x70, 0x75, 0x74, 0x52,
-	0x05, 0x69, 0x6e, 0x70, 0x75, 0x74, 0x22, 0x9a, 0x01, 0x0a, 0x1b, 0x55, 0x70, 0x64, 0x61, 0x74,
-	0x65, 0x55, 0x70, 0x6c, 0x6f, 0x61, 0x64, 0x65, 0x64, 0x4d, 0x65, 0x64, 0x69, 0x61, 0x52, 0x65,
-	0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x42, 0x0a, 0x10, 0x72, 0x65, 0x73, 0x70, 0x6f, 0x6e,
-	0x73, 0x65, 0x5f, 0x64, 0x65, 0x74, 0x61, 0x69, 0x6c, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b,
-	0x32, 0x17, 0x2e, 0x63, 0x6f, 0x6d, 0x6d, 0x6f, 0x6e, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e,
-	0x73, 0x65, 0x44, 0x65, 0x74, 0x61, 0x69, 0x6c, 0x73, 0x52, 0x0f, 0x72, 0x65, 0x73, 0x70, 0x6f,
-	0x6e, 0x73, 0x65, 0x44, 0x65, 0x74, 0x61, 0x69, 0x6c, 0x73, 0x12, 0x37, 0x0a, 0x07, 0x75, 0x70,
-	0x64, 0x61, 0x74, 0x65, 0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1d, 0x2e, 0x75, 0x70,
-	0x6c, 0x6f, 0x61, 0x64, 0x65, 0x64, 0x5f, 0x6d, 0x65, 0x64, 0x69, 0x61, 0x2e, 0x55, 0x70, 0x6c,
-	0x6f, 0x61, 0x64, 0x65, 0x64, 0x4d, 0x65, 0x64, 0x69, 0x61, 0x52, 0x07, 0x75, 0x70, 0x64, 0x61,
-	0x74, 0x65, 0x64, 0x22, 0x49, 0x0a, 0x1b, 0x41, 0x72, 0x63, 0x68, 0x69, 0x76, 0x65, 0x55, 0x70,
-	0x6c, 0x6f, 0x61, 0x64, 0x65, 0x64, 0x4d, 0x65, 0x64, 0x69, 0x61, 0x52, 0x65, 0x71, 0x75, 0x65,
-	0x73, 0x74, 0x12, 0x2a, 0x0a, 0x11, 0x75, 0x70, 0x6c, 0x6f, 0x61, 0x64, 0x65, 0x64, 0x5f, 0x6d,
-	0x65, 0x64, 0x69, 0x61, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0f, 0x75,
-	0x70, 0x6c, 0x6f, 0x61, 0x64, 0x65, 0x64, 0x4d, 0x65, 0x64, 0x69, 0x61, 0x49, 0x64, 0x22, 0x62,
-	0x0a, 0x1c, 0x41, 0x72, 0x63, 0x68, 0x69, 0x76, 0x65, 0x55, 0x70, 0x6c, 0x6f, 0x61, 0x64, 0x65,
-	0x64, 0x4d, 0x65, 0x64, 0x69, 0x61, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x42,
-	0x0a, 0x10, 0x72, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x5f, 0x64, 0x65, 0x74, 0x61, 0x69,
-	0x6c, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x17, 0x2e, 0x63, 0x6f, 0x6d, 0x6d, 0x6f,
-	0x6e, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x44, 0x65, 0x74, 0x61, 0x69, 0x6c,
-	0x73, 0x52, 0x0f, 0x72, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x44, 0x65, 0x74, 0x61, 0x69,
-	0x6c, 0x73, 0x42, 0x63, 0x5a, 0x61, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d,
-	0x2f, 0x70, 0x72, 0x69, 0x6d, 0x61, 0x6e, 0x64, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x2f, 0x64,
-	0x69, 0x6e, 0x6e, 0x65, 0x72, 0x64, 0x6f, 0x6e, 0x65, 0x62, 0x65, 0x74, 0x74, 0x65, 0x72, 0x2f,
-	0x62, 0x61, 0x63, 0x6b, 0x65, 0x6e, 0x64, 0x2f, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c,
-	0x2f, 0x67, 0x72, 0x70, 0x63, 0x2f, 0x67, 0x65, 0x6e, 0x65, 0x72, 0x61, 0x74, 0x65, 0x64, 0x2f,
-	0x73, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x73, 0x2f, 0x75, 0x70, 0x6c, 0x6f, 0x61, 0x64, 0x65,
-	0x64, 0x5f, 0x6d, 0x65, 0x64, 0x69, 0x61, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x75, 0x70, 0x6c, 0x6f, 0x61, 0x64, 0x65, 0x64, 0x4d, 0x65, 0x64, 0x69, 0x61, 0x49, 0x64, 0x22,
+	0x62, 0x0a, 0x1c, 0x41, 0x72, 0x63, 0x68, 0x69, 0x76, 0x65, 0x55, 0x70, 0x6c, 0x6f, 0x61, 0x64,
+	0x65, 0x64, 0x4d, 0x65, 0x64, 0x69, 0x61, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12,
+	0x42, 0x0a, 0x10, 0x72, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x5f, 0x64, 0x65, 0x74, 0x61,
+	0x69, 0x6c, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x17, 0x2e, 0x63, 0x6f, 0x6d, 0x6d,
+	0x6f, 0x6e, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x44, 0x65, 0x74, 0x61, 0x69,
+	0x6c, 0x73, 0x52, 0x0f, 0x72, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x44, 0x65, 0x74, 0x61,
+	0x69, 0x6c, 0x73, 0x42, 0x63, 0x5a, 0x61, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f,
+	0x6d, 0x2f, 0x70, 0x72, 0x69, 0x6d, 0x61, 0x6e, 0x64, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x2f,
+	0x64, 0x69, 0x6e, 0x6e, 0x65, 0x72, 0x64, 0x6f, 0x6e, 0x65, 0x62, 0x65, 0x74, 0x74, 0x65, 0x72,
+	0x2f, 0x62, 0x61, 0x63, 0x6b, 0x65, 0x6e, 0x64, 0x2f, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61,
+	0x6c, 0x2f, 0x67, 0x72, 0x70, 0x63, 0x2f, 0x67, 0x65, 0x6e, 0x65, 0x72, 0x61, 0x74, 0x65, 0x64,
+	0x2f, 0x73, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x73, 0x2f, 0x75, 0x70, 0x6c, 0x6f, 0x61, 0x64,
+	0x65, 0x64, 0x5f, 0x6d, 0x65, 0x64, 0x69, 0x61, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 })
 
 var (
@@ -756,7 +632,7 @@ func file_uploaded_media_uploaded_media_service_types_proto_rawDescGZIP() []byte
 	return file_uploaded_media_uploaded_media_service_types_proto_rawDescData
 }
 
-var file_uploaded_media_uploaded_media_service_types_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_uploaded_media_uploaded_media_service_types_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_uploaded_media_uploaded_media_service_types_proto_goTypes = []any{
 	(*CreateUploadedMediaRequest)(nil),        // 0: uploaded_media.CreateUploadedMediaRequest
 	(*CreateUploadedMediaResponse)(nil),       // 1: uploaded_media.CreateUploadedMediaResponse
@@ -766,38 +642,32 @@ var file_uploaded_media_uploaded_media_service_types_proto_goTypes = []any{
 	(*GetUploadedMediaWithIDsResponse)(nil),   // 5: uploaded_media.GetUploadedMediaWithIDsResponse
 	(*GetUploadedMediaForUserRequest)(nil),    // 6: uploaded_media.GetUploadedMediaForUserRequest
 	(*GetUploadedMediaForUserResponse)(nil),   // 7: uploaded_media.GetUploadedMediaForUserResponse
-	(*UpdateUploadedMediaRequest)(nil),        // 8: uploaded_media.UpdateUploadedMediaRequest
-	(*UpdateUploadedMediaResponse)(nil),       // 9: uploaded_media.UpdateUploadedMediaResponse
-	(*ArchiveUploadedMediaRequest)(nil),       // 10: uploaded_media.ArchiveUploadedMediaRequest
-	(*ArchiveUploadedMediaResponse)(nil),      // 11: uploaded_media.ArchiveUploadedMediaResponse
-	(*UploadedMediaCreationRequestInput)(nil), // 12: uploaded_media.UploadedMediaCreationRequestInput
-	(*types.ResponseDetails)(nil),             // 13: common.ResponseDetails
-	(*UploadedMedia)(nil),                     // 14: uploaded_media.UploadedMedia
-	(*filteringpb.QueryFilter)(nil),           // 15: primandproper.platform.filtering.v1.QueryFilter
-	(*filteringpb.Pagination)(nil),            // 16: primandproper.platform.filtering.v1.Pagination
-	(*UploadedMediaUpdateRequestInput)(nil),   // 17: uploaded_media.UploadedMediaUpdateRequestInput
+	(*ArchiveUploadedMediaRequest)(nil),       // 8: uploaded_media.ArchiveUploadedMediaRequest
+	(*ArchiveUploadedMediaResponse)(nil),      // 9: uploaded_media.ArchiveUploadedMediaResponse
+	(*UploadedMediaCreationRequestInput)(nil), // 10: uploaded_media.UploadedMediaCreationRequestInput
+	(*types.ResponseDetails)(nil),             // 11: common.ResponseDetails
+	(*UploadedMedia)(nil),                     // 12: uploaded_media.UploadedMedia
+	(*filteringpb.QueryFilter)(nil),           // 13: primandproper.platform.filtering.v1.QueryFilter
+	(*filteringpb.Pagination)(nil),            // 14: primandproper.platform.filtering.v1.Pagination
 }
 var file_uploaded_media_uploaded_media_service_types_proto_depIdxs = []int32{
-	12, // 0: uploaded_media.CreateUploadedMediaRequest.input:type_name -> uploaded_media.UploadedMediaCreationRequestInput
-	13, // 1: uploaded_media.CreateUploadedMediaResponse.response_details:type_name -> common.ResponseDetails
-	14, // 2: uploaded_media.CreateUploadedMediaResponse.created:type_name -> uploaded_media.UploadedMedia
-	13, // 3: uploaded_media.GetUploadedMediaResponse.response_details:type_name -> common.ResponseDetails
-	14, // 4: uploaded_media.GetUploadedMediaResponse.result:type_name -> uploaded_media.UploadedMedia
-	13, // 5: uploaded_media.GetUploadedMediaWithIDsResponse.response_details:type_name -> common.ResponseDetails
-	14, // 6: uploaded_media.GetUploadedMediaWithIDsResponse.results:type_name -> uploaded_media.UploadedMedia
-	15, // 7: uploaded_media.GetUploadedMediaForUserRequest.filter:type_name -> primandproper.platform.filtering.v1.QueryFilter
-	13, // 8: uploaded_media.GetUploadedMediaForUserResponse.response_details:type_name -> common.ResponseDetails
-	16, // 9: uploaded_media.GetUploadedMediaForUserResponse.pagination:type_name -> primandproper.platform.filtering.v1.Pagination
-	14, // 10: uploaded_media.GetUploadedMediaForUserResponse.results:type_name -> uploaded_media.UploadedMedia
-	17, // 11: uploaded_media.UpdateUploadedMediaRequest.input:type_name -> uploaded_media.UploadedMediaUpdateRequestInput
-	13, // 12: uploaded_media.UpdateUploadedMediaResponse.response_details:type_name -> common.ResponseDetails
-	14, // 13: uploaded_media.UpdateUploadedMediaResponse.updated:type_name -> uploaded_media.UploadedMedia
-	13, // 14: uploaded_media.ArchiveUploadedMediaResponse.response_details:type_name -> common.ResponseDetails
-	15, // [15:15] is the sub-list for method output_type
-	15, // [15:15] is the sub-list for method input_type
-	15, // [15:15] is the sub-list for extension type_name
-	15, // [15:15] is the sub-list for extension extendee
-	0,  // [0:15] is the sub-list for field type_name
+	10, // 0: uploaded_media.CreateUploadedMediaRequest.input:type_name -> uploaded_media.UploadedMediaCreationRequestInput
+	11, // 1: uploaded_media.CreateUploadedMediaResponse.response_details:type_name -> common.ResponseDetails
+	12, // 2: uploaded_media.CreateUploadedMediaResponse.created:type_name -> uploaded_media.UploadedMedia
+	11, // 3: uploaded_media.GetUploadedMediaResponse.response_details:type_name -> common.ResponseDetails
+	12, // 4: uploaded_media.GetUploadedMediaResponse.result:type_name -> uploaded_media.UploadedMedia
+	11, // 5: uploaded_media.GetUploadedMediaWithIDsResponse.response_details:type_name -> common.ResponseDetails
+	12, // 6: uploaded_media.GetUploadedMediaWithIDsResponse.results:type_name -> uploaded_media.UploadedMedia
+	13, // 7: uploaded_media.GetUploadedMediaForUserRequest.filter:type_name -> primandproper.platform.filtering.v1.QueryFilter
+	11, // 8: uploaded_media.GetUploadedMediaForUserResponse.response_details:type_name -> common.ResponseDetails
+	14, // 9: uploaded_media.GetUploadedMediaForUserResponse.pagination:type_name -> primandproper.platform.filtering.v1.Pagination
+	12, // 10: uploaded_media.GetUploadedMediaForUserResponse.results:type_name -> uploaded_media.UploadedMedia
+	11, // 11: uploaded_media.ArchiveUploadedMediaResponse.response_details:type_name -> common.ResponseDetails
+	12, // [12:12] is the sub-list for method output_type
+	12, // [12:12] is the sub-list for method input_type
+	12, // [12:12] is the sub-list for extension type_name
+	12, // [12:12] is the sub-list for extension extendee
+	0,  // [0:12] is the sub-list for field type_name
 }
 
 func init() { file_uploaded_media_uploaded_media_service_types_proto_init() }
@@ -812,7 +682,7 @@ func file_uploaded_media_uploaded_media_service_types_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_uploaded_media_uploaded_media_service_types_proto_rawDesc), len(file_uploaded_media_uploaded_media_service_types_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   12,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

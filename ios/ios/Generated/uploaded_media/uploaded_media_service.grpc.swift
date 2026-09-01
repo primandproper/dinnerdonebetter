@@ -80,18 +80,6 @@ internal enum UploadedMedia_UploadedMediaService {
                 method: "GetUploadedMediaForUser"
             )
         }
-        /// Namespace for "UpdateUploadedMedia" metadata.
-        internal enum UpdateUploadedMedia {
-            /// Request type for "UpdateUploadedMedia".
-            internal typealias Input = UploadedMedia_UpdateUploadedMediaRequest
-            /// Response type for "UpdateUploadedMedia".
-            internal typealias Output = UploadedMedia_UpdateUploadedMediaResponse
-            /// Descriptor for "UpdateUploadedMedia".
-            internal static let descriptor = GRPCCore.MethodDescriptor(
-                service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "uploaded_media.UploadedMediaService"),
-                method: "UpdateUploadedMedia"
-            )
-        }
         /// Namespace for "ArchiveUploadedMedia" metadata.
         internal enum ArchiveUploadedMedia {
             /// Request type for "ArchiveUploadedMedia".
@@ -111,7 +99,6 @@ internal enum UploadedMedia_UploadedMediaService {
             GetUploadedMedia.descriptor,
             GetUploadedMediaWithIDs.descriptor,
             GetUploadedMediaForUser.descriptor,
-            UpdateUploadedMedia.descriptor,
             ArchiveUploadedMedia.descriptor
         ]
     }
@@ -225,25 +212,6 @@ extension UploadedMedia_UploadedMediaService {
             deserializer: some GRPCCore.MessageDeserializer<UploadedMedia_GetUploadedMediaForUserResponse>,
             options: GRPCCore.CallOptions,
             onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<UploadedMedia_GetUploadedMediaForUserResponse>) async throws -> Result
-        ) async throws -> Result where Result: Sendable
-
-        /// Call the "UpdateUploadedMedia" method.
-        ///
-        /// - Parameters:
-        ///   - request: A request containing a single `UploadedMedia_UpdateUploadedMediaRequest` message.
-        ///   - serializer: A serializer for `UploadedMedia_UpdateUploadedMediaRequest` messages.
-        ///   - deserializer: A deserializer for `UploadedMedia_UpdateUploadedMediaResponse` messages.
-        ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
-        /// - Returns: The result of `handleResponse`.
-        func updateUploadedMedia<Result>(
-            request: GRPCCore.ClientRequest<UploadedMedia_UpdateUploadedMediaRequest>,
-            serializer: some GRPCCore.MessageSerializer<UploadedMedia_UpdateUploadedMediaRequest>,
-            deserializer: some GRPCCore.MessageDeserializer<UploadedMedia_UpdateUploadedMediaResponse>,
-            options: GRPCCore.CallOptions,
-            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<UploadedMedia_UpdateUploadedMediaResponse>) async throws -> Result
         ) async throws -> Result where Result: Sendable
 
         /// Call the "ArchiveUploadedMedia" method.
@@ -432,36 +400,6 @@ extension UploadedMedia_UploadedMediaService {
             )
         }
 
-        /// Call the "UpdateUploadedMedia" method.
-        ///
-        /// - Parameters:
-        ///   - request: A request containing a single `UploadedMedia_UpdateUploadedMediaRequest` message.
-        ///   - serializer: A serializer for `UploadedMedia_UpdateUploadedMediaRequest` messages.
-        ///   - deserializer: A deserializer for `UploadedMedia_UpdateUploadedMediaResponse` messages.
-        ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
-        /// - Returns: The result of `handleResponse`.
-        internal func updateUploadedMedia<Result>(
-            request: GRPCCore.ClientRequest<UploadedMedia_UpdateUploadedMediaRequest>,
-            serializer: some GRPCCore.MessageSerializer<UploadedMedia_UpdateUploadedMediaRequest>,
-            deserializer: some GRPCCore.MessageDeserializer<UploadedMedia_UpdateUploadedMediaResponse>,
-            options: GRPCCore.CallOptions = .defaults,
-            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<UploadedMedia_UpdateUploadedMediaResponse>) async throws -> Result = { response in
-                try response.message
-            }
-        ) async throws -> Result where Result: Sendable {
-            try await self.client.unary(
-                request: request,
-                descriptor: UploadedMedia_UploadedMediaService.Method.UpdateUploadedMedia.descriptor,
-                serializer: serializer,
-                deserializer: deserializer,
-                options: options,
-                onResponse: handleResponse
-            )
-        }
-
         /// Call the "ArchiveUploadedMedia" method.
         ///
         /// - Parameters:
@@ -617,31 +555,6 @@ extension UploadedMedia_UploadedMediaService.ClientProtocol {
             request: request,
             serializer: GRPCProtobuf.ProtobufSerializer<UploadedMedia_GetUploadedMediaForUserRequest>(),
             deserializer: GRPCProtobuf.ProtobufDeserializer<UploadedMedia_GetUploadedMediaForUserResponse>(),
-            options: options,
-            onResponse: handleResponse
-        )
-    }
-
-    /// Call the "UpdateUploadedMedia" method.
-    ///
-    /// - Parameters:
-    ///   - request: A request containing a single `UploadedMedia_UpdateUploadedMediaRequest` message.
-    ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
-    /// - Returns: The result of `handleResponse`.
-    internal func updateUploadedMedia<Result>(
-        request: GRPCCore.ClientRequest<UploadedMedia_UpdateUploadedMediaRequest>,
-        options: GRPCCore.CallOptions = .defaults,
-        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<UploadedMedia_UpdateUploadedMediaResponse>) async throws -> Result = { response in
-            try response.message
-        }
-    ) async throws -> Result where Result: Sendable {
-        try await self.updateUploadedMedia(
-            request: request,
-            serializer: GRPCProtobuf.ProtobufSerializer<UploadedMedia_UpdateUploadedMediaRequest>(),
-            deserializer: GRPCProtobuf.ProtobufDeserializer<UploadedMedia_UpdateUploadedMediaResponse>(),
             options: options,
             onResponse: handleResponse
         )
@@ -816,35 +729,6 @@ extension UploadedMedia_UploadedMediaService.ClientProtocol {
             metadata: metadata
         )
         return try await self.getUploadedMediaForUser(
-            request: request,
-            options: options,
-            onResponse: handleResponse
-        )
-    }
-
-    /// Call the "UpdateUploadedMedia" method.
-    ///
-    /// - Parameters:
-    ///   - message: request message to send.
-    ///   - metadata: Additional metadata to send, defaults to empty.
-    ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
-    /// - Returns: The result of `handleResponse`.
-    internal func updateUploadedMedia<Result>(
-        _ message: UploadedMedia_UpdateUploadedMediaRequest,
-        metadata: GRPCCore.Metadata = [:],
-        options: GRPCCore.CallOptions = .defaults,
-        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<UploadedMedia_UpdateUploadedMediaResponse>) async throws -> Result = { response in
-            try response.message
-        }
-    ) async throws -> Result where Result: Sendable {
-        let request = GRPCCore.ClientRequest<UploadedMedia_UpdateUploadedMediaRequest>(
-            message: message,
-            metadata: metadata
-        )
-        return try await self.updateUploadedMedia(
             request: request,
             options: options,
             onResponse: handleResponse

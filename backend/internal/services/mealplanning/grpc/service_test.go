@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	mockmanagers "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/managers/mock"
-	uploadedmediamock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia/mock"
 	mealplanningsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
 	mealplanfinalization "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_finalization"
 
@@ -12,6 +11,7 @@ import (
 	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
 	tracingnoop "github.com/primandproper/platform-go/v13/observability/tracing/noop"
 	mockuploads "github.com/primandproper/platform-go/v13/uploads/mock"
+	registrymock "github.com/primandproper/platform-go/v13/uploads/registry/mock"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -27,7 +27,7 @@ func TestNewService(t *testing.T) {
 		mealPlanningManager := &mockmanagers.MealPlanningManagerMock{}
 		mealPlanFinalizationStarter := &mealplanfinalization.Starter{}
 		commentStore := &commentsmock.StoreMock{}
-		uploadedMediaManager := &uploadedmediamock.RepositoryMock{}
+		uploadsRegistry := &registrymock.StoreMock{}
 		uploadManager := &mockuploads.UploadManagerMock{}
 
 		service := NewService(
@@ -36,7 +36,7 @@ func TestNewService(t *testing.T) {
 			mealPlanningManager,
 			mealPlanFinalizationStarter,
 			commentStore,
-			uploadedMediaManager,
+			uploadsRegistry,
 			uploadManager,
 		)
 

@@ -12,6 +12,7 @@ import (
 	"github.com/primandproper/platform-go/v13/database"
 	"github.com/primandproper/platform-go/v13/observability/logging"
 	"github.com/primandproper/platform-go/v13/observability/tracing"
+	"github.com/primandproper/platform-go/v13/uploads/registry"
 )
 
 const (
@@ -27,8 +28,14 @@ type repository struct {
 	identityRepo      identity.Repository
 	auditLogEntryRepo audit.Repository
 	events            *events.Emitter
-	readDB            database.SQLQueryExecutor
-	writeDB           database.SQLQueryExecutor
+
+	// uploads answers what a bridge row's uploaded_media_id names. The media
+	// itself lives in platform-go's upload registry, whose table this repository's
+	// statements cannot join — see GetUploadedMediaWithIDs.
+	uploads registry.Store
+
+	readDB  database.SQLQueryExecutor
+	writeDB database.SQLQueryExecutor
 }
 
 // ProvideMealPlanningRepository provides a new repository.
@@ -43,6 +50,7 @@ func ProvideMealPlanningRepository(
 	identityRepo identity.Repository,
 	client database.Client,
 	eventEmitter *events.Emitter,
+	uploads registry.Store,
 ) mealplanning.Repository {
 	c := &repository{
 		Client:            client,
@@ -53,6 +61,7 @@ func ProvideMealPlanningRepository(
 		auditLogEntryRepo: auditLogEntryRepo,
 		identityRepo:      identityRepo,
 		events:            eventEmitter,
+		uploads:           uploads,
 		logger:            logging.NewNamedLogger(logger, o11yName),
 	}
 

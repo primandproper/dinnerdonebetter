@@ -49,12 +49,17 @@ func StartSagaWorker(
 		return nil, fmt.Errorf("building audit log repository: %w", err)
 	}
 
-	identityRepo := identityrepo.ProvideIdentityRepository(logger, tracerProvider, auditRepo, databaseClient, nil)
+	uploads, err := UploadsRegistry(logger, tracerProvider, databaseClient)
+	if err != nil {
+		return nil, fmt.Errorf("building upload registry store: %w", err)
+	}
+
+	identityRepo := identityrepo.ProvideIdentityRepository(logger, tracerProvider, auditRepo, databaseClient, nil, uploads)
 
 	registry := saga.NewRegistry()
 	if err = mealplanfinalization.Register(
 		registry,
-		mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditRepo, identityRepo, databaseClient, nil),
+		mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditRepo, identityRepo, databaseClient, nil, uploads),
 		recipeanalysis.NewRecipeAnalyzer(logger, tracerProvider),
 		grocerylistpreparation.NewGroceryListCreator(logger, tracerProvider),
 		logger,

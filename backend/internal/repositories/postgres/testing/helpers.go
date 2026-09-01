@@ -14,7 +14,6 @@ import (
 	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity/generated"
 
 	"github.com/primandproper/platform-go/v13/database"
@@ -85,18 +84,10 @@ const (
 
 // userFromGetUserByIDRow converts a GetUserByIDRow to User. Used by CreateUserForTest.
 func userFromGetUserByIDRow(row *generated.GetUserByIDRow) *identity.User {
-	var avatar *uploadedmedia.UploadedMedia
-	if row.AvatarID.Valid && row.AvatarStoragePath.Valid && row.AvatarMimeType.Valid && row.AvatarCreatedByUser.Valid && row.AvatarCreatedAt.Valid {
-		avatar = &uploadedmedia.UploadedMedia{
-			ID:            row.AvatarID.String,
-			StoragePath:   row.AvatarStoragePath.String,
-			MimeType:      string(row.AvatarMimeType.UploadedMediaMimeType),
-			CreatedAt:     row.AvatarCreatedAt.Time,
-			LastUpdatedAt: database.TimePointerFromNullTime(row.AvatarLastUpdatedAt),
-			ArchivedAt:    database.TimePointerFromNullTime(row.AvatarArchivedAt),
-			CreatedByUser: row.AvatarCreatedByUser.String,
-		}
-	}
+	// The avatar row itself is not built here. It lives in platform-go's upload
+	// registry now, which this helper has no store for, and the user rows these
+	// helpers create carry no avatar — see avatarFor in the identity repository
+	// for the read that hydrates one.
 	return &identity.User{
 		CreatedAt:                  row.CreatedAt,
 		PasswordLastChangedAt:      database.TimePointerFromNullTime(row.PasswordLastChangedAt),
@@ -116,7 +107,6 @@ func userFromGetUserByIDRow(row *generated.GetUserByIDRow) *identity.User {
 		LastName:                   row.LastName,
 		EmailAddress:               row.EmailAddress,
 		EmailAddressVerifiedAt:     database.TimePointerFromNullTime(row.EmailAddressVerifiedAt),
-		Avatar:                     avatar,
 		RequiresPasswordChange:     row.RequiresPasswordChange,
 	}
 }

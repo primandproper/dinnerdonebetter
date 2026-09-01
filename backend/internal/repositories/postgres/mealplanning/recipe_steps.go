@@ -6,7 +6,6 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/indexevents"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
@@ -15,6 +14,7 @@ import (
 	"github.com/primandproper/platform-go/v13/filtering"
 	"github.com/primandproper/platform-go/v13/observability"
 	"github.com/primandproper/platform-go/v13/observability/tracing"
+	"github.com/primandproper/platform-go/v13/uploads/registry"
 )
 
 var (
@@ -193,7 +193,7 @@ func (q *repository) GetRecipeStep(ctx context.Context, recipeID, recipeStepID s
 }
 
 // enrichRecipeStepWithStepImages fetches step images for a recipe step and returns the uploaded media.
-func (q *repository) enrichRecipeStepWithStepImages(ctx context.Context, recipeStepID string) ([]*uploadedmedia.UploadedMedia, error) {
+func (q *repository) enrichRecipeStepWithStepImages(ctx context.Context, recipeStepID string) ([]*registry.Object, error) {
 	rows, err := q.GetRecipeStepImagesByStep(ctx, recipeStepID)
 	if err != nil || len(rows) == 0 {
 		return nil, err

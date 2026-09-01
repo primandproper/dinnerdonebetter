@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/indexevents"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
@@ -22,6 +23,8 @@ import (
 	"github.com/primandproper/platform-go/v13/observability/tracing"
 	tracingnoop "github.com/primandproper/platform-go/v13/observability/tracing/noop"
 	"github.com/primandproper/platform-go/v13/outbox"
+	"github.com/primandproper/platform-go/v13/uploads/registry"
+	registrymock "github.com/primandproper/platform-go/v13/uploads/registry/mock"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/assert"
@@ -96,7 +99,12 @@ func buildDatabaseClientForTest(t *testing.T) (*repository, audit.Repository) {
 	outboxWriter, err := outbox.NewWriter(dialect.Postgres, outbox.WithWriterLogger(loggingnoop.NewLogger()), outbox.WithWriterSideEffect(indexevents.SideEffectName, indexevents.SideEffect))
 	require.NoError(t, err)
 
-	c := ProvideIdentityRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), auditLogRepo, pgc, events.NewEmitter(outboxWriter, testDataChangesTopic, nil, indexevents.SideEffect))
+	// A real registry store over the same database, so the avatar hydration these
+	// tests exercise reads the table a request would.
+	uploadsRegistry, err := registry.NewSQLStore(pgc, registry.WithTablePrefix(uploadedmedia.TablePrefix))
+	require.NoError(t, err)
+
+	c := ProvideIdentityRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), auditLogRepo, pgc, events.NewEmitter(outboxWriter, testDataChangesTopic, nil, indexevents.SideEffect), uploadsRegistry)
 	require.NoError(t, err)
 
 	return c.(*repository), auditLogRepo
@@ -105,7 +113,7 @@ func buildDatabaseClientForTest(t *testing.T) (*repository, audit.Repository) {
 func buildInertClientForTest(t *testing.T) *repository {
 	t.Helper()
 
-	c := ProvideIdentityRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, &mockdatabase.ClientMock{ReaderFunc: func() database.SQLQueryExecutor { return nil }, WriterFunc: func() database.SQLQueryExecutor { return nil }}, nil)
+	c := ProvideIdentityRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, &mockdatabase.ClientMock{ReaderFunc: func() database.SQLQueryExecutor { return nil }, WriterFunc: func() database.SQLQueryExecutor { return nil }}, nil, &registrymock.StoreMock{})
 
 	return c.(*repository)
 }

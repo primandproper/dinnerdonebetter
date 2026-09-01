@@ -9,6 +9,7 @@ import (
 	"github.com/primandproper/platform-go/v13/database"
 	"github.com/primandproper/platform-go/v13/observability/logging"
 	"github.com/primandproper/platform-go/v13/observability/tracing"
+	"github.com/primandproper/platform-go/v13/uploads/registry"
 
 	"github.com/samber/do/v2"
 )
@@ -23,6 +24,7 @@ func RegisterMealPlanningRepository(i do.Injector) {
 			do.MustInvoke[identity.Repository](i),
 			do.MustInvoke[database.Client](i),
 			do.MustInvoke[*events.Emitter](i),
+			do.MustInvoke[registry.Store](i),
 		), nil
 	})
 

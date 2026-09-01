@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
+	"github.com/primandproper/platform-go/v13/uploads/registry"
 )
 
 // IngredientMediaRow represents a row from ingredient_media table.
@@ -26,5 +26,5 @@ type IngredientMediaDataManager interface {
 // IngredientMediaWithUploadedMedia pairs an ingredient media row with its uploaded media.
 type IngredientMediaWithUploadedMedia struct {
 	Row           *IngredientMediaRow
-	UploadedMedia *uploadedmedia.UploadedMedia
+	UploadedMedia *registry.Object
 }

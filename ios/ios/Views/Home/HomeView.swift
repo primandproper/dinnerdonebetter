@@ -98,10 +98,10 @@ struct HomeView: View {
           avatarURL: viewModel.flatMap { homeViewModel in
             guard let user = homeViewModel.currentUser,
               user.hasAvatar,
-              !user.avatar.storagePath.isEmpty
+              !user.avatar.objectKey.isEmpty
             else { return nil }
             return APIConfiguration.mediaURL(
-              forStoragePath: user.avatar.storagePath, bucket: "avatars")
+              forStoragePath: user.avatar.objectKey, bucket: "avatars")
           },
           acceptedOccupiedDates: viewModel?.acceptedOccupiedDates ?? [],
           proposedOccupiedDates: viewModel?.proposedOccupiedDates ?? []

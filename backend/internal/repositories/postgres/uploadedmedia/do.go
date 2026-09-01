@@ -2,23 +2,27 @@ package uploadedmedia
 
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
-	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 
 	"github.com/primandproper/platform-go/v13/database"
 	"github.com/primandproper/platform-go/v13/observability/logging"
+	"github.com/primandproper/platform-go/v13/observability/metrics"
 	"github.com/primandproper/platform-go/v13/observability/tracing"
+	"github.com/primandproper/platform-go/v13/uploads/registry"
 
 	"github.com/samber/do/v2"
 )
 
-// RegisterUploadedMediaRepository registers the uploaded media repository with the injector.
+// RegisterUploadedMediaRepository registers the upload registry with the injector.
 func RegisterUploadedMediaRepository(i do.Injector) {
-	do.Provide[types.Repository](i, func(i do.Injector) (types.Repository, error) {
+	do.Provide[registry.Store](i, func(i do.Injector) (registry.Store, error) {
 		return ProvideUploadedMediaRepository(
 			do.MustInvoke[logging.Logger](i),
 			do.MustInvoke[tracing.Provider](i),
+			do.MustInvoke[metrics.Provider](i),
 			do.MustInvoke[audit.Repository](i),
 			do.MustInvoke[database.Client](i),
-		), nil
+			do.MustInvoke[*events.Emitter](i),
+		)
 	})
 }

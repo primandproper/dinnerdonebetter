@@ -2,12 +2,12 @@ package grpc
 
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/manager"
-	uploadedmediamanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia/manager"
 	identitysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
 
 	"github.com/primandproper/platform-go/v13/observability/logging"
 	"github.com/primandproper/platform-go/v13/observability/tracing"
 	"github.com/primandproper/platform-go/v13/uploads"
+	"github.com/primandproper/platform-go/v13/uploads/registry"
 
 	"github.com/samber/do/v2"
 )
@@ -23,7 +23,7 @@ func RegisterIdentityService(i do.Injector) {
 			do.MustInvoke[logging.Logger](i),
 			do.MustInvoke[tracing.Provider](i),
 			do.MustInvoke[manager.IdentityDataManager](i),
-			do.MustInvoke[uploadedmediamanager.UploadedMediaManager](i),
+			do.MustInvoke[registry.Store](i),
 			do.MustInvoke[uploads.UploadManager](i),
 		), nil
 	})

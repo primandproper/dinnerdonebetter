@@ -120,12 +120,11 @@ export const actions: Actions = {
 
     try {
       const apiResponse = await uploadUserAvatar(token, buffer, filename, file.type);
-      const storagePath =
-        apiResponse?.created?.storagePath ??
-        (apiResponse?.created as { storage_path?: string } | undefined)?.storage_path;
-      logger.with({ storagePath: storagePath ?? null }).debug('avatar upload returning');
-      if (storagePath) {
-        return { updated: true, avatarStoragePath: storagePath };
+      const objectKey =
+        apiResponse?.created?.objectKey ?? (apiResponse?.created as { object_key?: string } | undefined)?.object_key;
+      logger.with({ objectKey: objectKey ?? null }).debug('avatar upload returning');
+      if (objectKey) {
+        return { updated: true, avatarStoragePath: objectKey };
       }
       return { updated: true };
     } catch (e) {

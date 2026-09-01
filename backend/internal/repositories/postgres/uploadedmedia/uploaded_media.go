@@ -1,294 +1,130 @@
+/*
+Package uploadedmedia records what an upload means to the rest of this
+application. The registry itself is platform-go's: the schema, the paging, the
+tenancy column, the key uniqueness and the ownership the reads answer from all
+live there, and this package neither reimplements nor wraps them.
+
+What it adds is the half platform cannot know about — an audit log entry naming
+who did what, and a data change event on the outbox that the webhook dispatcher
+fans out. uploaded_media_created and uploaded_media_archived are both in the
+webhook event catalog, so a subscriber can already ask for them; a write that
+skipped the pair would be a row with no provenance and a subscriber that never
+heard.
+
+# The transaction the events are not in
+
+Every hand-written repository here emits inside the transaction that wrote the
+row, so the event lives or dies with what it describes (see
+internal/repositories/postgres/events). This one cannot: platform's RecordObject
+and ArchiveObject own their transactions and take no executor, so the audit
+entry and the event are a second transaction after the first has committed.
+
+The gap that opens is the ordinary one — the row lands, the process dies, and
+nothing is recorded about it. It is narrow and one-directional: an object can
+exist with no event, but no event can name an object that was not registered. It
+is the same gap platform-go #457 describes for the comments store, and it is
+left open here for the same reason: papering over it locally is how a gap stops
+being one anyone remembers.
+
+# There is no update
+
+The registry has no statement that assigns a column after the insert, and the
+absence is deliberate rather than missing: every column is a fact about bytes
+that are already in a bucket, so an "update" that moved a row's key or content
+type would be a row that had stopped describing its object. Changing what an
+uploaded object is means storing new bytes and registering them.
+*/
 package uploadedmedia
 
 import (
 	"context"
-	"database/sql"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
-	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
-	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
+	ddbuploadedmedia "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	uploadedmediakeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia/keys"
-	generated "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/uploadedmedia/generated"
 
 	"github.com/primandproper/platform-go/v13/database"
-	platformerrors "github.com/primandproper/platform-go/v13/errors"
-	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/identifiers"
 	"github.com/primandproper/platform-go/v13/observability"
 	"github.com/primandproper/platform-go/v13/observability/tracing"
+	"github.com/primandproper/platform-go/v13/tenancy"
+	"github.com/primandproper/platform-go/v13/uploads/registry"
 )
 
-const (
-	resourceTypeUploadedMedia = "uploaded_media"
-)
+// resourceTypeUploadedMedia is what an audit entry about an uploaded object names.
+const resourceTypeUploadedMedia = "uploaded_media"
 
-var (
-	_ types.UploadedMediaDataManager = (*repository)(nil)
-)
+var _ registry.Store = (*repository)(nil)
 
-// GetUploadedMedia fetches uploaded media from the database.
-func (r *repository) GetUploadedMedia(ctx context.Context, uploadedMediaID string) (*types.UploadedMedia, error) {
+// RecordObject registers the object, then records it.
+func (r *repository) RecordObject(ctx context.Context, object *registry.Object) error {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := r.logger.Clone()
-
-	if uploadedMediaID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(uploadedmediakeys.UploadedMediaIDKey, uploadedMediaID)
-	tracing.AttachToSpan(span, uploadedmediakeys.UploadedMediaIDKey, uploadedMediaID)
-
-	result, err := r.generatedQuerier.GetUploadedMedia(ctx, r.readDB, uploadedMediaID)
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "fetching uploaded media")
+	if err := r.Store.RecordObject(ctx, object); err != nil {
+		return err
 	}
 
-	uploadedMedia := &types.UploadedMedia{
-		ID:            result.ID,
-		StoragePath:   result.StoragePath,
-		MimeType:      string(result.MimeType),
-		CreatedAt:     result.CreatedAt,
-		LastUpdatedAt: database.TimePointerFromNullTime(result.LastUpdatedAt),
-		ArchivedAt:    database.TimePointerFromNullTime(result.ArchivedAt),
-		CreatedByUser: result.CreatedByUser,
-	}
+	tracing.AttachToSpan(span, uploadedmediakeys.UploadedMediaIDKey, object.ID)
 
-	return uploadedMedia, nil
+	return r.record(ctx, object.ID, object.OwnerID, audit.AuditLogEventTypeCreated, ddbuploadedmedia.UploadedMediaCreatedServiceEventType)
 }
 
-// GetUploadedMediaWithIDs fetches a list of uploaded media from the database by their IDs.
-func (r *repository) GetUploadedMediaWithIDs(ctx context.Context, ids []string) ([]*types.UploadedMedia, error) {
+// ArchiveObject hides the row, then records it.
+//
+// The owner is read before the archive rather than after, because an audit entry
+// names who the row belonged to and the archived row is the one this method is
+// about. A read that fails is the archive's failure too: platform answers an
+// absent, archived, or other-scope object as ErrObjectNotFound either way, so
+// returning it from here is the same answer one call earlier.
+func (r *repository) ArchiveObject(ctx context.Context, scope tenancy.Scope, objectID string) error {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := r.logger.Clone()
+	tracing.AttachToSpan(span, uploadedmediakeys.UploadedMediaIDKey, objectID)
 
-	if len(ids) == 0 {
-		return nil, platformerrors.ErrEmptyInputProvided
-	}
-	logger = logger.WithValue("ids", ids)
-	tracing.AttachToSpan(span, "id_count", len(ids))
-
-	results, err := r.generatedQuerier.GetUploadedMediaWithIDs(ctx, r.readDB, ids)
+	object, err := r.GetObject(ctx, scope, objectID)
 	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "fetching uploaded media with IDs")
+		return observability.PrepareError(err, span, "fetching uploaded media for archive")
 	}
 
-	var uploadedMediaList []*types.UploadedMedia
-	for _, result := range results {
-		uploadedMediaList = append(uploadedMediaList, &types.UploadedMedia{
-			ID:            result.ID,
-			StoragePath:   result.StoragePath,
-			MimeType:      string(result.MimeType),
-			CreatedAt:     result.CreatedAt,
-			LastUpdatedAt: database.TimePointerFromNullTime(result.LastUpdatedAt),
-			ArchivedAt:    database.TimePointerFromNullTime(result.ArchivedAt),
-			CreatedByUser: result.CreatedByUser,
-		})
+	if err = r.Store.ArchiveObject(ctx, scope, objectID); err != nil {
+		return err
 	}
 
-	return uploadedMediaList, nil
+	return r.record(ctx, objectID, object.OwnerID, audit.AuditLogEventTypeArchived, ddbuploadedmedia.UploadedMediaArchivedServiceEventType)
 }
 
-// GetUploadedMediaForUser fetches a list of uploaded media for a specific user from the database that meet a particular filter.
-func (r *repository) GetUploadedMediaForUser(ctx context.Context, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.UploadedMedia], error) {
+// record writes the audit entry and enqueues the data change event, in one
+// transaction of their own.
+//
+// The two travel together because they answer the same question from opposite
+// sides — the audit log for whoever asks later who did this, the outbox for
+// whoever needs to know now — and a write that carried one without the other
+// would be a write nobody could tell was incomplete.
+func (r *repository) record(ctx context.Context, objectID, ownerID, auditEventType, changeEventType string) error {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := r.logger.Clone()
+	logger := r.logger.WithSpan(span).WithValue(uploadedmediakeys.UploadedMediaIDKey, objectID)
 
-	if userID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(identitykeys.UserIDKey, userID)
-	tracing.AttachToSpan(span, identitykeys.UserIDKey, userID)
+	return r.client.WithTransaction(ctx, func(tx database.Tx) error {
+		if err := r.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
+			ID:            identifiers.New(),
+			ResourceType:  resourceTypeUploadedMedia,
+			RelevantID:    objectID,
+			EventType:     auditEventType,
+			BelongsToUser: ownerID,
+		}); err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "creating audit log entry")
+		}
 
-	if filter == nil {
-		filter = filtering.DefaultQueryFilter()
-	}
-	logger = filter.AttachToLogger(logger)
-	tracing.AttachQueryFilterToSpan(span, filter)
+		if err := r.events.Emit(ctx, tx, logger, changeEventType, "", map[string]any{
+			uploadedmediakeys.UploadedMediaIDKey: objectID,
+		}); err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "enqueuing data change event")
+		}
 
-	filterArgs := filtering.ToSQLArgs(filter)
-
-	results, err := r.generatedQuerier.GetUploadedMediaForUser(ctx, r.readDB, &generated.GetUploadedMediaForUserParams{
-		CreatedAfter:    filterArgs.CreatedAfter,
-		CreatedBefore:   filterArgs.CreatedBefore,
-		UpdatedBefore:   filterArgs.UpdatedBefore,
-		UpdatedAfter:    filterArgs.UpdatedAfter,
-		IncludeArchived: filterArgs.IncludeArchived,
-		CreatedByUser:   userID,
-		PageCursor:      filterArgs.Cursor,
-		ResultLimit:     filterArgs.ResultLimit,
+		return nil
 	})
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "fetching uploaded media from database")
-	}
-
-	x := filtering.Drain(
-		results,
-		func(result *generated.GetUploadedMediaForUserRow) *types.UploadedMedia {
-			return &types.UploadedMedia{
-				ID:            result.ID,
-				StoragePath:   result.StoragePath,
-				MimeType:      string(result.MimeType),
-				CreatedAt:     result.CreatedAt,
-				LastUpdatedAt: database.TimePointerFromNullTime(result.LastUpdatedAt),
-				ArchivedAt:    database.TimePointerFromNullTime(result.ArchivedAt),
-				CreatedByUser: result.CreatedByUser,
-			}
-		},
-		func(result *generated.GetUploadedMediaForUserRow) (int64, int64) {
-			return result.FilteredCount, result.TotalCount
-		},
-		func(t *types.UploadedMedia) string {
-			return t.ID
-		},
-		filter,
-	)
-
-	return x, nil
-}
-
-// CreateUploadedMedia creates uploaded media in the database.
-func (r *repository) CreateUploadedMedia(ctx context.Context, input *types.UploadedMediaDatabaseCreationInput) (*types.UploadedMedia, error) {
-	ctx, span := r.tracer.StartSpan(ctx)
-	defer span.End()
-
-	logger := r.logger.Clone()
-
-	if input == nil {
-		return nil, platformerrors.ErrNilInputParameter
-	}
-	tracing.AttachToSpan(span, identitykeys.UserIDKey, input.CreatedByUser)
-	logger = logger.WithValue(identitykeys.UserIDKey, input.CreatedByUser)
-
-	logger.Debug("CreateUploadedMedia invoked")
-
-	var err error
-	var x *types.UploadedMedia
-	if err = r.WithTransaction(ctx, func(tx database.Tx) error {
-		if err = r.generatedQuerier.CreateUploadedMedia(ctx, tx, &generated.CreateUploadedMediaParams{
-			ID:            input.ID,
-			StoragePath:   input.StoragePath,
-			MimeType:      generated.UploadedMediaMimeType(input.MimeType),
-			CreatedByUser: input.CreatedByUser,
-		}); err != nil {
-			return observability.PrepareAndLogError(err, logger, span, "performing uploaded media creation query")
-		}
-
-		x = &types.UploadedMedia{
-			ID:            input.ID,
-			StoragePath:   input.StoragePath,
-			MimeType:      input.MimeType,
-			CreatedByUser: input.CreatedByUser,
-			CreatedAt:     r.CurrentTime(),
-		}
-
-		userID := x.CreatedByUser
-		if err = r.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
-			BelongsToUser: userID,
-			ResourceType:  resourceTypeUploadedMedia,
-			RelevantID:    x.ID,
-			EventType:     audit.AuditLogEventTypeCreated,
-		}); err != nil {
-			return observability.PrepareError(err, span, "creating audit log entry")
-		}
-
-		return nil
-	}); err != nil {
-		return nil, err
-	}
-
-	tracing.AttachToSpan(span, uploadedmediakeys.UploadedMediaIDKey, x.ID)
-
-	return x, nil
-}
-
-// UpdateUploadedMedia updates uploaded media in the database.
-func (r *repository) UpdateUploadedMedia(ctx context.Context, uploadedMedia *types.UploadedMedia) error {
-	ctx, span := r.tracer.StartSpan(ctx)
-	defer span.End()
-
-	logger := r.logger.Clone()
-
-	if uploadedMedia == nil {
-		return platformerrors.ErrNilInputParameter
-	}
-	logger = logger.WithValue(uploadedmediakeys.UploadedMediaIDKey, uploadedMedia.ID)
-	tracing.AttachToSpan(span, uploadedmediakeys.UploadedMediaIDKey, uploadedMedia.ID)
-
-	if err := r.WithTransaction(ctx, func(tx database.Tx) error {
-		rowsAffected, err := r.generatedQuerier.UpdateUploadedMedia(ctx, tx, &generated.UpdateUploadedMediaParams{
-			StoragePath: uploadedMedia.StoragePath,
-			MimeType:    generated.UploadedMediaMimeType(uploadedMedia.MimeType),
-			ID:          uploadedMedia.ID,
-		})
-		if err != nil {
-			return observability.PrepareAndLogError(err, logger, span, "updating uploaded media")
-		}
-
-		if rowsAffected == 0 {
-			return sql.ErrNoRows
-		}
-
-		userID := uploadedMedia.CreatedByUser
-		if err = r.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
-			BelongsToUser: userID,
-			ResourceType:  resourceTypeUploadedMedia,
-			RelevantID:    uploadedMedia.ID,
-			EventType:     audit.AuditLogEventTypeUpdated,
-		}); err != nil {
-			return observability.PrepareError(err, span, "creating audit log entry")
-		}
-
-		return nil
-	}); err != nil {
-		return err
-	}
-
-	logger.Info("uploaded media updated")
-
-	return nil
-}
-
-// ArchiveUploadedMedia archives uploaded media in the database.
-func (r *repository) ArchiveUploadedMedia(ctx context.Context, uploadedMediaID string) error {
-	ctx, span := r.tracer.StartSpan(ctx)
-	defer span.End()
-
-	logger := r.logger.Clone()
-
-	if uploadedMediaID == "" {
-		return platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(uploadedmediakeys.UploadedMediaIDKey, uploadedMediaID)
-	tracing.AttachToSpan(span, uploadedmediakeys.UploadedMediaIDKey, uploadedMediaID)
-
-	if err := r.WithTransaction(ctx, func(tx database.Tx) error {
-		rowsAffected, err := r.generatedQuerier.ArchiveUploadedMedia(ctx, tx, uploadedMediaID)
-		if err != nil {
-			return observability.PrepareAndLogError(err, logger, span, "archiving uploaded media")
-		}
-
-		if rowsAffected == 0 {
-			return sql.ErrNoRows
-		}
-
-		if err = r.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
-			ResourceType: resourceTypeUploadedMedia,
-			RelevantID:   uploadedMediaID,
-			EventType:    audit.AuditLogEventTypeArchived,
-		}); err != nil {
-			return observability.PrepareError(err, span, "creating audit log entry")
-		}
-
-		return nil
-	}); err != nil {
-		return err
-	}
-
-	logger.Info("uploaded media archived")
-
-	return nil
 }

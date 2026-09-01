@@ -12,6 +12,7 @@ import (
 	"github.com/primandproper/platform-go/v13/observability/logging"
 	"github.com/primandproper/platform-go/v13/observability/tracing"
 	"github.com/primandproper/platform-go/v13/random"
+	"github.com/primandproper/platform-go/v13/uploads/registry"
 )
 
 const (
@@ -29,8 +30,14 @@ type repository struct {
 	auditLogEntryRepo audit.Repository
 	events            *events.Emitter
 	secretGenerator   random.Generator
-	readDB            database.SQLQueryExecutor
-	writeDB           database.SQLQueryExecutor
+
+	// uploads answers what a user_avatars row points at. The avatar itself lives
+	// in platform-go's upload registry, whose table this repository's statements
+	// cannot join — see avatarFor.
+	uploads registry.Store
+
+	readDB  database.SQLQueryExecutor
+	writeDB database.SQLQueryExecutor
 }
 
 // ProvideIdentityRepository provides a new repository.
@@ -40,6 +47,7 @@ func ProvideIdentityRepository(
 	auditLogEntryRepo audit.Repository,
 	client database.Client,
 	eventEmitter *events.Emitter,
+	uploads registry.Store,
 ) identity.Repository {
 	c := &repository{
 		Client:            client,
@@ -49,6 +57,7 @@ func ProvideIdentityRepository(
 		generatedQuerier:  generated.New(),
 		auditLogEntryRepo: auditLogEntryRepo,
 		events:            eventEmitter,
+		uploads:           uploads,
 		secretGenerator:   random.NewGenerator(random.WithLogger(logger), random.WithTracerProvider(tracerProvider)),
 		logger:            logging.NewNamedLogger(logger, o11yName),
 	}

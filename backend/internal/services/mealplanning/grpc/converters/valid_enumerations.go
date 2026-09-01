@@ -4,11 +4,12 @@ import (
 	"log"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	converters "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/converters"
 	mealplanninggrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
 	uploadedmediasvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
 	uploadedmediaconverters "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/grpc/converters"
+
+	"github.com/primandproper/platform-go/v13/uploads/registry"
 )
 
 func ConvertGRPCCreateValidIngredientRequestToValidIngredientCreationRequestInput(request *mealplanninggrpc.ValidIngredientCreationRequestInput) *mealplanning.ValidIngredientCreationRequestInput {
@@ -172,7 +173,7 @@ func ConvertValidIngredientToGRPCValidIngredient(x *mealplanning.ValidIngredient
 	}
 }
 
-func convertUploadedMediaSliceToGRPC(media []*uploadedmedia.UploadedMedia) []*uploadedmediasvc.UploadedMedia {
+func convertUploadedMediaSliceToGRPC(media []*registry.Object) []*uploadedmediasvc.UploadedMedia {
 	if len(media) == 0 {
 		return nil
 	}

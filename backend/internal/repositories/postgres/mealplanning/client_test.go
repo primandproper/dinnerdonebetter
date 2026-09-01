@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/indexevents"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
@@ -21,6 +22,8 @@ import (
 	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
 	tracingnoop "github.com/primandproper/platform-go/v13/observability/tracing/noop"
 	"github.com/primandproper/platform-go/v13/outbox"
+	"github.com/primandproper/platform-go/v13/uploads/registry"
+	registrymock "github.com/primandproper/platform-go/v13/uploads/registry/mock"
 
 	"github.com/stretchr/testify/require"
 )
@@ -62,7 +65,12 @@ func buildDatabaseClientForTest(t *testing.T) (*repository, audit.Repository) {
 
 	auditLogEntryRepo, err := auditlogentries.ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, pgc)
 	require.NoError(t, err)
-	identitiesRepo := identity.ProvideIdentityRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), auditLogEntryRepo, pgc, nil)
+	// A real registry store over the same database, so the media hydration these
+	// tests exercise reads the table a request would.
+	uploadsRegistry, err := registry.NewSQLStore(pgc, registry.WithTablePrefix(uploadedmedia.TablePrefix))
+	require.NoError(t, err)
+
+	identitiesRepo := identity.ProvideIdentityRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), auditLogEntryRepo, pgc, nil, uploadsRegistry)
 	require.NoError(t, err)
 
 	// A real emitter, so the tests exercise the same path production does: the event is
@@ -77,6 +85,7 @@ func buildDatabaseClientForTest(t *testing.T) (*repository, audit.Repository) {
 		identitiesRepo,
 		pgc,
 		events.NewEmitter(outboxWriter, testDataChangesTopic, nil, indexevents.SideEffect),
+		uploadsRegistry,
 	)
 
 	return c.(*repository), auditLogEntryRepo
@@ -85,7 +94,7 @@ func buildDatabaseClientForTest(t *testing.T) (*repository, audit.Repository) {
 func buildInertClientForTest(t *testing.T) *repository {
 	t.Helper()
 
-	c := ProvideMealPlanningRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, nil, &mockdatabase.ClientMock{ReaderFunc: func() database.SQLQueryExecutor { return nil }, WriterFunc: func() database.SQLQueryExecutor { return nil }}, nil)
+	c := ProvideMealPlanningRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, nil, &mockdatabase.ClientMock{ReaderFunc: func() database.SQLQueryExecutor { return nil }, WriterFunc: func() database.SQLQueryExecutor { return nil }}, nil, &registrymock.StoreMock{})
 
 	return c.(*repository)
 }

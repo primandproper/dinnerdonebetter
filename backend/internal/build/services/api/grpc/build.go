@@ -18,7 +18,6 @@ import (
 	oauthmgr "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth/manager"
 	paymentsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/manager"
 	settingsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings/manager"
-	uploadedmediamanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia/manager"
 	waitlistsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists/manager"
 	webhooksmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/manager"
 	appmetering "github.com/primandproper/dinnerdonebetter/backend/internal/metering"
@@ -164,7 +163,6 @@ func BuildInjector(
 	webhooksmanager.RegisterWebhookDataManager(i)
 	waitlistsmanager.RegisterWaitlistDataManager(i)
 	issuereportsmanager.RegisterIssueReportsDataManager(i)
-	uploadedmediamanager.RegisterUploadedMediaManager(i)
 	paymentsadapters.RegisterPaymentProcessorRegistry(i)
 
 	// services

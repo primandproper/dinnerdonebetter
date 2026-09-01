@@ -23,6 +23,7 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	identityrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity"
 	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
@@ -41,6 +42,7 @@ import (
 	syncsource "github.com/primandproper/platform-go/v13/search/sync/source"
 	"github.com/primandproper/platform-go/v13/search/text/algolia"
 	textsearchcfg "github.com/primandproper/platform-go/v13/search/text/config"
+	"github.com/primandproper/platform-go/v13/uploads/registry"
 
 	"github.com/spf13/cobra"
 )
@@ -159,8 +161,20 @@ func runInit(databaseURL, searchProvider, algoliaAppID, algoliaAPIKey, indicesSt
 		return fmt.Errorf("building audit log repository: %w", err)
 	}
 
-	identityRepo := identityrepo.ProvideIdentityRepository(logger, tracerProvider, auditRepo, client, nil)
-	mealPlanningRepo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditRepo, identityRepo, client, nil)
+	// A real registry store rather than nil: both repositories hydrate media
+	// through it. It needs no emitter or metrics — nothing here writes an object.
+	uploadsRegistry, err := registry.NewSQLStore(
+		client,
+		registry.WithTablePrefix(uploadedmedia.TablePrefix),
+		registry.WithStoreLogger(logger),
+		registry.WithStoreTracerProvider(tracerProvider),
+	)
+	if err != nil {
+		return fmt.Errorf("building upload registry store: %w", err)
+	}
+
+	identityRepo := identityrepo.ProvideIdentityRepository(logger, tracerProvider, auditRepo, client, nil, uploadsRegistry)
+	mealPlanningRepo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditRepo, identityRepo, client, nil, uploadsRegistry)
 
 	searchCfg := &textsearchcfg.Config{
 		Provider: searchProvider,

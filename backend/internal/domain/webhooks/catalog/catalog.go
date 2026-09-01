@@ -113,7 +113,6 @@ var definitions = webhooks.Catalog{
 	"two_factor_secret_verified":                      {Description: "A user's two factor secret was verified."},
 	"uploaded_media_archived":                         {Description: "Uploaded media was archived."},
 	"uploaded_media_created":                          {Description: "Uploaded media was created."},
-	"uploaded_media_updated":                          {Description: "Uploaded media was updated."},
 	"user_archived":                                   {Description: "A user archived their account."},
 	"user_avatar_changed":                             {Description: "A user changed their avatar."},
 	"user_details_changed":                            {Description: "A user changed their information."},

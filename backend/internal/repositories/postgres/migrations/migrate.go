@@ -10,6 +10,7 @@ import (
 	ddbcomments "github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments"
 	ddbdataprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
 	ddboauth "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
+	ddbuploadedmedia "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 
 	auditmigrations "github.com/primandproper/platform-go/v13/audit/migrations"
 	oauth2migrations "github.com/primandproper/platform-go/v13/authentication/oauth2server/database/migrations"
@@ -17,6 +18,7 @@ import (
 	webauthndatabase "github.com/primandproper/platform-go/v13/authentication/webauthn/database"
 	webauthnmigrations "github.com/primandproper/platform-go/v13/authentication/webauthn/database/migrations"
 	commentsmigrations "github.com/primandproper/platform-go/v13/comments/migrations"
+	"github.com/primandproper/platform-go/v13/database/ddl"
 	"github.com/primandproper/platform-go/v13/database/dialect"
 	"github.com/primandproper/platform-go/v13/database/migrate"
 	dataprivacymigrations "github.com/primandproper/platform-go/v13/dataprivacy/migrations"
@@ -31,6 +33,7 @@ import (
 	"github.com/primandproper/platform-go/v13/saga"
 	sagamigrations "github.com/primandproper/platform-go/v13/saga/migrations"
 	sessionsmigrations "github.com/primandproper/platform-go/v13/sessions/database/migrations"
+	uploadsregistrymigrations "github.com/primandproper/platform-go/v13/uploads/registry/migrations"
 	"github.com/primandproper/platform-go/v13/webhooks"
 	webhooksmigrations "github.com/primandproper/platform-go/v13/webhooks/migrations"
 	"github.com/primandproper/platform-go/v13/workqueue"
@@ -55,19 +58,20 @@ const lockKey = "dinnerdonebetter"
 // filename and must never be renumbered once applied. Adding another means taking the next
 // free number, whichever side it comes from.
 const (
-	outboxMigrationVersion        = 22
-	sagaMigrationVersion          = 24
-	webhooksMigrationVersion      = 25
-	auditMigrationVersion         = 27
-	dataPrivacyMigrationVersion   = 28
-	meteringMigrationVersion      = 30
-	operationsMigrationVersion    = 31
-	webauthnMigrationVersion      = 32
-	oauth2MigrationVersion        = 33
-	passwordResetMigrationVersion = 34
-	sessionsMigrationVersion      = 35
-	workQueueMigrationVersion     = 36
-	commentsMigrationVersion      = 37
+	outboxMigrationVersion          = 22
+	sagaMigrationVersion            = 24
+	webhooksMigrationVersion        = 25
+	auditMigrationVersion           = 27
+	dataPrivacyMigrationVersion     = 28
+	meteringMigrationVersion        = 30
+	operationsMigrationVersion      = 31
+	webauthnMigrationVersion        = 32
+	oauth2MigrationVersion          = 33
+	passwordResetMigrationVersion   = 34
+	sessionsMigrationVersion        = 35
+	workQueueMigrationVersion       = 36
+	commentsMigrationVersion        = 37
+	uploadsRegistryMigrationVersion = 38
 )
 
 // NewMigrator creates a new postgres Migrator over the embedded migration files.
@@ -180,6 +184,11 @@ func NewMigrator(logger logging.Logger) (*migrate.Migrator, error) {
 		return nil, err
 	}
 
+	uploadsRegistryDDL, err := renderUploadsRegistryDDL()
+	if err != nil {
+		return nil, err
+	}
+
 	migrator, err := migrate.New(
 		dialect.Postgres,
 		migrationFiles,
@@ -198,6 +207,7 @@ func NewMigrator(logger logging.Logger) (*migrate.Migrator, error) {
 		migrate.WithGeneratedMigration(sessionsMigrationVersion, "create_sessions_table", sessionsDDL),
 		migrate.WithGeneratedMigration(workQueueMigrationVersion, "create_work_queue_items_table", workQueueDDL),
 		migrate.WithGeneratedMigration(commentsMigrationVersion, "create_comments_table", commentsDDL),
+		migrate.WithGeneratedMigration(uploadsRegistryMigrationVersion, "create_uploads_objects_table", uploadsRegistryDDL),
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "building migrator")
@@ -339,6 +349,83 @@ func renderAuditDDL() (string, error) {
 		body.WriteString("\n-- +goose StatementBegin\n")
 		body.WriteString(statement)
 		body.WriteString(";\n-- +goose StatementEnd\n")
+	}
+
+	return body.String(), nil
+}
+
+// bridgeTablesReferencingUploadedMedia are this application's tables whose
+// uploaded_media_id column names a row in the upload registry.
+//
+// They are listed rather than derived because nothing can derive them: the
+// registry has never heard of them, which is the whole point of a package that
+// can be adopted by an application whose schema it does not know.
+var bridgeTablesReferencingUploadedMedia = []string{
+	"user_avatars",
+	"recipe_images",
+	"meal_images",
+	"recipe_step_images",
+	"ingredient_media",
+	"preparation_media",
+}
+
+// renderUploadsRegistryDDL renders the upload registry table, dropping the
+// uploaded_media table 00010_uploaded_media.sql created first, and re-pointing
+// this application's foreign keys at what replaced it.
+//
+// Nothing is carried across, and the two tables could not carry it anyway: the
+// platform's names the columns differently (object_key, content_type,
+// owner_id), adds the tenancy column every one of its reads filters on, and
+// adds the size that was actually stored — a number the old table never held
+// and that cannot be recovered from a row, only from the bucket.
+//
+// The MIME type enum goes with the table because the registry stores a content
+// type as text. That is the right shape regardless of who owns the table: the
+// set of types this application accepts is a rule about what it is willing to
+// store, checked before the bytes are written, and expressing it as a column
+// domain meant that widening it was an ALTER TYPE in a migration. It is now
+// uploadedmedia.IsValidMimeType, which a compiler checks and a test can cover.
+//
+// The DROP is CASCADE because six of this application's tables reference the
+// old one, and Postgres will not drop a table out from under a foreign key.
+// CASCADE drops those constraints — not the tables, and not the
+// uploaded_media_id columns, which still name exactly what they named before.
+// The ALTERs below then re-point them at the new table, so the referential
+// integrity the old schema had survives the swap rather than quietly becoming
+// six columns of unchecked text.
+//
+// The owner cascade is re-created for the same reason and is the more important
+// of the two. Every read of an upload is answered from its owner, and this
+// application's owners are all users, so a deleted user whose rows outlived them
+// would leave objects nobody can name and nothing will erase. The platform ships
+// no such key — it cannot, because it does not know which of a consumer's tables
+// holds a principal — and leaves it to the consumer, which is here. It is what
+// keeps the single identity eraser in internal/build/dataprivacy covering
+// uploads; adopting a platform store is exactly where that stops being true by
+// default.
+func renderUploadsRegistryDDL() (string, error) {
+	schema, err := uploadsregistrymigrations.SQL(dialect.Postgres, ddbuploadedmedia.TablePrefix)
+	if err != nil {
+		return "", errors.Wrap(err, "rendering uploads registry migration")
+	}
+
+	table := ddl.Qualify(ddbuploadedmedia.TablePrefix) + "uploads_objects"
+
+	body := &strings.Builder{}
+	body.WriteString("DROP TABLE IF EXISTS uploaded_media CASCADE;\nDROP TYPE IF EXISTS uploaded_media_mime_type;\n\n")
+
+	// The registry has no update. Every column is a fact about bytes that are
+	// already in a bucket, so a row that could be edited is a row that could stop
+	// describing its object — which is why the RPC went with the local table and
+	// why the capability naming it goes with the RPC. Left behind, it would be a
+	// line in the role grid that grants nothing and that nothing checks. The grants
+	// referencing it cascade from this delete.
+	body.WriteString("DELETE FROM permissions WHERE name = 'update.uploaded_media';\n\n")
+	body.WriteString(schema)
+	body.WriteString("\n\nALTER TABLE " + table + "\n\tADD CONSTRAINT " + table + "_owner_fk\n\tFOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE;\n")
+
+	for _, bridge := range bridgeTablesReferencingUploadedMedia {
+		body.WriteString("\nALTER TABLE " + bridge + "\n\tADD CONSTRAINT " + bridge + "_uploaded_media_fk\n\tFOREIGN KEY (uploaded_media_id) REFERENCES " + table + "(id) ON DELETE CASCADE;\n")
 	}
 
 	return body.String(), nil

@@ -6,7 +6,6 @@ import (
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	eatingindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
 	platformerrors "github.com/primandproper/platform-go/v13/errors"
@@ -15,6 +14,7 @@ import (
 	platformkeys "github.com/primandproper/platform-go/v13/observability/keys"
 	"github.com/primandproper/platform-go/v13/observability/tracing"
 	searchpagination "github.com/primandproper/platform-go/v13/search/pagination"
+	"github.com/primandproper/platform-go/v13/uploads/registry"
 )
 
 func (m *mealPlanningManager) SearchValidPreparations(ctx context.Context, query string, useSearchService bool, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.ValidPreparation], error) {
@@ -208,11 +208,11 @@ func (m *mealPlanningManager) enrichValidPreparationWithMedia(ctx context.Contex
 	if err != nil {
 		return err
 	}
-	mediaByID := make(map[string]*uploadedmedia.UploadedMedia)
+	mediaByID := make(map[string]*registry.Object)
 	for _, um := range mediaList {
 		mediaByID[um.ID] = um
 	}
-	prep.Media = make([]*uploadedmedia.UploadedMedia, 0, len(rows))
+	prep.Media = make([]*registry.Object, 0, len(rows))
 	for _, r := range rows {
 		if um := mediaByID[r.UploadedMediaID]; um != nil {
 			prep.Media = append(prep.Media, um)

@@ -36,7 +36,6 @@ import (
 	paymentsprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/privacy"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings"
 	settingsprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings/privacy"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	uploadedmediaprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia/privacy"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists"
 	waitlistsprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists/privacy"
@@ -55,6 +54,7 @@ import (
 	"github.com/primandproper/platform-go/v13/observability/metrics"
 	"github.com/primandproper/platform-go/v13/observability/tracing"
 	"github.com/primandproper/platform-go/v13/operations"
+	uploadsregistry "github.com/primandproper/platform-go/v13/uploads/registry"
 
 	"github.com/samber/do/v2"
 )
@@ -117,7 +117,7 @@ func buildRegistry(i do.Injector) (*platformdataprivacy.Registry, error) {
 		ddbdataprivacy.CollectorKeyAuditLog: auditprivacy.NewCollector(do.MustInvoke[auditdomain.Repository](i)),
 		ddbdataprivacy.CollectorKeyIssueReports: issuereportsprivacy.NewCollector(
 			do.MustInvoke[issuereports.Repository](i), resolveAccounts, logger, tracerProvider),
-		ddbdataprivacy.CollectorKeyUploadedMedia: uploadedmediaprivacy.NewCollector(do.MustInvoke[uploadedmedia.Repository](i)),
+		ddbdataprivacy.CollectorKeyUploadedMedia: uploadedmediaprivacy.NewCollector(do.MustInvoke[uploadsregistry.Store](i)),
 		ddbdataprivacy.CollectorKeyWaitlists:     waitlistsprivacy.NewCollector(do.MustInvoke[waitlists.Repository](i)),
 		ddbdataprivacy.CollectorKeyComments:      commentsCollector,
 	}

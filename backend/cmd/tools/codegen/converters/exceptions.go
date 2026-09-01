@@ -26,9 +26,6 @@ var fieldExceptions = map[string]map[string]Rule{
 		fieldBelongsToUser:    Skip(ownerFromSession),
 		fieldBelongsToAccount: Skip(ownerFromSession),
 	},
-	"ConvertUploadedMediaCreationRequestInputToUploadedMediaDatabaseCreationInput": {
-		fieldCreatedByUser: Skip(ownerFromSession),
-	},
 	"ConvertAccountUserMembershipToAccountUserMembershipDatabaseCreationInput": {
 		"UserID":    Expr("x.BelongsToUser", "The membership names its user as BelongsToUser; the row that creates one calls the same thing UserID."),
 		"AccountID": Expr("x.BelongsToAccount", "The membership names its account as BelongsToAccount; the row that creates one calls the same thing AccountID."),

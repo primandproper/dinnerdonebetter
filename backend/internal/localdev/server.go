@@ -207,7 +207,11 @@ func WithIdentityRepository(fn func(ctx context.Context, repo identity.Repositor
 		if err != nil {
 			return err
 		}
-		identityRepo := identityrepo.ProvideIdentityRepository(logger, tracerProvider, auditLogRepo, dbClient, nil)
+		uploads, err := UploadsRegistry(logger, tracerProvider, dbClient)
+		if err != nil {
+			return err
+		}
+		identityRepo := identityrepo.ProvideIdentityRepository(logger, tracerProvider, auditLogRepo, dbClient, nil, uploads)
 		return fn(ctx, identityRepo, logger, tracerProvider, dbClient)
 	}
 }
@@ -250,8 +254,12 @@ func WithMealPlanningRepository(fn func(ctx context.Context, repo mealplanning.R
 		if err != nil {
 			return err
 		}
-		identityRepo := identityrepo.ProvideIdentityRepository(logger, tracerProvider, auditLogRepo, dbClient, nil)
-		mealPlanningRepo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditLogRepo, identityRepo, dbClient, nil)
+		uploads, err := UploadsRegistry(logger, tracerProvider, dbClient)
+		if err != nil {
+			return err
+		}
+		identityRepo := identityrepo.ProvideIdentityRepository(logger, tracerProvider, auditLogRepo, dbClient, nil, uploads)
+		mealPlanningRepo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditLogRepo, identityRepo, dbClient, nil, uploads)
 		return fn(ctx, mealPlanningRepo, logger, tracerProvider)
 	}
 }

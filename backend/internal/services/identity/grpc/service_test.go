@@ -8,7 +8,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	managermock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/manager/mock"
-	uploadedmediamock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia/mock"
 	identitysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
 
@@ -17,6 +16,7 @@ import (
 	"github.com/primandproper/platform-go/v13/observability/tracing"
 	tracingnoop "github.com/primandproper/platform-go/v13/observability/tracing/noop"
 	mockuploads "github.com/primandproper/platform-go/v13/uploads/mock"
+	registrymock "github.com/primandproper/platform-go/v13/uploads/registry/mock"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -27,24 +27,24 @@ func buildTestService(t *testing.T) (*serviceImpl, *managermock.IdentityDataMana
 	return service, identityDataManager
 }
 
-func buildTestServiceWithUploadMocks(t *testing.T) (*serviceImpl, *managermock.IdentityDataManagerMock, *uploadedmediamock.RepositoryMock) {
+func buildTestServiceWithUploadMocks(t *testing.T) (*serviceImpl, *managermock.IdentityDataManagerMock, *registrymock.StoreMock) {
 	t.Helper()
 
 	logger := loggingnoop.NewLogger()
 	tracer := tracing.NewTracerForTest(t.Name())
 	identityDataManager := &managermock.IdentityDataManagerMock{}
-	uploadedMediaRepo := &uploadedmediamock.RepositoryMock{}
+	uploadsRegistry := &registrymock.StoreMock{}
 	uploadManager := &mockuploads.UploadManagerMock{}
 
 	service := &serviceImpl{
-		tracer:               tracer,
-		logger:               logger,
-		identityDataManager:  identityDataManager,
-		uploadedMediaManager: uploadedMediaRepo,
-		uploadManager:        uploadManager,
+		tracer:              tracer,
+		logger:              logger,
+		identityDataManager: identityDataManager,
+		registry:            uploadsRegistry,
+		uploadManager:       uploadManager,
 	}
 
-	return service, identityDataManager, uploadedMediaRepo
+	return service, identityDataManager, uploadsRegistry
 }
 
 // buildSessionContextForTest returns a context whose session is an ordinary, good-standing user.
@@ -109,9 +109,9 @@ func TestNewService(t *testing.T) {
 		tracerProvider := tracingnoop.NewTracerProvider()
 		identityDataManager := &managermock.IdentityDataManagerMock{}
 
-		uploadedMediaManager := &uploadedmediamock.RepositoryMock{}
+		uploadsRegistry := &registrymock.StoreMock{}
 		uploadManager := &mockuploads.UploadManagerMock{}
-		service := NewService(logger, tracerProvider, identityDataManager, uploadedMediaManager, uploadManager)
+		service := NewService(logger, tracerProvider, identityDataManager, uploadsRegistry, uploadManager)
 
 		assert.NotNil(t, service)
 		assert.Implements(t, (*identitysvc.IdentityServiceServer)(nil), service)
@@ -122,7 +122,7 @@ func TestNewService(t *testing.T) {
 		assert.NotNil(t, impl.logger)
 		assert.NotNil(t, impl.tracer)
 		assert.Equal(t, identityDataManager, impl.identityDataManager)
-		assert.Equal(t, uploadedMediaManager, impl.uploadedMediaManager)
+		assert.Equal(t, uploadsRegistry, impl.registry)
 		assert.Equal(t, uploadManager, impl.uploadManager)
 	})
 }

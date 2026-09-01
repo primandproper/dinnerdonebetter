@@ -8,7 +8,6 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	identityfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	identitysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
 	uploadedmediasvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
 
@@ -17,6 +16,7 @@ import (
 	"github.com/primandproper/platform-go/v13/filtering/filteringpb"
 	"github.com/primandproper/platform-go/v13/uploads"
 	mockuploads "github.com/primandproper/platform-go/v13/uploads/mock"
+	"github.com/primandproper/platform-go/v13/uploads/registry"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -710,7 +710,7 @@ func TestServiceImpl_UploadUserAvatar(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		service, identityDataManager, uploadedMediaRepo := buildTestServiceWithUploadMocks(t)
+		service, identityDataManager, uploadsRegistry := buildTestServiceWithUploadMocks(t)
 
 		metadataReq := &uploadedmediasvc.UploadRequest{
 			Payload: &uploadedmediasvc.UploadRequest_Metadata{
@@ -731,9 +731,7 @@ func TestServiceImpl_UploadUserAvatar(T *testing.T) {
 
 		uploadManager := service.uploadManager.(*mockuploads.UploadManagerMock)
 		uploadManager.SaveFunc = func(_ context.Context, _ string, _ io.Reader, _ ...uploads.SaveOption) error { return nil }
-		uploadedMediaRepo.CreateUploadedMediaFunc = func(_ context.Context, _ *uploadedmedia.UploadedMediaDatabaseCreationInput) (*uploadedmedia.UploadedMedia, error) {
-			return &uploadedmedia.UploadedMedia{ID: fake.BuildFakeID()}, nil
-		}
+		uploadsRegistry.RecordObjectFunc = func(_ context.Context, _ *registry.Object) error { return nil }
 		identityDataManager.SetUserAvatarFunc = func(_ context.Context, _ string, _ string) error {
 			return nil
 		}
@@ -743,7 +741,7 @@ func TestServiceImpl_UploadUserAvatar(T *testing.T) {
 
 		require.NoError(t, err)
 		assert.Len(t, identityDataManager.SetUserAvatarCalls(), 1)
-		assert.Len(t, uploadedMediaRepo.CreateUploadedMediaCalls(), 1)
+		assert.Len(t, uploadsRegistry.RecordObjectCalls(), 1)
 	})
 
 	T.Run("with session error", func(t *testing.T) {
@@ -765,7 +763,7 @@ func TestServiceImpl_UploadUserAvatar(T *testing.T) {
 	T.Run("with error from data manager", func(t *testing.T) {
 		t.Parallel()
 
-		service, identityDataManager, uploadedMediaRepo := buildTestServiceWithUploadMocks(t)
+		service, identityDataManager, uploadsRegistry := buildTestServiceWithUploadMocks(t)
 
 		metadataReq := &uploadedmediasvc.UploadRequest{
 			Payload: &uploadedmediasvc.UploadRequest_Metadata{
@@ -786,9 +784,7 @@ func TestServiceImpl_UploadUserAvatar(T *testing.T) {
 
 		uploadManager := service.uploadManager.(*mockuploads.UploadManagerMock)
 		uploadManager.SaveFunc = func(_ context.Context, _ string, _ io.Reader, _ ...uploads.SaveOption) error { return nil }
-		uploadedMediaRepo.CreateUploadedMediaFunc = func(_ context.Context, _ *uploadedmedia.UploadedMediaDatabaseCreationInput) (*uploadedmedia.UploadedMedia, error) {
-			return &uploadedmedia.UploadedMedia{ID: fake.BuildFakeID()}, nil
-		}
+		uploadsRegistry.RecordObjectFunc = func(_ context.Context, _ *registry.Object) error { return nil }
 		identityDataManager.SetUserAvatarFunc = func(_ context.Context, _ string, _ string) error {
 			return errors.New("set avatar error")
 		}
@@ -801,6 +797,6 @@ func TestServiceImpl_UploadUserAvatar(T *testing.T) {
 		assert.True(t, ok)
 		assert.Equal(t, codes.Internal, grpcErr.Code())
 		assert.Len(t, identityDataManager.SetUserAvatarCalls(), 1)
-		assert.Len(t, uploadedMediaRepo.CreateUploadedMediaCalls(), 1)
+		assert.Len(t, uploadsRegistry.RecordObjectCalls(), 1)
 	})
 }

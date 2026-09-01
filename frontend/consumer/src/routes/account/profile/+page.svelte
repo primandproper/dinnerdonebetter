@@ -39,8 +39,8 @@
   const avatarStoragePath = $derived(
     latestAvatarPath ??
       (form as { avatarStoragePath?: string } | undefined)?.avatarStoragePath ??
-      user?.avatar?.storagePath ??
-      (user?.avatar as { storage_path?: string } | undefined)?.storage_path ??
+      user?.avatar?.objectKey ??
+      (user?.avatar as { object_key?: string } | undefined)?.object_key ??
       '',
   );
   const avatarUrl = $derived(

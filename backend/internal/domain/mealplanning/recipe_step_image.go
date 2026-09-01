@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
+	"github.com/primandproper/platform-go/v13/uploads/registry"
 )
 
 // RecipeStepImageRow represents a row from recipe_step_images table.
@@ -26,5 +26,5 @@ type RecipeStepImageDataManager interface {
 // RecipeStepImageWithUploadedMedia pairs a recipe step image row with its uploaded media.
 type RecipeStepImageWithUploadedMedia struct {
 	Row           *RecipeStepImageRow
-	UploadedMedia *uploadedmedia.UploadedMedia
+	UploadedMedia *registry.Object
 }
