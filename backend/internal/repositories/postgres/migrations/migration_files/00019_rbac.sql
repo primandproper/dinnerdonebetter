@@ -209,7 +209,11 @@ INSERT INTO permissions (id, name, description) VALUES
     ('d74epksn9qd63pdj4460', 'create.subscriptions', 'Create subscriptions'),
     ('d74epksn9qd63pdj446g', 'read.subscriptions', 'Read subscriptions'),
     ('d74epksn9qd63pdj4470', 'update.subscriptions', 'Update subscriptions'),
-    ('d74epksn9qd63pdj447g', 'archive.subscriptions', 'Archive subscriptions');
+    ('d74epksn9qd63pdj447g', 'archive.subscriptions', 'Archive subscriptions'),
+    -- data privacy
+    ('d74epksn9qd63pdj45h0', 'create.user_data_reports', 'Request an export of one''s own data'),
+    ('d74epksn9qd63pdj45hg', 'read.user_data_reports', 'Read one''s own data privacy requests and artifacts'),
+    ('d74epksn9qd63pdj45i0', 'destroy.user_data', 'Request erasure of one''s own data');
 
 -- =============================================================================
 -- SEED DATA: core role-permission mappings
@@ -303,4 +307,11 @@ INSERT INTO user_role_permissions (id, role_id, permission_id) VALUES
     ('d74epksn9qd63pdj45eg', 'role_account_member', 'd74epksn9qd63pdj442g'),
     ('d74epksn9qd63pdj45f0', 'role_account_member', 'd74epksn9qd63pdj4430'),
     ('d74epksn9qd63pdj45fg', 'role_account_member', 'd74epksn9qd63pdj443g'),
-    ('d74epksn9qd63pdj45g0', 'role_account_member', 'd74epksn9qd63pdj446g');
+    ('d74epksn9qd63pdj45g0', 'role_account_member', 'd74epksn9qd63pdj446g'),
+    -- Data privacy, granted to the base role every principal inherits. A subject access
+    -- request is a right the subject holds, not an account privilege: it is asked for by a
+    -- person about themselves, and there is no role a real user could hold that should be
+    -- unable to ask.
+    ('d74epksn9qd63pdj45j0', 'role_account_member', 'd74epksn9qd63pdj45h0'),
+    ('d74epksn9qd63pdj45jg', 'role_account_member', 'd74epksn9qd63pdj45hg'),
+    ('d74epksn9qd63pdj45k0', 'role_account_member', 'd74epksn9qd63pdj45i0');

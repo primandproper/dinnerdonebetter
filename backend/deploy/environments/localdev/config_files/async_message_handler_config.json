@@ -8,6 +8,9 @@
 	"pushNotifications": {
 		"provider": "noop"
 	},
+	"encoding": {
+		"contentType": "application/json"
+	},
 	"events": {
 		"consumer": {
 			"provider": "redis",
