@@ -130,7 +130,12 @@ func (q *repository) GetMealPlan(ctx context.Context, mealPlanID, accountID stri
 	return q.getMealPlan(ctx, mealPlanID, accountID)
 }
 
-// GetMealPlansForAccount fetches a list of meal plans from the database that meet a particular filter.
+// GetMealPlansForAccount fetches a page of an account's meal plans, each carrying its
+// events but not the options hanging off them. It answers the list endpoint, which
+// returns a MealPlanSummary.
+//
+// GetHydratedMealPlansForAccount is the same page with everything attached, for the
+// one caller that needs whole records.
 func (q *repository) GetMealPlansForAccount(ctx context.Context, accountID string, filter *filtering.QueryFilter) (x *filtering.QueryFilteredResult[types.MealPlan], err error) {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
@@ -189,16 +194,15 @@ func (q *repository) GetMealPlansForAccount(ctx context.Context, accountID strin
 		})
 	}
 
-	fullMealPlans := []*types.MealPlan{}
-	for _, mp := range data {
-		fmp, mealPlanFetchErr := q.getMealPlan(ctx, mp.ID, accountID)
-		if mealPlanFetchErr != nil {
-			return nil, observability.PrepareError(mealPlanFetchErr, span, "scanning meal plans")
-		}
-
-		fullMealPlans = append(fullMealPlans, fmp)
+	// Attach each plan's events, but not the options hanging off them. This used to
+	// refetch every plan through getMealPlan, which hydrated options, their meals, and
+	// every recipe inside those -- a page of eight plans cleared the 4 MiB gRPC message
+	// bound on its own. GetMealPlansForAccount answers with a MealPlanSummary, whose
+	// events carry no options, so the hydration was work the converter then discarded.
+	// A caller that needs a plan's options fetches the plan by ID.
+	if err = q.attachEventsToMealPlans(ctx, data); err != nil {
+		return nil, observability.PrepareAndLogError(err, logger, span, "attaching events to meal plans")
 	}
-	data = fullMealPlans
 
 	x = filtering.NewQueryFilteredResult(
 		data,
@@ -209,6 +213,140 @@ func (q *repository) GetMealPlansForAccount(ctx context.Context, accountID strin
 	)
 
 	return x, nil
+}
+
+// GetChosenMealNamesForMealPlans returns, keyed by meal plan event ID, the name of the
+// meal on the option voting settled on. Events still awaiting a decision are absent.
+//
+// It backs MealPlanSummary.events[].chosen_meal_name, which is the one thing a list of
+// plans reads out of the options those summaries drop.
+func (q *repository) GetChosenMealNamesForMealPlans(ctx context.Context, mealPlanIDs []string) (map[string]string, error) {
+	ctx, span := q.tracer.StartSpan(ctx)
+	defer span.End()
+
+	names := map[string]string{}
+	if len(mealPlanIDs) == 0 {
+		return names, nil
+	}
+
+	results, err := q.generatedQuerier.GetChosenMealNamesForMealPlans(ctx, q.readDB, mealPlanIDs)
+	if err != nil {
+		return nil, observability.PrepareError(err, span, "executing chosen meal names query")
+	}
+
+	for _, result := range results {
+		names[result.ID] = result.Name
+	}
+
+	return names, nil
+}
+
+// GetMealPlanIDsVotedOnByUser returns which of the given meal plans the user has cast a
+// non-abstaining vote on. An abstention is deliberately not a vote here, matching what
+// the clients counted when they read the votes off a hydrated plan themselves.
+//
+// It backs MealPlanSummary.current_user_has_voted.
+func (q *repository) GetMealPlanIDsVotedOnByUser(ctx context.Context, userID string, mealPlanIDs []string) ([]string, error) {
+	ctx, span := q.tracer.StartSpan(ctx)
+	defer span.End()
+
+	if userID == "" {
+		return nil, platformerrors.ErrInvalidIDProvided
+	}
+	tracing.AttachToSpan(span, identitykeys.UserIDKey, userID)
+
+	if len(mealPlanIDs) == 0 {
+		return []string{}, nil
+	}
+
+	results, err := q.generatedQuerier.GetMealPlanIDsVotedOnByUser(ctx, q.readDB, &generated.GetMealPlanIDsVotedOnByUserParams{
+		IDs:    mealPlanIDs,
+		ByUser: userID,
+	})
+	if err != nil {
+		return nil, observability.PrepareError(err, span, "executing voted-on meal plans query")
+	}
+
+	return results, nil
+}
+
+// GetHydratedMealPlansForAccount fetches a page of an account's meal plans with every
+// event, option, meal and selection attached.
+//
+// It exists for the data-privacy collector, whose UserDataCollection is serialized to
+// blob storage and has to hold the whole record. Nothing a client reads should use it:
+// a single hydrated plan runs to hundreds of kilobytes, which is why the list endpoint
+// answers with summaries. See GetMealPlansForAccount.
+//
+// Building on that page means its events are fetched and then replaced, which is one
+// wasted query per page. That is cheaper than a second copy of the list query and its
+// filter handling, on a path that runs once per export request.
+func (q *repository) GetHydratedMealPlansForAccount(ctx context.Context, accountID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.MealPlan], error) {
+	ctx, span := q.tracer.StartSpan(ctx)
+	defer span.End()
+
+	page, err := q.GetMealPlansForAccount(ctx, accountID, filter)
+	if err != nil {
+		return nil, observability.PrepareError(err, span, "fetching meal plans to hydrate")
+	}
+
+	for i, mealPlan := range page.Data {
+		hydrated, hydrateErr := q.getMealPlan(ctx, mealPlan.ID, accountID)
+		if hydrateErr != nil {
+			return nil, observability.PrepareError(hydrateErr, span, "hydrating meal plan")
+		}
+
+		page.Data[i] = hydrated
+	}
+
+	return page, nil
+}
+
+// attachEventsToMealPlans populates the Events of every plan given, in one query for
+// the whole page rather than one per plan. The events carry no options: this is the
+// list path, and MealPlanSummary drops them.
+func (q *repository) attachEventsToMealPlans(ctx context.Context, mealPlans []*types.MealPlan) error {
+	ctx, span := q.tracer.StartSpan(ctx)
+	defer span.End()
+
+	if len(mealPlans) == 0 {
+		return nil
+	}
+
+	byID := make(map[string]*types.MealPlan, len(mealPlans))
+	ids := make([]string, 0, len(mealPlans))
+	for _, mealPlan := range mealPlans {
+		mealPlan.Events = []*types.MealPlanEvent{}
+		byID[mealPlan.ID] = mealPlan
+		ids = append(ids, mealPlan.ID)
+	}
+
+	results, err := q.generatedQuerier.GetAllMealPlanEventsForMealPlans(ctx, q.readDB, ids)
+	if err != nil {
+		return observability.PrepareError(err, span, "executing meal plan events list retrieval query")
+	}
+
+	for _, result := range results {
+		mealPlan, ok := byID[result.BelongsToMealPlan]
+		if !ok {
+			continue
+		}
+
+		mealPlan.Events = append(mealPlan.Events, &types.MealPlanEvent{
+			CreatedAt:         result.CreatedAt,
+			StartsAt:          result.StartsAt,
+			EndsAt:            result.EndsAt,
+			ArchivedAt:        database.TimePointerFromNullTime(result.ArchivedAt),
+			LastUpdatedAt:     database.TimePointerFromNullTime(result.LastUpdatedAt),
+			MealName:          string(result.MealName),
+			Notes:             result.Notes,
+			BelongsToMealPlan: result.BelongsToMealPlan,
+			ID:                result.ID,
+			Options:           []*types.MealPlanOption{},
+		})
+	}
+
+	return nil
 }
 
 // CreateMealPlan creates a meal plan in the database.

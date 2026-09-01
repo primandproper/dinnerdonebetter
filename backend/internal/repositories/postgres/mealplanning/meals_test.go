@@ -132,6 +132,87 @@ func TestQuerier_Integration_GetMealsWithIDs(t *testing.T) {
 	assert.Contains(t, found, meal2.ID)
 }
 
+// GetMeals and SearchForMeals used to hydrate each component's recipe with a getRecipe
+// call apiece -- 750 of them on a max-limit page of three-component meals -- and since
+// the responses became summaries the result was discarded too. They join recipes now.
+// This is the guard that dropping the hydration did not blank the component out: the
+// generated row carried nothing but the recipe's ID before the join.
+func TestQuerier_Integration_Meals_ComponentsCarryTheirRecipe(t *testing.T) {
+	ctx := t.Context()
+	dbc, _ := buildDatabaseClientForTest(t)
+
+	user := pgtesting.CreateUserForTest(t, nil, dbc.writeDB)
+	recipe := createRecipeForTest(t, ctx, buildRecipeForTestCreation(t, ctx, user.ID, dbc), dbc, false)
+	meal := createMealForTest(t, ctx, buildMealForIntegrationTest(user.ID, recipe), dbc)
+
+	assertComponentCarriesTheRecipe := func(t *testing.T, listed *types.Meal) {
+		t.Helper()
+
+		require.Len(t, listed.Components, 1)
+		component := listed.Components[0]
+
+		assert.Equal(t, recipe.ID, component.Recipe.ID)
+		assert.Equal(t, recipe.Name, component.Recipe.Name)
+		assert.Equal(t, recipe.Slug, component.Recipe.Slug)
+		assert.Equal(t, recipe.Description, component.Recipe.Description)
+		assert.Equal(t, recipe.Status, component.Recipe.Status)
+		assert.Equal(t, recipe.PortionName, component.Recipe.PortionName)
+		assert.Equal(t, recipe.PluralPortionName, component.Recipe.PluralPortionName)
+		assert.Equal(t, recipe.CreatedByUser, component.Recipe.CreatedByUser)
+		assert.Equal(t, recipe.YieldsComponentType, component.Recipe.YieldsComponentType)
+		assert.Equal(t, recipe.EligibleForMeals, component.Recipe.EligibleForMeals)
+		assert.InDelta(t, recipe.MinEstimatedPortions, component.Recipe.MinEstimatedPortions, 0.001)
+
+		// What the join deliberately does not carry: the response projects each
+		// component onto a RecipeSummary, so hydrating these would be work the
+		// converter throws away. Fetch the meal by ID for whole recipes.
+		assert.Empty(t, component.Recipe.Steps)
+		assert.Empty(t, component.Recipe.PrepTasks)
+		assert.Empty(t, component.Recipe.Media)
+		assert.Empty(t, component.Recipe.AssociatedRecipes)
+	}
+
+	listed, err := dbc.GetMeals(ctx, nil)
+	require.NoError(t, err)
+	require.NotEmpty(t, listed.Data)
+
+	var found *types.Meal
+	for _, m := range listed.Data {
+		if m.ID == meal.ID {
+			found = m
+		}
+	}
+	require.NotNil(t, found, "created meal missing from the listing")
+	assertComponentCarriesTheRecipe(t, found)
+
+	searched, err := dbc.SearchForMeals(ctx, meal.Name, nil)
+	require.NoError(t, err)
+	require.NotEmpty(t, searched.Data)
+
+	found = nil
+	for _, m := range searched.Data {
+		if m.ID == meal.ID {
+			found = m
+		}
+	}
+	require.NotNil(t, found, "created meal missing from the search results")
+	assertComponentCarriesTheRecipe(t, found)
+
+	// A meal whose component's recipe is archived drops the component rather than
+	// listing it with a blank recipe. Before the join this was a getRecipe returning no
+	// rows; now it is the recipes LEFT JOIN matching nothing.
+	require.NoError(t, dbc.ArchiveRecipe(ctx, recipe.ID, user.ID))
+
+	listed, err = dbc.GetMeals(ctx, nil)
+	require.NoError(t, err)
+
+	for _, m := range listed.Data {
+		if m.ID == meal.ID {
+			assert.Empty(t, m.Components)
+		}
+	}
+}
+
 func TestQuerier_Integration_FindMealWithSameComponents(t *testing.T) {
 	ctx := t.Context()
 	dbc, _ := buildDatabaseClientForTest(t)

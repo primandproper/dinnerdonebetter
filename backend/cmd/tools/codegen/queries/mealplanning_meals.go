@@ -30,6 +30,16 @@ var mealsColumns = []string{
 	createdByUserColumn,
 }
 
+// mealComponentRecipeColumns are the recipe columns GetMeals and SearchForMeals select
+// alongside each component. They are the RecipeSummary's columns, which is what a meal
+// list or search response carries per component -- selecting them here is what lets those
+// queries build a component without a getRecipe hydration each.
+//
+// recipes.id is left out because meal_components.recipe_id already arrives as
+// component_recipe_id and holds the same value; last_indexed_at and last_validated_at are
+// left out because the domain Recipe has no field for either.
+var mealComponentRecipeColumns = filterFromSlice(recipesColumns, idColumn, lastIndexedAtColumn, lastValidatedAtColumn)
+
 func buildMealsQueries(database string) []*Query {
 	switch database {
 	case postgres:
@@ -41,6 +51,15 @@ func buildMealsQueries(database string) []*Query {
 			applyToEach(mealComponentsColumns, func(i int, s string) string {
 				return fmt.Sprintf("%s.%s as component_%s", mealComponentsTableName, s, s)
 			})...,
+		)
+
+		// The list and search selects carry each component's recipe as well, so the
+		// repository can build the component's RecipeSummary from the row.
+		summarySelectColumns := slices.Concat(
+			fullSelectColumns,
+			applyToEach(mealComponentRecipeColumns, func(i int, s string) string {
+				return fmt.Sprintf("%s.%s as component_recipe_%s", recipesTableName, s, s)
+			}),
 		)
 
 		return slices.Concat(
@@ -141,16 +160,28 @@ WHERE %s.%s IS NULL
 						Name: "GetMeals",
 						Type: ManyType,
 					},
+					// Both joins are LEFT joins, and the recipes one replaces the EXISTS
+					// that used to hang off the meal_components join condition. A
+					// component whose recipe is archived now arrives with null recipe
+					// columns instead of dropping out of the result, and the repository
+					// skips it -- which is what it already did when the getRecipe this
+					// join replaces came back with no rows.
+					//
+					// Chaining the joins rather than nesting the recipes one inside the
+					// LEFT JOIN's right operand is deliberate: sqlc infers nullability
+					// from the join tree, and it reads a parenthesized operand as
+					// non-nullable, which would type a component-less meal's columns as
+					// bare strings and fail to scan.
 					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
 	%s,
 	%s,
 	%s
 FROM %s
 	LEFT JOIN %s ON %s.%s=%s.%s AND %s.%s IS NULL
-		AND EXISTS (SELECT 1 FROM %s WHERE %s.%s = %s.%s AND %s.%s IS NULL)
+	LEFT JOIN %s ON %s.%s = %s.%s AND %s.%s IS NULL
 WHERE %s
 %s;`,
-						strings.Join(fullSelectColumns, ",\n\t"),
+						strings.Join(summarySelectColumns, ",\n\t"),
 						pgGen.FilterCountSelect(mealsTableName, mealsColumns, []string{}),
 						pgGen.TotalCountSelect(mealsTableName, mealsColumns, []string{}),
 						mealsTableName,
@@ -161,13 +192,8 @@ WHERE %s
 						idColumn,
 						mealComponentsTableName,
 						archivedAtColumn,
-						recipesTableName,
-						recipesTableName,
-						idColumn,
-						mealComponentsTableName,
-						recipeIDColumn,
-						recipesTableName,
-						archivedAtColumn,
+						recipesTableName, recipesTableName, idColumn, mealComponentsTableName, recipeIDColumn,
+						recipesTableName, archivedAtColumn,
 						pgGen.FilterConditions(mealsTableName, mealsColumns, querygen.Ascending),
 						pgGen.CursorLimitClause(mealsTableName, querygen.Ascending),
 					)),
@@ -240,6 +266,9 @@ WHERE %s
 						Name: "SearchForMeals",
 						Type: ManyType,
 					},
+					// The EXISTS this join replaces filtered on exactly the same rows;
+					// as an inner join it also carries the recipe's columns out, which
+					// is what spares the repository a getRecipe per component.
 					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
 	%s,
 	%s,
@@ -247,10 +276,10 @@ WHERE %s
 FROM %s
 	JOIN %s ON %s.%s=%s.%s
 		AND %s.%s IS NULL
-		AND EXISTS (SELECT 1 FROM %s WHERE %s.%s = %s.%s AND %s.%s IS NULL)
+	JOIN %s ON %s.%s = %s.%s AND %s.%s IS NULL
 WHERE %s
 %s;`,
-						strings.Join(fullSelectColumns, ",\n\t"),
+						strings.Join(summarySelectColumns, ",\n\t"),
 						pgGen.FilterCountSelect(mealsTableName, mealsColumns, []string{}),
 						pgGen.TotalCountSelect(mealsTableName, mealsColumns, []string{}),
 						mealsTableName,
@@ -261,13 +290,8 @@ WHERE %s
 						idColumn,
 						mealComponentsTableName,
 						archivedAtColumn,
-						recipesTableName,
-						recipesTableName,
-						idColumn,
-						mealComponentsTableName,
-						recipeIDColumn,
-						recipesTableName,
-						archivedAtColumn,
+						recipesTableName, recipesTableName, idColumn, mealComponentsTableName, recipeIDColumn,
+						recipesTableName, archivedAtColumn,
 						pgGen.FilterConditions(mealsTableName, mealsColumns, querygen.Ascending,
 							fmt.Sprintf("%s.%s %s", mealsTableName, nameColumn, buildILIKEForArgument("query")),
 						),

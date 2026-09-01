@@ -26,7 +26,7 @@ class HomeViewModel {
     return Date(timeIntervalSince1970: seconds + nanos)
   }
   // Data
-  var allMealPlans: [Mealplanning_MealPlan] = []
+  var allMealPlans: [Mealplanning_MealPlanSummary] = []
   var userTasks: [Mealplanning_MealPlanTask] = []
   var tasksByMealPlan: [String: [Mealplanning_MealPlanTask]] = [:]
   var groceryLists: [String: [Mealplanning_MealPlanGroceryListItem]] = [:]  // Keyed by meal plan ID
@@ -52,7 +52,7 @@ class HomeViewModel {
   var isServerDownError = false
 
   // Computed properties
-  var pendingVoteMealPlans: [Mealplanning_MealPlan] {
+  var pendingVoteMealPlans: [Mealplanning_MealPlanSummary] {
     let now = Date()
     return allMealPlans.filter { mealPlan in
       // Meal plan is pending if voting deadline hasn't passed and status indicates voting
@@ -66,7 +66,7 @@ class HomeViewModel {
   }
 
   /// The active meal plan: finalized plan whose start/end range is closest to the current date.
-  var activeMealPlan: Mealplanning_MealPlan? {
+  var activeMealPlan: Mealplanning_MealPlanSummary? {
     let candidates = allMealPlans.filter { mealPlan in
       mealPlan.status == .finalized && !mealPlan.events.isEmpty
     }
@@ -77,7 +77,7 @@ class HomeViewModel {
   }
 
   /// Distance from now to a plan's date range: 0 if within, otherwise seconds to nearest boundary.
-  private func distanceFromNow(to mealPlan: Mealplanning_MealPlan) -> TimeInterval {
+  private func distanceFromNow(to mealPlan: Mealplanning_MealPlanSummary) -> TimeInterval {
     let now = Date()
     let start = mealPlanStartDate(mealPlan)
     let end = mealPlanEndDate(mealPlan)
@@ -87,7 +87,7 @@ class HomeViewModel {
   }
 
   /// Finalized meal plans that are not the active plan (e.g. next week's plan).
-  var futureFinalizedMealPlans: [Mealplanning_MealPlan] {
+  var futureFinalizedMealPlans: [Mealplanning_MealPlanSummary] {
     guard let active = activeMealPlan else {
       return allMealPlans.filter { $0.status == .finalized && !$0.events.isEmpty }
         .sorted { mealPlanStartDate($0) < mealPlanStartDate($1) }
@@ -103,7 +103,7 @@ class HomeViewModel {
 
   /// Meal plans that are not finalized and start after the active meal plan's end date.
   /// Only meaningful when there are such plans; used to conditionally show "Upcoming Meal Plans".
-  var upcomingMealPlans: [Mealplanning_MealPlan] {
+  var upcomingMealPlans: [Mealplanning_MealPlanSummary] {
     let now = Date()
     let activeEnd = activeMealPlan.map { mealPlanEndDate($0) } ?? now
     return allMealPlans.filter { mealPlan in
@@ -114,11 +114,11 @@ class HomeViewModel {
     }
   }
 
-  private func mealPlanStartDate(_ mealPlan: Mealplanning_MealPlan) -> Date {
+  private func mealPlanStartDate(_ mealPlan: Mealplanning_MealPlanSummary) -> Date {
     mealPlan.events.map { timestampToDate($0.startsAt) }.min() ?? Date.distantPast
   }
 
-  private func mealPlanEndDate(_ mealPlan: Mealplanning_MealPlan) -> Date {
+  private func mealPlanEndDate(_ mealPlan: Mealplanning_MealPlanSummary) -> Date {
     mealPlan.events.map { timestampToDate($0.endsAt) }.max() ?? Date.distantFuture
   }
 
@@ -287,7 +287,7 @@ class HomeViewModel {
     try await CurrentUserService.shared.currentUser(using: authManager)
   }
 
-  private func fetchMealPlans() async throws -> [Mealplanning_MealPlan] {
+  private func fetchMealPlans() async throws -> [Mealplanning_MealPlanSummary] {
     let response = try await authManager.authenticatedCall(
       "getMealPlansForAccount", idempotent: true
     ) { client, metadata, options in
@@ -335,7 +335,7 @@ class HomeViewModel {
     return allUserTasks
   }
 
-  private func fetchGroceryLists(for mealPlans: [Mealplanning_MealPlan]) async {
+  private func fetchGroceryLists(for mealPlans: [Mealplanning_MealPlanSummary]) async {
     for mealPlan in mealPlans {
       var request = Mealplanning_GetMealPlanGroceryListItemsForMealPlanRequest()
       request.mealPlanID = mealPlan.id
@@ -362,15 +362,15 @@ class HomeViewModel {
     return Self.timestampToDate(timestamp)
   }
 
-  // Check if user has voted on a meal plan
-  func hasUserVoted(on mealPlan: Mealplanning_MealPlan) -> Bool {
-    for event in mealPlan.events {
-      for option in event.options
-      where option.votes.contains(where: { $0.byUser == authManager.userID && !$0.abstain }) {
-        return true
-      }
-    }
-    return false
+  /// Whether the user has voted on a meal plan.
+  ///
+  /// This used to walk the votes hanging off each event's options. A
+  /// `Mealplanning_MealPlanSummary` carries no options -- they embed whole meals and
+  /// recipes, which is what put a page of plans past the gRPC message bound -- so the
+  /// server projects the same question onto the summary as `currentUserHasVoted`,
+  /// abstentions excluded exactly as this counted them.
+  func hasUserVoted(on mealPlan: Mealplanning_MealPlanSummary) -> Bool {
+    mealPlan.currentUserHasVoted
   }
 
   // Format time until deadline

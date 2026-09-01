@@ -433,6 +433,109 @@ func ConvertMealPlanToGRPCMealPlan(input *mealplanning.MealPlan) *mealplanningsv
 	}
 }
 
+// ConvertMealPlanToGRPCMealPlanSummary projects a MealPlan onto the wire shape
+// the list response uses. The events survive -- their dates are what a list of
+// plans is read for -- but each carries no options, which is what keeps a page
+// inside the 4 MiB gRPC message bound. See the MealPlanSummary comment in
+// mealplanning_messages.proto.
+//
+// The annotations supply the two things the plan itself cannot, both projections
+// of the dropped options: whether the requesting user has voted, and each event's
+// chosen meal name. A nil annotations leaves both unset, which is what a caller
+// with no session to attribute a vote to should pass.
+func ConvertMealPlanToGRPCMealPlanSummary(input *mealplanning.MealPlan, annotations *mealplanning.MealPlanSummaryAnnotations) *mealplanningsvc.MealPlanSummary {
+	var (
+		events        []*mealplanningsvc.MealPlanEventSummary
+		chosenByEvent map[string]string
+		hasVoted      bool
+	)
+
+	if annotations != nil {
+		chosenByEvent = annotations.ChosenMealNamesByEventID
+		hasVoted = annotations.VotedOnMealPlanIDs[input.ID]
+	}
+
+	for _, event := range input.Events {
+		summary := ConvertMealPlanEventToGRPCMealPlanEventSummary(event)
+		if chosenMealName, ok := chosenByEvent[event.ID]; ok {
+			summary.ChosenMealName = &chosenMealName
+		}
+		events = append(events, summary)
+	}
+
+	return &mealplanningsvc.MealPlanSummary{
+		CreatedAt:              grpcconverters.ConvertTimeToPBTimestamp(input.CreatedAt),
+		LastUpdatedAt:          grpcconverters.ConvertTimePointerToPBTimestamp(input.LastUpdatedAt),
+		ArchivedAt:             grpcconverters.ConvertTimePointerToPBTimestamp(input.ArchivedAt),
+		VotingDeadline:         grpcconverters.ConvertTimeToPBTimestamp(input.VotingDeadline),
+		ElectionMethod:         ConvertStringToMealPlanElectionMethod(input.ElectionMethod),
+		Status:                 ConvertStringToMealPlanStatus(input.Status),
+		Notes:                  input.Notes,
+		Id:                     input.ID,
+		BelongsToAccount:       input.BelongsToAccount,
+		CreatedByUser:          input.CreatedByUser,
+		Events:                 events,
+		GroceryListInitialized: input.GroceryListInitialized,
+		TasksCreated:           input.TasksCreated,
+		CurrentUserHasVoted:    hasVoted,
+	}
+}
+
+func ConvertMealPlanEventToGRPCMealPlanEventSummary(input *mealplanning.MealPlanEvent) *mealplanningsvc.MealPlanEventSummary {
+	return &mealplanningsvc.MealPlanEventSummary{
+		CreatedAt:         grpcconverters.ConvertTimeToPBTimestamp(input.CreatedAt),
+		LastUpdatedAt:     grpcconverters.ConvertTimePointerToPBTimestamp(input.LastUpdatedAt),
+		ArchivedAt:        grpcconverters.ConvertTimePointerToPBTimestamp(input.ArchivedAt),
+		StartsAt:          grpcconverters.ConvertTimeToPBTimestamp(input.StartsAt),
+		EndsAt:            grpcconverters.ConvertTimeToPBTimestamp(input.EndsAt),
+		MealName:          ConvertStringToMealPlanEventName(input.MealName),
+		Notes:             input.Notes,
+		BelongsToMealPlan: input.BelongsToMealPlan,
+		Id:                input.ID,
+	}
+}
+
+// ConvertGRPCMealPlanSummaryToMealPlan inflates a MealPlanSummary into a MealPlan
+// whose events carry no options and which has no selections. Fetch the plan by ID
+// for either.
+func ConvertGRPCMealPlanSummaryToMealPlan(input *mealplanningsvc.MealPlanSummary) *mealplanning.MealPlan {
+	events := []*mealplanning.MealPlanEvent{}
+	for _, event := range input.Events {
+		events = append(events, ConvertGRPCMealPlanEventSummaryToMealPlanEvent(event))
+	}
+
+	return &mealplanning.MealPlan{
+		CreatedAt:              grpcconverters.ConvertPBTimestampToTime(input.CreatedAt),
+		LastUpdatedAt:          grpcconverters.ConvertPBTimestampToTimePointer(input.LastUpdatedAt),
+		ArchivedAt:             grpcconverters.ConvertPBTimestampToTimePointer(input.ArchivedAt),
+		VotingDeadline:         grpcconverters.ConvertPBTimestampToTime(input.VotingDeadline),
+		ElectionMethod:         ConvertMealPlanElectionMethodToString(input.ElectionMethod),
+		Status:                 ConvertMealPlanStatusToString(input.Status),
+		Notes:                  input.Notes,
+		ID:                     input.Id,
+		BelongsToAccount:       input.BelongsToAccount,
+		CreatedByUser:          input.CreatedByUser,
+		Events:                 events,
+		GroceryListInitialized: input.GroceryListInitialized,
+		TasksCreated:           input.TasksCreated,
+	}
+}
+
+func ConvertGRPCMealPlanEventSummaryToMealPlanEvent(input *mealplanningsvc.MealPlanEventSummary) *mealplanning.MealPlanEvent {
+	return &mealplanning.MealPlanEvent{
+		CreatedAt:         grpcconverters.ConvertPBTimestampToTime(input.CreatedAt),
+		LastUpdatedAt:     grpcconverters.ConvertPBTimestampToTimePointer(input.LastUpdatedAt),
+		ArchivedAt:        grpcconverters.ConvertPBTimestampToTimePointer(input.ArchivedAt),
+		StartsAt:          grpcconverters.ConvertPBTimestampToTime(input.StartsAt),
+		EndsAt:            grpcconverters.ConvertPBTimestampToTime(input.EndsAt),
+		MealName:          ConvertMealPlanEventNameToString(input.MealName),
+		Notes:             input.Notes,
+		BelongsToMealPlan: input.BelongsToMealPlan,
+		ID:                input.Id,
+		Options:           []*mealplanning.MealPlanOption{},
+	}
+}
+
 func ConvertGRPCMealPlanToMealPlan(input *mealplanningsvc.MealPlan) *mealplanning.MealPlan {
 	var mealPlanEvents []*mealplanning.MealPlanEvent
 	for _, event := range input.Events {

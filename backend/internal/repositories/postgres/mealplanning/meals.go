@@ -196,6 +196,71 @@ func (q *repository) GetMeal(ctx context.Context, mealID string) (*mealplanning.
 	return meal, nil
 }
 
+// recipeSummaryFromGetMealsRow builds a meal component's recipe out of the columns
+// GetMeals selects, rather than hydrating it with a getRecipe call each. The nested
+// collections stay empty on purpose: GetMealsResponse carries a RecipeSummary per
+// component, so steps, prep tasks, media and associated recipes are dropped at the
+// converter anyway. Fetch the meal by ID for components carrying whole recipes.
+//
+// Every column is nullable because the join reaching them is a LEFT one; the caller
+// only gets here once it has established the recipe row is present.
+func recipeSummaryFromGetMealsRow(row *generated.GetMealsRow) mealplanning.Recipe {
+	return mealplanning.Recipe{
+		CreatedAt:            row.ComponentRecipeCreatedAt.Time,
+		LastUpdatedAt:        database.TimePointerFromNullTime(row.ComponentRecipeLastUpdatedAt),
+		ArchivedAt:           database.TimePointerFromNullTime(row.ComponentRecipeArchivedAt),
+		InspiredByRecipeID:   database.StringPointerFromNullString(row.ComponentRecipeInspiredByRecipeID),
+		ID:                   row.ComponentRecipeID.String,
+		Name:                 row.ComponentRecipeName.String,
+		Slug:                 row.ComponentRecipeSlug.String,
+		Source:               row.ComponentRecipeSource.String,
+		SourceISBN:           row.ComponentRecipeSourceIsbn.String,
+		Description:          row.ComponentRecipeDescription.String,
+		Status:               string(row.ComponentRecipeStatus.RecipeStatus),
+		PortionName:          row.ComponentRecipePortionName.String,
+		PluralPortionName:    row.ComponentRecipePluralPortionName.String,
+		CreatedByUser:        row.ComponentRecipeCreatedByUser.String,
+		YieldsComponentType:  string(row.ComponentRecipeYieldsComponentType.ComponentType),
+		MinEstimatedPortions: database.Float32FromString(row.ComponentRecipeMinEstimatedPortions.String),
+		MaxEstimatedPortions: database.Float32PointerFromNullString(row.ComponentRecipeMaxEstimatedPortions),
+		EligibleForMeals:     row.ComponentRecipeEligibleForMeals.Bool,
+		Steps:                []*mealplanning.RecipeStep{},
+		Media:                []*mealplanning.RecipeMedia{},
+		PrepTasks:            []*mealplanning.RecipePrepTask{},
+		AssociatedRecipes:    []*mealplanning.Recipe{},
+	}
+}
+
+// recipeSummaryFromSearchForMealsRow is recipeSummaryFromGetMealsRow for the search
+// query's row. SearchForMeals reaches recipes through inner joins, so its columns are
+// not nullable and the two rows cannot share a type.
+func recipeSummaryFromSearchForMealsRow(row *generated.SearchForMealsRow) mealplanning.Recipe {
+	return mealplanning.Recipe{
+		CreatedAt:            row.ComponentRecipeCreatedAt,
+		LastUpdatedAt:        database.TimePointerFromNullTime(row.ComponentRecipeLastUpdatedAt),
+		ArchivedAt:           database.TimePointerFromNullTime(row.ComponentRecipeArchivedAt),
+		InspiredByRecipeID:   database.StringPointerFromNullString(row.ComponentRecipeInspiredByRecipeID),
+		ID:                   row.ComponentRecipeID,
+		Name:                 row.ComponentRecipeName,
+		Slug:                 row.ComponentRecipeSlug,
+		Source:               row.ComponentRecipeSource,
+		SourceISBN:           row.ComponentRecipeSourceIsbn,
+		Description:          row.ComponentRecipeDescription,
+		Status:               string(row.ComponentRecipeStatus),
+		PortionName:          row.ComponentRecipePortionName,
+		PluralPortionName:    row.ComponentRecipePluralPortionName,
+		CreatedByUser:        row.ComponentRecipeCreatedByUser,
+		YieldsComponentType:  string(row.ComponentRecipeYieldsComponentType),
+		MinEstimatedPortions: database.Float32FromString(row.ComponentRecipeMinEstimatedPortions),
+		MaxEstimatedPortions: database.Float32PointerFromNullString(row.ComponentRecipeMaxEstimatedPortions),
+		EligibleForMeals:     row.ComponentRecipeEligibleForMeals,
+		Steps:                []*mealplanning.RecipeStep{},
+		Media:                []*mealplanning.RecipeMedia{},
+		PrepTasks:            []*mealplanning.RecipePrepTask{},
+		AssociatedRecipes:    []*mealplanning.Recipe{},
+	}
+}
+
 // GetMeals fetches a list of meals from the database that meet a particular filter.
 func (q *repository) GetMeals(ctx context.Context, filter *filtering.QueryFilter) (x *filtering.QueryFilteredResult[mealplanning.Meal], err error) {
 	ctx, span := q.tracer.StartSpan(ctx)
@@ -254,17 +319,15 @@ func (q *repository) GetMeals(ctx context.Context, filter *filtering.QueryFilter
 		}
 
 		if result.ComponentRecipeID.Valid {
-			recipe, recipeErr := q.getRecipe(ctx, result.ComponentRecipeID.String)
-			if recipeErr != nil {
-				if errors.Is(recipeErr, sql.ErrNoRows) {
-					// Recipe missing or archived (e.g. orphaned reference from another test).
-					// Skip this component so listing succeeds; avoids cross-test pollution.
-					logger.WithValue(mealplanningkeys.MealIDKey, result.ID).
-						WithValue(mealplanningkeys.RecipeIDKey, result.ComponentRecipeID.String).
-						Info("skipping meal component with missing or archived recipe")
-					continue
-				}
-				return nil, observability.PrepareAndLogError(recipeErr, logger, span, "getting recipe for meal component")
+			// A null recipe name means the recipes LEFT JOIN found nothing: the recipe is
+			// archived, or the reference is orphaned. Skip the component so the listing
+			// still succeeds, which is what this did when it hydrated each recipe with its
+			// own query and got no rows back.
+			if !result.ComponentRecipeName.Valid {
+				logger.WithValue(mealplanningkeys.MealIDKey, result.ID).
+					WithValue(mealplanningkeys.RecipeIDKey, result.ComponentRecipeID.String).
+					Info("skipping meal component with missing or archived recipe")
+				continue
 			}
 
 			componentType := ""
@@ -278,7 +341,7 @@ func (q *repository) GetMeals(ctx context.Context, filter *filtering.QueryFilter
 
 			meal.Components = append(meal.Components, &mealplanning.MealComponent{
 				ComponentType: componentType,
-				Recipe:        *recipe,
+				Recipe:        recipeSummaryFromGetMealsRow(result),
 				RecipeScale:   recipeScale,
 			})
 		}
@@ -549,20 +612,11 @@ func (q *repository) SearchForMeals(ctx context.Context, mealNameQuery string, f
 			}
 		}
 
-		recipe, recipeErr := q.getRecipe(ctx, result.ComponentRecipeID)
-		if recipeErr != nil {
-			if errors.Is(recipeErr, sql.ErrNoRows) {
-				logger.WithValue(mealplanningkeys.MealIDKey, result.ID).
-					WithValue(mealplanningkeys.RecipeIDKey, result.ComponentRecipeID).
-					Info("skipping meal component with missing or archived recipe")
-				continue
-			}
-			return nil, observability.PrepareAndLogError(recipeErr, logger, span, "getting recipe for meal component")
-		}
-
+		// The recipes join is an inner one here, so a component whose recipe is
+		// archived never reaches this loop at all.
 		meal.Components = append(meal.Components, &mealplanning.MealComponent{
 			ComponentType: string(result.ComponentMealComponentType),
-			Recipe:        *recipe,
+			Recipe:        recipeSummaryFromSearchForMealsRow(result),
 			RecipeScale:   database.Float32FromString(result.ComponentRecipeScale),
 		})
 

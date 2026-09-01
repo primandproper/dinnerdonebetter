@@ -1020,7 +1020,12 @@ func TestServiceImpl_GetMealPlansForAccount(T *testing.T) {
 		t.Parallel()
 
 		exampleAccountID := fake.BuildFakeID()
+		exampleUserID := fake.BuildFakeID()
 		exampleResult := mealplanningfakes.BuildFakeMealPlansList()
+		exampleChosenMealName := fake.BuildFakeID()
+
+		votedOn := exampleResult.Data[0]
+		require.NotEmpty(t, votedOn.Events)
 
 		ctx := buildSessionContextForTest(t)
 		s := buildServiceImplForMealPlanningTest(t)
@@ -1031,11 +1036,23 @@ func TestServiceImpl_GetMealPlansForAccount(T *testing.T) {
 
 				return exampleResult, nil
 			},
+			AnnotateMealPlanSummariesFunc: func(_ context.Context, userID string, mealPlans []*mealplanning.MealPlan) (*mealplanning.MealPlanSummaryAnnotations, error) {
+				// Attributed to the requesting user, not the active account: whether a
+				// vote has been cast is a fact about a person.
+				assert.Equal(t, exampleUserID, userID)
+				assert.Len(t, mealPlans, len(exampleResult.Data))
+
+				return &mealplanning.MealPlanSummaryAnnotations{
+					ChosenMealNamesByEventID: map[string]string{votedOn.Events[0].ID: exampleChosenMealName},
+					VotedOnMealPlanIDs:       map[string]bool{votedOn.ID: true},
+				}, nil
+			},
 		}
 		s.mealPlanningManager = mmpm
 
 		ctx = sessions.AttachToContext(ctx, &sessions.ContextData{
 			ActiveAccountID: exampleAccountID,
+			Requester:       sessions.RequesterInfo{UserID: exampleUserID},
 		})
 
 		result, err := s.GetMealPlansForAccount(ctx, &mealplanninggrpc.GetMealPlansForAccountRequest{})
@@ -1043,7 +1060,19 @@ func TestServiceImpl_GetMealPlansForAccount(T *testing.T) {
 		assert.NotNil(t, result)
 		assert.Len(t, result.Results, len(exampleResult.Data))
 
+		// The annotations reach the wire: they are the only route by which a summary
+		// carries anything the options it drops used to answer.
+		require.Equal(t, votedOn.ID, result.Results[0].Id)
+		assert.True(t, result.Results[0].CurrentUserHasVoted)
+		require.NotEmpty(t, result.Results[0].Events)
+		require.NotNil(t, result.Results[0].Events[0].ChosenMealName)
+		assert.Equal(t, exampleChosenMealName, *result.Results[0].Events[0].ChosenMealName)
+
+		// And the events themselves survive, carrying no options.
+		assert.Len(t, result.Results[0].Events, len(votedOn.Events))
+
 		assert.Len(t, mmpm.ListMealPlansCalls(), 1)
+		assert.Len(t, mmpm.AnnotateMealPlanSummariesCalls(), 1)
 	})
 }
 

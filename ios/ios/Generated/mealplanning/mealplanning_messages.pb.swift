@@ -3495,6 +3495,205 @@ public struct Mealplanning_MealComponentSummary: Sendable {
   fileprivate var _recipe: Mealplanning_RecipeSummary? = nil
 }
 
+/// MealPlanSummary is the shape a MealPlan takes in a list response. It keeps the
+/// events, because the dates on them are what a list of plans is read for, but each
+/// one is a MealPlanEventSummary carrying no options.
+///
+/// The options are the whole size problem. A MealPlanOption embeds a whole Meal,
+/// whose components embed whole Recipes -- see RecipeSummary for why a hydrated
+/// Recipe cannot be paginated. Measured against the fakes, 250 hydrated plans
+/// marshal to 127.48 MiB against a 4 MiB gRPC message bound, and a page of eight
+/// already clears it; the same page of summaries is 0.10 MiB. The events themselves
+/// are scalars and cost about 130 bytes each, so dropping them too would buy 0.07
+/// MiB and cost every caller that reads a plan's dates a second round trip.
+///
+/// Fetch a single meal plan by ID for events carrying their options and votes.
+public struct Mealplanning_MealPlanSummary: @unchecked Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  public var createdAt: SwiftProtobuf.Google_Protobuf_Timestamp {
+    get {return _storage._createdAt ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
+    set {_uniqueStorage()._createdAt = newValue}
+  }
+  /// Returns true if `createdAt` has been explicitly set.
+  public var hasCreatedAt: Bool {return _storage._createdAt != nil}
+  /// Clears the value of `createdAt`. Subsequent reads from it will return its default value.
+  public mutating func clearCreatedAt() {_uniqueStorage()._createdAt = nil}
+
+  public var votingDeadline: SwiftProtobuf.Google_Protobuf_Timestamp {
+    get {return _storage._votingDeadline ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
+    set {_uniqueStorage()._votingDeadline = newValue}
+  }
+  /// Returns true if `votingDeadline` has been explicitly set.
+  public var hasVotingDeadline: Bool {return _storage._votingDeadline != nil}
+  /// Clears the value of `votingDeadline`. Subsequent reads from it will return its default value.
+  public mutating func clearVotingDeadline() {_uniqueStorage()._votingDeadline = nil}
+
+  public var archivedAt: SwiftProtobuf.Google_Protobuf_Timestamp {
+    get {return _storage._archivedAt ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
+    set {_uniqueStorage()._archivedAt = newValue}
+  }
+  /// Returns true if `archivedAt` has been explicitly set.
+  public var hasArchivedAt: Bool {return _storage._archivedAt != nil}
+  /// Clears the value of `archivedAt`. Subsequent reads from it will return its default value.
+  public mutating func clearArchivedAt() {_uniqueStorage()._archivedAt = nil}
+
+  public var lastUpdatedAt: SwiftProtobuf.Google_Protobuf_Timestamp {
+    get {return _storage._lastUpdatedAt ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
+    set {_uniqueStorage()._lastUpdatedAt = newValue}
+  }
+  /// Returns true if `lastUpdatedAt` has been explicitly set.
+  public var hasLastUpdatedAt: Bool {return _storage._lastUpdatedAt != nil}
+  /// Clears the value of `lastUpdatedAt`. Subsequent reads from it will return its default value.
+  public mutating func clearLastUpdatedAt() {_uniqueStorage()._lastUpdatedAt = nil}
+
+  public var id: String {
+    get {return _storage._id}
+    set {_uniqueStorage()._id = newValue}
+  }
+
+  public var status: Mealplanning_MealPlanStatus {
+    get {return _storage._status}
+    set {_uniqueStorage()._status = newValue}
+  }
+
+  public var notes: String {
+    get {return _storage._notes}
+    set {_uniqueStorage()._notes = newValue}
+  }
+
+  public var electionMethod: Mealplanning_MealPlanElectionMethod {
+    get {return _storage._electionMethod}
+    set {_uniqueStorage()._electionMethod = newValue}
+  }
+
+  public var belongsToAccount: String {
+    get {return _storage._belongsToAccount}
+    set {_uniqueStorage()._belongsToAccount = newValue}
+  }
+
+  public var createdByUser: String {
+    get {return _storage._createdByUser}
+    set {_uniqueStorage()._createdByUser = newValue}
+  }
+
+  public var events: [Mealplanning_MealPlanEventSummary] {
+    get {return _storage._events}
+    set {_uniqueStorage()._events = newValue}
+  }
+
+  public var groceryListInitialized: Bool {
+    get {return _storage._groceryListInitialized}
+    set {_uniqueStorage()._groceryListInitialized = newValue}
+  }
+
+  public var tasksCreated: Bool {
+    get {return _storage._tasksCreated}
+    set {_uniqueStorage()._tasksCreated = newValue}
+  }
+
+  /// Whether the requesting user has cast a vote on any of this plan's events. It is a
+  /// projection of the votes the options carried, which the list would otherwise have to
+  /// fetch every plan in full to learn. Non-abstaining votes only, matching what the
+  /// clients counted as having voted.
+  public var currentUserHasVoted: Bool {
+    get {return _storage._currentUserHasVoted}
+    set {_uniqueStorage()._currentUserHasVoted = newValue}
+  }
+
+  public var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  public init() {}
+
+  fileprivate var _storage = _StorageClass.defaultInstance
+}
+
+/// MealPlanEventSummary is the shape a MealPlanEvent takes inside a MealPlanSummary:
+/// the event's own columns, and none of its options.
+public struct Mealplanning_MealPlanEventSummary: Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  public var createdAt: SwiftProtobuf.Google_Protobuf_Timestamp {
+    get {return _createdAt ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
+    set {_createdAt = newValue}
+  }
+  /// Returns true if `createdAt` has been explicitly set.
+  public var hasCreatedAt: Bool {return self._createdAt != nil}
+  /// Clears the value of `createdAt`. Subsequent reads from it will return its default value.
+  public mutating func clearCreatedAt() {self._createdAt = nil}
+
+  public var startsAt: SwiftProtobuf.Google_Protobuf_Timestamp {
+    get {return _startsAt ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
+    set {_startsAt = newValue}
+  }
+  /// Returns true if `startsAt` has been explicitly set.
+  public var hasStartsAt: Bool {return self._startsAt != nil}
+  /// Clears the value of `startsAt`. Subsequent reads from it will return its default value.
+  public mutating func clearStartsAt() {self._startsAt = nil}
+
+  public var endsAt: SwiftProtobuf.Google_Protobuf_Timestamp {
+    get {return _endsAt ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
+    set {_endsAt = newValue}
+  }
+  /// Returns true if `endsAt` has been explicitly set.
+  public var hasEndsAt: Bool {return self._endsAt != nil}
+  /// Clears the value of `endsAt`. Subsequent reads from it will return its default value.
+  public mutating func clearEndsAt() {self._endsAt = nil}
+
+  public var archivedAt: SwiftProtobuf.Google_Protobuf_Timestamp {
+    get {return _archivedAt ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
+    set {_archivedAt = newValue}
+  }
+  /// Returns true if `archivedAt` has been explicitly set.
+  public var hasArchivedAt: Bool {return self._archivedAt != nil}
+  /// Clears the value of `archivedAt`. Subsequent reads from it will return its default value.
+  public mutating func clearArchivedAt() {self._archivedAt = nil}
+
+  public var lastUpdatedAt: SwiftProtobuf.Google_Protobuf_Timestamp {
+    get {return _lastUpdatedAt ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
+    set {_lastUpdatedAt = newValue}
+  }
+  /// Returns true if `lastUpdatedAt` has been explicitly set.
+  public var hasLastUpdatedAt: Bool {return self._lastUpdatedAt != nil}
+  /// Clears the value of `lastUpdatedAt`. Subsequent reads from it will return its default value.
+  public mutating func clearLastUpdatedAt() {self._lastUpdatedAt = nil}
+
+  public var mealName: Mealplanning_MealPlanEventName = .breakfast
+
+  public var notes: String = String()
+
+  public var belongsToMealPlan: String = String()
+
+  public var id: String = String()
+
+  /// The name of the meal on this event's chosen option, absent until voting has picked
+  /// one. Like current_user_has_voted it is a projection of the dropped options, here of
+  /// the single string a list of plans displays.
+  public var chosenMealName: String {
+    get {return _chosenMealName ?? String()}
+    set {_chosenMealName = newValue}
+  }
+  /// Returns true if `chosenMealName` has been explicitly set.
+  public var hasChosenMealName: Bool {return self._chosenMealName != nil}
+  /// Clears the value of `chosenMealName`. Subsequent reads from it will return its default value.
+  public mutating func clearChosenMealName() {self._chosenMealName = nil}
+
+  public var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  public init() {}
+
+  fileprivate var _createdAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
+  fileprivate var _startsAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
+  fileprivate var _endsAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
+  fileprivate var _archivedAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
+  fileprivate var _lastUpdatedAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
+  fileprivate var _chosenMealName: String? = nil
+}
+
 public struct Mealplanning_MealPlan: @unchecked Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
@@ -8854,6 +9053,246 @@ extension Mealplanning_MealComponentSummary: SwiftProtobuf.Message, SwiftProtobu
     if lhs.componentType != rhs.componentType {return false}
     if lhs._recipe != rhs._recipe {return false}
     if lhs.recipeScale != rhs.recipeScale {return false}
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+extension Mealplanning_MealPlanSummary: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".MealPlanSummary"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}created_at\0\u{3}voting_deadline\0\u{3}archived_at\0\u{3}last_updated_at\0\u{1}id\0\u{1}status\0\u{1}notes\0\u{3}election_method\0\u{3}belongs_to_account\0\u{3}created_by_user\0\u{1}events\0\u{3}grocery_list_initialized\0\u{3}tasks_created\0\u{3}current_user_has_voted\0")
+
+  fileprivate class _StorageClass {
+    var _createdAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
+    var _votingDeadline: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
+    var _archivedAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
+    var _lastUpdatedAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
+    var _id: String = String()
+    var _status: Mealplanning_MealPlanStatus = .awaitingVotes
+    var _notes: String = String()
+    var _electionMethod: Mealplanning_MealPlanElectionMethod = .schulze
+    var _belongsToAccount: String = String()
+    var _createdByUser: String = String()
+    var _events: [Mealplanning_MealPlanEventSummary] = []
+    var _groceryListInitialized: Bool = false
+    var _tasksCreated: Bool = false
+    var _currentUserHasVoted: Bool = false
+
+      // This property is used as the initial default value for new instances of the type.
+      // The type itself is protecting the reference to its storage via CoW semantics.
+      // This will force a copy to be made of this reference when the first mutation occurs;
+      // hence, it is safe to mark this as `nonisolated(unsafe)`.
+      static nonisolated(unsafe) let defaultInstance = _StorageClass()
+
+    private init() {}
+
+    init(copying source: _StorageClass) {
+      _createdAt = source._createdAt
+      _votingDeadline = source._votingDeadline
+      _archivedAt = source._archivedAt
+      _lastUpdatedAt = source._lastUpdatedAt
+      _id = source._id
+      _status = source._status
+      _notes = source._notes
+      _electionMethod = source._electionMethod
+      _belongsToAccount = source._belongsToAccount
+      _createdByUser = source._createdByUser
+      _events = source._events
+      _groceryListInitialized = source._groceryListInitialized
+      _tasksCreated = source._tasksCreated
+      _currentUserHasVoted = source._currentUserHasVoted
+    }
+  }
+
+  fileprivate mutating func _uniqueStorage() -> _StorageClass {
+    if !isKnownUniquelyReferenced(&_storage) {
+      _storage = _StorageClass(copying: _storage)
+    }
+    return _storage
+  }
+
+  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    _ = _uniqueStorage()
+    try withExtendedLifetime(_storage) { (_storage: _StorageClass) in
+      while let fieldNumber = try decoder.nextFieldNumber() {
+        // The use of inline closures is to circumvent an issue where the compiler
+        // allocates stack space for every case branch when no optimizations are
+        // enabled. https://github.com/apple/swift-protobuf/issues/1034
+        switch fieldNumber {
+        case 1: try { try decoder.decodeSingularMessageField(value: &_storage._createdAt) }()
+        case 2: try { try decoder.decodeSingularMessageField(value: &_storage._votingDeadline) }()
+        case 3: try { try decoder.decodeSingularMessageField(value: &_storage._archivedAt) }()
+        case 4: try { try decoder.decodeSingularMessageField(value: &_storage._lastUpdatedAt) }()
+        case 5: try { try decoder.decodeSingularStringField(value: &_storage._id) }()
+        case 6: try { try decoder.decodeSingularEnumField(value: &_storage._status) }()
+        case 7: try { try decoder.decodeSingularStringField(value: &_storage._notes) }()
+        case 8: try { try decoder.decodeSingularEnumField(value: &_storage._electionMethod) }()
+        case 9: try { try decoder.decodeSingularStringField(value: &_storage._belongsToAccount) }()
+        case 10: try { try decoder.decodeSingularStringField(value: &_storage._createdByUser) }()
+        case 11: try { try decoder.decodeRepeatedMessageField(value: &_storage._events) }()
+        case 12: try { try decoder.decodeSingularBoolField(value: &_storage._groceryListInitialized) }()
+        case 13: try { try decoder.decodeSingularBoolField(value: &_storage._tasksCreated) }()
+        case 14: try { try decoder.decodeSingularBoolField(value: &_storage._currentUserHasVoted) }()
+        default: break
+        }
+      }
+    }
+  }
+
+  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    try withExtendedLifetime(_storage) { (_storage: _StorageClass) in
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every if/case branch local when no optimizations
+      // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
+      // https://github.com/apple/swift-protobuf/issues/1182
+      try { if let v = _storage._createdAt {
+        try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
+      } }()
+      try { if let v = _storage._votingDeadline {
+        try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
+      } }()
+      try { if let v = _storage._archivedAt {
+        try visitor.visitSingularMessageField(value: v, fieldNumber: 3)
+      } }()
+      try { if let v = _storage._lastUpdatedAt {
+        try visitor.visitSingularMessageField(value: v, fieldNumber: 4)
+      } }()
+      if !_storage._id.isEmpty {
+        try visitor.visitSingularStringField(value: _storage._id, fieldNumber: 5)
+      }
+      if _storage._status != .awaitingVotes {
+        try visitor.visitSingularEnumField(value: _storage._status, fieldNumber: 6)
+      }
+      if !_storage._notes.isEmpty {
+        try visitor.visitSingularStringField(value: _storage._notes, fieldNumber: 7)
+      }
+      if _storage._electionMethod != .schulze {
+        try visitor.visitSingularEnumField(value: _storage._electionMethod, fieldNumber: 8)
+      }
+      if !_storage._belongsToAccount.isEmpty {
+        try visitor.visitSingularStringField(value: _storage._belongsToAccount, fieldNumber: 9)
+      }
+      if !_storage._createdByUser.isEmpty {
+        try visitor.visitSingularStringField(value: _storage._createdByUser, fieldNumber: 10)
+      }
+      if !_storage._events.isEmpty {
+        try visitor.visitRepeatedMessageField(value: _storage._events, fieldNumber: 11)
+      }
+      if _storage._groceryListInitialized != false {
+        try visitor.visitSingularBoolField(value: _storage._groceryListInitialized, fieldNumber: 12)
+      }
+      if _storage._tasksCreated != false {
+        try visitor.visitSingularBoolField(value: _storage._tasksCreated, fieldNumber: 13)
+      }
+      if _storage._currentUserHasVoted != false {
+        try visitor.visitSingularBoolField(value: _storage._currentUserHasVoted, fieldNumber: 14)
+      }
+    }
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  public static func ==(lhs: Mealplanning_MealPlanSummary, rhs: Mealplanning_MealPlanSummary) -> Bool {
+    if lhs._storage !== rhs._storage {
+      let storagesAreEqual: Bool = withExtendedLifetime((lhs._storage, rhs._storage)) { (_args: (_StorageClass, _StorageClass)) in
+        let _storage = _args.0
+        let rhs_storage = _args.1
+        if _storage._createdAt != rhs_storage._createdAt {return false}
+        if _storage._votingDeadline != rhs_storage._votingDeadline {return false}
+        if _storage._archivedAt != rhs_storage._archivedAt {return false}
+        if _storage._lastUpdatedAt != rhs_storage._lastUpdatedAt {return false}
+        if _storage._id != rhs_storage._id {return false}
+        if _storage._status != rhs_storage._status {return false}
+        if _storage._notes != rhs_storage._notes {return false}
+        if _storage._electionMethod != rhs_storage._electionMethod {return false}
+        if _storage._belongsToAccount != rhs_storage._belongsToAccount {return false}
+        if _storage._createdByUser != rhs_storage._createdByUser {return false}
+        if _storage._events != rhs_storage._events {return false}
+        if _storage._groceryListInitialized != rhs_storage._groceryListInitialized {return false}
+        if _storage._tasksCreated != rhs_storage._tasksCreated {return false}
+        if _storage._currentUserHasVoted != rhs_storage._currentUserHasVoted {return false}
+        return true
+      }
+      if !storagesAreEqual {return false}
+    }
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+extension Mealplanning_MealPlanEventSummary: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".MealPlanEventSummary"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}created_at\0\u{3}starts_at\0\u{3}ends_at\0\u{3}archived_at\0\u{3}last_updated_at\0\u{3}meal_name\0\u{1}notes\0\u{3}belongs_to_meal_plan\0\u{1}id\0\u{3}chosen_meal_name\0")
+
+  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularMessageField(value: &self._createdAt) }()
+      case 2: try { try decoder.decodeSingularMessageField(value: &self._startsAt) }()
+      case 3: try { try decoder.decodeSingularMessageField(value: &self._endsAt) }()
+      case 4: try { try decoder.decodeSingularMessageField(value: &self._archivedAt) }()
+      case 5: try { try decoder.decodeSingularMessageField(value: &self._lastUpdatedAt) }()
+      case 6: try { try decoder.decodeSingularEnumField(value: &self.mealName) }()
+      case 7: try { try decoder.decodeSingularStringField(value: &self.notes) }()
+      case 8: try { try decoder.decodeSingularStringField(value: &self.belongsToMealPlan) }()
+      case 9: try { try decoder.decodeSingularStringField(value: &self.id) }()
+      case 10: try { try decoder.decodeSingularStringField(value: &self._chosenMealName) }()
+      default: break
+      }
+    }
+  }
+
+  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    // The use of inline closures is to circumvent an issue where the compiler
+    // allocates stack space for every if/case branch local when no optimizations
+    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
+    // https://github.com/apple/swift-protobuf/issues/1182
+    try { if let v = self._createdAt {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
+    } }()
+    try { if let v = self._startsAt {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
+    } }()
+    try { if let v = self._endsAt {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 3)
+    } }()
+    try { if let v = self._archivedAt {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 4)
+    } }()
+    try { if let v = self._lastUpdatedAt {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 5)
+    } }()
+    if self.mealName != .breakfast {
+      try visitor.visitSingularEnumField(value: self.mealName, fieldNumber: 6)
+    }
+    if !self.notes.isEmpty {
+      try visitor.visitSingularStringField(value: self.notes, fieldNumber: 7)
+    }
+    if !self.belongsToMealPlan.isEmpty {
+      try visitor.visitSingularStringField(value: self.belongsToMealPlan, fieldNumber: 8)
+    }
+    if !self.id.isEmpty {
+      try visitor.visitSingularStringField(value: self.id, fieldNumber: 9)
+    }
+    try { if let v = self._chosenMealName {
+      try visitor.visitSingularStringField(value: v, fieldNumber: 10)
+    } }()
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  public static func ==(lhs: Mealplanning_MealPlanEventSummary, rhs: Mealplanning_MealPlanEventSummary) -> Bool {
+    if lhs._createdAt != rhs._createdAt {return false}
+    if lhs._startsAt != rhs._startsAt {return false}
+    if lhs._endsAt != rhs._endsAt {return false}
+    if lhs._archivedAt != rhs._archivedAt {return false}
+    if lhs._lastUpdatedAt != rhs._lastUpdatedAt {return false}
+    if lhs.mealName != rhs.mealName {return false}
+    if lhs.notes != rhs.notes {return false}
+    if lhs.belongsToMealPlan != rhs.belongsToMealPlan {return false}
+    if lhs.id != rhs.id {return false}
+    if lhs._chosenMealName != rhs._chosenMealName {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }

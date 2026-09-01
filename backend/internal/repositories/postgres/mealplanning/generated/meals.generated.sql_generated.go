@@ -204,6 +204,23 @@ SELECT
 	meal_components.created_at as component_created_at,
 	meal_components.last_updated_at as component_last_updated_at,
 	meal_components.archived_at as component_archived_at,
+	recipes.name as component_recipe_name,
+	recipes.slug as component_recipe_slug,
+	recipes.source as component_recipe_source,
+	recipes.source_isbn as component_recipe_source_isbn,
+	recipes.description as component_recipe_description,
+	recipes.status as component_recipe_status,
+	recipes.inspired_by_recipe_id as component_recipe_inspired_by_recipe_id,
+	recipes.min_estimated_portions as component_recipe_min_estimated_portions,
+	recipes.max_estimated_portions as component_recipe_max_estimated_portions,
+	recipes.portion_name as component_recipe_portion_name,
+	recipes.plural_portion_name as component_recipe_plural_portion_name,
+	recipes.eligible_for_meals as component_recipe_eligible_for_meals,
+	recipes.yields_component_type as component_recipe_yields_component_type,
+	recipes.created_at as component_recipe_created_at,
+	recipes.last_updated_at as component_recipe_last_updated_at,
+	recipes.archived_at as component_recipe_archived_at,
+	recipes.created_by_user as component_recipe_created_by_user,
 	(
 		SELECT COUNT(meals.id)
 		FROM meals
@@ -226,7 +243,7 @@ SELECT
 	) AS total_count
 FROM meals
 	LEFT JOIN meal_components ON meal_components.belongs_to_meal=meals.id AND meal_components.archived_at IS NULL
-		AND EXISTS (SELECT 1 FROM recipes WHERE recipes.id = meal_components.recipe_id AND recipes.archived_at IS NULL)
+	LEFT JOIN recipes ON recipes.id = meal_components.recipe_id AND recipes.archived_at IS NULL
 WHERE meals.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	AND meals.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
@@ -254,27 +271,44 @@ type GetMealsParams struct {
 }
 
 type GetMealsRow struct {
-	ID                         string
-	Name                       string
-	Description                string
-	MinEstimatedPortions       string
-	MaxEstimatedPortions       sql.NullString
-	EligibleForMealPlans       bool
-	LastIndexedAt              sql.NullTime
-	CreatedAt                  time.Time
-	LastUpdatedAt              sql.NullTime
-	ArchivedAt                 sql.NullTime
-	CreatedByUser              string
-	ComponentID                sql.NullString
-	ComponentBelongsToMeal     sql.NullString
-	ComponentRecipeID          sql.NullString
-	ComponentMealComponentType NullComponentType
-	ComponentRecipeScale       sql.NullString
-	ComponentCreatedAt         sql.NullTime
-	ComponentLastUpdatedAt     sql.NullTime
-	ComponentArchivedAt        sql.NullTime
-	FilteredCount              int64
-	TotalCount                 int64
+	ID                                  string
+	Name                                string
+	Description                         string
+	MinEstimatedPortions                string
+	MaxEstimatedPortions                sql.NullString
+	EligibleForMealPlans                bool
+	LastIndexedAt                       sql.NullTime
+	CreatedAt                           time.Time
+	LastUpdatedAt                       sql.NullTime
+	ArchivedAt                          sql.NullTime
+	CreatedByUser                       string
+	ComponentID                         sql.NullString
+	ComponentBelongsToMeal              sql.NullString
+	ComponentRecipeID                   sql.NullString
+	ComponentMealComponentType          NullComponentType
+	ComponentRecipeScale                sql.NullString
+	ComponentCreatedAt                  sql.NullTime
+	ComponentLastUpdatedAt              sql.NullTime
+	ComponentArchivedAt                 sql.NullTime
+	ComponentRecipeName                 sql.NullString
+	ComponentRecipeSlug                 sql.NullString
+	ComponentRecipeSource               sql.NullString
+	ComponentRecipeSourceIsbn           sql.NullString
+	ComponentRecipeDescription          sql.NullString
+	ComponentRecipeStatus               NullRecipeStatus
+	ComponentRecipeInspiredByRecipeID   sql.NullString
+	ComponentRecipeMinEstimatedPortions sql.NullString
+	ComponentRecipeMaxEstimatedPortions sql.NullString
+	ComponentRecipePortionName          sql.NullString
+	ComponentRecipePluralPortionName    sql.NullString
+	ComponentRecipeEligibleForMeals     sql.NullBool
+	ComponentRecipeYieldsComponentType  NullComponentType
+	ComponentRecipeCreatedAt            sql.NullTime
+	ComponentRecipeLastUpdatedAt        sql.NullTime
+	ComponentRecipeArchivedAt           sql.NullTime
+	ComponentRecipeCreatedByUser        sql.NullString
+	FilteredCount                       int64
+	TotalCount                          int64
 }
 
 func (q *Queries) GetMeals(ctx context.Context, db DBTX, arg *GetMealsParams) ([]*GetMealsRow, error) {
@@ -314,6 +348,23 @@ func (q *Queries) GetMeals(ctx context.Context, db DBTX, arg *GetMealsParams) ([
 			&i.ComponentCreatedAt,
 			&i.ComponentLastUpdatedAt,
 			&i.ComponentArchivedAt,
+			&i.ComponentRecipeName,
+			&i.ComponentRecipeSlug,
+			&i.ComponentRecipeSource,
+			&i.ComponentRecipeSourceIsbn,
+			&i.ComponentRecipeDescription,
+			&i.ComponentRecipeStatus,
+			&i.ComponentRecipeInspiredByRecipeID,
+			&i.ComponentRecipeMinEstimatedPortions,
+			&i.ComponentRecipeMaxEstimatedPortions,
+			&i.ComponentRecipePortionName,
+			&i.ComponentRecipePluralPortionName,
+			&i.ComponentRecipeEligibleForMeals,
+			&i.ComponentRecipeYieldsComponentType,
+			&i.ComponentRecipeCreatedAt,
+			&i.ComponentRecipeLastUpdatedAt,
+			&i.ComponentRecipeArchivedAt,
+			&i.ComponentRecipeCreatedByUser,
 			&i.FilteredCount,
 			&i.TotalCount,
 		); err != nil {
@@ -783,6 +834,23 @@ SELECT
 	meal_components.created_at as component_created_at,
 	meal_components.last_updated_at as component_last_updated_at,
 	meal_components.archived_at as component_archived_at,
+	recipes.name as component_recipe_name,
+	recipes.slug as component_recipe_slug,
+	recipes.source as component_recipe_source,
+	recipes.source_isbn as component_recipe_source_isbn,
+	recipes.description as component_recipe_description,
+	recipes.status as component_recipe_status,
+	recipes.inspired_by_recipe_id as component_recipe_inspired_by_recipe_id,
+	recipes.min_estimated_portions as component_recipe_min_estimated_portions,
+	recipes.max_estimated_portions as component_recipe_max_estimated_portions,
+	recipes.portion_name as component_recipe_portion_name,
+	recipes.plural_portion_name as component_recipe_plural_portion_name,
+	recipes.eligible_for_meals as component_recipe_eligible_for_meals,
+	recipes.yields_component_type as component_recipe_yields_component_type,
+	recipes.created_at as component_recipe_created_at,
+	recipes.last_updated_at as component_recipe_last_updated_at,
+	recipes.archived_at as component_recipe_archived_at,
+	recipes.created_by_user as component_recipe_created_by_user,
 	(
 		SELECT COUNT(meals.id)
 		FROM meals
@@ -806,7 +874,7 @@ SELECT
 FROM meals
 	JOIN meal_components ON meal_components.belongs_to_meal=meals.id
 		AND meal_components.archived_at IS NULL
-		AND EXISTS (SELECT 1 FROM recipes WHERE recipes.id = meal_components.recipe_id AND recipes.archived_at IS NULL)
+	JOIN recipes ON recipes.id = meal_components.recipe_id AND recipes.archived_at IS NULL
 WHERE meals.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	AND meals.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
@@ -836,27 +904,44 @@ type SearchForMealsParams struct {
 }
 
 type SearchForMealsRow struct {
-	ID                         string
-	Name                       string
-	Description                string
-	MinEstimatedPortions       string
-	MaxEstimatedPortions       sql.NullString
-	EligibleForMealPlans       bool
-	LastIndexedAt              sql.NullTime
-	CreatedAt                  time.Time
-	LastUpdatedAt              sql.NullTime
-	ArchivedAt                 sql.NullTime
-	CreatedByUser              string
-	ComponentID                string
-	ComponentBelongsToMeal     string
-	ComponentRecipeID          string
-	ComponentMealComponentType ComponentType
-	ComponentRecipeScale       string
-	ComponentCreatedAt         time.Time
-	ComponentLastUpdatedAt     sql.NullTime
-	ComponentArchivedAt        sql.NullTime
-	FilteredCount              int64
-	TotalCount                 int64
+	ID                                  string
+	Name                                string
+	Description                         string
+	MinEstimatedPortions                string
+	MaxEstimatedPortions                sql.NullString
+	EligibleForMealPlans                bool
+	LastIndexedAt                       sql.NullTime
+	CreatedAt                           time.Time
+	LastUpdatedAt                       sql.NullTime
+	ArchivedAt                          sql.NullTime
+	CreatedByUser                       string
+	ComponentID                         string
+	ComponentBelongsToMeal              string
+	ComponentRecipeID                   string
+	ComponentMealComponentType          ComponentType
+	ComponentRecipeScale                string
+	ComponentCreatedAt                  time.Time
+	ComponentLastUpdatedAt              sql.NullTime
+	ComponentArchivedAt                 sql.NullTime
+	ComponentRecipeName                 string
+	ComponentRecipeSlug                 string
+	ComponentRecipeSource               string
+	ComponentRecipeSourceIsbn           string
+	ComponentRecipeDescription          string
+	ComponentRecipeStatus               RecipeStatus
+	ComponentRecipeInspiredByRecipeID   sql.NullString
+	ComponentRecipeMinEstimatedPortions string
+	ComponentRecipeMaxEstimatedPortions sql.NullString
+	ComponentRecipePortionName          string
+	ComponentRecipePluralPortionName    string
+	ComponentRecipeEligibleForMeals     bool
+	ComponentRecipeYieldsComponentType  ComponentType
+	ComponentRecipeCreatedAt            time.Time
+	ComponentRecipeLastUpdatedAt        sql.NullTime
+	ComponentRecipeArchivedAt           sql.NullTime
+	ComponentRecipeCreatedByUser        string
+	FilteredCount                       int64
+	TotalCount                          int64
 }
 
 func (q *Queries) SearchForMeals(ctx context.Context, db DBTX, arg *SearchForMealsParams) ([]*SearchForMealsRow, error) {
@@ -897,6 +982,23 @@ func (q *Queries) SearchForMeals(ctx context.Context, db DBTX, arg *SearchForMea
 			&i.ComponentCreatedAt,
 			&i.ComponentLastUpdatedAt,
 			&i.ComponentArchivedAt,
+			&i.ComponentRecipeName,
+			&i.ComponentRecipeSlug,
+			&i.ComponentRecipeSource,
+			&i.ComponentRecipeSourceIsbn,
+			&i.ComponentRecipeDescription,
+			&i.ComponentRecipeStatus,
+			&i.ComponentRecipeInspiredByRecipeID,
+			&i.ComponentRecipeMinEstimatedPortions,
+			&i.ComponentRecipeMaxEstimatedPortions,
+			&i.ComponentRecipePortionName,
+			&i.ComponentRecipePluralPortionName,
+			&i.ComponentRecipeEligibleForMeals,
+			&i.ComponentRecipeYieldsComponentType,
+			&i.ComponentRecipeCreatedAt,
+			&i.ComponentRecipeLastUpdatedAt,
+			&i.ComponentRecipeArchivedAt,
+			&i.ComponentRecipeCreatedByUser,
 			&i.FilteredCount,
 			&i.TotalCount,
 		); err != nil {

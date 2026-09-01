@@ -15,7 +15,8 @@ import SwiftUI
 class GroceryListViewModel {
   // Data
   var items: [Mealplanning_MealPlanGroceryListItem] = []
-  var mealPlan: Mealplanning_MealPlan
+  // A summary is enough here: this reads the plan's ID and its date range.
+  var mealPlan: any MealPlanDisplayable
 
   // Loading states
   var isLoading = false
@@ -25,7 +26,7 @@ class GroceryListViewModel {
   private let authManager: AuthenticationManager
 
   init(
-    mealPlan: Mealplanning_MealPlan, items: [Mealplanning_MealPlanGroceryListItem],
+    mealPlan: any MealPlanDisplayable, items: [Mealplanning_MealPlanGroceryListItem],
     authManager: AuthenticationManager
   ) {
     self.mealPlan = mealPlan

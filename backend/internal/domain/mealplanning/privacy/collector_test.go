@@ -167,7 +167,9 @@ func TestCollector_Collect_accountScoped(T *testing.T) {
 			GetRecipeRatingsForUserFunc: func(context.Context, string, *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.RecipeRating], error) {
 				return buildEmptyPage[mealplanning.RecipeRating](), nil
 			},
-			GetMealPlansForAccountFunc: func(_ context.Context, actualAccountID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.MealPlan], error) {
+			// The hydrated variant, not the list endpoint's: this collection is the
+			// user's own copy of their data, so a meal plan in it carries its options.
+			GetHydratedMealPlansForAccountFunc: func(_ context.Context, actualAccountID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.MealPlan], error) {
 				assert.Equal(t, accountID, actualAccountID)
 
 				return buildSingleItemPage(exampleMealPlan, func(mp *mealplanning.MealPlan) string { return mp.ID }), nil
@@ -184,7 +186,9 @@ func TestCollector_Collect_accountScoped(T *testing.T) {
 		assert.Len(t, collection.MealPlans, 1)
 		assert.Len(t, collection.AccountInstrumentOwnerships, 1)
 
-		assert.Len(t, repo.GetMealPlansForAccountCalls(), 1)
+		assert.Len(t, repo.GetHydratedMealPlansForAccountCalls(), 1)
+		// The list endpoint's variant drops the options, so an export must not use it.
+		assert.Empty(t, repo.GetMealPlansForAccountCalls())
 		assert.Len(t, repo.GetAccountInstrumentOwnershipsCalls(), 1)
 	})
 }

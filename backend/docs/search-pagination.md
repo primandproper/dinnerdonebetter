@@ -50,10 +50,11 @@ The filter's `maxResponseSize` becomes `textsearch.SearchRequest.Limit`.
 
 ## What a page item carries
 
-Recipe and meal list and search responses return **summaries**, not whole records:
+Recipe, meal and meal plan list and search responses return **summaries**, not whole records:
 `GetRecipesResponse`, `SearchForRecipesResponse`, `SearchForMealEligibleRecipesResponse` and
 `SearchForRecipesWithInstrumentOwnershipResponse` carry `RecipeSummary`; `GetMealsResponse` and
-`SearchForMealsResponse` carry `MealSummary`.
+`SearchForMealsResponse` carry `MealSummary`; `GetMealPlansForAccountResponse` carries
+`MealPlanSummary`.
 
 A `RecipeSummary` is the recipe's own columns and nothing that hangs off it — no steps, prep tasks,
 media, or associated recipes. A `MealSummary` keeps its components, because a meal without them says
@@ -68,8 +69,8 @@ This is what makes a max-limit page fit in a gRPC message. `server/grpc` bounds 
 no page size provably fits — which is why the fix is the projection rather than a larger bound.
 
 `internal/services/mealplanning/grpc/converters/message_size_test.go` pins this: adding a repeated
-field to either summary fails there rather than as a `ResourceExhausted` on a client we do not
-operate.
+field to any of the three summaries fails there rather than as a `ResourceExhausted` on a client we
+do not operate.
 
 **A client that needs the whole record fetches it by ID.** `GetRecipe` and `GetMeal` return the
 hydrated object. The iOS meal-plan wizard is the worked example — search hands back a `MealSummary`,
@@ -80,9 +81,44 @@ Note that `GetRecipes` and the database-fallback searches never populated these 
 the first place (`internal/repositories/postgres/mealplanning/recipes.go`), so on those paths the
 summary makes an existing shape honest rather than removing anything.
 
-`GetMealPlansForAccountResponse` is **not** covered: a `MealPlan` embeds events, which embed options,
-which embed meals, so it has the same problem. It is tracked separately, because trimming it means
-reworking the clients that read `mealPlan.events` straight off the list.
+`GetMeals` and `SearchForMeals` join `recipes` for their components' columns. They used to hydrate
+each component with a `getRecipe` call apiece — 750 of them on a max-limit page of three-component
+meals, each joining steps, ingredients, instruments, vessels and completion conditions — and once
+the response became a `MealSummary` the result was discarded at the converter. The hydration could
+not simply be deleted, because the generated row carried no recipe columns but the ID, so the join
+is what replaced it. `GetMealsCreatedByUser`, `GetMealsWithIDs` and `GetRecipesWithIDs` still
+hydrate: they feed the data-privacy collector and the meal-plan detail path, which want whole
+records.
+
+`GetMealPlansForAccountResponse` carries `MealPlanSummary`, which is the same idea one level down.
+A `MealPlan` embeds events, which embed options, which embed whole `Meal`s, whose components embed
+whole `Recipe`s, so it had the problem twice over: 250 hydrated plans marshal to 127.48 MiB, and a
+page of **eight** already clears the bound.
+
+The options are the whole of it. A `MealPlanSummary` keeps its events, because their dates are what
+a list of plans is read for, but each is a `MealPlanEventSummary` carrying none — 0.10 MiB for a
+max-limit page. Dropping the events too would have bought 0.07 MiB and cost every caller that reads
+a plan's dates a second round trip, so it does not.
+
+Two things the clients read out of the dropped options are projected back onto the summary rather
+than reached for by fetching each plan:
+
+| Field                                    | Replaces                                                  |
+|------------------------------------------|-----------------------------------------------------------|
+| `MealPlanSummary.current_user_has_voted` | Walking `events[].options[].votes` for the session's user |
+| `MealPlanEventSummary.chosen_meal_name`  | Reading the chosen option's meal name                     |
+
+Both are read for a whole page at once — `AnnotateMealPlanSummaries` on the meal planning manager,
+one query each — so the list endpoint stays at four queries however many plans it returns, where it
+used to run one per plan and hydrate each plan's whole tree. Neither
+is a stored field: they are derived per request, and `current_user_has_voted` is per *user*, so
+neither belongs on `MealPlan` or `MealPlanEvent`. Abstentions are not votes, matching what the
+clients counted.
+
+The repository splits accordingly. `GetMealPlansForAccount` stops at events; the data-privacy
+collector calls `GetHydratedMealPlansForAccount`, because a `UserDataCollection` is the user's own
+copy of their data and has to carry whole records. The two are one method's page and the same page
+hydrated, and only the second belongs behind an export.
 
 ## Totals
 
@@ -149,4 +185,4 @@ so no `GetXWithIDs` is ever asked to read zero IDs.
 - `internal/domain/mealplanning/managers/` — index-backed searches with a database fallback
 - `internal/domain/identity/manager/user_data_manager.go` — `SearchForUsers`
 - `internal/grpc/converters/query_filter.go` — filter and pagination conversion at the gRPC boundary
-- `proto/mealplanning/mealplanning_messages.proto` — `RecipeSummary` and `MealSummary`
+- `proto/mealplanning/mealplanning_messages.proto` — `RecipeSummary`, `MealSummary` and `MealPlanSummary`

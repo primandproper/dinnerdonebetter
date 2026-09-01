@@ -22,7 +22,7 @@ struct GroceryListView: View {
   @State private var quantityText: String = ""
 
   init(
-    mealPlan: Mealplanning_MealPlan, items: [Mealplanning_MealPlanGroceryListItem],
+    mealPlan: any MealPlanDisplayable, items: [Mealplanning_MealPlanGroceryListItem],
     authManager: AuthenticationManager
   ) {
     _viewModel = State(

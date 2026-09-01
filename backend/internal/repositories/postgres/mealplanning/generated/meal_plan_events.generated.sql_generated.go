@@ -9,6 +9,8 @@ import (
 	"context"
 	"database/sql"
 	"time"
+
+	"github.com/lib/pq"
 )
 
 const archiveMealPlanEvent = `-- name: ArchiveMealPlanEvent :execrows
@@ -131,6 +133,98 @@ func (q *Queries) GetAllMealPlanEventsForMealPlan(ctx context.Context, db DBTX, 
 			&i.LastUpdatedAt,
 			&i.ArchivedAt,
 		); err != nil {
+			return nil, err
+		}
+		items = append(items, &i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getAllMealPlanEventsForMealPlans = `-- name: GetAllMealPlanEventsForMealPlans :many
+SELECT
+	meal_plan_events.id,
+	meal_plan_events.notes,
+	meal_plan_events.starts_at,
+	meal_plan_events.ends_at,
+	meal_plan_events.meal_name,
+	meal_plan_events.belongs_to_meal_plan,
+	meal_plan_events.created_at,
+	meal_plan_events.last_updated_at,
+	meal_plan_events.archived_at
+FROM meal_plan_events
+WHERE
+	meal_plan_events.archived_at IS NULL
+	AND meal_plan_events.belongs_to_meal_plan = ANY($1::text[])
+ORDER BY meal_plan_events.belongs_to_meal_plan ASC, meal_plan_events.id ASC
+`
+
+func (q *Queries) GetAllMealPlanEventsForMealPlans(ctx context.Context, db DBTX, ids []string) ([]*MealPlanEvents, error) {
+	rows, err := db.QueryContext(ctx, getAllMealPlanEventsForMealPlans, pq.Array(ids))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []*MealPlanEvents{}
+	for rows.Next() {
+		var i MealPlanEvents
+		if err := rows.Scan(
+			&i.ID,
+			&i.Notes,
+			&i.StartsAt,
+			&i.EndsAt,
+			&i.MealName,
+			&i.BelongsToMealPlan,
+			&i.CreatedAt,
+			&i.LastUpdatedAt,
+			&i.ArchivedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, &i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getChosenMealNamesForMealPlans = `-- name: GetChosenMealNamesForMealPlans :many
+SELECT
+	meal_plan_events.id,
+	meals.name
+FROM meal_plan_events
+	JOIN meal_plan_options ON meal_plan_options.belongs_to_meal_plan_event = meal_plan_events.id AND meal_plan_options.archived_at IS NULL
+	JOIN meals ON meals.id = meal_plan_options.meal_id AND meals.archived_at IS NULL
+WHERE
+	meal_plan_events.archived_at IS NULL
+	AND meal_plan_events.belongs_to_meal_plan = ANY($1::text[])
+	AND meal_plan_options.chosen IS TRUE
+`
+
+type GetChosenMealNamesForMealPlansRow struct {
+	ID   string
+	Name string
+}
+
+func (q *Queries) GetChosenMealNamesForMealPlans(ctx context.Context, db DBTX, ids []string) ([]*GetChosenMealNamesForMealPlansRow, error) {
+	rows, err := db.QueryContext(ctx, getChosenMealNamesForMealPlans, pq.Array(ids))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []*GetChosenMealNamesForMealPlansRow{}
+	for rows.Next() {
+		var i GetChosenMealNamesForMealPlansRow
+		if err := rows.Scan(&i.ID, &i.Name); err != nil {
 			return nil, err
 		}
 		items = append(items, &i)
@@ -294,6 +388,47 @@ func (q *Queries) GetMealPlanEvents(ctx context.Context, db DBTX, arg *GetMealPl
 			return nil, err
 		}
 		items = append(items, &i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getMealPlanIDsVotedOnByUser = `-- name: GetMealPlanIDsVotedOnByUser :many
+SELECT DISTINCT meal_plan_events.belongs_to_meal_plan
+FROM meal_plan_option_votes
+	JOIN meal_plan_options ON meal_plan_options.id = meal_plan_option_votes.belongs_to_meal_plan_option AND meal_plan_options.archived_at IS NULL
+	JOIN meal_plan_events ON meal_plan_events.id = meal_plan_options.belongs_to_meal_plan_event AND meal_plan_events.archived_at IS NULL
+WHERE
+	meal_plan_option_votes.archived_at IS NULL
+	AND meal_plan_events.archived_at IS NULL
+	AND meal_plan_events.belongs_to_meal_plan = ANY($1::text[])
+	AND meal_plan_option_votes.by_user = $2
+	AND meal_plan_option_votes.abstain IS FALSE
+`
+
+type GetMealPlanIDsVotedOnByUserParams struct {
+	IDs    []string
+	ByUser string
+}
+
+func (q *Queries) GetMealPlanIDsVotedOnByUser(ctx context.Context, db DBTX, arg *GetMealPlanIDsVotedOnByUserParams) ([]string, error) {
+	rows, err := db.QueryContext(ctx, getMealPlanIDsVotedOnByUser, pq.Array(arg.IDs), arg.ByUser)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var belongs_to_meal_plan string
+		if err := rows.Scan(&belongs_to_meal_plan); err != nil {
+			return nil, err
+		}
+		items = append(items, belongs_to_meal_plan)
 	}
 	if err := rows.Close(); err != nil {
 		return nil, err

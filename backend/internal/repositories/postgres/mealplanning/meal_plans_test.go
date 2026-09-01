@@ -193,6 +193,186 @@ func TestQuerier_Integration_MealPlans(t *testing.T) {
 	}
 }
 
+// buildContestedMealPlanForIntegrationTest builds a plan whose single event offers a
+// choice between two meals, so the plan is awaiting votes rather than finalized on
+// creation and neither option is chosen yet. buildMealPlanForIntegrationTest's
+// one-option plan finalizes itself immediately, which leaves nothing for a test about
+// choosing or voting to do -- and a user may vote once per option, so an abstention and
+// a vote need one each.
+//
+// The two meals have to differ: idx_meal_plan_options_event_meal_unique stops an event
+// from offering the same meal twice.
+func buildContestedMealPlanForIntegrationTest(userID string, firstMeal, secondMeal *types.Meal) *types.MealPlan {
+	exampleMealPlan := fakes.BuildFakeMealPlan()
+	exampleMealPlan.CreatedByUser = userID
+	exampleMealPlan.Status = string(types.MealPlanStatusAwaitingVotes)
+
+	event := buildMealPlanEventForIntegrationTest(firstMeal)
+	secondOption := buildMealPlanOptionForIntegrationTest(secondMeal)
+	secondOption.BelongsToMealPlanEvent = event.ID
+	event.Options = append(event.Options, secondOption)
+
+	exampleMealPlan.Events = []*types.MealPlanEvent{event}
+
+	return exampleMealPlan
+}
+
+// The list endpoint answers with a MealPlanSummary, whose events carry no options: an
+// option embeds a whole meal, whose components embed whole recipes, and a page of those
+// does not fit in a gRPC message. These pin the split that made that possible -- the
+// listing stops at events, and the data-privacy collector's hydrated variant does not.
+func TestQuerier_Integration_GetMealPlansForAccount_ListsEventsWithoutOptions(t *testing.T) {
+	ctx := t.Context()
+	dbc, _ := buildDatabaseClientForTest(t)
+
+	user := pgtesting.CreateUserForTest(t, nil, dbc.writeDB)
+	account := pgtesting.CreateAccountForTest(t, nil, user.ID, dbc.writeDB)
+
+	recipe := createRecipeForTest(t, ctx, nil, dbc, true)
+	meal := createMealForTest(t, ctx, buildMealForIntegrationTest(user.ID, recipe), dbc)
+
+	exampleMealPlan := buildMealPlanForIntegrationTest(user.ID, meal)
+	exampleMealPlan.BelongsToAccount = account.ID
+	created := createMealPlanForTest(t, ctx, exampleMealPlan, dbc)
+	require.NotEmpty(t, created.Events)
+	require.NotEmpty(t, created.Events[0].Options)
+
+	listed, err := dbc.GetMealPlansForAccount(ctx, account.ID, nil)
+	require.NoError(t, err)
+	require.Len(t, listed.Data, 1)
+
+	// The events survive, because their dates are what a list of plans is read for.
+	require.Len(t, listed.Data[0].Events, len(created.Events))
+	for i, event := range listed.Data[0].Events {
+		assert.Equal(t, created.Events[i].ID, event.ID)
+		assert.Equal(t, created.Events[i].StartsAt, event.StartsAt)
+		assert.Equal(t, created.Events[i].EndsAt, event.EndsAt)
+		assert.Equal(t, created.Events[i].MealName, event.MealName)
+
+		// The options do not.
+		assert.Empty(t, event.Options)
+	}
+
+	// The data-privacy collector's variant reads the whole record.
+	hydrated, err := dbc.GetHydratedMealPlansForAccount(ctx, account.ID, nil)
+	require.NoError(t, err)
+	require.Len(t, hydrated.Data, 1)
+	require.Len(t, hydrated.Data[0].Events, len(created.Events))
+	assert.NotEmpty(t, hydrated.Data[0].Events[0].Options)
+	assert.Equal(t, created.Events[0].Options[0].Meal.ID, hydrated.Data[0].Events[0].Options[0].Meal.ID)
+}
+
+func TestQuerier_Integration_GetChosenMealNamesForMealPlans(t *testing.T) {
+	ctx := t.Context()
+	dbc, _ := buildDatabaseClientForTest(t)
+
+	user := pgtesting.CreateUserForTest(t, nil, dbc.writeDB)
+	account := pgtesting.CreateAccountForTest(t, nil, user.ID, dbc.writeDB)
+
+	recipe := createRecipeForTest(t, ctx, nil, dbc, true)
+	meal := createMealForTest(t, ctx, buildMealForIntegrationTest(user.ID, recipe), dbc)
+
+	otherMeal := createMealForTest(t, ctx, buildMealForIntegrationTest(user.ID, recipe), dbc)
+	exampleMealPlan := buildContestedMealPlanForIntegrationTest(user.ID, meal, otherMeal)
+	exampleMealPlan.BelongsToAccount = account.ID
+	created := createMealPlanForTest(t, ctx, exampleMealPlan, dbc)
+	event := created.Events[0]
+	require.Len(t, event.Options, 2)
+	option := event.Options[0]
+
+	// Nothing has been chosen yet, so the event is absent rather than present-and-empty:
+	// an undecided event and one whose meal happens to have no name are different facts.
+	names, err := dbc.GetChosenMealNamesForMealPlans(ctx, []string{created.ID})
+	require.NoError(t, err)
+	assert.NotContains(t, names, event.ID)
+
+	// FinalizeMealPlanOption runs the election rather than just setting a flag, so it
+	// needs a vote from every member of the account before it will choose anything.
+	for i, opt := range event.Options {
+		vote := fakes.BuildFakeMealPlanOptionVote()
+		vote.BelongsToMealPlanOption = opt.ID
+		vote.ByUser = user.ID
+		vote.Abstain = false
+		vote.Rank = uint8(i)
+		createMealPlanOptionVoteForTest(t, ctx, created.ID, event.ID, vote, dbc)
+	}
+
+	chosen, err := dbc.FinalizeMealPlanOption(ctx, created.ID, event.ID, option.ID, account.ID)
+	require.NoError(t, err)
+	require.True(t, chosen, "the election did not settle on an option")
+
+	names, err = dbc.GetChosenMealNamesForMealPlans(ctx, []string{created.ID})
+	require.NoError(t, err)
+	assert.Equal(t, meal.Name, names[event.ID])
+
+	// A plan nobody asked about contributes nothing.
+	names, err = dbc.GetChosenMealNamesForMealPlans(ctx, []string{fake.BuildFakeID()})
+	require.NoError(t, err)
+	assert.Empty(t, names)
+
+	names, err = dbc.GetChosenMealNamesForMealPlans(ctx, nil)
+	require.NoError(t, err)
+	assert.Empty(t, names)
+}
+
+func TestQuerier_Integration_GetMealPlanIDsVotedOnByUser(t *testing.T) {
+	ctx := t.Context()
+	dbc, _ := buildDatabaseClientForTest(t)
+
+	user := pgtesting.CreateUserForTest(t, nil, dbc.writeDB)
+	account := pgtesting.CreateAccountForTest(t, nil, user.ID, dbc.writeDB)
+
+	recipe := createRecipeForTest(t, ctx, nil, dbc, true)
+	meal := createMealForTest(t, ctx, buildMealForIntegrationTest(user.ID, recipe), dbc)
+
+	otherMeal := createMealForTest(t, ctx, buildMealForIntegrationTest(user.ID, recipe), dbc)
+	exampleMealPlan := buildContestedMealPlanForIntegrationTest(user.ID, meal, otherMeal)
+	exampleMealPlan.BelongsToAccount = account.ID
+	created := createMealPlanForTest(t, ctx, exampleMealPlan, dbc)
+	event := created.Events[0]
+	require.Len(t, event.Options, 2)
+
+	votedOn, err := dbc.GetMealPlanIDsVotedOnByUser(ctx, user.ID, []string{created.ID})
+	require.NoError(t, err)
+	assert.Empty(t, votedOn)
+
+	// An abstention is deliberately not a vote, matching what the clients counted when
+	// they walked the votes off a hydrated plan themselves. It goes on its own option
+	// because a user may vote once per option.
+	abstention := fakes.BuildFakeMealPlanOptionVote()
+	abstention.BelongsToMealPlanOption = event.Options[0].ID
+	abstention.ByUser = user.ID
+	abstention.Abstain = true
+	createMealPlanOptionVoteForTest(t, ctx, created.ID, event.ID, abstention, dbc)
+
+	votedOn, err = dbc.GetMealPlanIDsVotedOnByUser(ctx, user.ID, []string{created.ID})
+	require.NoError(t, err)
+	assert.Empty(t, votedOn)
+
+	vote := fakes.BuildFakeMealPlanOptionVote()
+	vote.BelongsToMealPlanOption = event.Options[1].ID
+	vote.ByUser = user.ID
+	vote.Abstain = false
+	createMealPlanOptionVoteForTest(t, ctx, created.ID, event.ID, vote, dbc)
+
+	votedOn, err = dbc.GetMealPlanIDsVotedOnByUser(ctx, user.ID, []string{created.ID})
+	require.NoError(t, err)
+	assert.Equal(t, []string{created.ID}, votedOn)
+
+	// Somebody else's vote is not this user's.
+	otherUser := pgtesting.CreateUserForTest(t, nil, dbc.writeDB)
+	votedOn, err = dbc.GetMealPlanIDsVotedOnByUser(ctx, otherUser.ID, []string{created.ID})
+	require.NoError(t, err)
+	assert.Empty(t, votedOn)
+
+	votedOn, err = dbc.GetMealPlanIDsVotedOnByUser(ctx, user.ID, nil)
+	require.NoError(t, err)
+	assert.Empty(t, votedOn)
+
+	_, err = dbc.GetMealPlanIDsVotedOnByUser(ctx, "", []string{created.ID})
+	require.Error(t, err)
+}
+
 func TestQuerier_MealPlanExists(T *testing.T) {
 	T.Parallel()
 

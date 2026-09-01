@@ -33,6 +33,52 @@ func (m *mealPlanningManager) ListMealPlans(ctx context.Context, ownerID string,
 	return mealPlans, nil
 }
 
+// AnnotateMealPlanSummaries reads the chosen meal names and the user's votes for a whole
+// page of meal plans, in one query each. The list endpoint projects both onto the
+// MealPlanSummary it answers with; see the message's comment in
+// mealplanning_messages.proto for why the options they come from are not on the wire.
+func (m *mealPlanningManager) AnnotateMealPlanSummaries(ctx context.Context, userID string, mealPlans []*types.MealPlan) (*types.MealPlanSummaryAnnotations, error) {
+	ctx, span := m.tracer.StartSpan(ctx)
+	defer span.End()
+
+	if userID == "" {
+		return nil, platformerrors.ErrEmptyInputParameter
+	}
+
+	logger := m.logger.WithSpan(span).WithValue(identitykeys.UserIDKey, userID)
+	tracing.AttachToSpan(span, identitykeys.UserIDKey, userID)
+
+	annotations := &types.MealPlanSummaryAnnotations{
+		ChosenMealNamesByEventID: map[string]string{},
+		VotedOnMealPlanIDs:       map[string]bool{},
+	}
+
+	mealPlanIDs := make([]string, 0, len(mealPlans))
+	for _, mealPlan := range mealPlans {
+		mealPlanIDs = append(mealPlanIDs, mealPlan.ID)
+	}
+
+	if len(mealPlanIDs) == 0 {
+		return annotations, nil
+	}
+
+	chosenMealNames, err := m.db.GetChosenMealNamesForMealPlans(ctx, mealPlanIDs)
+	if err != nil {
+		return nil, observability.PrepareAndLogError(err, logger, span, "fetching chosen meal names for meal plans")
+	}
+	annotations.ChosenMealNamesByEventID = chosenMealNames
+
+	votedOn, err := m.db.GetMealPlanIDsVotedOnByUser(ctx, userID, mealPlanIDs)
+	if err != nil {
+		return nil, observability.PrepareAndLogError(err, logger, span, "fetching meal plans voted on by user")
+	}
+	for _, mealPlanID := range votedOn {
+		annotations.VotedOnMealPlanIDs[mealPlanID] = true
+	}
+
+	return annotations, nil
+}
+
 func (m *mealPlanningManager) CreateMealPlan(ctx context.Context, ownerID, creatorID string, input *types.MealPlanCreationRequestInput) (*types.MealPlan, error) {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()

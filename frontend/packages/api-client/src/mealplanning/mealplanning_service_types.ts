@@ -38,6 +38,7 @@ import {
   MealPlanRecipeOptionSelectionType,
   mealPlanRecipeOptionSelectionTypeFromJSON,
   mealPlanRecipeOptionSelectionTypeToJSON,
+  MealPlanSummary,
   MealPlanTask,
   MealPlanTaskStatus,
   mealPlanTaskStatusFromJSON,
@@ -2797,7 +2798,7 @@ export interface GetMealPlansForAccountRequest {
 export interface GetMealPlansForAccountResponse {
   responseDetails: ResponseDetails | undefined;
   pagination: Pagination | undefined;
-  results: MealPlan[];
+  results: MealPlanSummary[];
 }
 
 export interface GetMealsRequest {
@@ -51475,7 +51476,7 @@ export const GetMealPlansForAccountResponse: MessageFns<GetMealPlansForAccountRe
       Pagination.encode(message.pagination, writer.uint32(18).fork()).join();
     }
     for (const v of message.results) {
-      MealPlan.encode(v!, writer.uint32(26).fork()).join();
+      MealPlanSummary.encode(v!, writer.uint32(26).fork()).join();
     }
     return writer;
   },
@@ -51508,7 +51509,7 @@ export const GetMealPlansForAccountResponse: MessageFns<GetMealPlansForAccountRe
             break;
           }
 
-          message.results.push(MealPlan.decode(reader, reader.uint32()));
+          message.results.push(MealPlanSummary.decode(reader, reader.uint32()));
           continue;
         }
       }
@@ -51528,7 +51529,9 @@ export const GetMealPlansForAccountResponse: MessageFns<GetMealPlansForAccountRe
           ? ResponseDetails.fromJSON(object.response_details)
           : undefined,
       pagination: isSet(object.pagination) ? Pagination.fromJSON(object.pagination) : undefined,
-      results: globalThis.Array.isArray(object?.results) ? object.results.map((e: any) => MealPlan.fromJSON(e)) : [],
+      results: globalThis.Array.isArray(object?.results)
+        ? object.results.map((e: any) => MealPlanSummary.fromJSON(e))
+        : [],
     };
   },
 
@@ -51541,7 +51544,7 @@ export const GetMealPlansForAccountResponse: MessageFns<GetMealPlansForAccountRe
       obj.pagination = Pagination.toJSON(message.pagination);
     }
     if (message.results?.length) {
-      obj.results = message.results.map((e) => MealPlan.toJSON(e));
+      obj.results = message.results.map((e) => MealPlanSummary.toJSON(e));
     }
     return obj;
   },
@@ -51561,7 +51564,7 @@ export const GetMealPlansForAccountResponse: MessageFns<GetMealPlansForAccountRe
       object.pagination !== undefined && object.pagination !== null
         ? Pagination.fromPartial(object.pagination)
         : undefined;
-    message.results = object.results?.map((e) => MealPlan.fromPartial(e)) || [];
+    message.results = object.results?.map((e) => MealPlanSummary.fromPartial(e)) || [];
     return message;
   },
 };

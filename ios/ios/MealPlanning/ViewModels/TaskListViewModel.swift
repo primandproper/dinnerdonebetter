@@ -15,7 +15,9 @@ import SwiftUI
 class TaskListViewModel {
   // Data
   var tasks: [Mealplanning_MealPlanTask] = []
-  var mealPlan: Mealplanning_MealPlan
+  // A summary is enough here: this reads the plan's ID, its date range and each
+  // event's start time, none of which live under the options a summary drops.
+  var mealPlan: any MealPlanDisplayable
   var loadedRecipes: [String: Mealplanning_Recipe] = [:]
   var loadedPrepTasks: [String: Mealplanning_RecipePrepTask] = [:]
 
@@ -39,7 +41,7 @@ class TaskListViewModel {
   private let userSettingsService: UserSettingsService
 
   init(
-    mealPlan: Mealplanning_MealPlan,
+    mealPlan: any MealPlanDisplayable,
     tasks: [Mealplanning_MealPlanTask],
     authManager: AuthenticationManager,
     userSettingsService: UserSettingsService
@@ -287,7 +289,7 @@ class TaskListViewModel {
     guard task.hasMealPlanOption else { return nil }
     let eventID = task.mealPlanOption.belongsToMealPlanEvent
     guard !eventID.isEmpty,
-      let event = mealPlan.events.first(where: { $0.id == eventID })
+      let event = mealPlan.displayEvents.first(where: { $0.id == eventID })
     else { return nil }
 
     let eventTime = HomeViewModel.timestampToDate(event.startsAt)

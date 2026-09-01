@@ -15,14 +15,16 @@ const (
 
 	mealPlanOptionVoteIDColumn    = "meal_plan_option_vote_id"
 	belongsToMealPlanOptionColumn = "belongs_to_meal_plan_option"
+	abstainColumn                 = "abstain"
+	byUserColumn                  = "by_user"
 )
 
 var mealPlanOptionVotesColumns = []string{
 	idColumn,
 	"rank",
-	"abstain",
+	abstainColumn,
 	notesColumn,
-	"by_user",
+	byUserColumn,
 	createdAtColumn,
 	lastUpdatedAtColumn,
 	archivedAtColumn,
