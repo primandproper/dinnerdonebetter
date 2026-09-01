@@ -2721,13 +2721,9 @@ const (
 	// set to override `APIServiceConfig.Services.Payments.Capitalism.Stripe.WebhookSecret`.
 	ServicePaymentsCapitalismStripeWebhookSecretEnvVarKey = "DINNER_DONE_BETTER_SERVICE_PAYMENTS_CAPITALISM_STRIPE_WEBHOOK_SECRET"
 
-	// ServicePaymentsRevenuecatAPIKeyEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Services.Payments.RevenueCat.APIKey`.
-	ServicePaymentsRevenuecatAPIKeyEnvVarKey = "DINNER_DONE_BETTER_SERVICE_PAYMENTS_REVENUECAT_API_KEY"
-
-	// ServicePaymentsRevenuecatWebhookAuthHeaderEnvVarKey is the environment variable name to set
-	// to override `APIServiceConfig.Services.Payments.RevenueCat.WebhookAuthHeader`.
-	ServicePaymentsRevenuecatWebhookAuthHeaderEnvVarKey = "DINNER_DONE_BETTER_SERVICE_PAYMENTS_REVENUECAT_WEBHOOK_AUTH_HEADER"
+	// ServicePaymentsMobileProviderEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Services.Payments.MobileProvider`.
+	ServicePaymentsMobileProviderEnvVarKey = "DINNER_DONE_BETTER_SERVICE_PAYMENTS_MOBILE_PROVIDER"
 
 	// ServiceUploadedMediaUploadsDebugEnvVarKey is the environment variable name to set to
 	// override `APIServiceConfig.Services.UploadedMedia.Uploads.Debug`.

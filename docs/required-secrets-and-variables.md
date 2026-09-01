@@ -95,7 +95,7 @@ The analytics proxy gRPC service forwards client events (e.g. from iOS, web) to 
 
 | Variable             | Description                                                                                                                                |
 |----------------------|--------------------------------------------------------------------------------------------------------------------------------------------|
-| `REVENUECAT_API_KEY` | RevenueCat API key for in-app purchases and subscription management. Used by the backend for webhook verification and subscription status. |
+| `REVENUECAT_API_KEY` | RevenueCat API key for in-app purchases and subscription management, used by the iOS app's SDK. The backend needs no API key — RevenueCat is inbound-only — but does need the webhook signing secret, which lives in app config as `DINNER_DONE_BETTER_SERVICE_PAYMENTS_CAPITALISM_REVENUECAT_WEBHOOK_SECRET`. |
 
 ---
 

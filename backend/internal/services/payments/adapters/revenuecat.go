@@ -1,137 +1,150 @@
 package adapters
 
 import (
-	"io"
+	"encoding/json"
 	"net/http"
-	"strings"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 
-	"github.com/primandproper/platform-go/v13/encoding"
+	"github.com/primandproper/platform-go/v13/capitalism"
+	caprevenuecat "github.com/primandproper/platform-go/v13/capitalism/revenuecat"
 	"github.com/primandproper/platform-go/v13/observability"
 	"github.com/primandproper/platform-go/v13/observability/logging"
 	"github.com/primandproper/platform-go/v13/observability/tracing"
 )
 
-const (
-	bearerPrefix = "Bearer "
-
-	// revenueCatAuthHeader is the header RevenueCat sends its webhook auth token in.
-	revenueCatAuthHeader = "Authorization"
-)
-
-// RevenueCatConfig holds configuration for the RevenueCat adapter.
-type RevenueCatConfig struct {
-	APIKey            string // Secret API key (sk_xxx) for REST API
-	WebhookAuthHeader string // Expected value in Authorization header for webhooks (set in RevenueCat dashboard)
-}
+const revenueCatO11yName = "revenuecat_processor"
 
 // RevenueCatPaymentProcessor implements PaymentProcessor for RevenueCat (mobile in-app purchases).
+//
+// Like the Stripe one, it owns no verification and no vendor knowledge: signature checking,
+// envelope decoding and the event-type-to-status table belong to platform-go's
+// capitalism.PaymentManager, and this type's whole job is turning the platform-owned event it
+// hands back into one of our domain's ParsedWebhookEvents.
 type RevenueCatPaymentProcessor struct {
 	logger  logging.Logger
 	tracer  tracing.Tracer
-	encoder encoding.ServerEncoderDecoder
-	cfg     *RevenueCatConfig
-}
-
-// NewRevenueCatPaymentProcessor returns a new RevenueCat payment processor.
-func NewRevenueCatPaymentProcessor(
-	logger logging.Logger,
-	tracerProvider tracing.Provider,
-	cfg *RevenueCatConfig,
-) *RevenueCatPaymentProcessor {
-	if cfg == nil {
-		cfg = &RevenueCatConfig{}
-	}
-	return &RevenueCatPaymentProcessor{
-		encoder: encoding.NewServerEncoderDecoder(encoding.ContentTypeJSON, encoding.WithLogger(logger), encoding.WithTracerProvider(tracerProvider)),
-		logger:  logging.NewNamedLogger(logger, "revenuecat_processor"),
-		tracer:  tracing.NewNamedTracer(tracerProvider, "revenuecat_processor"),
-		cfg:     cfg,
-	}
+	manager capitalism.PaymentManager
 }
 
 var _ payments.PaymentProcessor = (*RevenueCatPaymentProcessor)(nil)
 
-// RevenueCat event types that imply subscription status.
-const (
-	rcEventInitialPurchase = "INITIAL_PURCHASE"
-	rcEventRenewal         = "RENEWAL"
-	rcEventExpiration      = "EXPIRATION"
-	rcEventCancellation    = "CANCELLATION"
-)
-
-// revenueCatWebhookPayload represents the structure of a RevenueCat webhook event.
-type revenueCatWebhookPayload struct {
-	ExpirationAtMs   *int64   `json:"expiration_at_ms"`
-	PurchasedAtMs    *int64   `json:"purchased_at_ms"`
-	ProductID        string   `json:"product_id"`
-	Type             string   `json:"type"`
-	TransactionID    string   `json:"transaction_id"`
-	OriginalTxnID    string   `json:"original_transaction_id"`
-	AppUserID        string   `json:"app_user_id"`
-	ID               string   `json:"id"`
-	Store            string   `json:"store"`
-	Environment      string   `json:"environment"`
-	CancelReason     string   `json:"cancel_reason"`
-	ExpirationReason string   `json:"expiration_reason"`
-	EntitlementIDs   []string `json:"entitlement_ids"`
-}
-
-// verifyWebhookSignature validates the Authorization header (RevenueCat uses Bearer or custom header).
-func (r *RevenueCatPaymentProcessor) verifyWebhookSignature(signature string) bool {
-	if r.cfg.WebhookAuthHeader == "" {
-		return true // no config = accept (for dev)
+// NewRevenueCatPaymentProcessor returns a new RevenueCat payment processor backed by the
+// platform's RevenueCat payment manager.
+//
+// It returns an error where the hand-rolled adapter it replaces could not: a manager without a
+// signing secret is refused at construction rather than at the first delivery, because
+// RevenueCat is inbound-only and a secretless manager could do nothing at all.
+func NewRevenueCatPaymentProcessor(
+	logger logging.Logger,
+	tracerProvider tracing.Provider,
+	cfg *caprevenuecat.Config,
+) (*RevenueCatPaymentProcessor, error) {
+	manager, err := caprevenuecat.NewPaymentManager(
+		cfg,
+		caprevenuecat.WithLogger(logger),
+		caprevenuecat.WithTracerProvider(tracerProvider),
+	)
+	if err != nil {
+		return nil, err
 	}
 
-	// RevenueCat sends Authorization header; signature param may contain "Bearer <token>" or the raw value
-	expected := strings.TrimSpace(r.cfg.WebhookAuthHeader)
-	got := strings.TrimSpace(signature)
-
-	if strings.HasPrefix(expected, bearerPrefix) && strings.HasPrefix(got, bearerPrefix) {
-		return expected == got
-	}
-	return expected == got
+	return &RevenueCatPaymentProcessor{
+		logger:  logging.NewNamedLogger(logger, revenueCatO11yName),
+		tracer:  tracing.NewNamedTracer(tracerProvider, revenueCatO11yName),
+		manager: manager,
+	}, nil
 }
 
-// HandleWebhook validates a RevenueCat webhook's Authorization header and parses its JSON body.
+// HandleWebhook verifies the request's RevenueCat signature and returns the parsed event.
 func (r *RevenueCatPaymentProcessor) HandleWebhook(req *http.Request) (*payments.ParsedWebhookEvent, error) {
 	ctx, span := r.tracer.StartSpan(req.Context())
 	defer span.End()
 
 	logger := r.logger.WithSpan(span)
 
-	if !r.verifyWebhookSignature(req.Header.Get(revenueCatAuthHeader)) {
-		return nil, observability.PrepareAndLogError(ErrInvalidWebhookSignature, logger, span, "verifying webhook signature")
-	}
-
-	// Bound the body of this public, unauthenticated endpoint so a hostile client can't force an
-	// unbounded allocation. RevenueCat's events are well under this.
-	payload, err := io.ReadAll(http.MaxBytesReader(nil, req.Body, maxWebhookBodyBytes))
+	event, err := r.manager.HandleEventWebhook(req.WithContext(ctx))
 	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "reading webhook body")
+		return nil, observability.PrepareAndLogError(err, logger, span, "handling revenuecat webhook")
 	}
 
-	logger = logger.WithValue("payload_size", len(payload))
-
-	var p revenueCatWebhookPayload
-	if err = r.encoder.DecodeBytes(ctx, payload, &p); err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "decoding webhook payload")
+	parsed, err := parseRevenueCatEvent(event)
+	if err != nil {
+		return nil, observability.PrepareAndLogError(err, logger, span, "parsing revenuecat event")
 	}
 
-	status := ""
-	switch p.Type {
-	case rcEventInitialPurchase, rcEventRenewal:
-		status = payments.SubscriptionStatusActive
-	case rcEventExpiration, rcEventCancellation:
-		status = payments.SubscriptionStatusCancelled
+	return parsed, nil
+}
+
+// parseRevenueCatEvent renders a verified, platform-owned event as one of our domain events.
+//
+// EventType stays RevenueCat's own word for what happened, because that is what the payments
+// manager switches on — INITIAL_PURCHASE, EXPIRATION, and the rest.
+func parseRevenueCatEvent(event *capitalism.Event) (*payments.ParsedWebhookEvent, error) {
+	result := &payments.ParsedWebhookEvent{
+		EventType: event.Type,
 	}
 
-	return &payments.ParsedWebhookEvent{
-		EventType:      p.Type,
-		AccountID:      p.AppUserID,
-		SubscriptionID: p.TransactionID,
-		ProductID:      p.ProductID,
-		Status:         status,
-	}, nil
+	// product_id is the one thing the payments manager needs that capitalism's inbound
+	// vocabulary does not name: SubscriptionState carries the identifiers and the status, and
+	// everything else stays in the raw payload for whoever wants it. Decoding a single field
+	// out of it here is what that arrangement is for — a struct mirroring RevenueCat's event
+	// would make every field RevenueCat adds a change to this file.
+	if len(event.Payload) > 0 {
+		var payload struct {
+			ProductID string `json:"product_id"`
+		}
+
+		if err := json.Unmarshal(event.Payload, &payload); err != nil {
+			return nil, err
+		}
+
+		result.ProductID = payload.ProductID
+	}
+
+	// Nil for the events RevenueCat documents as carrying no subscription standing — a test
+	// event, a transfer — which leave the account and subscription fields empty and fall
+	// through the manager's switch.
+	if event.Subscription != nil {
+		result.AccountID = event.Subscription.CustomerID
+		result.SubscriptionID = event.Subscription.ID
+		result.Status = revenueCatSubscriptionStatus(event.Subscription.Status)
+	}
+
+	return result, nil
+}
+
+// revenueCatSubscriptionStatus maps capitalism's subscription vocabulary onto ours.
+//
+// The two are near-identical because both read like Stripe's, which is the set the industry
+// copied; the mapping exists for the three values our domain has no constant for and for
+// "cancelled", which we spell with two Ls.
+func revenueCatSubscriptionStatus(status capitalism.SubscriptionStatus) string {
+	switch status {
+	case capitalism.SubscriptionStatusActive:
+		return payments.SubscriptionStatusActive
+	case capitalism.SubscriptionStatusTrialing:
+		return payments.SubscriptionStatusTrialing
+	case capitalism.SubscriptionStatusPastDue:
+		return payments.SubscriptionStatusPastDue
+	case capitalism.SubscriptionStatusCanceled:
+		return payments.SubscriptionStatusCancelled
+	case capitalism.SubscriptionStatusIncomplete, capitalism.SubscriptionStatusIncompleteExpired:
+		return payments.SubscriptionStatusIncomplete
+	case capitalism.SubscriptionStatusUnpaid:
+		// Not ended, but not collecting either: the processor has stopped retrying and left
+		// invoices outstanding, which is the same standing our past-due value describes.
+		return payments.SubscriptionStatusPastDue
+	case capitalism.SubscriptionStatusPaused:
+		// Deliberately suspended at the processor and expected to resume. Our vocabulary has
+		// no value for it, and cancelled is the one that gates entitlement correctly: nothing
+		// is being collected, so nothing is paid for.
+		return payments.SubscriptionStatusCancelled
+	default:
+		// capitalism.SubscriptionStatusUnknown, and anything a later version adds. Left empty
+		// rather than guessed onto a neighboring value: the manager's own default arm treats
+		// an unrecognized event as a no-op, and inventing a status here is how a status
+		// RevenueCat added last week becomes a wrongly locked-out account.
+		return ""
+	}
 }

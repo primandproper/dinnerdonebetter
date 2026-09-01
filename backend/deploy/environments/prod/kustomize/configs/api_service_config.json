@@ -222,7 +222,8 @@
 		"payments": {
 			"capitalism": {
 				"provider": "noop"
-			}
+			},
+			"mobileProvider": "noop"
 		},
 		"users": {
 			"publicMediaURLPrefix": "https://media.dinnerdonebetter.com/avatars",
