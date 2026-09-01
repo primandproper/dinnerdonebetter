@@ -493,7 +493,12 @@ func (s *EnvironmentConfigSet) Render(ctx context.Context, outputDir string) err
 	schedulerConfig.Observability.Profiling.ServiceName = schedulerConfigObservabilityServiceName
 
 	amhConfig := &AsyncMessageHandlerConfig{
-		Queues:            s.RootConfig.Queues,
+		Queues: s.RootConfig.Queues,
+		// The same encoder the API server writes its messages with, which is not a
+		// nicety: the handler decodes what the API published, and this section was
+		// missing entirely — a content type of "" is not a default, it is a decoder
+		// that refuses to be built, so the process could not boot at all.
+		Encoding:          s.RootConfig.Encoding,
 		Email:             s.RootConfig.Email,
 		Analytics:         s.RootConfig.Analytics,
 		Search:            s.RootConfig.TextSearch,

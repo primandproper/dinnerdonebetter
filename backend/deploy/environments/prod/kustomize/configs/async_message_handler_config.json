@@ -15,6 +15,9 @@
 		"fcm": {},
 		"provider": "apns_fcm"
 	},
+	"encoding": {
+		"contentType": "application/json"
+	},
 	"events": {
 		"consumer": {
 			"provider": "pubsub",

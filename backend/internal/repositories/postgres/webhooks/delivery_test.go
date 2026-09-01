@@ -22,6 +22,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
+	"github.com/primandproper/platform-go/v13/clock"
 	"github.com/primandproper/platform-go/v13/cryptography/requestsigning"
 	"github.com/primandproper/platform-go/v13/database"
 	"github.com/primandproper/platform-go/v13/database/dialect"
@@ -76,10 +77,29 @@ func newTestSubscriber(t *testing.T, status func() int) (subscriber *httptest.Se
 	}
 }
 
+// deliveryTuning is what a test may change about the delivery worker before it is built.
+//
+// Two things, because the worker's timings come from two places. The retry schedule and the
+// poll are plain config fields; the retention window is one too, but its floor is a minute, so
+// the only way to reach a reap inside a test is to move the clock the window is measured
+// against. Both seams are the worker's own — see webhooks.WithWorkerClock.
+type deliveryTuning struct {
+	// Config is the worker's configuration, with its defaults already filled in.
+	Config *webhookscfg.Config
+
+	// Clock drives the poll loop, the leases, the backoff, and the reap window. Leaving it
+	// nil is the wall clock, which is what every test that is not asserting on retention
+	// wants.
+	Clock clock.Clock
+}
+
 // buildDeliveryHarness wires the whole webhook path over one database: the repository that
 // registers endpoints, the Emitter that dispatches inside a transaction, and the Worker that
 // delivers.
-func buildDeliveryHarness(t *testing.T) (*repository, *events.Emitter, *webhooks.Worker, database.Client) {
+//
+// tune runs after the worker's defaults are filled and before it is built, which is how a test
+// asks for a retry schedule or a retention window it can actually reach.
+func buildDeliveryHarness(t *testing.T, tune ...func(*deliveryTuning)) (*repository, *events.Emitter, *webhooks.Worker, database.Client) {
 	t.Helper()
 
 	ctx := t.Context()
@@ -126,13 +146,23 @@ func buildDeliveryHarness(t *testing.T) (*repository, *events.Emitter, *webhooks
 	// A short poll so a test spends milliseconds waiting rather than a second.
 	workerCfg.Worker.PollInterval = 10 * time.Millisecond
 
+	tuning := &deliveryTuning{Config: workerCfg}
+	for _, apply := range tune {
+		apply(tuning)
+	}
+
+	workerOpts := []webhooks.WorkerOption{
+		webhooks.WithWorkerURLChecker(allowLoopback),
+		// The subscriber's certificate is self-signed, which is what httptest issues.
+		webhooks.WithHTTPClient(&http.Client{Transport: insecureTransport()}),
+	}
+	if tuning.Clock != nil {
+		workerOpts = append(workerOpts, webhooks.WithWorkerClock(tuning.Clock))
+	}
+
 	worker, err := webhookscfg.NewWorker(ctx, workerCfg, store,
 		webhookscfg.WithLogger(loggingnoop.NewLogger()),
-		webhookscfg.WithWorkerOptions(
-			webhooks.WithWorkerURLChecker(allowLoopback),
-			// The subscriber's certificate is self-signed, which is what httptest issues.
-			webhooks.WithHTTPClient(&http.Client{Transport: insecureTransport()}),
-		),
+		webhookscfg.WithWorkerOptions(workerOpts...),
 	)
 	require.NoError(t, err)
 

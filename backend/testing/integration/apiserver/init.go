@@ -20,11 +20,24 @@ import (
 
 	"github.com/primandproper/platform-go/v13/database"
 	"github.com/primandproper/platform-go/v13/identifiers"
+	msgconfig "github.com/primandproper/platform-go/v13/messagequeue/config"
 	"github.com/primandproper/platform-go/v13/random"
 )
 
 const (
 	apiConfigurationFilepath = "../../../deploy/environments/testing/config_files/integration-tests-config.json"
+
+	// The other two workloads' rendered configurations, loaded rather than derived from the
+	// API server's.
+	//
+	// Derived would be easier and would prove less. The three processes have to agree about
+	// several things that live in all three files — the operations queue's name, the data
+	// privacy bucket and cipher, the data changes topic — and every one of those agreements is
+	// invisible when it breaks: a request submitted to a queue nothing claims, an artifact
+	// written under a key nothing can open. Reading what a testing deployment actually renders
+	// is what makes those agreements assertions rather than assumptions.
+	schedulerConfigurationFilepath           = "../../../deploy/environments/testing/config_files/scheduler_config.json"
+	asyncMessageHandlerConfigurationFilepath = "../../../deploy/environments/testing/config_files/async_message_handler_config.json"
 )
 
 var (
@@ -34,6 +47,15 @@ var (
 	apiServiceConfig                     *config.APIServiceConfig
 	notifsRepo                           notifications.Repository
 	httpTestServerAddress                string
+
+	// dataPrivacyFulfillment is the scheduler's half of a subject access request, run in this
+	// process. See the note beside where it is started.
+	dataPrivacyFulfillment *localdev.DataPrivacyFulfillment
+
+	// The other two workloads' configurations, pointed at this suite's containers. They are
+	// what the container-resolution tests build their injectors from.
+	schedulerConfig           *config.SchedulerConfig
+	asyncMessageHandlerConfig *config.AsyncMessageHandlerConfig
 )
 
 // getFreePort asks the OS for a free open port that is ready to use.
@@ -155,6 +177,50 @@ func init() {
 	if _, err = localdev.StartSagaWorker(ctx, pillars.Logger, pillars.TracerProvider, databaseClient); err != nil {
 		log.Fatal(err)
 	}
+
+	// The other two workloads' configurations, as a testing deployment renders them.
+	if schedulerConfig, err = config.LoadConfigFromPath[config.SchedulerConfig](schedulerConfigurationFilepath); err != nil {
+		log.Fatal(err)
+	}
+	if asyncMessageHandlerConfig, err = config.LoadConfigFromPath[config.AsyncMessageHandlerConfig](asyncMessageHandlerConfigurationFilepath); err != nil {
+		log.Fatal(err)
+	}
+
+	// The two things a rendered config cannot know: which containers this suite started. Both
+	// are addresses rather than behavior, so everything else in those files is the deployment's
+	// own.
+	for _, workload := range []struct {
+		database *dbcfg.Config
+		events   *msgconfig.Config
+	}{
+		{&schedulerConfig.Database, &schedulerConfig.Events},
+		{&asyncMessageHandlerConfig.Database, &asyncMessageHandlerConfig.Events},
+	} {
+		workload.database.WriteConnection = cfg.Database.WriteConnection
+		workload.database.ReadConnection = cfg.Database.ReadConnection
+		// Migrations are the API server's job — see backend/docs/migrations.md — and a worker
+		// that ran them here would race the one that already has.
+		workload.database.RunMigrations = false
+		*workload.events = cfg.Events
+	}
+
+	// The other half the API server does not run: data privacy fulfillment. Submitting a
+	// subject access request records a row and returns; the gather, the artifact, and the
+	// erasure all happen in an operations worker that lives in the scheduler, so without one
+	// here every export would stay in progress forever and the tests asserting on one would be
+	// asserting on work nothing ever ran.
+	//
+	// Never stopped, for the same reason the saga worker is not: this process exits when the
+	// suite does, and an operation mid-flight at that point has nothing to hand back to.
+	if dataPrivacyFulfillment, err = localdev.NewDataPrivacyFulfillment(ctx, schedulerConfig); err != nil {
+		log.Fatal(err)
+	}
+
+	go func() {
+		if runErr := dataPrivacyFulfillment.Worker.Run(ctx); runErr != nil {
+			log.Fatal(runErr)
+		}
+	}()
 
 	// Release the reserved ports immediately before the server takes them. Everything that
 	// could have stolen one — every container this suite starts — has already been mapped.

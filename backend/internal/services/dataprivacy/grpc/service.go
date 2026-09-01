@@ -125,8 +125,11 @@ func (s *serviceImpl) FetchUserDataReport(ctx context.Context, request *datapriv
 	artifact, err := s.requests.Open(ctx, stored.ID)
 	if err != nil {
 		// Unavailable covers an erasure, an export that has not completed, and one whose
-		// artifact has expired and been deleted. All three are "there is nothing here to
-		// give you", which is NotFound rather than an error about our storage.
+		// artifact has expired and been deleted. The code that reaches the client is
+		// FailedPrecondition rather than the NotFound named here: platform-go's mapper
+		// recognizes this sentinel and overrides the default, because the request exists and
+		// the caller may see it — it is only not in a state this call can serve. The default
+		// stands for a future error that is not this one.
 		if errors.Is(err, platformdataprivacy.ErrArtifactUnavailable) {
 			return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.NotFound, "artifact is unavailable")
 		}
