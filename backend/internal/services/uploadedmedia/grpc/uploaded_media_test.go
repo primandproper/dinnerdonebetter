@@ -9,10 +9,8 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	uploadedmediafakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia/fakes"
-	uploadedmediamock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia/mock"
 	uploadedmediasvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
 	appmetering "github.com/primandproper/dinnerdonebetter/backend/internal/metering"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/grpc/converters"
 
 	platformerrors "github.com/primandproper/platform-go/v13/errors"
 	"github.com/primandproper/platform-go/v13/filtering"
@@ -22,8 +20,11 @@ import (
 	meteringmock "github.com/primandproper/platform-go/v13/metering/mock"
 	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
 	"github.com/primandproper/platform-go/v13/observability/tracing"
+	"github.com/primandproper/platform-go/v13/tenancy"
 	"github.com/primandproper/platform-go/v13/uploads"
 	mockuploads "github.com/primandproper/platform-go/v13/uploads/mock"
+	"github.com/primandproper/platform-go/v13/uploads/registry"
+	registrymock "github.com/primandproper/platform-go/v13/uploads/registry/mock"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -37,12 +38,12 @@ var (
 	testUserID    = identifiers.New()
 )
 
-func buildTestService(t *testing.T) (*serviceImpl, *uploadedmediamock.RepositoryMock, *mockuploads.UploadManagerMock) {
+func buildTestService(t *testing.T) (*serviceImpl, *registrymock.StoreMock, *mockuploads.UploadManagerMock) {
 	t.Helper()
 
-	service, repo, uploadManager, _ := buildTestServiceWithRecorder(t)
+	service, store, uploadManager, _ := buildTestServiceWithRecorder(t)
 
-	return service, repo, uploadManager
+	return service, store, uploadManager
 }
 
 // buildTestServiceWithRecorder is buildTestService with the usage recorder handed back, for the
@@ -51,26 +52,35 @@ func buildTestService(t *testing.T) (*serviceImpl, *uploadedmediamock.Repository
 // The recorder accepts everything by default. Upload counts bytes after the file and its row are
 // already committed, so a recorder that failed would be testing the swallow rather than the
 // count — see recordUploadUsage.
-func buildTestServiceWithRecorder(t *testing.T) (*serviceImpl, *uploadedmediamock.RepositoryMock, *mockuploads.UploadManagerMock, *meteringmock.RecorderMock) {
+func buildTestServiceWithRecorder(t *testing.T) (*serviceImpl, *registrymock.StoreMock, *mockuploads.UploadManagerMock, *meteringmock.RecorderMock) {
 	t.Helper()
 
 	logger := loggingnoop.NewLogger()
 	tracer := tracing.NewTracerForTest(t.Name())
-	uploadedMediaRepo := &uploadedmediamock.RepositoryMock{}
+	uploadsRegistry := &registrymock.StoreMock{}
 	uploadManager := &mockuploads.UploadManagerMock{}
 	usageRecorder := &meteringmock.RecorderMock{
 		RecordFunc: func(context.Context, ...metering.Usage) error { return nil },
 	}
 
 	service := &serviceImpl{
-		tracer:               tracer,
-		logger:               logger,
-		uploadedMediaManager: uploadedMediaRepo,
-		uploadManager:        uploadManager,
-		usageRecorder:        usageRecorder,
+		tracer:        tracer,
+		logger:        logger,
+		registry:      uploadsRegistry,
+		uploadManager: uploadManager,
+		usageRecorder: usageRecorder,
 	}
 
-	return service, uploadedMediaRepo, uploadManager, usageRecorder
+	return service, uploadsRegistry, uploadManager, usageRecorder
+}
+
+// ownedByTestUser is a fake object whose owner is the user every session context here reports,
+// which is what the handlers' ownership checks compare against.
+func ownedByTestUser() *registry.Object {
+	object := uploadedmediafakes.BuildFakeUploadedMedia()
+	object.OwnerID = testUserID
+
+	return object
 }
 
 // mockUploadStream is a fake upload stream. Recv yields queued messages in order and then
@@ -118,16 +128,11 @@ func (m *mockUploadStream) SendAndClose(response *uploadedmediasvc.UploadRespons
 	return m.sendAndCloseErr
 }
 
-func (m *mockUploadStream) SendHeader(md metadata.MD) error {
-	return nil
-}
+func (m *mockUploadStream) SendHeader(metadata.MD) error { return nil }
 
-func (m *mockUploadStream) SetHeader(md metadata.MD) error {
-	return nil
-}
+func (m *mockUploadStream) SetHeader(metadata.MD) error { return nil }
 
-func (m *mockUploadStream) SetTrailer(md metadata.MD) {
-}
+func (m *mockUploadStream) SetTrailer(metadata.MD) {}
 
 func buildSessionContextForTest(t *testing.T) context.Context {
 	t.Helper()
@@ -138,6 +143,30 @@ func buildSessionContextForTest(t *testing.T) context.Context {
 	})
 }
 
+// uploadStreamFor builds a stream carrying one metadata message and the given chunks.
+func uploadStreamFor(t *testing.T, contentType, objectName string, chunks ...[]byte) *mockUploadStream {
+	t.Helper()
+
+	stream := &mockUploadStream{
+		ctx: buildSessionContextForTest(t),
+		recvQueue: []*uploadedmediasvc.UploadRequest{
+			{Payload: &uploadedmediasvc.UploadRequest_Metadata{Metadata: &uploadedmediasvc.UploadMetadata{
+				Bucket:      "test-bucket",
+				ObjectName:  objectName,
+				ContentType: contentType,
+			}}},
+		},
+	}
+
+	for _, chunk := range chunks {
+		stream.recvQueue = append(stream.recvQueue, &uploadedmediasvc.UploadRequest{
+			Payload: &uploadedmediasvc.UploadRequest_Chunk{Chunk: chunk},
+		})
+	}
+
+	return stream
+}
+
 func TestServiceImpl_CreateUploadedMedia(t *testing.T) {
 	t.Parallel()
 
@@ -145,71 +174,176 @@ func TestServiceImpl_CreateUploadedMedia(t *testing.T) {
 		t.Parallel()
 
 		ctx := buildSessionContextForTest(t)
-		service, mockRepo, _ := buildTestService(t)
+		service, uploadsRegistry, _ := buildTestService(t)
 
-		fakeUploadedMedia := uploadedmediafakes.BuildFakeUploadedMedia()
-		fakeInput := uploadedmediafakes.BuildFakeUploadedMediaCreationRequestInput()
+		fakeObject := ownedByTestUser()
 
-		mockRepo.CreateUploadedMediaFunc = func(_ context.Context, _ *uploadedmedia.UploadedMediaDatabaseCreationInput) (*uploadedmedia.UploadedMedia, error) {
-			return fakeUploadedMedia, nil
+		var recorded *registry.Object
+		uploadsRegistry.RecordObjectFunc = func(_ context.Context, object *registry.Object) error {
+			recorded = object
+
+			return nil
 		}
 
-		request := &uploadedmediasvc.CreateUploadedMediaRequest{
-			Input: converters.ConvertUploadedMediaCreationRequestInputToGRPCUploadedMediaCreationRequestInput(fakeInput),
-		}
-
-		response, err := service.CreateUploadedMedia(ctx, request)
+		response, err := service.CreateUploadedMedia(ctx, &uploadedmediasvc.CreateUploadedMediaRequest{
+			Input: &uploadedmediasvc.UploadedMediaCreationRequestInput{
+				ObjectKey:   fakeObject.Key,
+				ContentType: fakeObject.ContentType,
+				SizeBytes:   fakeObject.Size,
+			},
+		})
 
 		require.NoError(t, err)
-		assert.NotNil(t, response)
-		assert.NotNil(t, response.Created)
+		require.NotNil(t, response)
+		require.NotNil(t, response.Created)
 		assert.NotNil(t, response.ResponseDetails)
-		assert.Equal(t, fakeUploadedMedia.ID, response.Created.Id)
-		assert.Equal(t, fakeUploadedMedia.StoragePath, response.Created.StoragePath)
+		assert.Equal(t, fakeObject.Key, response.Created.ObjectKey)
+		assert.Equal(t, fakeObject.ContentType, response.Created.ContentType)
 
-		assert.Len(t, mockRepo.CreateUploadedMediaCalls(), 1)
+		// The owner is the session's user rather than anything the request carried: it is
+		// the whole of what a later read's permission check consults.
+		require.NotNil(t, recorded)
+		assert.Equal(t, testUserID, recorded.OwnerID)
+		assert.Equal(t, uploadedmedia.Scope(), recorded.Scope)
+		assert.NotEmpty(t, recorded.ID)
+
+		assert.Len(t, uploadsRegistry.RecordObjectCalls(), 1)
+	})
+
+	t.Run("attached to a subject", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := buildSessionContextForTest(t)
+		service, uploadsRegistry, _ := buildTestService(t)
+
+		subject := registry.Subject{Type: "recipe", ID: identifiers.New()}
+
+		var recorded *registry.Object
+		uploadsRegistry.RecordObjectFunc = func(_ context.Context, object *registry.Object) error {
+			recorded = object
+
+			return nil
+		}
+
+		_, err := service.CreateUploadedMedia(ctx, &uploadedmediasvc.CreateUploadedMediaRequest{
+			Input: &uploadedmediasvc.UploadedMediaCreationRequestInput{
+				ObjectKey:     "recipes/whatever.png",
+				ContentType:   uploadedmedia.MimeTypeImagePNG,
+				BelongsToType: subject.Type,
+				BelongsToId:   subject.ID,
+			},
+		})
+
+		require.NoError(t, err)
+		require.NotNil(t, recorded)
+		assert.Equal(t, subject, recorded.BelongsTo)
 	})
 
 	t.Run("session context error", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
 		service, _, _ := buildTestService(t)
 
-		request := &uploadedmediasvc.CreateUploadedMediaRequest{
+		response, err := service.CreateUploadedMedia(t.Context(), &uploadedmediasvc.CreateUploadedMediaRequest{
 			Input: &uploadedmediasvc.UploadedMediaCreationRequestInput{},
-		}
-
-		response, err := service.CreateUploadedMedia(ctx, request)
+		})
 
 		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Unauthenticated, status.Code(err))
 	})
 
-	t.Run("repository error", func(t *testing.T) {
+	t.Run("without input", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := buildSessionContextForTest(t)
-		service, mockRepo, _ := buildTestService(t)
+		service, uploadsRegistry, _ := buildTestService(t)
 
-		fakeInput := uploadedmediafakes.BuildFakeUploadedMediaCreationRequestInput()
+		response, err := service.CreateUploadedMedia(buildSessionContextForTest(t), &uploadedmediasvc.CreateUploadedMediaRequest{})
 
-		mockRepo.CreateUploadedMediaFunc = func(_ context.Context, _ *uploadedmedia.UploadedMediaDatabaseCreationInput) (*uploadedmedia.UploadedMedia, error) {
-			return nil, errors.New("repository error")
+		require.Error(t, err)
+		assert.Nil(t, response)
+		assert.Equal(t, codes.InvalidArgument, status.Code(err))
+		assert.Empty(t, uploadsRegistry.RecordObjectCalls())
+	})
+
+	t.Run("with unsupported content type", func(t *testing.T) {
+		t.Parallel()
+
+		service, uploadsRegistry, _ := buildTestService(t)
+
+		response, err := service.CreateUploadedMedia(buildSessionContextForTest(t), &uploadedmediasvc.CreateUploadedMediaRequest{
+			Input: &uploadedmediasvc.UploadedMediaCreationRequestInput{
+				ObjectKey:   "whatever.pdf",
+				ContentType: "application/pdf",
+			},
+		})
+
+		require.Error(t, err)
+		assert.Nil(t, response)
+		assert.Equal(t, codes.InvalidArgument, status.Code(err))
+		assert.Empty(t, uploadsRegistry.RecordObjectCalls())
+	})
+
+	t.Run("with no object key", func(t *testing.T) {
+		t.Parallel()
+
+		// A row with no key names no object, which the registry's own validation refuses.
+		service, uploadsRegistry, _ := buildTestService(t)
+
+		response, err := service.CreateUploadedMedia(buildSessionContextForTest(t), &uploadedmediasvc.CreateUploadedMediaRequest{
+			Input: &uploadedmediasvc.UploadedMediaCreationRequestInput{
+				ContentType: uploadedmedia.MimeTypeImagePNG,
+			},
+		})
+
+		require.Error(t, err)
+		assert.Nil(t, response)
+		assert.Equal(t, codes.InvalidArgument, status.Code(err))
+		assert.Empty(t, uploadsRegistry.RecordObjectCalls())
+	})
+
+	t.Run("registry error", func(t *testing.T) {
+		t.Parallel()
+
+		service, uploadsRegistry, _ := buildTestService(t)
+
+		uploadsRegistry.RecordObjectFunc = func(context.Context, *registry.Object) error {
+			return errors.New("registry error")
 		}
 
-		request := &uploadedmediasvc.CreateUploadedMediaRequest{
-			Input: converters.ConvertUploadedMediaCreationRequestInputToGRPCUploadedMediaCreationRequestInput(fakeInput),
-		}
-
-		response, err := service.CreateUploadedMedia(ctx, request)
+		response, err := service.CreateUploadedMedia(buildSessionContextForTest(t), &uploadedmediasvc.CreateUploadedMediaRequest{
+			Input: &uploadedmediasvc.UploadedMediaCreationRequestInput{
+				ObjectKey:   "whatever.png",
+				ContentType: uploadedmedia.MimeTypeImagePNG,
+			},
+		})
 
 		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
+		assert.Len(t, uploadsRegistry.RecordObjectCalls(), 1)
+	})
 
-		assert.Len(t, mockRepo.CreateUploadedMediaCalls(), 1)
+	t.Run("a taken key reads as a conflict", func(t *testing.T) {
+		t.Parallel()
+
+		// The client's remedy is a new key, which is a different thing to be told than
+		// "the server broke" — see internal/services/uploadedmedia/errors.
+		service, uploadsRegistry, _ := buildTestService(t)
+
+		uploadsRegistry.RecordObjectFunc = func(context.Context, *registry.Object) error {
+			return registry.ErrObjectKeyTaken
+		}
+
+		_, err := service.CreateUploadedMedia(buildSessionContextForTest(t), &uploadedmediasvc.CreateUploadedMediaRequest{
+			Input: &uploadedmediasvc.UploadedMediaCreationRequestInput{
+				ObjectKey:   "whatever.png",
+				ContentType: uploadedmedia.MimeTypeImagePNG,
+			},
+		})
+
+		require.Error(t, err)
+		assert.Equal(t, codes.AlreadyExists, status.Code(err))
 	})
 }
 
@@ -219,100 +353,97 @@ func TestServiceImpl_GetUploadedMedia(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := buildSessionContextForTest(t)
-		service, mockRepo, _ := buildTestService(t)
+		service, uploadsRegistry, _ := buildTestService(t)
 
-		fakeUploadedMedia := uploadedmediafakes.BuildFakeUploadedMedia()
-		fakeUploadedMedia.CreatedByUser = testUserID
+		fakeObject := ownedByTestUser()
 
-		mockRepo.GetUploadedMediaFunc = func(_ context.Context, uploadedMediaID string) (*uploadedmedia.UploadedMedia, error) {
-			assert.Equal(t, fakeUploadedMedia.ID, uploadedMediaID)
+		var readScope tenancy.Scope
+		uploadsRegistry.GetObjectFunc = func(_ context.Context, scope tenancy.Scope, _ string) (*registry.Object, error) {
+			readScope = scope
 
-			return fakeUploadedMedia, nil
+			return fakeObject, nil
 		}
 
-		request := &uploadedmediasvc.GetUploadedMediaRequest{
-			UploadedMediaId: fakeUploadedMedia.ID,
-		}
-
-		response, err := service.GetUploadedMedia(ctx, request)
+		response, err := service.GetUploadedMedia(buildSessionContextForTest(t), &uploadedmediasvc.GetUploadedMediaRequest{
+			UploadedMediaId: fakeObject.ID,
+		})
 
 		require.NoError(t, err)
-		assert.NotNil(t, response)
-		assert.NotNil(t, response.Result)
-		assert.Equal(t, fakeUploadedMedia.ID, response.Result.Id)
-
-		assert.Len(t, mockRepo.GetUploadedMediaCalls(), 1)
+		require.NotNil(t, response.Result)
+		assert.Equal(t, fakeObject.ID, response.Result.Id)
+		assert.Equal(t, fakeObject.Key, response.Result.ObjectKey)
+		assert.Equal(t, uploadedmedia.Scope(), readScope)
 	})
 
 	t.Run("session context error", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
 		service, _, _ := buildTestService(t)
 
-		request := &uploadedmediasvc.GetUploadedMediaRequest{
-			UploadedMediaId: "some-id",
-		}
-
-		response, err := service.GetUploadedMedia(ctx, request)
+		response, err := service.GetUploadedMedia(t.Context(), &uploadedmediasvc.GetUploadedMediaRequest{
+			UploadedMediaId: identifiers.New(),
+		})
 
 		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Unauthenticated, status.Code(err))
 	})
 
-	t.Run("permission denied - different user", func(t *testing.T) {
+	t.Run("belonging to another user", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := buildSessionContextForTest(t)
-		service, mockRepo, _ := buildTestService(t)
+		service, uploadsRegistry, _ := buildTestService(t)
 
-		fakeUploadedMedia := uploadedmediafakes.BuildFakeUploadedMedia()
-		fakeUploadedMedia.CreatedByUser = "different-user-id"
+		fakeObject := uploadedmediafakes.BuildFakeUploadedMedia()
+		fakeObject.OwnerID = identifiers.New()
 
-		mockRepo.GetUploadedMediaFunc = func(_ context.Context, uploadedMediaID string) (*uploadedmedia.UploadedMedia, error) {
-			assert.Equal(t, fakeUploadedMedia.ID, uploadedMediaID)
-
-			return fakeUploadedMedia, nil
+		uploadsRegistry.GetObjectFunc = func(context.Context, tenancy.Scope, string) (*registry.Object, error) {
+			return fakeObject, nil
 		}
 
-		request := &uploadedmediasvc.GetUploadedMediaRequest{
-			UploadedMediaId: fakeUploadedMedia.ID,
-		}
-
-		response, err := service.GetUploadedMedia(ctx, request)
+		response, err := service.GetUploadedMedia(buildSessionContextForTest(t), &uploadedmediasvc.GetUploadedMediaRequest{
+			UploadedMediaId: fakeObject.ID,
+		})
 
 		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.PermissionDenied, status.Code(err))
-
-		assert.Len(t, mockRepo.GetUploadedMediaCalls(), 1)
 	})
 
-	t.Run("repository error", func(t *testing.T) {
+	t.Run("an absent object reads as not found", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := buildSessionContextForTest(t)
-		service, mockRepo, _ := buildTestService(t)
+		service, uploadsRegistry, _ := buildTestService(t)
 
-		mockRepo.GetUploadedMediaFunc = func(_ context.Context, uploadedMediaID string) (*uploadedmedia.UploadedMedia, error) {
-			assert.Equal(t, "some-id", uploadedMediaID)
-
-			return nil, errors.New("repository error")
+		uploadsRegistry.GetObjectFunc = func(context.Context, tenancy.Scope, string) (*registry.Object, error) {
+			return nil, registry.ErrObjectNotFound
 		}
 
-		request := &uploadedmediasvc.GetUploadedMediaRequest{
-			UploadedMediaId: "some-id",
+		response, err := service.GetUploadedMedia(buildSessionContextForTest(t), &uploadedmediasvc.GetUploadedMediaRequest{
+			UploadedMediaId: identifiers.New(),
+		})
+
+		require.Error(t, err)
+		assert.Nil(t, response)
+		assert.Equal(t, codes.NotFound, status.Code(err))
+	})
+
+	t.Run("registry error", func(t *testing.T) {
+		t.Parallel()
+
+		service, uploadsRegistry, _ := buildTestService(t)
+
+		uploadsRegistry.GetObjectFunc = func(context.Context, tenancy.Scope, string) (*registry.Object, error) {
+			return nil, errors.New("registry error")
 		}
 
-		response, err := service.GetUploadedMedia(ctx, request)
+		response, err := service.GetUploadedMedia(buildSessionContextForTest(t), &uploadedmediasvc.GetUploadedMediaRequest{
+			UploadedMediaId: identifiers.New(),
+		})
 
 		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
-
-		assert.Len(t, mockRepo.GetUploadedMediaCalls(), 1)
 	})
 }
 
@@ -322,137 +453,120 @@ func TestServiceImpl_GetUploadedMediaWithIDs(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := buildSessionContextForTest(t)
-		service, mockRepo, _ := buildTestService(t)
+		service, uploadsRegistry, _ := buildTestService(t)
 
-		fakeUploadedMedia1 := uploadedmediafakes.BuildFakeUploadedMedia()
-		fakeUploadedMedia1.CreatedByUser = testUserID
-		fakeUploadedMedia2 := uploadedmediafakes.BuildFakeUploadedMedia()
-		fakeUploadedMedia2.CreatedByUser = testUserID
+		first, second := ownedByTestUser(), ownedByTestUser()
+		byID := map[string]*registry.Object{first.ID: first, second.ID: second}
 
-		fakeUploadedMediaList := []*uploadedmedia.UploadedMedia{
-			fakeUploadedMedia1,
-			fakeUploadedMedia2,
+		uploadsRegistry.GetObjectFunc = func(_ context.Context, _ tenancy.Scope, objectID string) (*registry.Object, error) {
+			object, ok := byID[objectID]
+			if !ok {
+				return nil, registry.ErrObjectNotFound
+			}
+
+			return object, nil
 		}
 
-		ids := []string{fakeUploadedMedia1.ID, fakeUploadedMedia2.ID}
-
-		mockRepo.GetUploadedMediaWithIDsFunc = func(_ context.Context, actualIds []string) ([]*uploadedmedia.UploadedMedia, error) {
-			assert.Equal(t, ids, actualIds)
-
-			return fakeUploadedMediaList, nil
-		}
-
-		request := &uploadedmediasvc.GetUploadedMediaWithIDsRequest{
-			Ids: ids,
-		}
-
-		response, err := service.GetUploadedMediaWithIDs(ctx, request)
+		response, err := service.GetUploadedMediaWithIDs(buildSessionContextForTest(t), &uploadedmediasvc.GetUploadedMediaWithIDsRequest{
+			Ids: []string{first.ID, second.ID},
+		})
 
 		require.NoError(t, err)
-		assert.NotNil(t, response)
-		assert.Len(t, response.Results, 2)
-
-		assert.Len(t, mockRepo.GetUploadedMediaWithIDsCalls(), 1)
+		require.Len(t, response.Results, 2)
+		assert.Equal(t, first.ID, response.Results[0].Id)
+		assert.Equal(t, second.ID, response.Results[1].Id)
 	})
 
-	t.Run("filters out other users' media", func(t *testing.T) {
+	t.Run("another user's media is left out", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := buildSessionContextForTest(t)
-		service, mockRepo, _ := buildTestService(t)
+		service, uploadsRegistry, _ := buildTestService(t)
 
-		fakeUploadedMedia1 := uploadedmediafakes.BuildFakeUploadedMedia()
-		fakeUploadedMedia1.CreatedByUser = testUserID
-		fakeUploadedMedia2 := uploadedmediafakes.BuildFakeUploadedMedia()
-		fakeUploadedMedia2.CreatedByUser = "other-user-id"
+		mine := ownedByTestUser()
+		theirs := uploadedmediafakes.BuildFakeUploadedMedia()
+		theirs.OwnerID = identifiers.New()
+		byID := map[string]*registry.Object{mine.ID: mine, theirs.ID: theirs}
 
-		fakeUploadedMediaList := []*uploadedmedia.UploadedMedia{
-			fakeUploadedMedia1,
-			fakeUploadedMedia2,
+		uploadsRegistry.GetObjectFunc = func(_ context.Context, _ tenancy.Scope, objectID string) (*registry.Object, error) {
+			return byID[objectID], nil
 		}
 
-		ids := []string{fakeUploadedMedia1.ID, fakeUploadedMedia2.ID}
-
-		mockRepo.GetUploadedMediaWithIDsFunc = func(_ context.Context, actualIds []string) ([]*uploadedmedia.UploadedMedia, error) {
-			assert.Equal(t, ids, actualIds)
-
-			return fakeUploadedMediaList, nil
-		}
-
-		request := &uploadedmediasvc.GetUploadedMediaWithIDsRequest{
-			Ids: ids,
-		}
-
-		response, err := service.GetUploadedMediaWithIDs(ctx, request)
+		response, err := service.GetUploadedMediaWithIDs(buildSessionContextForTest(t), &uploadedmediasvc.GetUploadedMediaWithIDsRequest{
+			Ids: []string{mine.ID, theirs.ID},
+		})
 
 		require.NoError(t, err)
-		assert.NotNil(t, response)
-		assert.Len(t, response.Results, 1)
-		assert.Equal(t, fakeUploadedMedia1.ID, response.Results[0].Id)
+		require.Len(t, response.Results, 1)
+		assert.Equal(t, mine.ID, response.Results[0].Id)
+	})
 
-		assert.Len(t, mockRepo.GetUploadedMediaWithIDsCalls(), 1)
+	t.Run("an absent id is skipped rather than failing the read", func(t *testing.T) {
+		t.Parallel()
+
+		service, uploadsRegistry, _ := buildTestService(t)
+
+		mine := ownedByTestUser()
+
+		uploadsRegistry.GetObjectFunc = func(_ context.Context, _ tenancy.Scope, objectID string) (*registry.Object, error) {
+			if objectID == mine.ID {
+				return mine, nil
+			}
+
+			return nil, registry.ErrObjectNotFound
+		}
+
+		response, err := service.GetUploadedMediaWithIDs(buildSessionContextForTest(t), &uploadedmediasvc.GetUploadedMediaWithIDsRequest{
+			Ids: []string{identifiers.New(), mine.ID},
+		})
+
+		require.NoError(t, err)
+		require.Len(t, response.Results, 1)
+		assert.Equal(t, mine.ID, response.Results[0].Id)
 	})
 
 	t.Run("session context error", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
 		service, _, _ := buildTestService(t)
 
-		request := &uploadedmediasvc.GetUploadedMediaWithIDsRequest{
-			Ids: []string{"id1", "id2"},
-		}
-
-		response, err := service.GetUploadedMediaWithIDs(ctx, request)
+		response, err := service.GetUploadedMediaWithIDs(t.Context(), &uploadedmediasvc.GetUploadedMediaWithIDsRequest{
+			Ids: []string{identifiers.New()},
+		})
 
 		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Unauthenticated, status.Code(err))
 	})
 
-	t.Run("no IDs provided", func(t *testing.T) {
+	t.Run("without IDs", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := buildSessionContextForTest(t)
-		service, _, _ := buildTestService(t)
+		service, uploadsRegistry, _ := buildTestService(t)
 
-		request := &uploadedmediasvc.GetUploadedMediaWithIDsRequest{
-			Ids: []string{},
-		}
-
-		response, err := service.GetUploadedMediaWithIDs(ctx, request)
+		response, err := service.GetUploadedMediaWithIDs(buildSessionContextForTest(t), &uploadedmediasvc.GetUploadedMediaWithIDsRequest{})
 
 		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.InvalidArgument, status.Code(err))
+		assert.Empty(t, uploadsRegistry.GetObjectCalls())
 	})
 
-	t.Run("repository error", func(t *testing.T) {
+	t.Run("registry error", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := buildSessionContextForTest(t)
-		service, mockRepo, _ := buildTestService(t)
+		service, uploadsRegistry, _ := buildTestService(t)
 
-		ids := []string{"id1", "id2"}
-
-		mockRepo.GetUploadedMediaWithIDsFunc = func(_ context.Context, actualIds []string) ([]*uploadedmedia.UploadedMedia, error) {
-			assert.Equal(t, ids, actualIds)
-
-			return nil, errors.New("repository error")
+		uploadsRegistry.GetObjectFunc = func(context.Context, tenancy.Scope, string) (*registry.Object, error) {
+			return nil, errors.New("registry error")
 		}
 
-		request := &uploadedmediasvc.GetUploadedMediaWithIDsRequest{
-			Ids: ids,
-		}
-
-		response, err := service.GetUploadedMediaWithIDs(ctx, request)
+		response, err := service.GetUploadedMediaWithIDs(buildSessionContextForTest(t), &uploadedmediasvc.GetUploadedMediaWithIDsRequest{
+			Ids: []string{identifiers.New()},
+		})
 
 		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
-
-		assert.Len(t, mockRepo.GetUploadedMediaWithIDsCalls(), 1)
 	})
 }
 
@@ -462,245 +576,74 @@ func TestServiceImpl_GetUploadedMediaForUser(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := buildSessionContextForTest(t)
-		service, mockRepo, _ := buildTestService(t)
+		service, uploadsRegistry, _ := buildTestService(t)
 
-		fakeUploadedMediaList := &filtering.QueryFilteredResult[uploadedmedia.UploadedMedia]{
-			Data: []*uploadedmedia.UploadedMedia{
-				uploadedmediafakes.BuildFakeUploadedMedia(),
-				uploadedmediafakes.BuildFakeUploadedMedia(),
-			},
-			TotalCount:    2,
-			FilteredCount: 2,
+		page := uploadedmediafakes.BuildFakeUploadedMediaList()
+
+		var listedOwner string
+		uploadsRegistry.ListObjectsByOwnerFunc = func(_ context.Context, _ tenancy.Scope, ownerID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[registry.Object], error) {
+			listedOwner = ownerID
+
+			return page, nil
 		}
 
-		mockRepo.GetUploadedMediaForUserFunc = func(_ context.Context, userID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[uploadedmedia.UploadedMedia], error) {
-			assert.Equal(t, testUserID, userID)
-
-			return fakeUploadedMediaList, nil
-		}
-
-		request := &uploadedmediasvc.GetUploadedMediaForUserRequest{
+		response, err := service.GetUploadedMediaForUser(buildSessionContextForTest(t), &uploadedmediasvc.GetUploadedMediaForUserRequest{
 			UserId: testUserID,
 			Filter: &filteringpb.QueryFilter{},
-		}
-
-		response, err := service.GetUploadedMediaForUser(ctx, request)
+		})
 
 		require.NoError(t, err)
-		assert.NotNil(t, response)
-		assert.Len(t, response.Results, 2)
-
-		assert.Len(t, mockRepo.GetUploadedMediaForUserCalls(), 1)
+		assert.Len(t, response.Results, len(page.Data))
+		assert.NotNil(t, response.Pagination)
+		assert.Equal(t, testUserID, listedOwner)
 	})
 
 	t.Run("session context error", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
 		service, _, _ := buildTestService(t)
 
-		request := &uploadedmediasvc.GetUploadedMediaForUserRequest{
+		response, err := service.GetUploadedMediaForUser(t.Context(), &uploadedmediasvc.GetUploadedMediaForUserRequest{
 			UserId: testUserID,
-			Filter: &filteringpb.QueryFilter{},
-		}
-
-		response, err := service.GetUploadedMediaForUser(ctx, request)
+		})
 
 		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Unauthenticated, status.Code(err))
 	})
 
-	t.Run("permission denied - different user", func(t *testing.T) {
+	t.Run("asking for another user's media", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := buildSessionContextForTest(t)
-		service, _, _ := buildTestService(t)
+		service, uploadsRegistry, _ := buildTestService(t)
 
-		request := &uploadedmediasvc.GetUploadedMediaForUserRequest{
-			UserId: "different-user-id",
-			Filter: &filteringpb.QueryFilter{},
-		}
-
-		response, err := service.GetUploadedMediaForUser(ctx, request)
+		response, err := service.GetUploadedMediaForUser(buildSessionContextForTest(t), &uploadedmediasvc.GetUploadedMediaForUserRequest{
+			UserId: identifiers.New(),
+		})
 
 		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.PermissionDenied, status.Code(err))
+		assert.Empty(t, uploadsRegistry.ListObjectsByOwnerCalls())
 	})
 
-	t.Run("repository error", func(t *testing.T) {
+	t.Run("registry error", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := buildSessionContextForTest(t)
-		service, mockRepo, _ := buildTestService(t)
+		service, uploadsRegistry, _ := buildTestService(t)
 
-		mockRepo.GetUploadedMediaForUserFunc = func(_ context.Context, userID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[uploadedmedia.UploadedMedia], error) {
-			assert.Equal(t, testUserID, userID)
-
-			return nil, errors.New("repository error")
+		uploadsRegistry.ListObjectsByOwnerFunc = func(context.Context, tenancy.Scope, string, *filtering.QueryFilter) (*filtering.QueryFilteredResult[registry.Object], error) {
+			return nil, errors.New("registry error")
 		}
 
-		request := &uploadedmediasvc.GetUploadedMediaForUserRequest{
+		response, err := service.GetUploadedMediaForUser(buildSessionContextForTest(t), &uploadedmediasvc.GetUploadedMediaForUserRequest{
 			UserId: testUserID,
 			Filter: &filteringpb.QueryFilter{},
-		}
-
-		response, err := service.GetUploadedMediaForUser(ctx, request)
+		})
 
 		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
-
-		assert.Len(t, mockRepo.GetUploadedMediaForUserCalls(), 1)
-	})
-}
-
-func TestServiceImpl_UpdateUploadedMedia(t *testing.T) {
-	t.Parallel()
-
-	t.Run("success", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := buildSessionContextForTest(t)
-		service, mockRepo, _ := buildTestService(t)
-
-		fakeUploadedMedia := uploadedmediafakes.BuildFakeUploadedMedia()
-		fakeUploadedMedia.CreatedByUser = testUserID
-
-		newStoragePath := "updated/path.jpg"
-
-		mockRepo.GetUploadedMediaFunc = func(_ context.Context, uploadedMediaID string) (*uploadedmedia.UploadedMedia, error) {
-			assert.Equal(t, fakeUploadedMedia.ID, uploadedMediaID)
-
-			return fakeUploadedMedia, nil
-		}
-		mockRepo.UpdateUploadedMediaFunc = func(_ context.Context, _ *uploadedmedia.UploadedMedia) error {
-			return nil
-		}
-
-		request := &uploadedmediasvc.UpdateUploadedMediaRequest{
-			UploadedMediaId: fakeUploadedMedia.ID,
-			Input: &uploadedmediasvc.UploadedMediaUpdateRequestInput{
-				StoragePath: &newStoragePath,
-			},
-		}
-
-		response, err := service.UpdateUploadedMedia(ctx, request)
-
-		require.NoError(t, err)
-		assert.NotNil(t, response)
-		assert.NotNil(t, response.Updated)
-
-		assert.Len(t, mockRepo.GetUploadedMediaCalls(), 1)
-		assert.Len(t, mockRepo.UpdateUploadedMediaCalls(), 1)
-	})
-
-	t.Run("session context error", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		service, _, _ := buildTestService(t)
-
-		request := &uploadedmediasvc.UpdateUploadedMediaRequest{
-			UploadedMediaId: "some-id",
-			Input:           &uploadedmediasvc.UploadedMediaUpdateRequestInput{},
-		}
-
-		response, err := service.UpdateUploadedMedia(ctx, request)
-
-		require.Error(t, err)
-		assert.Nil(t, response)
-		assert.Equal(t, codes.Unauthenticated, status.Code(err))
-	})
-
-	t.Run("permission denied - different user", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := buildSessionContextForTest(t)
-		service, mockRepo, _ := buildTestService(t)
-
-		fakeUploadedMedia := uploadedmediafakes.BuildFakeUploadedMedia()
-		fakeUploadedMedia.CreatedByUser = "different-user-id"
-
-		mockRepo.GetUploadedMediaFunc = func(_ context.Context, uploadedMediaID string) (*uploadedmedia.UploadedMedia, error) {
-			assert.Equal(t, fakeUploadedMedia.ID, uploadedMediaID)
-
-			return fakeUploadedMedia, nil
-		}
-
-		request := &uploadedmediasvc.UpdateUploadedMediaRequest{
-			UploadedMediaId: fakeUploadedMedia.ID,
-			Input:           &uploadedmediasvc.UploadedMediaUpdateRequestInput{},
-		}
-
-		response, err := service.UpdateUploadedMedia(ctx, request)
-
-		require.Error(t, err)
-		assert.Nil(t, response)
-		assert.Equal(t, codes.PermissionDenied, status.Code(err))
-
-		assert.Len(t, mockRepo.GetUploadedMediaCalls(), 1)
-	})
-
-	t.Run("repository error on get", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := buildSessionContextForTest(t)
-		service, mockRepo, _ := buildTestService(t)
-
-		mockRepo.GetUploadedMediaFunc = func(_ context.Context, uploadedMediaID string) (*uploadedmedia.UploadedMedia, error) {
-			assert.Equal(t, "some-id", uploadedMediaID)
-
-			return nil, errors.New("repository error")
-		}
-
-		request := &uploadedmediasvc.UpdateUploadedMediaRequest{
-			UploadedMediaId: "some-id",
-			Input:           &uploadedmediasvc.UploadedMediaUpdateRequestInput{},
-		}
-
-		response, err := service.UpdateUploadedMedia(ctx, request)
-
-		require.Error(t, err)
-		assert.Nil(t, response)
-		assert.Equal(t, codes.Internal, status.Code(err))
-
-		assert.Len(t, mockRepo.GetUploadedMediaCalls(), 1)
-	})
-
-	t.Run("repository error on update", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := buildSessionContextForTest(t)
-		service, mockRepo, _ := buildTestService(t)
-
-		fakeUploadedMedia := uploadedmediafakes.BuildFakeUploadedMedia()
-		fakeUploadedMedia.CreatedByUser = testUserID
-
-		mockRepo.GetUploadedMediaFunc = func(_ context.Context, uploadedMediaID string) (*uploadedmedia.UploadedMedia, error) {
-			assert.Equal(t, fakeUploadedMedia.ID, uploadedMediaID)
-
-			return fakeUploadedMedia, nil
-		}
-		mockRepo.UpdateUploadedMediaFunc = func(_ context.Context, _ *uploadedmedia.UploadedMedia) error {
-			return errors.New("repository error")
-		}
-
-		request := &uploadedmediasvc.UpdateUploadedMediaRequest{
-			UploadedMediaId: fakeUploadedMedia.ID,
-			Input:           &uploadedmediasvc.UploadedMediaUpdateRequestInput{},
-		}
-
-		response, err := service.UpdateUploadedMedia(ctx, request)
-
-		require.Error(t, err)
-		assert.Nil(t, response)
-		assert.Equal(t, codes.Internal, status.Code(err))
-
-		assert.Len(t, mockRepo.GetUploadedMediaCalls(), 1)
-		assert.Len(t, mockRepo.UpdateUploadedMediaCalls(), 1)
 	})
 }
 
@@ -710,138 +653,99 @@ func TestServiceImpl_ArchiveUploadedMedia(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := buildSessionContextForTest(t)
-		service, mockRepo, _ := buildTestService(t)
+		service, uploadsRegistry, _ := buildTestService(t)
 
-		fakeUploadedMedia := uploadedmediafakes.BuildFakeUploadedMedia()
-		fakeUploadedMedia.CreatedByUser = testUserID
+		fakeObject := ownedByTestUser()
 
-		mockRepo.GetUploadedMediaFunc = func(_ context.Context, uploadedMediaID string) (*uploadedmedia.UploadedMedia, error) {
-			assert.Equal(t, fakeUploadedMedia.ID, uploadedMediaID)
-
-			return fakeUploadedMedia, nil
+		uploadsRegistry.GetObjectFunc = func(context.Context, tenancy.Scope, string) (*registry.Object, error) {
+			return fakeObject, nil
 		}
-		mockRepo.ArchiveUploadedMediaFunc = func(_ context.Context, uploadedMediaID string) error {
-			assert.Equal(t, fakeUploadedMedia.ID, uploadedMediaID)
+		uploadsRegistry.ArchiveObjectFunc = func(context.Context, tenancy.Scope, string) error { return nil }
 
-			return nil
-		}
-
-		request := &uploadedmediasvc.ArchiveUploadedMediaRequest{
-			UploadedMediaId: fakeUploadedMedia.ID,
-		}
-
-		response, err := service.ArchiveUploadedMedia(ctx, request)
+		response, err := service.ArchiveUploadedMedia(buildSessionContextForTest(t), &uploadedmediasvc.ArchiveUploadedMediaRequest{
+			UploadedMediaId: fakeObject.ID,
+		})
 
 		require.NoError(t, err)
-		assert.NotNil(t, response)
-
-		assert.Len(t, mockRepo.GetUploadedMediaCalls(), 1)
-		assert.Len(t, mockRepo.ArchiveUploadedMediaCalls(), 1)
+		assert.NotNil(t, response.ResponseDetails)
+		assert.Len(t, uploadsRegistry.ArchiveObjectCalls(), 1)
 	})
 
 	t.Run("session context error", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
 		service, _, _ := buildTestService(t)
 
-		request := &uploadedmediasvc.ArchiveUploadedMediaRequest{
-			UploadedMediaId: "some-id",
-		}
-
-		response, err := service.ArchiveUploadedMedia(ctx, request)
+		response, err := service.ArchiveUploadedMedia(t.Context(), &uploadedmediasvc.ArchiveUploadedMediaRequest{
+			UploadedMediaId: identifiers.New(),
+		})
 
 		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Unauthenticated, status.Code(err))
 	})
 
-	t.Run("permission denied - different user", func(t *testing.T) {
+	t.Run("belonging to another user", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := buildSessionContextForTest(t)
-		service, mockRepo, _ := buildTestService(t)
+		service, uploadsRegistry, _ := buildTestService(t)
 
-		fakeUploadedMedia := uploadedmediafakes.BuildFakeUploadedMedia()
-		fakeUploadedMedia.CreatedByUser = "different-user-id"
+		fakeObject := uploadedmediafakes.BuildFakeUploadedMedia()
+		fakeObject.OwnerID = identifiers.New()
 
-		mockRepo.GetUploadedMediaFunc = func(_ context.Context, uploadedMediaID string) (*uploadedmedia.UploadedMedia, error) {
-			assert.Equal(t, fakeUploadedMedia.ID, uploadedMediaID)
-
-			return fakeUploadedMedia, nil
+		uploadsRegistry.GetObjectFunc = func(context.Context, tenancy.Scope, string) (*registry.Object, error) {
+			return fakeObject, nil
 		}
 
-		request := &uploadedmediasvc.ArchiveUploadedMediaRequest{
-			UploadedMediaId: fakeUploadedMedia.ID,
-		}
-
-		response, err := service.ArchiveUploadedMedia(ctx, request)
+		response, err := service.ArchiveUploadedMedia(buildSessionContextForTest(t), &uploadedmediasvc.ArchiveUploadedMediaRequest{
+			UploadedMediaId: fakeObject.ID,
+		})
 
 		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.PermissionDenied, status.Code(err))
-
-		assert.Len(t, mockRepo.GetUploadedMediaCalls(), 1)
+		assert.Empty(t, uploadsRegistry.ArchiveObjectCalls())
 	})
 
-	t.Run("repository error on get", func(t *testing.T) {
+	t.Run("an absent object reads as not found", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := buildSessionContextForTest(t)
-		service, mockRepo, _ := buildTestService(t)
+		service, uploadsRegistry, _ := buildTestService(t)
 
-		mockRepo.GetUploadedMediaFunc = func(_ context.Context, uploadedMediaID string) (*uploadedmedia.UploadedMedia, error) {
-			assert.Equal(t, "some-id", uploadedMediaID)
-
-			return nil, errors.New("repository error")
+		uploadsRegistry.GetObjectFunc = func(context.Context, tenancy.Scope, string) (*registry.Object, error) {
+			return nil, registry.ErrObjectNotFound
 		}
 
-		request := &uploadedmediasvc.ArchiveUploadedMediaRequest{
-			UploadedMediaId: "some-id",
+		response, err := service.ArchiveUploadedMedia(buildSessionContextForTest(t), &uploadedmediasvc.ArchiveUploadedMediaRequest{
+			UploadedMediaId: identifiers.New(),
+		})
+
+		require.Error(t, err)
+		assert.Nil(t, response)
+		assert.Equal(t, codes.NotFound, status.Code(err))
+	})
+
+	t.Run("registry error", func(t *testing.T) {
+		t.Parallel()
+
+		service, uploadsRegistry, _ := buildTestService(t)
+
+		fakeObject := ownedByTestUser()
+
+		uploadsRegistry.GetObjectFunc = func(context.Context, tenancy.Scope, string) (*registry.Object, error) {
+			return fakeObject, nil
+		}
+		uploadsRegistry.ArchiveObjectFunc = func(context.Context, tenancy.Scope, string) error {
+			return errors.New("registry error")
 		}
 
-		response, err := service.ArchiveUploadedMedia(ctx, request)
+		response, err := service.ArchiveUploadedMedia(buildSessionContextForTest(t), &uploadedmediasvc.ArchiveUploadedMediaRequest{
+			UploadedMediaId: fakeObject.ID,
+		})
 
 		require.Error(t, err)
 		assert.Nil(t, response)
 		assert.Equal(t, codes.Internal, status.Code(err))
-
-		assert.Len(t, mockRepo.GetUploadedMediaCalls(), 1)
-	})
-
-	t.Run("repository error on archive", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := buildSessionContextForTest(t)
-		service, mockRepo, _ := buildTestService(t)
-
-		fakeUploadedMedia := uploadedmediafakes.BuildFakeUploadedMedia()
-		fakeUploadedMedia.CreatedByUser = testUserID
-
-		mockRepo.GetUploadedMediaFunc = func(_ context.Context, uploadedMediaID string) (*uploadedmedia.UploadedMedia, error) {
-			assert.Equal(t, fakeUploadedMedia.ID, uploadedMediaID)
-
-			return fakeUploadedMedia, nil
-		}
-		mockRepo.ArchiveUploadedMediaFunc = func(_ context.Context, uploadedMediaID string) error {
-			assert.Equal(t, fakeUploadedMedia.ID, uploadedMediaID)
-
-			return errors.New("repository error")
-		}
-
-		request := &uploadedmediasvc.ArchiveUploadedMediaRequest{
-			UploadedMediaId: fakeUploadedMedia.ID,
-		}
-
-		response, err := service.ArchiveUploadedMedia(ctx, request)
-
-		require.Error(t, err)
-		assert.Nil(t, response)
-		assert.Equal(t, codes.Internal, status.Code(err))
-
-		assert.Len(t, mockRepo.GetUploadedMediaCalls(), 1)
-		assert.Len(t, mockRepo.ArchiveUploadedMediaCalls(), 1)
 	})
 }
 
@@ -851,62 +755,41 @@ func TestServiceImpl_Upload(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		service, mockRepo, mockUploadMgr, usageRecorder := buildTestServiceWithRecorder(t)
+		service, uploadsRegistry, mockUploadMgr, usageRecorder := buildTestServiceWithRecorder(t)
 
-		fakeUploadedMedia := uploadedmediafakes.BuildFakeUploadedMedia()
-		fakeUploadedMedia.MimeType = uploadedmedia.MimeTypeImagePNG
-
-		// Create mock stream
-		mockStream := &mockUploadStream{
-			ctx: buildSessionContextForTest(t),
-		}
-
-		// Setup metadata message
-		uploadMetadata := &uploadedmediasvc.UploadMetadata{
-			Bucket:      "test-bucket",
-			ObjectName:  "test-file.png",
-			ContentType: uploadedmedia.MimeTypeImagePNG,
-		}
-
-		metadataReq := &uploadedmediasvc.UploadRequest{
-			Payload: &uploadedmediasvc.UploadRequest_Metadata{
-				Metadata: uploadMetadata,
-			},
-		}
-
-		// Setup chunk messages
 		chunk1 := []byte("test file content part 1")
 		chunk2 := []byte("test file content part 2")
+		stream := uploadStreamFor(t, uploadedmedia.MimeTypeImagePNG, "test-file.png", chunk1, chunk2)
 
-		chunkReq1 := &uploadedmediasvc.UploadRequest{
-			Payload: &uploadedmediasvc.UploadRequest_Chunk{
-				Chunk: chunk1,
-			},
+		var savedKey string
+		mockUploadMgr.SaveFunc = func(_ context.Context, key string, r io.Reader, _ ...uploads.SaveOption) error {
+			savedKey = key
+			_, err := io.Copy(io.Discard, r)
+
+			return err
 		}
 
-		chunkReq2 := &uploadedmediasvc.UploadRequest{
-			Payload: &uploadedmediasvc.UploadRequest_Chunk{
-				Chunk: chunk2,
-			},
+		var recorded *registry.Object
+		uploadsRegistry.RecordObjectFunc = func(_ context.Context, object *registry.Object) error {
+			recorded = object
+
+			return nil
 		}
 
-		// Setup mock stream expectations
-		mockStream.recvQueue = []*uploadedmediasvc.UploadRequest{metadataReq, chunkReq1, chunkReq2}
+		require.NoError(t, service.Upload(stream))
+		assert.Len(t, uploadsRegistry.RecordObjectCalls(), 1)
 
-		// Setup mock upload manager expectation
-		mockUploadMgr.SaveFunc = func(_ context.Context, _ string, _ io.Reader, _ ...uploads.SaveOption) error { return nil }
+		// The row's key is where the bytes went, and its size is what actually went past
+		// rather than what the chunks claimed.
+		require.NotNil(t, recorded)
+		assert.Equal(t, savedKey, recorded.Key)
+		assert.Equal(t, testUserID, recorded.OwnerID)
+		assert.Equal(t, uploadedmedia.Scope(), recorded.Scope)
+		assert.Equal(t, int64(len(chunk1)+len(chunk2)), recorded.Size)
 
-		// Setup mock repo expectation
-		mockRepo.CreateUploadedMediaFunc = func(_ context.Context, _ *uploadedmedia.UploadedMediaDatabaseCreationInput) (*uploadedmedia.UploadedMedia, error) {
-			return fakeUploadedMedia, nil
-		}
-
-		// Execute
-		err := service.Upload(mockStream)
-
-		// Assert
-		require.NoError(t, err)
-		assert.Len(t, mockRepo.CreateUploadedMediaCalls(), 1)
+		require.Len(t, stream.closedWith, 1)
+		assert.Equal(t, recorded.Key, stream.closedWith[0].ObjectUrl)
+		assert.Equal(t, recorded.Size, stream.closedWith[0].SizeBytes)
 
 		// The bytes are counted against the account, keyed by the row that was created —
 		// not by anything request-scoped, because a retried upload stores a second object
@@ -917,7 +800,7 @@ func TestServiceImpl_Upload(t *testing.T) {
 		usage := usageRecorder.RecordCalls()[0].U[0]
 		assert.Equal(t, appmetering.UploadedMediaBytesMeter, usage.Meter)
 		assert.Equal(t, testAccountID, usage.Subject)
-		assert.Equal(t, fakeUploadedMedia.ID, usage.IdempotencyKey)
+		assert.Equal(t, recorded.ID, usage.IdempotencyKey)
 		assert.Equal(t, int64(len(chunk1)+len(chunk2)), usage.Quantity)
 		assert.Equal(t, uploadedmedia.MimeTypeImagePNG, usage.Dimensions["mime_type"])
 	})
@@ -925,31 +808,23 @@ func TestServiceImpl_Upload(t *testing.T) {
 	t.Run("a failed usage record does not fail the upload", func(t *testing.T) {
 		t.Parallel()
 
-		// The file is in the bucket and its row is in the database before the meter is
+		// The file is in the bucket and its row is in the registry before the meter is
 		// touched, so failing here would tell the client an upload did not happen that did.
-		service, mockRepo, mockUploadMgr, usageRecorder := buildTestServiceWithRecorder(t)
+		service, uploadsRegistry, mockUploadMgr, usageRecorder := buildTestServiceWithRecorder(t)
 
-		fakeUploadedMedia := uploadedmediafakes.BuildFakeUploadedMedia()
+		stream := uploadStreamFor(t, uploadedmedia.MimeTypeImagePNG, "test-file.png", []byte("test file content"))
 
-		mockStream := &mockUploadStream{ctx: buildSessionContextForTest(t)}
-		mockStream.recvQueue = []*uploadedmediasvc.UploadRequest{
-			{Payload: &uploadedmediasvc.UploadRequest_Metadata{Metadata: &uploadedmediasvc.UploadMetadata{
-				Bucket:      "test-bucket",
-				ObjectName:  "test-file.png",
-				ContentType: uploadedmedia.MimeTypeImagePNG,
-			}}},
-			{Payload: &uploadedmediasvc.UploadRequest_Chunk{Chunk: []byte("test file content")}},
+		mockUploadMgr.SaveFunc = func(_ context.Context, _ string, r io.Reader, _ ...uploads.SaveOption) error {
+			_, err := io.Copy(io.Discard, r)
+
+			return err
 		}
-
-		mockUploadMgr.SaveFunc = func(_ context.Context, _ string, _ io.Reader, _ ...uploads.SaveOption) error { return nil }
-		mockRepo.CreateUploadedMediaFunc = func(_ context.Context, _ *uploadedmedia.UploadedMediaDatabaseCreationInput) (*uploadedmedia.UploadedMedia, error) {
-			return fakeUploadedMedia, nil
-		}
+		uploadsRegistry.RecordObjectFunc = func(context.Context, *registry.Object) error { return nil }
 		usageRecorder.RecordFunc = func(context.Context, ...metering.Usage) error {
 			return platformerrors.New("blah")
 		}
 
-		require.NoError(t, service.Upload(mockStream))
+		require.NoError(t, service.Upload(stream))
 		assert.Len(t, usageRecorder.RecordCalls(), 1)
 	})
 
@@ -958,11 +833,7 @@ func TestServiceImpl_Upload(t *testing.T) {
 
 		service, _, _ := buildTestService(t)
 
-		mockStream := &mockUploadStream{
-			ctx: t.Context(),
-		}
-
-		err := service.Upload(mockStream)
+		err := service.Upload(&mockUploadStream{ctx: t.Context()})
 
 		require.Error(t, err)
 		assert.Equal(t, codes.Unauthenticated, status.Code(err))
@@ -973,20 +844,14 @@ func TestServiceImpl_Upload(t *testing.T) {
 
 		service, _, _ := buildTestService(t)
 
-		mockStream := &mockUploadStream{
+		stream := &mockUploadStream{
 			ctx: buildSessionContextForTest(t),
-		}
-
-		// First message is a chunk instead of metadata
-		chunkReq := &uploadedmediasvc.UploadRequest{
-			Payload: &uploadedmediasvc.UploadRequest_Chunk{
-				Chunk: []byte("some data"),
+			recvQueue: []*uploadedmediasvc.UploadRequest{
+				{Payload: &uploadedmediasvc.UploadRequest_Chunk{Chunk: []byte("some data")}},
 			},
 		}
 
-		mockStream.recvQueue = []*uploadedmediasvc.UploadRequest{chunkReq}
-
-		err := service.Upload(mockStream)
+		err := service.Upload(stream)
 
 		require.Error(t, err)
 		assert.Equal(t, codes.InvalidArgument, status.Code(err))
@@ -997,25 +862,7 @@ func TestServiceImpl_Upload(t *testing.T) {
 
 		service, _, _ := buildTestService(t)
 
-		mockStream := &mockUploadStream{
-			ctx: buildSessionContextForTest(t),
-		}
-
-		uploadMetadata := &uploadedmediasvc.UploadMetadata{
-			Bucket:      "test-bucket",
-			ObjectName:  "", // Missing
-			ContentType: uploadedmedia.MimeTypeImagePNG,
-		}
-
-		metadataReq := &uploadedmediasvc.UploadRequest{
-			Payload: &uploadedmediasvc.UploadRequest_Metadata{
-				Metadata: uploadMetadata,
-			},
-		}
-
-		mockStream.recvQueue = []*uploadedmediasvc.UploadRequest{metadataReq}
-
-		err := service.Upload(mockStream)
+		err := service.Upload(uploadStreamFor(t, uploadedmedia.MimeTypeImagePNG, ""))
 
 		require.Error(t, err)
 		assert.Equal(t, codes.InvalidArgument, status.Code(err))
@@ -1026,25 +873,7 @@ func TestServiceImpl_Upload(t *testing.T) {
 
 		service, _, _ := buildTestService(t)
 
-		mockStream := &mockUploadStream{
-			ctx: buildSessionContextForTest(t),
-		}
-
-		uploadMetadata := &uploadedmediasvc.UploadMetadata{
-			Bucket:      "test-bucket",
-			ObjectName:  "test-file.png",
-			ContentType: "", // Missing
-		}
-
-		metadataReq := &uploadedmediasvc.UploadRequest{
-			Payload: &uploadedmediasvc.UploadRequest_Metadata{
-				Metadata: uploadMetadata,
-			},
-		}
-
-		mockStream.recvQueue = []*uploadedmediasvc.UploadRequest{metadataReq}
-
-		err := service.Upload(mockStream)
+		err := service.Upload(uploadStreamFor(t, "", "test-file.png"))
 
 		require.Error(t, err)
 		assert.Equal(t, codes.InvalidArgument, status.Code(err))
@@ -1055,25 +884,7 @@ func TestServiceImpl_Upload(t *testing.T) {
 
 		service, _, _ := buildTestService(t)
 
-		mockStream := &mockUploadStream{
-			ctx: buildSessionContextForTest(t),
-		}
-
-		uploadMetadata := &uploadedmediasvc.UploadMetadata{
-			Bucket:      "test-bucket",
-			ObjectName:  "test-file.pdf",
-			ContentType: "application/pdf", // Unsupported
-		}
-
-		metadataReq := &uploadedmediasvc.UploadRequest{
-			Payload: &uploadedmediasvc.UploadRequest_Metadata{
-				Metadata: uploadMetadata,
-			},
-		}
-
-		mockStream.recvQueue = []*uploadedmediasvc.UploadRequest{metadataReq}
-
-		err := service.Upload(mockStream)
+		err := service.Upload(uploadStreamFor(t, "application/pdf", "test-file.pdf"))
 
 		require.Error(t, err)
 		assert.Equal(t, codes.InvalidArgument, status.Code(err))
@@ -1084,34 +895,7 @@ func TestServiceImpl_Upload(t *testing.T) {
 
 		service, _, _ := buildTestService(t)
 
-		mockStream := &mockUploadStream{
-			ctx: buildSessionContextForTest(t),
-		}
-
-		uploadMetadata := &uploadedmediasvc.UploadMetadata{
-			Bucket:      "test-bucket",
-			ObjectName:  "large-file.png",
-			ContentType: uploadedmedia.MimeTypeImagePNG,
-		}
-
-		metadataReq := &uploadedmediasvc.UploadRequest{
-			Payload: &uploadedmediasvc.UploadRequest_Metadata{
-				Metadata: uploadMetadata,
-			},
-		}
-
-		// Create a chunk that's larger than maxUploadSize (100 MB)
-		largeChunk := make([]byte, 101*1024*1024)
-
-		chunkReq := &uploadedmediasvc.UploadRequest{
-			Payload: &uploadedmediasvc.UploadRequest_Chunk{
-				Chunk: largeChunk,
-			},
-		}
-
-		mockStream.recvQueue = []*uploadedmediasvc.UploadRequest{metadataReq, chunkReq}
-
-		err := service.Upload(mockStream)
+		err := service.Upload(uploadStreamFor(t, uploadedmedia.MimeTypeImagePNG, "large-file.png", make([]byte, maxUploadSize+1)))
 
 		require.Error(t, err)
 		assert.Equal(t, codes.InvalidArgument, status.Code(err))
@@ -1122,25 +906,7 @@ func TestServiceImpl_Upload(t *testing.T) {
 
 		service, _, _ := buildTestService(t)
 
-		mockStream := &mockUploadStream{
-			ctx: buildSessionContextForTest(t),
-		}
-
-		uploadMetadata := &uploadedmediasvc.UploadMetadata{
-			Bucket:      "test-bucket",
-			ObjectName:  "empty-file.png",
-			ContentType: uploadedmedia.MimeTypeImagePNG,
-		}
-
-		metadataReq := &uploadedmediasvc.UploadRequest{
-			Payload: &uploadedmediasvc.UploadRequest_Metadata{
-				Metadata: uploadMetadata,
-			},
-		}
-
-		mockStream.recvQueue = []*uploadedmediasvc.UploadRequest{metadataReq}
-
-		err := service.Upload(mockStream)
+		err := service.Upload(uploadStreamFor(t, uploadedmedia.MimeTypeImagePNG, "empty-file.png"))
 
 		require.Error(t, err)
 		assert.Equal(t, codes.InvalidArgument, status.Code(err))
@@ -1149,85 +915,39 @@ func TestServiceImpl_Upload(t *testing.T) {
 	t.Run("upload manager error", func(t *testing.T) {
 		t.Parallel()
 
-		service, _, mockUploadMgr := buildTestService(t)
+		// The bytes go first, so a storage failure means nothing was registered — the row
+		// that would have promised them is never written.
+		service, uploadsRegistry, mockUploadMgr := buildTestService(t)
 
-		mockStream := &mockUploadStream{
-			ctx: buildSessionContextForTest(t),
-		}
-
-		uploadMetadata := &uploadedmediasvc.UploadMetadata{
-			Bucket:      "test-bucket",
-			ObjectName:  "test-file.png",
-			ContentType: uploadedmedia.MimeTypeImagePNG,
-		}
-
-		metadataReq := &uploadedmediasvc.UploadRequest{
-			Payload: &uploadedmediasvc.UploadRequest_Metadata{
-				Metadata: uploadMetadata,
-			},
-		}
-
-		chunk := []byte("test file content")
-		chunkReq := &uploadedmediasvc.UploadRequest{
-			Payload: &uploadedmediasvc.UploadRequest_Chunk{
-				Chunk: chunk,
-			},
-		}
-
-		mockStream.recvQueue = []*uploadedmediasvc.UploadRequest{metadataReq, chunkReq}
-
-		// Mock upload manager to return error
-		mockUploadMgr.SaveFunc = func(_ context.Context, _ string, _ io.Reader, _ ...uploads.SaveOption) error {
+		mockUploadMgr.SaveFunc = func(context.Context, string, io.Reader, ...uploads.SaveOption) error {
 			return errors.New("storage error")
 		}
 
-		err := service.Upload(mockStream)
+		err := service.Upload(uploadStreamFor(t, uploadedmedia.MimeTypeImagePNG, "test-file.png", []byte("test file content")))
 
 		require.Error(t, err)
 		assert.Equal(t, codes.Internal, status.Code(err))
+		assert.Empty(t, uploadsRegistry.RecordObjectCalls())
 	})
 
-	t.Run("repository error", func(t *testing.T) {
+	t.Run("registry error", func(t *testing.T) {
 		t.Parallel()
 
-		service, mockRepo, mockUploadMgr := buildTestService(t)
+		service, uploadsRegistry, mockUploadMgr := buildTestService(t)
 
-		mockStream := &mockUploadStream{
-			ctx: buildSessionContextForTest(t),
+		mockUploadMgr.SaveFunc = func(_ context.Context, _ string, r io.Reader, _ ...uploads.SaveOption) error {
+			_, err := io.Copy(io.Discard, r)
+
+			return err
+		}
+		uploadsRegistry.RecordObjectFunc = func(context.Context, *registry.Object) error {
+			return errors.New("database error")
 		}
 
-		uploadMetadata := &uploadedmediasvc.UploadMetadata{
-			Bucket:      "test-bucket",
-			ObjectName:  "test-file.png",
-			ContentType: uploadedmedia.MimeTypeImagePNG,
-		}
-
-		metadataReq := &uploadedmediasvc.UploadRequest{
-			Payload: &uploadedmediasvc.UploadRequest_Metadata{
-				Metadata: uploadMetadata,
-			},
-		}
-
-		chunk := []byte("test file content")
-		chunkReq := &uploadedmediasvc.UploadRequest{
-			Payload: &uploadedmediasvc.UploadRequest_Chunk{
-				Chunk: chunk,
-			},
-		}
-
-		mockStream.recvQueue = []*uploadedmediasvc.UploadRequest{metadataReq, chunkReq}
-
-		mockUploadMgr.SaveFunc = func(_ context.Context, _ string, _ io.Reader, _ ...uploads.SaveOption) error { return nil }
-
-		// Mock repo to return error
-		mockRepo.CreateUploadedMediaFunc = func(_ context.Context, _ *uploadedmedia.UploadedMediaDatabaseCreationInput) (*uploadedmedia.UploadedMedia, error) {
-			return nil, errors.New("database error")
-		}
-
-		err := service.Upload(mockStream)
+		err := service.Upload(uploadStreamFor(t, uploadedmedia.MimeTypeImagePNG, "test-file.png", []byte("test file content")))
 
 		require.Error(t, err)
 		assert.Equal(t, codes.Internal, status.Code(err))
-		assert.Len(t, mockRepo.CreateUploadedMediaCalls(), 1)
+		assert.Len(t, uploadsRegistry.RecordObjectCalls(), 1)
 	})
 }

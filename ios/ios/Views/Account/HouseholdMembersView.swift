@@ -166,7 +166,7 @@ struct MemberCard: View {
           size: .lg,
           imageURL: member.hasBelongsToUser && member.belongsToUser.hasAvatar
             ? APIConfiguration.mediaURL(
-              forStoragePath: member.belongsToUser.avatar.storagePath, bucket: "avatars")
+              forStoragePath: member.belongsToUser.avatar.objectKey, bucket: "avatars")
             : nil
         )
 

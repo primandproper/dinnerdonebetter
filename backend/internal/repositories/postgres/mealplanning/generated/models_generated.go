@@ -617,70 +617,6 @@ func AllStorageContainerTypeValues() []StorageContainerType {
 	}
 }
 
-type UploadedMediaMimeType string
-
-const (
-	UploadedMediaMimeTypeImagePng  UploadedMediaMimeType = "image/png"
-	UploadedMediaMimeTypeImageJpeg UploadedMediaMimeType = "image/jpeg"
-	UploadedMediaMimeTypeImageGif  UploadedMediaMimeType = "image/gif"
-	UploadedMediaMimeTypeVideoMp4  UploadedMediaMimeType = "video/mp4"
-)
-
-func (e *UploadedMediaMimeType) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = UploadedMediaMimeType(s)
-	case string:
-		*e = UploadedMediaMimeType(s)
-	default:
-		return fmt.Errorf("unsupported scan type for UploadedMediaMimeType: %T", src)
-	}
-	return nil
-}
-
-type NullUploadedMediaMimeType struct {
-	UploadedMediaMimeType UploadedMediaMimeType
-	Valid                 bool // Valid is true if UploadedMediaMimeType is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullUploadedMediaMimeType) Scan(value interface{}) error {
-	if value == nil {
-		ns.UploadedMediaMimeType, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.UploadedMediaMimeType.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullUploadedMediaMimeType) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.UploadedMediaMimeType), nil
-}
-
-func (e UploadedMediaMimeType) Valid() bool {
-	switch e {
-	case UploadedMediaMimeTypeImagePng,
-		UploadedMediaMimeTypeImageJpeg,
-		UploadedMediaMimeTypeImageGif,
-		UploadedMediaMimeTypeVideoMp4:
-		return true
-	}
-	return false
-}
-
-func AllUploadedMediaMimeTypeValues() []UploadedMediaMimeType {
-	return []UploadedMediaMimeType{
-		UploadedMediaMimeTypeImagePng,
-		UploadedMediaMimeTypeImageJpeg,
-		UploadedMediaMimeTypeImageGif,
-		UploadedMediaMimeTypeVideoMp4,
-	}
-}
-
 type ValidElectionMethod string
 
 const (
@@ -893,14 +829,4 @@ type RecipeStepImages struct {
 	UploadedByUser      string
 	CreatedAt           time.Time
 	ArchivedAt          sql.NullTime
-}
-
-type UploadedMedia struct {
-	ID            string
-	StoragePath   string
-	MimeType      UploadedMediaMimeType
-	CreatedAt     time.Time
-	LastUpdatedAt sql.NullTime
-	ArchivedAt    sql.NullTime
-	CreatedByUser string
 }

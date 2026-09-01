@@ -22,6 +22,7 @@ import (
 	"github.com/primandproper/platform-go/v13/observability"
 	platformkeys "github.com/primandproper/platform-go/v13/observability/keys"
 	"github.com/primandproper/platform-go/v13/observability/tracing"
+	"github.com/primandproper/platform-go/v13/uploads/registry"
 
 	"github.com/jackc/pgx/v5/pgconn"
 )
@@ -44,19 +45,44 @@ var (
 	_ identity.UserDataManager = (*repository)(nil)
 )
 
-func avatarFromRow(id, storagePath sql.NullString, mimeType generated.NullUploadedMediaMimeType, createdAt, lastUpdatedAt, archivedAt sql.NullTime, createdByUser sql.NullString) *uploadedmedia.UploadedMedia {
-	if !id.Valid || !storagePath.Valid || !mimeType.Valid || !createdByUser.Valid {
+// avatarFor reads the registry row a user_avatars join named, or nil.
+//
+// The avatar used to arrive on the same row as the user, joined from the
+// uploaded_media table this repository owned. That table is platform-go's upload
+// registry now, created by a generated migration rather than by a file in
+// migration_files, and sqlc's schema is migration_files — so there is no join
+// left to write and the object is read separately. What the user query still
+// carries is the id, which is the half that lives in this schema.
+//
+// The cost is one read per user, including inside the paged reads: a page of
+// twenty users is twenty avatar reads where it used to be none. That is the
+// honest price of the table moving, and the way to pay it down is a bulk read on
+// the registry rather than a wider join here — see GetUploadedMediaWithIDs in
+// internal/repositories/postgres/mealplanning for the same gap.
+//
+// A read that fails is logged and the user is returned without an avatar. An
+// avatar is decoration on a record whose substance is elsewhere, and a user who
+// cannot sign in because a picture could not be fetched is a worse answer than a
+// user with no picture. An id naming no live row — archived, or gone — is not an
+// error at all: it is the same nil the LEFT JOIN produced.
+func (r *repository) avatarFor(ctx context.Context, avatarID sql.NullString) *registry.Object {
+	ctx, span := r.tracer.StartSpan(ctx)
+	defer span.End()
+
+	if !avatarID.Valid || avatarID.String == "" {
 		return nil
 	}
-	return &uploadedmedia.UploadedMedia{
-		ID:            id.String,
-		StoragePath:   storagePath.String,
-		MimeType:      string(mimeType.UploadedMediaMimeType),
-		CreatedAt:     createdAt.Time,
-		LastUpdatedAt: database.TimePointerFromNullTime(lastUpdatedAt),
-		ArchivedAt:    database.TimePointerFromNullTime(archivedAt),
-		CreatedByUser: createdByUser.String,
+
+	object, err := r.uploads.GetObject(ctx, uploadedmedia.Scope(), avatarID.String)
+	if err != nil {
+		if !errors.Is(err, registry.ErrObjectNotFound) {
+			observability.AcknowledgeError(err, r.logger.WithSpan(span), span, "fetching user avatar")
+		}
+
+		return nil
 	}
+
+	return object
 }
 
 // GetUser fetches a user.
@@ -96,7 +122,7 @@ func (r *repository) GetUser(ctx context.Context, userID string) (*identity.User
 		LastName:                   result.LastName,
 		EmailAddress:               result.EmailAddress,
 		EmailAddressVerifiedAt:     database.TimePointerFromNullTime(result.EmailAddressVerifiedAt),
-		Avatar:                     avatarFromRow(result.AvatarID, result.AvatarStoragePath, result.AvatarMimeType, result.AvatarCreatedAt, result.AvatarLastUpdatedAt, result.AvatarArchivedAt, result.AvatarCreatedByUser),
+		Avatar:                     r.avatarFor(ctx, result.AvatarID),
 		RequiresPasswordChange:     result.RequiresPasswordChange,
 	}
 
@@ -137,7 +163,7 @@ func (r *repository) GetUserWithUnverifiedTwoFactorSecret(ctx context.Context, u
 		LastName:                   result.LastName,
 		EmailAddress:               result.EmailAddress,
 		EmailAddressVerifiedAt:     database.TimePointerFromNullTime(result.EmailAddressVerifiedAt),
-		Avatar:                     avatarFromRow(result.AvatarID, result.AvatarStoragePath, result.AvatarMimeType, result.AvatarCreatedAt, result.AvatarLastUpdatedAt, result.AvatarArchivedAt, result.AvatarCreatedByUser),
+		Avatar:                     r.avatarFor(ctx, result.AvatarID),
 		RequiresPasswordChange:     result.RequiresPasswordChange,
 	}
 
@@ -178,7 +204,7 @@ func (r *repository) GetUserByUsername(ctx context.Context, username string) (*i
 		LastName:                   result.LastName,
 		EmailAddress:               result.EmailAddress,
 		EmailAddressVerifiedAt:     database.TimePointerFromNullTime(result.EmailAddressVerifiedAt),
-		Avatar:                     avatarFromRow(result.AvatarID, result.AvatarStoragePath, result.AvatarMimeType, result.AvatarCreatedAt, result.AvatarLastUpdatedAt, result.AvatarArchivedAt, result.AvatarCreatedByUser),
+		Avatar:                     r.avatarFor(ctx, result.AvatarID),
 		RequiresPasswordChange:     result.RequiresPasswordChange,
 	}
 
@@ -222,7 +248,7 @@ func (r *repository) GetAdminUserByUsername(ctx context.Context, username string
 		LastName:                   result.LastName,
 		EmailAddress:               result.EmailAddress,
 		EmailAddressVerifiedAt:     database.TimePointerFromNullTime(result.EmailAddressVerifiedAt),
-		Avatar:                     avatarFromRow(result.AvatarID, result.AvatarStoragePath, result.AvatarMimeType, result.AvatarCreatedAt, result.AvatarLastUpdatedAt, result.AvatarArchivedAt, result.AvatarCreatedByUser),
+		Avatar:                     r.avatarFor(ctx, result.AvatarID),
 		RequiresPasswordChange:     result.RequiresPasswordChange,
 	}
 
@@ -263,7 +289,7 @@ func (r *repository) GetUserByEmail(ctx context.Context, email string) (*identit
 		LastName:                   result.LastName,
 		EmailAddress:               result.EmailAddress,
 		EmailAddressVerifiedAt:     database.TimePointerFromNullTime(result.EmailAddressVerifiedAt),
-		Avatar:                     avatarFromRow(result.AvatarID, result.AvatarStoragePath, result.AvatarMimeType, result.AvatarCreatedAt, result.AvatarLastUpdatedAt, result.AvatarArchivedAt, result.AvatarCreatedByUser),
+		Avatar:                     r.avatarFor(ctx, result.AvatarID),
 		RequiresPasswordChange:     result.RequiresPasswordChange,
 	}
 
@@ -332,7 +358,7 @@ func (r *repository) SearchForUsersByUsername(ctx context.Context, usernameQuery
 			LastName:                   result.LastName,
 			EmailAddress:               result.EmailAddress,
 			EmailAddressVerifiedAt:     database.TimePointerFromNullTime(result.EmailAddressVerifiedAt),
-			Avatar:                     avatarFromRow(result.AvatarID, result.AvatarStoragePath, result.AvatarMimeType, result.AvatarCreatedAt, result.AvatarLastUpdatedAt, result.AvatarArchivedAt, result.AvatarCreatedByUser),
+			Avatar:                     r.avatarFor(ctx, result.AvatarID),
 			RequiresPasswordChange:     result.RequiresPasswordChange,
 		})
 	}
@@ -398,7 +424,7 @@ func (r *repository) GetUsers(ctx context.Context, filter *filtering.QueryFilter
 				LastName:                   result.LastName,
 				EmailAddress:               result.EmailAddress,
 				EmailAddressVerifiedAt:     database.TimePointerFromNullTime(result.EmailAddressVerifiedAt),
-				Avatar:                     avatarFromRow(result.AvatarID, result.AvatarStoragePath, result.AvatarMimeType, result.AvatarCreatedAt, result.AvatarLastUpdatedAt, result.AvatarArchivedAt, result.AvatarCreatedByUser),
+				Avatar:                     r.avatarFor(ctx, result.AvatarID),
 				RequiresPasswordChange:     result.RequiresPasswordChange,
 			}
 		},
@@ -474,7 +500,7 @@ func (r *repository) GetUsersForAccount(ctx context.Context, accountID string, f
 			LastName:                   result.LastName,
 			EmailAddress:               result.EmailAddress,
 			EmailAddressVerifiedAt:     database.TimePointerFromNullTime(result.EmailAddressVerifiedAt),
-			Avatar:                     avatarFromRow(result.AvatarID, result.AvatarStoragePath, result.AvatarMimeType, result.AvatarCreatedAt, result.AvatarLastUpdatedAt, result.AvatarArchivedAt, result.AvatarCreatedByUser),
+			Avatar:                     r.avatarFor(ctx, result.AvatarID),
 			RequiresPasswordChange:     result.RequiresPasswordChange,
 		}
 
@@ -520,7 +546,7 @@ func (r *repository) GetUsersWithIDs(ctx context.Context, ids []string) (x []*id
 			LastName:                   result.LastName,
 			EmailAddress:               result.EmailAddress,
 			EmailAddressVerifiedAt:     database.TimePointerFromNullTime(result.EmailAddressVerifiedAt),
-			Avatar:                     avatarFromRow(result.AvatarID, result.AvatarStoragePath, result.AvatarMimeType, result.AvatarCreatedAt, result.AvatarLastUpdatedAt, result.AvatarArchivedAt, result.AvatarCreatedByUser),
+			Avatar:                     r.avatarFor(ctx, result.AvatarID),
 			RequiresPasswordChange:     result.RequiresPasswordChange,
 		}
 
@@ -1344,7 +1370,7 @@ func (r *repository) GetUserByEmailAddressVerificationToken(ctx context.Context,
 		LastAcceptedTermsOfService: database.TimePointerFromNullTime(result.LastAcceptedTermsOfService),
 		LastAcceptedPrivacyPolicy:  database.TimePointerFromNullTime(result.LastAcceptedPrivacyPolicy),
 		TwoFactorSecretVerifiedAt:  database.TimePointerFromNullTime(result.TwoFactorSecretVerifiedAt),
-		Avatar:                     avatarFromRow(result.AvatarID, result.AvatarStoragePath, result.AvatarMimeType, result.AvatarCreatedAt, result.AvatarLastUpdatedAt, result.AvatarArchivedAt, result.AvatarCreatedByUser),
+		Avatar:                     r.avatarFor(ctx, result.AvatarID),
 		Birthday:                   database.TimePointerFromNullTime(result.Birthday),
 		ArchivedAt:                 database.TimePointerFromNullTime(result.ArchivedAt),
 		AccountStatusExplanation:   result.UserAccountStatusExplanation,

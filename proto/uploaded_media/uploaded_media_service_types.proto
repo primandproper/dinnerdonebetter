@@ -50,17 +50,6 @@ message GetUploadedMediaForUserResponse {
   repeated UploadedMedia results = 3;
 }
 
-// UpdateUploadedMedia
-message UpdateUploadedMediaRequest {
-  string uploaded_media_id = 1;
-  UploadedMediaUpdateRequestInput input = 2;
-}
-
-message UpdateUploadedMediaResponse {
-  common.ResponseDetails response_details = 1;
-  UploadedMedia updated = 2;
-}
-
 // ArchiveUploadedMedia
 message ArchiveUploadedMediaRequest {
   string uploaded_media_id = 1;

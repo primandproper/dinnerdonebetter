@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	identityrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity"
 	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
@@ -22,6 +23,7 @@ import (
 	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
 	"github.com/primandproper/platform-go/v13/observability/tracing"
 	tracingnoop "github.com/primandproper/platform-go/v13/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v13/uploads/registry"
 
 	"github.com/spf13/cobra"
 )
@@ -108,8 +110,20 @@ func runExport(dbHost string, dbPort uint16, dbUser, dbPassword, dbName string, 
 	if err != nil {
 		return fmt.Errorf("building audit log repository: %w", err)
 	}
-	identityRepo := identityrepo.ProvideIdentityRepository(logger, tracerProvider, auditRepo, client, nil)
-	repo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditRepo, identityRepo, client, nil)
+	// A real registry store rather than nil: both repositories hydrate media
+	// through it. It needs no emitter or metrics — nothing here writes an object.
+	uploadsRegistry, err := registry.NewSQLStore(
+		client,
+		registry.WithTablePrefix(uploadedmedia.TablePrefix),
+		registry.WithStoreLogger(logger),
+		registry.WithStoreTracerProvider(tracerProvider),
+	)
+	if err != nil {
+		return fmt.Errorf("building upload registry store: %w", err)
+	}
+
+	identityRepo := identityrepo.ProvideIdentityRepository(logger, tracerProvider, auditRepo, client, nil, uploadsRegistry)
+	repo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditRepo, identityRepo, client, nil, uploadsRegistry)
 
 	export := &ExportData{
 		ExportedAt: time.Now().UTC(),

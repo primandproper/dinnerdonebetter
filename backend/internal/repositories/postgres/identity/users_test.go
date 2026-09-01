@@ -13,11 +13,13 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/converters"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
 	"github.com/primandproper/platform-go/v13/fake"
 	"github.com/primandproper/platform-go/v13/filtering"
 	"github.com/primandproper/platform-go/v13/identifiers"
+	"github.com/primandproper/platform-go/v13/uploads/registry"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -111,16 +113,26 @@ func TestQuerier_Integration_Users(t *testing.T) {
 	assert.Equal(t, firstUser.LastName, newLastName)
 	assert.Equal(t, firstUser.Birthday.Round(time.Second), birthday.Round(time.Second))
 
-	// update first user's avatar (create uploaded_media first, then set avatar)
-	avatarMediaID := fake.BuildFakeID()
-	_, err = dbc.writeDB.ExecContext(ctx, `INSERT INTO uploaded_media (id, storage_path, mime_type, created_by_user) VALUES ($1, $2, $3, $4)`,
-		avatarMediaID, "avatars/"+avatarMediaID+".png", "image/png", firstUser.ID)
-	require.NoError(t, err)
-	assert.NoError(t, dbc.SetUserAvatar(ctx, firstUser.ID, avatarMediaID))
+	// update first user's avatar (register the object first, then set the avatar)
+	//
+	// The object goes through the registry rather than an INSERT of this package's
+	// own, because the table is platform-go's now: user_avatars holds the id and the
+	// row it names is read back through the store — which is the read this asserts on.
+	avatarObject := &registry.Object{
+		ID:          fake.BuildFakeID(),
+		Scope:       uploadedmedia.Scope(),
+		ContentType: uploadedmedia.MimeTypeImagePNG,
+		OwnerID:     firstUser.ID,
+	}
+	avatarObject.Key = "avatars/" + avatarObject.ID + ".png"
+	require.NoError(t, dbc.uploads.RecordObject(ctx, avatarObject))
+
+	assert.NoError(t, dbc.SetUserAvatar(ctx, firstUser.ID, avatarObject.ID))
 	firstUser, err = dbc.GetUser(ctx, firstUser.ID)
 	require.NoError(t, err)
 	require.NotNil(t, firstUser.Avatar)
-	assert.Equal(t, firstUser.Avatar.ID, avatarMediaID)
+	assert.Equal(t, avatarObject.ID, firstUser.Avatar.ID)
+	assert.Equal(t, avatarObject.Key, firstUser.Avatar.Key)
 
 	// update first user's email address
 	newEmailAddress := fake.BuildFakeID()

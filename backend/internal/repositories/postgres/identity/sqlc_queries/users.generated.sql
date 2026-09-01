@@ -86,16 +86,9 @@ SELECT
 	users.created_at,
 	users.last_updated_at,
 	users.archived_at,
-	uploaded_media.id as avatar_id,
-	uploaded_media.storage_path as avatar_storage_path,
-	uploaded_media.mime_type as avatar_mime_type,
-	uploaded_media.created_at as avatar_created_at,
-	uploaded_media.last_updated_at as avatar_last_updated_at,
-	uploaded_media.archived_at as avatar_archived_at,
-	uploaded_media.created_by_user as avatar_created_by_user
+	user_avatars.uploaded_media_id as avatar_id
 FROM users
 	LEFT JOIN user_avatars ON user_avatars.belongs_to_user = users.id AND user_avatars.archived_at IS NULL
-	LEFT JOIN uploaded_media ON uploaded_media.id = user_avatars.uploaded_media_id AND uploaded_media.archived_at IS NULL
 	JOIN user_role_assignments ON user_role_assignments.user_id = users.id AND user_role_assignments.account_id IS NULL AND user_role_assignments.archived_at IS NULL
 	JOIN user_roles ON user_roles.id = user_role_assignments.role_id AND user_roles.archived_at IS NULL
 WHERE users.archived_at IS NULL
@@ -126,16 +119,9 @@ SELECT
 	users.created_at,
 	users.last_updated_at,
 	users.archived_at,
-	uploaded_media.id as avatar_id,
-	uploaded_media.storage_path as avatar_storage_path,
-	uploaded_media.mime_type as avatar_mime_type,
-	uploaded_media.created_at as avatar_created_at,
-	uploaded_media.last_updated_at as avatar_last_updated_at,
-	uploaded_media.archived_at as avatar_archived_at,
-	uploaded_media.created_by_user as avatar_created_by_user
+	user_avatars.uploaded_media_id as avatar_id
 FROM users
 	LEFT JOIN user_avatars ON user_avatars.belongs_to_user = users.id AND user_avatars.archived_at IS NULL
-	LEFT JOIN uploaded_media ON uploaded_media.id = user_avatars.uploaded_media_id AND uploaded_media.archived_at IS NULL
 WHERE users.archived_at IS NULL
 	AND users.email_address = sqlc.arg(email_address);
 
@@ -162,16 +148,9 @@ SELECT
 	users.created_at,
 	users.last_updated_at,
 	users.archived_at,
-	uploaded_media.id as avatar_id,
-	uploaded_media.storage_path as avatar_storage_path,
-	uploaded_media.mime_type as avatar_mime_type,
-	uploaded_media.created_at as avatar_created_at,
-	uploaded_media.last_updated_at as avatar_last_updated_at,
-	uploaded_media.archived_at as avatar_archived_at,
-	uploaded_media.created_by_user as avatar_created_by_user
+	user_avatars.uploaded_media_id as avatar_id
 FROM users
 	LEFT JOIN user_avatars ON user_avatars.belongs_to_user = users.id AND user_avatars.archived_at IS NULL
-	LEFT JOIN uploaded_media ON uploaded_media.id = user_avatars.uploaded_media_id AND uploaded_media.archived_at IS NULL
 WHERE users.archived_at IS NULL
 	AND users.email_address_verification_token = sqlc.arg(email_address_verification_token);
 
@@ -198,16 +177,9 @@ SELECT
 	users.created_at,
 	users.last_updated_at,
 	users.archived_at,
-	uploaded_media.id as avatar_id,
-	uploaded_media.storage_path as avatar_storage_path,
-	uploaded_media.mime_type as avatar_mime_type,
-	uploaded_media.created_at as avatar_created_at,
-	uploaded_media.last_updated_at as avatar_last_updated_at,
-	uploaded_media.archived_at as avatar_archived_at,
-	uploaded_media.created_by_user as avatar_created_by_user
+	user_avatars.uploaded_media_id as avatar_id
 FROM users
 	LEFT JOIN user_avatars ON user_avatars.belongs_to_user = users.id AND user_avatars.archived_at IS NULL
-	LEFT JOIN uploaded_media ON uploaded_media.id = user_avatars.uploaded_media_id AND uploaded_media.archived_at IS NULL
 WHERE users.archived_at IS NULL
 	AND users.id = sqlc.arg(id);
 
@@ -234,16 +206,9 @@ SELECT
 	users.created_at,
 	users.last_updated_at,
 	users.archived_at,
-	uploaded_media.id as avatar_id,
-	uploaded_media.storage_path as avatar_storage_path,
-	uploaded_media.mime_type as avatar_mime_type,
-	uploaded_media.created_at as avatar_created_at,
-	uploaded_media.last_updated_at as avatar_last_updated_at,
-	uploaded_media.archived_at as avatar_archived_at,
-	uploaded_media.created_by_user as avatar_created_by_user
+	user_avatars.uploaded_media_id as avatar_id
 FROM users
 	LEFT JOIN user_avatars ON user_avatars.belongs_to_user = users.id AND user_avatars.archived_at IS NULL
-	LEFT JOIN uploaded_media ON uploaded_media.id = user_avatars.uploaded_media_id AND uploaded_media.archived_at IS NULL
 WHERE users.archived_at IS NULL
 	AND users.username = sqlc.arg(username);
 
@@ -278,13 +243,7 @@ SELECT
 	users.created_at,
 	users.last_updated_at,
 	users.archived_at,
-	uploaded_media.id as avatar_id,
-	uploaded_media.storage_path as avatar_storage_path,
-	uploaded_media.mime_type as avatar_mime_type,
-	uploaded_media.created_at as avatar_created_at,
-	uploaded_media.last_updated_at as avatar_last_updated_at,
-	uploaded_media.archived_at as avatar_archived_at,
-	uploaded_media.created_by_user as avatar_created_by_user,
+	user_avatars.uploaded_media_id as avatar_id,
 	(
 		SELECT COUNT(users.id)
 		FROM users
@@ -307,7 +266,6 @@ SELECT
 	) AS total_count
 FROM users
 	LEFT JOIN user_avatars ON user_avatars.belongs_to_user = users.id AND user_avatars.archived_at IS NULL
-	LEFT JOIN uploaded_media ON uploaded_media.id = user_avatars.uploaded_media_id AND uploaded_media.archived_at IS NULL
 WHERE users.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	AND users.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
@@ -346,13 +304,7 @@ SELECT
 	users.created_at,
 	users.last_updated_at,
 	users.archived_at,
-	uploaded_media.id as avatar_id,
-	uploaded_media.storage_path as avatar_storage_path,
-	uploaded_media.mime_type as avatar_mime_type,
-	uploaded_media.created_at as avatar_created_at,
-	uploaded_media.last_updated_at as avatar_last_updated_at,
-	uploaded_media.archived_at as avatar_archived_at,
-	uploaded_media.created_by_user as avatar_created_by_user,
+	user_avatars.uploaded_media_id as avatar_id,
 	(
 		SELECT COUNT(users.id)
 		FROM users
@@ -376,7 +328,6 @@ SELECT
 	) AS total_count
 FROM users
 	LEFT JOIN user_avatars ON user_avatars.belongs_to_user = users.id AND user_avatars.archived_at IS NULL
-	LEFT JOIN uploaded_media ON uploaded_media.id = user_avatars.uploaded_media_id AND uploaded_media.archived_at IS NULL
 JOIN account_user_memberships ON account_user_memberships.belongs_to_user = users.id
 WHERE users.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	AND users.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
@@ -418,16 +369,9 @@ SELECT
 	users.created_at,
 	users.last_updated_at,
 	users.archived_at,
-	uploaded_media.id as avatar_id,
-	uploaded_media.storage_path as avatar_storage_path,
-	uploaded_media.mime_type as avatar_mime_type,
-	uploaded_media.created_at as avatar_created_at,
-	uploaded_media.last_updated_at as avatar_last_updated_at,
-	uploaded_media.archived_at as avatar_archived_at,
-	uploaded_media.created_by_user as avatar_created_by_user
+	user_avatars.uploaded_media_id as avatar_id
 FROM users
 	LEFT JOIN user_avatars ON user_avatars.belongs_to_user = users.id AND user_avatars.archived_at IS NULL
-	LEFT JOIN uploaded_media ON uploaded_media.id = user_avatars.uploaded_media_id AND uploaded_media.archived_at IS NULL
 WHERE users.archived_at IS NULL
 	AND users.id = ANY(sqlc.arg(ids)::text[]);
 
@@ -467,16 +411,9 @@ SELECT
 	users.created_at,
 	users.last_updated_at,
 	users.archived_at,
-	uploaded_media.id as avatar_id,
-	uploaded_media.storage_path as avatar_storage_path,
-	uploaded_media.mime_type as avatar_mime_type,
-	uploaded_media.created_at as avatar_created_at,
-	uploaded_media.last_updated_at as avatar_last_updated_at,
-	uploaded_media.archived_at as avatar_archived_at,
-	uploaded_media.created_by_user as avatar_created_by_user
+	user_avatars.uploaded_media_id as avatar_id
 FROM users
 	LEFT JOIN user_avatars ON user_avatars.belongs_to_user = users.id AND user_avatars.archived_at IS NULL
-	LEFT JOIN uploaded_media ON uploaded_media.id = user_avatars.uploaded_media_id AND uploaded_media.archived_at IS NULL
 WHERE users.archived_at IS NULL
 	AND users.id = sqlc.arg(id)
 	AND users.two_factor_secret_verified_at IS NULL;
@@ -504,16 +441,9 @@ SELECT
 	users.created_at,
 	users.last_updated_at,
 	users.archived_at,
-	uploaded_media.id as avatar_id,
-	uploaded_media.storage_path as avatar_storage_path,
-	uploaded_media.mime_type as avatar_mime_type,
-	uploaded_media.created_at as avatar_created_at,
-	uploaded_media.last_updated_at as avatar_last_updated_at,
-	uploaded_media.archived_at as avatar_archived_at,
-	uploaded_media.created_by_user as avatar_created_by_user
+	user_avatars.uploaded_media_id as avatar_id
 FROM users
 	LEFT JOIN user_avatars ON user_avatars.belongs_to_user = users.id AND user_avatars.archived_at IS NULL
-	LEFT JOIN uploaded_media ON uploaded_media.id = user_avatars.uploaded_media_id AND uploaded_media.archived_at IS NULL
 WHERE users.archived_at IS NULL
 	AND users.id = sqlc.arg(id)
 	AND users.two_factor_secret_verified_at IS NOT NULL;
@@ -573,13 +503,7 @@ SELECT
 	users.created_at,
 	users.last_updated_at,
 	users.archived_at,
-	uploaded_media.id as avatar_id,
-	uploaded_media.storage_path as avatar_storage_path,
-	uploaded_media.mime_type as avatar_mime_type,
-	uploaded_media.created_at as avatar_created_at,
-	uploaded_media.last_updated_at as avatar_last_updated_at,
-	uploaded_media.archived_at as avatar_archived_at,
-	uploaded_media.created_by_user as avatar_created_by_user,
+	user_avatars.uploaded_media_id as avatar_id,
 	(
 		SELECT COUNT(users.id)
 		FROM users
@@ -602,7 +526,6 @@ SELECT
 	) AS total_count
 FROM users
 	LEFT JOIN user_avatars ON user_avatars.belongs_to_user = users.id AND user_avatars.archived_at IS NULL
-	LEFT JOIN uploaded_media ON uploaded_media.id = user_avatars.uploaded_media_id AND uploaded_media.archived_at IS NULL
 WHERE users.created_at > COALESCE(sqlc.narg(created_after), (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	AND users.created_at < COALESCE(sqlc.narg(created_before), (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (

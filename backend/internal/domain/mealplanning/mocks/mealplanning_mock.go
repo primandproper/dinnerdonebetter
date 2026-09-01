@@ -8,9 +8,9 @@ import (
 	"sync"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 
 	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/uploads/registry"
 )
 
 // Ensure, that RepositoryMock does implement mealplanning.Repository.
@@ -473,7 +473,7 @@ var _ mealplanning.Repository = &RepositoryMock{}
 //			GetSelectionsForMealPlanOptionFunc: func(ctx context.Context, mealPlanOptionID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.MealPlanRecipeOptionSelection], error) {
 //				panic("mock out the GetSelectionsForMealPlanOption method")
 //			},
-//			GetUploadedMediaWithIDsFunc: func(ctx context.Context, ids []string) ([]*uploadedmedia.UploadedMedia, error) {
+//			GetUploadedMediaWithIDsFunc: func(ctx context.Context, ids []string) ([]*registry.Object, error) {
 //				panic("mock out the GetUploadedMediaWithIDs method")
 //			},
 //			GetUserIngredientPreferenceFunc: func(ctx context.Context, userIngredientPreferenceID string, userID string) (*mealplanning.UserIngredientPreference, error) {
@@ -1423,7 +1423,7 @@ type RepositoryMock struct {
 	GetSelectionsForMealPlanOptionFunc func(ctx context.Context, mealPlanOptionID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.MealPlanRecipeOptionSelection], error)
 
 	// GetUploadedMediaWithIDsFunc mocks the GetUploadedMediaWithIDs method.
-	GetUploadedMediaWithIDsFunc func(ctx context.Context, ids []string) ([]*uploadedmedia.UploadedMedia, error)
+	GetUploadedMediaWithIDsFunc func(ctx context.Context, ids []string) ([]*registry.Object, error)
 
 	// GetUserIngredientPreferenceFunc mocks the GetUserIngredientPreference method.
 	GetUserIngredientPreferenceFunc func(ctx context.Context, userIngredientPreferenceID string, userID string) (*mealplanning.UserIngredientPreference, error)
@@ -10656,7 +10656,7 @@ func (mock *RepositoryMock) GetSelectionsForMealPlanOptionCalls() []struct {
 }
 
 // GetUploadedMediaWithIDs calls GetUploadedMediaWithIDsFunc.
-func (mock *RepositoryMock) GetUploadedMediaWithIDs(ctx context.Context, ids []string) ([]*uploadedmedia.UploadedMedia, error) {
+func (mock *RepositoryMock) GetUploadedMediaWithIDs(ctx context.Context, ids []string) ([]*registry.Object, error) {
 	if mock.GetUploadedMediaWithIDsFunc == nil {
 		panic("RepositoryMock.GetUploadedMediaWithIDsFunc: method is nil but Repository.GetUploadedMediaWithIDs was just called")
 	}

@@ -15,6 +15,7 @@ import (
 	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	identityrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity"
 	oauthrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/oauth"
@@ -29,6 +30,7 @@ import (
 	tracingnoop "github.com/primandproper/platform-go/v13/observability/tracing/noop"
 	"github.com/primandproper/platform-go/v13/random"
 	"github.com/primandproper/platform-go/v13/secrets/kubernetes"
+	"github.com/primandproper/platform-go/v13/uploads/registry"
 
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/tools/clientcmd"
@@ -215,7 +217,20 @@ func runInit(db *dbFlags, adminUsername, adminPassword, adminEmail, apiServerURL
 	if err != nil {
 		return fmt.Errorf("building audit log repository: %w", err)
 	}
-	identityRepo := identityrepo.ProvideIdentityRepository(logger, tracerProvider, auditRepo, client, nil)
+	// A real registry store rather than nil: the identity repository hydrates a
+	// user's avatar through it, and the admin user this tool reads back may have
+	// one. It needs no emitter or metrics — nothing here writes an object.
+	uploadsRegistry, err := registry.NewSQLStore(
+		client,
+		registry.WithTablePrefix(uploadedmedia.TablePrefix),
+		registry.WithStoreLogger(logger),
+		registry.WithStoreTracerProvider(tracerProvider),
+	)
+	if err != nil {
+		return fmt.Errorf("building upload registry store: %w", err)
+	}
+
+	identityRepo := identityrepo.ProvideIdentityRepository(logger, tracerProvider, auditRepo, client, nil, uploadsRegistry)
 	oauthRepo := oauthrepo.ProvideOAuthRepository(ctx, logger, tracerProvider, auditRepo, dbConfig, client)
 
 	// --- Admin user (idempotent) ---

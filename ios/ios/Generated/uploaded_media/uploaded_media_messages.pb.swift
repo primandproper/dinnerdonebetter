@@ -21,52 +21,6 @@ fileprivate struct _GeneratedWithProtocGenSwiftVersion: SwiftProtobuf.ProtobufAP
   typealias Version = _2
 }
 
-public enum UploadedMedia_UploadedMediaMimeType: SwiftProtobuf.Enum, Swift.CaseIterable {
-  public typealias RawValue = Int
-  case unspecified // = 0
-  case imagePng // = 1
-  case imageJpeg // = 2
-  case imageGif // = 3
-  case videoMp4 // = 4
-  case UNRECOGNIZED(Int)
-
-  public init() {
-    self = .unspecified
-  }
-
-  public init?(rawValue: Int) {
-    switch rawValue {
-    case 0: self = .unspecified
-    case 1: self = .imagePng
-    case 2: self = .imageJpeg
-    case 3: self = .imageGif
-    case 4: self = .videoMp4
-    default: self = .UNRECOGNIZED(rawValue)
-    }
-  }
-
-  public var rawValue: Int {
-    switch self {
-    case .unspecified: return 0
-    case .imagePng: return 1
-    case .imageJpeg: return 2
-    case .imageGif: return 3
-    case .videoMp4: return 4
-    case .UNRECOGNIZED(let i): return i
-    }
-  }
-
-  // The compiler won't synthesize support with the UNRECOGNIZED case.
-  public static let allCases: [UploadedMedia_UploadedMediaMimeType] = [
-    .unspecified,
-    .imagePng,
-    .imageJpeg,
-    .imageGif,
-    .videoMp4,
-  ]
-
-}
-
 public struct UploadedMedia_DataCollection: Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
@@ -143,6 +97,9 @@ public struct UploadedMedia_UploadResponse: Sendable {
   public init() {}
 }
 
+/// UploadedMedia is one row of platform-go's upload registry: what an object in
+/// storage is, as opposed to the bytes themselves. object_key is where those
+/// bytes live and is what a client builds a media URL from.
 public struct UploadedMedia_UploadedMedia: Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
@@ -177,11 +134,17 @@ public struct UploadedMedia_UploadedMedia: Sendable {
 
   public var id: String = String()
 
-  public var storagePath: String = String()
+  public var objectKey: String = String()
 
-  public var mimeType: UploadedMedia_UploadedMediaMimeType = .unspecified
+  public var contentType: String = String()
 
-  public var createdByUser: String = String()
+  public var ownerID: String = String()
+
+  public var sizeBytes: Int64 = 0
+
+  public var belongsToType: String = String()
+
+  public var belongsToID: String = String()
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
@@ -192,58 +155,33 @@ public struct UploadedMedia_UploadedMedia: Sendable {
   fileprivate var _lastUpdatedAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
 }
 
+/// UploadedMediaCreationRequestInput registers an object a caller stored some
+/// other way — through a signed URL, or before adopting this service. Upload is
+/// the path that stores and registers together, and it is the only one whose
+/// size_bytes was counted rather than claimed.
 public struct UploadedMedia_UploadedMediaCreationRequestInput: Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
 
-  public var storagePath: String = String()
+  public var objectKey: String = String()
 
-  public var mimeType: UploadedMedia_UploadedMediaMimeType = .unspecified
+  public var contentType: String = String()
 
-  public var unknownFields = SwiftProtobuf.UnknownStorage()
+  public var sizeBytes: Int64 = 0
 
-  public init() {}
-}
+  public var belongsToType: String = String()
 
-public struct UploadedMedia_UploadedMediaUpdateRequestInput: Sendable {
-  // SwiftProtobuf.Message conformance is added in an extension below. See the
-  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
-  // methods supported on all messages.
-
-  public var storagePath: String {
-    get {return _storagePath ?? String()}
-    set {_storagePath = newValue}
-  }
-  /// Returns true if `storagePath` has been explicitly set.
-  public var hasStoragePath: Bool {return self._storagePath != nil}
-  /// Clears the value of `storagePath`. Subsequent reads from it will return its default value.
-  public mutating func clearStoragePath() {self._storagePath = nil}
-
-  public var mimeType: UploadedMedia_UploadedMediaMimeType {
-    get {return _mimeType ?? .unspecified}
-    set {_mimeType = newValue}
-  }
-  /// Returns true if `mimeType` has been explicitly set.
-  public var hasMimeType: Bool {return self._mimeType != nil}
-  /// Clears the value of `mimeType`. Subsequent reads from it will return its default value.
-  public mutating func clearMimeType() {self._mimeType = nil}
+  public var belongsToID: String = String()
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
-
-  fileprivate var _storagePath: String? = nil
-  fileprivate var _mimeType: UploadedMedia_UploadedMediaMimeType? = nil
 }
 
 // MARK: - Code below here is support for the SwiftProtobuf runtime.
 
 fileprivate let _protobuf_package = "uploaded_media"
-
-extension UploadedMedia_UploadedMediaMimeType: SwiftProtobuf._ProtoNameProviding {
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{2}\0UPLOADED_MEDIA_MIME_TYPE_UNSPECIFIED\0\u{1}UPLOADED_MEDIA_MIME_TYPE_IMAGE_PNG\0\u{1}UPLOADED_MEDIA_MIME_TYPE_IMAGE_JPEG\0\u{1}UPLOADED_MEDIA_MIME_TYPE_IMAGE_GIF\0\u{1}UPLOADED_MEDIA_MIME_TYPE_VIDEO_MP4\0")
-}
 
 extension UploadedMedia_DataCollection: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".DataCollection"
@@ -414,7 +352,7 @@ extension UploadedMedia_UploadResponse: SwiftProtobuf.Message, SwiftProtobuf._Me
 
 extension UploadedMedia_UploadedMedia: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".UploadedMedia"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}created_at\0\u{3}archived_at\0\u{3}last_updated_at\0\u{1}id\0\u{3}storage_path\0\u{3}mime_type\0\u{3}created_by_user\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}created_at\0\u{3}archived_at\0\u{3}last_updated_at\0\u{1}id\0\u{3}object_key\0\u{3}content_type\0\u{3}owner_id\0\u{3}size_bytes\0\u{3}belongs_to_type\0\u{3}belongs_to_id\0")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -426,9 +364,12 @@ extension UploadedMedia_UploadedMedia: SwiftProtobuf.Message, SwiftProtobuf._Mes
       case 2: try { try decoder.decodeSingularMessageField(value: &self._archivedAt) }()
       case 3: try { try decoder.decodeSingularMessageField(value: &self._lastUpdatedAt) }()
       case 4: try { try decoder.decodeSingularStringField(value: &self.id) }()
-      case 5: try { try decoder.decodeSingularStringField(value: &self.storagePath) }()
-      case 6: try { try decoder.decodeSingularEnumField(value: &self.mimeType) }()
-      case 7: try { try decoder.decodeSingularStringField(value: &self.createdByUser) }()
+      case 5: try { try decoder.decodeSingularStringField(value: &self.objectKey) }()
+      case 6: try { try decoder.decodeSingularStringField(value: &self.contentType) }()
+      case 7: try { try decoder.decodeSingularStringField(value: &self.ownerID) }()
+      case 8: try { try decoder.decodeSingularInt64Field(value: &self.sizeBytes) }()
+      case 9: try { try decoder.decodeSingularStringField(value: &self.belongsToType) }()
+      case 10: try { try decoder.decodeSingularStringField(value: &self.belongsToID) }()
       default: break
       }
     }
@@ -451,14 +392,23 @@ extension UploadedMedia_UploadedMedia: SwiftProtobuf.Message, SwiftProtobuf._Mes
     if !self.id.isEmpty {
       try visitor.visitSingularStringField(value: self.id, fieldNumber: 4)
     }
-    if !self.storagePath.isEmpty {
-      try visitor.visitSingularStringField(value: self.storagePath, fieldNumber: 5)
+    if !self.objectKey.isEmpty {
+      try visitor.visitSingularStringField(value: self.objectKey, fieldNumber: 5)
     }
-    if self.mimeType != .unspecified {
-      try visitor.visitSingularEnumField(value: self.mimeType, fieldNumber: 6)
+    if !self.contentType.isEmpty {
+      try visitor.visitSingularStringField(value: self.contentType, fieldNumber: 6)
     }
-    if !self.createdByUser.isEmpty {
-      try visitor.visitSingularStringField(value: self.createdByUser, fieldNumber: 7)
+    if !self.ownerID.isEmpty {
+      try visitor.visitSingularStringField(value: self.ownerID, fieldNumber: 7)
+    }
+    if self.sizeBytes != 0 {
+      try visitor.visitSingularInt64Field(value: self.sizeBytes, fieldNumber: 8)
+    }
+    if !self.belongsToType.isEmpty {
+      try visitor.visitSingularStringField(value: self.belongsToType, fieldNumber: 9)
+    }
+    if !self.belongsToID.isEmpty {
+      try visitor.visitSingularStringField(value: self.belongsToID, fieldNumber: 10)
     }
     try unknownFields.traverse(visitor: &visitor)
   }
@@ -468,9 +418,12 @@ extension UploadedMedia_UploadedMedia: SwiftProtobuf.Message, SwiftProtobuf._Mes
     if lhs._archivedAt != rhs._archivedAt {return false}
     if lhs._lastUpdatedAt != rhs._lastUpdatedAt {return false}
     if lhs.id != rhs.id {return false}
-    if lhs.storagePath != rhs.storagePath {return false}
-    if lhs.mimeType != rhs.mimeType {return false}
-    if lhs.createdByUser != rhs.createdByUser {return false}
+    if lhs.objectKey != rhs.objectKey {return false}
+    if lhs.contentType != rhs.contentType {return false}
+    if lhs.ownerID != rhs.ownerID {return false}
+    if lhs.sizeBytes != rhs.sizeBytes {return false}
+    if lhs.belongsToType != rhs.belongsToType {return false}
+    if lhs.belongsToID != rhs.belongsToID {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
@@ -478,7 +431,7 @@ extension UploadedMedia_UploadedMedia: SwiftProtobuf.Message, SwiftProtobuf._Mes
 
 extension UploadedMedia_UploadedMediaCreationRequestInput: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".UploadedMediaCreationRequestInput"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}storage_path\0\u{3}mime_type\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}object_key\0\u{3}content_type\0\u{3}size_bytes\0\u{3}belongs_to_type\0\u{3}belongs_to_id\0")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -486,65 +439,41 @@ extension UploadedMedia_UploadedMediaCreationRequestInput: SwiftProtobuf.Message
       // allocates stack space for every case branch when no optimizations are
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
-      case 1: try { try decoder.decodeSingularStringField(value: &self.storagePath) }()
-      case 2: try { try decoder.decodeSingularEnumField(value: &self.mimeType) }()
+      case 1: try { try decoder.decodeSingularStringField(value: &self.objectKey) }()
+      case 2: try { try decoder.decodeSingularStringField(value: &self.contentType) }()
+      case 3: try { try decoder.decodeSingularInt64Field(value: &self.sizeBytes) }()
+      case 4: try { try decoder.decodeSingularStringField(value: &self.belongsToType) }()
+      case 5: try { try decoder.decodeSingularStringField(value: &self.belongsToID) }()
       default: break
       }
     }
   }
 
   public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
-    if !self.storagePath.isEmpty {
-      try visitor.visitSingularStringField(value: self.storagePath, fieldNumber: 1)
+    if !self.objectKey.isEmpty {
+      try visitor.visitSingularStringField(value: self.objectKey, fieldNumber: 1)
     }
-    if self.mimeType != .unspecified {
-      try visitor.visitSingularEnumField(value: self.mimeType, fieldNumber: 2)
+    if !self.contentType.isEmpty {
+      try visitor.visitSingularStringField(value: self.contentType, fieldNumber: 2)
+    }
+    if self.sizeBytes != 0 {
+      try visitor.visitSingularInt64Field(value: self.sizeBytes, fieldNumber: 3)
+    }
+    if !self.belongsToType.isEmpty {
+      try visitor.visitSingularStringField(value: self.belongsToType, fieldNumber: 4)
+    }
+    if !self.belongsToID.isEmpty {
+      try visitor.visitSingularStringField(value: self.belongsToID, fieldNumber: 5)
     }
     try unknownFields.traverse(visitor: &visitor)
   }
 
   public static func ==(lhs: UploadedMedia_UploadedMediaCreationRequestInput, rhs: UploadedMedia_UploadedMediaCreationRequestInput) -> Bool {
-    if lhs.storagePath != rhs.storagePath {return false}
-    if lhs.mimeType != rhs.mimeType {return false}
-    if lhs.unknownFields != rhs.unknownFields {return false}
-    return true
-  }
-}
-
-extension UploadedMedia_UploadedMediaUpdateRequestInput: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
-  public static let protoMessageName: String = _protobuf_package + ".UploadedMediaUpdateRequestInput"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}storage_path\0\u{3}mime_type\0")
-
-  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
-    while let fieldNumber = try decoder.nextFieldNumber() {
-      // The use of inline closures is to circumvent an issue where the compiler
-      // allocates stack space for every case branch when no optimizations are
-      // enabled. https://github.com/apple/swift-protobuf/issues/1034
-      switch fieldNumber {
-      case 1: try { try decoder.decodeSingularStringField(value: &self._storagePath) }()
-      case 2: try { try decoder.decodeSingularEnumField(value: &self._mimeType) }()
-      default: break
-      }
-    }
-  }
-
-  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
-    // The use of inline closures is to circumvent an issue where the compiler
-    // allocates stack space for every if/case branch local when no optimizations
-    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
-    // https://github.com/apple/swift-protobuf/issues/1182
-    try { if let v = self._storagePath {
-      try visitor.visitSingularStringField(value: v, fieldNumber: 1)
-    } }()
-    try { if let v = self._mimeType {
-      try visitor.visitSingularEnumField(value: v, fieldNumber: 2)
-    } }()
-    try unknownFields.traverse(visitor: &visitor)
-  }
-
-  public static func ==(lhs: UploadedMedia_UploadedMediaUpdateRequestInput, rhs: UploadedMedia_UploadedMediaUpdateRequestInput) -> Bool {
-    if lhs._storagePath != rhs._storagePath {return false}
-    if lhs._mimeType != rhs._mimeType {return false}
+    if lhs.objectKey != rhs.objectKey {return false}
+    if lhs.contentType != rhs.contentType {return false}
+    if lhs.sizeBytes != rhs.sizeBytes {return false}
+    if lhs.belongsToType != rhs.belongsToType {return false}
+    if lhs.belongsToID != rhs.belongsToID {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }

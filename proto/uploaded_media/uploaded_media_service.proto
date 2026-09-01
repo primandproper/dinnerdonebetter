@@ -13,6 +13,5 @@ service UploadedMediaService {
   rpc GetUploadedMedia(GetUploadedMediaRequest) returns (GetUploadedMediaResponse);
   rpc GetUploadedMediaWithIDs(GetUploadedMediaWithIDsRequest) returns (GetUploadedMediaWithIDsResponse);
   rpc GetUploadedMediaForUser(GetUploadedMediaForUserRequest) returns (GetUploadedMediaForUserResponse);
-  rpc UpdateUploadedMedia(UpdateUploadedMediaRequest) returns (UpdateUploadedMediaResponse);
   rpc ArchiveUploadedMedia(ArchiveUploadedMediaRequest) returns (ArchiveUploadedMediaResponse);
 }

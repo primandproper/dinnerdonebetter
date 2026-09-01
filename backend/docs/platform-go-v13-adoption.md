@@ -120,7 +120,7 @@ sequenced separately — none is required to compile.
 | `notifications` (store half) | `postgres/notifications` | #390, #439 |
 | ~~`authentication/passwordreset`~~ (adopted, #1372) | `postgres/auth/password_reset_tokens.go` | #387 |
 | ~~`sessions`~~ (adopted, #1373) | `postgres/auth/user_sessions.go` | #399, #430 |
-| `uploads/registry` | `postgres/uploadedmedia` | #389 |
+| ~~`uploads/registry`~~ (adopted, #1376) | `postgres/uploadedmedia` + `domain/uploadedmedia` + `uploadedmedia_*.go` codegen | #389 |
 | ~~`filtering/filteringpb` + `filtering/grpc`~~ (adopted, #1370) | `proto/filtering.proto` + `internal/grpc/converters/query_filter.go` | #311 |
 | `oauth2server` resource server | the MCP server's resource-server half | #451 |
 
@@ -132,7 +132,30 @@ itself; #1372 did it. `sessions` was the same axis again — it collapsed a sess
 beside the sign-in into the one row a revocation actually removes, so a sign-out cannot be read
 past; #1373 did it. `comments` was the smallest complete domain, and was taken first as the proof
 that a whole domain — table, types, manager, mocks and generated SQL — can be deleted rather than
-merely re-backed; #1375 did it. `identity` is the largest by far and should be its own epic.
+merely re-backed; #1375 did it. `uploads/registry` was the first adoption whose table other
+domains join against, and #1376 is the record of what that costs — see below. `identity` is the
+largest by far and should be its own epic.
+
+## What adopting a *referenced* table costs
+
+`uploads/registry` (#1376) is the first store this repository adopted whose table other domains
+were reading. Three things followed, none of them visible from the package's own surface:
+
+- **The joins had to go.** sqlc's schema is `migration_files`, and a platform table is rendered by
+  a generated migration rather than by a file there — so sqlc cannot see `ddb_uploads_objects` and
+  a query joining it does not compile. Identity's user reads used to hydrate an avatar in the same
+  statement; they now carry `user_avatars.uploaded_media_id` and read the object separately, which
+  is one read per user including inside the paged reads. Meal planning's set-shaped
+  `GetUploadedMediaWithIDs` is a read per id for the same reason. Both are honest costs of the
+  table moving, and both are paid down by a bulk read upstream rather than by hand-written SQL
+  against another package's schema.
+- **The foreign keys had to be re-pointed.** Six of this repository's tables reference the media
+  row. `DROP TABLE ... CASCADE` drops those constraints, and the migration re-adds them against
+  the new table — plus one the platform cannot ship, `owner_id REFERENCES users ON DELETE CASCADE`,
+  which is what keeps the single identity eraser covering uploads. See `docs/data-privacy.md`.
+- **Two operations had no equivalent, for a reason.** The registry has no update — every column is
+  a fact about bytes already in a bucket — so `UpdateUploadedMedia` went, along with its
+  permission. It has no bulk read by id either; that one is a genuine gap and is a loop here.
 
 ## Verification
 

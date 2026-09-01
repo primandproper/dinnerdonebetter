@@ -23,7 +23,7 @@ import (
 	"github.com/primandproper/platform-go/v13/identifiers"
 	"github.com/primandproper/platform-go/v13/observability"
 	platformkeys "github.com/primandproper/platform-go/v13/observability/keys"
-	"github.com/primandproper/platform-go/v13/uploads"
+	"github.com/primandproper/platform-go/v13/uploads/registry"
 
 	"github.com/google/uuid"
 	"google.golang.org/grpc"
@@ -31,6 +31,12 @@ import (
 )
 
 const maxAvatarUploadSize = 5 * 1024 * 1024 // 5 MB for avatars
+
+// avatarSubjectType is what an avatar hangs off in the registry's belongs-to
+// pair. The vocabulary is this application's — the registry neither knows nor
+// validates it — so the word is declared once here rather than spelled at each
+// write.
+const avatarSubjectType = "user"
 
 // avatarObjectName returns a unique object name (UUID + extension) from the MIME type, matching iOS behavior.
 func avatarObjectName(mimeType string) string {
@@ -336,37 +342,42 @@ func (s *serviceImpl) UploadUserAvatar(stream grpc.ClientStreamingServer[uploade
 		)
 	}
 
+	// The row's id is minted here rather than by the registry, because the
+	// storage key is built from it: the bytes have to know where they are going
+	// before anything writes them.
 	fileID := identifiers.New()
-	objectName := avatarObjectName(mimeType)
-	storagePath := filepath.Join(userID, fileID, objectName)
 
-	if err = uploads.SaveFile(ctx, s.uploadManager, storagePath, fileData.Bytes()); err != nil {
-		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to save file")
+	// The avatar hangs off its user, which is what the registry's belongs-to pair
+	// is for. The user_avatars row is still what says which of a user's objects is
+	// the current avatar — the subject says an object is one of theirs, not that
+	// it is the one on show.
+	object := &registry.Object{
+		ID:          fileID,
+		Scope:       uploadedmedia.Scope(),
+		Key:         filepath.Join(userID, fileID, avatarObjectName(mimeType)),
+		ContentType: mimeType,
+		OwnerID:     userID,
+		BelongsTo:   registry.Subject{Type: avatarSubjectType, ID: userID},
 	}
 
-	uploadedMediaInput := &uploadedmedia.UploadedMediaDatabaseCreationInput{
-		ID:            fileID,
-		StoragePath:   storagePath,
-		MimeType:      mimeType,
-		CreatedByUser: userID,
-	}
-
-	if err = uploadedMediaInput.ValidateWithContext(ctx); err != nil {
+	if err = object.ValidateWithContext(ctx); err != nil {
 		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "failed to validate uploaded media")
 	}
 
-	created, err := s.uploadedMediaManager.CreateUploadedMedia(ctx, uploadedMediaInput)
-	if err != nil {
-		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to create uploaded media record")
+	// Bytes first, then the row, with the size counted as it went past. A failure
+	// between the two leaves an object with no row, which is invisible to every
+	// read; the other order leaves a row promising bytes that are not there.
+	if err = registry.StoreAndRecord(ctx, s.uploadManager, s.registry, object, &fileData); err != nil {
+		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to store avatar")
 	}
 
-	if err = s.identityDataManager.SetUserAvatar(ctx, userID, created.ID); err != nil {
+	if err = s.identityDataManager.SetUserAvatar(ctx, userID, object.ID); err != nil {
 		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to set user avatar")
 	}
 
 	response := &identitysvc.UploadUserAvatarResponse{
 		ResponseDetails: s.buildResponseDetails(ctx, span),
-		Created:         uploadedmediaconverters.ConvertUploadedMediaToGRPCUploadedMedia(created),
+		Created:         uploadedmediaconverters.ConvertUploadedMediaToGRPCUploadedMedia(object),
 	}
 
 	if err = stream.SendAndClose(response); err != nil {

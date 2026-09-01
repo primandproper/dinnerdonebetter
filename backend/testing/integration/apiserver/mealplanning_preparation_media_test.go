@@ -76,7 +76,7 @@ func TestUploadPreparationMedia(T *testing.T) {
 		require.NotNil(t, retrieved)
 		require.Len(t, retrieved.Result.Media, 1)
 		assert.Equal(t, uploadedMediaID, retrieved.Result.Media[0].Id)
-		assert.Equal(t, uploadedmediagrpc.UploadedMediaMimeType_UPLOADED_MEDIA_MIME_TYPE_IMAGE_JPEG, retrieved.Result.Media[0].MimeType)
+		assert.Equal(t, uploadedmedia.MimeTypeImageJPEG, retrieved.Result.Media[0].ContentType)
 	})
 
 	T.Run("requires auth", func(t *testing.T) {

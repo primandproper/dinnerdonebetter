@@ -31,8 +31,6 @@ import {
   GetUploadedMediaResponse,
   GetUploadedMediaWithIDsRequest,
   GetUploadedMediaWithIDsResponse,
-  UpdateUploadedMediaRequest,
-  UpdateUploadedMediaResponse,
 } from './uploaded_media_service_types';
 
 export const protobufPackage = 'uploaded_media';
@@ -94,17 +92,6 @@ export const UploadedMediaServiceService = {
     responseDeserialize: (value: Buffer): GetUploadedMediaForUserResponse =>
       GetUploadedMediaForUserResponse.decode(value),
   },
-  updateUploadedMedia: {
-    path: '/uploaded_media.UploadedMediaService/UpdateUploadedMedia' as const,
-    requestStream: false as const,
-    responseStream: false as const,
-    requestSerialize: (value: UpdateUploadedMediaRequest): Buffer =>
-      Buffer.from(UpdateUploadedMediaRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): UpdateUploadedMediaRequest => UpdateUploadedMediaRequest.decode(value),
-    responseSerialize: (value: UpdateUploadedMediaResponse): Buffer =>
-      Buffer.from(UpdateUploadedMediaResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): UpdateUploadedMediaResponse => UpdateUploadedMediaResponse.decode(value),
-  },
   archiveUploadedMedia: {
     path: '/uploaded_media.UploadedMediaService/ArchiveUploadedMedia' as const,
     requestStream: false as const,
@@ -124,7 +111,6 @@ export interface UploadedMediaServiceServer extends UntypedServiceImplementation
   getUploadedMedia: handleUnaryCall<GetUploadedMediaRequest, GetUploadedMediaResponse>;
   getUploadedMediaWithIDs: handleUnaryCall<GetUploadedMediaWithIDsRequest, GetUploadedMediaWithIDsResponse>;
   getUploadedMediaForUser: handleUnaryCall<GetUploadedMediaForUserRequest, GetUploadedMediaForUserResponse>;
-  updateUploadedMedia: handleUnaryCall<UpdateUploadedMediaRequest, UpdateUploadedMediaResponse>;
   archiveUploadedMedia: handleUnaryCall<ArchiveUploadedMediaRequest, ArchiveUploadedMediaResponse>;
 }
 
@@ -202,21 +188,6 @@ export interface UploadedMediaServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: GetUploadedMediaForUserResponse) => void,
-  ): ClientUnaryCall;
-  updateUploadedMedia(
-    request: UpdateUploadedMediaRequest,
-    callback: (error: ServiceError | null, response: UpdateUploadedMediaResponse) => void,
-  ): ClientUnaryCall;
-  updateUploadedMedia(
-    request: UpdateUploadedMediaRequest,
-    metadata: Metadata,
-    callback: (error: ServiceError | null, response: UpdateUploadedMediaResponse) => void,
-  ): ClientUnaryCall;
-  updateUploadedMedia(
-    request: UpdateUploadedMediaRequest,
-    metadata: Metadata,
-    options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: UpdateUploadedMediaResponse) => void,
   ): ClientUnaryCall;
   archiveUploadedMedia(
     request: ArchiveUploadedMediaRequest,

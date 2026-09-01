@@ -57,8 +57,13 @@ func NewMealPlanTaskNotificationWorker(
 		return nil, nil, fmt.Errorf("building audit log repository: %w", err)
 	}
 
-	identityRepo := identityrepo.ProvideIdentityRepository(logger, tracerProvider, auditRepo, databaseClient, nil)
-	mealPlanningRepo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditRepo, identityRepo, databaseClient, nil)
+	uploads, err := UploadsRegistry(logger, tracerProvider, databaseClient)
+	if err != nil {
+		return nil, nil, fmt.Errorf("building upload registry store: %w", err)
+	}
+
+	identityRepo := identityrepo.ProvideIdentityRepository(logger, tracerProvider, auditRepo, databaseClient, nil, uploads)
+	mealPlanningRepo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditRepo, identityRepo, databaseClient, nil, uploads)
 	notificationsRepo := notificationsrepo.ProvideNotificationsRepository(logger, tracerProvider, auditRepo, nil, databaseClient, nil)
 
 	fanout, err := push.NewFanout(logger, notificationsRepo, sender, metricsProvider)

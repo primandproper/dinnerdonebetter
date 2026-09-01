@@ -131,7 +131,12 @@ func buildDatabase(ctx context.Context, cfg *config.MCPServiceConfig) (*sql.DB, 
 		return nil, err
 	}
 
-	identityRepo := identityrepo.ProvideIdentityRepository(pillars.Logger, pillars.TracerProvider, auditRepo, databaseClient, nil)
+	uploads, err := localdev.UploadsRegistry(pillars.Logger, pillars.TracerProvider, databaseClient)
+	if err != nil {
+		return nil, err
+	}
+
+	identityRepo := identityrepo.ProvideIdentityRepository(pillars.Logger, pillars.TracerProvider, auditRepo, databaseClient, nil, uploads)
 
 	// The MCP login form is admin-only and checks a second factor whenever the account
 	// has a verified secret, both of which this helper arranges — so the flow the suite
@@ -147,7 +152,7 @@ func buildDatabase(ctx context.Context, cfg *config.MCPServiceConfig) (*sql.DB, 
 		return nil, err
 	}
 
-	mealPlanningRepo := mealplanningrepo.ProvideMealPlanningRepository(pillars.Logger, pillars.TracerProvider, auditRepo, identityRepo, databaseClient, nil)
+	mealPlanningRepo := mealplanningrepo.ProvideMealPlanningRepository(pillars.Logger, pillars.TracerProvider, auditRepo, identityRepo, databaseClient, nil, uploads)
 
 	seededIngredient, err = mealPlanningRepo.CreateValidIngredient(ctx,
 		mealplanningconverters.ConvertValidIngredientToValidIngredientDatabaseCreationInput(mealplanningfakes.BuildFakeValidIngredient()))

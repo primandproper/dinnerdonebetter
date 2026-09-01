@@ -24,7 +24,7 @@ import (
 	"github.com/primandproper/platform-go/v13/metering"
 	"github.com/primandproper/platform-go/v13/observability"
 	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/uploads"
+	"github.com/primandproper/platform-go/v13/uploads/registry"
 
 	"google.golang.org/grpc/codes"
 )
@@ -89,11 +89,13 @@ func (s *serviceImpl) Upload(stream uploadedmediasvc.UploadedMediaService_Upload
 		)
 	}
 
-	// Determine MIME type from content type
-	mimeType := metadata.ContentType
-	if !uploadedmedia.IsValidMimeType(mimeType) {
+	// The registry stores whatever content type it is handed; which ones this
+	// deployment is willing to store is a rule of its own, checked before any
+	// bytes are written.
+	contentType := metadata.ContentType
+	if !uploadedmedia.IsValidMimeType(contentType) {
 		return errorsgrpc.PrepareAndLogGRPCStatus(
-			fmt.Errorf("unsupported content type: %s", mimeType),
+			fmt.Errorf("unsupported content type: %s", contentType),
 			logger,
 			span,
 			codes.InvalidArgument,
@@ -150,46 +152,39 @@ func (s *serviceImpl) Upload(stream uploadedmediasvc.UploadedMediaService_Upload
 
 	logger = logger.WithValue("size_bytes", totalSize)
 
-	// Generate unique ID for the file
+	// The row's id is minted here rather than by the registry, because the
+	// storage key is built from it: the bytes have to know where they are going
+	// before anything writes them.
 	fileID := identifiers.New()
 
-	// Construct storage path: userID/fileID/objectName
-	storagePath := filepath.Join(
-		sessionContextData.GetUserID(),
-		fileID,
-		metadata.ObjectName,
-	)
-
-	// Save file using upload manager
-	if err = uploads.SaveFile(ctx, s.uploadManager, storagePath, fileData.Bytes()); err != nil {
-		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to save file")
+	object := &registry.Object{
+		ID:          fileID,
+		Scope:       uploadedmedia.Scope(),
+		Key:         filepath.Join(sessionContextData.GetUserID(), fileID, metadata.ObjectName),
+		ContentType: contentType,
+		OwnerID:     sessionContextData.GetUserID(),
 	}
 
-	// Create database record
-	uploadedMediaInput := &uploadedmedia.UploadedMediaDatabaseCreationInput{
-		ID:            fileID,
-		StoragePath:   storagePath,
-		MimeType:      mimeType,
-		CreatedByUser: sessionContextData.GetUserID(),
-	}
-
-	if err = uploadedMediaInput.ValidateWithContext(ctx); err != nil {
+	if err = object.ValidateWithContext(ctx); err != nil {
 		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "failed to validate uploaded media")
 	}
 
-	created, err := s.uploadedMediaManager.CreateUploadedMedia(ctx, uploadedMediaInput)
-	if err != nil {
-		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to create uploaded media record")
+	// Bytes first, then the row, and the size on the row is what actually went
+	// past rather than what the chunks claimed. A failure between the two leaves
+	// an object with no row, which is invisible to every read; the other order
+	// leaves a row promising bytes that are not there.
+	if err = registry.StoreAndRecord(ctx, s.uploadManager, s.registry, object, &fileData); err != nil {
+		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to store uploaded media")
 	}
 
-	logger = logger.WithValue(uploadedmediakeys.UploadedMediaIDKey, created.ID)
+	logger = logger.WithValue(uploadedmediakeys.UploadedMediaIDKey, object.ID)
 
-	s.recordUploadUsage(ctx, sessionContextData.GetActiveAccountID(), created.ID, mimeType, totalSize, logger)
+	s.recordUploadUsage(ctx, sessionContextData.GetActiveAccountID(), object.ID, contentType, object.Size, logger)
 
 	// Send response
 	response := &uploadedmediasvc.UploadResponse{
-		ObjectUrl: storagePath,
-		SizeBytes: totalSize,
+		ObjectUrl: object.Key,
+		SizeBytes: object.Size,
 	}
 
 	if err = stream.SendAndClose(response); err != nil {
@@ -204,16 +199,16 @@ func (s *serviceImpl) Upload(stream uploadedmediasvc.UploadedMediaService_Upload
 // recordUploadUsage counts the bytes an upload added against the account that owns it.
 //
 // A failure is logged and swallowed rather than returned. The file is already in the bucket and
-// its row is already in the database by the time this runs, so failing the call would tell the
+// its row is already in the registry by the time this runs, so failing the call would tell the
 // client an upload did not happen that did — and nothing enforces this meter, so an uncounted
 // record costs a gap in a dashboard rather than a wrong invoice. The log line is what makes the
 // gap findable; the metering package's own dropped-record metric is what makes it alertable.
 //
-// The idempotency key is the uploaded media row's ID rather than a request ID, because that is
-// what is actually stable here. A client that retries a timed-out upload sends the bytes again,
+// The idempotency key is the registry row's ID rather than a request ID, because that is what
+// is actually stable here. A client that retries a timed-out upload sends the bytes again,
 // gets a new ID, and stores a second object — genuinely new usage that a request-scoped key
 // would have deduped away into an object nobody is charged for.
-func (s *serviceImpl) recordUploadUsage(ctx context.Context, accountID, mediaID, mimeType string, sizeBytes int64, logger logging.Logger) {
+func (s *serviceImpl) recordUploadUsage(ctx context.Context, accountID, mediaID, contentType string, sizeBytes int64, logger logging.Logger) {
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -228,13 +223,17 @@ func (s *serviceImpl) recordUploadUsage(ctx context.Context, accountID, mediaID,
 			// only the ledger can answer "how much of it was video". The cardinality is
 			// bounded because uploadedmedia.IsValidMimeType already refused everything
 			// outside a fixed set before this ran.
-			"mime_type": mimeType,
+			"mime_type": contentType,
 		},
 	}); err != nil {
 		observability.AcknowledgeError(err, logger, span, "recording uploaded media usage")
 	}
 }
 
+// CreateUploadedMedia registers an object the caller stored some other way.
+//
+// The size on the row is the caller's claim, because nothing here saw the bytes.
+// Upload is the path that counts them, and it is the one the upload meter reads.
 func (s *serviceImpl) CreateUploadedMedia(ctx context.Context, request *uploadedmediasvc.CreateUploadedMediaRequest) (*uploadedmediasvc.CreateUploadedMediaResponse, error) {
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
@@ -247,13 +246,39 @@ func (s *serviceImpl) CreateUploadedMedia(ctx context.Context, request *uploaded
 	}
 	logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.GetUserID())
 
-	input := converters.ConvertGRPCUploadedMediaCreationRequestInputToUploadedMediaDatabaseCreationInput(request.Input, sessionContextData.GetUserID())
-	if err = input.ValidateWithContext(ctx); err != nil {
+	input := request.GetInput()
+	if input == nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(platformerrors.ErrNilInputParameter, logger, span, codes.InvalidArgument, "no input provided")
+	}
+
+	if !uploadedmedia.IsValidMimeType(input.ContentType) {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(
+			fmt.Errorf("unsupported content type: %s", input.ContentType),
+			logger,
+			span,
+			codes.InvalidArgument,
+			"unsupported content type",
+		)
+	}
+
+	object := &registry.Object{
+		ID:          identifiers.New(),
+		Scope:       uploadedmedia.Scope(),
+		Key:         input.ObjectKey,
+		ContentType: input.ContentType,
+		Size:        input.SizeBytes,
+		// The owner comes from the session rather than the request body: a caller
+		// who could name an owner could register an object as somebody else's, and
+		// the owner is the whole of what a read's permission check consults.
+		OwnerID:   sessionContextData.GetUserID(),
+		BelongsTo: registry.Subject{Type: input.BelongsToType, ID: input.BelongsToId},
+	}
+
+	if err = object.ValidateWithContext(ctx); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "failed to validate uploaded media creation request")
 	}
 
-	created, err := s.uploadedMediaManager.CreateUploadedMedia(ctx, input)
-	if err != nil {
+	if err = s.registry.RecordObject(ctx, object); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to create uploaded media")
 	}
 
@@ -262,7 +287,7 @@ func (s *serviceImpl) CreateUploadedMedia(ctx context.Context, request *uploaded
 			TraceId:          span.SpanContext().TraceID().String(),
 			CurrentAccountId: sessionContextData.GetActiveAccountID(),
 		},
-		Created: converters.ConvertUploadedMediaToGRPCUploadedMedia(created),
+		Created: converters.ConvertUploadedMediaToGRPCUploadedMedia(object),
 	}
 
 	return x, nil
@@ -280,13 +305,13 @@ func (s *serviceImpl) GetUploadedMedia(ctx context.Context, request *uploadedmed
 	}
 	logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.GetUserID())
 
-	uploadedMedia, err := s.uploadedMediaManager.GetUploadedMedia(ctx, request.UploadedMediaId)
+	object, err := s.registry.GetObject(ctx, uploadedmedia.Scope(), request.UploadedMediaId)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to fetch uploaded media")
 	}
 
 	// Verify the uploaded media belongs to the user
-	if uploadedMedia.CreatedByUser != sessionContextData.GetUserID() {
+	if object.OwnerID != sessionContextData.GetUserID() {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(platformerrors.New("permission denied"), logger, span, codes.PermissionDenied, "uploaded media does not belong to user")
 	}
 
@@ -295,12 +320,17 @@ func (s *serviceImpl) GetUploadedMedia(ctx context.Context, request *uploadedmed
 			TraceId:          span.SpanContext().TraceID().String(),
 			CurrentAccountId: sessionContextData.GetActiveAccountID(),
 		},
-		Result: converters.ConvertUploadedMediaToGRPCUploadedMedia(uploadedMedia),
+		Result: converters.ConvertUploadedMediaToGRPCUploadedMedia(object),
 	}
 
 	return x, nil
 }
 
+// GetUploadedMediaWithIDs reads a set of the caller's objects.
+//
+// It is a read per id, because the registry ships no bulk read. An id naming
+// nothing — absent, archived, or another owner's — is left out of the answer
+// rather than failing it, which is what the set-shaped read did before.
 func (s *serviceImpl) GetUploadedMediaWithIDs(ctx context.Context, request *uploadedmediasvc.GetUploadedMediaWithIDsRequest) (*uploadedmediasvc.GetUploadedMediaWithIDsResponse, error) {
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
@@ -317,11 +347,6 @@ func (s *serviceImpl) GetUploadedMediaWithIDs(ctx context.Context, request *uplo
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(platformerrors.New("no IDs provided"), logger, span, codes.InvalidArgument, "no IDs provided")
 	}
 
-	uploadedMediaList, err := s.uploadedMediaManager.GetUploadedMediaWithIDs(ctx, request.Ids)
-	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to fetch uploaded media")
-	}
-
 	x := &uploadedmediasvc.GetUploadedMediaWithIDsResponse{
 		ResponseDetails: &types.ResponseDetails{
 			TraceId:          span.SpanContext().TraceID().String(),
@@ -329,10 +354,19 @@ func (s *serviceImpl) GetUploadedMediaWithIDs(ctx context.Context, request *uplo
 		},
 	}
 
-	for _, uploadedMedia := range uploadedMediaList {
+	for _, id := range request.Ids {
+		object, readErr := s.registry.GetObject(ctx, uploadedmedia.Scope(), id)
+		if readErr != nil {
+			if errors.Is(readErr, registry.ErrObjectNotFound) {
+				continue
+			}
+
+			return nil, errorsgrpc.PrepareAndLogGRPCStatus(readErr, logger, span, codes.Internal, "failed to fetch uploaded media")
+		}
+
 		// Only return media that belongs to the user
-		if uploadedMedia.CreatedByUser == sessionContextData.GetUserID() {
-			x.Results = append(x.Results, converters.ConvertUploadedMediaToGRPCUploadedMedia(uploadedMedia))
+		if object.OwnerID == sessionContextData.GetUserID() {
+			x.Results = append(x.Results, converters.ConvertUploadedMediaToGRPCUploadedMedia(object))
 		}
 	}
 
@@ -360,7 +394,7 @@ func (s *serviceImpl) GetUploadedMediaForUser(ctx context.Context, request *uplo
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	uploadedMediaList, err := s.uploadedMediaManager.GetUploadedMediaForUser(ctx, request.UserId, filter)
+	objects, err := s.registry.ListObjectsByOwner(ctx, uploadedmedia.Scope(), request.UserId, filter)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to fetch uploaded media for user")
 	}
@@ -370,57 +404,11 @@ func (s *serviceImpl) GetUploadedMediaForUser(ctx context.Context, request *uplo
 			TraceId:          span.SpanContext().TraceID().String(),
 			CurrentAccountId: sessionContextData.GetActiveAccountID(),
 		},
-		Pagination: filteringgrpc.PaginationToProto(uploadedMediaList.Pagination),
+		Pagination: filteringgrpc.PaginationToProto(objects.Pagination),
 	}
 
-	for _, uploadedMedia := range uploadedMediaList.Data {
-		x.Results = append(x.Results, converters.ConvertUploadedMediaToGRPCUploadedMedia(uploadedMedia))
-	}
-
-	return x, nil
-}
-
-func (s *serviceImpl) UpdateUploadedMedia(ctx context.Context, request *uploadedmediasvc.UpdateUploadedMediaRequest) (*uploadedmediasvc.UpdateUploadedMediaResponse, error) {
-	ctx, span := s.tracer.StartSpan(ctx)
-	defer span.End()
-
-	logger := s.logger.WithSpan(span).WithValue(uploadedmediakeys.UploadedMediaIDKey, request.UploadedMediaId)
-
-	sessionContextData, err := sessions.RequireFromContext(ctx)
-	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
-	}
-	logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.GetUserID())
-
-	// Fetch the existing uploaded media
-	uploadedMedia, err := s.uploadedMediaManager.GetUploadedMedia(ctx, request.UploadedMediaId)
-	if err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to fetch uploaded media")
-	}
-
-	// Verify the uploaded media belongs to the user
-	if uploadedMedia.CreatedByUser != sessionContextData.GetUserID() {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(platformerrors.New("permission denied"), logger, span, codes.PermissionDenied, "uploaded media does not belong to user")
-	}
-
-	// Apply updates
-	updateInput := converters.ConvertGRPCUploadedMediaUpdateRequestInputToUploadedMediaUpdateRequestInput(request.Input)
-	if err = updateInput.ValidateWithContext(ctx); err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "failed to validate uploaded media update request")
-	}
-
-	uploadedMedia.Update(updateInput)
-
-	if err = s.uploadedMediaManager.UpdateUploadedMedia(ctx, uploadedMedia); err != nil {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to update uploaded media")
-	}
-
-	x := &uploadedmediasvc.UpdateUploadedMediaResponse{
-		ResponseDetails: &types.ResponseDetails{
-			TraceId:          span.SpanContext().TraceID().String(),
-			CurrentAccountId: sessionContextData.GetActiveAccountID(),
-		},
-		Updated: converters.ConvertUploadedMediaToGRPCUploadedMedia(uploadedMedia),
+	for _, object := range objects.Data {
+		x.Results = append(x.Results, converters.ConvertUploadedMediaToGRPCUploadedMedia(object))
 	}
 
 	return x, nil
@@ -439,17 +427,17 @@ func (s *serviceImpl) ArchiveUploadedMedia(ctx context.Context, request *uploade
 	logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.GetUserID())
 
 	// Fetch the existing uploaded media to verify ownership
-	uploadedMedia, err := s.uploadedMediaManager.GetUploadedMedia(ctx, request.UploadedMediaId)
+	object, err := s.registry.GetObject(ctx, uploadedmedia.Scope(), request.UploadedMediaId)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to fetch uploaded media")
 	}
 
 	// Verify the uploaded media belongs to the user
-	if uploadedMedia.CreatedByUser != sessionContextData.GetUserID() {
+	if object.OwnerID != sessionContextData.GetUserID() {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(platformerrors.New("permission denied"), logger, span, codes.PermissionDenied, "uploaded media does not belong to user")
 	}
 
-	if err = s.uploadedMediaManager.ArchiveUploadedMedia(ctx, request.UploadedMediaId); err != nil {
+	if err = s.registry.ArchiveObject(ctx, uploadedmedia.Scope(), request.UploadedMediaId); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to archive uploaded media")
 	}
 

@@ -167,13 +167,7 @@ SELECT
 	users.created_at as user_created_at,
 	users.last_updated_at as user_last_updated_at,
 	users.archived_at as user_archived_at,
-	uploaded_media.id as user_avatar_id,
-	uploaded_media.storage_path as user_avatar_storage_path,
-	uploaded_media.mime_type as user_avatar_mime_type,
-	uploaded_media.created_at as user_avatar_created_at,
-	uploaded_media.last_updated_at as user_avatar_last_updated_at,
-	uploaded_media.archived_at as user_avatar_archived_at,
-	uploaded_media.created_by_user as user_avatar_created_by_user,
+	user_avatars.uploaded_media_id as user_avatar_id,
 	account_invitations.to_name,
 	account_invitations.note,
 	account_invitations.to_email,
@@ -189,7 +183,6 @@ FROM account_invitations
 	JOIN accounts ON account_invitations.destination_account = accounts.id
 	JOIN users ON account_invitations.from_user = users.id
 	LEFT JOIN user_avatars ON user_avatars.belongs_to_user = users.id AND user_avatars.archived_at IS NULL
-	LEFT JOIN uploaded_media ON uploaded_media.id = user_avatars.uploaded_media_id AND uploaded_media.archived_at IS NULL
 WHERE account_invitations.archived_at IS NULL
 	AND account_invitations.expires_at > CURRENT_TIMESTAMP
 	AND account_invitations.destination_account = $1
@@ -248,12 +241,6 @@ type GetAccountInvitationByAccountAndIDRow struct {
 	UserLastUpdatedAt                        sql.NullTime
 	UserArchivedAt                           sql.NullTime
 	UserAvatarID                             sql.NullString
-	UserAvatarStoragePath                    sql.NullString
-	UserAvatarMimeType                       NullUploadedMediaMimeType
-	UserAvatarCreatedAt                      sql.NullTime
-	UserAvatarLastUpdatedAt                  sql.NullTime
-	UserAvatarArchivedAt                     sql.NullTime
-	UserAvatarCreatedByUser                  sql.NullString
 	ToName                                   string
 	Note                                     string
 	ToEmail                                  string
@@ -317,12 +304,6 @@ func (q *Queries) GetAccountInvitationByAccountAndID(ctx context.Context, db DBT
 		&i.UserLastUpdatedAt,
 		&i.UserArchivedAt,
 		&i.UserAvatarID,
-		&i.UserAvatarStoragePath,
-		&i.UserAvatarMimeType,
-		&i.UserAvatarCreatedAt,
-		&i.UserAvatarLastUpdatedAt,
-		&i.UserAvatarArchivedAt,
-		&i.UserAvatarCreatedByUser,
 		&i.ToName,
 		&i.Note,
 		&i.ToEmail,
@@ -385,13 +366,7 @@ SELECT
 	users.created_at as user_created_at,
 	users.last_updated_at as user_last_updated_at,
 	users.archived_at as user_archived_at,
-	uploaded_media.id as user_avatar_id,
-	uploaded_media.storage_path as user_avatar_storage_path,
-	uploaded_media.mime_type as user_avatar_mime_type,
-	uploaded_media.created_at as user_avatar_created_at,
-	uploaded_media.last_updated_at as user_avatar_last_updated_at,
-	uploaded_media.archived_at as user_avatar_archived_at,
-	uploaded_media.created_by_user as user_avatar_created_by_user,
+	user_avatars.uploaded_media_id as user_avatar_id,
 	account_invitations.to_name,
 	account_invitations.note,
 	account_invitations.to_email,
@@ -407,7 +382,6 @@ FROM account_invitations
 	JOIN accounts ON account_invitations.destination_account = accounts.id
 	JOIN users ON account_invitations.from_user = users.id
 	LEFT JOIN user_avatars ON user_avatars.belongs_to_user = users.id AND user_avatars.archived_at IS NULL
-	LEFT JOIN uploaded_media ON uploaded_media.id = user_avatars.uploaded_media_id AND uploaded_media.archived_at IS NULL
 WHERE account_invitations.archived_at IS NULL
 	AND account_invitations.expires_at > CURRENT_TIMESTAMP
 	AND account_invitations.to_email = LOWER($1)
@@ -466,12 +440,6 @@ type GetAccountInvitationByEmailAndTokenRow struct {
 	UserLastUpdatedAt                        sql.NullTime
 	UserArchivedAt                           sql.NullTime
 	UserAvatarID                             sql.NullString
-	UserAvatarStoragePath                    sql.NullString
-	UserAvatarMimeType                       NullUploadedMediaMimeType
-	UserAvatarCreatedAt                      sql.NullTime
-	UserAvatarLastUpdatedAt                  sql.NullTime
-	UserAvatarArchivedAt                     sql.NullTime
-	UserAvatarCreatedByUser                  sql.NullString
 	ToName                                   string
 	Note                                     string
 	ToEmail                                  string
@@ -535,12 +503,6 @@ func (q *Queries) GetAccountInvitationByEmailAndToken(ctx context.Context, db DB
 		&i.UserLastUpdatedAt,
 		&i.UserArchivedAt,
 		&i.UserAvatarID,
-		&i.UserAvatarStoragePath,
-		&i.UserAvatarMimeType,
-		&i.UserAvatarCreatedAt,
-		&i.UserAvatarLastUpdatedAt,
-		&i.UserAvatarArchivedAt,
-		&i.UserAvatarCreatedByUser,
 		&i.ToName,
 		&i.Note,
 		&i.ToEmail,
@@ -603,13 +565,7 @@ SELECT
 	users.created_at as user_created_at,
 	users.last_updated_at as user_last_updated_at,
 	users.archived_at as user_archived_at,
-	uploaded_media.id as user_avatar_id,
-	uploaded_media.storage_path as user_avatar_storage_path,
-	uploaded_media.mime_type as user_avatar_mime_type,
-	uploaded_media.created_at as user_avatar_created_at,
-	uploaded_media.last_updated_at as user_avatar_last_updated_at,
-	uploaded_media.archived_at as user_avatar_archived_at,
-	uploaded_media.created_by_user as user_avatar_created_by_user,
+	user_avatars.uploaded_media_id as user_avatar_id,
 	account_invitations.to_name,
 	account_invitations.note,
 	account_invitations.to_email,
@@ -625,7 +581,6 @@ FROM account_invitations
 	JOIN accounts ON account_invitations.destination_account = accounts.id
 	JOIN users ON account_invitations.from_user = users.id
 	LEFT JOIN user_avatars ON user_avatars.belongs_to_user = users.id AND user_avatars.archived_at IS NULL
-	LEFT JOIN uploaded_media ON uploaded_media.id = user_avatars.uploaded_media_id AND uploaded_media.archived_at IS NULL
 WHERE account_invitations.archived_at IS NULL
 	AND account_invitations.expires_at > CURRENT_TIMESTAMP
 	AND account_invitations.token = $1
@@ -678,12 +633,6 @@ type GetAccountInvitationByTokenRow struct {
 	UserLastUpdatedAt                        sql.NullTime
 	UserArchivedAt                           sql.NullTime
 	UserAvatarID                             sql.NullString
-	UserAvatarStoragePath                    sql.NullString
-	UserAvatarMimeType                       NullUploadedMediaMimeType
-	UserAvatarCreatedAt                      sql.NullTime
-	UserAvatarLastUpdatedAt                  sql.NullTime
-	UserAvatarArchivedAt                     sql.NullTime
-	UserAvatarCreatedByUser                  sql.NullString
 	ToName                                   string
 	Note                                     string
 	ToEmail                                  string
@@ -747,12 +696,6 @@ func (q *Queries) GetAccountInvitationByToken(ctx context.Context, db DBTX, toke
 		&i.UserLastUpdatedAt,
 		&i.UserArchivedAt,
 		&i.UserAvatarID,
-		&i.UserAvatarStoragePath,
-		&i.UserAvatarMimeType,
-		&i.UserAvatarCreatedAt,
-		&i.UserAvatarLastUpdatedAt,
-		&i.UserAvatarArchivedAt,
-		&i.UserAvatarCreatedByUser,
 		&i.ToName,
 		&i.Note,
 		&i.ToEmail,
@@ -815,13 +758,7 @@ SELECT
 	users.created_at as user_created_at,
 	users.last_updated_at as user_last_updated_at,
 	users.archived_at as user_archived_at,
-	uploaded_media.id as user_avatar_id,
-	uploaded_media.storage_path as user_avatar_storage_path,
-	uploaded_media.mime_type as user_avatar_mime_type,
-	uploaded_media.created_at as user_avatar_created_at,
-	uploaded_media.last_updated_at as user_avatar_last_updated_at,
-	uploaded_media.archived_at as user_avatar_archived_at,
-	uploaded_media.created_by_user as user_avatar_created_by_user,
+	user_avatars.uploaded_media_id as user_avatar_id,
 	account_invitations.to_name,
 	account_invitations.note,
 	account_invitations.to_email,
@@ -837,7 +774,6 @@ FROM account_invitations
 	JOIN accounts ON account_invitations.destination_account = accounts.id
 	JOIN users ON account_invitations.from_user = users.id
 	LEFT JOIN user_avatars ON user_avatars.belongs_to_user = users.id AND user_avatars.archived_at IS NULL
-	LEFT JOIN uploaded_media ON uploaded_media.id = user_avatars.uploaded_media_id AND uploaded_media.archived_at IS NULL
 WHERE account_invitations.archived_at IS NULL
 	AND account_invitations.expires_at > CURRENT_TIMESTAMP
 	AND account_invitations.token = $1
@@ -896,12 +832,6 @@ type GetAccountInvitationByTokenAndIDRow struct {
 	UserLastUpdatedAt                        sql.NullTime
 	UserArchivedAt                           sql.NullTime
 	UserAvatarID                             sql.NullString
-	UserAvatarStoragePath                    sql.NullString
-	UserAvatarMimeType                       NullUploadedMediaMimeType
-	UserAvatarCreatedAt                      sql.NullTime
-	UserAvatarLastUpdatedAt                  sql.NullTime
-	UserAvatarArchivedAt                     sql.NullTime
-	UserAvatarCreatedByUser                  sql.NullString
 	ToName                                   string
 	Note                                     string
 	ToEmail                                  string
@@ -965,12 +895,6 @@ func (q *Queries) GetAccountInvitationByTokenAndID(ctx context.Context, db DBTX,
 		&i.UserLastUpdatedAt,
 		&i.UserArchivedAt,
 		&i.UserAvatarID,
-		&i.UserAvatarStoragePath,
-		&i.UserAvatarMimeType,
-		&i.UserAvatarCreatedAt,
-		&i.UserAvatarLastUpdatedAt,
-		&i.UserAvatarArchivedAt,
-		&i.UserAvatarCreatedByUser,
 		&i.ToName,
 		&i.Note,
 		&i.ToEmail,
@@ -1033,13 +957,7 @@ SELECT
 	users.created_at as user_created_at,
 	users.last_updated_at as user_last_updated_at,
 	users.archived_at as user_archived_at,
-	uploaded_media.id as user_avatar_id,
-	uploaded_media.storage_path as user_avatar_storage_path,
-	uploaded_media.mime_type as user_avatar_mime_type,
-	uploaded_media.created_at as user_avatar_created_at,
-	uploaded_media.last_updated_at as user_avatar_last_updated_at,
-	uploaded_media.archived_at as user_avatar_archived_at,
-	uploaded_media.created_by_user as user_avatar_created_by_user,
+	user_avatars.uploaded_media_id as user_avatar_id,
 	account_invitations.to_name,
 	account_invitations.note,
 	account_invitations.to_email,
@@ -1075,7 +993,6 @@ FROM account_invitations
 	JOIN accounts ON account_invitations.destination_account = accounts.id
 	JOIN users ON account_invitations.from_user = users.id
 	LEFT JOIN user_avatars ON user_avatars.belongs_to_user = users.id AND user_avatars.archived_at IS NULL
-	LEFT JOIN uploaded_media ON uploaded_media.id = user_avatars.uploaded_media_id AND uploaded_media.archived_at IS NULL
 WHERE account_invitations.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	AND account_invitations.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
@@ -1153,12 +1070,6 @@ type GetPendingInvitesForUserRow struct {
 	UserLastUpdatedAt                        sql.NullTime
 	UserArchivedAt                           sql.NullTime
 	UserAvatarID                             sql.NullString
-	UserAvatarStoragePath                    sql.NullString
-	UserAvatarMimeType                       NullUploadedMediaMimeType
-	UserAvatarCreatedAt                      sql.NullTime
-	UserAvatarLastUpdatedAt                  sql.NullTime
-	UserAvatarArchivedAt                     sql.NullTime
-	UserAvatarCreatedByUser                  sql.NullString
 	ToName                                   string
 	Note                                     string
 	ToEmail                                  string
@@ -1240,12 +1151,6 @@ func (q *Queries) GetPendingInvitesForUser(ctx context.Context, db DBTX, arg *Ge
 			&i.UserLastUpdatedAt,
 			&i.UserArchivedAt,
 			&i.UserAvatarID,
-			&i.UserAvatarStoragePath,
-			&i.UserAvatarMimeType,
-			&i.UserAvatarCreatedAt,
-			&i.UserAvatarLastUpdatedAt,
-			&i.UserAvatarArchivedAt,
-			&i.UserAvatarCreatedByUser,
 			&i.ToName,
 			&i.Note,
 			&i.ToEmail,
@@ -1320,13 +1225,7 @@ SELECT
 	users.created_at as user_created_at,
 	users.last_updated_at as user_last_updated_at,
 	users.archived_at as user_archived_at,
-	uploaded_media.id as user_avatar_id,
-	uploaded_media.storage_path as user_avatar_storage_path,
-	uploaded_media.mime_type as user_avatar_mime_type,
-	uploaded_media.created_at as user_avatar_created_at,
-	uploaded_media.last_updated_at as user_avatar_last_updated_at,
-	uploaded_media.archived_at as user_avatar_archived_at,
-	uploaded_media.created_by_user as user_avatar_created_by_user,
+	user_avatars.uploaded_media_id as user_avatar_id,
 	account_invitations.to_name,
 	account_invitations.note,
 	account_invitations.to_email,
@@ -1362,7 +1261,6 @@ FROM account_invitations
 	JOIN accounts ON account_invitations.destination_account = accounts.id
 	JOIN users ON account_invitations.from_user = users.id
 	LEFT JOIN user_avatars ON user_avatars.belongs_to_user = users.id AND user_avatars.archived_at IS NULL
-	LEFT JOIN uploaded_media ON uploaded_media.id = user_avatars.uploaded_media_id AND uploaded_media.archived_at IS NULL
 WHERE account_invitations.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 years'::INTERVAL))
 	AND account_invitations.created_at < COALESCE($2, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	AND (
@@ -1440,12 +1338,6 @@ type GetPendingInvitesFromUserRow struct {
 	UserLastUpdatedAt                        sql.NullTime
 	UserArchivedAt                           sql.NullTime
 	UserAvatarID                             sql.NullString
-	UserAvatarStoragePath                    sql.NullString
-	UserAvatarMimeType                       NullUploadedMediaMimeType
-	UserAvatarCreatedAt                      sql.NullTime
-	UserAvatarLastUpdatedAt                  sql.NullTime
-	UserAvatarArchivedAt                     sql.NullTime
-	UserAvatarCreatedByUser                  sql.NullString
 	ToName                                   string
 	Note                                     string
 	ToEmail                                  string
@@ -1527,12 +1419,6 @@ func (q *Queries) GetPendingInvitesFromUser(ctx context.Context, db DBTX, arg *G
 			&i.UserLastUpdatedAt,
 			&i.UserArchivedAt,
 			&i.UserAvatarID,
-			&i.UserAvatarStoragePath,
-			&i.UserAvatarMimeType,
-			&i.UserAvatarCreatedAt,
-			&i.UserAvatarLastUpdatedAt,
-			&i.UserAvatarArchivedAt,
-			&i.UserAvatarCreatedByUser,
 			&i.ToName,
 			&i.Note,
 			&i.ToEmail,

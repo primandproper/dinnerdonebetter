@@ -2,23 +2,23 @@ package converters
 
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/converters"
 	identitysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
 	uploadedmediasvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
 	uploadedmediaconverters "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/grpc/converters"
 
 	"github.com/primandproper/platform-go/v13/pointer"
+	"github.com/primandproper/platform-go/v13/uploads/registry"
 )
 
-func convertUserAvatarToGRPC(avatar *uploadedmedia.UploadedMedia) *uploadedmediasvc.UploadedMedia {
+func convertUserAvatarToGRPC(avatar *registry.Object) *uploadedmediasvc.UploadedMedia {
 	if avatar == nil {
 		return nil
 	}
 	return uploadedmediaconverters.ConvertUploadedMediaToGRPCUploadedMedia(avatar)
 }
 
-func convertGRPCAvatarToUser(avatar *uploadedmediasvc.UploadedMedia) *uploadedmedia.UploadedMedia {
+func convertGRPCAvatarToUser(avatar *uploadedmediasvc.UploadedMedia) *registry.Object {
 	if avatar == nil {
 		return nil
 	}

@@ -8,11 +8,7 @@
 import { BinaryReader, BinaryWriter } from '@bufbuild/protobuf/wire';
 import { ResponseDetails } from '../common';
 import { Pagination, QueryFilter } from '../primandproper/platform/filtering/v1/filtering';
-import {
-  UploadedMedia,
-  UploadedMediaCreationRequestInput,
-  UploadedMediaUpdateRequestInput,
-} from './uploaded_media_messages';
+import { UploadedMedia, UploadedMediaCreationRequestInput } from './uploaded_media_messages';
 
 export const protobufPackage = 'uploaded_media';
 
@@ -56,17 +52,6 @@ export interface GetUploadedMediaForUserResponse {
   responseDetails: ResponseDetails | undefined;
   pagination: Pagination | undefined;
   results: UploadedMedia[];
-}
-
-/** UpdateUploadedMedia */
-export interface UpdateUploadedMediaRequest {
-  uploadedMediaId: string;
-  input: UploadedMediaUpdateRequestInput | undefined;
-}
-
-export interface UpdateUploadedMediaResponse {
-  responseDetails: ResponseDetails | undefined;
-  updated: UploadedMedia | undefined;
 }
 
 /** ArchiveUploadedMedia */
@@ -703,173 +688,6 @@ export const GetUploadedMediaForUserResponse: MessageFns<GetUploadedMediaForUser
         ? Pagination.fromPartial(object.pagination)
         : undefined;
     message.results = object.results?.map((e) => UploadedMedia.fromPartial(e)) || [];
-    return message;
-  },
-};
-
-function createBaseUpdateUploadedMediaRequest(): UpdateUploadedMediaRequest {
-  return { uploadedMediaId: '', input: undefined };
-}
-
-export const UpdateUploadedMediaRequest: MessageFns<UpdateUploadedMediaRequest> = {
-  encode(message: UpdateUploadedMediaRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.uploadedMediaId !== '') {
-      writer.uint32(10).string(message.uploadedMediaId);
-    }
-    if (message.input !== undefined) {
-      UploadedMediaUpdateRequestInput.encode(message.input, writer.uint32(18).fork()).join();
-    }
-    return writer;
-  },
-
-  decode(input: BinaryReader | Uint8Array, length?: number): UpdateUploadedMediaRequest {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseUpdateUploadedMediaRequest();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
-
-          message.uploadedMediaId = reader.string();
-          continue;
-        }
-        case 2: {
-          if (tag !== 18) {
-            break;
-          }
-
-          message.input = UploadedMediaUpdateRequestInput.decode(reader, reader.uint32());
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
-
-  fromJSON(object: any): UpdateUploadedMediaRequest {
-    return {
-      uploadedMediaId: isSet(object.uploadedMediaId)
-        ? globalThis.String(object.uploadedMediaId)
-        : isSet(object.uploaded_media_id)
-          ? globalThis.String(object.uploaded_media_id)
-          : '',
-      input: isSet(object.input) ? UploadedMediaUpdateRequestInput.fromJSON(object.input) : undefined,
-    };
-  },
-
-  toJSON(message: UpdateUploadedMediaRequest): unknown {
-    const obj: any = {};
-    if (message.uploadedMediaId !== '') {
-      obj.uploadedMediaId = message.uploadedMediaId;
-    }
-    if (message.input !== undefined) {
-      obj.input = UploadedMediaUpdateRequestInput.toJSON(message.input);
-    }
-    return obj;
-  },
-
-  create<I extends Exact<DeepPartial<UpdateUploadedMediaRequest>, I>>(base?: I): UpdateUploadedMediaRequest {
-    return UpdateUploadedMediaRequest.fromPartial(base ?? ({} as any));
-  },
-  fromPartial<I extends Exact<DeepPartial<UpdateUploadedMediaRequest>, I>>(object: I): UpdateUploadedMediaRequest {
-    const message = createBaseUpdateUploadedMediaRequest();
-    message.uploadedMediaId = object.uploadedMediaId ?? '';
-    message.input =
-      object.input !== undefined && object.input !== null
-        ? UploadedMediaUpdateRequestInput.fromPartial(object.input)
-        : undefined;
-    return message;
-  },
-};
-
-function createBaseUpdateUploadedMediaResponse(): UpdateUploadedMediaResponse {
-  return { responseDetails: undefined, updated: undefined };
-}
-
-export const UpdateUploadedMediaResponse: MessageFns<UpdateUploadedMediaResponse> = {
-  encode(message: UpdateUploadedMediaResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.responseDetails !== undefined) {
-      ResponseDetails.encode(message.responseDetails, writer.uint32(10).fork()).join();
-    }
-    if (message.updated !== undefined) {
-      UploadedMedia.encode(message.updated, writer.uint32(18).fork()).join();
-    }
-    return writer;
-  },
-
-  decode(input: BinaryReader | Uint8Array, length?: number): UpdateUploadedMediaResponse {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseUpdateUploadedMediaResponse();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
-
-          message.responseDetails = ResponseDetails.decode(reader, reader.uint32());
-          continue;
-        }
-        case 2: {
-          if (tag !== 18) {
-            break;
-          }
-
-          message.updated = UploadedMedia.decode(reader, reader.uint32());
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
-
-  fromJSON(object: any): UpdateUploadedMediaResponse {
-    return {
-      responseDetails: isSet(object.responseDetails)
-        ? ResponseDetails.fromJSON(object.responseDetails)
-        : isSet(object.response_details)
-          ? ResponseDetails.fromJSON(object.response_details)
-          : undefined,
-      updated: isSet(object.updated) ? UploadedMedia.fromJSON(object.updated) : undefined,
-    };
-  },
-
-  toJSON(message: UpdateUploadedMediaResponse): unknown {
-    const obj: any = {};
-    if (message.responseDetails !== undefined) {
-      obj.responseDetails = ResponseDetails.toJSON(message.responseDetails);
-    }
-    if (message.updated !== undefined) {
-      obj.updated = UploadedMedia.toJSON(message.updated);
-    }
-    return obj;
-  },
-
-  create<I extends Exact<DeepPartial<UpdateUploadedMediaResponse>, I>>(base?: I): UpdateUploadedMediaResponse {
-    return UpdateUploadedMediaResponse.fromPartial(base ?? ({} as any));
-  },
-  fromPartial<I extends Exact<DeepPartial<UpdateUploadedMediaResponse>, I>>(object: I): UpdateUploadedMediaResponse {
-    const message = createBaseUpdateUploadedMediaResponse();
-    message.responseDetails =
-      object.responseDetails !== undefined && object.responseDetails !== null
-        ? ResponseDetails.fromPartial(object.responseDetails)
-        : undefined;
-    message.updated =
-      object.updated !== undefined && object.updated !== null ? UploadedMedia.fromPartial(object.updated) : undefined;
     return message;
   },
 };

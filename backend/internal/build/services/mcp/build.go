@@ -10,6 +10,7 @@ import (
 	identityrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity"
 	issuereportsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/issuereports"
 	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
+	uploadedmediarepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/uploadedmedia"
 	waitlistsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/waitlists"
 	webhooksrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhooks"
 
@@ -48,6 +49,10 @@ func BuildInjector(ctx context.Context, cfg *config.MCPServiceConfig) *do.RootSc
 	auditrepo.RegisterAuditLogRepository(i)
 	identityrepo.RegisterIdentityRepository(i)
 	events.RegisterOutboxEmitter(i)
+
+	// The upload registry, because both repositories above read media through it —
+	// a user's avatar, a recipe step's images.
+	uploadedmediarepo.RegisterUploadedMediaRepository(i)
 	mealplanningrepo.RegisterMealPlanningRepository(i)
 	webhooksrepo.RegisterWebhooksRepository(i)
 	waitlistsrepo.RegisterWaitlistsRepository(i)

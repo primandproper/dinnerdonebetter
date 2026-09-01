@@ -171,13 +171,7 @@ SELECT
 	users.created_at as user_created_at,
 	users.last_updated_at as user_last_updated_at,
 	users.archived_at as user_archived_at,
-	uploaded_media.id as user_avatar_id,
-	uploaded_media.storage_path as user_avatar_storage_path,
-	uploaded_media.mime_type as user_avatar_mime_type,
-	uploaded_media.created_at as user_avatar_created_at,
-	uploaded_media.last_updated_at as user_avatar_last_updated_at,
-	uploaded_media.archived_at as user_avatar_archived_at,
-	uploaded_media.created_by_user as user_avatar_created_by_user,
+	user_avatars.uploaded_media_id as user_avatar_id,
 	account_user_memberships.id as membership_id,
 	account_user_memberships.belongs_to_account as membership_belongs_to_account,
 	account_user_memberships.belongs_to_user as membership_belongs_to_user,
@@ -189,7 +183,6 @@ FROM accounts
 	JOIN account_user_memberships ON account_user_memberships.belongs_to_account = accounts.id
 	JOIN users ON account_user_memberships.belongs_to_user = users.id
 	LEFT JOIN user_avatars ON user_avatars.belongs_to_user = users.id AND user_avatars.archived_at IS NULL
-	LEFT JOIN uploaded_media ON uploaded_media.id = user_avatars.uploaded_media_id AND uploaded_media.archived_at IS NULL
 WHERE accounts.archived_at IS NULL
 	AND account_user_memberships.archived_at IS NULL
 	AND accounts.id = $1
@@ -239,12 +232,6 @@ type GetAccountByIDWithMembershipsRow struct {
 	UserLastUpdatedAt                 sql.NullTime
 	UserArchivedAt                    sql.NullTime
 	UserAvatarID                      sql.NullString
-	UserAvatarStoragePath             sql.NullString
-	UserAvatarMimeType                NullUploadedMediaMimeType
-	UserAvatarCreatedAt               sql.NullTime
-	UserAvatarLastUpdatedAt           sql.NullTime
-	UserAvatarArchivedAt              sql.NullTime
-	UserAvatarCreatedByUser           sql.NullString
 	MembershipID                      string
 	MembershipBelongsToAccount        string
 	MembershipBelongsToUser           string
@@ -307,12 +294,6 @@ func (q *Queries) GetAccountByIDWithMemberships(ctx context.Context, db DBTX, id
 			&i.UserLastUpdatedAt,
 			&i.UserArchivedAt,
 			&i.UserAvatarID,
-			&i.UserAvatarStoragePath,
-			&i.UserAvatarMimeType,
-			&i.UserAvatarCreatedAt,
-			&i.UserAvatarLastUpdatedAt,
-			&i.UserAvatarArchivedAt,
-			&i.UserAvatarCreatedByUser,
 			&i.MembershipID,
 			&i.MembershipBelongsToAccount,
 			&i.MembershipBelongsToUser,

@@ -10,14 +10,6 @@ message DataCollection {
   map<string, UploadedMedia> uploaded_media = 1;
 }
 
-enum UploadedMediaMimeType {
-  UPLOADED_MEDIA_MIME_TYPE_UNSPECIFIED = 0;
-  UPLOADED_MEDIA_MIME_TYPE_IMAGE_PNG = 1;
-  UPLOADED_MEDIA_MIME_TYPE_IMAGE_JPEG = 2;
-  UPLOADED_MEDIA_MIME_TYPE_IMAGE_GIF = 3;
-  UPLOADED_MEDIA_MIME_TYPE_VIDEO_MP4 = 4;
-}
-
 message UploadRequest {
   oneof payload {
     UploadMetadata metadata = 1;
@@ -36,22 +28,30 @@ message UploadResponse {
   int64 size_bytes = 2;
 }
 
+// UploadedMedia is one row of platform-go's upload registry: what an object in
+// storage is, as opposed to the bytes themselves. object_key is where those
+// bytes live and is what a client builds a media URL from.
 message UploadedMedia {
   google.protobuf.Timestamp created_at = 1;
   google.protobuf.Timestamp archived_at = 2;
   google.protobuf.Timestamp last_updated_at = 3;
   string id = 4;
-  string storage_path = 5;
-  UploadedMediaMimeType mime_type = 6;
-  string created_by_user = 7;
+  string object_key = 5;
+  string content_type = 6;
+  string owner_id = 7;
+  int64 size_bytes = 8;
+  string belongs_to_type = 9;
+  string belongs_to_id = 10;
 }
 
+// UploadedMediaCreationRequestInput registers an object a caller stored some
+// other way — through a signed URL, or before adopting this service. Upload is
+// the path that stores and registers together, and it is the only one whose
+// size_bytes was counted rather than claimed.
 message UploadedMediaCreationRequestInput {
-  string storage_path = 1;
-  UploadedMediaMimeType mime_type = 2;
-}
-
-message UploadedMediaUpdateRequestInput {
-  optional string storage_path = 1;
-  optional UploadedMediaMimeType mime_type = 2;
+  string object_key = 1;
+  string content_type = 2;
+  int64 size_bytes = 3;
+  string belongs_to_type = 4;
+  string belongs_to_id = 5;
 }

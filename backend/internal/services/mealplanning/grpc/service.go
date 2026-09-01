@@ -2,7 +2,6 @@ package grpc
 
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/managers"
-	uploadedmediamanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia/manager"
 	mealplanningsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
 	_ "github.com/primandproper/dinnerdonebetter/backend/internal/services/errors"
 	_ "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/errors"
@@ -12,6 +11,7 @@ import (
 	"github.com/primandproper/platform-go/v13/observability/logging"
 	"github.com/primandproper/platform-go/v13/observability/tracing"
 	"github.com/primandproper/platform-go/v13/uploads"
+	"github.com/primandproper/platform-go/v13/uploads/registry"
 )
 
 var _ mealplanningsvc.MealPlanningServiceServer = (*serviceImpl)(nil)
@@ -32,7 +32,7 @@ type (
 		// plans into it.
 		mealPlanFinalizationStarter *mealplanfinalization.Starter
 		comments                    comments.Store
-		uploadedMediaManager        uploadedmediamanager.UploadedMediaManager
+		registry                    registry.Store
 		uploadManager               uploads.UploadManager
 	}
 )
@@ -43,7 +43,7 @@ func NewService(
 	mealPlanningManager managers.MealPlanningManager,
 	mealPlanFinalizationStarter *mealplanfinalization.Starter,
 	commentStore comments.Store,
-	uploadedMediaManager uploadedmediamanager.UploadedMediaManager,
+	registryStore registry.Store,
 	uploadManager uploads.UploadManager,
 ) mealplanningsvc.MealPlanningServiceServer {
 	return &serviceImpl{
@@ -52,7 +52,7 @@ func NewService(
 		mealPlanningManager:         mealPlanningManager,
 		mealPlanFinalizationStarter: mealPlanFinalizationStarter,
 		comments:                    commentStore,
-		uploadedMediaManager:        uploadedMediaManager,
+		registry:                    registryStore,
 		uploadManager:               uploadManager,
 	}
 }

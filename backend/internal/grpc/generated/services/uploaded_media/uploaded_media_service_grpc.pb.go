@@ -25,7 +25,6 @@ const (
 	UploadedMediaService_GetUploadedMedia_FullMethodName        = "/uploaded_media.UploadedMediaService/GetUploadedMedia"
 	UploadedMediaService_GetUploadedMediaWithIDs_FullMethodName = "/uploaded_media.UploadedMediaService/GetUploadedMediaWithIDs"
 	UploadedMediaService_GetUploadedMediaForUser_FullMethodName = "/uploaded_media.UploadedMediaService/GetUploadedMediaForUser"
-	UploadedMediaService_UpdateUploadedMedia_FullMethodName     = "/uploaded_media.UploadedMediaService/UpdateUploadedMedia"
 	UploadedMediaService_ArchiveUploadedMedia_FullMethodName    = "/uploaded_media.UploadedMediaService/ArchiveUploadedMedia"
 )
 
@@ -38,7 +37,6 @@ type UploadedMediaServiceClient interface {
 	GetUploadedMedia(ctx context.Context, in *GetUploadedMediaRequest, opts ...grpc.CallOption) (*GetUploadedMediaResponse, error)
 	GetUploadedMediaWithIDs(ctx context.Context, in *GetUploadedMediaWithIDsRequest, opts ...grpc.CallOption) (*GetUploadedMediaWithIDsResponse, error)
 	GetUploadedMediaForUser(ctx context.Context, in *GetUploadedMediaForUserRequest, opts ...grpc.CallOption) (*GetUploadedMediaForUserResponse, error)
-	UpdateUploadedMedia(ctx context.Context, in *UpdateUploadedMediaRequest, opts ...grpc.CallOption) (*UpdateUploadedMediaResponse, error)
 	ArchiveUploadedMedia(ctx context.Context, in *ArchiveUploadedMediaRequest, opts ...grpc.CallOption) (*ArchiveUploadedMediaResponse, error)
 }
 
@@ -103,16 +101,6 @@ func (c *uploadedMediaServiceClient) GetUploadedMediaForUser(ctx context.Context
 	return out, nil
 }
 
-func (c *uploadedMediaServiceClient) UpdateUploadedMedia(ctx context.Context, in *UpdateUploadedMediaRequest, opts ...grpc.CallOption) (*UpdateUploadedMediaResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(UpdateUploadedMediaResponse)
-	err := c.cc.Invoke(ctx, UploadedMediaService_UpdateUploadedMedia_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *uploadedMediaServiceClient) ArchiveUploadedMedia(ctx context.Context, in *ArchiveUploadedMediaRequest, opts ...grpc.CallOption) (*ArchiveUploadedMediaResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ArchiveUploadedMediaResponse)
@@ -132,7 +120,6 @@ type UploadedMediaServiceServer interface {
 	GetUploadedMedia(context.Context, *GetUploadedMediaRequest) (*GetUploadedMediaResponse, error)
 	GetUploadedMediaWithIDs(context.Context, *GetUploadedMediaWithIDsRequest) (*GetUploadedMediaWithIDsResponse, error)
 	GetUploadedMediaForUser(context.Context, *GetUploadedMediaForUserRequest) (*GetUploadedMediaForUserResponse, error)
-	UpdateUploadedMedia(context.Context, *UpdateUploadedMediaRequest) (*UpdateUploadedMediaResponse, error)
 	ArchiveUploadedMedia(context.Context, *ArchiveUploadedMediaRequest) (*ArchiveUploadedMediaResponse, error)
 	mustEmbedUnimplementedUploadedMediaServiceServer()
 }
@@ -158,9 +145,6 @@ func (UnimplementedUploadedMediaServiceServer) GetUploadedMediaWithIDs(context.C
 }
 func (UnimplementedUploadedMediaServiceServer) GetUploadedMediaForUser(context.Context, *GetUploadedMediaForUserRequest) (*GetUploadedMediaForUserResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUploadedMediaForUser not implemented")
-}
-func (UnimplementedUploadedMediaServiceServer) UpdateUploadedMedia(context.Context, *UpdateUploadedMediaRequest) (*UpdateUploadedMediaResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UpdateUploadedMedia not implemented")
 }
 func (UnimplementedUploadedMediaServiceServer) ArchiveUploadedMedia(context.Context, *ArchiveUploadedMediaRequest) (*ArchiveUploadedMediaResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ArchiveUploadedMedia not implemented")
@@ -265,24 +249,6 @@ func _UploadedMediaService_GetUploadedMediaForUser_Handler(srv interface{}, ctx 
 	return interceptor(ctx, in, info, handler)
 }
 
-func _UploadedMediaService_UpdateUploadedMedia_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UpdateUploadedMediaRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(UploadedMediaServiceServer).UpdateUploadedMedia(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: UploadedMediaService_UpdateUploadedMedia_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UploadedMediaServiceServer).UpdateUploadedMedia(ctx, req.(*UpdateUploadedMediaRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _UploadedMediaService_ArchiveUploadedMedia_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ArchiveUploadedMediaRequest)
 	if err := dec(in); err != nil {
@@ -323,10 +289,6 @@ var UploadedMediaService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetUploadedMediaForUser",
 			Handler:    _UploadedMediaService_GetUploadedMediaForUser_Handler,
-		},
-		{
-			MethodName: "UpdateUploadedMedia",
-			Handler:    _UploadedMediaService_UpdateUploadedMedia_Handler,
 		},
 		{
 			MethodName: "ArchiveUploadedMedia",

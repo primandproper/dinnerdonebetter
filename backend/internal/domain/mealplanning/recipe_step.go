@@ -6,9 +6,8 @@ import (
 	"errors"
 	"time"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
-
 	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v13/uploads/registry"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/hashicorp/go-multierror"
@@ -55,7 +54,7 @@ type (
 		CompletionConditions      []*RecipeStepCompletionCondition `json:"completionConditions"`
 		Ingredients               []*RecipeStepIngredient          `json:"ingredients"`
 		Media                     []*RecipeMedia                   `json:"media"`
-		StepImages                []*uploadedmedia.UploadedMedia   `json:"stepImages"`
+		StepImages                []*registry.Object               `json:"stepImages"`
 		Preparation               ValidPreparation                 `json:"preparation"`
 		Index                     uint32                           `json:"index"`
 		Optional                  bool                             `json:"optional"`

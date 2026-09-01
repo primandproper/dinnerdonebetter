@@ -13,7 +13,6 @@ import (
 const (
 	usersTableName       = "users"
 	userAvatarsTableName = "user_avatars"
-	uploadedMediaTable   = "uploaded_media"
 
 	createdByUserColumn = "created_by_user"
 
@@ -37,19 +36,22 @@ const (
 	lastAcceptedPrivacyPolicyColumn     = "last_accepted_privacy_policy"
 )
 
-// avatarJoinColumns are the uploaded_media columns selected when joining for avatar.
-var avatarJoinColumns = []string{
-	"id", "storage_path", "mime_type", "created_at", "last_updated_at", "archived_at", "created_by_user",
-}
-
+// avatarJoinSelect names the avatar an account or user carries: the id of the
+// row in the upload registry, and nothing else.
+//
+// It used to be seven columns of a joined uploaded_media row. That table is now
+// platform-go's ddb_uploads_objects, created by a generated migration rather
+// than by a file in migration_files, so sqlc — whose schema is migration_files —
+// cannot see it, and a query joining it would not compile. The object is
+// therefore read through the registry store instead; see avatarFor in
+// internal/repositories/postgres/identity.
 func avatarJoinSelect(prefix string) []string {
-	return applyToEach(avatarJoinColumns, func(_ int, s string) string {
-		return fmt.Sprintf("%s.%s as %s_%s", uploadedMediaTable, s, prefix, s)
-	})
+	return []string{
+		fmt.Sprintf("%s.uploaded_media_id as %s_id", userAvatarsTableName, prefix),
+	}
 }
 
-const avatarJoinClause = `LEFT JOIN ` + userAvatarsTableName + ` ON ` + userAvatarsTableName + `.belongs_to_user = ` + usersTableName + `.id AND ` + userAvatarsTableName + `.archived_at IS NULL
-	LEFT JOIN ` + uploadedMediaTable + ` ON ` + uploadedMediaTable + `.id = ` + userAvatarsTableName + `.uploaded_media_id AND ` + uploadedMediaTable + `.archived_at IS NULL`
+const avatarJoinClause = `LEFT JOIN ` + userAvatarsTableName + ` ON ` + userAvatarsTableName + `.belongs_to_user = ` + usersTableName + `.id AND ` + userAvatarsTableName + `.archived_at IS NULL`
 
 var usersColumns = []string{
 	idColumn,

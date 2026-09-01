@@ -472,7 +472,7 @@ func TestUsers_UploadUserAvatar(T *testing.T) {
 		require.NotNil(t, retrieved)
 		require.NotNil(t, retrieved.Result.Avatar)
 		assert.Equal(t, resp.Created.Id, retrieved.Result.Avatar.Id)
-		assert.Equal(t, uploadedmediagrpc.UploadedMediaMimeType_UPLOADED_MEDIA_MIME_TYPE_IMAGE_JPEG, retrieved.Result.Avatar.MimeType)
+		assert.Equal(t, uploadedmedia.MimeTypeImageJPEG, retrieved.Result.Avatar.ContentType)
 	})
 
 	T.Run("requires auth", func(t *testing.T) {

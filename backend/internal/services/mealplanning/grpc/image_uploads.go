@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -17,13 +18,69 @@ import (
 	platformerrors "github.com/primandproper/platform-go/v13/errors"
 	errorsgrpc "github.com/primandproper/platform-go/v13/errors/grpc"
 	"github.com/primandproper/platform-go/v13/identifiers"
-	"github.com/primandproper/platform-go/v13/uploads"
+	"github.com/primandproper/platform-go/v13/uploads/registry"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 )
 
 const maxImageUploadSize = 5 * 1024 * 1024 // 5 MB
+
+// What a piece of media hangs off in the registry's belongs-to pair. The
+// vocabulary is this application's — the registry neither knows nor validates
+// it — so the words are declared once rather than spelled at each write.
+//
+// The bridge tables are still what order media within a thing and record who
+// attached it. The subject says an object is one of this recipe's, which is what
+// makes an orphan sweep and a "what is attached to this" read possible without
+// consulting five tables.
+const (
+	mealSubjectType             = "meal"
+	recipeSubjectType           = "recipe"
+	recipeStepSubjectType       = "recipe_step"
+	validPreparationSubjectType = "valid_preparation"
+	validIngredientSubjectType  = "valid_ingredient"
+)
+
+// storeAndRegister writes the bytes and registers what was written.
+//
+// The id is the caller's because the key is built from it: the bytes have to
+// know where they are going before anything writes them. The size is not the
+// caller's — it is counted as the bytes go past, which is the only number that
+// is about what is actually in the bucket.
+//
+// The order is deliberate and it is the one that fails safe. A failure between
+// the two leaves an object with no row, which is invisible to every read; the
+// other order leaves a row promising bytes that are not there, which every read
+// reports as media the caller may have and every fetch then fails to deliver.
+func (s *serviceImpl) storeAndRegister(
+	ctx context.Context,
+	objectID, key, contentType, ownerID string,
+	subject registry.Subject,
+	body *bytes.Buffer,
+) (*registry.Object, error) {
+	ctx, span := s.tracer.StartSpan(ctx)
+	defer span.End()
+
+	object := &registry.Object{
+		ID:          objectID,
+		Scope:       uploadedmedia.Scope(),
+		Key:         key,
+		ContentType: contentType,
+		OwnerID:     ownerID,
+		BelongsTo:   subject,
+	}
+
+	if err := object.ValidateWithContext(ctx); err != nil {
+		return nil, err
+	}
+
+	if err := registry.StoreAndRecord(ctx, s.uploadManager, s.registry, object, body); err != nil {
+		return nil, err
+	}
+
+	return object, nil
+}
 
 func (s *serviceImpl) UploadMealImage(stream grpc.ClientStreamingServer[mealplanningsvc.UploadMealMediaRequest, mealplanningsvc.UploadMealImageResponse]) error {
 	ctx := stream.Context()
@@ -157,26 +214,18 @@ func (s *serviceImpl) UploadMealImage(stream grpc.ClientStreamingServer[mealplan
 	}
 
 	fileID := identifiers.New()
-	storagePath := filepath.Join("meals", mealID, fileID, metadata.ObjectName)
 
-	if err = uploads.SaveFile(ctx, s.uploadManager, storagePath, fileData.Bytes()); err != nil {
-		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to save file")
-	}
-
-	uploadedMediaInput := &uploadedmedia.UploadedMediaDatabaseCreationInput{
-		ID:            fileID,
-		StoragePath:   storagePath,
-		MimeType:      mimeType,
-		CreatedByUser: userID,
-	}
-
-	if err = uploadedMediaInput.ValidateWithContext(ctx); err != nil {
-		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "failed to validate uploaded media")
-	}
-
-	created, err := s.uploadedMediaManager.CreateUploadedMedia(ctx, uploadedMediaInput)
+	created, err := s.storeAndRegister(
+		ctx,
+		fileID,
+		filepath.Join("meals", mealID, fileID, metadata.ObjectName),
+		mimeType,
+		userID,
+		registry.Subject{Type: mealSubjectType, ID: mealID},
+		&fileData,
+	)
 	if err != nil {
-		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to create uploaded media record")
+		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to store uploaded media")
 	}
 
 	if err = s.mealPlanningManager.AddMealImage(ctx, mealID, created.ID, userID); err != nil {
@@ -330,26 +379,18 @@ func (s *serviceImpl) UploadRecipeImage(stream grpc.ClientStreamingServer[mealpl
 	}
 
 	fileID := identifiers.New()
-	storagePath := filepath.Join("recipes", recipeID, fileID, metadata.ObjectName)
 
-	if err = uploads.SaveFile(ctx, s.uploadManager, storagePath, fileData.Bytes()); err != nil {
-		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to save file")
-	}
-
-	uploadedMediaInput := &uploadedmedia.UploadedMediaDatabaseCreationInput{
-		ID:            fileID,
-		StoragePath:   storagePath,
-		MimeType:      mimeType,
-		CreatedByUser: userID,
-	}
-
-	if err = uploadedMediaInput.ValidateWithContext(ctx); err != nil {
-		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "failed to validate uploaded media")
-	}
-
-	created, err := s.uploadedMediaManager.CreateUploadedMedia(ctx, uploadedMediaInput)
+	created, err := s.storeAndRegister(
+		ctx,
+		fileID,
+		filepath.Join("recipes", recipeID, fileID, metadata.ObjectName),
+		mimeType,
+		userID,
+		registry.Subject{Type: recipeSubjectType, ID: recipeID},
+		&fileData,
+	)
 	if err != nil {
-		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to create uploaded media record")
+		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to store uploaded media")
 	}
 
 	if err = s.mealPlanningManager.AddRecipeImage(ctx, recipeID, created.ID, userID); err != nil {
@@ -498,26 +539,18 @@ func (s *serviceImpl) UploadPreparationMedia(stream grpc.ClientStreamingServer[m
 	}
 
 	fileID := identifiers.New()
-	storagePath := filepath.Join("preparations", validPreparationID, fileID, metadata.ObjectName)
 
-	if err = uploads.SaveFile(ctx, s.uploadManager, storagePath, fileData.Bytes()); err != nil {
-		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to save file")
-	}
-
-	uploadedMediaInput := &uploadedmedia.UploadedMediaDatabaseCreationInput{
-		ID:            fileID,
-		StoragePath:   storagePath,
-		MimeType:      mimeType,
-		CreatedByUser: userID,
-	}
-
-	if err = uploadedMediaInput.ValidateWithContext(ctx); err != nil {
-		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "failed to validate uploaded media")
-	}
-
-	created, err := s.uploadedMediaManager.CreateUploadedMedia(ctx, uploadedMediaInput)
+	created, err := s.storeAndRegister(
+		ctx,
+		fileID,
+		filepath.Join("preparations", validPreparationID, fileID, metadata.ObjectName),
+		mimeType,
+		userID,
+		registry.Subject{Type: validPreparationSubjectType, ID: validPreparationID},
+		&fileData,
+	)
 	if err != nil {
-		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to create uploaded media record")
+		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to store uploaded media")
 	}
 
 	var forIngredientID *string
@@ -671,26 +704,18 @@ func (s *serviceImpl) UploadIngredientMedia(stream grpc.ClientStreamingServer[me
 	}
 
 	fileID := identifiers.New()
-	storagePath := filepath.Join("ingredients", validIngredientID, fileID, metadata.ObjectName)
 
-	if err = uploads.SaveFile(ctx, s.uploadManager, storagePath, fileData.Bytes()); err != nil {
-		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to save file")
-	}
-
-	uploadedMediaInput := &uploadedmedia.UploadedMediaDatabaseCreationInput{
-		ID:            fileID,
-		StoragePath:   storagePath,
-		MimeType:      mimeType,
-		CreatedByUser: userID,
-	}
-
-	if err = uploadedMediaInput.ValidateWithContext(ctx); err != nil {
-		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "failed to validate uploaded media")
-	}
-
-	created, err := s.uploadedMediaManager.CreateUploadedMedia(ctx, uploadedMediaInput)
+	created, err := s.storeAndRegister(
+		ctx,
+		fileID,
+		filepath.Join("ingredients", validIngredientID, fileID, metadata.ObjectName),
+		mimeType,
+		userID,
+		registry.Subject{Type: validIngredientSubjectType, ID: validIngredientID},
+		&fileData,
+	)
 	if err != nil {
-		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to create uploaded media record")
+		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to store uploaded media")
 	}
 
 	if err = s.mealPlanningManager.AddIngredientMedia(ctx, validIngredientID, created.ID, 0); err != nil {
@@ -864,26 +889,18 @@ func (s *serviceImpl) UploadRecipeStepImage(stream grpc.ClientStreamingServer[me
 	}
 
 	fileID := identifiers.New()
-	storagePath := filepath.Join("recipes", recipeID, "steps", recipeStepID, fileID, metadata.ObjectName)
 
-	if err = uploads.SaveFile(ctx, s.uploadManager, storagePath, fileData.Bytes()); err != nil {
-		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to save file")
-	}
-
-	uploadedMediaInput := &uploadedmedia.UploadedMediaDatabaseCreationInput{
-		ID:            fileID,
-		StoragePath:   storagePath,
-		MimeType:      mimeType,
-		CreatedByUser: userID,
-	}
-
-	if err = uploadedMediaInput.ValidateWithContext(ctx); err != nil {
-		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "failed to validate uploaded media")
-	}
-
-	created, err := s.uploadedMediaManager.CreateUploadedMedia(ctx, uploadedMediaInput)
+	created, err := s.storeAndRegister(
+		ctx,
+		fileID,
+		filepath.Join("recipes", recipeID, "steps", recipeStepID, fileID, metadata.ObjectName),
+		mimeType,
+		userID,
+		registry.Subject{Type: recipeStepSubjectType, ID: recipeStepID},
+		&fileData,
+	)
 	if err != nil {
-		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to create uploaded media record")
+		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to store uploaded media")
 	}
 
 	if err = s.mealPlanningManager.AddRecipeStepImage(ctx, recipeStepID, created.ID, userID); err != nil {
