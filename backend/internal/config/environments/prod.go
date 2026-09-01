@@ -322,13 +322,15 @@ func BuildProdConfig() *config.APIServiceConfig {
 			MinimumPasswordLength: 8,
 		},
 		Services: config.ServicesConfig{
-			// The capitalism provider is named rather than left empty: platform-go treats an
-			// unset provider as an error precisely so that "we forgot to configure billing"
+			// Both payment providers are named rather than left empty — the web checkout's
+			// through platform-go's own config, the mobile store's through ours — because an
+			// unset provider is an error precisely so that "we forgot to configure billing"
 			// cannot masquerade as "we chose not to bill".
 			Payments: paymentscfg.Config{
 				Capitalism: capitalismcfg.Config{
 					Provider: capitalismcfg.NoopProvider,
 				},
+				MobileProvider: capitalismcfg.NoopProvider,
 			},
 			Auth: authservice.Config{
 				OAuth2: oauth2servercfg.Config{
