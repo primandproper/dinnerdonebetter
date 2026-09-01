@@ -20,10 +20,11 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	CommentsService_CreateComment_FullMethodName           = "/comments.CommentsService/CreateComment"
-	CommentsService_ArchiveComment_FullMethodName          = "/comments.CommentsService/ArchiveComment"
-	CommentsService_GetCommentsForReference_FullMethodName = "/comments.CommentsService/GetCommentsForReference"
-	CommentsService_UpdateComment_FullMethodName           = "/comments.CommentsService/UpdateComment"
+	CommentsService_CreateComment_FullMethodName     = "/comments.CommentsService/CreateComment"
+	CommentsService_ArchiveComment_FullMethodName    = "/comments.CommentsService/ArchiveComment"
+	CommentsService_GetRootComments_FullMethodName   = "/comments.CommentsService/GetRootComments"
+	CommentsService_GetCommentReplies_FullMethodName = "/comments.CommentsService/GetCommentReplies"
+	CommentsService_UpdateComment_FullMethodName     = "/comments.CommentsService/UpdateComment"
 )
 
 // CommentsServiceClient is the client API for CommentsService service.
@@ -32,7 +33,8 @@ const (
 type CommentsServiceClient interface {
 	CreateComment(ctx context.Context, in *CreateCommentRequest, opts ...grpc.CallOption) (*CreateCommentResponse, error)
 	ArchiveComment(ctx context.Context, in *ArchiveCommentRequest, opts ...grpc.CallOption) (*ArchiveCommentResponse, error)
-	GetCommentsForReference(ctx context.Context, in *GetCommentsForReferenceRequest, opts ...grpc.CallOption) (*GetCommentsForReferenceResponse, error)
+	GetRootComments(ctx context.Context, in *GetRootCommentsRequest, opts ...grpc.CallOption) (*GetRootCommentsResponse, error)
+	GetCommentReplies(ctx context.Context, in *GetCommentRepliesRequest, opts ...grpc.CallOption) (*GetCommentRepliesResponse, error)
 	UpdateComment(ctx context.Context, in *UpdateCommentRequest, opts ...grpc.CallOption) (*UpdateCommentResponse, error)
 }
 
@@ -64,10 +66,20 @@ func (c *commentsServiceClient) ArchiveComment(ctx context.Context, in *ArchiveC
 	return out, nil
 }
 
-func (c *commentsServiceClient) GetCommentsForReference(ctx context.Context, in *GetCommentsForReferenceRequest, opts ...grpc.CallOption) (*GetCommentsForReferenceResponse, error) {
+func (c *commentsServiceClient) GetRootComments(ctx context.Context, in *GetRootCommentsRequest, opts ...grpc.CallOption) (*GetRootCommentsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetCommentsForReferenceResponse)
-	err := c.cc.Invoke(ctx, CommentsService_GetCommentsForReference_FullMethodName, in, out, cOpts...)
+	out := new(GetRootCommentsResponse)
+	err := c.cc.Invoke(ctx, CommentsService_GetRootComments_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *commentsServiceClient) GetCommentReplies(ctx context.Context, in *GetCommentRepliesRequest, opts ...grpc.CallOption) (*GetCommentRepliesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetCommentRepliesResponse)
+	err := c.cc.Invoke(ctx, CommentsService_GetCommentReplies_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +102,8 @@ func (c *commentsServiceClient) UpdateComment(ctx context.Context, in *UpdateCom
 type CommentsServiceServer interface {
 	CreateComment(context.Context, *CreateCommentRequest) (*CreateCommentResponse, error)
 	ArchiveComment(context.Context, *ArchiveCommentRequest) (*ArchiveCommentResponse, error)
-	GetCommentsForReference(context.Context, *GetCommentsForReferenceRequest) (*GetCommentsForReferenceResponse, error)
+	GetRootComments(context.Context, *GetRootCommentsRequest) (*GetRootCommentsResponse, error)
+	GetCommentReplies(context.Context, *GetCommentRepliesRequest) (*GetCommentRepliesResponse, error)
 	UpdateComment(context.Context, *UpdateCommentRequest) (*UpdateCommentResponse, error)
 	mustEmbedUnimplementedCommentsServiceServer()
 }
@@ -108,8 +121,11 @@ func (UnimplementedCommentsServiceServer) CreateComment(context.Context, *Create
 func (UnimplementedCommentsServiceServer) ArchiveComment(context.Context, *ArchiveCommentRequest) (*ArchiveCommentResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ArchiveComment not implemented")
 }
-func (UnimplementedCommentsServiceServer) GetCommentsForReference(context.Context, *GetCommentsForReferenceRequest) (*GetCommentsForReferenceResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetCommentsForReference not implemented")
+func (UnimplementedCommentsServiceServer) GetRootComments(context.Context, *GetRootCommentsRequest) (*GetRootCommentsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetRootComments not implemented")
+}
+func (UnimplementedCommentsServiceServer) GetCommentReplies(context.Context, *GetCommentRepliesRequest) (*GetCommentRepliesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetCommentReplies not implemented")
 }
 func (UnimplementedCommentsServiceServer) UpdateComment(context.Context, *UpdateCommentRequest) (*UpdateCommentResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateComment not implemented")
@@ -171,20 +187,38 @@ func _CommentsService_ArchiveComment_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
-func _CommentsService_GetCommentsForReference_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetCommentsForReferenceRequest)
+func _CommentsService_GetRootComments_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetRootCommentsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(CommentsServiceServer).GetCommentsForReference(ctx, in)
+		return srv.(CommentsServiceServer).GetRootComments(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: CommentsService_GetCommentsForReference_FullMethodName,
+		FullMethod: CommentsService_GetRootComments_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CommentsServiceServer).GetCommentsForReference(ctx, req.(*GetCommentsForReferenceRequest))
+		return srv.(CommentsServiceServer).GetRootComments(ctx, req.(*GetRootCommentsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CommentsService_GetCommentReplies_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetCommentRepliesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CommentsServiceServer).GetCommentReplies(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CommentsService_GetCommentReplies_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CommentsServiceServer).GetCommentReplies(ctx, req.(*GetCommentRepliesRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -223,8 +257,12 @@ var CommentsService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _CommentsService_ArchiveComment_Handler,
 		},
 		{
-			MethodName: "GetCommentsForReference",
-			Handler:    _CommentsService_GetCommentsForReference_Handler,
+			MethodName: "GetRootComments",
+			Handler:    _CommentsService_GetRootComments_Handler,
+		},
+		{
+			MethodName: "GetCommentReplies",
+			Handler:    _CommentsService_GetCommentReplies_Handler,
 		},
 		{
 			MethodName: "UpdateComment",

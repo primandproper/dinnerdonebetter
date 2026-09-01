@@ -1,44 +1,20 @@
 package grpc
 
 import (
-	"context"
 	"testing"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments"
-	commentsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments/manager"
 	mockmanagers "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/managers/mock"
 	uploadedmediamock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia/mock"
 	mealplanningsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
 	mealplanfinalization "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_finalization"
 
-	"github.com/primandproper/platform-go/v13/filtering"
+	commentsmock "github.com/primandproper/platform-go/v13/comments/mock"
 	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
 	tracingnoop "github.com/primandproper/platform-go/v13/observability/tracing/noop"
 	mockuploads "github.com/primandproper/platform-go/v13/uploads/mock"
 
 	"github.com/stretchr/testify/assert"
 )
-
-// noopCommentsManager is a stub implementation for tests that only need service construction.
-type noopCommentsManager struct{}
-
-func (n *noopCommentsManager) CreateComment(_ context.Context, _ *comments.CommentCreationRequestInput) (*comments.Comment, error) {
-	return nil, nil
-}
-func (n *noopCommentsManager) GetComment(_ context.Context, _ string) (*comments.Comment, error) {
-	return nil, nil
-}
-func (n *noopCommentsManager) GetCommentsForReference(_ context.Context, _, _ string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[comments.Comment], error) {
-	return nil, nil
-}
-func (n *noopCommentsManager) UpdateComment(_ context.Context, _, _ string, _ *comments.CommentUpdateRequestInput) error {
-	return nil
-}
-func (n *noopCommentsManager) ArchiveComment(_ context.Context, _ string) error {
-	return nil
-}
-
-var _ commentsmanager.CommentsDataManager = (*noopCommentsManager)(nil)
 
 func TestNewService(t *testing.T) {
 	t.Parallel()
@@ -50,7 +26,7 @@ func TestNewService(t *testing.T) {
 		tracerProvider := tracingnoop.NewTracerProvider()
 		mealPlanningManager := &mockmanagers.MealPlanningManagerMock{}
 		mealPlanFinalizationStarter := &mealplanfinalization.Starter{}
-		commentsManager := &noopCommentsManager{}
+		commentStore := &commentsmock.StoreMock{}
 		uploadedMediaManager := &uploadedmediamock.RepositoryMock{}
 		uploadManager := &mockuploads.UploadManagerMock{}
 
@@ -59,7 +35,7 @@ func TestNewService(t *testing.T) {
 			tracerProvider,
 			mealPlanningManager,
 			mealPlanFinalizationStarter,
-			commentsManager,
+			commentStore,
 			uploadedMediaManager,
 			uploadManager,
 		)
@@ -74,6 +50,6 @@ func TestNewService(t *testing.T) {
 		assert.NotNil(t, impl.tracer)
 		assert.Equal(t, mealPlanningManager, impl.mealPlanningManager)
 		assert.Equal(t, mealPlanFinalizationStarter, impl.mealPlanFinalizationStarter)
-		assert.Equal(t, commentsManager, impl.commentsManager)
+		assert.Equal(t, commentStore, impl.comments)
 	})
 }

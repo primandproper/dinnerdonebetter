@@ -7,6 +7,7 @@ import (
 
 	ddbaudit "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	ddbauth "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
+	ddbcomments "github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments"
 	ddbdataprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
 	ddboauth "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
 
@@ -15,6 +16,7 @@ import (
 	passwordresetmigrations "github.com/primandproper/platform-go/v13/authentication/passwordreset/migrations"
 	webauthndatabase "github.com/primandproper/platform-go/v13/authentication/webauthn/database"
 	webauthnmigrations "github.com/primandproper/platform-go/v13/authentication/webauthn/database/migrations"
+	commentsmigrations "github.com/primandproper/platform-go/v13/comments/migrations"
 	"github.com/primandproper/platform-go/v13/database/dialect"
 	"github.com/primandproper/platform-go/v13/database/migrate"
 	dataprivacymigrations "github.com/primandproper/platform-go/v13/dataprivacy/migrations"
@@ -65,6 +67,7 @@ const (
 	passwordResetMigrationVersion = 34
 	sessionsMigrationVersion      = 35
 	workQueueMigrationVersion     = 36
+	commentsMigrationVersion      = 37
 )
 
 // NewMigrator creates a new postgres Migrator over the embedded migration files.
@@ -172,6 +175,11 @@ func NewMigrator(logger logging.Logger) (*migrate.Migrator, error) {
 		return nil, errors.Wrap(err, "rendering work queue migration")
 	}
 
+	commentsDDL, err := renderCommentsDDL()
+	if err != nil {
+		return nil, err
+	}
+
 	migrator, err := migrate.New(
 		dialect.Postgres,
 		migrationFiles,
@@ -189,12 +197,45 @@ func NewMigrator(logger logging.Logger) (*migrate.Migrator, error) {
 		migrate.WithGeneratedMigration(passwordResetMigrationVersion, "create_password_reset_tokens_table", passwordResetDDL),
 		migrate.WithGeneratedMigration(sessionsMigrationVersion, "create_sessions_table", sessionsDDL),
 		migrate.WithGeneratedMigration(workQueueMigrationVersion, "create_work_queue_items_table", workQueueDDL),
+		migrate.WithGeneratedMigration(commentsMigrationVersion, "create_comments_table", commentsDDL),
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "building migrator")
 	}
 
 	return migrator, nil
+}
+
+// renderCommentsDDL renders the comment table, dropping the one 00012_comments.sql
+// created first, along with the enum that migration and 00021_mealplanning.sql
+// between them defined.
+//
+// Nothing is carried across, and the two tables could not carry it anyway: the
+// platform's names the columns differently (body, author, target_id, parent_id),
+// adds the tenancy column every one of its reads filters on, and drops both
+// foreign keys. The foreign keys are the substantive loss and they are lost by
+// construction rather than by choice — a comment's target lives in a table the
+// platform's store has never seen, so there is no column it could point at. What
+// replaced the belongs_to_user cascade is the comments eraser, registered in
+// internal/build/dataprivacy; what replaced the target cascade is nothing, which
+// is the ruling platform's package documentation states plainly.
+//
+// The enum goes with the table because the platform stores target_type as text.
+// That is the right shape here regardless: adding a target type was an ALTER TYPE
+// in a migration, and it is now a line in the catalog that a compiler checks.
+//
+// The old table is dropped rather than left in place because its name is the one
+// the platform's default prefix would render, and its DDL says CREATE TABLE IF
+// NOT EXISTS — so a deployment that kept it would eventually get a silent no-op
+// followed by a store reading columns that are not there. This renders
+// ddb_comments; see ddbcomments.TablePrefix.
+func renderCommentsDDL() (string, error) {
+	schema, err := commentsmigrations.SQL(dialect.Postgres, ddbcomments.TablePrefix)
+	if err != nil {
+		return "", errors.Wrap(err, "rendering comments migration")
+	}
+
+	return "DROP TABLE IF EXISTS comments;\nDROP TYPE IF EXISTS comment_target_type;\n\n" + schema, nil
 }
 
 // renderPasswordResetDDL renders the password reset token table, dropping the one

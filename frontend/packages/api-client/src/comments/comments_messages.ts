@@ -10,38 +10,148 @@ import { Timestamp } from '../google/protobuf/timestamp';
 
 export const protobufPackage = 'comments';
 
+/**
+ * CommentTarget is what a comment is about: a kind of thing, and one of them.
+ *
+ * It is one message rather than two loose fields because a type without an id is
+ * not a target, and every call that takes one takes both — passing them
+ * separately is how a call site pairs one comment's type with another's id.
+ */
+export interface CommentTarget {
+  /**
+   * type is the kind of thing, as the target catalog spells it. A type the
+   * catalog does not hold is refused at the write.
+   */
+  type: string;
+  /** id is which one, as the owning domain spells it. */
+  id: string;
+}
+
 export interface Comment {
   id: string;
-  content: string;
-  targetType: string;
-  referencedId: string;
-  parentCommentId?: string | undefined;
-  belongsToUser: string;
+  /** body is what the person actually said. */
+  body: string;
+  target: CommentTarget | undefined;
+  /**
+   * parent_id is the comment this one replies to, and the empty string is a
+   * comment that replies to nothing. Threads are one level deep: a reply may not
+   * itself be replied to.
+   */
+  parentId: string;
+  /** author is the ID of the user who wrote it. */
+  author: string;
   createdAt: Date | undefined;
-  lastUpdatedAt?: Date | undefined;
+  /**
+   * last_updated_at is when the body was last edited, and unset for a comment
+   * nobody has revised. It is what a client renders an "edited" marker from.
+   */
+  lastUpdatedAt: Date | undefined;
 }
 
 export interface CommentCreationRequestInput {
-  content: string;
-  parentCommentId?: string | undefined;
-  /** Required for CreateComment; ignored for AddCommentTo* */
-  targetType: string;
-  /** Required for CreateComment; ignored for AddCommentTo* */
-  referencedId: string;
+  body: string;
+  /** parent_id makes this a reply. Empty is a root comment. */
+  parentId: string;
+  /**
+   * target is required for CreateComment and ignored for AddCommentTo*, which
+   * name the target in the request itself.
+   */
+  target: CommentTarget | undefined;
 }
 
 export interface CommentUpdateRequestInput {
-  content: string;
+  /**
+   * body is the only editable fact about a comment. The target is what it is
+   * about, the parent is which conversation it is in, and the author is who said
+   * it; an update that assigned any of the three would silently move somebody
+   * else's words.
+   */
+  body: string;
 }
+
+function createBaseCommentTarget(): CommentTarget {
+  return { type: '', id: '' };
+}
+
+export const CommentTarget: MessageFns<CommentTarget> = {
+  encode(message: CommentTarget, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.type !== '') {
+      writer.uint32(10).string(message.type);
+    }
+    if (message.id !== '') {
+      writer.uint32(18).string(message.id);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): CommentTarget {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCommentTarget();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.type = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.id = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): CommentTarget {
+    return {
+      type: isSet(object.type) ? globalThis.String(object.type) : '',
+      id: isSet(object.id) ? globalThis.String(object.id) : '',
+    };
+  },
+
+  toJSON(message: CommentTarget): unknown {
+    const obj: any = {};
+    if (message.type !== '') {
+      obj.type = message.type;
+    }
+    if (message.id !== '') {
+      obj.id = message.id;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<CommentTarget>, I>>(base?: I): CommentTarget {
+    return CommentTarget.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<CommentTarget>, I>>(object: I): CommentTarget {
+    const message = createBaseCommentTarget();
+    message.type = object.type ?? '';
+    message.id = object.id ?? '';
+    return message;
+  },
+};
 
 function createBaseComment(): Comment {
   return {
     id: '',
-    content: '',
-    targetType: '',
-    referencedId: '',
-    parentCommentId: undefined,
-    belongsToUser: '',
+    body: '',
+    target: undefined,
+    parentId: '',
+    author: '',
     createdAt: undefined,
     lastUpdatedAt: undefined,
   };
@@ -52,26 +162,23 @@ export const Comment: MessageFns<Comment> = {
     if (message.id !== '') {
       writer.uint32(10).string(message.id);
     }
-    if (message.content !== '') {
-      writer.uint32(18).string(message.content);
+    if (message.body !== '') {
+      writer.uint32(18).string(message.body);
     }
-    if (message.targetType !== '') {
-      writer.uint32(26).string(message.targetType);
+    if (message.target !== undefined) {
+      CommentTarget.encode(message.target, writer.uint32(26).fork()).join();
     }
-    if (message.referencedId !== '') {
-      writer.uint32(34).string(message.referencedId);
+    if (message.parentId !== '') {
+      writer.uint32(34).string(message.parentId);
     }
-    if (message.parentCommentId !== undefined) {
-      writer.uint32(42).string(message.parentCommentId);
-    }
-    if (message.belongsToUser !== '') {
-      writer.uint32(50).string(message.belongsToUser);
+    if (message.author !== '') {
+      writer.uint32(42).string(message.author);
     }
     if (message.createdAt !== undefined) {
-      Timestamp.encode(toTimestamp(message.createdAt), writer.uint32(58).fork()).join();
+      Timestamp.encode(toTimestamp(message.createdAt), writer.uint32(50).fork()).join();
     }
     if (message.lastUpdatedAt !== undefined) {
-      Timestamp.encode(toTimestamp(message.lastUpdatedAt), writer.uint32(66).fork()).join();
+      Timestamp.encode(toTimestamp(message.lastUpdatedAt), writer.uint32(58).fork()).join();
     }
     return writer;
   },
@@ -96,7 +203,7 @@ export const Comment: MessageFns<Comment> = {
             break;
           }
 
-          message.content = reader.string();
+          message.body = reader.string();
           continue;
         }
         case 3: {
@@ -104,7 +211,7 @@ export const Comment: MessageFns<Comment> = {
             break;
           }
 
-          message.targetType = reader.string();
+          message.target = CommentTarget.decode(reader, reader.uint32());
           continue;
         }
         case 4: {
@@ -112,7 +219,7 @@ export const Comment: MessageFns<Comment> = {
             break;
           }
 
-          message.referencedId = reader.string();
+          message.parentId = reader.string();
           continue;
         }
         case 5: {
@@ -120,7 +227,7 @@ export const Comment: MessageFns<Comment> = {
             break;
           }
 
-          message.parentCommentId = reader.string();
+          message.author = reader.string();
           continue;
         }
         case 6: {
@@ -128,19 +235,11 @@ export const Comment: MessageFns<Comment> = {
             break;
           }
 
-          message.belongsToUser = reader.string();
+          message.createdAt = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
           continue;
         }
         case 7: {
           if (tag !== 58) {
-            break;
-          }
-
-          message.createdAt = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
-          continue;
-        }
-        case 8: {
-          if (tag !== 66) {
             break;
           }
 
@@ -159,27 +258,14 @@ export const Comment: MessageFns<Comment> = {
   fromJSON(object: any): Comment {
     return {
       id: isSet(object.id) ? globalThis.String(object.id) : '',
-      content: isSet(object.content) ? globalThis.String(object.content) : '',
-      targetType: isSet(object.targetType)
-        ? globalThis.String(object.targetType)
-        : isSet(object.target_type)
-          ? globalThis.String(object.target_type)
+      body: isSet(object.body) ? globalThis.String(object.body) : '',
+      target: isSet(object.target) ? CommentTarget.fromJSON(object.target) : undefined,
+      parentId: isSet(object.parentId)
+        ? globalThis.String(object.parentId)
+        : isSet(object.parent_id)
+          ? globalThis.String(object.parent_id)
           : '',
-      referencedId: isSet(object.referencedId)
-        ? globalThis.String(object.referencedId)
-        : isSet(object.referenced_id)
-          ? globalThis.String(object.referenced_id)
-          : '',
-      parentCommentId: isSet(object.parentCommentId)
-        ? globalThis.String(object.parentCommentId)
-        : isSet(object.parent_comment_id)
-          ? globalThis.String(object.parent_comment_id)
-          : undefined,
-      belongsToUser: isSet(object.belongsToUser)
-        ? globalThis.String(object.belongsToUser)
-        : isSet(object.belongs_to_user)
-          ? globalThis.String(object.belongs_to_user)
-          : '',
+      author: isSet(object.author) ? globalThis.String(object.author) : '',
       createdAt: isSet(object.createdAt)
         ? fromJsonTimestamp(object.createdAt)
         : isSet(object.created_at)
@@ -198,20 +284,17 @@ export const Comment: MessageFns<Comment> = {
     if (message.id !== '') {
       obj.id = message.id;
     }
-    if (message.content !== '') {
-      obj.content = message.content;
+    if (message.body !== '') {
+      obj.body = message.body;
     }
-    if (message.targetType !== '') {
-      obj.targetType = message.targetType;
+    if (message.target !== undefined) {
+      obj.target = CommentTarget.toJSON(message.target);
     }
-    if (message.referencedId !== '') {
-      obj.referencedId = message.referencedId;
+    if (message.parentId !== '') {
+      obj.parentId = message.parentId;
     }
-    if (message.parentCommentId !== undefined) {
-      obj.parentCommentId = message.parentCommentId;
-    }
-    if (message.belongsToUser !== '') {
-      obj.belongsToUser = message.belongsToUser;
+    if (message.author !== '') {
+      obj.author = message.author;
     }
     if (message.createdAt !== undefined) {
       obj.createdAt = message.createdAt.toISOString();
@@ -228,11 +311,11 @@ export const Comment: MessageFns<Comment> = {
   fromPartial<I extends Exact<DeepPartial<Comment>, I>>(object: I): Comment {
     const message = createBaseComment();
     message.id = object.id ?? '';
-    message.content = object.content ?? '';
-    message.targetType = object.targetType ?? '';
-    message.referencedId = object.referencedId ?? '';
-    message.parentCommentId = object.parentCommentId ?? undefined;
-    message.belongsToUser = object.belongsToUser ?? '';
+    message.body = object.body ?? '';
+    message.target =
+      object.target !== undefined && object.target !== null ? CommentTarget.fromPartial(object.target) : undefined;
+    message.parentId = object.parentId ?? '';
+    message.author = object.author ?? '';
     message.createdAt = object.createdAt ?? undefined;
     message.lastUpdatedAt = object.lastUpdatedAt ?? undefined;
     return message;
@@ -240,22 +323,19 @@ export const Comment: MessageFns<Comment> = {
 };
 
 function createBaseCommentCreationRequestInput(): CommentCreationRequestInput {
-  return { content: '', parentCommentId: undefined, targetType: '', referencedId: '' };
+  return { body: '', parentId: '', target: undefined };
 }
 
 export const CommentCreationRequestInput: MessageFns<CommentCreationRequestInput> = {
   encode(message: CommentCreationRequestInput, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.content !== '') {
-      writer.uint32(10).string(message.content);
+    if (message.body !== '') {
+      writer.uint32(10).string(message.body);
     }
-    if (message.parentCommentId !== undefined) {
-      writer.uint32(18).string(message.parentCommentId);
+    if (message.parentId !== '') {
+      writer.uint32(18).string(message.parentId);
     }
-    if (message.targetType !== '') {
-      writer.uint32(26).string(message.targetType);
-    }
-    if (message.referencedId !== '') {
-      writer.uint32(34).string(message.referencedId);
+    if (message.target !== undefined) {
+      CommentTarget.encode(message.target, writer.uint32(26).fork()).join();
     }
     return writer;
   },
@@ -272,7 +352,7 @@ export const CommentCreationRequestInput: MessageFns<CommentCreationRequestInput
             break;
           }
 
-          message.content = reader.string();
+          message.body = reader.string();
           continue;
         }
         case 2: {
@@ -280,7 +360,7 @@ export const CommentCreationRequestInput: MessageFns<CommentCreationRequestInput
             break;
           }
 
-          message.parentCommentId = reader.string();
+          message.parentId = reader.string();
           continue;
         }
         case 3: {
@@ -288,15 +368,7 @@ export const CommentCreationRequestInput: MessageFns<CommentCreationRequestInput
             break;
           }
 
-          message.targetType = reader.string();
-          continue;
-        }
-        case 4: {
-          if (tag !== 34) {
-            break;
-          }
-
-          message.referencedId = reader.string();
+          message.target = CommentTarget.decode(reader, reader.uint32());
           continue;
         }
       }
@@ -310,38 +382,26 @@ export const CommentCreationRequestInput: MessageFns<CommentCreationRequestInput
 
   fromJSON(object: any): CommentCreationRequestInput {
     return {
-      content: isSet(object.content) ? globalThis.String(object.content) : '',
-      parentCommentId: isSet(object.parentCommentId)
-        ? globalThis.String(object.parentCommentId)
-        : isSet(object.parent_comment_id)
-          ? globalThis.String(object.parent_comment_id)
-          : undefined,
-      targetType: isSet(object.targetType)
-        ? globalThis.String(object.targetType)
-        : isSet(object.target_type)
-          ? globalThis.String(object.target_type)
+      body: isSet(object.body) ? globalThis.String(object.body) : '',
+      parentId: isSet(object.parentId)
+        ? globalThis.String(object.parentId)
+        : isSet(object.parent_id)
+          ? globalThis.String(object.parent_id)
           : '',
-      referencedId: isSet(object.referencedId)
-        ? globalThis.String(object.referencedId)
-        : isSet(object.referenced_id)
-          ? globalThis.String(object.referenced_id)
-          : '',
+      target: isSet(object.target) ? CommentTarget.fromJSON(object.target) : undefined,
     };
   },
 
   toJSON(message: CommentCreationRequestInput): unknown {
     const obj: any = {};
-    if (message.content !== '') {
-      obj.content = message.content;
+    if (message.body !== '') {
+      obj.body = message.body;
     }
-    if (message.parentCommentId !== undefined) {
-      obj.parentCommentId = message.parentCommentId;
+    if (message.parentId !== '') {
+      obj.parentId = message.parentId;
     }
-    if (message.targetType !== '') {
-      obj.targetType = message.targetType;
-    }
-    if (message.referencedId !== '') {
-      obj.referencedId = message.referencedId;
+    if (message.target !== undefined) {
+      obj.target = CommentTarget.toJSON(message.target);
     }
     return obj;
   },
@@ -351,22 +411,22 @@ export const CommentCreationRequestInput: MessageFns<CommentCreationRequestInput
   },
   fromPartial<I extends Exact<DeepPartial<CommentCreationRequestInput>, I>>(object: I): CommentCreationRequestInput {
     const message = createBaseCommentCreationRequestInput();
-    message.content = object.content ?? '';
-    message.parentCommentId = object.parentCommentId ?? undefined;
-    message.targetType = object.targetType ?? '';
-    message.referencedId = object.referencedId ?? '';
+    message.body = object.body ?? '';
+    message.parentId = object.parentId ?? '';
+    message.target =
+      object.target !== undefined && object.target !== null ? CommentTarget.fromPartial(object.target) : undefined;
     return message;
   },
 };
 
 function createBaseCommentUpdateRequestInput(): CommentUpdateRequestInput {
-  return { content: '' };
+  return { body: '' };
 }
 
 export const CommentUpdateRequestInput: MessageFns<CommentUpdateRequestInput> = {
   encode(message: CommentUpdateRequestInput, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.content !== '') {
-      writer.uint32(10).string(message.content);
+    if (message.body !== '') {
+      writer.uint32(10).string(message.body);
     }
     return writer;
   },
@@ -383,7 +443,7 @@ export const CommentUpdateRequestInput: MessageFns<CommentUpdateRequestInput> = 
             break;
           }
 
-          message.content = reader.string();
+          message.body = reader.string();
           continue;
         }
       }
@@ -396,13 +456,13 @@ export const CommentUpdateRequestInput: MessageFns<CommentUpdateRequestInput> = 
   },
 
   fromJSON(object: any): CommentUpdateRequestInput {
-    return { content: isSet(object.content) ? globalThis.String(object.content) : '' };
+    return { body: isSet(object.body) ? globalThis.String(object.body) : '' };
   },
 
   toJSON(message: CommentUpdateRequestInput): unknown {
     const obj: any = {};
-    if (message.content !== '') {
-      obj.content = message.content;
+    if (message.body !== '') {
+      obj.body = message.body;
     }
     return obj;
   },
@@ -412,7 +472,7 @@ export const CommentUpdateRequestInput: MessageFns<CommentUpdateRequestInput> = 
   },
   fromPartial<I extends Exact<DeepPartial<CommentUpdateRequestInput>, I>>(object: I): CommentUpdateRequestInput {
     const message = createBaseCommentUpdateRequestInput();
-    message.content = object.content ?? '';
+    message.body = object.body ?? '';
     return message;
   },
 };

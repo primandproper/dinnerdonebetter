@@ -8,7 +8,7 @@
 import { BinaryReader, BinaryWriter } from '@bufbuild/protobuf/wire';
 import { ResponseDetails } from '../common';
 import { Pagination, QueryFilter } from '../primandproper/platform/filtering/v1/filtering';
-import { Comment, CommentCreationRequestInput, CommentUpdateRequestInput } from './comments_messages';
+import { Comment, CommentCreationRequestInput, CommentTarget, CommentUpdateRequestInput } from './comments_messages';
 
 export const protobufPackage = 'comments';
 
@@ -29,13 +29,33 @@ export interface ArchiveCommentResponse {
   responseDetails: ResponseDetails | undefined;
 }
 
-export interface GetCommentsForReferenceRequest {
-  targetType: string;
-  referencedId: string;
+/** GetRootCommentsRequest reads the top level of one target's discussion. */
+export interface GetRootCommentsRequest {
+  target: CommentTarget | undefined;
   filter: QueryFilter | undefined;
 }
 
-export interface GetCommentsForReferenceResponse {
+export interface GetRootCommentsResponse {
+  responseDetails: ResponseDetails | undefined;
+  data: Comment[];
+  /**
+   * pagination's filtered count is of the target's roots, not of this page — it
+   * is the count a client renders beside the discussion.
+   */
+  pagination: Pagination | undefined;
+}
+
+/**
+ * GetCommentRepliesRequest reads one root comment's replies. The target is named
+ * as well as the parent because a reply carries both and the read keys on both.
+ */
+export interface GetCommentRepliesRequest {
+  target: CommentTarget | undefined;
+  parentId: string;
+  filter: QueryFilter | undefined;
+}
+
+export interface GetCommentRepliesResponse {
   responseDetails: ResponseDetails | undefined;
   data: Comment[];
   pagination: Pagination | undefined;
@@ -327,28 +347,25 @@ export const ArchiveCommentResponse: MessageFns<ArchiveCommentResponse> = {
   },
 };
 
-function createBaseGetCommentsForReferenceRequest(): GetCommentsForReferenceRequest {
-  return { targetType: '', referencedId: '', filter: undefined };
+function createBaseGetRootCommentsRequest(): GetRootCommentsRequest {
+  return { target: undefined, filter: undefined };
 }
 
-export const GetCommentsForReferenceRequest: MessageFns<GetCommentsForReferenceRequest> = {
-  encode(message: GetCommentsForReferenceRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.targetType !== '') {
-      writer.uint32(10).string(message.targetType);
-    }
-    if (message.referencedId !== '') {
-      writer.uint32(18).string(message.referencedId);
+export const GetRootCommentsRequest: MessageFns<GetRootCommentsRequest> = {
+  encode(message: GetRootCommentsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.target !== undefined) {
+      CommentTarget.encode(message.target, writer.uint32(10).fork()).join();
     }
     if (message.filter !== undefined) {
-      QueryFilter.encode(message.filter, writer.uint32(26).fork()).join();
+      QueryFilter.encode(message.filter, writer.uint32(18).fork()).join();
     }
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): GetCommentsForReferenceRequest {
+  decode(input: BinaryReader | Uint8Array, length?: number): GetRootCommentsRequest {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseGetCommentsForReferenceRequest();
+    const message = createBaseGetRootCommentsRequest();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -357,19 +374,11 @@ export const GetCommentsForReferenceRequest: MessageFns<GetCommentsForReferenceR
             break;
           }
 
-          message.targetType = reader.string();
+          message.target = CommentTarget.decode(reader, reader.uint32());
           continue;
         }
         case 2: {
           if (tag !== 18) {
-            break;
-          }
-
-          message.referencedId = reader.string();
-          continue;
-        }
-        case 3: {
-          if (tag !== 26) {
             break;
           }
 
@@ -385,29 +394,17 @@ export const GetCommentsForReferenceRequest: MessageFns<GetCommentsForReferenceR
     return message;
   },
 
-  fromJSON(object: any): GetCommentsForReferenceRequest {
+  fromJSON(object: any): GetRootCommentsRequest {
     return {
-      targetType: isSet(object.targetType)
-        ? globalThis.String(object.targetType)
-        : isSet(object.target_type)
-          ? globalThis.String(object.target_type)
-          : '',
-      referencedId: isSet(object.referencedId)
-        ? globalThis.String(object.referencedId)
-        : isSet(object.referenced_id)
-          ? globalThis.String(object.referenced_id)
-          : '',
+      target: isSet(object.target) ? CommentTarget.fromJSON(object.target) : undefined,
       filter: isSet(object.filter) ? QueryFilter.fromJSON(object.filter) : undefined,
     };
   },
 
-  toJSON(message: GetCommentsForReferenceRequest): unknown {
+  toJSON(message: GetRootCommentsRequest): unknown {
     const obj: any = {};
-    if (message.targetType !== '') {
-      obj.targetType = message.targetType;
-    }
-    if (message.referencedId !== '') {
-      obj.referencedId = message.referencedId;
+    if (message.target !== undefined) {
+      obj.target = CommentTarget.toJSON(message.target);
     }
     if (message.filter !== undefined) {
       obj.filter = QueryFilter.toJSON(message.filter);
@@ -415,27 +412,25 @@ export const GetCommentsForReferenceRequest: MessageFns<GetCommentsForReferenceR
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetCommentsForReferenceRequest>, I>>(base?: I): GetCommentsForReferenceRequest {
-    return GetCommentsForReferenceRequest.fromPartial(base ?? ({} as any));
+  create<I extends Exact<DeepPartial<GetRootCommentsRequest>, I>>(base?: I): GetRootCommentsRequest {
+    return GetRootCommentsRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetCommentsForReferenceRequest>, I>>(
-    object: I,
-  ): GetCommentsForReferenceRequest {
-    const message = createBaseGetCommentsForReferenceRequest();
-    message.targetType = object.targetType ?? '';
-    message.referencedId = object.referencedId ?? '';
+  fromPartial<I extends Exact<DeepPartial<GetRootCommentsRequest>, I>>(object: I): GetRootCommentsRequest {
+    const message = createBaseGetRootCommentsRequest();
+    message.target =
+      object.target !== undefined && object.target !== null ? CommentTarget.fromPartial(object.target) : undefined;
     message.filter =
       object.filter !== undefined && object.filter !== null ? QueryFilter.fromPartial(object.filter) : undefined;
     return message;
   },
 };
 
-function createBaseGetCommentsForReferenceResponse(): GetCommentsForReferenceResponse {
+function createBaseGetRootCommentsResponse(): GetRootCommentsResponse {
   return { responseDetails: undefined, data: [], pagination: undefined };
 }
 
-export const GetCommentsForReferenceResponse: MessageFns<GetCommentsForReferenceResponse> = {
-  encode(message: GetCommentsForReferenceResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+export const GetRootCommentsResponse: MessageFns<GetRootCommentsResponse> = {
+  encode(message: GetRootCommentsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.responseDetails !== undefined) {
       ResponseDetails.encode(message.responseDetails, writer.uint32(10).fork()).join();
     }
@@ -448,10 +443,10 @@ export const GetCommentsForReferenceResponse: MessageFns<GetCommentsForReference
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): GetCommentsForReferenceResponse {
+  decode(input: BinaryReader | Uint8Array, length?: number): GetRootCommentsResponse {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseGetCommentsForReferenceResponse();
+    const message = createBaseGetRootCommentsResponse();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -488,7 +483,7 @@ export const GetCommentsForReferenceResponse: MessageFns<GetCommentsForReference
     return message;
   },
 
-  fromJSON(object: any): GetCommentsForReferenceResponse {
+  fromJSON(object: any): GetRootCommentsResponse {
     return {
       responseDetails: isSet(object.responseDetails)
         ? ResponseDetails.fromJSON(object.responseDetails)
@@ -500,7 +495,7 @@ export const GetCommentsForReferenceResponse: MessageFns<GetCommentsForReference
     };
   },
 
-  toJSON(message: GetCommentsForReferenceResponse): unknown {
+  toJSON(message: GetRootCommentsResponse): unknown {
     const obj: any = {};
     if (message.responseDetails !== undefined) {
       obj.responseDetails = ResponseDetails.toJSON(message.responseDetails);
@@ -514,13 +509,211 @@ export const GetCommentsForReferenceResponse: MessageFns<GetCommentsForReference
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetCommentsForReferenceResponse>, I>>(base?: I): GetCommentsForReferenceResponse {
-    return GetCommentsForReferenceResponse.fromPartial(base ?? ({} as any));
+  create<I extends Exact<DeepPartial<GetRootCommentsResponse>, I>>(base?: I): GetRootCommentsResponse {
+    return GetRootCommentsResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetCommentsForReferenceResponse>, I>>(
-    object: I,
-  ): GetCommentsForReferenceResponse {
-    const message = createBaseGetCommentsForReferenceResponse();
+  fromPartial<I extends Exact<DeepPartial<GetRootCommentsResponse>, I>>(object: I): GetRootCommentsResponse {
+    const message = createBaseGetRootCommentsResponse();
+    message.responseDetails =
+      object.responseDetails !== undefined && object.responseDetails !== null
+        ? ResponseDetails.fromPartial(object.responseDetails)
+        : undefined;
+    message.data = object.data?.map((e) => Comment.fromPartial(e)) || [];
+    message.pagination =
+      object.pagination !== undefined && object.pagination !== null
+        ? Pagination.fromPartial(object.pagination)
+        : undefined;
+    return message;
+  },
+};
+
+function createBaseGetCommentRepliesRequest(): GetCommentRepliesRequest {
+  return { target: undefined, parentId: '', filter: undefined };
+}
+
+export const GetCommentRepliesRequest: MessageFns<GetCommentRepliesRequest> = {
+  encode(message: GetCommentRepliesRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.target !== undefined) {
+      CommentTarget.encode(message.target, writer.uint32(10).fork()).join();
+    }
+    if (message.parentId !== '') {
+      writer.uint32(18).string(message.parentId);
+    }
+    if (message.filter !== undefined) {
+      QueryFilter.encode(message.filter, writer.uint32(26).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetCommentRepliesRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetCommentRepliesRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.target = CommentTarget.decode(reader, reader.uint32());
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.parentId = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.filter = QueryFilter.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetCommentRepliesRequest {
+    return {
+      target: isSet(object.target) ? CommentTarget.fromJSON(object.target) : undefined,
+      parentId: isSet(object.parentId)
+        ? globalThis.String(object.parentId)
+        : isSet(object.parent_id)
+          ? globalThis.String(object.parent_id)
+          : '',
+      filter: isSet(object.filter) ? QueryFilter.fromJSON(object.filter) : undefined,
+    };
+  },
+
+  toJSON(message: GetCommentRepliesRequest): unknown {
+    const obj: any = {};
+    if (message.target !== undefined) {
+      obj.target = CommentTarget.toJSON(message.target);
+    }
+    if (message.parentId !== '') {
+      obj.parentId = message.parentId;
+    }
+    if (message.filter !== undefined) {
+      obj.filter = QueryFilter.toJSON(message.filter);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetCommentRepliesRequest>, I>>(base?: I): GetCommentRepliesRequest {
+    return GetCommentRepliesRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetCommentRepliesRequest>, I>>(object: I): GetCommentRepliesRequest {
+    const message = createBaseGetCommentRepliesRequest();
+    message.target =
+      object.target !== undefined && object.target !== null ? CommentTarget.fromPartial(object.target) : undefined;
+    message.parentId = object.parentId ?? '';
+    message.filter =
+      object.filter !== undefined && object.filter !== null ? QueryFilter.fromPartial(object.filter) : undefined;
+    return message;
+  },
+};
+
+function createBaseGetCommentRepliesResponse(): GetCommentRepliesResponse {
+  return { responseDetails: undefined, data: [], pagination: undefined };
+}
+
+export const GetCommentRepliesResponse: MessageFns<GetCommentRepliesResponse> = {
+  encode(message: GetCommentRepliesResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.responseDetails !== undefined) {
+      ResponseDetails.encode(message.responseDetails, writer.uint32(10).fork()).join();
+    }
+    for (const v of message.data) {
+      Comment.encode(v!, writer.uint32(18).fork()).join();
+    }
+    if (message.pagination !== undefined) {
+      Pagination.encode(message.pagination, writer.uint32(26).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetCommentRepliesResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetCommentRepliesResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.responseDetails = ResponseDetails.decode(reader, reader.uint32());
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.data.push(Comment.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.pagination = Pagination.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetCommentRepliesResponse {
+    return {
+      responseDetails: isSet(object.responseDetails)
+        ? ResponseDetails.fromJSON(object.responseDetails)
+        : isSet(object.response_details)
+          ? ResponseDetails.fromJSON(object.response_details)
+          : undefined,
+      data: globalThis.Array.isArray(object?.data) ? object.data.map((e: any) => Comment.fromJSON(e)) : [],
+      pagination: isSet(object.pagination) ? Pagination.fromJSON(object.pagination) : undefined,
+    };
+  },
+
+  toJSON(message: GetCommentRepliesResponse): unknown {
+    const obj: any = {};
+    if (message.responseDetails !== undefined) {
+      obj.responseDetails = ResponseDetails.toJSON(message.responseDetails);
+    }
+    if (message.data?.length) {
+      obj.data = message.data.map((e) => Comment.toJSON(e));
+    }
+    if (message.pagination !== undefined) {
+      obj.pagination = Pagination.toJSON(message.pagination);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetCommentRepliesResponse>, I>>(base?: I): GetCommentRepliesResponse {
+    return GetCommentRepliesResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetCommentRepliesResponse>, I>>(object: I): GetCommentRepliesResponse {
+    const message = createBaseGetCommentRepliesResponse();
     message.responseDetails =
       object.responseDetails !== undefined && object.responseDetails !== null
         ? ResponseDetails.fromPartial(object.responseDetails)

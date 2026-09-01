@@ -22,8 +22,10 @@ import {
   ArchiveCommentResponse,
   CreateCommentRequest,
   CreateCommentResponse,
-  GetCommentsForReferenceRequest,
-  GetCommentsForReferenceResponse,
+  GetCommentRepliesRequest,
+  GetCommentRepliesResponse,
+  GetRootCommentsRequest,
+  GetRootCommentsResponse,
   UpdateCommentRequest,
   UpdateCommentResponse,
 } from './comments_service_types';
@@ -53,17 +55,27 @@ export const CommentsServiceService = {
       Buffer.from(ArchiveCommentResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): ArchiveCommentResponse => ArchiveCommentResponse.decode(value),
   },
-  getCommentsForReference: {
-    path: '/comments.CommentsService/GetCommentsForReference' as const,
+  getRootComments: {
+    path: '/comments.CommentsService/GetRootComments' as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: GetCommentsForReferenceRequest): Buffer =>
-      Buffer.from(GetCommentsForReferenceRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): GetCommentsForReferenceRequest => GetCommentsForReferenceRequest.decode(value),
-    responseSerialize: (value: GetCommentsForReferenceResponse): Buffer =>
-      Buffer.from(GetCommentsForReferenceResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): GetCommentsForReferenceResponse =>
-      GetCommentsForReferenceResponse.decode(value),
+    requestSerialize: (value: GetRootCommentsRequest): Buffer =>
+      Buffer.from(GetRootCommentsRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetRootCommentsRequest => GetRootCommentsRequest.decode(value),
+    responseSerialize: (value: GetRootCommentsResponse): Buffer =>
+      Buffer.from(GetRootCommentsResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetRootCommentsResponse => GetRootCommentsResponse.decode(value),
+  },
+  getCommentReplies: {
+    path: '/comments.CommentsService/GetCommentReplies' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: GetCommentRepliesRequest): Buffer =>
+      Buffer.from(GetCommentRepliesRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetCommentRepliesRequest => GetCommentRepliesRequest.decode(value),
+    responseSerialize: (value: GetCommentRepliesResponse): Buffer =>
+      Buffer.from(GetCommentRepliesResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetCommentRepliesResponse => GetCommentRepliesResponse.decode(value),
   },
   updateComment: {
     path: '/comments.CommentsService/UpdateComment' as const,
@@ -80,7 +92,8 @@ export const CommentsServiceService = {
 export interface CommentsServiceServer extends UntypedServiceImplementation {
   createComment: handleUnaryCall<CreateCommentRequest, CreateCommentResponse>;
   archiveComment: handleUnaryCall<ArchiveCommentRequest, ArchiveCommentResponse>;
-  getCommentsForReference: handleUnaryCall<GetCommentsForReferenceRequest, GetCommentsForReferenceResponse>;
+  getRootComments: handleUnaryCall<GetRootCommentsRequest, GetRootCommentsResponse>;
+  getCommentReplies: handleUnaryCall<GetCommentRepliesRequest, GetCommentRepliesResponse>;
   updateComment: handleUnaryCall<UpdateCommentRequest, UpdateCommentResponse>;
 }
 
@@ -115,20 +128,35 @@ export interface CommentsServiceClient extends Client {
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: ArchiveCommentResponse) => void,
   ): ClientUnaryCall;
-  getCommentsForReference(
-    request: GetCommentsForReferenceRequest,
-    callback: (error: ServiceError | null, response: GetCommentsForReferenceResponse) => void,
+  getRootComments(
+    request: GetRootCommentsRequest,
+    callback: (error: ServiceError | null, response: GetRootCommentsResponse) => void,
   ): ClientUnaryCall;
-  getCommentsForReference(
-    request: GetCommentsForReferenceRequest,
+  getRootComments(
+    request: GetRootCommentsRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetCommentsForReferenceResponse) => void,
+    callback: (error: ServiceError | null, response: GetRootCommentsResponse) => void,
   ): ClientUnaryCall;
-  getCommentsForReference(
-    request: GetCommentsForReferenceRequest,
+  getRootComments(
+    request: GetRootCommentsRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetCommentsForReferenceResponse) => void,
+    callback: (error: ServiceError | null, response: GetRootCommentsResponse) => void,
+  ): ClientUnaryCall;
+  getCommentReplies(
+    request: GetCommentRepliesRequest,
+    callback: (error: ServiceError | null, response: GetCommentRepliesResponse) => void,
+  ): ClientUnaryCall;
+  getCommentReplies(
+    request: GetCommentRepliesRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetCommentRepliesResponse) => void,
+  ): ClientUnaryCall;
+  getCommentReplies(
+    request: GetCommentRepliesRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetCommentRepliesResponse) => void,
   ): ClientUnaryCall;
   updateComment(
     request: UpdateCommentRequest,

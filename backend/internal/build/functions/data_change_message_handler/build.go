@@ -3,6 +3,7 @@ package datachangemessagehandler
 import (
 	"context"
 
+	commentstargets "github.com/primandproper/dinnerdonebetter/backend/internal/build/comments"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	mealplanningregistration "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/registration"
 	notificationsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/manager"
@@ -68,6 +69,9 @@ func BuildInjector(
 
 	// repos
 	auditlogentries.RegisterAuditLogRepository(i)
+	// No existence checks on the catalog: this process reads and erases comments
+	// but never writes one, and the catalog gates writes rather than reads.
+	commentstargets.RegisterReadOnlyTargets(i)
 	commentsrepo.RegisterCommentsRepository(i)
 	paymentsrepo.RegisterPaymentsRepository(i)
 	identity.RegisterIdentityRepository(i)

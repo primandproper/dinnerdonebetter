@@ -6,24 +6,49 @@ import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/comments";
 
+// CommentTarget is what a comment is about: a kind of thing, and one of them.
+//
+// It is one message rather than two loose fields because a type without an id is
+// not a target, and every call that takes one takes both — passing them
+// separately is how a call site pairs one comment's type with another's id.
+message CommentTarget {
+  // type is the kind of thing, as the target catalog spells it. A type the
+  // catalog does not hold is refused at the write.
+  string type = 1;
+  // id is which one, as the owning domain spells it.
+  string id = 2;
+}
+
 message Comment {
   string id = 1;
-  string content = 2;
-  string target_type = 3;
-  string referenced_id = 4;
-  optional string parent_comment_id = 5;
-  string belongs_to_user = 6;
-  google.protobuf.Timestamp created_at = 7;
-  optional google.protobuf.Timestamp last_updated_at = 8;
+  // body is what the person actually said.
+  string body = 2;
+  CommentTarget target = 3;
+  // parent_id is the comment this one replies to, and the empty string is a
+  // comment that replies to nothing. Threads are one level deep: a reply may not
+  // itself be replied to.
+  string parent_id = 4;
+  // author is the ID of the user who wrote it.
+  string author = 5;
+  google.protobuf.Timestamp created_at = 6;
+  // last_updated_at is when the body was last edited, and unset for a comment
+  // nobody has revised. It is what a client renders an "edited" marker from.
+  google.protobuf.Timestamp last_updated_at = 7;
 }
 
 message CommentCreationRequestInput {
-  string content = 1;
-  optional string parent_comment_id = 2;
-  string target_type = 3; // Required for CreateComment; ignored for AddCommentTo*
-  string referenced_id = 4; // Required for CreateComment; ignored for AddCommentTo*
+  string body = 1;
+  // parent_id makes this a reply. Empty is a root comment.
+  string parent_id = 2;
+  // target is required for CreateComment and ignored for AddCommentTo*, which
+  // name the target in the request itself.
+  CommentTarget target = 3;
 }
 
 message CommentUpdateRequestInput {
-  string content = 1;
+  // body is the only editable fact about a comment. The target is what it is
+  // about, the parent is which conversation it is in, and the author is who said
+  // it; an update that assigned any of the three would silently move somebody
+  // else's words.
+  string body = 1;
 }

@@ -6,20 +6,21 @@ import (
 	"os"
 	"testing"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/build/comments"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments"
+	ddbcomments "github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments/fakes"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
+	platformcomments "github.com/primandproper/platform-go/v13/comments"
 	"github.com/primandproper/platform-go/v13/database"
-	mockdatabase "github.com/primandproper/platform-go/v13/database/mock"
 	"github.com/primandproper/platform-go/v13/database/postgres"
-	"github.com/primandproper/platform-go/v13/filtering"
 	"github.com/primandproper/platform-go/v13/identifiers"
 	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
+	metricsnoop "github.com/primandproper/platform-go/v13/observability/metrics/noop"
 	tracingnoop "github.com/primandproper/platform-go/v13/observability/tracing/noop"
 
 	"github.com/stretchr/testify/assert"
@@ -41,7 +42,12 @@ func TestMain(m *testing.M) {
 	}))
 }
 
-func buildDatabaseClientForTest(t *testing.T) (*repository, audit.Repository) {
+// buildDatabaseClientForTest builds the store over a real database.
+//
+// The target catalog is the read-only one, with no existence checks: nothing here
+// creates the recipes and meals the fakes point at, and a checked catalog would
+// make every write in this file a test of the meal planning repository.
+func buildDatabaseClientForTest(t *testing.T) (platformcomments.Store, audit.Repository, database.SQLQueryExecutor) {
 	t.Helper()
 
 	ctx := t.Context()
@@ -53,265 +59,164 @@ func buildDatabaseClientForTest(t *testing.T) (*repository, audit.Repository) {
 	require.NotNil(t, pgc)
 	require.NoError(t, err)
 
-	auditLogEntryRepo, err := auditlogentries.ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, pgc)
+	auditLogEntryRepo, err := auditlogentries.ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), metricsnoop.NewMetricsProvider(), pgc)
 	require.NoError(t, err)
 
-	c := ProvideCommentsRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), auditLogEntryRepo, pgc, nil)
-
-	return c.(*repository), auditLogEntryRepo
-}
-
-func buildInertClientForTest(t *testing.T) *repository {
-	t.Helper()
-
-	c := ProvideCommentsRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, &mockdatabase.ClientMock{ReaderFunc: func() database.SQLQueryExecutor { return nil }, WriterFunc: func() database.SQLQueryExecutor { return nil }}, nil)
-
-	return c.(*repository)
-}
-
-func createCommentForTest(t *testing.T, ctx context.Context, input *comments.CommentDatabaseCreationInput, dbc *repository) *comments.Comment {
-	t.Helper()
-
-	if input == nil {
-		input = fakes.BuildFakeCommentDatabaseCreationInput()
-	}
-
-	created, err := dbc.CreateComment(ctx, input)
+	c, err := ProvideCommentsRepository(
+		loggingnoop.NewLogger(),
+		tracingnoop.NewTracerProvider(),
+		metricsnoop.NewMetricsProvider(),
+		auditLogEntryRepo,
+		pgc,
+		nil,
+		comments.Catalog(),
+	)
 	require.NoError(t, err)
-	require.NotNil(t, created)
 
-	fetched, err := dbc.GetComment(ctx, created.ID)
-	require.NoError(t, err)
-	require.NotNil(t, fetched)
-	assert.Equal(t, created.ID, fetched.ID)
-	assert.Equal(t, created.Content, fetched.Content)
-	assert.Equal(t, created.TargetType, fetched.TargetType)
-	assert.Equal(t, created.ReferencedID, fetched.ReferencedID)
-	assert.Equal(t, created.BelongsToUser, fetched.BelongsToUser)
-
-	return created
+	return c, auditLogEntryRepo, pgc.Writer()
 }
 
-func TestQuerier_Integration_Comments(t *testing.T) {
+func TestRepository_Integration_Comments(t *testing.T) {
 	ctx := t.Context()
-	dbc, auditRepo := buildDatabaseClientForTest(t)
+	dbc, auditRepo, writer := buildDatabaseClientForTest(t)
 
-	user := pgtesting.CreateUserForTest(t, nil, dbc.writeDB)
-	referencedID := identifiers.New()
-	targetType := mealplanning.CommentTargetTypeRecipes
+	user := pgtesting.CreateUserForTest(t, nil, writer)
+	target := platformcomments.Target{Type: mealplanning.CommentTargetTypeRecipes, ID: identifiers.New()}
 
-	input := fakes.BuildFakeCommentDatabaseCreationInput()
-	input.BelongsToUser = user.ID
-	input.ReferencedID = referencedID
-	input.TargetType = targetType
+	comment := fakes.BuildFakeComment()
+	comment.Author = user.ID
+	comment.Target = target
 
 	// create
-	created := createCommentForTest(t, ctx, input, dbc)
+	require.NoError(t, dbc.CreateComment(ctx, comment))
 	pgtesting.AssertAuditLogContainsForUser(t, ctx, auditRepo, user.ID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeComments, RelevantID: created.ID},
+		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeComments, RelevantID: comment.ID},
 	})
 
-	// fetch as list
-	result, err := dbc.GetCommentsForReference(ctx, targetType, referencedID, nil)
+	fetched, err := dbc.GetComment(ctx, ddbcomments.Scope(), comment.ID)
 	require.NoError(t, err)
-	require.NotEmpty(t, result.Data)
-	assert.Len(t, result.Data, 1)
-	assert.Equal(t, created.ID, result.Data[0].ID)
+	assert.Equal(t, comment.Body, fetched.Body)
+	assert.Equal(t, target, fetched.Target)
+	assert.Equal(t, user.ID, fetched.Author)
+
+	// read as the target's root list
+	roots, err := dbc.ListRootComments(ctx, ddbcomments.Scope(), target, nil)
+	require.NoError(t, err)
+	require.Len(t, roots.Data, 1)
+	assert.Equal(t, comment.ID, roots.Data[0].ID)
 
 	// update
-	newContent := "updated content"
-	err = dbc.UpdateComment(ctx, created.ID, user.ID, newContent)
-	require.NoError(t, err)
+	fetched.Body = "updated body"
+	require.NoError(t, dbc.UpdateComment(ctx, fetched))
 	pgtesting.AssertAuditLogContainsForUser(t, ctx, auditRepo, user.ID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeComments, RelevantID: created.ID},
-		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeComments, RelevantID: created.ID},
+		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeComments, RelevantID: comment.ID},
+		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeComments, RelevantID: comment.ID},
 	})
 
-	updated, err := dbc.GetComment(ctx, created.ID)
+	updated, err := dbc.GetComment(ctx, ddbcomments.Scope(), comment.ID)
 	require.NoError(t, err)
-	require.NotNil(t, updated)
-	assert.Equal(t, newContent, updated.Content)
+	assert.Equal(t, "updated body", updated.Body)
 	assert.NotNil(t, updated.LastUpdatedAt)
 
 	// archive
-	err = dbc.ArchiveComment(ctx, created.ID)
-	require.NoError(t, err)
+	require.NoError(t, dbc.ArchiveComment(ctx, ddbcomments.Scope(), comment.ID))
 	pgtesting.AssertAuditLogContainsForUser(t, ctx, auditRepo, user.ID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeComments, RelevantID: created.ID},
-		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeComments, RelevantID: created.ID},
-		{EventType: audit.AuditLogEventTypeArchived, ResourceType: resourceTypeComments, RelevantID: created.ID},
+		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeComments, RelevantID: comment.ID},
+		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeComments, RelevantID: comment.ID},
+		{EventType: audit.AuditLogEventTypeArchived, ResourceType: resourceTypeComments, RelevantID: comment.ID},
 	})
 
-	fetchedAfterArchive, err := dbc.GetComment(ctx, created.ID)
+	fetchedAfterArchive, err := dbc.GetComment(ctx, ddbcomments.Scope(), comment.ID)
 	require.Error(t, err)
 	assert.Nil(t, fetchedAfterArchive)
-	assert.ErrorIs(t, err, sql.ErrNoRows)
+	assert.ErrorIs(t, err, platformcomments.ErrCommentNotFound)
 }
 
-func TestQuerier_Integration_Comments_WithReplies(t *testing.T) {
+// TestRepository_Integration_ArchiveRecordsTheAuthor pins the one thing this
+// package's ArchiveComment does that the platform's does not: it reads the comment
+// first so the audit entry can name whose it was.
+func TestRepository_Integration_ArchiveRecordsTheAuthor(t *testing.T) {
 	ctx := t.Context()
-	dbc, _ := buildDatabaseClientForTest(t)
+	dbc, auditRepo, writer := buildDatabaseClientForTest(t)
 
-	user := pgtesting.CreateUserForTest(t, nil, dbc.writeDB)
-	referencedID := identifiers.New()
-	targetType := mealplanning.CommentTargetTypeRecipes
+	author := pgtesting.CreateUserForTest(t, nil, writer)
+	archiver := pgtesting.CreateUserForTest(t, nil, writer)
 
-	// create parent comment
-	parentInput := fakes.BuildFakeCommentDatabaseCreationInput()
-	parentInput.BelongsToUser = user.ID
-	parentInput.ReferencedID = referencedID
-	parentInput.TargetType = targetType
-	parent := createCommentForTest(t, ctx, parentInput, dbc)
+	comment := fakes.BuildFakeComment()
+	comment.Author = author.ID
+	require.NoError(t, dbc.CreateComment(ctx, comment))
 
-	// create reply
-	replyInput := fakes.BuildFakeCommentDatabaseCreationInput()
-	replyInput.BelongsToUser = user.ID
-	replyInput.ReferencedID = referencedID
-	replyInput.TargetType = targetType
-	replyInput.ParentCommentID = &parent.ID
-	reply := createCommentForTest(t, ctx, replyInput, dbc)
+	require.NoError(t, dbc.ArchiveComment(ctx, ddbcomments.Scope(), comment.ID))
 
-	// fetch all for reference - should get both parent and reply
-	result, err := dbc.GetCommentsForReference(ctx, targetType, referencedID, nil)
+	// The entry belongs to whoever wrote the comment, not to whoever happened to be
+	// signed in when it was archived.
+	pgtesting.AssertAuditLogContainsForUser(t, ctx, auditRepo, author.ID, []*audit.AuditLogEntry{
+		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeComments, RelevantID: comment.ID},
+		{EventType: audit.AuditLogEventTypeArchived, ResourceType: resourceTypeComments, RelevantID: comment.ID},
+	})
+
+	entries, err := auditRepo.GetAuditLogEntriesForUser(ctx, archiver.ID, nil)
 	require.NoError(t, err)
-	require.Len(t, result.Data, 2)
-	var foundParent, foundReply bool
-	for _, c := range result.Data {
-		if c.ID == parent.ID {
-			foundParent = true
-			assert.Nil(t, c.ParentCommentID)
-		}
-		if c.ID == reply.ID {
-			foundReply = true
-			require.NotNil(t, c.ParentCommentID)
-			assert.Equal(t, parent.ID, *c.ParentCommentID)
-		}
-	}
-	assert.True(t, foundParent)
-	assert.True(t, foundReply)
+	assert.Empty(t, entries.Data)
 }
 
-func TestQuerier_CreateComment(T *testing.T) {
-	T.Parallel()
-
-	T.Run("with nil input", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		c := buildInertClientForTest(t)
-
-		actual, err := c.CreateComment(ctx, nil)
-		require.Error(t, err)
-		assert.Nil(t, actual)
-	})
-}
-
-func TestQuerier_GetComment(T *testing.T) {
-	T.Parallel()
-
-	T.Run("with empty id", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		c := buildInertClientForTest(t)
-
-		actual, err := c.GetComment(ctx, "")
-		require.Error(t, err)
-		assert.Nil(t, actual)
-	})
-}
-
-func TestQuerier_GetCommentsForReference(T *testing.T) {
-	T.Parallel()
-
-	T.Run("with empty target type", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		c := buildInertClientForTest(t)
-
-		actual, err := c.GetCommentsForReference(ctx, "", "ref-id", nil)
-		require.Error(t, err)
-		assert.Nil(t, actual)
-	})
-
-	T.Run("with empty referenced id", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		c := buildInertClientForTest(t)
-
-		actual, err := c.GetCommentsForReference(ctx, mealplanning.CommentTargetTypeRecipes, "", nil)
-		require.Error(t, err)
-		assert.Nil(t, actual)
-	})
-}
-
-func TestQuerier_UpdateComment(T *testing.T) {
-	T.Parallel()
-
-	T.Run("with empty id", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		c := buildInertClientForTest(t)
-
-		err := c.UpdateComment(ctx, "", "user-id", "content")
-		assert.Error(t, err)
-	})
-
-	T.Run("with empty belongs to user", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		c := buildInertClientForTest(t)
-
-		err := c.UpdateComment(ctx, "comment-id", "", "content")
-		assert.Error(t, err)
-	})
-}
-
-func TestQuerier_ArchiveComment(T *testing.T) {
-	T.Parallel()
-
-	T.Run("with empty id", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		c := buildInertClientForTest(t)
-
-		err := c.ArchiveComment(ctx, "")
-		assert.Error(t, err)
-	})
-}
-
-func TestQuerier_Integration_Comments_CursorPagination(t *testing.T) {
+// TestRepository_Integration_ArchiveMissingRecordsNothing pins that a failed
+// archive records nothing. The read that finds the author is also what makes an
+// absent comment an error before anything is written down about it.
+func TestRepository_Integration_ArchiveMissingRecordsNothing(t *testing.T) {
 	ctx := t.Context()
-	dbc, _ := buildDatabaseClientForTest(t)
+	dbc, _, _ := buildDatabaseClientForTest(t)
 
-	user := pgtesting.CreateUserForTest(t, nil, dbc.writeDB)
-	referencedID := identifiers.New()
-	targetType := mealplanning.CommentTargetTypeMeals
+	err := dbc.ArchiveComment(ctx, ddbcomments.Scope(), identifiers.New())
+	require.Error(t, err)
+	assert.ErrorIs(t, err, platformcomments.ErrCommentNotFound)
+}
 
-	pgtesting.TestCursorBasedPagination(t, ctx, pgtesting.PaginationTestConfig[comments.Comment]{
-		TotalItems: 9,
-		PageSize:   3,
-		ItemName:   "comment",
-		CreateItem: func(ctx context.Context, i int) *comments.Comment {
-			input := fakes.BuildFakeCommentDatabaseCreationInput()
-			input.BelongsToUser = user.ID
-			input.ReferencedID = referencedID
-			input.TargetType = targetType
-			return createCommentForTest(t, ctx, input, dbc)
-		},
-		FetchPage: func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[comments.Comment], error) {
-			return dbc.GetCommentsForReference(ctx, targetType, referencedID, filter)
-		},
-		GetID: func(c *comments.Comment) string {
-			return c.ID
-		},
-		CleanupItem: func(ctx context.Context, c *comments.Comment) error {
-			return dbc.ArchiveComment(ctx, c.ID)
-		},
-	})
+// TestRepository_Integration_UnknownTargetType pins that the catalog gates writes.
+// A misspelled target type is refused rather than stored under a name nothing
+// lists.
+func TestRepository_Integration_UnknownTargetType(t *testing.T) {
+	ctx := t.Context()
+	dbc, _, writer := buildDatabaseClientForTest(t)
+
+	user := pgtesting.CreateUserForTest(t, nil, writer)
+
+	comment := fakes.BuildFakeComment()
+	comment.Author = user.ID
+	comment.Target.Type = "recipies"
+
+	err := dbc.CreateComment(ctx, comment)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, platformcomments.ErrUnknownTargetType)
+}
+
+// TestRepository_Integration_Replies pins the two-read thread shape: the target's
+// roots, then one root's replies. The reply is not in the root list, which is what
+// makes the root list's count the count a client renders beside the discussion.
+func TestRepository_Integration_Replies(t *testing.T) {
+	ctx := t.Context()
+	dbc, _, writer := buildDatabaseClientForTest(t)
+
+	user := pgtesting.CreateUserForTest(t, nil, writer)
+	target := platformcomments.Target{Type: mealplanning.CommentTargetTypeRecipes, ID: identifiers.New()}
+
+	root := fakes.BuildFakeComment()
+	root.Author = user.ID
+	root.Target = target
+	require.NoError(t, dbc.CreateComment(ctx, root))
+
+	reply := fakes.BuildFakeCommentReply(root)
+	reply.Author = user.ID
+	require.NoError(t, dbc.CreateComment(ctx, reply))
+
+	roots, err := dbc.ListRootComments(ctx, ddbcomments.Scope(), target, nil)
+	require.NoError(t, err)
+	require.Len(t, roots.Data, 1)
+	assert.Equal(t, root.ID, roots.Data[0].ID)
+
+	replies, err := dbc.ListReplies(ctx, ddbcomments.Scope(), target, root.ID, nil)
+	require.NoError(t, err)
+	require.Len(t, replies.Data, 1)
+	assert.Equal(t, reply.ID, replies.Data[0].ID)
+	assert.Equal(t, root.ID, replies.Data[0].ParentID)
 }

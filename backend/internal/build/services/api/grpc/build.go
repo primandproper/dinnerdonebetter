@@ -5,12 +5,12 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
+	commentstargets "github.com/primandproper/dinnerdonebetter/backend/internal/build/comments"
 	dataprivacybuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/dataprivacy"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/build/sagas"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	auditmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit/manager"
 	authmgr "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/managers"
-	commentsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments/manager"
 	identitymgr "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/manager"
 	issuereportsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports/manager"
 	mealplanningregistration "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/registration"
@@ -136,6 +136,11 @@ func BuildInjector(
 	tokenscfg.RegisterTokenIssuer(i)
 	interceptors.RegisterAuthInterceptor(i)
 
+	// The catalog of things this application accepts comments on, carrying an
+	// existence check per type. It is registered before the store that enforces
+	// it because a store built without one accepts no writes at all.
+	commentstargets.RegisterTargets(i)
+
 	// repositories (core)
 	auditrepo.RegisterAuditLogRepository(i)
 	authrepo.RegisterAuthRepository(i)
@@ -151,7 +156,6 @@ func BuildInjector(
 	// managers
 	auditmanager.RegisterAuditDataManager(i)
 	authmgr.RegisterAuthManager(i)
-	commentsmanager.RegisterCommentsDataManager(i)
 	identitymgr.RegisterIdentityDataManager(i)
 	notificationsmanager.RegisterNotificationsDataManager(i)
 	settingsmanager.RegisterSettingsDataManager(i)

@@ -3,6 +3,7 @@ package scheduler
 import (
 	"context"
 
+	commentstargets "github.com/primandproper/dinnerdonebetter/backend/internal/build/comments"
 	dataprivacybuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/dataprivacy"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/build/sagas"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
@@ -88,6 +89,9 @@ func BuildInjector(
 	// process that claims has to be able to answer. It is paid once at startup — the pools and
 	// the tracer are constructed here regardless — rather than per request.
 	auditlogentries.RegisterAuditLogRepository(i)
+	// No existence checks on the catalog: this process reads and erases comments
+	// but never writes one, and the catalog gates writes rather than reads.
+	commentstargets.RegisterReadOnlyTargets(i)
 	commentsrepo.RegisterCommentsRepository(i)
 	identityrepo.RegisterIdentityRepository(i)
 	internalopsrepo.RegisterInternalOpsRepository(i)
