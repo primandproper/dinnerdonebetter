@@ -9,6 +9,39 @@ This document enumerates every step required to add a new domain (or new entity 
 - **New business domain**: Adding a completely new area (e.g., invoicing, inventory) — follow the full path.
 - **New entity within domain**: Adding a new table/entity to an existing domain (e.g., new `valid_*` in mealplanning) — follow the shorter path in [Section 11](#11-new-entity-within-existing-domain).
 
+## Should This Be Generic?
+
+Most of what follows is the same shape every time — `Exists / Get / GetMany / Create / Update / Archive` over an owner scope, plus a scoped read or two — so the reflex is to ask whether a domain could *declare* that shape instead of walking this checklist. **The question has been asked, built, vetted and answered: no.** Do not re-file it.
+
+[#1304] spiked a generic scoped-CRUD resource kit, piloted on `comments`, and got a working one: zero domain-specific escape hatches, the whole comments data layer as a `Definition` plus a column list. It was promoted upstream as [platform-go#292], vetted against this repo as its first intended consumer, and **closed on the vetting**. `resources`, `Definition`, `Lookup`, `Match` and `Gate` were dropped and are not coming back.
+
+Why, in the order the reasons matter:
+
+- **The queries were never the duplication.** `cmd/tools/codegen/queries/` already builds them from `querygen`, one file per table. The handful of statements a domain needs beyond standard CRUD are assembled from the same `querygen` fragments a runtime kit would have called at execution time — `Generator.FilterConditions`, `Generator.CursorLimitClause`, the two count selects — so the kit does not remove a second rendering of the filter semantics, it adds a *third* declaration of the column list with a weaker query language than the one already in use.
+- **The generated layer is nobody's to maintain.** For the pilot domain a human maintained 409 lines of repository and 141 of codegen; the ~670 lines of sqlc output and `.sql` underneath cost nothing to keep. Counting total lines overstates the win by more than a factor of two.
+- **A declared query language re-implements what sqlc gives free.** The kit needed an `ErrUndeclaredLookup` guardrail to stop a generic list from answering predicate combinations nobody chose to index. sqlc prevents that by construction: the query is in a file or it is not.
+- **The bugs clustered in the derived machinery, on the two boundaries this codebase can least afford them.** The vetting found a lookup on the scope column binding the caller's value where the tenancy gate's went — one tenant reading another's rows by naming them; a cascade that archived without a limit but reported a single page, so rows past the boundary got no audit entry and no event and nothing said so; and a list vouching for counts an empty page never scanned. None of the three can exist in a hand-written sqlc store, because there is no generic layer there to get them wrong.
+
+There is a coverage ceiling underneath all of that. Of the 66 generated query files here, only 22 are free of `JOIN` / CTE / `GROUP BY` / `UNION`, and `mealplanning` — the bulk of the application — is 32 of 41 with joins. The kit's matcher was equality-only with no partial escape, so the first query shape it could not express dropped that whole resource back to a hand-written store anyway.
+
+### What the vetting did find
+
+The repetition worth removing is not the SQL. It is the ceremony around each write — `WithTransaction`, then record the audit entry, then emit the event — repeated per method per domain, and 11 of the pilot domain's 409 repository lines. That is [#1392]: a local helper, not a framework.
+
+### Read three instances instead of building a kit
+
+Platform ships `comments`, `issuereports` and `waitlists` — the same scoped-CRUD shape written out three times, tested against three dialects, with nobody owning an abstraction over them. Adopting them is section 2 of [#1368] and gets the benefit the kit was reaching for. `comments` is done ([#1375]); `issuereports` ([#1377]) and `waitlists` ([#1378]) are open.
+
+**So, before following this checklist: check whether platform already ships the domain.** If it does, adopt it. If it does not, hand-roll it through the steps below — that is the intended cost, and it is cheaper than the alternative that was tried.
+
+[#1304]: https://github.com/primandproper/dinnerdonebetter/issues/1304
+[#1368]: https://github.com/primandproper/dinnerdonebetter/issues/1368
+[#1375]: https://github.com/primandproper/dinnerdonebetter/issues/1375
+[#1377]: https://github.com/primandproper/dinnerdonebetter/issues/1377
+[#1378]: https://github.com/primandproper/dinnerdonebetter/issues/1378
+[#1392]: https://github.com/primandproper/dinnerdonebetter/issues/1392
+[platform-go#292]: https://github.com/primandproper/platform-go/pull/292
+
 ## High-Level Flow
 
 ```mermaid
@@ -183,6 +216,8 @@ Converters:
 ## 4. Data Layer: Repository and Manager
 
 Preferred pattern: **Manager wraps Repository** (not Repository-only).
+
+This layer is where the repetition between domains is most visible. It is deliberate — see [Should This Be Generic?](#should-this-be-generic) for the kit that was built to remove it and why it was rejected.
 
 ### 4a. Repository
 
