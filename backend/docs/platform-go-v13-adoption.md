@@ -123,6 +123,7 @@ sequenced separately — none is required to compile.
 | ~~`uploads/registry`~~ (adopted, #1376) | `postgres/uploadedmedia` + `domain/uploadedmedia` + `uploadedmedia_*.go` codegen | #389 |
 | ~~`filtering/filteringpb` + `filtering/grpc`~~ (adopted, #1370) | `proto/filtering.proto` + `internal/grpc/converters/query_filter.go` | #311 |
 | `oauth2server` resource server | the MCP server's resource-server half | #451 |
+| ~~`authorization/database`~~ (adopted, #1386) | the four RBAC tables in `00019_rbac.sql` plus their seed | #400 |
 
 `filtering` had the best value-to-risk ratio — it deleted a page-size clamp this repo restated by
 hand — and was the only one that reached `frontend/` and `ios/`; #1370 did it.
@@ -243,6 +244,87 @@ a consumer whose `subject_id` is mixed has nothing to build an eraser on.
 [platform-go #458]: https://github.com/primandproper/platform-go/issues/458
 [#457]: https://github.com/primandproper/platform-go/issues/457
 [platform-go #460]: https://github.com/primandproper/platform-go/issues/460
+
+## What adopting a store that *duplicates a declaration* costs
+
+`authorization/database` (#1386) is the first store this repository adopted whose value is
+not a table it did not have, and not behaviour it was missing. Both existed. What it deletes
+is a *second copy* of something the code already declared.
+
+Permissions were declared twice. `internal/authorization` holds the slices the method table
+and the platform policy are written from; `00019_rbac.sql` and `00021_mealplanning.sql` held
+~620 lines of `INSERT` statements, and those rows were what authorization actually read at
+runtime. Between the two stood one test that string-matched permission *names* against the
+concatenated migration text — so it could catch a name declared in Go and never seeded, and
+could not see a role→permission mapping that was wrong.
+
+They had drifted, on three of five roles, and the drift was not small:
+
+| Role | Declared in Go | Actually granted |
+| --- | --- | --- |
+| `account_member` | 133 | 133 |
+| `service_data_admin` | 42 | 42 |
+| `account_admin` | 43 | **171** |
+| `service_admin` | 28 | **240** |
+| `service_user` | **133** | **0** |
+
+Two causes, and neither was a typo. The database has had a role hierarchy since #1215;
+`PlatformPolicy()` modelled roles as flat, with a comment saying that expressing inheritance
+"would be a behavioral change disguised as a refactor" — which had it backwards. And the meal
+planning migration granted `service_admin` the data-admin set directly, row for row, which
+nothing in Go recorded. In the other direction, `PlatformPolicy()` gave `service_user` the
+account-member permissions; the database gives that role nothing, which is correct, because
+every user holds `service_user` service-wide and account authority is held per account.
+
+None of it was reachable. `ProvideAuthorizationEnforcer` validated the policy through
+`static.NewResolver` and discarded the resolver, so the wrong table was never asked anything.
+Both tests built on it — including the equivalence proof between the enforcer and the
+hand-rolled interceptor — were driving principals that cannot exist. Correcting the policy is
+the first commit of the adoption for that reason: seeding the flat one would have been a
+two-way authorization break.
+
+Four things followed:
+
+- **The seed became a call.** `Seed` takes the caller's executor, so it runs in the migrator's
+  own transaction — none of the transaction-ownership friction `comments` and `waitlists` hit
+  ([#457], [platform-go #458]). It also *revokes*: a role's grants are rewritten rather than
+  added to, so a permission deleted in Go disappears on the next migration. That had already
+  been needed once by hand — #1376 removed `update.uploaded_media` and had to add a
+  compensating `DELETE FROM permissions` to an unrelated migration, which this deletes.
+- **Seeding lives behind `Migrate`, not at a wiring site.** An unseeded policy grants nothing,
+  so a process that forgot would come up refusing every request. Putting it there also means
+  the fifteen container harnesses that migrate a template database get a seeded policy without
+  each remembering to ask for one.
+- **The foreign key survived, unlike the last two adoptions.** `uploads/registry` and
+  `issuereports` re-pointed their cascades at `users`; `waitlists` could re-create nothing.
+  Here the assignment references the role *by name*, and platform indexes `authz_roles.name`
+  uniquely — deliberately, since reusing an archived role's name would re-grant its authority
+  — and PostgreSQL accepts a unique index as a key target. Three joins went with the change,
+  including the admin login query's, because sqlc's schema is `migration_files` and a
+  generated table is not in it.
+- **A column nobody read was hiding a privilege escalation.** `user_roles.scope` said whether a
+  role was a service role or an account role, and no query ever filtered on it — including
+  `ModifyUserPermissions`, which resolved a caller-supplied role name and wrote it into an
+  account-scoped assignment. An account admin could name `service_admin` there and grant a
+  member the whole 240-permission closure inside the account. The column has no platform
+  counterpart and is not re-created; an allow-list on the input replaces it, and is enforced
+  where the column was not.
+
+`authorization/cached` is **not** adopted, and the reason is not the one that closed #1385.
+A memory cache would be *correct* here — policy is derived, identical in every replica, and
+written only by a migration — but resolution is already one statement against five roles, and
+a per-process cache makes a policy change visible one replica at a time. That is a fine trade
+to make deliberately and a bad one to make silently, so it waits for somewhere shared to put
+it. `authorization/http` is not adopted either: `ProvideAPIRouter` is the only router in the
+repository and every route on it is unauthenticated, so there is nothing to guard.
+
+One gap went upstream rather than being papered over: `Seed` is not safe to run concurrently
+with itself — it clears a role's grants and re-inserts them with no `ON CONFLICT`, and
+migrations run at startup on every replica. Filed as [platform-go #463]; the local workaround is
+an advisory lock around the seeding transaction, and there is a test that three concurrent
+migrations converge.
+
+[platform-go #463]: https://github.com/primandproper/platform-go/issues/463
 
 ## Verification
 

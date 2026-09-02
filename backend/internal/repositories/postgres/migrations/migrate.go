@@ -288,8 +288,11 @@ var _ database.Migrator = (*Migrator)(nil)
 // replicas seeding the same policy either block on each other's row locks or
 // collide on the (role_id, permission_id) primary key. The schema half is
 // already serialized by the migrator's own lock; this covers the half that
-// follows it. Filed upstream — the fix belongs in the platform, and this is the
-// local workaround that keeps a boot from failing meanwhile.
+// follows it.
+//
+// Filed as platform-go#463 — the fix belongs there, since a consumer holding a
+// lock is not something the package can check. This is the local workaround that
+// keeps a boot from failing meanwhile, and it goes when that lands.
 const seedLockKey = "dinnerdonebetter.authorization.seed"
 
 // Migrate applies every pending migration, then seeds the authorization policy.

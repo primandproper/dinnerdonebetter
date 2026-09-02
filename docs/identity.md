@@ -126,28 +126,51 @@ There is currently no server-side logout mechanism. Tokens expire naturally, and
 
 ## Account Roles and Permissions
 
-The system has two account-level roles and two service-level roles:
+Five roles, declared once in [`internal/authorization/platform.go`](../backend/internal/authorization/platform.go)
+as `PlatformPolicy()`. That declaration is the only one: the migrator seeds it into
+platform-go's `authorization/database` tables, and every permission check at runtime resolves
+against what it seeded. There is no second list in SQL to keep in step — there used to be, and
+the two had drifted on three of five roles.
 
-### Account-Level Roles
+Roles inherit, and inheritance is where most of a role's authority comes from:
 
-- **Account Member**: Basic access to account data, can perform standard operations within the account
-- **Account Admin**: All member permissions plus ability to modify account settings, invite/remove members, transfer account ownership, and manage account-level resources
-
-### Service-Level Roles
-
-- **Service User**: Can create webhooks and read information about accounts they're part of
-- **Service Admin**: Can run workers arbitrarily and publish arbitrary messages to queues
-
-**Note**: Account-level roles primarily govern meal planning activities. Future plans include switching from string-based roles to bitmask-based roles for better performance and flexibility.
-
-**Permission System**: [`internal/authorization/account_role.go`](internal/authorization/account_role.go)
-
-The permission system uses a hierarchical model where admins inherit all member permissions:
-
-```go
-// From internal/authorization/rbac.go
-must(rbac.SetParent(AccountAdminRoleName, AccountMemberRoleName))
 ```
+account_member       —
+account_admin        inherits account_member
+service_data_admin   —
+service_admin        inherits account_admin, service_data_admin
+service_user         —
+```
+
+### Account-level roles
+
+- **Account Member** — the authority an ordinary user has, held **per account**. Meal
+  planning, webhooks they can read, their own data privacy requests. 133 permissions.
+- **Account Admin** — account settings, invitations, membership changes, ownership transfer,
+  plus everything a member holds. 171 permissions.
+
+### Service-level roles
+
+- **Service User** — assigned to every user at signup, service-wide, and holds **nothing**.
+  That is deliberate rather than an omission: a permission granted here would be granted in
+  every account, and account authority is what `account_member` carries per account.
+- **Service Data Admin** — the reference-data catalog: instruments, ingredients,
+  preparations, measurement units and their bridges. 42 permissions.
+- **Service Admin** — user administration, impersonation, session management, arbitrary queue
+  messages and worker runs, plus everything an account admin and a data admin hold. 240
+  permissions, which is every permission the service declares.
+
+### Which roles a principal holds
+
+Assignments live in `user_role_assignments`, which is this repository's table rather than the
+platform's, because an assignment names a user and an account and no platform package can
+model those without owning them. A row with a NULL `account_id` is a service-wide assignment;
+anything else is scoped to that account. The row names its role by name, and a foreign key
+onto the roles table refuses a name nothing declares.
+
+Which roles may be assigned where is enforced in Go: `ModifyUserPermissionsInput` accepts only
+the two account roles, because the role it names is written into an account-scoped assignment
+and resolved within that account.
 
 ## Account Creation and User Registration
 
@@ -284,7 +307,6 @@ sequenceDiagram
 
 ### Future Improvements
 
-- **TODO**: Switch from string-based roles to bitmask-based roles for better performance and flexibility
 - **TODO**: Implement session-based account switching that doesn't permanently change the user's default account
 
 ### gRPC Services

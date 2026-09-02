@@ -85,6 +85,52 @@ func TestSeededPolicyMatchesTheDeclaredPolicy(T *testing.T) {
 		assert.Equal(t, before, after)
 	})
 
+	// Migrations run at startup on every replica, so two processes can reach the seed at
+	// once. Seed clears a role's grants and re-inserts them one statement at a time with
+	// no ON CONFLICT clause, so without the advisory lock the second writer either blocks
+	// on the first's row locks or collides on the grant table's primary key. This is what
+	// says the lock is doing its job.
+	T.Run("concurrent migration is safe", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		db, _ := pgtesting.BuildDatabaseContainerForTest(t)
+
+		const replicas = 3
+
+		errs := make(chan error, replicas)
+		for range replicas {
+			go func() {
+				migrator, err := NewMigrator(loggingnoop.NewLogger())
+				if err != nil {
+					errs <- err
+
+					return
+				}
+
+				errs <- migrator.Migrate(ctx, db)
+			}()
+		}
+
+		for range replicas {
+			require.NoError(t, <-errs)
+		}
+
+		// And the policy that lands is the whole policy, not a partially rewritten one.
+		resolver, err := authzdatabase.NewResolver(
+			&authzdatabase.Config{Dialect: dialect.Postgres, TablePrefix: authorization.TablePrefix},
+			db,
+		)
+		require.NoError(t, err)
+
+		expanded, err := platformauthz.ExpandInheritance(authorization.PlatformPolicy()...)
+		require.NoError(t, err)
+
+		seeded, err := resolver.PermissionsForRoles(ctx, authorization.ServiceAdminRoleName)
+		require.NoError(t, err)
+		assert.True(t, seeded.Equal(expanded[authorization.ServiceAdminRoleName]))
+	})
+
 	// An assignment naming a role nothing declares is refused at the database, rather
 	// than resolving to an empty permission set that looks like a legitimate denial.
 	T.Run("an assignment cannot name a role that does not exist", func(t *testing.T) {
