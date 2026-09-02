@@ -4,19 +4,16 @@ import (
 	platformauthz "github.com/primandproper/platform-go/v13/authorization"
 )
 
-// This file bridges this package's hand-rolled permission model onto
-// platform-go/v13's authorization package.
+// This file bridges this package's permission model onto platform-go/v13's
+// authorization package.
 //
-// The bridge exists so the platform enforcer can be run in audit-only mode
-// beside the existing checks: it evaluates every call against the same policy
-// and records where the two disagree, without denying anything. That is the
-// package's documented way to move enforcement onto it — turning it on across a
-// service that already has a large hand-written permission table is otherwise a
-// coin flip.
-//
-// Until the audit is clean, this package remains the source of truth. The Roles
-// table below is derived from the same permission slices the checkers use, so
-// the two cannot drift.
+// The permissions themselves stay here: what this service can be asked to do is
+// its own vocabulary, and no platform package supplies it. What moved out is
+// resolution — which permissions a role name carries — because that was declared
+// twice, once as the slices in permissions.go and once as INSERT statements in a
+// migration, with nothing but a string-matching test between them. PlatformPolicy
+// below is now the single declaration: the migrator seeds it, and
+// authorization/database resolves against what it seeded.
 
 // Role names as the platform policy knows them. They match the strings this
 // package already assigns to roles, so a session's role names resolve without
@@ -76,17 +73,41 @@ func ToPlatformPermissions(perms []Permission) []platformauthz.Permission {
 // PlatformPolicy returns the role table as the platform's authorization package
 // models it.
 //
-// It is built from the same slices NewServiceRolePermissionChecker and
-// NewAccountRolePermissionChecker are handed, so a role's meaning cannot differ
-// between the two systems. Roles are flat rather than inheriting: this package
-// has always spelled each role's permissions out in full, and expressing that
-// as inheritance would be a behavioral change disguised as a refactor.
+// It is the declaration the policy tables are seeded from — see
+// postgres/migrations — so it is not a second copy of the policy but the only
+// one. Everything below is derived from the permission slices in this package
+// and from the inheritance the roles have always had.
+//
+// Roles inherit. This used to be spelled out flat, on the reasoning that
+// expressing inheritance would be a behavioral change disguised as a refactor,
+// and that had it exactly backwards: the database has inherited since #1215
+// seeded user_role_hierarchy, so flatness was the disguised change. It stayed
+// invisible because the only consumer validated this table through
+// static.NewResolver and then discarded the resolver. Expanded, the flat
+// version understated service_admin by 212 permissions and account_admin by
+// 128, and overstated service_user by 133.
+//
+// Two edges, both matching what the hierarchy rows said:
+//
+//   - account_admin inherits account_member. permissions_test.go has always
+//     built an account admin as the concatenation of the two.
+//   - service_admin inherits account_admin and service_data_admin. The second
+//     is not hierarchy in the old schema — the meal planning migration granted
+//     service_admin the data admin set directly, row for row — but inheritance
+//     and a duplicated grant list resolve to the same set, and only one of them
+//     can drift.
+//
+// service_user holds nothing, which is not an oversight. Every user is assigned
+// it at signup and it is a service-wide assignment; the authority an ordinary
+// user has is account_member, held per account. Granting account_member here
+// would hand every account-scoped permission to every user unscoped by account.
 func PlatformPolicy() []platformauthz.Role {
 	return []platformauthz.Role{
 		{
 			Name:        ServiceAdminRoleName,
 			Description: "service-wide administrator",
 			Permissions: ToPlatformPermissions(ServiceAdminPermissions),
+			Inherits:    []string{AccountAdminRoleName, ServiceDataAdminRoleName},
 		},
 		{
 			Name:        ServiceDataAdminRoleName,
@@ -96,12 +117,12 @@ func PlatformPolicy() []platformauthz.Role {
 		{
 			Name:        ServiceUserRoleName,
 			Description: "an ordinary user of the service",
-			Permissions: ToPlatformPermissions(AccountMemberPermissions),
 		},
 		{
 			Name:        AccountAdminRoleName,
 			Description: "administrator of a single account",
 			Permissions: ToPlatformPermissions(AccountAdminPermissions),
+			Inherits:    []string{AccountMemberRoleName},
 		},
 		{
 			Name:        AccountMemberRoleName,

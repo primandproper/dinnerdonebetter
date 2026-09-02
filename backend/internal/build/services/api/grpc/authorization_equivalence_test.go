@@ -24,6 +24,7 @@ import (
 	waitlistsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/waitlists/grpc"
 	webhooksgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/webhooks/grpc"
 
+	platformauthz "github.com/primandproper/platform-go/v13/authorization"
 	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
 	metricsnoop "github.com/primandproper/platform-go/v13/observability/metrics/noop"
 
@@ -106,18 +107,48 @@ func TestAuthorizationEnforcerMatchesTheHandRolledCheck(t *testing.T) {
 		public[m] = struct{}{}
 	}
 
-	// Every role a principal can hold, plus the empty set — the case most likely to be wrong.
+	// Every role a principal can hold, expanded through the policy's own inheritance
+	// rather than written out by hand.
+	//
+	// Hand-written rows are how this test used to describe three principals that
+	// cannot exist: a service admin holding 28 permissions, an account admin holding
+	// 43, and a combination of the two. The database has granted those roles their
+	// inherited permissions since #1215, so the sets this drove were subsets of what
+	// any real caller carries — and a subset is exactly the shape that makes an
+	// equivalence proof pass without proving anything about real traffic.
+	expanded, err := platformauthz.ExpandInheritance(authorization.PlatformPolicy()...)
+	require.NoError(t, err)
+
+	held := func(role string) []authorization.Permission {
+		set, ok := expanded[role]
+		require.True(t, ok, "policy declares no role %q", role)
+
+		out := make([]authorization.Permission, 0, set.Len())
+		for _, p := range set.Slice() {
+			out = append(out, authorization.Permission(p))
+		}
+
+		return out
+	}
+
 	roles := map[string]struct {
 		service []authorization.Permission
 		account []authorization.Permission
 	}{
-		"service admin":      {service: authorization.ServiceAdminPermissions},
-		"service data admin": {service: authorization.ServiceDataAdminPermissions},
-		"account admin":      {account: authorization.AccountAdminPermissions},
-		"account member":     {account: authorization.AccountMemberPermissions},
+		"service admin":      {service: held(authorization.ServiceAdminRoleName)},
+		"service data admin": {service: held(authorization.ServiceDataAdminRoleName)},
+		"service user":       {service: held(authorization.ServiceUserRoleName)},
+		"account admin":      {account: held(authorization.AccountAdminRoleName)},
+		"account member":     {account: held(authorization.AccountMemberRoleName)},
+		// What an ordinary signed-in user actually is: service_user service-wide,
+		// account_member in the account they are acting on.
+		"an ordinary user in their own account": {
+			service: held(authorization.ServiceUserRoleName),
+			account: held(authorization.AccountMemberRoleName),
+		},
 		"admin of an account they also administer": {
-			service: authorization.ServiceAdminPermissions,
-			account: authorization.AccountAdminPermissions,
+			service: held(authorization.ServiceAdminRoleName),
+			account: held(authorization.AccountAdminRoleName),
 		},
 		"nothing at all": {},
 	}
