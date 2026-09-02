@@ -10,6 +10,7 @@ import (
 	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
 	ddbaudit "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	ddboauth "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
+	appentitlements "github.com/primandproper/dinnerdonebetter/backend/internal/entitlements"
 
 	"github.com/primandproper/platform-go/v13/audit"
 	auditcfg "github.com/primandproper/platform-go/v13/audit/config"
@@ -19,6 +20,8 @@ import (
 	"github.com/primandproper/platform-go/v13/database/dialect"
 	distributedlockcfg "github.com/primandproper/platform-go/v13/distributedlock/config"
 	pglock "github.com/primandproper/platform-go/v13/distributedlock/postgres"
+	"github.com/primandproper/platform-go/v13/entitlements"
+	entitlementscfg "github.com/primandproper/platform-go/v13/entitlements/config"
 	"github.com/primandproper/platform-go/v13/jobs"
 	"github.com/primandproper/platform-go/v13/metering"
 	meteringcfg "github.com/primandproper/platform-go/v13/metering/config"
@@ -238,6 +241,38 @@ func DefaultMeteringConfig() meteringcfg.Config {
 			DisableReap:    false,
 		},
 		TablePrefix: metering.DefaultTablePrefix,
+	}
+
+	cfg.EnsureDefaults()
+
+	return cfg
+}
+
+// DefaultEntitlementsConfig returns the plan catalog and the read path's knobs.
+//
+// Only the API server carries it. The plans are written out in full rather than left to the
+// package defaults, because unlike every other section here there are no package defaults to
+// fall back on: what a tier includes is this product's decision and nothing else can supply it,
+// and a rendered config with no plans in it would deny every account with ErrUnknownPlan.
+//
+// Both plans grant every feature without a bound today. That is the same ordering
+// internal/metering documents — count first, limit once the dashboards say what real usage looks
+// like — and this is the file the first limit gets written into.
+//
+// FallbackPlan names the free tier deliberately. It is what a boolean feature check falls back
+// to when the payments database cannot be reached, so an outage degrades a paying account to
+// free rather than locking it out. It does not apply to quota features: their limit reaches
+// metering through a QuotaSource that has no fallback, because the same source answers the exact
+// path that records consumption, and enforcing a guessed limit there writes usage against a plan
+// the customer is not on.
+func DefaultEntitlementsConfig() entitlementscfg.Config {
+	cfg := entitlementscfg.Config{
+		Checker: entitlements.CheckerConfig{
+			CachePrefix:  entitlements.DefaultCachePrefix,
+			CacheTTL:     entitlements.DefaultCacheTTL,
+			FallbackPlan: appentitlements.FreePlan,
+		},
+		Plans: appentitlements.DefaultPlans(),
 	}
 
 	cfg.EnsureDefaults()

@@ -243,6 +243,35 @@
 			"batchSize": 100
 		}
 	},
+	"entitlements": {
+		"checker": {
+			"cachePrefix": "entitlements:",
+			"fallbackPlan": "free",
+			"cacheTTL": 30000000000
+		},
+		"plans": [
+			{
+				"name": "free",
+				"description": "Everything this service does, for an account with no subscription.",
+				"includes": [
+					{
+						"feature": "uploaded_media_bytes",
+						"unlimited": true
+					}
+				]
+			},
+			{
+				"name": "subscriber",
+				"description": "Everything this service does, for an account with a live subscription.",
+				"includes": [
+					{
+						"feature": "uploaded_media_bytes",
+						"unlimited": true
+					}
+				]
+			}
+		]
+	},
 	"operations": {
 		"operations": {
 			"queueName": "operations",

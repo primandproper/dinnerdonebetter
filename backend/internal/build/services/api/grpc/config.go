@@ -19,6 +19,7 @@ import (
 	databasecfg "github.com/primandproper/platform-go/v13/database/config"
 	emailcfg "github.com/primandproper/platform-go/v13/email/config"
 	"github.com/primandproper/platform-go/v13/encoding"
+	entitlementscfg "github.com/primandproper/platform-go/v13/entitlements/config"
 	featureflagscfg "github.com/primandproper/platform-go/v13/featureflags/config"
 	httpclientcfg "github.com/primandproper/platform-go/v13/httpclient"
 	msgconfig "github.com/primandproper/platform-go/v13/messagequeue/config"
@@ -64,6 +65,10 @@ func RegisterConfigs(i do.Injector) {
 	do.Provide[*meteringcfg.Config](i, func(i do.Injector) (*meteringcfg.Config, error) {
 		cfg := do.MustInvoke[*config.APIServiceConfig](i)
 		return &cfg.Metering, nil
+	})
+	do.Provide[*entitlementscfg.Config](i, func(i do.Injector) (*entitlementscfg.Config, error) {
+		cfg := do.MustInvoke[*config.APIServiceConfig](i)
+		return &cfg.Entitlements, nil
 	})
 	do.Provide[*operationscfg.Config](i, func(i do.Injector) (*operationscfg.Config, error) {
 		cfg := do.MustInvoke[*config.APIServiceConfig](i)

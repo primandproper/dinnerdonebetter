@@ -18,6 +18,7 @@ import (
 	paymentsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/manager"
 	settingsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings/manager"
 	webhooksmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/manager"
+	appentitlements "github.com/primandproper/dinnerdonebetter/backend/internal/entitlements"
 	appmetering "github.com/primandproper/dinnerdonebetter/backend/internal/metering"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories"
 	auditrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
@@ -128,6 +129,17 @@ func BuildInjector(
 	appmetering.RegisterStore(i)
 	appmetering.RegisterRecorder(i)
 	appmetering.RegisterEnforcer(i)
+
+	// What each account may use. Registration order does not matter — these providers are
+	// lazy, and the two halves refer to each other: the enforcer above resolves the quota
+	// source registered here, and the checker registered here resolves that enforcer. What
+	// matters is that there is one quota source, so the limit a check reports and the limit
+	// enforced against an account cannot drift apart. Nothing consults the checker yet.
+	appentitlements.RegisterFeatures(i)
+	appentitlements.RegisterPlanSource(i)
+	appentitlements.RegisterCatalog(i)
+	appentitlements.RegisterQuotaSource(i)
+	appentitlements.RegisterChecker(i)
 
 	// authentication
 	authentication.RegisterAuth(i)

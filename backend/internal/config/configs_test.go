@@ -409,6 +409,7 @@ func TestAPIServiceConfig_ValidateWithContext(T *testing.T) {
 			Email:        emailcfg.Config{Provider: emailcfg.ProviderNoop},
 			Webhooks:     validWebhooksConfigForTest(),
 			Metering:     validMeteringConfigForTest(),
+			Entitlements: DefaultEntitlementsConfig(),
 			Operations:   DefaultOperationsConfig(),
 		}
 
