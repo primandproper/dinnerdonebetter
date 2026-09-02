@@ -141,6 +141,30 @@ than a side effect: the local tables could hide a signup and could not suppress 
 who unsubscribed was somebody the next form submission re-subscribed. #1378 did it — see below.
 `identity` is the largest by far and should be its own epic.
 
+## The one adoption blocked on infrastructure
+
+`links` — platform's single-use, expiring action links — was evaluated for email verification in
+[#1385](https://github.com/primandproper/dinnerdonebetter/issues/1385) and is not adopted. It is
+the only item so far blocked by something other than sequencing, and the reason is not in the
+table above because `links` replaces no store: it is a capability this repository has no equivalent
+of.
+
+`links.NewMinter` takes a `cache.Cache[Record]` and nothing else, and platform's `cache/config`
+offers `memory` and `redis`. Nothing but localdev provisions a Redis here. The memory provider is
+not a fallback for this package either — the mint happens in the async message handler that builds
+the email and the redemption in the API server that serves the click, so a per-process cache writes
+every link somewhere the redeemer cannot read it, at one replica each.
+
+Filed upstream as [platform-go#459](https://github.com/primandproper/platform-go/issues/459),
+asking for the `sessions` shape: a `Store` seam with a cache implementation and a `links/database`
+one. `sessions`, `webauthn` and `passwordreset` all offer a durable store; `links` is the only one
+that does not. `idempotency` has the identical gap, which is why the idempotency interceptor is
+switched off in the production config.
+
+Until one of those changes, email verification stays on the plaintext, never-expiring,
+replayable column it has always used — written down honestly in `docs/email_verification.md` so
+that the state is a known debt rather than an assumption.
+
 ## What adopting a *referenced* table costs
 
 `uploads/registry` (#1376) is the first store this repository adopted whose table other domains

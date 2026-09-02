@@ -139,10 +139,33 @@ That is the one place it appears, and the email link is the one place it lands. 
 attached to a span, a log line, or an audit entry; `RelevantID` on the audit entries below is the
 row's ID, which cannot be exchanged for a token.
 
+The verification token rides on a message for a weaker reason — it is stored as itself, so it could
+be read back, and the resend path does exactly that. Do not read the sentence above as saying the
+two tokens are equals; see [Email Verification](#email-verification) below.
+
 Issuing and redeeming are both recorded in the audit log as `password_reset_tokens`
 created/updated, by a thin wrapper around the platform store — the platform has no opinion about
 who wants a record of a reset, and "was a link issued for this account before the takeover, and
 was it used?" is a question asked months later, after the sweeper has removed the row.
+
+## Email Verification
+
+Verification tokens are **not** the reset tokens' equal, and the resemblance of the two flows —
+both mail a link, both carry their secret on a data change message — hides that. A reset token is a
+digest in a platform-owned table with a thirty minute life and a single use the store enforces. A
+verification token is a plaintext column on the user's row (`users.email_address_verification_token`)
+that never expires, is never cleared, and can be replayed: the guarded `UPDATE` behind it is an
+`:exec` whose affected-row count is discarded, so a second click matches nothing, returns no error,
+and answers `Verified: true`.
+
+That is the current state rather than the intended one.
+[#1385](https://github.com/primandproper/dinnerdonebetter/issues/1385) decided to move this flow
+onto platform-go's `links`, which would have supplied expiry and single use together; it is blocked
+because `links` stores its records in a cache and nothing but localdev provisions one — filed
+upstream as [platform-go#459](https://github.com/primandproper/platform-go/issues/459).
+
+[email_verification.md](email_verification.md) has the full path, the four missing properties with
+the file each is checkable against, and what would unblock the adoption.
 
 ## Web App Auth Flow (Consumer / Admin)
 
