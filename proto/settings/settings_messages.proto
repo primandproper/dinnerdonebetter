@@ -6,32 +6,75 @@ import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/settings";
 
-message DataCollection {
-  map<string, ServiceSettingConfiguration> service_setting_configurations = 1;
-  repeated ServiceSettingConfiguration user_service_setting_configurations = 2;
-}
-
-message ServiceSetting {
-  google.protobuf.Timestamp created_at = 1;
-  optional string default_value = 2;
-  google.protobuf.Timestamp last_updated_at = 3;
-  google.protobuf.Timestamp archived_at = 4;
-  string id = 5;
-  string name = 6;
-  string type = 7;
-  string description = 8;
-  repeated string enumeration = 9;
-  bool admins_only = 10;
-}
-
-message ServiceSettingConfiguration {
+// SettingDefinition is what a setting is: the name application code asks for,
+// the kind of value it holds, what it falls back to, and which values it admits.
+//
+// Definitions are administrative rows. Nothing on a request path creates one —
+// the catalog is a deployment's decision — and what a request path does is read
+// one and store an answer against it.
+message SettingDefinition {
   google.protobuf.Timestamp created_at = 1;
   google.protobuf.Timestamp last_updated_at = 2;
+  // archived_at is when the setting was retired. The values stored against an
+  // archived definition are left alone and its name stays claimed: archiving is
+  // not erasure, and freeing the name would let a later definition inherit rows
+  // written for the first.
   google.protobuf.Timestamp archived_at = 3;
   string id = 4;
-  string value = 5;
-  string notes = 6;
-  string belongs_to_user = 7;
-  string belongs_to_account = 8;
-  ServiceSetting service_setting = 9;
+  string name = 5;
+  string description = 6;
+  // kind is how a stored value is parsed: one of "string", "boolean",
+  // "integer" or "float".
+  string kind = 7;
+  // default_value is what a setting resolves to for somebody who has not chosen.
+  //
+  // It is optional rather than a plain string because a setting defaulting to ""
+  // and a setting with no default at all are different settings: the first
+  // answers everybody who has not chosen, and the second answers nobody. See
+  // SettingResolution.source.
+  optional string default_value = 8;
+  // enumeration is the values this setting admits, sorted, or empty for a
+  // setting that admits any value of its kind.
+  repeated string enumeration = 9;
+  // admin_only marks a setting only an administrator may write. The server hides
+  // an admin-only setting from a non-admin's resolved settings; it is what a
+  // self-service preferences page is filtered by.
+  bool admin_only = 10;
+}
+
+// SettingValue is one person's answer to one definition.
+message SettingValue {
+  google.protobuf.Timestamp created_at = 1;
+  google.protobuf.Timestamp last_updated_at = 2;
+  // archived_at is when the answer was cleared. A cleared value resolves to the
+  // definition's default as though it had never been set.
+  google.protobuf.Timestamp archived_at = 3;
+  string id = 4;
+  string definition_id = 5;
+  // belongs_to_user is whose answer it is. Every setting value in this
+  // deployment belongs to a person; see the backend's settings domain package
+  // for why there are no account-owned values.
+  string belongs_to_user = 6;
+  // value is the answer as it is stored. It is a string whatever the
+  // definition's kind is, and the kind is what says how to read it.
+  string value = 7;
+}
+
+// SettingResolution is one setting answered for one person: the value, and where
+// it came from.
+//
+// The source is the point of the message. A resolved setting is answered by the
+// person, answered by the definition's default, or not answered at all, and a
+// client that only received a value could not tell the third case from a default
+// of "".
+message SettingResolution {
+  SettingDefinition definition = 1;
+  // value is the row the person set, and is absent when the default answered or
+  // nothing did.
+  SettingValue value = 2;
+  // raw is the answer as stored, and is empty when source is "unset".
+  string raw = 3;
+  // source is one of "subject" (they chose it), "default" (they have not, and
+  // the setting has a default) or "unset" (they have not, and it does not).
+  string source = 4;
 }

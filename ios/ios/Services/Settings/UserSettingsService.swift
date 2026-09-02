@@ -10,8 +10,9 @@ import GRPCCore
 import GRPCNIOTransportHTTP2
 import SwiftUI
 
-/// App-wide cache of user service setting values. Load once when authenticated; values
-/// are accessible throughout the app. Updated when the user changes settings in Preferences.
+/// App-wide cache of the signed-in user's resolved setting values. Load once when
+/// authenticated; values are accessible throughout the app. Updated when the user
+/// changes settings in Preferences.
 @Observable
 @MainActor
 class UserSettingsService {
@@ -37,13 +38,15 @@ class UserSettingsService {
     }
 
     do {
-      let configs = try await fetchUserConfigs(authManager: authManager)
-      let activeAccountID = authManager.accountID
+      let resolutions = try await fetchResolvedSettings(authManager: authManager)
       var newValues: [String: String] = [:]
-      for config in configs where config.belongsToAccount == activeAccountID {
-        let name = config.serviceSetting.name
-        if !name.isEmpty {
-          newValues[name] = config.value.isEmpty ? config.serviceSetting.defaultValue : config.value
+      for resolution in resolutions {
+        let name = resolution.definition.name
+        // "unset" is a setting nobody has answered that has no default, which is
+        // not the same as an answer of "". Leaving it out of the cache is what
+        // lets value(for:default:) hand back the caller's own fallback.
+        if !name.isEmpty, resolution.source != "unset" {
+          newValues[name] = resolution.raw
         }
       }
       values = newValues
@@ -71,16 +74,21 @@ class UserSettingsService {
     isLoaded = false
   }
 
-  private func fetchUserConfigs(authManager: AuthenticationManager) async throws
-    -> [Settings_ServiceSettingConfiguration]
+  /// Fetch every setting resolved for the signed-in user: their own answer where
+  /// they have one, the setting's default where they have not, in one call.
+  ///
+  /// The server applies the fallback, which is why this no longer pairs a catalog
+  /// against a list of stored values. It also decides which settings the user may
+  /// see, so an admin-only setting is simply absent rather than filtered here.
+  private func fetchResolvedSettings(authManager: AuthenticationManager) async throws
+    -> [Settings_SettingResolution]
   {
-    var request = Settings_GetServiceSettingConfigurationsForUserRequest()
-    request.filter = QueryFilterMessage()
+    let request = Settings_ResolveSettingsRequest()
 
     let response = try await authManager.authenticatedCall(
-      "getServiceSettingConfigurationsForUser", idempotent: true
+      "resolveSettings", idempotent: true
     ) { client, metadata, options in
-      try await client.settings.getServiceSettingConfigurationsForUser(
+      try await client.settings.resolveSettings(
         request, metadata: metadata, options: options)
     }
 

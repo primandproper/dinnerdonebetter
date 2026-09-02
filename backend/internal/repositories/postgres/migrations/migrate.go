@@ -11,6 +11,7 @@ import (
 	ddbdataprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
 	ddbissuereports "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports"
 	ddboauth "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
+	ddbsettings "github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings"
 	ddbuploadedmedia "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	ddbwaitlists "github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists"
 
@@ -36,6 +37,7 @@ import (
 	"github.com/primandproper/platform-go/v13/saga"
 	sagamigrations "github.com/primandproper/platform-go/v13/saga/migrations"
 	sessionsmigrations "github.com/primandproper/platform-go/v13/sessions/database/migrations"
+	settingsmigrations "github.com/primandproper/platform-go/v13/settings/migrations"
 	uploadsregistrymigrations "github.com/primandproper/platform-go/v13/uploads/registry/migrations"
 	waitlistsmigrations "github.com/primandproper/platform-go/v13/waitlists/migrations"
 	"github.com/primandproper/platform-go/v13/webhooks"
@@ -78,6 +80,7 @@ const (
 	uploadsRegistryMigrationVersion = 38
 	issueReportsMigrationVersion    = 39
 	waitlistsMigrationVersion       = 40
+	settingsMigrationVersion        = 41
 )
 
 // NewMigrator creates a new postgres Migrator over the embedded migration files.
@@ -205,6 +208,11 @@ func NewMigrator(logger logging.Logger) (*migrate.Migrator, error) {
 		return nil, err
 	}
 
+	settingsDDL, err := renderSettingsDDL()
+	if err != nil {
+		return nil, err
+	}
+
 	migrator, err := migrate.New(
 		dialect.Postgres,
 		migrationFiles,
@@ -226,6 +234,7 @@ func NewMigrator(logger logging.Logger) (*migrate.Migrator, error) {
 		migrate.WithGeneratedMigration(uploadsRegistryMigrationVersion, "create_uploads_objects_table", uploadsRegistryDDL),
 		migrate.WithGeneratedMigration(issueReportsMigrationVersion, "create_issue_reports_table", issueReportsDDL),
 		migrate.WithGeneratedMigration(waitlistsMigrationVersion, "create_waitlist_tables", waitlistsDDL),
+		migrate.WithGeneratedMigration(settingsMigrationVersion, "create_settings_tables", settingsDDL),
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "building migrator")
@@ -324,6 +333,78 @@ func renderWaitlistsDDL() (string, error) {
 	// Signups first: the old signup table references the old list table, and
 	// Postgres will not drop a table out from under a foreign key.
 	return "DROP TABLE IF EXISTS waitlist_signups;\nDROP TABLE IF EXISTS waitlists;\n\n" + schema, nil
+}
+
+// renderSettingsDDL renders the three settings tables, dropping the two
+// 00005_settings.sql created first along with the enum it defined, and
+// re-creating the foreign key that kept an erased user's settings from
+// outliving them.
+//
+// Nothing is carried across, and the schemas could not carry it anyway. The
+// platform's definition names the value's data type `kind` — string, boolean,
+// integer, float — where the old `type` named the sort of principal a setting
+// was for, and it holds the enumeration as rows in a child table rather than as
+// a pipe-delimited string in a column. Its value replaces
+// belongs_to_user/belongs_to_account with a subject pair, and adds the tenancy
+// column every one of its reads filters on.
+//
+// The old tables are dropped rather than left in place because nothing reads
+// them once the store is platform's, and the seeded setting they held is
+// re-seeded below against the new schema. The enum type goes with them: nothing
+// else in this schema uses setting_type, and a type left behind by the table
+// that defined it is a name the next migration has to work around.
+//
+// # The foreign key, and what it is holding
+//
+// ddb_settings_values.subject_id names a user in every row this application
+// writes — see internal/domain/settings for why there is only one subject type —
+// so the key belongs_to_user carried is re-creatable, and it is what keeps the
+// single identity eraser in internal/build/dataprivacy covering settings. A
+// preference somebody chose is a fact about them, and a value that outlived its
+// user would be personal data no erasure reaches.
+//
+// It is also the constraint that enforces the one-subject-type decision rather
+// than leaving it to convention: a write naming an account would be refused by
+// the database, not merely discouraged by a comment. An account-owned setting
+// therefore starts with dropping this key and deciding what erases the rows it
+// was holding.
+//
+// Platform cannot ship it. It does not know which of a consumer's tables holds a
+// principal, and it does not know that a consumer has narrowed the subject types
+// its schema admits to one.
+func renderSettingsDDL() (string, error) {
+	schema, err := settingsmigrations.SQL(dialect.Postgres, ddbsettings.TablePrefix)
+	if err != nil {
+		return "", errors.Wrap(err, "rendering settings migration")
+	}
+
+	qualified := ddl.Qualify(ddbsettings.TablePrefix)
+	values := qualified + "settings_values"
+	definitions := qualified + "settings_definitions"
+	options := qualified + "settings_definition_options"
+
+	body := &strings.Builder{}
+
+	// Configurations first: the old configuration table references the old
+	// settings table, and Postgres will not drop a table out from under a
+	// foreign key. The enum follows both, for the same reason.
+	body.WriteString("DROP TABLE IF EXISTS service_setting_configurations;\nDROP TABLE IF EXISTS service_settings;\nDROP TYPE IF EXISTS setting_type;\n\n")
+	body.WriteString(schema)
+	body.WriteString("\n\nALTER TABLE " + values + "\n\tADD CONSTRAINT " + values + "_subject_fk\n\tFOREIGN KEY (subject_id) REFERENCES users(id) ON DELETE CASCADE;\n")
+
+	// The one setting this application ships with, re-seeded against the new
+	// schema. 00021_mealplanning.sql wrote it into the table dropped above, and
+	// the id is carried across so that a client holding it still resolves.
+	//
+	// Its kind is `string` rather than the old `user`: what a setting is for is
+	// no longer a property of the definition, and what it holds is. The two
+	// units become rows in the options table, which is where an enumeration
+	// lives now.
+	body.WriteString("\nINSERT INTO " + definitions + " (id, scope, name, description, kind, default_value, admin_only)\n")
+	body.WriteString("VALUES (\n\t'd6me6i4n9qd3gcf5j1p0',\n\t'',\n\t'user_temperature_unit',\n\t'Preferred unit for displaying temperatures (e.g. oven, storage)',\n\t'string',\n\t'fahrenheit',\n\tFALSE\n);\n")
+	body.WriteString("\nINSERT INTO " + options + " (definition_id, value)\nVALUES\n\t('d6me6i4n9qd3gcf5j1p0', 'celsius'),\n\t('d6me6i4n9qd3gcf5j1p0', 'fahrenheit');\n")
+
+	return body.String(), nil
 }
 
 // renderCommentsDDL renders the comment table, dropping the one 00012_comments.sql

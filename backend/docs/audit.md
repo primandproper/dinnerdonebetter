@@ -233,7 +233,7 @@ These are real and worth fixing; none of them is created by the adoption.
 
 **Unattributed entries.** The platform requires an actor on every entry, and it is
 right to: an event with nobody responsible for it is half a record. Most repository
-methods have no requester to give — `ArchiveServiceSetting` takes an ID and nothing
+methods have no requester to give — `ArchiveSettingDefinition` takes an ID and nothing
 else — and the old schema let `belongs_to_user` be NULL, so the gap predates this.
 The three that already carried the acting user in their input (webhook creation,
 issue report creation, waitlist signup) now record it; the rest are recorded under

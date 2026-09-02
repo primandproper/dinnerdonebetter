@@ -119,7 +119,7 @@ The query pipeline has two stages:
 
 #### Add a query builder file
 
-Create a file like `your_domain_entity_name.go` (e.g., `settings_service_settings.go`). Each file:
+Create a file like `your_domain_entity_name.go` (e.g., `notifications_user_notifications.go`). Each file:
 
 1. Defines `const tableName = "your_table_name"`
 2. Defines `var columns = []string{...}` (include `idColumn`, `createdAtColumn`, `lastUpdatedAtColumn`, `archivedAtColumn` from shared constants)
@@ -146,7 +146,7 @@ for it.
 - `ArchiveXxx`: UPDATE `archived_at = NOW()`
 - `CheckXxxExistence`: SELECT EXISTS
 
-**Reference**: [backend/cmd/tools/codegen/queries/settings_service_settings.go](backend/cmd/tools/codegen/queries/settings_service_settings.go)
+**Reference**: [backend/cmd/tools/codegen/queries/notifications_user_notifications.go](backend/cmd/tools/codegen/queries/notifications_user_notifications.go)
 
 #### Register in main.go
 
@@ -160,7 +160,7 @@ Add an entry to the `queryOutput` map in `backend/cmd/tools/codegen/queries/main
 
 **Location**: `backend/sqlc.yaml`
 
-For a **new domain** (new package under `postgres/`), add a new engine block. Copy structure from an existing block (e.g., settings):
+For a **new domain** (new package under `postgres/`), add a new engine block. Copy structure from an existing block (e.g., notifications):
 
 - `engine`: `postgresql`
 - `schema`: `internal/repositories/postgres/migrations/migration_files`
@@ -209,7 +209,7 @@ Converters:
 - `backend/internal/domain/<domain>/mock/repository.go`
 - `backend/internal/domain/<domain>/manager/mock/manager.go`
 
-**References**: [backend/internal/domain/settings/](backend/internal/domain/settings/), [backend/internal/domain/webhooks/](backend/internal/domain/webhooks/)
+**References**: [backend/internal/domain/notifications/](backend/internal/domain/notifications/), [backend/internal/domain/webhooks/](backend/internal/domain/webhooks/)
 
 ---
 

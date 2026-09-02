@@ -8,128 +8,158 @@ import "settings/settings_messages.proto";
 
 option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/settings";
 
-message CreateServiceSettingRequest {
-  ServiceSettingCreationRequestInput input = 1;
-}
-
-message CreateServiceSettingResponse {
-  common.ResponseDetails response_details = 1;
-  ServiceSetting created = 2;
-}
-
-message CreateServiceSettingConfigurationRequest {
-  ServiceSettingConfigurationCreationRequestInput input = 1;
-}
-
-message CreateServiceSettingConfigurationResponse {
-  common.ResponseDetails response_details = 1;
-  ServiceSettingConfiguration created = 2;
-}
-
-message ArchiveServiceSettingRequest {
-  string service_setting_id = 1;
-}
-
-message ArchiveServiceSettingResponse {
-  common.ResponseDetails response_details = 1;
-}
-
-message ArchiveServiceSettingConfigurationRequest {
-  string service_setting_configuration_id = 1;
-}
-
-message ArchiveServiceSettingConfigurationResponse {
-  common.ResponseDetails response_details = 1;
-}
-
-message GetServiceSettingRequest {
-  string service_setting_id = 1;
-}
-
-message GetServiceSettingResponse {
-  common.ResponseDetails response_details = 1;
-  ServiceSetting result = 2;
-}
-
-message GetServiceSettingConfigurationByNameRequest {
-  primandproper.platform.filtering.v1.QueryFilter filter = 1;
-  string service_setting_configuration_name = 2;
-}
-
-message GetServiceSettingConfigurationByNameResponse {
-  common.ResponseDetails response_details = 1;
-  primandproper.platform.filtering.v1.Pagination pagination = 2;
-  ServiceSettingConfiguration result = 3;
-}
-
-message GetServiceSettingConfigurationsForAccountRequest {
-  primandproper.platform.filtering.v1.QueryFilter filter = 1;
-}
-
-message GetServiceSettingConfigurationsForAccountResponse {
-  common.ResponseDetails response_details = 1;
-  primandproper.platform.filtering.v1.Pagination pagination = 2;
-  repeated ServiceSettingConfiguration results = 3;
-}
-
-message GetServiceSettingConfigurationsForUserRequest {
-  primandproper.platform.filtering.v1.QueryFilter filter = 1;
-}
-
-message GetServiceSettingConfigurationsForUserResponse {
-  common.ResponseDetails response_details = 1;
-  primandproper.platform.filtering.v1.Pagination pagination = 2;
-  repeated ServiceSettingConfiguration results = 3;
-}
-
-message GetServiceSettingsRequest {
-  primandproper.platform.filtering.v1.QueryFilter filter = 1;
-}
-
-message GetServiceSettingsResponse {
-  common.ResponseDetails response_details = 1;
-  primandproper.platform.filtering.v1.Pagination pagination = 2;
-  repeated ServiceSetting results = 3;
-}
-
-message SearchForServiceSettingsRequest {
-  primandproper.platform.filtering.v1.QueryFilter filter = 1;
-  string query = 2;
-}
-
-message SearchForServiceSettingsResponse {
-  common.ResponseDetails response_details = 1;
-  primandproper.platform.filtering.v1.Pagination pagination = 2;
-  repeated ServiceSetting results = 3;
-}
-
-message UpdateServiceSettingConfigurationRequest {
-  string service_setting_configuration_id = 1;
-  ServiceSettingConfigurationUpdateRequestInput input = 2;
-}
-
-message UpdateServiceSettingConfigurationResponse {
-  common.ResponseDetails response_details = 1;
-  ServiceSettingConfiguration updated = 2;
-}
-
-message ServiceSettingConfigurationCreationRequestInput {
-  string value = 1;
-  string notes = 2;
-  string service_setting_id = 3;
-}
-
-message ServiceSettingConfigurationUpdateRequestInput {
-  optional string value = 1;
-  optional string notes = 2;
-  optional string service_setting_id = 3;
-}
-
-message ServiceSettingCreationRequestInput {
-  optional string default_value = 1;
-  string name = 2;
-  string type = 3;
-  string description = 4;
+// SettingDefinitionCreationRequestInput is a new setting for the catalog.
+message SettingDefinitionCreationRequestInput {
+  string name = 1;
+  string description = 2;
+  string kind = 3;
+  optional string default_value = 4;
   repeated string enumeration = 5;
-  bool admins_only = 6;
+  bool admin_only = 6;
+}
+
+// SettingDefinitionEnumeration wraps an enumeration so that an update can leave
+// one alone.
+//
+// A bare repeated field cannot: proto3 gives it no presence, so "do not touch
+// the enumeration" and "this setting now admits nothing in particular" arrive as
+// the same empty list. Wrapped, an absent message leaves the enumeration as it
+// is and a present one replaces it — with the empty list meaning the setting
+// stops enumerating.
+message SettingDefinitionEnumeration {
+  repeated string values = 1;
+}
+
+// SettingDefinitionUpdateRequestInput is an edit to a setting in the catalog.
+// Every field is optional, and an absent one is left as it is.
+message SettingDefinitionUpdateRequestInput {
+  optional string name = 1;
+  optional string description = 2;
+  optional string kind = 3;
+  optional string default_value = 4;
+  SettingDefinitionEnumeration enumeration = 5;
+  optional bool admin_only = 6;
+}
+
+message CreateSettingDefinitionRequest {
+  SettingDefinitionCreationRequestInput input = 1;
+}
+
+message CreateSettingDefinitionResponse {
+  common.ResponseDetails response_details = 1;
+  SettingDefinition created = 2;
+}
+
+message GetSettingDefinitionRequest {
+  string setting_definition_id = 1;
+}
+
+message GetSettingDefinitionResponse {
+  common.ResponseDetails response_details = 1;
+  SettingDefinition result = 2;
+}
+
+message GetSettingDefinitionByNameRequest {
+  string setting_name = 1;
+}
+
+message GetSettingDefinitionByNameResponse {
+  common.ResponseDetails response_details = 1;
+  SettingDefinition result = 2;
+}
+
+message GetSettingDefinitionsRequest {
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
+}
+
+message GetSettingDefinitionsResponse {
+  common.ResponseDetails response_details = 1;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
+  repeated SettingDefinition results = 3;
+}
+
+message UpdateSettingDefinitionRequest {
+  string setting_definition_id = 1;
+  SettingDefinitionUpdateRequestInput input = 2;
+}
+
+message UpdateSettingDefinitionResponse {
+  common.ResponseDetails response_details = 1;
+  SettingDefinition updated = 2;
+}
+
+message ArchiveSettingDefinitionRequest {
+  string setting_definition_id = 1;
+}
+
+message ArchiveSettingDefinitionResponse {
+  common.ResponseDetails response_details = 1;
+}
+
+// SetSettingValueRequest stores the requester's own answer to one setting,
+// replacing whatever they answered before and reviving an answer they had
+// cleared. Whose answer it is comes from the session rather than the request.
+message SetSettingValueRequest {
+  string setting_name = 1;
+  string value = 2;
+}
+
+message SetSettingValueResponse {
+  common.ResponseDetails response_details = 1;
+  SettingValue value = 2;
+}
+
+message GetSettingValueRequest {
+  string setting_name = 1;
+}
+
+message GetSettingValueResponse {
+  common.ResponseDetails response_details = 1;
+  SettingValue result = 2;
+}
+
+message ClearSettingValueRequest {
+  string setting_name = 1;
+}
+
+message ClearSettingValueResponse {
+  common.ResponseDetails response_details = 1;
+}
+
+message GetSettingValuesRequest {
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
+}
+
+message GetSettingValuesResponse {
+  common.ResponseDetails response_details = 1;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
+  repeated SettingValue results = 3;
+}
+
+message GetSettingValuesForDefinitionRequest {
+  primandproper.platform.filtering.v1.QueryFilter filter = 1;
+  string setting_name = 2;
+}
+
+message GetSettingValuesForDefinitionResponse {
+  common.ResponseDetails response_details = 1;
+  primandproper.platform.filtering.v1.Pagination pagination = 2;
+  repeated SettingValue results = 3;
+}
+
+message ResolveSettingRequest {
+  string setting_name = 1;
+}
+
+message ResolveSettingResponse {
+  common.ResponseDetails response_details = 1;
+  SettingResolution result = 2;
+}
+
+message ResolveSettingsRequest {
+}
+
+message ResolveSettingsResponse {
+  common.ResponseDetails response_details = 1;
+  repeated SettingResolution results = 2;
 }

@@ -128,7 +128,7 @@ struct ServiceSettingsView: View {
       },
       set: { newValue in
         Task {
-          _ = await viewModel.saveSetting(serviceSetting: item.setting, value: newValue)
+          _ = await viewModel.saveSetting(definition: item.setting, value: newValue)
         }
       }
     )

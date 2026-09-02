@@ -64,14 +64,16 @@ import type {
 import { UploadRequest, UploadMetadata } from './uploaded_media/uploaded_media_messages.js';
 import { SettingsServiceClient } from './settings/settings_service.js';
 import type {
-  GetServiceSettingsRequest,
-  GetServiceSettingsResponse,
-  GetServiceSettingConfigurationsForUserRequest,
-  GetServiceSettingConfigurationsForUserResponse,
-  CreateServiceSettingConfigurationRequest,
-  CreateServiceSettingConfigurationResponse,
-  UpdateServiceSettingConfigurationRequest,
-  UpdateServiceSettingConfigurationResponse,
+  GetSettingDefinitionsRequest,
+  GetSettingDefinitionsResponse,
+  GetSettingValuesRequest,
+  GetSettingValuesResponse,
+  ResolveSettingsRequest,
+  ResolveSettingsResponse,
+  SetSettingValueRequest,
+  SetSettingValueResponse,
+  ClearSettingValueRequest,
+  ClearSettingValueResponse,
 } from './settings/settings_service_types.js';
 import { MealPlanningServiceClient } from './mealplanning/mealplanning_service.js';
 import { AnalyticsServiceClient } from './analytics/analytics_service.js';
@@ -387,36 +389,49 @@ export function createGrpcClients(config: GrpcClientConfig) {
       });
     },
 
-    getServiceSettings: (
+    getSettingDefinitions: (
       oauth2Token: string,
-      request: GetServiceSettingsRequest,
-    ): Promise<GetServiceSettingsResponse> =>
-      promisifyUnary<GetServiceSettingsRequest, GetServiceSettingsResponse>(
-        getSettingsClient().getServiceSettings.bind(getSettingsClient()),
+      request: GetSettingDefinitionsRequest,
+    ): Promise<GetSettingDefinitionsResponse> =>
+      promisifyUnary<GetSettingDefinitionsRequest, GetSettingDefinitionsResponse>(
+        getSettingsClient().getSettingDefinitions.bind(getSettingsClient()),
       )(request, authMetadata(oauth2Token)),
 
-    getServiceSettingConfigurationsForUser: (
+    getSettingValues: (
       oauth2Token: string,
-      request: GetServiceSettingConfigurationsForUserRequest,
-    ): Promise<GetServiceSettingConfigurationsForUserResponse> =>
-      promisifyUnary<GetServiceSettingConfigurationsForUserRequest, GetServiceSettingConfigurationsForUserResponse>(
-        getSettingsClient().getServiceSettingConfigurationsForUser.bind(getSettingsClient()),
+      request: GetSettingValuesRequest,
+    ): Promise<GetSettingValuesResponse> =>
+      promisifyUnary<GetSettingValuesRequest, GetSettingValuesResponse>(
+        getSettingsClient().getSettingValues.bind(getSettingsClient()),
       )(request, authMetadata(oauth2Token)),
 
-    createServiceSettingConfiguration: (
+    // resolveSettings is the read a preferences page wants: every setting the
+    // signed-in user may see, paired with the value that applies to them — their
+    // own answer, or the setting's default where they have not answered.
+    resolveSettings: (
       oauth2Token: string,
-      request: CreateServiceSettingConfigurationRequest,
-    ): Promise<CreateServiceSettingConfigurationResponse> =>
-      promisifyUnary<CreateServiceSettingConfigurationRequest, CreateServiceSettingConfigurationResponse>(
-        getSettingsClient().createServiceSettingConfiguration.bind(getSettingsClient()),
+      request: ResolveSettingsRequest,
+    ): Promise<ResolveSettingsResponse> =>
+      promisifyUnary<ResolveSettingsRequest, ResolveSettingsResponse>(
+        getSettingsClient().resolveSettings.bind(getSettingsClient()),
       )(request, authMetadata(oauth2Token)),
 
-    updateServiceSettingConfiguration: (
+    // One call whether or not the user had answered before: the server converges
+    // on the row, so a first answer and a changed one are the same write.
+    setSettingValue: (
       oauth2Token: string,
-      request: UpdateServiceSettingConfigurationRequest,
-    ): Promise<UpdateServiceSettingConfigurationResponse> =>
-      promisifyUnary<UpdateServiceSettingConfigurationRequest, UpdateServiceSettingConfigurationResponse>(
-        getSettingsClient().updateServiceSettingConfiguration.bind(getSettingsClient()),
+      request: SetSettingValueRequest,
+    ): Promise<SetSettingValueResponse> =>
+      promisifyUnary<SetSettingValueRequest, SetSettingValueResponse>(
+        getSettingsClient().setSettingValue.bind(getSettingsClient()),
+      )(request, authMetadata(oauth2Token)),
+
+    clearSettingValue: (
+      oauth2Token: string,
+      request: ClearSettingValueRequest,
+    ): Promise<ClearSettingValueResponse> =>
+      promisifyUnary<ClearSettingValueRequest, ClearSettingValueResponse>(
+        getSettingsClient().clearSettingValue.bind(getSettingsClient()),
       )(request, authMetadata(oauth2Token)),
 
     getValidPreparations: (

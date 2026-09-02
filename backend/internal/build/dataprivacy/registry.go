@@ -33,7 +33,6 @@ import (
 	notificationsprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/privacy"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 	paymentsprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/privacy"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings"
 	settingsprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings/privacy"
 	uploadedmediaprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia/privacy"
 	waitlistsprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists/privacy"
@@ -53,6 +52,7 @@ import (
 	"github.com/primandproper/platform-go/v13/observability/metrics"
 	"github.com/primandproper/platform-go/v13/observability/tracing"
 	"github.com/primandproper/platform-go/v13/operations"
+	platformsettings "github.com/primandproper/platform-go/v13/settings"
 	uploadsregistry "github.com/primandproper/platform-go/v13/uploads/registry"
 	platformwaitlists "github.com/primandproper/platform-go/v13/waitlists"
 
@@ -114,8 +114,6 @@ func buildRegistry(i do.Injector) (*platformdataprivacy.Registry, error) {
 			do.MustInvoke[mealplanning.Repository](i), resolveAccounts, logger, tracerProvider),
 		ddbdataprivacy.CollectorKeyWebhooks: webhooksprivacy.NewCollector(
 			do.MustInvoke[webhooks.Repository](i), resolveAccounts, logger, tracerProvider),
-		ddbdataprivacy.CollectorKeySettings: settingsprivacy.NewCollector(
-			do.MustInvoke[settings.Repository](i), resolveAccounts, logger, tracerProvider),
 		ddbdataprivacy.CollectorKeyNotifications: notificationsprivacy.NewCollector(
 			do.MustInvoke[notifications.Repository](i), logger, tracerProvider),
 		ddbdataprivacy.CollectorKeyPayments: paymentsprivacy.NewCollector(
@@ -124,6 +122,7 @@ func buildRegistry(i do.Injector) (*platformdataprivacy.Registry, error) {
 		ddbdataprivacy.CollectorKeyIssueReports:  issueReportsCollector,
 		ddbdataprivacy.CollectorKeyUploadedMedia: uploadedmediaprivacy.NewCollector(do.MustInvoke[uploadsregistry.Store](i)),
 		ddbdataprivacy.CollectorKeyWaitlists:     waitlistsprivacy.NewCollector(do.MustInvoke[platformwaitlists.Store](i)),
+		ddbdataprivacy.CollectorKeySettings:      settingsprivacy.NewCollector(do.MustInvoke[platformsettings.Store](i)),
 		ddbdataprivacy.CollectorKeyComments:      commentsCollector,
 	}
 

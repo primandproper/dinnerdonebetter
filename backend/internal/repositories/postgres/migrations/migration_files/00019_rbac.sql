@@ -145,14 +145,24 @@ INSERT INTO permissions (id, name, description) VALUES
     ('d74epksn9qd63pdj43ag', 'read.oauth2_clients', 'Read OAuth2 clients'),
     ('d74epksn9qd63pdj43b0', 'archive.oauth2_clients', 'Archive OAuth2 clients'),
     -- settings
-    ('d74epksn9qd63pdj43bg', 'create.service_settings', 'Create service settings'),
-    ('d74epksn9qd63pdj43c0', 'read.service_settings', 'Read service settings'),
-    ('d74epksn9qd63pdj43cg', 'search.service_settings', 'Search service settings'),
-    ('d74epksn9qd63pdj43d0', 'archive.service_settings', 'Archive service settings'),
-    ('d74epksn9qd63pdj43dg', 'create.service_setting_configurations', 'Create service setting configurations'),
-    ('d74epksn9qd63pdj43e0', 'read.service_setting_configurations', 'Read service setting configurations'),
-    ('d74epksn9qd63pdj43eg', 'update.service_setting_configurations', 'Update service setting configurations'),
-    ('d74epksn9qd63pdj43f0', 'archive.service_setting_configurations', 'Archive service setting configurations'),
+    --
+    -- The ids are the ones the service_settings names carried, because the
+    -- capabilities are the same capabilities under the nouns platform's store
+    -- uses: a definition is what a service setting was, and a value is what a
+    -- configuration was. Keeping them is what leaves every grant below pointing
+    -- at the permission it was written for.
+    --
+    -- Two do not survive. search.service_settings went with the search endpoint,
+    -- which platform's store has no read behind; update.service_setting_configurations
+    -- went because setting a value is one write — the store converges on the row,
+    -- so a first answer and a changed one are the same statement.
+    ('d74epksn9qd63pdj43bg', 'create.setting_definitions', 'Create setting definitions'),
+    ('d74epksn9qd63pdj43c0', 'read.setting_definitions', 'Read setting definitions'),
+    ('d74epksn9qd63pdj45kg', 'update.setting_definitions', 'Update setting definitions'),
+    ('d74epksn9qd63pdj43d0', 'archive.setting_definitions', 'Archive setting definitions'),
+    ('d74epksn9qd63pdj43dg', 'create.setting_values', 'Create setting values'),
+    ('d74epksn9qd63pdj43e0', 'read.setting_values', 'Read setting values'),
+    ('d74epksn9qd63pdj43f0', 'archive.setting_values', 'Archive setting values'),
     -- notifications
     ('d74epksn9qd63pdj43fg', 'create.user_notifications', 'Create user notifications'),
     ('d74epksn9qd63pdj43g0', 'read.user_notifications', 'Read user notifications'),
@@ -234,6 +244,7 @@ INSERT INTO user_role_permissions (id, role_id, permission_id) VALUES
     ('d74epksn9qd63pdj44d0', 'role_service_admin', 'd74epksn9qd63pdj436g'),
     ('d74epksn9qd63pdj44dg', 'role_service_admin', 'd74epksn9qd63pdj4330'),
     ('d74epksn9qd63pdj44e0', 'role_service_admin', 'd74epksn9qd63pdj43bg'),
+    ('d74epksn9qd63pdj45l0', 'role_service_admin', 'd74epksn9qd63pdj45kg'),
     ('d74epksn9qd63pdj44eg', 'role_service_admin', 'd74epksn9qd63pdj43u0'),
     ('d74epksn9qd63pdj44f0', 'role_service_admin', 'd74epksn9qd63pdj43v0'),
     ('d74epksn9qd63pdj44fg', 'role_service_admin', 'd74epksn9qd63pdj43vg'),
@@ -280,14 +291,12 @@ INSERT INTO user_role_permissions (id, role_id, permission_id) VALUES
     ('d74epksn9qd63pdj4510', 'role_account_member', 'd74epksn9qd63pdj43rg'),
     ('d74epksn9qd63pdj451g', 'role_account_member', 'd74epksn9qd63pdj43ag'),
     ('d74epksn9qd63pdj4520', 'role_account_member', 'd74epksn9qd63pdj43c0'),
-    ('d74epksn9qd63pdj452g', 'role_account_member', 'd74epksn9qd63pdj43cg'),
     ('d74epksn9qd63pdj4530', 'role_account_member', 'd74epksn9qd63pdj43ng'),
     ('d74epksn9qd63pdj453g', 'role_account_member', 'd74epksn9qd63pdj43o0'),
     ('d74epksn9qd63pdj4540', 'role_account_member', 'd74epksn9qd63pdj43og'),
     ('d74epksn9qd63pdj454g', 'role_account_member', 'd74epksn9qd63pdj43p0'),
     ('d74epksn9qd63pdj4550', 'role_account_member', 'd74epksn9qd63pdj43dg'),
     ('d74epksn9qd63pdj455g', 'role_account_member', 'd74epksn9qd63pdj43e0'),
-    ('d74epksn9qd63pdj4560', 'role_account_member', 'd74epksn9qd63pdj43eg'),
     ('d74epksn9qd63pdj456g', 'role_account_member', 'd74epksn9qd63pdj43f0'),
     ('d74epksn9qd63pdj4570', 'role_account_member', 'd74epksn9qd63pdj43s0'),
     ('d74epksn9qd63pdj457g', 'role_account_member', 'd74epksn9qd63pdj43sg'),

@@ -76,8 +76,6 @@ func main() {
 		"identity/sqlc_queries/accounts":                                         buildAccountsQueries(databaseToUse),
 		"identity/sqlc_queries/admin":                                            buildAdminQueries(databaseToUse),
 		"identity/sqlc_queries/users":                                            buildUsersQueries(databaseToUse),
-		"settings/sqlc_queries/service_settings":                                 buildServiceSettingQueries(databaseToUse),
-		"settings/sqlc_queries/service_setting_configurations":                   buildServiceSettingConfigurationQueries(databaseToUse),
 		"webhooks/sqlc_queries/webhooks":                                         buildWebhooksQueries(databaseToUse),
 		"webhooks/sqlc_queries/webhook_trigger_configs":                          buildWebhookTriggerConfigsQueries(databaseToUse),
 		"notifications/sqlc_queries/user_notifications":                          buildUserNotificationQueries(databaseToUse),

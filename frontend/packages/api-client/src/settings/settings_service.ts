@@ -18,368 +18,413 @@ import {
   type UntypedServiceImplementation,
 } from '@grpc/grpc-js';
 import {
-  ArchiveServiceSettingConfigurationRequest,
-  ArchiveServiceSettingConfigurationResponse,
-  ArchiveServiceSettingRequest,
-  ArchiveServiceSettingResponse,
-  CreateServiceSettingConfigurationRequest,
-  CreateServiceSettingConfigurationResponse,
-  CreateServiceSettingRequest,
-  CreateServiceSettingResponse,
-  GetServiceSettingConfigurationByNameRequest,
-  GetServiceSettingConfigurationByNameResponse,
-  GetServiceSettingConfigurationsForAccountRequest,
-  GetServiceSettingConfigurationsForAccountResponse,
-  GetServiceSettingConfigurationsForUserRequest,
-  GetServiceSettingConfigurationsForUserResponse,
-  GetServiceSettingRequest,
-  GetServiceSettingResponse,
-  GetServiceSettingsRequest,
-  GetServiceSettingsResponse,
-  SearchForServiceSettingsRequest,
-  SearchForServiceSettingsResponse,
-  UpdateServiceSettingConfigurationRequest,
-  UpdateServiceSettingConfigurationResponse,
+  ArchiveSettingDefinitionRequest,
+  ArchiveSettingDefinitionResponse,
+  ClearSettingValueRequest,
+  ClearSettingValueResponse,
+  CreateSettingDefinitionRequest,
+  CreateSettingDefinitionResponse,
+  GetSettingDefinitionByNameRequest,
+  GetSettingDefinitionByNameResponse,
+  GetSettingDefinitionRequest,
+  GetSettingDefinitionResponse,
+  GetSettingDefinitionsRequest,
+  GetSettingDefinitionsResponse,
+  GetSettingValueRequest,
+  GetSettingValueResponse,
+  GetSettingValuesForDefinitionRequest,
+  GetSettingValuesForDefinitionResponse,
+  GetSettingValuesRequest,
+  GetSettingValuesResponse,
+  ResolveSettingRequest,
+  ResolveSettingResponse,
+  ResolveSettingsRequest,
+  ResolveSettingsResponse,
+  SetSettingValueRequest,
+  SetSettingValueResponse,
+  UpdateSettingDefinitionRequest,
+  UpdateSettingDefinitionResponse,
 } from './settings_service_types';
 
 export const protobufPackage = 'settings';
 
+/**
+ * SettingsService is the catalog of settings this deployment defines and the
+ * answers its users store against it.
+ *
+ * The two halves have two callers. The definition methods are an administrator's
+ * — a seeding job, an admin console — and the value methods are the request
+ * path's, reached by whoever is saving or reading their own preference.
+ */
 export type SettingsServiceService = typeof SettingsServiceService;
 export const SettingsServiceService = {
-  getServiceSettingConfigurationsForAccount: {
-    path: '/settings.SettingsService/GetServiceSettingConfigurationsForAccount' as const,
+  createSettingDefinition: {
+    path: '/settings.SettingsService/CreateSettingDefinition' as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: GetServiceSettingConfigurationsForAccountRequest): Buffer =>
-      Buffer.from(GetServiceSettingConfigurationsForAccountRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): GetServiceSettingConfigurationsForAccountRequest =>
-      GetServiceSettingConfigurationsForAccountRequest.decode(value),
-    responseSerialize: (value: GetServiceSettingConfigurationsForAccountResponse): Buffer =>
-      Buffer.from(GetServiceSettingConfigurationsForAccountResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): GetServiceSettingConfigurationsForAccountResponse =>
-      GetServiceSettingConfigurationsForAccountResponse.decode(value),
+    requestSerialize: (value: CreateSettingDefinitionRequest): Buffer =>
+      Buffer.from(CreateSettingDefinitionRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): CreateSettingDefinitionRequest => CreateSettingDefinitionRequest.decode(value),
+    responseSerialize: (value: CreateSettingDefinitionResponse): Buffer =>
+      Buffer.from(CreateSettingDefinitionResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): CreateSettingDefinitionResponse =>
+      CreateSettingDefinitionResponse.decode(value),
   },
-  getServiceSettingConfigurationsForUser: {
-    path: '/settings.SettingsService/GetServiceSettingConfigurationsForUser' as const,
+  getSettingDefinition: {
+    path: '/settings.SettingsService/GetSettingDefinition' as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: GetServiceSettingConfigurationsForUserRequest): Buffer =>
-      Buffer.from(GetServiceSettingConfigurationsForUserRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): GetServiceSettingConfigurationsForUserRequest =>
-      GetServiceSettingConfigurationsForUserRequest.decode(value),
-    responseSerialize: (value: GetServiceSettingConfigurationsForUserResponse): Buffer =>
-      Buffer.from(GetServiceSettingConfigurationsForUserResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): GetServiceSettingConfigurationsForUserResponse =>
-      GetServiceSettingConfigurationsForUserResponse.decode(value),
+    requestSerialize: (value: GetSettingDefinitionRequest): Buffer =>
+      Buffer.from(GetSettingDefinitionRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetSettingDefinitionRequest => GetSettingDefinitionRequest.decode(value),
+    responseSerialize: (value: GetSettingDefinitionResponse): Buffer =>
+      Buffer.from(GetSettingDefinitionResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetSettingDefinitionResponse => GetSettingDefinitionResponse.decode(value),
   },
-  searchForServiceSettings: {
-    path: '/settings.SettingsService/SearchForServiceSettings' as const,
+  getSettingDefinitionByName: {
+    path: '/settings.SettingsService/GetSettingDefinitionByName' as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: SearchForServiceSettingsRequest): Buffer =>
-      Buffer.from(SearchForServiceSettingsRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): SearchForServiceSettingsRequest =>
-      SearchForServiceSettingsRequest.decode(value),
-    responseSerialize: (value: SearchForServiceSettingsResponse): Buffer =>
-      Buffer.from(SearchForServiceSettingsResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): SearchForServiceSettingsResponse =>
-      SearchForServiceSettingsResponse.decode(value),
+    requestSerialize: (value: GetSettingDefinitionByNameRequest): Buffer =>
+      Buffer.from(GetSettingDefinitionByNameRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetSettingDefinitionByNameRequest =>
+      GetSettingDefinitionByNameRequest.decode(value),
+    responseSerialize: (value: GetSettingDefinitionByNameResponse): Buffer =>
+      Buffer.from(GetSettingDefinitionByNameResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetSettingDefinitionByNameResponse =>
+      GetSettingDefinitionByNameResponse.decode(value),
   },
-  archiveServiceSetting: {
-    path: '/settings.SettingsService/ArchiveServiceSetting' as const,
+  getSettingDefinitions: {
+    path: '/settings.SettingsService/GetSettingDefinitions' as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: ArchiveServiceSettingRequest): Buffer =>
-      Buffer.from(ArchiveServiceSettingRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): ArchiveServiceSettingRequest => ArchiveServiceSettingRequest.decode(value),
-    responseSerialize: (value: ArchiveServiceSettingResponse): Buffer =>
-      Buffer.from(ArchiveServiceSettingResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): ArchiveServiceSettingResponse => ArchiveServiceSettingResponse.decode(value),
+    requestSerialize: (value: GetSettingDefinitionsRequest): Buffer =>
+      Buffer.from(GetSettingDefinitionsRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetSettingDefinitionsRequest => GetSettingDefinitionsRequest.decode(value),
+    responseSerialize: (value: GetSettingDefinitionsResponse): Buffer =>
+      Buffer.from(GetSettingDefinitionsResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetSettingDefinitionsResponse => GetSettingDefinitionsResponse.decode(value),
   },
-  archiveServiceSettingConfiguration: {
-    path: '/settings.SettingsService/ArchiveServiceSettingConfiguration' as const,
+  updateSettingDefinition: {
+    path: '/settings.SettingsService/UpdateSettingDefinition' as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: ArchiveServiceSettingConfigurationRequest): Buffer =>
-      Buffer.from(ArchiveServiceSettingConfigurationRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): ArchiveServiceSettingConfigurationRequest =>
-      ArchiveServiceSettingConfigurationRequest.decode(value),
-    responseSerialize: (value: ArchiveServiceSettingConfigurationResponse): Buffer =>
-      Buffer.from(ArchiveServiceSettingConfigurationResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): ArchiveServiceSettingConfigurationResponse =>
-      ArchiveServiceSettingConfigurationResponse.decode(value),
+    requestSerialize: (value: UpdateSettingDefinitionRequest): Buffer =>
+      Buffer.from(UpdateSettingDefinitionRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): UpdateSettingDefinitionRequest => UpdateSettingDefinitionRequest.decode(value),
+    responseSerialize: (value: UpdateSettingDefinitionResponse): Buffer =>
+      Buffer.from(UpdateSettingDefinitionResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): UpdateSettingDefinitionResponse =>
+      UpdateSettingDefinitionResponse.decode(value),
   },
-  createServiceSetting: {
-    path: '/settings.SettingsService/CreateServiceSetting' as const,
+  archiveSettingDefinition: {
+    path: '/settings.SettingsService/ArchiveSettingDefinition' as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: CreateServiceSettingRequest): Buffer =>
-      Buffer.from(CreateServiceSettingRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): CreateServiceSettingRequest => CreateServiceSettingRequest.decode(value),
-    responseSerialize: (value: CreateServiceSettingResponse): Buffer =>
-      Buffer.from(CreateServiceSettingResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): CreateServiceSettingResponse => CreateServiceSettingResponse.decode(value),
+    requestSerialize: (value: ArchiveSettingDefinitionRequest): Buffer =>
+      Buffer.from(ArchiveSettingDefinitionRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): ArchiveSettingDefinitionRequest =>
+      ArchiveSettingDefinitionRequest.decode(value),
+    responseSerialize: (value: ArchiveSettingDefinitionResponse): Buffer =>
+      Buffer.from(ArchiveSettingDefinitionResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): ArchiveSettingDefinitionResponse =>
+      ArchiveSettingDefinitionResponse.decode(value),
   },
-  createServiceSettingConfiguration: {
-    path: '/settings.SettingsService/CreateServiceSettingConfiguration' as const,
+  setSettingValue: {
+    path: '/settings.SettingsService/SetSettingValue' as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: CreateServiceSettingConfigurationRequest): Buffer =>
-      Buffer.from(CreateServiceSettingConfigurationRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): CreateServiceSettingConfigurationRequest =>
-      CreateServiceSettingConfigurationRequest.decode(value),
-    responseSerialize: (value: CreateServiceSettingConfigurationResponse): Buffer =>
-      Buffer.from(CreateServiceSettingConfigurationResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): CreateServiceSettingConfigurationResponse =>
-      CreateServiceSettingConfigurationResponse.decode(value),
+    requestSerialize: (value: SetSettingValueRequest): Buffer =>
+      Buffer.from(SetSettingValueRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): SetSettingValueRequest => SetSettingValueRequest.decode(value),
+    responseSerialize: (value: SetSettingValueResponse): Buffer =>
+      Buffer.from(SetSettingValueResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): SetSettingValueResponse => SetSettingValueResponse.decode(value),
   },
-  getServiceSetting: {
-    path: '/settings.SettingsService/GetServiceSetting' as const,
+  getSettingValue: {
+    path: '/settings.SettingsService/GetSettingValue' as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: GetServiceSettingRequest): Buffer =>
-      Buffer.from(GetServiceSettingRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): GetServiceSettingRequest => GetServiceSettingRequest.decode(value),
-    responseSerialize: (value: GetServiceSettingResponse): Buffer =>
-      Buffer.from(GetServiceSettingResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): GetServiceSettingResponse => GetServiceSettingResponse.decode(value),
+    requestSerialize: (value: GetSettingValueRequest): Buffer =>
+      Buffer.from(GetSettingValueRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetSettingValueRequest => GetSettingValueRequest.decode(value),
+    responseSerialize: (value: GetSettingValueResponse): Buffer =>
+      Buffer.from(GetSettingValueResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetSettingValueResponse => GetSettingValueResponse.decode(value),
   },
-  getServiceSettingConfigurationByName: {
-    path: '/settings.SettingsService/GetServiceSettingConfigurationByName' as const,
+  clearSettingValue: {
+    path: '/settings.SettingsService/ClearSettingValue' as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: GetServiceSettingConfigurationByNameRequest): Buffer =>
-      Buffer.from(GetServiceSettingConfigurationByNameRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): GetServiceSettingConfigurationByNameRequest =>
-      GetServiceSettingConfigurationByNameRequest.decode(value),
-    responseSerialize: (value: GetServiceSettingConfigurationByNameResponse): Buffer =>
-      Buffer.from(GetServiceSettingConfigurationByNameResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): GetServiceSettingConfigurationByNameResponse =>
-      GetServiceSettingConfigurationByNameResponse.decode(value),
+    requestSerialize: (value: ClearSettingValueRequest): Buffer =>
+      Buffer.from(ClearSettingValueRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): ClearSettingValueRequest => ClearSettingValueRequest.decode(value),
+    responseSerialize: (value: ClearSettingValueResponse): Buffer =>
+      Buffer.from(ClearSettingValueResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): ClearSettingValueResponse => ClearSettingValueResponse.decode(value),
   },
-  getServiceSettings: {
-    path: '/settings.SettingsService/GetServiceSettings' as const,
+  getSettingValues: {
+    path: '/settings.SettingsService/GetSettingValues' as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: GetServiceSettingsRequest): Buffer =>
-      Buffer.from(GetServiceSettingsRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): GetServiceSettingsRequest => GetServiceSettingsRequest.decode(value),
-    responseSerialize: (value: GetServiceSettingsResponse): Buffer =>
-      Buffer.from(GetServiceSettingsResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): GetServiceSettingsResponse => GetServiceSettingsResponse.decode(value),
+    requestSerialize: (value: GetSettingValuesRequest): Buffer =>
+      Buffer.from(GetSettingValuesRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetSettingValuesRequest => GetSettingValuesRequest.decode(value),
+    responseSerialize: (value: GetSettingValuesResponse): Buffer =>
+      Buffer.from(GetSettingValuesResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetSettingValuesResponse => GetSettingValuesResponse.decode(value),
   },
-  updateServiceSettingConfiguration: {
-    path: '/settings.SettingsService/UpdateServiceSettingConfiguration' as const,
+  getSettingValuesForDefinition: {
+    path: '/settings.SettingsService/GetSettingValuesForDefinition' as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: UpdateServiceSettingConfigurationRequest): Buffer =>
-      Buffer.from(UpdateServiceSettingConfigurationRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): UpdateServiceSettingConfigurationRequest =>
-      UpdateServiceSettingConfigurationRequest.decode(value),
-    responseSerialize: (value: UpdateServiceSettingConfigurationResponse): Buffer =>
-      Buffer.from(UpdateServiceSettingConfigurationResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): UpdateServiceSettingConfigurationResponse =>
-      UpdateServiceSettingConfigurationResponse.decode(value),
+    requestSerialize: (value: GetSettingValuesForDefinitionRequest): Buffer =>
+      Buffer.from(GetSettingValuesForDefinitionRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetSettingValuesForDefinitionRequest =>
+      GetSettingValuesForDefinitionRequest.decode(value),
+    responseSerialize: (value: GetSettingValuesForDefinitionResponse): Buffer =>
+      Buffer.from(GetSettingValuesForDefinitionResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetSettingValuesForDefinitionResponse =>
+      GetSettingValuesForDefinitionResponse.decode(value),
+  },
+  resolveSetting: {
+    path: '/settings.SettingsService/ResolveSetting' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: ResolveSettingRequest): Buffer =>
+      Buffer.from(ResolveSettingRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): ResolveSettingRequest => ResolveSettingRequest.decode(value),
+    responseSerialize: (value: ResolveSettingResponse): Buffer =>
+      Buffer.from(ResolveSettingResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): ResolveSettingResponse => ResolveSettingResponse.decode(value),
+  },
+  resolveSettings: {
+    path: '/settings.SettingsService/ResolveSettings' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: ResolveSettingsRequest): Buffer =>
+      Buffer.from(ResolveSettingsRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): ResolveSettingsRequest => ResolveSettingsRequest.decode(value),
+    responseSerialize: (value: ResolveSettingsResponse): Buffer =>
+      Buffer.from(ResolveSettingsResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): ResolveSettingsResponse => ResolveSettingsResponse.decode(value),
   },
 } as const;
 
 export interface SettingsServiceServer extends UntypedServiceImplementation {
-  getServiceSettingConfigurationsForAccount: handleUnaryCall<
-    GetServiceSettingConfigurationsForAccountRequest,
-    GetServiceSettingConfigurationsForAccountResponse
+  createSettingDefinition: handleUnaryCall<CreateSettingDefinitionRequest, CreateSettingDefinitionResponse>;
+  getSettingDefinition: handleUnaryCall<GetSettingDefinitionRequest, GetSettingDefinitionResponse>;
+  getSettingDefinitionByName: handleUnaryCall<GetSettingDefinitionByNameRequest, GetSettingDefinitionByNameResponse>;
+  getSettingDefinitions: handleUnaryCall<GetSettingDefinitionsRequest, GetSettingDefinitionsResponse>;
+  updateSettingDefinition: handleUnaryCall<UpdateSettingDefinitionRequest, UpdateSettingDefinitionResponse>;
+  archiveSettingDefinition: handleUnaryCall<ArchiveSettingDefinitionRequest, ArchiveSettingDefinitionResponse>;
+  setSettingValue: handleUnaryCall<SetSettingValueRequest, SetSettingValueResponse>;
+  getSettingValue: handleUnaryCall<GetSettingValueRequest, GetSettingValueResponse>;
+  clearSettingValue: handleUnaryCall<ClearSettingValueRequest, ClearSettingValueResponse>;
+  getSettingValues: handleUnaryCall<GetSettingValuesRequest, GetSettingValuesResponse>;
+  getSettingValuesForDefinition: handleUnaryCall<
+    GetSettingValuesForDefinitionRequest,
+    GetSettingValuesForDefinitionResponse
   >;
-  getServiceSettingConfigurationsForUser: handleUnaryCall<
-    GetServiceSettingConfigurationsForUserRequest,
-    GetServiceSettingConfigurationsForUserResponse
-  >;
-  searchForServiceSettings: handleUnaryCall<SearchForServiceSettingsRequest, SearchForServiceSettingsResponse>;
-  archiveServiceSetting: handleUnaryCall<ArchiveServiceSettingRequest, ArchiveServiceSettingResponse>;
-  archiveServiceSettingConfiguration: handleUnaryCall<
-    ArchiveServiceSettingConfigurationRequest,
-    ArchiveServiceSettingConfigurationResponse
-  >;
-  createServiceSetting: handleUnaryCall<CreateServiceSettingRequest, CreateServiceSettingResponse>;
-  createServiceSettingConfiguration: handleUnaryCall<
-    CreateServiceSettingConfigurationRequest,
-    CreateServiceSettingConfigurationResponse
-  >;
-  getServiceSetting: handleUnaryCall<GetServiceSettingRequest, GetServiceSettingResponse>;
-  getServiceSettingConfigurationByName: handleUnaryCall<
-    GetServiceSettingConfigurationByNameRequest,
-    GetServiceSettingConfigurationByNameResponse
-  >;
-  getServiceSettings: handleUnaryCall<GetServiceSettingsRequest, GetServiceSettingsResponse>;
-  updateServiceSettingConfiguration: handleUnaryCall<
-    UpdateServiceSettingConfigurationRequest,
-    UpdateServiceSettingConfigurationResponse
-  >;
+  resolveSetting: handleUnaryCall<ResolveSettingRequest, ResolveSettingResponse>;
+  resolveSettings: handleUnaryCall<ResolveSettingsRequest, ResolveSettingsResponse>;
 }
 
 export interface SettingsServiceClient extends Client {
-  getServiceSettingConfigurationsForAccount(
-    request: GetServiceSettingConfigurationsForAccountRequest,
-    callback: (error: ServiceError | null, response: GetServiceSettingConfigurationsForAccountResponse) => void,
+  createSettingDefinition(
+    request: CreateSettingDefinitionRequest,
+    callback: (error: ServiceError | null, response: CreateSettingDefinitionResponse) => void,
   ): ClientUnaryCall;
-  getServiceSettingConfigurationsForAccount(
-    request: GetServiceSettingConfigurationsForAccountRequest,
+  createSettingDefinition(
+    request: CreateSettingDefinitionRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetServiceSettingConfigurationsForAccountResponse) => void,
+    callback: (error: ServiceError | null, response: CreateSettingDefinitionResponse) => void,
   ): ClientUnaryCall;
-  getServiceSettingConfigurationsForAccount(
-    request: GetServiceSettingConfigurationsForAccountRequest,
-    metadata: Metadata,
-    options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetServiceSettingConfigurationsForAccountResponse) => void,
-  ): ClientUnaryCall;
-  getServiceSettingConfigurationsForUser(
-    request: GetServiceSettingConfigurationsForUserRequest,
-    callback: (error: ServiceError | null, response: GetServiceSettingConfigurationsForUserResponse) => void,
-  ): ClientUnaryCall;
-  getServiceSettingConfigurationsForUser(
-    request: GetServiceSettingConfigurationsForUserRequest,
-    metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetServiceSettingConfigurationsForUserResponse) => void,
-  ): ClientUnaryCall;
-  getServiceSettingConfigurationsForUser(
-    request: GetServiceSettingConfigurationsForUserRequest,
+  createSettingDefinition(
+    request: CreateSettingDefinitionRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetServiceSettingConfigurationsForUserResponse) => void,
+    callback: (error: ServiceError | null, response: CreateSettingDefinitionResponse) => void,
   ): ClientUnaryCall;
-  searchForServiceSettings(
-    request: SearchForServiceSettingsRequest,
-    callback: (error: ServiceError | null, response: SearchForServiceSettingsResponse) => void,
+  getSettingDefinition(
+    request: GetSettingDefinitionRequest,
+    callback: (error: ServiceError | null, response: GetSettingDefinitionResponse) => void,
   ): ClientUnaryCall;
-  searchForServiceSettings(
-    request: SearchForServiceSettingsRequest,
+  getSettingDefinition(
+    request: GetSettingDefinitionRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: SearchForServiceSettingsResponse) => void,
+    callback: (error: ServiceError | null, response: GetSettingDefinitionResponse) => void,
   ): ClientUnaryCall;
-  searchForServiceSettings(
-    request: SearchForServiceSettingsRequest,
-    metadata: Metadata,
-    options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: SearchForServiceSettingsResponse) => void,
-  ): ClientUnaryCall;
-  archiveServiceSetting(
-    request: ArchiveServiceSettingRequest,
-    callback: (error: ServiceError | null, response: ArchiveServiceSettingResponse) => void,
-  ): ClientUnaryCall;
-  archiveServiceSetting(
-    request: ArchiveServiceSettingRequest,
-    metadata: Metadata,
-    callback: (error: ServiceError | null, response: ArchiveServiceSettingResponse) => void,
-  ): ClientUnaryCall;
-  archiveServiceSetting(
-    request: ArchiveServiceSettingRequest,
+  getSettingDefinition(
+    request: GetSettingDefinitionRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ArchiveServiceSettingResponse) => void,
+    callback: (error: ServiceError | null, response: GetSettingDefinitionResponse) => void,
   ): ClientUnaryCall;
-  archiveServiceSettingConfiguration(
-    request: ArchiveServiceSettingConfigurationRequest,
-    callback: (error: ServiceError | null, response: ArchiveServiceSettingConfigurationResponse) => void,
+  getSettingDefinitionByName(
+    request: GetSettingDefinitionByNameRequest,
+    callback: (error: ServiceError | null, response: GetSettingDefinitionByNameResponse) => void,
   ): ClientUnaryCall;
-  archiveServiceSettingConfiguration(
-    request: ArchiveServiceSettingConfigurationRequest,
+  getSettingDefinitionByName(
+    request: GetSettingDefinitionByNameRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: ArchiveServiceSettingConfigurationResponse) => void,
+    callback: (error: ServiceError | null, response: GetSettingDefinitionByNameResponse) => void,
   ): ClientUnaryCall;
-  archiveServiceSettingConfiguration(
-    request: ArchiveServiceSettingConfigurationRequest,
-    metadata: Metadata,
-    options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ArchiveServiceSettingConfigurationResponse) => void,
-  ): ClientUnaryCall;
-  createServiceSetting(
-    request: CreateServiceSettingRequest,
-    callback: (error: ServiceError | null, response: CreateServiceSettingResponse) => void,
-  ): ClientUnaryCall;
-  createServiceSetting(
-    request: CreateServiceSettingRequest,
-    metadata: Metadata,
-    callback: (error: ServiceError | null, response: CreateServiceSettingResponse) => void,
-  ): ClientUnaryCall;
-  createServiceSetting(
-    request: CreateServiceSettingRequest,
+  getSettingDefinitionByName(
+    request: GetSettingDefinitionByNameRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: CreateServiceSettingResponse) => void,
+    callback: (error: ServiceError | null, response: GetSettingDefinitionByNameResponse) => void,
   ): ClientUnaryCall;
-  createServiceSettingConfiguration(
-    request: CreateServiceSettingConfigurationRequest,
-    callback: (error: ServiceError | null, response: CreateServiceSettingConfigurationResponse) => void,
+  getSettingDefinitions(
+    request: GetSettingDefinitionsRequest,
+    callback: (error: ServiceError | null, response: GetSettingDefinitionsResponse) => void,
   ): ClientUnaryCall;
-  createServiceSettingConfiguration(
-    request: CreateServiceSettingConfigurationRequest,
+  getSettingDefinitions(
+    request: GetSettingDefinitionsRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: CreateServiceSettingConfigurationResponse) => void,
+    callback: (error: ServiceError | null, response: GetSettingDefinitionsResponse) => void,
   ): ClientUnaryCall;
-  createServiceSettingConfiguration(
-    request: CreateServiceSettingConfigurationRequest,
-    metadata: Metadata,
-    options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: CreateServiceSettingConfigurationResponse) => void,
-  ): ClientUnaryCall;
-  getServiceSetting(
-    request: GetServiceSettingRequest,
-    callback: (error: ServiceError | null, response: GetServiceSettingResponse) => void,
-  ): ClientUnaryCall;
-  getServiceSetting(
-    request: GetServiceSettingRequest,
-    metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetServiceSettingResponse) => void,
-  ): ClientUnaryCall;
-  getServiceSetting(
-    request: GetServiceSettingRequest,
+  getSettingDefinitions(
+    request: GetSettingDefinitionsRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetServiceSettingResponse) => void,
+    callback: (error: ServiceError | null, response: GetSettingDefinitionsResponse) => void,
   ): ClientUnaryCall;
-  getServiceSettingConfigurationByName(
-    request: GetServiceSettingConfigurationByNameRequest,
-    callback: (error: ServiceError | null, response: GetServiceSettingConfigurationByNameResponse) => void,
+  updateSettingDefinition(
+    request: UpdateSettingDefinitionRequest,
+    callback: (error: ServiceError | null, response: UpdateSettingDefinitionResponse) => void,
   ): ClientUnaryCall;
-  getServiceSettingConfigurationByName(
-    request: GetServiceSettingConfigurationByNameRequest,
+  updateSettingDefinition(
+    request: UpdateSettingDefinitionRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetServiceSettingConfigurationByNameResponse) => void,
+    callback: (error: ServiceError | null, response: UpdateSettingDefinitionResponse) => void,
   ): ClientUnaryCall;
-  getServiceSettingConfigurationByName(
-    request: GetServiceSettingConfigurationByNameRequest,
-    metadata: Metadata,
-    options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetServiceSettingConfigurationByNameResponse) => void,
-  ): ClientUnaryCall;
-  getServiceSettings(
-    request: GetServiceSettingsRequest,
-    callback: (error: ServiceError | null, response: GetServiceSettingsResponse) => void,
-  ): ClientUnaryCall;
-  getServiceSettings(
-    request: GetServiceSettingsRequest,
-    metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetServiceSettingsResponse) => void,
-  ): ClientUnaryCall;
-  getServiceSettings(
-    request: GetServiceSettingsRequest,
+  updateSettingDefinition(
+    request: UpdateSettingDefinitionRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetServiceSettingsResponse) => void,
+    callback: (error: ServiceError | null, response: UpdateSettingDefinitionResponse) => void,
   ): ClientUnaryCall;
-  updateServiceSettingConfiguration(
-    request: UpdateServiceSettingConfigurationRequest,
-    callback: (error: ServiceError | null, response: UpdateServiceSettingConfigurationResponse) => void,
+  archiveSettingDefinition(
+    request: ArchiveSettingDefinitionRequest,
+    callback: (error: ServiceError | null, response: ArchiveSettingDefinitionResponse) => void,
   ): ClientUnaryCall;
-  updateServiceSettingConfiguration(
-    request: UpdateServiceSettingConfigurationRequest,
+  archiveSettingDefinition(
+    request: ArchiveSettingDefinitionRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: UpdateServiceSettingConfigurationResponse) => void,
+    callback: (error: ServiceError | null, response: ArchiveSettingDefinitionResponse) => void,
   ): ClientUnaryCall;
-  updateServiceSettingConfiguration(
-    request: UpdateServiceSettingConfigurationRequest,
+  archiveSettingDefinition(
+    request: ArchiveSettingDefinitionRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: UpdateServiceSettingConfigurationResponse) => void,
+    callback: (error: ServiceError | null, response: ArchiveSettingDefinitionResponse) => void,
+  ): ClientUnaryCall;
+  setSettingValue(
+    request: SetSettingValueRequest,
+    callback: (error: ServiceError | null, response: SetSettingValueResponse) => void,
+  ): ClientUnaryCall;
+  setSettingValue(
+    request: SetSettingValueRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: SetSettingValueResponse) => void,
+  ): ClientUnaryCall;
+  setSettingValue(
+    request: SetSettingValueRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: SetSettingValueResponse) => void,
+  ): ClientUnaryCall;
+  getSettingValue(
+    request: GetSettingValueRequest,
+    callback: (error: ServiceError | null, response: GetSettingValueResponse) => void,
+  ): ClientUnaryCall;
+  getSettingValue(
+    request: GetSettingValueRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetSettingValueResponse) => void,
+  ): ClientUnaryCall;
+  getSettingValue(
+    request: GetSettingValueRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetSettingValueResponse) => void,
+  ): ClientUnaryCall;
+  clearSettingValue(
+    request: ClearSettingValueRequest,
+    callback: (error: ServiceError | null, response: ClearSettingValueResponse) => void,
+  ): ClientUnaryCall;
+  clearSettingValue(
+    request: ClearSettingValueRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: ClearSettingValueResponse) => void,
+  ): ClientUnaryCall;
+  clearSettingValue(
+    request: ClearSettingValueRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: ClearSettingValueResponse) => void,
+  ): ClientUnaryCall;
+  getSettingValues(
+    request: GetSettingValuesRequest,
+    callback: (error: ServiceError | null, response: GetSettingValuesResponse) => void,
+  ): ClientUnaryCall;
+  getSettingValues(
+    request: GetSettingValuesRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetSettingValuesResponse) => void,
+  ): ClientUnaryCall;
+  getSettingValues(
+    request: GetSettingValuesRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetSettingValuesResponse) => void,
+  ): ClientUnaryCall;
+  getSettingValuesForDefinition(
+    request: GetSettingValuesForDefinitionRequest,
+    callback: (error: ServiceError | null, response: GetSettingValuesForDefinitionResponse) => void,
+  ): ClientUnaryCall;
+  getSettingValuesForDefinition(
+    request: GetSettingValuesForDefinitionRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetSettingValuesForDefinitionResponse) => void,
+  ): ClientUnaryCall;
+  getSettingValuesForDefinition(
+    request: GetSettingValuesForDefinitionRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetSettingValuesForDefinitionResponse) => void,
+  ): ClientUnaryCall;
+  resolveSetting(
+    request: ResolveSettingRequest,
+    callback: (error: ServiceError | null, response: ResolveSettingResponse) => void,
+  ): ClientUnaryCall;
+  resolveSetting(
+    request: ResolveSettingRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: ResolveSettingResponse) => void,
+  ): ClientUnaryCall;
+  resolveSetting(
+    request: ResolveSettingRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: ResolveSettingResponse) => void,
+  ): ClientUnaryCall;
+  resolveSettings(
+    request: ResolveSettingsRequest,
+    callback: (error: ServiceError | null, response: ResolveSettingsResponse) => void,
+  ): ClientUnaryCall;
+  resolveSettings(
+    request: ResolveSettingsRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: ResolveSettingsResponse) => void,
+  ): ClientUnaryCall;
+  resolveSettings(
+    request: ResolveSettingsRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: ResolveSettingsResponse) => void,
   ): ClientUnaryCall;
 }
 

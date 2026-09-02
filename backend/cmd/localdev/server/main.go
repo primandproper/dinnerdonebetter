@@ -24,6 +24,8 @@ import (
 	"github.com/primandproper/platform-go/v13/identifiers"
 	"github.com/primandproper/platform-go/v13/observability/logging"
 	"github.com/primandproper/platform-go/v13/observability/tracing"
+	"github.com/primandproper/platform-go/v13/pointer"
+	platformsettings "github.com/primandproper/platform-go/v13/settings"
 )
 
 const (
@@ -227,9 +229,9 @@ func main() {
 			})
 			return err
 		}),
-		// Create example service settings
-		localdev.WithSettingsRepository(func(ctx context.Context, repo settings.Repository, logger logging.Logger, tracerProvider tracing.Provider) error {
-			return createExampleServiceSettings(ctx, repo, logger)
+		// Create the example settings catalog
+		localdev.WithSettingsRepository(func(ctx context.Context, store platformsettings.Store, logger logging.Logger, tracerProvider tracing.Provider) error {
+			return createExampleSettingDefinitions(ctx, store, logger)
 		}),
 	)
 	if err != nil {
@@ -248,51 +250,45 @@ func main() {
 	}
 }
 
-func createExampleServiceSettings(ctx context.Context, repo settings.Repository, logger logging.Logger) error {
-	defaultTheme := "light"
-	_, err := repo.CreateServiceSetting(ctx, &settings.ServiceSettingDatabaseCreationInput{
-		ID:           identifiers.New(),
-		Name:         "user_theme_preference",
-		Type:         "user",
-		Description:  "User's preferred theme for the application interface",
-		Enumeration:  []string{"light", "dark", "auto"},
-		DefaultValue: &defaultTheme,
-		AdminsOnly:   true,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to create theme preference setting: %w", err)
-	}
-	logger.Debug("Created ServiceSetting: user_theme_preference (enumerated with default)")
+// createExampleSettingDefinitions seeds the catalog a locally-run instance
+// starts with.
+//
+// Every one of them is a text setting that enumerates its values, which is the
+// shape a preferences page can render: a select box needs to know what to offer,
+// and a setting with no enumeration is a free-text field nothing validates.
+func createExampleSettingDefinitions(ctx context.Context, store platformsettings.Store, logger logging.Logger) error {
+	for _, definition := range []*platformsettings.Definition{
+		{
+			Name:        "user_theme_preference",
+			Description: "User's preferred theme for the application interface",
+			Kind:        platformsettings.KindString,
+			Enumeration: []string{"light", "dark", "auto"},
+			Default:     pointer.To("light"),
+			AdminOnly:   true,
+		},
+		{
+			Name:        "user_notification_frequency",
+			Description: "How often to send notifications",
+			Kind:        platformsettings.KindString,
+			Enumeration: []string{"immediate", "daily", "weekly", "never"},
+			Default:     pointer.To("daily"),
+			AdminOnly:   true,
+		},
+		{
+			Name:        "user_language",
+			Description: "User's preferred language for the application",
+			Kind:        platformsettings.KindString,
+			Enumeration: []string{"en", "es", "fr", "de", "it"},
+			Default:     pointer.To("en"),
+			AdminOnly:   false,
+		},
+	} {
+		if _, err := store.CreateDefinition(ctx, settings.Scope(), definition); err != nil {
+			return fmt.Errorf("failed to create the %s setting: %w", definition.Name, err)
+		}
 
-	defaultNotificationFreq := "daily"
-	_, err = repo.CreateServiceSetting(ctx, &settings.ServiceSettingDatabaseCreationInput{
-		ID:           identifiers.New(),
-		Name:         "membership_notification_frequency",
-		Type:         "membership",
-		Description:  "How often to send notifications to membership members",
-		Enumeration:  []string{"immediate", "daily", "weekly", "never"},
-		DefaultValue: &defaultNotificationFreq,
-		AdminsOnly:   true,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to create notification frequency setting: %w", err)
+		logger.Debug("created setting definition: " + definition.Name)
 	}
-	logger.Debug("Created ServiceSetting: membership_notification_frequency (enumerated with default)")
-
-	defaultLanguage := "en"
-	_, err = repo.CreateServiceSetting(ctx, &settings.ServiceSettingDatabaseCreationInput{
-		ID:           identifiers.New(),
-		Name:         "user_language",
-		Type:         "user",
-		Description:  "User's preferred language for the application",
-		Enumeration:  []string{"en", "es", "fr", "de", "it"},
-		DefaultValue: &defaultLanguage,
-		AdminsOnly:   false,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to create language setting: %w", err)
-	}
-	logger.Debug("Created ServiceSetting: user_language (enumerated, non-admin)")
 
 	return nil
 }

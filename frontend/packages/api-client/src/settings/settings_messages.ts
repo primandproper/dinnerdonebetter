@@ -10,308 +10,157 @@ import { Timestamp } from '../google/protobuf/timestamp';
 
 export const protobufPackage = 'settings';
 
-export interface DataCollection {
-  serviceSettingConfigurations: { [key: string]: ServiceSettingConfiguration };
-  userServiceSettingConfigurations: ServiceSettingConfiguration[];
-}
-
-export interface DataCollection_ServiceSettingConfigurationsEntry {
-  key: string;
-  value: ServiceSettingConfiguration | undefined;
-}
-
-export interface ServiceSetting {
+/**
+ * SettingDefinition is what a setting is: the name application code asks for,
+ * the kind of value it holds, what it falls back to, and which values it admits.
+ *
+ * Definitions are administrative rows. Nothing on a request path creates one —
+ * the catalog is a deployment's decision — and what a request path does is read
+ * one and store an answer against it.
+ */
+export interface SettingDefinition {
   createdAt: Date | undefined;
-  defaultValue?: string | undefined;
   lastUpdatedAt: Date | undefined;
+  /**
+   * archived_at is when the setting was retired. The values stored against an
+   * archived definition are left alone and its name stays claimed: archiving is
+   * not erasure, and freeing the name would let a later definition inherit rows
+   * written for the first.
+   */
   archivedAt: Date | undefined;
   id: string;
   name: string;
-  type: string;
   description: string;
+  /**
+   * kind is how a stored value is parsed: one of "string", "boolean",
+   * "integer" or "float".
+   */
+  kind: string;
+  /**
+   * default_value is what a setting resolves to for somebody who has not chosen.
+   *
+   * It is optional rather than a plain string because a setting defaulting to ""
+   * and a setting with no default at all are different settings: the first
+   * answers everybody who has not chosen, and the second answers nobody. See
+   * SettingResolution.source.
+   */
+  defaultValue?: string | undefined;
+  /**
+   * enumeration is the values this setting admits, sorted, or empty for a
+   * setting that admits any value of its kind.
+   */
   enumeration: string[];
-  adminsOnly: boolean;
+  /**
+   * admin_only marks a setting only an administrator may write. The server hides
+   * an admin-only setting from a non-admin's resolved settings; it is what a
+   * self-service preferences page is filtered by.
+   */
+  adminOnly: boolean;
 }
 
-export interface ServiceSettingConfiguration {
+/** SettingValue is one person's answer to one definition. */
+export interface SettingValue {
   createdAt: Date | undefined;
   lastUpdatedAt: Date | undefined;
+  /**
+   * archived_at is when the answer was cleared. A cleared value resolves to the
+   * definition's default as though it had never been set.
+   */
   archivedAt: Date | undefined;
   id: string;
-  value: string;
-  notes: string;
+  definitionId: string;
+  /**
+   * belongs_to_user is whose answer it is. Every setting value in this
+   * deployment belongs to a person; see the backend's settings domain package
+   * for why there are no account-owned values.
+   */
   belongsToUser: string;
-  belongsToAccount: string;
-  serviceSetting: ServiceSetting | undefined;
+  /**
+   * value is the answer as it is stored. It is a string whatever the
+   * definition's kind is, and the kind is what says how to read it.
+   */
+  value: string;
 }
 
-function createBaseDataCollection(): DataCollection {
-  return { serviceSettingConfigurations: {}, userServiceSettingConfigurations: [] };
+/**
+ * SettingResolution is one setting answered for one person: the value, and where
+ * it came from.
+ *
+ * The source is the point of the message. A resolved setting is answered by the
+ * person, answered by the definition's default, or not answered at all, and a
+ * client that only received a value could not tell the third case from a default
+ * of "".
+ */
+export interface SettingResolution {
+  definition: SettingDefinition | undefined;
+  /**
+   * value is the row the person set, and is absent when the default answered or
+   * nothing did.
+   */
+  value: SettingValue | undefined;
+  /** raw is the answer as stored, and is empty when source is "unset". */
+  raw: string;
+  /**
+   * source is one of "subject" (they chose it), "default" (they have not, and
+   * the setting has a default) or "unset" (they have not, and it does not).
+   */
+  source: string;
 }
 
-export const DataCollection: MessageFns<DataCollection> = {
-  encode(message: DataCollection, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    globalThis.Object.entries(message.serviceSettingConfigurations).forEach(
-      ([key, value]: [string, ServiceSettingConfiguration]) => {
-        DataCollection_ServiceSettingConfigurationsEntry.encode(
-          { key: key as any, value },
-          writer.uint32(10).fork(),
-        ).join();
-      },
-    );
-    for (const v of message.userServiceSettingConfigurations) {
-      ServiceSettingConfiguration.encode(v!, writer.uint32(18).fork()).join();
-    }
-    return writer;
-  },
-
-  decode(input: BinaryReader | Uint8Array, length?: number): DataCollection {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseDataCollection();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
-
-          const entry1 = DataCollection_ServiceSettingConfigurationsEntry.decode(reader, reader.uint32());
-          if (entry1.value !== undefined) {
-            message.serviceSettingConfigurations[entry1.key] = entry1.value;
-          }
-          continue;
-        }
-        case 2: {
-          if (tag !== 18) {
-            break;
-          }
-
-          message.userServiceSettingConfigurations.push(ServiceSettingConfiguration.decode(reader, reader.uint32()));
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
-
-  fromJSON(object: any): DataCollection {
-    return {
-      serviceSettingConfigurations: isObject(object.serviceSettingConfigurations)
-        ? (globalThis.Object.entries(object.serviceSettingConfigurations) as [string, any][]).reduce(
-            (acc: { [key: string]: ServiceSettingConfiguration }, [key, value]: [string, any]) => {
-              acc[key] = ServiceSettingConfiguration.fromJSON(value);
-              return acc;
-            },
-            {},
-          )
-        : isObject(object.service_setting_configurations)
-          ? (globalThis.Object.entries(object.service_setting_configurations) as [string, any][]).reduce(
-              (acc: { [key: string]: ServiceSettingConfiguration }, [key, value]: [string, any]) => {
-                acc[key] = ServiceSettingConfiguration.fromJSON(value);
-                return acc;
-              },
-              {},
-            )
-          : {},
-      userServiceSettingConfigurations: globalThis.Array.isArray(object?.userServiceSettingConfigurations)
-        ? object.userServiceSettingConfigurations.map((e: any) => ServiceSettingConfiguration.fromJSON(e))
-        : globalThis.Array.isArray(object?.user_service_setting_configurations)
-          ? object.user_service_setting_configurations.map((e: any) => ServiceSettingConfiguration.fromJSON(e))
-          : [],
-    };
-  },
-
-  toJSON(message: DataCollection): unknown {
-    const obj: any = {};
-    if (message.serviceSettingConfigurations) {
-      const entries = globalThis.Object.entries(message.serviceSettingConfigurations) as [
-        string,
-        ServiceSettingConfiguration,
-      ][];
-      if (entries.length > 0) {
-        obj.serviceSettingConfigurations = {};
-        entries.forEach(([k, v]) => {
-          obj.serviceSettingConfigurations[k] = ServiceSettingConfiguration.toJSON(v);
-        });
-      }
-    }
-    if (message.userServiceSettingConfigurations?.length) {
-      obj.userServiceSettingConfigurations = message.userServiceSettingConfigurations.map((e) =>
-        ServiceSettingConfiguration.toJSON(e),
-      );
-    }
-    return obj;
-  },
-
-  create<I extends Exact<DeepPartial<DataCollection>, I>>(base?: I): DataCollection {
-    return DataCollection.fromPartial(base ?? ({} as any));
-  },
-  fromPartial<I extends Exact<DeepPartial<DataCollection>, I>>(object: I): DataCollection {
-    const message = createBaseDataCollection();
-    message.serviceSettingConfigurations = (
-      globalThis.Object.entries(object.serviceSettingConfigurations ?? {}) as [string, ServiceSettingConfiguration][]
-    ).reduce(
-      (acc: { [key: string]: ServiceSettingConfiguration }, [key, value]: [string, ServiceSettingConfiguration]) => {
-        if (value !== undefined) {
-          acc[key] = ServiceSettingConfiguration.fromPartial(value);
-        }
-        return acc;
-      },
-      {},
-    );
-    message.userServiceSettingConfigurations =
-      object.userServiceSettingConfigurations?.map((e) => ServiceSettingConfiguration.fromPartial(e)) || [];
-    return message;
-  },
-};
-
-function createBaseDataCollection_ServiceSettingConfigurationsEntry(): DataCollection_ServiceSettingConfigurationsEntry {
-  return { key: '', value: undefined };
-}
-
-export const DataCollection_ServiceSettingConfigurationsEntry: MessageFns<DataCollection_ServiceSettingConfigurationsEntry> =
-  {
-    encode(
-      message: DataCollection_ServiceSettingConfigurationsEntry,
-      writer: BinaryWriter = new BinaryWriter(),
-    ): BinaryWriter {
-      if (message.key !== '') {
-        writer.uint32(10).string(message.key);
-      }
-      if (message.value !== undefined) {
-        ServiceSettingConfiguration.encode(message.value, writer.uint32(18).fork()).join();
-      }
-      return writer;
-    },
-
-    decode(input: BinaryReader | Uint8Array, length?: number): DataCollection_ServiceSettingConfigurationsEntry {
-      const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-      const end = length === undefined ? reader.len : reader.pos + length;
-      const message = createBaseDataCollection_ServiceSettingConfigurationsEntry();
-      while (reader.pos < end) {
-        const tag = reader.uint32();
-        switch (tag >>> 3) {
-          case 1: {
-            if (tag !== 10) {
-              break;
-            }
-
-            message.key = reader.string();
-            continue;
-          }
-          case 2: {
-            if (tag !== 18) {
-              break;
-            }
-
-            message.value = ServiceSettingConfiguration.decode(reader, reader.uint32());
-            continue;
-          }
-        }
-        if ((tag & 7) === 4 || tag === 0) {
-          break;
-        }
-        reader.skip(tag & 7);
-      }
-      return message;
-    },
-
-    fromJSON(object: any): DataCollection_ServiceSettingConfigurationsEntry {
-      return {
-        key: isSet(object.key) ? globalThis.String(object.key) : '',
-        value: isSet(object.value) ? ServiceSettingConfiguration.fromJSON(object.value) : undefined,
-      };
-    },
-
-    toJSON(message: DataCollection_ServiceSettingConfigurationsEntry): unknown {
-      const obj: any = {};
-      if (message.key !== '') {
-        obj.key = message.key;
-      }
-      if (message.value !== undefined) {
-        obj.value = ServiceSettingConfiguration.toJSON(message.value);
-      }
-      return obj;
-    },
-
-    create<I extends Exact<DeepPartial<DataCollection_ServiceSettingConfigurationsEntry>, I>>(
-      base?: I,
-    ): DataCollection_ServiceSettingConfigurationsEntry {
-      return DataCollection_ServiceSettingConfigurationsEntry.fromPartial(base ?? ({} as any));
-    },
-    fromPartial<I extends Exact<DeepPartial<DataCollection_ServiceSettingConfigurationsEntry>, I>>(
-      object: I,
-    ): DataCollection_ServiceSettingConfigurationsEntry {
-      const message = createBaseDataCollection_ServiceSettingConfigurationsEntry();
-      message.key = object.key ?? '';
-      message.value =
-        object.value !== undefined && object.value !== null
-          ? ServiceSettingConfiguration.fromPartial(object.value)
-          : undefined;
-      return message;
-    },
-  };
-
-function createBaseServiceSetting(): ServiceSetting {
+function createBaseSettingDefinition(): SettingDefinition {
   return {
     createdAt: undefined,
-    defaultValue: undefined,
     lastUpdatedAt: undefined,
     archivedAt: undefined,
     id: '',
     name: '',
-    type: '',
     description: '',
+    kind: '',
+    defaultValue: undefined,
     enumeration: [],
-    adminsOnly: false,
+    adminOnly: false,
   };
 }
 
-export const ServiceSetting: MessageFns<ServiceSetting> = {
-  encode(message: ServiceSetting, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+export const SettingDefinition: MessageFns<SettingDefinition> = {
+  encode(message: SettingDefinition, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.createdAt !== undefined) {
       Timestamp.encode(toTimestamp(message.createdAt), writer.uint32(10).fork()).join();
     }
-    if (message.defaultValue !== undefined) {
-      writer.uint32(18).string(message.defaultValue);
-    }
     if (message.lastUpdatedAt !== undefined) {
-      Timestamp.encode(toTimestamp(message.lastUpdatedAt), writer.uint32(26).fork()).join();
+      Timestamp.encode(toTimestamp(message.lastUpdatedAt), writer.uint32(18).fork()).join();
     }
     if (message.archivedAt !== undefined) {
-      Timestamp.encode(toTimestamp(message.archivedAt), writer.uint32(34).fork()).join();
+      Timestamp.encode(toTimestamp(message.archivedAt), writer.uint32(26).fork()).join();
     }
     if (message.id !== '') {
-      writer.uint32(42).string(message.id);
+      writer.uint32(34).string(message.id);
     }
     if (message.name !== '') {
-      writer.uint32(50).string(message.name);
-    }
-    if (message.type !== '') {
-      writer.uint32(58).string(message.type);
+      writer.uint32(42).string(message.name);
     }
     if (message.description !== '') {
-      writer.uint32(66).string(message.description);
+      writer.uint32(50).string(message.description);
+    }
+    if (message.kind !== '') {
+      writer.uint32(58).string(message.kind);
+    }
+    if (message.defaultValue !== undefined) {
+      writer.uint32(66).string(message.defaultValue);
     }
     for (const v of message.enumeration) {
       writer.uint32(74).string(v!);
     }
-    if (message.adminsOnly !== false) {
-      writer.uint32(80).bool(message.adminsOnly);
+    if (message.adminOnly !== false) {
+      writer.uint32(80).bool(message.adminOnly);
     }
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ServiceSetting {
+  decode(input: BinaryReader | Uint8Array, length?: number): SettingDefinition {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseServiceSetting();
+    const message = createBaseSettingDefinition();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -328,7 +177,7 @@ export const ServiceSetting: MessageFns<ServiceSetting> = {
             break;
           }
 
-          message.defaultValue = reader.string();
+          message.lastUpdatedAt = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
           continue;
         }
         case 3: {
@@ -336,7 +185,7 @@ export const ServiceSetting: MessageFns<ServiceSetting> = {
             break;
           }
 
-          message.lastUpdatedAt = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
+          message.archivedAt = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
           continue;
         }
         case 4: {
@@ -344,7 +193,7 @@ export const ServiceSetting: MessageFns<ServiceSetting> = {
             break;
           }
 
-          message.archivedAt = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
+          message.id = reader.string();
           continue;
         }
         case 5: {
@@ -352,7 +201,7 @@ export const ServiceSetting: MessageFns<ServiceSetting> = {
             break;
           }
 
-          message.id = reader.string();
+          message.name = reader.string();
           continue;
         }
         case 6: {
@@ -360,7 +209,7 @@ export const ServiceSetting: MessageFns<ServiceSetting> = {
             break;
           }
 
-          message.name = reader.string();
+          message.description = reader.string();
           continue;
         }
         case 7: {
@@ -368,7 +217,7 @@ export const ServiceSetting: MessageFns<ServiceSetting> = {
             break;
           }
 
-          message.type = reader.string();
+          message.kind = reader.string();
           continue;
         }
         case 8: {
@@ -376,7 +225,7 @@ export const ServiceSetting: MessageFns<ServiceSetting> = {
             break;
           }
 
-          message.description = reader.string();
+          message.defaultValue = reader.string();
           continue;
         }
         case 9: {
@@ -392,7 +241,7 @@ export const ServiceSetting: MessageFns<ServiceSetting> = {
             break;
           }
 
-          message.adminsOnly = reader.bool();
+          message.adminOnly = reader.bool();
           continue;
         }
       }
@@ -404,17 +253,12 @@ export const ServiceSetting: MessageFns<ServiceSetting> = {
     return message;
   },
 
-  fromJSON(object: any): ServiceSetting {
+  fromJSON(object: any): SettingDefinition {
     return {
       createdAt: isSet(object.createdAt)
         ? fromJsonTimestamp(object.createdAt)
         : isSet(object.created_at)
           ? fromJsonTimestamp(object.created_at)
-          : undefined,
-      defaultValue: isSet(object.defaultValue)
-        ? globalThis.String(object.defaultValue)
-        : isSet(object.default_value)
-          ? globalThis.String(object.default_value)
           : undefined,
       lastUpdatedAt: isSet(object.lastUpdatedAt)
         ? fromJsonTimestamp(object.lastUpdatedAt)
@@ -428,26 +272,28 @@ export const ServiceSetting: MessageFns<ServiceSetting> = {
           : undefined,
       id: isSet(object.id) ? globalThis.String(object.id) : '',
       name: isSet(object.name) ? globalThis.String(object.name) : '',
-      type: isSet(object.type) ? globalThis.String(object.type) : '',
       description: isSet(object.description) ? globalThis.String(object.description) : '',
+      kind: isSet(object.kind) ? globalThis.String(object.kind) : '',
+      defaultValue: isSet(object.defaultValue)
+        ? globalThis.String(object.defaultValue)
+        : isSet(object.default_value)
+          ? globalThis.String(object.default_value)
+          : undefined,
       enumeration: globalThis.Array.isArray(object?.enumeration)
         ? object.enumeration.map((e: any) => globalThis.String(e))
         : [],
-      adminsOnly: isSet(object.adminsOnly)
-        ? globalThis.Boolean(object.adminsOnly)
-        : isSet(object.admins_only)
-          ? globalThis.Boolean(object.admins_only)
+      adminOnly: isSet(object.adminOnly)
+        ? globalThis.Boolean(object.adminOnly)
+        : isSet(object.admin_only)
+          ? globalThis.Boolean(object.admin_only)
           : false,
     };
   },
 
-  toJSON(message: ServiceSetting): unknown {
+  toJSON(message: SettingDefinition): unknown {
     const obj: any = {};
     if (message.createdAt !== undefined) {
       obj.createdAt = message.createdAt.toISOString();
-    }
-    if (message.defaultValue !== undefined) {
-      obj.defaultValue = message.defaultValue;
     }
     if (message.lastUpdatedAt !== undefined) {
       obj.lastUpdatedAt = message.lastUpdatedAt.toISOString();
@@ -461,56 +307,57 @@ export const ServiceSetting: MessageFns<ServiceSetting> = {
     if (message.name !== '') {
       obj.name = message.name;
     }
-    if (message.type !== '') {
-      obj.type = message.type;
-    }
     if (message.description !== '') {
       obj.description = message.description;
+    }
+    if (message.kind !== '') {
+      obj.kind = message.kind;
+    }
+    if (message.defaultValue !== undefined) {
+      obj.defaultValue = message.defaultValue;
     }
     if (message.enumeration?.length) {
       obj.enumeration = message.enumeration;
     }
-    if (message.adminsOnly !== false) {
-      obj.adminsOnly = message.adminsOnly;
+    if (message.adminOnly !== false) {
+      obj.adminOnly = message.adminOnly;
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ServiceSetting>, I>>(base?: I): ServiceSetting {
-    return ServiceSetting.fromPartial(base ?? ({} as any));
+  create<I extends Exact<DeepPartial<SettingDefinition>, I>>(base?: I): SettingDefinition {
+    return SettingDefinition.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ServiceSetting>, I>>(object: I): ServiceSetting {
-    const message = createBaseServiceSetting();
+  fromPartial<I extends Exact<DeepPartial<SettingDefinition>, I>>(object: I): SettingDefinition {
+    const message = createBaseSettingDefinition();
     message.createdAt = object.createdAt ?? undefined;
-    message.defaultValue = object.defaultValue ?? undefined;
     message.lastUpdatedAt = object.lastUpdatedAt ?? undefined;
     message.archivedAt = object.archivedAt ?? undefined;
     message.id = object.id ?? '';
     message.name = object.name ?? '';
-    message.type = object.type ?? '';
     message.description = object.description ?? '';
+    message.kind = object.kind ?? '';
+    message.defaultValue = object.defaultValue ?? undefined;
     message.enumeration = object.enumeration?.map((e) => e) || [];
-    message.adminsOnly = object.adminsOnly ?? false;
+    message.adminOnly = object.adminOnly ?? false;
     return message;
   },
 };
 
-function createBaseServiceSettingConfiguration(): ServiceSettingConfiguration {
+function createBaseSettingValue(): SettingValue {
   return {
     createdAt: undefined,
     lastUpdatedAt: undefined,
     archivedAt: undefined,
     id: '',
-    value: '',
-    notes: '',
+    definitionId: '',
     belongsToUser: '',
-    belongsToAccount: '',
-    serviceSetting: undefined,
+    value: '',
   };
 }
 
-export const ServiceSettingConfiguration: MessageFns<ServiceSettingConfiguration> = {
-  encode(message: ServiceSettingConfiguration, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+export const SettingValue: MessageFns<SettingValue> = {
+  encode(message: SettingValue, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.createdAt !== undefined) {
       Timestamp.encode(toTimestamp(message.createdAt), writer.uint32(10).fork()).join();
     }
@@ -523,28 +370,22 @@ export const ServiceSettingConfiguration: MessageFns<ServiceSettingConfiguration
     if (message.id !== '') {
       writer.uint32(34).string(message.id);
     }
-    if (message.value !== '') {
-      writer.uint32(42).string(message.value);
-    }
-    if (message.notes !== '') {
-      writer.uint32(50).string(message.notes);
+    if (message.definitionId !== '') {
+      writer.uint32(42).string(message.definitionId);
     }
     if (message.belongsToUser !== '') {
-      writer.uint32(58).string(message.belongsToUser);
+      writer.uint32(50).string(message.belongsToUser);
     }
-    if (message.belongsToAccount !== '') {
-      writer.uint32(66).string(message.belongsToAccount);
-    }
-    if (message.serviceSetting !== undefined) {
-      ServiceSetting.encode(message.serviceSetting, writer.uint32(74).fork()).join();
+    if (message.value !== '') {
+      writer.uint32(58).string(message.value);
     }
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ServiceSettingConfiguration {
+  decode(input: BinaryReader | Uint8Array, length?: number): SettingValue {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseServiceSettingConfiguration();
+    const message = createBaseSettingValue();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -585,7 +426,7 @@ export const ServiceSettingConfiguration: MessageFns<ServiceSettingConfiguration
             break;
           }
 
-          message.value = reader.string();
+          message.definitionId = reader.string();
           continue;
         }
         case 6: {
@@ -593,7 +434,7 @@ export const ServiceSettingConfiguration: MessageFns<ServiceSettingConfiguration
             break;
           }
 
-          message.notes = reader.string();
+          message.belongsToUser = reader.string();
           continue;
         }
         case 7: {
@@ -601,23 +442,7 @@ export const ServiceSettingConfiguration: MessageFns<ServiceSettingConfiguration
             break;
           }
 
-          message.belongsToUser = reader.string();
-          continue;
-        }
-        case 8: {
-          if (tag !== 66) {
-            break;
-          }
-
-          message.belongsToAccount = reader.string();
-          continue;
-        }
-        case 9: {
-          if (tag !== 74) {
-            break;
-          }
-
-          message.serviceSetting = ServiceSetting.decode(reader, reader.uint32());
+          message.value = reader.string();
           continue;
         }
       }
@@ -629,7 +454,7 @@ export const ServiceSettingConfiguration: MessageFns<ServiceSettingConfiguration
     return message;
   },
 
-  fromJSON(object: any): ServiceSettingConfiguration {
+  fromJSON(object: any): SettingValue {
     return {
       createdAt: isSet(object.createdAt)
         ? fromJsonTimestamp(object.createdAt)
@@ -647,27 +472,21 @@ export const ServiceSettingConfiguration: MessageFns<ServiceSettingConfiguration
           ? fromJsonTimestamp(object.archived_at)
           : undefined,
       id: isSet(object.id) ? globalThis.String(object.id) : '',
-      value: isSet(object.value) ? globalThis.String(object.value) : '',
-      notes: isSet(object.notes) ? globalThis.String(object.notes) : '',
+      definitionId: isSet(object.definitionId)
+        ? globalThis.String(object.definitionId)
+        : isSet(object.definition_id)
+          ? globalThis.String(object.definition_id)
+          : '',
       belongsToUser: isSet(object.belongsToUser)
         ? globalThis.String(object.belongsToUser)
         : isSet(object.belongs_to_user)
           ? globalThis.String(object.belongs_to_user)
           : '',
-      belongsToAccount: isSet(object.belongsToAccount)
-        ? globalThis.String(object.belongsToAccount)
-        : isSet(object.belongs_to_account)
-          ? globalThis.String(object.belongs_to_account)
-          : '',
-      serviceSetting: isSet(object.serviceSetting)
-        ? ServiceSetting.fromJSON(object.serviceSetting)
-        : isSet(object.service_setting)
-          ? ServiceSetting.fromJSON(object.service_setting)
-          : undefined,
+      value: isSet(object.value) ? globalThis.String(object.value) : '',
     };
   },
 
-  toJSON(message: ServiceSettingConfiguration): unknown {
+  toJSON(message: SettingValue): unknown {
     const obj: any = {};
     if (message.createdAt !== undefined) {
       obj.createdAt = message.createdAt.toISOString();
@@ -681,41 +500,142 @@ export const ServiceSettingConfiguration: MessageFns<ServiceSettingConfiguration
     if (message.id !== '') {
       obj.id = message.id;
     }
-    if (message.value !== '') {
-      obj.value = message.value;
-    }
-    if (message.notes !== '') {
-      obj.notes = message.notes;
+    if (message.definitionId !== '') {
+      obj.definitionId = message.definitionId;
     }
     if (message.belongsToUser !== '') {
       obj.belongsToUser = message.belongsToUser;
     }
-    if (message.belongsToAccount !== '') {
-      obj.belongsToAccount = message.belongsToAccount;
-    }
-    if (message.serviceSetting !== undefined) {
-      obj.serviceSetting = ServiceSetting.toJSON(message.serviceSetting);
+    if (message.value !== '') {
+      obj.value = message.value;
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ServiceSettingConfiguration>, I>>(base?: I): ServiceSettingConfiguration {
-    return ServiceSettingConfiguration.fromPartial(base ?? ({} as any));
+  create<I extends Exact<DeepPartial<SettingValue>, I>>(base?: I): SettingValue {
+    return SettingValue.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ServiceSettingConfiguration>, I>>(object: I): ServiceSettingConfiguration {
-    const message = createBaseServiceSettingConfiguration();
+  fromPartial<I extends Exact<DeepPartial<SettingValue>, I>>(object: I): SettingValue {
+    const message = createBaseSettingValue();
     message.createdAt = object.createdAt ?? undefined;
     message.lastUpdatedAt = object.lastUpdatedAt ?? undefined;
     message.archivedAt = object.archivedAt ?? undefined;
     message.id = object.id ?? '';
-    message.value = object.value ?? '';
-    message.notes = object.notes ?? '';
+    message.definitionId = object.definitionId ?? '';
     message.belongsToUser = object.belongsToUser ?? '';
-    message.belongsToAccount = object.belongsToAccount ?? '';
-    message.serviceSetting =
-      object.serviceSetting !== undefined && object.serviceSetting !== null
-        ? ServiceSetting.fromPartial(object.serviceSetting)
+    message.value = object.value ?? '';
+    return message;
+  },
+};
+
+function createBaseSettingResolution(): SettingResolution {
+  return { definition: undefined, value: undefined, raw: '', source: '' };
+}
+
+export const SettingResolution: MessageFns<SettingResolution> = {
+  encode(message: SettingResolution, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.definition !== undefined) {
+      SettingDefinition.encode(message.definition, writer.uint32(10).fork()).join();
+    }
+    if (message.value !== undefined) {
+      SettingValue.encode(message.value, writer.uint32(18).fork()).join();
+    }
+    if (message.raw !== '') {
+      writer.uint32(26).string(message.raw);
+    }
+    if (message.source !== '') {
+      writer.uint32(34).string(message.source);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): SettingResolution {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseSettingResolution();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.definition = SettingDefinition.decode(reader, reader.uint32());
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.value = SettingValue.decode(reader, reader.uint32());
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.raw = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.source = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): SettingResolution {
+    return {
+      definition: isSet(object.definition) ? SettingDefinition.fromJSON(object.definition) : undefined,
+      value: isSet(object.value) ? SettingValue.fromJSON(object.value) : undefined,
+      raw: isSet(object.raw) ? globalThis.String(object.raw) : '',
+      source: isSet(object.source) ? globalThis.String(object.source) : '',
+    };
+  },
+
+  toJSON(message: SettingResolution): unknown {
+    const obj: any = {};
+    if (message.definition !== undefined) {
+      obj.definition = SettingDefinition.toJSON(message.definition);
+    }
+    if (message.value !== undefined) {
+      obj.value = SettingValue.toJSON(message.value);
+    }
+    if (message.raw !== '') {
+      obj.raw = message.raw;
+    }
+    if (message.source !== '') {
+      obj.source = message.source;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<SettingResolution>, I>>(base?: I): SettingResolution {
+    return SettingResolution.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<SettingResolution>, I>>(object: I): SettingResolution {
+    const message = createBaseSettingResolution();
+    message.definition =
+      object.definition !== undefined && object.definition !== null
+        ? SettingDefinition.fromPartial(object.definition)
         : undefined;
+    message.value =
+      object.value !== undefined && object.value !== null ? SettingValue.fromPartial(object.value) : undefined;
+    message.raw = object.raw ?? '';
+    message.source = object.source ?? '';
     return message;
   },
 };
@@ -757,10 +677,6 @@ function fromJsonTimestamp(o: any): Date {
   } else {
     return fromTimestamp(Timestamp.fromJSON(o));
   }
-}
-
-function isObject(value: any): boolean {
-  return typeof value === 'object' && value !== null;
 }
 
 function isSet(value: any): boolean {
