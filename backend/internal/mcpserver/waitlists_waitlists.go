@@ -3,32 +3,31 @@ package mcpserver
 import (
 	"context"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists"
+	ddbwaitlists "github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists"
 
 	"github.com/primandproper/platform-go/v13/filtering"
+	waitlists "github.com/primandproper/platform-go/v13/waitlists"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
+// The waitlist tools are the catalog and nothing else.
+//
+// The signups are deliberately not reachable from here, and that is a change
+// this adoption forced rather than a gap. The table this replaced held a note
+// and two ownership columns; the platform's holds the address the list writes
+// to, so a tool that paged one list's signups would hand a model every
+// signatory's email. Over gRPC that read is service-admin-only, and MCP has no
+// equivalent — the token carries an account and no role — so there is nothing
+// here to gate it with.
 var waitlistSchema = map[string]any{
 	"ID":               stringField("The ID of the waitlist"),
 	fieldName:          stringField("The waitlist name"),
 	fieldDescription:   stringField("The waitlist description"),
-	"ValidUntil":       timestampField("When the waitlist expires"),
+	"ClosesAt":         timestampField("When the waitlist stops taking signups"),
 	fieldCreatedAt:     timestampField("When the waitlist was created"),
 	fieldLastUpdatedAt: timestampField("When the waitlist was last updated"),
 	fieldArchivedAt:    timestampField("When the waitlist was archived"),
-}
-
-var waitlistSignupSchema = map[string]any{
-	"ID":                  stringField("The ID of the waitlist signup"),
-	fieldNotes:            stringField("Notes about the signup"),
-	"BelongsToWaitlist":   stringField("The ID of the waitlist"),
-	"BelongsToUser":       stringField("The ID of the user who signed up"),
-	fieldBelongsToAccount: stringField("The ID of the account"),
-	fieldCreatedAt:        timestampField("When the signup was created"),
-	fieldLastUpdatedAt:    timestampField("When the signup was last updated"),
-	fieldArchivedAt:       timestampField("When the signup was archived"),
 }
 
 var getWaitlistTool = &mcp.Tool{
@@ -44,12 +43,13 @@ type GetWaitlistInvocation struct {
 	WaitlistID string `jsonschema:"description=The waitlist ID"`
 }
 
-func (h *mcpToolManager) GetWaitlist() mcp.ToolHandlerFor[*GetWaitlistInvocation, *waitlists.Waitlist] {
-	return func(ctx context.Context, req *mcp.CallToolRequest, x *GetWaitlistInvocation) (*mcp.CallToolResult, *waitlists.Waitlist, error) {
-		result, err := h.waitlistsRepo.GetWaitlist(ctx, x.WaitlistID)
+func (h *mcpToolManager) GetWaitlist() mcp.ToolHandlerFor[*GetWaitlistInvocation, *waitlists.List] {
+	return func(ctx context.Context, req *mcp.CallToolRequest, x *GetWaitlistInvocation) (*mcp.CallToolResult, *waitlists.List, error) {
+		result, err := h.waitlists.GetList(ctx, ddbwaitlists.Scope(), x.WaitlistID)
 		if err != nil {
 			return nil, nil, err
 		}
+
 		return nil, result, nil
 	}
 }
@@ -71,13 +71,13 @@ type (
 	}
 
 	GetWaitlistsResult struct {
-		Results []*waitlists.Waitlist
+		Results []*waitlists.List
 	}
 )
 
 func (h *mcpToolManager) GetWaitlists() mcp.ToolHandlerFor[*GetWaitlistsInvocation, *GetWaitlistsResult] {
 	return func(ctx context.Context, req *mcp.CallToolRequest, x *GetWaitlistsInvocation) (*mcp.CallToolResult, *GetWaitlistsResult, error) {
-		results, err := h.waitlistsRepo.GetWaitlists(ctx, x.Filter)
+		results, err := h.waitlists.ListLists(ctx, ddbwaitlists.Scope(), x.Filter)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -86,9 +86,9 @@ func (h *mcpToolManager) GetWaitlists() mcp.ToolHandlerFor[*GetWaitlistsInvocati
 	}
 }
 
-var getActiveWaitlistsTool = &mcp.Tool{
-	Name:        "GetActiveWaitlists",
-	Description: "Get waitlists that are currently active (not expired)",
+var getOpenWaitlistsTool = &mcp.Tool{
+	Name:        "GetOpenWaitlists",
+	Description: "Get the waitlists that are still taking signups",
 	InputSchema: schemaObject(map[string]any{
 		fieldFilter: filtering.QueryFilterSchema(),
 	}),
@@ -98,81 +98,22 @@ var getActiveWaitlistsTool = &mcp.Tool{
 }
 
 type (
-	GetActiveWaitlistsInvocation struct {
+	GetOpenWaitlistsInvocation struct {
 		Filter *filtering.QueryFilter
 	}
 
-	GetActiveWaitlistsResult struct {
-		Results []*waitlists.Waitlist
+	GetOpenWaitlistsResult struct {
+		Results []*waitlists.List
 	}
 )
 
-func (h *mcpToolManager) GetActiveWaitlists() mcp.ToolHandlerFor[*GetActiveWaitlistsInvocation, *GetActiveWaitlistsResult] {
-	return func(ctx context.Context, req *mcp.CallToolRequest, x *GetActiveWaitlistsInvocation) (*mcp.CallToolResult, *GetActiveWaitlistsResult, error) {
-		results, err := h.waitlistsRepo.GetActiveWaitlists(ctx, x.Filter)
+func (h *mcpToolManager) GetOpenWaitlists() mcp.ToolHandlerFor[*GetOpenWaitlistsInvocation, *GetOpenWaitlistsResult] {
+	return func(ctx context.Context, req *mcp.CallToolRequest, x *GetOpenWaitlistsInvocation) (*mcp.CallToolResult, *GetOpenWaitlistsResult, error) {
+		results, err := h.waitlists.ListOpenLists(ctx, ddbwaitlists.Scope(), x.Filter)
 		if err != nil {
 			return nil, nil, err
 		}
 
-		return nil, &GetActiveWaitlistsResult{Results: results.Data}, nil
-	}
-}
-
-var getWaitlistSignupTool = &mcp.Tool{
-	Name:        "GetWaitlistSignup",
-	Description: "Get a specific waitlist signup",
-	InputSchema: schemaObject(map[string]any{
-		"WaitlistSignupID": stringField("The ID of the waitlist signup"),
-		fieldWaitlistID:    stringField("The ID of the waitlist"),
-	}),
-	OutputSchema: schemaObject(waitlistSignupSchema),
-}
-
-type GetWaitlistSignupInvocation struct {
-	WaitlistSignupID string `jsonschema:"description=The waitlist signup ID"`
-	WaitlistID       string `jsonschema:"description=The waitlist ID"`
-}
-
-func (h *mcpToolManager) GetWaitlistSignup() mcp.ToolHandlerFor[*GetWaitlistSignupInvocation, *waitlists.WaitlistSignup] {
-	return func(ctx context.Context, req *mcp.CallToolRequest, x *GetWaitlistSignupInvocation) (*mcp.CallToolResult, *waitlists.WaitlistSignup, error) {
-		result, err := h.waitlistsRepo.GetWaitlistSignup(ctx, x.WaitlistSignupID, x.WaitlistID)
-		if err != nil {
-			return nil, nil, err
-		}
-		return nil, result, nil
-	}
-}
-
-var getWaitlistSignupsForWaitlistTool = &mcp.Tool{
-	Name:        "GetWaitlistSignupsForWaitlist",
-	Description: "Get all signups for a specific waitlist",
-	InputSchema: schemaObject(map[string]any{
-		fieldWaitlistID: stringField("The ID of the waitlist"),
-		fieldFilter:     filtering.QueryFilterSchema(),
-	}),
-	OutputSchema: schemaObject(map[string]any{
-		fieldResults: arrayType(schemaObject(waitlistSignupSchema)),
-	}),
-}
-
-type (
-	GetWaitlistSignupsForWaitlistInvocation struct {
-		Filter     *filtering.QueryFilter
-		WaitlistID string `jsonschema:"description=The waitlist ID"`
-	}
-
-	GetWaitlistSignupsForWaitlistResult struct {
-		Results []*waitlists.WaitlistSignup
-	}
-)
-
-func (h *mcpToolManager) GetWaitlistSignupsForWaitlist() mcp.ToolHandlerFor[*GetWaitlistSignupsForWaitlistInvocation, *GetWaitlistSignupsForWaitlistResult] {
-	return func(ctx context.Context, req *mcp.CallToolRequest, x *GetWaitlistSignupsForWaitlistInvocation) (*mcp.CallToolResult, *GetWaitlistSignupsForWaitlistResult, error) {
-		results, err := h.waitlistsRepo.GetWaitlistSignupsForWaitlist(ctx, x.WaitlistID, x.Filter)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		return nil, &GetWaitlistSignupsForWaitlistResult{Results: results.Data}, nil
+		return nil, &GetOpenWaitlistsResult{Results: results.Data}, nil
 	}
 }

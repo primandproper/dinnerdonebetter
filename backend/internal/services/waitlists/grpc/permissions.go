@@ -20,7 +20,7 @@ func ProvideMethodPermissions() WaitlistsMethodPermissions {
 		waitlistssvc.WaitlistsService_GetWaitlists_FullMethodName: {
 			authorization.ReadWaitlistsPermission,
 		},
-		waitlistssvc.WaitlistsService_GetActiveWaitlists_FullMethodName: {
+		waitlistssvc.WaitlistsService_GetOpenWaitlists_FullMethodName: {
 			authorization.ReadWaitlistsPermission,
 		},
 		waitlistssvc.WaitlistsService_UpdateWaitlist_FullMethodName: {
@@ -29,10 +29,10 @@ func ProvideMethodPermissions() WaitlistsMethodPermissions {
 		waitlistssvc.WaitlistsService_ArchiveWaitlist_FullMethodName: {
 			authorization.ArchiveWaitlistsPermission,
 		},
-		waitlistssvc.WaitlistsService_WaitlistIsNotExpired_FullMethodName: {
+		waitlistssvc.WaitlistsService_WaitlistIsOpen_FullMethodName: {
 			authorization.ReadWaitlistsPermission,
 		},
-		waitlistssvc.WaitlistsService_CreateWaitlistSignup_FullMethodName: {
+		waitlistssvc.WaitlistsService_JoinWaitlist_FullMethodName: {
 			authorization.CreateWaitlistSignupsPermission,
 		},
 		waitlistssvc.WaitlistsService_GetWaitlistSignup_FullMethodName: {
@@ -42,6 +42,25 @@ func ProvideMethodPermissions() WaitlistsMethodPermissions {
 			authorization.ReadWaitlistSignupsPermission,
 		},
 		waitlistssvc.WaitlistsService_UpdateWaitlistSignup_FullMethodName: {
+			authorization.UpdateWaitlistSignupsPermission,
+		},
+		// The three lifecycle moves are writes to a signup and are gated by the same
+		// capability as a note. None of them is a permission of its own, because this
+		// application has no role that may invite somebody but not amend their signup —
+		// a permission nothing distinguishes is a line in the role grid that grants what
+		// the one beside it already granted.
+		//
+		// What separates them is not the capability but who may aim it. Inviting and
+		// converting are service-admin acts and are refused to anybody else by the
+		// handler; withdrawing is the signup owner's own act, and is refused to anybody
+		// but them and a service admin. See waitlists.go.
+		waitlistssvc.WaitlistsService_InviteWaitlistSignup_FullMethodName: {
+			authorization.UpdateWaitlistSignupsPermission,
+		},
+		waitlistssvc.WaitlistsService_ConvertWaitlistSignup_FullMethodName: {
+			authorization.UpdateWaitlistSignupsPermission,
+		},
+		waitlistssvc.WaitlistsService_WithdrawFromWaitlist_FullMethodName: {
 			authorization.UpdateWaitlistSignupsPermission,
 		},
 		waitlistssvc.WaitlistsService_ArchiveWaitlistSignup_FullMethodName: {

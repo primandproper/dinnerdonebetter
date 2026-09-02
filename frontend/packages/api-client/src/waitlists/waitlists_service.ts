@@ -22,12 +22,12 @@ import {
   ArchiveWaitlistResponse,
   ArchiveWaitlistSignupRequest,
   ArchiveWaitlistSignupResponse,
+  ConvertWaitlistSignupRequest,
+  ConvertWaitlistSignupResponse,
   CreateWaitlistRequest,
   CreateWaitlistResponse,
-  CreateWaitlistSignupRequest,
-  CreateWaitlistSignupResponse,
-  GetActiveWaitlistsRequest,
-  GetActiveWaitlistsResponse,
+  GetOpenWaitlistsRequest,
+  GetOpenWaitlistsResponse,
   GetWaitlistRequest,
   GetWaitlistResponse,
   GetWaitlistSignupRequest,
@@ -36,12 +36,18 @@ import {
   GetWaitlistSignupsForWaitlistResponse,
   GetWaitlistsRequest,
   GetWaitlistsResponse,
+  InviteWaitlistSignupRequest,
+  InviteWaitlistSignupResponse,
+  JoinWaitlistRequest,
+  JoinWaitlistResponse,
   UpdateWaitlistRequest,
   UpdateWaitlistResponse,
   UpdateWaitlistSignupRequest,
   UpdateWaitlistSignupResponse,
-  WaitlistIsNotExpiredRequest,
-  WaitlistIsNotExpiredResponse,
+  WaitlistIsOpenRequest,
+  WaitlistIsOpenResponse,
+  WithdrawFromWaitlistRequest,
+  WithdrawFromWaitlistResponse,
 } from './waitlists_service_types';
 
 export const protobufPackage = 'waitlists';
@@ -78,16 +84,16 @@ export const WaitlistsServiceService = {
       Buffer.from(GetWaitlistsResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): GetWaitlistsResponse => GetWaitlistsResponse.decode(value),
   },
-  getActiveWaitlists: {
-    path: '/waitlists.WaitlistsService/GetActiveWaitlists' as const,
+  getOpenWaitlists: {
+    path: '/waitlists.WaitlistsService/GetOpenWaitlists' as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: GetActiveWaitlistsRequest): Buffer =>
-      Buffer.from(GetActiveWaitlistsRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): GetActiveWaitlistsRequest => GetActiveWaitlistsRequest.decode(value),
-    responseSerialize: (value: GetActiveWaitlistsResponse): Buffer =>
-      Buffer.from(GetActiveWaitlistsResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): GetActiveWaitlistsResponse => GetActiveWaitlistsResponse.decode(value),
+    requestSerialize: (value: GetOpenWaitlistsRequest): Buffer =>
+      Buffer.from(GetOpenWaitlistsRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetOpenWaitlistsRequest => GetOpenWaitlistsRequest.decode(value),
+    responseSerialize: (value: GetOpenWaitlistsResponse): Buffer =>
+      Buffer.from(GetOpenWaitlistsResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetOpenWaitlistsResponse => GetOpenWaitlistsResponse.decode(value),
   },
   updateWaitlist: {
     path: '/waitlists.WaitlistsService/UpdateWaitlist' as const,
@@ -111,27 +117,26 @@ export const WaitlistsServiceService = {
       Buffer.from(ArchiveWaitlistResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): ArchiveWaitlistResponse => ArchiveWaitlistResponse.decode(value),
   },
-  waitlistIsNotExpired: {
-    path: '/waitlists.WaitlistsService/WaitlistIsNotExpired' as const,
+  waitlistIsOpen: {
+    path: '/waitlists.WaitlistsService/WaitlistIsOpen' as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: WaitlistIsNotExpiredRequest): Buffer =>
-      Buffer.from(WaitlistIsNotExpiredRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): WaitlistIsNotExpiredRequest => WaitlistIsNotExpiredRequest.decode(value),
-    responseSerialize: (value: WaitlistIsNotExpiredResponse): Buffer =>
-      Buffer.from(WaitlistIsNotExpiredResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): WaitlistIsNotExpiredResponse => WaitlistIsNotExpiredResponse.decode(value),
+    requestSerialize: (value: WaitlistIsOpenRequest): Buffer =>
+      Buffer.from(WaitlistIsOpenRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): WaitlistIsOpenRequest => WaitlistIsOpenRequest.decode(value),
+    responseSerialize: (value: WaitlistIsOpenResponse): Buffer =>
+      Buffer.from(WaitlistIsOpenResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): WaitlistIsOpenResponse => WaitlistIsOpenResponse.decode(value),
   },
-  createWaitlistSignup: {
-    path: '/waitlists.WaitlistsService/CreateWaitlistSignup' as const,
+  joinWaitlist: {
+    path: '/waitlists.WaitlistsService/JoinWaitlist' as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: CreateWaitlistSignupRequest): Buffer =>
-      Buffer.from(CreateWaitlistSignupRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): CreateWaitlistSignupRequest => CreateWaitlistSignupRequest.decode(value),
-    responseSerialize: (value: CreateWaitlistSignupResponse): Buffer =>
-      Buffer.from(CreateWaitlistSignupResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): CreateWaitlistSignupResponse => CreateWaitlistSignupResponse.decode(value),
+    requestSerialize: (value: JoinWaitlistRequest): Buffer => Buffer.from(JoinWaitlistRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): JoinWaitlistRequest => JoinWaitlistRequest.decode(value),
+    responseSerialize: (value: JoinWaitlistResponse): Buffer =>
+      Buffer.from(JoinWaitlistResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): JoinWaitlistResponse => JoinWaitlistResponse.decode(value),
   },
   getWaitlistSignup: {
     path: '/waitlists.WaitlistsService/GetWaitlistSignup' as const,
@@ -168,6 +173,39 @@ export const WaitlistsServiceService = {
       Buffer.from(UpdateWaitlistSignupResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): UpdateWaitlistSignupResponse => UpdateWaitlistSignupResponse.decode(value),
   },
+  inviteWaitlistSignup: {
+    path: '/waitlists.WaitlistsService/InviteWaitlistSignup' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: InviteWaitlistSignupRequest): Buffer =>
+      Buffer.from(InviteWaitlistSignupRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): InviteWaitlistSignupRequest => InviteWaitlistSignupRequest.decode(value),
+    responseSerialize: (value: InviteWaitlistSignupResponse): Buffer =>
+      Buffer.from(InviteWaitlistSignupResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): InviteWaitlistSignupResponse => InviteWaitlistSignupResponse.decode(value),
+  },
+  convertWaitlistSignup: {
+    path: '/waitlists.WaitlistsService/ConvertWaitlistSignup' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: ConvertWaitlistSignupRequest): Buffer =>
+      Buffer.from(ConvertWaitlistSignupRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): ConvertWaitlistSignupRequest => ConvertWaitlistSignupRequest.decode(value),
+    responseSerialize: (value: ConvertWaitlistSignupResponse): Buffer =>
+      Buffer.from(ConvertWaitlistSignupResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): ConvertWaitlistSignupResponse => ConvertWaitlistSignupResponse.decode(value),
+  },
+  withdrawFromWaitlist: {
+    path: '/waitlists.WaitlistsService/WithdrawFromWaitlist' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: WithdrawFromWaitlistRequest): Buffer =>
+      Buffer.from(WithdrawFromWaitlistRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): WithdrawFromWaitlistRequest => WithdrawFromWaitlistRequest.decode(value),
+    responseSerialize: (value: WithdrawFromWaitlistResponse): Buffer =>
+      Buffer.from(WithdrawFromWaitlistResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): WithdrawFromWaitlistResponse => WithdrawFromWaitlistResponse.decode(value),
+  },
   archiveWaitlistSignup: {
     path: '/waitlists.WaitlistsService/ArchiveWaitlistSignup' as const,
     requestStream: false as const,
@@ -185,17 +223,20 @@ export interface WaitlistsServiceServer extends UntypedServiceImplementation {
   createWaitlist: handleUnaryCall<CreateWaitlistRequest, CreateWaitlistResponse>;
   getWaitlist: handleUnaryCall<GetWaitlistRequest, GetWaitlistResponse>;
   getWaitlists: handleUnaryCall<GetWaitlistsRequest, GetWaitlistsResponse>;
-  getActiveWaitlists: handleUnaryCall<GetActiveWaitlistsRequest, GetActiveWaitlistsResponse>;
+  getOpenWaitlists: handleUnaryCall<GetOpenWaitlistsRequest, GetOpenWaitlistsResponse>;
   updateWaitlist: handleUnaryCall<UpdateWaitlistRequest, UpdateWaitlistResponse>;
   archiveWaitlist: handleUnaryCall<ArchiveWaitlistRequest, ArchiveWaitlistResponse>;
-  waitlistIsNotExpired: handleUnaryCall<WaitlistIsNotExpiredRequest, WaitlistIsNotExpiredResponse>;
-  createWaitlistSignup: handleUnaryCall<CreateWaitlistSignupRequest, CreateWaitlistSignupResponse>;
+  waitlistIsOpen: handleUnaryCall<WaitlistIsOpenRequest, WaitlistIsOpenResponse>;
+  joinWaitlist: handleUnaryCall<JoinWaitlistRequest, JoinWaitlistResponse>;
   getWaitlistSignup: handleUnaryCall<GetWaitlistSignupRequest, GetWaitlistSignupResponse>;
   getWaitlistSignupsForWaitlist: handleUnaryCall<
     GetWaitlistSignupsForWaitlistRequest,
     GetWaitlistSignupsForWaitlistResponse
   >;
   updateWaitlistSignup: handleUnaryCall<UpdateWaitlistSignupRequest, UpdateWaitlistSignupResponse>;
+  inviteWaitlistSignup: handleUnaryCall<InviteWaitlistSignupRequest, InviteWaitlistSignupResponse>;
+  convertWaitlistSignup: handleUnaryCall<ConvertWaitlistSignupRequest, ConvertWaitlistSignupResponse>;
+  withdrawFromWaitlist: handleUnaryCall<WithdrawFromWaitlistRequest, WithdrawFromWaitlistResponse>;
   archiveWaitlistSignup: handleUnaryCall<ArchiveWaitlistSignupRequest, ArchiveWaitlistSignupResponse>;
 }
 
@@ -245,20 +286,20 @@ export interface WaitlistsServiceClient extends Client {
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: GetWaitlistsResponse) => void,
   ): ClientUnaryCall;
-  getActiveWaitlists(
-    request: GetActiveWaitlistsRequest,
-    callback: (error: ServiceError | null, response: GetActiveWaitlistsResponse) => void,
+  getOpenWaitlists(
+    request: GetOpenWaitlistsRequest,
+    callback: (error: ServiceError | null, response: GetOpenWaitlistsResponse) => void,
   ): ClientUnaryCall;
-  getActiveWaitlists(
-    request: GetActiveWaitlistsRequest,
+  getOpenWaitlists(
+    request: GetOpenWaitlistsRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetActiveWaitlistsResponse) => void,
+    callback: (error: ServiceError | null, response: GetOpenWaitlistsResponse) => void,
   ): ClientUnaryCall;
-  getActiveWaitlists(
-    request: GetActiveWaitlistsRequest,
+  getOpenWaitlists(
+    request: GetOpenWaitlistsRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetActiveWaitlistsResponse) => void,
+    callback: (error: ServiceError | null, response: GetOpenWaitlistsResponse) => void,
   ): ClientUnaryCall;
   updateWaitlist(
     request: UpdateWaitlistRequest,
@@ -290,35 +331,35 @@ export interface WaitlistsServiceClient extends Client {
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: ArchiveWaitlistResponse) => void,
   ): ClientUnaryCall;
-  waitlistIsNotExpired(
-    request: WaitlistIsNotExpiredRequest,
-    callback: (error: ServiceError | null, response: WaitlistIsNotExpiredResponse) => void,
+  waitlistIsOpen(
+    request: WaitlistIsOpenRequest,
+    callback: (error: ServiceError | null, response: WaitlistIsOpenResponse) => void,
   ): ClientUnaryCall;
-  waitlistIsNotExpired(
-    request: WaitlistIsNotExpiredRequest,
+  waitlistIsOpen(
+    request: WaitlistIsOpenRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: WaitlistIsNotExpiredResponse) => void,
+    callback: (error: ServiceError | null, response: WaitlistIsOpenResponse) => void,
   ): ClientUnaryCall;
-  waitlistIsNotExpired(
-    request: WaitlistIsNotExpiredRequest,
-    metadata: Metadata,
-    options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: WaitlistIsNotExpiredResponse) => void,
-  ): ClientUnaryCall;
-  createWaitlistSignup(
-    request: CreateWaitlistSignupRequest,
-    callback: (error: ServiceError | null, response: CreateWaitlistSignupResponse) => void,
-  ): ClientUnaryCall;
-  createWaitlistSignup(
-    request: CreateWaitlistSignupRequest,
-    metadata: Metadata,
-    callback: (error: ServiceError | null, response: CreateWaitlistSignupResponse) => void,
-  ): ClientUnaryCall;
-  createWaitlistSignup(
-    request: CreateWaitlistSignupRequest,
+  waitlistIsOpen(
+    request: WaitlistIsOpenRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: CreateWaitlistSignupResponse) => void,
+    callback: (error: ServiceError | null, response: WaitlistIsOpenResponse) => void,
+  ): ClientUnaryCall;
+  joinWaitlist(
+    request: JoinWaitlistRequest,
+    callback: (error: ServiceError | null, response: JoinWaitlistResponse) => void,
+  ): ClientUnaryCall;
+  joinWaitlist(
+    request: JoinWaitlistRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: JoinWaitlistResponse) => void,
+  ): ClientUnaryCall;
+  joinWaitlist(
+    request: JoinWaitlistRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: JoinWaitlistResponse) => void,
   ): ClientUnaryCall;
   getWaitlistSignup(
     request: GetWaitlistSignupRequest,
@@ -364,6 +405,51 @@ export interface WaitlistsServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: UpdateWaitlistSignupResponse) => void,
+  ): ClientUnaryCall;
+  inviteWaitlistSignup(
+    request: InviteWaitlistSignupRequest,
+    callback: (error: ServiceError | null, response: InviteWaitlistSignupResponse) => void,
+  ): ClientUnaryCall;
+  inviteWaitlistSignup(
+    request: InviteWaitlistSignupRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: InviteWaitlistSignupResponse) => void,
+  ): ClientUnaryCall;
+  inviteWaitlistSignup(
+    request: InviteWaitlistSignupRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: InviteWaitlistSignupResponse) => void,
+  ): ClientUnaryCall;
+  convertWaitlistSignup(
+    request: ConvertWaitlistSignupRequest,
+    callback: (error: ServiceError | null, response: ConvertWaitlistSignupResponse) => void,
+  ): ClientUnaryCall;
+  convertWaitlistSignup(
+    request: ConvertWaitlistSignupRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: ConvertWaitlistSignupResponse) => void,
+  ): ClientUnaryCall;
+  convertWaitlistSignup(
+    request: ConvertWaitlistSignupRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: ConvertWaitlistSignupResponse) => void,
+  ): ClientUnaryCall;
+  withdrawFromWaitlist(
+    request: WithdrawFromWaitlistRequest,
+    callback: (error: ServiceError | null, response: WithdrawFromWaitlistResponse) => void,
+  ): ClientUnaryCall;
+  withdrawFromWaitlist(
+    request: WithdrawFromWaitlistRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: WithdrawFromWaitlistResponse) => void,
+  ): ClientUnaryCall;
+  withdrawFromWaitlist(
+    request: WithdrawFromWaitlistRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: WithdrawFromWaitlistResponse) => void,
   ): ClientUnaryCall;
   archiveWaitlistSignup(
     request: ArchiveWaitlistSignupRequest,

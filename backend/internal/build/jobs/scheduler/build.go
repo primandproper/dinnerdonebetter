@@ -12,7 +12,6 @@ import (
 	notificationsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/manager"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/push"
 	settingsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings/manager"
-	waitlistsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists/manager"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	commentsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/comments"
@@ -23,6 +22,7 @@ import (
 	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
 	paymentsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/payments"
 	uploadedmediarepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/uploadedmedia"
+	waitlistsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/waitlists"
 	webhooksrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhooks"
 	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
 	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
@@ -98,14 +98,14 @@ func BuildInjector(
 	issuereportsrepo.RegisterIssueReportsRepository(i)
 	paymentsrepo.RegisterPaymentsRepository(i)
 	uploadedmediarepo.RegisterUploadedMediaRepository(i)
-	// Settings and waitlists come in through their managers rather than their repositories,
-	// which is not a stylistic choice: their repository registrations provide the concrete
-	// *Repository and only the manager binds the domain interface the data privacy collectors
-	// ask for. Registering the repository alone left this process unable to build the privacy
+	// Settings comes in through its manager rather than its repository, which is not a
+	// stylistic choice: the repository registration provides the concrete *Repository and
+	// only the manager binds the domain interface the data privacy collectors ask for.
+	// Registering the repository alone left this process unable to build the privacy
 	// registry at all — and because samber/do resolves lazily, unable in a way nothing noticed
 	// until something actually asked for a subject's data.
 	settingsmanager.RegisterSettingsDataManager(i)
-	waitlistsmanager.RegisterWaitlistDataManager(i)
+	waitlistsrepo.RegisterWaitlistsRepository(i)
 	// This also registers the webhook Store and Dispatcher, which this process needs in both
 	// directions: dispatch happens inside the transaction that causes the event, and the meal
 	// plan finalizer emits events like any request does.

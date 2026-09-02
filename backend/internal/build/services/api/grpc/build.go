@@ -17,7 +17,6 @@ import (
 	oauthmgr "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth/manager"
 	paymentsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/manager"
 	settingsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings/manager"
-	waitlistsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists/manager"
 	webhooksmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/manager"
 	appmetering "github.com/primandproper/dinnerdonebetter/backend/internal/metering"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories"
@@ -30,6 +29,7 @@ import (
 	oauthrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/oauth"
 	paymentsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/payments"
 	uploadedmediarepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/uploadedmedia"
+	waitlistsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/waitlists"
 	webhooksrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhooks"
 	analyticssvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/analytics/grpc"
 	auditsvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/audit/grpc"
@@ -160,7 +160,7 @@ func BuildInjector(
 	paymentsmanager.RegisterPaymentsDataManager(i)
 	oauthmgr.RegisterOAuth2Manager(i)
 	webhooksmanager.RegisterWebhookDataManager(i)
-	waitlistsmanager.RegisterWaitlistDataManager(i)
+	waitlistsrepo.RegisterWaitlistsRepository(i)
 	paymentsadapters.RegisterPaymentProcessorRegistry(i)
 
 	// services

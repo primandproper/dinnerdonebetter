@@ -12,6 +12,7 @@ import (
 	ddbissuereports "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports"
 	ddboauth "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
 	ddbuploadedmedia "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
+	ddbwaitlists "github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists"
 
 	auditmigrations "github.com/primandproper/platform-go/v13/audit/migrations"
 	oauth2migrations "github.com/primandproper/platform-go/v13/authentication/oauth2server/database/migrations"
@@ -36,6 +37,7 @@ import (
 	sagamigrations "github.com/primandproper/platform-go/v13/saga/migrations"
 	sessionsmigrations "github.com/primandproper/platform-go/v13/sessions/database/migrations"
 	uploadsregistrymigrations "github.com/primandproper/platform-go/v13/uploads/registry/migrations"
+	waitlistsmigrations "github.com/primandproper/platform-go/v13/waitlists/migrations"
 	"github.com/primandproper/platform-go/v13/webhooks"
 	webhooksmigrations "github.com/primandproper/platform-go/v13/webhooks/migrations"
 	"github.com/primandproper/platform-go/v13/workqueue"
@@ -75,6 +77,7 @@ const (
 	commentsMigrationVersion        = 37
 	uploadsRegistryMigrationVersion = 38
 	issueReportsMigrationVersion    = 39
+	waitlistsMigrationVersion       = 40
 )
 
 // NewMigrator creates a new postgres Migrator over the embedded migration files.
@@ -197,6 +200,11 @@ func NewMigrator(logger logging.Logger) (*migrate.Migrator, error) {
 		return nil, err
 	}
 
+	waitlistsDDL, err := renderWaitlistsDDL()
+	if err != nil {
+		return nil, err
+	}
+
 	migrator, err := migrate.New(
 		dialect.Postgres,
 		migrationFiles,
@@ -217,6 +225,7 @@ func NewMigrator(logger logging.Logger) (*migrate.Migrator, error) {
 		migrate.WithGeneratedMigration(commentsMigrationVersion, "create_comments_table", commentsDDL),
 		migrate.WithGeneratedMigration(uploadsRegistryMigrationVersion, "create_uploads_objects_table", uploadsRegistryDDL),
 		migrate.WithGeneratedMigration(issueReportsMigrationVersion, "create_issue_reports_table", issueReportsDDL),
+		migrate.WithGeneratedMigration(waitlistsMigrationVersion, "create_waitlist_tables", waitlistsDDL),
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "building migrator")
@@ -274,6 +283,47 @@ func renderIssueReportsDDL() (string, error) {
 	body.WriteString("\nALTER TABLE " + table + "\n\tADD CONSTRAINT " + table + "_scope_fk\n\tFOREIGN KEY (scope) REFERENCES accounts(id) ON DELETE CASCADE;\n")
 
 	return body.String(), nil
+}
+
+// renderWaitlistsDDL renders the two waitlist tables, dropping the ones
+// 00008_waitlists.sql created first.
+//
+// Nothing is carried across, and the two schemas could not carry it anyway. The
+// platform's list names the closing time closes_at rather than valid_until and
+// adds the tenancy column every one of its reads filters on. Its signup replaces
+// belongs_to_user/belongs_to_account with a subject pair, and adds the three
+// columns this package was adopted for — contact, contact_digest and status,
+// which are what turn a pile of opt-ins into a queue somebody can work and a
+// withdrawal somebody can rely on.
+//
+// The old tables are dropped rather than left in place because their names are
+// the ones the platform's default prefix would render, and its DDL says CREATE
+// TABLE IF NOT EXISTS — so a deployment that kept them would get a silent no-op
+// followed by a store reading columns that are not there. This renders
+// ddb_waitlists and ddb_waitlist_signups; see ddbwaitlists.TablePrefix.
+//
+// # No foreign key is re-created, and that is not an oversight
+//
+// The old waitlist_signups carried belongs_to_user REFERENCES users ON DELETE
+// CASCADE, which is what kept the single identity eraser covering signups. The
+// new table cannot carry its equivalent, and the reason is the feature this
+// adoption was for: a withdrawal blanks subject_id to the empty string, which is
+// the column's NOT NULL default and names no user. A foreign key there would
+// refuse every withdrawal — turning the one write somebody has a right to demand
+// into a constraint violation.
+//
+// What replaces the cascade is the waitlists eraser, registered in
+// internal/build/dataprivacy. See internal/domain/waitlists/privacy for what it
+// erases and what it deliberately keeps.
+func renderWaitlistsDDL() (string, error) {
+	schema, err := waitlistsmigrations.SQL(dialect.Postgres, ddbwaitlists.TablePrefix)
+	if err != nil {
+		return "", errors.Wrap(err, "rendering waitlists migration")
+	}
+
+	// Signups first: the old signup table references the old list table, and
+	// Postgres will not drop a table out from under a foreign key.
+	return "DROP TABLE IF EXISTS waitlist_signups;\nDROP TABLE IF EXISTS waitlists;\n\n" + schema, nil
 }
 
 // renderCommentsDDL renders the comment table, dropping the one 00012_comments.sql

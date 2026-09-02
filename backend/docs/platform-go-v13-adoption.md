@@ -115,7 +115,7 @@ sequenced separately — none is required to compile.
 | `settings` | `postgres/settings` | #388 |
 | ~~`comments`~~ (adopted, #1375) | `postgres/comments` + `domain/comments` + `comments_*.go` codegen | #450 |
 | ~~`issuereports`~~ (adopted, #1377) | `postgres/issuereports` + `domain/issuereports` + `issuereports_*.go` codegen | #449 |
-| `waitlists` | `postgres/waitlists` | #452 |
+| ~~`waitlists`~~ (adopted, #1378) | `postgres/waitlists` + `domain/waitlists` + `waitlists_*.go` codegen | #452 |
 | `billing` | `postgres/payments`, partly | #454 |
 | `notifications` (store half) | `postgres/notifications` | #390, #439 |
 | ~~`authentication/passwordreset`~~ (adopted, #1372) | `postgres/auth/password_reset_tokens.go` | #387 |
@@ -136,8 +136,10 @@ merely re-backed; #1375 did it. `uploads/registry` was the first adoption whose 
 domains join against, and #1376 is the record of what that costs — see below. `issuereports` was
 the first adoption that *added* behavior rather than only re-backing it: the local table had no
 status column at all, so the triage lifecycle — open, acknowledged, resolved, declined, with a
-guarded move between them — arrived with the store; #1377 did it. `identity` is the largest by far
-and should be its own epic.
+guarded move between them — arrived with the store; #1377 did it. `waitlists` was the second adoption that *added* behavior, and the addition is the point rather
+than a side effect: the local tables could hide a signup and could not suppress one, so somebody
+who unsubscribed was somebody the next form submission re-subscribed. #1378 did it — see below.
+`identity` is the largest by far and should be its own epic.
 
 ## What adopting a *referenced* table costs
 
@@ -159,6 +161,43 @@ were reading. Three things followed, none of them visible from the package's own
 - **Two operations had no equivalent, for a reason.** The registry has no update — every column is
   a fact about bytes already in a bucket — so `UpdateUploadedMedia` went, along with its
   permission. It has no bulk read by id either; that one is a genuine gap and is a loop here.
+
+## What adopting a store with an *obligation* costs
+
+`waitlists` (#1378) is the first store this repository adopted whose point is a promise rather
+than a shape. The local tables were CRUD: a list with a `valid_until`, a signup with a note and
+two ownership columns. What they could not express is the one thing a waitlist has to get right —
+somebody who asks to come off a list stays off it. Archiving a signup frees nothing and suppresses
+nothing, so the next submission from the same person simply succeeded.
+
+Three things followed:
+
+- **The signup now holds an address, and that changed who may read one.** The contact is the
+  session's email — a signup that could name its own address is one anybody could make on
+  anybody's behalf, and a suppression anybody could evade — so the list-wide signup read is a read
+  of every signatory's email. It was already service-admin-only over gRPC. It was **not** gated on
+  the MCP server, which has no role on its token, so the two signup tools were removed there
+  rather than shipped as a way to ask a model for a list of addresses. The three catalog tools
+  stay.
+- **No foreign key could be re-created, and that is the feature.** `uploads/registry` and
+  `issuereports` both re-pointed their cascade at `users` when they were adopted. This one cannot:
+  a withdrawal blanks `subject_id` to the empty string, so a key there would refuse the withdrawal.
+  What replaces the cascade is an eraser whose erasure *is* a withdrawal — see
+  `docs/data-privacy.md`.
+- **The wire surface grew rather than shrank.** `Invite`, `Convert` and `Withdraw` are new RPCs
+  because they are new capabilities; `GetActiveWaitlists` became `GetOpenWaitlists` and
+  `WaitlistIsNotExpired` became `WaitlistIsOpen`, because the platform's boundary counts an
+  archived list as closed and the old names did not.
+
+Both gaps this turned up are filed upstream as [platform-go #458] rather than papered over
+locally: the store's writes own their transactions, so the audit entry and the data change event
+land in a second one (the same shape as `comments`' [#457]), and — the one specific to this
+package — it ships no `waitlists/privacy`, so the eraser is the consumer's to write against a
+`Store` that cannot run it inside the request's transaction or reach an archived signup. Neither
+has a local fix that is not a hand-written statement against another package's schema.
+
+[platform-go #458]: https://github.com/primandproper/platform-go/issues/458
+[#457]: https://github.com/primandproper/platform-go/issues/457
 
 ## Verification
 

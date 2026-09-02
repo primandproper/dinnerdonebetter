@@ -1,76 +1,63 @@
 package waitlists
 
 import (
-	"context"
-
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists"
+	ddbwaitlists "github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/waitlists/generated"
 
 	"github.com/primandproper/platform-go/v13/database"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
 	"github.com/primandproper/platform-go/v13/observability/logging"
+	"github.com/primandproper/platform-go/v13/observability/metrics"
 	"github.com/primandproper/platform-go/v13/observability/tracing"
+	platformwaitlists "github.com/primandproper/platform-go/v13/waitlists"
 )
 
 const (
 	o11yName = "waitlists_db_client"
 )
 
-// Repository is the waitlists repository implementation.
-type Repository struct {
-	database.Client
+// repository is platform's waitlist store with this application's recording
+// around it.
+//
+// The store is embedded rather than held in a named field so that the reads —
+// every one of them, on both tables — are the platform's own rather than
+// forwarding stubs that could drift from it.
+type repository struct {
+	platformwaitlists.Store
+	client            database.Client
 	tracer            tracing.Tracer
 	logger            logging.Logger
-	generatedQuerier  generated.Querier
 	auditLogEntryRepo audit.Repository
 	events            *events.Emitter
-	readDB            database.SQLQueryExecutor
-	writeDB           database.SQLQueryExecutor
 }
 
-// ProvideWaitlistsRepository provides a new repository.
-// Returns concrete *Repository so the manager can wrap it; the manager is the sole provider of waitlists.Repository for services.
+// ProvideWaitlistsRepository provides a new waitlist store.
 func ProvideWaitlistsRepository(
 	logger logging.Logger,
 	tracerProvider tracing.Provider,
+	metricsProvider metrics.Provider,
 	auditLogEntryRepo audit.Repository,
 	client database.Client,
 	eventEmitter *events.Emitter,
-) *Repository {
-	c := &Repository{
-		Client:            client,
-		readDB:            client.Reader(),
-		writeDB:           client.Writer(),
-		tracer:            tracing.NewNamedTracer(tracerProvider, o11yName),
-		generatedQuerier:  generated.New(),
-		auditLogEntryRepo: auditLogEntryRepo,
-		events:            eventEmitter,
-		logger:            logging.NewNamedLogger(logger, o11yName),
+) (platformwaitlists.Store, error) {
+	store, err := platformwaitlists.NewSQLStore(
+		client,
+		platformwaitlists.WithTablePrefix(ddbwaitlists.TablePrefix),
+		platformwaitlists.WithStoreLogger(logger),
+		platformwaitlists.WithStoreTracerProvider(tracerProvider),
+		platformwaitlists.WithStoreMetricsProvider(metricsProvider),
+	)
+	if err != nil {
+		return nil, platformerrors.Wrap(err, "building the waitlists store")
 	}
 
-	return c
-}
-
-// Ensure *Repository implements the interface.
-var _ waitlists.Repository = (*Repository)(nil)
-
-// withEvent runs a write and the data change event describing it in one transaction, so the
-// event cannot survive a write that rolled back — nor be lost after one that committed.
-//
-//nolint:unparam // accountID is "" for every caller today; see the payments repository.
-func (q *Repository) withEvent(
-	ctx context.Context,
-	logger logging.Logger,
-	eventType, accountID string,
-	metadata map[string]any,
-	write func(tx database.Tx) error,
-) error {
-	return q.WithTransaction(ctx, func(tx database.Tx) error {
-		if err := write(tx); err != nil {
-			return err
-		}
-
-		return q.events.Emit(ctx, tx, logger, eventType, accountID, metadata)
-	})
+	return &repository{
+		Store:             store,
+		client:            client,
+		tracer:            tracing.NewNamedTracer(tracerProvider, o11yName),
+		logger:            logging.NewNamedLogger(logger, o11yName),
+		auditLogEntryRepo: auditLogEntryRepo,
+		events:            eventEmitter,
+	}, nil
 }

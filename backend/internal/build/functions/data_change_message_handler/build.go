@@ -9,7 +9,6 @@ import (
 	notificationsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/manager"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/push"
 	settingsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings/manager"
-	waitlistsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists/manager"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/functions/datachangemessagehandler"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	commentsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/comments"
@@ -18,6 +17,7 @@ import (
 	issue_reports "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/issuereports"
 	paymentsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/payments"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/uploadedmedia"
+	waitlistsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/waitlists"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhooks"
 	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
 
@@ -86,7 +86,7 @@ func BuildInjector(
 	// reminders it now sends itself, so both processes deliver through one component.
 	push.RegisterFanout(i)
 	settingsmanager.RegisterSettingsDataManager(i)
-	waitlistsmanager.RegisterWaitlistDataManager(i)
+	waitlistsrepo.RegisterWaitlistsRepository(i)
 
 	// indexing
 	identityindexing.RegisterUserSyncer(i)

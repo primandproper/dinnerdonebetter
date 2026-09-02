@@ -52,20 +52,23 @@ public struct Waitlists_Waitlist: Sendable {
   /// Clears the value of `archivedAt`. Subsequent reads from it will return its default value.
   public mutating func clearArchivedAt() {self._archivedAt = nil}
 
+  /// closes_at is when the waitlist stops taking signups. It is never absent: a
+  /// list whose end is not yet decided names a far horizon, and a list that
+  /// should stop now is archived.
+  public var closesAt: SwiftProtobuf.Google_Protobuf_Timestamp {
+    get {return _closesAt ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
+    set {_closesAt = newValue}
+  }
+  /// Returns true if `closesAt` has been explicitly set.
+  public var hasClosesAt: Bool {return self._closesAt != nil}
+  /// Clears the value of `closesAt`. Subsequent reads from it will return its default value.
+  public mutating func clearClosesAt() {self._closesAt = nil}
+
   public var id: String = String()
 
   public var name: String = String()
 
   public var description_p: String = String()
-
-  public var validUntil: SwiftProtobuf.Google_Protobuf_Timestamp {
-    get {return _validUntil ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
-    set {_validUntil = newValue}
-  }
-  /// Returns true if `validUntil` has been explicitly set.
-  public var hasValidUntil: Bool {return self._validUntil != nil}
-  /// Clears the value of `validUntil`. Subsequent reads from it will return its default value.
-  public mutating func clearValidUntil() {self._validUntil = nil}
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
@@ -74,7 +77,7 @@ public struct Waitlists_Waitlist: Sendable {
   fileprivate var _createdAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
   fileprivate var _lastUpdatedAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
   fileprivate var _archivedAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
-  fileprivate var _validUntil: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
+  fileprivate var _closesAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
 }
 
 public struct Waitlists_WaitlistSignup: Sendable {
@@ -109,15 +112,36 @@ public struct Waitlists_WaitlistSignup: Sendable {
   /// Clears the value of `archivedAt`. Subsequent reads from it will return its default value.
   public mutating func clearArchivedAt() {self._archivedAt = nil}
 
+  /// status_changed_at is when the signup last moved through the lifecycle. It is
+  /// not last_updated_at: editing a note changes the row without moving anybody,
+  /// and a reminder after an invitation is scheduled off this.
+  public var statusChangedAt: SwiftProtobuf.Google_Protobuf_Timestamp {
+    get {return _statusChangedAt ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
+    set {_statusChangedAt = newValue}
+  }
+  /// Returns true if `statusChangedAt` has been explicitly set.
+  public var hasStatusChangedAt: Bool {return self._statusChangedAt != nil}
+  /// Clears the value of `statusChangedAt`. Subsequent reads from it will return its default value.
+  public mutating func clearStatusChangedAt() {self._statusChangedAt = nil}
+
   public var id: String = String()
+
+  public var waitlistID: String = String()
+
+  /// contact is the address the list exists to write to. It is empty for a
+  /// withdrawn signup, which is what a withdrawal erases.
+  public var contact: String = String()
 
   public var notes: String = String()
 
-  public var belongsToWaitlist: String = String()
+  /// status is one of waiting, invited, converted or withdrawn.
+  public var status: String = String()
 
-  public var belongsToUser: String = String()
+  /// subject_type and subject_id name who the signup belongs to. Both are empty
+  /// for a withdrawn signup, and for one that names nobody.
+  public var subjectType: String = String()
 
-  public var belongsToAccount: String = String()
+  public var subjectID: String = String()
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
@@ -126,6 +150,7 @@ public struct Waitlists_WaitlistSignup: Sendable {
   fileprivate var _createdAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
   fileprivate var _lastUpdatedAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
   fileprivate var _archivedAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
+  fileprivate var _statusChangedAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
 }
 
 // MARK: - Code below here is support for the SwiftProtobuf runtime.
@@ -134,7 +159,7 @@ fileprivate let _protobuf_package = "waitlists"
 
 extension Waitlists_Waitlist: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".Waitlist"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}created_at\0\u{3}last_updated_at\0\u{3}archived_at\0\u{1}id\0\u{1}name\0\u{1}description\0\u{3}valid_until\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}created_at\0\u{3}last_updated_at\0\u{3}archived_at\0\u{3}closes_at\0\u{1}id\0\u{1}name\0\u{1}description\0")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -145,10 +170,10 @@ extension Waitlists_Waitlist: SwiftProtobuf.Message, SwiftProtobuf._MessageImple
       case 1: try { try decoder.decodeSingularMessageField(value: &self._createdAt) }()
       case 2: try { try decoder.decodeSingularMessageField(value: &self._lastUpdatedAt) }()
       case 3: try { try decoder.decodeSingularMessageField(value: &self._archivedAt) }()
-      case 4: try { try decoder.decodeSingularStringField(value: &self.id) }()
-      case 5: try { try decoder.decodeSingularStringField(value: &self.name) }()
-      case 6: try { try decoder.decodeSingularStringField(value: &self.description_p) }()
-      case 7: try { try decoder.decodeSingularMessageField(value: &self._validUntil) }()
+      case 4: try { try decoder.decodeSingularMessageField(value: &self._closesAt) }()
+      case 5: try { try decoder.decodeSingularStringField(value: &self.id) }()
+      case 6: try { try decoder.decodeSingularStringField(value: &self.name) }()
+      case 7: try { try decoder.decodeSingularStringField(value: &self.description_p) }()
       default: break
       }
     }
@@ -168,18 +193,18 @@ extension Waitlists_Waitlist: SwiftProtobuf.Message, SwiftProtobuf._MessageImple
     try { if let v = self._archivedAt {
       try visitor.visitSingularMessageField(value: v, fieldNumber: 3)
     } }()
+    try { if let v = self._closesAt {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 4)
+    } }()
     if !self.id.isEmpty {
-      try visitor.visitSingularStringField(value: self.id, fieldNumber: 4)
+      try visitor.visitSingularStringField(value: self.id, fieldNumber: 5)
     }
     if !self.name.isEmpty {
-      try visitor.visitSingularStringField(value: self.name, fieldNumber: 5)
+      try visitor.visitSingularStringField(value: self.name, fieldNumber: 6)
     }
     if !self.description_p.isEmpty {
-      try visitor.visitSingularStringField(value: self.description_p, fieldNumber: 6)
+      try visitor.visitSingularStringField(value: self.description_p, fieldNumber: 7)
     }
-    try { if let v = self._validUntil {
-      try visitor.visitSingularMessageField(value: v, fieldNumber: 7)
-    } }()
     try unknownFields.traverse(visitor: &visitor)
   }
 
@@ -187,10 +212,10 @@ extension Waitlists_Waitlist: SwiftProtobuf.Message, SwiftProtobuf._MessageImple
     if lhs._createdAt != rhs._createdAt {return false}
     if lhs._lastUpdatedAt != rhs._lastUpdatedAt {return false}
     if lhs._archivedAt != rhs._archivedAt {return false}
+    if lhs._closesAt != rhs._closesAt {return false}
     if lhs.id != rhs.id {return false}
     if lhs.name != rhs.name {return false}
     if lhs.description_p != rhs.description_p {return false}
-    if lhs._validUntil != rhs._validUntil {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
@@ -198,7 +223,7 @@ extension Waitlists_Waitlist: SwiftProtobuf.Message, SwiftProtobuf._MessageImple
 
 extension Waitlists_WaitlistSignup: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".WaitlistSignup"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}created_at\0\u{3}last_updated_at\0\u{3}archived_at\0\u{1}id\0\u{1}notes\0\u{3}belongs_to_waitlist\0\u{3}belongs_to_user\0\u{3}belongs_to_account\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}created_at\0\u{3}last_updated_at\0\u{3}archived_at\0\u{3}status_changed_at\0\u{1}id\0\u{3}waitlist_id\0\u{1}contact\0\u{1}notes\0\u{1}status\0\u{3}subject_type\0\u{3}subject_id\0")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -209,11 +234,14 @@ extension Waitlists_WaitlistSignup: SwiftProtobuf.Message, SwiftProtobuf._Messag
       case 1: try { try decoder.decodeSingularMessageField(value: &self._createdAt) }()
       case 2: try { try decoder.decodeSingularMessageField(value: &self._lastUpdatedAt) }()
       case 3: try { try decoder.decodeSingularMessageField(value: &self._archivedAt) }()
-      case 4: try { try decoder.decodeSingularStringField(value: &self.id) }()
-      case 5: try { try decoder.decodeSingularStringField(value: &self.notes) }()
-      case 6: try { try decoder.decodeSingularStringField(value: &self.belongsToWaitlist) }()
-      case 7: try { try decoder.decodeSingularStringField(value: &self.belongsToUser) }()
-      case 8: try { try decoder.decodeSingularStringField(value: &self.belongsToAccount) }()
+      case 4: try { try decoder.decodeSingularMessageField(value: &self._statusChangedAt) }()
+      case 5: try { try decoder.decodeSingularStringField(value: &self.id) }()
+      case 6: try { try decoder.decodeSingularStringField(value: &self.waitlistID) }()
+      case 7: try { try decoder.decodeSingularStringField(value: &self.contact) }()
+      case 8: try { try decoder.decodeSingularStringField(value: &self.notes) }()
+      case 9: try { try decoder.decodeSingularStringField(value: &self.status) }()
+      case 10: try { try decoder.decodeSingularStringField(value: &self.subjectType) }()
+      case 11: try { try decoder.decodeSingularStringField(value: &self.subjectID) }()
       default: break
       }
     }
@@ -233,20 +261,29 @@ extension Waitlists_WaitlistSignup: SwiftProtobuf.Message, SwiftProtobuf._Messag
     try { if let v = self._archivedAt {
       try visitor.visitSingularMessageField(value: v, fieldNumber: 3)
     } }()
+    try { if let v = self._statusChangedAt {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 4)
+    } }()
     if !self.id.isEmpty {
-      try visitor.visitSingularStringField(value: self.id, fieldNumber: 4)
+      try visitor.visitSingularStringField(value: self.id, fieldNumber: 5)
+    }
+    if !self.waitlistID.isEmpty {
+      try visitor.visitSingularStringField(value: self.waitlistID, fieldNumber: 6)
+    }
+    if !self.contact.isEmpty {
+      try visitor.visitSingularStringField(value: self.contact, fieldNumber: 7)
     }
     if !self.notes.isEmpty {
-      try visitor.visitSingularStringField(value: self.notes, fieldNumber: 5)
+      try visitor.visitSingularStringField(value: self.notes, fieldNumber: 8)
     }
-    if !self.belongsToWaitlist.isEmpty {
-      try visitor.visitSingularStringField(value: self.belongsToWaitlist, fieldNumber: 6)
+    if !self.status.isEmpty {
+      try visitor.visitSingularStringField(value: self.status, fieldNumber: 9)
     }
-    if !self.belongsToUser.isEmpty {
-      try visitor.visitSingularStringField(value: self.belongsToUser, fieldNumber: 7)
+    if !self.subjectType.isEmpty {
+      try visitor.visitSingularStringField(value: self.subjectType, fieldNumber: 10)
     }
-    if !self.belongsToAccount.isEmpty {
-      try visitor.visitSingularStringField(value: self.belongsToAccount, fieldNumber: 8)
+    if !self.subjectID.isEmpty {
+      try visitor.visitSingularStringField(value: self.subjectID, fieldNumber: 11)
     }
     try unknownFields.traverse(visitor: &visitor)
   }
@@ -255,11 +292,14 @@ extension Waitlists_WaitlistSignup: SwiftProtobuf.Message, SwiftProtobuf._Messag
     if lhs._createdAt != rhs._createdAt {return false}
     if lhs._lastUpdatedAt != rhs._lastUpdatedAt {return false}
     if lhs._archivedAt != rhs._archivedAt {return false}
+    if lhs._statusChangedAt != rhs._statusChangedAt {return false}
     if lhs.id != rhs.id {return false}
+    if lhs.waitlistID != rhs.waitlistID {return false}
+    if lhs.contact != rhs.contact {return false}
     if lhs.notes != rhs.notes {return false}
-    if lhs.belongsToWaitlist != rhs.belongsToWaitlist {return false}
-    if lhs.belongsToUser != rhs.belongsToUser {return false}
-    if lhs.belongsToAccount != rhs.belongsToAccount {return false}
+    if lhs.status != rhs.status {return false}
+    if lhs.subjectType != rhs.subjectType {return false}
+    if lhs.subjectID != rhs.subjectID {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
