@@ -29,7 +29,7 @@ the log a question and gets an empty answer.
 commits with the change it describes or not at all:
 
 ```go
-return q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+return q.WithTransaction(ctx, func(tx database.Tx) error {
     if err := q.generatedQuerier.UpdateRecipe(ctx, tx, params); err != nil {
         return err
     }
@@ -51,7 +51,38 @@ return q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
 ```
 
 There is no way to record outside a transaction by accident: holding a
-`SQLQueryExecutor` from `WithTransaction` means you are already in one.
+`database.Tx` from `WithTransaction` means you are already in one.
+
+### Almost always, use `recordAndEmit`
+
+A write that records an entry nearly always owes a data change event too, and each
+repository has a `recordAndEmit` for exactly that pair:
+
+```go
+return q.WithTransaction(ctx, func(tx database.Tx) error {
+    if err := q.generatedQuerier.UpdateRecipe(ctx, tx, params); err != nil {
+        return err
+    }
+
+    return q.recordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
+        ResourceType: resourceTypeRecipes,
+        RelevantID:   after.ID,
+        EventType:    audit.AuditLogEventTypeUpdated,
+    }, mealplanning.RecipeUpdatedServiceEventType, accountID, map[string]any{
+        mealplanningkeys.RecipeIDKey: after.ID,
+    })
+})
+```
+
+The two used to be written out as separate blocks at every write, which made the
+easiest mistake to make the one nothing catches: skip the entry and the row has no
+provenance, and the chain does not notice, because a chain records what it was
+given; skip the event and the search index goes stale and no webhook fires. Neither
+leaves anything behind to find later. One call cannot half-happen.
+
+Reach past it for `Record` alone only where the pair genuinely does not apply — an
+entry with no event of its own, or a transaction recording several entries at once,
+which `Record`'s variadic form handles and `recordAndEmit` deliberately does not.
 
 `Record` is variadic. A transaction touching three resources should pass three
 entries to one call rather than making three calls — one chain-head lookup and one

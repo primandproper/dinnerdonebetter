@@ -161,24 +161,16 @@ func (r *repository) record(ctx context.Context, report *platformissuereports.Re
 	accountID := report.Scope.Owner()
 
 	return r.client.WithTransaction(ctx, func(tx database.Tx) error {
-		if err := r.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
+		return r.recordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
 			ID:               identifiers.New(),
 			ResourceType:     resourceTypeIssueReports,
 			RelevantID:       report.ID,
 			EventType:        auditEventType,
 			BelongsToUser:    report.Reporter,
 			BelongsToAccount: &accountID,
-		}); err != nil {
-			return observability.PrepareAndLogError(err, logger, span, "creating audit log entry")
-		}
-
-		if err := r.events.Emit(ctx, tx, logger, changeEventType, accountID, map[string]any{
+		}, changeEventType, accountID, map[string]any{
 			issuereportkeys.IssueReportIDKey:     report.ID,
 			issuereportkeys.IssueReportStatusKey: report.Status.String(),
-		}); err != nil {
-			return observability.PrepareAndLogError(err, logger, span, "enqueuing data change event")
-		}
-
-		return nil
+		})
 	})
 }

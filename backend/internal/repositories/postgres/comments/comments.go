@@ -117,22 +117,14 @@ func (q *repository) record(ctx context.Context, commentID, author, auditEventTy
 	logger := q.logger.WithSpan(span).WithValue(commentskeys.CommentIDKey, commentID)
 
 	return q.client.WithTransaction(ctx, func(tx database.Tx) error {
-		if err := q.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
+		return q.recordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
 			ID:            identifiers.New(),
 			ResourceType:  resourceTypeComments,
 			RelevantID:    commentID,
 			EventType:     auditEventType,
 			BelongsToUser: author,
-		}); err != nil {
-			return observability.PrepareAndLogError(err, logger, span, "creating audit log entry")
-		}
-
-		if err := q.events.Emit(ctx, tx, logger, changeEventType, "", map[string]any{
+		}, changeEventType, "", map[string]any{
 			commentskeys.CommentIDKey: commentID,
-		}); err != nil {
-			return observability.PrepareAndLogError(err, logger, span, "enqueuing data change event")
-		}
-
-		return nil
+		})
 	})
 }

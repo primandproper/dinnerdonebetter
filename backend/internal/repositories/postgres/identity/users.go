@@ -863,7 +863,7 @@ func (r *repository) UpdateUserUsername(ctx context.Context, userID, newUsername
 			return observability.PrepareAndLogError(err, logger, span, "updating username")
 		}
 
-		if err = r.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
+		return r.recordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
 			ResourceType:  resourceTypeUsers,
 			RelevantID:    userID,
 			EventType:     audit.AuditLogEventTypeUpdated,
@@ -874,19 +874,9 @@ func (r *repository) UpdateUserUsername(ctx context.Context, userID, newUsername
 					New: newUsername,
 				},
 			},
-		}); err != nil {
-			return observability.PrepareError(err, span, "creating audit log entry")
-		}
-
-		// The event is another statement in this transaction, so it commits with the
-		// rows it describes.
-		if emitErr := r.events.Emit(ctx, tx, logger, identity.UsernameChangedEventType, "", map[string]any{
+		}, identity.UsernameChangedEventType, "", map[string]any{
 			identitykeys.UserIDKey: userID,
-		}); emitErr != nil {
-			return observability.PrepareError(emitErr, span, "enqueuing data change event")
-		}
-
-		return nil
+		})
 	}); err != nil {
 		return err
 	}
@@ -925,7 +915,7 @@ func (r *repository) UpdateUserEmailAddress(ctx context.Context, userID, newEmai
 			return observability.PrepareAndLogError(err, logger, span, "updating user email address")
 		}
 
-		if err = r.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
+		return r.recordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
 			ResourceType:  resourceTypeUsers,
 			RelevantID:    userID,
 			EventType:     audit.AuditLogEventTypeUpdated,
@@ -936,19 +926,9 @@ func (r *repository) UpdateUserEmailAddress(ctx context.Context, userID, newEmai
 					New: newEmailAddress,
 				},
 			},
-		}); err != nil {
-			return observability.PrepareError(err, span, "creating audit log entry")
-		}
-
-		// The event is another statement in this transaction, so it commits with the
-		// rows it describes.
-		if emitErr := r.events.Emit(ctx, tx, logger, identity.EmailAddressChangedEventType, "", map[string]any{
+		}, identity.EmailAddressChangedEventType, "", map[string]any{
 			identitykeys.UserIDKey: userID,
-		}); emitErr != nil {
-			return observability.PrepareError(emitErr, span, "enqueuing data change event")
-		}
-
-		return nil
+		})
 	}); err != nil {
 		return err
 	}
@@ -1001,25 +981,15 @@ func (r *repository) UpdateUserDetails(ctx context.Context, userID string, input
 			changes["birthday"] = audit.Change{New: input.Birthday.Format(time.Kitchen), Old: user.Birthday.Format(time.Kitchen)}
 		}
 
-		if err = r.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
+		return r.recordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
 			ResourceType:  resourceTypeUsers,
 			RelevantID:    userID,
 			EventType:     audit.AuditLogEventTypeUpdated,
 			BelongsToUser: userID,
 			Changes:       changes,
-		}); err != nil {
-			return observability.PrepareError(err, span, "creating audit log entry")
-		}
-
-		// The event is another statement in this transaction, so it commits with the
-		// rows it describes.
-		if emitErr := r.events.Emit(ctx, tx, logger, identity.UserDetailsChangedEventType, "", map[string]any{
+		}, identity.UserDetailsChangedEventType, "", map[string]any{
 			identitykeys.UserIDKey: userID,
-		}); emitErr != nil {
-			return observability.PrepareError(emitErr, span, "enqueuing data change event")
-		}
-
-		return nil
+		})
 	}); err != nil {
 		return err
 	}
@@ -1058,7 +1028,7 @@ func (r *repository) SetUserAvatar(ctx context.Context, userID, uploadedMediaID 
 			return observability.PrepareAndLogError(err, logger, span, "creating user avatar")
 		}
 
-		if err = r.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
+		return r.recordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
 			ResourceType:  resourceTypeUsers,
 			RelevantID:    userID,
 			EventType:     audit.AuditLogEventTypeUpdated,
@@ -1066,19 +1036,9 @@ func (r *repository) SetUserAvatar(ctx context.Context, userID, uploadedMediaID 
 			Changes: map[string]audit.Change{
 				"avatar": {},
 			},
-		}); err != nil {
-			return observability.PrepareError(err, span, "creating audit log entry")
-		}
-
-		// The event is another statement in this transaction, so it commits with the
-		// rows it describes.
-		if emitErr := r.events.Emit(ctx, tx, logger, identity.UserAvatarChangedEventType, "", map[string]any{
+		}, identity.UserAvatarChangedEventType, "", map[string]any{
 			identitykeys.UserIDKey: userID,
-		}); emitErr != nil {
-			return observability.PrepareError(emitErr, span, "enqueuing data change event")
-		}
-
-		return nil
+		})
 	}); err != nil {
 		return err
 	}
@@ -1304,28 +1264,18 @@ func (r *repository) ArchiveUser(ctx context.Context, userID string) error {
 			return sql.ErrNoRows
 		}
 
-		if err = r.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
-			ResourceType:  resourceTypeUsers,
-			RelevantID:    userID,
-			EventType:     audit.AuditLogEventTypeArchived,
-			BelongsToUser: userID,
-		}); err != nil {
-			return observability.PrepareError(err, span, "creating audit log entry")
-		}
-
 		if _, err = r.generatedQuerier.ArchiveUserMemberships(ctx, tx, userID); err != nil {
 			return observability.PrepareAndLogError(err, logger, span, "archiving user account memberships")
 		}
 
-		// The event is another statement in this transaction, so it commits with the
-		// rows it describes.
-		if emitErr := r.events.Emit(ctx, tx, logger, identity.UserArchivedServiceEventType, "", map[string]any{
+		return r.recordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
+			ResourceType:  resourceTypeUsers,
+			RelevantID:    userID,
+			EventType:     audit.AuditLogEventTypeArchived,
+			BelongsToUser: userID,
+		}, identity.UserArchivedServiceEventType, "", map[string]any{
 			identitykeys.UserIDKey: userID,
-		}); emitErr != nil {
-			return observability.PrepareError(emitErr, span, "enqueuing data change event")
-		}
-
-		return nil
+		})
 	}); err != nil {
 		return err
 	}

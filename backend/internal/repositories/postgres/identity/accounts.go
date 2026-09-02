@@ -269,25 +269,15 @@ func (r *repository) CreateAccount(ctx context.Context, input *identity.AccountD
 			return observability.PrepareAndLogError(err, logger, span, "assigning account role")
 		}
 
-		if err = r.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
+		return r.recordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
 			BelongsToAccount: &account.ID,
 			ResourceType:     resourceTypeAccountUserMemberships,
 			RelevantID:       accountMembershipID,
 			EventType:        audit.AuditLogEventTypeCreated,
 			BelongsToUser:    account.BelongsToUser,
-		}); err != nil {
-			return observability.PrepareError(err, span, "creating audit log entry")
-		}
-
-		// The event is another statement in this transaction, so it commits with the
-		// account it describes.
-		if emitErr := r.events.Emit(ctx, tx, logger, identity.AccountCreatedServiceEventType, account.ID, map[string]any{
+		}, identity.AccountCreatedServiceEventType, account.ID, map[string]any{
 			identitykeys.AccountIDKey: account.ID,
-		}); emitErr != nil {
-			return observability.PrepareError(emitErr, span, "enqueuing account created event")
-		}
-
-		return nil
+		})
 	}); err != nil {
 		return nil, err
 	}
@@ -367,26 +357,16 @@ func (r *repository) UpdateAccount(ctx context.Context, updated *identity.Accoun
 			return observability.PrepareError(diffErr, span, "diffing account for audit log")
 		}
 
-		if err = r.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
+		return r.recordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
 			BelongsToAccount: &updated.ID,
 			ResourceType:     resourceTypeAccounts,
 			RelevantID:       updated.ID,
 			EventType:        audit.AuditLogEventTypeUpdated,
 			BelongsToUser:    account.BelongsToUser,
 			Changes:          changes,
-		}); err != nil {
-			return observability.PrepareError(err, span, "creating audit log entry")
-		}
-
-		// The event is another statement in this transaction, so it commits with the
-		// rows it describes.
-		if emitErr := r.events.Emit(ctx, tx, logger, identity.AccountUpdatedServiceEventType, updated.ID, map[string]any{
+		}, identity.AccountUpdatedServiceEventType, updated.ID, map[string]any{
 			identitykeys.AccountIDKey: updated.ID,
-		}); emitErr != nil {
-			return observability.PrepareError(emitErr, span, "enqueuing data change event")
-		}
-
-		return nil
+		})
 	}); err != nil {
 		return err
 	}
@@ -431,26 +411,16 @@ func (r *repository) ArchiveAccount(ctx context.Context, accountID, ownerID stri
 			return sql.ErrNoRows
 		}
 
-		if err = r.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
+		return r.recordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
 			BelongsToAccount: &accountID,
 			ResourceType:     resourceTypeAccounts,
 			RelevantID:       accountID,
 			EventType:        audit.AuditLogEventTypeArchived,
 			BelongsToUser:    ownerID,
-		}); err != nil {
-			return observability.PrepareError(err, span, "creating audit log entry")
-		}
-
-		// The event is another statement in this transaction, so it commits with the
-		// rows it describes.
-		if emitErr := r.events.Emit(ctx, tx, logger, identity.AccountArchivedServiceEventType, accountID, map[string]any{
+		}, identity.AccountArchivedServiceEventType, accountID, map[string]any{
 			identitykeys.AccountIDKey: accountID,
 			identitykeys.UserIDKey:    ownerID,
-		}); emitErr != nil {
-			return observability.PrepareError(emitErr, span, "enqueuing data change event")
-		}
-
-		return nil
+		})
 	}); err != nil {
 		return err
 	}

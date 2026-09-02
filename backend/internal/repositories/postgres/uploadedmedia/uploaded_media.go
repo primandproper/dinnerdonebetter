@@ -109,22 +109,14 @@ func (r *repository) record(ctx context.Context, objectID, ownerID, auditEventTy
 	logger := r.logger.WithSpan(span).WithValue(uploadedmediakeys.UploadedMediaIDKey, objectID)
 
 	return r.client.WithTransaction(ctx, func(tx database.Tx) error {
-		if err := r.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
+		return r.recordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
 			ID:            identifiers.New(),
 			ResourceType:  resourceTypeUploadedMedia,
 			RelevantID:    objectID,
 			EventType:     auditEventType,
 			BelongsToUser: ownerID,
-		}); err != nil {
-			return observability.PrepareAndLogError(err, logger, span, "creating audit log entry")
-		}
-
-		if err := r.events.Emit(ctx, tx, logger, changeEventType, "", map[string]any{
+		}, changeEventType, "", map[string]any{
 			uploadedmediakeys.UploadedMediaIDKey: objectID,
-		}); err != nil {
-			return observability.PrepareAndLogError(err, logger, span, "enqueuing data change event")
-		}
-
-		return nil
+		})
 	})
 }

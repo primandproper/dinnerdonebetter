@@ -234,24 +234,14 @@ func (q *Repository) UpdateUserDeviceToken(ctx context.Context, updated *types.U
 			return observability.PrepareAndLogError(err, logger, span, "updating user device token")
 		}
 
-		if err = q.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
+		return q.recordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
 			ResourceType:  resourceTypeUserDeviceTokens,
 			RelevantID:    updated.ID,
 			EventType:     audit.AuditLogEventTypeUpdated,
 			BelongsToUser: updated.BelongsToUser,
-		}); err != nil {
-			return observability.PrepareError(err, span, "creating audit log entry")
-		}
-
-		// The event is another statement in this transaction, so it commits with the
-		// rows it describes.
-		if emitErr := q.events.Emit(ctx, tx, logger, types.UserDeviceTokenUpdatedServiceEventType, "", map[string]any{
+		}, types.UserDeviceTokenUpdatedServiceEventType, "", map[string]any{
 			notificationkeys.UserDeviceTokenIDKey: updated.ID,
-		}); emitErr != nil {
-			return observability.PrepareError(emitErr, span, "enqueuing data change event")
-		}
-
-		return nil
+		})
 	}); err != nil {
 		return err
 	}
@@ -286,24 +276,14 @@ func (q *Repository) ArchiveUserDeviceToken(ctx context.Context, userID, tokenID
 			return sql.ErrNoRows
 		}
 
-		if err = q.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
+		return q.recordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
 			ResourceType:  resourceTypeUserDeviceTokens,
 			RelevantID:    tokenID,
 			EventType:     audit.AuditLogEventTypeArchived,
 			BelongsToUser: userID,
-		}); err != nil {
-			return observability.PrepareError(err, span, "creating audit log entry")
-		}
-
-		// The event is another statement in this transaction, so it commits with the
-		// rows it describes.
-		if emitErr := q.events.Emit(ctx, tx, logger, types.UserDeviceTokenArchivedServiceEventType, "", map[string]any{
+		}, types.UserDeviceTokenArchivedServiceEventType, "", map[string]any{
 			notificationkeys.UserDeviceTokenIDKey: tokenID,
-		}); emitErr != nil {
-			return observability.PrepareError(emitErr, span, "enqueuing data change event")
-		}
-
-		return nil
+		})
 	}); err != nil {
 		return err
 	}

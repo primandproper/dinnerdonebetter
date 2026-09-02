@@ -10,6 +10,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
 	"github.com/primandproper/platform-go/v13/database"
+	"github.com/primandproper/platform-go/v13/observability"
 	"github.com/primandproper/platform-go/v13/observability/logging"
 	"github.com/primandproper/platform-go/v13/observability/tracing"
 	"github.com/primandproper/platform-go/v13/uploads/registry"
@@ -92,4 +93,31 @@ func (q *repository) withEvent(
 
 		return q.events.Emit(ctx, tx, logger, eventType, accountID, metadata)
 	})
+}
+
+// recordAndEmit writes the audit log entry and the data change event for one write, as two
+// further statements in the transaction that performed it. Together, because the failure mode of
+// the two blocks it replaces was omission and omission is silent: a row nothing recorded has no
+// provenance and the chain cannot notice, and a change nothing emitted leaves the search index
+// stale and no webhook fired. See docs/audit.md.
+func (q *repository) recordAndEmit(
+	ctx context.Context,
+	tx database.Tx,
+	logger logging.Logger,
+	entry *audit.AuditLogEntry,
+	eventType, accountID string,
+	metadata map[string]any,
+) error {
+	ctx, span := q.tracer.StartSpan(ctx)
+	defer span.End()
+
+	if err := q.auditLogEntryRepo.Record(ctx, tx, entry); err != nil {
+		return observability.PrepareAndLogError(err, logger, span, "creating audit log entry")
+	}
+
+	if err := q.events.Emit(ctx, tx, logger, eventType, accountID, metadata); err != nil {
+		return observability.PrepareAndLogError(err, logger, span, "enqueuing data change event")
+	}
+
+	return nil
 }

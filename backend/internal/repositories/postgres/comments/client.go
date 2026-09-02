@@ -1,6 +1,8 @@
 package comments
 
 import (
+	"context"
+
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	ddbcomments "github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
@@ -8,6 +10,7 @@ import (
 	platformcomments "github.com/primandproper/platform-go/v13/comments"
 	"github.com/primandproper/platform-go/v13/database"
 	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	"github.com/primandproper/platform-go/v13/observability"
 	"github.com/primandproper/platform-go/v13/observability/logging"
 	"github.com/primandproper/platform-go/v13/observability/metrics"
 	"github.com/primandproper/platform-go/v13/observability/tracing"
@@ -68,4 +71,33 @@ func ProvideCommentsRepository(
 		auditLogEntryRepo: auditLogEntryRepo,
 		events:            eventEmitter,
 	}, nil
+}
+
+// recordAndEmit writes the audit log entry and the data change event for one write, as two
+// further statements in the transaction that performed it. Together, because the failure mode of
+// the two blocks it replaces was omission and omission is silent: a row nothing recorded has no
+// provenance and the chain cannot notice, and a change nothing emitted leaves the search index
+// stale and no webhook fired. See docs/audit.md.
+//
+// accountID is "" for every caller today: a comment is scoped by the thing it is on.
+func (q *repository) recordAndEmit(
+	ctx context.Context,
+	tx database.Tx,
+	logger logging.Logger,
+	entry *audit.AuditLogEntry,
+	eventType, accountID string,
+	metadata map[string]any,
+) error {
+	ctx, span := q.tracer.StartSpan(ctx)
+	defer span.End()
+
+	if err := q.auditLogEntryRepo.Record(ctx, tx, entry); err != nil {
+		return observability.PrepareAndLogError(err, logger, span, "creating audit log entry")
+	}
+
+	if err := q.events.Emit(ctx, tx, logger, eventType, accountID, metadata); err != nil {
+		return observability.PrepareAndLogError(err, logger, span, "enqueuing data change event")
+	}
+
+	return nil
 }
