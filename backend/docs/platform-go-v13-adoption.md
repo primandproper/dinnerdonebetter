@@ -112,7 +112,7 @@ sequenced separately — none is required to compile.
 | Platform package | What it would replace | Upstream |
 | --- | --- | --- |
 | `identity` | `postgres/identity` + `identity_*.go` codegen | #306, #317, #341 |
-| `settings` | `postgres/settings` | #388 |
+| ~~`settings`~~ (adopted, #1379) | `postgres/settings` + `domain/settings` + `settings_*.go` codegen | #388 |
 | ~~`comments`~~ (adopted, #1375) | `postgres/comments` + `domain/comments` + `comments_*.go` codegen | #450 |
 | ~~`issuereports`~~ (adopted, #1377) | `postgres/issuereports` + `domain/issuereports` + `issuereports_*.go` codegen | #449 |
 | ~~`waitlists`~~ (adopted, #1378) | `postgres/waitlists` + `domain/waitlists` + `waitlists_*.go` codegen | #452 |
@@ -196,8 +196,53 @@ package — it ships no `waitlists/privacy`, so the eraser is the consumer's to 
 `Store` that cannot run it inside the request's transaction or reach an archived signup. Neither
 has a local fix that is not a hand-written statement against another package's schema.
 
+## What adopting a store that *narrows* a schema costs
+
+`settings` (#1379) is the third adoption that changed behavior rather than only re-backing it, and
+the change is a narrowing: the local `service_setting_configurations` filed a row against a user
+**and** an account, and the adopted table files a value against one subject. That was not a
+concession to the platform's shape. Two things were wrong with the pair of columns, and one
+subject type is what fixes both:
+
+- **The account read returned other people's answers.** `GetServiceSettingConfigurationsForAccount`
+  filtered on `belongs_to_account` alone, so any account member holding
+  `read.service_setting_configurations` — every member did — was handed every other member's
+  personal preferences. The replacement read is the requester's own answers; the administrative
+  "who has overridden this setting" is `GetSettingValuesForDefinition`, and it is service-admin
+  only.
+- **Nothing was ever account-owned anyway.** Every write set both columns from the session, so a
+  preference chosen in one account was invisible to the same person in another — a per-person fact
+  silently filed per membership.
+
+Three more things followed:
+
+- **The foreign key came back, and it enforces the decision.** platform files a value against a
+  subject *type* and an id and leaves the type set open, so `subject_id` is a mixed column in
+  general and no key is possible. Using one type makes every `subject_id` a row in `users`, so
+  `renderSettingsDDL` re-creates `belongs_to_user`'s `ON DELETE CASCADE` and the single identity
+  eraser goes on covering settings — unlike `waitlists`, which had to write an eraser instead. An
+  account-owned setting starts by dropping that key.
+- **`type` did not survive, and `admin_only` took its job.** The old `setting_type` enum said
+  which sort of principal a setting was for; the platform's `kind` says what a value parses as,
+  which is a different fact. Nothing enforced `type` — every configuration row carried both
+  columns whatever it said — so all it decided was which settings the iOS preferences page listed,
+  and `admin_only` decides that now. It is also enforced server-side for the first time: platform
+  records `AdminOnly` and deliberately does not act on it, and the handlers do.
+- **The wire surface moved to the platform's model.** `ServiceSetting` became `SettingDefinition`,
+  `ServiceSettingConfiguration` became `SettingValue`, and `SettingResolution` is new — it is the
+  tri-state (the subject chose, the default answered, nobody has) that a bare value cannot express,
+  and `ResolveSettings` is what a preferences page now calls instead of joining a catalog against a
+  list of values client-side. `SearchForServiceSettings` went: platform's store has no search
+  behind it, and no client called it. `notes` went too — platform points a consumer at its own
+  table for an annotation about a value, and the only writer set it to `""`.
+
+The transaction gap is filed upstream as [platform-go #460] rather than papered over, along with
+the second half of it that does not bite here: the store has no delete for a subject's values, so
+a consumer whose `subject_id` is mixed has nothing to build an eraser on.
+
 [platform-go #458]: https://github.com/primandproper/platform-go/issues/458
 [#457]: https://github.com/primandproper/platform-go/issues/457
+[platform-go #460]: https://github.com/primandproper/platform-go/issues/460
 
 ## Verification
 

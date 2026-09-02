@@ -20,21 +20,13 @@ fileprivate struct _GeneratedWithProtocGenSwiftVersion: SwiftProtobuf.ProtobufAP
   typealias Version = _2
 }
 
-public struct Settings_DataCollection: Sendable {
-  // SwiftProtobuf.Message conformance is added in an extension below. See the
-  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
-  // methods supported on all messages.
-
-  public var serviceSettingConfigurations: Dictionary<String,Settings_ServiceSettingConfiguration> = [:]
-
-  public var userServiceSettingConfigurations: [Settings_ServiceSettingConfiguration] = []
-
-  public var unknownFields = SwiftProtobuf.UnknownStorage()
-
-  public init() {}
-}
-
-public struct Settings_ServiceSetting: Sendable {
+/// SettingDefinition is what a setting is: the name application code asks for,
+/// the kind of value it holds, what it falls back to, and which values it admits.
+///
+/// Definitions are administrative rows. Nothing on a request path creates one —
+/// the catalog is a deployment's decision — and what a request path does is read
+/// one and store an answer against it.
+public struct Settings_SettingDefinition: Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
@@ -48,15 +40,6 @@ public struct Settings_ServiceSetting: Sendable {
   /// Clears the value of `createdAt`. Subsequent reads from it will return its default value.
   public mutating func clearCreatedAt() {self._createdAt = nil}
 
-  public var defaultValue: String {
-    get {return _defaultValue ?? String()}
-    set {_defaultValue = newValue}
-  }
-  /// Returns true if `defaultValue` has been explicitly set.
-  public var hasDefaultValue: Bool {return self._defaultValue != nil}
-  /// Clears the value of `defaultValue`. Subsequent reads from it will return its default value.
-  public mutating func clearDefaultValue() {self._defaultValue = nil}
-
   public var lastUpdatedAt: SwiftProtobuf.Google_Protobuf_Timestamp {
     get {return _lastUpdatedAt ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
     set {_lastUpdatedAt = newValue}
@@ -66,6 +49,10 @@ public struct Settings_ServiceSetting: Sendable {
   /// Clears the value of `lastUpdatedAt`. Subsequent reads from it will return its default value.
   public mutating func clearLastUpdatedAt() {self._lastUpdatedAt = nil}
 
+  /// archived_at is when the setting was retired. The values stored against an
+  /// archived definition are left alone and its name stays claimed: archiving is
+  /// not erasure, and freeing the name would let a later definition inherit rows
+  /// written for the first.
   public var archivedAt: SwiftProtobuf.Google_Protobuf_Timestamp {
     get {return _archivedAt ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
     set {_archivedAt = newValue}
@@ -79,89 +66,147 @@ public struct Settings_ServiceSetting: Sendable {
 
   public var name: String = String()
 
-  public var type: String = String()
-
   public var description_p: String = String()
 
+  /// kind is how a stored value is parsed: one of "string", "boolean",
+  /// "integer" or "float".
+  public var kind: String = String()
+
+  /// default_value is what a setting resolves to for somebody who has not chosen.
+  ///
+  /// It is optional rather than a plain string because a setting defaulting to ""
+  /// and a setting with no default at all are different settings: the first
+  /// answers everybody who has not chosen, and the second answers nobody. See
+  /// SettingResolution.source.
+  public var defaultValue: String {
+    get {return _defaultValue ?? String()}
+    set {_defaultValue = newValue}
+  }
+  /// Returns true if `defaultValue` has been explicitly set.
+  public var hasDefaultValue: Bool {return self._defaultValue != nil}
+  /// Clears the value of `defaultValue`. Subsequent reads from it will return its default value.
+  public mutating func clearDefaultValue() {self._defaultValue = nil}
+
+  /// enumeration is the values this setting admits, sorted, or empty for a
+  /// setting that admits any value of its kind.
   public var enumeration: [String] = []
 
-  public var adminsOnly: Bool = false
+  /// admin_only marks a setting only an administrator may write. The server hides
+  /// an admin-only setting from a non-admin's resolved settings; it is what a
+  /// self-service preferences page is filtered by.
+  public var adminOnly: Bool = false
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
 
   fileprivate var _createdAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
-  fileprivate var _defaultValue: String? = nil
   fileprivate var _lastUpdatedAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
   fileprivate var _archivedAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
+  fileprivate var _defaultValue: String? = nil
 }
 
-public struct Settings_ServiceSettingConfiguration: @unchecked Sendable {
+/// SettingValue is one person's answer to one definition.
+public struct Settings_SettingValue: Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
 
   public var createdAt: SwiftProtobuf.Google_Protobuf_Timestamp {
-    get {return _storage._createdAt ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
-    set {_uniqueStorage()._createdAt = newValue}
+    get {return _createdAt ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
+    set {_createdAt = newValue}
   }
   /// Returns true if `createdAt` has been explicitly set.
-  public var hasCreatedAt: Bool {return _storage._createdAt != nil}
+  public var hasCreatedAt: Bool {return self._createdAt != nil}
   /// Clears the value of `createdAt`. Subsequent reads from it will return its default value.
-  public mutating func clearCreatedAt() {_uniqueStorage()._createdAt = nil}
+  public mutating func clearCreatedAt() {self._createdAt = nil}
 
   public var lastUpdatedAt: SwiftProtobuf.Google_Protobuf_Timestamp {
-    get {return _storage._lastUpdatedAt ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
-    set {_uniqueStorage()._lastUpdatedAt = newValue}
+    get {return _lastUpdatedAt ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
+    set {_lastUpdatedAt = newValue}
   }
   /// Returns true if `lastUpdatedAt` has been explicitly set.
-  public var hasLastUpdatedAt: Bool {return _storage._lastUpdatedAt != nil}
+  public var hasLastUpdatedAt: Bool {return self._lastUpdatedAt != nil}
   /// Clears the value of `lastUpdatedAt`. Subsequent reads from it will return its default value.
-  public mutating func clearLastUpdatedAt() {_uniqueStorage()._lastUpdatedAt = nil}
+  public mutating func clearLastUpdatedAt() {self._lastUpdatedAt = nil}
 
+  /// archived_at is when the answer was cleared. A cleared value resolves to the
+  /// definition's default as though it had never been set.
   public var archivedAt: SwiftProtobuf.Google_Protobuf_Timestamp {
-    get {return _storage._archivedAt ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
-    set {_uniqueStorage()._archivedAt = newValue}
+    get {return _archivedAt ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
+    set {_archivedAt = newValue}
   }
   /// Returns true if `archivedAt` has been explicitly set.
-  public var hasArchivedAt: Bool {return _storage._archivedAt != nil}
+  public var hasArchivedAt: Bool {return self._archivedAt != nil}
   /// Clears the value of `archivedAt`. Subsequent reads from it will return its default value.
-  public mutating func clearArchivedAt() {_uniqueStorage()._archivedAt = nil}
+  public mutating func clearArchivedAt() {self._archivedAt = nil}
 
-  public var id: String {
-    get {return _storage._id}
-    set {_uniqueStorage()._id = newValue}
+  public var id: String = String()
+
+  public var definitionID: String = String()
+
+  /// belongs_to_user is whose answer it is. Every setting value in this
+  /// deployment belongs to a person; see the backend's settings domain package
+  /// for why there are no account-owned values.
+  public var belongsToUser: String = String()
+
+  /// value is the answer as it is stored. It is a string whatever the
+  /// definition's kind is, and the kind is what says how to read it.
+  public var value: String = String()
+
+  public var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  public init() {}
+
+  fileprivate var _createdAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
+  fileprivate var _lastUpdatedAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
+  fileprivate var _archivedAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
+}
+
+/// SettingResolution is one setting answered for one person: the value, and where
+/// it came from.
+///
+/// The source is the point of the message. A resolved setting is answered by the
+/// person, answered by the definition's default, or not answered at all, and a
+/// client that only received a value could not tell the third case from a default
+/// of "".
+public struct Settings_SettingResolution: @unchecked Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  public var definition: Settings_SettingDefinition {
+    get {return _storage._definition ?? Settings_SettingDefinition()}
+    set {_uniqueStorage()._definition = newValue}
   }
+  /// Returns true if `definition` has been explicitly set.
+  public var hasDefinition: Bool {return _storage._definition != nil}
+  /// Clears the value of `definition`. Subsequent reads from it will return its default value.
+  public mutating func clearDefinition() {_uniqueStorage()._definition = nil}
 
-  public var value: String {
-    get {return _storage._value}
+  /// value is the row the person set, and is absent when the default answered or
+  /// nothing did.
+  public var value: Settings_SettingValue {
+    get {return _storage._value ?? Settings_SettingValue()}
     set {_uniqueStorage()._value = newValue}
   }
+  /// Returns true if `value` has been explicitly set.
+  public var hasValue: Bool {return _storage._value != nil}
+  /// Clears the value of `value`. Subsequent reads from it will return its default value.
+  public mutating func clearValue() {_uniqueStorage()._value = nil}
 
-  public var notes: String {
-    get {return _storage._notes}
-    set {_uniqueStorage()._notes = newValue}
+  /// raw is the answer as stored, and is empty when source is "unset".
+  public var raw: String {
+    get {return _storage._raw}
+    set {_uniqueStorage()._raw = newValue}
   }
 
-  public var belongsToUser: String {
-    get {return _storage._belongsToUser}
-    set {_uniqueStorage()._belongsToUser = newValue}
+  /// source is one of "subject" (they chose it), "default" (they have not, and
+  /// the setting has a default) or "unset" (they have not, and it does not).
+  public var source: String {
+    get {return _storage._source}
+    set {_uniqueStorage()._source = newValue}
   }
-
-  public var belongsToAccount: String {
-    get {return _storage._belongsToAccount}
-    set {_uniqueStorage()._belongsToAccount = newValue}
-  }
-
-  public var serviceSetting: Settings_ServiceSetting {
-    get {return _storage._serviceSetting ?? Settings_ServiceSetting()}
-    set {_uniqueStorage()._serviceSetting = newValue}
-  }
-  /// Returns true if `serviceSetting` has been explicitly set.
-  public var hasServiceSetting: Bool {return _storage._serviceSetting != nil}
-  /// Clears the value of `serviceSetting`. Subsequent reads from it will return its default value.
-  public mutating func clearServiceSetting() {_uniqueStorage()._serviceSetting = nil}
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
@@ -174,44 +219,9 @@ public struct Settings_ServiceSettingConfiguration: @unchecked Sendable {
 
 fileprivate let _protobuf_package = "settings"
 
-extension Settings_DataCollection: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
-  public static let protoMessageName: String = _protobuf_package + ".DataCollection"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}service_setting_configurations\0\u{3}user_service_setting_configurations\0")
-
-  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
-    while let fieldNumber = try decoder.nextFieldNumber() {
-      // The use of inline closures is to circumvent an issue where the compiler
-      // allocates stack space for every case branch when no optimizations are
-      // enabled. https://github.com/apple/swift-protobuf/issues/1034
-      switch fieldNumber {
-      case 1: try { try decoder.decodeMapField(fieldType: SwiftProtobuf._ProtobufMessageMap<SwiftProtobuf.ProtobufString,Settings_ServiceSettingConfiguration>.self, value: &self.serviceSettingConfigurations) }()
-      case 2: try { try decoder.decodeRepeatedMessageField(value: &self.userServiceSettingConfigurations) }()
-      default: break
-      }
-    }
-  }
-
-  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
-    if !self.serviceSettingConfigurations.isEmpty {
-      try visitor.visitMapField(fieldType: SwiftProtobuf._ProtobufMessageMap<SwiftProtobuf.ProtobufString,Settings_ServiceSettingConfiguration>.self, value: self.serviceSettingConfigurations, fieldNumber: 1)
-    }
-    if !self.userServiceSettingConfigurations.isEmpty {
-      try visitor.visitRepeatedMessageField(value: self.userServiceSettingConfigurations, fieldNumber: 2)
-    }
-    try unknownFields.traverse(visitor: &visitor)
-  }
-
-  public static func ==(lhs: Settings_DataCollection, rhs: Settings_DataCollection) -> Bool {
-    if lhs.serviceSettingConfigurations != rhs.serviceSettingConfigurations {return false}
-    if lhs.userServiceSettingConfigurations != rhs.userServiceSettingConfigurations {return false}
-    if lhs.unknownFields != rhs.unknownFields {return false}
-    return true
-  }
-}
-
-extension Settings_ServiceSetting: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
-  public static let protoMessageName: String = _protobuf_package + ".ServiceSetting"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}created_at\0\u{3}default_value\0\u{3}last_updated_at\0\u{3}archived_at\0\u{1}id\0\u{1}name\0\u{1}type\0\u{1}description\0\u{1}enumeration\0\u{3}admins_only\0")
+extension Settings_SettingDefinition: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".SettingDefinition"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}created_at\0\u{3}last_updated_at\0\u{3}archived_at\0\u{1}id\0\u{1}name\0\u{1}description\0\u{1}kind\0\u{3}default_value\0\u{1}enumeration\0\u{3}admin_only\0")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -220,15 +230,15 @@ extension Settings_ServiceSetting: SwiftProtobuf.Message, SwiftProtobuf._Message
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
       case 1: try { try decoder.decodeSingularMessageField(value: &self._createdAt) }()
-      case 2: try { try decoder.decodeSingularStringField(value: &self._defaultValue) }()
-      case 3: try { try decoder.decodeSingularMessageField(value: &self._lastUpdatedAt) }()
-      case 4: try { try decoder.decodeSingularMessageField(value: &self._archivedAt) }()
-      case 5: try { try decoder.decodeSingularStringField(value: &self.id) }()
-      case 6: try { try decoder.decodeSingularStringField(value: &self.name) }()
-      case 7: try { try decoder.decodeSingularStringField(value: &self.type) }()
-      case 8: try { try decoder.decodeSingularStringField(value: &self.description_p) }()
+      case 2: try { try decoder.decodeSingularMessageField(value: &self._lastUpdatedAt) }()
+      case 3: try { try decoder.decodeSingularMessageField(value: &self._archivedAt) }()
+      case 4: try { try decoder.decodeSingularStringField(value: &self.id) }()
+      case 5: try { try decoder.decodeSingularStringField(value: &self.name) }()
+      case 6: try { try decoder.decodeSingularStringField(value: &self.description_p) }()
+      case 7: try { try decoder.decodeSingularStringField(value: &self.kind) }()
+      case 8: try { try decoder.decodeSingularStringField(value: &self._defaultValue) }()
       case 9: try { try decoder.decodeRepeatedStringField(value: &self.enumeration) }()
-      case 10: try { try decoder.decodeSingularBoolField(value: &self.adminsOnly) }()
+      case 10: try { try decoder.decodeSingularBoolField(value: &self.adminOnly) }()
       default: break
       }
     }
@@ -242,66 +252,125 @@ extension Settings_ServiceSetting: SwiftProtobuf.Message, SwiftProtobuf._Message
     try { if let v = self._createdAt {
       try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
     } }()
-    try { if let v = self._defaultValue {
-      try visitor.visitSingularStringField(value: v, fieldNumber: 2)
-    } }()
     try { if let v = self._lastUpdatedAt {
-      try visitor.visitSingularMessageField(value: v, fieldNumber: 3)
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
     } }()
     try { if let v = self._archivedAt {
-      try visitor.visitSingularMessageField(value: v, fieldNumber: 4)
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 3)
     } }()
     if !self.id.isEmpty {
-      try visitor.visitSingularStringField(value: self.id, fieldNumber: 5)
+      try visitor.visitSingularStringField(value: self.id, fieldNumber: 4)
     }
     if !self.name.isEmpty {
-      try visitor.visitSingularStringField(value: self.name, fieldNumber: 6)
-    }
-    if !self.type.isEmpty {
-      try visitor.visitSingularStringField(value: self.type, fieldNumber: 7)
+      try visitor.visitSingularStringField(value: self.name, fieldNumber: 5)
     }
     if !self.description_p.isEmpty {
-      try visitor.visitSingularStringField(value: self.description_p, fieldNumber: 8)
+      try visitor.visitSingularStringField(value: self.description_p, fieldNumber: 6)
     }
+    if !self.kind.isEmpty {
+      try visitor.visitSingularStringField(value: self.kind, fieldNumber: 7)
+    }
+    try { if let v = self._defaultValue {
+      try visitor.visitSingularStringField(value: v, fieldNumber: 8)
+    } }()
     if !self.enumeration.isEmpty {
       try visitor.visitRepeatedStringField(value: self.enumeration, fieldNumber: 9)
     }
-    if self.adminsOnly != false {
-      try visitor.visitSingularBoolField(value: self.adminsOnly, fieldNumber: 10)
+    if self.adminOnly != false {
+      try visitor.visitSingularBoolField(value: self.adminOnly, fieldNumber: 10)
     }
     try unknownFields.traverse(visitor: &visitor)
   }
 
-  public static func ==(lhs: Settings_ServiceSetting, rhs: Settings_ServiceSetting) -> Bool {
+  public static func ==(lhs: Settings_SettingDefinition, rhs: Settings_SettingDefinition) -> Bool {
     if lhs._createdAt != rhs._createdAt {return false}
-    if lhs._defaultValue != rhs._defaultValue {return false}
     if lhs._lastUpdatedAt != rhs._lastUpdatedAt {return false}
     if lhs._archivedAt != rhs._archivedAt {return false}
     if lhs.id != rhs.id {return false}
     if lhs.name != rhs.name {return false}
-    if lhs.type != rhs.type {return false}
     if lhs.description_p != rhs.description_p {return false}
+    if lhs.kind != rhs.kind {return false}
+    if lhs._defaultValue != rhs._defaultValue {return false}
     if lhs.enumeration != rhs.enumeration {return false}
-    if lhs.adminsOnly != rhs.adminsOnly {return false}
+    if lhs.adminOnly != rhs.adminOnly {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
 }
 
-extension Settings_ServiceSettingConfiguration: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
-  public static let protoMessageName: String = _protobuf_package + ".ServiceSettingConfiguration"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}created_at\0\u{3}last_updated_at\0\u{3}archived_at\0\u{1}id\0\u{1}value\0\u{1}notes\0\u{3}belongs_to_user\0\u{3}belongs_to_account\0\u{3}service_setting\0")
+extension Settings_SettingValue: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".SettingValue"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}created_at\0\u{3}last_updated_at\0\u{3}archived_at\0\u{1}id\0\u{3}definition_id\0\u{3}belongs_to_user\0\u{1}value\0")
+
+  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularMessageField(value: &self._createdAt) }()
+      case 2: try { try decoder.decodeSingularMessageField(value: &self._lastUpdatedAt) }()
+      case 3: try { try decoder.decodeSingularMessageField(value: &self._archivedAt) }()
+      case 4: try { try decoder.decodeSingularStringField(value: &self.id) }()
+      case 5: try { try decoder.decodeSingularStringField(value: &self.definitionID) }()
+      case 6: try { try decoder.decodeSingularStringField(value: &self.belongsToUser) }()
+      case 7: try { try decoder.decodeSingularStringField(value: &self.value) }()
+      default: break
+      }
+    }
+  }
+
+  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    // The use of inline closures is to circumvent an issue where the compiler
+    // allocates stack space for every if/case branch local when no optimizations
+    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
+    // https://github.com/apple/swift-protobuf/issues/1182
+    try { if let v = self._createdAt {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
+    } }()
+    try { if let v = self._lastUpdatedAt {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
+    } }()
+    try { if let v = self._archivedAt {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 3)
+    } }()
+    if !self.id.isEmpty {
+      try visitor.visitSingularStringField(value: self.id, fieldNumber: 4)
+    }
+    if !self.definitionID.isEmpty {
+      try visitor.visitSingularStringField(value: self.definitionID, fieldNumber: 5)
+    }
+    if !self.belongsToUser.isEmpty {
+      try visitor.visitSingularStringField(value: self.belongsToUser, fieldNumber: 6)
+    }
+    if !self.value.isEmpty {
+      try visitor.visitSingularStringField(value: self.value, fieldNumber: 7)
+    }
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  public static func ==(lhs: Settings_SettingValue, rhs: Settings_SettingValue) -> Bool {
+    if lhs._createdAt != rhs._createdAt {return false}
+    if lhs._lastUpdatedAt != rhs._lastUpdatedAt {return false}
+    if lhs._archivedAt != rhs._archivedAt {return false}
+    if lhs.id != rhs.id {return false}
+    if lhs.definitionID != rhs.definitionID {return false}
+    if lhs.belongsToUser != rhs.belongsToUser {return false}
+    if lhs.value != rhs.value {return false}
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+extension Settings_SettingResolution: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".SettingResolution"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}definition\0\u{1}value\0\u{1}raw\0\u{1}source\0")
 
   fileprivate class _StorageClass {
-    var _createdAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
-    var _lastUpdatedAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
-    var _archivedAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
-    var _id: String = String()
-    var _value: String = String()
-    var _notes: String = String()
-    var _belongsToUser: String = String()
-    var _belongsToAccount: String = String()
-    var _serviceSetting: Settings_ServiceSetting? = nil
+    var _definition: Settings_SettingDefinition? = nil
+    var _value: Settings_SettingValue? = nil
+    var _raw: String = String()
+    var _source: String = String()
 
       // This property is used as the initial default value for new instances of the type.
       // The type itself is protecting the reference to its storage via CoW semantics.
@@ -312,15 +381,10 @@ extension Settings_ServiceSettingConfiguration: SwiftProtobuf.Message, SwiftProt
     private init() {}
 
     init(copying source: _StorageClass) {
-      _createdAt = source._createdAt
-      _lastUpdatedAt = source._lastUpdatedAt
-      _archivedAt = source._archivedAt
-      _id = source._id
+      _definition = source._definition
       _value = source._value
-      _notes = source._notes
-      _belongsToUser = source._belongsToUser
-      _belongsToAccount = source._belongsToAccount
-      _serviceSetting = source._serviceSetting
+      _raw = source._raw
+      _source = source._source
     }
   }
 
@@ -339,15 +403,10 @@ extension Settings_ServiceSettingConfiguration: SwiftProtobuf.Message, SwiftProt
         // allocates stack space for every case branch when no optimizations are
         // enabled. https://github.com/apple/swift-protobuf/issues/1034
         switch fieldNumber {
-        case 1: try { try decoder.decodeSingularMessageField(value: &_storage._createdAt) }()
-        case 2: try { try decoder.decodeSingularMessageField(value: &_storage._lastUpdatedAt) }()
-        case 3: try { try decoder.decodeSingularMessageField(value: &_storage._archivedAt) }()
-        case 4: try { try decoder.decodeSingularStringField(value: &_storage._id) }()
-        case 5: try { try decoder.decodeSingularStringField(value: &_storage._value) }()
-        case 6: try { try decoder.decodeSingularStringField(value: &_storage._notes) }()
-        case 7: try { try decoder.decodeSingularStringField(value: &_storage._belongsToUser) }()
-        case 8: try { try decoder.decodeSingularStringField(value: &_storage._belongsToAccount) }()
-        case 9: try { try decoder.decodeSingularMessageField(value: &_storage._serviceSetting) }()
+        case 1: try { try decoder.decodeSingularMessageField(value: &_storage._definition) }()
+        case 2: try { try decoder.decodeSingularMessageField(value: &_storage._value) }()
+        case 3: try { try decoder.decodeSingularStringField(value: &_storage._raw) }()
+        case 4: try { try decoder.decodeSingularStringField(value: &_storage._source) }()
         default: break
         }
       }
@@ -360,51 +419,31 @@ extension Settings_ServiceSettingConfiguration: SwiftProtobuf.Message, SwiftProt
       // allocates stack space for every if/case branch local when no optimizations
       // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
       // https://github.com/apple/swift-protobuf/issues/1182
-      try { if let v = _storage._createdAt {
+      try { if let v = _storage._definition {
         try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
       } }()
-      try { if let v = _storage._lastUpdatedAt {
+      try { if let v = _storage._value {
         try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
       } }()
-      try { if let v = _storage._archivedAt {
-        try visitor.visitSingularMessageField(value: v, fieldNumber: 3)
-      } }()
-      if !_storage._id.isEmpty {
-        try visitor.visitSingularStringField(value: _storage._id, fieldNumber: 4)
+      if !_storage._raw.isEmpty {
+        try visitor.visitSingularStringField(value: _storage._raw, fieldNumber: 3)
       }
-      if !_storage._value.isEmpty {
-        try visitor.visitSingularStringField(value: _storage._value, fieldNumber: 5)
+      if !_storage._source.isEmpty {
+        try visitor.visitSingularStringField(value: _storage._source, fieldNumber: 4)
       }
-      if !_storage._notes.isEmpty {
-        try visitor.visitSingularStringField(value: _storage._notes, fieldNumber: 6)
-      }
-      if !_storage._belongsToUser.isEmpty {
-        try visitor.visitSingularStringField(value: _storage._belongsToUser, fieldNumber: 7)
-      }
-      if !_storage._belongsToAccount.isEmpty {
-        try visitor.visitSingularStringField(value: _storage._belongsToAccount, fieldNumber: 8)
-      }
-      try { if let v = _storage._serviceSetting {
-        try visitor.visitSingularMessageField(value: v, fieldNumber: 9)
-      } }()
     }
     try unknownFields.traverse(visitor: &visitor)
   }
 
-  public static func ==(lhs: Settings_ServiceSettingConfiguration, rhs: Settings_ServiceSettingConfiguration) -> Bool {
+  public static func ==(lhs: Settings_SettingResolution, rhs: Settings_SettingResolution) -> Bool {
     if lhs._storage !== rhs._storage {
       let storagesAreEqual: Bool = withExtendedLifetime((lhs._storage, rhs._storage)) { (_args: (_StorageClass, _StorageClass)) in
         let _storage = _args.0
         let rhs_storage = _args.1
-        if _storage._createdAt != rhs_storage._createdAt {return false}
-        if _storage._lastUpdatedAt != rhs_storage._lastUpdatedAt {return false}
-        if _storage._archivedAt != rhs_storage._archivedAt {return false}
-        if _storage._id != rhs_storage._id {return false}
+        if _storage._definition != rhs_storage._definition {return false}
         if _storage._value != rhs_storage._value {return false}
-        if _storage._notes != rhs_storage._notes {return false}
-        if _storage._belongsToUser != rhs_storage._belongsToUser {return false}
-        if _storage._belongsToAccount != rhs_storage._belongsToAccount {return false}
-        if _storage._serviceSetting != rhs_storage._serviceSetting {return false}
+        if _storage._raw != rhs_storage._raw {return false}
+        if _storage._source != rhs_storage._source {return false}
         return true
       }
       if !storagesAreEqual {return false}

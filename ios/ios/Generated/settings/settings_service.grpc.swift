@@ -20,151 +20,177 @@ internal enum Settings_SettingsService {
     internal static let descriptor = GRPCCore.ServiceDescriptor(fullyQualifiedService: "settings.SettingsService")
     /// Namespace for method metadata.
     internal enum Method {
-        /// Namespace for "GetServiceSettingConfigurationsForAccount" metadata.
-        internal enum GetServiceSettingConfigurationsForAccount {
-            /// Request type for "GetServiceSettingConfigurationsForAccount".
-            internal typealias Input = Settings_GetServiceSettingConfigurationsForAccountRequest
-            /// Response type for "GetServiceSettingConfigurationsForAccount".
-            internal typealias Output = Settings_GetServiceSettingConfigurationsForAccountResponse
-            /// Descriptor for "GetServiceSettingConfigurationsForAccount".
+        /// Namespace for "CreateSettingDefinition" metadata.
+        internal enum CreateSettingDefinition {
+            /// Request type for "CreateSettingDefinition".
+            internal typealias Input = Settings_CreateSettingDefinitionRequest
+            /// Response type for "CreateSettingDefinition".
+            internal typealias Output = Settings_CreateSettingDefinitionResponse
+            /// Descriptor for "CreateSettingDefinition".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "settings.SettingsService"),
-                method: "GetServiceSettingConfigurationsForAccount"
+                method: "CreateSettingDefinition"
             )
         }
-        /// Namespace for "GetServiceSettingConfigurationsForUser" metadata.
-        internal enum GetServiceSettingConfigurationsForUser {
-            /// Request type for "GetServiceSettingConfigurationsForUser".
-            internal typealias Input = Settings_GetServiceSettingConfigurationsForUserRequest
-            /// Response type for "GetServiceSettingConfigurationsForUser".
-            internal typealias Output = Settings_GetServiceSettingConfigurationsForUserResponse
-            /// Descriptor for "GetServiceSettingConfigurationsForUser".
+        /// Namespace for "GetSettingDefinition" metadata.
+        internal enum GetSettingDefinition {
+            /// Request type for "GetSettingDefinition".
+            internal typealias Input = Settings_GetSettingDefinitionRequest
+            /// Response type for "GetSettingDefinition".
+            internal typealias Output = Settings_GetSettingDefinitionResponse
+            /// Descriptor for "GetSettingDefinition".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "settings.SettingsService"),
-                method: "GetServiceSettingConfigurationsForUser"
+                method: "GetSettingDefinition"
             )
         }
-        /// Namespace for "SearchForServiceSettings" metadata.
-        internal enum SearchForServiceSettings {
-            /// Request type for "SearchForServiceSettings".
-            internal typealias Input = Settings_SearchForServiceSettingsRequest
-            /// Response type for "SearchForServiceSettings".
-            internal typealias Output = Settings_SearchForServiceSettingsResponse
-            /// Descriptor for "SearchForServiceSettings".
+        /// Namespace for "GetSettingDefinitionByName" metadata.
+        internal enum GetSettingDefinitionByName {
+            /// Request type for "GetSettingDefinitionByName".
+            internal typealias Input = Settings_GetSettingDefinitionByNameRequest
+            /// Response type for "GetSettingDefinitionByName".
+            internal typealias Output = Settings_GetSettingDefinitionByNameResponse
+            /// Descriptor for "GetSettingDefinitionByName".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "settings.SettingsService"),
-                method: "SearchForServiceSettings"
+                method: "GetSettingDefinitionByName"
             )
         }
-        /// Namespace for "ArchiveServiceSetting" metadata.
-        internal enum ArchiveServiceSetting {
-            /// Request type for "ArchiveServiceSetting".
-            internal typealias Input = Settings_ArchiveServiceSettingRequest
-            /// Response type for "ArchiveServiceSetting".
-            internal typealias Output = Settings_ArchiveServiceSettingResponse
-            /// Descriptor for "ArchiveServiceSetting".
+        /// Namespace for "GetSettingDefinitions" metadata.
+        internal enum GetSettingDefinitions {
+            /// Request type for "GetSettingDefinitions".
+            internal typealias Input = Settings_GetSettingDefinitionsRequest
+            /// Response type for "GetSettingDefinitions".
+            internal typealias Output = Settings_GetSettingDefinitionsResponse
+            /// Descriptor for "GetSettingDefinitions".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "settings.SettingsService"),
-                method: "ArchiveServiceSetting"
+                method: "GetSettingDefinitions"
             )
         }
-        /// Namespace for "ArchiveServiceSettingConfiguration" metadata.
-        internal enum ArchiveServiceSettingConfiguration {
-            /// Request type for "ArchiveServiceSettingConfiguration".
-            internal typealias Input = Settings_ArchiveServiceSettingConfigurationRequest
-            /// Response type for "ArchiveServiceSettingConfiguration".
-            internal typealias Output = Settings_ArchiveServiceSettingConfigurationResponse
-            /// Descriptor for "ArchiveServiceSettingConfiguration".
+        /// Namespace for "UpdateSettingDefinition" metadata.
+        internal enum UpdateSettingDefinition {
+            /// Request type for "UpdateSettingDefinition".
+            internal typealias Input = Settings_UpdateSettingDefinitionRequest
+            /// Response type for "UpdateSettingDefinition".
+            internal typealias Output = Settings_UpdateSettingDefinitionResponse
+            /// Descriptor for "UpdateSettingDefinition".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "settings.SettingsService"),
-                method: "ArchiveServiceSettingConfiguration"
+                method: "UpdateSettingDefinition"
             )
         }
-        /// Namespace for "CreateServiceSetting" metadata.
-        internal enum CreateServiceSetting {
-            /// Request type for "CreateServiceSetting".
-            internal typealias Input = Settings_CreateServiceSettingRequest
-            /// Response type for "CreateServiceSetting".
-            internal typealias Output = Settings_CreateServiceSettingResponse
-            /// Descriptor for "CreateServiceSetting".
+        /// Namespace for "ArchiveSettingDefinition" metadata.
+        internal enum ArchiveSettingDefinition {
+            /// Request type for "ArchiveSettingDefinition".
+            internal typealias Input = Settings_ArchiveSettingDefinitionRequest
+            /// Response type for "ArchiveSettingDefinition".
+            internal typealias Output = Settings_ArchiveSettingDefinitionResponse
+            /// Descriptor for "ArchiveSettingDefinition".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "settings.SettingsService"),
-                method: "CreateServiceSetting"
+                method: "ArchiveSettingDefinition"
             )
         }
-        /// Namespace for "CreateServiceSettingConfiguration" metadata.
-        internal enum CreateServiceSettingConfiguration {
-            /// Request type for "CreateServiceSettingConfiguration".
-            internal typealias Input = Settings_CreateServiceSettingConfigurationRequest
-            /// Response type for "CreateServiceSettingConfiguration".
-            internal typealias Output = Settings_CreateServiceSettingConfigurationResponse
-            /// Descriptor for "CreateServiceSettingConfiguration".
+        /// Namespace for "SetSettingValue" metadata.
+        internal enum SetSettingValue {
+            /// Request type for "SetSettingValue".
+            internal typealias Input = Settings_SetSettingValueRequest
+            /// Response type for "SetSettingValue".
+            internal typealias Output = Settings_SetSettingValueResponse
+            /// Descriptor for "SetSettingValue".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "settings.SettingsService"),
-                method: "CreateServiceSettingConfiguration"
+                method: "SetSettingValue"
             )
         }
-        /// Namespace for "GetServiceSetting" metadata.
-        internal enum GetServiceSetting {
-            /// Request type for "GetServiceSetting".
-            internal typealias Input = Settings_GetServiceSettingRequest
-            /// Response type for "GetServiceSetting".
-            internal typealias Output = Settings_GetServiceSettingResponse
-            /// Descriptor for "GetServiceSetting".
+        /// Namespace for "GetSettingValue" metadata.
+        internal enum GetSettingValue {
+            /// Request type for "GetSettingValue".
+            internal typealias Input = Settings_GetSettingValueRequest
+            /// Response type for "GetSettingValue".
+            internal typealias Output = Settings_GetSettingValueResponse
+            /// Descriptor for "GetSettingValue".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "settings.SettingsService"),
-                method: "GetServiceSetting"
+                method: "GetSettingValue"
             )
         }
-        /// Namespace for "GetServiceSettingConfigurationByName" metadata.
-        internal enum GetServiceSettingConfigurationByName {
-            /// Request type for "GetServiceSettingConfigurationByName".
-            internal typealias Input = Settings_GetServiceSettingConfigurationByNameRequest
-            /// Response type for "GetServiceSettingConfigurationByName".
-            internal typealias Output = Settings_GetServiceSettingConfigurationByNameResponse
-            /// Descriptor for "GetServiceSettingConfigurationByName".
+        /// Namespace for "ClearSettingValue" metadata.
+        internal enum ClearSettingValue {
+            /// Request type for "ClearSettingValue".
+            internal typealias Input = Settings_ClearSettingValueRequest
+            /// Response type for "ClearSettingValue".
+            internal typealias Output = Settings_ClearSettingValueResponse
+            /// Descriptor for "ClearSettingValue".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "settings.SettingsService"),
-                method: "GetServiceSettingConfigurationByName"
+                method: "ClearSettingValue"
             )
         }
-        /// Namespace for "GetServiceSettings" metadata.
-        internal enum GetServiceSettings {
-            /// Request type for "GetServiceSettings".
-            internal typealias Input = Settings_GetServiceSettingsRequest
-            /// Response type for "GetServiceSettings".
-            internal typealias Output = Settings_GetServiceSettingsResponse
-            /// Descriptor for "GetServiceSettings".
+        /// Namespace for "GetSettingValues" metadata.
+        internal enum GetSettingValues {
+            /// Request type for "GetSettingValues".
+            internal typealias Input = Settings_GetSettingValuesRequest
+            /// Response type for "GetSettingValues".
+            internal typealias Output = Settings_GetSettingValuesResponse
+            /// Descriptor for "GetSettingValues".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "settings.SettingsService"),
-                method: "GetServiceSettings"
+                method: "GetSettingValues"
             )
         }
-        /// Namespace for "UpdateServiceSettingConfiguration" metadata.
-        internal enum UpdateServiceSettingConfiguration {
-            /// Request type for "UpdateServiceSettingConfiguration".
-            internal typealias Input = Settings_UpdateServiceSettingConfigurationRequest
-            /// Response type for "UpdateServiceSettingConfiguration".
-            internal typealias Output = Settings_UpdateServiceSettingConfigurationResponse
-            /// Descriptor for "UpdateServiceSettingConfiguration".
+        /// Namespace for "GetSettingValuesForDefinition" metadata.
+        internal enum GetSettingValuesForDefinition {
+            /// Request type for "GetSettingValuesForDefinition".
+            internal typealias Input = Settings_GetSettingValuesForDefinitionRequest
+            /// Response type for "GetSettingValuesForDefinition".
+            internal typealias Output = Settings_GetSettingValuesForDefinitionResponse
+            /// Descriptor for "GetSettingValuesForDefinition".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "settings.SettingsService"),
-                method: "UpdateServiceSettingConfiguration"
+                method: "GetSettingValuesForDefinition"
+            )
+        }
+        /// Namespace for "ResolveSetting" metadata.
+        internal enum ResolveSetting {
+            /// Request type for "ResolveSetting".
+            internal typealias Input = Settings_ResolveSettingRequest
+            /// Response type for "ResolveSetting".
+            internal typealias Output = Settings_ResolveSettingResponse
+            /// Descriptor for "ResolveSetting".
+            internal static let descriptor = GRPCCore.MethodDescriptor(
+                service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "settings.SettingsService"),
+                method: "ResolveSetting"
+            )
+        }
+        /// Namespace for "ResolveSettings" metadata.
+        internal enum ResolveSettings {
+            /// Request type for "ResolveSettings".
+            internal typealias Input = Settings_ResolveSettingsRequest
+            /// Response type for "ResolveSettings".
+            internal typealias Output = Settings_ResolveSettingsResponse
+            /// Descriptor for "ResolveSettings".
+            internal static let descriptor = GRPCCore.MethodDescriptor(
+                service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "settings.SettingsService"),
+                method: "ResolveSettings"
             )
         }
         /// Descriptors for all methods in the "settings.SettingsService" service.
         internal static let descriptors: [GRPCCore.MethodDescriptor] = [
-            GetServiceSettingConfigurationsForAccount.descriptor,
-            GetServiceSettingConfigurationsForUser.descriptor,
-            SearchForServiceSettings.descriptor,
-            ArchiveServiceSetting.descriptor,
-            ArchiveServiceSettingConfiguration.descriptor,
-            CreateServiceSetting.descriptor,
-            CreateServiceSettingConfiguration.descriptor,
-            GetServiceSetting.descriptor,
-            GetServiceSettingConfigurationByName.descriptor,
-            GetServiceSettings.descriptor,
-            UpdateServiceSettingConfiguration.descriptor
+            CreateSettingDefinition.descriptor,
+            GetSettingDefinition.descriptor,
+            GetSettingDefinitionByName.descriptor,
+            GetSettingDefinitions.descriptor,
+            UpdateSettingDefinition.descriptor,
+            ArchiveSettingDefinition.descriptor,
+            SetSettingValue.descriptor,
+            GetSettingValue.descriptor,
+            ClearSettingValue.descriptor,
+            GetSettingValues.descriptor,
+            GetSettingValuesForDefinition.descriptor,
+            ResolveSetting.descriptor,
+            ResolveSettings.descriptor
         ]
     }
 }
@@ -183,214 +209,261 @@ extension Settings_SettingsService {
     ///
     /// You don't need to implement this protocol directly, use the generated
     /// implementation, ``Client``.
+    ///
+    /// > Source IDL Documentation:
+    /// >
+    /// > SettingsService is the catalog of settings this deployment defines and the
+    /// > answers its users store against it.
+    /// > 
+    /// > The two halves have two callers. The definition methods are an administrator's
+    /// > — a seeding job, an admin console — and the value methods are the request
+    /// > path's, reached by whoever is saving or reading their own preference.
     internal protocol ClientProtocol: Sendable {
-        /// Call the "GetServiceSettingConfigurationsForAccount" method.
+        /// Call the "CreateSettingDefinition" method.
         ///
         /// - Parameters:
-        ///   - request: A request containing a single `Settings_GetServiceSettingConfigurationsForAccountRequest` message.
-        ///   - serializer: A serializer for `Settings_GetServiceSettingConfigurationsForAccountRequest` messages.
-        ///   - deserializer: A deserializer for `Settings_GetServiceSettingConfigurationsForAccountResponse` messages.
+        ///   - request: A request containing a single `Settings_CreateSettingDefinitionRequest` message.
+        ///   - serializer: A serializer for `Settings_CreateSettingDefinitionRequest` messages.
+        ///   - deserializer: A deserializer for `Settings_CreateSettingDefinitionResponse` messages.
         ///   - options: Options to apply to this RPC.
         ///   - handleResponse: A closure which handles the response, the result of which is
         ///       returned to the caller. Returning from the closure will cancel the RPC if it
         ///       hasn't already finished.
         /// - Returns: The result of `handleResponse`.
-        func getServiceSettingConfigurationsForAccount<Result>(
-            request: GRPCCore.ClientRequest<Settings_GetServiceSettingConfigurationsForAccountRequest>,
-            serializer: some GRPCCore.MessageSerializer<Settings_GetServiceSettingConfigurationsForAccountRequest>,
-            deserializer: some GRPCCore.MessageDeserializer<Settings_GetServiceSettingConfigurationsForAccountResponse>,
+        func createSettingDefinition<Result>(
+            request: GRPCCore.ClientRequest<Settings_CreateSettingDefinitionRequest>,
+            serializer: some GRPCCore.MessageSerializer<Settings_CreateSettingDefinitionRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Settings_CreateSettingDefinitionResponse>,
             options: GRPCCore.CallOptions,
-            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_GetServiceSettingConfigurationsForAccountResponse>) async throws -> Result
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_CreateSettingDefinitionResponse>) async throws -> Result
         ) async throws -> Result where Result: Sendable
 
-        /// Call the "GetServiceSettingConfigurationsForUser" method.
+        /// Call the "GetSettingDefinition" method.
         ///
         /// - Parameters:
-        ///   - request: A request containing a single `Settings_GetServiceSettingConfigurationsForUserRequest` message.
-        ///   - serializer: A serializer for `Settings_GetServiceSettingConfigurationsForUserRequest` messages.
-        ///   - deserializer: A deserializer for `Settings_GetServiceSettingConfigurationsForUserResponse` messages.
+        ///   - request: A request containing a single `Settings_GetSettingDefinitionRequest` message.
+        ///   - serializer: A serializer for `Settings_GetSettingDefinitionRequest` messages.
+        ///   - deserializer: A deserializer for `Settings_GetSettingDefinitionResponse` messages.
         ///   - options: Options to apply to this RPC.
         ///   - handleResponse: A closure which handles the response, the result of which is
         ///       returned to the caller. Returning from the closure will cancel the RPC if it
         ///       hasn't already finished.
         /// - Returns: The result of `handleResponse`.
-        func getServiceSettingConfigurationsForUser<Result>(
-            request: GRPCCore.ClientRequest<Settings_GetServiceSettingConfigurationsForUserRequest>,
-            serializer: some GRPCCore.MessageSerializer<Settings_GetServiceSettingConfigurationsForUserRequest>,
-            deserializer: some GRPCCore.MessageDeserializer<Settings_GetServiceSettingConfigurationsForUserResponse>,
+        func getSettingDefinition<Result>(
+            request: GRPCCore.ClientRequest<Settings_GetSettingDefinitionRequest>,
+            serializer: some GRPCCore.MessageSerializer<Settings_GetSettingDefinitionRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Settings_GetSettingDefinitionResponse>,
             options: GRPCCore.CallOptions,
-            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_GetServiceSettingConfigurationsForUserResponse>) async throws -> Result
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_GetSettingDefinitionResponse>) async throws -> Result
         ) async throws -> Result where Result: Sendable
 
-        /// Call the "SearchForServiceSettings" method.
+        /// Call the "GetSettingDefinitionByName" method.
         ///
         /// - Parameters:
-        ///   - request: A request containing a single `Settings_SearchForServiceSettingsRequest` message.
-        ///   - serializer: A serializer for `Settings_SearchForServiceSettingsRequest` messages.
-        ///   - deserializer: A deserializer for `Settings_SearchForServiceSettingsResponse` messages.
+        ///   - request: A request containing a single `Settings_GetSettingDefinitionByNameRequest` message.
+        ///   - serializer: A serializer for `Settings_GetSettingDefinitionByNameRequest` messages.
+        ///   - deserializer: A deserializer for `Settings_GetSettingDefinitionByNameResponse` messages.
         ///   - options: Options to apply to this RPC.
         ///   - handleResponse: A closure which handles the response, the result of which is
         ///       returned to the caller. Returning from the closure will cancel the RPC if it
         ///       hasn't already finished.
         /// - Returns: The result of `handleResponse`.
-        func searchForServiceSettings<Result>(
-            request: GRPCCore.ClientRequest<Settings_SearchForServiceSettingsRequest>,
-            serializer: some GRPCCore.MessageSerializer<Settings_SearchForServiceSettingsRequest>,
-            deserializer: some GRPCCore.MessageDeserializer<Settings_SearchForServiceSettingsResponse>,
+        func getSettingDefinitionByName<Result>(
+            request: GRPCCore.ClientRequest<Settings_GetSettingDefinitionByNameRequest>,
+            serializer: some GRPCCore.MessageSerializer<Settings_GetSettingDefinitionByNameRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Settings_GetSettingDefinitionByNameResponse>,
             options: GRPCCore.CallOptions,
-            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_SearchForServiceSettingsResponse>) async throws -> Result
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_GetSettingDefinitionByNameResponse>) async throws -> Result
         ) async throws -> Result where Result: Sendable
 
-        /// Call the "ArchiveServiceSetting" method.
+        /// Call the "GetSettingDefinitions" method.
         ///
         /// - Parameters:
-        ///   - request: A request containing a single `Settings_ArchiveServiceSettingRequest` message.
-        ///   - serializer: A serializer for `Settings_ArchiveServiceSettingRequest` messages.
-        ///   - deserializer: A deserializer for `Settings_ArchiveServiceSettingResponse` messages.
+        ///   - request: A request containing a single `Settings_GetSettingDefinitionsRequest` message.
+        ///   - serializer: A serializer for `Settings_GetSettingDefinitionsRequest` messages.
+        ///   - deserializer: A deserializer for `Settings_GetSettingDefinitionsResponse` messages.
         ///   - options: Options to apply to this RPC.
         ///   - handleResponse: A closure which handles the response, the result of which is
         ///       returned to the caller. Returning from the closure will cancel the RPC if it
         ///       hasn't already finished.
         /// - Returns: The result of `handleResponse`.
-        func archiveServiceSetting<Result>(
-            request: GRPCCore.ClientRequest<Settings_ArchiveServiceSettingRequest>,
-            serializer: some GRPCCore.MessageSerializer<Settings_ArchiveServiceSettingRequest>,
-            deserializer: some GRPCCore.MessageDeserializer<Settings_ArchiveServiceSettingResponse>,
+        func getSettingDefinitions<Result>(
+            request: GRPCCore.ClientRequest<Settings_GetSettingDefinitionsRequest>,
+            serializer: some GRPCCore.MessageSerializer<Settings_GetSettingDefinitionsRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Settings_GetSettingDefinitionsResponse>,
             options: GRPCCore.CallOptions,
-            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_ArchiveServiceSettingResponse>) async throws -> Result
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_GetSettingDefinitionsResponse>) async throws -> Result
         ) async throws -> Result where Result: Sendable
 
-        /// Call the "ArchiveServiceSettingConfiguration" method.
+        /// Call the "UpdateSettingDefinition" method.
         ///
         /// - Parameters:
-        ///   - request: A request containing a single `Settings_ArchiveServiceSettingConfigurationRequest` message.
-        ///   - serializer: A serializer for `Settings_ArchiveServiceSettingConfigurationRequest` messages.
-        ///   - deserializer: A deserializer for `Settings_ArchiveServiceSettingConfigurationResponse` messages.
+        ///   - request: A request containing a single `Settings_UpdateSettingDefinitionRequest` message.
+        ///   - serializer: A serializer for `Settings_UpdateSettingDefinitionRequest` messages.
+        ///   - deserializer: A deserializer for `Settings_UpdateSettingDefinitionResponse` messages.
         ///   - options: Options to apply to this RPC.
         ///   - handleResponse: A closure which handles the response, the result of which is
         ///       returned to the caller. Returning from the closure will cancel the RPC if it
         ///       hasn't already finished.
         /// - Returns: The result of `handleResponse`.
-        func archiveServiceSettingConfiguration<Result>(
-            request: GRPCCore.ClientRequest<Settings_ArchiveServiceSettingConfigurationRequest>,
-            serializer: some GRPCCore.MessageSerializer<Settings_ArchiveServiceSettingConfigurationRequest>,
-            deserializer: some GRPCCore.MessageDeserializer<Settings_ArchiveServiceSettingConfigurationResponse>,
+        func updateSettingDefinition<Result>(
+            request: GRPCCore.ClientRequest<Settings_UpdateSettingDefinitionRequest>,
+            serializer: some GRPCCore.MessageSerializer<Settings_UpdateSettingDefinitionRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Settings_UpdateSettingDefinitionResponse>,
             options: GRPCCore.CallOptions,
-            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_ArchiveServiceSettingConfigurationResponse>) async throws -> Result
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_UpdateSettingDefinitionResponse>) async throws -> Result
         ) async throws -> Result where Result: Sendable
 
-        /// Call the "CreateServiceSetting" method.
+        /// Call the "ArchiveSettingDefinition" method.
         ///
         /// - Parameters:
-        ///   - request: A request containing a single `Settings_CreateServiceSettingRequest` message.
-        ///   - serializer: A serializer for `Settings_CreateServiceSettingRequest` messages.
-        ///   - deserializer: A deserializer for `Settings_CreateServiceSettingResponse` messages.
+        ///   - request: A request containing a single `Settings_ArchiveSettingDefinitionRequest` message.
+        ///   - serializer: A serializer for `Settings_ArchiveSettingDefinitionRequest` messages.
+        ///   - deserializer: A deserializer for `Settings_ArchiveSettingDefinitionResponse` messages.
         ///   - options: Options to apply to this RPC.
         ///   - handleResponse: A closure which handles the response, the result of which is
         ///       returned to the caller. Returning from the closure will cancel the RPC if it
         ///       hasn't already finished.
         /// - Returns: The result of `handleResponse`.
-        func createServiceSetting<Result>(
-            request: GRPCCore.ClientRequest<Settings_CreateServiceSettingRequest>,
-            serializer: some GRPCCore.MessageSerializer<Settings_CreateServiceSettingRequest>,
-            deserializer: some GRPCCore.MessageDeserializer<Settings_CreateServiceSettingResponse>,
+        func archiveSettingDefinition<Result>(
+            request: GRPCCore.ClientRequest<Settings_ArchiveSettingDefinitionRequest>,
+            serializer: some GRPCCore.MessageSerializer<Settings_ArchiveSettingDefinitionRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Settings_ArchiveSettingDefinitionResponse>,
             options: GRPCCore.CallOptions,
-            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_CreateServiceSettingResponse>) async throws -> Result
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_ArchiveSettingDefinitionResponse>) async throws -> Result
         ) async throws -> Result where Result: Sendable
 
-        /// Call the "CreateServiceSettingConfiguration" method.
+        /// Call the "SetSettingValue" method.
         ///
         /// - Parameters:
-        ///   - request: A request containing a single `Settings_CreateServiceSettingConfigurationRequest` message.
-        ///   - serializer: A serializer for `Settings_CreateServiceSettingConfigurationRequest` messages.
-        ///   - deserializer: A deserializer for `Settings_CreateServiceSettingConfigurationResponse` messages.
+        ///   - request: A request containing a single `Settings_SetSettingValueRequest` message.
+        ///   - serializer: A serializer for `Settings_SetSettingValueRequest` messages.
+        ///   - deserializer: A deserializer for `Settings_SetSettingValueResponse` messages.
         ///   - options: Options to apply to this RPC.
         ///   - handleResponse: A closure which handles the response, the result of which is
         ///       returned to the caller. Returning from the closure will cancel the RPC if it
         ///       hasn't already finished.
         /// - Returns: The result of `handleResponse`.
-        func createServiceSettingConfiguration<Result>(
-            request: GRPCCore.ClientRequest<Settings_CreateServiceSettingConfigurationRequest>,
-            serializer: some GRPCCore.MessageSerializer<Settings_CreateServiceSettingConfigurationRequest>,
-            deserializer: some GRPCCore.MessageDeserializer<Settings_CreateServiceSettingConfigurationResponse>,
+        func setSettingValue<Result>(
+            request: GRPCCore.ClientRequest<Settings_SetSettingValueRequest>,
+            serializer: some GRPCCore.MessageSerializer<Settings_SetSettingValueRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Settings_SetSettingValueResponse>,
             options: GRPCCore.CallOptions,
-            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_CreateServiceSettingConfigurationResponse>) async throws -> Result
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_SetSettingValueResponse>) async throws -> Result
         ) async throws -> Result where Result: Sendable
 
-        /// Call the "GetServiceSetting" method.
+        /// Call the "GetSettingValue" method.
         ///
         /// - Parameters:
-        ///   - request: A request containing a single `Settings_GetServiceSettingRequest` message.
-        ///   - serializer: A serializer for `Settings_GetServiceSettingRequest` messages.
-        ///   - deserializer: A deserializer for `Settings_GetServiceSettingResponse` messages.
+        ///   - request: A request containing a single `Settings_GetSettingValueRequest` message.
+        ///   - serializer: A serializer for `Settings_GetSettingValueRequest` messages.
+        ///   - deserializer: A deserializer for `Settings_GetSettingValueResponse` messages.
         ///   - options: Options to apply to this RPC.
         ///   - handleResponse: A closure which handles the response, the result of which is
         ///       returned to the caller. Returning from the closure will cancel the RPC if it
         ///       hasn't already finished.
         /// - Returns: The result of `handleResponse`.
-        func getServiceSetting<Result>(
-            request: GRPCCore.ClientRequest<Settings_GetServiceSettingRequest>,
-            serializer: some GRPCCore.MessageSerializer<Settings_GetServiceSettingRequest>,
-            deserializer: some GRPCCore.MessageDeserializer<Settings_GetServiceSettingResponse>,
+        func getSettingValue<Result>(
+            request: GRPCCore.ClientRequest<Settings_GetSettingValueRequest>,
+            serializer: some GRPCCore.MessageSerializer<Settings_GetSettingValueRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Settings_GetSettingValueResponse>,
             options: GRPCCore.CallOptions,
-            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_GetServiceSettingResponse>) async throws -> Result
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_GetSettingValueResponse>) async throws -> Result
         ) async throws -> Result where Result: Sendable
 
-        /// Call the "GetServiceSettingConfigurationByName" method.
+        /// Call the "ClearSettingValue" method.
         ///
         /// - Parameters:
-        ///   - request: A request containing a single `Settings_GetServiceSettingConfigurationByNameRequest` message.
-        ///   - serializer: A serializer for `Settings_GetServiceSettingConfigurationByNameRequest` messages.
-        ///   - deserializer: A deserializer for `Settings_GetServiceSettingConfigurationByNameResponse` messages.
+        ///   - request: A request containing a single `Settings_ClearSettingValueRequest` message.
+        ///   - serializer: A serializer for `Settings_ClearSettingValueRequest` messages.
+        ///   - deserializer: A deserializer for `Settings_ClearSettingValueResponse` messages.
         ///   - options: Options to apply to this RPC.
         ///   - handleResponse: A closure which handles the response, the result of which is
         ///       returned to the caller. Returning from the closure will cancel the RPC if it
         ///       hasn't already finished.
         /// - Returns: The result of `handleResponse`.
-        func getServiceSettingConfigurationByName<Result>(
-            request: GRPCCore.ClientRequest<Settings_GetServiceSettingConfigurationByNameRequest>,
-            serializer: some GRPCCore.MessageSerializer<Settings_GetServiceSettingConfigurationByNameRequest>,
-            deserializer: some GRPCCore.MessageDeserializer<Settings_GetServiceSettingConfigurationByNameResponse>,
+        func clearSettingValue<Result>(
+            request: GRPCCore.ClientRequest<Settings_ClearSettingValueRequest>,
+            serializer: some GRPCCore.MessageSerializer<Settings_ClearSettingValueRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Settings_ClearSettingValueResponse>,
             options: GRPCCore.CallOptions,
-            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_GetServiceSettingConfigurationByNameResponse>) async throws -> Result
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_ClearSettingValueResponse>) async throws -> Result
         ) async throws -> Result where Result: Sendable
 
-        /// Call the "GetServiceSettings" method.
+        /// Call the "GetSettingValues" method.
         ///
         /// - Parameters:
-        ///   - request: A request containing a single `Settings_GetServiceSettingsRequest` message.
-        ///   - serializer: A serializer for `Settings_GetServiceSettingsRequest` messages.
-        ///   - deserializer: A deserializer for `Settings_GetServiceSettingsResponse` messages.
+        ///   - request: A request containing a single `Settings_GetSettingValuesRequest` message.
+        ///   - serializer: A serializer for `Settings_GetSettingValuesRequest` messages.
+        ///   - deserializer: A deserializer for `Settings_GetSettingValuesResponse` messages.
         ///   - options: Options to apply to this RPC.
         ///   - handleResponse: A closure which handles the response, the result of which is
         ///       returned to the caller. Returning from the closure will cancel the RPC if it
         ///       hasn't already finished.
         /// - Returns: The result of `handleResponse`.
-        func getServiceSettings<Result>(
-            request: GRPCCore.ClientRequest<Settings_GetServiceSettingsRequest>,
-            serializer: some GRPCCore.MessageSerializer<Settings_GetServiceSettingsRequest>,
-            deserializer: some GRPCCore.MessageDeserializer<Settings_GetServiceSettingsResponse>,
+        func getSettingValues<Result>(
+            request: GRPCCore.ClientRequest<Settings_GetSettingValuesRequest>,
+            serializer: some GRPCCore.MessageSerializer<Settings_GetSettingValuesRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Settings_GetSettingValuesResponse>,
             options: GRPCCore.CallOptions,
-            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_GetServiceSettingsResponse>) async throws -> Result
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_GetSettingValuesResponse>) async throws -> Result
         ) async throws -> Result where Result: Sendable
 
-        /// Call the "UpdateServiceSettingConfiguration" method.
+        /// Call the "GetSettingValuesForDefinition" method.
         ///
         /// - Parameters:
-        ///   - request: A request containing a single `Settings_UpdateServiceSettingConfigurationRequest` message.
-        ///   - serializer: A serializer for `Settings_UpdateServiceSettingConfigurationRequest` messages.
-        ///   - deserializer: A deserializer for `Settings_UpdateServiceSettingConfigurationResponse` messages.
+        ///   - request: A request containing a single `Settings_GetSettingValuesForDefinitionRequest` message.
+        ///   - serializer: A serializer for `Settings_GetSettingValuesForDefinitionRequest` messages.
+        ///   - deserializer: A deserializer for `Settings_GetSettingValuesForDefinitionResponse` messages.
         ///   - options: Options to apply to this RPC.
         ///   - handleResponse: A closure which handles the response, the result of which is
         ///       returned to the caller. Returning from the closure will cancel the RPC if it
         ///       hasn't already finished.
         /// - Returns: The result of `handleResponse`.
-        func updateServiceSettingConfiguration<Result>(
-            request: GRPCCore.ClientRequest<Settings_UpdateServiceSettingConfigurationRequest>,
-            serializer: some GRPCCore.MessageSerializer<Settings_UpdateServiceSettingConfigurationRequest>,
-            deserializer: some GRPCCore.MessageDeserializer<Settings_UpdateServiceSettingConfigurationResponse>,
+        func getSettingValuesForDefinition<Result>(
+            request: GRPCCore.ClientRequest<Settings_GetSettingValuesForDefinitionRequest>,
+            serializer: some GRPCCore.MessageSerializer<Settings_GetSettingValuesForDefinitionRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Settings_GetSettingValuesForDefinitionResponse>,
             options: GRPCCore.CallOptions,
-            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_UpdateServiceSettingConfigurationResponse>) async throws -> Result
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_GetSettingValuesForDefinitionResponse>) async throws -> Result
+        ) async throws -> Result where Result: Sendable
+
+        /// Call the "ResolveSetting" method.
+        ///
+        /// - Parameters:
+        ///   - request: A request containing a single `Settings_ResolveSettingRequest` message.
+        ///   - serializer: A serializer for `Settings_ResolveSettingRequest` messages.
+        ///   - deserializer: A deserializer for `Settings_ResolveSettingResponse` messages.
+        ///   - options: Options to apply to this RPC.
+        ///   - handleResponse: A closure which handles the response, the result of which is
+        ///       returned to the caller. Returning from the closure will cancel the RPC if it
+        ///       hasn't already finished.
+        /// - Returns: The result of `handleResponse`.
+        func resolveSetting<Result>(
+            request: GRPCCore.ClientRequest<Settings_ResolveSettingRequest>,
+            serializer: some GRPCCore.MessageSerializer<Settings_ResolveSettingRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Settings_ResolveSettingResponse>,
+            options: GRPCCore.CallOptions,
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_ResolveSettingResponse>) async throws -> Result
+        ) async throws -> Result where Result: Sendable
+
+        /// Call the "ResolveSettings" method.
+        ///
+        /// - Parameters:
+        ///   - request: A request containing a single `Settings_ResolveSettingsRequest` message.
+        ///   - serializer: A serializer for `Settings_ResolveSettingsRequest` messages.
+        ///   - deserializer: A deserializer for `Settings_ResolveSettingsResponse` messages.
+        ///   - options: Options to apply to this RPC.
+        ///   - handleResponse: A closure which handles the response, the result of which is
+        ///       returned to the caller. Returning from the closure will cancel the RPC if it
+        ///       hasn't already finished.
+        /// - Returns: The result of `handleResponse`.
+        func resolveSettings<Result>(
+            request: GRPCCore.ClientRequest<Settings_ResolveSettingsRequest>,
+            serializer: some GRPCCore.MessageSerializer<Settings_ResolveSettingsRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Settings_ResolveSettingsResponse>,
+            options: GRPCCore.CallOptions,
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_ResolveSettingsResponse>) async throws -> Result
         ) async throws -> Result where Result: Sendable
     }
 
@@ -399,6 +472,15 @@ extension Settings_SettingsService {
     /// The ``Client`` provides an implementation of ``ClientProtocol`` which wraps
     /// a `GRPCCore.GRPCCClient`. The underlying `GRPCClient` provides the long-lived
     /// means of communication with the remote peer.
+    ///
+    /// > Source IDL Documentation:
+    /// >
+    /// > SettingsService is the catalog of settings this deployment defines and the
+    /// > answers its users store against it.
+    /// > 
+    /// > The two halves have two callers. The definition methods are an administrator's
+    /// > — a seeding job, an admin console — and the value methods are the request
+    /// > path's, reached by whoever is saving or reading their own preference.
     internal struct Client<Transport>: ClientProtocol where Transport: GRPCCore.ClientTransport {
         private let client: GRPCCore.GRPCClient<Transport>
 
@@ -410,29 +492,29 @@ extension Settings_SettingsService {
             self.client = client
         }
 
-        /// Call the "GetServiceSettingConfigurationsForAccount" method.
+        /// Call the "CreateSettingDefinition" method.
         ///
         /// - Parameters:
-        ///   - request: A request containing a single `Settings_GetServiceSettingConfigurationsForAccountRequest` message.
-        ///   - serializer: A serializer for `Settings_GetServiceSettingConfigurationsForAccountRequest` messages.
-        ///   - deserializer: A deserializer for `Settings_GetServiceSettingConfigurationsForAccountResponse` messages.
+        ///   - request: A request containing a single `Settings_CreateSettingDefinitionRequest` message.
+        ///   - serializer: A serializer for `Settings_CreateSettingDefinitionRequest` messages.
+        ///   - deserializer: A deserializer for `Settings_CreateSettingDefinitionResponse` messages.
         ///   - options: Options to apply to this RPC.
         ///   - handleResponse: A closure which handles the response, the result of which is
         ///       returned to the caller. Returning from the closure will cancel the RPC if it
         ///       hasn't already finished.
         /// - Returns: The result of `handleResponse`.
-        internal func getServiceSettingConfigurationsForAccount<Result>(
-            request: GRPCCore.ClientRequest<Settings_GetServiceSettingConfigurationsForAccountRequest>,
-            serializer: some GRPCCore.MessageSerializer<Settings_GetServiceSettingConfigurationsForAccountRequest>,
-            deserializer: some GRPCCore.MessageDeserializer<Settings_GetServiceSettingConfigurationsForAccountResponse>,
+        internal func createSettingDefinition<Result>(
+            request: GRPCCore.ClientRequest<Settings_CreateSettingDefinitionRequest>,
+            serializer: some GRPCCore.MessageSerializer<Settings_CreateSettingDefinitionRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Settings_CreateSettingDefinitionResponse>,
             options: GRPCCore.CallOptions = .defaults,
-            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_GetServiceSettingConfigurationsForAccountResponse>) async throws -> Result = { response in
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_CreateSettingDefinitionResponse>) async throws -> Result = { response in
                 try response.message
             }
         ) async throws -> Result where Result: Sendable {
             try await self.client.unary(
                 request: request,
-                descriptor: Settings_SettingsService.Method.GetServiceSettingConfigurationsForAccount.descriptor,
+                descriptor: Settings_SettingsService.Method.CreateSettingDefinition.descriptor,
                 serializer: serializer,
                 deserializer: deserializer,
                 options: options,
@@ -440,29 +522,29 @@ extension Settings_SettingsService {
             )
         }
 
-        /// Call the "GetServiceSettingConfigurationsForUser" method.
+        /// Call the "GetSettingDefinition" method.
         ///
         /// - Parameters:
-        ///   - request: A request containing a single `Settings_GetServiceSettingConfigurationsForUserRequest` message.
-        ///   - serializer: A serializer for `Settings_GetServiceSettingConfigurationsForUserRequest` messages.
-        ///   - deserializer: A deserializer for `Settings_GetServiceSettingConfigurationsForUserResponse` messages.
+        ///   - request: A request containing a single `Settings_GetSettingDefinitionRequest` message.
+        ///   - serializer: A serializer for `Settings_GetSettingDefinitionRequest` messages.
+        ///   - deserializer: A deserializer for `Settings_GetSettingDefinitionResponse` messages.
         ///   - options: Options to apply to this RPC.
         ///   - handleResponse: A closure which handles the response, the result of which is
         ///       returned to the caller. Returning from the closure will cancel the RPC if it
         ///       hasn't already finished.
         /// - Returns: The result of `handleResponse`.
-        internal func getServiceSettingConfigurationsForUser<Result>(
-            request: GRPCCore.ClientRequest<Settings_GetServiceSettingConfigurationsForUserRequest>,
-            serializer: some GRPCCore.MessageSerializer<Settings_GetServiceSettingConfigurationsForUserRequest>,
-            deserializer: some GRPCCore.MessageDeserializer<Settings_GetServiceSettingConfigurationsForUserResponse>,
+        internal func getSettingDefinition<Result>(
+            request: GRPCCore.ClientRequest<Settings_GetSettingDefinitionRequest>,
+            serializer: some GRPCCore.MessageSerializer<Settings_GetSettingDefinitionRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Settings_GetSettingDefinitionResponse>,
             options: GRPCCore.CallOptions = .defaults,
-            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_GetServiceSettingConfigurationsForUserResponse>) async throws -> Result = { response in
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_GetSettingDefinitionResponse>) async throws -> Result = { response in
                 try response.message
             }
         ) async throws -> Result where Result: Sendable {
             try await self.client.unary(
                 request: request,
-                descriptor: Settings_SettingsService.Method.GetServiceSettingConfigurationsForUser.descriptor,
+                descriptor: Settings_SettingsService.Method.GetSettingDefinition.descriptor,
                 serializer: serializer,
                 deserializer: deserializer,
                 options: options,
@@ -470,29 +552,29 @@ extension Settings_SettingsService {
             )
         }
 
-        /// Call the "SearchForServiceSettings" method.
+        /// Call the "GetSettingDefinitionByName" method.
         ///
         /// - Parameters:
-        ///   - request: A request containing a single `Settings_SearchForServiceSettingsRequest` message.
-        ///   - serializer: A serializer for `Settings_SearchForServiceSettingsRequest` messages.
-        ///   - deserializer: A deserializer for `Settings_SearchForServiceSettingsResponse` messages.
+        ///   - request: A request containing a single `Settings_GetSettingDefinitionByNameRequest` message.
+        ///   - serializer: A serializer for `Settings_GetSettingDefinitionByNameRequest` messages.
+        ///   - deserializer: A deserializer for `Settings_GetSettingDefinitionByNameResponse` messages.
         ///   - options: Options to apply to this RPC.
         ///   - handleResponse: A closure which handles the response, the result of which is
         ///       returned to the caller. Returning from the closure will cancel the RPC if it
         ///       hasn't already finished.
         /// - Returns: The result of `handleResponse`.
-        internal func searchForServiceSettings<Result>(
-            request: GRPCCore.ClientRequest<Settings_SearchForServiceSettingsRequest>,
-            serializer: some GRPCCore.MessageSerializer<Settings_SearchForServiceSettingsRequest>,
-            deserializer: some GRPCCore.MessageDeserializer<Settings_SearchForServiceSettingsResponse>,
+        internal func getSettingDefinitionByName<Result>(
+            request: GRPCCore.ClientRequest<Settings_GetSettingDefinitionByNameRequest>,
+            serializer: some GRPCCore.MessageSerializer<Settings_GetSettingDefinitionByNameRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Settings_GetSettingDefinitionByNameResponse>,
             options: GRPCCore.CallOptions = .defaults,
-            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_SearchForServiceSettingsResponse>) async throws -> Result = { response in
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_GetSettingDefinitionByNameResponse>) async throws -> Result = { response in
                 try response.message
             }
         ) async throws -> Result where Result: Sendable {
             try await self.client.unary(
                 request: request,
-                descriptor: Settings_SettingsService.Method.SearchForServiceSettings.descriptor,
+                descriptor: Settings_SettingsService.Method.GetSettingDefinitionByName.descriptor,
                 serializer: serializer,
                 deserializer: deserializer,
                 options: options,
@@ -500,29 +582,29 @@ extension Settings_SettingsService {
             )
         }
 
-        /// Call the "ArchiveServiceSetting" method.
+        /// Call the "GetSettingDefinitions" method.
         ///
         /// - Parameters:
-        ///   - request: A request containing a single `Settings_ArchiveServiceSettingRequest` message.
-        ///   - serializer: A serializer for `Settings_ArchiveServiceSettingRequest` messages.
-        ///   - deserializer: A deserializer for `Settings_ArchiveServiceSettingResponse` messages.
+        ///   - request: A request containing a single `Settings_GetSettingDefinitionsRequest` message.
+        ///   - serializer: A serializer for `Settings_GetSettingDefinitionsRequest` messages.
+        ///   - deserializer: A deserializer for `Settings_GetSettingDefinitionsResponse` messages.
         ///   - options: Options to apply to this RPC.
         ///   - handleResponse: A closure which handles the response, the result of which is
         ///       returned to the caller. Returning from the closure will cancel the RPC if it
         ///       hasn't already finished.
         /// - Returns: The result of `handleResponse`.
-        internal func archiveServiceSetting<Result>(
-            request: GRPCCore.ClientRequest<Settings_ArchiveServiceSettingRequest>,
-            serializer: some GRPCCore.MessageSerializer<Settings_ArchiveServiceSettingRequest>,
-            deserializer: some GRPCCore.MessageDeserializer<Settings_ArchiveServiceSettingResponse>,
+        internal func getSettingDefinitions<Result>(
+            request: GRPCCore.ClientRequest<Settings_GetSettingDefinitionsRequest>,
+            serializer: some GRPCCore.MessageSerializer<Settings_GetSettingDefinitionsRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Settings_GetSettingDefinitionsResponse>,
             options: GRPCCore.CallOptions = .defaults,
-            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_ArchiveServiceSettingResponse>) async throws -> Result = { response in
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_GetSettingDefinitionsResponse>) async throws -> Result = { response in
                 try response.message
             }
         ) async throws -> Result where Result: Sendable {
             try await self.client.unary(
                 request: request,
-                descriptor: Settings_SettingsService.Method.ArchiveServiceSetting.descriptor,
+                descriptor: Settings_SettingsService.Method.GetSettingDefinitions.descriptor,
                 serializer: serializer,
                 deserializer: deserializer,
                 options: options,
@@ -530,29 +612,29 @@ extension Settings_SettingsService {
             )
         }
 
-        /// Call the "ArchiveServiceSettingConfiguration" method.
+        /// Call the "UpdateSettingDefinition" method.
         ///
         /// - Parameters:
-        ///   - request: A request containing a single `Settings_ArchiveServiceSettingConfigurationRequest` message.
-        ///   - serializer: A serializer for `Settings_ArchiveServiceSettingConfigurationRequest` messages.
-        ///   - deserializer: A deserializer for `Settings_ArchiveServiceSettingConfigurationResponse` messages.
+        ///   - request: A request containing a single `Settings_UpdateSettingDefinitionRequest` message.
+        ///   - serializer: A serializer for `Settings_UpdateSettingDefinitionRequest` messages.
+        ///   - deserializer: A deserializer for `Settings_UpdateSettingDefinitionResponse` messages.
         ///   - options: Options to apply to this RPC.
         ///   - handleResponse: A closure which handles the response, the result of which is
         ///       returned to the caller. Returning from the closure will cancel the RPC if it
         ///       hasn't already finished.
         /// - Returns: The result of `handleResponse`.
-        internal func archiveServiceSettingConfiguration<Result>(
-            request: GRPCCore.ClientRequest<Settings_ArchiveServiceSettingConfigurationRequest>,
-            serializer: some GRPCCore.MessageSerializer<Settings_ArchiveServiceSettingConfigurationRequest>,
-            deserializer: some GRPCCore.MessageDeserializer<Settings_ArchiveServiceSettingConfigurationResponse>,
+        internal func updateSettingDefinition<Result>(
+            request: GRPCCore.ClientRequest<Settings_UpdateSettingDefinitionRequest>,
+            serializer: some GRPCCore.MessageSerializer<Settings_UpdateSettingDefinitionRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Settings_UpdateSettingDefinitionResponse>,
             options: GRPCCore.CallOptions = .defaults,
-            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_ArchiveServiceSettingConfigurationResponse>) async throws -> Result = { response in
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_UpdateSettingDefinitionResponse>) async throws -> Result = { response in
                 try response.message
             }
         ) async throws -> Result where Result: Sendable {
             try await self.client.unary(
                 request: request,
-                descriptor: Settings_SettingsService.Method.ArchiveServiceSettingConfiguration.descriptor,
+                descriptor: Settings_SettingsService.Method.UpdateSettingDefinition.descriptor,
                 serializer: serializer,
                 deserializer: deserializer,
                 options: options,
@@ -560,29 +642,29 @@ extension Settings_SettingsService {
             )
         }
 
-        /// Call the "CreateServiceSetting" method.
+        /// Call the "ArchiveSettingDefinition" method.
         ///
         /// - Parameters:
-        ///   - request: A request containing a single `Settings_CreateServiceSettingRequest` message.
-        ///   - serializer: A serializer for `Settings_CreateServiceSettingRequest` messages.
-        ///   - deserializer: A deserializer for `Settings_CreateServiceSettingResponse` messages.
+        ///   - request: A request containing a single `Settings_ArchiveSettingDefinitionRequest` message.
+        ///   - serializer: A serializer for `Settings_ArchiveSettingDefinitionRequest` messages.
+        ///   - deserializer: A deserializer for `Settings_ArchiveSettingDefinitionResponse` messages.
         ///   - options: Options to apply to this RPC.
         ///   - handleResponse: A closure which handles the response, the result of which is
         ///       returned to the caller. Returning from the closure will cancel the RPC if it
         ///       hasn't already finished.
         /// - Returns: The result of `handleResponse`.
-        internal func createServiceSetting<Result>(
-            request: GRPCCore.ClientRequest<Settings_CreateServiceSettingRequest>,
-            serializer: some GRPCCore.MessageSerializer<Settings_CreateServiceSettingRequest>,
-            deserializer: some GRPCCore.MessageDeserializer<Settings_CreateServiceSettingResponse>,
+        internal func archiveSettingDefinition<Result>(
+            request: GRPCCore.ClientRequest<Settings_ArchiveSettingDefinitionRequest>,
+            serializer: some GRPCCore.MessageSerializer<Settings_ArchiveSettingDefinitionRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Settings_ArchiveSettingDefinitionResponse>,
             options: GRPCCore.CallOptions = .defaults,
-            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_CreateServiceSettingResponse>) async throws -> Result = { response in
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_ArchiveSettingDefinitionResponse>) async throws -> Result = { response in
                 try response.message
             }
         ) async throws -> Result where Result: Sendable {
             try await self.client.unary(
                 request: request,
-                descriptor: Settings_SettingsService.Method.CreateServiceSetting.descriptor,
+                descriptor: Settings_SettingsService.Method.ArchiveSettingDefinition.descriptor,
                 serializer: serializer,
                 deserializer: deserializer,
                 options: options,
@@ -590,29 +672,29 @@ extension Settings_SettingsService {
             )
         }
 
-        /// Call the "CreateServiceSettingConfiguration" method.
+        /// Call the "SetSettingValue" method.
         ///
         /// - Parameters:
-        ///   - request: A request containing a single `Settings_CreateServiceSettingConfigurationRequest` message.
-        ///   - serializer: A serializer for `Settings_CreateServiceSettingConfigurationRequest` messages.
-        ///   - deserializer: A deserializer for `Settings_CreateServiceSettingConfigurationResponse` messages.
+        ///   - request: A request containing a single `Settings_SetSettingValueRequest` message.
+        ///   - serializer: A serializer for `Settings_SetSettingValueRequest` messages.
+        ///   - deserializer: A deserializer for `Settings_SetSettingValueResponse` messages.
         ///   - options: Options to apply to this RPC.
         ///   - handleResponse: A closure which handles the response, the result of which is
         ///       returned to the caller. Returning from the closure will cancel the RPC if it
         ///       hasn't already finished.
         /// - Returns: The result of `handleResponse`.
-        internal func createServiceSettingConfiguration<Result>(
-            request: GRPCCore.ClientRequest<Settings_CreateServiceSettingConfigurationRequest>,
-            serializer: some GRPCCore.MessageSerializer<Settings_CreateServiceSettingConfigurationRequest>,
-            deserializer: some GRPCCore.MessageDeserializer<Settings_CreateServiceSettingConfigurationResponse>,
+        internal func setSettingValue<Result>(
+            request: GRPCCore.ClientRequest<Settings_SetSettingValueRequest>,
+            serializer: some GRPCCore.MessageSerializer<Settings_SetSettingValueRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Settings_SetSettingValueResponse>,
             options: GRPCCore.CallOptions = .defaults,
-            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_CreateServiceSettingConfigurationResponse>) async throws -> Result = { response in
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_SetSettingValueResponse>) async throws -> Result = { response in
                 try response.message
             }
         ) async throws -> Result where Result: Sendable {
             try await self.client.unary(
                 request: request,
-                descriptor: Settings_SettingsService.Method.CreateServiceSettingConfiguration.descriptor,
+                descriptor: Settings_SettingsService.Method.SetSettingValue.descriptor,
                 serializer: serializer,
                 deserializer: deserializer,
                 options: options,
@@ -620,29 +702,29 @@ extension Settings_SettingsService {
             )
         }
 
-        /// Call the "GetServiceSetting" method.
+        /// Call the "GetSettingValue" method.
         ///
         /// - Parameters:
-        ///   - request: A request containing a single `Settings_GetServiceSettingRequest` message.
-        ///   - serializer: A serializer for `Settings_GetServiceSettingRequest` messages.
-        ///   - deserializer: A deserializer for `Settings_GetServiceSettingResponse` messages.
+        ///   - request: A request containing a single `Settings_GetSettingValueRequest` message.
+        ///   - serializer: A serializer for `Settings_GetSettingValueRequest` messages.
+        ///   - deserializer: A deserializer for `Settings_GetSettingValueResponse` messages.
         ///   - options: Options to apply to this RPC.
         ///   - handleResponse: A closure which handles the response, the result of which is
         ///       returned to the caller. Returning from the closure will cancel the RPC if it
         ///       hasn't already finished.
         /// - Returns: The result of `handleResponse`.
-        internal func getServiceSetting<Result>(
-            request: GRPCCore.ClientRequest<Settings_GetServiceSettingRequest>,
-            serializer: some GRPCCore.MessageSerializer<Settings_GetServiceSettingRequest>,
-            deserializer: some GRPCCore.MessageDeserializer<Settings_GetServiceSettingResponse>,
+        internal func getSettingValue<Result>(
+            request: GRPCCore.ClientRequest<Settings_GetSettingValueRequest>,
+            serializer: some GRPCCore.MessageSerializer<Settings_GetSettingValueRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Settings_GetSettingValueResponse>,
             options: GRPCCore.CallOptions = .defaults,
-            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_GetServiceSettingResponse>) async throws -> Result = { response in
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_GetSettingValueResponse>) async throws -> Result = { response in
                 try response.message
             }
         ) async throws -> Result where Result: Sendable {
             try await self.client.unary(
                 request: request,
-                descriptor: Settings_SettingsService.Method.GetServiceSetting.descriptor,
+                descriptor: Settings_SettingsService.Method.GetSettingValue.descriptor,
                 serializer: serializer,
                 deserializer: deserializer,
                 options: options,
@@ -650,29 +732,29 @@ extension Settings_SettingsService {
             )
         }
 
-        /// Call the "GetServiceSettingConfigurationByName" method.
+        /// Call the "ClearSettingValue" method.
         ///
         /// - Parameters:
-        ///   - request: A request containing a single `Settings_GetServiceSettingConfigurationByNameRequest` message.
-        ///   - serializer: A serializer for `Settings_GetServiceSettingConfigurationByNameRequest` messages.
-        ///   - deserializer: A deserializer for `Settings_GetServiceSettingConfigurationByNameResponse` messages.
+        ///   - request: A request containing a single `Settings_ClearSettingValueRequest` message.
+        ///   - serializer: A serializer for `Settings_ClearSettingValueRequest` messages.
+        ///   - deserializer: A deserializer for `Settings_ClearSettingValueResponse` messages.
         ///   - options: Options to apply to this RPC.
         ///   - handleResponse: A closure which handles the response, the result of which is
         ///       returned to the caller. Returning from the closure will cancel the RPC if it
         ///       hasn't already finished.
         /// - Returns: The result of `handleResponse`.
-        internal func getServiceSettingConfigurationByName<Result>(
-            request: GRPCCore.ClientRequest<Settings_GetServiceSettingConfigurationByNameRequest>,
-            serializer: some GRPCCore.MessageSerializer<Settings_GetServiceSettingConfigurationByNameRequest>,
-            deserializer: some GRPCCore.MessageDeserializer<Settings_GetServiceSettingConfigurationByNameResponse>,
+        internal func clearSettingValue<Result>(
+            request: GRPCCore.ClientRequest<Settings_ClearSettingValueRequest>,
+            serializer: some GRPCCore.MessageSerializer<Settings_ClearSettingValueRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Settings_ClearSettingValueResponse>,
             options: GRPCCore.CallOptions = .defaults,
-            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_GetServiceSettingConfigurationByNameResponse>) async throws -> Result = { response in
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_ClearSettingValueResponse>) async throws -> Result = { response in
                 try response.message
             }
         ) async throws -> Result where Result: Sendable {
             try await self.client.unary(
                 request: request,
-                descriptor: Settings_SettingsService.Method.GetServiceSettingConfigurationByName.descriptor,
+                descriptor: Settings_SettingsService.Method.ClearSettingValue.descriptor,
                 serializer: serializer,
                 deserializer: deserializer,
                 options: options,
@@ -680,29 +762,29 @@ extension Settings_SettingsService {
             )
         }
 
-        /// Call the "GetServiceSettings" method.
+        /// Call the "GetSettingValues" method.
         ///
         /// - Parameters:
-        ///   - request: A request containing a single `Settings_GetServiceSettingsRequest` message.
-        ///   - serializer: A serializer for `Settings_GetServiceSettingsRequest` messages.
-        ///   - deserializer: A deserializer for `Settings_GetServiceSettingsResponse` messages.
+        ///   - request: A request containing a single `Settings_GetSettingValuesRequest` message.
+        ///   - serializer: A serializer for `Settings_GetSettingValuesRequest` messages.
+        ///   - deserializer: A deserializer for `Settings_GetSettingValuesResponse` messages.
         ///   - options: Options to apply to this RPC.
         ///   - handleResponse: A closure which handles the response, the result of which is
         ///       returned to the caller. Returning from the closure will cancel the RPC if it
         ///       hasn't already finished.
         /// - Returns: The result of `handleResponse`.
-        internal func getServiceSettings<Result>(
-            request: GRPCCore.ClientRequest<Settings_GetServiceSettingsRequest>,
-            serializer: some GRPCCore.MessageSerializer<Settings_GetServiceSettingsRequest>,
-            deserializer: some GRPCCore.MessageDeserializer<Settings_GetServiceSettingsResponse>,
+        internal func getSettingValues<Result>(
+            request: GRPCCore.ClientRequest<Settings_GetSettingValuesRequest>,
+            serializer: some GRPCCore.MessageSerializer<Settings_GetSettingValuesRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Settings_GetSettingValuesResponse>,
             options: GRPCCore.CallOptions = .defaults,
-            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_GetServiceSettingsResponse>) async throws -> Result = { response in
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_GetSettingValuesResponse>) async throws -> Result = { response in
                 try response.message
             }
         ) async throws -> Result where Result: Sendable {
             try await self.client.unary(
                 request: request,
-                descriptor: Settings_SettingsService.Method.GetServiceSettings.descriptor,
+                descriptor: Settings_SettingsService.Method.GetSettingValues.descriptor,
                 serializer: serializer,
                 deserializer: deserializer,
                 options: options,
@@ -710,29 +792,89 @@ extension Settings_SettingsService {
             )
         }
 
-        /// Call the "UpdateServiceSettingConfiguration" method.
+        /// Call the "GetSettingValuesForDefinition" method.
         ///
         /// - Parameters:
-        ///   - request: A request containing a single `Settings_UpdateServiceSettingConfigurationRequest` message.
-        ///   - serializer: A serializer for `Settings_UpdateServiceSettingConfigurationRequest` messages.
-        ///   - deserializer: A deserializer for `Settings_UpdateServiceSettingConfigurationResponse` messages.
+        ///   - request: A request containing a single `Settings_GetSettingValuesForDefinitionRequest` message.
+        ///   - serializer: A serializer for `Settings_GetSettingValuesForDefinitionRequest` messages.
+        ///   - deserializer: A deserializer for `Settings_GetSettingValuesForDefinitionResponse` messages.
         ///   - options: Options to apply to this RPC.
         ///   - handleResponse: A closure which handles the response, the result of which is
         ///       returned to the caller. Returning from the closure will cancel the RPC if it
         ///       hasn't already finished.
         /// - Returns: The result of `handleResponse`.
-        internal func updateServiceSettingConfiguration<Result>(
-            request: GRPCCore.ClientRequest<Settings_UpdateServiceSettingConfigurationRequest>,
-            serializer: some GRPCCore.MessageSerializer<Settings_UpdateServiceSettingConfigurationRequest>,
-            deserializer: some GRPCCore.MessageDeserializer<Settings_UpdateServiceSettingConfigurationResponse>,
+        internal func getSettingValuesForDefinition<Result>(
+            request: GRPCCore.ClientRequest<Settings_GetSettingValuesForDefinitionRequest>,
+            serializer: some GRPCCore.MessageSerializer<Settings_GetSettingValuesForDefinitionRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Settings_GetSettingValuesForDefinitionResponse>,
             options: GRPCCore.CallOptions = .defaults,
-            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_UpdateServiceSettingConfigurationResponse>) async throws -> Result = { response in
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_GetSettingValuesForDefinitionResponse>) async throws -> Result = { response in
                 try response.message
             }
         ) async throws -> Result where Result: Sendable {
             try await self.client.unary(
                 request: request,
-                descriptor: Settings_SettingsService.Method.UpdateServiceSettingConfiguration.descriptor,
+                descriptor: Settings_SettingsService.Method.GetSettingValuesForDefinition.descriptor,
+                serializer: serializer,
+                deserializer: deserializer,
+                options: options,
+                onResponse: handleResponse
+            )
+        }
+
+        /// Call the "ResolveSetting" method.
+        ///
+        /// - Parameters:
+        ///   - request: A request containing a single `Settings_ResolveSettingRequest` message.
+        ///   - serializer: A serializer for `Settings_ResolveSettingRequest` messages.
+        ///   - deserializer: A deserializer for `Settings_ResolveSettingResponse` messages.
+        ///   - options: Options to apply to this RPC.
+        ///   - handleResponse: A closure which handles the response, the result of which is
+        ///       returned to the caller. Returning from the closure will cancel the RPC if it
+        ///       hasn't already finished.
+        /// - Returns: The result of `handleResponse`.
+        internal func resolveSetting<Result>(
+            request: GRPCCore.ClientRequest<Settings_ResolveSettingRequest>,
+            serializer: some GRPCCore.MessageSerializer<Settings_ResolveSettingRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Settings_ResolveSettingResponse>,
+            options: GRPCCore.CallOptions = .defaults,
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_ResolveSettingResponse>) async throws -> Result = { response in
+                try response.message
+            }
+        ) async throws -> Result where Result: Sendable {
+            try await self.client.unary(
+                request: request,
+                descriptor: Settings_SettingsService.Method.ResolveSetting.descriptor,
+                serializer: serializer,
+                deserializer: deserializer,
+                options: options,
+                onResponse: handleResponse
+            )
+        }
+
+        /// Call the "ResolveSettings" method.
+        ///
+        /// - Parameters:
+        ///   - request: A request containing a single `Settings_ResolveSettingsRequest` message.
+        ///   - serializer: A serializer for `Settings_ResolveSettingsRequest` messages.
+        ///   - deserializer: A deserializer for `Settings_ResolveSettingsResponse` messages.
+        ///   - options: Options to apply to this RPC.
+        ///   - handleResponse: A closure which handles the response, the result of which is
+        ///       returned to the caller. Returning from the closure will cancel the RPC if it
+        ///       hasn't already finished.
+        /// - Returns: The result of `handleResponse`.
+        internal func resolveSettings<Result>(
+            request: GRPCCore.ClientRequest<Settings_ResolveSettingsRequest>,
+            serializer: some GRPCCore.MessageSerializer<Settings_ResolveSettingsRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Settings_ResolveSettingsResponse>,
+            options: GRPCCore.CallOptions = .defaults,
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_ResolveSettingsResponse>) async throws -> Result = { response in
+                try response.message
+            }
+        ) async throws -> Result where Result: Sendable {
+            try await self.client.unary(
+                request: request,
+                descriptor: Settings_SettingsService.Method.ResolveSettings.descriptor,
                 serializer: serializer,
                 deserializer: deserializer,
                 options: options,
@@ -745,276 +887,326 @@ extension Settings_SettingsService {
 // Helpers providing default arguments to 'ClientProtocol' methods.
 @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
 extension Settings_SettingsService.ClientProtocol {
-    /// Call the "GetServiceSettingConfigurationsForAccount" method.
+    /// Call the "CreateSettingDefinition" method.
     ///
     /// - Parameters:
-    ///   - request: A request containing a single `Settings_GetServiceSettingConfigurationsForAccountRequest` message.
+    ///   - request: A request containing a single `Settings_CreateSettingDefinitionRequest` message.
     ///   - options: Options to apply to this RPC.
     ///   - handleResponse: A closure which handles the response, the result of which is
     ///       returned to the caller. Returning from the closure will cancel the RPC if it
     ///       hasn't already finished.
     /// - Returns: The result of `handleResponse`.
-    internal func getServiceSettingConfigurationsForAccount<Result>(
-        request: GRPCCore.ClientRequest<Settings_GetServiceSettingConfigurationsForAccountRequest>,
+    internal func createSettingDefinition<Result>(
+        request: GRPCCore.ClientRequest<Settings_CreateSettingDefinitionRequest>,
         options: GRPCCore.CallOptions = .defaults,
-        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_GetServiceSettingConfigurationsForAccountResponse>) async throws -> Result = { response in
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_CreateSettingDefinitionResponse>) async throws -> Result = { response in
             try response.message
         }
     ) async throws -> Result where Result: Sendable {
-        try await self.getServiceSettingConfigurationsForAccount(
+        try await self.createSettingDefinition(
             request: request,
-            serializer: GRPCProtobuf.ProtobufSerializer<Settings_GetServiceSettingConfigurationsForAccountRequest>(),
-            deserializer: GRPCProtobuf.ProtobufDeserializer<Settings_GetServiceSettingConfigurationsForAccountResponse>(),
+            serializer: GRPCProtobuf.ProtobufSerializer<Settings_CreateSettingDefinitionRequest>(),
+            deserializer: GRPCProtobuf.ProtobufDeserializer<Settings_CreateSettingDefinitionResponse>(),
             options: options,
             onResponse: handleResponse
         )
     }
 
-    /// Call the "GetServiceSettingConfigurationsForUser" method.
+    /// Call the "GetSettingDefinition" method.
     ///
     /// - Parameters:
-    ///   - request: A request containing a single `Settings_GetServiceSettingConfigurationsForUserRequest` message.
+    ///   - request: A request containing a single `Settings_GetSettingDefinitionRequest` message.
     ///   - options: Options to apply to this RPC.
     ///   - handleResponse: A closure which handles the response, the result of which is
     ///       returned to the caller. Returning from the closure will cancel the RPC if it
     ///       hasn't already finished.
     /// - Returns: The result of `handleResponse`.
-    internal func getServiceSettingConfigurationsForUser<Result>(
-        request: GRPCCore.ClientRequest<Settings_GetServiceSettingConfigurationsForUserRequest>,
+    internal func getSettingDefinition<Result>(
+        request: GRPCCore.ClientRequest<Settings_GetSettingDefinitionRequest>,
         options: GRPCCore.CallOptions = .defaults,
-        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_GetServiceSettingConfigurationsForUserResponse>) async throws -> Result = { response in
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_GetSettingDefinitionResponse>) async throws -> Result = { response in
             try response.message
         }
     ) async throws -> Result where Result: Sendable {
-        try await self.getServiceSettingConfigurationsForUser(
+        try await self.getSettingDefinition(
             request: request,
-            serializer: GRPCProtobuf.ProtobufSerializer<Settings_GetServiceSettingConfigurationsForUserRequest>(),
-            deserializer: GRPCProtobuf.ProtobufDeserializer<Settings_GetServiceSettingConfigurationsForUserResponse>(),
+            serializer: GRPCProtobuf.ProtobufSerializer<Settings_GetSettingDefinitionRequest>(),
+            deserializer: GRPCProtobuf.ProtobufDeserializer<Settings_GetSettingDefinitionResponse>(),
             options: options,
             onResponse: handleResponse
         )
     }
 
-    /// Call the "SearchForServiceSettings" method.
+    /// Call the "GetSettingDefinitionByName" method.
     ///
     /// - Parameters:
-    ///   - request: A request containing a single `Settings_SearchForServiceSettingsRequest` message.
+    ///   - request: A request containing a single `Settings_GetSettingDefinitionByNameRequest` message.
     ///   - options: Options to apply to this RPC.
     ///   - handleResponse: A closure which handles the response, the result of which is
     ///       returned to the caller. Returning from the closure will cancel the RPC if it
     ///       hasn't already finished.
     /// - Returns: The result of `handleResponse`.
-    internal func searchForServiceSettings<Result>(
-        request: GRPCCore.ClientRequest<Settings_SearchForServiceSettingsRequest>,
+    internal func getSettingDefinitionByName<Result>(
+        request: GRPCCore.ClientRequest<Settings_GetSettingDefinitionByNameRequest>,
         options: GRPCCore.CallOptions = .defaults,
-        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_SearchForServiceSettingsResponse>) async throws -> Result = { response in
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_GetSettingDefinitionByNameResponse>) async throws -> Result = { response in
             try response.message
         }
     ) async throws -> Result where Result: Sendable {
-        try await self.searchForServiceSettings(
+        try await self.getSettingDefinitionByName(
             request: request,
-            serializer: GRPCProtobuf.ProtobufSerializer<Settings_SearchForServiceSettingsRequest>(),
-            deserializer: GRPCProtobuf.ProtobufDeserializer<Settings_SearchForServiceSettingsResponse>(),
+            serializer: GRPCProtobuf.ProtobufSerializer<Settings_GetSettingDefinitionByNameRequest>(),
+            deserializer: GRPCProtobuf.ProtobufDeserializer<Settings_GetSettingDefinitionByNameResponse>(),
             options: options,
             onResponse: handleResponse
         )
     }
 
-    /// Call the "ArchiveServiceSetting" method.
+    /// Call the "GetSettingDefinitions" method.
     ///
     /// - Parameters:
-    ///   - request: A request containing a single `Settings_ArchiveServiceSettingRequest` message.
+    ///   - request: A request containing a single `Settings_GetSettingDefinitionsRequest` message.
     ///   - options: Options to apply to this RPC.
     ///   - handleResponse: A closure which handles the response, the result of which is
     ///       returned to the caller. Returning from the closure will cancel the RPC if it
     ///       hasn't already finished.
     /// - Returns: The result of `handleResponse`.
-    internal func archiveServiceSetting<Result>(
-        request: GRPCCore.ClientRequest<Settings_ArchiveServiceSettingRequest>,
+    internal func getSettingDefinitions<Result>(
+        request: GRPCCore.ClientRequest<Settings_GetSettingDefinitionsRequest>,
         options: GRPCCore.CallOptions = .defaults,
-        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_ArchiveServiceSettingResponse>) async throws -> Result = { response in
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_GetSettingDefinitionsResponse>) async throws -> Result = { response in
             try response.message
         }
     ) async throws -> Result where Result: Sendable {
-        try await self.archiveServiceSetting(
+        try await self.getSettingDefinitions(
             request: request,
-            serializer: GRPCProtobuf.ProtobufSerializer<Settings_ArchiveServiceSettingRequest>(),
-            deserializer: GRPCProtobuf.ProtobufDeserializer<Settings_ArchiveServiceSettingResponse>(),
+            serializer: GRPCProtobuf.ProtobufSerializer<Settings_GetSettingDefinitionsRequest>(),
+            deserializer: GRPCProtobuf.ProtobufDeserializer<Settings_GetSettingDefinitionsResponse>(),
             options: options,
             onResponse: handleResponse
         )
     }
 
-    /// Call the "ArchiveServiceSettingConfiguration" method.
+    /// Call the "UpdateSettingDefinition" method.
     ///
     /// - Parameters:
-    ///   - request: A request containing a single `Settings_ArchiveServiceSettingConfigurationRequest` message.
+    ///   - request: A request containing a single `Settings_UpdateSettingDefinitionRequest` message.
     ///   - options: Options to apply to this RPC.
     ///   - handleResponse: A closure which handles the response, the result of which is
     ///       returned to the caller. Returning from the closure will cancel the RPC if it
     ///       hasn't already finished.
     /// - Returns: The result of `handleResponse`.
-    internal func archiveServiceSettingConfiguration<Result>(
-        request: GRPCCore.ClientRequest<Settings_ArchiveServiceSettingConfigurationRequest>,
+    internal func updateSettingDefinition<Result>(
+        request: GRPCCore.ClientRequest<Settings_UpdateSettingDefinitionRequest>,
         options: GRPCCore.CallOptions = .defaults,
-        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_ArchiveServiceSettingConfigurationResponse>) async throws -> Result = { response in
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_UpdateSettingDefinitionResponse>) async throws -> Result = { response in
             try response.message
         }
     ) async throws -> Result where Result: Sendable {
-        try await self.archiveServiceSettingConfiguration(
+        try await self.updateSettingDefinition(
             request: request,
-            serializer: GRPCProtobuf.ProtobufSerializer<Settings_ArchiveServiceSettingConfigurationRequest>(),
-            deserializer: GRPCProtobuf.ProtobufDeserializer<Settings_ArchiveServiceSettingConfigurationResponse>(),
+            serializer: GRPCProtobuf.ProtobufSerializer<Settings_UpdateSettingDefinitionRequest>(),
+            deserializer: GRPCProtobuf.ProtobufDeserializer<Settings_UpdateSettingDefinitionResponse>(),
             options: options,
             onResponse: handleResponse
         )
     }
 
-    /// Call the "CreateServiceSetting" method.
+    /// Call the "ArchiveSettingDefinition" method.
     ///
     /// - Parameters:
-    ///   - request: A request containing a single `Settings_CreateServiceSettingRequest` message.
+    ///   - request: A request containing a single `Settings_ArchiveSettingDefinitionRequest` message.
     ///   - options: Options to apply to this RPC.
     ///   - handleResponse: A closure which handles the response, the result of which is
     ///       returned to the caller. Returning from the closure will cancel the RPC if it
     ///       hasn't already finished.
     /// - Returns: The result of `handleResponse`.
-    internal func createServiceSetting<Result>(
-        request: GRPCCore.ClientRequest<Settings_CreateServiceSettingRequest>,
+    internal func archiveSettingDefinition<Result>(
+        request: GRPCCore.ClientRequest<Settings_ArchiveSettingDefinitionRequest>,
         options: GRPCCore.CallOptions = .defaults,
-        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_CreateServiceSettingResponse>) async throws -> Result = { response in
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_ArchiveSettingDefinitionResponse>) async throws -> Result = { response in
             try response.message
         }
     ) async throws -> Result where Result: Sendable {
-        try await self.createServiceSetting(
+        try await self.archiveSettingDefinition(
             request: request,
-            serializer: GRPCProtobuf.ProtobufSerializer<Settings_CreateServiceSettingRequest>(),
-            deserializer: GRPCProtobuf.ProtobufDeserializer<Settings_CreateServiceSettingResponse>(),
+            serializer: GRPCProtobuf.ProtobufSerializer<Settings_ArchiveSettingDefinitionRequest>(),
+            deserializer: GRPCProtobuf.ProtobufDeserializer<Settings_ArchiveSettingDefinitionResponse>(),
             options: options,
             onResponse: handleResponse
         )
     }
 
-    /// Call the "CreateServiceSettingConfiguration" method.
+    /// Call the "SetSettingValue" method.
     ///
     /// - Parameters:
-    ///   - request: A request containing a single `Settings_CreateServiceSettingConfigurationRequest` message.
+    ///   - request: A request containing a single `Settings_SetSettingValueRequest` message.
     ///   - options: Options to apply to this RPC.
     ///   - handleResponse: A closure which handles the response, the result of which is
     ///       returned to the caller. Returning from the closure will cancel the RPC if it
     ///       hasn't already finished.
     /// - Returns: The result of `handleResponse`.
-    internal func createServiceSettingConfiguration<Result>(
-        request: GRPCCore.ClientRequest<Settings_CreateServiceSettingConfigurationRequest>,
+    internal func setSettingValue<Result>(
+        request: GRPCCore.ClientRequest<Settings_SetSettingValueRequest>,
         options: GRPCCore.CallOptions = .defaults,
-        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_CreateServiceSettingConfigurationResponse>) async throws -> Result = { response in
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_SetSettingValueResponse>) async throws -> Result = { response in
             try response.message
         }
     ) async throws -> Result where Result: Sendable {
-        try await self.createServiceSettingConfiguration(
+        try await self.setSettingValue(
             request: request,
-            serializer: GRPCProtobuf.ProtobufSerializer<Settings_CreateServiceSettingConfigurationRequest>(),
-            deserializer: GRPCProtobuf.ProtobufDeserializer<Settings_CreateServiceSettingConfigurationResponse>(),
+            serializer: GRPCProtobuf.ProtobufSerializer<Settings_SetSettingValueRequest>(),
+            deserializer: GRPCProtobuf.ProtobufDeserializer<Settings_SetSettingValueResponse>(),
             options: options,
             onResponse: handleResponse
         )
     }
 
-    /// Call the "GetServiceSetting" method.
+    /// Call the "GetSettingValue" method.
     ///
     /// - Parameters:
-    ///   - request: A request containing a single `Settings_GetServiceSettingRequest` message.
+    ///   - request: A request containing a single `Settings_GetSettingValueRequest` message.
     ///   - options: Options to apply to this RPC.
     ///   - handleResponse: A closure which handles the response, the result of which is
     ///       returned to the caller. Returning from the closure will cancel the RPC if it
     ///       hasn't already finished.
     /// - Returns: The result of `handleResponse`.
-    internal func getServiceSetting<Result>(
-        request: GRPCCore.ClientRequest<Settings_GetServiceSettingRequest>,
+    internal func getSettingValue<Result>(
+        request: GRPCCore.ClientRequest<Settings_GetSettingValueRequest>,
         options: GRPCCore.CallOptions = .defaults,
-        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_GetServiceSettingResponse>) async throws -> Result = { response in
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_GetSettingValueResponse>) async throws -> Result = { response in
             try response.message
         }
     ) async throws -> Result where Result: Sendable {
-        try await self.getServiceSetting(
+        try await self.getSettingValue(
             request: request,
-            serializer: GRPCProtobuf.ProtobufSerializer<Settings_GetServiceSettingRequest>(),
-            deserializer: GRPCProtobuf.ProtobufDeserializer<Settings_GetServiceSettingResponse>(),
+            serializer: GRPCProtobuf.ProtobufSerializer<Settings_GetSettingValueRequest>(),
+            deserializer: GRPCProtobuf.ProtobufDeserializer<Settings_GetSettingValueResponse>(),
             options: options,
             onResponse: handleResponse
         )
     }
 
-    /// Call the "GetServiceSettingConfigurationByName" method.
+    /// Call the "ClearSettingValue" method.
     ///
     /// - Parameters:
-    ///   - request: A request containing a single `Settings_GetServiceSettingConfigurationByNameRequest` message.
+    ///   - request: A request containing a single `Settings_ClearSettingValueRequest` message.
     ///   - options: Options to apply to this RPC.
     ///   - handleResponse: A closure which handles the response, the result of which is
     ///       returned to the caller. Returning from the closure will cancel the RPC if it
     ///       hasn't already finished.
     /// - Returns: The result of `handleResponse`.
-    internal func getServiceSettingConfigurationByName<Result>(
-        request: GRPCCore.ClientRequest<Settings_GetServiceSettingConfigurationByNameRequest>,
+    internal func clearSettingValue<Result>(
+        request: GRPCCore.ClientRequest<Settings_ClearSettingValueRequest>,
         options: GRPCCore.CallOptions = .defaults,
-        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_GetServiceSettingConfigurationByNameResponse>) async throws -> Result = { response in
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_ClearSettingValueResponse>) async throws -> Result = { response in
             try response.message
         }
     ) async throws -> Result where Result: Sendable {
-        try await self.getServiceSettingConfigurationByName(
+        try await self.clearSettingValue(
             request: request,
-            serializer: GRPCProtobuf.ProtobufSerializer<Settings_GetServiceSettingConfigurationByNameRequest>(),
-            deserializer: GRPCProtobuf.ProtobufDeserializer<Settings_GetServiceSettingConfigurationByNameResponse>(),
+            serializer: GRPCProtobuf.ProtobufSerializer<Settings_ClearSettingValueRequest>(),
+            deserializer: GRPCProtobuf.ProtobufDeserializer<Settings_ClearSettingValueResponse>(),
             options: options,
             onResponse: handleResponse
         )
     }
 
-    /// Call the "GetServiceSettings" method.
+    /// Call the "GetSettingValues" method.
     ///
     /// - Parameters:
-    ///   - request: A request containing a single `Settings_GetServiceSettingsRequest` message.
+    ///   - request: A request containing a single `Settings_GetSettingValuesRequest` message.
     ///   - options: Options to apply to this RPC.
     ///   - handleResponse: A closure which handles the response, the result of which is
     ///       returned to the caller. Returning from the closure will cancel the RPC if it
     ///       hasn't already finished.
     /// - Returns: The result of `handleResponse`.
-    internal func getServiceSettings<Result>(
-        request: GRPCCore.ClientRequest<Settings_GetServiceSettingsRequest>,
+    internal func getSettingValues<Result>(
+        request: GRPCCore.ClientRequest<Settings_GetSettingValuesRequest>,
         options: GRPCCore.CallOptions = .defaults,
-        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_GetServiceSettingsResponse>) async throws -> Result = { response in
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_GetSettingValuesResponse>) async throws -> Result = { response in
             try response.message
         }
     ) async throws -> Result where Result: Sendable {
-        try await self.getServiceSettings(
+        try await self.getSettingValues(
             request: request,
-            serializer: GRPCProtobuf.ProtobufSerializer<Settings_GetServiceSettingsRequest>(),
-            deserializer: GRPCProtobuf.ProtobufDeserializer<Settings_GetServiceSettingsResponse>(),
+            serializer: GRPCProtobuf.ProtobufSerializer<Settings_GetSettingValuesRequest>(),
+            deserializer: GRPCProtobuf.ProtobufDeserializer<Settings_GetSettingValuesResponse>(),
             options: options,
             onResponse: handleResponse
         )
     }
 
-    /// Call the "UpdateServiceSettingConfiguration" method.
+    /// Call the "GetSettingValuesForDefinition" method.
     ///
     /// - Parameters:
-    ///   - request: A request containing a single `Settings_UpdateServiceSettingConfigurationRequest` message.
+    ///   - request: A request containing a single `Settings_GetSettingValuesForDefinitionRequest` message.
     ///   - options: Options to apply to this RPC.
     ///   - handleResponse: A closure which handles the response, the result of which is
     ///       returned to the caller. Returning from the closure will cancel the RPC if it
     ///       hasn't already finished.
     /// - Returns: The result of `handleResponse`.
-    internal func updateServiceSettingConfiguration<Result>(
-        request: GRPCCore.ClientRequest<Settings_UpdateServiceSettingConfigurationRequest>,
+    internal func getSettingValuesForDefinition<Result>(
+        request: GRPCCore.ClientRequest<Settings_GetSettingValuesForDefinitionRequest>,
         options: GRPCCore.CallOptions = .defaults,
-        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_UpdateServiceSettingConfigurationResponse>) async throws -> Result = { response in
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_GetSettingValuesForDefinitionResponse>) async throws -> Result = { response in
             try response.message
         }
     ) async throws -> Result where Result: Sendable {
-        try await self.updateServiceSettingConfiguration(
+        try await self.getSettingValuesForDefinition(
             request: request,
-            serializer: GRPCProtobuf.ProtobufSerializer<Settings_UpdateServiceSettingConfigurationRequest>(),
-            deserializer: GRPCProtobuf.ProtobufDeserializer<Settings_UpdateServiceSettingConfigurationResponse>(),
+            serializer: GRPCProtobuf.ProtobufSerializer<Settings_GetSettingValuesForDefinitionRequest>(),
+            deserializer: GRPCProtobuf.ProtobufDeserializer<Settings_GetSettingValuesForDefinitionResponse>(),
+            options: options,
+            onResponse: handleResponse
+        )
+    }
+
+    /// Call the "ResolveSetting" method.
+    ///
+    /// - Parameters:
+    ///   - request: A request containing a single `Settings_ResolveSettingRequest` message.
+    ///   - options: Options to apply to this RPC.
+    ///   - handleResponse: A closure which handles the response, the result of which is
+    ///       returned to the caller. Returning from the closure will cancel the RPC if it
+    ///       hasn't already finished.
+    /// - Returns: The result of `handleResponse`.
+    internal func resolveSetting<Result>(
+        request: GRPCCore.ClientRequest<Settings_ResolveSettingRequest>,
+        options: GRPCCore.CallOptions = .defaults,
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_ResolveSettingResponse>) async throws -> Result = { response in
+            try response.message
+        }
+    ) async throws -> Result where Result: Sendable {
+        try await self.resolveSetting(
+            request: request,
+            serializer: GRPCProtobuf.ProtobufSerializer<Settings_ResolveSettingRequest>(),
+            deserializer: GRPCProtobuf.ProtobufDeserializer<Settings_ResolveSettingResponse>(),
+            options: options,
+            onResponse: handleResponse
+        )
+    }
+
+    /// Call the "ResolveSettings" method.
+    ///
+    /// - Parameters:
+    ///   - request: A request containing a single `Settings_ResolveSettingsRequest` message.
+    ///   - options: Options to apply to this RPC.
+    ///   - handleResponse: A closure which handles the response, the result of which is
+    ///       returned to the caller. Returning from the closure will cancel the RPC if it
+    ///       hasn't already finished.
+    /// - Returns: The result of `handleResponse`.
+    internal func resolveSettings<Result>(
+        request: GRPCCore.ClientRequest<Settings_ResolveSettingsRequest>,
+        options: GRPCCore.CallOptions = .defaults,
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_ResolveSettingsResponse>) async throws -> Result = { response in
+            try response.message
+        }
+    ) async throws -> Result where Result: Sendable {
+        try await self.resolveSettings(
+            request: request,
+            serializer: GRPCProtobuf.ProtobufSerializer<Settings_ResolveSettingsRequest>(),
+            deserializer: GRPCProtobuf.ProtobufDeserializer<Settings_ResolveSettingsResponse>(),
             options: options,
             onResponse: handleResponse
         )
@@ -1024,7 +1216,7 @@ extension Settings_SettingsService.ClientProtocol {
 // Helpers providing sugared APIs for 'ClientProtocol' methods.
 @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
 extension Settings_SettingsService.ClientProtocol {
-    /// Call the "GetServiceSettingConfigurationsForAccount" method.
+    /// Call the "CreateSettingDefinition" method.
     ///
     /// - Parameters:
     ///   - message: request message to send.
@@ -1034,26 +1226,26 @@ extension Settings_SettingsService.ClientProtocol {
     ///       returned to the caller. Returning from the closure will cancel the RPC if it
     ///       hasn't already finished.
     /// - Returns: The result of `handleResponse`.
-    internal func getServiceSettingConfigurationsForAccount<Result>(
-        _ message: Settings_GetServiceSettingConfigurationsForAccountRequest,
+    internal func createSettingDefinition<Result>(
+        _ message: Settings_CreateSettingDefinitionRequest,
         metadata: GRPCCore.Metadata = [:],
         options: GRPCCore.CallOptions = .defaults,
-        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_GetServiceSettingConfigurationsForAccountResponse>) async throws -> Result = { response in
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_CreateSettingDefinitionResponse>) async throws -> Result = { response in
             try response.message
         }
     ) async throws -> Result where Result: Sendable {
-        let request = GRPCCore.ClientRequest<Settings_GetServiceSettingConfigurationsForAccountRequest>(
+        let request = GRPCCore.ClientRequest<Settings_CreateSettingDefinitionRequest>(
             message: message,
             metadata: metadata
         )
-        return try await self.getServiceSettingConfigurationsForAccount(
+        return try await self.createSettingDefinition(
             request: request,
             options: options,
             onResponse: handleResponse
         )
     }
 
-    /// Call the "GetServiceSettingConfigurationsForUser" method.
+    /// Call the "GetSettingDefinition" method.
     ///
     /// - Parameters:
     ///   - message: request message to send.
@@ -1063,26 +1255,26 @@ extension Settings_SettingsService.ClientProtocol {
     ///       returned to the caller. Returning from the closure will cancel the RPC if it
     ///       hasn't already finished.
     /// - Returns: The result of `handleResponse`.
-    internal func getServiceSettingConfigurationsForUser<Result>(
-        _ message: Settings_GetServiceSettingConfigurationsForUserRequest,
+    internal func getSettingDefinition<Result>(
+        _ message: Settings_GetSettingDefinitionRequest,
         metadata: GRPCCore.Metadata = [:],
         options: GRPCCore.CallOptions = .defaults,
-        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_GetServiceSettingConfigurationsForUserResponse>) async throws -> Result = { response in
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_GetSettingDefinitionResponse>) async throws -> Result = { response in
             try response.message
         }
     ) async throws -> Result where Result: Sendable {
-        let request = GRPCCore.ClientRequest<Settings_GetServiceSettingConfigurationsForUserRequest>(
+        let request = GRPCCore.ClientRequest<Settings_GetSettingDefinitionRequest>(
             message: message,
             metadata: metadata
         )
-        return try await self.getServiceSettingConfigurationsForUser(
+        return try await self.getSettingDefinition(
             request: request,
             options: options,
             onResponse: handleResponse
         )
     }
 
-    /// Call the "SearchForServiceSettings" method.
+    /// Call the "GetSettingDefinitionByName" method.
     ///
     /// - Parameters:
     ///   - message: request message to send.
@@ -1092,26 +1284,26 @@ extension Settings_SettingsService.ClientProtocol {
     ///       returned to the caller. Returning from the closure will cancel the RPC if it
     ///       hasn't already finished.
     /// - Returns: The result of `handleResponse`.
-    internal func searchForServiceSettings<Result>(
-        _ message: Settings_SearchForServiceSettingsRequest,
+    internal func getSettingDefinitionByName<Result>(
+        _ message: Settings_GetSettingDefinitionByNameRequest,
         metadata: GRPCCore.Metadata = [:],
         options: GRPCCore.CallOptions = .defaults,
-        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_SearchForServiceSettingsResponse>) async throws -> Result = { response in
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_GetSettingDefinitionByNameResponse>) async throws -> Result = { response in
             try response.message
         }
     ) async throws -> Result where Result: Sendable {
-        let request = GRPCCore.ClientRequest<Settings_SearchForServiceSettingsRequest>(
+        let request = GRPCCore.ClientRequest<Settings_GetSettingDefinitionByNameRequest>(
             message: message,
             metadata: metadata
         )
-        return try await self.searchForServiceSettings(
+        return try await self.getSettingDefinitionByName(
             request: request,
             options: options,
             onResponse: handleResponse
         )
     }
 
-    /// Call the "ArchiveServiceSetting" method.
+    /// Call the "GetSettingDefinitions" method.
     ///
     /// - Parameters:
     ///   - message: request message to send.
@@ -1121,26 +1313,26 @@ extension Settings_SettingsService.ClientProtocol {
     ///       returned to the caller. Returning from the closure will cancel the RPC if it
     ///       hasn't already finished.
     /// - Returns: The result of `handleResponse`.
-    internal func archiveServiceSetting<Result>(
-        _ message: Settings_ArchiveServiceSettingRequest,
+    internal func getSettingDefinitions<Result>(
+        _ message: Settings_GetSettingDefinitionsRequest,
         metadata: GRPCCore.Metadata = [:],
         options: GRPCCore.CallOptions = .defaults,
-        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_ArchiveServiceSettingResponse>) async throws -> Result = { response in
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_GetSettingDefinitionsResponse>) async throws -> Result = { response in
             try response.message
         }
     ) async throws -> Result where Result: Sendable {
-        let request = GRPCCore.ClientRequest<Settings_ArchiveServiceSettingRequest>(
+        let request = GRPCCore.ClientRequest<Settings_GetSettingDefinitionsRequest>(
             message: message,
             metadata: metadata
         )
-        return try await self.archiveServiceSetting(
+        return try await self.getSettingDefinitions(
             request: request,
             options: options,
             onResponse: handleResponse
         )
     }
 
-    /// Call the "ArchiveServiceSettingConfiguration" method.
+    /// Call the "UpdateSettingDefinition" method.
     ///
     /// - Parameters:
     ///   - message: request message to send.
@@ -1150,26 +1342,26 @@ extension Settings_SettingsService.ClientProtocol {
     ///       returned to the caller. Returning from the closure will cancel the RPC if it
     ///       hasn't already finished.
     /// - Returns: The result of `handleResponse`.
-    internal func archiveServiceSettingConfiguration<Result>(
-        _ message: Settings_ArchiveServiceSettingConfigurationRequest,
+    internal func updateSettingDefinition<Result>(
+        _ message: Settings_UpdateSettingDefinitionRequest,
         metadata: GRPCCore.Metadata = [:],
         options: GRPCCore.CallOptions = .defaults,
-        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_ArchiveServiceSettingConfigurationResponse>) async throws -> Result = { response in
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_UpdateSettingDefinitionResponse>) async throws -> Result = { response in
             try response.message
         }
     ) async throws -> Result where Result: Sendable {
-        let request = GRPCCore.ClientRequest<Settings_ArchiveServiceSettingConfigurationRequest>(
+        let request = GRPCCore.ClientRequest<Settings_UpdateSettingDefinitionRequest>(
             message: message,
             metadata: metadata
         )
-        return try await self.archiveServiceSettingConfiguration(
+        return try await self.updateSettingDefinition(
             request: request,
             options: options,
             onResponse: handleResponse
         )
     }
 
-    /// Call the "CreateServiceSetting" method.
+    /// Call the "ArchiveSettingDefinition" method.
     ///
     /// - Parameters:
     ///   - message: request message to send.
@@ -1179,26 +1371,26 @@ extension Settings_SettingsService.ClientProtocol {
     ///       returned to the caller. Returning from the closure will cancel the RPC if it
     ///       hasn't already finished.
     /// - Returns: The result of `handleResponse`.
-    internal func createServiceSetting<Result>(
-        _ message: Settings_CreateServiceSettingRequest,
+    internal func archiveSettingDefinition<Result>(
+        _ message: Settings_ArchiveSettingDefinitionRequest,
         metadata: GRPCCore.Metadata = [:],
         options: GRPCCore.CallOptions = .defaults,
-        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_CreateServiceSettingResponse>) async throws -> Result = { response in
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_ArchiveSettingDefinitionResponse>) async throws -> Result = { response in
             try response.message
         }
     ) async throws -> Result where Result: Sendable {
-        let request = GRPCCore.ClientRequest<Settings_CreateServiceSettingRequest>(
+        let request = GRPCCore.ClientRequest<Settings_ArchiveSettingDefinitionRequest>(
             message: message,
             metadata: metadata
         )
-        return try await self.createServiceSetting(
+        return try await self.archiveSettingDefinition(
             request: request,
             options: options,
             onResponse: handleResponse
         )
     }
 
-    /// Call the "CreateServiceSettingConfiguration" method.
+    /// Call the "SetSettingValue" method.
     ///
     /// - Parameters:
     ///   - message: request message to send.
@@ -1208,26 +1400,26 @@ extension Settings_SettingsService.ClientProtocol {
     ///       returned to the caller. Returning from the closure will cancel the RPC if it
     ///       hasn't already finished.
     /// - Returns: The result of `handleResponse`.
-    internal func createServiceSettingConfiguration<Result>(
-        _ message: Settings_CreateServiceSettingConfigurationRequest,
+    internal func setSettingValue<Result>(
+        _ message: Settings_SetSettingValueRequest,
         metadata: GRPCCore.Metadata = [:],
         options: GRPCCore.CallOptions = .defaults,
-        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_CreateServiceSettingConfigurationResponse>) async throws -> Result = { response in
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_SetSettingValueResponse>) async throws -> Result = { response in
             try response.message
         }
     ) async throws -> Result where Result: Sendable {
-        let request = GRPCCore.ClientRequest<Settings_CreateServiceSettingConfigurationRequest>(
+        let request = GRPCCore.ClientRequest<Settings_SetSettingValueRequest>(
             message: message,
             metadata: metadata
         )
-        return try await self.createServiceSettingConfiguration(
+        return try await self.setSettingValue(
             request: request,
             options: options,
             onResponse: handleResponse
         )
     }
 
-    /// Call the "GetServiceSetting" method.
+    /// Call the "GetSettingValue" method.
     ///
     /// - Parameters:
     ///   - message: request message to send.
@@ -1237,26 +1429,26 @@ extension Settings_SettingsService.ClientProtocol {
     ///       returned to the caller. Returning from the closure will cancel the RPC if it
     ///       hasn't already finished.
     /// - Returns: The result of `handleResponse`.
-    internal func getServiceSetting<Result>(
-        _ message: Settings_GetServiceSettingRequest,
+    internal func getSettingValue<Result>(
+        _ message: Settings_GetSettingValueRequest,
         metadata: GRPCCore.Metadata = [:],
         options: GRPCCore.CallOptions = .defaults,
-        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_GetServiceSettingResponse>) async throws -> Result = { response in
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_GetSettingValueResponse>) async throws -> Result = { response in
             try response.message
         }
     ) async throws -> Result where Result: Sendable {
-        let request = GRPCCore.ClientRequest<Settings_GetServiceSettingRequest>(
+        let request = GRPCCore.ClientRequest<Settings_GetSettingValueRequest>(
             message: message,
             metadata: metadata
         )
-        return try await self.getServiceSetting(
+        return try await self.getSettingValue(
             request: request,
             options: options,
             onResponse: handleResponse
         )
     }
 
-    /// Call the "GetServiceSettingConfigurationByName" method.
+    /// Call the "ClearSettingValue" method.
     ///
     /// - Parameters:
     ///   - message: request message to send.
@@ -1266,26 +1458,26 @@ extension Settings_SettingsService.ClientProtocol {
     ///       returned to the caller. Returning from the closure will cancel the RPC if it
     ///       hasn't already finished.
     /// - Returns: The result of `handleResponse`.
-    internal func getServiceSettingConfigurationByName<Result>(
-        _ message: Settings_GetServiceSettingConfigurationByNameRequest,
+    internal func clearSettingValue<Result>(
+        _ message: Settings_ClearSettingValueRequest,
         metadata: GRPCCore.Metadata = [:],
         options: GRPCCore.CallOptions = .defaults,
-        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_GetServiceSettingConfigurationByNameResponse>) async throws -> Result = { response in
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_ClearSettingValueResponse>) async throws -> Result = { response in
             try response.message
         }
     ) async throws -> Result where Result: Sendable {
-        let request = GRPCCore.ClientRequest<Settings_GetServiceSettingConfigurationByNameRequest>(
+        let request = GRPCCore.ClientRequest<Settings_ClearSettingValueRequest>(
             message: message,
             metadata: metadata
         )
-        return try await self.getServiceSettingConfigurationByName(
+        return try await self.clearSettingValue(
             request: request,
             options: options,
             onResponse: handleResponse
         )
     }
 
-    /// Call the "GetServiceSettings" method.
+    /// Call the "GetSettingValues" method.
     ///
     /// - Parameters:
     ///   - message: request message to send.
@@ -1295,26 +1487,26 @@ extension Settings_SettingsService.ClientProtocol {
     ///       returned to the caller. Returning from the closure will cancel the RPC if it
     ///       hasn't already finished.
     /// - Returns: The result of `handleResponse`.
-    internal func getServiceSettings<Result>(
-        _ message: Settings_GetServiceSettingsRequest,
+    internal func getSettingValues<Result>(
+        _ message: Settings_GetSettingValuesRequest,
         metadata: GRPCCore.Metadata = [:],
         options: GRPCCore.CallOptions = .defaults,
-        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_GetServiceSettingsResponse>) async throws -> Result = { response in
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_GetSettingValuesResponse>) async throws -> Result = { response in
             try response.message
         }
     ) async throws -> Result where Result: Sendable {
-        let request = GRPCCore.ClientRequest<Settings_GetServiceSettingsRequest>(
+        let request = GRPCCore.ClientRequest<Settings_GetSettingValuesRequest>(
             message: message,
             metadata: metadata
         )
-        return try await self.getServiceSettings(
+        return try await self.getSettingValues(
             request: request,
             options: options,
             onResponse: handleResponse
         )
     }
 
-    /// Call the "UpdateServiceSettingConfiguration" method.
+    /// Call the "GetSettingValuesForDefinition" method.
     ///
     /// - Parameters:
     ///   - message: request message to send.
@@ -1324,19 +1516,77 @@ extension Settings_SettingsService.ClientProtocol {
     ///       returned to the caller. Returning from the closure will cancel the RPC if it
     ///       hasn't already finished.
     /// - Returns: The result of `handleResponse`.
-    internal func updateServiceSettingConfiguration<Result>(
-        _ message: Settings_UpdateServiceSettingConfigurationRequest,
+    internal func getSettingValuesForDefinition<Result>(
+        _ message: Settings_GetSettingValuesForDefinitionRequest,
         metadata: GRPCCore.Metadata = [:],
         options: GRPCCore.CallOptions = .defaults,
-        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_UpdateServiceSettingConfigurationResponse>) async throws -> Result = { response in
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_GetSettingValuesForDefinitionResponse>) async throws -> Result = { response in
             try response.message
         }
     ) async throws -> Result where Result: Sendable {
-        let request = GRPCCore.ClientRequest<Settings_UpdateServiceSettingConfigurationRequest>(
+        let request = GRPCCore.ClientRequest<Settings_GetSettingValuesForDefinitionRequest>(
             message: message,
             metadata: metadata
         )
-        return try await self.updateServiceSettingConfiguration(
+        return try await self.getSettingValuesForDefinition(
+            request: request,
+            options: options,
+            onResponse: handleResponse
+        )
+    }
+
+    /// Call the "ResolveSetting" method.
+    ///
+    /// - Parameters:
+    ///   - message: request message to send.
+    ///   - metadata: Additional metadata to send, defaults to empty.
+    ///   - options: Options to apply to this RPC, defaults to `.defaults`.
+    ///   - handleResponse: A closure which handles the response, the result of which is
+    ///       returned to the caller. Returning from the closure will cancel the RPC if it
+    ///       hasn't already finished.
+    /// - Returns: The result of `handleResponse`.
+    internal func resolveSetting<Result>(
+        _ message: Settings_ResolveSettingRequest,
+        metadata: GRPCCore.Metadata = [:],
+        options: GRPCCore.CallOptions = .defaults,
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_ResolveSettingResponse>) async throws -> Result = { response in
+            try response.message
+        }
+    ) async throws -> Result where Result: Sendable {
+        let request = GRPCCore.ClientRequest<Settings_ResolveSettingRequest>(
+            message: message,
+            metadata: metadata
+        )
+        return try await self.resolveSetting(
+            request: request,
+            options: options,
+            onResponse: handleResponse
+        )
+    }
+
+    /// Call the "ResolveSettings" method.
+    ///
+    /// - Parameters:
+    ///   - message: request message to send.
+    ///   - metadata: Additional metadata to send, defaults to empty.
+    ///   - options: Options to apply to this RPC, defaults to `.defaults`.
+    ///   - handleResponse: A closure which handles the response, the result of which is
+    ///       returned to the caller. Returning from the closure will cancel the RPC if it
+    ///       hasn't already finished.
+    /// - Returns: The result of `handleResponse`.
+    internal func resolveSettings<Result>(
+        _ message: Settings_ResolveSettingsRequest,
+        metadata: GRPCCore.Metadata = [:],
+        options: GRPCCore.CallOptions = .defaults,
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Settings_ResolveSettingsResponse>) async throws -> Result = { response in
+            try response.message
+        }
+    ) async throws -> Result where Result: Sendable {
+        let request = GRPCCore.ClientRequest<Settings_ResolveSettingsRequest>(
+            message: message,
+            metadata: metadata
+        )
+        return try await self.resolveSettings(
             request: request,
             options: options,
             onResponse: handleResponse

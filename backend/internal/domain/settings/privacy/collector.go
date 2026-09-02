@@ -1,75 +1,37 @@
-// Package privacy is the settings domain's contribution to a subject access request.
+/*
+Package privacy is the settings domain's contribution to a subject access
+request: the answers somebody has stored about themselves.
+
+There is no eraser here, unlike waitlists and comments, and its absence is a
+property of the schema rather than an omission. Every setting value in this
+deployment belongs to a user, so ddb_settings_values carries a foreign key to
+users with ON DELETE CASCADE — see internal/repositories/postgres/migrations —
+and the single identity eraser takes the rows with the user. See
+internal/domain/settings for why there is only one subject type.
+*/
 package privacy
 
 import (
 	"context"
-	"encoding/json"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings"
 
 	platformdataprivacy "github.com/primandproper/platform-go/v13/dataprivacy"
 	"github.com/primandproper/platform-go/v13/filtering"
-	"github.com/primandproper/platform-go/v13/observability"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
+	platformsettings "github.com/primandproper/platform-go/v13/settings"
 )
 
-const o11yName = "settings_privacy_collector"
-
-// Collector collects setting configurations about a subject.
-type Collector struct {
-	repo            settings.Repository
-	resolveAccounts dataprivacy.AccountIDResolver
-	tracer          tracing.Tracer
-	logger          logging.Logger
-}
-
-var _ platformdataprivacy.Collector = (*Collector)(nil)
-
-// NewCollector builds the settings collector.
-func NewCollector(
-	repo settings.Repository,
-	resolveAccounts dataprivacy.AccountIDResolver,
-	logger logging.Logger,
-	tracerProvider tracing.Provider,
-) *Collector {
-	return &Collector{
-		repo:            repo,
-		resolveAccounts: resolveAccounts,
-		tracer:          tracing.NewNamedTracer(tracerProvider, o11yName),
-		logger:          logging.NewNamedLogger(logger, o11yName),
-	}
-}
-
-// Collect implements platformdataprivacy.Collector.
-func (c *Collector) Collect(ctx context.Context, subject platformdataprivacy.Subject) (json.RawMessage, error) {
-	ctx, span := c.tracer.StartSpan(ctx)
-	defer span.End()
-
-	logger := c.logger.WithSpan(span)
-
-	userSettings, err := platformdataprivacy.CollectAll(ctx, func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[settings.ServiceSettingConfiguration], error) {
-		return c.repo.GetServiceSettingConfigurationsForUser(ctx, subject.ID, filter)
-	})
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "fetching user settings")
-	}
-
-	accountIDs, err := c.resolveAccounts(ctx, subject.ID)
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "resolving accounts")
-	}
-
-	accountSettings, err := dataprivacy.CollectAcrossAccounts(ctx, accountIDs, c.repo.GetServiceSettingConfigurationsForAccount)
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "fetching account settings")
-	}
-
-	held := len(userSettings) > 0 || len(accountSettings) > 0
-
-	return platformdataprivacy.Fragment(held, &settings.UserDataCollection{
-		UserSettings:    userSettings,
-		AccountSettings: accountSettings,
+// NewCollector builds the settings collector: every value the subject has
+// stored, paged to the end and encoded, or nothing if they have answered no
+// setting.
+//
+// What it does not export is the catalog. A definition is an administrative row
+// that says what a setting means for everybody, and a copy of it in one person's
+// export would describe this deployment rather than them. The value names the
+// definition it answers, which is what makes the export readable against the
+// catalog somebody can already list.
+func NewCollector(store platformsettings.ValueStore) platformdataprivacy.Collector {
+	return platformdataprivacy.CollectorFor(func(ctx context.Context, subject platformdataprivacy.Subject, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[platformsettings.Value], error) {
+		return store.ListValuesForSubject(ctx, settings.Scope(), settings.SubjectFor(subject.ID), filter)
 	})
 }

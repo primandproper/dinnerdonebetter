@@ -6,16 +6,24 @@ import "settings/settings_service_types.proto";
 
 option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/settings";
 
+// SettingsService is the catalog of settings this deployment defines and the
+// answers its users store against it.
+//
+// The two halves have two callers. The definition methods are an administrator's
+// — a seeding job, an admin console — and the value methods are the request
+// path's, reached by whoever is saving or reading their own preference.
 service SettingsService {
-  rpc GetServiceSettingConfigurationsForAccount(GetServiceSettingConfigurationsForAccountRequest) returns (GetServiceSettingConfigurationsForAccountResponse);
-  rpc GetServiceSettingConfigurationsForUser(GetServiceSettingConfigurationsForUserRequest) returns (GetServiceSettingConfigurationsForUserResponse);
-  rpc SearchForServiceSettings(SearchForServiceSettingsRequest) returns (SearchForServiceSettingsResponse);
-  rpc ArchiveServiceSetting(ArchiveServiceSettingRequest) returns (ArchiveServiceSettingResponse);
-  rpc ArchiveServiceSettingConfiguration(ArchiveServiceSettingConfigurationRequest) returns (ArchiveServiceSettingConfigurationResponse);
-  rpc CreateServiceSetting(CreateServiceSettingRequest) returns (CreateServiceSettingResponse);
-  rpc CreateServiceSettingConfiguration(CreateServiceSettingConfigurationRequest) returns (CreateServiceSettingConfigurationResponse);
-  rpc GetServiceSetting(GetServiceSettingRequest) returns (GetServiceSettingResponse);
-  rpc GetServiceSettingConfigurationByName(GetServiceSettingConfigurationByNameRequest) returns (GetServiceSettingConfigurationByNameResponse);
-  rpc GetServiceSettings(GetServiceSettingsRequest) returns (GetServiceSettingsResponse);
-  rpc UpdateServiceSettingConfiguration(UpdateServiceSettingConfigurationRequest) returns (UpdateServiceSettingConfigurationResponse);
+  rpc CreateSettingDefinition(CreateSettingDefinitionRequest) returns (CreateSettingDefinitionResponse);
+  rpc GetSettingDefinition(GetSettingDefinitionRequest) returns (GetSettingDefinitionResponse);
+  rpc GetSettingDefinitionByName(GetSettingDefinitionByNameRequest) returns (GetSettingDefinitionByNameResponse);
+  rpc GetSettingDefinitions(GetSettingDefinitionsRequest) returns (GetSettingDefinitionsResponse);
+  rpc UpdateSettingDefinition(UpdateSettingDefinitionRequest) returns (UpdateSettingDefinitionResponse);
+  rpc ArchiveSettingDefinition(ArchiveSettingDefinitionRequest) returns (ArchiveSettingDefinitionResponse);
+  rpc SetSettingValue(SetSettingValueRequest) returns (SetSettingValueResponse);
+  rpc GetSettingValue(GetSettingValueRequest) returns (GetSettingValueResponse);
+  rpc ClearSettingValue(ClearSettingValueRequest) returns (ClearSettingValueResponse);
+  rpc GetSettingValues(GetSettingValuesRequest) returns (GetSettingValuesResponse);
+  rpc GetSettingValuesForDefinition(GetSettingValuesForDefinitionRequest) returns (GetSettingValuesForDefinitionResponse);
+  rpc ResolveSetting(ResolveSettingRequest) returns (ResolveSettingResponse);
+  rpc ResolveSettings(ResolveSettingsRequest) returns (ResolveSettingsResponse);
 }

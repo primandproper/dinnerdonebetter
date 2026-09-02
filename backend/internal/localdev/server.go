@@ -18,7 +18,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/catalog"
 	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
@@ -44,9 +43,11 @@ import (
 	msgconfig "github.com/primandproper/platform-go/v13/messagequeue/config"
 	"github.com/primandproper/platform-go/v13/messagequeue/redis"
 	"github.com/primandproper/platform-go/v13/observability/logging"
+	metricsnoop "github.com/primandproper/platform-go/v13/observability/metrics/noop"
 	"github.com/primandproper/platform-go/v13/observability/tracing"
 	tracingnoop "github.com/primandproper/platform-go/v13/observability/tracing/noop"
 	"github.com/primandproper/platform-go/v13/random"
+	platformsettings "github.com/primandproper/platform-go/v13/settings"
 	"github.com/primandproper/platform-go/v13/testutils/containers/redistest"
 	webhookscfg "github.com/primandproper/platform-go/v13/webhooks/config"
 
@@ -264,16 +265,21 @@ func WithMealPlanningRepository(fn func(ctx context.Context, repo mealplanning.R
 	}
 }
 
-// WithSettingsRepository provides a settings repository for custom operations.
-// The provided function receives a fully configured settings.Repository along with logger and tracer.
-func WithSettingsRepository(fn func(ctx context.Context, repo settings.Repository, logger logging.Logger, tracerProvider tracing.Provider) error) DatabaseInitFunc {
+// WithSettingsRepository provides a settings store for custom operations.
+// The provided function receives a fully configured settings.Store along with logger and tracer.
+func WithSettingsRepository(fn func(ctx context.Context, store platformsettings.Store, logger logging.Logger, tracerProvider tracing.Provider) error) DatabaseInitFunc {
 	return func(ctx context.Context, dbClient database.Client, dbCfg *dbcfg.Config, logger logging.Logger, tracerProvider tracing.Provider) error {
 		auditLogRepo, err := auditlogentries.ProvideAuditLogRepository(logger, tracerProvider, nil, dbClient)
 		if err != nil {
 			return err
 		}
-		settingsRepo := settingsrepo.ProvideSettingsRepository(logger, tracerProvider, auditLogRepo, dbClient, nil)
-		return fn(ctx, settingsRepo, logger, tracerProvider)
+
+		settingsStore, err := settingsrepo.ProvideSettingsRepository(ctx, logger, tracerProvider, metricsnoop.NewMetricsProvider(), auditLogRepo, dbClient, nil)
+		if err != nil {
+			return err
+		}
+
+		return fn(ctx, settingsStore, logger, tracerProvider)
 	}
 }
 

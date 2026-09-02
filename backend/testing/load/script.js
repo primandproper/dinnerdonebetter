@@ -76,11 +76,10 @@ const READ_ENDPOINTS = [
   { method: "identity.IdentityService/GetAccounts", request: { filter: {} } },
   { method: "identity.IdentityService/GetReceivedAccountInvitations", request: { filter: {} } },
   { method: "identity.IdentityService/GetSentAccountInvitations", request: { filter: {} } },
-  // Settings
-  { method: "settings.SettingsService/GetServiceSettingConfigurationsForAccount", request: { filter: {} } },
-  { method: "settings.SettingsService/GetServiceSettingConfigurationsForUser", request: { filter: {} } },
-  { method: "settings.SettingsService/GetServiceSettings", request: { filter: {} } },
-  { method: "settings.SettingsService/SearchForServiceSettings", request: { filter: {}, query: "notification" } },
+  // Settings (no per-account read: values belong to a person, not a membership)
+  { method: "settings.SettingsService/GetSettingDefinitions", request: { filter: {} } },
+  { method: "settings.SettingsService/GetSettingValues", request: { filter: {} } },
+  { method: "settings.SettingsService/ResolveSettings", request: {} },
   // Audit
   { method: "audit.AuditService/GetAuditLogEntriesForAccount", request: (d) => ({ filter: {}, account_id: d.accountId }) },
   { method: "audit.AuditService/GetAuditLogEntriesForUser", request: (d) => ({ filter: {}, user_id: d.userId }) },

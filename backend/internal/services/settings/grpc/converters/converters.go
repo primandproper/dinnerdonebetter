@@ -1,134 +1,174 @@
+// Package converters carries setting definitions, values and resolutions between
+// the wire and the platform store's shapes.
 package converters
 
 import (
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings"
 	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/converters"
 	settingssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/settings"
 
-	"github.com/primandproper/platform-go/v13/identifiers"
+	platformsettings "github.com/primandproper/platform-go/v13/settings"
 )
 
-func ConvertGPRCServiceSettingCreationRequestInputToServiceSettingDatabaseCreationInput(input *settingssvc.ServiceSettingCreationRequestInput) *settings.ServiceSettingDatabaseCreationInput {
-	return &settings.ServiceSettingDatabaseCreationInput{
-		ID:           identifiers.New(),
-		DefaultValue: input.DefaultValue,
-		Name:         input.Name,
-		Type:         input.Type,
-		Description:  input.Description,
-		Enumeration:  input.Enumeration,
-		AdminsOnly:   input.AdminsOnly,
+// ConvertSettingDefinitionToGRPCSettingDefinition converts a stored definition
+// to proto.
+//
+// The scope is deliberately not on the wire. Every definition this application
+// keeps is in the global scope, so a field carrying it would say the same thing
+// on every row.
+func ConvertSettingDefinitionToGRPCSettingDefinition(input *platformsettings.Definition) *settingssvc.SettingDefinition {
+	if input == nil {
+		return nil
 	}
-}
 
-func ConvertServiceSettingToGRPCServiceSetting(input *settings.ServiceSetting) *settingssvc.ServiceSetting {
-	return &settingssvc.ServiceSetting{
-		CreatedAt:     grpcconverters.ConvertTimeToPBTimestamp(input.CreatedAt),
-		ArchivedAt:    grpcconverters.ConvertTimePointerToPBTimestamp(input.ArchivedAt),
-		LastUpdatedAt: grpcconverters.ConvertTimePointerToPBTimestamp(input.LastUpdatedAt),
-		Name:          input.Name,
+	return &settingssvc.SettingDefinition{
 		Id:            input.ID,
-		Type:          input.Type,
-		Description:   input.Description,
-		Enumeration:   input.Enumeration,
-		AdminsOnly:    input.AdminsOnly,
-		DefaultValue:  input.DefaultValue,
-	}
-}
-
-func ConvertGRPCServiceSettingToServiceSetting(input *settingssvc.ServiceSetting) *settings.ServiceSetting {
-	return &settings.ServiceSetting{
-		CreatedAt:     grpcconverters.ConvertPBTimestampToTime(input.CreatedAt),
-		ArchivedAt:    grpcconverters.ConvertPBTimestampToTimePointer(input.ArchivedAt),
-		LastUpdatedAt: grpcconverters.ConvertPBTimestampToTimePointer(input.LastUpdatedAt),
 		Name:          input.Name,
-		ID:            input.Id,
-		Type:          input.Type,
 		Description:   input.Description,
+		Kind:          input.Kind.String(),
+		DefaultValue:  input.Default,
 		Enumeration:   input.Enumeration,
-		AdminsOnly:    input.AdminsOnly,
-		DefaultValue:  input.DefaultValue,
+		AdminOnly:     input.AdminOnly,
+		CreatedAt:     grpcconverters.ConvertTimeToPBTimestamp(input.CreatedAt),
+		LastUpdatedAt: grpcconverters.ConvertTimePointerToPBTimestamp(input.LastUpdatedAt),
+		ArchivedAt:    grpcconverters.ConvertTimePointerToPBTimestamp(input.ArchivedAt),
 	}
 }
 
-func ConvertGRPCServiceSettingConfigurationCreationRequestInputToServiceSettingConfigurationDatabaseCreationInput(input *settingssvc.ServiceSettingConfigurationCreationRequestInput, userID, accountID string) *settings.ServiceSettingConfigurationDatabaseCreationInput {
-	return &settings.ServiceSettingConfigurationDatabaseCreationInput{
-		ID:               identifiers.New(),
-		Value:            input.Value,
-		Notes:            input.Notes,
-		ServiceSettingID: input.ServiceSettingId,
-		BelongsToUser:    userID,
-		BelongsToAccount: accountID,
+// ConvertGRPCSettingDefinitionToSettingDefinition converts a proto definition
+// back to the platform's, for a client asserting against what it was handed.
+func ConvertGRPCSettingDefinitionToSettingDefinition(input *settingssvc.SettingDefinition) *platformsettings.Definition {
+	if input == nil {
+		return nil
+	}
+
+	return &platformsettings.Definition{
+		ID:            input.GetId(),
+		Name:          input.GetName(),
+		Description:   input.GetDescription(),
+		Kind:          platformsettings.Kind(input.GetKind()),
+		Default:       input.DefaultValue,
+		Enumeration:   input.GetEnumeration(),
+		AdminOnly:     input.GetAdminOnly(),
+		CreatedAt:     grpcconverters.ConvertPBTimestampToTime(input.GetCreatedAt()),
+		LastUpdatedAt: grpcconverters.ConvertPBTimestampToTimePointer(input.GetLastUpdatedAt()),
+		ArchivedAt:    grpcconverters.ConvertPBTimestampToTimePointer(input.GetArchivedAt()),
 	}
 }
 
-func ConvertServiceSettingConfigurationCreationRequestInputToGRPCServiceSettingConfigurationCreationRequestInput(input *settings.ServiceSettingConfigurationCreationRequestInput) *settingssvc.ServiceSettingConfigurationCreationRequestInput {
-	return &settingssvc.ServiceSettingConfigurationCreationRequestInput{
-		Value:            input.Value,
-		Notes:            input.Notes,
-		ServiceSettingId: input.ServiceSettingID,
+// ConvertGRPCSettingDefinitionCreationRequestInputToSettingDefinition builds the
+// definition the store writes from what the client sent.
+//
+// The id and the creation time are left unset: the store mints one and reads the
+// other back from the database's clock. The scope is the caller's to supply,
+// because it is the application's decision rather than the request's.
+func ConvertGRPCSettingDefinitionCreationRequestInputToSettingDefinition(input *settingssvc.SettingDefinitionCreationRequestInput) *platformsettings.Definition {
+	if input == nil {
+		return nil
+	}
+
+	return &platformsettings.Definition{
+		Name:        input.GetName(),
+		Description: input.GetDescription(),
+		Kind:        platformsettings.Kind(input.GetKind()),
+		Default:     input.DefaultValue,
+		Enumeration: input.GetEnumeration(),
+		AdminOnly:   input.GetAdminOnly(),
 	}
 }
 
-func ConvertServiceSettingCreationRequestInputToGRPCServiceSettingCreationRequestInput(input *settings.ServiceSettingCreationRequestInput) *settingssvc.ServiceSettingCreationRequestInput {
-	return &settingssvc.ServiceSettingCreationRequestInput{
-		DefaultValue: input.DefaultValue,
-		Name:         input.Name,
-		Type:         input.Type,
-		Description:  input.Description,
-		Enumeration:  input.Enumeration,
-		AdminsOnly:   input.AdminsOnly,
+// ApplyGRPCSettingDefinitionUpdateRequestInput folds an update onto the
+// definition as it stands.
+//
+// Platform's UpdateDefinition rewrites the whole row, so an edit is a
+// read-modify-write and this is the modify. Every scalar is optional and an
+// absent one is left alone; the enumeration is a wrapper message for the same
+// reason, since a bare repeated field could not tell "leave it" from "empty it".
+func ApplyGRPCSettingDefinitionUpdateRequestInput(definition *platformsettings.Definition, input *settingssvc.SettingDefinitionUpdateRequestInput) {
+	if definition == nil || input == nil {
+		return
+	}
+
+	if input.Name != nil {
+		definition.Name = input.GetName()
+	}
+
+	if input.Description != nil {
+		definition.Description = input.GetDescription()
+	}
+
+	if input.Kind != nil {
+		definition.Kind = platformsettings.Kind(input.GetKind())
+	}
+
+	// A present default replaces the stored one. There is deliberately no way to
+	// spell "this setting no longer has a default" here: proto3 gives an optional
+	// scalar presence but no way to distinguish a null from an absence, and
+	// clearing a default is an edit that changes what every subject who has not
+	// chosen resolves to. It belongs in a method that says so rather than in the
+	// field that also means "leave it alone".
+	if input.DefaultValue != nil {
+		definition.Default = input.DefaultValue
+	}
+
+	if input.Enumeration != nil {
+		definition.Enumeration = input.GetEnumeration().GetValues()
+	}
+
+	if input.AdminOnly != nil {
+		definition.AdminOnly = input.GetAdminOnly()
 	}
 }
 
-func ConvertServiceSettingConfigurationToGRPCServiceSettingConfiguration(input *settings.ServiceSettingConfiguration) *settingssvc.ServiceSettingConfiguration {
-	return &settingssvc.ServiceSettingConfiguration{
-		CreatedAt:        grpcconverters.ConvertTimeToPBTimestamp(input.CreatedAt),
-		LastUpdatedAt:    grpcconverters.ConvertTimePointerToPBTimestamp(input.LastUpdatedAt),
-		ArchivedAt:       grpcconverters.ConvertTimePointerToPBTimestamp(input.ArchivedAt),
-		Id:               input.ID,
-		Value:            input.Value,
-		Notes:            input.Notes,
-		BelongsToUser:    input.BelongsToUser,
-		BelongsToAccount: input.BelongsToAccount,
-		ServiceSetting:   ConvertServiceSettingToGRPCServiceSetting(&input.ServiceSetting),
+// ConvertSettingValueToGRPCSettingValue converts a stored value to proto.
+//
+// The subject becomes a bare user id, because every value this application
+// stores belongs to a user — see internal/domain/settings — so a type beside it
+// would say "user" on every row.
+func ConvertSettingValueToGRPCSettingValue(input *platformsettings.Value) *settingssvc.SettingValue {
+	if input == nil {
+		return nil
+	}
+
+	return &settingssvc.SettingValue{
+		Id:            input.ID,
+		DefinitionId:  input.DefinitionID,
+		BelongsToUser: input.Subject.ID,
+		Value:         input.Raw,
+		CreatedAt:     grpcconverters.ConvertTimeToPBTimestamp(input.CreatedAt),
+		LastUpdatedAt: grpcconverters.ConvertTimePointerToPBTimestamp(input.LastUpdatedAt),
+		ArchivedAt:    grpcconverters.ConvertTimePointerToPBTimestamp(input.ArchivedAt),
 	}
 }
 
-func ConvertGRPCServiceSettingConfigurationToServiceSettingConfiguration(input *settingssvc.ServiceSettingConfiguration) *settings.ServiceSettingConfiguration {
-	return &settings.ServiceSettingConfiguration{
-		CreatedAt:        grpcconverters.ConvertPBTimestampToTime(input.CreatedAt),
-		LastUpdatedAt:    grpcconverters.ConvertPBTimestampToTimePointer(input.LastUpdatedAt),
-		ArchivedAt:       grpcconverters.ConvertPBTimestampToTimePointer(input.ArchivedAt),
-		ID:               input.Id,
-		Value:            input.Value,
-		Notes:            input.Notes,
-		BelongsToUser:    input.BelongsToUser,
-		BelongsToAccount: input.BelongsToAccount,
-		ServiceSetting:   *ConvertGRPCServiceSettingToServiceSetting(input.ServiceSetting),
+// ConvertGRPCSettingValueToSettingValue converts a proto value back to the
+// platform's, for a client asserting against what it was handed.
+func ConvertGRPCSettingValueToSettingValue(input *settingssvc.SettingValue) *platformsettings.Value {
+	if input == nil {
+		return nil
+	}
+
+	return &platformsettings.Value{
+		ID:            input.GetId(),
+		DefinitionID:  input.GetDefinitionId(),
+		Subject:       platformsettings.Subject{Type: platformsettings.SubjectUser, ID: input.GetBelongsToUser()},
+		Raw:           input.GetValue(),
+		CreatedAt:     grpcconverters.ConvertPBTimestampToTime(input.GetCreatedAt()),
+		LastUpdatedAt: grpcconverters.ConvertPBTimestampToTimePointer(input.GetLastUpdatedAt()),
+		ArchivedAt:    grpcconverters.ConvertPBTimestampToTimePointer(input.GetArchivedAt()),
 	}
 }
 
-func ConvertGRPCServiceSettingConfigurationUpdateRequestInputToServiceSettingConfigurationUpdateRequestInputTo(input *settingssvc.ServiceSettingConfigurationUpdateRequestInput) *settings.ServiceSettingConfigurationUpdateRequestInput {
-	return &settings.ServiceSettingConfigurationUpdateRequestInput{
-		Value:            input.Value,
-		Notes:            input.Notes,
-		ServiceSettingID: input.ServiceSettingId,
-	}
-}
-
-// ConvertUserDataCollectionToGRPCDataCollection converts a domain settings UserDataCollection to a proto DataCollection.
-func ConvertUserDataCollectionToGRPCDataCollection(input *settings.UserDataCollection) *settingssvc.DataCollection {
-	result := &settingssvc.DataCollection{
-		ServiceSettingConfigurations: make(map[string]*settingssvc.ServiceSettingConfiguration),
+// ConvertSettingResolutionToGRPCSettingResolution converts a resolution to
+// proto, source and all.
+func ConvertSettingResolutionToGRPCSettingResolution(input *platformsettings.Resolution) *settingssvc.SettingResolution {
+	if input == nil {
+		return nil
 	}
 
-	for i := range input.AccountSettings {
-		result.ServiceSettingConfigurations[input.AccountSettings[i].ID] = ConvertServiceSettingConfigurationToGRPCServiceSettingConfiguration(&input.AccountSettings[i])
+	return &settingssvc.SettingResolution{
+		Definition: ConvertSettingDefinitionToGRPCSettingDefinition(input.Definition),
+		Value:      ConvertSettingValueToGRPCSettingValue(input.Value),
+		Raw:        input.Raw,
+		Source:     input.Source.String(),
 	}
-
-	for i := range input.UserSettings {
-		result.UserServiceSettingConfigurations = append(result.UserServiceSettingConfigurations, ConvertServiceSettingConfigurationToGRPCServiceSettingConfiguration(&input.UserSettings[i]))
-	}
-
-	return result
 }

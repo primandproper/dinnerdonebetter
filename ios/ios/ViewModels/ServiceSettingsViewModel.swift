@@ -11,11 +11,12 @@ import GRPCNIOTransportHTTP2
 import SwiftProtobuf
 import SwiftUI
 
-/// Represents a user-configurable setting with its current configuration (if any).
+/// A setting the signed-in user can change, and the value that currently applies
+/// to them — their own answer, or the setting's default where they have not
+/// answered.
 struct ConfigurableSetting: Identifiable {
   let id: String
-  let setting: Settings_ServiceSetting
-  let config: Settings_ServiceSettingConfiguration?
+  let setting: Settings_SettingDefinition
   let currentValue: String
 }
 
@@ -50,8 +51,7 @@ class ServiceSettingsViewModel {
     isServerDownError = false
 
     do {
-      let (settings, configs) = try await fetchSettingsAndConfigs()
-      configurableSettings = mergeAndFilter(settings: settings, configs: configs)
+      configurableSettings = try await fetchResolvedSettings().map(configurableSetting(from:))
     } catch {
       await authManager.invalidateCredentialsIfSessionError(error)
       let display = ErrorDisplayFormatter.format(error, context: "load settings")
@@ -66,52 +66,32 @@ class ServiceSettingsViewModel {
     isLoading = false
   }
 
-  func saveSetting(serviceSetting: Settings_ServiceSetting, value: String) async -> Bool {
-    if !serviceSetting.enumeration.isEmpty, !serviceSetting.enumeration.contains(value) {
-      errorMessage = "Invalid value for \(serviceSetting.name)"
+  /// Store the user's answer to one setting.
+  ///
+  /// There is one call for it whether or not they had answered before: the server
+  /// converges on the row, so a first answer and a changed one are the same write
+  /// and this no longer has to know which it is making.
+  func saveSetting(definition: Settings_SettingDefinition, value: String) async -> Bool {
+    if !definition.enumeration.isEmpty, !definition.enumeration.contains(value) {
+      errorMessage = "Invalid value for \(definition.name)"
       return false
     }
-
-    let config = configurableSettings.first { $0.setting.id == serviceSetting.id }?.config
 
     do {
       let (clientManager, metadata) = try await getClientManagerAndMetadata()
 
-      if let config = config {
-        var request = Settings_UpdateServiceSettingConfigurationRequest()
-        request.serviceSettingConfigurationID = config.id
-        var input = Settings_ServiceSettingConfigurationUpdateRequestInput()
-        input.value = value
-        request.input = input
+      var request = Settings_SetSettingValueRequest()
+      request.settingName = definition.name
+      request.value = value
 
-        _ = try await clientManager.client.settings.updateServiceSettingConfiguration(
-          request,
-          metadata: metadata,
-          options: clientManager.defaultCallOptions
-        )
-        updateSettingLocally(serviceSettingID: serviceSetting.id, value: value, config: nil)
-        userSettingsService.updateValue(value, for: serviceSetting.name)
-      } else {
-        var request = Settings_CreateServiceSettingConfigurationRequest()
-        var input = Settings_ServiceSettingConfigurationCreationRequestInput()
-        input.serviceSettingID = serviceSetting.id
-        input.value = value
-        input.notes = ""
-        request.input = input
+      _ = try await clientManager.client.settings.setSettingValue(
+        request,
+        metadata: metadata,
+        options: clientManager.defaultCallOptions
+      )
 
-        let response = try await clientManager.client.settings.createServiceSettingConfiguration(
-          request,
-          metadata: metadata,
-          options: clientManager.defaultCallOptions
-        )
-        if response.hasCreated {
-          updateSettingLocally(
-            serviceSettingID: serviceSetting.id, value: value, config: response.created)
-        } else {
-          updateSettingLocally(serviceSettingID: serviceSetting.id, value: value, config: nil)
-        }
-        userSettingsService.updateValue(value, for: serviceSetting.name)
-      }
+      updateSettingLocally(settingID: definition.id, value: value)
+      userSettingsService.updateValue(value, for: definition.name)
 
       return true
     } catch {
@@ -127,25 +107,18 @@ class ServiceSettingsViewModel {
     }
   }
 
-  private func fetchSettingsAndConfigs() async throws -> (
-    [Settings_ServiceSetting], [Settings_ServiceSettingConfiguration]
-  ) {
+  /// Fetch every setting resolved for the signed-in user, in one call.
+  ///
+  /// The catalog and the user's answers used to be two requests joined here, with
+  /// the fallback to a setting's default reimplemented alongside. The server does
+  /// both now, and it also decides which settings this user may see — so the
+  /// admin-only ones are absent rather than filtered out below.
+  private func fetchResolvedSettings() async throws -> [Settings_SettingResolution] {
     let (clientManager, metadata) = try await getClientManagerAndMetadata()
 
-    async let settingsTask = fetchServiceSettings(clientManager: clientManager, metadata: metadata)
-    async let configsTask = fetchUserConfigs(clientManager: clientManager, metadata: metadata)
+    let request = Settings_ResolveSettingsRequest()
 
-    return (try await settingsTask, try await configsTask)
-  }
-
-  private func fetchServiceSettings(
-    clientManager: ClientManager<HTTP2ClientTransport.TransportServices>,
-    metadata: GRPCCore.Metadata
-  ) async throws -> [Settings_ServiceSetting] {
-    var request = Settings_GetServiceSettingsRequest()
-    request.filter = QueryFilterMessage()
-
-    let response = try await clientManager.client.settings.getServiceSettings(
+    let response = try await clientManager.client.settings.resolveSettings(
       request,
       metadata: metadata,
       options: clientManager.defaultCallOptions
@@ -154,75 +127,37 @@ class ServiceSettingsViewModel {
     return response.results
   }
 
-  private func fetchUserConfigs(
-    clientManager: ClientManager<HTTP2ClientTransport.TransportServices>,
-    metadata: GRPCCore.Metadata
-  ) async throws -> [Settings_ServiceSettingConfiguration] {
-    var request = Settings_GetServiceSettingConfigurationsForUserRequest()
-    request.filter = QueryFilterMessage()
+  /// Pair one resolution with the value the picker should start on.
+  ///
+  /// A resolution whose source is "unset" is a setting nobody has answered that
+  /// has no default. There is no value to show, so the first enumerated option
+  /// stands in — which is what the picker would have to fall back to anyway.
+  private func configurableSetting(from resolution: Settings_SettingResolution)
+    -> ConfigurableSetting
+  {
+    let definition = resolution.definition
+    let currentValue =
+      resolution.source == "unset" ? (definition.enumeration.first ?? "") : resolution.raw
 
-    let response = try await clientManager.client.settings.getServiceSettingConfigurationsForUser(
-      request,
-      metadata: metadata,
-      options: clientManager.defaultCallOptions
+    return ConfigurableSetting(
+      id: definition.id,
+      setting: definition,
+      currentValue: currentValue
     )
-
-    return response.results
   }
 
   /// Updates a single setting's value in configurableSettings without a full reload.
-  private func updateSettingLocally(
-    serviceSettingID: String,
-    value: String,
-    config: Settings_ServiceSettingConfiguration?
-  ) {
-    guard let index = configurableSettings.firstIndex(where: { $0.setting.id == serviceSettingID })
+  private func updateSettingLocally(settingID: String, value: String) {
+    guard let index = configurableSettings.firstIndex(where: { $0.setting.id == settingID })
     else {
       return
     }
     let existing = configurableSettings[index]
-    let updated = ConfigurableSetting(
+    configurableSettings[index] = ConfigurableSetting(
       id: existing.id,
       setting: existing.setting,
-      config: config ?? existing.config,
       currentValue: value
     )
-    configurableSettings[index] = updated
-  }
-
-  private func mergeAndFilter(
-    settings: [Settings_ServiceSetting],
-    configs: [Settings_ServiceSettingConfiguration]
-  ) -> [ConfigurableSetting] {
-    let activeAccountID = authManager.accountID
-    let configsForActiveAccount = configs.filter { $0.belongsToAccount == activeAccountID }
-    let configsBySettingID = Dictionary(
-      uniqueKeysWithValues: configsForActiveAccount.map { ($0.serviceSetting.id, $0) }
-    )
-
-    return
-      settings
-      .filter { $0.type == "user" && !$0.adminsOnly }
-      .map { setting in
-        let config = configsBySettingID[setting.id]
-        let currentValue: String
-        if let config = config, !config.value.isEmpty {
-          currentValue = config.value
-        } else if setting.hasDefaultValue, !setting.defaultValue.isEmpty {
-          currentValue = setting.defaultValue
-        } else if !setting.enumeration.isEmpty {
-          currentValue = setting.enumeration[0]
-        } else {
-          currentValue = ""
-        }
-
-        return ConfigurableSetting(
-          id: setting.id,
-          setting: setting,
-          config: config,
-          currentValue: currentValue
-        )
-      }
   }
 
   private func getClientManagerAndMetadata() async throws -> (

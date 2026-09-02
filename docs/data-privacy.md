@@ -53,7 +53,7 @@ inside one.
 | `identity` | `identity/privacy` | The user, their accounts, invitations sent and received |
 | `meal_planning` | `mealplanning/privacy` | Recipes, meals, meal plans, ingredient preferences, ratings |
 | `webhooks` | `webhooks/privacy` | Webhooks, keyed by account |
-| `settings` | `settings/privacy` | User and account setting configurations |
+| `settings` | `settings/privacy` over platform-go's | The setting values the subject stored about themselves |
 | `notifications` | `notifications/privacy` | In-app notifications |
 | `payments` | `payments/privacy` | Subscriptions, purchases, payment transactions |
 | `audit_log` | `audit/privacy` | Audit entries recorded about the subject |
@@ -141,13 +141,19 @@ a read of live rows). Both need a store change upstream, filed as platform-go #4
 in this schema carries `ON DELETE CASCADE`, so that single `DELETE` is the erasure for every other
 domain.
 
-That includes uploads and issue reports, and it does so only because this repository says so.
-platform-go's upload registry ships no foreign key on `owner_id`, and its issue report table none
-on `reporter` — neither package knows which of a consumer's tables holds a principal — so
-`renderUploadsRegistryDDL` and `renderIssueReportsDDL` in
-`internal/repositories/postgres/migrations` add them, pointing at `users` and cascading. Without
-them a deleted subject would leave rows nobody can name and nothing erases, exactly as comments
-would. Adopting a platform store is where a cascade quietly stops reaching; both were kept rather
+That includes uploads, issue reports and setting values, and it does so only because this
+repository says so. platform-go's upload registry ships no foreign key on `owner_id`, its issue
+report table none on `reporter`, and its settings table none on `subject_id` — no package knows
+which of a consumer's tables holds a principal — so `renderUploadsRegistryDDL`,
+`renderIssueReportsDDL` and `renderSettingsDDL` in `internal/repositories/postgres/migrations` add
+them, pointing at `users` and cascading. Without them a deleted subject would leave rows nobody can
+name and nothing erases, exactly as comments would.
+
+Settings is the one where the key also enforces a decision rather than only preserving a cascade.
+platform files a value against a subject *type* and an id, and leaves the set of types open; this
+application uses one, `user`, so every `subject_id` names a row in `users` and the key is
+possible at all. A deployment that wanted account-owned settings would drop it and need an eraser
+of its own — see `internal/domain/settings`. Adopting a platform store is where a cascade quietly stops reaching; both were kept rather
 than replaced with further erasers, because in this application every uploader and every reporter
 is a user. platform-go ships an `issuereports/privacy` eraser for consumers where that is not
 true; if that foreign key ever goes, it has to be registered.
