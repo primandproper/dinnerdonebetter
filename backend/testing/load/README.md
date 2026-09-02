@@ -80,7 +80,7 @@ Read-only only. Setup fetches `account_id` and `user_id` via GetActiveAccount/Ge
 
 **Identity:** GetAccounts, GetReceivedAccountInvitations, GetSentAccountInvitations (admin-only GetUsersForAccount, GetAccount, GetAccountsForUser, SearchForUsers excluded)
 
-**Settings:** GetServiceSettingConfigurationsForAccount, GetServiceSettingConfigurationsForUser, GetServiceSettings, SearchForServiceSettings
+**Settings:** GetSettingDefinitions, GetSettingValues, ResolveSettings (there is no per-account read: a setting value belongs to a person, not a membership)
 
 **Audit:** GetAuditLogEntriesForAccount, GetAuditLogEntriesForUser
 

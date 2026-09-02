@@ -397,10 +397,7 @@ export function createGrpcClients(config: GrpcClientConfig) {
         getSettingsClient().getSettingDefinitions.bind(getSettingsClient()),
       )(request, authMetadata(oauth2Token)),
 
-    getSettingValues: (
-      oauth2Token: string,
-      request: GetSettingValuesRequest,
-    ): Promise<GetSettingValuesResponse> =>
+    getSettingValues: (oauth2Token: string, request: GetSettingValuesRequest): Promise<GetSettingValuesResponse> =>
       promisifyUnary<GetSettingValuesRequest, GetSettingValuesResponse>(
         getSettingsClient().getSettingValues.bind(getSettingsClient()),
       )(request, authMetadata(oauth2Token)),
@@ -408,28 +405,19 @@ export function createGrpcClients(config: GrpcClientConfig) {
     // resolveSettings is the read a preferences page wants: every setting the
     // signed-in user may see, paired with the value that applies to them — their
     // own answer, or the setting's default where they have not answered.
-    resolveSettings: (
-      oauth2Token: string,
-      request: ResolveSettingsRequest,
-    ): Promise<ResolveSettingsResponse> =>
+    resolveSettings: (oauth2Token: string, request: ResolveSettingsRequest): Promise<ResolveSettingsResponse> =>
       promisifyUnary<ResolveSettingsRequest, ResolveSettingsResponse>(
         getSettingsClient().resolveSettings.bind(getSettingsClient()),
       )(request, authMetadata(oauth2Token)),
 
     // One call whether or not the user had answered before: the server converges
     // on the row, so a first answer and a changed one are the same write.
-    setSettingValue: (
-      oauth2Token: string,
-      request: SetSettingValueRequest,
-    ): Promise<SetSettingValueResponse> =>
+    setSettingValue: (oauth2Token: string, request: SetSettingValueRequest): Promise<SetSettingValueResponse> =>
       promisifyUnary<SetSettingValueRequest, SetSettingValueResponse>(
         getSettingsClient().setSettingValue.bind(getSettingsClient()),
       )(request, authMetadata(oauth2Token)),
 
-    clearSettingValue: (
-      oauth2Token: string,
-      request: ClearSettingValueRequest,
-    ): Promise<ClearSettingValueResponse> =>
+    clearSettingValue: (oauth2Token: string, request: ClearSettingValueRequest): Promise<ClearSettingValueResponse> =>
       promisifyUnary<ClearSettingValueRequest, ClearSettingValueResponse>(
         getSettingsClient().clearSettingValue.bind(getSettingsClient()),
       )(request, authMetadata(oauth2Token)),

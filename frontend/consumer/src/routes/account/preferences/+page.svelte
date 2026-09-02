@@ -1,16 +1,7 @@
 <script lang="ts">
   import { enhance } from '$app/forms';
   import { PageContainer, FormField, Button, Alert, Link } from '@dinnerdonebetter/ui';
-  import type {
-    ServiceSetting,
-    ServiceSettingConfiguration,
-  } from '@dinnerdonebetter/api-client/settings/settings_messages';
-
-  interface ConfigurableSetting {
-    setting: ServiceSetting;
-    config: ServiceSettingConfiguration | null;
-    currentValue: string;
-  }
+  import type { ConfigurableSetting } from '$lib/settings/resolutions';
 
   let { data } = $props();
   const configurableSettings = (data?.configurableSettings ?? []) as ConfigurableSetting[];
@@ -53,10 +44,12 @@
         {#if item.setting.enumeration?.length}
           <div class="setting-card">
             <form method="POST" action="?/update" use:enhance class="setting-form">
-              <input type="hidden" name="setting_id" value={item.setting.id} data-testid="preference-setting-id" />
-              {#if item.config?.id}
-                <input type="hidden" name="config_id" value={item.config.id} data-testid="preference-config-id" />
-              {/if}
+              <input
+                type="hidden"
+                name="setting_name"
+                value={item.setting.name}
+                data-testid="preference-setting-name"
+              />
               <FormField
                 id="pref-{item.setting.id}"
                 label={humanReadableName(item.setting.name) +

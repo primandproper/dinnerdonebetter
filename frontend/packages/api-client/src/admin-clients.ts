@@ -280,26 +280,42 @@ export function createAdminGrpcClients(config: GrpcClientConfig) {
       ),
 
     // Settings
-    getServiceSettings: (token: string, request: Record<string, unknown>) =>
-      promisifyUnary(get.settings().getServiceSettings.bind(get.settings()))(
-        request as unknown as Parameters<SettingsServiceClient['getServiceSettings']>[0],
+    //
+    // The catalog is administrative: a deployment decides which settings exist,
+    // and these are the calls that decide it. A person's own answers are not
+    // here — those are resolved for the signed-in user by the consumer client.
+    getSettingDefinitions: (token: string, request: Record<string, unknown>) =>
+      promisifyUnary(get.settings().getSettingDefinitions.bind(get.settings()))(
+        request as unknown as Parameters<SettingsServiceClient['getSettingDefinitions']>[0],
         authMetadata(token),
       ),
-    searchForServiceSettings: (token: string, request: Record<string, unknown>) =>
-      promisifyUnary(get.settings().searchForServiceSettings.bind(get.settings()))(
-        request as unknown as Parameters<SettingsServiceClient['searchForServiceSettings']>[0],
+    getSettingDefinition: (token: string, request: { settingDefinitionId: string }) =>
+      promisifyUnary(get.settings().getSettingDefinition.bind(get.settings()))(request as any, authMetadata(token)),
+    getSettingDefinitionByName: (token: string, request: { settingName: string }) =>
+      promisifyUnary(get.settings().getSettingDefinitionByName.bind(get.settings()))(
+        request as any,
         authMetadata(token),
       ),
-    getServiceSetting: (token: string, request: { serviceSettingId: string }) =>
-      promisifyUnary(get.settings().getServiceSetting.bind(get.settings()))(request as any, authMetadata(token)),
-    createServiceSetting: (token: string, request: Record<string, unknown>) =>
-      promisifyUnary(get.settings().createServiceSetting.bind(get.settings()))(
-        request as unknown as Parameters<SettingsServiceClient['createServiceSetting']>[0],
+    createSettingDefinition: (token: string, request: Record<string, unknown>) =>
+      promisifyUnary(get.settings().createSettingDefinition.bind(get.settings()))(
+        request as unknown as Parameters<SettingsServiceClient['createSettingDefinition']>[0],
         authMetadata(token),
       ),
-    archiveServiceSetting: (token: string, request: Record<string, unknown>) =>
-      promisifyUnary(get.settings().archiveServiceSetting.bind(get.settings()))(
-        request as unknown as Parameters<SettingsServiceClient['archiveServiceSetting']>[0],
+    updateSettingDefinition: (token: string, request: Record<string, unknown>) =>
+      promisifyUnary(get.settings().updateSettingDefinition.bind(get.settings()))(
+        request as unknown as Parameters<SettingsServiceClient['updateSettingDefinition']>[0],
+        authMetadata(token),
+      ),
+    archiveSettingDefinition: (token: string, request: Record<string, unknown>) =>
+      promisifyUnary(get.settings().archiveSettingDefinition.bind(get.settings()))(
+        request as unknown as Parameters<SettingsServiceClient['archiveSettingDefinition']>[0],
+        authMetadata(token),
+      ),
+    // Who has overridden a setting. This is the administrative read that the old
+    // per-account list stood in for, and it is service-admin only on the server.
+    getSettingValuesForDefinition: (token: string, request: Record<string, unknown>) =>
+      promisifyUnary(get.settings().getSettingValuesForDefinition.bind(get.settings()))(
+        request as unknown as Parameters<SettingsServiceClient['getSettingValuesForDefinition']>[0],
         authMetadata(token),
       ),
 

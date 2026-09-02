@@ -9,7 +9,7 @@
 
 <form method="get" action="/settings" class="search-form">
   <label for="q">Search</label>
-  <input id="q" name="q" type="search" placeholder="Filter by name…" />
+  <input id="q" name="q" type="search" placeholder="Filter by name…" value={data?.query ?? ''} />
   <button type="submit">Search</button>
 </form>
 
