@@ -4,12 +4,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists/converters"
 	waitlistfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists/fakes"
 	waitlistssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/waitlists"
 	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/services/waitlists/grpc/converters"
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
+
+	waitlists "github.com/primandproper/platform-go/v13/waitlists"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -18,7 +18,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func checkWaitlistEquality(t *testing.T, expected, actual *waitlists.Waitlist) {
+func checkWaitlistEquality(t *testing.T, expected, actual *waitlists.List) {
 	t.Helper()
 
 	assert.NotEmpty(t, actual.ID, "expected Waitlist to have ID")
@@ -26,92 +26,74 @@ func checkWaitlistEquality(t *testing.T, expected, actual *waitlists.Waitlist) {
 
 	assert.Equal(t, expected.Name, actual.Name, "expected Waitlist Name")
 	assert.Equal(t, expected.Description, actual.Description, "expected Waitlist Description")
-	assert.WithinDuration(t, expected.ValidUntil, actual.ValidUntil, time.Second, "expected Waitlist ValidUntil")
+	assert.WithinDuration(t, expected.ClosesAt, actual.ClosesAt, time.Second, "expected Waitlist ClosesAt")
 }
 
-func checkWaitlistSignupEquality(t *testing.T, expected, actual *waitlists.WaitlistSignup) {
-	t.Helper()
-
-	assert.NotEmpty(t, actual.ID, "expected WaitlistSignup to have ID")
-	assert.NotZero(t, actual.CreatedAt, "expected WaitlistSignup to have CreatedAt")
-
-	assert.Equal(t, expected.Notes, actual.Notes, "expected WaitlistSignup Notes")
-	assert.Equal(t, expected.BelongsToWaitlist, actual.BelongsToWaitlist, "expected WaitlistSignup BelongsToWaitlist")
-	assert.NotEmpty(t, actual.BelongsToUser, "expected WaitlistSignup to have BelongsToUser")
-	assert.NotEmpty(t, actual.BelongsToAccount, "expected WaitlistSignup to have BelongsToAccount")
-}
-
-func createWaitlistForTest(t *testing.T, testClient client.Client) *waitlists.Waitlist {
+// createWaitlistForTest opens a waitlist. Lists are administrative rows in one
+// global catalog, so it is always the admin client that opens one.
+func createWaitlistForTest(t *testing.T, testClient client.Client) *waitlists.List {
 	t.Helper()
 	ctx := t.Context()
 
 	exampleWaitlist := waitlistfakes.BuildFakeWaitlist()
-	exampleWaitlistInput := converters.ConvertWaitlistToWaitlistCreationRequestInput(exampleWaitlist)
 
-	input := &waitlistssvc.WaitlistCreationRequestInput{
-		Name:        exampleWaitlistInput.Name,
-		Description: exampleWaitlistInput.Description,
-		ValidUntil:  timestamppb.New(exampleWaitlistInput.ValidUntil),
-	}
-
-	createdWaitlist, err := adminClient.CreateWaitlist(ctx, &waitlistssvc.CreateWaitlistRequest{Input: input})
+	createdWaitlist, err := adminClient.CreateWaitlist(ctx, &waitlistssvc.CreateWaitlistRequest{
+		Input: grpcconverters.ConvertWaitlistToGRPCWaitlistCreationRequestInput(exampleWaitlist),
+	})
 	require.NoError(t, err)
-	converted := grpcconverters.ConvertGRPCWaitlistToWaitlist(createdWaitlist.Created)
+	converted := grpcconverters.ConvertGRPCWaitlistToWaitlist(createdWaitlist.GetCreated())
 	checkWaitlistEquality(t, exampleWaitlist, converted)
 
-	retrievedWaitlist, err := testClient.GetWaitlist(ctx, &waitlistssvc.GetWaitlistRequest{WaitlistId: createdWaitlist.Created.Id})
+	retrievedWaitlist, err := testClient.GetWaitlist(ctx, &waitlistssvc.GetWaitlistRequest{WaitlistId: createdWaitlist.GetCreated().GetId()})
 	require.NoError(t, err)
 	require.NotNil(t, retrievedWaitlist)
 
-	waitlist := grpcconverters.ConvertGRPCWaitlistToWaitlist(retrievedWaitlist.Result)
-	checkWaitlistEquality(t, converted, waitlist)
+	list := grpcconverters.ConvertGRPCWaitlistToWaitlist(retrievedWaitlist.GetResult())
+	checkWaitlistEquality(t, converted, list)
 
-	return waitlist
+	return list
 }
 
-// createWaitlistSignupForTest creates a signup as testClient's user; signups are user-owned, so the
-// creating client is the owner for subsequent reads/updates/archives.
-func createWaitlistSignupForTest(t *testing.T, testClient client.Client, waitlistID string) *waitlists.WaitlistSignup {
+// createWaitlistSignupForTest joins a list as testClient's user.
+//
+// A signup belongs to the person who made it and carries the address off their
+// session, so the client that calls this is the one that may read, amend and
+// withdraw it afterwards — and one client can join a given list exactly once,
+// which is the uniqueness the withdrawal rests on.
+func createWaitlistSignupForTest(t *testing.T, testClient client.Client, waitlistID string) *waitlists.Signup {
 	t.Helper()
 	ctx := t.Context()
 
 	exampleSignup := waitlistfakes.BuildFakeWaitlistSignup()
-	exampleSignup.BelongsToWaitlist = waitlistID
-	exampleSignupInput := converters.ConvertWaitlistSignupToWaitlistSignupCreationRequestInput(exampleSignup)
 
-	input := &waitlistssvc.WaitlistSignupCreationRequestInput{
-		Notes:             exampleSignupInput.Notes,
-		BelongsToWaitlist: exampleSignupInput.BelongsToWaitlist,
-		BelongsToUser:     exampleSignupInput.BelongsToUser,
-		BelongsToAccount:  exampleSignupInput.BelongsToAccount,
-	}
-
-	createdSignup, err := testClient.CreateWaitlistSignup(ctx, &waitlistssvc.CreateWaitlistSignupRequest{
-		Input: input,
+	createdSignup, err := testClient.JoinWaitlist(ctx, &waitlistssvc.JoinWaitlistRequest{
+		WaitlistId: waitlistID,
+		Input:      &waitlistssvc.WaitlistSignupCreationRequestInput{Notes: exampleSignup.Notes},
 	})
 	require.NoError(t, err)
-	converted := grpcconverters.ConvertGRPCWaitlistSignupToWaitlistSignup(createdSignup.Created)
-	// Note: BelongsToUser and BelongsToAccount are set by the service from session context,
-	// so we only check that they're not empty rather than matching the fake data
+
+	converted := grpcconverters.ConvertGRPCWaitlistSignupToWaitlistSignup(createdSignup.GetCreated())
 	assert.Equal(t, exampleSignup.Notes, converted.Notes, "expected WaitlistSignup Notes")
-	assert.Equal(t, exampleSignup.BelongsToWaitlist, converted.BelongsToWaitlist, "expected WaitlistSignup BelongsToWaitlist")
-	assert.NotEmpty(t, converted.BelongsToUser, "expected WaitlistSignup to have BelongsToUser")
-	assert.NotEmpty(t, converted.BelongsToAccount, "expected WaitlistSignup to have BelongsToAccount")
+	assert.Equal(t, waitlistID, converted.ListID, "expected WaitlistSignup ListID")
+	assert.Equal(t, waitlists.StatusWaiting, converted.Status, "a signup is born waiting")
+
+	// The address and the subject are the session's, never the request's.
+	assert.NotEmpty(t, converted.Contact, "expected WaitlistSignup to carry the session's address")
+	assert.Equal(t, waitlists.SubjectUser, converted.Subject.Type)
+	assert.NotEmpty(t, converted.Subject.ID, "expected WaitlistSignup to name its subject")
 
 	retrievedSignup, err := testClient.GetWaitlistSignup(ctx, &waitlistssvc.GetWaitlistSignupRequest{
-		WaitlistSignupId: createdSignup.Created.Id,
 		WaitlistId:       waitlistID,
+		WaitlistSignupId: createdSignup.GetCreated().GetId(),
 	})
 	require.NoError(t, err)
 	require.NotNil(t, retrievedSignup)
 
-	signup := grpcconverters.ConvertGRPCWaitlistSignupToWaitlistSignup(retrievedSignup.Result)
-	// Verify retrieved signup matches created signup
-	assert.Equal(t, converted.ID, signup.ID, "expected WaitlistSignup ID to match")
-	assert.Equal(t, converted.Notes, signup.Notes, "expected WaitlistSignup Notes to match")
-	assert.Equal(t, converted.BelongsToWaitlist, signup.BelongsToWaitlist, "expected WaitlistSignup BelongsToWaitlist to match")
-	assert.Equal(t, converted.BelongsToUser, signup.BelongsToUser, "expected WaitlistSignup BelongsToUser to match")
-	assert.Equal(t, converted.BelongsToAccount, signup.BelongsToAccount, "expected WaitlistSignup BelongsToAccount to match")
+	signup := grpcconverters.ConvertGRPCWaitlistSignupToWaitlistSignup(retrievedSignup.GetResult())
+	assert.Equal(t, converted.ID, signup.ID)
+	assert.Equal(t, converted.Notes, signup.Notes)
+	assert.Equal(t, converted.Contact, signup.Contact)
+	assert.Equal(t, converted.Subject, signup.Subject)
 
 	return signup
 }
@@ -140,14 +122,13 @@ func TestWaitlists_Creating(T *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
-		input := &waitlistssvc.WaitlistCreationRequestInput{
-			Name:        "", // Invalid: empty name
-			Description: t.Name(),
-			ValidUntil:  timestamppb.New(time.Now().Add(-24 * time.Hour)), // Invalid: in the past
-		}
-
-		_, err := adminClient.CreateWaitlist(ctx, &waitlistssvc.CreateWaitlistRequest{Input: input})
-		assert.Error(t, err)
+		// No name and no closing time: the store refuses both, and the refusal
+		// reaches the client as an invalid argument rather than as a server error.
+		_, err := adminClient.CreateWaitlist(ctx, &waitlistssvc.CreateWaitlistRequest{
+			Input: &waitlistssvc.WaitlistCreationRequestInput{Description: t.Name()},
+		})
+		require.Error(t, err)
+		assert.Equal(t, codes.InvalidArgument, status.Code(err))
 	})
 }
 
@@ -175,6 +156,7 @@ func TestWaitlists_Reading(T *testing.T) {
 		retrieved, err := testClient.GetWaitlist(ctx, &waitlistssvc.GetWaitlistRequest{WaitlistId: nonexistentID})
 		require.Error(t, err)
 		assert.Nil(t, retrieved)
+		assert.Equal(t, codes.NotFound, status.Code(err))
 	})
 
 	T.Run("requires auth", func(t *testing.T) {
@@ -196,7 +178,7 @@ func TestWaitlists_Listing(T *testing.T) {
 
 		_, testClient := createUserAndClientForTest(t)
 
-		createdWaitlists := []*waitlists.Waitlist{}
+		createdWaitlists := []*waitlists.List{}
 		for range exampleQuantity {
 			createdWaitlists = append(createdWaitlists, createWaitlistForTest(t, testClient))
 		}
@@ -204,7 +186,7 @@ func TestWaitlists_Listing(T *testing.T) {
 		results, err := testClient.GetWaitlists(ctx, &waitlistssvc.GetWaitlistsRequest{})
 		require.NoError(t, err)
 		assert.NotNil(t, results)
-		assert.GreaterOrEqual(t, len(results.Results), len(createdWaitlists))
+		assert.GreaterOrEqual(t, len(results.GetResults()), len(createdWaitlists))
 	})
 
 	T.Run("requires auth", func(t *testing.T) {
@@ -217,7 +199,7 @@ func TestWaitlists_Listing(T *testing.T) {
 	})
 }
 
-func TestWaitlists_ListingActive(T *testing.T) {
+func TestWaitlists_ListingOpen(T *testing.T) {
 	T.Parallel()
 
 	T.Run("happy path", func(t *testing.T) {
@@ -226,16 +208,15 @@ func TestWaitlists_ListingActive(T *testing.T) {
 
 		_, testClient := createUserAndClientForTest(t)
 
-		createdWaitlists := []*waitlists.Waitlist{}
+		createdWaitlists := []*waitlists.List{}
 		for range exampleQuantity {
 			createdWaitlists = append(createdWaitlists, createWaitlistForTest(t, testClient))
 		}
 
-		results, err := testClient.GetActiveWaitlists(ctx, &waitlistssvc.GetActiveWaitlistsRequest{})
+		results, err := testClient.GetOpenWaitlists(ctx, &waitlistssvc.GetOpenWaitlistsRequest{})
 		require.NoError(t, err)
 		assert.NotNil(t, results)
-		// All created waitlists should be active (not expired)
-		assert.GreaterOrEqual(t, len(results.Results), len(createdWaitlists))
+		assert.GreaterOrEqual(t, len(results.GetResults()), len(createdWaitlists))
 	})
 
 	T.Run("requires auth", func(t *testing.T) {
@@ -243,7 +224,7 @@ func TestWaitlists_ListingActive(T *testing.T) {
 		ctx := t.Context()
 
 		c := buildUnauthenticatedGRPCClientForTest(t)
-		_, err := c.GetActiveWaitlists(ctx, &waitlistssvc.GetActiveWaitlistsRequest{})
+		_, err := c.GetOpenWaitlists(ctx, &waitlistssvc.GetOpenWaitlistsRequest{})
 		assert.Error(t, err)
 	})
 }
@@ -260,23 +241,47 @@ func TestWaitlists_Updating(T *testing.T) {
 
 		newName := "Updated Name"
 		newDescription := "Updated Description"
-		newValidUntil := time.Now().Add(48 * time.Hour)
+		newClosesAt := time.Now().Add(48 * time.Hour)
 
 		_, err := adminClient.UpdateWaitlist(ctx, &waitlistssvc.UpdateWaitlistRequest{
 			WaitlistId: createdWaitlist.ID,
 			Input: &waitlistssvc.WaitlistUpdateRequestInput{
 				Name:        &newName,
 				Description: &newDescription,
-				ValidUntil:  timestamppb.New(newValidUntil),
+				ClosesAt:    timestamppb.New(newClosesAt),
 			},
 		})
 		require.NoError(t, err)
 
 		retrieved, err := testClient.GetWaitlist(ctx, &waitlistssvc.GetWaitlistRequest{WaitlistId: createdWaitlist.ID})
 		require.NoError(t, err)
-		assert.Equal(t, newName, retrieved.Result.Name)
-		assert.Equal(t, newDescription, retrieved.Result.Description)
-		assert.WithinDuration(t, newValidUntil, grpcconverters.ConvertGRPCWaitlistToWaitlist(retrieved.Result).ValidUntil, time.Second)
+		assert.Equal(t, newName, retrieved.GetResult().GetName())
+		assert.Equal(t, newDescription, retrieved.GetResult().GetDescription())
+		assert.WithinDuration(t, newClosesAt, grpcconverters.ConvertGRPCWaitlistToWaitlist(retrieved.GetResult()).ClosesAt, time.Second)
+	})
+
+	// An update naming one field leaves the others alone, because the store's
+	// update takes a whole list and the service merges into the row as read.
+	T.Run("leaves unnamed fields alone", func(t *testing.T) {
+		t.Parallel()
+		ctx := t.Context()
+
+		_, testClient := createUserAndClientForTest(t)
+		createdWaitlist := createWaitlistForTest(t, testClient)
+
+		newName := "Only The Name"
+		_, err := adminClient.UpdateWaitlist(ctx, &waitlistssvc.UpdateWaitlistRequest{
+			WaitlistId: createdWaitlist.ID,
+			Input:      &waitlistssvc.WaitlistUpdateRequestInput{Name: &newName},
+		})
+		require.NoError(t, err)
+
+		retrieved, err := testClient.GetWaitlist(ctx, &waitlistssvc.GetWaitlistRequest{WaitlistId: createdWaitlist.ID})
+		require.NoError(t, err)
+		assert.Equal(t, newName, retrieved.GetResult().GetName())
+		assert.Equal(t, createdWaitlist.Description, retrieved.GetResult().GetDescription())
+		assert.WithinDuration(t, createdWaitlist.ClosesAt,
+			grpcconverters.ConvertGRPCWaitlistToWaitlist(retrieved.GetResult()).ClosesAt, time.Second)
 	})
 
 	T.Run("nonexistent ID", func(t *testing.T) {
@@ -290,7 +295,8 @@ func TestWaitlists_Updating(T *testing.T) {
 				Name: &newName,
 			},
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
+		assert.Equal(t, codes.NotFound, status.Code(err))
 	})
 
 	T.Run("requires auth", func(t *testing.T) {
@@ -314,18 +320,21 @@ func TestWaitlists_Archiving(T *testing.T) {
 		createdWaitlist := createWaitlistForTest(t, testClient)
 
 		_, err := adminClient.ArchiveWaitlist(ctx, &waitlistssvc.ArchiveWaitlistRequest{WaitlistId: createdWaitlist.ID})
-		assert.NoError(t, err)
+		require.NoError(t, err)
+
+		// Archiving closes the list immediately, whatever its closing time says.
+		_, err = testClient.GetWaitlist(ctx, &waitlistssvc.GetWaitlistRequest{WaitlistId: createdWaitlist.ID})
+		require.Error(t, err)
+		assert.Equal(t, codes.NotFound, status.Code(err))
 	})
 
 	T.Run("nonexistentID", func(t *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
-		_, testClient := createUserAndClientForTest(t)
-		createWaitlistForTest(t, testClient)
-
 		_, err := adminClient.ArchiveWaitlist(ctx, &waitlistssvc.ArchiveWaitlistRequest{WaitlistId: nonexistentID})
-		assert.Error(t, err)
+		require.Error(t, err)
+		assert.Equal(t, codes.NotFound, status.Code(err))
 	})
 
 	T.Run("requires auth", func(t *testing.T) {
@@ -338,20 +347,19 @@ func TestWaitlists_Archiving(T *testing.T) {
 	})
 }
 
-func TestWaitlists_IsNotExpired(T *testing.T) {
+func TestWaitlists_IsOpen(T *testing.T) {
 	T.Parallel()
 
-	T.Run("happy path - not expired", func(t *testing.T) {
+	T.Run("happy path - open", func(t *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
 		_, testClient := createUserAndClientForTest(t)
 		createdWaitlist := createWaitlistForTest(t, testClient)
 
-		result, err := testClient.WaitlistIsNotExpired(ctx, &waitlistssvc.WaitlistIsNotExpiredRequest{WaitlistId: createdWaitlist.ID})
+		result, err := testClient.WaitlistIsOpen(ctx, &waitlistssvc.WaitlistIsOpenRequest{WaitlistId: createdWaitlist.ID})
 		require.NoError(t, err)
-		assert.NotNil(t, result)
-		assert.True(t, result.IsNotExpired)
+		assert.True(t, result.GetIsOpen())
 	})
 
 	T.Run("nonexistent ID", func(t *testing.T) {
@@ -360,8 +368,9 @@ func TestWaitlists_IsNotExpired(T *testing.T) {
 
 		_, testClient := createUserAndClientForTest(t)
 
-		_, err := testClient.WaitlistIsNotExpired(ctx, &waitlistssvc.WaitlistIsNotExpiredRequest{WaitlistId: nonexistentID})
-		assert.Error(t, err)
+		_, err := testClient.WaitlistIsOpen(ctx, &waitlistssvc.WaitlistIsOpenRequest{WaitlistId: nonexistentID})
+		require.Error(t, err)
+		assert.Equal(t, codes.NotFound, status.Code(err))
 	})
 
 	T.Run("requires auth", func(t *testing.T) {
@@ -369,12 +378,12 @@ func TestWaitlists_IsNotExpired(T *testing.T) {
 		ctx := t.Context()
 
 		c := buildUnauthenticatedGRPCClientForTest(t)
-		_, err := c.WaitlistIsNotExpired(ctx, &waitlistssvc.WaitlistIsNotExpiredRequest{})
+		_, err := c.WaitlistIsOpen(ctx, &waitlistssvc.WaitlistIsOpenRequest{})
 		assert.Error(t, err)
 	})
 }
 
-func TestWaitlistSignups_Creating(T *testing.T) {
+func TestWaitlistSignups_Joining(T *testing.T) {
 	T.Parallel()
 
 	T.Run("happy path", func(t *testing.T) {
@@ -385,13 +394,31 @@ func TestWaitlistSignups_Creating(T *testing.T) {
 		createWaitlistSignupForTest(t, testClient, waitlist.ID)
 	})
 
+	// One address, one place on a list. This is the uniqueness the withdrawal
+	// rests on, so it is worth pinning from the outside.
+	T.Run("refuses a second signup from the same person", func(t *testing.T) {
+		t.Parallel()
+		ctx := t.Context()
+
+		_, testClient := createUserAndClientForTest(t)
+		waitlist := createWaitlistForTest(t, testClient)
+		createWaitlistSignupForTest(t, testClient, waitlist.ID)
+
+		_, err := testClient.JoinWaitlist(ctx, &waitlistssvc.JoinWaitlistRequest{
+			WaitlistId: waitlist.ID,
+			Input:      &waitlistssvc.WaitlistSignupCreationRequestInput{Notes: "again"},
+		})
+		require.Error(t, err)
+		assert.Equal(t, codes.AlreadyExists, status.Code(err))
+	})
+
 	T.Run("requires auth", func(t *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
 		c := buildUnauthenticatedGRPCClientForTest(t)
 
-		_, err := c.CreateWaitlistSignup(ctx, &waitlistssvc.CreateWaitlistSignupRequest{})
+		_, err := c.JoinWaitlist(ctx, &waitlistssvc.JoinWaitlistRequest{})
 		require.Error(t, err)
 	})
 
@@ -399,20 +426,14 @@ func TestWaitlistSignups_Creating(T *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
-		exampleSignup := waitlistfakes.BuildFakeWaitlistSignup()
-		exampleSignupInput := converters.ConvertWaitlistSignupToWaitlistSignupCreationRequestInput(exampleSignup)
+		_, testClient := createUserAndClientForTest(t)
 
-		input := &waitlistssvc.WaitlistSignupCreationRequestInput{
-			Notes:             exampleSignupInput.Notes,
-			BelongsToWaitlist: nonexistentID,
-			BelongsToUser:     exampleSignupInput.BelongsToUser,
-			BelongsToAccount:  exampleSignupInput.BelongsToAccount,
-		}
-
-		_, err := adminClient.CreateWaitlistSignup(ctx, &waitlistssvc.CreateWaitlistSignupRequest{
-			Input: input,
+		_, err := testClient.JoinWaitlist(ctx, &waitlistssvc.JoinWaitlistRequest{
+			WaitlistId: nonexistentID,
+			Input:      &waitlistssvc.WaitlistSignupCreationRequestInput{Notes: t.Name()},
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
+		assert.Equal(t, codes.NotFound, status.Code(err))
 	})
 }
 
@@ -428,8 +449,8 @@ func TestWaitlistSignups_Reading(T *testing.T) {
 		createdSignup := createWaitlistSignupForTest(t, testClient, waitlist.ID)
 
 		retrieved, err := testClient.GetWaitlistSignup(ctx, &waitlistssvc.GetWaitlistSignupRequest{
-			WaitlistSignupId: createdSignup.ID,
 			WaitlistId:       waitlist.ID,
+			WaitlistSignupId: createdSignup.ID,
 		})
 		require.NoError(t, err)
 		assert.NotNil(t, retrieved)
@@ -443,11 +464,12 @@ func TestWaitlistSignups_Reading(T *testing.T) {
 		waitlist := createWaitlistForTest(t, testClient)
 
 		retrieved, err := testClient.GetWaitlistSignup(ctx, &waitlistssvc.GetWaitlistSignupRequest{
-			WaitlistSignupId: nonexistentID,
 			WaitlistId:       waitlist.ID,
+			WaitlistSignupId: nonexistentID,
 		})
 		require.Error(t, err)
 		assert.Nil(t, retrieved)
+		assert.Equal(t, codes.NotFound, status.Code(err))
 	})
 
 	T.Run("requires auth", func(t *testing.T) {
@@ -470,18 +492,22 @@ func TestWaitlistSignups_Listing(T *testing.T) {
 		_, testClient := createUserAndClientForTest(t)
 		waitlist := createWaitlistForTest(t, testClient)
 
-		createdSignups := []*waitlists.WaitlistSignup{}
-		for range exampleQuantity {
-			createdSignups = append(createdSignups, createWaitlistSignupForTest(t, testClient, waitlist.ID))
+		// One signup per person: an address can hold one place on a list, so a
+		// queue of five is five people.
+		createdSignups := []*waitlists.Signup{createWaitlistSignupForTest(t, testClient, waitlist.ID)}
+		for range exampleQuantity - 1 {
+			_, joiner := createUserAndClientForTest(t)
+			createdSignups = append(createdSignups, createWaitlistSignupForTest(t, joiner, waitlist.ID))
 		}
 
-		// the waitlist-wide signup listing is reserved for service admins.
+		// the waitlist-wide signup listing is reserved for service admins: it hands
+		// back every signatory's address.
 		results, err := adminClient.GetWaitlistSignupsForWaitlist(ctx, &waitlistssvc.GetWaitlistSignupsForWaitlistRequest{
 			WaitlistId: waitlist.ID,
 		})
 		require.NoError(t, err)
 		assert.NotNil(t, results)
-		assert.GreaterOrEqual(t, len(results.Results), len(createdSignups))
+		assert.GreaterOrEqual(t, len(results.GetResults()), len(createdSignups))
 	})
 
 	T.Run("denied for regular users", func(t *testing.T) {
@@ -523,8 +549,8 @@ func TestWaitlistSignups_Updating(T *testing.T) {
 		newNotes := "Updated notes"
 
 		_, err := testClient.UpdateWaitlistSignup(ctx, &waitlistssvc.UpdateWaitlistSignupRequest{
-			WaitlistSignupId: createdSignup.ID,
 			WaitlistId:       waitlist.ID,
+			WaitlistSignupId: createdSignup.ID,
 			Input: &waitlistssvc.WaitlistSignupUpdateRequestInput{
 				Notes: &newNotes,
 			},
@@ -532,11 +558,16 @@ func TestWaitlistSignups_Updating(T *testing.T) {
 		require.NoError(t, err)
 
 		retrieved, err := testClient.GetWaitlistSignup(ctx, &waitlistssvc.GetWaitlistSignupRequest{
-			WaitlistSignupId: createdSignup.ID,
 			WaitlistId:       waitlist.ID,
+			WaitlistSignupId: createdSignup.ID,
 		})
 		require.NoError(t, err)
-		assert.Equal(t, newNotes, retrieved.Result.Notes)
+		assert.Equal(t, newNotes, retrieved.GetResult().GetNotes())
+
+		// A note moves nobody: the signup is still waiting and its lifecycle stamp
+		// is still unset.
+		assert.Equal(t, waitlists.StatusWaiting.String(), retrieved.GetResult().GetStatus())
+		assert.Nil(t, retrieved.GetResult().GetStatusChangedAt())
 	})
 
 	T.Run("nonexistent ID", func(t *testing.T) {
@@ -548,13 +579,14 @@ func TestWaitlistSignups_Updating(T *testing.T) {
 
 		newNotes := "Updated notes"
 		_, err := adminClient.UpdateWaitlistSignup(ctx, &waitlistssvc.UpdateWaitlistSignupRequest{
-			WaitlistSignupId: nonexistentID,
 			WaitlistId:       waitlist.ID,
+			WaitlistSignupId: nonexistentID,
 			Input: &waitlistssvc.WaitlistSignupUpdateRequestInput{
 				Notes: &newNotes,
 			},
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
+		assert.Equal(t, codes.NotFound, status.Code(err))
 	})
 
 	T.Run("requires auth", func(t *testing.T) {
@@ -563,6 +595,158 @@ func TestWaitlistSignups_Updating(T *testing.T) {
 
 		c := buildUnauthenticatedGRPCClientForTest(t)
 		_, err := c.UpdateWaitlistSignup(ctx, &waitlistssvc.UpdateWaitlistSignupRequest{})
+		assert.Error(t, err)
+	})
+}
+
+// TestWaitlistSignups_Lifecycle walks the queue end to end: waiting, invited,
+// converted — with the second invitation refused, which is what makes an
+// invitation email go out once.
+func TestWaitlistSignups_Lifecycle(T *testing.T) {
+	T.Parallel()
+
+	T.Run("happy path", func(t *testing.T) {
+		t.Parallel()
+		ctx := t.Context()
+
+		_, testClient := createUserAndClientForTest(t)
+		waitlist := createWaitlistForTest(t, testClient)
+		signup := createWaitlistSignupForTest(t, testClient, waitlist.ID)
+
+		invited, err := adminClient.InviteWaitlistSignup(ctx, &waitlistssvc.InviteWaitlistSignupRequest{
+			WaitlistId:       waitlist.ID,
+			WaitlistSignupId: signup.ID,
+		})
+		require.NoError(t, err)
+		assert.Equal(t, waitlists.StatusInvited.String(), invited.GetUpdated().GetStatus())
+		assert.NotNil(t, invited.GetUpdated().GetStatusChangedAt())
+
+		_, err = adminClient.InviteWaitlistSignup(ctx, &waitlistssvc.InviteWaitlistSignupRequest{
+			WaitlistId:       waitlist.ID,
+			WaitlistSignupId: signup.ID,
+		})
+		require.Error(t, err)
+		assert.Equal(t, codes.FailedPrecondition, status.Code(err))
+
+		converted, err := adminClient.ConvertWaitlistSignup(ctx, &waitlistssvc.ConvertWaitlistSignupRequest{
+			WaitlistId:       waitlist.ID,
+			WaitlistSignupId: signup.ID,
+		})
+		require.NoError(t, err)
+		assert.Equal(t, waitlists.StatusConverted.String(), converted.GetUpdated().GetStatus())
+	})
+
+	T.Run("denied for regular users", func(t *testing.T) {
+		t.Parallel()
+		ctx := t.Context()
+
+		_, testClient := createUserAndClientForTest(t)
+		waitlist := createWaitlistForTest(t, testClient)
+		signup := createWaitlistSignupForTest(t, testClient, waitlist.ID)
+
+		// Being on a list does not entitle somebody to invite themselves off it.
+		_, err := testClient.InviteWaitlistSignup(ctx, &waitlistssvc.InviteWaitlistSignupRequest{
+			WaitlistId:       waitlist.ID,
+			WaitlistSignupId: signup.ID,
+		})
+		require.Error(t, err)
+		assert.Equal(t, codes.PermissionDenied, status.Code(err))
+
+		_, err = testClient.ConvertWaitlistSignup(ctx, &waitlistssvc.ConvertWaitlistSignupRequest{
+			WaitlistId:       waitlist.ID,
+			WaitlistSignupId: signup.ID,
+		})
+		require.Error(t, err)
+		assert.Equal(t, codes.PermissionDenied, status.Code(err))
+	})
+
+	T.Run("requires auth", func(t *testing.T) {
+		t.Parallel()
+		ctx := t.Context()
+
+		c := buildUnauthenticatedGRPCClientForTest(t)
+
+		_, err := c.InviteWaitlistSignup(ctx, &waitlistssvc.InviteWaitlistSignupRequest{})
+		require.Error(t, err)
+
+		_, err = c.ConvertWaitlistSignup(ctx, &waitlistssvc.ConvertWaitlistSignupRequest{})
+		require.Error(t, err)
+	})
+}
+
+// TestWaitlistSignups_Withdrawing is the opt-out this adoption was for: a
+// suppression that outlives the address it is about.
+func TestWaitlistSignups_Withdrawing(T *testing.T) {
+	T.Parallel()
+
+	T.Run("happy path", func(t *testing.T) {
+		t.Parallel()
+		ctx := t.Context()
+
+		_, testClient := createUserAndClientForTest(t)
+		waitlist := createWaitlistForTest(t, testClient)
+		signup := createWaitlistSignupForTest(t, testClient, waitlist.ID)
+
+		withdrawn, err := testClient.WithdrawFromWaitlist(ctx, &waitlistssvc.WithdrawFromWaitlistRequest{
+			WaitlistId:       waitlist.ID,
+			WaitlistSignupId: signup.ID,
+		})
+		require.NoError(t, err)
+
+		// The row is still live and no longer says who it was about, which is what
+		// an unsubscribe page renders.
+		assert.Equal(t, waitlists.StatusWithdrawn.String(), withdrawn.GetUpdated().GetStatus())
+		assert.Empty(t, withdrawn.GetUpdated().GetContact())
+		assert.Empty(t, withdrawn.GetUpdated().GetNotes())
+		assert.Empty(t, withdrawn.GetUpdated().GetSubjectId())
+
+		// Filling the form in again does not put them back on the list. This is the
+		// whole obligation: the local table it replaced had no way to express it.
+		_, err = testClient.JoinWaitlist(ctx, &waitlistssvc.JoinWaitlistRequest{
+			WaitlistId: waitlist.ID,
+			Input:      &waitlistssvc.WaitlistSignupCreationRequestInput{Notes: "changed my mind"},
+		})
+		require.Error(t, err)
+		assert.Equal(t, codes.PermissionDenied, status.Code(err))
+
+		// A second withdrawal is refused, and the code is worth pinning because it is
+		// the anonymization rather than the lifecycle guard that refuses it: the row
+		// no longer names anybody, so the service can no longer tell that this caller
+		// is the person it used to be about. The store's own answer to a replayed
+		// withdrawal is ErrAlreadyWithdrawn (see the repository suite); nothing gets
+		// that far from here, and that is the design working rather than around it.
+		_, err = testClient.WithdrawFromWaitlist(ctx, &waitlistssvc.WithdrawFromWaitlistRequest{
+			WaitlistId:       waitlist.ID,
+			WaitlistSignupId: signup.ID,
+		})
+		require.Error(t, err)
+		assert.Equal(t, codes.PermissionDenied, status.Code(err))
+	})
+
+	T.Run("denied for somebody else's signup", func(t *testing.T) {
+		t.Parallel()
+		ctx := t.Context()
+
+		_, testClient := createUserAndClientForTest(t)
+		_, otherClient := createUserAndClientForTest(t)
+
+		waitlist := createWaitlistForTest(t, testClient)
+		signup := createWaitlistSignupForTest(t, testClient, waitlist.ID)
+
+		_, err := otherClient.WithdrawFromWaitlist(ctx, &waitlistssvc.WithdrawFromWaitlistRequest{
+			WaitlistId:       waitlist.ID,
+			WaitlistSignupId: signup.ID,
+		})
+		require.Error(t, err)
+		assert.Equal(t, codes.PermissionDenied, status.Code(err))
+	})
+
+	T.Run("requires auth", func(t *testing.T) {
+		t.Parallel()
+		ctx := t.Context()
+
+		c := buildUnauthenticatedGRPCClientForTest(t)
+		_, err := c.WithdrawFromWaitlist(ctx, &waitlistssvc.WithdrawFromWaitlistRequest{})
 		assert.Error(t, err)
 	})
 }
@@ -579,9 +763,19 @@ func TestWaitlistSignups_Archiving(T *testing.T) {
 		createdSignup := createWaitlistSignupForTest(t, testClient, waitlist.ID)
 
 		_, err := testClient.ArchiveWaitlistSignup(ctx, &waitlistssvc.ArchiveWaitlistSignupRequest{
+			WaitlistId:       waitlist.ID,
 			WaitlistSignupId: createdSignup.ID,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
+
+		// Archiving is not withdrawing: the row is hidden and the address is still
+		// stored, so a second attempt is a duplicate rather than an honored opt-out.
+		_, err = testClient.JoinWaitlist(ctx, &waitlistssvc.JoinWaitlistRequest{
+			WaitlistId: waitlist.ID,
+			Input:      &waitlistssvc.WaitlistSignupCreationRequestInput{Notes: "again"},
+		})
+		require.Error(t, err)
+		assert.Equal(t, codes.AlreadyExists, status.Code(err))
 	})
 
 	T.Run("nonexistentID", func(t *testing.T) {
@@ -590,12 +784,13 @@ func TestWaitlistSignups_Archiving(T *testing.T) {
 
 		_, testClient := createUserAndClientForTest(t)
 		waitlist := createWaitlistForTest(t, testClient)
-		createWaitlistSignupForTest(t, testClient, waitlist.ID)
 
 		_, err := adminClient.ArchiveWaitlistSignup(ctx, &waitlistssvc.ArchiveWaitlistSignupRequest{
+			WaitlistId:       waitlist.ID,
 			WaitlistSignupId: nonexistentID,
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
+		assert.Equal(t, codes.NotFound, status.Code(err))
 	})
 
 	T.Run("requires auth", func(t *testing.T) {

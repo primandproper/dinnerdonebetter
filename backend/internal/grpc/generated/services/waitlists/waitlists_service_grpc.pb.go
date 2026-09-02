@@ -23,14 +23,17 @@ const (
 	WaitlistsService_CreateWaitlist_FullMethodName                = "/waitlists.WaitlistsService/CreateWaitlist"
 	WaitlistsService_GetWaitlist_FullMethodName                   = "/waitlists.WaitlistsService/GetWaitlist"
 	WaitlistsService_GetWaitlists_FullMethodName                  = "/waitlists.WaitlistsService/GetWaitlists"
-	WaitlistsService_GetActiveWaitlists_FullMethodName            = "/waitlists.WaitlistsService/GetActiveWaitlists"
+	WaitlistsService_GetOpenWaitlists_FullMethodName              = "/waitlists.WaitlistsService/GetOpenWaitlists"
 	WaitlistsService_UpdateWaitlist_FullMethodName                = "/waitlists.WaitlistsService/UpdateWaitlist"
 	WaitlistsService_ArchiveWaitlist_FullMethodName               = "/waitlists.WaitlistsService/ArchiveWaitlist"
-	WaitlistsService_WaitlistIsNotExpired_FullMethodName          = "/waitlists.WaitlistsService/WaitlistIsNotExpired"
-	WaitlistsService_CreateWaitlistSignup_FullMethodName          = "/waitlists.WaitlistsService/CreateWaitlistSignup"
+	WaitlistsService_WaitlistIsOpen_FullMethodName                = "/waitlists.WaitlistsService/WaitlistIsOpen"
+	WaitlistsService_JoinWaitlist_FullMethodName                  = "/waitlists.WaitlistsService/JoinWaitlist"
 	WaitlistsService_GetWaitlistSignup_FullMethodName             = "/waitlists.WaitlistsService/GetWaitlistSignup"
 	WaitlistsService_GetWaitlistSignupsForWaitlist_FullMethodName = "/waitlists.WaitlistsService/GetWaitlistSignupsForWaitlist"
 	WaitlistsService_UpdateWaitlistSignup_FullMethodName          = "/waitlists.WaitlistsService/UpdateWaitlistSignup"
+	WaitlistsService_InviteWaitlistSignup_FullMethodName          = "/waitlists.WaitlistsService/InviteWaitlistSignup"
+	WaitlistsService_ConvertWaitlistSignup_FullMethodName         = "/waitlists.WaitlistsService/ConvertWaitlistSignup"
+	WaitlistsService_WithdrawFromWaitlist_FullMethodName          = "/waitlists.WaitlistsService/WithdrawFromWaitlist"
 	WaitlistsService_ArchiveWaitlistSignup_FullMethodName         = "/waitlists.WaitlistsService/ArchiveWaitlistSignup"
 )
 
@@ -41,14 +44,17 @@ type WaitlistsServiceClient interface {
 	CreateWaitlist(ctx context.Context, in *CreateWaitlistRequest, opts ...grpc.CallOption) (*CreateWaitlistResponse, error)
 	GetWaitlist(ctx context.Context, in *GetWaitlistRequest, opts ...grpc.CallOption) (*GetWaitlistResponse, error)
 	GetWaitlists(ctx context.Context, in *GetWaitlistsRequest, opts ...grpc.CallOption) (*GetWaitlistsResponse, error)
-	GetActiveWaitlists(ctx context.Context, in *GetActiveWaitlistsRequest, opts ...grpc.CallOption) (*GetActiveWaitlistsResponse, error)
+	GetOpenWaitlists(ctx context.Context, in *GetOpenWaitlistsRequest, opts ...grpc.CallOption) (*GetOpenWaitlistsResponse, error)
 	UpdateWaitlist(ctx context.Context, in *UpdateWaitlistRequest, opts ...grpc.CallOption) (*UpdateWaitlistResponse, error)
 	ArchiveWaitlist(ctx context.Context, in *ArchiveWaitlistRequest, opts ...grpc.CallOption) (*ArchiveWaitlistResponse, error)
-	WaitlistIsNotExpired(ctx context.Context, in *WaitlistIsNotExpiredRequest, opts ...grpc.CallOption) (*WaitlistIsNotExpiredResponse, error)
-	CreateWaitlistSignup(ctx context.Context, in *CreateWaitlistSignupRequest, opts ...grpc.CallOption) (*CreateWaitlistSignupResponse, error)
+	WaitlistIsOpen(ctx context.Context, in *WaitlistIsOpenRequest, opts ...grpc.CallOption) (*WaitlistIsOpenResponse, error)
+	JoinWaitlist(ctx context.Context, in *JoinWaitlistRequest, opts ...grpc.CallOption) (*JoinWaitlistResponse, error)
 	GetWaitlistSignup(ctx context.Context, in *GetWaitlistSignupRequest, opts ...grpc.CallOption) (*GetWaitlistSignupResponse, error)
 	GetWaitlistSignupsForWaitlist(ctx context.Context, in *GetWaitlistSignupsForWaitlistRequest, opts ...grpc.CallOption) (*GetWaitlistSignupsForWaitlistResponse, error)
 	UpdateWaitlistSignup(ctx context.Context, in *UpdateWaitlistSignupRequest, opts ...grpc.CallOption) (*UpdateWaitlistSignupResponse, error)
+	InviteWaitlistSignup(ctx context.Context, in *InviteWaitlistSignupRequest, opts ...grpc.CallOption) (*InviteWaitlistSignupResponse, error)
+	ConvertWaitlistSignup(ctx context.Context, in *ConvertWaitlistSignupRequest, opts ...grpc.CallOption) (*ConvertWaitlistSignupResponse, error)
+	WithdrawFromWaitlist(ctx context.Context, in *WithdrawFromWaitlistRequest, opts ...grpc.CallOption) (*WithdrawFromWaitlistResponse, error)
 	ArchiveWaitlistSignup(ctx context.Context, in *ArchiveWaitlistSignupRequest, opts ...grpc.CallOption) (*ArchiveWaitlistSignupResponse, error)
 }
 
@@ -90,10 +96,10 @@ func (c *waitlistsServiceClient) GetWaitlists(ctx context.Context, in *GetWaitli
 	return out, nil
 }
 
-func (c *waitlistsServiceClient) GetActiveWaitlists(ctx context.Context, in *GetActiveWaitlistsRequest, opts ...grpc.CallOption) (*GetActiveWaitlistsResponse, error) {
+func (c *waitlistsServiceClient) GetOpenWaitlists(ctx context.Context, in *GetOpenWaitlistsRequest, opts ...grpc.CallOption) (*GetOpenWaitlistsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetActiveWaitlistsResponse)
-	err := c.cc.Invoke(ctx, WaitlistsService_GetActiveWaitlists_FullMethodName, in, out, cOpts...)
+	out := new(GetOpenWaitlistsResponse)
+	err := c.cc.Invoke(ctx, WaitlistsService_GetOpenWaitlists_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -120,20 +126,20 @@ func (c *waitlistsServiceClient) ArchiveWaitlist(ctx context.Context, in *Archiv
 	return out, nil
 }
 
-func (c *waitlistsServiceClient) WaitlistIsNotExpired(ctx context.Context, in *WaitlistIsNotExpiredRequest, opts ...grpc.CallOption) (*WaitlistIsNotExpiredResponse, error) {
+func (c *waitlistsServiceClient) WaitlistIsOpen(ctx context.Context, in *WaitlistIsOpenRequest, opts ...grpc.CallOption) (*WaitlistIsOpenResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(WaitlistIsNotExpiredResponse)
-	err := c.cc.Invoke(ctx, WaitlistsService_WaitlistIsNotExpired_FullMethodName, in, out, cOpts...)
+	out := new(WaitlistIsOpenResponse)
+	err := c.cc.Invoke(ctx, WaitlistsService_WaitlistIsOpen_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *waitlistsServiceClient) CreateWaitlistSignup(ctx context.Context, in *CreateWaitlistSignupRequest, opts ...grpc.CallOption) (*CreateWaitlistSignupResponse, error) {
+func (c *waitlistsServiceClient) JoinWaitlist(ctx context.Context, in *JoinWaitlistRequest, opts ...grpc.CallOption) (*JoinWaitlistResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(CreateWaitlistSignupResponse)
-	err := c.cc.Invoke(ctx, WaitlistsService_CreateWaitlistSignup_FullMethodName, in, out, cOpts...)
+	out := new(JoinWaitlistResponse)
+	err := c.cc.Invoke(ctx, WaitlistsService_JoinWaitlist_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -170,6 +176,36 @@ func (c *waitlistsServiceClient) UpdateWaitlistSignup(ctx context.Context, in *U
 	return out, nil
 }
 
+func (c *waitlistsServiceClient) InviteWaitlistSignup(ctx context.Context, in *InviteWaitlistSignupRequest, opts ...grpc.CallOption) (*InviteWaitlistSignupResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(InviteWaitlistSignupResponse)
+	err := c.cc.Invoke(ctx, WaitlistsService_InviteWaitlistSignup_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *waitlistsServiceClient) ConvertWaitlistSignup(ctx context.Context, in *ConvertWaitlistSignupRequest, opts ...grpc.CallOption) (*ConvertWaitlistSignupResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ConvertWaitlistSignupResponse)
+	err := c.cc.Invoke(ctx, WaitlistsService_ConvertWaitlistSignup_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *waitlistsServiceClient) WithdrawFromWaitlist(ctx context.Context, in *WithdrawFromWaitlistRequest, opts ...grpc.CallOption) (*WithdrawFromWaitlistResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WithdrawFromWaitlistResponse)
+	err := c.cc.Invoke(ctx, WaitlistsService_WithdrawFromWaitlist_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *waitlistsServiceClient) ArchiveWaitlistSignup(ctx context.Context, in *ArchiveWaitlistSignupRequest, opts ...grpc.CallOption) (*ArchiveWaitlistSignupResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ArchiveWaitlistSignupResponse)
@@ -187,14 +223,17 @@ type WaitlistsServiceServer interface {
 	CreateWaitlist(context.Context, *CreateWaitlistRequest) (*CreateWaitlistResponse, error)
 	GetWaitlist(context.Context, *GetWaitlistRequest) (*GetWaitlistResponse, error)
 	GetWaitlists(context.Context, *GetWaitlistsRequest) (*GetWaitlistsResponse, error)
-	GetActiveWaitlists(context.Context, *GetActiveWaitlistsRequest) (*GetActiveWaitlistsResponse, error)
+	GetOpenWaitlists(context.Context, *GetOpenWaitlistsRequest) (*GetOpenWaitlistsResponse, error)
 	UpdateWaitlist(context.Context, *UpdateWaitlistRequest) (*UpdateWaitlistResponse, error)
 	ArchiveWaitlist(context.Context, *ArchiveWaitlistRequest) (*ArchiveWaitlistResponse, error)
-	WaitlistIsNotExpired(context.Context, *WaitlistIsNotExpiredRequest) (*WaitlistIsNotExpiredResponse, error)
-	CreateWaitlistSignup(context.Context, *CreateWaitlistSignupRequest) (*CreateWaitlistSignupResponse, error)
+	WaitlistIsOpen(context.Context, *WaitlistIsOpenRequest) (*WaitlistIsOpenResponse, error)
+	JoinWaitlist(context.Context, *JoinWaitlistRequest) (*JoinWaitlistResponse, error)
 	GetWaitlistSignup(context.Context, *GetWaitlistSignupRequest) (*GetWaitlistSignupResponse, error)
 	GetWaitlistSignupsForWaitlist(context.Context, *GetWaitlistSignupsForWaitlistRequest) (*GetWaitlistSignupsForWaitlistResponse, error)
 	UpdateWaitlistSignup(context.Context, *UpdateWaitlistSignupRequest) (*UpdateWaitlistSignupResponse, error)
+	InviteWaitlistSignup(context.Context, *InviteWaitlistSignupRequest) (*InviteWaitlistSignupResponse, error)
+	ConvertWaitlistSignup(context.Context, *ConvertWaitlistSignupRequest) (*ConvertWaitlistSignupResponse, error)
+	WithdrawFromWaitlist(context.Context, *WithdrawFromWaitlistRequest) (*WithdrawFromWaitlistResponse, error)
 	ArchiveWaitlistSignup(context.Context, *ArchiveWaitlistSignupRequest) (*ArchiveWaitlistSignupResponse, error)
 	mustEmbedUnimplementedWaitlistsServiceServer()
 }
@@ -215,8 +254,8 @@ func (UnimplementedWaitlistsServiceServer) GetWaitlist(context.Context, *GetWait
 func (UnimplementedWaitlistsServiceServer) GetWaitlists(context.Context, *GetWaitlistsRequest) (*GetWaitlistsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetWaitlists not implemented")
 }
-func (UnimplementedWaitlistsServiceServer) GetActiveWaitlists(context.Context, *GetActiveWaitlistsRequest) (*GetActiveWaitlistsResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetActiveWaitlists not implemented")
+func (UnimplementedWaitlistsServiceServer) GetOpenWaitlists(context.Context, *GetOpenWaitlistsRequest) (*GetOpenWaitlistsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetOpenWaitlists not implemented")
 }
 func (UnimplementedWaitlistsServiceServer) UpdateWaitlist(context.Context, *UpdateWaitlistRequest) (*UpdateWaitlistResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateWaitlist not implemented")
@@ -224,11 +263,11 @@ func (UnimplementedWaitlistsServiceServer) UpdateWaitlist(context.Context, *Upda
 func (UnimplementedWaitlistsServiceServer) ArchiveWaitlist(context.Context, *ArchiveWaitlistRequest) (*ArchiveWaitlistResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ArchiveWaitlist not implemented")
 }
-func (UnimplementedWaitlistsServiceServer) WaitlistIsNotExpired(context.Context, *WaitlistIsNotExpiredRequest) (*WaitlistIsNotExpiredResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method WaitlistIsNotExpired not implemented")
+func (UnimplementedWaitlistsServiceServer) WaitlistIsOpen(context.Context, *WaitlistIsOpenRequest) (*WaitlistIsOpenResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method WaitlistIsOpen not implemented")
 }
-func (UnimplementedWaitlistsServiceServer) CreateWaitlistSignup(context.Context, *CreateWaitlistSignupRequest) (*CreateWaitlistSignupResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CreateWaitlistSignup not implemented")
+func (UnimplementedWaitlistsServiceServer) JoinWaitlist(context.Context, *JoinWaitlistRequest) (*JoinWaitlistResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method JoinWaitlist not implemented")
 }
 func (UnimplementedWaitlistsServiceServer) GetWaitlistSignup(context.Context, *GetWaitlistSignupRequest) (*GetWaitlistSignupResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetWaitlistSignup not implemented")
@@ -238,6 +277,15 @@ func (UnimplementedWaitlistsServiceServer) GetWaitlistSignupsForWaitlist(context
 }
 func (UnimplementedWaitlistsServiceServer) UpdateWaitlistSignup(context.Context, *UpdateWaitlistSignupRequest) (*UpdateWaitlistSignupResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateWaitlistSignup not implemented")
+}
+func (UnimplementedWaitlistsServiceServer) InviteWaitlistSignup(context.Context, *InviteWaitlistSignupRequest) (*InviteWaitlistSignupResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method InviteWaitlistSignup not implemented")
+}
+func (UnimplementedWaitlistsServiceServer) ConvertWaitlistSignup(context.Context, *ConvertWaitlistSignupRequest) (*ConvertWaitlistSignupResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ConvertWaitlistSignup not implemented")
+}
+func (UnimplementedWaitlistsServiceServer) WithdrawFromWaitlist(context.Context, *WithdrawFromWaitlistRequest) (*WithdrawFromWaitlistResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method WithdrawFromWaitlist not implemented")
 }
 func (UnimplementedWaitlistsServiceServer) ArchiveWaitlistSignup(context.Context, *ArchiveWaitlistSignupRequest) (*ArchiveWaitlistSignupResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ArchiveWaitlistSignup not implemented")
@@ -317,20 +365,20 @@ func _WaitlistsService_GetWaitlists_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
-func _WaitlistsService_GetActiveWaitlists_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetActiveWaitlistsRequest)
+func _WaitlistsService_GetOpenWaitlists_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetOpenWaitlistsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(WaitlistsServiceServer).GetActiveWaitlists(ctx, in)
+		return srv.(WaitlistsServiceServer).GetOpenWaitlists(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: WaitlistsService_GetActiveWaitlists_FullMethodName,
+		FullMethod: WaitlistsService_GetOpenWaitlists_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(WaitlistsServiceServer).GetActiveWaitlists(ctx, req.(*GetActiveWaitlistsRequest))
+		return srv.(WaitlistsServiceServer).GetOpenWaitlists(ctx, req.(*GetOpenWaitlistsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -371,38 +419,38 @@ func _WaitlistsService_ArchiveWaitlist_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
-func _WaitlistsService_WaitlistIsNotExpired_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(WaitlistIsNotExpiredRequest)
+func _WaitlistsService_WaitlistIsOpen_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(WaitlistIsOpenRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(WaitlistsServiceServer).WaitlistIsNotExpired(ctx, in)
+		return srv.(WaitlistsServiceServer).WaitlistIsOpen(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: WaitlistsService_WaitlistIsNotExpired_FullMethodName,
+		FullMethod: WaitlistsService_WaitlistIsOpen_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(WaitlistsServiceServer).WaitlistIsNotExpired(ctx, req.(*WaitlistIsNotExpiredRequest))
+		return srv.(WaitlistsServiceServer).WaitlistIsOpen(ctx, req.(*WaitlistIsOpenRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _WaitlistsService_CreateWaitlistSignup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CreateWaitlistSignupRequest)
+func _WaitlistsService_JoinWaitlist_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(JoinWaitlistRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(WaitlistsServiceServer).CreateWaitlistSignup(ctx, in)
+		return srv.(WaitlistsServiceServer).JoinWaitlist(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: WaitlistsService_CreateWaitlistSignup_FullMethodName,
+		FullMethod: WaitlistsService_JoinWaitlist_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(WaitlistsServiceServer).CreateWaitlistSignup(ctx, req.(*CreateWaitlistSignupRequest))
+		return srv.(WaitlistsServiceServer).JoinWaitlist(ctx, req.(*JoinWaitlistRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -461,6 +509,60 @@ func _WaitlistsService_UpdateWaitlistSignup_Handler(srv interface{}, ctx context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _WaitlistsService_InviteWaitlistSignup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(InviteWaitlistSignupRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WaitlistsServiceServer).InviteWaitlistSignup(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WaitlistsService_InviteWaitlistSignup_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WaitlistsServiceServer).InviteWaitlistSignup(ctx, req.(*InviteWaitlistSignupRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WaitlistsService_ConvertWaitlistSignup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ConvertWaitlistSignupRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WaitlistsServiceServer).ConvertWaitlistSignup(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WaitlistsService_ConvertWaitlistSignup_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WaitlistsServiceServer).ConvertWaitlistSignup(ctx, req.(*ConvertWaitlistSignupRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WaitlistsService_WithdrawFromWaitlist_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(WithdrawFromWaitlistRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WaitlistsServiceServer).WithdrawFromWaitlist(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WaitlistsService_WithdrawFromWaitlist_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WaitlistsServiceServer).WithdrawFromWaitlist(ctx, req.(*WithdrawFromWaitlistRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _WaitlistsService_ArchiveWaitlistSignup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ArchiveWaitlistSignupRequest)
 	if err := dec(in); err != nil {
@@ -499,8 +601,8 @@ var WaitlistsService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _WaitlistsService_GetWaitlists_Handler,
 		},
 		{
-			MethodName: "GetActiveWaitlists",
-			Handler:    _WaitlistsService_GetActiveWaitlists_Handler,
+			MethodName: "GetOpenWaitlists",
+			Handler:    _WaitlistsService_GetOpenWaitlists_Handler,
 		},
 		{
 			MethodName: "UpdateWaitlist",
@@ -511,12 +613,12 @@ var WaitlistsService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _WaitlistsService_ArchiveWaitlist_Handler,
 		},
 		{
-			MethodName: "WaitlistIsNotExpired",
-			Handler:    _WaitlistsService_WaitlistIsNotExpired_Handler,
+			MethodName: "WaitlistIsOpen",
+			Handler:    _WaitlistsService_WaitlistIsOpen_Handler,
 		},
 		{
-			MethodName: "CreateWaitlistSignup",
-			Handler:    _WaitlistsService_CreateWaitlistSignup_Handler,
+			MethodName: "JoinWaitlist",
+			Handler:    _WaitlistsService_JoinWaitlist_Handler,
 		},
 		{
 			MethodName: "GetWaitlistSignup",
@@ -529,6 +631,18 @@ var WaitlistsService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UpdateWaitlistSignup",
 			Handler:    _WaitlistsService_UpdateWaitlistSignup_Handler,
+		},
+		{
+			MethodName: "InviteWaitlistSignup",
+			Handler:    _WaitlistsService_InviteWaitlistSignup_Handler,
+		},
+		{
+			MethodName: "ConvertWaitlistSignup",
+			Handler:    _WaitlistsService_ConvertWaitlistSignup_Handler,
+		},
+		{
+			MethodName: "WithdrawFromWaitlist",
+			Handler:    _WaitlistsService_WithdrawFromWaitlist_Handler,
 		},
 		{
 			MethodName: "ArchiveWaitlistSignup",

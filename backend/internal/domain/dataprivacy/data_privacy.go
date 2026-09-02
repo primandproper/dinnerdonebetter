@@ -96,6 +96,27 @@ const (
 	// key between the two any more — and is the order that reads correctly anyway.
 	EraserKeyComments = "comments"
 
+	// EraserKeyWaitlists is the eraser that takes a subject off every waitlist
+	// they joined.
+	//
+	// It is registered for the same reason EraserKeyComments is — the identity
+	// cascade no longer reaches these rows — but it cannot be closed the same way.
+	// The table this repository used to own carried belongs_to_user REFERENCES
+	// users ON DELETE CASCADE; platform-go's carries a subject pair, and a foreign
+	// key on it is impossible rather than merely absent: a withdrawal blanks the
+	// subject reference to the empty string, which names no user, so the key would
+	// refuse the one write somebody has a right to demand.
+	//
+	// The erasure is a withdrawal rather than a delete, which is what makes it an
+	// erasure that holds: deleting the row would free the address for a later
+	// signup, so somebody erased at their own request could be put back on a
+	// mailing list by filling the form in again. See
+	// internal/domain/waitlists/privacy for what is retained and why.
+	//
+	// It sorts before EraserKeyIdentity, which costs nothing — there is no foreign
+	// key between the two — and is the order that reads correctly anyway.
+	EraserKeyWaitlists = "waitlists"
+
 	// EraserKeyIdentity is the eraser that deletes the user row, and with it
 	// everything hanging off it by ON DELETE CASCADE. See
 	// internal/domain/identity/privacy for what that covers and why it is the

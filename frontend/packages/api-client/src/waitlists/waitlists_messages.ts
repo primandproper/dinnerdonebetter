@@ -14,21 +14,43 @@ export interface Waitlist {
   createdAt: Date | undefined;
   lastUpdatedAt: Date | undefined;
   archivedAt: Date | undefined;
+  /**
+   * closes_at is when the waitlist stops taking signups. It is never absent: a
+   * list whose end is not yet decided names a far horizon, and a list that
+   * should stop now is archived.
+   */
+  closesAt: Date | undefined;
   id: string;
   name: string;
   description: string;
-  validUntil: Date | undefined;
 }
 
 export interface WaitlistSignup {
   createdAt: Date | undefined;
   lastUpdatedAt: Date | undefined;
   archivedAt: Date | undefined;
+  /**
+   * status_changed_at is when the signup last moved through the lifecycle. It is
+   * not last_updated_at: editing a note changes the row without moving anybody,
+   * and a reminder after an invitation is scheduled off this.
+   */
+  statusChangedAt: Date | undefined;
   id: string;
+  waitlistId: string;
+  /**
+   * contact is the address the list exists to write to. It is empty for a
+   * withdrawn signup, which is what a withdrawal erases.
+   */
+  contact: string;
   notes: string;
-  belongsToWaitlist: string;
-  belongsToUser: string;
-  belongsToAccount: string;
+  /** status is one of waiting, invited, converted or withdrawn. */
+  status: string;
+  /**
+   * subject_type and subject_id name who the signup belongs to. Both are empty
+   * for a withdrawn signup, and for one that names nobody.
+   */
+  subjectType: string;
+  subjectId: string;
 }
 
 function createBaseWaitlist(): Waitlist {
@@ -36,10 +58,10 @@ function createBaseWaitlist(): Waitlist {
     createdAt: undefined,
     lastUpdatedAt: undefined,
     archivedAt: undefined,
+    closesAt: undefined,
     id: '',
     name: '',
     description: '',
-    validUntil: undefined,
   };
 }
 
@@ -54,17 +76,17 @@ export const Waitlist: MessageFns<Waitlist> = {
     if (message.archivedAt !== undefined) {
       Timestamp.encode(toTimestamp(message.archivedAt), writer.uint32(26).fork()).join();
     }
+    if (message.closesAt !== undefined) {
+      Timestamp.encode(toTimestamp(message.closesAt), writer.uint32(34).fork()).join();
+    }
     if (message.id !== '') {
-      writer.uint32(34).string(message.id);
+      writer.uint32(42).string(message.id);
     }
     if (message.name !== '') {
-      writer.uint32(42).string(message.name);
+      writer.uint32(50).string(message.name);
     }
     if (message.description !== '') {
-      writer.uint32(50).string(message.description);
-    }
-    if (message.validUntil !== undefined) {
-      Timestamp.encode(toTimestamp(message.validUntil), writer.uint32(58).fork()).join();
+      writer.uint32(58).string(message.description);
     }
     return writer;
   },
@@ -105,7 +127,7 @@ export const Waitlist: MessageFns<Waitlist> = {
             break;
           }
 
-          message.id = reader.string();
+          message.closesAt = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
           continue;
         }
         case 5: {
@@ -113,7 +135,7 @@ export const Waitlist: MessageFns<Waitlist> = {
             break;
           }
 
-          message.name = reader.string();
+          message.id = reader.string();
           continue;
         }
         case 6: {
@@ -121,7 +143,7 @@ export const Waitlist: MessageFns<Waitlist> = {
             break;
           }
 
-          message.description = reader.string();
+          message.name = reader.string();
           continue;
         }
         case 7: {
@@ -129,7 +151,7 @@ export const Waitlist: MessageFns<Waitlist> = {
             break;
           }
 
-          message.validUntil = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
+          message.description = reader.string();
           continue;
         }
       }
@@ -158,14 +180,14 @@ export const Waitlist: MessageFns<Waitlist> = {
         : isSet(object.archived_at)
           ? fromJsonTimestamp(object.archived_at)
           : undefined,
+      closesAt: isSet(object.closesAt)
+        ? fromJsonTimestamp(object.closesAt)
+        : isSet(object.closes_at)
+          ? fromJsonTimestamp(object.closes_at)
+          : undefined,
       id: isSet(object.id) ? globalThis.String(object.id) : '',
       name: isSet(object.name) ? globalThis.String(object.name) : '',
       description: isSet(object.description) ? globalThis.String(object.description) : '',
-      validUntil: isSet(object.validUntil)
-        ? fromJsonTimestamp(object.validUntil)
-        : isSet(object.valid_until)
-          ? fromJsonTimestamp(object.valid_until)
-          : undefined,
     };
   },
 
@@ -180,6 +202,9 @@ export const Waitlist: MessageFns<Waitlist> = {
     if (message.archivedAt !== undefined) {
       obj.archivedAt = message.archivedAt.toISOString();
     }
+    if (message.closesAt !== undefined) {
+      obj.closesAt = message.closesAt.toISOString();
+    }
     if (message.id !== '') {
       obj.id = message.id;
     }
@@ -188,9 +213,6 @@ export const Waitlist: MessageFns<Waitlist> = {
     }
     if (message.description !== '') {
       obj.description = message.description;
-    }
-    if (message.validUntil !== undefined) {
-      obj.validUntil = message.validUntil.toISOString();
     }
     return obj;
   },
@@ -203,10 +225,10 @@ export const Waitlist: MessageFns<Waitlist> = {
     message.createdAt = object.createdAt ?? undefined;
     message.lastUpdatedAt = object.lastUpdatedAt ?? undefined;
     message.archivedAt = object.archivedAt ?? undefined;
+    message.closesAt = object.closesAt ?? undefined;
     message.id = object.id ?? '';
     message.name = object.name ?? '';
     message.description = object.description ?? '';
-    message.validUntil = object.validUntil ?? undefined;
     return message;
   },
 };
@@ -216,11 +238,14 @@ function createBaseWaitlistSignup(): WaitlistSignup {
     createdAt: undefined,
     lastUpdatedAt: undefined,
     archivedAt: undefined,
+    statusChangedAt: undefined,
     id: '',
+    waitlistId: '',
+    contact: '',
     notes: '',
-    belongsToWaitlist: '',
-    belongsToUser: '',
-    belongsToAccount: '',
+    status: '',
+    subjectType: '',
+    subjectId: '',
   };
 }
 
@@ -235,20 +260,29 @@ export const WaitlistSignup: MessageFns<WaitlistSignup> = {
     if (message.archivedAt !== undefined) {
       Timestamp.encode(toTimestamp(message.archivedAt), writer.uint32(26).fork()).join();
     }
+    if (message.statusChangedAt !== undefined) {
+      Timestamp.encode(toTimestamp(message.statusChangedAt), writer.uint32(34).fork()).join();
+    }
     if (message.id !== '') {
-      writer.uint32(34).string(message.id);
+      writer.uint32(42).string(message.id);
+    }
+    if (message.waitlistId !== '') {
+      writer.uint32(50).string(message.waitlistId);
+    }
+    if (message.contact !== '') {
+      writer.uint32(58).string(message.contact);
     }
     if (message.notes !== '') {
-      writer.uint32(42).string(message.notes);
+      writer.uint32(66).string(message.notes);
     }
-    if (message.belongsToWaitlist !== '') {
-      writer.uint32(50).string(message.belongsToWaitlist);
+    if (message.status !== '') {
+      writer.uint32(74).string(message.status);
     }
-    if (message.belongsToUser !== '') {
-      writer.uint32(58).string(message.belongsToUser);
+    if (message.subjectType !== '') {
+      writer.uint32(82).string(message.subjectType);
     }
-    if (message.belongsToAccount !== '') {
-      writer.uint32(66).string(message.belongsToAccount);
+    if (message.subjectId !== '') {
+      writer.uint32(90).string(message.subjectId);
     }
     return writer;
   },
@@ -289,7 +323,7 @@ export const WaitlistSignup: MessageFns<WaitlistSignup> = {
             break;
           }
 
-          message.id = reader.string();
+          message.statusChangedAt = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
           continue;
         }
         case 5: {
@@ -297,7 +331,7 @@ export const WaitlistSignup: MessageFns<WaitlistSignup> = {
             break;
           }
 
-          message.notes = reader.string();
+          message.id = reader.string();
           continue;
         }
         case 6: {
@@ -305,7 +339,7 @@ export const WaitlistSignup: MessageFns<WaitlistSignup> = {
             break;
           }
 
-          message.belongsToWaitlist = reader.string();
+          message.waitlistId = reader.string();
           continue;
         }
         case 7: {
@@ -313,7 +347,7 @@ export const WaitlistSignup: MessageFns<WaitlistSignup> = {
             break;
           }
 
-          message.belongsToUser = reader.string();
+          message.contact = reader.string();
           continue;
         }
         case 8: {
@@ -321,7 +355,31 @@ export const WaitlistSignup: MessageFns<WaitlistSignup> = {
             break;
           }
 
-          message.belongsToAccount = reader.string();
+          message.notes = reader.string();
+          continue;
+        }
+        case 9: {
+          if (tag !== 74) {
+            break;
+          }
+
+          message.status = reader.string();
+          continue;
+        }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          message.subjectType = reader.string();
+          continue;
+        }
+        case 11: {
+          if (tag !== 90) {
+            break;
+          }
+
+          message.subjectId = reader.string();
           continue;
         }
       }
@@ -350,22 +408,29 @@ export const WaitlistSignup: MessageFns<WaitlistSignup> = {
         : isSet(object.archived_at)
           ? fromJsonTimestamp(object.archived_at)
           : undefined,
+      statusChangedAt: isSet(object.statusChangedAt)
+        ? fromJsonTimestamp(object.statusChangedAt)
+        : isSet(object.status_changed_at)
+          ? fromJsonTimestamp(object.status_changed_at)
+          : undefined,
       id: isSet(object.id) ? globalThis.String(object.id) : '',
+      waitlistId: isSet(object.waitlistId)
+        ? globalThis.String(object.waitlistId)
+        : isSet(object.waitlist_id)
+          ? globalThis.String(object.waitlist_id)
+          : '',
+      contact: isSet(object.contact) ? globalThis.String(object.contact) : '',
       notes: isSet(object.notes) ? globalThis.String(object.notes) : '',
-      belongsToWaitlist: isSet(object.belongsToWaitlist)
-        ? globalThis.String(object.belongsToWaitlist)
-        : isSet(object.belongs_to_waitlist)
-          ? globalThis.String(object.belongs_to_waitlist)
+      status: isSet(object.status) ? globalThis.String(object.status) : '',
+      subjectType: isSet(object.subjectType)
+        ? globalThis.String(object.subjectType)
+        : isSet(object.subject_type)
+          ? globalThis.String(object.subject_type)
           : '',
-      belongsToUser: isSet(object.belongsToUser)
-        ? globalThis.String(object.belongsToUser)
-        : isSet(object.belongs_to_user)
-          ? globalThis.String(object.belongs_to_user)
-          : '',
-      belongsToAccount: isSet(object.belongsToAccount)
-        ? globalThis.String(object.belongsToAccount)
-        : isSet(object.belongs_to_account)
-          ? globalThis.String(object.belongs_to_account)
+      subjectId: isSet(object.subjectId)
+        ? globalThis.String(object.subjectId)
+        : isSet(object.subject_id)
+          ? globalThis.String(object.subject_id)
           : '',
     };
   },
@@ -381,20 +446,29 @@ export const WaitlistSignup: MessageFns<WaitlistSignup> = {
     if (message.archivedAt !== undefined) {
       obj.archivedAt = message.archivedAt.toISOString();
     }
+    if (message.statusChangedAt !== undefined) {
+      obj.statusChangedAt = message.statusChangedAt.toISOString();
+    }
     if (message.id !== '') {
       obj.id = message.id;
+    }
+    if (message.waitlistId !== '') {
+      obj.waitlistId = message.waitlistId;
+    }
+    if (message.contact !== '') {
+      obj.contact = message.contact;
     }
     if (message.notes !== '') {
       obj.notes = message.notes;
     }
-    if (message.belongsToWaitlist !== '') {
-      obj.belongsToWaitlist = message.belongsToWaitlist;
+    if (message.status !== '') {
+      obj.status = message.status;
     }
-    if (message.belongsToUser !== '') {
-      obj.belongsToUser = message.belongsToUser;
+    if (message.subjectType !== '') {
+      obj.subjectType = message.subjectType;
     }
-    if (message.belongsToAccount !== '') {
-      obj.belongsToAccount = message.belongsToAccount;
+    if (message.subjectId !== '') {
+      obj.subjectId = message.subjectId;
     }
     return obj;
   },
@@ -407,11 +481,14 @@ export const WaitlistSignup: MessageFns<WaitlistSignup> = {
     message.createdAt = object.createdAt ?? undefined;
     message.lastUpdatedAt = object.lastUpdatedAt ?? undefined;
     message.archivedAt = object.archivedAt ?? undefined;
+    message.statusChangedAt = object.statusChangedAt ?? undefined;
     message.id = object.id ?? '';
+    message.waitlistId = object.waitlistId ?? '';
+    message.contact = object.contact ?? '';
     message.notes = object.notes ?? '';
-    message.belongsToWaitlist = object.belongsToWaitlist ?? '';
-    message.belongsToUser = object.belongsToUser ?? '';
-    message.belongsToAccount = object.belongsToAccount ?? '';
+    message.status = object.status ?? '';
+    message.subjectType = object.subjectType ?? '';
+    message.subjectId = object.subjectId ?? '';
     return message;
   },
 };

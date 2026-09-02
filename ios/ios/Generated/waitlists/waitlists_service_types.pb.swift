@@ -29,20 +29,20 @@ public struct Waitlists_WaitlistCreationRequestInput: Sendable {
 
   public var description_p: String = String()
 
-  public var validUntil: SwiftProtobuf.Google_Protobuf_Timestamp {
-    get {return _validUntil ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
-    set {_validUntil = newValue}
+  public var closesAt: SwiftProtobuf.Google_Protobuf_Timestamp {
+    get {return _closesAt ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
+    set {_closesAt = newValue}
   }
-  /// Returns true if `validUntil` has been explicitly set.
-  public var hasValidUntil: Bool {return self._validUntil != nil}
-  /// Clears the value of `validUntil`. Subsequent reads from it will return its default value.
-  public mutating func clearValidUntil() {self._validUntil = nil}
+  /// Returns true if `closesAt` has been explicitly set.
+  public var hasClosesAt: Bool {return self._closesAt != nil}
+  /// Clears the value of `closesAt`. Subsequent reads from it will return its default value.
+  public mutating func clearClosesAt() {self._closesAt = nil}
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
 
-  fileprivate var _validUntil: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
+  fileprivate var _closesAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
 }
 
 public struct Waitlists_WaitlistUpdateRequestInput: Sendable {
@@ -68,14 +68,14 @@ public struct Waitlists_WaitlistUpdateRequestInput: Sendable {
   /// Clears the value of `description_p`. Subsequent reads from it will return its default value.
   public mutating func clearDescription_p() {self._description_p = nil}
 
-  public var validUntil: SwiftProtobuf.Google_Protobuf_Timestamp {
-    get {return _validUntil ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
-    set {_validUntil = newValue}
+  public var closesAt: SwiftProtobuf.Google_Protobuf_Timestamp {
+    get {return _closesAt ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
+    set {_closesAt = newValue}
   }
-  /// Returns true if `validUntil` has been explicitly set.
-  public var hasValidUntil: Bool {return self._validUntil != nil}
-  /// Clears the value of `validUntil`. Subsequent reads from it will return its default value.
-  public mutating func clearValidUntil() {self._validUntil = nil}
+  /// Returns true if `closesAt` has been explicitly set.
+  public var hasClosesAt: Bool {return self._closesAt != nil}
+  /// Clears the value of `closesAt`. Subsequent reads from it will return its default value.
+  public mutating func clearClosesAt() {self._closesAt = nil}
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
@@ -83,21 +83,19 @@ public struct Waitlists_WaitlistUpdateRequestInput: Sendable {
 
   fileprivate var _name: String? = nil
   fileprivate var _description_p: String? = nil
-  fileprivate var _validUntil: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
+  fileprivate var _closesAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
 }
 
+/// WaitlistSignupCreationRequestInput is everything a caller decides about their
+/// own signup, which is the note and nothing else. The address the list writes to
+/// and the user the signup belongs to both come from the session: a signup that
+/// could name its own contact is one anybody could make on anybody's behalf.
 public struct Waitlists_WaitlistSignupCreationRequestInput: Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
 
   public var notes: String = String()
-
-  public var belongsToWaitlist: String = String()
-
-  public var belongsToUser: String = String()
-
-  public var belongsToAccount: String = String()
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
@@ -274,7 +272,7 @@ public struct Waitlists_GetWaitlistsResponse: Sendable {
   fileprivate var _pagination: Primandproper_Platform_Filtering_V1_Pagination? = nil
 }
 
-public struct Waitlists_GetActiveWaitlistsRequest: Sendable {
+public struct Waitlists_GetOpenWaitlistsRequest: Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
@@ -295,7 +293,7 @@ public struct Waitlists_GetActiveWaitlistsRequest: Sendable {
   fileprivate var _filter: Primandproper_Platform_Filtering_V1_QueryFilter? = nil
 }
 
-public struct Waitlists_GetActiveWaitlistsResponse: Sendable {
+public struct Waitlists_GetOpenWaitlistsResponse: Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
@@ -415,7 +413,7 @@ public struct Waitlists_ArchiveWaitlistResponse: Sendable {
   fileprivate var _responseDetails: Common_ResponseDetails? = nil
 }
 
-public struct Waitlists_WaitlistIsNotExpiredRequest: Sendable {
+public struct Waitlists_WaitlistIsOpenRequest: Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
@@ -427,7 +425,7 @@ public struct Waitlists_WaitlistIsNotExpiredRequest: Sendable {
   public init() {}
 }
 
-public struct Waitlists_WaitlistIsNotExpiredResponse: Sendable {
+public struct Waitlists_WaitlistIsOpenResponse: Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
@@ -441,7 +439,7 @@ public struct Waitlists_WaitlistIsNotExpiredResponse: Sendable {
   /// Clears the value of `responseDetails`. Subsequent reads from it will return its default value.
   public mutating func clearResponseDetails() {self._responseDetails = nil}
 
-  public var isNotExpired: Bool = false
+  public var isOpen: Bool = false
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
@@ -450,10 +448,12 @@ public struct Waitlists_WaitlistIsNotExpiredResponse: Sendable {
   fileprivate var _responseDetails: Common_ResponseDetails? = nil
 }
 
-public struct Waitlists_CreateWaitlistSignupRequest: Sendable {
+public struct Waitlists_JoinWaitlistRequest: Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
+
+  public var waitlistID: String = String()
 
   public var input: Waitlists_WaitlistSignupCreationRequestInput {
     get {return _input ?? Waitlists_WaitlistSignupCreationRequestInput()}
@@ -471,35 +471,34 @@ public struct Waitlists_CreateWaitlistSignupRequest: Sendable {
   fileprivate var _input: Waitlists_WaitlistSignupCreationRequestInput? = nil
 }
 
-public struct Waitlists_CreateWaitlistSignupResponse: Sendable {
+public struct Waitlists_JoinWaitlistResponse: @unchecked Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
 
   public var responseDetails: Common_ResponseDetails {
-    get {return _responseDetails ?? Common_ResponseDetails()}
-    set {_responseDetails = newValue}
+    get {return _storage._responseDetails ?? Common_ResponseDetails()}
+    set {_uniqueStorage()._responseDetails = newValue}
   }
   /// Returns true if `responseDetails` has been explicitly set.
-  public var hasResponseDetails: Bool {return self._responseDetails != nil}
+  public var hasResponseDetails: Bool {return _storage._responseDetails != nil}
   /// Clears the value of `responseDetails`. Subsequent reads from it will return its default value.
-  public mutating func clearResponseDetails() {self._responseDetails = nil}
+  public mutating func clearResponseDetails() {_uniqueStorage()._responseDetails = nil}
 
   public var created: Waitlists_WaitlistSignup {
-    get {return _created ?? Waitlists_WaitlistSignup()}
-    set {_created = newValue}
+    get {return _storage._created ?? Waitlists_WaitlistSignup()}
+    set {_uniqueStorage()._created = newValue}
   }
   /// Returns true if `created` has been explicitly set.
-  public var hasCreated: Bool {return self._created != nil}
+  public var hasCreated: Bool {return _storage._created != nil}
   /// Clears the value of `created`. Subsequent reads from it will return its default value.
-  public mutating func clearCreated() {self._created = nil}
+  public mutating func clearCreated() {_uniqueStorage()._created = nil}
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
 
-  fileprivate var _responseDetails: Common_ResponseDetails? = nil
-  fileprivate var _created: Waitlists_WaitlistSignup? = nil
+  fileprivate var _storage = _StorageClass.defaultInstance
 }
 
 public struct Waitlists_GetWaitlistSignupRequest: Sendable {
@@ -507,44 +506,43 @@ public struct Waitlists_GetWaitlistSignupRequest: Sendable {
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
 
-  public var waitlistSignupID: String = String()
-
   public var waitlistID: String = String()
+
+  public var waitlistSignupID: String = String()
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
 }
 
-public struct Waitlists_GetWaitlistSignupResponse: Sendable {
+public struct Waitlists_GetWaitlistSignupResponse: @unchecked Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
 
   public var responseDetails: Common_ResponseDetails {
-    get {return _responseDetails ?? Common_ResponseDetails()}
-    set {_responseDetails = newValue}
+    get {return _storage._responseDetails ?? Common_ResponseDetails()}
+    set {_uniqueStorage()._responseDetails = newValue}
   }
   /// Returns true if `responseDetails` has been explicitly set.
-  public var hasResponseDetails: Bool {return self._responseDetails != nil}
+  public var hasResponseDetails: Bool {return _storage._responseDetails != nil}
   /// Clears the value of `responseDetails`. Subsequent reads from it will return its default value.
-  public mutating func clearResponseDetails() {self._responseDetails = nil}
+  public mutating func clearResponseDetails() {_uniqueStorage()._responseDetails = nil}
 
   public var result: Waitlists_WaitlistSignup {
-    get {return _result ?? Waitlists_WaitlistSignup()}
-    set {_result = newValue}
+    get {return _storage._result ?? Waitlists_WaitlistSignup()}
+    set {_uniqueStorage()._result = newValue}
   }
   /// Returns true if `result` has been explicitly set.
-  public var hasResult: Bool {return self._result != nil}
+  public var hasResult: Bool {return _storage._result != nil}
   /// Clears the value of `result`. Subsequent reads from it will return its default value.
-  public mutating func clearResult() {self._result = nil}
+  public mutating func clearResult() {_uniqueStorage()._result = nil}
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
 
-  fileprivate var _responseDetails: Common_ResponseDetails? = nil
-  fileprivate var _result: Waitlists_WaitlistSignup? = nil
+  fileprivate var _storage = _StorageClass.defaultInstance
 }
 
 public struct Waitlists_GetWaitlistSignupsForWaitlistRequest: Sendable {
@@ -608,9 +606,9 @@ public struct Waitlists_UpdateWaitlistSignupRequest: Sendable {
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
 
-  public var waitlistSignupID: String = String()
-
   public var waitlistID: String = String()
+
+  public var waitlistSignupID: String = String()
 
   public var input: Waitlists_WaitlistSignupUpdateRequestInput {
     get {return _input ?? Waitlists_WaitlistSignupUpdateRequestInput()}
@@ -628,41 +626,177 @@ public struct Waitlists_UpdateWaitlistSignupRequest: Sendable {
   fileprivate var _input: Waitlists_WaitlistSignupUpdateRequestInput? = nil
 }
 
-public struct Waitlists_UpdateWaitlistSignupResponse: Sendable {
+public struct Waitlists_UpdateWaitlistSignupResponse: @unchecked Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
 
   public var responseDetails: Common_ResponseDetails {
-    get {return _responseDetails ?? Common_ResponseDetails()}
-    set {_responseDetails = newValue}
+    get {return _storage._responseDetails ?? Common_ResponseDetails()}
+    set {_uniqueStorage()._responseDetails = newValue}
   }
   /// Returns true if `responseDetails` has been explicitly set.
-  public var hasResponseDetails: Bool {return self._responseDetails != nil}
+  public var hasResponseDetails: Bool {return _storage._responseDetails != nil}
   /// Clears the value of `responseDetails`. Subsequent reads from it will return its default value.
-  public mutating func clearResponseDetails() {self._responseDetails = nil}
+  public mutating func clearResponseDetails() {_uniqueStorage()._responseDetails = nil}
 
   public var updated: Waitlists_WaitlistSignup {
-    get {return _updated ?? Waitlists_WaitlistSignup()}
-    set {_updated = newValue}
+    get {return _storage._updated ?? Waitlists_WaitlistSignup()}
+    set {_uniqueStorage()._updated = newValue}
   }
   /// Returns true if `updated` has been explicitly set.
-  public var hasUpdated: Bool {return self._updated != nil}
+  public var hasUpdated: Bool {return _storage._updated != nil}
   /// Clears the value of `updated`. Subsequent reads from it will return its default value.
-  public mutating func clearUpdated() {self._updated = nil}
+  public mutating func clearUpdated() {_uniqueStorage()._updated = nil}
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
 
-  fileprivate var _responseDetails: Common_ResponseDetails? = nil
-  fileprivate var _updated: Waitlists_WaitlistSignup? = nil
+  fileprivate var _storage = _StorageClass.defaultInstance
+}
+
+public struct Waitlists_InviteWaitlistSignupRequest: Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  public var waitlistID: String = String()
+
+  public var waitlistSignupID: String = String()
+
+  public var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  public init() {}
+}
+
+public struct Waitlists_InviteWaitlistSignupResponse: @unchecked Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  public var responseDetails: Common_ResponseDetails {
+    get {return _storage._responseDetails ?? Common_ResponseDetails()}
+    set {_uniqueStorage()._responseDetails = newValue}
+  }
+  /// Returns true if `responseDetails` has been explicitly set.
+  public var hasResponseDetails: Bool {return _storage._responseDetails != nil}
+  /// Clears the value of `responseDetails`. Subsequent reads from it will return its default value.
+  public mutating func clearResponseDetails() {_uniqueStorage()._responseDetails = nil}
+
+  public var updated: Waitlists_WaitlistSignup {
+    get {return _storage._updated ?? Waitlists_WaitlistSignup()}
+    set {_uniqueStorage()._updated = newValue}
+  }
+  /// Returns true if `updated` has been explicitly set.
+  public var hasUpdated: Bool {return _storage._updated != nil}
+  /// Clears the value of `updated`. Subsequent reads from it will return its default value.
+  public mutating func clearUpdated() {_uniqueStorage()._updated = nil}
+
+  public var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  public init() {}
+
+  fileprivate var _storage = _StorageClass.defaultInstance
+}
+
+public struct Waitlists_ConvertWaitlistSignupRequest: Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  public var waitlistID: String = String()
+
+  public var waitlistSignupID: String = String()
+
+  public var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  public init() {}
+}
+
+public struct Waitlists_ConvertWaitlistSignupResponse: @unchecked Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  public var responseDetails: Common_ResponseDetails {
+    get {return _storage._responseDetails ?? Common_ResponseDetails()}
+    set {_uniqueStorage()._responseDetails = newValue}
+  }
+  /// Returns true if `responseDetails` has been explicitly set.
+  public var hasResponseDetails: Bool {return _storage._responseDetails != nil}
+  /// Clears the value of `responseDetails`. Subsequent reads from it will return its default value.
+  public mutating func clearResponseDetails() {_uniqueStorage()._responseDetails = nil}
+
+  public var updated: Waitlists_WaitlistSignup {
+    get {return _storage._updated ?? Waitlists_WaitlistSignup()}
+    set {_uniqueStorage()._updated = newValue}
+  }
+  /// Returns true if `updated` has been explicitly set.
+  public var hasUpdated: Bool {return _storage._updated != nil}
+  /// Clears the value of `updated`. Subsequent reads from it will return its default value.
+  public mutating func clearUpdated() {_uniqueStorage()._updated = nil}
+
+  public var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  public init() {}
+
+  fileprivate var _storage = _StorageClass.defaultInstance
+}
+
+public struct Waitlists_WithdrawFromWaitlistRequest: Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  public var waitlistID: String = String()
+
+  public var waitlistSignupID: String = String()
+
+  public var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  public init() {}
+}
+
+/// WithdrawFromWaitlistResponse carries the withdrawn signup: its contact and
+/// notes are blank and its status says why, which is what lets an unsubscribe
+/// page say "you are off this list" rather than nothing at all.
+public struct Waitlists_WithdrawFromWaitlistResponse: @unchecked Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  public var responseDetails: Common_ResponseDetails {
+    get {return _storage._responseDetails ?? Common_ResponseDetails()}
+    set {_uniqueStorage()._responseDetails = newValue}
+  }
+  /// Returns true if `responseDetails` has been explicitly set.
+  public var hasResponseDetails: Bool {return _storage._responseDetails != nil}
+  /// Clears the value of `responseDetails`. Subsequent reads from it will return its default value.
+  public mutating func clearResponseDetails() {_uniqueStorage()._responseDetails = nil}
+
+  public var updated: Waitlists_WaitlistSignup {
+    get {return _storage._updated ?? Waitlists_WaitlistSignup()}
+    set {_uniqueStorage()._updated = newValue}
+  }
+  /// Returns true if `updated` has been explicitly set.
+  public var hasUpdated: Bool {return _storage._updated != nil}
+  /// Clears the value of `updated`. Subsequent reads from it will return its default value.
+  public mutating func clearUpdated() {_uniqueStorage()._updated = nil}
+
+  public var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  public init() {}
+
+  fileprivate var _storage = _StorageClass.defaultInstance
 }
 
 public struct Waitlists_ArchiveWaitlistSignupRequest: Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
+
+  public var waitlistID: String = String()
 
   public var waitlistSignupID: String = String()
 
@@ -698,7 +832,7 @@ fileprivate let _protobuf_package = "waitlists"
 
 extension Waitlists_WaitlistCreationRequestInput: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".WaitlistCreationRequestInput"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}name\0\u{1}description\0\u{3}valid_until\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}name\0\u{1}description\0\u{3}closes_at\0")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -708,7 +842,7 @@ extension Waitlists_WaitlistCreationRequestInput: SwiftProtobuf.Message, SwiftPr
       switch fieldNumber {
       case 1: try { try decoder.decodeSingularStringField(value: &self.name) }()
       case 2: try { try decoder.decodeSingularStringField(value: &self.description_p) }()
-      case 3: try { try decoder.decodeSingularMessageField(value: &self._validUntil) }()
+      case 3: try { try decoder.decodeSingularMessageField(value: &self._closesAt) }()
       default: break
       }
     }
@@ -725,7 +859,7 @@ extension Waitlists_WaitlistCreationRequestInput: SwiftProtobuf.Message, SwiftPr
     if !self.description_p.isEmpty {
       try visitor.visitSingularStringField(value: self.description_p, fieldNumber: 2)
     }
-    try { if let v = self._validUntil {
+    try { if let v = self._closesAt {
       try visitor.visitSingularMessageField(value: v, fieldNumber: 3)
     } }()
     try unknownFields.traverse(visitor: &visitor)
@@ -734,7 +868,7 @@ extension Waitlists_WaitlistCreationRequestInput: SwiftProtobuf.Message, SwiftPr
   public static func ==(lhs: Waitlists_WaitlistCreationRequestInput, rhs: Waitlists_WaitlistCreationRequestInput) -> Bool {
     if lhs.name != rhs.name {return false}
     if lhs.description_p != rhs.description_p {return false}
-    if lhs._validUntil != rhs._validUntil {return false}
+    if lhs._closesAt != rhs._closesAt {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
@@ -742,7 +876,7 @@ extension Waitlists_WaitlistCreationRequestInput: SwiftProtobuf.Message, SwiftPr
 
 extension Waitlists_WaitlistUpdateRequestInput: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".WaitlistUpdateRequestInput"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}name\0\u{1}description\0\u{3}valid_until\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}name\0\u{1}description\0\u{3}closes_at\0")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -752,7 +886,7 @@ extension Waitlists_WaitlistUpdateRequestInput: SwiftProtobuf.Message, SwiftProt
       switch fieldNumber {
       case 1: try { try decoder.decodeSingularStringField(value: &self._name) }()
       case 2: try { try decoder.decodeSingularStringField(value: &self._description_p) }()
-      case 3: try { try decoder.decodeSingularMessageField(value: &self._validUntil) }()
+      case 3: try { try decoder.decodeSingularMessageField(value: &self._closesAt) }()
       default: break
       }
     }
@@ -769,7 +903,7 @@ extension Waitlists_WaitlistUpdateRequestInput: SwiftProtobuf.Message, SwiftProt
     try { if let v = self._description_p {
       try visitor.visitSingularStringField(value: v, fieldNumber: 2)
     } }()
-    try { if let v = self._validUntil {
+    try { if let v = self._closesAt {
       try visitor.visitSingularMessageField(value: v, fieldNumber: 3)
     } }()
     try unknownFields.traverse(visitor: &visitor)
@@ -778,7 +912,7 @@ extension Waitlists_WaitlistUpdateRequestInput: SwiftProtobuf.Message, SwiftProt
   public static func ==(lhs: Waitlists_WaitlistUpdateRequestInput, rhs: Waitlists_WaitlistUpdateRequestInput) -> Bool {
     if lhs._name != rhs._name {return false}
     if lhs._description_p != rhs._description_p {return false}
-    if lhs._validUntil != rhs._validUntil {return false}
+    if lhs._closesAt != rhs._closesAt {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
@@ -786,7 +920,7 @@ extension Waitlists_WaitlistUpdateRequestInput: SwiftProtobuf.Message, SwiftProt
 
 extension Waitlists_WaitlistSignupCreationRequestInput: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".WaitlistSignupCreationRequestInput"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}notes\0\u{3}belongs_to_waitlist\0\u{3}belongs_to_user\0\u{3}belongs_to_account\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}notes\0")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -795,9 +929,6 @@ extension Waitlists_WaitlistSignupCreationRequestInput: SwiftProtobuf.Message, S
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
       case 1: try { try decoder.decodeSingularStringField(value: &self.notes) }()
-      case 2: try { try decoder.decodeSingularStringField(value: &self.belongsToWaitlist) }()
-      case 3: try { try decoder.decodeSingularStringField(value: &self.belongsToUser) }()
-      case 4: try { try decoder.decodeSingularStringField(value: &self.belongsToAccount) }()
       default: break
       }
     }
@@ -807,23 +938,11 @@ extension Waitlists_WaitlistSignupCreationRequestInput: SwiftProtobuf.Message, S
     if !self.notes.isEmpty {
       try visitor.visitSingularStringField(value: self.notes, fieldNumber: 1)
     }
-    if !self.belongsToWaitlist.isEmpty {
-      try visitor.visitSingularStringField(value: self.belongsToWaitlist, fieldNumber: 2)
-    }
-    if !self.belongsToUser.isEmpty {
-      try visitor.visitSingularStringField(value: self.belongsToUser, fieldNumber: 3)
-    }
-    if !self.belongsToAccount.isEmpty {
-      try visitor.visitSingularStringField(value: self.belongsToAccount, fieldNumber: 4)
-    }
     try unknownFields.traverse(visitor: &visitor)
   }
 
   public static func ==(lhs: Waitlists_WaitlistSignupCreationRequestInput, rhs: Waitlists_WaitlistSignupCreationRequestInput) -> Bool {
     if lhs.notes != rhs.notes {return false}
-    if lhs.belongsToWaitlist != rhs.belongsToWaitlist {return false}
-    if lhs.belongsToUser != rhs.belongsToUser {return false}
-    if lhs.belongsToAccount != rhs.belongsToAccount {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
@@ -1083,8 +1202,8 @@ extension Waitlists_GetWaitlistsResponse: SwiftProtobuf.Message, SwiftProtobuf._
   }
 }
 
-extension Waitlists_GetActiveWaitlistsRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
-  public static let protoMessageName: String = _protobuf_package + ".GetActiveWaitlistsRequest"
+extension Waitlists_GetOpenWaitlistsRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".GetOpenWaitlistsRequest"
   public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}filter\0")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
@@ -1110,15 +1229,15 @@ extension Waitlists_GetActiveWaitlistsRequest: SwiftProtobuf.Message, SwiftProto
     try unknownFields.traverse(visitor: &visitor)
   }
 
-  public static func ==(lhs: Waitlists_GetActiveWaitlistsRequest, rhs: Waitlists_GetActiveWaitlistsRequest) -> Bool {
+  public static func ==(lhs: Waitlists_GetOpenWaitlistsRequest, rhs: Waitlists_GetOpenWaitlistsRequest) -> Bool {
     if lhs._filter != rhs._filter {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
 }
 
-extension Waitlists_GetActiveWaitlistsResponse: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
-  public static let protoMessageName: String = _protobuf_package + ".GetActiveWaitlistsResponse"
+extension Waitlists_GetOpenWaitlistsResponse: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".GetOpenWaitlistsResponse"
   public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}response_details\0\u{1}pagination\0\u{1}results\0")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
@@ -1152,7 +1271,7 @@ extension Waitlists_GetActiveWaitlistsResponse: SwiftProtobuf.Message, SwiftProt
     try unknownFields.traverse(visitor: &visitor)
   }
 
-  public static func ==(lhs: Waitlists_GetActiveWaitlistsResponse, rhs: Waitlists_GetActiveWaitlistsResponse) -> Bool {
+  public static func ==(lhs: Waitlists_GetOpenWaitlistsResponse, rhs: Waitlists_GetOpenWaitlistsResponse) -> Bool {
     if lhs._responseDetails != rhs._responseDetails {return false}
     if lhs._pagination != rhs._pagination {return false}
     if lhs.results != rhs.results {return false}
@@ -1303,8 +1422,8 @@ extension Waitlists_ArchiveWaitlistResponse: SwiftProtobuf.Message, SwiftProtobu
   }
 }
 
-extension Waitlists_WaitlistIsNotExpiredRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
-  public static let protoMessageName: String = _protobuf_package + ".WaitlistIsNotExpiredRequest"
+extension Waitlists_WaitlistIsOpenRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".WaitlistIsOpenRequest"
   public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}waitlist_id\0")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
@@ -1326,16 +1445,16 @@ extension Waitlists_WaitlistIsNotExpiredRequest: SwiftProtobuf.Message, SwiftPro
     try unknownFields.traverse(visitor: &visitor)
   }
 
-  public static func ==(lhs: Waitlists_WaitlistIsNotExpiredRequest, rhs: Waitlists_WaitlistIsNotExpiredRequest) -> Bool {
+  public static func ==(lhs: Waitlists_WaitlistIsOpenRequest, rhs: Waitlists_WaitlistIsOpenRequest) -> Bool {
     if lhs.waitlistID != rhs.waitlistID {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
 }
 
-extension Waitlists_WaitlistIsNotExpiredResponse: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
-  public static let protoMessageName: String = _protobuf_package + ".WaitlistIsNotExpiredResponse"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}response_details\0\u{3}is_not_expired\0")
+extension Waitlists_WaitlistIsOpenResponse: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".WaitlistIsOpenResponse"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}response_details\0\u{3}is_open\0")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -1344,7 +1463,7 @@ extension Waitlists_WaitlistIsNotExpiredResponse: SwiftProtobuf.Message, SwiftPr
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
       case 1: try { try decoder.decodeSingularMessageField(value: &self._responseDetails) }()
-      case 2: try { try decoder.decodeSingularBoolField(value: &self.isNotExpired) }()
+      case 2: try { try decoder.decodeSingularBoolField(value: &self.isOpen) }()
       default: break
       }
     }
@@ -1358,23 +1477,23 @@ extension Waitlists_WaitlistIsNotExpiredResponse: SwiftProtobuf.Message, SwiftPr
     try { if let v = self._responseDetails {
       try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
     } }()
-    if self.isNotExpired != false {
-      try visitor.visitSingularBoolField(value: self.isNotExpired, fieldNumber: 2)
+    if self.isOpen != false {
+      try visitor.visitSingularBoolField(value: self.isOpen, fieldNumber: 2)
     }
     try unknownFields.traverse(visitor: &visitor)
   }
 
-  public static func ==(lhs: Waitlists_WaitlistIsNotExpiredResponse, rhs: Waitlists_WaitlistIsNotExpiredResponse) -> Bool {
+  public static func ==(lhs: Waitlists_WaitlistIsOpenResponse, rhs: Waitlists_WaitlistIsOpenResponse) -> Bool {
     if lhs._responseDetails != rhs._responseDetails {return false}
-    if lhs.isNotExpired != rhs.isNotExpired {return false}
+    if lhs.isOpen != rhs.isOpen {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
 }
 
-extension Waitlists_CreateWaitlistSignupRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
-  public static let protoMessageName: String = _protobuf_package + ".CreateWaitlistSignupRequest"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}input\0")
+extension Waitlists_JoinWaitlistRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".JoinWaitlistRequest"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}waitlist_id\0\u{1}input\0")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -1382,7 +1501,8 @@ extension Waitlists_CreateWaitlistSignupRequest: SwiftProtobuf.Message, SwiftPro
       // allocates stack space for every case branch when no optimizations are
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
-      case 1: try { try decoder.decodeSingularMessageField(value: &self._input) }()
+      case 1: try { try decoder.decodeSingularStringField(value: &self.waitlistID) }()
+      case 2: try { try decoder.decodeSingularMessageField(value: &self._input) }()
       default: break
       }
     }
@@ -1393,53 +1513,95 @@ extension Waitlists_CreateWaitlistSignupRequest: SwiftProtobuf.Message, SwiftPro
     // allocates stack space for every if/case branch local when no optimizations
     // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
     // https://github.com/apple/swift-protobuf/issues/1182
+    if !self.waitlistID.isEmpty {
+      try visitor.visitSingularStringField(value: self.waitlistID, fieldNumber: 1)
+    }
     try { if let v = self._input {
-      try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
     } }()
     try unknownFields.traverse(visitor: &visitor)
   }
 
-  public static func ==(lhs: Waitlists_CreateWaitlistSignupRequest, rhs: Waitlists_CreateWaitlistSignupRequest) -> Bool {
+  public static func ==(lhs: Waitlists_JoinWaitlistRequest, rhs: Waitlists_JoinWaitlistRequest) -> Bool {
+    if lhs.waitlistID != rhs.waitlistID {return false}
     if lhs._input != rhs._input {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
 }
 
-extension Waitlists_CreateWaitlistSignupResponse: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
-  public static let protoMessageName: String = _protobuf_package + ".CreateWaitlistSignupResponse"
+extension Waitlists_JoinWaitlistResponse: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".JoinWaitlistResponse"
   public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}response_details\0\u{1}created\0")
 
+  fileprivate class _StorageClass {
+    var _responseDetails: Common_ResponseDetails? = nil
+    var _created: Waitlists_WaitlistSignup? = nil
+
+      // This property is used as the initial default value for new instances of the type.
+      // The type itself is protecting the reference to its storage via CoW semantics.
+      // This will force a copy to be made of this reference when the first mutation occurs;
+      // hence, it is safe to mark this as `nonisolated(unsafe)`.
+      static nonisolated(unsafe) let defaultInstance = _StorageClass()
+
+    private init() {}
+
+    init(copying source: _StorageClass) {
+      _responseDetails = source._responseDetails
+      _created = source._created
+    }
+  }
+
+  fileprivate mutating func _uniqueStorage() -> _StorageClass {
+    if !isKnownUniquelyReferenced(&_storage) {
+      _storage = _StorageClass(copying: _storage)
+    }
+    return _storage
+  }
+
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
-    while let fieldNumber = try decoder.nextFieldNumber() {
-      // The use of inline closures is to circumvent an issue where the compiler
-      // allocates stack space for every case branch when no optimizations are
-      // enabled. https://github.com/apple/swift-protobuf/issues/1034
-      switch fieldNumber {
-      case 1: try { try decoder.decodeSingularMessageField(value: &self._responseDetails) }()
-      case 2: try { try decoder.decodeSingularMessageField(value: &self._created) }()
-      default: break
+    _ = _uniqueStorage()
+    try withExtendedLifetime(_storage) { (_storage: _StorageClass) in
+      while let fieldNumber = try decoder.nextFieldNumber() {
+        // The use of inline closures is to circumvent an issue where the compiler
+        // allocates stack space for every case branch when no optimizations are
+        // enabled. https://github.com/apple/swift-protobuf/issues/1034
+        switch fieldNumber {
+        case 1: try { try decoder.decodeSingularMessageField(value: &_storage._responseDetails) }()
+        case 2: try { try decoder.decodeSingularMessageField(value: &_storage._created) }()
+        default: break
+        }
       }
     }
   }
 
   public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
-    // The use of inline closures is to circumvent an issue where the compiler
-    // allocates stack space for every if/case branch local when no optimizations
-    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
-    // https://github.com/apple/swift-protobuf/issues/1182
-    try { if let v = self._responseDetails {
-      try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
-    } }()
-    try { if let v = self._created {
-      try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
-    } }()
+    try withExtendedLifetime(_storage) { (_storage: _StorageClass) in
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every if/case branch local when no optimizations
+      // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
+      // https://github.com/apple/swift-protobuf/issues/1182
+      try { if let v = _storage._responseDetails {
+        try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
+      } }()
+      try { if let v = _storage._created {
+        try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
+      } }()
+    }
     try unknownFields.traverse(visitor: &visitor)
   }
 
-  public static func ==(lhs: Waitlists_CreateWaitlistSignupResponse, rhs: Waitlists_CreateWaitlistSignupResponse) -> Bool {
-    if lhs._responseDetails != rhs._responseDetails {return false}
-    if lhs._created != rhs._created {return false}
+  public static func ==(lhs: Waitlists_JoinWaitlistResponse, rhs: Waitlists_JoinWaitlistResponse) -> Bool {
+    if lhs._storage !== rhs._storage {
+      let storagesAreEqual: Bool = withExtendedLifetime((lhs._storage, rhs._storage)) { (_args: (_StorageClass, _StorageClass)) in
+        let _storage = _args.0
+        let rhs_storage = _args.1
+        if _storage._responseDetails != rhs_storage._responseDetails {return false}
+        if _storage._created != rhs_storage._created {return false}
+        return true
+      }
+      if !storagesAreEqual {return false}
+    }
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
@@ -1447,7 +1609,7 @@ extension Waitlists_CreateWaitlistSignupResponse: SwiftProtobuf.Message, SwiftPr
 
 extension Waitlists_GetWaitlistSignupRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".GetWaitlistSignupRequest"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}waitlist_signup_id\0\u{3}waitlist_id\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}waitlist_id\0\u{3}waitlist_signup_id\0")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -1455,26 +1617,26 @@ extension Waitlists_GetWaitlistSignupRequest: SwiftProtobuf.Message, SwiftProtob
       // allocates stack space for every case branch when no optimizations are
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
-      case 1: try { try decoder.decodeSingularStringField(value: &self.waitlistSignupID) }()
-      case 2: try { try decoder.decodeSingularStringField(value: &self.waitlistID) }()
+      case 1: try { try decoder.decodeSingularStringField(value: &self.waitlistID) }()
+      case 2: try { try decoder.decodeSingularStringField(value: &self.waitlistSignupID) }()
       default: break
       }
     }
   }
 
   public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
-    if !self.waitlistSignupID.isEmpty {
-      try visitor.visitSingularStringField(value: self.waitlistSignupID, fieldNumber: 1)
-    }
     if !self.waitlistID.isEmpty {
-      try visitor.visitSingularStringField(value: self.waitlistID, fieldNumber: 2)
+      try visitor.visitSingularStringField(value: self.waitlistID, fieldNumber: 1)
+    }
+    if !self.waitlistSignupID.isEmpty {
+      try visitor.visitSingularStringField(value: self.waitlistSignupID, fieldNumber: 2)
     }
     try unknownFields.traverse(visitor: &visitor)
   }
 
   public static func ==(lhs: Waitlists_GetWaitlistSignupRequest, rhs: Waitlists_GetWaitlistSignupRequest) -> Bool {
-    if lhs.waitlistSignupID != rhs.waitlistSignupID {return false}
     if lhs.waitlistID != rhs.waitlistID {return false}
+    if lhs.waitlistSignupID != rhs.waitlistSignupID {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
@@ -1484,36 +1646,74 @@ extension Waitlists_GetWaitlistSignupResponse: SwiftProtobuf.Message, SwiftProto
   public static let protoMessageName: String = _protobuf_package + ".GetWaitlistSignupResponse"
   public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}response_details\0\u{1}result\0")
 
+  fileprivate class _StorageClass {
+    var _responseDetails: Common_ResponseDetails? = nil
+    var _result: Waitlists_WaitlistSignup? = nil
+
+      // This property is used as the initial default value for new instances of the type.
+      // The type itself is protecting the reference to its storage via CoW semantics.
+      // This will force a copy to be made of this reference when the first mutation occurs;
+      // hence, it is safe to mark this as `nonisolated(unsafe)`.
+      static nonisolated(unsafe) let defaultInstance = _StorageClass()
+
+    private init() {}
+
+    init(copying source: _StorageClass) {
+      _responseDetails = source._responseDetails
+      _result = source._result
+    }
+  }
+
+  fileprivate mutating func _uniqueStorage() -> _StorageClass {
+    if !isKnownUniquelyReferenced(&_storage) {
+      _storage = _StorageClass(copying: _storage)
+    }
+    return _storage
+  }
+
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
-    while let fieldNumber = try decoder.nextFieldNumber() {
-      // The use of inline closures is to circumvent an issue where the compiler
-      // allocates stack space for every case branch when no optimizations are
-      // enabled. https://github.com/apple/swift-protobuf/issues/1034
-      switch fieldNumber {
-      case 1: try { try decoder.decodeSingularMessageField(value: &self._responseDetails) }()
-      case 2: try { try decoder.decodeSingularMessageField(value: &self._result) }()
-      default: break
+    _ = _uniqueStorage()
+    try withExtendedLifetime(_storage) { (_storage: _StorageClass) in
+      while let fieldNumber = try decoder.nextFieldNumber() {
+        // The use of inline closures is to circumvent an issue where the compiler
+        // allocates stack space for every case branch when no optimizations are
+        // enabled. https://github.com/apple/swift-protobuf/issues/1034
+        switch fieldNumber {
+        case 1: try { try decoder.decodeSingularMessageField(value: &_storage._responseDetails) }()
+        case 2: try { try decoder.decodeSingularMessageField(value: &_storage._result) }()
+        default: break
+        }
       }
     }
   }
 
   public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
-    // The use of inline closures is to circumvent an issue where the compiler
-    // allocates stack space for every if/case branch local when no optimizations
-    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
-    // https://github.com/apple/swift-protobuf/issues/1182
-    try { if let v = self._responseDetails {
-      try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
-    } }()
-    try { if let v = self._result {
-      try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
-    } }()
+    try withExtendedLifetime(_storage) { (_storage: _StorageClass) in
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every if/case branch local when no optimizations
+      // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
+      // https://github.com/apple/swift-protobuf/issues/1182
+      try { if let v = _storage._responseDetails {
+        try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
+      } }()
+      try { if let v = _storage._result {
+        try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
+      } }()
+    }
     try unknownFields.traverse(visitor: &visitor)
   }
 
   public static func ==(lhs: Waitlists_GetWaitlistSignupResponse, rhs: Waitlists_GetWaitlistSignupResponse) -> Bool {
-    if lhs._responseDetails != rhs._responseDetails {return false}
-    if lhs._result != rhs._result {return false}
+    if lhs._storage !== rhs._storage {
+      let storagesAreEqual: Bool = withExtendedLifetime((lhs._storage, rhs._storage)) { (_args: (_StorageClass, _StorageClass)) in
+        let _storage = _args.0
+        let rhs_storage = _args.1
+        if _storage._responseDetails != rhs_storage._responseDetails {return false}
+        if _storage._result != rhs_storage._result {return false}
+        return true
+      }
+      if !storagesAreEqual {return false}
+    }
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
@@ -1604,7 +1804,7 @@ extension Waitlists_GetWaitlistSignupsForWaitlistResponse: SwiftProtobuf.Message
 
 extension Waitlists_UpdateWaitlistSignupRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".UpdateWaitlistSignupRequest"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}waitlist_signup_id\0\u{3}waitlist_id\0\u{1}input\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}waitlist_id\0\u{3}waitlist_signup_id\0\u{1}input\0")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -1612,8 +1812,8 @@ extension Waitlists_UpdateWaitlistSignupRequest: SwiftProtobuf.Message, SwiftPro
       // allocates stack space for every case branch when no optimizations are
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
-      case 1: try { try decoder.decodeSingularStringField(value: &self.waitlistSignupID) }()
-      case 2: try { try decoder.decodeSingularStringField(value: &self.waitlistID) }()
+      case 1: try { try decoder.decodeSingularStringField(value: &self.waitlistID) }()
+      case 2: try { try decoder.decodeSingularStringField(value: &self.waitlistSignupID) }()
       case 3: try { try decoder.decodeSingularMessageField(value: &self._input) }()
       default: break
       }
@@ -1625,11 +1825,11 @@ extension Waitlists_UpdateWaitlistSignupRequest: SwiftProtobuf.Message, SwiftPro
     // allocates stack space for every if/case branch local when no optimizations
     // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
     // https://github.com/apple/swift-protobuf/issues/1182
-    if !self.waitlistSignupID.isEmpty {
-      try visitor.visitSingularStringField(value: self.waitlistSignupID, fieldNumber: 1)
-    }
     if !self.waitlistID.isEmpty {
-      try visitor.visitSingularStringField(value: self.waitlistID, fieldNumber: 2)
+      try visitor.visitSingularStringField(value: self.waitlistID, fieldNumber: 1)
+    }
+    if !self.waitlistSignupID.isEmpty {
+      try visitor.visitSingularStringField(value: self.waitlistSignupID, fieldNumber: 2)
     }
     try { if let v = self._input {
       try visitor.visitSingularMessageField(value: v, fieldNumber: 3)
@@ -1638,8 +1838,8 @@ extension Waitlists_UpdateWaitlistSignupRequest: SwiftProtobuf.Message, SwiftPro
   }
 
   public static func ==(lhs: Waitlists_UpdateWaitlistSignupRequest, rhs: Waitlists_UpdateWaitlistSignupRequest) -> Bool {
-    if lhs.waitlistSignupID != rhs.waitlistSignupID {return false}
     if lhs.waitlistID != rhs.waitlistID {return false}
+    if lhs.waitlistSignupID != rhs.waitlistSignupID {return false}
     if lhs._input != rhs._input {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
@@ -1650,36 +1850,410 @@ extension Waitlists_UpdateWaitlistSignupResponse: SwiftProtobuf.Message, SwiftPr
   public static let protoMessageName: String = _protobuf_package + ".UpdateWaitlistSignupResponse"
   public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}response_details\0\u{1}updated\0")
 
+  fileprivate class _StorageClass {
+    var _responseDetails: Common_ResponseDetails? = nil
+    var _updated: Waitlists_WaitlistSignup? = nil
+
+      // This property is used as the initial default value for new instances of the type.
+      // The type itself is protecting the reference to its storage via CoW semantics.
+      // This will force a copy to be made of this reference when the first mutation occurs;
+      // hence, it is safe to mark this as `nonisolated(unsafe)`.
+      static nonisolated(unsafe) let defaultInstance = _StorageClass()
+
+    private init() {}
+
+    init(copying source: _StorageClass) {
+      _responseDetails = source._responseDetails
+      _updated = source._updated
+    }
+  }
+
+  fileprivate mutating func _uniqueStorage() -> _StorageClass {
+    if !isKnownUniquelyReferenced(&_storage) {
+      _storage = _StorageClass(copying: _storage)
+    }
+    return _storage
+  }
+
+  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    _ = _uniqueStorage()
+    try withExtendedLifetime(_storage) { (_storage: _StorageClass) in
+      while let fieldNumber = try decoder.nextFieldNumber() {
+        // The use of inline closures is to circumvent an issue where the compiler
+        // allocates stack space for every case branch when no optimizations are
+        // enabled. https://github.com/apple/swift-protobuf/issues/1034
+        switch fieldNumber {
+        case 1: try { try decoder.decodeSingularMessageField(value: &_storage._responseDetails) }()
+        case 2: try { try decoder.decodeSingularMessageField(value: &_storage._updated) }()
+        default: break
+        }
+      }
+    }
+  }
+
+  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    try withExtendedLifetime(_storage) { (_storage: _StorageClass) in
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every if/case branch local when no optimizations
+      // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
+      // https://github.com/apple/swift-protobuf/issues/1182
+      try { if let v = _storage._responseDetails {
+        try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
+      } }()
+      try { if let v = _storage._updated {
+        try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
+      } }()
+    }
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  public static func ==(lhs: Waitlists_UpdateWaitlistSignupResponse, rhs: Waitlists_UpdateWaitlistSignupResponse) -> Bool {
+    if lhs._storage !== rhs._storage {
+      let storagesAreEqual: Bool = withExtendedLifetime((lhs._storage, rhs._storage)) { (_args: (_StorageClass, _StorageClass)) in
+        let _storage = _args.0
+        let rhs_storage = _args.1
+        if _storage._responseDetails != rhs_storage._responseDetails {return false}
+        if _storage._updated != rhs_storage._updated {return false}
+        return true
+      }
+      if !storagesAreEqual {return false}
+    }
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+extension Waitlists_InviteWaitlistSignupRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".InviteWaitlistSignupRequest"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}waitlist_id\0\u{3}waitlist_signup_id\0")
+
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
       // The use of inline closures is to circumvent an issue where the compiler
       // allocates stack space for every case branch when no optimizations are
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
-      case 1: try { try decoder.decodeSingularMessageField(value: &self._responseDetails) }()
-      case 2: try { try decoder.decodeSingularMessageField(value: &self._updated) }()
+      case 1: try { try decoder.decodeSingularStringField(value: &self.waitlistID) }()
+      case 2: try { try decoder.decodeSingularStringField(value: &self.waitlistSignupID) }()
       default: break
       }
     }
   }
 
   public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
-    // The use of inline closures is to circumvent an issue where the compiler
-    // allocates stack space for every if/case branch local when no optimizations
-    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
-    // https://github.com/apple/swift-protobuf/issues/1182
-    try { if let v = self._responseDetails {
-      try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
-    } }()
-    try { if let v = self._updated {
-      try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
-    } }()
+    if !self.waitlistID.isEmpty {
+      try visitor.visitSingularStringField(value: self.waitlistID, fieldNumber: 1)
+    }
+    if !self.waitlistSignupID.isEmpty {
+      try visitor.visitSingularStringField(value: self.waitlistSignupID, fieldNumber: 2)
+    }
     try unknownFields.traverse(visitor: &visitor)
   }
 
-  public static func ==(lhs: Waitlists_UpdateWaitlistSignupResponse, rhs: Waitlists_UpdateWaitlistSignupResponse) -> Bool {
-    if lhs._responseDetails != rhs._responseDetails {return false}
-    if lhs._updated != rhs._updated {return false}
+  public static func ==(lhs: Waitlists_InviteWaitlistSignupRequest, rhs: Waitlists_InviteWaitlistSignupRequest) -> Bool {
+    if lhs.waitlistID != rhs.waitlistID {return false}
+    if lhs.waitlistSignupID != rhs.waitlistSignupID {return false}
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+extension Waitlists_InviteWaitlistSignupResponse: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".InviteWaitlistSignupResponse"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}response_details\0\u{1}updated\0")
+
+  fileprivate class _StorageClass {
+    var _responseDetails: Common_ResponseDetails? = nil
+    var _updated: Waitlists_WaitlistSignup? = nil
+
+      // This property is used as the initial default value for new instances of the type.
+      // The type itself is protecting the reference to its storage via CoW semantics.
+      // This will force a copy to be made of this reference when the first mutation occurs;
+      // hence, it is safe to mark this as `nonisolated(unsafe)`.
+      static nonisolated(unsafe) let defaultInstance = _StorageClass()
+
+    private init() {}
+
+    init(copying source: _StorageClass) {
+      _responseDetails = source._responseDetails
+      _updated = source._updated
+    }
+  }
+
+  fileprivate mutating func _uniqueStorage() -> _StorageClass {
+    if !isKnownUniquelyReferenced(&_storage) {
+      _storage = _StorageClass(copying: _storage)
+    }
+    return _storage
+  }
+
+  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    _ = _uniqueStorage()
+    try withExtendedLifetime(_storage) { (_storage: _StorageClass) in
+      while let fieldNumber = try decoder.nextFieldNumber() {
+        // The use of inline closures is to circumvent an issue where the compiler
+        // allocates stack space for every case branch when no optimizations are
+        // enabled. https://github.com/apple/swift-protobuf/issues/1034
+        switch fieldNumber {
+        case 1: try { try decoder.decodeSingularMessageField(value: &_storage._responseDetails) }()
+        case 2: try { try decoder.decodeSingularMessageField(value: &_storage._updated) }()
+        default: break
+        }
+      }
+    }
+  }
+
+  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    try withExtendedLifetime(_storage) { (_storage: _StorageClass) in
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every if/case branch local when no optimizations
+      // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
+      // https://github.com/apple/swift-protobuf/issues/1182
+      try { if let v = _storage._responseDetails {
+        try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
+      } }()
+      try { if let v = _storage._updated {
+        try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
+      } }()
+    }
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  public static func ==(lhs: Waitlists_InviteWaitlistSignupResponse, rhs: Waitlists_InviteWaitlistSignupResponse) -> Bool {
+    if lhs._storage !== rhs._storage {
+      let storagesAreEqual: Bool = withExtendedLifetime((lhs._storage, rhs._storage)) { (_args: (_StorageClass, _StorageClass)) in
+        let _storage = _args.0
+        let rhs_storage = _args.1
+        if _storage._responseDetails != rhs_storage._responseDetails {return false}
+        if _storage._updated != rhs_storage._updated {return false}
+        return true
+      }
+      if !storagesAreEqual {return false}
+    }
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+extension Waitlists_ConvertWaitlistSignupRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".ConvertWaitlistSignupRequest"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}waitlist_id\0\u{3}waitlist_signup_id\0")
+
+  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularStringField(value: &self.waitlistID) }()
+      case 2: try { try decoder.decodeSingularStringField(value: &self.waitlistSignupID) }()
+      default: break
+      }
+    }
+  }
+
+  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    if !self.waitlistID.isEmpty {
+      try visitor.visitSingularStringField(value: self.waitlistID, fieldNumber: 1)
+    }
+    if !self.waitlistSignupID.isEmpty {
+      try visitor.visitSingularStringField(value: self.waitlistSignupID, fieldNumber: 2)
+    }
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  public static func ==(lhs: Waitlists_ConvertWaitlistSignupRequest, rhs: Waitlists_ConvertWaitlistSignupRequest) -> Bool {
+    if lhs.waitlistID != rhs.waitlistID {return false}
+    if lhs.waitlistSignupID != rhs.waitlistSignupID {return false}
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+extension Waitlists_ConvertWaitlistSignupResponse: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".ConvertWaitlistSignupResponse"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}response_details\0\u{1}updated\0")
+
+  fileprivate class _StorageClass {
+    var _responseDetails: Common_ResponseDetails? = nil
+    var _updated: Waitlists_WaitlistSignup? = nil
+
+      // This property is used as the initial default value for new instances of the type.
+      // The type itself is protecting the reference to its storage via CoW semantics.
+      // This will force a copy to be made of this reference when the first mutation occurs;
+      // hence, it is safe to mark this as `nonisolated(unsafe)`.
+      static nonisolated(unsafe) let defaultInstance = _StorageClass()
+
+    private init() {}
+
+    init(copying source: _StorageClass) {
+      _responseDetails = source._responseDetails
+      _updated = source._updated
+    }
+  }
+
+  fileprivate mutating func _uniqueStorage() -> _StorageClass {
+    if !isKnownUniquelyReferenced(&_storage) {
+      _storage = _StorageClass(copying: _storage)
+    }
+    return _storage
+  }
+
+  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    _ = _uniqueStorage()
+    try withExtendedLifetime(_storage) { (_storage: _StorageClass) in
+      while let fieldNumber = try decoder.nextFieldNumber() {
+        // The use of inline closures is to circumvent an issue where the compiler
+        // allocates stack space for every case branch when no optimizations are
+        // enabled. https://github.com/apple/swift-protobuf/issues/1034
+        switch fieldNumber {
+        case 1: try { try decoder.decodeSingularMessageField(value: &_storage._responseDetails) }()
+        case 2: try { try decoder.decodeSingularMessageField(value: &_storage._updated) }()
+        default: break
+        }
+      }
+    }
+  }
+
+  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    try withExtendedLifetime(_storage) { (_storage: _StorageClass) in
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every if/case branch local when no optimizations
+      // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
+      // https://github.com/apple/swift-protobuf/issues/1182
+      try { if let v = _storage._responseDetails {
+        try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
+      } }()
+      try { if let v = _storage._updated {
+        try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
+      } }()
+    }
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  public static func ==(lhs: Waitlists_ConvertWaitlistSignupResponse, rhs: Waitlists_ConvertWaitlistSignupResponse) -> Bool {
+    if lhs._storage !== rhs._storage {
+      let storagesAreEqual: Bool = withExtendedLifetime((lhs._storage, rhs._storage)) { (_args: (_StorageClass, _StorageClass)) in
+        let _storage = _args.0
+        let rhs_storage = _args.1
+        if _storage._responseDetails != rhs_storage._responseDetails {return false}
+        if _storage._updated != rhs_storage._updated {return false}
+        return true
+      }
+      if !storagesAreEqual {return false}
+    }
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+extension Waitlists_WithdrawFromWaitlistRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".WithdrawFromWaitlistRequest"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}waitlist_id\0\u{3}waitlist_signup_id\0")
+
+  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularStringField(value: &self.waitlistID) }()
+      case 2: try { try decoder.decodeSingularStringField(value: &self.waitlistSignupID) }()
+      default: break
+      }
+    }
+  }
+
+  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    if !self.waitlistID.isEmpty {
+      try visitor.visitSingularStringField(value: self.waitlistID, fieldNumber: 1)
+    }
+    if !self.waitlistSignupID.isEmpty {
+      try visitor.visitSingularStringField(value: self.waitlistSignupID, fieldNumber: 2)
+    }
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  public static func ==(lhs: Waitlists_WithdrawFromWaitlistRequest, rhs: Waitlists_WithdrawFromWaitlistRequest) -> Bool {
+    if lhs.waitlistID != rhs.waitlistID {return false}
+    if lhs.waitlistSignupID != rhs.waitlistSignupID {return false}
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+extension Waitlists_WithdrawFromWaitlistResponse: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".WithdrawFromWaitlistResponse"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}response_details\0\u{1}updated\0")
+
+  fileprivate class _StorageClass {
+    var _responseDetails: Common_ResponseDetails? = nil
+    var _updated: Waitlists_WaitlistSignup? = nil
+
+      // This property is used as the initial default value for new instances of the type.
+      // The type itself is protecting the reference to its storage via CoW semantics.
+      // This will force a copy to be made of this reference when the first mutation occurs;
+      // hence, it is safe to mark this as `nonisolated(unsafe)`.
+      static nonisolated(unsafe) let defaultInstance = _StorageClass()
+
+    private init() {}
+
+    init(copying source: _StorageClass) {
+      _responseDetails = source._responseDetails
+      _updated = source._updated
+    }
+  }
+
+  fileprivate mutating func _uniqueStorage() -> _StorageClass {
+    if !isKnownUniquelyReferenced(&_storage) {
+      _storage = _StorageClass(copying: _storage)
+    }
+    return _storage
+  }
+
+  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    _ = _uniqueStorage()
+    try withExtendedLifetime(_storage) { (_storage: _StorageClass) in
+      while let fieldNumber = try decoder.nextFieldNumber() {
+        // The use of inline closures is to circumvent an issue where the compiler
+        // allocates stack space for every case branch when no optimizations are
+        // enabled. https://github.com/apple/swift-protobuf/issues/1034
+        switch fieldNumber {
+        case 1: try { try decoder.decodeSingularMessageField(value: &_storage._responseDetails) }()
+        case 2: try { try decoder.decodeSingularMessageField(value: &_storage._updated) }()
+        default: break
+        }
+      }
+    }
+  }
+
+  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    try withExtendedLifetime(_storage) { (_storage: _StorageClass) in
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every if/case branch local when no optimizations
+      // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
+      // https://github.com/apple/swift-protobuf/issues/1182
+      try { if let v = _storage._responseDetails {
+        try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
+      } }()
+      try { if let v = _storage._updated {
+        try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
+      } }()
+    }
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  public static func ==(lhs: Waitlists_WithdrawFromWaitlistResponse, rhs: Waitlists_WithdrawFromWaitlistResponse) -> Bool {
+    if lhs._storage !== rhs._storage {
+      let storagesAreEqual: Bool = withExtendedLifetime((lhs._storage, rhs._storage)) { (_args: (_StorageClass, _StorageClass)) in
+        let _storage = _args.0
+        let rhs_storage = _args.1
+        if _storage._responseDetails != rhs_storage._responseDetails {return false}
+        if _storage._updated != rhs_storage._updated {return false}
+        return true
+      }
+      if !storagesAreEqual {return false}
+    }
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
@@ -1687,7 +2261,7 @@ extension Waitlists_UpdateWaitlistSignupResponse: SwiftProtobuf.Message, SwiftPr
 
 extension Waitlists_ArchiveWaitlistSignupRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".ArchiveWaitlistSignupRequest"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}waitlist_signup_id\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}waitlist_id\0\u{3}waitlist_signup_id\0")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -1695,20 +2269,25 @@ extension Waitlists_ArchiveWaitlistSignupRequest: SwiftProtobuf.Message, SwiftPr
       // allocates stack space for every case branch when no optimizations are
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
-      case 1: try { try decoder.decodeSingularStringField(value: &self.waitlistSignupID) }()
+      case 1: try { try decoder.decodeSingularStringField(value: &self.waitlistID) }()
+      case 2: try { try decoder.decodeSingularStringField(value: &self.waitlistSignupID) }()
       default: break
       }
     }
   }
 
   public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    if !self.waitlistID.isEmpty {
+      try visitor.visitSingularStringField(value: self.waitlistID, fieldNumber: 1)
+    }
     if !self.waitlistSignupID.isEmpty {
-      try visitor.visitSingularStringField(value: self.waitlistSignupID, fieldNumber: 1)
+      try visitor.visitSingularStringField(value: self.waitlistSignupID, fieldNumber: 2)
     }
     try unknownFields.traverse(visitor: &visitor)
   }
 
   public static func ==(lhs: Waitlists_ArchiveWaitlistSignupRequest, rhs: Waitlists_ArchiveWaitlistSignupRequest) -> Bool {
+    if lhs.waitlistID != rhs.waitlistID {return false}
     if lhs.waitlistSignupID != rhs.waitlistSignupID {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true

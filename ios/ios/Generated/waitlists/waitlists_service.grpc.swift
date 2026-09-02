@@ -56,16 +56,16 @@ internal enum Waitlists_WaitlistsService {
                 method: "GetWaitlists"
             )
         }
-        /// Namespace for "GetActiveWaitlists" metadata.
-        internal enum GetActiveWaitlists {
-            /// Request type for "GetActiveWaitlists".
-            internal typealias Input = Waitlists_GetActiveWaitlistsRequest
-            /// Response type for "GetActiveWaitlists".
-            internal typealias Output = Waitlists_GetActiveWaitlistsResponse
-            /// Descriptor for "GetActiveWaitlists".
+        /// Namespace for "GetOpenWaitlists" metadata.
+        internal enum GetOpenWaitlists {
+            /// Request type for "GetOpenWaitlists".
+            internal typealias Input = Waitlists_GetOpenWaitlistsRequest
+            /// Response type for "GetOpenWaitlists".
+            internal typealias Output = Waitlists_GetOpenWaitlistsResponse
+            /// Descriptor for "GetOpenWaitlists".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "waitlists.WaitlistsService"),
-                method: "GetActiveWaitlists"
+                method: "GetOpenWaitlists"
             )
         }
         /// Namespace for "UpdateWaitlist" metadata.
@@ -92,28 +92,28 @@ internal enum Waitlists_WaitlistsService {
                 method: "ArchiveWaitlist"
             )
         }
-        /// Namespace for "WaitlistIsNotExpired" metadata.
-        internal enum WaitlistIsNotExpired {
-            /// Request type for "WaitlistIsNotExpired".
-            internal typealias Input = Waitlists_WaitlistIsNotExpiredRequest
-            /// Response type for "WaitlistIsNotExpired".
-            internal typealias Output = Waitlists_WaitlistIsNotExpiredResponse
-            /// Descriptor for "WaitlistIsNotExpired".
+        /// Namespace for "WaitlistIsOpen" metadata.
+        internal enum WaitlistIsOpen {
+            /// Request type for "WaitlistIsOpen".
+            internal typealias Input = Waitlists_WaitlistIsOpenRequest
+            /// Response type for "WaitlistIsOpen".
+            internal typealias Output = Waitlists_WaitlistIsOpenResponse
+            /// Descriptor for "WaitlistIsOpen".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "waitlists.WaitlistsService"),
-                method: "WaitlistIsNotExpired"
+                method: "WaitlistIsOpen"
             )
         }
-        /// Namespace for "CreateWaitlistSignup" metadata.
-        internal enum CreateWaitlistSignup {
-            /// Request type for "CreateWaitlistSignup".
-            internal typealias Input = Waitlists_CreateWaitlistSignupRequest
-            /// Response type for "CreateWaitlistSignup".
-            internal typealias Output = Waitlists_CreateWaitlistSignupResponse
-            /// Descriptor for "CreateWaitlistSignup".
+        /// Namespace for "JoinWaitlist" metadata.
+        internal enum JoinWaitlist {
+            /// Request type for "JoinWaitlist".
+            internal typealias Input = Waitlists_JoinWaitlistRequest
+            /// Response type for "JoinWaitlist".
+            internal typealias Output = Waitlists_JoinWaitlistResponse
+            /// Descriptor for "JoinWaitlist".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "waitlists.WaitlistsService"),
-                method: "CreateWaitlistSignup"
+                method: "JoinWaitlist"
             )
         }
         /// Namespace for "GetWaitlistSignup" metadata.
@@ -152,6 +152,42 @@ internal enum Waitlists_WaitlistsService {
                 method: "UpdateWaitlistSignup"
             )
         }
+        /// Namespace for "InviteWaitlistSignup" metadata.
+        internal enum InviteWaitlistSignup {
+            /// Request type for "InviteWaitlistSignup".
+            internal typealias Input = Waitlists_InviteWaitlistSignupRequest
+            /// Response type for "InviteWaitlistSignup".
+            internal typealias Output = Waitlists_InviteWaitlistSignupResponse
+            /// Descriptor for "InviteWaitlistSignup".
+            internal static let descriptor = GRPCCore.MethodDescriptor(
+                service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "waitlists.WaitlistsService"),
+                method: "InviteWaitlistSignup"
+            )
+        }
+        /// Namespace for "ConvertWaitlistSignup" metadata.
+        internal enum ConvertWaitlistSignup {
+            /// Request type for "ConvertWaitlistSignup".
+            internal typealias Input = Waitlists_ConvertWaitlistSignupRequest
+            /// Response type for "ConvertWaitlistSignup".
+            internal typealias Output = Waitlists_ConvertWaitlistSignupResponse
+            /// Descriptor for "ConvertWaitlistSignup".
+            internal static let descriptor = GRPCCore.MethodDescriptor(
+                service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "waitlists.WaitlistsService"),
+                method: "ConvertWaitlistSignup"
+            )
+        }
+        /// Namespace for "WithdrawFromWaitlist" metadata.
+        internal enum WithdrawFromWaitlist {
+            /// Request type for "WithdrawFromWaitlist".
+            internal typealias Input = Waitlists_WithdrawFromWaitlistRequest
+            /// Response type for "WithdrawFromWaitlist".
+            internal typealias Output = Waitlists_WithdrawFromWaitlistResponse
+            /// Descriptor for "WithdrawFromWaitlist".
+            internal static let descriptor = GRPCCore.MethodDescriptor(
+                service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "waitlists.WaitlistsService"),
+                method: "WithdrawFromWaitlist"
+            )
+        }
         /// Namespace for "ArchiveWaitlistSignup" metadata.
         internal enum ArchiveWaitlistSignup {
             /// Request type for "ArchiveWaitlistSignup".
@@ -169,14 +205,17 @@ internal enum Waitlists_WaitlistsService {
             CreateWaitlist.descriptor,
             GetWaitlist.descriptor,
             GetWaitlists.descriptor,
-            GetActiveWaitlists.descriptor,
+            GetOpenWaitlists.descriptor,
             UpdateWaitlist.descriptor,
             ArchiveWaitlist.descriptor,
-            WaitlistIsNotExpired.descriptor,
-            CreateWaitlistSignup.descriptor,
+            WaitlistIsOpen.descriptor,
+            JoinWaitlist.descriptor,
             GetWaitlistSignup.descriptor,
             GetWaitlistSignupsForWaitlist.descriptor,
             UpdateWaitlistSignup.descriptor,
+            InviteWaitlistSignup.descriptor,
+            ConvertWaitlistSignup.descriptor,
+            WithdrawFromWaitlist.descriptor,
             ArchiveWaitlistSignup.descriptor
         ]
     }
@@ -254,23 +293,23 @@ extension Waitlists_WaitlistsService {
             onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Waitlists_GetWaitlistsResponse>) async throws -> Result
         ) async throws -> Result where Result: Sendable
 
-        /// Call the "GetActiveWaitlists" method.
+        /// Call the "GetOpenWaitlists" method.
         ///
         /// - Parameters:
-        ///   - request: A request containing a single `Waitlists_GetActiveWaitlistsRequest` message.
-        ///   - serializer: A serializer for `Waitlists_GetActiveWaitlistsRequest` messages.
-        ///   - deserializer: A deserializer for `Waitlists_GetActiveWaitlistsResponse` messages.
+        ///   - request: A request containing a single `Waitlists_GetOpenWaitlistsRequest` message.
+        ///   - serializer: A serializer for `Waitlists_GetOpenWaitlistsRequest` messages.
+        ///   - deserializer: A deserializer for `Waitlists_GetOpenWaitlistsResponse` messages.
         ///   - options: Options to apply to this RPC.
         ///   - handleResponse: A closure which handles the response, the result of which is
         ///       returned to the caller. Returning from the closure will cancel the RPC if it
         ///       hasn't already finished.
         /// - Returns: The result of `handleResponse`.
-        func getActiveWaitlists<Result>(
-            request: GRPCCore.ClientRequest<Waitlists_GetActiveWaitlistsRequest>,
-            serializer: some GRPCCore.MessageSerializer<Waitlists_GetActiveWaitlistsRequest>,
-            deserializer: some GRPCCore.MessageDeserializer<Waitlists_GetActiveWaitlistsResponse>,
+        func getOpenWaitlists<Result>(
+            request: GRPCCore.ClientRequest<Waitlists_GetOpenWaitlistsRequest>,
+            serializer: some GRPCCore.MessageSerializer<Waitlists_GetOpenWaitlistsRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Waitlists_GetOpenWaitlistsResponse>,
             options: GRPCCore.CallOptions,
-            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Waitlists_GetActiveWaitlistsResponse>) async throws -> Result
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Waitlists_GetOpenWaitlistsResponse>) async throws -> Result
         ) async throws -> Result where Result: Sendable
 
         /// Call the "UpdateWaitlist" method.
@@ -311,42 +350,42 @@ extension Waitlists_WaitlistsService {
             onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Waitlists_ArchiveWaitlistResponse>) async throws -> Result
         ) async throws -> Result where Result: Sendable
 
-        /// Call the "WaitlistIsNotExpired" method.
+        /// Call the "WaitlistIsOpen" method.
         ///
         /// - Parameters:
-        ///   - request: A request containing a single `Waitlists_WaitlistIsNotExpiredRequest` message.
-        ///   - serializer: A serializer for `Waitlists_WaitlistIsNotExpiredRequest` messages.
-        ///   - deserializer: A deserializer for `Waitlists_WaitlistIsNotExpiredResponse` messages.
+        ///   - request: A request containing a single `Waitlists_WaitlistIsOpenRequest` message.
+        ///   - serializer: A serializer for `Waitlists_WaitlistIsOpenRequest` messages.
+        ///   - deserializer: A deserializer for `Waitlists_WaitlistIsOpenResponse` messages.
         ///   - options: Options to apply to this RPC.
         ///   - handleResponse: A closure which handles the response, the result of which is
         ///       returned to the caller. Returning from the closure will cancel the RPC if it
         ///       hasn't already finished.
         /// - Returns: The result of `handleResponse`.
-        func waitlistIsNotExpired<Result>(
-            request: GRPCCore.ClientRequest<Waitlists_WaitlistIsNotExpiredRequest>,
-            serializer: some GRPCCore.MessageSerializer<Waitlists_WaitlistIsNotExpiredRequest>,
-            deserializer: some GRPCCore.MessageDeserializer<Waitlists_WaitlistIsNotExpiredResponse>,
+        func waitlistIsOpen<Result>(
+            request: GRPCCore.ClientRequest<Waitlists_WaitlistIsOpenRequest>,
+            serializer: some GRPCCore.MessageSerializer<Waitlists_WaitlistIsOpenRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Waitlists_WaitlistIsOpenResponse>,
             options: GRPCCore.CallOptions,
-            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Waitlists_WaitlistIsNotExpiredResponse>) async throws -> Result
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Waitlists_WaitlistIsOpenResponse>) async throws -> Result
         ) async throws -> Result where Result: Sendable
 
-        /// Call the "CreateWaitlistSignup" method.
+        /// Call the "JoinWaitlist" method.
         ///
         /// - Parameters:
-        ///   - request: A request containing a single `Waitlists_CreateWaitlistSignupRequest` message.
-        ///   - serializer: A serializer for `Waitlists_CreateWaitlistSignupRequest` messages.
-        ///   - deserializer: A deserializer for `Waitlists_CreateWaitlistSignupResponse` messages.
+        ///   - request: A request containing a single `Waitlists_JoinWaitlistRequest` message.
+        ///   - serializer: A serializer for `Waitlists_JoinWaitlistRequest` messages.
+        ///   - deserializer: A deserializer for `Waitlists_JoinWaitlistResponse` messages.
         ///   - options: Options to apply to this RPC.
         ///   - handleResponse: A closure which handles the response, the result of which is
         ///       returned to the caller. Returning from the closure will cancel the RPC if it
         ///       hasn't already finished.
         /// - Returns: The result of `handleResponse`.
-        func createWaitlistSignup<Result>(
-            request: GRPCCore.ClientRequest<Waitlists_CreateWaitlistSignupRequest>,
-            serializer: some GRPCCore.MessageSerializer<Waitlists_CreateWaitlistSignupRequest>,
-            deserializer: some GRPCCore.MessageDeserializer<Waitlists_CreateWaitlistSignupResponse>,
+        func joinWaitlist<Result>(
+            request: GRPCCore.ClientRequest<Waitlists_JoinWaitlistRequest>,
+            serializer: some GRPCCore.MessageSerializer<Waitlists_JoinWaitlistRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Waitlists_JoinWaitlistResponse>,
             options: GRPCCore.CallOptions,
-            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Waitlists_CreateWaitlistSignupResponse>) async throws -> Result
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Waitlists_JoinWaitlistResponse>) async throws -> Result
         ) async throws -> Result where Result: Sendable
 
         /// Call the "GetWaitlistSignup" method.
@@ -404,6 +443,63 @@ extension Waitlists_WaitlistsService {
             deserializer: some GRPCCore.MessageDeserializer<Waitlists_UpdateWaitlistSignupResponse>,
             options: GRPCCore.CallOptions,
             onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Waitlists_UpdateWaitlistSignupResponse>) async throws -> Result
+        ) async throws -> Result where Result: Sendable
+
+        /// Call the "InviteWaitlistSignup" method.
+        ///
+        /// - Parameters:
+        ///   - request: A request containing a single `Waitlists_InviteWaitlistSignupRequest` message.
+        ///   - serializer: A serializer for `Waitlists_InviteWaitlistSignupRequest` messages.
+        ///   - deserializer: A deserializer for `Waitlists_InviteWaitlistSignupResponse` messages.
+        ///   - options: Options to apply to this RPC.
+        ///   - handleResponse: A closure which handles the response, the result of which is
+        ///       returned to the caller. Returning from the closure will cancel the RPC if it
+        ///       hasn't already finished.
+        /// - Returns: The result of `handleResponse`.
+        func inviteWaitlistSignup<Result>(
+            request: GRPCCore.ClientRequest<Waitlists_InviteWaitlistSignupRequest>,
+            serializer: some GRPCCore.MessageSerializer<Waitlists_InviteWaitlistSignupRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Waitlists_InviteWaitlistSignupResponse>,
+            options: GRPCCore.CallOptions,
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Waitlists_InviteWaitlistSignupResponse>) async throws -> Result
+        ) async throws -> Result where Result: Sendable
+
+        /// Call the "ConvertWaitlistSignup" method.
+        ///
+        /// - Parameters:
+        ///   - request: A request containing a single `Waitlists_ConvertWaitlistSignupRequest` message.
+        ///   - serializer: A serializer for `Waitlists_ConvertWaitlistSignupRequest` messages.
+        ///   - deserializer: A deserializer for `Waitlists_ConvertWaitlistSignupResponse` messages.
+        ///   - options: Options to apply to this RPC.
+        ///   - handleResponse: A closure which handles the response, the result of which is
+        ///       returned to the caller. Returning from the closure will cancel the RPC if it
+        ///       hasn't already finished.
+        /// - Returns: The result of `handleResponse`.
+        func convertWaitlistSignup<Result>(
+            request: GRPCCore.ClientRequest<Waitlists_ConvertWaitlistSignupRequest>,
+            serializer: some GRPCCore.MessageSerializer<Waitlists_ConvertWaitlistSignupRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Waitlists_ConvertWaitlistSignupResponse>,
+            options: GRPCCore.CallOptions,
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Waitlists_ConvertWaitlistSignupResponse>) async throws -> Result
+        ) async throws -> Result where Result: Sendable
+
+        /// Call the "WithdrawFromWaitlist" method.
+        ///
+        /// - Parameters:
+        ///   - request: A request containing a single `Waitlists_WithdrawFromWaitlistRequest` message.
+        ///   - serializer: A serializer for `Waitlists_WithdrawFromWaitlistRequest` messages.
+        ///   - deserializer: A deserializer for `Waitlists_WithdrawFromWaitlistResponse` messages.
+        ///   - options: Options to apply to this RPC.
+        ///   - handleResponse: A closure which handles the response, the result of which is
+        ///       returned to the caller. Returning from the closure will cancel the RPC if it
+        ///       hasn't already finished.
+        /// - Returns: The result of `handleResponse`.
+        func withdrawFromWaitlist<Result>(
+            request: GRPCCore.ClientRequest<Waitlists_WithdrawFromWaitlistRequest>,
+            serializer: some GRPCCore.MessageSerializer<Waitlists_WithdrawFromWaitlistRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Waitlists_WithdrawFromWaitlistResponse>,
+            options: GRPCCore.CallOptions,
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Waitlists_WithdrawFromWaitlistResponse>) async throws -> Result
         ) async throws -> Result where Result: Sendable
 
         /// Call the "ArchiveWaitlistSignup" method.
@@ -532,29 +628,29 @@ extension Waitlists_WaitlistsService {
             )
         }
 
-        /// Call the "GetActiveWaitlists" method.
+        /// Call the "GetOpenWaitlists" method.
         ///
         /// - Parameters:
-        ///   - request: A request containing a single `Waitlists_GetActiveWaitlistsRequest` message.
-        ///   - serializer: A serializer for `Waitlists_GetActiveWaitlistsRequest` messages.
-        ///   - deserializer: A deserializer for `Waitlists_GetActiveWaitlistsResponse` messages.
+        ///   - request: A request containing a single `Waitlists_GetOpenWaitlistsRequest` message.
+        ///   - serializer: A serializer for `Waitlists_GetOpenWaitlistsRequest` messages.
+        ///   - deserializer: A deserializer for `Waitlists_GetOpenWaitlistsResponse` messages.
         ///   - options: Options to apply to this RPC.
         ///   - handleResponse: A closure which handles the response, the result of which is
         ///       returned to the caller. Returning from the closure will cancel the RPC if it
         ///       hasn't already finished.
         /// - Returns: The result of `handleResponse`.
-        internal func getActiveWaitlists<Result>(
-            request: GRPCCore.ClientRequest<Waitlists_GetActiveWaitlistsRequest>,
-            serializer: some GRPCCore.MessageSerializer<Waitlists_GetActiveWaitlistsRequest>,
-            deserializer: some GRPCCore.MessageDeserializer<Waitlists_GetActiveWaitlistsResponse>,
+        internal func getOpenWaitlists<Result>(
+            request: GRPCCore.ClientRequest<Waitlists_GetOpenWaitlistsRequest>,
+            serializer: some GRPCCore.MessageSerializer<Waitlists_GetOpenWaitlistsRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Waitlists_GetOpenWaitlistsResponse>,
             options: GRPCCore.CallOptions = .defaults,
-            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Waitlists_GetActiveWaitlistsResponse>) async throws -> Result = { response in
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Waitlists_GetOpenWaitlistsResponse>) async throws -> Result = { response in
                 try response.message
             }
         ) async throws -> Result where Result: Sendable {
             try await self.client.unary(
                 request: request,
-                descriptor: Waitlists_WaitlistsService.Method.GetActiveWaitlists.descriptor,
+                descriptor: Waitlists_WaitlistsService.Method.GetOpenWaitlists.descriptor,
                 serializer: serializer,
                 deserializer: deserializer,
                 options: options,
@@ -622,29 +718,29 @@ extension Waitlists_WaitlistsService {
             )
         }
 
-        /// Call the "WaitlistIsNotExpired" method.
+        /// Call the "WaitlistIsOpen" method.
         ///
         /// - Parameters:
-        ///   - request: A request containing a single `Waitlists_WaitlistIsNotExpiredRequest` message.
-        ///   - serializer: A serializer for `Waitlists_WaitlistIsNotExpiredRequest` messages.
-        ///   - deserializer: A deserializer for `Waitlists_WaitlistIsNotExpiredResponse` messages.
+        ///   - request: A request containing a single `Waitlists_WaitlistIsOpenRequest` message.
+        ///   - serializer: A serializer for `Waitlists_WaitlistIsOpenRequest` messages.
+        ///   - deserializer: A deserializer for `Waitlists_WaitlistIsOpenResponse` messages.
         ///   - options: Options to apply to this RPC.
         ///   - handleResponse: A closure which handles the response, the result of which is
         ///       returned to the caller. Returning from the closure will cancel the RPC if it
         ///       hasn't already finished.
         /// - Returns: The result of `handleResponse`.
-        internal func waitlistIsNotExpired<Result>(
-            request: GRPCCore.ClientRequest<Waitlists_WaitlistIsNotExpiredRequest>,
-            serializer: some GRPCCore.MessageSerializer<Waitlists_WaitlistIsNotExpiredRequest>,
-            deserializer: some GRPCCore.MessageDeserializer<Waitlists_WaitlistIsNotExpiredResponse>,
+        internal func waitlistIsOpen<Result>(
+            request: GRPCCore.ClientRequest<Waitlists_WaitlistIsOpenRequest>,
+            serializer: some GRPCCore.MessageSerializer<Waitlists_WaitlistIsOpenRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Waitlists_WaitlistIsOpenResponse>,
             options: GRPCCore.CallOptions = .defaults,
-            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Waitlists_WaitlistIsNotExpiredResponse>) async throws -> Result = { response in
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Waitlists_WaitlistIsOpenResponse>) async throws -> Result = { response in
                 try response.message
             }
         ) async throws -> Result where Result: Sendable {
             try await self.client.unary(
                 request: request,
-                descriptor: Waitlists_WaitlistsService.Method.WaitlistIsNotExpired.descriptor,
+                descriptor: Waitlists_WaitlistsService.Method.WaitlistIsOpen.descriptor,
                 serializer: serializer,
                 deserializer: deserializer,
                 options: options,
@@ -652,29 +748,29 @@ extension Waitlists_WaitlistsService {
             )
         }
 
-        /// Call the "CreateWaitlistSignup" method.
+        /// Call the "JoinWaitlist" method.
         ///
         /// - Parameters:
-        ///   - request: A request containing a single `Waitlists_CreateWaitlistSignupRequest` message.
-        ///   - serializer: A serializer for `Waitlists_CreateWaitlistSignupRequest` messages.
-        ///   - deserializer: A deserializer for `Waitlists_CreateWaitlistSignupResponse` messages.
+        ///   - request: A request containing a single `Waitlists_JoinWaitlistRequest` message.
+        ///   - serializer: A serializer for `Waitlists_JoinWaitlistRequest` messages.
+        ///   - deserializer: A deserializer for `Waitlists_JoinWaitlistResponse` messages.
         ///   - options: Options to apply to this RPC.
         ///   - handleResponse: A closure which handles the response, the result of which is
         ///       returned to the caller. Returning from the closure will cancel the RPC if it
         ///       hasn't already finished.
         /// - Returns: The result of `handleResponse`.
-        internal func createWaitlistSignup<Result>(
-            request: GRPCCore.ClientRequest<Waitlists_CreateWaitlistSignupRequest>,
-            serializer: some GRPCCore.MessageSerializer<Waitlists_CreateWaitlistSignupRequest>,
-            deserializer: some GRPCCore.MessageDeserializer<Waitlists_CreateWaitlistSignupResponse>,
+        internal func joinWaitlist<Result>(
+            request: GRPCCore.ClientRequest<Waitlists_JoinWaitlistRequest>,
+            serializer: some GRPCCore.MessageSerializer<Waitlists_JoinWaitlistRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Waitlists_JoinWaitlistResponse>,
             options: GRPCCore.CallOptions = .defaults,
-            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Waitlists_CreateWaitlistSignupResponse>) async throws -> Result = { response in
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Waitlists_JoinWaitlistResponse>) async throws -> Result = { response in
                 try response.message
             }
         ) async throws -> Result where Result: Sendable {
             try await self.client.unary(
                 request: request,
-                descriptor: Waitlists_WaitlistsService.Method.CreateWaitlistSignup.descriptor,
+                descriptor: Waitlists_WaitlistsService.Method.JoinWaitlist.descriptor,
                 serializer: serializer,
                 deserializer: deserializer,
                 options: options,
@@ -765,6 +861,96 @@ extension Waitlists_WaitlistsService {
             try await self.client.unary(
                 request: request,
                 descriptor: Waitlists_WaitlistsService.Method.UpdateWaitlistSignup.descriptor,
+                serializer: serializer,
+                deserializer: deserializer,
+                options: options,
+                onResponse: handleResponse
+            )
+        }
+
+        /// Call the "InviteWaitlistSignup" method.
+        ///
+        /// - Parameters:
+        ///   - request: A request containing a single `Waitlists_InviteWaitlistSignupRequest` message.
+        ///   - serializer: A serializer for `Waitlists_InviteWaitlistSignupRequest` messages.
+        ///   - deserializer: A deserializer for `Waitlists_InviteWaitlistSignupResponse` messages.
+        ///   - options: Options to apply to this RPC.
+        ///   - handleResponse: A closure which handles the response, the result of which is
+        ///       returned to the caller. Returning from the closure will cancel the RPC if it
+        ///       hasn't already finished.
+        /// - Returns: The result of `handleResponse`.
+        internal func inviteWaitlistSignup<Result>(
+            request: GRPCCore.ClientRequest<Waitlists_InviteWaitlistSignupRequest>,
+            serializer: some GRPCCore.MessageSerializer<Waitlists_InviteWaitlistSignupRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Waitlists_InviteWaitlistSignupResponse>,
+            options: GRPCCore.CallOptions = .defaults,
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Waitlists_InviteWaitlistSignupResponse>) async throws -> Result = { response in
+                try response.message
+            }
+        ) async throws -> Result where Result: Sendable {
+            try await self.client.unary(
+                request: request,
+                descriptor: Waitlists_WaitlistsService.Method.InviteWaitlistSignup.descriptor,
+                serializer: serializer,
+                deserializer: deserializer,
+                options: options,
+                onResponse: handleResponse
+            )
+        }
+
+        /// Call the "ConvertWaitlistSignup" method.
+        ///
+        /// - Parameters:
+        ///   - request: A request containing a single `Waitlists_ConvertWaitlistSignupRequest` message.
+        ///   - serializer: A serializer for `Waitlists_ConvertWaitlistSignupRequest` messages.
+        ///   - deserializer: A deserializer for `Waitlists_ConvertWaitlistSignupResponse` messages.
+        ///   - options: Options to apply to this RPC.
+        ///   - handleResponse: A closure which handles the response, the result of which is
+        ///       returned to the caller. Returning from the closure will cancel the RPC if it
+        ///       hasn't already finished.
+        /// - Returns: The result of `handleResponse`.
+        internal func convertWaitlistSignup<Result>(
+            request: GRPCCore.ClientRequest<Waitlists_ConvertWaitlistSignupRequest>,
+            serializer: some GRPCCore.MessageSerializer<Waitlists_ConvertWaitlistSignupRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Waitlists_ConvertWaitlistSignupResponse>,
+            options: GRPCCore.CallOptions = .defaults,
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Waitlists_ConvertWaitlistSignupResponse>) async throws -> Result = { response in
+                try response.message
+            }
+        ) async throws -> Result where Result: Sendable {
+            try await self.client.unary(
+                request: request,
+                descriptor: Waitlists_WaitlistsService.Method.ConvertWaitlistSignup.descriptor,
+                serializer: serializer,
+                deserializer: deserializer,
+                options: options,
+                onResponse: handleResponse
+            )
+        }
+
+        /// Call the "WithdrawFromWaitlist" method.
+        ///
+        /// - Parameters:
+        ///   - request: A request containing a single `Waitlists_WithdrawFromWaitlistRequest` message.
+        ///   - serializer: A serializer for `Waitlists_WithdrawFromWaitlistRequest` messages.
+        ///   - deserializer: A deserializer for `Waitlists_WithdrawFromWaitlistResponse` messages.
+        ///   - options: Options to apply to this RPC.
+        ///   - handleResponse: A closure which handles the response, the result of which is
+        ///       returned to the caller. Returning from the closure will cancel the RPC if it
+        ///       hasn't already finished.
+        /// - Returns: The result of `handleResponse`.
+        internal func withdrawFromWaitlist<Result>(
+            request: GRPCCore.ClientRequest<Waitlists_WithdrawFromWaitlistRequest>,
+            serializer: some GRPCCore.MessageSerializer<Waitlists_WithdrawFromWaitlistRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Waitlists_WithdrawFromWaitlistResponse>,
+            options: GRPCCore.CallOptions = .defaults,
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Waitlists_WithdrawFromWaitlistResponse>) async throws -> Result = { response in
+                try response.message
+            }
+        ) async throws -> Result where Result: Sendable {
+            try await self.client.unary(
+                request: request,
+                descriptor: Waitlists_WaitlistsService.Method.WithdrawFromWaitlist.descriptor,
                 serializer: serializer,
                 deserializer: deserializer,
                 options: options,
@@ -882,26 +1068,26 @@ extension Waitlists_WaitlistsService.ClientProtocol {
         )
     }
 
-    /// Call the "GetActiveWaitlists" method.
+    /// Call the "GetOpenWaitlists" method.
     ///
     /// - Parameters:
-    ///   - request: A request containing a single `Waitlists_GetActiveWaitlistsRequest` message.
+    ///   - request: A request containing a single `Waitlists_GetOpenWaitlistsRequest` message.
     ///   - options: Options to apply to this RPC.
     ///   - handleResponse: A closure which handles the response, the result of which is
     ///       returned to the caller. Returning from the closure will cancel the RPC if it
     ///       hasn't already finished.
     /// - Returns: The result of `handleResponse`.
-    internal func getActiveWaitlists<Result>(
-        request: GRPCCore.ClientRequest<Waitlists_GetActiveWaitlistsRequest>,
+    internal func getOpenWaitlists<Result>(
+        request: GRPCCore.ClientRequest<Waitlists_GetOpenWaitlistsRequest>,
         options: GRPCCore.CallOptions = .defaults,
-        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Waitlists_GetActiveWaitlistsResponse>) async throws -> Result = { response in
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Waitlists_GetOpenWaitlistsResponse>) async throws -> Result = { response in
             try response.message
         }
     ) async throws -> Result where Result: Sendable {
-        try await self.getActiveWaitlists(
+        try await self.getOpenWaitlists(
             request: request,
-            serializer: GRPCProtobuf.ProtobufSerializer<Waitlists_GetActiveWaitlistsRequest>(),
-            deserializer: GRPCProtobuf.ProtobufDeserializer<Waitlists_GetActiveWaitlistsResponse>(),
+            serializer: GRPCProtobuf.ProtobufSerializer<Waitlists_GetOpenWaitlistsRequest>(),
+            deserializer: GRPCProtobuf.ProtobufDeserializer<Waitlists_GetOpenWaitlistsResponse>(),
             options: options,
             onResponse: handleResponse
         )
@@ -957,51 +1143,51 @@ extension Waitlists_WaitlistsService.ClientProtocol {
         )
     }
 
-    /// Call the "WaitlistIsNotExpired" method.
+    /// Call the "WaitlistIsOpen" method.
     ///
     /// - Parameters:
-    ///   - request: A request containing a single `Waitlists_WaitlistIsNotExpiredRequest` message.
+    ///   - request: A request containing a single `Waitlists_WaitlistIsOpenRequest` message.
     ///   - options: Options to apply to this RPC.
     ///   - handleResponse: A closure which handles the response, the result of which is
     ///       returned to the caller. Returning from the closure will cancel the RPC if it
     ///       hasn't already finished.
     /// - Returns: The result of `handleResponse`.
-    internal func waitlistIsNotExpired<Result>(
-        request: GRPCCore.ClientRequest<Waitlists_WaitlistIsNotExpiredRequest>,
+    internal func waitlistIsOpen<Result>(
+        request: GRPCCore.ClientRequest<Waitlists_WaitlistIsOpenRequest>,
         options: GRPCCore.CallOptions = .defaults,
-        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Waitlists_WaitlistIsNotExpiredResponse>) async throws -> Result = { response in
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Waitlists_WaitlistIsOpenResponse>) async throws -> Result = { response in
             try response.message
         }
     ) async throws -> Result where Result: Sendable {
-        try await self.waitlistIsNotExpired(
+        try await self.waitlistIsOpen(
             request: request,
-            serializer: GRPCProtobuf.ProtobufSerializer<Waitlists_WaitlistIsNotExpiredRequest>(),
-            deserializer: GRPCProtobuf.ProtobufDeserializer<Waitlists_WaitlistIsNotExpiredResponse>(),
+            serializer: GRPCProtobuf.ProtobufSerializer<Waitlists_WaitlistIsOpenRequest>(),
+            deserializer: GRPCProtobuf.ProtobufDeserializer<Waitlists_WaitlistIsOpenResponse>(),
             options: options,
             onResponse: handleResponse
         )
     }
 
-    /// Call the "CreateWaitlistSignup" method.
+    /// Call the "JoinWaitlist" method.
     ///
     /// - Parameters:
-    ///   - request: A request containing a single `Waitlists_CreateWaitlistSignupRequest` message.
+    ///   - request: A request containing a single `Waitlists_JoinWaitlistRequest` message.
     ///   - options: Options to apply to this RPC.
     ///   - handleResponse: A closure which handles the response, the result of which is
     ///       returned to the caller. Returning from the closure will cancel the RPC if it
     ///       hasn't already finished.
     /// - Returns: The result of `handleResponse`.
-    internal func createWaitlistSignup<Result>(
-        request: GRPCCore.ClientRequest<Waitlists_CreateWaitlistSignupRequest>,
+    internal func joinWaitlist<Result>(
+        request: GRPCCore.ClientRequest<Waitlists_JoinWaitlistRequest>,
         options: GRPCCore.CallOptions = .defaults,
-        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Waitlists_CreateWaitlistSignupResponse>) async throws -> Result = { response in
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Waitlists_JoinWaitlistResponse>) async throws -> Result = { response in
             try response.message
         }
     ) async throws -> Result where Result: Sendable {
-        try await self.createWaitlistSignup(
+        try await self.joinWaitlist(
             request: request,
-            serializer: GRPCProtobuf.ProtobufSerializer<Waitlists_CreateWaitlistSignupRequest>(),
-            deserializer: GRPCProtobuf.ProtobufDeserializer<Waitlists_CreateWaitlistSignupResponse>(),
+            serializer: GRPCProtobuf.ProtobufSerializer<Waitlists_JoinWaitlistRequest>(),
+            deserializer: GRPCProtobuf.ProtobufDeserializer<Waitlists_JoinWaitlistResponse>(),
             options: options,
             onResponse: handleResponse
         )
@@ -1077,6 +1263,81 @@ extension Waitlists_WaitlistsService.ClientProtocol {
             request: request,
             serializer: GRPCProtobuf.ProtobufSerializer<Waitlists_UpdateWaitlistSignupRequest>(),
             deserializer: GRPCProtobuf.ProtobufDeserializer<Waitlists_UpdateWaitlistSignupResponse>(),
+            options: options,
+            onResponse: handleResponse
+        )
+    }
+
+    /// Call the "InviteWaitlistSignup" method.
+    ///
+    /// - Parameters:
+    ///   - request: A request containing a single `Waitlists_InviteWaitlistSignupRequest` message.
+    ///   - options: Options to apply to this RPC.
+    ///   - handleResponse: A closure which handles the response, the result of which is
+    ///       returned to the caller. Returning from the closure will cancel the RPC if it
+    ///       hasn't already finished.
+    /// - Returns: The result of `handleResponse`.
+    internal func inviteWaitlistSignup<Result>(
+        request: GRPCCore.ClientRequest<Waitlists_InviteWaitlistSignupRequest>,
+        options: GRPCCore.CallOptions = .defaults,
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Waitlists_InviteWaitlistSignupResponse>) async throws -> Result = { response in
+            try response.message
+        }
+    ) async throws -> Result where Result: Sendable {
+        try await self.inviteWaitlistSignup(
+            request: request,
+            serializer: GRPCProtobuf.ProtobufSerializer<Waitlists_InviteWaitlistSignupRequest>(),
+            deserializer: GRPCProtobuf.ProtobufDeserializer<Waitlists_InviteWaitlistSignupResponse>(),
+            options: options,
+            onResponse: handleResponse
+        )
+    }
+
+    /// Call the "ConvertWaitlistSignup" method.
+    ///
+    /// - Parameters:
+    ///   - request: A request containing a single `Waitlists_ConvertWaitlistSignupRequest` message.
+    ///   - options: Options to apply to this RPC.
+    ///   - handleResponse: A closure which handles the response, the result of which is
+    ///       returned to the caller. Returning from the closure will cancel the RPC if it
+    ///       hasn't already finished.
+    /// - Returns: The result of `handleResponse`.
+    internal func convertWaitlistSignup<Result>(
+        request: GRPCCore.ClientRequest<Waitlists_ConvertWaitlistSignupRequest>,
+        options: GRPCCore.CallOptions = .defaults,
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Waitlists_ConvertWaitlistSignupResponse>) async throws -> Result = { response in
+            try response.message
+        }
+    ) async throws -> Result where Result: Sendable {
+        try await self.convertWaitlistSignup(
+            request: request,
+            serializer: GRPCProtobuf.ProtobufSerializer<Waitlists_ConvertWaitlistSignupRequest>(),
+            deserializer: GRPCProtobuf.ProtobufDeserializer<Waitlists_ConvertWaitlistSignupResponse>(),
+            options: options,
+            onResponse: handleResponse
+        )
+    }
+
+    /// Call the "WithdrawFromWaitlist" method.
+    ///
+    /// - Parameters:
+    ///   - request: A request containing a single `Waitlists_WithdrawFromWaitlistRequest` message.
+    ///   - options: Options to apply to this RPC.
+    ///   - handleResponse: A closure which handles the response, the result of which is
+    ///       returned to the caller. Returning from the closure will cancel the RPC if it
+    ///       hasn't already finished.
+    /// - Returns: The result of `handleResponse`.
+    internal func withdrawFromWaitlist<Result>(
+        request: GRPCCore.ClientRequest<Waitlists_WithdrawFromWaitlistRequest>,
+        options: GRPCCore.CallOptions = .defaults,
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Waitlists_WithdrawFromWaitlistResponse>) async throws -> Result = { response in
+            try response.message
+        }
+    ) async throws -> Result where Result: Sendable {
+        try await self.withdrawFromWaitlist(
+            request: request,
+            serializer: GRPCProtobuf.ProtobufSerializer<Waitlists_WithdrawFromWaitlistRequest>(),
+            deserializer: GRPCProtobuf.ProtobufDeserializer<Waitlists_WithdrawFromWaitlistResponse>(),
             options: options,
             onResponse: handleResponse
         )
@@ -1198,7 +1459,7 @@ extension Waitlists_WaitlistsService.ClientProtocol {
         )
     }
 
-    /// Call the "GetActiveWaitlists" method.
+    /// Call the "GetOpenWaitlists" method.
     ///
     /// - Parameters:
     ///   - message: request message to send.
@@ -1208,19 +1469,19 @@ extension Waitlists_WaitlistsService.ClientProtocol {
     ///       returned to the caller. Returning from the closure will cancel the RPC if it
     ///       hasn't already finished.
     /// - Returns: The result of `handleResponse`.
-    internal func getActiveWaitlists<Result>(
-        _ message: Waitlists_GetActiveWaitlistsRequest,
+    internal func getOpenWaitlists<Result>(
+        _ message: Waitlists_GetOpenWaitlistsRequest,
         metadata: GRPCCore.Metadata = [:],
         options: GRPCCore.CallOptions = .defaults,
-        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Waitlists_GetActiveWaitlistsResponse>) async throws -> Result = { response in
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Waitlists_GetOpenWaitlistsResponse>) async throws -> Result = { response in
             try response.message
         }
     ) async throws -> Result where Result: Sendable {
-        let request = GRPCCore.ClientRequest<Waitlists_GetActiveWaitlistsRequest>(
+        let request = GRPCCore.ClientRequest<Waitlists_GetOpenWaitlistsRequest>(
             message: message,
             metadata: metadata
         )
-        return try await self.getActiveWaitlists(
+        return try await self.getOpenWaitlists(
             request: request,
             options: options,
             onResponse: handleResponse
@@ -1285,7 +1546,7 @@ extension Waitlists_WaitlistsService.ClientProtocol {
         )
     }
 
-    /// Call the "WaitlistIsNotExpired" method.
+    /// Call the "WaitlistIsOpen" method.
     ///
     /// - Parameters:
     ///   - message: request message to send.
@@ -1295,26 +1556,26 @@ extension Waitlists_WaitlistsService.ClientProtocol {
     ///       returned to the caller. Returning from the closure will cancel the RPC if it
     ///       hasn't already finished.
     /// - Returns: The result of `handleResponse`.
-    internal func waitlistIsNotExpired<Result>(
-        _ message: Waitlists_WaitlistIsNotExpiredRequest,
+    internal func waitlistIsOpen<Result>(
+        _ message: Waitlists_WaitlistIsOpenRequest,
         metadata: GRPCCore.Metadata = [:],
         options: GRPCCore.CallOptions = .defaults,
-        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Waitlists_WaitlistIsNotExpiredResponse>) async throws -> Result = { response in
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Waitlists_WaitlistIsOpenResponse>) async throws -> Result = { response in
             try response.message
         }
     ) async throws -> Result where Result: Sendable {
-        let request = GRPCCore.ClientRequest<Waitlists_WaitlistIsNotExpiredRequest>(
+        let request = GRPCCore.ClientRequest<Waitlists_WaitlistIsOpenRequest>(
             message: message,
             metadata: metadata
         )
-        return try await self.waitlistIsNotExpired(
+        return try await self.waitlistIsOpen(
             request: request,
             options: options,
             onResponse: handleResponse
         )
     }
 
-    /// Call the "CreateWaitlistSignup" method.
+    /// Call the "JoinWaitlist" method.
     ///
     /// - Parameters:
     ///   - message: request message to send.
@@ -1324,19 +1585,19 @@ extension Waitlists_WaitlistsService.ClientProtocol {
     ///       returned to the caller. Returning from the closure will cancel the RPC if it
     ///       hasn't already finished.
     /// - Returns: The result of `handleResponse`.
-    internal func createWaitlistSignup<Result>(
-        _ message: Waitlists_CreateWaitlistSignupRequest,
+    internal func joinWaitlist<Result>(
+        _ message: Waitlists_JoinWaitlistRequest,
         metadata: GRPCCore.Metadata = [:],
         options: GRPCCore.CallOptions = .defaults,
-        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Waitlists_CreateWaitlistSignupResponse>) async throws -> Result = { response in
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Waitlists_JoinWaitlistResponse>) async throws -> Result = { response in
             try response.message
         }
     ) async throws -> Result where Result: Sendable {
-        let request = GRPCCore.ClientRequest<Waitlists_CreateWaitlistSignupRequest>(
+        let request = GRPCCore.ClientRequest<Waitlists_JoinWaitlistRequest>(
             message: message,
             metadata: metadata
         )
-        return try await self.createWaitlistSignup(
+        return try await self.joinWaitlist(
             request: request,
             options: options,
             onResponse: handleResponse
@@ -1424,6 +1685,93 @@ extension Waitlists_WaitlistsService.ClientProtocol {
             metadata: metadata
         )
         return try await self.updateWaitlistSignup(
+            request: request,
+            options: options,
+            onResponse: handleResponse
+        )
+    }
+
+    /// Call the "InviteWaitlistSignup" method.
+    ///
+    /// - Parameters:
+    ///   - message: request message to send.
+    ///   - metadata: Additional metadata to send, defaults to empty.
+    ///   - options: Options to apply to this RPC, defaults to `.defaults`.
+    ///   - handleResponse: A closure which handles the response, the result of which is
+    ///       returned to the caller. Returning from the closure will cancel the RPC if it
+    ///       hasn't already finished.
+    /// - Returns: The result of `handleResponse`.
+    internal func inviteWaitlistSignup<Result>(
+        _ message: Waitlists_InviteWaitlistSignupRequest,
+        metadata: GRPCCore.Metadata = [:],
+        options: GRPCCore.CallOptions = .defaults,
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Waitlists_InviteWaitlistSignupResponse>) async throws -> Result = { response in
+            try response.message
+        }
+    ) async throws -> Result where Result: Sendable {
+        let request = GRPCCore.ClientRequest<Waitlists_InviteWaitlistSignupRequest>(
+            message: message,
+            metadata: metadata
+        )
+        return try await self.inviteWaitlistSignup(
+            request: request,
+            options: options,
+            onResponse: handleResponse
+        )
+    }
+
+    /// Call the "ConvertWaitlistSignup" method.
+    ///
+    /// - Parameters:
+    ///   - message: request message to send.
+    ///   - metadata: Additional metadata to send, defaults to empty.
+    ///   - options: Options to apply to this RPC, defaults to `.defaults`.
+    ///   - handleResponse: A closure which handles the response, the result of which is
+    ///       returned to the caller. Returning from the closure will cancel the RPC if it
+    ///       hasn't already finished.
+    /// - Returns: The result of `handleResponse`.
+    internal func convertWaitlistSignup<Result>(
+        _ message: Waitlists_ConvertWaitlistSignupRequest,
+        metadata: GRPCCore.Metadata = [:],
+        options: GRPCCore.CallOptions = .defaults,
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Waitlists_ConvertWaitlistSignupResponse>) async throws -> Result = { response in
+            try response.message
+        }
+    ) async throws -> Result where Result: Sendable {
+        let request = GRPCCore.ClientRequest<Waitlists_ConvertWaitlistSignupRequest>(
+            message: message,
+            metadata: metadata
+        )
+        return try await self.convertWaitlistSignup(
+            request: request,
+            options: options,
+            onResponse: handleResponse
+        )
+    }
+
+    /// Call the "WithdrawFromWaitlist" method.
+    ///
+    /// - Parameters:
+    ///   - message: request message to send.
+    ///   - metadata: Additional metadata to send, defaults to empty.
+    ///   - options: Options to apply to this RPC, defaults to `.defaults`.
+    ///   - handleResponse: A closure which handles the response, the result of which is
+    ///       returned to the caller. Returning from the closure will cancel the RPC if it
+    ///       hasn't already finished.
+    /// - Returns: The result of `handleResponse`.
+    internal func withdrawFromWaitlist<Result>(
+        _ message: Waitlists_WithdrawFromWaitlistRequest,
+        metadata: GRPCCore.Metadata = [:],
+        options: GRPCCore.CallOptions = .defaults,
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Waitlists_WithdrawFromWaitlistResponse>) async throws -> Result = { response in
+            try response.message
+        }
+    ) async throws -> Result where Result: Sendable {
+        let request = GRPCCore.ClientRequest<Waitlists_WithdrawFromWaitlistRequest>(
+            message: message,
+            metadata: metadata
+        )
+        return try await self.withdrawFromWaitlist(
             request: request,
             options: options,
             onResponse: handleResponse

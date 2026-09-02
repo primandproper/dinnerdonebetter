@@ -38,9 +38,9 @@ import (
 // worker can be the first time a subject asks for their data.
 //
 // That is not hypothetical. The data privacy registry could not be built in the scheduler at all
-// until this test was written: the container registered the settings and waitlists repositories
-// but not the domain interfaces two collectors ask for, so the fulfillment worker failed to
-// resolve — and nothing said so, because nothing had ever resolved it.
+// until this test was written: the container registered the settings repository but not the
+// domain interface its collector asks for, so the fulfillment worker failed to resolve — and
+// nothing said so, because nothing had ever resolved it.
 //
 // These tests resolve; they do not run. Running is what the rest of the suite does.
 
@@ -134,6 +134,7 @@ func TestWorkerWiring_Scheduler(T *testing.T) {
 		// forgotten request.
 		assert.ElementsMatch(t, []string{
 			ddbdataprivacy.EraserKeyComments,
+			ddbdataprivacy.EraserKeyWaitlists,
 			ddbdataprivacy.EraserKeyIdentity,
 			auditerasure.DefaultKey,
 		}, registry.EraserKeys())

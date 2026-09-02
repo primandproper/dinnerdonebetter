@@ -1,11 +1,11 @@
 package grpc
 
 import (
-	waitlistsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists/manager"
 	waitlistssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/waitlists"
 
 	"github.com/primandproper/platform-go/v13/observability/logging"
 	"github.com/primandproper/platform-go/v13/observability/tracing"
+	waitlists "github.com/primandproper/platform-go/v13/waitlists"
 
 	"github.com/samber/do/v2"
 )
@@ -20,7 +20,7 @@ func RegisterWaitlistsService(i do.Injector) {
 		return NewService(
 			do.MustInvoke[logging.Logger](i),
 			do.MustInvoke[tracing.Provider](i),
-			do.MustInvoke[waitlistsmanager.WaitlistsDataManager](i),
+			do.MustInvoke[waitlists.Store](i),
 		), nil
 	})
 }

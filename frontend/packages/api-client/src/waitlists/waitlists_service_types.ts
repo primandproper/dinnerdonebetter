@@ -16,20 +16,23 @@ export const protobufPackage = 'waitlists';
 export interface WaitlistCreationRequestInput {
   name: string;
   description: string;
-  validUntil: Date | undefined;
+  closesAt: Date | undefined;
 }
 
 export interface WaitlistUpdateRequestInput {
   name?: string | undefined;
   description?: string | undefined;
-  validUntil?: Date | undefined;
+  closesAt?: Date | undefined;
 }
 
+/**
+ * WaitlistSignupCreationRequestInput is everything a caller decides about their
+ * own signup, which is the note and nothing else. The address the list writes to
+ * and the user the signup belongs to both come from the session: a signup that
+ * could name its own contact is one anybody could make on anybody's behalf.
+ */
 export interface WaitlistSignupCreationRequestInput {
   notes: string;
-  belongsToWaitlist: string;
-  belongsToUser: string;
-  belongsToAccount: string;
 }
 
 export interface WaitlistSignupUpdateRequestInput {
@@ -64,11 +67,11 @@ export interface GetWaitlistsResponse {
   results: Waitlist[];
 }
 
-export interface GetActiveWaitlistsRequest {
+export interface GetOpenWaitlistsRequest {
   filter: QueryFilter | undefined;
 }
 
-export interface GetActiveWaitlistsResponse {
+export interface GetOpenWaitlistsResponse {
   responseDetails: ResponseDetails | undefined;
   pagination: Pagination | undefined;
   results: Waitlist[];
@@ -92,27 +95,28 @@ export interface ArchiveWaitlistResponse {
   responseDetails: ResponseDetails | undefined;
 }
 
-export interface WaitlistIsNotExpiredRequest {
+export interface WaitlistIsOpenRequest {
   waitlistId: string;
 }
 
-export interface WaitlistIsNotExpiredResponse {
+export interface WaitlistIsOpenResponse {
   responseDetails: ResponseDetails | undefined;
-  isNotExpired: boolean;
+  isOpen: boolean;
 }
 
-export interface CreateWaitlistSignupRequest {
+export interface JoinWaitlistRequest {
+  waitlistId: string;
   input: WaitlistSignupCreationRequestInput | undefined;
 }
 
-export interface CreateWaitlistSignupResponse {
+export interface JoinWaitlistResponse {
   responseDetails: ResponseDetails | undefined;
   created: WaitlistSignup | undefined;
 }
 
 export interface GetWaitlistSignupRequest {
-  waitlistSignupId: string;
   waitlistId: string;
+  waitlistSignupId: string;
 }
 
 export interface GetWaitlistSignupResponse {
@@ -132,8 +136,8 @@ export interface GetWaitlistSignupsForWaitlistResponse {
 }
 
 export interface UpdateWaitlistSignupRequest {
-  waitlistSignupId: string;
   waitlistId: string;
+  waitlistSignupId: string;
   input: WaitlistSignupUpdateRequestInput | undefined;
 }
 
@@ -142,7 +146,43 @@ export interface UpdateWaitlistSignupResponse {
   updated: WaitlistSignup | undefined;
 }
 
+export interface InviteWaitlistSignupRequest {
+  waitlistId: string;
+  waitlistSignupId: string;
+}
+
+export interface InviteWaitlistSignupResponse {
+  responseDetails: ResponseDetails | undefined;
+  updated: WaitlistSignup | undefined;
+}
+
+export interface ConvertWaitlistSignupRequest {
+  waitlistId: string;
+  waitlistSignupId: string;
+}
+
+export interface ConvertWaitlistSignupResponse {
+  responseDetails: ResponseDetails | undefined;
+  updated: WaitlistSignup | undefined;
+}
+
+export interface WithdrawFromWaitlistRequest {
+  waitlistId: string;
+  waitlistSignupId: string;
+}
+
+/**
+ * WithdrawFromWaitlistResponse carries the withdrawn signup: its contact and
+ * notes are blank and its status says why, which is what lets an unsubscribe
+ * page say "you are off this list" rather than nothing at all.
+ */
+export interface WithdrawFromWaitlistResponse {
+  responseDetails: ResponseDetails | undefined;
+  updated: WaitlistSignup | undefined;
+}
+
 export interface ArchiveWaitlistSignupRequest {
+  waitlistId: string;
   waitlistSignupId: string;
 }
 
@@ -151,7 +191,7 @@ export interface ArchiveWaitlistSignupResponse {
 }
 
 function createBaseWaitlistCreationRequestInput(): WaitlistCreationRequestInput {
-  return { name: '', description: '', validUntil: undefined };
+  return { name: '', description: '', closesAt: undefined };
 }
 
 export const WaitlistCreationRequestInput: MessageFns<WaitlistCreationRequestInput> = {
@@ -162,8 +202,8 @@ export const WaitlistCreationRequestInput: MessageFns<WaitlistCreationRequestInp
     if (message.description !== '') {
       writer.uint32(18).string(message.description);
     }
-    if (message.validUntil !== undefined) {
-      Timestamp.encode(toTimestamp(message.validUntil), writer.uint32(26).fork()).join();
+    if (message.closesAt !== undefined) {
+      Timestamp.encode(toTimestamp(message.closesAt), writer.uint32(26).fork()).join();
     }
     return writer;
   },
@@ -196,7 +236,7 @@ export const WaitlistCreationRequestInput: MessageFns<WaitlistCreationRequestInp
             break;
           }
 
-          message.validUntil = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
+          message.closesAt = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
           continue;
         }
       }
@@ -212,10 +252,10 @@ export const WaitlistCreationRequestInput: MessageFns<WaitlistCreationRequestInp
     return {
       name: isSet(object.name) ? globalThis.String(object.name) : '',
       description: isSet(object.description) ? globalThis.String(object.description) : '',
-      validUntil: isSet(object.validUntil)
-        ? fromJsonTimestamp(object.validUntil)
-        : isSet(object.valid_until)
-          ? fromJsonTimestamp(object.valid_until)
+      closesAt: isSet(object.closesAt)
+        ? fromJsonTimestamp(object.closesAt)
+        : isSet(object.closes_at)
+          ? fromJsonTimestamp(object.closes_at)
           : undefined,
     };
   },
@@ -228,8 +268,8 @@ export const WaitlistCreationRequestInput: MessageFns<WaitlistCreationRequestInp
     if (message.description !== '') {
       obj.description = message.description;
     }
-    if (message.validUntil !== undefined) {
-      obj.validUntil = message.validUntil.toISOString();
+    if (message.closesAt !== undefined) {
+      obj.closesAt = message.closesAt.toISOString();
     }
     return obj;
   },
@@ -241,13 +281,13 @@ export const WaitlistCreationRequestInput: MessageFns<WaitlistCreationRequestInp
     const message = createBaseWaitlistCreationRequestInput();
     message.name = object.name ?? '';
     message.description = object.description ?? '';
-    message.validUntil = object.validUntil ?? undefined;
+    message.closesAt = object.closesAt ?? undefined;
     return message;
   },
 };
 
 function createBaseWaitlistUpdateRequestInput(): WaitlistUpdateRequestInput {
-  return { name: undefined, description: undefined, validUntil: undefined };
+  return { name: undefined, description: undefined, closesAt: undefined };
 }
 
 export const WaitlistUpdateRequestInput: MessageFns<WaitlistUpdateRequestInput> = {
@@ -258,8 +298,8 @@ export const WaitlistUpdateRequestInput: MessageFns<WaitlistUpdateRequestInput> 
     if (message.description !== undefined) {
       writer.uint32(18).string(message.description);
     }
-    if (message.validUntil !== undefined) {
-      Timestamp.encode(toTimestamp(message.validUntil), writer.uint32(26).fork()).join();
+    if (message.closesAt !== undefined) {
+      Timestamp.encode(toTimestamp(message.closesAt), writer.uint32(26).fork()).join();
     }
     return writer;
   },
@@ -292,7 +332,7 @@ export const WaitlistUpdateRequestInput: MessageFns<WaitlistUpdateRequestInput> 
             break;
           }
 
-          message.validUntil = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
+          message.closesAt = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
           continue;
         }
       }
@@ -308,10 +348,10 @@ export const WaitlistUpdateRequestInput: MessageFns<WaitlistUpdateRequestInput> 
     return {
       name: isSet(object.name) ? globalThis.String(object.name) : undefined,
       description: isSet(object.description) ? globalThis.String(object.description) : undefined,
-      validUntil: isSet(object.validUntil)
-        ? fromJsonTimestamp(object.validUntil)
-        : isSet(object.valid_until)
-          ? fromJsonTimestamp(object.valid_until)
+      closesAt: isSet(object.closesAt)
+        ? fromJsonTimestamp(object.closesAt)
+        : isSet(object.closes_at)
+          ? fromJsonTimestamp(object.closes_at)
           : undefined,
     };
   },
@@ -324,8 +364,8 @@ export const WaitlistUpdateRequestInput: MessageFns<WaitlistUpdateRequestInput> 
     if (message.description !== undefined) {
       obj.description = message.description;
     }
-    if (message.validUntil !== undefined) {
-      obj.validUntil = message.validUntil.toISOString();
+    if (message.closesAt !== undefined) {
+      obj.closesAt = message.closesAt.toISOString();
     }
     return obj;
   },
@@ -337,28 +377,19 @@ export const WaitlistUpdateRequestInput: MessageFns<WaitlistUpdateRequestInput> 
     const message = createBaseWaitlistUpdateRequestInput();
     message.name = object.name ?? undefined;
     message.description = object.description ?? undefined;
-    message.validUntil = object.validUntil ?? undefined;
+    message.closesAt = object.closesAt ?? undefined;
     return message;
   },
 };
 
 function createBaseWaitlistSignupCreationRequestInput(): WaitlistSignupCreationRequestInput {
-  return { notes: '', belongsToWaitlist: '', belongsToUser: '', belongsToAccount: '' };
+  return { notes: '' };
 }
 
 export const WaitlistSignupCreationRequestInput: MessageFns<WaitlistSignupCreationRequestInput> = {
   encode(message: WaitlistSignupCreationRequestInput, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.notes !== '') {
       writer.uint32(10).string(message.notes);
-    }
-    if (message.belongsToWaitlist !== '') {
-      writer.uint32(18).string(message.belongsToWaitlist);
-    }
-    if (message.belongsToUser !== '') {
-      writer.uint32(26).string(message.belongsToUser);
-    }
-    if (message.belongsToAccount !== '') {
-      writer.uint32(34).string(message.belongsToAccount);
     }
     return writer;
   },
@@ -378,30 +409,6 @@ export const WaitlistSignupCreationRequestInput: MessageFns<WaitlistSignupCreati
           message.notes = reader.string();
           continue;
         }
-        case 2: {
-          if (tag !== 18) {
-            break;
-          }
-
-          message.belongsToWaitlist = reader.string();
-          continue;
-        }
-        case 3: {
-          if (tag !== 26) {
-            break;
-          }
-
-          message.belongsToUser = reader.string();
-          continue;
-        }
-        case 4: {
-          if (tag !== 34) {
-            break;
-          }
-
-          message.belongsToAccount = reader.string();
-          continue;
-        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -412,39 +419,13 @@ export const WaitlistSignupCreationRequestInput: MessageFns<WaitlistSignupCreati
   },
 
   fromJSON(object: any): WaitlistSignupCreationRequestInput {
-    return {
-      notes: isSet(object.notes) ? globalThis.String(object.notes) : '',
-      belongsToWaitlist: isSet(object.belongsToWaitlist)
-        ? globalThis.String(object.belongsToWaitlist)
-        : isSet(object.belongs_to_waitlist)
-          ? globalThis.String(object.belongs_to_waitlist)
-          : '',
-      belongsToUser: isSet(object.belongsToUser)
-        ? globalThis.String(object.belongsToUser)
-        : isSet(object.belongs_to_user)
-          ? globalThis.String(object.belongs_to_user)
-          : '',
-      belongsToAccount: isSet(object.belongsToAccount)
-        ? globalThis.String(object.belongsToAccount)
-        : isSet(object.belongs_to_account)
-          ? globalThis.String(object.belongs_to_account)
-          : '',
-    };
+    return { notes: isSet(object.notes) ? globalThis.String(object.notes) : '' };
   },
 
   toJSON(message: WaitlistSignupCreationRequestInput): unknown {
     const obj: any = {};
     if (message.notes !== '') {
       obj.notes = message.notes;
-    }
-    if (message.belongsToWaitlist !== '') {
-      obj.belongsToWaitlist = message.belongsToWaitlist;
-    }
-    if (message.belongsToUser !== '') {
-      obj.belongsToUser = message.belongsToUser;
-    }
-    if (message.belongsToAccount !== '') {
-      obj.belongsToAccount = message.belongsToAccount;
     }
     return obj;
   },
@@ -459,9 +440,6 @@ export const WaitlistSignupCreationRequestInput: MessageFns<WaitlistSignupCreati
   ): WaitlistSignupCreationRequestInput {
     const message = createBaseWaitlistSignupCreationRequestInput();
     message.notes = object.notes ?? '';
-    message.belongsToWaitlist = object.belongsToWaitlist ?? '';
-    message.belongsToUser = object.belongsToUser ?? '';
-    message.belongsToAccount = object.belongsToAccount ?? '';
     return message;
   },
 };
@@ -982,22 +960,22 @@ export const GetWaitlistsResponse: MessageFns<GetWaitlistsResponse> = {
   },
 };
 
-function createBaseGetActiveWaitlistsRequest(): GetActiveWaitlistsRequest {
+function createBaseGetOpenWaitlistsRequest(): GetOpenWaitlistsRequest {
   return { filter: undefined };
 }
 
-export const GetActiveWaitlistsRequest: MessageFns<GetActiveWaitlistsRequest> = {
-  encode(message: GetActiveWaitlistsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+export const GetOpenWaitlistsRequest: MessageFns<GetOpenWaitlistsRequest> = {
+  encode(message: GetOpenWaitlistsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.filter !== undefined) {
       QueryFilter.encode(message.filter, writer.uint32(10).fork()).join();
     }
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): GetActiveWaitlistsRequest {
+  decode(input: BinaryReader | Uint8Array, length?: number): GetOpenWaitlistsRequest {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseGetActiveWaitlistsRequest();
+    const message = createBaseGetOpenWaitlistsRequest();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -1018,11 +996,11 @@ export const GetActiveWaitlistsRequest: MessageFns<GetActiveWaitlistsRequest> = 
     return message;
   },
 
-  fromJSON(object: any): GetActiveWaitlistsRequest {
+  fromJSON(object: any): GetOpenWaitlistsRequest {
     return { filter: isSet(object.filter) ? QueryFilter.fromJSON(object.filter) : undefined };
   },
 
-  toJSON(message: GetActiveWaitlistsRequest): unknown {
+  toJSON(message: GetOpenWaitlistsRequest): unknown {
     const obj: any = {};
     if (message.filter !== undefined) {
       obj.filter = QueryFilter.toJSON(message.filter);
@@ -1030,23 +1008,23 @@ export const GetActiveWaitlistsRequest: MessageFns<GetActiveWaitlistsRequest> = 
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetActiveWaitlistsRequest>, I>>(base?: I): GetActiveWaitlistsRequest {
-    return GetActiveWaitlistsRequest.fromPartial(base ?? ({} as any));
+  create<I extends Exact<DeepPartial<GetOpenWaitlistsRequest>, I>>(base?: I): GetOpenWaitlistsRequest {
+    return GetOpenWaitlistsRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetActiveWaitlistsRequest>, I>>(object: I): GetActiveWaitlistsRequest {
-    const message = createBaseGetActiveWaitlistsRequest();
+  fromPartial<I extends Exact<DeepPartial<GetOpenWaitlistsRequest>, I>>(object: I): GetOpenWaitlistsRequest {
+    const message = createBaseGetOpenWaitlistsRequest();
     message.filter =
       object.filter !== undefined && object.filter !== null ? QueryFilter.fromPartial(object.filter) : undefined;
     return message;
   },
 };
 
-function createBaseGetActiveWaitlistsResponse(): GetActiveWaitlistsResponse {
+function createBaseGetOpenWaitlistsResponse(): GetOpenWaitlistsResponse {
   return { responseDetails: undefined, pagination: undefined, results: [] };
 }
 
-export const GetActiveWaitlistsResponse: MessageFns<GetActiveWaitlistsResponse> = {
-  encode(message: GetActiveWaitlistsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+export const GetOpenWaitlistsResponse: MessageFns<GetOpenWaitlistsResponse> = {
+  encode(message: GetOpenWaitlistsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.responseDetails !== undefined) {
       ResponseDetails.encode(message.responseDetails, writer.uint32(10).fork()).join();
     }
@@ -1059,10 +1037,10 @@ export const GetActiveWaitlistsResponse: MessageFns<GetActiveWaitlistsResponse> 
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): GetActiveWaitlistsResponse {
+  decode(input: BinaryReader | Uint8Array, length?: number): GetOpenWaitlistsResponse {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseGetActiveWaitlistsResponse();
+    const message = createBaseGetOpenWaitlistsResponse();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -1099,7 +1077,7 @@ export const GetActiveWaitlistsResponse: MessageFns<GetActiveWaitlistsResponse> 
     return message;
   },
 
-  fromJSON(object: any): GetActiveWaitlistsResponse {
+  fromJSON(object: any): GetOpenWaitlistsResponse {
     return {
       responseDetails: isSet(object.responseDetails)
         ? ResponseDetails.fromJSON(object.responseDetails)
@@ -1111,7 +1089,7 @@ export const GetActiveWaitlistsResponse: MessageFns<GetActiveWaitlistsResponse> 
     };
   },
 
-  toJSON(message: GetActiveWaitlistsResponse): unknown {
+  toJSON(message: GetOpenWaitlistsResponse): unknown {
     const obj: any = {};
     if (message.responseDetails !== undefined) {
       obj.responseDetails = ResponseDetails.toJSON(message.responseDetails);
@@ -1125,11 +1103,11 @@ export const GetActiveWaitlistsResponse: MessageFns<GetActiveWaitlistsResponse> 
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetActiveWaitlistsResponse>, I>>(base?: I): GetActiveWaitlistsResponse {
-    return GetActiveWaitlistsResponse.fromPartial(base ?? ({} as any));
+  create<I extends Exact<DeepPartial<GetOpenWaitlistsResponse>, I>>(base?: I): GetOpenWaitlistsResponse {
+    return GetOpenWaitlistsResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetActiveWaitlistsResponse>, I>>(object: I): GetActiveWaitlistsResponse {
-    const message = createBaseGetActiveWaitlistsResponse();
+  fromPartial<I extends Exact<DeepPartial<GetOpenWaitlistsResponse>, I>>(object: I): GetOpenWaitlistsResponse {
+    const message = createBaseGetOpenWaitlistsResponse();
     message.responseDetails =
       object.responseDetails !== undefined && object.responseDetails !== null
         ? ResponseDetails.fromPartial(object.responseDetails)
@@ -1441,22 +1419,22 @@ export const ArchiveWaitlistResponse: MessageFns<ArchiveWaitlistResponse> = {
   },
 };
 
-function createBaseWaitlistIsNotExpiredRequest(): WaitlistIsNotExpiredRequest {
+function createBaseWaitlistIsOpenRequest(): WaitlistIsOpenRequest {
   return { waitlistId: '' };
 }
 
-export const WaitlistIsNotExpiredRequest: MessageFns<WaitlistIsNotExpiredRequest> = {
-  encode(message: WaitlistIsNotExpiredRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+export const WaitlistIsOpenRequest: MessageFns<WaitlistIsOpenRequest> = {
+  encode(message: WaitlistIsOpenRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.waitlistId !== '') {
       writer.uint32(10).string(message.waitlistId);
     }
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): WaitlistIsNotExpiredRequest {
+  decode(input: BinaryReader | Uint8Array, length?: number): WaitlistIsOpenRequest {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseWaitlistIsNotExpiredRequest();
+    const message = createBaseWaitlistIsOpenRequest();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -1477,7 +1455,7 @@ export const WaitlistIsNotExpiredRequest: MessageFns<WaitlistIsNotExpiredRequest
     return message;
   },
 
-  fromJSON(object: any): WaitlistIsNotExpiredRequest {
+  fromJSON(object: any): WaitlistIsOpenRequest {
     return {
       waitlistId: isSet(object.waitlistId)
         ? globalThis.String(object.waitlistId)
@@ -1487,7 +1465,7 @@ export const WaitlistIsNotExpiredRequest: MessageFns<WaitlistIsNotExpiredRequest
     };
   },
 
-  toJSON(message: WaitlistIsNotExpiredRequest): unknown {
+  toJSON(message: WaitlistIsOpenRequest): unknown {
     const obj: any = {};
     if (message.waitlistId !== '') {
       obj.waitlistId = message.waitlistId;
@@ -1495,35 +1473,35 @@ export const WaitlistIsNotExpiredRequest: MessageFns<WaitlistIsNotExpiredRequest
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<WaitlistIsNotExpiredRequest>, I>>(base?: I): WaitlistIsNotExpiredRequest {
-    return WaitlistIsNotExpiredRequest.fromPartial(base ?? ({} as any));
+  create<I extends Exact<DeepPartial<WaitlistIsOpenRequest>, I>>(base?: I): WaitlistIsOpenRequest {
+    return WaitlistIsOpenRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<WaitlistIsNotExpiredRequest>, I>>(object: I): WaitlistIsNotExpiredRequest {
-    const message = createBaseWaitlistIsNotExpiredRequest();
+  fromPartial<I extends Exact<DeepPartial<WaitlistIsOpenRequest>, I>>(object: I): WaitlistIsOpenRequest {
+    const message = createBaseWaitlistIsOpenRequest();
     message.waitlistId = object.waitlistId ?? '';
     return message;
   },
 };
 
-function createBaseWaitlistIsNotExpiredResponse(): WaitlistIsNotExpiredResponse {
-  return { responseDetails: undefined, isNotExpired: false };
+function createBaseWaitlistIsOpenResponse(): WaitlistIsOpenResponse {
+  return { responseDetails: undefined, isOpen: false };
 }
 
-export const WaitlistIsNotExpiredResponse: MessageFns<WaitlistIsNotExpiredResponse> = {
-  encode(message: WaitlistIsNotExpiredResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+export const WaitlistIsOpenResponse: MessageFns<WaitlistIsOpenResponse> = {
+  encode(message: WaitlistIsOpenResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.responseDetails !== undefined) {
       ResponseDetails.encode(message.responseDetails, writer.uint32(10).fork()).join();
     }
-    if (message.isNotExpired !== false) {
-      writer.uint32(16).bool(message.isNotExpired);
+    if (message.isOpen !== false) {
+      writer.uint32(16).bool(message.isOpen);
     }
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): WaitlistIsNotExpiredResponse {
+  decode(input: BinaryReader | Uint8Array, length?: number): WaitlistIsOpenResponse {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseWaitlistIsNotExpiredResponse();
+    const message = createBaseWaitlistIsOpenResponse();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -1540,7 +1518,7 @@ export const WaitlistIsNotExpiredResponse: MessageFns<WaitlistIsNotExpiredRespon
             break;
           }
 
-          message.isNotExpired = reader.bool();
+          message.isOpen = reader.bool();
           continue;
         }
       }
@@ -1552,67 +1530,78 @@ export const WaitlistIsNotExpiredResponse: MessageFns<WaitlistIsNotExpiredRespon
     return message;
   },
 
-  fromJSON(object: any): WaitlistIsNotExpiredResponse {
+  fromJSON(object: any): WaitlistIsOpenResponse {
     return {
       responseDetails: isSet(object.responseDetails)
         ? ResponseDetails.fromJSON(object.responseDetails)
         : isSet(object.response_details)
           ? ResponseDetails.fromJSON(object.response_details)
           : undefined,
-      isNotExpired: isSet(object.isNotExpired)
-        ? globalThis.Boolean(object.isNotExpired)
-        : isSet(object.is_not_expired)
-          ? globalThis.Boolean(object.is_not_expired)
+      isOpen: isSet(object.isOpen)
+        ? globalThis.Boolean(object.isOpen)
+        : isSet(object.is_open)
+          ? globalThis.Boolean(object.is_open)
           : false,
     };
   },
 
-  toJSON(message: WaitlistIsNotExpiredResponse): unknown {
+  toJSON(message: WaitlistIsOpenResponse): unknown {
     const obj: any = {};
     if (message.responseDetails !== undefined) {
       obj.responseDetails = ResponseDetails.toJSON(message.responseDetails);
     }
-    if (message.isNotExpired !== false) {
-      obj.isNotExpired = message.isNotExpired;
+    if (message.isOpen !== false) {
+      obj.isOpen = message.isOpen;
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<WaitlistIsNotExpiredResponse>, I>>(base?: I): WaitlistIsNotExpiredResponse {
-    return WaitlistIsNotExpiredResponse.fromPartial(base ?? ({} as any));
+  create<I extends Exact<DeepPartial<WaitlistIsOpenResponse>, I>>(base?: I): WaitlistIsOpenResponse {
+    return WaitlistIsOpenResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<WaitlistIsNotExpiredResponse>, I>>(object: I): WaitlistIsNotExpiredResponse {
-    const message = createBaseWaitlistIsNotExpiredResponse();
+  fromPartial<I extends Exact<DeepPartial<WaitlistIsOpenResponse>, I>>(object: I): WaitlistIsOpenResponse {
+    const message = createBaseWaitlistIsOpenResponse();
     message.responseDetails =
       object.responseDetails !== undefined && object.responseDetails !== null
         ? ResponseDetails.fromPartial(object.responseDetails)
         : undefined;
-    message.isNotExpired = object.isNotExpired ?? false;
+    message.isOpen = object.isOpen ?? false;
     return message;
   },
 };
 
-function createBaseCreateWaitlistSignupRequest(): CreateWaitlistSignupRequest {
-  return { input: undefined };
+function createBaseJoinWaitlistRequest(): JoinWaitlistRequest {
+  return { waitlistId: '', input: undefined };
 }
 
-export const CreateWaitlistSignupRequest: MessageFns<CreateWaitlistSignupRequest> = {
-  encode(message: CreateWaitlistSignupRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+export const JoinWaitlistRequest: MessageFns<JoinWaitlistRequest> = {
+  encode(message: JoinWaitlistRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.waitlistId !== '') {
+      writer.uint32(10).string(message.waitlistId);
+    }
     if (message.input !== undefined) {
-      WaitlistSignupCreationRequestInput.encode(message.input, writer.uint32(10).fork()).join();
+      WaitlistSignupCreationRequestInput.encode(message.input, writer.uint32(18).fork()).join();
     }
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): CreateWaitlistSignupRequest {
+  decode(input: BinaryReader | Uint8Array, length?: number): JoinWaitlistRequest {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseCreateWaitlistSignupRequest();
+    const message = createBaseJoinWaitlistRequest();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
         case 1: {
           if (tag !== 10) {
+            break;
+          }
+
+          message.waitlistId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
             break;
           }
 
@@ -1628,23 +1617,34 @@ export const CreateWaitlistSignupRequest: MessageFns<CreateWaitlistSignupRequest
     return message;
   },
 
-  fromJSON(object: any): CreateWaitlistSignupRequest {
-    return { input: isSet(object.input) ? WaitlistSignupCreationRequestInput.fromJSON(object.input) : undefined };
+  fromJSON(object: any): JoinWaitlistRequest {
+    return {
+      waitlistId: isSet(object.waitlistId)
+        ? globalThis.String(object.waitlistId)
+        : isSet(object.waitlist_id)
+          ? globalThis.String(object.waitlist_id)
+          : '',
+      input: isSet(object.input) ? WaitlistSignupCreationRequestInput.fromJSON(object.input) : undefined,
+    };
   },
 
-  toJSON(message: CreateWaitlistSignupRequest): unknown {
+  toJSON(message: JoinWaitlistRequest): unknown {
     const obj: any = {};
+    if (message.waitlistId !== '') {
+      obj.waitlistId = message.waitlistId;
+    }
     if (message.input !== undefined) {
       obj.input = WaitlistSignupCreationRequestInput.toJSON(message.input);
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<CreateWaitlistSignupRequest>, I>>(base?: I): CreateWaitlistSignupRequest {
-    return CreateWaitlistSignupRequest.fromPartial(base ?? ({} as any));
+  create<I extends Exact<DeepPartial<JoinWaitlistRequest>, I>>(base?: I): JoinWaitlistRequest {
+    return JoinWaitlistRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<CreateWaitlistSignupRequest>, I>>(object: I): CreateWaitlistSignupRequest {
-    const message = createBaseCreateWaitlistSignupRequest();
+  fromPartial<I extends Exact<DeepPartial<JoinWaitlistRequest>, I>>(object: I): JoinWaitlistRequest {
+    const message = createBaseJoinWaitlistRequest();
+    message.waitlistId = object.waitlistId ?? '';
     message.input =
       object.input !== undefined && object.input !== null
         ? WaitlistSignupCreationRequestInput.fromPartial(object.input)
@@ -1653,12 +1653,12 @@ export const CreateWaitlistSignupRequest: MessageFns<CreateWaitlistSignupRequest
   },
 };
 
-function createBaseCreateWaitlistSignupResponse(): CreateWaitlistSignupResponse {
+function createBaseJoinWaitlistResponse(): JoinWaitlistResponse {
   return { responseDetails: undefined, created: undefined };
 }
 
-export const CreateWaitlistSignupResponse: MessageFns<CreateWaitlistSignupResponse> = {
-  encode(message: CreateWaitlistSignupResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+export const JoinWaitlistResponse: MessageFns<JoinWaitlistResponse> = {
+  encode(message: JoinWaitlistResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.responseDetails !== undefined) {
       ResponseDetails.encode(message.responseDetails, writer.uint32(10).fork()).join();
     }
@@ -1668,10 +1668,10 @@ export const CreateWaitlistSignupResponse: MessageFns<CreateWaitlistSignupRespon
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): CreateWaitlistSignupResponse {
+  decode(input: BinaryReader | Uint8Array, length?: number): JoinWaitlistResponse {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseCreateWaitlistSignupResponse();
+    const message = createBaseJoinWaitlistResponse();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -1700,7 +1700,7 @@ export const CreateWaitlistSignupResponse: MessageFns<CreateWaitlistSignupRespon
     return message;
   },
 
-  fromJSON(object: any): CreateWaitlistSignupResponse {
+  fromJSON(object: any): JoinWaitlistResponse {
     return {
       responseDetails: isSet(object.responseDetails)
         ? ResponseDetails.fromJSON(object.responseDetails)
@@ -1711,7 +1711,7 @@ export const CreateWaitlistSignupResponse: MessageFns<CreateWaitlistSignupRespon
     };
   },
 
-  toJSON(message: CreateWaitlistSignupResponse): unknown {
+  toJSON(message: JoinWaitlistResponse): unknown {
     const obj: any = {};
     if (message.responseDetails !== undefined) {
       obj.responseDetails = ResponseDetails.toJSON(message.responseDetails);
@@ -1722,11 +1722,11 @@ export const CreateWaitlistSignupResponse: MessageFns<CreateWaitlistSignupRespon
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<CreateWaitlistSignupResponse>, I>>(base?: I): CreateWaitlistSignupResponse {
-    return CreateWaitlistSignupResponse.fromPartial(base ?? ({} as any));
+  create<I extends Exact<DeepPartial<JoinWaitlistResponse>, I>>(base?: I): JoinWaitlistResponse {
+    return JoinWaitlistResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<CreateWaitlistSignupResponse>, I>>(object: I): CreateWaitlistSignupResponse {
-    const message = createBaseCreateWaitlistSignupResponse();
+  fromPartial<I extends Exact<DeepPartial<JoinWaitlistResponse>, I>>(object: I): JoinWaitlistResponse {
+    const message = createBaseJoinWaitlistResponse();
     message.responseDetails =
       object.responseDetails !== undefined && object.responseDetails !== null
         ? ResponseDetails.fromPartial(object.responseDetails)
@@ -1738,16 +1738,16 @@ export const CreateWaitlistSignupResponse: MessageFns<CreateWaitlistSignupRespon
 };
 
 function createBaseGetWaitlistSignupRequest(): GetWaitlistSignupRequest {
-  return { waitlistSignupId: '', waitlistId: '' };
+  return { waitlistId: '', waitlistSignupId: '' };
 }
 
 export const GetWaitlistSignupRequest: MessageFns<GetWaitlistSignupRequest> = {
   encode(message: GetWaitlistSignupRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.waitlistSignupId !== '') {
-      writer.uint32(10).string(message.waitlistSignupId);
-    }
     if (message.waitlistId !== '') {
-      writer.uint32(18).string(message.waitlistId);
+      writer.uint32(10).string(message.waitlistId);
+    }
+    if (message.waitlistSignupId !== '') {
+      writer.uint32(18).string(message.waitlistSignupId);
     }
     return writer;
   },
@@ -1764,7 +1764,7 @@ export const GetWaitlistSignupRequest: MessageFns<GetWaitlistSignupRequest> = {
             break;
           }
 
-          message.waitlistSignupId = reader.string();
+          message.waitlistId = reader.string();
           continue;
         }
         case 2: {
@@ -1772,7 +1772,7 @@ export const GetWaitlistSignupRequest: MessageFns<GetWaitlistSignupRequest> = {
             break;
           }
 
-          message.waitlistId = reader.string();
+          message.waitlistSignupId = reader.string();
           continue;
         }
       }
@@ -1786,26 +1786,26 @@ export const GetWaitlistSignupRequest: MessageFns<GetWaitlistSignupRequest> = {
 
   fromJSON(object: any): GetWaitlistSignupRequest {
     return {
-      waitlistSignupId: isSet(object.waitlistSignupId)
-        ? globalThis.String(object.waitlistSignupId)
-        : isSet(object.waitlist_signup_id)
-          ? globalThis.String(object.waitlist_signup_id)
-          : '',
       waitlistId: isSet(object.waitlistId)
         ? globalThis.String(object.waitlistId)
         : isSet(object.waitlist_id)
           ? globalThis.String(object.waitlist_id)
+          : '',
+      waitlistSignupId: isSet(object.waitlistSignupId)
+        ? globalThis.String(object.waitlistSignupId)
+        : isSet(object.waitlist_signup_id)
+          ? globalThis.String(object.waitlist_signup_id)
           : '',
     };
   },
 
   toJSON(message: GetWaitlistSignupRequest): unknown {
     const obj: any = {};
-    if (message.waitlistSignupId !== '') {
-      obj.waitlistSignupId = message.waitlistSignupId;
-    }
     if (message.waitlistId !== '') {
       obj.waitlistId = message.waitlistId;
+    }
+    if (message.waitlistSignupId !== '') {
+      obj.waitlistSignupId = message.waitlistSignupId;
     }
     return obj;
   },
@@ -1815,8 +1815,8 @@ export const GetWaitlistSignupRequest: MessageFns<GetWaitlistSignupRequest> = {
   },
   fromPartial<I extends Exact<DeepPartial<GetWaitlistSignupRequest>, I>>(object: I): GetWaitlistSignupRequest {
     const message = createBaseGetWaitlistSignupRequest();
-    message.waitlistSignupId = object.waitlistSignupId ?? '';
     message.waitlistId = object.waitlistId ?? '';
+    message.waitlistSignupId = object.waitlistSignupId ?? '';
     return message;
   },
 };
@@ -2099,16 +2099,16 @@ export const GetWaitlistSignupsForWaitlistResponse: MessageFns<GetWaitlistSignup
 };
 
 function createBaseUpdateWaitlistSignupRequest(): UpdateWaitlistSignupRequest {
-  return { waitlistSignupId: '', waitlistId: '', input: undefined };
+  return { waitlistId: '', waitlistSignupId: '', input: undefined };
 }
 
 export const UpdateWaitlistSignupRequest: MessageFns<UpdateWaitlistSignupRequest> = {
   encode(message: UpdateWaitlistSignupRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.waitlistSignupId !== '') {
-      writer.uint32(10).string(message.waitlistSignupId);
-    }
     if (message.waitlistId !== '') {
-      writer.uint32(18).string(message.waitlistId);
+      writer.uint32(10).string(message.waitlistId);
+    }
+    if (message.waitlistSignupId !== '') {
+      writer.uint32(18).string(message.waitlistSignupId);
     }
     if (message.input !== undefined) {
       WaitlistSignupUpdateRequestInput.encode(message.input, writer.uint32(26).fork()).join();
@@ -2128,7 +2128,7 @@ export const UpdateWaitlistSignupRequest: MessageFns<UpdateWaitlistSignupRequest
             break;
           }
 
-          message.waitlistSignupId = reader.string();
+          message.waitlistId = reader.string();
           continue;
         }
         case 2: {
@@ -2136,7 +2136,7 @@ export const UpdateWaitlistSignupRequest: MessageFns<UpdateWaitlistSignupRequest
             break;
           }
 
-          message.waitlistId = reader.string();
+          message.waitlistSignupId = reader.string();
           continue;
         }
         case 3: {
@@ -2158,15 +2158,15 @@ export const UpdateWaitlistSignupRequest: MessageFns<UpdateWaitlistSignupRequest
 
   fromJSON(object: any): UpdateWaitlistSignupRequest {
     return {
-      waitlistSignupId: isSet(object.waitlistSignupId)
-        ? globalThis.String(object.waitlistSignupId)
-        : isSet(object.waitlist_signup_id)
-          ? globalThis.String(object.waitlist_signup_id)
-          : '',
       waitlistId: isSet(object.waitlistId)
         ? globalThis.String(object.waitlistId)
         : isSet(object.waitlist_id)
           ? globalThis.String(object.waitlist_id)
+          : '',
+      waitlistSignupId: isSet(object.waitlistSignupId)
+        ? globalThis.String(object.waitlistSignupId)
+        : isSet(object.waitlist_signup_id)
+          ? globalThis.String(object.waitlist_signup_id)
           : '',
       input: isSet(object.input) ? WaitlistSignupUpdateRequestInput.fromJSON(object.input) : undefined,
     };
@@ -2174,11 +2174,11 @@ export const UpdateWaitlistSignupRequest: MessageFns<UpdateWaitlistSignupRequest
 
   toJSON(message: UpdateWaitlistSignupRequest): unknown {
     const obj: any = {};
-    if (message.waitlistSignupId !== '') {
-      obj.waitlistSignupId = message.waitlistSignupId;
-    }
     if (message.waitlistId !== '') {
       obj.waitlistId = message.waitlistId;
+    }
+    if (message.waitlistSignupId !== '') {
+      obj.waitlistSignupId = message.waitlistSignupId;
     }
     if (message.input !== undefined) {
       obj.input = WaitlistSignupUpdateRequestInput.toJSON(message.input);
@@ -2191,8 +2191,8 @@ export const UpdateWaitlistSignupRequest: MessageFns<UpdateWaitlistSignupRequest
   },
   fromPartial<I extends Exact<DeepPartial<UpdateWaitlistSignupRequest>, I>>(object: I): UpdateWaitlistSignupRequest {
     const message = createBaseUpdateWaitlistSignupRequest();
-    message.waitlistSignupId = object.waitlistSignupId ?? '';
     message.waitlistId = object.waitlistId ?? '';
+    message.waitlistSignupId = object.waitlistSignupId ?? '';
     message.input =
       object.input !== undefined && object.input !== null
         ? WaitlistSignupUpdateRequestInput.fromPartial(object.input)
@@ -2285,14 +2285,523 @@ export const UpdateWaitlistSignupResponse: MessageFns<UpdateWaitlistSignupRespon
   },
 };
 
+function createBaseInviteWaitlistSignupRequest(): InviteWaitlistSignupRequest {
+  return { waitlistId: '', waitlistSignupId: '' };
+}
+
+export const InviteWaitlistSignupRequest: MessageFns<InviteWaitlistSignupRequest> = {
+  encode(message: InviteWaitlistSignupRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.waitlistId !== '') {
+      writer.uint32(10).string(message.waitlistId);
+    }
+    if (message.waitlistSignupId !== '') {
+      writer.uint32(18).string(message.waitlistSignupId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): InviteWaitlistSignupRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseInviteWaitlistSignupRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.waitlistId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.waitlistSignupId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): InviteWaitlistSignupRequest {
+    return {
+      waitlistId: isSet(object.waitlistId)
+        ? globalThis.String(object.waitlistId)
+        : isSet(object.waitlist_id)
+          ? globalThis.String(object.waitlist_id)
+          : '',
+      waitlistSignupId: isSet(object.waitlistSignupId)
+        ? globalThis.String(object.waitlistSignupId)
+        : isSet(object.waitlist_signup_id)
+          ? globalThis.String(object.waitlist_signup_id)
+          : '',
+    };
+  },
+
+  toJSON(message: InviteWaitlistSignupRequest): unknown {
+    const obj: any = {};
+    if (message.waitlistId !== '') {
+      obj.waitlistId = message.waitlistId;
+    }
+    if (message.waitlistSignupId !== '') {
+      obj.waitlistSignupId = message.waitlistSignupId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<InviteWaitlistSignupRequest>, I>>(base?: I): InviteWaitlistSignupRequest {
+    return InviteWaitlistSignupRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<InviteWaitlistSignupRequest>, I>>(object: I): InviteWaitlistSignupRequest {
+    const message = createBaseInviteWaitlistSignupRequest();
+    message.waitlistId = object.waitlistId ?? '';
+    message.waitlistSignupId = object.waitlistSignupId ?? '';
+    return message;
+  },
+};
+
+function createBaseInviteWaitlistSignupResponse(): InviteWaitlistSignupResponse {
+  return { responseDetails: undefined, updated: undefined };
+}
+
+export const InviteWaitlistSignupResponse: MessageFns<InviteWaitlistSignupResponse> = {
+  encode(message: InviteWaitlistSignupResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.responseDetails !== undefined) {
+      ResponseDetails.encode(message.responseDetails, writer.uint32(10).fork()).join();
+    }
+    if (message.updated !== undefined) {
+      WaitlistSignup.encode(message.updated, writer.uint32(18).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): InviteWaitlistSignupResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseInviteWaitlistSignupResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.responseDetails = ResponseDetails.decode(reader, reader.uint32());
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.updated = WaitlistSignup.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): InviteWaitlistSignupResponse {
+    return {
+      responseDetails: isSet(object.responseDetails)
+        ? ResponseDetails.fromJSON(object.responseDetails)
+        : isSet(object.response_details)
+          ? ResponseDetails.fromJSON(object.response_details)
+          : undefined,
+      updated: isSet(object.updated) ? WaitlistSignup.fromJSON(object.updated) : undefined,
+    };
+  },
+
+  toJSON(message: InviteWaitlistSignupResponse): unknown {
+    const obj: any = {};
+    if (message.responseDetails !== undefined) {
+      obj.responseDetails = ResponseDetails.toJSON(message.responseDetails);
+    }
+    if (message.updated !== undefined) {
+      obj.updated = WaitlistSignup.toJSON(message.updated);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<InviteWaitlistSignupResponse>, I>>(base?: I): InviteWaitlistSignupResponse {
+    return InviteWaitlistSignupResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<InviteWaitlistSignupResponse>, I>>(object: I): InviteWaitlistSignupResponse {
+    const message = createBaseInviteWaitlistSignupResponse();
+    message.responseDetails =
+      object.responseDetails !== undefined && object.responseDetails !== null
+        ? ResponseDetails.fromPartial(object.responseDetails)
+        : undefined;
+    message.updated =
+      object.updated !== undefined && object.updated !== null ? WaitlistSignup.fromPartial(object.updated) : undefined;
+    return message;
+  },
+};
+
+function createBaseConvertWaitlistSignupRequest(): ConvertWaitlistSignupRequest {
+  return { waitlistId: '', waitlistSignupId: '' };
+}
+
+export const ConvertWaitlistSignupRequest: MessageFns<ConvertWaitlistSignupRequest> = {
+  encode(message: ConvertWaitlistSignupRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.waitlistId !== '') {
+      writer.uint32(10).string(message.waitlistId);
+    }
+    if (message.waitlistSignupId !== '') {
+      writer.uint32(18).string(message.waitlistSignupId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ConvertWaitlistSignupRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseConvertWaitlistSignupRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.waitlistId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.waitlistSignupId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ConvertWaitlistSignupRequest {
+    return {
+      waitlistId: isSet(object.waitlistId)
+        ? globalThis.String(object.waitlistId)
+        : isSet(object.waitlist_id)
+          ? globalThis.String(object.waitlist_id)
+          : '',
+      waitlistSignupId: isSet(object.waitlistSignupId)
+        ? globalThis.String(object.waitlistSignupId)
+        : isSet(object.waitlist_signup_id)
+          ? globalThis.String(object.waitlist_signup_id)
+          : '',
+    };
+  },
+
+  toJSON(message: ConvertWaitlistSignupRequest): unknown {
+    const obj: any = {};
+    if (message.waitlistId !== '') {
+      obj.waitlistId = message.waitlistId;
+    }
+    if (message.waitlistSignupId !== '') {
+      obj.waitlistSignupId = message.waitlistSignupId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ConvertWaitlistSignupRequest>, I>>(base?: I): ConvertWaitlistSignupRequest {
+    return ConvertWaitlistSignupRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ConvertWaitlistSignupRequest>, I>>(object: I): ConvertWaitlistSignupRequest {
+    const message = createBaseConvertWaitlistSignupRequest();
+    message.waitlistId = object.waitlistId ?? '';
+    message.waitlistSignupId = object.waitlistSignupId ?? '';
+    return message;
+  },
+};
+
+function createBaseConvertWaitlistSignupResponse(): ConvertWaitlistSignupResponse {
+  return { responseDetails: undefined, updated: undefined };
+}
+
+export const ConvertWaitlistSignupResponse: MessageFns<ConvertWaitlistSignupResponse> = {
+  encode(message: ConvertWaitlistSignupResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.responseDetails !== undefined) {
+      ResponseDetails.encode(message.responseDetails, writer.uint32(10).fork()).join();
+    }
+    if (message.updated !== undefined) {
+      WaitlistSignup.encode(message.updated, writer.uint32(18).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ConvertWaitlistSignupResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseConvertWaitlistSignupResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.responseDetails = ResponseDetails.decode(reader, reader.uint32());
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.updated = WaitlistSignup.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ConvertWaitlistSignupResponse {
+    return {
+      responseDetails: isSet(object.responseDetails)
+        ? ResponseDetails.fromJSON(object.responseDetails)
+        : isSet(object.response_details)
+          ? ResponseDetails.fromJSON(object.response_details)
+          : undefined,
+      updated: isSet(object.updated) ? WaitlistSignup.fromJSON(object.updated) : undefined,
+    };
+  },
+
+  toJSON(message: ConvertWaitlistSignupResponse): unknown {
+    const obj: any = {};
+    if (message.responseDetails !== undefined) {
+      obj.responseDetails = ResponseDetails.toJSON(message.responseDetails);
+    }
+    if (message.updated !== undefined) {
+      obj.updated = WaitlistSignup.toJSON(message.updated);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ConvertWaitlistSignupResponse>, I>>(base?: I): ConvertWaitlistSignupResponse {
+    return ConvertWaitlistSignupResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ConvertWaitlistSignupResponse>, I>>(
+    object: I,
+  ): ConvertWaitlistSignupResponse {
+    const message = createBaseConvertWaitlistSignupResponse();
+    message.responseDetails =
+      object.responseDetails !== undefined && object.responseDetails !== null
+        ? ResponseDetails.fromPartial(object.responseDetails)
+        : undefined;
+    message.updated =
+      object.updated !== undefined && object.updated !== null ? WaitlistSignup.fromPartial(object.updated) : undefined;
+    return message;
+  },
+};
+
+function createBaseWithdrawFromWaitlistRequest(): WithdrawFromWaitlistRequest {
+  return { waitlistId: '', waitlistSignupId: '' };
+}
+
+export const WithdrawFromWaitlistRequest: MessageFns<WithdrawFromWaitlistRequest> = {
+  encode(message: WithdrawFromWaitlistRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.waitlistId !== '') {
+      writer.uint32(10).string(message.waitlistId);
+    }
+    if (message.waitlistSignupId !== '') {
+      writer.uint32(18).string(message.waitlistSignupId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): WithdrawFromWaitlistRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseWithdrawFromWaitlistRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.waitlistId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.waitlistSignupId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): WithdrawFromWaitlistRequest {
+    return {
+      waitlistId: isSet(object.waitlistId)
+        ? globalThis.String(object.waitlistId)
+        : isSet(object.waitlist_id)
+          ? globalThis.String(object.waitlist_id)
+          : '',
+      waitlistSignupId: isSet(object.waitlistSignupId)
+        ? globalThis.String(object.waitlistSignupId)
+        : isSet(object.waitlist_signup_id)
+          ? globalThis.String(object.waitlist_signup_id)
+          : '',
+    };
+  },
+
+  toJSON(message: WithdrawFromWaitlistRequest): unknown {
+    const obj: any = {};
+    if (message.waitlistId !== '') {
+      obj.waitlistId = message.waitlistId;
+    }
+    if (message.waitlistSignupId !== '') {
+      obj.waitlistSignupId = message.waitlistSignupId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<WithdrawFromWaitlistRequest>, I>>(base?: I): WithdrawFromWaitlistRequest {
+    return WithdrawFromWaitlistRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<WithdrawFromWaitlistRequest>, I>>(object: I): WithdrawFromWaitlistRequest {
+    const message = createBaseWithdrawFromWaitlistRequest();
+    message.waitlistId = object.waitlistId ?? '';
+    message.waitlistSignupId = object.waitlistSignupId ?? '';
+    return message;
+  },
+};
+
+function createBaseWithdrawFromWaitlistResponse(): WithdrawFromWaitlistResponse {
+  return { responseDetails: undefined, updated: undefined };
+}
+
+export const WithdrawFromWaitlistResponse: MessageFns<WithdrawFromWaitlistResponse> = {
+  encode(message: WithdrawFromWaitlistResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.responseDetails !== undefined) {
+      ResponseDetails.encode(message.responseDetails, writer.uint32(10).fork()).join();
+    }
+    if (message.updated !== undefined) {
+      WaitlistSignup.encode(message.updated, writer.uint32(18).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): WithdrawFromWaitlistResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseWithdrawFromWaitlistResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.responseDetails = ResponseDetails.decode(reader, reader.uint32());
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.updated = WaitlistSignup.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): WithdrawFromWaitlistResponse {
+    return {
+      responseDetails: isSet(object.responseDetails)
+        ? ResponseDetails.fromJSON(object.responseDetails)
+        : isSet(object.response_details)
+          ? ResponseDetails.fromJSON(object.response_details)
+          : undefined,
+      updated: isSet(object.updated) ? WaitlistSignup.fromJSON(object.updated) : undefined,
+    };
+  },
+
+  toJSON(message: WithdrawFromWaitlistResponse): unknown {
+    const obj: any = {};
+    if (message.responseDetails !== undefined) {
+      obj.responseDetails = ResponseDetails.toJSON(message.responseDetails);
+    }
+    if (message.updated !== undefined) {
+      obj.updated = WaitlistSignup.toJSON(message.updated);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<WithdrawFromWaitlistResponse>, I>>(base?: I): WithdrawFromWaitlistResponse {
+    return WithdrawFromWaitlistResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<WithdrawFromWaitlistResponse>, I>>(object: I): WithdrawFromWaitlistResponse {
+    const message = createBaseWithdrawFromWaitlistResponse();
+    message.responseDetails =
+      object.responseDetails !== undefined && object.responseDetails !== null
+        ? ResponseDetails.fromPartial(object.responseDetails)
+        : undefined;
+    message.updated =
+      object.updated !== undefined && object.updated !== null ? WaitlistSignup.fromPartial(object.updated) : undefined;
+    return message;
+  },
+};
+
 function createBaseArchiveWaitlistSignupRequest(): ArchiveWaitlistSignupRequest {
-  return { waitlistSignupId: '' };
+  return { waitlistId: '', waitlistSignupId: '' };
 }
 
 export const ArchiveWaitlistSignupRequest: MessageFns<ArchiveWaitlistSignupRequest> = {
   encode(message: ArchiveWaitlistSignupRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.waitlistId !== '') {
+      writer.uint32(10).string(message.waitlistId);
+    }
     if (message.waitlistSignupId !== '') {
-      writer.uint32(10).string(message.waitlistSignupId);
+      writer.uint32(18).string(message.waitlistSignupId);
     }
     return writer;
   },
@@ -2306,6 +2815,14 @@ export const ArchiveWaitlistSignupRequest: MessageFns<ArchiveWaitlistSignupReque
       switch (tag >>> 3) {
         case 1: {
           if (tag !== 10) {
+            break;
+          }
+
+          message.waitlistId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
             break;
           }
 
@@ -2323,6 +2840,11 @@ export const ArchiveWaitlistSignupRequest: MessageFns<ArchiveWaitlistSignupReque
 
   fromJSON(object: any): ArchiveWaitlistSignupRequest {
     return {
+      waitlistId: isSet(object.waitlistId)
+        ? globalThis.String(object.waitlistId)
+        : isSet(object.waitlist_id)
+          ? globalThis.String(object.waitlist_id)
+          : '',
       waitlistSignupId: isSet(object.waitlistSignupId)
         ? globalThis.String(object.waitlistSignupId)
         : isSet(object.waitlist_signup_id)
@@ -2333,6 +2855,9 @@ export const ArchiveWaitlistSignupRequest: MessageFns<ArchiveWaitlistSignupReque
 
   toJSON(message: ArchiveWaitlistSignupRequest): unknown {
     const obj: any = {};
+    if (message.waitlistId !== '') {
+      obj.waitlistId = message.waitlistId;
+    }
     if (message.waitlistSignupId !== '') {
       obj.waitlistSignupId = message.waitlistSignupId;
     }
@@ -2344,6 +2869,7 @@ export const ArchiveWaitlistSignupRequest: MessageFns<ArchiveWaitlistSignupReque
   },
   fromPartial<I extends Exact<DeepPartial<ArchiveWaitlistSignupRequest>, I>>(object: I): ArchiveWaitlistSignupRequest {
     const message = createBaseArchiveWaitlistSignupRequest();
+    message.waitlistId = object.waitlistId ?? '';
     message.waitlistSignupId = object.waitlistSignupId ?? '';
     return message;
   },
