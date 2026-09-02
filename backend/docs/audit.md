@@ -53,10 +53,10 @@ return q.WithTransaction(ctx, func(tx database.Tx) error {
 There is no way to record outside a transaction by accident: holding a
 `database.Tx` from `WithTransaction` means you are already in one.
 
-### Almost always, use `recordAndEmit`
+### Almost always, use `RecordAndEmit`
 
-A write that records an entry nearly always owes a data change event too, and each
-repository has a `recordAndEmit` for exactly that pair:
+A write that records an entry nearly always owes a data change event too, and every
+repository holds a `recording.Recorder` for exactly that pair:
 
 ```go
 return q.WithTransaction(ctx, func(tx database.Tx) error {
@@ -64,7 +64,7 @@ return q.WithTransaction(ctx, func(tx database.Tx) error {
         return err
     }
 
-    return q.recordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
+    return q.recorder.RecordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
         ResourceType: resourceTypeRecipes,
         RelevantID:   after.ID,
         EventType:    audit.AuditLogEventTypeUpdated,
@@ -82,7 +82,23 @@ leaves anything behind to find later. One call cannot half-happen.
 
 Reach past it for `Record` alone only where the pair genuinely does not apply — an
 entry with no event of its own, or a transaction recording several entries at once,
-which `Record`'s variadic form handles and `recordAndEmit` deliberately does not.
+which `Record`'s variadic form handles and `RecordAndEmit` deliberately does not.
+
+`settings` is the one exception to "in the transaction that performed the write". It
+wraps platform's settings store, which owns its own transaction and does not lend it
+out, so recording there opens a second one after the row is already committed — an
+entry the database refuses fails the call but no longer takes the row down with it.
+That is a property of the store, not of `RecordAndEmit`, and it closes when platform
+accepts a caller's transaction.
+
+The recorder is one type in `internal/repositories/postgres/recording` rather than a
+method on each repository, because the body was the same body in all nine of them and
+a rule stated nine times is a rule that can be restated wrongly once. It is built from
+the repository's own named tracer, so a span it raises is still attributed to the
+package whose write raised it. Its doc comment records why the pair is not in
+platform-go: both halves are this application's vocabulary over platform's engines, so
+a platform-side version would be generic over two types whose bodies are one call
+each.
 
 `Record` is variadic. A transaction touching three resources should pass three
 entries to one call rather than making three calls — one chain-head lookup and one

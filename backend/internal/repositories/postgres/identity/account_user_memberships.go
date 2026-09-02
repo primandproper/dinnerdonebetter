@@ -271,7 +271,7 @@ func (r *repository) ModifyUserPermissions(ctx context.Context, accountID, userI
 			return observability.PrepareAndLogError(err, logger, span, "updating account role assignment")
 		}
 
-		return r.recordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
+		return r.recorder.RecordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
 			BelongsToAccount: &accountID,
 			ResourceType:     resourceTypeAccountUserMemberships,
 			EventType:        audit.AuditLogEventTypeUpdated,

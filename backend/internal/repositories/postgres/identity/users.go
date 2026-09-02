@@ -863,7 +863,7 @@ func (r *repository) UpdateUserUsername(ctx context.Context, userID, newUsername
 			return observability.PrepareAndLogError(err, logger, span, "updating username")
 		}
 
-		return r.recordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
+		return r.recorder.RecordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
 			ResourceType:  resourceTypeUsers,
 			RelevantID:    userID,
 			EventType:     audit.AuditLogEventTypeUpdated,
@@ -915,7 +915,7 @@ func (r *repository) UpdateUserEmailAddress(ctx context.Context, userID, newEmai
 			return observability.PrepareAndLogError(err, logger, span, "updating user email address")
 		}
 
-		return r.recordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
+		return r.recorder.RecordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
 			ResourceType:  resourceTypeUsers,
 			RelevantID:    userID,
 			EventType:     audit.AuditLogEventTypeUpdated,
@@ -981,7 +981,7 @@ func (r *repository) UpdateUserDetails(ctx context.Context, userID string, input
 			changes["birthday"] = audit.Change{New: input.Birthday.Format(time.Kitchen), Old: user.Birthday.Format(time.Kitchen)}
 		}
 
-		return r.recordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
+		return r.recorder.RecordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
 			ResourceType:  resourceTypeUsers,
 			RelevantID:    userID,
 			EventType:     audit.AuditLogEventTypeUpdated,
@@ -1028,7 +1028,7 @@ func (r *repository) SetUserAvatar(ctx context.Context, userID, uploadedMediaID 
 			return observability.PrepareAndLogError(err, logger, span, "creating user avatar")
 		}
 
-		return r.recordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
+		return r.recorder.RecordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
 			ResourceType:  resourceTypeUsers,
 			RelevantID:    userID,
 			EventType:     audit.AuditLogEventTypeUpdated,
@@ -1268,7 +1268,7 @@ func (r *repository) ArchiveUser(ctx context.Context, userID string) error {
 			return observability.PrepareAndLogError(err, logger, span, "archiving user account memberships")
 		}
 
-		return r.recordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
+		return r.recorder.RecordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
 			ResourceType:  resourceTypeUsers,
 			RelevantID:    userID,
 			EventType:     audit.AuditLogEventTypeArchived,

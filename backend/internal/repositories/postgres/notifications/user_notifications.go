@@ -181,7 +181,7 @@ func (q *Repository) CreateUserNotification(ctx context.Context, input *types.Us
 		tracing.AttachToSpan(span, notificationkeys.UserNotificationIDKey, x.ID)
 		logger.Info("user notification created")
 
-		return q.recordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
+		return q.recorder.RecordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
 			ResourceType:  resourceTypeUserNotifications,
 			RelevantID:    x.ID,
 			EventType:     audit.AuditLogEventTypeCreated,
@@ -216,7 +216,7 @@ func (q *Repository) UpdateUserNotification(ctx context.Context, updated *types.
 			return observability.PrepareAndLogError(err, logger, span, "updating user notification")
 		}
 
-		return q.recordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
+		return q.recorder.RecordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
 			ResourceType:  resourceTypeUserNotifications,
 			RelevantID:    updated.ID,
 			EventType:     audit.AuditLogEventTypeUpdated,

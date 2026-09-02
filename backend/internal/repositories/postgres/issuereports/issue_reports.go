@@ -161,7 +161,7 @@ func (r *repository) record(ctx context.Context, report *platformissuereports.Re
 	accountID := report.Scope.Owner()
 
 	return r.client.WithTransaction(ctx, func(tx database.Tx) error {
-		return r.recordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
+		return r.recorder.RecordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
 			ID:               identifiers.New(),
 			ResourceType:     resourceTypeIssueReports,
 			RelevantID:       report.ID,

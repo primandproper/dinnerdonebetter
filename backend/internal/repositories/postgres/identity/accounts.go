@@ -269,7 +269,7 @@ func (r *repository) CreateAccount(ctx context.Context, input *identity.AccountD
 			return observability.PrepareAndLogError(err, logger, span, "assigning account role")
 		}
 
-		return r.recordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
+		return r.recorder.RecordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
 			BelongsToAccount: &account.ID,
 			ResourceType:     resourceTypeAccountUserMemberships,
 			RelevantID:       accountMembershipID,
@@ -357,7 +357,7 @@ func (r *repository) UpdateAccount(ctx context.Context, updated *identity.Accoun
 			return observability.PrepareError(diffErr, span, "diffing account for audit log")
 		}
 
-		return r.recordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
+		return r.recorder.RecordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
 			BelongsToAccount: &updated.ID,
 			ResourceType:     resourceTypeAccounts,
 			RelevantID:       updated.ID,
@@ -411,7 +411,7 @@ func (r *repository) ArchiveAccount(ctx context.Context, accountID, ownerID stri
 			return sql.ErrNoRows
 		}
 
-		return r.recordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
+		return r.recorder.RecordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
 			BelongsToAccount: &accountID,
 			ResourceType:     resourceTypeAccounts,
 			RelevantID:       accountID,

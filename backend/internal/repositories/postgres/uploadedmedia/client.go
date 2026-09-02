@@ -1,15 +1,13 @@
 package uploadedmedia
 
 import (
-	"context"
-
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	ddbuploadedmedia "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/recording"
 
 	"github.com/primandproper/platform-go/v13/database"
 	platformerrors "github.com/primandproper/platform-go/v13/errors"
-	"github.com/primandproper/platform-go/v13/observability"
 	"github.com/primandproper/platform-go/v13/observability/logging"
 	"github.com/primandproper/platform-go/v13/observability/metrics"
 	"github.com/primandproper/platform-go/v13/observability/tracing"
@@ -28,11 +26,10 @@ const (
 // forwarding stubs that could drift from it.
 type repository struct {
 	registry.Store
-	client            database.Client
-	tracer            tracing.Tracer
-	logger            logging.Logger
-	auditLogEntryRepo audit.Repository
-	events            *events.Emitter
+	client   database.Client
+	tracer   tracing.Tracer
+	logger   logging.Logger
+	recorder *recording.Recorder
 }
 
 // ProvideUploadedMediaRepository provides a new upload registry.
@@ -55,41 +52,13 @@ func ProvideUploadedMediaRepository(
 		return nil, platformerrors.Wrap(err, "building the upload registry store")
 	}
 
+	tracer := tracing.NewNamedTracer(tracerProvider, o11yName)
+
 	return &repository{
-		Store:             store,
-		client:            client,
-		tracer:            tracing.NewNamedTracer(tracerProvider, o11yName),
-		logger:            logging.NewNamedLogger(logger, o11yName),
-		auditLogEntryRepo: auditLogEntryRepo,
-		events:            eventEmitter,
+		Store:    store,
+		client:   client,
+		tracer:   tracer,
+		logger:   logging.NewNamedLogger(logger, o11yName),
+		recorder: recording.NewRecorder(tracer, auditLogEntryRepo, eventEmitter),
 	}, nil
-}
-
-// recordAndEmit writes the audit log entry and the data change event for one write, as two
-// further statements in the transaction that performed it. Together, because the failure mode of
-// the two blocks it replaces was omission and omission is silent: a row nothing recorded has no
-// provenance and the chain cannot notice, and a change nothing emitted leaves the search index
-// stale and no webhook fired. See docs/audit.md.
-//
-// accountID is "" for every caller today: an upload is owned by a user.
-func (r *repository) recordAndEmit(
-	ctx context.Context,
-	tx database.Tx,
-	logger logging.Logger,
-	entry *audit.AuditLogEntry,
-	eventType, accountID string,
-	metadata map[string]any,
-) error {
-	ctx, span := r.tracer.StartSpan(ctx)
-	defer span.End()
-
-	if err := r.auditLogEntryRepo.Record(ctx, tx, entry); err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "creating audit log entry")
-	}
-
-	if err := r.events.Emit(ctx, tx, logger, eventType, accountID, metadata); err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "enqueuing data change event")
-	}
-
-	return nil
 }

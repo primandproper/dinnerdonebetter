@@ -538,7 +538,7 @@ func (q *repository) UpdateMealPlan(ctx context.Context, updated *types.MealPlan
 			return sql.ErrNoRows
 		}
 
-		return q.recordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
+		return q.recorder.RecordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
 			BelongsToAccount: &updated.BelongsToAccount,
 			ResourceType:     resourceTypeMealPlans,
 			RelevantID:       updated.ID,
@@ -589,7 +589,7 @@ func (q *repository) ArchiveMealPlan(ctx context.Context, mealPlanID, accountID 
 			return sql.ErrNoRows
 		}
 
-		return q.recordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
+		return q.recorder.RecordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
 			BelongsToAccount: &accountID,
 			ResourceType:     resourceTypeMealPlans,
 			RelevantID:       mealPlanID,

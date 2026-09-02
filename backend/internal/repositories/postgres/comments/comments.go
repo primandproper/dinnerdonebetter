@@ -117,7 +117,7 @@ func (q *repository) record(ctx context.Context, commentID, author, auditEventTy
 	logger := q.logger.WithSpan(span).WithValue(commentskeys.CommentIDKey, commentID)
 
 	return q.client.WithTransaction(ctx, func(tx database.Tx) error {
-		return q.recordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
+		return q.recorder.RecordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
 			ID:            identifiers.New(),
 			ResourceType:  resourceTypeComments,
 			RelevantID:    commentID,

@@ -109,7 +109,7 @@ func (r *repository) record(ctx context.Context, objectID, ownerID, auditEventTy
 	logger := r.logger.WithSpan(span).WithValue(uploadedmediakeys.UploadedMediaIDKey, objectID)
 
 	return r.client.WithTransaction(ctx, func(tx database.Tx) error {
-		return r.recordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
+		return r.recorder.RecordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
 			ID:            identifiers.New(),
 			ResourceType:  resourceTypeUploadedMedia,
 			RelevantID:    objectID,

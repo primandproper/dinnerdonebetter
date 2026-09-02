@@ -40,7 +40,7 @@ func fetchDataChangeEventTypes(ctx context.Context, t *testing.T, db database.SQ
 	return eventTypes
 }
 
-// TestQuerier_Integration_WritesRecordAndEmitTogether pins what recordAndEmit exists to
+// TestQuerier_Integration_WritesRecordAndEmitTogether pins what RecordAndEmit exists to
 // guarantee: a write that owes both an audit log entry and a data change event produces both,
 // as further statements in the transaction that made the change.
 //

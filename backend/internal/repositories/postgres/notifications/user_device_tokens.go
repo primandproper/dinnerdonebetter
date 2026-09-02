@@ -234,7 +234,7 @@ func (q *Repository) UpdateUserDeviceToken(ctx context.Context, updated *types.U
 			return observability.PrepareAndLogError(err, logger, span, "updating user device token")
 		}
 
-		return q.recordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
+		return q.recorder.RecordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
 			ResourceType:  resourceTypeUserDeviceTokens,
 			RelevantID:    updated.ID,
 			EventType:     audit.AuditLogEventTypeUpdated,
@@ -276,7 +276,7 @@ func (q *Repository) ArchiveUserDeviceToken(ctx context.Context, userID, tokenID
 			return sql.ErrNoRows
 		}
 
-		return q.recordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
+		return q.recorder.RecordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
 			ResourceType:  resourceTypeUserDeviceTokens,
 			RelevantID:    tokenID,
 			EventType:     audit.AuditLogEventTypeArchived,

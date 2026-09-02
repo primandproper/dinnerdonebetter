@@ -383,7 +383,7 @@ func (r *repository) ArchiveWebhook(ctx context.Context, webhookID, accountID st
 			return sql.ErrNoRows
 		}
 
-		return r.recordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
+		return r.recorder.RecordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
 			BelongsToAccount: &accountID,
 			ResourceType:     resourceTypeWebhooks,
 			RelevantID:       webhookID,
@@ -492,7 +492,7 @@ func (r *repository) ArchiveWebhookTriggerConfig(ctx context.Context, webhookID,
 			return sql.ErrNoRows
 		}
 
-		return r.recordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
+		return r.recorder.RecordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
 			BelongsToAccount: &accountID,
 			ResourceType:     resourceTypeWebhookTriggerConfigs,
 			RelevantID:       configID,
