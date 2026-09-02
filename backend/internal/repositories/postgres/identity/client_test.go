@@ -6,6 +6,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/indexevents"
@@ -15,6 +16,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
+	authorizationmock "github.com/primandproper/platform-go/v13/authorization/mock"
 	"github.com/primandproper/platform-go/v13/database"
 	"github.com/primandproper/platform-go/v13/database/dialect"
 	mockdatabase "github.com/primandproper/platform-go/v13/database/mock"
@@ -104,7 +106,12 @@ func buildDatabaseClientForTest(t *testing.T) (*repository, audit.Repository) {
 	uploadsRegistry, err := registry.NewSQLStore(pgc, registry.WithTablePrefix(uploadedmedia.TablePrefix))
 	require.NoError(t, err)
 
-	c := ProvideIdentityRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), auditLogRepo, pgc, events.NewEmitter(outboxWriter, testDataChangesTopic, nil, indexevents.SideEffect), uploadsRegistry)
+	// A real policy resolver over the same database, so the permissions these tests
+	// see on a session are the ones the migrator seeded rather than a fixture.
+	policy, err := authorization.NewDatabaseResolver(pgc.Reader(), loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil)
+	require.NoError(t, err)
+
+	c := ProvideIdentityRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), auditLogRepo, pgc, events.NewEmitter(outboxWriter, testDataChangesTopic, nil, indexevents.SideEffect), uploadsRegistry, policy)
 	require.NoError(t, err)
 
 	return c.(*repository), auditLogRepo
@@ -113,7 +120,7 @@ func buildDatabaseClientForTest(t *testing.T) (*repository, audit.Repository) {
 func buildInertClientForTest(t *testing.T) *repository {
 	t.Helper()
 
-	c := ProvideIdentityRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, &mockdatabase.ClientMock{ReaderFunc: func() database.SQLQueryExecutor { return nil }, WriterFunc: func() database.SQLQueryExecutor { return nil }}, nil, &registrymock.StoreMock{})
+	c := ProvideIdentityRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, &mockdatabase.ClientMock{ReaderFunc: func() database.SQLQueryExecutor { return nil }, WriterFunc: func() database.SQLQueryExecutor { return nil }}, nil, &registrymock.StoreMock{}, &authorizationmock.PolicyResolverMock{})
 
 	return c.(*repository)
 }

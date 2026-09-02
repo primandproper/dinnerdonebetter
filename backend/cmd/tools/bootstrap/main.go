@@ -230,7 +230,12 @@ func runInit(db *dbFlags, adminUsername, adminPassword, adminEmail, apiServerURL
 		return fmt.Errorf("building upload registry store: %w", err)
 	}
 
-	identityRepo := identityrepo.ProvideIdentityRepository(logger, tracerProvider, auditRepo, client, nil, uploadsRegistry)
+	policy, err := authorization.NewDatabaseResolver(client.Reader(), logger, tracerProvider, nil)
+	if err != nil {
+		return fmt.Errorf("building authorization policy resolver: %w", err)
+	}
+
+	identityRepo := identityrepo.ProvideIdentityRepository(logger, tracerProvider, auditRepo, client, nil, uploadsRegistry, policy)
 	oauthRepo := oauthrepo.ProvideOAuthRepository(ctx, logger, tracerProvider, auditRepo, dbConfig, client)
 
 	// --- Admin user (idempotent) ---
@@ -266,8 +271,8 @@ func runInit(db *dbFlags, adminUsername, adminPassword, adminEmail, apiServerURL
 	// --- Service admin role (idempotent) ---
 	var hasAdminRole bool
 	err = client.Reader().QueryRowContext(ctx,
-		"SELECT EXISTS(SELECT 1 FROM user_role_assignments WHERE user_id = $1 AND role_id = $2 AND archived_at IS NULL)",
-		user.ID, authorization.ServiceAdminRoleID,
+		"SELECT EXISTS(SELECT 1 FROM user_role_assignments WHERE user_id = $1 AND role_name = $2 AND archived_at IS NULL)",
+		user.ID, authorization.ServiceAdminRoleName,
 	).Scan(&hasAdminRole)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return fmt.Errorf("checking admin role: %w", err)
@@ -281,8 +286,8 @@ func runInit(db *dbFlags, adminUsername, adminPassword, adminEmail, apiServerURL
 			return fmt.Errorf("archiving old service role: %w", err)
 		}
 		if _, err = client.Writer().ExecContext(ctx,
-			"INSERT INTO user_role_assignments (id, user_id, role_id) VALUES ($1, $2, $3)",
-			identifiers.New(), user.ID, authorization.ServiceAdminRoleID,
+			"INSERT INTO user_role_assignments (id, user_id, role_name) VALUES ($1, $2, $3)",
+			identifiers.New(), user.ID, authorization.ServiceAdminRoleName,
 		); err != nil {
 			return fmt.Errorf("promoting user to admin: %w", err)
 		}

@@ -93,6 +93,10 @@ func BuildInjector(
 	// but never writes one, and the catalog gates writes rather than reads.
 	commentstargets.RegisterReadOnlyTargets(i)
 	commentsrepo.RegisterCommentsRepository(i)
+	// What a role grants, read from the policy tables the migrator seeds. The
+	// identity repository resolves a principal's role names through it when it
+	// builds a session.
+	identityrepo.RegisterPolicyResolver(i)
 	identityrepo.RegisterIdentityRepository(i)
 	internalopsrepo.RegisterInternalOpsRepository(i)
 	issuereportsrepo.RegisterIssueReportsRepository(i)

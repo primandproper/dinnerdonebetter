@@ -140,7 +140,7 @@ func main() {
 						if err = generatedQuerier.AssignRoleToUser(ctx, dbClient.Writer(), &identitygenerated.AssignRoleToUserParams{
 							ID:        identifiers.New(),
 							UserID:    existingUser.ID,
-							RoleID:    authorization.AccountMemberRoleID,
+							RoleName:  authorization.AccountMemberRoleName,
 							AccountID: sql.NullString{String: adminAccountID, Valid: true},
 						}); err != nil {
 							return fmt.Errorf("failed to assign account role to existing user %s: %w", memberUser.username, err)
@@ -190,7 +190,7 @@ func main() {
 				if err = generatedQuerier.AssignRoleToUser(ctx, dbClient.Writer(), &identitygenerated.AssignRoleToUserParams{
 					ID:        identifiers.New(),
 					UserID:    user.ID,
-					RoleID:    authorization.AccountMemberRoleID,
+					RoleName:  authorization.AccountMemberRoleName,
 					AccountID: sql.NullString{String: adminAccountID, Valid: true},
 				}); err != nil {
 					return fmt.Errorf("failed to assign account role to user %s: %w", memberUser.username, err)

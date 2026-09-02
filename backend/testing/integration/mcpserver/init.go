@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"log"
 
+	ddbauthz "github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
@@ -136,7 +137,12 @@ func buildDatabase(ctx context.Context, cfg *config.MCPServiceConfig) (*sql.DB, 
 		return nil, err
 	}
 
-	identityRepo := identityrepo.ProvideIdentityRepository(pillars.Logger, pillars.TracerProvider, auditRepo, databaseClient, nil, uploads)
+	policy, err := ddbauthz.NewDatabaseResolver(databaseClient.Reader(), pillars.Logger, pillars.TracerProvider, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	identityRepo := identityrepo.ProvideIdentityRepository(pillars.Logger, pillars.TracerProvider, auditRepo, databaseClient, nil, uploads, policy)
 
 	// The MCP login form is admin-only and checks a second factor whenever the account
 	// has a verified secret, both of which this helper arranges — so the flow the suite

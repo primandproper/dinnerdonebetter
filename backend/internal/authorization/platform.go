@@ -15,14 +15,13 @@ import (
 // below is now the single declaration: the migrator seeds it, and
 // authorization/database resolves against what it seeded.
 
-// Role names as the platform policy knows them. They match the strings this
-// package already assigns to roles, so a session's role names resolve without
-// translation.
-const (
-	ServiceAdminRoleName     = serviceAdminRoleName
-	ServiceDataAdminRoleName = serviceDataAdminRoleName
-	ServiceUserRoleName      = serviceUserRoleName
-)
+// TablePrefix namespaces the policy tables authorization/database renders.
+//
+// The platform's default prefix is empty, which would render authz_roles and
+// authz_permissions — names generic enough to collide in a database this
+// application shares, and the same reason every other adopted store here carries
+// one. Changing it renames tables, so it moves only with a migration.
+const TablePrefix = "ddb"
 
 // PermissionLister is implemented by this package's permission checkers so a
 // resolved set can be handed to the platform without re-deriving it from roles.
@@ -31,30 +30,20 @@ const (
 // because those are mocked across the service tests, and widening them would
 // churn every mock for a method only this bridge calls.
 type PermissionLister interface {
-	GrantedPermissions() []Permission
+	GrantedPermissions() *platformauthz.PermissionSet
 }
 
 // GrantedPermissions returns every permission this checker grants.
 //
 // It is not called Permissions because both concrete checkers already export a
-// field by that name — the map the check itself reads.
-func (r serviceRoleCollection) GrantedPermissions() []Permission {
-	out := make([]Permission, 0, len(r.Permissions))
-	for p := range r.Permissions {
-		out = append(out, p)
-	}
-
-	return out
+// field by that name — the set the check itself reads.
+func (r serviceRoleCollection) GrantedPermissions() *platformauthz.PermissionSet {
+	return r.Permissions
 }
 
 // GrantedPermissions returns every permission this checker grants.
-func (r accountRoleCollection) GrantedPermissions() []Permission {
-	out := make([]Permission, 0, len(r.Permissions))
-	for p := range r.Permissions {
-		out = append(out, p)
-	}
-
-	return out
+func (r accountRoleCollection) GrantedPermissions() *platformauthz.PermissionSet {
+	return r.Permissions
 }
 
 // ToPlatformPermissions converts this package's permissions to the platform's.
@@ -146,9 +135,9 @@ func PlatformGrants(service, account any) platformauthz.Grants {
 			continue
 		}
 
-		if perms := lister.GrantedPermissions(); len(perms) > 0 {
-			sets = append(sets, platformauthz.NewPermissionSet(ToPlatformPermissions(perms)...))
-		}
+		// NewGrants drops nil and empty sets, so a principal with authority in
+		// only one scope needs no special case here.
+		sets = append(sets, lister.GrantedPermissions())
 	}
 
 	return platformauthz.NewGrants(sets...)

@@ -178,13 +178,18 @@ func buildUsersQueries(database string) []*Query {
 						Name: "GetAdminUserByUsername",
 						Type: OneType,
 					},
+					// The service_admin check reads the assignment's role_name
+					// directly. It used to join user_roles to compare that
+					// table's name column; assignments carry the name now, so
+					// the join is gone rather than re-pointed — the roles table
+					// is rendered by a generated migration and sqlc cannot see
+					// it.
 					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT
 	%s,
 	%s
 FROM %s
 	%s
 	JOIN %s ON %s.%s = %s.%s AND %s.%s IS NULL AND %s.%s IS NULL
-	JOIN %s ON %s.%s = %s.%s AND %s.%s IS NULL
 WHERE %s.%s IS NULL
 	AND %s.%s = 'service_admin'
 	AND %s.%s = sqlc.arg(%s)
@@ -196,9 +201,8 @@ WHERE %s.%s IS NULL
 						usersTableName,
 						avatarJoinClause,
 						userRoleAssignmentsTableName, userRoleAssignmentsTableName, userIDColumn, usersTableName, idColumn, userRoleAssignmentsTableName, accountIDColumn, userRoleAssignmentsTableName, archivedAtColumn,
-						userRolesTableName, userRolesTableName, idColumn, userRoleAssignmentsTableName, roleIDColumn, userRolesTableName, archivedAtColumn,
 						usersTableName, archivedAtColumn,
-						userRolesTableName, nameColumn,
+						userRoleAssignmentsTableName, roleNameColumn,
 						usersTableName, usernameColumn, usernameColumn,
 						usersTableName, twoFactorSecretVerifiedAtColumn,
 					)),

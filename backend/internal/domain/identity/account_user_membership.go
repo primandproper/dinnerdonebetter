@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
@@ -89,9 +90,23 @@ func (x *AccountOwnershipTransferInput) ValidateWithContext(ctx context.Context)
 var _ validation.ValidatableWithContext = (*ModifyUserPermissionsInput)(nil)
 
 // ValidateWithContext validates a ModifyUserPermissionsInput.
+//
+// NewRole is bounded to the two account roles, and that bound is the only thing standing
+// between an account admin and a privilege escalation. This input names the role a member
+// will hold *within one account*, and the write puts it in an account-scoped assignment
+// whose permissions are resolved and granted in that account — so a caller who could name
+// service_admin here would be granting a member the whole service-wide closure, 240
+// permissions, inside an account they merely administer.
+//
+// Nothing checked it before. The role was looked up by name and written if a row existed,
+// and rows existed for every role. The old schema had a scope column that said which
+// roles were account roles, and no query ever read it.
 func (x *ModifyUserPermissionsInput) ValidateWithContext(ctx context.Context) error {
 	return validation.ValidateStructWithContext(ctx, x,
-		validation.Field(&x.NewRole, validation.Required),
+		validation.Field(&x.NewRole, validation.Required, validation.In(
+			authorization.AccountAdminRoleName,
+			authorization.AccountMemberRoleName,
+		)),
 		validation.Field(&x.Reason, validation.Required),
 	)
 }

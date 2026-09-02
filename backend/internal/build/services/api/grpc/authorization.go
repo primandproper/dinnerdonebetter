@@ -9,7 +9,6 @@ import (
 
 	platformauthz "github.com/primandproper/platform-go/v13/authorization"
 	authzgrpc "github.com/primandproper/platform-go/v13/authorization/grpc"
-	"github.com/primandproper/platform-go/v13/authorization/static"
 	platformerrors "github.com/primandproper/platform-go/v13/errors"
 	"github.com/primandproper/platform-go/v13/observability/logging"
 	"github.com/primandproper/platform-go/v13/observability/metrics"
@@ -19,7 +18,7 @@ import (
 //
 // It is false: the enforcer denies. That is safe because it is not a guess.
 // TestAuthorizationEnforcerMatchesTheHandRolledCheck drives every method the server declares
-// against every role a principal can hold — 2,184 decisions — and asserts the enforcer reaches
+// against every role a principal can hold — 2,920 decisions — and asserts the enforcer reaches
 // the same verdict as the hand-rolled check it replaces. Audit-only mode exists for services
 // that cannot make that comparison ahead of time; this one can, because both sides read the same
 // method table and the same permission checkers.
@@ -30,22 +29,22 @@ import (
 // would have refused as undeclared.
 const auditOnlyAuthorization = false
 
-// ProvideAuthorizationEnforcer builds platform-go's authorization enforcer over the same policy
-// and the same method table the hand-rolled AuthInterceptor already uses.
+// ProvideAuthorizationEnforcer builds platform-go's authorization enforcer over the method table
+// the hand-rolled AuthInterceptor already uses.
 //
-// It runs in audit-only mode: it evaluates every call and records the decision, and denies
-// nothing. The existing interceptor remains the thing that actually refuses requests.
+// It takes no resolver. Enforcement reads a caller's Grants, which the session already carries,
+// and resolution — turning the roles a principal holds into the permissions they carry — happens
+// once when that session is built, in the identity repository, against the policy tables. That
+// split is the platform package's whole shape: resolve may do I/O and happens per session, checks
+// never fail and happen per call.
 //
-// That is deliberate, and it is the package's own documented migration path. Turning enforcement
-// on across a service that already has a large hand-written permission table is a coin flip on
-// whether the two tables agree; audit mode turns that coin flip into a measurement. Watch
-// authorization_denied for methods this would have refused but the current interceptor allows —
-// each one is either a policy bug here or a gap there — and flip enforcement on only once it
-// stays at zero under real traffic.
+// This used to construct a static resolver over PlatformPolicy() and throw it away, purely to run
+// the policy through ValidateRoles. That validation now runs where it can act on the answer — in
+// Seed, at migration time, where a policy with an unknown parent or an inheritance cycle fails the
+// deploy rather than being noticed at boot and discarded.
 //
-// Nothing is derived twice: the policy comes from the same permission slices the checkers are
-// built from, the required permissions come from the same aggregated map, and the public methods
-// come from the interceptor's own allow-list.
+// Nothing is derived twice: the required permissions come from the same aggregated map the
+// interceptor reads, and the public methods come from the interceptor's own allow-list.
 func ProvideAuthorizationEnforcer(
 	methodPermissions interceptors.MethodPermissionsMap,
 	authInterceptor *interceptors.AuthInterceptor,
@@ -53,12 +52,6 @@ func ProvideAuthorizationEnforcer(
 	metricsProvider metrics.Provider,
 	auditOnly bool,
 ) (*authzgrpc.Enforcer, error) {
-	// The static resolver is the right backend while the policy is compiled in. Moving to the
-	// database resolver later is a configuration change: it takes the same []Role.
-	if _, err := static.NewResolver(authorization.PlatformPolicy()); err != nil {
-		return nil, platformerrors.Wrap(err, "validating authorization policy")
-	}
-
 	builder := authzgrpc.NewRequirements()
 
 	declared := map[string]struct{}{}

@@ -9,6 +9,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity/generated"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/recording"
 
+	platformauthz "github.com/primandproper/platform-go/v13/authorization"
 	"github.com/primandproper/platform-go/v13/database"
 	"github.com/primandproper/platform-go/v13/observability/logging"
 	"github.com/primandproper/platform-go/v13/observability/tracing"
@@ -38,6 +39,12 @@ type repository struct {
 	// cannot join — see avatarFor.
 	uploads registry.Store
 
+	// policy answers what a role grants. Same shape as uploads above: the tables
+	// belong to a platform package and this repository's statements cannot join
+	// them, so an assignment carries a role name and the resolution is a second
+	// call rather than part of the read. See BuildSessionContextDataForUser.
+	policy platformauthz.PolicyResolver
+
 	readDB  database.SQLQueryExecutor
 	writeDB database.SQLQueryExecutor
 }
@@ -50,6 +57,7 @@ func ProvideIdentityRepository(
 	client database.Client,
 	eventEmitter *events.Emitter,
 	uploads registry.Store,
+	policy platformauthz.PolicyResolver,
 ) identity.Repository {
 	tracer := tracing.NewNamedTracer(tracerProvider, o11yName)
 
@@ -63,6 +71,7 @@ func ProvideIdentityRepository(
 		events:            eventEmitter,
 		recorder:          recording.NewRecorder(tracer, auditLogEntryRepo, eventEmitter),
 		uploads:           uploads,
+		policy:            policy,
 		secretGenerator:   random.NewGenerator(random.WithLogger(logger), random.WithTracerProvider(tracerProvider)),
 		logger:            logging.NewNamedLogger(logger, o11yName),
 	}

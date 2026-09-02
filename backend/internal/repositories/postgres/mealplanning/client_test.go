@@ -6,6 +6,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/indexevents"
@@ -70,7 +71,10 @@ func buildDatabaseClientForTest(t *testing.T) (*repository, audit.Repository) {
 	uploadsRegistry, err := registry.NewSQLStore(pgc, registry.WithTablePrefix(uploadedmedia.TablePrefix))
 	require.NoError(t, err)
 
-	identitiesRepo := identity.ProvideIdentityRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), auditLogEntryRepo, pgc, nil, uploadsRegistry)
+	policy, err := authorization.NewDatabaseResolver(pgc.Reader(), loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil)
+	require.NoError(t, err)
+
+	identitiesRepo := identity.ProvideIdentityRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), auditLogEntryRepo, pgc, nil, uploadsRegistry, policy)
 	require.NoError(t, err)
 
 	// A real emitter, so the tests exercise the same path production does: the event is

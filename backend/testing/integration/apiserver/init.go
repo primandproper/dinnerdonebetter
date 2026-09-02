@@ -8,6 +8,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	apiserver "github.com/primandproper/dinnerdonebetter/backend/internal/build/services/api"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
@@ -144,7 +145,11 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	identityRepo := identityrepo.ProvideIdentityRepository(pillars.Logger, pillars.TracerProvider, auditLogRepo, databaseClient, nil, uploadsRegistryStore)
+	policy, err := authorization.NewDatabaseResolver(databaseClient.Reader(), pillars.Logger, pillars.TracerProvider, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	identityRepo := identityrepo.ProvideIdentityRepository(pillars.Logger, pillars.TracerProvider, auditLogRepo, databaseClient, nil, uploadsRegistryStore, policy)
 	notifsRepo = notificationsrepo.ProvideNotificationsRepository(nil, nil, auditLogRepo, &dbCfg.Config, databaseClient, nil)
 	adminUser, err := localdev.CreatePremadeAdminUser(ctx, pillars.Logger, pillars.TracerProvider, identityRepo, databaseClient, premadeAdminUser)
 	if err != nil {

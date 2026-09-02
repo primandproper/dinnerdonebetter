@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/push"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	identityrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity"
@@ -62,7 +63,12 @@ func NewMealPlanTaskNotificationWorker(
 		return nil, nil, fmt.Errorf("building upload registry store: %w", err)
 	}
 
-	identityRepo := identityrepo.ProvideIdentityRepository(logger, tracerProvider, auditRepo, databaseClient, nil, uploads)
+	policy, policyErr := authorization.NewDatabaseResolver(databaseClient.Reader(), logger, tracerProvider, nil)
+	if policyErr != nil {
+		return nil, nil, policyErr
+	}
+
+	identityRepo := identityrepo.ProvideIdentityRepository(logger, tracerProvider, auditRepo, databaseClient, nil, uploads, policy)
 	mealPlanningRepo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditRepo, identityRepo, databaseClient, nil, uploads)
 	notificationsRepo := notificationsrepo.ProvideNotificationsRepository(logger, tracerProvider, auditRepo, nil, databaseClient, nil)
 

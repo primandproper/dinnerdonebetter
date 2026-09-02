@@ -3,6 +3,8 @@ package authorization
 import (
 	"encoding/gob"
 	"slices"
+
+	platformauthz "github.com/primandproper/platform-go/v13/authorization"
 )
 
 type (
@@ -21,17 +23,16 @@ const (
 	// AccountAdminRole is a role for someone who can manipulate the specifics of an account.
 	AccountAdminRole AccountRole = iota
 
-	AccountAdminRoleName  = "account_admin"
+	// AccountAdminRoleName administers a single account.
+	AccountAdminRoleName = "account_admin"
+	// AccountMemberRoleName is ordinary membership of a single account.
 	AccountMemberRoleName = "account_member"
-
-	// AccountAdminRoleID is the database ID for the account_admin role.
-	AccountAdminRoleID = "role_account_admin"
-	// AccountMemberRoleID is the database ID for the account_member role.
-	AccountMemberRoleID = "role_account_member"
 )
 
 type accountRoleCollection struct {
-	Permissions map[Permission]bool
+	// A nil set is a valid empty one, so an account a user is not a member of
+	// needs no special case at the call sites that index this map.
+	Permissions *platformauthz.PermissionSet
 	RoleNames   []string
 }
 
@@ -41,12 +42,15 @@ func init() {
 
 // NewAccountRolePermissionChecker returns a new checker from a set of permissions.
 func NewAccountRolePermissionChecker(perms []Permission) AccountRolePermissionsChecker {
-	m := make(map[Permission]bool, len(perms))
-	for _, p := range perms {
-		m[p] = true
-	}
+	return NewAccountRolePermissionCheckerFromSet(nil, platformauthz.NewPermissionSet(ToPlatformPermissions(perms)...))
+}
+
+// NewAccountRolePermissionCheckerFromSet returns a checker over an already-resolved
+// permission set. See NewServiceRolePermissionCheckerFromSet.
+func NewAccountRolePermissionCheckerFromSet(roleNames []string, perms *platformauthz.PermissionSet) AccountRolePermissionsChecker {
 	return &accountRoleCollection{
-		Permissions: m,
+		Permissions: perms,
+		RoleNames:   roleNames,
 	}
 }
 
@@ -63,7 +67,7 @@ func (r AccountRole) String() string {
 
 // HasPermission returns whether a user can do something or not.
 func (r accountRoleCollection) HasPermission(p Permission) bool {
-	return r.Permissions[p]
+	return r.Permissions.Has(platformauthz.Permission(p))
 }
 
 // IsAccountAdmin returns whether a user is an account admin.

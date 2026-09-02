@@ -681,7 +681,7 @@ func (r *repository) CreateUser(ctx context.Context, input *identity.UserDatabas
 		if err = r.generatedQuerier.AssignRoleToUser(ctx, tx, &generated.AssignRoleToUserParams{
 			ID:        identifiers.New(),
 			UserID:    user.ID,
-			RoleID:    authorization.ServiceUserRoleID,
+			RoleName:  authorization.ServiceUserRoleName,
 			AccountID: sql.NullString{},
 		}); err != nil {
 			return observability.PrepareError(err, span, "assigning service role to user")
@@ -793,7 +793,7 @@ func (r *repository) createAccountForUser(ctx context.Context, querier database.
 	if err := r.generatedQuerier.AssignRoleToUser(ctx, querier, &generated.AssignRoleToUserParams{
 		ID:        identifiers.New(),
 		UserID:    userID,
-		RoleID:    authorization.AccountAdminRoleID,
+		RoleName:  authorization.AccountAdminRoleName,
 		AccountID: sql.NullString{String: accountID, Valid: true},
 	}); err != nil {
 		return nil, observability.PrepareError(err, span, "assigning account role to user")
