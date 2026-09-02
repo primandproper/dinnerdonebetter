@@ -5,10 +5,13 @@ We count what accounts consume. We do not yet limit it, and we do not yet bill f
 That ordering is deliberate. A limit set before there is usage data to set it from is a guess,
 and the guess that is too low is an outage for a customer who did nothing wrong. So the counting
 goes in first, the totals feed dashboards, and the limits get set from what the dashboards say.
-Turning one on later is an edit to `planLimits` rather than a migration.
+Turning one on later is an edit to a plan's grants in the rendered config rather than a
+migration.
 
-The machinery is `platform-go/v13/metering`; this repo supplies the three things that package
-deliberately refuses to model. Read its package documentation for how the guarantees work — this
+The machinery is `platform-go/v13/metering`; this repo supplies two of the three things that
+package deliberately refuses to model — the meter declarations and the mapping to a billing
+provider. The third, what an account is allowed, comes from the entitlements catalog; see
+`entitlements.md`. Read the platform's package documentation for how the guarantees work — this
 document is only about the decisions that are ours.
 
 ## What is counted
@@ -64,6 +67,7 @@ meters records against each of them.
 | --- | --- | --- |
 | `Recorder` | API server | `internal/build/services/api/grpc/build.go` |
 | `Enforcer` | API server | registered, consulted by nothing yet |
+| `QuotaSource` | API server | `internal/entitlements`, from the plan catalog |
 | `Flusher` | scheduler | `internal/build/jobs/scheduler/metering.go`, job `metering_flusher` |
 
 The flusher is in the scheduler because a flush is a scheduled pass over a backlog under a
@@ -102,11 +106,10 @@ event-ledger rows past their ninety-day retention.
 
 ## What has to change before the first limit goes on
 
-1. **Put the limit in `planLimits`** (`internal/metering/plans.go`), keyed by meter and by
-   product ID. The quota source short-circuits to unlimited for any meter absent from that map,
-   without reading anything — so an entry appearing there is also what turns the subscription
-   lookup on. `Behavior` is required: platform's `NewPlanLimitSource` refuses a zero one at
-   construction rather than picking a default, and it refuses a meter the registry does not know.
+1. **Put the limit in the plan's grant**, in the `entitlements` section of the rendered config
+   — replacing that feature's `unlimited: true` with a `limit` and a `behavior`. Both shipped
+   plans grant every feature without a bound today, and an unlimited grant short-circuits before
+   any usage is read. See `entitlements.md`.
 2. **Attach a cache to the enforcer.** It is built with a nil `cache.Cache[metering.CachedTotal]`
    today, so `Check` reads the durable total on every call. That is a durable read on a request
    path, which is the thing `Check` exists not to be.

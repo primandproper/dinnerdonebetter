@@ -1,33 +1,38 @@
 /*
-Package metering names what this application counts, and fills the three seams
-the platform's metering package leaves to its consumer.
+Package metering names what this application counts, and fills two of the three
+seams the platform's metering package leaves to its consumer.
 
 The platform owns the hard parts — idempotent ingest, the concurrent fold into a
 period total, the idempotent push to a billing provider. What it deliberately
 does not own is anything that would duplicate a billing provider's product
-catalog, so it asks an application three questions and this package answers them:
+catalog, so it asks an application three questions:
 
   - Registry: which meters exist, and how do their records combine.
-  - QuotaSource: what is this account allowed on this meter.
   - ProviderMapper: which provider-side customer and meter does this account's
     usage post against.
+  - QuotaSource: what is this account allowed on this meter.
+
+This package answers the first two. The third is answered by
+internal/entitlements, from the same catalog a feature check reads, so that the
+limit an account is shown and the limit enforced against it cannot be two
+different numbers. This package counts; that one gates.
 
 # Count now, enforce and bill later
 
-Nothing is enforced. Every quota this package hands out is BehaviorAllowOverage
-against a limit nobody reaches, which is how the platform spells "unlimited" —
-it refuses to treat an absent quota as an unlimited one, because unmetered and
-unlimited are different facts. Nothing is billed either: NewProviderMapper
-reports no provider reference for anything, so the flusher settles totals without
-posting them.
+Nothing is enforced. Every quota registered here is BehaviorAllowOverage against
+a limit nobody reaches, which is how the platform spells "unlimited" — it refuses
+to treat an absent quota as an unlimited one, because unmetered and unlimited are
+different facts — and every plan in the entitlements catalog grants its features
+without a bound. Nothing is billed either: NewProviderMapper reports no provider
+reference for anything, so the flusher settles totals without posting them.
 
 That ordering is the point. The counting has to exist and be trustworthy before
 any limit can be set from data rather than from a guess, and a limit that arrives
-later is then a change to planLimits rather than a migration. The consequence to
-be clear about is that usage counted before a real ProviderMapper is wired is not
-retro-billable: the flusher marks those totals flushed as it settles them. The
-durable quantity is untouched, so the dashboards this exists to feed keep seeing
-every byte.
+later is then a change to a plan's grants in the rendered config rather than a
+migration. The consequence to be clear about is that usage counted before a real
+ProviderMapper is wired is not retro-billable: the flusher marks those totals
+flushed as it settles them. The durable quantity is untouched, so the dashboards
+this exists to feed keep seeing every byte.
 
 # The subject is the account
 

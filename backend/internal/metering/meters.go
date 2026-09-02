@@ -51,7 +51,7 @@ var meters = []platformmetering.Meter{
 // Each meter gets a static quota alongside it, because Enforcer.Check errors on a meter with no
 // quota registered rather than treating the absence as permission. The static quotas are the
 // fallback the platform serves when no QuotaSource is configured; the ones that actually answer
-// on the read path come from NewSubscriptionQuotaSource.
+// on the read path come from the entitlements catalog, in internal/entitlements.
 func NewRegistry() (*platformmetering.Registry, error) {
 	registry := platformmetering.NewRegistry()
 

@@ -634,6 +634,18 @@ const (
 	// `APIServiceConfig.Encoding.ContentType`, `AsyncMessageHandlerConfig.Encoding.ContentType`.
 	EncodingContentTypeEnvVarKey = "DINNER_DONE_BETTER_ENCODING_CONTENT_TYPE"
 
+	// EntitlementsCheckerCachePrefixEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Entitlements.Checker.CachePrefix`.
+	EntitlementsCheckerCachePrefixEnvVarKey = "DINNER_DONE_BETTER_ENTITLEMENTS_CHECKER_CACHE_PREFIX"
+
+	// EntitlementsCheckerCacheTTLEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Entitlements.Checker.CacheTTL`.
+	EntitlementsCheckerCacheTTLEnvVarKey = "DINNER_DONE_BETTER_ENTITLEMENTS_CHECKER_CACHE_TTL"
+
+	// EntitlementsCheckerFallbackPlanEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Entitlements.Checker.FallbackPlan`.
+	EntitlementsCheckerFallbackPlanEnvVarKey = "DINNER_DONE_BETTER_ENTITLEMENTS_CHECKER_FALLBACK_PLAN"
+
 	// EventsConsumerKafkaBrokersEnvVarKey is the environment variable name to set to override
 	// `APIServiceConfig.Events.Consumer.Kafka.Brokers`,
 	// `SchedulerConfig.Events.Consumer.Kafka.Brokers`,

@@ -98,4 +98,5 @@ Two-stage config: JSON file (path from `CONFIGURATION_FILEPATH` env var) + envir
 - `docs/configuration.md` — Config loading, env vars, deployment
 - `docs/payments.md` — Payments domain architecture
 - `docs/metering.md` — Usage metering: what is counted, why nothing is limited or billed yet
+- `docs/entitlements.md` — The plan catalog: what each tier includes, and how metering is told
 - `docs/mcp-usage-guide.md` — MCP server setup and auth flow

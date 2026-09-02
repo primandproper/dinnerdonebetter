@@ -3,14 +3,11 @@ package metering
 import (
 	"context"
 
-	paymentsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/manager"
-
 	"github.com/primandproper/platform-go/v13/capitalism"
 	"github.com/primandproper/platform-go/v13/database"
 	platformmetering "github.com/primandproper/platform-go/v13/metering"
 	meteringcfg "github.com/primandproper/platform-go/v13/metering/config"
 	"github.com/primandproper/platform-go/v13/observability"
-	"github.com/primandproper/platform-go/v13/observability/logging"
 
 	"github.com/samber/do/v2"
 )
@@ -85,15 +82,22 @@ func RegisterRecorder(i do.Injector) {
 
 // RegisterEnforcer registers the read path with the injector.
 //
-// Nothing calls it yet. It is registered so that the day a limit goes on planLimits, the change
-// is a Check at one call site rather than a wiring exercise — which is the promise the whole
-// count-first ordering rests on.
+// Nothing calls it yet. It is registered so that the day a limit goes into a plan's grants, the
+// change is a Check at one call site rather than a wiring exercise — which is the promise the
+// whole count-first ordering rests on.
+//
+// The limits it enforces come from the injector rather than from a table here: the quota source
+// is the entitlements catalog, registered by internal/entitlements, so the limit an account is
+// shown and the limit enforced against it are one number. This package counts; that one gates.
 //
 // Two things have to change with that first limit. The enforcer is built without a cache, so
 // Check reads the durable total on every call, which is exactly the latency the platform warns
 // at length about; attach a cache.Cache[metering.CachedTotal] before any Check reaches a request
 // path. And EnforcerConfig.FailOpen decides what happens when the store is unreachable, which is
 // a product question — refuse everyone, or serve everyone free — that nobody has been asked yet.
+//
+// Prerequisites: *meteringcfg.Config, a metering Store, a *metering.Registry, and a
+// metering.QuotaSource.
 func RegisterEnforcer(i do.Injector) {
 	do.Provide[platformmetering.Enforcer](i, func(i do.Injector) (platformmetering.Enforcer, error) {
 		ctx := do.MustInvoke[context.Context](i)
@@ -103,26 +107,13 @@ func RegisterEnforcer(i do.Injector) {
 			return nil, err
 		}
 
-		registry := do.MustInvoke[*platformmetering.Registry](i)
-
-		quotas, err := NewSubscriptionQuotaSource(
-			registry,
-			do.MustInvoke[paymentsmanager.PaymentsDataManager](i),
-			platformmetering.WithPlanLimitLogger(logging.NewNamedLogger(pillars.Logger, quotaSourceO11yName)),
-			platformmetering.WithPlanLimitTracerProvider(pillars.TracerProvider),
-			platformmetering.WithPlanLimitMetricsProvider(pillars.MetricsProvider),
-		)
-		if err != nil {
-			return nil, err
-		}
-
 		return meteringcfg.NewEnforcer(
 			ctx,
 			do.MustInvoke[*meteringcfg.Config](i),
 			do.MustInvoke[platformmetering.Store](i),
-			registry,
+			do.MustInvoke[*platformmetering.Registry](i),
 			nil,
-			quotas,
+			do.MustInvoke[platformmetering.QuotaSource](i),
 			// No cache — see above.
 			nil,
 			meteringcfg.WithPillars(pillars),

@@ -19,6 +19,7 @@ import (
 	platformconfig "github.com/primandproper/platform-go/v13/config"
 	emailcfg "github.com/primandproper/platform-go/v13/email/config"
 	"github.com/primandproper/platform-go/v13/encoding"
+	entitlementscfg "github.com/primandproper/platform-go/v13/entitlements/config"
 	featureflagscfg "github.com/primandproper/platform-go/v13/featureflags/config"
 	httpclientcfg "github.com/primandproper/platform-go/v13/httpclient"
 	idempotencycfg "github.com/primandproper/platform-go/v13/idempotency/config"
@@ -119,6 +120,12 @@ type (
 		// scheduler — but both read this same struct, so the tables one writes are by
 		// construction the tables the other flushes.
 		Metering meteringcfg.Config `envPrefix:"METERING_" json:"metering,omitzero"`
+
+		// Entitlements is what each plan includes, and is the source of the limits the
+		// metering enforcer applies. It lives only here because only the API server
+		// answers "may this account use this feature" — the scheduler's flusher posts
+		// totals to a billing provider and never decides anything.
+		Entitlements entitlementscfg.Config `envPrefix:"ENTITLEMENTS_" json:"entitlements,omitzero"`
 
 		// Operations is the durable record of tracked work. The API server holds the
 		// enqueue-and-read half of it — data privacy requests are submitted as operations
@@ -275,6 +282,7 @@ func (cfg *APIServiceConfig) ValidateWithContext(ctx context.Context) error {
 		"Idempotency":        cfg.Idempotency.ValidateWithContext,
 		"Webhooks":           cfg.Webhooks.ValidateWithContext,
 		"Metering":           cfg.Metering.ValidateWithContext,
+		"Entitlements":       cfg.Entitlements.ValidateWithContext,
 		"Operations":         cfg.Operations.ValidateWithContext,
 		// no "Events" here, that's a collection of publisher/subscriber configs that can each optionally be setup
 	}

@@ -57,9 +57,10 @@ func BuildIntegrationTestsConfig() *config.APIServiceConfig {
 	}
 
 	return &config.APIServiceConfig{
-		Webhooks:   buildWebhooksConfig(),
-		Metering:   config.DefaultMeteringConfig(),
-		Operations: config.DefaultOperationsConfig(),
+		Webhooks:     buildWebhooksConfig(),
+		Metering:     config.DefaultMeteringConfig(),
+		Entitlements: config.DefaultEntitlementsConfig(),
+		Operations:   config.DefaultOperationsConfig(),
 		Routing: routingcfg.Config{
 			Provider: routingcfg.ProviderChi,
 			Chi: &chi.Config{
