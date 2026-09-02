@@ -10,13 +10,16 @@ service WaitlistsService {
   rpc CreateWaitlist(CreateWaitlistRequest) returns (CreateWaitlistResponse);
   rpc GetWaitlist(GetWaitlistRequest) returns (GetWaitlistResponse);
   rpc GetWaitlists(GetWaitlistsRequest) returns (GetWaitlistsResponse);
-  rpc GetActiveWaitlists(GetActiveWaitlistsRequest) returns (GetActiveWaitlistsResponse);
+  rpc GetOpenWaitlists(GetOpenWaitlistsRequest) returns (GetOpenWaitlistsResponse);
   rpc UpdateWaitlist(UpdateWaitlistRequest) returns (UpdateWaitlistResponse);
   rpc ArchiveWaitlist(ArchiveWaitlistRequest) returns (ArchiveWaitlistResponse);
-  rpc WaitlistIsNotExpired(WaitlistIsNotExpiredRequest) returns (WaitlistIsNotExpiredResponse);
-  rpc CreateWaitlistSignup(CreateWaitlistSignupRequest) returns (CreateWaitlistSignupResponse);
+  rpc WaitlistIsOpen(WaitlistIsOpenRequest) returns (WaitlistIsOpenResponse);
+  rpc JoinWaitlist(JoinWaitlistRequest) returns (JoinWaitlistResponse);
   rpc GetWaitlistSignup(GetWaitlistSignupRequest) returns (GetWaitlistSignupResponse);
   rpc GetWaitlistSignupsForWaitlist(GetWaitlistSignupsForWaitlistRequest) returns (GetWaitlistSignupsForWaitlistResponse);
   rpc UpdateWaitlistSignup(UpdateWaitlistSignupRequest) returns (UpdateWaitlistSignupResponse);
+  rpc InviteWaitlistSignup(InviteWaitlistSignupRequest) returns (InviteWaitlistSignupResponse);
+  rpc ConvertWaitlistSignup(ConvertWaitlistSignupRequest) returns (ConvertWaitlistSignupResponse);
+  rpc WithdrawFromWaitlist(WithdrawFromWaitlistRequest) returns (WithdrawFromWaitlistResponse);
   rpc ArchiveWaitlistSignup(ArchiveWaitlistSignupRequest) returns (ArchiveWaitlistSignupResponse);
 }

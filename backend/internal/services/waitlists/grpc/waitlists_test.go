@@ -2,1319 +2,1014 @@ package grpc
 
 import (
 	"context"
-	"errors"
 	"testing"
 	"time"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists"
+	ddbwaitlists "github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists"
 	waitlistfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists/fakes"
-	waitlistmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists/mock"
 	waitlistssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/waitlists"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/services/waitlists/grpc/converters"
 
 	"github.com/primandproper/platform-go/v13/fake"
 	"github.com/primandproper/platform-go/v13/filtering"
-	"github.com/primandproper/platform-go/v13/filtering/filteringpb"
-	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
+	"github.com/primandproper/platform-go/v13/pointer"
+	"github.com/primandproper/platform-go/v13/tenancy"
+	waitlists "github.com/primandproper/platform-go/v13/waitlists"
+	waitlistsmock "github.com/primandproper/platform-go/v13/waitlists/mock"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-var (
-	testSessionUserID    = fake.BuildFakeID()
-	testSessionAccountID = fake.BuildFakeID()
-)
-
-func buildTestService(t *testing.T) (*serviceImpl, *waitlistmock.RepositoryMock) {
+// assertCode asserts that err reached the client as the given gRPC code.
+func assertCode(t *testing.T, err error, expected codes.Code) {
 	t.Helper()
 
-	logger := loggingnoop.NewLogger()
-	tracer := tracing.NewTracerForTest(t.Name())
-	waitlistRepo := &waitlistmock.RepositoryMock{}
-
-	service := &serviceImpl{
-		tracer:           tracer,
-		logger:           logger,
-		waitlistsManager: waitlistRepo,
-	}
-
-	return service, waitlistRepo
-}
-
-func buildSessionContextForTest(t *testing.T) context.Context {
-	t.Helper()
-
-	return sessions.AttachToContext(t.Context(), &sessions.ContextData{
-		ActiveAccountID: testSessionAccountID,
-		Requester: sessions.RequesterInfo{
-			UserID:             testSessionUserID,
-			ServicePermissions: authorization.NewServiceRolePermissionChecker([]string{authorization.ServiceUserRole.String()}, nil),
-		},
-	})
-}
-
-func buildAdminSessionContextForTest(t *testing.T) context.Context {
-	t.Helper()
-
-	return sessions.AttachToContext(t.Context(), &sessions.ContextData{
-		ActiveAccountID: testSessionAccountID,
-		Requester: sessions.RequesterInfo{
-			UserID:             testSessionUserID,
-			ServicePermissions: authorization.NewServiceRolePermissionChecker([]string{authorization.ServiceAdminRole.String()}, authorization.ServiceAdminPermissions),
-		},
-	})
+	require.Error(t, err)
+	assert.Equal(t, expected, status.Code(err), "got %v", err)
 }
 
 func TestServiceImpl_CreateWaitlist(t *testing.T) {
 	t.Parallel()
 
-	t.Run("success", func(t *testing.T) {
+	t.Run("opens the list in the global catalog", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := buildSessionContextForTest(t)
-		service, mockRepo := buildTestService(t)
+		who := adminContextForTest(t)
+		example := waitlistfakes.BuildFakeWaitlist()
 
-		fakeWaitlist := waitlistfakes.BuildFakeWaitlist()
-		fakeInput := waitlistfakes.BuildFakeWaitlistCreationRequestInput()
+		var written *waitlists.List
+		store := &waitlistsmock.StoreMock{
+			CreateListFunc: func(_ context.Context, scope tenancy.Scope, list *waitlists.List) (*waitlists.List, error) {
+				assert.Equal(t, ddbwaitlists.Scope(), scope)
 
-		mockRepo.CreateWaitlistFunc = func(_ context.Context, _ *waitlists.WaitlistDatabaseCreationInput) (*waitlists.Waitlist, error) {
-			return fakeWaitlist, nil
-		}
+				list.ID = fake.BuildFakeID()
+				written = list
 
-		request := &waitlistssvc.CreateWaitlistRequest{
-			Input: &waitlistssvc.WaitlistCreationRequestInput{
-				Name:        fakeInput.Name,
-				Description: fakeInput.Description,
-				ValidUntil:  timestamppb.New(fakeInput.ValidUntil),
+				return list, nil
 			},
 		}
 
-		response, err := service.CreateWaitlist(ctx, request)
-
+		res, err := buildTestService(t, store).CreateWaitlist(who.ctx, &waitlistssvc.CreateWaitlistRequest{
+			Input: converters.ConvertWaitlistToGRPCWaitlistCreationRequestInput(example),
+		})
 		require.NoError(t, err)
-		assert.NotNil(t, response)
-		assert.NotNil(t, response.Created)
-		assert.NotNil(t, response.ResponseDetails)
-		assert.Equal(t, fakeWaitlist.ID, response.Created.Id)
-		assert.Equal(t, fakeWaitlist.Name, response.Created.Name)
-		assert.Equal(t, fakeWaitlist.Description, response.Created.Description)
+		require.NotNil(t, res.GetCreated())
 
-		assert.Len(t, mockRepo.CreateWaitlistCalls(), 1)
+		assert.Equal(t, example.Name, written.Name)
+		assert.Equal(t, example.Description, written.Description)
+		assert.WithinDuration(t, example.ClosesAt, written.ClosesAt, time.Second)
+		assert.Equal(t, written.ID, res.GetCreated().GetId())
 	})
 
-	t.Run("session context error", func(t *testing.T) {
+	t.Run("refuses a list the store will not take", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
-		service, _ := buildTestService(t)
+		who := adminContextForTest(t)
 
-		request := &waitlistssvc.CreateWaitlistRequest{
-			Input: &waitlistssvc.WaitlistCreationRequestInput{
-				Name:        "test waitlist",
-				Description: "test description",
-				ValidUntil:  timestamppb.New(time.Now().Add(24 * time.Hour)),
+		store := &waitlistsmock.StoreMock{
+			CreateListFunc: func(context.Context, tenancy.Scope, *waitlists.List) (*waitlists.List, error) {
+				return nil, waitlists.ErrEmptyClosesAt
 			},
 		}
 
-		response, err := service.CreateWaitlist(ctx, request)
-
-		require.Error(t, err)
-		assert.Nil(t, response)
-		assert.Equal(t, codes.Unauthenticated, status.Code(err))
+		_, err := buildTestService(t, store).CreateWaitlist(who.ctx, &waitlistssvc.CreateWaitlistRequest{
+			Input: &waitlistssvc.WaitlistCreationRequestInput{Name: "launch"},
+		})
+		assertCode(t, err, codes.InvalidArgument)
 	})
 
-	t.Run("validation error", func(t *testing.T) {
+	t.Run("refuses a request with no input", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := buildSessionContextForTest(t)
-		service, _ := buildTestService(t)
+		who := adminContextForTest(t)
 
-		// Invalid request with empty name
-		request := &waitlistssvc.CreateWaitlistRequest{
-			Input: &waitlistssvc.WaitlistCreationRequestInput{
-				Name:        "", // Invalid empty name
-				Description: "test description",
-				ValidUntil:  timestamppb.New(time.Now().Add(24 * time.Hour)),
-			},
-		}
-
-		response, err := service.CreateWaitlist(ctx, request)
-
-		require.Error(t, err)
-		assert.Nil(t, response)
-		assert.Equal(t, codes.InvalidArgument, status.Code(err))
+		_, err := buildTestService(t, nil).CreateWaitlist(who.ctx, &waitlistssvc.CreateWaitlistRequest{})
+		assertCode(t, err, codes.InvalidArgument)
 	})
 
-	t.Run("repository error", func(t *testing.T) {
+	t.Run("requires a session", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := buildSessionContextForTest(t)
-		service, mockRepo := buildTestService(t)
-
-		fakeInput := waitlistfakes.BuildFakeWaitlistCreationRequestInput()
-
-		mockRepo.CreateWaitlistFunc = func(_ context.Context, _ *waitlists.WaitlistDatabaseCreationInput) (*waitlists.Waitlist, error) {
-			return nil, errors.New("repository error")
-		}
-
-		request := &waitlistssvc.CreateWaitlistRequest{
-			Input: &waitlistssvc.WaitlistCreationRequestInput{
-				Name:        fakeInput.Name,
-				Description: fakeInput.Description,
-				ValidUntil:  timestamppb.New(fakeInput.ValidUntil),
-			},
-		}
-
-		response, err := service.CreateWaitlist(ctx, request)
-
-		require.Error(t, err)
-		assert.Nil(t, response)
-		assert.Equal(t, codes.Internal, status.Code(err))
-
-		assert.Len(t, mockRepo.CreateWaitlistCalls(), 1)
+		_, err := buildTestService(t, nil).CreateWaitlist(t.Context(), &waitlistssvc.CreateWaitlistRequest{})
+		assertCode(t, err, codes.Unauthenticated)
 	})
 }
 
 func TestServiceImpl_GetWaitlist(t *testing.T) {
 	t.Parallel()
 
-	t.Run("success", func(t *testing.T) {
+	t.Run("reads one list", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := buildSessionContextForTest(t)
-		service, mockRepo := buildTestService(t)
+		who := userContextForTest(t)
+		example := waitlistfakes.BuildFakeWaitlist()
 
-		fakeWaitlist := waitlistfakes.BuildFakeWaitlist()
-		waitlistID := "test-waitlist-id"
+		store := &waitlistsmock.StoreMock{
+			GetListFunc: func(_ context.Context, scope tenancy.Scope, listID string) (*waitlists.List, error) {
+				assert.Equal(t, ddbwaitlists.Scope(), scope)
+				assert.Equal(t, example.ID, listID)
 
-		mockRepo.GetWaitlistFunc = func(_ context.Context, actualWaitlistID string) (*waitlists.Waitlist, error) {
-			assert.Equal(t, waitlistID, actualWaitlistID)
-
-			return fakeWaitlist, nil
+				return example, nil
+			},
 		}
 
-		request := &waitlistssvc.GetWaitlistRequest{
-			WaitlistId: waitlistID,
-		}
-
-		response, err := service.GetWaitlist(ctx, request)
-
+		res, err := buildTestService(t, store).GetWaitlist(who.ctx, &waitlistssvc.GetWaitlistRequest{WaitlistId: example.ID})
 		require.NoError(t, err)
-		assert.NotNil(t, response)
-		assert.NotNil(t, response.Result)
-		assert.NotNil(t, response.ResponseDetails)
-		assert.Equal(t, fakeWaitlist.ID, response.Result.Id)
-		assert.Equal(t, fakeWaitlist.Name, response.Result.Name)
-
-		assert.Len(t, mockRepo.GetWaitlistCalls(), 1)
+		assert.Equal(t, example.ID, res.GetResult().GetId())
 	})
 
-	t.Run("repository error", func(t *testing.T) {
+	t.Run("reports an absent list as not found", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := buildSessionContextForTest(t)
-		service, mockRepo := buildTestService(t)
+		who := userContextForTest(t)
 
-		waitlistID := "test-waitlist-id"
-
-		mockRepo.GetWaitlistFunc = func(_ context.Context, actualWaitlistID string) (*waitlists.Waitlist, error) {
-			assert.Equal(t, waitlistID, actualWaitlistID)
-
-			return nil, errors.New("repository error")
+		store := &waitlistsmock.StoreMock{
+			GetListFunc: func(context.Context, tenancy.Scope, string) (*waitlists.List, error) {
+				return nil, waitlists.ErrListNotFound
+			},
 		}
 
-		request := &waitlistssvc.GetWaitlistRequest{
-			WaitlistId: waitlistID,
-		}
+		_, err := buildTestService(t, store).GetWaitlist(who.ctx, &waitlistssvc.GetWaitlistRequest{WaitlistId: fake.BuildFakeID()})
+		assertCode(t, err, codes.NotFound)
+	})
 
-		response, err := service.GetWaitlist(ctx, request)
+	t.Run("requires a session", func(t *testing.T) {
+		t.Parallel()
 
-		require.Error(t, err)
-		assert.Nil(t, response)
-		assert.Equal(t, codes.Internal, status.Code(err))
-
-		assert.Len(t, mockRepo.GetWaitlistCalls(), 1)
+		_, err := buildTestService(t, nil).GetWaitlist(t.Context(), &waitlistssvc.GetWaitlistRequest{})
+		assertCode(t, err, codes.Unauthenticated)
 	})
 }
 
 func TestServiceImpl_GetWaitlists(t *testing.T) {
 	t.Parallel()
 
-	t.Run("success", func(t *testing.T) {
+	t.Run("pages the catalog", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := buildSessionContextForTest(t)
-		service, mockRepo := buildTestService(t)
+		who := userContextForTest(t)
+		page := waitlistfakes.BuildFakeWaitlistList()
 
-		fakeWaitlists := waitlistfakes.BuildFakeWaitlistsList()
+		store := &waitlistsmock.StoreMock{
+			ListListsFunc: func(_ context.Context, scope tenancy.Scope, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[waitlists.List], error) {
+				assert.Equal(t, ddbwaitlists.Scope(), scope)
 
-		mockRepo.GetWaitlistsFunc = func(_ context.Context, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[waitlists.Waitlist], error) {
-			return fakeWaitlists, nil
+				return page, nil
+			},
 		}
 
-		request := &waitlistssvc.GetWaitlistsRequest{
-			Filter: &filteringpb.QueryFilter{},
-		}
-
-		response, err := service.GetWaitlists(ctx, request)
-
+		res, err := buildTestService(t, store).GetWaitlists(who.ctx, &waitlistssvc.GetWaitlistsRequest{})
 		require.NoError(t, err)
-		assert.NotNil(t, response)
-		assert.NotNil(t, response.ResponseDetails)
-		assert.Len(t, response.Results, len(fakeWaitlists.Data))
-		if len(fakeWaitlists.Data) > 0 {
-			assert.Equal(t, fakeWaitlists.Data[0].ID, response.Results[0].Id)
-		}
-
-		assert.Len(t, mockRepo.GetWaitlistsCalls(), 1)
+		assert.Len(t, res.GetResults(), len(page.Data))
 	})
 
-	t.Run("repository error", func(t *testing.T) {
+	t.Run("requires a session", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := buildSessionContextForTest(t)
-		service, mockRepo := buildTestService(t)
-
-		mockRepo.GetWaitlistsFunc = func(_ context.Context, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[waitlists.Waitlist], error) {
-			return nil, errors.New("repository error")
-		}
-
-		request := &waitlistssvc.GetWaitlistsRequest{
-			Filter: &filteringpb.QueryFilter{},
-		}
-
-		response, err := service.GetWaitlists(ctx, request)
-
-		require.Error(t, err)
-		assert.Nil(t, response)
-		assert.Equal(t, codes.Internal, status.Code(err))
-
-		assert.Len(t, mockRepo.GetWaitlistsCalls(), 1)
+		_, err := buildTestService(t, nil).GetWaitlists(t.Context(), &waitlistssvc.GetWaitlistsRequest{})
+		assertCode(t, err, codes.Unauthenticated)
 	})
 }
 
-func TestServiceImpl_GetActiveWaitlists(t *testing.T) {
+// TestServiceImpl_GetOpenWaitlists pins that the open page is its own read.
+//
+// It is not GetWaitlists with the closed ones dropped afterwards: a page filtered
+// after the fact is a page whose size the caller cannot rely on.
+func TestServiceImpl_GetOpenWaitlists(t *testing.T) {
 	t.Parallel()
 
-	t.Run("success", func(t *testing.T) {
+	t.Run("pages the lists still taking signups", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := buildSessionContextForTest(t)
-		service, mockRepo := buildTestService(t)
+		who := userContextForTest(t)
+		page := waitlistfakes.BuildFakeWaitlistList()
 
-		fakeWaitlists := waitlistfakes.BuildFakeWaitlistsList()
+		store := &waitlistsmock.StoreMock{
+			ListOpenListsFunc: func(_ context.Context, scope tenancy.Scope, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[waitlists.List], error) {
+				assert.Equal(t, ddbwaitlists.Scope(), scope)
 
-		mockRepo.GetActiveWaitlistsFunc = func(_ context.Context, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[waitlists.Waitlist], error) {
-			return fakeWaitlists, nil
+				return page, nil
+			},
 		}
 
-		request := &waitlistssvc.GetActiveWaitlistsRequest{
-			Filter: &filteringpb.QueryFilter{},
-		}
-
-		response, err := service.GetActiveWaitlists(ctx, request)
-
+		res, err := buildTestService(t, store).GetOpenWaitlists(who.ctx, &waitlistssvc.GetOpenWaitlistsRequest{})
 		require.NoError(t, err)
-		assert.NotNil(t, response)
-		assert.NotNil(t, response.ResponseDetails)
-		assert.Len(t, response.Results, len(fakeWaitlists.Data))
-		if len(fakeWaitlists.Data) > 0 {
-			assert.Equal(t, fakeWaitlists.Data[0].ID, response.Results[0].Id)
-		}
+		assert.Len(t, res.GetResults(), len(page.Data))
 
-		assert.Len(t, mockRepo.GetActiveWaitlistsCalls(), 1)
+		// The catalog read is not what answered.
+		assert.Empty(t, store.ListListsCalls())
 	})
 
-	t.Run("repository error", func(t *testing.T) {
+	t.Run("requires a session", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := buildSessionContextForTest(t)
-		service, mockRepo := buildTestService(t)
-
-		mockRepo.GetActiveWaitlistsFunc = func(_ context.Context, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[waitlists.Waitlist], error) {
-			return nil, errors.New("repository error")
-		}
-
-		request := &waitlistssvc.GetActiveWaitlistsRequest{
-			Filter: &filteringpb.QueryFilter{},
-		}
-
-		response, err := service.GetActiveWaitlists(ctx, request)
-
-		require.Error(t, err)
-		assert.Nil(t, response)
-		assert.Equal(t, codes.Internal, status.Code(err))
-
-		assert.Len(t, mockRepo.GetActiveWaitlistsCalls(), 1)
+		_, err := buildTestService(t, nil).GetOpenWaitlists(t.Context(), &waitlistssvc.GetOpenWaitlistsRequest{})
+		assertCode(t, err, codes.Unauthenticated)
 	})
 }
 
 func TestServiceImpl_UpdateWaitlist(t *testing.T) {
 	t.Parallel()
 
-	t.Run("success", func(t *testing.T) {
+	// The store's update takes a whole list, so an input carrying one field has to
+	// be merged into the row as read. Writing the request straight through would
+	// blank whatever the client left out.
+	t.Run("merges the input into the list as read", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := buildSessionContextForTest(t)
-		service, mockRepo := buildTestService(t)
+		who := adminContextForTest(t)
+		example := waitlistfakes.BuildFakeWaitlist()
 
-		fakeWaitlist := waitlistfakes.BuildFakeWaitlist()
-		waitlistID := "test-waitlist-id"
-		newName := "updated name"
+		var written *waitlists.List
+		store := &waitlistsmock.StoreMock{
+			GetListFunc: func(context.Context, tenancy.Scope, string) (*waitlists.List, error) {
+				return example, nil
+			},
+			UpdateListFunc: func(_ context.Context, _ tenancy.Scope, list *waitlists.List) error {
+				written = list
 
-		mockRepo.GetWaitlistFunc = func(_ context.Context, actualWaitlistID string) (*waitlists.Waitlist, error) {
-			assert.Equal(t, waitlistID, actualWaitlistID)
-
-			return fakeWaitlist, nil
-		}
-		mockRepo.UpdateWaitlistFunc = func(_ context.Context, _ *waitlists.Waitlist) error {
-			return nil
-		}
-
-		request := &waitlistssvc.UpdateWaitlistRequest{
-			WaitlistId: waitlistID,
-			Input: &waitlistssvc.WaitlistUpdateRequestInput{
-				Name: &newName,
+				return nil
 			},
 		}
 
-		response, err := service.UpdateWaitlist(ctx, request)
-
+		res, err := buildTestService(t, store).UpdateWaitlist(who.ctx, &waitlistssvc.UpdateWaitlistRequest{
+			WaitlistId: example.ID,
+			Input:      &waitlistssvc.WaitlistUpdateRequestInput{Name: pointer.To("renamed")},
+		})
 		require.NoError(t, err)
-		assert.NotNil(t, response)
-		assert.NotNil(t, response.Updated)
-		assert.NotNil(t, response.ResponseDetails)
 
-		assert.Len(t, mockRepo.GetWaitlistCalls(), 1)
-		assert.Len(t, mockRepo.UpdateWaitlistCalls(), 1)
+		assert.Equal(t, "renamed", written.Name)
+		assert.Equal(t, example.Description, written.Description)
+		assert.Equal(t, example.ClosesAt, written.ClosesAt)
+		assert.Equal(t, "renamed", res.GetUpdated().GetName())
 	})
 
-	t.Run("get waitlist error", func(t *testing.T) {
+	t.Run("reports an absent list as not found", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := buildSessionContextForTest(t)
-		service, mockRepo := buildTestService(t)
+		who := adminContextForTest(t)
 
-		waitlistID := "test-waitlist-id"
-
-		mockRepo.GetWaitlistFunc = func(_ context.Context, actualWaitlistID string) (*waitlists.Waitlist, error) {
-			assert.Equal(t, waitlistID, actualWaitlistID)
-
-			return nil, errors.New("repository error")
-		}
-
-		request := &waitlistssvc.UpdateWaitlistRequest{
-			WaitlistId: waitlistID,
-			Input:      &waitlistssvc.WaitlistUpdateRequestInput{},
-		}
-
-		response, err := service.UpdateWaitlist(ctx, request)
-
-		require.Error(t, err)
-		assert.Nil(t, response)
-		assert.Equal(t, codes.Internal, status.Code(err))
-
-		assert.Len(t, mockRepo.GetWaitlistCalls(), 1)
-	})
-
-	t.Run("update error", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := buildSessionContextForTest(t)
-		service, mockRepo := buildTestService(t)
-
-		fakeWaitlist := waitlistfakes.BuildFakeWaitlist()
-		waitlistID := "test-waitlist-id"
-		newName := "updated name"
-
-		mockRepo.GetWaitlistFunc = func(_ context.Context, actualWaitlistID string) (*waitlists.Waitlist, error) {
-			assert.Equal(t, waitlistID, actualWaitlistID)
-
-			return fakeWaitlist, nil
-		}
-		mockRepo.UpdateWaitlistFunc = func(_ context.Context, _ *waitlists.Waitlist) error {
-			return errors.New("update error")
-		}
-
-		request := &waitlistssvc.UpdateWaitlistRequest{
-			WaitlistId: waitlistID,
-			Input: &waitlistssvc.WaitlistUpdateRequestInput{
-				Name: &newName,
+		store := &waitlistsmock.StoreMock{
+			GetListFunc: func(context.Context, tenancy.Scope, string) (*waitlists.List, error) {
+				return nil, waitlists.ErrListNotFound
 			},
 		}
 
-		response, err := service.UpdateWaitlist(ctx, request)
+		_, err := buildTestService(t, store).UpdateWaitlist(who.ctx, &waitlistssvc.UpdateWaitlistRequest{
+			WaitlistId: fake.BuildFakeID(),
+			Input:      &waitlistssvc.WaitlistUpdateRequestInput{Name: pointer.To("renamed")},
+		})
+		assertCode(t, err, codes.NotFound)
+	})
 
-		require.Error(t, err)
-		assert.Nil(t, response)
-		assert.Equal(t, codes.Internal, status.Code(err))
+	t.Run("requires a session", func(t *testing.T) {
+		t.Parallel()
 
-		assert.Len(t, mockRepo.GetWaitlistCalls(), 1)
-		assert.Len(t, mockRepo.UpdateWaitlistCalls(), 1)
+		_, err := buildTestService(t, nil).UpdateWaitlist(t.Context(), &waitlistssvc.UpdateWaitlistRequest{})
+		assertCode(t, err, codes.Unauthenticated)
 	})
 }
 
 func TestServiceImpl_ArchiveWaitlist(t *testing.T) {
 	t.Parallel()
 
-	t.Run("success", func(t *testing.T) {
+	t.Run("retires the list", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := buildSessionContextForTest(t)
-		service, mockRepo := buildTestService(t)
+		who := adminContextForTest(t)
+		listID := fake.BuildFakeID()
 
-		waitlistID := "test-waitlist-id"
+		store := &waitlistsmock.StoreMock{
+			ArchiveListFunc: func(_ context.Context, scope tenancy.Scope, id string) error {
+				assert.Equal(t, ddbwaitlists.Scope(), scope)
+				assert.Equal(t, listID, id)
 
-		mockRepo.ArchiveWaitlistFunc = func(_ context.Context, actualWaitlistID string) error {
-			assert.Equal(t, waitlistID, actualWaitlistID)
-
-			return nil
+				return nil
+			},
 		}
 
-		request := &waitlistssvc.ArchiveWaitlistRequest{
-			WaitlistId: waitlistID,
-		}
-
-		response, err := service.ArchiveWaitlist(ctx, request)
-
+		res, err := buildTestService(t, store).ArchiveWaitlist(who.ctx, &waitlistssvc.ArchiveWaitlistRequest{WaitlistId: listID})
 		require.NoError(t, err)
-		assert.NotNil(t, response)
-		assert.NotNil(t, response.ResponseDetails)
-
-		assert.Len(t, mockRepo.ArchiveWaitlistCalls(), 1)
+		assert.NotNil(t, res.GetResponseDetails())
 	})
 
-	t.Run("repository error", func(t *testing.T) {
+	t.Run("requires a session", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := buildSessionContextForTest(t)
-		service, mockRepo := buildTestService(t)
-
-		waitlistID := "test-waitlist-id"
-
-		mockRepo.ArchiveWaitlistFunc = func(_ context.Context, actualWaitlistID string) error {
-			assert.Equal(t, waitlistID, actualWaitlistID)
-
-			return errors.New("repository error")
-		}
-
-		request := &waitlistssvc.ArchiveWaitlistRequest{
-			WaitlistId: waitlistID,
-		}
-
-		response, err := service.ArchiveWaitlist(ctx, request)
-
-		require.Error(t, err)
-		assert.Nil(t, response)
-		assert.Equal(t, codes.Internal, status.Code(err))
-
-		assert.Len(t, mockRepo.ArchiveWaitlistCalls(), 1)
+		_, err := buildTestService(t, nil).ArchiveWaitlist(t.Context(), &waitlistssvc.ArchiveWaitlistRequest{})
+		assertCode(t, err, codes.Unauthenticated)
 	})
 }
 
-func TestServiceImpl_WaitlistIsNotExpired(t *testing.T) {
+// TestServiceImpl_WaitlistIsOpen pins that the answer is List.OpenAt's rather
+// than a comparison spelled in the handler — archived counts as closed, which a
+// bare closes_at comparison would get wrong.
+func TestServiceImpl_WaitlistIsOpen(t *testing.T) {
 	t.Parallel()
 
-	t.Run("success - not expired", func(t *testing.T) {
+	t.Run("says a live future-dated list is open", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := buildSessionContextForTest(t)
-		service, mockRepo := buildTestService(t)
+		who := userContextForTest(t)
+		example := waitlistfakes.BuildFakeWaitlist()
 
-		waitlistID := "test-waitlist-id"
-
-		mockRepo.WaitlistIsNotExpiredFunc = func(_ context.Context, actualWaitlistID string) (bool, error) {
-			assert.Equal(t, waitlistID, actualWaitlistID)
-
-			return true, nil
+		store := &waitlistsmock.StoreMock{
+			GetListFunc: func(context.Context, tenancy.Scope, string) (*waitlists.List, error) {
+				return example, nil
+			},
 		}
 
-		request := &waitlistssvc.WaitlistIsNotExpiredRequest{
-			WaitlistId: waitlistID,
-		}
-
-		response, err := service.WaitlistIsNotExpired(ctx, request)
-
+		res, err := buildTestService(t, store).WaitlistIsOpen(who.ctx, &waitlistssvc.WaitlistIsOpenRequest{WaitlistId: example.ID})
 		require.NoError(t, err)
-		assert.NotNil(t, response)
-		assert.NotNil(t, response.ResponseDetails)
-		assert.True(t, response.IsNotExpired)
-
-		assert.Len(t, mockRepo.WaitlistIsNotExpiredCalls(), 1)
+		assert.True(t, res.GetIsOpen())
 	})
 
-	t.Run("success - expired", func(t *testing.T) {
+	t.Run("says a past-dated list is closed", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := buildSessionContextForTest(t)
-		service, mockRepo := buildTestService(t)
+		who := userContextForTest(t)
+		example := waitlistfakes.BuildFakeWaitlist()
+		example.ClosesAt = time.Now().Add(-time.Hour).UTC()
 
-		waitlistID := "test-waitlist-id"
-
-		mockRepo.WaitlistIsNotExpiredFunc = func(_ context.Context, actualWaitlistID string) (bool, error) {
-			assert.Equal(t, waitlistID, actualWaitlistID)
-
-			return false, nil
+		store := &waitlistsmock.StoreMock{
+			GetListFunc: func(context.Context, tenancy.Scope, string) (*waitlists.List, error) {
+				return example, nil
+			},
 		}
 
-		request := &waitlistssvc.WaitlistIsNotExpiredRequest{
-			WaitlistId: waitlistID,
-		}
-
-		response, err := service.WaitlistIsNotExpired(ctx, request)
-
+		res, err := buildTestService(t, store).WaitlistIsOpen(who.ctx, &waitlistssvc.WaitlistIsOpenRequest{WaitlistId: example.ID})
 		require.NoError(t, err)
-		assert.NotNil(t, response)
-		assert.NotNil(t, response.ResponseDetails)
-		assert.False(t, response.IsNotExpired)
-
-		assert.Len(t, mockRepo.WaitlistIsNotExpiredCalls(), 1)
+		assert.False(t, res.GetIsOpen())
 	})
 
-	t.Run("repository error", func(t *testing.T) {
+	t.Run("says an archived list is closed whatever its closing time says", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := buildSessionContextForTest(t)
-		service, mockRepo := buildTestService(t)
+		who := userContextForTest(t)
+		example := waitlistfakes.BuildFakeWaitlist()
+		example.ArchivedAt = pointer.To(time.Now().UTC())
 
-		waitlistID := "test-waitlist-id"
-
-		mockRepo.WaitlistIsNotExpiredFunc = func(_ context.Context, actualWaitlistID string) (bool, error) {
-			assert.Equal(t, waitlistID, actualWaitlistID)
-
-			return false, errors.New("repository error")
+		store := &waitlistsmock.StoreMock{
+			GetListFunc: func(context.Context, tenancy.Scope, string) (*waitlists.List, error) {
+				return example, nil
+			},
 		}
 
-		request := &waitlistssvc.WaitlistIsNotExpiredRequest{
-			WaitlistId: waitlistID,
-		}
+		res, err := buildTestService(t, store).WaitlistIsOpen(who.ctx, &waitlistssvc.WaitlistIsOpenRequest{WaitlistId: example.ID})
+		require.NoError(t, err)
+		assert.False(t, res.GetIsOpen())
+	})
 
-		response, err := service.WaitlistIsNotExpired(ctx, request)
+	t.Run("requires a session", func(t *testing.T) {
+		t.Parallel()
 
-		require.Error(t, err)
-		assert.Nil(t, response)
-		assert.Equal(t, codes.Internal, status.Code(err))
-
-		assert.Len(t, mockRepo.WaitlistIsNotExpiredCalls(), 1)
+		_, err := buildTestService(t, nil).WaitlistIsOpen(t.Context(), &waitlistssvc.WaitlistIsOpenRequest{})
+		assertCode(t, err, codes.Unauthenticated)
 	})
 }
 
-func TestServiceImpl_CreateWaitlistSignup(t *testing.T) {
+func TestServiceImpl_JoinWaitlist(t *testing.T) {
 	t.Parallel()
 
-	t.Run("success", func(t *testing.T) {
+	// The address and the subject come off the session. A signup that could name
+	// either is one anybody could make on anybody's behalf — and, because a
+	// withdrawal suppresses an address, a suppression anybody could evade.
+	t.Run("signs the caller up under the session's address", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := buildSessionContextForTest(t)
-		service, mockRepo := buildTestService(t)
+		who := userContextForTest(t)
+		listID := fake.BuildFakeID()
 
-		fakeSignup := waitlistfakes.BuildFakeWaitlistSignup()
-		fakeInput := waitlistfakes.BuildFakeWaitlistSignupCreationRequestInput()
+		var written *waitlists.Signup
+		store := &waitlistsmock.StoreMock{
+			JoinFunc: func(_ context.Context, scope tenancy.Scope, id string, signup *waitlists.Signup) (*waitlists.Signup, error) {
+				assert.Equal(t, ddbwaitlists.Scope(), scope)
+				assert.Equal(t, listID, id)
 
-		mockRepo.CreateWaitlistSignupFunc = func(_ context.Context, _ *waitlists.WaitlistSignupDatabaseCreationInput) (*waitlists.WaitlistSignup, error) {
-			return fakeSignup, nil
-		}
+				signup.ID = fake.BuildFakeID()
+				signup.Status = waitlists.StatusWaiting
+				written = signup
 
-		request := &waitlistssvc.CreateWaitlistSignupRequest{
-			Input: &waitlistssvc.WaitlistSignupCreationRequestInput{
-				Notes:             fakeInput.Notes,
-				BelongsToWaitlist: fakeInput.BelongsToWaitlist,
+				return signup, nil
 			},
 		}
 
-		response, err := service.CreateWaitlistSignup(ctx, request)
-
+		res, err := buildTestService(t, store).JoinWaitlist(who.ctx, &waitlistssvc.JoinWaitlistRequest{
+			WaitlistId: listID,
+			Input:      &waitlistssvc.WaitlistSignupCreationRequestInput{Notes: "please"},
+		})
 		require.NoError(t, err)
-		assert.NotNil(t, response)
-		assert.NotNil(t, response.Created)
-		assert.NotNil(t, response.ResponseDetails)
-		assert.Equal(t, fakeSignup.ID, response.Created.Id)
-		assert.Equal(t, fakeSignup.Notes, response.Created.Notes)
 
-		assert.Len(t, mockRepo.CreateWaitlistSignupCalls(), 1)
+		assert.Equal(t, who.email, written.Contact)
+		assert.Equal(t, ddbwaitlists.SubjectFor(who.userID), written.Subject)
+		assert.Equal(t, "please", written.Notes)
+		assert.Equal(t, waitlists.StatusWaiting.String(), res.GetCreated().GetStatus())
 	})
 
-	t.Run("session context error", func(t *testing.T) {
+	// The suppression is the whole reason this store was adopted, so the code it
+	// reaches a client as is worth pinning: PermissionDenied, not a conflict. A
+	// client that retried on a conflict would be a client that re-subscribed
+	// somebody who asked to be left alone.
+	t.Run("refuses a contact that has withdrawn", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
-		service, _ := buildTestService(t)
+		who := userContextForTest(t)
 
-		request := &waitlistssvc.CreateWaitlistSignupRequest{
-			Input: &waitlistssvc.WaitlistSignupCreationRequestInput{
-				Notes:             "test notes",
-				BelongsToWaitlist: "test-waitlist-id",
+		store := &waitlistsmock.StoreMock{
+			JoinFunc: func(context.Context, tenancy.Scope, string, *waitlists.Signup) (*waitlists.Signup, error) {
+				return nil, waitlists.ErrContactWithdrawn
 			},
 		}
 
-		response, err := service.CreateWaitlistSignup(ctx, request)
-
-		require.Error(t, err)
-		assert.Nil(t, response)
-		assert.Equal(t, codes.Unauthenticated, status.Code(err))
+		_, err := buildTestService(t, store).JoinWaitlist(who.ctx, &waitlistssvc.JoinWaitlistRequest{
+			WaitlistId: fake.BuildFakeID(),
+			Input:      &waitlistssvc.WaitlistSignupCreationRequestInput{},
+		})
+		assertCode(t, err, codes.PermissionDenied)
 	})
 
-	t.Run("validation error", func(t *testing.T) {
+	t.Run("refuses a contact already on the list", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := buildSessionContextForTest(t)
-		service, _ := buildTestService(t)
+		who := userContextForTest(t)
 
-		// Invalid request with empty notes
-		request := &waitlistssvc.CreateWaitlistSignupRequest{
-			Input: &waitlistssvc.WaitlistSignupCreationRequestInput{
-				Notes:             "", // Invalid empty notes
-				BelongsToWaitlist: "test-waitlist-id",
+		store := &waitlistsmock.StoreMock{
+			JoinFunc: func(context.Context, tenancy.Scope, string, *waitlists.Signup) (*waitlists.Signup, error) {
+				return nil, waitlists.ErrAlreadySignedUp
 			},
 		}
 
-		response, err := service.CreateWaitlistSignup(ctx, request)
-
-		require.Error(t, err)
-		assert.Nil(t, response)
-		assert.Equal(t, codes.InvalidArgument, status.Code(err))
+		_, err := buildTestService(t, store).JoinWaitlist(who.ctx, &waitlistssvc.JoinWaitlistRequest{
+			WaitlistId: fake.BuildFakeID(),
+			Input:      &waitlistssvc.WaitlistSignupCreationRequestInput{},
+		})
+		assertCode(t, err, codes.AlreadyExists)
 	})
 
-	t.Run("repository error", func(t *testing.T) {
+	t.Run("refuses a closed list", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := buildSessionContextForTest(t)
-		service, mockRepo := buildTestService(t)
+		who := userContextForTest(t)
 
-		fakeInput := waitlistfakes.BuildFakeWaitlistSignupCreationRequestInput()
-
-		mockRepo.CreateWaitlistSignupFunc = func(_ context.Context, _ *waitlists.WaitlistSignupDatabaseCreationInput) (*waitlists.WaitlistSignup, error) {
-			return nil, errors.New("repository error")
-		}
-
-		request := &waitlistssvc.CreateWaitlistSignupRequest{
-			Input: &waitlistssvc.WaitlistSignupCreationRequestInput{
-				Notes:             fakeInput.Notes,
-				BelongsToWaitlist: fakeInput.BelongsToWaitlist,
+		store := &waitlistsmock.StoreMock{
+			JoinFunc: func(context.Context, tenancy.Scope, string, *waitlists.Signup) (*waitlists.Signup, error) {
+				return nil, waitlists.ErrListClosed
 			},
 		}
 
-		response, err := service.CreateWaitlistSignup(ctx, request)
+		_, err := buildTestService(t, store).JoinWaitlist(who.ctx, &waitlistssvc.JoinWaitlistRequest{
+			WaitlistId: fake.BuildFakeID(),
+			Input:      &waitlistssvc.WaitlistSignupCreationRequestInput{},
+		})
+		assertCode(t, err, codes.FailedPrecondition)
+	})
 
-		require.Error(t, err)
-		assert.Nil(t, response)
-		assert.Equal(t, codes.Internal, status.Code(err))
+	t.Run("refuses a request with no input", func(t *testing.T) {
+		t.Parallel()
 
-		assert.Len(t, mockRepo.CreateWaitlistSignupCalls(), 1)
+		who := userContextForTest(t)
+
+		_, err := buildTestService(t, nil).JoinWaitlist(who.ctx, &waitlistssvc.JoinWaitlistRequest{WaitlistId: fake.BuildFakeID()})
+		assertCode(t, err, codes.InvalidArgument)
+	})
+
+	t.Run("requires a session", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := buildTestService(t, nil).JoinWaitlist(t.Context(), &waitlistssvc.JoinWaitlistRequest{})
+		assertCode(t, err, codes.Unauthenticated)
 	})
 }
 
 func TestServiceImpl_GetWaitlistSignup(t *testing.T) {
 	t.Parallel()
 
-	t.Run("success", func(t *testing.T) {
+	t.Run("reads the caller's own signup", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := buildSessionContextForTest(t)
-		service, mockRepo := buildTestService(t)
+		who := userContextForTest(t)
+		example := waitlistfakes.BuildFakeWaitlistSignupForUser(who.userID)
 
-		fakeSignup := waitlistfakes.BuildFakeWaitlistSignup()
-		fakeSignup.BelongsToUser = testSessionUserID
-		signupID := fake.BuildFakeID()
-		waitlistID := fake.BuildFakeID()
+		store := &waitlistsmock.StoreMock{
+			GetSignupFunc: func(_ context.Context, scope tenancy.Scope, listID, signupID string) (*waitlists.Signup, error) {
+				assert.Equal(t, ddbwaitlists.Scope(), scope)
+				assert.Equal(t, example.ListID, listID)
+				assert.Equal(t, example.ID, signupID)
 
-		mockRepo.GetWaitlistSignupFunc = func(_ context.Context, waitlistSignupID string, actualWaitlistID string) (*waitlists.WaitlistSignup, error) {
-			assert.Equal(t, signupID, waitlistSignupID)
-			assert.Equal(t, waitlistID, actualWaitlistID)
-
-			return fakeSignup, nil
+				return example, nil
+			},
 		}
 
-		request := &waitlistssvc.GetWaitlistSignupRequest{
-			WaitlistSignupId: signupID,
-			WaitlistId:       waitlistID,
-		}
-
-		response, err := service.GetWaitlistSignup(ctx, request)
-
+		res, err := buildTestService(t, store).GetWaitlistSignup(who.ctx, &waitlistssvc.GetWaitlistSignupRequest{
+			WaitlistId:       example.ListID,
+			WaitlistSignupId: example.ID,
+		})
 		require.NoError(t, err)
-		assert.NotNil(t, response)
-		assert.NotNil(t, response.Result)
-		assert.NotNil(t, response.ResponseDetails)
-		assert.Equal(t, fakeSignup.ID, response.Result.Id)
-		assert.Equal(t, fakeSignup.Notes, response.Result.Notes)
-
-		assert.Len(t, mockRepo.GetWaitlistSignupCalls(), 1)
+		assert.Equal(t, example.ID, res.GetResult().GetId())
+		assert.Equal(t, example.Contact, res.GetResult().GetContact())
 	})
 
-	t.Run("as service admin for another user's signup", func(t *testing.T) {
+	// A signup is user-owned, which the scope cannot express: every list here is
+	// global, so what makes a signup somebody's is its subject.
+	t.Run("refuses somebody else's signup", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := buildAdminSessionContextForTest(t)
-		service, mockRepo := buildTestService(t)
+		who := userContextForTest(t)
+		example := waitlistfakes.BuildFakeWaitlistSignupForUser(fake.BuildFakeID())
 
-		fakeSignup := waitlistfakes.BuildFakeWaitlistSignup()
-		signupID := fake.BuildFakeID()
-		waitlistID := fake.BuildFakeID()
-
-		mockRepo.GetWaitlistSignupFunc = func(_ context.Context, waitlistSignupID string, actualWaitlistID string) (*waitlists.WaitlistSignup, error) {
-			assert.Equal(t, signupID, waitlistSignupID)
-			assert.Equal(t, waitlistID, actualWaitlistID)
-
-			return fakeSignup, nil
+		store := &waitlistsmock.StoreMock{
+			GetSignupFunc: func(context.Context, tenancy.Scope, string, string) (*waitlists.Signup, error) {
+				return example, nil
+			},
 		}
 
-		request := &waitlistssvc.GetWaitlistSignupRequest{
-			WaitlistSignupId: signupID,
-			WaitlistId:       waitlistID,
+		_, err := buildTestService(t, store).GetWaitlistSignup(who.ctx, &waitlistssvc.GetWaitlistSignupRequest{
+			WaitlistId:       example.ListID,
+			WaitlistSignupId: example.ID,
+		})
+		assertCode(t, err, codes.PermissionDenied)
+	})
+
+	t.Run("lets a service admin read anybody's", func(t *testing.T) {
+		t.Parallel()
+
+		who := adminContextForTest(t)
+		example := waitlistfakes.BuildFakeWaitlistSignupForUser(fake.BuildFakeID())
+
+		store := &waitlistsmock.StoreMock{
+			GetSignupFunc: func(context.Context, tenancy.Scope, string, string) (*waitlists.Signup, error) {
+				return example, nil
+			},
 		}
 
-		response, err := service.GetWaitlistSignup(ctx, request)
-
+		res, err := buildTestService(t, store).GetWaitlistSignup(who.ctx, &waitlistssvc.GetWaitlistSignupRequest{
+			WaitlistId:       example.ListID,
+			WaitlistSignupId: example.ID,
+		})
 		require.NoError(t, err)
-		assert.NotNil(t, response)
-
-		assert.Len(t, mockRepo.GetWaitlistSignupCalls(), 1)
+		assert.Equal(t, example.ID, res.GetResult().GetId())
 	})
 
-	t.Run("as another user", func(t *testing.T) {
+	t.Run("requires a session", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := buildSessionContextForTest(t)
-		service, mockRepo := buildTestService(t)
-
-		fakeSignup := waitlistfakes.BuildFakeWaitlistSignup()
-		signupID := fake.BuildFakeID()
-		waitlistID := fake.BuildFakeID()
-
-		mockRepo.GetWaitlistSignupFunc = func(_ context.Context, waitlistSignupID string, actualWaitlistID string) (*waitlists.WaitlistSignup, error) {
-			assert.Equal(t, signupID, waitlistSignupID)
-			assert.Equal(t, waitlistID, actualWaitlistID)
-
-			return fakeSignup, nil
-		}
-
-		request := &waitlistssvc.GetWaitlistSignupRequest{
-			WaitlistSignupId: signupID,
-			WaitlistId:       waitlistID,
-		}
-
-		response, err := service.GetWaitlistSignup(ctx, request)
-
-		require.Error(t, err)
-		assert.Nil(t, response)
-		assert.Equal(t, codes.PermissionDenied, status.Code(err))
-
-		assert.Len(t, mockRepo.GetWaitlistSignupCalls(), 1)
-	})
-
-	t.Run("session context error", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		service, _ := buildTestService(t)
-
-		request := &waitlistssvc.GetWaitlistSignupRequest{
-			WaitlistSignupId: fake.BuildFakeID(),
-			WaitlistId:       fake.BuildFakeID(),
-		}
-
-		response, err := service.GetWaitlistSignup(ctx, request)
-
-		require.Error(t, err)
-		assert.Nil(t, response)
-		assert.Equal(t, codes.Unauthenticated, status.Code(err))
-	})
-
-	t.Run("repository error", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := buildSessionContextForTest(t)
-		service, mockRepo := buildTestService(t)
-
-		signupID := fake.BuildFakeID()
-		waitlistID := fake.BuildFakeID()
-
-		mockRepo.GetWaitlistSignupFunc = func(_ context.Context, waitlistSignupID string, actualWaitlistID string) (*waitlists.WaitlistSignup, error) {
-			assert.Equal(t, signupID, waitlistSignupID)
-			assert.Equal(t, waitlistID, actualWaitlistID)
-
-			return nil, errors.New("repository error")
-		}
-
-		request := &waitlistssvc.GetWaitlistSignupRequest{
-			WaitlistSignupId: signupID,
-			WaitlistId:       waitlistID,
-		}
-
-		response, err := service.GetWaitlistSignup(ctx, request)
-
-		require.Error(t, err)
-		assert.Nil(t, response)
-		assert.Equal(t, codes.Internal, status.Code(err))
-
-		assert.Len(t, mockRepo.GetWaitlistSignupCalls(), 1)
+		_, err := buildTestService(t, nil).GetWaitlistSignup(t.Context(), &waitlistssvc.GetWaitlistSignupRequest{})
+		assertCode(t, err, codes.Unauthenticated)
 	})
 }
 
+// TestServiceImpl_GetWaitlistSignupsForWaitlist pins that the list-wide read is
+// service-admin-only. It hands back every signatory's address, which is exactly
+// the read a member of the list must not have.
 func TestServiceImpl_GetWaitlistSignupsForWaitlist(t *testing.T) {
 	t.Parallel()
 
-	t.Run("success as service admin", func(t *testing.T) {
+	t.Run("pages one list's signups for a service admin", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := buildAdminSessionContextForTest(t)
-		service, mockRepo := buildTestService(t)
+		who := adminContextForTest(t)
+		page := waitlistfakes.BuildFakeWaitlistSignupList()
+		listID := fake.BuildFakeID()
 
-		fakeSignups := waitlistfakes.BuildFakeWaitlistSignupsList()
-		waitlistID := fake.BuildFakeID()
+		store := &waitlistsmock.StoreMock{
+			ListSignupsFunc: func(_ context.Context, scope tenancy.Scope, id string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[waitlists.Signup], error) {
+				assert.Equal(t, ddbwaitlists.Scope(), scope)
+				assert.Equal(t, listID, id)
 
-		mockRepo.GetWaitlistSignupsForWaitlistFunc = func(_ context.Context, actualWaitlistID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[waitlists.WaitlistSignup], error) {
-			assert.Equal(t, waitlistID, actualWaitlistID)
-
-			return fakeSignups, nil
+				return page, nil
+			},
 		}
 
-		request := &waitlistssvc.GetWaitlistSignupsForWaitlistRequest{
-			WaitlistId: waitlistID,
-			Filter:     &filteringpb.QueryFilter{},
-		}
-
-		response, err := service.GetWaitlistSignupsForWaitlist(ctx, request)
-
+		res, err := buildTestService(t, store).GetWaitlistSignupsForWaitlist(who.ctx, &waitlistssvc.GetWaitlistSignupsForWaitlistRequest{
+			WaitlistId: listID,
+		})
 		require.NoError(t, err)
-		assert.NotNil(t, response)
-		assert.NotNil(t, response.ResponseDetails)
-		assert.Len(t, response.Results, len(fakeSignups.Data))
-		if len(fakeSignups.Data) > 0 {
-			assert.Equal(t, fakeSignups.Data[0].ID, response.Results[0].Id)
-		}
-
-		assert.Len(t, mockRepo.GetWaitlistSignupsForWaitlistCalls(), 1)
+		assert.Len(t, res.GetResults(), len(page.Data))
 	})
 
-	t.Run("as regular user", func(t *testing.T) {
+	t.Run("refuses an ordinary user before it reads anything", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := buildSessionContextForTest(t)
-		service, _ := buildTestService(t)
+		who := userContextForTest(t)
+		store := &waitlistsmock.StoreMock{}
 
-		request := &waitlistssvc.GetWaitlistSignupsForWaitlistRequest{
+		_, err := buildTestService(t, store).GetWaitlistSignupsForWaitlist(who.ctx, &waitlistssvc.GetWaitlistSignupsForWaitlistRequest{
 			WaitlistId: fake.BuildFakeID(),
-			Filter:     &filteringpb.QueryFilter{},
-		}
-
-		response, err := service.GetWaitlistSignupsForWaitlist(ctx, request)
-
-		require.Error(t, err)
-		assert.Nil(t, response)
-		assert.Equal(t, codes.PermissionDenied, status.Code(err))
+		})
+		assertCode(t, err, codes.PermissionDenied)
+		assert.Empty(t, store.ListSignupsCalls())
 	})
 
-	t.Run("session context error", func(t *testing.T) {
+	t.Run("requires a session", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
-		service, _ := buildTestService(t)
-
-		request := &waitlistssvc.GetWaitlistSignupsForWaitlistRequest{
-			WaitlistId: fake.BuildFakeID(),
-			Filter:     &filteringpb.QueryFilter{},
-		}
-
-		response, err := service.GetWaitlistSignupsForWaitlist(ctx, request)
-
-		require.Error(t, err)
-		assert.Nil(t, response)
-		assert.Equal(t, codes.Unauthenticated, status.Code(err))
-	})
-
-	t.Run("repository error", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := buildAdminSessionContextForTest(t)
-		service, mockRepo := buildTestService(t)
-
-		waitlistID := fake.BuildFakeID()
-
-		mockRepo.GetWaitlistSignupsForWaitlistFunc = func(_ context.Context, actualWaitlistID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[waitlists.WaitlistSignup], error) {
-			assert.Equal(t, waitlistID, actualWaitlistID)
-
-			return nil, errors.New("repository error")
-		}
-
-		request := &waitlistssvc.GetWaitlistSignupsForWaitlistRequest{
-			WaitlistId: waitlistID,
-			Filter:     &filteringpb.QueryFilter{},
-		}
-
-		response, err := service.GetWaitlistSignupsForWaitlist(ctx, request)
-
-		require.Error(t, err)
-		assert.Nil(t, response)
-		assert.Equal(t, codes.Internal, status.Code(err))
-
-		assert.Len(t, mockRepo.GetWaitlistSignupsForWaitlistCalls(), 1)
+		_, err := buildTestService(t, nil).GetWaitlistSignupsForWaitlist(t.Context(), &waitlistssvc.GetWaitlistSignupsForWaitlistRequest{})
+		assertCode(t, err, codes.Unauthenticated)
 	})
 }
 
 func TestServiceImpl_UpdateWaitlistSignup(t *testing.T) {
 	t.Parallel()
 
-	t.Run("success", func(t *testing.T) {
+	t.Run("rewrites the note on the caller's own signup", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := buildSessionContextForTest(t)
-		service, mockRepo := buildTestService(t)
+		who := userContextForTest(t)
+		example := waitlistfakes.BuildFakeWaitlistSignupForUser(who.userID)
 
-		fakeSignup := waitlistfakes.BuildFakeWaitlistSignup()
-		fakeSignup.BelongsToUser = testSessionUserID
-		signupID := fake.BuildFakeID()
-		waitlistID := fake.BuildFakeID()
-		newNotes := "updated notes"
+		var written string
+		store := &waitlistsmock.StoreMock{
+			GetSignupFunc: func(context.Context, tenancy.Scope, string, string) (*waitlists.Signup, error) {
+				return example, nil
+			},
+			UpdateSignupNotesFunc: func(_ context.Context, _ tenancy.Scope, _, _, notes string) error {
+				written = notes
 
-		mockRepo.GetWaitlistSignupFunc = func(_ context.Context, waitlistSignupID string, actualWaitlistID string) (*waitlists.WaitlistSignup, error) {
-			assert.Equal(t, signupID, waitlistSignupID)
-			assert.Equal(t, waitlistID, actualWaitlistID)
-
-			return fakeSignup, nil
-		}
-		mockRepo.UpdateWaitlistSignupFunc = func(_ context.Context, _ *waitlists.WaitlistSignup) error {
-			return nil
-		}
-
-		request := &waitlistssvc.UpdateWaitlistSignupRequest{
-			WaitlistSignupId: signupID,
-			WaitlistId:       waitlistID,
-			Input: &waitlistssvc.WaitlistSignupUpdateRequestInput{
-				Notes: &newNotes,
+				return nil
 			},
 		}
 
-		response, err := service.UpdateWaitlistSignup(ctx, request)
-
+		res, err := buildTestService(t, store).UpdateWaitlistSignup(who.ctx, &waitlistssvc.UpdateWaitlistSignupRequest{
+			WaitlistId:       example.ListID,
+			WaitlistSignupId: example.ID,
+			Input:            &waitlistssvc.WaitlistSignupUpdateRequestInput{Notes: pointer.To("changed my mind")},
+		})
 		require.NoError(t, err)
-		assert.NotNil(t, response)
-		assert.NotNil(t, response.Updated)
-		assert.NotNil(t, response.ResponseDetails)
-
-		assert.Len(t, mockRepo.GetWaitlistSignupCalls(), 1)
-		assert.Len(t, mockRepo.UpdateWaitlistSignupCalls(), 1)
+		assert.Equal(t, "changed my mind", written)
+		assert.Equal(t, "changed my mind", res.GetUpdated().GetNotes())
 	})
 
-	t.Run("as another user", func(t *testing.T) {
+	// An input that names no note leaves the stored one alone, which is what the
+	// optional field means. Writing the zero value through would erase a note by
+	// omission.
+	t.Run("leaves the note alone when the input names none", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := buildSessionContextForTest(t)
-		service, mockRepo := buildTestService(t)
+		who := userContextForTest(t)
+		example := waitlistfakes.BuildFakeWaitlistSignupForUser(who.userID)
 
-		fakeSignup := waitlistfakes.BuildFakeWaitlistSignup()
-		signupID := fake.BuildFakeID()
-		waitlistID := fake.BuildFakeID()
-		newNotes := "updated notes"
+		var written string
+		store := &waitlistsmock.StoreMock{
+			GetSignupFunc: func(context.Context, tenancy.Scope, string, string) (*waitlists.Signup, error) {
+				return example, nil
+			},
+			UpdateSignupNotesFunc: func(_ context.Context, _ tenancy.Scope, _, _, notes string) error {
+				written = notes
 
-		mockRepo.GetWaitlistSignupFunc = func(_ context.Context, waitlistSignupID string, actualWaitlistID string) (*waitlists.WaitlistSignup, error) {
-			assert.Equal(t, signupID, waitlistSignupID)
-			assert.Equal(t, waitlistID, actualWaitlistID)
-
-			return fakeSignup, nil
-		}
-
-		request := &waitlistssvc.UpdateWaitlistSignupRequest{
-			WaitlistSignupId: signupID,
-			WaitlistId:       waitlistID,
-			Input: &waitlistssvc.WaitlistSignupUpdateRequestInput{
-				Notes: &newNotes,
+				return nil
 			},
 		}
 
-		response, err := service.UpdateWaitlistSignup(ctx, request)
-
-		require.Error(t, err)
-		assert.Nil(t, response)
-		assert.Equal(t, codes.PermissionDenied, status.Code(err))
-
-		assert.Len(t, mockRepo.GetWaitlistSignupCalls(), 1)
+		_, err := buildTestService(t, store).UpdateWaitlistSignup(who.ctx, &waitlistssvc.UpdateWaitlistSignupRequest{
+			WaitlistId:       example.ListID,
+			WaitlistSignupId: example.ID,
+			Input:            &waitlistssvc.WaitlistSignupUpdateRequestInput{},
+		})
+		require.NoError(t, err)
+		assert.Equal(t, example.Notes, written)
 	})
 
-	t.Run("session context error", func(t *testing.T) {
+	t.Run("refuses somebody else's signup", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
-		service, _ := buildTestService(t)
+		who := userContextForTest(t)
+		example := waitlistfakes.BuildFakeWaitlistSignupForUser(fake.BuildFakeID())
 
-		request := &waitlistssvc.UpdateWaitlistSignupRequest{
-			WaitlistSignupId: fake.BuildFakeID(),
+		store := &waitlistsmock.StoreMock{
+			GetSignupFunc: func(context.Context, tenancy.Scope, string, string) (*waitlists.Signup, error) {
+				return example, nil
+			},
+		}
+
+		_, err := buildTestService(t, store).UpdateWaitlistSignup(who.ctx, &waitlistssvc.UpdateWaitlistSignupRequest{
+			WaitlistId:       example.ListID,
+			WaitlistSignupId: example.ID,
+			Input:            &waitlistssvc.WaitlistSignupUpdateRequestInput{Notes: pointer.To("nope")},
+		})
+		assertCode(t, err, codes.PermissionDenied)
+		assert.Empty(t, store.UpdateSignupNotesCalls())
+	})
+
+	t.Run("requires a session", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := buildTestService(t, nil).UpdateWaitlistSignup(t.Context(), &waitlistssvc.UpdateWaitlistSignupRequest{})
+		assertCode(t, err, codes.Unauthenticated)
+	})
+}
+
+// TestServiceImpl_InviteWaitlistSignup pins that working the queue is the
+// operator's. Being on a list does not entitle somebody to invite themselves off
+// it, which is the whole difference between a queue and a form.
+func TestServiceImpl_InviteWaitlistSignup(t *testing.T) {
+	t.Parallel()
+
+	t.Run("moves the signup and reads back where it landed", func(t *testing.T) {
+		t.Parallel()
+
+		who := adminContextForTest(t)
+		example := waitlistfakes.BuildFakeWaitlistSignupForUser(fake.BuildFakeID())
+
+		invited := *example
+		invited.Status = waitlists.StatusInvited
+		invited.StatusChangedAt = pointer.To(time.Now().UTC())
+
+		store := &waitlistsmock.StoreMock{
+			InviteFunc: func(_ context.Context, scope tenancy.Scope, listID, signupID string) error {
+				assert.Equal(t, ddbwaitlists.Scope(), scope)
+				assert.Equal(t, example.ListID, listID)
+				assert.Equal(t, example.ID, signupID)
+
+				return nil
+			},
+			GetSignupFunc: func(context.Context, tenancy.Scope, string, string) (*waitlists.Signup, error) {
+				return &invited, nil
+			},
+		}
+
+		res, err := buildTestService(t, store).InviteWaitlistSignup(who.ctx, &waitlistssvc.InviteWaitlistSignupRequest{
+			WaitlistId:       example.ListID,
+			WaitlistSignupId: example.ID,
+		})
+		require.NoError(t, err)
+		assert.Equal(t, waitlists.StatusInvited.String(), res.GetUpdated().GetStatus())
+		assert.NotNil(t, res.GetUpdated().GetStatusChangedAt())
+	})
+
+	// The guard is what makes an invitation happen once. Two operators inviting
+	// the same person send one email between them, and the second is told so.
+	t.Run("reports a lost guard as a failed precondition", func(t *testing.T) {
+		t.Parallel()
+
+		who := adminContextForTest(t)
+
+		store := &waitlistsmock.StoreMock{
+			InviteFunc: func(context.Context, tenancy.Scope, string, string) error {
+				return waitlists.ErrWrongStatus
+			},
+		}
+
+		_, err := buildTestService(t, store).InviteWaitlistSignup(who.ctx, &waitlistssvc.InviteWaitlistSignupRequest{
 			WaitlistId:       fake.BuildFakeID(),
-			Input:            &waitlistssvc.WaitlistSignupUpdateRequestInput{},
-		}
-
-		response, err := service.UpdateWaitlistSignup(ctx, request)
-
-		require.Error(t, err)
-		assert.Nil(t, response)
-		assert.Equal(t, codes.Unauthenticated, status.Code(err))
+			WaitlistSignupId: fake.BuildFakeID(),
+		})
+		assertCode(t, err, codes.FailedPrecondition)
 	})
 
-	t.Run("get signup error", func(t *testing.T) {
+	t.Run("refuses an ordinary user before it writes anything", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := buildSessionContextForTest(t)
-		service, mockRepo := buildTestService(t)
+		who := userContextForTest(t)
+		store := &waitlistsmock.StoreMock{}
 
-		signupID := fake.BuildFakeID()
-		waitlistID := fake.BuildFakeID()
-
-		mockRepo.GetWaitlistSignupFunc = func(_ context.Context, waitlistSignupID string, actualWaitlistID string) (*waitlists.WaitlistSignup, error) {
-			assert.Equal(t, signupID, waitlistSignupID)
-			assert.Equal(t, waitlistID, actualWaitlistID)
-
-			return nil, errors.New("repository error")
-		}
-
-		request := &waitlistssvc.UpdateWaitlistSignupRequest{
-			WaitlistSignupId: signupID,
-			WaitlistId:       waitlistID,
-			Input:            &waitlistssvc.WaitlistSignupUpdateRequestInput{},
-		}
-
-		response, err := service.UpdateWaitlistSignup(ctx, request)
-
-		require.Error(t, err)
-		assert.Nil(t, response)
-		assert.Equal(t, codes.Internal, status.Code(err))
-
-		assert.Len(t, mockRepo.GetWaitlistSignupCalls(), 1)
+		_, err := buildTestService(t, store).InviteWaitlistSignup(who.ctx, &waitlistssvc.InviteWaitlistSignupRequest{
+			WaitlistId:       fake.BuildFakeID(),
+			WaitlistSignupId: fake.BuildFakeID(),
+		})
+		assertCode(t, err, codes.PermissionDenied)
+		assert.Empty(t, store.InviteCalls())
 	})
 
-	t.Run("update error", func(t *testing.T) {
+	t.Run("requires a session", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := buildSessionContextForTest(t)
-		service, mockRepo := buildTestService(t)
+		_, err := buildTestService(t, nil).InviteWaitlistSignup(t.Context(), &waitlistssvc.InviteWaitlistSignupRequest{})
+		assertCode(t, err, codes.Unauthenticated)
+	})
+}
 
-		fakeSignup := waitlistfakes.BuildFakeWaitlistSignup()
-		fakeSignup.BelongsToUser = testSessionUserID
-		signupID := fake.BuildFakeID()
-		waitlistID := fake.BuildFakeID()
-		newNotes := "updated notes"
+func TestServiceImpl_ConvertWaitlistSignup(t *testing.T) {
+	t.Parallel()
 
-		mockRepo.GetWaitlistSignupFunc = func(_ context.Context, waitlistSignupID string, actualWaitlistID string) (*waitlists.WaitlistSignup, error) {
-			assert.Equal(t, signupID, waitlistSignupID)
-			assert.Equal(t, waitlistID, actualWaitlistID)
+	t.Run("marks the invitation taken up", func(t *testing.T) {
+		t.Parallel()
 
-			return fakeSignup, nil
-		}
-		mockRepo.UpdateWaitlistSignupFunc = func(_ context.Context, _ *waitlists.WaitlistSignup) error {
-			return errors.New("update error")
-		}
+		who := adminContextForTest(t)
+		example := waitlistfakes.BuildFakeWaitlistSignupForUser(fake.BuildFakeID())
 
-		request := &waitlistssvc.UpdateWaitlistSignupRequest{
-			WaitlistSignupId: signupID,
-			WaitlistId:       waitlistID,
-			Input: &waitlistssvc.WaitlistSignupUpdateRequestInput{
-				Notes: &newNotes,
+		converted := *example
+		converted.Status = waitlists.StatusConverted
+
+		store := &waitlistsmock.StoreMock{
+			ConvertFunc: func(context.Context, tenancy.Scope, string, string) error {
+				return nil
+			},
+			GetSignupFunc: func(context.Context, tenancy.Scope, string, string) (*waitlists.Signup, error) {
+				return &converted, nil
 			},
 		}
 
-		response, err := service.UpdateWaitlistSignup(ctx, request)
+		res, err := buildTestService(t, store).ConvertWaitlistSignup(who.ctx, &waitlistssvc.ConvertWaitlistSignupRequest{
+			WaitlistId:       example.ListID,
+			WaitlistSignupId: example.ID,
+		})
+		require.NoError(t, err)
+		assert.Equal(t, waitlists.StatusConverted.String(), res.GetUpdated().GetStatus())
+	})
 
-		require.Error(t, err)
-		assert.Nil(t, response)
-		assert.Equal(t, codes.Internal, status.Code(err))
+	t.Run("refuses an ordinary user before it writes anything", func(t *testing.T) {
+		t.Parallel()
 
-		assert.Len(t, mockRepo.GetWaitlistSignupCalls(), 1)
-		assert.Len(t, mockRepo.UpdateWaitlistSignupCalls(), 1)
+		who := userContextForTest(t)
+		store := &waitlistsmock.StoreMock{}
+
+		_, err := buildTestService(t, store).ConvertWaitlistSignup(who.ctx, &waitlistssvc.ConvertWaitlistSignupRequest{
+			WaitlistId:       fake.BuildFakeID(),
+			WaitlistSignupId: fake.BuildFakeID(),
+		})
+		assertCode(t, err, codes.PermissionDenied)
+		assert.Empty(t, store.ConvertCalls())
+	})
+
+	t.Run("requires a session", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := buildTestService(t, nil).ConvertWaitlistSignup(t.Context(), &waitlistssvc.ConvertWaitlistSignupRequest{})
+		assertCode(t, err, codes.Unauthenticated)
+	})
+}
+
+// TestServiceImpl_WithdrawFromWaitlist is the opt-out, which is what this
+// adoption was for. The local domain had no equivalent at all.
+func TestServiceImpl_WithdrawFromWaitlist(t *testing.T) {
+	t.Parallel()
+
+	t.Run("takes the caller off the list and hands back the blanked row", func(t *testing.T) {
+		t.Parallel()
+
+		who := userContextForTest(t)
+		example := waitlistfakes.BuildFakeWaitlistSignupForUser(who.userID)
+
+		withdrawn := *example
+		withdrawn.Status = waitlists.StatusWithdrawn
+		withdrawn.Contact = ""
+		withdrawn.Notes = ""
+		withdrawn.Subject = waitlists.Subject{}
+
+		var read int
+		store := &waitlistsmock.StoreMock{
+			GetSignupFunc: func(context.Context, tenancy.Scope, string, string) (*waitlists.Signup, error) {
+				read++
+				if read == 1 {
+					return example, nil
+				}
+
+				return &withdrawn, nil
+			},
+			WithdrawFunc: func(_ context.Context, scope tenancy.Scope, listID, signupID string) error {
+				assert.Equal(t, ddbwaitlists.Scope(), scope)
+				assert.Equal(t, example.ListID, listID)
+				assert.Equal(t, example.ID, signupID)
+
+				return nil
+			},
+		}
+
+		res, err := buildTestService(t, store).WithdrawFromWaitlist(who.ctx, &waitlistssvc.WithdrawFromWaitlistRequest{
+			WaitlistId:       example.ListID,
+			WaitlistSignupId: example.ID,
+		})
+		require.NoError(t, err)
+
+		// The response is what an unsubscribe page renders: off the list, and
+		// holding nothing about the person any more.
+		assert.Equal(t, waitlists.StatusWithdrawn.String(), res.GetUpdated().GetStatus())
+		assert.Empty(t, res.GetUpdated().GetContact())
+		assert.Empty(t, res.GetUpdated().GetSubjectId())
+	})
+
+	t.Run("reports a second withdrawal rather than restamping it", func(t *testing.T) {
+		t.Parallel()
+
+		who := userContextForTest(t)
+		example := waitlistfakes.BuildFakeWaitlistSignupForUser(who.userID)
+
+		store := &waitlistsmock.StoreMock{
+			GetSignupFunc: func(context.Context, tenancy.Scope, string, string) (*waitlists.Signup, error) {
+				return example, nil
+			},
+			WithdrawFunc: func(context.Context, tenancy.Scope, string, string) error {
+				return waitlists.ErrAlreadyWithdrawn
+			},
+		}
+
+		_, err := buildTestService(t, store).WithdrawFromWaitlist(who.ctx, &waitlistssvc.WithdrawFromWaitlistRequest{
+			WaitlistId:       example.ListID,
+			WaitlistSignupId: example.ID,
+		})
+		assertCode(t, err, codes.FailedPrecondition)
+	})
+
+	t.Run("refuses to withdraw somebody else", func(t *testing.T) {
+		t.Parallel()
+
+		who := userContextForTest(t)
+		example := waitlistfakes.BuildFakeWaitlistSignupForUser(fake.BuildFakeID())
+
+		store := &waitlistsmock.StoreMock{
+			GetSignupFunc: func(context.Context, tenancy.Scope, string, string) (*waitlists.Signup, error) {
+				return example, nil
+			},
+		}
+
+		_, err := buildTestService(t, store).WithdrawFromWaitlist(who.ctx, &waitlistssvc.WithdrawFromWaitlistRequest{
+			WaitlistId:       example.ListID,
+			WaitlistSignupId: example.ID,
+		})
+		assertCode(t, err, codes.PermissionDenied)
+		assert.Empty(t, store.WithdrawCalls())
+	})
+
+	// Somebody who has asked to come off a list by another channel has still
+	// asked, so an operator may do it for them.
+	t.Run("lets a service admin withdraw on somebody's behalf", func(t *testing.T) {
+		t.Parallel()
+
+		who := adminContextForTest(t)
+		example := waitlistfakes.BuildFakeWaitlistSignupForUser(fake.BuildFakeID())
+
+		store := &waitlistsmock.StoreMock{
+			GetSignupFunc: func(context.Context, tenancy.Scope, string, string) (*waitlists.Signup, error) {
+				return example, nil
+			},
+			WithdrawFunc: func(context.Context, tenancy.Scope, string, string) error {
+				return nil
+			},
+		}
+
+		_, err := buildTestService(t, store).WithdrawFromWaitlist(who.ctx, &waitlistssvc.WithdrawFromWaitlistRequest{
+			WaitlistId:       example.ListID,
+			WaitlistSignupId: example.ID,
+		})
+		require.NoError(t, err)
+		assert.Len(t, store.WithdrawCalls(), 1)
+	})
+
+	t.Run("requires a session", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := buildTestService(t, nil).WithdrawFromWaitlist(t.Context(), &waitlistssvc.WithdrawFromWaitlistRequest{})
+		assertCode(t, err, codes.Unauthenticated)
 	})
 }
 
 func TestServiceImpl_ArchiveWaitlistSignup(t *testing.T) {
 	t.Parallel()
 
-	t.Run("success", func(t *testing.T) {
+	t.Run("retires the caller's own signup", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := buildSessionContextForTest(t)
-		service, mockRepo := buildTestService(t)
+		who := userContextForTest(t)
+		example := waitlistfakes.BuildFakeWaitlistSignupForUser(who.userID)
 
-		fakeSignup := waitlistfakes.BuildFakeWaitlistSignup()
-		fakeSignup.BelongsToUser = testSessionUserID
-		signupID := fake.BuildFakeID()
+		store := &waitlistsmock.StoreMock{
+			GetSignupFunc: func(context.Context, tenancy.Scope, string, string) (*waitlists.Signup, error) {
+				return example, nil
+			},
+			ArchiveSignupFunc: func(_ context.Context, scope tenancy.Scope, listID, signupID string) error {
+				assert.Equal(t, ddbwaitlists.Scope(), scope)
+				assert.Equal(t, example.ListID, listID)
+				assert.Equal(t, example.ID, signupID)
 
-		mockRepo.GetWaitlistSignupByIDFunc = func(_ context.Context, waitlistSignupID string) (*waitlists.WaitlistSignup, error) {
-			assert.Equal(t, signupID, waitlistSignupID)
-
-			return fakeSignup, nil
-		}
-		mockRepo.ArchiveWaitlistSignupFunc = func(_ context.Context, waitlistSignupID string) error {
-			assert.Equal(t, signupID, waitlistSignupID)
-
-			return nil
+				return nil
+			},
 		}
 
-		request := &waitlistssvc.ArchiveWaitlistSignupRequest{
-			WaitlistSignupId: signupID,
-		}
-
-		response, err := service.ArchiveWaitlistSignup(ctx, request)
-
+		res, err := buildTestService(t, store).ArchiveWaitlistSignup(who.ctx, &waitlistssvc.ArchiveWaitlistSignupRequest{
+			WaitlistId:       example.ListID,
+			WaitlistSignupId: example.ID,
+		})
 		require.NoError(t, err)
-		assert.NotNil(t, response)
-		assert.NotNil(t, response.ResponseDetails)
-
-		assert.Len(t, mockRepo.GetWaitlistSignupByIDCalls(), 1)
-		assert.Len(t, mockRepo.ArchiveWaitlistSignupCalls(), 1)
+		assert.NotNil(t, res.GetResponseDetails())
 	})
 
-	t.Run("as service admin for another user's signup", func(t *testing.T) {
+	t.Run("refuses somebody else's signup", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := buildAdminSessionContextForTest(t)
-		service, mockRepo := buildTestService(t)
+		who := userContextForTest(t)
+		example := waitlistfakes.BuildFakeWaitlistSignupForUser(fake.BuildFakeID())
 
-		fakeSignup := waitlistfakes.BuildFakeWaitlistSignup()
-		signupID := fake.BuildFakeID()
-
-		mockRepo.GetWaitlistSignupByIDFunc = func(_ context.Context, waitlistSignupID string) (*waitlists.WaitlistSignup, error) {
-			assert.Equal(t, signupID, waitlistSignupID)
-
-			return fakeSignup, nil
-		}
-		mockRepo.ArchiveWaitlistSignupFunc = func(_ context.Context, waitlistSignupID string) error {
-			assert.Equal(t, signupID, waitlistSignupID)
-
-			return nil
+		store := &waitlistsmock.StoreMock{
+			GetSignupFunc: func(context.Context, tenancy.Scope, string, string) (*waitlists.Signup, error) {
+				return example, nil
+			},
 		}
 
-		request := &waitlistssvc.ArchiveWaitlistSignupRequest{
-			WaitlistSignupId: signupID,
-		}
-
-		response, err := service.ArchiveWaitlistSignup(ctx, request)
-
-		require.NoError(t, err)
-		assert.NotNil(t, response)
-
-		assert.Len(t, mockRepo.GetWaitlistSignupByIDCalls(), 1)
-		assert.Len(t, mockRepo.ArchiveWaitlistSignupCalls(), 1)
+		_, err := buildTestService(t, store).ArchiveWaitlistSignup(who.ctx, &waitlistssvc.ArchiveWaitlistSignupRequest{
+			WaitlistId:       example.ListID,
+			WaitlistSignupId: example.ID,
+		})
+		assertCode(t, err, codes.PermissionDenied)
+		assert.Empty(t, store.ArchiveSignupCalls())
 	})
 
-	t.Run("as another user", func(t *testing.T) {
+	t.Run("requires a session", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := buildSessionContextForTest(t)
-		service, mockRepo := buildTestService(t)
-
-		fakeSignup := waitlistfakes.BuildFakeWaitlistSignup()
-		signupID := fake.BuildFakeID()
-
-		mockRepo.GetWaitlistSignupByIDFunc = func(_ context.Context, waitlistSignupID string) (*waitlists.WaitlistSignup, error) {
-			assert.Equal(t, signupID, waitlistSignupID)
-
-			return fakeSignup, nil
-		}
-
-		request := &waitlistssvc.ArchiveWaitlistSignupRequest{
-			WaitlistSignupId: signupID,
-		}
-
-		response, err := service.ArchiveWaitlistSignup(ctx, request)
-
-		require.Error(t, err)
-		assert.Nil(t, response)
-		assert.Equal(t, codes.PermissionDenied, status.Code(err))
-
-		assert.Len(t, mockRepo.GetWaitlistSignupByIDCalls(), 1)
-	})
-
-	t.Run("session context error", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		service, _ := buildTestService(t)
-
-		request := &waitlistssvc.ArchiveWaitlistSignupRequest{
-			WaitlistSignupId: fake.BuildFakeID(),
-		}
-
-		response, err := service.ArchiveWaitlistSignup(ctx, request)
-
-		require.Error(t, err)
-		assert.Nil(t, response)
-		assert.Equal(t, codes.Unauthenticated, status.Code(err))
-	})
-
-	t.Run("get signup error", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := buildSessionContextForTest(t)
-		service, mockRepo := buildTestService(t)
-
-		signupID := fake.BuildFakeID()
-
-		mockRepo.GetWaitlistSignupByIDFunc = func(_ context.Context, waitlistSignupID string) (*waitlists.WaitlistSignup, error) {
-			assert.Equal(t, signupID, waitlistSignupID)
-
-			return nil, errors.New("repository error")
-		}
-
-		request := &waitlistssvc.ArchiveWaitlistSignupRequest{
-			WaitlistSignupId: signupID,
-		}
-
-		response, err := service.ArchiveWaitlistSignup(ctx, request)
-
-		require.Error(t, err)
-		assert.Nil(t, response)
-		assert.Equal(t, codes.Internal, status.Code(err))
-
-		assert.Len(t, mockRepo.GetWaitlistSignupByIDCalls(), 1)
-	})
-
-	t.Run("repository error", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := buildSessionContextForTest(t)
-		service, mockRepo := buildTestService(t)
-
-		fakeSignup := waitlistfakes.BuildFakeWaitlistSignup()
-		fakeSignup.BelongsToUser = testSessionUserID
-		signupID := fake.BuildFakeID()
-
-		mockRepo.GetWaitlistSignupByIDFunc = func(_ context.Context, waitlistSignupID string) (*waitlists.WaitlistSignup, error) {
-			assert.Equal(t, signupID, waitlistSignupID)
-
-			return fakeSignup, nil
-		}
-		mockRepo.ArchiveWaitlistSignupFunc = func(_ context.Context, waitlistSignupID string) error {
-			assert.Equal(t, signupID, waitlistSignupID)
-
-			return errors.New("repository error")
-		}
-
-		request := &waitlistssvc.ArchiveWaitlistSignupRequest{
-			WaitlistSignupId: signupID,
-		}
-
-		response, err := service.ArchiveWaitlistSignup(ctx, request)
-
-		require.Error(t, err)
-		assert.Nil(t, response)
-		assert.Equal(t, codes.Internal, status.Code(err))
-
-		assert.Len(t, mockRepo.GetWaitlistSignupByIDCalls(), 1)
-		assert.Len(t, mockRepo.ArchiveWaitlistSignupCalls(), 1)
-	})
-}
-
-func TestServiceImpl_InterfaceCompliance(t *testing.T) {
-	t.Parallel()
-
-	t.Run("implements WaitlistsServiceServer", func(t *testing.T) {
-		t.Parallel()
-
-		service, _ := buildTestService(t)
-		assert.Implements(t, (*waitlistssvc.WaitlistsServiceServer)(nil), service)
+		_, err := buildTestService(t, nil).ArchiveWaitlistSignup(t.Context(), &waitlistssvc.ArchiveWaitlistSignupRequest{})
+		assertCode(t, err, codes.Unauthenticated)
 	})
 }

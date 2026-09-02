@@ -15,7 +15,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
-	waitlistsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/waitlists"
 
 	"github.com/primandproper/platform-go/v13/authentication/oauth2server"
 	"github.com/primandproper/platform-go/v13/encoding"
@@ -24,6 +23,7 @@ import (
 	"github.com/primandproper/platform-go/v13/routing"
 	routingcfg "github.com/primandproper/platform-go/v13/routing/config"
 	"github.com/primandproper/platform-go/v13/version"
+	waitlists "github.com/primandproper/platform-go/v13/waitlists"
 
 	"github.com/modelcontextprotocol/go-sdk/auth"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -206,7 +206,7 @@ func buildRouter(ctx context.Context, mcpHandler http.Handler, authServer *oauth
 type mcpToolManager struct {
 	mealplanningRepo mealplanning.Repository
 	webhooksRepo     webhooks.Repository
-	waitlistsRepo    *waitlistsrepo.Repository
+	waitlists        waitlists.Store
 	issueReports     issuereports.Store
 }
 
@@ -330,12 +330,11 @@ func (h *mcpToolManager) setupServer() *mcp.Server {
 	mcp.AddTool(mcpServer, getWebhooksTool, h.GetWebhooks())
 	mcp.AddTool(mcpServer, getWebhookEventTypesTool, h.GetWebhookEventTypes())
 
-	// Waitlists (read-only)
+	// Waitlists (read-only, catalog only — see waitlists_waitlists.go for why the
+	// signups are not here)
 	mcp.AddTool(mcpServer, getWaitlistTool, h.GetWaitlist())
 	mcp.AddTool(mcpServer, getWaitlistsTool, h.GetWaitlists())
-	mcp.AddTool(mcpServer, getActiveWaitlistsTool, h.GetActiveWaitlists())
-	mcp.AddTool(mcpServer, getWaitlistSignupTool, h.GetWaitlistSignup())
-	mcp.AddTool(mcpServer, getWaitlistSignupsForWaitlistTool, h.GetWaitlistSignupsForWaitlist())
+	mcp.AddTool(mcpServer, getOpenWaitlistsTool, h.GetOpenWaitlists())
 
 	return mcpServer
 }

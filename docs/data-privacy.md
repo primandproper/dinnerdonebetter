@@ -59,7 +59,7 @@ inside one.
 | `audit_log` | `audit/privacy` | Audit entries recorded about the subject |
 | `issue_reports` | `issuereports/privacy` over platform-go's | Issue reports the subject filed, in every account they appear in |
 | `uploaded_media` | `uploadedmedia/privacy` | Registry rows for objects the subject uploaded (not the bytes) |
-| `waitlists` | `waitlists/privacy` | Waitlist signups |
+| `waitlists` | `waitlists/privacy` over platform-go's | Waitlist signups the subject made (withdrawn ones excluded — they no longer name anybody) |
 | `comments` | platform-go's `comments/privacy` | Comments the subject authored |
 
 Registration happens in one place, `internal/build/dataprivacy/registry.go`. **Adding a domain to
@@ -94,7 +94,7 @@ about subject access requests. It pages each account through `CollectAll` and co
 
 ## Erasers: what a deletion removes
 
-Three erasers are registered, and they run **serially inside one transaction** along with the
+Four erasers are registered, and they run **serially inside one transaction** along with the
 bookkeeping that records the erasure happened. A subject is never left deleted from eight domains
 and present in three.
 
@@ -115,6 +115,27 @@ It is a hard delete rather than an anonymization, and that is the right way roun
 comment's body is free text somebody typed, so what has to go is the words; stripping the author
 and keeping the sentence would remove the part that is not identifying and keep the part that
 might be.
+
+**`waitlists`** withdraws every signup the subject made, which is this application's own eraser
+over platform-go's store. It is registered for the same reason `comments` is — the cascade below
+cannot reach these rows — but it could not be closed the same way even in principle. The table
+this repository used to own carried `belongs_to_user REFERENCES users ON DELETE CASCADE`;
+platform-go's carries a subject pair, and a foreign key on `subject_id` is *impossible* rather
+than merely unshipped: **a withdrawal blanks that column to the empty string**, so the key would
+refuse the one write somebody has a right to demand.
+
+The erasure is a withdrawal rather than a delete, and that is the right way round here — the
+opposite of comments. A withdrawal blanks the contact, the notes and the subject reference, and
+keeps an irreversible digest of the address, which is what stops a later signup from that address
+quietly succeeding. Deleting the row would free the unique key, so somebody erased at their own
+request could be put back on a mailing list by filling the form in again; erasing somebody and
+then re-subscribing them is not an erasure. The outcome reports the digest as retained, with that
+basis.
+
+Two caveats are stated in `internal/domain/waitlists/privacy` rather than worked around: the
+withdrawals do **not** run inside the request's transaction (platform's `Withdraw` owns its own),
+and administratively archived signups are out of reach (the store's read of a subject's signups is
+a read of live rows). Both need a store change upstream, filed as platform-go #458.
 
 **`identity`** deletes the user row. Every `belongs_to_user` and `belongs_to_account` foreign key
 in this schema carries `ON DELETE CASCADE`, so that single `DELETE` is the erasure for every other
@@ -140,9 +161,12 @@ registers its own `Eraser` under its own key and reports what it kept and why. N
 change for that.
 
 **Ordering is load-bearing.** Erasers run in sorted key order: `audit`, then `comments`, then
-`identity`. The audit eraser resolves its scopes by asking which accounts the subject owns, and
-that question has no answer once the user row is gone. `comments` sorting before `identity` costs
-nothing — there is no foreign key between them any more — and reads correctly anyway.
+`identity`, then `waitlists`. The audit eraser resolves its scopes by asking which accounts the
+subject owns, and that question has no answer once the user row is gone. `comments` sorting before
+`identity` costs nothing — there is no foreign key between them any more — and reads correctly
+anyway. `waitlists` sorting *after* `identity` costs nothing for the same reason and is the one
+place the order is genuinely free: the signup table has no foreign key in either direction, which
+is the whole reason the eraser exists.
 
 ## The artifact
 

@@ -81,8 +81,6 @@ func main() {
 		"webhooks/sqlc_queries/webhooks":                                         buildWebhooksQueries(databaseToUse),
 		"webhooks/sqlc_queries/webhook_trigger_configs":                          buildWebhookTriggerConfigsQueries(databaseToUse),
 		"notifications/sqlc_queries/user_notifications":                          buildUserNotificationQueries(databaseToUse),
-		"waitlists/sqlc_queries/waitlists":                                       buildWaitlistsQueries(databaseToUse),
-		"waitlists/sqlc_queries/waitlist_signups":                                buildWaitlistSignupsQueries(databaseToUse),
 		"payments/sqlc_queries/products":                                         buildPaymentsProductsQueries(databaseToUse),
 		"payments/sqlc_queries/subscriptions":                                    buildPaymentsSubscriptionsQueries(databaseToUse),
 		"payments/sqlc_queries/purchases":                                        buildPaymentsPurchasesQueries(databaseToUse),

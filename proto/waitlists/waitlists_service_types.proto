@@ -12,20 +12,21 @@ option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/
 message WaitlistCreationRequestInput {
   string name = 1;
   string description = 2;
-  google.protobuf.Timestamp valid_until = 3;
+  google.protobuf.Timestamp closes_at = 3;
 }
 
 message WaitlistUpdateRequestInput {
   optional string name = 1;
   optional string description = 2;
-  optional google.protobuf.Timestamp valid_until = 3;
+  optional google.protobuf.Timestamp closes_at = 3;
 }
 
+// WaitlistSignupCreationRequestInput is everything a caller decides about their
+// own signup, which is the note and nothing else. The address the list writes to
+// and the user the signup belongs to both come from the session: a signup that
+// could name its own contact is one anybody could make on anybody's behalf.
 message WaitlistSignupCreationRequestInput {
   string notes = 1;
-  string belongs_to_waitlist = 2;
-  string belongs_to_user = 3;
-  string belongs_to_account = 4;
 }
 
 message WaitlistSignupUpdateRequestInput {
@@ -60,11 +61,11 @@ message GetWaitlistsResponse {
   repeated Waitlist results = 3;
 }
 
-message GetActiveWaitlistsRequest {
+message GetOpenWaitlistsRequest {
   primandproper.platform.filtering.v1.QueryFilter filter = 1;
 }
 
-message GetActiveWaitlistsResponse {
+message GetOpenWaitlistsResponse {
   common.ResponseDetails response_details = 1;
   primandproper.platform.filtering.v1.Pagination pagination = 2;
   repeated Waitlist results = 3;
@@ -88,27 +89,28 @@ message ArchiveWaitlistResponse {
   common.ResponseDetails response_details = 1;
 }
 
-message WaitlistIsNotExpiredRequest {
+message WaitlistIsOpenRequest {
   string waitlist_id = 1;
 }
 
-message WaitlistIsNotExpiredResponse {
+message WaitlistIsOpenResponse {
   common.ResponseDetails response_details = 1;
-  bool is_not_expired = 2;
+  bool is_open = 2;
 }
 
-message CreateWaitlistSignupRequest {
-  WaitlistSignupCreationRequestInput input = 1;
+message JoinWaitlistRequest {
+  string waitlist_id = 1;
+  WaitlistSignupCreationRequestInput input = 2;
 }
 
-message CreateWaitlistSignupResponse {
+message JoinWaitlistResponse {
   common.ResponseDetails response_details = 1;
   WaitlistSignup created = 2;
 }
 
 message GetWaitlistSignupRequest {
-  string waitlist_signup_id = 1;
-  string waitlist_id = 2;
+  string waitlist_id = 1;
+  string waitlist_signup_id = 2;
 }
 
 message GetWaitlistSignupResponse {
@@ -128,8 +130,8 @@ message GetWaitlistSignupsForWaitlistResponse {
 }
 
 message UpdateWaitlistSignupRequest {
-  string waitlist_signup_id = 1;
-  string waitlist_id = 2;
+  string waitlist_id = 1;
+  string waitlist_signup_id = 2;
   WaitlistSignupUpdateRequestInput input = 3;
 }
 
@@ -138,8 +140,42 @@ message UpdateWaitlistSignupResponse {
   WaitlistSignup updated = 2;
 }
 
+message InviteWaitlistSignupRequest {
+  string waitlist_id = 1;
+  string waitlist_signup_id = 2;
+}
+
+message InviteWaitlistSignupResponse {
+  common.ResponseDetails response_details = 1;
+  WaitlistSignup updated = 2;
+}
+
+message ConvertWaitlistSignupRequest {
+  string waitlist_id = 1;
+  string waitlist_signup_id = 2;
+}
+
+message ConvertWaitlistSignupResponse {
+  common.ResponseDetails response_details = 1;
+  WaitlistSignup updated = 2;
+}
+
+message WithdrawFromWaitlistRequest {
+  string waitlist_id = 1;
+  string waitlist_signup_id = 2;
+}
+
+// WithdrawFromWaitlistResponse carries the withdrawn signup: its contact and
+// notes are blank and its status says why, which is what lets an unsubscribe
+// page say "you are off this list" rather than nothing at all.
+message WithdrawFromWaitlistResponse {
+  common.ResponseDetails response_details = 1;
+  WaitlistSignup updated = 2;
+}
+
 message ArchiveWaitlistSignupRequest {
-  string waitlist_signup_id = 1;
+  string waitlist_id = 1;
+  string waitlist_signup_id = 2;
 }
 
 message ArchiveWaitlistSignupResponse {

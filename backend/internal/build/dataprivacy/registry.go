@@ -36,7 +36,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings"
 	settingsprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings/privacy"
 	uploadedmediaprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia/privacy"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists"
 	waitlistsprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists/privacy"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
 	webhooksprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/privacy"
@@ -55,6 +54,7 @@ import (
 	"github.com/primandproper/platform-go/v13/observability/tracing"
 	"github.com/primandproper/platform-go/v13/operations"
 	uploadsregistry "github.com/primandproper/platform-go/v13/uploads/registry"
+	platformwaitlists "github.com/primandproper/platform-go/v13/waitlists"
 
 	"github.com/samber/do/v2"
 )
@@ -123,7 +123,7 @@ func buildRegistry(i do.Injector) (*platformdataprivacy.Registry, error) {
 		ddbdataprivacy.CollectorKeyAuditLog:      auditprivacy.NewCollector(do.MustInvoke[auditdomain.Repository](i)),
 		ddbdataprivacy.CollectorKeyIssueReports:  issueReportsCollector,
 		ddbdataprivacy.CollectorKeyUploadedMedia: uploadedmediaprivacy.NewCollector(do.MustInvoke[uploadsregistry.Store](i)),
-		ddbdataprivacy.CollectorKeyWaitlists:     waitlistsprivacy.NewCollector(do.MustInvoke[waitlists.Repository](i)),
+		ddbdataprivacy.CollectorKeyWaitlists:     waitlistsprivacy.NewCollector(do.MustInvoke[platformwaitlists.Store](i)),
 		ddbdataprivacy.CollectorKeyComments:      commentsCollector,
 	}
 
@@ -142,6 +142,17 @@ func buildRegistry(i do.Injector) (*platformdataprivacy.Registry, error) {
 		commentsEraser,
 	); err != nil {
 		return nil, platformerrors.Wrap(err, "registering comments data privacy eraser")
+	}
+
+	// Waitlist signups erase through their own eraser rather than through the
+	// cascade, because platform-go's signup table has no foreign key to cascade
+	// from and cannot have one: a withdrawal blanks the subject reference, which a
+	// key to users would refuse. See ddbdataprivacy.EraserKeyWaitlists.
+	if err := registry.RegisterEraser(
+		ddbdataprivacy.EraserKeyWaitlists,
+		waitlistsprivacy.NewEraser(do.MustInvoke[platformwaitlists.Store](i)),
+	); err != nil {
+		return nil, platformerrors.Wrap(err, "registering waitlists data privacy eraser")
 	}
 
 	// One application eraser for the cascading tables, because every belongs_to_user
