@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"embed"
+	stderrors "errors"
 	"io/fs"
 	"strings"
 
@@ -310,9 +311,12 @@ func (m *Migrator) seedPolicy(ctx context.Context, db *sql.DB) error {
 		return errors.Wrap(err, "beginning authorization policy transaction")
 	}
 	defer func() {
-		// Rollback after a commit is a no-op that reports ErrTxDone, which is
-		// why the error is dropped rather than joined.
-		_ = tx.Rollback()
+		// Rollback after a commit reports ErrTxDone and means the commit won, so
+		// only anything else is worth saying. There is nothing to return it to
+		// from a defer, and the seeding error is the one the caller wants.
+		if rollbackErr := tx.Rollback(); rollbackErr != nil && !stderrors.Is(rollbackErr, sql.ErrTxDone) {
+			m.logger.Error("rolling back authorization policy transaction", rollbackErr)
+		}
 	}()
 
 	// Held for the transaction, released by the commit below.
@@ -381,7 +385,7 @@ func (m *Migrator) seedPolicy(ctx context.Context, db *sql.DB) error {
 // The key guarantees the name exists, not that the role is live. An assignment
 // naming an archived role resolves to nothing, because the resolution query
 // applies the archived predicate at every join — which is fail-closed, and the
-// behaviour we want.
+// behavior we want.
 //
 // user_roles.scope, which constrained a role to 'service' or 'account', has no
 // platform counterpart and is not re-created. Nothing read it: no query filtered

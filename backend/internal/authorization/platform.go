@@ -73,8 +73,8 @@ func ToPlatformPermissions(perms []Permission) []platformauthz.Permission {
 // seeded user_role_hierarchy, so flatness was the disguised change. It stayed
 // invisible because the only consumer validated this table through
 // static.NewResolver and then discarded the resolver. Expanded, the flat
-// version understated service_admin by 212 permissions and account_admin by
-// 128, and overstated service_user by 133.
+// version understated service_admin by 210 permissions and account_admin by
+// 126, and overstated service_user by 131.
 //
 // Two edges, both matching what the hierarchy rows said:
 //

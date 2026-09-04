@@ -145,9 +145,9 @@ service_user         —
 ### Account-level roles
 
 - **Account Member** — the authority an ordinary user has, held **per account**. Meal
-  planning, webhooks they can read, their own data privacy requests. 133 permissions.
+  planning, webhooks they can read, their own data privacy requests. 131 permissions.
 - **Account Admin** — account settings, invitations, membership changes, ownership transfer,
-  plus everything a member holds. 171 permissions.
+  plus everything a member holds. 169 permissions.
 
 ### Service-level roles
 
@@ -157,7 +157,7 @@ service_user         —
 - **Service Data Admin** — the reference-data catalog: instruments, ingredients,
   preparations, measurement units and their bridges. 42 permissions.
 - **Service Admin** — user administration, impersonation, session management, arbitrary queue
-  messages and worker runs, plus everything an account admin and a data admin hold. 240
+  messages and worker runs, plus everything an account admin and a data admin hold. 239
   permissions, which is every permission the service declares.
 
 ### Which roles a principal holds

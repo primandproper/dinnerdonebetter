@@ -27,7 +27,7 @@ import (
 //
 // It asserts set equality rather than containment. Containment is what the old
 // assertions did, and a subset satisfies it: the flat policy this adoption corrected held
-// 28 of service_admin's 240 permissions and passed every one.
+// 29 of service_admin's 239 permissions and passed every one.
 func TestSeededPolicyMatchesTheDeclaredPolicy(T *testing.T) {
 	T.Parallel()
 
