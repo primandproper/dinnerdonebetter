@@ -94,8 +94,8 @@ a row can exist with no entry, but no entry can name a row that was not written.
 
 That is a property of the stores, not of `RecordAndEmit`, and each closes when platform
 accepts a caller's transaction — filed upstream as platform-go #457 (comments, fixed
-but unreleased), #458 (waitlists) and #460 (settings). `issuereports` has no ticket
-yet. Tracked locally on #1419, which lists what deletes here when each lands.
+but unreleased), #458 (waitlists), #460 (settings) and #465 (issuereports). Tracked
+locally on #1419, which lists what deletes here when each lands.
 
 The recorder is one type in `internal/repositories/postgres/recording` rather than a
 method on each repository, because the body was the same body in all nine of them and

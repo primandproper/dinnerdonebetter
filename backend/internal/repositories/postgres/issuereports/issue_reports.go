@@ -25,8 +25,8 @@ nothing is recorded about it. It is narrow and it is one-directional: a report
 can exist with no event, but no event can name a report that was not written.
 Closing it needs platform's write methods to accept a database.Tx the way
 DeleteReportsByReporter already does. That is filed upstream as platform-go
-#457 rather than worked around here — a gap papered over locally stops being a
-gap anyone remembers.
+#465 rather than worked around here — a gap papered over locally stops being a
+gap anyone remembers. See #1419 for what deletes here when it lands.
 */
 package issuereports
 
