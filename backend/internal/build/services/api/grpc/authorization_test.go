@@ -2,6 +2,7 @@ package grpcapi
 
 import (
 	"context"
+	"slices"
 	"testing"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
@@ -32,28 +33,46 @@ func TestPlatformPolicy(T *testing.T) {
 		require.NotNil(t, resolver)
 	})
 
-	T.Run("resolves each role to the permissions this package already grants", func(t *testing.T) {
+	T.Run("resolves each role to exactly the permissions it holds", func(t *testing.T) {
 		t.Parallel()
 
 		resolver, err := static.NewResolver(authorization.PlatformPolicy())
 		require.NoError(t, err)
 
+		// Equality, not containment. The bug this replaces was a policy that held a
+		// subset of what it should — every containment assertion passed, because a
+		// subset contains everything it declares. What it did not contain was
+		// everything the database grants.
+		//
+		// The expected sets are written as unions of the permission slices rather
+		// than read back out of ExpandInheritance, which would only assert that the
+		// resolver agrees with itself.
 		for _, tc := range []struct {
 			role  string
 			perms []authorization.Permission
 		}{
-			{authorization.ServiceAdminRoleName, authorization.ServiceAdminPermissions},
-			{authorization.ServiceDataAdminRoleName, authorization.ServiceDataAdminPermissions},
-			{authorization.AccountAdminRoleName, authorization.AccountAdminPermissions},
 			{authorization.AccountMemberRoleName, authorization.AccountMemberPermissions},
+			{authorization.AccountAdminRoleName, slices.Concat(
+				authorization.AccountAdminPermissions,
+				authorization.AccountMemberPermissions,
+			)},
+			{authorization.ServiceDataAdminRoleName, authorization.ServiceDataAdminPermissions},
+			{authorization.ServiceAdminRoleName, slices.Concat(
+				authorization.ServiceAdminPermissions,
+				authorization.AccountAdminPermissions,
+				authorization.AccountMemberPermissions,
+				authorization.ServiceDataAdminPermissions,
+			)},
+			// Assigned to every user at signup, and service-wide. The authority an
+			// ordinary user has is account_member, held per account — granting it
+			// here would grant it in every account.
+			{authorization.ServiceUserRoleName, nil},
 		} {
 			set, resolveErr := resolver.PermissionsForRoles(t.Context(), tc.role)
 			require.NoError(t, resolveErr, tc.role)
 
-			for _, p := range tc.perms {
-				assert.True(t, set.Has(platformauthz.Permission(p)),
-					"role %q lost permission %q in the platform policy", tc.role, p)
-			}
+			assert.True(t, set.Equal(platformauthz.NewPermissionSet(authorization.ToPlatformPermissions(tc.perms)...)),
+				"role %q resolves to %d permissions, expected %d", tc.role, set.Len(), len(tc.perms))
 		}
 	})
 }

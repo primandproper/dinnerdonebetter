@@ -158,9 +158,8 @@ SELECT
 FROM users
 	LEFT JOIN user_avatars ON user_avatars.belongs_to_user = users.id AND user_avatars.archived_at IS NULL
 	JOIN user_role_assignments ON user_role_assignments.user_id = users.id AND user_role_assignments.account_id IS NULL AND user_role_assignments.archived_at IS NULL
-	JOIN user_roles ON user_roles.id = user_role_assignments.role_id AND user_roles.archived_at IS NULL
 WHERE users.archived_at IS NULL
-	AND user_roles.name = 'service_admin'
+	AND user_role_assignments.role_name = 'service_admin'
 	AND users.username = $1
 	AND users.two_factor_secret_verified_at IS NOT NULL
 `

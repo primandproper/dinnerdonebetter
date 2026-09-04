@@ -65,38 +65,46 @@ func (r *repository) BuildSessionContextDataForUser(ctx context.Context, userID,
 		effectiveAccountID = activeAccountID
 	}
 
-	// Load service-level permissions and role names from DB.
-	servicePermNames, err := r.generatedQuerier.GetServicePermissionsForUser(ctx, r.readDB, userID)
+	// Which roles this user holds, service-wide and per account, in one read.
+	//
+	// What those roles grant is resolved separately, by the policy resolver, and
+	// that split is the point rather than an accident of adoption: policy is keyed
+	// by role name, so it is the same answer for every principal holding the role
+	// and can be cached once for all of them. This used to be two recursive CTEs
+	// per request that walked the hierarchy and joined the grants, per user, with
+	// no cache in front of either.
+	assignments, err := r.generatedQuerier.GetRoleAssignmentsForUser(ctx, r.readDB, userID)
 	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "fetching service permissions for user")
+		return nil, observability.PrepareAndLogError(err, logger, span, "fetching role assignments for user")
 	}
 
-	servicePerms := make([]authorization.Permission, len(servicePermNames))
-	for i, name := range servicePermNames {
-		servicePerms[i] = authorization.Permission(name)
-	}
+	var serviceRoleNames []string
+	accountRoleNames := map[string][]string{}
 
-	serviceRoleNames, err := r.generatedQuerier.GetServiceRoleNamesForUser(ctx, r.readDB, userID)
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "fetching service role names for user")
-	}
+	for _, assignment := range assignments {
+		// A NULL account is what makes an assignment service-wide.
+		if assignment.AccountID.Valid {
+			accountRoleNames[assignment.AccountID.String] = append(accountRoleNames[assignment.AccountID.String], assignment.RoleName)
 
-	// Load account-level permissions from DB (all accounts).
-	accountPermRows, err := r.generatedQuerier.GetAccountPermissionsForUser(ctx, r.readDB, userID)
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "fetching account permissions for user")
-	}
-
-	accountPermsMap := map[string][]authorization.Permission{}
-	for _, row := range accountPermRows {
-		if row.AccountID.Valid {
-			accountPermsMap[row.AccountID.String] = append(accountPermsMap[row.AccountID.String], authorization.Permission(row.PermissionName))
+			continue
 		}
+
+		serviceRoleNames = append(serviceRoleNames, assignment.RoleName)
+	}
+
+	servicePerms, err := r.policy.PermissionsForRoles(ctx, serviceRoleNames...)
+	if err != nil {
+		return nil, observability.PrepareAndLogError(err, logger, span, "resolving service permissions for user")
 	}
 
 	accountRolesMap := map[string]authorization.AccountRolePermissionsChecker{}
-	for accountID, perms := range accountPermsMap {
-		accountRolesMap[accountID] = authorization.NewAccountRolePermissionChecker(perms)
+	for accountID, roleNames := range accountRoleNames {
+		accountPerms, permErr := r.policy.PermissionsForRoles(ctx, roleNames...)
+		if permErr != nil {
+			return nil, observability.PrepareAndLogError(permErr, logger, span, "resolving account permissions for user")
+		}
+
+		accountRolesMap[accountID] = authorization.NewAccountRolePermissionCheckerFromSet(roleNames, accountPerms)
 	}
 
 	user, err := r.GetUser(ctx, userID)
@@ -111,7 +119,7 @@ func (r *repository) BuildSessionContextDataForUser(ctx context.Context, userID,
 			EmailAddress:             user.EmailAddress,
 			AccountStatus:            user.AccountStatus,
 			AccountStatusExplanation: user.AccountStatusExplanation,
-			ServicePermissions:       authorization.NewServiceRolePermissionChecker(serviceRoleNames, servicePerms),
+			ServicePermissions:       authorization.NewServiceRolePermissionCheckerFromSet(serviceRoleNames, servicePerms),
 		},
 		AccountPermissions: accountRolesMap,
 		ActiveAccountID:    effectiveAccountID,
@@ -254,19 +262,17 @@ func (r *repository) ModifyUserPermissions(ctx context.Context, accountID, userI
 	tracing.AttachToSpan(span, identitykeys.UserIDKey, userID)
 	tracing.AttachToSpan(span, identitykeys.AccountIDKey, accountID)
 
-	// Look up the new role by name.
-	newRole, roleErr := r.generatedQuerier.GetUserRoleByName(ctx, r.readDB, input.NewRole)
-	if roleErr != nil {
-		return observability.PrepareAndLogError(roleErr, logger, span, "fetching role by name")
-	}
-
+	// No lookup: an assignment names a role by name, and which names are
+	// acceptable here is settled by ModifyUserPermissionsInput's validation rather
+	// than by whether a row happens to exist. The assignment's foreign key still
+	// refuses a name no role carries.
 	var err error
 	if err = r.WithTransaction(ctx, func(tx database.Tx) error {
 		// Update the user's account-level role assignment.
 		if err = r.generatedQuerier.UpdateAccountRoleAssignment(ctx, tx, &generated.UpdateAccountRoleAssignmentParams{
-			NewRoleID: newRole.ID,
-			UserID:    userID,
-			AccountID: sql.NullString{String: accountID, Valid: true},
+			NewRoleName: input.NewRole,
+			UserID:      userID,
+			AccountID:   sql.NullString{String: accountID, Valid: true},
 		}); err != nil {
 			return observability.PrepareAndLogError(err, logger, span, "updating account role assignment")
 		}
@@ -411,7 +417,7 @@ func (r *repository) addUserToAccount(ctx context.Context, querier database.Tx, 
 	if err := r.generatedQuerier.AssignRoleToUser(ctx, querier, &generated.AssignRoleToUserParams{
 		ID:        identifiers.New(),
 		UserID:    input.UserID,
-		RoleID:    authorization.AccountMemberRoleID,
+		RoleName:  authorization.AccountMemberRoleName,
 		AccountID: sql.NullString{String: input.AccountID, Valid: true},
 	}); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "assigning account role to user")

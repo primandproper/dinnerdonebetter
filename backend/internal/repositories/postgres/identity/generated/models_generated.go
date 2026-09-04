@@ -151,38 +151,3 @@ type AccountUserMemberships struct {
 	LastUpdatedAt    sql.NullTime
 	ArchivedAt       sql.NullTime
 }
-
-type Permissions struct {
-	ID            string
-	Name          string
-	Description   string
-	CreatedAt     time.Time
-	LastUpdatedAt sql.NullTime
-	ArchivedAt    sql.NullTime
-}
-
-type UserRoleHierarchy struct {
-	ID           string
-	ParentRoleID string
-	ChildRoleID  string
-	CreatedAt    time.Time
-	ArchivedAt   sql.NullTime
-}
-
-type UserRolePermissions struct {
-	ID           string
-	RoleID       string
-	PermissionID string
-	CreatedAt    time.Time
-	ArchivedAt   sql.NullTime
-}
-
-type UserRoles struct {
-	ID            string
-	Name          string
-	Description   string
-	Scope         string
-	CreatedAt     time.Time
-	LastUpdatedAt sql.NullTime
-	ArchivedAt    sql.NullTime
-}

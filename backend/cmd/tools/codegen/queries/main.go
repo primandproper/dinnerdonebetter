@@ -83,11 +83,7 @@ func main() {
 		"payments/sqlc_queries/subscriptions":                                    buildPaymentsSubscriptionsQueries(databaseToUse),
 		"payments/sqlc_queries/purchases":                                        buildPaymentsPurchasesQueries(databaseToUse),
 		"payments/sqlc_queries/payment_transactions":                             buildPaymentsTransactionsQueries(databaseToUse),
-		"identity/sqlc_queries/user_roles":                                       buildUserRolesQueries(databaseToUse),
-		"identity/sqlc_queries/permissions":                                      buildPermissionsQueries(databaseToUse),
-		"identity/sqlc_queries/user_role_permissions":                            buildUserRolePermissionsQueries(databaseToUse),
 		"identity/sqlc_queries/user_role_assignments":                            buildUserRoleAssignmentsQueries(databaseToUse),
-		"identity/sqlc_queries/user_role_hierarchy":                              buildUserRoleHierarchyQueries(databaseToUse),
 	}
 
 	checkOnly := *checkOnlyFlag

@@ -22,7 +22,7 @@ func TestServiceRoles(T *testing.T) {
 		t.Parallel()
 
 		allPerms := slices.Concat(ServiceAdminPermissions, ServiceDataAdminPermissions, AccountAdminPermissions, AccountMemberPermissions)
-		r := NewServiceRolePermissionChecker([]string{serviceAdminRoleName}, allPerms)
+		r := NewServiceRolePermissionChecker([]string{ServiceAdminRoleName}, allPerms)
 
 		assert.True(t, r.IsServiceAdmin())
 		assert.True(t, r.CanUpdateUserAccountStatuses())
@@ -33,7 +33,7 @@ func TestServiceRoles(T *testing.T) {
 	T.Run("both", func(t *testing.T) {
 		t.Parallel()
 
-		r := NewServiceRolePermissionChecker([]string{ServiceUserRole.String(), serviceAdminRoleName}, nil)
+		r := NewServiceRolePermissionChecker([]string{ServiceUserRole.String(), ServiceAdminRoleName}, nil)
 
 		assert.True(t, r.IsServiceAdmin())
 	})

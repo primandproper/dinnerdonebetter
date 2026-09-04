@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/grocerylistpreparation"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/recipeanalysis"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
@@ -54,7 +55,12 @@ func StartSagaWorker(
 		return nil, fmt.Errorf("building upload registry store: %w", err)
 	}
 
-	identityRepo := identityrepo.ProvideIdentityRepository(logger, tracerProvider, auditRepo, databaseClient, nil, uploads)
+	policy, policyErr := authorization.NewDatabaseResolver(databaseClient.Reader(), logger, tracerProvider, nil)
+	if policyErr != nil {
+		return nil, policyErr
+	}
+
+	identityRepo := identityrepo.ProvideIdentityRepository(logger, tracerProvider, auditRepo, databaseClient, nil, uploads, policy)
 
 	registry := saga.NewRegistry()
 	if err = mealplanfinalization.Register(

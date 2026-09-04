@@ -1,10 +1,14 @@
 package migrations
 
 import (
+	"context"
+	"database/sql"
 	"embed"
+	stderrors "errors"
 	"io/fs"
 	"strings"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	ddbaudit "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	ddbauth "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 	ddbcomments "github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments"
@@ -20,7 +24,10 @@ import (
 	passwordresetmigrations "github.com/primandproper/platform-go/v13/authentication/passwordreset/migrations"
 	webauthndatabase "github.com/primandproper/platform-go/v13/authentication/webauthn/database"
 	webauthnmigrations "github.com/primandproper/platform-go/v13/authentication/webauthn/database/migrations"
+	authzdatabase "github.com/primandproper/platform-go/v13/authorization/database"
+	authzmigrations "github.com/primandproper/platform-go/v13/authorization/database/migrations"
 	commentsmigrations "github.com/primandproper/platform-go/v13/comments/migrations"
+	"github.com/primandproper/platform-go/v13/database"
 	"github.com/primandproper/platform-go/v13/database/ddl"
 	"github.com/primandproper/platform-go/v13/database/dialect"
 	"github.com/primandproper/platform-go/v13/database/migrate"
@@ -81,6 +88,7 @@ const (
 	issueReportsMigrationVersion    = 39
 	waitlistsMigrationVersion       = 40
 	settingsMigrationVersion        = 41
+	authorizationMigrationVersion   = 42
 )
 
 // NewMigrator creates a new postgres Migrator over the embedded migration files.
@@ -89,7 +97,10 @@ const (
 // means dropping a numbered .sql file into migration_files — there is no list
 // here to keep in sync. Files are read and checked here, so a malformed
 // migration fails construction rather than the first Migrate.
-func NewMigrator(logger logging.Logger) (*migrate.Migrator, error) {
+//
+// The returned Migrator applies the schema and then seeds the authorization
+// policy; see its Migrate.
+func NewMigrator(logger logging.Logger) (*Migrator, error) {
 	migrationFiles, err := fs.Sub(rawMigrations, "migration_files")
 	if err != nil {
 		return nil, errors.Wrap(err, "opening migration files")
@@ -213,6 +224,11 @@ func NewMigrator(logger logging.Logger) (*migrate.Migrator, error) {
 		return nil, err
 	}
 
+	authorizationDDL, err := renderAuthorizationDDL()
+	if err != nil {
+		return nil, err
+	}
+
 	migrator, err := migrate.New(
 		dialect.Postgres,
 		migrationFiles,
@@ -235,12 +251,165 @@ func NewMigrator(logger logging.Logger) (*migrate.Migrator, error) {
 		migrate.WithGeneratedMigration(issueReportsMigrationVersion, "create_issue_reports_table", issueReportsDDL),
 		migrate.WithGeneratedMigration(waitlistsMigrationVersion, "create_waitlist_tables", waitlistsDDL),
 		migrate.WithGeneratedMigration(settingsMigrationVersion, "create_settings_tables", settingsDDL),
+		migrate.WithGeneratedMigration(authorizationMigrationVersion, "create_authorization_tables", authorizationDDL),
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "building migrator")
 	}
 
-	return migrator, nil
+	return &Migrator{schema: migrator, logger: logging.EnsureLogger(logger)}, nil
+}
+
+// Migrator applies the schema and then seeds the authorization policy.
+//
+// The policy is not a migration. It is written by authorization/database's Seed
+// from authorization.PlatformPolicy(), which is idempotent, upserts by name, and
+// rewrites each named role's grants rather than adding to them — so a permission
+// removed in Go is revoked on the next run, which is what makes the Go
+// declaration the only one. Rendering it as INSERT statements instead would
+// re-create the hand-maintained seed this adoption removed, and would lose the
+// revoke.
+//
+// Seeding lives here, behind the same call every migrating process already
+// makes, rather than at a wiring site: an unseeded policy grants nothing, so a
+// process that forgot would come up refusing every request, and the container
+// test harnesses that migrate a template database would each have to remember.
+type Migrator struct {
+	schema *migrate.Migrator
+	logger logging.Logger
+}
+
+var _ database.Migrator = (*Migrator)(nil)
+
+// seedLockKey names the advisory lock that serializes policy seeding.
+//
+// Migrations run at startup on every replica, and Seed is not safe to run
+// concurrently with itself: it clears a role's grants and re-inserts them one
+// statement at a time, and the insert carries no ON CONFLICT clause, so two
+// replicas seeding the same policy either block on each other's row locks or
+// collide on the (role_id, permission_id) primary key. The schema half is
+// already serialized by the migrator's own lock; this covers the half that
+// follows it.
+//
+// Filed as platform-go#463 — the fix belongs there, since a consumer holding a
+// lock is not something the package can check. This is the local workaround that
+// keeps a boot from failing meanwhile, and it goes when that lands.
+const seedLockKey = "dinnerdonebetter.authorization.seed"
+
+// Migrate applies every pending migration, then seeds the authorization policy.
+func (m *Migrator) Migrate(ctx context.Context, db *sql.DB) error {
+	if err := m.schema.Migrate(ctx, db); err != nil {
+		return err
+	}
+
+	return m.seedPolicy(ctx, db)
+}
+
+func (m *Migrator) seedPolicy(ctx context.Context, db *sql.DB) error {
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return errors.Wrap(err, "beginning authorization policy transaction")
+	}
+	defer func() {
+		// Rollback after a commit reports ErrTxDone and means the commit won, so
+		// only anything else is worth saying. There is nothing to return it to
+		// from a defer, and the seeding error is the one the caller wants.
+		if rollbackErr := tx.Rollback(); rollbackErr != nil && !stderrors.Is(rollbackErr, sql.ErrTxDone) {
+			m.logger.Error("rolling back authorization policy transaction", rollbackErr)
+		}
+	}()
+
+	// Held for the transaction, released by the commit below.
+	if _, err = tx.ExecContext(ctx, "SELECT pg_advisory_xact_lock(hashtext($1))", seedLockKey); err != nil {
+		return errors.Wrap(err, "locking authorization policy")
+	}
+
+	// Built against the transaction so the reads Seed makes to resolve role and
+	// permission ids see the rows it has just written.
+	resolver, err := authzdatabase.NewResolver(
+		&authzdatabase.Config{Dialect: dialect.Postgres, TablePrefix: authorization.TablePrefix},
+		tx,
+		authzdatabase.WithLogger(m.logger),
+	)
+	if err != nil {
+		return errors.Wrap(err, "building authorization resolver")
+	}
+	// Seed is on the concrete type rather than the PolicyResolver interface, which is
+	// why this does not go through authorization.NewDatabaseResolver: reading policy
+	// and writing it are different jobs, and only this one writes.
+
+	// ValidateRoles runs inside Seed before anything is written, so a policy with
+	// an unknown parent or an inheritance cycle fails the migration rather than
+	// landing half-applied.
+	if err = resolver.Seed(ctx, tx, authorization.PlatformPolicy()...); err != nil {
+		return errors.Wrap(err, "seeding authorization policy")
+	}
+
+	if err = tx.Commit(); err != nil {
+		return errors.Wrap(err, "committing authorization policy")
+	}
+
+	return nil
+}
+
+// renderAuthorizationDDL renders the four policy tables — roles, permissions,
+// the grants between them, and the inheritance edges — dropping the four that
+// 00019_rbac.sql created, and re-creating the one foreign key the platform
+// cannot ship.
+//
+// What this deletes is not a table so much as a second copy of the policy. The
+// permissions a role holds were declared twice: as the slices in
+// internal/authorization, which the method table and the platform policy are
+// written from, and as ~600 lines of INSERT statements across 00019 and 00021,
+// which is what authorization actually read. The only thing holding them
+// together was a test that string-matched permission names against the
+// concatenated migration text, so it could see a name that was never seeded and
+// could not see a mapping that was wrong. They had drifted on three of five
+// roles. The seed now runs from PlatformPolicy() — see Migrator.Migrate — and
+// there is one declaration.
+//
+// The drop order is the reference order: the two mapping tables and the
+// assignment's constraint go before the tables they point at. user_roles takes
+// CASCADE because user_role_assignments.role_id referenced it, and that column
+// is being replaced by role_name in the same migration sequence.
+//
+// The foreign key targets ddb_authz_roles(name) rather than its primary key.
+// That is legal because the platform indexes name uniquely — deliberately, since
+// "reusing the name of an archived role would silently re-grant its authority to
+// everyone still assigned it" — and it is what an assignment has to reference,
+// because a statement here cannot join a table sqlc's schema does not contain.
+// ON DELETE RESTRICT rather than CASCADE: Seed and UpsertRole never delete a
+// role row, ArchiveRole soft-deletes, so the only thing this can refuse is a
+// hard delete somebody did by hand, and refusing that is right.
+//
+// The key guarantees the name exists, not that the role is live. An assignment
+// naming an archived role resolves to nothing, because the resolution query
+// applies the archived predicate at every join — which is fail-closed, and the
+// behavior we want.
+//
+// user_roles.scope, which constrained a role to 'service' or 'account', has no
+// platform counterpart and is not re-created. Nothing read it: no query filtered
+// on it, and the one place it should have mattered — ModifyUserPermissions,
+// which writes a caller-supplied role name into an account-scoped assignment —
+// never consulted it. That is now an allow-list on the input, which is enforced
+// where the column was not.
+func renderAuthorizationDDL() (string, error) {
+	schema, err := authzmigrations.SQL(dialect.Postgres, authorization.TablePrefix)
+	if err != nil {
+		return "", errors.Wrap(err, "rendering authorization migration")
+	}
+
+	rolesTable := ddl.Qualify(authorization.TablePrefix) + "authz_roles"
+
+	body := &strings.Builder{}
+	body.WriteString("DROP TABLE IF EXISTS user_role_permissions;\n")
+	body.WriteString("DROP TABLE IF EXISTS user_role_hierarchy;\n")
+	body.WriteString("DROP TABLE IF EXISTS permissions;\n")
+	body.WriteString("DROP TABLE IF EXISTS user_roles CASCADE;\n\n")
+	body.WriteString(schema)
+	body.WriteString("\n\nALTER TABLE user_role_assignments\n\tADD CONSTRAINT user_role_assignments_role_fk\n\tFOREIGN KEY (role_name) REFERENCES " + rolesTable + "(name) ON DELETE RESTRICT;\n")
+
+	return body.String(), nil
 }
 
 // renderIssueReportsDDL renders the issue report table, dropping the one
@@ -594,6 +763,13 @@ var bridgeTablesReferencingUploadedMedia = []string{
 // keeps the single identity eraser in internal/build/dataprivacy covering
 // uploads; adopting a platform store is exactly where that stops being true by
 // default.
+// The registry has no update, so update.uploaded_media went with the RPC when
+// this table was adopted. Removing it used to need a DELETE here against the
+// permissions table, because the seed was hand-written SQL and nothing
+// reconciled it with the Go declaration. The policy is seeded from
+// PlatformPolicy() now and Seed rewrites each role's grants rather than adding
+// to them, so a permission dropped in Go is a grant that disappears on the next
+// migration. See renderAuthorizationDDL.
 func renderUploadsRegistryDDL() (string, error) {
 	schema, err := uploadsregistrymigrations.SQL(dialect.Postgres, ddbuploadedmedia.TablePrefix)
 	if err != nil {
@@ -605,13 +781,6 @@ func renderUploadsRegistryDDL() (string, error) {
 	body := &strings.Builder{}
 	body.WriteString("DROP TABLE IF EXISTS uploaded_media CASCADE;\nDROP TYPE IF EXISTS uploaded_media_mime_type;\n\n")
 
-	// The registry has no update. Every column is a fact about bytes that are
-	// already in a bucket, so a row that could be edited is a row that could stop
-	// describing its object — which is why the RPC went with the local table and
-	// why the capability naming it goes with the RPC. Left behind, it would be a
-	// line in the role grid that grants nothing and that nothing checks. The grants
-	// referencing it cascade from this delete.
-	body.WriteString("DELETE FROM permissions WHERE name = 'update.uploaded_media';\n\n")
 	body.WriteString(schema)
 	body.WriteString("\n\nALTER TABLE " + table + "\n\tADD CONSTRAINT " + table + "_owner_fk\n\tFOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE;\n")
 

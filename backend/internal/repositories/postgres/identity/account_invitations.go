@@ -816,7 +816,7 @@ func (r *repository) acceptInvitationForUser(ctx context.Context, querier databa
 	if err := r.generatedQuerier.AssignRoleToUser(ctx, querier, &generated.AssignRoleToUserParams{
 		ID:        identifiers.New(),
 		UserID:    input.ID,
-		RoleID:    authorization.AccountMemberRoleID,
+		RoleName:  authorization.AccountMemberRoleName,
 		AccountID: sql.NullString{String: input.DestinationAccountID, Valid: true},
 	}); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "assigning account role for invitation")

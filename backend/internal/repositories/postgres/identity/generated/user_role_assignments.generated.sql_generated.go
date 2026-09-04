@@ -10,23 +10,6 @@ import (
 	"database/sql"
 )
 
-const archiveRoleAssignment = `-- name: ArchiveRoleAssignment :exec
-UPDATE user_role_assignments SET archived_at = CURRENT_TIMESTAMP
-WHERE archived_at IS NULL
-	AND id = $1
-	AND user_id = $2
-`
-
-type ArchiveRoleAssignmentParams struct {
-	ID     string
-	UserID string
-}
-
-func (q *Queries) ArchiveRoleAssignment(ctx context.Context, db DBTX, arg *ArchiveRoleAssignmentParams) error {
-	_, err := db.ExecContext(ctx, archiveRoleAssignment, arg.ID, arg.UserID)
-	return err
-}
-
 const archiveRoleAssignmentsForUserAndAccount = `-- name: ArchiveRoleAssignmentsForUserAndAccount :exec
 UPDATE user_role_assignments SET archived_at = CURRENT_TIMESTAMP
 WHERE archived_at IS NULL
@@ -48,7 +31,7 @@ const assignRoleToUser = `-- name: AssignRoleToUser :exec
 INSERT INTO user_role_assignments (
 	id,
 	user_id,
-	role_id,
+	role_name,
 	account_id
 ) VALUES (
 	$1,
@@ -61,7 +44,7 @@ INSERT INTO user_role_assignments (
 type AssignRoleToUserParams struct {
 	ID        string
 	UserID    string
-	RoleID    string
+	RoleName  string
 	AccountID sql.NullString
 }
 
@@ -69,52 +52,34 @@ func (q *Queries) AssignRoleToUser(ctx context.Context, db DBTX, arg *AssignRole
 	_, err := db.ExecContext(ctx, assignRoleToUser,
 		arg.ID,
 		arg.UserID,
-		arg.RoleID,
+		arg.RoleName,
 		arg.AccountID,
 	)
 	return err
 }
 
-const getAccountPermissionsForUser = `-- name: GetAccountPermissionsForUser :many
-WITH RECURSIVE role_tree AS (
-	SELECT user_roles.id AS role_id, user_roles.name AS role_name, user_role_assignments.account_id AS account_id
-	FROM user_role_assignments
-	JOIN user_roles ON user_roles.id = user_role_assignments.role_id
-	WHERE user_role_assignments.user_id = $1
-		AND user_role_assignments.account_id IS NOT NULL
-		AND user_role_assignments.archived_at IS NULL
-		AND user_roles.archived_at IS NULL
-	UNION
-	SELECT user_roles.id, user_roles.name, rt.account_id
-	FROM role_tree rt
-	JOIN user_role_hierarchy ON user_role_hierarchy.child_role_id = rt.role_id
-	JOIN user_roles ON user_roles.id = user_role_hierarchy.parent_role_id
-	WHERE user_role_hierarchy.archived_at IS NULL
-		AND user_roles.archived_at IS NULL
-)
-SELECT DISTINCT rt.account_id, permissions.name AS permission_name
-FROM role_tree rt
-JOIN user_role_permissions ON user_role_permissions.role_id = rt.role_id
-JOIN permissions ON permissions.id = user_role_permissions.permission_id
-WHERE user_role_permissions.archived_at IS NULL
-	AND permissions.archived_at IS NULL
+const getRoleAssignmentsForUser = `-- name: GetRoleAssignmentsForUser :many
+SELECT user_role_assignments.account_id, user_role_assignments.role_name
+FROM user_role_assignments
+WHERE user_role_assignments.user_id = $1
+	AND user_role_assignments.archived_at IS NULL
 `
 
-type GetAccountPermissionsForUserRow struct {
-	AccountID      sql.NullString
-	PermissionName string
+type GetRoleAssignmentsForUserRow struct {
+	AccountID sql.NullString
+	RoleName  string
 }
 
-func (q *Queries) GetAccountPermissionsForUser(ctx context.Context, db DBTX, userID string) ([]*GetAccountPermissionsForUserRow, error) {
-	rows, err := db.QueryContext(ctx, getAccountPermissionsForUser, userID)
+func (q *Queries) GetRoleAssignmentsForUser(ctx context.Context, db DBTX, userID string) ([]*GetRoleAssignmentsForUserRow, error) {
+	rows, err := db.QueryContext(ctx, getRoleAssignmentsForUser, userID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []*GetAccountPermissionsForUserRow{}
+	items := []*GetRoleAssignmentsForUserRow{}
 	for rows.Next() {
-		var i GetAccountPermissionsForUserRow
-		if err := rows.Scan(&i.AccountID, &i.PermissionName); err != nil {
+		var i GetRoleAssignmentsForUserRow
+		if err := rows.Scan(&i.AccountID, &i.RoleName); err != nil {
 			return nil, err
 		}
 		items = append(items, &i)
@@ -128,101 +93,20 @@ func (q *Queries) GetAccountPermissionsForUser(ctx context.Context, db DBTX, use
 	return items, nil
 }
 
-const getServicePermissionsForUser = `-- name: GetServicePermissionsForUser :many
-WITH RECURSIVE role_tree AS (
-	SELECT user_roles.id AS role_id, user_roles.name AS role_name
-	FROM user_role_assignments
-	JOIN user_roles ON user_roles.id = user_role_assignments.role_id
-	WHERE user_role_assignments.user_id = $1
-		AND user_role_assignments.account_id IS NULL
-		AND user_role_assignments.archived_at IS NULL
-		AND user_roles.archived_at IS NULL
-	UNION
-	SELECT user_roles.id, user_roles.name
-	FROM role_tree rt
-	JOIN user_role_hierarchy ON user_role_hierarchy.child_role_id = rt.role_id
-	JOIN user_roles ON user_roles.id = user_role_hierarchy.parent_role_id
-	WHERE user_role_hierarchy.archived_at IS NULL
-		AND user_roles.archived_at IS NULL
-)
-SELECT DISTINCT permissions.name AS permission_name
-FROM role_tree rt
-JOIN user_role_permissions ON user_role_permissions.role_id = rt.role_id
-JOIN permissions ON permissions.id = user_role_permissions.permission_id
-WHERE user_role_permissions.archived_at IS NULL
-	AND permissions.archived_at IS NULL
-`
-
-func (q *Queries) GetServicePermissionsForUser(ctx context.Context, db DBTX, userID string) ([]string, error) {
-	rows, err := db.QueryContext(ctx, getServicePermissionsForUser, userID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []string{}
-	for rows.Next() {
-		var permission_name string
-		if err := rows.Scan(&permission_name); err != nil {
-			return nil, err
-		}
-		items = append(items, permission_name)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getServiceRoleNamesForUser = `-- name: GetServiceRoleNamesForUser :many
-SELECT user_roles.name AS role_name
-FROM user_role_assignments
-JOIN user_roles ON user_roles.id = user_role_assignments.role_id
-WHERE user_role_assignments.user_id = $1
-	AND user_role_assignments.account_id IS NULL
-	AND user_role_assignments.archived_at IS NULL
-	AND user_roles.archived_at IS NULL
-`
-
-func (q *Queries) GetServiceRoleNamesForUser(ctx context.Context, db DBTX, userID string) ([]string, error) {
-	rows, err := db.QueryContext(ctx, getServiceRoleNamesForUser, userID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []string{}
-	for rows.Next() {
-		var role_name string
-		if err := rows.Scan(&role_name); err != nil {
-			return nil, err
-		}
-		items = append(items, role_name)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const updateAccountRoleAssignment = `-- name: UpdateAccountRoleAssignment :exec
-UPDATE user_role_assignments SET role_id = $1
+UPDATE user_role_assignments SET role_name = $1
 WHERE archived_at IS NULL
 	AND user_id = $2
 	AND account_id = $3
 `
 
 type UpdateAccountRoleAssignmentParams struct {
-	NewRoleID string
-	UserID    string
-	AccountID sql.NullString
+	NewRoleName string
+	UserID      string
+	AccountID   sql.NullString
 }
 
 func (q *Queries) UpdateAccountRoleAssignment(ctx context.Context, db DBTX, arg *UpdateAccountRoleAssignmentParams) error {
-	_, err := db.ExecContext(ctx, updateAccountRoleAssignment, arg.NewRoleID, arg.UserID, arg.AccountID)
+	_, err := db.ExecContext(ctx, updateAccountRoleAssignment, arg.NewRoleName, arg.UserID, arg.AccountID)
 	return err
 }

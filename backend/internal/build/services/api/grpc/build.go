@@ -155,6 +155,10 @@ func BuildInjector(
 	auditrepo.RegisterAuditLogRepository(i)
 	authrepo.RegisterAuthRepository(i)
 	commentsrepo.RegisterCommentsRepository(i)
+	// What a role grants, read from the policy tables the migrator seeds. The
+	// identity repository resolves a principal's role names through it when it
+	// builds a session.
+	identityrepo.RegisterPolicyResolver(i)
 	identityrepo.RegisterIdentityRepository(i)
 	issuereportsrepo.RegisterIssueReportsRepository(i)
 	uploadedmediarepo.RegisterUploadedMediaRepository(i)

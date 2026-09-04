@@ -281,7 +281,7 @@ func CreateUserForTest(t *testing.T, exampleUser *identity.User, db database.SQL
 	require.NoError(t, dbc.AssignRoleToUser(ctx, db, &generated.AssignRoleToUserParams{
 		ID:        identifiers.New(),
 		UserID:    exampleUser.ID,
-		RoleID:    authorization.ServiceUserRoleID,
+		RoleName:  authorization.ServiceUserRoleName,
 		AccountID: sql.NullString{},
 	}))
 
@@ -339,7 +339,7 @@ func CreateAccountForTest(t *testing.T, exampleAccount *identity.Account, userID
 	require.NoError(t, dbc.AssignRoleToUser(ctx, db, &generated.AssignRoleToUserParams{
 		ID:        identifiers.New(),
 		UserID:    userID,
-		RoleID:    authorization.AccountAdminRoleID,
+		RoleName:  authorization.AccountAdminRoleName,
 		AccountID: sql.NullString{String: exampleAccount.ID, Valid: true},
 	}))
 
