@@ -7,6 +7,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity/generated"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/recording"
 
 	"github.com/primandproper/platform-go/v13/database"
 	"github.com/primandproper/platform-go/v13/observability/logging"
@@ -29,6 +30,7 @@ type repository struct {
 	generatedQuerier  generated.Querier
 	auditLogEntryRepo audit.Repository
 	events            *events.Emitter
+	recorder          *recording.Recorder
 	secretGenerator   random.Generator
 
 	// uploads answers what a user_avatars row points at. The avatar itself lives
@@ -49,14 +51,17 @@ func ProvideIdentityRepository(
 	eventEmitter *events.Emitter,
 	uploads registry.Store,
 ) identity.Repository {
+	tracer := tracing.NewNamedTracer(tracerProvider, o11yName)
+
 	c := &repository{
 		Client:            client,
 		readDB:            client.Reader(),
 		writeDB:           client.Writer(),
-		tracer:            tracing.NewNamedTracer(tracerProvider, o11yName),
+		tracer:            tracer,
 		generatedQuerier:  generated.New(),
 		auditLogEntryRepo: auditLogEntryRepo,
 		events:            eventEmitter,
+		recorder:          recording.NewRecorder(tracer, auditLogEntryRepo, eventEmitter),
 		uploads:           uploads,
 		secretGenerator:   random.NewGenerator(random.WithLogger(logger), random.WithTracerProvider(tracerProvider)),
 		logger:            logging.NewNamedLogger(logger, o11yName),

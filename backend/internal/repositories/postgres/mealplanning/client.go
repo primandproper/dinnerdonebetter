@@ -8,6 +8,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/recording"
 
 	"github.com/primandproper/platform-go/v13/database"
 	"github.com/primandproper/platform-go/v13/observability/logging"
@@ -28,6 +29,7 @@ type repository struct {
 	identityRepo      identity.Repository
 	auditLogEntryRepo audit.Repository
 	events            *events.Emitter
+	recorder          *recording.Recorder
 
 	// uploads answers what a bridge row's uploaded_media_id names. The media
 	// itself lives in platform-go's upload registry, whose table this repository's
@@ -52,15 +54,18 @@ func ProvideMealPlanningRepository(
 	eventEmitter *events.Emitter,
 	uploads registry.Store,
 ) mealplanning.Repository {
+	tracer := tracing.NewNamedTracer(tracerProvider, o11yName)
+
 	c := &repository{
 		Client:            client,
 		readDB:            client.Reader(),
 		writeDB:           client.Writer(),
-		tracer:            tracing.NewNamedTracer(tracerProvider, o11yName),
+		tracer:            tracer,
 		generatedQuerier:  generated.New(),
 		auditLogEntryRepo: auditLogEntryRepo,
 		identityRepo:      identityRepo,
 		events:            eventEmitter,
+		recorder:          recording.NewRecorder(tracer, auditLogEntryRepo, eventEmitter),
 		uploads:           uploads,
 		logger:            logging.NewNamedLogger(logger, o11yName),
 	}

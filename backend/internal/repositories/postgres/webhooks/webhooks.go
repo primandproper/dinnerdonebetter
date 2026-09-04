@@ -383,24 +383,14 @@ func (r *repository) ArchiveWebhook(ctx context.Context, webhookID, accountID st
 			return sql.ErrNoRows
 		}
 
-		if auditErr := r.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
+		return r.recorder.RecordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
 			BelongsToAccount: &accountID,
 			ResourceType:     resourceTypeWebhooks,
 			RelevantID:       webhookID,
 			EventType:        audit.AuditLogEventTypeArchived,
-		}); auditErr != nil {
-			return observability.PrepareError(auditErr, span, "creating audit log entry")
-		}
-
-		// The event is another statement in this transaction, so it commits with the
-		// rows it describes.
-		if emitErr := r.events.Emit(ctx, tx, logger, types.WebhookArchivedServiceEventType, accountID, map[string]any{
+		}, types.WebhookArchivedServiceEventType, accountID, map[string]any{
 			webhookkeys.WebhookIDKey: webhookID,
-		}); emitErr != nil {
-			return observability.PrepareError(emitErr, span, "enqueuing data change event")
-		}
-
-		return nil
+		})
 	}); err != nil {
 		return err
 	}
@@ -502,25 +492,15 @@ func (r *repository) ArchiveWebhookTriggerConfig(ctx context.Context, webhookID,
 			return sql.ErrNoRows
 		}
 
-		if auditErr := r.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
+		return r.recorder.RecordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
 			BelongsToAccount: &accountID,
 			ResourceType:     resourceTypeWebhookTriggerConfigs,
 			RelevantID:       configID,
 			EventType:        audit.AuditLogEventTypeArchived,
-		}); auditErr != nil {
-			return observability.PrepareError(auditErr, span, "creating audit log entry")
-		}
-
-		// The event is another statement in this transaction, so it commits with the row
-		// it describes.
-		if emitErr := r.events.Emit(ctx, tx, logger, types.WebhookTriggerConfigArchivedServiceEventType, accountID, map[string]any{
+		}, types.WebhookTriggerConfigArchivedServiceEventType, accountID, map[string]any{
 			webhookkeys.WebhookIDKey:              webhookID,
 			webhookkeys.WebhookTriggerConfigIDKey: configID,
-		}); emitErr != nil {
-			return observability.PrepareError(emitErr, span, "enqueuing webhook trigger config archived event")
-		}
-
-		return nil
+		})
 	}); err != nil {
 		return err
 	}

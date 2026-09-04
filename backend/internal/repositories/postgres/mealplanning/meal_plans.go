@@ -538,22 +538,14 @@ func (q *repository) UpdateMealPlan(ctx context.Context, updated *types.MealPlan
 			return sql.ErrNoRows
 		}
 
-		if auditErr := q.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
+		return q.recorder.RecordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
 			BelongsToAccount: &updated.BelongsToAccount,
 			ResourceType:     resourceTypeMealPlans,
 			RelevantID:       updated.ID,
 			EventType:        audit.AuditLogEventTypeUpdated,
-		}); auditErr != nil {
-			return observability.PrepareError(auditErr, span, "creating audit log entry")
-		}
-
-		if emitErr := q.events.Emit(ctx, tx, logger, types.MealPlanUpdatedServiceEventType, updated.BelongsToAccount, map[string]any{
+		}, types.MealPlanUpdatedServiceEventType, updated.BelongsToAccount, map[string]any{
 			mealplanningkeys.MealPlanIDKey: updated.ID,
-		}); emitErr != nil {
-			return observability.PrepareError(emitErr, span, "enqueuing meal plan updated event")
-		}
-
-		return nil
+		})
 	}); err != nil {
 		return err
 	}
@@ -597,22 +589,14 @@ func (q *repository) ArchiveMealPlan(ctx context.Context, mealPlanID, accountID 
 			return sql.ErrNoRows
 		}
 
-		if auditErr := q.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
+		return q.recorder.RecordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
 			BelongsToAccount: &accountID,
 			ResourceType:     resourceTypeMealPlans,
 			RelevantID:       mealPlanID,
 			EventType:        audit.AuditLogEventTypeArchived,
-		}); auditErr != nil {
-			return observability.PrepareError(auditErr, span, "creating audit log entry")
-		}
-
-		if emitErr := q.events.Emit(ctx, tx, logger, types.MealPlanArchivedServiceEventType, accountID, map[string]any{
+		}, types.MealPlanArchivedServiceEventType, accountID, map[string]any{
 			mealplanningkeys.MealPlanIDKey: mealPlanID,
-		}); emitErr != nil {
-			return observability.PrepareError(emitErr, span, "enqueuing meal plan archived event")
-		}
-
-		return nil
+		})
 	})
 }
 

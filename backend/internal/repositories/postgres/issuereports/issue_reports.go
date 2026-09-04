@@ -25,8 +25,8 @@ nothing is recorded about it. It is narrow and it is one-directional: a report
 can exist with no event, but no event can name a report that was not written.
 Closing it needs platform's write methods to accept a database.Tx the way
 DeleteReportsByReporter already does. That is filed upstream as platform-go
-#457 rather than worked around here — a gap papered over locally stops being a
-gap anyone remembers.
+#465 rather than worked around here — a gap papered over locally stops being a
+gap anyone remembers. See #1419 for what deletes here when it lands.
 */
 package issuereports
 
@@ -161,24 +161,16 @@ func (r *repository) record(ctx context.Context, report *platformissuereports.Re
 	accountID := report.Scope.Owner()
 
 	return r.client.WithTransaction(ctx, func(tx database.Tx) error {
-		if err := r.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
+		return r.recorder.RecordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
 			ID:               identifiers.New(),
 			ResourceType:     resourceTypeIssueReports,
 			RelevantID:       report.ID,
 			EventType:        auditEventType,
 			BelongsToUser:    report.Reporter,
 			BelongsToAccount: &accountID,
-		}); err != nil {
-			return observability.PrepareAndLogError(err, logger, span, "creating audit log entry")
-		}
-
-		if err := r.events.Emit(ctx, tx, logger, changeEventType, accountID, map[string]any{
+		}, changeEventType, accountID, map[string]any{
 			issuereportkeys.IssueReportIDKey:     report.ID,
 			issuereportkeys.IssueReportStatusKey: report.Status.String(),
-		}); err != nil {
-			return observability.PrepareAndLogError(err, logger, span, "enqueuing data change event")
-		}
-
-		return nil
+		})
 	})
 }

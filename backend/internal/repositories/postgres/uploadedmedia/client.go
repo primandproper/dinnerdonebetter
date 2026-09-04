@@ -4,6 +4,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	ddbuploadedmedia "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/recording"
 
 	"github.com/primandproper/platform-go/v13/database"
 	platformerrors "github.com/primandproper/platform-go/v13/errors"
@@ -25,11 +26,10 @@ const (
 // forwarding stubs that could drift from it.
 type repository struct {
 	registry.Store
-	client            database.Client
-	tracer            tracing.Tracer
-	logger            logging.Logger
-	auditLogEntryRepo audit.Repository
-	events            *events.Emitter
+	client   database.Client
+	tracer   tracing.Tracer
+	logger   logging.Logger
+	recorder *recording.Recorder
 }
 
 // ProvideUploadedMediaRepository provides a new upload registry.
@@ -52,12 +52,13 @@ func ProvideUploadedMediaRepository(
 		return nil, platformerrors.Wrap(err, "building the upload registry store")
 	}
 
+	tracer := tracing.NewNamedTracer(tracerProvider, o11yName)
+
 	return &repository{
-		Store:             store,
-		client:            client,
-		tracer:            tracing.NewNamedTracer(tracerProvider, o11yName),
-		logger:            logging.NewNamedLogger(logger, o11yName),
-		auditLogEntryRepo: auditLogEntryRepo,
-		events:            eventEmitter,
+		Store:    store,
+		client:   client,
+		tracer:   tracer,
+		logger:   logging.NewNamedLogger(logger, o11yName),
+		recorder: recording.NewRecorder(tracer, auditLogEntryRepo, eventEmitter),
 	}, nil
 }

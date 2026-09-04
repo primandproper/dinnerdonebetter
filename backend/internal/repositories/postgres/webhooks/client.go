@@ -4,6 +4,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	domainwebhooks "github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/recording"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhooks/generated"
 
 	"github.com/primandproper/platform-go/v13/database"
@@ -24,6 +25,7 @@ type repository struct {
 	generatedQuerier  generated.Querier
 	auditLogEntryRepo audit.Repository
 	events            *events.Emitter
+	recorder          *recording.Recorder
 	// dispatcher registers endpoints and fans events out to them. It is required rather than
 	// optional, because a webhook that is stored and not registered is one the account was
 	// told exists and that will never fire.
@@ -46,14 +48,17 @@ func ProvideWebhooksRepository(
 	dispatcher webhooks.Dispatcher,
 	endpoints webhooks.Store,
 ) domainwebhooks.Repository {
+	tracer := tracing.NewNamedTracer(tracerProvider, o11yName)
+
 	c := &repository{
 		Client:            client,
 		readDB:            client.Reader(),
 		writeDB:           client.Writer(),
-		tracer:            tracing.NewNamedTracer(tracerProvider, o11yName),
+		tracer:            tracer,
 		generatedQuerier:  generated.New(),
 		auditLogEntryRepo: auditLogEntryRepo,
 		events:            eventEmitter,
+		recorder:          recording.NewRecorder(tracer, auditLogEntryRepo, eventEmitter),
 		dispatcher:        dispatcher,
 		endpoints:         endpoints,
 		logger:            logging.NewNamedLogger(logger, o11yName),

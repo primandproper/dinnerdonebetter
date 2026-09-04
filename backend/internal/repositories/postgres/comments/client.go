@@ -4,6 +4,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	ddbcomments "github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/recording"
 
 	platformcomments "github.com/primandproper/platform-go/v13/comments"
 	"github.com/primandproper/platform-go/v13/database"
@@ -26,11 +27,10 @@ const (
 // from it.
 type repository struct {
 	platformcomments.Store
-	client            database.Client
-	tracer            tracing.Tracer
-	logger            logging.Logger
-	auditLogEntryRepo audit.Repository
-	events            *events.Emitter
+	client   database.Client
+	tracer   tracing.Tracer
+	logger   logging.Logger
+	recorder *recording.Recorder
 }
 
 // ProvideCommentsRepository provides a new comment store.
@@ -60,12 +60,13 @@ func ProvideCommentsRepository(
 		return nil, platformerrors.Wrap(err, "building the comments store")
 	}
 
+	tracer := tracing.NewNamedTracer(tracerProvider, o11yName)
+
 	return &repository{
-		Store:             store,
-		client:            client,
-		tracer:            tracing.NewNamedTracer(tracerProvider, o11yName),
-		logger:            logging.NewNamedLogger(logger, o11yName),
-		auditLogEntryRepo: auditLogEntryRepo,
-		events:            eventEmitter,
+		Store:    store,
+		client:   client,
+		tracer:   tracer,
+		logger:   logging.NewNamedLogger(logger, o11yName),
+		recorder: recording.NewRecorder(tracer, auditLogEntryRepo, eventEmitter),
 	}, nil
 }

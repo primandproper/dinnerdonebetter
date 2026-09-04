@@ -307,20 +307,12 @@ func (r *repository) record(
 	logger := r.logger.WithSpan(span).WithValue(waitlistkeys.WaitlistIDKey, relevantID)
 
 	return r.client.WithTransaction(ctx, func(tx database.Tx) error {
-		if err := r.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
+		return r.recorder.RecordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
 			ID:            identifiers.New(),
 			ResourceType:  resourceType,
 			RelevantID:    relevantID,
 			EventType:     auditEventType,
 			BelongsToUser: userID,
-		}); err != nil {
-			return observability.PrepareAndLogError(err, logger, span, "creating audit log entry")
-		}
-
-		if err := r.events.Emit(ctx, tx, logger, changeEventType, "", metadata); err != nil {
-			return observability.PrepareAndLogError(err, logger, span, "enqueuing data change event")
-		}
-
-		return nil
+		}, changeEventType, "", metadata)
 	})
 }

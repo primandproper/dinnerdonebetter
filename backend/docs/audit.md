@@ -29,7 +29,7 @@ the log a question and gets an empty answer.
 commits with the change it describes or not at all:
 
 ```go
-return q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
+return q.WithTransaction(ctx, func(tx database.Tx) error {
     if err := q.generatedQuerier.UpdateRecipe(ctx, tx, params); err != nil {
         return err
     }
@@ -51,7 +51,60 @@ return q.WithTransaction(ctx, func(tx database.SQLQueryExecutor) error {
 ```
 
 There is no way to record outside a transaction by accident: holding a
-`SQLQueryExecutor` from `WithTransaction` means you are already in one.
+`database.Tx` from `WithTransaction` means you are already in one.
+
+### Almost always, use `RecordAndEmit`
+
+A write that records an entry nearly always owes a data change event too, and every
+repository holds a `recording.Recorder` for exactly that pair:
+
+```go
+return q.WithTransaction(ctx, func(tx database.Tx) error {
+    if err := q.generatedQuerier.UpdateRecipe(ctx, tx, params); err != nil {
+        return err
+    }
+
+    return q.recorder.RecordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
+        ResourceType: resourceTypeRecipes,
+        RelevantID:   after.ID,
+        EventType:    audit.AuditLogEventTypeUpdated,
+    }, mealplanning.RecipeUpdatedServiceEventType, accountID, map[string]any{
+        mealplanningkeys.RecipeIDKey: after.ID,
+    })
+})
+```
+
+The two used to be written out as separate blocks at every write, which made the
+easiest mistake to make the one nothing catches: skip the entry and the row has no
+provenance, and the chain does not notice, because a chain records what it was
+given; skip the event and the search index goes stale and no webhook fires. Neither
+leaves anything behind to find later. One call cannot half-happen.
+
+Reach past it for `Record` alone only where the pair genuinely does not apply — an
+entry with no event of its own, or a transaction recording several entries at once,
+which `Record`'s variadic form handles and `RecordAndEmit` deliberately does not.
+
+Four packages are exceptions to "in the transaction that performed the write", and
+they are exactly the four whose writes are an adopted platform store: `comments`,
+`issuereports`, `settings` and `waitlists`. Those stores own their transactions and do
+not lend them out, so each of these repositories calls the store, lets it commit, and
+then opens a second transaction to record — an entry the database refuses fails the
+call but no longer takes the row down with it. The gap is narrow and one-directional:
+a row can exist with no entry, but no entry can name a row that was not written.
+
+That is a property of the stores, not of `RecordAndEmit`, and each closes when platform
+accepts a caller's transaction — filed upstream as platform-go #457 (comments, fixed
+but unreleased), #458 (waitlists), #460 (settings) and #465 (issuereports). Tracked
+locally on #1419, which lists what deletes here when each lands.
+
+The recorder is one type in `internal/repositories/postgres/recording` rather than a
+method on each repository, because the body was the same body in all nine of them and
+a rule stated nine times is a rule that can be restated wrongly once. It is built from
+the repository's own named tracer, so a span it raises is still attributed to the
+package whose write raised it. Its doc comment records why the pair is not in
+platform-go: both halves are this application's vocabulary over platform's engines, so
+a platform-side version would be generic over two types whose bodies are one call
+each.
 
 `Record` is variadic. A transaction touching three resources should pass three
 entries to one call rather than making three calls — one chain-head lookup and one

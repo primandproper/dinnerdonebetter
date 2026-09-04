@@ -181,24 +181,14 @@ func (q *Repository) CreateUserNotification(ctx context.Context, input *types.Us
 		tracing.AttachToSpan(span, notificationkeys.UserNotificationIDKey, x.ID)
 		logger.Info("user notification created")
 
-		if err = q.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
+		return q.recorder.RecordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
 			ResourceType:  resourceTypeUserNotifications,
 			RelevantID:    x.ID,
 			EventType:     audit.AuditLogEventTypeCreated,
 			BelongsToUser: x.BelongsToUser,
-		}); err != nil {
-			return observability.PrepareError(err, span, "creating audit log entry")
-		}
-
-		// The event is another statement in this transaction, so it commits with the
-		// rows it describes.
-		if emitErr := q.events.Emit(ctx, tx, logger, types.UserNotificationCreatedServiceEventType, "", map[string]any{
+		}, types.UserNotificationCreatedServiceEventType, "", map[string]any{
 			notificationkeys.UserNotificationIDKey: input.ID,
-		}); emitErr != nil {
-			return observability.PrepareError(emitErr, span, "enqueuing data change event")
-		}
-
-		return nil
+		})
 	}); err != nil {
 		return nil, err
 	}
@@ -226,24 +216,14 @@ func (q *Repository) UpdateUserNotification(ctx context.Context, updated *types.
 			return observability.PrepareAndLogError(err, logger, span, "updating user notification")
 		}
 
-		if err = q.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
+		return q.recorder.RecordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
 			ResourceType:  resourceTypeUserNotifications,
 			RelevantID:    updated.ID,
 			EventType:     audit.AuditLogEventTypeUpdated,
 			BelongsToUser: updated.BelongsToUser,
-		}); err != nil {
-			return observability.PrepareError(err, span, "creating audit log entry")
-		}
-
-		// The event is another statement in this transaction, so it commits with the
-		// rows it describes.
-		if emitErr := q.events.Emit(ctx, tx, logger, types.UserNotificationUpdatedServiceEventType, "", map[string]any{
+		}, types.UserNotificationUpdatedServiceEventType, "", map[string]any{
 			notificationkeys.UserNotificationIDKey: updated.ID,
-		}); emitErr != nil {
-			return observability.PrepareError(emitErr, span, "enqueuing data change event")
-		}
-
-		return nil
+		})
 	}); err != nil {
 		return err
 	}

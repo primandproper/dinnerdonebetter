@@ -271,7 +271,7 @@ func (r *repository) ModifyUserPermissions(ctx context.Context, accountID, userI
 			return observability.PrepareAndLogError(err, logger, span, "updating account role assignment")
 		}
 
-		if err = r.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
+		return r.recorder.RecordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
 			BelongsToAccount: &accountID,
 			ResourceType:     resourceTypeAccountUserMemberships,
 			EventType:        audit.AuditLogEventTypeUpdated,
@@ -281,19 +281,9 @@ func (r *repository) ModifyUserPermissions(ctx context.Context, accountID, userI
 					New: input.NewRole,
 				},
 			},
-		}); err != nil {
-			return observability.PrepareError(err, span, "creating audit log entry")
-		}
-
-		// The event is another statement in this transaction, so it commits with the
-		// rows it describes.
-		if emitErr := r.events.Emit(ctx, tx, logger, identity.AccountMembershipPermissionsUpdatedServiceEventType, accountID, map[string]any{
+		}, identity.AccountMembershipPermissionsUpdatedServiceEventType, accountID, map[string]any{
 			identitykeys.AccountIDKey: accountID,
-		}); emitErr != nil {
-			return observability.PrepareError(emitErr, span, "enqueuing data change event")
-		}
-
-		return nil
+		})
 	}); err != nil {
 		return err
 	}
