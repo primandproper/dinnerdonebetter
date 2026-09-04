@@ -19,7 +19,7 @@ gate.
 | --- | --- | --- |
 | Features | `internal/entitlements/features.go` | A quota feature names a meter this application registered; a boolean one names a permission its handlers check. Neither is spellable in an environment variable, and a catalog that discovered its features from configuration would let a typo silently create a feature nobody gates on. |
 | Plans | `internal/config.DefaultEntitlementsConfig`, rendered into each environment's config | What a tier includes changes when pricing changes, which is more often than a deploy and by people who do not ship one. |
-| `PlanSource` | `internal/entitlements/plans.go` | The join between an account and a purchased plan is application data — it is this service's `subscriptions` table. |
+| `PlanSource` | `internal/entitlements/plans.go` | platform-go's `billing/plans` reads the account's current subscriptions; which of their statuses entitles is `ChoosePlan`, which is ours. |
 
 ## What is declared
 
@@ -47,19 +47,31 @@ other answer — reporting no plan at all — is for a product where not paying 
 customer, and here it would deny an unsubscribed account features it is supposed to have.
 
 `subscriber` is one plan for every product, because there is one tier to sell. The day there are
-two, the mapping goes in `SubscriptionPlanSource`: entitlements joins a plan to a catalog entry
-by string equality, and a product ID cannot be that string — plan names are plain identifiers and
-a minted ID is not one.
+two, the mapping goes in `ChoosePlan`: entitlements joins a plan to a catalog entry by string
+equality, and a product ID cannot be that string — plan names are plain identifiers and a minted
+ID is not one. platform-go's default chooser answers with the product ID for exactly that reason,
+and it is why this service does not take it.
 
 ## Which plan an account is on
 
-`SubscriptionPlanSource` reads the account's subscriptions and answers `subscriber` if any of
-them is `active` or `trialing`, and `free` otherwise.
+The source is platform-go's `billing/plans.Source`, built by `NewPlanSource`: it pages the
+account's **current** subscriptions — those whose paid period covers now — out of the billing
+store and hands them to `ChoosePlan`, which answers `subscriber` if any of them is `active` or
+`trialing`, and `free` otherwise.
 
 Trialing counts: a trial that silently got the free plan's grants would be a trial of a different
 product. `past_due` does not, which is the lever that makes a lapsed payment degrade service
 rather than end it — though with both plans granting the same thing it currently levers nothing.
 An account can hold several rows, so the first live one wins rather than the only one.
+
+"Current" is the platform's reading and a narrower one than the hand-rolled source made: that one
+read every subscription the account had ever held and looked only at the status. A subscription
+whose period lapsed without the provider reporting a status is not one anybody is paying for, and
+under the adopted store it stops entitling on its own. The RevenueCat path writes an approximate
+one-month period on a purchase it has not seen renewed, which is where that reading first bites.
+
+`ChoosePlan` never declines, and that is what keeps entitlements' `ErrNoPlan` out of this
+deployment: an account with no current subscription is on `free`, not on nothing.
 
 It reads this service's own table rather than asking the payment provider. A provider round trip
 per feature check spends a latency budget on a fact that changes a few times a year, and an
@@ -92,7 +104,7 @@ on — an error during an outage costs less than a reconciliation after one.
 ## What has to change before the first gate
 
 1. **Attach a cache.** No `cache.Cache[entitlements.Assignment]` is registered, so every check
-   resolves the account's plan through the payments repository — a durable read on a request
+   resolves the account's plan through the billing store — a durable read on a request
    path, which is what the cache exists to avoid. Thirty seconds is the platform's default and
    the reasoning for it is in `CheckerConfig.CacheTTL`.
 2. **Invalidate on subscription change.** The webhook handler that writes a subscription change

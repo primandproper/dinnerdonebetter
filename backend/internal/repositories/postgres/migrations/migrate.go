@@ -15,6 +15,7 @@ import (
 	ddbdataprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
 	ddbissuereports "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports"
 	ddboauth "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
+	ddbpayments "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 	ddbsettings "github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings"
 	ddbuploadedmedia "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	ddbwaitlists "github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists"
@@ -26,6 +27,7 @@ import (
 	webauthnmigrations "github.com/primandproper/platform-go/v13/authentication/webauthn/database/migrations"
 	authzdatabase "github.com/primandproper/platform-go/v13/authorization/database"
 	authzmigrations "github.com/primandproper/platform-go/v13/authorization/database/migrations"
+	billingmigrations "github.com/primandproper/platform-go/v13/billing/migrations"
 	commentsmigrations "github.com/primandproper/platform-go/v13/comments/migrations"
 	"github.com/primandproper/platform-go/v13/database"
 	"github.com/primandproper/platform-go/v13/database/ddl"
@@ -89,6 +91,7 @@ const (
 	waitlistsMigrationVersion       = 40
 	settingsMigrationVersion        = 41
 	authorizationMigrationVersion   = 42
+	billingMigrationVersion         = 43
 )
 
 // NewMigrator creates a new postgres Migrator over the embedded migration files.
@@ -229,6 +232,11 @@ func NewMigrator(logger logging.Logger) (*Migrator, error) {
 		return nil, err
 	}
 
+	billingDDL, err := renderBillingDDL()
+	if err != nil {
+		return nil, err
+	}
+
 	migrator, err := migrate.New(
 		dialect.Postgres,
 		migrationFiles,
@@ -252,6 +260,7 @@ func NewMigrator(logger logging.Logger) (*Migrator, error) {
 		migrate.WithGeneratedMigration(waitlistsMigrationVersion, "create_waitlist_tables", waitlistsDDL),
 		migrate.WithGeneratedMigration(settingsMigrationVersion, "create_settings_tables", settingsDDL),
 		migrate.WithGeneratedMigration(authorizationMigrationVersion, "create_authorization_tables", authorizationDDL),
+		migrate.WithGeneratedMigration(billingMigrationVersion, "create_billing_tables", billingDDL),
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "building migrator")
@@ -408,6 +417,76 @@ func renderAuthorizationDDL() (string, error) {
 	body.WriteString("DROP TABLE IF EXISTS user_roles CASCADE;\n\n")
 	body.WriteString(schema)
 	body.WriteString("\n\nALTER TABLE user_role_assignments\n\tADD CONSTRAINT user_role_assignments_role_fk\n\tFOREIGN KEY (role_name) REFERENCES " + rolesTable + "(name) ON DELETE RESTRICT;\n")
+
+	return body.String(), nil
+}
+
+// billingTablesOwnedByAccounts are the three billing tables whose rows belong to
+// an account. The catalog is the fourth and belongs to nobody.
+var billingTablesOwnedByAccounts = []string{
+	"billing_subscriptions",
+	"billing_purchases",
+	"billing_transactions",
+}
+
+// renderBillingDDL renders the four billing tables — the catalog, the
+// subscriptions, the one-time purchases and the ledger — dropping the four
+// 00011_payments.sql created first along with the three enums it defined, and
+// re-creating the foreign key that kept an erased account's billing from
+// outliving it.
+//
+// Nothing is carried across, and the schemas could not carry it anyway. The
+// platform's amounts are BIGINT where the old ones were INTEGER, its three
+// provider-side ids are nullable and unique within the scope where the old ones
+// defaulted to the empty string and were unique nowhere, its ledger carries the
+// last_updated_at and archived_at the old one lacked, and every table adds the
+// tenancy column every one of its reads filters on. The subscription status is
+// capitalism's vocabulary rather than a five-value enum of this application's,
+// and one word differs: the platform writes "canceled".
+//
+// The old tables are dropped rather than left in place because nothing reads
+// them once the store is platform's. The enums go with them: nothing else in
+// this schema uses them, and a type left behind by the table that defined it is
+// a name the next migration has to work around. The drop order is the reference
+// order — the ledger points at subscriptions and purchases, both point at
+// products — because Postgres will not drop a table out from under a foreign key.
+//
+// # The foreign key, and what it decides
+//
+// belongs_to_account named an account in every row of the three old tables, with
+// ON DELETE CASCADE, and that key is re-created here on each of the three new
+// ones. It is what keeps the single identity eraser in
+// internal/build/dataprivacy covering billing: an erased user's accounts take
+// their subscriptions, purchases and ledger rows with them.
+//
+// That is the behavior this schema had, preserved rather than decided. Platform's
+// billing/privacy ships a collector and deliberately no eraser, on the grounds
+// that financial records carry a statutory retention that outranks a right to
+// erasure — and docs/data-privacy.md has named payments as the likeliest first
+// domain to need retention rather than a cascade since before this store was
+// adopted. Making that call means dropping this key and registering an eraser
+// that anonymizes rather than deletes, which is a policy decision this migration
+// does not take on anybody's behalf.
+//
+// Platform cannot ship the key either way. It does not know that a consumer's
+// accounts are rows in a table at all.
+func renderBillingDDL() (string, error) {
+	schema, err := billingmigrations.SQL(dialect.Postgres, ddbpayments.TablePrefix)
+	if err != nil {
+		return "", errors.Wrap(err, "rendering billing migration")
+	}
+
+	qualified := ddl.Qualify(ddbpayments.TablePrefix)
+
+	body := &strings.Builder{}
+	body.WriteString("DROP TABLE IF EXISTS payment_transactions;\nDROP TABLE IF EXISTS purchases;\nDROP TABLE IF EXISTS subscriptions;\nDROP TABLE IF EXISTS products;\n")
+	body.WriteString("DROP TYPE IF EXISTS payment_transaction_status;\nDROP TYPE IF EXISTS subscription_status;\nDROP TYPE IF EXISTS product_kind;\n\n")
+	body.WriteString(schema)
+
+	for _, owned := range billingTablesOwnedByAccounts {
+		table := qualified + owned
+		body.WriteString("\n\nALTER TABLE " + table + "\n\tADD CONSTRAINT " + table + "_account_fk\n\tFOREIGN KEY (belongs_to_account) REFERENCES accounts(id) ON DELETE CASCADE;\n")
+	}
 
 	return body.String(), nil
 }

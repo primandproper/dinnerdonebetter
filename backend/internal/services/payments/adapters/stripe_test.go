@@ -85,7 +85,7 @@ func TestStripePaymentProcessor_HandleWebhook(T *testing.T) {
 
 		assert.Equal(t, "customer.subscription.updated", actual.EventType)
 		assert.Equal(t, "sub_example", actual.SubscriptionID)
-		assert.Equal(t, "active", actual.Status)
+		assert.Equal(t, capitalism.SubscriptionStatusActive, actual.Status)
 		assert.Equal(t, "cus_example", actual.AccountID)
 		assert.Equal(t, "price_example", actual.ProductID)
 	})
@@ -180,7 +180,7 @@ func TestParseStripeEvent(T *testing.T) {
 
 		assert.Equal(t, "customer.subscription.deleted", actual.EventType)
 		assert.Equal(t, "sub_example", actual.SubscriptionID)
-		assert.Equal(t, "canceled", actual.Status)
+		assert.Equal(t, capitalism.SubscriptionStatusCanceled, actual.Status)
 		assert.Equal(t, "cus_example", actual.AccountID)
 		assert.Empty(t, actual.ProductID)
 	})

@@ -31,26 +31,17 @@ public struct Payments_ProductCreationRequestInput: Sendable {
 
   public var kind: String = String()
 
-  public var amountCents: Int32 = 0
+  public var amountCents: Int64 = 0
 
   public var currency: String = String()
 
-  public var billingIntervalMonths: Int32 {
-    get {return _billingIntervalMonths ?? 0}
-    set {_billingIntervalMonths = newValue}
-  }
-  /// Returns true if `billingIntervalMonths` has been explicitly set.
-  public var hasBillingIntervalMonths: Bool {return self._billingIntervalMonths != nil}
-  /// Clears the value of `billingIntervalMonths`. Subsequent reads from it will return its default value.
-  public mutating func clearBillingIntervalMonths() {self._billingIntervalMonths = nil}
+  public var billingIntervalMonths: Int64 = 0
 
   public var externalProductID: String = String()
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
-
-  fileprivate var _billingIntervalMonths: Int32? = nil
 }
 
 public struct Payments_ProductUpdateRequestInput: Sendable {
@@ -85,7 +76,7 @@ public struct Payments_ProductUpdateRequestInput: Sendable {
   /// Clears the value of `kind`. Subsequent reads from it will return its default value.
   public mutating func clearKind() {self._kind = nil}
 
-  public var amountCents: Int32 {
+  public var amountCents: Int64 {
     get {return _amountCents ?? 0}
     set {_amountCents = newValue}
   }
@@ -103,7 +94,7 @@ public struct Payments_ProductUpdateRequestInput: Sendable {
   /// Clears the value of `currency`. Subsequent reads from it will return its default value.
   public mutating func clearCurrency() {self._currency = nil}
 
-  public var billingIntervalMonths: Int32 {
+  public var billingIntervalMonths: Int64 {
     get {return _billingIntervalMonths ?? 0}
     set {_billingIntervalMonths = newValue}
   }
@@ -128,9 +119,9 @@ public struct Payments_ProductUpdateRequestInput: Sendable {
   fileprivate var _name: String? = nil
   fileprivate var _description_p: String? = nil
   fileprivate var _kind: String? = nil
-  fileprivate var _amountCents: Int32? = nil
+  fileprivate var _amountCents: Int64? = nil
   fileprivate var _currency: String? = nil
-  fileprivate var _billingIntervalMonths: Int32? = nil
+  fileprivate var _billingIntervalMonths: Int64? = nil
   fileprivate var _externalProductID: String? = nil
 }
 
@@ -205,6 +196,16 @@ public struct Payments_SubscriptionUpdateRequestInput: Sendable {
   /// Clears the value of `currentPeriodEnd`. Subsequent reads from it will return its default value.
   public mutating func clearCurrentPeriodEnd() {self._currentPeriodEnd = nil}
 
+  /// An upgrade is the same agreement pointed at a different product.
+  public var productID: String {
+    get {return _productID ?? String()}
+    set {_productID = newValue}
+  }
+  /// Returns true if `productID` has been explicitly set.
+  public var hasProductID: Bool {return self._productID != nil}
+  /// Clears the value of `productID`. Subsequent reads from it will return its default value.
+  public mutating func clearProductID() {self._productID = nil}
+
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
@@ -212,6 +213,7 @@ public struct Payments_SubscriptionUpdateRequestInput: Sendable {
   fileprivate var _status: String? = nil
   fileprivate var _currentPeriodStart: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
   fileprivate var _currentPeriodEnd: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
+  fileprivate var _productID: String? = nil
 }
 
 public struct Payments_CheckoutSessionRequestInput: Sendable {
@@ -848,9 +850,9 @@ extension Payments_ProductCreationRequestInput: SwiftProtobuf.Message, SwiftProt
       case 1: try { try decoder.decodeSingularStringField(value: &self.name) }()
       case 2: try { try decoder.decodeSingularStringField(value: &self.description_p) }()
       case 3: try { try decoder.decodeSingularStringField(value: &self.kind) }()
-      case 4: try { try decoder.decodeSingularInt32Field(value: &self.amountCents) }()
+      case 4: try { try decoder.decodeSingularInt64Field(value: &self.amountCents) }()
       case 5: try { try decoder.decodeSingularStringField(value: &self.currency) }()
-      case 6: try { try decoder.decodeSingularInt32Field(value: &self._billingIntervalMonths) }()
+      case 6: try { try decoder.decodeSingularInt64Field(value: &self.billingIntervalMonths) }()
       case 7: try { try decoder.decodeSingularStringField(value: &self.externalProductID) }()
       default: break
       }
@@ -858,10 +860,6 @@ extension Payments_ProductCreationRequestInput: SwiftProtobuf.Message, SwiftProt
   }
 
   public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
-    // The use of inline closures is to circumvent an issue where the compiler
-    // allocates stack space for every if/case branch local when no optimizations
-    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
-    // https://github.com/apple/swift-protobuf/issues/1182
     if !self.name.isEmpty {
       try visitor.visitSingularStringField(value: self.name, fieldNumber: 1)
     }
@@ -872,14 +870,14 @@ extension Payments_ProductCreationRequestInput: SwiftProtobuf.Message, SwiftProt
       try visitor.visitSingularStringField(value: self.kind, fieldNumber: 3)
     }
     if self.amountCents != 0 {
-      try visitor.visitSingularInt32Field(value: self.amountCents, fieldNumber: 4)
+      try visitor.visitSingularInt64Field(value: self.amountCents, fieldNumber: 4)
     }
     if !self.currency.isEmpty {
       try visitor.visitSingularStringField(value: self.currency, fieldNumber: 5)
     }
-    try { if let v = self._billingIntervalMonths {
-      try visitor.visitSingularInt32Field(value: v, fieldNumber: 6)
-    } }()
+    if self.billingIntervalMonths != 0 {
+      try visitor.visitSingularInt64Field(value: self.billingIntervalMonths, fieldNumber: 6)
+    }
     if !self.externalProductID.isEmpty {
       try visitor.visitSingularStringField(value: self.externalProductID, fieldNumber: 7)
     }
@@ -892,7 +890,7 @@ extension Payments_ProductCreationRequestInput: SwiftProtobuf.Message, SwiftProt
     if lhs.kind != rhs.kind {return false}
     if lhs.amountCents != rhs.amountCents {return false}
     if lhs.currency != rhs.currency {return false}
-    if lhs._billingIntervalMonths != rhs._billingIntervalMonths {return false}
+    if lhs.billingIntervalMonths != rhs.billingIntervalMonths {return false}
     if lhs.externalProductID != rhs.externalProductID {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
@@ -912,9 +910,9 @@ extension Payments_ProductUpdateRequestInput: SwiftProtobuf.Message, SwiftProtob
       case 1: try { try decoder.decodeSingularStringField(value: &self._name) }()
       case 2: try { try decoder.decodeSingularStringField(value: &self._description_p) }()
       case 3: try { try decoder.decodeSingularStringField(value: &self._kind) }()
-      case 4: try { try decoder.decodeSingularInt32Field(value: &self._amountCents) }()
+      case 4: try { try decoder.decodeSingularInt64Field(value: &self._amountCents) }()
       case 5: try { try decoder.decodeSingularStringField(value: &self._currency) }()
-      case 6: try { try decoder.decodeSingularInt32Field(value: &self._billingIntervalMonths) }()
+      case 6: try { try decoder.decodeSingularInt64Field(value: &self._billingIntervalMonths) }()
       case 7: try { try decoder.decodeSingularStringField(value: &self._externalProductID) }()
       default: break
       }
@@ -936,13 +934,13 @@ extension Payments_ProductUpdateRequestInput: SwiftProtobuf.Message, SwiftProtob
       try visitor.visitSingularStringField(value: v, fieldNumber: 3)
     } }()
     try { if let v = self._amountCents {
-      try visitor.visitSingularInt32Field(value: v, fieldNumber: 4)
+      try visitor.visitSingularInt64Field(value: v, fieldNumber: 4)
     } }()
     try { if let v = self._currency {
       try visitor.visitSingularStringField(value: v, fieldNumber: 5)
     } }()
     try { if let v = self._billingIntervalMonths {
-      try visitor.visitSingularInt32Field(value: v, fieldNumber: 6)
+      try visitor.visitSingularInt64Field(value: v, fieldNumber: 6)
     } }()
     try { if let v = self._externalProductID {
       try visitor.visitSingularStringField(value: v, fieldNumber: 7)
@@ -1024,7 +1022,7 @@ extension Payments_SubscriptionCreationRequestInput: SwiftProtobuf.Message, Swif
 
 extension Payments_SubscriptionUpdateRequestInput: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".SubscriptionUpdateRequestInput"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}status\0\u{3}current_period_start\0\u{3}current_period_end\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}status\0\u{3}current_period_start\0\u{3}current_period_end\0\u{3}product_id\0")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -1035,6 +1033,7 @@ extension Payments_SubscriptionUpdateRequestInput: SwiftProtobuf.Message, SwiftP
       case 1: try { try decoder.decodeSingularStringField(value: &self._status) }()
       case 2: try { try decoder.decodeSingularMessageField(value: &self._currentPeriodStart) }()
       case 3: try { try decoder.decodeSingularMessageField(value: &self._currentPeriodEnd) }()
+      case 4: try { try decoder.decodeSingularStringField(value: &self._productID) }()
       default: break
       }
     }
@@ -1054,6 +1053,9 @@ extension Payments_SubscriptionUpdateRequestInput: SwiftProtobuf.Message, SwiftP
     try { if let v = self._currentPeriodEnd {
       try visitor.visitSingularMessageField(value: v, fieldNumber: 3)
     } }()
+    try { if let v = self._productID {
+      try visitor.visitSingularStringField(value: v, fieldNumber: 4)
+    } }()
     try unknownFields.traverse(visitor: &visitor)
   }
 
@@ -1061,6 +1063,7 @@ extension Payments_SubscriptionUpdateRequestInput: SwiftProtobuf.Message, SwiftP
     if lhs._status != rhs._status {return false}
     if lhs._currentPeriodStart != rhs._currentPeriodStart {return false}
     if lhs._currentPeriodEnd != rhs._currentPeriodEnd {return false}
+    if lhs._productID != rhs._productID {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }

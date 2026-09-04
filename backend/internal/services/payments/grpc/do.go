@@ -1,9 +1,9 @@
 package grpc
 
 import (
-	paymentsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/manager"
 	paymentssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/payments"
 
+	"github.com/primandproper/platform-go/v13/billing"
 	"github.com/primandproper/platform-go/v13/observability/logging"
 	"github.com/primandproper/platform-go/v13/observability/tracing"
 
@@ -20,7 +20,7 @@ func RegisterPaymentsService(i do.Injector) {
 		return NewService(
 			do.MustInvoke[logging.Logger](i),
 			do.MustInvoke[tracing.Provider](i),
-			do.MustInvoke[paymentsmanager.PaymentsDataManager](i),
+			do.MustInvoke[billing.Store](i),
 		), nil
 	})
 }

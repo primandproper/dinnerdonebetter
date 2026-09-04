@@ -11,6 +11,14 @@ The payments domain handles:
 - **Purchases** — One-time purchases
 - **Payment transactions** — Records of payments for auditing and reporting
 
+Both halves of it are platform-go's, and the line between them is the one platform draws:
+**`capitalism` is the wire and `billing` is the record.** `capitalism` verifies and decodes what
+Stripe and RevenueCat send; `billing` owns the four tables the result lands in — the schema, the
+paging, the tenancy column, the uniqueness that makes a redelivered webhook collide instead of
+recording twice, and the guarded status writes. What this repository writes is what neither can
+know: which provider event changes what about a subscription, what that does to the account's
+standing, and the audit entry and data change event every write owes.
+
 It integrates with the **identity** domain: accounts store `billing_status`, `payment_processor_customer_id`, and `subscription_plan_id`, which are updated when webhooks arrive from payment providers.
 
 ---
@@ -46,14 +54,16 @@ flowchart TB
     end
     
     subgraph Data
-        PR[Payments Repository]
+        PR[Payments Repository — recording]
+        BS[platform billing.Store]
     end
     
     WH --> PP
     WH --> PM
-    PS --> PM
+    PS --> PR
     PM --> PR
     PM --> IM
+    PR --> BS
     PP --> CAP
     Stripe -.webhooks.-> WH
     RC -.webhooks.-> WH
@@ -65,11 +75,11 @@ flowchart TB
 
 | Component               | Location                                   | Role                                                                      |
 |-------------------------|--------------------------------------------|---------------------------------------------------------------------------|
-| **PaymentsDataManager** | `internal/domain/payments/manager/`        | Business logic: products, subscriptions, checkout, webhook processing     |
+| **PaymentsDataManager** | `internal/domain/payments/manager/`        | Webhook processing: which provider event changes what, and the account's standing |
 | **PaymentProcessor**    | `internal/domain/payments/processor.go`    | Interface for provider webhook verification and parsing                   |
 | **Adapters**            | `internal/services/payments/adapters/`     | Stripe and RevenueCat (both via platform-go `capitalism`), and a dev stub |
-| **Repository**          | `internal/repositories/postgres/payments/` | Persistence for products, subscriptions, purchases, transactions          |
-| **gRPC Service**        | `internal/services/payments/grpc/`         | API for CreateProduct, GetSubscription, etc.                              |
+| **Repository**          | `internal/repositories/postgres/payments/` | platform-go's `billing.Store`, with this application's audit entries and data change events recorded around its writes |
+| **gRPC Service**        | `internal/services/payments/grpc/`         | API for CreateProduct, GetSubscription, etc., served straight off the store |
 | **WebhookHandler**      | `internal/services/payments/http/`         | HTTP POST endpoint for provider webhooks                                  |
 | **IdentityDataManager** | `internal/domain/identity/manager/`        | Updates account billing fields when subscriptions change                  |
 
@@ -77,12 +87,42 @@ flowchart TB
 
 ## Data Model
 
-### Migration: `00011_payments.sql`
+### The four billing tables
 
-- **products** — id, name, description, kind (recurring/one_time), amount_cents, currency, external_product_id
-- **subscriptions** — id, belongs_to_account, product_id, external_subscription_id, status, current_period_start/end
-- **purchases** — id, belongs_to_account, product_id, amount_cents, completed_at, external_transaction_id
-- **payment_transactions** — id, belongs_to_account, subscription_id, purchase_id, external_transaction_id, amount_cents, status
+The schema is platform-go's, rendered by `renderBillingDDL` in
+`internal/repositories/postgres/migrations` as migration 43 with the `ddb` prefix (see
+`payments.TablePrefix`), which drops the four tables `00011_payments.sql` created and the three
+enums they used. Every table carries a tenancy `scope`, and this application keeps all four in the
+global one — see `payments.Scope`.
+
+- **ddb_billing_products** — the catalog: `kind` (`recurring`/`one_time`), `amount_cents` (BIGINT), `currency`, `billing_interval_months` (NULL for one-time), `external_product_id`
+- **ddb_billing_subscriptions** — `belongs_to_account`, `product_id`, `external_subscription_id`, `status` (capitalism's vocabulary), `current_period_start`/`end`
+- **ddb_billing_purchases** — `belongs_to_account`, `product_id`, `amount_cents`, `currency`, `completed_at`, `external_transaction_id`
+- **ddb_billing_transactions** — the ledger: `belongs_to_account`, `subscription_id`, `purchase_id`, `external_transaction_id`, `amount_cents`, `currency`, `status`
+
+Three things about it are worth knowing that the old schema did not have:
+
+- **The three provider-side ids are nullable and unique within the scope.** A redelivered
+  webhook collides on the index instead of recording a second row, and the store reports it as
+  `ErrSubscriptionExists` / `ErrTransactionExists` so a handler acknowledges the delivery rather
+  than retrying it. NULL repeats freely, so a comped plan with no provider behind it does not
+  collide with the next one.
+- **The status writes are guarded.** `SetSubscriptionStatus` is `SET status = X WHERE status <> X`,
+  so a replayed status event touches nothing and is told `ErrStatusUnchanged`; the manager reads
+  that as an acknowledgement. `CompletePurchase` is guarded on `completed_at IS NULL` the same way.
+- **The subscription status is `capitalism.SubscriptionStatus`.** The five-value enum this
+  repository used to define is gone; the store writes capitalism's eight, and one word differs —
+  it is `canceled`, not `cancelled`.
+
+`belongs_to_account` on the three account-owned tables carries a foreign key to `accounts` with
+`ON DELETE CASCADE`, re-created by the migration because platform cannot know where a consumer's
+accounts live. That preserves what the old tables did; whether billing rows should instead be
+retained and anonymized is a policy question `docs/data-privacy.md` records as open.
+
+The store owns its transactions and does not lend them out, so the audit entry and the data change
+event the repository records land in a second transaction after the row's. That is the same gap
+`comments`, `issuereports`, `settings` and `waitlists` carry, filed for billing as platform-go
+#466 and tracked on #1419 — see `docs/audit.md`.
 
 ### Identity Integration
 
@@ -202,11 +242,13 @@ one.
      (e.g. RevenueCat's `app_user_id`).
    - Manager handles `subscription.updated`, `subscription.created`, `subscription.deleted`, the
      RevenueCat event types, etc.
-   - Updates subscription status in DB and account billing fields via `IdentityDataManager.UpdateAccountBillingFields`.
+   - Writes the status through the store's guarded `SetSubscriptionStatus` — a redelivery is
+     `ErrStatusUnchanged`, which is acknowledged rather than failed — and updates the account's
+     billing fields via `IdentityDataManager.UpdateAccountBillingFields`.
 
 4. **Event types supported**:
    - `subscription.updated`, `subscription.created`, `customer.subscription.updated` → sync status, update account billing.
-   - `subscription.deleted`, `customer.subscription.deleted` → mark cancelled, set account to unpaid.
+   - `subscription.deleted`, `customer.subscription.deleted` → mark `canceled`, set account to unpaid.
 
 ---
 
@@ -259,7 +301,9 @@ first delivery.
 
 The container is `samber/do`. The relevant registrations:
 
-- `paymentsrepo.RegisterPaymentsRepository`
+- `paymentsrepo.RegisterPaymentsRepository` — provides `billing.Store`: platform's store with the
+  recording wrapper around it. The gRPC service, the manager, the entitlements plan source and the
+  privacy collector all resolve this.
 - `paymentsmanager.RegisterPaymentsDataManager`
 - `paymentsadapters.RegisterPaymentProcessorRegistry` — builds the Stripe/RevenueCat/stub map from
   config. Registered in **both** `api/grpc/build.go` and `api/http/build.go`: the combined
@@ -310,16 +354,12 @@ stripe-go expects (see above) — a mismatch fails verification.
 
 ---
 
-## Admin CRUD
+## Entitlements and privacy
 
-**Routes** (`cmd/services/admin/routes.go`):
-
-- Products: `/products`, `/products/new`, `/products/{id}`, `/api/products`, `/api/products/search`
-- Subscriptions: `/subscriptions`, `/subscriptions/new`, `/subscriptions/{id}`, `/api/subscriptions`, `/api/subscriptions/search`
-
-**Handlers**: `payments_products_handlers.go`, `payments_subscriptions_handlers.go`
-
-Admin uses gRPC or repository directly to list/create/edit products and subscriptions.
+The entitlements plan source is platform-go's `billing/plans` over the same store, deciding with
+this application's `ChoosePlan` — see `docs/entitlements.md`. The subject access collector is
+platform-go's `billing/privacy` over the same store, told which accounts a subject belongs to; there
+is deliberately no eraser — see `docs/data-privacy.md`.
 
 ---
 
@@ -334,15 +374,25 @@ Admin uses gRPC or repository directly to list/create/edit products and subscrip
 
 **`internal/services/payments/grpc/permissions.go`** maps gRPC methods to these permissions. The auth interceptor enforces them.
 
+The account-scoped reads — subscriptions, purchases, payment history — answer for the session's
+active account and never for the `account_id` a request names. Honoring the request's would let any
+member read another account's billing by asking.
+
 ---
 
 ## Integration Tests
 
 **`testing/integration/apiserver/payments_test.go`**:
 
-- `createProductForTest`, `createSubscriptionForTest` helpers
-- Tests for CreateProduct, GetProduct, CreateSubscription, GetSubscription, etc.
+- `createProductForTest`, `createSubscriptionForTest` helpers, built from `payments/fakes`
+- Tests for CreateProduct, GetProduct, CreateSubscription, GetSubscription, etc., including that
+  the store's refusals arrive as the right gRPC codes (`internal/services/payments/errors`)
 - Uses `StubPaymentProcessor` (no external calls)
+
+**`internal/repositories/postgres/payments/`** pins the recording half against a real database: every
+write leaves its audit entry under the right account, a refused replay leaves none, and
+`TestRepository_Integration_RecordAndEmitFailureSurfaces` is the canary that fails the day
+platform-go #466 lands.
 
 ---
 
@@ -351,8 +401,11 @@ Admin uses gRPC or repository directly to list/create/edit products and subscrip
 | Purpose             | Path                                                    |
 |---------------------|---------------------------------------------------------|
 | Processor interface | `internal/domain/payments/processor.go`                 |
+| Scope, prefix, events | `internal/domain/payments/payments.go`                |
 | Manager             | `internal/domain/payments/manager/`                     |
 | Repository          | `internal/repositories/postgres/payments/`              |
+| Fakes               | `internal/domain/payments/fakes/`                       |
+| gRPC error mapping  | `internal/services/payments/errors/`                    |
 | Stripe adapter      | `internal/services/payments/adapters/stripe.go`         |
 | RevenueCat adapter  | `internal/services/payments/adapters/revenuecat.go`     |
 | Stub adapter        | `internal/services/payments/adapters/stub.go`           |
@@ -360,9 +413,7 @@ Admin uses gRPC or repository directly to list/create/edit products and subscrip
 | Payments config     | `internal/services/payments/config/config.go`           |
 | Webhook HTTP        | `internal/services/payments/http/`                      |
 | gRPC service        | `internal/services/payments/grpc/`                      |
-| Migration           | `migrations/migration_files/00011_payments.sql`         |
-| Admin products      | `cmd/services/admin/payments_products_handlers.go`      |
-| Admin subscriptions | `cmd/services/admin/payments_subscriptions_handlers.go` |
+| Migration           | `renderBillingDDL` in `internal/repositories/postgres/migrations/migrate.go` |
 | Integration tests   | `testing/integration/apiserver/payments_test.go`        |
 
 ---
@@ -371,3 +422,5 @@ Admin uses gRPC or repository directly to list/create/edit products and subscrip
 
 - [Adding a New Domain](adding_a_new_domain.md) — General checklist for new domains
 - [Migrations](migrations.md) — Migration workflow
+- [Entitlements](entitlements.md) — Which plan an account is on, read from the billing store
+- [platform-go v13 adoption](platform-go-v13-adoption.md) — What adopting `billing` changed, and why

@@ -116,7 +116,7 @@ sequenced separately — none is required to compile.
 | ~~`comments`~~ (adopted, #1375) | `postgres/comments` + `domain/comments` + `comments_*.go` codegen | #450 |
 | ~~`issuereports`~~ (adopted, #1377) | `postgres/issuereports` + `domain/issuereports` + `issuereports_*.go` codegen | #449 |
 | ~~`waitlists`~~ (adopted, #1378) | `postgres/waitlists` + `domain/waitlists` + `waitlists_*.go` codegen | #452 |
-| `billing` | `postgres/payments`, partly | #454 |
+| ~~`billing`~~ (adopted, #1380) | `postgres/payments` + `domain/payments`'s stored types + `payments_*.go` codegen; `capitalism` stays | #454 |
 | `notifications` (store half) | `postgres/notifications` | #390, #439 |
 | ~~`authentication/passwordreset`~~ (adopted, #1372) | `postgres/auth/password_reset_tokens.go` | #387 |
 | ~~`sessions`~~ (adopted, #1373) | `postgres/auth/user_sessions.go` | #399, #430 |
@@ -244,6 +244,55 @@ a consumer whose `subject_id` is mixed has nothing to build an eraser on.
 [platform-go #458]: https://github.com/primandproper/platform-go/issues/458
 [#457]: https://github.com/primandproper/platform-go/issues/457
 [platform-go #460]: https://github.com/primandproper/platform-go/issues/460
+
+## What adopting a store whose *record* is not its *wire* costs
+
+`billing` (#1380) is the first adoption that replaced half a domain. `capitalism` — the wire to
+Stripe and RevenueCat — was already platform's; what the hand-rolled `payments` layer owned was
+the four tables the provider's events landed in, and platform's own documentation now draws the
+line the same way: *capitalism is the wire and billing is the record.* So the store, the fakes,
+the mock, the codegen and every stored type went; the webhook adapters, the manager that reads a
+provider's event, the gRPC surface and the account-standing mapping stayed. Scoping the seam was
+the whole question the ticket posed, and the answer was that platform had already drawn it.
+
+Four things followed:
+
+- **The vocabulary is capitalism's, and one word changed.** `Subscription.Status` is
+  `capitalism.SubscriptionStatus` rather than a five-value enum of this application's, which is
+  the same judgment — which of Stripe's words is "cancelled" — made once instead of twice. The
+  RevenueCat adapter's mapping table went with it: it had been folding eight platform statuses
+  onto five local ones, losing `paused` and `unpaid` on the way. The casualty is a spelling: the
+  store writes `canceled`, and a client sending `cancelled` is refused with `InvalidArgument`.
+- **The manager shrank to what a store cannot hold.** `PaymentsDataManager` used to proxy every
+  read and write with a validation step in front; the store owns those rules now, and the gRPC
+  service reads and writes it directly, as `settings` does. What is left is `ProcessWebhookEvent`
+  — which provider event changes what about a subscription, and what that does to the account's
+  billing standing — which is exactly the half platform's package doc says a consumer still
+  writes.
+- **Redelivery is in the statement, not the handler.** The three provider-side id columns are
+  unique within the scope, so a replayed webhook collides instead of recording a second charge,
+  and the status writes are guarded so a replayed status is `ErrStatusUnchanged`. The old tables
+  had neither: `external_transaction_id` defaulted to `""` and was unique nowhere. The manager
+  reads `ErrStatusUnchanged` as an acknowledgement rather than a failure, and the repository
+  records nothing for a write that changed nothing.
+- **Amounts widened.** `amount_cents` is `int64` on the wire and in the schema, where it was
+  `int32` — a signed 32-bit count of cents runs out at about twenty-one million dollars, which a
+  zero-decimal currency reaches sooner. `billing_interval_months` stopped being optional on the
+  wire: zero means one-time, which is what the store stores.
+
+Two things did **not** change, and each is a decision recorded rather than a default taken. The
+plan source is platform's `billing/plans` with this application's chooser — `free` stays a plan
+rather than an absence, exactly as #1383 decided, because the chooser never declines; what did
+move is that the read is of *current* subscriptions, so a lapsed period stops entitling on its
+own. And the `belongs_to_account` cascade is re-created on all three account-owned tables,
+preserving the erasure behavior the schema had — platform ships no eraser for billing on
+retention grounds, and `docs/data-privacy.md` records that switching to one is a policy call this
+adoption did not make.
+
+The transaction gap is filed upstream as [platform-go #466], the fifth application of the shape
+[#457] landed; `docs/audit.md` names all five and #1419 tracks what deletes here when each ships.
+
+[platform-go #466]: https://github.com/primandproper/platform-go/issues/466
 
 ## What adopting a store that *duplicates a declaration* costs
 

@@ -19,7 +19,7 @@ export interface ProductCreationRequestInput {
   kind: string;
   amountCents: number;
   currency: string;
-  billingIntervalMonths?: number | undefined;
+  billingIntervalMonths: number;
   externalProductId: string;
 }
 
@@ -46,6 +46,8 @@ export interface SubscriptionUpdateRequestInput {
   status?: string | undefined;
   currentPeriodStart?: Date | undefined;
   currentPeriodEnd?: Date | undefined;
+  /** An upgrade is the same agreement pointed at a different product. */
+  productId?: string | undefined;
 }
 
 export interface CheckoutSessionRequestInput {
@@ -184,7 +186,7 @@ function createBaseProductCreationRequestInput(): ProductCreationRequestInput {
     kind: '',
     amountCents: 0,
     currency: '',
-    billingIntervalMonths: undefined,
+    billingIntervalMonths: 0,
     externalProductId: '',
   };
 }
@@ -201,13 +203,13 @@ export const ProductCreationRequestInput: MessageFns<ProductCreationRequestInput
       writer.uint32(26).string(message.kind);
     }
     if (message.amountCents !== 0) {
-      writer.uint32(32).int32(message.amountCents);
+      writer.uint32(32).int64(message.amountCents);
     }
     if (message.currency !== '') {
       writer.uint32(42).string(message.currency);
     }
-    if (message.billingIntervalMonths !== undefined) {
-      writer.uint32(48).int32(message.billingIntervalMonths);
+    if (message.billingIntervalMonths !== 0) {
+      writer.uint32(48).int64(message.billingIntervalMonths);
     }
     if (message.externalProductId !== '') {
       writer.uint32(58).string(message.externalProductId);
@@ -251,7 +253,7 @@ export const ProductCreationRequestInput: MessageFns<ProductCreationRequestInput
             break;
           }
 
-          message.amountCents = reader.int32();
+          message.amountCents = longToNumber(reader.int64());
           continue;
         }
         case 5: {
@@ -267,7 +269,7 @@ export const ProductCreationRequestInput: MessageFns<ProductCreationRequestInput
             break;
           }
 
-          message.billingIntervalMonths = reader.int32();
+          message.billingIntervalMonths = longToNumber(reader.int64());
           continue;
         }
         case 7: {
@@ -302,7 +304,7 @@ export const ProductCreationRequestInput: MessageFns<ProductCreationRequestInput
         ? globalThis.Number(object.billingIntervalMonths)
         : isSet(object.billing_interval_months)
           ? globalThis.Number(object.billing_interval_months)
-          : undefined,
+          : 0,
       externalProductId: isSet(object.externalProductId)
         ? globalThis.String(object.externalProductId)
         : isSet(object.external_product_id)
@@ -328,7 +330,7 @@ export const ProductCreationRequestInput: MessageFns<ProductCreationRequestInput
     if (message.currency !== '') {
       obj.currency = message.currency;
     }
-    if (message.billingIntervalMonths !== undefined) {
+    if (message.billingIntervalMonths !== 0) {
       obj.billingIntervalMonths = Math.round(message.billingIntervalMonths);
     }
     if (message.externalProductId !== '') {
@@ -347,7 +349,7 @@ export const ProductCreationRequestInput: MessageFns<ProductCreationRequestInput
     message.kind = object.kind ?? '';
     message.amountCents = object.amountCents ?? 0;
     message.currency = object.currency ?? '';
-    message.billingIntervalMonths = object.billingIntervalMonths ?? undefined;
+    message.billingIntervalMonths = object.billingIntervalMonths ?? 0;
     message.externalProductId = object.externalProductId ?? '';
     return message;
   },
@@ -377,13 +379,13 @@ export const ProductUpdateRequestInput: MessageFns<ProductUpdateRequestInput> = 
       writer.uint32(26).string(message.kind);
     }
     if (message.amountCents !== undefined) {
-      writer.uint32(32).int32(message.amountCents);
+      writer.uint32(32).int64(message.amountCents);
     }
     if (message.currency !== undefined) {
       writer.uint32(42).string(message.currency);
     }
     if (message.billingIntervalMonths !== undefined) {
-      writer.uint32(48).int32(message.billingIntervalMonths);
+      writer.uint32(48).int64(message.billingIntervalMonths);
     }
     if (message.externalProductId !== undefined) {
       writer.uint32(58).string(message.externalProductId);
@@ -427,7 +429,7 @@ export const ProductUpdateRequestInput: MessageFns<ProductUpdateRequestInput> = 
             break;
           }
 
-          message.amountCents = reader.int32();
+          message.amountCents = longToNumber(reader.int64());
           continue;
         }
         case 5: {
@@ -443,7 +445,7 @@ export const ProductUpdateRequestInput: MessageFns<ProductUpdateRequestInput> = 
             break;
           }
 
-          message.billingIntervalMonths = reader.int32();
+          message.billingIntervalMonths = longToNumber(reader.int64());
           continue;
         }
         case 7: {
@@ -701,7 +703,7 @@ export const SubscriptionCreationRequestInput: MessageFns<SubscriptionCreationRe
 };
 
 function createBaseSubscriptionUpdateRequestInput(): SubscriptionUpdateRequestInput {
-  return { status: undefined, currentPeriodStart: undefined, currentPeriodEnd: undefined };
+  return { status: undefined, currentPeriodStart: undefined, currentPeriodEnd: undefined, productId: undefined };
 }
 
 export const SubscriptionUpdateRequestInput: MessageFns<SubscriptionUpdateRequestInput> = {
@@ -714,6 +716,9 @@ export const SubscriptionUpdateRequestInput: MessageFns<SubscriptionUpdateReques
     }
     if (message.currentPeriodEnd !== undefined) {
       Timestamp.encode(toTimestamp(message.currentPeriodEnd), writer.uint32(26).fork()).join();
+    }
+    if (message.productId !== undefined) {
+      writer.uint32(34).string(message.productId);
     }
     return writer;
   },
@@ -749,6 +754,14 @@ export const SubscriptionUpdateRequestInput: MessageFns<SubscriptionUpdateReques
           message.currentPeriodEnd = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
           continue;
         }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.productId = reader.string();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -771,6 +784,11 @@ export const SubscriptionUpdateRequestInput: MessageFns<SubscriptionUpdateReques
         : isSet(object.current_period_end)
           ? fromJsonTimestamp(object.current_period_end)
           : undefined,
+      productId: isSet(object.productId)
+        ? globalThis.String(object.productId)
+        : isSet(object.product_id)
+          ? globalThis.String(object.product_id)
+          : undefined,
     };
   },
 
@@ -785,6 +803,9 @@ export const SubscriptionUpdateRequestInput: MessageFns<SubscriptionUpdateReques
     if (message.currentPeriodEnd !== undefined) {
       obj.currentPeriodEnd = message.currentPeriodEnd.toISOString();
     }
+    if (message.productId !== undefined) {
+      obj.productId = message.productId;
+    }
     return obj;
   },
 
@@ -798,6 +819,7 @@ export const SubscriptionUpdateRequestInput: MessageFns<SubscriptionUpdateReques
     message.status = object.status ?? undefined;
     message.currentPeriodStart = object.currentPeriodStart ?? undefined;
     message.currentPeriodEnd = object.currentPeriodEnd ?? undefined;
+    message.productId = object.productId ?? undefined;
     return message;
   },
 };
@@ -2996,6 +3018,17 @@ function fromJsonTimestamp(o: any): Date {
   } else {
     return fromTimestamp(Timestamp.fromJSON(o));
   }
+}
+
+function longToNumber(int64: { toString(): string }): number {
+  const num = globalThis.Number(int64.toString());
+  if (num > globalThis.Number.MAX_SAFE_INTEGER) {
+    throw new globalThis.Error('Value is larger than Number.MAX_SAFE_INTEGER');
+  }
+  if (num < globalThis.Number.MIN_SAFE_INTEGER) {
+    throw new globalThis.Error('Value is smaller than Number.MIN_SAFE_INTEGER');
+  }
+  return num;
 }
 
 function isSet(value: any): boolean {

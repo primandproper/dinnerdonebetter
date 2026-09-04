@@ -3,224 +3,374 @@ package manager
 import (
 	"context"
 	"testing"
+	"time"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	identitymock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/manager/mock"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/fakes"
-	paymentsmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/mock"
 
+	"github.com/primandproper/platform-go/v13/billing"
+	billingmock "github.com/primandproper/platform-go/v13/billing/mock"
+	"github.com/primandproper/platform-go/v13/capitalism"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
 	"github.com/primandproper/platform-go/v13/fake"
 	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
 	tracingnoop "github.com/primandproper/platform-go/v13/observability/tracing/noop"
+	"github.com/primandproper/platform-go/v13/tenancy"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func buildPaymentsManagerForTest(t *testing.T) *paymentsManager {
+// billingUpdate is one call the manager made to the identity manager, recorded
+// so a test can say what the account's standing became.
+type billingUpdate struct {
+	status    *string
+	planID    *string
+	accountID string
+}
+
+// buildPaymentsManagerForTest wires the manager over a billing store mock and an
+// identity manager mock that records every billing update it is asked for.
+func buildPaymentsManagerForTest(t *testing.T, store *billingmock.StoreMock) (*paymentsManager, *[]billingUpdate) {
 	t.Helper()
 
-	ctx := t.Context()
+	updates := &[]billingUpdate{}
+
+	identityMgr := &identitymock.IdentityDataManagerMock{
+		UpdateAccountBillingFieldsFunc: func(_ context.Context, accountID string, billingStatus, subscriptionPlanID, _ *string, _ *time.Time) error {
+			*updates = append(*updates, billingUpdate{accountID: accountID, status: billingStatus, planID: subscriptionPlanID})
+
+			return nil
+		},
+	}
+
 	m, err := NewPaymentsDataManager(
-		ctx,
+		t.Context(),
 		tracingnoop.NewTracerProvider(),
 		loggingnoop.NewLogger(),
-		&paymentsmock.RepositoryMock{},
-		&identitymock.IdentityDataManagerMock{},
+		store,
+		identityMgr,
 	)
 	require.NoError(t, err)
 
-	return m.(*paymentsManager)
+	return m.(*paymentsManager), updates
 }
 
-// attachRepositoryToPaymentsManager wires a configured repository mock
-// into the manager under test.
-func attachRepositoryToPaymentsManager(manager *paymentsManager, repo *paymentsmock.RepositoryMock) {
-	manager.repo = repo
+// subscriptionLookup is a store that knows one subscription by its provider-side
+// id and records the status writes made against it.
+func subscriptionLookup(subscription *billing.Subscription) (*billingmock.StoreMock, *[]capitalism.SubscriptionStatus) {
+	statuses := &[]capitalism.SubscriptionStatus{}
+
+	return &billingmock.StoreMock{
+		GetSubscriptionByExternalIDFunc: func(_ context.Context, scope tenancy.Scope, externalID string) (*billing.Subscription, error) {
+			if scope != payments.Scope() || externalID != subscription.ExternalSubscriptionID {
+				return nil, billing.ErrSubscriptionNotFound
+			}
+
+			return subscription, nil
+		},
+		SetSubscriptionStatusFunc: func(_ context.Context, _ tenancy.Scope, subscriptionID string, status capitalism.SubscriptionStatus) error {
+			if subscriptionID != subscription.ID {
+				return billing.ErrSubscriptionNotFound
+			}
+
+			*statuses = append(*statuses, status)
+
+			return nil
+		},
+	}, statuses
 }
 
-func TestPaymentsManager_CreateProduct(t *testing.T) {
-	t.Parallel()
+func TestPaymentsManager_ProcessWebhookEvent(T *testing.T) {
+	T.Parallel()
 
-	t.Run("standard", func(t *testing.T) {
+	T.Run("a subscription update writes the reported status and the account's standing", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
-		pm := buildPaymentsManagerForTest(t)
+		subscription := fakes.BuildFakeSubscription(fake.BuildFakeID(), fake.BuildFakeID())
+		store, statuses := subscriptionLookup(subscription)
+		pm, updates := buildPaymentsManagerForTest(t, store)
 
-		input := fakes.BuildFakeProductCreationRequestInput()
-		expected := fakes.BuildFakeProduct()
-
-		repo := &paymentsmock.RepositoryMock{
-			CreateProductFunc: func(_ context.Context, _ *payments.ProductDatabaseCreationInput) (*payments.Product, error) {
-				return expected, nil
-			},
-		}
-		attachRepositoryToPaymentsManager(pm, repo)
-
-		actual, err := pm.CreateProduct(ctx, input)
+		err := pm.ProcessWebhookEvent(t.Context(), "stripe", &payments.ParsedWebhookEvent{
+			EventType:      "customer.subscription.updated",
+			SubscriptionID: subscription.ExternalSubscriptionID,
+			Status:         capitalism.SubscriptionStatusTrialing,
+		}, "")
 		require.NoError(t, err)
-		assert.Equal(t, expected, actual)
 
-		assert.Len(t, repo.CreateProductCalls(), 1)
+		assert.Equal(t, []capitalism.SubscriptionStatus{capitalism.SubscriptionStatusTrialing}, *statuses)
+		require.Len(t, *updates, 1)
+		assert.Equal(t, subscription.BelongsToAccount, (*updates)[0].accountID)
+		assert.Equal(t, identity.TrialAccountBillingStatus, *(*updates)[0].status)
+		assert.Equal(t, subscription.ProductID, *(*updates)[0].planID)
 	})
-}
 
-func TestPaymentsManager_UpdateProduct(t *testing.T) {
-	t.Parallel()
-
-	t.Run("standard", func(t *testing.T) {
+	T.Run("an update carrying no status is read as active", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
-		pm := buildPaymentsManagerForTest(t)
+		subscription := fakes.BuildFakeSubscription(fake.BuildFakeID(), fake.BuildFakeID())
+		store, statuses := subscriptionLookup(subscription)
+		pm, updates := buildPaymentsManagerForTest(t, store)
 
+		err := pm.ProcessWebhookEvent(t.Context(), "stripe", &payments.ParsedWebhookEvent{
+			EventType:      "subscription.updated",
+			SubscriptionID: subscription.ExternalSubscriptionID,
+			Status:         capitalism.SubscriptionStatusUnknown,
+		}, "")
+		require.NoError(t, err)
+
+		assert.Equal(t, []capitalism.SubscriptionStatus{capitalism.SubscriptionStatusActive}, *statuses)
+		require.Len(t, *updates, 1)
+		assert.Equal(t, identity.PaidAccountBillingStatus, *(*updates)[0].status)
+	})
+
+	// The store reports a replayed event as ErrStatusUnchanged. That is the provider telling
+	// us something we already knew, and the delivery has to be acknowledged rather than
+	// retried forever — so it is not an error here, and the account's standing is re-derived
+	// anyway, which is idempotent.
+	T.Run("a redelivered status is acknowledged rather than failed", func(t *testing.T) {
+		t.Parallel()
+
+		subscription := fakes.BuildFakeSubscription(fake.BuildFakeID(), fake.BuildFakeID())
+		store, _ := subscriptionLookup(subscription)
+		store.SetSubscriptionStatusFunc = func(context.Context, tenancy.Scope, string, capitalism.SubscriptionStatus) error {
+			return billing.ErrStatusUnchanged
+		}
+		pm, updates := buildPaymentsManagerForTest(t, store)
+
+		err := pm.ProcessWebhookEvent(t.Context(), "stripe", &payments.ParsedWebhookEvent{
+			EventType:      "customer.subscription.updated",
+			SubscriptionID: subscription.ExternalSubscriptionID,
+			Status:         capitalism.SubscriptionStatusActive,
+		}, "")
+		require.NoError(t, err)
+		assert.Len(t, *updates, 1)
+	})
+
+	T.Run("a deletion cancels the subscription and marks the account unpaid", func(t *testing.T) {
+		t.Parallel()
+
+		subscription := fakes.BuildFakeSubscription(fake.BuildFakeID(), fake.BuildFakeID())
+		store, statuses := subscriptionLookup(subscription)
+		pm, updates := buildPaymentsManagerForTest(t, store)
+
+		err := pm.ProcessWebhookEvent(t.Context(), "stripe", &payments.ParsedWebhookEvent{
+			EventType:      "customer.subscription.deleted",
+			SubscriptionID: subscription.ExternalSubscriptionID,
+		}, "")
+		require.NoError(t, err)
+
+		assert.Equal(t, []capitalism.SubscriptionStatus{capitalism.SubscriptionStatusCanceled}, *statuses)
+		require.Len(t, *updates, 1)
+		assert.Equal(t, identity.UnpaidAccountBillingStatus, *(*updates)[0].status)
+		assert.Nil(t, (*updates)[0].planID)
+	})
+
+	T.Run("an update for a subscription nobody has is reported", func(t *testing.T) {
+		t.Parallel()
+
+		store, _ := subscriptionLookup(fakes.BuildFakeSubscription(fake.BuildFakeID(), fake.BuildFakeID()))
+		pm, updates := buildPaymentsManagerForTest(t, store)
+
+		err := pm.ProcessWebhookEvent(t.Context(), "stripe", &payments.ParsedWebhookEvent{
+			EventType:      "customer.subscription.updated",
+			SubscriptionID: fake.BuildFakeID(),
+			Status:         capitalism.SubscriptionStatusActive,
+		}, "")
+		require.ErrorIs(t, err, billing.ErrSubscriptionNotFound)
+		assert.Empty(t, *updates)
+	})
+
+	T.Run("an initial purchase opens a subscription on the matching product", func(t *testing.T) {
+		t.Parallel()
+
+		accountID := fake.BuildFakeID()
 		product := fakes.BuildFakeProduct()
-		productID := product.ID
-		name := "Updated Name"
-		input := &payments.ProductUpdateRequestInput{Name: &name}
+		transactionID := fake.BuildFakeID()
 
-		repo := &paymentsmock.RepositoryMock{
-			GetProductFunc: func(_ context.Context, id string) (*payments.Product, error) {
-				assert.Equal(t, productID, id)
+		var created *billing.Subscription
+
+		store := &billingmock.StoreMock{
+			GetProductByExternalIDFunc: func(_ context.Context, _ tenancy.Scope, externalID string) (*billing.Product, error) {
+				if externalID != product.ExternalProductID {
+					return nil, billing.ErrProductNotFound
+				}
 
 				return product, nil
 			},
-			UpdateProductFunc: func(_ context.Context, p *payments.Product) error {
-				assert.Equal(t, productID, p.ID)
-				assert.Equal(t, name, p.Name)
+			GetSubscriptionByExternalIDFunc: func(context.Context, tenancy.Scope, string) (*billing.Subscription, error) {
+				return nil, billing.ErrSubscriptionNotFound
+			},
+			CreateSubscriptionFunc: func(_ context.Context, _ tenancy.Scope, subscription *billing.Subscription) (*billing.Subscription, error) {
+				created = subscription
 
-				return nil
+				return subscription, nil
 			},
 		}
-		attachRepositoryToPaymentsManager(pm, repo)
+		pm, updates := buildPaymentsManagerForTest(t, store)
 
-		err := pm.UpdateProduct(ctx, productID, input)
+		err := pm.ProcessWebhookEvent(t.Context(), "revenuecat", &payments.ParsedWebhookEvent{
+			EventType:      "INITIAL_PURCHASE",
+			AccountID:      accountID,
+			SubscriptionID: transactionID,
+			ProductID:      product.ExternalProductID,
+			Status:         capitalism.SubscriptionStatusActive,
+		}, "")
 		require.NoError(t, err)
 
-		assert.Len(t, repo.GetProductCalls(), 1)
-		assert.Len(t, repo.UpdateProductCalls(), 1)
+		require.NotNil(t, created)
+		assert.Equal(t, accountID, created.BelongsToAccount)
+		assert.Equal(t, product.ID, created.ProductID)
+		assert.Equal(t, transactionID, created.ExternalSubscriptionID)
+		assert.Equal(t, capitalism.SubscriptionStatusActive, created.Status)
+		assert.True(t, created.CurrentPeriodEnd.After(created.CurrentPeriodStart))
+
+		require.Len(t, *updates, 1)
+		assert.Equal(t, accountID, (*updates)[0].accountID)
+		assert.Equal(t, identity.PaidAccountBillingStatus, *(*updates)[0].status)
+		assert.Equal(t, product.ID, *(*updates)[0].planID)
 	})
-}
 
-func TestPaymentsManager_ArchiveProduct(t *testing.T) {
-	t.Parallel()
-
-	t.Run("standard", func(t *testing.T) {
+	T.Run("a renewal of a known subscription reactivates it", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
-		pm := buildPaymentsManagerForTest(t)
-
-		productID := fake.BuildFakeID()
-
-		repo := &paymentsmock.RepositoryMock{
-			ArchiveProductFunc: func(_ context.Context, id string) error {
-				assert.Equal(t, productID, id)
-
-				return nil
-			},
+		product := fakes.BuildFakeProduct()
+		subscription := fakes.BuildFakeSubscription(fake.BuildFakeID(), product.ID)
+		store, statuses := subscriptionLookup(subscription)
+		store.GetProductByExternalIDFunc = func(context.Context, tenancy.Scope, string) (*billing.Product, error) {
+			return product, nil
 		}
-		attachRepositoryToPaymentsManager(pm, repo)
+		pm, updates := buildPaymentsManagerForTest(t, store)
 
-		err := pm.ArchiveProduct(ctx, productID)
+		err := pm.ProcessWebhookEvent(t.Context(), "revenuecat", &payments.ParsedWebhookEvent{
+			EventType:      "RENEWAL",
+			AccountID:      subscription.BelongsToAccount,
+			SubscriptionID: subscription.ExternalSubscriptionID,
+			ProductID:      product.ExternalProductID,
+		}, "")
 		require.NoError(t, err)
 
-		assert.Len(t, repo.ArchiveProductCalls(), 1)
+		assert.Equal(t, []capitalism.SubscriptionStatus{capitalism.SubscriptionStatusActive}, *statuses)
+		assert.Len(t, *updates, 1)
 	})
-}
 
-func TestPaymentsManager_CreateSubscription(t *testing.T) {
-	t.Parallel()
-
-	t.Run("standard", func(t *testing.T) {
+	T.Run("an expiration cancels the subscription and marks the account unpaid", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
-		pm := buildPaymentsManagerForTest(t)
+		subscription := fakes.BuildFakeSubscription(fake.BuildFakeID(), fake.BuildFakeID())
+		store, statuses := subscriptionLookup(subscription)
+		pm, updates := buildPaymentsManagerForTest(t, store)
+
+		err := pm.ProcessWebhookEvent(t.Context(), "revenuecat", &payments.ParsedWebhookEvent{
+			EventType:      "EXPIRATION",
+			AccountID:      subscription.BelongsToAccount,
+			SubscriptionID: subscription.ExternalSubscriptionID,
+		}, "")
+		require.NoError(t, err)
+
+		assert.Equal(t, []capitalism.SubscriptionStatus{capitalism.SubscriptionStatusCanceled}, *statuses)
+		require.Len(t, *updates, 1)
+		assert.Equal(t, identity.UnpaidAccountBillingStatus, *(*updates)[0].status)
+	})
+
+	T.Run("an expiration of a subscription nobody has still marks the account unpaid", func(t *testing.T) {
+		t.Parallel()
 
 		accountID := fake.BuildFakeID()
-		productID := fake.BuildFakeID()
-		input := fakes.BuildFakeSubscriptionCreationRequestInput(accountID, productID)
-		expected := fakes.BuildFakeSubscription(accountID, productID)
+		store, _ := subscriptionLookup(fakes.BuildFakeSubscription(fake.BuildFakeID(), fake.BuildFakeID()))
+		pm, updates := buildPaymentsManagerForTest(t, store)
 
-		repo := &paymentsmock.RepositoryMock{
-			CreateSubscriptionFunc: func(_ context.Context, _ *payments.SubscriptionDatabaseCreationInput) (*payments.Subscription, error) {
-				return expected, nil
-			},
-		}
-		attachRepositoryToPaymentsManager(pm, repo)
-
-		actual, err := pm.CreateSubscription(ctx, input)
+		err := pm.ProcessWebhookEvent(t.Context(), "revenuecat", &payments.ParsedWebhookEvent{
+			EventType:      "EXPIRATION",
+			AccountID:      accountID,
+			SubscriptionID: fake.BuildFakeID(),
+		}, "")
 		require.NoError(t, err)
-		assert.Equal(t, expected, actual)
 
-		assert.Len(t, repo.CreateSubscriptionCalls(), 1)
+		require.Len(t, *updates, 1)
+		assert.Equal(t, accountID, (*updates)[0].accountID)
+		assert.Equal(t, identity.UnpaidAccountBillingStatus, *(*updates)[0].status)
+	})
+
+	T.Run("a cancellation of a subscription nobody has yet is a no-op", func(t *testing.T) {
+		t.Parallel()
+
+		store, statuses := subscriptionLookup(fakes.BuildFakeSubscription(fake.BuildFakeID(), fake.BuildFakeID()))
+		pm, updates := buildPaymentsManagerForTest(t, store)
+
+		err := pm.ProcessWebhookEvent(t.Context(), "revenuecat", &payments.ParsedWebhookEvent{
+			EventType:      "CANCELLATION",
+			AccountID:      fake.BuildFakeID(),
+			SubscriptionID: fake.BuildFakeID(),
+		}, "")
+		require.NoError(t, err)
+		assert.Empty(t, *statuses)
+		assert.Empty(t, *updates)
+	})
+
+	T.Run("a cancellation marks the subscription canceled and leaves the account alone", func(t *testing.T) {
+		t.Parallel()
+
+		subscription := fakes.BuildFakeSubscription(fake.BuildFakeID(), fake.BuildFakeID())
+		store, statuses := subscriptionLookup(subscription)
+		pm, updates := buildPaymentsManagerForTest(t, store)
+
+		err := pm.ProcessWebhookEvent(t.Context(), "revenuecat", &payments.ParsedWebhookEvent{
+			EventType:      "CANCELLATION",
+			AccountID:      subscription.BelongsToAccount,
+			SubscriptionID: subscription.ExternalSubscriptionID,
+		}, "")
+		require.NoError(t, err)
+
+		// Access persists until EXPIRATION, so the standing is not touched here.
+		assert.Equal(t, []capitalism.SubscriptionStatus{capitalism.SubscriptionStatusCanceled}, *statuses)
+		assert.Empty(t, *updates)
+	})
+
+	T.Run("an unrecognized event is a no-op", func(t *testing.T) {
+		t.Parallel()
+
+		pm, updates := buildPaymentsManagerForTest(t, &billingmock.StoreMock{})
+
+		err := pm.ProcessWebhookEvent(t.Context(), "stripe", &payments.ParsedWebhookEvent{EventType: "something.new"}, "")
+		require.NoError(t, err)
+		assert.Empty(t, *updates)
+	})
+
+	T.Run("with nil event", func(t *testing.T) {
+		t.Parallel()
+
+		pm, _ := buildPaymentsManagerForTest(t, &billingmock.StoreMock{})
+
+		err := pm.ProcessWebhookEvent(t.Context(), "stripe", nil, "")
+		require.ErrorIs(t, err, platformerrors.ErrNilInputParameter)
 	})
 }
 
-func TestPaymentsManager_UpdateSubscription(t *testing.T) {
-	t.Parallel()
+// The mapping onto the account's coarse standing is the one judgment platform
+// says a consumer still writes, so it is pinned value by value.
+func TestSubscriptionStatusToBillingStatus(T *testing.T) {
+	T.Parallel()
 
-	t.Run("standard", func(t *testing.T) {
+	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
-		pm := buildPaymentsManagerForTest(t)
-
-		accountID := fake.BuildFakeID()
-		productID := fake.BuildFakeID()
-		sub := fakes.BuildFakeSubscription(accountID, productID)
-		subID := sub.ID
-		status := payments.SubscriptionStatusCancelled
-		input := &payments.SubscriptionUpdateRequestInput{Status: &status}
-
-		repo := &paymentsmock.RepositoryMock{
-			GetSubscriptionFunc: func(_ context.Context, id string) (*payments.Subscription, error) {
-				assert.Equal(t, subID, id)
-
-				return sub, nil
-			},
-			UpdateSubscriptionFunc: func(_ context.Context, s *payments.Subscription) error {
-				assert.Equal(t, subID, s.ID)
-				assert.Equal(t, status, s.Status)
-
-				return nil
-			},
+		expected := map[capitalism.SubscriptionStatus]string{
+			capitalism.SubscriptionStatusActive:            identity.PaidAccountBillingStatus,
+			capitalism.SubscriptionStatusTrialing:          identity.TrialAccountBillingStatus,
+			capitalism.SubscriptionStatusPastDue:           identity.UnpaidAccountBillingStatus,
+			capitalism.SubscriptionStatusCanceled:          identity.UnpaidAccountBillingStatus,
+			capitalism.SubscriptionStatusIncomplete:        identity.UnpaidAccountBillingStatus,
+			capitalism.SubscriptionStatusIncompleteExpired: identity.UnpaidAccountBillingStatus,
+			capitalism.SubscriptionStatusUnpaid:            identity.UnpaidAccountBillingStatus,
+			capitalism.SubscriptionStatusPaused:            identity.UnpaidAccountBillingStatus,
+			capitalism.SubscriptionStatusUnknown:           identity.UnpaidAccountBillingStatus,
 		}
-		attachRepositoryToPaymentsManager(pm, repo)
 
-		err := pm.UpdateSubscription(ctx, subID, input)
-		require.NoError(t, err)
-
-		assert.Len(t, repo.GetSubscriptionCalls(), 1)
-		assert.Len(t, repo.UpdateSubscriptionCalls(), 1)
-	})
-}
-
-func TestPaymentsManager_ArchiveSubscription(t *testing.T) {
-	t.Parallel()
-
-	t.Run("standard", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		pm := buildPaymentsManagerForTest(t)
-
-		subID := fake.BuildFakeID()
-
-		repo := &paymentsmock.RepositoryMock{
-			ArchiveSubscriptionFunc: func(_ context.Context, id string) error {
-				assert.Equal(t, subID, id)
-
-				return nil
-			},
+		for status, want := range expected {
+			assert.Equal(t, want, subscriptionStatusToBillingStatus(status), "mapping %s", status.String())
 		}
-		attachRepositoryToPaymentsManager(pm, repo)
-
-		err := pm.ArchiveSubscription(ctx, subID)
-		require.NoError(t, err)
-
-		assert.Len(t, repo.ArchiveSubscriptionCalls(), 1)
 	})
 }

@@ -13,9 +13,9 @@ message ProductCreationRequestInput {
   string name = 1;
   string description = 2;
   string kind = 3;
-  int32 amount_cents = 4;
+  int64 amount_cents = 4;
   string currency = 5;
-  optional int32 billing_interval_months = 6;
+  int64 billing_interval_months = 6;
   string external_product_id = 7;
 }
 
@@ -23,9 +23,9 @@ message ProductUpdateRequestInput {
   optional string name = 1;
   optional string description = 2;
   optional string kind = 3;
-  optional int32 amount_cents = 4;
+  optional int64 amount_cents = 4;
   optional string currency = 5;
-  optional int32 billing_interval_months = 6;
+  optional int64 billing_interval_months = 6;
   optional string external_product_id = 7;
 }
 
@@ -42,6 +42,8 @@ message SubscriptionUpdateRequestInput {
   optional string status = 1;
   optional google.protobuf.Timestamp current_period_start = 2;
   optional google.protobuf.Timestamp current_period_end = 3;
+  // An upgrade is the same agreement pointed at a different product.
+  optional string product_id = 4;
 }
 
 message CheckoutSessionRequestInput {

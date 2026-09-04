@@ -2,7 +2,6 @@ package manager
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"time"
 
@@ -12,9 +11,9 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 	paymentskeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/keys"
 
+	"github.com/primandproper/platform-go/v13/billing"
+	"github.com/primandproper/platform-go/v13/capitalism"
 	platformerrors "github.com/primandproper/platform-go/v13/errors"
-	"github.com/primandproper/platform-go/v13/filtering"
-	"github.com/primandproper/platform-go/v13/identifiers"
 	"github.com/primandproper/platform-go/v13/observability"
 	"github.com/primandproper/platform-go/v13/observability/logging"
 	"github.com/primandproper/platform-go/v13/observability/tracing"
@@ -29,252 +28,37 @@ var _ PaymentsDataManager = (*paymentsManager)(nil)
 type paymentsManager struct {
 	tracer      tracing.Tracer
 	logger      logging.Logger
-	repo        payments.Repository
+	store       billing.Store
 	identityMgr identitymanager.IdentityDataManager
 }
 
 // NewPaymentsDataManager returns a new PaymentsDataManager.
 //
-// Data change events are enqueued into the outbox by the repository, inside the same
-// transaction as the write they describe; see internal/repositories/postgres/events.
+// Audit entries and data change events are recorded by the repository around
+// platform's store; see internal/repositories/postgres/payments.
 func NewPaymentsDataManager(
-	ctx context.Context,
+	_ context.Context,
 	tracerProvider tracing.Provider,
 	logger logging.Logger,
-	repo payments.Repository,
+	store billing.Store,
 	identityMgr identitymanager.IdentityDataManager,
 ) (PaymentsDataManager, error) {
 	return &paymentsManager{
 		tracer:      tracing.NewNamedTracer(tracerProvider, o11yName),
 		logger:      logging.NewNamedLogger(logger, o11yName),
-		repo:        repo,
+		store:       store,
 		identityMgr: identityMgr,
 	}, nil
 }
 
-func (m *paymentsManager) CreateProduct(ctx context.Context, input *payments.ProductCreationRequestInput) (*payments.Product, error) {
-	ctx, span := m.tracer.StartSpan(ctx)
-	defer span.End()
-
-	logger := m.logger.WithSpan(span)
-
-	if input == nil {
-		return nil, platformerrors.ErrNilInputParameter
-	}
-	if err := input.ValidateWithContext(ctx); err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "validating product creation input")
-	}
-
-	dbInput := &payments.ProductDatabaseCreationInput{
-		ID:                    identifiers.New(),
-		Name:                  input.Name,
-		Description:           input.Description,
-		Kind:                  input.Kind,
-		AmountCents:           input.AmountCents,
-		Currency:              input.Currency,
-		BillingIntervalMonths: input.BillingIntervalMonths,
-		ExternalProductID:     input.ExternalProductID,
-	}
-	created, err := m.repo.CreateProduct(ctx, dbInput)
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "create product")
-	}
-
-	tracing.AttachToSpan(span, paymentskeys.ProductIDKey, created.ID)
-
-	return created, nil
-}
-
-func (m *paymentsManager) GetProduct(ctx context.Context, id string) (*payments.Product, error) {
-	ctx, span := m.tracer.StartSpan(ctx)
-	defer span.End()
-
-	return m.repo.GetProduct(ctx, id)
-}
-
-func (m *paymentsManager) GetProducts(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[payments.Product], error) {
-	ctx, span := m.tracer.StartSpan(ctx)
-	defer span.End()
-
-	return m.repo.GetProducts(ctx, filter)
-}
-
-func (m *paymentsManager) UpdateProduct(ctx context.Context, id string, input *payments.ProductUpdateRequestInput) error {
-	ctx, span := m.tracer.StartSpan(ctx)
-	defer span.End()
-
-	logger := m.logger.WithSpan(span)
-
-	if input == nil {
-		return platformerrors.ErrNilInputParameter
-	}
-	if err := input.ValidateWithContext(ctx); err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "validating product update input")
-	}
-
-	product, err := m.repo.GetProduct(ctx, id)
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "fetching product")
-	}
-
-	if input.Name != nil {
-		product.Name = *input.Name
-	}
-	if input.Description != nil {
-		product.Description = *input.Description
-	}
-	if input.Kind != nil {
-		product.Kind = *input.Kind
-	}
-	if input.AmountCents != nil {
-		product.AmountCents = *input.AmountCents
-	}
-	if input.Currency != nil {
-		product.Currency = *input.Currency
-	}
-	if input.BillingIntervalMonths != nil {
-		product.BillingIntervalMonths = input.BillingIntervalMonths
-	}
-	if input.ExternalProductID != nil {
-		product.ExternalProductID = *input.ExternalProductID
-	}
-
-	if err = m.repo.UpdateProduct(ctx, product); err != nil {
-		return err
-	}
-
-	tracing.AttachToSpan(span, paymentskeys.ProductIDKey, id)
-
-	return nil
-}
-
-func (m *paymentsManager) ArchiveProduct(ctx context.Context, id string) error {
-	ctx, span := m.tracer.StartSpan(ctx)
-	defer span.End()
-
-	logger := m.logger.WithSpan(span)
-
-	if err := m.repo.ArchiveProduct(ctx, id); err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "archive product")
-	}
-
-	tracing.AttachToSpan(span, paymentskeys.ProductIDKey, id)
-
-	return nil
-}
-
-func (m *paymentsManager) CreateSubscription(ctx context.Context, input *payments.SubscriptionCreationRequestInput) (*payments.Subscription, error) {
-	ctx, span := m.tracer.StartSpan(ctx)
-	defer span.End()
-
-	logger := m.logger.WithSpan(span)
-
-	if input == nil {
-		return nil, platformerrors.ErrNilInputParameter
-	}
-	if err := input.ValidateWithContext(ctx); err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "validating subscription creation input")
-	}
-
-	dbInput := &payments.SubscriptionDatabaseCreationInput{
-		ID:                     identifiers.New(),
-		BelongsToAccount:       input.BelongsToAccount,
-		ProductID:              input.ProductID,
-		ExternalSubscriptionID: input.ExternalSubscriptionID,
-		Status:                 input.Status,
-		CurrentPeriodStart:     input.CurrentPeriodStart,
-		CurrentPeriodEnd:       input.CurrentPeriodEnd,
-	}
-	created, err := m.repo.CreateSubscription(ctx, dbInput)
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "create subscription")
-	}
-
-	tracing.AttachToSpan(span, paymentskeys.SubscriptionIDKey, created.ID)
-
-	return created, nil
-}
-
-func (m *paymentsManager) GetSubscription(ctx context.Context, id string) (*payments.Subscription, error) {
-	ctx, span := m.tracer.StartSpan(ctx)
-	defer span.End()
-
-	return m.repo.GetSubscription(ctx, id)
-}
-
-func (m *paymentsManager) GetSubscriptionsForAccount(ctx context.Context, accountID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[payments.Subscription], error) {
-	ctx, span := m.tracer.StartSpan(ctx)
-	defer span.End()
-
-	return m.repo.GetSubscriptionsForAccount(ctx, accountID, filter)
-}
-
-func (m *paymentsManager) UpdateSubscription(ctx context.Context, id string, input *payments.SubscriptionUpdateRequestInput) error {
-	ctx, span := m.tracer.StartSpan(ctx)
-	defer span.End()
-
-	logger := m.logger.WithSpan(span)
-
-	if input == nil {
-		return platformerrors.ErrNilInputParameter
-	}
-	if err := input.ValidateWithContext(ctx); err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "validating subscription update input")
-	}
-
-	sub, err := m.repo.GetSubscription(ctx, id)
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "fetching subscription")
-	}
-
-	if input.Status != nil {
-		sub.Status = *input.Status
-	}
-	if input.CurrentPeriodStart != nil {
-		sub.CurrentPeriodStart = *input.CurrentPeriodStart
-	}
-	if input.CurrentPeriodEnd != nil {
-		sub.CurrentPeriodEnd = *input.CurrentPeriodEnd
-	}
-
-	if err = m.repo.UpdateSubscription(ctx, sub); err != nil {
-		return err
-	}
-
-	tracing.AttachToSpan(span, paymentskeys.SubscriptionIDKey, id)
-
-	return nil
-}
-
-func (m *paymentsManager) ArchiveSubscription(ctx context.Context, id string) error {
-	ctx, span := m.tracer.StartSpan(ctx)
-	defer span.End()
-
-	logger := m.logger.WithSpan(span)
-
-	if err := m.repo.ArchiveSubscription(ctx, id); err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "archive subscription")
-	}
-
-	tracing.AttachToSpan(span, paymentskeys.SubscriptionIDKey, id)
-
-	return nil
-}
-
-func (m *paymentsManager) GetPurchasesForAccount(ctx context.Context, accountID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[payments.Purchase], error) {
-	ctx, span := m.tracer.StartSpan(ctx)
-	defer span.End()
-
-	return m.repo.GetPurchasesForAccount(ctx, accountID, filter)
-}
-
-func (m *paymentsManager) GetPaymentTransactionsForAccount(ctx context.Context, accountID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[payments.PaymentTransaction], error) {
-	ctx, span := m.tracer.StartSpan(ctx)
-	defer span.End()
-
-	return m.repo.GetPaymentTransactionsForAccount(ctx, accountID, filter)
-}
-
+// ProcessWebhookEvent applies a provider's event to the subscription it names
+// and to the account's billing standing.
+//
+// Every status write here goes through the store's guarded SetSubscriptionStatus,
+// which reports a redelivered event as billing.ErrStatusUnchanged. That is an
+// answer rather than a failure — the provider already told us this — so it is
+// swallowed and the account's standing is re-derived anyway, which is idempotent.
+// Any other error is reported, so that the provider retries the delivery.
 func (m *paymentsManager) ProcessWebhookEvent(ctx context.Context, provider string, parsed *payments.ParsedWebhookEvent, accountID string) error {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
@@ -287,8 +71,6 @@ func (m *paymentsManager) ProcessWebhookEvent(ctx context.Context, provider stri
 	if parsed == nil {
 		return platformerrors.ErrNilInputParameter
 	}
-
-	var err error
 
 	// Use account ID from event payload when not provided in URL (e.g. RevenueCat app_user_id).
 	if accountID == "" && parsed.AccountID != "" {
@@ -304,18 +86,21 @@ func (m *paymentsManager) ProcessWebhookEvent(ctx context.Context, provider stri
 		if subscriptionID == "" {
 			return nil
 		}
-		var sub *payments.Subscription
-		sub, err = m.repo.GetSubscriptionByExternalID(ctx, subscriptionID)
+
+		sub, err := m.store.GetSubscriptionByExternalID(ctx, payments.Scope(), subscriptionID)
 		if err != nil {
 			return observability.PrepareAndLogError(err, logger, span, "fetching subscription by external ID")
 		}
 
+		// An event that carries no standing is a sync of a subscription the
+		// provider still considers live, which is what "updated" has always been
+		// read as here.
 		status := parsed.Status
-		if status == "" {
-			status = payments.SubscriptionStatusActive
+		if !status.Known() {
+			status = capitalism.SubscriptionStatusActive
 		}
 
-		if err = m.repo.UpdateSubscriptionStatus(ctx, sub.ID, status); err != nil {
+		if err = m.setSubscriptionStatus(ctx, sub.ID, status); err != nil {
 			return observability.PrepareAndLogError(err, logger, span, "updating subscription status")
 		}
 
@@ -328,13 +113,12 @@ func (m *paymentsManager) ProcessWebhookEvent(ctx context.Context, provider stri
 			return nil
 		}
 
-		var sub *payments.Subscription
-		sub, err = m.repo.GetSubscriptionByExternalID(ctx, subscriptionID)
+		sub, err := m.store.GetSubscriptionByExternalID(ctx, payments.Scope(), subscriptionID)
 		if err != nil {
 			return observability.PrepareAndLogError(err, logger, span, "fetching subscription by external ID")
 		}
 
-		if err = m.repo.UpdateSubscriptionStatus(ctx, sub.ID, payments.SubscriptionStatusCancelled); err != nil {
+		if err = m.setSubscriptionStatus(ctx, sub.ID, capitalism.SubscriptionStatusCanceled); err != nil {
 			return observability.PrepareAndLogError(err, logger, span, "updating subscription status")
 		}
 
@@ -348,29 +132,30 @@ func (m *paymentsManager) ProcessWebhookEvent(ctx context.Context, provider stri
 		if accountID == "" || parsed.ProductID == "" {
 			return nil
 		}
-		if err = m.handleRevenueCatSubscriptionActive(ctx, logger, span, accountID, subscriptionID, parsed.ProductID, syncNow); err != nil {
-			return err
-		}
+
+		return m.handleRevenueCatSubscriptionActive(ctx, logger, span, accountID, subscriptionID, parsed.ProductID, syncNow)
 	case "EXPIRATION":
 		if accountID == "" {
 			return nil
 		}
-		if err = m.handleRevenueCatSubscriptionExpired(ctx, logger, span, accountID, subscriptionID); err != nil {
-			return err
-		}
+
+		return m.handleRevenueCatSubscriptionExpired(ctx, logger, span, accountID, subscriptionID)
 	case "CANCELLATION":
 		// User cancelled; access may persist until EXPIRATION. Optionally mark subscription cancelled.
 		if accountID == "" || subscriptionID == "" {
 			return nil
 		}
-		sub, subErr := m.repo.GetSubscriptionByExternalID(ctx, subscriptionID)
-		if subErr != nil {
-			if errors.Is(subErr, sql.ErrNoRows) {
+
+		sub, err := m.store.GetSubscriptionByExternalID(ctx, payments.Scope(), subscriptionID)
+		if err != nil {
+			if errors.Is(err, billing.ErrSubscriptionNotFound) {
 				return nil // subscription may not exist yet
 			}
-			return observability.PrepareAndLogError(subErr, logger, span, "fetching subscription by external ID")
+
+			return observability.PrepareAndLogError(err, logger, span, "fetching subscription by external ID")
 		}
-		if err = m.repo.UpdateSubscriptionStatus(ctx, sub.ID, payments.SubscriptionStatusCancelled); err != nil {
+
+		if err = m.setSubscriptionStatus(ctx, sub.ID, capitalism.SubscriptionStatusCanceled); err != nil {
 			return observability.PrepareAndLogError(err, logger, span, "updating subscription status")
 		}
 	case "BILLING_ISSUE":
@@ -383,6 +168,17 @@ func (m *paymentsManager) ProcessWebhookEvent(ctx context.Context, provider stri
 	return nil
 }
 
+// setSubscriptionStatus moves the subscription's standing, treating the store's
+// "already there" as success.
+func (m *paymentsManager) setSubscriptionStatus(ctx context.Context, subscriptionID string, status capitalism.SubscriptionStatus) error {
+	err := m.store.SetSubscriptionStatus(ctx, payments.Scope(), subscriptionID, status)
+	if err != nil && !errors.Is(err, billing.ErrStatusUnchanged) {
+		return err
+	}
+
+	return nil
+}
+
 func (m *paymentsManager) handleRevenueCatSubscriptionActive(
 	ctx context.Context,
 	logger logging.Logger,
@@ -390,40 +186,38 @@ func (m *paymentsManager) handleRevenueCatSubscriptionActive(
 	accountID, transactionID, externalProductID string,
 	syncNow time.Time,
 ) error {
-	product, err := m.repo.GetProductByExternalID(ctx, externalProductID)
+	product, err := m.store.GetProductByExternalID(ctx, payments.Scope(), externalProductID)
 	if err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "fetching product by external ID")
 	}
 
-	sub, err := m.repo.GetSubscriptionByExternalID(ctx, transactionID)
+	tracing.AttachToSpan(span, paymentskeys.ProductIDKey, product.ID)
+
+	sub, err := m.store.GetSubscriptionByExternalID(ctx, payments.Scope(), transactionID)
 	if err != nil {
-		if !errors.Is(err, sql.ErrNoRows) {
+		if !errors.Is(err, billing.ErrSubscriptionNotFound) {
 			return observability.PrepareAndLogError(err, logger, span, "fetching subscription by external ID")
 		}
 
 		// Create new subscription for INITIAL_PURCHASE
 		now := time.Now()
-		dbInput := &payments.SubscriptionDatabaseCreationInput{
-			ID:                     identifiers.New(),
+		if _, err = m.store.CreateSubscription(ctx, payments.Scope(), &billing.Subscription{
 			BelongsToAccount:       accountID,
 			ProductID:              product.ID,
 			ExternalSubscriptionID: transactionID,
-			Status:                 payments.SubscriptionStatusActive,
+			Status:                 capitalism.SubscriptionStatusActive,
 			CurrentPeriodStart:     now,
 			CurrentPeriodEnd:       now.AddDate(0, 1, 0), // approximate
-		}
-		_, err = m.repo.CreateSubscription(ctx, dbInput)
-		if err != nil {
+		}); err != nil {
 			return observability.PrepareAndLogError(err, logger, span, "creating subscription")
 		}
-	} else {
-		if err = m.repo.UpdateSubscriptionStatus(ctx, sub.ID, payments.SubscriptionStatusActive); err != nil {
-			return observability.PrepareAndLogError(err, logger, span, "updating subscription status")
-		}
+	} else if err = m.setSubscriptionStatus(ctx, sub.ID, capitalism.SubscriptionStatusActive); err != nil {
+		return observability.PrepareAndLogError(err, logger, span, "updating subscription status")
 	}
 
 	billingStatus := identity.PaidAccountBillingStatus
 	productID := product.ID
+
 	return observability.PrepareAndLogError(
 		m.identityMgr.UpdateAccountBillingFields(ctx, accountID, &billingStatus, &productID, nil, &syncNow),
 		logger, span, "updating account billing fields",
@@ -436,37 +230,43 @@ func (m *paymentsManager) handleRevenueCatSubscriptionExpired(
 	span tracing.Span,
 	accountID, transactionID string,
 ) error {
-	sub, err := m.repo.GetSubscriptionByExternalID(ctx, transactionID)
+	unpaid := identity.UnpaidAccountBillingStatus
+	syncNow := time.Now()
+
+	sub, err := m.store.GetSubscriptionByExternalID(ctx, payments.Scope(), transactionID)
 	if err != nil {
 		// Subscription may not exist; still update account to unpaid
-		unpaid := identity.UnpaidAccountBillingStatus
-		syncNow := time.Now()
 		return observability.PrepareAndLogError(
 			m.identityMgr.UpdateAccountBillingFields(ctx, accountID, &unpaid, nil, nil, &syncNow),
 			logger, span, "updating account billing fields",
 		)
 	}
 
-	if err = m.repo.UpdateSubscriptionStatus(ctx, sub.ID, payments.SubscriptionStatusCancelled); err != nil {
+	if err = m.setSubscriptionStatus(ctx, sub.ID, capitalism.SubscriptionStatusCanceled); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "updating subscription status")
 	}
 
-	unpaid := identity.UnpaidAccountBillingStatus
-	syncNow := time.Now()
 	return observability.PrepareAndLogError(
 		m.identityMgr.UpdateAccountBillingFields(ctx, sub.BelongsToAccount, &unpaid, nil, nil, &syncNow),
 		logger, span, "updating account billing fields",
 	)
 }
 
-func subscriptionStatusToBillingStatus(status string) string {
+// subscriptionStatusToBillingStatus is the mapping onto identity.Account's
+// coarse standing — the one platform says a consumer still writes, because it
+// includes a suspension no processor reports.
+//
+// Trialing is the one status that is not paid and not unpaid. Everything else
+// that is not active — past due, unpaid, paused, canceled, incomplete in either
+// form — is unpaid, because nothing is being collected. A status this module does
+// not know is unpaid too, rather than active: a word the provider added last week
+// should not entitle an account on its own.
+func subscriptionStatusToBillingStatus(status capitalism.SubscriptionStatus) string {
 	switch status {
-	case payments.SubscriptionStatusActive:
+	case capitalism.SubscriptionStatusActive:
 		return identity.PaidAccountBillingStatus
-	case payments.SubscriptionStatusTrialing:
+	case capitalism.SubscriptionStatusTrialing:
 		return identity.TrialAccountBillingStatus
-	case payments.SubscriptionStatusCancelled, payments.SubscriptionStatusPastDue, payments.SubscriptionStatusIncomplete:
-		return identity.UnpaidAccountBillingStatus
 	default:
 		return identity.UnpaidAccountBillingStatus
 	}
