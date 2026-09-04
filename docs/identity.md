@@ -134,7 +134,7 @@ the two had drifted on three of five roles.
 
 Roles inherit, and inheritance is where most of a role's authority comes from:
 
-```
+```text
 account_member       —
 account_admin        inherits account_member
 service_data_admin   —
