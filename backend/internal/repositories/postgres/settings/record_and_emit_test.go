@@ -24,11 +24,14 @@ import (
 // It does not assert that the definition rolled back, and that is not an oversight. Recording
 // runs in a transaction of its own here, opened after platform's store has already committed the
 // catalog row in its own — the store owns its transaction and does not lend it out. So the row
-// survives an entry that could not be written about it, which is the one place this package's
-// guarantee is weaker than every other repository's, where RecordAndEmit runs as two further
-// statements in the transaction that performed the write. That gap arrived with the settings
-// adoption in #1416, not with RecordAndEmit, and closing it needs platform to accept a caller's
-// transaction. See docs/audit.md.
+// survives an entry that could not be written about it, where every repository that writes its
+// own rows records as two further statements in the transaction that performed the write.
+//
+// settings is not alone in this: comments, issuereports and waitlists have the same shape, for
+// the same reason, and they are exactly the four packages whose writes are an adopted platform
+// store. The gap arrived with each adoption — this one with #1416 — not with RecordAndEmit, and
+// closing it needs platform to accept a caller's transaction (platform-go #460). See
+// docs/audit.md, and #1419 for what deletes here when it lands.
 func TestQuerier_Integration_RecordAndEmitFailureSurfaces(t *testing.T) {
 	ctx := t.Context()
 	dbc, auditRepo, _ := buildDatabaseClientForTest(t)
@@ -57,7 +60,8 @@ func TestQuerier_Integration_RecordAndEmitFailureSurfaces(t *testing.T) {
 
 	// The catalog row is still there, which is the gap the doc comment describes. Asserted
 	// rather than described so that it fails here, loudly, on the day platform lets the store
-	// take a caller's transaction and this stops being true.
+	// take a caller's transaction and this stops being true. When it does fail, the fix is to
+	// delete the workaround in settings.go, not to update this assertion — see #1419.
 	repo.recorder = recording.NewRecorder(repo.tracer, auditRepo, nil)
 
 	survived, err := repo.GetDefinition(ctx, ddbsettings.Scope(), definition.ID)

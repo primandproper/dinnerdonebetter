@@ -84,12 +84,18 @@ Reach past it for `Record` alone only where the pair genuinely does not apply �
 entry with no event of its own, or a transaction recording several entries at once,
 which `Record`'s variadic form handles and `RecordAndEmit` deliberately does not.
 
-`settings` is the one exception to "in the transaction that performed the write". It
-wraps platform's settings store, which owns its own transaction and does not lend it
-out, so recording there opens a second one after the row is already committed — an
-entry the database refuses fails the call but no longer takes the row down with it.
-That is a property of the store, not of `RecordAndEmit`, and it closes when platform
-accepts a caller's transaction.
+Four packages are exceptions to "in the transaction that performed the write", and
+they are exactly the four whose writes are an adopted platform store: `comments`,
+`issuereports`, `settings` and `waitlists`. Those stores own their transactions and do
+not lend them out, so each of these repositories calls the store, lets it commit, and
+then opens a second transaction to record — an entry the database refuses fails the
+call but no longer takes the row down with it. The gap is narrow and one-directional:
+a row can exist with no entry, but no entry can name a row that was not written.
+
+That is a property of the stores, not of `RecordAndEmit`, and each closes when platform
+accepts a caller's transaction — filed upstream as platform-go #457 (comments, fixed
+but unreleased), #458 (waitlists) and #460 (settings). `issuereports` has no ticket
+yet. Tracked locally on #1419, which lists what deletes here when each lands.
 
 The recorder is one type in `internal/repositories/postgres/recording` rather than a
 method on each repository, because the body was the same body in all nine of them and
