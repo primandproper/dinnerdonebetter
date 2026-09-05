@@ -34,7 +34,7 @@ struct MermaidDiagramView: View {
       } else if let image = renderedImage {
         Image(uiImage: image)
           .resizable()
-          .aspectRatio(contentMode: .fit)
+          .scaledToFit()
           .frame(minHeight: 200)
       } else {
         ProgressView("Rendering diagram...")
