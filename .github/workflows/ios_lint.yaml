@@ -5,6 +5,9 @@ on:
       - ios/**/*.swift
       - ios/.swiftlint.yml
       - ios/Makefile
+      - ios/scripts/lint.sh
+      - ios/scripts/ensure_swiftlint.sh
+      - .github/workflows/ios_lint.yaml
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -18,9 +21,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
-
-      - name: Install SwiftLint
-        run: brew install swiftlint
 
       - name: Run SwiftLint
         working-directory: ios

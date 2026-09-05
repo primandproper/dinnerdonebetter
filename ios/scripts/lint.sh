@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Lint Swift code using swiftlint
-# Usage: lint.sh [--fix]
+# Lint Swift code using the pinned swiftlint binary
+# Usage: lint.sh <swiftlint_binary> [--fix]
 
-if [ "${1:-}" = "--fix" ]; then
-  swiftlint lint --fix
+SWIFTLINT="${1}"
+
+if [ "${2:-}" = "--fix" ]; then
+  "${SWIFTLINT}" lint --fix
 else
-  swiftlint lint --strict
+  "${SWIFTLINT}" lint --strict
 fi
-

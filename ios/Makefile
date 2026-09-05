@@ -21,13 +21,19 @@ SCRIPTS_DIR := scripts
 SHELLCHECK_IMAGE := koalaman/shellcheck:stable
 CONTAINER_RUNNER := docker
 
+# SwiftLint is pinned so CI and local runs apply the same rule set. Bump deliberately: new releases
+# add rules, and an unpinned install broke CI on code that had not changed.
+SWIFTLINT_VERSION := 0.65.1
+SWIFTLINT_DIR := $(BUILD_DIR)/tools/swiftlint-$(SWIFTLINT_VERSION)
+SWIFTLINT := $(SWIFTLINT_DIR)/swiftlint
+
 .PHONY: ensure_swift-format_installed
 ensure_swift-format_installed:
 	@$(SCRIPTS_DIR)/ensure_tool_installed.sh swift-format "brew install swift-format"
 
 .PHONY: ensure_swiftlint_installed
 ensure_swiftlint_installed:
-	@$(SCRIPTS_DIR)/ensure_tool_installed.sh swiftlint "brew install swiftlint"
+	@$(SCRIPTS_DIR)/ensure_swiftlint.sh $(SWIFTLINT_VERSION) $(SWIFTLINT_DIR)
 
 .PHONY: test
 test: unit-test ui-test
@@ -50,11 +56,11 @@ clean:
 
 .PHONY: lint
 lint: ensure_swiftlint_installed
-	$(SCRIPTS_DIR)/lint.sh
+	$(SCRIPTS_DIR)/lint.sh $(SWIFTLINT)
 
 .PHONY: lint-autocorrect
 lint-autocorrect: ensure_swiftlint_installed
-	$(SCRIPTS_DIR)/lint.sh --fix
+	$(SCRIPTS_DIR)/lint.sh $(SWIFTLINT) --fix
 
 .PHONY: list-destinations
 list-destinations: ## List available iOS Simulator destinations
