@@ -73,15 +73,15 @@ flowchart TB
 
 ### Components
 
-| Component               | Location                                   | Role                                                                      |
-|-------------------------|--------------------------------------------|---------------------------------------------------------------------------|
-| **PaymentsDataManager** | `internal/domain/payments/manager/`        | Webhook processing: which provider event changes what, and the account's standing |
-| **PaymentProcessor**    | `internal/domain/payments/processor.go`    | Interface for provider webhook verification and parsing                   |
-| **Adapters**            | `internal/services/payments/adapters/`     | Stripe and RevenueCat (both via platform-go `capitalism`), and a dev stub |
+| Component               | Location                                   | Role                                                                                                                   |
+|-------------------------|--------------------------------------------|------------------------------------------------------------------------------------------------------------------------|
+| **PaymentsDataManager** | `internal/domain/payments/manager/`        | Webhook processing: which provider event changes what, and the account's standing                                      |
+| **PaymentProcessor**    | `internal/domain/payments/processor.go`    | Interface for provider webhook verification and parsing                                                                |
+| **Adapters**            | `internal/services/payments/adapters/`     | Stripe and RevenueCat (both via platform-go `capitalism`), and a dev stub                                              |
 | **Repository**          | `internal/repositories/postgres/payments/` | platform-go's `billing.Store`, with this application's audit entries and data change events recorded around its writes |
-| **gRPC Service**        | `internal/services/payments/grpc/`         | API for CreateProduct, GetSubscription, etc., served straight off the store |
-| **WebhookHandler**      | `internal/services/payments/http/`         | HTTP POST endpoint for provider webhooks                                  |
-| **IdentityDataManager** | `internal/domain/identity/manager/`        | Updates account billing fields when subscriptions change                  |
+| **gRPC Service**        | `internal/services/payments/grpc/`         | API for CreateProduct, GetSubscription, etc., served straight off the store                                            |
+| **WebhookHandler**      | `internal/services/payments/http/`         | HTTP POST endpoint for provider webhooks                                                                               |
+| **IdentityDataManager** | `internal/domain/identity/manager/`        | Updates account billing fields when subscriptions change                                                               |
 
 ---
 
@@ -121,8 +121,8 @@ retained and anonymized is a policy question `docs/data-privacy.md` records as o
 
 The store owns its transactions and does not lend them out, so the audit entry and the data change
 event the repository records land in a second transaction after the row's. That is the same gap
-`comments`, `issuereports`, `settings` and `waitlists` carry, filed for billing as platform-go
-#466 and tracked on #1419 — see `docs/audit.md`.
+`comments`, `issuereports`, `settings` and `waitlists` carry, filed for billing as
+platform-go #466 and tracked on #1419 — see `docs/audit.md`.
 
 ### Identity Integration
 
@@ -398,23 +398,23 @@ platform-go #466 lands.
 
 ## Quick Reference: File Locations
 
-| Purpose             | Path                                                    |
-|---------------------|---------------------------------------------------------|
-| Processor interface | `internal/domain/payments/processor.go`                 |
-| Scope, prefix, events | `internal/domain/payments/payments.go`                |
-| Manager             | `internal/domain/payments/manager/`                     |
-| Repository          | `internal/repositories/postgres/payments/`              |
-| Fakes               | `internal/domain/payments/fakes/`                       |
-| gRPC error mapping  | `internal/services/payments/errors/`                    |
-| Stripe adapter      | `internal/services/payments/adapters/stripe.go`         |
-| RevenueCat adapter  | `internal/services/payments/adapters/revenuecat.go`     |
-| Stub adapter        | `internal/services/payments/adapters/stub.go`           |
-| Adapter DI          | `internal/services/payments/adapters/do.go`             |
-| Payments config     | `internal/services/payments/config/config.go`           |
-| Webhook HTTP        | `internal/services/payments/http/`                      |
-| gRPC service        | `internal/services/payments/grpc/`                      |
-| Migration           | `renderBillingDDL` in `internal/repositories/postgres/migrations/migrate.go` |
-| Integration tests   | `testing/integration/apiserver/payments_test.go`        |
+| Purpose               | Path                                                                         |
+|-----------------------|------------------------------------------------------------------------------|
+| Processor interface   | `internal/domain/payments/processor.go`                                      |
+| Scope, prefix, events | `internal/domain/payments/payments.go`                                       |
+| Manager               | `internal/domain/payments/manager/`                                          |
+| Repository            | `internal/repositories/postgres/payments/`                                   |
+| Fakes                 | `internal/domain/payments/fakes/`                                            |
+| gRPC error mapping    | `internal/services/payments/errors/`                                         |
+| Stripe adapter        | `internal/services/payments/adapters/stripe.go`                              |
+| RevenueCat adapter    | `internal/services/payments/adapters/revenuecat.go`                          |
+| Stub adapter          | `internal/services/payments/adapters/stub.go`                                |
+| Adapter DI            | `internal/services/payments/adapters/do.go`                                  |
+| Payments config       | `internal/services/payments/config/config.go`                                |
+| Webhook HTTP          | `internal/services/payments/http/`                                           |
+| gRPC service          | `internal/services/payments/grpc/`                                           |
+| Migration             | `renderBillingDDL` in `internal/repositories/postgres/migrations/migrate.go` |
+| Integration tests     | `testing/integration/apiserver/payments_test.go`                             |
 
 ---
 
