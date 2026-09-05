@@ -7,14 +7,17 @@ import (
 	"testing"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
+	ddbpayments "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/fakes"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
+	"github.com/primandproper/platform-go/v13/billing"
 	"github.com/primandproper/platform-go/v13/database"
-	mockdatabase "github.com/primandproper/platform-go/v13/database/mock"
 	"github.com/primandproper/platform-go/v13/database/postgres"
 	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
+	metricsnoop "github.com/primandproper/platform-go/v13/observability/metrics/noop"
 	tracingnoop "github.com/primandproper/platform-go/v13/observability/tracing/noop"
 
 	"github.com/stretchr/testify/require"
@@ -35,7 +38,8 @@ func TestMain(m *testing.M) {
 	}))
 }
 
-func buildDatabaseClientForTest(t *testing.T) (*repository, audit.Repository) {
+// buildDatabaseClientForTest builds the store over a real database.
+func buildDatabaseClientForTest(t *testing.T) (billing.Store, audit.Repository, database.SQLQueryExecutor) {
 	t.Helper()
 
 	ctx := t.Context()
@@ -47,17 +51,53 @@ func buildDatabaseClientForTest(t *testing.T) (*repository, audit.Repository) {
 	require.NotNil(t, pgc)
 	require.NoError(t, err)
 
-	auditLogEntryRepo, err := auditlogentries.ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, pgc)
+	auditLogEntryRepo, err := auditlogentries.ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), metricsnoop.NewMetricsProvider(), pgc)
 	require.NoError(t, err)
-	c := ProvidePaymentsRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), auditLogEntryRepo, pgc, nil)
 
-	return c.(*repository), auditLogEntryRepo
+	c, err := ProvidePaymentsRepository(
+		ctx,
+		loggingnoop.NewLogger(),
+		tracingnoop.NewTracerProvider(),
+		metricsnoop.NewMetricsProvider(),
+		auditLogEntryRepo,
+		pgc,
+		nil,
+	)
+	require.NoError(t, err)
+
+	return c, auditLogEntryRepo, pgc.Writer()
 }
 
-func buildInertClientForTest(t *testing.T) *repository {
+// accountForTest creates a user and an account for them, and returns the account.
+//
+// The account is not incidental: the three account-owned billing tables carry a
+// foreign key to accounts, so a subscription naming an account no test created is
+// one the database refuses.
+func accountForTest(t *testing.T, writer database.SQLQueryExecutor) string {
 	t.Helper()
 
-	c := ProvidePaymentsRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, &mockdatabase.ClientMock{ReaderFunc: func() database.SQLQueryExecutor { return nil }, WriterFunc: func() database.SQLQueryExecutor { return nil }}, nil)
+	user := pgtesting.CreateUserForTest(t, nil, writer)
+	account := pgtesting.CreateAccountForTest(t, nil, user.ID, writer)
 
-	return c.(*repository)
+	return account.ID
+}
+
+// productForTest adds one recurring product to the catalog.
+func productForTest(t *testing.T, ctx context.Context, dbc billing.Store) *billing.Product {
+	t.Helper()
+
+	product, err := dbc.CreateProduct(ctx, ddbpayments.Scope(), fakes.BuildFakeProduct())
+	require.NoError(t, err)
+
+	return product
+}
+
+// subscriptionForTest opens one subscription for the account on the product.
+func subscriptionForTest(t *testing.T, ctx context.Context, dbc billing.Store, accountID, productID string) *billing.Subscription {
+	t.Helper()
+
+	subscription, err := dbc.CreateSubscription(ctx, ddbpayments.Scope(), fakes.BuildFakeSubscription(accountID, productID))
+	require.NoError(t, err)
+
+	return subscription
 }

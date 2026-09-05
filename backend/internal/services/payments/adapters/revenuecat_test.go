@@ -11,8 +11,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
-
 	"github.com/primandproper/platform-go/v13/capitalism"
 	caprevenuecat "github.com/primandproper/platform-go/v13/capitalism/revenuecat"
 	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
@@ -141,7 +139,7 @@ func TestRevenueCatPaymentProcessor_HandleWebhook(T *testing.T) {
 		assert.Equal(t, caprevenuecat.EventTypeInitialPurchase, actual.EventType)
 		assert.Equal(t, "account_example", actual.AccountID)
 		assert.Equal(t, "product_example", actual.ProductID)
-		assert.Equal(t, payments.SubscriptionStatusActive, actual.Status)
+		assert.Equal(t, capitalism.SubscriptionStatusActive, actual.Status)
 
 		// The original transaction, not the current one: RevenueCat mints a fresh
 		// transaction_id on every renewal and holds the original fixed, so the original is the
@@ -176,7 +174,7 @@ func TestRevenueCatPaymentProcessor_HandleWebhook(T *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, actual)
 
-		assert.Equal(t, payments.SubscriptionStatusCancelled, actual.Status)
+		assert.Equal(t, capitalism.SubscriptionStatusCanceled, actual.Status)
 	})
 
 	// A cancellation is auto-renew being switched off, and the subscriber keeps the period
@@ -193,7 +191,7 @@ func TestRevenueCatPaymentProcessor_HandleWebhook(T *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, actual)
 
-		assert.Equal(t, payments.SubscriptionStatusActive, actual.Status)
+		assert.Equal(t, capitalism.SubscriptionStatusActive, actual.Status)
 	})
 
 	// A refund does end it now, and the cancel reason is the only thing that says so.
@@ -208,7 +206,7 @@ func TestRevenueCatPaymentProcessor_HandleWebhook(T *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, actual)
 
-		assert.Equal(t, payments.SubscriptionStatusCancelled, actual.Status)
+		assert.Equal(t, capitalism.SubscriptionStatusCanceled, actual.Status)
 	})
 
 	T.Run("with trial purchase", func(t *testing.T) {
@@ -222,7 +220,7 @@ func TestRevenueCatPaymentProcessor_HandleWebhook(T *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, actual)
 
-		assert.Equal(t, payments.SubscriptionStatusTrialing, actual.Status)
+		assert.Equal(t, capitalism.SubscriptionStatusTrialing, actual.Status)
 	})
 
 	T.Run("with billing issue", func(t *testing.T) {
@@ -236,7 +234,7 @@ func TestRevenueCatPaymentProcessor_HandleWebhook(T *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, actual)
 
-		assert.Equal(t, payments.SubscriptionStatusPastDue, actual.Status)
+		assert.Equal(t, capitalism.SubscriptionStatusPastDue, actual.Status)
 	})
 
 	// An event RevenueCat documents as carrying no subscription standing arrives with a nil
@@ -327,29 +325,5 @@ func TestRevenueCatPaymentProcessor_HandleWebhook(T *testing.T) {
 		actual, err := processor.HandleWebhook(buildSignedRevenueCatRequest(t, body))
 		require.Error(t, err)
 		assert.Nil(t, actual)
-	})
-}
-
-func TestRevenueCatSubscriptionStatus(T *testing.T) {
-	T.Parallel()
-
-	T.Run("maps every status capitalism defines", func(t *testing.T) {
-		t.Parallel()
-
-		expected := map[capitalism.SubscriptionStatus]string{
-			capitalism.SubscriptionStatusActive:            payments.SubscriptionStatusActive,
-			capitalism.SubscriptionStatusTrialing:          payments.SubscriptionStatusTrialing,
-			capitalism.SubscriptionStatusPastDue:           payments.SubscriptionStatusPastDue,
-			capitalism.SubscriptionStatusCanceled:          payments.SubscriptionStatusCancelled,
-			capitalism.SubscriptionStatusIncomplete:        payments.SubscriptionStatusIncomplete,
-			capitalism.SubscriptionStatusIncompleteExpired: payments.SubscriptionStatusIncomplete,
-			capitalism.SubscriptionStatusUnpaid:            payments.SubscriptionStatusPastDue,
-			capitalism.SubscriptionStatusPaused:            payments.SubscriptionStatusCancelled,
-			capitalism.SubscriptionStatusUnknown:           "",
-		}
-
-		for status, want := range expected {
-			assert.Equal(t, want, revenueCatSubscriptionStatus(status), "mapping %s", status.String())
-		}
 	})
 }

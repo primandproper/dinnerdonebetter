@@ -4,86 +4,93 @@ import (
 	"context"
 	"testing"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 	paymentsfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/fakes"
 
+	"github.com/primandproper/platform-go/v13/billing"
+	billingmock "github.com/primandproper/platform-go/v13/billing/mock"
+	"github.com/primandproper/platform-go/v13/capitalism"
 	platformerrors "github.com/primandproper/platform-go/v13/errors"
 	"github.com/primandproper/platform-go/v13/filtering"
 	"github.com/primandproper/platform-go/v13/identifiers"
+	"github.com/primandproper/platform-go/v13/tenancy"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-// subscriptionReaderStub records what it was asked and answers with what it was given.
-type subscriptionReaderStub struct {
-	err           error
-	result        *filtering.QueryFilteredResult[payments.Subscription]
-	requestedFor  []string
-	returnNilBoth bool
-}
-
-func (s *subscriptionReaderStub) GetSubscriptionsForAccount(_ context.Context, accountID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[payments.Subscription], error) {
-	s.requestedFor = append(s.requestedFor, accountID)
-
-	if s.err != nil {
-		return nil, s.err
-	}
-
-	if s.returnNilBoth {
-		return nil, nil
-	}
-
-	return s.result, nil
-}
-
-// resultOf wraps subscriptions in the shape the repository returns them in.
-func resultOf(subscriptions ...*payments.Subscription) *filtering.QueryFilteredResult[payments.Subscription] {
-	return &filtering.QueryFilteredResult[payments.Subscription]{Data: subscriptions}
-}
-
-// subscriptionWithStatus is a fake subscription forced to one status.
-func subscriptionWithStatus(status string) *payments.Subscription {
+// subscriptionWithStatus is a fake current subscription forced to one status.
+func subscriptionWithStatus(status capitalism.SubscriptionStatus) *billing.Subscription {
 	subscription := paymentsfakes.BuildFakeSubscription(identifiers.New(), identifiers.New())
 	subscription.Status = status
 
 	return subscription
 }
 
-// sourceOver builds a plan source over a stubbed reader.
-func sourceOver(t *testing.T, subscriptions SubscriptionReader) *SubscriptionPlanSource {
-	t.Helper()
-
-	source, err := NewSubscriptionPlanSource(subscriptions)
-	require.NoError(t, err)
-
-	return source
-}
-
-func TestNewSubscriptionPlanSource(T *testing.T) {
+// Which statuses leave an account entitled, and which row wins when it holds several, are the
+// product decisions this package exists to hold. The ladder above them — the current-period
+// read, the plan cache, the fallback, what a decision is made of — is the platform's and is
+// tested there.
+func TestChoosePlan(T *testing.T) {
 	T.Parallel()
 
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		source, err := NewSubscriptionPlanSource(&subscriptionReaderStub{})
-		require.NoError(t, err)
-		assert.NotNil(t, source)
+		plan, ok := ChoosePlan([]*billing.Subscription{subscriptionWithStatus(capitalism.SubscriptionStatusActive)})
+		assert.True(t, ok)
+		assert.Equal(t, SubscriberPlan, plan)
 	})
 
-	T.Run("with nil subscription reader", func(t *testing.T) {
+	T.Run("a trialing subscription entitles the same as an active one", func(t *testing.T) {
 		t.Parallel()
 
-		source, err := NewSubscriptionPlanSource(nil)
-		require.ErrorIs(t, err, ErrNilSubscriptionReader)
-		assert.Nil(t, source)
+		plan, ok := ChoosePlan([]*billing.Subscription{subscriptionWithStatus(capitalism.SubscriptionStatusTrialing)})
+		assert.True(t, ok)
+		assert.Equal(t, SubscriberPlan, plan)
+	})
+
+	T.Run("a past due subscription does not entitle", func(t *testing.T) {
+		t.Parallel()
+
+		plan, ok := ChoosePlan([]*billing.Subscription{subscriptionWithStatus(capitalism.SubscriptionStatusPastDue)})
+		assert.True(t, ok)
+		assert.Equal(t, FreePlan, plan)
+	})
+
+	T.Run("a live subscription is found past a canceled one", func(t *testing.T) {
+		t.Parallel()
+
+		plan, ok := ChoosePlan([]*billing.Subscription{
+			subscriptionWithStatus(capitalism.SubscriptionStatusCanceled),
+			subscriptionWithStatus(capitalism.SubscriptionStatusActive),
+		})
+		assert.True(t, ok)
+		assert.Equal(t, SubscriberPlan, plan)
+	})
+
+	T.Run("an account with no current subscriptions is on the free plan", func(t *testing.T) {
+		t.Parallel()
+
+		// Not a decline: an account that has never paid is a customer of the free tier
+		// rather than a customer of nothing, and declining here would reach entitlements
+		// as ErrNoPlan and deny it the features that tier includes.
+		plan, ok := ChoosePlan(nil)
+		assert.True(t, ok)
+		assert.Equal(t, FreePlan, plan)
+	})
+
+	T.Run("a nil entry is skipped rather than dereferenced", func(t *testing.T) {
+		t.Parallel()
+
+		plan, ok := ChoosePlan([]*billing.Subscription{nil, subscriptionWithStatus(capitalism.SubscriptionStatusActive)})
+		assert.True(t, ok)
+		assert.Equal(t, SubscriberPlan, plan)
 	})
 }
 
-// Which statuses leave an account entitled, and which row wins when it holds several, are the
-// product decisions this package exists to hold. The ladder above them — the plan cache, the
-// fallback, what a decision is made of — is the platform's and is tested there.
-func TestSubscriptionPlanSource_PlanFor(T *testing.T) {
+// The wiring: the platform's source, reading the platform's current-subscription page in this
+// application's scope, decided by ChoosePlan.
+func TestNewPlanSource(T *testing.T) {
 	T.Parallel()
 
 	T.Run("standard", func(t *testing.T) {
@@ -92,80 +99,46 @@ func TestSubscriptionPlanSource_PlanFor(T *testing.T) {
 		ctx := t.Context()
 		accountID := identifiers.New()
 
-		subscriptions := &subscriptionReaderStub{
-			result: resultOf(subscriptionWithStatus(payments.SubscriptionStatusActive)),
+		var (
+			requestedScope   tenancy.Scope
+			requestedAccount string
+		)
+
+		store := &billingmock.SubscriptionStoreMock{
+			ListCurrentSubscriptionsFunc: func(_ context.Context, scope tenancy.Scope, account string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[billing.Subscription], error) {
+				requestedScope, requestedAccount = scope, account
+
+				return &filtering.QueryFilteredResult[billing.Subscription]{
+					Data: []*billing.Subscription{subscriptionWithStatus(capitalism.SubscriptionStatusActive)},
+				}, nil
+			},
 		}
 
-		plan, err := sourceOver(t, subscriptions).PlanFor(ctx, accountID)
+		source, err := NewPlanSource(store)
+		require.NoError(t, err)
+
+		plan, err := source.PlanFor(ctx, accountID)
 		require.NoError(t, err)
 		assert.Equal(t, SubscriberPlan, plan)
-		assert.Equal(t, []string{accountID}, subscriptions.requestedFor)
+		assert.Equal(t, accountID, requestedAccount)
+		assert.Equal(t, tenancy.Global(), requestedScope)
 	})
 
-	T.Run("a trialing subscription entitles the same as an active one", func(t *testing.T) {
+	T.Run("an account with nothing current is on the free plan", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
 
-		subscriptions := &subscriptionReaderStub{
-			result: resultOf(subscriptionWithStatus(payments.SubscriptionStatusTrialing)),
+		store := &billingmock.SubscriptionStoreMock{
+			ListCurrentSubscriptionsFunc: func(context.Context, tenancy.Scope, string, *filtering.QueryFilter) (*filtering.QueryFilteredResult[billing.Subscription], error) {
+				return &filtering.QueryFilteredResult[billing.Subscription]{}, nil
+			},
 		}
 
-		plan, err := sourceOver(t, subscriptions).PlanFor(ctx, identifiers.New())
+		source, err := NewPlanSource(store)
 		require.NoError(t, err)
-		assert.Equal(t, SubscriberPlan, plan)
-	})
 
-	T.Run("a past due subscription does not entitle", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-
-		subscriptions := &subscriptionReaderStub{
-			result: resultOf(subscriptionWithStatus(payments.SubscriptionStatusPastDue)),
-		}
-
-		plan, err := sourceOver(t, subscriptions).PlanFor(ctx, identifiers.New())
-		require.NoError(t, err)
-		assert.Equal(t, FreePlan, plan)
-	})
-
-	T.Run("a live subscription is found past a cancelled one", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-
-		subscriptions := &subscriptionReaderStub{
-			result: resultOf(
-				subscriptionWithStatus(payments.SubscriptionStatusCancelled),
-				subscriptionWithStatus(payments.SubscriptionStatusActive),
-			),
-		}
-
-		plan, err := sourceOver(t, subscriptions).PlanFor(ctx, identifiers.New())
-		require.NoError(t, err)
-		assert.Equal(t, SubscriberPlan, plan)
-	})
-
-	T.Run("an account with no subscriptions at all is on the free plan", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-
-		// Not ErrNoPlan: an account that has never paid is a customer of the free tier
-		// rather than a customer of nothing, and reporting an absence would deny it the
-		// features that tier includes.
-		plan, err := sourceOver(t, &subscriptionReaderStub{result: resultOf()}).PlanFor(ctx, identifiers.New())
-		require.NoError(t, err)
-		assert.Equal(t, FreePlan, plan)
-	})
-
-	T.Run("with a nil result and no error", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-
-		plan, err := sourceOver(t, &subscriptionReaderStub{returnNilBoth: true}).PlanFor(ctx, identifiers.New())
+		plan, err := source.PlanFor(ctx, identifiers.New())
 		require.NoError(t, err)
 		assert.Equal(t, FreePlan, plan)
 	})
@@ -180,9 +153,26 @@ func TestSubscriptionPlanSource_PlanFor(T *testing.T) {
 		// what to do about one is CheckerConfig.FallbackPlan's decision to make with the
 		// whole picture — degrading to free here would take that decision away and would do
 		// it for the quota path too, which has no fallback on purpose.
-		plan, err := sourceOver(t, &subscriptionReaderStub{err: expected}).PlanFor(ctx, identifiers.New())
+		store := &billingmock.SubscriptionStoreMock{
+			ListCurrentSubscriptionsFunc: func(context.Context, tenancy.Scope, string, *filtering.QueryFilter) (*filtering.QueryFilteredResult[billing.Subscription], error) {
+				return nil, expected
+			},
+		}
+
+		source, err := NewPlanSource(store)
+		require.NoError(t, err)
+
+		plan, err := source.PlanFor(ctx, identifiers.New())
 		require.ErrorIs(t, err, expected)
 		assert.Empty(t, plan)
+	})
+
+	T.Run("with nil store", func(t *testing.T) {
+		t.Parallel()
+
+		source, err := NewPlanSource(nil)
+		require.Error(t, err)
+		assert.Nil(t, source)
 	})
 }
 
@@ -197,7 +187,7 @@ func TestDefaultPlans(T *testing.T) {
 			names = append(names, plan.Name)
 		}
 
-		// Every plan name PlanFor can return has to be one the catalog defines: the two are
+		// Every plan name ChoosePlan can return has to be one the catalog defines: the two are
 		// joined by string equality and by nothing else, and a plan the catalog does not
 		// know denies with ErrUnknownPlan.
 		assert.ElementsMatch(t, []string{FreePlan, SubscriberPlan}, names)

@@ -20,6 +20,10 @@ fileprivate struct _GeneratedWithProtocGenSwiftVersion: SwiftProtobuf.ProtobufAP
   typealias Version = _2
 }
 
+/// Product is something the deployment sells. It is the platform's billing.Product
+/// on the wire: amount_cents is the price in the currency's minor unit, and
+/// billing_interval_months is how often a recurring product bills, or 0 for a
+/// one-time one.
 public struct Payments_Product: Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
@@ -60,18 +64,11 @@ public struct Payments_Product: Sendable {
 
   public var kind: String = String()
 
-  public var amountCents: Int32 = 0
+  public var amountCents: Int64 = 0
 
   public var currency: String = String()
 
-  public var billingIntervalMonths: Int32 {
-    get {return _billingIntervalMonths ?? 0}
-    set {_billingIntervalMonths = newValue}
-  }
-  /// Returns true if `billingIntervalMonths` has been explicitly set.
-  public var hasBillingIntervalMonths: Bool {return self._billingIntervalMonths != nil}
-  /// Clears the value of `billingIntervalMonths`. Subsequent reads from it will return its default value.
-  public mutating func clearBillingIntervalMonths() {self._billingIntervalMonths = nil}
+  public var billingIntervalMonths: Int64 = 0
 
   public var externalProductID: String = String()
 
@@ -82,7 +79,6 @@ public struct Payments_Product: Sendable {
   fileprivate var _createdAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
   fileprivate var _lastUpdatedAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
   fileprivate var _archivedAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
-  fileprivate var _billingIntervalMonths: Int32? = nil
 }
 
 public struct Payments_Subscription: Sendable {
@@ -194,7 +190,7 @@ public struct Payments_Purchase: Sendable {
 
   public var productID: String = String()
 
-  public var amountCents: Int32 = 0
+  public var amountCents: Int64 = 0
 
   public var currency: String = String()
 
@@ -219,6 +215,9 @@ public struct Payments_Purchase: Sendable {
   fileprivate var _completedAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
 }
 
+/// PaymentTransaction is one attempt to move money. At most one of
+/// subscription_id and purchase_id is set, and both empty is the refund of
+/// something no longer here.
 public struct Payments_PaymentTransaction: Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
@@ -228,27 +227,13 @@ public struct Payments_PaymentTransaction: Sendable {
 
   public var belongsToAccount: String = String()
 
-  public var subscriptionID: String {
-    get {return _subscriptionID ?? String()}
-    set {_subscriptionID = newValue}
-  }
-  /// Returns true if `subscriptionID` has been explicitly set.
-  public var hasSubscriptionID: Bool {return self._subscriptionID != nil}
-  /// Clears the value of `subscriptionID`. Subsequent reads from it will return its default value.
-  public mutating func clearSubscriptionID() {self._subscriptionID = nil}
+  public var subscriptionID: String = String()
 
-  public var purchaseID: String {
-    get {return _purchaseID ?? String()}
-    set {_purchaseID = newValue}
-  }
-  /// Returns true if `purchaseID` has been explicitly set.
-  public var hasPurchaseID: Bool {return self._purchaseID != nil}
-  /// Clears the value of `purchaseID`. Subsequent reads from it will return its default value.
-  public mutating func clearPurchaseID() {self._purchaseID = nil}
+  public var purchaseID: String = String()
 
   public var externalTransactionID: String = String()
 
-  public var amountCents: Int32 = 0
+  public var amountCents: Int64 = 0
 
   public var currency: String = String()
 
@@ -263,29 +248,31 @@ public struct Payments_PaymentTransaction: Sendable {
   /// Clears the value of `createdAt`. Subsequent reads from it will return its default value.
   public mutating func clearCreatedAt() {self._createdAt = nil}
 
+  public var lastUpdatedAt: SwiftProtobuf.Google_Protobuf_Timestamp {
+    get {return _lastUpdatedAt ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
+    set {_lastUpdatedAt = newValue}
+  }
+  /// Returns true if `lastUpdatedAt` has been explicitly set.
+  public var hasLastUpdatedAt: Bool {return self._lastUpdatedAt != nil}
+  /// Clears the value of `lastUpdatedAt`. Subsequent reads from it will return its default value.
+  public mutating func clearLastUpdatedAt() {self._lastUpdatedAt = nil}
+
+  public var archivedAt: SwiftProtobuf.Google_Protobuf_Timestamp {
+    get {return _archivedAt ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
+    set {_archivedAt = newValue}
+  }
+  /// Returns true if `archivedAt` has been explicitly set.
+  public var hasArchivedAt: Bool {return self._archivedAt != nil}
+  /// Clears the value of `archivedAt`. Subsequent reads from it will return its default value.
+  public mutating func clearArchivedAt() {self._archivedAt = nil}
+
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
 
-  fileprivate var _subscriptionID: String? = nil
-  fileprivate var _purchaseID: String? = nil
   fileprivate var _createdAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
-}
-
-public struct Payments_DataCollection: Sendable {
-  // SwiftProtobuf.Message conformance is added in an extension below. See the
-  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
-  // methods supported on all messages.
-
-  public var subscriptions: [Payments_Subscription] = []
-
-  public var purchases: [Payments_Purchase] = []
-
-  public var paymentTransactions: [Payments_PaymentTransaction] = []
-
-  public var unknownFields = SwiftProtobuf.UnknownStorage()
-
-  public init() {}
+  fileprivate var _lastUpdatedAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
+  fileprivate var _archivedAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
 }
 
 // MARK: - Code below here is support for the SwiftProtobuf runtime.
@@ -309,9 +296,9 @@ extension Payments_Product: SwiftProtobuf.Message, SwiftProtobuf._MessageImpleme
       case 5: try { try decoder.decodeSingularStringField(value: &self.name) }()
       case 6: try { try decoder.decodeSingularStringField(value: &self.description_p) }()
       case 7: try { try decoder.decodeSingularStringField(value: &self.kind) }()
-      case 8: try { try decoder.decodeSingularInt32Field(value: &self.amountCents) }()
+      case 8: try { try decoder.decodeSingularInt64Field(value: &self.amountCents) }()
       case 9: try { try decoder.decodeSingularStringField(value: &self.currency) }()
-      case 10: try { try decoder.decodeSingularInt32Field(value: &self._billingIntervalMonths) }()
+      case 10: try { try decoder.decodeSingularInt64Field(value: &self.billingIntervalMonths) }()
       case 11: try { try decoder.decodeSingularStringField(value: &self.externalProductID) }()
       default: break
       }
@@ -345,14 +332,14 @@ extension Payments_Product: SwiftProtobuf.Message, SwiftProtobuf._MessageImpleme
       try visitor.visitSingularStringField(value: self.kind, fieldNumber: 7)
     }
     if self.amountCents != 0 {
-      try visitor.visitSingularInt32Field(value: self.amountCents, fieldNumber: 8)
+      try visitor.visitSingularInt64Field(value: self.amountCents, fieldNumber: 8)
     }
     if !self.currency.isEmpty {
       try visitor.visitSingularStringField(value: self.currency, fieldNumber: 9)
     }
-    try { if let v = self._billingIntervalMonths {
-      try visitor.visitSingularInt32Field(value: v, fieldNumber: 10)
-    } }()
+    if self.billingIntervalMonths != 0 {
+      try visitor.visitSingularInt64Field(value: self.billingIntervalMonths, fieldNumber: 10)
+    }
     if !self.externalProductID.isEmpty {
       try visitor.visitSingularStringField(value: self.externalProductID, fieldNumber: 11)
     }
@@ -369,7 +356,7 @@ extension Payments_Product: SwiftProtobuf.Message, SwiftProtobuf._MessageImpleme
     if lhs.kind != rhs.kind {return false}
     if lhs.amountCents != rhs.amountCents {return false}
     if lhs.currency != rhs.currency {return false}
-    if lhs._billingIntervalMonths != rhs._billingIntervalMonths {return false}
+    if lhs.billingIntervalMonths != rhs.billingIntervalMonths {return false}
     if lhs.externalProductID != rhs.externalProductID {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
@@ -471,7 +458,7 @@ extension Payments_Purchase: SwiftProtobuf.Message, SwiftProtobuf._MessageImplem
       case 4: try { try decoder.decodeSingularStringField(value: &self.id) }()
       case 5: try { try decoder.decodeSingularStringField(value: &self.belongsToAccount) }()
       case 6: try { try decoder.decodeSingularStringField(value: &self.productID) }()
-      case 7: try { try decoder.decodeSingularInt32Field(value: &self.amountCents) }()
+      case 7: try { try decoder.decodeSingularInt64Field(value: &self.amountCents) }()
       case 8: try { try decoder.decodeSingularStringField(value: &self.currency) }()
       case 9: try { try decoder.decodeSingularMessageField(value: &self._completedAt) }()
       case 10: try { try decoder.decodeSingularStringField(value: &self.externalTransactionID) }()
@@ -504,7 +491,7 @@ extension Payments_Purchase: SwiftProtobuf.Message, SwiftProtobuf._MessageImplem
       try visitor.visitSingularStringField(value: self.productID, fieldNumber: 6)
     }
     if self.amountCents != 0 {
-      try visitor.visitSingularInt32Field(value: self.amountCents, fieldNumber: 7)
+      try visitor.visitSingularInt64Field(value: self.amountCents, fieldNumber: 7)
     }
     if !self.currency.isEmpty {
       try visitor.visitSingularStringField(value: self.currency, fieldNumber: 8)
@@ -536,7 +523,7 @@ extension Payments_Purchase: SwiftProtobuf.Message, SwiftProtobuf._MessageImplem
 
 extension Payments_PaymentTransaction: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".PaymentTransaction"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}id\0\u{3}belongs_to_account\0\u{3}subscription_id\0\u{3}purchase_id\0\u{3}external_transaction_id\0\u{3}amount_cents\0\u{1}currency\0\u{1}status\0\u{3}created_at\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}id\0\u{3}belongs_to_account\0\u{3}subscription_id\0\u{3}purchase_id\0\u{3}external_transaction_id\0\u{3}amount_cents\0\u{1}currency\0\u{1}status\0\u{3}created_at\0\u{3}last_updated_at\0\u{3}archived_at\0")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -546,13 +533,15 @@ extension Payments_PaymentTransaction: SwiftProtobuf.Message, SwiftProtobuf._Mes
       switch fieldNumber {
       case 1: try { try decoder.decodeSingularStringField(value: &self.id) }()
       case 2: try { try decoder.decodeSingularStringField(value: &self.belongsToAccount) }()
-      case 3: try { try decoder.decodeSingularStringField(value: &self._subscriptionID) }()
-      case 4: try { try decoder.decodeSingularStringField(value: &self._purchaseID) }()
+      case 3: try { try decoder.decodeSingularStringField(value: &self.subscriptionID) }()
+      case 4: try { try decoder.decodeSingularStringField(value: &self.purchaseID) }()
       case 5: try { try decoder.decodeSingularStringField(value: &self.externalTransactionID) }()
-      case 6: try { try decoder.decodeSingularInt32Field(value: &self.amountCents) }()
+      case 6: try { try decoder.decodeSingularInt64Field(value: &self.amountCents) }()
       case 7: try { try decoder.decodeSingularStringField(value: &self.currency) }()
       case 8: try { try decoder.decodeSingularStringField(value: &self.status) }()
       case 9: try { try decoder.decodeSingularMessageField(value: &self._createdAt) }()
+      case 10: try { try decoder.decodeSingularMessageField(value: &self._lastUpdatedAt) }()
+      case 11: try { try decoder.decodeSingularMessageField(value: &self._archivedAt) }()
       default: break
       }
     }
@@ -569,17 +558,17 @@ extension Payments_PaymentTransaction: SwiftProtobuf.Message, SwiftProtobuf._Mes
     if !self.belongsToAccount.isEmpty {
       try visitor.visitSingularStringField(value: self.belongsToAccount, fieldNumber: 2)
     }
-    try { if let v = self._subscriptionID {
-      try visitor.visitSingularStringField(value: v, fieldNumber: 3)
-    } }()
-    try { if let v = self._purchaseID {
-      try visitor.visitSingularStringField(value: v, fieldNumber: 4)
-    } }()
+    if !self.subscriptionID.isEmpty {
+      try visitor.visitSingularStringField(value: self.subscriptionID, fieldNumber: 3)
+    }
+    if !self.purchaseID.isEmpty {
+      try visitor.visitSingularStringField(value: self.purchaseID, fieldNumber: 4)
+    }
     if !self.externalTransactionID.isEmpty {
       try visitor.visitSingularStringField(value: self.externalTransactionID, fieldNumber: 5)
     }
     if self.amountCents != 0 {
-      try visitor.visitSingularInt32Field(value: self.amountCents, fieldNumber: 6)
+      try visitor.visitSingularInt64Field(value: self.amountCents, fieldNumber: 6)
     }
     if !self.currency.isEmpty {
       try visitor.visitSingularStringField(value: self.currency, fieldNumber: 7)
@@ -590,59 +579,27 @@ extension Payments_PaymentTransaction: SwiftProtobuf.Message, SwiftProtobuf._Mes
     try { if let v = self._createdAt {
       try visitor.visitSingularMessageField(value: v, fieldNumber: 9)
     } }()
+    try { if let v = self._lastUpdatedAt {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 10)
+    } }()
+    try { if let v = self._archivedAt {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 11)
+    } }()
     try unknownFields.traverse(visitor: &visitor)
   }
 
   public static func ==(lhs: Payments_PaymentTransaction, rhs: Payments_PaymentTransaction) -> Bool {
     if lhs.id != rhs.id {return false}
     if lhs.belongsToAccount != rhs.belongsToAccount {return false}
-    if lhs._subscriptionID != rhs._subscriptionID {return false}
-    if lhs._purchaseID != rhs._purchaseID {return false}
+    if lhs.subscriptionID != rhs.subscriptionID {return false}
+    if lhs.purchaseID != rhs.purchaseID {return false}
     if lhs.externalTransactionID != rhs.externalTransactionID {return false}
     if lhs.amountCents != rhs.amountCents {return false}
     if lhs.currency != rhs.currency {return false}
     if lhs.status != rhs.status {return false}
     if lhs._createdAt != rhs._createdAt {return false}
-    if lhs.unknownFields != rhs.unknownFields {return false}
-    return true
-  }
-}
-
-extension Payments_DataCollection: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
-  public static let protoMessageName: String = _protobuf_package + ".DataCollection"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}subscriptions\0\u{1}purchases\0\u{3}payment_transactions\0")
-
-  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
-    while let fieldNumber = try decoder.nextFieldNumber() {
-      // The use of inline closures is to circumvent an issue where the compiler
-      // allocates stack space for every case branch when no optimizations are
-      // enabled. https://github.com/apple/swift-protobuf/issues/1034
-      switch fieldNumber {
-      case 1: try { try decoder.decodeRepeatedMessageField(value: &self.subscriptions) }()
-      case 2: try { try decoder.decodeRepeatedMessageField(value: &self.purchases) }()
-      case 3: try { try decoder.decodeRepeatedMessageField(value: &self.paymentTransactions) }()
-      default: break
-      }
-    }
-  }
-
-  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
-    if !self.subscriptions.isEmpty {
-      try visitor.visitRepeatedMessageField(value: self.subscriptions, fieldNumber: 1)
-    }
-    if !self.purchases.isEmpty {
-      try visitor.visitRepeatedMessageField(value: self.purchases, fieldNumber: 2)
-    }
-    if !self.paymentTransactions.isEmpty {
-      try visitor.visitRepeatedMessageField(value: self.paymentTransactions, fieldNumber: 3)
-    }
-    try unknownFields.traverse(visitor: &visitor)
-  }
-
-  public static func ==(lhs: Payments_DataCollection, rhs: Payments_DataCollection) -> Bool {
-    if lhs.subscriptions != rhs.subscriptions {return false}
-    if lhs.purchases != rhs.purchases {return false}
-    if lhs.paymentTransactions != rhs.paymentTransactions {return false}
+    if lhs._lastUpdatedAt != rhs._lastUpdatedAt {return false}
+    if lhs._archivedAt != rhs._archivedAt {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }

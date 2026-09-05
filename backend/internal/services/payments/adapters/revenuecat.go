@@ -108,43 +108,13 @@ func parseRevenueCatEvent(event *capitalism.Event) (*payments.ParsedWebhookEvent
 	if event.Subscription != nil {
 		result.AccountID = event.Subscription.CustomerID
 		result.SubscriptionID = event.Subscription.ID
-		result.Status = revenueCatSubscriptionStatus(event.Subscription.Status)
+		// Stored as capitalism reports it. The billing store's status column is
+		// capitalism's vocabulary, so there is nothing to map onto — and an
+		// event capitalism could not place arrives as SubscriptionStatusUnknown,
+		// which the manager reads as "the event did not say" rather than as a
+		// standing to write.
+		result.Status = event.Subscription.Status
 	}
 
 	return result, nil
-}
-
-// revenueCatSubscriptionStatus maps capitalism's subscription vocabulary onto ours.
-//
-// The two are near-identical because both read like Stripe's, which is the set the industry
-// copied; the mapping exists for the three values our domain has no constant for and for
-// "cancelled", which we spell with two Ls.
-func revenueCatSubscriptionStatus(status capitalism.SubscriptionStatus) string {
-	switch status {
-	case capitalism.SubscriptionStatusActive:
-		return payments.SubscriptionStatusActive
-	case capitalism.SubscriptionStatusTrialing:
-		return payments.SubscriptionStatusTrialing
-	case capitalism.SubscriptionStatusPastDue:
-		return payments.SubscriptionStatusPastDue
-	case capitalism.SubscriptionStatusCanceled:
-		return payments.SubscriptionStatusCancelled
-	case capitalism.SubscriptionStatusIncomplete, capitalism.SubscriptionStatusIncompleteExpired:
-		return payments.SubscriptionStatusIncomplete
-	case capitalism.SubscriptionStatusUnpaid:
-		// Not ended, but not collecting either: the processor has stopped retrying and left
-		// invoices outstanding, which is the same standing our past-due value describes.
-		return payments.SubscriptionStatusPastDue
-	case capitalism.SubscriptionStatusPaused:
-		// Deliberately suspended at the processor and expected to resume. Our vocabulary has
-		// no value for it, and cancelled is the one that gates entitlement correctly: nothing
-		// is being collected, so nothing is paid for.
-		return payments.SubscriptionStatusCancelled
-	default:
-		// capitalism.SubscriptionStatusUnknown, and anything a later version adds. Left empty
-		// rather than guessed onto a neighboring value: the manager's own default arm treats
-		// an unrecognized event as a no-op, and inventing a status here is how a status
-		// RevenueCat added last week becomes a wrongly locked-out account.
-		return ""
-	}
 }

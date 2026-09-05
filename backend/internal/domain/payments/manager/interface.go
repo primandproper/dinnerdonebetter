@@ -4,27 +4,17 @@ import (
 	"context"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
-
-	"github.com/primandproper/platform-go/v13/filtering"
 )
 
-// PaymentsDataManager defines the interface for payments business logic.
+// PaymentsDataManager applies what a payment provider reports to this
+// application's own records.
+//
+// It used to be the seam every payments read and write went through. The stored
+// half is platform-go's billing.Store now, and the gRPC service reads and writes
+// it directly — see internal/services/payments/grpc. What is left here is the
+// half no store can hold: which of a provider's events changes what about a
+// subscription, and what that does to the account's billing standing.
 type PaymentsDataManager interface {
-	CreateProduct(ctx context.Context, input *payments.ProductCreationRequestInput) (*payments.Product, error)
-	GetProduct(ctx context.Context, id string) (*payments.Product, error)
-	GetProducts(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[payments.Product], error)
-	UpdateProduct(ctx context.Context, id string, input *payments.ProductUpdateRequestInput) error
-	ArchiveProduct(ctx context.Context, id string) error
-
-	CreateSubscription(ctx context.Context, input *payments.SubscriptionCreationRequestInput) (*payments.Subscription, error)
-	GetSubscription(ctx context.Context, id string) (*payments.Subscription, error)
-	GetSubscriptionsForAccount(ctx context.Context, accountID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[payments.Subscription], error)
-	UpdateSubscription(ctx context.Context, id string, input *payments.SubscriptionUpdateRequestInput) error
-	ArchiveSubscription(ctx context.Context, id string) error
-
-	GetPurchasesForAccount(ctx context.Context, accountID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[payments.Purchase], error)
-	GetPaymentTransactionsForAccount(ctx context.Context, accountID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[payments.PaymentTransaction], error)
-
 	// ProcessWebhookEvent applies an already-verified, already-parsed provider event to our own
 	// records. Verification and parsing are a payments.PaymentProcessor's job and happen at the
 	// transport edge, where the request still exists; by the time an event reaches here it is

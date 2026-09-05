@@ -10,6 +10,12 @@ import { Timestamp } from '../google/protobuf/timestamp';
 
 export const protobufPackage = 'payments';
 
+/**
+ * Product is something the deployment sells. It is the platform's billing.Product
+ * on the wire: amount_cents is the price in the currency's minor unit, and
+ * billing_interval_months is how often a recurring product bills, or 0 for a
+ * one-time one.
+ */
 export interface Product {
   createdAt: Date | undefined;
   lastUpdatedAt: Date | undefined;
@@ -20,7 +26,7 @@ export interface Product {
   kind: string;
   amountCents: number;
   currency: string;
-  billingIntervalMonths?: number | undefined;
+  billingIntervalMonths: number;
   externalProductId: string;
 }
 
@@ -50,22 +56,23 @@ export interface Purchase {
   externalTransactionId: string;
 }
 
+/**
+ * PaymentTransaction is one attempt to move money. At most one of
+ * subscription_id and purchase_id is set, and both empty is the refund of
+ * something no longer here.
+ */
 export interface PaymentTransaction {
   id: string;
   belongsToAccount: string;
-  subscriptionId?: string | undefined;
-  purchaseId?: string | undefined;
+  subscriptionId: string;
+  purchaseId: string;
   externalTransactionId: string;
   amountCents: number;
   currency: string;
   status: string;
   createdAt: Date | undefined;
-}
-
-export interface DataCollection {
-  subscriptions: Subscription[];
-  purchases: Purchase[];
-  paymentTransactions: PaymentTransaction[];
+  lastUpdatedAt: Date | undefined;
+  archivedAt: Date | undefined;
 }
 
 function createBaseProduct(): Product {
@@ -79,7 +86,7 @@ function createBaseProduct(): Product {
     kind: '',
     amountCents: 0,
     currency: '',
-    billingIntervalMonths: undefined,
+    billingIntervalMonths: 0,
     externalProductId: '',
   };
 }
@@ -108,13 +115,13 @@ export const Product: MessageFns<Product> = {
       writer.uint32(58).string(message.kind);
     }
     if (message.amountCents !== 0) {
-      writer.uint32(64).int32(message.amountCents);
+      writer.uint32(64).int64(message.amountCents);
     }
     if (message.currency !== '') {
       writer.uint32(74).string(message.currency);
     }
-    if (message.billingIntervalMonths !== undefined) {
-      writer.uint32(80).int32(message.billingIntervalMonths);
+    if (message.billingIntervalMonths !== 0) {
+      writer.uint32(80).int64(message.billingIntervalMonths);
     }
     if (message.externalProductId !== '') {
       writer.uint32(90).string(message.externalProductId);
@@ -190,7 +197,7 @@ export const Product: MessageFns<Product> = {
             break;
           }
 
-          message.amountCents = reader.int32();
+          message.amountCents = longToNumber(reader.int64());
           continue;
         }
         case 9: {
@@ -206,7 +213,7 @@ export const Product: MessageFns<Product> = {
             break;
           }
 
-          message.billingIntervalMonths = reader.int32();
+          message.billingIntervalMonths = longToNumber(reader.int64());
           continue;
         }
         case 11: {
@@ -257,7 +264,7 @@ export const Product: MessageFns<Product> = {
         ? globalThis.Number(object.billingIntervalMonths)
         : isSet(object.billing_interval_months)
           ? globalThis.Number(object.billing_interval_months)
-          : undefined,
+          : 0,
       externalProductId: isSet(object.externalProductId)
         ? globalThis.String(object.externalProductId)
         : isSet(object.external_product_id)
@@ -295,7 +302,7 @@ export const Product: MessageFns<Product> = {
     if (message.currency !== '') {
       obj.currency = message.currency;
     }
-    if (message.billingIntervalMonths !== undefined) {
+    if (message.billingIntervalMonths !== 0) {
       obj.billingIntervalMonths = Math.round(message.billingIntervalMonths);
     }
     if (message.externalProductId !== '') {
@@ -318,7 +325,7 @@ export const Product: MessageFns<Product> = {
     message.kind = object.kind ?? '';
     message.amountCents = object.amountCents ?? 0;
     message.currency = object.currency ?? '';
-    message.billingIntervalMonths = object.billingIntervalMonths ?? undefined;
+    message.billingIntervalMonths = object.billingIntervalMonths ?? 0;
     message.externalProductId = object.externalProductId ?? '';
     return message;
   },
@@ -607,7 +614,7 @@ export const Purchase: MessageFns<Purchase> = {
       writer.uint32(50).string(message.productId);
     }
     if (message.amountCents !== 0) {
-      writer.uint32(56).int32(message.amountCents);
+      writer.uint32(56).int64(message.amountCents);
     }
     if (message.currency !== '') {
       writer.uint32(66).string(message.currency);
@@ -681,7 +688,7 @@ export const Purchase: MessageFns<Purchase> = {
             break;
           }
 
-          message.amountCents = reader.int32();
+          message.amountCents = longToNumber(reader.int64());
           continue;
         }
         case 8: {
@@ -822,13 +829,15 @@ function createBasePaymentTransaction(): PaymentTransaction {
   return {
     id: '',
     belongsToAccount: '',
-    subscriptionId: undefined,
-    purchaseId: undefined,
+    subscriptionId: '',
+    purchaseId: '',
     externalTransactionId: '',
     amountCents: 0,
     currency: '',
     status: '',
     createdAt: undefined,
+    lastUpdatedAt: undefined,
+    archivedAt: undefined,
   };
 }
 
@@ -840,17 +849,17 @@ export const PaymentTransaction: MessageFns<PaymentTransaction> = {
     if (message.belongsToAccount !== '') {
       writer.uint32(18).string(message.belongsToAccount);
     }
-    if (message.subscriptionId !== undefined) {
+    if (message.subscriptionId !== '') {
       writer.uint32(26).string(message.subscriptionId);
     }
-    if (message.purchaseId !== undefined) {
+    if (message.purchaseId !== '') {
       writer.uint32(34).string(message.purchaseId);
     }
     if (message.externalTransactionId !== '') {
       writer.uint32(42).string(message.externalTransactionId);
     }
     if (message.amountCents !== 0) {
-      writer.uint32(48).int32(message.amountCents);
+      writer.uint32(48).int64(message.amountCents);
     }
     if (message.currency !== '') {
       writer.uint32(58).string(message.currency);
@@ -860,6 +869,12 @@ export const PaymentTransaction: MessageFns<PaymentTransaction> = {
     }
     if (message.createdAt !== undefined) {
       Timestamp.encode(toTimestamp(message.createdAt), writer.uint32(74).fork()).join();
+    }
+    if (message.lastUpdatedAt !== undefined) {
+      Timestamp.encode(toTimestamp(message.lastUpdatedAt), writer.uint32(82).fork()).join();
+    }
+    if (message.archivedAt !== undefined) {
+      Timestamp.encode(toTimestamp(message.archivedAt), writer.uint32(90).fork()).join();
     }
     return writer;
   },
@@ -916,7 +931,7 @@ export const PaymentTransaction: MessageFns<PaymentTransaction> = {
             break;
           }
 
-          message.amountCents = reader.int32();
+          message.amountCents = longToNumber(reader.int64());
           continue;
         }
         case 7: {
@@ -943,6 +958,22 @@ export const PaymentTransaction: MessageFns<PaymentTransaction> = {
           message.createdAt = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
           continue;
         }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          message.lastUpdatedAt = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 11: {
+          if (tag !== 90) {
+            break;
+          }
+
+          message.archivedAt = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -964,12 +995,12 @@ export const PaymentTransaction: MessageFns<PaymentTransaction> = {
         ? globalThis.String(object.subscriptionId)
         : isSet(object.subscription_id)
           ? globalThis.String(object.subscription_id)
-          : undefined,
+          : '',
       purchaseId: isSet(object.purchaseId)
         ? globalThis.String(object.purchaseId)
         : isSet(object.purchase_id)
           ? globalThis.String(object.purchase_id)
-          : undefined,
+          : '',
       externalTransactionId: isSet(object.externalTransactionId)
         ? globalThis.String(object.externalTransactionId)
         : isSet(object.external_transaction_id)
@@ -987,6 +1018,16 @@ export const PaymentTransaction: MessageFns<PaymentTransaction> = {
         : isSet(object.created_at)
           ? fromJsonTimestamp(object.created_at)
           : undefined,
+      lastUpdatedAt: isSet(object.lastUpdatedAt)
+        ? fromJsonTimestamp(object.lastUpdatedAt)
+        : isSet(object.last_updated_at)
+          ? fromJsonTimestamp(object.last_updated_at)
+          : undefined,
+      archivedAt: isSet(object.archivedAt)
+        ? fromJsonTimestamp(object.archivedAt)
+        : isSet(object.archived_at)
+          ? fromJsonTimestamp(object.archived_at)
+          : undefined,
     };
   },
 
@@ -998,10 +1039,10 @@ export const PaymentTransaction: MessageFns<PaymentTransaction> = {
     if (message.belongsToAccount !== '') {
       obj.belongsToAccount = message.belongsToAccount;
     }
-    if (message.subscriptionId !== undefined) {
+    if (message.subscriptionId !== '') {
       obj.subscriptionId = message.subscriptionId;
     }
-    if (message.purchaseId !== undefined) {
+    if (message.purchaseId !== '') {
       obj.purchaseId = message.purchaseId;
     }
     if (message.externalTransactionId !== '') {
@@ -1019,6 +1060,12 @@ export const PaymentTransaction: MessageFns<PaymentTransaction> = {
     if (message.createdAt !== undefined) {
       obj.createdAt = message.createdAt.toISOString();
     }
+    if (message.lastUpdatedAt !== undefined) {
+      obj.lastUpdatedAt = message.lastUpdatedAt.toISOString();
+    }
+    if (message.archivedAt !== undefined) {
+      obj.archivedAt = message.archivedAt.toISOString();
+    }
     return obj;
   },
 
@@ -1029,113 +1076,15 @@ export const PaymentTransaction: MessageFns<PaymentTransaction> = {
     const message = createBasePaymentTransaction();
     message.id = object.id ?? '';
     message.belongsToAccount = object.belongsToAccount ?? '';
-    message.subscriptionId = object.subscriptionId ?? undefined;
-    message.purchaseId = object.purchaseId ?? undefined;
+    message.subscriptionId = object.subscriptionId ?? '';
+    message.purchaseId = object.purchaseId ?? '';
     message.externalTransactionId = object.externalTransactionId ?? '';
     message.amountCents = object.amountCents ?? 0;
     message.currency = object.currency ?? '';
     message.status = object.status ?? '';
     message.createdAt = object.createdAt ?? undefined;
-    return message;
-  },
-};
-
-function createBaseDataCollection(): DataCollection {
-  return { subscriptions: [], purchases: [], paymentTransactions: [] };
-}
-
-export const DataCollection: MessageFns<DataCollection> = {
-  encode(message: DataCollection, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    for (const v of message.subscriptions) {
-      Subscription.encode(v!, writer.uint32(10).fork()).join();
-    }
-    for (const v of message.purchases) {
-      Purchase.encode(v!, writer.uint32(18).fork()).join();
-    }
-    for (const v of message.paymentTransactions) {
-      PaymentTransaction.encode(v!, writer.uint32(26).fork()).join();
-    }
-    return writer;
-  },
-
-  decode(input: BinaryReader | Uint8Array, length?: number): DataCollection {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseDataCollection();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
-
-          message.subscriptions.push(Subscription.decode(reader, reader.uint32()));
-          continue;
-        }
-        case 2: {
-          if (tag !== 18) {
-            break;
-          }
-
-          message.purchases.push(Purchase.decode(reader, reader.uint32()));
-          continue;
-        }
-        case 3: {
-          if (tag !== 26) {
-            break;
-          }
-
-          message.paymentTransactions.push(PaymentTransaction.decode(reader, reader.uint32()));
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
-
-  fromJSON(object: any): DataCollection {
-    return {
-      subscriptions: globalThis.Array.isArray(object?.subscriptions)
-        ? object.subscriptions.map((e: any) => Subscription.fromJSON(e))
-        : [],
-      purchases: globalThis.Array.isArray(object?.purchases)
-        ? object.purchases.map((e: any) => Purchase.fromJSON(e))
-        : [],
-      paymentTransactions: globalThis.Array.isArray(object?.paymentTransactions)
-        ? object.paymentTransactions.map((e: any) => PaymentTransaction.fromJSON(e))
-        : globalThis.Array.isArray(object?.payment_transactions)
-          ? object.payment_transactions.map((e: any) => PaymentTransaction.fromJSON(e))
-          : [],
-    };
-  },
-
-  toJSON(message: DataCollection): unknown {
-    const obj: any = {};
-    if (message.subscriptions?.length) {
-      obj.subscriptions = message.subscriptions.map((e) => Subscription.toJSON(e));
-    }
-    if (message.purchases?.length) {
-      obj.purchases = message.purchases.map((e) => Purchase.toJSON(e));
-    }
-    if (message.paymentTransactions?.length) {
-      obj.paymentTransactions = message.paymentTransactions.map((e) => PaymentTransaction.toJSON(e));
-    }
-    return obj;
-  },
-
-  create<I extends Exact<DeepPartial<DataCollection>, I>>(base?: I): DataCollection {
-    return DataCollection.fromPartial(base ?? ({} as any));
-  },
-  fromPartial<I extends Exact<DeepPartial<DataCollection>, I>>(object: I): DataCollection {
-    const message = createBaseDataCollection();
-    message.subscriptions = object.subscriptions?.map((e) => Subscription.fromPartial(e)) || [];
-    message.purchases = object.purchases?.map((e) => Purchase.fromPartial(e)) || [];
-    message.paymentTransactions = object.paymentTransactions?.map((e) => PaymentTransaction.fromPartial(e)) || [];
+    message.lastUpdatedAt = object.lastUpdatedAt ?? undefined;
+    message.archivedAt = object.archivedAt ?? undefined;
     return message;
   },
 };
@@ -1177,6 +1126,17 @@ function fromJsonTimestamp(o: any): Date {
   } else {
     return fromTimestamp(Timestamp.fromJSON(o));
   }
+}
+
+function longToNumber(int64: { toString(): string }): number {
+  const num = globalThis.Number(int64.toString());
+  if (num > globalThis.Number.MAX_SAFE_INTEGER) {
+    throw new globalThis.Error('Value is larger than Number.MAX_SAFE_INTEGER');
+  }
+  if (num < globalThis.Number.MIN_SAFE_INTEGER) {
+    throw new globalThis.Error('Value is smaller than Number.MIN_SAFE_INTEGER');
+  }
+  return num;
 }
 
 function isSet(value: any): boolean {

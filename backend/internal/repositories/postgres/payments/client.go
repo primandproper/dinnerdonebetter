@@ -4,12 +4,16 @@ import (
 	"context"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
+	ddbpayments "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/payments/generated"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/recording"
 
+	"github.com/primandproper/platform-go/v13/billing"
+	billingcfg "github.com/primandproper/platform-go/v13/billing/config"
 	"github.com/primandproper/platform-go/v13/database"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
 	"github.com/primandproper/platform-go/v13/observability/logging"
+	"github.com/primandproper/platform-go/v13/observability/metrics"
 	"github.com/primandproper/platform-go/v13/observability/tracing"
 )
 
@@ -17,57 +21,58 @@ const (
 	o11yName = "payments_db_client"
 )
 
+// repository is platform's billing store with this application's recording
+// around it.
+//
+// The store is embedded rather than held in a named field so that the reads —
+// the catalog, an account's subscriptions, purchases and ledger, and the
+// current-subscription read every entitlement check makes — are the platform's
+// own rather than forwarding stubs that could drift from it.
 type repository struct {
-	database.Client
+	billing.Store
+	client            database.Client
 	tracer            tracing.Tracer
 	logger            logging.Logger
-	generatedQuerier  generated.Querier
 	auditLogEntryRepo audit.Repository
-	events            *events.Emitter
-	readDB            database.SQLQueryExecutor
-	writeDB           database.SQLQueryExecutor
+	recorder          *recording.Recorder
 }
 
-// ProvidePaymentsRepository provides a new payments repository.
+// ProvidePaymentsRepository provides a new billing store.
+//
+// The store is assembled through platform's own billing/config rather than by
+// naming billing.NewSQLStore's options here, so the knobs are stated once
+// upstream. The table prefix is the one thing this application decides, and it
+// has to match the prefix the migration was rendered with — see
+// internal/repositories/postgres/migrations.
 func ProvidePaymentsRepository(
+	ctx context.Context,
 	logger logging.Logger,
 	tracerProvider tracing.Provider,
+	metricsProvider metrics.Provider,
 	auditLogEntryRepo audit.Repository,
 	client database.Client,
 	eventEmitter *events.Emitter,
-) payments.Repository {
-	r := &repository{
-		Client:            client,
-		readDB:            client.Reader(),
-		writeDB:           client.Writer(),
-		tracer:            tracing.NewNamedTracer(tracerProvider, o11yName),
-		generatedQuerier:  generated.New(),
-		auditLogEntryRepo: auditLogEntryRepo,
-		events:            eventEmitter,
-		logger:            logging.NewNamedLogger(logger, o11yName),
+) (billing.Store, error) {
+	store, err := billingcfg.NewStore(
+		ctx,
+		&billingcfg.Config{TablePrefix: ddbpayments.TablePrefix},
+		client,
+		billingcfg.WithLogger(logger),
+		billingcfg.WithTracerProvider(tracerProvider),
+		billingcfg.WithMetricsProvider(metricsProvider),
+	)
+	if err != nil {
+		return nil, platformerrors.Wrap(err, "building the billing store")
 	}
-	var _ payments.Repository = r
-	return r
-}
 
-// withEvent runs a write and the data change event describing it in one transaction, so the
-// event cannot survive a write that rolled back — nor be lost after one that committed.
-// whose repository methods do not receive the account, and the parameter is what lets that be
-// fixed one method at a time rather than by changing this signature.
-//
-//nolint:unparam // accountID is "" for every caller today; these are account-scoped entities
-func (q *repository) withEvent(
-	ctx context.Context,
-	logger logging.Logger,
-	eventType, accountID string,
-	metadata map[string]any,
-	write func(tx database.Tx) error,
-) error {
-	return q.WithTransaction(ctx, func(tx database.Tx) error {
-		if err := write(tx); err != nil {
-			return err
-		}
+	tracer := tracing.NewNamedTracer(tracerProvider, o11yName)
 
-		return q.events.Emit(ctx, tx, logger, eventType, accountID, metadata)
-	})
+	return &repository{
+		Store:             store,
+		client:            client,
+		tracer:            tracer,
+		logger:            logging.NewNamedLogger(logger, o11yName),
+		auditLogEntryRepo: auditLogEntryRepo,
+		recorder:          recording.NewRecorder(tracer, auditLogEntryRepo, eventEmitter),
+	}, nil
 }

@@ -4,8 +4,8 @@ import (
 	"context"
 
 	identitymanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/manager"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 
+	"github.com/primandproper/platform-go/v13/billing"
 	"github.com/primandproper/platform-go/v13/observability/logging"
 	"github.com/primandproper/platform-go/v13/observability/tracing"
 
@@ -19,7 +19,7 @@ func RegisterPaymentsDataManager(i do.Injector) {
 			do.MustInvoke[context.Context](i),
 			do.MustInvoke[tracing.Provider](i),
 			do.MustInvoke[logging.Logger](i),
-			do.MustInvoke[payments.Repository](i),
+			do.MustInvoke[billing.Store](i),
 			do.MustInvoke[identitymanager.IdentityDataManager](i),
 		)
 	})

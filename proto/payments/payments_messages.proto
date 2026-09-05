@@ -6,6 +6,10 @@ import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/payments";
 
+// Product is something the deployment sells. It is the platform's billing.Product
+// on the wire: amount_cents is the price in the currency's minor unit, and
+// billing_interval_months is how often a recurring product bills, or 0 for a
+// one-time one.
 message Product {
   google.protobuf.Timestamp created_at = 1;
   google.protobuf.Timestamp last_updated_at = 2;
@@ -14,9 +18,9 @@ message Product {
   string name = 5;
   string description = 6;
   string kind = 7;
-  int32 amount_cents = 8;
+  int64 amount_cents = 8;
   string currency = 9;
-  optional int32 billing_interval_months = 10;
+  int64 billing_interval_months = 10;
   string external_product_id = 11;
 }
 
@@ -40,26 +44,25 @@ message Purchase {
   string id = 4;
   string belongs_to_account = 5;
   string product_id = 6;
-  int32 amount_cents = 7;
+  int64 amount_cents = 7;
   string currency = 8;
   google.protobuf.Timestamp completed_at = 9;
   string external_transaction_id = 10;
 }
 
+// PaymentTransaction is one attempt to move money. At most one of
+// subscription_id and purchase_id is set, and both empty is the refund of
+// something no longer here.
 message PaymentTransaction {
   string id = 1;
   string belongs_to_account = 2;
-  optional string subscription_id = 3;
-  optional string purchase_id = 4;
+  string subscription_id = 3;
+  string purchase_id = 4;
   string external_transaction_id = 5;
-  int32 amount_cents = 6;
+  int64 amount_cents = 6;
   string currency = 7;
   string status = 8;
   google.protobuf.Timestamp created_at = 9;
-}
-
-message DataCollection {
-  repeated Subscription subscriptions = 1;
-  repeated Purchase purchases = 2;
-  repeated PaymentTransaction payment_transactions = 3;
+  google.protobuf.Timestamp last_updated_at = 10;
+  google.protobuf.Timestamp archived_at = 11;
 }

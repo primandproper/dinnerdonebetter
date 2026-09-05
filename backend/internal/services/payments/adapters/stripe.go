@@ -93,7 +93,7 @@ func parseStripeEvent(event *capitalism.Event) (*payments.ParsedWebhookEvent, er
 		}
 
 		result.SubscriptionID = subn.ID
-		result.Status = string(subn.Status)
+		result.Status = stripeSubscriptionStatus(subn.Status)
 		if subn.Customer != nil {
 			result.AccountID = subn.Customer.ID
 		}
@@ -104,4 +104,20 @@ func parseStripeEvent(event *capitalism.Event) (*payments.ParsedWebhookEvent, er
 	}
 
 	return result, nil
+}
+
+// stripeSubscriptionStatus reads stripe-go's status as capitalism's.
+//
+// The two vocabularies are the same words — capitalism's is Stripe's, which is
+// the set the industry copied — so this is a conversion rather than a mapping.
+// What it adds is the check: a status stripe-go decodes that capitalism does not
+// know comes back as SubscriptionStatusUnknown rather than as a word the billing
+// store would refuse, and the manager reads unknown as "the event did not say".
+func stripeSubscriptionStatus(status stripe.SubscriptionStatus) capitalism.SubscriptionStatus {
+	converted := capitalism.SubscriptionStatus(status)
+	if !converted.Known() {
+		return capitalism.SubscriptionStatusUnknown
+	}
+
+	return converted
 }

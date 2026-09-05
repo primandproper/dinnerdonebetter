@@ -79,10 +79,6 @@ func main() {
 		"webhooks/sqlc_queries/webhooks":                                         buildWebhooksQueries(databaseToUse),
 		"webhooks/sqlc_queries/webhook_trigger_configs":                          buildWebhookTriggerConfigsQueries(databaseToUse),
 		"notifications/sqlc_queries/user_notifications":                          buildUserNotificationQueries(databaseToUse),
-		"payments/sqlc_queries/products":                                         buildPaymentsProductsQueries(databaseToUse),
-		"payments/sqlc_queries/subscriptions":                                    buildPaymentsSubscriptionsQueries(databaseToUse),
-		"payments/sqlc_queries/purchases":                                        buildPaymentsPurchasesQueries(databaseToUse),
-		"payments/sqlc_queries/payment_transactions":                             buildPaymentsTransactionsQueries(databaseToUse),
 		"identity/sqlc_queries/user_role_assignments":                            buildUserRoleAssignmentsQueries(databaseToUse),
 	}
 

@@ -1,13 +1,12 @@
 package entitlements
 
 import (
-	"context"
-
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 
+	"github.com/primandproper/platform-go/v13/billing"
+	"github.com/primandproper/platform-go/v13/billing/plans"
+	"github.com/primandproper/platform-go/v13/capitalism"
 	platformentitlements "github.com/primandproper/platform-go/v13/entitlements"
-	"github.com/primandproper/platform-go/v13/errors"
-	"github.com/primandproper/platform-go/v13/filtering"
 )
 
 const (
@@ -19,7 +18,7 @@ const (
 	// means not being a customer, and it would deny an unsubscribed account a feature it is
 	// supposed to have.
 	//
-	// It is also what CheckerConfig.FallbackPlan names, so that a payments database that has
+	// It is also what CheckerConfig.FallbackPlan names, so that a billing database that has
 	// stopped answering degrades a paying account to free rather than locking it out.
 	FreePlan = "free"
 
@@ -32,75 +31,54 @@ const (
 	SubscriberPlan = "subscriber"
 )
 
-// ErrNilSubscriptionReader indicates a plan source built without anything to read
-// subscriptions from.
-var ErrNilSubscriptionReader = errors.Wrap(errors.ErrNilInputParameter, "nil subscription reader")
-
 // liveSubscriptionStatuses are the statuses that put an account on SubscriberPlan.
 //
 // Trialing counts: a trial that silently got the free plan's grants would be a trial of a
 // different product. Past due does not, which is the lever that makes a lapsed payment degrade
 // service rather than end it — though with both plans granting the same thing it currently
 // levers nothing.
-var liveSubscriptionStatuses = map[string]bool{
-	payments.SubscriptionStatusActive:   true,
-	payments.SubscriptionStatusTrialing: true,
+var liveSubscriptionStatuses = map[capitalism.SubscriptionStatus]bool{
+	capitalism.SubscriptionStatusActive:   true,
+	capitalism.SubscriptionStatusTrialing: true,
 }
 
-// SubscriptionReader is the slice of the payments repository this package needs: one read, by
-// account.
-type SubscriptionReader interface {
-	GetSubscriptionsForAccount(ctx context.Context, accountID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[payments.Subscription], error)
-}
-
-var _ platformentitlements.PlanSource = (*SubscriptionPlanSource)(nil)
-
-// SubscriptionPlanSource answers which plan an account is on from the subscriptions it holds.
-type SubscriptionPlanSource struct {
-	subscriptions SubscriptionReader
-}
-
-// NewSubscriptionPlanSource builds the PlanSource a Checker and a QuotaSource resolve accounts
-// through.
+// ChoosePlan is this application's plans.Choose: which plan an account is on, given the
+// subscriptions whose paid period covers now.
 //
-// This is the seam the platform cannot fill, and the reason is that the join between an account
-// and a purchased plan is application data: it is written by the handler that processes the
-// billing provider's subscription webhook, and it lives in a table next to the account. It is
-// deliberately not read from capitalism — a provider round trip per feature check spends a
-// latency budget on a fact that changes a few times a year, and an outage there would take the
-// product down rather than the billing.
-func NewSubscriptionPlanSource(subscriptions SubscriptionReader) (*SubscriptionPlanSource, error) {
-	if subscriptions == nil {
-		return nil, ErrNilSubscriptionReader
-	}
-
-	return &SubscriptionPlanSource{subscriptions: subscriptions}, nil
-}
-
-// PlanFor implements entitlements.PlanSource.
+// It is the seam the platform leaves to the consumer, and the reason is that which of
+// capitalism's statuses leaves an account entitled is policy. This one says: any current
+// subscription that is active or trialing puts the account on SubscriberPlan, and nothing does
+// otherwise. An account can hold several rows — an old one beside a current one — so the first
+// live one wins rather than the only one.
 //
-// An account can hold several rows — an old cancelled one beside a current one — so this takes
-// the first with a live status rather than assuming there is only ever one.
-//
-// It never reports ErrNoPlan. Every account is on a plan here, because FreePlan is a real tier
-// rather than the name for having nothing; see FreePlan. A read that fails is a different
-// matter and is reported as the failure it is, which is what CheckerConfig.FallbackPlan then
-// answers for boolean features.
-func (s *SubscriptionPlanSource) PlanFor(ctx context.Context, account string) (string, error) {
-	result, err := s.subscriptions.GetSubscriptionsForAccount(ctx, account, filtering.DefaultQueryFilter())
-	if err != nil {
-		return "", errors.Wrapf(err, "reading subscriptions for account %q", account)
-	}
-
-	if result != nil {
-		for _, subscription := range result.Data {
-			if subscription != nil && liveSubscriptionStatuses[subscription.Status] {
-				return SubscriberPlan, nil
-			}
+// It never declines. Every account is on a plan here, because FreePlan is a real tier rather than
+// the name for having nothing; see FreePlan. That is what the second return value is for, and it
+// is what keeps entitlements' ErrNoPlan out of this deployment.
+func ChoosePlan(subscriptions []*billing.Subscription) (string, bool) {
+	for _, subscription := range subscriptions {
+		if subscription != nil && liveSubscriptionStatuses[subscription.Status] {
+			return SubscriberPlan, true
 		}
 	}
 
-	return FreePlan, nil
+	return FreePlan, true
+}
+
+// NewPlanSource builds the PlanSource a Checker and a QuotaSource resolve accounts through: the
+// platform's read of one account's current subscriptions, in the scope this application keeps
+// its billing under, decided by ChoosePlan.
+//
+// It reads the billing store rather than asking the payment provider. A provider round trip per
+// feature check spends a latency budget on a fact that changes a few times a year, and an outage
+// there would take the product down rather than the billing. The provider says when a
+// subscription changes; what it changed to is in the store by the time anybody asks.
+//
+// The read is of *current* subscriptions — those whose paid period covers now — which is the
+// platform's reading and a narrower one than the table this replaced was asked for. A
+// subscription whose period lapsed without the provider reporting a status is not one anybody
+// is paying for, and this is where that stops entitling.
+func NewPlanSource(store billing.SubscriptionStore) (*plans.Source, error) {
+	return plans.New(store, payments.Scope(), ChoosePlan)
 }
 
 // DefaultPlans is the catalog this service ships with: every feature granted without a bound on
@@ -114,8 +92,7 @@ func (s *SubscriptionPlanSource) PlanFor(ctx context.Context, account string) (s
 // Plans are configuration — internal/config.DefaultEntitlementsConfig is what puts these into a
 // rendered config file, and an operator changes them there. This function is what that config
 // defaults to, so that a deployment which configures no plans at all still resolves both of the
-// plan names SubscriptionPlanSource can return rather than denying every account with
-// ErrUnknownPlan.
+// plan names ChoosePlan can return rather than denying every account with ErrUnknownPlan.
 func DefaultPlans() []platformentitlements.Plan {
 	// Built per plan rather than from one shared slice: a caller that edited the grants of
 	// the plan it was handed would otherwise be editing the other plan's too.

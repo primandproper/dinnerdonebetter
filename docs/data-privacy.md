@@ -55,7 +55,7 @@ inside one.
 | `webhooks` | `webhooks/privacy` | Webhooks, keyed by account |
 | `settings` | `settings/privacy` over platform-go's | The setting values the subject stored about themselves |
 | `notifications` | `notifications/privacy` | In-app notifications |
-| `payments` | `payments/privacy` | Subscriptions, purchases, payment transactions |
+| `payments` | `payments/privacy` over platform-go's `billing/privacy` | Subscriptions, purchases and payment transactions, in every account the subject appears in, archived rows included |
 | `audit_log` | `audit/privacy` | Audit entries recorded about the subject |
 | `issue_reports` | `issuereports/privacy` over platform-go's | Issue reports the subject filed, in every account they appear in |
 | `uploaded_media` | `uploadedmedia/privacy` | Registry rows for objects the subject uploaded (not the bytes) |
@@ -141,13 +141,20 @@ a read of live rows). Both need a store change upstream, filed as platform-go #4
 in this schema carries `ON DELETE CASCADE`, so that single `DELETE` is the erasure for every other
 domain.
 
-That includes uploads, issue reports and setting values, and it does so only because this
-repository says so. platform-go's upload registry ships no foreign key on `owner_id`, its issue
-report table none on `reporter`, and its settings table none on `subject_id` — no package knows
-which of a consumer's tables holds a principal — so `renderUploadsRegistryDDL`,
-`renderIssueReportsDDL` and `renderSettingsDDL` in `internal/repositories/postgres/migrations` add
-them, pointing at `users` and cascading. Without them a deleted subject would leave rows nobody can
-name and nothing erases, exactly as comments would.
+That includes uploads, issue reports, setting values and billing, and it does so only because
+this repository says so. platform-go's upload registry ships no foreign key on `owner_id`, its
+issue report table none on `reporter`, its settings table none on `subject_id`, and its three
+account-owned billing tables none on `belongs_to_account` — no package knows which of a
+consumer's tables holds a principal — so `renderUploadsRegistryDDL`, `renderIssueReportsDDL`,
+`renderSettingsDDL` and `renderBillingDDL` in `internal/repositories/postgres/migrations` add
+them, pointing at `users` or `accounts` and cascading. Without them a deleted subject would leave
+rows nobody can name and nothing erases, exactly as comments would.
+
+Billing is the one where the key preserves a behavior rather than settling a question. platform-go's
+`billing/privacy` ships a collector and deliberately **no** eraser, on the grounds that financial
+records carry a statutory retention that outranks a right to erasure; the cascade this repository
+re-creates is what the hand-rolled tables always did, kept rather than decided. See the next
+paragraph for what changing it would mean.
 
 Settings is the one where the key also enforces a decision rather than only preserving a cascade.
 platform files a value against a subject *type* and an id, and leaves the set of types open; this
@@ -163,8 +170,9 @@ with the one that ran first are eleven places for that agreement to rot. What ma
 eraser worth writing is retention, anonymization, or — as with comments — no foreign key to
 cascade from. Retention is the case that has not arrived yet; the likeliest first instance is
 payment records, which tax law generally requires be retained for years. When it does, that domain
-registers its own `Eraser` under its own key and reports what it kept and why. Nothing here has to
-change for that.
+drops the `belongs_to_account` cascade `renderBillingDDL` re-creates, registers its own `Eraser`
+under its own key — one that anonymizes rather than deletes, since platform-go ships none — and
+reports what it kept and why. Nothing else here has to change for that.
 
 **Ordering is load-bearing.** Erasers run in sorted key order: `audit`, then `comments`, then
 `identity`, then `waitlists`. The audit eraser resolves its scopes by asking which accounts the

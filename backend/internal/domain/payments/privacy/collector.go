@@ -1,84 +1,71 @@
-// Package privacy is the payments domain's contribution to a subject access request.
+/*
+Package privacy is the payments domain's contribution to a subject access
+request: what every account the subject belongs to was sold, and what it paid.
+
+The collector is platform-go's, over platform-go's store. What this package adds
+is the one question platform cannot answer — which accounts a subject's billing is
+under — which is this application's tenancy model and is resolved through the
+identity repository the way every other account-scoped collector here resolves it.
+
+# There is no eraser here, and there is deliberately none upstream
+
+Payments is the domain whose export and erasure disagree most sharply: a subject
+is entitled to see every transaction, and financial records are the ones a
+statutory retention generally requires be kept. platform-go's billing/privacy
+ships a Collector and no Eraser for exactly that reason, and this package follows
+it.
+
+What erases billing rows today is the cascade: every one of the three
+account-owned billing tables carries a foreign key to accounts with ON DELETE
+CASCADE, re-created by the migration that adopted the store, so the single
+identity eraser takes them with the user. That preserves what this schema always
+did. Whether it should — whether these rows want a retention rule and an
+anonymizing eraser instead — is the decision docs/data-privacy.md has named as
+the likeliest first case for one, and it is not taken here.
+*/
 package privacy
 
 import (
 	"context"
-	"encoding/json"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 
+	"github.com/primandproper/platform-go/v13/billing"
+	billingprivacy "github.com/primandproper/platform-go/v13/billing/privacy"
 	platformdataprivacy "github.com/primandproper/platform-go/v13/dataprivacy"
-	"github.com/primandproper/platform-go/v13/observability"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
+	platformerrors "github.com/primandproper/platform-go/v13/errors"
 )
 
-const o11yName = "payments_privacy_collector"
-
-// Collector collects payment records about a subject.
-type Collector struct {
-	repo            payments.Repository
-	resolveAccounts dataprivacy.AccountIDResolver
-	tracer          tracing.Tracer
-	logger          logging.Logger
-}
-
-var _ platformdataprivacy.Collector = (*Collector)(nil)
-
-// NewCollector builds the payments collector.
-func NewCollector(
-	repo payments.Repository,
-	resolveAccounts dataprivacy.AccountIDResolver,
-	logger logging.Logger,
-	tracerProvider tracing.Provider,
-) *Collector {
-	return &Collector{
-		repo:            repo,
-		resolveAccounts: resolveAccounts,
-		tracer:          tracing.NewNamedTracer(tracerProvider, o11yName),
-		logger:          logging.NewNamedLogger(logger, o11yName),
+// NewCollector builds the payments collector: every subscription, purchase and
+// ledger row in every account the subject belongs to, archived rows included,
+// paged to the end and encoded.
+func NewCollector(store billing.Store, resolveAccounts dataprivacy.AccountIDResolver) (platformdataprivacy.Collector, error) {
+	collector, err := billingprivacy.NewCollector(store, accountResolver(resolveAccounts))
+	if err != nil {
+		return nil, platformerrors.Wrap(err, "building the billing data privacy collector")
 	}
+
+	return collector, nil
 }
 
-// Collect implements platformdataprivacy.Collector.
+// accountResolver adapts this application's account resolution to the shape
+// platform's collector takes.
 //
-// Payments is the domain whose export and erasure disagree most sharply: a
-// subject is entitled to see every transaction, and financial records are
-// generally the ones that must be retained rather than deleted. That asymmetry
-// is why platform-go registers collectors and erasers separately, and it is the
-// reason this file has no counterpart under an eraser key.
-func (c *Collector) Collect(ctx context.Context, subject platformdataprivacy.Subject) (json.RawMessage, error) {
-	ctx, span := c.tracer.StartSpan(ctx)
-	defer span.End()
+// Every account is in the one scope this application keeps its billing under, so
+// the resolver's only real work is naming the accounts; see payments.Scope.
+func accountResolver(resolveAccounts dataprivacy.AccountIDResolver) billingprivacy.AccountResolver {
+	return func(ctx context.Context, subject platformdataprivacy.Subject) ([]billingprivacy.Account, error) {
+		accountIDs, err := resolveAccounts(ctx, subject.ID)
+		if err != nil {
+			return nil, err
+		}
 
-	logger := c.logger.WithSpan(span)
+		accounts := make([]billingprivacy.Account, 0, len(accountIDs))
+		for _, accountID := range accountIDs {
+			accounts = append(accounts, billingprivacy.Account{ID: accountID, Scope: payments.Scope()})
+		}
 
-	accountIDs, err := c.resolveAccounts(ctx, subject.ID)
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "resolving accounts")
+		return accounts, nil
 	}
-
-	subscriptions, err := dataprivacy.CollectAcrossAccounts(ctx, accountIDs, c.repo.GetSubscriptionsForAccount)
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "fetching subscriptions")
-	}
-
-	purchases, err := dataprivacy.CollectAcrossAccounts(ctx, accountIDs, c.repo.GetPurchasesForAccount)
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "fetching purchases")
-	}
-
-	transactions, err := dataprivacy.CollectAcrossAccounts(ctx, accountIDs, c.repo.GetPaymentTransactionsForAccount)
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "fetching payment transactions")
-	}
-
-	held := len(subscriptions) > 0 || len(purchases) > 0 || len(transactions) > 0
-
-	return platformdataprivacy.Fragment(held, &payments.UserDataCollection{
-		Subscriptions:       subscriptions,
-		Purchases:           purchases,
-		PaymentTransactions: transactions,
-	})
 }
