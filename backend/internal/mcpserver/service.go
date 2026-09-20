@@ -12,11 +12,11 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
 
 	oauth2servercfg "github.com/primandproper/platform-go/v14/authentication/oauth2serverstore/config"
 	issuereports "github.com/primandproper/platform-go/v14/issuereports"
 	waitlists "github.com/primandproper/platform-go/v14/waitlists"
+	platformwebhooks "github.com/primandproper/platform-go/v14/webhooks"
 	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
 	baseoauth2cfg "github.com/primandproper/primitives-go/v2/authentication/oauth2server/config"
 	"github.com/primandproper/primitives-go/v2/authentication/totp"
@@ -110,9 +110,9 @@ func NewService(ctx context.Context, cfg *config.MCPServiceConfig, baseURL strin
 		return nil, fmt.Errorf("resolving meal planning repository: %w", err)
 	}
 
-	webhooksRepo, err := do.Invoke[webhooks.Repository](injector)
+	webhooksStore, err := do.Invoke[platformwebhooks.Store](injector)
 	if err != nil {
-		return nil, fmt.Errorf("resolving webhooks repository: %w", err)
+		return nil, fmt.Errorf("resolving webhooks store: %w", err)
 	}
 
 	waitlistStore, err := do.Invoke[waitlists.Store](injector)
@@ -181,7 +181,7 @@ func NewService(ctx context.Context, cfg *config.MCPServiceConfig, baseURL strin
 	helper := &mcpToolManager{
 		reader:           dbClient.Reader(),
 		mealplanningRepo: mealplanningRepo,
-		webhooksRepo:     webhooksRepo,
+		webhooks:         webhooksStore,
 		waitlists:        waitlistStore,
 		issueReports:     issueReportsStore,
 	}

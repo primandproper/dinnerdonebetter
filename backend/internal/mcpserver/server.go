@@ -14,10 +14,10 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
 
 	issuereports "github.com/primandproper/platform-go/v14/issuereports"
 	waitlists "github.com/primandproper/platform-go/v14/waitlists"
+	platformwebhooks "github.com/primandproper/platform-go/v14/webhooks"
 	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/encoding"
@@ -210,7 +210,7 @@ type mcpToolManager struct {
 	// has a caller transaction to join.
 	reader           database.SQLQueryExecutor
 	mealplanningRepo mealplanning.Repository
-	webhooksRepo     webhooks.Repository
+	webhooks         platformwebhooks.Store
 	waitlists        waitlists.Store
 	issueReports     issuereports.Store
 }
