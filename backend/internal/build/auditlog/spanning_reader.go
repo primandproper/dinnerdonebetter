@@ -42,10 +42,16 @@ type spanningReader struct {
 // the same page the union would have produced. The cursor to follow it is the last row's
 // id, which is what the merged result carries.
 //
-// What it cannot reproduce is the counts. Each sub-read counts its own chain, and adding
-// them over-counts nothing but describes two pages rather than one; the result is built
-// without counts instead, so a client reads the cursor rather than a total that would be
-// a guess. See filtering.NewQueryFilteredResultWithoutCounts.
+// The counts add, which is worth saying because the first version of this withheld them.
+// FilteredCount and TotalCount describe the collection a page was cut from rather than the
+// page — they do not shrink as a caller walks it — and an entry lives in exactly one chain,
+// so two disjoint scopes summed are the count the union would have reported.
+//
+// Gated on both sides having answered, though, and that is not pedantry. A querygen store
+// carries its counts on the rows, so a sub-read that comes back empty has none to carry and
+// says so with CountsKnown rather than with a zero. Adding that zero in would report a
+// total short by an entire chain, and it would look right in every test that does not page
+// to the end of one.
 func (r spanningReader) List(
 	ctx context.Context,
 	q database.SQLQueryExecutor,
@@ -201,9 +207,20 @@ func mergePages(
 		}
 	}
 
-	return filtering.NewQueryFilteredResultWithoutCounts(
+	id := func(e *platformaudit.Entry) string { return e.ID }
+
+	firstFiltered, firstTotal, firstKnown := first.Pagination.Counts()
+	secondFiltered, secondTotal, secondKnown := second.Pagination.Counts()
+
+	if !firstKnown || !secondKnown {
+		return filtering.NewQueryFilteredResultWithoutCounts(merged, id, filter)
+	}
+
+	return filtering.NewQueryFilteredResult(
 		merged,
-		func(e *platformaudit.Entry) string { return e.ID },
+		firstFiltered+secondFiltered,
+		firstTotal+secondTotal,
+		id,
 		filter,
 	)
 }
