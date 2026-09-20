@@ -26,6 +26,11 @@ import (
 // read into platform's operator read instead, which is the one place the session decides
 // how wide a read is rather than which rows are in it.
 //
+// The two are never the same scope, because an account id and a user id are separate rows
+// identifiers, so nothing here dedupes: a guard against naming one chain twice would be a
+// branch no input reaches, and a comment explaining a case that cannot arise is worse than
+// the absence of one. A caller with no account names one chain because they have one.
+//
 // An empty answer means the connection's own scope, so a caller with neither a session nor
 // an account reads exactly what they would have read before this existed.
 func callerChains(ctx context.Context) ([]tenancy.Scope, error) {
@@ -42,12 +47,7 @@ func callerChains(ctx context.Context) ([]tenancy.Scope, error) {
 	}
 
 	if userID := data.GetUserID(); userID != "" {
-		own := tenancy.Of(userID)
-		// An account-less session already reads its own chain as the connection's, and
-		// naming it twice would page one chain as two and report every row of it twice.
-		if len(chains) == 0 || chains[0] != own {
-			chains = append(chains, own)
-		}
+		chains = append(chains, tenancy.Of(userID))
 	}
 
 	return chains, nil

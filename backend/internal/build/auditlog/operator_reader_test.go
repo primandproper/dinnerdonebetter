@@ -59,7 +59,7 @@ func filterOfSize(size uint16) *filtering.QueryFilter {
 	return f
 }
 
-func TestSpanningReader_List(T *testing.T) {
+func TestOperatorReader_List(T *testing.T) {
 	T.Parallel()
 
 	accountScope := tenancy.Of(testAccountID)
@@ -70,7 +70,7 @@ func TestSpanningReader_List(T *testing.T) {
 
 		var scopes []*tenancy.Scope
 
-		reader := spanningReader{Reader: &auditmock.ReaderMock{
+		reader := operatorReader{Reader: &auditmock.ReaderMock{
 			ListFunc: func(
 				_ context.Context,
 				_ database.SQLQueryExecutor,
@@ -99,7 +99,7 @@ func TestSpanningReader_List(T *testing.T) {
 
 		var calls int
 
-		reader := spanningReader{Reader: &auditmock.ReaderMock{
+		reader := operatorReader{Reader: &auditmock.ReaderMock{
 			ListFunc: func(
 				_ context.Context,
 				_ database.SQLQueryExecutor,
@@ -120,58 +120,37 @@ func TestSpanningReader_List(T *testing.T) {
 	})
 }
 
-func TestSpanningReader_Get(T *testing.T) {
+func TestOperatorReader_Get(T *testing.T) {
 	T.Parallel()
 
 	accountScope := tenancy.Of(testAccountID)
 
-	T.Run("falls back to the caller's own chain", func(t *testing.T) {
+	T.Run("everybody else is passed through with the scope they were given", func(t *testing.T) {
 		t.Parallel()
 		ctx := sessionFor(t.Context(), false)
 
-		wanted := &platformaudit.Entry{ID: "entry"}
+		var seen *tenancy.Scope
 
-		reader := spanningReader{Reader: &auditmock.ReaderMock{
+		reader := operatorReader{Reader: &auditmock.ReaderMock{
 			GetFunc: func(
 				_ context.Context,
 				_ database.SQLQueryExecutor,
 				scope *tenancy.Scope,
 				_ string,
 			) (*platformaudit.Entry, error) {
-				if scope != nil && *scope == tenancy.Of(testUserID) {
-					return wanted, nil
-				}
+				seen = scope
 
-				return nil, platformaudit.ErrEntryNotFound
-			},
-		}}
-
-		entry, err := reader.Get(ctx, nil, &accountScope, "entry")
-		require.NoError(t, err)
-		assert.Equal(t, wanted, entry)
-	})
-
-	T.Run("an entry in neither chain is not found", func(t *testing.T) {
-		t.Parallel()
-		ctx := sessionFor(t.Context(), false)
-
-		reader := spanningReader{Reader: &auditmock.ReaderMock{
-			GetFunc: func(
-				_ context.Context,
-				_ database.SQLQueryExecutor,
-				scope *tenancy.Scope,
-				_ string,
-			) (*platformaudit.Entry, error) {
-				// Never unscoped for a caller: a nil scope here would be every
-				// tenant's log, which is the disclosure the pointer prevents.
-				require.NotNil(t, scope)
-
-				return nil, platformaudit.ErrEntryNotFound
+				return &platformaudit.Entry{ID: "entry"}, nil
 			},
 		}}
 
 		_, err := reader.Get(ctx, nil, &accountScope, "entry")
-		assert.Error(t, err)
+		require.NoError(t, err)
+
+		// Never nil for a caller. Searching the chains they belong to is platform's,
+		// one scope at a time; a nil here would be every tenant's log.
+		require.NotNil(t, seen)
+		assert.Equal(t, accountScope, *seen)
 	})
 
 	T.Run("a service admin reads any chain", func(t *testing.T) {
@@ -180,7 +159,7 @@ func TestSpanningReader_Get(T *testing.T) {
 
 		somebodyElses := &platformaudit.Entry{ID: "entry"}
 
-		reader := spanningReader{Reader: &auditmock.ReaderMock{
+		reader := operatorReader{Reader: &auditmock.ReaderMock{
 			GetFunc: func(
 				_ context.Context,
 				_ database.SQLQueryExecutor,
@@ -247,7 +226,7 @@ func TestCallerChains(T *testing.T) {
 		require.NoError(t, err)
 
 		// Their read is every chain in the deployment, which is not a slice anybody can
-		// enumerate. Empty means the connection's own scope, and spanningReader widens
+		// enumerate. Empty means the connection's own scope, and operatorReader widens
 		// that one read to the operator's.
 		assert.Empty(t, chains)
 	})

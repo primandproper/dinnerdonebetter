@@ -23,7 +23,7 @@ Two reads are still this package's. An entry by id takes the connection's single
 scope, so a caller who finds one of their own in a list and asks for it by id
 would be told it does not exist; and the operator's read — every chain at once,
 which is a nil query scope and not a slice anybody can enumerate — is a
-deployment policy platform's own surface declines to have. spanningReader
+deployment policy platform's own surface declines to have. operatorReader
 answers both. Which chains a caller may read is not something a grant on the
 method can say, and it is decided there for the reason waitlists decides a
 subject read inside its handler: the grant is held by an account member, and the
@@ -65,8 +65,8 @@ func RegisterAuditService(i do.Injector) {
 	do.Provide[auditpb.AuditServiceServer](i, func(i do.Injector) (auditpb.AuditServiceServer, error) {
 		return auditgrpc.NewServer(
 			// Wrapped for the two reads the chains resolver does not reach: an entry by
-			// id, and an operator's. See spanningReader.
-			spanningReader{Reader: do.MustInvoke[platformaudit.Reader](i)},
+			// id, and an operator's. See operatorReader.
+			operatorReader{Reader: do.MustInvoke[platformaudit.Reader](i)},
 			do.MustInvoke[database.Client](i),
 			auditgrpc.WithScopeResolver(activeAccountScope),
 			auditgrpc.WithChainsResolver(callerChains),
