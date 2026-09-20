@@ -126,10 +126,37 @@ Where that leaves the eleven surfaces:
 | surface | store adopted? | status |
 |---|---|---|
 | comments, settings, waitlists, issuereports, audit | yes | **adopted this run** |
-| billing (payments), webhooks | yes | adoptable |
+| billing (payments) | yes | adoptable; stopped on finding F |
+| webhooks | **no — see the correction below** | blocked on a store adoption |
 | notifications | **no** — own querier, own tables | blocked on a store adoption |
 | identity | partial (2 imports, privacy only) | blocked; 34 FK re-points |
 | oauth2clients, signin | **no** | blocked on a store adoption |
+
+### Correction: webhooks is a store migration, not a surface swap
+
+This table first said webhooks was adoptable, on the strength of eleven
+platform-webhooks imports under `internal/repositories`. Those imports are the
+*delivery* machinery — the dispatcher, the endpoint rows it fans out to, the
+attempt log. They are not the model.
+
+What a client of this repo calls a webhook is a row in a **local** `webhooks`
+table, with `name`, `method` and `created_by_user` columns platform's
+`webhooks_endpoints` does not have, alongside local `webhook_trigger_configs`
+and `webhook_trigger_events`. `repository.GetWebhook` reads it through this
+repo's own generated querier. The two models run in parallel, joined by a shared
+identifier, and the audit entries and outbox events for webhook writes are
+written against the local tables.
+
+So mounting platform's webhooks surface would change what a webhook *is* on the
+wire, orphan three tables, and drop the audit trail for every webhook write —
+because the `webhooks.Store` registered here is platform's raw store, undecorated.
+There is no decorator to hand the server, unlike the five surfaces adopted this
+run.
+
+Webhooks therefore belongs with notifications, identity, oauth2clients and
+signin: five surfaces blocked on a store adoption, not four. The `ListEventTypes`
+ruling still stands and is still needed — it is simply needed later than this
+correction implies.
 
 So "adopt the remaining surfaces" is mostly not surface work. Four of the six
 outstanding need their tables migrated onto platform's schema first, which is
