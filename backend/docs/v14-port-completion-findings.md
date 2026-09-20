@@ -240,3 +240,48 @@ lines and it is the one question a subscription UI cannot answer without it.
 
 Webhooks was not adopted this run — the remainder is small but it is a design
 question, and the finding is the part worth having.
+
+---
+
+## The first store migration: notifications
+
+Done, and it is the useful data point for the other four. Net −4,419 lines
+(−5,400 / +981). One focused push, no platform change needed, nothing
+finding-grade against platform.
+
+**The shape that worked**, and should repeat:
+
+1. `renderNotificationsDDL` — drop the local tables, render platform's at this
+   application's prefix, **re-create the foreign keys**. Both principal columns
+   name a user here, so the keys `belongs_to_user` carried are re-creatable, and
+   re-creating them is what keeps the single identity eraser covering the tables.
+   platform ships `notifications/privacy` with an eraser for each, which is the
+   other way and the one a deployment with non-user principals has to take.
+2. A store decorator — platform's store with the audit entry and data change
+   event around its writes. Four writes record; marking read does not, because
+   an entry per opened inbox buries the ones that matter, and the two erasure
+   deletes do not, because the erasure records itself.
+3. **An adapter presenting platform's store as the local `Repository`
+   interface.** This is the piece that contained the blast radius: the manager,
+   the push fanout and the privacy collector did not change at all. Without it
+   the migration reaches four more packages and their tests.
+
+**What the adapter costs**, stated so the next one is not a surprise: it is a
+translation layer that exists to be deleted. Once nothing outside the store
+package says `UserNotification`, the manager can take platform's types and the
+adapter goes. Keeping it is what makes the migration one commit instead of five.
+
+**Two small things platform does not offer**, neither a defect:
+
+- No keyed device read. `Registry` lists but does not `GetDevice`, so a lookup by
+  identifier is a list and a scan. A person has a handful of handsets, so the
+  page is already small.
+- No device update, deliberately: a handset is identified by its token, so
+  changing the token is registering a different device. The adapter's
+  `UpdateUserDeviceToken` refuses rather than pretending. Nothing had called it.
+
+**For the remaining four**, in the order I would take them: webhooks (three
+local tables, and a model change visible on the wire — plus the `ListEventTypes`
+ruling to pull), then oauth2clients, then signin, then identity last, because
+everything above touches `users` and `accounts` and doing identity first would
+churn them twice.
