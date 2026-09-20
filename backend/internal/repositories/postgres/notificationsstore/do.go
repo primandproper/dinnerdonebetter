@@ -77,12 +77,16 @@ func newStore(i do.Injector) (platformnotifications.Store, error) {
 }
 
 // RegisterNotificationsRepository registers the adapter that presents platform's
-// store as this application's notifications.Repository.
+// store in this application's vocabulary. See Adapter.
 //
-// It is what the manager, the push fanout and the privacy collector resolve, so
-// that none of them changed when the store underneath them did. See Adapter.
+// It registers under the concrete *Adapter rather than under
+// notifications.Repository, which is the same shape the hand-written repository
+// it replaced had: notifications.Repository resolves to the manager, which wraps
+// whatever is registered here. Registering the adapter under the interface as
+// well would be a second provider for one type, and samber/do refuses that — a
+// panic at container build, so every binary that has a notifications chain.
 func RegisterNotificationsRepository(i do.Injector) {
-	do.Provide[ddbnotifications.Repository](i, func(i do.Injector) (ddbnotifications.Repository, error) {
+	do.Provide[*Adapter](i, func(i do.Injector) (*Adapter, error) {
 		return NewAdapter(
 			do.MustInvoke[platformnotifications.Inbox](i),
 			do.MustInvoke[platformnotifications.Registry](i),

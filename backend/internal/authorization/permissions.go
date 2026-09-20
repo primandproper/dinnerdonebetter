@@ -49,6 +49,32 @@ var (
 		ArchiveProductsPermission,
 		ReadSubscriptionsPermission,
 		ArchiveSubscriptionsPermission,
+
+		// The rest of the adopted surfaces' administrative halves. Each of these is
+		// a method platform's server mounts, and a permission no role held until
+		// now — which made the method callable by nobody, refused exactly as it
+		// would be for a caller who genuinely lacked it. See
+		// internal/build/services/api/grpc.TestMethodTableIsCoveredByThePolicy,
+		// which is the check that says so.
+		VerifyAuditChainPermission,
+		ModerateCommentsPermission,
+		TriageIssueReportsPermission,
+		TransitionIssueReportsPermission,
+		ReadAllSettingValuesPermission,
+		WriteAdminSettingValuesPermission,
+		InviteWaitlistSignupsPermission,
+		ConvertWaitlistSignupsPermission,
+		EraseWaitlistSignupsPermission,
+
+		// The fleet-wide ledger reads, which are separate permissions from the
+		// account-scoped ones an account admin holds precisely so that reading one
+		// account's money is not reading everybody's.
+		ListAllSubscriptionsPermission,
+		ListAllPurchasesPermission,
+		ListAllTransactionsPermission,
+		ReadTransactionsPermission,
+		ArchivePurchasesPermission,
+		ArchiveTransactionsPermission,
 	}
 
 	// ServiceDataAdminPermissions is every service data admin permission.
@@ -105,9 +131,6 @@ var (
 		InviteUserToAccountPermission,
 		ModifyMemberPermissionsForAccountPermission,
 		RemoveMemberAccountPermission,
-		CreateWebhooksPermission,
-		UpdateWebhooksPermission,
-		ArchiveWebhooksPermission,
 		CreateIssueReportsPermission,
 		UpdateIssueReportsPermission,
 		ArchiveIssueReportsPermission,
@@ -123,12 +146,6 @@ var (
 		CreateAccountInstrumentOwnershipsPermission,
 		UpdateAccountInstrumentOwnershipsPermission,
 		ArchiveAccountInstrumentOwnershipsPermission,
-		CreateWebhookTriggerConfigsPermission,
-		ArchiveWebhookTriggerConfigsPermission,
-		CreateWebhookTriggerEventsPermission,
-		ReadWebhookTriggerEventsPermission,
-		UpdateWebhookTriggerEventsPermission,
-		ArchiveWebhookTriggerEventsPermission,
 		CreateMealListsPermission,
 		ReadMealListsPermission,
 		UpdateMealListsPermission,
@@ -142,12 +159,23 @@ var (
 		ReadPurchasesPermission,
 		ReadPaymentHistoryPermission,
 		ReadSubscriptionsPermission,
+
+		// Platform's webhook writes, which are account-scoped in this application:
+		// an account's admin manages that account's endpoints and what they hear
+		// about. They are finer than the four this repository's own webhooks
+		// service used — an endpoint, a subscription and a secret rotation are
+		// separately grantable now, where "update.webhooks" covered all three.
+		// The reads are a member's, below, as "read.webhooks" was.
+		SaveWebhookEndpointsPermission,
+		ArchiveWebhookEndpointsPermission,
+		RotateWebhookSecretPermission,
+		AddWebhookSubscriptionsPermission,
+		ArchiveWebhookSubscriptionsPermission,
 	}
 
 	// AccountMemberPermissions is every account member permission.
 	AccountMemberPermissions = []Permission{
 		ReportAnalyticsEventsPermission,
-		ReadWebhooksPermission,
 		ReadIssueReportsPermission,
 		ReadAuditLogEntriesPermission,
 		ReadOAuth2ClientsPermission,
@@ -259,6 +287,7 @@ var (
 		ArchiveRecipeRatingsPermission,
 		ReadUserNotificationsPermission,
 		MarkUserNotificationsReadPermission,
+		ArchiveUserNotificationsPermission,
 		CreateUserDeviceTokensPermission,
 		ReadUserDeviceTokensPermission,
 		ArchiveUserDeviceTokensPermission,
@@ -276,5 +305,14 @@ var (
 		CreateUserDataReportsPermission,
 		ReadUserDataReportsPermission,
 		DestroyUserDataPermission,
+
+		// The webhook reads, which a member held as "read.webhooks" before the
+		// adoption split it. A member seeing an endpoint learns nothing they
+		// should not: platform's converter never renders the signing secret, for
+		// exactly the reason a read permission would otherwise be a write one.
+		ReadWebhookEndpointsPermission,
+		ReadWebhookSubscriptionsPermission,
+		ReadWebhookAttemptsPermission,
+		ReadWebhookEventTypesPermission,
 	}
 )

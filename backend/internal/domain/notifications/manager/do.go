@@ -21,8 +21,10 @@ func RegisterNotificationsDataManager(i do.Injector) {
 	notificationsstore.RegisterNotificationsStore(i)
 	notificationsstore.RegisterNotificationsRepository(i)
 
+	// The adapter is what the manager wraps, resolved by its concrete type — the
+	// interface belongs to the manager, which re-exports itself under it below.
 	do.Provide[notificationsRepo](i, func(i do.Injector) (notificationsRepo, error) {
-		return do.MustInvoke[notifications.Repository](i), nil
+		return do.MustInvoke[*notificationsstore.Adapter](i), nil
 	})
 
 	do.Provide[NotificationsDataManager](i, func(i do.Injector) (NotificationsDataManager, error) {

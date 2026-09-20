@@ -1,40 +1,59 @@
 package authorization
 
+import (
+	webhooksgrpc "github.com/primandproper/platform-go/v14/webhooks/grpc"
+)
+
+// The webhook surface's permissions are platform's, re-exported under this
+// application's names so that the roles read the way the rest of them do.
+//
+// They are finer than the ten this repository's own webhooks service used, and
+// deliberately so: an endpoint, a subscription and a secret rotation are
+// separately grantable now, where "update.webhooks" covered all three. The
+// trigger-config and trigger-event permissions have no successor at all — those
+// tables went with the store migration, and what a subscriber hears about is a
+// subscription to an event type rather than a config row.
 const (
-	// CreateWebhooksPermission is an account admin permission.
-	CreateWebhooksPermission Permission = "create.webhooks"
-	// ReadWebhooksPermission is an account admin permission.
-	ReadWebhooksPermission Permission = "read.webhooks"
-	// UpdateWebhooksPermission is an account admin permission.
-	UpdateWebhooksPermission Permission = "update.webhooks"
-	// ArchiveWebhooksPermission is an account admin permission.
-	ArchiveWebhooksPermission Permission = "archive.webhooks"
-	// CreateWebhookTriggerConfigsPermission is an account permission for adding a trigger config to a webhook.
-	CreateWebhookTriggerConfigsPermission Permission = "create.webhook_trigger_configs"
-	// ArchiveWebhookTriggerConfigsPermission is an account permission for archiving a webhook trigger config.
-	ArchiveWebhookTriggerConfigsPermission Permission = "archive.webhook_trigger_configs"
-	// CreateWebhookTriggerEventsPermission is a permission for creating a catalog trigger event.
-	CreateWebhookTriggerEventsPermission Permission = "create.webhook_trigger_events"
-	// ReadWebhookTriggerEventsPermission is a permission for reading catalog trigger events.
-	ReadWebhookTriggerEventsPermission Permission = "read.webhook_trigger_events"
-	// UpdateWebhookTriggerEventsPermission is a permission for updating a catalog trigger event.
-	UpdateWebhookTriggerEventsPermission Permission = "update.webhook_trigger_events"
-	// ArchiveWebhookTriggerEventsPermission is a permission for archiving a catalog trigger event.
-	ArchiveWebhookTriggerEventsPermission Permission = "archive.webhook_trigger_events"
+	// SaveWebhookEndpointsPermission allows creating or rewriting an endpoint.
+	SaveWebhookEndpointsPermission = webhooksgrpc.PermissionSaveEndpoints
+	// ReadWebhookEndpointsPermission allows reading an account's endpoints.
+	ReadWebhookEndpointsPermission = webhooksgrpc.PermissionReadEndpoints
+	// ArchiveWebhookEndpointsPermission allows retiring an endpoint.
+	ArchiveWebhookEndpointsPermission = webhooksgrpc.PermissionArchiveEndpoints
+
+	// RotateWebhookSecretPermission allows minting an endpoint a new signing
+	// secret. Separate from saving the endpoint because it is the one write that
+	// invalidates every signature a subscriber has already learned to check.
+	RotateWebhookSecretPermission = webhooksgrpc.PermissionRotateEndpointSecrets
+
+	// AddWebhookSubscriptionsPermission allows subscribing an endpoint to an event type.
+	AddWebhookSubscriptionsPermission = webhooksgrpc.PermissionAddSubscriptions
+	// ReadWebhookSubscriptionsPermission allows reading what an endpoint hears about.
+	ReadWebhookSubscriptionsPermission = webhooksgrpc.PermissionReadSubscriptions
+	// ArchiveWebhookSubscriptionsPermission allows unsubscribing an endpoint.
+	ArchiveWebhookSubscriptionsPermission = webhooksgrpc.PermissionArchiveSubscriptions
+
+	// ReadWebhookAttemptsPermission allows reading the delivery log, which is how
+	// a subscriber finds out why they never heard.
+	ReadWebhookAttemptsPermission = webhooksgrpc.PermissionReadAttempts
+
+	// ReadWebhookEventTypesPermission allows reading the catalog of what can be
+	// subscribed to. It is held by anybody who may manage a subscription, because
+	// a subscription cannot be made without it.
+	ReadWebhookEventTypesPermission = webhooksgrpc.PermissionReadEventTypes
 )
 
 var (
 	// WebhooksPermissions contains all webhook-related permissions.
 	WebhooksPermissions = []Permission{
-		CreateWebhooksPermission,
-		ReadWebhooksPermission,
-		UpdateWebhooksPermission,
-		ArchiveWebhooksPermission,
-		CreateWebhookTriggerConfigsPermission,
-		ArchiveWebhookTriggerConfigsPermission,
-		CreateWebhookTriggerEventsPermission,
-		ReadWebhookTriggerEventsPermission,
-		UpdateWebhookTriggerEventsPermission,
-		ArchiveWebhookTriggerEventsPermission,
+		SaveWebhookEndpointsPermission,
+		ReadWebhookEndpointsPermission,
+		ArchiveWebhookEndpointsPermission,
+		RotateWebhookSecretPermission,
+		AddWebhookSubscriptionsPermission,
+		ReadWebhookSubscriptionsPermission,
+		ArchiveWebhookSubscriptionsPermission,
+		ReadWebhookAttemptsPermission,
+		ReadWebhookEventTypesPermission,
 	}
 )

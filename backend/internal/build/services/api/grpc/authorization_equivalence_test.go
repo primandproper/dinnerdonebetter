@@ -6,23 +6,24 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
+	waitlistsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/waitlists"
 	analyticsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/analytics/grpc"
-	auditgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/audit/grpc"
 	authgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc/interceptors"
 	dataprivacygrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/grpc"
 	identitygrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/grpc"
 	internalopsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/internalops/grpc"
-	issuereportsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/issuereports/grpc"
 	mealplanninggrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/grpc"
-	notificationsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/notifications/grpc"
 	oauthgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/oauth/grpc"
-	paymentsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/grpc"
-	settingsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/settings/grpc"
 	uploadedmediagrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/grpc"
-	waitlistsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/waitlists/grpc"
-	webhooksgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/webhooks/grpc"
+
+	auditgrpc "github.com/primandproper/platform-go/v14/audit/grpc"
+	paymentsgrpc "github.com/primandproper/platform-go/v14/billing/grpc"
 	commentsgrpc "github.com/primandproper/platform-go/v14/comments/grpc"
+	issuereportsgrpc "github.com/primandproper/platform-go/v14/issuereports/grpc"
+	notificationsgrpc "github.com/primandproper/platform-go/v14/notifications/grpc"
+	settingsgrpc "github.com/primandproper/platform-go/v14/settings/grpc"
+	webhooksgrpc "github.com/primandproper/platform-go/v14/webhooks/grpc"
 
 	platformauthz "github.com/primandproper/primitives-go/v2/authorization"
 	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
@@ -37,21 +38,21 @@ import (
 func realMethodPermissions() interceptors.MethodPermissionsMap {
 	return AggregateMethodPermissions(
 		analyticsgrpc.ProvideMethodPermissions(),
-		auditgrpc.ProvideMethodPermissions(),
+		auditgrpc.Permissions(),
 		authgrpc.ProvideMethodPermissions(),
 		commentsgrpc.Permissions(),
 		dataprivacygrpc.ProvideMethodPermissions(),
 		identitygrpc.ProvideMethodPermissions(),
 		internalopsgrpc.ProvideMethodPermissions(),
-		issuereportsgrpc.ProvideMethodPermissions(),
+		issuereportsgrpc.Permissions(),
 		mealplanninggrpc.ProvideMethodPermissions(),
-		notificationsgrpc.ProvideMethodPermissions(),
+		notificationsgrpc.Permissions(),
 		oauthgrpc.ProvideMethodPermissions(),
-		paymentsgrpc.ProvideMethodPermissions(),
-		settingsgrpc.ProvideMethodPermissions(),
+		paymentsgrpc.Permissions(),
+		settingsgrpc.Permissions(),
 		uploadedmediagrpc.ProvideMethodPermissions(),
-		waitlistsgrpc.ProvideMethodPermissions(),
-		webhooksgrpc.ProvideMethodPermissions(),
+		waitlistsbuild.Permissions(),
+		webhooksgrpc.Permissions(),
 	)
 }
 

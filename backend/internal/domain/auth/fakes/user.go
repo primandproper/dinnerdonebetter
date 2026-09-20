@@ -122,7 +122,7 @@ func BuildFakePasswordResetResponse() *types.PasswordResetResponse {
 func BuildFakeUserPermissionsResponse() *types.UserPermissionsResponse {
 	return &types.UserPermissionsResponse{
 		Permissions: map[string]bool{
-			string(authorization.CreateWebhooksPermission): true,
+			string(authorization.SaveWebhookEndpointsPermission): true,
 		},
 	}
 }

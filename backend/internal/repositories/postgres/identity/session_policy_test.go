@@ -43,7 +43,7 @@ func TestQuerier_Integration_SessionPermissionsComeFromThePolicy(t *testing.T) {
 		// ordinary user's authority is account_member, held per account. A
 		// service-wide grant would apply in every account.
 		assert.False(t, sessionCtxData.ServiceRolePermissionChecker().HasPermission(authorization.ReadUserPermission))
-		assert.False(t, sessionCtxData.ServiceRolePermissionChecker().HasPermission(authorization.CreateWebhooksPermission))
+		assert.False(t, sessionCtxData.ServiceRolePermissionChecker().HasPermission(authorization.SaveWebhookEndpointsPermission))
 	})
 
 	t.Run("and account_admin's whole closure in their own account", func(t *testing.T) {
@@ -60,7 +60,7 @@ func TestQuerier_Integration_SessionPermissionsComeFromThePolicy(t *testing.T) {
 			lister.GrantedPermissions().Len(), expanded[authorization.AccountAdminRoleName].Len())
 
 		// Inherited from account_member, which is the half a flat policy lost.
-		assert.True(t, checker.HasPermission(authorization.ReadWebhooksPermission))
+		assert.True(t, checker.HasPermission(authorization.ReadWebhookEndpointsPermission))
 	})
 
 	t.Run("a service admin holds the whole closure", func(t *testing.T) {
@@ -100,6 +100,6 @@ func TestQuerier_Integration_SessionPermissionsComeFromThePolicy(t *testing.T) {
 		// Fail closed: an empty grant holds nothing, and resolving zero roles is
 		// not an error.
 		assert.False(t, strangerSession.ServiceRolePermissionChecker().HasPermission(authorization.ReadUserPermission))
-		assert.False(t, strangerSession.AccountRolePermissionsChecker().HasPermission(authorization.CreateWebhooksPermission))
+		assert.False(t, strangerSession.AccountRolePermissionsChecker().HasPermission(authorization.SaveWebhookEndpointsPermission))
 	})
 }
