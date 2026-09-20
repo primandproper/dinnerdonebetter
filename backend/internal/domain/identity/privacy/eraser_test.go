@@ -4,6 +4,8 @@ import (
 	"context"
 	"testing"
 
+	"github.com/primandproper/primitives-go/v2/tenancy"
+
 	identitymock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/mock"
 
 	"github.com/primandproper/primitives-go/v2/database"
@@ -41,7 +43,7 @@ func TestEraser_Erase(T *testing.T) {
 
 		eraser := NewEraser(repo, loggingnoop.NewLogger(), tracingnoop.NewTracerProvider())
 
-		outcome, err := eraser.Erase(t.Context(), executor, subject(exampleUserID))
+		outcome, err := eraser.Erase(t.Context(), executor, tenancy.Global(), subject(exampleUserID))
 
 		require.NoError(t, err)
 		assert.Equal(t, int64(1), outcome.Deleted)
@@ -65,7 +67,7 @@ func TestEraser_Erase(T *testing.T) {
 
 		eraser := NewEraser(repo, loggingnoop.NewLogger(), tracingnoop.NewTracerProvider())
 
-		outcome, err := eraser.Erase(t.Context(), nil, subject(identifiers.New()))
+		outcome, err := eraser.Erase(t.Context(), nil, tenancy.Global(), subject(identifiers.New()))
 
 		require.NoError(t, err)
 		assert.Zero(t, outcome.Deleted)
@@ -82,7 +84,7 @@ func TestEraser_Erase(T *testing.T) {
 
 		eraser := NewEraser(repo, loggingnoop.NewLogger(), tracingnoop.NewTracerProvider())
 
-		outcome, err := eraser.Erase(t.Context(), nil, subject(identifiers.New()))
+		outcome, err := eraser.Erase(t.Context(), nil, tenancy.Global(), subject(identifiers.New()))
 
 		require.Error(t, err)
 		assert.Zero(t, outcome.Deleted)

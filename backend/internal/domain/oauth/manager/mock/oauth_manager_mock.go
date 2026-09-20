@@ -9,7 +9,6 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth/manager"
-
 	"github.com/primandproper/primitives-go/v2/filtering"
 )
 

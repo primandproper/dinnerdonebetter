@@ -9,6 +9,7 @@ import (
 	"github.com/primandproper/platform-go/v14/billing"
 	billingmock "github.com/primandproper/platform-go/v14/billing/mock"
 	"github.com/primandproper/primitives-go/v2/capitalism"
+	"github.com/primandproper/primitives-go/v2/database"
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/filtering"
 	"github.com/primandproper/primitives-go/v2/identifiers"
@@ -105,7 +106,7 @@ func TestNewPlanSource(T *testing.T) {
 		)
 
 		store := &billingmock.SubscriptionStoreMock{
-			ListCurrentSubscriptionsFunc: func(_ context.Context, scope tenancy.Scope, account string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[billing.Subscription], error) {
+			ListCurrentSubscriptionsFunc: func(_ context.Context, _ database.SQLQueryExecutor, scope tenancy.Scope, account string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[billing.Subscription], error) {
 				requestedScope, requestedAccount = scope, account
 
 				return &filtering.QueryFilteredResult[billing.Subscription]{
@@ -114,7 +115,7 @@ func TestNewPlanSource(T *testing.T) {
 			},
 		}
 
-		source, err := NewPlanSource(store)
+		source, err := NewPlanSource(store, nil)
 		require.NoError(t, err)
 
 		plan, err := source.PlanFor(ctx, accountID)
@@ -130,12 +131,12 @@ func TestNewPlanSource(T *testing.T) {
 		ctx := t.Context()
 
 		store := &billingmock.SubscriptionStoreMock{
-			ListCurrentSubscriptionsFunc: func(context.Context, tenancy.Scope, string, *filtering.QueryFilter) (*filtering.QueryFilteredResult[billing.Subscription], error) {
+			ListCurrentSubscriptionsFunc: func(context.Context, database.SQLQueryExecutor, tenancy.Scope, string, *filtering.QueryFilter) (*filtering.QueryFilteredResult[billing.Subscription], error) {
 				return &filtering.QueryFilteredResult[billing.Subscription]{}, nil
 			},
 		}
 
-		source, err := NewPlanSource(store)
+		source, err := NewPlanSource(store, nil)
 		require.NoError(t, err)
 
 		plan, err := source.PlanFor(ctx, identifiers.New())
@@ -154,12 +155,12 @@ func TestNewPlanSource(T *testing.T) {
 		// whole picture — degrading to free here would take that decision away and would do
 		// it for the quota path too, which has no fallback on purpose.
 		store := &billingmock.SubscriptionStoreMock{
-			ListCurrentSubscriptionsFunc: func(context.Context, tenancy.Scope, string, *filtering.QueryFilter) (*filtering.QueryFilteredResult[billing.Subscription], error) {
+			ListCurrentSubscriptionsFunc: func(context.Context, database.SQLQueryExecutor, tenancy.Scope, string, *filtering.QueryFilter) (*filtering.QueryFilteredResult[billing.Subscription], error) {
 				return nil, expected
 			},
 		}
 
-		source, err := NewPlanSource(store)
+		source, err := NewPlanSource(store, nil)
 		require.NoError(t, err)
 
 		plan, err := source.PlanFor(ctx, identifiers.New())
@@ -170,7 +171,7 @@ func TestNewPlanSource(T *testing.T) {
 	T.Run("with nil store", func(t *testing.T) {
 		t.Parallel()
 
-		source, err := NewPlanSource(nil)
+		source, err := NewPlanSource(nil, nil)
 		require.Error(t, err)
 		assert.Nil(t, source)
 	})

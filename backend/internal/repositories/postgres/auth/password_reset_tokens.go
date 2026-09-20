@@ -43,10 +43,12 @@ var _ passwordreset.Store = (*auditedPasswordResetTokenStore)(nil)
 // entry per call would bury the two that matter. RevokeForUser is only ever called
 // immediately after a Consume this store has already recorded, so its entry would say
 // nothing the redemption's does not.
+// It holds no database handle. It used to, to open the transaction its audit entry was
+// written in; as of platform-go v14 the entry goes in the caller's transaction, so there
+// is nothing left for this store to open.
 type auditedPasswordResetTokenStore struct {
 	passwordreset.Store
 
-	db                database.Client
 	auditLogEntryRepo audit.Repository
 	tracer            tracing.Tracer
 	logger            logging.Logger
@@ -95,7 +97,6 @@ func ProvidePasswordResetTokenStore(
 
 	return &auditedPasswordResetTokenStore{
 		Store:             store,
-		db:                client,
 		auditLogEntryRepo: auditLogEntryRepo,
 		tracer:            tracing.NewNamedTracer(tracerProvider, passwordResetO11yName),
 		logger:            logging.NewNamedLogger(logger, passwordResetO11yName),

@@ -11,7 +11,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/manager"
-
 	"github.com/primandproper/primitives-go/v2/filtering"
 )
 

@@ -42,3 +42,25 @@ func BuildFakeUploadedMediaFor(subject mediaregistry.Subject) *mediaregistry.Obj
 func BuildFakeUploadedMediaList() *filtering.QueryFilteredResult[mediaregistry.Object] {
 	return fake.BuildFakePage(BuildFakeUploadedMedia)
 }
+
+// BuildFakeUploadedMediaInput builds what a caller hands mediaregistry.Store.RecordObject.
+//
+// It is derived from a fake Object rather than faked independently, so the two cannot drift:
+// what a test registers and what it then asserts on are the same values. The id is carried
+// across rather than left for the store to mint, because this application builds a storage key
+// from the id — the bytes have to know where they are going before anything writes them.
+func BuildFakeUploadedMediaInput() mediaregistry.ObjectInput {
+	return InputFromUploadedMedia(BuildFakeUploadedMedia())
+}
+
+// InputFromUploadedMedia is the RecordObject input that would store object as it stands.
+func InputFromUploadedMedia(object *mediaregistry.Object) mediaregistry.ObjectInput {
+	return mediaregistry.ObjectInput{
+		BelongsTo:   object.BelongsTo,
+		ID:          object.ID,
+		Key:         object.Key,
+		ContentType: object.ContentType,
+		OwnerID:     object.OwnerID,
+		Size:        object.Size,
+	}
+}

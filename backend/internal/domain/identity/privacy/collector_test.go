@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/primandproper/primitives-go/v2/tenancy"
+
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
 	identitymock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/mock"
@@ -49,7 +51,7 @@ func TestCollector_Collect(T *testing.T) {
 
 		collector := NewCollector(repo, loggingnoop.NewLogger(), tracingnoop.NewTracerProvider())
 
-		fragment, err := collector.Collect(t.Context(), subject(exampleUser.ID))
+		fragment, err := collector.Collect(t.Context(), tenancy.Global(), subject(exampleUser.ID))
 		require.NoError(t, err)
 		require.NotNil(t, fragment)
 
@@ -87,7 +89,7 @@ func TestCollector_Collect(T *testing.T) {
 
 		collector := NewCollector(repo, loggingnoop.NewLogger(), tracingnoop.NewTracerProvider())
 
-		fragment, err := collector.Collect(t.Context(), subject(exampleUser.ID))
+		fragment, err := collector.Collect(t.Context(), tenancy.Global(), subject(exampleUser.ID))
 		require.NoError(t, err)
 
 		var collection identity.UserDataCollection
@@ -110,7 +112,7 @@ func TestCollector_Collect(T *testing.T) {
 
 		collector := NewCollector(repo, loggingnoop.NewLogger(), tracingnoop.NewTracerProvider())
 
-		fragment, err := collector.Collect(t.Context(), subject(identifiers.New()))
+		fragment, err := collector.Collect(t.Context(), tenancy.Global(), subject(identifiers.New()))
 
 		require.Error(t, err)
 		assert.Nil(t, fragment)

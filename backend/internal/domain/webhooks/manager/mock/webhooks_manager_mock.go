@@ -9,7 +9,6 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/manager"
-
 	"github.com/primandproper/primitives-go/v2/filtering"
 )
 

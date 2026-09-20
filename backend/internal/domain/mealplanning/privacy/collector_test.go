@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/primandproper/primitives-go/v2/tenancy"
+
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
@@ -134,7 +136,7 @@ func TestCollector_Collect(T *testing.T) {
 
 		collector := NewCollector(repo, noAccounts, loggingnoop.NewLogger(), tracingnoop.NewTracerProvider())
 
-		fragment, err := collector.Collect(t.Context(), subjectFor(identifiers.New()))
+		fragment, err := collector.Collect(t.Context(), tenancy.Global(), subjectFor(identifiers.New()))
 
 		require.NoError(t, err)
 		// nil, not an encoded empty object: the section is then omitted from the artifact,
@@ -222,7 +224,7 @@ func collect(
 
 	collector := NewCollector(repo, resolveAccounts, loggingnoop.NewLogger(), tracingnoop.NewTracerProvider())
 
-	fragment, err := collector.Collect(t.Context(), subjectFor(userID))
+	fragment, err := collector.Collect(t.Context(), tenancy.Global(), subjectFor(userID))
 	require.NoError(t, err)
 	require.NotNil(t, fragment)
 

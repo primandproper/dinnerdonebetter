@@ -13,6 +13,7 @@ import (
 	platformaudit "github.com/primandproper/platform-go/v14/audit"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/identifiers"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -77,13 +78,13 @@ func TestQuerier_Integration_AuditLogChain(t *testing.T) {
 	}
 
 	t.Run("verifies clean", func(t *testing.T) {
-		result, err := dbc.VerifyChain(ctx, account.ID, time.Time{}, time.Time{})
+		result, err := dbc.VerifyChain(ctx, tenancy.Of(account.ID), time.Time{}, time.Time{})
 		require.NoError(t, err)
 		require.NotNil(t, result)
 
 		assert.True(t, result.Intact())
 		assert.Nil(t, result.FirstBreak)
-		assert.Equal(t, len(recorded), result.Checked)
+		assert.Equal(t, int64(len(recorded)), result.Checked)
 	})
 
 	t.Run("refuses an UPDATE outright", func(t *testing.T) {
@@ -106,7 +107,7 @@ func TestQuerier_Integration_AuditLogChain(t *testing.T) {
 			"DELETE FROM "+audit.TablePrefix+"_audit_log_entries WHERE id = $1", recorded[1].ID)
 		require.NoError(t, err)
 
-		result, err := dbc.VerifyChain(ctx, account.ID, time.Time{}, time.Time{})
+		result, err := dbc.VerifyChain(ctx, tenancy.Of(account.ID), time.Time{}, time.Time{})
 		require.NoError(t, err)
 		require.NotNil(t, result)
 

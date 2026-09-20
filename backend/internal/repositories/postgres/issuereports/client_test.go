@@ -20,6 +20,7 @@ import (
 	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
 	metricsnoop "github.com/primandproper/primitives-go/v2/observability/metrics/noop"
 	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -41,7 +42,7 @@ func TestMain(m *testing.M) {
 }
 
 // buildDatabaseClientForTest builds the store over a real database.
-func buildDatabaseClientForTest(t *testing.T) (issuereports.Store, audit.Repository, database.SQLQueryExecutor) {
+func buildDatabaseClientForTest(t *testing.T) (issuereports.Store, audit.Repository, database.Client) {
 	t.Helper()
 
 	ctx := t.Context()
@@ -66,38 +67,39 @@ func buildDatabaseClientForTest(t *testing.T) (issuereports.Store, audit.Reposit
 	)
 	require.NoError(t, err)
 
-	return c, auditLogEntryRepo, pgc.Writer()
+	return c, auditLogEntryRepo, pgc
 }
 
 // reporterForTest creates a user and an account for them, and returns both. Both
 // rows have to exist: the rendered table re-creates the reporter and scope foreign
 // keys the local table carried.
-func reporterForTest(t *testing.T, writer database.SQLQueryExecutor) (userID, accountID string) {
+func reporterForTest(t *testing.T, db database.Client) (userID, accountID string) {
 	t.Helper()
 
-	user := pgtesting.CreateUserForTest(t, nil, writer)
-	account := pgtesting.CreateAccountForTest(t, nil, user.ID, writer)
+	user := pgtesting.CreateUserForTest(t, nil, db.Writer())
+	account := pgtesting.CreateAccountForTest(t, nil, user.ID, db.Writer())
 
 	return user.ID, account.ID
 }
 
 func TestRepository_Integration_IssueReports(t *testing.T) {
 	ctx := t.Context()
-	dbc, auditRepo, writer := buildDatabaseClientForTest(t)
+	dbc, auditRepo, db := buildDatabaseClientForTest(t)
 
-	userID, accountID := reporterForTest(t, writer)
+	userID, accountID := reporterForTest(t, db)
 
 	report := fakes.BuildFakeIssueReportForScope(accountID)
 	report.Reporter = userID
 
 	// create
-	require.NoError(t, dbc.CreateReport(ctx, report))
-	assert.Equal(t, issuereports.StatusOpen, report.Status)
+	created, err := createT(ctx, db, dbc, report)
+	require.NoError(t, err)
+	assert.Equal(t, issuereports.StatusOpen, created.Status)
 	pgtesting.AssertAuditLogContainsForUser(t, ctx, auditRepo, userID, []*audit.AuditLogEntry{
 		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeIssueReports, RelevantID: report.ID},
 	})
 
-	fetched, err := dbc.GetReport(ctx, ddbissuereports.Scope(accountID), report.ID)
+	fetched, err := dbc.GetReport(ctx, db.Reader(), ddbissuereports.Scope(accountID), report.ID)
 	require.NoError(t, err)
 	assert.Equal(t, report.Kind, fetched.Kind)
 	assert.Equal(t, report.Details, fetched.Details)
@@ -105,37 +107,43 @@ func TestRepository_Integration_IssueReports(t *testing.T) {
 	assert.Nil(t, fetched.ClosedAt)
 
 	// read as the account's list, and as the open queue
-	page, err := dbc.ListReports(ctx, ddbissuereports.Scope(accountID), nil)
+	page, err := dbc.ListReports(ctx, db.Reader(), ddbissuereports.Scope(accountID), nil)
 	require.NoError(t, err)
 	require.Len(t, page.Data, 1)
 	assert.Equal(t, report.ID, page.Data[0].ID)
 
-	open, err := dbc.ListReportsByStatus(ctx, ddbissuereports.Scope(accountID), issuereports.StatusOpen, nil)
+	open, err := dbc.ListReportsByStatus(ctx, db.Reader(), ddbissuereports.Scope(accountID), issuereports.StatusOpen, nil)
 	require.NoError(t, err)
 	require.Len(t, open.Data, 1)
 
 	// update
 	fetched.Details = "updated details"
-	require.NoError(t, dbc.UpdateReport(ctx, fetched))
+	_, err = writeT(ctx, db, func(tx database.Tx) (*issuereports.Report, error) {
+		return dbc.UpdateReport(ctx, tx, ddbissuereports.Scope(accountID), fetched)
+	})
+	require.NoError(t, err)
 	pgtesting.AssertAuditLogContainsForUser(t, ctx, auditRepo, userID, []*audit.AuditLogEntry{
 		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeIssueReports, RelevantID: report.ID},
 		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeIssueReports, RelevantID: report.ID},
 	})
 
-	updated, err := dbc.GetReport(ctx, ddbissuereports.Scope(accountID), report.ID)
+	updated, err := dbc.GetReport(ctx, db.Reader(), ddbissuereports.Scope(accountID), report.ID)
 	require.NoError(t, err)
 	assert.Equal(t, "updated details", updated.Details)
 	assert.NotNil(t, updated.LastUpdatedAt)
 
 	// archive
-	require.NoError(t, dbc.ArchiveReport(ctx, ddbissuereports.Scope(accountID), report.ID))
+	_, err = writeT(ctx, db, func(tx database.Tx) (*issuereports.Report, error) {
+		return dbc.ArchiveReport(ctx, tx, ddbissuereports.Scope(accountID), report.ID)
+	})
+	require.NoError(t, err)
 	pgtesting.AssertAuditLogContainsForUser(t, ctx, auditRepo, userID, []*audit.AuditLogEntry{
 		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeIssueReports, RelevantID: report.ID},
 		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeIssueReports, RelevantID: report.ID},
 		{EventType: audit.AuditLogEventTypeArchived, ResourceType: resourceTypeIssueReports, RelevantID: report.ID},
 	})
 
-	afterArchive, err := dbc.GetReport(ctx, ddbissuereports.Scope(accountID), report.ID)
+	afterArchive, err := dbc.GetReport(ctx, db.Reader(), ddbissuereports.Scope(accountID), report.ID)
 	require.Error(t, err)
 	assert.Nil(t, afterArchive)
 	assert.ErrorIs(t, err, issuereports.ErrReportNotFound)
@@ -146,21 +154,22 @@ func TestRepository_Integration_IssueReports(t *testing.T) {
 // closed_at and stores the note, and reopening clears both.
 func TestRepository_Integration_TriageLifecycle(t *testing.T) {
 	ctx := t.Context()
-	dbc, auditRepo, writer := buildDatabaseClientForTest(t)
+	dbc, auditRepo, db := buildDatabaseClientForTest(t)
 
-	userID, accountID := reporterForTest(t, writer)
+	userID, accountID := reporterForTest(t, db)
 	scope := ddbissuereports.Scope(accountID)
 
 	report := fakes.BuildFakeIssueReportForScope(accountID)
 	report.Reporter = userID
-	require.NoError(t, dbc.CreateReport(ctx, report))
+	_, err := createT(ctx, db, dbc, report)
+	require.NoError(t, err)
 
-	acknowledged, err := dbc.TransitionReport(ctx, scope, report.ID, issuereports.StatusOpen, issuereports.StatusAcknowledged, "")
+	acknowledged, err := transitionT(ctx, db, dbc, scope, report.ID, issuereports.StatusOpen, issuereports.StatusAcknowledged, "")
 	require.NoError(t, err)
 	assert.Equal(t, issuereports.StatusAcknowledged, acknowledged.Status)
 	assert.Nil(t, acknowledged.ClosedAt)
 
-	resolved, err := dbc.TransitionReport(ctx, scope, report.ID, issuereports.StatusAcknowledged, issuereports.StatusResolved, "fixed")
+	resolved, err := transitionT(ctx, db, dbc, scope, report.ID, issuereports.StatusAcknowledged, issuereports.StatusResolved, "fixed")
 	require.NoError(t, err)
 	assert.Equal(t, issuereports.StatusResolved, resolved.Status)
 	assert.Equal(t, "fixed", resolved.Resolution)
@@ -168,7 +177,7 @@ func TestRepository_Integration_TriageLifecycle(t *testing.T) {
 
 	// A reopen clears the closure, because a reason that no longer holds is worse
 	// than none.
-	reopened, err := dbc.TransitionReport(ctx, scope, report.ID, issuereports.StatusResolved, issuereports.StatusOpen, "")
+	reopened, err := transitionT(ctx, db, dbc, scope, report.ID, issuereports.StatusResolved, issuereports.StatusOpen, "")
 	require.NoError(t, err)
 	assert.Equal(t, issuereports.StatusOpen, reopened.Status)
 	assert.Empty(t, reopened.Resolution)
@@ -189,26 +198,27 @@ func TestRepository_Integration_TriageLifecycle(t *testing.T) {
 // exactly what this looks like from the second one's side.
 func TestRepository_Integration_TransitionGuardRecordsNothing(t *testing.T) {
 	ctx := t.Context()
-	dbc, auditRepo, writer := buildDatabaseClientForTest(t)
+	dbc, auditRepo, db := buildDatabaseClientForTest(t)
 
-	userID, accountID := reporterForTest(t, writer)
+	userID, accountID := reporterForTest(t, db)
 	scope := ddbissuereports.Scope(accountID)
 
 	report := fakes.BuildFakeIssueReportForScope(accountID)
 	report.Reporter = userID
-	require.NoError(t, dbc.CreateReport(ctx, report))
-
-	_, err := dbc.TransitionReport(ctx, scope, report.ID, issuereports.StatusOpen, issuereports.StatusResolved, "first")
+	_, err := createT(ctx, db, dbc, report)
 	require.NoError(t, err)
 
-	second, err := dbc.TransitionReport(ctx, scope, report.ID, issuereports.StatusOpen, issuereports.StatusResolved, "second")
+	_, err = transitionT(ctx, db, dbc, scope, report.ID, issuereports.StatusOpen, issuereports.StatusResolved, "first")
+	require.NoError(t, err)
+
+	second, err := transitionT(ctx, db, dbc, scope, report.ID, issuereports.StatusOpen, issuereports.StatusResolved, "second")
 	require.Error(t, err)
 	assert.Nil(t, second)
 	require.ErrorIs(t, err, issuereports.ErrStatusConflict)
 
 	// The first note stands. The whole point of the guard is that the second write
 	// does not overwrite it.
-	stored, err := dbc.GetReport(ctx, scope, report.ID)
+	stored, err := dbc.GetReport(ctx, db.Reader(), scope, report.ID)
 	require.NoError(t, err)
 	assert.Equal(t, "first", stored.Resolution)
 
@@ -222,21 +232,22 @@ func TestRepository_Integration_TransitionGuardRecordsNothing(t *testing.T) {
 // belongs_to_account check the service used to run after the read.
 func TestRepository_Integration_ScopeIsTheAccountBoundary(t *testing.T) {
 	ctx := t.Context()
-	dbc, _, writer := buildDatabaseClientForTest(t)
+	dbc, _, db := buildDatabaseClientForTest(t)
 
-	userID, accountID := reporterForTest(t, writer)
-	_, otherAccountID := reporterForTest(t, writer)
+	userID, accountID := reporterForTest(t, db)
+	_, otherAccountID := reporterForTest(t, db)
 
 	report := fakes.BuildFakeIssueReportForScope(accountID)
 	report.Reporter = userID
-	require.NoError(t, dbc.CreateReport(ctx, report))
+	_, err := createT(ctx, db, dbc, report)
+	require.NoError(t, err)
 
-	fetched, err := dbc.GetReport(ctx, ddbissuereports.Scope(otherAccountID), report.ID)
+	fetched, err := dbc.GetReport(ctx, db.Reader(), ddbissuereports.Scope(otherAccountID), report.ID)
 	require.Error(t, err)
 	assert.Nil(t, fetched)
 	require.ErrorIs(t, err, issuereports.ErrReportNotFound)
 
-	page, err := dbc.ListReports(ctx, ddbissuereports.Scope(otherAccountID), nil)
+	page, err := dbc.ListReports(ctx, db.Reader(), ddbissuereports.Scope(otherAccountID), nil)
 	require.NoError(t, err)
 	assert.Empty(t, page.Data)
 }
@@ -247,18 +258,19 @@ func TestRepository_Integration_ScopeIsTheAccountBoundary(t *testing.T) {
 // eraser never reaches.
 func TestRepository_Integration_ErasureFollowsTheReporter(t *testing.T) {
 	ctx := t.Context()
-	dbc, _, writer := buildDatabaseClientForTest(t)
+	dbc, _, db := buildDatabaseClientForTest(t)
 
-	userID, accountID := reporterForTest(t, writer)
+	userID, accountID := reporterForTest(t, db)
 
 	report := fakes.BuildFakeIssueReportForScope(accountID)
 	report.Reporter = userID
-	require.NoError(t, dbc.CreateReport(ctx, report))
-
-	_, err := writer.ExecContext(ctx, "DELETE FROM users WHERE id = $1", userID)
+	_, err := createT(ctx, db, dbc, report)
 	require.NoError(t, err)
 
-	fetched, err := dbc.GetReport(ctx, ddbissuereports.Scope(accountID), report.ID)
+	_, err = db.Writer().ExecContext(ctx, "DELETE FROM users WHERE id = $1", userID)
+	require.NoError(t, err)
+
+	fetched, err := dbc.GetReport(ctx, db.Reader(), ddbissuereports.Scope(accountID), report.ID)
 	require.Error(t, err)
 	assert.Nil(t, fetched)
 	assert.ErrorIs(t, err, issuereports.ErrReportNotFound)
@@ -269,11 +281,45 @@ func TestRepository_Integration_ErasureFollowsTheReporter(t *testing.T) {
 // absent report an error before anything is written down about it.
 func TestRepository_Integration_ArchiveMissingRecordsNothing(t *testing.T) {
 	ctx := t.Context()
-	dbc, _, writer := buildDatabaseClientForTest(t)
+	dbc, _, db := buildDatabaseClientForTest(t)
 
-	_, accountID := reporterForTest(t, writer)
+	_, accountID := reporterForTest(t, db)
 
-	err := dbc.ArchiveReport(ctx, ddbissuereports.Scope(accountID), identifiers.New())
+	_, err := writeT(ctx, db, func(tx database.Tx) (*issuereports.Report, error) {
+		return dbc.ArchiveReport(ctx, tx, ddbissuereports.Scope(accountID), identifiers.New())
+	})
 	require.Error(t, err)
 	assert.ErrorIs(t, err, issuereports.ErrReportNotFound)
+}
+
+// writeT runs one store write on a transaction of its own.
+//
+// As of platform-go v14 a store write takes the caller's database.Tx, so a test that wants one
+// row written supplies the transaction the production caller would. It answers with the error
+// rather than asserting on it, because several of the writes here are supposed to fail.
+func writeT[T any](ctx context.Context, db database.Client, write func(tx database.Tx) (T, error)) (T, error) {
+	var out T
+
+	err := db.WithTransaction(ctx, func(tx database.Tx) error {
+		var writeErr error
+		out, writeErr = write(tx)
+
+		return writeErr
+	})
+
+	return out, err
+}
+
+// createT files one report, in the scope the report itself names.
+func createT(ctx context.Context, db database.Client, dbc issuereports.Store, report *issuereports.Report) (*issuereports.Report, error) {
+	return writeT(ctx, db, func(tx database.Tx) (*issuereports.Report, error) {
+		return dbc.CreateReport(ctx, tx, ddbissuereports.Scope(report.Scope.Owner()), report)
+	})
+}
+
+// transitionT moves one report between statuses.
+func transitionT(ctx context.Context, db database.Client, dbc issuereports.Store, scope tenancy.Scope, reportID string, from, to issuereports.Status, resolution string) (*issuereports.Report, error) {
+	return writeT(ctx, db, func(tx database.Tx) (*issuereports.Report, error) {
+		return dbc.TransitionReport(ctx, tx, scope, reportID, from, to, resolution)
+	})
 }

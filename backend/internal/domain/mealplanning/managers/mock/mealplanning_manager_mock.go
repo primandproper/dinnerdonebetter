@@ -9,7 +9,6 @@ import (
 
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/managers"
-
 	"github.com/primandproper/primitives-go/v2/filtering"
 )
 

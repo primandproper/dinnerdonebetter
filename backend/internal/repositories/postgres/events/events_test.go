@@ -38,7 +38,7 @@ func TestEmitter_dispatchWebhooks(T *testing.T) {
 
 		executor := database.NewTxForTesting(&mockdatabase.SQLQueryExecutorMock{})
 		dispatcher := &webhooksmock.DispatcherMock{
-			DispatchFunc: func(_ context.Context, q database.Tx, delivery *webhooks.Delivery) error {
+			DispatchFunc: func(_ context.Context, q database.Tx, _ tenancy.Scope, delivery *webhooks.Delivery) error {
 				assert.Same(t, executor, q)
 				dispatched = delivery
 

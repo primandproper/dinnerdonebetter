@@ -8,7 +8,6 @@ import (
 	"sync"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
-
 	"github.com/primandproper/primitives-go/v2/filtering"
 )
 
