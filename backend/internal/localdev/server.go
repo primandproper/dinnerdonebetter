@@ -18,8 +18,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/catalog"
 	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
@@ -30,12 +28,10 @@ import (
 	oauthrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/oauth"
 	settingsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/settings"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
-	webhooksrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhooks"
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
 
 	"github.com/primandproper/platform-go/v14/authentication/passwordreset"
 	platformsettings "github.com/primandproper/platform-go/v14/settings"
-	webhookscfg "github.com/primandproper/platform-go/v14/webhooks/config"
 	"github.com/primandproper/primitives-go/v2/authentication/argon2"
 	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
 	"github.com/primandproper/primitives-go/v2/database"
@@ -297,39 +293,11 @@ func WithSettingsRepository(fn func(ctx context.Context, store platformsettings.
 	}
 }
 
-// WithWebhooksRepository provides a webhooks repository for custom operations.
-// The provided function receives a fully configured webhooks.Repository along with logger and tracer.
-func WithWebhooksRepository(fn func(ctx context.Context, repo webhooks.Repository, logger logging.Logger, tracerProvider tracing.Provider) error) DatabaseInitFunc {
-	return func(ctx context.Context, dbClient database.Client, dbCfg *dbcfg.Config, logger logging.Logger, tracerProvider tracing.Provider) error {
-		auditLogRepo, err := auditlogentries.ProvideAuditLogRepository(logger, tracerProvider, nil, dbClient)
-		if err != nil {
-			return err
-		}
-
-		// A dispatcher is needed because creating a webhook registers a delivery endpoint,
-		// and a nil one refuses rather than silently storing a webhook that never fires.
-		store, err := webhookscfg.NewStore(ctx, &webhookscfg.Config{}, dbClient)
-		if err != nil {
-			return err
-		}
-
-		dispatcher, err := webhookscfg.NewDispatcher(
-			ctx,
-			&webhookscfg.Config{},
-			dbClient,
-			store,
-			catalog.Catalog(),
-			webhookscfg.WithLogger(logger),
-			webhookscfg.WithTracerProvider(tracerProvider),
-		)
-		if err != nil {
-			return err
-		}
-
-		webhooksRepo := webhooksrepo.ProvideWebhooksRepository(logger, tracerProvider, auditLogRepo, dbClient, nil, dispatcher, store)
-		return fn(ctx, webhooksRepo, logger, tracerProvider)
-	}
-}
+// WithWebhooksRepository is gone with the repository it provided.
+//
+// Nothing called it: it existed so a localdev hook could write webhooks
+// directly, and the endpoints are platform's now. A hook that wants one builds
+// webhooksstore.RegisterWebhooksStore's dependencies, or asks the API.
 
 // WithNotificationsRepository provides a notifications repository for custom operations.
 // The provided function receives a fully configured notifications.Repository along with logger and tracer.

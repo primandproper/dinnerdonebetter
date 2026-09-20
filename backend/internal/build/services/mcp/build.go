@@ -12,7 +12,7 @@ import (
 	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
 	uploadedmediarepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/uploadedmedia"
 	waitlistsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/waitlists"
-	webhooksrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhooks"
+	webhooksstore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhooksstore"
 
 	databasecfg "github.com/primandproper/primitives-go/v2/database/config"
 	"github.com/primandproper/primitives-go/v2/database/postgres"
@@ -58,7 +58,7 @@ func BuildInjector(ctx context.Context, cfg *config.MCPServiceConfig) *do.RootSc
 	// a user's avatar, a recipe step's images.
 	uploadedmediarepo.RegisterUploadedMediaRepository(i)
 	mealplanningrepo.RegisterMealPlanningRepository(i)
-	webhooksrepo.RegisterWebhooksRepository(i)
+	webhooksstore.RegisterWebhooksStore(i)
 	waitlistsrepo.RegisterWaitlistsRepository(i)
 	issuereportsrepo.RegisterIssueReportsRepository(i)
 

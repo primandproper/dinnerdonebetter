@@ -8,13 +8,13 @@ import (
 	mealplanningsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
 	oauthsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/oauth"
 	uploadedmediasvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
-	webhookssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/webhooks"
 	auditsvc "github.com/primandproper/platform-go/v14/audit/auditpb"
 	paymentssvc "github.com/primandproper/platform-go/v14/billing/billingpb"
 	issuereportssvc "github.com/primandproper/platform-go/v14/issuereports/issuereportspb"
 	notificationssvc "github.com/primandproper/platform-go/v14/notifications/notificationspb"
 	settingssvc "github.com/primandproper/platform-go/v14/settings/settingspb"
 	waitlistssvc "github.com/primandproper/platform-go/v14/waitlists/waitlistspb"
+	webhookssvc "github.com/primandproper/platform-go/v14/webhooks/webhookspb"
 
 	"github.com/primandproper/primitives-go/v2/server/grpc"
 )

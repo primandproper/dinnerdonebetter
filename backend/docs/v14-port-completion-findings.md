@@ -285,3 +285,47 @@ local tables, and a model change visible on the wire — plus the `ListEventType
 ruling to pull), then oauth2clients, then signin, then identity last, because
 everything above touches `users` and `accounts` and doing identity first would
 churn them twice.
+
+## H. webhooks is the one domain with no privacy package, and nothing says why
+**Where:** platform ships `billing/privacy`, `comments/privacy`,
+`identity/privacy`, `issuereports/privacy`, `mediaregistry/privacy`,
+`notifications/privacy`, `settings/privacy`, `waitlists/privacy` — and no
+`webhooks/privacy`. `webhooks/doc.go` does not mention privacy, dataprivacy or
+subject access at all.
+**Severity:** a question rather than a defect.
+
+This application does treat webhooks as part of a subject access request —
+`internal/domain/webhooks/privacy` exports the endpoints in the accounts a
+subject belongs to. Whether that is right is arguable: an endpoint is account
+configuration, and its URL is the account's rather than the person's. But the
+endpoint also names who created it, and eight of nine domains ship the package
+regardless.
+
+If the omission is deliberate — webhooks are configuration, not personal data —
+one sentence in `webhooks/doc.go` settles it, and this repo drops its collector.
+If it is not, a `webhooks/privacy` shaped like the others is the answer.
+
+Proceeding without waiting: this repo keeps its own collector and reads
+platform's store through it. Swapping to a platform package later is small.
+
+## I. "Subscription" means two different things on two sibling surfaces
+**Where:** `billing/billingpb` — `GetSubscription`, `ListSubscriptions`,
+`ArchiveSubscription` (a paid plan). `webhooks/webhookspb` — the same three
+names (an endpoint's subscription to an event type).
+**Severity:** low, and the consumer's workaround is one line. Worth knowing.
+
+A consumer that embeds both generated client interfaces in one type gets three
+ambiguous selectors and does not compile:
+
+    pkg/client/client.go:60:2: duplicate method ArchiveSubscription
+    cannot use c as Client value: ambiguous selector *client.ArchiveSubscription
+
+This repo embeds fifteen service clients in one `Client` so that callers say
+`c.GetRecipe(...)` rather than `c.Recipes().GetRecipe(...)`, which worked until
+two surfaces used one word for two things. The fix is to stop embedding one of
+them — webhooks now has an accessor, as comments already did — so it is a
+consumer-side choice rather than a platform defect.
+
+It is recorded because the collision is not obvious from either surface on its
+own, and the compiler only finds it at the moment a consumer adopts the second
+one. A note in either doc.go would have saved the discovery.

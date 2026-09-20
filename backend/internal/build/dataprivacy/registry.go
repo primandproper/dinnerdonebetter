@@ -35,9 +35,9 @@ import (
 	settingsprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings/privacy"
 	uploadedmediaprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia/privacy"
 	waitlistsprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists/privacy"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
 	webhooksprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/privacy"
 	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
+	platformwebhooks "github.com/primandproper/platform-go/v14/webhooks"
 
 	"github.com/primandproper/platform-go/v14/billing"
 	platformcomments "github.com/primandproper/platform-go/v14/comments"
@@ -124,7 +124,8 @@ func buildRegistry(i do.Injector) (*platformdataprivacy.Registry, error) {
 		ddbdataprivacy.CollectorKeyMealPlanning: mealplanningprivacy.NewCollector(
 			do.MustInvoke[mealplanning.Repository](i), resolveAccounts, logger, tracerProvider),
 		ddbdataprivacy.CollectorKeyWebhooks: webhooksprivacy.NewCollector(
-			do.MustInvoke[webhooks.Repository](i), resolveAccounts, logger, tracerProvider),
+			do.MustInvoke[platformwebhooks.Store](i), do.MustInvoke[database.Client](i),
+			resolveAccounts, logger, tracerProvider),
 		ddbdataprivacy.CollectorKeyNotifications: notificationsprivacy.NewCollector(
 			do.MustInvoke[notifications.Repository](i), logger, tracerProvider),
 		ddbdataprivacy.CollectorKeyPayments:      paymentsCollector,

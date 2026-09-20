@@ -16,7 +16,6 @@ import (
 	mealplanninggrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
 	oauthgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/oauth"
 	uploadedmediagrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
-	webhooksgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/webhooks"
 	auditgrpc "github.com/primandproper/platform-go/v14/audit/auditpb"
 	paymentsgrpc "github.com/primandproper/platform-go/v14/billing/billingpb"
 	commentsgrpc "github.com/primandproper/platform-go/v14/comments/commentspb"
@@ -24,6 +23,7 @@ import (
 	notificationsgrpc "github.com/primandproper/platform-go/v14/notifications/notificationspb"
 	settingsgrpc "github.com/primandproper/platform-go/v14/settings/settingspb"
 	waitlistsgrpc "github.com/primandproper/platform-go/v14/waitlists/waitlistspb"
+	webhooksgrpc "github.com/primandproper/platform-go/v14/webhooks/webhookspb"
 
 	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
 	"github.com/primandproper/primitives-go/v2/httpclient"
@@ -57,11 +57,18 @@ type Client interface {
 	settingsgrpc.SettingsServiceClient
 	uploadedmediagrpc.UploadedMediaServiceClient
 	waitlistsgrpc.WaitlistsServiceClient
-	webhooksgrpc.WebhooksServiceClient
 
 	// CommentsService returns the standalone CommentsService client. Use this to call
 	// CommentsService RPCs directly instead of via MealPlanningService.
 	CommentsService() commentsgrpc.CommentsServiceClient
+
+	// WebhooksService returns the webhooks client.
+	//
+	// It is an accessor rather than an embed because billing and webhooks both
+	// name three RPCs Subscription — a paid plan on one, an endpoint's interest in
+	// an event type on the other — and a type embedding both has three ambiguous
+	// selectors and does not compile.
+	WebhooksService() webhooksgrpc.WebhooksServiceClient
 
 	// Close releases the underlying gRPC connection. Callers that build clients repeatedly
 	// must call this to avoid leaking connections.
@@ -83,9 +90,9 @@ type client struct {
 	settingsgrpc.SettingsServiceClient
 	uploadedmediagrpc.UploadedMediaServiceClient
 	waitlistsgrpc.WaitlistsServiceClient
-	webhooksgrpc.WebhooksServiceClient
 
 	commentsClient commentsgrpc.CommentsServiceClient
+	webhooksClient webhooksgrpc.WebhooksServiceClient
 	conn           *grpc.ClientConn
 }
 
@@ -111,8 +118,8 @@ func BuildClient(grpcServerAddress string, opts ...grpc.DialOption) (Client, err
 		SettingsServiceClient:      settingsgrpc.NewSettingsServiceClient(conn),
 		UploadedMediaServiceClient: uploadedmediagrpc.NewUploadedMediaServiceClient(conn),
 		WaitlistsServiceClient:     waitlistsgrpc.NewWaitlistsServiceClient(conn),
-		WebhooksServiceClient:      webhooksgrpc.NewWebhooksServiceClient(conn),
 		commentsClient:             commentsgrpc.NewCommentsServiceClient(conn),
+		webhooksClient:             webhooksgrpc.NewWebhooksServiceClient(conn),
 		conn:                       conn,
 	}
 
@@ -121,6 +128,12 @@ func BuildClient(grpcServerAddress string, opts ...grpc.DialOption) (Client, err
 
 func (c *client) CommentsService() commentsgrpc.CommentsServiceClient {
 	return c.commentsClient
+}
+
+// WebhooksService returns the webhooks client. See the interface for why it is
+// not embedded.
+func (c *client) WebhooksService() webhooksgrpc.WebhooksServiceClient {
+	return c.webhooksClient
 }
 
 // Close releases the underlying gRPC connection.

@@ -17,7 +17,6 @@ import (
 	mealplanningsvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
 	oauthsvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/oauth"
 	uploadedmediasvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
-	webhookssvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/webhooks"
 	analyticsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/analytics/grpc"
 	authgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc/interceptors"
@@ -28,7 +27,6 @@ import (
 	mealplanninggrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/grpc"
 	oauthgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/oauth/grpc"
 	uploadedmediagrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/grpc"
-	webhooksgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/webhooks/grpc"
 	auditpb "github.com/primandproper/platform-go/v14/audit/auditpb"
 	auditgrpc "github.com/primandproper/platform-go/v14/audit/grpc"
 	billingpb "github.com/primandproper/platform-go/v14/billing/billingpb"
@@ -42,6 +40,8 @@ import (
 	settingsgrpc "github.com/primandproper/platform-go/v14/settings/grpc"
 	settingspb "github.com/primandproper/platform-go/v14/settings/settingspb"
 	waitlistspb "github.com/primandproper/platform-go/v14/waitlists/waitlistspb"
+	webhooksgrpc "github.com/primandproper/platform-go/v14/webhooks/grpc"
+	webhookspb "github.com/primandproper/platform-go/v14/webhooks/webhookspb"
 
 	analyticscfg "github.com/primandproper/primitives-go/v2/analytics/config"
 	authzgrpc "github.com/primandproper/primitives-go/v2/authorization/grpc"
@@ -92,7 +92,7 @@ func RegisterExtras(i do.Injector) {
 			settingsgrpc.Permissions(),
 			do.MustInvoke[uploadedmediagrpc.UploadedMediaMethodPermissions](i),
 			waitlistsbuild.Permissions(),
-			do.MustInvoke[webhooksgrpc.WebhooksMethodPermissions](i),
+			webhooksgrpc.Permissions(),
 		), nil
 	})
 
@@ -149,7 +149,7 @@ func RegisterExtras(i do.Injector) {
 			do.MustInvoke[settingspb.SettingsServiceServer](i),
 			do.MustInvoke[uploadedmediasvcpb.UploadedMediaServiceServer](i),
 			do.MustInvoke[waitlistspb.WaitlistsServiceServer](i),
-			do.MustInvoke[webhookssvcpb.WebhooksServiceServer](i),
+			do.MustInvoke[webhookspb.WebhooksServiceServer](i),
 		), nil
 	})
 
@@ -167,7 +167,7 @@ func RegisterExtras(i do.Injector) {
 			do.MustInvoke[billingpb.BillingServiceServer](i),
 			do.MustInvoke[settingspb.SettingsServiceServer](i),
 			do.MustInvoke[uploadedmediasvcpb.UploadedMediaServiceServer](i),
-			do.MustInvoke[webhookssvcpb.WebhooksServiceServer](i),
+			do.MustInvoke[webhookspb.WebhooksServiceServer](i),
 			do.MustInvoke[waitlistspb.WaitlistsServiceServer](i),
 			do.MustInvoke[*platformgrpc.Server](i),
 		), nil
@@ -190,7 +190,7 @@ func BuildRegistrationFuncs(
 	settingsService settingspb.SettingsServiceServer,
 	uploadedMediaService uploadedmediasvcpb.UploadedMediaServiceServer,
 	waitlistsService waitlistspb.WaitlistsServiceServer,
-	webhooksService webhookssvcpb.WebhooksServiceServer,
+	webhooksService webhookspb.WebhooksServiceServer,
 ) []platformgrpc.RegistrationFunc {
 	return []platformgrpc.RegistrationFunc{
 		func(server *grpc.Server) {
@@ -209,7 +209,7 @@ func BuildRegistrationFuncs(
 			settingspb.RegisterSettingsServiceServer(server, settingsService)
 			uploadedmediasvcpb.RegisterUploadedMediaServiceServer(server, uploadedMediaService)
 			waitlistspb.RegisterWaitlistsServiceServer(server, waitlistsService)
-			webhookssvcpb.RegisterWebhooksServiceServer(server, webhooksService)
+			webhookspb.RegisterWebhooksServiceServer(server, webhooksService)
 		},
 	}
 }
@@ -311,7 +311,7 @@ func AggregateMethodPermissions(
 	settingsPermissions map[string][]authorization.Permission,
 	uploadedmediaPermissions uploadedmediagrpc.UploadedMediaMethodPermissions,
 	waitlistsPermissions map[string][]authorization.Permission,
-	webhooksPermissions webhooksgrpc.WebhooksMethodPermissions,
+	webhooksPermissions map[string][]authorization.Permission,
 ) interceptors.MethodPermissionsMap {
 	result := make(interceptors.MethodPermissionsMap)
 

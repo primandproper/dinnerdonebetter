@@ -95,6 +95,7 @@ const (
 	authorizationMigrationVersion   = 42
 	billingMigrationVersion         = 43
 	notificationsMigrationVersion   = 44
+	webhooksModelMigrationVersion   = 45
 )
 
 // NewMigrator creates a new postgres Migrator over the embedded migration files.
@@ -270,6 +271,7 @@ func NewMigrator(logger logging.Logger) (*Migrator, error) {
 		migrate.WithGeneratedMigration(authorizationMigrationVersion, "create_authorization_tables", authorizationDDL),
 		migrate.WithGeneratedMigration(billingMigrationVersion, "create_billing_tables", billingDDL),
 		migrate.WithGeneratedMigration(notificationsMigrationVersion, "create_notifications_tables", notificationsDDL),
+		migrate.WithGeneratedMigration(webhooksModelMigrationVersion, "drop_local_webhook_tables", dropLocalWebhookTables),
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "building migrator")
@@ -931,3 +933,27 @@ func renderNotificationsDDL() (string, error) {
 
 	return body.String(), nil
 }
+
+// dropLocalWebhookTables removes the three tables that were the webhook model
+// before platform's endpoints became it.
+//
+// webhooks, webhook_trigger_configs and webhook_trigger_events ran in parallel
+// with webhooks_endpoints and webhooks_subscriptions, joined by a shared
+// identifier: the local rows were what the API called a webhook and the
+// platform rows were what actually delivered. There is one model now.
+//
+// Nothing is carried across. The endpoints already exist — this application has
+// registered one for every webhook since the dispatcher was adopted — so the
+// rows these tables held are the same rows under other names, and the one column
+// that has no counterpart was already inert. webhooks.method was validated on
+// every write and echoed on every read while delivery went through a dispatcher
+// that posts, so a client asking for PUT was told PUT and sent POST.
+//
+// The configs table goes before the webhooks table it references, and the events
+// table after both: Postgres will not drop a table out from under a foreign key.
+const dropLocalWebhookTables = `DROP TABLE IF EXISTS webhook_trigger_configs;
+DROP TABLE IF EXISTS webhooks;
+DROP TABLE IF EXISTS webhook_trigger_events;
+DROP TYPE IF EXISTS webhook_method;
+DROP TYPE IF EXISTS webhook_content_type;
+`

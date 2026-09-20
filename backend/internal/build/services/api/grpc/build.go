@@ -14,6 +14,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/build/sagas"
 	settingsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/settings"
 	waitlistsbuild2 "github.com/primandproper/dinnerdonebetter/backend/internal/build/waitlists"
+	webhooksbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/webhooks"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	auditmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit/manager"
 	authmgr "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/managers"
@@ -37,7 +38,7 @@ import (
 	settingsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/settings"
 	uploadedmediarepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/uploadedmedia"
 	waitlistsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/waitlists"
-	webhooksrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhooks"
+	webhooksstore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhooksstore"
 	analyticssvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/analytics/grpc"
 	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc/interceptors"
@@ -50,7 +51,6 @@ import (
 	paymentsadapters "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/adapters"
 	uploadedmediacfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/config"
 	uploadedmediasvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/grpc"
-	webhookssvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/webhooks/grpc"
 
 	operationscfg "github.com/primandproper/platform-go/v14/operations/config"
 	"github.com/primandproper/primitives-go/v2/analytics/multisource"
@@ -161,7 +161,7 @@ func BuildInjector(
 	identityrepo.RegisterIdentityRepository(i)
 	issuereportsrepo.RegisterIssueReportsRepository(i)
 	uploadedmediarepo.RegisterUploadedMediaRepository(i)
-	webhooksrepo.RegisterWebhooksRepository(i)
+	webhooksstore.RegisterWebhooksStore(i)
 	oauthrepo.RegisterOAuthRepository(i)
 	paymentsrepo.RegisterPaymentsRepository(i)
 	internalopsrepo.RegisterInternalOpsRepository(i)
@@ -195,7 +195,7 @@ func BuildInjector(
 	notificationsbuild.RegisterNotificationsService(i)
 	settingsbuild.RegisterSettingsService(i)
 	uploadedmediasvc.RegisterUploadedMediaService(i)
-	webhookssvc.RegisterWebhooksService(i)
+	webhooksbuild.RegisterWebhooksService(i)
 	oauthsvc.RegisterOAuthService(i)
 	paymentsbuild.RegisterPaymentsService(i)
 	waitlistsbuild2.RegisterWaitlistsService(i)

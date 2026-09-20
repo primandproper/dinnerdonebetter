@@ -18,7 +18,7 @@ import (
 	settingsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/settings"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/uploadedmedia"
 	waitlistsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/waitlists"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhooks"
+	webhooksstore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhooksstore"
 	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
 
 	analyticscfg "github.com/primandproper/primitives-go/v2/analytics/config"
@@ -81,7 +81,7 @@ func BuildInjector(
 	identity.RegisterIdentityRepository(i)
 	issue_reports.RegisterIssueReportsRepository(i)
 	uploadedmedia.RegisterUploadedMediaRepository(i)
-	webhooks.RegisterWebhooksRepository(i)
+	webhooksstore.RegisterWebhooksStore(i)
 	internalopsrepo.RegisterInternalOpsRepository(i)
 
 	// managers

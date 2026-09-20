@@ -23,7 +23,7 @@ import (
 	settingsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/settings"
 	uploadedmediarepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/uploadedmedia"
 	waitlistsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/waitlists"
-	webhooksrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhooks"
+	webhooksstore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhooksstore"
 	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
 	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
 	queuetest "github.com/primandproper/dinnerdonebetter/backend/internal/services/internalops/workers/queue_test"
@@ -107,7 +107,7 @@ func BuildInjector(
 	// This also registers the webhook Store and Dispatcher, which this process needs in both
 	// directions: dispatch happens inside the transaction that causes the event, and the meal
 	// plan finalizer emits events like any request does.
-	webhooksrepo.RegisterWebhooksRepository(i)
+	webhooksstore.RegisterWebhooksStore(i)
 
 	// The notifications manager and the push fan-out over it. The manager registers the
 	// notifications repository on its own, which is why that one is absent from the list
