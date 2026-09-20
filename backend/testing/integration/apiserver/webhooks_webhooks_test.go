@@ -374,8 +374,12 @@ func TestWebhookSubscriptions_Adding(T *testing.T) {
 		require.NoError(t, err)
 		assert.Len(t, listed.GetResults(), 2)
 
+		// webhook_trigger_configs, which is the name the table had before the store moved
+		// to platform. The audit log keeps it on purpose — an investigation asking what
+		// happened to a subscription should find the entries written on both sides of the
+		// adoption. See webhooksstore's constants.
 		AssertAuditLogContainsFuzzy(t, ctx, testClient, getAccountIDForTest(t, testClient), 15, []*ExpectedAuditEntry{
-			{EventType: "created", ResourceType: "webhook_subscriptions", RelevantID: added.GetResult().GetId()},
+			{EventType: "created", ResourceType: "webhook_trigger_configs", RelevantID: added.GetResult().GetId()},
 		})
 	})
 
@@ -441,17 +445,27 @@ func TestWebhookSubscriptions_Removing(T *testing.T) {
 		}
 	})
 
+	// Answered OK rather than refused, for ArchiveEndpoint's reason: an id that names
+	// nothing under the caller's own endpoints is a nil subscription and no error, so the
+	// call cannot be walked to find out which subscription ids exist elsewhere. The
+	// endpoint's own subscriptions are what the assertion is on.
 	T.Run("nonexistentID", func(t *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
 		_, testClient := createUserAndClientForTest(t)
-		createWebhookForTest(t, testClient)
+		endpoint := createWebhookForTest(t, testClient)
 
 		_, err := testClient.WebhooksService().ArchiveSubscription(ctx, &webhookspb.ArchiveSubscriptionRequest{
 			SubscriptionId: nonexistentID,
 		})
-		assert.Error(t, err)
+		require.NoError(t, err, "archiving an id that names nothing is answered rather than refused")
+
+		listed, err := testClient.WebhooksService().ListSubscriptions(ctx, &webhookspb.ListSubscriptionsRequest{
+			EndpointId: endpoint.GetId(),
+		})
+		require.NoError(t, err)
+		assert.NotEmpty(t, listed.GetResults(), "the endpoint's own subscription went with it")
 	})
 
 	T.Run("requires auth", func(t *testing.T) {

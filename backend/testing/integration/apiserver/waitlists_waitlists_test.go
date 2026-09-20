@@ -621,7 +621,11 @@ func TestWaitlistSignups_Updating(T *testing.T) {
 
 		const newNotes = "Updated notes"
 
-		_, err := testClient.UpdateSignupNotes(ctx, &waitlistspb.UpdateSignupNotesRequest{
+		// The admin client, because the note is the operator's: platform defines this
+		// grant as "rewriting the operator's note against a signup", and neither it nor
+		// ArchiveSignup has an ownership seam, so a member holding either could rewrite
+		// or retire anybody's signup by naming its id. See internal/authorization.
+		_, err := adminClient.UpdateSignupNotes(ctx, &waitlistspb.UpdateSignupNotesRequest{
 			ListId:   waitlist.GetId(),
 			SignupId: created.GetId(),
 			Notes:    newNotes,
@@ -789,7 +793,7 @@ func TestWaitlistSignups_Withdrawing(T *testing.T) {
 			SignupId: signup.GetId(),
 		})
 		require.Error(t, err)
-		assert.Equal(t, codes.PermissionDenied, status.Code(err))
+		assert.Equal(t, codes.NotFound, status.Code(err))
 	})
 
 	// One person's withdrawal does not keep another person off the list.
@@ -844,12 +848,18 @@ func TestWaitlistSignups_Withdrawing(T *testing.T) {
 		waitlist := createWaitlistForTest(t, testClient)
 		signup := createWaitlistSignupForTest(t, testClient, waitlist.GetId())
 
+		// NotFound rather than PermissionDenied, and platform is emphatic that this is
+		// not a rounding of one to the other. The caller here is frequently anonymous and
+		// holds an identifier somebody handed them; a PermissionDenied on a signup that
+		// is not theirs and a NotFound on one that does not exist would be two answers a
+		// caller walking identifiers could tell apart, which is the enumeration this
+		// service refuses to be.
 		_, err := otherClient.Withdraw(ctx, &waitlistspb.WithdrawRequest{
 			ListId:   waitlist.GetId(),
 			SignupId: signup.GetId(),
 		})
 		require.Error(t, err)
-		assert.Equal(t, codes.PermissionDenied, status.Code(err))
+		assert.Equal(t, codes.NotFound, status.Code(err))
 	})
 
 	T.Run("requires auth", func(t *testing.T) {
@@ -873,7 +883,9 @@ func TestWaitlistSignups_Archiving(T *testing.T) {
 		waitlist := createWaitlistForTest(t, testClient)
 		created := createWaitlistSignupForTest(t, testClient, waitlist.GetId())
 
-		_, err := testClient.ArchiveSignup(ctx, &waitlistspb.ArchiveSignupRequest{
+		// The admin client: archiving is the queue being tidied, not an opt-out being
+		// honored, and platform puts it behind an operator's grant for that reason.
+		_, err := adminClient.ArchiveSignup(ctx, &waitlistspb.ArchiveSignupRequest{
 			ListId:   waitlist.GetId(),
 			SignupId: created.GetId(),
 		})

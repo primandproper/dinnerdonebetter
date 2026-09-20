@@ -518,7 +518,11 @@ func TestCrossTenant_WaitlistSignups_Denied(T *testing.T) {
 		require.Error(t, err)
 		assert.Equal(t, codes.PermissionDenied, status.Code(err))
 
-		// cross-tenant: B may not update A's signup.
+		// cross-tenant: B may not rewrite the note on A's signup. Denied by the grant,
+		// which B does not hold — the note is the operator's, and this RPC has no
+		// ownership seam, so the grant is the whole of its defense. It used to be a
+		// member's here, which made it a cross-tenant hole: signups are globally scoped,
+		// so any signed-in caller could rewrite anybody's by naming its id.
 		_, err = clientB.UpdateSignupNotes(ctx, &waitlistspb.UpdateSignupNotesRequest{
 			ListId:   waitlist.GetId(),
 			SignupId: signup.GetId(),
@@ -530,14 +534,21 @@ func TestCrossTenant_WaitlistSignups_Denied(T *testing.T) {
 		// cross-tenant: B may not unsubscribe A. A withdrawal is irreversible by
 		// design — the address stays suppressed after it — so this is the most
 		// damaging of the four.
+		//
+		// Refused by the authorizer rather than by a grant, since Withdraw is the
+		// member's own opt-out and B holds it for their own signups. NotFound is what
+		// that refusal looks like, deliberately: the caller is frequently anonymous and
+		// holds an identifier somebody handed them, so telling a signup that is not
+		// theirs apart from one that does not exist would make this an enumeration.
 		_, err = clientB.Withdraw(ctx, &waitlistspb.WithdrawRequest{
 			ListId:   waitlist.GetId(),
 			SignupId: signup.GetId(),
 		})
 		require.Error(t, err)
-		assert.Equal(t, codes.PermissionDenied, status.Code(err))
+		assert.Equal(t, codes.NotFound, status.Code(err))
 
-		// cross-tenant: B may not archive A's signup.
+		// cross-tenant: B may not archive A's signup. By the grant again — archiving is
+		// the queue being tidied, not an opt-out being honored.
 		_, err = clientB.ArchiveSignup(ctx, &waitlistspb.ArchiveSignupRequest{
 			ListId:   waitlist.GetId(),
 			SignupId: signup.GetId(),
@@ -602,16 +613,27 @@ func TestCrossTenant_WaitlistSignups_Denied(T *testing.T) {
 		require.NoError(t, err)
 		assert.NotEmpty(t, theirs.GetResults())
 
-		// positive control: A may still amend and archive its own signup, which is what
-		// the cross-tenant denials above are measured against.
+		// positive control: A may still leave the list, which is the one write on a
+		// signup that belongs to the person on it. Amending the note and archiving the
+		// row are the operator's, so A is refused them exactly as B is — the denials
+		// above are the grant working, not a cross-tenant rule, and the control that
+		// measures them has to be a write A actually holds.
 		_, err = clientA.UpdateSignupNotes(ctx, &waitlistspb.UpdateSignupNotesRequest{
 			ListId:   waitlist.GetId(),
 			SignupId: signup.GetId(),
 			Notes:    "owner-updated notes",
 		})
+		require.Error(t, err)
+		assert.Equal(t, codes.PermissionDenied, status.Code(err))
+
+		_, err = clientA.Withdraw(ctx, &waitlistspb.WithdrawRequest{
+			ListId:   waitlist.GetId(),
+			SignupId: signup.GetId(),
+		})
 		require.NoError(t, err)
 
-		_, err = clientA.ArchiveSignup(ctx, &waitlistspb.ArchiveSignupRequest{
+		// And an operator may archive it, which is the other half of the same split.
+		_, err = adminClient.ArchiveSignup(ctx, &waitlistspb.ArchiveSignupRequest{
 			ListId:   waitlist.GetId(),
 			SignupId: signup.GetId(),
 		})

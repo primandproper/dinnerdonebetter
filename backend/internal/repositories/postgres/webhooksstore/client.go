@@ -93,8 +93,18 @@ func ProvideStore(
 // SaveEndpoint writes the endpoint, then records it.
 //
 // One entry for both halves of a save, because the store's one method is both:
-// an endpoint with an id it has seen is an update and one without is a
-// creation, and the entry says which by the event type it carries.
+// the statement inserts or it conflicts, and the entry says which by the event
+// type it carries.
+//
+// Which it did is read off the row the write returned, not off the argument. The
+// obvious test — an endpoint arriving with no id is new — is wrong from the
+// wire, because the caller is webhooks.StoreDispatcher.Register and it mints the
+// id before this sees it. Every registration therefore looked like an update,
+// which is an audit log in which no webhook was ever created.
+//
+// last_updated_at is the signal that survives that. The upsert stamps it only
+// under ON CONFLICT, so a row that comes back without one is a row this
+// statement inserted.
 func (s *store) SaveEndpoint(
 	ctx context.Context,
 	tx database.Tx,
@@ -103,8 +113,6 @@ func (s *store) SaveEndpoint(
 ) (*platformwebhooks.Endpoint, error) {
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
-
-	existing := endpoint != nil && endpoint.ID != ""
 
 	saved, err := s.Store.SaveEndpoint(ctx, tx, scope, endpoint)
 	if err != nil {
@@ -115,7 +123,7 @@ func (s *store) SaveEndpoint(
 
 	eventType := ddbwebhooks.WebhookCreatedServiceEventType
 	auditEventType := audit.AuditLogEventTypeCreated
-	if existing {
+	if saved.LastUpdatedAt != nil {
 		eventType = ddbwebhooks.WebhookUpdatedServiceEventType
 		auditEventType = audit.AuditLogEventTypeUpdated
 	}

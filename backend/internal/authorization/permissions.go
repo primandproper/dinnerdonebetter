@@ -64,6 +64,21 @@ var (
 		ConvertWaitlistSignupsPermission,
 		EraseWaitlistSignupsPermission,
 
+		// Both of these were a member's, and both are operator grants — platform says so
+		// in as many words. "Rewriting the operator's note against a signup" is not
+		// something the person on the list does, and archiving is explicitly not
+		// withdrawing: the row is hidden and the address is still stored, so it is a
+		// queue being tidied rather than an opt-out being honored. The opt-out is
+		// Withdraw, which a member reaches under JoinWaitlistsPermission and which the
+		// signup authorizer confines to their own.
+		//
+		// Leaving them with the member was a cross-tenant hole rather than a generous
+		// reading: signups are scoped globally here and neither RPC has an ownership
+		// seam, so any signed-in caller could rewrite or retire anybody's signup by
+		// naming its id.
+		UpdateWaitlistSignupsPermission,
+		ArchiveWaitlistSignupsPermission,
+
 		// Reading signups is a service admin's and nobody else's, which costs a member
 		// the ability to see their own place in a queue.
 		//
@@ -315,8 +330,6 @@ var (
 		ArchiveUserDeviceTokensPermission,
 		JoinWaitlistsPermission,
 		ReadOwnWaitlistSignupsPermission,
-		UpdateWaitlistSignupsPermission,
-		ArchiveWaitlistSignupsPermission,
 		ReadWaitlistsPermission,
 		ReadValidPrepTaskConfigsPermission,
 		CreateCheckoutSessionPermission,
