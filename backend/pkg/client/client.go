@@ -15,10 +15,10 @@ import (
 	internalopsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/internalops"
 	mealplanninggrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
 	oauthgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/oauth"
-	paymentsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/payments"
 	uploadedmediagrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
 	webhooksgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/webhooks"
 	auditgrpc "github.com/primandproper/platform-go/v14/audit/auditpb"
+	paymentsgrpc "github.com/primandproper/platform-go/v14/billing/billingpb"
 	commentsgrpc "github.com/primandproper/platform-go/v14/comments/commentspb"
 	issuereportsgrpc "github.com/primandproper/platform-go/v14/issuereports/issuereportspb"
 	notificationsgrpc "github.com/primandproper/platform-go/v14/notifications/notificationspb"
@@ -53,7 +53,7 @@ type Client interface {
 	mealplanninggrpc.MealPlanningServiceClient
 	notificationsgrpc.NotificationsServiceClient
 	oauthgrpc.OAuthServiceClient
-	paymentsgrpc.PaymentsServiceClient
+	paymentsgrpc.BillingServiceClient
 	settingsgrpc.SettingsServiceClient
 	uploadedmediagrpc.UploadedMediaServiceClient
 	waitlistsgrpc.WaitlistsServiceClient
@@ -79,7 +79,7 @@ type client struct {
 	mealplanninggrpc.MealPlanningServiceClient
 	notificationsgrpc.NotificationsServiceClient
 	oauthgrpc.OAuthServiceClient
-	paymentsgrpc.PaymentsServiceClient
+	paymentsgrpc.BillingServiceClient
 	settingsgrpc.SettingsServiceClient
 	uploadedmediagrpc.UploadedMediaServiceClient
 	waitlistsgrpc.WaitlistsServiceClient
@@ -107,7 +107,7 @@ func BuildClient(grpcServerAddress string, opts ...grpc.DialOption) (Client, err
 		MealPlanningServiceClient:  mealplanninggrpc.NewMealPlanningServiceClient(conn),
 		NotificationsServiceClient: notificationsgrpc.NewNotificationsServiceClient(conn),
 		OAuthServiceClient:         oauthgrpc.NewOAuthServiceClient(conn),
-		PaymentsServiceClient:      paymentsgrpc.NewPaymentsServiceClient(conn),
+		BillingServiceClient:       paymentsgrpc.NewBillingServiceClient(conn),
 		SettingsServiceClient:      settingsgrpc.NewSettingsServiceClient(conn),
 		UploadedMediaServiceClient: uploadedmediagrpc.NewUploadedMediaServiceClient(conn),
 		WaitlistsServiceClient:     waitlistsgrpc.NewWaitlistsServiceClient(conn),

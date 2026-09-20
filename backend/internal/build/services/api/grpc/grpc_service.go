@@ -7,10 +7,10 @@ import (
 	internalopssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/internalops"
 	mealplanningsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
 	oauthsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/oauth"
-	paymentssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/payments"
 	uploadedmediasvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
 	webhookssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/webhooks"
 	auditsvc "github.com/primandproper/platform-go/v14/audit/auditpb"
+	paymentssvc "github.com/primandproper/platform-go/v14/billing/billingpb"
 	issuereportssvc "github.com/primandproper/platform-go/v14/issuereports/issuereportspb"
 	notificationssvc "github.com/primandproper/platform-go/v14/notifications/notificationspb"
 	settingssvc "github.com/primandproper/platform-go/v14/settings/settingspb"
@@ -29,7 +29,7 @@ type GRPCService struct {
 	mealplanningsvc.MealPlanningServiceServer
 	notificationssvc.NotificationsServiceServer
 	oauthsvc.OAuthServiceServer
-	paymentssvc.PaymentsServiceServer
+	paymentssvc.BillingServiceServer
 	settingssvc.SettingsServiceServer
 	uploadedmediasvc.UploadedMediaServiceServer
 	waitlistssvc.WaitlistsServiceServer
@@ -47,7 +47,7 @@ func NewGRPCService(
 	mealPlanningServiceServer mealplanningsvc.MealPlanningServiceServer,
 	userNotificationsServiceServer notificationssvc.NotificationsServiceServer,
 	oauthServiceServer oauthsvc.OAuthServiceServer,
-	paymentsServiceServer paymentssvc.PaymentsServiceServer,
+	paymentsServiceServer paymentssvc.BillingServiceServer,
 	settingsServiceServer settingssvc.SettingsServiceServer,
 	uploadedMediaServiceServer uploadedmediasvc.UploadedMediaServiceServer,
 	webhooksServiceServer webhookssvc.WebhooksServiceServer,
@@ -65,7 +65,7 @@ func NewGRPCService(
 		MealPlanningServiceServer:  mealPlanningServiceServer,
 		NotificationsServiceServer: userNotificationsServiceServer,
 		OAuthServiceServer:         oauthServiceServer,
-		PaymentsServiceServer:      paymentsServiceServer,
+		BillingServiceServer:       paymentsServiceServer,
 		SettingsServiceServer:      settingsServiceServer,
 		UploadedMediaServiceServer: uploadedMediaServiceServer,
 		WebhooksServiceServer:      webhooksServiceServer,

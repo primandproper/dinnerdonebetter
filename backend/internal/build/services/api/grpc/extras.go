@@ -16,7 +16,6 @@ import (
 	internalopssvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/internalops"
 	mealplanningsvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
 	oauthsvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/oauth"
-	paymentssvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/payments"
 	uploadedmediasvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
 	webhookssvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/webhooks"
 	analyticsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/analytics/grpc"
@@ -28,11 +27,12 @@ import (
 	internalopsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/internalops/grpc"
 	mealplanninggrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/grpc"
 	oauthgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/oauth/grpc"
-	paymentsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/grpc"
 	uploadedmediagrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/grpc"
 	webhooksgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/webhooks/grpc"
 	auditpb "github.com/primandproper/platform-go/v14/audit/auditpb"
 	auditgrpc "github.com/primandproper/platform-go/v14/audit/grpc"
+	billingpb "github.com/primandproper/platform-go/v14/billing/billingpb"
+	paymentsgrpc "github.com/primandproper/platform-go/v14/billing/grpc"
 	commentspb "github.com/primandproper/platform-go/v14/comments/commentspb"
 	commentsgrpc "github.com/primandproper/platform-go/v14/comments/grpc"
 	issuereportsgrpc "github.com/primandproper/platform-go/v14/issuereports/grpc"
@@ -88,7 +88,7 @@ func RegisterExtras(i do.Injector) {
 			do.MustInvoke[mealplanninggrpc.MealPlanningMethodPermissions](i),
 			notificationsgrpc.Permissions(),
 			do.MustInvoke[oauthgrpc.OAuthMethodPermissions](i),
-			do.MustInvoke[paymentsgrpc.PaymentsMethodPermissions](i),
+			paymentsgrpc.Permissions(),
 			settingsgrpc.Permissions(),
 			do.MustInvoke[uploadedmediagrpc.UploadedMediaMethodPermissions](i),
 			waitlistsbuild.Permissions(),
@@ -145,7 +145,7 @@ func RegisterExtras(i do.Injector) {
 			do.MustInvoke[mealplanningsvcpb.MealPlanningServiceServer](i),
 			do.MustInvoke[notificationspb.NotificationsServiceServer](i),
 			do.MustInvoke[oauthsvcpb.OAuthServiceServer](i),
-			do.MustInvoke[paymentssvcpb.PaymentsServiceServer](i),
+			do.MustInvoke[billingpb.BillingServiceServer](i),
 			do.MustInvoke[settingspb.SettingsServiceServer](i),
 			do.MustInvoke[uploadedmediasvcpb.UploadedMediaServiceServer](i),
 			do.MustInvoke[waitlistspb.WaitlistsServiceServer](i),
@@ -164,7 +164,7 @@ func RegisterExtras(i do.Injector) {
 			do.MustInvoke[mealplanningsvcpb.MealPlanningServiceServer](i),
 			do.MustInvoke[notificationspb.NotificationsServiceServer](i),
 			do.MustInvoke[oauthsvcpb.OAuthServiceServer](i),
-			do.MustInvoke[paymentssvcpb.PaymentsServiceServer](i),
+			do.MustInvoke[billingpb.BillingServiceServer](i),
 			do.MustInvoke[settingspb.SettingsServiceServer](i),
 			do.MustInvoke[uploadedmediasvcpb.UploadedMediaServiceServer](i),
 			do.MustInvoke[webhookssvcpb.WebhooksServiceServer](i),
@@ -186,7 +186,7 @@ func BuildRegistrationFuncs(
 	mealPlanningService mealplanningsvcpb.MealPlanningServiceServer,
 	notificationsService notificationspb.NotificationsServiceServer,
 	oauthService oauthsvcpb.OAuthServiceServer,
-	paymentsService paymentssvcpb.PaymentsServiceServer,
+	paymentsService billingpb.BillingServiceServer,
 	settingsService settingspb.SettingsServiceServer,
 	uploadedMediaService uploadedmediasvcpb.UploadedMediaServiceServer,
 	waitlistsService waitlistspb.WaitlistsServiceServer,
@@ -205,7 +205,7 @@ func BuildRegistrationFuncs(
 			mealplanningsvcpb.RegisterMealPlanningServiceServer(server, mealPlanningService)
 			notificationspb.RegisterNotificationsServiceServer(server, notificationsService)
 			oauthsvcpb.RegisterOAuthServiceServer(server, oauthService)
-			paymentssvcpb.RegisterPaymentsServiceServer(server, paymentsService)
+			billingpb.RegisterBillingServiceServer(server, paymentsService)
 			settingspb.RegisterSettingsServiceServer(server, settingsService)
 			uploadedmediasvcpb.RegisterUploadedMediaServiceServer(server, uploadedMediaService)
 			waitlistspb.RegisterWaitlistsServiceServer(server, waitlistsService)
@@ -307,7 +307,7 @@ func AggregateMethodPermissions(
 	mealplanningPermissions mealplanninggrpc.MealPlanningMethodPermissions,
 	notificationsPermissions map[string][]authorization.Permission,
 	oauthPermissions oauthgrpc.OAuthMethodPermissions,
-	paymentsPermissions paymentsgrpc.PaymentsMethodPermissions,
+	paymentsPermissions map[string][]authorization.Permission,
 	settingsPermissions map[string][]authorization.Permission,
 	uploadedmediaPermissions uploadedmediagrpc.UploadedMediaMethodPermissions,
 	waitlistsPermissions map[string][]authorization.Permission,

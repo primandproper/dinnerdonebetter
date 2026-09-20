@@ -10,6 +10,7 @@ import (
 	dataprivacybuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/dataprivacy"
 	issuereportsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/issuereports"
 	notificationsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/notifications"
+	paymentsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/payments"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/build/sagas"
 	settingsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/settings"
 	waitlistsbuild2 "github.com/primandproper/dinnerdonebetter/backend/internal/build/waitlists"
@@ -47,7 +48,6 @@ import (
 	internalopssvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/internalops/grpc"
 	oauthsvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/oauth/grpc"
 	paymentsadapters "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/adapters"
-	paymentssvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/grpc"
 	uploadedmediacfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/config"
 	uploadedmediasvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/grpc"
 	webhookssvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/webhooks/grpc"
@@ -197,7 +197,7 @@ func BuildInjector(
 	uploadedmediasvc.RegisterUploadedMediaService(i)
 	webhookssvc.RegisterWebhooksService(i)
 	oauthsvc.RegisterOAuthService(i)
-	paymentssvc.RegisterPaymentsService(i)
+	paymentsbuild.RegisterPaymentsService(i)
 	waitlistsbuild2.RegisterWaitlistsService(i)
 	uploadedmediacfg.RegisterUploadedMediaConfig(i)
 

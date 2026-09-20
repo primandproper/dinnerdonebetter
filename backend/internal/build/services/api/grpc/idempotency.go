@@ -5,7 +5,7 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
-	paymentssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/payments"
+	billingpb "github.com/primandproper/platform-go/v14/billing/billingpb"
 
 	"github.com/primandproper/primitives-go/v2/database"
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
@@ -25,10 +25,15 @@ import (
 // Reads are absent because replaying them buys nothing: they have no effect to suppress, and
 // recording their responses would spend store capacity on data that is stale by definition.
 // Product mutations are absent because they are admin catalog edits, not purchases.
+//
+// Two of the three were CreateSubscription and UpdateSubscription, and they went
+// with the RPCs. A subscription is what a payment provider reports rather than
+// what a client asks for, so the retry that had to be made safe is the
+// provider's webhook delivery — which carries its own idempotency and is not on
+// this surface. What is left is the archive, where a repeated call is a second
+// cancellation of something already cancelled.
 var idempotentMethods = map[string]bool{
-	paymentssvc.PaymentsService_CreateSubscription_FullMethodName:  true,
-	paymentssvc.PaymentsService_UpdateSubscription_FullMethodName:  true,
-	paymentssvc.PaymentsService_ArchiveSubscription_FullMethodName: true,
+	billingpb.BillingService_ArchiveSubscription_FullMethodName: true,
 }
 
 // principalFromContext scopes an idempotency key to the user who sent it.

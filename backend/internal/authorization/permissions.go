@@ -47,9 +47,7 @@ var (
 		ReadProductsPermission,
 		UpdateProductsPermission,
 		ArchiveProductsPermission,
-		CreateSubscriptionsPermission,
 		ReadSubscriptionsPermission,
-		UpdateSubscriptionsPermission,
 		ArchiveSubscriptionsPermission,
 	}
 
