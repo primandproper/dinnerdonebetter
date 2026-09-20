@@ -13,21 +13,20 @@ chain. A signed-in caller therefore belongs to two chains at once, and a read of
 one of them is a read that never shows somebody their own logins, signups or
 password resets.
 
-callerChains names both, and platform pages them as one — one cursor across
-every chain, merged into the page a single-chain read would have returned. That
-lives upstream rather than here because the merge is easy to get quietly wrong
-and impossible to do in the store: a set of scopes cannot be bound alongside a
-cursor and a limit on two of the three dialects audit serves.
+callerChains names both, and platform reads them as one. The page is merged
+under a single cursor, and an entry by id is looked for in each in turn, off the
+same set — so the list and the get cannot disagree about which chains somebody
+belongs to, which is a disagreement that lands on the caller who did everything
+right. That lives upstream rather than here because the merge is easy to get
+quietly wrong and impossible to do in the store: a set of scopes cannot be bound
+alongside a cursor and a limit on two of the three dialects audit serves.
 
-Two reads are still this package's. An entry by id takes the connection's single
-scope, so a caller who finds one of their own in a list and asks for it by id
-would be told it does not exist; and the operator's read — every chain at once,
-which is a nil query scope and not a slice anybody can enumerate — is a
-deployment policy platform's own surface declines to have. operatorReader
-answers both. Which chains a caller may read is not something a grant on the
-method can say, and it is decided there for the reason waitlists decides a
-subject read inside its handler: the grant is held by an account member, and the
-question it cannot answer is whose log this is.
+One read is still this package's, and it is the one the resolver deliberately
+cannot express: the operator's, every chain at once, which is a nil query scope
+rather than a slice anybody could enumerate. operatorReader makes that decision,
+and which chains a caller may read is not something a grant on the method can
+say — the grant is an account member's, for the reason waitlists' subject read
+is decided inside its handler rather than by PermissionReadSignups.
 
 The privacy export remains the answer for a subject asking for everything held
 about them, because that reaches the repository rather than the wire.
