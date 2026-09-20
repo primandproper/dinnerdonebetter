@@ -28,6 +28,10 @@ func (mealPlanningGRPCMapper) Map(err error) (code codes.Code, ok bool) {
 		return codes.AlreadyExists, true
 	case errors.Is(err, mealplanningrepo.ErrAlreadyFinalized):
 		return codes.FailedPrecondition, true
+	// A recipe whose bridge-table references disagree with its steps is a malformed
+	// request, not a broken server. Without this it reached a client as Internal.
+	case errors.Is(err, mealplanning.ErrInvalidRecipeInput):
+		return codes.InvalidArgument, true
 	default:
 		return codes.Unknown, false
 	}

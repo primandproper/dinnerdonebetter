@@ -910,7 +910,11 @@ func (q *repository) validateAndPopulateRecipeInput(ctx context.Context, input *
 	// Create validator and validate/populate the input
 	validator := recipevalidator.NewRecipeValidator(vipMap, vimuMap, vpiMap, vpvMap)
 	if err = validator.ValidateAndPopulate(input); err != nil {
-		return observability.PrepareError(err, span, "validating recipe input")
+		// Joined with the sentinel rather than replaced by it: the sentinel is what the
+		// error mapper reads to answer InvalidArgument, and the validator's own message is
+		// what names the reference that disagreed. A caller needs both.
+		return observability.PrepareError(
+			fmt.Errorf("%w: %w", mealplanning.ErrInvalidRecipeInput, err), span, "validating recipe input")
 	}
 
 	return nil
@@ -927,8 +931,12 @@ func (q *repository) CreateRecipe(ctx context.Context, input *mealplanning.Recip
 	logger := q.logger.WithValue(mealplanningkeys.RecipeIDKey, input.ID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeIDKey, input.ID)
 
+	// Joined with the sentinel rather than replaced by it: the sentinel is what the error
+	// mapper reads to answer InvalidArgument, and the validation's own message is what says
+	// which rule the recipe broke. A caller needs both.
 	if err := input.ValidateWithContext(ctx); err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "validating recipe input")
+		return nil, observability.PrepareAndLogError(
+			fmt.Errorf("%w: %w", mealplanning.ErrInvalidRecipeInput, err), logger, span, "validating recipe input")
 	}
 
 	// Validate and populate bridge table IDs if any are present
