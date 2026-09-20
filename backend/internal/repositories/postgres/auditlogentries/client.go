@@ -88,3 +88,30 @@ func ProvideAuditLogRepository(
 		reader:   reader,
 	}, nil
 }
+
+// PlatformReader is the reader this repository built, for the surfaces that read
+// the log directly.
+//
+// It is exposed rather than rebuilt because rebuilding is the failure this
+// package's construction exists to prevent: a Reader assembled elsewhere could
+// be assembled with a different table prefix, and would then answer "no entries"
+// about a log that is full. platform's audit/grpc takes an audit.Reader, so this
+// is how it gets the one whose prefix matches the Recorder's.
+func (q *repository) PlatformReader() platformaudit.Reader { return q.reader }
+
+// ReaderFrom answers with the platform reader behind an audit.Repository.
+//
+// The assertion cannot fail for a repository this package built, and a
+// repository it did not build is a caller who has substituted the audit log —
+// in which case there is no platform reader and the surfaces that need one
+// should not be mounted.
+func ReaderFrom(repo audit.Repository) (platformaudit.Reader, bool) {
+	exposer, ok := repo.(interface {
+		PlatformReader() platformaudit.Reader
+	})
+	if !ok {
+		return nil, false
+	}
+
+	return exposer.PlatformReader(), true
+}

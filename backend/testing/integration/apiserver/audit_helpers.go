@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	auditgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/audit"
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
+	auditgrpc "github.com/primandproper/platform-go/v14/audit/auditpb"
 
 	"github.com/primandproper/primitives-go/v2/filtering/filteringpb"
 
@@ -23,7 +23,7 @@ type ExpectedAuditEntry struct {
 }
 
 // entryMatches returns true if the actual proto entry matches all non-empty expected criteria.
-func entryMatches(actual *auditgrpc.AuditLogEntry, exp *ExpectedAuditEntry) bool {
+func entryMatches(actual *auditgrpc.Entry, exp *ExpectedAuditEntry) bool {
 	if exp == nil {
 		return false
 	}
@@ -33,7 +33,7 @@ func entryMatches(actual *auditgrpc.AuditLogEntry, exp *ExpectedAuditEntry) bool
 	if exp.ResourceType != "" && actual.GetResourceType() != exp.ResourceType {
 		return false
 	}
-	if exp.RelevantID != "" && actual.GetRelevantId() != exp.RelevantID {
+	if exp.RelevantID != "" && actual.GetResourceId() != exp.RelevantID {
 		return false
 	}
 	for _, k := range exp.ChangesHasKeys {
@@ -47,7 +47,11 @@ func entryMatches(actual *auditgrpc.AuditLogEntry, exp *ExpectedAuditEntry) bool
 		if !ok || c == nil {
 			return false
 		}
-		if c.GetNewValue() != want {
+		// platform types a change's values as structpb.Value rather than string,
+		// which is what lets a numeric change read as a number rather than as its
+		// rendering. Every expectation here is a string, so this reads the string
+		// arm; a non-string expectation would want its own.
+		if c.GetNewValue().GetStringValue() != want {
 			return false
 		}
 	}
@@ -60,8 +64,14 @@ func AssertAuditLogContainsFuzzy(t *testing.T, ctx context.Context, c client.Cli
 	t.Helper()
 
 	limit32 := uint32(limit)
-	resp, err := c.GetAuditLogEntriesForAccount(ctx, &auditgrpc.GetAuditLogEntriesForAccountRequest{
-		AccountId: accountID,
+	// The account is the scope the connection resolves, so it is not a request
+	// field any more — platform binds the query's scope off the principal and the
+	// proto argues at length why there can be no scope field. accountID is kept
+	// in the signature because every caller has it and the assertion message
+	// names it.
+	_ = accountID
+
+	resp, err := c.ListEntries(ctx, &auditgrpc.ListEntriesRequest{
 		Filter: &filteringpb.QueryFilter{
 			MaxResponseSize: &limit32,
 		},
@@ -90,8 +100,13 @@ func AssertAuditLogContainsFuzzyForUser(t *testing.T, ctx context.Context, c cli
 	t.Helper()
 
 	limit32 := uint32(limit)
-	resp, err := c.GetAuditLogEntriesForUser(ctx, &auditgrpc.GetAuditLogEntriesForUserRequest{
-		UserId: userID,
+	// By actor, within the scope the connection resolved. That is narrower than
+	// the RPC this replaced, which filtered on actor across every chain the user
+	// appeared in; platform's surface reads one scope per request. See
+	// internal/build/auditlog for why, and why the cross-chain view is the
+	// privacy export rather than an API read.
+	resp, err := c.ListEntries(ctx, &auditgrpc.ListEntriesRequest{
+		Query: &auditgrpc.EntryQuery{ActorId: userID},
 		Filter: &filteringpb.QueryFilter{
 			MaxResponseSize: &limit32,
 		},

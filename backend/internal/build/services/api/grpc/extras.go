@@ -10,7 +10,6 @@ import (
 	waitlistsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/waitlists"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	analyticspb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/analytics"
-	auditsvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/audit"
 	authsvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
 	dataprivacysvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/dataprivacy"
 	identitysvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
@@ -22,7 +21,6 @@ import (
 	uploadedmediasvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
 	webhookssvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/webhooks"
 	analyticsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/analytics/grpc"
-	auditgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/audit/grpc"
 	authgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc/interceptors"
 	dataprivacygrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/grpc"
@@ -35,6 +33,8 @@ import (
 	paymentsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/grpc"
 	uploadedmediagrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/grpc"
 	webhooksgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/webhooks/grpc"
+	auditpb "github.com/primandproper/platform-go/v14/audit/auditpb"
+	auditgrpc "github.com/primandproper/platform-go/v14/audit/grpc"
 	commentspb "github.com/primandproper/platform-go/v14/comments/commentspb"
 	commentsgrpc "github.com/primandproper/platform-go/v14/comments/grpc"
 	issuereportsgrpc "github.com/primandproper/platform-go/v14/issuereports/grpc"
@@ -78,7 +78,7 @@ func RegisterExtras(i do.Injector) {
 	do.Provide(i, func(i do.Injector) (interceptors.MethodPermissionsMap, error) {
 		return AggregateMethodPermissions(
 			do.MustInvoke[analyticsgrpc.AnalyticsMethodPermissions](i),
-			do.MustInvoke[auditgrpc.AuditMethodPermissions](i),
+			auditgrpc.Permissions(),
 			do.MustInvoke[authgrpc.AuthMethodPermissions](i),
 			commentsgrpc.Permissions(),
 			do.MustInvoke[dataprivacygrpc.DataPrivacyMethodPermissions](i),
@@ -135,7 +135,7 @@ func RegisterExtras(i do.Injector) {
 	do.Provide(i, func(i do.Injector) ([]platformgrpc.RegistrationFunc, error) {
 		return BuildRegistrationFuncs(
 			do.MustInvoke[analyticspb.AnalyticsServiceServer](i),
-			do.MustInvoke[auditsvcpb.AuditServiceServer](i),
+			do.MustInvoke[auditpb.AuditServiceServer](i),
 			do.MustInvoke[authsvcpb.AuthServiceServer](i),
 			do.MustInvoke[commentspb.CommentsServiceServer](i),
 			do.MustInvoke[dataprivacysvcpb.DataPrivacyServiceServer](i),
@@ -155,7 +155,7 @@ func RegisterExtras(i do.Injector) {
 
 	do.Provide(i, func(i do.Injector) (*GRPCService, error) {
 		return NewGRPCService(
-			do.MustInvoke[auditsvcpb.AuditServiceServer](i),
+			do.MustInvoke[auditpb.AuditServiceServer](i),
 			do.MustInvoke[authsvcpb.AuthServiceServer](i),
 			do.MustInvoke[dataprivacysvcpb.DataPrivacyServiceServer](i),
 			do.MustInvoke[identitysvcpb.IdentityServiceServer](i),
@@ -176,7 +176,7 @@ func RegisterExtras(i do.Injector) {
 
 func BuildRegistrationFuncs(
 	analyticsService analyticspb.AnalyticsServiceServer,
-	auditLogService auditsvcpb.AuditServiceServer,
+	auditLogService auditpb.AuditServiceServer,
 	authService authsvcpb.AuthServiceServer,
 	commentsService commentspb.CommentsServiceServer,
 	dataPrivacyServer dataprivacysvcpb.DataPrivacyServiceServer,
@@ -195,7 +195,7 @@ func BuildRegistrationFuncs(
 	return []platformgrpc.RegistrationFunc{
 		func(server *grpc.Server) {
 			analyticspb.RegisterAnalyticsServiceServer(server, analyticsService)
-			auditsvcpb.RegisterAuditServiceServer(server, auditLogService)
+			auditpb.RegisterAuditServiceServer(server, auditLogService)
 			authsvcpb.RegisterAuthServiceServer(server, authService)
 			commentspb.RegisterCommentsServiceServer(server, commentsService)
 			dataprivacysvcpb.RegisterDataPrivacyServiceServer(server, dataPrivacyServer)
@@ -297,7 +297,7 @@ func ProvideUserTextSearcher(
 // AggregateMethodPermissions combines method permissions from all services into a single map.
 func AggregateMethodPermissions(
 	analyticsPermissions analyticsgrpc.AnalyticsMethodPermissions,
-	auditPermissions auditgrpc.AuditMethodPermissions,
+	auditPermissions map[string][]authorization.Permission,
 	authPermissions authgrpc.AuthMethodPermissions,
 	commentsPermissions map[string][]authorization.Permission,
 	dataprivacyPermissions dataprivacygrpc.DataPrivacyMethodPermissions,

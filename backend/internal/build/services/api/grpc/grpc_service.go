@@ -1,7 +1,6 @@
 package grpcapi
 
 import (
-	auditsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/audit"
 	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
 	dataprivacysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/dataprivacy"
 	identitysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
@@ -12,6 +11,7 @@ import (
 	paymentssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/payments"
 	uploadedmediasvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
 	webhookssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/webhooks"
+	auditsvc "github.com/primandproper/platform-go/v14/audit/auditpb"
 	issuereportssvc "github.com/primandproper/platform-go/v14/issuereports/issuereportspb"
 	settingssvc "github.com/primandproper/platform-go/v14/settings/settingspb"
 	waitlistssvc "github.com/primandproper/platform-go/v14/waitlists/waitlistspb"

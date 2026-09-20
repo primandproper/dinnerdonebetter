@@ -5,6 +5,7 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
+	auditbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/auditlog"
 	commentstargets "github.com/primandproper/dinnerdonebetter/backend/internal/build/comments"
 	dataprivacybuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/dataprivacy"
 	issuereportsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/issuereports"
@@ -36,7 +37,6 @@ import (
 	waitlistsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/waitlists"
 	webhooksrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhooks"
 	analyticssvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/analytics/grpc"
-	auditsvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/audit/grpc"
 	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc/interceptors"
 	authhttpsvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/handlers/authentication"
@@ -182,7 +182,8 @@ func BuildInjector(
 	authsvc.RegisterAuthService(i)
 	authhttpsvc.RegisterAuthHTTPService(i)
 	analyticssvc.RegisterAnalyticsService(i)
-	auditsvc.RegisterAuditService(i)
+	auditrepo.RegisterPlatformReader(i)
+	auditbuild.RegisterAuditService(i)
 	commentstargets.RegisterCommentsService(i)
 	dataprivacysvc.RegisterDataPrivacyService(i)
 	do.Provide[dataprivacysvc.DataPrivacyMethodPermissions](i, func(i do.Injector) (dataprivacysvc.DataPrivacyMethodPermissions, error) {
