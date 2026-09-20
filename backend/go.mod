@@ -431,3 +431,5 @@ require (
 )
 
 replace github.com/primandproper/platform-go/v14 => ../../platform-go
+
+replace github.com/primandproper/primitives-go/v2 => ../../primitives-go
