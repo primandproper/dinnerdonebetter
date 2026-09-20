@@ -18,6 +18,9 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	identityrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity"
 	notificationsstore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/notificationsstore"
+	paymentsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/payments"
+
+	"github.com/primandproper/platform-go/v14/billing"
 	metricsnoop "github.com/primandproper/primitives-go/v2/observability/metrics/noop"
 
 	"github.com/primandproper/primitives-go/v2/database"
@@ -48,7 +51,16 @@ var (
 	databaseClient                       database.Client
 	apiServiceConfig                     *config.APIServiceConfig
 	notifsRepo                           notifications.Repository
-	httpTestServerAddress                string
+
+	// billingStore seeds the rows two RPCs used to write.
+	//
+	// platform's billing surface has no CreateSubscription or UpdateSubscription, and that
+	// is the ruling rather than a gap: a Subscription mirrors what a payment provider says
+	// is paid for, so one created over the wire would grant paid features with nothing
+	// behind them. A test that needs a subscription to read therefore writes one the way
+	// the webhook handler does — through the store.
+	billingStore          billing.Store
+	httpTestServerAddress string
 
 	// dataPrivacyFulfillment is the scheduler's half of a subject access request, run in this
 	// process. See the note beside where it is started.
@@ -153,6 +165,11 @@ func init() {
 	identityRepo := identityrepo.ProvideIdentityRepository(pillars.Logger, pillars.TracerProvider, auditLogRepo, databaseClient, nil, uploadsRegistryStore, policy)
 	notifsRepo, err = notificationsstore.ProvideAdapter(ctx, pillars.Logger, pillars.TracerProvider,
 		metricsnoop.NewMetricsProvider(), auditLogRepo, nil, databaseClient)
+	if err != nil {
+		log.Fatal(err)
+	}
+	billingStore, err = paymentsrepo.ProvidePaymentsRepository(ctx, pillars.Logger, pillars.TracerProvider,
+		metricsnoop.NewMetricsProvider(), auditLogRepo, databaseClient, nil)
 	if err != nil {
 		log.Fatal(err)
 	}

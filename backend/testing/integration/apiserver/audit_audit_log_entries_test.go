@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	identitysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
+	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
 	auditgrpc "github.com/primandproper/platform-go/v14/audit/auditpb"
 
 	"github.com/stretchr/testify/assert"
@@ -20,12 +21,12 @@ func TestAuditLogEntries_Listing_ForUser(T *testing.T) {
 		user, userClient := createUserAndClientForTest(t)
 
 		// User creation creates: user, account, account_user_membership - each generates an audit log entry
-		forUser, err := userClient.GetAuditLogEntriesForUser(ctx, &auditgrpc.GetAuditLogEntriesForUserRequest{
-			UserId: user.ID,
+		forUser, err := userClient.ListEntries(ctx, &auditgrpc.ListEntriesRequest{
+			Query: &auditgrpc.EntryQuery{ActorId: user.ID},
 		})
 		require.NoError(t, err)
 
-		assert.GreaterOrEqual(t, len(forUser.Results), 3, "expected at least 3 audit log entries (user, account, membership)")
+		assert.GreaterOrEqual(t, len(forUser.GetResults()), 3, "expected at least 3 audit log entries (user, account, membership)")
 	})
 
 	T.Run("create user and fetch audit logs for that user returns entries with expected structure", func(t *testing.T) {
@@ -34,16 +35,16 @@ func TestAuditLogEntries_Listing_ForUser(T *testing.T) {
 
 		user, userClient := createUserAndClientForTest(t)
 
-		forUser, err := userClient.GetAuditLogEntriesForUser(ctx, &auditgrpc.GetAuditLogEntriesForUserRequest{
-			UserId: user.ID,
+		forUser, err := userClient.ListEntries(ctx, &auditgrpc.ListEntriesRequest{
+			Query: &auditgrpc.EntryQuery{ActorId: user.ID},
 		})
 		require.NoError(t, err)
-		require.NotEmpty(t, forUser.Results)
+		require.NotEmpty(t, forUser.GetResults())
 
 		// Verify we have at least one entry with the user's ID
 		foundUserEntry := false
-		for _, entry := range forUser.Results {
-			if entry.BelongsToUser == user.ID {
+		for _, entry := range forUser.GetResults() {
+			if entry.GetActor().GetId() == user.ID {
 				foundUserEntry = true
 				break
 			}
@@ -62,21 +63,19 @@ func TestAuditLogEntries_GetByID(T *testing.T) {
 		user, userClient := createUserAndClientForTest(t)
 
 		// User creation generates audit log entries; fetch them for the user
-		forUser, err := userClient.GetAuditLogEntriesForUser(ctx, &auditgrpc.GetAuditLogEntriesForUserRequest{
-			UserId: user.ID,
+		forUser, err := userClient.ListEntries(ctx, &auditgrpc.ListEntriesRequest{
+			Query: &auditgrpc.EntryQuery{ActorId: user.ID},
 		})
 		require.NoError(t, err)
-		require.NotEmpty(t, forUser.Results)
+		require.NotEmpty(t, forUser.GetResults())
 
 		// pick the first entry and get it by ID
-		entryID := forUser.Results[0].Id
+		entryID := forUser.GetResults()[0].Id
 
-		result, err := userClient.GetAuditLogEntryByID(ctx, &auditgrpc.GetAuditLogEntryByIDRequest{
-			AuditLogEntryId: entryID,
-		})
+		result, err := userClient.GetEntry(ctx, &auditgrpc.GetEntryRequest{EntryId: entryID})
 		require.NoError(t, err)
 		assert.NotNil(t, result)
-		assert.Equal(t, entryID, result.Result.Id)
+		assert.Equal(t, entryID, result.GetEntry().GetId())
 	})
 
 	T.Run("nonexistent entry", func(t *testing.T) {
@@ -85,9 +84,7 @@ func TestAuditLogEntries_GetByID(T *testing.T) {
 
 		_, userClient := createUserAndClientForTest(t)
 
-		result, err := userClient.GetAuditLogEntryByID(ctx, &auditgrpc.GetAuditLogEntryByIDRequest{
-			AuditLogEntryId: nonexistentID,
-		})
+		result, err := userClient.GetEntry(ctx, &auditgrpc.GetEntryRequest{EntryId: nonexistentID})
 		require.Error(t, err)
 		assert.Nil(t, result)
 	})
@@ -98,9 +95,7 @@ func TestAuditLogEntries_GetByID(T *testing.T) {
 
 		c := buildUnauthenticatedGRPCClientForTest(t)
 
-		result, err := c.GetAuditLogEntryByID(ctx, &auditgrpc.GetAuditLogEntryByIDRequest{
-			AuditLogEntryId: nonexistentID,
-		})
+		result, err := c.GetEntry(ctx, &auditgrpc.GetEntryRequest{EntryId: nonexistentID})
 		require.Error(t, err)
 		assert.Nil(t, result)
 	})
@@ -118,22 +113,23 @@ func TestAuditLogEntries_Listing_ForAccount(T *testing.T) {
 		accountsRes, err := userClient.GetAccounts(ctx, &identitysvc.GetAccountsRequest{})
 		require.NoError(t, err)
 		require.NotEmpty(t, accountsRes.Results, "user registration should create a default account")
-		accountID := accountsRes.Results[0].Id
 
-		// Account creation creates: account, account_user_membership - each generates an audit log entry
-		forAccount, err := userClient.GetAuditLogEntriesForAccount(ctx, &auditgrpc.GetAuditLogEntriesForAccountRequest{
-			AccountId: accountID,
-		})
+		// The default account is the session's active one, and the active one is the scope
+		// this read resolves — so the account is not named here.
+		//
+		// Account creation creates: account, account_user_membership - each generates an
+		// audit log entry.
+		forAccount, err := userClient.ListEntries(ctx, &auditgrpc.ListEntriesRequest{})
 		require.NoError(t, err)
 
-		assert.GreaterOrEqual(t, len(forAccount.Results), 2, "expected at least 2 audit log entries (account, membership)")
+		assert.GreaterOrEqual(t, len(forAccount.GetResults()), 2, "expected at least 2 audit log entries (account, membership)")
 	})
 
 	T.Run("create account and fetch audit logs for that account", func(t *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
-		_, userClient := createUserAndClientForTest(t)
+		user, userClient := createUserAndClientForTest(t)
 
 		lat, lng := float32(39.15643684457086), float32(-83.09156328830157)
 		createRes, err := userClient.CreateAccount(ctx, &identitysvc.CreateAccountRequest{
@@ -147,16 +143,21 @@ func TestAuditLogEntries_Listing_ForAccount(T *testing.T) {
 		require.NotNil(t, createRes.Created)
 		accountID := createRes.Created.Id
 
-		forAccount, err := userClient.GetAuditLogEntriesForAccount(ctx, &auditgrpc.GetAuditLogEntriesForAccountRequest{
-			AccountId: accountID,
-		})
+		// Read as somebody whose active account is the new one, which takes
+		// impersonation: a chain is read by being in it, and the account a session is
+		// in is not a request field. The RPC this replaced took an account id and
+		// checked membership afterwards; that check is the scope now.
+		impersonated := client.ImpersonateUseAndAccountContext(ctx, user.ID, accountID)
+
+		forAccount, err := adminClient.ListEntries(impersonated, &auditgrpc.ListEntriesRequest{})
 		require.NoError(t, err)
 
-		assert.GreaterOrEqual(t, len(forAccount.Results), 2, "expected at least 2 audit log entries (account, membership)")
+		// Account creation creates: account, account_user_membership.
+		assert.GreaterOrEqual(t, len(forAccount.GetResults()), 2, "expected at least 2 audit log entries (account, membership)")
 
-		// Verify entries belong to the correct account
-		for _, entry := range forAccount.Results {
-			assert.Equal(t, accountID, entry.BelongsToAccount, "audit log entry should belong to the created account")
-		}
+		// There is no per-entry account to check, and its absence is the guarantee
+		// rather than a loss: every entry in this response is already the impersonated
+		// account's, because that is the chain the read was bound to. An entry naming
+		// its own account would be one a reader had to re-check.
 	})
 }

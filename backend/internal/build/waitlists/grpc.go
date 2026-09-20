@@ -73,7 +73,7 @@ func RegisterWaitlistsService(i do.Injector) {
 		db := do.MustInvoke[database.Client](i)
 		store := do.MustInvoke[platformwaitlists.Store](i)
 
-		return waitlistsgrpc.NewServer(
+		server, err := waitlistsgrpc.NewServer(
 			store,
 			db,
 			sessions.PrincipalFromContext,
@@ -83,6 +83,13 @@ func RegisterWaitlistsService(i do.Injector) {
 			waitlistsgrpc.WithTracerProvider(do.MustInvoke[tracing.Provider](i)),
 			waitlistsgrpc.WithMetricsProvider(do.MustInvoke[metrics.Provider](i)),
 		)
+		if err != nil {
+			return nil, err
+		}
+
+		// Wrapped, not returned bare: a signup carries the session's address rather
+		// than the one the request stated. See ownContactOnly.
+		return ownContactOnly{WaitlistsServiceServer: server}, nil
 	})
 }
 

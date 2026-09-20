@@ -1,16 +1,15 @@
 package integration
 
 import (
-	"net/http"
 	"testing"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
 	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
 	identitysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
-	webhookssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/webhooks"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/services/webhooks/grpc/converters"
+
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
+	webhookspb "github.com/primandproper/platform-go/v14/webhooks/webhookspb"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -90,9 +89,9 @@ func TestAdmin_UserImpersonation(T *testing.T) {
 
 		impersonatedCtx := client.ImpersonateUseAndAccountContext(ctx, user.ID, account.Result.Id)
 
-		t.Logf("impersonating user %s and account %s to get webhook %s", user.ID, account.Result.Id, webhook.ID)
+		t.Logf("impersonating user %s and account %s to get webhook %s", user.ID, account.Result.Id, webhook.GetId())
 
-		retrievedWebhook, err := adminClient.GetWebhook(impersonatedCtx, &webhookssvc.GetWebhookRequest{WebhookId: webhook.ID})
+		retrievedWebhook, err := adminClient.WebhooksService().GetEndpoint(impersonatedCtx, &webhookspb.GetEndpointRequest{EndpointId: webhook.GetId()})
 		require.NoError(t, err)
 		assert.NotNil(t, retrievedWebhook)
 	})
@@ -104,20 +103,18 @@ func TestAdmin_UserImpersonation(T *testing.T) {
 		user, testClient := createUserAndClientForTest(t)
 		_, testClient2 := createUserAndClientForTest(t)
 
-		exampleWebhookInput := &webhooks.WebhookCreationRequestInput{
-			ContentType: "application/json",
-			Method:      http.MethodPost,
-			Name:        t.Name(),
-			URL:         "https://192.0.2.1/webhook",
-			Events:      []string{webhooks.WebhookCreatedServiceEventType},
-		}
-
-		input := converters.ConvertWebhookCreationRequestInputToGRPCWebhookCreationRequestInput(exampleWebhookInput)
-
-		createdWebhook, err := testClient.CreateWebhook(ctx, &webhookssvc.CreateWebhookRequest{Input: input})
+		createdWebhook, err := testClient.WebhooksService().SaveEndpoint(ctx, &webhookspb.SaveEndpointRequest{
+			Endpoint: &webhookspb.WebhookEndpointInput{
+				ContentType: "application/json",
+				Name:        t.Name(),
+				Url:         "https://192.0.2.1/webhook",
+				EventTypes:  []string{webhooks.WebhookCreatedServiceEventType},
+			},
+			SigningKeys: signingSecretForTest(),
+		})
 		require.NoError(t, err)
 
-		retrievedWebhook, err := testClient.GetWebhook(ctx, &webhookssvc.GetWebhookRequest{WebhookId: createdWebhook.Created.Id})
+		retrievedWebhook, err := testClient.WebhooksService().GetEndpoint(ctx, &webhookspb.GetEndpointRequest{EndpointId: createdWebhook.GetResult().GetId()})
 		require.NoError(t, err)
 		require.NotNil(t, retrievedWebhook)
 
@@ -127,9 +124,9 @@ func TestAdmin_UserImpersonation(T *testing.T) {
 
 		impersonatedCtx := client.ImpersonateUseAndAccountContext(ctx, user.ID, account.Result.Id)
 
-		t.Logf("impersonating user %s and account %s to get webhook %s", user.ID, account.Result.Id, retrievedWebhook.Result.Id)
+		t.Logf("impersonating user %s and account %s to get webhook %s", user.ID, account.Result.Id, retrievedWebhook.GetResult().GetId())
 
-		webhook, err := testClient2.GetWebhook(impersonatedCtx, &webhookssvc.GetWebhookRequest{WebhookId: retrievedWebhook.Result.Id})
+		webhook, err := testClient2.WebhooksService().GetEndpoint(impersonatedCtx, &webhookspb.GetEndpointRequest{EndpointId: retrievedWebhook.GetResult().GetId()})
 		require.Error(t, err)
 		assert.Nil(t, webhook)
 	})

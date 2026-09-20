@@ -3,13 +3,12 @@ package integration
 import (
 	"testing"
 
+	ddbpayments "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/fakes"
-	paymentsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/payments"
-	paymentssvcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/grpc/converters"
 
 	"github.com/primandproper/platform-go/v14/billing"
-	"github.com/primandproper/primitives-go/v2/capitalism"
-	"github.com/primandproper/primitives-go/v2/pointer"
+	billingpb "github.com/primandproper/platform-go/v14/billing/billingpb"
+	"github.com/primandproper/primitives-go/v2/database"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -17,53 +16,79 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func createProductForTest(t *testing.T) *billing.Product {
+// The billing surface is platform's, and it is two RPCs shorter than the one it replaced.
+//
+// CreateSubscription and UpdateSubscription are gone, and deliberately: a Subscription here
+// mirrors what a payment provider says is currently paid for, and billing/standing reads those
+// rows to decide entitlement. A subscription created over the wire would grant paid features
+// with no payment behind them. The rows still have to exist for the reads below, so they are
+// written the way the webhook handler writes them — through the store, on a transaction.
+//
+// One read changed name rather than meaning: GetPaymentHistoryForAccount is
+// ListTransactionsForAccount.
+
+// productInputForTest builds what a client sends to add a product to the catalog.
+func productInputForTest() *billingpb.ProductCreationInput {
+	example := fakes.BuildFakeProduct()
+
+	return &billingpb.ProductCreationInput{
+		Name:                  example.Name,
+		Description:           example.Description,
+		Kind:                  billingpb.ProductKind_PRODUCT_KIND_RECURRING,
+		Currency:              example.Currency,
+		ExternalProductId:     example.ExternalProductID,
+		AmountCents:           example.AmountCents,
+		BillingIntervalMonths: example.BillingIntervalMonths,
+	}
+}
+
+func createProductForTest(t *testing.T) *billingpb.Product {
 	t.Helper()
 	ctx := t.Context()
 
-	example := fakes.BuildFakeProduct()
-	created, err := adminClient.CreateProduct(ctx, &paymentsgrpc.CreateProductRequest{
-		Input: paymentssvcconverters.ConvertProductToGRPCProductCreationRequestInput(example),
-	})
+	input := productInputForTest()
+
+	created, err := adminClient.CreateProduct(ctx, &billingpb.CreateProductRequest{Input: input})
 	require.NoError(t, err)
-	require.NotNil(t, created)
-	require.NotNil(t, created.GetCreated())
+	require.NotNil(t, created.GetResult())
 
-	converted := paymentssvcconverters.ConvertGRPCProductToProduct(created.GetCreated())
-	assert.Equal(t, example.Name, converted.Name)
-	assert.Equal(t, example.Description, converted.Description)
-	assert.Equal(t, example.Kind, converted.Kind)
-	assert.Equal(t, example.AmountCents, converted.AmountCents)
-	assert.Equal(t, example.BillingIntervalMonths, converted.BillingIntervalMonths)
-	assert.NotEmpty(t, converted.ID)
+	assert.Equal(t, input.GetName(), created.GetResult().GetName())
+	assert.Equal(t, input.GetDescription(), created.GetResult().GetDescription())
+	assert.Equal(t, input.GetKind(), created.GetResult().GetKind())
+	assert.Equal(t, input.GetAmountCents(), created.GetResult().GetAmountCents())
+	assert.Equal(t, input.GetBillingIntervalMonths(), created.GetResult().GetBillingIntervalMonths())
+	assert.NotEmpty(t, created.GetResult().GetId())
 
-	res, err := adminClient.GetProduct(ctx, &paymentsgrpc.GetProductRequest{ProductId: created.GetCreated().GetId()})
+	res, err := adminClient.GetProduct(ctx, &billingpb.GetProductRequest{ProductId: created.GetResult().GetId()})
 	require.NoError(t, err)
-	require.NotNil(t, res)
+	require.NotNil(t, res.GetResult())
+	assert.Equal(t, created.GetResult().GetId(), res.GetResult().GetId())
 
-	product := paymentssvcconverters.ConvertGRPCProductToProduct(res.GetResult())
-	assertRoughEquality(t, converted, product, defaultIgnoredFields()...)
-
-	return product
+	return res.GetResult()
 }
 
+// createSubscriptionForTest writes a subscription the only way there is to write one.
+//
+// Through the store rather than over the wire, because the RPC that used to do this is gone
+// — see the note at the top of this file. The transaction is the caller's now, so this opens
+// one, which is what the webhook handler does when a provider tells it about an agreement.
 func createSubscriptionForTest(t *testing.T, productID, accountID string) *billing.Subscription {
 	t.Helper()
 	ctx := t.Context()
 
 	example := fakes.BuildFakeSubscription(accountID, productID)
-	created, err := adminClient.CreateSubscription(ctx, &paymentsgrpc.CreateSubscriptionRequest{
-		Input: paymentssvcconverters.ConvertSubscriptionToGRPCSubscriptionCreationRequestInput(example),
-	})
-	require.NoError(t, err)
+
+	var created *billing.Subscription
+
+	require.NoError(t, databaseClient.WithTransaction(ctx, func(tx database.Tx) error {
+		var writeErr error
+		created, writeErr = billingStore.CreateSubscription(ctx, tx, ddbpayments.Scope(), example)
+
+		return writeErr
+	}))
 	require.NotNil(t, created)
-	require.NotNil(t, created.GetCreated())
 
-	res, err := adminClient.GetSubscription(ctx, &paymentsgrpc.GetSubscriptionRequest{SubscriptionId: created.GetCreated().GetId()})
-	require.NoError(t, err)
-	require.NotNil(t, res)
-
-	return paymentssvcconverters.ConvertGRPCSubscriptionToSubscription(res.GetResult())
+	return created
 }
 
 // requireGRPCCode is the assertion that a refusal was the right one, not merely
@@ -89,9 +114,7 @@ func TestPayments_CreateProduct(T *testing.T) {
 		ctx := t.Context()
 
 		c := buildUnauthenticatedGRPCClientForTest(t)
-		created, err := c.CreateProduct(ctx, &paymentsgrpc.CreateProductRequest{
-			Input: paymentssvcconverters.ConvertProductToGRPCProductCreationRequestInput(fakes.BuildFakeProduct()),
-		})
+		created, err := c.CreateProduct(ctx, &billingpb.CreateProductRequest{Input: productInputForTest()})
 		require.Error(t, err)
 		assert.Nil(t, created)
 	})
@@ -100,12 +123,10 @@ func TestPayments_CreateProduct(T *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
-		input := fakes.BuildFakeProduct()
+		input := productInputForTest()
 		input.Name = ""
 
-		created, err := adminClient.CreateProduct(ctx, &paymentsgrpc.CreateProductRequest{
-			Input: paymentssvcconverters.ConvertProductToGRPCProductCreationRequestInput(input),
-		})
+		created, err := adminClient.CreateProduct(ctx, &billingpb.CreateProductRequest{Input: input})
 		requireGRPCCode(t, err, codes.InvalidArgument)
 		assert.Nil(t, created)
 	})
@@ -116,12 +137,10 @@ func TestPayments_CreateProduct(T *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
-		input := fakes.BuildFakeProduct()
+		input := productInputForTest()
 		input.BillingIntervalMonths = 0
 
-		created, err := adminClient.CreateProduct(ctx, &paymentsgrpc.CreateProductRequest{
-			Input: paymentssvcconverters.ConvertProductToGRPCProductCreationRequestInput(input),
-		})
+		created, err := adminClient.CreateProduct(ctx, &billingpb.CreateProductRequest{Input: input})
 		requireGRPCCode(t, err, codes.InvalidArgument)
 		assert.Nil(t, created)
 	})
@@ -130,12 +149,10 @@ func TestPayments_CreateProduct(T *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
-		input := fakes.BuildFakeProduct()
+		input := productInputForTest()
 		input.Currency = "dollars"
 
-		created, err := adminClient.CreateProduct(ctx, &paymentsgrpc.CreateProductRequest{
-			Input: paymentssvcconverters.ConvertProductToGRPCProductCreationRequestInput(input),
-		})
+		created, err := adminClient.CreateProduct(ctx, &billingpb.CreateProductRequest{Input: input})
 		requireGRPCCode(t, err, codes.InvalidArgument)
 		assert.Nil(t, created)
 	})
@@ -146,12 +163,10 @@ func TestPayments_CreateProduct(T *testing.T) {
 
 		first := createProductForTest(t)
 
-		input := fakes.BuildFakeProduct()
-		input.ExternalProductID = first.ExternalProductID
+		input := productInputForTest()
+		input.ExternalProductId = first.GetExternalProductId()
 
-		created, err := adminClient.CreateProduct(ctx, &paymentsgrpc.CreateProductRequest{
-			Input: paymentssvcconverters.ConvertProductToGRPCProductCreationRequestInput(input),
-		})
+		created, err := adminClient.CreateProduct(ctx, &billingpb.CreateProductRequest{Input: input})
 		requireGRPCCode(t, err, codes.AlreadyExists)
 		assert.Nil(t, created)
 	})
@@ -162,9 +177,7 @@ func TestPayments_CreateProduct(T *testing.T) {
 
 		_, testClient := createUserAndClientForTest(T)
 
-		created, err := testClient.CreateProduct(ctx, &paymentsgrpc.CreateProductRequest{
-			Input: paymentssvcconverters.ConvertProductToGRPCProductCreationRequestInput(fakes.BuildFakeProduct()),
-		})
+		created, err := testClient.CreateProduct(ctx, &billingpb.CreateProductRequest{Input: productInputForTest()})
 		require.Error(t, err)
 		assert.Nil(t, created)
 	})
@@ -179,11 +192,11 @@ func TestPayments_GetProduct(T *testing.T) {
 
 		created := createProductForTest(t)
 
-		retrieved, err := adminClient.GetProduct(ctx, &paymentsgrpc.GetProductRequest{ProductId: created.ID})
+		retrieved, err := adminClient.GetProduct(ctx, &billingpb.GetProductRequest{ProductId: created.GetId()})
 		require.NoError(t, err)
-		require.NotNil(t, retrieved)
-		converted := paymentssvcconverters.ConvertGRPCProductToProduct(retrieved.GetResult())
-		assertRoughEquality(t, created, converted, defaultIgnoredFields()...)
+		require.NotNil(t, retrieved.GetResult())
+		assert.Equal(t, created.GetId(), retrieved.GetResult().GetId())
+		assert.Equal(t, created.GetName(), retrieved.GetResult().GetName())
 	})
 
 	T.Run("requires auth", func(t *testing.T) {
@@ -193,7 +206,7 @@ func TestPayments_GetProduct(T *testing.T) {
 		created := createProductForTest(t)
 		c := buildUnauthenticatedGRPCClientForTest(t)
 
-		_, err := c.GetProduct(ctx, &paymentsgrpc.GetProductRequest{ProductId: created.ID})
+		_, err := c.GetProduct(ctx, &billingpb.GetProductRequest{ProductId: created.GetId()})
 		assert.Error(t, err)
 	})
 
@@ -201,7 +214,7 @@ func TestPayments_GetProduct(T *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
-		_, err := adminClient.GetProduct(ctx, &paymentsgrpc.GetProductRequest{ProductId: nonexistentID})
+		_, err := adminClient.GetProduct(ctx, &billingpb.GetProductRequest{ProductId: nonexistentID})
 		requireGRPCCode(t, err, codes.NotFound)
 	})
 }
@@ -215,13 +228,13 @@ func TestPayments_GetProducts(T *testing.T) {
 
 		created := createProductForTest(t)
 
-		res, err := adminClient.GetProducts(ctx, &paymentsgrpc.GetProductsRequest{})
+		res, err := adminClient.ListProducts(ctx, &billingpb.ListProductsRequest{})
 		require.NoError(t, err)
 		require.NotNil(t, res)
 
 		var found bool
 		for _, p := range res.GetResults() {
-			if p.GetId() == created.ID {
+			if p.GetId() == created.GetId() {
 				found = true
 				break
 			}
@@ -234,7 +247,7 @@ func TestPayments_GetProducts(T *testing.T) {
 		ctx := t.Context()
 
 		c := buildUnauthenticatedGRPCClientForTest(t)
-		_, err := c.GetProducts(ctx, &paymentsgrpc.GetProductsRequest{})
+		_, err := c.ListProducts(ctx, &billingpb.ListProductsRequest{})
 		assert.Error(t, err)
 	})
 }
@@ -242,26 +255,36 @@ func TestPayments_GetProducts(T *testing.T) {
 func TestPayments_UpdateProduct(T *testing.T) {
 	T.Parallel()
 
+	// UpdateProduct replaces rather than patches: its input carries every field, so a caller
+	// restates the ones it is keeping. The local RPC took pointer fields and merged.
 	T.Run("happy path", func(t *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
 		created := createProductForTest(t)
-		newName := "updated product name"
-		newAmount := created.AmountCents + 1
 
-		_, err := adminClient.UpdateProduct(ctx, &paymentsgrpc.UpdateProductRequest{
-			ProductId: created.ID,
-			Input:     &paymentsgrpc.ProductUpdateRequestInput{Name: &newName, AmountCents: &newAmount},
+		const newName = "updated product name"
+		newAmount := created.GetAmountCents() + 1
+
+		_, err := adminClient.UpdateProduct(ctx, &billingpb.UpdateProductRequest{
+			ProductId: created.GetId(),
+			Input: &billingpb.ProductUpdateInput{
+				Name:                  newName,
+				Description:           created.GetDescription(),
+				Kind:                  created.GetKind(),
+				Currency:              created.GetCurrency(),
+				ExternalProductId:     created.GetExternalProductId(),
+				AmountCents:           newAmount,
+				BillingIntervalMonths: created.GetBillingIntervalMonths(),
+			},
 		})
 		require.NoError(t, err)
 
-		res, err := adminClient.GetProduct(ctx, &paymentsgrpc.GetProductRequest{ProductId: created.ID})
+		res, err := adminClient.GetProduct(ctx, &billingpb.GetProductRequest{ProductId: created.GetId()})
 		require.NoError(t, err)
 		assert.Equal(t, newName, res.GetResult().GetName())
 		assert.Equal(t, newAmount, res.GetResult().GetAmountCents())
-		// A patch: what the request did not name is kept.
-		assert.Equal(t, created.Description, res.GetResult().GetDescription())
+		assert.Equal(t, created.GetDescription(), res.GetResult().GetDescription())
 	})
 
 	T.Run("requires auth", func(t *testing.T) {
@@ -271,9 +294,9 @@ func TestPayments_UpdateProduct(T *testing.T) {
 		created := createProductForTest(t)
 		c := buildUnauthenticatedGRPCClientForTest(t)
 
-		_, err := c.UpdateProduct(ctx, &paymentsgrpc.UpdateProductRequest{
-			ProductId: created.ID,
-			Input:     &paymentsgrpc.ProductUpdateRequestInput{Name: pointer.To("x")},
+		_, err := c.UpdateProduct(ctx, &billingpb.UpdateProductRequest{
+			ProductId: created.GetId(),
+			Input:     &billingpb.ProductUpdateInput{Name: "x"},
 		})
 		assert.Error(t, err)
 	})
@@ -285,9 +308,9 @@ func TestPayments_UpdateProduct(T *testing.T) {
 		created := createProductForTest(t)
 		_, testClient := createUserAndClientForTest(T)
 
-		_, err := testClient.UpdateProduct(ctx, &paymentsgrpc.UpdateProductRequest{
-			ProductId: created.ID,
-			Input:     &paymentsgrpc.ProductUpdateRequestInput{Name: pointer.To("x")},
+		_, err := testClient.UpdateProduct(ctx, &billingpb.UpdateProductRequest{
+			ProductId: created.GetId(),
+			Input:     &billingpb.ProductUpdateInput{Name: "x"},
 		})
 		assert.Error(t, err)
 	})
@@ -302,10 +325,10 @@ func TestPayments_ArchiveProduct(T *testing.T) {
 
 		created := createProductForTest(t)
 
-		_, err := adminClient.ArchiveProduct(ctx, &paymentsgrpc.ArchiveProductRequest{ProductId: created.ID})
+		_, err := adminClient.ArchiveProduct(ctx, &billingpb.ArchiveProductRequest{ProductId: created.GetId()})
 		require.NoError(t, err)
 
-		res, err := adminClient.GetProduct(ctx, &paymentsgrpc.GetProductRequest{ProductId: created.ID})
+		res, err := adminClient.GetProduct(ctx, &billingpb.GetProductRequest{ProductId: created.GetId()})
 		assert.Nil(t, res)
 		requireGRPCCode(t, err, codes.NotFound)
 	})
@@ -317,7 +340,7 @@ func TestPayments_ArchiveProduct(T *testing.T) {
 		created := createProductForTest(t)
 		c := buildUnauthenticatedGRPCClientForTest(t)
 
-		_, err := c.ArchiveProduct(ctx, &paymentsgrpc.ArchiveProductRequest{ProductId: created.ID})
+		_, err := c.ArchiveProduct(ctx, &billingpb.ArchiveProductRequest{ProductId: created.GetId()})
 		assert.Error(t, err)
 	})
 
@@ -328,92 +351,32 @@ func TestPayments_ArchiveProduct(T *testing.T) {
 		created := createProductForTest(t)
 		_, testClient := createUserAndClientForTest(T)
 
-		_, err := testClient.ArchiveProduct(ctx, &paymentsgrpc.ArchiveProductRequest{ProductId: created.ID})
+		_, err := testClient.ArchiveProduct(ctx, &billingpb.ArchiveProductRequest{ProductId: created.GetId()})
 		assert.Error(t, err)
 	})
 }
 
-func TestPayments_CreateSubscription(T *testing.T) {
+// TestPayments_SubscriptionsAreNotWritableOverTheWire is the ruling, pinned.
+//
+// There is no RPC to write one, so there is nothing here to call — which is the assertion.
+// A client that wants an account subscribed drives the provider, and the provider's webhook
+// is what reaches the store. See internal/domain/payments/manager.
+func TestPayments_SubscriptionsAreNotWritableOverTheWire(T *testing.T) {
 	T.Parallel()
 
-	T.Run("happy path", func(t *testing.T) {
+	T.Run("the surface offers no create or update", func(t *testing.T) {
 		t.Parallel()
-		ctx := t.Context()
 
-		product := createProductForTest(t)
-		_, accountClient := createUserAndClientForTest(t)
-		accountID := getAccountIDForTest(t, accountClient)
-
-		created := createSubscriptionForTest(t, product.ID, accountID)
-
-		AssertAuditLogContainsFuzzy(t, ctx, accountClient, accountID, 10, []*ExpectedAuditEntry{
-			{EventType: "created", ResourceType: "subscriptions", RelevantID: created.ID},
-		})
-	})
-
-	// The store's vocabulary is capitalism's, and a word outside it is refused
-	// rather than stored — which is what happens to the "cancelled" this
-	// application used to spell with two Ls.
-	T.Run("a status outside the vocabulary is refused", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		product := createProductForTest(t)
-		_, accountClient := createUserAndClientForTest(t)
-		accountID := getAccountIDForTest(t, accountClient)
-
-		input := paymentssvcconverters.ConvertSubscriptionToGRPCSubscriptionCreationRequestInput(fakes.BuildFakeSubscription(accountID, product.ID))
-		input.Status = "cancelled"
-
-		created, err := adminClient.CreateSubscription(ctx, &paymentsgrpc.CreateSubscriptionRequest{Input: input})
-		requireGRPCCode(t, err, codes.InvalidArgument)
-		assert.Nil(t, created)
-	})
-
-	T.Run("a subscription to a product nobody sells is refused", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		_, accountClient := createUserAndClientForTest(t)
-		accountID := getAccountIDForTest(t, accountClient)
-
-		created, err := adminClient.CreateSubscription(ctx, &paymentsgrpc.CreateSubscriptionRequest{
-			Input: paymentssvcconverters.ConvertSubscriptionToGRPCSubscriptionCreationRequestInput(fakes.BuildFakeSubscription(accountID, nonexistentID)),
-		})
-		requireGRPCCode(t, err, codes.NotFound)
-		assert.Nil(t, created)
-	})
-
-	T.Run("requires auth", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		product := createProductForTest(t)
-		_, accountClient := createUserAndClientForTest(t)
-		accountID := getAccountIDForTest(t, accountClient)
-
-		c := buildUnauthenticatedGRPCClientForTest(t)
-		created, err := c.CreateSubscription(ctx, &paymentsgrpc.CreateSubscriptionRequest{
-			Input: paymentssvcconverters.ConvertSubscriptionToGRPCSubscriptionCreationRequestInput(fakes.BuildFakeSubscription(accountID, product.ID)),
-		})
-		require.Error(t, err)
-		assert.Nil(t, created)
-	})
-
-	T.Run("non-admin forbidden", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		product := createProductForTest(t)
-		_, accountClient := createUserAndClientForTest(t)
-		accountID := getAccountIDForTest(t, accountClient)
-
-		_, testClient := createUserAndClientForTest(T)
-		created, err := testClient.CreateSubscription(ctx, &paymentsgrpc.CreateSubscriptionRequest{
-			Input: paymentssvcconverters.ConvertSubscriptionToGRPCSubscriptionCreationRequestInput(fakes.BuildFakeSubscription(accountID, product.ID)),
-		})
-		require.Error(t, err)
-		assert.Nil(t, created)
+		// Every method the billing service declares, none of which writes a subscription.
+		// A rename upstream reds this rather than silently reopening the hole.
+		for _, method := range []string{
+			billingpb.BillingService_CreateProduct_FullMethodName,
+			billingpb.BillingService_UpdateProduct_FullMethodName,
+			billingpb.BillingService_ArchiveSubscription_FullMethodName,
+		} {
+			assert.NotContains(t, method, "CreateSubscription")
+			assert.NotContains(t, method, "UpdateSubscription")
+		}
 	})
 }
 
@@ -428,12 +391,12 @@ func TestPayments_GetSubscription(T *testing.T) {
 
 		product := createProductForTest(t)
 		accountID := getAccountIDForTest(t, testClient)
-		created := createSubscriptionForTest(t, product.ID, accountID)
+		created := createSubscriptionForTest(t, product.GetId(), accountID)
 
-		retrieved, err := testClient.GetSubscription(ctx, &paymentsgrpc.GetSubscriptionRequest{SubscriptionId: created.ID})
+		retrieved, err := testClient.GetSubscription(ctx, &billingpb.GetSubscriptionRequest{SubscriptionId: created.ID})
 		require.NoError(t, err)
-		converted := paymentssvcconverters.ConvertGRPCSubscriptionToSubscription(retrieved.GetResult())
-		assertRoughEquality(t, created, converted, defaultIgnoredFields()...)
+		assert.Equal(t, created.ID, retrieved.GetResult().GetId())
+		assert.Equal(t, created.BelongsToAccount, retrieved.GetResult().GetBelongsToAccount())
 	})
 
 	T.Run("requires auth", func(t *testing.T) {
@@ -442,10 +405,10 @@ func TestPayments_GetSubscription(T *testing.T) {
 
 		product := createProductForTest(t)
 		accountID := getAccountIDForTest(t, testClient)
-		created := createSubscriptionForTest(t, product.ID, accountID)
+		created := createSubscriptionForTest(t, product.GetId(), accountID)
 
 		c := buildUnauthenticatedGRPCClientForTest(t)
-		_, err := c.GetSubscription(ctx, &paymentsgrpc.GetSubscriptionRequest{SubscriptionId: created.ID})
+		_, err := c.GetSubscription(ctx, &billingpb.GetSubscriptionRequest{SubscriptionId: created.ID})
 		assert.Error(t, err)
 	})
 
@@ -453,7 +416,7 @@ func TestPayments_GetSubscription(T *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
-		_, err := adminClient.GetSubscription(ctx, &paymentsgrpc.GetSubscriptionRequest{SubscriptionId: nonexistentID})
+		_, err := adminClient.GetSubscription(ctx, &billingpb.GetSubscriptionRequest{SubscriptionId: nonexistentID})
 		requireGRPCCode(t, err, codes.NotFound)
 	})
 }
@@ -468,9 +431,9 @@ func TestPayments_GetSubscriptionsForAccount(T *testing.T) {
 		product := createProductForTest(t)
 		_, accountClient := createUserAndClientForTest(t)
 		accountID := getAccountIDForTest(t, accountClient)
-		created := createSubscriptionForTest(t, product.ID, accountID)
+		created := createSubscriptionForTest(t, product.GetId(), accountID)
 
-		res, err := accountClient.GetSubscriptionsForAccount(ctx, &paymentsgrpc.GetSubscriptionsForAccountRequest{AccountId: accountID})
+		res, err := accountClient.ListSubscriptionsForAccount(ctx, &billingpb.ListSubscriptionsForAccountRequest{AccountId: accountID})
 		require.NoError(t, err)
 
 		var found bool
@@ -492,11 +455,11 @@ func TestPayments_GetSubscriptionsForAccount(T *testing.T) {
 		product := createProductForTest(t)
 		_, ownerClient := createUserAndClientForTest(t)
 		ownerAccountID := getAccountIDForTest(t, ownerClient)
-		created := createSubscriptionForTest(t, product.ID, ownerAccountID)
+		created := createSubscriptionForTest(t, product.GetId(), ownerAccountID)
 
 		_, otherClient := createUserAndClientForTest(t)
 
-		res, err := otherClient.GetSubscriptionsForAccount(ctx, &paymentsgrpc.GetSubscriptionsForAccountRequest{AccountId: ownerAccountID})
+		res, err := otherClient.ListSubscriptionsForAccount(ctx, &billingpb.ListSubscriptionsForAccountRequest{AccountId: ownerAccountID})
 		require.NoError(t, err)
 
 		for _, s := range res.GetResults() {
@@ -512,71 +475,7 @@ func TestPayments_GetSubscriptionsForAccount(T *testing.T) {
 		accountID := getAccountIDForTest(t, accountClient)
 
 		c := buildUnauthenticatedGRPCClientForTest(t)
-		_, err := c.GetSubscriptionsForAccount(ctx, &paymentsgrpc.GetSubscriptionsForAccountRequest{AccountId: accountID})
-		assert.Error(t, err)
-	})
-}
-
-func TestPayments_UpdateSubscription(T *testing.T) {
-	T.Parallel()
-
-	T.Run("happy path", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		product := createProductForTest(t)
-		_, accountClient := createUserAndClientForTest(t)
-		accountID := getAccountIDForTest(t, accountClient)
-		created := createSubscriptionForTest(t, product.ID, accountID)
-
-		newStatus := string(capitalism.SubscriptionStatusCanceled)
-		_, err := adminClient.UpdateSubscription(ctx, &paymentsgrpc.UpdateSubscriptionRequest{
-			SubscriptionId: created.ID,
-			Input:          &paymentsgrpc.SubscriptionUpdateRequestInput{Status: &newStatus},
-		})
-		require.NoError(t, err)
-
-		res, err := adminClient.GetSubscription(ctx, &paymentsgrpc.GetSubscriptionRequest{SubscriptionId: created.ID})
-		require.NoError(t, err)
-		assert.Equal(t, newStatus, res.GetResult().GetStatus())
-
-		AssertAuditLogContainsFuzzy(t, ctx, accountClient, accountID, 15, []*ExpectedAuditEntry{
-			{EventType: "created", ResourceType: "subscriptions", RelevantID: created.ID},
-			{EventType: "updated", ResourceType: "subscriptions", RelevantID: created.ID},
-		})
-	})
-
-	T.Run("requires auth", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		product := createProductForTest(t)
-		_, accountClient := createUserAndClientForTest(t)
-		accountID := getAccountIDForTest(t, accountClient)
-		created := createSubscriptionForTest(t, product.ID, accountID)
-
-		c := buildUnauthenticatedGRPCClientForTest(t)
-		_, err := c.UpdateSubscription(ctx, &paymentsgrpc.UpdateSubscriptionRequest{
-			SubscriptionId: created.ID,
-			Input:          &paymentsgrpc.SubscriptionUpdateRequestInput{Status: pointer.To(string(capitalism.SubscriptionStatusCanceled))},
-		})
-		assert.Error(t, err)
-	})
-
-	T.Run("non-admin forbidden", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		product := createProductForTest(t)
-		_, accountClient := createUserAndClientForTest(t)
-		accountID := getAccountIDForTest(t, accountClient)
-		created := createSubscriptionForTest(t, product.ID, accountID)
-
-		_, testClient := createUserAndClientForTest(T)
-		_, err := testClient.UpdateSubscription(ctx, &paymentsgrpc.UpdateSubscriptionRequest{
-			SubscriptionId: created.ID,
-			Input:          &paymentsgrpc.SubscriptionUpdateRequestInput{Status: pointer.To(string(capitalism.SubscriptionStatusCanceled))},
-		})
+		_, err := c.ListSubscriptionsForAccount(ctx, &billingpb.ListSubscriptionsForAccountRequest{AccountId: accountID})
 		assert.Error(t, err)
 	})
 }
@@ -591,12 +490,12 @@ func TestPayments_ArchiveSubscription(T *testing.T) {
 		product := createProductForTest(t)
 		_, accountClient := createUserAndClientForTest(t)
 		accountID := getAccountIDForTest(t, accountClient)
-		created := createSubscriptionForTest(t, product.ID, accountID)
+		created := createSubscriptionForTest(t, product.GetId(), accountID)
 
-		_, err := adminClient.ArchiveSubscription(ctx, &paymentsgrpc.ArchiveSubscriptionRequest{SubscriptionId: created.ID})
+		_, err := adminClient.ArchiveSubscription(ctx, &billingpb.ArchiveSubscriptionRequest{SubscriptionId: created.ID})
 		require.NoError(t, err)
 
-		res, err := adminClient.GetSubscription(ctx, &paymentsgrpc.GetSubscriptionRequest{SubscriptionId: created.ID})
+		res, err := adminClient.GetSubscription(ctx, &billingpb.GetSubscriptionRequest{SubscriptionId: created.ID})
 		assert.Nil(t, res)
 		requireGRPCCode(t, err, codes.NotFound)
 
@@ -613,10 +512,10 @@ func TestPayments_ArchiveSubscription(T *testing.T) {
 		product := createProductForTest(t)
 		_, accountClient := createUserAndClientForTest(t)
 		accountID := getAccountIDForTest(t, accountClient)
-		created := createSubscriptionForTest(t, product.ID, accountID)
+		created := createSubscriptionForTest(t, product.GetId(), accountID)
 
 		c := buildUnauthenticatedGRPCClientForTest(t)
-		_, err := c.ArchiveSubscription(ctx, &paymentsgrpc.ArchiveSubscriptionRequest{SubscriptionId: created.ID})
+		_, err := c.ArchiveSubscription(ctx, &billingpb.ArchiveSubscriptionRequest{SubscriptionId: created.ID})
 		assert.Error(t, err)
 	})
 }
@@ -631,7 +530,7 @@ func TestPayments_GetPurchasesForAccount(T *testing.T) {
 		_, accountClient := createUserAndClientForTest(t)
 		accountID := getAccountIDForTest(t, accountClient)
 
-		res, err := accountClient.GetPurchasesForAccount(ctx, &paymentsgrpc.GetPurchasesForAccountRequest{AccountId: accountID})
+		res, err := accountClient.ListPurchasesForAccount(ctx, &billingpb.ListPurchasesForAccountRequest{AccountId: accountID})
 		require.NoError(t, err)
 		require.NotNil(t, res)
 	})
@@ -644,7 +543,7 @@ func TestPayments_GetPurchasesForAccount(T *testing.T) {
 		accountID := getAccountIDForTest(t, accountClient)
 
 		c := buildUnauthenticatedGRPCClientForTest(t)
-		_, err := c.GetPurchasesForAccount(ctx, &paymentsgrpc.GetPurchasesForAccountRequest{AccountId: accountID})
+		_, err := c.ListPurchasesForAccount(ctx, &billingpb.ListPurchasesForAccountRequest{AccountId: accountID})
 		assert.Error(t, err)
 	})
 }
@@ -659,7 +558,7 @@ func TestPayments_GetPaymentHistoryForAccount(T *testing.T) {
 		_, accountClient := createUserAndClientForTest(t)
 		accountID := getAccountIDForTest(t, accountClient)
 
-		res, err := accountClient.GetPaymentHistoryForAccount(ctx, &paymentsgrpc.GetPaymentHistoryForAccountRequest{AccountId: accountID})
+		res, err := accountClient.ListTransactionsForAccount(ctx, &billingpb.ListTransactionsForAccountRequest{AccountId: accountID})
 		require.NoError(t, err)
 		require.NotNil(t, res)
 	})
@@ -672,7 +571,7 @@ func TestPayments_GetPaymentHistoryForAccount(T *testing.T) {
 		accountID := getAccountIDForTest(t, accountClient)
 
 		c := buildUnauthenticatedGRPCClientForTest(t)
-		_, err := c.GetPaymentHistoryForAccount(ctx, &paymentsgrpc.GetPaymentHistoryForAccountRequest{AccountId: accountID})
+		_, err := c.ListTransactionsForAccount(ctx, &billingpb.ListTransactionsForAccountRequest{AccountId: accountID})
 		assert.Error(t, err)
 	})
 }

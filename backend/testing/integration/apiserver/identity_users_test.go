@@ -108,14 +108,14 @@ func TestUsers_PermissionChecking(T *testing.T) {
 
 		response, err := testClient.CheckPermissions(ctx, &authsvc.UserPermissionsRequestInput{Permissions: []string{
 			string(authorization.ImpersonateUserPermission),
-			string(authorization.ReadWebhooksPermission), // permission everyone has
+			string(authorization.ReadWebhookEndpointsPermission), // permission everyone has
 		}})
 		require.NoError(t, err)
 		assert.NotNil(t, response)
 
 		assert.Equal(t, map[string]bool{
 			string(authorization.ImpersonateUserPermission): false,
-			string(authorization.ReadWebhooksPermission):    true,
+			string(authorization.ReadWebhookEndpointsPermission):    true,
 		}, response.Permissions)
 	})
 
@@ -125,7 +125,7 @@ func TestUsers_PermissionChecking(T *testing.T) {
 
 		testClient := buildUnauthenticatedGRPCClientForTest(t)
 
-		response, err := testClient.CheckPermissions(ctx, &authsvc.UserPermissionsRequestInput{Permissions: []string{string(authorization.ReadWebhooksPermission)}})
+		response, err := testClient.CheckPermissions(ctx, &authsvc.UserPermissionsRequestInput{Permissions: []string{string(authorization.ReadWebhookEndpointsPermission)}})
 		require.Error(t, err)
 		assert.Nil(t, response)
 	})

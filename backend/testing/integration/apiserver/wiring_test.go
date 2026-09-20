@@ -115,10 +115,13 @@ func TestWorkerWiring_Scheduler(T *testing.T) {
 		// happens to hold nothing under — so a domain that stopped being registered produces an
 		// export that is complete by its own manifest and missing a domain's worth of somebody's
 		// data. There is no other place that would notice.
+		// There is no webhooks key, and its absence is asserted by this list being exact:
+		// nothing in that domain names a person, so a collector over it answered a question
+		// about a subject with an account's delivery configuration. See docs/data-privacy.md
+		// for the one obligation that leaves here, which retention discharges.
 		assert.ElementsMatch(t, []string{
 			ddbdataprivacy.CollectorKeyIdentity,
 			ddbdataprivacy.CollectorKeyMealPlanning,
-			ddbdataprivacy.CollectorKeyWebhooks,
 			ddbdataprivacy.CollectorKeySettings,
 			ddbdataprivacy.CollectorKeyNotifications,
 			ddbdataprivacy.CollectorKeyPayments,

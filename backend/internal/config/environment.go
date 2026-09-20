@@ -309,10 +309,16 @@ func defaultOutboxRelayConfig() outbox.RelayConfig {
 		// busy table can wake the relay faster than it can drain one, which spends the
 		// cycle budget on wakeups rather than on publishing.
 		MinWakeInterval: outbox.DefaultMinWakeInterval,
-		// New in v14, and required: how long a quarantined row is kept before it is
-		// reaped. A quarantined row is one the relay gave up on, so it is the one thing
-		// in this table nobody has seen — the platform's thirty days is long enough that
-		// an incident review a fortnight later still finds it.
+		// New in v14: how long a quarantined row is kept before it is reaped. A
+		// quarantined row is one the relay gave up on, so it is the one thing in this
+		// table nobody has seen — the platform's thirty days is long enough that an
+		// incident review a fortnight later still finds it.
+		//
+		// Spelled out rather than left to EnsureDefaults for the reason the saga config
+		// below gives: these are rendered into files people read. EnsureDefaults does
+		// fill it, so a process that omitted it would still run — but this struct is
+		// validated as written, before any constructor sees it, so a blank one fails the
+		// render rather than quietly becoming thirty days.
 		QuarantineRetention: outbox.DefaultQuarantineRetention,
 	}
 }
@@ -361,9 +367,9 @@ func defaultSagaWorkerConfig() saga.WorkerConfig {
 			UseJitter:    true,
 		},
 		PollInterval: time.Second,
-		// New in v14, and required: how often the worker samples the stuck level onto its
-		// gauge. Its own knob rather than a multiple of PollInterval because the two reads
-		// cost different things — a poll claims, and this one counts.
+		// New in v14: how often the worker samples the stuck level onto its gauge. Its own
+		// knob rather than a multiple of PollInterval because the two reads cost different
+		// things — a poll claims, and this one counts.
 		StatsInterval:  saga.DefaultStatsInterval,
 		StepTimeout:    2 * time.Minute,
 		AdvanceTimeout: 5 * time.Minute,

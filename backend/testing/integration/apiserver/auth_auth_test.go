@@ -17,6 +17,7 @@ import (
 	authrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auth"
 
 	"github.com/primandproper/platform-go/v14/authentication/passwordreset"
+	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/identifiers"
 	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
 	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
@@ -560,8 +561,7 @@ func TestAuth_RequestingPasswordReset(T *testing.T) {
 		// So the token this test spends is one it issues itself, through the same store the
 		// server uses. Everything from the redemption onwards is the real path.
 		store := passwordResetStoreForTest(t)
-		issuance, err := store.Issue(ctx, tenancy.Global(), user.ID, 30*time.Minute)
-		require.NoError(t, err)
+		issuance := issuePasswordResetTokenForTest(t, store, user.ID)
 		require.NotEmpty(t, issuance.Secret)
 
 		_, err = testClient.RedeemPasswordResetToken(ctx, &authsvc.RedeemPasswordResetTokenRequest{
@@ -602,12 +602,10 @@ func TestAuth_RequestingPasswordReset(T *testing.T) {
 		store := passwordResetStoreForTest(t)
 
 		// Somebody clicks "email me a link" twice and answers the second message.
-		first, err := store.Issue(ctx, tenancy.Global(), user.ID, 30*time.Minute)
-		require.NoError(t, err)
-		second, err := store.Issue(ctx, tenancy.Global(), user.ID, 30*time.Minute)
-		require.NoError(t, err)
+		first := issuePasswordResetTokenForTest(t, store, user.ID)
+		second := issuePasswordResetTokenForTest(t, store, user.ID)
 
-		_, err = testClient.RedeemPasswordResetToken(ctx, &authsvc.RedeemPasswordResetTokenRequest{
+		_, err := testClient.RedeemPasswordResetToken(ctx, &authsvc.RedeemPasswordResetTokenRequest{
 			Token:       second.Secret,
 			NewPassword: user.HashedPassword + "blah",
 		})
@@ -634,8 +632,7 @@ func TestAuth_RequestingPasswordReset(T *testing.T) {
 		require.NoError(t, err)
 		assert.NotNil(t, res)
 
-		issuance, err := passwordResetStoreForTest(t).Issue(ctx, tenancy.Global(), user.ID, 30*time.Minute)
-		require.NoError(t, err)
+		issuance := issuePasswordResetTokenForTest(t, passwordResetStoreForTest(t), user.ID)
 
 		_, err = unauthedClient.RedeemPasswordResetToken(ctx, &authsvc.RedeemPasswordResetTokenRequest{
 			Token:       issuance.Secret,
@@ -1018,4 +1015,24 @@ func insertWebAuthnCredentialForTest(t *testing.T, userID, friendlyName string) 
 	require.NoError(t, err)
 
 	return credID
+}
+
+// issuePasswordResetTokenForTest mints a reset token through the same store the server uses.
+//
+// On a transaction of its own, because as of platform-go v14 a store write takes the caller's
+// database.Tx — which is what the handler that issues a real reset link supplies.
+func issuePasswordResetTokenForTest(t *testing.T, store passwordreset.Store, userID string) *passwordreset.Issuance {
+	t.Helper()
+
+	var issuance *passwordreset.Issuance
+
+	require.NoError(t, databaseClient.WithTransaction(t.Context(), func(tx database.Tx) error {
+		var issueErr error
+		issuance, issueErr = store.Issue(t.Context(), tx, tenancy.Global(), userID, 30*time.Minute)
+
+		return issueErr
+	}))
+	require.NotNil(t, issuance)
+
+	return issuance
 }
