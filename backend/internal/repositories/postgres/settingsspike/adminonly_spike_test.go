@@ -140,8 +140,21 @@ func TestSpike_PlatformServerDoesNotEnforceAdminOnly(T *testing.T) {
 		require.False(t, ordinary.IsServiceAdmin(),
 			"the role this caller holds must not be a service admin, or the test proves nothing")
 
+		// The method grant admits this caller, which is the half of the story a
+		// handler-level test would otherwise assume. This application's
+		// authorization interceptor is wired and fail-closed — a method absent from
+		// the aggregated map is refused outright
+		// (internal/services/auth/grpc/interceptors/authn_interceptor.go:315) — so
+		// the question is never "is the grant checked" but "what can the grant
+		// say". It says settings.values.write, which every self-service user must
+		// hold to set any of their own settings, and which this caller holds.
+		member := authorization.NewAccountRolePermissionChecker(authorization.AccountMemberPermissions)
+		require.True(t, member.HasPermission(authorization.CreateSettingValuesPermission),
+			"an ordinary member must hold the value-write grant, or this surface is unusable for self-service")
+
 		callerCtx := sessions.AttachToContext(ctx, &sessions.ContextData{
-			ActiveAccountID: identifiers.New(),
+			ActiveAccountID:    identifiers.New(),
+			AccountPermissions: map[string]authorization.AccountRolePermissionsChecker{},
 			Requester: sessions.RequesterInfo{
 				UserID:             user.ID,
 				ServicePermissions: ordinary,
