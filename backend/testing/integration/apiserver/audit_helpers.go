@@ -7,6 +7,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
 	auditgrpc "github.com/primandproper/platform-go/v14/audit/auditpb"
 
+	"github.com/primandproper/primitives-go/v2/filtering"
 	"github.com/primandproper/primitives-go/v2/filtering/filteringpb"
 
 	"github.com/stretchr/testify/assert"
@@ -74,6 +75,12 @@ func AssertAuditLogContainsFuzzy(t *testing.T, ctx context.Context, c client.Cli
 	resp, err := c.ListEntries(ctx, &auditgrpc.ListEntriesRequest{
 		Filter: &filteringpb.QueryFilter{
 			MaxResponseSize: &limit32,
+			// Newest first. An audit chain is seq-ordered and platform pages it
+			// ascending by default, so a bounded window without this is the account's
+			// oldest entries — its registration, every time — and never the write the
+			// caller just made. The RPC this replaced sorted the other way, which is why
+			// the window was small enough to be a useful assertion in the first place.
+			SortBy: filtering.SortDescending,
 		},
 	})
 	require.NoError(t, err)
@@ -109,6 +116,12 @@ func AssertAuditLogContainsFuzzyForUser(t *testing.T, ctx context.Context, c cli
 		Query: &auditgrpc.EntryQuery{ActorId: userID},
 		Filter: &filteringpb.QueryFilter{
 			MaxResponseSize: &limit32,
+			// Newest first. An audit chain is seq-ordered and platform pages it
+			// ascending by default, so a bounded window without this is the account's
+			// oldest entries — its registration, every time — and never the write the
+			// caller just made. The RPC this replaced sorted the other way, which is why
+			// the window was small enough to be a useful assertion in the first place.
+			SortBy: filtering.SortDescending,
 		},
 	})
 	require.NoError(t, err)

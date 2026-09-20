@@ -5,6 +5,7 @@ import (
 	"time"
 
 	waitlistfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists/fakes"
+	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
 
 	waitlists "github.com/primandproper/platform-go/v14/waitlists"
@@ -134,7 +135,16 @@ func createWaitlistSignupForTest(t *testing.T, testClient client.Client, waitlis
 func signupForSubject(t *testing.T, testClient client.Client, waitlistID string) *waitlistspb.Signup {
 	t.Helper()
 
-	mine, err := testClient.ListSignupsForSubject(t.Context(), &waitlistspb.ListSignupsForSubjectRequest{})
+	// The subject is named rather than derived from the session, because platform's read
+	// takes one: a deployment may have several kinds of subject and the library cannot know
+	// which a session implies. Ours has one, and the authorizer refuses any but the caller's
+	// own — so naming the caller's is the only request that succeeds.
+	status, err := testClient.GetAuthStatus(t.Context(), &authsvc.GetAuthStatusRequest{})
+	require.NoError(t, err)
+
+	mine, err := testClient.ListSignupsForSubject(t.Context(), &waitlistspb.ListSignupsForSubjectRequest{
+		Subject: &waitlistspb.SignupSubject{Type: string(waitlists.SubjectUser), Id: status.GetUserId()},
+	})
 	require.NoError(t, err)
 
 	for _, signup := range mine.GetResults() {
@@ -447,7 +457,7 @@ func TestWaitlistSignups_Joining(T *testing.T) {
 		_, err := testClient.Join(ctx, &waitlistspb.JoinRequest{ListId: waitlist.GetId()})
 		require.NoError(t, err, "a duplicate join is answered rather than refused")
 
-		mine, err := testClient.ListSignupsForSubject(ctx, &waitlistspb.ListSignupsForSubjectRequest{})
+		mine, err := testClient.ListSignupsForSubject(ctx, subjectRequestFor(t, testClient))
 		require.NoError(t, err)
 
 		var onThisList int
@@ -878,7 +888,7 @@ func TestWaitlistSignups_Archiving(T *testing.T) {
 		_, err = testClient.Join(ctx, &waitlistspb.JoinRequest{ListId: waitlist.GetId()})
 		require.NoError(t, err, "a duplicate join is answered rather than refused")
 
-		mine, err := testClient.ListSignupsForSubject(ctx, &waitlistspb.ListSignupsForSubjectRequest{})
+		mine, err := testClient.ListSignupsForSubject(ctx, subjectRequestFor(t, testClient))
 		require.NoError(t, err)
 		for _, signup := range mine.GetResults() {
 			assert.NotEqual(t, waitlist.GetId(), signup.GetListId(), "an archived signup came back")
@@ -908,4 +918,16 @@ func TestWaitlistSignups_Archiving(T *testing.T) {
 		_, err := c.ArchiveSignup(ctx, &waitlistspb.ArchiveSignupRequest{})
 		assert.Error(t, err)
 	})
+}
+
+// subjectRequestFor builds the caller's own subject read.
+func subjectRequestFor(t *testing.T, testClient client.Client) *waitlistspb.ListSignupsForSubjectRequest {
+	t.Helper()
+
+	status, err := testClient.GetAuthStatus(t.Context(), &authsvc.GetAuthStatusRequest{})
+	require.NoError(t, err)
+
+	return &waitlistspb.ListSignupsForSubjectRequest{
+		Subject: &waitlistspb.SignupSubject{Type: string(waitlists.SubjectUser), Id: status.GetUserId()},
+	}
 }
