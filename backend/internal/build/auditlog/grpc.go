@@ -5,14 +5,19 @@ The service this replaces had three RPCs — an entry by id, a page for an
 account, a page for a user — and platform's three are the same reads with the
 account and user selectors moved into a Query.
 
-One of them narrows. platform binds the query's scope to the one the connection
-resolved, deliberately, and this application's chains are per-account or
-per-user: ScopeFor files an entry under its account when it has one and under
-its actor otherwise, so that logins do not all serialize on one chain. So "every
-entry about this user, across chains" — what the deleted GetAuditLogEntriesForUser
-answered — is no longer an API read. It remains a privacy export, which reaches
-the repository rather than the wire and is where a subject asking for everything
-held about them is answered.
+One of them narrows, and this package widens it back. platform binds the query's
+scope to the one the connection resolved, and this application's chains are
+per-account or per-user: ScopeFor files an entry under its account when it has
+one and under its actor otherwise, so that logins do not all serialize on one
+chain. A signed-in caller therefore belongs to two chains at once, and a read of
+one of them is a read that never shows somebody their own logins, signups or
+password resets.
+
+spanningReader reads both and merges, so "every entry about this user" is an API
+read again. It is a decorator rather than a fix because the fix is upstream and
+one predicate wide — see its doc — and the privacy export remains the answer for
+a subject asking for everything held about them, because that reaches the
+repository rather than the wire.
 */
 package auditlog
 
@@ -46,7 +51,9 @@ func activeAccountScope(ctx context.Context) (tenancy.Scope, error) {
 func RegisterAuditService(i do.Injector) {
 	do.Provide[auditpb.AuditServiceServer](i, func(i do.Injector) (auditpb.AuditServiceServer, error) {
 		return auditgrpc.NewServer(
-			do.MustInvoke[platformaudit.Reader](i),
+			// Wrapped so a caller reads their own chain alongside their account's.
+			// See spanningReader, and the one-predicate change upstream that deletes it.
+			spanningReader{Reader: do.MustInvoke[platformaudit.Reader](i)},
 			do.MustInvoke[database.Client](i),
 			auditgrpc.WithScopeResolver(activeAccountScope),
 			auditgrpc.WithLogger(do.MustInvoke[logging.Logger](i)),
