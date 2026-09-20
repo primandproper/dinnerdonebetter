@@ -21,10 +21,10 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
 
-	"github.com/primandproper/platform-go/v13/filtering"
-	platformnotifications "github.com/primandproper/platform-go/v13/notifications/mobile"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/metrics"
+	"github.com/primandproper/primitives-go/v2/filtering"
+	platformnotifications "github.com/primandproper/primitives-go/v2/notifications/mobile"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/metrics"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"

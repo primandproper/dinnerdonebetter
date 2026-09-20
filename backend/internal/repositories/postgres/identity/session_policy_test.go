@@ -6,8 +6,8 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
 
-	platformauthz "github.com/primandproper/platform-go/v13/authorization"
-	"github.com/primandproper/platform-go/v13/identifiers"
+	platformauthz "github.com/primandproper/primitives-go/v2/authorization"
+	"github.com/primandproper/primitives-go/v2/identifiers"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

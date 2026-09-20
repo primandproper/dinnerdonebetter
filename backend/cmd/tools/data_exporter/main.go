@@ -16,15 +16,15 @@ import (
 	identityrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity"
 	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
 
-	"github.com/primandproper/platform-go/v13/database"
-	databasecfg "github.com/primandproper/platform-go/v13/database/config"
-	"github.com/primandproper/platform-go/v13/database/postgres"
-	"github.com/primandproper/platform-go/v13/filtering"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
-	tracingnoop "github.com/primandproper/platform-go/v13/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v13/uploads/registry"
+	"github.com/primandproper/platform-go/v14/mediaregistry"
+	"github.com/primandproper/primitives-go/v2/database"
+	databasecfg "github.com/primandproper/primitives-go/v2/database/config"
+	"github.com/primandproper/primitives-go/v2/database/postgres"
+	"github.com/primandproper/primitives-go/v2/filtering"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
+	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
 
 	"github.com/spf13/cobra"
 )
@@ -113,11 +113,11 @@ func runExport(dbHost string, dbPort uint16, dbUser, dbPassword, dbName string, 
 	}
 	// A real registry store rather than nil: both repositories hydrate media
 	// through it. It needs no emitter or metrics — nothing here writes an object.
-	uploadsRegistry, err := registry.NewSQLStore(
+	uploadsRegistry, err := mediaregistry.NewSQLStore(
 		client,
-		registry.WithTablePrefix(uploadedmedia.TablePrefix),
-		registry.WithStoreLogger(logger),
-		registry.WithStoreTracerProvider(tracerProvider),
+		mediaregistry.WithTablePrefix(uploadedmedia.TablePrefix),
+		mediaregistry.WithStoreLogger(logger),
+		mediaregistry.WithStoreTracerProvider(tracerProvider),
 	)
 	if err != nil {
 		return fmt.Errorf("building upload registry store: %w", err)

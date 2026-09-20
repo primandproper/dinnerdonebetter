@@ -1,10 +1,11 @@
 package entitlements
 
 import (
-	"github.com/primandproper/platform-go/v13/billing"
-	platformentitlements "github.com/primandproper/platform-go/v13/entitlements"
-	entitlementscfg "github.com/primandproper/platform-go/v13/entitlements/config"
-	platformmetering "github.com/primandproper/platform-go/v13/metering"
+	"github.com/primandproper/platform-go/v14/billing"
+	platformentitlements "github.com/primandproper/platform-go/v14/entitlements"
+	entitlementscfg "github.com/primandproper/platform-go/v14/entitlements/config"
+	platformmetering "github.com/primandproper/platform-go/v14/metering"
+	"github.com/primandproper/primitives-go/v2/database"
 
 	"github.com/samber/do/v2"
 )
@@ -29,7 +30,7 @@ func RegisterPlanSource(i do.Injector) {
 		// Built into a variable and returned only once err is known to be nil: returning the
 		// constructor's result straight through would register a non-nil PlanSource wrapping
 		// a nil pointer whenever construction failed.
-		source, err := NewPlanSource(do.MustInvoke[billing.Store](i))
+		source, err := NewPlanSource(do.MustInvoke[billing.Store](i), do.MustInvoke[database.Client](i).Reader())
 		if err != nil {
 			return nil, err
 		}

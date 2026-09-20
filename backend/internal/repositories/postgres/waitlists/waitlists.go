@@ -44,12 +44,12 @@ import (
 	ddbwaitlists "github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists"
 	waitlistkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists/keys"
 
-	"github.com/primandproper/platform-go/v13/database"
-	"github.com/primandproper/platform-go/v13/identifiers"
-	"github.com/primandproper/platform-go/v13/observability"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
-	"github.com/primandproper/platform-go/v13/tenancy"
-	platformwaitlists "github.com/primandproper/platform-go/v13/waitlists"
+	platformwaitlists "github.com/primandproper/platform-go/v14/waitlists"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/identifiers"
+	"github.com/primandproper/primitives-go/v2/observability"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
 const (
@@ -62,18 +62,18 @@ const (
 var _ platformwaitlists.Store = (*repository)(nil)
 
 // CreateList opens the waitlist, then records it.
-func (r *repository) CreateList(ctx context.Context, scope tenancy.Scope, list *platformwaitlists.List) (*platformwaitlists.List, error) {
+func (r *repository) CreateList(ctx context.Context, tx database.Tx, scope tenancy.Scope, list *platformwaitlists.List) (*platformwaitlists.List, error) {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
-	created, err := r.Store.CreateList(ctx, scope, list)
+	created, err := r.Store.CreateList(ctx, tx, scope, list)
 	if err != nil {
 		return nil, err
 	}
 
 	tracing.AttachToSpan(span, waitlistkeys.WaitlistIDKey, created.ID)
 
-	if err = r.recordList(ctx, created.ID, audit.AuditLogEventTypeCreated, ddbwaitlists.WaitlistCreatedServiceEventType); err != nil {
+	if err = r.recordList(ctx, tx, created.ID, audit.AuditLogEventTypeCreated, ddbwaitlists.WaitlistCreatedServiceEventType); err != nil {
 		return nil, err
 	}
 
@@ -81,48 +81,58 @@ func (r *repository) CreateList(ctx context.Context, scope tenancy.Scope, list *
 }
 
 // UpdateList rewrites the list, then records it.
-func (r *repository) UpdateList(ctx context.Context, scope tenancy.Scope, list *platformwaitlists.List) error {
+func (r *repository) UpdateList(ctx context.Context, tx database.Tx, scope tenancy.Scope, list *platformwaitlists.List) (*platformwaitlists.List, error) {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
-	if err := r.Store.UpdateList(ctx, scope, list); err != nil {
-		return err
+	result, err := r.Store.UpdateList(ctx, tx, scope, list)
+	if err != nil {
+		return nil, err
 	}
 
 	tracing.AttachToSpan(span, waitlistkeys.WaitlistIDKey, list.ID)
 
-	return r.recordList(ctx, list.ID, audit.AuditLogEventTypeUpdated, ddbwaitlists.WaitlistUpdatedServiceEventType)
+	if err = r.recordList(ctx, tx, list.ID, audit.AuditLogEventTypeUpdated, ddbwaitlists.WaitlistUpdatedServiceEventType); err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
 // ArchiveList retires the list, then records it.
-func (r *repository) ArchiveList(ctx context.Context, scope tenancy.Scope, listID string) error {
+func (r *repository) ArchiveList(ctx context.Context, tx database.Tx, scope tenancy.Scope, listID string) (*platformwaitlists.List, error) {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
 	tracing.AttachToSpan(span, waitlistkeys.WaitlistIDKey, listID)
 
-	if err := r.Store.ArchiveList(ctx, scope, listID); err != nil {
-		return err
+	result, err := r.Store.ArchiveList(ctx, tx, scope, listID)
+	if err != nil {
+		return nil, err
 	}
 
-	return r.recordList(ctx, listID, audit.AuditLogEventTypeArchived, ddbwaitlists.WaitlistArchivedServiceEventType)
+	if err = r.recordList(ctx, tx, listID, audit.AuditLogEventTypeArchived, ddbwaitlists.WaitlistArchivedServiceEventType); err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
 // Join adds somebody to the list, then records it.
-func (r *repository) Join(ctx context.Context, scope tenancy.Scope, listID string, signup *platformwaitlists.Signup) (*platformwaitlists.Signup, error) {
+func (r *repository) Join(ctx context.Context, tx database.Tx, scope tenancy.Scope, listID string, signup *platformwaitlists.Signup) (*platformwaitlists.Signup, error) {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
 	tracing.AttachToSpan(span, waitlistkeys.WaitlistIDKey, listID)
 
-	joined, err := r.Store.Join(ctx, scope, listID, signup)
+	joined, err := r.Store.Join(ctx, tx, scope, listID, signup)
 	if err != nil {
 		return nil, err
 	}
 
 	tracing.AttachToSpan(span, waitlistkeys.WaitlistSignupIDKey, joined.ID)
 
-	if err = r.recordSignup(ctx, joined, audit.AuditLogEventTypeCreated, ddbwaitlists.WaitlistSignupCreatedServiceEventType); err != nil {
+	if err = r.recordSignup(ctx, tx, joined, audit.AuditLogEventTypeCreated, ddbwaitlists.WaitlistSignupCreatedServiceEventType); err != nil {
 		return nil, err
 	}
 
@@ -134,30 +144,35 @@ func (r *repository) Join(ctx context.Context, scope tenancy.Scope, listID strin
 // It records an update rather than a transition, which is the distinction the
 // method exists to make: a note is the one write that touches a signup without
 // moving anybody.
-func (r *repository) UpdateSignupNotes(ctx context.Context, scope tenancy.Scope, listID, signupID, notes string) error {
+func (r *repository) UpdateSignupNotes(ctx context.Context, tx database.Tx, scope tenancy.Scope, listID, signupID, notes string) (*platformwaitlists.Signup, error) {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
-	signup, err := r.readSignupToRecord(ctx, span, scope, listID, signupID)
+	signup, err := r.readSignupToRecord(ctx, tx, span, scope, listID, signupID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	if err = r.Store.UpdateSignupNotes(ctx, scope, listID, signupID, notes); err != nil {
-		return err
+	result, err := r.Store.UpdateSignupNotes(ctx, tx, scope, listID, signupID, notes)
+	if err != nil {
+		return nil, err
 	}
 
-	return r.recordSignup(ctx, signup, audit.AuditLogEventTypeUpdated, ddbwaitlists.WaitlistSignupUpdatedServiceEventType)
+	if err = r.recordSignup(ctx, tx, signup, audit.AuditLogEventTypeUpdated, ddbwaitlists.WaitlistSignupUpdatedServiceEventType); err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
 // Invite lets somebody in, then records the move.
-func (r *repository) Invite(ctx context.Context, scope tenancy.Scope, listID, signupID string) error {
-	return r.recordedTransition(ctx, scope, listID, signupID, platformwaitlists.StatusInvited, r.Store.Invite)
+func (r *repository) Invite(ctx context.Context, tx database.Tx, scope tenancy.Scope, listID, signupID string) (*platformwaitlists.Signup, error) {
+	return r.recordedTransition(ctx, tx, scope, listID, signupID, platformwaitlists.StatusInvited, r.Store.Invite)
 }
 
 // Convert marks an invitation taken up, then records the move.
-func (r *repository) Convert(ctx context.Context, scope tenancy.Scope, listID, signupID string) error {
-	return r.recordedTransition(ctx, scope, listID, signupID, platformwaitlists.StatusConverted, r.Store.Convert)
+func (r *repository) Convert(ctx context.Context, tx database.Tx, scope tenancy.Scope, listID, signupID string) (*platformwaitlists.Signup, error) {
+	return r.recordedTransition(ctx, tx, scope, listID, signupID, platformwaitlists.StatusConverted, r.Store.Convert)
 }
 
 // Withdraw takes somebody off the list at their own request, then records it.
@@ -165,39 +180,49 @@ func (r *repository) Convert(ctx context.Context, scope tenancy.Scope, listID, s
 // The signup is read before the store runs, because a withdrawal blanks the
 // subject reference — and an audit entry whose actor is empty is an entry nobody
 // can find when they ask who came off which list.
-func (r *repository) Withdraw(ctx context.Context, scope tenancy.Scope, listID, signupID string) error {
+func (r *repository) Withdraw(ctx context.Context, tx database.Tx, scope tenancy.Scope, listID, signupID string) (*platformwaitlists.Signup, error) {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
-	signup, err := r.readSignupToRecord(ctx, span, scope, listID, signupID)
+	signup, err := r.readSignupToRecord(ctx, tx, span, scope, listID, signupID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	if err = r.Store.Withdraw(ctx, scope, listID, signupID); err != nil {
-		return err
+	result, err := r.Store.Withdraw(ctx, tx, scope, listID, signupID)
+	if err != nil {
+		return nil, err
 	}
 
 	signup.Status = platformwaitlists.StatusWithdrawn
 
-	return r.recordSignup(ctx, signup, audit.AuditLogEventTypeUpdated, ddbwaitlists.WaitlistSignupWithdrawnServiceEventType)
+	if err = r.recordSignup(ctx, tx, signup, audit.AuditLogEventTypeUpdated, ddbwaitlists.WaitlistSignupWithdrawnServiceEventType); err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
 // ArchiveSignup retires the signup administratively, then records it.
-func (r *repository) ArchiveSignup(ctx context.Context, scope tenancy.Scope, listID, signupID string) error {
+func (r *repository) ArchiveSignup(ctx context.Context, tx database.Tx, scope tenancy.Scope, listID, signupID string) (*platformwaitlists.Signup, error) {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
-	signup, err := r.readSignupToRecord(ctx, span, scope, listID, signupID)
+	signup, err := r.readSignupToRecord(ctx, tx, span, scope, listID, signupID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	if err = r.Store.ArchiveSignup(ctx, scope, listID, signupID); err != nil {
-		return err
+	result, err := r.Store.ArchiveSignup(ctx, tx, scope, listID, signupID)
+	if err != nil {
+		return nil, err
 	}
 
-	return r.recordSignup(ctx, signup, audit.AuditLogEventTypeArchived, ddbwaitlists.WaitlistSignupArchivedServiceEventType)
+	if err = r.recordSignup(ctx, tx, signup, audit.AuditLogEventTypeArchived, ddbwaitlists.WaitlistSignupArchivedServiceEventType); err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
 // recordedTransition is Invite and Convert: read whose signup it is, move it,
@@ -209,28 +234,34 @@ func (r *repository) ArchiveSignup(ctx context.Context, scope tenancy.Scope, lis
 // describing somebody else's later write.
 func (r *repository) recordedTransition(
 	ctx context.Context,
+	tx database.Tx,
 	scope tenancy.Scope,
 	listID, signupID string,
 	to platformwaitlists.Status,
-	move func(ctx context.Context, scope tenancy.Scope, listID, signupID string) error,
-) error {
+	move func(ctx context.Context, tx database.Tx, scope tenancy.Scope, listID, signupID string) (*platformwaitlists.Signup, error),
+) (*platformwaitlists.Signup, error) {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
 	tracing.AttachToSpan(span, waitlistkeys.WaitlistSignupStatusKey, to.String())
 
-	signup, err := r.readSignupToRecord(ctx, span, scope, listID, signupID)
+	tracing.AttachToSpan(span, waitlistkeys.WaitlistIDKey, listID)
+	tracing.AttachToSpan(span, waitlistkeys.WaitlistSignupIDKey, signupID)
+
+	// No read before the move. v14's transitions return the row they wrote, so
+	// the entry names the signup as it now stands rather than as it was a
+	// statement ago — and the read that used to establish that is gone with the
+	// window it opened.
+	moved, err := move(ctx, tx, scope, listID, signupID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	if err = move(ctx, scope, listID, signupID); err != nil {
-		return err
+	if err = r.recordSignup(ctx, tx, moved, audit.AuditLogEventTypeUpdated, ddbwaitlists.WaitlistSignupTransitionedServiceEventType); err != nil {
+		return nil, err
 	}
 
-	signup.Status = to
-
-	return r.recordSignup(ctx, signup, audit.AuditLogEventTypeUpdated, ddbwaitlists.WaitlistSignupTransitionedServiceEventType)
+	return moved, nil
 }
 
 // readSignupToRecord fetches the signup a write is about to change, so the entry
@@ -241,6 +272,7 @@ func (r *repository) recordedTransition(
 // it from here is the same answer one call earlier.
 func (r *repository) readSignupToRecord(
 	ctx context.Context,
+	tx database.Tx,
 	span tracing.Span,
 	scope tenancy.Scope,
 	listID, signupID string,
@@ -248,7 +280,7 @@ func (r *repository) readSignupToRecord(
 	tracing.AttachToSpan(span, waitlistkeys.WaitlistIDKey, listID)
 	tracing.AttachToSpan(span, waitlistkeys.WaitlistSignupIDKey, signupID)
 
-	signup, err := r.GetSignup(ctx, scope, listID, signupID)
+	signup, err := r.GetSignup(ctx, tx, scope, listID, signupID)
 	if err != nil {
 		return nil, observability.PrepareError(err, span, "fetching waitlist signup to record")
 	}
@@ -263,8 +295,8 @@ func (r *repository) readSignupToRecord(
 // to nobody: who opened it is the actor on the context, which is what the audit
 // recorder resolves. That is the same shape the table this replaced recorded
 // under.
-func (r *repository) recordList(ctx context.Context, listID, auditEventType, changeEventType string) error {
-	return r.record(ctx, "", resourceTypeWaitlists, listID, auditEventType, changeEventType, map[string]any{
+func (r *repository) recordList(ctx context.Context, tx database.Tx, listID, auditEventType, changeEventType string) error {
+	return r.record(ctx, tx, "", resourceTypeWaitlists, listID, auditEventType, changeEventType, map[string]any{
 		waitlistkeys.WaitlistIDKey: listID,
 	})
 }
@@ -276,16 +308,21 @@ func (r *repository) recordList(ctx context.Context, listID, auditEventType, cha
 // request, so that "which lists was this person on, and what happened to them"
 // is answerable from the audit log after the row itself has been withdrawn and
 // no longer says.
-func (r *repository) recordSignup(ctx context.Context, signup *platformwaitlists.Signup, auditEventType, changeEventType string) error {
-	return r.record(ctx, signup.Subject.ID, resourceTypeWaitlistSignups, signup.ID, auditEventType, changeEventType, map[string]any{
+func (r *repository) recordSignup(ctx context.Context, tx database.Tx, signup *platformwaitlists.Signup, auditEventType, changeEventType string) error {
+	return r.record(ctx, tx, signup.Subject.ID, resourceTypeWaitlistSignups, signup.ID, auditEventType, changeEventType, map[string]any{
 		waitlistkeys.WaitlistSignupIDKey:     signup.ID,
 		waitlistkeys.WaitlistIDKey:           signup.ListID,
 		waitlistkeys.WaitlistSignupStatusKey: signup.Status.String(),
 	})
 }
 
-// record writes the audit entry and enqueues the data change event, in one
-// transaction of their own.
+// record writes the audit entry and enqueues the data change event, inside the
+// caller's transaction.
+//
+// It used to open one of its own, because the write it describes had already
+// committed inside the platform store. As of platform-go v14 that store takes
+// the caller's executor, so the row, the entry and the event commit together or
+// not at all.
 //
 // The two travel together because they answer the same question from opposite
 // sides — the audit log for whoever asks later who did this, the outbox for
@@ -297,7 +334,7 @@ func (r *repository) recordSignup(ctx context.Context, signup *platformwaitlists
 // under is whichever one the requester had active, resolved from the context by
 // the emitter.
 func (r *repository) record(
-	ctx context.Context,
+	ctx context.Context, tx database.Tx,
 	userID, resourceType, relevantID, auditEventType, changeEventType string,
 	metadata map[string]any,
 ) error {
@@ -306,13 +343,11 @@ func (r *repository) record(
 
 	logger := r.logger.WithSpan(span).WithValue(waitlistkeys.WaitlistIDKey, relevantID)
 
-	return r.client.WithTransaction(ctx, func(tx database.Tx) error {
-		return r.recorder.RecordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
-			ID:            identifiers.New(),
-			ResourceType:  resourceType,
-			RelevantID:    relevantID,
-			EventType:     auditEventType,
-			BelongsToUser: userID,
-		}, changeEventType, "", metadata)
-	})
+	return r.recorder.RecordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
+		ID:            identifiers.New(),
+		ResourceType:  resourceType,
+		RelevantID:    relevantID,
+		EventType:     auditEventType,
+		BelongsToUser: userID,
+	}, changeEventType, "", metadata)
 }

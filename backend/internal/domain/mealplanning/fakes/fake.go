@@ -1,8 +1,8 @@
 package fakes
 
 import (
-	"github.com/primandproper/platform-go/v13/fake"
-	"github.com/primandproper/platform-go/v13/pointer"
+	"github.com/primandproper/primitives-go/v2/fake"
+	"github.com/primandproper/primitives-go/v2/pointer"
 )
 
 const exampleQuantity = fake.DefaultPageSize

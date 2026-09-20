@@ -8,8 +8,8 @@ import (
 	grpctypes "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
 	oauthgrpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/services/oauth/grpc/converters"
 
-	errorsgrpc "github.com/primandproper/platform-go/v13/errors/grpc"
-	filteringgrpc "github.com/primandproper/platform-go/v13/filtering/grpc"
+	errorsgrpc "github.com/primandproper/primitives-go/v2/errors/grpc"
+	filteringgrpc "github.com/primandproper/primitives-go/v2/filtering/grpc"
 
 	"google.golang.org/grpc/codes"
 )

@@ -6,7 +6,7 @@ import (
 	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/converters"
 	settingssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/settings"
 
-	platformsettings "github.com/primandproper/platform-go/v13/settings"
+	platformsettings "github.com/primandproper/platform-go/v14/settings"
 )
 
 // ConvertSettingDefinitionToGRPCSettingDefinition converts a stored definition

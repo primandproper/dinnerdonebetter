@@ -9,9 +9,10 @@ import (
 
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
 
-	platformerrors "github.com/primandproper/platform-go/v13/errors"
-	"github.com/primandproper/platform-go/v13/tenancy"
-	"github.com/primandproper/platform-go/v13/webhooks"
+	"github.com/primandproper/platform-go/v14/webhooks"
+	"github.com/primandproper/primitives-go/v2/database"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
 // The delivery side of a webhook: the endpoint it is delivered to, its signing secret, and the
@@ -60,20 +61,27 @@ func (r *repository) registerEndpoint(ctx context.Context, webhook *types.Webhoo
 		return "", err
 	}
 
-	if err = r.dispatcher.Register(ctx, &webhooks.Endpoint{
-		// The account, as the endpoint's tenant. tenancy.Of refuses to name nobody, so a
-		// webhook that lost its account fails to register rather than registering into the
-		// global scope and receiving every account's events.
-		Scope: tenancy.Of(webhook.BelongsToAccount),
-		// Deliberately the webhook's own ID rather than a separate identifier. One row per
-		// webhook in each of two tables, joined by nothing but a shared key, is what keeps
-		// "the endpoint for this webhook" from being a lookup that can return the wrong
-		// answer.
-		ID:            webhook.ID,
-		URL:           webhook.URL,
-		ContentType:   webhook.ContentType,
-		Secret:        webhooks.Secret{Current: secret},
-		Subscriptions: subscriptions(webhook),
+	// One transaction of its own, which is what Register opened for itself before
+	// v14. The webhook row it belongs to has already committed a statement earlier
+	// — see ProvideWebhook — so this could now join that transaction instead and
+	// stop a stored-but-unregistered webhook being reachable at all. That is a
+	// behaviour change rather than a port, and is left for the adoption pass.
+	if _, err = inTransaction(ctx, r.Client, func(tx database.Tx) (*webhooks.Endpoint, error) {
+		return r.dispatcher.Register(ctx, tx, tenancy.Of(webhook.BelongsToAccount), &webhooks.Endpoint{
+			// The account, as the endpoint's tenant. tenancy.Of refuses to name nobody, so a
+			// webhook that lost its account fails to register rather than registering into the
+			// global scope and receiving every account's events.
+			Scope: tenancy.Of(webhook.BelongsToAccount),
+			// Deliberately the webhook's own ID rather than a separate identifier. One row per
+			// webhook in each of two tables, joined by nothing but a shared key, is what keeps
+			// "the endpoint for this webhook" from being a lookup that can return the wrong
+			// answer.
+			ID:            webhook.ID,
+			URL:           webhook.URL,
+			ContentType:   webhook.ContentType,
+			Secret:        webhooks.Secret{Current: secret},
+			Subscriptions: subscriptions(webhook),
+		})
 	}); err != nil {
 		return "", err
 	}
@@ -95,7 +103,7 @@ func (r *repository) rotateEndpointSecret(ctx context.Context, webhook *types.We
 		return "", ErrNoDispatcher
 	}
 
-	endpoint, err := r.endpoints.GetEndpoint(ctx, tenancy.Of(webhook.BelongsToAccount), webhook.ID)
+	endpoint, err := r.endpoints.GetEndpoint(ctx, r.Reader(), tenancy.Of(webhook.BelongsToAccount), webhook.ID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return r.registerEndpoint(ctx, webhook)
@@ -111,7 +119,9 @@ func (r *repository) rotateEndpointSecret(ctx context.Context, webhook *types.We
 
 	endpoint.Secret = webhooks.Secret{Current: secret, Previous: endpoint.Secret.Current}
 
-	if err = r.endpoints.SaveEndpoint(ctx, endpoint); err != nil {
+	if _, err = inTransaction(ctx, r.Client, func(tx database.Tx) (*webhooks.Endpoint, error) {
+		return r.endpoints.SaveEndpoint(ctx, tx, tenancy.Of(webhook.BelongsToAccount), endpoint)
+	}); err != nil {
 		return "", err
 	}
 
@@ -137,7 +147,7 @@ func (r *repository) setSubscriptions(ctx context.Context, webhook *types.Webhoo
 
 	scope := tenancy.Of(webhook.BelongsToAccount)
 
-	endpoint, err := r.endpoints.GetEndpoint(ctx, scope, webhook.ID)
+	endpoint, err := r.endpoints.GetEndpoint(ctx, r.Reader(), scope, webhook.ID)
 	if err != nil {
 		// Distinguished from every other read failure, because it is the one an operator can
 		// act on: an unregistered webhook needs its secret rotated before it can be
@@ -151,7 +161,11 @@ func (r *repository) setSubscriptions(ctx context.Context, webhook *types.Webhoo
 
 	endpoint.Subscriptions = subscriptions(webhook)
 
-	return r.endpoints.SaveEndpoint(ctx, endpoint)
+	_, err = inTransaction(ctx, r.Client, func(tx database.Tx) (*webhooks.Endpoint, error) {
+		return r.endpoints.SaveEndpoint(ctx, tx, scope, endpoint)
+	})
+
+	return err
 }
 
 // archiveEndpoint retires an endpoint, stopping delivery without discarding its attempt history.
@@ -160,7 +174,11 @@ func (r *repository) archiveEndpoint(ctx context.Context, webhookID, accountID s
 		return ErrNoDispatcher
 	}
 
-	return r.endpoints.ArchiveEndpoint(ctx, tenancy.Of(accountID), webhookID)
+	_, err := inTransaction(ctx, r.Client, func(tx database.Tx) (*webhooks.Endpoint, error) {
+		return r.endpoints.ArchiveEndpoint(ctx, tx, tenancy.Of(accountID), webhookID)
+	})
+
+	return err
 }
 
 // subscriptions renders a webhook's live trigger configs as catalog event types.
@@ -187,4 +205,24 @@ func newSigningSecret() ([]byte, error) {
 	}
 
 	return secret, nil
+}
+
+// inTransaction runs one store write on a transaction of its own.
+//
+// As of platform-go v14 a store holds no database handle: a write takes the
+// caller's database.Tx. Every write in this service is a single store call, so
+// each gets one transaction — which is exactly what the store opened for itself
+// before the caller was required to supply it. A handler that ever writes twice
+// should take one transaction across both rather than call this twice.
+func inTransaction[T any](ctx context.Context, db database.Client, write func(tx database.Tx) (T, error)) (T, error) {
+	var out T
+
+	err := db.WithTransaction(ctx, func(tx database.Tx) error {
+		var writeErr error
+		out, writeErr = write(tx)
+
+		return writeErr
+	})
+
+	return out, err
 }

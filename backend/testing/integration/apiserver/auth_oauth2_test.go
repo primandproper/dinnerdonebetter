@@ -12,7 +12,7 @@ import (
 	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/localdev"
 
-	"github.com/primandproper/platform-go/v13/authentication/oauth2server"
+	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

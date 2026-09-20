@@ -8,7 +8,7 @@ import (
 	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/services/settings/grpc/converters"
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
 
-	settings "github.com/primandproper/platform-go/v13/settings"
+	settings "github.com/primandproper/platform-go/v14/settings"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

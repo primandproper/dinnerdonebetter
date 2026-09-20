@@ -19,11 +19,12 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 
-	platformdataprivacy "github.com/primandproper/platform-go/v13/dataprivacy"
-	"github.com/primandproper/platform-go/v13/filtering"
-	"github.com/primandproper/platform-go/v13/observability"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
+	platformdataprivacy "github.com/primandproper/platform-go/v14/dataprivacy"
+	"github.com/primandproper/primitives-go/v2/filtering"
+	"github.com/primandproper/primitives-go/v2/observability"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
 const o11yName = "identity_privacy_collector"
@@ -53,7 +54,10 @@ func NewCollector(repo identity.Repository, logger logging.Logger, tracerProvide
 // user record cannot be read has been asked about somebody the application does
 // not have, and answering that with a valid document is the one wrong answer
 // available.
-func (c *Collector) Collect(ctx context.Context, subject platformdataprivacy.Subject) (json.RawMessage, error) {
+// The request scope is not consulted. This application's subject access
+// requests name a person rather than a tenant, and the rows below are
+// reached by subject id; narrowing to one scope would under-report.
+func (c *Collector) Collect(ctx context.Context, _ tenancy.Scope, subject platformdataprivacy.Subject) (json.RawMessage, error) {
 	ctx, span := c.tracer.StartSpan(ctx)
 	defer span.End()
 

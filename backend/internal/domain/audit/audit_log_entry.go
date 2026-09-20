@@ -4,9 +4,10 @@ import (
 	"context"
 	"time"
 
-	platformaudit "github.com/primandproper/platform-go/v13/audit"
-	"github.com/primandproper/platform-go/v13/database"
-	"github.com/primandproper/platform-go/v13/filtering"
+	platformaudit "github.com/primandproper/platform-go/v14/audit"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/filtering"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
 const (
@@ -79,7 +80,7 @@ type (
 
 		// Scope is the hash chain this entry belongs to. Assigned by Record from
 		// BelongsToAccount and BelongsToUser; see ScopeFor.
-		Scope string `json:"scope"`
+		Scope tenancy.Scope `json:"scope"`
 
 		// PrevHash is the hash of the preceding entry in this scope, or empty for the
 		// first. Assigned by Record.
@@ -117,7 +118,7 @@ type (
 
 		// VerifyChain walks one scope's hash chain over a time range and reports the
 		// first break, or that there was none. See ScopeFor for what a scope is here.
-		VerifyChain(ctx context.Context, scope string, from, to time.Time) (*VerificationResult, error)
+		VerifyChain(ctx context.Context, scope tenancy.Scope, from, to time.Time) (*VerificationResult, error)
 	}
 )
 
@@ -177,12 +178,14 @@ const TablePrefix = "ddb"
 //
 // The empty scope remains for events belonging to neither, which are
 // platform-level by definition and rare enough to serialize.
-func ScopeFor(belongsToAccount *string, belongsToUser string) string {
+func ScopeFor(belongsToAccount *string, belongsToUser string) tenancy.Scope {
 	switch {
 	case belongsToAccount != nil && *belongsToAccount != "":
-		return *belongsToAccount
+		return tenancy.Of(*belongsToAccount)
+	case belongsToUser != "":
+		return tenancy.Of(belongsToUser)
 	default:
-		return belongsToUser
+		return tenancy.Global()
 	}
 }
 

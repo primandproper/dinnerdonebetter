@@ -7,15 +7,15 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 	paymentswebhook "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/http"
 
-	"github.com/primandproper/platform-go/v13/authentication/oauth2server"
-	"github.com/primandproper/platform-go/v13/encoding"
-	"github.com/primandproper/platform-go/v13/healthcheck"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/metrics"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
-	"github.com/primandproper/platform-go/v13/routing"
-	routingcfg "github.com/primandproper/platform-go/v13/routing/config"
-	"github.com/primandproper/platform-go/v13/version"
+	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
+	"github.com/primandproper/primitives-go/v2/encoding"
+	"github.com/primandproper/primitives-go/v2/healthcheck"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/metrics"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
+	"github.com/primandproper/primitives-go/v2/routing"
+	routingcfg "github.com/primandproper/primitives-go/v2/routing/config"
+	"github.com/primandproper/primitives-go/v2/version"
 )
 
 // maxRequestBodyBytes bounds the request body of every route this router serves, the raw ones

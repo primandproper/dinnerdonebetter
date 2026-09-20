@@ -4,10 +4,11 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/manager"
 	identitysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
 
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
-	"github.com/primandproper/platform-go/v13/uploads"
-	"github.com/primandproper/platform-go/v13/uploads/registry"
+	"github.com/primandproper/platform-go/v14/mediaregistry"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
+	"github.com/primandproper/primitives-go/v2/uploads"
 
 	"github.com/samber/do/v2"
 )
@@ -22,8 +23,9 @@ func RegisterIdentityService(i do.Injector) {
 		return NewService(
 			do.MustInvoke[logging.Logger](i),
 			do.MustInvoke[tracing.Provider](i),
+			do.MustInvoke[database.Client](i),
 			do.MustInvoke[manager.IdentityDataManager](i),
-			do.MustInvoke[registry.Store](i),
+			do.MustInvoke[mediaregistry.Store](i),
 			do.MustInvoke[uploads.UploadManager](i),
 		), nil
 	})

@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/primandproper/platform-go/v13/identifiers"
+	"github.com/primandproper/primitives-go/v2/identifiers"
 
 	"github.com/stretchr/testify/require"
 )

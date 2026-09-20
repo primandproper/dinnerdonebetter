@@ -18,11 +18,11 @@ package indexstamp
 import (
 	"context"
 
-	"github.com/primandproper/platform-go/v13/batching"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/metrics"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
-	searchsync "github.com/primandproper/platform-go/v13/search/sync"
+	searchsync "github.com/primandproper/platform-go/v14/searchsync"
+	"github.com/primandproper/primitives-go/v2/batching"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/metrics"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
 )
 
 // o11yName names the loggers, spans and metrics of the stamp buffers built here.

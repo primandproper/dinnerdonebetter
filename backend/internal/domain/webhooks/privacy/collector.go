@@ -8,11 +8,12 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
 
-	platformdataprivacy "github.com/primandproper/platform-go/v13/dataprivacy"
-	"github.com/primandproper/platform-go/v13/filtering"
-	"github.com/primandproper/platform-go/v13/observability"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
+	platformdataprivacy "github.com/primandproper/platform-go/v14/dataprivacy"
+	"github.com/primandproper/primitives-go/v2/filtering"
+	"github.com/primandproper/primitives-go/v2/observability"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
 const o11yName = "webhooks_privacy_collector"
@@ -47,7 +48,10 @@ func NewCollector(
 // Webhooks belong to an account rather than a person, so they are keyed by
 // account in the fragment. A subject in three accounts gets three groups, which
 // is the only rendering that lets them tell which endpoint belongs to which.
-func (c *Collector) Collect(ctx context.Context, subject platformdataprivacy.Subject) (json.RawMessage, error) {
+// The request scope is not consulted. This application's subject access
+// requests name a person rather than a tenant, and the rows below are
+// reached by subject id; narrowing to one scope would under-report.
+func (c *Collector) Collect(ctx context.Context, _ tenancy.Scope, subject platformdataprivacy.Subject) (json.RawMessage, error) {
 	ctx, span := c.tracer.StartSpan(ctx)
 	defer span.End()
 

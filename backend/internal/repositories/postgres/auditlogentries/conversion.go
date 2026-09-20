@@ -3,7 +3,7 @@ package auditlogentries
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 
-	platformaudit "github.com/primandproper/platform-go/v13/audit"
+	platformaudit "github.com/primandproper/platform-go/v14/audit"
 )
 
 // toPlatformEntry renders a domain entry in the platform's vocabulary.
@@ -73,9 +73,8 @@ func fromPlatformEntry(entry *platformaudit.Entry) *audit.AuditLogEntry {
 	// carries one scope column rather than a discriminated pair, so this is the only
 	// signal available — and it is exact, because an account never shares an ID with
 	// a user.
-	if entry.Scope != "" && entry.Scope != entry.Actor.ID {
-		scope := entry.Scope
-		x.BelongsToAccount = &scope
+	if owner := entry.Scope.Owner(); owner != "" && owner != entry.Actor.ID {
+		x.BelongsToAccount = &owner
 	}
 
 	return x

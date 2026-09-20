@@ -6,12 +6,12 @@ import (
 	ddboauth "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	"github.com/primandproper/platform-go/v13/authentication/oauth2server"
-	oauth2database "github.com/primandproper/platform-go/v13/authentication/oauth2server/database"
-	"github.com/primandproper/platform-go/v13/authentication/oauth2server/oauth2servertest"
-	"github.com/primandproper/platform-go/v13/database/postgres"
-	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v13/observability/tracing/noop"
+	oauth2database "github.com/primandproper/platform-go/v14/authentication/oauth2serverstore"
+	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
+	"github.com/primandproper/primitives-go/v2/authentication/oauth2server/oauth2servertest"
+	"github.com/primandproper/primitives-go/v2/database/postgres"
+	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
+	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

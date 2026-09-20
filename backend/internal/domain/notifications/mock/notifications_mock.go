@@ -9,7 +9,7 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
 
-	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/primitives-go/v2/filtering"
 )
 
 // Ensure, that RepositoryMock does implement notifications.Repository.

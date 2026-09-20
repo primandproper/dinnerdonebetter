@@ -11,14 +11,14 @@ import (
 	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
 	mealplanningindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
-	"github.com/primandproper/platform-go/v13/analytics"
-	"github.com/primandproper/platform-go/v13/email"
-	"github.com/primandproper/platform-go/v13/encoding"
-	"github.com/primandproper/platform-go/v13/messagequeue"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/metrics"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
-	searchsync "github.com/primandproper/platform-go/v13/search/sync"
+	searchsync "github.com/primandproper/platform-go/v14/searchsync"
+	"github.com/primandproper/primitives-go/v2/analytics"
+	"github.com/primandproper/primitives-go/v2/email"
+	"github.com/primandproper/primitives-go/v2/encoding"
+	"github.com/primandproper/primitives-go/v2/messagequeue"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/metrics"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
 
 	"github.com/samber/do/v2"
 )

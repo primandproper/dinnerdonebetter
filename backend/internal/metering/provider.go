@@ -3,8 +3,8 @@ package metering
 import (
 	"context"
 
-	"github.com/primandproper/platform-go/v13/errors"
-	platformmetering "github.com/primandproper/platform-go/v13/metering"
+	platformmetering "github.com/primandproper/platform-go/v14/metering"
+	"github.com/primandproper/primitives-go/v2/errors"
 )
 
 // NewProviderMapper returns the ProviderMapper the flusher runs with until this service bills

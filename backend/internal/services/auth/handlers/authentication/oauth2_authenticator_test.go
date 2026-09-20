@@ -15,11 +15,11 @@ import (
 	identityfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
 	identitymock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/mock"
 
-	"github.com/primandproper/platform-go/v13/authentication/oauth2server"
-	"github.com/primandproper/platform-go/v13/authentication/tokens"
-	tokensmock "github.com/primandproper/platform-go/v13/authentication/tokens/mock"
-	"github.com/primandproper/platform-go/v13/authentication/totp"
-	totpmock "github.com/primandproper/platform-go/v13/authentication/totp/mock"
+	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
+	"github.com/primandproper/primitives-go/v2/authentication/tokens"
+	tokensmock "github.com/primandproper/primitives-go/v2/authentication/tokens/mock"
+	"github.com/primandproper/primitives-go/v2/authentication/totp"
+	totpmock "github.com/primandproper/primitives-go/v2/authentication/totp/mock"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

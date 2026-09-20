@@ -1,9 +1,9 @@
 package emaildeliverabilitytest
 
 import (
-	"github.com/primandproper/platform-go/v13/email"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
+	"github.com/primandproper/primitives-go/v2/email"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
 
 	"github.com/samber/do/v2"
 )

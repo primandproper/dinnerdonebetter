@@ -13,7 +13,7 @@ the comments store and the domains whose things are commented on.
 package comments
 
 import (
-	"github.com/primandproper/platform-go/v13/tenancy"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
 // TablePrefix namespaces the platform-go comments table, rendering ddb_comments.

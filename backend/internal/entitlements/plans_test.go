@@ -6,13 +6,13 @@ import (
 
 	paymentsfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/fakes"
 
-	"github.com/primandproper/platform-go/v13/billing"
-	billingmock "github.com/primandproper/platform-go/v13/billing/mock"
-	"github.com/primandproper/platform-go/v13/capitalism"
-	platformerrors "github.com/primandproper/platform-go/v13/errors"
-	"github.com/primandproper/platform-go/v13/filtering"
-	"github.com/primandproper/platform-go/v13/identifiers"
-	"github.com/primandproper/platform-go/v13/tenancy"
+	"github.com/primandproper/platform-go/v14/billing"
+	billingmock "github.com/primandproper/platform-go/v14/billing/mock"
+	"github.com/primandproper/primitives-go/v2/capitalism"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/filtering"
+	"github.com/primandproper/primitives-go/v2/identifiers"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

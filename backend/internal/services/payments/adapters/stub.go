@@ -5,7 +5,7 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 
-	"github.com/primandproper/platform-go/v13/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
 )
 
 // StubPaymentProcessor is a no-op implementation of PaymentProcessor for local development and testing.

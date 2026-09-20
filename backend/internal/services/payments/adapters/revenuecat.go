@@ -6,11 +6,11 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 
-	"github.com/primandproper/platform-go/v13/capitalism"
-	caprevenuecat "github.com/primandproper/platform-go/v13/capitalism/revenuecat"
-	"github.com/primandproper/platform-go/v13/observability"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
+	"github.com/primandproper/primitives-go/v2/capitalism"
+	caprevenuecat "github.com/primandproper/primitives-go/v2/capitalism/revenuecat"
+	"github.com/primandproper/primitives-go/v2/observability"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
 )
 
 const revenueCatO11yName = "revenuecat_processor"

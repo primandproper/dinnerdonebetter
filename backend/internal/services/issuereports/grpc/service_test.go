@@ -7,12 +7,12 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	issuereportssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/issue_reports"
 
-	commentsmock "github.com/primandproper/platform-go/v13/comments/mock"
-	"github.com/primandproper/platform-go/v13/fake"
-	issuereportsmock "github.com/primandproper/platform-go/v13/issuereports/mock"
-	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
-	tracingnoop "github.com/primandproper/platform-go/v13/observability/tracing/noop"
+	commentsmock "github.com/primandproper/platform-go/v14/comments/mock"
+	issuereportsmock "github.com/primandproper/platform-go/v14/issuereports/mock"
+	"github.com/primandproper/primitives-go/v2/fake"
+	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
+	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
 
 	"github.com/stretchr/testify/assert"
 )

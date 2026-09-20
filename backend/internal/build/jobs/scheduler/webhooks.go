@@ -3,11 +3,11 @@ package scheduler
 import (
 	"context"
 
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/metrics"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
-	"github.com/primandproper/platform-go/v13/webhooks"
-	webhookscfg "github.com/primandproper/platform-go/v13/webhooks/config"
+	"github.com/primandproper/platform-go/v14/webhooks"
+	webhookscfg "github.com/primandproper/platform-go/v14/webhooks/config"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/metrics"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
 
 	"github.com/samber/do/v2"
 )

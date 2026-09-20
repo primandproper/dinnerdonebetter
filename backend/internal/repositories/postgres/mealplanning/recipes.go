@@ -12,14 +12,14 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/recipevalidator"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
-	"github.com/primandproper/platform-go/v13/database"
-	platformerrors "github.com/primandproper/platform-go/v13/errors"
-	"github.com/primandproper/platform-go/v13/filtering"
-	"github.com/primandproper/platform-go/v13/identifiers"
-	"github.com/primandproper/platform-go/v13/observability"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
-	"github.com/primandproper/platform-go/v13/pointer"
-	"github.com/primandproper/platform-go/v13/uploads/registry"
+	"github.com/primandproper/platform-go/v14/mediaregistry"
+	"github.com/primandproper/primitives-go/v2/database"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/filtering"
+	"github.com/primandproper/primitives-go/v2/identifiers"
+	"github.com/primandproper/primitives-go/v2/observability"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
+	"github.com/primandproper/primitives-go/v2/pointer"
 )
 
 var (
@@ -234,7 +234,7 @@ func (q *repository) getRecipe(ctx context.Context, recipeID string, visited ...
 		}
 		x.Steps[i].Media = recipeMedia
 
-		var stepImages []*registry.Object
+		var stepImages []*mediaregistry.Object
 		stepImages, err = q.enrichRecipeStepWithStepImages(ctx, step.ID)
 		if err != nil {
 			return nil, observability.PrepareError(err, span, "fetching recipe step images")

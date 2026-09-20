@@ -19,10 +19,10 @@ import (
 	identityrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity"
 	notificationsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/notifications"
 
-	"github.com/primandproper/platform-go/v13/database"
-	"github.com/primandproper/platform-go/v13/identifiers"
-	msgconfig "github.com/primandproper/platform-go/v13/messagequeue/config"
-	"github.com/primandproper/platform-go/v13/random"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/identifiers"
+	msgconfig "github.com/primandproper/primitives-go/v2/messagequeue/config"
+	"github.com/primandproper/primitives-go/v2/random"
 )
 
 const (

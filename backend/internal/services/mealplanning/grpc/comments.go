@@ -13,12 +13,13 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
 	converters "github.com/primandproper/dinnerdonebetter/backend/internal/services/comments/grpc/converters"
 
-	comments "github.com/primandproper/platform-go/v13/comments"
-	platformerrors "github.com/primandproper/platform-go/v13/errors"
-	errorsgrpc "github.com/primandproper/platform-go/v13/errors/grpc"
-	"github.com/primandproper/platform-go/v13/observability"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
+	comments "github.com/primandproper/platform-go/v14/comments"
+	"github.com/primandproper/primitives-go/v2/database"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	errorsgrpc "github.com/primandproper/primitives-go/v2/errors/grpc"
+	"github.com/primandproper/primitives-go/v2/observability"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
 
 	"google.golang.org/grpc/codes"
 )
@@ -133,11 +134,14 @@ func (s *serviceImpl) addComment(
 
 	comment.Scope = ddbcomments.Scope()
 
-	if err = s.comments.CreateComment(ctx, comment); err != nil {
+	created, err := inTransaction(ctx, s.db, func(tx database.Tx) (*comments.Comment, error) {
+		return s.comments.CreateComment(ctx, tx, comment.Scope, comment)
+	})
+	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "creating comment")
 	}
 
-	tracing.AttachToSpan(span, commentskeys.CommentIDKey, comment.ID)
+	tracing.AttachToSpan(span, commentskeys.CommentIDKey, created.ID)
 
-	return converters.ConvertCommentToGRPCComment(comment), nil
+	return converters.ConvertCommentToGRPCComment(created), nil
 }

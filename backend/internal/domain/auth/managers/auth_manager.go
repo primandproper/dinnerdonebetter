@@ -18,17 +18,18 @@ import (
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
-	"github.com/primandproper/platform-go/v13/authentication/passwordreset"
-	platformtotp "github.com/primandproper/platform-go/v13/authentication/totp"
-	perrors "github.com/primandproper/platform-go/v13/errors"
-	"github.com/primandproper/platform-go/v13/messagequeue"
-	"github.com/primandproper/platform-go/v13/observability"
-	platformkeys "github.com/primandproper/platform-go/v13/observability/keys"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
-	"github.com/primandproper/platform-go/v13/qrcodes"
-	"github.com/primandproper/platform-go/v13/random"
-	"github.com/primandproper/platform-go/v13/tenancy"
+	"github.com/primandproper/platform-go/v14/authentication/passwordreset"
+	platformtotp "github.com/primandproper/primitives-go/v2/authentication/totp"
+	"github.com/primandproper/primitives-go/v2/database"
+	perrors "github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/messagequeue"
+	"github.com/primandproper/primitives-go/v2/observability"
+	platformkeys "github.com/primandproper/primitives-go/v2/observability/keys"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
+	"github.com/primandproper/primitives-go/v2/qrcodes"
+	"github.com/primandproper/primitives-go/v2/random"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	passwordvalidator "github.com/wagslane/go-password-validator"
 )
@@ -71,6 +72,10 @@ func (a servicePermissionCheckerAdapter) IsServiceAdmin() bool {
 }
 
 type AuthManager struct {
+	// db supplies the transaction the password reset store's writes now take.
+	// Each of the three is a single write, so each gets one transaction — and
+	// the audit entry the repository wraps around it commits with it.
+	db                    database.Client
 	passwordResetTokens   passwordreset.Store
 	sessionStore          auth.SessionStore
 	userDataManager       identity.UserDataManager
@@ -88,6 +93,7 @@ func ProvideAuthManager(
 	ctx context.Context,
 	logger logging.Logger,
 	tracerProvider tracing.Provider,
+	db database.Client,
 	passwordResetTokens passwordreset.Store,
 	sessionStore auth.SessionStore,
 	userDataManager identity.UserDataManager,
@@ -110,6 +116,7 @@ func ProvideAuthManager(
 	return &AuthManager{
 		logger:                logging.NewNamedLogger(logger, o11yName),
 		tracer:                tracing.NewNamedTracer(tracerProvider, o11yName),
+		db:                    db,
 		passwordResetTokens:   passwordResetTokens,
 		sessionStore:          sessionStore,
 		userDataManager:       userDataManager,
@@ -521,7 +528,9 @@ func (l *AuthManager) CreatePasswordResetToken(ctx context.Context, input *auth.
 	// asking for one is not signed in and has no active account to name, and a link that
 	// only worked in the account they happened to have selected last would be a link that
 	// stops working when they switch.
-	issuance, err := l.passwordResetTokens.Issue(ctx, tenancy.Global(), u.ID, passwordResetTokenLifetime)
+	issuance, err := inTransaction(ctx, l.db, func(tx database.Tx) (*passwordreset.Issuance, error) {
+		return l.passwordResetTokens.Issue(ctx, tx, tenancy.Global(), u.ID, passwordResetTokenLifetime)
+	})
 	if err != nil {
 		return observability.PrepareError(err, span, "creating password reset token")
 	}
@@ -577,7 +586,9 @@ func (l *AuthManager) PasswordResetTokenRedemption(ctx context.Context, input *a
 	// Single use is decided here, by the store, in one statement. Two requests answering the
 	// same link at the same instant both find the row live; exactly one of them gets a token
 	// back and the other is told it has already been redeemed.
-	t, err := l.passwordResetTokens.Consume(ctx, tenancy.Global(), input.Token)
+	t, err := inTransaction(ctx, l.db, func(tx database.Tx) (*passwordreset.Token, error) {
+		return l.passwordResetTokens.Consume(ctx, tx, tenancy.Global(), input.Token)
+	})
 	if err != nil {
 		return observability.PrepareError(err, span, "redeeming password reset token")
 	}
@@ -610,7 +621,9 @@ func (l *AuthManager) PasswordResetTokenRedemption(ctx context.Context, input *a
 	// Every other link this user was holding stops working. Somebody who asked for a reset
 	// twice and completed the second one should not be left with a first link that still
 	// resets the password they just chose.
-	if _, err = l.passwordResetTokens.RevokeForUser(ctx, tenancy.Global(), u.ID); err != nil {
+	if _, err = inTransaction(ctx, l.db, func(tx database.Tx) (int64, error) {
+		return l.passwordResetTokens.RevokeForUser(ctx, tx, tenancy.Global(), u.ID)
+	}); err != nil {
 		// The reset itself succeeded, so this is reported rather than returned: failing the
 		// request here would tell the user their password did not change when it did.
 		observability.AcknowledgeError(err, logger, span, "revoking outstanding password reset tokens")
@@ -829,4 +842,24 @@ func (l *AuthManager) RevokeAllSessionsForUser(ctx context.Context, userID strin
 	_, err := l.sessionStore.RevokeAll(ctx, auth.SessionHolder(userID))
 
 	return err
+}
+
+// inTransaction runs one store write on a transaction of its own.
+//
+// As of platform-go v14 a store holds no database handle: a write takes the
+// caller's database.Tx. Every write in this service is a single store call, so
+// each gets one transaction — which is exactly what the store opened for itself
+// before the caller was required to supply it. A handler that ever writes twice
+// should take one transaction across both rather than call this twice.
+func inTransaction[T any](ctx context.Context, db database.Client, write func(tx database.Tx) (T, error)) (T, error) {
+	var out T
+
+	err := db.WithTransaction(ctx, func(tx database.Tx) error {
+		var writeErr error
+		out, writeErr = write(tx)
+
+		return writeErr
+	})
+
+	return out, err
 }

@@ -3,13 +3,13 @@ package mealplanning
 import (
 	"context"
 
-	"github.com/primandproper/platform-go/v13/uploads/registry"
+	"github.com/primandproper/platform-go/v14/mediaregistry"
 )
 
 type (
 	// UploadedMediaFetcher fetches uploaded media by IDs (used for enriching preparations/ingredients with media).
 	UploadedMediaFetcher interface {
-		GetUploadedMediaWithIDs(ctx context.Context, ids []string) ([]*registry.Object, error)
+		GetUploadedMediaWithIDs(ctx context.Context, ids []string) ([]*mediaregistry.Object, error)
 	}
 
 	ValidEnumerationDataManager interface {

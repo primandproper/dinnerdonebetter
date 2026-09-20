@@ -8,12 +8,13 @@ import (
 	auditkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit/keys"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 
-	platformaudit "github.com/primandproper/platform-go/v13/audit"
-	"github.com/primandproper/platform-go/v13/database"
-	platformerrors "github.com/primandproper/platform-go/v13/errors"
-	"github.com/primandproper/platform-go/v13/filtering"
-	"github.com/primandproper/platform-go/v13/observability"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
+	platformaudit "github.com/primandproper/platform-go/v14/audit"
+	"github.com/primandproper/primitives-go/v2/database"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/filtering"
+	"github.com/primandproper/primitives-go/v2/observability"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
 var (
@@ -33,7 +34,7 @@ func (q *repository) GetAuditLogEntry(ctx context.Context, auditLogEntryID strin
 	logger = logger.WithValue(auditkeys.AuditLogEntryIDKey, auditLogEntryID)
 	tracing.AttachToSpan(span, auditkeys.AuditLogEntryIDKey, auditLogEntryID)
 
-	entry, err := q.reader.Get(ctx, auditLogEntryID)
+	entry, err := q.reader.Get(ctx, q.db.Reader(), nil, auditLogEntryID)
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching audit log entry")
 	}
@@ -81,10 +82,12 @@ func (q *repository) GetAuditLogEntriesForAccount(ctx context.Context, accountID
 		return nil, platformerrors.ErrInvalidIDProvided
 	}
 
-	// Scope is a pointer in the platform query because the empty string is a real
-	// scope. Taking the address of the parameter rather than passing nil is what
-	// keeps this from reading every tenant's entries.
-	return q.list(ctx, span, &platformaudit.Query{Scope: &accountID}, filter,
+	// Scope is a pointer in the platform query because the global scope is a real
+	// scope. Naming the account rather than passing nil is what keeps this from
+	// reading every tenant's entries.
+	scope := tenancy.Of(accountID)
+
+	return q.list(ctx, span, &platformaudit.Query{Scope: &scope}, filter,
 		identitykeys.AccountIDKey, accountID)
 }
 
@@ -102,7 +105,9 @@ func (q *repository) GetAuditLogEntriesForAccountAndResourceTypes(ctx context.Co
 
 	tracing.AttachToSpan(span, auditkeys.AuditLogEntryResourceTypesKey, resourceType)
 
-	return q.list(ctx, span, &platformaudit.Query{Scope: &accountID, ResourceType: resourceType}, filter,
+	scope := tenancy.Of(accountID)
+
+	return q.list(ctx, span, &platformaudit.Query{Scope: &scope, ResourceType: resourceType}, filter,
 		identitykeys.AccountIDKey, accountID)
 }
 
@@ -127,7 +132,7 @@ func (q *repository) list(
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
-	results, err := q.reader.List(ctx, query, filter)
+	results, err := q.reader.List(ctx, q.db.Reader(), query, filter)
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching audit log entries from database")
 	}
@@ -159,17 +164,33 @@ func (q *repository) Record(ctx context.Context, querier database.Tx, entries ..
 		return nil
 	}
 
-	converted := make([]*platformaudit.Entry, 0, len(entries))
-	for _, entry := range entries {
+	// The platform Recorder appends to one chain per call, and a chain is
+	// identified by scope. A batch reaching this method may span scopes — an
+	// account-scoped change and the user-scoped login that authorized it are
+	// legitimately recorded together — so the batch is split by scope and each
+	// group is appended to its own chain. Order within a scope is preserved,
+	// which is the only order the chain defines.
+	converted := make([]*platformaudit.Entry, len(entries))
+	order := make([]tenancy.Scope, 0, len(entries))
+	groups := map[tenancy.Scope][]*platformaudit.Entry{}
+	for i, entry := range entries {
 		if entry == nil {
 			return observability.PrepareAndLogError(platformerrors.ErrNilInputParameter, logger, span, "recording audit log entries")
 		}
 
-		converted = append(converted, toPlatformEntry(entry))
+		converted[i] = toPlatformEntry(entry)
+
+		scope := converted[i].Scope
+		if _, ok := groups[scope]; !ok {
+			order = append(order, scope)
+		}
+		groups[scope] = append(groups[scope], converted[i])
 	}
 
-	if err := q.recorder.Record(ctx, querier, converted...); err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "recording audit log entries")
+	for _, scope := range order {
+		if err := q.recorder.Record(ctx, querier, scope, groups[scope]...); err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "recording audit log entries")
+		}
 	}
 
 	// Record assigns the ID, timestamp, and chain fields, and applies redaction to
@@ -186,11 +207,14 @@ func (q *repository) Record(ctx context.Context, querier database.Tx, entries ..
 }
 
 // VerifyChain walks one scope's hash chain and reports the first break.
-func (q *repository) VerifyChain(ctx context.Context, scope string, from, to time.Time) (*audit.VerificationResult, error) {
+func (q *repository) VerifyChain(ctx context.Context, scope tenancy.Scope, from, to time.Time) (*audit.VerificationResult, error) {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	result, err := q.reader.Verify(ctx, scope, from, to)
+	// ChainStart walks the range from its beginning. Resuming from a previous
+	// result's LastSeq is the platform's affordance for paging a long
+	// verification; this application verifies a range in one call.
+	result, err := q.reader.Verify(ctx, q.db.Reader(), scope, from, to, platformaudit.ChainStart)
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, q.logger.Clone(), span, "verifying audit log chain")
 	}

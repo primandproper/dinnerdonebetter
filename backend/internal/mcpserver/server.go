@@ -16,14 +16,15 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
 
-	"github.com/primandproper/platform-go/v13/authentication/oauth2server"
-	"github.com/primandproper/platform-go/v13/encoding"
-	issuereports "github.com/primandproper/platform-go/v13/issuereports"
-	"github.com/primandproper/platform-go/v13/observability"
-	"github.com/primandproper/platform-go/v13/routing"
-	routingcfg "github.com/primandproper/platform-go/v13/routing/config"
-	"github.com/primandproper/platform-go/v13/version"
-	waitlists "github.com/primandproper/platform-go/v13/waitlists"
+	issuereports "github.com/primandproper/platform-go/v14/issuereports"
+	waitlists "github.com/primandproper/platform-go/v14/waitlists"
+	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/encoding"
+	"github.com/primandproper/primitives-go/v2/observability"
+	"github.com/primandproper/primitives-go/v2/routing"
+	routingcfg "github.com/primandproper/primitives-go/v2/routing/config"
+	"github.com/primandproper/primitives-go/v2/version"
 
 	"github.com/modelcontextprotocol/go-sdk/auth"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -204,6 +205,10 @@ func buildRouter(ctx context.Context, mcpHandler http.Handler, authServer *oauth
 }
 
 type mcpToolManager struct {
+	// reader is the read executor every platform store call now takes. The MCP
+	// tools are all reads, so one executor settled here is enough: none of them
+	// has a caller transaction to join.
+	reader           database.SQLQueryExecutor
 	mealplanningRepo mealplanning.Repository
 	webhooksRepo     webhooks.Repository
 	waitlists        waitlists.Store

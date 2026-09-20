@@ -8,11 +8,11 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	settingssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/settings"
 
-	"github.com/primandproper/platform-go/v13/fake"
-	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
-	tracingnoop "github.com/primandproper/platform-go/v13/observability/tracing/noop"
-	settingsmock "github.com/primandproper/platform-go/v13/settings/mock"
+	settingsmock "github.com/primandproper/platform-go/v14/settings/mock"
+	"github.com/primandproper/primitives-go/v2/fake"
+	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
+	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
 
 	gofakeit "github.com/brianvoe/gofakeit/v7"
 	"github.com/stretchr/testify/assert"

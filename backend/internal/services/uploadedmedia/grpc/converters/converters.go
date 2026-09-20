@@ -4,11 +4,11 @@ import (
 	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/converters"
 	uploadedmediasvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
 
-	"github.com/primandproper/platform-go/v13/uploads/registry"
+	"github.com/primandproper/platform-go/v14/mediaregistry"
 )
 
 // ConvertUploadedMediaToGRPCUploadedMedia renders a registry row on the wire.
-func ConvertUploadedMediaToGRPCUploadedMedia(object *registry.Object) *uploadedmediasvc.UploadedMedia {
+func ConvertUploadedMediaToGRPCUploadedMedia(object *mediaregistry.Object) *uploadedmediasvc.UploadedMedia {
 	if object == nil {
 		return nil
 	}
@@ -32,12 +32,12 @@ func ConvertUploadedMediaToGRPCUploadedMedia(object *registry.Object) *uploadedm
 // The scope is deliberately absent: it is not on the wire and never should be —
 // a client that could name a tenancy could name somebody else's. Whoever writes
 // a row stamps it from uploadedmedia.Scope.
-func ConvertGRPCUploadedMediaToUploadedMedia(object *uploadedmediasvc.UploadedMedia) *registry.Object {
+func ConvertGRPCUploadedMediaToUploadedMedia(object *uploadedmediasvc.UploadedMedia) *mediaregistry.Object {
 	if object == nil {
 		return nil
 	}
 
-	return &registry.Object{
+	return &mediaregistry.Object{
 		CreatedAt:     grpcconverters.ConvertPBTimestampToTime(object.CreatedAt),
 		ArchivedAt:    grpcconverters.ConvertPBTimestampToTimePointer(object.ArchivedAt),
 		LastUpdatedAt: grpcconverters.ConvertPBTimestampToTimePointer(object.LastUpdatedAt),
@@ -46,6 +46,6 @@ func ConvertGRPCUploadedMediaToUploadedMedia(object *uploadedmediasvc.UploadedMe
 		ContentType:   object.ContentType,
 		OwnerID:       object.OwnerId,
 		Size:          object.SizeBytes,
-		BelongsTo:     registry.Subject{Type: object.BelongsToType, ID: object.BelongsToId},
+		BelongsTo:     mediaregistry.Subject{Type: object.BelongsToType, ID: object.BelongsToId},
 	}
 }

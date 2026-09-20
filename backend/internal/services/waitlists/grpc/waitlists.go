@@ -11,14 +11,15 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/waitlists/grpc/converters"
 
-	platformerrors "github.com/primandproper/platform-go/v13/errors"
-	errorsgrpc "github.com/primandproper/platform-go/v13/errors/grpc"
-	"github.com/primandproper/platform-go/v13/filtering"
-	"github.com/primandproper/platform-go/v13/filtering/filteringpb"
-	filteringgrpc "github.com/primandproper/platform-go/v13/filtering/grpc"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
-	"github.com/primandproper/platform-go/v13/tenancy"
-	waitlists "github.com/primandproper/platform-go/v13/waitlists"
+	waitlists "github.com/primandproper/platform-go/v14/waitlists"
+	"github.com/primandproper/primitives-go/v2/database"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	errorsgrpc "github.com/primandproper/primitives-go/v2/errors/grpc"
+	"github.com/primandproper/primitives-go/v2/filtering"
+	"github.com/primandproper/primitives-go/v2/filtering/filteringpb"
+	filteringgrpc "github.com/primandproper/primitives-go/v2/filtering/grpc"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"google.golang.org/grpc/codes"
 )
@@ -113,7 +114,9 @@ func (s *serviceImpl) CreateWaitlist(ctx context.Context, request *waitlistssvc.
 	// internal/services/waitlists/errors for how each refusal reaches the client.
 	// There is no second validation here, because a second one is one that can
 	// disagree.
-	created, err := s.waitlists.CreateList(ctx, ddbwaitlists.Scope(), list)
+	created, err := inTransaction(ctx, s.db, func(tx database.Tx) (*waitlists.List, error) {
+		return s.waitlists.CreateList(ctx, tx, ddbwaitlists.Scope(), list)
+	})
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "creating waitlist")
 	}
@@ -137,7 +140,7 @@ func (s *serviceImpl) GetWaitlist(ctx context.Context, request *waitlistssvc.Get
 
 	logger := s.logger.WithSpan(span).WithValue(waitlistkeys.WaitlistIDKey, request.GetWaitlistId())
 
-	list, err := s.waitlists.GetList(ctx, ddbwaitlists.Scope(), request.GetWaitlistId())
+	list, err := s.waitlists.GetList(ctx, s.db.Reader(), ddbwaitlists.Scope(), request.GetWaitlistId())
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "fetching waitlist")
 	}
@@ -159,7 +162,7 @@ func (s *serviceImpl) GetWaitlists(ctx context.Context, request *waitlistssvc.Ge
 		return nil, err
 	}
 
-	page, err := s.waitlists.ListLists(ctx, ddbwaitlists.Scope(), filter)
+	page, err := s.waitlists.ListLists(ctx, s.db.Reader(), ddbwaitlists.Scope(), filter)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger.WithSpan(span), span, codes.Internal, "fetching waitlists")
 	}
@@ -185,7 +188,7 @@ func (s *serviceImpl) GetOpenWaitlists(ctx context.Context, request *waitlistssv
 		return nil, err
 	}
 
-	page, err := s.waitlists.ListOpenLists(ctx, ddbwaitlists.Scope(), filter)
+	page, err := s.waitlists.ListOpenLists(ctx, s.db.Reader(), ddbwaitlists.Scope(), filter)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger.WithSpan(span), span, codes.Internal, "fetching open waitlists")
 	}
@@ -213,14 +216,16 @@ func (s *serviceImpl) UpdateWaitlist(ctx context.Context, request *waitlistssvc.
 
 	logger := s.logger.WithSpan(span).WithValue(waitlistkeys.WaitlistIDKey, request.GetWaitlistId())
 
-	list, err := s.waitlists.GetList(ctx, ddbwaitlists.Scope(), request.GetWaitlistId())
+	list, err := s.waitlists.GetList(ctx, s.db.Reader(), ddbwaitlists.Scope(), request.GetWaitlistId())
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "fetching waitlist for update")
 	}
 
 	converters.ApplyGRPCWaitlistUpdateRequestInput(list, request.GetInput())
 
-	if err = s.waitlists.UpdateList(ctx, ddbwaitlists.Scope(), list); err != nil {
+	if _, err = inTransaction(ctx, s.db, func(tx database.Tx) (*waitlists.List, error) {
+		return s.waitlists.UpdateList(ctx, tx, ddbwaitlists.Scope(), list)
+	}); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "updating waitlist")
 	}
 
@@ -243,7 +248,9 @@ func (s *serviceImpl) ArchiveWaitlist(ctx context.Context, request *waitlistssvc
 
 	logger := s.logger.WithSpan(span).WithValue(waitlistkeys.WaitlistIDKey, request.GetWaitlistId())
 
-	if err = s.waitlists.ArchiveList(ctx, ddbwaitlists.Scope(), request.GetWaitlistId()); err != nil {
+	if _, err = inTransaction(ctx, s.db, func(tx database.Tx) (*waitlists.List, error) {
+		return s.waitlists.ArchiveList(ctx, tx, ddbwaitlists.Scope(), request.GetWaitlistId())
+	}); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "archiving waitlist")
 	}
 
@@ -268,7 +275,7 @@ func (s *serviceImpl) WaitlistIsOpen(ctx context.Context, request *waitlistssvc.
 
 	logger := s.logger.WithSpan(span).WithValue(waitlistkeys.WaitlistIDKey, request.GetWaitlistId())
 
-	list, err := s.waitlists.GetList(ctx, ddbwaitlists.Scope(), request.GetWaitlistId())
+	list, err := s.waitlists.GetList(ctx, s.db.Reader(), ddbwaitlists.Scope(), request.GetWaitlistId())
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "fetching waitlist")
 	}
@@ -309,7 +316,9 @@ func (s *serviceImpl) JoinWaitlist(ctx context.Context, request *waitlistssvc.Jo
 	// an address that has withdrawn from it. The last is the obligation this
 	// package was adopted for, and it reaches the client as PermissionDenied
 	// rather than as a conflict — see internal/services/waitlists/errors.
-	created, err := s.waitlists.Join(ctx, ddbwaitlists.Scope(), request.GetWaitlistId(), signup)
+	created, err := inTransaction(ctx, s.db, func(tx database.Tx) (*waitlists.Signup, error) {
+		return s.waitlists.Join(ctx, tx, ddbwaitlists.Scope(), request.GetWaitlistId(), signup)
+	})
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "joining waitlist")
 	}
@@ -356,7 +365,7 @@ func (s *serviceImpl) GetWaitlistSignupsForWaitlist(ctx context.Context, request
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(errNotAuthorizedForWaitlistSignup, logger, span, codes.PermissionDenied, "not authorized to list waitlist signups")
 	}
 
-	page, err := s.waitlists.ListSignups(ctx, ddbwaitlists.Scope(), request.GetWaitlistId(), filter)
+	page, err := s.waitlists.ListSignups(ctx, s.db.Reader(), ddbwaitlists.Scope(), request.GetWaitlistId(), filter)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "fetching waitlist signups")
 	}
@@ -392,7 +401,9 @@ func (s *serviceImpl) UpdateWaitlistSignup(ctx context.Context, request *waitlis
 		notes = request.GetInput().GetNotes()
 	}
 
-	if err = s.waitlists.UpdateSignupNotes(ctx, ddbwaitlists.Scope(), request.GetWaitlistId(), signup.ID, notes); err != nil {
+	if _, err = inTransaction(ctx, s.db, func(tx database.Tx) (*waitlists.Signup, error) {
+		return s.waitlists.UpdateSignupNotes(ctx, tx, ddbwaitlists.Scope(), request.GetWaitlistId(), signup.ID, notes)
+	}); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "updating waitlist signup")
 	}
 
@@ -465,11 +476,13 @@ func (s *serviceImpl) WithdrawFromWaitlist(ctx context.Context, request *waitlis
 
 	logger := s.logger.WithSpan(span).WithValue(waitlistkeys.WaitlistSignupIDKey, signup.ID)
 
-	if err = s.waitlists.Withdraw(ctx, ddbwaitlists.Scope(), request.GetWaitlistId(), signup.ID); err != nil {
+	if _, err = inTransaction(ctx, s.db, func(tx database.Tx) (*waitlists.Signup, error) {
+		return s.waitlists.Withdraw(ctx, tx, ddbwaitlists.Scope(), request.GetWaitlistId(), signup.ID)
+	}); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "withdrawing from waitlist")
 	}
 
-	withdrawn, err := s.waitlists.GetSignup(ctx, ddbwaitlists.Scope(), request.GetWaitlistId(), signup.ID)
+	withdrawn, err := s.waitlists.GetSignup(ctx, s.db.Reader(), ddbwaitlists.Scope(), request.GetWaitlistId(), signup.ID)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "fetching withdrawn waitlist signup")
 	}
@@ -497,7 +510,9 @@ func (s *serviceImpl) ArchiveWaitlistSignup(ctx context.Context, request *waitli
 
 	logger := s.logger.WithSpan(span).WithValue(waitlistkeys.WaitlistSignupIDKey, signup.ID)
 
-	if err = s.waitlists.ArchiveSignup(ctx, ddbwaitlists.Scope(), request.GetWaitlistId(), signup.ID); err != nil {
+	if _, err = inTransaction(ctx, s.db, func(tx database.Tx) (*waitlists.Signup, error) {
+		return s.waitlists.ArchiveSignup(ctx, tx, ddbwaitlists.Scope(), request.GetWaitlistId(), signup.ID)
+	}); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "archiving waitlist signup")
 	}
 
@@ -524,7 +539,7 @@ func (s *serviceImpl) ownSignup(ctx context.Context, span tracing.Span, listID, 
 		WithValue(waitlistkeys.WaitlistIDKey, listID).
 		WithValue(waitlistkeys.WaitlistSignupIDKey, signupID)
 
-	signup, err := s.waitlists.GetSignup(ctx, ddbwaitlists.Scope(), listID, signupID)
+	signup, err := s.waitlists.GetSignup(ctx, s.db.Reader(), ddbwaitlists.Scope(), listID, signupID)
 	if err != nil {
 		return nil, nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "fetching waitlist signup")
 	}
@@ -542,14 +557,15 @@ func (s *serviceImpl) ownSignup(ctx context.Context, span tracing.Span, listID, 
 // Only a service admin may. Being on a list does not entitle somebody to invite
 // themselves off it, which is the whole difference between a queue and a form.
 //
-// The read back is a second round trip and is worth it: the guard decided the
-// status, and a caller rendering the queue needs the stamp the move left, which
-// only the row has.
+// There is no read back. Before v14 the move returned only an error, so the
+// stamp it left had to be fetched in a second round trip; the store now returns
+// the row it wrote, inside the same transaction, which is both cheaper and free
+// of the window where a concurrent write could be read back instead.
 func (s *serviceImpl) workedSignup(
 	ctx context.Context,
 	span tracing.Span,
 	listID, signupID string,
-	move func(ctx context.Context, scope tenancy.Scope, listID, signupID string) error,
+	move func(ctx context.Context, tx database.Tx, scope tenancy.Scope, listID, signupID string) (*waitlists.Signup, error),
 	description string,
 ) (*sessions.ContextData, *waitlists.Signup, error) {
 	sessionContextData, err := s.requester(ctx, span)
@@ -565,13 +581,11 @@ func (s *serviceImpl) workedSignup(
 		return nil, nil, errorsgrpc.PrepareAndLogGRPCStatus(errNotAuthorizedToWorkTheQueue, logger, span, codes.PermissionDenied, "not authorized to work the waitlist queue")
 	}
 
-	if err = move(ctx, ddbwaitlists.Scope(), listID, signupID); err != nil {
-		return nil, nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "%s", description)
-	}
-
-	signup, err := s.waitlists.GetSignup(ctx, ddbwaitlists.Scope(), listID, signupID)
+	signup, err := inTransaction(ctx, s.db, func(tx database.Tx) (*waitlists.Signup, error) {
+		return move(ctx, tx, ddbwaitlists.Scope(), listID, signupID)
+	})
 	if err != nil {
-		return nil, nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "fetching waitlist signup after %s", description)
+		return nil, nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "%s", description)
 	}
 
 	return sessionContextData, signup, nil

@@ -9,12 +9,12 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity/generated"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/recording"
 
-	platformauthz "github.com/primandproper/platform-go/v13/authorization"
-	"github.com/primandproper/platform-go/v13/database"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
-	"github.com/primandproper/platform-go/v13/random"
-	"github.com/primandproper/platform-go/v13/uploads/registry"
+	"github.com/primandproper/platform-go/v14/mediaregistry"
+	platformauthz "github.com/primandproper/primitives-go/v2/authorization"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
+	"github.com/primandproper/primitives-go/v2/random"
 )
 
 const (
@@ -37,7 +37,7 @@ type repository struct {
 	// uploads answers what a user_avatars row points at. The avatar itself lives
 	// in platform-go's upload registry, whose table this repository's statements
 	// cannot join — see avatarFor.
-	uploads registry.Store
+	uploads mediaregistry.Store
 
 	// policy answers what a role grants. Same shape as uploads above: the tables
 	// belong to a platform package and this repository's statements cannot join
@@ -56,7 +56,7 @@ func ProvideIdentityRepository(
 	auditLogEntryRepo audit.Repository,
 	client database.Client,
 	eventEmitter *events.Emitter,
-	uploads registry.Store,
+	uploads mediaregistry.Store,
 	policy platformauthz.PolicyResolver,
 ) identity.Repository {
 	tracer := tracing.NewNamedTracer(tracerProvider, o11yName)

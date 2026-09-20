@@ -17,43 +17,44 @@ import (
 	uploadedmediacfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/testutils"
 
-	analyticscfg "github.com/primandproper/platform-go/v13/analytics/config"
-	oauth2servercfg "github.com/primandproper/platform-go/v13/authentication/oauth2server/config"
-	oauth2database "github.com/primandproper/platform-go/v13/authentication/oauth2server/database"
-	tokenscfg "github.com/primandproper/platform-go/v13/authentication/tokens/config"
-	platformwebauthn "github.com/primandproper/platform-go/v13/authentication/webauthn"
-	webauthncfg "github.com/primandproper/platform-go/v13/authentication/webauthn/config"
-	cachecfg "github.com/primandproper/platform-go/v13/cache/config"
-	cacheredis "github.com/primandproper/platform-go/v13/cache/redis"
-	capitalismcfg "github.com/primandproper/platform-go/v13/capitalism/config"
-	circuitbreakingcfg "github.com/primandproper/platform-go/v13/circuitbreaking/config"
-	encryptioncfg "github.com/primandproper/platform-go/v13/cryptography/encryption/config"
-	databasecfg "github.com/primandproper/platform-go/v13/database/config"
-	distributedlockcfg "github.com/primandproper/platform-go/v13/distributedlock/config"
-	pglock "github.com/primandproper/platform-go/v13/distributedlock/postgres"
-	emailcfg "github.com/primandproper/platform-go/v13/email/config"
-	"github.com/primandproper/platform-go/v13/encoding"
-	featureflagscfg "github.com/primandproper/platform-go/v13/featureflags/config"
-	idempotencycfg "github.com/primandproper/platform-go/v13/idempotency/config"
-	msgconfig "github.com/primandproper/platform-go/v13/messagequeue/config"
-	"github.com/primandproper/platform-go/v13/messagequeue/redis"
-	notificationscfg "github.com/primandproper/platform-go/v13/notifications/mobile/config"
-	"github.com/primandproper/platform-go/v13/observability"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	loggingcfg "github.com/primandproper/platform-go/v13/observability/logging/config"
-	logotelgrpc "github.com/primandproper/platform-go/v13/observability/logging/otelgrpc"
-	metricscfg "github.com/primandproper/platform-go/v13/observability/metrics/config"
-	"github.com/primandproper/platform-go/v13/observability/metrics/otelgrpc"
-	profilingcfg "github.com/primandproper/platform-go/v13/observability/profiling/config"
-	"github.com/primandproper/platform-go/v13/observability/profiling/pprof"
-	tracingcfg "github.com/primandproper/platform-go/v13/observability/tracing/config"
-	"github.com/primandproper/platform-go/v13/observability/tracing/oteltrace"
-	"github.com/primandproper/platform-go/v13/routing/backends/chi"
-	routingcfg "github.com/primandproper/platform-go/v13/routing/config"
-	textsearchcfg "github.com/primandproper/platform-go/v13/search/text/config"
-	"github.com/primandproper/platform-go/v13/server/http"
-	uploadscfg "github.com/primandproper/platform-go/v13/uploads/config"
-	"github.com/primandproper/platform-go/v13/uploads/objectstorage"
+	oauth2database "github.com/primandproper/platform-go/v14/authentication/oauth2serverstore"
+	oauth2servercfg "github.com/primandproper/platform-go/v14/authentication/oauth2serverstore/config"
+	webauthncfg "github.com/primandproper/platform-go/v14/authentication/webauthnsessions/config"
+	analyticscfg "github.com/primandproper/primitives-go/v2/analytics/config"
+	tokenscfg "github.com/primandproper/primitives-go/v2/authentication/tokens/config"
+	platformwebauthn "github.com/primandproper/primitives-go/v2/authentication/webauthn"
+	cachecfg "github.com/primandproper/primitives-go/v2/cache/config"
+	cacheredis "github.com/primandproper/primitives-go/v2/cache/redis"
+	capitalismcfg "github.com/primandproper/primitives-go/v2/capitalism/config"
+	circuitbreakingcfg "github.com/primandproper/primitives-go/v2/circuitbreaking/config"
+	encryptioncfg "github.com/primandproper/primitives-go/v2/cryptography/encryption/config"
+	databasecfg "github.com/primandproper/primitives-go/v2/database/config"
+	distributedlockcfg "github.com/primandproper/primitives-go/v2/distributedlock/config"
+	pglock "github.com/primandproper/primitives-go/v2/distributedlock/postgres"
+	emailcfg "github.com/primandproper/primitives-go/v2/email/config"
+	"github.com/primandproper/primitives-go/v2/encoding"
+	featureflagscfg "github.com/primandproper/primitives-go/v2/featureflags/config"
+	idempotencycfg "github.com/primandproper/primitives-go/v2/idempotency/config"
+	msgconfig "github.com/primandproper/primitives-go/v2/messagequeue/config"
+	"github.com/primandproper/primitives-go/v2/messagequeue/redis"
+	notificationscfg "github.com/primandproper/primitives-go/v2/notifications/mobile/config"
+	"github.com/primandproper/primitives-go/v2/observability"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	loggingcfg "github.com/primandproper/primitives-go/v2/observability/logging/config"
+	logotelgrpc "github.com/primandproper/primitives-go/v2/observability/logging/otelgrpc"
+	metricscfg "github.com/primandproper/primitives-go/v2/observability/metrics/config"
+	"github.com/primandproper/primitives-go/v2/observability/metrics/otelgrpc"
+	profilingcfg "github.com/primandproper/primitives-go/v2/observability/profiling/config"
+	"github.com/primandproper/primitives-go/v2/observability/profiling/pprof"
+	tracingcfg "github.com/primandproper/primitives-go/v2/observability/tracing/config"
+	"github.com/primandproper/primitives-go/v2/observability/tracing/oteltrace"
+	"github.com/primandproper/primitives-go/v2/pointer"
+	"github.com/primandproper/primitives-go/v2/routing/backends/chi"
+	routingcfg "github.com/primandproper/primitives-go/v2/routing/config"
+	textsearchcfg "github.com/primandproper/primitives-go/v2/search/text/config"
+	"github.com/primandproper/primitives-go/v2/server/http"
+	uploadscfg "github.com/primandproper/primitives-go/v2/uploads/config"
+	"github.com/primandproper/primitives-go/v2/uploads/objectstorage"
 )
 
 const (
@@ -343,13 +344,10 @@ func BuildLocalDevConfig() *config.APIServiceConfig {
 					// instead, one pass for the fleet rather than one per replica, each
 					// running the same full-table delete on its own timer.
 					//
-					// It does not take effect. The field documents a non-positive value
-					// as no sweeper, but oauth2servercfg.EnsureDefaults rewrites this
-					// zero to ten minutes before it reaches WithSweeper, so every replica
-					// sweeps as well — see platform-go#456. Left at zero rather than
-					// worked around with a negative duration, which is undocumented
-					// behavior the fix upstream may well remove.
-					SweepInterval: 0,
+					// Explicitly none, because the db-cleaner job sweeps for the fleet. v14
+					// made this a *time.Duration, so an explicit zero now means "no sweeper"
+					// instead of being rewritten to the ten-minute default — platform-go#456.
+					SweepInterval: pointer.To(time.Duration(0)),
 				},
 				Debug:                 true,
 				EnableUserSignup:      true,

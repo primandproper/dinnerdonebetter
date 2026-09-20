@@ -7,11 +7,12 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
 
-	platformdataprivacy "github.com/primandproper/platform-go/v13/dataprivacy"
-	"github.com/primandproper/platform-go/v13/filtering"
-	"github.com/primandproper/platform-go/v13/observability"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
+	platformdataprivacy "github.com/primandproper/platform-go/v14/dataprivacy"
+	"github.com/primandproper/primitives-go/v2/filtering"
+	"github.com/primandproper/primitives-go/v2/observability"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
 const o11yName = "notifications_privacy_collector"
@@ -40,7 +41,10 @@ func NewCollector(repo notifications.Repository, logger logging.Logger, tracerPr
 // That constructor encodes the rows themselves; this section is a
 // notifications.UserDataCollection wrapping them, which is the shape the gRPC
 // converters read and so is not this collector's to flatten.
-func (c *Collector) Collect(ctx context.Context, subject platformdataprivacy.Subject) (json.RawMessage, error) {
+// The request scope is not consulted. This application's subject access
+// requests name a person rather than a tenant, and the rows below are
+// reached by subject id; narrowing to one scope would under-report.
+func (c *Collector) Collect(ctx context.Context, _ tenancy.Scope, subject platformdataprivacy.Subject) (json.RawMessage, error) {
 	ctx, span := c.tracer.StartSpan(ctx)
 	defer span.End()
 

@@ -20,17 +20,17 @@ import (
 	identityrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity"
 	oauthrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/oauth"
 
-	"github.com/primandproper/platform-go/v13/authentication/argon2"
-	"github.com/primandproper/platform-go/v13/database"
-	databasecfg "github.com/primandproper/platform-go/v13/database/config"
-	"github.com/primandproper/platform-go/v13/database/postgres"
-	"github.com/primandproper/platform-go/v13/identifiers"
-	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
-	metricsnoop "github.com/primandproper/platform-go/v13/observability/metrics/noop"
-	tracingnoop "github.com/primandproper/platform-go/v13/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v13/random"
-	"github.com/primandproper/platform-go/v13/secrets/kubernetes"
-	"github.com/primandproper/platform-go/v13/uploads/registry"
+	"github.com/primandproper/platform-go/v14/mediaregistry"
+	"github.com/primandproper/primitives-go/v2/authentication/argon2"
+	"github.com/primandproper/primitives-go/v2/database"
+	databasecfg "github.com/primandproper/primitives-go/v2/database/config"
+	"github.com/primandproper/primitives-go/v2/database/postgres"
+	"github.com/primandproper/primitives-go/v2/identifiers"
+	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
+	metricsnoop "github.com/primandproper/primitives-go/v2/observability/metrics/noop"
+	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
+	"github.com/primandproper/primitives-go/v2/random"
+	"github.com/primandproper/primitives-go/v2/secrets/kubernetes"
 
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/tools/clientcmd"
@@ -220,11 +220,11 @@ func runInit(db *dbFlags, adminUsername, adminPassword, adminEmail, apiServerURL
 	// A real registry store rather than nil: the identity repository hydrates a
 	// user's avatar through it, and the admin user this tool reads back may have
 	// one. It needs no emitter or metrics — nothing here writes an object.
-	uploadsRegistry, err := registry.NewSQLStore(
+	uploadsRegistry, err := mediaregistry.NewSQLStore(
 		client,
-		registry.WithTablePrefix(uploadedmedia.TablePrefix),
-		registry.WithStoreLogger(logger),
-		registry.WithStoreTracerProvider(tracerProvider),
+		mediaregistry.WithTablePrefix(uploadedmedia.TablePrefix),
+		mediaregistry.WithStoreLogger(logger),
+		mediaregistry.WithStoreTracerProvider(tracerProvider),
 	)
 	if err != nil {
 		return fmt.Errorf("building upload registry store: %w", err)

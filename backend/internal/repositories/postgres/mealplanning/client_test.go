@@ -16,15 +16,15 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	"github.com/primandproper/platform-go/v13/database"
-	"github.com/primandproper/platform-go/v13/database/dialect"
-	mockdatabase "github.com/primandproper/platform-go/v13/database/mock"
-	"github.com/primandproper/platform-go/v13/database/postgres"
-	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v13/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v13/outbox"
-	"github.com/primandproper/platform-go/v13/uploads/registry"
-	registrymock "github.com/primandproper/platform-go/v13/uploads/registry/mock"
+	"github.com/primandproper/platform-go/v14/mediaregistry"
+	registrymock "github.com/primandproper/platform-go/v14/mediaregistry/mock"
+	"github.com/primandproper/platform-go/v14/outbox"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/database/dialect"
+	mockdatabase "github.com/primandproper/primitives-go/v2/database/mock"
+	"github.com/primandproper/primitives-go/v2/database/postgres"
+	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
+	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
 
 	"github.com/stretchr/testify/require"
 )
@@ -68,7 +68,7 @@ func buildDatabaseClientForTest(t *testing.T) (*repository, audit.Repository) {
 	require.NoError(t, err)
 	// A real registry store over the same database, so the media hydration these
 	// tests exercise reads the table a request would.
-	uploadsRegistry, err := registry.NewSQLStore(pgc, registry.WithTablePrefix(uploadedmedia.TablePrefix))
+	uploadsRegistry, err := mediaregistry.NewSQLStore(pgc, mediaregistry.WithTablePrefix(uploadedmedia.TablePrefix))
 	require.NoError(t, err)
 
 	policy, err := authorization.NewDatabaseResolver(pgc.Reader(), loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil)

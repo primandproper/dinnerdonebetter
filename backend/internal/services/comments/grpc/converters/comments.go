@@ -4,7 +4,7 @@ import (
 	platformconverters "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/converters"
 	commentssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/comments"
 
-	comments "github.com/primandproper/platform-go/v13/comments"
+	comments "github.com/primandproper/platform-go/v14/comments"
 )
 
 // ConvertProtoCommentTargetToDomain converts a proto CommentTarget to the

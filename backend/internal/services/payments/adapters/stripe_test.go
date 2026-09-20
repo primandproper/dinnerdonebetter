@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/primandproper/platform-go/v13/capitalism"
-	capstripe "github.com/primandproper/platform-go/v13/capitalism/stripe"
-	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v13/observability/tracing/noop"
+	"github.com/primandproper/primitives-go/v2/capitalism"
+	capstripe "github.com/primandproper/primitives-go/v2/capitalism/stripe"
+	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
+	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

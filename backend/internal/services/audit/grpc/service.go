@@ -12,10 +12,10 @@ import (
 	grpctypes "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/audit/grpc/converters"
 
-	errorsgrpc "github.com/primandproper/platform-go/v13/errors/grpc"
-	filteringgrpc "github.com/primandproper/platform-go/v13/filtering/grpc"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
+	errorsgrpc "github.com/primandproper/primitives-go/v2/errors/grpc"
+	filteringgrpc "github.com/primandproper/primitives-go/v2/filtering/grpc"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
 
 	"google.golang.org/grpc/codes"
 )

@@ -3,9 +3,9 @@ package fakes
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 
-	"github.com/primandproper/platform-go/v13/fake"
-	"github.com/primandproper/platform-go/v13/filtering"
-	"github.com/primandproper/platform-go/v13/uploads/registry"
+	"github.com/primandproper/platform-go/v14/mediaregistry"
+	"github.com/primandproper/primitives-go/v2/fake"
+	"github.com/primandproper/primitives-go/v2/filtering"
 
 	gofakeit "github.com/brianvoe/gofakeit/v7"
 )
@@ -19,19 +19,19 @@ import (
 // application accepts, and the key is a path something later fetches from a
 // bucket. The subject is left unattached, which is the ordinary state of a
 // standalone upload — BuildFakeUploadedMediaFor attaches one.
-func BuildFakeUploadedMedia() *registry.Object {
-	object := fake.BuildFakeRecord[registry.Object]()
+func BuildFakeUploadedMedia() *mediaregistry.Object {
+	object := fake.BuildFakeRecord[mediaregistry.Object]()
 
 	object.Scope = uploadedmedia.Scope()
 	object.ContentType = uploadedmedia.MimeTypeImagePNG
 	object.Key = gofakeit.URL()
-	object.BelongsTo = registry.Subject{}
+	object.BelongsTo = mediaregistry.Subject{}
 
 	return object
 }
 
 // BuildFakeUploadedMediaFor builds a fake registry Object attached to subject.
-func BuildFakeUploadedMediaFor(subject registry.Subject) *registry.Object {
+func BuildFakeUploadedMediaFor(subject mediaregistry.Subject) *mediaregistry.Object {
 	object := BuildFakeUploadedMedia()
 	object.BelongsTo = subject
 
@@ -39,6 +39,6 @@ func BuildFakeUploadedMediaFor(subject registry.Subject) *registry.Object {
 }
 
 // BuildFakeUploadedMediaList builds a faked page of registry Objects.
-func BuildFakeUploadedMediaList() *filtering.QueryFilteredResult[registry.Object] {
+func BuildFakeUploadedMediaList() *filtering.QueryFilteredResult[mediaregistry.Object] {
 	return fake.BuildFakePage(BuildFakeUploadedMedia)
 }

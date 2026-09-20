@@ -4,11 +4,11 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/indexstamp"
 
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/metrics"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
-	searchsync "github.com/primandproper/platform-go/v13/search/sync"
-	syncsource "github.com/primandproper/platform-go/v13/search/sync/source"
+	searchsync "github.com/primandproper/platform-go/v14/searchsync"
+	syncsource "github.com/primandproper/platform-go/v14/searchsync/source"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/metrics"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
 )
 
 // o11yName names the loggers, spans and metrics of the search sync sources built here. It

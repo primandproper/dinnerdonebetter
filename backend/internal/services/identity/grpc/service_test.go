@@ -11,12 +11,12 @@ import (
 	identitysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
 
-	"github.com/primandproper/platform-go/v13/fake"
-	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
-	tracingnoop "github.com/primandproper/platform-go/v13/observability/tracing/noop"
-	mockuploads "github.com/primandproper/platform-go/v13/uploads/mock"
-	registrymock "github.com/primandproper/platform-go/v13/uploads/registry/mock"
+	registrymock "github.com/primandproper/platform-go/v14/mediaregistry/mock"
+	"github.com/primandproper/primitives-go/v2/fake"
+	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
+	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
+	mockuploads "github.com/primandproper/primitives-go/v2/uploads/mock"
 
 	"github.com/stretchr/testify/assert"
 )

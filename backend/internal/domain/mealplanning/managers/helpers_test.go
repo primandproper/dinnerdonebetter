@@ -9,13 +9,13 @@ import (
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 	eatingindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
-	"github.com/primandproper/platform-go/v13/messagequeue"
-	mockpublishers "github.com/primandproper/platform-go/v13/messagequeue/mock"
-	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
-	metricsnoop "github.com/primandproper/platform-go/v13/observability/metrics/noop"
-	tracingnoop "github.com/primandproper/platform-go/v13/observability/tracing/noop"
-	textsearch "github.com/primandproper/platform-go/v13/search/text"
-	textsearchcfg "github.com/primandproper/platform-go/v13/search/text/config"
+	"github.com/primandproper/primitives-go/v2/messagequeue"
+	mockpublishers "github.com/primandproper/primitives-go/v2/messagequeue/mock"
+	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
+	metricsnoop "github.com/primandproper/primitives-go/v2/observability/metrics/noop"
+	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
+	textsearch "github.com/primandproper/primitives-go/v2/search/text"
+	textsearchcfg "github.com/primandproper/primitives-go/v2/search/text/config"
 
 	"github.com/stretchr/testify/require"
 )

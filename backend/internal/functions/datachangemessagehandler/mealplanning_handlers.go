@@ -11,7 +11,7 @@ import (
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	queuemessages "github.com/primandproper/dinnerdonebetter/backend/internal/queues/messages"
 
-	"github.com/primandproper/platform-go/v13/observability"
+	"github.com/primandproper/primitives-go/v2/observability"
 )
 
 // handleMealPlanningOutboundNotification handles outbound notifications for meal planning domain events.

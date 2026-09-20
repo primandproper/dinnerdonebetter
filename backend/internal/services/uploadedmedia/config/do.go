@@ -1,7 +1,7 @@
 package config
 
 import (
-	uploadscfg "github.com/primandproper/platform-go/v13/uploads/config"
+	uploadscfg "github.com/primandproper/primitives-go/v2/uploads/config"
 
 	"github.com/samber/do/v2"
 )

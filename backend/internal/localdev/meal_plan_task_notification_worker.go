@@ -12,13 +12,13 @@ import (
 	notificationsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/notifications"
 	mealplantasknotifications "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_task_notifications"
 
-	"github.com/primandproper/platform-go/v13/database"
-	platformnotifications "github.com/primandproper/platform-go/v13/notifications/mobile"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	metricsnoop "github.com/primandproper/platform-go/v13/observability/metrics/noop"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
-	"github.com/primandproper/platform-go/v13/workqueue"
-	workqueuecfg "github.com/primandproper/platform-go/v13/workqueue/config"
+	"github.com/primandproper/platform-go/v14/workqueue"
+	workqueuecfg "github.com/primandproper/platform-go/v14/workqueue/config"
+	"github.com/primandproper/primitives-go/v2/database"
+	platformnotifications "github.com/primandproper/primitives-go/v2/notifications/mobile"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	metricsnoop "github.com/primandproper/primitives-go/v2/observability/metrics/noop"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
 )
 
 // NewMealPlanTaskNotificationWorker builds the prep task reminder worker over the given database,

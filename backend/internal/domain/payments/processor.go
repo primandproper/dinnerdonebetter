@@ -3,7 +3,7 @@ package payments
 import (
 	"net/http"
 
-	"github.com/primandproper/platform-go/v13/capitalism"
+	"github.com/primandproper/primitives-go/v2/capitalism"
 )
 
 // ParsedWebhookEvent holds the result of parsing a provider webhook payload.

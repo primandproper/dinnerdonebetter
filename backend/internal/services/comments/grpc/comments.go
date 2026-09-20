@@ -10,13 +10,14 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
 	converters "github.com/primandproper/dinnerdonebetter/backend/internal/services/comments/grpc/converters"
 
-	comments "github.com/primandproper/platform-go/v13/comments"
-	platformerrors "github.com/primandproper/platform-go/v13/errors"
-	errorsgrpc "github.com/primandproper/platform-go/v13/errors/grpc"
-	"github.com/primandproper/platform-go/v13/filtering"
-	filteringgrpc "github.com/primandproper/platform-go/v13/filtering/grpc"
-	"github.com/primandproper/platform-go/v13/observability"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
+	comments "github.com/primandproper/platform-go/v14/comments"
+	"github.com/primandproper/primitives-go/v2/database"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	errorsgrpc "github.com/primandproper/primitives-go/v2/errors/grpc"
+	"github.com/primandproper/primitives-go/v2/filtering"
+	filteringgrpc "github.com/primandproper/primitives-go/v2/filtering/grpc"
+	"github.com/primandproper/primitives-go/v2/observability"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
 
 	"google.golang.org/grpc/codes"
 )
@@ -64,7 +65,9 @@ func (s *serviceImpl) createComment(ctx context.Context, span tracing.Span, inpu
 
 	comment.Scope = ddbcomments.Scope()
 
-	if err := s.comments.CreateComment(ctx, comment); err != nil {
+	if _, err := inTransaction(ctx, s.db, func(tx database.Tx) (*comments.Comment, error) {
+		return s.comments.CreateComment(ctx, tx, comment.Scope, comment)
+	}); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "creating comment")
 	}
 
@@ -111,7 +114,7 @@ func (s *serviceImpl) GetRootComments(ctx context.Context, request *commentssvc.
 
 	tracing.AttachQueryFilterToSpan(span, filter)
 
-	result, err := s.comments.ListRootComments(ctx, ddbcomments.Scope(), target, filter)
+	result, err := s.comments.ListRootComments(ctx, s.db.Reader(), ddbcomments.Scope(), target, filter)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "fetching root comments")
 	}
@@ -157,7 +160,7 @@ func (s *serviceImpl) GetCommentReplies(ctx context.Context, request *commentssv
 
 	tracing.AttachQueryFilterToSpan(span, filter)
 
-	result, err := s.comments.ListReplies(ctx, ddbcomments.Scope(), target, request.GetParentId(), filter)
+	result, err := s.comments.ListReplies(ctx, s.db.Reader(), ddbcomments.Scope(), target, request.GetParentId(), filter)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "fetching comment replies")
 	}
@@ -192,11 +195,13 @@ func (s *serviceImpl) UpdateComment(ctx context.Context, request *commentssvc.Up
 	// the read above from being the thing that decides what an edit may touch.
 	comment.Body = request.GetInput().GetBody()
 
-	if err = s.comments.UpdateComment(ctx, comment); err != nil {
+	if _, err = inTransaction(ctx, s.db, func(tx database.Tx) (*comments.Comment, error) {
+		return s.comments.UpdateComment(ctx, tx, comment.Scope, comment)
+	}); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "updating comment")
 	}
 
-	updated, err := s.comments.GetComment(ctx, ddbcomments.Scope(), request.GetCommentId())
+	updated, err := s.comments.GetComment(ctx, s.db.Reader(), ddbcomments.Scope(), request.GetCommentId())
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "fetching updated comment")
 	}
@@ -221,7 +226,9 @@ func (s *serviceImpl) ArchiveComment(ctx context.Context, request *commentssvc.A
 		return nil, err
 	}
 
-	if err := s.comments.ArchiveComment(ctx, ddbcomments.Scope(), request.GetCommentId()); err != nil {
+	if _, err := inTransaction(ctx, s.db, func(tx database.Tx) (*comments.Comment, error) {
+		return s.comments.ArchiveComment(ctx, tx, ddbcomments.Scope(), request.GetCommentId())
+	}); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "archiving comment")
 	}
 
@@ -247,7 +254,7 @@ func (s *serviceImpl) ownedComment(ctx context.Context, span tracing.Span, comme
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
-	comment, err := s.comments.GetComment(ctx, ddbcomments.Scope(), commentID)
+	comment, err := s.comments.GetComment(ctx, s.db.Reader(), ddbcomments.Scope(), commentID)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "fetching comment")
 	}

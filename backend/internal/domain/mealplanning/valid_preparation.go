@@ -5,8 +5,8 @@ import (
 	"encoding/gob"
 	"time"
 
-	"github.com/primandproper/platform-go/v13/filtering"
-	"github.com/primandproper/platform-go/v13/uploads/registry"
+	"github.com/primandproper/platform-go/v14/mediaregistry"
+	"github.com/primandproper/primitives-go/v2/filtering"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
@@ -29,30 +29,30 @@ func init() {
 type (
 	// ValidPreparation represents a valid preparation.
 	ValidPreparation struct {
-		_                           struct{}           `json:"-"`
-		CreatedAt                   time.Time          `json:"createdAt"`
-		ArchivedAt                  *time.Time         `json:"archivedAt"`
-		LastUpdatedAt               *time.Time         `json:"lastUpdatedAt"`
-		MaxInstrumentCount          *uint16            `json:"maxInstrumentCount,omitempty"`
-		MaxIngredientCount          *uint16            `json:"maxIngredientCount,omitempty"`
-		MaxVesselCount              *uint16            `json:"maxVesselCount,omitempty"`
-		Name                        string             `json:"name"`
-		PastTense                   string             `json:"pastTense"`
-		ID                          string             `json:"id"`
-		IconPath                    string             `json:"iconPath"`
-		Description                 string             `json:"description"`
-		Slug                        string             `json:"slug"`
-		Media                       []*registry.Object `json:"media"`
-		MinInstrumentCount          uint16             `json:"minInstrumentCount"`
-		MinIngredientCount          uint16             `json:"minIngredientCount"`
-		MinVesselCount              uint16             `json:"minVesselCount"`
-		TemperatureRequired         bool               `json:"temperatureRequired"`
-		TimeEstimateRequired        bool               `json:"timeEstimateRequired"`
-		ConditionExpressionRequired bool               `json:"conditionExpressionRequired"`
-		ConsumesVessel              bool               `json:"consumesVessel"`
-		OnlyForVessels              bool               `json:"onlyForVessels"`
-		YieldsNothing               bool               `json:"yieldsNothing"`
-		RestrictToIngredients       bool               `json:"restrictToIngredients"`
+		_                           struct{}                `json:"-"`
+		CreatedAt                   time.Time               `json:"createdAt"`
+		ArchivedAt                  *time.Time              `json:"archivedAt"`
+		LastUpdatedAt               *time.Time              `json:"lastUpdatedAt"`
+		MaxInstrumentCount          *uint16                 `json:"maxInstrumentCount,omitempty"`
+		MaxIngredientCount          *uint16                 `json:"maxIngredientCount,omitempty"`
+		MaxVesselCount              *uint16                 `json:"maxVesselCount,omitempty"`
+		Name                        string                  `json:"name"`
+		PastTense                   string                  `json:"pastTense"`
+		ID                          string                  `json:"id"`
+		IconPath                    string                  `json:"iconPath"`
+		Description                 string                  `json:"description"`
+		Slug                        string                  `json:"slug"`
+		Media                       []*mediaregistry.Object `json:"media"`
+		MinInstrumentCount          uint16                  `json:"minInstrumentCount"`
+		MinIngredientCount          uint16                  `json:"minIngredientCount"`
+		MinVesselCount              uint16                  `json:"minVesselCount"`
+		TemperatureRequired         bool                    `json:"temperatureRequired"`
+		TimeEstimateRequired        bool                    `json:"timeEstimateRequired"`
+		ConditionExpressionRequired bool                    `json:"conditionExpressionRequired"`
+		ConsumesVessel              bool                    `json:"consumesVessel"`
+		OnlyForVessels              bool                    `json:"onlyForVessels"`
+		YieldsNothing               bool                    `json:"yieldsNothing"`
+		RestrictToIngredients       bool                    `json:"restrictToIngredients"`
 	}
 
 	// ValidPreparationCreationRequestInput represents what a user could set as input for creating valid preparations.

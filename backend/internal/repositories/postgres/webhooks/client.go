@@ -7,10 +7,10 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/recording"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhooks/generated"
 
-	"github.com/primandproper/platform-go/v13/database"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
-	"github.com/primandproper/platform-go/v13/webhooks"
+	"github.com/primandproper/platform-go/v14/webhooks"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
 )
 
 const (

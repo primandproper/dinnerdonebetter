@@ -9,7 +9,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	"github.com/primandproper/platform-go/v13/database"
+	"github.com/primandproper/primitives-go/v2/database"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

@@ -7,8 +7,8 @@ import (
 	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/converters"
 	paymentssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/payments"
 
-	"github.com/primandproper/platform-go/v13/billing"
-	"github.com/primandproper/platform-go/v13/capitalism"
+	"github.com/primandproper/platform-go/v14/billing"
+	"github.com/primandproper/primitives-go/v2/capitalism"
 )
 
 // ConvertProductToGRPC renders a product.

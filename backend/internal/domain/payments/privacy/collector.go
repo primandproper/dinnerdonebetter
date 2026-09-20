@@ -31,17 +31,22 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 
-	"github.com/primandproper/platform-go/v13/billing"
-	billingprivacy "github.com/primandproper/platform-go/v13/billing/privacy"
-	platformdataprivacy "github.com/primandproper/platform-go/v13/dataprivacy"
-	platformerrors "github.com/primandproper/platform-go/v13/errors"
+	"github.com/primandproper/platform-go/v14/billing"
+	billingprivacy "github.com/primandproper/platform-go/v14/billing/privacy"
+	platformdataprivacy "github.com/primandproper/platform-go/v14/dataprivacy"
+	"github.com/primandproper/primitives-go/v2/database"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
 // NewCollector builds the payments collector: every subscription, purchase and
 // ledger row in every account the subject belongs to, archived rows included,
 // paged to the end and encoded.
-func NewCollector(store billing.Store, resolveAccounts dataprivacy.AccountIDResolver) (platformdataprivacy.Collector, error) {
-	collector, err := billingprivacy.NewCollector(store, accountResolver(resolveAccounts))
+//
+// The reader is taken at construction because dataprivacy.Collector.Collect is
+// handed no executor.
+func NewCollector(store billing.Store, reader database.SQLQueryExecutor, resolveAccounts dataprivacy.AccountIDResolver) (platformdataprivacy.Collector, error) {
+	collector, err := billingprivacy.NewCollector(store, reader, accountResolver(resolveAccounts))
 	if err != nil {
 		return nil, platformerrors.Wrap(err, "building the billing data privacy collector")
 	}
@@ -55,7 +60,8 @@ func NewCollector(store billing.Store, resolveAccounts dataprivacy.AccountIDReso
 // Every account is in the one scope this application keeps its billing under, so
 // the resolver's only real work is naming the accounts; see payments.Scope.
 func accountResolver(resolveAccounts dataprivacy.AccountIDResolver) billingprivacy.AccountResolver {
-	return func(ctx context.Context, subject platformdataprivacy.Subject) ([]billingprivacy.Account, error) {
+	// The request scope is not consulted; see the sibling issuereports resolver.
+	return func(ctx context.Context, _ tenancy.Scope, subject platformdataprivacy.Subject) ([]billingprivacy.Account, error) {
 		accountIDs, err := resolveAccounts(ctx, subject.ID)
 		if err != nil {
 			return nil, err

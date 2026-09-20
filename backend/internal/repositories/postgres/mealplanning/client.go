@@ -10,10 +10,10 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/recording"
 
-	"github.com/primandproper/platform-go/v13/database"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
-	"github.com/primandproper/platform-go/v13/uploads/registry"
+	"github.com/primandproper/platform-go/v14/mediaregistry"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
 )
 
 const (
@@ -34,7 +34,7 @@ type repository struct {
 	// uploads answers what a bridge row's uploaded_media_id names. The media
 	// itself lives in platform-go's upload registry, whose table this repository's
 	// statements cannot join — see GetUploadedMediaWithIDs.
-	uploads registry.Store
+	uploads mediaregistry.Store
 
 	readDB  database.SQLQueryExecutor
 	writeDB database.SQLQueryExecutor
@@ -52,7 +52,7 @@ func ProvideMealPlanningRepository(
 	identityRepo identity.Repository,
 	client database.Client,
 	eventEmitter *events.Emitter,
-	uploads registry.Store,
+	uploads mediaregistry.Store,
 ) mealplanning.Repository {
 	tracer := tracing.NewNamedTracer(tracerProvider, o11yName)
 

@@ -6,7 +6,7 @@ import (
 	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/converters"
 	waitlistssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/waitlists"
 
-	waitlists "github.com/primandproper/platform-go/v13/waitlists"
+	waitlists "github.com/primandproper/platform-go/v14/waitlists"
 )
 
 // ConvertWaitlistToGRPCWaitlist converts a stored list to proto.

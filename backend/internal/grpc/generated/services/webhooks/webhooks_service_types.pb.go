@@ -13,7 +13,7 @@ import (
 
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
 
-	filteringpb "github.com/primandproper/platform-go/v13/filtering/filteringpb"
+	filteringpb "github.com/primandproper/primitives-go/v2/filtering/filteringpb"
 
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"

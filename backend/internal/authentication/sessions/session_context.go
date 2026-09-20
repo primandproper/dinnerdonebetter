@@ -6,8 +6,8 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 
-	platformkeys "github.com/primandproper/platform-go/v13/observability/keys"
-	"github.com/primandproper/platform-go/v13/observability/logging"
+	platformkeys "github.com/primandproper/primitives-go/v2/observability/keys"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
 )
 
 func init() {

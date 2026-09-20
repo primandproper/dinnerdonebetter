@@ -7,8 +7,8 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	ddboauth "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
 
-	"github.com/primandproper/platform-go/v13/authentication/oauth2server"
-	oauth2servercfg "github.com/primandproper/platform-go/v13/authentication/oauth2server/config"
+	oauth2servercfg "github.com/primandproper/platform-go/v14/authentication/oauth2serverstore/config"
+	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

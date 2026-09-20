@@ -6,11 +6,12 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 
-	"github.com/primandproper/platform-go/v13/database"
-	platformdataprivacy "github.com/primandproper/platform-go/v13/dataprivacy"
-	"github.com/primandproper/platform-go/v13/observability"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
+	platformdataprivacy "github.com/primandproper/platform-go/v14/dataprivacy"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/observability"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
 const eraserO11yName = "identity_privacy_eraser"
@@ -65,9 +66,13 @@ func NewEraser(repo identity.Repository, logger logging.Logger, tracerProvider t
 // affected table before the delete would cost a dozen queries to produce a
 // figure nobody can act on. One is the honest answer to "how many subjects were
 // erased".
+// The request scope is not consulted: a user row belongs to the user, and the
+// cascade below reaches every account they owned regardless of which one the
+// request named.
 func (e *Eraser) Erase(
 	ctx context.Context,
 	q database.Tx,
+	_ tenancy.Scope,
 	subject platformdataprivacy.Subject,
 ) (platformdataprivacy.ErasureOutcome, error) {
 	ctx, span := e.tracer.StartSpan(ctx)

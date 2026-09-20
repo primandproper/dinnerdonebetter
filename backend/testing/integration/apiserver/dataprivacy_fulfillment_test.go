@@ -12,7 +12,7 @@ import (
 	dataprivacygrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/dataprivacy"
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
 
-	platformdataprivacy "github.com/primandproper/platform-go/v13/dataprivacy"
+	platformdataprivacy "github.com/primandproper/platform-go/v14/dataprivacy"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

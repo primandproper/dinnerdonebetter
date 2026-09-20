@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/primandproper/platform-go/v13/database/dialect"
-	"github.com/primandproper/platform-go/v13/database/querygen"
+	"github.com/primandproper/primitives-go/v2/database/dialect"
+	"github.com/primandproper/primitives-go/v2/database/querygen"
 )
 
 // pgGen is the Postgres query generator. platform-go moved the fragment and

@@ -5,7 +5,7 @@ import (
 	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/converters"
 	issuereportssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/issue_reports"
 
-	issuereports "github.com/primandproper/platform-go/v13/issuereports"
+	issuereports "github.com/primandproper/platform-go/v14/issuereports"
 )
 
 // ConvertIssueReportToGRPCIssueReport converts a stored report to proto.

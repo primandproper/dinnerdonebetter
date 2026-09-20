@@ -5,7 +5,7 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 
-	platformauthz "github.com/primandproper/platform-go/v13/authorization"
+	platformauthz "github.com/primandproper/primitives-go/v2/authorization"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

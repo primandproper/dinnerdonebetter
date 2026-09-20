@@ -14,13 +14,13 @@ import (
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
-	"github.com/primandproper/platform-go/v13/authentication/tokens"
-	"github.com/primandproper/platform-go/v13/authentication/totp"
-	"github.com/primandproper/platform-go/v13/messagequeue"
-	"github.com/primandproper/platform-go/v13/observability"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
-	"github.com/primandproper/platform-go/v13/sessions"
+	"github.com/primandproper/platform-go/v14/sessions"
+	"github.com/primandproper/primitives-go/v2/authentication/tokens"
+	"github.com/primandproper/primitives-go/v2/authentication/totp"
+	"github.com/primandproper/primitives-go/v2/messagequeue"
+	"github.com/primandproper/primitives-go/v2/observability"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
 )
 
 const (

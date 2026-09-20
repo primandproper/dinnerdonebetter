@@ -3,7 +3,7 @@ package converters
 import (
 	dataprivacysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/dataprivacy"
 
-	platformdataprivacy "github.com/primandproper/platform-go/v13/dataprivacy"
+	platformdataprivacy "github.com/primandproper/platform-go/v14/dataprivacy"
 
 	"google.golang.org/protobuf/types/known/timestamppb"
 )

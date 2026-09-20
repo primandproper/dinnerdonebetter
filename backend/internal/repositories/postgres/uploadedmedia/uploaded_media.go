@@ -43,80 +43,84 @@ import (
 	ddbuploadedmedia "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	uploadedmediakeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia/keys"
 
-	"github.com/primandproper/platform-go/v13/database"
-	"github.com/primandproper/platform-go/v13/identifiers"
-	"github.com/primandproper/platform-go/v13/observability"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
-	"github.com/primandproper/platform-go/v13/tenancy"
-	"github.com/primandproper/platform-go/v13/uploads/registry"
+	"github.com/primandproper/platform-go/v14/mediaregistry"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/identifiers"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
 // resourceTypeUploadedMedia is what an audit entry about an uploaded object names.
 const resourceTypeUploadedMedia = "uploaded_media"
 
-var _ registry.Store = (*repository)(nil)
+var _ mediaregistry.Store = (*repository)(nil)
 
 // RecordObject registers the object, then records it.
-func (r *repository) RecordObject(ctx context.Context, object *registry.Object) error {
+func (r *repository) RecordObject(ctx context.Context, tx database.Tx, scope tenancy.Scope, input mediaregistry.ObjectInput) (*mediaregistry.Object, error) {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
-	if err := r.Store.RecordObject(ctx, object); err != nil {
-		return err
+	object, err := r.Store.RecordObject(ctx, tx, scope, input)
+	if err != nil {
+		return nil, err
 	}
 
 	tracing.AttachToSpan(span, uploadedmediakeys.UploadedMediaIDKey, object.ID)
 
-	return r.record(ctx, object.ID, object.OwnerID, audit.AuditLogEventTypeCreated, ddbuploadedmedia.UploadedMediaCreatedServiceEventType)
+	if err = r.record(ctx, tx, object.ID, object.OwnerID, audit.AuditLogEventTypeCreated, ddbuploadedmedia.UploadedMediaCreatedServiceEventType); err != nil {
+		return nil, err
+	}
+
+	return object, nil
 }
 
 // ArchiveObject hides the row, then records it.
 //
-// The owner is read before the archive rather than after, because an audit entry
-// names who the row belonged to and the archived row is the one this method is
-// about. A read that fails is the archive's failure too: platform answers an
-// absent, archived, or other-scope object as ErrObjectNotFound either way, so
-// returning it from here is the same answer one call earlier.
-func (r *repository) ArchiveObject(ctx context.Context, scope tenancy.Scope, objectID string) error {
+// The owner no longer needs a read of its own: v14's ArchiveObject returns the
+// row it archived, so the entry names who it belonged to without the extra round
+// trip, and without the window between the read and the archive.
+func (r *repository) ArchiveObject(ctx context.Context, tx database.Tx, scope tenancy.Scope, objectID string) (*mediaregistry.Object, error) {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
 	tracing.AttachToSpan(span, uploadedmediakeys.UploadedMediaIDKey, objectID)
 
-	object, err := r.GetObject(ctx, scope, objectID)
+	archived, err := r.Store.ArchiveObject(ctx, tx, scope, objectID)
 	if err != nil {
-		return observability.PrepareError(err, span, "fetching uploaded media for archive")
+		return nil, err
 	}
 
-	if err = r.Store.ArchiveObject(ctx, scope, objectID); err != nil {
-		return err
+	if err = r.record(ctx, tx, objectID, archived.OwnerID, audit.AuditLogEventTypeArchived, ddbuploadedmedia.UploadedMediaArchivedServiceEventType); err != nil {
+		return nil, err
 	}
 
-	return r.record(ctx, objectID, object.OwnerID, audit.AuditLogEventTypeArchived, ddbuploadedmedia.UploadedMediaArchivedServiceEventType)
+	return archived, nil
 }
 
-// record writes the audit entry and enqueues the data change event, in one
-// transaction of their own.
+// record writes the audit entry and enqueues the data change event, inside the
+// caller's transaction.
+//
+// It used to open one of its own, because the write it describes had already
+// committed inside the platform store. As of platform-go v14 that store takes
+// the caller's executor, so the row, the entry and the event commit together.
 //
 // The two travel together because they answer the same question from opposite
 // sides — the audit log for whoever asks later who did this, the outbox for
 // whoever needs to know now — and a write that carried one without the other
 // would be a write nobody could tell was incomplete.
-func (r *repository) record(ctx context.Context, objectID, ownerID, auditEventType, changeEventType string) error {
+func (r *repository) record(ctx context.Context, tx database.Tx, objectID, ownerID, auditEventType, changeEventType string) error {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
 	logger := r.logger.WithSpan(span).WithValue(uploadedmediakeys.UploadedMediaIDKey, objectID)
 
-	return r.client.WithTransaction(ctx, func(tx database.Tx) error {
-		return r.recorder.RecordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
-			ID:            identifiers.New(),
-			ResourceType:  resourceTypeUploadedMedia,
-			RelevantID:    objectID,
-			EventType:     auditEventType,
-			BelongsToUser: ownerID,
-		}, changeEventType, "", map[string]any{
-			uploadedmediakeys.UploadedMediaIDKey: objectID,
-		})
+	return r.recorder.RecordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
+		ID:            identifiers.New(),
+		ResourceType:  resourceTypeUploadedMedia,
+		RelevantID:    objectID,
+		EventType:     auditEventType,
+		BelongsToUser: ownerID,
+	}, changeEventType, "", map[string]any{
+		uploadedmediakeys.UploadedMediaIDKey: objectID,
 	})
 }

@@ -3,9 +3,9 @@ package push
 import (
 	notificationsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/manager"
 
-	platformnotifications "github.com/primandproper/platform-go/v13/notifications/mobile"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/metrics"
+	platformnotifications "github.com/primandproper/primitives-go/v2/notifications/mobile"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/metrics"
 
 	"github.com/samber/do/v2"
 )

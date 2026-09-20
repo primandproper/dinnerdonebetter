@@ -5,10 +5,10 @@ package fakes
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings"
 
-	"github.com/primandproper/platform-go/v13/fake"
-	"github.com/primandproper/platform-go/v13/filtering"
-	"github.com/primandproper/platform-go/v13/pointer"
-	platformsettings "github.com/primandproper/platform-go/v13/settings"
+	platformsettings "github.com/primandproper/platform-go/v14/settings"
+	"github.com/primandproper/primitives-go/v2/fake"
+	"github.com/primandproper/primitives-go/v2/filtering"
+	"github.com/primandproper/primitives-go/v2/pointer"
 )
 
 // BuildFakeSettingDefinition builds a faked Definition: a text setting that

@@ -11,11 +11,12 @@ import (
 	issuereportssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/issue_reports"
 	commentsconverters "github.com/primandproper/dinnerdonebetter/backend/internal/services/comments/grpc/converters"
 
-	comments "github.com/primandproper/platform-go/v13/comments"
-	platformerrors "github.com/primandproper/platform-go/v13/errors"
-	errorsgrpc "github.com/primandproper/platform-go/v13/errors/grpc"
-	"github.com/primandproper/platform-go/v13/observability"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
+	comments "github.com/primandproper/platform-go/v14/comments"
+	"github.com/primandproper/primitives-go/v2/database"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	errorsgrpc "github.com/primandproper/primitives-go/v2/errors/grpc"
+	"github.com/primandproper/primitives-go/v2/observability"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
 
 	"google.golang.org/grpc/codes"
 )
@@ -45,7 +46,7 @@ func (s *serviceImpl) AddCommentToIssueReport(ctx context.Context, request *issu
 
 	scope := ddbissuereports.Scope(sessionContextData.GetActiveAccountID())
 
-	if _, err = s.issueReports.GetReport(ctx, scope, request.GetIssueReportId()); err != nil {
+	if _, err = s.issueReports.GetReport(ctx, s.db.Reader(), scope, request.GetIssueReportId()); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "fetching issue report")
 	}
 
@@ -63,7 +64,9 @@ func (s *serviceImpl) AddCommentToIssueReport(ctx context.Context, request *issu
 
 	comment.Scope = ddbcomments.Scope()
 
-	if err = s.comments.CreateComment(ctx, comment); err != nil {
+	if _, err = inTransaction(ctx, s.db, func(tx database.Tx) (*comments.Comment, error) {
+		return s.comments.CreateComment(ctx, tx, comment.Scope, comment)
+	}); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "creating comment")
 	}
 

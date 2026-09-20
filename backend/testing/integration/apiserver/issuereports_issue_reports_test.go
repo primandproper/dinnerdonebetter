@@ -9,7 +9,7 @@ import (
 	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/services/issuereports/grpc/converters"
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
 
-	issuereports "github.com/primandproper/platform-go/v13/issuereports"
+	issuereports "github.com/primandproper/platform-go/v14/issuereports"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

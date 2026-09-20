@@ -5,7 +5,7 @@ package converters
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
 
-	"github.com/primandproper/platform-go/v13/identifiers"
+	"github.com/primandproper/primitives-go/v2/identifiers"
 )
 
 // ConvertUserDeviceTokenToUserDeviceTokenDatabaseCreationInput builds an UserDeviceTokenDatabaseCreationInput from an UserDeviceToken.

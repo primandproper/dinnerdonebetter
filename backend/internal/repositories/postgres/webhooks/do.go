@@ -8,12 +8,12 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/catalog"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 
-	"github.com/primandproper/platform-go/v13/database"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/metrics"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
-	"github.com/primandproper/platform-go/v13/webhooks"
-	webhookscfg "github.com/primandproper/platform-go/v13/webhooks/config"
+	"github.com/primandproper/platform-go/v14/webhooks"
+	webhookscfg "github.com/primandproper/platform-go/v14/webhooks/config"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/metrics"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
 
 	"github.com/samber/do/v2"
 )
@@ -42,6 +42,7 @@ func RegisterWebhooksRepository(i do.Injector) {
 		return webhookscfg.NewDispatcher(
 			do.MustInvoke[context.Context](i),
 			webhooksConfig(i),
+			do.MustInvoke[database.Client](i),
 			do.MustInvoke[webhooks.Store](i),
 			// The catalog is generated Go rather than configuration: what an event means is
 			// an application opinion, and there is no useful way to express one in the

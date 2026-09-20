@@ -4,11 +4,11 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 	identitymanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/manager"
 
-	"github.com/primandproper/platform-go/v13/authentication/oauth2server"
-	oauth2servercfg "github.com/primandproper/platform-go/v13/authentication/oauth2server/config"
-	"github.com/primandproper/platform-go/v13/authentication/tokens"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
+	oauth2servercfg "github.com/primandproper/platform-go/v14/authentication/oauth2serverstore/config"
+	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
+	"github.com/primandproper/primitives-go/v2/authentication/tokens"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
 
 	"github.com/samber/do/v2"
 )

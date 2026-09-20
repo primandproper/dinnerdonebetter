@@ -3,9 +3,10 @@ package grpc
 import (
 	settingssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/settings"
 
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
-	platformsettings "github.com/primandproper/platform-go/v13/settings"
+	platformsettings "github.com/primandproper/platform-go/v14/settings"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
 
 	"github.com/samber/do/v2"
 )
@@ -20,6 +21,7 @@ func RegisterSettingsService(i do.Injector) {
 		return NewService(
 			do.MustInvoke[logging.Logger](i),
 			do.MustInvoke[tracing.Provider](i),
+			do.MustInvoke[database.Client](i),
 			do.MustInvoke[platformsettings.Store](i),
 		), nil
 	})

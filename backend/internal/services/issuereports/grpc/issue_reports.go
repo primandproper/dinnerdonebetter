@@ -11,14 +11,15 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/issuereports/grpc/converters"
 
-	platformerrors "github.com/primandproper/platform-go/v13/errors"
-	errorsgrpc "github.com/primandproper/platform-go/v13/errors/grpc"
-	"github.com/primandproper/platform-go/v13/filtering"
-	"github.com/primandproper/platform-go/v13/filtering/filteringpb"
-	filteringgrpc "github.com/primandproper/platform-go/v13/filtering/grpc"
-	issuereports "github.com/primandproper/platform-go/v13/issuereports"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
-	"github.com/primandproper/platform-go/v13/tenancy"
+	issuereports "github.com/primandproper/platform-go/v14/issuereports"
+	"github.com/primandproper/primitives-go/v2/database"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	errorsgrpc "github.com/primandproper/primitives-go/v2/errors/grpc"
+	"github.com/primandproper/primitives-go/v2/filtering"
+	"github.com/primandproper/primitives-go/v2/filtering/filteringpb"
+	filteringgrpc "github.com/primandproper/primitives-go/v2/filtering/grpc"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"google.golang.org/grpc/codes"
 )
@@ -92,7 +93,9 @@ func (s *serviceImpl) CreateIssueReport(ctx context.Context, request *issuerepor
 	// report missing any of them — see internal/services/issuereports/errors for
 	// how each refusal reaches the client. There is no second validation here,
 	// because a second one is one that can disagree.
-	if err = s.issueReports.CreateReport(ctx, report); err != nil {
+	if _, err = inTransaction(ctx, s.db, func(tx database.Tx) (*issuereports.Report, error) {
+		return s.issueReports.CreateReport(ctx, tx, ddbissuereports.Scope(accountID), report)
+	}); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "creating issue report")
 	}
 
@@ -122,7 +125,7 @@ func (s *serviceImpl) GetIssueReport(ctx context.Context, request *issuereportss
 
 	scope := ddbissuereports.Scope(sessionContextData.GetActiveAccountID())
 
-	report, err := s.issueReports.GetReport(ctx, scope, request.GetIssueReportId())
+	report, err := s.issueReports.GetReport(ctx, s.db.Reader(), scope, request.GetIssueReportId())
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "fetching issue report")
 	}
@@ -142,7 +145,7 @@ func (s *serviceImpl) GetIssueReports(ctx context.Context, request *issuereports
 		return nil, err
 	}
 
-	page, err := s.issueReports.ListReports(ctx, scope, filter)
+	page, err := s.issueReports.ListReports(ctx, s.db.Reader(), scope, filter)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger.WithSpan(span), span, codes.Internal, "fetching issue reports")
 	}
@@ -176,7 +179,7 @@ func (s *serviceImpl) GetIssueReportsByStatus(ctx context.Context, request *issu
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(platformerrors.Wrapf(issuereports.ErrUnknownStatus, "status %q", request.GetStatus()), logger, span, codes.InvalidArgument, "invalid issue report status")
 	}
 
-	page, err := s.issueReports.ListReportsByStatus(ctx, scope, status, filter)
+	page, err := s.issueReports.ListReportsByStatus(ctx, s.db.Reader(), scope, status, filter)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "fetching issue reports by status")
 	}
@@ -199,7 +202,7 @@ func (s *serviceImpl) GetIssueReportsBySubjectType(ctx context.Context, request 
 		return nil, err
 	}
 
-	page, err := s.issueReports.ListReportsBySubjectType(ctx, scope, request.GetSubjectType(), filter)
+	page, err := s.issueReports.ListReportsBySubjectType(ctx, s.db.Reader(), scope, request.GetSubjectType(), filter)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger.WithSpan(span), span, codes.Internal, "fetching issue reports by subject type")
 	}
@@ -223,7 +226,7 @@ func (s *serviceImpl) GetIssueReportsForSubject(ctx context.Context, request *is
 		return nil, err
 	}
 
-	page, err := s.issueReports.ListReportsForSubject(ctx, scope, request.GetSubjectType(), request.GetSubjectId(), filter)
+	page, err := s.issueReports.ListReportsForSubject(ctx, s.db.Reader(), scope, request.GetSubjectType(), request.GetSubjectId(), filter)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger.WithSpan(span), span, codes.Internal, "fetching issue reports for subject")
 	}
@@ -253,14 +256,16 @@ func (s *serviceImpl) UpdateIssueReport(ctx context.Context, request *issuerepor
 
 	scope := ddbissuereports.Scope(sessionContextData.GetActiveAccountID())
 
-	report, err := s.issueReports.GetReport(ctx, scope, request.GetIssueReportId())
+	report, err := s.issueReports.GetReport(ctx, s.db.Reader(), scope, request.GetIssueReportId())
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "fetching issue report")
 	}
 
 	converters.ApplyGRPCIssueReportUpdateRequestInput(report, request.GetInput())
 
-	if err = s.issueReports.UpdateReport(ctx, report); err != nil {
+	if _, err = inTransaction(ctx, s.db, func(tx database.Tx) (*issuereports.Report, error) {
+		return s.issueReports.UpdateReport(ctx, tx, scope, report)
+	}); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "updating issue report")
 	}
 
@@ -301,7 +306,9 @@ func (s *serviceImpl) TransitionIssueReport(ctx context.Context, request *issuer
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(platformerrors.Wrapf(issuereports.ErrUnknownStatus, "to status %q", request.GetToStatus()), logger, span, codes.InvalidArgument, "invalid issue report status")
 	}
 
-	report, err := s.issueReports.TransitionReport(ctx, scope, request.GetIssueReportId(), from, to, request.GetResolution())
+	report, err := inTransaction(ctx, s.db, func(tx database.Tx) (*issuereports.Report, error) {
+		return s.issueReports.TransitionReport(ctx, tx, scope, request.GetIssueReportId(), from, to, request.GetResolution())
+	})
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "transitioning issue report")
 	}
@@ -327,7 +334,9 @@ func (s *serviceImpl) ArchiveIssueReport(ctx context.Context, request *issuerepo
 
 	// No read first: the store answers an absent, archived, or other-account
 	// report as ErrReportNotFound, which is the same refusal one call earlier.
-	if err = s.issueReports.ArchiveReport(ctx, scope, request.GetIssueReportId()); err != nil {
+	if _, err = inTransaction(ctx, s.db, func(tx database.Tx) (*issuereports.Report, error) {
+		return s.issueReports.ArchiveReport(ctx, tx, scope, request.GetIssueReportId())
+	}); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "archiving issue report")
 	}
 

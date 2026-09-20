@@ -15,14 +15,14 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity/generated"
 
-	"github.com/primandproper/platform-go/v13/database"
-	platformerrors "github.com/primandproper/platform-go/v13/errors"
-	"github.com/primandproper/platform-go/v13/filtering"
-	"github.com/primandproper/platform-go/v13/identifiers"
-	"github.com/primandproper/platform-go/v13/observability"
-	platformkeys "github.com/primandproper/platform-go/v13/observability/keys"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
-	"github.com/primandproper/platform-go/v13/uploads/registry"
+	"github.com/primandproper/platform-go/v14/mediaregistry"
+	"github.com/primandproper/primitives-go/v2/database"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/filtering"
+	"github.com/primandproper/primitives-go/v2/identifiers"
+	"github.com/primandproper/primitives-go/v2/observability"
+	platformkeys "github.com/primandproper/primitives-go/v2/observability/keys"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
 
 	"github.com/jackc/pgx/v5/pgconn"
 )
@@ -65,7 +65,7 @@ var (
 // cannot sign in because a picture could not be fetched is a worse answer than a
 // user with no picture. An id naming no live row — archived, or gone — is not an
 // error at all: it is the same nil the LEFT JOIN produced.
-func (r *repository) avatarFor(ctx context.Context, avatarID sql.NullString) *registry.Object {
+func (r *repository) avatarFor(ctx context.Context, avatarID sql.NullString) *mediaregistry.Object {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -73,9 +73,9 @@ func (r *repository) avatarFor(ctx context.Context, avatarID sql.NullString) *re
 		return nil
 	}
 
-	object, err := r.uploads.GetObject(ctx, uploadedmedia.Scope(), avatarID.String)
+	object, err := r.uploads.GetObject(ctx, r.Reader(), uploadedmedia.Scope(), avatarID.String)
 	if err != nil {
-		if !errors.Is(err, registry.ErrObjectNotFound) {
+		if !errors.Is(err, mediaregistry.ErrObjectNotFound) {
 			observability.AcknowledgeError(err, r.logger.WithSpan(span), span, "fetching user avatar")
 		}
 

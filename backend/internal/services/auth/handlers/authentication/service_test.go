@@ -8,11 +8,11 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
 	oauthmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth/mock"
 
-	"github.com/primandproper/platform-go/v13/authentication/oauth2server"
-	oauth2servercfg "github.com/primandproper/platform-go/v13/authentication/oauth2server/config"
-	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
-	metricsnoop "github.com/primandproper/platform-go/v13/observability/metrics/noop"
-	tracingnoop "github.com/primandproper/platform-go/v13/observability/tracing/noop"
+	oauth2servercfg "github.com/primandproper/platform-go/v14/authentication/oauth2serverstore/config"
+	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
+	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
+	metricsnoop "github.com/primandproper/primitives-go/v2/observability/metrics/noop"
+	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

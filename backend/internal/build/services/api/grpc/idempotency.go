@@ -7,14 +7,14 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	paymentssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/payments"
 
-	"github.com/primandproper/platform-go/v13/database"
-	platformerrors "github.com/primandproper/platform-go/v13/errors"
-	"github.com/primandproper/platform-go/v13/idempotency"
-	idempotencycfg "github.com/primandproper/platform-go/v13/idempotency/config"
-	idempotencygrpc "github.com/primandproper/platform-go/v13/idempotency/grpc"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/metrics"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
+	"github.com/primandproper/primitives-go/v2/database"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/idempotency"
+	idempotencycfg "github.com/primandproper/primitives-go/v2/idempotency/config"
+	idempotencygrpc "github.com/primandproper/primitives-go/v2/idempotency/grpc"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/metrics"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
 
 	"google.golang.org/grpc"
 )

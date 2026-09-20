@@ -6,19 +6,19 @@ import (
 	ddbaudit "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	ddbdataprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
 
-	"github.com/primandproper/platform-go/v13/compression"
-	"github.com/primandproper/platform-go/v13/cryptography/encryption"
-	encryptioncfg "github.com/primandproper/platform-go/v13/cryptography/encryption/config"
-	"github.com/primandproper/platform-go/v13/database"
-	platformdataprivacy "github.com/primandproper/platform-go/v13/dataprivacy"
-	platformdataprivacycfg "github.com/primandproper/platform-go/v13/dataprivacy/config"
-	platformerrors "github.com/primandproper/platform-go/v13/errors"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/metrics"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
-	"github.com/primandproper/platform-go/v13/operations"
-	"github.com/primandproper/platform-go/v13/uploads"
-	"github.com/primandproper/platform-go/v13/uploads/objectstorage"
+	platformdataprivacy "github.com/primandproper/platform-go/v14/dataprivacy"
+	platformdataprivacycfg "github.com/primandproper/platform-go/v14/dataprivacy/config"
+	"github.com/primandproper/platform-go/v14/operations"
+	"github.com/primandproper/primitives-go/v2/compression"
+	"github.com/primandproper/primitives-go/v2/cryptography/encryption"
+	encryptioncfg "github.com/primandproper/primitives-go/v2/cryptography/encryption/config"
+	"github.com/primandproper/primitives-go/v2/database"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/metrics"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
+	"github.com/primandproper/primitives-go/v2/uploads"
+	"github.com/primandproper/primitives-go/v2/uploads/objectstorage"
 
 	"github.com/samber/do/v2"
 )
@@ -123,13 +123,14 @@ func RegisterRequestService(i do.Injector) {
 	do.Provide(i, func(i do.Injector) (platformdataprivacy.Service, error) {
 		client := do.MustInvoke[database.Client](i)
 
-		// EnsurePackaging is what keeps the reader's compressor and cipher the same as
-		// the writer's. Getting them apart is not a startup failure — it is an artifact
-		// that decodes to noise, discovered by a subject rather than by us.
-		_, serviceOpts := platformdataprivacycfg.EnsurePackaging(
-			do.MustInvoke[ArtifactCompressor](i).Compressor,
-			do.MustInvoke[ArtifactEncryptorDecryptor](i).EncryptorDecryptor,
-		)
+		// WithCompressor and WithEncryptor are what keep the reader's codecs the same
+		// as the writer's: NewFulfiller writes with them and NewService reads with
+		// them, from this one option set. Getting them apart is not a startup failure
+		// — it is an artifact that decodes to noise, discovered by a subject rather
+		// than by us. v14 replaced the EnsurePackaging helper that used to return the
+		// paired option slices, which is a strictly better shape: there is no longer a
+		// second slice a caller could forget to pass on.
+		serviceOpts := []platformdataprivacy.ServiceOption{}
 
 		// The upload manager is the read path, not a delivery path. Artifacts are
 		// encrypted, so Download is refused outright by platform-go and Open — which
@@ -142,6 +143,7 @@ func RegisterRequestService(i do.Injector) {
 		return platformdataprivacycfg.NewService(
 			do.MustInvoke[context.Context](i),
 			PlatformConfig(do.MustInvoke[*Config](i), client),
+			client,
 			do.MustInvoke[platformdataprivacy.Store](i),
 			// v10 fulfills a privacy request as an operation, so submitting one is starting
 			// one. The kinds it starts have to be registered in this process's registry or
@@ -150,6 +152,8 @@ func RegisterRequestService(i do.Injector) {
 			platformdataprivacycfg.WithLogger(do.MustInvoke[logging.Logger](i)),
 			platformdataprivacycfg.WithTracerProvider(do.MustInvoke[tracing.Provider](i)),
 			platformdataprivacycfg.WithMetricsProvider(do.MustInvoke[metrics.Provider](i)),
+			platformdataprivacycfg.WithCompressor(do.MustInvoke[ArtifactCompressor](i).Compressor),
+			platformdataprivacycfg.WithEncryptor(do.MustInvoke[ArtifactEncryptorDecryptor](i).EncryptorDecryptor),
 			platformdataprivacycfg.WithServiceOptions(serviceOpts...),
 		)
 	})

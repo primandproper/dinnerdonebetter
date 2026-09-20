@@ -9,8 +9,8 @@ import (
 	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/grpc/converters"
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
 
-	"github.com/primandproper/platform-go/v13/filtering/filteringpb"
-	"github.com/primandproper/platform-go/v13/uploads/registry"
+	"github.com/primandproper/platform-go/v14/mediaregistry"
+	"github.com/primandproper/primitives-go/v2/filtering/filteringpb"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -18,7 +18,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func checkUploadedMediaEquality(t *testing.T, expected, actual *registry.Object) {
+func checkUploadedMediaEquality(t *testing.T, expected, actual *mediaregistry.Object) {
 	t.Helper()
 
 	assert.NotEmpty(t, actual.ID, "expected UploadedMedia to have ID")
@@ -32,7 +32,7 @@ func checkUploadedMediaEquality(t *testing.T, expected, actual *registry.Object)
 // creationInputFor renders a fake object as the registration request's input. The
 // owner and the scope are deliberately absent: both come from the session, and a
 // caller who could name either could register an object as somebody else's.
-func creationInputFor(object *registry.Object) *uploadedmediasvc.UploadedMediaCreationRequestInput {
+func creationInputFor(object *mediaregistry.Object) *uploadedmediasvc.UploadedMediaCreationRequestInput {
 	return &uploadedmediasvc.UploadedMediaCreationRequestInput{
 		ObjectKey:     object.Key,
 		ContentType:   object.ContentType,
@@ -42,7 +42,7 @@ func creationInputFor(object *registry.Object) *uploadedmediasvc.UploadedMediaCr
 	}
 }
 
-func createUploadedMediaForTest(t *testing.T, testClient client.Client) *registry.Object {
+func createUploadedMediaForTest(t *testing.T, testClient client.Client) *mediaregistry.Object {
 	t.Helper()
 	ctx := t.Context()
 
@@ -180,7 +180,7 @@ func TestUploadedMedia_ReadingWithIDs(T *testing.T) {
 
 		_, testClient := createUserAndClientForTest(t)
 
-		createdUploadedMedia := []*registry.Object{}
+		createdUploadedMedia := []*mediaregistry.Object{}
 		ids := []string{}
 		for range exampleQuantity {
 			created := createUploadedMediaForTest(t, testClient)
@@ -251,7 +251,7 @@ func TestUploadedMedia_ListingForUser(T *testing.T) {
 
 		user, testClient := createUserAndClientForTest(t)
 
-		createdUploadedMedia := []*registry.Object{}
+		createdUploadedMedia := []*mediaregistry.Object{}
 		for range exampleQuantity {
 			createdUploadedMedia = append(createdUploadedMedia, createUploadedMediaForTest(t, testClient))
 		}

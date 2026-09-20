@@ -19,13 +19,13 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/localdev"
 	identitygenerated "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity/generated"
 
-	"github.com/primandproper/platform-go/v13/authentication/argon2"
-	"github.com/primandproper/platform-go/v13/database"
-	"github.com/primandproper/platform-go/v13/identifiers"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
-	"github.com/primandproper/platform-go/v13/pointer"
-	platformsettings "github.com/primandproper/platform-go/v13/settings"
+	platformsettings "github.com/primandproper/platform-go/v14/settings"
+	"github.com/primandproper/primitives-go/v2/authentication/argon2"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/identifiers"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
+	"github.com/primandproper/primitives-go/v2/pointer"
 )
 
 const (
@@ -230,8 +230,8 @@ func main() {
 			return err
 		}),
 		// Create the example settings catalog
-		localdev.WithSettingsRepository(func(ctx context.Context, store platformsettings.Store, logger logging.Logger, tracerProvider tracing.Provider) error {
-			return createExampleSettingDefinitions(ctx, store, logger)
+		localdev.WithSettingsRepository(func(ctx context.Context, store platformsettings.Store, logger logging.Logger, tracerProvider tracing.Provider, dbClient database.Client) error {
+			return createExampleSettingDefinitions(ctx, store, logger, dbClient)
 		}),
 	)
 	if err != nil {
@@ -256,7 +256,7 @@ func main() {
 // Every one of them is a text setting that enumerates its values, which is the
 // shape a preferences page can render: a select box needs to know what to offer,
 // and a setting with no enumeration is a free-text field nothing validates.
-func createExampleSettingDefinitions(ctx context.Context, store platformsettings.Store, logger logging.Logger) error {
+func createExampleSettingDefinitions(ctx context.Context, store platformsettings.Store, logger logging.Logger, dbClient database.Client) error {
 	for _, definition := range []*platformsettings.Definition{
 		{
 			Name:        "user_theme_preference",
@@ -283,7 +283,11 @@ func createExampleSettingDefinitions(ctx context.Context, store platformsettings
 			AdminOnly:   false,
 		},
 	} {
-		if _, err := store.CreateDefinition(ctx, settings.Scope(), definition); err != nil {
+		if err := dbClient.WithTransaction(ctx, func(tx database.Tx) error {
+			_, createErr := store.CreateDefinition(ctx, tx, settings.Scope(), definition)
+
+			return createErr
+		}); err != nil {
 			return fmt.Errorf("failed to create the %s setting: %w", definition.Name, err)
 		}
 

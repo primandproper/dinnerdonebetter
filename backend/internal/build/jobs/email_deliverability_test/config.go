@@ -4,9 +4,9 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	emaildeliverabilitytest "github.com/primandproper/dinnerdonebetter/backend/internal/services/email/workers/email_deliverability_test"
 
-	emailcfg "github.com/primandproper/platform-go/v13/email/config"
-	httpclientcfg "github.com/primandproper/platform-go/v13/httpclient"
-	"github.com/primandproper/platform-go/v13/observability"
+	emailcfg "github.com/primandproper/primitives-go/v2/email/config"
+	httpclientcfg "github.com/primandproper/primitives-go/v2/httpclient"
+	"github.com/primandproper/primitives-go/v2/observability"
 
 	"github.com/samber/do/v2"
 )

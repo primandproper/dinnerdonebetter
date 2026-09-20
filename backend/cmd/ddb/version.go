@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/primandproper/platform-go/v13/version"
+	"github.com/primandproper/primitives-go/v2/version"
 
 	"github.com/spf13/cobra"
 )

@@ -7,8 +7,8 @@ import (
 	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/converters"
 	webhookssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/webhooks"
 
-	"github.com/primandproper/platform-go/v13/encoding"
-	"github.com/primandproper/platform-go/v13/identifiers"
+	"github.com/primandproper/primitives-go/v2/encoding"
+	"github.com/primandproper/primitives-go/v2/identifiers"
 )
 
 // ConvertStringToWebhookContentType converts a content type string to its proto enum.

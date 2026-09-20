@@ -3,7 +3,7 @@ package authentication
 import (
 	"testing"
 
-	oauth2servercfg "github.com/primandproper/platform-go/v13/authentication/oauth2server/config"
+	oauth2servercfg "github.com/primandproper/platform-go/v14/authentication/oauth2serverstore/config"
 
 	"github.com/stretchr/testify/assert"
 )

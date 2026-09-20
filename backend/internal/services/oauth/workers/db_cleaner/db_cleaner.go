@@ -7,12 +7,12 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 
-	"github.com/primandproper/platform-go/v13/authentication/oauth2server"
-	"github.com/primandproper/platform-go/v13/authentication/passwordreset"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/metrics"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
-	sessionsdatabase "github.com/primandproper/platform-go/v13/sessions/database"
+	"github.com/primandproper/platform-go/v14/authentication/passwordreset"
+	sessionsdatabase "github.com/primandproper/platform-go/v14/sessions/database"
+	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/metrics"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
@@ -91,7 +91,12 @@ func (j *Job) Do(ctx context.Context) error {
 }
 
 func (j *Job) sweepOAuth2(ctx context.Context) error {
-	deleted, err := j.oauth2Store.Sweep(ctx, j.clock())
+	// v14 dropped the caller-supplied horizon: the store sweeps against the same
+	// clock every deadline in its schema was stamped from and every read refuses
+	// against, so a sweep reclaims exactly the rows it has already stopped
+	// answering with. A third opinion from here could reap a row a request had
+	// just read.
+	deleted, err := j.oauth2Store.Sweep(ctx)
 	if err != nil {
 		j.logger.Error("sweeping expired oauth2 records", err)
 		return err

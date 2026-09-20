@@ -33,23 +33,23 @@ import (
 	webhooksrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhooks"
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
 
-	"github.com/primandproper/platform-go/v13/authentication/argon2"
-	"github.com/primandproper/platform-go/v13/authentication/oauth2server"
-	"github.com/primandproper/platform-go/v13/authentication/passwordreset"
-	"github.com/primandproper/platform-go/v13/database"
-	databasecfg "github.com/primandproper/platform-go/v13/database/config"
-	"github.com/primandproper/platform-go/v13/httpclient"
-	"github.com/primandproper/platform-go/v13/identifiers"
-	msgconfig "github.com/primandproper/platform-go/v13/messagequeue/config"
-	"github.com/primandproper/platform-go/v13/messagequeue/redis"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	metricsnoop "github.com/primandproper/platform-go/v13/observability/metrics/noop"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
-	tracingnoop "github.com/primandproper/platform-go/v13/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v13/random"
-	platformsettings "github.com/primandproper/platform-go/v13/settings"
-	"github.com/primandproper/platform-go/v13/testutils/containers/redistest"
-	webhookscfg "github.com/primandproper/platform-go/v13/webhooks/config"
+	"github.com/primandproper/platform-go/v14/authentication/passwordreset"
+	platformsettings "github.com/primandproper/platform-go/v14/settings"
+	webhookscfg "github.com/primandproper/platform-go/v14/webhooks/config"
+	"github.com/primandproper/primitives-go/v2/authentication/argon2"
+	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
+	"github.com/primandproper/primitives-go/v2/database"
+	databasecfg "github.com/primandproper/primitives-go/v2/database/config"
+	"github.com/primandproper/primitives-go/v2/httpclient"
+	"github.com/primandproper/primitives-go/v2/identifiers"
+	msgconfig "github.com/primandproper/primitives-go/v2/messagequeue/config"
+	"github.com/primandproper/primitives-go/v2/messagequeue/redis"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	metricsnoop "github.com/primandproper/primitives-go/v2/observability/metrics/noop"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
+	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
+	"github.com/primandproper/primitives-go/v2/random"
+	"github.com/primandproper/primitives-go/v2/testutils/containers/redistest"
 
 	"golang.org/x/oauth2"
 	"google.golang.org/grpc"
@@ -277,7 +277,11 @@ func WithMealPlanningRepository(fn func(ctx context.Context, repo mealplanning.R
 
 // WithSettingsRepository provides a settings store for custom operations.
 // The provided function receives a fully configured settings.Store along with logger and tracer.
-func WithSettingsRepository(fn func(ctx context.Context, store platformsettings.Store, logger logging.Logger, tracerProvider tracing.Provider) error) DatabaseInitFunc {
+//
+// It also receives the database client, because as of platform-go v14 a store
+// write takes the caller's transaction and there is nowhere else for a seed to
+// get one. WithIdentityRepository already took it for the same reason.
+func WithSettingsRepository(fn func(ctx context.Context, store platformsettings.Store, logger logging.Logger, tracerProvider tracing.Provider, dbClient database.Client) error) DatabaseInitFunc {
 	return func(ctx context.Context, dbClient database.Client, dbCfg *dbcfg.Config, logger logging.Logger, tracerProvider tracing.Provider) error {
 		auditLogRepo, err := auditlogentries.ProvideAuditLogRepository(logger, tracerProvider, nil, dbClient)
 		if err != nil {
@@ -289,7 +293,7 @@ func WithSettingsRepository(fn func(ctx context.Context, store platformsettings.
 			return err
 		}
 
-		return fn(ctx, settingsStore, logger, tracerProvider)
+		return fn(ctx, settingsStore, logger, tracerProvider, dbClient)
 	}
 }
 
@@ -312,6 +316,7 @@ func WithWebhooksRepository(fn func(ctx context.Context, repo webhooks.Repositor
 		dispatcher, err := webhookscfg.NewDispatcher(
 			ctx,
 			&webhookscfg.Config{},
+			dbClient,
 			store,
 			catalog.Catalog(),
 			webhookscfg.WithLogger(logger),

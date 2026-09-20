@@ -28,12 +28,12 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/catalog"
 
-	"github.com/primandproper/platform-go/v13/database"
-	platformerrors "github.com/primandproper/platform-go/v13/errors"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/outbox"
-	"github.com/primandproper/platform-go/v13/tenancy"
-	"github.com/primandproper/platform-go/v13/webhooks"
+	"github.com/primandproper/platform-go/v14/outbox"
+	"github.com/primandproper/platform-go/v14/webhooks"
+	"github.com/primandproper/primitives-go/v2/database"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
 // Emitter enqueues data change events into the outbox and fans them out to webhooks.
@@ -189,11 +189,16 @@ func (e *Emitter) dispatchWebhooks(ctx context.Context, q database.Tx, msg *audi
 		return platformerrors.Wrap(err, "marshaling webhook payload")
 	}
 
-	return e.dispatcher.Dispatch(ctx, q, &webhooks.Delivery{
+	// v14 takes the scope as an argument as well as on the delivery: the argument
+	// is what bounds the fan-out, and a Delivery whose own Scope disagrees is
+	// refused rather than either value quietly winning.
+	scope := tenancy.Of(msg.AccountID)
+
+	return e.dispatcher.Dispatch(ctx, q, scope, &webhooks.Delivery{
 		// The account is the delivery's tenant, and it bounds the fan-out: subscribers are
 		// resolved within it, so one account's meal_plan_created never reaches another
 		// account's endpoints.
-		Scope:     tenancy.Of(msg.AccountID),
+		Scope:     scope,
 		EventType: webhooks.EventType(msg.EventType),
 		// The ordering key is not scoped. It is compared only against other dispatches for
 		// the same endpoint, and an endpoint belongs to one account, so the account would

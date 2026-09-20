@@ -10,13 +10,15 @@ import (
 	paymentssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/payments"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/grpc/converters"
+	"github.com/primandproper/platform-go/v14/billing"
 
-	platformerrors "github.com/primandproper/platform-go/v13/errors"
-	errorsgrpc "github.com/primandproper/platform-go/v13/errors/grpc"
-	"github.com/primandproper/platform-go/v13/filtering"
-	"github.com/primandproper/platform-go/v13/filtering/filteringpb"
-	filteringgrpc "github.com/primandproper/platform-go/v13/filtering/grpc"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
+	"github.com/primandproper/primitives-go/v2/database"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	errorsgrpc "github.com/primandproper/primitives-go/v2/errors/grpc"
+	"github.com/primandproper/primitives-go/v2/filtering"
+	"github.com/primandproper/primitives-go/v2/filtering/filteringpb"
+	filteringgrpc "github.com/primandproper/primitives-go/v2/filtering/grpc"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
 
 	"google.golang.org/grpc/codes"
 )
@@ -85,7 +87,9 @@ func (s *serviceImpl) CreateProduct(ctx context.Context, request *paymentssvc.Cr
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(errInputRequired, logger, span, codes.InvalidArgument, "missing input")
 	}
 
-	created, err := s.billing.CreateProduct(ctx, ddbpayments.Scope(), converters.ConvertGRPCProductCreationRequestInputToProduct(request.GetInput()))
+	created, err := inTransaction(ctx, s.db, func(tx database.Tx) (*billing.Product, error) {
+		return s.billing.CreateProduct(ctx, tx, ddbpayments.Scope(), converters.ConvertGRPCProductCreationRequestInputToProduct(request.GetInput()))
+	})
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "creating product")
 	}
@@ -109,7 +113,7 @@ func (s *serviceImpl) GetProduct(ctx context.Context, request *paymentssvc.GetPr
 	logger := s.logger.WithSpan(span).WithValue(paymentskeys.ProductIDKey, request.GetProductId())
 	tracing.AttachToSpan(span, paymentskeys.ProductIDKey, request.GetProductId())
 
-	product, err := s.billing.GetProduct(ctx, ddbpayments.Scope(), request.GetProductId())
+	product, err := s.billing.GetProduct(ctx, s.db.Reader(), ddbpayments.Scope(), request.GetProductId())
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "fetching product")
 	}
@@ -130,7 +134,7 @@ func (s *serviceImpl) GetProducts(ctx context.Context, request *paymentssvc.GetP
 		return nil, err
 	}
 
-	page, err := s.billing.ListProducts(ctx, ddbpayments.Scope(), filter)
+	page, err := s.billing.ListProducts(ctx, s.db.Reader(), ddbpayments.Scope(), filter)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger.WithSpan(span), span, codes.Internal, "fetching products")
 	}
@@ -165,14 +169,16 @@ func (s *serviceImpl) UpdateProduct(ctx context.Context, request *paymentssvc.Up
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(errInputRequired, logger, span, codes.InvalidArgument, "missing input")
 	}
 
-	product, err := s.billing.GetProduct(ctx, ddbpayments.Scope(), request.GetProductId())
+	product, err := s.billing.GetProduct(ctx, s.db.Reader(), ddbpayments.Scope(), request.GetProductId())
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "fetching product")
 	}
 
 	converters.ApplyGRPCProductUpdateRequestInput(product, request.GetInput())
 
-	if err = s.billing.UpdateProduct(ctx, ddbpayments.Scope(), product); err != nil {
+	if _, err = inTransaction(ctx, s.db, func(tx database.Tx) (*billing.Product, error) {
+		return s.billing.UpdateProduct(ctx, tx, ddbpayments.Scope(), product)
+	}); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "updating product")
 	}
 
@@ -194,7 +200,9 @@ func (s *serviceImpl) ArchiveProduct(ctx context.Context, request *paymentssvc.A
 	logger := s.logger.WithSpan(span).WithValue(paymentskeys.ProductIDKey, request.GetProductId())
 	tracing.AttachToSpan(span, paymentskeys.ProductIDKey, request.GetProductId())
 
-	if err = s.billing.ArchiveProduct(ctx, ddbpayments.Scope(), request.GetProductId()); err != nil {
+	if _, err = inTransaction(ctx, s.db, func(tx database.Tx) (*billing.Product, error) {
+		return s.billing.ArchiveProduct(ctx, tx, ddbpayments.Scope(), request.GetProductId())
+	}); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "archiving product")
 	}
 
@@ -220,7 +228,9 @@ func (s *serviceImpl) CreateSubscription(ctx context.Context, request *paymentss
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(errInputRequired, logger, span, codes.InvalidArgument, "missing input")
 	}
 
-	created, err := s.billing.CreateSubscription(ctx, ddbpayments.Scope(), converters.ConvertGRPCSubscriptionCreationRequestInputToSubscription(request.GetInput()))
+	created, err := inTransaction(ctx, s.db, func(tx database.Tx) (*billing.Subscription, error) {
+		return s.billing.CreateSubscription(ctx, tx, ddbpayments.Scope(), converters.ConvertGRPCSubscriptionCreationRequestInputToSubscription(request.GetInput()))
+	})
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "creating subscription")
 	}
@@ -244,7 +254,7 @@ func (s *serviceImpl) GetSubscription(ctx context.Context, request *paymentssvc.
 	logger := s.logger.WithSpan(span).WithValue(paymentskeys.SubscriptionIDKey, request.GetSubscriptionId())
 	tracing.AttachToSpan(span, paymentskeys.SubscriptionIDKey, request.GetSubscriptionId())
 
-	subscription, err := s.billing.GetSubscription(ctx, ddbpayments.Scope(), request.GetSubscriptionId())
+	subscription, err := s.billing.GetSubscription(ctx, s.db.Reader(), ddbpayments.Scope(), request.GetSubscriptionId())
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "fetching subscription")
 	}
@@ -266,7 +276,7 @@ func (s *serviceImpl) GetSubscriptionsForAccount(ctx context.Context, request *p
 		return nil, err
 	}
 
-	page, err := s.billing.ListSubscriptionsForAccount(ctx, ddbpayments.Scope(), sessionContextData.GetActiveAccountID(), filter)
+	page, err := s.billing.ListSubscriptionsForAccount(ctx, s.db.Reader(), ddbpayments.Scope(), sessionContextData.GetActiveAccountID(), filter)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger.WithSpan(span), span, codes.Internal, "fetching subscriptions")
 	}
@@ -300,14 +310,16 @@ func (s *serviceImpl) UpdateSubscription(ctx context.Context, request *paymentss
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(errInputRequired, logger, span, codes.InvalidArgument, "missing input")
 	}
 
-	subscription, err := s.billing.GetSubscription(ctx, ddbpayments.Scope(), request.GetSubscriptionId())
+	subscription, err := s.billing.GetSubscription(ctx, s.db.Reader(), ddbpayments.Scope(), request.GetSubscriptionId())
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "fetching subscription")
 	}
 
 	converters.ApplyGRPCSubscriptionUpdateRequestInput(subscription, request.GetInput())
 
-	if err = s.billing.UpdateSubscription(ctx, ddbpayments.Scope(), subscription); err != nil {
+	if _, err = inTransaction(ctx, s.db, func(tx database.Tx) (*billing.Subscription, error) {
+		return s.billing.UpdateSubscription(ctx, tx, ddbpayments.Scope(), subscription)
+	}); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "updating subscription")
 	}
 
@@ -330,7 +342,9 @@ func (s *serviceImpl) ArchiveSubscription(ctx context.Context, request *payments
 	logger := s.logger.WithSpan(span).WithValue(paymentskeys.SubscriptionIDKey, request.GetSubscriptionId())
 	tracing.AttachToSpan(span, paymentskeys.SubscriptionIDKey, request.GetSubscriptionId())
 
-	if err = s.billing.ArchiveSubscription(ctx, ddbpayments.Scope(), request.GetSubscriptionId()); err != nil {
+	if _, err = inTransaction(ctx, s.db, func(tx database.Tx) (*billing.Subscription, error) {
+		return s.billing.ArchiveSubscription(ctx, tx, ddbpayments.Scope(), request.GetSubscriptionId())
+	}); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "archiving subscription")
 	}
 
@@ -349,7 +363,7 @@ func (s *serviceImpl) GetPurchasesForAccount(ctx context.Context, request *payme
 		return nil, err
 	}
 
-	page, err := s.billing.ListPurchasesForAccount(ctx, ddbpayments.Scope(), sessionContextData.GetActiveAccountID(), filter)
+	page, err := s.billing.ListPurchasesForAccount(ctx, s.db.Reader(), ddbpayments.Scope(), sessionContextData.GetActiveAccountID(), filter)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger.WithSpan(span), span, codes.Internal, "fetching purchases")
 	}
@@ -376,7 +390,7 @@ func (s *serviceImpl) GetPaymentHistoryForAccount(ctx context.Context, request *
 		return nil, err
 	}
 
-	page, err := s.billing.ListTransactionsForAccount(ctx, ddbpayments.Scope(), sessionContextData.GetActiveAccountID(), filter)
+	page, err := s.billing.ListTransactionsForAccount(ctx, s.db.Reader(), ddbpayments.Scope(), sessionContextData.GetActiveAccountID(), filter)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger.WithSpan(span), span, codes.Internal, "fetching payment history")
 	}

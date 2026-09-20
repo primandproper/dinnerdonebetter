@@ -3,7 +3,7 @@ package entitlements
 import (
 	appmetering "github.com/primandproper/dinnerdonebetter/backend/internal/metering"
 
-	platformentitlements "github.com/primandproper/platform-go/v13/entitlements"
+	platformentitlements "github.com/primandproper/platform-go/v14/entitlements"
 )
 
 const (

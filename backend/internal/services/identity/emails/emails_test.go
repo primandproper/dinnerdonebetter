@@ -7,7 +7,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
 
-	"github.com/primandproper/platform-go/v13/fake"
+	"github.com/primandproper/primitives-go/v2/fake"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

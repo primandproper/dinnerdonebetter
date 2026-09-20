@@ -6,12 +6,12 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/indexstamp"
 
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/metrics"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
-	searchsync "github.com/primandproper/platform-go/v13/search/sync"
-	syncsource "github.com/primandproper/platform-go/v13/search/sync/source"
-	textsearch "github.com/primandproper/platform-go/v13/search/text"
+	searchsync "github.com/primandproper/platform-go/v14/searchsync"
+	syncsource "github.com/primandproper/platform-go/v14/searchsync/source"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/metrics"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
+	textsearch "github.com/primandproper/primitives-go/v2/search/text"
 
 	"github.com/samber/do/v2"
 )

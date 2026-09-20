@@ -11,12 +11,12 @@ import (
 	identitysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
 	uploadedmediasvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
 
-	"github.com/primandproper/platform-go/v13/fake"
-	"github.com/primandproper/platform-go/v13/filtering"
-	"github.com/primandproper/platform-go/v13/filtering/filteringpb"
-	"github.com/primandproper/platform-go/v13/uploads"
-	mockuploads "github.com/primandproper/platform-go/v13/uploads/mock"
-	"github.com/primandproper/platform-go/v13/uploads/registry"
+	"github.com/primandproper/platform-go/v14/mediaregistry"
+	"github.com/primandproper/primitives-go/v2/fake"
+	"github.com/primandproper/primitives-go/v2/filtering"
+	"github.com/primandproper/primitives-go/v2/filtering/filteringpb"
+	"github.com/primandproper/primitives-go/v2/uploads"
+	mockuploads "github.com/primandproper/primitives-go/v2/uploads/mock"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -731,7 +731,7 @@ func TestServiceImpl_UploadUserAvatar(T *testing.T) {
 
 		uploadManager := service.uploadManager.(*mockuploads.UploadManagerMock)
 		uploadManager.SaveFunc = func(_ context.Context, _ string, _ io.Reader, _ ...uploads.SaveOption) error { return nil }
-		uploadsRegistry.RecordObjectFunc = func(_ context.Context, _ *registry.Object) error { return nil }
+		uploadsRegistry.RecordObjectFunc = func(_ context.Context, _ *mediaregistry.Object) error { return nil }
 		identityDataManager.SetUserAvatarFunc = func(_ context.Context, _ string, _ string) error {
 			return nil
 		}
@@ -784,7 +784,7 @@ func TestServiceImpl_UploadUserAvatar(T *testing.T) {
 
 		uploadManager := service.uploadManager.(*mockuploads.UploadManagerMock)
 		uploadManager.SaveFunc = func(_ context.Context, _ string, _ io.Reader, _ ...uploads.SaveOption) error { return nil }
-		uploadsRegistry.RecordObjectFunc = func(_ context.Context, _ *registry.Object) error { return nil }
+		uploadsRegistry.RecordObjectFunc = func(_ context.Context, _ *mediaregistry.Object) error { return nil }
 		identityDataManager.SetUserAvatarFunc = func(_ context.Context, _ string, _ string) error {
 			return errors.New("set avatar error")
 		}

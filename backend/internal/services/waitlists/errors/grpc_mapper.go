@@ -8,8 +8,8 @@ package errors
 import (
 	"errors"
 
-	"github.com/primandproper/platform-go/v13/errors/grpc"
-	waitlists "github.com/primandproper/platform-go/v13/waitlists"
+	waitlists "github.com/primandproper/platform-go/v14/waitlists"
+	"github.com/primandproper/primitives-go/v2/errors/grpc"
 
 	"google.golang.org/grpc/codes"
 )

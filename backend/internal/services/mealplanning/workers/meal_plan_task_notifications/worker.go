@@ -11,11 +11,11 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/push"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers"
 
-	"github.com/primandproper/platform-go/v13/filtering"
-	platformnotifications "github.com/primandproper/platform-go/v13/notifications/mobile"
-	"github.com/primandproper/platform-go/v13/observability"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
+	"github.com/primandproper/primitives-go/v2/filtering"
+	platformnotifications "github.com/primandproper/primitives-go/v2/notifications/mobile"
+	"github.com/primandproper/primitives-go/v2/observability"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
 
 	"github.com/hashicorp/go-multierror"
 )
@@ -71,8 +71,8 @@ type Worker struct {
 type Queue interface {
 	EnqueueKeys(ctx context.Context, keys ...string) error
 	Claim(ctx context.Context, limit int, lease time.Duration) ([]Item, error)
-	Complete(ctx context.Context, keys ...string) error
-	Release(ctx context.Context, delay time.Duration, cause error, keys ...string) error
+	Complete(ctx context.Context, items ...Item) error
+	Release(ctx context.Context, delay time.Duration, cause error, items ...Item) error
 	Reap(ctx context.Context) (int64, error)
 	Stats(ctx context.Context) (Stats, error)
 }
@@ -228,8 +228,12 @@ func (w *Worker) drain(ctx context.Context) (int64, error) {
 func (w *Worker) workBatch(ctx context.Context, items []Item) (int64, error) {
 	errorResult := &multierror.Error{}
 
-	done := make([]string, 0, len(items))
-	failed := make([]string, 0)
+	// The claimed items rather than their keys: v14 fences a completion on the
+	// claim that produced it, so a completion cannot land against a lease another
+	// replica now holds. Handing back the key alone no longer compiles, which is
+	// the point of the change.
+	done := make([]Item, 0, len(items))
+	failed := make([]Item, 0)
 
 	var lastCause error
 
@@ -249,10 +253,10 @@ func (w *Worker) workBatch(ctx context.Context, items []Item) (int64, error) {
 		switch err := w.notify(ctx, logger, item.Key); {
 		case err != nil:
 			lastCause = err
-			failed = append(failed, item.Key)
+			failed = append(failed, *item)
 			errorResult = multierror.Append(errorResult, fmt.Errorf("notifying for meal plan task %s: %w", item.Key, err))
 		default:
-			done = append(done, item.Key)
+			done = append(done, *item)
 		}
 	}
 

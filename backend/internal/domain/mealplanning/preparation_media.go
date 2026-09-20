@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/primandproper/platform-go/v13/uploads/registry"
+	"github.com/primandproper/platform-go/v14/mediaregistry"
 )
 
 // PreparationMediaRow represents a row from preparation_media table.
@@ -28,5 +28,5 @@ type PreparationMediaDataManager interface {
 // PreparationMediaWithUploadedMedia pairs a preparation media row with its uploaded media.
 type PreparationMediaWithUploadedMedia struct {
 	Row           *PreparationMediaRow
-	UploadedMedia *registry.Object
+	UploadedMedia *mediaregistry.Object
 }

@@ -11,7 +11,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings/fakes"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/recording"
 
-	"github.com/primandproper/platform-go/v13/database"
+	"github.com/primandproper/primitives-go/v2/database"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

@@ -7,10 +7,10 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 
-	"github.com/primandproper/platform-go/v13/billing"
-	"github.com/primandproper/platform-go/v13/capitalism"
-	"github.com/primandproper/platform-go/v13/fake"
-	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/platform-go/v14/billing"
+	"github.com/primandproper/primitives-go/v2/capitalism"
+	"github.com/primandproper/primitives-go/v2/fake"
+	"github.com/primandproper/primitives-go/v2/filtering"
 
 	gofakeit "github.com/brianvoe/gofakeit/v7"
 )

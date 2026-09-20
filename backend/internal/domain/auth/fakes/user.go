@@ -9,7 +9,7 @@ import (
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 
-	"github.com/primandproper/platform-go/v13/fake"
+	"github.com/primandproper/primitives-go/v2/fake"
 
 	gofakeit "github.com/brianvoe/gofakeit/v7"
 	"github.com/pquerna/otp/totp"

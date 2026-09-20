@@ -7,9 +7,9 @@ import (
 	paymentsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/payments"
 	paymentssvcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/grpc/converters"
 
-	"github.com/primandproper/platform-go/v13/billing"
-	"github.com/primandproper/platform-go/v13/capitalism"
-	"github.com/primandproper/platform-go/v13/pointer"
+	"github.com/primandproper/platform-go/v14/billing"
+	"github.com/primandproper/primitives-go/v2/capitalism"
+	"github.com/primandproper/primitives-go/v2/pointer"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

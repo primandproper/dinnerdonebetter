@@ -13,13 +13,13 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	"github.com/primandproper/platform-go/v13/database"
-	"github.com/primandproper/platform-go/v13/database/postgres"
-	"github.com/primandproper/platform-go/v13/identifiers"
-	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
-	metricsnoop "github.com/primandproper/platform-go/v13/observability/metrics/noop"
-	tracingnoop "github.com/primandproper/platform-go/v13/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v13/uploads/registry"
+	"github.com/primandproper/platform-go/v14/mediaregistry"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/database/postgres"
+	"github.com/primandproper/primitives-go/v2/identifiers"
+	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
+	metricsnoop "github.com/primandproper/primitives-go/v2/observability/metrics/noop"
+	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -41,7 +41,7 @@ func TestMain(m *testing.M) {
 }
 
 // buildDatabaseClientForTest builds the store over a real database.
-func buildDatabaseClientForTest(t *testing.T) (registry.Store, audit.Repository, database.SQLQueryExecutor) {
+func buildDatabaseClientForTest(t *testing.T) (mediaregistry.Store, audit.Repository, database.SQLQueryExecutor) {
 	t.Helper()
 
 	ctx := t.Context()
@@ -70,7 +70,7 @@ func buildDatabaseClientForTest(t *testing.T) (registry.Store, audit.Repository,
 }
 
 // ownedBy builds a fake object registered to userID.
-func ownedBy(userID string) *registry.Object {
+func ownedBy(userID string) *mediaregistry.Object {
 	object := fakes.BuildFakeUploadedMedia()
 	object.OwnerID = userID
 
@@ -118,7 +118,7 @@ func TestRepository_Integration_UploadedMedia(t *testing.T) {
 	fetchedAfterArchive, err := dbc.GetObject(ctx, ddbuploadedmedia.Scope(), object.ID)
 	require.Error(t, err)
 	assert.Nil(t, fetchedAfterArchive)
-	assert.ErrorIs(t, err, registry.ErrObjectNotFound)
+	assert.ErrorIs(t, err, mediaregistry.ErrObjectNotFound)
 }
 
 // TestRepository_Integration_ArchiveRecordsTheOwner pins the one thing this package's
@@ -156,7 +156,7 @@ func TestRepository_Integration_ArchiveMissingRecordsNothing(t *testing.T) {
 
 	err := dbc.ArchiveObject(ctx, ddbuploadedmedia.Scope(), identifiers.New())
 	require.Error(t, err)
-	assert.ErrorIs(t, err, registry.ErrObjectNotFound)
+	assert.ErrorIs(t, err, mediaregistry.ErrObjectNotFound)
 }
 
 // TestRepository_Integration_KeyIsUniqueAcrossArchival pins that archiving does not
@@ -178,7 +178,7 @@ func TestRepository_Integration_KeyIsUniqueAcrossArchival(t *testing.T) {
 
 	err := dbc.RecordObject(ctx, second)
 	require.Error(t, err)
-	assert.ErrorIs(t, err, registry.ErrObjectKeyTaken)
+	assert.ErrorIs(t, err, mediaregistry.ErrObjectKeyTaken)
 }
 
 // TestRepository_Integration_ErasingTheOwnerRemovesTheRow pins the foreign key this
@@ -204,5 +204,5 @@ func TestRepository_Integration_ErasingTheOwnerRemovesTheRow(t *testing.T) {
 	fetched, err := dbc.GetObject(ctx, ddbuploadedmedia.Scope(), object.ID)
 	require.Error(t, err)
 	assert.Nil(t, fetched)
-	assert.ErrorIs(t, err, registry.ErrObjectNotFound)
+	assert.ErrorIs(t, err, mediaregistry.ErrObjectNotFound)
 }

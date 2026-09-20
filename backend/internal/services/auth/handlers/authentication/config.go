@@ -6,7 +6,7 @@ import (
 
 	authcfg "github.com/primandproper/dinnerdonebetter/backend/internal/authentication/config"
 
-	oauth2servercfg "github.com/primandproper/platform-go/v13/authentication/oauth2server/config"
+	oauth2servercfg "github.com/primandproper/platform-go/v14/authentication/oauth2serverstore/config"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )

@@ -8,13 +8,13 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/internalops"
 	dbcleaner "github.com/primandproper/dinnerdonebetter/backend/internal/services/oauth/workers/db_cleaner"
 
-	oauth2servercfg "github.com/primandproper/platform-go/v13/authentication/oauth2server/config"
-	databasecfg "github.com/primandproper/platform-go/v13/database/config"
-	"github.com/primandproper/platform-go/v13/database/postgres"
-	"github.com/primandproper/platform-go/v13/observability"
-	loggingcfg "github.com/primandproper/platform-go/v13/observability/logging/config"
-	metricscfg "github.com/primandproper/platform-go/v13/observability/metrics/config"
-	tracingcfg "github.com/primandproper/platform-go/v13/observability/tracing/config"
+	oauth2servercfg "github.com/primandproper/platform-go/v14/authentication/oauth2serverstore/config"
+	databasecfg "github.com/primandproper/primitives-go/v2/database/config"
+	"github.com/primandproper/primitives-go/v2/database/postgres"
+	"github.com/primandproper/primitives-go/v2/observability"
+	loggingcfg "github.com/primandproper/primitives-go/v2/observability/logging/config"
+	metricscfg "github.com/primandproper/primitives-go/v2/observability/metrics/config"
+	tracingcfg "github.com/primandproper/primitives-go/v2/observability/tracing/config"
 
 	"github.com/samber/do/v2"
 )

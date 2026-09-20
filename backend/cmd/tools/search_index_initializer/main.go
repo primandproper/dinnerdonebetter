@@ -31,19 +31,19 @@ import (
 	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
 	mealplanningindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
-	databasecfg "github.com/primandproper/platform-go/v13/database/config"
-	"github.com/primandproper/platform-go/v13/database/postgres"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
-	"github.com/primandproper/platform-go/v13/observability/metrics"
-	metricsnoop "github.com/primandproper/platform-go/v13/observability/metrics/noop"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
-	tracingnoop "github.com/primandproper/platform-go/v13/observability/tracing/noop"
-	searchsync "github.com/primandproper/platform-go/v13/search/sync"
-	syncsource "github.com/primandproper/platform-go/v13/search/sync/source"
-	"github.com/primandproper/platform-go/v13/search/text/algolia"
-	textsearchcfg "github.com/primandproper/platform-go/v13/search/text/config"
-	"github.com/primandproper/platform-go/v13/uploads/registry"
+	"github.com/primandproper/platform-go/v14/mediaregistry"
+	searchsync "github.com/primandproper/platform-go/v14/searchsync"
+	syncsource "github.com/primandproper/platform-go/v14/searchsync/source"
+	databasecfg "github.com/primandproper/primitives-go/v2/database/config"
+	"github.com/primandproper/primitives-go/v2/database/postgres"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
+	"github.com/primandproper/primitives-go/v2/observability/metrics"
+	metricsnoop "github.com/primandproper/primitives-go/v2/observability/metrics/noop"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
+	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
+	"github.com/primandproper/primitives-go/v2/search/text/algolia"
+	textsearchcfg "github.com/primandproper/primitives-go/v2/search/text/config"
 
 	"github.com/spf13/cobra"
 )
@@ -164,11 +164,11 @@ func runInit(databaseURL, searchProvider, algoliaAppID, algoliaAPIKey, indicesSt
 
 	// A real registry store rather than nil: both repositories hydrate media
 	// through it. It needs no emitter or metrics — nothing here writes an object.
-	uploadsRegistry, err := registry.NewSQLStore(
+	uploadsRegistry, err := mediaregistry.NewSQLStore(
 		client,
-		registry.WithTablePrefix(uploadedmedia.TablePrefix),
-		registry.WithStoreLogger(logger),
-		registry.WithStoreTracerProvider(tracerProvider),
+		mediaregistry.WithTablePrefix(uploadedmedia.TablePrefix),
+		mediaregistry.WithStoreLogger(logger),
+		mediaregistry.WithStoreTracerProvider(tracerProvider),
 	)
 	if err != nil {
 		return fmt.Errorf("building upload registry store: %w", err)

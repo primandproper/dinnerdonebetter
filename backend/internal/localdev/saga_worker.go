@@ -12,14 +12,14 @@ import (
 	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
 	mealplanfinalization "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_finalization"
 
-	"github.com/primandproper/platform-go/v13/database"
-	"github.com/primandproper/platform-go/v13/database/dialect"
-	pglock "github.com/primandproper/platform-go/v13/distributedlock/postgres"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	metricsnoop "github.com/primandproper/platform-go/v13/observability/metrics/noop"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
-	"github.com/primandproper/platform-go/v13/outbox"
-	"github.com/primandproper/platform-go/v13/saga"
+	"github.com/primandproper/platform-go/v14/outbox"
+	"github.com/primandproper/platform-go/v14/saga"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/database/dialect"
+	pglock "github.com/primandproper/primitives-go/v2/distributedlock/postgres"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	metricsnoop "github.com/primandproper/primitives-go/v2/observability/metrics/noop"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
 )
 
 // StartSagaWorker builds a saga worker over the given database and runs it until the returned
@@ -98,7 +98,7 @@ func StartSagaWorker(
 	cfg := &saga.WorkerConfig{}
 	cfg.EnsureDefaults()
 
-	worker, err := saga.NewWorker(ctx, cfg, store, registry, locker,
+	worker, err := saga.NewWorker(ctx, cfg, databaseClient, store, registry, locker,
 		saga.WithWorkerEventPublisher(publisher),
 		saga.WithWorkerLogger(logger),
 		saga.WithWorkerTracerProvider(tracerProvider),

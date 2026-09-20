@@ -51,8 +51,8 @@ func TestBuildInjector_RegistersTheNotificationChain(t *testing.T) {
 		"*github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_task_notifications.TaskQueue",
 		"*github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/push.Fanout",
 		"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/manager.NotificationsDataManager",
-		"github.com/primandproper/platform-go/v13/notifications/mobile.PushNotificationSender",
-		"*github.com/primandproper/platform-go/v13/workqueue.Config",
+		"github.com/primandproper/primitives-go/v2/notifications/mobile.PushNotificationSender",
+		"*github.com/primandproper/platform-go/v14/workqueue.Config",
 	} {
 		assert.True(t, declared[name], "the scheduler must provide %s", name)
 	}

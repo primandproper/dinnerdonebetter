@@ -12,8 +12,8 @@ writes to, and both of those are decided here.
 package waitlists
 
 import (
-	"github.com/primandproper/platform-go/v13/tenancy"
-	platformwaitlists "github.com/primandproper/platform-go/v13/waitlists"
+	platformwaitlists "github.com/primandproper/platform-go/v14/waitlists"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
 // TablePrefix namespaces the platform-go waitlist tables, rendering

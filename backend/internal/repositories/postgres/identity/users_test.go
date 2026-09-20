@@ -16,10 +16,10 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	"github.com/primandproper/platform-go/v13/fake"
-	"github.com/primandproper/platform-go/v13/filtering"
-	"github.com/primandproper/platform-go/v13/identifiers"
-	"github.com/primandproper/platform-go/v13/uploads/registry"
+	"github.com/primandproper/platform-go/v14/mediaregistry"
+	"github.com/primandproper/primitives-go/v2/fake"
+	"github.com/primandproper/primitives-go/v2/filtering"
+	"github.com/primandproper/primitives-go/v2/identifiers"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -118,7 +118,7 @@ func TestQuerier_Integration_Users(t *testing.T) {
 	// The object goes through the registry rather than an INSERT of this package's
 	// own, because the table is platform-go's now: user_avatars holds the id and the
 	// row it names is read back through the store — which is the read this asserts on.
-	avatarObject := &registry.Object{
+	avatarObject := &mediaregistry.Object{
 		ID:          fake.BuildFakeID(),
 		Scope:       uploadedmedia.Scope(),
 		ContentType: uploadedmedia.MimeTypeImagePNG,

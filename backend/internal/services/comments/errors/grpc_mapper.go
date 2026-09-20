@@ -8,8 +8,8 @@ package errors
 import (
 	"errors"
 
-	comments "github.com/primandproper/platform-go/v13/comments"
-	"github.com/primandproper/platform-go/v13/errors/grpc"
+	comments "github.com/primandproper/platform-go/v14/comments"
+	"github.com/primandproper/primitives-go/v2/errors/grpc"
 
 	"google.golang.org/grpc/codes"
 )

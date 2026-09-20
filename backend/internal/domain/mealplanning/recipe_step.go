@@ -6,8 +6,8 @@ import (
 	"errors"
 	"time"
 
-	"github.com/primandproper/platform-go/v13/filtering"
-	"github.com/primandproper/platform-go/v13/uploads/registry"
+	"github.com/primandproper/platform-go/v14/mediaregistry"
+	"github.com/primandproper/primitives-go/v2/filtering"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/hashicorp/go-multierror"
@@ -54,7 +54,7 @@ type (
 		CompletionConditions      []*RecipeStepCompletionCondition `json:"completionConditions"`
 		Ingredients               []*RecipeStepIngredient          `json:"ingredients"`
 		Media                     []*RecipeMedia                   `json:"media"`
-		StepImages                []*registry.Object               `json:"stepImages"`
+		StepImages                []*mediaregistry.Object          `json:"stepImages"`
 		Preparation               ValidPreparation                 `json:"preparation"`
 		Index                     uint32                           `json:"index"`
 		Optional                  bool                             `json:"optional"`

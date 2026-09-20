@@ -7,8 +7,8 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/catalog"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/converters"
 
-	"github.com/primandproper/platform-go/v13/fake"
-	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/primitives-go/v2/fake"
+	"github.com/primandproper/primitives-go/v2/filtering"
 
 	gofakeit "github.com/brianvoe/gofakeit/v7"
 )

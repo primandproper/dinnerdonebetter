@@ -25,6 +25,8 @@ package dataprivacy
 
 import (
 	"context"
+
+	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
 // TablePrefix namespaces the platform's request table, rendering
@@ -138,3 +140,17 @@ const (
 // not acquire a dependency on the identity domain to get it. The build layer
 // supplies the implementation, and each collector takes exactly what it needs.
 type AccountIDResolver func(ctx context.Context, userID string) ([]string, error)
+
+// Scope is the tenancy scope this application files privacy requests under.
+//
+// A privacy request is about a person, not about a tenant. The subject is the
+// user, the artifact is theirs, and a request submitted while one account was
+// active still covers everything held about them — so there is no account to
+// file it under and every request lives in the global scope.
+//
+// It is named here rather than written as tenancy.Global() at each call site so
+// that the reads confine themselves to the same scope the writes bind. The
+// platform's reads take a *tenancy.Scope where nil narrows nothing, which is
+// the operator console's read; this application has no such console, so its own
+// service always names the scope.
+func Scope() tenancy.Scope { return tenancy.Global() }

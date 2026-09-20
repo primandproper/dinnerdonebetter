@@ -15,10 +15,11 @@ import (
 	mealplanningsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
 
-	platformerrors "github.com/primandproper/platform-go/v13/errors"
-	errorsgrpc "github.com/primandproper/platform-go/v13/errors/grpc"
-	"github.com/primandproper/platform-go/v13/identifiers"
-	"github.com/primandproper/platform-go/v13/uploads/registry"
+	"github.com/primandproper/platform-go/v14/mediaregistry"
+	"github.com/primandproper/primitives-go/v2/database"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	errorsgrpc "github.com/primandproper/primitives-go/v2/errors/grpc"
+	"github.com/primandproper/primitives-go/v2/identifiers"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -56,30 +57,32 @@ const (
 func (s *serviceImpl) storeAndRegister(
 	ctx context.Context,
 	objectID, key, contentType, ownerID string,
-	subject registry.Subject,
+	subject mediaregistry.Subject,
 	body *bytes.Buffer,
-) (*registry.Object, error) {
+) (*mediaregistry.Object, error) {
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
-	object := &registry.Object{
+	// v14 splits what the caller supplies from what the store assigns, so this is
+	// an ObjectInput rather than a half-filled Object, and the scope is an argument
+	// rather than a field. There is no separate validation step: RecordObject
+	// refuses an input it cannot store, which is one answer instead of two that
+	// could disagree.
+	input := mediaregistry.ObjectInput{
 		ID:          objectID,
-		Scope:       uploadedmedia.Scope(),
 		Key:         key,
 		ContentType: contentType,
 		OwnerID:     ownerID,
 		BelongsTo:   subject,
 	}
 
-	if err := object.ValidateWithContext(ctx); err != nil {
-		return nil, err
-	}
-
-	if err := registry.StoreAndRecord(ctx, s.uploadManager, s.registry, object, body); err != nil {
-		return nil, err
-	}
-
-	return object, nil
+	// The transaction is open across the upload. These are recipe and meal images,
+	// size-capped by the streaming handlers above; a larger object would want
+	// uploads.UploadManager.Save outside the transaction and RecordObject inside a
+	// short one, which is the same two calls with the boundary drawn tighter.
+	return inTransaction(ctx, s.db, func(tx database.Tx) (*mediaregistry.Object, error) {
+		return mediaregistry.StoreAndRecord(ctx, tx, uploadedmedia.Scope(), s.uploadManager, s.registry, input, body)
+	})
 }
 
 func (s *serviceImpl) UploadMealImage(stream grpc.ClientStreamingServer[mealplanningsvc.UploadMealMediaRequest, mealplanningsvc.UploadMealImageResponse]) error {
@@ -221,7 +224,7 @@ func (s *serviceImpl) UploadMealImage(stream grpc.ClientStreamingServer[mealplan
 		filepath.Join("meals", mealID, fileID, metadata.ObjectName),
 		mimeType,
 		userID,
-		registry.Subject{Type: mealSubjectType, ID: mealID},
+		mediaregistry.Subject{Type: mealSubjectType, ID: mealID},
 		&fileData,
 	)
 	if err != nil {
@@ -386,7 +389,7 @@ func (s *serviceImpl) UploadRecipeImage(stream grpc.ClientStreamingServer[mealpl
 		filepath.Join("recipes", recipeID, fileID, metadata.ObjectName),
 		mimeType,
 		userID,
-		registry.Subject{Type: recipeSubjectType, ID: recipeID},
+		mediaregistry.Subject{Type: recipeSubjectType, ID: recipeID},
 		&fileData,
 	)
 	if err != nil {
@@ -546,7 +549,7 @@ func (s *serviceImpl) UploadPreparationMedia(stream grpc.ClientStreamingServer[m
 		filepath.Join("preparations", validPreparationID, fileID, metadata.ObjectName),
 		mimeType,
 		userID,
-		registry.Subject{Type: validPreparationSubjectType, ID: validPreparationID},
+		mediaregistry.Subject{Type: validPreparationSubjectType, ID: validPreparationID},
 		&fileData,
 	)
 	if err != nil {
@@ -711,7 +714,7 @@ func (s *serviceImpl) UploadIngredientMedia(stream grpc.ClientStreamingServer[me
 		filepath.Join("ingredients", validIngredientID, fileID, metadata.ObjectName),
 		mimeType,
 		userID,
-		registry.Subject{Type: validIngredientSubjectType, ID: validIngredientID},
+		mediaregistry.Subject{Type: validIngredientSubjectType, ID: validIngredientID},
 		&fileData,
 	)
 	if err != nil {
@@ -896,7 +899,7 @@ func (s *serviceImpl) UploadRecipeStepImage(stream grpc.ClientStreamingServer[me
 		filepath.Join("recipes", recipeID, "steps", recipeStepID, fileID, metadata.ObjectName),
 		mimeType,
 		userID,
-		registry.Subject{Type: recipeStepSubjectType, ID: recipeStepID},
+		mediaregistry.Subject{Type: recipeStepSubjectType, ID: recipeStepID},
 		&fileData,
 	)
 	if err != nil {

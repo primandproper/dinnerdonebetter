@@ -17,13 +17,14 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/grpc/converters"
 	uploadedmediaconverters "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/grpc/converters"
 
-	platformerrors "github.com/primandproper/platform-go/v13/errors"
-	errorsgrpc "github.com/primandproper/platform-go/v13/errors/grpc"
-	filteringgrpc "github.com/primandproper/platform-go/v13/filtering/grpc"
-	"github.com/primandproper/platform-go/v13/identifiers"
-	"github.com/primandproper/platform-go/v13/observability"
-	platformkeys "github.com/primandproper/platform-go/v13/observability/keys"
-	"github.com/primandproper/platform-go/v13/uploads/registry"
+	"github.com/primandproper/platform-go/v14/mediaregistry"
+	"github.com/primandproper/primitives-go/v2/database"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	errorsgrpc "github.com/primandproper/primitives-go/v2/errors/grpc"
+	filteringgrpc "github.com/primandproper/primitives-go/v2/filtering/grpc"
+	"github.com/primandproper/primitives-go/v2/identifiers"
+	"github.com/primandproper/primitives-go/v2/observability"
+	platformkeys "github.com/primandproper/primitives-go/v2/observability/keys"
 
 	"github.com/google/uuid"
 	"google.golang.org/grpc"
@@ -351,23 +352,26 @@ func (s *serviceImpl) UploadUserAvatar(stream grpc.ClientStreamingServer[uploade
 	// is for. The user_avatars row is still what says which of a user's objects is
 	// the current avatar — the subject says an object is one of theirs, not that
 	// it is the one on show.
-	object := &registry.Object{
+	input := mediaregistry.ObjectInput{
 		ID:          fileID,
-		Scope:       uploadedmedia.Scope(),
 		Key:         filepath.Join(userID, fileID, avatarObjectName(mimeType)),
 		ContentType: mimeType,
 		OwnerID:     userID,
-		BelongsTo:   registry.Subject{Type: avatarSubjectType, ID: userID},
-	}
-
-	if err = object.ValidateWithContext(ctx); err != nil {
-		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "failed to validate uploaded media")
+		BelongsTo:   mediaregistry.Subject{Type: avatarSubjectType, ID: userID},
 	}
 
 	// Bytes first, then the row, with the size counted as it went past. A failure
 	// between the two leaves an object with no row, which is invisible to every
 	// read; the other order leaves a row promising bytes that are not there.
-	if err = registry.StoreAndRecord(ctx, s.uploadManager, s.registry, object, &fileData); err != nil {
+	//
+	// v14 takes a transaction, and it is open across the upload — acceptable for an
+	// avatar, which is small and size-capped above. The input no longer carries the
+	// scope or validates separately: the scope is an argument, and RecordObject
+	// refuses an input it cannot store.
+	object, err := inTransaction(ctx, s.db, func(tx database.Tx) (*mediaregistry.Object, error) {
+		return mediaregistry.StoreAndRecord(ctx, tx, uploadedmedia.Scope(), s.uploadManager, s.registry, input, &fileData)
+	})
+	if err != nil {
 		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to store avatar")
 	}
 

@@ -7,18 +7,18 @@ import (
 	uploadedmediasvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
 	uploadedmediaconverters "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/grpc/converters"
 
-	"github.com/primandproper/platform-go/v13/pointer"
-	"github.com/primandproper/platform-go/v13/uploads/registry"
+	"github.com/primandproper/platform-go/v14/mediaregistry"
+	"github.com/primandproper/primitives-go/v2/pointer"
 )
 
-func convertUserAvatarToGRPC(avatar *registry.Object) *uploadedmediasvc.UploadedMedia {
+func convertUserAvatarToGRPC(avatar *mediaregistry.Object) *uploadedmediasvc.UploadedMedia {
 	if avatar == nil {
 		return nil
 	}
 	return uploadedmediaconverters.ConvertUploadedMediaToGRPCUploadedMedia(avatar)
 }
 
-func convertGRPCAvatarToUser(avatar *uploadedmediasvc.UploadedMedia) *registry.Object {
+func convertGRPCAvatarToUser(avatar *uploadedmediasvc.UploadedMedia) *mediaregistry.Object {
 	if avatar == nil {
 		return nil
 	}

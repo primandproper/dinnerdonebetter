@@ -11,12 +11,13 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 	paymentskeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/keys"
 
-	"github.com/primandproper/platform-go/v13/billing"
-	"github.com/primandproper/platform-go/v13/capitalism"
-	platformerrors "github.com/primandproper/platform-go/v13/errors"
-	"github.com/primandproper/platform-go/v13/observability"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
+	"github.com/primandproper/platform-go/v14/billing"
+	"github.com/primandproper/primitives-go/v2/capitalism"
+	"github.com/primandproper/primitives-go/v2/database"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/observability"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
 )
 
 const (
@@ -28,6 +29,7 @@ var _ PaymentsDataManager = (*paymentsManager)(nil)
 type paymentsManager struct {
 	tracer      tracing.Tracer
 	logger      logging.Logger
+	db          database.Client
 	store       billing.Store
 	identityMgr identitymanager.IdentityDataManager
 }
@@ -40,12 +42,14 @@ func NewPaymentsDataManager(
 	_ context.Context,
 	tracerProvider tracing.Provider,
 	logger logging.Logger,
+	db database.Client,
 	store billing.Store,
 	identityMgr identitymanager.IdentityDataManager,
 ) (PaymentsDataManager, error) {
 	return &paymentsManager{
 		tracer:      tracing.NewNamedTracer(tracerProvider, o11yName),
 		logger:      logging.NewNamedLogger(logger, o11yName),
+		db:          db,
 		store:       store,
 		identityMgr: identityMgr,
 	}, nil
@@ -87,7 +91,7 @@ func (m *paymentsManager) ProcessWebhookEvent(ctx context.Context, provider stri
 			return nil
 		}
 
-		sub, err := m.store.GetSubscriptionByExternalID(ctx, payments.Scope(), subscriptionID)
+		sub, err := m.store.GetSubscriptionByExternalID(ctx, m.db.Reader(), payments.Scope(), subscriptionID)
 		if err != nil {
 			return observability.PrepareAndLogError(err, logger, span, "fetching subscription by external ID")
 		}
@@ -113,7 +117,7 @@ func (m *paymentsManager) ProcessWebhookEvent(ctx context.Context, provider stri
 			return nil
 		}
 
-		sub, err := m.store.GetSubscriptionByExternalID(ctx, payments.Scope(), subscriptionID)
+		sub, err := m.store.GetSubscriptionByExternalID(ctx, m.db.Reader(), payments.Scope(), subscriptionID)
 		if err != nil {
 			return observability.PrepareAndLogError(err, logger, span, "fetching subscription by external ID")
 		}
@@ -146,7 +150,7 @@ func (m *paymentsManager) ProcessWebhookEvent(ctx context.Context, provider stri
 			return nil
 		}
 
-		sub, err := m.store.GetSubscriptionByExternalID(ctx, payments.Scope(), subscriptionID)
+		sub, err := m.store.GetSubscriptionByExternalID(ctx, m.db.Reader(), payments.Scope(), subscriptionID)
 		if err != nil {
 			if errors.Is(err, billing.ErrSubscriptionNotFound) {
 				return nil // subscription may not exist yet
@@ -171,7 +175,13 @@ func (m *paymentsManager) ProcessWebhookEvent(ctx context.Context, provider stri
 // setSubscriptionStatus moves the subscription's standing, treating the store's
 // "already there" as success.
 func (m *paymentsManager) setSubscriptionStatus(ctx context.Context, subscriptionID string, status capitalism.SubscriptionStatus) error {
-	err := m.store.SetSubscriptionStatus(ctx, payments.Scope(), subscriptionID, status)
+	// One transaction per status write, which is exactly what the store opened
+	// for itself before v14. Widening it to span the identity manager's writes
+	// as well is now possible and is a behaviour change rather than a port; see
+	// the note on ProcessWebhookEvent.
+	err := m.db.WithTransaction(ctx, func(tx database.Tx) error {
+		return m.store.SetSubscriptionStatus(ctx, tx, payments.Scope(), subscriptionID, status)
+	})
 	if err != nil && !errors.Is(err, billing.ErrStatusUnchanged) {
 		return err
 	}
@@ -186,14 +196,14 @@ func (m *paymentsManager) handleRevenueCatSubscriptionActive(
 	accountID, transactionID, externalProductID string,
 	syncNow time.Time,
 ) error {
-	product, err := m.store.GetProductByExternalID(ctx, payments.Scope(), externalProductID)
+	product, err := m.store.GetProductByExternalID(ctx, m.db.Reader(), payments.Scope(), externalProductID)
 	if err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "fetching product by external ID")
 	}
 
 	tracing.AttachToSpan(span, paymentskeys.ProductIDKey, product.ID)
 
-	sub, err := m.store.GetSubscriptionByExternalID(ctx, payments.Scope(), transactionID)
+	sub, err := m.store.GetSubscriptionByExternalID(ctx, m.db.Reader(), payments.Scope(), transactionID)
 	if err != nil {
 		if !errors.Is(err, billing.ErrSubscriptionNotFound) {
 			return observability.PrepareAndLogError(err, logger, span, "fetching subscription by external ID")
@@ -201,13 +211,17 @@ func (m *paymentsManager) handleRevenueCatSubscriptionActive(
 
 		// Create new subscription for INITIAL_PURCHASE
 		now := time.Now()
-		if _, err = m.store.CreateSubscription(ctx, payments.Scope(), &billing.Subscription{
-			BelongsToAccount:       accountID,
-			ProductID:              product.ID,
-			ExternalSubscriptionID: transactionID,
-			Status:                 capitalism.SubscriptionStatusActive,
-			CurrentPeriodStart:     now,
-			CurrentPeriodEnd:       now.AddDate(0, 1, 0), // approximate
+		if err = m.db.WithTransaction(ctx, func(tx database.Tx) error {
+			_, createErr := m.store.CreateSubscription(ctx, tx, payments.Scope(), &billing.Subscription{
+				BelongsToAccount:       accountID,
+				ProductID:              product.ID,
+				ExternalSubscriptionID: transactionID,
+				Status:                 capitalism.SubscriptionStatusActive,
+				CurrentPeriodStart:     now,
+				CurrentPeriodEnd:       now.AddDate(0, 1, 0), // approximate
+			})
+
+			return createErr
 		}); err != nil {
 			return observability.PrepareAndLogError(err, logger, span, "creating subscription")
 		}
@@ -233,7 +247,7 @@ func (m *paymentsManager) handleRevenueCatSubscriptionExpired(
 	unpaid := identity.UnpaidAccountBillingStatus
 	syncNow := time.Now()
 
-	sub, err := m.store.GetSubscriptionByExternalID(ctx, payments.Scope(), transactionID)
+	sub, err := m.store.GetSubscriptionByExternalID(ctx, m.db.Reader(), payments.Scope(), transactionID)
 	if err != nil {
 		// Subscription may not exist; still update account to unpaid
 		return observability.PrepareAndLogError(

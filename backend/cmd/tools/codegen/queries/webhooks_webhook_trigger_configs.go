@@ -3,7 +3,7 @@ package main
 import (
 	"slices"
 
-	"github.com/primandproper/platform-go/v13/database/querygen"
+	"github.com/primandproper/primitives-go/v2/database/querygen"
 
 	"github.com/cristalhq/builq"
 )

@@ -11,14 +11,15 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/settings/grpc/converters"
 
-	platformerrors "github.com/primandproper/platform-go/v13/errors"
-	errorsgrpc "github.com/primandproper/platform-go/v13/errors/grpc"
-	"github.com/primandproper/platform-go/v13/filtering"
-	"github.com/primandproper/platform-go/v13/filtering/filteringpb"
-	filteringgrpc "github.com/primandproper/platform-go/v13/filtering/grpc"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
-	platformsettings "github.com/primandproper/platform-go/v13/settings"
+	platformsettings "github.com/primandproper/platform-go/v14/settings"
+	"github.com/primandproper/primitives-go/v2/database"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	errorsgrpc "github.com/primandproper/primitives-go/v2/errors/grpc"
+	"github.com/primandproper/primitives-go/v2/filtering"
+	"github.com/primandproper/primitives-go/v2/filtering/filteringpb"
+	filteringgrpc "github.com/primandproper/primitives-go/v2/filtering/grpc"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
 
 	"google.golang.org/grpc/codes"
 )
@@ -99,7 +100,9 @@ func (s *serviceImpl) CreateSettingDefinition(ctx context.Context, request *sett
 
 	definition := converters.ConvertGRPCSettingDefinitionCreationRequestInputToSettingDefinition(request.GetInput())
 
-	created, err := s.settings.CreateDefinition(ctx, ddbsettings.Scope(), definition)
+	created, err := inTransaction(ctx, s.db, func(tx database.Tx) (*platformsettings.Definition, error) {
+		return s.settings.CreateDefinition(ctx, tx, ddbsettings.Scope(), definition)
+	})
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "creating setting definition")
 	}
@@ -123,7 +126,7 @@ func (s *serviceImpl) GetSettingDefinition(ctx context.Context, request *setting
 	logger := s.logger.WithSpan(span).WithValue(settingskeys.SettingDefinitionIDKey, request.GetSettingDefinitionId())
 	tracing.AttachToSpan(span, settingskeys.SettingDefinitionIDKey, request.GetSettingDefinitionId())
 
-	definition, err := s.settings.GetDefinition(ctx, ddbsettings.Scope(), request.GetSettingDefinitionId())
+	definition, err := s.settings.GetDefinition(ctx, s.db.Reader(), ddbsettings.Scope(), request.GetSettingDefinitionId())
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "fetching setting definition")
 	}
@@ -152,7 +155,7 @@ func (s *serviceImpl) GetSettingDefinitionByName(ctx context.Context, request *s
 	logger := s.logger.WithSpan(span).WithValue(settingskeys.SettingNameKey, request.GetSettingName())
 	tracing.AttachToSpan(span, settingskeys.SettingNameKey, request.GetSettingName())
 
-	definition, err := s.settings.GetDefinitionByName(ctx, ddbsettings.Scope(), request.GetSettingName())
+	definition, err := s.settings.GetDefinitionByName(ctx, s.db.Reader(), ddbsettings.Scope(), request.GetSettingName())
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "fetching setting definition by name")
 	}
@@ -180,7 +183,7 @@ func (s *serviceImpl) GetSettingDefinitions(ctx context.Context, request *settin
 
 	logger := s.logger.WithSpan(span)
 
-	page, err := s.settings.ListDefinitions(ctx, ddbsettings.Scope(), filter)
+	page, err := s.settings.ListDefinitions(ctx, s.db.Reader(), ddbsettings.Scope(), filter)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "fetching setting definitions")
 	}
@@ -224,14 +227,16 @@ func (s *serviceImpl) UpdateSettingDefinition(ctx context.Context, request *sett
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(errInputRequired, logger, span, codes.InvalidArgument, "missing input")
 	}
 
-	existing, err := s.settings.GetDefinition(ctx, ddbsettings.Scope(), request.GetSettingDefinitionId())
+	existing, err := s.settings.GetDefinition(ctx, s.db.Reader(), ddbsettings.Scope(), request.GetSettingDefinitionId())
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "fetching setting definition")
 	}
 
 	converters.ApplyGRPCSettingDefinitionUpdateRequestInput(existing, request.GetInput())
 
-	if err = s.settings.UpdateDefinition(ctx, ddbsettings.Scope(), existing); err != nil {
+	if _, err = inTransaction(ctx, s.db, func(tx database.Tx) (*platformsettings.Definition, error) {
+		return s.settings.UpdateDefinition(ctx, tx, ddbsettings.Scope(), existing)
+	}); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "updating setting definition")
 	}
 
@@ -255,7 +260,11 @@ func (s *serviceImpl) ArchiveSettingDefinition(ctx context.Context, request *set
 	logger := s.logger.WithSpan(span).WithValue(settingskeys.SettingDefinitionIDKey, request.GetSettingDefinitionId())
 	tracing.AttachToSpan(span, settingskeys.SettingDefinitionIDKey, request.GetSettingDefinitionId())
 
-	if err = s.settings.ArchiveDefinition(ctx, ddbsettings.Scope(), request.GetSettingDefinitionId()); err != nil {
+	// ArchiveDefinition is the one write in this service that returns no row, so
+	// it takes the transaction directly rather than through inTransaction.
+	if err = s.db.WithTransaction(ctx, func(tx database.Tx) error {
+		return s.settings.ArchiveDefinition(ctx, tx, ddbsettings.Scope(), request.GetSettingDefinitionId())
+	}); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "archiving setting definition")
 	}
 
@@ -280,7 +289,9 @@ func (s *serviceImpl) SetSettingValue(ctx context.Context, request *settingssvc.
 
 	logger := s.logger.WithSpan(span).WithValue(settingskeys.SettingNameKey, definition.Name)
 
-	value, err := s.settings.SetValue(ctx, ddbsettings.Scope(), ddbsettings.SubjectFor(sessionContextData.GetUserID()), definition.Name, request.GetValue())
+	value, err := inTransaction(ctx, s.db, func(tx database.Tx) (*platformsettings.Value, error) {
+		return s.settings.SetValue(ctx, tx, ddbsettings.Scope(), ddbsettings.SubjectFor(sessionContextData.GetUserID()), definition.Name, request.GetValue())
+	})
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "setting setting value")
 	}
@@ -305,7 +316,7 @@ func (s *serviceImpl) GetSettingValue(ctx context.Context, request *settingssvc.
 	logger := s.logger.WithSpan(span).WithValue(settingskeys.SettingNameKey, request.GetSettingName())
 	tracing.AttachToSpan(span, settingskeys.SettingNameKey, request.GetSettingName())
 
-	value, err := s.settings.GetValue(ctx, ddbsettings.Scope(), ddbsettings.SubjectFor(sessionContextData.GetUserID()), request.GetSettingName())
+	value, err := s.settings.GetValue(ctx, s.db.Reader(), ddbsettings.Scope(), ddbsettings.SubjectFor(sessionContextData.GetUserID()), request.GetSettingName())
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "fetching setting value")
 	}
@@ -330,7 +341,9 @@ func (s *serviceImpl) ClearSettingValue(ctx context.Context, request *settingssv
 	logger := s.logger.WithSpan(span).WithValue(settingskeys.SettingNameKey, request.GetSettingName())
 	tracing.AttachToSpan(span, settingskeys.SettingNameKey, request.GetSettingName())
 
-	if err = s.settings.ClearValue(ctx, ddbsettings.Scope(), ddbsettings.SubjectFor(sessionContextData.GetUserID()), request.GetSettingName()); err != nil {
+	if _, err = inTransaction(ctx, s.db, func(tx database.Tx) (*platformsettings.Value, error) {
+		return s.settings.ClearValue(ctx, tx, ddbsettings.Scope(), ddbsettings.SubjectFor(sessionContextData.GetUserID()), request.GetSettingName())
+	}); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "clearing setting value")
 	}
 
@@ -351,7 +364,7 @@ func (s *serviceImpl) GetSettingValues(ctx context.Context, request *settingssvc
 
 	logger := s.logger.WithSpan(span)
 
-	page, err := s.settings.ListValuesForSubject(ctx, ddbsettings.Scope(), ddbsettings.SubjectFor(sessionContextData.GetUserID()), filter)
+	page, err := s.settings.ListValuesForSubject(ctx, s.db.Reader(), ddbsettings.Scope(), ddbsettings.SubjectFor(sessionContextData.GetUserID()), filter)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "fetching setting values")
 	}
@@ -390,7 +403,7 @@ func (s *serviceImpl) GetSettingValuesForDefinition(ctx context.Context, request
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(errNotAuthorizedForSettingDefinition, logger, span, codes.PermissionDenied, "not authorized to list the answers to a setting")
 	}
 
-	page, err := s.settings.ListValuesForDefinition(ctx, ddbsettings.Scope(), request.GetSettingName(), filter)
+	page, err := s.settings.ListValuesForDefinition(ctx, s.db.Reader(), ddbsettings.Scope(), request.GetSettingName(), filter)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "fetching setting values for definition")
 	}
@@ -421,7 +434,7 @@ func (s *serviceImpl) ResolveSetting(ctx context.Context, request *settingssvc.R
 	logger := s.logger.WithSpan(span).WithValue(settingskeys.SettingNameKey, request.GetSettingName())
 	tracing.AttachToSpan(span, settingskeys.SettingNameKey, request.GetSettingName())
 
-	resolution, err := s.settings.Resolve(ctx, ddbsettings.Scope(), ddbsettings.SubjectFor(sessionContextData.GetUserID()), request.GetSettingName())
+	resolution, err := s.settings.Resolve(ctx, s.db.Reader(), ddbsettings.Scope(), ddbsettings.SubjectFor(sessionContextData.GetUserID()), request.GetSettingName())
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "resolving setting")
 	}
@@ -458,7 +471,7 @@ func (s *serviceImpl) ResolveSettings(ctx context.Context, _ *settingssvc.Resolv
 
 	logger := s.logger.WithSpan(span)
 
-	resolutions, err := s.settings.ResolveAll(ctx, ddbsettings.Scope(), ddbsettings.SubjectFor(sessionContextData.GetUserID()))
+	resolutions, err := s.settings.ResolveAll(ctx, s.db.Reader(), ddbsettings.Scope(), ddbsettings.SubjectFor(sessionContextData.GetUserID()))
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "resolving settings")
 	}
@@ -529,7 +542,7 @@ func (s *serviceImpl) writableSetting(
 	logger := s.logger.WithSpan(span).WithValue(settingskeys.SettingNameKey, name)
 	tracing.AttachToSpan(span, settingskeys.SettingNameKey, name)
 
-	definition, err := s.settings.GetDefinitionByName(ctx, ddbsettings.Scope(), name)
+	definition, err := s.settings.GetDefinitionByName(ctx, s.db.Reader(), ddbsettings.Scope(), name)
 	if err != nil {
 		return nil, nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "fetching setting definition by name")
 	}

@@ -14,14 +14,15 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
 
-	"github.com/primandproper/platform-go/v13/authentication/oauth2server"
-	oauth2servercfg "github.com/primandproper/platform-go/v13/authentication/oauth2server/config"
-	"github.com/primandproper/platform-go/v13/authentication/totp"
-	"github.com/primandproper/platform-go/v13/database"
-	issuereports "github.com/primandproper/platform-go/v13/issuereports"
-	"github.com/primandproper/platform-go/v13/observability"
-	routingcfg "github.com/primandproper/platform-go/v13/routing/config"
-	waitlists "github.com/primandproper/platform-go/v13/waitlists"
+	oauth2servercfg "github.com/primandproper/platform-go/v14/authentication/oauth2serverstore/config"
+	issuereports "github.com/primandproper/platform-go/v14/issuereports"
+	waitlists "github.com/primandproper/platform-go/v14/waitlists"
+	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
+	baseoauth2cfg "github.com/primandproper/primitives-go/v2/authentication/oauth2server/config"
+	"github.com/primandproper/primitives-go/v2/authentication/totp"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/observability"
+	routingcfg "github.com/primandproper/primitives-go/v2/routing/config"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/samber/do/v2"
@@ -156,7 +157,13 @@ func NewService(ctx context.Context, cfg *config.MCPServiceConfig, baseURL strin
 			totpVerifier:  totpVerifier,
 		},
 		oauth2servercfg.WithPillars(pillars),
-		oauth2servercfg.WithServerOptions(oauth2server.WithLoginRenderer(newLoginRenderer(pillars.Logger))),
+		// Two layers of WithServerOptions, because v14 splits the config in two: the
+		// outer one is the store tier's, and it carries the server tier's option set
+		// through to it. The names are the same at both tiers and only the element
+		// type differs.
+		oauth2servercfg.WithServerOptions(
+			baseoauth2cfg.WithServerOptions(oauth2server.WithLoginRenderer(newLoginRenderer(pillars.Logger))),
+		),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("building authorization server: %w", err)
@@ -173,6 +180,7 @@ func NewService(ctx context.Context, cfg *config.MCPServiceConfig, baseURL strin
 	}
 
 	helper := &mcpToolManager{
+		reader:           dbClient.Reader(),
 		mealplanningRepo: mealplanningRepo,
 		webhooksRepo:     webhooksRepo,
 		waitlists:        waitlistStore,

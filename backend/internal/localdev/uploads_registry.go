@@ -3,10 +3,10 @@ package localdev
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 
-	"github.com/primandproper/platform-go/v13/database"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
-	"github.com/primandproper/platform-go/v13/uploads/registry"
+	"github.com/primandproper/platform-go/v14/mediaregistry"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
 )
 
 // UploadsRegistry builds the upload registry store the identity and meal
@@ -21,11 +21,11 @@ import (
 // a nil client or a prefix that is not a legal identifier, both of which are
 // programming errors that would otherwise surface as a nil store panicking on
 // the first user with an avatar.
-func UploadsRegistry(logger logging.Logger, tracerProvider tracing.Provider, client database.Client) (registry.Store, error) {
-	return registry.NewSQLStore(
+func UploadsRegistry(logger logging.Logger, tracerProvider tracing.Provider, client database.Client) (mediaregistry.Store, error) {
+	return mediaregistry.NewSQLStore(
 		client,
-		registry.WithTablePrefix(uploadedmedia.TablePrefix),
-		registry.WithStoreLogger(logger),
-		registry.WithStoreTracerProvider(tracerProvider),
+		mediaregistry.WithTablePrefix(uploadedmedia.TablePrefix),
+		mediaregistry.WithStoreLogger(logger),
+		mediaregistry.WithStoreTracerProvider(tracerProvider),
 	)
 }

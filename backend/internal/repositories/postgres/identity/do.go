@@ -6,12 +6,12 @@ import (
 	domainidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 
-	platformauthz "github.com/primandproper/platform-go/v13/authorization"
-	"github.com/primandproper/platform-go/v13/database"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/metrics"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
-	"github.com/primandproper/platform-go/v13/uploads/registry"
+	"github.com/primandproper/platform-go/v14/mediaregistry"
+	platformauthz "github.com/primandproper/primitives-go/v2/authorization"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/metrics"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
 
 	"github.com/samber/do/v2"
 )
@@ -41,7 +41,7 @@ func RegisterIdentityRepository(i do.Injector) {
 			do.MustInvoke[audit.Repository](i),
 			do.MustInvoke[database.Client](i),
 			do.MustInvoke[*events.Emitter](i),
-			do.MustInvoke[registry.Store](i),
+			do.MustInvoke[mediaregistry.Store](i),
 			do.MustInvoke[platformauthz.PolicyResolver](i),
 		), nil
 	})

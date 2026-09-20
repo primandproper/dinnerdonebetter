@@ -12,7 +12,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/manager"
 
-	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/primitives-go/v2/filtering"
 )
 
 // Ensure, that IdentityDataManagerMock does implement manager.IdentityDataManager.

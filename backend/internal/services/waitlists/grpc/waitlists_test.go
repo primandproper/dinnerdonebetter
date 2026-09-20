@@ -10,12 +10,12 @@ import (
 	waitlistssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/waitlists"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/waitlists/grpc/converters"
 
-	"github.com/primandproper/platform-go/v13/fake"
-	"github.com/primandproper/platform-go/v13/filtering"
-	"github.com/primandproper/platform-go/v13/pointer"
-	"github.com/primandproper/platform-go/v13/tenancy"
-	waitlists "github.com/primandproper/platform-go/v13/waitlists"
-	waitlistsmock "github.com/primandproper/platform-go/v13/waitlists/mock"
+	waitlists "github.com/primandproper/platform-go/v14/waitlists"
+	waitlistsmock "github.com/primandproper/platform-go/v14/waitlists/mock"
+	"github.com/primandproper/primitives-go/v2/fake"
+	"github.com/primandproper/primitives-go/v2/filtering"
+	"github.com/primandproper/primitives-go/v2/pointer"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

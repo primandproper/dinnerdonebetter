@@ -4,7 +4,7 @@ import (
 	"encoding/gob"
 	"slices"
 
-	platformauthz "github.com/primandproper/platform-go/v13/authorization"
+	platformauthz "github.com/primandproper/primitives-go/v2/authorization"
 )
 
 func init() {

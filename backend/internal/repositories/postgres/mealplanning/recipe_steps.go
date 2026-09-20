@@ -9,12 +9,12 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/indexevents"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
-	"github.com/primandproper/platform-go/v13/database"
-	platformerrors "github.com/primandproper/platform-go/v13/errors"
-	"github.com/primandproper/platform-go/v13/filtering"
-	"github.com/primandproper/platform-go/v13/observability"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
-	"github.com/primandproper/platform-go/v13/uploads/registry"
+	"github.com/primandproper/platform-go/v14/mediaregistry"
+	"github.com/primandproper/primitives-go/v2/database"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/filtering"
+	"github.com/primandproper/primitives-go/v2/observability"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
 )
 
 var (
@@ -193,7 +193,7 @@ func (q *repository) GetRecipeStep(ctx context.Context, recipeID, recipeStepID s
 }
 
 // enrichRecipeStepWithStepImages fetches step images for a recipe step and returns the uploaded media.
-func (q *repository) enrichRecipeStepWithStepImages(ctx context.Context, recipeStepID string) ([]*registry.Object, error) {
+func (q *repository) enrichRecipeStepWithStepImages(ctx context.Context, recipeStepID string) ([]*mediaregistry.Object, error) {
 	rows, err := q.GetRecipeStepImagesByStep(ctx, recipeStepID)
 	if err != nil || len(rows) == 0 {
 		return nil, err

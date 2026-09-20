@@ -16,12 +16,12 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity/generated"
 
-	"github.com/primandproper/platform-go/v13/database"
-	mockdatabase "github.com/primandproper/platform-go/v13/database/mock"
-	"github.com/primandproper/platform-go/v13/filtering"
-	"github.com/primandproper/platform-go/v13/identifiers"
-	"github.com/primandproper/platform-go/v13/testutils/containers"
-	"github.com/primandproper/platform-go/v13/testutils/containers/pgtest"
+	"github.com/primandproper/primitives-go/v2/database"
+	mockdatabase "github.com/primandproper/primitives-go/v2/database/mock"
+	"github.com/primandproper/primitives-go/v2/filtering"
+	"github.com/primandproper/primitives-go/v2/identifiers"
+	"github.com/primandproper/primitives-go/v2/testutils/containers"
+	"github.com/primandproper/primitives-go/v2/testutils/containers/pgtest"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/stretchr/testify/assert"

@@ -10,12 +10,12 @@ import (
 	commentssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/comments"
 	issuereportssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/issue_reports"
 
-	comments "github.com/primandproper/platform-go/v13/comments"
-	commentsmock "github.com/primandproper/platform-go/v13/comments/mock"
-	"github.com/primandproper/platform-go/v13/fake"
-	issuereports "github.com/primandproper/platform-go/v13/issuereports"
-	issuereportsmock "github.com/primandproper/platform-go/v13/issuereports/mock"
-	"github.com/primandproper/platform-go/v13/tenancy"
+	comments "github.com/primandproper/platform-go/v14/comments"
+	commentsmock "github.com/primandproper/platform-go/v14/comments/mock"
+	issuereports "github.com/primandproper/platform-go/v14/issuereports"
+	issuereportsmock "github.com/primandproper/platform-go/v14/issuereports/mock"
+	"github.com/primandproper/primitives-go/v2/fake"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

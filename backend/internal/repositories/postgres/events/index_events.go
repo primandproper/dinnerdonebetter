@@ -5,8 +5,8 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 
-	"github.com/primandproper/platform-go/v13/database"
-	"github.com/primandproper/platform-go/v13/outbox"
+	"github.com/primandproper/platform-go/v14/outbox"
+	"github.com/primandproper/primitives-go/v2/database"
 )
 
 /*

@@ -5,8 +5,8 @@ import (
 
 	ddbwaitlists "github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists"
 
-	"github.com/primandproper/platform-go/v13/filtering"
-	waitlists "github.com/primandproper/platform-go/v13/waitlists"
+	waitlists "github.com/primandproper/platform-go/v14/waitlists"
+	"github.com/primandproper/primitives-go/v2/filtering"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -45,7 +45,7 @@ type GetWaitlistInvocation struct {
 
 func (h *mcpToolManager) GetWaitlist() mcp.ToolHandlerFor[*GetWaitlistInvocation, *waitlists.List] {
 	return func(ctx context.Context, req *mcp.CallToolRequest, x *GetWaitlistInvocation) (*mcp.CallToolResult, *waitlists.List, error) {
-		result, err := h.waitlists.GetList(ctx, ddbwaitlists.Scope(), x.WaitlistID)
+		result, err := h.waitlists.GetList(ctx, h.reader, ddbwaitlists.Scope(), x.WaitlistID)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -77,7 +77,7 @@ type (
 
 func (h *mcpToolManager) GetWaitlists() mcp.ToolHandlerFor[*GetWaitlistsInvocation, *GetWaitlistsResult] {
 	return func(ctx context.Context, req *mcp.CallToolRequest, x *GetWaitlistsInvocation) (*mcp.CallToolResult, *GetWaitlistsResult, error) {
-		results, err := h.waitlists.ListLists(ctx, ddbwaitlists.Scope(), x.Filter)
+		results, err := h.waitlists.ListLists(ctx, h.reader, ddbwaitlists.Scope(), x.Filter)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -109,7 +109,7 @@ type (
 
 func (h *mcpToolManager) GetOpenWaitlists() mcp.ToolHandlerFor[*GetOpenWaitlistsInvocation, *GetOpenWaitlistsResult] {
 	return func(ctx context.Context, req *mcp.CallToolRequest, x *GetOpenWaitlistsInvocation) (*mcp.CallToolResult, *GetOpenWaitlistsResult, error) {
-		results, err := h.waitlists.ListOpenLists(ctx, ddbwaitlists.Scope(), x.Filter)
+		results, err := h.waitlists.ListOpenLists(ctx, h.reader, ddbwaitlists.Scope(), x.Filter)
 		if err != nil {
 			return nil, nil, err
 		}

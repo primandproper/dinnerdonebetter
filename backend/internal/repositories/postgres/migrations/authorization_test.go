@@ -6,10 +6,10 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	platformauthz "github.com/primandproper/platform-go/v13/authorization"
-	authzdatabase "github.com/primandproper/platform-go/v13/authorization/database"
-	"github.com/primandproper/platform-go/v13/database/dialect"
-	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
+	authzdatabase "github.com/primandproper/platform-go/v14/rbac"
+	platformauthz "github.com/primandproper/primitives-go/v2/authorization"
+	"github.com/primandproper/primitives-go/v2/database/dialect"
+	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

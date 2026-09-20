@@ -5,7 +5,7 @@ package converters
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 
-	"github.com/primandproper/platform-go/v13/identifiers"
+	"github.com/primandproper/primitives-go/v2/identifiers"
 )
 
 // ConvertAccountToAccountCreationRequestInput builds an AccountCreationRequestInput from an Account.

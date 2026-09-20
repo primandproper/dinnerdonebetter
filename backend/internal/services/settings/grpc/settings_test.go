@@ -9,12 +9,12 @@ import (
 	settingssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/settings"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/settings/grpc/converters"
 
-	platformerrors "github.com/primandproper/platform-go/v13/errors"
-	"github.com/primandproper/platform-go/v13/filtering"
-	"github.com/primandproper/platform-go/v13/pointer"
-	settings "github.com/primandproper/platform-go/v13/settings"
-	settingsmock "github.com/primandproper/platform-go/v13/settings/mock"
-	"github.com/primandproper/platform-go/v13/tenancy"
+	settings "github.com/primandproper/platform-go/v14/settings"
+	settingsmock "github.com/primandproper/platform-go/v14/settings/mock"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/filtering"
+	"github.com/primandproper/primitives-go/v2/pointer"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

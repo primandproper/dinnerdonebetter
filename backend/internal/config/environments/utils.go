@@ -6,10 +6,10 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 
-	circuitbreakingcfg "github.com/primandproper/platform-go/v13/circuitbreaking/config"
-	retrycfg "github.com/primandproper/platform-go/v13/retry/config"
-	"github.com/primandproper/platform-go/v13/webhooks"
-	webhookscfg "github.com/primandproper/platform-go/v13/webhooks/config"
+	"github.com/primandproper/platform-go/v14/webhooks"
+	webhookscfg "github.com/primandproper/platform-go/v14/webhooks/config"
+	circuitbreakingcfg "github.com/primandproper/primitives-go/v2/circuitbreaking/config"
+	retrycfg "github.com/primandproper/primitives-go/v2/retry/config"
 )
 
 // Names the environment builders below repeat: the service's own name, the analytics

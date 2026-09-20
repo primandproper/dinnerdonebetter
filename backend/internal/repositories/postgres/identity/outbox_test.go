@@ -8,8 +8,8 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
 
-	"github.com/primandproper/platform-go/v13/database"
-	searchsync "github.com/primandproper/platform-go/v13/search/sync"
+	searchsync "github.com/primandproper/platform-go/v14/searchsync"
+	"github.com/primandproper/primitives-go/v2/database"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

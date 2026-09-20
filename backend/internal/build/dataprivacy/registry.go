@@ -39,22 +39,22 @@ import (
 	webhooksprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/privacy"
 	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
 
-	"github.com/primandproper/platform-go/v13/billing"
-	platformcomments "github.com/primandproper/platform-go/v13/comments"
-	commentsprivacy "github.com/primandproper/platform-go/v13/comments/privacy"
-	"github.com/primandproper/platform-go/v13/database"
-	platformdataprivacy "github.com/primandproper/platform-go/v13/dataprivacy"
-	"github.com/primandproper/platform-go/v13/dataprivacy/auditerasure"
-	platformdataprivacycfg "github.com/primandproper/platform-go/v13/dataprivacy/config"
-	platformerrors "github.com/primandproper/platform-go/v13/errors"
-	issuereports "github.com/primandproper/platform-go/v13/issuereports"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/metrics"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
-	"github.com/primandproper/platform-go/v13/operations"
-	platformsettings "github.com/primandproper/platform-go/v13/settings"
-	uploadsregistry "github.com/primandproper/platform-go/v13/uploads/registry"
-	platformwaitlists "github.com/primandproper/platform-go/v13/waitlists"
+	"github.com/primandproper/platform-go/v14/billing"
+	platformcomments "github.com/primandproper/platform-go/v14/comments"
+	commentsprivacy "github.com/primandproper/platform-go/v14/comments/privacy"
+	platformdataprivacy "github.com/primandproper/platform-go/v14/dataprivacy"
+	"github.com/primandproper/platform-go/v14/dataprivacy/auditerasure"
+	platformdataprivacycfg "github.com/primandproper/platform-go/v14/dataprivacy/config"
+	issuereports "github.com/primandproper/platform-go/v14/issuereports"
+	uploadsregistry "github.com/primandproper/platform-go/v14/mediaregistry"
+	"github.com/primandproper/platform-go/v14/operations"
+	platformsettings "github.com/primandproper/platform-go/v14/settings"
+	platformwaitlists "github.com/primandproper/platform-go/v14/waitlists"
+	"github.com/primandproper/primitives-go/v2/database"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/metrics"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
 
 	"github.com/samber/do/v2"
 )
@@ -92,13 +92,19 @@ func buildRegistry(i do.Injector) (*platformdataprivacy.Registry, error) {
 		return nil, commentsErr
 	}
 
+	// Every collector below takes a read executor at construction, because
+	// dataprivacy.Collector.Collect is handed none: an export is a read, and it
+	// runs outside the erasure transaction by design. The erasers, which do run
+	// inside it, are handed the request's database.Tx per call.
+	reader := do.MustInvoke[database.Client](i).Reader()
+
 	issueReportsCollector, issueReportsErr := issuereportsprivacy.NewCollector(
-		do.MustInvoke[issuereports.Store](i), resolveAccounts)
+		do.MustInvoke[issuereports.Store](i), reader, resolveAccounts)
 	if issueReportsErr != nil {
 		return nil, platformerrors.Wrap(issueReportsErr, "building the issue reports data privacy collector")
 	}
 
-	paymentsCollector, paymentsErr := paymentsprivacy.NewCollector(do.MustInvoke[billing.Store](i), resolveAccounts)
+	paymentsCollector, paymentsErr := paymentsprivacy.NewCollector(do.MustInvoke[billing.Store](i), reader, resolveAccounts)
 	if paymentsErr != nil {
 		return nil, paymentsErr
 	}
@@ -124,9 +130,9 @@ func buildRegistry(i do.Injector) (*platformdataprivacy.Registry, error) {
 		ddbdataprivacy.CollectorKeyPayments:      paymentsCollector,
 		ddbdataprivacy.CollectorKeyAuditLog:      auditprivacy.NewCollector(do.MustInvoke[auditdomain.Repository](i)),
 		ddbdataprivacy.CollectorKeyIssueReports:  issueReportsCollector,
-		ddbdataprivacy.CollectorKeyUploadedMedia: uploadedmediaprivacy.NewCollector(do.MustInvoke[uploadsregistry.Store](i)),
-		ddbdataprivacy.CollectorKeyWaitlists:     waitlistsprivacy.NewCollector(do.MustInvoke[platformwaitlists.Store](i)),
-		ddbdataprivacy.CollectorKeySettings:      settingsprivacy.NewCollector(do.MustInvoke[platformsettings.Store](i)),
+		ddbdataprivacy.CollectorKeyUploadedMedia: uploadedmediaprivacy.NewCollector(do.MustInvoke[uploadsregistry.Store](i), reader),
+		ddbdataprivacy.CollectorKeyWaitlists:     waitlistsprivacy.NewCollector(do.MustInvoke[platformwaitlists.Store](i), reader),
+		ddbdataprivacy.CollectorKeySettings:      settingsprivacy.NewCollector(do.MustInvoke[platformsettings.Store](i), reader),
 		ddbdataprivacy.CollectorKeyComments:      commentsCollector,
 	}
 
@@ -179,7 +185,9 @@ func buildRegistry(i do.Injector) (*platformdataprivacy.Registry, error) {
 		ctx,
 		prepareConfig(i),
 		registry,
-		auditerasure.WithScopeResolver(auditprivacy.ErasableScopeResolver(identityRepo)),
+		platformdataprivacycfg.WithAuditEraserOptions(
+			auditerasure.WithScopeResolver(auditprivacy.ErasableScopeResolver(identityRepo)),
+		),
 	)
 	if err != nil {
 		return nil, platformerrors.Wrap(err, "registering audit data privacy eraser")
@@ -217,30 +225,28 @@ func RegisterOperationsRegistry(i do.Injector) {
 	do.Provide(i, func(i do.Injector) (*operations.Registry, error) {
 		registry := operations.NewRegistry()
 
-		fulfillerOpts, _ := platformdataprivacycfg.EnsurePackaging(
-			do.MustInvoke[dataprivacycfg.ArtifactCompressor](i).Compressor,
-			do.MustInvoke[dataprivacycfg.ArtifactEncryptorDecryptor](i).EncryptorDecryptor,
-		)
-
 		// The Fulfiller is discarded on purpose. Its whole effect here is the registration
 		// it performs into registry; nothing calls it directly afterwards, because the
 		// operations.Worker runs it through the kinds it registered.
 		if _, err := platformdataprivacycfg.NewFulfiller(
 			do.MustInvoke[context.Context](i),
 			prepareConfig(i),
+			do.MustInvoke[database.Client](i),
 			do.MustInvoke[platformdataprivacy.Store](i),
 			do.MustInvoke[*platformdataprivacy.Registry](i),
 			registry,
 			do.MustInvoke[dataprivacycfg.ArtifactUploadManager](i).UploadManager,
-			// Artifacts are encrypted, so no signed URL can be minted for one: the
-			// stored object is ciphertext and a subject following that link would get a
-			// file they cannot open. Saying so here is what stops a completion
-			// notification carrying a broken download link.
-			true,
 			platformdataprivacycfg.WithLogger(do.MustInvoke[logging.Logger](i)),
 			platformdataprivacycfg.WithTracerProvider(do.MustInvoke[tracing.Provider](i)),
 			platformdataprivacycfg.WithMetricsProvider(do.MustInvoke[metrics.Provider](i)),
-			platformdataprivacycfg.WithFulfillerOptions(fulfillerOpts...),
+			// Artifacts are encrypted, so no signed URL can be minted for one: the
+			// stored object is ciphertext and a subject following that link would get a
+			// file they cannot open. v14 reads that off the encryptor rather than off a
+			// flag beside it, which is what stops the two disagreeing — so naming the
+			// encryptor here is also what stops a completion notification carrying a
+			// broken download link.
+			platformdataprivacycfg.WithCompressor(do.MustInvoke[dataprivacycfg.ArtifactCompressor](i).Compressor),
+			platformdataprivacycfg.WithEncryptor(do.MustInvoke[dataprivacycfg.ArtifactEncryptorDecryptor](i).EncryptorDecryptor),
 		); err != nil {
 			return nil, platformerrors.Wrap(err, "registering data privacy operation kinds")
 		}
@@ -293,7 +299,7 @@ func commentsPrivacy(i do.Injector) (platformdataprivacy.Collector, platformdata
 	store := do.MustInvoke[platformcomments.Store](i)
 	resolveScopes := commentsprivacy.FixedScopes(ddbcomments.Scope())
 
-	collector, err := commentsprivacy.NewCollector(store, resolveScopes)
+	collector, err := commentsprivacy.NewCollector(store, do.MustInvoke[database.Client](i).Reader(), resolveScopes)
 	if err != nil {
 		return nil, nil, platformerrors.Wrap(err, "building the comments data privacy collector")
 	}
