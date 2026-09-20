@@ -3,20 +3,24 @@ package grpc
 import (
 	"context"
 	"io"
+	"os"
 	"strings"
 	"testing"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
+	ddbdataprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
 	dataprivacysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/dataprivacy"
 
 	platformdataprivacy "github.com/primandproper/platform-go/v14/dataprivacy"
 	dataprivacymock "github.com/primandproper/platform-go/v14/dataprivacy/mock"
+	platformerrormappers "github.com/primandproper/platform-go/v14/errormappers"
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/filtering"
 	"github.com/primandproper/primitives-go/v2/identifiers"
 	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
 	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -56,6 +60,19 @@ func TestNewDataPrivacyService(t *testing.T) {
 	))
 }
 
+// TestMain installs platform-go's transport mappings, because the codes this package asserts
+// on are the ones a client sees and those are what the mappings decide.
+//
+// As of v14 the mappers do not register themselves, so a process that has not made this call
+// answers every platform sentinel with whatever default code the handler named — which is a
+// different answer from the one production gives, since BuildInjector makes the call. A test
+// package asserting on codes without it would be pinning the wrong behaviour.
+func TestMain(m *testing.M) {
+	platformerrormappers.Register()
+
+	os.Exit(m.Run())
+}
+
 func TestServiceImpl_AggregateUserDataReport(T *testing.T) {
 	T.Parallel()
 
@@ -66,13 +83,14 @@ func TestServiceImpl_AggregateUserDataReport(T *testing.T) {
 		requestID := identifiers.New()
 
 		requests := &dataprivacymock.ServiceMock{
-			SubmitFunc: func(_ context.Context, subject platformdataprivacy.Subject, requestType platformdataprivacy.RequestType) (*platformdataprivacy.Request, error) {
+			SubmitFunc: func(_ context.Context, scope tenancy.Scope, subject platformdataprivacy.Subject, requestType platformdataprivacy.RequestType) (*platformdataprivacy.Request, error) {
 				assert.Equal(t, userID, subject.ID)
 				assert.Equal(t, platformdataprivacy.SubjectUser, subject.Type)
 				assert.Equal(t, platformdataprivacy.RequestExport, requestType)
-				// Empty scope, which means every scope the subject appears in — what a
-				// plain "give me my data" asks for.
-				assert.Empty(t, subject.Scope)
+				// v14 moved the scope off the subject and onto the call, so this asserts on
+				// the argument. It is this deployment's single scope: everything a subject
+				// appears in is in it, which is what a plain "give me my data" asks for.
+				assert.Equal(t, ddbdataprivacy.Scope(), scope)
 
 				return &platformdataprivacy.Request{
 					ID:      requestID,
@@ -115,7 +133,7 @@ func TestServiceImpl_DestroyAllUserData(T *testing.T) {
 		userID := identifiers.New()
 
 		requests := &dataprivacymock.ServiceMock{
-			SubmitFunc: func(_ context.Context, subject platformdataprivacy.Subject, requestType platformdataprivacy.RequestType) (*platformdataprivacy.Request, error) {
+			SubmitFunc: func(_ context.Context, _ tenancy.Scope, subject platformdataprivacy.Subject, requestType platformdataprivacy.RequestType) (*platformdataprivacy.Request, error) {
 				assert.Equal(t, platformdataprivacy.RequestErasure, requestType)
 
 				return &platformdataprivacy.Request{
@@ -151,14 +169,14 @@ func TestServiceImpl_FetchUserDataReport(T *testing.T) {
 		body := `{"identity":{"user":{}}}`
 
 		requests := &dataprivacymock.ServiceMock{
-			GetFunc: func(context.Context, string) (*platformdataprivacy.Request, error) {
+			GetFunc: func(context.Context, *tenancy.Scope, string) (*platformdataprivacy.Request, error) {
 				return &platformdataprivacy.Request{
 					ID:      requestID,
 					Subject: platformdataprivacy.Subject{ID: userID},
 					Status:  platformdataprivacy.StatusCompleted,
 				}, nil
 			},
-			OpenFunc: func(_ context.Context, actualRequestID string) (io.ReadCloser, error) {
+			OpenFunc: func(_ context.Context, _ *tenancy.Scope, actualRequestID string) (io.ReadCloser, error) {
 				assert.Equal(t, requestID, actualRequestID)
 
 				return io.NopCloser(strings.NewReader(body)), nil
@@ -182,7 +200,7 @@ func TestServiceImpl_FetchUserDataReport(T *testing.T) {
 		// about — and NotFound rather than PermissionDenied, because a distinct denial
 		// would confirm the request exists.
 		requests := &dataprivacymock.ServiceMock{
-			GetFunc: func(context.Context, string) (*platformdataprivacy.Request, error) {
+			GetFunc: func(context.Context, *tenancy.Scope, string) (*platformdataprivacy.Request, error) {
 				return &platformdataprivacy.Request{
 					ID:      identifiers.New(),
 					Subject: platformdataprivacy.Subject{ID: identifiers.New()},
@@ -207,14 +225,14 @@ func TestServiceImpl_FetchUserDataReport(T *testing.T) {
 		userID := identifiers.New()
 
 		requests := &dataprivacymock.ServiceMock{
-			GetFunc: func(context.Context, string) (*platformdataprivacy.Request, error) {
+			GetFunc: func(context.Context, *tenancy.Scope, string) (*platformdataprivacy.Request, error) {
 				return &platformdataprivacy.Request{
 					ID:      identifiers.New(),
 					Subject: platformdataprivacy.Subject{ID: userID},
 					Status:  platformdataprivacy.StatusExpired,
 				}, nil
 			},
-			OpenFunc: func(context.Context, string) (io.ReadCloser, error) {
+			OpenFunc: func(context.Context, *tenancy.Scope, string) (io.ReadCloser, error) {
 				return nil, platformerrors.Wrap(platformdataprivacy.ErrArtifactUnavailable, "expired")
 			},
 		}
@@ -244,7 +262,7 @@ func TestServiceImpl_GetDataPrivacyRequest(T *testing.T) {
 		requestID := identifiers.New()
 
 		requests := &dataprivacymock.ServiceMock{
-			GetFunc: func(_ context.Context, actualRequestID string) (*platformdataprivacy.Request, error) {
+			GetFunc: func(_ context.Context, _ *tenancy.Scope, actualRequestID string) (*platformdataprivacy.Request, error) {
 				assert.Equal(t, requestID, actualRequestID)
 
 				return &platformdataprivacy.Request{
@@ -269,7 +287,7 @@ func TestServiceImpl_GetDataPrivacyRequest(T *testing.T) {
 		t.Parallel()
 
 		requests := &dataprivacymock.ServiceMock{
-			GetFunc: func(context.Context, string) (*platformdataprivacy.Request, error) {
+			GetFunc: func(context.Context, *tenancy.Scope, string) (*platformdataprivacy.Request, error) {
 				return &platformdataprivacy.Request{
 					ID:      identifiers.New(),
 					Subject: platformdataprivacy.Subject{ID: identifiers.New()},
@@ -302,7 +320,7 @@ func TestServiceImpl_ListDataPrivacyRequests(T *testing.T) {
 		}
 
 		requests := &dataprivacymock.ServiceMock{
-			ListFunc: func(_ context.Context, subject platformdataprivacy.Subject, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[platformdataprivacy.Request], error) {
+			ListFunc: func(_ context.Context, _ *tenancy.Scope, subject platformdataprivacy.Subject, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[platformdataprivacy.Request], error) {
 				// Scoped to the requester, so a subject can only ever see what has been
 				// asked in their own name.
 				assert.Equal(t, userID, subject.ID)
@@ -330,7 +348,7 @@ func TestServiceImpl_ListDataPrivacyRequests(T *testing.T) {
 		t.Parallel()
 
 		requests := &dataprivacymock.ServiceMock{
-			ListFunc: func(context.Context, platformdataprivacy.Subject, *filtering.QueryFilter) (*filtering.QueryFilteredResult[platformdataprivacy.Request], error) {
+			ListFunc: func(context.Context, *tenancy.Scope, platformdataprivacy.Subject, *filtering.QueryFilter) (*filtering.QueryFilteredResult[platformdataprivacy.Request], error) {
 				return nil, platformerrors.New("blah")
 			},
 		}
