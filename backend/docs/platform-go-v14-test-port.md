@@ -481,10 +481,14 @@ schema change upstream lands on a comment rather than a surprise.
 
 # Pass 2 spike: settings
 
+**Closed.** platform-go now enforces AdminOnly on the value-write path, and
+settings is adoptable. The finding and its verification are kept below, because
+the shape of the argument is the reusable part.
+
 Taken as insurance before the tag, on the expectation that the third thin domain
-would repeat comments. It did not. **The adoption was stopped before any
-deletion**, because mounting platform's settings surface silently drops an
-authorization check this application performs today.
+would repeat comments. It did not. The adoption was stopped before any deletion,
+because mounting platform's settings surface dropped an authorization check this
+application performs today.
 
 ## What settings does that comments did not
 
@@ -556,15 +560,32 @@ nobody has written either.
 The failure mode also argues for settling it early: a consumer adopts the
 surface, the check quietly stops happening, and nothing fails.
 
-## What was not done
+## How it was closed
 
-No deletion. The local settings service, proto and converters are untouched, and
-the 1,901-line service still enforces `AdminOnly`. Adopting settings should wait
-on the seam, at which point it looks like comments did — the store decorator
-already implements `settings.Store`, so the audit entry and outbox event carry
-over unchanged.
+Not with the `WithDefinitionAuthorizer` option this write-up first proposed —
+platform found a better answer. `settings/grpc` now asks a new
+`PermissionWriteAdminValues` **inside the handler**, against the definition it
+has already read, "exactly as PermissionArchiveDefinitions is asked there about
+a filter". It is the one grant in that package no method requires, and the doc
+comment says that is the point rather than an omission.
 
-The workaround that does not need platform is enforcing `AdminOnly` in this
-repo's store decorator, reading the session off the context. It works and it is
-the wrong layer, which is precisely the objection platform raises about the store
-doing it. Better to ask for the seam.
+That is better than a third authorizer. It reuses the grants mechanism a
+consumer has already wired, rather than adding a seam whose only question would
+have been one the method grant had already answered. platform also ruled that
+clearing is writing — taking an administrator's answer back decides the setting
+for the subject exactly as naming a value does — so `ClearValue` pays a
+definition read it did not previously make.
+
+Verified from both directions, because refusing is only half of correct: a rule
+that refused every member every setting would pass a one-sided test and remove
+self-service. `internal/repositories/postgres/settingsspike` now pins five
+cases — a member without the grant refused a reserved setting with
+`PermissionDenied` and nothing stored; **the same member setting an ordinary
+setting successfully**, identical call and grant and authorizer with only the
+definition differing; a caller holding the grant setting a reserved one; the
+clear refused too; and a server built with no `GrantsExtractor` refusing rather
+than permitting.
+
+The test that demonstrated the bug is the test that now proves the fix: it failed
+the moment platform's change landed, which is the cleanest confirmation available
+that the two are about the same thing.
