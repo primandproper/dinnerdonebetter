@@ -415,6 +415,53 @@ platform names as the intended pattern.
 
 The seam works and is better than comments'. The surface maps. What identity
 costs is not code but schema: 34 foreign keys to re-point, and one product
-decision about what happens to a household when its owner is erased. That
-decision should be made before the work starts, not during it — it is the only
-part of this adoption that cannot be undone by editing Go.
+decision about what happens to a household when its owner is erased.
+
+**That decision is made**, and the blocker is cleared — see below.
+
+## The succession rule
+
+An erasure transfers the household to the longest-tenured remaining member, and
+deletes it only if the owner was alone. platform leaves the account standing;
+this application decides what standing means. No platform change, so identity
+can start.
+
+`internal/domain/identity/succession` is that rule, and it is production code
+rather than spike code: it depends only on platform's `identity.Store` and a
+`database.Tx`, so it is finished and tested now and gets wired when the port
+lands. `internal/repositories/postgres/identityspike/succession_test.go` runs it
+against a real database, composed the way the erasure will be — the rule, then
+`EraseUser`, on one transaction:
+
+- **Transfer.** Three members added newest-first; the earliest membership
+  inherits, and the other two keep theirs.
+- **Deletion.** A household the owner was alone in is gone.
+- **The invariant.** One subject owning two households, one shared and one solo,
+  so both paths run in a single erasure — and afterwards *no surviving household
+  names an owner who no longer exists*.
+- **Rollback.** A failure after `EraseUser` takes the transfer and the deletion
+  back with it, so a retried erasure does not find households already moved.
+
+Mutation-checked twice. Sorting by newest instead of earliest fails the transfer
+test on "the longest-tenured member should have inherited the household". Making
+the rule do nothing at all — which is exactly the state platform's `EraseUser`
+leaves — fails the invariant on "every surviving household should name an owner
+who still exists".
+
+### Two decisions inside the rule worth knowing about
+
+**Tenure ties break on the membership identifier.** Two people added in one
+transaction share a `created_at`, and an erasure that picked between them
+differently on a retry would hand the household to a different person the second
+time. Arbitrary, but total.
+
+**Deleting a solo household is a `DELETE` this application issues against
+identity's own table**, because platform's `Store` offers `ArchiveAccount` and no
+delete. Archiving would not be an erasure: the row keeps the name the erased
+person chose, and every one of the twelve tables that cascade from an account —
+the meal plans, the recipes, the webhooks, the subscriptions — survives, because
+they cascade from a deletion rather than from a flag. A solo household's contents
+are the erased person's data by definition. A `Store.DeleteAccount` would be the
+tidier home and is worth asking platform for later; it is one visible statement
+against a table platform owns, named in the package documentation so that a
+schema change upstream lands on a comment rather than a surprise.

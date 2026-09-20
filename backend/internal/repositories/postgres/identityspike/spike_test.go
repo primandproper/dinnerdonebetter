@@ -132,6 +132,7 @@ func (h *recordingHooks) AfterRegister(
 
 type fixture struct {
 	service *identity.Service
+	store   identity.Store
 	hooks   *recordingHooks
 	db      database.Client
 }
@@ -173,7 +174,7 @@ func buildFixture(t *testing.T) *fixture {
 		identity.WithServiceLogger(loggingnoop.NewLogger()))
 	require.NoError(t, err)
 
-	return &fixture{service: service, hooks: hooks, db: db}
+	return &fixture{service: service, store: store, hooks: hooks, db: db}
 }
 
 func (f *fixture) count(t *testing.T, ctx context.Context, query string, args ...any) int {
@@ -198,7 +199,7 @@ func (f *fixture) outboxRows(t *testing.T, ctx context.Context) int {
 }
 
 func newRegistration() (*identity.User, *identity.Account) {
-	username := "spike_" + identifiers.New()[:8]
+	username := "spike_" + identifiers.New()
 
 	return &identity.User{
 		ID:            identifiers.New(),
