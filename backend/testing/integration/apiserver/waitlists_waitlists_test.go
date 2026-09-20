@@ -82,10 +82,11 @@ func createWaitlistForTest(t *testing.T, testClient client.Client) *waitlistspb.
 // which is the uniqueness the withdrawal rests on.
 //
 // The contact sent here is deliberately not the session's, and the assertion below is that
-// the server ignored it. platform's Join takes the address from the request; this deployment
-// narrows it back to the session's, because a caller who could state an address could sign
-// somebody else up and could ask whether a given address had withdrawn. See
-// internal/build/waitlists.ownContactOnly.
+// the server ignored it. platform's Join takes the address from the request by default —
+// right for the public form it is written for — and this deployment supplies a
+// waitlistsgrpc.ContactResolver, because Join is behind a grant here and a stated address
+// would let any authenticated caller sign somebody else up. See
+// internal/build/waitlists.ownContact.
 func createWaitlistSignupForTest(t *testing.T, testClient client.Client, waitlistID string) *waitlistspb.Signup {
 	t.Helper()
 	ctx := t.Context()
@@ -430,19 +431,33 @@ func TestWaitlistSignups_Joining(T *testing.T) {
 		createWaitlistSignupForTest(t, testClient, waitlist.GetId())
 	})
 
-	// One address, one place on a list. This is the uniqueness the withdrawal
-	// rests on, so it is worth pinning from the outside.
-	T.Run("refuses a second signup from the same person", func(t *testing.T) {
+	// One address, one place on a list. This is the uniqueness the withdrawal rests on,
+	// and it is enforced quietly: a second join answers success and writes nothing, because
+	// a refusal a caller could see would tell whoever named an address whether it was
+	// already on the list. The outcome goes on the operation instead. So the assertion is
+	// that the queue did not grow, not that the call failed.
+	T.Run("a second signup from the same person adds nothing", func(t *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
 		_, testClient := createUserAndClientForTest(t)
 		waitlist := createWaitlistForTest(t, testClient)
-		createWaitlistSignupForTest(t, testClient, waitlist.GetId())
+		first := createWaitlistSignupForTest(t, testClient, waitlist.GetId())
 
 		_, err := testClient.Join(ctx, &waitlistspb.JoinRequest{ListId: waitlist.GetId()})
-		require.Error(t, err)
-		assert.Equal(t, codes.AlreadyExists, status.Code(err))
+		require.NoError(t, err, "a duplicate join is answered rather than refused")
+
+		mine, err := testClient.ListSignupsForSubject(ctx, &waitlistspb.ListSignupsForSubjectRequest{})
+		require.NoError(t, err)
+
+		var onThisList int
+		for _, signup := range mine.GetResults() {
+			if signup.GetListId() == waitlist.GetId() {
+				onThisList++
+				assert.Equal(t, first.GetId(), signup.GetId())
+			}
+		}
+		assert.Equal(t, 1, onThisList, "a duplicate join wrote a second place on the list")
 	})
 
 	// The narrowing, from the other side: two callers stating the same address are still two
@@ -738,11 +753,22 @@ func TestWaitlistSignups_Withdrawing(T *testing.T) {
 		})
 		require.NoError(t, err)
 
-		// Filling the form in again does not put them back on the list. This is the
-		// whole obligation: the local table it replaced had no way to express it.
+		// Filling the form in again does not put them back on the list. This is the whole
+		// obligation: the local table it replaced had no way to express it.
+		//
+		// It is honored quietly. The call answers success and writes nothing, because a
+		// visible refusal would tell whoever named the address that somebody with it had
+		// asked to be left alone — which is the one fact a withdrawal exists to keep. So
+		// the assertion is that they are still withdrawn, not that the call failed.
 		_, err = testClient.Join(ctx, &waitlistspb.JoinRequest{ListId: waitlist.GetId()})
-		require.Error(t, err)
-		assert.Equal(t, codes.PermissionDenied, status.Code(err))
+		require.NoError(t, err, "a suppressed join is answered rather than refused")
+
+		stillWithdrawn, err := testClient.GetSignup(ctx, &waitlistspb.GetSignupRequest{
+			ListId:   waitlist.GetId(),
+			SignupId: signup.GetId(),
+		})
+		require.NoError(t, err)
+		assert.Equal(t, waitlistspb.SignupStatus_SIGNUP_STATUS_WITHDRAWN, stillWithdrawn.GetResult().GetStatus())
 
 		// A second withdrawal is refused, and the code is worth pinning because it is
 		// the anonymization rather than the lifecycle guard that refuses it: the row
@@ -758,10 +784,17 @@ func TestWaitlistSignups_Withdrawing(T *testing.T) {
 		assert.Equal(t, codes.PermissionDenied, status.Code(err))
 	})
 
-	// The withdrawal is not an oracle. A caller cannot ask whether some address opted out,
-	// because they cannot join as that address — the suppression only ever answers about
-	// the caller's own. See internal/build/waitlists.ownContactOnly.
-	T.Run("does not disclose another person's opt-out", func(t *testing.T) {
+	// One person's withdrawal does not keep another person off the list.
+	//
+	// The suppression is on the address, so without the contact resolver somebody who typed
+	// a withdrawn address would be suppressed by it — a stranger's opt-out becoming a denial
+	// of service against them. With the resolver the stated address does not matter: they
+	// join as themselves.
+	//
+	// This is not about disclosure. Whether an address has withdrawn is already unlearnable
+	// from the reply: platform answers a suppressed join as success and records the outcome
+	// on the operation. See waitlists/grpc.quietJoinOutcome.
+	T.Run("another person's opt-out does not keep this caller off the list", func(t *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
@@ -778,9 +811,9 @@ func TestWaitlistSignups_Withdrawing(T *testing.T) {
 		})
 		require.NoError(t, err)
 
-		// Joining while claiming the withdrawn address succeeds, because the address the
-		// server stores is the caller's own. A refusal here would have told them that
-		// somebody with that address had opted out.
+		// Joining while claiming the withdrawn address puts them on the list under their
+		// own, which is the resolver working: the suppression is about an address nobody
+		// here is.
 		_, err = otherClient.Join(ctx, &waitlistspb.JoinRequest{
 			ListId:  waitlist.GetId(),
 			Contact: withdrawnContact,
@@ -789,6 +822,8 @@ func TestWaitlistSignups_Withdrawing(T *testing.T) {
 
 		joined := signupForSubject(t, otherClient, waitlist.GetId())
 		assert.NotEqual(t, withdrawnContact, joined.GetContact())
+		assert.Equal(t, waitlistspb.SignupStatus_SIGNUP_STATUS_WAITING, joined.GetStatus(),
+			"a stranger's withdrawal suppressed this caller")
 	})
 
 	T.Run("denied for somebody else's signup", func(t *testing.T) {
@@ -836,11 +871,18 @@ func TestWaitlistSignups_Archiving(T *testing.T) {
 		})
 		require.NoError(t, err)
 
-		// Archiving is not withdrawing: the row is hidden and the address is still
-		// stored, so a second attempt is a duplicate rather than an honored opt-out.
+		// Archiving is not withdrawing: the row is hidden and the address is still stored,
+		// so a second attempt is a duplicate rather than an honored opt-out. Both are quiet,
+		// so what separates them here is that no new place appears either way — the
+		// difference between the two lives on the operation, not in the reply.
 		_, err = testClient.Join(ctx, &waitlistspb.JoinRequest{ListId: waitlist.GetId()})
-		require.Error(t, err)
-		assert.Equal(t, codes.AlreadyExists, status.Code(err))
+		require.NoError(t, err, "a duplicate join is answered rather than refused")
+
+		mine, err := testClient.ListSignupsForSubject(ctx, &waitlistspb.ListSignupsForSubjectRequest{})
+		require.NoError(t, err)
+		for _, signup := range mine.GetResults() {
+			assert.NotEqual(t, waitlist.GetId(), signup.GetListId(), "an archived signup came back")
+		}
 	})
 
 	T.Run("nonexistentID", func(t *testing.T) {

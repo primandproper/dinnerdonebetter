@@ -67,29 +67,55 @@ func ownSignupOrAdmin(store platformwaitlists.SignupStore, db database.Client) w
 		})
 }
 
+// ownContact is this deployment's answer to where a join's address comes from:
+// the session's, never the request's.
+//
+// platform reads it off the wire by default, which is right for the deployment
+// its public Join is written for — a pre-launch visitor with no account has no
+// session to derive an address from, and double opt-in is what makes that
+// honest. This deployment is the other kind: Join is behind a grant (see
+// Permissions), so every caller already has an address this deployment
+// verified, and one read off the wire would let any of them sign somebody else
+// up.
+//
+// It is not a defense against learning whether an address is already on a list
+// or has withdrawn. Nothing here needs to be: platform answers both of those
+// refusals as success and records the outcome on the operation instead, so
+// naming an address tells a caller nothing either way. This narrows who may
+// name one.
+//
+// An anonymous request is refused rather than passed through, because there is
+// no address to substitute and letting the stated one stand would reopen the
+// hole for the one caller least accountable for it. ErrTargetNotPermitted is
+// what platform reads as a refusal; anything else it reads as an outage.
+func ownContact() waitlistsgrpc.ContactResolver {
+	return waitlistsgrpc.ContactResolverFunc(
+		func(ctx context.Context, _ callers.Principal, _ string) (string, error) {
+			if contact := sessions.FromContext(ctx).GetEmailAddress(); contact != "" {
+				return contact, nil
+			}
+
+			return "", callers.ErrTargetNotPermitted
+		})
+}
+
 // RegisterWaitlistsService registers platform's waitlists surface with the injector.
 func RegisterWaitlistsService(i do.Injector) {
 	do.Provide[waitlistspb.WaitlistsServiceServer](i, func(i do.Injector) (waitlistspb.WaitlistsServiceServer, error) {
 		db := do.MustInvoke[database.Client](i)
 		store := do.MustInvoke[platformwaitlists.Store](i)
 
-		server, err := waitlistsgrpc.NewServer(
+		return waitlistsgrpc.NewServer(
 			store,
 			db,
 			sessions.PrincipalFromContext,
 			ownSignupOrAdmin(store, db),
+			waitlistsgrpc.WithContactResolver(ownContact()),
 			waitlistsgrpc.WithGrantsExtractor(sessions.GrantsFromContext),
 			waitlistsgrpc.WithLogger(do.MustInvoke[logging.Logger](i)),
 			waitlistsgrpc.WithTracerProvider(do.MustInvoke[tracing.Provider](i)),
 			waitlistsgrpc.WithMetricsProvider(do.MustInvoke[metrics.Provider](i)),
 		)
-		if err != nil {
-			return nil, err
-		}
-
-		// Wrapped, not returned bare: a signup carries the session's address rather
-		// than the one the request stated. See ownContactOnly.
-		return ownContactOnly{WaitlistsServiceServer: server}, nil
 	})
 }
 
