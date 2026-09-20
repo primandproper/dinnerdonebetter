@@ -19,6 +19,20 @@ const (
 	AccountArchivedServiceEventType = "account_archived"
 	// AccountMemberRemovedServiceEventType indicates an account member was removed.
 	AccountMemberRemovedServiceEventType = "account_member_removed"
+	// UserServiceRolesChangedServiceEventType indicates a user's service roles were set.
+	//
+	// New with the platform adoption: this application had no RPC that set a service
+	// role, so nothing published one. platform's SetUserServiceRoles is the operation
+	// that grants and revokes them, and the hook it fires is the one place an audit
+	// trail can say who became an administrator and when.
+	UserServiceRolesChangedServiceEventType = "user_service_roles_changed"
+	// UserAgreementRecordedServiceEventType indicates a user accepted terms.
+	//
+	// Also new with the adoption. platform records agreements against the user;
+	// nothing here asked for them before, and the event exists so that the thing a
+	// compliance question is actually about — when somebody agreed to what — is on the
+	// same channel as every other user fact.
+	UserAgreementRecordedServiceEventType = "user_agreement_recorded"
 	// AccountMembershipPermissionsUpdatedServiceEventType indicates an account member's permissions were modified.
 	AccountMembershipPermissionsUpdatedServiceEventType = "account_membership_permissions_updated"
 	// AccountSetAsDefaultServiceEventType indicates an account was selected as a user's default.
