@@ -9,6 +9,7 @@ import (
 	oauth2database "github.com/primandproper/platform-go/v14/authentication/oauth2serverstore"
 	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
 	"github.com/primandproper/primitives-go/v2/authentication/oauth2server/oauth2servertest"
+	"github.com/primandproper/primitives-go/v2/clock"
 	"github.com/primandproper/primitives-go/v2/database/postgres"
 	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
 	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
@@ -107,18 +108,26 @@ func TestOAuth2Store_Conformance(T *testing.T) {
 	)
 	require.NoError(T, err)
 
-	store, err := oauth2database.NewStore(
-		&oauth2database.Config{TablePrefix: ddboauth.TablePrefix},
-		client,
-		oauth2database.WithLogger(loggingnoop.NewLogger()),
-		oauth2database.WithTracerProvider(tracingnoop.NewTracerProvider()),
-	)
-	require.NoError(T, err)
+	// A store per call rather than one for the suite, because the factory is handed a clock
+	// now: the sweep cases build a store on a clock they can advance, and the rest get the
+	// wall clock. The database is still shared — the suite gives each record it writes a
+	// unique identifier precisely so one database can serve every subtest in parallel.
+	//
+	// No WithInstanceLocalState here — that deviation is the memory store's, and claiming it
+	// would skip the cases that prove this one is shareable across replicas, which is the
+	// entire reason we are on it.
+	oauth2servertest.Run(T, func(tb testing.TB, c clock.Clock) oauth2server.Store {
+		tb.Helper()
 
-	// One store for every subtest: the suite gives each record it writes a unique
-	// identifier precisely so a single database can serve all of them in parallel.
-	// No WithInstanceLocalState here — that deviation is the memory store's, and
-	// claiming it would skip the cases that prove this one is shareable across
-	// replicas, which is the entire reason we are on it.
-	oauth2servertest.Run(T, func(testing.TB) oauth2server.Store { return store })
+		store, storeErr := oauth2database.NewStore(
+			&oauth2database.Config{TablePrefix: ddboauth.TablePrefix},
+			client,
+			oauth2database.WithClock(c),
+			oauth2database.WithLogger(loggingnoop.NewLogger()),
+			oauth2database.WithTracerProvider(tracingnoop.NewTracerProvider()),
+		)
+		require.NoError(tb, storeErr)
+
+		return store
+	})
 }

@@ -74,20 +74,28 @@ func (q *queueSpy) Claim(_ context.Context, _ int, _ time.Duration) ([]Item, err
 	return batch, nil
 }
 
-func (q *queueSpy) Complete(_ context.Context, keys ...string) error {
+// Complete and Release take the claimed items rather than their keys as of platform-go v14:
+// a lease is released by the claim that holds it, not by the key it happens to name, so a
+// stale claimant cannot release work somebody else has since taken. The spy still records the
+// keys, because the keys are what the assertions are about.
+func (q *queueSpy) Complete(_ context.Context, items ...Item) error {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 
-	q.completed = append(q.completed, keys...)
+	for _, item := range items {
+		q.completed = append(q.completed, item.Key)
+	}
 
 	return nil
 }
 
-func (q *queueSpy) Release(_ context.Context, _ time.Duration, cause error, keys ...string) error {
+func (q *queueSpy) Release(_ context.Context, _ time.Duration, cause error, items ...Item) error {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 
-	q.released = append(q.released, keys...)
+	for _, item := range items {
+		q.released = append(q.released, item.Key)
+	}
 	q.cause = cause
 
 	return nil
