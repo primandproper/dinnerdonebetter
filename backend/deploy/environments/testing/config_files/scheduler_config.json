@@ -198,6 +198,7 @@
 			"useJitter": true
 		},
 		"pollInterval": 1000000000,
+		"statsInterval": 60000000000,
 		"leaseDuration": 600000000000,
 		"lockTTL": 600000000000,
 		"advanceTimeout": 300000000000,
@@ -218,6 +219,7 @@
 		"pollInterval": 1000000000,
 		"leaseDuration": 30000000000,
 		"retention": 604800000000000,
+		"quarantineRetention": 2592000000000000,
 		"reapInterval": 3600000000000,
 		"reapBatchSize": 1000,
 		"minWakeInterval": 100000000
@@ -310,7 +312,7 @@
 				"useJitter": true
 			},
 			"pollInterval": 1000000000,
-			"leaseDuration": 60000000000,
+			"leaseDuration": 120000000000,
 			"requestTimeout": 10000000000,
 			"circuitOpenRetryDelay": 30000000000,
 			"retention": 604800000000000,

@@ -241,10 +241,11 @@
 			},
 			"oauth2": {
 				"provider": "database",
-				"issuer": "http://localhost:9000",
 				"database": {
 					"tablePrefix": "ddb"
 				},
+				"sweepInterval": 0,
+				"issuer": "http://localhost:9000",
 				"resources": [
 					"http://localhost:9000"
 				]
@@ -373,7 +374,7 @@
 				"useJitter": true
 			},
 			"pollInterval": 1000000000,
-			"leaseDuration": 60000000000,
+			"leaseDuration": 120000000000,
 			"requestTimeout": 10000000000,
 			"circuitOpenRetryDelay": 30000000000,
 			"retention": 604800000000000,
