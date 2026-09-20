@@ -98,7 +98,6 @@ func BuildInjector(
 	// identity repository resolves a principal's role names through it when it
 	// builds a session.
 	authorization.RegisterPolicyResolver(i)
-	identityrepo.RegisterIdentityRepository(i)
 	identitystore.RegisterIdentityStore(i)
 	internalopsrepo.RegisterInternalOpsRepository(i)
 	issuereportsrepo.RegisterIssueReportsRepository(i)

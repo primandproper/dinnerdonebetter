@@ -1,82 +1,76 @@
 package fakes
 
 import (
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/converters"
-	types "github.com/primandproper/platform-go/v14/identity"
+	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 
+	identity "github.com/primandproper/platform-go/v14/identity"
 	"github.com/primandproper/primitives-go/v2/fake"
 	"github.com/primandproper/primitives-go/v2/filtering"
-	"github.com/primandproper/primitives-go/v2/pointer"
 
 	gofakeit "github.com/brianvoe/gofakeit/v7"
 )
 
+// fakeTimeZone is the zone every faked account is in.
+//
+// A named zone rather than a generated string, because the type validates one by loading
+// it: a random value fails every write, and so does a plausible-looking typo.
+const fakeTimeZone = "America/Chicago"
+
 // BuildFakeAccount builds a faked account.
-func BuildFakeAccount() *types.Account {
-	account := fake.BuildFakeRecord[types.Account]()
+func BuildFakeAccount() *identity.Account {
+	account := fake.BuildFakeRecord[identity.Account]()
+
+	account.Scope = ddbidentity.Scope()
+	account.TimeZone = fakeTimeZone
 
 	// An account that has not paid, which is the state a new one is in. The processor's
-	// customer identifier is empty for the same reason: AccountDatabaseCreationInput has no
-	// field for either, so both are written by the billing sync rather than at creation.
-	account.BillingStatus = types.UnpaidAccountBillingStatus
+	// customer identifier is empty for the same reason, and the plan and the sync stamp
+	// are nil: all four are written by the billing sync rather than at creation.
+	account.BillingStatus = identity.BillingUnpaid
 	account.PaymentProcessorCustomerID = ""
+	account.SubscriptionPlanID = nil
+	account.LastPaymentProviderSyncedAt = nil
 
 	// An address that holds together — a city in its own state, a zip in its own city —
-	// because the fields are read as one address by anything that formats or geocodes.
+	// because the fields are handed to a processor as one address.
 	fakeAddress := gofakeit.Address()
-	account.AddressLine1 = fakeAddress.Address
-	account.AddressLine2 = ""
-	account.City = fakeAddress.City
-	account.State = fakeAddress.State
-	account.ZipCode = fakeAddress.Zip
-	account.Country = fakeAddress.Country
-	account.ContactPhone = gofakeit.PhoneFormatted()
-	account.Latitude = pointer.To(fake.BuildFakeNumber())
-	account.Longitude = pointer.To(fake.BuildFakeNumber())
-
-	// An opaque value that round-trips as a string: nothing here decodes it, and the
-	// secret a webhook is actually signed with is minted per webhook rather than here.
-	account.WebhookEncryptionKey = fake.BuildFakeString()
-
-	// Members of this account rather than of three unrelated ones.
-	members := make([]*types.AccountUserMembershipWithUser, 0, fake.DefaultPageSize)
-	for range fake.DefaultPageSize {
-		membership := BuildFakeAccountUserMembershipWithUser()
-		membership.BelongsToAccount = account.ID
-		members = append(members, membership)
+	account.BillingAddress = identity.BillingAddress{
+		Line1:      fakeAddress.Address,
+		City:       fakeAddress.City,
+		State:      fakeAddress.State,
+		PostalCode: fakeAddress.Zip,
+		Country:    fakeAddress.Country,
+		Phone:      gofakeit.PhoneFormatted(),
 	}
-	account.Members = members
 
 	return account
 }
 
-// BuildFakeAccountsList builds a faked AccountList.
-func BuildFakeAccountsList() *filtering.QueryFilteredResult[types.Account] {
+// BuildFakeAccountsList builds a faked page of accounts.
+func BuildFakeAccountsList() *filtering.QueryFilteredResult[identity.Account] {
 	return fake.BuildFakePage(BuildFakeAccount)
 }
 
-// BuildFakeAccountOwnershipTransferInput builds a faked AccountOwnershipTransferInput.
-func BuildFakeAccountOwnershipTransferInput() *types.AccountOwnershipTransferInput {
-	input := fake.BuildFakeRecord[types.AccountOwnershipTransferInput]()
+// BuildFakeAccountForUser builds a faked account owned by the given user.
+func BuildFakeAccountForUser(userID string) *identity.Account {
+	account := BuildFakeAccount()
+	account.OwnerUserID = userID
 
-	// Two user IDs whose names say owner rather than user, which is past what a fake
-	// built from field names can infer.
-	input.CurrentOwner = fake.BuildFakeID()
-	input.NewOwner = fake.BuildFakeID()
-
-	return input
+	return account
 }
 
-// BuildFakeAccountUpdateRequestInput builds a faked AccountUpdateRequestInput from an account.
-func BuildFakeAccountUpdateRequestInput() *types.AccountUpdateRequestInput {
+// BuildFakeAccountUpdate builds a faked AccountUpdate.
+//
+// Built from an account rather than from field names, because the three fields here are
+// the three an account holder may move and each has to be a value the account type
+// accepts — a generated time zone is refused, and a generated address is not an address.
+func BuildFakeAccountUpdate() *identity.AccountUpdate {
 	account := BuildFakeAccount()
+	address := account.BillingAddress
 
-	return converters.ConvertAccountToAccountUpdateRequestInput(account)
-}
-
-// BuildFakeAccountCreationRequestInput builds a faked AccountCreationRequestInput.
-func BuildFakeAccountCreationRequestInput() *types.AccountCreationRequestInput {
-	account := BuildFakeAccount()
-
-	return converters.ConvertAccountToAccountCreationRequestInput(account)
+	return &identity.AccountUpdate{
+		Name:           &account.Name,
+		TimeZone:       &account.TimeZone,
+		BillingAddress: &address,
+	}
 }

@@ -13,14 +13,14 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
 	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
+	fakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
 
 	platformidentity "github.com/primandproper/platform-go/v14/identity"
-	fakes "github.com/primandproper/platform-go/v14/identity/fake"
 
 	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/database/dialect"
 	mockdatabase "github.com/primandproper/primitives-go/v2/database/mock"
 	"github.com/primandproper/primitives-go/v2/filtering"
-	"github.com/primandproper/primitives-go/v2/identifiers"
 	"github.com/primandproper/primitives-go/v2/testutils/containers"
 	"github.com/primandproper/primitives-go/v2/testutils/containers/pgtest"
 
@@ -247,11 +247,22 @@ func CreateUserForTest(t *testing.T, exampleUser *platformidentity.User, db data
 }
 
 // identityStoreForTest builds the directory store these helpers write through.
-func identityStoreForTest(t *testing.T, _ database.SQLQueryExecutor) platformidentity.Store {
+//
+// The executor is what the store is actually pointed at — every one of its methods takes
+// the transaction the caller supplies — and the client exists only because NewSQLStore
+// reads a dialect off one. Hence a client wrapping the executor the caller already holds,
+// rather than a second pool against the same database.
+func identityStoreForTest(t *testing.T, db database.SQLQueryExecutor) platformidentity.Store {
 	t.Helper()
 
 	store, err := platformidentity.NewSQLStore(
-		testDatabaseClient(t),
+		&mockdatabase.ClientMock{
+			DialectFunc:     func() dialect.Dialect { return dialect.Postgres },
+			ReaderFunc:      func() database.SQLQueryExecutor { return db },
+			WriterFunc:      func() database.SQLQueryExecutor { return db },
+			CurrentTimeFunc: time.Now,
+			CloseFunc:       func() error { return nil },
+		},
 		platformidentity.WithTablePrefix(ddbidentity.TablePrefix),
 	)
 	require.NoError(t, err)
@@ -280,10 +291,14 @@ func CreateAccountForTest(t *testing.T, exampleAccount *platformidentity.Account
 	created, err := store.CreateAccount(ctx, tx, ddbidentity.Scope(), exampleAccount)
 	require.NoError(t, err)
 
+	// The owner's roles travel on the membership now rather than being a role assignment
+	// of their own: the membership type requires them, and a member with none is a member
+	// who may do nothing in the account they own.
 	_, err = store.CreateMembership(ctx, tx, ddbidentity.Scope(), &platformidentity.Membership{
 		Scope:            ddbidentity.Scope(),
 		BelongsToUser:    userID,
 		BelongsToAccount: created.ID,
+		Roles:            []string{authorization.AccountAdminRoleName},
 		DefaultAccount:   true,
 	})
 	require.NoError(t, err)

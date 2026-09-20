@@ -14,11 +14,12 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 	authkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/keys"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
+	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
 	"github.com/primandproper/platform-go/v14/authentication/passwordreset"
+	platformidentity "github.com/primandproper/platform-go/v14/identity"
 	platformtotp "github.com/primandproper/primitives-go/v2/authentication/totp"
 	"github.com/primandproper/primitives-go/v2/database"
 	perrors "github.com/primandproper/primitives-go/v2/errors"
@@ -35,8 +36,14 @@ import (
 )
 
 const (
-	o11yName               = "auth_manager"
-	totpSecretSize         = 64
+	o11yName       = "auth_manager"
+	totpSecretSize = 64
+
+	// emailVerificationTokenSize is how many bytes of entropy a verification link carries.
+	// It is a bearer credential that proves an address, so it is sized like the TOTP secret
+	// beside it rather than like an identifier.
+	emailVerificationTokenSize = 64
+
 	minimumPasswordEntropy = 60
 
 	// passwordResetTokenLifetime is how long a reset link is good for.
@@ -78,7 +85,8 @@ type AuthManager struct {
 	db                    database.Client
 	passwordResetTokens   passwordreset.Store
 	sessionStore          auth.SessionStore
-	userDataManager       identity.UserDataManager
+	directory             *platformidentity.Service
+	users                 platformidentity.Store
 	tracer                tracing.Tracer
 	authenticator         authentication.Authenticator
 	totpVerifier          platformtotp.Verifier
@@ -96,7 +104,8 @@ func ProvideAuthManager(
 	db database.Client,
 	passwordResetTokens passwordreset.Store,
 	sessionStore auth.SessionStore,
-	userDataManager identity.UserDataManager,
+	directory *platformidentity.Service,
+	users platformidentity.Store,
 	authenticator authentication.Authenticator,
 	totpVerifier platformtotp.Verifier,
 	publisherProvider messagequeue.PublisherProvider,
@@ -119,7 +128,8 @@ func ProvideAuthManager(
 		db:                    db,
 		passwordResetTokens:   passwordResetTokens,
 		sessionStore:          sessionStore,
-		userDataManager:       userDataManager,
+		directory:             directory,
+		users:                 users,
 		authenticator:         authenticator,
 		totpVerifier:          totpVerifier,
 		secretGenerator:       secretGenerator,
@@ -129,7 +139,7 @@ func ProvideAuthManager(
 	}, nil
 }
 
-func (l *AuthManager) Self(ctx context.Context) (*identity.User, error) {
+func (l *AuthManager) Self(ctx context.Context) (*platformidentity.User, error) {
 	ctx, span := l.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -145,7 +155,7 @@ func (l *AuthManager) Self(ctx context.Context) (*identity.User, error) {
 	tracing.AttachToSpan(span, platformkeys.RequesterIDKey, requester)
 
 	// fetch user data.
-	user, err := l.userDataManager.GetUser(ctx, requester)
+	user, err := l.users.GetUser(ctx, l.db.Reader(), ddbidentity.Scope(), requester)
 	if errors.Is(err, sql.ErrNoRows) {
 		logger.Debug("no such user")
 		return nil, observability.PrepareError(err, span, "no such user")
@@ -201,7 +211,11 @@ func (l *AuthManager) TOTPSecretVerification(ctx context.Context, input *auth.TO
 	logger = logger.WithValue(identitykeys.UserIDKey, input.UserID)
 	logger.Info("validated input, getting user")
 
-	user, err := l.userDataManager.GetUserWithUnverifiedTwoFactorSecret(ctx, input.UserID)
+	// The ordinary read, and the "is it already verified" check below rather than a read
+	// that filtered on it. The filtered read this replaced answered an already-verified
+	// user with no rows, which made a replayed verification and a mistyped user id the
+	// same answer — and the error the caller got said neither.
+	user, err := l.users.GetUser(ctx, l.db.Reader(), ddbidentity.Scope(), input.UserID)
 	if err != nil {
 		return observability.PrepareError(err, span, "fetching user to verify two factor secret")
 	}
@@ -222,7 +236,7 @@ func (l *AuthManager) TOTPSecretVerification(ctx context.Context, input *auth.TO
 		return observability.PrepareError(verifyErr, span, "TOTP code was invalid")
 	}
 
-	if err = l.userDataManager.MarkUserTwoFactorSecretAsVerified(ctx, user.ID); err != nil {
+	if _, err = l.directory.MarkUserTwoFactorSecretVerified(ctx, ddbidentity.Scope(), user.ID); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "verifying user two factor secret")
 	}
 
@@ -256,7 +270,7 @@ func (l *AuthManager) NewTOTPSecret(ctx context.Context, input *auth.TOTPSecretR
 	logger = sessionContextData.AttachToLogger(logger)
 
 	// fetch user
-	user, err := l.userDataManager.GetUser(ctx, sessionContextData.GetUserID())
+	user, err := l.users.GetUser(ctx, l.db.Reader(), ddbidentity.Scope(), sessionContextData.GetUserID())
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, observability.PrepareError(err, span, "user does not exist")
@@ -294,7 +308,7 @@ func (l *AuthManager) NewTOTPSecret(ctx context.Context, input *auth.TOTPSecretR
 	}
 
 	// update the user in the database.
-	if err = l.userDataManager.MarkUserTwoFactorSecretAsUnverified(ctx, user.ID, tfs); err != nil {
+	if _, err = l.directory.UpdateUserTwoFactorSecret(ctx, ddbidentity.Scope(), user.ID, tfs); err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "updating 2FA secret")
 	}
 
@@ -364,7 +378,7 @@ func (l *AuthManager) UpdatePassword(ctx context.Context, input *auth.PasswordUp
 	}
 
 	// update the user.
-	if err = l.userDataManager.UpdateUserPassword(ctx, user.ID, newPasswordHash); err != nil {
+	if _, err = l.directory.UpdateUserPassword(ctx, ddbidentity.Scope(), user.ID, newPasswordHash); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "updating user")
 	}
 
@@ -410,7 +424,9 @@ func (l *AuthManager) UpdateUserEmailAddress(ctx context.Context, input *auth.Us
 	}
 
 	// update the user.
-	if err = l.userDataManager.UpdateUserEmailAddress(ctx, user.ID, input.NewEmailAddress); err != nil {
+	if _, err = l.directory.UpdateProfile(ctx, ddbidentity.Scope(), user.ID, &platformidentity.ProfileUpdate{
+		EmailAddress: &input.NewEmailAddress,
+	}); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "updating user")
 	}
 
@@ -456,7 +472,9 @@ func (l *AuthManager) UpdateUserUsername(ctx context.Context, input *auth.Userna
 	}
 
 	// update the user.
-	if err = l.userDataManager.UpdateUserUsername(ctx, user.ID, input.NewUsername); err != nil {
+	if _, err = l.directory.UpdateProfile(ctx, ddbidentity.Scope(), user.ID, &platformidentity.ProfileUpdate{
+		Username: &input.NewUsername,
+	}); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "updating user")
 	}
 
@@ -488,7 +506,7 @@ func (l *AuthManager) RequestUsernameReminder(ctx context.Context, input *auth.U
 		return observability.PrepareError(err, span, "provided input was invalid")
 	}
 
-	u, err := l.userDataManager.GetUserByEmail(ctx, input.EmailAddress)
+	u, err := l.users.GetUserByEmailAddress(ctx, l.db.Reader(), ddbidentity.Scope(), input.EmailAddress)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
 		// Do not leak user existence; return success without sending a reminder.
 		return nil
@@ -515,7 +533,7 @@ func (l *AuthManager) CreatePasswordResetToken(ctx context.Context, input *auth.
 		return observability.PrepareError(err, span, "provided input was invalid")
 	}
 
-	u, err := l.userDataManager.GetUserByEmail(ctx, input.EmailAddress)
+	u, err := l.users.GetUserByEmailAddress(ctx, l.db.Reader(), ddbidentity.Scope(), input.EmailAddress)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
 		// Do not leak user existence; return success without sending email.
 		return nil
@@ -594,7 +612,7 @@ func (l *AuthManager) PasswordResetTokenRedemption(ctx context.Context, input *a
 	}
 	tracing.AttachToSpan(span, authkeys.PasswordResetTokenIDKey, t.ID)
 
-	u, err := l.userDataManager.GetUser(ctx, t.UserID)
+	u, err := l.users.GetUser(ctx, l.db.Reader(), ddbidentity.Scope(), t.UserID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return observability.PrepareError(err, span, "user not found")
@@ -609,7 +627,7 @@ func (l *AuthManager) PasswordResetTokenRedemption(ctx context.Context, input *a
 	}
 
 	// update the user.
-	if err = l.userDataManager.UpdateUserPassword(ctx, u.ID, newPasswordHash); err != nil {
+	if _, err = l.directory.UpdateUserPassword(ctx, ddbidentity.Scope(), u.ID, newPasswordHash); err != nil {
 		observability.AcknowledgeError(err, logger, span, "updating user")
 		if errors.Is(err, sql.ErrNoRows) {
 			return observability.PrepareError(err, span, "user not found")
@@ -651,11 +669,19 @@ func (l *AuthManager) RequestEmailVerificationEmail(ctx context.Context) error {
 	}
 	logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.GetUserID())
 
-	verificationToken, err := l.userDataManager.GetEmailAddressVerificationTokenForUser(ctx, sessionContextData.GetUserID())
-	if err != nil && errors.Is(err, sql.ErrNoRows) {
-		return observability.PrepareError(err, span, "email verification token not found")
-	} else if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "fetching email verification token")
+	// Minted here rather than read back, because there is nothing to read back: the
+	// column holds a digest, and no read fills the secret in. That is a change in
+	// behaviour and the right one — asking for the mail again issues a fresh link and
+	// retires the one that went missing, where the read this replaced re-sent whatever
+	// token was already outstanding forever.
+	verificationToken, err := l.secretGenerator.GenerateBase32EncodedString(ctx, emailVerificationTokenSize)
+	if err != nil {
+		return observability.PrepareAndLogError(err, logger, span, "generating email verification token")
+	}
+
+	if _, err = l.directory.SetUserEmailAddressVerificationToken(ctx, ddbidentity.Scope(),
+		sessionContextData.GetUserID(), verificationToken); err != nil {
+		return observability.PrepareAndLogError(err, logger, span, "storing email verification token")
 	}
 
 	l.dataChangesPublisher.PublishAsync(ctx, &audit.DataChangeMessage{
@@ -685,7 +711,7 @@ func (l *AuthManager) VerifyUserEmailAddress(ctx context.Context, input *auth.Em
 		return observability.PrepareError(err, span, "provided input was invalid")
 	}
 
-	user, err := l.userDataManager.GetUserByEmailAddressVerificationToken(ctx, input.Token)
+	user, err := l.users.GetUserByEmailVerificationToken(ctx, l.db.Reader(), ddbidentity.Scope(), input.Token)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return observability.PrepareError(err, span, "user not found")
@@ -693,7 +719,7 @@ func (l *AuthManager) VerifyUserEmailAddress(ctx context.Context, input *auth.Em
 		return observability.PrepareAndLogError(err, logger, span, "fetching user")
 	}
 
-	if err = l.userDataManager.MarkUserEmailAddressAsVerified(ctx, user.ID, input.Token); err != nil {
+	if _, err = l.directory.MarkUserEmailAddressVerified(ctx, ddbidentity.Scope(), user.ID, input.Token); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return observability.PrepareError(err, span, "user not found")
 		}
@@ -721,7 +747,7 @@ func (l *AuthManager) VerifyUserEmailAddressByToken(ctx context.Context, token s
 		return observability.PrepareError(err, span, "provided input was invalid")
 	}
 
-	user, err := l.userDataManager.GetUserByEmailAddressVerificationToken(ctx, token)
+	user, err := l.users.GetUserByEmailVerificationToken(ctx, l.db.Reader(), ddbidentity.Scope(), token)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return observability.PrepareError(err, span, "user not found")
@@ -729,7 +755,7 @@ func (l *AuthManager) VerifyUserEmailAddressByToken(ctx context.Context, token s
 		return observability.PrepareAndLogError(err, logger, span, "fetching user")
 	}
 
-	if err = l.userDataManager.MarkUserEmailAddressAsVerified(ctx, user.ID, token); err != nil {
+	if _, err = l.directory.MarkUserEmailAddressVerified(ctx, ddbidentity.Scope(), user.ID, token); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return observability.PrepareError(err, span, "user not found")
 		}
@@ -745,14 +771,14 @@ func (l *AuthManager) VerifyUserEmailAddressByToken(ctx context.Context, token s
 }
 
 // validateCredentialsForUpdateRequest takes a user's credentials and determines if they match what is on record.
-func (l *AuthManager) validateCredentialsForUpdateRequest(ctx context.Context, userID, password, totpToken string) (*identity.User, error) {
+func (l *AuthManager) validateCredentialsForUpdateRequest(ctx context.Context, userID, password, totpToken string) (*platformidentity.User, error) {
 	ctx, span := l.tracer.StartSpan(ctx)
 	defer span.End()
 
 	logger := l.logger.WithValue(identitykeys.UserIDKey, userID)
 
 	// fetch user data.
-	user, err := l.userDataManager.GetUser(ctx, userID)
+	user, err := l.users.GetUser(ctx, l.db.Reader(), ddbidentity.Scope(), userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, err

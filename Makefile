@@ -29,6 +29,15 @@ PLATFORM_FILTERING_PROTO  := primandproper/platform/filtering/v1/filtering.proto
 # TypeScript generate the file: a QueryFilter there is a data class with eight
 # fields and no rules to restate.
 PROTO_GO_FILTERING_MAP    := M$(PLATFORM_FILTERING_PROTO)=github.com/primandproper/primitives-go/v2/filtering/filteringpb
+
+# identity's schema arrives the same way, from platform-go rather than
+# primitives-go, because the directory is a service and filtering is a value
+# type. The auth service's GetSelf and GetActiveAccount answer with platform's
+# User and Account, so their messages have to come from the module that defines
+# them rather than from a copy here that could disagree with the server.
+PLATFORM_IDENTITY_PROTO_PATH := $(shell cd backend && go list -m -f '{{.Dir}}' github.com/primandproper/platform-go/v14)/identity/proto
+PLATFORM_IDENTITY_PROTO      := primandproper/platform/identity/v1/identity.proto
+PROTO_GO_IDENTITY_MAP        := M$(PLATFORM_IDENTITY_PROTO)=github.com/primandproper/platform-go/v14/identity/identitypb
 PROTO_GO_OUTPUT_PATH      := backend
 PROTO_OUTPUT_BACKEND_PATH := backend/internal/grpc
 PROTO_OUTPUT_IOS_PATH     := ios/ios/Generated
@@ -212,8 +221,11 @@ proto_golang: ensure_protoc_installed ensure_protoc-gen-go_installed ensure_prot
 		--go-grpc_opt=module=$(BACKEND_REPO_NAME) \
 		--go_opt=$(PROTO_GO_FILTERING_MAP) \
 		--go-grpc_opt=$(PROTO_GO_FILTERING_MAP) \
+		--go_opt=$(PROTO_GO_IDENTITY_MAP) \
+		--go-grpc_opt=$(PROTO_GO_IDENTITY_MAP) \
 		--proto_path proto/ \
 		--proto_path $(PLATFORM_PROTO_PATH) \
+		--proto_path $(PLATFORM_IDENTITY_PROTO_PATH) \
 		$(PROTO_FILES_PATH);
 	rm -rf $(PROTO_OUTPUT_BACKEND_PATH)/generated
 	mv $(ARTIFACTS_DIR)/proto_golang/internal/grpc/generated $(PROTO_OUTPUT_BACKEND_PATH)/generated
@@ -230,7 +242,8 @@ proto_swift: ensure_protoc-gen-swift_installed ensure_protoc-gen-grpc-swift_inst
       	--swift_opt=Visibility=Public \
 		--proto_path proto/ \
 		--proto_path $(PLATFORM_PROTO_PATH) \
-		$(PROTO_FILES_PATH) $(PLATFORM_PROTO_PATH)/$(PLATFORM_FILTERING_PROTO)
+		--proto_path $(PLATFORM_IDENTITY_PROTO_PATH) \
+		$(PROTO_FILES_PATH) $(PLATFORM_PROTO_PATH)/$(PLATFORM_FILTERING_PROTO) $(PLATFORM_IDENTITY_PROTO_PATH)/$(PLATFORM_IDENTITY_PROTO)
 	rm -rf $(PROTO_OUTPUT_IOS_PATH)
 	mv $(ARTIFACTS_DIR)/proto_swift $(PROTO_OUTPUT_IOS_PATH)
 	(cd ios && $(MAKE) format)
@@ -248,7 +261,8 @@ proto_typescript: ensure_protoc_installed ensure_proto_ts_plugin_installed
 		--ts_proto_opt=esModuleInterop=true \
 		--proto_path proto/ \
 		--proto_path $(PLATFORM_PROTO_PATH) \
-		$(PROTO_FILES_PATH) $(PLATFORM_PROTO_PATH)/$(PLATFORM_FILTERING_PROTO)
+		--proto_path $(PLATFORM_IDENTITY_PROTO_PATH) \
+		$(PROTO_FILES_PATH) $(PLATFORM_PROTO_PATH)/$(PLATFORM_FILTERING_PROTO) $(PLATFORM_IDENTITY_PROTO_PATH)/$(PLATFORM_IDENTITY_PROTO)
 	mkdir -p $(ARTIFACTS_DIR)/proto_ts_handwritten
 	for f in $(PROTO_TS_HANDWRITTEN); do \
 		if [ -f $(PROTO_TS_OUTPUT_PATH)/$$f ]; then \

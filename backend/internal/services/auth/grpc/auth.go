@@ -17,6 +17,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc/converters"
 	_ "github.com/primandproper/dinnerdonebetter/backend/internal/services/errors"
 
+	identitygrpc "github.com/primandproper/platform-go/v14/identity/grpc"
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	errorsgrpc "github.com/primandproper/primitives-go/v2/errors/grpc"
 	"github.com/primandproper/primitives-go/v2/featureflags"

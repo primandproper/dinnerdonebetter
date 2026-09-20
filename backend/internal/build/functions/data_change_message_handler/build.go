@@ -80,7 +80,6 @@ func BuildInjector(
 	// builds a session.
 	authorization.RegisterPolicyResolver(i)
 	identitystore.RegisterIdentityStore(i)
-	identity.RegisterIdentityRepository(i)
 	issue_reports.RegisterIssueReportsRepository(i)
 	uploadedmedia.RegisterUploadedMediaRepository(i)
 	webhooksstore.RegisterWebhooksStore(i)

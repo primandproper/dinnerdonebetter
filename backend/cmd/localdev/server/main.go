@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"log"
 	"os"
@@ -12,18 +11,16 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
-	identityconverters "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/converters"
+	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/localdev"
-	identitygenerated "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity/generated"
 
 	platformoauth2clients "github.com/primandproper/platform-go/v14/authentication/oauth2clients"
+	platformidentity "github.com/primandproper/platform-go/v14/identity"
 	platformsettings "github.com/primandproper/platform-go/v14/settings"
 	"github.com/primandproper/primitives-go/v2/authentication/argon2"
 	"github.com/primandproper/primitives-go/v2/database"
-	"github.com/primandproper/primitives-go/v2/identifiers"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
 	"github.com/primandproper/primitives-go/v2/pointer"
@@ -38,7 +35,7 @@ func main() {
 	ctx := context.Background()
 
 	// create premade admin user
-	premadeAdminUser := &identity.User{
+	premadeAdminUser := &platformidentity.User{
 		ID:              strings.Repeat("a", 20),
 		TwoFactorSecret: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
 		EmailAddress:    "integration_tests@example.email",
@@ -60,41 +57,30 @@ func main() {
 		ctx,
 		apiConfig,
 		// Create admin user and get account
-		localdev.WithIdentityRepository(func(ctx context.Context, repo identity.Repository, logger logging.Logger, tracerProvider tracing.Provider, dbClient database.Client) error {
-			user, userErr := localdev.CreatePremadeAdminUser(ctx, logger, tracerProvider, repo, dbClient, premadeAdminUser)
+		localdev.WithIdentityDirectory(func(ctx context.Context, directory *platformidentity.Service, store platformidentity.Store, logger logging.Logger, tracerProvider tracing.Provider, dbClient database.Client) error {
+			user, userErr := localdev.CreatePremadeAdminUser(ctx, logger, tracerProvider, directory, store, dbClient, premadeAdminUser)
 			if userErr != nil {
 				return userErr
 			}
 			adminUserID = user.ID
 
-			// Get or create account for admin user
-			accounts, accountsErr := repo.GetAccounts(ctx, adminUserID, nil)
+			// The account the registration minted. Registering is what creates it, so
+			// there is no branch here for a user who has one and a user who does not —
+			// every user in this directory owns exactly one account from the moment
+			// they exist, and this read finds it whether this run made it or a previous
+			// one did.
+			accounts, accountsErr := store.ListAccountsForUser(ctx, dbClient.Reader(), ddbidentity.Scope(), adminUserID, nil)
 			if accountsErr != nil {
 				return fmt.Errorf("failed to get accounts for admin user: %w", accountsErr)
 			}
 
-			if len(accounts.Data) > 0 {
-				// Use first account
-				adminAccountID = accounts.Data[0].ID
-			} else {
-				// Create a new account for the admin user
-				accountInput := &identity.AccountCreationRequestInput{
-					Name:          "Admin Household",
-					BelongsToUser: adminUserID,
-				}
-				account, accountErr := repo.CreateAccount(ctx, identityconverters.ConvertAccountCreationRequestInputToAccountDatabaseCreationInput(accountInput))
-				if accountErr != nil {
-					return fmt.Errorf("failed to create account for admin user: %w", accountErr)
-				}
-				adminAccountID = account.ID
+			if len(accounts.Data) == 0 {
+				return fmt.Errorf("admin user %s has no account", adminUserID)
 			}
 
-			if adminAccountID == "" {
-				return fmt.Errorf("admin account ID not set")
-			}
+			adminAccountID = accounts.Data[0].ID
 
 			hasher := authentication.NewArgon2Authenticator(argon2.WithLogger(logger), argon2.WithTracerProvider(tracerProvider))
-			generatedQuerier := identitygenerated.New()
 
 			// Create two member users
 			memberUsers := []*struct {
@@ -124,42 +110,27 @@ func main() {
 			}
 
 			for _, memberUser := range memberUsers {
-				// Check if user already exists
-				existingUser, userExistsErr := repo.GetUserByUsername(ctx, memberUser.username)
+				existingUser, userExistsErr := store.GetUserByUsername(ctx, dbClient.Reader(), ddbidentity.Scope(), memberUser.username)
 				if userExistsErr == nil && existingUser != nil {
 					logger.Info(fmt.Sprintf("User %s already exists, skipping creation", memberUser.username))
-					// Still add to account if not already a member
-					isMember, memberErr := repo.UserIsMemberOfAccount(ctx, existingUser.ID, adminAccountID)
-					if memberErr == nil && !isMember {
-						membershipID := identifiers.New()
-						if err = generatedQuerier.AddUserToAccount(ctx, dbClient.Writer(), &identitygenerated.AddUserToAccountParams{
-							ID:               membershipID,
-							BelongsToUser:    existingUser.ID,
-							BelongsToAccount: adminAccountID,
-						}); err != nil {
-							return fmt.Errorf("failed to add existing user %s to account: %w", memberUser.username, err)
-						}
-						if err = generatedQuerier.AssignRoleToUser(ctx, dbClient.Writer(), &identitygenerated.AssignRoleToUserParams{
-							ID:        identifiers.New(),
-							UserID:    existingUser.ID,
-							RoleName:  authorization.AccountMemberRoleName,
-							AccountID: sql.NullString{String: adminAccountID, Valid: true},
-						}); err != nil {
-							return fmt.Errorf("failed to assign account role to existing user %s: %w", memberUser.username, err)
-						}
-						logger.Info(fmt.Sprintf("Added existing user %s to admin account", memberUser.username))
+
+					if err = joinAdminAccount(ctx, directory, store, dbClient, existingUser.ID, adminAccountID); err != nil {
+						return fmt.Errorf("failed to add existing user %s to account: %w", memberUser.username, err)
 					}
+
 					continue
 				}
 
-				// Hash password
 				hashedPassword, hashErr := hasher.HashPassword(ctx, memberUser.password)
 				if hashErr != nil {
 					return fmt.Errorf("failed to hash password for user %s: %w", memberUser.username, hashErr)
 				}
 
-				// Create user
-				userInput := &identity.User{
+				// Registered rather than inserted, for the reason CreatePremadeAdminUser
+				// gives: a user, an account and the membership between them are one
+				// transaction, and a user with no account is a state nothing here can
+				// represent.
+				registration, registerErr := directory.Register(ctx, ddbidentity.Scope(), &platformidentity.User{
 					ID:              memberUser.userID,
 					Username:        memberUser.username,
 					EmailAddress:    memberUser.email,
@@ -167,42 +138,20 @@ func main() {
 					TwoFactorSecret: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
 					FirstName:       memberUser.firstName,
 					LastName:        memberUser.lastName,
+					ServiceRoles:    []string{authorization.ServiceUserRoleName},
+				}, &platformidentity.Account{
+					Name: memberUser.username + "'s account",
+				}, []string{authorization.AccountAdminRoleName})
+				if registerErr != nil {
+					return fmt.Errorf("failed to create user %s: %w", memberUser.username, registerErr)
 				}
 
-				user, userErr = repo.CreateUser(ctx, identityconverters.ConvertUserToUserDatabaseCreationInput(userInput))
-				if userErr != nil {
-					return fmt.Errorf("failed to create user %s: %w", memberUser.username, userErr)
-				}
-
-				// Mark two-factor secret as verified
-				if err = repo.MarkUserTwoFactorSecretAsVerified(ctx, user.ID); err != nil {
+				if _, err = directory.MarkUserTwoFactorSecretVerified(ctx, ddbidentity.Scope(), registration.User.ID); err != nil {
 					return fmt.Errorf("failed to mark user %s as verified: %w", memberUser.username, err)
 				}
 
-				// Add user to admin account as a member
-				membershipID := identifiers.New()
-				if err = generatedQuerier.AddUserToAccount(ctx, dbClient.Writer(), &identitygenerated.AddUserToAccountParams{
-					ID:               membershipID,
-					BelongsToUser:    user.ID,
-					BelongsToAccount: adminAccountID,
-				}); err != nil {
+				if err = joinAdminAccount(ctx, directory, store, dbClient, registration.User.ID, adminAccountID); err != nil {
 					return fmt.Errorf("failed to add user %s to account: %w", memberUser.username, err)
-				}
-
-				if err = generatedQuerier.AssignRoleToUser(ctx, dbClient.Writer(), &identitygenerated.AssignRoleToUserParams{
-					ID:        identifiers.New(),
-					UserID:    user.ID,
-					RoleName:  authorization.AccountMemberRoleName,
-					AccountID: sql.NullString{String: adminAccountID, Valid: true},
-				}); err != nil {
-					return fmt.Errorf("failed to assign account role to user %s: %w", memberUser.username, err)
-				}
-
-				if err = generatedQuerier.MarkAccountUserMembershipAsUserDefault(ctx, dbClient.Writer(), &identitygenerated.MarkAccountUserMembershipAsUserDefaultParams{
-					BelongsToUser:    user.ID,
-					BelongsToAccount: adminAccountID,
-				}); err != nil {
-					return fmt.Errorf("failed to mark user %s account as default: %w", memberUser.username, err)
 				}
 
 				logger.Info(fmt.Sprintf("Created user %s and added to admin account", memberUser.username))
@@ -304,4 +253,43 @@ func createExampleSettingDefinitions(ctx context.Context, store platformsettings
 	}
 
 	return nil
+}
+
+// joinAdminAccount puts a user in the admin's household and makes it where they land.
+//
+// The membership is written through the store on a transaction of its own, because the
+// directory service has no "add somebody to an account" of its own: joining is answering
+// an invitation, and a seed has nobody to send one to. The default is moved afterwards
+// through the service, so the one-default-per-user invariant is the store's to keep rather
+// than this function's to remember.
+//
+// It is idempotent: a user already in the account keeps the membership they have.
+func joinAdminAccount(
+	ctx context.Context,
+	directory *platformidentity.Service,
+	store platformidentity.Store,
+	dbClient database.Client,
+	userID, accountID string,
+) error {
+	existing, err := store.GetMembership(ctx, dbClient.Reader(), ddbidentity.Scope(), userID, accountID)
+	if err == nil && existing != nil {
+		return nil
+	}
+
+	if err = dbClient.WithTransaction(ctx, func(tx database.Tx) error {
+		_, createErr := store.CreateMembership(ctx, tx, ddbidentity.Scope(), &platformidentity.Membership{
+			Scope:            ddbidentity.Scope(),
+			BelongsToUser:    userID,
+			BelongsToAccount: accountID,
+			Roles:            []string{authorization.AccountMemberRoleName},
+		})
+
+		return createErr
+	}); err != nil {
+		return err
+	}
+
+	_, err = directory.SetDefaultAccount(ctx, ddbidentity.Scope(), userID, accountID)
+
+	return err
 }

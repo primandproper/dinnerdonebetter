@@ -11,7 +11,6 @@ import (
 	analyticsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/analytics"
 	authgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
 	dataprivacygrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/dataprivacy"
-	identitygrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
 	internalopsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/internalops"
 	mealplanninggrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
 	uploadedmediagrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
@@ -20,6 +19,7 @@ import (
 	oauth2clientsgrpc "github.com/primandproper/platform-go/v14/authentication/oauth2clients/oauth2clientspb"
 	paymentsgrpc "github.com/primandproper/platform-go/v14/billing/billingpb"
 	commentsgrpc "github.com/primandproper/platform-go/v14/comments/commentspb"
+	identitygrpc "github.com/primandproper/platform-go/v14/identity/identitypb"
 	issuereportsgrpc "github.com/primandproper/platform-go/v14/issuereports/issuereportspb"
 	notificationsgrpc "github.com/primandproper/platform-go/v14/notifications/notificationspb"
 	settingsgrpc "github.com/primandproper/platform-go/v14/settings/settingspb"
@@ -45,7 +45,6 @@ const (
 type Client interface {
 	analyticsgrpc.AnalyticsServiceClient
 	authgrpc.AuthServiceClient
-	identitygrpc.IdentityServiceClient
 	auditgrpc.AuditServiceClient
 	dataprivacygrpc.DataPrivacyServiceClient
 	internalopsgrpc.InternalOperationsClient
@@ -57,6 +56,17 @@ type Client interface {
 	settingsgrpc.SettingsServiceClient
 	uploadedmediagrpc.UploadedMediaServiceClient
 	waitlistsgrpc.WaitlistsServiceClient
+
+	// IdentityService returns the directory client: users, accounts, memberships and
+	// invitations.
+	//
+	// It is an accessor rather than an embed because identity and waitlists both name an
+	// RPC Invite — an offer of membership in an account on one, an offer of a place off a
+	// waiting list on the other — and a type embedding both has an ambiguous selector and
+	// does not compile. Identity is the one moved because its RPCs are platform's and
+	// reaching for them deliberately is no worse than reaching for the comments client
+	// below, which is here for the same reason.
+	IdentityService() identitygrpc.IdentityServiceClient
 
 	// CommentsService returns the standalone CommentsService client. Use this to call
 	// CommentsService RPCs directly instead of via MealPlanningService.
@@ -78,7 +88,6 @@ type Client interface {
 type client struct {
 	analyticsgrpc.AnalyticsServiceClient
 	authgrpc.AuthServiceClient
-	identitygrpc.IdentityServiceClient
 	auditgrpc.AuditServiceClient
 	dataprivacygrpc.DataPrivacyServiceClient
 	internalopsgrpc.InternalOperationsClient
@@ -91,6 +100,7 @@ type client struct {
 	uploadedmediagrpc.UploadedMediaServiceClient
 	waitlistsgrpc.WaitlistsServiceClient
 
+	identityClient identitygrpc.IdentityServiceClient
 	commentsClient commentsgrpc.CommentsServiceClient
 	webhooksClient webhooksgrpc.WebhooksServiceClient
 	conn           *grpc.ClientConn
@@ -106,7 +116,6 @@ func BuildClient(grpcServerAddress string, opts ...grpc.DialOption) (Client, err
 	c := &client{
 		AnalyticsServiceClient:     analyticsgrpc.NewAnalyticsServiceClient(conn),
 		AuthServiceClient:          authgrpc.NewAuthServiceClient(conn),
-		IdentityServiceClient:      identitygrpc.NewIdentityServiceClient(conn),
 		AuditServiceClient:         auditgrpc.NewAuditServiceClient(conn),
 		DataPrivacyServiceClient:   dataprivacygrpc.NewDataPrivacyServiceClient(conn),
 		InternalOperationsClient:   internalopsgrpc.NewInternalOperationsClient(conn),
@@ -118,12 +127,17 @@ func BuildClient(grpcServerAddress string, opts ...grpc.DialOption) (Client, err
 		SettingsServiceClient:      settingsgrpc.NewSettingsServiceClient(conn),
 		UploadedMediaServiceClient: uploadedmediagrpc.NewUploadedMediaServiceClient(conn),
 		WaitlistsServiceClient:     waitlistsgrpc.NewWaitlistsServiceClient(conn),
+		identityClient:             identitygrpc.NewIdentityServiceClient(conn),
 		commentsClient:             commentsgrpc.NewCommentsServiceClient(conn),
 		webhooksClient:             webhooksgrpc.NewWebhooksServiceClient(conn),
 		conn:                       conn,
 	}
 
 	return c, nil
+}
+
+func (c *client) IdentityService() identitygrpc.IdentityServiceClient {
+	return c.identityClient
 }
 
 func (c *client) CommentsService() commentsgrpc.CommentsServiceClient {

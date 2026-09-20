@@ -3,10 +3,12 @@ package fakes
 import (
 	"encoding/base32"
 	"fmt"
+	"strings"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
-	identity "github.com/primandproper/platform-go/v14/identity"
+	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 
+	identity "github.com/primandproper/platform-go/v14/identity"
 	"github.com/primandproper/primitives-go/v2/fake"
 	"github.com/primandproper/primitives-go/v2/filtering"
 	"github.com/primandproper/primitives-go/v2/pointer"
@@ -18,128 +20,71 @@ import (
 func BuildFakeUser() *identity.User {
 	user := fake.BuildFakeRecord[identity.User]()
 
+	// The directory this application keeps. A generated scope names a tenancy no read in
+	// this deployment is made in, so a user carrying one is a user nothing finds.
+	user.Scope = ddbidentity.Scope()
+
 	// Registration validates the address as an email, and a username has to be unique
 	// across every user a test suite creates — hence two of them and a number.
-	user.EmailAddress = gofakeit.Email()
-	user.Username = fmt.Sprintf("%s_%d_%s", gofakeit.Username(), gofakeit.Uint8(), gofakeit.Username())
+	//
+	// Both are folded, because the store folds them on write and on every lookup: a fake
+	// spelled in mixed case is a fake that does not equal the row it was written as.
+	user.EmailAddress = identity.FoldHandle(gofakeit.Email())
+	user.Username = identity.FoldHandle(fmt.Sprintf("%s_%d_%s", gofakeit.Username(), gofakeit.Uint8(), gofakeit.Username()))
+
+	// Never empty on a read: a row whose column is blank reads its handle back here, so a
+	// fake with a random display name disagrees with a user created from it.
+	user.DisplayName = user.Username
 
 	// A user who has not verified their email yet, which is what a user who just
-	// registered is. The explanation goes with it: UserDatabaseCreationInput has no
-	// field for one, so registration always writes the empty string and only an admin
-	// setting a status later fills it in. A generated value here disagrees with every
-	// user read back out of the store.
+	// registered is. The explanation goes with it: nothing on the registration path sets
+	// one, so a generated value disagrees with every user read back out of the store.
 	user.AccountStatus = identity.StatusUnverified
 	user.AccountStatusExplanation = ""
 
-	// Registration never demands a password change; that flag is raised later, and the
-	// creation input has no field for it either.
+	// Registration never demands a password change; that flag is raised later by an
+	// operator, and cleared by the next password write.
 	user.RequiresPasswordChange = false
 
 	// The TOTP secret is decoded as base32 by everything that checks a code against it,
 	// so a random string is one every login test fails on.
 	user.TwoFactorSecret = base32.StdEncoding.EncodeToString([]byte(gofakeit.Password(false, true, true, false, false, 32)))
 
-	// Both are optional on the type and set here anyway: a user whose second factor was
-	// never verified cannot log in, and the birthday is what the age checks read.
+	// A user whose second factor was never verified cannot log in.
 	user.TwoFactorSecretVerifiedAt = pointer.To(fake.BuildFakeTime())
-	user.Birthday = pointer.To(fake.BuildFakeTime())
+
+	// The token travels one way — a read fills in the digest and never the secret — so a
+	// fake that carried one would be a fake no read can produce.
+	user.EmailAddressVerificationToken = ""
+	user.EmailAddressVerificationTokenDigest = ""
+
+	// The role every registered user holds outside any account. Every read that returns a
+	// User fills these in, and a random role name is one the policy resolver refuses.
+	user.ServiceRoles = []string{authorization.ServiceUserRoleName}
 
 	return user
 }
 
-// BuildFakeUsersList builds a faked UserList.
+// BuildFakeUsersList builds a faked page of users.
 func BuildFakeUsersList() *filtering.QueryFilteredResult[identity.User] {
 	return fake.BuildFakePage(BuildFakeUser)
 }
 
-// BuildFakeUserCreationInput builds a faked UserRegistrationInput.
-func BuildFakeUserCreationInput() *identity.UserRegistrationInput {
-	exampleUser := BuildFakeUser()
-
-	input := BuildFakeUserRegistrationInputFromUser(exampleUser)
-	input.EmailAddress = gofakeit.Email()
-
-	return input
-}
-
-// BuildFakeUserRegistrationInput builds a faked UserRegistrationInput.
-func BuildFakeUserRegistrationInput() *identity.UserRegistrationInput {
-	return BuildFakeUserRegistrationInputFromUser(BuildFakeUser())
-}
-
-// BuildFakeUserRegistrationInputFromUser builds a faked UserRegistrationInput.
+// BuildFakeUserWithPassword builds a faked User whose hashed password field carries a
+// plaintext password instead.
 //
-// Hand-written because it takes the user: registering the same person twice, or
-// registering someone a test already has a row for, is a fake of a user rather than a
-// fake of an input, and only the caller knows which user that is.
-func BuildFakeUserRegistrationInputFromUser(user *identity.User) *identity.UserRegistrationInput {
-	return &identity.UserRegistrationInput{
-		Username:     user.Username,
-		FirstName:    user.FirstName,
-		LastName:     user.LastName,
-		EmailAddress: user.EmailAddress,
-		Password:     fake.BuildFakePassword(),
-		Birthday:     user.Birthday,
-	}
-}
-
-// BuildFakeUserRegistrationInputWithInviteFromUser builds a faked UserRegistrationInput.
-func BuildFakeUserRegistrationInputWithInviteFromUser(user *identity.User) *identity.UserRegistrationInput {
-	input := BuildFakeUserRegistrationInputFromUser(user)
-	input.InvitationToken = fake.BuildFakeString()
-	input.InvitationID = fake.BuildFakeID()
-
-	return input
-}
-
-// BuildFakeUserCreationResponse builds a faked UserCreationResponse.
-func BuildFakeUserCreationResponse() *identity.UserCreationResponse {
+// The asymmetry is deliberate and is what the sign-in tests need: a test that wants to log
+// somebody in has to hold the password they registered with, and the User type has nowhere
+// else to put it. Nothing writes this user to the directory.
+func BuildFakeUserWithPassword() (*identity.User, string) {
 	user := BuildFakeUser()
+	password := fake.BuildFakePassword()
+	user.HashedPassword = password
 
-	return &identity.UserCreationResponse{
-		CreatedAt:       user.CreatedAt,
-		Birthday:        user.Birthday,
-		Username:        user.Username,
-		EmailAddress:    user.EmailAddress,
-		TwoFactorQRCode: fake.BuildFakeString(),
-		CreatedUserID:   user.ID,
-		AccountStatus:   user.AccountStatus,
-		TwoFactorSecret: user.TwoFactorSecret,
-		FirstName:       user.FirstName,
-		LastName:        user.LastName,
-	}
+	return user, password
 }
 
-// BuildFakeAvatarUpdateInput builds a faked AvatarUpdateInput.
-func BuildFakeAvatarUpdateInput() *identity.AvatarUpdateInput {
-	return fake.BuildFakeRecord[identity.AvatarUpdateInput]()
-}
-
-// BuildFakeUserDetailsUpdateRequestInput builds a faked UserDetailsUpdateRequestInput.
-func BuildFakeUserDetailsUpdateRequestInput() *identity.UserDetailsUpdateRequestInput {
-	input := fake.BuildFakeRecord[identity.UserDetailsUpdateRequestInput]()
-
-	input.CurrentPassword = gofakeit.Password(true, true, true, false, false, 32)
-
-	// Six digits, which is the length the type validates and the length of the codes
-	// the authenticator app produces.
-	input.TOTPToken = "123456"
-
-	return input
-}
-
-// BuildFakeUserDetailsDatabaseUpdateInput builds a faked UserDetailsDatabaseUpdateInput.
-func BuildFakeUserDetailsDatabaseUpdateInput() *identity.UserDetailsDatabaseUpdateInput {
-	return fake.BuildFakeRecord[identity.UserDetailsDatabaseUpdateInput]()
-}
-
-// BuildFakeUserPermissionModificationInput builds a faked ModifyUserPermissionsInput.
-func BuildFakeUserPermissionModificationInput() *identity.ModifyUserPermissionsInput {
-	input := fake.BuildFakeRecord[identity.ModifyUserPermissionsInput]()
-
-	// A role the authorization package knows, since the handler resolves it to a set of
-	// permissions and refuses the ones it cannot.
-	input.NewRole = authorization.AccountMemberRole.String()
-
-	return input
+// BuildFakeUsername builds a handle in the spelling the directory stores.
+func BuildFakeUsername() string {
+	return identity.FoldHandle(strings.TrimSpace(fmt.Sprintf("%s_%d", gofakeit.Username(), gofakeit.Uint16())))
 }

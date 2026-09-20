@@ -13,7 +13,6 @@ import (
 	apiserver "github.com/primandproper/dinnerdonebetter/backend/internal/build/services/api"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
@@ -37,7 +36,6 @@ import (
 	"github.com/primandproper/primitives-go/v2/database"
 	databasecfg "github.com/primandproper/primitives-go/v2/database/config"
 	"github.com/primandproper/primitives-go/v2/httpclient"
-	"github.com/primandproper/primitives-go/v2/identifiers"
 	msgconfig "github.com/primandproper/primitives-go/v2/messagequeue/config"
 	"github.com/primandproper/primitives-go/v2/messagequeue/redis"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
@@ -221,26 +219,53 @@ func BuildInProcessServer(ctx context.Context, cfg *config.APIServiceConfig) (se
 // It receives the database client, config, logger, and tracer to perform arbitrary operations.
 type DatabaseInitFunc func(ctx context.Context, dbClient database.Client, dbCfg *dbcfg.Config, logger logging.Logger, tracerProvider tracing.Provider) error
 
-// WithIdentityRepository provides an identity repository for custom operations.
-// The provided function receives a fully configured identity.Repository along with logger, tracer, and database client.
-func WithIdentityRepository(fn func(ctx context.Context, repo identity.Repository, logger logging.Logger, tracerProvider tracing.Provider, dbClient database.Client) error) DatabaseInitFunc {
+// WithIdentityDirectory provides the directory for custom operations.
+//
+// Both halves of it, because the two answer different questions and a seed needs each:
+// the Service is how a write is made — it is the thing that registers somebody, and the
+// thing whose hooks record that it happened — and the Store is how a seed asks whether it
+// has run before, which is a read no service method exposes.
+func WithIdentityDirectory(fn func(ctx context.Context, directory *platformidentity.Service, store platformidentity.Store, logger logging.Logger, tracerProvider tracing.Provider, dbClient database.Client) error) DatabaseInitFunc {
 	return func(ctx context.Context, dbClient database.Client, dbCfg *dbcfg.Config, logger logging.Logger, tracerProvider tracing.Provider) error {
-		auditLogRepo, err := auditlogentries.ProvideAuditLogRepository(logger, tracerProvider, nil, dbClient)
+		directory, store, err := IdentityDirectory(logger, tracerProvider, dbClient)
 		if err != nil {
 			return err
-		}
-		uploads, err := UploadsRegistry(logger, tracerProvider, dbClient)
-		if err != nil {
-			return err
-		}
-		policy, policyErr := authorization.NewDatabaseResolver(dbClient.Reader(), logger, tracerProvider, nil)
-		if policyErr != nil {
-			return policyErr
 		}
 
-		identityRepo := identityrepo.ProvideIdentityRepository(logger, tracerProvider, auditLogRepo, dbClient, nil, uploads, policy)
-		return fn(ctx, identityRepo, logger, tracerProvider, dbClient)
+		return fn(ctx, directory, store, logger, tracerProvider, dbClient)
 	}
+}
+
+// IdentityDirectory builds the store and the service over it.
+//
+// Without hooks, deliberately. A seed is not a request: there is nobody for its audit
+// entry to name and nobody to deliver its outbox rows, and a localdev bootstrap that
+// queued a "you have been invited" email for a user it invented is a surprise rather than
+// a record. Every identity write a *request* makes goes through the container's service,
+// which is built with them.
+func IdentityDirectory(
+	logger logging.Logger,
+	tracerProvider tracing.Provider,
+	dbClient database.Client,
+) (*platformidentity.Service, platformidentity.Store, error) {
+	store, err := platformidentity.NewSQLStore(dbClient,
+		platformidentity.WithTablePrefix(ddbidentity.TablePrefix),
+		platformidentity.WithStoreLogger(logger),
+		platformidentity.WithStoreTracerProvider(tracerProvider),
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	directory, err := platformidentity.NewService(dbClient, store,
+		platformidentity.WithServiceLogger(logger),
+		platformidentity.WithServiceTracerProvider(tracerProvider),
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return directory, store, nil
 }
 
 // WithOAuth2Registry provides the client registry for custom operations.

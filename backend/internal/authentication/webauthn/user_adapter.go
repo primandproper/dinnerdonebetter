@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"strings"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
-
 	"github.com/primandproper/platform-go/v14/authentication/passkeys"
 	platformidentity "github.com/primandproper/platform-go/v14/identity"
 
@@ -15,7 +13,7 @@ import (
 	gowebauthn "github.com/go-webauthn/webauthn/webauthn"
 )
 
-// WebAuthnUser adapts identity.User and credentials to the platformwebauthn.User interface.
+// WebAuthnUser adapts a directory user and their credentials to the platformwebauthn.User interface.
 type WebAuthnUser struct {
 	User        *platformidentity.User
 	Credentials []*passkeys.Credential

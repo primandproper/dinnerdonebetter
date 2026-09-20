@@ -10,6 +10,7 @@ service AuthService {
   rpc EvaluateBooleanFeatureFlag(EvaluateBooleanFeatureFlagRequest) returns (EvaluateBooleanFeatureFlagResponse);
   rpc EvaluateInt64FeatureFlag(EvaluateInt64FeatureFlagRequest) returns (EvaluateInt64FeatureFlagResponse);
   rpc EvaluateStringFeatureFlag(EvaluateStringFeatureFlagRequest) returns (EvaluateStringFeatureFlagResponse);
+  rpc RegisterUser(RegisterUserRequest) returns (RegisterUserResponse);
   rpc GetAuthStatus(GetAuthStatusRequest) returns (GetAuthStatusResponse);
   rpc ExchangeToken(ExchangeTokenRequest) returns (ExchangeTokenResponse);
   rpc AdminLoginForToken(AdminLoginForTokenRequest) returns (LoginForTokenResponse);

@@ -5,10 +5,10 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
 	"github.com/primandproper/platform-go/v14/authentication/passwordreset"
+	platformidentity "github.com/primandproper/platform-go/v14/identity"
 	"github.com/primandproper/primitives-go/v2/authentication/totp"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/messagequeue"
@@ -30,7 +30,8 @@ func RegisterAuthManager(i do.Injector) {
 			do.MustInvoke[database.Client](i),
 			do.MustInvoke[passwordreset.Store](i),
 			do.MustInvoke[auth.SessionStore](i),
-			do.MustInvoke[identity.UserDataManager](i),
+			do.MustInvoke[*platformidentity.Service](i),
+			do.MustInvoke[platformidentity.Store](i),
 			do.MustInvoke[authentication.Authenticator](i),
 			do.MustInvoke[totp.Verifier](i),
 			do.MustInvoke[messagequeue.PublisherProvider](i),

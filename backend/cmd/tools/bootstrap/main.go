@@ -2,24 +2,22 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"log"
+	"slices"
 	"strings"
 	"time"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
+	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/localdev"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
-	identityrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity"
 
 	platformoauth2clients "github.com/primandproper/platform-go/v14/authentication/oauth2clients"
-	"github.com/primandproper/platform-go/v14/mediaregistry"
 	"github.com/primandproper/primitives-go/v2/authentication/argon2"
 	"github.com/primandproper/primitives-go/v2/database"
 	databasecfg "github.com/primandproper/primitives-go/v2/database/config"
@@ -208,28 +206,13 @@ func runInit(db *dbFlags, adminUsername, adminPassword, adminEmail, apiServerURL
 	if err != nil {
 		return fmt.Errorf("building audit log repository: %w", err)
 	}
-	// A real registry store rather than nil: the identity repository hydrates a
-	// user's avatar through it, and the admin user this tool reads back may have
-	// one. It needs no emitter or metrics — nothing here writes an object.
-	uploadsRegistry, err := mediaregistry.NewSQLStore(
-		client,
-		mediaregistry.WithTablePrefix(uploadedmedia.TablePrefix),
-		mediaregistry.WithStoreLogger(logger),
-		mediaregistry.WithStoreTracerProvider(tracerProvider),
-	)
+	// The directory, without hooks: bootstrap runs before there is anybody to attribute
+	// a registration to, and an audit entry naming nobody is noise in a log whose value
+	// is attribution. The API server's registrations are recorded.
+	directory, identityStore, err := localdev.IdentityDirectory(logger, tracerProvider, client)
 	if err != nil {
-		return fmt.Errorf("building upload registry store: %w", err)
+		return fmt.Errorf("building identity directory: %w", err)
 	}
-
-	policy, err := authorization.NewDatabaseResolver(client.Reader(), logger, tracerProvider, nil)
-	if err != nil {
-		return fmt.Errorf("building authorization policy resolver: %w", err)
-	}
-
-	identityRepo := identityrepo.ProvideIdentityRepository(logger, tracerProvider, auditRepo, client, nil, uploadsRegistry, policy)
-	// Undecorated, like every other write this tool makes: bootstrap runs before there is
-	// anybody to attribute a registration to, and an audit entry naming nobody is noise in
-	// a log whose value is attribution. The API server's registrations are recorded.
 	oauthStore, err := platformoauth2clients.NewSQLStore(client, platformoauth2clients.WithTablePrefix(oauth.TablePrefix))
 	if err != nil {
 		return fmt.Errorf("building OAuth2 client store: %w", err)
@@ -241,7 +224,7 @@ func runInit(db *dbFlags, adminUsername, adminPassword, adminEmail, apiServerURL
 	}
 
 	// --- Admin user (idempotent) ---
-	user, err := identityRepo.GetUserByUsername(ctx, adminUsername)
+	user, err := identityStore.GetUserByUsername(ctx, client.Reader(), ddbidentity.Scope(), adminUsername)
 	if err != nil {
 		hasher := authentication.NewArgon2Authenticator(argon2.WithLogger(logger), argon2.WithTracerProvider(tracerProvider))
 		hashedPassword, hashErr := hasher.HashPassword(ctx, adminPassword)
@@ -249,48 +232,39 @@ func runInit(db *dbFlags, adminUsername, adminPassword, adminEmail, apiServerURL
 			return fmt.Errorf("hashing password: %w", hashErr)
 		}
 
-		user, err = identityRepo.CreateUser(ctx, &identity.UserDatabaseCreationInput{
+		// Registered rather than inserted: the user, the account they own and the
+		// membership between them are one transaction, which is what makes a half-made
+		// administrator unrepresentable rather than merely unlikely.
+		registration, registerErr := directory.Register(ctx, ddbidentity.Scope(), &platformidentity.User{
 			ID:              identifiers.New(),
 			Username:        strings.TrimSpace(adminUsername),
 			EmailAddress:    strings.TrimSpace(strings.ToLower(adminEmail)),
 			FirstName:       "Admin",
-			LastName:        "",
 			HashedPassword:  hashedPassword,
 			TwoFactorSecret: twoFactorSecretPlaceholder,
-			AccountName:     "Bootstrap account",
-		})
-		if err != nil {
-			if errors.Is(err, database.ErrUserAlreadyExists) {
-				return fmt.Errorf("user %q already exists but could not be fetched: %w", adminUsername, err)
-			}
-			return fmt.Errorf("creating user: %w", err)
+			ServiceRoles:    []string{authorization.ServiceUserRoleName},
+		}, &platformidentity.Account{
+			Name: "Bootstrap account",
+		}, []string{authorization.AccountAdminRoleName})
+		if registerErr != nil {
+			return fmt.Errorf("creating user: %w", registerErr)
 		}
+
+		user = registration.User
 		fmt.Printf("Admin user %q created.\n", adminUsername)
 	} else {
 		fmt.Printf("Admin user %q already exists, skipping creation.\n", adminUsername)
 	}
 
 	// --- Service admin role (idempotent) ---
-	var hasAdminRole bool
-	err = client.Reader().QueryRowContext(ctx,
-		"SELECT EXISTS(SELECT 1 FROM user_role_assignments WHERE user_id = $1 AND role_name = $2 AND archived_at IS NULL)",
-		user.ID, authorization.ServiceAdminRoleName,
-	).Scan(&hasAdminRole)
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return fmt.Errorf("checking admin role: %w", err)
-	}
-
-	if !hasAdminRole {
-		if _, err = client.Writer().ExecContext(ctx,
-			"UPDATE user_role_assignments SET archived_at = NOW() WHERE user_id = $1 AND account_id IS NULL AND archived_at IS NULL",
-			user.ID,
-		); err != nil {
-			return fmt.Errorf("archiving old service role: %w", err)
-		}
-		if _, err = client.Writer().ExecContext(ctx,
-			"INSERT INTO user_role_assignments (id, user_id, role_name) VALUES ($1, $2, $3)",
-			identifiers.New(), user.ID, authorization.ServiceAdminRoleName,
-		); err != nil {
+	//
+	// Through the operation that exists for it rather than through two statements against
+	// a role-assignment table this application no longer owns. It replaces rather than
+	// merges, which is why the archival of the old row has gone with the insert: setting
+	// the set is one write.
+	if !slices.Contains(user.ServiceRoles, authorization.ServiceAdminRoleName) {
+		if user, err = directory.SetUserServiceRoles(ctx, ddbidentity.Scope(), user.ID,
+			[]string{authorization.ServiceAdminRoleName}); err != nil {
 			return fmt.Errorf("promoting user to admin: %w", err)
 		}
 		fmt.Println("Promoted user to service_admin.")
@@ -300,7 +274,7 @@ func runInit(db *dbFlags, adminUsername, adminPassword, adminEmail, apiServerURL
 
 	// --- 2FA verification (idempotent) ---
 	if user.TwoFactorSecretVerifiedAt == nil {
-		if err = identityRepo.MarkUserTwoFactorSecretAsVerified(ctx, user.ID); err != nil {
+		if _, err = directory.MarkUserTwoFactorSecretVerified(ctx, ddbidentity.Scope(), user.ID); err != nil {
 			return fmt.Errorf("marking 2FA as verified: %w", err)
 		}
 		fmt.Println("Marked 2FA as verified.")

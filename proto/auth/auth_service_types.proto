@@ -9,6 +9,21 @@ import "primandproper/platform/identity/v1/identity.proto";
 
 option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth";
 
+// RegisterUserRequest is a sign-up: the one request on this service made by somebody who
+// is not yet in the directory.
+//
+// It is here rather than on the identity service because that service's Register requires
+// a registrar's principal — an open sign-up is a flow with policy in front of it, and this
+// is where a caller with no session can reach one.
+message RegisterUserRequest {
+  UserRegistrationInput input = 1;
+}
+
+message RegisterUserResponse {
+  common.ResponseDetails response_details = 1;
+  UserCreationResponse created = 2;
+}
+
 message LoginForTokenRequest {
   UserLoginInput input = 1;
 }
@@ -325,4 +340,38 @@ message AdminRevokeUserSessionRequest {
 
 message AdminRevokeAllUserSessionsRequest {
   string user_id = 1;
+}
+
+// UserRegistrationInput is what somebody signing up supplies.
+//
+// It is not platform's message of the same name. That one carries a handle, an address and
+// a name, because platform's directory holds no credentials policy; this one carries the
+// password, the agreements this application requires, and the invitation a registrant may
+// be answering.
+message UserRegistrationInput {
+  string password = 1;
+  string email_address = 2;
+  string invitation_token = 3;
+  string invitation_id = 4;
+  string username = 5;
+  string first_name = 6;
+  string last_name = 7;
+  string account_name = 8;
+  bool accepted_tos = 9;
+  bool accepted_privacy_policy = 10;
+}
+
+// UserCreationResponse is what a registration answers with, and the one time the two-factor
+// secret is ever handed back.
+message UserCreationResponse {
+  google.protobuf.Timestamp created_at = 1;
+  string username = 2;
+  string email_address = 3;
+  string two_factor_qr_code = 4;
+  string created_user_id = 5;
+  string account_status = 6;
+  string two_factor_secret = 7;
+  string first_name = 8;
+  string last_name = 9;
+  string created_account_id = 10;
 }

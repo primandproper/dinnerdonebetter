@@ -43,6 +43,18 @@ func RegisterAuthService(i do.Injector) {
 		)
 	})
 
+	// The passkey credential store, under the same namespace as the directory: platform
+	// names its table webauthn_credentials too, and this deployment holds both.
+	do.Provide[passkeys.Store](i, func(i do.Injector) (passkeys.Store, error) {
+		return passkeys.NewSQLStore(
+			do.MustInvoke[database.Client](i),
+			passkeys.WithTablePrefix(identity.TablePrefix),
+			passkeys.WithLogger(do.MustInvoke[logging.Logger](i)),
+			passkeys.WithTracerProvider(do.MustInvoke[tracing.Provider](i)),
+			passkeys.WithMetricsProvider(do.MustInvoke[metrics.Provider](i)),
+		)
+	})
+
 	do.Provide[*webauthn.Service](i, func(i do.Injector) (*webauthn.Service, error) {
 		return ProvidePasskeyService(
 			do.MustInvoke[logging.Logger](i),
@@ -50,7 +62,7 @@ func RegisterAuthService(i do.Injector) {
 			do.MustInvoke[*platformwebauthn.RelyingParty](i),
 			do.MustInvoke[platformidentity.Store](i),
 			do.MustInvoke[database.Client](i),
-			do.MustInvoke[identity.Repository](i),
+			do.MustInvoke[passkeys.Store](i),
 		)
 	})
 

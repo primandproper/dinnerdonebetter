@@ -5,12 +5,13 @@ import (
 
 	authcfg "github.com/primandproper/dinnerdonebetter/backend/internal/authentication/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
+	platformidentity "github.com/primandproper/platform-go/v14/identity"
 	"github.com/primandproper/primitives-go/v2/authentication/argon2"
 	"github.com/primandproper/primitives-go/v2/authentication/tokens"
 	"github.com/primandproper/primitives-go/v2/authentication/totp"
+	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/messagequeue"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
@@ -45,7 +46,8 @@ func RegisterAuth(i do.Injector) {
 			do.MustInvoke[tracing.Provider](i),
 			do.MustInvoke[logging.Logger](i),
 			do.MustInvoke[messagequeue.PublisherProvider](i),
-			do.MustInvoke[identity.Repository](i),
+			do.MustInvoke[platformidentity.Store](i),
+			do.MustInvoke[database.Client](i),
 			do.MustInvoke[auth.SessionStore](i),
 			do.MustInvoke[*authcfg.TokensConfig](i),
 		)

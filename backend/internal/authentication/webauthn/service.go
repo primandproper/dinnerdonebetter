@@ -232,7 +232,7 @@ func (s *Service) FinishAuthentication(ctx context.Context, username string, ass
 	}
 
 	var (
-		user       *identity.User
+		user       *platformidentity.User
 		credential *platformwebauthn.Credential
 	)
 
@@ -364,7 +364,7 @@ func (s *Service) webAuthnUserByUsername(ctx context.Context, username string) (
 // A missing user is an error rather than a nil user handed onward. The relying party would
 // reject the nil, but it would reject it as "nil webauthn user", which says nothing about
 // the lookup that came up empty.
-func (s *Service) webAuthnUser(ctx context.Context, user *identity.User) (*WebAuthnUser, error) {
+func (s *Service) webAuthnUser(ctx context.Context, user *platformidentity.User) (*WebAuthnUser, error) {
 	if user == nil {
 		return nil, ErrUserNotFound
 	}

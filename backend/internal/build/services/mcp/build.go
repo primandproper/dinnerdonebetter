@@ -53,7 +53,6 @@ func BuildInjector(ctx context.Context, cfg *config.MCPServiceConfig) *do.RootSc
 	// identity repository resolves a principal's role names through it when it
 	// builds a session.
 	authorization.RegisterPolicyResolver(i)
-	identityrepo.RegisterIdentityRepository(i)
 	identitystore.RegisterIdentityStore(i)
 	identitybuild.RegisterSessionBuilder(i)
 	events.RegisterOutboxEmitter(i)
