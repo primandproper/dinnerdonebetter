@@ -495,7 +495,9 @@ func TestCrossTenant_WaitlistSignups_Denied(T *testing.T) {
 		waitlist := createWaitlistForTest(t, clientA)
 		signup := createWaitlistSignupForTest(t, clientA, waitlist.GetId())
 
-		// cross-tenant: B may not read A's signup.
+		// cross-tenant: B may not read A's signup. Denied by the grant now rather than by
+		// ownership — no member holds a signup read at all — which is stricter than what
+		// this case was written to check and still refuses what it was written to refuse.
 		_, err := clientB.GetSignup(ctx, &waitlistspb.GetSignupRequest{
 			ListId:   waitlist.GetId(),
 			SignupId: signup.GetId(),
@@ -557,13 +559,18 @@ func TestCrossTenant_WaitlistSignups_Denied(T *testing.T) {
 		})
 		require.NoError(t, err)
 
-		// positive control: A may read, update, and archive its own signup.
+		// A cannot read its own signup either, and that is not a cross-tenant rule — it
+		// is the cost of platform putting four signup reads behind one grant, one of
+		// which can ask whether any address is on any list. See internal/authorization.
 		_, err = clientA.GetSignup(ctx, &waitlistspb.GetSignupRequest{
 			ListId:   waitlist.GetId(),
 			SignupId: signup.GetId(),
 		})
-		require.NoError(t, err)
+		require.Error(t, err)
+		assert.Equal(t, codes.PermissionDenied, status.Code(err))
 
+		// positive control: A may still amend and archive its own signup, which is what
+		// the cross-tenant denials above are measured against.
 		_, err = clientA.UpdateSignupNotes(ctx, &waitlistspb.UpdateSignupNotesRequest{
 			ListId:   waitlist.GetId(),
 			SignupId: signup.GetId(),

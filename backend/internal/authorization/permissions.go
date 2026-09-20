@@ -58,13 +58,27 @@ var (
 		// which is the check that says so.
 		VerifyAuditChainPermission,
 		ModerateCommentsPermission,
-		TriageIssueReportsPermission,
-		TransitionIssueReportsPermission,
 		ReadAllSettingValuesPermission,
 		WriteAdminSettingValuesPermission,
 		InviteWaitlistSignupsPermission,
 		ConvertWaitlistSignupsPermission,
 		EraseWaitlistSignupsPermission,
+
+		// Reading signups is a service admin's and nobody else's, which costs a member
+		// the ability to see their own place in a queue.
+		//
+		// platform puts four reads behind this one grant — a signup by id, one by the
+		// address it was made with, a list's page, and one subject's signups — and warns
+		// that it is the grant to think hardest about, because a holder can ask whether
+		// any address they can type is on any list. Granting it to a member would hand
+		// every signed-in user that question about every other user's address.
+		//
+		// The obvious narrower grant is not available either: ListSignupsForSubject takes
+		// the subject from the request, and unlike settings there is no authorizer to
+		// refuse a subject that is not the caller's own. So a member holding it could read
+		// anybody's signups by naming them. Filed upstream; when a subject authorizer or a
+		// split grant lands, the own-signup half comes back to the member.
+		ReadWaitlistSignupsPermission,
 
 		// The fleet-wide ledger reads, which are separate permissions from the
 		// account-scoped ones an account admin holds precisely so that reading one
@@ -134,6 +148,13 @@ var (
 		CreateIssueReportsPermission,
 		UpdateIssueReportsPermission,
 		ArchiveIssueReportsPermission,
+		// Working the queue is an account admin's, because the queue is the account's:
+		// a report is filed in the account it is about and no read crosses that line.
+		// These are the two halves of what "update.issue_reports" gated before the
+		// adoption split it — paging the queue by status or subject, and moving a
+		// report through it.
+		TriageIssueReportsPermission,
+		TransitionIssueReportsPermission,
 		CreateMealPlansPermission,
 		UpdateMealPlansPermission,
 		ArchiveMealPlansPermission,
@@ -295,7 +316,6 @@ var (
 		UpdateWaitlistSignupsPermission,
 		ArchiveWaitlistSignupsPermission,
 		ReadWaitlistsPermission,
-		ReadWaitlistSignupsPermission,
 		ReadValidPrepTaskConfigsPermission,
 		CreateCheckoutSessionPermission,
 		CancelSubscriptionPermission,
