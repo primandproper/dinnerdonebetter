@@ -465,3 +465,95 @@ are the erased person's data by definition. A `Store.DeleteAccount` would be the
 tidier home and is worth asking platform for later; it is one visible statement
 against a table platform owns, named in the package documentation so that a
 schema change upstream lands on a comment rather than a surprise.
+
+---
+
+# Pass 2 spike: settings
+
+Taken as insurance before the tag, on the expectation that the third thin domain
+would repeat comments. It did not. **The adoption was stopped before any
+deletion**, because mounting platform's settings surface silently drops an
+authorization check this application performs today.
+
+## What settings does that comments did not
+
+`settings.Definition.AdminOnly` marks a setting only an administrator may write.
+platform records it and deliberately does not enforce it, and says so
+(`settings/settings.go:282`):
+
+> It is recorded rather than enforced — this package has no notion of who is
+> calling, and a store that pretended to would be an authorization check in the
+> wrong layer. What it is for is the caller's own check.
+
+This application is that caller. `internal/services/settings/grpc` is where the
+check lives: `writableSetting` reads the definition before every value write and
+refuses a non-administrator reaching for an admin-only one, and the read path
+does the same.
+
+## The gap
+
+platform's own gRPC surface gives that check nowhere to stand.
+
+- The method grant does not cover it. `SetValue` requires
+  `settings.values.write`, which every self-service user must hold to set any of
+  their own settings at all. An admin-only setting's value write is the same RPC
+  with the same permission.
+- The `SubjectAuthorizer` does not cover it, and cannot. It is handed the
+  *subject* and never the *definition*, and it runs **before** the definition is
+  read — `settings/grpc/values.go:69` calls `authorizeSubject` above the
+  transaction that then does `GetDefinitionByName`.
+- There is no other seam. The server takes `store`, `client`, `principals` and
+  `subjects` positionally, and its options are a grants extractor and the three
+  observability providers.
+
+So: **a caller holding `settings.values.write` can set a value for a definition
+marked `AdminOnly`, for themselves.** That is what the flag exists to prevent,
+and what this repo prevents today.
+
+`internal/repositories/postgres/settingsspike` demonstrates it rather than
+asserting it — an ordinary service-user principal, platform's server wired with
+the self-service `SubjectAuthorizer` platform's own documentation supplies
+(`settings/grpc/authorizer.go:60`), and an admin-only definition. The write
+succeeds and the value is read back. The test passing *is* the finding.
+
+## How bad, honestly
+
+The mechanism is real and reachable. The blast radius here today is small: the
+only definitions this repo marks `AdminOnly` are two examples in the localdev
+seed — a theme preference and a notification frequency — and both are arguably
+mis-marked anyway. Nothing in production depends on it, because nothing is in
+production.
+
+It also does not generalize. "Recorded rather than enforced" appears in settings
+and nowhere else in platform, so this is one seam on one surface rather than a
+systemic hole.
+
+## What it means for the tag
+
+It does **not** force a `/v15`. An additive `WithDefinitionAuthorizer` option,
+called just after `GetDefinitionByName` inside the write's transaction, closes it
+in a minor release.
+
+The reason to settle it before the tag anyway is the same reason findings 2 and 3
+were settled before the tag: it is a question about the *shape* of a seam, and
+the shape is free to change now and expensive later. If the right answer is one
+authorizer that sees the subject and the definition together, that is a breaking
+change to `SubjectAuthorizer` once consumers have written one. If the answer is a
+second authorizer, consumers write two where one would have done, forever. Today
+nobody has written either.
+
+The failure mode also argues for settling it early: a consumer adopts the
+surface, the check quietly stops happening, and nothing fails.
+
+## What was not done
+
+No deletion. The local settings service, proto and converters are untouched, and
+the 1,901-line service still enforces `AdminOnly`. Adopting settings should wait
+on the seam, at which point it looks like comments did — the store decorator
+already implements `settings.Store`, so the audit entry and outbox event carry
+over unchanged.
+
+The workaround that does not need platform is enforcing `AdminOnly` in this
+repo's store decorator, reading the session off the context. It works and it is
+the wrong layer, which is precisely the objection platform raises about the store
+doing it. Better to ask for the seam.

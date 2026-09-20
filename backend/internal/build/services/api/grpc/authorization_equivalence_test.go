@@ -10,7 +10,7 @@ import (
 	auditgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/audit/grpc"
 	authgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc/interceptors"
-	commentsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/comments/grpc"
+	commentsgrpc "github.com/primandproper/platform-go/v14/comments/grpc"
 	dataprivacygrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/grpc"
 	identitygrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/grpc"
 	internalopsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/internalops/grpc"
@@ -39,7 +39,7 @@ func realMethodPermissions() interceptors.MethodPermissionsMap {
 		analyticsgrpc.ProvideMethodPermissions(),
 		auditgrpc.ProvideMethodPermissions(),
 		authgrpc.ProvideMethodPermissions(),
-		commentsgrpc.ProvideMethodPermissions(),
+		commentsgrpc.Permissions(),
 		dataprivacygrpc.ProvideMethodPermissions(),
 		identitygrpc.ProvideMethodPermissions(),
 		internalopsgrpc.ProvideMethodPermissions(),

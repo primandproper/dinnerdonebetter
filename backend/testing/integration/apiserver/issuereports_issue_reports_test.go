@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	issuereportfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports/fakes"
-	commentsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/comments"
 	issuereportssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/issue_reports"
 	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/services/issuereports/grpc/converters"
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
@@ -485,54 +484,11 @@ func TestIssueReports_Archiving(T *testing.T) {
 // TestIssueReports_Commenting pins that the comment path reads the report as the
 // caller first: it is both the existence check the comment store's target catalog
 // cannot run for this type and the account boundary.
-func TestIssueReports_Commenting(T *testing.T) {
-	T.Parallel()
 
-	T.Run("happy path", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		user, testClient := createUserAndClientForTest(t)
-		created := createIssueReportForTest(t, testClient)
-
-		res, err := testClient.AddCommentToIssueReport(ctx, &issuereportssvc.AddCommentToIssueReportRequest{
-			IssueReportId: created.GetId(),
-			Input:         &commentsgrpc.CommentCreationRequestInput{Body: "this is a duplicate"},
-		})
-		require.NoError(t, err)
-		require.NotNil(t, res.GetComment())
-		assert.Equal(t, created.GetId(), res.GetComment().GetTarget().GetId())
-		assert.Equal(t, user.ID, res.GetComment().GetAuthor())
-	})
-
-	T.Run("another account's report is not found", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		_, ownerClient := createUserAndClientForTest(t)
-		created := createIssueReportForTest(t, ownerClient)
-
-		_, otherClient := createUserAndClientForTest(t)
-
-		_, err := otherClient.AddCommentToIssueReport(ctx, &issuereportssvc.AddCommentToIssueReportRequest{
-			IssueReportId: created.GetId(),
-			Input:         &commentsgrpc.CommentCreationRequestInput{Body: "nope"},
-		})
-		require.Error(t, err)
-		assert.Equal(t, codes.NotFound, status.Code(err))
-	})
-
-	T.Run("nonexistent report", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		_, testClient := createUserAndClientForTest(t)
-
-		_, err := testClient.AddCommentToIssueReport(ctx, &issuereportssvc.AddCommentToIssueReportRequest{
-			IssueReportId: nonexistentID,
-			Input:         &commentsgrpc.CommentCreationRequestInput{Body: "nope"},
-		})
-		require.Error(t, err)
-		assert.Equal(t, codes.NotFound, status.Code(err))
-	})
-}
+// TestIssueReports_Commenting is gone with the AddCommentToIssueReport RPC.
+//
+// That RPC named the target from its own name and forwarded to CreateComment;
+// the existence check it appeared to add was the comment store's, through the
+// target catalog. Commenting on an issue report is now platform's
+// CommentsService.CreateComment with an issue-report target, and it is covered
+// where every other comment path is.
