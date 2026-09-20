@@ -30,23 +30,24 @@ import (
 // TestServer_Integration_RecordingRollsBackWithTheWrite, which fails against the
 // pre-v14 shape.
 //
-// Two seams are deliberately left at their defaults:
+// The AuthorAuthorizer is left at its default. platform's OwnCommentsOnly is
+// exactly what the deleted service's ownedComment did: a caller may edit and
+// archive their own comments and nobody else's. This application has no
+// moderator role, so naming an authorizer here would only restate the default.
 //
-//   - The AuthorAuthorizer. Platform's default, OwnCommentsOnly, is exactly what
-//     the deleted service's ownedComment did: a caller may edit and archive their
-//     own comments and nobody else's. This application has no moderator role, so
-//     naming an authorizer here would only restate the default.
-//   - The GrantsExtractor. Its absence clears include_archived on every read,
-//     which serves live rows to everybody rather than removed ones to anybody.
-//     The deleted service exposed no way to read archived comments either, so
-//     this is the behaviour it had. Wiring one is what a moderation queue would
-//     need, and it wants the same extractor the authorization interceptor reads.
+// The GrantsExtractor is wired, unlike when this was first adopted. Its absence
+// is fail-closed — every read is confined, which is the behaviour the deleted
+// service had, since it exposed no archived read at all — but leaving it absent
+// makes comments.archive a name rather than a policy, and the three sibling
+// surfaces adopted since all carry one. An archivist paging removed comments is
+// a small addition over the deleted service and the consistent answer.
 func RegisterCommentsService(i do.Injector) {
 	do.Provide[commentspb.CommentsServiceServer](i, func(i do.Injector) (commentspb.CommentsServiceServer, error) {
 		return commentsgrpc.NewServer(
 			do.MustInvoke[platformcomments.Store](i),
 			do.MustInvoke[database.Client](i),
 			sessions.PrincipalFromContext,
+			commentsgrpc.WithGrantsExtractor(sessions.GrantsFromContext),
 			commentsgrpc.WithLogger(do.MustInvoke[logging.Logger](i)),
 			commentsgrpc.WithTracerProvider(do.MustInvoke[tracing.Provider](i)),
 			commentsgrpc.WithMetricsProvider(do.MustInvoke[metrics.Provider](i)),

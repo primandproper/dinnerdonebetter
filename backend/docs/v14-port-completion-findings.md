@@ -26,6 +26,11 @@ Findings B and D are the two worth reading first.
 
 
 ## A. waitlists: an anonymous Join writes a signup no privacy read can find
+**CLOSED.** Nothing to change here — this repo already declares Join under its
+own grant rather than mounting `PublicMethods()`, so every signup carries the
+caller as subject. platform wrote the fork into `PublicMethods` and
+`waitlists/privacy`'s docs on `pre-v14-final`.
+
 **Where:** `waitlists/grpc/converters.go:218` (`signupFromJoin`), `permissions.go:131` (`PublicMethods`)
 **Severity:** worth documenting upstream; not a defect, and fail-closed by default.
 
@@ -49,6 +54,11 @@ package's — saying an anonymous signup is outside the subject machinery. This
 repo gates all three behind grants, because joining here requires a session.
 
 ## B. callers.Principal.Scope() assumes one tenancy model per consumer
+**FIXED on `pre-v14-final`.** `callers/principal.go` now says the scope is the
+surface's and not the consumer's, that a consumer whose domains disagree hands
+each surface its own extractor, and that getting it wrong is quiet. This repo's
+`sessions.AccountScopedPrincipal` is that, implemented.
+
 **Where:** `callers/principal.go:72`, and every surface's `caller()` —
 e.g. `issuereports/grpc/server.go:244`, `scope := principal.Scope()`
 **Severity:** the most serious of this run. Silent cross-tenant exposure if wired wrong.
@@ -99,8 +109,11 @@ wire — so what is lost is the API read "everything about me", which arguably
 belongs to the export anyway. Recorded because a consumer with per-user chains
 will meet it, and the proto's reasoning does not mention that shape.
 
-## D. Surface adoption is gated on store adoption, and that is the real remaining work
-**Not a defect — a sequencing fact worth stating plainly.**
+## D. Surface adoption is gated on store adoption
+**Withdrawn as a finding.** A server taking its store is the design, not a gap.
+Recorded here only because it is the shape of the remaining work: four of the six
+outstanding surfaces need their tables on platform's schema before there is
+anything to hand their server.
 
 Every platform gRPC server takes that domain's store as its first argument:
 `comments.Store`, `settings.Store`, `waitlists.Store`, `issuereports.Store`,
@@ -124,6 +137,13 @@ the identity-shaped job: rename the tables, re-point the foreign keys, delete th
 local querier. The surfaces then follow in an afternoon each, as these five did.
 
 ## E. billing/grpc alone does not gate include_archived
+**FIXED on `pre-v14-final`, and it was bigger than reported.** Not one surface
+but three — billing, notifications and webhooks — twelve read sites, and none of
+the three had a grants seam at all. Each gains a `WithGrantsExtractor` whose
+absence is fail-closed, and an `archived_test.go` that is one differential: same
+rows, same request, grant present and absent. Retired webhook endpoint URLs were
+among what leaked.
+
 **Where:** `billing/grpc/options.go` (no `WithGrantsExtractor`),
 `billing/grpc/products.go:114` — `filteringgrpc.FromProto(request.GetFilter())`
 passed straight to the store.
