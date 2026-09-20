@@ -17,7 +17,8 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/localdev"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	identityrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity"
-	notificationsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/notifications"
+	notificationsstore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/notificationsstore"
+	metricsnoop "github.com/primandproper/primitives-go/v2/observability/metrics/noop"
 
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/identifiers"
@@ -150,7 +151,11 @@ func init() {
 		log.Fatal(err)
 	}
 	identityRepo := identityrepo.ProvideIdentityRepository(pillars.Logger, pillars.TracerProvider, auditLogRepo, databaseClient, nil, uploadsRegistryStore, policy)
-	notifsRepo = notificationsrepo.ProvideNotificationsRepository(nil, nil, auditLogRepo, &dbCfg.Config, databaseClient, nil)
+	notifsRepo, err = notificationsstore.ProvideAdapter(ctx, pillars.Logger, pillars.TracerProvider,
+		metricsnoop.NewMetricsProvider(), auditLogRepo, nil, databaseClient)
+	if err != nil {
+		log.Fatal(err)
+	}
 	adminUser, err := localdev.CreatePremadeAdminUser(ctx, pillars.Logger, pillars.TracerProvider, identityRepo, databaseClient, premadeAdminUser)
 	if err != nil {
 		log.Fatal(err)

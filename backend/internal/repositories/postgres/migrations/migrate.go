@@ -14,6 +14,7 @@ import (
 	ddbcomments "github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments"
 	ddbdataprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
 	ddbissuereports "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports"
+	ddbnotifications "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
 	ddboauth "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
 	ddbpayments "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 	ddbsettings "github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings"
@@ -32,6 +33,7 @@ import (
 	uploadsregistrymigrations "github.com/primandproper/platform-go/v14/mediaregistry/migrations"
 	"github.com/primandproper/platform-go/v14/metering"
 	meteringmigrations "github.com/primandproper/platform-go/v14/metering/migrations"
+	notificationsmigrations "github.com/primandproper/platform-go/v14/notifications/migrations"
 	"github.com/primandproper/platform-go/v14/operations"
 	operationsmigrations "github.com/primandproper/platform-go/v14/operations/migrations"
 	"github.com/primandproper/platform-go/v14/outbox"
@@ -92,6 +94,7 @@ const (
 	settingsMigrationVersion        = 41
 	authorizationMigrationVersion   = 42
 	billingMigrationVersion         = 43
+	notificationsMigrationVersion   = 44
 )
 
 // NewMigrator creates a new postgres Migrator over the embedded migration files.
@@ -237,6 +240,11 @@ func NewMigrator(logger logging.Logger) (*Migrator, error) {
 		return nil, err
 	}
 
+	notificationsDDL, err := renderNotificationsDDL()
+	if err != nil {
+		return nil, err
+	}
+
 	migrator, err := migrate.New(
 		dialect.Postgres,
 		migrationFiles,
@@ -261,6 +269,7 @@ func NewMigrator(logger logging.Logger) (*Migrator, error) {
 		migrate.WithGeneratedMigration(settingsMigrationVersion, "create_settings_tables", settingsDDL),
 		migrate.WithGeneratedMigration(authorizationMigrationVersion, "create_authorization_tables", authorizationDDL),
 		migrate.WithGeneratedMigration(billingMigrationVersion, "create_billing_tables", billingDDL),
+		migrate.WithGeneratedMigration(notificationsMigrationVersion, "create_notifications_tables", notificationsDDL),
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "building migrator")
@@ -866,6 +875,59 @@ func renderUploadsRegistryDDL() (string, error) {
 	for _, bridge := range bridgeTablesReferencingUploadedMedia {
 		body.WriteString("\nALTER TABLE " + bridge + "\n\tADD CONSTRAINT " + bridge + "_uploaded_media_fk\n\tFOREIGN KEY (uploaded_media_id) REFERENCES " + table + "(id) ON DELETE CASCADE;\n")
 	}
+
+	return body.String(), nil
+}
+
+// renderNotificationsDDL renders the inbox and the device registry, dropping the
+// two tables 00006_notifications.sql and 00015_user_device_tokens.sql created
+// first, along with the enum the former defined.
+//
+// Nothing is carried across and the schemas could not carry it anyway. The
+// platform's inbox replaces belongs_to_user with a principal and the tenancy
+// column every one of its reads filters on; it says when a notification was read
+// rather than whether, which is strictly more and is what an unread count is
+// derived from; and it adds the title, topic and link a notification needs to be
+// rendered as anything but a line of text. The device registry loses
+// last_updated_at and archived_at and gains last_seen_at, because a device is
+// revoked by removal rather than retired in place — see the two file comments in
+// platform's notifications/grpc for why a Device has no archived dimension to
+// rule about.
+//
+// # The two foreign keys, re-created
+//
+// Both principal columns name a user in every row this application writes: an
+// inbox belongs to a person and so does a handset, and this deployment has no
+// other kind of principal. So the keys belongs_to_user carried are re-creatable,
+// and re-creating them is what keeps the single identity eraser in
+// internal/build/dataprivacy covering both tables.
+//
+// platform ships notifications/privacy with an eraser for each, which is the
+// other way to cover them and the one a deployment with non-user principals has
+// to take. This one does not need it: a foreign key the database enforces is
+// cheaper and harder to forget than an eraser somebody has to register, and it
+// is the same reading settings took.
+//
+// It is also what stops the subject type widening by accident. A notification
+// addressed to an account would be refused by the database rather than
+// discouraged by a comment, so widening starts by dropping these keys and
+// deciding what erases the rows they were holding.
+func renderNotificationsDDL() (string, error) {
+	schema, err := notificationsmigrations.SQL(dialect.Postgres, ddbnotifications.TablePrefix)
+	if err != nil {
+		return "", errors.Wrap(err, "rendering notifications migration")
+	}
+
+	qualified := ddl.Qualify(ddbnotifications.TablePrefix)
+	inbox := qualified + "notifications_inbox"
+	devices := qualified + "notifications_devices"
+
+	body := &strings.Builder{}
+
+	body.WriteString("DROP TABLE IF EXISTS user_device_tokens;\nDROP TABLE IF EXISTS user_notifications;\nDROP TYPE IF EXISTS user_notification_status;\n\n")
+	body.WriteString(schema)
+	body.WriteString("\n\nALTER TABLE " + inbox + "\n\tADD CONSTRAINT " + inbox + "_principal_fk\n\tFOREIGN KEY (principal) REFERENCES users(id) ON DELETE CASCADE;\n")
+	body.WriteString("\nALTER TABLE " + devices + "\n\tADD CONSTRAINT " + devices + "_principal_fk\n\tFOREIGN KEY (principal) REFERENCES users(id) ON DELETE CASCADE;\n")
 
 	return body.String(), nil
 }

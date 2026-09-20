@@ -9,21 +9,21 @@ import (
 	"net/http"
 
 	analyticsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/analytics"
-	auditgrpc "github.com/primandproper/platform-go/v14/audit/auditpb"
 	authgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
 	dataprivacygrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/dataprivacy"
 	identitygrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
 	internalopsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/internalops"
-	issuereportsgrpc "github.com/primandproper/platform-go/v14/issuereports/issuereportspb"
 	mealplanninggrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
-	notificationsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/notifications"
 	oauthgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/oauth"
 	paymentsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/payments"
-	settingsgrpc "github.com/primandproper/platform-go/v14/settings/settingspb"
 	uploadedmediagrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
-	waitlistsgrpc "github.com/primandproper/platform-go/v14/waitlists/waitlistspb"
 	webhooksgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/webhooks"
+	auditgrpc "github.com/primandproper/platform-go/v14/audit/auditpb"
 	commentsgrpc "github.com/primandproper/platform-go/v14/comments/commentspb"
+	issuereportsgrpc "github.com/primandproper/platform-go/v14/issuereports/issuereportspb"
+	notificationsgrpc "github.com/primandproper/platform-go/v14/notifications/notificationspb"
+	settingsgrpc "github.com/primandproper/platform-go/v14/settings/settingspb"
+	waitlistsgrpc "github.com/primandproper/platform-go/v14/waitlists/waitlistspb"
 
 	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
 	"github.com/primandproper/primitives-go/v2/httpclient"
@@ -51,7 +51,7 @@ type Client interface {
 	internalopsgrpc.InternalOperationsClient
 	issuereportsgrpc.IssueReportsServiceClient
 	mealplanninggrpc.MealPlanningServiceClient
-	notificationsgrpc.UserNotificationsServiceClient
+	notificationsgrpc.NotificationsServiceClient
 	oauthgrpc.OAuthServiceClient
 	paymentsgrpc.PaymentsServiceClient
 	settingsgrpc.SettingsServiceClient
@@ -77,7 +77,7 @@ type client struct {
 	internalopsgrpc.InternalOperationsClient
 	issuereportsgrpc.IssueReportsServiceClient
 	mealplanninggrpc.MealPlanningServiceClient
-	notificationsgrpc.UserNotificationsServiceClient
+	notificationsgrpc.NotificationsServiceClient
 	oauthgrpc.OAuthServiceClient
 	paymentsgrpc.PaymentsServiceClient
 	settingsgrpc.SettingsServiceClient
@@ -97,23 +97,23 @@ func BuildClient(grpcServerAddress string, opts ...grpc.DialOption) (Client, err
 	}
 
 	c := &client{
-		AnalyticsServiceClient:         analyticsgrpc.NewAnalyticsServiceClient(conn),
-		AuthServiceClient:              authgrpc.NewAuthServiceClient(conn),
-		IdentityServiceClient:          identitygrpc.NewIdentityServiceClient(conn),
-		AuditServiceClient:             auditgrpc.NewAuditServiceClient(conn),
-		DataPrivacyServiceClient:       dataprivacygrpc.NewDataPrivacyServiceClient(conn),
-		InternalOperationsClient:       internalopsgrpc.NewInternalOperationsClient(conn),
-		IssueReportsServiceClient:      issuereportsgrpc.NewIssueReportsServiceClient(conn),
-		MealPlanningServiceClient:      mealplanninggrpc.NewMealPlanningServiceClient(conn),
-		UserNotificationsServiceClient: notificationsgrpc.NewUserNotificationsServiceClient(conn),
-		OAuthServiceClient:             oauthgrpc.NewOAuthServiceClient(conn),
-		PaymentsServiceClient:          paymentsgrpc.NewPaymentsServiceClient(conn),
-		SettingsServiceClient:          settingsgrpc.NewSettingsServiceClient(conn),
-		UploadedMediaServiceClient:     uploadedmediagrpc.NewUploadedMediaServiceClient(conn),
-		WaitlistsServiceClient:         waitlistsgrpc.NewWaitlistsServiceClient(conn),
-		WebhooksServiceClient:          webhooksgrpc.NewWebhooksServiceClient(conn),
-		commentsClient:                 commentsgrpc.NewCommentsServiceClient(conn),
-		conn:                           conn,
+		AnalyticsServiceClient:     analyticsgrpc.NewAnalyticsServiceClient(conn),
+		AuthServiceClient:          authgrpc.NewAuthServiceClient(conn),
+		IdentityServiceClient:      identitygrpc.NewIdentityServiceClient(conn),
+		AuditServiceClient:         auditgrpc.NewAuditServiceClient(conn),
+		DataPrivacyServiceClient:   dataprivacygrpc.NewDataPrivacyServiceClient(conn),
+		InternalOperationsClient:   internalopsgrpc.NewInternalOperationsClient(conn),
+		IssueReportsServiceClient:  issuereportsgrpc.NewIssueReportsServiceClient(conn),
+		MealPlanningServiceClient:  mealplanninggrpc.NewMealPlanningServiceClient(conn),
+		NotificationsServiceClient: notificationsgrpc.NewNotificationsServiceClient(conn),
+		OAuthServiceClient:         oauthgrpc.NewOAuthServiceClient(conn),
+		PaymentsServiceClient:      paymentsgrpc.NewPaymentsServiceClient(conn),
+		SettingsServiceClient:      settingsgrpc.NewSettingsServiceClient(conn),
+		UploadedMediaServiceClient: uploadedmediagrpc.NewUploadedMediaServiceClient(conn),
+		WaitlistsServiceClient:     waitlistsgrpc.NewWaitlistsServiceClient(conn),
+		WebhooksServiceClient:      webhooksgrpc.NewWebhooksServiceClient(conn),
+		commentsClient:             commentsgrpc.NewCommentsServiceClient(conn),
+		conn:                       conn,
 	}
 
 	return c, nil

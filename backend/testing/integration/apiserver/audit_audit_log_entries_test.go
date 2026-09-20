@@ -3,8 +3,8 @@ package integration
 import (
 	"testing"
 
-	auditgrpc "github.com/primandproper/platform-go/v14/audit/auditpb"
 	identitysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
+	auditgrpc "github.com/primandproper/platform-go/v14/audit/auditpb"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

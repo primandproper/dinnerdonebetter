@@ -6,13 +6,13 @@ import (
 	identitysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
 	internalopssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/internalops"
 	mealplanningsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
-	notificationssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/notifications"
 	oauthsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/oauth"
 	paymentssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/payments"
 	uploadedmediasvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
 	webhookssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/webhooks"
 	auditsvc "github.com/primandproper/platform-go/v14/audit/auditpb"
 	issuereportssvc "github.com/primandproper/platform-go/v14/issuereports/issuereportspb"
+	notificationssvc "github.com/primandproper/platform-go/v14/notifications/notificationspb"
 	settingssvc "github.com/primandproper/platform-go/v14/settings/settingspb"
 	waitlistssvc "github.com/primandproper/platform-go/v14/waitlists/waitlistspb"
 
@@ -27,7 +27,7 @@ type GRPCService struct {
 	internalopssvc.InternalOperationsServer
 	issuereportssvc.IssueReportsServiceServer
 	mealplanningsvc.MealPlanningServiceServer
-	notificationssvc.UserNotificationsServiceServer
+	notificationssvc.NotificationsServiceServer
 	oauthsvc.OAuthServiceServer
 	paymentssvc.PaymentsServiceServer
 	settingssvc.SettingsServiceServer
@@ -45,7 +45,7 @@ func NewGRPCService(
 	internalOperationsServer internalopssvc.InternalOperationsServer,
 	issueReportsServiceServer issuereportssvc.IssueReportsServiceServer,
 	mealPlanningServiceServer mealplanningsvc.MealPlanningServiceServer,
-	userNotificationsServiceServer notificationssvc.UserNotificationsServiceServer,
+	userNotificationsServiceServer notificationssvc.NotificationsServiceServer,
 	oauthServiceServer oauthsvc.OAuthServiceServer,
 	paymentsServiceServer paymentssvc.PaymentsServiceServer,
 	settingsServiceServer settingssvc.SettingsServiceServer,
@@ -55,20 +55,20 @@ func NewGRPCService(
 	server *grpc.Server,
 ) *GRPCService {
 	return &GRPCService{
-		Server:                         server,
-		AuditServiceServer:             auditServiceServer,
-		AuthServiceServer:              authServiceServer,
-		DataPrivacyServiceServer:       dataPrivacyServiceServer,
-		IdentityServiceServer:          identityServiceServer,
-		InternalOperationsServer:       internalOperationsServer,
-		IssueReportsServiceServer:      issueReportsServiceServer,
-		MealPlanningServiceServer:      mealPlanningServiceServer,
-		UserNotificationsServiceServer: userNotificationsServiceServer,
-		OAuthServiceServer:             oauthServiceServer,
-		PaymentsServiceServer:          paymentsServiceServer,
-		SettingsServiceServer:          settingsServiceServer,
-		UploadedMediaServiceServer:     uploadedMediaServiceServer,
-		WebhooksServiceServer:          webhooksServiceServer,
-		WaitlistsServiceServer:         waitlistsServiceServer,
+		Server:                     server,
+		AuditServiceServer:         auditServiceServer,
+		AuthServiceServer:          authServiceServer,
+		DataPrivacyServiceServer:   dataPrivacyServiceServer,
+		IdentityServiceServer:      identityServiceServer,
+		InternalOperationsServer:   internalOperationsServer,
+		IssueReportsServiceServer:  issueReportsServiceServer,
+		MealPlanningServiceServer:  mealPlanningServiceServer,
+		NotificationsServiceServer: userNotificationsServiceServer,
+		OAuthServiceServer:         oauthServiceServer,
+		PaymentsServiceServer:      paymentsServiceServer,
+		SettingsServiceServer:      settingsServiceServer,
+		UploadedMediaServiceServer: uploadedMediaServiceServer,
+		WebhooksServiceServer:      webhooksServiceServer,
+		WaitlistsServiceServer:     waitlistsServiceServer,
 	}
 }

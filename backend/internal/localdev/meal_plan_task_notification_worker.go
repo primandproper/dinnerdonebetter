@@ -9,7 +9,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	identityrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity"
 	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
-	notificationsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/notifications"
+	notificationsstore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/notificationsstore"
 	mealplantasknotifications "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_task_notifications"
 
 	"github.com/primandproper/platform-go/v14/workqueue"
@@ -70,7 +70,10 @@ func NewMealPlanTaskNotificationWorker(
 
 	identityRepo := identityrepo.ProvideIdentityRepository(logger, tracerProvider, auditRepo, databaseClient, nil, uploads, policy)
 	mealPlanningRepo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditRepo, identityRepo, databaseClient, nil, uploads)
-	notificationsRepo := notificationsrepo.ProvideNotificationsRepository(logger, tracerProvider, auditRepo, nil, databaseClient, nil)
+	notificationsRepo, err := notificationsstore.ProvideAdapter(ctx, logger, tracerProvider, metricsnoop.NewMetricsProvider(), auditRepo, nil, databaseClient)
+	if err != nil {
+		return nil, nil, fmt.Errorf("building notifications repository: %w", err)
+	}
 
 	fanout, err := push.NewFanout(logger, notificationsRepo, sender, metricsProvider)
 	if err != nil {

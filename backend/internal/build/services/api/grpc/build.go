@@ -9,6 +9,7 @@ import (
 	commentstargets "github.com/primandproper/dinnerdonebetter/backend/internal/build/comments"
 	dataprivacybuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/dataprivacy"
 	issuereportsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/issuereports"
+	notificationsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/notifications"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/build/sagas"
 	settingsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/settings"
 	waitlistsbuild2 "github.com/primandproper/dinnerdonebetter/backend/internal/build/waitlists"
@@ -44,7 +45,6 @@ import (
 	dataprivacysvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/grpc"
 	identitysvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/grpc"
 	internalopssvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/internalops/grpc"
-	notificationssvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/notifications/grpc"
 	oauthsvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/oauth/grpc"
 	paymentsadapters "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/adapters"
 	paymentssvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/grpc"
@@ -192,7 +192,7 @@ func BuildInjector(
 	identitysvc.RegisterIdentityService(i)
 	internalopssvc.RegisterInternalOpsService(i)
 	issuereportsbuild.RegisterIssueReportsService(i)
-	notificationssvc.RegisterNotificationsService(i)
+	notificationsbuild.RegisterNotificationsService(i)
 	settingsbuild.RegisterSettingsService(i)
 	uploadedmediasvc.RegisterUploadedMediaService(i)
 	webhookssvc.RegisterWebhooksService(i)

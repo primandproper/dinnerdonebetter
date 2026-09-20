@@ -26,7 +26,7 @@ import (
 	authrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auth"
 	identityrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity"
 	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
-	notificationsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/notifications"
+	notificationsstore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/notificationsstore"
 	oauthrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/oauth"
 	settingsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/settings"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
@@ -339,7 +339,10 @@ func WithNotificationsRepository(fn func(ctx context.Context, repo notifications
 		if err != nil {
 			return err
 		}
-		notificationsRepo := notificationsrepo.ProvideNotificationsRepository(logger, tracerProvider, auditLogRepo, &dbCfg.Config, dbClient, nil)
+		notificationsRepo, err := notificationsstore.ProvideAdapter(ctx, logger, tracerProvider, metricsnoop.NewMetricsProvider(), auditLogRepo, nil, dbClient)
+		if err != nil {
+			return err
+		}
 		return fn(ctx, notificationsRepo, logger, tracerProvider)
 	}
 }
