@@ -7,6 +7,7 @@ import (
 	"runtime/debug"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
+	waitlistsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/waitlists"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	analyticspb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/analytics"
 	auditsvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/audit"
@@ -19,9 +20,7 @@ import (
 	notificationssvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/notifications"
 	oauthsvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/oauth"
 	paymentssvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/payments"
-	settingssvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/settings"
 	uploadedmediasvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
-	waitlistssvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/waitlists"
 	webhookssvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/webhooks"
 	analyticsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/analytics/grpc"
 	auditgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/audit/grpc"
@@ -36,12 +35,13 @@ import (
 	notificationsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/notifications/grpc"
 	oauthgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/oauth/grpc"
 	paymentsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/grpc"
-	settingsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/settings/grpc"
 	uploadedmediagrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/grpc"
-	waitlistsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/waitlists/grpc"
 	webhooksgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/webhooks/grpc"
 	commentspb "github.com/primandproper/platform-go/v14/comments/commentspb"
 	commentsgrpc "github.com/primandproper/platform-go/v14/comments/grpc"
+	settingsgrpc "github.com/primandproper/platform-go/v14/settings/grpc"
+	settingspb "github.com/primandproper/platform-go/v14/settings/settingspb"
+	waitlistspb "github.com/primandproper/platform-go/v14/waitlists/waitlistspb"
 
 	analyticscfg "github.com/primandproper/primitives-go/v2/analytics/config"
 	authzgrpc "github.com/primandproper/primitives-go/v2/authorization/grpc"
@@ -89,9 +89,9 @@ func RegisterExtras(i do.Injector) {
 			do.MustInvoke[notificationsgrpc.NotificationsMethodPermissions](i),
 			do.MustInvoke[oauthgrpc.OAuthMethodPermissions](i),
 			do.MustInvoke[paymentsgrpc.PaymentsMethodPermissions](i),
-			do.MustInvoke[settingsgrpc.SettingsMethodPermissions](i),
+			settingsgrpc.Permissions(),
 			do.MustInvoke[uploadedmediagrpc.UploadedMediaMethodPermissions](i),
-			do.MustInvoke[waitlistsgrpc.WaitlistsMethodPermissions](i),
+			waitlistsbuild.Permissions(),
 			do.MustInvoke[webhooksgrpc.WebhooksMethodPermissions](i),
 		), nil
 	})
@@ -146,9 +146,9 @@ func RegisterExtras(i do.Injector) {
 			do.MustInvoke[notificationssvcpb.UserNotificationsServiceServer](i),
 			do.MustInvoke[oauthsvcpb.OAuthServiceServer](i),
 			do.MustInvoke[paymentssvcpb.PaymentsServiceServer](i),
-			do.MustInvoke[settingssvcpb.SettingsServiceServer](i),
+			do.MustInvoke[settingspb.SettingsServiceServer](i),
 			do.MustInvoke[uploadedmediasvcpb.UploadedMediaServiceServer](i),
-			do.MustInvoke[waitlistssvcpb.WaitlistsServiceServer](i),
+			do.MustInvoke[waitlistspb.WaitlistsServiceServer](i),
 			do.MustInvoke[webhookssvcpb.WebhooksServiceServer](i),
 		), nil
 	})
@@ -165,10 +165,10 @@ func RegisterExtras(i do.Injector) {
 			do.MustInvoke[notificationssvcpb.UserNotificationsServiceServer](i),
 			do.MustInvoke[oauthsvcpb.OAuthServiceServer](i),
 			do.MustInvoke[paymentssvcpb.PaymentsServiceServer](i),
-			do.MustInvoke[settingssvcpb.SettingsServiceServer](i),
+			do.MustInvoke[settingspb.SettingsServiceServer](i),
 			do.MustInvoke[uploadedmediasvcpb.UploadedMediaServiceServer](i),
 			do.MustInvoke[webhookssvcpb.WebhooksServiceServer](i),
-			do.MustInvoke[waitlistssvcpb.WaitlistsServiceServer](i),
+			do.MustInvoke[waitlistspb.WaitlistsServiceServer](i),
 			do.MustInvoke[*platformgrpc.Server](i),
 		), nil
 	})
@@ -187,9 +187,9 @@ func BuildRegistrationFuncs(
 	notificationsService notificationssvcpb.UserNotificationsServiceServer,
 	oauthService oauthsvcpb.OAuthServiceServer,
 	paymentsService paymentssvcpb.PaymentsServiceServer,
-	settingsService settingssvcpb.SettingsServiceServer,
+	settingsService settingspb.SettingsServiceServer,
 	uploadedMediaService uploadedmediasvcpb.UploadedMediaServiceServer,
-	waitlistsService waitlistssvcpb.WaitlistsServiceServer,
+	waitlistsService waitlistspb.WaitlistsServiceServer,
 	webhooksService webhookssvcpb.WebhooksServiceServer,
 ) []platformgrpc.RegistrationFunc {
 	return []platformgrpc.RegistrationFunc{
@@ -206,9 +206,9 @@ func BuildRegistrationFuncs(
 			notificationssvcpb.RegisterUserNotificationsServiceServer(server, notificationsService)
 			oauthsvcpb.RegisterOAuthServiceServer(server, oauthService)
 			paymentssvcpb.RegisterPaymentsServiceServer(server, paymentsService)
-			settingssvcpb.RegisterSettingsServiceServer(server, settingsService)
+			settingspb.RegisterSettingsServiceServer(server, settingsService)
 			uploadedmediasvcpb.RegisterUploadedMediaServiceServer(server, uploadedMediaService)
-			waitlistssvcpb.RegisterWaitlistsServiceServer(server, waitlistsService)
+			waitlistspb.RegisterWaitlistsServiceServer(server, waitlistsService)
 			webhookssvcpb.RegisterWebhooksServiceServer(server, webhooksService)
 		},
 	}
@@ -308,9 +308,9 @@ func AggregateMethodPermissions(
 	notificationsPermissions notificationsgrpc.NotificationsMethodPermissions,
 	oauthPermissions oauthgrpc.OAuthMethodPermissions,
 	paymentsPermissions paymentsgrpc.PaymentsMethodPermissions,
-	settingsPermissions settingsgrpc.SettingsMethodPermissions,
+	settingsPermissions map[string][]authorization.Permission,
 	uploadedmediaPermissions uploadedmediagrpc.UploadedMediaMethodPermissions,
-	waitlistsPermissions waitlistsgrpc.WaitlistsMethodPermissions,
+	waitlistsPermissions map[string][]authorization.Permission,
 	webhooksPermissions webhooksgrpc.WebhooksMethodPermissions,
 ) interceptors.MethodPermissionsMap {
 	result := make(interceptors.MethodPermissionsMap)

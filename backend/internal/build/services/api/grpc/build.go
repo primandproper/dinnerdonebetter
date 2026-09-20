@@ -8,6 +8,8 @@ import (
 	commentstargets "github.com/primandproper/dinnerdonebetter/backend/internal/build/comments"
 	dataprivacybuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/dataprivacy"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/build/sagas"
+	settingsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/settings"
+	waitlistsbuild2 "github.com/primandproper/dinnerdonebetter/backend/internal/build/waitlists"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	auditmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit/manager"
 	authmgr "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/managers"
@@ -46,10 +48,8 @@ import (
 	oauthsvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/oauth/grpc"
 	paymentsadapters "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/adapters"
 	paymentssvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/grpc"
-	settingssvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/settings/grpc"
 	uploadedmediacfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/config"
 	uploadedmediasvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/grpc"
-	waitlistssvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/waitlists/grpc"
 	webhookssvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/webhooks/grpc"
 
 	operationscfg "github.com/primandproper/platform-go/v14/operations/config"
@@ -192,12 +192,12 @@ func BuildInjector(
 	internalopssvc.RegisterInternalOpsService(i)
 	issuereportssvc.RegisterIssueReportsService(i)
 	notificationssvc.RegisterNotificationsService(i)
-	settingssvc.RegisterSettingsService(i)
+	settingsbuild.RegisterSettingsService(i)
 	uploadedmediasvc.RegisterUploadedMediaService(i)
 	webhookssvc.RegisterWebhooksService(i)
 	oauthsvc.RegisterOAuthService(i)
 	paymentssvc.RegisterPaymentsService(i)
-	waitlistssvc.RegisterWaitlistsService(i)
+	waitlistsbuild2.RegisterWaitlistsService(i)
 	uploadedmediacfg.RegisterUploadedMediaConfig(i)
 
 	// The saga machinery, minus the worker: this process starts durable processes and does not

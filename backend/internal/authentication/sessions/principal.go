@@ -3,7 +3,10 @@ package sessions
 import (
 	"context"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
+
 	"github.com/primandproper/platform-go/v14/callers"
+	platformauthz "github.com/primandproper/primitives-go/v2/authorization"
 	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
@@ -54,4 +57,40 @@ func PrincipalFromContext(ctx context.Context) (callers.Principal, bool) {
 	}
 
 	return &Principal{data: data}, true
+}
+
+// GrantsFromContext is the authorization.GrantsExtractor for this application.
+//
+// It is the second half of what platform's surfaces read off a request, beside
+// PrincipalFromContext: who is calling, and what they may do. Both are named
+// here so that the surfaces this repo mounts read one answer rather than each
+// assembling their own.
+//
+// Two sets rather than one, because this application resolves authority at two
+// levels and a platform surface should see both: what the service role grants
+// regardless of account, and what the active account's membership grants within
+// it. authorization.NewGrants drops a set that grants nothing, so a caller with
+// no membership in the active account is one set instead of two rather than a
+// special case anybody has to check for.
+//
+// The false return is a request with no session, which every surface reads as
+// granting nothing. That is the safe direction: a write gated on a grant is
+// refused, and a read that would have been narrowed by one is narrowed.
+func GrantsFromContext(ctx context.Context) (platformauthz.Grants, bool) {
+	data := FromContext(ctx)
+	if data == nil {
+		return platformauthz.Grants{}, false
+	}
+
+	var sets []*platformauthz.PermissionSet
+
+	if lister, ok := data.ServiceRolePermissionChecker().(authorization.PermissionLister); ok {
+		sets = append(sets, lister.GrantedPermissions())
+	}
+
+	if lister, ok := data.AccountRolePermissionsChecker().(authorization.PermissionLister); ok {
+		sets = append(sets, lister.GrantedPermissions())
+	}
+
+	return platformauthz.NewGrants(sets...), true
 }

@@ -19,9 +19,9 @@ import (
 	notificationsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/notifications"
 	oauthgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/oauth"
 	paymentsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/payments"
-	settingsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/settings"
+	settingsgrpc "github.com/primandproper/platform-go/v14/settings/settingspb"
 	uploadedmediagrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
-	waitlistsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/waitlists"
+	waitlistsgrpc "github.com/primandproper/platform-go/v14/waitlists/waitlistspb"
 	webhooksgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/webhooks"
 	commentsgrpc "github.com/primandproper/platform-go/v14/comments/commentspb"
 
