@@ -351,8 +351,38 @@ func TestIssueReports_Updating(T *testing.T) {
 
 	// The behaviour a client has to know about. The local RPC took *string fields and
 	// merged, so a partial update left the rest alone; platform's takes plain strings and
-	// writes all four. A client that sends one field clears the other three.
-	T.Run("an omitted field is cleared rather than kept", func(t *testing.T) {
+	// writes all four, so an omitted field is cleared rather than kept — a read before the
+	// write is the client's job now.
+	//
+	// With one guard underneath it. Two of the four are what make a report reachable at
+	// all, so clearing them is refused rather than performed: a report with no kind is one
+	// nobody has decided who should look at, and one with no details records that somebody
+	// was unhappy and nothing anyone can act on. The two optional fields are the ones a
+	// careless update really does drop.
+	T.Run("an omitted optional field is cleared rather than kept", func(t *testing.T) {
+		t.Parallel()
+		ctx := t.Context()
+
+		_, testClient := createUserAndClientForTest(t)
+		created := createIssueReportForTest(t, testClient)
+		require.NotEmpty(t, created.GetSubjectType())
+
+		updated, err := testClient.UpdateReport(ctx, &issuereportspb.UpdateReportRequest{
+			ReportId: created.GetId(),
+			Input: &issuereportspb.IssueReportUpdateInput{
+				Kind:    created.GetKind(),
+				Details: "only the details",
+			},
+		})
+		require.NoError(t, err)
+
+		assert.Equal(t, "only the details", updated.GetResult().GetDetails())
+		assert.Equal(t, created.GetKind(), updated.GetResult().GetKind())
+		assert.Empty(t, updated.GetResult().GetSubjectType(), "an omitted subject type survived a replacement")
+		assert.Empty(t, updated.GetResult().GetSubjectId())
+	})
+
+	T.Run("an update that would empty the kind is refused", func(t *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
@@ -360,15 +390,18 @@ func TestIssueReports_Updating(T *testing.T) {
 		created := createIssueReportForTest(t, testClient)
 		require.NotEmpty(t, created.GetKind())
 
-		updated, err := testClient.UpdateReport(ctx, &issuereportspb.UpdateReportRequest{
+		_, err := testClient.UpdateReport(ctx, &issuereportspb.UpdateReportRequest{
 			ReportId: created.GetId(),
 			Input:    &issuereportspb.IssueReportUpdateInput{Details: "only the details"},
 		})
-		require.NoError(t, err)
+		require.Error(t, err)
+		assert.Equal(t, codes.InvalidArgument, status.Code(err))
 
-		assert.Equal(t, "only the details", updated.GetResult().GetDetails())
-		assert.Empty(t, updated.GetResult().GetKind(), "an omitted kind survived a replacement")
-		assert.Empty(t, updated.GetResult().GetSubjectType())
+		// Refused before anything was written, so the report is as it was.
+		retrieved, err := testClient.GetReport(ctx, &issuereportspb.GetReportRequest{ReportId: created.GetId()})
+		require.NoError(t, err)
+		assert.Equal(t, created.GetKind(), retrieved.GetResult().GetKind())
+		assert.Equal(t, created.GetDetails(), retrieved.GetResult().GetDetails())
 	})
 
 	T.Run("nonexistent ID", func(t *testing.T) {
@@ -477,13 +510,18 @@ func TestIssueReports_Triaging(T *testing.T) {
 		_, testClient := createUserAndClientForTest(t)
 		created := createIssueReportForTest(t, testClient)
 
+		// InvalidArgument rather than Aborted, and the difference is the whole point of
+		// the two statuses travelling together: Aborted is "the row moved under you, read
+		// it again", which the case above pins, and this is "that move does not exist",
+		// which no re-read will change. A lifecycle the queue does not admit is refused
+		// before anything is written.
 		_, err := testClient.TransitionReport(ctx, &issuereportspb.TransitionReportRequest{
 			ReportId:       created.GetId(),
 			ExpectedStatus: issuereportspb.ReportStatus_REPORT_STATUS_OPEN,
 			TargetStatus:   issuereportspb.ReportStatus_REPORT_STATUS_OPEN,
 		})
 		require.Error(t, err)
-		assert.Equal(t, codes.FailedPrecondition, status.Code(err))
+		assert.Equal(t, codes.InvalidArgument, status.Code(err))
 	})
 
 	T.Run("requires auth", func(t *testing.T) {

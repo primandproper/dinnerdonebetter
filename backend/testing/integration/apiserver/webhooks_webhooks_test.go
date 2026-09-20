@@ -250,17 +250,31 @@ func TestWebhooks_Archiving(T *testing.T) {
 		})
 	})
 
+	// Archiving an id that names nothing is answered OK, not NotFound, and the endpoint
+	// the caller does own is untouched.
+	//
+	// That is platform's decision and it is the right one: an archive that named nothing
+	// and an archive of something already archived are both the state the caller asked
+	// for, and a NotFound here would make this the one method that says whether an
+	// identifier exists in somebody else's tenant. So the assertion is on the surviving
+	// row rather than on the reply, which has nothing to say.
 	T.Run("nonexistentID", func(t *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
 		_, testClient := createUserAndClientForTest(t)
-		createWebhookForTest(t, testClient)
+		mine := createWebhookForTest(t, testClient)
 
 		_, err := testClient.WebhooksService().ArchiveEndpoint(ctx, &webhookspb.ArchiveEndpointRequest{
 			EndpointId: nonexistentID,
 		})
-		assert.Error(t, err)
+		require.NoError(t, err, "archiving an id that names nothing is answered rather than refused")
+
+		survived, err := testClient.WebhooksService().GetEndpoint(ctx, &webhookspb.GetEndpointRequest{
+			EndpointId: mine.GetId(),
+		})
+		require.NoError(t, err)
+		assert.Equal(t, mine.GetId(), survived.GetResult().GetId())
 	})
 
 	T.Run("requires auth", func(t *testing.T) {

@@ -41,8 +41,8 @@ import (
 // an anonymous withdrawal is refused rather than allowed, and the day there is
 // an unsubscribe link this is the one place that changes.
 func ownSignupOrAdmin(store platformwaitlists.SignupStore, db database.Client) waitlistsgrpc.SignupAuthorizer {
-	return waitlistsgrpc.SignupAuthorizerFunc(
-		func(ctx context.Context, caller callers.Principal, scope tenancy.Scope, listID, signupID string) error {
+	return waitlistsgrpc.SignupAuthorizerFuncs{
+		Withdrawal: func(ctx context.Context, caller callers.Principal, scope tenancy.Scope, listID, signupID string) error {
 			if caller == nil {
 				return callers.ErrTargetNotPermitted
 			}
@@ -64,7 +64,38 @@ func ownSignupOrAdmin(store platformwaitlists.SignupStore, db database.Client) w
 			}
 
 			return callers.ErrTargetNotPermitted
-		})
+		},
+
+		// SubjectRead is the other half, and it is the reason a member can ask
+		// where they are in a queue at all.
+		//
+		// The grant on the method cannot answer this one: the subject comes off
+		// the request, so a member holding ReadOwnWaitlistSignupsPermission could
+		// name anybody. platform asks here instead, after the subject is read and
+		// before any row is, and a refusal is answered as NotFound so that a
+		// subject nobody has signed up and one belonging to somebody else are the
+		// same answer.
+		//
+		// A service admin is permitted because the four signup reads are already
+		// theirs; this is the fourth, reached under a narrower grant, and refusing
+		// them here would make the split subtract from the role it was carved out
+		// of.
+		SubjectRead: func(ctx context.Context, caller callers.Principal, _ tenancy.Scope, subject platformwaitlists.Subject) error {
+			if caller == nil {
+				return callers.ErrTargetNotPermitted
+			}
+
+			if subject.Type == platformwaitlists.SubjectUser && subject.ID == caller.UserID() {
+				return nil
+			}
+
+			if data := sessions.FromContext(ctx); data.GetServicePermissions().IsServiceAdmin() {
+				return nil
+			}
+
+			return callers.ErrTargetNotPermitted
+		},
+	}
 }
 
 // ownContact is this deployment's answer to where a join's address comes from:
@@ -141,6 +172,21 @@ func Permissions() map[string][]authorization.Permission {
 	}
 	out[waitlistspb.WaitlistsService_Withdraw_FullMethodName] = []authorization.Permission{
 		authorization.JoinWaitlistsPermission,
+	}
+
+	// And one of platform's fourteen is re-declared under a narrower grant than
+	// the one platform assigns it.
+	//
+	// platform puts four signup reads behind PermissionReadSignups and says in
+	// as many words that it is the grant to think hardest about, because
+	// GetSignupByContact turns it into an oracle over every address in the
+	// deployment. That grant is a service admin's here. But the fourth read is a
+	// member asking about themselves, and holding it hostage to the other three
+	// is what the SubjectRead authorizer above exists to undo: the grant says
+	// this caller may make this kind of call, and the authorizer says whose
+	// signups these are.
+	out[waitlistspb.WaitlistsService_ListSignupsForSubject_FullMethodName] = []authorization.Permission{
+		authorization.ReadOwnWaitlistSignupsPermission,
 	}
 
 	return out

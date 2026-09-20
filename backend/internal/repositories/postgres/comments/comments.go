@@ -25,7 +25,6 @@ write, the entry and the event are one transaction and share one fate. The
 gap filed upstream as platform-go #457 is closed by that convention rather
 than by anything here, which is why this package has no workaround to
 delete.
-
 */
 package comments
 

@@ -1,7 +1,6 @@
 package integration
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
@@ -24,7 +23,7 @@ import (
 // the ability to push to them. That is why the assertions below check the platform and the
 // id rather than the token they sent.
 
-func createUserDeviceTokenForTest(t *testing.T, forUser string, deviceTokenOverride ...string) *notifications.UserDeviceToken {
+func createUserDeviceTokenForTest(t *testing.T, forUser string) *notifications.UserDeviceToken {
 	t.Helper()
 
 	ctx := t.Context()
@@ -32,9 +31,6 @@ func createUserDeviceTokenForTest(t *testing.T, forUser string, deviceTokenOverr
 	creationInput := fakes.BuildFakeUserDeviceToken()
 	input := converters.ConvertUserDeviceTokenToUserDeviceTokenDatabaseCreationInput(creationInput)
 	input.BelongsToUser = forUser
-	if len(deviceTokenOverride) > 0 {
-		input.DeviceToken = deviceTokenOverride[0]
-	}
 
 	created, err := notifsRepo.CreateUserDeviceToken(ctx, input)
 	require.NoError(t, err)
@@ -108,11 +104,12 @@ func TestUserDeviceTokens_Listing(T *testing.T) {
 
 	u, testClient := createUserAndClientForTest(T)
 	createdTokens := []*notifications.UserDeviceToken{}
-	for i := range exampleQuantity {
-		// Use unique device token per creation; registering upserts on (user, token), so
-		// duplicate tokens would result in a single row.
-		uniqueToken := fmt.Sprintf("a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef%06x", i)
-		created := createUserDeviceTokenForTest(T, u.ID, uniqueToken)
+	for range exampleQuantity {
+		// Each registration is its own row because each fake carries its own token:
+		// the write converges on (scope, platform, token), so a repeated one would be
+		// one handset re-registering rather than five. See fakes.BuildFakeUserDeviceToken,
+		// which used to hand out a literal and made exactly that mistake.
+		created := createUserDeviceTokenForTest(T, u.ID)
 		createdTokens = append(createdTokens, created)
 	}
 

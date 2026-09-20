@@ -144,6 +144,56 @@ func AssertAuditLogContainsFuzzyForUser(t *testing.T, ctx context.Context, c cli
 	}
 }
 
+// AssertAuditLogContainsFuzzyForResource asserts about the chain of something the caller is
+// not inside, by naming the resource rather than the chain.
+//
+// It exists because a chain is not always reachable from the session that wrote it. An
+// account's entries are filed under that account, and a member who creates a second account
+// does not move into it — there is no RPC that would — so from their own session the new
+// account's log is a chain they are not in. Nor can they ask for it: the query has no
+// account selector, deliberately, because the scope is the selector and platform binds it
+// to the connection.
+//
+// So this reads as a service administrator, whose read spans every chain (see
+// internal/build/auditlog), and narrows with the one selector that survives being unscoped:
+// the resource. That is the operator's read of "everything anybody recorded about this
+// thing", which is the question these assertions are actually asking.
+func AssertAuditLogContainsFuzzyForResource(
+	t *testing.T,
+	ctx context.Context,
+	resourceType, resourceID string,
+	limit int,
+	expected []*ExpectedAuditEntry,
+) {
+	t.Helper()
+
+	limit32 := uint32(limit)
+
+	resp, err := adminClient.ListEntries(ctx, &auditgrpc.ListEntriesRequest{
+		Query: &auditgrpc.EntryQuery{ResourceType: resourceType, ResourceId: resourceID},
+		Filter: &filteringpb.QueryFilter{
+			MaxResponseSize: &limit32,
+			SortBy:          filtering.SortDescending,
+		},
+	})
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+
+	entries := resp.GetResults()
+	for _, exp := range expected {
+		var found bool
+		for _, e := range entries {
+			if entryMatches(e, exp) {
+				found = true
+				break
+			}
+		}
+		assert.True(t, found,
+			"expected audit log entry with EventType=%q ResourceType=%q RelevantID=%q within %d entries, got %s",
+			exp.EventType, exp.ResourceType, exp.RelevantID, limit, summarizeEntries(entries))
+	}
+}
+
 // summarizeEntries renders what a window actually held, for an assertion that did not find
 // what it wanted in it.
 //

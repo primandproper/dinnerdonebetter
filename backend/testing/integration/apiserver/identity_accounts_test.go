@@ -40,7 +40,7 @@ func TestAccounts_Creating(T *testing.T) {
 		require.NoError(t, err)
 		assert.NotNil(t, createdAccount)
 
-		AssertAuditLogContainsFuzzy(t, ctx, testClient, createdAccount.Created.Id, 10, []*ExpectedAuditEntry{
+		AssertAuditLogContainsFuzzyForResource(t, ctx, "accounts", createdAccount.Created.Id, 10, []*ExpectedAuditEntry{
 			{EventType: "created", ResourceType: "accounts", RelevantID: createdAccount.Created.Id},
 		})
 	})
@@ -281,7 +281,9 @@ func TestAccounts_Archiving(T *testing.T) {
 		_, err = testClient.ArchiveAccount(ctx, &identitysvc.ArchiveAccountRequest{AccountId: createdAccount.Created.Id})
 		require.NoError(t, err)
 
-		AssertAuditLogContainsFuzzy(t, ctx, testClient, createdAccount.Created.Id, 10, []*ExpectedAuditEntry{
+		// By resource rather than by chain: the account just created is one the caller is
+		// not inside, so its entries are not on any chain this session can read.
+		AssertAuditLogContainsFuzzyForResource(t, ctx, "accounts", createdAccount.Created.Id, 10, []*ExpectedAuditEntry{
 			{EventType: "created", ResourceType: "accounts", RelevantID: createdAccount.Created.Id},
 			{EventType: "archived", ResourceType: "accounts", RelevantID: createdAccount.Created.Id},
 		})

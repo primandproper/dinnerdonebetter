@@ -2,6 +2,7 @@ package managers
 
 import (
 	"context"
+	"fmt"
 
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
@@ -52,8 +53,16 @@ func (m *mealPlanningManager) CreateRecipe(ctx context.Context, creatorID string
 		return nil, platformerrors.ErrNilInputParameter
 	}
 
+	// Joined with the sentinel rather than replaced by it: the sentinel is what the error
+	// mapper reads to answer InvalidArgument, and the validation's own message is what says
+	// which rule the recipe broke. A caller needs both.
+	//
+	// This is the first of the two gates a creation passes, and the one that catches the
+	// rules about the request's own shape — a recipe with one step never reaches the
+	// repository, which is where the same joining is done for the rules that need a read.
 	if err := input.ValidateWithContext(ctx); err != nil {
-		return nil, observability.PrepareError(err, span, "validating recipe input")
+		return nil, observability.PrepareError(
+			fmt.Errorf("%w: %w", mealplanning.ErrInvalidRecipeInput, err), span, "validating recipe input")
 	}
 
 	if creatorID == "" {

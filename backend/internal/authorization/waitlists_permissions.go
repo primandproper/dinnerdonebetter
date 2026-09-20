@@ -46,3 +46,18 @@ const (
 // the consumer's to decide and the reason platform's map omits rather than
 // assigns them.
 const JoinWaitlistsPermission Permission = "waitlists.signups.join"
+
+// ReadOwnWaitlistSignupsPermission gates asking where one's own signups are.
+//
+// platform puts four reads behind one grant — a signup by id, one by the address
+// it was made with, a list's page, and one subject's signups — and the sharpest
+// of them is an oracle over every address in the deployment. That grant is a
+// service admin's and stays one. But the last of the four is the only question a
+// member has any reason to ask, and it is a question about themselves, so it is
+// split off here and pointed at the same RPC under a name a member can hold.
+//
+// Holding it is not the whole answer. The subject comes off the request, so the
+// grant alone would let a member name somebody else; whose signups these are is
+// decided inside the handler by platform's AuthorizeSubjectRead, which this
+// deployment answers with own-subject-or-admin. See internal/build/waitlists.
+const ReadOwnWaitlistSignupsPermission Permission = "waitlists.signups.read_own"

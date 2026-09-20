@@ -110,9 +110,14 @@ func TestUserNotifications_MarkingRead(T *testing.T) {
 			assert.NotEqual(t, created.ID, notification.GetId(), "a notification marked read is still unread")
 		}
 
+		// The write that put it there is in the log. The read that marked it is not, on
+		// purpose: somebody opening their own inbox is not a change anybody investigates
+		// later, and an entry per read would bury the ones that matter under the traffic
+		// of an inbox being opened. read_at above is the record, and it is on the row.
+		// See notificationsstore/writes.go, which names this and the three other writes
+		// it leaves unrecorded.
 		AssertAuditLogContainsFuzzyForUser(t, ctx, testClient, user.ID, 15, []*ExpectedAuditEntry{
 			{EventType: "created", ResourceType: "user_notifications", RelevantID: created.ID},
-			{EventType: "updated", ResourceType: "user_notifications", RelevantID: created.ID},
 		})
 	})
 

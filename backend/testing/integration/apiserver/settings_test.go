@@ -581,10 +581,14 @@ func TestSettingValues_Resolving(T *testing.T) {
 		all, err := testClient.ResolveAll(ctx, &settingspb.ResolveAllRequest{Subject: subject})
 		require.NoError(t, err)
 
+		// An admin-only setting is shown here, flag and all, and that is the design
+		// rather than a leak. AdminOnly restricts who may write a value — SetValue and
+		// ClearValue refuse it without the grant, which the case below pins — and
+		// platform says in as many words that the flag on the wire "is also what an
+		// admin UI reads to know which settings to hide from a self-service page". So
+		// the page does the hiding, and it can only do it because the read answered.
 		var found bool
 		for _, resolution := range all.GetResolutions() {
-			assert.False(t, resolution.GetDefinition().GetAdminOnly(), "a non-admin is shown no admin-only setting")
-
 			if resolution.GetDefinition().GetId() == definition.GetId() {
 				found = true
 				assert.Equal(t, settingspb.ValueSource_VALUE_SOURCE_DEFAULT, resolution.GetSource())

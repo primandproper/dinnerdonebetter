@@ -130,21 +130,17 @@ func createWaitlistSignupForTest(t *testing.T, testClient client.Client, waitlis
 
 // signupForSubject finds the caller's own signup on a list.
 //
-// The read a client makes after joining, since Join answers with nothing. It is scoped to the
-// caller's subject rather than to the list, so it cannot see anybody else's place.
-// signupForSubject finds one caller's signup on a list, read as a service admin.
-//
-// The admin client, because reading signups is a service admin's grant: platform puts a
-// signup by id, one by address, a list's page and one subject's signups behind a single
-// permission, and a member holding it could ask whether any address is on any list. See
-// internal/authorization, where that is spelled out, and the test below that pins it.
+// The read a client makes after joining, since Join answers with nothing. The caller makes
+// it themselves: of the four signup reads platform puts behind one grant, this is the one a
+// member holds, under ReadOwnWaitlistSignupsPermission, and the handler refuses a subject
+// that is not the caller's own. The other three stay a service admin's.
 func signupForSubject(t *testing.T, testClient client.Client, waitlistID string) *waitlistspb.Signup {
 	t.Helper()
 
 	status, err := testClient.GetAuthStatus(t.Context(), &authsvc.GetAuthStatusRequest{})
 	require.NoError(t, err)
 
-	mine, err := adminClient.ListSignupsForSubject(t.Context(), &waitlistspb.ListSignupsForSubjectRequest{
+	mine, err := testClient.ListSignupsForSubject(t.Context(), &waitlistspb.ListSignupsForSubjectRequest{
 		Subject: &waitlistspb.SignupSubject{Type: string(waitlists.SubjectUser), Id: status.GetUserId()},
 	})
 	require.NoError(t, err)
@@ -459,7 +455,7 @@ func TestWaitlistSignups_Joining(T *testing.T) {
 		_, err := testClient.Join(ctx, &waitlistspb.JoinRequest{ListId: waitlist.GetId()})
 		require.NoError(t, err, "a duplicate join is answered rather than refused")
 
-		mine, err := adminClient.ListSignupsForSubject(ctx, subjectRequestFor(t, testClient))
+		mine, err := testClient.ListSignupsForSubject(ctx, subjectRequestFor(t, testClient))
 		require.NoError(t, err)
 
 		var onThisList int
@@ -890,7 +886,7 @@ func TestWaitlistSignups_Archiving(T *testing.T) {
 		_, err = testClient.Join(ctx, &waitlistspb.JoinRequest{ListId: waitlist.GetId()})
 		require.NoError(t, err, "a duplicate join is answered rather than refused")
 
-		mine, err := adminClient.ListSignupsForSubject(ctx, subjectRequestFor(t, testClient))
+		mine, err := testClient.ListSignupsForSubject(ctx, subjectRequestFor(t, testClient))
 		require.NoError(t, err)
 		for _, signup := range mine.GetResults() {
 			assert.NotEqual(t, waitlist.GetId(), signup.GetListId(), "an archived signup came back")
@@ -923,7 +919,6 @@ func TestWaitlistSignups_Archiving(T *testing.T) {
 }
 
 // subjectRequestFor builds the caller's own subject read.
-// subjectRequestFor builds one caller's own subject read, to be made by the admin client.
 func subjectRequestFor(t *testing.T, testClient client.Client) *waitlistspb.ListSignupsForSubjectRequest {
 	t.Helper()
 

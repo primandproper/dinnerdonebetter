@@ -73,11 +73,12 @@ var (
 		// any address they can type is on any list. Granting it to a member would hand
 		// every signed-in user that question about every other user's address.
 		//
-		// The obvious narrower grant is not available either: ListSignupsForSubject takes
-		// the subject from the request, and unlike settings there is no authorizer to
-		// refuse a subject that is not the caller's own. So a member holding it could read
-		// anybody's signups by naming them. Filed upstream; when a subject authorizer or a
-		// split grant lands, the own-signup half comes back to the member.
+		// The own-signup half is not lost with it. platform grew AuthorizeSubjectRead for
+		// this — a seam asked inside the handler, after the subject has been read and
+		// before any row is — so ListSignupsForSubject is declared here under
+		// ReadOwnWaitlistSignupsPermission, which a member holds, and the authorizer
+		// refuses a subject that is not the caller's own. The other three reads, the
+		// oracle among them, stay behind this grant.
 		ReadWaitlistSignupsPermission,
 
 		// The fleet-wide ledger reads, which are separate permissions from the
@@ -313,6 +314,7 @@ var (
 		ReadUserDeviceTokensPermission,
 		ArchiveUserDeviceTokensPermission,
 		JoinWaitlistsPermission,
+		ReadOwnWaitlistSignupsPermission,
 		UpdateWaitlistSignupsPermission,
 		ArchiveWaitlistSignupsPermission,
 		ReadWaitlistsPermission,

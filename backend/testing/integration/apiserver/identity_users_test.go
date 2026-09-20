@@ -114,8 +114,8 @@ func TestUsers_PermissionChecking(T *testing.T) {
 		assert.NotNil(t, response)
 
 		assert.Equal(t, map[string]bool{
-			string(authorization.ImpersonateUserPermission): false,
-			string(authorization.ReadWebhookEndpointsPermission):    true,
+			string(authorization.ImpersonateUserPermission):      false,
+			string(authorization.ReadWebhookEndpointsPermission): true,
 		}, response.Permissions)
 	})
 
@@ -378,7 +378,10 @@ func TestUsers_Archiving(T *testing.T) {
 		})
 		require.NoError(t, err)
 
-		AssertAuditLogContainsFuzzyForUser(t, ctx, adminClient, user.ID, 15, []*ExpectedAuditEntry{
+		// By resource rather than by actor, because the two entries have different actors:
+		// the registration is the user's own act and the archival is the administrator's.
+		// Filtering on either one would assert half of what this is checking.
+		AssertAuditLogContainsFuzzyForResource(t, ctx, "users", user.ID, 15, []*ExpectedAuditEntry{
 			{EventType: "created", ResourceType: "users", RelevantID: user.ID},
 			{EventType: "archived", ResourceType: "users", RelevantID: user.ID},
 		})

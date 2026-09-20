@@ -52,6 +52,10 @@ func (r spanningReader) List(
 	query *platformaudit.Query,
 	filter *filtering.QueryFilter,
 ) (*filtering.QueryFilteredResult[platformaudit.Entry], error) {
+	if across, ok := everyChain(ctx, query); ok {
+		return r.Reader.List(ctx, q, across, filter)
+	}
+
 	own, ok := r.ownChain(ctx, query)
 	if !ok {
 		return r.Reader.List(ctx, q, query, filter)
@@ -86,6 +90,10 @@ func (r spanningReader) Get(
 	scope *tenancy.Scope,
 	id string,
 ) (*platformaudit.Entry, error) {
+	if isServiceAdmin(ctx) {
+		return r.Reader.Get(ctx, q, nil, id)
+	}
+
 	entry, err := r.Reader.Get(ctx, q, scope, id)
 	if err == nil {
 		return entry, nil
@@ -99,6 +107,44 @@ func (r spanningReader) Get(
 	// The first error is dropped rather than joined: both are "not in this chain", and a
 	// caller told an entry is in neither wants one answer, not the same one twice.
 	return r.Reader.Get(ctx, q, &own, id)
+}
+
+// everyChain answers with the operator's read — every chain in the deployment — when the
+// caller is a service administrator.
+//
+// platform's reader already has this: Query.Scope is a *tenancy.Scope in which nil "narrows
+// nothing", and its own gRPC surface documents that it never passes nil because it "has no
+// operator". This deployment has one, so the decision is made here, where the session is.
+//
+// It is the same division the two surfaces adopted alongside this one draw. A grant on the
+// method says whether this kind of call is allowed at all — ReadAuditLogEntriesPermission is
+// an account member's, because a member reading their own account's log is the ordinary
+// case — and it cannot say which chains. Which chains is asked here, of the session, after
+// the query is built and before any row is read.
+//
+// Without it a service administrator investigating somebody else's account reads an empty
+// window, since ScopeFor files an entry under its account and an admin is not a member of
+// the account they are investigating. That is not a narrower answer than the log can give;
+// it is the one question an audit log exists to answer going unanswerable over the wire,
+// with the privacy export — a subject's own read of their own data — as the only remaining
+// path to it.
+//
+// The query is copied rather than written through, for List's reason: it belongs to the
+// handler that built it.
+func everyChain(ctx context.Context, query *platformaudit.Query) (*platformaudit.Query, bool) {
+	if query == nil || query.Scope == nil || !isServiceAdmin(ctx) {
+		return nil, false
+	}
+
+	across := *query
+	across.Scope = nil
+
+	return &across, true
+}
+
+// isServiceAdmin reports whether the session holds the service administrator role.
+func isServiceAdmin(ctx context.Context) bool {
+	return sessions.FromContext(ctx).GetServicePermissions().IsServiceAdmin()
 }
 
 // ownChain answers with the caller's own chain when it is worth a second read.

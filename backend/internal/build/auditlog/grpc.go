@@ -18,6 +18,15 @@ read again. It is a decorator rather than a fix because the fix is upstream and
 one predicate wide — see its doc — and the privacy export remains the answer for
 a subject asking for everything held about them, because that reaches the
 repository rather than the wire.
+
+The same decorator answers the other half, which is the operator's read. platform
+ships it — a nil query scope narrows nothing — and declines to use it, because
+its surface "has no operator"; this deployment has one, so a service
+administrator reads every chain and everybody else reads the two that are theirs.
+Which chains a caller may read is not something a grant on the method can say,
+and it is decided there rather than here for the reason waitlists decides a
+subject read inside its handler: the grant is held by an account member, and the
+question it cannot answer is whose log this is.
 */
 package auditlog
 
