@@ -19,12 +19,15 @@ import (
 	identitymock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/mock"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/testutils"
+
 	"github.com/primandproper/platform-go/v14/authentication/passwordreset"
 	passwordresetmock "github.com/primandproper/platform-go/v14/authentication/passwordreset/mock"
 	platformsessions "github.com/primandproper/platform-go/v14/sessions"
 	sessionsmock "github.com/primandproper/platform-go/v14/sessions/mock"
 	platformtotp "github.com/primandproper/primitives-go/v2/authentication/totp"
 	mocktotp "github.com/primandproper/primitives-go/v2/authentication/totp/mock"
+	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/fake"
 	"github.com/primandproper/primitives-go/v2/messagequeue"
 	mockpublishers "github.com/primandproper/primitives-go/v2/messagequeue/mock"
@@ -60,6 +63,7 @@ func TestProvideAuthManager(t *testing.T) {
 			ctx,
 			loggingnoop.NewLogger(),
 			tracingnoop.NewTracerProvider(),
+			testutils.MockDatabaseClient(),
 			&passwordresetmock.StoreMock{},
 			&sessionsmock.StoreMock[auth.SessionPayload]{},
 			&identitymock.RepositoryMock{},
@@ -100,6 +104,7 @@ func TestAuthManager_Self(t *testing.T) {
 		ctx = sessions.AttachToContext(ctx, sessionData)
 
 		manager := &AuthManager{
+			db:              testutils.MockDatabaseClient(),
 			userDataManager: userDataManager,
 			logger:          loggingnoop.NewLogger().WithName("auth_manager"),
 			tracer:          tracing.NewTracerForTest("auth_manager"),
@@ -138,6 +143,7 @@ func TestAuthManager_CheckUserPermissions(t *testing.T) {
 		ctx = sessions.AttachToContext(ctx, sessionData)
 
 		manager := &AuthManager{
+			db:     testutils.MockDatabaseClient(),
 			logger: loggingnoop.NewLogger().WithName("auth_manager"),
 			tracer: tracing.NewTracerForTest("auth_manager"),
 		}
@@ -159,6 +165,7 @@ func TestAuthManager_CheckUserPermissions(t *testing.T) {
 		ctx := t.Context()
 
 		manager := &AuthManager{
+			db:     testutils.MockDatabaseClient(),
 			logger: loggingnoop.NewLogger().WithName("auth_manager"),
 			tracer: tracing.NewTracerForTest("auth_manager"),
 		}
@@ -180,6 +187,7 @@ func TestProvideAuthManager_NilConfig(t *testing.T) {
 		ctx,
 		loggingnoop.NewLogger(),
 		tracingnoop.NewTracerProvider(),
+		testutils.MockDatabaseClient(),
 		&passwordresetmock.StoreMock{},
 		&sessionsmock.StoreMock[auth.SessionPayload]{},
 		&identitymock.RepositoryMock{},
@@ -201,6 +209,7 @@ func TestAuthManager_Self_SessionError(t *testing.T) {
 	ctx := t.Context()
 
 	manager := &AuthManager{
+		db:     testutils.MockDatabaseClient(),
 		logger: loggingnoop.NewLogger().WithName("auth_manager"),
 		tracer: tracing.NewTracerForTest("auth_manager"),
 	}
@@ -227,6 +236,7 @@ func TestAuthManager_Self_UserNotFound(t *testing.T) {
 	ctx = sessions.AttachToContext(ctx, &sessions.ContextData{Requester: sessions.RequesterInfo{UserID: userID}})
 
 	manager := &AuthManager{
+		db:              testutils.MockDatabaseClient(),
 		userDataManager: userDataManager,
 		logger:          loggingnoop.NewLogger().WithName("auth_manager"),
 		tracer:          tracing.NewTracerForTest("auth_manager"),
@@ -279,6 +289,7 @@ func TestAuthManager_TOTPSecretVerification_Success(t *testing.T) {
 
 	ctx = sessions.AttachToContext(ctx, &sessions.ContextData{})
 	manager := &AuthManager{
+		db:                   testutils.MockDatabaseClient(),
 		userDataManager:      userDataManager,
 		totpVerifier:         totpVerifier,
 		dataChangesPublisher: publisher,
@@ -300,6 +311,7 @@ func TestAuthManager_TOTPSecretVerification_InvalidInput(t *testing.T) {
 	ctx := t.Context()
 	ctx = sessions.AttachToContext(ctx, &sessions.ContextData{})
 	manager := &AuthManager{
+		db:     testutils.MockDatabaseClient(),
 		logger: loggingnoop.NewLogger().WithName("auth_manager"),
 		tracer: tracing.NewTracerForTest("auth_manager"),
 	}
@@ -326,6 +338,7 @@ func TestAuthManager_TOTPSecretVerification_AlreadyVerified(t *testing.T) {
 
 	ctx = sessions.AttachToContext(ctx, &sessions.ContextData{})
 	manager := &AuthManager{
+		db:              testutils.MockDatabaseClient(),
 		userDataManager: userDataManager,
 		logger:          loggingnoop.NewLogger().WithName("auth_manager"),
 		tracer:          tracing.NewTracerForTest("auth_manager"),
@@ -360,6 +373,7 @@ func TestAuthManager_RequestUsernameReminder_Success(t *testing.T) {
 
 	ctx = sessions.AttachToContext(ctx, &sessions.ContextData{})
 	manager := &AuthManager{
+		db:                   testutils.MockDatabaseClient(),
 		userDataManager:      userDataManager,
 		dataChangesPublisher: publisher,
 		logger:               loggingnoop.NewLogger().WithName("auth_manager"),
@@ -387,6 +401,7 @@ func TestAuthManager_RequestUsernameReminder_UserNotFound(t *testing.T) {
 
 	ctx = sessions.AttachToContext(ctx, &sessions.ContextData{})
 	manager := &AuthManager{
+		db:              testutils.MockDatabaseClient(),
 		userDataManager: userDataManager,
 		logger:          loggingnoop.NewLogger().WithName("auth_manager"),
 		tracer:          tracing.NewTracerForTest("auth_manager"),
@@ -420,7 +435,7 @@ func TestAuthManager_CreatePasswordResetToken_Success(t *testing.T) {
 	}
 
 	tokenStore := &passwordresetmock.StoreMock{
-		IssueFunc: func(_ context.Context, scope tenancy.Scope, userID string, ttl time.Duration) (*passwordreset.Issuance, error) {
+		IssueFunc: func(_ context.Context, _ database.Tx, scope tenancy.Scope, userID string, ttl time.Duration) (*passwordreset.Issuance, error) {
 			assert.Equal(t, tenancy.Global(), scope)
 			assert.Equal(t, user.ID, userID)
 			assert.Equal(t, passwordResetTokenLifetime, ttl)
@@ -437,6 +452,7 @@ func TestAuthManager_CreatePasswordResetToken_Success(t *testing.T) {
 
 	ctx = sessions.AttachToContext(ctx, &sessions.ContextData{})
 	manager := &AuthManager{
+		db:                   testutils.MockDatabaseClient(),
 		userDataManager:      userDataManager,
 		passwordResetTokens:  tokenStore,
 		dataChangesPublisher: publisher,
@@ -472,6 +488,7 @@ func TestAuthManager_CreatePasswordResetToken_UserNotFound(t *testing.T) {
 
 	ctx = sessions.AttachToContext(ctx, &sessions.ContextData{})
 	manager := &AuthManager{
+		db:              testutils.MockDatabaseClient(),
 		userDataManager: userDataManager,
 		logger:          loggingnoop.NewLogger().WithName("auth_manager"),
 		tracer:          tracing.NewTracerForTest("auth_manager"),
@@ -505,6 +522,7 @@ func TestAuthManager_RequestEmailVerificationEmail_Success(t *testing.T) {
 
 	ctx = sessions.AttachToContext(ctx, sessionData)
 	manager := &AuthManager{
+		db:                   testutils.MockDatabaseClient(),
 		userDataManager:      userDataManager,
 		dataChangesPublisher: publisher,
 		logger:               loggingnoop.NewLogger().WithName("auth_manager"),
@@ -542,6 +560,7 @@ func TestAuthManager_VerifyUserEmailAddress_Success(t *testing.T) {
 
 	ctx = sessions.AttachToContext(ctx, &sessions.ContextData{})
 	manager := &AuthManager{
+		db:                   testutils.MockDatabaseClient(),
 		userDataManager:      userDataManager,
 		dataChangesPublisher: publisher,
 		logger:               loggingnoop.NewLogger().WithName("auth_manager"),
@@ -579,6 +598,7 @@ func TestAuthManager_VerifyUserEmailAddressByToken_Success(t *testing.T) {
 	}
 
 	manager := &AuthManager{
+		db:                   testutils.MockDatabaseClient(),
 		userDataManager:      userDataManager,
 		dataChangesPublisher: publisher,
 		logger:               loggingnoop.NewLogger().WithName("auth_manager"),
@@ -606,6 +626,7 @@ func TestAuthManager_VerifyUserEmailAddressByToken_UserNotFound(t *testing.T) {
 	}
 
 	manager := &AuthManager{
+		db:              testutils.MockDatabaseClient(),
 		userDataManager: userDataManager,
 		logger:          loggingnoop.NewLogger().WithName("auth_manager"),
 		tracer:          tracing.NewTracerForTest("auth_manager"),
@@ -660,6 +681,7 @@ func TestAuthManager_UpdatePassword_Success(t *testing.T) {
 
 	ctx = sessions.AttachToContext(ctx, sessionData)
 	manager := &AuthManager{
+		db:                   testutils.MockDatabaseClient(),
 		userDataManager:      userDataManager,
 		authenticator:        authenticator,
 		dataChangesPublisher: publisher,
@@ -713,6 +735,7 @@ func TestAuthManager_UpdateUserEmailAddress_Success(t *testing.T) {
 
 	ctx = sessions.AttachToContext(ctx, sessionData)
 	manager := &AuthManager{
+		db:                   testutils.MockDatabaseClient(),
 		userDataManager:      userDataManager,
 		authenticator:        authenticator,
 		dataChangesPublisher: publisher,
@@ -765,6 +788,7 @@ func TestAuthManager_UpdateUserUsername_Success(t *testing.T) {
 
 	ctx = sessions.AttachToContext(ctx, sessionData)
 	manager := &AuthManager{
+		db:                   testutils.MockDatabaseClient(),
 		userDataManager:      userDataManager,
 		authenticator:        authenticator,
 		dataChangesPublisher: publisher,
@@ -790,12 +814,12 @@ func TestAuthManager_PasswordResetTokenRedemption_Success(t *testing.T) {
 	input.NewPassword = "Abcdefghij123!@#$%^&*()"
 
 	tokenStore := &passwordresetmock.StoreMock{
-		ConsumeFunc: func(_ context.Context, scope tenancy.Scope, secret string) (*passwordreset.Token, error) {
+		ConsumeFunc: func(_ context.Context, _ database.Tx, scope tenancy.Scope, secret string) (*passwordreset.Token, error) {
 			assert.Equal(t, tenancy.Global(), scope)
 			assert.Equal(t, input.Token, secret)
 			return token, nil
 		},
-		RevokeForUserFunc: func(_ context.Context, _ tenancy.Scope, userID string) (int64, error) {
+		RevokeForUserFunc: func(_ context.Context, _ database.Tx, _ tenancy.Scope, userID string) (int64, error) {
 			assert.Equal(t, user.ID, userID)
 			return 0, nil
 		},
@@ -826,6 +850,7 @@ func TestAuthManager_PasswordResetTokenRedemption_Success(t *testing.T) {
 
 	ctx = sessions.AttachToContext(ctx, &sessions.ContextData{})
 	manager := &AuthManager{
+		db:                   testutils.MockDatabaseClient(),
 		passwordResetTokens:  tokenStore,
 		userDataManager:      userDataManager,
 		authenticator:        authenticator,
@@ -902,6 +927,7 @@ func TestAuthManager_NewTOTPSecret_Success(t *testing.T) {
 
 	ctx = sessions.AttachToContext(ctx, sessionData)
 	manager := &AuthManager{
+		db:                   testutils.MockDatabaseClient(),
 		userDataManager:      userDataManager,
 		authenticator:        authenticator,
 		totpVerifier:         totpVerifier,
@@ -931,7 +957,7 @@ func TestAuthManager_PasswordResetTokenRedemption_TokenNotFound(t *testing.T) {
 	input.NewPassword = "Abcdefghij123!@#$%^&*()"
 
 	tokenStore := &passwordresetmock.StoreMock{
-		ConsumeFunc: func(_ context.Context, _ tenancy.Scope, secret string) (*passwordreset.Token, error) {
+		ConsumeFunc: func(_ context.Context, _ database.Tx, _ tenancy.Scope, secret string) (*passwordreset.Token, error) {
 			assert.Equal(t, input.Token, secret)
 			return nil, passwordreset.ErrTokenNotFound
 		},
@@ -939,6 +965,7 @@ func TestAuthManager_PasswordResetTokenRedemption_TokenNotFound(t *testing.T) {
 
 	ctx = sessions.AttachToContext(ctx, &sessions.ContextData{})
 	manager := &AuthManager{
+		db:                  testutils.MockDatabaseClient(),
 		passwordResetTokens: tokenStore,
 		logger:              loggingnoop.NewLogger().WithName("auth_manager"),
 		tracer:              tracing.NewTracerForTest("auth_manager"),
@@ -960,13 +987,14 @@ func TestAuthManager_PasswordResetTokenRedemption_TokenAlreadyRedeemed(t *testin
 	userDataManager := &identitymock.RepositoryMock{}
 
 	tokenStore := &passwordresetmock.StoreMock{
-		ConsumeFunc: func(_ context.Context, _ tenancy.Scope, _ string) (*passwordreset.Token, error) {
+		ConsumeFunc: func(_ context.Context, _ database.Tx, _ tenancy.Scope, _ string) (*passwordreset.Token, error) {
 			return nil, passwordreset.ErrTokenRedeemed
 		},
 	}
 
 	ctx = sessions.AttachToContext(ctx, &sessions.ContextData{})
 	manager := &AuthManager{
+		db:                  testutils.MockDatabaseClient(),
 		passwordResetTokens: tokenStore,
 		userDataManager:     userDataManager,
 		logger:              loggingnoop.NewLogger().WithName("auth_manager"),
@@ -992,6 +1020,7 @@ func TestAuthManager_PasswordResetTokenRedemption_InvalidPassword(t *testing.T) 
 
 	ctx = sessions.AttachToContext(ctx, &sessions.ContextData{})
 	manager := &AuthManager{
+		db:                  testutils.MockDatabaseClient(),
 		passwordResetTokens: tokenStore,
 		logger:              loggingnoop.NewLogger().WithName("auth_manager"),
 		tracer:              tracing.NewTracerForTest("auth_manager"),
@@ -1020,6 +1049,7 @@ func TestAuthManager_VerifyUserEmailAddress_UserNotFound(t *testing.T) {
 
 	ctx = sessions.AttachToContext(ctx, &sessions.ContextData{})
 	manager := &AuthManager{
+		db:              testutils.MockDatabaseClient(),
 		userDataManager: userDataManager,
 		logger:          loggingnoop.NewLogger().WithName("auth_manager"),
 		tracer:          tracing.NewTracerForTest("auth_manager"),
@@ -1061,6 +1091,7 @@ func TestAuthManager_UpdatePassword_InvalidNewPassword(t *testing.T) {
 
 	ctx = sessions.AttachToContext(ctx, sessionData)
 	manager := &AuthManager{
+		db:              testutils.MockDatabaseClient(),
 		userDataManager: userDataManager,
 		authenticator:   authenticator,
 		logger:          loggingnoop.NewLogger().WithName("auth_manager"),
@@ -1092,6 +1123,7 @@ func TestAuthManager_NewTOTPSecret_UserNotFound(t *testing.T) {
 
 	ctx = sessions.AttachToContext(ctx, sessionData)
 	manager := &AuthManager{
+		db:              testutils.MockDatabaseClient(),
 		userDataManager: userDataManager,
 		logger:          loggingnoop.NewLogger().WithName("auth_manager"),
 		tracer:          tracing.NewTracerForTest("auth_manager"),
@@ -1127,6 +1159,7 @@ func TestAuthManager_GetActiveSessionsForUser(t *testing.T) {
 		}
 
 		manager := &AuthManager{
+			db:           testutils.MockDatabaseClient(),
 			sessionStore: store,
 			tracer:       tracing.NewTracerForTest("auth_manager"),
 		}
@@ -1152,6 +1185,7 @@ func TestAuthManager_GetActiveSessionsForUser(t *testing.T) {
 		}
 
 		manager := &AuthManager{
+			db:           testutils.MockDatabaseClient(),
 			sessionStore: store,
 			tracer:       tracing.NewTracerForTest("auth_manager"),
 		}
@@ -1183,6 +1217,7 @@ func TestAuthManager_RevokeSession(t *testing.T) {
 		}
 
 		manager := &AuthManager{
+			db:           testutils.MockDatabaseClient(),
 			sessionStore: store,
 			tracer:       tracing.NewTracerForTest("auth_manager"),
 		}
@@ -1210,6 +1245,7 @@ func TestAuthManager_RevokeSession(t *testing.T) {
 		}
 
 		manager := &AuthManager{
+			db:           testutils.MockDatabaseClient(),
 			sessionStore: store,
 			tracer:       tracing.NewTracerForTest("auth_manager"),
 		}
@@ -1240,6 +1276,7 @@ func TestAuthManager_RevokeAllSessionsForUserExcept(t *testing.T) {
 		}
 
 		manager := &AuthManager{
+			db:           testutils.MockDatabaseClient(),
 			sessionStore: store,
 			tracer:       tracing.NewTracerForTest("auth_manager"),
 		}
@@ -1262,6 +1299,7 @@ func TestAuthManager_RevokeAllSessionsForUserExcept(t *testing.T) {
 		}
 
 		manager := &AuthManager{
+			db:           testutils.MockDatabaseClient(),
 			sessionStore: store,
 			tracer:       tracing.NewTracerForTest("auth_manager"),
 		}
@@ -1288,6 +1326,7 @@ func TestAuthManager_RevokeAllSessionsForUser(t *testing.T) {
 		}
 
 		manager := &AuthManager{
+			db:           testutils.MockDatabaseClient(),
 			sessionStore: store,
 			tracer:       tracing.NewTracerForTest("auth_manager"),
 		}
@@ -1309,6 +1348,7 @@ func TestAuthManager_RevokeAllSessionsForUser(t *testing.T) {
 		}
 
 		manager := &AuthManager{
+			db:           testutils.MockDatabaseClient(),
 			sessionStore: store,
 			tracer:       tracing.NewTracerForTest("auth_manager"),
 		}

@@ -105,9 +105,7 @@ func TestDefaultEntitlementsConfig(T *testing.T) {
 			&cfg,
 			catalog,
 			entitlements.NewStaticPlanSource(appentitlements.SubscriberPlan),
-			&meteringmock.EnforcerMock{},
-			nil,
-			nil,
+			entitlementscfg.WithEnforcer(&meteringmock.EnforcerMock{}),
 		)
 		require.NoError(t, err)
 		assert.NotNil(t, checker)

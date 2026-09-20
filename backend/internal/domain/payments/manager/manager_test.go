@@ -10,9 +10,12 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/fakes"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/testutils"
+
 	"github.com/primandproper/platform-go/v14/billing"
 	billingmock "github.com/primandproper/platform-go/v14/billing/mock"
 	"github.com/primandproper/primitives-go/v2/capitalism"
+	"github.com/primandproper/primitives-go/v2/database"
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/fake"
 	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
@@ -50,6 +53,7 @@ func buildPaymentsManagerForTest(t *testing.T, store *billingmock.StoreMock) (*p
 		t.Context(),
 		tracingnoop.NewTracerProvider(),
 		loggingnoop.NewLogger(),
+		testutils.MockDatabaseClient(),
 		store,
 		identityMgr,
 	)
@@ -64,14 +68,14 @@ func subscriptionLookup(subscription *billing.Subscription) (*billingmock.StoreM
 	statuses := &[]capitalism.SubscriptionStatus{}
 
 	return &billingmock.StoreMock{
-		GetSubscriptionByExternalIDFunc: func(_ context.Context, scope tenancy.Scope, externalID string) (*billing.Subscription, error) {
+		GetSubscriptionByExternalIDFunc: func(_ context.Context, _ database.SQLQueryExecutor, scope tenancy.Scope, externalID string) (*billing.Subscription, error) {
 			if scope != payments.Scope() || externalID != subscription.ExternalSubscriptionID {
 				return nil, billing.ErrSubscriptionNotFound
 			}
 
 			return subscription, nil
 		},
-		SetSubscriptionStatusFunc: func(_ context.Context, _ tenancy.Scope, subscriptionID string, status capitalism.SubscriptionStatus) error {
+		SetSubscriptionStatusFunc: func(_ context.Context, _ database.Tx, _ tenancy.Scope, subscriptionID string, status capitalism.SubscriptionStatus) error {
 			if subscriptionID != subscription.ID {
 				return billing.ErrSubscriptionNotFound
 			}
@@ -135,7 +139,7 @@ func TestPaymentsManager_ProcessWebhookEvent(T *testing.T) {
 
 		subscription := fakes.BuildFakeSubscription(fake.BuildFakeID(), fake.BuildFakeID())
 		store, _ := subscriptionLookup(subscription)
-		store.SetSubscriptionStatusFunc = func(context.Context, tenancy.Scope, string, capitalism.SubscriptionStatus) error {
+		store.SetSubscriptionStatusFunc = func(context.Context, database.Tx, tenancy.Scope, string, capitalism.SubscriptionStatus) error {
 			return billing.ErrStatusUnchanged
 		}
 		pm, updates := buildPaymentsManagerForTest(t, store)
@@ -193,17 +197,17 @@ func TestPaymentsManager_ProcessWebhookEvent(T *testing.T) {
 		var created *billing.Subscription
 
 		store := &billingmock.StoreMock{
-			GetProductByExternalIDFunc: func(_ context.Context, _ tenancy.Scope, externalID string) (*billing.Product, error) {
+			GetProductByExternalIDFunc: func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, externalID string) (*billing.Product, error) {
 				if externalID != product.ExternalProductID {
 					return nil, billing.ErrProductNotFound
 				}
 
 				return product, nil
 			},
-			GetSubscriptionByExternalIDFunc: func(context.Context, tenancy.Scope, string) (*billing.Subscription, error) {
+			GetSubscriptionByExternalIDFunc: func(context.Context, database.SQLQueryExecutor, tenancy.Scope, string) (*billing.Subscription, error) {
 				return nil, billing.ErrSubscriptionNotFound
 			},
-			CreateSubscriptionFunc: func(_ context.Context, _ tenancy.Scope, subscription *billing.Subscription) (*billing.Subscription, error) {
+			CreateSubscriptionFunc: func(_ context.Context, _ database.Tx, _ tenancy.Scope, subscription *billing.Subscription) (*billing.Subscription, error) {
 				created = subscription
 
 				return subscription, nil
@@ -239,7 +243,7 @@ func TestPaymentsManager_ProcessWebhookEvent(T *testing.T) {
 		product := fakes.BuildFakeProduct()
 		subscription := fakes.BuildFakeSubscription(fake.BuildFakeID(), product.ID)
 		store, statuses := subscriptionLookup(subscription)
-		store.GetProductByExternalIDFunc = func(context.Context, tenancy.Scope, string) (*billing.Product, error) {
+		store.GetProductByExternalIDFunc = func(context.Context, database.SQLQueryExecutor, tenancy.Scope, string) (*billing.Product, error) {
 			return product, nil
 		}
 		pm, updates := buildPaymentsManagerForTest(t, store)
