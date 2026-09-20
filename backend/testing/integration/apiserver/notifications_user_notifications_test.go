@@ -6,12 +6,20 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/converters"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/fakes"
-	notificationssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/notifications"
-	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/services/notifications/grpc/converters"
+
+	notificationspb "github.com/primandproper/platform-go/v14/notifications/notificationspb"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// The inbox is platform's now, and one RPC has no successor: UpdateUserNotification.
+//
+// It took a status and wrote whatever it was given, which made "read" a string a client
+// could set to anything. Platform models the two things that actually happen to a
+// notification as their own calls — MarkNotificationRead, which stamps when it was read,
+// and ArchiveNotification, which takes it off the list — so the tests below exercise those
+// rather than an update that can no longer be expressed.
 
 func createUserNotificationForTest(t *testing.T, forUser string) *notifications.UserNotification {
 	t.Helper()
@@ -39,12 +47,15 @@ func TestUserNotifications_Reading(T *testing.T) {
 		user, testClient := createUserAndClientForTest(t)
 		created := createUserNotificationForTest(t, user.ID)
 
-		retrieved, err := testClient.GetUserNotification(ctx, &notificationssvc.GetUserNotificationRequest{UserNotificationId: created.ID})
+		retrieved, err := testClient.GetNotification(ctx, &notificationspb.GetNotificationRequest{NotificationId: created.ID})
 		require.NoError(t, err)
+		require.NotNil(t, retrieved.GetResult())
 
-		converted := grpcconverters.ConvertGRPCUserNotificationToUserNotification(retrieved.Result)
-
-		assertRoughEquality(t, created, converted, defaultIgnoredFields()...)
+		assert.Equal(t, created.ID, retrieved.GetResult().GetId())
+		assert.Equal(t, created.Content, retrieved.GetResult().GetBody())
+		// Unread until somebody says otherwise, which is the state the mark-read case below
+		// moves it out of.
+		assert.Nil(t, retrieved.GetResult().GetReadAt())
 	})
 
 	T.Run("requires auth", func(t *testing.T) {
@@ -56,7 +67,7 @@ func TestUserNotifications_Reading(T *testing.T) {
 
 		c := buildUnauthenticatedGRPCClientForTest(t)
 
-		_, err := c.GetUserNotification(ctx, &notificationssvc.GetUserNotificationRequest{UserNotificationId: created.ID})
+		_, err := c.GetNotification(ctx, &notificationspb.GetNotificationRequest{NotificationId: created.ID})
 		assert.Error(t, err)
 	})
 
@@ -64,12 +75,12 @@ func TestUserNotifications_Reading(T *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
-		_, err := adminClient.GetUserNotification(ctx, &notificationssvc.GetUserNotificationRequest{UserNotificationId: nonexistentID})
+		_, err := adminClient.GetNotification(ctx, &notificationspb.GetNotificationRequest{NotificationId: nonexistentID})
 		assert.Error(t, err)
 	})
 }
 
-func TestUserNotifications_Updating(T *testing.T) {
+func TestUserNotifications_MarkingRead(T *testing.T) {
 	T.Parallel()
 
 	T.Run("happy path", func(t *testing.T) {
@@ -79,24 +90,84 @@ func TestUserNotifications_Updating(T *testing.T) {
 		user, testClient := createUserAndClientForTest(t)
 		created := createUserNotificationForTest(t, user.ID)
 
-		updateInput := fakes.BuildFakeUserNotificationUpdateRequestInput()
-		created.Update(updateInput)
-
-		response, err := testClient.UpdateUserNotification(ctx, &notificationssvc.UpdateUserNotificationRequest{
-			UserNotificationId: created.ID,
-			Input:              grpcconverters.ConvertUserNotificationUpdateRequestInputToGRPCUserNotificationUpdateRequestInput(updateInput),
+		_, err := testClient.MarkNotificationRead(ctx, &notificationspb.MarkNotificationReadRequest{
+			NotificationId: created.ID,
 		})
 		require.NoError(t, err)
 
-		updated := grpcconverters.ConvertGRPCUserNotificationToUserNotification(response.Updated)
-		// Ensure UpdatedAt was set
-		require.NotNil(t, updated.LastUpdatedAt)
+		// The stamp is the whole state change: a read notification is one with a time on
+		// it, rather than one whose status string happens to say "read".
+		retrieved, err := testClient.GetNotification(ctx, &notificationspb.GetNotificationRequest{NotificationId: created.ID})
+		require.NoError(t, err)
+		require.NotNil(t, retrieved.GetResult().GetReadAt())
 
-		assertRoughEquality(t, created, updated, defaultIgnoredFields()...)
+		// And it is off the unread list, which is the read a badge count comes from.
+		unread, err := testClient.ListUnreadNotifications(ctx, &notificationspb.ListUnreadNotificationsRequest{})
+		require.NoError(t, err)
+		for _, notification := range unread.GetResults() {
+			assert.NotEqual(t, created.ID, notification.GetId(), "a notification marked read is still unread")
+		}
 
 		AssertAuditLogContainsFuzzyForUser(t, ctx, testClient, user.ID, 15, []*ExpectedAuditEntry{
 			{EventType: "created", ResourceType: "user_notifications", RelevantID: created.ID},
 			{EventType: "updated", ResourceType: "user_notifications", RelevantID: created.ID},
+		})
+	})
+
+	T.Run("marking everything read reports how many it moved", func(t *testing.T) {
+		t.Parallel()
+		ctx := t.Context()
+
+		user, testClient := createUserAndClientForTest(t)
+		for range exampleQuantity {
+			createUserNotificationForTest(t, user.ID)
+		}
+
+		response, err := testClient.MarkAllNotificationsRead(ctx, &notificationspb.MarkAllNotificationsReadRequest{})
+		require.NoError(t, err)
+		assert.GreaterOrEqual(t, response.GetMarked(), int64(exampleQuantity))
+
+		unread, err := testClient.ListUnreadNotifications(ctx, &notificationspb.ListUnreadNotificationsRequest{})
+		require.NoError(t, err)
+		assert.Empty(t, unread.GetResults())
+	})
+
+	T.Run("requires auth", func(t *testing.T) {
+		t.Parallel()
+		ctx := t.Context()
+
+		user, _ := createUserAndClientForTest(t)
+		created := createUserNotificationForTest(t, user.ID)
+
+		c := buildUnauthenticatedGRPCClientForTest(t)
+
+		_, err := c.MarkNotificationRead(ctx, &notificationspb.MarkNotificationReadRequest{
+			NotificationId: created.ID,
+		})
+		assert.Error(t, err)
+	})
+}
+
+func TestUserNotifications_Archiving(T *testing.T) {
+	T.Parallel()
+
+	T.Run("happy path", func(t *testing.T) {
+		t.Parallel()
+		ctx := t.Context()
+
+		user, testClient := createUserAndClientForTest(t)
+		created := createUserNotificationForTest(t, user.ID)
+
+		_, err := testClient.ArchiveNotification(ctx, &notificationspb.ArchiveNotificationRequest{
+			NotificationId: created.ID,
+		})
+		require.NoError(t, err)
+
+		_, err = testClient.GetNotification(ctx, &notificationspb.GetNotificationRequest{NotificationId: created.ID})
+		assert.Error(t, err)
+
+		AssertAuditLogContainsFuzzyForUser(t, ctx, testClient, user.ID, 15, []*ExpectedAuditEntry{
+			{EventType: "archived", ResourceType: "user_notifications", RelevantID: created.ID},
 		})
 	})
 
@@ -107,25 +178,12 @@ func TestUserNotifications_Updating(T *testing.T) {
 		user, _ := createUserAndClientForTest(t)
 		created := createUserNotificationForTest(t, user.ID)
 
-		updateInput := fakes.BuildFakeUserNotificationUpdateRequestInput()
-		created.Update(updateInput)
-
 		c := buildUnauthenticatedGRPCClientForTest(t)
 
-		_, err := c.UpdateUserNotification(ctx, &notificationssvc.UpdateUserNotificationRequest{
-			UserNotificationId: created.ID,
-			Input:              grpcconverters.ConvertUserNotificationUpdateRequestInputToGRPCUserNotificationUpdateRequestInput(updateInput),
+		_, err := c.ArchiveNotification(ctx, &notificationspb.ArchiveNotificationRequest{
+			NotificationId: created.ID,
 		})
 		assert.Error(t, err)
-	})
-
-	T.Run("invalid input", func(t *testing.T) {
-		t.Parallel()
-
-		/*
-			there's no way to provide invalid input to this method, but
-			I want to make it explicit that tests should be written the moment that changes
-		*/
 	})
 }
 
@@ -143,10 +201,10 @@ func TestUserNotifications_Listing(T *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
-		retrieved, err := testClient.GetUserNotifications(ctx, &notificationssvc.GetUserNotificationsRequest{})
+		retrieved, err := testClient.ListNotifications(ctx, &notificationspb.ListNotificationsRequest{})
 		require.NoError(t, err)
 		require.NotNil(t, retrieved)
-		assert.GreaterOrEqual(t, len(retrieved.Results), len(createdUserNotifications))
+		assert.GreaterOrEqual(t, len(retrieved.GetResults()), len(createdUserNotifications))
 
 		AssertAuditLogContainsFuzzyForUser(t, ctx, testClient, u.ID, 15, []*ExpectedAuditEntry{
 			{EventType: "created", ResourceType: "user_notifications"},
@@ -159,7 +217,7 @@ func TestUserNotifications_Listing(T *testing.T) {
 
 		c := buildUnauthenticatedGRPCClientForTest(t)
 
-		_, err := c.GetUserNotifications(ctx, &notificationssvc.GetUserNotificationsRequest{})
+		_, err := c.ListNotifications(ctx, &notificationspb.ListNotificationsRequest{})
 		assert.Error(t, err)
 	})
 }
