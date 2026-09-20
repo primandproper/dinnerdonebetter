@@ -17,6 +17,7 @@ import (
 	identityrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity"
 	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
+	platformidentity "github.com/primandproper/platform-go/v14/identity"
 
 	databasecfg "github.com/primandproper/primitives-go/v2/database/config"
 	"github.com/primandproper/primitives-go/v2/identifiers"
@@ -142,6 +143,11 @@ func buildDatabase(ctx context.Context, cfg *config.MCPServiceConfig) (*sql.DB, 
 		return nil, err
 	}
 
+	identityStore, identityStoreErr := platformidentity.NewSQLStore(databaseClient,
+		platformidentity.WithTablePrefix(identity.TablePrefix))
+	if identityStoreErr != nil {
+		log.Fatal(identityStoreErr)
+	}
 	identityRepo := identityrepo.ProvideIdentityRepository(pillars.Logger, pillars.TracerProvider, auditRepo, databaseClient, nil, uploads, policy)
 
 	// The MCP login form is admin-only and checks a second factor whenever the account
@@ -158,7 +164,7 @@ func buildDatabase(ctx context.Context, cfg *config.MCPServiceConfig) (*sql.DB, 
 		return nil, err
 	}
 
-	mealPlanningRepo := mealplanningrepo.ProvideMealPlanningRepository(pillars.Logger, pillars.TracerProvider, auditRepo, identityRepo, databaseClient, nil, uploads)
+	mealPlanningRepo := mealplanningrepo.ProvideMealPlanningRepository(pillars.Logger, pillars.TracerProvider, auditRepo, identityStore, databaseClient, nil, uploads)
 
 	seededIngredient, err = mealPlanningRepo.CreateValidIngredient(ctx,
 		mealplanningconverters.ConvertValidIngredientToValidIngredientDatabaseCreationInput(mealplanningfakes.BuildFakeValidIngredient()))

@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
+	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/grocerylistpreparation"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/recipeanalysis"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
-	identityrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity"
 	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
 	mealplanfinalization "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_finalization"
+	platformidentity "github.com/primandproper/platform-go/v14/identity"
 
 	"github.com/primandproper/platform-go/v14/outbox"
 	"github.com/primandproper/platform-go/v14/saga"
@@ -55,17 +55,19 @@ func StartSagaWorker(
 		return nil, fmt.Errorf("building upload registry store: %w", err)
 	}
 
-	policy, policyErr := authorization.NewDatabaseResolver(databaseClient.Reader(), logger, tracerProvider, nil)
-	if policyErr != nil {
-		return nil, policyErr
+	identityStore, err := platformidentity.NewSQLStore(databaseClient,
+		platformidentity.WithTablePrefix(ddbidentity.TablePrefix),
+		platformidentity.WithStoreLogger(logger),
+		platformidentity.WithStoreTracerProvider(tracerProvider),
+	)
+	if err != nil {
+		return nil, err
 	}
-
-	identityRepo := identityrepo.ProvideIdentityRepository(logger, tracerProvider, auditRepo, databaseClient, nil, uploads, policy)
 
 	registry := saga.NewRegistry()
 	if err = mealplanfinalization.Register(
 		registry,
-		mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditRepo, identityRepo, databaseClient, nil, uploads),
+		mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditRepo, identityStore, databaseClient, nil, uploads),
 		recipeanalysis.NewRecipeAnalyzer(logger, tracerProvider),
 		grocerylistpreparation.NewGroceryListCreator(logger, tracerProvider),
 		logger,

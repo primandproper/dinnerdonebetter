@@ -9,10 +9,11 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/managers"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
-	identitymanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/manager"
 	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
 
+	"github.com/primandproper/platform-go/v14/authentication/passkeys"
 	webauthncfg "github.com/primandproper/platform-go/v14/authentication/webauthnsessions/config"
+	platformidentity "github.com/primandproper/platform-go/v14/identity"
 	platformwebauthn "github.com/primandproper/primitives-go/v2/authentication/webauthn"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/featureflags"
@@ -47,7 +48,8 @@ func RegisterAuthService(i do.Injector) {
 			do.MustInvoke[logging.Logger](i),
 			do.MustInvoke[tracing.Provider](i),
 			do.MustInvoke[*platformwebauthn.RelyingParty](i),
-			do.MustInvoke[identitymanager.IdentityDataManager](i),
+			do.MustInvoke[platformidentity.Store](i),
+			do.MustInvoke[database.Client](i),
 			do.MustInvoke[identity.Repository](i),
 		)
 	})
@@ -60,7 +62,8 @@ func RegisterAuthService(i do.Injector) {
 		return NewAuthService(
 			do.MustInvoke[logging.Logger](i),
 			do.MustInvoke[tracing.Provider](i),
-			do.MustInvoke[identitymanager.IdentityDataManager](i),
+			do.MustInvoke[platformidentity.Store](i),
+			do.MustInvoke[database.Client](i),
 			do.MustInvoke[managers.AuthManagerInterface](i),
 			do.MustInvoke[authentication.Manager](i),
 			do.MustInvoke[featureflags.FeatureFlagManager](i),
@@ -95,14 +98,16 @@ func ProvidePasskeyService(
 	logger logging.Logger,
 	tracerProvider tracing.Provider,
 	relyingParty *platformwebauthn.RelyingParty,
-	identityDataManager identitymanager.IdentityDataManager,
-	identityRepo identity.Repository,
+	directory platformidentity.Store,
+	db database.Client,
+	credentials passkeys.Store,
 ) (*webauthn.Service, error) {
 	return webauthn.NewService(
 		logger,
 		tracerProvider,
 		relyingParty,
-		identityRepo,
-		&passkeyUserStore{identityDataManager: identityDataManager},
+		credentials,
+		db,
+		&passkeyUserStore{directory: directory, db: db},
 	)
 }

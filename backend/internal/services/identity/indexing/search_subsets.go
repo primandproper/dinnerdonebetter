@@ -1,7 +1,7 @@
 package indexing
 
 import (
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
+	platformidentity "github.com/primandproper/platform-go/v14/identity"
 
 	textsearch "github.com/primandproper/primitives-go/v2/search/text"
 )
@@ -20,7 +20,7 @@ type UserSearchSubset struct {
 }
 
 // ConvertUserToUserSearchSubset converts a User to a UserSearchSubset.
-func ConvertUserToUserSearchSubset(x *identity.User) *UserSearchSubset {
+func ConvertUserToUserSearchSubset(x *platformidentity.User) *UserSearchSubset {
 	return &UserSearchSubset{
 		ID:           x.ID,
 		Username:     x.Username,

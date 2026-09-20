@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/rand/v2"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
@@ -641,17 +642,17 @@ func (q *repository) FinalizeMealPlanOption(ctx context.Context, mealPlanID, mea
 		return false, fmt.Errorf("meal plan event %s for meal plan %s not found", mealPlanEventID, mealPlanID)
 	}
 
-	// fetch account data
-	account, err := q.identityRepo.GetAccount(ctx, mealPlan.BelongsToAccount)
+	// who is expected to vote
+	members, err := identity.MembersOfAccount(ctx, q.roster, q.readDB, mealPlan.BelongsToAccount)
 	if err != nil {
-		return false, observability.PrepareAndLogError(err, logger, span, "fetching account")
+		return false, observability.PrepareAndLogError(err, logger, span, "fetching account members")
 	}
 
 	// go through all the votes for this meal plan option and determine if they're all there
-	for _, member := range account.Members {
+	for _, memberID := range members {
 		memberVoteFound := false
 		for _, vote := range mealPlanOption.Votes {
-			if vote.ByUser == member.BelongsToUser.ID {
+			if vote.ByUser == memberID {
 				memberVoteFound = true
 				break
 			}

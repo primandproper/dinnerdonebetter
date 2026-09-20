@@ -14,7 +14,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
-	identityconverters "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/converters"
+	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
@@ -22,7 +22,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	authrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auth"
-	identityrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity"
 	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
 	notificationsstore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/notificationsstore"
 	settingsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/settings"
@@ -31,6 +30,7 @@ import (
 
 	platformoauth2clients "github.com/primandproper/platform-go/v14/authentication/oauth2clients"
 	"github.com/primandproper/platform-go/v14/authentication/passwordreset"
+	platformidentity "github.com/primandproper/platform-go/v14/identity"
 	platformsettings "github.com/primandproper/platform-go/v14/settings"
 	"github.com/primandproper/primitives-go/v2/authentication/argon2"
 	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
@@ -85,10 +85,11 @@ func CreatePremadeAdminUser(
 	ctx context.Context,
 	logger logging.Logger,
 	tracerProvider tracing.Provider,
-	identityRepo identity.Repository,
+	directory *platformidentity.Service,
+	store platformidentity.Store,
 	dbClient database.Client,
-	premadeAdminUser *identity.User,
-) (*identity.User, error) {
+	premadeAdminUser *platformidentity.User,
+) (*platformidentity.User, error) {
 	hasher := authentication.NewArgon2Authenticator(argon2.WithLogger(logger), argon2.WithTracerProvider(tracerProvider))
 
 	actuallyHashedPass, err := hasher.HashPassword(ctx, premadeAdminUser.HashedPassword)
@@ -97,34 +98,34 @@ func CreatePremadeAdminUser(
 	}
 	premadeAdminUser.HashedPassword = actuallyHashedPass
 
-	var user *identity.User
-	if user, err = identityRepo.GetUserByUsername(ctx, premadeAdminUser.Username); err == nil {
-		return user, nil
+	if existing, lookupErr := store.GetUserByUsername(ctx, dbClient.Reader(), ddbidentity.Scope(), premadeAdminUser.Username); lookupErr == nil && existing != nil {
+		return existing, nil
 	}
 
-	user, err = identityRepo.CreateUser(ctx, identityconverters.ConvertUserToUserDatabaseCreationInput(premadeAdminUser))
+	// Registered rather than inserted: a user, their account and the membership that puts
+	// them in it are one transaction, and the shape that rules out a user with no account
+	// is the reason Service ships it.
+	registration, err := directory.Register(ctx, ddbidentity.Scope(), premadeAdminUser, &platformidentity.Account{
+		Name: premadeAdminUser.Username + "'s account",
+	}, []string{authorization.AccountAdminRoleName})
 	if err != nil {
-		return nil, fmt.Errorf("failed to create user: %w", err)
+		return nil, fmt.Errorf("failed to register user: %w", err)
 	}
 
-	// Promote user to service_admin by archiving old service role and assigning new one.
-	if _, err = dbClient.Writer().ExecContext(ctx, "UPDATE user_role_assignments SET archived_at = NOW() WHERE user_id = $1 AND account_id IS NULL AND archived_at IS NULL", user.ID); err != nil {
-		return nil, fmt.Errorf("failed to archive old service role: %w", err)
-	}
-	if _, err = dbClient.Writer().ExecContext(ctx, "INSERT INTO user_role_assignments (id, user_id, role_name) VALUES ($1, $2, $3)", identifiers.New(), user.ID, authorization.ServiceAdminRoleName); err != nil {
-		return nil, fmt.Errorf("failed to assign service_admin role: %w", err)
+	// The service role is a write of its own, through the operation that exists for it
+	// rather than through two statements against a role-assignment table this application
+	// no longer owns.
+	user, err := directory.SetUserServiceRoles(ctx, ddbidentity.Scope(), registration.User.ID,
+		[]string{authorization.ServiceAdminRoleName})
+	if err != nil {
+		return nil, fmt.Errorf("failed to promote user to service admin: %w", err)
 	}
 
-	if err = identityRepo.MarkUserTwoFactorSecretAsVerified(ctx, user.ID); err != nil {
+	if _, err = directory.MarkUserTwoFactorSecretVerified(ctx, ddbidentity.Scope(), user.ID); err != nil {
 		return nil, fmt.Errorf("failed to mark user as verified: %w", err)
 	}
 
-	adminUser, err := identityRepo.GetAdminUserByUsername(ctx, user.Username)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get admin user: %w", err)
-	}
-
-	return adminUser, nil
+	return user, nil
 }
 
 // CreateOAuth2ClientForService registers a client and hands back the secret it was issued.
@@ -296,13 +297,16 @@ func WithMealPlanningRepository(fn func(ctx context.Context, repo mealplanning.R
 		if err != nil {
 			return err
 		}
-		policy, policyErr := authorization.NewDatabaseResolver(dbClient.Reader(), logger, tracerProvider, nil)
-		if policyErr != nil {
-			return policyErr
+		identityStore, storeErr := platformidentity.NewSQLStore(dbClient,
+			platformidentity.WithTablePrefix(ddbidentity.TablePrefix),
+			platformidentity.WithStoreLogger(logger),
+			platformidentity.WithStoreTracerProvider(tracerProvider),
+		)
+		if storeErr != nil {
+			return storeErr
 		}
 
-		identityRepo := identityrepo.ProvideIdentityRepository(logger, tracerProvider, auditLogRepo, dbClient, nil, uploads, policy)
-		mealPlanningRepo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditLogRepo, identityRepo, dbClient, nil, uploads)
+		mealPlanningRepo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditLogRepo, identityStore, dbClient, nil, uploads)
 		return fn(ctx, mealPlanningRepo, logger, tracerProvider)
 	}
 }

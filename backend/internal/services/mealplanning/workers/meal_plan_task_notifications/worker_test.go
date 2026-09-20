@@ -6,14 +6,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
-	identitymock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/mock"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	mealplanningmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
 	domainnotifications "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
 	notificationsmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/mock"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/push"
+	platformidentity "github.com/primandproper/platform-go/v14/identity"
+	identitymock "github.com/primandproper/platform-go/v14/identity/mock"
+	"github.com/primandproper/primitives-go/v2/database"
+	databasemock "github.com/primandproper/primitives-go/v2/database/mock"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/fake"
@@ -146,7 +149,7 @@ type testWorker struct {
 	worker  *Worker
 	queue   *queueSpy
 	repo    *mealplanningmock.RepositoryMock
-	users   *identitymock.RepositoryMock
+	users   *identitymock.StoreMock
 	devices *notificationsmock.RepositoryMock
 	sender  *stubSender
 }
@@ -163,10 +166,15 @@ func buildTestWorker(t *testing.T) *testWorker {
 
 	queue := &queueSpy{}
 	repo := &mealplanningmock.RepositoryMock{}
-	users := &identitymock.RepositoryMock{}
+	users := &identitymock.StoreMock{}
+
+	// The roster read runs on the client's reader. The store is a mock and never touches
+	// what it is handed, so a nil executor is the honest value: anything else would be a
+	// second thing the test is pretending about.
+	db := &databasemock.ClientMock{ReaderFunc: func() database.SQLQueryExecutor { return nil }}
 
 	return &testWorker{
-		worker:  NewWorker(logger, tracingnoop.NewTracerProvider(), queue, repo, users, fanout),
+		worker:  NewWorker(logger, tracingnoop.NewTracerProvider(), queue, repo, users, db, fanout),
 		queue:   queue,
 		repo:    repo,
 		users:   users,
@@ -349,11 +357,21 @@ func TestWorker_Work(t *testing.T) {
 		task.AssignedToUser = nil
 		w.repo.GetMealPlanTaskFunc = func(context.Context, string) (*mealplanning.MealPlanTask, error) { return task, nil }
 		w.repo.GetMealPlanTaskAccountIDFunc = func(context.Context, string) (string, error) { return accountID, nil }
-		w.users.GetUsersForAccountFunc = func(_ context.Context, id string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[identity.User], error) {
+		w.users.ListAccountMembersFunc = func(
+			_ context.Context,
+			_ database.SQLQueryExecutor,
+			_ tenancy.Scope,
+			id string,
+			_ *filtering.QueryFilter,
+		) (*filtering.QueryFilteredResult[platformidentity.MembershipWithUser], error) {
 			assert.Equal(t, accountID, id)
 
-			return &filtering.QueryFilteredResult[identity.User]{
-				Data: []*identity.User{{ID: memberA}, {ID: memberB}},
+			// One short page, which is what ends the walk.
+			return &filtering.QueryFilteredResult[platformidentity.MembershipWithUser]{
+				Data: []*platformidentity.MembershipWithUser{
+					{User: &platformidentity.User{ID: memberA}},
+					{User: &platformidentity.User{ID: memberB}},
+				},
 			}, nil
 		}
 

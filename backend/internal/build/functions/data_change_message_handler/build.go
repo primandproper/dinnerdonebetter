@@ -3,6 +3,7 @@ package datachangemessagehandler
 import (
 	"context"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	commentstargets "github.com/primandproper/dinnerdonebetter/backend/internal/build/comments"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	mealplanningregistration "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/registration"
@@ -11,7 +12,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/functions/datachangemessagehandler"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	commentsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/comments"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity"
+	identitystore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identitystore"
 	internalopsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/internalops"
 	issue_reports "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/issuereports"
 	paymentsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/payments"
@@ -77,7 +78,8 @@ func BuildInjector(
 	// What a role grants, read from the policy tables the migrator seeds. The
 	// identity repository resolves a principal's role names through it when it
 	// builds a session.
-	identity.RegisterPolicyResolver(i)
+	authorization.RegisterPolicyResolver(i)
+	identitystore.RegisterIdentityStore(i)
 	identity.RegisterIdentityRepository(i)
 	issue_reports.RegisterIssueReportsRepository(i)
 	uploadedmedia.RegisterUploadedMediaRepository(i)

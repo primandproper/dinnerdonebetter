@@ -2,10 +2,12 @@ package webauthn
 
 import (
 	"bytes"
-	"encoding/json"
 	"strings"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
+
+	"github.com/primandproper/platform-go/v14/authentication/passkeys"
+	platformidentity "github.com/primandproper/platform-go/v14/identity"
 
 	platformwebauthn "github.com/primandproper/primitives-go/v2/authentication/webauthn"
 
@@ -15,8 +17,8 @@ import (
 
 // WebAuthnUser adapts identity.User and credentials to the platformwebauthn.User interface.
 type WebAuthnUser struct {
-	User        *identity.User
-	Credentials []*identity.WebAuthnCredential
+	User        *platformidentity.User
+	Credentials []*passkeys.Credential
 	UserID      []byte // WebAuthn user handle - use user ID bytes
 	// Optional: when set, credentials matching AssertionCredID use AssertionFlags for BackupEligible/BackupState.
 	// Used to satisfy go-webauthn's consistency check during login (avoids "Backup Eligible flag inconsistency").
@@ -58,7 +60,7 @@ func (u *WebAuthnUser) WebAuthnCredentials() []platformwebauthn.Credential {
 // When assertionCredID and flags are provided and the credential matches, uses the assertion's
 // BackupEligible/BackupState to satisfy go-webauthn's consistency check (avoids "Backup Eligible
 // flag inconsistency" for passkeys that report different flags than our stored default, e.g. iCloud-synced).
-func domainCredentialToWebAuthnWithAssertionFlags(c *identity.WebAuthnCredential, assertionCredID []byte, flags protocol.AuthenticatorFlags) platformwebauthn.Credential {
+func domainCredentialToWebAuthnWithAssertionFlags(c *passkeys.Credential, assertionCredID []byte, flags protocol.AuthenticatorFlags) platformwebauthn.Credential {
 	transports := parseTransports(c.Transports)
 	backupEligible, backupState := false, false
 	if len(assertionCredID) > 0 && bytes.Equal(c.CredentialID, assertionCredID) {
@@ -83,17 +85,16 @@ func domainCredentialToWebAuthnWithAssertionFlags(c *identity.WebAuthnCredential
 	}
 }
 
-func parseTransports(s string) []protocol.AuthenticatorTransport {
-	if s == "" {
-		return nil
-	}
-	var transports []string
-	if err := json.Unmarshal([]byte(s), &transports); err != nil {
-		return nil
-	}
+// parseTransports renames a credential's transports into the protocol's type.
+//
+// It used to decode JSON, because the column held a JSON array in a text field. platform
+// stores them as a list, so there is nothing to decode and nothing to fail at decoding —
+// which is what the silent nil on a malformed value used to hide.
+func parseTransports(transports []string) []protocol.AuthenticatorTransport {
 	result := make([]protocol.AuthenticatorTransport, 0, len(transports))
 	for _, t := range transports {
 		result = append(result, protocol.AuthenticatorTransport(t))
 	}
+
 	return result
 }

@@ -5,7 +5,7 @@ package auth;
 import "auth/auth_messages.proto";
 import "common.proto";
 import "google/protobuf/timestamp.proto";
-import "identity/identity_messages.proto";
+import "primandproper/platform/identity/v1/identity.proto";
 
 option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth";
 
@@ -46,7 +46,7 @@ message GetActiveAccountRequest {
 
 message GetActiveAccountResponse {
   common.ResponseDetails response_details = 1;
-  identity.Account result = 2;
+  primandproper.platform.identity.v1.Account result = 2;
 }
 
 message GetAuthStatusRequest {
@@ -255,7 +255,7 @@ message GetSelfRequest {
 
 message GetSelfResponse {
   common.ResponseDetails response_details = 1;
-  identity.User result = 2;
+  primandproper.platform.identity.v1.User result = 2;
 }
 
 message ListPasskeysRequest {

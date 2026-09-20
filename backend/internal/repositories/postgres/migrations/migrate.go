@@ -25,6 +25,7 @@ import (
 	auditmigrations "github.com/primandproper/platform-go/v14/audit/migrations"
 	oauth2clientsmigrations "github.com/primandproper/platform-go/v14/authentication/oauth2clients/migrations"
 	oauth2migrations "github.com/primandproper/platform-go/v14/authentication/oauth2serverstore/migrations"
+	passkeysmigrations "github.com/primandproper/platform-go/v14/authentication/passkeys/migrations"
 	passwordresetmigrations "github.com/primandproper/platform-go/v14/authentication/passwordreset/migrations"
 	webauthndatabase "github.com/primandproper/platform-go/v14/authentication/webauthnsessions"
 	webauthnmigrations "github.com/primandproper/platform-go/v14/authentication/webauthnsessions/migrations"
@@ -100,6 +101,7 @@ const (
 	notificationsMigrationVersion   = 21
 	oauth2ClientsMigrationVersion   = 22
 	identityMigrationVersion        = 23
+	passkeysMigrationVersion        = 24
 )
 
 // NewMigrator creates a new postgres Migrator over the embedded migration files.
@@ -199,6 +201,14 @@ func NewMigrator(logger logging.Logger) (*Migrator, error) {
 		return nil, errors.Wrap(err, "rendering identity schema")
 	}
 
+	// The passkey credentials, under the same namespace. platform names its table
+	// webauthn_credentials too, which is why this one carries a prefix and the schema this
+	// replaced did not: two tables of one name, and only one of them has a store.
+	passkeysDDL, err := passkeysmigrations.SQL(dialect.Postgres, ddbidentity.TablePrefix)
+	if err != nil {
+		return nil, errors.Wrap(err, "rendering passkey credentials schema")
+	}
+
 	passwordResetDDL, err := renderPasswordResetDDL()
 	if err != nil {
 		return nil, err
@@ -293,6 +303,7 @@ func NewMigrator(logger logging.Logger) (*Migrator, error) {
 		migrate.WithGeneratedMigration(notificationsMigrationVersion, "create_notifications_tables", notificationsDDL),
 		migrate.WithGeneratedMigration(oauth2ClientsMigrationVersion, "adopt_oauth2_registered_clients", oauth2ClientsDDL),
 		migrate.WithGeneratedMigration(identityMigrationVersion, "create_identity_tables", identityDDL),
+		migrate.WithGeneratedMigration(passkeysMigrationVersion, "create_passkey_credentials_table", passkeysDDL),
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "building migrator")

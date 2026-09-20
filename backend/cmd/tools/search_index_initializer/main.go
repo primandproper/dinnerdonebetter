@@ -21,15 +21,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
+	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
-	identityrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity"
 	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
 	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
 	mealplanningindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
+	platformidentity "github.com/primandproper/platform-go/v14/identity"
+	"github.com/primandproper/primitives-go/v2/database"
 
 	"github.com/primandproper/platform-go/v14/mediaregistry"
 	searchsync "github.com/primandproper/platform-go/v14/searchsync"
@@ -174,13 +174,15 @@ func runInit(databaseURL, searchProvider, algoliaAppID, algoliaAPIKey, indicesSt
 		return fmt.Errorf("building upload registry store: %w", err)
 	}
 
-	policy, err := authorization.NewDatabaseResolver(client.Reader(), logger, tracerProvider, nil)
+	identityStore, err := platformidentity.NewSQLStore(client,
+		platformidentity.WithTablePrefix(ddbidentity.TablePrefix),
+		platformidentity.WithStoreLogger(logger),
+		platformidentity.WithStoreTracerProvider(tracerProvider),
+	)
 	if err != nil {
-		return fmt.Errorf("building authorization policy resolver: %w", err)
+		return err
 	}
-
-	identityRepo := identityrepo.ProvideIdentityRepository(logger, tracerProvider, auditRepo, client, nil, uploadsRegistry, policy)
-	mealPlanningRepo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditRepo, identityRepo, client, nil, uploadsRegistry)
+	mealPlanningRepo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditRepo, identityStore, client, nil, uploadsRegistry)
 
 	searchCfg := &textsearchcfg.Config{
 		Provider: searchProvider,
@@ -193,7 +195,7 @@ func runInit(databaseURL, searchProvider, algoliaAppID, algoliaAPIKey, indicesSt
 	o11y := observability{logger: logger, tracerProvider: tracerProvider, metricsProvider: metricsProvider}
 
 	for _, indexType := range requested {
-		if err = reindexOne(ctx, indexType, searchCfg, identityRepo, mealPlanningRepo, o11y, wipe, batchSize); err != nil {
+		if err = reindexOne(ctx, indexType, searchCfg, client, identityStore, mealPlanningRepo, o11y, wipe, batchSize); err != nil {
 			return fmt.Errorf("indexing %s: %w", indexType, err)
 		}
 	}
@@ -218,7 +220,8 @@ func reindexOne(
 	ctx context.Context,
 	indexType string,
 	searchCfg *textsearchcfg.Config,
-	identityRepo identity.Repository,
+	client database.Client,
+	identityStore platformidentity.Store,
 	mealPlanningRepo mealplanning.Repository,
 	o11y observability,
 	wipe bool,
@@ -229,7 +232,7 @@ func reindexOne(
 	// that takes nothing else.
 	switch indexType {
 	case identityindexing.IndexTypeUsers:
-		source, err := identityindexing.UserSource(identityRepo)
+		source, err := identityindexing.UserSource(client, identityStore)
 		if err != nil {
 			return err
 		}

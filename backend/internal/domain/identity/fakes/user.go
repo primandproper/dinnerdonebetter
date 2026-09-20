@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
+	identity "github.com/primandproper/platform-go/v14/identity"
 
 	"github.com/primandproper/primitives-go/v2/fake"
 	"github.com/primandproper/primitives-go/v2/filtering"
@@ -28,7 +28,7 @@ func BuildFakeUser() *identity.User {
 	// field for one, so registration always writes the empty string and only an admin
 	// setting a status later fills it in. A generated value here disagrees with every
 	// user read back out of the store.
-	user.AccountStatus = string(identity.UnverifiedAccountStatus)
+	user.AccountStatus = identity.StatusUnverified
 	user.AccountStatusExplanation = ""
 
 	// Registration never demands a password change; that flag is raised later, and the

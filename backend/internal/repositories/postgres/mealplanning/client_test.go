@@ -6,16 +6,16 @@ import (
 	"os"
 	"testing"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/indexevents"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
+	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
+	platformidentity "github.com/primandproper/platform-go/v14/identity"
 	"github.com/primandproper/platform-go/v14/mediaregistry"
 	registrymock "github.com/primandproper/platform-go/v14/mediaregistry/mock"
 	"github.com/primandproper/platform-go/v14/outbox"
@@ -71,10 +71,8 @@ func buildDatabaseClientForTest(t *testing.T) (*repository, audit.Repository) {
 	uploadsRegistry, err := mediaregistry.NewSQLStore(pgc, mediaregistry.WithTablePrefix(uploadedmedia.TablePrefix))
 	require.NoError(t, err)
 
-	policy, err := authorization.NewDatabaseResolver(pgc.Reader(), loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil)
-	require.NoError(t, err)
-
-	identitiesRepo := identity.ProvideIdentityRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), auditLogEntryRepo, pgc, nil, uploadsRegistry, policy)
+	// The roster read, which is all meal planning asks the directory for.
+	identityStore, err := platformidentity.NewSQLStore(pgc, platformidentity.WithTablePrefix(ddbidentity.TablePrefix))
 	require.NoError(t, err)
 
 	// A real emitter, so the tests exercise the same path production does: the event is
@@ -86,7 +84,7 @@ func buildDatabaseClientForTest(t *testing.T) (*repository, audit.Repository) {
 		loggingnoop.NewLogger(),
 		tracingnoop.NewTracerProvider(),
 		auditLogEntryRepo,
-		identitiesRepo,
+		identityStore,
 		pgc,
 		events.NewEmitter(outboxWriter, testDataChangesTopic, nil, indexevents.SideEffect),
 		uploadsRegistry,

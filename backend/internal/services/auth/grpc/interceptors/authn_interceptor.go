@@ -11,8 +11,12 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
+	identitybuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
-	identitymanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/manager"
+
+	platformidentity "github.com/primandproper/platform-go/v14/identity"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
 	"github.com/primandproper/primitives-go/v2/authentication/tokens"
@@ -45,7 +49,9 @@ const (
 type AuthInterceptor struct {
 	tracer                      tracing.Tracer
 	logger                      logging.Logger
-	identityDataManager         identitymanager.IdentityDataManager
+	directory                   platformidentity.Store
+	db                          database.Client
+	sessions                    *identitybuild.SessionBuilder
 	sessionStore                auth.SessionStore
 	methodPermissions           map[string][]authorization.Permission
 	oauth2Server                *oauth2server.Server
@@ -63,7 +69,9 @@ type MethodPermissionsMap map[string][]authorization.Permission
 func ProvideAuthInterceptor(
 	tracerProvider tracing.Provider,
 	logger logging.Logger,
-	identityDataManager identitymanager.IdentityDataManager,
+	directory platformidentity.Store,
+	db database.Client,
+	sessionBuilder *identitybuild.SessionBuilder,
 	sessionStore auth.SessionStore,
 	oauth2Server *oauth2server.Server,
 	oauth2Resource string,
@@ -98,14 +106,16 @@ func ProvideAuthInterceptor(
 	}
 
 	return &AuthInterceptor{
-		tracer:              tracing.NewNamedTracer(tracerProvider, o11yName),
-		logger:              logging.NewNamedLogger(logger, o11yName),
-		identityDataManager: identityDataManager,
-		sessionStore:        sessionStore,
-		oauth2Server:        oauth2Server,
-		oauth2Resource:      oauth2Resource,
-		tokenIssuer:         tokenIssuer,
-		methodPermissions:   aggregatedPermissions,
+		tracer:            tracing.NewNamedTracer(tracerProvider, o11yName),
+		logger:            logging.NewNamedLogger(logger, o11yName),
+		directory:         directory,
+		db:                db,
+		sessions:          sessionBuilder,
+		sessionStore:      sessionStore,
+		oauth2Server:      oauth2Server,
+		oauth2Resource:    oauth2Resource,
+		tokenIssuer:       tokenIssuer,
+		methodPermissions: aggregatedPermissions,
 		// Routes allowed when requires_password_change is true.
 		passwordChangeAllowedRoutes: []string{
 			"/auth.AuthService/UpdatePassword",
@@ -151,7 +161,7 @@ func (s *AuthInterceptor) determineZuckMode(ctx context.Context, metaData metada
 			return "", "", ErrUserNotAuthorizedToImpersonateOthers
 		}
 
-		if _, err = s.identityDataManager.GetUser(ctx, zuckUserID); err != nil {
+		if _, err = s.directory.GetUser(ctx, s.db.Reader(), tenancy.Global(), zuckUserID); err != nil {
 			return "", "", observability.PrepareError(err, span, "fetching user info")
 		}
 
@@ -161,7 +171,7 @@ func (s *AuthInterceptor) determineZuckMode(ctx context.Context, metaData metada
 			// Honor the specifically requested impersonation account instead of always falling back
 			// to the user's default. BuildSessionContextDataForUser validates that the impersonated
 			// user is actually a member of the requested account and errors out otherwise.
-			if _, err = s.identityDataManager.BuildSessionContextDataForUser(ctx, zuckUserID, zuckAccountID); err != nil {
+			if _, err = s.sessions.BuildSessionContextDataForUser(ctx, zuckUserID, zuckAccountID); err != nil {
 				return "", "", observability.PrepareError(err, span, "validating impersonated account membership")
 			}
 		}
@@ -207,7 +217,7 @@ func (s *AuthInterceptor) extractSessionContextData(ctx context.Context, metaDat
 			// So the claim is recorded and not spent. Honoring it needs a way for a client to
 			// ask for a token on a named account and a way to notice when that account is no
 			// longer the one in use — neither of which exists yet.
-			sessionCtxData, sessionErr := s.identityDataManager.BuildSessionContextDataForUser(ctx, userID, "")
+			sessionCtxData, sessionErr := s.sessions.BuildSessionContextDataForUser(ctx, userID, "")
 			if sessionErr != nil {
 				return nil, observability.PrepareAndLogError(sessionErr, logger, span, "fetching user info for oauth2 token")
 			}
@@ -244,7 +254,7 @@ func (s *AuthInterceptor) extractSessionContextData(ctx context.Context, metaDat
 				return nil, Unauthenticated("token has been superseded")
 			}
 
-			sessionCtxData, sessionErr := s.identityDataManager.BuildSessionContextDataForUser(ctx, userID, accountID)
+			sessionCtxData, sessionErr := s.sessions.BuildSessionContextDataForUser(ctx, userID, accountID)
 			if sessionErr != nil {
 				return nil, observability.PrepareAndLogError(sessionErr, logger, span, "fetching user info from token")
 			}
@@ -331,7 +341,7 @@ func (s *AuthInterceptor) UnaryServerInterceptor() grpc.UnaryServerInterceptor {
 			return nil, status.Error(codes.PermissionDenied, "permission denied")
 		}
 
-		requiresChange, pcErr := s.identityDataManager.UserRequiresPasswordChange(ctx, sessionContextData.GetUserID())
+		requiresChange, pcErr := s.userRequiresPasswordChange(ctx, sessionContextData.GetUserID())
 		if pcErr != nil {
 			return nil, status.Error(codes.Internal, "checking password change requirement")
 		}
@@ -407,7 +417,7 @@ func (s *AuthInterceptor) StreamServerInterceptor() grpc.StreamServerInterceptor
 			return status.Error(codes.PermissionDenied, "permission denied")
 		}
 
-		requiresChange, pcErr := s.identityDataManager.UserRequiresPasswordChange(ss.Context(), sessionContextData.GetUserID())
+		requiresChange, pcErr := s.userRequiresPasswordChange(ss.Context(), sessionContextData.GetUserID())
 		if pcErr != nil {
 			return status.Error(codes.Internal, "checking password change requirement")
 		}
@@ -458,4 +468,20 @@ func (s *AuthInterceptor) checkAudience(token *oauth2server.AccessToken) error {
 	}
 
 	return nil
+}
+
+// userRequiresPasswordChange reports whether this user must change their password before
+// they may do anything else.
+//
+// It is a field on the row rather than a method of its own now, so this is a read of the
+// user. The read this replaced was a dedicated query, which is the shape a repository of
+// this application's own could have and a general directory should not: platform answers
+// with the user and lets a caller ask whatever it wanted to know.
+func (s *AuthInterceptor) userRequiresPasswordChange(ctx context.Context, userID string) (bool, error) {
+	user, err := s.directory.GetUser(ctx, s.db.Reader(), tenancy.Global(), userID)
+	if err != nil {
+		return false, err
+	}
+
+	return user.RequiresPasswordChange, nil
 }

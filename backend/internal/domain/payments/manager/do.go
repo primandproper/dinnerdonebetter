@@ -3,9 +3,8 @@ package manager
 import (
 	"context"
 
-	identitymanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/manager"
-
 	"github.com/primandproper/platform-go/v14/billing"
+	platformidentity "github.com/primandproper/platform-go/v14/identity"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
@@ -22,7 +21,7 @@ func RegisterPaymentsDataManager(i do.Injector) {
 			do.MustInvoke[logging.Logger](i),
 			do.MustInvoke[database.Client](i),
 			do.MustInvoke[billing.Store](i),
-			do.MustInvoke[identitymanager.IdentityDataManager](i),
+			do.MustInvoke[platformidentity.Store](i),
 		)
 	})
 }

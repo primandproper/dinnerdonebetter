@@ -5,13 +5,14 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
 	authcfg "github.com/primandproper/dinnerdonebetter/backend/internal/authentication/config"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
+	identitybuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
-	identitymgr "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/manager"
 	paymentsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/manager"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories"
 	auditrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
-	identityrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity"
+	identitystore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identitystore"
 	oauth2clientsstore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/oauth2clientsstore"
 	paymentsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/payments"
 	uploadedmediarepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/uploadedmedia"
@@ -99,8 +100,9 @@ func BuildInjector(
 	// What a role grants, read from the policy tables the migrator seeds. The
 	// identity repository resolves a principal's role names through it when it
 	// builds a session.
-	identityrepo.RegisterPolicyResolver(i)
-	identityrepo.RegisterIdentityRepository(i)
+	authorization.RegisterPolicyResolver(i)
+	identitystore.RegisterIdentityStore(i)
+	identitybuild.RegisterSessionBuilder(i)
 
 	// The upload registry, because the identity repository reads a user's avatar
 	// through it.
@@ -109,7 +111,6 @@ func BuildInjector(
 	paymentsrepo.RegisterPaymentsRepository(i)
 
 	// managers
-	identitymgr.RegisterIdentityDataManager(i)
 	paymentsmanager.RegisterPaymentsDataManager(i)
 	paymentsadapters.RegisterPaymentProcessorRegistry(i)
 

@@ -4,10 +4,12 @@ import (
 	"context"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
+	identitybuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	auditrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
-	identityrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity"
+	identitystore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identitystore"
 	issuereportsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/issuereports"
 	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
 	uploadedmediarepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/uploadedmedia"
@@ -50,8 +52,10 @@ func BuildInjector(ctx context.Context, cfg *config.MCPServiceConfig) *do.RootSc
 	// What a role grants, read from the policy tables the migrator seeds. The
 	// identity repository resolves a principal's role names through it when it
 	// builds a session.
-	identityrepo.RegisterPolicyResolver(i)
+	authorization.RegisterPolicyResolver(i)
 	identityrepo.RegisterIdentityRepository(i)
+	identitystore.RegisterIdentityStore(i)
+	identitybuild.RegisterSessionBuilder(i)
 	events.RegisterOutboxEmitter(i)
 
 	// The upload registry, because both repositories above read media through it —

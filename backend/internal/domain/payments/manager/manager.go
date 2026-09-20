@@ -6,10 +6,11 @@ import (
 	"time"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
+
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
-	identitymanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/manager"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 	paymentskeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/keys"
+	platformidentity "github.com/primandproper/platform-go/v14/identity"
 
 	"github.com/primandproper/platform-go/v14/billing"
 	"github.com/primandproper/primitives-go/v2/capitalism"
@@ -27,11 +28,11 @@ const (
 var _ PaymentsDataManager = (*paymentsManager)(nil)
 
 type paymentsManager struct {
-	tracer      tracing.Tracer
-	logger      logging.Logger
-	db          database.Client
-	store       billing.Store
-	identityMgr identitymanager.IdentityDataManager
+	tracer  tracing.Tracer
+	logger  logging.Logger
+	db      database.Client
+	store   billing.Store
+	billing platformidentity.BillingWriter
 }
 
 // NewPaymentsDataManager returns a new PaymentsDataManager.
@@ -44,14 +45,14 @@ func NewPaymentsDataManager(
 	logger logging.Logger,
 	db database.Client,
 	store billing.Store,
-	identityMgr identitymanager.IdentityDataManager,
+	billing platformidentity.BillingWriter,
 ) (PaymentsDataManager, error) {
 	return &paymentsManager{
-		tracer:      tracing.NewNamedTracer(tracerProvider, o11yName),
-		logger:      logging.NewNamedLogger(logger, o11yName),
-		db:          db,
-		store:       store,
-		identityMgr: identityMgr,
+		tracer:  tracing.NewNamedTracer(tracerProvider, o11yName),
+		logger:  logging.NewNamedLogger(logger, o11yName),
+		db:      db,
+		store:   store,
+		billing: billing,
 	}, nil
 }
 
@@ -83,7 +84,6 @@ func (m *paymentsManager) ProcessWebhookEvent(ctx context.Context, provider stri
 
 	eventType := parsed.EventType
 	subscriptionID := parsed.SubscriptionID
-	syncNow := time.Now()
 
 	switch eventType {
 	case "subscription.updated", "subscription.created", "customer.subscription.updated":
@@ -109,8 +109,8 @@ func (m *paymentsManager) ProcessWebhookEvent(ctx context.Context, provider stri
 		}
 
 		billingStatus := subscriptionStatusToBillingStatus(status)
-		if err = m.identityMgr.UpdateAccountBillingFields(ctx, sub.BelongsToAccount, &billingStatus, &sub.ProductID, nil, &syncNow); err != nil {
-			return observability.PrepareAndLogError(err, logger, span, "updating account billing fields")
+		if err = m.recordSubscription(ctx, sub.BelongsToAccount, billingStatus, sub.ProductID); err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "recording account subscription")
 		}
 	case "subscription.deleted", "customer.subscription.deleted":
 		if subscriptionID == "" {
@@ -126,9 +126,8 @@ func (m *paymentsManager) ProcessWebhookEvent(ctx context.Context, provider stri
 			return observability.PrepareAndLogError(err, logger, span, "updating subscription status")
 		}
 
-		unpaid := identity.UnpaidAccountBillingStatus
-		if err = m.identityMgr.UpdateAccountBillingFields(ctx, sub.BelongsToAccount, &unpaid, nil, nil, &syncNow); err != nil {
-			return observability.PrepareAndLogError(err, logger, span, "updating account billing fields")
+		if err = m.recordSubscriptionEnded(ctx, sub.BelongsToAccount); err != nil {
+			return observability.PrepareAndLogError(err, logger, span, "recording ended account subscription")
 		}
 
 	// RevenueCat events (mobile in-app purchases)
@@ -137,7 +136,7 @@ func (m *paymentsManager) ProcessWebhookEvent(ctx context.Context, provider stri
 			return nil
 		}
 
-		return m.handleRevenueCatSubscriptionActive(ctx, logger, span, accountID, subscriptionID, parsed.ProductID, syncNow)
+		return m.handleRevenueCatSubscriptionActive(ctx, logger, span, accountID, subscriptionID, parsed.ProductID)
 	case "EXPIRATION":
 		if accountID == "" {
 			return nil
@@ -194,7 +193,6 @@ func (m *paymentsManager) handleRevenueCatSubscriptionActive(
 	logger logging.Logger,
 	span tracing.Span,
 	accountID, transactionID, externalProductID string,
-	syncNow time.Time,
 ) error {
 	product, err := m.store.GetProductByExternalID(ctx, m.db.Reader(), payments.Scope(), externalProductID)
 	if err != nil {
@@ -229,12 +227,12 @@ func (m *paymentsManager) handleRevenueCatSubscriptionActive(
 		return observability.PrepareAndLogError(err, logger, span, "updating subscription status")
 	}
 
-	billingStatus := identity.PaidAccountBillingStatus
+	billingStatus := platformidentity.BillingPaid
 	productID := product.ID
 
 	return observability.PrepareAndLogError(
-		m.identityMgr.UpdateAccountBillingFields(ctx, accountID, &billingStatus, &productID, nil, &syncNow),
-		logger, span, "updating account billing fields",
+		m.recordSubscription(ctx, accountID, billingStatus, productID),
+		logger, span, "recording account subscription",
 	)
 }
 
@@ -244,15 +242,13 @@ func (m *paymentsManager) handleRevenueCatSubscriptionExpired(
 	span tracing.Span,
 	accountID, transactionID string,
 ) error {
-	unpaid := identity.UnpaidAccountBillingStatus
-	syncNow := time.Now()
 
 	sub, err := m.store.GetSubscriptionByExternalID(ctx, m.db.Reader(), payments.Scope(), transactionID)
 	if err != nil {
 		// Subscription may not exist; still update account to unpaid
 		return observability.PrepareAndLogError(
-			m.identityMgr.UpdateAccountBillingFields(ctx, accountID, &unpaid, nil, nil, &syncNow),
-			logger, span, "updating account billing fields",
+			m.recordSubscriptionEnded(ctx, accountID),
+			logger, span, "recording ended account subscription",
 		)
 	}
 
@@ -261,8 +257,8 @@ func (m *paymentsManager) handleRevenueCatSubscriptionExpired(
 	}
 
 	return observability.PrepareAndLogError(
-		m.identityMgr.UpdateAccountBillingFields(ctx, sub.BelongsToAccount, &unpaid, nil, nil, &syncNow),
-		logger, span, "updating account billing fields",
+		m.recordSubscriptionEnded(ctx, sub.BelongsToAccount),
+		logger, span, "recording ended account subscription",
 	)
 }
 
@@ -275,13 +271,54 @@ func (m *paymentsManager) handleRevenueCatSubscriptionExpired(
 // form — is unpaid, because nothing is being collected. A status this module does
 // not know is unpaid too, rather than active: a word the provider added last week
 // should not entitle an account on its own.
-func subscriptionStatusToBillingStatus(status capitalism.SubscriptionStatus) string {
+// subscriptionStatusToBillingStatus renames a processor's subscription standing into the
+// directory's billing standing.
+//
+// Two vocabularies rather than one, because they answer different questions: a subscription
+// is active or trialing or canceled with the processor, and an account is paid or unpaid
+// with us. The default is unpaid, which is the answer that fails closed.
+func subscriptionStatusToBillingStatus(status capitalism.SubscriptionStatus) platformidentity.BillingStatus {
 	switch status {
 	case capitalism.SubscriptionStatusActive:
-		return identity.PaidAccountBillingStatus
+		return platformidentity.BillingPaid
 	case capitalism.SubscriptionStatusTrialing:
-		return identity.TrialAccountBillingStatus
+		return platformidentity.BillingTrial
 	default:
-		return identity.UnpaidAccountBillingStatus
+		return platformidentity.BillingUnpaid
 	}
+}
+
+// recordSubscription writes what a processor delivery reported about an account: its
+// standing, the plan it is on, and that this process just heard from the processor.
+//
+// The three move together because a delivery reports them together, which is the reason
+// platform made this one method rather than three columns a caller sets independently —
+// writing them one at a time leaves an account paid on last month's plan between two of
+// the writes, and leaves it there for good if the second fails.
+//
+// The sync stamp is no longer passed in. It is the store's clock, because the fact being
+// recorded is that this process heard from the processor, and the moment that happened is
+// the moment of the write rather than a time.Now() the caller took earlier.
+func (m *paymentsManager) recordSubscription(ctx context.Context, accountID string, status platformidentity.BillingStatus, planID string) error {
+	return m.db.WithTransaction(ctx, func(tx database.Tx) error {
+		return m.billing.RecordAccountSubscription(ctx, tx, identity.Scope(), accountID, status, planID)
+	})
+}
+
+// recordSubscriptionEnded writes that an account's subscription is over.
+//
+// A separate method from the one above rather than that one with an empty plan, and the
+// distinction is platform's: the difference between them is a cancellation, so a handler
+// passing an unchecked payload through one call would otherwise cancel a subscription
+// while believing it had renewed one.
+func (m *paymentsManager) recordSubscriptionEnded(ctx context.Context, accountID string) error {
+	return m.db.WithTransaction(ctx, func(tx database.Tx) error {
+		// Unpaid, which is the only ending this application distinguishes. platform takes
+		// the standing because ending is not one status — a customer cancelling, a
+		// processor giving up on collection and a trial running out are the same write
+		// over different standings — and which of them means what is this application's
+		// policy. Here they all mean the account stops being paid for.
+		return m.billing.RecordAccountSubscriptionEnded(ctx, tx, identity.Scope(), accountID,
+			platformidentity.BillingUnpaid)
+	})
 }

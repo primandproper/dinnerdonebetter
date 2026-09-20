@@ -11,7 +11,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/push"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers"
 
-	"github.com/primandproper/primitives-go/v2/filtering"
+	"github.com/primandproper/primitives-go/v2/database"
 	platformnotifications "github.com/primandproper/primitives-go/v2/notifications/mobile"
 	"github.com/primandproper/primitives-go/v2/observability"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
@@ -60,10 +60,11 @@ type Worker struct {
 	logger logging.Logger
 	tracer tracing.Tracer
 
-	queue        Queue
-	dataManager  mealplanning.Repository
-	identityRepo identity.Repository
-	fanout       *push.Fanout
+	queue       Queue
+	dataManager mealplanning.Repository
+	roster      identity.AccountRoster
+	db          database.Client
+	fanout      *push.Fanout
 }
 
 // Queue is the slice of workqueue.Queue[string] this worker drives. It is an interface so the
@@ -83,16 +84,18 @@ func NewWorker(
 	tracerProvider tracing.Provider,
 	queue Queue,
 	dataManager mealplanning.Repository,
-	identityRepo identity.Repository,
+	roster identity.AccountRoster,
+	db database.Client,
 	fanout *push.Fanout,
 ) *Worker {
 	return &Worker{
-		logger:       logging.NewNamedLogger(logger, o11yName),
-		tracer:       tracing.NewNamedTracer(tracerProvider, o11yName),
-		queue:        queue,
-		dataManager:  dataManager,
-		identityRepo: identityRepo,
-		fanout:       fanout,
+		logger:      logging.NewNamedLogger(logger, o11yName),
+		tracer:      tracing.NewNamedTracer(tracerProvider, o11yName),
+		queue:       queue,
+		dataManager: dataManager,
+		roster:      roster,
+		db:          db,
+		fanout:      fanout,
 	}
 }
 
@@ -362,16 +365,9 @@ func (w *Worker) recipients(ctx context.Context, task *mealplanning.MealPlanTask
 		return nil, errTaskHasNoAccount
 	}
 
-	users, err := w.identityRepo.GetUsersForAccount(ctx, accountID, filtering.DefaultQueryFilter())
+	userIDs, err := identity.MembersOfAccount(ctx, w.roster, w.db.Reader(), accountID)
 	if err != nil {
 		return nil, fmt.Errorf("getting users for account: %w", err)
-	}
-
-	userIDs := make([]string, 0, len(users.Data))
-	for _, user := range users.Data {
-		if user != nil && user.ID != "" {
-			userIDs = append(userIDs, user.ID)
-		}
 	}
 
 	return userIDs, nil

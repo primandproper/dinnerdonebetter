@@ -1,7 +1,7 @@
 package fakes
 
 import (
-	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
+	types "github.com/primandproper/platform-go/v14/identity"
 
 	"github.com/primandproper/primitives-go/v2/fake"
 )

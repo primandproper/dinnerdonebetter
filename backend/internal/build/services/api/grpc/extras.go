@@ -7,13 +7,13 @@ import (
 	"runtime/debug"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
+	identitybuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/identity"
 	oauth2clientsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/oauth2clients"
 	waitlistsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/waitlists"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	analyticspb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/analytics"
 	authsvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
 	dataprivacysvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/dataprivacy"
-	identitysvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
 	internalopssvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/internalops"
 	mealplanningsvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
 	uploadedmediasvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
@@ -21,7 +21,6 @@ import (
 	authgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc/interceptors"
 	dataprivacygrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/grpc"
-	identitygrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/grpc"
 	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
 	internalopsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/internalops/grpc"
 	mealplanninggrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/grpc"
@@ -34,6 +33,7 @@ import (
 	paymentsgrpc "github.com/primandproper/platform-go/v14/billing/grpc"
 	commentspb "github.com/primandproper/platform-go/v14/comments/commentspb"
 	commentsgrpc "github.com/primandproper/platform-go/v14/comments/grpc"
+	"github.com/primandproper/platform-go/v14/identity/identitypb"
 	issuereportsgrpc "github.com/primandproper/platform-go/v14/issuereports/grpc"
 	issuereportspb "github.com/primandproper/platform-go/v14/issuereports/issuereportspb"
 	notificationsgrpc "github.com/primandproper/platform-go/v14/notifications/grpc"
@@ -82,7 +82,7 @@ func RegisterExtras(i do.Injector) {
 			do.MustInvoke[authgrpc.AuthMethodPermissions](i),
 			commentsgrpc.Permissions(),
 			do.MustInvoke[dataprivacygrpc.DataPrivacyMethodPermissions](i),
-			do.MustInvoke[identitygrpc.IdentityMethodPermissions](i),
+			identitybuild.Permissions(),
 			do.MustInvoke[internalopsgrpc.InternalOpsMethodPermissions](i),
 			issuereportsgrpc.Permissions(),
 			do.MustInvoke[mealplanninggrpc.MealPlanningMethodPermissions](i),
@@ -139,7 +139,7 @@ func RegisterExtras(i do.Injector) {
 			do.MustInvoke[authsvcpb.AuthServiceServer](i),
 			do.MustInvoke[commentspb.CommentsServiceServer](i),
 			do.MustInvoke[dataprivacysvcpb.DataPrivacyServiceServer](i),
-			do.MustInvoke[identitysvcpb.IdentityServiceServer](i),
+			do.MustInvoke[identitypb.IdentityServiceServer](i),
 			do.MustInvoke[internalopssvcpb.InternalOperationsServer](i),
 			do.MustInvoke[issuereportspb.IssueReportsServiceServer](i),
 			do.MustInvoke[mealplanningsvcpb.MealPlanningServiceServer](i),
@@ -158,7 +158,7 @@ func RegisterExtras(i do.Injector) {
 			do.MustInvoke[auditpb.AuditServiceServer](i),
 			do.MustInvoke[authsvcpb.AuthServiceServer](i),
 			do.MustInvoke[dataprivacysvcpb.DataPrivacyServiceServer](i),
-			do.MustInvoke[identitysvcpb.IdentityServiceServer](i),
+			do.MustInvoke[identitypb.IdentityServiceServer](i),
 			do.MustInvoke[internalopssvcpb.InternalOperationsServer](i),
 			do.MustInvoke[issuereportspb.IssueReportsServiceServer](i),
 			do.MustInvoke[mealplanningsvcpb.MealPlanningServiceServer](i),
@@ -180,7 +180,7 @@ func BuildRegistrationFuncs(
 	authService authsvcpb.AuthServiceServer,
 	commentsService commentspb.CommentsServiceServer,
 	dataPrivacyServer dataprivacysvcpb.DataPrivacyServiceServer,
-	identityServiceServer identitysvcpb.IdentityServiceServer,
+	identityServiceServer identitypb.IdentityServiceServer,
 	internalOpsService internalopssvcpb.InternalOperationsServer,
 	issueReportsService issuereportspb.IssueReportsServiceServer,
 	mealPlanningService mealplanningsvcpb.MealPlanningServiceServer,
@@ -199,7 +199,7 @@ func BuildRegistrationFuncs(
 			authsvcpb.RegisterAuthServiceServer(server, authService)
 			commentspb.RegisterCommentsServiceServer(server, commentsService)
 			dataprivacysvcpb.RegisterDataPrivacyServiceServer(server, dataPrivacyServer)
-			identitysvcpb.RegisterIdentityServiceServer(server, identityServiceServer)
+			identitypb.RegisterIdentityServiceServer(server, identityServiceServer)
 			internalopssvcpb.RegisterInternalOperationsServer(server, internalOpsService)
 			issuereportspb.RegisterIssueReportsServiceServer(server, issueReportsService)
 			mealplanningsvcpb.RegisterMealPlanningServiceServer(server, mealPlanningService)
@@ -301,7 +301,7 @@ func AggregateMethodPermissions(
 	authPermissions authgrpc.AuthMethodPermissions,
 	commentsPermissions map[string][]authorization.Permission,
 	dataprivacyPermissions dataprivacygrpc.DataPrivacyMethodPermissions,
-	identityPermissions identitygrpc.IdentityMethodPermissions,
+	identityPermissions map[string][]authorization.Permission,
 	internalopsPermissions internalopsgrpc.InternalOpsMethodPermissions,
 	issuereportsPermissions map[string][]authorization.Permission,
 	mealplanningPermissions mealplanninggrpc.MealPlanningMethodPermissions,

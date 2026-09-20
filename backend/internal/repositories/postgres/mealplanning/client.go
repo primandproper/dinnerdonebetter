@@ -26,7 +26,7 @@ type repository struct {
 	tracer            tracing.Tracer
 	logger            logging.Logger
 	generatedQuerier  generated.Querier
-	identityRepo      identity.Repository
+	roster            identity.AccountRoster
 	auditLogEntryRepo audit.Repository
 	events            *events.Emitter
 	recorder          *recording.Recorder
@@ -49,7 +49,7 @@ func ProvideMealPlanningRepository(
 	logger logging.Logger,
 	tracerProvider tracing.Provider,
 	auditLogEntryRepo audit.Repository,
-	identityRepo identity.Repository,
+	roster identity.AccountRoster,
 	client database.Client,
 	eventEmitter *events.Emitter,
 	uploads mediaregistry.Store,
@@ -63,7 +63,7 @@ func ProvideMealPlanningRepository(
 		tracer:            tracer,
 		generatedQuerier:  generated.New(),
 		auditLogEntryRepo: auditLogEntryRepo,
-		identityRepo:      identityRepo,
+		roster:            roster,
 		events:            eventEmitter,
 		recorder:          recording.NewRecorder(tracer, auditLogEntryRepo, eventEmitter),
 		uploads:           uploads,

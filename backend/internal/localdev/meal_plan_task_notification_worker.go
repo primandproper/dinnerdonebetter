@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
+	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/push"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
-	identityrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity"
 	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
 	notificationsstore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/notificationsstore"
 	mealplantasknotifications "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_task_notifications"
+	platformidentity "github.com/primandproper/platform-go/v14/identity"
 
 	"github.com/primandproper/platform-go/v14/workqueue"
 	workqueuecfg "github.com/primandproper/platform-go/v14/workqueue/config"
@@ -63,13 +63,16 @@ func NewMealPlanTaskNotificationWorker(
 		return nil, nil, fmt.Errorf("building upload registry store: %w", err)
 	}
 
-	policy, policyErr := authorization.NewDatabaseResolver(databaseClient.Reader(), logger, tracerProvider, nil)
-	if policyErr != nil {
-		return nil, nil, policyErr
+	identityStore, err := platformidentity.NewSQLStore(databaseClient,
+		platformidentity.WithTablePrefix(ddbidentity.TablePrefix),
+		platformidentity.WithStoreLogger(logger),
+		platformidentity.WithStoreTracerProvider(tracerProvider),
+	)
+	if err != nil {
+		return nil, nil, err
 	}
 
-	identityRepo := identityrepo.ProvideIdentityRepository(logger, tracerProvider, auditRepo, databaseClient, nil, uploads, policy)
-	mealPlanningRepo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditRepo, identityRepo, databaseClient, nil, uploads)
+	mealPlanningRepo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditRepo, identityStore, databaseClient, nil, uploads)
 	notificationsRepo, err := notificationsstore.ProvideAdapter(ctx, logger, tracerProvider, metricsnoop.NewMetricsProvider(), auditRepo, nil, databaseClient)
 	if err != nil {
 		return nil, nil, fmt.Errorf("building notifications repository: %w", err)
@@ -101,7 +104,8 @@ func NewMealPlanTaskNotificationWorker(
 			tracerProvider,
 			&mealplantasknotifications.TaskQueue{Queue: queue},
 			mealPlanningRepo,
-			identityRepo,
+			identityStore,
+			databaseClient,
 			fanout,
 		),
 		queue.Close,

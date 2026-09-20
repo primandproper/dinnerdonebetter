@@ -4,10 +4,12 @@ import (
 	"context"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	auditbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/auditlog"
 	commentstargets "github.com/primandproper/dinnerdonebetter/backend/internal/build/comments"
 	dataprivacybuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/dataprivacy"
+	identitybuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/identity"
 	issuereportsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/issuereports"
 	notificationsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/notifications"
 	oauth2clientsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/oauth2clients"
@@ -19,7 +21,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	auditmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit/manager"
 	authmgr "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/managers"
-	identitymgr "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/manager"
 	mealplanningregistration "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/registration"
 	notificationsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/manager"
 	paymentsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/manager"
@@ -30,7 +31,7 @@ import (
 	auditrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	authrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auth"
 	commentsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/comments"
-	identityrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity"
+	identitystore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identitystore"
 	internalopsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/internalops"
 	issuereportsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/issuereports"
 	oauth2clientsstore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/oauth2clientsstore"
@@ -45,7 +46,6 @@ import (
 	authhttpsvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/handlers/authentication"
 	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
 	dataprivacysvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/grpc"
-	identitysvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/grpc"
 	internalopssvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/internalops/grpc"
 	paymentsadapters "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/adapters"
 	uploadedmediacfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/config"
@@ -168,8 +168,9 @@ func BuildInjector(
 	// What a role grants, read from the policy tables the migrator seeds. The
 	// identity repository resolves a principal's role names through it when it
 	// builds a session.
-	identityrepo.RegisterPolicyResolver(i)
-	identityrepo.RegisterIdentityRepository(i)
+	authorization.RegisterPolicyResolver(i)
+	identitystore.RegisterIdentityStore(i)
+	identitybuild.RegisterSessionBuilder(i)
 	issuereportsrepo.RegisterIssueReportsRepository(i)
 	uploadedmediarepo.RegisterUploadedMediaRepository(i)
 	webhooksstore.RegisterWebhooksStore(i)
@@ -180,7 +181,6 @@ func BuildInjector(
 	// managers
 	auditmanager.RegisterAuditDataManager(i)
 	authmgr.RegisterAuthManager(i)
-	identitymgr.RegisterIdentityDataManager(i)
 	notificationsmanager.RegisterNotificationsDataManager(i)
 	paymentsmanager.RegisterPaymentsDataManager(i)
 	webhooksmanager.RegisterWebhookDataManager(i)
@@ -199,7 +199,7 @@ func BuildInjector(
 	do.Provide[dataprivacysvc.DataPrivacyMethodPermissions](i, func(i do.Injector) (dataprivacysvc.DataPrivacyMethodPermissions, error) {
 		return dataprivacysvc.ProvideMethodPermissions(), nil
 	})
-	identitysvc.RegisterIdentityService(i)
+	identitybuild.RegisterIdentityService(i)
 	internalopssvc.RegisterInternalOpsService(i)
 	issuereportsbuild.RegisterIssueReportsService(i)
 	notificationsbuild.RegisterNotificationsService(i)

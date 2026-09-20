@@ -9,12 +9,12 @@ import (
 	"os"
 	"time"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
+	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
-	identityrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity"
 	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
+	platformidentity "github.com/primandproper/platform-go/v14/identity"
 
 	"github.com/primandproper/platform-go/v14/mediaregistry"
 	"github.com/primandproper/primitives-go/v2/database"
@@ -123,13 +123,15 @@ func runExport(dbHost string, dbPort uint16, dbUser, dbPassword, dbName string, 
 		return fmt.Errorf("building upload registry store: %w", err)
 	}
 
-	policy, err := authorization.NewDatabaseResolver(client.Reader(), logger, tracerProvider, nil)
+	identityStore, err := platformidentity.NewSQLStore(client,
+		platformidentity.WithTablePrefix(ddbidentity.TablePrefix),
+		platformidentity.WithStoreLogger(logger),
+		platformidentity.WithStoreTracerProvider(tracerProvider),
+	)
 	if err != nil {
-		return fmt.Errorf("building authorization policy resolver: %w", err)
+		return err
 	}
-
-	identityRepo := identityrepo.ProvideIdentityRepository(logger, tracerProvider, auditRepo, client, nil, uploadsRegistry, policy)
-	repo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditRepo, identityRepo, client, nil, uploadsRegistry)
+	repo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditRepo, identityStore, client, nil, uploadsRegistry)
 
 	export := &ExportData{
 		ExportedAt: time.Now().UTC(),

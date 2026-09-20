@@ -9,13 +9,13 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/converters"
 	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc/converters"
 	_ "github.com/primandproper/dinnerdonebetter/backend/internal/services/errors"
-	identityconverters "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/grpc/converters"
 
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	errorsgrpc "github.com/primandproper/primitives-go/v2/errors/grpc"
@@ -126,7 +126,8 @@ func (s *serviceImpl) GetAuthStatus(ctx context.Context, _ *authsvc.GetAuthStatu
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
-	requiresPasswordChange, pcErr := s.identityDataManager.UserRequiresPasswordChange(ctx, sessionContextData.GetUserID())
+	caller, pcErr := s.directory.GetUser(ctx, s.db.Reader(), identity.Scope(), sessionContextData.GetUserID())
+	requiresPasswordChange := caller != nil && caller.RequiresPasswordChange
 	if pcErr != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(pcErr, logger, span, codes.Internal, "checking password change requirement")
 	}
@@ -254,7 +255,7 @@ func (s *serviceImpl) GetActiveAccount(ctx context.Context, request *authsvc.Get
 	}
 	logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.GetUserID())
 
-	account, err := s.identityDataManager.GetAccount(ctx, sessionContextData.GetActiveAccountID())
+	account, err := s.directory.GetAccount(ctx, s.db.Reader(), identity.Scope(), sessionContextData.GetActiveAccountID())
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.NotFound, "failed to get active account")
@@ -266,7 +267,7 @@ func (s *serviceImpl) GetActiveAccount(ctx context.Context, request *authsvc.Get
 		ResponseDetails: &types.ResponseDetails{
 			TraceId: span.SpanContext().TraceID().String(),
 		},
-		Result: identityconverters.ConvertAccountToGRPCAccount(account),
+		Result: identitygrpc.AccountToProto(account),
 	}
 
 	return x, nil
@@ -284,7 +285,7 @@ func (s *serviceImpl) GetSelf(ctx context.Context, request *authsvc.GetSelfReque
 	}
 	logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.GetUserID())
 
-	user, err := s.identityDataManager.GetUser(ctx, sessionContextData.GetUserID())
+	user, err := s.directory.GetUser(ctx, s.db.Reader(), identity.Scope(), sessionContextData.GetUserID())
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.NotFound, "failed to get user")
@@ -296,7 +297,7 @@ func (s *serviceImpl) GetSelf(ctx context.Context, request *authsvc.GetSelfReque
 		ResponseDetails: &types.ResponseDetails{
 			TraceId: span.SpanContext().TraceID().String(),
 		},
-		Result: identityconverters.ConvertUserToGRPCUser(user),
+		Result: identitygrpc.UserToProto(user),
 	}
 
 	return x, nil

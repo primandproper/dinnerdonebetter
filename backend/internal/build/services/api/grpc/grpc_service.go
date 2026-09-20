@@ -3,10 +3,10 @@ package grpcapi
 import (
 	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
 	dataprivacysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/dataprivacy"
-	identitysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
 	internalopssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/internalops"
 	mealplanningsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
 	uploadedmediasvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
+	"github.com/primandproper/platform-go/v14/identity/identitypb"
 
 	auditsvc "github.com/primandproper/platform-go/v14/audit/auditpb"
 	"github.com/primandproper/platform-go/v14/authentication/oauth2clients/oauth2clientspb"
@@ -23,7 +23,7 @@ type GRPCService struct {
 	auditsvc.AuditServiceServer
 	authsvc.AuthServiceServer
 	dataprivacysvc.DataPrivacyServiceServer
-	identitysvc.IdentityServiceServer
+	identitypb.IdentityServiceServer
 	internalopssvc.InternalOperationsServer
 	issuereportssvc.IssueReportsServiceServer
 	mealplanningsvc.MealPlanningServiceServer
@@ -41,7 +41,7 @@ func NewGRPCService(
 	auditServiceServer auditsvc.AuditServiceServer,
 	authServiceServer authsvc.AuthServiceServer,
 	dataPrivacyServiceServer dataprivacysvc.DataPrivacyServiceServer,
-	identityServiceServer identitysvc.IdentityServiceServer,
+	identityServiceServer identitypb.IdentityServiceServer,
 	internalOperationsServer internalopssvc.InternalOperationsServer,
 	issueReportsServiceServer issuereportssvc.IssueReportsServiceServer,
 	mealPlanningServiceServer mealplanningsvc.MealPlanningServiceServer,
