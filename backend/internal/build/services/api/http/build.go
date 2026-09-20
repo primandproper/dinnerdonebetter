@@ -12,7 +12,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories"
 	auditrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	identityrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity"
-	oauthrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/oauth"
+	oauth2clientsstore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/oauth2clientsstore"
 	paymentsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/payments"
 	uploadedmediarepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/uploadedmedia"
 	authservice "github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/handlers/authentication"
@@ -105,7 +105,7 @@ func BuildInjector(
 	// The upload registry, because the identity repository reads a user's avatar
 	// through it.
 	uploadedmediarepo.RegisterUploadedMediaRepository(i)
-	oauthrepo.RegisterOAuthRepository(i)
+	oauth2clientsstore.RegisterOAuth2ClientsStore(i)
 	paymentsrepo.RegisterPaymentsRepository(i)
 
 	// managers

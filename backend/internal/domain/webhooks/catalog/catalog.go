@@ -67,6 +67,7 @@ var definitions = webhooks.Catalog{
 	"meal_plan_updated":                               {Description: "A meal plan was updated."},
 	"oauth2_client_archived":                          {Description: "An OAuth2 client was archived."},
 	"oauth2_client_created":                           {Description: "An OAuth2 client was created."},
+	"oauth2_client_updated":                           {Description: "A registration's description changed. The four descriptive fields only. A revision cannot rotate a secret — platform's UpdateInput has no field for one, deliberately, because a credential changed by an UPDATE is one nobody was handed a new value for — so this event never means the thing a subscriber would most want to be told about. No RPC reaches it either; it is published by the store, which is the seam a future one would go through."},
 	"password_changed":                                {Description: "A user changed their password."},
 	"password_reset_token_created":                    {Description: "A user created a password reset token."},
 	"password_reset_token_redeemed":                   {Description: "A user created a password reset token."},

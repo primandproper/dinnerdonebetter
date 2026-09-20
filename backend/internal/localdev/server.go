@@ -25,11 +25,11 @@ import (
 	identityrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity"
 	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
 	notificationsstore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/notificationsstore"
-	oauthrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/oauth"
 	settingsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/settings"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
 
+	platformoauth2clients "github.com/primandproper/platform-go/v14/authentication/oauth2clients"
 	"github.com/primandproper/platform-go/v14/authentication/passwordreset"
 	platformsettings "github.com/primandproper/platform-go/v14/settings"
 	"github.com/primandproper/primitives-go/v2/authentication/argon2"
@@ -45,6 +45,7 @@ import (
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
 	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
 	"github.com/primandproper/primitives-go/v2/random"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 	"github.com/primandproper/primitives-go/v2/testutils/containers/redistest"
 
 	"golang.org/x/oauth2"
@@ -126,24 +127,47 @@ func CreatePremadeAdminUser(
 	return adminUser, nil
 }
 
-func CreateOAuth2ClientForService(ctx context.Context, pgc database.Client, dbCfg *dbcfg.Config, oauth2Input *oauth.OAuth2ClientDatabaseCreationInput) (*oauth.OAuth2Client, error) {
-	auditRepo, err := auditlogentries.ProvideAuditLogRepository(nil, nil, nil, pgc)
+// CreateOAuth2ClientForService registers a client and hands back the secret it was issued.
+//
+// The credentials are the service's to mint, not the caller's: the plaintext exists on the
+// IssuedClient this returns and nowhere else, because the row holds a digest and no read
+// reverses it. A caller that wants a predictable credential supplies a generator — see
+// oauth2ClientRegistry's option — rather than choosing the value here.
+//
+// The registration is global and unowned, which is what this deployment's clients are: an
+// operator mints one to let an application speak for the service on behalf of whoever signs
+// in, and oauth2clients.Client.Admits permits any subject for exactly that arrangement.
+func CreateOAuth2ClientForService(
+	ctx context.Context,
+	pgc database.Client,
+	input *platformoauth2clients.CreationInput,
+) (*platformoauth2clients.IssuedClient, error) {
+	svc, err := oauth2ClientRegistry(pgc)
 	if err != nil {
 		return nil, err
 	}
-	oauth2ClientManager := oauthrepo.ProvideOAuthRepository(ctx, nil, nil, auditRepo, dbCfg, pgc)
 
-	// only the digest is persisted; hand the plaintext back to the caller.
-	plaintextSecret := oauth2Input.ClientSecret
-	oauth2Input.ClientSecret = oauth.HashClientSecret(plaintextSecret)
-
-	createdClient, err := oauth2ClientManager.CreateOAuth2Client(ctx, oauth2Input)
+	issued, err := svc.CreateClient(ctx, tenancy.Global(), "", input)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create oauth2 client: %w", err)
 	}
-	createdClient.ClientSecret = plaintextSecret
 
-	return createdClient, nil
+	return issued, nil
+}
+
+// oauth2ClientRegistry builds the registry service over a bare database client.
+//
+// Undecorated, unlike the one the injector builds: this is a seeding path with no session
+// behind it, and an audit entry attributing a localdev client to nobody is noise in a log
+// whose whole value is attribution. The API server's registrations go through
+// oauth2clientsstore and are recorded.
+func oauth2ClientRegistry(pgc database.Client, opts ...platformoauth2clients.ServiceOption) (*platformoauth2clients.Service, error) {
+	store, err := platformoauth2clients.NewSQLStore(pgc, platformoauth2clients.WithTablePrefix(oauth.TablePrefix))
+	if err != nil {
+		return nil, err
+	}
+
+	return platformoauth2clients.NewService(pgc, store, opts...)
 }
 
 func BuildInProcessServer(ctx context.Context, cfg *config.APIServiceConfig) (server *apiserver.Server, databaseClient database.Client, dbCfg *dbcfg.Config, err error) {
@@ -218,16 +242,28 @@ func WithIdentityRepository(fn func(ctx context.Context, repo identity.Repositor
 	}
 }
 
-// WithOAuth2Repository provides an OAuth2 repository for custom operations.
-// The provided function receives a fully configured oauth.Repository along with logger and tracer.
-func WithOAuth2Repository(fn func(ctx context.Context, repo oauth.Repository, logger logging.Logger, tracerProvider tracing.Provider) error) DatabaseInitFunc {
-	return func(ctx context.Context, dbClient database.Client, dbCfg *dbcfg.Config, logger logging.Logger, tracerProvider tracing.Provider) error {
-		auditLogRepo, err := auditlogentries.ProvideAuditLogRepository(logger, tracerProvider, nil, dbClient)
+// WithOAuth2Registry provides the client registry for custom operations.
+//
+// The generator is the caller's, because the one caller there is seeds a well-known
+// credential: localdev's client_id and secret are in checked-in configuration and in the
+// web apps' environment, so a minted one would mean nothing could sign in until somebody
+// copied it out of the database. platform supplies WithCredentialGenerator for exactly
+// this, and the seam is the option rather than a write that bypasses the service.
+func WithOAuth2Registry(
+	generate platformoauth2clients.CredentialGenerator,
+	fn func(ctx context.Context, svc *platformoauth2clients.Service, logger logging.Logger, tracerProvider tracing.Provider) error,
+) DatabaseInitFunc {
+	return func(ctx context.Context, dbClient database.Client, _ *dbcfg.Config, logger logging.Logger, tracerProvider tracing.Provider) error {
+		svc, err := oauth2ClientRegistry(dbClient,
+			platformoauth2clients.WithCredentialGenerator(generate),
+			platformoauth2clients.WithServiceLogger(logger),
+			platformoauth2clients.WithServiceTracerProvider(tracerProvider),
+		)
 		if err != nil {
 			return err
 		}
-		oauthRepo := oauthrepo.ProvideOAuthRepository(ctx, logger, tracerProvider, auditLogRepo, dbCfg, dbClient)
-		return fn(ctx, oauthRepo, logger, tracerProvider)
+
+		return fn(ctx, svc, logger, tracerProvider)
 	}
 }
 

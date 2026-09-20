@@ -10,8 +10,8 @@ import (
 	ddbsettings "github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings/fakes"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/recording"
-	settings "github.com/primandproper/platform-go/v14/settings"
 
+	settings "github.com/primandproper/platform-go/v14/settings"
 	"github.com/primandproper/primitives-go/v2/database"
 
 	"github.com/stretchr/testify/assert"

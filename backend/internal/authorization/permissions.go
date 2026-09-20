@@ -29,6 +29,18 @@ var (
 		ArchiveUserPermission,
 		CreateOAuth2ClientsPermission,
 		ArchiveOAuth2ClientsPermission,
+
+		// Reading the registry joins the two writes as a service admin's, which it was
+		// not: every signed-in member could list every OAuth2 client in the deployment.
+		//
+		// That was a disclosure twice over. The registry is four first-party applications
+		// and the MCP server — there is no console a member reaches it from, so the grant
+		// bought nothing — and the read put the secret's digest on the wire with the rest
+		// of the row, because the converter copied every field of the type. platform's
+		// Client carries SecretHash as json:"-" and its converter never renders one
+		// outside the creation response, so half of this closed with the adoption; the
+		// other half is here.
+		ReadOAuth2ClientsPermission,
 		ArchiveSettingDefinitionsPermission,
 		ImpersonateUserPermission,
 		ManageUserSessionsPermission,
@@ -215,7 +227,6 @@ var (
 		ReportAnalyticsEventsPermission,
 		ReadIssueReportsPermission,
 		ReadAuditLogEntriesPermission,
-		ReadOAuth2ClientsPermission,
 		ReadSettingDefinitionsPermission,
 		CreateUploadedMediaPermission,
 		ReadUploadedMediaPermission,

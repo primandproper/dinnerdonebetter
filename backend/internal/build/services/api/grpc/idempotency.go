@@ -5,8 +5,8 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
-	billingpb "github.com/primandproper/platform-go/v14/billing/billingpb"
 
+	billingpb "github.com/primandproper/platform-go/v14/billing/billingpb"
 	"github.com/primandproper/primitives-go/v2/database"
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/idempotency"

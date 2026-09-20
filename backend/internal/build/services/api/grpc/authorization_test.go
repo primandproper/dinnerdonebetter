@@ -8,9 +8,9 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc/interceptors"
+
 	billingpb "github.com/primandproper/platform-go/v14/billing/billingpb"
 	billinggrpc "github.com/primandproper/platform-go/v14/billing/grpc"
-
 	platformauthz "github.com/primandproper/primitives-go/v2/authorization"
 	"github.com/primandproper/primitives-go/v2/authorization/static"
 	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"

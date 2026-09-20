@@ -7,8 +7,8 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
-	billingpb "github.com/primandproper/platform-go/v14/billing/billingpb"
 
+	billingpb "github.com/primandproper/platform-go/v14/billing/billingpb"
 	cachecfg "github.com/primandproper/primitives-go/v2/cache/config"
 	distributedlockcfg "github.com/primandproper/primitives-go/v2/distributedlock/config"
 	idempotencycfg "github.com/primandproper/primitives-go/v2/idempotency/config"

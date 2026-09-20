@@ -13,20 +13,17 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/localdev"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	identityrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity"
 	notificationsstore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/notificationsstore"
 	paymentsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/payments"
 
+	platformoauth2clients "github.com/primandproper/platform-go/v14/authentication/oauth2clients"
 	"github.com/primandproper/platform-go/v14/billing"
-	metricsnoop "github.com/primandproper/primitives-go/v2/observability/metrics/noop"
-
 	"github.com/primandproper/primitives-go/v2/database"
-	"github.com/primandproper/primitives-go/v2/identifiers"
 	msgconfig "github.com/primandproper/primitives-go/v2/messagequeue/config"
-	"github.com/primandproper/primitives-go/v2/random"
+	metricsnoop "github.com/primandproper/primitives-go/v2/observability/metrics/noop"
 )
 
 const (
@@ -178,12 +175,11 @@ func init() {
 		log.Fatal(err)
 	}
 
-	createdClient, err := localdev.CreateOAuth2ClientForService(ctx, databaseClient, dbCfg, &oauth.OAuth2ClientDatabaseCreationInput{
-		ID:           identifiers.New(),
-		Name:         "integration_client",
-		Description:  "integration test client",
-		ClientID:     random.MustGenerateHexEncodedString(ctx, oauth.ClientIDSize),
-		ClientSecret: random.MustGenerateHexEncodedString(ctx, oauth.ClientSecretSize),
+	// The credentials are the registry's to mint, and the plaintext secret exists on what
+	// this returns and nowhere else — the row holds a digest and no read reverses it.
+	issuedClient, err := localdev.CreateOAuth2ClientForService(ctx, databaseClient, &platformoauth2clients.CreationInput{
+		Name:        "integration_client",
+		Description: "integration test client",
 		// Registered, and matched byte for byte at /authorize and again at /token. The suite
 		// authorizes against the API server's own address — nothing listens for the redirect,
 		// because the code is read off the Location header rather than followed — and that
@@ -193,7 +189,7 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	createdClientID, createdClientSecret = createdClient.ClientID, createdClient.ClientSecret
+	createdClientID, createdClientSecret = issuedClient.Client.ClientID, issuedClient.Secret
 
 	// The scheduler's half of the system. The API only starts sagas; without something
 	// advancing them, everything downstream of meal plan finalization would never happen and

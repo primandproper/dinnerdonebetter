@@ -5,11 +5,12 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
-	oauthmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth/mock"
-
+	platformoauth2clients "github.com/primandproper/platform-go/v14/authentication/oauth2clients"
+	"github.com/primandproper/platform-go/v14/authentication/oauth2clients/authserver"
+	oauth2clientsmock "github.com/primandproper/platform-go/v14/authentication/oauth2clients/mock"
 	oauth2servercfg "github.com/primandproper/platform-go/v14/authentication/oauth2serverstore/config"
 	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
+	databasemock "github.com/primandproper/primitives-go/v2/database/mock"
 	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
 	metricsnoop "github.com/primandproper/primitives-go/v2/observability/metrics/noop"
 	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
@@ -27,7 +28,7 @@ const testIssuer = "http://localhost:9000"
 //
 // A real one rather than a stub: everything worth asserting about these handlers is protocol
 // behavior, and a stub that answered would be asserting the stub.
-func buildTestOAuth2Server(t *testing.T, clients oauth.OAuth2ClientDataManager) *oauth2server.Server {
+func buildTestOAuth2Server(t *testing.T, clients platformoauth2clients.Store) *oauth2server.Server {
 	t.Helper()
 
 	cfg := &oauth2servercfg.Config{Provider: oauth2servercfg.ProviderMemory, Issuer: testIssuer}
@@ -37,7 +38,10 @@ func buildTestOAuth2Server(t *testing.T, clients oauth.OAuth2ClientDataManager) 
 	require.NoError(t, err)
 	t.Cleanup(func() { assert.NoError(t, store.Close()) })
 
-	srv, err := oauth2server.NewServer(testIssuer, &clientRegistryStore{Store: store, clients: clients},
+	registry, err := authserver.NewStore(store, clients, &databasemock.ClientMock{})
+	require.NoError(t, err)
+
+	srv, err := oauth2server.NewServer(testIssuer, registry,
 		oauth2server.SubjectAuthenticatorFunc(func(context.Context, *http.Request) (*oauth2server.Subject, error) {
 			return &oauth2server.Subject{ID: "test_user"}, nil
 		}),
@@ -52,7 +56,7 @@ func buildTestService(t *testing.T) *service {
 
 	s, err := ProvideService(
 		loggingnoop.NewLogger(),
-		buildTestOAuth2Server(t, &oauthmock.RepositoryMock{}),
+		buildTestOAuth2Server(t, &oauth2clientsmock.StoreMock{}),
 		tracingnoop.NewTracerProvider(),
 	)
 	require.NoError(t, err)
@@ -68,7 +72,7 @@ func TestProvideService(T *testing.T) {
 
 		s, err := ProvideService(
 			loggingnoop.NewLogger(),
-			buildTestOAuth2Server(t, &oauthmock.RepositoryMock{}),
+			buildTestOAuth2Server(t, &oauth2clientsmock.StoreMock{}),
 			tracingnoop.NewTracerProvider(),
 		)
 
@@ -92,11 +96,15 @@ func TestProvideOAuth2Server(T *testing.T) {
 			tracingnoop.NewTracerProvider(),
 			metricsnoop.NewMetricsProvider(),
 			cfg,
-			nil,
+			// A client rather than nil, which is what the registry decorator wants it
+			// for: resolving a client_id runs on Reader(), outside any transaction,
+			// because /authorize is not inside one. The store this builds is the memory
+			// provider above, so nothing here reaches a database.
+			&databasemock.ClientMock{},
 			oauth2server.SubjectAuthenticatorFunc(func(context.Context, *http.Request) (*oauth2server.Subject, error) {
 				return &oauth2server.Subject{ID: "test_user"}, nil
 			}),
-			&oauthmock.RepositoryMock{},
+			&oauth2clientsmock.StoreMock{},
 		)
 
 		require.NoError(t, err)
@@ -115,11 +123,11 @@ func TestProvideOAuth2Server(T *testing.T) {
 			tracingnoop.NewTracerProvider(),
 			metricsnoop.NewMetricsProvider(),
 			cfg,
-			nil,
+			&databasemock.ClientMock{},
 			oauth2server.SubjectAuthenticatorFunc(func(context.Context, *http.Request) (*oauth2server.Subject, error) {
 				return &oauth2server.Subject{ID: "test_user"}, nil
 			}),
-			&oauthmock.RepositoryMock{},
+			&oauth2clientsmock.StoreMock{},
 		)
 
 		assert.Nil(t, srv)

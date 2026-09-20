@@ -1,12 +1,18 @@
 package authorization
 
+import (
+	oauth2clientsgrpc "github.com/primandproper/platform-go/v14/authentication/oauth2clients/grpc"
+)
+
+// The OAuth2 client permissions are platform's, re-exported under the names this
+// application's policy already spells. See comments_permissions.go.
 const (
-	// CreateOAuth2ClientsPermission is an account admin permission.
-	CreateOAuth2ClientsPermission Permission = "create.oauth2_clients"
-	// ReadOAuth2ClientsPermission is an account admin permission.
-	ReadOAuth2ClientsPermission Permission = "read.oauth2_clients"
-	// ArchiveOAuth2ClientsPermission is an account admin permission.
-	ArchiveOAuth2ClientsPermission Permission = "archive.oauth2_clients"
+	// CreateOAuth2ClientsPermission is a permission.
+	CreateOAuth2ClientsPermission = oauth2clientsgrpc.PermissionCreateClients
+	// ReadOAuth2ClientsPermission is a permission.
+	ReadOAuth2ClientsPermission = oauth2clientsgrpc.PermissionReadClients
+	// ArchiveOAuth2ClientsPermission is a permission.
+	ArchiveOAuth2ClientsPermission = oauth2clientsgrpc.PermissionArchiveClients
 )
 
 var (

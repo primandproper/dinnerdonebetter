@@ -78,10 +78,6 @@ type (
 		// recoverable afterwards.
 		ActorIP string `json:"actorIP"`
 
-		// Scope is the hash chain this entry belongs to. Assigned by Record from
-		// BelongsToAccount and BelongsToUser; see ScopeFor.
-		Scope tenancy.Scope `json:"scope"`
-
 		// PrevHash is the hash of the preceding entry in this scope, or empty for the
 		// first. Assigned by Record.
 		PrevHash string `json:"prevHash"`
@@ -90,6 +86,10 @@ type (
 		// Assigned by Record. Publishing it somewhere this database's owner does not
 		// control is what raises tamper evidence to tamper proof.
 		Hash string `json:"hash"`
+
+		// Scope is the hash chain this entry belongs to. Assigned by Record from
+		// BelongsToAccount and BelongsToUser; see ScopeFor.
+		Scope tenancy.Scope `json:"scope"`
 
 		// Seq is the entry's position in its scope's chain, starting at zero.
 		// Assigned by Record, and unique per scope in the database — so the chain

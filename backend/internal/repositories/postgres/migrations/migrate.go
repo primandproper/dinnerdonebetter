@@ -22,6 +22,7 @@ import (
 	ddbwaitlists "github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists"
 
 	auditmigrations "github.com/primandproper/platform-go/v14/audit/migrations"
+	oauth2clientsmigrations "github.com/primandproper/platform-go/v14/authentication/oauth2clients/migrations"
 	oauth2migrations "github.com/primandproper/platform-go/v14/authentication/oauth2serverstore/migrations"
 	passwordresetmigrations "github.com/primandproper/platform-go/v14/authentication/passwordreset/migrations"
 	webauthndatabase "github.com/primandproper/platform-go/v14/authentication/webauthnsessions"
@@ -96,6 +97,7 @@ const (
 	billingMigrationVersion         = 43
 	notificationsMigrationVersion   = 44
 	webhooksModelMigrationVersion   = 45
+	oauth2ClientsMigrationVersion   = 46
 )
 
 // NewMigrator creates a new postgres Migrator over the embedded migration files.
@@ -177,6 +179,13 @@ func NewMigrator(logger logging.Logger) (*Migrator, error) {
 	oauth2DDL, err := oauth2migrations.SQL(dialect.Postgres, ddboauth.TablePrefix)
 	if err != nil {
 		return nil, errors.Wrap(err, "rendering oauth2 server migration")
+	}
+
+	// The registry, under the same namespace as the four protocol tables above, so one
+	// application's oauth2 tables sort together in a database that may hold another's.
+	oauth2ClientsDDL, err := oauth2clientsmigrations.SQL(dialect.Postgres, ddboauth.TablePrefix)
+	if err != nil {
+		return nil, errors.Wrap(err, "rendering oauth2 registered clients schema")
 	}
 
 	passwordResetDDL, err := renderPasswordResetDDL()
@@ -272,6 +281,7 @@ func NewMigrator(logger logging.Logger) (*Migrator, error) {
 		migrate.WithGeneratedMigration(billingMigrationVersion, "create_billing_tables", billingDDL),
 		migrate.WithGeneratedMigration(notificationsMigrationVersion, "create_notifications_tables", notificationsDDL),
 		migrate.WithGeneratedMigration(webhooksModelMigrationVersion, "drop_local_webhook_tables", dropLocalWebhookTables),
+		migrate.WithGeneratedMigration(oauth2ClientsMigrationVersion, "adopt_oauth2_registered_clients", oauth2ClientsDDL+dropLocalOAuth2ClientsTable),
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "building migrator")
@@ -956,4 +966,21 @@ DROP TABLE IF EXISTS webhooks;
 DROP TABLE IF EXISTS webhook_trigger_events;
 DROP TYPE IF EXISTS webhook_method;
 DROP TYPE IF EXISTS webhook_content_type;
+`
+
+// dropLocalOAuth2ClientsTable removes the registry that ran before platform's became it.
+//
+// Nothing is carried across, and that is a decision rather than an omission. A row here is
+// a client_id and the SHA-256 digest of a secret, and both survive a move unchanged — but
+// the two columns platform adds have no honest value to fill in for an existing row.
+// scope and belongs_to_user are what Client.Admits reads, and every registration this table
+// holds was minted by an operator to speak for the service on behalf of whoever signs in,
+// which is the global registry naming no owner: exactly the pair of empty strings a copy
+// would have written. Nothing is deployed, so the rows are the integration suite's and the
+// local stack's, and re-registering is one call.
+//
+// It goes after the CREATE, in the same migration, because the drop is only correct once
+// the table replacing it exists.
+const dropLocalOAuth2ClientsTable = `
+DROP TABLE IF EXISTS oauth2_clients;
 `

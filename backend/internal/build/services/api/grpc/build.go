@@ -10,6 +10,7 @@ import (
 	dataprivacybuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/dataprivacy"
 	issuereportsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/issuereports"
 	notificationsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/notifications"
+	oauth2clientsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/oauth2clients"
 	paymentsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/payments"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/build/sagas"
 	settingsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/settings"
@@ -21,7 +22,6 @@ import (
 	identitymgr "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/manager"
 	mealplanningregistration "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/registration"
 	notificationsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/manager"
-	oauthmgr "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth/manager"
 	paymentsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/manager"
 	webhooksmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/manager"
 	appentitlements "github.com/primandproper/dinnerdonebetter/backend/internal/entitlements"
@@ -33,7 +33,7 @@ import (
 	identityrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity"
 	internalopsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/internalops"
 	issuereportsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/issuereports"
-	oauthrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/oauth"
+	oauth2clientsstore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/oauth2clientsstore"
 	paymentsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/payments"
 	settingsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/settings"
 	uploadedmediarepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/uploadedmedia"
@@ -47,7 +47,6 @@ import (
 	dataprivacysvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/grpc"
 	identitysvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/grpc"
 	internalopssvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/internalops/grpc"
-	oauthsvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/oauth/grpc"
 	paymentsadapters "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/adapters"
 	uploadedmediacfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/config"
 	uploadedmediasvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/grpc"
@@ -174,7 +173,7 @@ func BuildInjector(
 	issuereportsrepo.RegisterIssueReportsRepository(i)
 	uploadedmediarepo.RegisterUploadedMediaRepository(i)
 	webhooksstore.RegisterWebhooksStore(i)
-	oauthrepo.RegisterOAuthRepository(i)
+	oauth2clientsstore.RegisterOAuth2ClientsStore(i)
 	paymentsrepo.RegisterPaymentsRepository(i)
 	internalopsrepo.RegisterInternalOpsRepository(i)
 
@@ -184,7 +183,6 @@ func BuildInjector(
 	identitymgr.RegisterIdentityDataManager(i)
 	notificationsmanager.RegisterNotificationsDataManager(i)
 	paymentsmanager.RegisterPaymentsDataManager(i)
-	oauthmgr.RegisterOAuth2Manager(i)
 	webhooksmanager.RegisterWebhookDataManager(i)
 	settingsrepo.RegisterSettingsRepository(i)
 	waitlistsrepo.RegisterWaitlistsRepository(i)
@@ -208,7 +206,7 @@ func BuildInjector(
 	settingsbuild.RegisterSettingsService(i)
 	uploadedmediasvc.RegisterUploadedMediaService(i)
 	webhooksbuild.RegisterWebhooksService(i)
-	oauthsvc.RegisterOAuthService(i)
+	oauth2clientsbuild.RegisterOAuth2ClientsService(i)
 	paymentsbuild.RegisterPaymentsService(i)
 	waitlistsbuild2.RegisterWaitlistsService(i)
 	uploadedmediacfg.RegisterUploadedMediaConfig(i)

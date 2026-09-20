@@ -18,7 +18,6 @@ import (
 	identityfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
 	identitymock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/mock"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
-
 	"github.com/primandproper/dinnerdonebetter/backend/internal/testutils"
 
 	"github.com/primandproper/platform-go/v14/authentication/passwordreset"

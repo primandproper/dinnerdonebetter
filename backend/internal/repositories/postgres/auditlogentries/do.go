@@ -2,8 +2,8 @@ package auditlogentries
 
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
-	platformaudit "github.com/primandproper/platform-go/v14/audit"
 
+	platformaudit "github.com/primandproper/platform-go/v14/audit"
 	"github.com/primandproper/primitives-go/v2/database"
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/observability/logging"

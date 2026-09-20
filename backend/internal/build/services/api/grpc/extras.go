@@ -7,6 +7,7 @@ import (
 	"runtime/debug"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
+	oauth2clientsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/oauth2clients"
 	waitlistsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/waitlists"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	analyticspb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/analytics"
@@ -15,7 +16,6 @@ import (
 	identitysvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
 	internalopssvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/internalops"
 	mealplanningsvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
-	oauthsvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/oauth"
 	uploadedmediasvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
 	analyticsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/analytics/grpc"
 	authgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc"
@@ -25,10 +25,11 @@ import (
 	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
 	internalopsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/internalops/grpc"
 	mealplanninggrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/grpc"
-	oauthgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/oauth/grpc"
 	uploadedmediagrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/grpc"
+
 	auditpb "github.com/primandproper/platform-go/v14/audit/auditpb"
 	auditgrpc "github.com/primandproper/platform-go/v14/audit/grpc"
+	"github.com/primandproper/platform-go/v14/authentication/oauth2clients/oauth2clientspb"
 	billingpb "github.com/primandproper/platform-go/v14/billing/billingpb"
 	paymentsgrpc "github.com/primandproper/platform-go/v14/billing/grpc"
 	commentspb "github.com/primandproper/platform-go/v14/comments/commentspb"
@@ -42,7 +43,6 @@ import (
 	waitlistspb "github.com/primandproper/platform-go/v14/waitlists/waitlistspb"
 	webhooksgrpc "github.com/primandproper/platform-go/v14/webhooks/grpc"
 	webhookspb "github.com/primandproper/platform-go/v14/webhooks/webhookspb"
-
 	analyticscfg "github.com/primandproper/primitives-go/v2/analytics/config"
 	authzgrpc "github.com/primandproper/primitives-go/v2/authorization/grpc"
 	"github.com/primandproper/primitives-go/v2/database"
@@ -87,7 +87,7 @@ func RegisterExtras(i do.Injector) {
 			issuereportsgrpc.Permissions(),
 			do.MustInvoke[mealplanninggrpc.MealPlanningMethodPermissions](i),
 			notificationsgrpc.Permissions(),
-			do.MustInvoke[oauthgrpc.OAuthMethodPermissions](i),
+			oauth2clientsbuild.Permissions(),
 			paymentsgrpc.Permissions(),
 			settingsgrpc.Permissions(),
 			do.MustInvoke[uploadedmediagrpc.UploadedMediaMethodPermissions](i),
@@ -144,7 +144,7 @@ func RegisterExtras(i do.Injector) {
 			do.MustInvoke[issuereportspb.IssueReportsServiceServer](i),
 			do.MustInvoke[mealplanningsvcpb.MealPlanningServiceServer](i),
 			do.MustInvoke[notificationspb.NotificationsServiceServer](i),
-			do.MustInvoke[oauthsvcpb.OAuthServiceServer](i),
+			do.MustInvoke[oauth2clientspb.OAuth2ClientsServiceServer](i),
 			do.MustInvoke[billingpb.BillingServiceServer](i),
 			do.MustInvoke[settingspb.SettingsServiceServer](i),
 			do.MustInvoke[uploadedmediasvcpb.UploadedMediaServiceServer](i),
@@ -163,7 +163,7 @@ func RegisterExtras(i do.Injector) {
 			do.MustInvoke[issuereportspb.IssueReportsServiceServer](i),
 			do.MustInvoke[mealplanningsvcpb.MealPlanningServiceServer](i),
 			do.MustInvoke[notificationspb.NotificationsServiceServer](i),
-			do.MustInvoke[oauthsvcpb.OAuthServiceServer](i),
+			do.MustInvoke[oauth2clientspb.OAuth2ClientsServiceServer](i),
 			do.MustInvoke[billingpb.BillingServiceServer](i),
 			do.MustInvoke[settingspb.SettingsServiceServer](i),
 			do.MustInvoke[uploadedmediasvcpb.UploadedMediaServiceServer](i),
@@ -185,7 +185,7 @@ func BuildRegistrationFuncs(
 	issueReportsService issuereportspb.IssueReportsServiceServer,
 	mealPlanningService mealplanningsvcpb.MealPlanningServiceServer,
 	notificationsService notificationspb.NotificationsServiceServer,
-	oauthService oauthsvcpb.OAuthServiceServer,
+	oauth2ClientsService oauth2clientspb.OAuth2ClientsServiceServer,
 	paymentsService billingpb.BillingServiceServer,
 	settingsService settingspb.SettingsServiceServer,
 	uploadedMediaService uploadedmediasvcpb.UploadedMediaServiceServer,
@@ -204,7 +204,7 @@ func BuildRegistrationFuncs(
 			issuereportspb.RegisterIssueReportsServiceServer(server, issueReportsService)
 			mealplanningsvcpb.RegisterMealPlanningServiceServer(server, mealPlanningService)
 			notificationspb.RegisterNotificationsServiceServer(server, notificationsService)
-			oauthsvcpb.RegisterOAuthServiceServer(server, oauthService)
+			oauth2clientspb.RegisterOAuth2ClientsServiceServer(server, oauth2ClientsService)
 			billingpb.RegisterBillingServiceServer(server, paymentsService)
 			settingspb.RegisterSettingsServiceServer(server, settingsService)
 			uploadedmediasvcpb.RegisterUploadedMediaServiceServer(server, uploadedMediaService)
@@ -306,7 +306,7 @@ func AggregateMethodPermissions(
 	issuereportsPermissions map[string][]authorization.Permission,
 	mealplanningPermissions mealplanninggrpc.MealPlanningMethodPermissions,
 	notificationsPermissions map[string][]authorization.Permission,
-	oauthPermissions oauthgrpc.OAuthMethodPermissions,
+	oauth2ClientsPermissions map[string][]authorization.Permission,
 	paymentsPermissions map[string][]authorization.Permission,
 	settingsPermissions map[string][]authorization.Permission,
 	uploadedmediaPermissions uploadedmediagrpc.UploadedMediaMethodPermissions,
@@ -325,7 +325,7 @@ func AggregateMethodPermissions(
 	maps.Copy(result, issuereportsPermissions)
 	maps.Copy(result, mealplanningPermissions)
 	maps.Copy(result, notificationsPermissions)
-	maps.Copy(result, oauthPermissions)
+	maps.Copy(result, oauth2ClientsPermissions)
 	maps.Copy(result, paymentsPermissions)
 	maps.Copy(result, settingsPermissions)
 	maps.Copy(result, uploadedmediaPermissions)

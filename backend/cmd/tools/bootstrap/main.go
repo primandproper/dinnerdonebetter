@@ -12,14 +12,13 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
-	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	identityrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity"
-	oauthrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/oauth"
 
+	platformoauth2clients "github.com/primandproper/platform-go/v14/authentication/oauth2clients"
 	"github.com/primandproper/platform-go/v14/mediaregistry"
 	"github.com/primandproper/primitives-go/v2/authentication/argon2"
 	"github.com/primandproper/primitives-go/v2/database"
@@ -29,8 +28,8 @@ import (
 	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
 	metricsnoop "github.com/primandproper/primitives-go/v2/observability/metrics/noop"
 	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
-	"github.com/primandproper/primitives-go/v2/random"
 	"github.com/primandproper/primitives-go/v2/secrets/kubernetes"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/tools/clientcmd"
@@ -185,14 +184,6 @@ func runInit(db *dbFlags, adminUsername, adminPassword, adminEmail, apiServerURL
 		DisableSSL: db.sslDisable,
 	}
 
-	dbConfig := &dbcfg.Config{
-		Provider:        databasecfg.ProviderPostgres,
-		MaxPingAttempts: 10,
-		PingWaitPeriod:  time.Second,
-		ReadConnection:  connDetails,
-		WriteConnection: connDetails,
-	}
-
 	clientConfig := &bootstrapClientConfig{connDetails: connDetails}
 	client, err := postgres.NewDatabaseClient(ctx, clientConfig, postgres.WithLogger(logger), postgres.WithTracerProvider(tracerProvider))
 	if err != nil {
@@ -236,7 +227,18 @@ func runInit(db *dbFlags, adminUsername, adminPassword, adminEmail, apiServerURL
 	}
 
 	identityRepo := identityrepo.ProvideIdentityRepository(logger, tracerProvider, auditRepo, client, nil, uploadsRegistry, policy)
-	oauthRepo := oauthrepo.ProvideOAuthRepository(ctx, logger, tracerProvider, auditRepo, dbConfig, client)
+	// Undecorated, like every other write this tool makes: bootstrap runs before there is
+	// anybody to attribute a registration to, and an audit entry naming nobody is noise in
+	// a log whose value is attribution. The API server's registrations are recorded.
+	oauthStore, err := platformoauth2clients.NewSQLStore(client, platformoauth2clients.WithTablePrefix(oauth.TablePrefix))
+	if err != nil {
+		return fmt.Errorf("building OAuth2 client store: %w", err)
+	}
+
+	oauthRegistry, err := platformoauth2clients.NewService(client, oauthStore)
+	if err != nil {
+		return fmt.Errorf("building OAuth2 client registry: %w", err)
+	}
 
 	// --- Admin user (idempotent) ---
 	user, err := identityRepo.GetUserByUsername(ctx, adminUsername)
@@ -329,12 +331,12 @@ func runInit(db *dbFlags, adminUsername, adminPassword, adminEmail, apiServerURL
 		{"MCP Server", "MCP server OAuth2 client", redirectURIs},
 	}
 
-	existingClients, err := oauthRepo.GetOAuth2Clients(ctx, nil)
+	existingClients, err := oauthStore.ListClients(ctx, client.Reader(), tenancy.Global(), nil)
 	if err != nil {
 		return fmt.Errorf("listing existing OAuth2 clients: %w", err)
 	}
 
-	existingByName := make(map[string]*oauth.OAuth2Client)
+	existingByName := make(map[string]*platformoauth2clients.Client)
 	for _, c := range existingClients.Data {
 		existingByName[c.Name] = c
 	}
@@ -347,29 +349,19 @@ func runInit(db *dbFlags, adminUsername, adminPassword, adminEmail, apiServerURL
 			continue
 		}
 
-		clientID, clientIDErr := random.GenerateHexEncodedString(ctx, oauth.ClientIDSize)
-		if clientIDErr != nil {
-			return fmt.Errorf("generating client ID for %s: %w", want.name, clientIDErr)
-		}
-
-		clientSecret, clientSecErr := random.GenerateHexEncodedString(ctx, oauth.ClientSecretSize)
-		if clientSecErr != nil {
-			return fmt.Errorf("generating client secret for %s: %w", want.name, clientSecErr)
-		}
-
-		created, creationErr := oauthRepo.CreateOAuth2Client(ctx, &oauth.OAuth2ClientDatabaseCreationInput{
-			ID:           identifiers.New(),
+		// Global and unowned: an operator mints these to let four applications speak for
+		// the service on behalf of whoever signs in, which is the registry
+		// oauth2clients.Client.Admits lets any subject through.
+		issued, creationErr := oauthRegistry.CreateClient(ctx, tenancy.Global(), "", &platformoauth2clients.CreationInput{
 			Name:         want.name,
 			Description:  want.desc,
-			ClientID:     clientID,
-			ClientSecret: oauth.HashClientSecret(clientSecret),
 			RedirectURIs: want.redirectURIs,
 		})
 		if creationErr != nil {
 			return fmt.Errorf("creating OAuth2 client %s: %w", want.name, creationErr)
 		}
 		// print the plaintext secret: this is the only time it is recoverable.
-		fmt.Printf("  %s: created (client_id=%s client_secret=%s)\n", want.name, created.ClientID, clientSecret)
+		fmt.Printf("  %s: created (client_id=%s client_secret=%s)\n", want.name, issued.Client.ClientID, issued.Secret)
 	}
 
 	fmt.Println()

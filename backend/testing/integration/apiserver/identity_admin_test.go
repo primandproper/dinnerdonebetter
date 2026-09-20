@@ -7,8 +7,8 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
 	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
 	identitysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
-
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
+
 	webhookspb "github.com/primandproper/platform-go/v14/webhooks/webhookspb"
 
 	"github.com/stretchr/testify/assert"

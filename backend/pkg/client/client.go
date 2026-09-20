@@ -14,9 +14,10 @@ import (
 	identitygrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
 	internalopsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/internalops"
 	mealplanninggrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
-	oauthgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/oauth"
 	uploadedmediagrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
+
 	auditgrpc "github.com/primandproper/platform-go/v14/audit/auditpb"
+	oauth2clientsgrpc "github.com/primandproper/platform-go/v14/authentication/oauth2clients/oauth2clientspb"
 	paymentsgrpc "github.com/primandproper/platform-go/v14/billing/billingpb"
 	commentsgrpc "github.com/primandproper/platform-go/v14/comments/commentspb"
 	issuereportsgrpc "github.com/primandproper/platform-go/v14/issuereports/issuereportspb"
@@ -24,7 +25,6 @@ import (
 	settingsgrpc "github.com/primandproper/platform-go/v14/settings/settingspb"
 	waitlistsgrpc "github.com/primandproper/platform-go/v14/waitlists/waitlistspb"
 	webhooksgrpc "github.com/primandproper/platform-go/v14/webhooks/webhookspb"
-
 	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
 	"github.com/primandproper/primitives-go/v2/httpclient"
 	"github.com/primandproper/primitives-go/v2/random"
@@ -52,7 +52,7 @@ type Client interface {
 	issuereportsgrpc.IssueReportsServiceClient
 	mealplanninggrpc.MealPlanningServiceClient
 	notificationsgrpc.NotificationsServiceClient
-	oauthgrpc.OAuthServiceClient
+	oauth2clientsgrpc.OAuth2ClientsServiceClient
 	paymentsgrpc.BillingServiceClient
 	settingsgrpc.SettingsServiceClient
 	uploadedmediagrpc.UploadedMediaServiceClient
@@ -85,7 +85,7 @@ type client struct {
 	issuereportsgrpc.IssueReportsServiceClient
 	mealplanninggrpc.MealPlanningServiceClient
 	notificationsgrpc.NotificationsServiceClient
-	oauthgrpc.OAuthServiceClient
+	oauth2clientsgrpc.OAuth2ClientsServiceClient
 	paymentsgrpc.BillingServiceClient
 	settingsgrpc.SettingsServiceClient
 	uploadedmediagrpc.UploadedMediaServiceClient
@@ -113,7 +113,7 @@ func BuildClient(grpcServerAddress string, opts ...grpc.DialOption) (Client, err
 		IssueReportsServiceClient:  issuereportsgrpc.NewIssueReportsServiceClient(conn),
 		MealPlanningServiceClient:  mealplanninggrpc.NewMealPlanningServiceClient(conn),
 		NotificationsServiceClient: notificationsgrpc.NewNotificationsServiceClient(conn),
-		OAuthServiceClient:         oauthgrpc.NewOAuthServiceClient(conn),
+		OAuth2ClientsServiceClient: oauth2clientsgrpc.NewOAuth2ClientsServiceClient(conn),
 		BillingServiceClient:       paymentsgrpc.NewBillingServiceClient(conn),
 		SettingsServiceClient:      settingsgrpc.NewSettingsServiceClient(conn),
 		UploadedMediaServiceClient: uploadedmediagrpc.NewUploadedMediaServiceClient(conn),

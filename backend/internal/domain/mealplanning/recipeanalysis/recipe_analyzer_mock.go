@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
+
 	"gonum.org/v1/gonum/graph/simple"
 )
 

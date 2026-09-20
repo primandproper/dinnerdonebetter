@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
-	auditgrpc "github.com/primandproper/platform-go/v14/audit/auditpb"
 
+	auditgrpc "github.com/primandproper/platform-go/v14/audit/auditpb"
 	"github.com/primandproper/primitives-go/v2/filtering"
 	"github.com/primandproper/primitives-go/v2/filtering/filteringpb"
 

@@ -6,6 +6,7 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
+	oauth2clientsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/oauth2clients"
 	waitlistsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/waitlists"
 	analyticsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/analytics/grpc"
 	authgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc"
@@ -14,7 +15,6 @@ import (
 	identitygrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/grpc"
 	internalopsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/internalops/grpc"
 	mealplanninggrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/grpc"
-	oauthgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/oauth/grpc"
 	uploadedmediagrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/grpc"
 
 	auditgrpc "github.com/primandproper/platform-go/v14/audit/grpc"
@@ -24,7 +24,6 @@ import (
 	notificationsgrpc "github.com/primandproper/platform-go/v14/notifications/grpc"
 	settingsgrpc "github.com/primandproper/platform-go/v14/settings/grpc"
 	webhooksgrpc "github.com/primandproper/platform-go/v14/webhooks/grpc"
-
 	platformauthz "github.com/primandproper/primitives-go/v2/authorization"
 	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
 	metricsnoop "github.com/primandproper/primitives-go/v2/observability/metrics/noop"
@@ -47,7 +46,7 @@ func realMethodPermissions() interceptors.MethodPermissionsMap {
 		issuereportsgrpc.Permissions(),
 		mealplanninggrpc.ProvideMethodPermissions(),
 		notificationsgrpc.Permissions(),
-		oauthgrpc.ProvideMethodPermissions(),
+		oauth2clientsbuild.Permissions(),
 		paymentsgrpc.Permissions(),
 		settingsgrpc.Permissions(),
 		uploadedmediagrpc.ProvideMethodPermissions(),

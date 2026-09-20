@@ -48,6 +48,7 @@ var excluded = map[string]struct{}{
 	identity.AccountMembershipPermissionsUpdatedServiceEventType: {},
 	identity.AccountOwnershipTransferredServiceEventType:         {},
 	oauth.OAuth2ClientCreatedServiceEventType:                    {},
+	oauth.OAuth2ClientUpdatedServiceEventType:                    {},
 	oauth.OAuth2ClientArchivedServiceEventType:                   {},
 }
 

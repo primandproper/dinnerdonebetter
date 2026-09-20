@@ -19,6 +19,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/localdev"
 	identitygenerated "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity/generated"
 
+	platformoauth2clients "github.com/primandproper/platform-go/v14/authentication/oauth2clients"
 	platformsettings "github.com/primandproper/platform-go/v14/settings"
 	"github.com/primandproper/primitives-go/v2/authentication/argon2"
 	"github.com/primandproper/primitives-go/v2/database"
@@ -26,6 +27,7 @@ import (
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
 	"github.com/primandproper/primitives-go/v2/pointer"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
 const (
@@ -208,27 +210,34 @@ func main() {
 
 			return nil
 		}),
-		// Create OAuth2 client
-		localdev.WithOAuth2Repository(func(ctx context.Context, repo oauth.Repository, logger logging.Logger, tracerProvider tracing.Provider) error {
-			// the plaintext secret stays the well-known localdev value; only its digest is stored.
-			_, err = repo.CreateOAuth2Client(ctx, &oauth.OAuth2ClientDatabaseCreationInput{
-				ID:           strings.Repeat("b", 20),
-				Name:         "localdev_admin_client",
-				Description:  "localdev admin client",
-				ClientID:     strings.Repeat("A", oauth.ClientIDSize),
-				ClientSecret: oauth.HashClientSecret(strings.Repeat("A", oauth.ClientSecretSize)),
-				// Matched byte for byte, so this is every address a localdev client actually
-				// redirects to: the API server's own (which is what the CLI helpers authorize
-				// against, reading the code off the Location header rather than following it)
-				// and the two web apps' callbacks.
-				RedirectURIs: []string{
-					"http://localhost:9000",
-					branding.LocalDevConsumerWebAppURL + "/auth/callback",
-					branding.LocalDevAdminWebAppURL + "/auth/callback",
-				},
-			})
-			return err
-		}),
+		// Create OAuth2 client.
+		//
+		// The credential is well known and stays that way: it is in checked-in config and
+		// in both web apps' environments, so a minted one would mean nothing could sign in
+		// to localdev until somebody copied it out of the database. platform mints through
+		// a CredentialGenerator precisely so a deployment that needs a predictable one can
+		// say so, rather than writing the row behind the service's back.
+		localdev.WithOAuth2Registry(
+			func() (clientID, secret string, err error) {
+				return strings.Repeat("A", oauth.ClientIDSize), strings.Repeat("A", oauth.ClientSecretSize), nil
+			},
+			func(ctx context.Context, svc *platformoauth2clients.Service, logger logging.Logger, tracerProvider tracing.Provider) error {
+				_, err = svc.CreateClient(ctx, tenancy.Global(), "", &platformoauth2clients.CreationInput{
+					Name:        "localdev_admin_client",
+					Description: "localdev admin client",
+					// Matched byte for byte, so this is every address a localdev client
+					// actually redirects to: the API server's own (which is what the CLI
+					// helpers authorize against, reading the code off the Location header
+					// rather than following it) and the two web apps' callbacks.
+					RedirectURIs: []string{
+						"http://localhost:9000",
+						branding.LocalDevConsumerWebAppURL + "/auth/callback",
+						branding.LocalDevAdminWebAppURL + "/auth/callback",
+					},
+				})
+
+				return err
+			}),
 		// Create the example settings catalog
 		localdev.WithSettingsRepository(func(ctx context.Context, store platformsettings.Store, logger logging.Logger, tracerProvider tracing.Provider, dbClient database.Client) error {
 			return createExampleSettingDefinitions(ctx, store, logger, dbClient)
