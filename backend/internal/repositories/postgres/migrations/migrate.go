@@ -13,6 +13,7 @@ import (
 	ddbauth "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 	ddbcomments "github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments"
 	ddbdataprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
+	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	ddbissuereports "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports"
 	ddbnotifications "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
 	ddboauth "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
@@ -30,6 +31,7 @@ import (
 	billingmigrations "github.com/primandproper/platform-go/v14/billing/migrations"
 	commentsmigrations "github.com/primandproper/platform-go/v14/comments/migrations"
 	dataprivacymigrations "github.com/primandproper/platform-go/v14/dataprivacy/migrations"
+	identitymigrations "github.com/primandproper/platform-go/v14/identity/migrations"
 	issuereportsmigrations "github.com/primandproper/platform-go/v14/issuereports/migrations"
 	uploadsregistrymigrations "github.com/primandproper/platform-go/v14/mediaregistry/migrations"
 	"github.com/primandproper/platform-go/v14/metering"
@@ -98,6 +100,7 @@ const (
 	notificationsMigrationVersion   = 44
 	webhooksModelMigrationVersion   = 45
 	oauth2ClientsMigrationVersion   = 46
+	identityMigrationVersion        = 47
 )
 
 // NewMigrator creates a new postgres Migrator over the embedded migration files.
@@ -186,6 +189,15 @@ func NewMigrator(logger logging.Logger) (*Migrator, error) {
 	oauth2ClientsDDL, err := oauth2clientsmigrations.SQL(dialect.Postgres, ddboauth.TablePrefix)
 	if err != nil {
 		return nil, errors.Wrap(err, "rendering oauth2 registered clients schema")
+	}
+
+	// Users, accounts, memberships and invitations. platform names its tables
+	// identity_*, so these stand beside this application's own while the adoption
+	// happens rather than colliding with them — which is what lets the port be built
+	// before the switch is thrown.
+	identityDDL, err := identitymigrations.SQL(dialect.Postgres, ddbidentity.TablePrefix)
+	if err != nil {
+		return nil, errors.Wrap(err, "rendering identity schema")
 	}
 
 	passwordResetDDL, err := renderPasswordResetDDL()
@@ -282,6 +294,7 @@ func NewMigrator(logger logging.Logger) (*Migrator, error) {
 		migrate.WithGeneratedMigration(notificationsMigrationVersion, "create_notifications_tables", notificationsDDL),
 		migrate.WithGeneratedMigration(webhooksModelMigrationVersion, "drop_local_webhook_tables", dropLocalWebhookTables),
 		migrate.WithGeneratedMigration(oauth2ClientsMigrationVersion, "adopt_oauth2_registered_clients", oauth2ClientsDDL+dropLocalOAuth2ClientsTable),
+		migrate.WithGeneratedMigration(identityMigrationVersion, "create_identity_tables", identityDDL),
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "building migrator")
