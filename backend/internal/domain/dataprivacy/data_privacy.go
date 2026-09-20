@@ -147,16 +147,21 @@ const (
 // supplies the implementation, and each collector takes exactly what it needs.
 type AccountIDResolver func(ctx context.Context, userID string) ([]string, error)
 
-// Scope is the tenancy scope this application files privacy requests under.
+// UnconfinedScope is the tenancy scope this application files privacy requests under: none.
 //
-// A privacy request is about a person, not about a tenant. The subject is the
-// user, the artifact is theirs, and a request submitted while one account was
-// active still covers everything held about them — so there is no account to
-// file it under and every request lives in the global scope.
+// A privacy request is about a person, not about a tenant. The subject is the user, the
+// artifact is theirs, and a request submitted while one account was active still covers
+// everything held about them — so there is no account to file it under.
 //
-// It is named here rather than written as tenancy.Global() at each call site so
-// that the reads confine themselves to the same scope the writes bind. The
-// platform's reads take a *tenancy.Scope where nil narrows nothing, which is
-// the operator console's read; this application has no such console, so its own
-// service always names the scope.
-func Scope() tenancy.Scope { return tenancy.Global() }
+// "No tenant" is the zero Scope rather than tenancy.Global, and the two are different
+// answers here in a way they are not everywhere else. platform refuses a global privacy
+// request outright, with ErrGlobalRequestScope: the global scope is the chain
+// platform-level events are recorded in, and a request about a person is not one of those.
+// The zero Scope is what it reads as unconfined, and it maps that back to Global itself
+// when it comes to record the request's own audit entry — see dataprivacy.auditScope.
+//
+// The reads spell the same thing differently, and that is platform's shape rather than a
+// slip here: they take a *tenancy.Scope where nil narrows nothing, and a non-nil pointer at
+// the zero Scope is refused as a caller whose own lookup came back empty. So a write passes
+// this and a read passes nil.
+func UnconfinedScope() tenancy.Scope { return tenancy.Scope{} }

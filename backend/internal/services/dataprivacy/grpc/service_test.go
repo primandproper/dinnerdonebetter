@@ -90,7 +90,7 @@ func TestServiceImpl_AggregateUserDataReport(T *testing.T) {
 				// v14 moved the scope off the subject and onto the call, so this asserts on
 				// the argument. It is this deployment's single scope: everything a subject
 				// appears in is in it, which is what a plain "give me my data" asks for.
-				assert.Equal(t, ddbdataprivacy.Scope(), scope)
+				assert.Equal(t, ddbdataprivacy.UnconfinedScope(), scope)
 
 				return &platformdataprivacy.Request{
 					ID:      requestID,

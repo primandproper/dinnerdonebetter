@@ -197,6 +197,10 @@ func TestSettingDefinitions_Reading(T *testing.T) {
 // against the definition it has already read: PermissionWriteAdminValues, carried by the
 // grants extractor. The store records AdminOnly and never acts on it, because it has no
 // notion of who is calling.
+//
+// It is a write check and only a write check. The flag reaches every reader, which is what
+// lets a client hide the setting from a self-service page instead of offering a control
+// that always refuses.
 func TestSettingDefinitions_AdminOnlyIsEnforced(T *testing.T) {
 	T.Parallel()
 
@@ -208,14 +212,21 @@ func TestSettingDefinitions_AdminOnlyIsEnforced(T *testing.T) {
 	created, err := adminClient.CreateDefinition(T.Context(), &settingspb.CreateDefinitionRequest{Definition: input})
 	require.NoError(T, err)
 
-	T.Run("a non-admin cannot read it", func(t *testing.T) {
+	// A non-admin reads it, and the flag is what tells them not to offer it.
+	//
+	// AdminOnly marks a setting only an administrator may *write*; platform puts it on the
+	// wire deliberately, so a self-service page can leave it out rather than render a
+	// control whose every use is refused. Hiding the definition would leave a client
+	// guessing why a name in its own catalog does not resolve.
+	T.Run("a non-admin reads it and is told it is reserved", func(t *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
-		_, readErr := testClient.GetDefinition(ctx, &settingspb.GetDefinitionRequest{
+		retrieved, readErr := testClient.GetDefinition(ctx, &settingspb.GetDefinitionRequest{
 			DefinitionId: created.GetResult().GetId(),
 		})
-		assert.Error(t, readErr)
+		require.NoError(t, readErr)
+		assert.True(t, retrieved.GetResult().GetAdminOnly())
 	})
 
 	T.Run("a non-admin cannot answer it", func(t *testing.T) {
