@@ -59,33 +59,40 @@ func Test_buildRawQuery(T *testing.T) {
 func Test_mergeColumns(T *testing.T) {
 	T.Parallel()
 
+	// Recipe prep tasks and their steps, which is the same parent-and-children shape the
+	// webhooks tables had before migration 45 dropped them. What is under test is where the
+	// second set lands, not either table's schema.
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
 		expected := []string{
-			"webhooks.id",
-			"webhooks.name",
-			"webhooks.content_type",
-			"webhooks.url",
-			"webhooks.method",
-			"webhook_trigger_configs.id",
-			"webhook_trigger_configs.trigger_event",
-			"webhook_trigger_configs.belongs_to_webhook",
-			"webhook_trigger_configs.created_at",
-			"webhook_trigger_configs.archived_at",
-			"webhooks.created_at",
-			"webhooks.last_updated_at",
-			"webhooks.archived_at",
-			"webhooks.created_by_user",
-			"webhooks.belongs_to_account",
+			"recipe_prep_tasks.id",
+			"recipe_prep_tasks.name",
+			"recipe_prep_tasks.description",
+			"recipe_prep_tasks.notes",
+			"recipe_prep_tasks.optional",
+			"recipe_prep_task_steps.id",
+			"recipe_prep_task_steps.belongs_to_recipe_step",
+			"recipe_prep_task_steps.belongs_to_recipe_prep_task",
+			"recipe_prep_task_steps.satisfies_recipe_step",
+			"recipe_prep_tasks.explicit_storage_instructions",
+			"recipe_prep_tasks.minimum_time_buffer_before_recipe_in_seconds",
+			"recipe_prep_tasks.maximum_time_buffer_before_recipe_in_seconds",
+			"recipe_prep_tasks.storage_type",
+			"recipe_prep_tasks.minimum_storage_temperature_in_celsius",
+			"recipe_prep_tasks.maximum_storage_temperature_in_celsius",
+			"recipe_prep_tasks.created_at",
+			"recipe_prep_tasks.last_updated_at",
+			"recipe_prep_tasks.archived_at",
+			"recipe_prep_tasks.belongs_to_recipe",
 		}
 
 		actual := mergeColumns(
-			applyToEach(webhooksColumns, func(_ int, s string) string {
-				return querygen.Qualify(webhooksTableName, s)
+			applyToEach(recipePrepTasksColumns, func(_ int, s string) string {
+				return querygen.Qualify(recipePrepTasksTableName, s)
 			}),
-			applyToEach(webhookTriggerConfigsColumns, func(_ int, s string) string {
-				return querygen.Qualify(webhookTriggerConfigsTableName, s)
+			applyToEach(recipePrepTaskStepsColumns, func(_ int, s string) string {
+				return querygen.Qualify(recipePrepTaskStepsTableName, s)
 			}),
 			5,
 		)

@@ -36,7 +36,7 @@ func Test_buildMaintenanceQueries(T *testing.T) {
 			usersTableName,
 			sessionsTableName,
 			recipesTableName,
-			webhooksTableName,
+			mealsTableName,
 		} {
 			assert.NotContains(t, destroy.Content, table)
 		}
