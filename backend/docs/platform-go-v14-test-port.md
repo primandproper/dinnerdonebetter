@@ -83,7 +83,8 @@ out with the port.
 
 ### 1. Three constructors kept their path and name and lost their SQL backend
 
-The one thing worth fixing before the tag.
+**Closed in primitives-go v2.3.0** (#16). Kept here for the record, because it is
+the one finding this port hit by accident rather than by looking.
 
 | path (unchanged) | v13 | primitives v2 | SQL version now at |
 |---|---|---|---|
@@ -109,11 +110,21 @@ the direction of the change is not predictable.
 
 This port hit the oauth2 one and was saved by the argument count. That is luck.
 
-**Fix:** rename the primitives-tier constructors to say what they build
-(`NewMemoryStore`, `NewStaticPolicyResolver`), or keep `Provider` on the
-primitives `Config` and refuse `ProviderDatabase` with an error naming the
-platform package. Either makes the substitution unrepresentable. Cheap now,
-invisible later.
+**Fixed as:** `Provider` is back on all three primitives-tier `Config`s with its
+`env:"PROVIDER"` tag, and each constructor refuses anything but the provider it
+actually builds — with an error naming the platform package that builds the SQL
+one:
+
+    oauth2 server store provider "database": this config builds the in-memory
+    store only, and a SQL-backed one is built by platform-go's
+    authentication/oauth2serverstore/config: unknown provider
+
+Verified against the published tag: this repo now requires
+`primitives-go/v2 v2.3.0` with no replace directive, builds clean, and all three
+constructors refuse this application's own `PROVIDER=database` config when handed
+to the primitives tier. The substitution that nearly happened during pass 1 is
+now unrepresentable, and no consumer-side guard is needed — the refusal is the
+guard.
 
 ### 2. `audit.NewReader` takes a `database.Client`; `audit.NewRecorder` takes a `dialect.Dialect`
 
