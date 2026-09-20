@@ -37,7 +37,6 @@ import (
 	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc/interceptors"
 	authhttpsvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/handlers/authentication"
-	commentssvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/comments/grpc"
 	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
 	dataprivacysvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/grpc"
 	identitysvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/grpc"
@@ -184,7 +183,7 @@ func BuildInjector(
 	authhttpsvc.RegisterAuthHTTPService(i)
 	analyticssvc.RegisterAnalyticsService(i)
 	auditsvc.RegisterAuditService(i)
-	commentssvc.RegisterCommentsService(i)
+	commentstargets.RegisterCommentsService(i)
 	dataprivacysvc.RegisterDataPrivacyService(i)
 	do.Provide[dataprivacysvc.DataPrivacyMethodPermissions](i, func(i do.Injector) (dataprivacysvc.DataPrivacyMethodPermissions, error) {
 		return dataprivacysvc.ProvideMethodPermissions(), nil

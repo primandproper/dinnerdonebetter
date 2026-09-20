@@ -184,3 +184,111 @@ is a regenerate and a frontend sweep rather than a compatibility problem.
 
 Nothing found here forces a v15. The one thing worth fixing before the tag is
 finding 1, and it is a rename.
+
+---
+
+# Pass 2 spike: comments
+
+Done on the same branch. The standalone comments service, its proto and its
+generated code are gone; platform's `comments/grpc.Server` is mounted over this
+repo's existing repository. The backend builds and the comments suite passes.
+
+## What the spike had to prove
+
+The whole pass-2 plan rests on one claim: that this repo's audit entry and
+outbox event survive adoption, because platform's server takes the
+`comments.Store` interface and opens the transaction before calling into it. If
+that were wrong — if the server committed the row and left the decorator's two
+statements outside — then adopting any of the thirteen surfaces would mean
+trading the audit log for the deletion, which is not a trade this application
+can make.
+
+`internal/repositories/postgres/comments/server_transaction_test.go` settles it
+against a real Postgres, driving platform's server with this repo's repository
+behind it and a real outbox writer:
+
+- **It commits together.** One `CreateComment` through platform's surface leaves
+  the comment, its audit entry and its outbox message behind.
+- **It rolls back together.** With the audit repository made to fail, the call
+  errors and *neither the comment nor the outbox row exists*.
+- **A refused write records nothing.** An unknown target type is refused by the
+  store, and no entry and no event are left behind.
+
+The middle test is the load-bearing one, so it was checked against a mutant
+rather than trusted for being green. Restoring the pre-v14 shape — the store
+opening a transaction of its own, which is exactly what v13 did — makes it fail
+on precisely the right assertion:
+
+    Error:    Should be zero, but was 1
+    Messages: the comment should have rolled back with the audit entry
+
+So the test is not passing vacuously: it distinguishes v14's shape from v13's,
+which is the only thing it was written to do.
+
+## What came out, and what went in
+
+| | lines |
+|---|---|
+| deleted: local service, converters, permissions, generated stubs, `proto/comments` | −2,611 |
+| deleted: the four `AddCommentTo…` RPCs and their messages from the mealplanning and issue_reports protos | −722 |
+| added: `sessions.Principal` + extractor (one-time, serves all thirteen) | +57 |
+| added: `internal/build/comments` server wiring | +55 |
+| added: the transaction tests | +296 |
+
+Net −2,925 for the domain, and the only new production code that is not
+comments-specific is the 57-line principal adapter.
+
+## Four things the spike found that reading could not
+
+**The convenience RPCs go too.** `AddCommentToRecipe`, `AddCommentToMeal`,
+`AddCommentToMealPlan` and `AddCommentToIssueReport` lived on two *other*
+services and looked like separate surface. Each is sugar: it names the target
+from the RPC rather than the body and forwards to `CreateComment`. The existence
+check they appear to add is the store's, through the target catalog. Platform's
+`CreateComment` takes the target as a field, so all four are redundant — but
+they mean comments cannot be adopted without regenerating two neighbouring
+protos, which is the first thing that makes this a cross-domain change.
+
+**`Permission` had to become an alias.** Platform's surfaces ship their own
+method→permission maps, and `commentsgrpc.Permissions()` returns
+`map[string][]primitives.Permission`. This repo's `Permission` was a defined
+type, so the maps would not compose — one conversion per domain, thirteen times.
+Platform documents the fix in `authorization/authorization.go:18`: declare the
+local type as an alias. One line, and every existing constant, map key and
+switch kept compiling.
+
+**The permission strings change.** Local `"create.comments"` becomes platform's
+`"comments.create"` — domain first, so that composed domains cannot collide on a
+bare verb. `internal/authorization/comments_permissions.go` now re-exports
+platform's constants under the names the policy already spells, so only the
+seeded strings move. Free here because nothing is deployed; a deployed service
+would need a policy migration per adopted domain.
+
+**Two of the seams need nothing.** Platform's default `AuthorAuthorizer`,
+`OwnCommentsOnly`, is exactly what the deleted service's `ownedComment` did, and
+the absent `GrantsExtractor` clears `include_archived`, which is the behaviour
+the deleted service had (it exposed no archived read at all). Both are left at
+their defaults, with the reasons written down where the server is built.
+
+## Two findings fixed upstream mid-spike
+
+`audit.NewReader` now takes a `dialect.Dialect` rather than a `database.Client`,
+and `oauth2serverstore/config.WithServerOptions` is now
+`WithServerConfigOptions`. Both call sites here have been moved over. That
+clears findings 2 and 3; finding 1 — the three constructors that silently lose
+their SQL backend — is the one still open, and it is still the only thing worth
+blocking the tag on.
+
+## What this says about the remaining twelve
+
+The shape holds and the cost is now measured rather than estimated. Per domain,
+expect: delete the service, converters, proto and generated stubs; add a
+build-layer registration of about fifty lines; re-export platform's permission
+constants; and regenerate any neighbouring proto that imported the domain's
+messages. The repository decorator — the thing that makes the write auditable —
+is untouched, which is the whole reason this is worth doing.
+
+What will not be uniform is the cross-domain proto coupling. Comments was
+imported by two neighbours; identity and webhooks will be worse, and the
+generated TypeScript and Swift clients have to be regenerated and swept either
+way.

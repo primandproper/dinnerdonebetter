@@ -157,11 +157,10 @@ func NewService(ctx context.Context, cfg *config.MCPServiceConfig, baseURL strin
 			totpVerifier:  totpVerifier,
 		},
 		oauth2servercfg.WithPillars(pillars),
-		// Two layers of WithServerOptions, because v14 splits the config in two: the
-		// outer one is the store tier's, and it carries the server tier's option set
-		// through to it. The names are the same at both tiers and only the element
-		// type differs.
-		oauth2servercfg.WithServerOptions(
+		// The store tier's config carries the server tier's option set through to it.
+		// The outer name says which package the options are handed to rather than
+		// which one builds the server, so this does not read as the same call twice.
+		oauth2servercfg.WithServerConfigOptions(
 			baseoauth2cfg.WithServerOptions(oauth2server.WithLoginRenderer(newLoginRenderer(pillars.Logger))),
 		),
 	)

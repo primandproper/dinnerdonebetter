@@ -8,7 +8,6 @@ package issue_reports
 
 import (
 	context "context"
-
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -20,7 +19,6 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	IssueReportsService_AddCommentToIssueReport_FullMethodName      = "/issue_reports.IssueReportsService/AddCommentToIssueReport"
 	IssueReportsService_CreateIssueReport_FullMethodName            = "/issue_reports.IssueReportsService/CreateIssueReport"
 	IssueReportsService_GetIssueReport_FullMethodName               = "/issue_reports.IssueReportsService/GetIssueReport"
 	IssueReportsService_GetIssueReports_FullMethodName              = "/issue_reports.IssueReportsService/GetIssueReports"
@@ -36,7 +34,6 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type IssueReportsServiceClient interface {
-	AddCommentToIssueReport(ctx context.Context, in *AddCommentToIssueReportRequest, opts ...grpc.CallOption) (*AddCommentToIssueReportResponse, error)
 	CreateIssueReport(ctx context.Context, in *CreateIssueReportRequest, opts ...grpc.CallOption) (*CreateIssueReportResponse, error)
 	GetIssueReport(ctx context.Context, in *GetIssueReportRequest, opts ...grpc.CallOption) (*GetIssueReportResponse, error)
 	GetIssueReports(ctx context.Context, in *GetIssueReportsRequest, opts ...grpc.CallOption) (*GetIssueReportsResponse, error)
@@ -54,16 +51,6 @@ type issueReportsServiceClient struct {
 
 func NewIssueReportsServiceClient(cc grpc.ClientConnInterface) IssueReportsServiceClient {
 	return &issueReportsServiceClient{cc}
-}
-
-func (c *issueReportsServiceClient) AddCommentToIssueReport(ctx context.Context, in *AddCommentToIssueReportRequest, opts ...grpc.CallOption) (*AddCommentToIssueReportResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(AddCommentToIssueReportResponse)
-	err := c.cc.Invoke(ctx, IssueReportsService_AddCommentToIssueReport_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
 }
 
 func (c *issueReportsServiceClient) CreateIssueReport(ctx context.Context, in *CreateIssueReportRequest, opts ...grpc.CallOption) (*CreateIssueReportResponse, error) {
@@ -160,7 +147,6 @@ func (c *issueReportsServiceClient) ArchiveIssueReport(ctx context.Context, in *
 // All implementations must embed UnimplementedIssueReportsServiceServer
 // for forward compatibility.
 type IssueReportsServiceServer interface {
-	AddCommentToIssueReport(context.Context, *AddCommentToIssueReportRequest) (*AddCommentToIssueReportResponse, error)
 	CreateIssueReport(context.Context, *CreateIssueReportRequest) (*CreateIssueReportResponse, error)
 	GetIssueReport(context.Context, *GetIssueReportRequest) (*GetIssueReportResponse, error)
 	GetIssueReports(context.Context, *GetIssueReportsRequest) (*GetIssueReportsResponse, error)
@@ -180,9 +166,6 @@ type IssueReportsServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedIssueReportsServiceServer struct{}
 
-func (UnimplementedIssueReportsServiceServer) AddCommentToIssueReport(context.Context, *AddCommentToIssueReportRequest) (*AddCommentToIssueReportResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AddCommentToIssueReport not implemented")
-}
 func (UnimplementedIssueReportsServiceServer) CreateIssueReport(context.Context, *CreateIssueReportRequest) (*CreateIssueReportResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateIssueReport not implemented")
 }
@@ -229,24 +212,6 @@ func RegisterIssueReportsServiceServer(s grpc.ServiceRegistrar, srv IssueReports
 		t.testEmbeddedByValue()
 	}
 	s.RegisterService(&IssueReportsService_ServiceDesc, srv)
-}
-
-func _IssueReportsService_AddCommentToIssueReport_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AddCommentToIssueReportRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(IssueReportsServiceServer).AddCommentToIssueReport(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: IssueReportsService_AddCommentToIssueReport_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(IssueReportsServiceServer).AddCommentToIssueReport(ctx, req.(*AddCommentToIssueReportRequest))
-	}
-	return interceptor(ctx, in, info, handler)
 }
 
 func _IssueReportsService_CreateIssueReport_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -418,10 +383,6 @@ var IssueReportsService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "issue_reports.IssueReportsService",
 	HandlerType: (*IssueReportsServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
-		{
-			MethodName: "AddCommentToIssueReport",
-			Handler:    _IssueReportsService_AddCommentToIssueReport_Handler,
-		},
 		{
 			MethodName: "CreateIssueReport",
 			Handler:    _IssueReportsService_CreateIssueReport_Handler,

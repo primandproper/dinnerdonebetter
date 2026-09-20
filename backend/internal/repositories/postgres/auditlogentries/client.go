@@ -70,7 +70,7 @@ func ProvideAuditLogRepository(
 	}
 
 	reader, err := platformaudit.NewReader(
-		client,
+		client.Dialect(),
 		platformaudit.WithReaderTablePrefix(audit.TablePrefix),
 		platformaudit.WithReaderLogger(logging.EnsureLogger(logger)),
 		platformaudit.WithReaderTracerProvider(tracerProvider),

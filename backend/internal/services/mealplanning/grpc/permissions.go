@@ -286,11 +286,6 @@ func ProvideMethodPermissions() MealPlanningMethodPermissions {
 		mealplanningsvc.MealPlanningService_ArchiveRecipeRating_FullMethodName:       {authorization.ArchiveRecipeRatingsPermission},
 		mealplanningsvc.MealPlanningService_GetRecipeRatingsForRecipe_FullMethodName: {authorization.ReadRecipeRatingsPermission},
 
-		// Comments (typed entrypoints; generic CRUD lives on CommentsService)
-		mealplanningsvc.MealPlanningService_AddCommentToRecipe_FullMethodName:   {authorization.CreateCommentsPermission},
-		mealplanningsvc.MealPlanningService_AddCommentToMeal_FullMethodName:     {authorization.CreateCommentsPermission},
-		mealplanningsvc.MealPlanningService_AddCommentToMealPlan_FullMethodName: {authorization.CreateCommentsPermission},
-
 		// MealPlanOptionVotes
 		mealplanningsvc.MealPlanningService_CreateMealPlanOptionVote_FullMethodName:  {authorization.CreateMealPlanOptionVotesPermission},
 		mealplanningsvc.MealPlanningService_UpdateMealPlanOptionVote_FullMethodName:  {authorization.UpdateMealPlanOptionVotesPermission},

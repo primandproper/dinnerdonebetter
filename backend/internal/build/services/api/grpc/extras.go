@@ -6,11 +6,11 @@ import (
 	"maps"
 	"runtime/debug"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	analyticspb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/analytics"
 	auditsvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/audit"
 	authsvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
-	commentssvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/comments"
 	dataprivacysvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/dataprivacy"
 	identitysvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
 	internalopssvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/internalops"
@@ -27,7 +27,6 @@ import (
 	auditgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/audit/grpc"
 	authgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc/interceptors"
-	commentsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/comments/grpc"
 	dataprivacygrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/grpc"
 	identitygrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/grpc"
 	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
@@ -41,6 +40,8 @@ import (
 	uploadedmediagrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/grpc"
 	waitlistsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/waitlists/grpc"
 	webhooksgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/webhooks/grpc"
+	commentspb "github.com/primandproper/platform-go/v14/comments/commentspb"
+	commentsgrpc "github.com/primandproper/platform-go/v14/comments/grpc"
 
 	analyticscfg "github.com/primandproper/primitives-go/v2/analytics/config"
 	authzgrpc "github.com/primandproper/primitives-go/v2/authorization/grpc"
@@ -79,7 +80,7 @@ func RegisterExtras(i do.Injector) {
 			do.MustInvoke[analyticsgrpc.AnalyticsMethodPermissions](i),
 			do.MustInvoke[auditgrpc.AuditMethodPermissions](i),
 			do.MustInvoke[authgrpc.AuthMethodPermissions](i),
-			do.MustInvoke[commentsgrpc.CommentsMethodPermissions](i),
+			commentsgrpc.Permissions(),
 			do.MustInvoke[dataprivacygrpc.DataPrivacyMethodPermissions](i),
 			do.MustInvoke[identitygrpc.IdentityMethodPermissions](i),
 			do.MustInvoke[internalopsgrpc.InternalOpsMethodPermissions](i),
@@ -136,7 +137,7 @@ func RegisterExtras(i do.Injector) {
 			do.MustInvoke[analyticspb.AnalyticsServiceServer](i),
 			do.MustInvoke[auditsvcpb.AuditServiceServer](i),
 			do.MustInvoke[authsvcpb.AuthServiceServer](i),
-			do.MustInvoke[commentssvcpb.CommentsServiceServer](i),
+			do.MustInvoke[commentspb.CommentsServiceServer](i),
 			do.MustInvoke[dataprivacysvcpb.DataPrivacyServiceServer](i),
 			do.MustInvoke[identitysvcpb.IdentityServiceServer](i),
 			do.MustInvoke[internalopssvcpb.InternalOperationsServer](i),
@@ -177,7 +178,7 @@ func BuildRegistrationFuncs(
 	analyticsService analyticspb.AnalyticsServiceServer,
 	auditLogService auditsvcpb.AuditServiceServer,
 	authService authsvcpb.AuthServiceServer,
-	commentsService commentssvcpb.CommentsServiceServer,
+	commentsService commentspb.CommentsServiceServer,
 	dataPrivacyServer dataprivacysvcpb.DataPrivacyServiceServer,
 	identityServiceServer identitysvcpb.IdentityServiceServer,
 	internalOpsService internalopssvcpb.InternalOperationsServer,
@@ -196,7 +197,7 @@ func BuildRegistrationFuncs(
 			analyticspb.RegisterAnalyticsServiceServer(server, analyticsService)
 			auditsvcpb.RegisterAuditServiceServer(server, auditLogService)
 			authsvcpb.RegisterAuthServiceServer(server, authService)
-			commentssvcpb.RegisterCommentsServiceServer(server, commentsService)
+			commentspb.RegisterCommentsServiceServer(server, commentsService)
 			dataprivacysvcpb.RegisterDataPrivacyServiceServer(server, dataPrivacyServer)
 			identitysvcpb.RegisterIdentityServiceServer(server, identityServiceServer)
 			internalopssvcpb.RegisterInternalOperationsServer(server, internalOpsService)
@@ -298,7 +299,7 @@ func AggregateMethodPermissions(
 	analyticsPermissions analyticsgrpc.AnalyticsMethodPermissions,
 	auditPermissions auditgrpc.AuditMethodPermissions,
 	authPermissions authgrpc.AuthMethodPermissions,
-	commentsPermissions commentsgrpc.CommentsMethodPermissions,
+	commentsPermissions map[string][]authorization.Permission,
 	dataprivacyPermissions dataprivacygrpc.DataPrivacyMethodPermissions,
 	identityPermissions identitygrpc.IdentityMethodPermissions,
 	internalopsPermissions internalopsgrpc.InternalOpsMethodPermissions,

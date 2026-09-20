@@ -11,7 +11,6 @@ import (
 	analyticsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/analytics"
 	auditgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/audit"
 	authgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
-	commentsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/comments"
 	dataprivacygrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/dataprivacy"
 	identitygrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
 	internalopsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/internalops"
@@ -24,6 +23,7 @@ import (
 	uploadedmediagrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
 	waitlistsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/waitlists"
 	webhooksgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/webhooks"
+	commentsgrpc "github.com/primandproper/platform-go/v14/comments/commentspb"
 
 	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
 	"github.com/primandproper/primitives-go/v2/httpclient"

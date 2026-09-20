@@ -17,18 +17,18 @@ ARTIFACTS_DIR         := artifacts
 # Exclude monolithic proto/X/X.proto files (they're duplicates of the split files)
 PROTO_FILES_PATH          := $(shell find proto -name "*.proto" -type f ! -regex "proto/\([^/]*\)/\1\.proto")
 
-# filtering's schema is not ours to keep a copy of: platform-go ships the .proto
+# filtering's schema is not ours to keep a copy of: primitives-go ships the .proto
 # inside the published module, so go.mod already pins which version we build
 # against. Putting the module's proto directory on protoc's path is how a
 # consumer imports it, exactly as google/protobuf/timestamp.proto already works.
-PLATFORM_PROTO_PATH       := $(shell cd backend && go list -m -f '{{.Dir}}' github.com/primandproper/platform-go/v13)/filtering/proto
+PLATFORM_PROTO_PATH       := $(shell cd backend && go list -m -f '{{.Dir}}' github.com/primandproper/primitives-go/v2)/filtering/proto
 PLATFORM_FILTERING_PROTO  := primandproper/platform/filtering/v1/filtering.proto
 # Go links against the bindings platform already generated rather than making a
 # second copy, because the page-size clamp and the default are server-side rules
 # and a second copy of one can be wrong in a way nothing reports. Swift and
 # TypeScript generate the file: a QueryFilter there is a data class with eight
 # fields and no rules to restate.
-PROTO_GO_FILTERING_MAP    := M$(PLATFORM_FILTERING_PROTO)=github.com/primandproper/platform-go/v13/filtering/filteringpb
+PROTO_GO_FILTERING_MAP    := M$(PLATFORM_FILTERING_PROTO)=github.com/primandproper/primitives-go/v2/filtering/filteringpb
 PROTO_GO_OUTPUT_PATH      := backend
 PROTO_OUTPUT_BACKEND_PATH := backend/internal/grpc
 PROTO_OUTPUT_IOS_PATH     := ios/ios/Generated

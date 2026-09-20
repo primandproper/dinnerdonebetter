@@ -7,9 +7,6 @@ import "mealplanning/mealplanning_service_types.proto";
 option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning";
 
 service MealPlanningService {
-  rpc AddCommentToMeal(AddCommentToMealRequest) returns (AddCommentToMealResponse);
-  rpc AddCommentToMealPlan(AddCommentToMealPlanRequest) returns (AddCommentToMealPlanResponse);
-  rpc AddCommentToRecipe(AddCommentToRecipeRequest) returns (AddCommentToRecipeResponse);
   rpc ArchiveMeal(ArchiveMealRequest) returns (ArchiveMealResponse);
   rpc ArchiveMealPlan(ArchiveMealPlanRequest) returns (ArchiveMealPlanResponse);
   rpc ArchiveMealPlanEvent(ArchiveMealPlanEventRequest) returns (ArchiveMealPlanEventResponse);

@@ -7,7 +7,6 @@ import "issue_reports/issue_reports_service_types.proto";
 option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/issue_reports";
 
 service IssueReportsService {
-  rpc AddCommentToIssueReport(AddCommentToIssueReportRequest) returns (AddCommentToIssueReportResponse);
   rpc CreateIssueReport(CreateIssueReportRequest) returns (CreateIssueReportResponse);
   rpc GetIssueReport(GetIssueReportRequest) returns (GetIssueReportResponse);
   rpc GetIssueReports(GetIssueReportsRequest) returns (GetIssueReportsResponse);
