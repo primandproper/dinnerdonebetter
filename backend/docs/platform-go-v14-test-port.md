@@ -292,3 +292,129 @@ What will not be uniform is the cross-domain proto coupling. Comments was
 imported by two neighbours; identity and webhooks will be worse, and the
 generated TypeScript and Swift clients have to be regenerated and swept either
 way.
+
+---
+
+# Pass 2 spike: identity
+
+Identity was the domain most likely to surprise us, and it did — but not in the
+seam, which is the part that matters. Nothing here was ported: this spike
+establishes the shape and proves the one mechanism the adoption would rest on.
+
+## The seam is different, and it is better
+
+Comments adopts by decorating `comments.Store`: platform's server opens the
+transaction and calls the decorated store inside it, so this repo's audit entry
+and outbox event are statements of that transaction.
+
+That does not work for identity. An identity write goes through
+`identity.Service`, which orchestrates several store calls in one transaction —
+`Register` writes a user, an account and an owner membership — so decorating the
+store would record one row of an operation that wrote three.
+
+platform's answer is `identity.Hooks`: twenty-four methods, one per operation,
+each handed the operation's `database.Tx`, with the documentation stating the
+reason outright (`identity/hooks.go:11`):
+
+> Every application that adopts this package has companions for an identity
+> write — an audit entry, a data change event, a search index stamp, an outbox
+> row — and those companions are the same fact as the row.
+
+`internal/repositories/postgres/identityspike` proves it against real Postgres,
+with platform's identity DDL migrated alongside this application's own schema:
+
+- **Commits together.** A `Register` leaves the user, the account, the
+  membership, the hook's row and the hook's outbox message.
+- **Rolls back together.** With the hook made to fail, *none of the five exist* —
+  including the three rows the operation had already written before the hook ran.
+
+Checked against a mutant, as the comments test was: a hook that writes on a
+connection of its own rather than the operation's `Tx` fails it on the right
+assertion. So the test distinguishes a hook inside the transaction from one
+beside it, which is the only thing it is for.
+
+Hooks is a better seam than the store decorator — it sees whole operations
+rather than individual rows — and the nine `recordAndEmit` sites in this repo's
+identity repository map onto it directly.
+
+## The surface maps almost exactly
+
+Twenty-nine RPCs on each side, and the same operations under different names:
+`GetAccounts`/`ListAccounts`, `ArchiveUserMembership`/`RemoveMembership`,
+`UpdateAccountMemberPermissions`/`SetMembershipRoles`, and so on. Three of this
+repo's RPCs collapse into one — `UpdateUserDetails`, `UpdateUserEmailAddress`
+and `UpdateUserUsername` are all `UpdateProfile`, whose `ProfileUpdate` carries
+username, display name, email address, first and last name.
+
+Three do not map, and each for a stated reason:
+
+- **`UploadUserAvatar`** stays local. Platform is explicit
+  (`identity/proto/…/identity.proto:71`): "identity has no avatar column and
+  joining one is a contract between two packages that has not been designed."
+  A consumer with columns of its own puts them in a side table keyed by user id —
+  which is exactly what `user_avatars` already is.
+- **`CreateAccount`** stays local. `Store.CreateAccount` exists and platform's
+  own documentation shows composing it with `CreateMembership` in one
+  transaction; it is simply not a `Service` operation or an RPC.
+- **`AdminSetPasswordChangeRequired`** keeps a thin local RPC over
+  `Service.SetUserRequiresPasswordChange`, which exists but is deliberately off
+  the wire — the proto argues credentials do not belong in the transport.
+
+Platform adds four this repo has no equivalent for: `GetPrincipal`,
+`GetMembership`, `ListMembershipsForUser`, `RecordAgreement`.
+
+## What makes identity genuinely harder than comments
+
+**Identity is the root of the schema.** Comments was a leaf on a table this repo
+had already adopted. `users` and `accounts` are this application's own tables,
+and **34 of the schema's 77 tables hold a foreign key to one of them**. Adopting
+identity renames them to `ddb_identity_users` and `ddb_identity_accounts` and
+re-points all 34 constraints. That is mechanical DDL, but it is the whole schema
+rather than one corner of it.
+
+The query layer is better than that sounds: SQL that actually reads `users` or
+`accounts` is confined to four files, all in the identity package, all deleted
+with the adoption. Every other domain carries `belongs_to_user` /
+`belongs_to_account` as plain columns and never joins.
+
+**The erasure model changes, and it is a product decision.** This repo's
+`accounts` table carries
+`belongs_to_user TEXT NOT NULL REFERENCES users("id") ON DELETE CASCADE`, and
+twelve tables cascade from `accounts` in turn — so erasing a user today destroys
+the households they owned and everything in them. That cascade is what the single
+`EraserKeyIdentity` eraser relies on.
+
+Platform's `identity_accounts.owner_user_id` has **no** foreign key, deliberately
+(`identity/migrations/postgres.sql:117`): a cascade "would destroy an
+organization, its invoices and every other member's work because one member
+exercised a right to be forgotten," and `RESTRICT` would refuse an erasure that
+has to commit. `Store.EraseUser` therefore leaves owned accounts standing with an
+`owner_user_id` that resolves to nothing, and says so.
+
+For an organization that is plainly right. For a household whose owner has left
+it is a question this application has not had to answer, because the cascade
+answered it. Adoption forces the answer, and it is not a mechanical one.
+
+**Two schema improvements come free.** `user_account_status` and its explanation
+are renamed; `service_role` is already dead here (the rbac adoption normalized
+roles into `user_role_assignments`, which splits cleanly into platform's
+`identity_user_roles` and `identity_membership_roles` — assignments, where rbac's
+`authz_*` tables hold the policy, so the two do not overlap). And
+`email_address_verification_token` becomes
+`email_address_verification_token_digest`: this repo stores the **raw** token,
+**indexes it**, and selects it into the generated rows for account and invitation
+reads. Platform stores a SHA-256 digest, indexes the digest, and argues the case
+in `identity/token_digest.go:8` — a database copy otherwise hands out every
+outstanding verification link. That is one of the verification-token defects the
+blocked links adoption (#1385) left standing.
+
+`birthday` and `last_indexed_at` have no platform home and become the side table
+platform names as the intended pattern.
+
+## Verdict
+
+The seam works and is better than comments'. The surface maps. What identity
+costs is not code but schema: 34 foreign keys to re-point, and one product
+decision about what happens to a household when its owner is erased. That
+decision should be made before the work starts, not during it — it is the only
+part of this adoption that cannot be undone by editing Go.
