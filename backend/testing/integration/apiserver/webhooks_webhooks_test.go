@@ -40,9 +40,15 @@ func signingSecretForTest() *webhookspb.WebhookSigningKeys {
 func endpointInputForTest(t *testing.T) *webhookspb.WebhookEndpointInput {
 	t.Helper()
 
+	// A literal address in TEST-NET-1 rather than a hostname. platform resolves an
+	// endpoint's host before it will register one — an SSRF check, since a delivery is
+	// this deployment making a request somebody else chose the target of — so a made-up
+	// name fails on DNS rather than on anything this test is about. 192.0.2.0/24 is
+	// documentation space: routable-looking, in none of the ranges checkIP refuses, and
+	// nothing is listening. The path carries the uniqueness instead.
 	return &webhookspb.WebhookEndpointInput{
 		Name:        t.Name(),
-		Url:         "https://" + identifiers.New() + ".example.com/webhook",
+		Url:         "https://192.0.2.1/webhook/" + identifiers.New(),
 		ContentType: "application/json",
 		EventTypes:  []string{webhooks.WebhookCreatedServiceEventType},
 	}

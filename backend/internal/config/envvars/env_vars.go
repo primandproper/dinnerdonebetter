@@ -62,9 +62,9 @@ const (
 	// `SchedulerConfig.Audit.Retention.Retention`.
 	AuditRetentionEnvVarKey = "DINNER_DONE_BETTER_AUDIT_RETENTION"
 
-	// AuditScopePageEnvVarKey is the environment variable name to set to override
+	// AuditScopePageSizeEnvVarKey is the environment variable name to set to override
 	// `SchedulerConfig.Audit.Retention.ScopePageSize`.
-	AuditScopePageEnvVarKey = "DINNER_DONE_BETTER_AUDIT_SCOPE_PAGE"
+	AuditScopePageSizeEnvVarKey = "DINNER_DONE_BETTER_AUDIT_SCOPE_PAGE_SIZE"
 
 	// AuditTablePrefixEnvVarKey is the environment variable name to set to override
 	// `SchedulerConfig.Audit.TablePrefix`.
@@ -87,56 +87,57 @@ const (
 	AuthMinimumUsernameLengthEnvVarKey = "DINNER_DONE_BETTER_AUTH_MINIMUM_USERNAME_LENGTH"
 
 	// AuthPasskeyCacheCircuitBreakingErrorRateEnvVarKey is the environment variable name to set to
-	// override `APIServiceConfig.Auth.Passkey.Cache.CircuitBreaker.ErrorRate`.
+	// override `APIServiceConfig.Auth.Passkey.Config.Cache.CircuitBreaker.ErrorRate`.
 	AuthPasskeyCacheCircuitBreakingErrorRateEnvVarKey = "DINNER_DONE_BETTER_AUTH_PASSKEY_CACHE_CIRCUIT_BREAKING_ERROR_RATE"
 
 	// AuthPasskeyCacheCircuitBreakingMinimumSampleThresholdEnvVarKey is the environment variable
 	// name to set to override
-	// `APIServiceConfig.Auth.Passkey.Cache.CircuitBreaker.MinimumSampleThreshold`.
+	// `APIServiceConfig.Auth.Passkey.Config.Cache.CircuitBreaker.MinimumSampleThreshold`.
 	AuthPasskeyCacheCircuitBreakingMinimumSampleThresholdEnvVarKey = "DINNER_DONE_BETTER_AUTH_PASSKEY_CACHE_CIRCUIT_BREAKING_MINIMUM_SAMPLE_THRESHOLD"
 
 	// AuthPasskeyCacheCircuitBreakingNameEnvVarKey is the environment variable name to set to
-	// override `APIServiceConfig.Auth.Passkey.Cache.CircuitBreaker.Name`.
+	// override `APIServiceConfig.Auth.Passkey.Config.Cache.CircuitBreaker.Name`.
 	AuthPasskeyCacheCircuitBreakingNameEnvVarKey = "DINNER_DONE_BETTER_AUTH_PASSKEY_CACHE_CIRCUIT_BREAKING_NAME"
 
 	// AuthPasskeyCacheEvictionPolicyEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Auth.Passkey.Cache.EvictionPolicy`. It defaults to `least_recently_used`.
+	// `APIServiceConfig.Auth.Passkey.Config.Cache.EvictionPolicy`. It defaults to
+	// `least_recently_used`.
 	AuthPasskeyCacheEvictionPolicyEnvVarKey = "DINNER_DONE_BETTER_AUTH_PASSKEY_CACHE_EVICTION_POLICY"
 
 	// AuthPasskeyCacheExpiryEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Auth.Passkey.Cache.Expiry`. It defaults to `1h`.
+	// `APIServiceConfig.Auth.Passkey.Config.Cache.Expiry`. It defaults to `1h`.
 	AuthPasskeyCacheExpiryEnvVarKey = "DINNER_DONE_BETTER_AUTH_PASSKEY_CACHE_EXPIRY"
 
 	// AuthPasskeyCacheJanitorIntervalEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Auth.Passkey.Cache.JanitorInterval`. It defaults to `5m`.
+	// `APIServiceConfig.Auth.Passkey.Config.Cache.JanitorInterval`. It defaults to `5m`.
 	AuthPasskeyCacheJanitorIntervalEnvVarKey = "DINNER_DONE_BETTER_AUTH_PASSKEY_CACHE_JANITOR_INTERVAL"
 
 	// AuthPasskeyCacheMaxEntriesEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Auth.Passkey.Cache.MaxEntries`.
+	// `APIServiceConfig.Auth.Passkey.Config.Cache.MaxEntries`.
 	AuthPasskeyCacheMaxEntriesEnvVarKey = "DINNER_DONE_BETTER_AUTH_PASSKEY_CACHE_MAX_ENTRIES"
 
 	// AuthPasskeyCacheProviderEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Auth.Passkey.Cache.Provider`.
+	// `APIServiceConfig.Auth.Passkey.Config.Cache.Provider`.
 	AuthPasskeyCacheProviderEnvVarKey = "DINNER_DONE_BETTER_AUTH_PASSKEY_CACHE_PROVIDER"
 
 	// AuthPasskeyCacheRedisAddressesEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Auth.Passkey.Cache.Redis.Addresses`.
+	// `APIServiceConfig.Auth.Passkey.Config.Cache.Redis.Addresses`.
 	AuthPasskeyCacheRedisAddressesEnvVarKey = "DINNER_DONE_BETTER_AUTH_PASSKEY_CACHE_REDIS_ADDRESSES"
 
 	// AuthPasskeyCacheRedisClusterEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Auth.Passkey.Cache.Redis.Cluster`.
+	// `APIServiceConfig.Auth.Passkey.Config.Cache.Redis.Cluster`.
 	AuthPasskeyCacheRedisClusterEnvVarKey = "DINNER_DONE_BETTER_AUTH_PASSKEY_CACHE_REDIS_CLUSTER"
 
 	// AuthPasskeyCacheRedisNamespaceEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Auth.Passkey.Cache.Redis.Namespace`.
+	// `APIServiceConfig.Auth.Passkey.Config.Cache.Redis.Namespace`.
 	AuthPasskeyCacheRedisNamespaceEnvVarKey = "DINNER_DONE_BETTER_AUTH_PASSKEY_CACHE_REDIS_NAMESPACE"
 
 	// AuthPasskeyCacheRedisPasswordEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Auth.Passkey.Cache.Redis.Password`.
+	// `APIServiceConfig.Auth.Passkey.Config.Cache.Redis.Password`.
 	AuthPasskeyCacheRedisPasswordEnvVarKey = "DINNER_DONE_BETTER_AUTH_PASSKEY_CACHE_REDIS_PASSWORD"
 
 	// AuthPasskeyCacheRedisUsernameEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Auth.Passkey.Cache.Redis.Username`.
+	// `APIServiceConfig.Auth.Passkey.Config.Cache.Redis.Username`.
 	AuthPasskeyCacheRedisUsernameEnvVarKey = "DINNER_DONE_BETTER_AUTH_PASSKEY_CACHE_REDIS_USERNAME"
 
 	// AuthPasskeyDatabaseTablePrefixEnvVarKey is the environment variable name to set to override
@@ -144,27 +145,28 @@ const (
 	AuthPasskeyDatabaseTablePrefixEnvVarKey = "DINNER_DONE_BETTER_AUTH_PASSKEY_DATABASE_TABLE_PREFIX"
 
 	// AuthPasskeyProviderEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Auth.Passkey.Provider`. It defaults to `database`.
+	// `APIServiceConfig.Auth.Passkey.Provider`, `APIServiceConfig.Auth.Passkey.Config.Provider`.
+	// It defaults to `database`.
 	AuthPasskeyProviderEnvVarKey = "DINNER_DONE_BETTER_AUTH_PASSKEY_PROVIDER"
 
 	// AuthPasskeyRpCeremonyTimeoutEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Auth.Passkey.RelyingParty.CeremonyTimeout`.
+	// `APIServiceConfig.Auth.Passkey.Config.RelyingParty.CeremonyTimeout`.
 	AuthPasskeyRpCeremonyTimeoutEnvVarKey = "DINNER_DONE_BETTER_AUTH_PASSKEY_RP_CEREMONY_TIMEOUT"
 
 	// AuthPasskeyRpDisplayNameEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Auth.Passkey.RelyingParty.RPDisplayName`.
+	// `APIServiceConfig.Auth.Passkey.Config.RelyingParty.RPDisplayName`.
 	AuthPasskeyRpDisplayNameEnvVarKey = "DINNER_DONE_BETTER_AUTH_PASSKEY_RP_DISPLAY_NAME"
 
 	// AuthPasskeyRpIDEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Auth.Passkey.RelyingParty.RPID`.
+	// `APIServiceConfig.Auth.Passkey.Config.RelyingParty.RPID`.
 	AuthPasskeyRpIDEnvVarKey = "DINNER_DONE_BETTER_AUTH_PASSKEY_RP_ID"
 
 	// AuthPasskeyRpOriginsEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Auth.Passkey.RelyingParty.RPOrigins`.
+	// `APIServiceConfig.Auth.Passkey.Config.RelyingParty.RPOrigins`.
 	AuthPasskeyRpOriginsEnvVarKey = "DINNER_DONE_BETTER_AUTH_PASSKEY_RP_ORIGINS"
 
 	// AuthPasskeyRpUserVerificationEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Auth.Passkey.RelyingParty.UserVerification`.
+	// `APIServiceConfig.Auth.Passkey.Config.RelyingParty.UserVerification`.
 	AuthPasskeyRpUserVerificationEnvVarKey = "DINNER_DONE_BETTER_AUTH_PASSKEY_RP_USER_VERIFICATION"
 
 	// AuthPasskeySweepIntervalEnvVarKey is the environment variable name to set to override
@@ -1370,17 +1372,18 @@ const (
 	MeteringTablePrefixEnvVarKey = "DINNER_DONE_BETTER_METERING_TABLE_PREFIX"
 
 	// Oauth2AccessTokenTTLEnvVarKey is the environment variable name to set to override
-	// `DBCleanerConfig.OAuth2.AccessTokenTTL`, `MCPServiceConfig.OAuth2.AccessTokenTTL`.
+	// `DBCleanerConfig.OAuth2.Config.AccessTokenTTL`,
+	// `MCPServiceConfig.OAuth2.Config.AccessTokenTTL`.
 	Oauth2AccessTokenTTLEnvVarKey = "DINNER_DONE_BETTER_OAUTH2_ACCESS_TOKEN_TTL"
 
 	// Oauth2AuthorizationCodeTTLEnvVarKey is the environment variable name to set to override
-	// `DBCleanerConfig.OAuth2.AuthorizationCodeTTL`,
-	// `MCPServiceConfig.OAuth2.AuthorizationCodeTTL`.
+	// `DBCleanerConfig.OAuth2.Config.AuthorizationCodeTTL`,
+	// `MCPServiceConfig.OAuth2.Config.AuthorizationCodeTTL`.
 	Oauth2AuthorizationCodeTTLEnvVarKey = "DINNER_DONE_BETTER_OAUTH2_AUTHORIZATION_CODE_TTL"
 
 	// Oauth2ClientRegistrationTTLEnvVarKey is the environment variable name to set to override
-	// `DBCleanerConfig.OAuth2.ClientRegistrationTTL`,
-	// `MCPServiceConfig.OAuth2.ClientRegistrationTTL`.
+	// `DBCleanerConfig.OAuth2.Config.ClientRegistrationTTL`,
+	// `MCPServiceConfig.OAuth2.Config.ClientRegistrationTTL`.
 	Oauth2ClientRegistrationTTLEnvVarKey = "DINNER_DONE_BETTER_OAUTH2_CLIENT_REGISTRATION_TTL"
 
 	// Oauth2DatabaseTablePrefixEnvVarKey is the environment variable name to set to override
@@ -1389,43 +1392,46 @@ const (
 	Oauth2DatabaseTablePrefixEnvVarKey = "DINNER_DONE_BETTER_OAUTH2_DATABASE_TABLE_PREFIX"
 
 	// Oauth2DisableDynamicRegistrationEnvVarKey is the environment variable name to set to
-	// override `DBCleanerConfig.OAuth2.DisableDynamicRegistration`,
-	// `MCPServiceConfig.OAuth2.DisableDynamicRegistration`.
+	// override `DBCleanerConfig.OAuth2.Config.DisableDynamicRegistration`,
+	// `MCPServiceConfig.OAuth2.Config.DisableDynamicRegistration`.
 	Oauth2DisableDynamicRegistrationEnvVarKey = "DINNER_DONE_BETTER_OAUTH2_DISABLE_DYNAMIC_REGISTRATION"
 
 	// Oauth2DisableRefreshReuseDetectionEnvVarKey is the environment variable name to set to
-	// override `DBCleanerConfig.OAuth2.DisableRefreshReuseDetection`,
-	// `MCPServiceConfig.OAuth2.DisableRefreshReuseDetection`.
+	// override `DBCleanerConfig.OAuth2.Config.DisableRefreshReuseDetection`,
+	// `MCPServiceConfig.OAuth2.Config.DisableRefreshReuseDetection`.
 	Oauth2DisableRefreshReuseDetectionEnvVarKey = "DINNER_DONE_BETTER_OAUTH2_DISABLE_REFRESH_REUSE_DETECTION"
 
 	// Oauth2IssuerEnvVarKey is the environment variable name to set to override
-	// `DBCleanerConfig.OAuth2.Issuer`, `MCPServiceConfig.OAuth2.Issuer`.
+	// `DBCleanerConfig.OAuth2.Config.Issuer`, `MCPServiceConfig.OAuth2.Config.Issuer`.
 	Oauth2IssuerEnvVarKey = "DINNER_DONE_BETTER_OAUTH2_ISSUER"
 
 	// Oauth2ProviderEnvVarKey is the environment variable name to set to override
-	// `DBCleanerConfig.OAuth2.Provider`, `MCPServiceConfig.OAuth2.Provider`. It defaults to
-	// `database`.
+	// `DBCleanerConfig.OAuth2.Provider`, `DBCleanerConfig.OAuth2.Config.Provider`,
+	// `MCPServiceConfig.OAuth2.Provider`, `MCPServiceConfig.OAuth2.Config.Provider`. It defaults
+	// to `database`.
 	Oauth2ProviderEnvVarKey = "DINNER_DONE_BETTER_OAUTH2_PROVIDER"
 
 	// Oauth2RefreshTokenTTLEnvVarKey is the environment variable name to set to override
-	// `DBCleanerConfig.OAuth2.RefreshTokenTTL`, `MCPServiceConfig.OAuth2.RefreshTokenTTL`.
+	// `DBCleanerConfig.OAuth2.Config.RefreshTokenTTL`,
+	// `MCPServiceConfig.OAuth2.Config.RefreshTokenTTL`.
 	Oauth2RefreshTokenTTLEnvVarKey = "DINNER_DONE_BETTER_OAUTH2_REFRESH_TOKEN_TTL"
 
 	// Oauth2ResourcesEnvVarKey is the environment variable name to set to override
-	// `DBCleanerConfig.OAuth2.Resources`, `MCPServiceConfig.OAuth2.Resources`.
+	// `DBCleanerConfig.OAuth2.Config.Resources`, `MCPServiceConfig.OAuth2.Config.Resources`.
 	Oauth2ResourcesEnvVarKey = "DINNER_DONE_BETTER_OAUTH2_RESOURCES"
 
 	// Oauth2ScopesEnvVarKey is the environment variable name to set to override
-	// `DBCleanerConfig.OAuth2.Scopes`, `MCPServiceConfig.OAuth2.Scopes`.
+	// `DBCleanerConfig.OAuth2.Config.Scopes`, `MCPServiceConfig.OAuth2.Config.Scopes`.
 	Oauth2ScopesEnvVarKey = "DINNER_DONE_BETTER_OAUTH2_SCOPES"
 
 	// Oauth2ServiceDocumentationEnvVarKey is the environment variable name to set to override
-	// `DBCleanerConfig.OAuth2.ServiceDocumentation`,
-	// `MCPServiceConfig.OAuth2.ServiceDocumentation`.
+	// `DBCleanerConfig.OAuth2.Config.ServiceDocumentation`,
+	// `MCPServiceConfig.OAuth2.Config.ServiceDocumentation`.
 	Oauth2ServiceDocumentationEnvVarKey = "DINNER_DONE_BETTER_OAUTH2_SERVICE_DOCUMENTATION"
 
 	// Oauth2SweepIntervalEnvVarKey is the environment variable name to set to override
-	// `DBCleanerConfig.OAuth2.SweepInterval`, `MCPServiceConfig.OAuth2.SweepInterval`.
+	// `DBCleanerConfig.OAuth2.Config.SweepInterval`,
+	// `MCPServiceConfig.OAuth2.Config.SweepInterval`.
 	Oauth2SweepIntervalEnvVarKey = "DINNER_DONE_BETTER_OAUTH2_SWEEP_INTERVAL"
 
 	// ObservabilityLoggingLevelEnvVarKey is the environment variable name to set to override
@@ -1885,6 +1891,10 @@ const (
 	// `SchedulerConfig.Outbox.PollInterval`.
 	OutboxPollIntervalEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_POLL_INTERVAL"
 
+	// OutboxQuarantineRetentionEnvVarKey is the environment variable name to set to override
+	// `SchedulerConfig.Outbox.QuarantineRetention`.
+	OutboxQuarantineRetentionEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_QUARANTINE_RETENTION"
+
 	// OutboxReapBatchSizeEnvVarKey is the environment variable name to set to override
 	// `SchedulerConfig.Outbox.ReapBatchSize`.
 	OutboxReapBatchSizeEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_REAP_BATCH_SIZE"
@@ -2294,6 +2304,10 @@ const (
 	// `SchedulerConfig.Sagas.PollInterval`.
 	SagasPollIntervalEnvVarKey = "DINNER_DONE_BETTER_SAGAS_POLL_INTERVAL"
 
+	// SagasStatsIntervalEnvVarKey is the environment variable name to set to override
+	// `SchedulerConfig.Sagas.StatsInterval`.
+	SagasStatsIntervalEnvVarKey = "DINNER_DONE_BETTER_SAGAS_STATS_INTERVAL"
+
 	// SagasStepTimeoutEnvVarKey is the environment variable name to set to override
 	// `SchedulerConfig.Sagas.StepTimeout`.
 	SagasStepTimeoutEnvVarKey = "DINNER_DONE_BETTER_SAGAS_STEP_TIMEOUT"
@@ -2387,15 +2401,15 @@ const (
 	ServiceAuthMinimumUsernameLengthEnvVarKey = "DINNER_DONE_BETTER_SERVICE_AUTH_MINIMUM_USERNAME_LENGTH"
 
 	// ServiceAuthOauth2AccessTokenTTLEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Services.Auth.OAuth2.AccessTokenTTL`.
+	// `APIServiceConfig.Services.Auth.OAuth2.Config.AccessTokenTTL`.
 	ServiceAuthOauth2AccessTokenTTLEnvVarKey = "DINNER_DONE_BETTER_SERVICE_AUTH_OAUTH2_ACCESS_TOKEN_TTL"
 
 	// ServiceAuthOauth2AuthorizationCodeTTLEnvVarKey is the environment variable name to set to
-	// override `APIServiceConfig.Services.Auth.OAuth2.AuthorizationCodeTTL`.
+	// override `APIServiceConfig.Services.Auth.OAuth2.Config.AuthorizationCodeTTL`.
 	ServiceAuthOauth2AuthorizationCodeTTLEnvVarKey = "DINNER_DONE_BETTER_SERVICE_AUTH_OAUTH2_AUTHORIZATION_CODE_TTL"
 
 	// ServiceAuthOauth2ClientRegistrationTTLEnvVarKey is the environment variable name to set to
-	// override `APIServiceConfig.Services.Auth.OAuth2.ClientRegistrationTTL`.
+	// override `APIServiceConfig.Services.Auth.OAuth2.Config.ClientRegistrationTTL`.
 	ServiceAuthOauth2ClientRegistrationTTLEnvVarKey = "DINNER_DONE_BETTER_SERVICE_AUTH_OAUTH2_CLIENT_REGISTRATION_TTL"
 
 	// ServiceAuthOauth2DatabaseTablePrefixEnvVarKey is the environment variable name to set to
@@ -2403,39 +2417,40 @@ const (
 	ServiceAuthOauth2DatabaseTablePrefixEnvVarKey = "DINNER_DONE_BETTER_SERVICE_AUTH_OAUTH2_DATABASE_TABLE_PREFIX"
 
 	// ServiceAuthOauth2DisableDynamicRegistrationEnvVarKey is the environment variable name to set
-	// to override `APIServiceConfig.Services.Auth.OAuth2.DisableDynamicRegistration`.
+	// to override `APIServiceConfig.Services.Auth.OAuth2.Config.DisableDynamicRegistration`.
 	ServiceAuthOauth2DisableDynamicRegistrationEnvVarKey = "DINNER_DONE_BETTER_SERVICE_AUTH_OAUTH2_DISABLE_DYNAMIC_REGISTRATION"
 
 	// ServiceAuthOauth2DisableRefreshReuseDetectionEnvVarKey is the environment variable name to
-	// set to override `APIServiceConfig.Services.Auth.OAuth2.DisableRefreshReuseDetection`.
+	// set to override `APIServiceConfig.Services.Auth.OAuth2.Config.DisableRefreshReuseDetection`.
 	ServiceAuthOauth2DisableRefreshReuseDetectionEnvVarKey = "DINNER_DONE_BETTER_SERVICE_AUTH_OAUTH2_DISABLE_REFRESH_REUSE_DETECTION"
 
 	// ServiceAuthOauth2IssuerEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Services.Auth.OAuth2.Issuer`.
+	// `APIServiceConfig.Services.Auth.OAuth2.Config.Issuer`.
 	ServiceAuthOauth2IssuerEnvVarKey = "DINNER_DONE_BETTER_SERVICE_AUTH_OAUTH2_ISSUER"
 
 	// ServiceAuthOauth2ProviderEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Services.Auth.OAuth2.Provider`. It defaults to `database`.
+	// `APIServiceConfig.Services.Auth.OAuth2.Provider`,
+	// `APIServiceConfig.Services.Auth.OAuth2.Config.Provider`. It defaults to `database`.
 	ServiceAuthOauth2ProviderEnvVarKey = "DINNER_DONE_BETTER_SERVICE_AUTH_OAUTH2_PROVIDER"
 
 	// ServiceAuthOauth2RefreshTokenTTLEnvVarKey is the environment variable name to set to
-	// override `APIServiceConfig.Services.Auth.OAuth2.RefreshTokenTTL`.
+	// override `APIServiceConfig.Services.Auth.OAuth2.Config.RefreshTokenTTL`.
 	ServiceAuthOauth2RefreshTokenTTLEnvVarKey = "DINNER_DONE_BETTER_SERVICE_AUTH_OAUTH2_REFRESH_TOKEN_TTL"
 
 	// ServiceAuthOauth2ResourcesEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Services.Auth.OAuth2.Resources`.
+	// `APIServiceConfig.Services.Auth.OAuth2.Config.Resources`.
 	ServiceAuthOauth2ResourcesEnvVarKey = "DINNER_DONE_BETTER_SERVICE_AUTH_OAUTH2_RESOURCES"
 
 	// ServiceAuthOauth2ScopesEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Services.Auth.OAuth2.Scopes`.
+	// `APIServiceConfig.Services.Auth.OAuth2.Config.Scopes`.
 	ServiceAuthOauth2ScopesEnvVarKey = "DINNER_DONE_BETTER_SERVICE_AUTH_OAUTH2_SCOPES"
 
 	// ServiceAuthOauth2ServiceDocumentationEnvVarKey is the environment variable name to set to
-	// override `APIServiceConfig.Services.Auth.OAuth2.ServiceDocumentation`.
+	// override `APIServiceConfig.Services.Auth.OAuth2.Config.ServiceDocumentation`.
 	ServiceAuthOauth2ServiceDocumentationEnvVarKey = "DINNER_DONE_BETTER_SERVICE_AUTH_OAUTH2_SERVICE_DOCUMENTATION"
 
 	// ServiceAuthOauth2SweepIntervalEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Services.Auth.OAuth2.SweepInterval`.
+	// `APIServiceConfig.Services.Auth.OAuth2.Config.SweepInterval`.
 	ServiceAuthOauth2SweepIntervalEnvVarKey = "DINNER_DONE_BETTER_SERVICE_AUTH_OAUTH2_SWEEP_INTERVAL"
 
 	// ServiceAuthTokensAudienceEnvVarKey is the environment variable name to set to override
@@ -2878,40 +2893,40 @@ const (
 	// to override `APIServiceConfig.Services.Users.Uploads.Storage.R2Config.SecretAccessKey`.
 	ServiceUsersUploadsStorageR2SecretAccessKeyEnvVarKey = "DINNER_DONE_BETTER_SERVICE_USERS_UPLOADS_STORAGE_R2_SECRET_ACCESS_KEY"
 
-	// WebhooksCircuitBreakerErrorRateEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Webhooks.CircuitBreaker.ErrorRate`,
+	// WebhooksCircuitBreakingErrorRateEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Webhooks.CircuitBreaker.ErrorRate`,
 	// `SchedulerConfig.Webhooks.CircuitBreaker.ErrorRate`.
-	WebhooksCircuitBreakerErrorRateEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_CIRCUIT_BREAKER_ERROR_RATE"
+	WebhooksCircuitBreakingErrorRateEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_CIRCUIT_BREAKING_ERROR_RATE"
 
-	// WebhooksCircuitBreakerMinimumSampleThresholdEnvVarKey is the environment variable name to
+	// WebhooksCircuitBreakingMinimumSampleThresholdEnvVarKey is the environment variable name to
 	// set to override `APIServiceConfig.Webhooks.CircuitBreaker.MinimumSampleThreshold`,
 	// `SchedulerConfig.Webhooks.CircuitBreaker.MinimumSampleThreshold`.
-	WebhooksCircuitBreakerMinimumSampleThresholdEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_CIRCUIT_BREAKER_MINIMUM_SAMPLE_THRESHOLD"
+	WebhooksCircuitBreakingMinimumSampleThresholdEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_CIRCUIT_BREAKING_MINIMUM_SAMPLE_THRESHOLD"
 
-	// WebhooksCircuitBreakerNameEnvVarKey is the environment variable name to set to override
+	// WebhooksCircuitBreakingNameEnvVarKey is the environment variable name to set to override
 	// `APIServiceConfig.Webhooks.CircuitBreaker.Name`,
 	// `SchedulerConfig.Webhooks.CircuitBreaker.Name`.
-	WebhooksCircuitBreakerNameEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_CIRCUIT_BREAKER_NAME"
+	WebhooksCircuitBreakingNameEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_CIRCUIT_BREAKING_NAME"
 
-	// WebhooksHTTPEnableTracingEnvVarKey is the environment variable name to set to override
+	// WebhooksHTTPClientEnableTracingEnvVarKey is the environment variable name to set to override
 	// `APIServiceConfig.Webhooks.HTTPClient.EnableTracing`,
 	// `SchedulerConfig.Webhooks.HTTPClient.EnableTracing`.
-	WebhooksHTTPEnableTracingEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_HTTP_ENABLE_TRACING"
+	WebhooksHTTPClientEnableTracingEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_HTTP_CLIENT_ENABLE_TRACING"
 
-	// WebhooksHTTPMaxIdleConnsEnvVarKey is the environment variable name to set to override
+	// WebhooksHTTPClientMaxIdleConnsEnvVarKey is the environment variable name to set to override
 	// `APIServiceConfig.Webhooks.HTTPClient.MaxIdleConns`,
 	// `SchedulerConfig.Webhooks.HTTPClient.MaxIdleConns`.
-	WebhooksHTTPMaxIdleConnsEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_HTTP_MAX_IDLE_CONNS"
+	WebhooksHTTPClientMaxIdleConnsEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_HTTP_CLIENT_MAX_IDLE_CONNS"
 
-	// WebhooksHTTPMaxIdleConnsPerHostEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Webhooks.HTTPClient.MaxIdleConnsPerHost`,
+	// WebhooksHTTPClientMaxIdleConnsPerHostEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Webhooks.HTTPClient.MaxIdleConnsPerHost`,
 	// `SchedulerConfig.Webhooks.HTTPClient.MaxIdleConnsPerHost`.
-	WebhooksHTTPMaxIdleConnsPerHostEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_HTTP_MAX_IDLE_CONNS_PER_HOST"
+	WebhooksHTTPClientMaxIdleConnsPerHostEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_HTTP_CLIENT_MAX_IDLE_CONNS_PER_HOST"
 
-	// WebhooksHTTPTimeoutEnvVarKey is the environment variable name to set to override
+	// WebhooksHTTPClientTimeoutEnvVarKey is the environment variable name to set to override
 	// `APIServiceConfig.Webhooks.HTTPClient.Timeout`,
 	// `SchedulerConfig.Webhooks.HTTPClient.Timeout`.
-	WebhooksHTTPTimeoutEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_HTTP_TIMEOUT"
+	WebhooksHTTPClientTimeoutEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_HTTP_CLIENT_TIMEOUT"
 
 	// WebhooksTablePrefixEnvVarKey is the environment variable name to set to override
 	// `APIServiceConfig.Webhooks.TablePrefix`, `SchedulerConfig.Webhooks.TablePrefix`.
