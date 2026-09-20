@@ -2,6 +2,8 @@ package integration
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
@@ -96,8 +98,8 @@ func AssertAuditLogContainsFuzzy(t *testing.T, ctx context.Context, c client.Cli
 			}
 		}
 		assert.True(t, found,
-			"expected audit log entry with EventType=%q ResourceType=%q RelevantID=%q within %d entries",
-			exp.EventType, exp.ResourceType, exp.RelevantID, limit)
+			"expected audit log entry with EventType=%q ResourceType=%q RelevantID=%q within %d entries, got %s",
+			exp.EventType, exp.ResourceType, exp.RelevantID, limit, summarizeEntries(entries))
 	}
 }
 
@@ -137,7 +139,27 @@ func AssertAuditLogContainsFuzzyForUser(t *testing.T, ctx context.Context, c cli
 			}
 		}
 		assert.True(t, found,
-			"expected audit log entry with EventType=%q ResourceType=%q RelevantID=%q within %d entries",
-			exp.EventType, exp.ResourceType, exp.RelevantID, limit)
+			"expected audit log entry with EventType=%q ResourceType=%q RelevantID=%q within %d entries, got %s",
+			exp.EventType, exp.ResourceType, exp.RelevantID, limit, summarizeEntries(entries))
 	}
+}
+
+// summarizeEntries renders what a window actually held, for an assertion that did not find
+// what it wanted in it.
+//
+// "Should be true" is the least useful thing a failing audit assertion can say: the window
+// is bounded and ordered, so the interesting question is always whether the entry is absent,
+// in another chain, or simply further down than the limit reached — and the answer is in the
+// rows that did come back.
+func summarizeEntries(entries []*auditgrpc.Entry) string {
+	if len(entries) == 0 {
+		return "an empty window"
+	}
+
+	seen := make([]string, 0, len(entries))
+	for _, e := range entries {
+		seen = append(seen, fmt.Sprintf("%s/%s/%s", e.GetEventType(), e.GetResourceType(), e.GetResourceId()))
+	}
+
+	return strings.Join(seen, ", ")
 }

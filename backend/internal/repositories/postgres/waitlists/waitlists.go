@@ -91,7 +91,9 @@ func (r *repository) UpdateList(ctx context.Context, tx database.Tx, scope tenan
 
 	tracing.AttachToSpan(span, waitlistkeys.WaitlistIDKey, list.ID)
 
-	if err = r.recordList(ctx, tx, list.ID, audit.AuditLogEventTypeUpdated, ddbwaitlists.WaitlistUpdatedServiceEventType); err != nil {
+	// The stored row's id rather than the argument's, for the reason payments' update
+	// gives: what is recorded is what was written.
+	if err = r.recordList(ctx, tx, result.ID, audit.AuditLogEventTypeUpdated, ddbwaitlists.WaitlistUpdatedServiceEventType); err != nil {
 		return nil, err
 	}
 

@@ -25,7 +25,6 @@ write, the entry and the event are one transaction and share one fate. The
 gap filed upstream as platform-go #465 is closed by that convention rather
 than by anything here, which is why this package has no workaround to
 delete.
-
 */
 package issuereports
 
@@ -61,7 +60,10 @@ func (r *repository) CreateReport(ctx context.Context, tx database.Tx, scope ten
 
 	tracing.AttachToSpan(span, issuereportkeys.IssueReportIDKey, report.ID)
 
-	if err = r.record(ctx, tx, report, audit.AuditLogEventTypeCreated, ddbissuereports.IssueReportCreatedServiceEventType); err != nil {
+	// The stored row, not the input. As of platform-go v14 the store answers with what it
+	// wrote and leaves the argument alone, so the input's id is still empty here — an entry
+	// recorded from it names no report, and so does the event a subscriber receives.
+	if err = r.record(ctx, tx, result, audit.AuditLogEventTypeCreated, ddbissuereports.IssueReportCreatedServiceEventType); err != nil {
 		return nil, err
 	}
 
@@ -83,7 +85,9 @@ func (r *repository) UpdateReport(ctx context.Context, tx database.Tx, scope ten
 
 	tracing.AttachToSpan(span, issuereportkeys.IssueReportIDKey, report.ID)
 
-	if err = r.record(ctx, tx, report, audit.AuditLogEventTypeUpdated, ddbissuereports.IssueReportUpdatedServiceEventType); err != nil {
+	// The stored row for the same reason, though this input does carry an id: what is
+	// recorded should be what was written, not what was asked for.
+	if err = r.record(ctx, tx, result, audit.AuditLogEventTypeUpdated, ddbissuereports.IssueReportUpdatedServiceEventType); err != nil {
 		return nil, err
 	}
 

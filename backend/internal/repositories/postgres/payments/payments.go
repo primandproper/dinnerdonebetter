@@ -115,7 +115,11 @@ func (r *repository) UpdateProduct(ctx context.Context, tx database.Tx, scope te
 
 	tracing.AttachToSpan(span, paymentskeys.ProductIDKey, product.ID)
 
-	if err = r.recordProduct(ctx, tx, product, audit.AuditLogEventTypeUpdated, ddbpayments.ProductUpdatedServiceEventType); err != nil {
+	// The stored row rather than the argument. Both carry an id here, so this is not a bug
+	// being fixed — it is the rule that stops one: what is recorded is what was written.
+	// issuereports recorded its argument and, once v14's store stopped writing into it,
+	// every entry and event it emitted named no report at all.
+	if err = r.recordProduct(ctx, tx, result, audit.AuditLogEventTypeUpdated, ddbpayments.ProductUpdatedServiceEventType); err != nil {
 		return nil, err
 	}
 
