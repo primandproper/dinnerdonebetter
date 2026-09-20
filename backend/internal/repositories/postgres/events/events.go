@@ -184,6 +184,12 @@ func (e *Emitter) dispatchWebhooks(ctx context.Context, q database.Tx, msg *audi
 	// subscriber and a queue consumer therefore see byte-identical bodies, and the bytes signed
 	// are the bytes sent — re-marshaling between dispatch and delivery is exactly how a
 	// signature comes to cover something other than the request body.
+	//
+	// It names a user, which makes a delivery row personal data this application put there:
+	// platform never interprets a payload and ships no privacy collector for webhooks, so the
+	// obligation is ours. It is discharged by retention rather than by collection — rows are
+	// reaped seven days after delivery, and the store offers no read that would enumerate them
+	// anyway. See docs/data-privacy.md, which states that rather than leaving it to be assumed.
 	payload, err := json.Marshal(msg)
 	if err != nil {
 		return platformerrors.Wrap(err, "marshaling webhook payload")

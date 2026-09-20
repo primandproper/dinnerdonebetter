@@ -56,9 +56,15 @@ const (
 	// CollectorKeyMealPlanning covers recipes, meals, meal plans, ingredient
 	// preferences, and ratings.
 	CollectorKeyMealPlanning = "meal_planning"
-	// CollectorKeyWebhooks covers the webhooks belonging to the subject's
-	// accounts.
-	CollectorKeyWebhooks = "webhooks"
+	// There is no webhooks key, and the absence is a ruling rather than a gap.
+	//
+	// Nothing in the webhooks domain names a person: an endpoint is a URL, a name,
+	// a set of event types and a signing key held in an account, and an attempt is
+	// the record of this deployment calling somebody's server. A collector over
+	// them returned an account's delivery configuration, which is not the subject's
+	// data — and registering one invited a reader to believe the subject's webhook
+	// data was covered. See platform-go's webhooks/doc.go, which carries the
+	// reasoning, and docs/data-privacy.md for the one obligation it leaves here.
 	// CollectorKeySettings covers user- and account-scoped setting
 	// configurations.
 	CollectorKeySettings = "settings"

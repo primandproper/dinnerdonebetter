@@ -52,7 +52,6 @@ inside one.
 | ----- | --------- | -------- |
 | `identity` | `identity/privacy` | The user, their accounts, invitations sent and received |
 | `meal_planning` | `mealplanning/privacy` | Recipes, meals, meal plans, ingredient preferences, ratings |
-| `webhooks` | `webhooks/privacy` | Webhooks, keyed by account |
 | `settings` | `settings/privacy` over platform-go's | The setting values the subject stored about themselves |
 | `notifications` | `notifications/privacy` | In-app notifications |
 | `payments` | `payments/privacy` over platform-go's `billing/privacy` | Subscriptions, purchases and payment transactions, in every account the subject appears in, archived rows included |
@@ -91,6 +90,37 @@ that is the failure these live in platform-go to prevent.
 The one hop that stays here is `CollectAcrossAccounts` in `internal/domain/dataprivacy`, because
 "a subject's data hangs off the accounts they belong to" is a fact about this schema rather than
 about subject access requests. It pages each account through `CollectAll` and concatenates.
+
+### Webhooks are not collected, and that is a decision
+
+There is no `webhooks` collector. There was one — it returned an account's endpoints, keyed by
+account — and platform-go's ruling is that it should not have existed: nothing in the webhooks
+domain names a person. An endpoint is a URL, a name, a set of event types and a signing key held
+in an account; an attempt is the record of this deployment calling somebody's server. Returning
+those in a subject access request answered a question the subject did not ask, and worse, it made
+the export *look* like it covered their webhook data. `webhooks/doc.go` upstream carries the
+reasoning.
+
+What that ruling leaves here is one obligation, and it is live rather than theoretical. A
+delivery's `Payload` is our bytes — platform never interprets it — and ours is the
+`audit.DataChangeMessage` the broker carries, which **names the user who caused the change** in
+its `userID` field. So webhook delivery rows do hold personal data, put there by this
+application.
+
+They are not collected, for two reasons stated rather than assumed:
+
+- **Retention is the answer.** Delivered dispatches and their attempts are reaped seven days
+  after delivery (platform's `DefaultRetention`, which `buildWebhooksConfig` does not override).
+  A delivery row is a transient record of a fan-out, not a system of record.
+- **The surface does not permit collection anyway.** `webhooks.Store` has no read that enumerates
+  deliveries: `ListAttempts` needs a delivery id and nothing hands one out, and `Claim` is the
+  worker's path. A consumer that wanted to discharge this obligation over the store as it stands
+  could not. That is worth knowing if the retention answer ever stops being good enough — it
+  would need a platform change, not a local collector.
+
+The underlying data a payload describes is collected: every payload is *about* a row some other
+domain's collector already returns. What is uncollected is the second copy sitting in the
+delivery queue for up to a week.
 
 ## Erasers: what a deletion removes
 
