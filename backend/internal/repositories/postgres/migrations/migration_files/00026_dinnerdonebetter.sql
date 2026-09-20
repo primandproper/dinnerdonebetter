@@ -1,16 +1,23 @@
+-- Dinner Done Better's own schema.
+--
+-- Everything in this file is meal planning, or one of the four small tables that hang
+-- off it. Everything this application used to keep beside it — sessions, webhooks,
+-- settings, notifications, waitlists, issue reports, comments, payments, the OAuth2
+-- client registry, the upload registry, the authorization policy — is platform's, and
+-- is rendered by the migrator from the platform's own DDL rather than restated here.
+--
+-- It runs after that rendering, which is what lets the foreign keys below name the
+-- platform tables directly. The schema this replaces created its own versions of those
+-- tables first and then spent later migrations dropping them and re-pointing the keys;
+-- nothing was ever deployed, so there is no history worth keeping and a first deploy
+-- gets the shape rather than the journey.
+
 -- Meal Planning Domain Migration
 -- All recipe, meal, and meal planning functionality
 
 -- =============================================================================
 -- ENUMERATED TYPES
 -- =============================================================================
-
--- Extend the core comment_target_type enum (defined in the comments migration)
--- with meal-planning target types. Done here so the comments domain remains
--- standalone if the meal planning migration is removed.
-ALTER TYPE comment_target_type ADD VALUE IF NOT EXISTS 'meals';
-ALTER TYPE comment_target_type ADD VALUE IF NOT EXISTS 'recipes';
-ALTER TYPE comment_target_type ADD VALUE IF NOT EXISTS 'meal_plans';
 
 CREATE TYPE component_type AS ENUM (
     'unspecified',
@@ -662,8 +669,31 @@ CREATE TABLE IF NOT EXISTS meal_plans (
     grocery_list_initialized BOOLEAN DEFAULT FALSE NOT NULL,
     tasks_created BOOLEAN DEFAULT FALSE NOT NULL,
     election_method valid_election_method DEFAULT 'schulze'::valid_election_method NOT NULL,
-    created_by_user TEXT NOT NULL REFERENCES users("id") ON DELETE CASCADE
+    created_by_user TEXT NOT NULL REFERENCES users("id") ON DELETE CASCADE,
+    -- What makes starting a finalization saga idempotent: the job that starts them
+    -- selects plans with no saga attached, and the attach happens in the same
+    -- transaction as the instance row.
+    --
+    -- grocery_list_initialized and tasks_created above stayed when this arrived. They
+    -- stopped being the coordinator and became per-step idempotency guards, each written
+    -- in the same transaction as the work it describes — a stronger guarantee than the
+    -- saga's own idempotency keys can offer for a step that writes to this database.
+    finalization_saga_id TEXT
 );
+
+-- One saga per plan, enforced rather than assumed. The attach is a conditional UPDATE that
+-- rolls the instance row back when it matches nothing, so this index is the backstop for the
+-- case that predicate cannot see: two transactions attaching different sagas at once.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_meal_plans_finalization_saga_id
+    ON meal_plans (finalization_saga_id)
+    WHERE finalization_saga_id IS NOT NULL;
+
+-- Serves the starter's predicate. Partial on "no saga yet", which is the whole of the working
+-- set: a plan gets a saga once and keeps it, so the index tracks the plans still waiting
+-- rather than every plan the system has ever finalized.
+CREATE INDEX IF NOT EXISTS idx_meal_plans_awaiting_finalization_saga
+    ON meal_plans (status, voting_deadline)
+    WHERE archived_at IS NULL AND finalization_saga_id IS NULL;
 
 
 CREATE TABLE IF NOT EXISTS meal_plan_events (
@@ -803,7 +833,7 @@ CREATE TABLE IF NOT EXISTS recipe_list_items (
 CREATE TABLE IF NOT EXISTS recipe_images (
     id TEXT NOT NULL PRIMARY KEY,
     belongs_to_recipe TEXT NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
-    uploaded_media_id TEXT NOT NULL REFERENCES uploaded_media(id) ON DELETE CASCADE,
+    uploaded_media_id TEXT NOT NULL REFERENCES ddb_uploads_objects(id) ON DELETE CASCADE,
     uploaded_by_user TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     archived_at TIMESTAMP WITH TIME ZONE
@@ -812,22 +842,10 @@ CREATE TABLE IF NOT EXISTS recipe_images (
 CREATE TABLE IF NOT EXISTS meal_images (
     id TEXT NOT NULL PRIMARY KEY,
     belongs_to_meal TEXT NOT NULL REFERENCES meals(id) ON DELETE CASCADE,
-    uploaded_media_id TEXT NOT NULL REFERENCES uploaded_media(id) ON DELETE CASCADE,
+    uploaded_media_id TEXT NOT NULL REFERENCES ddb_uploads_objects(id) ON DELETE CASCADE,
     uploaded_by_user TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     archived_at TIMESTAMP WITH TIME ZONE
-);
-
--- Add user_temperature_unit service setting (celsius vs fahrenheit, default fahrenheit)
-INSERT INTO service_settings (id, name, type, description, default_value, enumeration, admins_only)
-VALUES (
-   'd6me6i4n9qd3gcf5j1p0',
-   'user_temperature_unit',
-   'user',
-   'Preferred unit for displaying temperatures (e.g. oven, storage)',
-   'fahrenheit',
-   'celsius|fahrenheit',
-   false
 );
 
 
@@ -1116,7 +1134,7 @@ CREATE TABLE IF NOT EXISTS preparation_media (
     id TEXT NOT NULL PRIMARY KEY,
     valid_preparation_id TEXT NOT NULL REFERENCES valid_preparations(id) ON DELETE CASCADE,
     for_ingredient_id TEXT REFERENCES valid_ingredients(id) ON DELETE CASCADE,
-    uploaded_media_id TEXT NOT NULL REFERENCES uploaded_media(id) ON DELETE CASCADE,
+    uploaded_media_id TEXT NOT NULL REFERENCES ddb_uploads_objects(id) ON DELETE CASCADE,
     index INTEGER DEFAULT 0 NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
     archived_at TIMESTAMP WITH TIME ZONE,
@@ -1126,7 +1144,7 @@ CREATE TABLE IF NOT EXISTS preparation_media (
 CREATE TABLE IF NOT EXISTS ingredient_media (
     id TEXT NOT NULL PRIMARY KEY,
     valid_ingredient_id TEXT NOT NULL REFERENCES valid_ingredients(id) ON DELETE CASCADE,
-    uploaded_media_id TEXT NOT NULL REFERENCES uploaded_media(id) ON DELETE CASCADE,
+    uploaded_media_id TEXT NOT NULL REFERENCES ddb_uploads_objects(id) ON DELETE CASCADE,
     index INTEGER DEFAULT 0 NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
     archived_at TIMESTAMP WITH TIME ZONE,
@@ -1136,7 +1154,7 @@ CREATE TABLE IF NOT EXISTS ingredient_media (
 CREATE TABLE IF NOT EXISTS recipe_step_images (
     id TEXT NOT NULL PRIMARY KEY,
     belongs_to_recipe_step TEXT NOT NULL REFERENCES recipe_steps(id) ON DELETE CASCADE,
-    uploaded_media_id TEXT NOT NULL REFERENCES uploaded_media(id) ON DELETE CASCADE,
+    uploaded_media_id TEXT NOT NULL REFERENCES ddb_uploads_objects(id) ON DELETE CASCADE,
     uploaded_by_user TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
     archived_at TIMESTAMP WITH TIME ZONE
@@ -1148,3 +1166,51 @@ CREATE INDEX idx_preparation_media_ingredient ON preparation_media (for_ingredie
 CREATE INDEX idx_ingredient_media_ingredient ON ingredient_media (valid_ingredient_id) WHERE archived_at IS NULL;
 
 CREATE INDEX idx_recipe_step_images_step ON recipe_step_images (belongs_to_recipe_step) WHERE archived_at IS NULL;
+
+-- =============================================================================
+-- AVATARS
+-- =============================================================================
+
+-- Which of a user's uploaded objects is the one on show.
+--
+-- The registry says an object belongs to somebody; it does not say which of their
+-- objects is their avatar, and that is what this answers. It is the last row of the
+-- uploaded_media table this application used to own, and the only one that had no
+-- counterpart in the registry that replaced it.
+CREATE TABLE IF NOT EXISTS user_avatars (
+    id TEXT NOT NULL PRIMARY KEY,
+    belongs_to_user TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    uploaded_media_id TEXT NOT NULL REFERENCES ddb_uploads_objects(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    archived_at TIMESTAMP WITH TIME ZONE,
+    UNIQUE(belongs_to_user, archived_at)
+);
+
+-- WebAuthn Credentials Migration
+-- Passkey (WebAuthn/FIDO2) credential storage for passwordless authentication
+
+CREATE TABLE IF NOT EXISTS webauthn_credentials (
+    id TEXT NOT NULL PRIMARY KEY,
+    belongs_to_user TEXT NOT NULL REFERENCES users("id") ON DELETE CASCADE,
+    credential_id BYTEA NOT NULL,
+    public_key BYTEA NOT NULL,
+    sign_count INTEGER NOT NULL DEFAULT 0,
+    transports TEXT DEFAULT ''::TEXT NOT NULL,
+    friendly_name TEXT DEFAULT ''::TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    last_used_at TIMESTAMP WITH TIME ZONE,
+    archived_at TIMESTAMP WITH TIME ZONE
+);
+
+CREATE UNIQUE INDEX idx_webauthn_credentials_credential_id_active
+    ON webauthn_credentials (credential_id)
+    WHERE archived_at IS NULL;
+
+CREATE INDEX idx_webauthn_credentials_user ON webauthn_credentials (belongs_to_user) WHERE archived_at IS NULL;
+
+CREATE TABLE IF NOT EXISTS queue_test_messages (
+    id TEXT NOT NULL PRIMARY KEY,
+    queue_name TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    acknowledged_at TIMESTAMP WITH TIME ZONE DEFAULT NULL
+);

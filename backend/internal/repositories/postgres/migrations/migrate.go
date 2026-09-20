@@ -78,29 +78,28 @@ const lockKey = "dinnerdonebetter"
 // filename and must never be renumbered once applied. Adding another means taking the next
 // free number, whichever side it comes from.
 const (
-	outboxMigrationVersion          = 22
-	sagaMigrationVersion            = 24
-	webhooksMigrationVersion        = 25
-	auditMigrationVersion           = 27
-	dataPrivacyMigrationVersion     = 28
-	meteringMigrationVersion        = 30
-	operationsMigrationVersion      = 31
-	webauthnMigrationVersion        = 32
-	oauth2MigrationVersion          = 33
-	passwordResetMigrationVersion   = 34
-	sessionsMigrationVersion        = 35
-	workQueueMigrationVersion       = 36
-	commentsMigrationVersion        = 37
-	uploadsRegistryMigrationVersion = 38
-	issueReportsMigrationVersion    = 39
-	waitlistsMigrationVersion       = 40
-	settingsMigrationVersion        = 41
-	authorizationMigrationVersion   = 42
-	billingMigrationVersion         = 43
-	notificationsMigrationVersion   = 44
-	webhooksModelMigrationVersion   = 45
-	oauth2ClientsMigrationVersion   = 46
-	identityMigrationVersion        = 47
+	outboxMigrationVersion          = 2
+	sagaMigrationVersion            = 3
+	webhooksMigrationVersion        = 4
+	auditMigrationVersion           = 5
+	dataPrivacyMigrationVersion     = 6
+	meteringMigrationVersion        = 7
+	operationsMigrationVersion      = 8
+	webauthnMigrationVersion        = 9
+	oauth2MigrationVersion          = 10
+	passwordResetMigrationVersion   = 11
+	sessionsMigrationVersion        = 12
+	workQueueMigrationVersion       = 13
+	commentsMigrationVersion        = 14
+	uploadsRegistryMigrationVersion = 15
+	issueReportsMigrationVersion    = 16
+	waitlistsMigrationVersion       = 17
+	settingsMigrationVersion        = 18
+	authorizationMigrationVersion   = 19
+	billingMigrationVersion         = 20
+	notificationsMigrationVersion   = 21
+	oauth2ClientsMigrationVersion   = 22
+	identityMigrationVersion        = 23
 )
 
 // NewMigrator creates a new postgres Migrator over the embedded migration files.
@@ -292,8 +291,7 @@ func NewMigrator(logger logging.Logger) (*Migrator, error) {
 		migrate.WithGeneratedMigration(authorizationMigrationVersion, "create_authorization_tables", authorizationDDL),
 		migrate.WithGeneratedMigration(billingMigrationVersion, "create_billing_tables", billingDDL),
 		migrate.WithGeneratedMigration(notificationsMigrationVersion, "create_notifications_tables", notificationsDDL),
-		migrate.WithGeneratedMigration(webhooksModelMigrationVersion, "drop_local_webhook_tables", dropLocalWebhookTables),
-		migrate.WithGeneratedMigration(oauth2ClientsMigrationVersion, "adopt_oauth2_registered_clients", oauth2ClientsDDL+dropLocalOAuth2ClientsTable),
+		migrate.WithGeneratedMigration(oauth2ClientsMigrationVersion, "adopt_oauth2_registered_clients", oauth2ClientsDDL),
 		migrate.WithGeneratedMigration(identityMigrationVersion, "create_identity_tables", identityDDL),
 	)
 	if err != nil {
@@ -445,10 +443,6 @@ func renderAuthorizationDDL() (string, error) {
 	rolesTable := ddl.Qualify(authorization.TablePrefix) + "authz_roles"
 
 	body := &strings.Builder{}
-	body.WriteString("DROP TABLE IF EXISTS user_role_permissions;\n")
-	body.WriteString("DROP TABLE IF EXISTS user_role_hierarchy;\n")
-	body.WriteString("DROP TABLE IF EXISTS permissions;\n")
-	body.WriteString("DROP TABLE IF EXISTS user_roles CASCADE;\n\n")
 	body.WriteString(schema)
 	body.WriteString("\n\nALTER TABLE user_role_assignments\n\tADD CONSTRAINT user_role_assignments_role_fk\n\tFOREIGN KEY (role_name) REFERENCES " + rolesTable + "(name) ON DELETE RESTRICT;\n")
 
@@ -513,8 +507,6 @@ func renderBillingDDL() (string, error) {
 	qualified := ddl.Qualify(ddbpayments.TablePrefix)
 
 	body := &strings.Builder{}
-	body.WriteString("DROP TABLE IF EXISTS payment_transactions;\nDROP TABLE IF EXISTS purchases;\nDROP TABLE IF EXISTS subscriptions;\nDROP TABLE IF EXISTS products;\n")
-	body.WriteString("DROP TYPE IF EXISTS payment_transaction_status;\nDROP TYPE IF EXISTS subscription_status;\nDROP TYPE IF EXISTS product_kind;\n\n")
 	body.WriteString(schema)
 
 	for _, owned := range billingTablesOwnedByAccounts {
@@ -568,7 +560,6 @@ func renderIssueReportsDDL() (string, error) {
 	table := ddl.Qualify(ddbissuereports.TablePrefix) + "issue_reports"
 
 	body := &strings.Builder{}
-	body.WriteString("DROP TABLE IF EXISTS issue_reports;\n\n")
 	body.WriteString(schema)
 	body.WriteString("\n\nALTER TABLE " + table + "\n\tADD CONSTRAINT " + table + "_reporter_fk\n\tFOREIGN KEY (reporter) REFERENCES users(id) ON DELETE CASCADE;\n")
 	body.WriteString("\nALTER TABLE " + table + "\n\tADD CONSTRAINT " + table + "_scope_fk\n\tFOREIGN KEY (scope) REFERENCES accounts(id) ON DELETE CASCADE;\n")
@@ -614,7 +605,7 @@ func renderWaitlistsDDL() (string, error) {
 
 	// Signups first: the old signup table references the old list table, and
 	// Postgres will not drop a table out from under a foreign key.
-	return "DROP TABLE IF EXISTS waitlist_signups;\nDROP TABLE IF EXISTS waitlists;\n\n" + schema, nil
+	return schema, nil
 }
 
 // renderSettingsDDL renders the three settings tables, dropping the two
@@ -670,7 +661,6 @@ func renderSettingsDDL() (string, error) {
 	// Configurations first: the old configuration table references the old
 	// settings table, and Postgres will not drop a table out from under a
 	// foreign key. The enum follows both, for the same reason.
-	body.WriteString("DROP TABLE IF EXISTS service_setting_configurations;\nDROP TABLE IF EXISTS service_settings;\nDROP TYPE IF EXISTS setting_type;\n\n")
 	body.WriteString(schema)
 	body.WriteString("\n\nALTER TABLE " + values + "\n\tADD CONSTRAINT " + values + "_subject_fk\n\tFOREIGN KEY (subject_id) REFERENCES users(id) ON DELETE CASCADE;\n")
 
@@ -718,7 +708,7 @@ func renderCommentsDDL() (string, error) {
 		return "", errors.Wrap(err, "rendering comments migration")
 	}
 
-	return "DROP TABLE IF EXISTS comments;\nDROP TYPE IF EXISTS comment_target_type;\n\n" + schema, nil
+	return schema, nil
 }
 
 // renderPasswordResetDDL renders the password reset token table, dropping the one
@@ -740,7 +730,7 @@ func renderPasswordResetDDL() (string, error) {
 		return "", errors.Wrap(err, "rendering password reset token migration")
 	}
 
-	return "DROP TABLE IF EXISTS password_reset_tokens;\n\n" + schema, nil
+	return schema, nil
 }
 
 // renderSessionsDDL renders the session table, dropping the one 00018_user_sessions.sql
@@ -767,7 +757,7 @@ func renderSessionsDDL() (string, error) {
 		return "", errors.Wrap(err, "rendering sessions migration")
 	}
 
-	return "DROP TABLE IF EXISTS user_sessions;\n\n" + schema, nil
+	return schema, nil
 }
 
 // renderWebAuthnDDL renders the passkey ceremony session table, dropping the one this
@@ -784,7 +774,7 @@ func renderWebAuthnDDL() (string, error) {
 		return "", errors.Wrap(err, "rendering webauthn session migration")
 	}
 
-	return "DROP TABLE IF EXISTS webauthn_sessions;\n\n" + schema, nil
+	return schema, nil
 }
 
 // renderAuditDDL renders the audit tables and the triggers that make them
@@ -825,21 +815,6 @@ func renderAuditDDL() (string, error) {
 	}
 
 	return body.String(), nil
-}
-
-// bridgeTablesReferencingUploadedMedia are this application's tables whose
-// uploaded_media_id column names a row in the upload registry.
-//
-// They are listed rather than derived because nothing can derive them: the
-// registry has never heard of them, which is the whole point of a package that
-// can be adopted by an application whose schema it does not know.
-var bridgeTablesReferencingUploadedMedia = []string{
-	"user_avatars",
-	"recipe_images",
-	"meal_images",
-	"recipe_step_images",
-	"ingredient_media",
-	"preparation_media",
 }
 
 // renderUploadsRegistryDDL renders the upload registry table, dropping the
@@ -892,14 +867,9 @@ func renderUploadsRegistryDDL() (string, error) {
 	table := ddl.Qualify(ddbuploadedmedia.TablePrefix) + "uploads_objects"
 
 	body := &strings.Builder{}
-	body.WriteString("DROP TABLE IF EXISTS uploaded_media CASCADE;\nDROP TYPE IF EXISTS uploaded_media_mime_type;\n\n")
 
 	body.WriteString(schema)
 	body.WriteString("\n\nALTER TABLE " + table + "\n\tADD CONSTRAINT " + table + "_owner_fk\n\tFOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE;\n")
-
-	for _, bridge := range bridgeTablesReferencingUploadedMedia {
-		body.WriteString("\nALTER TABLE " + bridge + "\n\tADD CONSTRAINT " + bridge + "_uploaded_media_fk\n\tFOREIGN KEY (uploaded_media_id) REFERENCES " + table + "(id) ON DELETE CASCADE;\n")
-	}
 
 	return body.String(), nil
 }
@@ -949,51 +919,9 @@ func renderNotificationsDDL() (string, error) {
 
 	body := &strings.Builder{}
 
-	body.WriteString("DROP TABLE IF EXISTS user_device_tokens;\nDROP TABLE IF EXISTS user_notifications;\nDROP TYPE IF EXISTS user_notification_status;\n\n")
 	body.WriteString(schema)
 	body.WriteString("\n\nALTER TABLE " + inbox + "\n\tADD CONSTRAINT " + inbox + "_principal_fk\n\tFOREIGN KEY (principal) REFERENCES users(id) ON DELETE CASCADE;\n")
 	body.WriteString("\nALTER TABLE " + devices + "\n\tADD CONSTRAINT " + devices + "_principal_fk\n\tFOREIGN KEY (principal) REFERENCES users(id) ON DELETE CASCADE;\n")
 
 	return body.String(), nil
 }
-
-// dropLocalWebhookTables removes the three tables that were the webhook model
-// before platform's endpoints became it.
-//
-// webhooks, webhook_trigger_configs and webhook_trigger_events ran in parallel
-// with webhooks_endpoints and webhooks_subscriptions, joined by a shared
-// identifier: the local rows were what the API called a webhook and the
-// platform rows were what actually delivered. There is one model now.
-//
-// Nothing is carried across. The endpoints already exist — this application has
-// registered one for every webhook since the dispatcher was adopted — so the
-// rows these tables held are the same rows under other names, and the one column
-// that has no counterpart was already inert. webhooks.method was validated on
-// every write and echoed on every read while delivery went through a dispatcher
-// that posts, so a client asking for PUT was told PUT and sent POST.
-//
-// The configs table goes before the webhooks table it references, and the events
-// table after both: Postgres will not drop a table out from under a foreign key.
-const dropLocalWebhookTables = `DROP TABLE IF EXISTS webhook_trigger_configs;
-DROP TABLE IF EXISTS webhooks;
-DROP TABLE IF EXISTS webhook_trigger_events;
-DROP TYPE IF EXISTS webhook_method;
-DROP TYPE IF EXISTS webhook_content_type;
-`
-
-// dropLocalOAuth2ClientsTable removes the registry that ran before platform's became it.
-//
-// Nothing is carried across, and that is a decision rather than an omission. A row here is
-// a client_id and the SHA-256 digest of a secret, and both survive a move unchanged — but
-// the two columns platform adds have no honest value to fill in for an existing row.
-// scope and belongs_to_user are what Client.Admits reads, and every registration this table
-// holds was minted by an operator to speak for the service on behalf of whoever signs in,
-// which is the global registry naming no owner: exactly the pair of empty strings a copy
-// would have written. Nothing is deployed, so the rows are the integration suite's and the
-// local stack's, and re-registering is one call.
-//
-// It goes after the CREATE, in the same migration, because the drop is only correct once
-// the table replacing it exists.
-const dropLocalOAuth2ClientsTable = `
-DROP TABLE IF EXISTS oauth2_clients;
-`

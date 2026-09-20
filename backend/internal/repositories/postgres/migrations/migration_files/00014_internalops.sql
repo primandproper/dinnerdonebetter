@@ -1,6 +1,0 @@
-CREATE TABLE IF NOT EXISTS queue_test_messages (
-    id TEXT NOT NULL PRIMARY KEY,
-    queue_name TEXT NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-    acknowledged_at TIMESTAMP WITH TIME ZONE DEFAULT NULL
-);
