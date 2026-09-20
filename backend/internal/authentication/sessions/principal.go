@@ -94,3 +94,52 @@ func GrantsFromContext(ctx context.Context) (platformauthz.Grants, bool) {
 
 	return platformauthz.NewGrants(sets...), true
 }
+
+// AccountScopedPrincipal is Principal for a surface whose rows belong to an
+// account rather than to the deployment.
+//
+// It exists because callers.Principal.Scope answers for the surface being
+// called, not for the caller, and this application's domains do not agree on
+// one tenancy. Comments, settings, waitlists and uploaded media are global — a
+// recipe's discussion reads the same for everybody, and scoping it per account
+// would make one recipe's comments depend on who was looking. Issue reports are
+// their account's, and that scoping is what closed a member-visible leak.
+//
+// Wiring the wrong one is not a compile error and not a test failure unless the
+// test spans two accounts: a global principal handed to an account-scoped
+// surface files every account's rows under the global scope and serves all of
+// them to everybody. So the two are named separately, and a surface's wiring
+// says which it is.
+type AccountScopedPrincipal struct {
+	_ struct{} `json:"-"`
+
+	data *ContextData
+}
+
+var _ callers.Principal = (*AccountScopedPrincipal)(nil)
+
+// UserID is the calling user.
+func (p *AccountScopedPrincipal) UserID() string { return p.data.GetUserID() }
+
+// Scope is the account the request is against.
+//
+// tenancy.Of refuses to name nobody, so a caller with no active account yields
+// the zero Scope, which every platform read refuses rather than widening to
+// every tenant.
+func (p *AccountScopedPrincipal) Scope() tenancy.Scope {
+	return tenancy.Of(p.data.GetActiveAccountID())
+}
+
+// ActiveAccountID is the account this request is against.
+func (p *AccountScopedPrincipal) ActiveAccountID() string { return p.data.GetActiveAccountID() }
+
+// AccountScopedPrincipalFromContext is the callers.PrincipalExtractor for
+// surfaces whose rows belong to an account.
+func AccountScopedPrincipalFromContext(ctx context.Context) (callers.Principal, bool) {
+	data := FromContext(ctx)
+	if data == nil || data.GetUserID() == "" {
+		return nil, false
+	}
+
+	return &AccountScopedPrincipal{data: data}, true
+}
