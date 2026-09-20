@@ -17,6 +17,7 @@ import (
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
 	"github.com/primandproper/platform-go/v14/mediaregistry"
+	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/fake"
 	"github.com/primandproper/primitives-go/v2/filtering"
 	"github.com/primandproper/primitives-go/v2/identifiers"
@@ -118,14 +119,22 @@ func TestQuerier_Integration_Users(t *testing.T) {
 	// The object goes through the registry rather than an INSERT of this package's
 	// own, because the table is platform-go's now: user_avatars holds the id and the
 	// row it names is read back through the store — which is the read this asserts on.
-	avatarObject := &mediaregistry.Object{
+	avatarInput := mediaregistry.ObjectInput{
 		ID:          fake.BuildFakeID(),
-		Scope:       uploadedmedia.Scope(),
 		ContentType: uploadedmedia.MimeTypeImagePNG,
 		OwnerID:     firstUser.ID,
 	}
-	avatarObject.Key = "avatars/" + avatarObject.ID + ".png"
-	require.NoError(t, dbc.uploads.RecordObject(ctx, avatarObject))
+	avatarInput.Key = "avatars/" + avatarInput.ID + ".png"
+
+	// The scope is an argument to the write rather than a field on what is written, as of
+	// platform-go v14, and the write takes the caller's transaction.
+	var avatarObject *mediaregistry.Object
+	require.NoError(t, dbc.WithTransaction(ctx, func(tx database.Tx) error {
+		var recordErr error
+		avatarObject, recordErr = dbc.uploads.RecordObject(ctx, tx, uploadedmedia.Scope(), avatarInput)
+
+		return recordErr
+	}))
 
 	assert.NoError(t, dbc.SetUserAvatar(ctx, firstUser.ID, avatarObject.ID))
 	firstUser, err = dbc.GetUser(ctx, firstUser.ID)
