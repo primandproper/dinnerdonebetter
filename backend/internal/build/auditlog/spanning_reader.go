@@ -2,7 +2,6 @@ package auditlog
 
 import (
 	"context"
-	"sort"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 
@@ -12,84 +11,61 @@ import (
 	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
-// spanningReader reads a caller's two chains as one.
+// spanningReader covers the two reads platform's chains resolver does not.
 //
-// This application files an entry under its account when it has one and under its actor
-// otherwise — see audit.ScopeFor, and the row lock that reasoning is about. A signed-in
-// caller therefore belongs to two chains at once: their account's, and their own, which is
-// where a login, a signup and a password reset land because none of those happens inside an
-// account.
+// It used to merge the paged list as well. platform does that now — see callerChains and
+// audit/grpc.WithChainsResolver — and it does it in the one place the set of chains is
+// derivable, with one cursor across all of them. Two things are left over.
 //
-// platform's read takes one scope. audit.Query.Scope is a *tenancy.Scope with three
-// readings — nil narrows nothing, a scope narrows to it, and the zero value is refused —
-// and there is no fourth for "these two". So a caller reading over the wire saw their
-// account's entries and never their own, which is the half a person asking "what happened
-// to my account" most wants.
+// The first is Get. It still takes the single scope the connection resolved, so a caller
+// who finds an entry of their own in a list and then asks for it by id would be told it
+// does not exist. The list and the get disagreeing about which chains somebody belongs to
+// is the gap this closes.
 //
-// This reads both and merges. It is not the right place for this to live: the fix upstream
-// is one predicate, `scope = ANY($1)` in place of `scope = $1`, and it needs no new cursor
-// semantics because the paged list already orders and pages by id rather than by seq. Filed;
-// this deletes when it lands.
+// The second is the operator. platform's reader has the read — a nil query scope narrows
+// nothing — and its surface declines to use it, because that surface "has no operator".
+// This deployment has one, and a service administrator investigating an account they are
+// not a member of otherwise reads an empty window. A ChainsResolver cannot express it:
+// every chain in the deployment is not a slice anybody can enumerate.
 type spanningReader struct {
 	platformaudit.Reader
 }
 
-// List reads the resolved scope and the caller's own chain, and merges them.
+// List widens a service administrator's read to every chain.
 //
-// The merge is exact rather than approximate, and it is the id cursor that makes it so.
-// Both sub-reads answer with "the n rows past this cursor, in this scope, in id order", so
-// the n smallest of the union are among the 2n returned — taking n after a merge-sort is
-// the same page the union would have produced. The cursor to follow it is the last row's
-// id, which is what the merged result carries.
+// One read rather than a merge, because nil is already every chain. Everybody else is
+// untouched: callerChains has already told the server which scopes to ask for, and this is
+// called once per chain with each of them.
 //
-// The counts add, which is worth saying because the first version of this withheld them.
-// FilteredCount and TotalCount describe the collection a page was cut from rather than the
-// page — they do not shrink as a caller walks it — and an entry lives in exactly one chain,
-// so two disjoint scopes summed are the count the union would have reported.
-//
-// Gated on both sides having answered, though, and that is not pedantry. A querygen store
-// carries its counts on the rows, so a sub-read that comes back empty has none to carry and
-// says so with CountsKnown rather than with a zero. Adding that zero in would report a
-// total short by an entire chain, and it would look right in every test that does not page
-// to the end of one.
+// The grant cannot decide this. ReadAuditLogEntriesPermission is an account member's,
+// because a member reading their own account's log is the ordinary case — so it says
+// whether this kind of call is allowed at all, and how wide it reaches is asked here, of
+// the session, after the query is built and before any row is read. It is the division
+// waitlists draws between PermissionReadSignups and AuthorizeSubjectRead.
 func (r spanningReader) List(
 	ctx context.Context,
 	q database.SQLQueryExecutor,
 	query *platformaudit.Query,
 	filter *filtering.QueryFilter,
 ) (*filtering.QueryFilteredResult[platformaudit.Entry], error) {
-	if across, ok := everyChain(ctx, query); ok {
-		return r.Reader.List(ctx, q, across, filter)
-	}
-
-	own, ok := r.ownChain(ctx, query)
-	if !ok {
+	if query == nil || query.Scope == nil || !isServiceAdmin(ctx) {
 		return r.Reader.List(ctx, q, query, filter)
-	}
-
-	resolved, err := r.Reader.List(ctx, q, query, filter)
-	if err != nil {
-		return nil, err
 	}
 
 	// A copy, because the query belongs to the handler that built it and a scope written
 	// through it would outlive this call.
-	mine := *query
-	mine.Scope = &own
+	across := *query
+	across.Scope = nil
 
-	actor, err := r.Reader.List(ctx, q, &mine, filter)
-	if err != nil {
-		return nil, err
-	}
-
-	return mergePages(resolved, actor, filter), nil
+	return r.Reader.List(ctx, q, &across, filter)
 }
 
-// Get reads one entry from either chain.
+// Get reads one entry from either of the caller's chains, or from any chain for an operator.
 //
-// Two reads rather than one unscoped read. A nil scope is "every tenant" here, and handing
-// that to a caller's read is the cross-tenant disclosure the pointer exists to prevent —
-// so each chain is asked for the entry by name, and an entry in neither is not found.
+// Two reads rather than one unscoped read, for everybody but the operator. A nil scope is
+// every tenant here, and handing that to a caller's read is the cross-tenant disclosure the
+// pointer exists to prevent — so each chain is asked for the entry by name, and an entry in
+// neither is not found.
 func (r spanningReader) Get(
 	ctx context.Context,
 	q database.SQLQueryExecutor,
@@ -105,7 +81,7 @@ func (r spanningReader) Get(
 		return entry, nil
 	}
 
-	own, ok := r.ownChainScope(ctx)
+	own, ok := ownChainScope(ctx)
 	if !ok || (scope != nil && *scope == own) {
 		return nil, err
 	}
@@ -115,64 +91,8 @@ func (r spanningReader) Get(
 	return r.Reader.Get(ctx, q, &own, id)
 }
 
-// everyChain answers with the operator's read — every chain in the deployment — when the
-// caller is a service administrator.
-//
-// platform's reader already has this: Query.Scope is a *tenancy.Scope in which nil "narrows
-// nothing", and its own gRPC surface documents that it never passes nil because it "has no
-// operator". This deployment has one, so the decision is made here, where the session is.
-//
-// It is the same division the two surfaces adopted alongside this one draw. A grant on the
-// method says whether this kind of call is allowed at all — ReadAuditLogEntriesPermission is
-// an account member's, because a member reading their own account's log is the ordinary
-// case — and it cannot say which chains. Which chains is asked here, of the session, after
-// the query is built and before any row is read.
-//
-// Without it a service administrator investigating somebody else's account reads an empty
-// window, since ScopeFor files an entry under its account and an admin is not a member of
-// the account they are investigating. That is not a narrower answer than the log can give;
-// it is the one question an audit log exists to answer going unanswerable over the wire,
-// with the privacy export — a subject's own read of their own data — as the only remaining
-// path to it.
-//
-// The query is copied rather than written through, for List's reason: it belongs to the
-// handler that built it.
-func everyChain(ctx context.Context, query *platformaudit.Query) (*platformaudit.Query, bool) {
-	if query == nil || query.Scope == nil || !isServiceAdmin(ctx) {
-		return nil, false
-	}
-
-	across := *query
-	across.Scope = nil
-
-	return &across, true
-}
-
-// isServiceAdmin reports whether the session holds the service administrator role.
-func isServiceAdmin(ctx context.Context) bool {
-	return sessions.FromContext(ctx).GetServicePermissions().IsServiceAdmin()
-}
-
-// ownChain answers with the caller's own chain when it is worth a second read.
-func (r spanningReader) ownChain(ctx context.Context, query *platformaudit.Query) (tenancy.Scope, bool) {
-	own, ok := r.ownChainScope(ctx)
-	switch {
-	case !ok:
-		return tenancy.Scope{}, false
-	// Nil already spans every chain, so there is nothing to add and adding it would narrow.
-	case query == nil || query.Scope == nil:
-		return tenancy.Scope{}, false
-	// The resolved scope is already the caller's own, which is what an account-less session
-	// reads. A second identical read would double every row.
-	case *query.Scope == own:
-		return tenancy.Scope{}, false
-	default:
-		return own, true
-	}
-}
-
 // ownChainScope is the chain this caller's account-less events are filed under: their own.
-func (r spanningReader) ownChainScope(ctx context.Context) (tenancy.Scope, bool) {
+func ownChainScope(ctx context.Context) (tenancy.Scope, bool) {
 	userID := sessions.FromContext(ctx).GetUserID()
 	if userID == "" {
 		return tenancy.Scope{}, false
@@ -181,46 +101,7 @@ func (r spanningReader) ownChainScope(ctx context.Context) (tenancy.Scope, bool)
 	return tenancy.Of(userID), true
 }
 
-// mergePages interleaves two id-ordered pages and keeps the first page's worth.
-func mergePages(
-	first, second *filtering.QueryFilteredResult[platformaudit.Entry],
-	filter *filtering.QueryFilter,
-) *filtering.QueryFilteredResult[platformaudit.Entry] {
-	merged := make([]*platformaudit.Entry, 0, len(first.Data)+len(second.Data))
-	merged = append(merged, first.Data...)
-	merged = append(merged, second.Data...)
-
-	descending := filter.SortsDescending()
-	sort.SliceStable(merged, func(i, j int) bool {
-		if descending {
-			return merged[i].ID > merged[j].ID
-		}
-
-		return merged[i].ID < merged[j].ID
-	})
-
-	// The page the caller asked for, which is the filter's own ceiling rather than either
-	// sub-read's length: two full pages merged are twice as many rows as anybody wanted.
-	if filter != nil && filter.MaxResponseSize != nil {
-		if limit := int(*filter.MaxResponseSize); limit > 0 && len(merged) > limit {
-			merged = merged[:limit]
-		}
-	}
-
-	id := func(e *platformaudit.Entry) string { return e.ID }
-
-	firstFiltered, firstTotal, firstKnown := first.Pagination.Counts()
-	secondFiltered, secondTotal, secondKnown := second.Pagination.Counts()
-
-	if !firstKnown || !secondKnown {
-		return filtering.NewQueryFilteredResultWithoutCounts(merged, id, filter)
-	}
-
-	return filtering.NewQueryFilteredResult(
-		merged,
-		firstFiltered+secondFiltered,
-		firstTotal+secondTotal,
-		id,
-		filter,
-	)
+// isServiceAdmin reports whether the session holds the service administrator role.
+func isServiceAdmin(ctx context.Context) bool {
+	return sessions.FromContext(ctx).GetServicePermissions().IsServiceAdmin()
 }

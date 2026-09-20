@@ -64,105 +64,6 @@ func TestSpanningReader_List(T *testing.T) {
 
 	accountScope := tenancy.Of(testAccountID)
 
-	T.Run("merges the two chains and adds their counts", func(t *testing.T) {
-		t.Parallel()
-		ctx := sessionFor(t.Context(), false)
-
-		filter := filterOfSize(10)
-
-		reader := spanningReader{Reader: &auditmock.ReaderMock{
-			ListFunc: func(
-				_ context.Context,
-				_ database.SQLQueryExecutor,
-				query *platformaudit.Query,
-				f *filtering.QueryFilter,
-			) (*filtering.QueryFilteredResult[platformaudit.Entry], error) {
-				if *query.Scope == accountScope {
-					return filtering.NewQueryFilteredResult(entriesNamed("b", "d"), 2, 7, idOf, f), nil
-				}
-
-				return filtering.NewQueryFilteredResult(entriesNamed("a", "c"), 3, 5, idOf, f), nil
-			},
-		}}
-
-		page, err := reader.List(ctx, nil, &platformaudit.Query{Scope: &accountScope}, filter)
-		require.NoError(t, err)
-
-		// Interleaved by id, which is what makes the merge the same page a single
-		// query over both scopes would have cut.
-		assert.Equal(t, []string{"a", "b", "c", "d"}, idsOf(page.Data))
-
-		// Summed, because an entry lives in exactly one chain: the two scopes are
-		// disjoint, so their counts describe a union with nothing counted twice.
-		filtered, total, known := page.Pagination.Counts()
-		assert.True(t, known)
-		assert.Equal(t, uint64(5), filtered)
-		assert.Equal(t, uint64(12), total)
-	})
-
-	T.Run("withholds the counts when either chain did not answer", func(t *testing.T) {
-		t.Parallel()
-		ctx := sessionFor(t.Context(), false)
-
-		filter := filterOfSize(10)
-
-		reader := spanningReader{Reader: &auditmock.ReaderMock{
-			ListFunc: func(
-				_ context.Context,
-				_ database.SQLQueryExecutor,
-				query *platformaudit.Query,
-				f *filtering.QueryFilter,
-			) (*filtering.QueryFilteredResult[platformaudit.Entry], error) {
-				if *query.Scope == accountScope {
-					return filtering.NewQueryFilteredResult(entriesNamed("b"), 1, 4, idOf, f), nil
-				}
-
-				// The empty page a querygen store hands back when it has no row to
-				// read its counts off. Zero here is "unknown", not "none".
-				return filtering.NewQueryFilteredResultWithoutCounts(nil, idOf, f), nil
-			},
-		}}
-
-		page, err := reader.List(ctx, nil, &platformaudit.Query{Scope: &accountScope}, filter)
-		require.NoError(t, err)
-		assert.Equal(t, []string{"b"}, idsOf(page.Data))
-
-		// Not 1 and 4. Reporting the account's counts as the union's would be short
-		// by however much the other chain holds, and it would look right until
-		// somebody paged to the end of one.
-		_, _, known := page.Pagination.Counts()
-		assert.False(t, known, "a chain that answered no counts was counted as zero")
-	})
-
-	T.Run("keeps only the page the filter asked for", func(t *testing.T) {
-		t.Parallel()
-		ctx := sessionFor(t.Context(), false)
-
-		filter := filterOfSize(3)
-
-		reader := spanningReader{Reader: &auditmock.ReaderMock{
-			ListFunc: func(
-				_ context.Context,
-				_ database.SQLQueryExecutor,
-				query *platformaudit.Query,
-				f *filtering.QueryFilter,
-			) (*filtering.QueryFilteredResult[platformaudit.Entry], error) {
-				if *query.Scope == accountScope {
-					return filtering.NewQueryFilteredResult(entriesNamed("b", "d", "f"), 3, 3, idOf, f), nil
-				}
-
-				return filtering.NewQueryFilteredResult(entriesNamed("a", "c", "e"), 3, 3, idOf, f), nil
-			},
-		}}
-
-		page, err := reader.List(ctx, nil, &platformaudit.Query{Scope: &accountScope}, filter)
-		require.NoError(t, err)
-
-		// Two full pages merged are twice as many rows as anybody asked for, and the
-		// three smallest of the union are the page a single query would have cut.
-		assert.Equal(t, []string{"a", "b", "c"}, idsOf(page.Data))
-	})
-
 	T.Run("a service admin reads every chain in one unscoped read", func(t *testing.T) {
 		t.Parallel()
 		ctx := sessionFor(t.Context(), true)
@@ -307,4 +208,55 @@ func idsOf(entries []*platformaudit.Entry) []string {
 	}
 
 	return out
+}
+
+func TestCallerChains(T *testing.T) {
+	T.Parallel()
+
+	T.Run("a signed-in caller belongs to their account's chain and their own", func(t *testing.T) {
+		t.Parallel()
+
+		chains, err := callerChains(sessionFor(t.Context(), false))
+		require.NoError(t, err)
+
+		// The account first, because it is the chain the connection resolves to and the
+		// one every write goes into; the caller's own second, where a login, a signup
+		// and a password reset land because none of those happens inside an account.
+		assert.Equal(t, []tenancy.Scope{tenancy.Of(testAccountID), tenancy.Of(testUserID)}, chains)
+	})
+
+	T.Run("an account-less session names its one chain once", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := sessions.AttachToContext(t.Context(), &sessions.ContextData{
+			Requester: sessions.RequesterInfo{UserID: testUserID},
+		})
+
+		chains, err := callerChains(ctx)
+		require.NoError(t, err)
+
+		// Not twice. The connection already resolves to this caller's own chain, and
+		// naming it again would page one chain as two and report every row of it twice.
+		assert.Equal(t, []tenancy.Scope{tenancy.Of(testUserID)}, chains)
+	})
+
+	T.Run("a service admin is answered with no chains at all", func(t *testing.T) {
+		t.Parallel()
+
+		chains, err := callerChains(sessionFor(t.Context(), true))
+		require.NoError(t, err)
+
+		// Their read is every chain in the deployment, which is not a slice anybody can
+		// enumerate. Empty means the connection's own scope, and spanningReader widens
+		// that one read to the operator's.
+		assert.Empty(t, chains)
+	})
+
+	T.Run("an anonymous caller names none", func(t *testing.T) {
+		t.Parallel()
+
+		chains, err := callerChains(t.Context())
+		require.NoError(t, err)
+		assert.Empty(t, chains)
+	})
 }

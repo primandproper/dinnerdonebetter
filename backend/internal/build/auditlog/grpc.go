@@ -13,20 +13,24 @@ chain. A signed-in caller therefore belongs to two chains at once, and a read of
 one of them is a read that never shows somebody their own logins, signups or
 password resets.
 
-spanningReader reads both and merges, so "every entry about this user" is an API
-read again. It is a decorator rather than a fix because the fix is upstream and
-one predicate wide — see its doc — and the privacy export remains the answer for
-a subject asking for everything held about them, because that reaches the
-repository rather than the wire.
+callerChains names both, and platform pages them as one — one cursor across
+every chain, merged into the page a single-chain read would have returned. That
+lives upstream rather than here because the merge is easy to get quietly wrong
+and impossible to do in the store: a set of scopes cannot be bound alongside a
+cursor and a limit on two of the three dialects audit serves.
 
-The same decorator answers the other half, which is the operator's read. platform
-ships it — a nil query scope narrows nothing — and declines to use it, because
-its surface "has no operator"; this deployment has one, so a service
-administrator reads every chain and everybody else reads the two that are theirs.
-Which chains a caller may read is not something a grant on the method can say,
-and it is decided there rather than here for the reason waitlists decides a
+Two reads are still this package's. An entry by id takes the connection's single
+scope, so a caller who finds one of their own in a list and asks for it by id
+would be told it does not exist; and the operator's read — every chain at once,
+which is a nil query scope and not a slice anybody can enumerate — is a
+deployment policy platform's own surface declines to have. spanningReader
+answers both. Which chains a caller may read is not something a grant on the
+method can say, and it is decided there for the reason waitlists decides a
 subject read inside its handler: the grant is held by an account member, and the
 question it cannot answer is whose log this is.
+
+The privacy export remains the answer for a subject asking for everything held
+about them, because that reaches the repository rather than the wire.
 */
 package auditlog
 
@@ -60,11 +64,12 @@ func activeAccountScope(ctx context.Context) (tenancy.Scope, error) {
 func RegisterAuditService(i do.Injector) {
 	do.Provide[auditpb.AuditServiceServer](i, func(i do.Injector) (auditpb.AuditServiceServer, error) {
 		return auditgrpc.NewServer(
-			// Wrapped so a caller reads their own chain alongside their account's.
-			// See spanningReader, and the one-predicate change upstream that deletes it.
+			// Wrapped for the two reads the chains resolver does not reach: an entry by
+			// id, and an operator's. See spanningReader.
 			spanningReader{Reader: do.MustInvoke[platformaudit.Reader](i)},
 			do.MustInvoke[database.Client](i),
 			auditgrpc.WithScopeResolver(activeAccountScope),
+			auditgrpc.WithChainsResolver(callerChains),
 			auditgrpc.WithLogger(do.MustInvoke[logging.Logger](i)),
 			auditgrpc.WithTracerProvider(do.MustInvoke[tracing.Provider](i)),
 			auditgrpc.WithMetricsProvider(do.MustInvoke[metrics.Provider](i)),
