@@ -119,10 +119,11 @@ Three things about it are worth knowing that the old schema did not have:
 accounts live. That preserves what the old tables did; whether billing rows should instead be
 retained and anonymized is a policy question `docs/data-privacy.md` records as open.
 
-The store owns its transactions and does not lend them out, so the audit entry and the data change
-event the repository records land in a second transaction after the row's. That is the same gap
-`comments`, `issuereports`, `settings` and `waitlists` carry, filed for billing as
-platform-go #466 and tracked on #1419 — see `docs/audit.md`.
+The store takes the caller's transaction, so the audit entry and the data change event the
+repository records are in the same transaction as the row and share its fate. That was not true
+before platform-go v14 — the store owned its transaction and committed the row before recording
+was attempted, a gap `comments`, `issuereports`, `settings` and `waitlists` carried too, filed for
+billing as platform-go #466. See `docs/audit.md`.
 
 ### Identity Integration
 
@@ -391,8 +392,9 @@ member read another account's billing by asking.
 
 **`internal/repositories/postgres/payments/`** pins the recording half against a real database: every
 write leaves its audit entry under the right account, a refused replay leaves none, and
-`TestRepository_Integration_RecordAndEmitFailureSurfaces` is the canary that fails the day
-platform-go #466 lands.
+`TestRepository_Integration_RecordAndEmitFailureSurfaces` pins that a product whose audit entry
+the database refuses rolls back with it. That test was the canary for platform-go #466; it now
+asserts the behaviour #466 asked for.
 
 ---
 

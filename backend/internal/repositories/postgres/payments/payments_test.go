@@ -11,6 +11,7 @@ import (
 
 	"github.com/primandproper/platform-go/v14/billing"
 	"github.com/primandproper/primitives-go/v2/capitalism"
+	"github.com/primandproper/primitives-go/v2/database"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -23,12 +24,14 @@ import (
 
 func TestRepository_Integration_Products(t *testing.T) {
 	ctx := t.Context()
-	dbc, auditRepo, _ := buildDatabaseClientForTest(t)
+	dbc, auditRepo, db := buildDatabaseClientForTest(t)
 	scope := ddbpayments.Scope()
 
 	example := fakes.BuildFakeProduct()
 
-	created, err := dbc.CreateProduct(ctx, scope, example)
+	created, err := writeT(ctx, db, func(tx database.Tx) (*billing.Product, error) {
+		return dbc.CreateProduct(ctx, tx, scope, example)
+	})
 	require.NoError(t, err)
 	assert.NotEmpty(t, created.ID)
 	assert.False(t, created.CreatedAt.IsZero())
@@ -40,34 +43,40 @@ func TestRepository_Integration_Products(t *testing.T) {
 		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeProducts, RelevantID: created.ID},
 	})
 
-	fetched, err := dbc.GetProduct(ctx, scope, created.ID)
+	fetched, err := dbc.GetProduct(ctx, db.Reader(), scope, created.ID)
 	require.NoError(t, err)
 	assert.Equal(t, created.ID, fetched.ID)
 	assert.Equal(t, example.AmountCents, fetched.AmountCents)
 	assert.Equal(t, example.BillingIntervalMonths, fetched.BillingIntervalMonths)
 
 	// The provider-side id is the lookup a catalog sync makes.
-	byExternal, err := dbc.GetProductByExternalID(ctx, scope, created.ExternalProductID)
+	byExternal, err := dbc.GetProductByExternalID(ctx, db.Reader(), scope, created.ExternalProductID)
 	require.NoError(t, err)
 	assert.Equal(t, created.ID, byExternal.ID)
 
-	page, err := dbc.ListProducts(ctx, scope, nil)
+	page, err := dbc.ListProducts(ctx, db.Reader(), scope, nil)
 	require.NoError(t, err)
 	require.Len(t, page.Data, 1)
 
 	fetched.Name = "renamed"
 	fetched.AmountCents++
-	require.NoError(t, dbc.UpdateProduct(ctx, scope, fetched))
+	_, err = writeT(ctx, db, func(tx database.Tx) (*billing.Product, error) {
+		return dbc.UpdateProduct(ctx, tx, scope, fetched)
+	})
+	require.NoError(t, err)
 
-	updated, err := dbc.GetProduct(ctx, scope, created.ID)
+	updated, err := dbc.GetProduct(ctx, db.Reader(), scope, created.ID)
 	require.NoError(t, err)
 	assert.Equal(t, "renamed", updated.Name)
 	assert.Equal(t, example.AmountCents+1, updated.AmountCents)
 	assert.NotNil(t, updated.LastUpdatedAt)
 
-	require.NoError(t, dbc.ArchiveProduct(ctx, scope, created.ID))
+	_, err = writeT(ctx, db, func(tx database.Tx) (*billing.Product, error) {
+		return dbc.ArchiveProduct(ctx, tx, scope, created.ID)
+	})
+	require.NoError(t, err)
 
-	afterArchive, err := dbc.GetProduct(ctx, scope, created.ID)
+	afterArchive, err := dbc.GetProduct(ctx, db.Reader(), scope, created.ID)
 	require.ErrorIs(t, err, billing.ErrProductNotFound)
 	assert.Nil(t, afterArchive)
 
@@ -79,20 +88,25 @@ func TestRepository_Integration_Products(t *testing.T) {
 
 	// Archiving a row that is not there is refused before anything is recorded
 	// about it.
-	require.ErrorIs(t, dbc.ArchiveProduct(ctx, scope, created.ID), billing.ErrProductNotFound)
+	_, err = writeT(ctx, db, func(tx database.Tx) (*billing.Product, error) {
+		return dbc.ArchiveProduct(ctx, tx, scope, created.ID)
+	})
+	require.ErrorIs(t, err, billing.ErrProductNotFound)
 }
 
 func TestRepository_Integration_Subscriptions(t *testing.T) {
 	ctx := t.Context()
-	dbc, auditRepo, writer := buildDatabaseClientForTest(t)
+	dbc, auditRepo, db := buildDatabaseClientForTest(t)
 	scope := ddbpayments.Scope()
 
-	accountID := accountForTest(t, writer)
-	product := productForTest(t, ctx, dbc)
+	accountID := accountForTest(t, db)
+	product := productForTest(t, ctx, dbc, db)
 
 	example := fakes.BuildFakeSubscription(accountID, product.ID)
 
-	created, err := dbc.CreateSubscription(ctx, scope, example)
+	created, err := writeT(ctx, db, func(tx database.Tx) (*billing.Subscription, error) {
+		return dbc.CreateSubscription(ctx, tx, scope, example)
+	})
 	require.NoError(t, err)
 	assert.NotEmpty(t, created.ID)
 	assert.Equal(t, accountID, created.BelongsToAccount)
@@ -103,36 +117,48 @@ func TestRepository_Integration_Subscriptions(t *testing.T) {
 		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeSubscriptions, RelevantID: created.ID},
 	})
 
-	byExternal, err := dbc.GetSubscriptionByExternalID(ctx, scope, created.ExternalSubscriptionID)
+	byExternal, err := dbc.GetSubscriptionByExternalID(ctx, db.Reader(), scope, created.ExternalSubscriptionID)
 	require.NoError(t, err)
 	assert.Equal(t, created.ID, byExternal.ID)
 
 	// The fake's period covers now, so the entitlement read finds it.
-	current, err := dbc.ListCurrentSubscriptions(ctx, scope, accountID, nil)
+	current, err := dbc.ListCurrentSubscriptions(ctx, db.Reader(), scope, accountID, nil)
 	require.NoError(t, err)
 	require.Len(t, current.Data, 1)
 	assert.Equal(t, created.ID, current.Data[0].ID)
 
 	// The provider's word for where it stands, written and recorded.
-	require.NoError(t, dbc.SetSubscriptionStatus(ctx, scope, created.ID, capitalism.SubscriptionStatusPastDue))
+	err = execT(ctx, db, func(tx database.Tx) error {
+		return dbc.SetSubscriptionStatus(ctx, tx, scope, created.ID, capitalism.SubscriptionStatusPastDue)
+	})
+	require.NoError(t, err)
 
 	// The same word again is the store's replay answer, and records nothing.
-	require.ErrorIs(t, dbc.SetSubscriptionStatus(ctx, scope, created.ID, capitalism.SubscriptionStatusPastDue), billing.ErrStatusUnchanged)
+	err = execT(ctx, db, func(tx database.Tx) error {
+		return dbc.SetSubscriptionStatus(ctx, tx, scope, created.ID, capitalism.SubscriptionStatusPastDue)
+	})
+	require.ErrorIs(t, err, billing.ErrStatusUnchanged)
 
-	fetched, err := dbc.GetSubscription(ctx, scope, created.ID)
+	fetched, err := dbc.GetSubscription(ctx, db.Reader(), scope, created.ID)
 	require.NoError(t, err)
 	assert.Equal(t, capitalism.SubscriptionStatusPastDue, fetched.Status)
 
 	fetched.CurrentPeriodEnd = fetched.CurrentPeriodEnd.AddDate(0, 1, 0)
-	require.NoError(t, dbc.UpdateSubscription(ctx, scope, fetched))
+	_, err = writeT(ctx, db, func(tx database.Tx) (*billing.Subscription, error) {
+		return dbc.UpdateSubscription(ctx, tx, scope, fetched)
+	})
+	require.NoError(t, err)
 
-	forAccount, err := dbc.ListSubscriptionsForAccount(ctx, scope, accountID, nil)
+	forAccount, err := dbc.ListSubscriptionsForAccount(ctx, db.Reader(), scope, accountID, nil)
 	require.NoError(t, err)
 	require.Len(t, forAccount.Data, 1)
 
-	require.NoError(t, dbc.ArchiveSubscription(ctx, scope, created.ID))
+	_, err = writeT(ctx, db, func(tx database.Tx) (*billing.Subscription, error) {
+		return dbc.ArchiveSubscription(ctx, tx, scope, created.ID)
+	})
+	require.NoError(t, err)
 
-	afterArchive, err := dbc.GetSubscription(ctx, scope, created.ID)
+	afterArchive, err := dbc.GetSubscription(ctx, db.Reader(), scope, created.ID)
 	require.ErrorIs(t, err, billing.ErrSubscriptionNotFound)
 	assert.Nil(t, afterArchive)
 
@@ -148,35 +174,48 @@ func TestRepository_Integration_Subscriptions(t *testing.T) {
 
 func TestRepository_Integration_Purchases(t *testing.T) {
 	ctx := t.Context()
-	dbc, auditRepo, writer := buildDatabaseClientForTest(t)
+	dbc, auditRepo, db := buildDatabaseClientForTest(t)
 	scope := ddbpayments.Scope()
 
-	accountID := accountForTest(t, writer)
+	accountID := accountForTest(t, db)
 
-	product, err := dbc.CreateProduct(ctx, scope, fakes.BuildFakeOneTimeProduct())
+	product, err := writeT(ctx, db, func(tx database.Tx) (*billing.Product, error) {
+		return dbc.CreateProduct(ctx, tx, scope, fakes.BuildFakeOneTimeProduct())
+	})
 	require.NoError(t, err)
 
-	created, err := dbc.CreatePurchase(ctx, scope, fakes.BuildFakePurchase(accountID, product.ID))
+	created, err := writeT(ctx, db, func(tx database.Tx) (*billing.Purchase, error) {
+		return dbc.CreatePurchase(ctx, tx, scope, fakes.BuildFakePurchase(accountID, product.ID))
+	})
 	require.NoError(t, err)
 	assert.NotEmpty(t, created.ID)
 	assert.Nil(t, created.CompletedAt)
 
 	settledAt := time.Now().UTC().Add(-time.Minute).Truncate(time.Second)
-	require.NoError(t, dbc.CompletePurchase(ctx, scope, created.ID, settledAt))
+	_, err = writeT(ctx, db, func(tx database.Tx) (*billing.Purchase, error) {
+		return dbc.CompletePurchase(ctx, tx, scope, created.ID, settledAt)
+	})
+	require.NoError(t, err)
 
 	// A purchase completes exactly once.
-	require.ErrorIs(t, dbc.CompletePurchase(ctx, scope, created.ID, settledAt), billing.ErrAlreadyCompleted)
+	_, err = writeT(ctx, db, func(tx database.Tx) (*billing.Purchase, error) {
+		return dbc.CompletePurchase(ctx, tx, scope, created.ID, settledAt)
+	})
+	require.ErrorIs(t, err, billing.ErrAlreadyCompleted)
 
-	fetched, err := dbc.GetPurchase(ctx, scope, created.ID)
+	fetched, err := dbc.GetPurchase(ctx, db.Reader(), scope, created.ID)
 	require.NoError(t, err)
 	require.NotNil(t, fetched.CompletedAt)
 	assert.True(t, fetched.CompletedAt.Equal(settledAt))
 
-	forAccount, err := dbc.ListPurchasesForAccount(ctx, scope, accountID, nil)
+	forAccount, err := dbc.ListPurchasesForAccount(ctx, db.Reader(), scope, accountID, nil)
 	require.NoError(t, err)
 	require.Len(t, forAccount.Data, 1)
 
-	require.NoError(t, dbc.ArchivePurchase(ctx, scope, created.ID))
+	_, err = writeT(ctx, db, func(tx database.Tx) (*billing.Purchase, error) {
+		return dbc.ArchivePurchase(ctx, tx, scope, created.ID)
+	})
+	require.NoError(t, err)
 
 	pgtesting.AssertAuditLogContains(t, ctx, auditRepo, accountID, []*audit.AuditLogEntry{
 		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypePurchases, RelevantID: created.ID},
@@ -187,18 +226,20 @@ func TestRepository_Integration_Purchases(t *testing.T) {
 
 func TestRepository_Integration_Transactions(t *testing.T) {
 	ctx := t.Context()
-	dbc, auditRepo, writer := buildDatabaseClientForTest(t)
+	dbc, auditRepo, db := buildDatabaseClientForTest(t)
 	scope := ddbpayments.Scope()
 
-	accountID := accountForTest(t, writer)
-	product := productForTest(t, ctx, dbc)
-	subscription := subscriptionForTest(t, ctx, dbc, accountID, product.ID)
+	accountID := accountForTest(t, db)
+	product := productForTest(t, ctx, dbc, db)
+	subscription := subscriptionForTest(t, ctx, dbc, db, accountID, product.ID)
 
 	example := fakes.BuildFakeTransaction(accountID)
 	example.SubscriptionID = subscription.ID
 	example.Status = billing.TransactionPending
 
-	recorded, err := dbc.RecordTransaction(ctx, scope, example)
+	recorded, err := writeT(ctx, db, func(tx database.Tx) (*billing.Transaction, error) {
+		return dbc.RecordTransaction(ctx, tx, scope, example)
+	})
 	require.NoError(t, err)
 	assert.NotEmpty(t, recorded.ID)
 	assert.Equal(t, subscription.ID, recorded.SubscriptionID)
@@ -208,17 +249,25 @@ func TestRepository_Integration_Transactions(t *testing.T) {
 	replay := fakes.BuildFakeTransaction(accountID)
 	replay.ExternalTransactionID = example.ExternalTransactionID
 
-	_, err = dbc.RecordTransaction(ctx, scope, replay)
+	_, err = writeT(ctx, db, func(tx database.Tx) (*billing.Transaction, error) {
+		return dbc.RecordTransaction(ctx, tx, scope, replay)
+	})
 	require.ErrorIs(t, err, billing.ErrTransactionExists)
 
-	require.NoError(t, dbc.SetTransactionStatus(ctx, scope, recorded.ID, billing.TransactionSucceeded))
+	err = execT(ctx, db, func(tx database.Tx) error {
+		return dbc.SetTransactionStatus(ctx, tx, scope, recorded.ID, billing.TransactionSucceeded)
+	})
+	require.NoError(t, err)
 
-	ledger, err := dbc.ListTransactionsForAccount(ctx, scope, accountID, nil)
+	ledger, err := dbc.ListTransactionsForAccount(ctx, db.Reader(), scope, accountID, nil)
 	require.NoError(t, err)
 	require.Len(t, ledger.Data, 1)
 	assert.Equal(t, billing.TransactionSucceeded, ledger.Data[0].Status)
 
-	require.NoError(t, dbc.ArchiveTransaction(ctx, scope, recorded.ID))
+	_, err = writeT(ctx, db, func(tx database.Tx) (*billing.Transaction, error) {
+		return dbc.ArchiveTransaction(ctx, tx, scope, recorded.ID)
+	})
+	require.NoError(t, err)
 
 	pgtesting.AssertAuditLogContains(t, ctx, auditRepo, accountID, []*audit.AuditLogEntry{
 		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeSubscriptions, RelevantID: subscription.ID},

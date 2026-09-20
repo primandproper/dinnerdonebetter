@@ -11,22 +11,21 @@ and issue_report_archived are all in the webhook event catalog, so a subscriber
 can already ask for them; a write that skipped the pair would be a row with no
 provenance and a subscriber that never heard.
 
-# The transaction the events are not in
+# The transaction the events are in
 
-Every hand-written repository here emits inside the transaction that wrote the
-row, so the event lives or dies with what it describes (see
-internal/repositories/postgres/events). This one cannot: platform's
-CreateReport, UpdateReport, TransitionReport and ArchiveReport own their
-transactions and take no executor, so the audit entry and the event are a second
-transaction after the first has committed.
+Every hand-written repository here emits inside the transaction that wrote
+the row, so the event lives or dies with what it describes (see
+internal/repositories/postgres/events). This one now does too. It could not
+before: platform's writes owned their transactions and took no executor, so
+the audit entry and the event were a second transaction after the first had
+committed, and a report could exist that nothing had recorded.
 
-The gap that opens is the ordinary one — the report lands, the process dies, and
-nothing is recorded about it. It is narrow and it is one-directional: a report
-can exist with no event, but no event can name a report that was not written.
-Closing it needs platform's write methods to accept a database.Tx the way
-DeleteReportsByReporter already does. That is filed upstream as platform-go
-#465 rather than worked around here — a gap papered over locally stops being a
-gap anyone remembers. See #1419 for what deletes here when it lands.
+As of platform-go v14 a store write takes the caller's database.Tx, so the
+write, the entry and the event are one transaction and share one fate. The
+gap filed upstream as platform-go #465 is closed by that convention rather
+than by anything here, which is why this package has no workaround to
+delete.
+
 */
 package issuereports
 
