@@ -176,8 +176,11 @@ const TablePrefix = "ddb"
 // are unaffected, because the account read path filters on scope while the user
 // read path filters on the actor.
 //
-// The empty scope remains for events belonging to neither, which are
-// platform-level by definition and rare enough to serialize.
+// The global scope takes events belonging to neither, which are platform-level
+// by definition and rare enough to serialize. It is tenancy.Global() rather than
+// the zero Scope, and the two are not the same thing under platform-go v14: the
+// zero value means nobody said, and every read refuses it. A deliberate
+// platform-level event has to say so.
 func ScopeFor(belongsToAccount *string, belongsToUser string) tenancy.Scope {
 	switch {
 	case belongsToAccount != nil && *belongsToAccount != "":

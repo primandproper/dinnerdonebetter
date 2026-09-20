@@ -54,12 +54,14 @@ func TestQuerier_Integration_DestroyAllData(t *testing.T) {
 	before := relfilenodes(ctx, t, dbc.readDB)
 	require.NotEmpty(t, before)
 	// The tables the registry missed, named so a regression that drops them again fails
-	// here by name rather than as a missing key in the sweep below. Two of the eleven —
-	// user_data_disclosures and webhook_trigger_events — are not here because 00029 and
-	// 00026 have since dropped them for their platform equivalents.
+	// here by name rather than as a missing key in the sweep below. Three of the eleven
+	// are not here because a later migration dropped each for its platform equivalent:
+	// user_data_disclosures (00029), webhook_trigger_events (00026), and
+	// user_device_tokens (00044, which moved the device registry onto
+	// ddb_notifications_devices).
 	for _, table := range []string{
 		"ingredient_media", "meal_images", "preparation_media", "recipe_images",
-		"recipe_step_images", "sessions", "user_device_tokens", "webauthn_credentials",
+		"recipe_step_images", "sessions", "webauthn_credentials",
 		"webauthn_sessions",
 	} {
 		require.Contains(t, before, table)

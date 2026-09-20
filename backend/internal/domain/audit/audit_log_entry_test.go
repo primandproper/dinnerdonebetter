@@ -5,6 +5,7 @@ import (
 
 	"github.com/primandproper/primitives-go/v2/identifiers"
 	"github.com/primandproper/primitives-go/v2/pointer"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -18,7 +19,7 @@ func TestScopeFor(T *testing.T) {
 
 		accountID, userID := identifiers.New(), identifiers.New()
 
-		assert.Equal(t, accountID, ScopeFor(pointer.To(accountID), userID))
+		assert.Equal(t, tenancy.Of(accountID), ScopeFor(pointer.To(accountID), userID))
 	})
 
 	// Signup, login and password reset all happen outside an account. Filing them
@@ -29,7 +30,7 @@ func TestScopeFor(T *testing.T) {
 
 		userID := identifiers.New()
 
-		assert.Equal(t, userID, ScopeFor(nil, userID))
+		assert.Equal(t, tenancy.Of(userID), ScopeFor(nil, userID))
 	})
 
 	// An account ID that is present but empty is not an account. Treating it as one
@@ -40,13 +41,18 @@ func TestScopeFor(T *testing.T) {
 
 		userID := identifiers.New()
 
-		assert.Equal(t, userID, ScopeFor(pointer.To(""), userID))
+		assert.Equal(t, tenancy.Of(userID), ScopeFor(pointer.To(""), userID))
 	})
 
-	T.Run("is empty for events belonging to neither", func(t *testing.T) {
+	// Global, not the zero Scope: under platform-go v14 the zero value means nobody
+	// said, and every read refuses it. An event that genuinely belongs to the
+	// platform has to say so.
+	T.Run("is global for events belonging to neither", func(t *testing.T) {
 		t.Parallel()
 
-		assert.Empty(t, ScopeFor(nil, ""))
+		scope := ScopeFor(nil, "")
+		assert.True(t, scope.IsGlobal())
+		assert.Equal(t, tenancy.Global(), scope)
 	})
 }
 

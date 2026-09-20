@@ -10,6 +10,7 @@ import (
 	billingmock "github.com/primandproper/platform-go/v14/billing/mock"
 	"github.com/primandproper/primitives-go/v2/capitalism"
 	"github.com/primandproper/primitives-go/v2/database"
+	mockdatabase "github.com/primandproper/primitives-go/v2/database/mock"
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/filtering"
 	"github.com/primandproper/primitives-go/v2/identifiers"
@@ -115,7 +116,7 @@ func TestNewPlanSource(T *testing.T) {
 			},
 		}
 
-		source, err := NewPlanSource(store, nil)
+		source, err := NewPlanSource(store, &mockdatabase.SQLQueryExecutorMock{})
 		require.NoError(t, err)
 
 		plan, err := source.PlanFor(ctx, accountID)
@@ -136,7 +137,7 @@ func TestNewPlanSource(T *testing.T) {
 			},
 		}
 
-		source, err := NewPlanSource(store, nil)
+		source, err := NewPlanSource(store, &mockdatabase.SQLQueryExecutorMock{})
 		require.NoError(t, err)
 
 		plan, err := source.PlanFor(ctx, identifiers.New())
@@ -160,7 +161,7 @@ func TestNewPlanSource(T *testing.T) {
 			},
 		}
 
-		source, err := NewPlanSource(store, nil)
+		source, err := NewPlanSource(store, &mockdatabase.SQLQueryExecutorMock{})
 		require.NoError(t, err)
 
 		plan, err := source.PlanFor(ctx, identifiers.New())
@@ -171,7 +172,7 @@ func TestNewPlanSource(T *testing.T) {
 	T.Run("with nil store", func(t *testing.T) {
 		t.Parallel()
 
-		source, err := NewPlanSource(nil, nil)
+		source, err := NewPlanSource(nil, &mockdatabase.SQLQueryExecutorMock{})
 		require.Error(t, err)
 		assert.Nil(t, source)
 	})
