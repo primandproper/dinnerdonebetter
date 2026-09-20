@@ -66,8 +66,10 @@ func RegisterConfigs(i do.Injector) {
 	do.Provide[*webhookscfg.Config](i, func(i do.Injector) (*webhookscfg.Config, error) {
 		return &do.MustInvoke[*config.SchedulerConfig](i).Webhooks, nil
 	})
-	do.Provide[notificationscfg.Config](i, func(i do.Injector) (notificationscfg.Config, error) {
-		return do.MustInvoke[*config.SchedulerConfig](i).PushNotifications, nil
+	// A pointer, which is what RegisterPushSender resolves: NewPushSender applies its
+	// defaults to what it is handed, and a value copy would discard them.
+	do.Provide[*notificationscfg.Config](i, func(i do.Injector) (*notificationscfg.Config, error) {
+		return &do.MustInvoke[*config.SchedulerConfig](i).PushNotifications, nil
 	})
 	// The one work queue this process runs. It is provided as the bare *workqueue.Config the
 	// platform's constructor takes, because there is exactly one — a second would need a name

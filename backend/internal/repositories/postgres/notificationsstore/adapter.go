@@ -137,10 +137,11 @@ func (a *Adapter) CreateUserNotification(
 			ID:        id,
 			Principal: input.BelongsToUser,
 			Body:      input.Content,
-			// Topic and Title are platform's and this application has never had
-			// them: every notification it writes is a line of text. They are left
-			// empty rather than invented, and the day a notification wants a
-			// heading the input grows a field rather than this guessing one.
+			Topic:     ddbnotifications.DefaultTopic,
+			// Title is platform's and this application has never had it: every
+			// notification it writes is a line of text. It is left empty rather
+			// than invented, and the day a notification wants a heading the input
+			// grows a field rather than this guessing one.
 		})
 
 		return writeErr

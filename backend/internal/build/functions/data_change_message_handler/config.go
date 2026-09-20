@@ -59,8 +59,9 @@ func RegisterConfigs(i do.Injector) {
 		cfg := do.MustInvoke[*config.AsyncMessageHandlerConfig](i)
 		return cfg.Encoding, nil
 	})
-	do.Provide[notificationscfg.Config](i, func(i do.Injector) (notificationscfg.Config, error) {
-		cfg := do.MustInvoke[*config.AsyncMessageHandlerConfig](i)
-		return cfg.PushNotifications, nil
+	// A pointer, which is what RegisterPushSender resolves: NewPushSender applies its
+	// defaults to what it is handed, and a value copy would discard them.
+	do.Provide[*notificationscfg.Config](i, func(i do.Injector) (*notificationscfg.Config, error) {
+		return &do.MustInvoke[*config.AsyncMessageHandlerConfig](i).PushNotifications, nil
 	})
 }
