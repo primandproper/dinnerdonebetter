@@ -282,6 +282,14 @@ func (s *serviceImpl) CreateUploadedMedia(ctx context.Context, request *uploaded
 		BelongsTo: mediaregistry.Subject{Type: input.BelongsToType, ID: input.BelongsToId},
 	}
 
+	// Checked here rather than left to the store, because the two answer differently: a
+	// malformed request is the caller's to fix and reads as InvalidArgument, where the same
+	// refusal arriving from the store would be indistinguishable from the database being
+	// down. The store validates again, which is its business.
+	if err = objectInput.ValidateWithContext(ctx); err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "failed to validate uploaded media creation request")
+	}
+
 	recorded, err := inTransaction(ctx, s.db, func(tx database.Tx) (*mediaregistry.Object, error) {
 		return s.registry.RecordObject(ctx, tx, uploadedmedia.Scope(), objectInput)
 	})

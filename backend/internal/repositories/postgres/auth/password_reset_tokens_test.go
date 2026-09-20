@@ -125,11 +125,10 @@ func TestAuditedPasswordResetTokenStore_Issue(T *testing.T) {
 
 		store := buildAuditedStoreForTest(inner, nil)
 
-		// A nil transaction, because there is no other kind available here: database.Tx
-		// carries an unexported method and primitives-go ships no mock of it, so the only
-		// Tx a test can hold comes from a real Client.WithTransaction. The inner store is
-		// mocked and refuses before it touches the executor, so nothing dereferences it.
-		actual, err := store.Issue(ctx, nil, tenancy.Global(), t.Name(), exampleTokenLifetime)
+		// database.NewTxForTesting exists for exactly this: the marker method on database.Tx
+		// is unexported, so a test double cannot implement one. Nothing is ever sent on this
+		// transaction — the inner store is mocked and refuses first.
+		actual, err := store.Issue(ctx, database.NewTxForTesting(nil), tenancy.Global(), t.Name(), exampleTokenLifetime)
 		require.ErrorIs(t, err, expected)
 		assert.Nil(t, actual)
 		require.Len(t, inner.IssueCalls(), 1)
@@ -153,7 +152,7 @@ func TestAuditedPasswordResetTokenStore_Consume(T *testing.T) {
 
 		store := buildAuditedStoreForTest(inner, nil)
 
-		actual, err := store.Consume(ctx, nil, tenancy.Global(), t.Name())
+		actual, err := store.Consume(ctx, database.NewTxForTesting(nil), tenancy.Global(), t.Name())
 		require.ErrorIs(t, err, passwordreset.ErrTokenRedeemed)
 		assert.Nil(t, actual)
 		assert.Len(t, inner.ConsumeCalls(), 1)

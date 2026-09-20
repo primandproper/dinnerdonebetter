@@ -12,9 +12,11 @@ import (
 	uploadedmediasvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
 
 	"github.com/primandproper/platform-go/v14/mediaregistry"
+	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/fake"
 	"github.com/primandproper/primitives-go/v2/filtering"
 	"github.com/primandproper/primitives-go/v2/filtering/filteringpb"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 	"github.com/primandproper/primitives-go/v2/uploads"
 	mockuploads "github.com/primandproper/primitives-go/v2/uploads/mock"
 
@@ -731,7 +733,9 @@ func TestServiceImpl_UploadUserAvatar(T *testing.T) {
 
 		uploadManager := service.uploadManager.(*mockuploads.UploadManagerMock)
 		uploadManager.SaveFunc = func(_ context.Context, _ string, _ io.Reader, _ ...uploads.SaveOption) error { return nil }
-		uploadsRegistry.RecordObjectFunc = func(_ context.Context, _ *mediaregistry.Object) error { return nil }
+		uploadsRegistry.RecordObjectFunc = func(_ context.Context, _ database.Tx, _ tenancy.Scope, _ mediaregistry.ObjectInput) (*mediaregistry.Object, error) {
+			return &mediaregistry.Object{}, nil
+		}
 		identityDataManager.SetUserAvatarFunc = func(_ context.Context, _ string, _ string) error {
 			return nil
 		}
@@ -784,7 +788,9 @@ func TestServiceImpl_UploadUserAvatar(T *testing.T) {
 
 		uploadManager := service.uploadManager.(*mockuploads.UploadManagerMock)
 		uploadManager.SaveFunc = func(_ context.Context, _ string, _ io.Reader, _ ...uploads.SaveOption) error { return nil }
-		uploadsRegistry.RecordObjectFunc = func(_ context.Context, _ *mediaregistry.Object) error { return nil }
+		uploadsRegistry.RecordObjectFunc = func(_ context.Context, _ database.Tx, _ tenancy.Scope, _ mediaregistry.ObjectInput) (*mediaregistry.Object, error) {
+			return &mediaregistry.Object{}, nil
+		}
 		identityDataManager.SetUserAvatarFunc = func(_ context.Context, _ string, _ string) error {
 			return errors.New("set avatar error")
 		}

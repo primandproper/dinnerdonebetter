@@ -11,11 +11,13 @@ import (
 	uploadedmediafakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia/fakes"
 	uploadedmediasvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
 	appmetering "github.com/primandproper/dinnerdonebetter/backend/internal/metering"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/testutils"
 
 	"github.com/primandproper/platform-go/v14/mediaregistry"
 	registrymock "github.com/primandproper/platform-go/v14/mediaregistry/mock"
 	"github.com/primandproper/platform-go/v14/metering"
 	meteringmock "github.com/primandproper/platform-go/v14/metering/mock"
+	"github.com/primandproper/primitives-go/v2/database"
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/filtering"
 	"github.com/primandproper/primitives-go/v2/filtering/filteringpb"
@@ -58,12 +60,18 @@ func buildTestServiceWithRecorder(t *testing.T) (*serviceImpl, *registrymock.Sto
 	logger := loggingnoop.NewLogger()
 	tracer := tracing.NewTracerForTest(t.Name())
 	uploadsRegistry := &registrymock.StoreMock{}
-	uploadManager := &mockuploads.UploadManagerMock{}
+	// Exists answers false by default: v14's StoreAndRecord asks the bucket whether the key is
+	// free before it sends the bytes, because an upload at an occupied path replaces what is
+	// there and nothing after that point can undo it. A test about an occupied key overrides it.
+	uploadManager := &mockuploads.UploadManagerMock{
+		ExistsFunc: func(context.Context, string) (bool, error) { return false, nil },
+	}
 	usageRecorder := &meteringmock.RecorderMock{
-		RecordFunc: func(context.Context, ...metering.Usage) error { return nil },
+		RecordFunc: func(context.Context, database.Tx, tenancy.Scope, ...metering.Usage) error { return nil },
 	}
 
 	service := &serviceImpl{
+		db:            testutils.MockDatabaseClient(),
 		tracer:        tracer,
 		logger:        logger,
 		registry:      uploadsRegistry,
@@ -178,11 +186,16 @@ func TestServiceImpl_CreateUploadedMedia(t *testing.T) {
 
 		fakeObject := ownedByTestUser()
 
-		var recorded *mediaregistry.Object
-		uploadsRegistry.RecordObjectFunc = func(_ context.Context, object *mediaregistry.Object) error {
-			recorded = object
+		var (
+			recorded      mediaregistry.ObjectInput
+			recordedScope tenancy.Scope
+		)
+		// The scope is an argument now rather than a field on what is written, so a test
+		// that wants to say which scope an upload was filed under captures it separately.
+		uploadsRegistry.RecordObjectFunc = func(_ context.Context, _ database.Tx, scope tenancy.Scope, object mediaregistry.ObjectInput) (*mediaregistry.Object, error) {
+			recorded, recordedScope = object, scope
 
-			return nil
+			return &mediaregistry.Object{ID: object.ID, Scope: scope, Key: object.Key, ContentType: object.ContentType, OwnerID: object.OwnerID, Size: object.Size, BelongsTo: object.BelongsTo}, nil
 		}
 
 		response, err := service.CreateUploadedMedia(ctx, &uploadedmediasvc.CreateUploadedMediaRequest{
@@ -202,9 +215,8 @@ func TestServiceImpl_CreateUploadedMedia(t *testing.T) {
 
 		// The owner is the session's user rather than anything the request carried: it is
 		// the whole of what a later read's permission check consults.
-		require.NotNil(t, recorded)
 		assert.Equal(t, testUserID, recorded.OwnerID)
-		assert.Equal(t, uploadedmedia.Scope(), recorded.Scope)
+		assert.Equal(t, uploadedmedia.Scope(), recordedScope)
 		assert.NotEmpty(t, recorded.ID)
 
 		assert.Len(t, uploadsRegistry.RecordObjectCalls(), 1)
@@ -218,11 +230,11 @@ func TestServiceImpl_CreateUploadedMedia(t *testing.T) {
 
 		subject := mediaregistry.Subject{Type: "recipe", ID: identifiers.New()}
 
-		var recorded *mediaregistry.Object
-		uploadsRegistry.RecordObjectFunc = func(_ context.Context, object *mediaregistry.Object) error {
+		var recorded mediaregistry.ObjectInput
+		uploadsRegistry.RecordObjectFunc = func(_ context.Context, _ database.Tx, scope tenancy.Scope, object mediaregistry.ObjectInput) (*mediaregistry.Object, error) {
 			recorded = object
 
-			return nil
+			return &mediaregistry.Object{ID: object.ID, Scope: scope, Key: object.Key, ContentType: object.ContentType, OwnerID: object.OwnerID, Size: object.Size, BelongsTo: object.BelongsTo}, nil
 		}
 
 		_, err := service.CreateUploadedMedia(ctx, &uploadedmediasvc.CreateUploadedMediaRequest{
@@ -235,7 +247,6 @@ func TestServiceImpl_CreateUploadedMedia(t *testing.T) {
 		})
 
 		require.NoError(t, err)
-		require.NotNil(t, recorded)
 		assert.Equal(t, subject, recorded.BelongsTo)
 	})
 
@@ -307,8 +318,8 @@ func TestServiceImpl_CreateUploadedMedia(t *testing.T) {
 
 		service, uploadsRegistry, _ := buildTestService(t)
 
-		uploadsRegistry.RecordObjectFunc = func(context.Context, *mediaregistry.Object) error {
-			return errors.New("registry error")
+		uploadsRegistry.RecordObjectFunc = func(context.Context, database.Tx, tenancy.Scope, mediaregistry.ObjectInput) (*mediaregistry.Object, error) {
+			return nil, errors.New("registry error")
 		}
 
 		response, err := service.CreateUploadedMedia(buildSessionContextForTest(t), &uploadedmediasvc.CreateUploadedMediaRequest{
@@ -331,8 +342,8 @@ func TestServiceImpl_CreateUploadedMedia(t *testing.T) {
 		// "the server broke" — see internal/services/uploadedmedia/errors.
 		service, uploadsRegistry, _ := buildTestService(t)
 
-		uploadsRegistry.RecordObjectFunc = func(context.Context, *mediaregistry.Object) error {
-			return mediaregistry.ErrObjectKeyTaken
+		uploadsRegistry.RecordObjectFunc = func(context.Context, database.Tx, tenancy.Scope, mediaregistry.ObjectInput) (*mediaregistry.Object, error) {
+			return nil, mediaregistry.ErrObjectKeyTaken
 		}
 
 		_, err := service.CreateUploadedMedia(buildSessionContextForTest(t), &uploadedmediasvc.CreateUploadedMediaRequest{
@@ -358,7 +369,7 @@ func TestServiceImpl_GetUploadedMedia(t *testing.T) {
 		fakeObject := ownedByTestUser()
 
 		var readScope tenancy.Scope
-		uploadsRegistry.GetObjectFunc = func(_ context.Context, scope tenancy.Scope, _ string) (*mediaregistry.Object, error) {
+		uploadsRegistry.GetObjectFunc = func(_ context.Context, _ database.SQLQueryExecutor, scope tenancy.Scope, _ string) (*mediaregistry.Object, error) {
 			readScope = scope
 
 			return fakeObject, nil
@@ -397,7 +408,7 @@ func TestServiceImpl_GetUploadedMedia(t *testing.T) {
 		fakeObject := uploadedmediafakes.BuildFakeUploadedMedia()
 		fakeObject.OwnerID = identifiers.New()
 
-		uploadsRegistry.GetObjectFunc = func(context.Context, tenancy.Scope, string) (*mediaregistry.Object, error) {
+		uploadsRegistry.GetObjectFunc = func(context.Context, database.SQLQueryExecutor, tenancy.Scope, string) (*mediaregistry.Object, error) {
 			return fakeObject, nil
 		}
 
@@ -415,7 +426,7 @@ func TestServiceImpl_GetUploadedMedia(t *testing.T) {
 
 		service, uploadsRegistry, _ := buildTestService(t)
 
-		uploadsRegistry.GetObjectFunc = func(context.Context, tenancy.Scope, string) (*mediaregistry.Object, error) {
+		uploadsRegistry.GetObjectFunc = func(context.Context, database.SQLQueryExecutor, tenancy.Scope, string) (*mediaregistry.Object, error) {
 			return nil, mediaregistry.ErrObjectNotFound
 		}
 
@@ -433,7 +444,7 @@ func TestServiceImpl_GetUploadedMedia(t *testing.T) {
 
 		service, uploadsRegistry, _ := buildTestService(t)
 
-		uploadsRegistry.GetObjectFunc = func(context.Context, tenancy.Scope, string) (*mediaregistry.Object, error) {
+		uploadsRegistry.GetObjectFunc = func(context.Context, database.SQLQueryExecutor, tenancy.Scope, string) (*mediaregistry.Object, error) {
 			return nil, errors.New("registry error")
 		}
 
@@ -458,7 +469,7 @@ func TestServiceImpl_GetUploadedMediaWithIDs(t *testing.T) {
 		first, second := ownedByTestUser(), ownedByTestUser()
 		byID := map[string]*mediaregistry.Object{first.ID: first, second.ID: second}
 
-		uploadsRegistry.GetObjectFunc = func(_ context.Context, _ tenancy.Scope, objectID string) (*mediaregistry.Object, error) {
+		uploadsRegistry.GetObjectFunc = func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, objectID string) (*mediaregistry.Object, error) {
 			object, ok := byID[objectID]
 			if !ok {
 				return nil, mediaregistry.ErrObjectNotFound
@@ -487,7 +498,7 @@ func TestServiceImpl_GetUploadedMediaWithIDs(t *testing.T) {
 		theirs.OwnerID = identifiers.New()
 		byID := map[string]*mediaregistry.Object{mine.ID: mine, theirs.ID: theirs}
 
-		uploadsRegistry.GetObjectFunc = func(_ context.Context, _ tenancy.Scope, objectID string) (*mediaregistry.Object, error) {
+		uploadsRegistry.GetObjectFunc = func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, objectID string) (*mediaregistry.Object, error) {
 			return byID[objectID], nil
 		}
 
@@ -507,7 +518,7 @@ func TestServiceImpl_GetUploadedMediaWithIDs(t *testing.T) {
 
 		mine := ownedByTestUser()
 
-		uploadsRegistry.GetObjectFunc = func(_ context.Context, _ tenancy.Scope, objectID string) (*mediaregistry.Object, error) {
+		uploadsRegistry.GetObjectFunc = func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, objectID string) (*mediaregistry.Object, error) {
 			if objectID == mine.ID {
 				return mine, nil
 			}
@@ -556,7 +567,7 @@ func TestServiceImpl_GetUploadedMediaWithIDs(t *testing.T) {
 
 		service, uploadsRegistry, _ := buildTestService(t)
 
-		uploadsRegistry.GetObjectFunc = func(context.Context, tenancy.Scope, string) (*mediaregistry.Object, error) {
+		uploadsRegistry.GetObjectFunc = func(context.Context, database.SQLQueryExecutor, tenancy.Scope, string) (*mediaregistry.Object, error) {
 			return nil, errors.New("registry error")
 		}
 
@@ -581,7 +592,7 @@ func TestServiceImpl_GetUploadedMediaForUser(t *testing.T) {
 		page := uploadedmediafakes.BuildFakeUploadedMediaList()
 
 		var listedOwner string
-		uploadsRegistry.ListObjectsByOwnerFunc = func(_ context.Context, _ tenancy.Scope, ownerID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[mediaregistry.Object], error) {
+		uploadsRegistry.ListObjectsByOwnerFunc = func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, ownerID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[mediaregistry.Object], error) {
 			listedOwner = ownerID
 
 			return page, nil
@@ -632,7 +643,7 @@ func TestServiceImpl_GetUploadedMediaForUser(t *testing.T) {
 
 		service, uploadsRegistry, _ := buildTestService(t)
 
-		uploadsRegistry.ListObjectsByOwnerFunc = func(context.Context, tenancy.Scope, string, *filtering.QueryFilter) (*filtering.QueryFilteredResult[mediaregistry.Object], error) {
+		uploadsRegistry.ListObjectsByOwnerFunc = func(context.Context, database.SQLQueryExecutor, tenancy.Scope, string, *filtering.QueryFilter) (*filtering.QueryFilteredResult[mediaregistry.Object], error) {
 			return nil, errors.New("registry error")
 		}
 
@@ -657,10 +668,12 @@ func TestServiceImpl_ArchiveUploadedMedia(t *testing.T) {
 
 		fakeObject := ownedByTestUser()
 
-		uploadsRegistry.GetObjectFunc = func(context.Context, tenancy.Scope, string) (*mediaregistry.Object, error) {
+		uploadsRegistry.GetObjectFunc = func(context.Context, database.SQLQueryExecutor, tenancy.Scope, string) (*mediaregistry.Object, error) {
 			return fakeObject, nil
 		}
-		uploadsRegistry.ArchiveObjectFunc = func(context.Context, tenancy.Scope, string) error { return nil }
+		uploadsRegistry.ArchiveObjectFunc = func(context.Context, database.Tx, tenancy.Scope, string) (*mediaregistry.Object, error) {
+			return &mediaregistry.Object{}, nil
+		}
 
 		response, err := service.ArchiveUploadedMedia(buildSessionContextForTest(t), &uploadedmediasvc.ArchiveUploadedMediaRequest{
 			UploadedMediaId: fakeObject.ID,
@@ -693,7 +706,7 @@ func TestServiceImpl_ArchiveUploadedMedia(t *testing.T) {
 		fakeObject := uploadedmediafakes.BuildFakeUploadedMedia()
 		fakeObject.OwnerID = identifiers.New()
 
-		uploadsRegistry.GetObjectFunc = func(context.Context, tenancy.Scope, string) (*mediaregistry.Object, error) {
+		uploadsRegistry.GetObjectFunc = func(context.Context, database.SQLQueryExecutor, tenancy.Scope, string) (*mediaregistry.Object, error) {
 			return fakeObject, nil
 		}
 
@@ -712,7 +725,7 @@ func TestServiceImpl_ArchiveUploadedMedia(t *testing.T) {
 
 		service, uploadsRegistry, _ := buildTestService(t)
 
-		uploadsRegistry.GetObjectFunc = func(context.Context, tenancy.Scope, string) (*mediaregistry.Object, error) {
+		uploadsRegistry.GetObjectFunc = func(context.Context, database.SQLQueryExecutor, tenancy.Scope, string) (*mediaregistry.Object, error) {
 			return nil, mediaregistry.ErrObjectNotFound
 		}
 
@@ -732,11 +745,11 @@ func TestServiceImpl_ArchiveUploadedMedia(t *testing.T) {
 
 		fakeObject := ownedByTestUser()
 
-		uploadsRegistry.GetObjectFunc = func(context.Context, tenancy.Scope, string) (*mediaregistry.Object, error) {
+		uploadsRegistry.GetObjectFunc = func(context.Context, database.SQLQueryExecutor, tenancy.Scope, string) (*mediaregistry.Object, error) {
 			return fakeObject, nil
 		}
-		uploadsRegistry.ArchiveObjectFunc = func(context.Context, tenancy.Scope, string) error {
-			return errors.New("registry error")
+		uploadsRegistry.ArchiveObjectFunc = func(context.Context, database.Tx, tenancy.Scope, string) (*mediaregistry.Object, error) {
+			return nil, errors.New("registry error")
 		}
 
 		response, err := service.ArchiveUploadedMedia(buildSessionContextForTest(t), &uploadedmediasvc.ArchiveUploadedMediaRequest{
@@ -769,11 +782,16 @@ func TestServiceImpl_Upload(t *testing.T) {
 			return err
 		}
 
-		var recorded *mediaregistry.Object
-		uploadsRegistry.RecordObjectFunc = func(_ context.Context, object *mediaregistry.Object) error {
-			recorded = object
+		var (
+			recorded      mediaregistry.ObjectInput
+			recordedScope tenancy.Scope
+		)
+		// The scope is an argument now rather than a field on what is written, so a test
+		// that wants to say which scope an upload was filed under captures it separately.
+		uploadsRegistry.RecordObjectFunc = func(_ context.Context, _ database.Tx, scope tenancy.Scope, object mediaregistry.ObjectInput) (*mediaregistry.Object, error) {
+			recorded, recordedScope = object, scope
 
-			return nil
+			return &mediaregistry.Object{ID: object.ID, Scope: scope, Key: object.Key, ContentType: object.ContentType, OwnerID: object.OwnerID, Size: object.Size, BelongsTo: object.BelongsTo}, nil
 		}
 
 		require.NoError(t, service.Upload(stream))
@@ -781,10 +799,9 @@ func TestServiceImpl_Upload(t *testing.T) {
 
 		// The row's key is where the bytes went, and its size is what actually went past
 		// rather than what the chunks claimed.
-		require.NotNil(t, recorded)
 		assert.Equal(t, savedKey, recorded.Key)
 		assert.Equal(t, testUserID, recorded.OwnerID)
-		assert.Equal(t, uploadedmedia.Scope(), recorded.Scope)
+		assert.Equal(t, uploadedmedia.Scope(), recordedScope)
 		assert.Equal(t, int64(len(chunk1)+len(chunk2)), recorded.Size)
 
 		require.Len(t, stream.closedWith, 1)
@@ -819,8 +836,10 @@ func TestServiceImpl_Upload(t *testing.T) {
 
 			return err
 		}
-		uploadsRegistry.RecordObjectFunc = func(context.Context, *mediaregistry.Object) error { return nil }
-		usageRecorder.RecordFunc = func(context.Context, ...metering.Usage) error {
+		uploadsRegistry.RecordObjectFunc = func(context.Context, database.Tx, tenancy.Scope, mediaregistry.ObjectInput) (*mediaregistry.Object, error) {
+			return &mediaregistry.Object{}, nil
+		}
+		usageRecorder.RecordFunc = func(context.Context, database.Tx, tenancy.Scope, ...metering.Usage) error {
 			return platformerrors.New("blah")
 		}
 
@@ -940,8 +959,8 @@ func TestServiceImpl_Upload(t *testing.T) {
 
 			return err
 		}
-		uploadsRegistry.RecordObjectFunc = func(context.Context, *mediaregistry.Object) error {
-			return errors.New("database error")
+		uploadsRegistry.RecordObjectFunc = func(context.Context, database.Tx, tenancy.Scope, mediaregistry.ObjectInput) (*mediaregistry.Object, error) {
+			return nil, errors.New("database error")
 		}
 
 		err := service.Upload(uploadStreamFor(t, uploadedmedia.MimeTypeImagePNG, "test-file.png", []byte("test file content")))

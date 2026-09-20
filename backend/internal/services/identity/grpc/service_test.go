@@ -10,6 +10,7 @@ import (
 	managermock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/manager/mock"
 	identitysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/testutils"
 
 	registrymock "github.com/primandproper/platform-go/v14/mediaregistry/mock"
 	"github.com/primandproper/primitives-go/v2/fake"
@@ -34,9 +35,15 @@ func buildTestServiceWithUploadMocks(t *testing.T) (*serviceImpl, *managermock.I
 	tracer := tracing.NewTracerForTest(t.Name())
 	identityDataManager := &managermock.IdentityDataManagerMock{}
 	uploadsRegistry := &registrymock.StoreMock{}
-	uploadManager := &mockuploads.UploadManagerMock{}
+	// Exists answers false by default: v14's StoreAndRecord asks the bucket whether the key is
+	// free before it sends the bytes, because an upload at an occupied path replaces what is
+	// there and nothing after that point can undo it. A test about an occupied key overrides it.
+	uploadManager := &mockuploads.UploadManagerMock{
+		ExistsFunc: func(context.Context, string) (bool, error) { return false, nil },
+	}
 
 	service := &serviceImpl{
+		db:                  testutils.MockDatabaseClient(),
 		tracer:              tracer,
 		logger:              logger,
 		identityDataManager: identityDataManager,
@@ -110,8 +117,13 @@ func TestNewService(t *testing.T) {
 		identityDataManager := &managermock.IdentityDataManagerMock{}
 
 		uploadsRegistry := &registrymock.StoreMock{}
-		uploadManager := &mockuploads.UploadManagerMock{}
-		service := NewService(logger, tracerProvider, identityDataManager, uploadsRegistry, uploadManager)
+		// Exists answers false by default: v14's StoreAndRecord asks the bucket whether the key is
+		// free before it sends the bytes, because an upload at an occupied path replaces what is
+		// there and nothing after that point can undo it. A test about an occupied key overrides it.
+		uploadManager := &mockuploads.UploadManagerMock{
+			ExistsFunc: func(context.Context, string) (bool, error) { return false, nil },
+		}
+		service := NewService(logger, tracerProvider, testutils.MockDatabaseClient(), identityDataManager, uploadsRegistry, uploadManager)
 
 		assert.NotNil(t, service)
 		assert.Implements(t, (*identitysvc.IdentityServiceServer)(nil), service)

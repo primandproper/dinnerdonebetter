@@ -6,6 +6,7 @@ import (
 	mockmanagers "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/managers/mock"
 	mealplanningsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
 	mealplanfinalization "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_finalization"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/testutils"
 
 	commentsmock "github.com/primandproper/platform-go/v14/comments/mock"
 	registrymock "github.com/primandproper/platform-go/v14/mediaregistry/mock"
@@ -33,6 +34,7 @@ func TestNewService(t *testing.T) {
 		service := NewService(
 			logger,
 			tracerProvider,
+			testutils.MockDatabaseClient(),
 			mealPlanningManager,
 			mealPlanFinalizationStarter,
 			commentStore,

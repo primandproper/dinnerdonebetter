@@ -366,8 +366,11 @@ func (s *serviceImpl) UploadUserAvatar(stream grpc.ClientStreamingServer[uploade
 	//
 	// v14 takes a transaction, and it is open across the upload — acceptable for an
 	// avatar, which is small and size-capped above. The input no longer carries the
-	// scope or validates separately: the scope is an argument, and RecordObject
-	// refuses an input it cannot store.
+	// scope, which is an argument now.
+	if err = input.ValidateWithContext(ctx); err != nil {
+		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "failed to validate uploaded media")
+	}
+
 	object, err := inTransaction(ctx, s.db, func(tx database.Tx) (*mediaregistry.Object, error) {
 		return mediaregistry.StoreAndRecord(ctx, tx, uploadedmedia.Scope(), s.uploadManager, s.registry, input, &fileData)
 	})
