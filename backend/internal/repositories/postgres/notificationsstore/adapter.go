@@ -62,7 +62,7 @@ func notificationToDomain(n *platformnotifications.Notification) *ddbnotificatio
 		CreatedAt:     n.CreatedAt,
 		LastUpdatedAt: n.LastUpdatedAt,
 		ID:            n.ID,
-		Content:       n.Body,
+		Content:       n.Title,
 		Status:        status,
 		BelongsToUser: n.Principal,
 	}
@@ -136,12 +136,16 @@ func (a *Adapter) CreateUserNotification(
 		created, writeErr = a.inbox.CreateNotification(ctx, tx, ddbnotifications.Scope(), &platformnotifications.Notification{
 			ID:        id,
 			Principal: input.BelongsToUser,
-			Body:      input.Content,
 			Topic:     ddbnotifications.DefaultTopic,
-			// Title is platform's and this application has never had it: every
-			// notification it writes is a line of text. It is left empty rather
-			// than invented, and the day a notification wants a heading the input
-			// grows a field rather than this guessing one.
+			// The content is the title, and the body is empty.
+			//
+			// platform splits a notification into a headline and the detail under it,
+			// and requires the headline. This application writes one line of text and
+			// has never had the second half — so the line is the headline, which is
+			// what a client renders either way. Putting it in Body instead would mean
+			// inventing a headline to sit above it, and a headline nobody wrote is
+			// worse than none.
+			Title: input.Content,
 		})
 
 		return writeErr

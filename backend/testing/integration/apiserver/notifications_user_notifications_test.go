@@ -52,7 +52,9 @@ func TestUserNotifications_Reading(T *testing.T) {
 		require.NotNil(t, retrieved.GetResult())
 
 		assert.Equal(t, created.ID, retrieved.GetResult().GetId())
-		assert.Equal(t, created.Content, retrieved.GetResult().GetBody())
+		// The content is the headline. platform splits a notification in two and this
+		// application only ever writes the first half — see notificationsstore.Adapter.
+		assert.Equal(t, created.Content, retrieved.GetResult().GetTitle())
 		// Unread until somebody says otherwise, which is the state the mark-read case below
 		// moves it out of.
 		assert.Nil(t, retrieved.GetResult().GetReadAt())
