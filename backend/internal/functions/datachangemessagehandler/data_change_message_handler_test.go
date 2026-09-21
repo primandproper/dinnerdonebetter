@@ -10,11 +10,11 @@ import (
 	notificationsmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/mock"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/push"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
+
 	identitymock "github.com/primandproper/platform-go/v14/identity/mock"
+	analyticsmock "github.com/primandproper/primitives-go/v2/analytics/mock"
 	"github.com/primandproper/primitives-go/v2/database"
 	mockdatabase "github.com/primandproper/primitives-go/v2/database/mock"
-
-	analyticsmock "github.com/primandproper/primitives-go/v2/analytics/mock"
 	emailmock "github.com/primandproper/primitives-go/v2/email/mock"
 	encodingmock "github.com/primandproper/primitives-go/v2/encoding/mock"
 	"github.com/primandproper/primitives-go/v2/messagequeue"

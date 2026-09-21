@@ -6,11 +6,11 @@ import (
 	internalopssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/internalops"
 	mealplanningsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
 	uploadedmediasvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
-	"github.com/primandproper/platform-go/v14/identity/identitypb"
 
 	auditsvc "github.com/primandproper/platform-go/v14/audit/auditpb"
 	"github.com/primandproper/platform-go/v14/authentication/oauth2clients/oauth2clientspb"
 	paymentssvc "github.com/primandproper/platform-go/v14/billing/billingpb"
+	"github.com/primandproper/platform-go/v14/identity/identitypb"
 	issuereportssvc "github.com/primandproper/platform-go/v14/issuereports/issuereportspb"
 	notificationssvc "github.com/primandproper/platform-go/v14/notifications/notificationspb"
 	settingssvc "github.com/primandproper/platform-go/v14/settings/settingspb"

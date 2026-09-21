@@ -4,8 +4,8 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	domainmealplanning "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
-	platformidentity "github.com/primandproper/platform-go/v14/identity"
 
+	platformidentity "github.com/primandproper/platform-go/v14/identity"
 	"github.com/primandproper/platform-go/v14/mediaregistry"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/observability/logging"

@@ -13,16 +13,16 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	identityfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
+
 	identity "github.com/primandproper/platform-go/v14/identity"
 	identitymock "github.com/primandproper/platform-go/v14/identity/mock"
-	"github.com/primandproper/primitives-go/v2/database"
-	mockdatabase "github.com/primandproper/primitives-go/v2/database/mock"
-	"github.com/primandproper/primitives-go/v2/tenancy"
-
 	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
 	oauth2memory "github.com/primandproper/primitives-go/v2/authentication/oauth2server/memory"
 	"github.com/primandproper/primitives-go/v2/authentication/totp"
 	totpmock "github.com/primandproper/primitives-go/v2/authentication/totp/mock"
+	"github.com/primandproper/primitives-go/v2/database"
+	mockdatabase "github.com/primandproper/primitives-go/v2/database/mock"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/modelcontextprotocol/go-sdk/auth"
 	"github.com/stretchr/testify/assert"

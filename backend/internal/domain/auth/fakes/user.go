@@ -7,8 +7,8 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
-	platformidentity "github.com/primandproper/platform-go/v14/identity"
 
+	platformidentity "github.com/primandproper/platform-go/v14/identity"
 	"github.com/primandproper/primitives-go/v2/fake"
 
 	gofakeit "github.com/brianvoe/gofakeit/v7"

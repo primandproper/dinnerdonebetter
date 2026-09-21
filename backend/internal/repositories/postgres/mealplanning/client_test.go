@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
+	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/indexevents"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
@@ -14,7 +15,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	platformidentity "github.com/primandproper/platform-go/v14/identity"
 	"github.com/primandproper/platform-go/v14/mediaregistry"
 	registrymock "github.com/primandproper/platform-go/v14/mediaregistry/mock"

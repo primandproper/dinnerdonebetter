@@ -9,9 +9,9 @@ import (
 	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
 	mealplanninggrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
 	mpgrpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/grpc/converters"
-	"github.com/primandproper/platform-go/v14/identity/identitypb"
 
 	auditsvc "github.com/primandproper/platform-go/v14/audit/auditpb"
+	"github.com/primandproper/platform-go/v14/identity/identitypb"
 	waitlistspb "github.com/primandproper/platform-go/v14/waitlists/waitlistspb"
 	webhookspb "github.com/primandproper/platform-go/v14/webhooks/webhookspb"
 

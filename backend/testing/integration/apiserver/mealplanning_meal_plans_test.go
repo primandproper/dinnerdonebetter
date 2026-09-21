@@ -12,8 +12,8 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 	converters "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/grpc/converters"
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
-	"github.com/primandproper/platform-go/v14/identity/identitypb"
 
+	"github.com/primandproper/platform-go/v14/identity/identitypb"
 	"github.com/primandproper/primitives-go/v2/filtering/filteringpb"
 
 	"github.com/stretchr/testify/assert"
@@ -209,9 +209,9 @@ func TestMealPlans_CompleteLifecycleForAllVotesReceived(T *testing.T) {
 			verifyEmailAddressForTest(t, u.ID)
 
 			// Proven first: listing what was sent to an address is gated on having proven it.
-		verifyEmailAddressForTest(t, u.ID)
+			verifyEmailAddressForTest(t, u.ID)
 
-		invitations, err := c.IdentityService().ListInvitationsForEmailAddress(ctx, &identitypb.ListInvitationsForEmailAddressRequest{})
+			invitations, err := c.IdentityService().ListInvitationsForEmailAddress(ctx, &identitypb.ListInvitationsForEmailAddressRequest{})
 			require.NotNil(t, invitations)
 			require.NoError(t, err)
 			assert.NotEmpty(t, invitations.Results)
@@ -675,9 +675,9 @@ func TestMealPlans_CompleteLifecycleForSomeVotesReceived(T *testing.T) {
 			verifyEmailAddressForTest(t, u.ID)
 
 			// Proven first: listing what was sent to an address is gated on having proven it.
-		verifyEmailAddressForTest(t, u.ID)
+			verifyEmailAddressForTest(t, u.ID)
 
-		invitations, err := c.IdentityService().ListInvitationsForEmailAddress(ctx, &identitypb.ListInvitationsForEmailAddressRequest{})
+			invitations, err := c.IdentityService().ListInvitationsForEmailAddress(ctx, &identitypb.ListInvitationsForEmailAddressRequest{})
 			require.NotNil(t, invitations)
 			require.NoError(t, err)
 			assert.NotEmpty(t, invitations.Results)

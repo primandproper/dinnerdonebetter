@@ -17,11 +17,11 @@ import (
 	identityfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/testutils"
-	platformidentity "github.com/primandproper/platform-go/v14/identity"
-	identitymock "github.com/primandproper/platform-go/v14/identity/mock"
 
 	"github.com/primandproper/platform-go/v14/authentication/passwordreset"
 	passwordresetmock "github.com/primandproper/platform-go/v14/authentication/passwordreset/mock"
+	platformidentity "github.com/primandproper/platform-go/v14/identity"
+	identitymock "github.com/primandproper/platform-go/v14/identity/mock"
 	platformsessions "github.com/primandproper/platform-go/v14/sessions"
 	sessionsmock "github.com/primandproper/platform-go/v14/sessions/mock"
 	platformtotp "github.com/primandproper/primitives-go/v2/authentication/totp"

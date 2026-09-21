@@ -15,15 +15,14 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 
 	platformidentity "github.com/primandproper/platform-go/v14/identity"
-	"github.com/primandproper/primitives-go/v2/database"
-	"github.com/primandproper/primitives-go/v2/tenancy"
-
 	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
 	"github.com/primandproper/primitives-go/v2/authentication/tokens"
+	"github.com/primandproper/primitives-go/v2/database"
 	errorsgrpc "github.com/primandproper/primitives-go/v2/errors/grpc"
 	"github.com/primandproper/primitives-go/v2/observability"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"

@@ -7,8 +7,8 @@ import (
 	authenticationmock "github.com/primandproper/dinnerdonebetter/backend/internal/authentication/mock"
 	authmanagermock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/managers/mock"
 	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
-	identitymock "github.com/primandproper/platform-go/v14/identity/mock"
 
+	identitymock "github.com/primandproper/platform-go/v14/identity/mock"
 	"github.com/primandproper/primitives-go/v2/database"
 	mockdatabase "github.com/primandproper/primitives-go/v2/database/mock"
 	"github.com/primandproper/primitives-go/v2/encoding"

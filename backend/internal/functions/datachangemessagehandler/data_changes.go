@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
-
 	analyticsevents "github.com/primandproper/dinnerdonebetter/backend/internal/domain/analytics"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
+	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 
 	"github.com/primandproper/primitives-go/v2/observability"
 	"github.com/primandproper/primitives-go/v2/retry"

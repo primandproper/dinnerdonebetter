@@ -8,23 +8,23 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
+
 	identity "github.com/primandproper/platform-go/v14/identity"
 	identitymock "github.com/primandproper/platform-go/v14/identity/mock"
-	"github.com/primandproper/primitives-go/v2/database"
-	mockdatabase "github.com/primandproper/primitives-go/v2/database/mock"
-	"github.com/primandproper/primitives-go/v2/tenancy"
-
 	"github.com/primandproper/platform-go/v14/sessions"
 	sessionsmock "github.com/primandproper/platform-go/v14/sessions/mock"
 	"github.com/primandproper/primitives-go/v2/authentication/tokens"
 	mocktokens "github.com/primandproper/primitives-go/v2/authentication/tokens/mock"
 	"github.com/primandproper/primitives-go/v2/authentication/totp"
 	mocktotp "github.com/primandproper/primitives-go/v2/authentication/totp/mock"
+	"github.com/primandproper/primitives-go/v2/database"
+	mockdatabase "github.com/primandproper/primitives-go/v2/database/mock"
 	"github.com/primandproper/primitives-go/v2/messagequeue"
 	mockpublishers "github.com/primandproper/primitives-go/v2/messagequeue/mock"
 	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
 	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

@@ -3,8 +3,6 @@ package migrations
 import (
 	"testing"
 
-	"github.com/primandproper/primitives-go/v2/tenancy"
-
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
@@ -12,6 +10,7 @@ import (
 	platformauthz "github.com/primandproper/primitives-go/v2/authorization"
 	"github.com/primandproper/primitives-go/v2/database/dialect"
 	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

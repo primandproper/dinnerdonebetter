@@ -12,12 +12,11 @@ import (
 	domainnotifications "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
 	notificationsmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/mock"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/push"
+
 	platformidentity "github.com/primandproper/platform-go/v14/identity"
 	identitymock "github.com/primandproper/platform-go/v14/identity/mock"
 	"github.com/primandproper/primitives-go/v2/database"
 	databasemock "github.com/primandproper/primitives-go/v2/database/mock"
-	"github.com/primandproper/primitives-go/v2/tenancy"
-
 	"github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/fake"
 	"github.com/primandproper/primitives-go/v2/filtering"
@@ -25,6 +24,7 @@ import (
 	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
 	metricsnoop "github.com/primandproper/primitives-go/v2/observability/metrics/noop"
 	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

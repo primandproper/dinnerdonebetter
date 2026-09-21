@@ -6,7 +6,6 @@ import (
 
 	"github.com/primandproper/platform-go/v14/authentication/passkeys"
 	platformidentity "github.com/primandproper/platform-go/v14/identity"
-
 	platformwebauthn "github.com/primandproper/primitives-go/v2/authentication/webauthn"
 
 	"github.com/go-webauthn/webauthn/protocol"

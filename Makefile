@@ -275,6 +275,11 @@ PROTO_TS_HANDWRITTEN := index.ts create-clients.ts admin-clients.ts
 # target's. identity is the exception and is generated above, from platform's schema.
 PROTO_TS_STALE_ADOPTED := audit comments issue_reports notifications oauth payments settings waitlists
 
+# webhooks is deliberately not on that list. Its generated client is stale for the same
+# reason the others are, but no web app imports it, so letting the sweep take it removes
+# dead code rather than breaking a build. The iOS app does import it, which is why it is
+# on the Swift list below.
+
 # The same directories in the Swift output, plus webhooks, which the iOS app uses and the
 # web apps do not. See PROTO_TS_STALE_ADOPTED for why they are preserved rather than
 # regenerated.

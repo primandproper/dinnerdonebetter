@@ -4,16 +4,15 @@ import (
 	"context"
 	"fmt"
 
-	identityroster "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
-	platformidentity "github.com/primandproper/platform-go/v14/identity"
-
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	authkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/keys"
 	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
+	identityroster "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	queuemessages "github.com/primandproper/dinnerdonebetter/backend/internal/queues/messages"
 	coreemails "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/emails"
 
+	platformidentity "github.com/primandproper/platform-go/v14/identity"
 	notifications "github.com/primandproper/primitives-go/v2/notifications/mobile"
 	"github.com/primandproper/primitives-go/v2/observability"
 )

@@ -14,13 +14,13 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 	identityfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
 	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
-	identity "github.com/primandproper/platform-go/v14/identity"
-	"github.com/primandproper/primitives-go/v2/database"
-	"github.com/primandproper/primitives-go/v2/tenancy"
 
+	identity "github.com/primandproper/platform-go/v14/identity"
 	platformsessions "github.com/primandproper/platform-go/v14/sessions"
+	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/fake"
 	"github.com/primandproper/primitives-go/v2/featureflags"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

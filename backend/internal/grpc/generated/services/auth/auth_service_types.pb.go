@@ -7,14 +7,17 @@
 package auth
 
 import (
-	types "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
-	identitypb "github.com/primandproper/platform-go/v14/identity/identitypb"
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
+
+	types "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
+
+	identitypb "github.com/primandproper/platform-go/v14/identity/identitypb"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 )
 
 const (

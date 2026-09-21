@@ -7,16 +7,16 @@ import (
 	"time"
 
 	identityfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
+
 	"github.com/primandproper/platform-go/v14/authentication/passkeys"
 	passkeysmock "github.com/primandproper/platform-go/v14/authentication/passkeys/mock"
 	identity "github.com/primandproper/platform-go/v14/identity"
+	platformwebauthn "github.com/primandproper/primitives-go/v2/authentication/webauthn"
 	"github.com/primandproper/primitives-go/v2/database"
 	mockdatabase "github.com/primandproper/primitives-go/v2/database/mock"
-	"github.com/primandproper/primitives-go/v2/tenancy"
-
-	platformwebauthn "github.com/primandproper/primitives-go/v2/authentication/webauthn"
 	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
 	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/stretchr/testify/assert"

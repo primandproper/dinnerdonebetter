@@ -20,6 +20,9 @@ import (
 type entry struct {
 	_ struct{} `json:"-"`
 
+	// metadata is what the data change event carries.
+	metadata map[string]any
+
 	// resourceType and relevantID name the row.
 	resourceType string
 	relevantID   string
@@ -40,9 +43,6 @@ type entry struct {
 	// entry filed under the wrong account is one the account it is about cannot read.
 	belongsToUser    string
 	belongsToAccount string
-
-	// metadata is what the data change event carries.
-	metadata map[string]any
 }
 
 // record writes each entry's audit row and event inside the operation's transaction.

@@ -3,9 +3,6 @@ package datachangemessagehandler
 import (
 	"context"
 
-	platformidentity "github.com/primandproper/platform-go/v14/identity"
-	"github.com/primandproper/primitives-go/v2/database"
-
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/internalops"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
@@ -13,8 +10,10 @@ import (
 	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
 	mealplanningindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
+	platformidentity "github.com/primandproper/platform-go/v14/identity"
 	searchsync "github.com/primandproper/platform-go/v14/searchsync"
 	"github.com/primandproper/primitives-go/v2/analytics"
+	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/email"
 	"github.com/primandproper/primitives-go/v2/encoding"
 	"github.com/primandproper/primitives-go/v2/messagequeue"
