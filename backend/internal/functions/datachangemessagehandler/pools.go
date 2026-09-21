@@ -3,7 +3,7 @@ package datachangemessagehandler
 import (
 	"context"
 
-	"github.com/primandproper/platform-go/v13/jobs"
+	"github.com/primandproper/primitives-go/v2/jobs"
 )
 
 // poolSpecs describes every topic this process drains: what to consume, with which knobs, and

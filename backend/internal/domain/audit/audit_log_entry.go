@@ -4,9 +4,10 @@ import (
 	"context"
 	"time"
 
-	platformaudit "github.com/primandproper/platform-go/v13/audit"
-	"github.com/primandproper/platform-go/v13/database"
-	"github.com/primandproper/platform-go/v13/filtering"
+	platformaudit "github.com/primandproper/platform-go/v14/audit"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/filtering"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
 const (
@@ -77,10 +78,6 @@ type (
 		// recoverable afterwards.
 		ActorIP string `json:"actorIP"`
 
-		// Scope is the hash chain this entry belongs to. Assigned by Record from
-		// BelongsToAccount and BelongsToUser; see ScopeFor.
-		Scope string `json:"scope"`
-
 		// PrevHash is the hash of the preceding entry in this scope, or empty for the
 		// first. Assigned by Record.
 		PrevHash string `json:"prevHash"`
@@ -89,6 +86,10 @@ type (
 		// Assigned by Record. Publishing it somewhere this database's owner does not
 		// control is what raises tamper evidence to tamper proof.
 		Hash string `json:"hash"`
+
+		// Scope is the hash chain this entry belongs to. Assigned by Record from
+		// BelongsToAccount and BelongsToUser; see ScopeFor.
+		Scope tenancy.Scope `json:"scope"`
 
 		// Seq is the entry's position in its scope's chain, starting at zero.
 		// Assigned by Record, and unique per scope in the database — so the chain
@@ -117,7 +118,7 @@ type (
 
 		// VerifyChain walks one scope's hash chain over a time range and reports the
 		// first break, or that there was none. See ScopeFor for what a scope is here.
-		VerifyChain(ctx context.Context, scope string, from, to time.Time) (*VerificationResult, error)
+		VerifyChain(ctx context.Context, scope tenancy.Scope, from, to time.Time) (*VerificationResult, error)
 	}
 )
 
@@ -175,14 +176,19 @@ const TablePrefix = "ddb"
 // are unaffected, because the account read path filters on scope while the user
 // read path filters on the actor.
 //
-// The empty scope remains for events belonging to neither, which are
-// platform-level by definition and rare enough to serialize.
-func ScopeFor(belongsToAccount *string, belongsToUser string) string {
+// The global scope takes events belonging to neither, which are platform-level
+// by definition and rare enough to serialize. It is tenancy.Global() rather than
+// the zero Scope, and the two are not the same thing under platform-go v14: the
+// zero value means nobody said, and every read refuses it. A deliberate
+// platform-level event has to say so.
+func ScopeFor(belongsToAccount *string, belongsToUser string) tenancy.Scope {
 	switch {
 	case belongsToAccount != nil && *belongsToAccount != "":
-		return *belongsToAccount
+		return tenancy.Of(*belongsToAccount)
+	case belongsToUser != "":
+		return tenancy.Of(belongsToUser)
 	default:
-		return belongsToUser
+		return tenancy.Global()
 	}
 }
 

@@ -1,7 +1,7 @@
 package mealplantasknotifications
 
 import (
-	"github.com/primandproper/platform-go/v13/workqueue"
+	"github.com/primandproper/platform-go/v14/workqueue"
 )
 
 // Item is one leased meal plan task, and Stats is the queue's shape. They are aliases rather

@@ -4,8 +4,11 @@ import (
 	"context"
 	"testing"
 
-	"github.com/primandproper/platform-go/v13/identifiers"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 
+	"github.com/primandproper/primitives-go/v2/identifiers"
+
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -103,8 +106,29 @@ func TestContextData_gettersAreNilSafe(T *testing.T) {
 		require.Empty(t, x.GetSessionID())
 		require.Empty(t, x.GetEmailAddress())
 		require.Empty(t, x.GetUsername())
-		require.Nil(t, x.GetServicePermissions())
-		require.Nil(t, x.ServiceRolePermissionChecker())
+		// Not nil. Every caller in the tree calls IsServiceAdmin or HasPermission on
+		// this immediately, so a nil interface would turn "read through a nil
+		// ContextData without a preceding nil check" into a panic on exactly the
+		// unauthenticated request the nil-safety is for. The account-side checker below
+		// has always answered this way; the service side was the outlier.
+		require.NotNil(t, x.GetServicePermissions())
+		assert.False(t, x.GetServicePermissions().IsServiceAdmin())
+		assert.False(t, x.GetServicePermissions().HasPermission(authorization.PermissionReadUsers))
+
+		require.NotNil(t, x.ServiceRolePermissionChecker())
+		assert.False(t, x.ServiceRolePermissionChecker().IsServiceAdmin())
+
 		require.NotNil(t, x.AccountRolePermissionsChecker())
+	})
+
+	T.Run("a session carrying no checker answers as an anonymous one", func(t *testing.T) {
+		t.Parallel()
+
+		// The shape a hand-built ContextData has, and the one a session whose policy
+		// resolution failed would have: present, but with nothing in Requester.
+		x := &ContextData{Requester: RequesterInfo{UserID: "someone"}}
+
+		require.NotNil(t, x.GetServicePermissions())
+		assert.False(t, x.GetServicePermissions().IsServiceAdmin())
 	})
 }

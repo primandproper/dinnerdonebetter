@@ -4,21 +4,21 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/push"
+	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
-	identityrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity"
 	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
-	notificationsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/notifications"
+	notificationsstore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/notificationsstore"
 	mealplantasknotifications "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_task_notifications"
 
-	"github.com/primandproper/platform-go/v13/database"
-	platformnotifications "github.com/primandproper/platform-go/v13/notifications/mobile"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	metricsnoop "github.com/primandproper/platform-go/v13/observability/metrics/noop"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
-	"github.com/primandproper/platform-go/v13/workqueue"
-	workqueuecfg "github.com/primandproper/platform-go/v13/workqueue/config"
+	platformidentity "github.com/primandproper/platform-go/v14/identity"
+	"github.com/primandproper/platform-go/v14/notifications/push"
+	"github.com/primandproper/platform-go/v14/workqueue"
+	workqueuecfg "github.com/primandproper/platform-go/v14/workqueue/config"
+	"github.com/primandproper/primitives-go/v2/database"
+	platformnotifications "github.com/primandproper/primitives-go/v2/notifications/mobile"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	metricsnoop "github.com/primandproper/primitives-go/v2/observability/metrics/noop"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
 )
 
 // NewMealPlanTaskNotificationWorker builds the prep task reminder worker over the given database,
@@ -63,16 +63,25 @@ func NewMealPlanTaskNotificationWorker(
 		return nil, nil, fmt.Errorf("building upload registry store: %w", err)
 	}
 
-	policy, policyErr := authorization.NewDatabaseResolver(databaseClient.Reader(), logger, tracerProvider, nil)
-	if policyErr != nil {
-		return nil, nil, policyErr
+	identityStore, err := platformidentity.NewSQLStore(databaseClient,
+		platformidentity.WithTablePrefix(ddbidentity.TablePrefix),
+		platformidentity.WithStoreLogger(logger),
+		platformidentity.WithStoreTracerProvider(tracerProvider),
+	)
+	if err != nil {
+		return nil, nil, err
 	}
 
-	identityRepo := identityrepo.ProvideIdentityRepository(logger, tracerProvider, auditRepo, databaseClient, nil, uploads, policy)
-	mealPlanningRepo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditRepo, identityRepo, databaseClient, nil, uploads)
-	notificationsRepo := notificationsrepo.ProvideNotificationsRepository(logger, tracerProvider, auditRepo, nil, databaseClient, nil)
+	mealPlanningRepo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditRepo, identityStore, databaseClient, nil, uploads)
+	notificationsRepo, err := notificationsstore.ProvideAdapter(ctx, logger, tracerProvider, metricsnoop.NewMetricsProvider(), auditRepo, nil, databaseClient)
+	if err != nil {
+		return nil, nil, fmt.Errorf("building notifications repository: %w", err)
+	}
 
-	fanout, err := push.NewFanout(logger, notificationsRepo, sender, metricsProvider)
+	fanout, err := push.NewFanout(notificationsRepo.Registry(), sender,
+		push.WithLogger(logger),
+		push.WithTracerProvider(tracerProvider),
+		push.WithMetricsProvider(metricsProvider))
 	if err != nil {
 		return nil, nil, fmt.Errorf("building push fanout: %w", err)
 	}
@@ -98,7 +107,8 @@ func NewMealPlanTaskNotificationWorker(
 			tracerProvider,
 			&mealplantasknotifications.TaskQueue{Queue: queue},
 			mealPlanningRepo,
-			identityRepo,
+			identityStore,
+			databaseClient,
 			fanout,
 		),
 		queue.Close,

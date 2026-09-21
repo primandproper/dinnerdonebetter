@@ -4,17 +4,25 @@ import (
 	"context"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
+	auditbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/auditlog"
 	commentstargets "github.com/primandproper/dinnerdonebetter/backend/internal/build/comments"
 	dataprivacybuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/dataprivacy"
+	identitybuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/identity"
+	issuereportsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/issuereports"
+	notificationsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/notifications"
+	oauth2clientsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/oauth2clients"
+	paymentsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/payments"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/build/sagas"
+	settingsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/settings"
+	waitlistsbuild2 "github.com/primandproper/dinnerdonebetter/backend/internal/build/waitlists"
+	webhooksbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/webhooks"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	auditmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit/manager"
 	authmgr "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/managers"
-	identitymgr "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/manager"
 	mealplanningregistration "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/registration"
 	notificationsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/manager"
-	oauthmgr "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth/manager"
 	paymentsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/manager"
 	webhooksmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/manager"
 	appentitlements "github.com/primandproper/dinnerdonebetter/backend/internal/entitlements"
@@ -23,52 +31,43 @@ import (
 	auditrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	authrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auth"
 	commentsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/comments"
-	identityrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity"
+	identitystore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identitystore"
 	internalopsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/internalops"
 	issuereportsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/issuereports"
-	oauthrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/oauth"
+	oauth2clientsstore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/oauth2clientsstore"
 	paymentsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/payments"
 	settingsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/settings"
 	uploadedmediarepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/uploadedmedia"
 	waitlistsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/waitlists"
-	webhooksrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhooks"
+	webhooksstore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhooksstore"
 	analyticssvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/analytics/grpc"
-	auditsvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/audit/grpc"
 	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc/interceptors"
 	authhttpsvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/handlers/authentication"
-	commentssvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/comments/grpc"
 	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
 	dataprivacysvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/grpc"
-	identitysvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/grpc"
 	internalopssvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/internalops/grpc"
-	issuereportssvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/issuereports/grpc"
-	notificationssvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/notifications/grpc"
-	oauthsvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/oauth/grpc"
 	paymentsadapters "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/adapters"
-	paymentssvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/grpc"
-	settingssvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/settings/grpc"
 	uploadedmediacfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/config"
 	uploadedmediasvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/grpc"
-	waitlistssvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/waitlists/grpc"
-	webhookssvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/webhooks/grpc"
 
-	"github.com/primandproper/platform-go/v13/analytics/multisource"
-	tokenscfg "github.com/primandproper/platform-go/v13/authentication/tokens/config"
-	databasecfg "github.com/primandproper/platform-go/v13/database/config"
-	featureflagscfg "github.com/primandproper/platform-go/v13/featureflags/config"
-	"github.com/primandproper/platform-go/v13/httpclient"
-	msgconfig "github.com/primandproper/platform-go/v13/messagequeue/config"
-	"github.com/primandproper/platform-go/v13/observability"
-	loggingcfg "github.com/primandproper/platform-go/v13/observability/logging/config"
-	metricscfg "github.com/primandproper/platform-go/v13/observability/metrics/config"
-	tracingcfg "github.com/primandproper/platform-go/v13/observability/tracing/config"
-	operationscfg "github.com/primandproper/platform-go/v13/operations/config"
-	"github.com/primandproper/platform-go/v13/qrcodes"
-	"github.com/primandproper/platform-go/v13/random"
-	"github.com/primandproper/platform-go/v13/server/grpc"
-	uploadscfg "github.com/primandproper/platform-go/v13/uploads/config"
-	"github.com/primandproper/platform-go/v13/uploads/objectstorage"
+	platformerrormappers "github.com/primandproper/platform-go/v14/errormappers"
+	operationscfg "github.com/primandproper/platform-go/v14/operations/config"
+	"github.com/primandproper/primitives-go/v2/analytics/multisource"
+	tokenscfg "github.com/primandproper/primitives-go/v2/authentication/tokens/config"
+	databasecfg "github.com/primandproper/primitives-go/v2/database/config"
+	featureflagscfg "github.com/primandproper/primitives-go/v2/featureflags/config"
+	"github.com/primandproper/primitives-go/v2/httpclient"
+	msgconfig "github.com/primandproper/primitives-go/v2/messagequeue/config"
+	"github.com/primandproper/primitives-go/v2/observability"
+	loggingcfg "github.com/primandproper/primitives-go/v2/observability/logging/config"
+	metricscfg "github.com/primandproper/primitives-go/v2/observability/metrics/config"
+	tracingcfg "github.com/primandproper/primitives-go/v2/observability/tracing/config"
+	"github.com/primandproper/primitives-go/v2/qrcodes"
+	"github.com/primandproper/primitives-go/v2/random"
+	"github.com/primandproper/primitives-go/v2/server/grpc"
+	uploadscfg "github.com/primandproper/primitives-go/v2/uploads/config"
+	"github.com/primandproper/primitives-go/v2/uploads/objectstorage"
 
 	"github.com/samber/do/v2"
 )
@@ -79,6 +78,17 @@ func BuildInjector(
 	cfg *config.APIServiceConfig,
 ) *do.RootScope {
 	i := do.New()
+
+	// The transport mappings for every platform-go sentinel, installed before anything can
+	// raise one. As of v14 the mappers do not register themselves — a package that installs
+	// itself into a process-wide registry by being linked in is a side effect a consumer
+	// cannot opt out of — so the composition root makes the one call. Without it every
+	// platform error reaches a client as whatever default code the handler happened to name,
+	// which compiles and passes every test that does not assert on a code.
+	//
+	// This repository's own mappers still register from an init, because their packages are
+	// imported for nothing else and there is no root they could be called from.
+	platformerrormappers.Register()
 
 	do.ProvideValue(i, ctx)
 	do.ProvideValue(i, cfg)
@@ -158,22 +168,21 @@ func BuildInjector(
 	// What a role grants, read from the policy tables the migrator seeds. The
 	// identity repository resolves a principal's role names through it when it
 	// builds a session.
-	identityrepo.RegisterPolicyResolver(i)
-	identityrepo.RegisterIdentityRepository(i)
+	authorization.RegisterPolicyResolver(i)
+	identitystore.RegisterIdentityStore(i)
+	identitybuild.RegisterSessionBuilder(i)
 	issuereportsrepo.RegisterIssueReportsRepository(i)
 	uploadedmediarepo.RegisterUploadedMediaRepository(i)
-	webhooksrepo.RegisterWebhooksRepository(i)
-	oauthrepo.RegisterOAuthRepository(i)
+	webhooksstore.RegisterWebhooksStore(i)
+	oauth2clientsstore.RegisterOAuth2ClientsStore(i)
 	paymentsrepo.RegisterPaymentsRepository(i)
 	internalopsrepo.RegisterInternalOpsRepository(i)
 
 	// managers
 	auditmanager.RegisterAuditDataManager(i)
 	authmgr.RegisterAuthManager(i)
-	identitymgr.RegisterIdentityDataManager(i)
 	notificationsmanager.RegisterNotificationsDataManager(i)
 	paymentsmanager.RegisterPaymentsDataManager(i)
-	oauthmgr.RegisterOAuth2Manager(i)
 	webhooksmanager.RegisterWebhookDataManager(i)
 	settingsrepo.RegisterSettingsRepository(i)
 	waitlistsrepo.RegisterWaitlistsRepository(i)
@@ -183,22 +192,23 @@ func BuildInjector(
 	authsvc.RegisterAuthService(i)
 	authhttpsvc.RegisterAuthHTTPService(i)
 	analyticssvc.RegisterAnalyticsService(i)
-	auditsvc.RegisterAuditService(i)
-	commentssvc.RegisterCommentsService(i)
+	auditrepo.RegisterPlatformReader(i)
+	auditbuild.RegisterAuditService(i)
+	commentstargets.RegisterCommentsService(i)
 	dataprivacysvc.RegisterDataPrivacyService(i)
 	do.Provide[dataprivacysvc.DataPrivacyMethodPermissions](i, func(i do.Injector) (dataprivacysvc.DataPrivacyMethodPermissions, error) {
 		return dataprivacysvc.ProvideMethodPermissions(), nil
 	})
-	identitysvc.RegisterIdentityService(i)
+	identitybuild.RegisterIdentityService(i)
 	internalopssvc.RegisterInternalOpsService(i)
-	issuereportssvc.RegisterIssueReportsService(i)
-	notificationssvc.RegisterNotificationsService(i)
-	settingssvc.RegisterSettingsService(i)
+	issuereportsbuild.RegisterIssueReportsService(i)
+	notificationsbuild.RegisterNotificationsService(i)
+	settingsbuild.RegisterSettingsService(i)
 	uploadedmediasvc.RegisterUploadedMediaService(i)
-	webhookssvc.RegisterWebhooksService(i)
-	oauthsvc.RegisterOAuthService(i)
-	paymentssvc.RegisterPaymentsService(i)
-	waitlistssvc.RegisterWaitlistsService(i)
+	webhooksbuild.RegisterWebhooksService(i)
+	oauth2clientsbuild.RegisterOAuth2ClientsService(i)
+	paymentsbuild.RegisterPaymentsService(i)
+	waitlistsbuild2.RegisterWaitlistsService(i)
 	uploadedmediacfg.RegisterUploadedMediaConfig(i)
 
 	// The saga machinery, minus the worker: this process starts durable processes and does not

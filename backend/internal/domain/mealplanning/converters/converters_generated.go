@@ -5,7 +5,7 @@ package converters
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 
-	"github.com/primandproper/platform-go/v13/identifiers"
+	"github.com/primandproper/primitives-go/v2/identifiers"
 )
 
 // ConvertAccountInstrumentOwnershipToAccountInstrumentOwnershipCreationRequestInput builds an AccountInstrumentOwnershipCreationRequestInput from an AccountInstrumentOwnership.

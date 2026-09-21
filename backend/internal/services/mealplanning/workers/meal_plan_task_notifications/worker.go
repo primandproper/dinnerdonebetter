@@ -8,14 +8,15 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/push"
+	ddbnotifications "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers"
 
-	"github.com/primandproper/platform-go/v13/filtering"
-	platformnotifications "github.com/primandproper/platform-go/v13/notifications/mobile"
-	"github.com/primandproper/platform-go/v13/observability"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
+	"github.com/primandproper/platform-go/v14/notifications/push"
+	"github.com/primandproper/primitives-go/v2/database"
+	platformnotifications "github.com/primandproper/primitives-go/v2/notifications/mobile"
+	"github.com/primandproper/primitives-go/v2/observability"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
 
 	"github.com/hashicorp/go-multierror"
 )
@@ -60,10 +61,11 @@ type Worker struct {
 	logger logging.Logger
 	tracer tracing.Tracer
 
-	queue        Queue
-	dataManager  mealplanning.Repository
-	identityRepo identity.Repository
-	fanout       *push.Fanout
+	queue       Queue
+	dataManager mealplanning.Repository
+	roster      identity.AccountRoster
+	db          database.Client
+	fanout      *push.Fanout
 }
 
 // Queue is the slice of workqueue.Queue[string] this worker drives. It is an interface so the
@@ -71,8 +73,8 @@ type Worker struct {
 type Queue interface {
 	EnqueueKeys(ctx context.Context, keys ...string) error
 	Claim(ctx context.Context, limit int, lease time.Duration) ([]Item, error)
-	Complete(ctx context.Context, keys ...string) error
-	Release(ctx context.Context, delay time.Duration, cause error, keys ...string) error
+	Complete(ctx context.Context, items ...Item) error
+	Release(ctx context.Context, delay time.Duration, cause error, items ...Item) error
 	Reap(ctx context.Context) (int64, error)
 	Stats(ctx context.Context) (Stats, error)
 }
@@ -83,16 +85,18 @@ func NewWorker(
 	tracerProvider tracing.Provider,
 	queue Queue,
 	dataManager mealplanning.Repository,
-	identityRepo identity.Repository,
+	roster identity.AccountRoster,
+	db database.Client,
 	fanout *push.Fanout,
 ) *Worker {
 	return &Worker{
-		logger:       logging.NewNamedLogger(logger, o11yName),
-		tracer:       tracing.NewNamedTracer(tracerProvider, o11yName),
-		queue:        queue,
-		dataManager:  dataManager,
-		identityRepo: identityRepo,
-		fanout:       fanout,
+		logger:      logging.NewNamedLogger(logger, o11yName),
+		tracer:      tracing.NewNamedTracer(tracerProvider, o11yName),
+		queue:       queue,
+		dataManager: dataManager,
+		roster:      roster,
+		db:          db,
+		fanout:      fanout,
 	}
 }
 
@@ -228,8 +232,12 @@ func (w *Worker) drain(ctx context.Context) (int64, error) {
 func (w *Worker) workBatch(ctx context.Context, items []Item) (int64, error) {
 	errorResult := &multierror.Error{}
 
-	done := make([]string, 0, len(items))
-	failed := make([]string, 0)
+	// The claimed items rather than their keys: v14 fences a completion on the
+	// claim that produced it, so a completion cannot land against a lease another
+	// replica now holds. Handing back the key alone no longer compiles, which is
+	// the point of the change.
+	done := make([]Item, 0, len(items))
+	failed := make([]Item, 0)
 
 	var lastCause error
 
@@ -249,10 +257,10 @@ func (w *Worker) workBatch(ctx context.Context, items []Item) (int64, error) {
 		switch err := w.notify(ctx, logger, item.Key); {
 		case err != nil:
 			lastCause = err
-			failed = append(failed, item.Key)
+			failed = append(failed, *item)
 			errorResult = multierror.Append(errorResult, fmt.Errorf("notifying for meal plan task %s: %w", item.Key, err))
 		default:
-			done = append(done, item.Key)
+			done = append(done, *item)
 		}
 	}
 
@@ -318,12 +326,31 @@ func (w *Worker) notify(ctx context.Context, logger logging.Logger, mealPlanTask
 
 	title, body := content(notificationContext)
 
-	result, err := w.fanout.Send(ctx, RequestType, recipients, platformnotifications.PushMessage{Title: title, Body: body})
-	if err != nil {
+	tracing.AttachToSpan(span, "notification.request_type", RequestType)
+
+	result, err := w.fanout.Push(ctx, w.db.Reader(), ddbnotifications.Scope(), recipients,
+		platformnotifications.PushMessage{Title: title, Body: body})
+
+	// A nil result is the read that resolves recipients to handsets having failed, which is
+	// the only case where nothing was attempted. Everything else comes back with counts,
+	// including a push where every handset refused — platform returns the joined delivery
+	// errors *and* the result, and this worker's decision is made from the counts.
+	if result == nil {
 		return observability.PrepareError(err, span, "sending meal plan task notification")
 	}
 
-	if !result.Reached() && !result.Unreachable() {
+	// A partial failure is not worth repeating. Somebody's phone has the notification, and
+	// the alternative is releasing the task and telling the handsets that did accept it a
+	// second time. The sender has already logged and spanned each failed round trip, so
+	// this acknowledges rather than re-reports.
+	if err != nil && result.Sent > 0 {
+		observability.AcknowledgeError(err, w.logger, span, "some handsets refused a meal plan task notification")
+	}
+
+	// Reached and Unreachable were this application's two predicates over its own result.
+	// platform's carries the same two facts in more detail — Sent, Failed, Invalidated and
+	// a Delivery per handset — so they are spelled here rather than wrapped.
+	if result.Sent == 0 && len(result.Deliveries) > 0 {
 		// There were devices and every one of them refused, which is usually the push
 		// provider rather than the task. Left unstamped so the queue offers it again after
 		// the release delay.
@@ -358,16 +385,9 @@ func (w *Worker) recipients(ctx context.Context, task *mealplanning.MealPlanTask
 		return nil, errTaskHasNoAccount
 	}
 
-	users, err := w.identityRepo.GetUsersForAccount(ctx, accountID, filtering.DefaultQueryFilter())
+	userIDs, err := identity.MembersOfAccount(ctx, w.roster, w.db.Reader(), accountID)
 	if err != nil {
 		return nil, fmt.Errorf("getting users for account: %w", err)
-	}
-
-	userIDs := make([]string, 0, len(users.Data))
-	for _, user := range users.Data {
-		if user != nil && user.ID != "" {
-			userIDs = append(userIDs, user.ID)
-		}
 	}
 
 	return userIDs, nil

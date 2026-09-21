@@ -6,7 +6,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	queuemessages "github.com/primandproper/dinnerdonebetter/backend/internal/queues/messages"
 
-	notifications "github.com/primandproper/platform-go/v13/notifications/mobile"
+	notifications "github.com/primandproper/primitives-go/v2/notifications/mobile"
 )
 
 // testMessageMarker is the title, body and request type of the probe message this

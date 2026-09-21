@@ -4,12 +4,9 @@ import (
 	"testing"
 
 	issuereportfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports/fakes"
-	commentsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/comments"
-	issuereportssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/issue_reports"
-	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/services/issuereports/grpc/converters"
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
 
-	issuereports "github.com/primandproper/platform-go/v13/issuereports"
+	issuereportspb "github.com/primandproper/platform-go/v14/issuereports/issuereportspb"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -17,7 +14,19 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func checkIssueReportEquality(t *testing.T, expected, actual *issuereportssvc.IssueReport) {
+// The issue reports surface is platform's now, and two things about it differ from the
+// local one these tests were written against.
+//
+// A status is an enum rather than a string, so the case that sent "closed" and expected
+// InvalidArgument is gone: an unknown status is now unrepresentable on the wire, and what
+// remains expressible is UNSPECIFIED, which is what the replacement case sends.
+//
+// UpdateReport replaces rather than merges. The local RPC took *string fields and left
+// anything omitted alone; platform's takes plain strings and writes all four, so a client
+// sending only Details blanks the kind and the subject. That is a real change for a client,
+// and it is pinned below rather than worked around.
+
+func checkIssueReportEquality(t *testing.T, expected, actual *issuereportspb.IssueReport) {
 	t.Helper()
 
 	assert.NotEmpty(t, actual.GetId(), "expected IssueReport to have ID")
@@ -30,26 +39,36 @@ func checkIssueReportEquality(t *testing.T, expected, actual *issuereportssvc.Is
 	assert.NotEmpty(t, actual.GetReporter(), "expected IssueReport to have Reporter")
 }
 
+// creationInputForTest builds what a client sends to file a report.
+func creationInputForTest() *issuereportspb.IssueReportCreationInput {
+	example := issuereportfakes.BuildFakeIssueReport()
+
+	return &issuereportspb.IssueReportCreationInput{
+		Kind:        example.Kind,
+		Details:     example.Details,
+		SubjectType: example.SubjectType,
+		SubjectId:   example.SubjectID,
+	}
+}
+
 // createIssueReportForTest files one report and reads it back.
-func createIssueReportForTest(t *testing.T, testClient client.Client) *issuereportssvc.IssueReport {
+func createIssueReportForTest(t *testing.T, testClient client.Client) *issuereportspb.IssueReport {
 	t.Helper()
 	ctx := t.Context()
 
-	input := grpcconverters.ConvertIssueReportToGRPCIssueReportCreationRequestInput(issuereportfakes.BuildFakeIssueReport())
-
-	created, err := testClient.CreateIssueReport(ctx, &issuereportssvc.CreateIssueReportRequest{Input: input})
+	created, err := testClient.CreateReport(ctx, &issuereportspb.CreateReportRequest{Input: creationInputForTest()})
 	require.NoError(t, err)
-	require.NotNil(t, created.GetCreated())
+	require.NotNil(t, created.GetResult())
 
 	// A report is born open, whatever the client sent.
-	assert.Equal(t, issuereports.StatusOpen.String(), created.GetCreated().GetStatus())
-	assert.Empty(t, created.GetCreated().GetResolution())
-	assert.Nil(t, created.GetCreated().GetClosedAt())
+	assert.Equal(t, issuereportspb.ReportStatus_REPORT_STATUS_OPEN, created.GetResult().GetStatus())
+	assert.Empty(t, created.GetResult().GetResolution())
+	assert.Nil(t, created.GetResult().GetClosedAt())
 
-	retrieved, err := testClient.GetIssueReport(ctx, &issuereportssvc.GetIssueReportRequest{IssueReportId: created.GetCreated().GetId()})
+	retrieved, err := testClient.GetReport(ctx, &issuereportspb.GetReportRequest{ReportId: created.GetResult().GetId()})
 	require.NoError(t, err)
 	require.NotNil(t, retrieved.GetResult())
-	checkIssueReportEquality(t, created.GetCreated(), retrieved.GetResult())
+	checkIssueReportEquality(t, created.GetResult(), retrieved.GetResult())
 
 	return retrieved.GetResult()
 }
@@ -75,7 +94,7 @@ func TestIssueReports_Creating(T *testing.T) {
 
 		c := buildUnauthenticatedGRPCClientForTest(t)
 
-		_, err := c.CreateIssueReport(ctx, &issuereportssvc.CreateIssueReportRequest{})
+		_, err := c.CreateReport(ctx, &issuereportspb.CreateReportRequest{})
 		require.Error(t, err)
 	})
 
@@ -85,8 +104,8 @@ func TestIssueReports_Creating(T *testing.T) {
 
 		_, testClient := createUserAndClientForTest(t)
 
-		_, err := testClient.CreateIssueReport(ctx, &issuereportssvc.CreateIssueReportRequest{
-			Input: &issuereportssvc.IssueReportCreationRequestInput{Kind: "", Details: ""},
+		_, err := testClient.CreateReport(ctx, &issuereportspb.CreateReportRequest{
+			Input: &issuereportspb.IssueReportCreationInput{Kind: "", Details: ""},
 		})
 		require.Error(t, err)
 		assert.Equal(t, codes.InvalidArgument, status.Code(err))
@@ -103,7 +122,7 @@ func TestIssueReports_Reading(T *testing.T) {
 		_, testClient := createUserAndClientForTest(t)
 		created := createIssueReportForTest(t, testClient)
 
-		retrieved, err := testClient.GetIssueReport(ctx, &issuereportssvc.GetIssueReportRequest{IssueReportId: created.GetId()})
+		retrieved, err := testClient.GetReport(ctx, &issuereportspb.GetReportRequest{ReportId: created.GetId()})
 		require.NoError(t, err)
 		assert.NotNil(t, retrieved)
 	})
@@ -114,7 +133,7 @@ func TestIssueReports_Reading(T *testing.T) {
 
 		_, testClient := createUserAndClientForTest(t)
 
-		retrieved, err := testClient.GetIssueReport(ctx, &issuereportssvc.GetIssueReportRequest{IssueReportId: nonexistentID})
+		retrieved, err := testClient.GetReport(ctx, &issuereportspb.GetReportRequest{ReportId: nonexistentID})
 		require.Error(t, err)
 		assert.Nil(t, retrieved)
 		assert.Equal(t, codes.NotFound, status.Code(err))
@@ -133,7 +152,7 @@ func TestIssueReports_Reading(T *testing.T) {
 
 		_, otherClient := createUserAndClientForTest(t)
 
-		_, err := otherClient.GetIssueReport(ctx, &issuereportssvc.GetIssueReportRequest{IssueReportId: created.GetId()})
+		_, err := otherClient.GetReport(ctx, &issuereportspb.GetReportRequest{ReportId: created.GetId()})
 		require.Error(t, err)
 		assert.Equal(t, codes.NotFound, status.Code(err))
 	})
@@ -143,7 +162,7 @@ func TestIssueReports_Reading(T *testing.T) {
 		ctx := t.Context()
 
 		c := buildUnauthenticatedGRPCClientForTest(t)
-		_, err := c.GetIssueReport(ctx, &issuereportssvc.GetIssueReportRequest{})
+		_, err := c.GetReport(ctx, &issuereportspb.GetReportRequest{})
 		assert.Error(t, err)
 	})
 }
@@ -162,7 +181,7 @@ func TestIssueReports_Listing(T *testing.T) {
 			expected = append(expected, createIssueReportForTest(t, testClient).GetId())
 		}
 
-		results, err := testClient.GetIssueReports(ctx, &issuereportssvc.GetIssueReportsRequest{})
+		results, err := testClient.ListReports(ctx, &issuereportspb.ListReportsRequest{})
 		require.NoError(t, err)
 		require.NotNil(t, results)
 
@@ -180,7 +199,7 @@ func TestIssueReports_Listing(T *testing.T) {
 		ctx := t.Context()
 
 		c := buildUnauthenticatedGRPCClientForTest(t)
-		_, err := c.GetIssueReports(ctx, &issuereportssvc.GetIssueReportsRequest{})
+		_, err := c.ListReports(ctx, &issuereportspb.ListReportsRequest{})
 		assert.Error(t, err)
 	})
 }
@@ -195,27 +214,31 @@ func TestIssueReports_ListingByStatus(T *testing.T) {
 		_, testClient := createUserAndClientForTest(t)
 		created := createIssueReportForTest(t, testClient)
 
-		open, err := testClient.GetIssueReportsByStatus(ctx, &issuereportssvc.GetIssueReportsByStatusRequest{
-			Status: issuereports.StatusOpen.String(),
+		open, err := testClient.ListReportsByStatus(ctx, &issuereportspb.ListReportsByStatusRequest{
+			Status: issuereportspb.ReportStatus_REPORT_STATUS_OPEN,
 		})
 		require.NoError(t, err)
 		require.Len(t, open.GetResults(), 1)
 		assert.Equal(t, created.GetId(), open.GetResults()[0].GetId())
 
-		resolved, err := testClient.GetIssueReportsByStatus(ctx, &issuereportssvc.GetIssueReportsByStatusRequest{
-			Status: issuereports.StatusResolved.String(),
+		resolved, err := testClient.ListReportsByStatus(ctx, &issuereportspb.ListReportsByStatusRequest{
+			Status: issuereportspb.ReportStatus_REPORT_STATUS_RESOLVED,
 		})
 		require.NoError(t, err)
 		assert.Empty(t, resolved.GetResults())
 	})
 
-	T.Run("unknown status", func(t *testing.T) {
+	// An unknown status is unrepresentable now that the field is an enum, so what is left
+	// to refuse is the zero value — a request that named no status at all.
+	T.Run("unspecified status", func(t *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
 		_, testClient := createUserAndClientForTest(t)
 
-		_, err := testClient.GetIssueReportsByStatus(ctx, &issuereportssvc.GetIssueReportsByStatusRequest{Status: "closed"})
+		_, err := testClient.ListReportsByStatus(ctx, &issuereportspb.ListReportsByStatusRequest{
+			Status: issuereportspb.ReportStatus_REPORT_STATUS_UNSPECIFIED,
+		})
 		require.Error(t, err)
 		assert.Equal(t, codes.InvalidArgument, status.Code(err))
 	})
@@ -225,7 +248,7 @@ func TestIssueReports_ListingByStatus(T *testing.T) {
 		ctx := t.Context()
 
 		c := buildUnauthenticatedGRPCClientForTest(t)
-		_, err := c.GetIssueReportsByStatus(ctx, &issuereportssvc.GetIssueReportsByStatusRequest{})
+		_, err := c.ListReportsByStatus(ctx, &issuereportspb.ListReportsByStatusRequest{})
 		assert.Error(t, err)
 	})
 }
@@ -239,19 +262,17 @@ func TestIssueReports_ListingBySubject(T *testing.T) {
 
 		_, testClient := createUserAndClientForTest(t)
 
-		example := issuereportfakes.BuildFakeIssueReport()
-		example.SubjectType = "recipes"
+		input := creationInputForTest()
+		input.SubjectType = "recipes"
 
 		expected := []string{}
 		for range exampleQuantity {
-			input := grpcconverters.ConvertIssueReportToGRPCIssueReportCreationRequestInput(example)
-
-			created, err := testClient.CreateIssueReport(ctx, &issuereportssvc.CreateIssueReportRequest{Input: input})
+			created, err := testClient.CreateReport(ctx, &issuereportspb.CreateReportRequest{Input: input})
 			require.NoError(t, err)
-			expected = append(expected, created.GetCreated().GetId())
+			expected = append(expected, created.GetResult().GetId())
 		}
 
-		byType, err := testClient.GetIssueReportsBySubjectType(ctx, &issuereportssvc.GetIssueReportsBySubjectTypeRequest{
+		byType, err := testClient.ListReportsBySubjectType(ctx, &issuereportspb.ListReportsBySubjectTypeRequest{
 			SubjectType: "recipes",
 		})
 		require.NoError(t, err)
@@ -259,14 +280,14 @@ func TestIssueReports_ListingBySubject(T *testing.T) {
 
 		// Same index, one column further in: every one of those reports names the
 		// same subject.
-		forSubject, err := testClient.GetIssueReportsForSubject(ctx, &issuereportssvc.GetIssueReportsForSubjectRequest{
+		forSubject, err := testClient.ListReportsForSubject(ctx, &issuereportspb.ListReportsForSubjectRequest{
 			SubjectType: "recipes",
-			SubjectId:   example.SubjectID,
+			SubjectId:   input.GetSubjectId(),
 		})
 		require.NoError(t, err)
 		assert.Len(t, forSubject.GetResults(), len(expected))
 
-		none, err := testClient.GetIssueReportsForSubject(ctx, &issuereportssvc.GetIssueReportsForSubjectRequest{
+		none, err := testClient.ListReportsForSubject(ctx, &issuereportspb.ListReportsForSubjectRequest{
 			SubjectType: "recipes",
 			SubjectId:   nonexistentID,
 		})
@@ -280,10 +301,10 @@ func TestIssueReports_ListingBySubject(T *testing.T) {
 
 		c := buildUnauthenticatedGRPCClientForTest(t)
 
-		_, err := c.GetIssueReportsBySubjectType(ctx, &issuereportssvc.GetIssueReportsBySubjectTypeRequest{})
+		_, err := c.ListReportsBySubjectType(ctx, &issuereportspb.ListReportsBySubjectTypeRequest{})
 		require.Error(t, err)
 
-		_, err = c.GetIssueReportsForSubject(ctx, &issuereportssvc.GetIssueReportsForSubjectRequest{})
+		_, err = c.ListReportsForSubject(ctx, &issuereportspb.ListReportsForSubjectRequest{})
 		assert.Error(t, err)
 	})
 }
@@ -298,22 +319,89 @@ func TestIssueReports_Updating(T *testing.T) {
 		_, testClient := createUserAndClientForTest(t)
 		created := createIssueReportForTest(t, testClient)
 
-		newDetails := "Updated details about the issue"
-		updated, err := testClient.UpdateIssueReport(ctx, &issuereportssvc.UpdateIssueReportRequest{
-			IssueReportId: created.GetId(),
-			Input:         &issuereportssvc.IssueReportUpdateRequestInput{Details: &newDetails},
+		const newDetails = "Updated details about the issue"
+
+		updated, err := testClient.UpdateReport(ctx, &issuereportspb.UpdateReportRequest{
+			ReportId: created.GetId(),
+			Input: &issuereportspb.IssueReportUpdateInput{
+				Kind:        created.GetKind(),
+				Details:     newDetails,
+				SubjectType: created.GetSubjectType(),
+				SubjectId:   created.GetSubjectId(),
+			},
 		})
 		require.NoError(t, err)
-		assert.Equal(t, newDetails, updated.GetUpdated().GetDetails())
+		assert.Equal(t, newDetails, updated.GetResult().GetDetails())
 
-		// Everything the client did not send survives the revision.
-		assert.Equal(t, created.GetKind(), updated.GetUpdated().GetKind())
-		assert.Equal(t, created.GetStatus(), updated.GetUpdated().GetStatus())
+		// Restated rather than omitted, because the input is a replacement. The fields
+		// the client sent back unchanged are unchanged; see the case below for what an
+		// omission does.
+		assert.Equal(t, created.GetKind(), updated.GetResult().GetKind())
+		assert.Equal(t, created.GetSubjectType(), updated.GetResult().GetSubjectType())
+
+		// The status is not on the update input at all, which is what keeps a revision
+		// from being a triage decision: moving a report is TransitionReport's job.
+		assert.Equal(t, created.GetStatus(), updated.GetResult().GetStatus())
 
 		AssertAuditLogContainsFuzzy(t, ctx, testClient, getAccountIDForTest(t, testClient), 15, []*ExpectedAuditEntry{
 			{EventType: "created", ResourceType: "issue_reports", RelevantID: created.GetId()},
 			{EventType: "updated", ResourceType: "issue_reports", RelevantID: created.GetId()},
 		})
+	})
+
+	// The behavior a client has to know about. The local RPC took *string fields and
+	// merged, so a partial update left the rest alone; platform's takes plain strings and
+	// writes all four, so an omitted field is cleared rather than kept — a read before the
+	// write is the client's job now.
+	//
+	// With one guard underneath it. Two of the four are what make a report reachable at
+	// all, so clearing them is refused rather than performed: a report with no kind is one
+	// nobody has decided who should look at, and one with no details records that somebody
+	// was unhappy and nothing anyone can act on. The two optional fields are the ones a
+	// careless update really does drop.
+	T.Run("an omitted optional field is cleared rather than kept", func(t *testing.T) {
+		t.Parallel()
+		ctx := t.Context()
+
+		_, testClient := createUserAndClientForTest(t)
+		created := createIssueReportForTest(t, testClient)
+		require.NotEmpty(t, created.GetSubjectType())
+
+		updated, err := testClient.UpdateReport(ctx, &issuereportspb.UpdateReportRequest{
+			ReportId: created.GetId(),
+			Input: &issuereportspb.IssueReportUpdateInput{
+				Kind:    created.GetKind(),
+				Details: "only the details",
+			},
+		})
+		require.NoError(t, err)
+
+		assert.Equal(t, "only the details", updated.GetResult().GetDetails())
+		assert.Equal(t, created.GetKind(), updated.GetResult().GetKind())
+		assert.Empty(t, updated.GetResult().GetSubjectType(), "an omitted subject type survived a replacement")
+		assert.Empty(t, updated.GetResult().GetSubjectId())
+	})
+
+	T.Run("an update that would empty the kind is refused", func(t *testing.T) {
+		t.Parallel()
+		ctx := t.Context()
+
+		_, testClient := createUserAndClientForTest(t)
+		created := createIssueReportForTest(t, testClient)
+		require.NotEmpty(t, created.GetKind())
+
+		_, err := testClient.UpdateReport(ctx, &issuereportspb.UpdateReportRequest{
+			ReportId: created.GetId(),
+			Input:    &issuereportspb.IssueReportUpdateInput{Details: "only the details"},
+		})
+		require.Error(t, err)
+		assert.Equal(t, codes.InvalidArgument, status.Code(err))
+
+		// Refused before anything was written, so the report is as it was.
+		retrieved, err := testClient.GetReport(ctx, &issuereportspb.GetReportRequest{ReportId: created.GetId()})
+		require.NoError(t, err)
+		assert.Equal(t, created.GetKind(), retrieved.GetResult().GetKind())
+		assert.Equal(t, created.GetDetails(), retrieved.GetResult().GetDetails())
 	})
 
 	T.Run("nonexistent ID", func(t *testing.T) {
@@ -322,10 +410,9 @@ func TestIssueReports_Updating(T *testing.T) {
 
 		_, testClient := createUserAndClientForTest(t)
 
-		newDetails := "Updated details"
-		_, err := testClient.UpdateIssueReport(ctx, &issuereportssvc.UpdateIssueReportRequest{
-			IssueReportId: nonexistentID,
-			Input:         &issuereportssvc.IssueReportUpdateRequestInput{Details: &newDetails},
+		_, err := testClient.UpdateReport(ctx, &issuereportspb.UpdateReportRequest{
+			ReportId: nonexistentID,
+			Input:    &issuereportspb.IssueReportUpdateInput{Details: "Updated details"},
 		})
 		require.Error(t, err)
 		assert.Equal(t, codes.NotFound, status.Code(err))
@@ -336,7 +423,7 @@ func TestIssueReports_Updating(T *testing.T) {
 		ctx := t.Context()
 
 		c := buildUnauthenticatedGRPCClientForTest(t)
-		_, err := c.UpdateIssueReport(ctx, &issuereportssvc.UpdateIssueReportRequest{})
+		_, err := c.UpdateReport(ctx, &issuereportspb.UpdateReportRequest{})
 		assert.Error(t, err)
 	})
 }
@@ -352,66 +439,66 @@ func TestIssueReports_Triaging(T *testing.T) {
 		_, testClient := createUserAndClientForTest(t)
 		created := createIssueReportForTest(t, testClient)
 
-		acknowledged, err := testClient.TransitionIssueReport(ctx, &issuereportssvc.TransitionIssueReportRequest{
-			IssueReportId: created.GetId(),
-			FromStatus:    issuereports.StatusOpen.String(),
-			ToStatus:      issuereports.StatusAcknowledged.String(),
+		acknowledged, err := testClient.TransitionReport(ctx, &issuereportspb.TransitionReportRequest{
+			ReportId:       created.GetId(),
+			ExpectedStatus: issuereportspb.ReportStatus_REPORT_STATUS_OPEN,
+			TargetStatus:   issuereportspb.ReportStatus_REPORT_STATUS_ACKNOWLEDGED,
 		})
 		require.NoError(t, err)
-		assert.Equal(t, issuereports.StatusAcknowledged.String(), acknowledged.GetResult().GetStatus())
+		assert.Equal(t, issuereportspb.ReportStatus_REPORT_STATUS_ACKNOWLEDGED, acknowledged.GetResult().GetStatus())
 		assert.Nil(t, acknowledged.GetResult().GetClosedAt())
 
-		resolved, err := testClient.TransitionIssueReport(ctx, &issuereportssvc.TransitionIssueReportRequest{
-			IssueReportId: created.GetId(),
-			FromStatus:    issuereports.StatusAcknowledged.String(),
-			ToStatus:      issuereports.StatusResolved.String(),
-			Resolution:    "fixed in the next release",
+		resolved, err := testClient.TransitionReport(ctx, &issuereportspb.TransitionReportRequest{
+			ReportId:       created.GetId(),
+			ExpectedStatus: issuereportspb.ReportStatus_REPORT_STATUS_ACKNOWLEDGED,
+			TargetStatus:   issuereportspb.ReportStatus_REPORT_STATUS_RESOLVED,
+			Resolution:     "fixed in the next release",
 		})
 		require.NoError(t, err)
-		assert.Equal(t, issuereports.StatusResolved.String(), resolved.GetResult().GetStatus())
+		assert.Equal(t, issuereportspb.ReportStatus_REPORT_STATUS_RESOLVED, resolved.GetResult().GetStatus())
 		assert.Equal(t, "fixed in the next release", resolved.GetResult().GetResolution())
 		assert.NotNil(t, resolved.GetResult().GetClosedAt())
 
 		// Reopening clears the closure, because a reason that no longer holds is
 		// worse than none.
-		reopened, err := testClient.TransitionIssueReport(ctx, &issuereportssvc.TransitionIssueReportRequest{
-			IssueReportId: created.GetId(),
-			FromStatus:    issuereports.StatusResolved.String(),
-			ToStatus:      issuereports.StatusOpen.String(),
+		reopened, err := testClient.TransitionReport(ctx, &issuereportspb.TransitionReportRequest{
+			ReportId:       created.GetId(),
+			ExpectedStatus: issuereportspb.ReportStatus_REPORT_STATUS_RESOLVED,
+			TargetStatus:   issuereportspb.ReportStatus_REPORT_STATUS_OPEN,
 		})
 		require.NoError(t, err)
-		assert.Equal(t, issuereports.StatusOpen.String(), reopened.GetResult().GetStatus())
+		assert.Equal(t, issuereportspb.ReportStatus_REPORT_STATUS_OPEN, reopened.GetResult().GetStatus())
 		assert.Empty(t, reopened.GetResult().GetResolution())
 		assert.Nil(t, reopened.GetResult().GetClosedAt())
 	})
 
 	// The guard is what makes this a queue two people can work.
-	T.Run("stale from status", func(t *testing.T) {
+	T.Run("stale expected status", func(t *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
 		_, testClient := createUserAndClientForTest(t)
 		created := createIssueReportForTest(t, testClient)
 
-		_, err := testClient.TransitionIssueReport(ctx, &issuereportssvc.TransitionIssueReportRequest{
-			IssueReportId: created.GetId(),
-			FromStatus:    issuereports.StatusOpen.String(),
-			ToStatus:      issuereports.StatusResolved.String(),
-			Resolution:    "first",
+		_, err := testClient.TransitionReport(ctx, &issuereportspb.TransitionReportRequest{
+			ReportId:       created.GetId(),
+			ExpectedStatus: issuereportspb.ReportStatus_REPORT_STATUS_OPEN,
+			TargetStatus:   issuereportspb.ReportStatus_REPORT_STATUS_RESOLVED,
+			Resolution:     "first",
 		})
 		require.NoError(t, err)
 
-		_, err = testClient.TransitionIssueReport(ctx, &issuereportssvc.TransitionIssueReportRequest{
-			IssueReportId: created.GetId(),
-			FromStatus:    issuereports.StatusOpen.String(),
-			ToStatus:      issuereports.StatusResolved.String(),
-			Resolution:    "second",
+		_, err = testClient.TransitionReport(ctx, &issuereportspb.TransitionReportRequest{
+			ReportId:       created.GetId(),
+			ExpectedStatus: issuereportspb.ReportStatus_REPORT_STATUS_OPEN,
+			TargetStatus:   issuereportspb.ReportStatus_REPORT_STATUS_RESOLVED,
+			Resolution:     "second",
 		})
 		require.Error(t, err)
 		assert.Equal(t, codes.Aborted, status.Code(err))
 
 		// The first note stands.
-		retrieved, err := testClient.GetIssueReport(ctx, &issuereportssvc.GetIssueReportRequest{IssueReportId: created.GetId()})
+		retrieved, err := testClient.GetReport(ctx, &issuereportspb.GetReportRequest{ReportId: created.GetId()})
 		require.NoError(t, err)
 		assert.Equal(t, "first", retrieved.GetResult().GetResolution())
 	})
@@ -423,13 +510,18 @@ func TestIssueReports_Triaging(T *testing.T) {
 		_, testClient := createUserAndClientForTest(t)
 		created := createIssueReportForTest(t, testClient)
 
-		_, err := testClient.TransitionIssueReport(ctx, &issuereportssvc.TransitionIssueReportRequest{
-			IssueReportId: created.GetId(),
-			FromStatus:    issuereports.StatusOpen.String(),
-			ToStatus:      issuereports.StatusOpen.String(),
+		// InvalidArgument rather than Aborted, and the difference is the whole point of
+		// the two statuses traveling together: Aborted is "the row moved under you, read
+		// it again", which the case above pins, and this is "that move does not exist",
+		// which no re-read will change. A lifecycle the queue does not admit is refused
+		// before anything is written.
+		_, err := testClient.TransitionReport(ctx, &issuereportspb.TransitionReportRequest{
+			ReportId:       created.GetId(),
+			ExpectedStatus: issuereportspb.ReportStatus_REPORT_STATUS_OPEN,
+			TargetStatus:   issuereportspb.ReportStatus_REPORT_STATUS_OPEN,
 		})
 		require.Error(t, err)
-		assert.Equal(t, codes.FailedPrecondition, status.Code(err))
+		assert.Equal(t, codes.InvalidArgument, status.Code(err))
 	})
 
 	T.Run("requires auth", func(t *testing.T) {
@@ -437,7 +529,7 @@ func TestIssueReports_Triaging(T *testing.T) {
 		ctx := t.Context()
 
 		c := buildUnauthenticatedGRPCClientForTest(t)
-		_, err := c.TransitionIssueReport(ctx, &issuereportssvc.TransitionIssueReportRequest{})
+		_, err := c.TransitionReport(ctx, &issuereportspb.TransitionReportRequest{})
 		assert.Error(t, err)
 	})
 }
@@ -452,7 +544,7 @@ func TestIssueReports_Archiving(T *testing.T) {
 		_, testClient := createUserAndClientForTest(t)
 		created := createIssueReportForTest(t, testClient)
 
-		_, err := testClient.ArchiveIssueReport(ctx, &issuereportssvc.ArchiveIssueReportRequest{IssueReportId: created.GetId()})
+		_, err := testClient.ArchiveReport(ctx, &issuereportspb.ArchiveReportRequest{ReportId: created.GetId()})
 		require.NoError(t, err)
 
 		AssertAuditLogContainsFuzzy(t, ctx, testClient, getAccountIDForTest(t, testClient), 15, []*ExpectedAuditEntry{
@@ -467,7 +559,7 @@ func TestIssueReports_Archiving(T *testing.T) {
 
 		_, testClient := createUserAndClientForTest(t)
 
-		_, err := testClient.ArchiveIssueReport(ctx, &issuereportssvc.ArchiveIssueReportRequest{IssueReportId: nonexistentID})
+		_, err := testClient.ArchiveReport(ctx, &issuereportspb.ArchiveReportRequest{ReportId: nonexistentID})
 		require.Error(t, err)
 		assert.Equal(t, codes.NotFound, status.Code(err))
 	})
@@ -477,62 +569,15 @@ func TestIssueReports_Archiving(T *testing.T) {
 		ctx := t.Context()
 
 		c := buildUnauthenticatedGRPCClientForTest(t)
-		_, err := c.ArchiveIssueReport(ctx, &issuereportssvc.ArchiveIssueReportRequest{})
+		_, err := c.ArchiveReport(ctx, &issuereportspb.ArchiveReportRequest{})
 		assert.Error(t, err)
 	})
 }
 
-// TestIssueReports_Commenting pins that the comment path reads the report as the
-// caller first: it is both the existence check the comment store's target catalog
-// cannot run for this type and the account boundary.
-func TestIssueReports_Commenting(T *testing.T) {
-	T.Parallel()
-
-	T.Run("happy path", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		user, testClient := createUserAndClientForTest(t)
-		created := createIssueReportForTest(t, testClient)
-
-		res, err := testClient.AddCommentToIssueReport(ctx, &issuereportssvc.AddCommentToIssueReportRequest{
-			IssueReportId: created.GetId(),
-			Input:         &commentsgrpc.CommentCreationRequestInput{Body: "this is a duplicate"},
-		})
-		require.NoError(t, err)
-		require.NotNil(t, res.GetComment())
-		assert.Equal(t, created.GetId(), res.GetComment().GetTarget().GetId())
-		assert.Equal(t, user.ID, res.GetComment().GetAuthor())
-	})
-
-	T.Run("another account's report is not found", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		_, ownerClient := createUserAndClientForTest(t)
-		created := createIssueReportForTest(t, ownerClient)
-
-		_, otherClient := createUserAndClientForTest(t)
-
-		_, err := otherClient.AddCommentToIssueReport(ctx, &issuereportssvc.AddCommentToIssueReportRequest{
-			IssueReportId: created.GetId(),
-			Input:         &commentsgrpc.CommentCreationRequestInput{Body: "nope"},
-		})
-		require.Error(t, err)
-		assert.Equal(t, codes.NotFound, status.Code(err))
-	})
-
-	T.Run("nonexistent report", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		_, testClient := createUserAndClientForTest(t)
-
-		_, err := testClient.AddCommentToIssueReport(ctx, &issuereportssvc.AddCommentToIssueReportRequest{
-			IssueReportId: nonexistentID,
-			Input:         &commentsgrpc.CommentCreationRequestInput{Body: "nope"},
-		})
-		require.Error(t, err)
-		assert.Equal(t, codes.NotFound, status.Code(err))
-	})
-}
+// TestIssueReports_Commenting is gone with the AddCommentToIssueReport RPC.
+//
+// That RPC named the target from its own name and forwarded to CreateComment;
+// the existence check it appeared to add was the comment store's, through the
+// target catalog. Commenting on an issue report is now platform's
+// CommentsService.CreateComment with an issue-report target, and it is covered
+// where every other comment path is.

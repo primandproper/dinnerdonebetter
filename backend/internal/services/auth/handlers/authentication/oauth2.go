@@ -7,20 +7,36 @@ import (
 	"net/http"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
 
-	"github.com/primandproper/platform-go/v13/authentication/oauth2server"
-	oauth2servercfg "github.com/primandproper/platform-go/v13/authentication/oauth2server/config"
-	"github.com/primandproper/platform-go/v13/database"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/metrics"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
+	platformoauth2clients "github.com/primandproper/platform-go/v14/authentication/oauth2clients"
+	"github.com/primandproper/platform-go/v14/authentication/oauth2clients/authserver"
+	oauth2servercfg "github.com/primandproper/platform-go/v14/authentication/oauth2serverstore/config"
+	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/metrics"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
 )
 
 // ProvideOAuth2Server builds the API server's OAuth 2.1 authorization server.
 //
-// The store is the platform's, with its client half redirected at oauth2_clients — see
-// clientRegistryStore for why that split rather than one table or the other.
+// The store is the platform's protocol store with its client half redirected at the
+// registry, which is authserver.NewStore — the seam this application used to spell for
+// itself in oauth2_store.go.
+//
+// The split it makes is unchanged and is still the right one. Codes, access tokens and
+// refresh tokens are protocol records that nothing outside the authorization server reads.
+// A client registration is an administered object with a listing endpoint, permissions, an
+// archival lifecycle and an audit trail, none of which oauth2server.Store models — its
+// client half is sized for the anonymous RFC 7591 registration this server does not serve.
+//
+// What is not yet adopted is the other half of that package. authserver.NewAuthenticator
+// puts oauth2clients.Client.Admits on the path to a code, and it takes a signin.Service
+// this application has not migrated to — see subjectAuthenticator. Until it does, a
+// registration naming a scope or an owner would authorize any subject. Nothing here mints
+// one: every client this deployment registers is global and unowned, which Admits permits
+// for everybody by design. The check is missing rather than failing, and the column that
+// would make it matter has no writer.
 func ProvideOAuth2Server(
 	ctx context.Context,
 	logger logging.Logger,
@@ -29,7 +45,7 @@ func ProvideOAuth2Server(
 	cfg *oauth2servercfg.Config,
 	dbClient database.Client,
 	authenticator oauth2server.SubjectAuthenticator,
-	clients oauth.OAuth2ClientDataManager,
+	clients platformoauth2clients.Store,
 ) (*oauth2server.Server, error) {
 	store, err := oauth2servercfg.NewStore(ctx, cfg, dbClient,
 		oauth2servercfg.WithLogger(logger),
@@ -40,7 +56,16 @@ func ProvideOAuth2Server(
 		return nil, fmt.Errorf("building oauth2 store: %w", err)
 	}
 
-	srv, err := oauth2server.NewServer(cfg.Issuer, &clientRegistryStore{Store: store, clients: clients}, authenticator,
+	registryStore, err := authserver.NewStore(store, clients, dbClient,
+		authserver.WithStoreLogger(logger),
+		authserver.WithStoreTracerProvider(tracerProvider),
+		authserver.WithStoreMetricsProvider(metricsProvider),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("building oauth2 client registry store: %w", err)
+	}
+
+	srv, err := oauth2server.NewServer(cfg.Issuer, registryStore, authenticator,
 		oauth2server.WithLogger(logger),
 		oauth2server.WithTracerProvider(tracerProvider),
 		oauth2server.WithMetricsProvider(metricsProvider),

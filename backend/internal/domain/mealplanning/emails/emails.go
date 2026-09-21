@@ -5,9 +5,10 @@ import (
 	"fmt"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	queuemessages "github.com/primandproper/dinnerdonebetter/backend/internal/queues/messages"
+
+	identity "github.com/primandproper/platform-go/v14/identity"
 
 	"github.com/matcornic/hermes/v2"
 )

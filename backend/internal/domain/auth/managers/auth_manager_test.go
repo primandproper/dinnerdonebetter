@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
 	mockauthn "github.com/primandproper/dinnerdonebetter/backend/internal/authentication/mock"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
@@ -14,27 +15,31 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 	authfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/fakes"
 	authkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/keys"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	identityfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
-	identitymock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/mock"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/testutils"
 
-	"github.com/primandproper/platform-go/v13/authentication/passwordreset"
-	passwordresetmock "github.com/primandproper/platform-go/v13/authentication/passwordreset/mock"
-	platformtotp "github.com/primandproper/platform-go/v13/authentication/totp"
-	mocktotp "github.com/primandproper/platform-go/v13/authentication/totp/mock"
-	"github.com/primandproper/platform-go/v13/fake"
-	"github.com/primandproper/platform-go/v13/messagequeue"
-	mockpublishers "github.com/primandproper/platform-go/v13/messagequeue/mock"
-	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
-	tracingnoop "github.com/primandproper/platform-go/v13/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v13/qrcodes"
-	"github.com/primandproper/platform-go/v13/random"
-	randommock "github.com/primandproper/platform-go/v13/random/mock"
-	platformsessions "github.com/primandproper/platform-go/v13/sessions"
-	sessionsmock "github.com/primandproper/platform-go/v13/sessions/mock"
-	"github.com/primandproper/platform-go/v13/tenancy"
+	"github.com/primandproper/platform-go/v14/authentication/passwordreset"
+	passwordresetmock "github.com/primandproper/platform-go/v14/authentication/passwordreset/mock"
+	"github.com/primandproper/platform-go/v14/authentication/signin"
+	platformidentity "github.com/primandproper/platform-go/v14/identity"
+	identitymock "github.com/primandproper/platform-go/v14/identity/mock"
+	platformsessions "github.com/primandproper/platform-go/v14/sessions"
+	sessionsmock "github.com/primandproper/platform-go/v14/sessions/mock"
+	mocktokens "github.com/primandproper/primitives-go/v2/authentication/tokens/mock"
+	platformtotp "github.com/primandproper/primitives-go/v2/authentication/totp"
+	mocktotp "github.com/primandproper/primitives-go/v2/authentication/totp/mock"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/fake"
+	"github.com/primandproper/primitives-go/v2/messagequeue"
+	mockpublishers "github.com/primandproper/primitives-go/v2/messagequeue/mock"
+	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
+	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
+	"github.com/primandproper/primitives-go/v2/qrcodes"
+	"github.com/primandproper/primitives-go/v2/random"
+	randommock "github.com/primandproper/primitives-go/v2/random/mock"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/pquerna/otp/totp"
 	"github.com/stretchr/testify/assert"
@@ -60,9 +65,12 @@ func TestProvideAuthManager(t *testing.T) {
 			ctx,
 			loggingnoop.NewLogger(),
 			tracingnoop.NewTracerProvider(),
+			testutils.MockDatabaseClient(),
 			&passwordresetmock.StoreMock{},
 			&sessionsmock.StoreMock[auth.SessionPayload]{},
-			&identitymock.RepositoryMock{},
+			directoryForTest(t, &identitymock.StoreMock{}),
+			&identitymock.StoreMock{},
+			signInForTest(t, &identitymock.StoreMock{}, &mockauthn.AuthenticatorMock{}, &mocktotp.VerifierMock{}),
 			&mockauthn.AuthenticatorMock{},
 			&mocktotp.VerifierMock{},
 			mpp,
@@ -87,8 +95,8 @@ func TestAuthManager_Self(t *testing.T) {
 		expectedUser := identityfakes.BuildFakeUser()
 		expectedUser.ID = userID
 
-		userDataManager := &identitymock.RepositoryMock{
-			GetUserFunc: func(_ context.Context, actualUserID string) (*identity.User, error) {
+		userStore := &identitymock.StoreMock{
+			GetUserFunc: func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, actualUserID string) (*platformidentity.User, error) {
 				assert.Equal(t, userID, actualUserID)
 				return expectedUser, nil
 			},
@@ -100,9 +108,12 @@ func TestAuthManager_Self(t *testing.T) {
 		ctx = sessions.AttachToContext(ctx, sessionData)
 
 		manager := &AuthManager{
-			userDataManager: userDataManager,
-			logger:          loggingnoop.NewLogger().WithName("auth_manager"),
-			tracer:          tracing.NewTracerForTest("auth_manager"),
+			db:        testutils.MockDatabaseClient(),
+			users:     userStore,
+			directory: directoryForTest(t, userStore),
+			signIn:    signInForTest(t, userStore, &mockauthn.AuthenticatorMock{}, &mocktotp.VerifierMock{}),
+			logger:    loggingnoop.NewLogger().WithName("auth_manager"),
+			tracer:    tracing.NewTracerForTest("auth_manager"),
 		}
 
 		result, err := manager.Self(ctx)
@@ -111,7 +122,7 @@ func TestAuthManager_Self(t *testing.T) {
 		assert.NotNil(t, result)
 		assert.Equal(t, userID, result.ID)
 		assert.Equal(t, expectedUser.Username, result.Username)
-		assert.Len(t, userDataManager.GetUserCalls(), 1)
+		assert.Len(t, userStore.GetUserCalls(), 1)
 	})
 }
 
@@ -138,6 +149,7 @@ func TestAuthManager_CheckUserPermissions(t *testing.T) {
 		ctx = sessions.AttachToContext(ctx, sessionData)
 
 		manager := &AuthManager{
+			db:     testutils.MockDatabaseClient(),
 			logger: loggingnoop.NewLogger().WithName("auth_manager"),
 			tracer: tracing.NewTracerForTest("auth_manager"),
 		}
@@ -159,6 +171,7 @@ func TestAuthManager_CheckUserPermissions(t *testing.T) {
 		ctx := t.Context()
 
 		manager := &AuthManager{
+			db:     testutils.MockDatabaseClient(),
 			logger: loggingnoop.NewLogger().WithName("auth_manager"),
 			tracer: tracing.NewTracerForTest("auth_manager"),
 		}
@@ -180,9 +193,12 @@ func TestProvideAuthManager_NilConfig(t *testing.T) {
 		ctx,
 		loggingnoop.NewLogger(),
 		tracingnoop.NewTracerProvider(),
+		testutils.MockDatabaseClient(),
 		&passwordresetmock.StoreMock{},
 		&sessionsmock.StoreMock[auth.SessionPayload]{},
-		&identitymock.RepositoryMock{},
+		directoryForTest(t, &identitymock.StoreMock{}),
+		&identitymock.StoreMock{},
+		signInForTest(t, &identitymock.StoreMock{}, &mockauthn.AuthenticatorMock{}, &mocktotp.VerifierMock{}),
 		&mockauthn.AuthenticatorMock{},
 		&mocktotp.VerifierMock{},
 		mpp,
@@ -201,6 +217,7 @@ func TestAuthManager_Self_SessionError(t *testing.T) {
 	ctx := t.Context()
 
 	manager := &AuthManager{
+		db:     testutils.MockDatabaseClient(),
 		logger: loggingnoop.NewLogger().WithName("auth_manager"),
 		tracer: tracing.NewTracerForTest("auth_manager"),
 	}
@@ -217,8 +234,8 @@ func TestAuthManager_Self_UserNotFound(t *testing.T) {
 	ctx := t.Context()
 	userID := fake.BuildFakeID()
 
-	userDataManager := &identitymock.RepositoryMock{
-		GetUserFunc: func(_ context.Context, actualUserID string) (*identity.User, error) {
+	userStore := &identitymock.StoreMock{
+		GetUserFunc: func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, actualUserID string) (*platformidentity.User, error) {
 			assert.Equal(t, userID, actualUserID)
 			return nil, sql.ErrNoRows
 		},
@@ -227,16 +244,19 @@ func TestAuthManager_Self_UserNotFound(t *testing.T) {
 	ctx = sessions.AttachToContext(ctx, &sessions.ContextData{Requester: sessions.RequesterInfo{UserID: userID}})
 
 	manager := &AuthManager{
-		userDataManager: userDataManager,
-		logger:          loggingnoop.NewLogger().WithName("auth_manager"),
-		tracer:          tracing.NewTracerForTest("auth_manager"),
+		db:        testutils.MockDatabaseClient(),
+		users:     userStore,
+		directory: directoryForTest(t, userStore),
+		signIn:    signInForTest(t, userStore, &mockauthn.AuthenticatorMock{}, &mocktotp.VerifierMock{}),
+		logger:    loggingnoop.NewLogger().WithName("auth_manager"),
+		tracer:    tracing.NewTracerForTest("auth_manager"),
 	}
 
 	result, err := manager.Self(ctx)
 
 	require.Error(t, err)
 	assert.Nil(t, result)
-	assert.Len(t, userDataManager.GetUserCalls(), 1)
+	assert.Len(t, userStore.GetUserCalls(), 1)
 }
 
 func TestAuthManager_TOTPSecretVerification_Success(t *testing.T) {
@@ -253,14 +273,14 @@ func TestAuthManager_TOTPSecretVerification_Success(t *testing.T) {
 	token, err := totp.GenerateCode(user.TwoFactorSecret, time.Now().UTC())
 	require.NoError(t, err)
 
-	userDataManager := &identitymock.RepositoryMock{
-		GetUserWithUnverifiedTwoFactorSecretFunc: func(_ context.Context, userID string) (*identity.User, error) {
+	userStore := &identitymock.StoreMock{
+		GetUserFunc: func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, userID string) (*platformidentity.User, error) {
 			assert.Equal(t, user.ID, userID)
 			return user, nil
 		},
-		MarkUserTwoFactorSecretAsVerifiedFunc: func(_ context.Context, userID string) error {
+		MarkUserTwoFactorSecretVerifiedFunc: func(_ context.Context, _ database.Tx, _ tenancy.Scope, userID string) (*platformidentity.User, error) {
 			assert.Equal(t, user.ID, userID)
-			return nil
+			return user, nil
 		},
 	}
 
@@ -273,13 +293,17 @@ func TestAuthManager_TOTPSecretVerification_Success(t *testing.T) {
 			if secret == user.TwoFactorSecret && code == token {
 				return nil
 			}
+
 			return platformtotp.ErrInvalidCode
 		},
 	}
 
 	ctx = sessions.AttachToContext(ctx, &sessions.ContextData{})
 	manager := &AuthManager{
-		userDataManager:      userDataManager,
+		db:                   testutils.MockDatabaseClient(),
+		users:                userStore,
+		directory:            directoryForTest(t, userStore),
+		signIn:               signInForTest(t, userStore, &mockauthn.AuthenticatorMock{}, totpVerifier),
 		totpVerifier:         totpVerifier,
 		dataChangesPublisher: publisher,
 		logger:               loggingnoop.NewLogger().WithName("auth_manager"),
@@ -290,8 +314,8 @@ func TestAuthManager_TOTPSecretVerification_Success(t *testing.T) {
 	err = manager.TOTPSecretVerification(ctx, input)
 
 	require.NoError(t, err)
-	assert.Len(t, userDataManager.GetUserWithUnverifiedTwoFactorSecretCalls(), 1)
-	assert.Len(t, userDataManager.MarkUserTwoFactorSecretAsVerifiedCalls(), 1)
+	assert.Len(t, userStore.GetUserCalls(), 1)
+	assert.Len(t, userStore.MarkUserTwoFactorSecretVerifiedCalls(), 1)
 }
 
 func TestAuthManager_TOTPSecretVerification_InvalidInput(t *testing.T) {
@@ -300,6 +324,7 @@ func TestAuthManager_TOTPSecretVerification_InvalidInput(t *testing.T) {
 	ctx := t.Context()
 	ctx = sessions.AttachToContext(ctx, &sessions.ContextData{})
 	manager := &AuthManager{
+		db:     testutils.MockDatabaseClient(),
 		logger: loggingnoop.NewLogger().WithName("auth_manager"),
 		tracer: tracing.NewTracerForTest("auth_manager"),
 	}
@@ -317,26 +342,51 @@ func TestAuthManager_TOTPSecretVerification_AlreadyVerified(t *testing.T) {
 	user := identityfakes.BuildFakeUser()
 	user.TwoFactorSecretVerifiedAt = &verifiedAt
 
-	userDataManager := &identitymock.RepositoryMock{
-		GetUserWithUnverifiedTwoFactorSecretFunc: func(_ context.Context, userID string) (*identity.User, error) {
+	userStore := &identitymock.StoreMock{
+		GetUserFunc: func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, userID string) (*platformidentity.User, error) {
 			assert.Equal(t, user.ID, userID)
 			return user, nil
 		},
 	}
 
+	userStore.MarkUserTwoFactorSecretVerifiedFunc = func(_ context.Context, _ database.Tx, _ tenancy.Scope, userID string) (*platformidentity.User, error) {
+		assert.Equal(t, user.ID, userID)
+
+		return user, nil
+	}
+
+	verifier := &mocktotp.VerifierMock{
+		VerifyFunc: func(context.Context, string, string) error { return nil },
+	}
+
 	ctx = sessions.AttachToContext(ctx, &sessions.ContextData{})
 	manager := &AuthManager{
-		userDataManager: userDataManager,
-		logger:          loggingnoop.NewLogger().WithName("auth_manager"),
-		tracer:          tracing.NewTracerForTest("auth_manager"),
+		db:        testutils.MockDatabaseClient(),
+		users:     userStore,
+		directory: directoryForTest(t, userStore),
+		signIn:    signInForTest(t, userStore, &mockauthn.AuthenticatorMock{}, verifier),
+		logger:    loggingnoop.NewLogger().WithName("auth_manager"),
+		tracer:    tracing.NewTracerForTest("auth_manager"),
+		dataChangesPublisher: &mockpublishers.PublisherMock{
+			PublishAsyncFunc: func(context.Context, any, ...messagequeue.PublishOption) {},
+		},
 	}
 
 	input := &auth.TOTPSecretVerificationInput{UserID: user.ID, TOTPToken: "123456"}
 	err := manager.TOTPSecretVerification(ctx, input)
 
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "already verified")
-	assert.Len(t, userDataManager.GetUserWithUnverifiedTwoFactorSecretCalls(), 1)
+	// Verifying an already-proven secret with a valid code now succeeds rather than
+	// refusing, and the refusal is not missed.
+	//
+	// This used to answer "two factor secret already verified" before it looked at the
+	// code, which made the endpoint a way to ask whether any user id had proven a second
+	// factor — it takes the subject from the request body rather than from the session, so
+	// the id did not have to be the caller's. platform checks the code first, so there is
+	// no answer to read without one. Re-stamping a verification that already happened is
+	// the harmless half of that trade.
+	require.NoError(t, err)
+	assert.Len(t, userStore.GetUserCalls(), 1)
+	assert.Len(t, userStore.MarkUserTwoFactorSecretVerifiedCalls(), 1)
 }
 
 func TestAuthManager_RequestUsernameReminder_Success(t *testing.T) {
@@ -347,8 +397,8 @@ func TestAuthManager_RequestUsernameReminder_Success(t *testing.T) {
 	input := authfakes.BuildFakeUsernameReminderRequestInput()
 	input.EmailAddress = user.EmailAddress
 
-	userDataManager := &identitymock.RepositoryMock{
-		GetUserByEmailFunc: func(_ context.Context, email string) (*identity.User, error) {
+	userStore := &identitymock.StoreMock{
+		GetUserByEmailAddressFunc: func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, email string) (*platformidentity.User, error) {
 			assert.Equal(t, input.EmailAddress, email)
 			return user, nil
 		},
@@ -360,7 +410,10 @@ func TestAuthManager_RequestUsernameReminder_Success(t *testing.T) {
 
 	ctx = sessions.AttachToContext(ctx, &sessions.ContextData{})
 	manager := &AuthManager{
-		userDataManager:      userDataManager,
+		db:                   testutils.MockDatabaseClient(),
+		users:                userStore,
+		directory:            directoryForTest(t, userStore),
+		signIn:               signInForTest(t, userStore, &mockauthn.AuthenticatorMock{}, &mocktotp.VerifierMock{}),
 		dataChangesPublisher: publisher,
 		logger:               loggingnoop.NewLogger().WithName("auth_manager"),
 		tracer:               tracing.NewTracerForTest("auth_manager"),
@@ -369,7 +422,7 @@ func TestAuthManager_RequestUsernameReminder_Success(t *testing.T) {
 	err := manager.RequestUsernameReminder(ctx, input)
 
 	require.NoError(t, err)
-	assert.Len(t, userDataManager.GetUserByEmailCalls(), 1)
+	assert.Len(t, userStore.GetUserByEmailAddressCalls(), 1)
 }
 
 func TestAuthManager_RequestUsernameReminder_UserNotFound(t *testing.T) {
@@ -378,8 +431,8 @@ func TestAuthManager_RequestUsernameReminder_UserNotFound(t *testing.T) {
 	ctx := t.Context()
 	input := authfakes.BuildFakeUsernameReminderRequestInput()
 
-	userDataManager := &identitymock.RepositoryMock{
-		GetUserByEmailFunc: func(_ context.Context, email string) (*identity.User, error) {
+	userStore := &identitymock.StoreMock{
+		GetUserByEmailAddressFunc: func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, email string) (*platformidentity.User, error) {
 			assert.Equal(t, input.EmailAddress, email)
 			return nil, sql.ErrNoRows
 		},
@@ -387,16 +440,19 @@ func TestAuthManager_RequestUsernameReminder_UserNotFound(t *testing.T) {
 
 	ctx = sessions.AttachToContext(ctx, &sessions.ContextData{})
 	manager := &AuthManager{
-		userDataManager: userDataManager,
-		logger:          loggingnoop.NewLogger().WithName("auth_manager"),
-		tracer:          tracing.NewTracerForTest("auth_manager"),
+		db:        testutils.MockDatabaseClient(),
+		users:     userStore,
+		directory: directoryForTest(t, userStore),
+		signIn:    signInForTest(t, userStore, &mockauthn.AuthenticatorMock{}, &mocktotp.VerifierMock{}),
+		logger:    loggingnoop.NewLogger().WithName("auth_manager"),
+		tracer:    tracing.NewTracerForTest("auth_manager"),
 	}
 
 	err := manager.RequestUsernameReminder(ctx, input)
 
 	// A missing user must not leak existence: the flow returns success without sending a reminder.
 	require.NoError(t, err)
-	assert.Len(t, userDataManager.GetUserByEmailCalls(), 1)
+	assert.Len(t, userStore.GetUserByEmailAddressCalls(), 1)
 }
 
 func TestAuthManager_CreatePasswordResetToken_Success(t *testing.T) {
@@ -407,8 +463,8 @@ func TestAuthManager_CreatePasswordResetToken_Success(t *testing.T) {
 	input := authfakes.BuildFakePasswordResetTokenCreationRequestInput()
 	input.EmailAddress = user.EmailAddress
 
-	userDataManager := &identitymock.RepositoryMock{
-		GetUserByEmailFunc: func(_ context.Context, email string) (*identity.User, error) {
+	userStore := &identitymock.StoreMock{
+		GetUserByEmailAddressFunc: func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, email string) (*platformidentity.User, error) {
 			assert.Equal(t, input.EmailAddress, email)
 			return user, nil
 		},
@@ -420,7 +476,7 @@ func TestAuthManager_CreatePasswordResetToken_Success(t *testing.T) {
 	}
 
 	tokenStore := &passwordresetmock.StoreMock{
-		IssueFunc: func(_ context.Context, scope tenancy.Scope, userID string, ttl time.Duration) (*passwordreset.Issuance, error) {
+		IssueFunc: func(_ context.Context, _ database.Tx, scope tenancy.Scope, userID string, ttl time.Duration) (*passwordreset.Issuance, error) {
 			assert.Equal(t, tenancy.Global(), scope)
 			assert.Equal(t, user.ID, userID)
 			assert.Equal(t, passwordResetTokenLifetime, ttl)
@@ -437,7 +493,10 @@ func TestAuthManager_CreatePasswordResetToken_Success(t *testing.T) {
 
 	ctx = sessions.AttachToContext(ctx, &sessions.ContextData{})
 	manager := &AuthManager{
-		userDataManager:      userDataManager,
+		db:                   testutils.MockDatabaseClient(),
+		users:                userStore,
+		directory:            directoryForTest(t, userStore),
+		signIn:               signInForTest(t, userStore, &mockauthn.AuthenticatorMock{}, &mocktotp.VerifierMock{}),
 		passwordResetTokens:  tokenStore,
 		dataChangesPublisher: publisher,
 		logger:               loggingnoop.NewLogger().WithName("auth_manager"),
@@ -447,7 +506,7 @@ func TestAuthManager_CreatePasswordResetToken_Success(t *testing.T) {
 	err := manager.CreatePasswordResetToken(ctx, input)
 
 	require.NoError(t, err)
-	assert.Len(t, userDataManager.GetUserByEmailCalls(), 1)
+	assert.Len(t, userStore.GetUserByEmailAddressCalls(), 1)
 	assert.Len(t, tokenStore.IssueCalls(), 1)
 
 	// The secret rides on the message because the store keeps only a digest of it, and the
@@ -463,8 +522,8 @@ func TestAuthManager_CreatePasswordResetToken_UserNotFound(t *testing.T) {
 	ctx := t.Context()
 	input := authfakes.BuildFakePasswordResetTokenCreationRequestInput()
 
-	userDataManager := &identitymock.RepositoryMock{
-		GetUserByEmailFunc: func(_ context.Context, email string) (*identity.User, error) {
+	userStore := &identitymock.StoreMock{
+		GetUserByEmailAddressFunc: func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, email string) (*platformidentity.User, error) {
 			assert.Equal(t, input.EmailAddress, email)
 			return nil, sql.ErrNoRows
 		},
@@ -472,16 +531,19 @@ func TestAuthManager_CreatePasswordResetToken_UserNotFound(t *testing.T) {
 
 	ctx = sessions.AttachToContext(ctx, &sessions.ContextData{})
 	manager := &AuthManager{
-		userDataManager: userDataManager,
-		logger:          loggingnoop.NewLogger().WithName("auth_manager"),
-		tracer:          tracing.NewTracerForTest("auth_manager"),
+		db:        testutils.MockDatabaseClient(),
+		users:     userStore,
+		directory: directoryForTest(t, userStore),
+		signIn:    signInForTest(t, userStore, &mockauthn.AuthenticatorMock{}, &mocktotp.VerifierMock{}),
+		logger:    loggingnoop.NewLogger().WithName("auth_manager"),
+		tracer:    tracing.NewTracerForTest("auth_manager"),
 	}
 
 	err := manager.CreatePasswordResetToken(ctx, input)
 
 	// Returns success without sending email to avoid email enumeration.
 	require.NoError(t, err)
-	assert.Len(t, userDataManager.GetUserByEmailCalls(), 1)
+	assert.Len(t, userStore.GetUserByEmailAddressCalls(), 1)
 }
 
 func TestAuthManager_RequestEmailVerificationEmail_Success(t *testing.T) {
@@ -490,10 +552,25 @@ func TestAuthManager_RequestEmailVerificationEmail_Success(t *testing.T) {
 	ctx := t.Context()
 	userID := fake.BuildFakeID()
 
-	userDataManager := &identitymock.RepositoryMock{
-		GetEmailAddressVerificationTokenForUserFunc: func(_ context.Context, actualUserID string) (string, error) {
+	userStore := &identitymock.StoreMock{
+		// The service re-reads the user it wrote, so the read has to answer too.
+		GetUserFunc: func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, actualUserID string) (*platformidentity.User, error) {
+			return &platformidentity.User{ID: actualUserID}, nil
+		},
+		// The token is minted and stored rather than read back: the column holds a
+		// digest, and no read fills the secret in.
+		SetUserEmailAddressVerificationTokenFunc: func(_ context.Context, _ database.Tx, _ tenancy.Scope, actualUserID, token string, expiresAt time.Time) error {
 			assert.Equal(t, userID, actualUserID)
-			return "verification-token-123", nil
+			assert.NotEmpty(t, token)
+
+			// A deadline, and one in the future. platform refuses a zero one, so the
+			// assertion that matters is not that the column is set but that this
+			// application computed something usable: a link minted with a deadline
+			// already past is a mail nobody can act on.
+			assert.False(t, expiresAt.IsZero())
+			assert.True(t, expiresAt.After(time.Now()))
+
+			return nil
 		},
 	}
 
@@ -505,7 +582,11 @@ func TestAuthManager_RequestEmailVerificationEmail_Success(t *testing.T) {
 
 	ctx = sessions.AttachToContext(ctx, sessionData)
 	manager := &AuthManager{
-		userDataManager:      userDataManager,
+		db:                   testutils.MockDatabaseClient(),
+		users:                userStore,
+		directory:            directoryForTest(t, userStore),
+		signIn:               signInForTest(t, userStore, &mockauthn.AuthenticatorMock{}, &mocktotp.VerifierMock{}),
+		secretGenerator:      secretGeneratorForTest(),
 		dataChangesPublisher: publisher,
 		logger:               loggingnoop.NewLogger().WithName("auth_manager"),
 		tracer:               tracing.NewTracerForTest("auth_manager"),
@@ -514,7 +595,7 @@ func TestAuthManager_RequestEmailVerificationEmail_Success(t *testing.T) {
 	err := manager.RequestEmailVerificationEmail(ctx)
 
 	require.NoError(t, err)
-	assert.Len(t, userDataManager.GetEmailAddressVerificationTokenForUserCalls(), 1)
+	assert.Len(t, userStore.SetUserEmailAddressVerificationTokenCalls(), 1)
 }
 
 func TestAuthManager_VerifyUserEmailAddress_Success(t *testing.T) {
@@ -524,14 +605,20 @@ func TestAuthManager_VerifyUserEmailAddress_Success(t *testing.T) {
 	user := identityfakes.BuildFakeUser()
 	input := authfakes.BuildFakeEmailAddressVerificationRequestInput()
 
-	userDataManager := &identitymock.RepositoryMock{
-		GetUserByEmailAddressVerificationTokenFunc: func(_ context.Context, token string) (*identity.User, error) {
+	userStore := &identitymock.StoreMock{
+		// The service re-reads the user it wrote, on the transaction that wrote it,
+		// so a mock that stubs only the write is a mock the service cannot finish.
+		GetUserFunc: func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, _ string) (*platformidentity.User, error) {
+			return user, nil
+		},
+		GetUserByEmailVerificationTokenFunc: func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, token string) (*platformidentity.User, error) {
 			assert.Equal(t, input.Token, token)
 			return user, nil
 		},
-		MarkUserEmailAddressAsVerifiedFunc: func(_ context.Context, userID, token string) error {
+		MarkUserEmailAddressVerifiedFunc: func(_ context.Context, _ database.Tx, _ tenancy.Scope, userID, actualToken string) error {
 			assert.Equal(t, user.ID, userID)
-			assert.Equal(t, input.Token, token)
+			assert.Equal(t, input.Token, actualToken)
+
 			return nil
 		},
 	}
@@ -542,7 +629,10 @@ func TestAuthManager_VerifyUserEmailAddress_Success(t *testing.T) {
 
 	ctx = sessions.AttachToContext(ctx, &sessions.ContextData{})
 	manager := &AuthManager{
-		userDataManager:      userDataManager,
+		db:                   testutils.MockDatabaseClient(),
+		users:                userStore,
+		directory:            directoryForTest(t, userStore),
+		signIn:               signInForTest(t, userStore, &mockauthn.AuthenticatorMock{}, &mocktotp.VerifierMock{}),
 		dataChangesPublisher: publisher,
 		logger:               loggingnoop.NewLogger().WithName("auth_manager"),
 		tracer:               tracing.NewTracerForTest("auth_manager"),
@@ -551,8 +641,13 @@ func TestAuthManager_VerifyUserEmailAddress_Success(t *testing.T) {
 	err := manager.VerifyUserEmailAddress(ctx, input)
 
 	require.NoError(t, err)
-	assert.Len(t, userDataManager.GetUserByEmailAddressVerificationTokenCalls(), 1)
-	assert.Len(t, userDataManager.MarkUserEmailAddressAsVerifiedCalls(), 1)
+	// Two reads by the token: this manager's, for the user id its event names, and
+	// signin's own inside VerifyEmailAddress. The second is the price of an event that
+	// names somebody — VerifyEmailAddress answers with an error and nothing else, and
+	// by the time it returns the link is spent and the column that found the user is
+	// cleared, so the read cannot happen afterwards.
+	assert.Len(t, userStore.GetUserByEmailVerificationTokenCalls(), 2)
+	assert.Len(t, userStore.MarkUserEmailAddressVerifiedCalls(), 1)
 }
 
 func TestAuthManager_VerifyUserEmailAddressByToken_Success(t *testing.T) {
@@ -562,12 +657,17 @@ func TestAuthManager_VerifyUserEmailAddressByToken_Success(t *testing.T) {
 	user := identityfakes.BuildFakeUser()
 	token := "verification-token"
 
-	userDataManager := &identitymock.RepositoryMock{
-		GetUserByEmailAddressVerificationTokenFunc: func(_ context.Context, actualToken string) (*identity.User, error) {
+	userStore := &identitymock.StoreMock{
+		// The service re-reads the user it wrote, on the transaction that wrote it,
+		// so a mock that stubs only the write is a mock the service cannot finish.
+		GetUserFunc: func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, _ string) (*platformidentity.User, error) {
+			return user, nil
+		},
+		GetUserByEmailVerificationTokenFunc: func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, actualToken string) (*platformidentity.User, error) {
 			assert.Equal(t, token, actualToken)
 			return user, nil
 		},
-		MarkUserEmailAddressAsVerifiedFunc: func(_ context.Context, userID, actualToken string) error {
+		MarkUserEmailAddressVerifiedFunc: func(_ context.Context, _ database.Tx, _ tenancy.Scope, userID, actualToken string) error {
 			assert.Equal(t, user.ID, userID)
 			assert.Equal(t, token, actualToken)
 			return nil
@@ -579,7 +679,10 @@ func TestAuthManager_VerifyUserEmailAddressByToken_Success(t *testing.T) {
 	}
 
 	manager := &AuthManager{
-		userDataManager:      userDataManager,
+		db:                   testutils.MockDatabaseClient(),
+		users:                userStore,
+		directory:            directoryForTest(t, userStore),
+		signIn:               signInForTest(t, userStore, &mockauthn.AuthenticatorMock{}, &mocktotp.VerifierMock{}),
 		dataChangesPublisher: publisher,
 		logger:               loggingnoop.NewLogger().WithName("auth_manager"),
 		tracer:               tracing.NewTracerForTest("auth_manager"),
@@ -588,8 +691,13 @@ func TestAuthManager_VerifyUserEmailAddressByToken_Success(t *testing.T) {
 	err := manager.VerifyUserEmailAddressByToken(ctx, token)
 
 	require.NoError(t, err)
-	assert.Len(t, userDataManager.GetUserByEmailAddressVerificationTokenCalls(), 1)
-	assert.Len(t, userDataManager.MarkUserEmailAddressAsVerifiedCalls(), 1)
+	// Two reads by the token: this manager's, for the user id its event names, and
+	// signin's own inside VerifyEmailAddress. The second is the price of an event that
+	// names somebody — VerifyEmailAddress answers with an error and nothing else, and
+	// by the time it returns the link is spent and the column that found the user is
+	// cleared, so the read cannot happen afterwards.
+	assert.Len(t, userStore.GetUserByEmailVerificationTokenCalls(), 2)
+	assert.Len(t, userStore.MarkUserEmailAddressVerifiedCalls(), 1)
 }
 
 func TestAuthManager_VerifyUserEmailAddressByToken_UserNotFound(t *testing.T) {
@@ -598,23 +706,26 @@ func TestAuthManager_VerifyUserEmailAddressByToken_UserNotFound(t *testing.T) {
 	ctx := t.Context()
 	token := "invalid-token"
 
-	userDataManager := &identitymock.RepositoryMock{
-		GetUserByEmailAddressVerificationTokenFunc: func(_ context.Context, actualToken string) (*identity.User, error) {
+	userStore := &identitymock.StoreMock{
+		GetUserByEmailVerificationTokenFunc: func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, actualToken string) (*platformidentity.User, error) {
 			assert.Equal(t, token, actualToken)
 			return nil, sql.ErrNoRows
 		},
 	}
 
 	manager := &AuthManager{
-		userDataManager: userDataManager,
-		logger:          loggingnoop.NewLogger().WithName("auth_manager"),
-		tracer:          tracing.NewTracerForTest("auth_manager"),
+		db:        testutils.MockDatabaseClient(),
+		users:     userStore,
+		directory: directoryForTest(t, userStore),
+		signIn:    signInForTest(t, userStore, &mockauthn.AuthenticatorMock{}, &mocktotp.VerifierMock{}),
+		logger:    loggingnoop.NewLogger().WithName("auth_manager"),
+		tracer:    tracing.NewTracerForTest("auth_manager"),
 	}
 
 	err := manager.VerifyUserEmailAddressByToken(ctx, token)
 
 	require.Error(t, err)
-	assert.Len(t, userDataManager.GetUserByEmailAddressVerificationTokenCalls(), 1)
+	assert.Len(t, userStore.GetUserByEmailVerificationTokenCalls(), 1)
 }
 
 func TestAuthManager_UpdatePassword_Success(t *testing.T) {
@@ -628,12 +739,12 @@ func TestAuthManager_UpdatePassword_Success(t *testing.T) {
 	password.NewPassword = "Abcdefghij123!@#$%^&*()"
 	password.TOTPToken = ""
 
-	userDataManager := &identitymock.RepositoryMock{
-		GetUserFunc: func(_ context.Context, userID string) (*identity.User, error) {
+	userStore := &identitymock.StoreMock{
+		GetUserFunc: func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, userID string) (*platformidentity.User, error) {
 			assert.Equal(t, user.ID, userID)
 			return user, nil
 		},
-		UpdateUserPasswordFunc: func(_ context.Context, userID, newHash string) error {
+		UpdateUserPasswordFunc: func(_ context.Context, _ database.Tx, _ tenancy.Scope, userID, newHash string) error {
 			assert.Equal(t, user.ID, userID)
 			assert.NotEmpty(t, newHash)
 			return nil
@@ -660,7 +771,10 @@ func TestAuthManager_UpdatePassword_Success(t *testing.T) {
 
 	ctx = sessions.AttachToContext(ctx, sessionData)
 	manager := &AuthManager{
-		userDataManager:      userDataManager,
+		db:                   testutils.MockDatabaseClient(),
+		users:                userStore,
+		directory:            directoryForTest(t, userStore),
+		signIn:               signInForTest(t, userStore, authenticator, &mocktotp.VerifierMock{}),
 		authenticator:        authenticator,
 		dataChangesPublisher: publisher,
 		logger:               loggingnoop.NewLogger().WithName("auth_manager"),
@@ -670,8 +784,11 @@ func TestAuthManager_UpdatePassword_Success(t *testing.T) {
 	err := manager.UpdatePassword(ctx, password)
 
 	require.NoError(t, err)
-	assert.Len(t, userDataManager.GetUserCalls(), 1)
-	assert.Len(t, userDataManager.UpdateUserPasswordCalls(), 1)
+	// One read. This manager used to make its own before handing the write to the
+	// directory service, which read again on either side of it; signin reads once, proves
+	// the password against what it read, and writes.
+	assert.Len(t, userStore.GetUserCalls(), 1)
+	assert.Len(t, userStore.UpdateUserPasswordCalls(), 1)
 	assert.Len(t, authenticator.PasswordMatchesCalls(), 1)
 	assert.Len(t, authenticator.HashPasswordCalls(), 1)
 }
@@ -685,15 +802,18 @@ func TestAuthManager_UpdateUserEmailAddress_Success(t *testing.T) {
 	input := authfakes.BuildFakeUserEmailAddressUpdateInput()
 	input.CurrentPassword = "current"
 
-	userDataManager := &identitymock.RepositoryMock{
-		GetUserFunc: func(_ context.Context, userID string) (*identity.User, error) {
+	userStore := &identitymock.StoreMock{
+		GetUserFunc: func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, userID string) (*platformidentity.User, error) {
 			assert.Equal(t, user.ID, userID)
 			return user, nil
 		},
-		UpdateUserEmailAddressFunc: func(_ context.Context, userID, newEmailAddress string) error {
-			assert.Equal(t, user.ID, userID)
-			assert.Equal(t, input.NewEmailAddress, newEmailAddress)
-			return nil
+		// The service reads the user, applies the update to it and writes the whole row
+		// back, so what lands here is the user as it will be rather than the diff.
+		UpdateUserFunc: func(_ context.Context, _ database.Tx, _ tenancy.Scope, updated *platformidentity.User) (*platformidentity.User, error) {
+			assert.Equal(t, user.ID, updated.ID)
+			assert.Equal(t, input.NewEmailAddress, updated.EmailAddress)
+
+			return updated, nil
 		},
 	}
 
@@ -713,7 +833,10 @@ func TestAuthManager_UpdateUserEmailAddress_Success(t *testing.T) {
 
 	ctx = sessions.AttachToContext(ctx, sessionData)
 	manager := &AuthManager{
-		userDataManager:      userDataManager,
+		db:                   testutils.MockDatabaseClient(),
+		users:                userStore,
+		directory:            directoryForTest(t, userStore),
+		signIn:               signInForTest(t, userStore, authenticator, &mocktotp.VerifierMock{}),
 		authenticator:        authenticator,
 		dataChangesPublisher: publisher,
 		logger:               loggingnoop.NewLogger().WithName("auth_manager"),
@@ -723,8 +846,9 @@ func TestAuthManager_UpdateUserEmailAddress_Success(t *testing.T) {
 	err := manager.UpdateUserEmailAddress(ctx, input)
 
 	require.NoError(t, err)
-	assert.Len(t, userDataManager.GetUserCalls(), 1)
-	assert.Len(t, userDataManager.UpdateUserEmailAddressCalls(), 1)
+	// This manager's credential check and the service's own read before it applies the update.
+	assert.Len(t, userStore.GetUserCalls(), 2)
+	assert.Len(t, userStore.UpdateUserCalls(), 1)
 	assert.Len(t, authenticator.PasswordMatchesCalls(), 1)
 }
 
@@ -737,15 +861,20 @@ func TestAuthManager_UpdateUserUsername_Success(t *testing.T) {
 	input := authfakes.BuildFakeUsernameUpdateInput()
 	input.CurrentPassword = "current"
 
-	userDataManager := &identitymock.RepositoryMock{
-		GetUserFunc: func(_ context.Context, userID string) (*identity.User, error) {
+	userStore := &identitymock.StoreMock{
+		GetUserFunc: func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, userID string) (*platformidentity.User, error) {
 			assert.Equal(t, user.ID, userID)
 			return user, nil
 		},
-		UpdateUserUsernameFunc: func(_ context.Context, userID, newUsername string) error {
-			assert.Equal(t, user.ID, userID)
-			assert.Equal(t, input.NewUsername, newUsername)
-			return nil
+		UpdateUserFunc: func(_ context.Context, _ database.Tx, _ tenancy.Scope, updated *platformidentity.User) (*platformidentity.User, error) {
+			assert.Equal(t, user.ID, updated.ID)
+
+			// The folded spelling, not the one submitted. The directory lowers a handle
+			// on write and on every lookup, so two users cannot differ by case alone —
+			// and what the column receives is the fold rather than what was typed.
+			assert.Equal(t, platformidentity.FoldHandle(input.NewUsername), updated.Username)
+
+			return updated, nil
 		},
 	}
 
@@ -765,7 +894,10 @@ func TestAuthManager_UpdateUserUsername_Success(t *testing.T) {
 
 	ctx = sessions.AttachToContext(ctx, sessionData)
 	manager := &AuthManager{
-		userDataManager:      userDataManager,
+		db:                   testutils.MockDatabaseClient(),
+		users:                userStore,
+		directory:            directoryForTest(t, userStore),
+		signIn:               signInForTest(t, userStore, authenticator, &mocktotp.VerifierMock{}),
 		authenticator:        authenticator,
 		dataChangesPublisher: publisher,
 		logger:               loggingnoop.NewLogger().WithName("auth_manager"),
@@ -775,8 +907,9 @@ func TestAuthManager_UpdateUserUsername_Success(t *testing.T) {
 	err := manager.UpdateUserUsername(ctx, input)
 
 	require.NoError(t, err)
-	assert.Len(t, userDataManager.GetUserCalls(), 1)
-	assert.Len(t, userDataManager.UpdateUserUsernameCalls(), 1)
+	// This manager's credential check and the service's own read before it applies the update.
+	assert.Len(t, userStore.GetUserCalls(), 2)
+	assert.Len(t, userStore.UpdateUserCalls(), 1)
 	assert.Len(t, authenticator.PasswordMatchesCalls(), 1)
 }
 
@@ -790,23 +923,23 @@ func TestAuthManager_PasswordResetTokenRedemption_Success(t *testing.T) {
 	input.NewPassword = "Abcdefghij123!@#$%^&*()"
 
 	tokenStore := &passwordresetmock.StoreMock{
-		ConsumeFunc: func(_ context.Context, scope tenancy.Scope, secret string) (*passwordreset.Token, error) {
+		ConsumeFunc: func(_ context.Context, _ database.Tx, scope tenancy.Scope, secret string) (*passwordreset.Token, error) {
 			assert.Equal(t, tenancy.Global(), scope)
 			assert.Equal(t, input.Token, secret)
 			return token, nil
 		},
-		RevokeForUserFunc: func(_ context.Context, _ tenancy.Scope, userID string) (int64, error) {
+		RevokeForUserFunc: func(_ context.Context, _ database.Tx, _ tenancy.Scope, userID string) (int64, error) {
 			assert.Equal(t, user.ID, userID)
 			return 0, nil
 		},
 	}
 
-	userDataManager := &identitymock.RepositoryMock{
-		GetUserFunc: func(_ context.Context, userID string) (*identity.User, error) {
+	userStore := &identitymock.StoreMock{
+		GetUserFunc: func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, userID string) (*platformidentity.User, error) {
 			assert.Equal(t, user.ID, userID)
 			return user, nil
 		},
-		UpdateUserPasswordFunc: func(_ context.Context, userID, newHash string) error {
+		UpdateUserPasswordFunc: func(_ context.Context, _ database.Tx, _ tenancy.Scope, userID, newHash string) error {
 			assert.Equal(t, user.ID, userID)
 			assert.NotEmpty(t, newHash)
 			return nil
@@ -826,8 +959,11 @@ func TestAuthManager_PasswordResetTokenRedemption_Success(t *testing.T) {
 
 	ctx = sessions.AttachToContext(ctx, &sessions.ContextData{})
 	manager := &AuthManager{
+		db:                   testutils.MockDatabaseClient(),
 		passwordResetTokens:  tokenStore,
-		userDataManager:      userDataManager,
+		users:                userStore,
+		directory:            directoryForTest(t, userStore),
+		signIn:               signInForTest(t, userStore, authenticator, &mocktotp.VerifierMock{}),
 		authenticator:        authenticator,
 		dataChangesPublisher: publisher,
 		logger:               loggingnoop.NewLogger().WithName("auth_manager"),
@@ -838,8 +974,9 @@ func TestAuthManager_PasswordResetTokenRedemption_Success(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Len(t, tokenStore.ConsumeCalls(), 1)
-	assert.Len(t, userDataManager.GetUserCalls(), 1)
-	assert.Len(t, userDataManager.UpdateUserPasswordCalls(), 1)
+	// One read here and the service's two around its write — see UpdatePassword above.
+	assert.Len(t, userStore.GetUserCalls(), 3)
+	assert.Len(t, userStore.UpdateUserPasswordCalls(), 1)
 	assert.Len(t, authenticator.HashPasswordCalls(), 1)
 	// A completed reset takes the user's other outstanding links with it.
 	assert.Len(t, tokenStore.RevokeForUserCalls(), 1)
@@ -857,12 +994,12 @@ func TestAuthManager_NewTOTPSecret_Success(t *testing.T) {
 	token, _ := totp.GenerateCode(user.TwoFactorSecret, time.Now().UTC())
 	input.TOTPToken = token
 
-	userDataManager := &identitymock.RepositoryMock{
-		GetUserFunc: func(_ context.Context, userID string) (*identity.User, error) {
+	userStore := &identitymock.StoreMock{
+		GetUserFunc: func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, userID string) (*platformidentity.User, error) {
 			assert.Equal(t, user.ID, userID)
 			return user, nil
 		},
-		MarkUserTwoFactorSecretAsUnverifiedFunc: func(_ context.Context, userID, newSecret string) error {
+		UpdateUserTwoFactorSecretFunc: func(_ context.Context, _ database.Tx, _ tenancy.Scope, userID, newSecret string) error {
 			assert.Equal(t, user.ID, userID)
 			assert.NotEmpty(t, newSecret)
 			return nil
@@ -882,6 +1019,7 @@ func TestAuthManager_NewTOTPSecret_Success(t *testing.T) {
 			if secret == user.TwoFactorSecret && code == token {
 				return nil
 			}
+
 			return platformtotp.ErrInvalidCode
 		},
 	}
@@ -902,7 +1040,10 @@ func TestAuthManager_NewTOTPSecret_Success(t *testing.T) {
 
 	ctx = sessions.AttachToContext(ctx, sessionData)
 	manager := &AuthManager{
-		userDataManager:      userDataManager,
+		db:                   testutils.MockDatabaseClient(),
+		users:                userStore,
+		directory:            directoryForTest(t, userStore),
+		signIn:               signInForTest(t, userStore, authenticator, totpVerifier, secretGen),
 		authenticator:        authenticator,
 		totpVerifier:         totpVerifier,
 		secretGenerator:      secretGen,
@@ -916,10 +1057,21 @@ func TestAuthManager_NewTOTPSecret_Success(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.NotNil(t, result)
-	assert.Equal(t, "newsecretencoded", result.TwoFactorSecret)
 	assert.NotEmpty(t, result.TwoFactorQRCode)
-	assert.Len(t, userDataManager.GetUserCalls(), 1)
-	assert.Len(t, userDataManager.MarkUserTwoFactorSecretAsUnverifiedCalls(), 1)
+
+	// The secret handed back is the secret written, rather than a fixed string this test
+	// arranged for. signin mints it with a totp.Generator of its own — not the
+	// random.Generator this manager still holds for registration — so pinning a literal
+	// would be pinning which generator platform happens to use. What has to be true is
+	// that the caller is shown the secret the directory now stores; a response carrying a
+	// different one is a QR code nobody can enroll with.
+	require.Len(t, userStore.UpdateUserTwoFactorSecretCalls(), 1)
+	assert.Equal(t, userStore.UpdateUserTwoFactorSecretCalls()[0].Secret, result.TwoFactorSecret)
+	assert.NotEmpty(t, result.TwoFactorSecret)
+	// Two reads: signin's, to prove the password and generate against, and this manager's
+	// afterwards for the username the QR code is labeled with. The third was the
+	// directory service reading back what it had just written, which nothing here wanted.
+	assert.Len(t, userStore.GetUserCalls(), 2)
 	assert.Len(t, authenticator.PasswordMatchesCalls(), 1)
 }
 
@@ -931,14 +1083,16 @@ func TestAuthManager_PasswordResetTokenRedemption_TokenNotFound(t *testing.T) {
 	input.NewPassword = "Abcdefghij123!@#$%^&*()"
 
 	tokenStore := &passwordresetmock.StoreMock{
-		ConsumeFunc: func(_ context.Context, _ tenancy.Scope, secret string) (*passwordreset.Token, error) {
+		ConsumeFunc: func(_ context.Context, _ database.Tx, _ tenancy.Scope, secret string) (*passwordreset.Token, error) {
 			assert.Equal(t, input.Token, secret)
+
 			return nil, passwordreset.ErrTokenNotFound
 		},
 	}
 
 	ctx = sessions.AttachToContext(ctx, &sessions.ContextData{})
 	manager := &AuthManager{
+		db:                  testutils.MockDatabaseClient(),
 		passwordResetTokens: tokenStore,
 		logger:              loggingnoop.NewLogger().WithName("auth_manager"),
 		tracer:              tracing.NewTracerForTest("auth_manager"),
@@ -957,18 +1111,21 @@ func TestAuthManager_PasswordResetTokenRedemption_TokenAlreadyRedeemed(t *testin
 	input := authfakes.BuildFakePasswordResetTokenRedemptionRequestInput()
 	input.NewPassword = "Abcdefghij123!@#$%^&*()"
 
-	userDataManager := &identitymock.RepositoryMock{}
+	userStore := &identitymock.StoreMock{}
 
 	tokenStore := &passwordresetmock.StoreMock{
-		ConsumeFunc: func(_ context.Context, _ tenancy.Scope, _ string) (*passwordreset.Token, error) {
+		ConsumeFunc: func(_ context.Context, _ database.Tx, _ tenancy.Scope, _ string) (*passwordreset.Token, error) {
 			return nil, passwordreset.ErrTokenRedeemed
 		},
 	}
 
 	ctx = sessions.AttachToContext(ctx, &sessions.ContextData{})
 	manager := &AuthManager{
+		db:                  testutils.MockDatabaseClient(),
 		passwordResetTokens: tokenStore,
-		userDataManager:     userDataManager,
+		users:               userStore,
+		directory:           directoryForTest(t, userStore),
+		signIn:              signInForTest(t, userStore, &mockauthn.AuthenticatorMock{}, &mocktotp.VerifierMock{}),
 		logger:              loggingnoop.NewLogger().WithName("auth_manager"),
 		tracer:              tracing.NewTracerForTest("auth_manager"),
 	}
@@ -978,7 +1135,7 @@ func TestAuthManager_PasswordResetTokenRedemption_TokenAlreadyRedeemed(t *testin
 	// A token spent once is refused by the store, and nothing downstream of it runs: the
 	// password is never written for a link somebody else already answered.
 	require.ErrorIs(t, err, passwordreset.ErrTokenRedeemed)
-	assert.Empty(t, userDataManager.UpdateUserPasswordCalls())
+	assert.Empty(t, userStore.UpdateUserPasswordCalls())
 }
 
 func TestAuthManager_PasswordResetTokenRedemption_InvalidPassword(t *testing.T) {
@@ -992,6 +1149,7 @@ func TestAuthManager_PasswordResetTokenRedemption_InvalidPassword(t *testing.T) 
 
 	ctx = sessions.AttachToContext(ctx, &sessions.ContextData{})
 	manager := &AuthManager{
+		db:                  testutils.MockDatabaseClient(),
 		passwordResetTokens: tokenStore,
 		logger:              loggingnoop.NewLogger().WithName("auth_manager"),
 		tracer:              tracing.NewTracerForTest("auth_manager"),
@@ -1011,8 +1169,8 @@ func TestAuthManager_VerifyUserEmailAddress_UserNotFound(t *testing.T) {
 	ctx := t.Context()
 	input := authfakes.BuildFakeEmailAddressVerificationRequestInput()
 
-	userDataManager := &identitymock.RepositoryMock{
-		GetUserByEmailAddressVerificationTokenFunc: func(_ context.Context, token string) (*identity.User, error) {
+	userStore := &identitymock.StoreMock{
+		GetUserByEmailVerificationTokenFunc: func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, token string) (*platformidentity.User, error) {
 			assert.Equal(t, input.Token, token)
 			return nil, sql.ErrNoRows
 		},
@@ -1020,15 +1178,18 @@ func TestAuthManager_VerifyUserEmailAddress_UserNotFound(t *testing.T) {
 
 	ctx = sessions.AttachToContext(ctx, &sessions.ContextData{})
 	manager := &AuthManager{
-		userDataManager: userDataManager,
-		logger:          loggingnoop.NewLogger().WithName("auth_manager"),
-		tracer:          tracing.NewTracerForTest("auth_manager"),
+		db:        testutils.MockDatabaseClient(),
+		users:     userStore,
+		directory: directoryForTest(t, userStore),
+		signIn:    signInForTest(t, userStore, &mockauthn.AuthenticatorMock{}, &mocktotp.VerifierMock{}),
+		logger:    loggingnoop.NewLogger().WithName("auth_manager"),
+		tracer:    tracing.NewTracerForTest("auth_manager"),
 	}
 
 	err := manager.VerifyUserEmailAddress(ctx, input)
 
 	require.Error(t, err)
-	assert.Len(t, userDataManager.GetUserByEmailAddressVerificationTokenCalls(), 1)
+	assert.Len(t, userStore.GetUserByEmailVerificationTokenCalls(), 1)
 }
 
 func TestAuthManager_UpdatePassword_InvalidNewPassword(t *testing.T) {
@@ -1042,8 +1203,8 @@ func TestAuthManager_UpdatePassword_InvalidNewPassword(t *testing.T) {
 	password.NewPassword = "a" // too weak for entropy 60
 	password.TOTPToken = ""
 
-	userDataManager := &identitymock.RepositoryMock{
-		GetUserFunc: func(_ context.Context, userID string) (*identity.User, error) {
+	userStore := &identitymock.StoreMock{
+		GetUserFunc: func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, userID string) (*platformidentity.User, error) {
 			assert.Equal(t, user.ID, userID)
 			return user, nil
 		},
@@ -1061,17 +1222,25 @@ func TestAuthManager_UpdatePassword_InvalidNewPassword(t *testing.T) {
 
 	ctx = sessions.AttachToContext(ctx, sessionData)
 	manager := &AuthManager{
-		userDataManager: userDataManager,
-		authenticator:   authenticator,
-		logger:          loggingnoop.NewLogger().WithName("auth_manager"),
-		tracer:          tracing.NewTracerForTest("auth_manager"),
+		db:            testutils.MockDatabaseClient(),
+		users:         userStore,
+		directory:     directoryForTest(t, userStore),
+		signIn:        signInForTest(t, userStore, authenticator, &mocktotp.VerifierMock{}),
+		authenticator: authenticator,
+		logger:        loggingnoop.NewLogger().WithName("auth_manager"),
+		tracer:        tracing.NewTracerForTest("auth_manager"),
 	}
 
 	err := manager.UpdatePassword(ctx, password)
 
 	require.Error(t, err)
-	assert.Len(t, userDataManager.GetUserCalls(), 1)
-	assert.Len(t, authenticator.PasswordMatchesCalls(), 1)
+
+	// Nothing was read and nothing was compared, because the password policy is checked
+	// before the credential is. That is the order this adoption settled on: the entropy
+	// floor is a fact about the input, it costs no I/O, and refusing on it first spares a
+	// round trip and a hash for a password the caller has to retype anyway.
+	assert.Empty(t, userStore.GetUserCalls())
+	assert.Empty(t, authenticator.PasswordMatchesCalls())
 }
 
 func TestAuthManager_NewTOTPSecret_UserNotFound(t *testing.T) {
@@ -1081,8 +1250,8 @@ func TestAuthManager_NewTOTPSecret_UserNotFound(t *testing.T) {
 	userID := fake.BuildFakeID()
 	input := authfakes.BuildFakeTOTPSecretRefreshInput()
 
-	userDataManager := &identitymock.RepositoryMock{
-		GetUserFunc: func(_ context.Context, actualUserID string) (*identity.User, error) {
+	userStore := &identitymock.StoreMock{
+		GetUserFunc: func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, actualUserID string) (*platformidentity.User, error) {
 			assert.Equal(t, userID, actualUserID)
 			return nil, sql.ErrNoRows
 		},
@@ -1092,16 +1261,19 @@ func TestAuthManager_NewTOTPSecret_UserNotFound(t *testing.T) {
 
 	ctx = sessions.AttachToContext(ctx, sessionData)
 	manager := &AuthManager{
-		userDataManager: userDataManager,
-		logger:          loggingnoop.NewLogger().WithName("auth_manager"),
-		tracer:          tracing.NewTracerForTest("auth_manager"),
+		db:        testutils.MockDatabaseClient(),
+		users:     userStore,
+		directory: directoryForTest(t, userStore),
+		signIn:    signInForTest(t, userStore, &mockauthn.AuthenticatorMock{}, &mocktotp.VerifierMock{}),
+		logger:    loggingnoop.NewLogger().WithName("auth_manager"),
+		tracer:    tracing.NewTracerForTest("auth_manager"),
 	}
 
 	result, err := manager.NewTOTPSecret(ctx, input)
 
 	require.Error(t, err)
 	assert.Nil(t, result)
-	assert.Len(t, userDataManager.GetUserCalls(), 1)
+	assert.Len(t, userStore.GetUserCalls(), 1)
 }
 
 func TestAuthManager_GetActiveSessionsForUser(t *testing.T) {
@@ -1127,6 +1299,7 @@ func TestAuthManager_GetActiveSessionsForUser(t *testing.T) {
 		}
 
 		manager := &AuthManager{
+			db:           testutils.MockDatabaseClient(),
 			sessionStore: store,
 			tracer:       tracing.NewTracerForTest("auth_manager"),
 		}
@@ -1152,6 +1325,7 @@ func TestAuthManager_GetActiveSessionsForUser(t *testing.T) {
 		}
 
 		manager := &AuthManager{
+			db:           testutils.MockDatabaseClient(),
 			sessionStore: store,
 			tracer:       tracing.NewTracerForTest("auth_manager"),
 		}
@@ -1183,6 +1357,7 @@ func TestAuthManager_RevokeSession(t *testing.T) {
 		}
 
 		manager := &AuthManager{
+			db:           testutils.MockDatabaseClient(),
 			sessionStore: store,
 			tracer:       tracing.NewTracerForTest("auth_manager"),
 		}
@@ -1210,6 +1385,7 @@ func TestAuthManager_RevokeSession(t *testing.T) {
 		}
 
 		manager := &AuthManager{
+			db:           testutils.MockDatabaseClient(),
 			sessionStore: store,
 			tracer:       tracing.NewTracerForTest("auth_manager"),
 		}
@@ -1240,6 +1416,7 @@ func TestAuthManager_RevokeAllSessionsForUserExcept(t *testing.T) {
 		}
 
 		manager := &AuthManager{
+			db:           testutils.MockDatabaseClient(),
 			sessionStore: store,
 			tracer:       tracing.NewTracerForTest("auth_manager"),
 		}
@@ -1262,6 +1439,7 @@ func TestAuthManager_RevokeAllSessionsForUserExcept(t *testing.T) {
 		}
 
 		manager := &AuthManager{
+			db:           testutils.MockDatabaseClient(),
 			sessionStore: store,
 			tracer:       tracing.NewTracerForTest("auth_manager"),
 		}
@@ -1288,6 +1466,7 @@ func TestAuthManager_RevokeAllSessionsForUser(t *testing.T) {
 		}
 
 		manager := &AuthManager{
+			db:           testutils.MockDatabaseClient(),
 			sessionStore: store,
 			tracer:       tracing.NewTracerForTest("auth_manager"),
 		}
@@ -1309,6 +1488,7 @@ func TestAuthManager_RevokeAllSessionsForUser(t *testing.T) {
 		}
 
 		manager := &AuthManager{
+			db:           testutils.MockDatabaseClient(),
 			sessionStore: store,
 			tracer:       tracing.NewTracerForTest("auth_manager"),
 		}
@@ -1316,4 +1496,74 @@ func TestAuthManager_RevokeAllSessionsForUser(t *testing.T) {
 		require.Error(t, manager.RevokeAllSessionsForUser(ctx, userID))
 		assert.Len(t, store.RevokeAllCalls(), 1)
 	})
+}
+
+// directoryForTest builds the real identity service over a mocked store.
+//
+// The manager holds a *identity.Service rather than an interface, and that is not a seam
+// this package is missing: the service is platform's, its behavior is platform's to test,
+// and what a unit test here wants to substitute is the store underneath it. So these tests
+// build a real one over a mock and assert on what the store was asked for — which is a
+// stronger claim than asserting on what a mocked service was told, because the service's
+// own rules are in the path.
+func directoryForTest(t *testing.T, store platformidentity.Store) *platformidentity.Service {
+	t.Helper()
+
+	directory, err := platformidentity.NewService(testutils.MockDatabaseClient(), store)
+	require.NoError(t, err)
+
+	return directory
+}
+
+// signInForTest builds the real sign-in service over the mocks a test supplies.
+//
+// The real thing rather than a mock of it, for the reason directoryForTest gives and one
+// more: signin.Service is a concrete type with no interface, so the alternative was to
+// invent one here. Every argument is already mocked — the identity store is its Directory,
+// and the authenticator and verifier are the seams these tests drive.
+//
+// The token issuer is nil-free and unused: none of the credential methods this manager
+// calls mints a token, and passing a mock keeps the constructor's nil checks happy without
+// implying that one will be consulted.
+func signInForTest(
+	t *testing.T,
+	store platformidentity.Store,
+	authenticator authentication.Authenticator,
+	verifier platformtotp.Verifier,
+	generators ...random.Generator,
+) *signin.Service {
+	t.Helper()
+
+	// The secret a refreshed second factor gets is signin's to mint now, so a test that
+	// asserts on the value supplies the generator that produces it. The rest take the real
+	// one, because a generator is not a seam any of them is about.
+	generator := secretGeneratorForTest()
+	if len(generators) > 0 {
+		generator = generators[0]
+	}
+
+	service, err := signin.NewService(
+		testutils.MockDatabaseClient(),
+		store,
+		authenticator,
+		&mocktokens.IssuerMock{},
+		signin.WithSecondFactorPolicy(signin.SecondFactorWhenEnrolled),
+		signin.WithTOTPVerifier(verifier),
+		signin.WithTOTPIssuer("test"),
+		signin.WithSecretGenerator(generator),
+		signin.WithVerifications(store),
+	)
+	require.NoError(t, err)
+
+	return service
+}
+
+// secretGeneratorForTest is the real generator. It is not mocked because what these tests
+// assert about a token is that one was minted and handed to the store, and a generator is
+// not a seam any of them is about.
+func secretGeneratorForTest() random.Generator {
+	return random.NewGenerator(
+		random.WithLogger(loggingnoop.NewLogger()),
+		random.WithTracerProvider(tracingnoop.NewTracerProvider()),
+	)
 }

@@ -30,7 +30,7 @@ class HomeViewModel {
   var userTasks: [Mealplanning_MealPlanTask] = []
   var tasksByMealPlan: [String: [Mealplanning_MealPlanTask]] = [:]
   var groceryLists: [String: [Mealplanning_MealPlanGroceryListItem]] = [:]  // Keyed by meal plan ID
-  var currentUser: Identity_User?
+  var currentUser: Primandproper_Platform_Identity_V1_User?
 
   /// Display name for welcome message: first name if set, otherwise username.
   var currentUserDisplayName: String {
@@ -283,7 +283,7 @@ class HomeViewModel {
     isLoading = false
   }
 
-  private func fetchCurrentUser() async throws -> Identity_User {
+  private func fetchCurrentUser() async throws -> Primandproper_Platform_Identity_V1_User {
     try await CurrentUserService.shared.currentUser(using: authManager)
   }
 

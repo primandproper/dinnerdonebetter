@@ -6,8 +6,8 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 
-	platformkeys "github.com/primandproper/platform-go/v13/observability/keys"
-	"github.com/primandproper/platform-go/v13/observability/logging"
+	platformkeys "github.com/primandproper/primitives-go/v2/observability/keys"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
 )
 
 func init() {
@@ -109,9 +109,18 @@ func (x *ContextData) GetUsername() string {
 }
 
 // GetServicePermissions is a simple getter.
+// GetServicePermissions is nil-safe in both directions: a nil ContextData and one whose
+// Requester carries no checker both answer with a checker over no roles and no permissions.
+//
+// A nil interface would satisfy the "yields the zero value" promise above only until
+// somebody called a method on it, which is the whole point of reading through this on an
+// unauthenticated route — every caller in the tree calls IsServiceAdmin or HasPermission on
+// the result immediately, and a nil return makes each of those a panic on exactly the
+// request that has no session. The empty checker says no to both, which is what an
+// anonymous caller should hear.
 func (x *ContextData) GetServicePermissions() authorization.ServiceRolePermissionChecker {
-	if x == nil {
-		return nil
+	if x == nil || x.Requester.ServicePermissions == nil {
+		return authorization.NewServiceRolePermissionChecker(nil, nil)
 	}
 
 	return x.Requester.ServicePermissions

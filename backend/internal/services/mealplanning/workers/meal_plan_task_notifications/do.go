@@ -3,16 +3,16 @@ package mealplantasknotifications
 import (
 	"context"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/push"
 
-	"github.com/primandproper/platform-go/v13/database"
-	"github.com/primandproper/platform-go/v13/observability"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
-	"github.com/primandproper/platform-go/v13/workqueue"
-	workqueuecfg "github.com/primandproper/platform-go/v13/workqueue/config"
+	platformidentity "github.com/primandproper/platform-go/v14/identity"
+	"github.com/primandproper/platform-go/v14/notifications/push"
+	"github.com/primandproper/platform-go/v14/workqueue"
+	workqueuecfg "github.com/primandproper/platform-go/v14/workqueue/config"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/observability"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
 
 	"github.com/samber/do/v2"
 )
@@ -61,7 +61,8 @@ func RegisterWorker(i do.Injector) {
 			do.MustInvoke[tracing.Provider](i),
 			do.MustInvoke[*TaskQueue](i),
 			do.MustInvoke[mealplanning.Repository](i),
-			do.MustInvoke[identity.Repository](i),
+			do.MustInvoke[platformidentity.Store](i),
+			do.MustInvoke[database.Client](i),
 			do.MustInvoke[*push.Fanout](i),
 		), nil
 	})

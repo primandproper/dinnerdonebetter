@@ -8,10 +8,27 @@
 import { BinaryReader, BinaryWriter } from '@bufbuild/protobuf/wire';
 import { ResponseDetails } from '../common';
 import { Timestamp } from '../google/protobuf/timestamp';
-import { Account, User } from '../identity/identity_messages';
+import { Account, User } from '../primandproper/platform/identity/v1/identity';
 import { UserLoginInput, UserSession } from './auth_messages';
 
 export const protobufPackage = 'auth';
+
+/**
+ * RegisterUserRequest is a sign-up: the one request on this service made by somebody who
+ * is not yet in the directory.
+ *
+ * It is here rather than on the identity service because that service's Register requires
+ * a registrar's principal — an open sign-up is a flow with policy in front of it, and this
+ * is where a caller with no session can reach one.
+ */
+export interface RegisterUserRequest {
+  input: UserRegistrationInput | undefined;
+}
+
+export interface RegisterUserResponse {
+  responseDetails: ResponseDetails | undefined;
+  created: UserCreationResponse | undefined;
+}
 
 export interface LoginForTokenRequest {
   input: UserLoginInput | undefined;
@@ -329,6 +346,221 @@ export interface AdminRevokeUserSessionRequest {
 export interface AdminRevokeAllUserSessionsRequest {
   userId: string;
 }
+
+/**
+ * UserRegistrationInput is what somebody signing up supplies.
+ *
+ * It is not platform's message of the same name. That one carries a handle, an address and
+ * a name, because platform's directory holds no credentials policy; this one carries the
+ * password, the agreements this application requires, and the invitation a registrant may
+ * be answering.
+ */
+export interface UserRegistrationInput {
+  password: string;
+  emailAddress: string;
+  invitationToken: string;
+  invitationId: string;
+  username: string;
+  firstName: string;
+  lastName: string;
+  accountName: string;
+  acceptedTos: boolean;
+  acceptedPrivacyPolicy: boolean;
+}
+
+/**
+ * UserCreationResponse is what a registration answers with, and the one time the two-factor
+ * secret is ever handed back.
+ */
+export interface UserCreationResponse {
+  createdAt: Date | undefined;
+  username: string;
+  emailAddress: string;
+  twoFactorQrCode: string;
+  createdUserId: string;
+  accountStatus: string;
+  twoFactorSecret: string;
+  firstName: string;
+  lastName: string;
+  createdAccountId: string;
+}
+
+/**
+ * UpdateUserEmailAddressRequest changes the address a user signs in and is reached at.
+ *
+ * It is on this service rather than folded into the directory's UpdateProfile, and the
+ * three fields say why: an address change is a credential change — whoever holds it can
+ * take the account through a password reset — so it is re-authenticated. UpdateProfile
+ * asks for nothing, correctly, because a display name is not a credential.
+ */
+export interface UpdateUserEmailAddressRequest {
+  newEmailAddress: string;
+  currentPassword: string;
+  totpToken: string;
+}
+
+export interface UpdateUserEmailAddressResponse {
+  responseDetails: ResponseDetails | undefined;
+}
+
+/**
+ * UpdateUserUsernameRequest changes the handle a user signs in with, re-authenticated for
+ * the reason above.
+ */
+export interface UpdateUserUsernameRequest {
+  newUsername: string;
+  currentPassword: string;
+  totpToken: string;
+}
+
+export interface UpdateUserUsernameResponse {
+  responseDetails: ResponseDetails | undefined;
+}
+
+function createBaseRegisterUserRequest(): RegisterUserRequest {
+  return { input: undefined };
+}
+
+export const RegisterUserRequest: MessageFns<RegisterUserRequest> = {
+  encode(message: RegisterUserRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.input !== undefined) {
+      UserRegistrationInput.encode(message.input, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RegisterUserRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRegisterUserRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.input = UserRegistrationInput.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): RegisterUserRequest {
+    return { input: isSet(object.input) ? UserRegistrationInput.fromJSON(object.input) : undefined };
+  },
+
+  toJSON(message: RegisterUserRequest): unknown {
+    const obj: any = {};
+    if (message.input !== undefined) {
+      obj.input = UserRegistrationInput.toJSON(message.input);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<RegisterUserRequest>, I>>(base?: I): RegisterUserRequest {
+    return RegisterUserRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<RegisterUserRequest>, I>>(object: I): RegisterUserRequest {
+    const message = createBaseRegisterUserRequest();
+    message.input =
+      object.input !== undefined && object.input !== null ? UserRegistrationInput.fromPartial(object.input) : undefined;
+    return message;
+  },
+};
+
+function createBaseRegisterUserResponse(): RegisterUserResponse {
+  return { responseDetails: undefined, created: undefined };
+}
+
+export const RegisterUserResponse: MessageFns<RegisterUserResponse> = {
+  encode(message: RegisterUserResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.responseDetails !== undefined) {
+      ResponseDetails.encode(message.responseDetails, writer.uint32(10).fork()).join();
+    }
+    if (message.created !== undefined) {
+      UserCreationResponse.encode(message.created, writer.uint32(18).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RegisterUserResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRegisterUserResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.responseDetails = ResponseDetails.decode(reader, reader.uint32());
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.created = UserCreationResponse.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): RegisterUserResponse {
+    return {
+      responseDetails: isSet(object.responseDetails)
+        ? ResponseDetails.fromJSON(object.responseDetails)
+        : isSet(object.response_details)
+          ? ResponseDetails.fromJSON(object.response_details)
+          : undefined,
+      created: isSet(object.created) ? UserCreationResponse.fromJSON(object.created) : undefined,
+    };
+  },
+
+  toJSON(message: RegisterUserResponse): unknown {
+    const obj: any = {};
+    if (message.responseDetails !== undefined) {
+      obj.responseDetails = ResponseDetails.toJSON(message.responseDetails);
+    }
+    if (message.created !== undefined) {
+      obj.created = UserCreationResponse.toJSON(message.created);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<RegisterUserResponse>, I>>(base?: I): RegisterUserResponse {
+    return RegisterUserResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<RegisterUserResponse>, I>>(object: I): RegisterUserResponse {
+    const message = createBaseRegisterUserResponse();
+    message.responseDetails =
+      object.responseDetails !== undefined && object.responseDetails !== null
+        ? ResponseDetails.fromPartial(object.responseDetails)
+        : undefined;
+    message.created =
+      object.created !== undefined && object.created !== null
+        ? UserCreationResponse.fromPartial(object.created)
+        : undefined;
+    return message;
+  },
+};
 
 function createBaseLoginForTokenRequest(): LoginForTokenRequest {
   return { input: undefined };
@@ -5714,6 +5946,850 @@ export const AdminRevokeAllUserSessionsRequest: MessageFns<AdminRevokeAllUserSes
   ): AdminRevokeAllUserSessionsRequest {
     const message = createBaseAdminRevokeAllUserSessionsRequest();
     message.userId = object.userId ?? '';
+    return message;
+  },
+};
+
+function createBaseUserRegistrationInput(): UserRegistrationInput {
+  return {
+    password: '',
+    emailAddress: '',
+    invitationToken: '',
+    invitationId: '',
+    username: '',
+    firstName: '',
+    lastName: '',
+    accountName: '',
+    acceptedTos: false,
+    acceptedPrivacyPolicy: false,
+  };
+}
+
+export const UserRegistrationInput: MessageFns<UserRegistrationInput> = {
+  encode(message: UserRegistrationInput, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.password !== '') {
+      writer.uint32(10).string(message.password);
+    }
+    if (message.emailAddress !== '') {
+      writer.uint32(18).string(message.emailAddress);
+    }
+    if (message.invitationToken !== '') {
+      writer.uint32(26).string(message.invitationToken);
+    }
+    if (message.invitationId !== '') {
+      writer.uint32(34).string(message.invitationId);
+    }
+    if (message.username !== '') {
+      writer.uint32(42).string(message.username);
+    }
+    if (message.firstName !== '') {
+      writer.uint32(50).string(message.firstName);
+    }
+    if (message.lastName !== '') {
+      writer.uint32(58).string(message.lastName);
+    }
+    if (message.accountName !== '') {
+      writer.uint32(66).string(message.accountName);
+    }
+    if (message.acceptedTos !== false) {
+      writer.uint32(72).bool(message.acceptedTos);
+    }
+    if (message.acceptedPrivacyPolicy !== false) {
+      writer.uint32(80).bool(message.acceptedPrivacyPolicy);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): UserRegistrationInput {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseUserRegistrationInput();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.password = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.emailAddress = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.invitationToken = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.invitationId = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.username = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.firstName = reader.string();
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.lastName = reader.string();
+          continue;
+        }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+
+          message.accountName = reader.string();
+          continue;
+        }
+        case 9: {
+          if (tag !== 72) {
+            break;
+          }
+
+          message.acceptedTos = reader.bool();
+          continue;
+        }
+        case 10: {
+          if (tag !== 80) {
+            break;
+          }
+
+          message.acceptedPrivacyPolicy = reader.bool();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): UserRegistrationInput {
+    return {
+      password: isSet(object.password) ? globalThis.String(object.password) : '',
+      emailAddress: isSet(object.emailAddress)
+        ? globalThis.String(object.emailAddress)
+        : isSet(object.email_address)
+          ? globalThis.String(object.email_address)
+          : '',
+      invitationToken: isSet(object.invitationToken)
+        ? globalThis.String(object.invitationToken)
+        : isSet(object.invitation_token)
+          ? globalThis.String(object.invitation_token)
+          : '',
+      invitationId: isSet(object.invitationId)
+        ? globalThis.String(object.invitationId)
+        : isSet(object.invitation_id)
+          ? globalThis.String(object.invitation_id)
+          : '',
+      username: isSet(object.username) ? globalThis.String(object.username) : '',
+      firstName: isSet(object.firstName)
+        ? globalThis.String(object.firstName)
+        : isSet(object.first_name)
+          ? globalThis.String(object.first_name)
+          : '',
+      lastName: isSet(object.lastName)
+        ? globalThis.String(object.lastName)
+        : isSet(object.last_name)
+          ? globalThis.String(object.last_name)
+          : '',
+      accountName: isSet(object.accountName)
+        ? globalThis.String(object.accountName)
+        : isSet(object.account_name)
+          ? globalThis.String(object.account_name)
+          : '',
+      acceptedTos: isSet(object.acceptedTos)
+        ? globalThis.Boolean(object.acceptedTos)
+        : isSet(object.accepted_tos)
+          ? globalThis.Boolean(object.accepted_tos)
+          : false,
+      acceptedPrivacyPolicy: isSet(object.acceptedPrivacyPolicy)
+        ? globalThis.Boolean(object.acceptedPrivacyPolicy)
+        : isSet(object.accepted_privacy_policy)
+          ? globalThis.Boolean(object.accepted_privacy_policy)
+          : false,
+    };
+  },
+
+  toJSON(message: UserRegistrationInput): unknown {
+    const obj: any = {};
+    if (message.password !== '') {
+      obj.password = message.password;
+    }
+    if (message.emailAddress !== '') {
+      obj.emailAddress = message.emailAddress;
+    }
+    if (message.invitationToken !== '') {
+      obj.invitationToken = message.invitationToken;
+    }
+    if (message.invitationId !== '') {
+      obj.invitationId = message.invitationId;
+    }
+    if (message.username !== '') {
+      obj.username = message.username;
+    }
+    if (message.firstName !== '') {
+      obj.firstName = message.firstName;
+    }
+    if (message.lastName !== '') {
+      obj.lastName = message.lastName;
+    }
+    if (message.accountName !== '') {
+      obj.accountName = message.accountName;
+    }
+    if (message.acceptedTos !== false) {
+      obj.acceptedTos = message.acceptedTos;
+    }
+    if (message.acceptedPrivacyPolicy !== false) {
+      obj.acceptedPrivacyPolicy = message.acceptedPrivacyPolicy;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<UserRegistrationInput>, I>>(base?: I): UserRegistrationInput {
+    return UserRegistrationInput.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<UserRegistrationInput>, I>>(object: I): UserRegistrationInput {
+    const message = createBaseUserRegistrationInput();
+    message.password = object.password ?? '';
+    message.emailAddress = object.emailAddress ?? '';
+    message.invitationToken = object.invitationToken ?? '';
+    message.invitationId = object.invitationId ?? '';
+    message.username = object.username ?? '';
+    message.firstName = object.firstName ?? '';
+    message.lastName = object.lastName ?? '';
+    message.accountName = object.accountName ?? '';
+    message.acceptedTos = object.acceptedTos ?? false;
+    message.acceptedPrivacyPolicy = object.acceptedPrivacyPolicy ?? false;
+    return message;
+  },
+};
+
+function createBaseUserCreationResponse(): UserCreationResponse {
+  return {
+    createdAt: undefined,
+    username: '',
+    emailAddress: '',
+    twoFactorQrCode: '',
+    createdUserId: '',
+    accountStatus: '',
+    twoFactorSecret: '',
+    firstName: '',
+    lastName: '',
+    createdAccountId: '',
+  };
+}
+
+export const UserCreationResponse: MessageFns<UserCreationResponse> = {
+  encode(message: UserCreationResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.createdAt !== undefined) {
+      Timestamp.encode(toTimestamp(message.createdAt), writer.uint32(10).fork()).join();
+    }
+    if (message.username !== '') {
+      writer.uint32(18).string(message.username);
+    }
+    if (message.emailAddress !== '') {
+      writer.uint32(26).string(message.emailAddress);
+    }
+    if (message.twoFactorQrCode !== '') {
+      writer.uint32(34).string(message.twoFactorQrCode);
+    }
+    if (message.createdUserId !== '') {
+      writer.uint32(42).string(message.createdUserId);
+    }
+    if (message.accountStatus !== '') {
+      writer.uint32(50).string(message.accountStatus);
+    }
+    if (message.twoFactorSecret !== '') {
+      writer.uint32(58).string(message.twoFactorSecret);
+    }
+    if (message.firstName !== '') {
+      writer.uint32(66).string(message.firstName);
+    }
+    if (message.lastName !== '') {
+      writer.uint32(74).string(message.lastName);
+    }
+    if (message.createdAccountId !== '') {
+      writer.uint32(82).string(message.createdAccountId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): UserCreationResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseUserCreationResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.createdAt = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.username = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.emailAddress = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.twoFactorQrCode = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.createdUserId = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.accountStatus = reader.string();
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.twoFactorSecret = reader.string();
+          continue;
+        }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+
+          message.firstName = reader.string();
+          continue;
+        }
+        case 9: {
+          if (tag !== 74) {
+            break;
+          }
+
+          message.lastName = reader.string();
+          continue;
+        }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          message.createdAccountId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): UserCreationResponse {
+    return {
+      createdAt: isSet(object.createdAt)
+        ? fromJsonTimestamp(object.createdAt)
+        : isSet(object.created_at)
+          ? fromJsonTimestamp(object.created_at)
+          : undefined,
+      username: isSet(object.username) ? globalThis.String(object.username) : '',
+      emailAddress: isSet(object.emailAddress)
+        ? globalThis.String(object.emailAddress)
+        : isSet(object.email_address)
+          ? globalThis.String(object.email_address)
+          : '',
+      twoFactorQrCode: isSet(object.twoFactorQrCode)
+        ? globalThis.String(object.twoFactorQrCode)
+        : isSet(object.two_factor_qr_code)
+          ? globalThis.String(object.two_factor_qr_code)
+          : '',
+      createdUserId: isSet(object.createdUserId)
+        ? globalThis.String(object.createdUserId)
+        : isSet(object.created_user_id)
+          ? globalThis.String(object.created_user_id)
+          : '',
+      accountStatus: isSet(object.accountStatus)
+        ? globalThis.String(object.accountStatus)
+        : isSet(object.account_status)
+          ? globalThis.String(object.account_status)
+          : '',
+      twoFactorSecret: isSet(object.twoFactorSecret)
+        ? globalThis.String(object.twoFactorSecret)
+        : isSet(object.two_factor_secret)
+          ? globalThis.String(object.two_factor_secret)
+          : '',
+      firstName: isSet(object.firstName)
+        ? globalThis.String(object.firstName)
+        : isSet(object.first_name)
+          ? globalThis.String(object.first_name)
+          : '',
+      lastName: isSet(object.lastName)
+        ? globalThis.String(object.lastName)
+        : isSet(object.last_name)
+          ? globalThis.String(object.last_name)
+          : '',
+      createdAccountId: isSet(object.createdAccountId)
+        ? globalThis.String(object.createdAccountId)
+        : isSet(object.created_account_id)
+          ? globalThis.String(object.created_account_id)
+          : '',
+    };
+  },
+
+  toJSON(message: UserCreationResponse): unknown {
+    const obj: any = {};
+    if (message.createdAt !== undefined) {
+      obj.createdAt = message.createdAt.toISOString();
+    }
+    if (message.username !== '') {
+      obj.username = message.username;
+    }
+    if (message.emailAddress !== '') {
+      obj.emailAddress = message.emailAddress;
+    }
+    if (message.twoFactorQrCode !== '') {
+      obj.twoFactorQrCode = message.twoFactorQrCode;
+    }
+    if (message.createdUserId !== '') {
+      obj.createdUserId = message.createdUserId;
+    }
+    if (message.accountStatus !== '') {
+      obj.accountStatus = message.accountStatus;
+    }
+    if (message.twoFactorSecret !== '') {
+      obj.twoFactorSecret = message.twoFactorSecret;
+    }
+    if (message.firstName !== '') {
+      obj.firstName = message.firstName;
+    }
+    if (message.lastName !== '') {
+      obj.lastName = message.lastName;
+    }
+    if (message.createdAccountId !== '') {
+      obj.createdAccountId = message.createdAccountId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<UserCreationResponse>, I>>(base?: I): UserCreationResponse {
+    return UserCreationResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<UserCreationResponse>, I>>(object: I): UserCreationResponse {
+    const message = createBaseUserCreationResponse();
+    message.createdAt = object.createdAt ?? undefined;
+    message.username = object.username ?? '';
+    message.emailAddress = object.emailAddress ?? '';
+    message.twoFactorQrCode = object.twoFactorQrCode ?? '';
+    message.createdUserId = object.createdUserId ?? '';
+    message.accountStatus = object.accountStatus ?? '';
+    message.twoFactorSecret = object.twoFactorSecret ?? '';
+    message.firstName = object.firstName ?? '';
+    message.lastName = object.lastName ?? '';
+    message.createdAccountId = object.createdAccountId ?? '';
+    return message;
+  },
+};
+
+function createBaseUpdateUserEmailAddressRequest(): UpdateUserEmailAddressRequest {
+  return { newEmailAddress: '', currentPassword: '', totpToken: '' };
+}
+
+export const UpdateUserEmailAddressRequest: MessageFns<UpdateUserEmailAddressRequest> = {
+  encode(message: UpdateUserEmailAddressRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.newEmailAddress !== '') {
+      writer.uint32(10).string(message.newEmailAddress);
+    }
+    if (message.currentPassword !== '') {
+      writer.uint32(18).string(message.currentPassword);
+    }
+    if (message.totpToken !== '') {
+      writer.uint32(26).string(message.totpToken);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): UpdateUserEmailAddressRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseUpdateUserEmailAddressRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.newEmailAddress = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.currentPassword = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.totpToken = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): UpdateUserEmailAddressRequest {
+    return {
+      newEmailAddress: isSet(object.newEmailAddress)
+        ? globalThis.String(object.newEmailAddress)
+        : isSet(object.new_email_address)
+          ? globalThis.String(object.new_email_address)
+          : '',
+      currentPassword: isSet(object.currentPassword)
+        ? globalThis.String(object.currentPassword)
+        : isSet(object.current_password)
+          ? globalThis.String(object.current_password)
+          : '',
+      totpToken: isSet(object.totpToken)
+        ? globalThis.String(object.totpToken)
+        : isSet(object.totp_token)
+          ? globalThis.String(object.totp_token)
+          : '',
+    };
+  },
+
+  toJSON(message: UpdateUserEmailAddressRequest): unknown {
+    const obj: any = {};
+    if (message.newEmailAddress !== '') {
+      obj.newEmailAddress = message.newEmailAddress;
+    }
+    if (message.currentPassword !== '') {
+      obj.currentPassword = message.currentPassword;
+    }
+    if (message.totpToken !== '') {
+      obj.totpToken = message.totpToken;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<UpdateUserEmailAddressRequest>, I>>(base?: I): UpdateUserEmailAddressRequest {
+    return UpdateUserEmailAddressRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<UpdateUserEmailAddressRequest>, I>>(
+    object: I,
+  ): UpdateUserEmailAddressRequest {
+    const message = createBaseUpdateUserEmailAddressRequest();
+    message.newEmailAddress = object.newEmailAddress ?? '';
+    message.currentPassword = object.currentPassword ?? '';
+    message.totpToken = object.totpToken ?? '';
+    return message;
+  },
+};
+
+function createBaseUpdateUserEmailAddressResponse(): UpdateUserEmailAddressResponse {
+  return { responseDetails: undefined };
+}
+
+export const UpdateUserEmailAddressResponse: MessageFns<UpdateUserEmailAddressResponse> = {
+  encode(message: UpdateUserEmailAddressResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.responseDetails !== undefined) {
+      ResponseDetails.encode(message.responseDetails, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): UpdateUserEmailAddressResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseUpdateUserEmailAddressResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.responseDetails = ResponseDetails.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): UpdateUserEmailAddressResponse {
+    return {
+      responseDetails: isSet(object.responseDetails)
+        ? ResponseDetails.fromJSON(object.responseDetails)
+        : isSet(object.response_details)
+          ? ResponseDetails.fromJSON(object.response_details)
+          : undefined,
+    };
+  },
+
+  toJSON(message: UpdateUserEmailAddressResponse): unknown {
+    const obj: any = {};
+    if (message.responseDetails !== undefined) {
+      obj.responseDetails = ResponseDetails.toJSON(message.responseDetails);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<UpdateUserEmailAddressResponse>, I>>(base?: I): UpdateUserEmailAddressResponse {
+    return UpdateUserEmailAddressResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<UpdateUserEmailAddressResponse>, I>>(
+    object: I,
+  ): UpdateUserEmailAddressResponse {
+    const message = createBaseUpdateUserEmailAddressResponse();
+    message.responseDetails =
+      object.responseDetails !== undefined && object.responseDetails !== null
+        ? ResponseDetails.fromPartial(object.responseDetails)
+        : undefined;
+    return message;
+  },
+};
+
+function createBaseUpdateUserUsernameRequest(): UpdateUserUsernameRequest {
+  return { newUsername: '', currentPassword: '', totpToken: '' };
+}
+
+export const UpdateUserUsernameRequest: MessageFns<UpdateUserUsernameRequest> = {
+  encode(message: UpdateUserUsernameRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.newUsername !== '') {
+      writer.uint32(10).string(message.newUsername);
+    }
+    if (message.currentPassword !== '') {
+      writer.uint32(18).string(message.currentPassword);
+    }
+    if (message.totpToken !== '') {
+      writer.uint32(26).string(message.totpToken);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): UpdateUserUsernameRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseUpdateUserUsernameRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.newUsername = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.currentPassword = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.totpToken = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): UpdateUserUsernameRequest {
+    return {
+      newUsername: isSet(object.newUsername)
+        ? globalThis.String(object.newUsername)
+        : isSet(object.new_username)
+          ? globalThis.String(object.new_username)
+          : '',
+      currentPassword: isSet(object.currentPassword)
+        ? globalThis.String(object.currentPassword)
+        : isSet(object.current_password)
+          ? globalThis.String(object.current_password)
+          : '',
+      totpToken: isSet(object.totpToken)
+        ? globalThis.String(object.totpToken)
+        : isSet(object.totp_token)
+          ? globalThis.String(object.totp_token)
+          : '',
+    };
+  },
+
+  toJSON(message: UpdateUserUsernameRequest): unknown {
+    const obj: any = {};
+    if (message.newUsername !== '') {
+      obj.newUsername = message.newUsername;
+    }
+    if (message.currentPassword !== '') {
+      obj.currentPassword = message.currentPassword;
+    }
+    if (message.totpToken !== '') {
+      obj.totpToken = message.totpToken;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<UpdateUserUsernameRequest>, I>>(base?: I): UpdateUserUsernameRequest {
+    return UpdateUserUsernameRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<UpdateUserUsernameRequest>, I>>(object: I): UpdateUserUsernameRequest {
+    const message = createBaseUpdateUserUsernameRequest();
+    message.newUsername = object.newUsername ?? '';
+    message.currentPassword = object.currentPassword ?? '';
+    message.totpToken = object.totpToken ?? '';
+    return message;
+  },
+};
+
+function createBaseUpdateUserUsernameResponse(): UpdateUserUsernameResponse {
+  return { responseDetails: undefined };
+}
+
+export const UpdateUserUsernameResponse: MessageFns<UpdateUserUsernameResponse> = {
+  encode(message: UpdateUserUsernameResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.responseDetails !== undefined) {
+      ResponseDetails.encode(message.responseDetails, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): UpdateUserUsernameResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseUpdateUserUsernameResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.responseDetails = ResponseDetails.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): UpdateUserUsernameResponse {
+    return {
+      responseDetails: isSet(object.responseDetails)
+        ? ResponseDetails.fromJSON(object.responseDetails)
+        : isSet(object.response_details)
+          ? ResponseDetails.fromJSON(object.response_details)
+          : undefined,
+    };
+  },
+
+  toJSON(message: UpdateUserUsernameResponse): unknown {
+    const obj: any = {};
+    if (message.responseDetails !== undefined) {
+      obj.responseDetails = ResponseDetails.toJSON(message.responseDetails);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<UpdateUserUsernameResponse>, I>>(base?: I): UpdateUserUsernameResponse {
+    return UpdateUserUsernameResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<UpdateUserUsernameResponse>, I>>(object: I): UpdateUserUsernameResponse {
+    const message = createBaseUpdateUserUsernameResponse();
+    message.responseDetails =
+      object.responseDetails !== undefined && object.responseDetails !== null
+        ? ResponseDetails.fromPartial(object.responseDetails)
+        : undefined;
     return message;
   },
 };

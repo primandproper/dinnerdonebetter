@@ -3,10 +3,11 @@ package entitlements
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 
-	"github.com/primandproper/platform-go/v13/billing"
-	"github.com/primandproper/platform-go/v13/billing/plans"
-	"github.com/primandproper/platform-go/v13/capitalism"
-	platformentitlements "github.com/primandproper/platform-go/v13/entitlements"
+	"github.com/primandproper/platform-go/v14/billing"
+	"github.com/primandproper/platform-go/v14/billing/plans"
+	platformentitlements "github.com/primandproper/platform-go/v14/entitlements"
+	"github.com/primandproper/primitives-go/v2/capitalism"
+	"github.com/primandproper/primitives-go/v2/database"
 )
 
 const (
@@ -77,8 +78,11 @@ func ChoosePlan(subscriptions []*billing.Subscription) (string, bool) {
 // platform's reading and a narrower one than the table this replaced was asked for. A
 // subscription whose period lapsed without the provider reporting a status is not one anybody
 // is paying for, and this is where that stops entitling.
-func NewPlanSource(store billing.SubscriptionStore) (*plans.Source, error) {
-	return plans.New(store, payments.Scope(), ChoosePlan)
+// The reader is settled once, here, rather than per call: a plan source answers
+// a feature check, which is a read, and there is no caller transaction for it to
+// join.
+func NewPlanSource(store billing.SubscriptionStore, reader database.SQLQueryExecutor) (*plans.Source, error) {
+	return plans.New(store, reader, payments.Scope(), ChoosePlan)
 }
 
 // DefaultPlans is the catalog this service ships with: every feature granted without a bound on

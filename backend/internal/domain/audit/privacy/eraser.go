@@ -3,11 +3,14 @@ package privacy
 import (
 	"context"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
+	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 
-	platformdataprivacy "github.com/primandproper/platform-go/v13/dataprivacy"
-	"github.com/primandproper/platform-go/v13/dataprivacy/auditerasure"
-	"github.com/primandproper/platform-go/v13/filtering"
+	platformdataprivacy "github.com/primandproper/platform-go/v14/dataprivacy"
+	"github.com/primandproper/platform-go/v14/dataprivacy/auditerasure"
+	platformidentity "github.com/primandproper/platform-go/v14/identity"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/filtering"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
 /*
@@ -44,9 +47,13 @@ reports them as retained, with a stated basis, rather than silently keeping them
 // for them. Before the shared transaction existed, this lookup had to happen
 // before the delete and be carried across it — and if the deletion order ever
 // changes, it has to go back to that.
-func ErasableScopeResolver(repo identity.Repository) auditerasure.ScopeResolver {
-	return func(ctx context.Context, subject platformdataprivacy.Subject) ([]string, error) {
-		return erasableScopes(ctx, repo, subject.ID)
+// The request scope is not consulted. A resolver answers "which chains are this
+// subject's", and the chains an owned account holds are the same set whether or
+// not the request confined itself to one of them; narrowing here would leave the
+// other accounts' chains behind while reporting a complete erasure.
+func ErasableScopeResolver(store platformidentity.Store, reader database.SQLQueryExecutor) auditerasure.ScopeResolver {
+	return func(ctx context.Context, _ tenancy.Scope, subject platformdataprivacy.Subject) ([]tenancy.Scope, error) {
+		return erasableScopes(ctx, store, reader, subject.ID)
 	}
 }
 
@@ -56,9 +63,9 @@ func ErasableScopeResolver(repo identity.Repository) auditerasure.ScopeResolver 
 // Owned, not merely joined. Deleting the scope of an account the user was one
 // member of would destroy the audit trail of everyone else in it, which is the
 // failure platform-go's own documentation warns is worth being exact about.
-func erasableScopes(ctx context.Context, repo identity.Repository, userID string) ([]string, error) {
-	accounts, err := platformdataprivacy.CollectAll(ctx, func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[identity.Account], error) {
-		return repo.GetAccounts(ctx, userID, filter)
+func erasableScopes(ctx context.Context, store platformidentity.Store, reader database.SQLQueryExecutor, userID string) ([]tenancy.Scope, error) {
+	accounts, err := platformdataprivacy.CollectAll(ctx, func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[platformidentity.Account], error) {
+		return store.ListAccountsForUser(ctx, reader, ddbidentity.Scope(), userID, filter)
 	})
 	if err != nil {
 		return nil, err
@@ -67,11 +74,11 @@ func erasableScopes(ctx context.Context, repo identity.Repository, userID string
 	// The user's own scope, which holds every event that happened outside an account
 	// — the ones ScopeFor files under the user precisely so that logins do not all
 	// serialize on one chain.
-	scopes := []string{userID}
+	scopes := []tenancy.Scope{tenancy.Of(userID)}
 
 	for i := range accounts {
-		if accounts[i].BelongsToUser == userID {
-			scopes = append(scopes, accounts[i].ID)
+		if accounts[i].OwnerUserID == userID {
+			scopes = append(scopes, tenancy.Of(accounts[i].ID))
 		}
 	}
 

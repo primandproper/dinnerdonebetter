@@ -1,7 +1,7 @@
 package datachangemessagehandler
 
 import (
-	"github.com/primandproper/platform-go/v13/jobs"
+	"github.com/primandproper/primitives-go/v2/jobs"
 )
 
 // SearchSyncer pairs a search index's topic with the Syncer that applies its events.

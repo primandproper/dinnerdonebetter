@@ -3,9 +3,9 @@ package fakes
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports"
 
-	"github.com/primandproper/platform-go/v13/fake"
-	"github.com/primandproper/platform-go/v13/filtering"
-	platformissuereports "github.com/primandproper/platform-go/v13/issuereports"
+	platformissuereports "github.com/primandproper/platform-go/v14/issuereports"
+	"github.com/primandproper/primitives-go/v2/fake"
+	"github.com/primandproper/primitives-go/v2/filtering"
 
 	gofakeit "github.com/brianvoe/gofakeit/v7"
 )

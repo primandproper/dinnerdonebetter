@@ -8,19 +8,21 @@ import (
 	"testing"
 	"time"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
+	authfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/fakes"
+	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
-	identitysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/localdev"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	authrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auth"
 
-	"github.com/primandproper/platform-go/v13/authentication/passwordreset"
-	"github.com/primandproper/platform-go/v13/identifiers"
-	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v13/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v13/tenancy"
+	"github.com/primandproper/platform-go/v14/authentication/passwordreset"
+	"github.com/primandproper/platform-go/v14/identity/identitypb"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/identifiers"
+	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
+	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -42,37 +44,17 @@ func TestAuth_LoginForToken_DesiredAccount(T *testing.T) {
 		inviterAccountID := accountRes.Result.Id
 
 		// Create invitee user + client; invitee gets account B (their default from registration).
-		inviteeEmailAddress := fmt.Sprintf("invitee%d@testing.com", time.Now().UnixMicro())
-		input := &identity.UserRegistrationInput{
-			Birthday:              new(time.Now()),
-			EmailAddress:          inviteeEmailAddress,
-			FirstName:             fmt.Sprintf("invitee_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
-			AccountName:           fmt.Sprintf("invitee_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
-			LastName:              fmt.Sprintf("invitee_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
-			Password:              fmt.Sprintf("invitee_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
-			Username:              fmt.Sprintf("invitee_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
-			AcceptedPrivacyPolicy: true,
-			AcceptedTOS:           true,
-		}
+		input := buildUserRegistrationInputForTest(t)
 		invitee, inviteeClient := createUserAndClientForTestWithRegistrationInput(t, input)
 
 		// Inviter creates invitation for invitee.
-		invitation, err := testClient.CreateAccountInvitation(ctx, &identitysvc.CreateAccountInvitationRequest{
-			Input: &identitysvc.AccountInvitationCreationRequestInput{
-				Note:    t.Name(),
-				ToName:  t.Name(),
-				ToEmail: inviteeEmailAddress,
-			},
-		})
-		require.NoError(t, err)
+		invitation := inviteForTest(t, selfIDForTest(t, testClient), inviterAccountID, input.EmailAddress)
 
 		// Invitee accepts invitation. Invitee now has accounts A and B; B remains default.
-		_, err = inviteeClient.AcceptAccountInvitation(ctx, &identitysvc.AcceptAccountInvitationRequest{
-			AccountInvitationId: invitation.Created.Id,
-			Input: &identitysvc.AccountInvitationUpdateRequestInput{
-				Token: invitation.Created.Token,
-				Note:  t.Name(),
-			},
+		_, err = inviteeClient.IdentityService().AcceptInvitation(ctx, &identitypb.AcceptInvitationRequest{
+			InvitationId: invitation.ID,
+			Token:        invitation.Token,
+			StatusNote:   t.Name(),
 		})
 		require.NoError(t, err)
 
@@ -128,7 +110,7 @@ func TestAuth_LoginForToken(T *testing.T) {
 	T.Run("happy path", func(t *testing.T) {
 		t.Parallel()
 
-		user := createServiceUserForTest(t, true, fakes.BuildFakeUserRegistrationInput())
+		user := createServiceUserForTest(t, true, authfakes.BuildFakeUserRegistrationInput())
 		actual := fetchLoginTokenForUserForTest(t, user)
 
 		assert.NotEmpty(t, actual)
@@ -138,7 +120,7 @@ func TestAuth_LoginForToken(T *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
-		user := createServiceUserForTest(t, false, fakes.BuildFakeUserRegistrationInput())
+		user := createServiceUserForTest(t, false, authfakes.BuildFakeUserRegistrationInput())
 
 		loginInput := &authsvc.UserLoginInput{
 			Username: user.Username,
@@ -198,11 +180,59 @@ func TestAuth_AdminLoginForToken(T *testing.T) {
 		assert.NotEmpty(t, tokenRes.Result.AccessToken)
 	})
 
+	// The administrative door demands a proven second factor whatever the service's
+	// ordinary policy is, and this pins it because for a long time it did not.
+	//
+	// This application asks for a TOTP code only from a user who has proven their secret,
+	// which is the right rule for the ordinary door and the wrong one for this door: an
+	// operator who registered, was granted the role and never finished enrollment could
+	// reach the administrative login with a password alone. docs/identity.md has said
+	// since it was written that admin login "**requires** a valid TOTP token"; the code
+	// checked the role and then applied the ordinary policy. platform's AdminLoginForToken
+	// closes it, and this is the test that would notice if the door ever loosened again.
+	T.Run("an administrator who has not proven a second factor cannot login via this route", func(t *testing.T) {
+		t.Parallel()
+		ctx := t.Context()
+
+		// Registered and promoted, with the TOTP secret left unproven — which is the
+		// state every user is in between signing up and finishing enrollment.
+		input := authfakes.BuildFakeUserRegistrationInput()
+		user := createServiceUserForTest(t, false, input)
+
+		_, err := identityDirectoryWithHooks(t).SetUserServiceRoles(ctx, ddbidentity.Scope(), user.ID,
+			[]string{authorization.ServiceAdminRoleName})
+		require.NoError(t, err)
+
+		unauthedClient := buildUnauthenticatedGRPCClientForTest(t)
+
+		// No code, because they have nothing to generate one from that the door would
+		// accept. The ordinary door lets this user in; this one must not.
+		tokenRes, err := unauthedClient.AdminLoginForToken(ctx, &authsvc.AdminLoginForTokenRequest{
+			Input: &authsvc.UserLoginInput{
+				Username: input.Username,
+				Password: input.Password,
+			},
+		})
+		require.Error(t, err)
+		assert.Nil(t, tokenRes)
+
+		// And the same credentials do work on the ordinary door, so the refusal above is
+		// the second-factor rule rather than the account being unusable.
+		ordinary, err := unauthedClient.LoginForToken(ctx, &authsvc.LoginForTokenRequest{
+			Input: &authsvc.UserLoginInput{
+				Username: input.Username,
+				Password: input.Password,
+			},
+		})
+		require.NoError(t, err)
+		assert.NotEmpty(t, ordinary.Result.AccessToken)
+	})
+
 	T.Run("non-admin users cannot login via this route", func(t *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
-		user := createServiceUserForTest(t, true, fakes.BuildFakeUserRegistrationInput())
+		user := createServiceUserForTest(t, true, authfakes.BuildFakeUserRegistrationInput())
 
 		loginInput := &authsvc.UserLoginInput{
 			Username:  user.Username,
@@ -560,8 +590,7 @@ func TestAuth_RequestingPasswordReset(T *testing.T) {
 		// So the token this test spends is one it issues itself, through the same store the
 		// server uses. Everything from the redemption onwards is the real path.
 		store := passwordResetStoreForTest(t)
-		issuance, err := store.Issue(ctx, tenancy.Global(), user.ID, 30*time.Minute)
-		require.NoError(t, err)
+		issuance := issuePasswordResetTokenForTest(t, store, user.ID)
 		require.NotEmpty(t, issuance.Secret)
 
 		_, err = testClient.RedeemPasswordResetToken(ctx, &authsvc.RedeemPasswordResetTokenRequest{
@@ -602,12 +631,10 @@ func TestAuth_RequestingPasswordReset(T *testing.T) {
 		store := passwordResetStoreForTest(t)
 
 		// Somebody clicks "email me a link" twice and answers the second message.
-		first, err := store.Issue(ctx, tenancy.Global(), user.ID, 30*time.Minute)
-		require.NoError(t, err)
-		second, err := store.Issue(ctx, tenancy.Global(), user.ID, 30*time.Minute)
-		require.NoError(t, err)
+		first := issuePasswordResetTokenForTest(t, store, user.ID)
+		second := issuePasswordResetTokenForTest(t, store, user.ID)
 
-		_, err = testClient.RedeemPasswordResetToken(ctx, &authsvc.RedeemPasswordResetTokenRequest{
+		_, err := testClient.RedeemPasswordResetToken(ctx, &authsvc.RedeemPasswordResetTokenRequest{
 			Token:       second.Secret,
 			NewPassword: user.HashedPassword + "blah",
 		})
@@ -634,8 +661,7 @@ func TestAuth_RequestingPasswordReset(T *testing.T) {
 		require.NoError(t, err)
 		assert.NotNil(t, res)
 
-		issuance, err := passwordResetStoreForTest(t).Issue(ctx, tenancy.Global(), user.ID, 30*time.Minute)
-		require.NoError(t, err)
+		issuance := issuePasswordResetTokenForTest(t, passwordResetStoreForTest(t), user.ID)
 
 		_, err = unauthedClient.RedeemPasswordResetToken(ctx, &authsvc.RedeemPasswordResetTokenRequest{
 			Token:       issuance.Secret,
@@ -1009,13 +1035,40 @@ func insertWebAuthnCredentialForTest(t *testing.T, userID, friendlyName string) 
 	credentialIDBytes := fmt.Appendf(nil, "test-cred-%s-%d", credID, time.Now().UnixNano())
 	publicKeyBytes := []byte("test-public-key-data")
 
+	// platform's table, under this application's prefix: it names its own
+	// webauthn_credentials too, and a scope is a column here where the schema this
+	// replaced had none.
+	//
+	// Owner rather than String: the global scope's identifier is the empty string, and
+	// "<global>" is only how it reads in a log line. A row written with the prose spelling
+	// is one every scoped read passes over.
 	_, err := databaseClient.Writer().ExecContext(
 		t.Context(),
-		`INSERT INTO webauthn_credentials (id, belongs_to_user, credential_id, public_key, sign_count, transports, friendly_name)
-		 VALUES ($1, $2, $3, $4, 0, '', $5)`,
-		credID, userID, credentialIDBytes, publicKeyBytes, friendlyName,
+		`INSERT INTO ddb_webauthn_credentials (id, scope, belongs_to_user, credential_id, public_key, sign_count, transports, friendly_name)
+		 VALUES ($1, $2, $3, $4, $5, 0, '[]', $6)`,
+		credID, tenancy.Global().Owner(), userID, credentialIDBytes, publicKeyBytes, friendlyName,
 	)
 	require.NoError(t, err)
 
 	return credID
+}
+
+// issuePasswordResetTokenForTest mints a reset token through the same store the server uses.
+//
+// On a transaction of its own, because as of platform-go v14 a store write takes the caller's
+// database.Tx — which is what the handler that issues a real reset link supplies.
+func issuePasswordResetTokenForTest(t *testing.T, store passwordreset.Store, userID string) *passwordreset.Issuance {
+	t.Helper()
+
+	var issuance *passwordreset.Issuance
+
+	require.NoError(t, databaseClient.WithTransaction(t.Context(), func(tx database.Tx) error {
+		var issueErr error
+		issuance, issueErr = store.Issue(t.Context(), tx, tenancy.Global(), userID, 30*time.Minute)
+
+		return issueErr
+	}))
+	require.NotNil(t, issuance)
+
+	return issuance
 }

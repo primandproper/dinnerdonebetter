@@ -72,7 +72,7 @@ WHERE archived_at IS NULL
 SELECT valid_instruments.id
 FROM valid_instruments
 WHERE valid_instruments.archived_at IS NULL
-	AND valid_instruments.id COLLATE "C" > sqlc.arg(page_cursor)
+	AND valid_instruments.id COLLATE "C" > sqlc.arg(reindex_cursor)
 ORDER BY valid_instruments.id COLLATE "C"
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 

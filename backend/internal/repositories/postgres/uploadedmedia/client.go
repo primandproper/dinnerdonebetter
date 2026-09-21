@@ -6,12 +6,12 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/recording"
 
-	"github.com/primandproper/platform-go/v13/database"
-	platformerrors "github.com/primandproper/platform-go/v13/errors"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/metrics"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
-	"github.com/primandproper/platform-go/v13/uploads/registry"
+	"github.com/primandproper/platform-go/v14/mediaregistry"
+	"github.com/primandproper/primitives-go/v2/database"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/metrics"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
 )
 
 const (
@@ -25,14 +25,13 @@ const (
 // reads this package adds nothing to are the platform's own rather than five
 // forwarding stubs that could drift from it.
 type repository struct {
-	registry.Store
-	client   database.Client
+	mediaregistry.Store
 	tracer   tracing.Tracer
 	logger   logging.Logger
 	recorder *recording.Recorder
 }
 
-// ProvideUploadedMediaRepository provides a new upload registry.
+// ProvideUploadedMediaRepository provides a new upload mediaregistry.
 func ProvideUploadedMediaRepository(
 	logger logging.Logger,
 	tracerProvider tracing.Provider,
@@ -40,13 +39,13 @@ func ProvideUploadedMediaRepository(
 	auditLogEntryRepo audit.Repository,
 	client database.Client,
 	eventEmitter *events.Emitter,
-) (registry.Store, error) {
-	store, err := registry.NewSQLStore(
+) (mediaregistry.Store, error) {
+	store, err := mediaregistry.NewSQLStore(
 		client,
-		registry.WithTablePrefix(ddbuploadedmedia.TablePrefix),
-		registry.WithStoreLogger(logger),
-		registry.WithStoreTracerProvider(tracerProvider),
-		registry.WithStoreMetricsProvider(metricsProvider),
+		mediaregistry.WithTablePrefix(ddbuploadedmedia.TablePrefix),
+		mediaregistry.WithStoreLogger(logger),
+		mediaregistry.WithStoreTracerProvider(tracerProvider),
+		mediaregistry.WithStoreMetricsProvider(metricsProvider),
 	)
 	if err != nil {
 		return nil, platformerrors.Wrap(err, "building the upload registry store")
@@ -56,7 +55,6 @@ func ProvideUploadedMediaRepository(
 
 	return &repository{
 		Store:    store,
-		client:   client,
 		tracer:   tracer,
 		logger:   logging.NewNamedLogger(logger, o11yName),
 		recorder: recording.NewRecorder(tracer, auditLogEntryRepo, eventEmitter),

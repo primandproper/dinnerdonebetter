@@ -676,8 +676,15 @@ class AuthenticationManager: AuthenticationManaging {
 
     print("📝 Registration attempt for user: \(input.username)")
 
-    // Build the registration input
-    var registrationInput = Identity_UserRegistrationInput()
+    // Signing up is on the auth service rather than on the directory.
+    //
+    // platform's identity service registers somebody on a registrar's behalf, and every
+    // method on it is behind a grant — an open sign-up has nobody to grant it. So the one
+    // call a caller with no session makes is on the surface that has always served them.
+    //
+    // The birthday is gone with the column behind it: platform's user has none, nothing on
+    // the backend ever read one, and storing it means a table of this application's own.
+    var registrationInput = Auth_UserRegistrationInput()
     registrationInput.emailAddress = input.emailAddress.trimmingCharacters(in: .whitespaces)
     registrationInput.username = input.username.trimmingCharacters(in: .whitespaces)
     registrationInput.password = input.password
@@ -687,16 +694,12 @@ class AuthenticationManager: AuthenticationManaging {
     registrationInput.invitationToken = input.invitationToken.trimmingCharacters(in: .whitespaces)
     registrationInput.invitationID = input.invitationID.trimmingCharacters(in: .whitespaces)
 
-    // Convert birthday to protobuf timestamp if provided
-    if let birthday = input.birthday {
-      var timestamp = SwiftProtobuf.Google_Protobuf_Timestamp()
-      timestamp.seconds = Int64(birthday.timeIntervalSince1970)
-      timestamp.nanos = Int32(
-        (birthday.timeIntervalSince1970 - Double(timestamp.seconds)) * 1_000_000_000)
-      registrationInput.birthday = timestamp
-    }
+    // Both are required, and are what this application asks of a registrant that the
+    // directory has no opinion about.
+    registrationInput.acceptedTos = true
+    registrationInput.acceptedPrivacyPolicy = true
 
-    var requestMessage = Identity_CreateUserRequest()
+    var requestMessage = Auth_RegisterUserRequest()
     requestMessage.input = registrationInput
 
     print("📤 Creating gRPC client and sending registration request...")
@@ -709,7 +712,7 @@ class AuthenticationManager: AuthenticationManaging {
       let manager = try getClientManager()
 
       // Use the identity service client from the unified Client
-      let response = try await manager.client.identity.createUser(
+      let response = try await manager.client.auth.registerUser(
         requestMessage,
         options: manager.defaultCallOptions
       )

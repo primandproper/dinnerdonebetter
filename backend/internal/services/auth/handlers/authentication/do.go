@@ -5,17 +5,17 @@ import (
 
 	authn "github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
 
-	"github.com/primandproper/platform-go/v13/authentication/oauth2server"
-	oauth2servercfg "github.com/primandproper/platform-go/v13/authentication/oauth2server/config"
-	"github.com/primandproper/platform-go/v13/authentication/tokens"
-	"github.com/primandproper/platform-go/v13/authentication/totp"
-	"github.com/primandproper/platform-go/v13/database"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/metrics"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
+	platformoauth2clients "github.com/primandproper/platform-go/v14/authentication/oauth2clients"
+	oauth2servercfg "github.com/primandproper/platform-go/v14/authentication/oauth2serverstore/config"
+	platformidentity "github.com/primandproper/platform-go/v14/identity"
+	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
+	"github.com/primandproper/primitives-go/v2/authentication/tokens"
+	"github.com/primandproper/primitives-go/v2/authentication/totp"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/metrics"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
 
 	"github.com/samber/do/v2"
 )
@@ -35,12 +35,13 @@ func RegisterAuthHTTPService(i do.Injector) {
 			do.MustInvoke[*oauth2servercfg.Config](i),
 			do.MustInvoke[database.Client](i),
 			&subjectAuthenticator{
-				identityRepo:  do.MustInvoke[identity.Repository](i),
+				directory:     do.MustInvoke[platformidentity.Store](i),
+				db:            do.MustInvoke[database.Client](i),
 				authenticator: do.MustInvoke[authn.Authenticator](i),
 				totpVerifier:  do.MustInvoke[totp.Verifier](i),
 				tokenIssuer:   do.MustInvoke[tokens.Issuer](i),
 			},
-			do.MustInvoke[oauth.Repository](i),
+			do.MustInvoke[platformoauth2clients.Store](i),
 		)
 	})
 

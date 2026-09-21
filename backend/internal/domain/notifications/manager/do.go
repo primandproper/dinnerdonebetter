@@ -4,22 +4,27 @@ import (
 	"context"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
-	notificationsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/notifications"
+	notificationsstore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/notificationsstore"
 
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
 
 	"github.com/samber/do/v2"
 )
 
 // RegisterNotificationsDataManager registers the notifications data manager with the injector.
 func RegisterNotificationsDataManager(i do.Injector) {
-	// Register the repo provider (was included in wire.NewSet)
-	notificationsrepo.RegisterNotificationsRepository(i)
+	// The store is platform's now, with this application's recording around its
+	// writes and an adapter presenting it in this application's vocabulary. The
+	// manager did not change; see notificationsstore.Adapter for why the
+	// translation is there rather than here.
+	notificationsstore.RegisterNotificationsStore(i)
+	notificationsstore.RegisterNotificationsRepository(i)
 
-	// Bind *notificationsrepo.Repository to the notificationsRepo interface
+	// The adapter is what the manager wraps, resolved by its concrete type — the
+	// interface belongs to the manager, which re-exports itself under it below.
 	do.Provide[notificationsRepo](i, func(i do.Injector) (notificationsRepo, error) {
-		return do.MustInvoke[*notificationsrepo.Repository](i), nil
+		return do.MustInvoke[*notificationsstore.Adapter](i), nil
 	})
 
 	do.Provide[NotificationsDataManager](i, func(i do.Injector) (NotificationsDataManager, error) {

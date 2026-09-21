@@ -8,12 +8,12 @@ import (
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
-	"github.com/primandproper/platform-go/v13/database"
-	platformerrors "github.com/primandproper/platform-go/v13/errors"
-	"github.com/primandproper/platform-go/v13/filtering"
-	"github.com/primandproper/platform-go/v13/observability"
-	platformkeys "github.com/primandproper/platform-go/v13/observability/keys"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
+	"github.com/primandproper/primitives-go/v2/database"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/filtering"
+	"github.com/primandproper/primitives-go/v2/observability"
+	platformkeys "github.com/primandproper/primitives-go/v2/observability/keys"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
 )
 
 var (
@@ -322,8 +322,8 @@ func (q *repository) ScanValidPreparationIDsForReindex(ctx context.Context, afte
 	defer span.End()
 
 	results, err := q.generatedQuerier.ScanValidPreparationIDsForReindex(ctx, q.readDB, &generated.ScanValidPreparationIDsForReindexParams{
-		PageCursor:  after,
-		ResultLimit: limit,
+		ReindexCursor: after,
+		ResultLimit:   limit,
 	})
 	if err != nil {
 		return nil, observability.PrepareError(err, span, "executing valid preparations reindex scan query")

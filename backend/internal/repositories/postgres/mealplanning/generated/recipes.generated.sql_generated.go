@@ -1307,12 +1307,12 @@ LIMIT COALESCE($2, 50)
 `
 
 type ScanRecipeIDsForReindexParams struct {
-	PageCursor  string
-	ResultLimit interface{}
+	ReindexCursor string
+	ResultLimit   interface{}
 }
 
 func (q *Queries) ScanRecipeIDsForReindex(ctx context.Context, db DBTX, arg *ScanRecipeIDsForReindexParams) ([]string, error) {
-	rows, err := db.QueryContext(ctx, scanRecipeIDsForReindex, arg.PageCursor, arg.ResultLimit)
+	rows, err := db.QueryContext(ctx, scanRecipeIDsForReindex, arg.ReindexCursor, arg.ResultLimit)
 	if err != nil {
 		return nil, err
 	}

@@ -6,11 +6,11 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 
-	"github.com/primandproper/platform-go/v13/capitalism"
-	caprevenuecat "github.com/primandproper/platform-go/v13/capitalism/revenuecat"
-	"github.com/primandproper/platform-go/v13/observability"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
+	"github.com/primandproper/primitives-go/v2/capitalism"
+	caprevenuecat "github.com/primandproper/primitives-go/v2/capitalism/revenuecat"
+	"github.com/primandproper/primitives-go/v2/observability"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
 )
 
 const revenueCatO11yName = "revenuecat_processor"
@@ -109,10 +109,15 @@ func parseRevenueCatEvent(event *capitalism.Event) (*payments.ParsedWebhookEvent
 		result.AccountID = event.Subscription.CustomerID
 		result.SubscriptionID = event.Subscription.ID
 		// Stored as capitalism reports it. The billing store's status column is
-		// capitalism's vocabulary, so there is nothing to map onto — and an
-		// event capitalism could not place arrives as SubscriptionStatusUnknown,
-		// which the manager reads as "the event did not say" rather than as a
-		// standing to write.
+		// capitalism's vocabulary, so there is nothing to map onto.
+		//
+		// capitalism's adapter has already collapsed a word it could not place into
+		// SubscriptionStatusUnknown, which is the empty string and is also what an event
+		// carrying no standing gives — so by the time it reaches here the difference is
+		// gone and this cannot report it. That is the honest state of this adapter rather
+		// than an oversight: unlike the Stripe one, nothing here sees the provider's own
+		// spelling. If RevenueCat grows a status capitalism does not know, the fix is in
+		// capitalism rather than in this file.
 		result.Status = event.Subscription.Status
 	}
 

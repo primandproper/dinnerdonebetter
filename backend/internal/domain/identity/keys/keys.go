@@ -11,7 +11,14 @@ const (
 	AccountInvitationIDKey = AccountInvitationKey + idSuffix
 	// DestinationAccountIDKey is the context key for the destination account ID (e.g. in invitation events).
 	DestinationAccountIDKey = "destination_account"
-	// AccountInvitationTokenKey is the standard key for referring to an account invitation token.
+	// AccountInvitationTokenKey carries the secret half of an invitation link on the event
+	// that announces the invitation.
+	//
+	// It is on the event because it is the one fact about an invitation that no read can
+	// hand back: the column holds a digest, and the only moment the secret exists is the
+	// write that minted it. The mail this event exists to trigger cannot be composed
+	// without it, which is why platform hands the unredacted invitation to the hook.
+	/* #nosec G101 */
 	AccountInvitationTokenKey = "account_invitation.token"
 	// UserIDKey is the standard key for referring to a user ID (re-exported for domain use).
 	UserIDKey = "user" + idSuffix

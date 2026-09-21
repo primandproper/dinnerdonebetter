@@ -10,7 +10,7 @@ than a fixture in a second place that has to be kept valid as the config structs
 package environments
 
 import (
-	"github.com/primandproper/platform-go/v13/encoding"
+	"github.com/primandproper/primitives-go/v2/encoding"
 )
 
 const (

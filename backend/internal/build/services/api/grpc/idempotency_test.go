@@ -7,15 +7,15 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
-	paymentssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/payments"
 
-	cachecfg "github.com/primandproper/platform-go/v13/cache/config"
-	distributedlockcfg "github.com/primandproper/platform-go/v13/distributedlock/config"
-	idempotencycfg "github.com/primandproper/platform-go/v13/idempotency/config"
-	idempotencygrpc "github.com/primandproper/platform-go/v13/idempotency/grpc"
-	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
-	metricsnoop "github.com/primandproper/platform-go/v13/observability/metrics/noop"
-	tracingnoop "github.com/primandproper/platform-go/v13/observability/tracing/noop"
+	billingpb "github.com/primandproper/platform-go/v14/billing/billingpb"
+	cachecfg "github.com/primandproper/primitives-go/v2/cache/config"
+	distributedlockcfg "github.com/primandproper/primitives-go/v2/distributedlock/config"
+	idempotencycfg "github.com/primandproper/primitives-go/v2/idempotency/config"
+	idempotencygrpc "github.com/primandproper/primitives-go/v2/idempotency/grpc"
+	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
+	metricsnoop "github.com/primandproper/primitives-go/v2/observability/metrics/noop"
+	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -80,17 +80,17 @@ func TestProvideIdempotencyInterceptor(T *testing.T) {
 		handler := func(context.Context, any) (any, error) {
 			calls++
 
-			return &paymentssvc.CreateSubscriptionResponse{}, nil
+			return &billingpb.ArchiveSubscriptionResponse{}, nil
 		}
 
-		info := &grpc.UnaryServerInfo{FullMethod: paymentssvc.PaymentsService_CreateSubscription_FullMethodName}
+		info := &grpc.UnaryServerInfo{FullMethod: billingpb.BillingService_ArchiveSubscription_FullMethodName}
 		ctx := withIdempotencyKey(withPrincipal(t.Context(), "user_1"), "key_1")
 
-		first, err := interceptor(ctx, &paymentssvc.CreateSubscriptionRequest{}, info, handler)
+		first, err := interceptor(ctx, &billingpb.ArchiveSubscriptionRequest{}, info, handler)
 		require.NoError(t, err)
 		require.NotNil(t, first)
 
-		second, err := interceptor(ctx, &paymentssvc.CreateSubscriptionRequest{}, info, handler)
+		second, err := interceptor(ctx, &billingpb.ArchiveSubscriptionRequest{}, info, handler)
 		require.NoError(t, err)
 		require.NotNil(t, second)
 
@@ -106,15 +106,15 @@ func TestProvideIdempotencyInterceptor(T *testing.T) {
 		handler := func(context.Context, any) (any, error) {
 			calls++
 
-			return &paymentssvc.CreateSubscriptionResponse{}, nil
+			return &billingpb.ArchiveSubscriptionResponse{}, nil
 		}
 
-		info := &grpc.UnaryServerInfo{FullMethod: paymentssvc.PaymentsService_CreateSubscription_FullMethodName}
+		info := &grpc.UnaryServerInfo{FullMethod: billingpb.BillingService_ArchiveSubscription_FullMethodName}
 
-		_, err := interceptor(withIdempotencyKey(withPrincipal(t.Context(), "user_1"), "key_1"), &paymentssvc.CreateSubscriptionRequest{}, info, handler)
+		_, err := interceptor(withIdempotencyKey(withPrincipal(t.Context(), "user_1"), "key_1"), &billingpb.ArchiveSubscriptionRequest{}, info, handler)
 		require.NoError(t, err)
 
-		_, err = interceptor(withIdempotencyKey(withPrincipal(t.Context(), "user_1"), "key_2"), &paymentssvc.CreateSubscriptionRequest{}, info, handler)
+		_, err = interceptor(withIdempotencyKey(withPrincipal(t.Context(), "user_1"), "key_2"), &billingpb.ArchiveSubscriptionRequest{}, info, handler)
 		require.NoError(t, err)
 
 		assert.Equal(t, 2, calls)
@@ -129,19 +129,19 @@ func TestProvideIdempotencyInterceptor(T *testing.T) {
 		handler := func(context.Context, any) (any, error) {
 			calls++
 
-			return &paymentssvc.CreateSubscriptionResponse{}, nil
+			return &billingpb.ArchiveSubscriptionResponse{}, nil
 		}
 
-		info := &grpc.UnaryServerInfo{FullMethod: paymentssvc.PaymentsService_CreateSubscription_FullMethodName}
+		info := &grpc.UnaryServerInfo{FullMethod: billingpb.BillingService_ArchiveSubscription_FullMethodName}
 
-		_, err := interceptor(withIdempotencyKey(withPrincipal(t.Context(), "user_1"), "key_1"), &paymentssvc.CreateSubscriptionRequest{}, info, handler)
+		_, err := interceptor(withIdempotencyKey(withPrincipal(t.Context(), "user_1"), "key_1"), &billingpb.ArchiveSubscriptionRequest{}, info, handler)
 		require.NoError(t, err)
 
 		// The principal is part of the fingerprint, so a second user reusing the same key
 		// reads as a key reused for a different request. That is refused, which is the
 		// property that matters: the only unacceptable outcome here would be handing
 		// user_2 the response recorded for user_1.
-		reply, err := interceptor(withIdempotencyKey(withPrincipal(t.Context(), "user_2"), "key_1"), &paymentssvc.CreateSubscriptionRequest{}, info, handler)
+		reply, err := interceptor(withIdempotencyKey(withPrincipal(t.Context(), "user_2"), "key_1"), &billingpb.ArchiveSubscriptionRequest{}, info, handler)
 		require.Error(t, err)
 		assert.Equal(t, codes.InvalidArgument, status.Code(err))
 		assert.Nil(t, reply, "another principal's recorded response was returned")
@@ -158,16 +158,16 @@ func TestProvideIdempotencyInterceptor(T *testing.T) {
 		handler := func(context.Context, any) (any, error) {
 			calls++
 
-			return &paymentssvc.GetProductsResponse{}, nil
+			return &billingpb.ListProductsResponse{}, nil
 		}
 
 		// Reads are not idempotency-eligible: replaying them buys nothing and would serve
 		// stale data for the whole TTL.
-		info := &grpc.UnaryServerInfo{FullMethod: paymentssvc.PaymentsService_GetProducts_FullMethodName}
+		info := &grpc.UnaryServerInfo{FullMethod: billingpb.BillingService_ListProducts_FullMethodName}
 		ctx := withIdempotencyKey(withPrincipal(t.Context(), "user_1"), "key_1")
 
 		for range 2 {
-			_, err := interceptor(ctx, &paymentssvc.GetProductsRequest{}, info, handler)
+			_, err := interceptor(ctx, &billingpb.ListProductsRequest{}, info, handler)
 			require.NoError(t, err)
 		}
 
@@ -183,14 +183,14 @@ func TestProvideIdempotencyInterceptor(T *testing.T) {
 		handler := func(context.Context, any) (any, error) {
 			calls++
 
-			return &paymentssvc.CreateSubscriptionResponse{}, nil
+			return &billingpb.ArchiveSubscriptionResponse{}, nil
 		}
 
-		info := &grpc.UnaryServerInfo{FullMethod: paymentssvc.PaymentsService_CreateSubscription_FullMethodName}
+		info := &grpc.UnaryServerInfo{FullMethod: billingpb.BillingService_ArchiveSubscription_FullMethodName}
 		ctx := withPrincipal(t.Context(), "user_1")
 
 		for range 2 {
-			_, err := interceptor(ctx, &paymentssvc.CreateSubscriptionRequest{}, info, handler)
+			_, err := interceptor(ctx, &billingpb.ArchiveSubscriptionRequest{}, info, handler)
 			require.NoError(t, err)
 		}
 
@@ -214,14 +214,14 @@ func TestProvideIdempotencyInterceptor(T *testing.T) {
 		handler := func(context.Context, any) (any, error) {
 			calls++
 
-			return &paymentssvc.CreateSubscriptionResponse{}, nil
+			return &billingpb.ArchiveSubscriptionResponse{}, nil
 		}
 
-		info := &grpc.UnaryServerInfo{FullMethod: paymentssvc.PaymentsService_CreateSubscription_FullMethodName}
+		info := &grpc.UnaryServerInfo{FullMethod: billingpb.BillingService_ArchiveSubscription_FullMethodName}
 		ctx := withIdempotencyKey(withPrincipal(t.Context(), "user_1"), "key_1")
 
 		for range 2 {
-			_, err = interceptor(ctx, &paymentssvc.CreateSubscriptionRequest{}, info, handler)
+			_, err = interceptor(ctx, &billingpb.ArchiveSubscriptionRequest{}, info, handler)
 			require.NoError(t, err)
 		}
 

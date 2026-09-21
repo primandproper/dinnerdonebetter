@@ -28,12 +28,12 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/catalog"
 
-	"github.com/primandproper/platform-go/v13/database"
-	platformerrors "github.com/primandproper/platform-go/v13/errors"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/outbox"
-	"github.com/primandproper/platform-go/v13/tenancy"
-	"github.com/primandproper/platform-go/v13/webhooks"
+	"github.com/primandproper/platform-go/v14/outbox"
+	"github.com/primandproper/platform-go/v14/webhooks"
+	"github.com/primandproper/primitives-go/v2/database"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
 // Emitter enqueues data change events into the outbox and fans them out to webhooks.
@@ -184,16 +184,27 @@ func (e *Emitter) dispatchWebhooks(ctx context.Context, q database.Tx, msg *audi
 	// subscriber and a queue consumer therefore see byte-identical bodies, and the bytes signed
 	// are the bytes sent — re-marshaling between dispatch and delivery is exactly how a
 	// signature comes to cover something other than the request body.
+	//
+	// It names a user, which makes a delivery row personal data this application put there:
+	// platform never interprets a payload and ships no privacy collector for webhooks, so the
+	// obligation is ours. It is discharged by retention rather than by collection — rows are
+	// reaped seven days after delivery, and the store offers no read that would enumerate them
+	// anyway. See docs/data-privacy.md, which states that rather than leaving it to be assumed.
 	payload, err := json.Marshal(msg)
 	if err != nil {
 		return platformerrors.Wrap(err, "marshaling webhook payload")
 	}
 
-	return e.dispatcher.Dispatch(ctx, q, &webhooks.Delivery{
+	// v14 takes the scope as an argument as well as on the delivery: the argument
+	// is what bounds the fan-out, and a Delivery whose own Scope disagrees is
+	// refused rather than either value quietly winning.
+	scope := tenancy.Of(msg.AccountID)
+
+	return e.dispatcher.Dispatch(ctx, q, scope, &webhooks.Delivery{
 		// The account is the delivery's tenant, and it bounds the fan-out: subscribers are
 		// resolved within it, so one account's meal_plan_created never reaches another
 		// account's endpoints.
-		Scope:     tenancy.Of(msg.AccountID),
+		Scope:     scope,
 		EventType: webhooks.EventType(msg.EventType),
 		// The ordering key is not scoped. It is compared only against other dispatches for
 		// the same endpoint, and an endpoint belongs to one account, so the account would

@@ -10,18 +10,19 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	mcpbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/services/mcp"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
 
-	"github.com/primandproper/platform-go/v13/authentication/oauth2server"
-	oauth2servercfg "github.com/primandproper/platform-go/v13/authentication/oauth2server/config"
-	"github.com/primandproper/platform-go/v13/authentication/totp"
-	"github.com/primandproper/platform-go/v13/database"
-	issuereports "github.com/primandproper/platform-go/v13/issuereports"
-	"github.com/primandproper/platform-go/v13/observability"
-	routingcfg "github.com/primandproper/platform-go/v13/routing/config"
-	waitlists "github.com/primandproper/platform-go/v13/waitlists"
+	oauth2servercfg "github.com/primandproper/platform-go/v14/authentication/oauth2serverstore/config"
+	platformidentity "github.com/primandproper/platform-go/v14/identity"
+	issuereports "github.com/primandproper/platform-go/v14/issuereports"
+	waitlists "github.com/primandproper/platform-go/v14/waitlists"
+	platformwebhooks "github.com/primandproper/platform-go/v14/webhooks"
+	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
+	baseoauth2cfg "github.com/primandproper/primitives-go/v2/authentication/oauth2server/config"
+	"github.com/primandproper/primitives-go/v2/authentication/totp"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/observability"
+	routingcfg "github.com/primandproper/primitives-go/v2/routing/config"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/samber/do/v2"
@@ -109,9 +110,9 @@ func NewService(ctx context.Context, cfg *config.MCPServiceConfig, baseURL strin
 		return nil, fmt.Errorf("resolving meal planning repository: %w", err)
 	}
 
-	webhooksRepo, err := do.Invoke[webhooks.Repository](injector)
+	webhooksStore, err := do.Invoke[platformwebhooks.Store](injector)
 	if err != nil {
-		return nil, fmt.Errorf("resolving webhooks repository: %w", err)
+		return nil, fmt.Errorf("resolving webhooks store: %w", err)
 	}
 
 	waitlistStore, err := do.Invoke[waitlists.Store](injector)
@@ -124,9 +125,9 @@ func NewService(ctx context.Context, cfg *config.MCPServiceConfig, baseURL strin
 		return nil, fmt.Errorf("resolving issue reports store: %w", err)
 	}
 
-	identityRepo, err := do.Invoke[identity.Repository](injector)
+	identityStore, err := do.Invoke[platformidentity.Store](injector)
 	if err != nil {
-		return nil, fmt.Errorf("resolving identity repository: %w", err)
+		return nil, fmt.Errorf("resolving identity store: %w", err)
 	}
 
 	authenticator, err := do.Invoke[authentication.Authenticator](injector)
@@ -151,12 +152,18 @@ func NewService(ctx context.Context, cfg *config.MCPServiceConfig, baseURL strin
 	// outlives a deploy.
 	authServer, err := oauth2servercfg.NewServer(ctx, &cfg.OAuth2, dbClient,
 		&subjectAuthenticator{
-			identityRepo:  identityRepo,
+			directory:     identityStore,
+			db:            dbClient,
 			authenticator: authenticator,
 			totpVerifier:  totpVerifier,
 		},
 		oauth2servercfg.WithPillars(pillars),
-		oauth2servercfg.WithServerOptions(oauth2server.WithLoginRenderer(newLoginRenderer(pillars.Logger))),
+		// The store tier's config carries the server tier's option set through to it.
+		// The outer name says which package the options are handed to rather than
+		// which one builds the server, so this does not read as the same call twice.
+		oauth2servercfg.WithServerConfigOptions(
+			baseoauth2cfg.WithServerOptions(oauth2server.WithLoginRenderer(newLoginRenderer(pillars.Logger))),
+		),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("building authorization server: %w", err)
@@ -173,8 +180,9 @@ func NewService(ctx context.Context, cfg *config.MCPServiceConfig, baseURL strin
 	}
 
 	helper := &mcpToolManager{
+		reader:           dbClient.Reader(),
 		mealplanningRepo: mealplanningRepo,
-		webhooksRepo:     webhooksRepo,
+		webhooks:         webhooksStore,
 		waitlists:        waitlistStore,
 		issueReports:     issueReportsStore,
 	}

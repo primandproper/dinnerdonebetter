@@ -9,24 +9,49 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/converters"
 	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc/converters"
 	_ "github.com/primandproper/dinnerdonebetter/backend/internal/services/errors"
-	identityconverters "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/grpc/converters"
 
-	platformerrors "github.com/primandproper/platform-go/v13/errors"
-	errorsgrpc "github.com/primandproper/platform-go/v13/errors/grpc"
-	"github.com/primandproper/platform-go/v13/featureflags"
-	"github.com/primandproper/platform-go/v13/observability"
+	identitygrpc "github.com/primandproper/platform-go/v14/identity/grpc"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	errorsgrpc "github.com/primandproper/primitives-go/v2/errors/grpc"
+	"github.com/primandproper/primitives-go/v2/featureflags"
+	"github.com/primandproper/primitives-go/v2/observability"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
 )
+
+// RegisterUser signs somebody up.
+//
+// The one RPC on this service reachable without a session, and it is on this service for
+// that reason: platform's identity surface registers a user on a registrar's behalf, and
+// every method there is behind a grant. A sign-up has nobody to grant it.
+func (s *serviceImpl) RegisterUser(ctx context.Context, request *authsvc.RegisterUserRequest) (*authsvc.RegisterUserResponse, error) {
+	ctx, span := s.tracer.StartSpan(ctx)
+	defer span.End()
+
+	logger := s.logger.WithSpan(span)
+
+	created, err := s.authManager.RegisterUser(ctx, converters.ConvertGRPCUserRegistrationInputToUserRegistrationInput(request.GetInput()))
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "registering user")
+	}
+
+	return &authsvc.RegisterUserResponse{
+		ResponseDetails: &types.ResponseDetails{
+			TraceId: span.SpanContext().TraceID().String(),
+		},
+		Created: converters.ConvertUserCreationResponseToGRPCUserCreationResponse(created),
+	}, nil
+}
 
 func (s *serviceImpl) EvaluateBooleanFeatureFlag(ctx context.Context, req *authsvc.EvaluateBooleanFeatureFlagRequest) (*authsvc.EvaluateBooleanFeatureFlagResponse, error) {
 	ctx, span := s.tracer.StartSpan(ctx)
@@ -126,7 +151,8 @@ func (s *serviceImpl) GetAuthStatus(ctx context.Context, _ *authsvc.GetAuthStatu
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
-	requiresPasswordChange, pcErr := s.identityDataManager.UserRequiresPasswordChange(ctx, sessionContextData.GetUserID())
+	caller, pcErr := s.directory.GetUser(ctx, s.db.Reader(), identity.Scope(), sessionContextData.GetUserID())
+	requiresPasswordChange := caller != nil && caller.RequiresPasswordChange
 	if pcErr != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(pcErr, logger, span, codes.Internal, "checking password change requirement")
 	}
@@ -254,7 +280,7 @@ func (s *serviceImpl) GetActiveAccount(ctx context.Context, request *authsvc.Get
 	}
 	logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.GetUserID())
 
-	account, err := s.identityDataManager.GetAccount(ctx, sessionContextData.GetActiveAccountID())
+	account, err := s.directory.GetAccount(ctx, s.db.Reader(), identity.Scope(), sessionContextData.GetActiveAccountID())
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.NotFound, "failed to get active account")
@@ -266,7 +292,7 @@ func (s *serviceImpl) GetActiveAccount(ctx context.Context, request *authsvc.Get
 		ResponseDetails: &types.ResponseDetails{
 			TraceId: span.SpanContext().TraceID().String(),
 		},
-		Result: identityconverters.ConvertAccountToGRPCAccount(account),
+		Result: identitygrpc.AccountToProto(account),
 	}
 
 	return x, nil
@@ -284,7 +310,7 @@ func (s *serviceImpl) GetSelf(ctx context.Context, request *authsvc.GetSelfReque
 	}
 	logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.GetUserID())
 
-	user, err := s.identityDataManager.GetUser(ctx, sessionContextData.GetUserID())
+	user, err := s.directory.GetUser(ctx, s.db.Reader(), identity.Scope(), sessionContextData.GetUserID())
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.NotFound, "failed to get user")
@@ -296,7 +322,7 @@ func (s *serviceImpl) GetSelf(ctx context.Context, request *authsvc.GetSelfReque
 		ResponseDetails: &types.ResponseDetails{
 			TraceId: span.SpanContext().TraceID().String(),
 		},
-		Result: identityconverters.ConvertUserToGRPCUser(user),
+		Result: identitygrpc.UserToProto(user),
 	}
 
 	return x, nil
@@ -486,6 +512,44 @@ func (s *serviceImpl) UpdatePassword(ctx context.Context, request *authsvc.Updat
 	}
 
 	return x, nil
+}
+
+func (s *serviceImpl) UpdateUserEmailAddress(ctx context.Context, request *authsvc.UpdateUserEmailAddressRequest) (*authsvc.UpdateUserEmailAddressResponse, error) {
+	ctx, span := s.tracer.StartSpan(ctx)
+	defer span.End()
+
+	logger := s.logger.WithSpan(span)
+
+	if err := s.authManager.UpdateUserEmailAddress(ctx, &auth.UserEmailAddressUpdateInput{
+		NewEmailAddress: request.GetNewEmailAddress(),
+		CurrentPassword: request.GetCurrentPassword(),
+		TOTPToken:       request.GetTotpToken(),
+	}); err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "updating email address")
+	}
+
+	return &authsvc.UpdateUserEmailAddressResponse{
+		ResponseDetails: &types.ResponseDetails{TraceId: span.SpanContext().TraceID().String()},
+	}, nil
+}
+
+func (s *serviceImpl) UpdateUserUsername(ctx context.Context, request *authsvc.UpdateUserUsernameRequest) (*authsvc.UpdateUserUsernameResponse, error) {
+	ctx, span := s.tracer.StartSpan(ctx)
+	defer span.End()
+
+	logger := s.logger.WithSpan(span)
+
+	if err := s.authManager.UpdateUserUsername(ctx, &auth.UsernameUpdateInput{
+		NewUsername:     request.GetNewUsername(),
+		CurrentPassword: request.GetCurrentPassword(),
+		TOTPToken:       request.GetTotpToken(),
+	}); err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "updating username")
+	}
+
+	return &authsvc.UpdateUserUsernameResponse{
+		ResponseDetails: &types.ResponseDetails{TraceId: span.SpanContext().TraceID().String()},
+	}, nil
 }
 
 func (s *serviceImpl) BeginPasskeyRegistration(ctx context.Context, _ *authsvc.BeginPasskeyRegistrationRequest) (*authsvc.BeginPasskeyRegistrationResponse, error) {

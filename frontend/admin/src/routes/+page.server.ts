@@ -1,5 +1,5 @@
 import type { PageServerLoad } from './$types';
-import { getUsers, getAccounts, getRecipes } from '$lib/grpc/clients';
+import { listUsers, listAccounts, getRecipes } from '$lib/grpc/clients';
 
 export const load: PageServerLoad = async ({ locals }) => {
   const token = locals.accessToken;
@@ -12,13 +12,13 @@ export const load: PageServerLoad = async ({ locals }) => {
   let recipeCount = '-';
 
   try {
-    const usersRes = (await getUsers(token, {})) as { results?: unknown[] };
+    const usersRes = (await listUsers(token, {})) as { results?: unknown[] };
     if (usersRes?.results) userCount = String(usersRes.results.length);
   } catch {
     // leave as '-'
   }
   try {
-    const accountsRes = (await getAccounts(token, {})) as { results?: unknown[] };
+    const accountsRes = (await listAccounts(token, {})) as { results?: unknown[] };
     if (accountsRes?.results) accountCount = String(accountsRes.results.length);
   } catch {
     // leave as '-'

@@ -16,7 +16,7 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 
-	"github.com/primandproper/platform-go/v13/config/envvars"
+	"github.com/primandproper/primitives-go/v2/config/envvars"
 )
 
 const (
@@ -25,10 +25,17 @@ const (
 	// construction: a new config struct cannot become loadable without appearing here.
 	unionKey = "internal/config.configurations"
 
-	// platformModulePrefix bounds which dependency modules get parsed alongside this one. Most
-	// generated constants come from platform config structs embedded in ours, and parsing the
-	// rest of the module graph would cost time without contributing a key.
-	platformModulePrefix = "github.com/primandproper/platform-go"
+	// platformModulePrefix and primitivesModulePrefix bound which dependency modules get
+	// parsed alongside this one. Most generated constants come from their config structs
+	// embedded in ours, and parsing the rest of the module graph would cost time without
+	// contributing a key.
+	//
+	// There are two because v14 split the platform in two: the substrate — database, cache,
+	// observability, messaging, routing — moved to primitives-go, and with it most of the
+	// config this application embeds. Naming only platform-go silently emitted a third of
+	// the constants, because a module that is not parsed contributes no keys and no error.
+	platformModulePrefix   = "github.com/primandproper/platform-go"
+	primitivesModulePrefix = "github.com/primandproper/primitives-go"
 
 	outputPath  = "internal/config/envvars/env_vars.go"
 	dotEnvPath  = ".env.example"
@@ -49,7 +56,7 @@ func main() {
 		UnionKey:     unionKey,
 		OutputPath:   outputPath,
 		Package:      "envvars",
-		Dependencies: []string{platformModulePrefix},
+		Dependencies: []string{platformModulePrefix, primitivesModulePrefix},
 	}
 
 	if err = envvars.Generate(ctx, opts); err != nil {

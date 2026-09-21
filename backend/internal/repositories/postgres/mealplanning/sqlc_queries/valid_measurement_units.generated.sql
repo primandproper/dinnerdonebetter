@@ -76,7 +76,7 @@ WHERE archived_at IS NULL
 SELECT valid_measurement_units.id
 FROM valid_measurement_units
 WHERE valid_measurement_units.archived_at IS NULL
-	AND valid_measurement_units.id COLLATE "C" > sqlc.arg(page_cursor)
+	AND valid_measurement_units.id COLLATE "C" > sqlc.arg(reindex_cursor)
 ORDER BY valid_measurement_units.id COLLATE "C"
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 

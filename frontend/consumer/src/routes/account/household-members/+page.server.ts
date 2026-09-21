@@ -4,10 +4,11 @@ import { QueryFilter } from '@dinnerdonebetter/api-client';
 import {
   getActiveAccount,
   getSelf,
-  getSentAccountInvitations,
-  createAccountInvitation,
-  cancelAccountInvitation,
-  updateAccountMemberPermissions,
+  listAccountMembers,
+  listInvitationsFromUser,
+  invite,
+  cancelInvitation,
+  setMembershipRoles,
 } from '$lib/grpc/clients';
 
 const ACCOUNT_ADMIN_ROLE = 'account_admin';
@@ -18,6 +19,7 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
   if (!token) {
     return {
       account: null,
+      members: [],
       invitations: [],
       currentUserId: '',
       isAdmin: false,
@@ -34,6 +36,7 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
     if (!account) {
       return {
         account: null,
+        members: [],
         invitations: [],
         currentUserId: '',
         isAdmin: false,
@@ -46,19 +49,28 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
     const selfRes = await getSelf(token);
     const currentUserId = selfRes.result?.id ?? '';
 
+    // The roster is a read of its own now. platform's Account carries no member list —
+    // an account with thirty members would otherwise be thirty users on every read of it
+    // — so who is in it is a paged read, and a membership carries a set of roles rather
+    // than a single one.
+    const membersRes = await listAccountMembers(token, {
+      accountId: account.id,
+      filter: QueryFilter.create({ maxResponseSize: 50 }),
+    });
+    const members = membersRes.results ?? [];
+
     let isAdmin = false;
-    for (const m of account.members ?? []) {
-      const userId = m.belongsToUser?.id ?? '';
-      if (userId === currentUserId && m.accountRole === ACCOUNT_ADMIN_ROLE) {
+    for (const m of members) {
+      if (m.user?.id === currentUserId && (m.membership?.roles ?? []).includes(ACCOUNT_ADMIN_ROLE)) {
         isAdmin = true;
         break;
       }
     }
 
-    const invRes = await getSentAccountInvitations(token, {
+    const invRes = await listInvitationsFromUser(token, {
       filter: QueryFilter.create({ maxResponseSize: 50 }),
     });
-    const invitations = (invRes.results ?? []).filter((inv) => inv.destinationAccount?.id === account.id);
+    const invitations = (invRes.results ?? []).filter((inv) => inv.belongsToAccount === account.id);
 
     const baseUrl = buildBaseUrl(request);
     const error = url.searchParams.get('error');
@@ -66,6 +78,7 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
 
     return {
       account,
+      members,
       invitations,
       currentUserId,
       isAdmin,
@@ -76,6 +89,7 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
   } catch {
     return {
       account: null,
+      members: [],
       invitations: [],
       currentUserId: '',
       isAdmin: false,
@@ -117,8 +131,17 @@ export const actions: Actions = {
     }
 
     try {
-      await createAccountInvitation(token, {
-        input: { toEmail: email, toName: name, note, expiresAt: undefined },
+      // The account is named on the request rather than taken from the session, and the
+      // roles the invitation promises come from here: what somebody was invited to is
+      // what they get, and an acceptance cannot ask for more.
+      const activeRes = await getActiveAccount(token);
+      await invite(token, {
+        accountId: activeRes.result?.id ?? '',
+        toEmail: email,
+        toName: name,
+        note,
+        roles: [ACCOUNT_MEMBER_ROLE],
+        expiresAt: undefined,
       });
       throw redirect(302, '/account/household-members?invited=1');
     } catch (e) {
@@ -139,9 +162,11 @@ export const actions: Actions = {
     }
 
     try {
-      await cancelAccountInvitation(token, {
-        accountInvitationId: invitationId,
-        input: { token: '', note: '' },
+      // No token: withdrawing is the sender's act, and the secret half of the link is
+      // the recipient's. The sender never holds it — no read returns one.
+      await cancelInvitation(token, {
+        invitationId,
+        statusNote: '',
       });
       throw redirect(302, '/account/household-members');
     } catch (e) {
@@ -168,9 +193,14 @@ export const actions: Actions = {
     }
 
     try {
-      await updateAccountMemberPermissions(token, {
+      // Roles are replaced rather than merged, and the account is named: a caller adding
+      // one reads the membership and writes the union, which is visible here rather than
+      // hidden in a setter that could not express a revocation.
+      const activeRes = await getActiveAccount(token);
+      await setMembershipRoles(token, {
+        accountId: activeRes.result?.id ?? '',
         userId,
-        input: { newRole, reason },
+        roles: [newRole],
       });
       throw redirect(302, '/account/household-members');
     } catch (e) {

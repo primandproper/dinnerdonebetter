@@ -76,15 +76,12 @@
     <h2 class="card-title">Actions</h2>
     <div class="actions-list">
       <Link href="/users/{user.id}/sessions">View &amp; manage sessions</Link>
-      {#if user.requiresPasswordChange}
-        <form method="POST" action="?/clear-password-change">
-          <button type="submit" class="btn btn-secondary">Clear password change requirement</button>
-        </form>
-      {:else}
-        <form method="POST" action="?/require-password-change">
-          <button type="submit" class="btn btn-warning">Require password change</button>
-        </form>
-      {/if}
+      <!--
+        The two password-change buttons are gone with the RPC behind them. The flag is
+        still readable above, and still honoured at sign-in; what is missing is a way to
+        set it, because the directory's gRPC surface exposes three operator writes and
+        this is not one of them. See the page's server file.
+      -->
     </div>
   </Card>
 

@@ -6,25 +6,25 @@ import (
 	"os"
 	"testing"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
+	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/indexevents"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	"github.com/primandproper/platform-go/v13/database"
-	"github.com/primandproper/platform-go/v13/database/dialect"
-	mockdatabase "github.com/primandproper/platform-go/v13/database/mock"
-	"github.com/primandproper/platform-go/v13/database/postgres"
-	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v13/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v13/outbox"
-	"github.com/primandproper/platform-go/v13/uploads/registry"
-	registrymock "github.com/primandproper/platform-go/v13/uploads/registry/mock"
+	platformidentity "github.com/primandproper/platform-go/v14/identity"
+	"github.com/primandproper/platform-go/v14/mediaregistry"
+	registrymock "github.com/primandproper/platform-go/v14/mediaregistry/mock"
+	"github.com/primandproper/platform-go/v14/outbox"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/database/dialect"
+	mockdatabase "github.com/primandproper/primitives-go/v2/database/mock"
+	"github.com/primandproper/primitives-go/v2/database/postgres"
+	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
+	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
 
 	"github.com/stretchr/testify/require"
 )
@@ -68,13 +68,11 @@ func buildDatabaseClientForTest(t *testing.T) (*repository, audit.Repository) {
 	require.NoError(t, err)
 	// A real registry store over the same database, so the media hydration these
 	// tests exercise reads the table a request would.
-	uploadsRegistry, err := registry.NewSQLStore(pgc, registry.WithTablePrefix(uploadedmedia.TablePrefix))
+	uploadsRegistry, err := mediaregistry.NewSQLStore(pgc, mediaregistry.WithTablePrefix(uploadedmedia.TablePrefix))
 	require.NoError(t, err)
 
-	policy, err := authorization.NewDatabaseResolver(pgc.Reader(), loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil)
-	require.NoError(t, err)
-
-	identitiesRepo := identity.ProvideIdentityRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), auditLogEntryRepo, pgc, nil, uploadsRegistry, policy)
+	// The roster read, which is all meal planning asks the directory for.
+	identityStore, err := platformidentity.NewSQLStore(pgc, platformidentity.WithTablePrefix(ddbidentity.TablePrefix))
 	require.NoError(t, err)
 
 	// A real emitter, so the tests exercise the same path production does: the event is
@@ -86,7 +84,7 @@ func buildDatabaseClientForTest(t *testing.T) (*repository, audit.Repository) {
 		loggingnoop.NewLogger(),
 		tracingnoop.NewTracerProvider(),
 		auditLogEntryRepo,
-		identitiesRepo,
+		identityStore,
 		pgc,
 		events.NewEmitter(outboxWriter, testDataChangesTopic, nil, indexevents.SideEffect),
 		uploadsRegistry,

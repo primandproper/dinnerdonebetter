@@ -9,14 +9,14 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/fakes"
 
-	"github.com/primandproper/platform-go/v13/database"
-	"github.com/primandproper/platform-go/v13/database/dialect"
-	mockdatabase "github.com/primandproper/platform-go/v13/database/mock"
-	"github.com/primandproper/platform-go/v13/fake"
-	"github.com/primandproper/platform-go/v13/outbox"
-	"github.com/primandproper/platform-go/v13/tenancy"
-	"github.com/primandproper/platform-go/v13/webhooks"
-	webhooksmock "github.com/primandproper/platform-go/v13/webhooks/mock"
+	"github.com/primandproper/platform-go/v14/outbox"
+	"github.com/primandproper/platform-go/v14/webhooks"
+	webhooksmock "github.com/primandproper/platform-go/v14/webhooks/mock"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/database/dialect"
+	mockdatabase "github.com/primandproper/primitives-go/v2/database/mock"
+	"github.com/primandproper/primitives-go/v2/fake"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -38,7 +38,7 @@ func TestEmitter_dispatchWebhooks(T *testing.T) {
 
 		executor := database.NewTxForTesting(&mockdatabase.SQLQueryExecutorMock{})
 		dispatcher := &webhooksmock.DispatcherMock{
-			DispatchFunc: func(_ context.Context, q database.Tx, delivery *webhooks.Delivery) error {
+			DispatchFunc: func(_ context.Context, q database.Tx, _ tenancy.Scope, delivery *webhooks.Delivery) error {
 				assert.Same(t, executor, q)
 				dispatched = delivery
 

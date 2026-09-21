@@ -10,11 +10,12 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
 
-	platformdataprivacy "github.com/primandproper/platform-go/v13/dataprivacy"
-	"github.com/primandproper/platform-go/v13/filtering"
-	"github.com/primandproper/platform-go/v13/identifiers"
-	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v13/observability/tracing/noop"
+	platformdataprivacy "github.com/primandproper/platform-go/v14/dataprivacy"
+	"github.com/primandproper/primitives-go/v2/filtering"
+	"github.com/primandproper/primitives-go/v2/identifiers"
+	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
+	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -134,7 +135,7 @@ func TestCollector_Collect(T *testing.T) {
 
 		collector := NewCollector(repo, noAccounts, loggingnoop.NewLogger(), tracingnoop.NewTracerProvider())
 
-		fragment, err := collector.Collect(t.Context(), subjectFor(identifiers.New()))
+		fragment, err := collector.Collect(t.Context(), tenancy.Global(), subjectFor(identifiers.New()))
 
 		require.NoError(t, err)
 		// nil, not an encoded empty object: the section is then omitted from the artifact,
@@ -222,7 +223,7 @@ func collect(
 
 	collector := NewCollector(repo, resolveAccounts, loggingnoop.NewLogger(), tracingnoop.NewTracerProvider())
 
-	fragment, err := collector.Collect(t.Context(), subjectFor(userID))
+	fragment, err := collector.Collect(t.Context(), tenancy.Global(), subjectFor(userID))
 	require.NoError(t, err)
 	require.NotNil(t, fragment)
 

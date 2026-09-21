@@ -1,18 +1,20 @@
 <script lang="ts">
   import { enhance } from '$app/forms';
   import { PageContainer, FormField, Input, Button, Alert, Link } from '@dinnerdonebetter/ui';
-  import type {
-    Account,
-    AccountInvitation,
-    AccountUserMembershipWithUser,
-  } from '@dinnerdonebetter/api-client/identity/identity_messages';
+  import {
+    InvitationStatus,
+    type Account,
+    type Invitation,
+    type MembershipWithUser,
+  } from '@dinnerdonebetter/api-client/primandproper/platform/identity/v1/identity';
 
   let { data } = $props();
   const account = $derived(data?.account as Account | null | undefined);
-  const invitations = $derived((data?.invitations ?? []) as AccountInvitation[]);
+  // The roster is a read of its own rather than a field of the account.
+  const members = $derived((data?.members ?? []) as MembershipWithUser[]);
+  const invitations = $derived((data?.invitations ?? []) as Invitation[]);
   const currentUserId = $derived(data?.currentUserId ?? '');
   const isAdmin = $derived(data?.isAdmin ?? false);
-  const baseUrl = $derived(data?.baseUrl ?? '');
   const error = $derived(data?.error as string | null | undefined);
   const invited = $derived(data?.invited ?? false);
 
@@ -27,13 +29,16 @@
   };
   const displayError = $derived(error ? (errorMessages[error] ?? 'Something went wrong.') : null);
 
-  function memberDisplayName(m: AccountUserMembershipWithUser): string {
-    const u = m.belongsToUser;
-    if (!u) return 'Unknown User';
-    if (u.firstName) {
-      return u.lastName ? `${u.firstName} ${u.lastName}` : u.firstName;
-    }
-    return u.username || 'Unknown User';
+  // DisplayName is never empty on a read — a row whose column is blank reads its handle
+  // back — so this is one field rather than a fallback chain that could produce a blank.
+  function memberDisplayName(m: MembershipWithUser): string {
+    return m.user?.displayName || m.user?.username || 'Unknown User';
+  }
+
+  // A membership carries a set of roles rather than one, so "is this person an admin" is
+  // a membership question rather than a string comparison.
+  function isAccountAdmin(m: MembershipWithUser): boolean {
+    return (m.membership?.roles ?? []).includes('account_admin');
   }
 </script>
 
@@ -54,13 +59,13 @@
     <div class="sections">
       <section>
         <h2>Household Members</h2>
-        {#if !account.members?.length}
+        {#if !members.length}
           <p class="muted">No members yet. Invite someone to join your household.</p>
         {:else}
           <div class="member-list">
-            {#each account.members ?? [] as m (m.belongsToUser?.id ?? m.id ?? 'member')}
-              {@const isYou = m.belongsToUser?.id === currentUserId}
-              {@const roleLabel = m.accountRole === 'account_admin' ? 'Admin' : 'Member'}
+            {#each members as m (m.user?.id ?? m.membership?.id ?? 'member')}
+              {@const isYou = m.user?.id === currentUserId}
+              {@const roleLabel = isAccountAdmin(m) ? 'Admin' : 'Member'}
               <div class="member-card">
                 <div class="member-info">
                   <span class="member-name" title={memberDisplayName(m)}>{memberDisplayName(m)}</span>
@@ -68,13 +73,13 @@
                     <span class="member-you">(You)</span>
                   {/if}
                 </div>
-                {#if isAdmin && !isYou && m.belongsToUser?.id}
+                {#if isAdmin && !isYou && m.user?.id}
                   <form method="POST" action="?/update-role" use:enhance class="role-form">
-                    <input type="hidden" name="user_id" value={m.belongsToUser.id} data-testid="member-user-id" />
+                    <input type="hidden" name="user_id" value={m.user.id} data-testid="member-user-id" />
                     <div class="role-form-row">
                       <select name="new_role" class="role-select" data-testid="member-role">
-                        <option value="account_member" selected={m.accountRole === 'account_member'}> Member </option>
-                        <option value="account_admin" selected={m.accountRole === 'account_admin'}> Admin </option>
+                        <option value="account_member" selected={!isAccountAdmin(m)}> Member </option>
+                        <option value="account_admin" selected={isAccountAdmin(m)}> Admin </option>
                       </select>
                       <span class="reason-input">
                         <Input
@@ -122,8 +127,8 @@
           <p class="muted">Invitations you've sent for this household and their status.</p>
           <div class="invitation-list">
             {#each invitations as inv (inv.id)}
-              {@const status = inv.status || 'pending'}
-              {@const inviteUrl = `${baseUrl}/accept_invitation?i=${inv.id}&t=${inv.token}`}
+              {@const pending = inv.status === InvitationStatus.INVITATION_STATUS_PENDING}
+              {@const status = pending ? 'pending' : 'answered'}
               <div class="invitation-card">
                 <div class="invitation-info">
                   <span class="invitation-email">{inv.toEmail}</span>
@@ -132,19 +137,16 @@
                   {/if}
                   <span class="status-badge">{status}</span>
                 </div>
-                {#if status.toLowerCase() === 'pending'}
+                <!--
+                  The "Copy Link" button is gone, and its absence is the point. An
+                  invitation's token is the secret half of a bearer credential for joining
+                  somebody else's household, and no read returns one — the sender mints it,
+                  the store keeps a digest, and the only copy goes to the address the
+                  invitation was sent to. A sender who could copy the link could join the
+                  household as the person they invited.
+                -->
+                {#if pending}
                   <div class="invitation-actions">
-                    <button
-                      type="button"
-                      class="copy-btn"
-                      onclick={() => {
-                        if (navigator.clipboard?.writeText) {
-                          navigator.clipboard.writeText(inviteUrl).then(() => alert('Link copied to clipboard'));
-                        }
-                      }}
-                    >
-                      Copy Link
-                    </button>
                     {#if isAdmin}
                       <form method="POST" action="?/cancel-invitation" use:enhance class="inline-form">
                         <input type="hidden" name="invitation_id" value={inv.id} data-testid="cancel-invitation-id" />
@@ -289,17 +291,6 @@
   .invitation-actions {
     display: flex;
     gap: var(--space-sm);
-  }
-  .copy-btn {
-    font-size: 0.875rem;
-    padding: 0.25rem 0.5rem;
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-sm);
-    background: var(--color-surface);
-    cursor: pointer;
-  }
-  .copy-btn:hover {
-    background: var(--color-surface-hover, #f5f5f5);
   }
   .inline-form {
     display: inline;

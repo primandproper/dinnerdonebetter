@@ -17,18 +17,27 @@ ARTIFACTS_DIR         := artifacts
 # Exclude monolithic proto/X/X.proto files (they're duplicates of the split files)
 PROTO_FILES_PATH          := $(shell find proto -name "*.proto" -type f ! -regex "proto/\([^/]*\)/\1\.proto")
 
-# filtering's schema is not ours to keep a copy of: platform-go ships the .proto
+# filtering's schema is not ours to keep a copy of: primitives-go ships the .proto
 # inside the published module, so go.mod already pins which version we build
 # against. Putting the module's proto directory on protoc's path is how a
 # consumer imports it, exactly as google/protobuf/timestamp.proto already works.
-PLATFORM_PROTO_PATH       := $(shell cd backend && go list -m -f '{{.Dir}}' github.com/primandproper/platform-go/v13)/filtering/proto
+PLATFORM_PROTO_PATH       := $(shell cd backend && go list -m -f '{{.Dir}}' github.com/primandproper/primitives-go/v2)/filtering/proto
 PLATFORM_FILTERING_PROTO  := primandproper/platform/filtering/v1/filtering.proto
 # Go links against the bindings platform already generated rather than making a
 # second copy, because the page-size clamp and the default are server-side rules
 # and a second copy of one can be wrong in a way nothing reports. Swift and
 # TypeScript generate the file: a QueryFilter there is a data class with eight
 # fields and no rules to restate.
-PROTO_GO_FILTERING_MAP    := M$(PLATFORM_FILTERING_PROTO)=github.com/primandproper/platform-go/v13/filtering/filteringpb
+PROTO_GO_FILTERING_MAP    := M$(PLATFORM_FILTERING_PROTO)=github.com/primandproper/primitives-go/v2/filtering/filteringpb
+
+# identity's schema arrives the same way, from platform-go rather than
+# primitives-go, because the directory is a service and filtering is a value
+# type. The auth service's GetSelf and GetActiveAccount answer with platform's
+# User and Account, so their messages have to come from the module that defines
+# them rather than from a copy here that could disagree with the server.
+PLATFORM_IDENTITY_PROTO_PATH := $(shell cd backend && go list -m -f '{{.Dir}}' github.com/primandproper/platform-go/v14)/identity/proto
+PLATFORM_IDENTITY_PROTO      := primandproper/platform/identity/v1/identity.proto
+PROTO_GO_IDENTITY_MAP        := M$(PLATFORM_IDENTITY_PROTO)=github.com/primandproper/platform-go/v14/identity/identitypb
 PROTO_GO_OUTPUT_PATH      := backend
 PROTO_OUTPUT_BACKEND_PATH := backend/internal/grpc
 PROTO_OUTPUT_IOS_PATH     := ios/ios/Generated
@@ -212,8 +221,11 @@ proto_golang: ensure_protoc_installed ensure_protoc-gen-go_installed ensure_prot
 		--go-grpc_opt=module=$(BACKEND_REPO_NAME) \
 		--go_opt=$(PROTO_GO_FILTERING_MAP) \
 		--go-grpc_opt=$(PROTO_GO_FILTERING_MAP) \
+		--go_opt=$(PROTO_GO_IDENTITY_MAP) \
+		--go-grpc_opt=$(PROTO_GO_IDENTITY_MAP) \
 		--proto_path proto/ \
 		--proto_path $(PLATFORM_PROTO_PATH) \
+		--proto_path $(PLATFORM_IDENTITY_PROTO_PATH) \
 		$(PROTO_FILES_PATH);
 	rm -rf $(PROTO_OUTPUT_BACKEND_PATH)/generated
 	mv $(ARTIFACTS_DIR)/proto_golang/internal/grpc/generated $(PROTO_OUTPUT_BACKEND_PATH)/generated
@@ -230,13 +242,48 @@ proto_swift: ensure_protoc-gen-swift_installed ensure_protoc-gen-grpc-swift_inst
       	--swift_opt=Visibility=Public \
 		--proto_path proto/ \
 		--proto_path $(PLATFORM_PROTO_PATH) \
-		$(PROTO_FILES_PATH) $(PLATFORM_PROTO_PATH)/$(PLATFORM_FILTERING_PROTO)
+		--proto_path $(PLATFORM_IDENTITY_PROTO_PATH) \
+		$(PROTO_FILES_PATH) $(PLATFORM_PROTO_PATH)/$(PLATFORM_FILTERING_PROTO) $(PLATFORM_IDENTITY_PROTO_PATH)/$(PLATFORM_IDENTITY_PROTO)
+	mkdir -p $(ARTIFACTS_DIR)/proto_swift_preserved
+	for d in $(PROTO_SWIFT_STALE_ADOPTED); do \
+		if [ -d $(PROTO_OUTPUT_IOS_PATH)/$$d ]; then \
+			cp -R $(PROTO_OUTPUT_IOS_PATH)/$$d $(ARTIFACTS_DIR)/proto_swift_preserved/$$d; \
+		fi; \
+	done
 	rm -rf $(PROTO_OUTPUT_IOS_PATH)
 	mv $(ARTIFACTS_DIR)/proto_swift $(PROTO_OUTPUT_IOS_PATH)
+	for d in $(PROTO_SWIFT_STALE_ADOPTED); do \
+		if [ -d $(ARTIFACTS_DIR)/proto_swift_preserved/$$d ]; then \
+			cp -R $(ARTIFACTS_DIR)/proto_swift_preserved/$$d $(PROTO_OUTPUT_IOS_PATH)/$$d; \
+		fi; \
+	done
+	rm -rf $(ARTIFACTS_DIR)/proto_swift_preserved
 	(cd ios && $(MAKE) format)
 
 # Hand-written files in the TS proto output directory that must survive regeneration
 PROTO_TS_HANDWRITTEN := index.ts create-clients.ts admin-clients.ts
+
+# Generated TypeScript for adopted domains, which this target deletes and does not
+# regenerate.
+#
+# Their .proto files live in platform-go rather than here, so PROTO_FILES_PATH does not
+# reach them — but the rm -rf below does, and did, silently, on every run since the first
+# adoption. What is in these directories is worse than stale: it was generated from this
+# repository's own protos before each domain moved, so it describes services the server no
+# longer runs. They are preserved rather than regenerated because regenerating one means
+# porting every frontend call site for it, which is that domain's work rather than this
+# target's. identity is the exception and is generated above, from platform's schema.
+PROTO_TS_STALE_ADOPTED := audit comments issue_reports notifications oauth payments settings waitlists
+
+# webhooks is deliberately not on that list. Its generated client is stale for the same
+# reason the others are, but no web app imports it, so letting the sweep take it removes
+# dead code rather than breaking a build. The iOS app does import it, which is why it is
+# on the Swift list below.
+
+# The same directories in the Swift output, plus webhooks, which the iOS app uses and the
+# web apps do not. See PROTO_TS_STALE_ADOPTED for why they are preserved rather than
+# regenerated.
+PROTO_SWIFT_STALE_ADOPTED := audit comments issue_reports notifications oauth payments settings waitlists webhooks
 
 .PHONY: proto_typescript
 proto_typescript: ensure_protoc_installed ensure_proto_ts_plugin_installed
@@ -248,11 +295,17 @@ proto_typescript: ensure_protoc_installed ensure_proto_ts_plugin_installed
 		--ts_proto_opt=esModuleInterop=true \
 		--proto_path proto/ \
 		--proto_path $(PLATFORM_PROTO_PATH) \
-		$(PROTO_FILES_PATH) $(PLATFORM_PROTO_PATH)/$(PLATFORM_FILTERING_PROTO)
+		--proto_path $(PLATFORM_IDENTITY_PROTO_PATH) \
+		$(PROTO_FILES_PATH) $(PLATFORM_PROTO_PATH)/$(PLATFORM_FILTERING_PROTO) $(PLATFORM_IDENTITY_PROTO_PATH)/$(PLATFORM_IDENTITY_PROTO)
 	mkdir -p $(ARTIFACTS_DIR)/proto_ts_handwritten
 	for f in $(PROTO_TS_HANDWRITTEN); do \
 		if [ -f $(PROTO_TS_OUTPUT_PATH)/$$f ]; then \
 			cp $(PROTO_TS_OUTPUT_PATH)/$$f $(ARTIFACTS_DIR)/proto_ts_handwritten/$$f; \
+		fi; \
+	done
+	for d in $(PROTO_TS_STALE_ADOPTED); do \
+		if [ -d $(PROTO_TS_OUTPUT_PATH)/$$d ]; then \
+			cp -R $(PROTO_TS_OUTPUT_PATH)/$$d $(ARTIFACTS_DIR)/proto_ts_handwritten/$$d; \
 		fi; \
 	done
 	rm -rf $(PROTO_TS_OUTPUT_PATH)
@@ -260,6 +313,11 @@ proto_typescript: ensure_protoc_installed ensure_proto_ts_plugin_installed
 	for f in $(PROTO_TS_HANDWRITTEN); do \
 		if [ -f $(ARTIFACTS_DIR)/proto_ts_handwritten/$$f ]; then \
 			cp $(ARTIFACTS_DIR)/proto_ts_handwritten/$$f $(PROTO_TS_OUTPUT_PATH)/$$f; \
+		fi; \
+	done
+	for d in $(PROTO_TS_STALE_ADOPTED); do \
+		if [ -d $(ARTIFACTS_DIR)/proto_ts_handwritten/$$d ]; then \
+			cp -R $(ARTIFACTS_DIR)/proto_ts_handwritten/$$d $(PROTO_TS_OUTPUT_PATH)/$$d; \
 		fi; \
 	done
 	rm -rf $(ARTIFACTS_DIR)/proto_ts_handwritten

@@ -7,9 +7,9 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	ddbuploadedmedia "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 
-	platformerrors "github.com/primandproper/platform-go/v13/errors"
-	"github.com/primandproper/platform-go/v13/observability"
-	"github.com/primandproper/platform-go/v13/uploads/registry"
+	"github.com/primandproper/platform-go/v14/mediaregistry"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/observability"
 )
 
 var _ mealplanning.UploadedMediaFetcher = (*repository)(nil)
@@ -32,7 +32,7 @@ var _ mealplanning.UploadedMediaFetcher = (*repository)(nil)
 // An id with no row is skipped rather than failing the read. A bridge row
 // pointing at an archived or absent object is a broken reference, not a broken
 // request, and the caller asked for the media that is there.
-func (q *repository) GetUploadedMediaWithIDs(ctx context.Context, ids []string) ([]*registry.Object, error) {
+func (q *repository) GetUploadedMediaWithIDs(ctx context.Context, ids []string) ([]*mediaregistry.Object, error) {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -43,11 +43,11 @@ func (q *repository) GetUploadedMediaWithIDs(ctx context.Context, ids []string) 
 	}
 	logger = logger.WithValue("id_count", len(ids))
 
-	objects := make([]*registry.Object, 0, len(ids))
+	objects := make([]*mediaregistry.Object, 0, len(ids))
 	for _, id := range ids {
-		object, err := q.uploads.GetObject(ctx, ddbuploadedmedia.Scope(), id)
+		object, err := q.uploads.GetObject(ctx, q.Reader(), ddbuploadedmedia.Scope(), id)
 		if err != nil {
-			if errors.Is(err, registry.ErrObjectNotFound) {
+			if errors.Is(err, mediaregistry.ErrObjectNotFound) {
 				continue
 			}
 

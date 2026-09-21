@@ -29,15 +29,19 @@ export const revokeSession = clients.revokeSession;
 export const revokeAllOtherSessions = clients.revokeAllOtherSessions;
 export const revokeCurrentSession = clients.revokeCurrentSession;
 export const exchangeToken = clients.exchangeToken;
-export const getAccountsForUser = clients.getAccountsForUser;
-export const getSentAccountInvitations = clients.getSentAccountInvitations;
-export const createAccountInvitation = clients.createAccountInvitation;
-export const cancelAccountInvitation = clients.cancelAccountInvitation;
-export const updateAccountMemberPermissions = clients.updateAccountMemberPermissions;
+// The directory's names, which are platform's: Invite rather than CreateAccountInvitation,
+// ListAccountsForUser rather than GetAccountsForUser, and one UpdateProfile in place of the
+// three calls that each changed one field of a user.
+export const listAccountsForUser = clients.listAccountsForUser;
+export const listAccountMembers = clients.listAccountMembers;
+export const listInvitationsFromUser = clients.listInvitationsFromUser;
+export const invite = clients.invite;
+export const cancelInvitation = clients.cancelInvitation;
+export const setMembershipRoles = clients.setMembershipRoles;
 export const updateAccount = clients.updateAccount;
+export const updateProfile = clients.updateProfile;
 export const updateUserUsername = clients.updateUserUsername;
-export const updateUserDetails = clients.updateUserDetails;
-export const uploadUserAvatar = clients.uploadUserAvatar;
+export const updateUserEmailAddress = clients.updateUserEmailAddress;
 export const getSettingDefinitions = clients.getSettingDefinitions;
 export const getSettingValues = clients.getSettingValues;
 export const resolveSettings = clients.resolveSettings;

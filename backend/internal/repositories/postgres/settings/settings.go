@@ -12,21 +12,21 @@ fans out. Every event this emits is in the webhook event catalog
 write that skipped the pair would be a row with no provenance and a subscriber
 that never heard.
 
-# The transaction the events are not in
+# The transaction the events are in
 
 Every hand-written repository here emits inside the transaction that wrote the
 row, so the event lives or dies with what it describes (see
-internal/repositories/postgres/events). This one cannot: platform's writes own
-their transactions and take no executor, so the audit entry and the event are a
-second transaction after the first has committed.
+internal/repositories/postgres/events). This one now does too. It could not
+before: platform's writes owned their transactions and took no executor, so the
+audit entry and the event were a second transaction after the first had
+committed, and a value could exist that nothing had recorded.
 
-The gap that opens is the ordinary one — the row lands, the process dies, and
-nothing is recorded about it. It is narrow and it is one-directional: a value can
-exist with no event, but no event can name a value that was not written. Closing
-it needs platform's write methods to accept a database.Tx, which is the same gap
-comments has (platform-go #457) and waitlists has (platform-go #458). It is filed
-for this package as platform-go #460 rather than worked around here — a gap
-papered over locally stops being a gap anyone remembers.
+As of platform-go v14 a store write takes the caller's database.Tx, so the
+write, the entry and the event are one transaction and share one fate. The gap
+that used to be filed for this package as platform-go #460 — and for comments
+as #457, waitlists as #458 and payments as #466 — is closed by that convention
+rather than by anything here, which is why this package has no workaround to
+delete.
 
 # Why a cleared value is recorded apart from a set one
 
@@ -46,12 +46,12 @@ import (
 	ddbsettings "github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings"
 	settingskeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings/keys"
 
-	"github.com/primandproper/platform-go/v13/database"
-	"github.com/primandproper/platform-go/v13/identifiers"
-	"github.com/primandproper/platform-go/v13/observability"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
-	platformsettings "github.com/primandproper/platform-go/v13/settings"
-	"github.com/primandproper/platform-go/v13/tenancy"
+	platformsettings "github.com/primandproper/platform-go/v14/settings"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/identifiers"
+	"github.com/primandproper/primitives-go/v2/observability"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
 const (
@@ -64,11 +64,11 @@ const (
 var _ platformsettings.Store = (*repository)(nil)
 
 // CreateDefinition adds the setting to the catalog, then records it.
-func (r *repository) CreateDefinition(ctx context.Context, scope tenancy.Scope, definition *platformsettings.Definition) (*platformsettings.Definition, error) {
+func (r *repository) CreateDefinition(ctx context.Context, tx database.Tx, scope tenancy.Scope, definition *platformsettings.Definition) (*platformsettings.Definition, error) {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
-	created, err := r.Store.CreateDefinition(ctx, scope, definition)
+	created, err := r.Store.CreateDefinition(ctx, tx, scope, definition)
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +76,7 @@ func (r *repository) CreateDefinition(ctx context.Context, scope tenancy.Scope, 
 	tracing.AttachToSpan(span, settingskeys.SettingDefinitionIDKey, created.ID)
 	tracing.AttachToSpan(span, settingskeys.SettingNameKey, created.Name)
 
-	if err = r.recordDefinition(ctx, created, audit.AuditLogEventTypeCreated, ddbsettings.SettingDefinitionCreatedServiceEventType); err != nil {
+	if err = r.recordDefinition(ctx, tx, created, audit.AuditLogEventTypeCreated, ddbsettings.SettingDefinitionCreatedServiceEventType); err != nil {
 		return nil, err
 	}
 
@@ -84,18 +84,23 @@ func (r *repository) CreateDefinition(ctx context.Context, scope tenancy.Scope, 
 }
 
 // UpdateDefinition rewrites the setting, then records it.
-func (r *repository) UpdateDefinition(ctx context.Context, scope tenancy.Scope, definition *platformsettings.Definition) error {
+func (r *repository) UpdateDefinition(ctx context.Context, tx database.Tx, scope tenancy.Scope, definition *platformsettings.Definition) (*platformsettings.Definition, error) {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
-	if err := r.Store.UpdateDefinition(ctx, scope, definition); err != nil {
-		return err
+	updated, err := r.Store.UpdateDefinition(ctx, tx, scope, definition)
+	if err != nil {
+		return nil, err
 	}
 
 	tracing.AttachToSpan(span, settingskeys.SettingDefinitionIDKey, definition.ID)
 	tracing.AttachToSpan(span, settingskeys.SettingNameKey, definition.Name)
 
-	return r.recordDefinition(ctx, definition, audit.AuditLogEventTypeUpdated, ddbsettings.SettingDefinitionUpdatedServiceEventType)
+	if err = r.recordDefinition(ctx, tx, updated, audit.AuditLogEventTypeUpdated, ddbsettings.SettingDefinitionUpdatedServiceEventType); err != nil {
+		return nil, err
+	}
+
+	return updated, nil
 }
 
 // ArchiveDefinition retires the setting, then records it.
@@ -103,40 +108,41 @@ func (r *repository) UpdateDefinition(ctx context.Context, scope tenancy.Scope, 
 // The definition is read before the store runs, because the event names the
 // setting rather than only the row: a subscriber that heard "some definition was
 // archived" would have to look up a row that the archive has already hidden from
-// every read that does not ask for archived ones.
-func (r *repository) ArchiveDefinition(ctx context.Context, scope tenancy.Scope, definitionID string) error {
+// every read that does not ask for archived ones. The read runs on the caller's
+// transaction, so it sees that transaction's own earlier writes.
+func (r *repository) ArchiveDefinition(ctx context.Context, tx database.Tx, scope tenancy.Scope, definitionID string) error {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
 	tracing.AttachToSpan(span, settingskeys.SettingDefinitionIDKey, definitionID)
 
-	definition, err := r.GetDefinition(ctx, scope, definitionID)
+	definition, err := r.GetDefinition(ctx, tx, scope, definitionID)
 	if err != nil {
 		return observability.PrepareError(err, span, "fetching setting definition to record")
 	}
 
-	if err = r.Store.ArchiveDefinition(ctx, scope, definitionID); err != nil {
+	if err = r.Store.ArchiveDefinition(ctx, tx, scope, definitionID); err != nil {
 		return err
 	}
 
-	return r.recordDefinition(ctx, definition, audit.AuditLogEventTypeArchived, ddbsettings.SettingDefinitionArchivedServiceEventType)
+	return r.recordDefinition(ctx, tx, definition, audit.AuditLogEventTypeArchived, ddbsettings.SettingDefinitionArchivedServiceEventType)
 }
 
 // SetValue stores the subject's answer, then records it.
-func (r *repository) SetValue(ctx context.Context, scope tenancy.Scope, subject platformsettings.Subject, name, raw string) (*platformsettings.Value, error) {
+func (r *repository) SetValue(ctx context.Context, tx database.Tx, scope tenancy.Scope, subject platformsettings.Subject, name, raw string) (*platformsettings.Value, error) {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
 	tracing.AttachToSpan(span, settingskeys.SettingNameKey, name)
 
-	value, err := r.Store.SetValue(ctx, scope, subject, name, raw)
+	value, err := r.Store.SetValue(ctx, tx, scope, subject, name, raw)
 	if err != nil {
 		return nil, err
 	}
 
 	tracing.AttachToSpan(span, settingskeys.SettingValueIDKey, value.ID)
 
-	if err = r.recordValue(ctx, value, name, audit.AuditLogEventTypeUpdated, ddbsettings.SettingValueSetServiceEventType); err != nil {
+	if err = r.recordValue(ctx, tx, value, name, audit.AuditLogEventTypeUpdated, ddbsettings.SettingValueSetServiceEventType); err != nil {
 		return nil, err
 	}
 
@@ -145,29 +151,28 @@ func (r *repository) SetValue(ctx context.Context, scope tenancy.Scope, subject 
 
 // ClearValue takes the subject's answer back, then records it.
 //
-// The value is read before the store runs, so the entry and the event can name
-// the row that was cleared. Read afterwards it would still be there — clearing
-// archives rather than deletes — but the read that found it would have to ask for
-// archived rows, which is a different question than "what did this person
-// answer".
-func (r *repository) ClearValue(ctx context.Context, scope tenancy.Scope, subject platformsettings.Subject, name string) error {
+// There is no read before the store runs any more. It used to need one so the
+// entry and the event could name the row that was cleared; v14's ClearValue
+// returns the row it archived, which is the same value without the round trip
+// and without the window between the two statements.
+func (r *repository) ClearValue(ctx context.Context, tx database.Tx, scope tenancy.Scope, subject platformsettings.Subject, name string) (*platformsettings.Value, error) {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
 	tracing.AttachToSpan(span, settingskeys.SettingNameKey, name)
 
-	value, err := r.GetValue(ctx, scope, subject, name)
+	cleared, err := r.Store.ClearValue(ctx, tx, scope, subject, name)
 	if err != nil {
-		return observability.PrepareError(err, span, "fetching setting value to record")
+		return nil, err
 	}
 
-	if err = r.Store.ClearValue(ctx, scope, subject, name); err != nil {
-		return err
+	tracing.AttachToSpan(span, settingskeys.SettingValueIDKey, cleared.ID)
+
+	if err = r.recordValue(ctx, tx, cleared, name, audit.AuditLogEventTypeArchived, ddbsettings.SettingValueClearedServiceEventType); err != nil {
+		return nil, err
 	}
 
-	tracing.AttachToSpan(span, settingskeys.SettingValueIDKey, value.ID)
-
-	return r.recordValue(ctx, value, name, audit.AuditLogEventTypeArchived, ddbsettings.SettingValueClearedServiceEventType)
+	return cleared, nil
 }
 
 // recordDefinition writes the audit entry and the data change event for a write
@@ -177,8 +182,8 @@ func (r *repository) ClearValue(ctx context.Context, scope tenancy.Scope, subjec
 // belongs to nobody: who wrote it is the actor on the context, which is what the
 // audit recorder resolves. That is the same shape the table this replaced
 // recorded under.
-func (r *repository) recordDefinition(ctx context.Context, definition *platformsettings.Definition, auditEventType, changeEventType string) error {
-	return r.record(ctx, "", resourceTypeSettingDefinitions, definition.ID, auditEventType, changeEventType, map[string]any{
+func (r *repository) recordDefinition(ctx context.Context, tx database.Tx, definition *platformsettings.Definition, auditEventType, changeEventType string) error {
+	return r.record(ctx, tx, "", resourceTypeSettingDefinitions, definition.ID, auditEventType, changeEventType, map[string]any{
 		settingskeys.SettingDefinitionIDKey: definition.ID,
 		settingskeys.SettingNameKey:         definition.Name,
 	})
@@ -191,16 +196,22 @@ func (r *repository) recordDefinition(ctx context.Context, definition *platforms
 // request. The two are the same today — nobody may write somebody else's setting
 // — and filing it under the subject is what keeps "what has this person chosen,
 // and when did they change it" answerable if that ever stops being true.
-func (r *repository) recordValue(ctx context.Context, value *platformsettings.Value, name, auditEventType, changeEventType string) error {
-	return r.record(ctx, value.Subject.ID, resourceTypeSettingValues, value.ID, auditEventType, changeEventType, map[string]any{
+func (r *repository) recordValue(ctx context.Context, tx database.Tx, value *platformsettings.Value, name, auditEventType, changeEventType string) error {
+	return r.record(ctx, tx, value.Subject.ID, resourceTypeSettingValues, value.ID, auditEventType, changeEventType, map[string]any{
 		settingskeys.SettingValueIDKey:      value.ID,
 		settingskeys.SettingDefinitionIDKey: value.DefinitionID,
 		settingskeys.SettingNameKey:         name,
 	})
 }
 
-// record writes the audit entry and enqueues the data change event, in one
-// transaction of their own.
+// record writes the audit entry and enqueues the data change event, inside the
+// caller's transaction.
+//
+// It used to open one of its own, because the write it describes had already
+// committed inside the platform store. As of platform-go v14 that store takes
+// the caller's executor, so the write, the entry and the event are one
+// transaction: there is no longer a window in which a setting changed and
+// nothing recorded that it had.
 //
 // The two travel together because they answer the same question from opposite
 // sides — the audit log for whoever asks later who did this, the outbox for
@@ -213,6 +224,7 @@ func (r *repository) recordValue(ctx context.Context, value *platformsettings.Va
 // the emitter.
 func (r *repository) record(
 	ctx context.Context,
+	tx database.Tx,
 	userID, resourceType, relevantID, auditEventType, changeEventType string,
 	metadata map[string]any,
 ) error {
@@ -221,13 +233,11 @@ func (r *repository) record(
 
 	logger := r.logger.WithSpan(span).WithValue(settingskeys.SettingNameKey, metadata[settingskeys.SettingNameKey])
 
-	return r.client.WithTransaction(ctx, func(tx database.Tx) error {
-		return r.recorder.RecordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
-			ID:            identifiers.New(),
-			ResourceType:  resourceType,
-			RelevantID:    relevantID,
-			EventType:     auditEventType,
-			BelongsToUser: userID,
-		}, changeEventType, "", metadata)
-	})
+	return r.recorder.RecordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
+		ID:            identifiers.New(),
+		ResourceType:  resourceType,
+		RelevantID:    relevantID,
+		EventType:     auditEventType,
+		BelongsToUser: userID,
+	}, changeEventType, "", metadata)
 }

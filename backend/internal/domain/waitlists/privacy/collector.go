@@ -17,11 +17,13 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists"
 
-	"github.com/primandproper/platform-go/v13/database"
-	platformdataprivacy "github.com/primandproper/platform-go/v13/dataprivacy"
-	platformerrors "github.com/primandproper/platform-go/v13/errors"
-	"github.com/primandproper/platform-go/v13/filtering"
-	platformwaitlists "github.com/primandproper/platform-go/v13/waitlists"
+	platformdataprivacy "github.com/primandproper/platform-go/v14/dataprivacy"
+	platformwaitlists "github.com/primandproper/platform-go/v14/waitlists"
+	"github.com/primandproper/primitives-go/v2/database"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/filtering"
+	"github.com/primandproper/primitives-go/v2/pointer"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
 // NewCollector builds the waitlists collector: every signup belonging to the
@@ -32,9 +34,12 @@ import (
 // that remembers a suppression no longer says whose it was. What it holds after
 // that is a digest of an address and nothing else, which is not data about an
 // identifiable person to export.
-func NewCollector(store platformwaitlists.SignupStore) platformdataprivacy.Collector {
-	return platformdataprivacy.CollectorFor(func(ctx context.Context, subject platformdataprivacy.Subject, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[platformwaitlists.Signup], error) {
-		return store.ListSignupsForSubject(ctx, waitlists.Scope(), waitlists.SubjectFor(subject.ID), filter)
+// The reader is taken at construction because dataprivacy.Collector.Collect is
+// handed no executor. The request scope is not consulted: every signup this
+// deployment writes is in waitlists.Scope.
+func NewCollector(store platformwaitlists.SignupStore, reader database.SQLQueryExecutor) platformdataprivacy.Collector {
+	return platformdataprivacy.CollectorFor(func(ctx context.Context, _ tenancy.Scope, subject platformdataprivacy.Subject, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[platformwaitlists.Signup], error) {
+		return store.ListSignupsForSubject(ctx, reader, waitlists.Scope(), waitlists.SubjectFor(subject.ID), filter)
 	})
 }
 
@@ -56,26 +61,24 @@ func NewCollector(store platformwaitlists.SignupStore) platformdataprivacy.Colle
 // fact that it is suppressed. That is reported in the outcome rather than left
 // implicit, because it is the sort of thing that gets asked about afterwards.
 //
-// # Two things this does not do
+// # What platform-go #458 closed
 //
-// It does not run inside the caller's transaction, and it must. platform's
-// Withdraw owns its own, so an erasure that fails after this eraser has run
-// leaves these rows withdrawn while every other domain rolls back. The blast
-// radius is small — a withdrawal is idempotent in effect, and a retried request
-// reaches the same rows — but it is a real departure from the Eraser contract,
-// and closing it needs a Withdraw that takes a database.Tx. Filed upstream as
-// platform-go #458 rather than worked around here.
-//
-// It does not touch archived signups, for the same reason: the store's read of a
-// subject's signups is a read of live rows. An administratively archived signup
-// still holds the address it was made with, and reaching it needs a store method
-// that pages archived rows — the third item on platform-go #458.
+// Both of this eraser's departures from the Eraser contract are gone in v14.
+// Withdraw takes the caller's database.Tx, so a withdrawal now commits with the
+// rest of the subject's erasure or not at all; and ListSignupsForSubject pages
+// archived rows when the filter asks, so an administratively archived signup —
+// which still holds the address it was made with — is reached like any other.
+// Both reads below therefore run on the erasure's own transaction rather than on
+// a handle of their own.
 func NewEraser(store platformwaitlists.SignupStore) platformdataprivacy.Eraser {
-	return platformdataprivacy.EraserFunc(func(ctx context.Context, _ database.Tx, subject platformdataprivacy.Subject) (platformdataprivacy.ErasureOutcome, error) {
+	return platformdataprivacy.EraserFunc(func(ctx context.Context, tx database.Tx, _ tenancy.Scope, subject platformdataprivacy.Subject) (platformdataprivacy.ErasureOutcome, error) {
 		outcome := platformdataprivacy.ErasureOutcome{}
 
 		signups, err := platformdataprivacy.CollectAll(ctx, func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[platformwaitlists.Signup], error) {
-			return store.ListSignupsForSubject(ctx, waitlists.Scope(), waitlists.SubjectFor(subject.ID), filter)
+			everything := *filter
+			everything.IncludeArchived = pointer.To(true)
+
+			return store.ListSignupsForSubject(ctx, tx, waitlists.Scope(), waitlists.SubjectFor(subject.ID), &everything)
 		})
 		if err != nil {
 			return outcome, platformerrors.Wrap(err, "reading the subject's waitlist signups")
@@ -84,7 +87,7 @@ func NewEraser(store platformwaitlists.SignupStore) platformdataprivacy.Eraser {
 		for i := range signups {
 			signup := signups[i]
 
-			if err = store.Withdraw(ctx, waitlists.Scope(), signup.ListID, signup.ID); err != nil {
+			if _, err = store.Withdraw(ctx, tx, waitlists.Scope(), signup.ListID, signup.ID); err != nil {
 				return outcome, platformerrors.Wrapf(err, "withdrawing waitlist signup %q", signup.ID)
 			}
 

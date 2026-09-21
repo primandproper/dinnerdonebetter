@@ -1,22 +1,22 @@
 package authorization
 
-const (
-	// CreateIssueReportsPermission is an account admin permission.
-	CreateIssueReportsPermission Permission = "create.issue_reports"
-	// ReadIssueReportsPermission is an account admin permission.
-	ReadIssueReportsPermission Permission = "read.issue_reports"
-	// UpdateIssueReportsPermission is an account admin permission.
-	UpdateIssueReportsPermission Permission = "update.issue_reports"
-	// ArchiveIssueReportsPermission is an account admin permission.
-	ArchiveIssueReportsPermission Permission = "archive.issue_reports"
+import (
+	issuereportsgrpc "github.com/primandproper/platform-go/v14/issuereports/grpc"
 )
 
-var (
-	// IssueReportsPermissions contains all issue report-related permissions.
-	IssueReportsPermissions = []Permission{
-		CreateIssueReportsPermission,
-		ReadIssueReportsPermission,
-		UpdateIssueReportsPermission,
-		ArchiveIssueReportsPermission,
-	}
+// The issue report permissions are platform's, re-exported under the names this
+// application's policy already spells. See comments_permissions.go.
+const (
+	// CreateIssueReportsPermission is a permission.
+	CreateIssueReportsPermission = issuereportsgrpc.PermissionFileReports
+	// ReadIssueReportsPermission is a permission.
+	ReadIssueReportsPermission = issuereportsgrpc.PermissionReadReports
+	// TriageIssueReportsPermission gates the administrative reads.
+	TriageIssueReportsPermission = issuereportsgrpc.PermissionTriageReports
+	// UpdateIssueReportsPermission is a permission.
+	UpdateIssueReportsPermission = issuereportsgrpc.PermissionUpdateReports
+	// TransitionIssueReportsPermission gates moving a report through triage.
+	TransitionIssueReportsPermission = issuereportsgrpc.PermissionTransitionReports
+	// ArchiveIssueReportsPermission is a permission.
+	ArchiveIssueReportsPermission = issuereportsgrpc.PermissionArchiveReports
 )

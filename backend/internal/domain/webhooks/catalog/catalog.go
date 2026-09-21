@@ -13,7 +13,7 @@
 package catalog
 
 import (
-	"github.com/primandproper/platform-go/v13/webhooks"
+	"github.com/primandproper/platform-go/v14/webhooks"
 )
 
 // definitions is the generated catalog.
@@ -67,12 +67,13 @@ var definitions = webhooks.Catalog{
 	"meal_plan_updated":                               {Description: "A meal plan was updated."},
 	"oauth2_client_archived":                          {Description: "An OAuth2 client was archived."},
 	"oauth2_client_created":                           {Description: "An OAuth2 client was created."},
+	"oauth2_client_updated":                           {Description: "A registration's description changed. The four descriptive fields only. A revision cannot rotate a secret — platform's UpdateInput has no field for one, deliberately, because a credential changed by an UPDATE is one nobody was handed a new value for — so this event never means the thing a subscriber would most want to be told about. No RPC reaches it either; it is published by the store, which is the seam a future one would go through."},
 	"password_changed":                                {Description: "A user changed their password."},
 	"password_reset_token_created":                    {Description: "A user created a password reset token."},
 	"password_reset_token_redeemed":                   {Description: "A user created a password reset token."},
-	"product_archived":                                {Description: "A product was archived."},
-	"product_created":                                 {Description: "A product was created."},
-	"product_updated":                                 {Description: "A product was updated."},
+	"product_archived":                                {Description: "A product was withdrawn from sale."},
+	"product_created":                                 {Description: "A product was added to the catalog."},
+	"product_updated":                                 {Description: "A product's name, price, kind, interval or provider-side id changed."},
 	"recipe_archived":                                 {Description: "A recipe was archived."},
 	"recipe_cloned":                                   {Description: "A recipe was cloned."},
 	"recipe_created":                                  {Description: "A recipe was created."},
@@ -106,14 +107,15 @@ var definitions = webhooks.Catalog{
 	"setting_definition_updated":                      {Description: "A setting's kind, default, enumeration or description changed."},
 	"setting_value_cleared":                           {Description: "Somebody took their answer back."},
 	"setting_value_set":                               {Description: "Somebody answered a setting."},
-	"subscription_archived":                           {Description: "A subscription was archived."},
-	"subscription_created":                            {Description: "A subscription was created."},
-	"subscription_updated":                            {Description: "A subscription was updated."},
+	"subscription_archived":                           {Description: "A subscription was retired administratively, which is not a cancellation."},
+	"subscription_created":                            {Description: "An agreement was opened."},
+	"subscription_updated":                            {Description: "A subscription's plan, status or paid period moved — whether by an administrative edit or by a provider's event."},
 	"two_factor_deactivated":                          {Description: "A user's two factor secret was deactivated and verified_at timestamp was reset."},
 	"two_factor_secret_changed":                       {Description: "A user's two factor secret was changed and verified_at timestamp was reset."},
 	"two_factor_secret_verified":                      {Description: "A user's two factor secret was verified."},
 	"uploaded_media_archived":                         {Description: "Uploaded media was archived."},
 	"uploaded_media_created":                          {Description: "Uploaded media was created."},
+	"user_agreement_recorded":                         {Description: "A user accepted terms. Also new with the adoption. platform records agreements against the user; nothing here asked for them before, and the event exists so that the thing a compliance question is actually about — when somebody agreed to what — is on the same channel as every other user fact."},
 	"user_archived":                                   {Description: "A user archived their account."},
 	"user_avatar_changed":                             {Description: "A user changed their avatar."},
 	"user_details_changed":                            {Description: "A user changed their information."},
@@ -130,6 +132,7 @@ var definitions = webhooks.Catalog{
 	"user_notification_created":                       {Description: "A user notification was created."},
 	"user_notification_updated":                       {Description: "A user notification was updated."},
 	"user_password_change_required":                   {Description: "A user was marked as requiring a password change."},
+	"user_service_roles_changed":                      {Description: "A user's service roles were set. New with the platform adoption: this application had no RPC that set a service role, so nothing published one. platform's SetUserServiceRoles is the operation that grants and revokes them, and the hook it fires is the one place an audit trail can say who became an administrator and when."},
 	"user_session_created":                            {Description: "A user session was created."},
 	"user_session_revoked":                            {Description: "A user session was revoked."},
 	"user_signed_up":                                  {Description: "A user signed up."},
@@ -188,8 +191,10 @@ var definitions = webhooks.Catalog{
 	"waitlist_updated":                                {Description: "A waitlist's name, description or closing time changed."},
 	"webhook_archived":                                {Description: "A webhook was archived."},
 	"webhook_created":                                 {Description: "A webhook was created."},
+	"webhook_secret_rotated":                          {Description: "A webhook's signing secret changed, and carries no secret."},
 	"webhook_trigger_config_archived":                 {Description: "A webhook trigger config was archived."},
 	"webhook_trigger_config_created":                  {Description: "A webhook trigger config was created."},
+	"webhook_updated":                                 {Description: "A webhook's name, URL or content type changed."},
 }
 
 // Catalog returns the event types a webhook may subscribe to.

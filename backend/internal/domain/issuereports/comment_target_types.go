@@ -1,7 +1,7 @@
 package issuereports
 
 import (
-	comments "github.com/primandproper/platform-go/v13/comments"
+	comments "github.com/primandproper/platform-go/v14/comments"
 )
 
 // CommentTargetTypeIssueReports is the kind of thing in this domain that a

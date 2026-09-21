@@ -3,8 +3,8 @@ package dataprivacy
 import (
 	"context"
 
-	platformdataprivacy "github.com/primandproper/platform-go/v13/dataprivacy"
-	"github.com/primandproper/platform-go/v13/filtering"
+	platformdataprivacy "github.com/primandproper/platform-go/v14/dataprivacy"
+	"github.com/primandproper/primitives-go/v2/filtering"
 )
 
 // CollectAcrossAccounts runs fetch once per account and concatenates the results.

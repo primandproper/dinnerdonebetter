@@ -119,8 +119,10 @@ class RecipeListViewModel {
     hasCheckedServiceAdmin = true
 
     do {
+      // A set of roles rather than one. A service role is a grant and somebody may hold
+      // several, which is what the single column this replaced could not express.
       let user = try await CurrentUserService.shared.currentUser(using: authManager)
-      isServiceAdmin = user.serviceRole == "service_admin"
+      isServiceAdmin = user.serviceRoles.contains("service_admin")
     } catch {
       // Non-fatal: just leave isServiceAdmin false
     }

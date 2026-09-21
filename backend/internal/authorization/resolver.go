@@ -1,13 +1,13 @@
 package authorization
 
 import (
-	platformauthz "github.com/primandproper/platform-go/v13/authorization"
-	authzdatabase "github.com/primandproper/platform-go/v13/authorization/database"
-	"github.com/primandproper/platform-go/v13/database"
-	"github.com/primandproper/platform-go/v13/database/dialect"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/metrics"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
+	authzdatabase "github.com/primandproper/platform-go/v14/rbac"
+	platformauthz "github.com/primandproper/primitives-go/v2/authorization"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/database/dialect"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/metrics"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
 )
 
 // NewDatabaseResolver builds the resolver that answers what a role grants, over the

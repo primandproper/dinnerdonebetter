@@ -20,7 +20,8 @@ import type {
   RevokeCurrentSessionRequest,
   RevokeCurrentSessionResponse,
 } from './auth/auth_service_types.js';
-import { IdentityServiceClient } from './identity/identity_service.js';
+// The directory is platform's — see create-clients.ts for what its RPCs are called now.
+import { IdentityServiceClient } from './primandproper/platform/identity/v1/identity.js';
 import { OAuthServiceClient } from './oauth/oauth_service.js';
 import { PaymentsServiceClient } from './payments/payments_service.js';
 import { SettingsServiceClient } from './settings/settings_service.js';
@@ -166,46 +167,43 @@ export function createAdminGrpcClients(config: GrpcClientConfig) {
     // Identity – request types are intentionally loose; callers pass proto-shaped objects
     getUser: (token: string, request: { userId: string }) =>
       promisifyUnary(get.identity().getUser.bind(get.identity()))(request as any, authMetadata(token)),
-    getUsers: (token: string, request: Record<string, unknown>) =>
-      promisifyUnary(get.identity().getUsers.bind(get.identity()))(
-        request as unknown as Parameters<IdentityServiceClient['getUsers']>[0],
+    listUsers: (token: string, request: Record<string, unknown>) =>
+      promisifyUnary(get.identity().listUsers.bind(get.identity()))(
+        request as unknown as Parameters<IdentityServiceClient['listUsers']>[0],
         authMetadata(token),
       ),
     getAccount: (token: string, request: { accountId: string }) =>
       promisifyUnary(get.identity().getAccount.bind(get.identity()))(request as any, authMetadata(token)),
-    getAccounts: (token: string, request: Record<string, unknown>) =>
-      promisifyUnary(get.identity().getAccounts.bind(get.identity()))(
-        request as unknown as Parameters<IdentityServiceClient['getAccounts']>[0],
+    listAccounts: (token: string, request: Record<string, unknown>) =>
+      promisifyUnary(get.identity().listAccounts.bind(get.identity()))(
+        request as unknown as Parameters<IdentityServiceClient['listAccounts']>[0],
         authMetadata(token),
       ),
-    searchForUsers: (token: string, request: Record<string, unknown>) =>
-      promisifyUnary(get.identity().searchForUsers.bind(get.identity()))(
-        request as unknown as Parameters<IdentityServiceClient['searchForUsers']>[0],
+    // Searching and reading are one permission upstream, on the reading that finding a
+    // user and reading one are the same disclosure.
+    searchUsersByUsername: (token: string, request: Record<string, unknown>) =>
+      promisifyUnary(get.identity().searchUsersByUsername.bind(get.identity()))(
+        request as unknown as Parameters<IdentityServiceClient['searchUsersByUsername']>[0],
         authMetadata(token),
       ),
-    getUsersForAccount: (token: string, request: Record<string, unknown>) =>
-      promisifyUnary(get.identity().getUsersForAccount.bind(get.identity()))(
-        request as unknown as Parameters<IdentityServiceClient['getUsersForAccount']>[0],
+    listAccountMembers: (token: string, request: Record<string, unknown>) =>
+      promisifyUnary(get.identity().listAccountMembers.bind(get.identity()))(
+        request as unknown as Parameters<IdentityServiceClient['listAccountMembers']>[0],
         authMetadata(token),
       ),
-    getAccountsForUser: (token: string, request: Record<string, unknown>) =>
-      promisifyUnary(get.identity().getAccountsForUser.bind(get.identity()))(
-        request as unknown as Parameters<IdentityServiceClient['getAccountsForUser']>[0],
+    listAccountsForUser: (token: string, request: Record<string, unknown>) =>
+      promisifyUnary(get.identity().listAccountsForUser.bind(get.identity()))(
+        request as unknown as Parameters<IdentityServiceClient['listAccountsForUser']>[0],
         authMetadata(token),
       ),
-    adminUpdateUserStatus: (token: string, request: Record<string, unknown>) =>
-      promisifyUnary(get.identity().adminUpdateUserStatus.bind(get.identity()))(
-        request as unknown as Parameters<IdentityServiceClient['adminUpdateUserStatus']>[0],
+    updateUserAccountStatus: (token: string, request: Record<string, unknown>) =>
+      promisifyUnary(get.identity().updateUserAccountStatus.bind(get.identity()))(
+        request as unknown as Parameters<IdentityServiceClient['updateUserAccountStatus']>[0],
         authMetadata(token),
       ),
-    adminSetPasswordChangeRequired: (token: string, request: Record<string, unknown>) =>
-      promisifyUnary(get.identity().adminSetPasswordChangeRequired.bind(get.identity()))(
-        request as unknown as Parameters<IdentityServiceClient['adminSetPasswordChangeRequired']>[0],
-        authMetadata(token),
-      ),
-    updateUserDetails: (token: string, request: Record<string, unknown>) =>
-      promisifyUnary(get.identity().updateUserDetails.bind(get.identity()))(
-        request as unknown as Parameters<IdentityServiceClient['updateUserDetails']>[0],
+    updateProfile: (token: string, request: Record<string, unknown>) =>
+      promisifyUnary(get.identity().updateProfile.bind(get.identity()))(
+        request as unknown as Parameters<IdentityServiceClient['updateProfile']>[0],
         authMetadata(token),
       ),
     updateAccount: (token: string, request: Record<string, unknown>) =>

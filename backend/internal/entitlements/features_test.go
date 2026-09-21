@@ -5,7 +5,7 @@ import (
 
 	appmetering "github.com/primandproper/dinnerdonebetter/backend/internal/metering"
 
-	platformentitlements "github.com/primandproper/platform-go/v13/entitlements"
+	platformentitlements "github.com/primandproper/platform-go/v14/entitlements"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

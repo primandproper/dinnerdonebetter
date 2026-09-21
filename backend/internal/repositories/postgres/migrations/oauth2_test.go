@@ -6,31 +6,32 @@ import (
 	ddboauth "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	"github.com/primandproper/platform-go/v13/authentication/oauth2server"
-	oauth2database "github.com/primandproper/platform-go/v13/authentication/oauth2server/database"
-	"github.com/primandproper/platform-go/v13/authentication/oauth2server/oauth2servertest"
-	"github.com/primandproper/platform-go/v13/database/postgres"
-	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v13/observability/tracing/noop"
+	oauth2database "github.com/primandproper/platform-go/v14/authentication/oauth2serverstore"
+	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
+	"github.com/primandproper/primitives-go/v2/authentication/oauth2server/oauth2servertest"
+	"github.com/primandproper/primitives-go/v2/clock"
+	"github.com/primandproper/primitives-go/v2/database/postgres"
+	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
+	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 // TestQuerier_Migrate_OAuth2ServerTables is the scenario the oauth2 table prefix
-// exists for, and unlike the audit one it is not a database this repository merely
-// might encounter: 00004_oauth.sql creates a table called oauth2_clients in every
-// database we have, and the platform's schema names its first table the same thing.
+// exists for: two different things in this schema have wanted to be called
+// oauth2_clients, and one of them has to carry a namespace or the other's DDL —
+// CREATE TABLE IF NOT EXISTS, every time — is a silent no-op against a table with
+// entirely different columns, and the authorization server fails on its first
+// registration rather than at migration time.
 //
-// The platform's DDL says CREATE TABLE IF NOT EXISTS, so without the prefix this
-// migration would be a silent no-op against a table with entirely different columns,
-// and the authorization server would fail on its first registration rather than at
-// migration time.
-//
-// The prefix outlived the coexistence it was introduced for. Both authorization
-// servers are the platform's now, but oauth2_clients is still ours — the administered
-// client registry, with a listing endpoint, permissions and an audit trail behind it —
-// so the two tables of that name still have to be two tables.
+// Both of them carry one now. The hand-written oauth2_clients this repository used
+// to keep is gone: the administered client registry is platform's
+// oauth2_registered_clients, adopted at migration 22, and the authorization server's
+// own client table is platform's oauth2_clients. Two tables under one prefix rather
+// than a prefixed one beside a bare one — which is the arrangement that still needs
+// pinning, because a registry whose rows landed in the server's clients table would
+// be a registration endpoint quietly minting credentials the server honors.
 func TestQuerier_Migrate_OAuth2ServerTables(T *testing.T) {
 	T.Parallel()
 
@@ -59,21 +60,28 @@ func TestQuerier_Migrate_OAuth2ServerTables(T *testing.T) {
 			assert.Equal(t, 1, count, "missing %s", ddboauth.TablePrefix+table)
 		}
 
-		// And the client registry is still its own table. `client_secret` is a column
-		// only our shape has — the platform's clients table stores a `secret_hash` — so
-		// finding it here proves the two did not merge.
-		var registrySecret int
+		// And the registry is its own table beside them. It is the fifth, not one of
+		// the four: a listing endpoint, permissions and an audit trail sit behind it,
+		// and the server's clients table has none of that.
+		var registry int
 		require.NoError(t, db.QueryRowContext(ctx,
-			`SELECT COUNT(*) FROM information_schema.columns
-			 WHERE table_name = 'oauth2_clients' AND column_name = 'client_secret'`).Scan(&registrySecret))
-		assert.Equal(t, 1, registrySecret, "the client registry table must be untouched")
+			`SELECT COUNT(*) FROM information_schema.tables WHERE table_name = $1`,
+			ddboauth.TablePrefix+"_oauth2_registered_clients").Scan(&registry))
+		assert.Equal(t, 1, registry, "the client registry table must exist")
 
-		var platformSecret int
-		require.NoError(t, db.QueryRowContext(ctx,
-			`SELECT COUNT(*) FROM information_schema.columns
-			 WHERE table_name = $1 AND column_name = 'secret_hash'`,
-			ddboauth.TablePrefix+"_oauth2_clients").Scan(&platformSecret))
-		assert.Equal(t, 1, platformSecret, "the platform's clients table must be the platform's shape")
+		// belongs_to_user is the column that tells them apart: a registered client has
+		// an owner, and the server's clients table has no such notion. Finding it on
+		// one and not the other proves the two DDLs did not land on one table.
+		for table, expected := range map[string]int{
+			ddboauth.TablePrefix + "_oauth2_registered_clients": 1,
+			ddboauth.TablePrefix + "_oauth2_clients":            0,
+		} {
+			var owned int
+			require.NoError(t, db.QueryRowContext(ctx,
+				`SELECT COUNT(*) FROM information_schema.columns
+				 WHERE table_name = $1 AND column_name = 'belongs_to_user'`, table).Scan(&owned))
+			assert.Equal(t, expected, owned, "belongs_to_user on %s", table)
+		}
 	})
 }
 
@@ -107,18 +115,26 @@ func TestOAuth2Store_Conformance(T *testing.T) {
 	)
 	require.NoError(T, err)
 
-	store, err := oauth2database.NewStore(
-		&oauth2database.Config{TablePrefix: ddboauth.TablePrefix},
-		client,
-		oauth2database.WithLogger(loggingnoop.NewLogger()),
-		oauth2database.WithTracerProvider(tracingnoop.NewTracerProvider()),
-	)
-	require.NoError(T, err)
+	// A store per call rather than one for the suite, because the factory is handed a clock
+	// now: the sweep cases build a store on a clock they can advance, and the rest get the
+	// wall clock. The database is still shared — the suite gives each record it writes a
+	// unique identifier precisely so one database can serve every subtest in parallel.
+	//
+	// No WithInstanceLocalState here — that deviation is the memory store's, and claiming it
+	// would skip the cases that prove this one is shareable across replicas, which is the
+	// entire reason we are on it.
+	oauth2servertest.Run(T, func(tb testing.TB, c clock.Clock) oauth2server.Store {
+		tb.Helper()
 
-	// One store for every subtest: the suite gives each record it writes a unique
-	// identifier precisely so a single database can serve all of them in parallel.
-	// No WithInstanceLocalState here — that deviation is the memory store's, and
-	// claiming it would skip the cases that prove this one is shareable across
-	// replicas, which is the entire reason we are on it.
-	oauth2servertest.Run(T, func(testing.TB) oauth2server.Store { return store })
+		store, storeErr := oauth2database.NewStore(
+			&oauth2database.Config{TablePrefix: ddboauth.TablePrefix},
+			client,
+			oauth2database.WithClock(c),
+			oauth2database.WithLogger(loggingnoop.NewLogger()),
+			oauth2database.WithTracerProvider(tracingnoop.NewTracerProvider()),
+		)
+		require.NoError(tb, storeErr)
+
+		return store
+	})
 }

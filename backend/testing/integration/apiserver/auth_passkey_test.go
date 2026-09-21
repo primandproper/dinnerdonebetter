@@ -4,9 +4,10 @@ import (
 	"context"
 	"testing"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
+
+	identity "github.com/primandproper/platform-go/v14/identity"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -227,7 +228,7 @@ func TestAuth_PasskeyCeremony(T *testing.T) {
 
 			var stored uint32
 			require.NoError(t, databaseClient.Reader().QueryRowContext(ctx,
-				`SELECT sign_count FROM webauthn_credentials WHERE belongs_to_user = $1`, user.ID).Scan(&stored))
+				`SELECT sign_count FROM ddb_webauthn_credentials WHERE belongs_to_user = $1`, user.ID).Scan(&stored))
 
 			signCounts = append(signCounts, stored)
 		}

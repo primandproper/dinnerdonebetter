@@ -7,11 +7,13 @@ import (
 	"strings"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
+	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 
-	"github.com/primandproper/platform-go/v13/authentication/oauth2server"
-	"github.com/primandproper/platform-go/v13/authentication/tokens"
-	"github.com/primandproper/platform-go/v13/authentication/totp"
+	platformidentity "github.com/primandproper/platform-go/v14/identity"
+	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
+	"github.com/primandproper/primitives-go/v2/authentication/tokens"
+	"github.com/primandproper/primitives-go/v2/authentication/totp"
+	"github.com/primandproper/primitives-go/v2/database"
 )
 
 // ClaimAccountID is the Subject claim naming the account a token acts on behalf of.
@@ -51,7 +53,8 @@ const loginFailedMessage = "Sign-in failed. Check your details and try again."
 // pre-authenticated request by returning the Subject would let the JWT path be an
 // authenticator rather than a fork inside one.
 type subjectAuthenticator struct {
-	identityRepo  identity.Repository
+	directory     platformidentity.SignInReader
+	db            database.Client
 	authenticator authentication.Authenticator
 	totpVerifier  totp.Verifier
 	tokenIssuer   tokens.Issuer
@@ -100,14 +103,15 @@ func (a *subjectAuthenticator) subjectFromCredentials(ctx context.Context, req *
 	password := req.FormValue("password")
 	totpToken := req.FormValue("totp_token")
 
-	user, err := a.identityRepo.GetUserByUsername(ctx, username)
+	user, err := a.directory.GetUserByUsername(ctx, a.db.Reader(), ddbidentity.Scope(), username)
 	if err != nil || user == nil {
 		return nil, oauth2server.NewLoginError(loginFailedMessage, err)
 	}
 
-	if user.IsBanned() {
-		return nil, oauth2server.NewLoginError("Access denied. Account is banned.", nil)
-	}
+	// No status check here. It is made below, by the read that resolves the account this
+	// token will act for: GetPrincipal refuses a user whose status does not admit signing
+	// in, before it reads a membership. A second check here would be a second copy of the
+	// rule, and the one that drifts is the one nobody looks at.
 
 	matches, err := a.authenticator.PasswordMatches(ctx, user.HashedPassword, password)
 	if err != nil || !matches {
@@ -132,15 +136,20 @@ func (a *subjectAuthenticator) subjectFromCredentials(ctx context.Context, req *
 // Not a LoginError: the credentials were right and the account has no resolvable default,
 // which is a broken record rather than a wrong password. Re-rendering the form would be asking
 // the human to fix it by typing.
+//
+// The read is the principal rather than a default-account lookup, because it is the same
+// read every authenticated request makes and it enforces the account status on the way —
+// so a banned user is refused here rather than issued a token that every subsequent
+// request rejects.
 func (a *subjectAuthenticator) subjectForUser(ctx context.Context, userID string) (*oauth2server.Subject, error) {
-	accountID, err := a.identityRepo.GetDefaultAccountIDForUser(ctx, userID)
+	principal, err := a.directory.GetPrincipal(ctx, a.db.Reader(), ddbidentity.Scope(), userID, "")
 	if err != nil {
 		return nil, err
 	}
 
 	return &oauth2server.Subject{
 		ID:     userID,
-		Claims: map[string]string{ClaimAccountID: accountID},
+		Claims: map[string]string{ClaimAccountID: principal.ActiveAccountID},
 	}, nil
 }
 

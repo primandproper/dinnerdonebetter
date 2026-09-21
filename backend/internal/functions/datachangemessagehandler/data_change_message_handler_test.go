@@ -5,25 +5,27 @@ import (
 	"testing"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
-	identitymock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/mock"
 	internalopsmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/internalops/mock"
 	mealplanningmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
-	notificationsmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/mock"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/push"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
-	analyticsmock "github.com/primandproper/platform-go/v13/analytics/mock"
-	emailmock "github.com/primandproper/platform-go/v13/email/mock"
-	encodingmock "github.com/primandproper/platform-go/v13/encoding/mock"
-	"github.com/primandproper/platform-go/v13/messagequeue"
-	msgqueuemock "github.com/primandproper/platform-go/v13/messagequeue/mock"
-	noopnotifications "github.com/primandproper/platform-go/v13/notifications/mobile/noop"
-	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
-	"github.com/primandproper/platform-go/v13/observability/metrics"
-	mockmetrics "github.com/primandproper/platform-go/v13/observability/metrics/mock"
-	metricsnoop "github.com/primandproper/platform-go/v13/observability/metrics/noop"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
-	tracingnoop "github.com/primandproper/platform-go/v13/observability/tracing/noop"
+	identitymock "github.com/primandproper/platform-go/v14/identity/mock"
+	platformnotificationsmock "github.com/primandproper/platform-go/v14/notifications/mock"
+	"github.com/primandproper/platform-go/v14/notifications/push"
+	analyticsmock "github.com/primandproper/primitives-go/v2/analytics/mock"
+	"github.com/primandproper/primitives-go/v2/database"
+	mockdatabase "github.com/primandproper/primitives-go/v2/database/mock"
+	emailmock "github.com/primandproper/primitives-go/v2/email/mock"
+	encodingmock "github.com/primandproper/primitives-go/v2/encoding/mock"
+	"github.com/primandproper/primitives-go/v2/messagequeue"
+	msgqueuemock "github.com/primandproper/primitives-go/v2/messagequeue/mock"
+	noopnotifications "github.com/primandproper/primitives-go/v2/notifications/mobile/noop"
+	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
+	"github.com/primandproper/primitives-go/v2/observability/metrics"
+	mockmetrics "github.com/primandproper/primitives-go/v2/observability/metrics/mock"
+	metricsnoop "github.com/primandproper/primitives-go/v2/observability/metrics/noop"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
+	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -31,13 +33,13 @@ import (
 )
 
 //nolint:gocritic // I know this returns too many things
-func buildTestAsyncDataChangeMessageHandler(t *testing.T) (*AsyncDataChangeMessageHandler, *identitymock.RepositoryMock, *msgqueuemock.ConsumerProviderMock, *msgqueuemock.PublisherProviderMock, *analyticsmock.EventReporterMock, *emailmock.EmailerMock, *mockmetrics.ProviderMock, *encodingmock.ServerEncoderDecoderMock) {
+func buildTestAsyncDataChangeMessageHandler(t *testing.T) (*AsyncDataChangeMessageHandler, *identitymock.StoreMock, *msgqueuemock.ConsumerProviderMock, *msgqueuemock.PublisherProviderMock, *analyticsmock.EventReporterMock, *emailmock.EmailerMock, *mockmetrics.ProviderMock, *encodingmock.ServerEncoderDecoderMock) {
 	t.Helper()
 
 	logger := loggingnoop.NewLogger()
 	tracer := tracing.NewTracerForTest(t.Name())
 
-	identityRepo := &identitymock.RepositoryMock{}
+	identityRepo := &identitymock.StoreMock{}
 	consumerProvider := &msgqueuemock.ConsumerProviderMock{}
 	publisherProvider := &msgqueuemock.PublisherProviderMock{}
 	analyticsEventReporter := &analyticsmock.EventReporterMock{}
@@ -71,11 +73,17 @@ func buildTestAsyncDataChangeMessageHandler(t *testing.T) (*AsyncDataChangeMessa
 	internalOpsRepo := &internalopsmock.InternalOpsDataManagerMock{}
 	mealPlanRepo := &mealplanningmock.RepositoryMock{}
 
-	pushFanout, err := push.NewFanout(logger, &notificationsmock.RepositoryMock{}, noopnotifications.NewPushNotificationSender(), noopProvider)
+	pushFanout, err := push.NewFanout(&platformnotificationsmock.RegistryMock{},
+		noopnotifications.NewPushNotificationSender(),
+		push.WithLogger(logger), push.WithMetricsProvider(noopProvider))
 	require.NoError(t, err)
 
 	handler := &AsyncDataChangeMessageHandler{
-		identityRepo:                         identityRepo,
+		directory: identityRepo,
+		db: &mockdatabase.ClientMock{
+			ReaderFunc: func() database.SQLQueryExecutor { return nil },
+			WriterFunc: func() database.SQLQueryExecutor { return nil },
+		},
 		internalOpsRepo:                      internalOpsRepo,
 		consumerProvider:                     consumerProvider,
 		analyticsEventReporter:               analyticsEventReporter,
@@ -129,7 +137,7 @@ func TestNewAsyncDataChangeMessageHandler(t *testing.T) {
 				DeadLetterTopicName: "dead-letter",
 			},
 		}
-		identityRepo := &identitymock.RepositoryMock{}
+		identityRepo := &identitymock.StoreMock{}
 		consumerProvider := &msgqueuemock.ConsumerProviderMock{}
 		publisherProvider := &msgqueuemock.PublisherProviderMock{}
 		analyticsEventReporter := &analyticsmock.EventReporterMock{}
@@ -165,7 +173,9 @@ func TestNewAsyncDataChangeMessageHandler(t *testing.T) {
 		internalOpsRepo := &internalopsmock.InternalOpsDataManagerMock{}
 		mealPlanRepo := &mealplanningmock.RepositoryMock{}
 
-		pushFanout, err := push.NewFanout(logger, &notificationsmock.RepositoryMock{}, noopnotifications.NewPushNotificationSender(), noopProvider)
+		pushFanout, err := push.NewFanout(&platformnotificationsmock.RegistryMock{},
+			noopnotifications.NewPushNotificationSender(),
+			push.WithLogger(logger), push.WithMetricsProvider(noopProvider))
 		require.NoError(t, err)
 
 		handler, err := NewAsyncDataChangeMessageHandler(
@@ -174,6 +184,10 @@ func TestNewAsyncDataChangeMessageHandler(t *testing.T) {
 			tracerProvider,
 			cfg,
 			identityRepo,
+			&mockdatabase.ClientMock{
+				ReaderFunc: func() database.SQLQueryExecutor { return nil },
+				WriterFunc: func() database.SQLQueryExecutor { return nil },
+			},
 			internalOpsRepo,
 			consumerProvider,
 			publisherProvider,
@@ -188,7 +202,7 @@ func TestNewAsyncDataChangeMessageHandler(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.NotNil(t, handler)
-		assert.Equal(t, identityRepo, handler.identityRepo)
+		assert.Equal(t, identityRepo, handler.directory)
 		assert.Equal(t, consumerProvider, handler.consumerProvider)
 		assert.Equal(t, analyticsEventReporter, handler.analyticsEventReporter)
 		assert.Equal(t, emailer, handler.emailer)

@@ -112,7 +112,7 @@ WHERE archived_at IS NULL
 SELECT valid_preparations.id
 FROM valid_preparations
 WHERE valid_preparations.archived_at IS NULL
-	AND valid_preparations.id COLLATE "C" > sqlc.arg(page_cursor)
+	AND valid_preparations.id COLLATE "C" > sqlc.arg(reindex_cursor)
 ORDER BY valid_preparations.id COLLATE "C"
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 

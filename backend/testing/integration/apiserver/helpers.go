@@ -13,16 +13,27 @@ import (
 	"testing"
 	"time"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
-	identityfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
+	authfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/fakes"
+	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/converters"
 	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
-	identitysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/indexevents"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/localdev"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/grpc/converters"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identitystore"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc/converters"
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
 
-	"github.com/primandproper/platform-go/v13/identifiers"
+	identity "github.com/primandproper/platform-go/v14/identity"
+	"github.com/primandproper/platform-go/v14/outbox"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/database/dialect"
+	"github.com/primandproper/primitives-go/v2/identifiers"
+	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
+	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
 
 	"github.com/pquerna/otp/totp"
 	"github.com/stretchr/testify/assert"
@@ -42,6 +53,7 @@ var (
 		EmailAddress:    "integration_tests@example.email",
 		Username:        "admin_user",
 		HashedPassword:  adminUserPassword,
+		ServiceRoles:    []string{authorization.ServiceUserRoleName},
 	}
 
 	adminClient client.Client
@@ -108,7 +120,7 @@ func hashStringToNumber(s string) uint64 {
 	return h.Sum64()
 }
 
-func createServiceUserForTest(t *testing.T, verifyTOTP bool, in *identity.UserRegistrationInput) *identity.User {
+func createServiceUserForTest(t *testing.T, verifyTOTP bool, in *auth.UserRegistrationInput) *identity.User {
 	t.Helper()
 
 	user, err := createServiceUser(t.Context(), verifyTOTP, in)
@@ -117,18 +129,24 @@ func createServiceUserForTest(t *testing.T, verifyTOTP bool, in *identity.UserRe
 	return user
 }
 
-func createServiceUser(ctx context.Context, verifyTOTP bool, in *identity.UserRegistrationInput) (*identity.User, error) {
+// createServiceUser registers somebody through the same RPC a sign-up form calls.
+//
+// RegisterUser on the auth service, not CreateUser on the identity service: the directory
+// is platform's now and every method on it is behind a grant, so the one call a caller
+// with no session makes is on the surface that has always served them.
+func createServiceUser(ctx context.Context, verifyTOTP bool, in *auth.UserRegistrationInput) (*identity.User, error) {
 	c, err := client.BuildUnauthenticatedGRPCClient(fmt.Sprintf(":%d", apiServiceConfig.GRPCServer.Port))
 	if err != nil {
 		return nil, fmt.Errorf("initializing client: %w", err)
 	}
 
 	if in == nil {
-		in = identityfakes.BuildFakeUserCreationInput()
+		in = authfakes.BuildFakeUserRegistrationInput()
 	}
-	input := converters.ConvertUserRegistrationInputToGRPCUserRegistrationInput(in)
 
-	res, err := c.CreateUser(ctx, &identitysvc.CreateUserRequest{Input: input})
+	res, err := c.RegisterUser(ctx, &authsvc.RegisterUserRequest{
+		Input: converters.ConvertUserRegistrationInputToGRPCUserRegistrationInput(in),
+	})
 	if err != nil {
 		return nil, fmt.Errorf("creating user: %w", err)
 	}
@@ -139,6 +157,7 @@ func createServiceUser(ctx context.Context, verifyTOTP bool, in *identity.UserRe
 			return nil, fmt.Errorf("verifying totp code: %w", err)
 		}
 	}
+
 	u := &identity.User{
 		ID:              ucr.CreatedUserId,
 		Username:        ucr.Username,
@@ -182,11 +201,10 @@ func createClientForUser(ctx context.Context, user *identity.User) (client.Clien
 	return oauthedClient, nil
 }
 
-func buildUserRegistrationInputForTest(t *testing.T) *identity.UserRegistrationInput {
+func buildUserRegistrationInputForTest(t *testing.T) *auth.UserRegistrationInput {
 	t.Helper()
 
-	return &identity.UserRegistrationInput{
-		Birthday:              new(time.Now()),
+	return &auth.UserRegistrationInput{
 		EmailAddress:          fmt.Sprintf("test+%d@whatever.com", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
 		FirstName:             fmt.Sprintf("test_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
 		AccountName:           fmt.Sprintf("test_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
@@ -204,7 +222,7 @@ func createUserAndClientForTest(t *testing.T) (*identity.User, client.Client) {
 	return createUserAndClientForTestWithRegistrationInput(t, buildUserRegistrationInputForTest(t))
 }
 
-func createUserAndClientForTestWithRegistrationInput(t *testing.T, input *identity.UserRegistrationInput) (*identity.User, client.Client) {
+func createUserAndClientForTestWithRegistrationInput(t *testing.T, input *auth.UserRegistrationInput) (*identity.User, client.Client) {
 	t.Helper()
 
 	ctx := t.Context()
@@ -236,7 +254,7 @@ func generateTOTPCodeForUserForTest(t *testing.T, user *identity.User) string {
 }
 
 func fetchLoginTokenForUser(ctx context.Context, user *identity.User) (string, error) {
-	code, err := user.GenerateTOTPCode()
+	code, err := totp.GenerateCode(strings.ToUpper(user.TwoFactorSecret), time.Now().UTC())
 	if err != nil {
 		return "", err
 	}
@@ -471,4 +489,110 @@ func requireStreamSend(t *testing.T, err error) {
 	}
 
 	require.NoError(t, err)
+}
+
+// invitationLifetime is how long an invitation a test issues has left to run.
+//
+// Named rather than inlined because the type requires an expiry — a link that never
+// expires is a bearer credential nobody can retire — and every test that issues one wants
+// the same answer: far enough out that the test can answer it, short enough that a row
+// left behind is not a standing key to somebody's household.
+const invitationLifetime = time.Hour
+
+// inviteForTest issues an invitation the test knows the token of.
+//
+// Through the same service the server runs, hooks and all, so the audit entry and the
+// outbox event are the ones a request would write. What it does not do is go over the
+// wire, and that is the point: the token is deliberately never on a gRPC response — the
+// column holds a digest and the only moment the secret exists is the write that minted it,
+// which is why platform hands the unredacted invitation to the hook that queues the mail.
+// A test that took the token off the response would be testing a response that must not
+// carry one.
+//
+// Everything from the acceptance onwards is the real path. It is the same arrangement
+// passwordResetStoreForTest exists for, and for the same reason.
+func inviteForTest(t *testing.T, fromUserID, accountID, toEmail string) *identity.Invitation {
+	t.Helper()
+	ctx := t.Context()
+
+	// Every caller wants the member role, which is why it is not a parameter: the one
+	// that took a roles slice was only ever passed nil, and an argument nobody varies is
+	// an argument that reads like a choice somebody made.
+	roles := []string{authorization.AccountMemberRoleName}
+
+	invitation, err := identityDirectoryWithHooks(t).Invite(ctx, ddbidentity.Scope(), &identity.Invitation{
+		BelongsToAccount: accountID,
+		FromUser:         fromUserID,
+		ToEmail:          toEmail,
+		ToName:           t.Name(),
+		Note:             t.Name(),
+		Roles:            roles,
+		Token:            identifiers.New(),
+		ExpiresAt:        time.Now().Add(invitationLifetime).UTC(),
+	})
+	require.NoError(t, err)
+	require.NotEmpty(t, invitation.Token)
+
+	return invitation
+}
+
+// identityDirectoryWithHooks builds the directory service this suite issues invitations
+// through: the same store the server holds, with the same hooks, over the same database.
+func identityDirectoryWithHooks(t *testing.T) *identity.Service {
+	t.Helper()
+
+	auditLogRepo, err := auditlogentries.ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, databaseClient)
+	require.NoError(t, err)
+
+	outboxWriter, err := outbox.NewWriter(dialect.Postgres, outbox.WithWriterSideEffect(indexevents.SideEffectName, indexevents.SideEffect))
+	require.NoError(t, err)
+
+	store, err := identity.NewSQLStore(databaseClient, identity.WithTablePrefix(ddbidentity.TablePrefix))
+	require.NoError(t, err)
+
+	directory, err := identity.NewService(databaseClient, store,
+		identity.WithHooks(identitystore.ProvideHooks(
+			loggingnoop.NewLogger(),
+			tracingnoop.NewTracerProvider(),
+			auditLogRepo,
+			events.NewEmitter(outboxWriter, apiServiceConfig.Queues.DataChangesTopicName, nil, indexevents.SideEffect),
+		)),
+	)
+	require.NoError(t, err)
+
+	return directory
+}
+
+// selfIDForTest is the user id the client is authenticated as.
+func selfIDForTest(t *testing.T, c client.Client) string {
+	t.Helper()
+	ctx := t.Context()
+
+	self, err := c.GetSelf(ctx, &authsvc.GetSelfRequest{})
+	require.NoError(t, err)
+	require.NotNil(t, self.GetResult())
+
+	return self.GetResult().GetId()
+}
+
+// verifyEmailAddressForTest marks a user's address proven.
+//
+// Listing the invitations addressed to you is gated on having proven the address, and the
+// gate is right: anybody may claim any address at registration, so reading what was sent
+// to one you have not proven would be an oracle over other people's invitations.
+//
+// It goes through Store.MarkUserEmailAddressProven, which exists for exactly a caller who
+// proved the address without holding the link that was mailed for it. The link flow is a
+// path of its own and is tested as one; what this asserts is that the address is proven,
+// not how.
+func verifyEmailAddressForTest(t *testing.T, userID string) {
+	t.Helper()
+	ctx := t.Context()
+
+	store, err := identity.NewSQLStore(databaseClient, identity.WithTablePrefix(ddbidentity.TablePrefix))
+	require.NoError(t, err)
+
+	require.NoError(t, databaseClient.WithTransaction(ctx, func(tx database.Tx) error {
+		return store.MarkUserEmailAddressProven(ctx, tx, ddbidentity.Scope(), userID)
+	}))
 }

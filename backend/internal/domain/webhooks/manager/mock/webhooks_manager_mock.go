@@ -10,7 +10,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/manager"
 
-	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/primitives-go/v2/filtering"
 )
 
 // Ensure, that WebhookDataManagerMock does implement manager.WebhookDataManager.

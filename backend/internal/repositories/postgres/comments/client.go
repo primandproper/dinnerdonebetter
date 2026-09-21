@@ -6,12 +6,12 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/recording"
 
-	platformcomments "github.com/primandproper/platform-go/v13/comments"
-	"github.com/primandproper/platform-go/v13/database"
-	platformerrors "github.com/primandproper/platform-go/v13/errors"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/metrics"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
+	platformcomments "github.com/primandproper/platform-go/v14/comments"
+	"github.com/primandproper/primitives-go/v2/database"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/metrics"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
 )
 
 const (
@@ -27,7 +27,6 @@ const (
 // from it.
 type repository struct {
 	platformcomments.Store
-	client   database.Client
 	tracer   tracing.Tracer
 	logger   logging.Logger
 	recorder *recording.Recorder
@@ -64,7 +63,6 @@ func ProvideCommentsRepository(
 
 	return &repository{
 		Store:    store,
-		client:   client,
 		tracer:   tracer,
 		logger:   logging.NewNamedLogger(logger, o11yName),
 		recorder: recording.NewRecorder(tracer, auditLogEntryRepo, eventEmitter),

@@ -13,13 +13,13 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	"github.com/primandproper/platform-go/v13/database"
-	"github.com/primandproper/platform-go/v13/database/postgres"
-	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
-	metricsnoop "github.com/primandproper/platform-go/v13/observability/metrics/noop"
-	tracingnoop "github.com/primandproper/platform-go/v13/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v13/pointer"
-	settings "github.com/primandproper/platform-go/v13/settings"
+	settings "github.com/primandproper/platform-go/v14/settings"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/database/postgres"
+	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
+	metricsnoop "github.com/primandproper/primitives-go/v2/observability/metrics/noop"
+	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
+	"github.com/primandproper/primitives-go/v2/pointer"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -45,7 +45,7 @@ func TestMain(m *testing.M) {
 }
 
 // buildDatabaseClientForTest builds the store over a real database.
-func buildDatabaseClientForTest(t *testing.T) (settings.Store, audit.Repository, database.SQLQueryExecutor) {
+func buildDatabaseClientForTest(t *testing.T) (settings.Store, audit.Repository, database.Client) {
 	t.Helper()
 
 	ctx := t.Context()
@@ -71,27 +71,29 @@ func buildDatabaseClientForTest(t *testing.T) (settings.Store, audit.Repository,
 	)
 	require.NoError(t, err)
 
-	return c, auditLogEntryRepo, pgc.Writer()
+	return c, auditLogEntryRepo, pgc
 }
 
 // subjectForTest creates a user and an account for them, and returns the user.
 //
 // The account is not incidental: ddb_settings_values has a foreign key to users,
 // and the audit entry a value write records is read back through the audit chain.
-func subjectForTest(t *testing.T, writer database.SQLQueryExecutor) string {
+func subjectForTest(t *testing.T, db database.Client) string {
 	t.Helper()
 
-	user := pgtesting.CreateUserForTest(t, nil, writer)
-	pgtesting.CreateAccountForTest(t, nil, user.ID, writer)
+	user := pgtesting.CreateUserForTest(t, nil, db.Writer())
+	pgtesting.CreateAccountForTest(t, nil, user.ID, db.Writer())
 
 	return user.ID
 }
 
 // definitionForTest adds one setting to the catalog.
-func definitionForTest(t *testing.T, ctx context.Context, dbc settings.Store) *settings.Definition {
+func definitionForTest(t *testing.T, ctx context.Context, dbc settings.Store, db database.Client) *settings.Definition {
 	t.Helper()
 
-	definition, err := dbc.CreateDefinition(ctx, ddbsettings.Scope(), fakes.BuildFakeSettingDefinition())
+	definition, err := writeT(ctx, db, func(tx database.Tx) (*settings.Definition, error) {
+		return dbc.CreateDefinition(ctx, tx, ddbsettings.Scope(), fakes.BuildFakeSettingDefinition())
+	})
 	require.NoError(t, err)
 
 	return definition
@@ -99,12 +101,14 @@ func definitionForTest(t *testing.T, ctx context.Context, dbc settings.Store) *s
 
 func TestRepository_Integration_SettingDefinitions(t *testing.T) {
 	ctx := t.Context()
-	dbc, auditRepo, _ := buildDatabaseClientForTest(t)
+	dbc, auditRepo, db := buildDatabaseClientForTest(t)
 	scope := ddbsettings.Scope()
 
 	example := fakes.BuildFakeSettingDefinition()
 
-	created, err := dbc.CreateDefinition(ctx, scope, example)
+	created, err := writeT(ctx, db, func(tx database.Tx) (*settings.Definition, error) {
+		return dbc.CreateDefinition(ctx, tx, scope, example)
+	})
 	require.NoError(t, err)
 	assert.NotEmpty(t, created.ID)
 	assert.False(t, created.CreatedAt.IsZero())
@@ -116,32 +120,38 @@ func TestRepository_Integration_SettingDefinitions(t *testing.T) {
 		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeSettingDefinitions, RelevantID: created.ID},
 	})
 
-	fetched, err := dbc.GetDefinition(ctx, scope, created.ID)
+	fetched, err := dbc.GetDefinition(ctx, db.Reader(), scope, created.ID)
 	require.NoError(t, err)
 	assert.Equal(t, example.Name, fetched.Name)
 	assert.Equal(t, example.Description, fetched.Description)
 
 	// The name is the handle every value-side call takes, and it finds the same row.
-	byName, err := dbc.GetDefinitionByName(ctx, scope, created.Name)
+	byName, err := dbc.GetDefinitionByName(ctx, db.Reader(), scope, created.Name)
 	require.NoError(t, err)
 	assert.Equal(t, created.ID, byName.ID)
 
 	// The seeded setting is in the catalog beside this one.
-	page, err := dbc.ListDefinitions(ctx, scope, nil)
+	page, err := dbc.ListDefinitions(ctx, db.Reader(), scope, nil)
 	require.NoError(t, err)
 	require.Len(t, page.Data, seededDefinitionsCount+1)
 
 	fetched.Description = "renamed"
-	require.NoError(t, dbc.UpdateDefinition(ctx, scope, fetched))
+	_, err = writeT(ctx, db, func(tx database.Tx) (*settings.Definition, error) {
+		return dbc.UpdateDefinition(ctx, tx, scope, fetched)
+	})
+	require.NoError(t, err)
 
-	updated, err := dbc.GetDefinition(ctx, scope, created.ID)
+	updated, err := dbc.GetDefinition(ctx, db.Reader(), scope, created.ID)
 	require.NoError(t, err)
 	assert.Equal(t, "renamed", updated.Description)
 	assert.NotNil(t, updated.LastUpdatedAt)
 
-	require.NoError(t, dbc.ArchiveDefinition(ctx, scope, created.ID))
+	_, err = writeT(ctx, db, func(tx database.Tx) (any, error) {
+		return nil, dbc.ArchiveDefinition(ctx, tx, scope, created.ID)
+	})
+	require.NoError(t, err)
 
-	afterArchive, err := dbc.GetDefinition(ctx, scope, created.ID)
+	afterArchive, err := dbc.GetDefinition(ctx, db.Reader(), scope, created.ID)
 	require.Error(t, err)
 	assert.Nil(t, afterArchive)
 	require.ErrorIs(t, err, settings.ErrDefinitionNotFound)
@@ -158,35 +168,44 @@ func TestRepository_Integration_SettingDefinitions(t *testing.T) {
 // and a second definition inheriting the name would inherit them.
 func TestRepository_Integration_ArchivingKeepsTheNameClaimed(t *testing.T) {
 	ctx := t.Context()
-	dbc, _, _ := buildDatabaseClientForTest(t)
+	dbc, _, db := buildDatabaseClientForTest(t)
 	scope := ddbsettings.Scope()
 
 	example := fakes.BuildFakeSettingDefinition()
 
-	created, err := dbc.CreateDefinition(ctx, scope, example)
+	created, err := writeT(ctx, db, func(tx database.Tx) (*settings.Definition, error) {
+		return dbc.CreateDefinition(ctx, tx, scope, example)
+	})
 	require.NoError(t, err)
 
-	require.NoError(t, dbc.ArchiveDefinition(ctx, scope, created.ID))
+	_, err = writeT(ctx, db, func(tx database.Tx) (any, error) {
+		return nil, dbc.ArchiveDefinition(ctx, tx, scope, created.ID)
+	})
+	require.NoError(t, err)
 
 	second := fakes.BuildFakeSettingDefinition()
 	second.Name = example.Name
 
-	_, err = dbc.CreateDefinition(ctx, scope, second)
+	_, err = writeT(ctx, db, func(tx database.Tx) (*settings.Definition, error) {
+		return dbc.CreateDefinition(ctx, tx, scope, second)
+	})
 	require.Error(t, err)
 	require.ErrorIs(t, err, settings.ErrDefinitionNameTaken)
 }
 
 func TestRepository_Integration_SettingValues(t *testing.T) {
 	ctx := t.Context()
-	dbc, auditRepo, writer := buildDatabaseClientForTest(t)
+	dbc, auditRepo, db := buildDatabaseClientForTest(t)
 	scope := ddbsettings.Scope()
 
-	userID := subjectForTest(t, writer)
+	userID := subjectForTest(t, db)
 	subject := ddbsettings.SubjectFor(userID)
-	definition := definitionForTest(t, ctx, dbc)
+	definition := definitionForTest(t, ctx, dbc, db)
 	chosen := definition.Enumeration[0]
 
-	value, err := dbc.SetValue(ctx, scope, subject, definition.Name, chosen)
+	value, err := writeT(ctx, db, func(tx database.Tx) (*settings.Value, error) {
+		return dbc.SetValue(ctx, tx, scope, subject, definition.Name, chosen)
+	})
 	require.NoError(t, err)
 	assert.NotEmpty(t, value.ID)
 	assert.Equal(t, chosen, value.Raw)
@@ -197,33 +216,38 @@ func TestRepository_Integration_SettingValues(t *testing.T) {
 		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeSettingValues, RelevantID: value.ID},
 	})
 
-	fetched, err := dbc.GetValue(ctx, scope, subject, definition.Name)
+	fetched, err := dbc.GetValue(ctx, db.Reader(), scope, subject, definition.Name)
 	require.NoError(t, err)
 	assert.Equal(t, value.ID, fetched.ID)
 
-	forSubject, err := dbc.ListValuesForSubject(ctx, scope, subject, nil)
+	forSubject, err := dbc.ListValuesForSubject(ctx, db.Reader(), scope, subject, nil)
 	require.NoError(t, err)
 	require.Len(t, forSubject.Data, 1)
 
-	forDefinition, err := dbc.ListValuesForDefinition(ctx, scope, definition.Name, nil)
+	forDefinition, err := dbc.ListValuesForDefinition(ctx, db.Reader(), scope, definition.Name, nil)
 	require.NoError(t, err)
 	require.Len(t, forDefinition.Data, 1)
 
 	// A second answer converges on the same row rather than writing another.
 	second := definition.Enumeration[1]
 
-	changed, err := dbc.SetValue(ctx, scope, subject, definition.Name, second)
+	changed, err := writeT(ctx, db, func(tx database.Tx) (*settings.Value, error) {
+		return dbc.SetValue(ctx, tx, scope, subject, definition.Name, second)
+	})
 	require.NoError(t, err)
 	assert.Equal(t, value.ID, changed.ID)
 	assert.Equal(t, second, changed.Raw)
 
-	still, err := dbc.ListValuesForSubject(ctx, scope, subject, nil)
+	still, err := dbc.ListValuesForSubject(ctx, db.Reader(), scope, subject, nil)
 	require.NoError(t, err)
 	require.Len(t, still.Data, 1)
 
-	require.NoError(t, dbc.ClearValue(ctx, scope, subject, definition.Name))
+	_, err = writeT(ctx, db, func(tx database.Tx) (*settings.Value, error) {
+		return dbc.ClearValue(ctx, tx, scope, subject, definition.Name)
+	})
+	require.NoError(t, err)
 
-	afterClear, err := dbc.GetValue(ctx, scope, subject, definition.Name)
+	afterClear, err := dbc.GetValue(ctx, db.Reader(), scope, subject, definition.Name)
 	require.Error(t, err)
 	assert.Nil(t, afterClear)
 	require.ErrorIs(t, err, settings.ErrValueNotFound)
@@ -240,19 +264,23 @@ func TestRepository_Integration_SettingValues(t *testing.T) {
 // one lands.
 func TestRepository_Integration_ValueOutsideTheEnumerationIsRefused(t *testing.T) {
 	ctx := t.Context()
-	dbc, _, writer := buildDatabaseClientForTest(t)
+	dbc, _, db := buildDatabaseClientForTest(t)
 	scope := ddbsettings.Scope()
 
-	subject := ddbsettings.SubjectFor(subjectForTest(t, writer))
-	definition := definitionForTest(t, ctx, dbc)
+	subject := ddbsettings.SubjectFor(subjectForTest(t, db))
+	definition := definitionForTest(t, ctx, dbc, db)
 
-	_, err := dbc.SetValue(ctx, scope, subject, definition.Name, "not-in-the-enumeration")
+	_, err := writeT(ctx, db, func(tx database.Tx) (*settings.Value, error) {
+		return dbc.SetValue(ctx, tx, scope, subject, definition.Name, "not-in-the-enumeration")
+	})
 	require.Error(t, err)
 	require.ErrorIs(t, err, settings.ErrNotEnumerated)
 
 	// And a value against a setting that does not exist at all is refused for a
 	// different reason, which is the other half of the rule.
-	_, err = dbc.SetValue(ctx, scope, subject, "no-such-setting", "anything")
+	_, err = writeT(ctx, db, func(tx database.Tx) (*settings.Value, error) {
+		return dbc.SetValue(ctx, tx, scope, subject, "no-such-setting", "anything")
+	})
 	require.Error(t, err)
 	require.ErrorIs(t, err, settings.ErrDefinitionNotFound)
 }
@@ -266,28 +294,32 @@ func TestRepository_Integration_ValueOutsideTheEnumerationIsRefused(t *testing.T
 // ones who picked the value an administrator has just made illegal.
 func TestRepository_Integration_EditRefusesToStrandStoredValues(t *testing.T) {
 	ctx := t.Context()
-	dbc, _, writer := buildDatabaseClientForTest(t)
+	dbc, _, db := buildDatabaseClientForTest(t)
 	scope := ddbsettings.Scope()
 
-	subject := ddbsettings.SubjectFor(subjectForTest(t, writer))
-	definition := definitionForTest(t, ctx, dbc)
+	subject := ddbsettings.SubjectFor(subjectForTest(t, db))
+	definition := definitionForTest(t, ctx, dbc, db)
 	stranded := definition.Enumeration[1]
 
-	_, err := dbc.SetValue(ctx, scope, subject, definition.Name, stranded)
+	_, err := writeT(ctx, db, func(tx database.Tx) (*settings.Value, error) {
+		return dbc.SetValue(ctx, tx, scope, subject, definition.Name, stranded)
+	})
 	require.NoError(t, err)
 
-	narrowed, err := dbc.GetDefinition(ctx, scope, definition.ID)
+	narrowed, err := dbc.GetDefinition(ctx, db.Reader(), scope, definition.ID)
 	require.NoError(t, err)
 	narrowed.Enumeration = []string{definition.Enumeration[0]}
 	narrowed.Default = pointer.To(definition.Enumeration[0])
 
-	err = dbc.UpdateDefinition(ctx, scope, narrowed)
+	_, err = writeT(ctx, db, func(tx database.Tx) (*settings.Definition, error) {
+		return dbc.UpdateDefinition(ctx, tx, scope, narrowed)
+	})
 	require.Error(t, err)
 	require.ErrorIs(t, err, settings.ErrStrandedValues)
 
 	// The edit is refused rather than half-applied: the setting still admits the
 	// value somebody chose.
-	unchanged, err := dbc.GetDefinition(ctx, scope, definition.ID)
+	unchanged, err := dbc.GetDefinition(ctx, db.Reader(), scope, definition.ID)
 	require.NoError(t, err)
 	assert.ElementsMatch(t, definition.Enumeration, unchanged.Enumeration)
 }
@@ -297,13 +329,13 @@ func TestRepository_Integration_EditRefusesToStrandStoredValues(t *testing.T) {
 // fallback.
 func TestRepository_Integration_ResolutionHasThreeAnswers(t *testing.T) {
 	ctx := t.Context()
-	dbc, _, writer := buildDatabaseClientForTest(t)
+	dbc, _, db := buildDatabaseClientForTest(t)
 	scope := ddbsettings.Scope()
 
-	subject := ddbsettings.SubjectFor(subjectForTest(t, writer))
+	subject := ddbsettings.SubjectFor(subjectForTest(t, db))
 
 	// A setting with a default, which nobody has answered.
-	defaulted := definitionForTest(t, ctx, dbc)
+	defaulted := definitionForTest(t, ctx, dbc, db)
 
 	// A setting with no default at all, which is the state a plain string column
 	// has nowhere to put.
@@ -311,15 +343,17 @@ func TestRepository_Integration_ResolutionHasThreeAnswers(t *testing.T) {
 	undefaulted.Default = nil
 	undefaulted.Enumeration = nil
 
-	created, err := dbc.CreateDefinition(ctx, scope, undefaulted)
+	created, err := writeT(ctx, db, func(tx database.Tx) (*settings.Definition, error) {
+		return dbc.CreateDefinition(ctx, tx, scope, undefaulted)
+	})
 	require.NoError(t, err)
 
-	fromDefault, err := dbc.Resolve(ctx, scope, subject, defaulted.Name)
+	fromDefault, err := dbc.Resolve(ctx, db.Reader(), scope, subject, defaulted.Name)
 	require.NoError(t, err)
 	assert.Equal(t, settings.SourceDefault, fromDefault.Source)
 	assert.Equal(t, *defaulted.Default, fromDefault.Raw)
 
-	unset, err := dbc.Resolve(ctx, scope, subject, created.Name)
+	unset, err := dbc.Resolve(ctx, db.Reader(), scope, subject, created.Name)
 	require.NoError(t, err)
 	assert.Equal(t, settings.SourceUnset, unset.Source)
 	assert.Empty(t, unset.Raw)
@@ -329,24 +363,29 @@ func TestRepository_Integration_ResolutionHasThreeAnswers(t *testing.T) {
 	_, err = unset.String()
 	require.ErrorIs(t, err, settings.ErrSettingUnset)
 
-	_, err = dbc.SetValue(ctx, scope, subject, defaulted.Name, defaulted.Enumeration[1])
+	_, err = writeT(ctx, db, func(tx database.Tx) (*settings.Value, error) {
+		return dbc.SetValue(ctx, tx, scope, subject, defaulted.Name, defaulted.Enumeration[1])
+	})
 	require.NoError(t, err)
 
-	fromSubject, err := dbc.Resolve(ctx, scope, subject, defaulted.Name)
+	fromSubject, err := dbc.Resolve(ctx, db.Reader(), scope, subject, defaulted.Name)
 	require.NoError(t, err)
 	assert.Equal(t, settings.SourceSubject, fromSubject.Source)
 	assert.Equal(t, defaulted.Enumeration[1], fromSubject.Raw)
 
 	// Clearing puts them back on the default rather than leaving them unanswered.
-	require.NoError(t, dbc.ClearValue(ctx, scope, subject, defaulted.Name))
+	_, err = writeT(ctx, db, func(tx database.Tx) (*settings.Value, error) {
+		return dbc.ClearValue(ctx, tx, scope, subject, defaulted.Name)
+	})
+	require.NoError(t, err)
 
-	backToDefault, err := dbc.Resolve(ctx, scope, subject, defaulted.Name)
+	backToDefault, err := dbc.Resolve(ctx, db.Reader(), scope, subject, defaulted.Name)
 	require.NoError(t, err)
 	assert.Equal(t, settings.SourceDefault, backToDefault.Source)
 
 	// ResolveAll answers the whole catalog, the settings nobody has touched
 	// included — which is what a preferences page renders.
-	all, err := dbc.ResolveAll(ctx, scope, subject)
+	all, err := dbc.ResolveAll(ctx, db.Reader(), scope, subject)
 	require.NoError(t, err)
 	assert.Len(t, all, seededDefinitionsCount+2)
 }
@@ -361,25 +400,27 @@ func TestRepository_Integration_ResolutionHasThreeAnswers(t *testing.T) {
 // makes the key possible at all.
 func TestRepository_Integration_ErasingAUserTakesTheirSettings(t *testing.T) {
 	ctx := t.Context()
-	dbc, _, writer := buildDatabaseClientForTest(t)
+	dbc, _, db := buildDatabaseClientForTest(t)
 	scope := ddbsettings.Scope()
 
-	userID := subjectForTest(t, writer)
+	userID := subjectForTest(t, db)
 	subject := ddbsettings.SubjectFor(userID)
-	definition := definitionForTest(t, ctx, dbc)
+	definition := definitionForTest(t, ctx, dbc, db)
 
-	_, err := dbc.SetValue(ctx, scope, subject, definition.Name, definition.Enumeration[0])
+	_, err := writeT(ctx, db, func(tx database.Tx) (*settings.Value, error) {
+		return dbc.SetValue(ctx, tx, scope, subject, definition.Name, definition.Enumeration[0])
+	})
 	require.NoError(t, err)
 
-	_, err = writer.ExecContext(ctx, "DELETE FROM users WHERE id = $1", userID)
+	_, err = db.Writer().ExecContext(ctx, "DELETE FROM ddb_identity_users WHERE id = $1", userID)
 	require.NoError(t, err)
 
-	gone, err := dbc.ListValuesForSubject(ctx, scope, subject, nil)
+	gone, err := dbc.ListValuesForSubject(ctx, db.Reader(), scope, subject, nil)
 	require.NoError(t, err)
 	assert.Empty(t, gone.Data)
 
 	// The catalog is untouched: a definition belongs to nobody.
-	stillDefined, err := dbc.GetDefinition(ctx, scope, definition.ID)
+	stillDefined, err := dbc.GetDefinition(ctx, db.Reader(), scope, definition.ID)
 	require.NoError(t, err)
 	assert.Equal(t, definition.ID, stillDefined.ID)
 }
@@ -389,9 +430,9 @@ func TestRepository_Integration_ErasingAUserTakesTheirSettings(t *testing.T) {
 // the id a client may already hold, under the kind platform's store understands.
 func TestRepository_Integration_TheSeededSettingSurvivedTheMigration(t *testing.T) {
 	ctx := t.Context()
-	dbc, _, _ := buildDatabaseClientForTest(t)
+	dbc, _, db := buildDatabaseClientForTest(t)
 
-	seeded, err := dbc.GetDefinitionByName(ctx, ddbsettings.Scope(), "user_temperature_unit")
+	seeded, err := dbc.GetDefinitionByName(ctx, db.Reader(), ddbsettings.Scope(), "user_temperature_unit")
 	require.NoError(t, err)
 
 	assert.Equal(t, "d6me6i4n9qd3gcf5j1p0", seeded.ID)
@@ -401,4 +442,23 @@ func TestRepository_Integration_TheSeededSettingSurvivedTheMigration(t *testing.
 	// The pipe-delimited column became rows, and they come back sorted.
 	assert.Equal(t, []string{"celsius", "fahrenheit"}, seeded.Enumeration)
 	assert.False(t, seeded.AdminOnly)
+}
+
+// writeT runs one store write on a transaction of its own.
+//
+// As of platform-go v14 a store write takes the caller's database.Tx, so a test
+// that wants one row written supplies the transaction the production caller
+// would. It answers with the error rather than asserting on it, so the
+// assertions below read as they did.
+func writeT[T any](ctx context.Context, db database.Client, write func(tx database.Tx) (T, error)) (T, error) {
+	var out T
+
+	err := db.WithTransaction(ctx, func(tx database.Tx) error {
+		var writeErr error
+		out, writeErr = write(tx)
+
+		return writeErr
+	})
+
+	return out, err
 }

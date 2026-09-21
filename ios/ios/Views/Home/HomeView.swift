@@ -95,14 +95,11 @@ struct HomeView: View {
         HomeDrawerView(
           isPresented: $showDrawer,
           displayName: viewModel?.currentUserDisplayName ?? authManager.username,
-          avatarURL: viewModel.flatMap { homeViewModel in
-            guard let user = homeViewModel.currentUser,
-              user.hasAvatar,
-              !user.avatar.objectKey.isEmpty
-            else { return nil }
-            return APIConfiguration.mediaURL(
-              forStoragePath: user.avatar.objectKey, bucket: "avatars")
-          },
+          // No avatar. It was a field of this application's own user and is not one of
+          // the directory's — an avatar is a row in the upload registry and a reference
+          // to it — so reading one back means a read on the media surface. DSAvatar falls
+          // back to initials, which is what everybody sees until that exists.
+          avatarURL: nil,
           acceptedOccupiedDates: viewModel?.acceptedOccupiedDates ?? [],
           proposedOccupiedDates: viewModel?.proposedOccupiedDates ?? []
         )

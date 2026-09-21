@@ -7,11 +7,12 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 
-	"github.com/primandproper/platform-go/v13/database"
-	"github.com/primandproper/platform-go/v13/filtering"
-	"github.com/primandproper/platform-go/v13/observability"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/filtering"
+	"github.com/primandproper/primitives-go/v2/observability"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
 const (
@@ -93,7 +94,7 @@ func (m *auditManager) Record(ctx context.Context, querier database.Tx, entries 
 	return nil
 }
 
-func (m *auditManager) VerifyChain(ctx context.Context, scope string, from, to time.Time) (*audit.VerificationResult, error) {
+func (m *auditManager) VerifyChain(ctx context.Context, scope tenancy.Scope, from, to time.Time) (*audit.VerificationResult, error) {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 

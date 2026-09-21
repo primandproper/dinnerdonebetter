@@ -22,7 +22,6 @@ struct RegistrationInputTests {
       accountName: "Test Account",
       firstName: "Test",
       lastName: "User",
-      birthday: Date(),
       invitationToken: "token123",
       invitationID: "invite123"
     )
@@ -33,26 +32,8 @@ struct RegistrationInputTests {
     #expect(input.accountName == "Test Account")
     #expect(input.firstName == "Test")
     #expect(input.lastName == "User")
-    #expect(input.birthday != nil)
     #expect(input.invitationToken == "token123")
     #expect(input.invitationID == "invite123")
-  }
-
-  @Test("RegistrationInput handles nil birthday")
-  func testRegistrationInputWithNilBirthday() {
-    let input = RegistrationInput(
-      emailAddress: "test@example.com",
-      username: "testuser",
-      password: "password123",
-      accountName: "",
-      firstName: "",
-      lastName: "",
-      birthday: nil,
-      invitationToken: "",
-      invitationID: ""
-    )
-
-    #expect(input.birthday == nil)
   }
 
   @Test("RegistrationInput handles empty optional fields")
@@ -64,7 +45,6 @@ struct RegistrationInputTests {
       accountName: "",
       firstName: "",
       lastName: "",
-      birthday: nil,
       invitationToken: "",
       invitationID: ""
     )
@@ -111,7 +91,6 @@ struct MockRegistrationTests {
       accountName: "Test Account",
       firstName: "Test",
       lastName: "User",
-      birthday: Date(),
       invitationToken: "",
       invitationID: ""
     )
@@ -132,7 +111,6 @@ struct MockRegistrationTests {
       accountName: "",
       firstName: "",
       lastName: "",
-      birthday: nil,
       invitationToken: "",
       invitationID: ""
     )
@@ -153,7 +131,6 @@ struct MockRegistrationTests {
       accountName: "",
       firstName: "",
       lastName: "",
-      birthday: nil,
       invitationToken: "",
       invitationID: ""
     )
@@ -182,7 +159,6 @@ struct AuthenticationManagerRegistrationTests {
       accountName: "  Test Account  ",
       firstName: "  Test  ",
       lastName: "  User  ",
-      birthday: nil,
       invitationToken: "  token123  ",
       invitationID: "  invite123  "
     )
@@ -192,51 +168,6 @@ struct AuthenticationManagerRegistrationTests {
     let result = await manager.register(input: input)
 
     // Result will likely be failure without server, but documents the test intent
-    #expect(result.success == false || result.success == true)
-  }
-
-  @Test("AuthenticationManager register handles birthday conversion")
-  func testRegistrationWithBirthday() async {
-    let manager = AuthenticationManager()
-    let birthday = Date(timeIntervalSince1970: 946684800)  // Jan 1, 2000
-    let input = RegistrationInput(
-      emailAddress: "test@example.com",
-      username: "testuser",
-      password: "password123",
-      accountName: "",
-      firstName: "",
-      lastName: "",
-      birthday: birthday,
-      invitationToken: "",
-      invitationID: ""
-    )
-
-    // The birthday should be converted to protobuf timestamp
-    // Without mocking, we can't verify the exact conversion, but we can
-    // verify the method doesn't crash
-    let result = await manager.register(input: input)
-
-    #expect(result.success == false || result.success == true)
-  }
-
-  @Test("AuthenticationManager register handles nil birthday")
-  func testRegistrationWithNilBirthday() async {
-    let manager = AuthenticationManager()
-    let input = RegistrationInput(
-      emailAddress: "test@example.com",
-      username: "testuser",
-      password: "password123",
-      accountName: "",
-      firstName: "",
-      lastName: "",
-      birthday: nil,
-      invitationToken: "",
-      invitationID: ""
-    )
-
-    let result = await manager.register(input: input)
-
-    // Should handle nil birthday gracefully
     #expect(result.success == false || result.success == true)
   }
 
@@ -252,7 +183,6 @@ struct AuthenticationManagerRegistrationTests {
       accountName: "",
       firstName: "",
       lastName: "",
-      birthday: nil,
       invitationToken: "",
       invitationID: ""
     )
@@ -277,7 +207,6 @@ struct RegistrationErrorHandlingTests {
       accountName: "",
       firstName: "",
       lastName: "",
-      birthday: nil,
       invitationToken: "",
       invitationID: ""
     )
@@ -298,7 +227,6 @@ struct RegistrationErrorHandlingTests {
       accountName: "",
       firstName: "",
       lastName: "",
-      birthday: nil,
       invitationToken: "",
       invitationID: ""
     )
@@ -319,7 +247,6 @@ struct RegistrationErrorHandlingTests {
       accountName: "",
       firstName: "",
       lastName: "",
-      birthday: nil,
       invitationToken: "",
       invitationID: ""
     )
@@ -340,7 +267,6 @@ struct RegistrationErrorHandlingTests {
       accountName: "",
       firstName: "",
       lastName: "",
-      birthday: nil,
       invitationToken: "",
       invitationID: ""
     )
@@ -352,40 +278,9 @@ struct RegistrationErrorHandlingTests {
   }
 }
 
-// MARK: - Birthday Conversion Tests
-
-struct BirthdayConversionTests {
-  @Test("Birthday conversion to protobuf timestamp preserves date")
-  func testBirthdayConversionAccuracy() {
-    let birthday = Date(timeIntervalSince1970: 946684800)  // Jan 1, 2000 00:00:00 UTC
-    var timestamp = SwiftProtobuf.Google_Protobuf_Timestamp()
-    timestamp.seconds = Int64(birthday.timeIntervalSince1970)
-    timestamp.nanos = Int32(
-      (birthday.timeIntervalSince1970 - Double(timestamp.seconds)) * 1_000_000_000)
-
-    // Verify seconds are correct
-    #expect(timestamp.seconds == 946684800)
-
-    // Verify we can convert back
-    let convertedDate = Date(timeIntervalSince1970: TimeInterval(timestamp.seconds))
-    let difference = abs(convertedDate.timeIntervalSince1970 - birthday.timeIntervalSince1970)
-    #expect(difference < 1.0)  // Within 1 second
-  }
-
-  @Test("Birthday conversion handles nanoseconds correctly")
-  func testBirthdayConversionNanoseconds() {
-    // Use a date with fractional seconds
-    let birthday = Date(timeIntervalSince1970: 946684800.123456)
-    var timestamp = SwiftProtobuf.Google_Protobuf_Timestamp()
-    timestamp.seconds = Int64(birthday.timeIntervalSince1970)
-    timestamp.nanos = Int32(
-      (birthday.timeIntervalSince1970 - Double(timestamp.seconds)) * 1_000_000_000)
-
-    // Verify nanoseconds are calculated
-    #expect(timestamp.nanos > 0)
-    #expect(timestamp.nanos < 1_000_000_000)
-  }
-}
+// The birthday conversion suite is gone with the field it converted. Nothing sends a
+// birthday any more: platform's user has no column for one, and storing it means a table
+// of this application's own.
 
 // MARK: - Edge Cases
 
@@ -401,7 +296,6 @@ struct RegistrationEdgeCaseTests {
       accountName: longString,
       firstName: longString,
       lastName: longString,
-      birthday: nil,
       invitationToken: longString,
       invitationID: longString
     )
@@ -422,7 +316,6 @@ struct RegistrationEdgeCaseTests {
       accountName: "Test's Account",
       firstName: "José",
       lastName: "O'Brien",
-      birthday: nil,
       invitationToken: "token-123_abc",
       invitationID: "invite-456_def"
     )
@@ -443,7 +336,6 @@ struct RegistrationEdgeCaseTests {
       accountName: "测试账户",
       firstName: "名",
       lastName: "姓",
-      birthday: nil,
       invitationToken: "",
       invitationID: ""
     )
@@ -464,7 +356,6 @@ struct RegistrationEdgeCaseTests {
       accountName: "   ",
       firstName: "   ",
       lastName: "   ",
-      birthday: nil,
       invitationToken: "   ",
       invitationID: "   "
     )
@@ -489,7 +380,6 @@ struct RegistrationInvitationTests {
       accountName: "",
       firstName: "",
       lastName: "",
-      birthday: nil,
       invitationToken: "valid-token-123",
       invitationID: "invite-id-456"
     )
@@ -510,7 +400,6 @@ struct RegistrationInvitationTests {
       accountName: "",
       firstName: "",
       lastName: "",
-      birthday: nil,
       invitationToken: "",
       invitationID: ""
     )
@@ -535,7 +424,6 @@ struct ConcurrentRegistrationTests {
       accountName: "",
       firstName: "",
       lastName: "",
-      birthday: nil,
       invitationToken: "",
       invitationID: ""
     )
@@ -546,7 +434,6 @@ struct ConcurrentRegistrationTests {
       accountName: "",
       firstName: "",
       lastName: "",
-      birthday: nil,
       invitationToken: "",
       invitationID: ""
     )
@@ -577,7 +464,6 @@ struct RegistrationCancellationTests {
       accountName: "",
       firstName: "",
       lastName: "",
-      birthday: nil,
       invitationToken: "",
       invitationID: ""
     )

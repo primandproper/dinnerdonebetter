@@ -3,32 +3,36 @@ package manager
 import (
 	"context"
 	"testing"
-	"time"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
-	identitymock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/manager/mock"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/fakes"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/testutils"
 
-	"github.com/primandproper/platform-go/v13/billing"
-	billingmock "github.com/primandproper/platform-go/v13/billing/mock"
-	"github.com/primandproper/platform-go/v13/capitalism"
-	platformerrors "github.com/primandproper/platform-go/v13/errors"
-	"github.com/primandproper/platform-go/v13/fake"
-	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v13/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v13/tenancy"
+	"github.com/primandproper/platform-go/v14/billing"
+	billingmock "github.com/primandproper/platform-go/v14/billing/mock"
+	platformidentity "github.com/primandproper/platform-go/v14/identity"
+	identitymock "github.com/primandproper/platform-go/v14/identity/mock"
+	"github.com/primandproper/primitives-go/v2/capitalism"
+	"github.com/primandproper/primitives-go/v2/database"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/fake"
+	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
+	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-// billingUpdate is one call the manager made to the identity manager, recorded
-// so a test can say what the account's standing became.
+// billingUpdate is one write the manager made to the directory's billing surface,
+// recorded so a test can say what the account's standing became.
+//
+// The plan is a pointer where the status is not, because the two answers differ: a
+// subscription that ended names no plan, and an empty string would be a plan called "".
 type billingUpdate struct {
-	status    *string
 	planID    *string
 	accountID string
+	status    platformidentity.BillingStatus
 }
 
 // buildPaymentsManagerForTest wires the manager over a billing store mock and an
@@ -38,9 +42,14 @@ func buildPaymentsManagerForTest(t *testing.T, store *billingmock.StoreMock) (*p
 
 	updates := &[]billingUpdate{}
 
-	identityMgr := &identitymock.IdentityDataManagerMock{
-		UpdateAccountBillingFieldsFunc: func(_ context.Context, accountID string, billingStatus, subscriptionPlanID, _ *string, _ *time.Time) error {
-			*updates = append(*updates, billingUpdate{accountID: accountID, status: billingStatus, planID: subscriptionPlanID})
+	identityMgr := &identitymock.StoreMock{
+		RecordAccountSubscriptionFunc: func(_ context.Context, _ database.Tx, _ tenancy.Scope, accountID string, status platformidentity.BillingStatus, planID string) error {
+			*updates = append(*updates, billingUpdate{accountID: accountID, status: status, planID: &planID})
+
+			return nil
+		},
+		RecordAccountSubscriptionEndedFunc: func(_ context.Context, _ database.Tx, _ tenancy.Scope, accountID string, status platformidentity.BillingStatus) error {
+			*updates = append(*updates, billingUpdate{accountID: accountID, status: status})
 
 			return nil
 		},
@@ -50,6 +59,7 @@ func buildPaymentsManagerForTest(t *testing.T, store *billingmock.StoreMock) (*p
 		t.Context(),
 		tracingnoop.NewTracerProvider(),
 		loggingnoop.NewLogger(),
+		testutils.MockDatabaseClient(),
 		store,
 		identityMgr,
 	)
@@ -64,14 +74,14 @@ func subscriptionLookup(subscription *billing.Subscription) (*billingmock.StoreM
 	statuses := &[]capitalism.SubscriptionStatus{}
 
 	return &billingmock.StoreMock{
-		GetSubscriptionByExternalIDFunc: func(_ context.Context, scope tenancy.Scope, externalID string) (*billing.Subscription, error) {
+		GetSubscriptionByExternalIDFunc: func(_ context.Context, _ database.SQLQueryExecutor, scope tenancy.Scope, externalID string) (*billing.Subscription, error) {
 			if scope != payments.Scope() || externalID != subscription.ExternalSubscriptionID {
 				return nil, billing.ErrSubscriptionNotFound
 			}
 
 			return subscription, nil
 		},
-		SetSubscriptionStatusFunc: func(_ context.Context, _ tenancy.Scope, subscriptionID string, status capitalism.SubscriptionStatus) error {
+		SetSubscriptionStatusFunc: func(_ context.Context, _ database.Tx, _ tenancy.Scope, subscriptionID string, status capitalism.SubscriptionStatus) error {
 			if subscriptionID != subscription.ID {
 				return billing.ErrSubscriptionNotFound
 			}
@@ -103,7 +113,7 @@ func TestPaymentsManager_ProcessWebhookEvent(T *testing.T) {
 		assert.Equal(t, []capitalism.SubscriptionStatus{capitalism.SubscriptionStatusTrialing}, *statuses)
 		require.Len(t, *updates, 1)
 		assert.Equal(t, subscription.BelongsToAccount, (*updates)[0].accountID)
-		assert.Equal(t, identity.TrialAccountBillingStatus, *(*updates)[0].status)
+		assert.Equal(t, platformidentity.BillingTrial, (*updates)[0].status)
 		assert.Equal(t, subscription.ProductID, *(*updates)[0].planID)
 	})
 
@@ -123,7 +133,7 @@ func TestPaymentsManager_ProcessWebhookEvent(T *testing.T) {
 
 		assert.Equal(t, []capitalism.SubscriptionStatus{capitalism.SubscriptionStatusActive}, *statuses)
 		require.Len(t, *updates, 1)
-		assert.Equal(t, identity.PaidAccountBillingStatus, *(*updates)[0].status)
+		assert.Equal(t, platformidentity.BillingPaid, (*updates)[0].status)
 	})
 
 	// The store reports a replayed event as ErrStatusUnchanged. That is the provider telling
@@ -135,7 +145,7 @@ func TestPaymentsManager_ProcessWebhookEvent(T *testing.T) {
 
 		subscription := fakes.BuildFakeSubscription(fake.BuildFakeID(), fake.BuildFakeID())
 		store, _ := subscriptionLookup(subscription)
-		store.SetSubscriptionStatusFunc = func(context.Context, tenancy.Scope, string, capitalism.SubscriptionStatus) error {
+		store.SetSubscriptionStatusFunc = func(context.Context, database.Tx, tenancy.Scope, string, capitalism.SubscriptionStatus) error {
 			return billing.ErrStatusUnchanged
 		}
 		pm, updates := buildPaymentsManagerForTest(t, store)
@@ -164,7 +174,7 @@ func TestPaymentsManager_ProcessWebhookEvent(T *testing.T) {
 
 		assert.Equal(t, []capitalism.SubscriptionStatus{capitalism.SubscriptionStatusCanceled}, *statuses)
 		require.Len(t, *updates, 1)
-		assert.Equal(t, identity.UnpaidAccountBillingStatus, *(*updates)[0].status)
+		assert.Equal(t, platformidentity.BillingUnpaid, (*updates)[0].status)
 		assert.Nil(t, (*updates)[0].planID)
 	})
 
@@ -193,17 +203,17 @@ func TestPaymentsManager_ProcessWebhookEvent(T *testing.T) {
 		var created *billing.Subscription
 
 		store := &billingmock.StoreMock{
-			GetProductByExternalIDFunc: func(_ context.Context, _ tenancy.Scope, externalID string) (*billing.Product, error) {
+			GetProductByExternalIDFunc: func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, externalID string) (*billing.Product, error) {
 				if externalID != product.ExternalProductID {
 					return nil, billing.ErrProductNotFound
 				}
 
 				return product, nil
 			},
-			GetSubscriptionByExternalIDFunc: func(context.Context, tenancy.Scope, string) (*billing.Subscription, error) {
+			GetSubscriptionByExternalIDFunc: func(context.Context, database.SQLQueryExecutor, tenancy.Scope, string) (*billing.Subscription, error) {
 				return nil, billing.ErrSubscriptionNotFound
 			},
-			CreateSubscriptionFunc: func(_ context.Context, _ tenancy.Scope, subscription *billing.Subscription) (*billing.Subscription, error) {
+			CreateSubscriptionFunc: func(_ context.Context, _ database.Tx, _ tenancy.Scope, subscription *billing.Subscription) (*billing.Subscription, error) {
 				created = subscription
 
 				return subscription, nil
@@ -229,7 +239,7 @@ func TestPaymentsManager_ProcessWebhookEvent(T *testing.T) {
 
 		require.Len(t, *updates, 1)
 		assert.Equal(t, accountID, (*updates)[0].accountID)
-		assert.Equal(t, identity.PaidAccountBillingStatus, *(*updates)[0].status)
+		assert.Equal(t, platformidentity.BillingPaid, (*updates)[0].status)
 		assert.Equal(t, product.ID, *(*updates)[0].planID)
 	})
 
@@ -239,7 +249,7 @@ func TestPaymentsManager_ProcessWebhookEvent(T *testing.T) {
 		product := fakes.BuildFakeProduct()
 		subscription := fakes.BuildFakeSubscription(fake.BuildFakeID(), product.ID)
 		store, statuses := subscriptionLookup(subscription)
-		store.GetProductByExternalIDFunc = func(context.Context, tenancy.Scope, string) (*billing.Product, error) {
+		store.GetProductByExternalIDFunc = func(context.Context, database.SQLQueryExecutor, tenancy.Scope, string) (*billing.Product, error) {
 			return product, nil
 		}
 		pm, updates := buildPaymentsManagerForTest(t, store)
@@ -272,7 +282,7 @@ func TestPaymentsManager_ProcessWebhookEvent(T *testing.T) {
 
 		assert.Equal(t, []capitalism.SubscriptionStatus{capitalism.SubscriptionStatusCanceled}, *statuses)
 		require.Len(t, *updates, 1)
-		assert.Equal(t, identity.UnpaidAccountBillingStatus, *(*updates)[0].status)
+		assert.Equal(t, platformidentity.BillingUnpaid, (*updates)[0].status)
 	})
 
 	T.Run("an expiration of a subscription nobody has still marks the account unpaid", func(t *testing.T) {
@@ -291,7 +301,7 @@ func TestPaymentsManager_ProcessWebhookEvent(T *testing.T) {
 
 		require.Len(t, *updates, 1)
 		assert.Equal(t, accountID, (*updates)[0].accountID)
-		assert.Equal(t, identity.UnpaidAccountBillingStatus, *(*updates)[0].status)
+		assert.Equal(t, platformidentity.BillingUnpaid, (*updates)[0].status)
 	})
 
 	T.Run("a cancellation of a subscription nobody has yet is a no-op", func(t *testing.T) {
@@ -349,28 +359,62 @@ func TestPaymentsManager_ProcessWebhookEvent(T *testing.T) {
 	})
 }
 
-// The mapping onto the account's coarse standing is the one judgment platform
-// says a consumer still writes, so it is pinned value by value.
-func TestSubscriptionStatusToBillingStatus(T *testing.T) {
+// An unrecognized standing leaves the account where it was, which is the one judgment this
+// application makes about billing/standing's contract.
+//
+// The mapping itself is platform's now — standing.Strict, tested upstream value by value —
+// and this application passes it rather than writing its own, which is a deployment saying
+// "yes, that is our rule": no dunning window, no grace on past_due.
+//
+// What is pinned here is the case Strict reports it cannot place, because getting there at
+// all took a change at the adapter boundary. capitalism's SubscriptionStatusUnknown is the
+// empty string and its documentation covers both "a status no adapter recognized" and the
+// zero value, so a word Stripe adds next year used to arrive looking exactly like an event
+// carrying no standing — and that reading is "a sync of a subscription the provider still
+// considers live", which made the account paid.
+func TestPaymentsManager_UnrecognizedSubscriptionStatus(T *testing.T) {
 	T.Parallel()
 
-	T.Run("standard", func(t *testing.T) {
+	T.Run("a standing no adapter could place leaves the account alone", func(t *testing.T) {
 		t.Parallel()
 
-		expected := map[capitalism.SubscriptionStatus]string{
-			capitalism.SubscriptionStatusActive:            identity.PaidAccountBillingStatus,
-			capitalism.SubscriptionStatusTrialing:          identity.TrialAccountBillingStatus,
-			capitalism.SubscriptionStatusPastDue:           identity.UnpaidAccountBillingStatus,
-			capitalism.SubscriptionStatusCanceled:          identity.UnpaidAccountBillingStatus,
-			capitalism.SubscriptionStatusIncomplete:        identity.UnpaidAccountBillingStatus,
-			capitalism.SubscriptionStatusIncompleteExpired: identity.UnpaidAccountBillingStatus,
-			capitalism.SubscriptionStatusUnpaid:            identity.UnpaidAccountBillingStatus,
-			capitalism.SubscriptionStatusPaused:            identity.UnpaidAccountBillingStatus,
-			capitalism.SubscriptionStatusUnknown:           identity.UnpaidAccountBillingStatus,
-		}
+		subscription := fakes.BuildFakeSubscription(fake.BuildFakeID(), fake.BuildFakeID())
+		store, statuses := subscriptionLookup(subscription)
+		pm, updates := buildPaymentsManagerForTest(t, store)
 
-		for status, want := range expected {
-			assert.Equal(t, want, subscriptionStatusToBillingStatus(status), "mapping %s", status.String())
-		}
+		err := pm.ProcessWebhookEvent(t.Context(), "stripe", &payments.ParsedWebhookEvent{
+			EventType:          "customer.subscription.updated",
+			SubscriptionID:     subscription.ExternalSubscriptionID,
+			Status:             capitalism.SubscriptionStatusUnknown,
+			StatusUnrecognized: true,
+		}, "")
+		require.NoError(t, err)
+
+		// Nothing written on either side. The subscription's own status is not moved
+		// either, because what the provider reported is not a value this schema holds.
+		assert.Empty(t, *statuses)
+		assert.Empty(t, *updates)
+	})
+
+	// And the case it must not be confused with: an event that genuinely carries no
+	// standing is still read as a live subscription, which is what "updated" has always
+	// meant here.
+	T.Run("an event carrying no standing is still read as active", func(t *testing.T) {
+		t.Parallel()
+
+		subscription := fakes.BuildFakeSubscription(fake.BuildFakeID(), fake.BuildFakeID())
+		store, statuses := subscriptionLookup(subscription)
+		pm, updates := buildPaymentsManagerForTest(t, store)
+
+		err := pm.ProcessWebhookEvent(t.Context(), "stripe", &payments.ParsedWebhookEvent{
+			EventType:      "customer.subscription.updated",
+			SubscriptionID: subscription.ExternalSubscriptionID,
+			Status:         capitalism.SubscriptionStatusUnknown,
+		}, "")
+		require.NoError(t, err)
+
+		assert.Equal(t, []capitalism.SubscriptionStatus{capitalism.SubscriptionStatusActive}, *statuses)
+		require.Len(t, *updates, 1)
+		assert.Equal(t, platformidentity.BillingPaid, (*updates)[0].status)
 	})
 }

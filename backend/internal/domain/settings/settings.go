@@ -42,8 +42,8 @@ holding. Nothing in this application wants one today.
 package settings
 
 import (
-	platformsettings "github.com/primandproper/platform-go/v13/settings"
-	"github.com/primandproper/platform-go/v13/tenancy"
+	platformsettings "github.com/primandproper/platform-go/v14/settings"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
 // TablePrefix namespaces the platform-go settings tables, rendering

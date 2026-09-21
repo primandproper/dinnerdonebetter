@@ -4,16 +4,20 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"time"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 
-	platformwebauthn "github.com/primandproper/platform-go/v13/authentication/webauthn"
-	platformerrors "github.com/primandproper/platform-go/v13/errors"
-	"github.com/primandproper/platform-go/v13/identifiers"
-	"github.com/primandproper/platform-go/v13/observability"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
+	"github.com/primandproper/platform-go/v14/authentication/passkeys"
+	platformidentity "github.com/primandproper/platform-go/v14/identity"
+	platformwebauthn "github.com/primandproper/primitives-go/v2/authentication/webauthn"
+	"github.com/primandproper/primitives-go/v2/database"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/identifiers"
+	"github.com/primandproper/primitives-go/v2/observability"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
 
 	"github.com/go-webauthn/webauthn/protocol"
 )
@@ -36,8 +40,8 @@ var (
 type (
 	// UserStore provides user lookup for WebAuthn.
 	UserStore interface {
-		GetUserByID(ctx context.Context, userID string) (*identity.User, error)
-		GetUserByUsername(ctx context.Context, username string) (*identity.User, error)
+		GetUserByID(ctx context.Context, userID string) (*platformidentity.User, error)
+		GetUserByUsername(ctx context.Context, username string) (*platformidentity.User, error)
 	}
 
 	// Service is passkey registration and login for this application's users.
@@ -52,7 +56,8 @@ type (
 		logger       logging.Logger
 		tracer       tracing.Tracer
 		relyingParty *platformwebauthn.RelyingParty
-		credStore    identity.WebAuthnCredentialDataManager
+		credStore    passkeys.Store
+		db           database.Client
 		userStore    UserStore
 	}
 
@@ -71,7 +76,8 @@ func NewService(
 	logger logging.Logger,
 	tracerProvider tracing.Provider,
 	relyingParty *platformwebauthn.RelyingParty,
-	credStore identity.WebAuthnCredentialDataManager,
+	credStore passkeys.Store,
+	db database.Client,
 	userStore UserStore,
 ) (*Service, error) {
 	if relyingParty == nil {
@@ -83,6 +89,7 @@ func NewService(
 		tracer:       tracing.NewNamedTracer(tracerProvider, o11yName),
 		relyingParty: relyingParty,
 		credStore:    credStore,
+		db:           db,
 		userStore:    userStore,
 	}, nil
 }
@@ -143,19 +150,25 @@ func (s *Service) FinishRegistration(ctx context.Context, userID string, attesta
 		return observability.PrepareAndLogError(err, logger, span, "finishing passkey registration")
 	}
 
-	transports, err := encodeTransports(credential.Transport)
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "encoding passkey transports")
+	// platform's Credential holds the transports as a slice, so the JSON string this used
+	// to encode has nowhere to go and nothing to decode it.
+	transports := make([]string, len(credential.Transport))
+	for i, transport := range credential.Transport {
+		transports[i] = string(transport)
 	}
 
-	if _, err = s.credStore.CreateWebAuthnCredential(ctx, &identity.WebAuthnCredentialCreationInput{
-		ID:            identifiers.New(),
-		BelongsToUser: userID,
-		CredentialID:  credential.ID,
-		PublicKey:     credential.PublicKey,
-		SignCount:     credential.Authenticator.SignCount,
-		Transports:    transports,
-		FriendlyName:  "",
+	if err = s.db.WithTransaction(ctx, func(tx database.Tx) error {
+		_, writeErr := s.credStore.CreateCredential(ctx, tx, identity.Scope(), &passkeys.Credential{
+			ID:            identifiers.New(),
+			BelongsToUser: userID,
+			CredentialID:  credential.ID,
+			PublicKey:     credential.PublicKey,
+			SignCount:     credential.Authenticator.SignCount,
+			Transports:    transports,
+			FriendlyName:  "",
+		})
+
+		return writeErr
 	}); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "storing passkey credential")
 	}
@@ -220,7 +233,7 @@ func (s *Service) FinishAuthentication(ctx context.Context, username string, ass
 	}
 
 	var (
-		user       *identity.User
+		user       *platformidentity.User
 		credential *platformwebauthn.Credential
 	)
 
@@ -257,7 +270,7 @@ func (s *Service) FinishAuthentication(ctx context.Context, username string, ass
 		return nil, observability.PrepareAndLogError(ErrUserNotFound, logger, span, "resolving passkey owner")
 	}
 
-	stored, err := s.credStore.GetWebAuthnCredentialByCredentialID(ctx, credential.ID)
+	stored, err := s.credStore.GetCredentialByCredentialID(ctx, s.db.Reader(), identity.Scope(), credential.ID)
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching passkey credential")
 	}
@@ -269,7 +282,14 @@ func (s *Service) FinishAuthentication(ctx context.Context, username string, ass
 	// Surfaced rather than swallowed. A sign count that is not written back is a count the
 	// next login compares against a stale value, which is clone detection that reports
 	// nothing — so a login whose bookkeeping failed is a login that did not happen.
-	if err = s.credStore.UpdateWebAuthnCredentialSignCount(ctx, stored.ID, credential.Authenticator.SignCount); err != nil {
+	// RecordUse rather than an update of one column: platform stamps last_used_at with the
+	// same statement, which is the other half of the same fact.
+	if err = s.db.WithTransaction(ctx, func(tx database.Tx) error {
+		_, useErr := s.credStore.RecordUse(ctx, tx, identity.Scope(), stored.ID,
+			credential.Authenticator.SignCount, time.Now())
+
+		return useErr
+	}); err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "recording passkey sign count")
 	}
 
@@ -281,13 +301,17 @@ func (s *Service) FinishAuthentication(ctx context.Context, username string, ass
 }
 
 // GetCredentialsForUser returns all active passkey credentials for the given user.
-func (s *Service) GetCredentialsForUser(ctx context.Context, userID string) ([]*identity.WebAuthnCredential, error) {
-	return s.credStore.GetWebAuthnCredentialsForUser(ctx, userID)
+func (s *Service) GetCredentialsForUser(ctx context.Context, userID string) ([]*passkeys.Credential, error) {
+	return s.credStore.GetCredentialsForUser(ctx, s.db.Reader(), identity.Scope(), userID)
 }
 
 // ArchiveCredentialForUser archives a passkey credential only if it belongs to the given user.
 func (s *Service) ArchiveCredentialForUser(ctx context.Context, credentialID, userID string) error {
-	return s.credStore.ArchiveWebAuthnCredentialForUser(ctx, credentialID, userID)
+	return s.db.WithTransaction(ctx, func(tx database.Tx) error {
+		_, err := s.credStore.ArchiveCredentialForUser(ctx, tx, identity.Scope(), credentialID, userID)
+
+		return err
+	})
 }
 
 // discoverableUserHandler resolves the user behind a credential during a discoverable login.
@@ -295,7 +319,7 @@ func (s *Service) ArchiveCredentialForUser(ctx context.Context, credentialID, us
 // the path this is called from.
 func (s *Service) discoverableUserHandler(ctx context.Context, parsed *protocol.ParsedCredentialAssertionData) platformwebauthn.DiscoverableUserHandler {
 	return func(rawID, _ []byte) (platformwebauthn.User, error) {
-		stored, err := s.credStore.GetWebAuthnCredentialByCredentialID(ctx, rawID)
+		stored, err := s.credStore.GetCredentialByCredentialID(ctx, s.db.Reader(), identity.Scope(), rawID)
 		if err != nil {
 			return nil, err
 		}
@@ -341,12 +365,12 @@ func (s *Service) webAuthnUserByUsername(ctx context.Context, username string) (
 // A missing user is an error rather than a nil user handed onward. The relying party would
 // reject the nil, but it would reject it as "nil webauthn user", which says nothing about
 // the lookup that came up empty.
-func (s *Service) webAuthnUser(ctx context.Context, user *identity.User) (*WebAuthnUser, error) {
+func (s *Service) webAuthnUser(ctx context.Context, user *platformidentity.User) (*WebAuthnUser, error) {
 	if user == nil {
 		return nil, ErrUserNotFound
 	}
 
-	credentials, err := s.credStore.GetWebAuthnCredentialsForUser(ctx, user.ID)
+	credentials, err := s.credStore.GetCredentialsForUser(ctx, s.db.Reader(), identity.Scope(), user.ID)
 	if err != nil {
 		return nil, err
 	}

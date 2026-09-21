@@ -6,12 +6,13 @@ import (
 	mockmanagers "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/managers/mock"
 	mealplanningsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
 	mealplanfinalization "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_finalization"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/testutils"
 
-	commentsmock "github.com/primandproper/platform-go/v13/comments/mock"
-	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v13/observability/tracing/noop"
-	mockuploads "github.com/primandproper/platform-go/v13/uploads/mock"
-	registrymock "github.com/primandproper/platform-go/v13/uploads/registry/mock"
+	commentsmock "github.com/primandproper/platform-go/v14/comments/mock"
+	registrymock "github.com/primandproper/platform-go/v14/mediaregistry/mock"
+	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
+	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
+	mockuploads "github.com/primandproper/primitives-go/v2/uploads/mock"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -33,6 +34,7 @@ func TestNewService(t *testing.T) {
 		service := NewService(
 			logger,
 			tracerProvider,
+			testutils.MockDatabaseClient(),
 			mealPlanningManager,
 			mealPlanFinalizationStarter,
 			commentStore,

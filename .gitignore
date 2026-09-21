@@ -66,3 +66,12 @@ ios/fastlane/test_output/
 ios/vendor/bundle/
 
 legacy_frontend
+
+# Compiled binaries built into the backend directory rather than into artifacts/.
+#
+# Both of these were committed once and had to be taken back out of this branch's history
+# before it could be pushed: GitHub refuses a file over 100 MB, and backend/server is 226.
+# The Makefile builds into $(ARTIFACTS_DIR), so anything here is a `go build -o` somebody
+# ran by hand.
+backend/server
+backend/bootstrap

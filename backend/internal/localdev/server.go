@@ -13,43 +13,38 @@ import (
 	apiserver "github.com/primandproper/dinnerdonebetter/backend/internal/build/services/api"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
-	identityconverters "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/converters"
+	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/catalog"
 	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	authrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auth"
-	identityrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity"
 	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
-	notificationsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/notifications"
-	oauthrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/oauth"
+	notificationsstore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/notificationsstore"
 	settingsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/settings"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
-	webhooksrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhooks"
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
 
-	"github.com/primandproper/platform-go/v13/authentication/argon2"
-	"github.com/primandproper/platform-go/v13/authentication/oauth2server"
-	"github.com/primandproper/platform-go/v13/authentication/passwordreset"
-	"github.com/primandproper/platform-go/v13/database"
-	databasecfg "github.com/primandproper/platform-go/v13/database/config"
-	"github.com/primandproper/platform-go/v13/httpclient"
-	"github.com/primandproper/platform-go/v13/identifiers"
-	msgconfig "github.com/primandproper/platform-go/v13/messagequeue/config"
-	"github.com/primandproper/platform-go/v13/messagequeue/redis"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	metricsnoop "github.com/primandproper/platform-go/v13/observability/metrics/noop"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
-	tracingnoop "github.com/primandproper/platform-go/v13/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v13/random"
-	platformsettings "github.com/primandproper/platform-go/v13/settings"
-	"github.com/primandproper/platform-go/v13/testutils/containers/redistest"
-	webhookscfg "github.com/primandproper/platform-go/v13/webhooks/config"
+	platformoauth2clients "github.com/primandproper/platform-go/v14/authentication/oauth2clients"
+	"github.com/primandproper/platform-go/v14/authentication/passwordreset"
+	platformidentity "github.com/primandproper/platform-go/v14/identity"
+	platformsettings "github.com/primandproper/platform-go/v14/settings"
+	"github.com/primandproper/primitives-go/v2/authentication/argon2"
+	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
+	"github.com/primandproper/primitives-go/v2/database"
+	databasecfg "github.com/primandproper/primitives-go/v2/database/config"
+	"github.com/primandproper/primitives-go/v2/httpclient"
+	msgconfig "github.com/primandproper/primitives-go/v2/messagequeue/config"
+	"github.com/primandproper/primitives-go/v2/messagequeue/redis"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	metricsnoop "github.com/primandproper/primitives-go/v2/observability/metrics/noop"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
+	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
+	"github.com/primandproper/primitives-go/v2/random"
+	"github.com/primandproper/primitives-go/v2/tenancy"
+	"github.com/primandproper/primitives-go/v2/testutils/containers/redistest"
 
 	"golang.org/x/oauth2"
 	"google.golang.org/grpc"
@@ -88,10 +83,11 @@ func CreatePremadeAdminUser(
 	ctx context.Context,
 	logger logging.Logger,
 	tracerProvider tracing.Provider,
-	identityRepo identity.Repository,
+	directory *platformidentity.Service,
+	store platformidentity.Store,
 	dbClient database.Client,
-	premadeAdminUser *identity.User,
-) (*identity.User, error) {
+	premadeAdminUser *platformidentity.User,
+) (*platformidentity.User, error) {
 	hasher := authentication.NewArgon2Authenticator(argon2.WithLogger(logger), argon2.WithTracerProvider(tracerProvider))
 
 	actuallyHashedPass, err := hasher.HashPassword(ctx, premadeAdminUser.HashedPassword)
@@ -100,54 +96,82 @@ func CreatePremadeAdminUser(
 	}
 	premadeAdminUser.HashedPassword = actuallyHashedPass
 
-	var user *identity.User
-	if user, err = identityRepo.GetUserByUsername(ctx, premadeAdminUser.Username); err == nil {
-		return user, nil
+	// Good standing, for the reason the registration path gives: this application does not
+	// gate sign-in on a verified email, and platform's default would lock the seeded
+	// administrator out of the deployment it exists to administer.
+	premadeAdminUser.AccountStatus = platformidentity.StatusGood
+
+	if existing, lookupErr := store.GetUserByUsername(ctx, dbClient.Reader(), ddbidentity.Scope(), premadeAdminUser.Username); lookupErr == nil && existing != nil {
+		return existing, nil
 	}
 
-	user, err = identityRepo.CreateUser(ctx, identityconverters.ConvertUserToUserDatabaseCreationInput(premadeAdminUser))
+	// Registered rather than inserted: a user, their account and the membership that puts
+	// them in it are one transaction, and the shape that rules out a user with no account
+	// is the reason Service ships it.
+	registration, err := directory.Register(ctx, ddbidentity.Scope(), premadeAdminUser, &platformidentity.Account{
+		Name: premadeAdminUser.Username + "'s account",
+	}, []string{authorization.AccountAdminRoleName})
 	if err != nil {
-		return nil, fmt.Errorf("failed to create user: %w", err)
+		return nil, fmt.Errorf("failed to register user: %w", err)
 	}
 
-	// Promote user to service_admin by archiving old service role and assigning new one.
-	if _, err = dbClient.Writer().ExecContext(ctx, "UPDATE user_role_assignments SET archived_at = NOW() WHERE user_id = $1 AND account_id IS NULL AND archived_at IS NULL", user.ID); err != nil {
-		return nil, fmt.Errorf("failed to archive old service role: %w", err)
-	}
-	if _, err = dbClient.Writer().ExecContext(ctx, "INSERT INTO user_role_assignments (id, user_id, role_name) VALUES ($1, $2, $3)", identifiers.New(), user.ID, authorization.ServiceAdminRoleName); err != nil {
-		return nil, fmt.Errorf("failed to assign service_admin role: %w", err)
+	// The service role is a write of its own, through the operation that exists for it
+	// rather than through two statements against a role-assignment table this application
+	// no longer owns.
+	user, err := directory.SetUserServiceRoles(ctx, ddbidentity.Scope(), registration.User.ID,
+		[]string{authorization.ServiceAdminRoleName})
+	if err != nil {
+		return nil, fmt.Errorf("failed to promote user to service admin: %w", err)
 	}
 
-	if err = identityRepo.MarkUserTwoFactorSecretAsVerified(ctx, user.ID); err != nil {
+	if _, err = directory.MarkUserTwoFactorSecretVerified(ctx, ddbidentity.Scope(), user.ID); err != nil {
 		return nil, fmt.Errorf("failed to mark user as verified: %w", err)
 	}
 
-	adminUser, err := identityRepo.GetAdminUserByUsername(ctx, user.Username)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get admin user: %w", err)
-	}
-
-	return adminUser, nil
+	return user, nil
 }
 
-func CreateOAuth2ClientForService(ctx context.Context, pgc database.Client, dbCfg *dbcfg.Config, oauth2Input *oauth.OAuth2ClientDatabaseCreationInput) (*oauth.OAuth2Client, error) {
-	auditRepo, err := auditlogentries.ProvideAuditLogRepository(nil, nil, nil, pgc)
+// CreateOAuth2ClientForService registers a client and hands back the secret it was issued.
+//
+// The credentials are the service's to mint, not the caller's: the plaintext exists on the
+// IssuedClient this returns and nowhere else, because the row holds a digest and no read
+// reverses it. A caller that wants a predictable credential supplies a generator — see
+// oauth2ClientRegistry's option — rather than choosing the value here.
+//
+// The registration is global and unowned, which is what this deployment's clients are: an
+// operator mints one to let an application speak for the service on behalf of whoever signs
+// in, and oauth2clients.Client.Admits permits any subject for exactly that arrangement.
+func CreateOAuth2ClientForService(
+	ctx context.Context,
+	pgc database.Client,
+	input *platformoauth2clients.CreationInput,
+) (*platformoauth2clients.IssuedClient, error) {
+	svc, err := oauth2ClientRegistry(pgc)
 	if err != nil {
 		return nil, err
 	}
-	oauth2ClientManager := oauthrepo.ProvideOAuthRepository(ctx, nil, nil, auditRepo, dbCfg, pgc)
 
-	// only the digest is persisted; hand the plaintext back to the caller.
-	plaintextSecret := oauth2Input.ClientSecret
-	oauth2Input.ClientSecret = oauth.HashClientSecret(plaintextSecret)
-
-	createdClient, err := oauth2ClientManager.CreateOAuth2Client(ctx, oauth2Input)
+	issued, err := svc.CreateClient(ctx, tenancy.Global(), "", input)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create oauth2 client: %w", err)
 	}
-	createdClient.ClientSecret = plaintextSecret
 
-	return createdClient, nil
+	return issued, nil
+}
+
+// oauth2ClientRegistry builds the registry service over a bare database client.
+//
+// Undecorated, unlike the one the injector builds: this is a seeding path with no session
+// behind it, and an audit entry attributing a localdev client to nobody is noise in a log
+// whose whole value is attribution. The API server's registrations go through
+// oauth2clientsstore and are recorded.
+func oauth2ClientRegistry(pgc database.Client, opts ...platformoauth2clients.ServiceOption) (*platformoauth2clients.Service, error) {
+	store, err := platformoauth2clients.NewSQLStore(pgc, platformoauth2clients.WithTablePrefix(oauth.TablePrefix))
+	if err != nil {
+		return nil, err
+	}
+
+	return platformoauth2clients.NewService(pgc, store, opts...)
 }
 
 func BuildInProcessServer(ctx context.Context, cfg *config.APIServiceConfig) (server *apiserver.Server, databaseClient database.Client, dbCfg *dbcfg.Config, err error) {
@@ -200,38 +224,77 @@ func BuildInProcessServer(ctx context.Context, cfg *config.APIServiceConfig) (se
 // It receives the database client, config, logger, and tracer to perform arbitrary operations.
 type DatabaseInitFunc func(ctx context.Context, dbClient database.Client, dbCfg *dbcfg.Config, logger logging.Logger, tracerProvider tracing.Provider) error
 
-// WithIdentityRepository provides an identity repository for custom operations.
-// The provided function receives a fully configured identity.Repository along with logger, tracer, and database client.
-func WithIdentityRepository(fn func(ctx context.Context, repo identity.Repository, logger logging.Logger, tracerProvider tracing.Provider, dbClient database.Client) error) DatabaseInitFunc {
+// WithIdentityDirectory provides the directory for custom operations.
+//
+// Both halves of it, because the two answer different questions and a seed needs each:
+// the Service is how a write is made — it is the thing that registers somebody, and the
+// thing whose hooks record that it happened — and the Store is how a seed asks whether it
+// has run before, which is a read no service method exposes.
+func WithIdentityDirectory(fn func(ctx context.Context, directory *platformidentity.Service, store platformidentity.Store, logger logging.Logger, tracerProvider tracing.Provider, dbClient database.Client) error) DatabaseInitFunc {
 	return func(ctx context.Context, dbClient database.Client, dbCfg *dbcfg.Config, logger logging.Logger, tracerProvider tracing.Provider) error {
-		auditLogRepo, err := auditlogentries.ProvideAuditLogRepository(logger, tracerProvider, nil, dbClient)
+		directory, store, err := IdentityDirectory(logger, tracerProvider, dbClient)
 		if err != nil {
 			return err
-		}
-		uploads, err := UploadsRegistry(logger, tracerProvider, dbClient)
-		if err != nil {
-			return err
-		}
-		policy, policyErr := authorization.NewDatabaseResolver(dbClient.Reader(), logger, tracerProvider, nil)
-		if policyErr != nil {
-			return policyErr
 		}
 
-		identityRepo := identityrepo.ProvideIdentityRepository(logger, tracerProvider, auditLogRepo, dbClient, nil, uploads, policy)
-		return fn(ctx, identityRepo, logger, tracerProvider, dbClient)
+		return fn(ctx, directory, store, logger, tracerProvider, dbClient)
 	}
 }
 
-// WithOAuth2Repository provides an OAuth2 repository for custom operations.
-// The provided function receives a fully configured oauth.Repository along with logger and tracer.
-func WithOAuth2Repository(fn func(ctx context.Context, repo oauth.Repository, logger logging.Logger, tracerProvider tracing.Provider) error) DatabaseInitFunc {
-	return func(ctx context.Context, dbClient database.Client, dbCfg *dbcfg.Config, logger logging.Logger, tracerProvider tracing.Provider) error {
-		auditLogRepo, err := auditlogentries.ProvideAuditLogRepository(logger, tracerProvider, nil, dbClient)
+// IdentityDirectory builds the store and the service over it.
+//
+// Without hooks, deliberately. A seed is not a request: there is nobody for its audit
+// entry to name and nobody to deliver its outbox rows, and a localdev bootstrap that
+// queued a "you have been invited" email for a user it invented is a surprise rather than
+// a record. Every identity write a *request* makes goes through the container's service,
+// which is built with them.
+func IdentityDirectory(
+	logger logging.Logger,
+	tracerProvider tracing.Provider,
+	dbClient database.Client,
+) (*platformidentity.Service, platformidentity.Store, error) {
+	store, err := platformidentity.NewSQLStore(dbClient,
+		platformidentity.WithTablePrefix(ddbidentity.TablePrefix),
+		platformidentity.WithStoreLogger(logger),
+		platformidentity.WithStoreTracerProvider(tracerProvider),
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	directory, err := platformidentity.NewService(dbClient, store,
+		platformidentity.WithServiceLogger(logger),
+		platformidentity.WithServiceTracerProvider(tracerProvider),
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return directory, store, nil
+}
+
+// WithOAuth2Registry provides the client registry for custom operations.
+//
+// The generator is the caller's, because the one caller there is seeds a well-known
+// credential: localdev's client_id and secret are in checked-in configuration and in the
+// web apps' environment, so a minted one would mean nothing could sign in until somebody
+// copied it out of the database. platform supplies WithCredentialGenerator for exactly
+// this, and the seam is the option rather than a write that bypasses the service.
+func WithOAuth2Registry(
+	generate platformoauth2clients.CredentialGenerator,
+	fn func(ctx context.Context, svc *platformoauth2clients.Service, logger logging.Logger, tracerProvider tracing.Provider) error,
+) DatabaseInitFunc {
+	return func(ctx context.Context, dbClient database.Client, _ *dbcfg.Config, logger logging.Logger, tracerProvider tracing.Provider) error {
+		svc, err := oauth2ClientRegistry(dbClient,
+			platformoauth2clients.WithCredentialGenerator(generate),
+			platformoauth2clients.WithServiceLogger(logger),
+			platformoauth2clients.WithServiceTracerProvider(tracerProvider),
+		)
 		if err != nil {
 			return err
 		}
-		oauthRepo := oauthrepo.ProvideOAuthRepository(ctx, logger, tracerProvider, auditLogRepo, dbCfg, dbClient)
-		return fn(ctx, oauthRepo, logger, tracerProvider)
+
+		return fn(ctx, svc, logger, tracerProvider)
 	}
 }
 
@@ -264,20 +327,27 @@ func WithMealPlanningRepository(fn func(ctx context.Context, repo mealplanning.R
 		if err != nil {
 			return err
 		}
-		policy, policyErr := authorization.NewDatabaseResolver(dbClient.Reader(), logger, tracerProvider, nil)
-		if policyErr != nil {
-			return policyErr
+		identityStore, storeErr := platformidentity.NewSQLStore(dbClient,
+			platformidentity.WithTablePrefix(ddbidentity.TablePrefix),
+			platformidentity.WithStoreLogger(logger),
+			platformidentity.WithStoreTracerProvider(tracerProvider),
+		)
+		if storeErr != nil {
+			return storeErr
 		}
 
-		identityRepo := identityrepo.ProvideIdentityRepository(logger, tracerProvider, auditLogRepo, dbClient, nil, uploads, policy)
-		mealPlanningRepo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditLogRepo, identityRepo, dbClient, nil, uploads)
+		mealPlanningRepo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditLogRepo, identityStore, dbClient, nil, uploads)
 		return fn(ctx, mealPlanningRepo, logger, tracerProvider)
 	}
 }
 
 // WithSettingsRepository provides a settings store for custom operations.
 // The provided function receives a fully configured settings.Store along with logger and tracer.
-func WithSettingsRepository(fn func(ctx context.Context, store platformsettings.Store, logger logging.Logger, tracerProvider tracing.Provider) error) DatabaseInitFunc {
+//
+// It also receives the database client, because as of platform-go v14 a store
+// write takes the caller's transaction and there is nowhere else for a seed to
+// get one. WithIdentityRepository already took it for the same reason.
+func WithSettingsRepository(fn func(ctx context.Context, store platformsettings.Store, logger logging.Logger, tracerProvider tracing.Provider, dbClient database.Client) error) DatabaseInitFunc {
 	return func(ctx context.Context, dbClient database.Client, dbCfg *dbcfg.Config, logger logging.Logger, tracerProvider tracing.Provider) error {
 		auditLogRepo, err := auditlogentries.ProvideAuditLogRepository(logger, tracerProvider, nil, dbClient)
 		if err != nil {
@@ -289,42 +359,15 @@ func WithSettingsRepository(fn func(ctx context.Context, store platformsettings.
 			return err
 		}
 
-		return fn(ctx, settingsStore, logger, tracerProvider)
+		return fn(ctx, settingsStore, logger, tracerProvider, dbClient)
 	}
 }
 
-// WithWebhooksRepository provides a webhooks repository for custom operations.
-// The provided function receives a fully configured webhooks.Repository along with logger and tracer.
-func WithWebhooksRepository(fn func(ctx context.Context, repo webhooks.Repository, logger logging.Logger, tracerProvider tracing.Provider) error) DatabaseInitFunc {
-	return func(ctx context.Context, dbClient database.Client, dbCfg *dbcfg.Config, logger logging.Logger, tracerProvider tracing.Provider) error {
-		auditLogRepo, err := auditlogentries.ProvideAuditLogRepository(logger, tracerProvider, nil, dbClient)
-		if err != nil {
-			return err
-		}
-
-		// A dispatcher is needed because creating a webhook registers a delivery endpoint,
-		// and a nil one refuses rather than silently storing a webhook that never fires.
-		store, err := webhookscfg.NewStore(ctx, &webhookscfg.Config{}, dbClient)
-		if err != nil {
-			return err
-		}
-
-		dispatcher, err := webhookscfg.NewDispatcher(
-			ctx,
-			&webhookscfg.Config{},
-			store,
-			catalog.Catalog(),
-			webhookscfg.WithLogger(logger),
-			webhookscfg.WithTracerProvider(tracerProvider),
-		)
-		if err != nil {
-			return err
-		}
-
-		webhooksRepo := webhooksrepo.ProvideWebhooksRepository(logger, tracerProvider, auditLogRepo, dbClient, nil, dispatcher, store)
-		return fn(ctx, webhooksRepo, logger, tracerProvider)
-	}
-}
+// WithWebhooksRepository is gone with the repository it provided.
+//
+// Nothing called it: it existed so a localdev hook could write webhooks
+// directly, and the endpoints are platform's now. A hook that wants one builds
+// webhooksstore.RegisterWebhooksStore's dependencies, or asks the API.
 
 // WithNotificationsRepository provides a notifications repository for custom operations.
 // The provided function receives a fully configured notifications.Repository along with logger and tracer.
@@ -334,7 +377,10 @@ func WithNotificationsRepository(fn func(ctx context.Context, repo notifications
 		if err != nil {
 			return err
 		}
-		notificationsRepo := notificationsrepo.ProvideNotificationsRepository(logger, tracerProvider, auditLogRepo, &dbCfg.Config, dbClient, nil)
+		notificationsRepo, err := notificationsstore.ProvideAdapter(ctx, logger, tracerProvider, metricsnoop.NewMetricsProvider(), auditLogRepo, nil, dbClient)
+		if err != nil {
+			return err
+		}
 		return fn(ctx, notificationsRepo, logger, tracerProvider)
 	}
 }

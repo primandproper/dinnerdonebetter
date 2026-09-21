@@ -7,18 +7,30 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/catalog"
 
-	"github.com/primandproper/platform-go/v13/encoding"
-	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/primitives-go/v2/encoding"
+	"github.com/primandproper/primitives-go/v2/filtering"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/go-ozzo/ozzo-validation/v4/is"
 )
 
+// The descriptions below are subscriber-facing: `make webhook_catalog` renders
+// each doc comment into the catalog a client reads to decide what to subscribe
+// to, so they say what happened and nothing about why the constant exists.
+//
+// Two are new with the store adoption. platform's SaveEndpoint is
+// create-or-update, where the deleted service had no update path at all, so a
+// subscriber could not be told that a delivery URL had moved; and a rotation was
+// previously silent. Neither event carries a secret.
 const (
 	// WebhookCreatedServiceEventType indicates a webhook was created.
 	WebhookCreatedServiceEventType = "webhook_created"
+	// WebhookUpdatedServiceEventType indicates a webhook's name, URL or content type changed.
+	WebhookUpdatedServiceEventType = "webhook_updated"
 	// WebhookArchivedServiceEventType indicates a webhook was archived.
 	WebhookArchivedServiceEventType = "webhook_archived"
+	// WebhookSecretRotatedServiceEventType indicates a webhook's signing secret changed, and carries no secret.
+	WebhookSecretRotatedServiceEventType = "webhook_secret_rotated"
 	// WebhookTriggerConfigCreatedServiceEventType indicates a webhook trigger config was created.
 	WebhookTriggerConfigCreatedServiceEventType = "webhook_trigger_config_created"
 	// WebhookTriggerConfigArchivedServiceEventType indicates a webhook trigger config was archived.

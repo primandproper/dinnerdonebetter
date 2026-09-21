@@ -2,25 +2,25 @@ package authentication
 
 import (
 	"context"
-	"database/sql"
-	"errors"
 	"strings"
 	"time"
 
 	authcfg "github.com/primandproper/dinnerdonebetter/backend/internal/authentication/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
+	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
-	"github.com/primandproper/platform-go/v13/authentication/tokens"
-	"github.com/primandproper/platform-go/v13/authentication/totp"
-	"github.com/primandproper/platform-go/v13/messagequeue"
-	"github.com/primandproper/platform-go/v13/observability"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
-	"github.com/primandproper/platform-go/v13/sessions"
+	"github.com/primandproper/platform-go/v14/authentication/signin"
+	platformidentity "github.com/primandproper/platform-go/v14/identity"
+	"github.com/primandproper/platform-go/v14/sessions"
+	"github.com/primandproper/primitives-go/v2/authentication/tokens"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/messagequeue"
+	"github.com/primandproper/primitives-go/v2/observability"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
 )
 
 const (
@@ -42,12 +42,12 @@ type (
 
 	manager struct {
 		tokenIssuer             tokens.Issuer
-		authenticator           Authenticator
-		totpVerifier            totp.Verifier
+		signIn                  *signin.Service
 		tracer                  tracing.Tracer
 		logger                  logging.Logger
 		dataChangesPublisher    messagequeue.Publisher
-		userAuthDataManager     identity.Repository
+		directory               platformidentity.SignInReader
+		db                      database.Client
 		sessionStore            auth.SessionStore
 		maxAccessTokenLifetime  time.Duration
 		maxRefreshTokenLifetime time.Duration
@@ -58,12 +58,12 @@ func NewManager(
 	ctx context.Context,
 	queuesConfig *queuescfg.Config,
 	tokenIssuer tokens.Issuer,
-	authenticator Authenticator,
-	totpVerifier totp.Verifier,
+	signInService *signin.Service,
 	tracingProvider tracing.Provider,
 	logger logging.Logger,
 	publisherProvider messagequeue.PublisherProvider,
-	userAuthDataManager identity.Repository,
+	directory platformidentity.SignInReader,
+	db database.Client,
 	sessionStore auth.SessionStore,
 	cfg *authcfg.TokensConfig,
 ) (Manager, error) {
@@ -78,53 +78,14 @@ func NewManager(
 		tracer:                  tracing.NewNamedTracer(tracingProvider, name),
 		logger:                  logging.NewNamedLogger(logger, name),
 		tokenIssuer:             tokenIssuer,
-		authenticator:           authenticator,
-		totpVerifier:            totpVerifier,
+		signIn:                  signInService,
 		dataChangesPublisher:    dataChangesPublisher,
-		userAuthDataManager:     userAuthDataManager,
+		directory:               directory,
+		db:                      db,
 		sessionStore:            sessionStore,
 	}
 
 	return m, nil
-}
-
-// validateLogin takes login information and returns whether the login is valid.
-// In the event that there's an error, this function will return false and the error.
-func (m *manager) validateLogin(ctx context.Context, user *identity.User, loginInput *auth.UserLoginInput) (bool, error) {
-	ctx, span := m.tracer.StartSpan(ctx)
-	defer span.End()
-
-	loginInput.TOTPToken = strings.TrimSpace(loginInput.TOTPToken)
-	loginInput.Password = strings.TrimSpace(loginInput.Password)
-	loginInput.Username = strings.TrimSpace(loginInput.Username)
-
-	// alias the relevant data.
-	logger := m.logger.WithValue(identitykeys.UsernameKey, user.Username)
-
-	// check the password first. platform's Authenticator.PasswordMatches returns
-	// (false, nil) on a non-match; callers are responsible for turning that into
-	// whatever error the app exposes.
-	matches, err := m.authenticator.PasswordMatches(ctx, user.HashedPassword, loginInput.Password)
-	if err != nil {
-		return false, observability.PrepareError(err, span, "validating password")
-	}
-	if !matches {
-		return false, ErrPasswordDoesNotMatch
-	}
-
-	// if the user has TOTP enabled, verify the code separately.
-	if user.TwoFactorSecretVerifiedAt != nil {
-		if err = m.totpVerifier.Verify(ctx, user.TwoFactorSecret, loginInput.TOTPToken); err != nil {
-			if errors.Is(err, totp.ErrCodeRequired) || errors.Is(err, totp.ErrInvalidCode) {
-				return false, err
-			}
-			return false, observability.PrepareError(err, span, "verifying TOTP code")
-		}
-	}
-
-	logger.Debug("login validated")
-
-	return true, nil
 }
 
 func (m *manager) ProcessLogin(ctx context.Context, adminOnly bool, loginData *auth.UserLoginInput, meta *LoginMetadata) (*auth.TokenResponse, error) {
@@ -139,64 +100,45 @@ func (m *manager) ProcessLogin(ctx context.Context, adminOnly bool, loginData *a
 
 	logger = logger.WithValue(identitykeys.UsernameKey, loginData.Username)
 
-	userFunc := m.userAuthDataManager.GetUserByUsername
+	// The handle is not trimmed and the two secrets are, which is what this replaced did
+	// and is worth saying out loud now that one call does all three. The lookup ran on the
+	// username as given; the trims happened afterwards, so they only ever reached the
+	// password comparison and the TOTP check. Trimming the handle here would make
+	// " alice" sign in where it used to fail, and untrimming the code would refuse a
+	// pasted one — both are changes, and neither belongs in an adoption.
+	credentials := &signin.Credentials{
+		Username:        loginData.Username,
+		Password:        strings.TrimSpace(loginData.Password),
+		TOTPCode:        strings.TrimSpace(loginData.TOTPToken),
+		ActiveAccountID: loginData.DesiredAccountID,
+	}
+
+	// One call where there were five: the handle read, the password comparison, the
+	// status check, the second factor and the principal resolution. platform does them in
+	// that order for reasons this application had not thought about and now inherits —
+	// the status is checked after the password, so somebody who cannot prove the password
+	// cannot learn whether an account exists, is suspended or was terminated; and a
+	// handle naming nobody still costs a password hash, so a stopwatch cannot tell the
+	// two apart either. This code returned on an unknown handle without hashing anything.
+	//
+	// The administrative door is the same call through AdminAuthenticate, which adds the
+	// service role check and demands a proven second factor whatever the policy says.
+	// That is the rule this package enforced by hand, minus the hand.
+	authenticate := m.signIn.Authenticate
 	if adminOnly {
-		userFunc = m.userAuthDataManager.GetAdminUserByUsername
+		authenticate = m.signIn.AdminAuthenticate
 	}
 
-	user, err := userFunc(ctx, loginData.Username)
-	if err != nil || user == nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, observability.PrepareError(err, span, "user does not exist")
-		}
-
-		return nil, observability.PrepareError(err, span, "fetching user")
+	principal, err := authenticate(ctx, ddbidentity.Scope(), credentials)
+	if err != nil {
+		return nil, observability.PrepareError(err, span, "authenticating")
 	}
+
+	user, accountID := principal.User, principal.ActiveAccountID
 
 	logger = logger.WithValue(identitykeys.UserIDKey, user.ID)
 	tracing.AttachToSpan(span, identitykeys.UserIDKey, user.ID)
-
-	if user.IsBanned() {
-		return nil, observability.PrepareError(ErrUserBanned, span, "checking ban status")
-	}
-
-	loginValid, err := m.validateLogin(ctx, user, loginData)
-	logger.WithValue("login_valid", loginValid)
-
-	if err != nil {
-		switch {
-		case errors.Is(err, ErrInvalidTOTPToken):
-			return nil, observability.PrepareError(err, span, "invalid TOTP AccessToken")
-		case errors.Is(err, ErrTOTPRequired):
-			return nil, observability.PrepareError(err, span, "processing login")
-		case errors.Is(err, ErrPasswordDoesNotMatch):
-			return nil, observability.PrepareError(err, span, "password did not match")
-		default:
-			return nil, observability.PrepareError(err, span, "validating login")
-		}
-	} else if !loginValid {
-		return nil, observability.PrepareError(err, span, "login was invalid")
-	}
-
-	var accountID string
-	if loginData.DesiredAccountID != "" {
-		var isMember bool
-		isMember, err = m.userAuthDataManager.UserIsMemberOfAccount(ctx, user.ID, loginData.DesiredAccountID)
-		if err != nil {
-			return nil, observability.PrepareError(err, span, "validating account membership")
-		}
-		if !isMember {
-			return nil, observability.PrepareError(errors.New("user does not have access to account"), span, "user does not have access to the desired account")
-		}
-		accountID = loginData.DesiredAccountID
-	} else {
-		var defaultAccountID string
-		defaultAccountID, err = m.userAuthDataManager.GetDefaultAccountIDForUser(ctx, user.ID)
-		if err != nil {
-			return nil, observability.PrepareError(err, span, "validating input")
-		}
-		accountID = defaultAccountID
-	}
+	logger.Debug("login validated")
 
 	response, err := m.issueTokensWithSession(ctx, user, accountID, auth.LoginMethodPassword, meta)
 	if err != nil {
@@ -204,7 +146,7 @@ func (m *manager) ProcessLogin(ctx context.Context, adminOnly bool, loginData *a
 	}
 
 	dcm := &audit.DataChangeMessage{
-		EventType: identity.UserLoggedInServiceEventType,
+		EventType: ddbidentity.UserLoggedInServiceEventType,
 		AccountID: accountID,
 		UserID:    user.ID,
 	}
@@ -223,37 +165,12 @@ func (m *manager) ProcessPasskeyLogin(ctx context.Context, userID, desiredAccoun
 
 	tracing.AttachToSpan(span, identitykeys.UserIDKey, userID)
 
-	user, err := m.userAuthDataManager.GetUser(ctx, userID)
-	if err != nil || user == nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, observability.PrepareError(err, span, "user does not exist")
-		}
-		return nil, observability.PrepareError(err, span, "fetching user")
+	principal, err := m.signInPrincipal(ctx, userID, desiredAccountID)
+	if err != nil {
+		return nil, observability.PrepareError(err, span, "resolving the principal signing in")
 	}
 
-	if user.IsBanned() {
-		return nil, observability.PrepareError(ErrUserBanned, span, "checking ban status")
-	}
-
-	var accountID string
-	if desiredAccountID != "" {
-		var isMember bool
-		isMember, err = m.userAuthDataManager.UserIsMemberOfAccount(ctx, user.ID, desiredAccountID)
-		if err != nil {
-			return nil, observability.PrepareError(err, span, "validating account membership")
-		}
-		if !isMember {
-			return nil, observability.PrepareError(errors.New("user does not have access to account"), span, "user does not have access to the desired account")
-		}
-		accountID = desiredAccountID
-	} else {
-		var defaultAccountID string
-		defaultAccountID, err = m.userAuthDataManager.GetDefaultAccountIDForUser(ctx, user.ID)
-		if err != nil {
-			return nil, observability.PrepareError(err, span, "validating input")
-		}
-		accountID = defaultAccountID
-	}
+	user, accountID := principal.User, principal.ActiveAccountID
 
 	response, err := m.issueTokensWithSession(ctx, user, accountID, auth.LoginMethodPasskey, meta)
 	if err != nil {
@@ -261,7 +178,7 @@ func (m *manager) ProcessPasskeyLogin(ctx context.Context, userID, desiredAccoun
 	}
 
 	dcm := &audit.DataChangeMessage{
-		EventType: identity.UserLoggedInServiceEventType,
+		EventType: ddbidentity.UserLoggedInServiceEventType,
 		AccountID: accountID,
 		UserID:    user.ID,
 	}
@@ -285,21 +202,15 @@ func (m *manager) ExchangeTokenForUser(ctx context.Context, refreshToken, desire
 	}
 	userID := claims.Subject()
 
-	user, err := m.userAuthDataManager.GetUser(ctx, userID)
-	if err != nil || user == nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, observability.PrepareError(err, span, "user does not exist")
-		}
-
-		return nil, observability.PrepareError(err, span, "fetching user")
+	principal, err := m.signInPrincipal(ctx, userID, desiredAccountID)
+	if err != nil {
+		return nil, observability.PrepareError(err, span, "resolving the principal exchanging a token")
 	}
+
+	user := principal.User
 
 	logger = logger.WithValue(identitykeys.UserIDKey, user.ID)
 	tracing.AttachToSpan(span, identitykeys.UserIDKey, user.ID)
-
-	if user.IsBanned() {
-		return nil, observability.PrepareError(ErrUserBanned, span, "checking ban status")
-	}
 
 	// Validate the session the refresh token names, and that this is the refresh token
 	// it was last issued with. The second half is the rotation: a refresh token spent
@@ -315,25 +226,7 @@ func (m *manager) ExchangeTokenForUser(ctx context.Context, refreshToken, desire
 		return nil, observability.PrepareError(ErrSessionSuperseded, span, "validating session")
 	}
 
-	var accountID string
-	if desiredAccountID != "" {
-		var isMember bool
-		isMember, err = m.userAuthDataManager.UserIsMemberOfAccount(ctx, user.ID, desiredAccountID)
-		if err != nil {
-			return nil, observability.PrepareError(err, span, "validating account membership")
-		}
-		if !isMember {
-			return nil, observability.PrepareError(errors.New("user does not have access to account"), span, "user does not have access to the desired account")
-		}
-		accountID = desiredAccountID
-	} else {
-		var defaultAccountID string
-		defaultAccountID, err = m.userAuthDataManager.GetDefaultAccountIDForUser(ctx, user.ID)
-		if err != nil {
-			return nil, observability.PrepareError(err, span, "validating input")
-		}
-		accountID = defaultAccountID
-	}
+	accountID := principal.ActiveAccountID
 
 	// Issue new tokens against the same session. The identifier is not rotated: it is
 	// not a credential a client ever holds on its own — it rides inside a token this
@@ -371,7 +264,7 @@ func (m *manager) ExchangeTokenForUser(ctx context.Context, refreshToken, desire
 	}
 
 	dcm := &audit.DataChangeMessage{
-		EventType: identity.UserLoggedInServiceEventType,
+		EventType: ddbidentity.UserLoggedInServiceEventType,
 		AccountID: accountID,
 		UserID:    user.ID,
 	}
@@ -396,7 +289,7 @@ func (m *manager) ExchangeTokenForUser(ctx context.Context, refreshToken, desire
 // and carried on, which handed the user two tokens naming a session that was not there:
 // they authenticated with them exactly zero times, and the failure surfaced as a sign-in
 // that appeared to work and then did not.
-func (m *manager) issueTokensWithSession(ctx context.Context, user *identity.User, accountID, loginMethod string, meta *LoginMetadata) (*auth.TokenResponse, error) {
+func (m *manager) issueTokensWithSession(ctx context.Context, user *platformidentity.User, accountID, loginMethod string, meta *LoginMetadata) (*auth.TokenResponse, error) {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -483,4 +376,28 @@ func deriveDeviceName(userAgent string) string {
 	default:
 		return "Unknown Device"
 	}
+}
+
+// signInPrincipal resolves who is signing in and which account they land in.
+//
+// One read where there were three, and it is the read rather than this function that
+// makes the three checks: platform's GetPrincipal refuses a user whose account status does
+// not admit signing in, refuses a named account the user is not a live member of, and
+// falls back to their default when none was named. Each of those used to be a separate
+// call here, and the ban check used to be a separate call in three places — so a path that
+// forgot one was a path that signed somebody in anyway.
+//
+// A user who belongs to no account gets a principal with an empty ActiveAccountID rather
+// than an error. That is a state and not a failure: somebody has to be able to sign in
+// before anybody has put them anywhere.
+func (m *manager) signInPrincipal(ctx context.Context, userID, desiredAccountID string) (*platformidentity.Principal, error) {
+	ctx, span := m.tracer.StartSpan(ctx)
+	defer span.End()
+
+	principal, err := m.directory.GetPrincipal(ctx, m.db.Reader(), ddbidentity.Scope(), userID, desiredAccountID)
+	if err != nil {
+		return nil, observability.PrepareError(err, span, "reading principal")
+	}
+
+	return principal, nil
 }

@@ -7,9 +7,9 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists"
 
-	"github.com/primandproper/platform-go/v13/fake"
-	"github.com/primandproper/platform-go/v13/filtering"
-	platformwaitlists "github.com/primandproper/platform-go/v13/waitlists"
+	platformwaitlists "github.com/primandproper/platform-go/v14/waitlists"
+	"github.com/primandproper/primitives-go/v2/fake"
+	"github.com/primandproper/primitives-go/v2/filtering"
 
 	gofakeit "github.com/brianvoe/gofakeit/v7"
 )

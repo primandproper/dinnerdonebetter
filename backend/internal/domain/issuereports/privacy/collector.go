@@ -20,17 +20,22 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
 	ddbissuereports "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports"
 
-	platformdataprivacy "github.com/primandproper/platform-go/v13/dataprivacy"
-	platformerrors "github.com/primandproper/platform-go/v13/errors"
-	issuereports "github.com/primandproper/platform-go/v13/issuereports"
-	issuereportsprivacy "github.com/primandproper/platform-go/v13/issuereports/privacy"
-	"github.com/primandproper/platform-go/v13/tenancy"
+	platformdataprivacy "github.com/primandproper/platform-go/v14/dataprivacy"
+	issuereports "github.com/primandproper/platform-go/v14/issuereports"
+	issuereportsprivacy "github.com/primandproper/platform-go/v14/issuereports/privacy"
+	"github.com/primandproper/primitives-go/v2/database"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
 // NewCollector builds the issue reports collector: every report the subject
 // filed, in every account they appear in, paged to the end and encoded.
-func NewCollector(store issuereports.Store, resolveAccounts dataprivacy.AccountIDResolver) (platformdataprivacy.Collector, error) {
-	return issuereportsprivacy.NewCollector(store, AccountScopes(resolveAccounts))
+//
+// The reader is taken at construction because dataprivacy.Collector.Collect is
+// handed no executor; see the platform package for why an export reads outside
+// the erasure transaction.
+func NewCollector(store issuereports.Store, reader database.SQLQueryExecutor, resolveAccounts dataprivacy.AccountIDResolver) (platformdataprivacy.Collector, error) {
+	return issuereportsprivacy.NewCollector(store, reader, AccountScopes(resolveAccounts))
 }
 
 // AccountScopes turns "which accounts does this user appear in" into the scopes
@@ -42,7 +47,10 @@ func NewCollector(store issuereports.Store, resolveAccounts dataprivacy.AccountI
 // here, and answering it in this one would export nothing. See
 // ddbissuereports.Scope.
 func AccountScopes(resolveAccounts dataprivacy.AccountIDResolver) issuereportsprivacy.ScopeResolver {
-	return func(ctx context.Context, subject platformdataprivacy.Subject) ([]tenancy.Scope, error) {
+	// The request scope is not consulted: a subject access request that named one
+	// account is still a request for everything held about the subject, and the
+	// accounts they appear in are the same set either way.
+	return func(ctx context.Context, _ tenancy.Scope, subject platformdataprivacy.Subject) ([]tenancy.Scope, error) {
 		accountIDs, err := resolveAccounts(ctx, subject.ID)
 		if err != nil {
 			return nil, platformerrors.Wrap(err, "resolving accounts")

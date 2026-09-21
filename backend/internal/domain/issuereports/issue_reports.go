@@ -11,7 +11,7 @@ see it, and both of those are decided here.
 package issuereports
 
 import (
-	"github.com/primandproper/platform-go/v13/tenancy"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
 // TablePrefix namespaces the platform-go issue reports table, rendering

@@ -8,17 +8,17 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/managers"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
-	identitymanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/manager"
 	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
 
-	platformwebauthn "github.com/primandproper/platform-go/v13/authentication/webauthn"
-	webauthncfg "github.com/primandproper/platform-go/v13/authentication/webauthn/config"
-	"github.com/primandproper/platform-go/v13/database"
-	"github.com/primandproper/platform-go/v13/featureflags"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/metrics"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
+	"github.com/primandproper/platform-go/v14/authentication/passkeys"
+	webauthncfg "github.com/primandproper/platform-go/v14/authentication/webauthnsessions/config"
+	platformidentity "github.com/primandproper/platform-go/v14/identity"
+	platformwebauthn "github.com/primandproper/primitives-go/v2/authentication/webauthn"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/featureflags"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/metrics"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
 
 	"github.com/samber/do/v2"
 )
@@ -42,13 +42,18 @@ func RegisterAuthService(i do.Injector) {
 		)
 	})
 
+	// The passkey credential store is registered with the identity store, which every
+	// container holding this service also registers — see identitystore.RegisterPasskeyStore
+	// for why it moved.
+
 	do.Provide[*webauthn.Service](i, func(i do.Injector) (*webauthn.Service, error) {
 		return ProvidePasskeyService(
 			do.MustInvoke[logging.Logger](i),
 			do.MustInvoke[tracing.Provider](i),
 			do.MustInvoke[*platformwebauthn.RelyingParty](i),
-			do.MustInvoke[identitymanager.IdentityDataManager](i),
-			do.MustInvoke[identity.Repository](i),
+			do.MustInvoke[platformidentity.Store](i),
+			do.MustInvoke[database.Client](i),
+			do.MustInvoke[passkeys.Store](i),
 		)
 	})
 
@@ -60,7 +65,8 @@ func RegisterAuthService(i do.Injector) {
 		return NewAuthService(
 			do.MustInvoke[logging.Logger](i),
 			do.MustInvoke[tracing.Provider](i),
-			do.MustInvoke[identitymanager.IdentityDataManager](i),
+			do.MustInvoke[platformidentity.Store](i),
+			do.MustInvoke[database.Client](i),
 			do.MustInvoke[managers.AuthManagerInterface](i),
 			do.MustInvoke[authentication.Manager](i),
 			do.MustInvoke[featureflags.FeatureFlagManager](i),
@@ -95,14 +101,16 @@ func ProvidePasskeyService(
 	logger logging.Logger,
 	tracerProvider tracing.Provider,
 	relyingParty *platformwebauthn.RelyingParty,
-	identityDataManager identitymanager.IdentityDataManager,
-	identityRepo identity.Repository,
+	directory platformidentity.Store,
+	db database.Client,
+	credentials passkeys.Store,
 ) (*webauthn.Service, error) {
 	return webauthn.NewService(
 		logger,
 		tracerProvider,
 		relyingParty,
-		identityRepo,
-		&passkeyUserStore{identityDataManager: identityDataManager},
+		credentials,
+		db,
+		&passkeyUserStore{directory: directory, db: db},
 	)
 }

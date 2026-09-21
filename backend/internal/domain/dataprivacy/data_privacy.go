@@ -25,6 +25,18 @@ package dataprivacy
 
 import (
 	"context"
+
+	oauth2clientsprivacy "github.com/primandproper/platform-go/v14/authentication/oauth2clients/privacy"
+	passkeysprivacy "github.com/primandproper/platform-go/v14/authentication/passkeys/privacy"
+	passwordresetprivacy "github.com/primandproper/platform-go/v14/authentication/passwordreset/privacy"
+	billingprivacy "github.com/primandproper/platform-go/v14/billing/privacy"
+	commentsprivacy "github.com/primandproper/platform-go/v14/comments/privacy"
+	identityprivacy "github.com/primandproper/platform-go/v14/identity/privacy"
+	issuereportsprivacy "github.com/primandproper/platform-go/v14/issuereports/privacy"
+	mediaregistryprivacy "github.com/primandproper/platform-go/v14/mediaregistry/privacy"
+	settingsprivacy "github.com/primandproper/platform-go/v14/settings/privacy"
+	waitlistsprivacy "github.com/primandproper/platform-go/v14/waitlists/privacy"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
 // TablePrefix namespaces the platform's request table, rendering
@@ -40,93 +52,61 @@ import (
 const TablePrefix = "ddb"
 
 // Registration keys. These become section names in the export artifact and
-// attribute values in telemetry, so they are declared once rather than spelled
-// at each registration site — a typo in one would silently rename a section of
-// every artifact from then on, and the only symptom is a section missing from a
-// file nobody reads until a regulator does.
+// attribute values in telemetry.
 //
-// Adding a domain means adding a constant here and a line in
-// internal/build/dataprivacy. It does not mean editing a type.
+// Most of them are platform's now, re-exported rather than declared, for the reason the
+// identity permissions give: the package that owns the collector owns the name it is
+// normally registered under, and a constant here with a different string would be a
+// section this deployment calls one thing and every other reader of platform's artifacts
+// calls another. privacyadapters.Register uses each package's DefaultKey and nothing else,
+// so a local spelling would not even be reachable.
+//
+// Two changed value when they moved. uploaded_media is media_registry and payments is
+// billing, which renames those sections in every future artifact — free here, since
+// nothing is deployed, and worth taking so the export's vocabulary is the module's.
+//
+// What is still declared below is what this application answers for itself.
 const (
 	// CollectorKeyIdentity covers the user record, their accounts, their
 	// memberships, and the invitations they sent or received.
-	CollectorKeyIdentity = "identity"
+	//
+	// It is this application's to declare even though the collector is platform's,
+	// because the eraser filed under the same key is not: see internal/build/dataprivacy
+	// for the succession rule that runs before the user row goes.
+	CollectorKeyIdentity = identityprivacy.DefaultKey
 	// CollectorKeyMealPlanning covers recipes, meals, meal plans, ingredient
-	// preferences, and ratings.
+	// preferences, and ratings. There is no platform counterpart; this is the domain
+	// this application is.
 	CollectorKeyMealPlanning = "meal_planning"
-	// CollectorKeyWebhooks covers the webhooks belonging to the subject's
-	// accounts.
-	CollectorKeyWebhooks = "webhooks"
-	// CollectorKeySettings covers user- and account-scoped setting
-	// configurations.
-	CollectorKeySettings = "settings"
-	// CollectorKeyNotifications covers in-app user notifications.
+	// CollectorKeyNotifications covers in-app user notifications. platform ships a
+	// collector for its own inbox and device registry and this application does not use
+	// it — ours reads one repository and answers as one section where platform answers
+	// as two.
 	CollectorKeyNotifications = "notifications"
-	// CollectorKeyPayments covers subscriptions, purchases, and payment
-	// transactions.
-	CollectorKeyPayments = "payments"
 	// CollectorKeyAuditLog covers the audit entries recorded about the subject.
 	CollectorKeyAuditLog = "audit_log"
-	// CollectorKeyIssueReports covers issue reports filed from the subject's
-	// accounts.
-	CollectorKeyIssueReports = "issue_reports"
-	// CollectorKeyUploadedMedia covers media the subject uploaded.
-	CollectorKeyUploadedMedia = "uploaded_media"
-	// CollectorKeyWaitlists covers the subject's waitlist signups.
-	CollectorKeyWaitlists = "waitlists"
-	// CollectorKeyComments covers comments the subject authored.
-	CollectorKeyComments = "comments"
 
-	// EraserKeyComments is the eraser that destroys the comments a subject wrote.
-	//
-	// It is registered because comments are the one store the identity cascade no
-	// longer reaches. The table this repository used to own carried
-	// belongs_to_user REFERENCES users ON DELETE CASCADE; platform-go's carries a
-	// plain author column, because that package does not own the directory people
-	// live in and has no table to point a foreign key at. Without this eraser a
-	// user erasure would leave every comment they wrote in place, live and
-	// listable.
-	//
-	// The erasure is a hard delete rather than an anonymization. A comment's body
-	// is free text somebody typed, so what has to go is the words rather than a
-	// flag beside them: keeping the text and losing the author would be worse than
-	// either.
-	//
-	// It sorts before EraserKeyIdentity, which costs nothing — there is no foreign
-	// key between the two any more — and is the order that reads correctly anyway.
-	EraserKeyComments = "comments"
+	// The sections platform's own adapters register, named by the packages that own
+	// them so that this application cannot drift from the artifact everybody else reads.
+	CollectorKeySettings      = settingsprivacy.DefaultKey
+	CollectorKeyIssueReports  = issuereportsprivacy.DefaultKey
+	CollectorKeyMediaRegistry = mediaregistryprivacy.DefaultKey
+	CollectorKeyWaitlists     = waitlistsprivacy.DefaultKey
+	CollectorKeyComments      = commentsprivacy.DefaultKey
+	CollectorKeyBilling       = billingprivacy.DefaultKey
+	CollectorKeyPasskeys      = passkeysprivacy.DefaultKey
+	CollectorKeyPasswordReset = passwordresetprivacy.DefaultKey
+	CollectorKeyOAuth2Clients = oauth2clientsprivacy.DefaultKey
 
-	// EraserKeyWaitlists is the eraser that takes a subject off every waitlist
-	// they joined.
+	// EraserKeyIdentity is the eraser that deletes the user row, and with it every
+	// table in this schema that carries a foreign key to it.
 	//
-	// It is registered for the same reason EraserKeyComments is — the identity
-	// cascade no longer reaches these rows — but it cannot be closed the same way.
-	// The table this repository used to own carried belongs_to_user REFERENCES
-	// users ON DELETE CASCADE; platform-go's carries a subject pair, and a foreign
-	// key on it is impossible rather than merely absent: a withdrawal blanks the
-	// subject reference to the empty string, which names no user, so the key would
-	// refuse the one write somebody has a right to demand.
-	//
-	// The erasure is a withdrawal rather than a delete, which is what makes it an
-	// erasure that holds: deleting the row would free the address for a later
-	// signup, so somebody erased at their own request could be put back on a
-	// mailing list by filling the form in again. See
-	// internal/domain/waitlists/privacy for what is retained and why.
-	//
-	// It sorts before EraserKeyIdentity, which costs nothing — there is no foreign
-	// key between the two — and is the order that reads correctly anyway.
-	EraserKeyWaitlists = "waitlists"
-
-	// EraserKeyIdentity is the eraser that deletes the user row, and with it
-	// everything hanging off it by ON DELETE CASCADE. See
-	// internal/domain/identity/privacy for what that covers and why it is the
-	// only application eraser registered for this schema's cascading tables.
-	//
-	// The other registered eraser is platform-go's own, under auditerasure.
-	// DefaultKey. That key sorts before this one, which is load-bearing: erasers
-	// run serially in sorted order inside one transaction, so the audit scopes
-	// are resolved and deleted while the accounts that name them still exist.
-	EraserKeyIdentity = "identity"
+	// It is platform's, under platform's key, with this application's succession rule
+	// running ahead of it as the adapter's BeforeErase — see
+	// internal/domain/identity/privacy. It is the same string as CollectorKeyIdentity
+	// because the two halves of one domain share a key; both are spelled so that a reader
+	// looking for either finds it.
+	EraserKeyIdentity = identityprivacy.DefaultKey
 )
 
 // AccountIDResolver answers "which accounts does this user appear in", which is
@@ -138,3 +118,22 @@ const (
 // not acquire a dependency on the identity domain to get it. The build layer
 // supplies the implementation, and each collector takes exactly what it needs.
 type AccountIDResolver func(ctx context.Context, userID string) ([]string, error)
+
+// UnconfinedScope is the tenancy scope this application files privacy requests under: none.
+//
+// A privacy request is about a person, not about a tenant. The subject is the user, the
+// artifact is theirs, and a request submitted while one account was active still covers
+// everything held about them — so there is no account to file it under.
+//
+// "No tenant" is the zero Scope rather than tenancy.Global, and the two are different
+// answers here in a way they are not everywhere else. platform refuses a global privacy
+// request outright, with ErrGlobalRequestScope: the global scope is the chain
+// platform-level events are recorded in, and a request about a person is not one of those.
+// The zero Scope is what it reads as unconfined, and it maps that back to Global itself
+// when it comes to record the request's own audit entry — see dataprivacy.auditScope.
+//
+// The reads spell the same thing differently, and that is platform's shape rather than a
+// slip here: they take a *tenancy.Scope where nil narrows nothing, and a non-nil pointer at
+// the zero Scope is refused as a caller whose own lookup came back empty. So a write passes
+// this and a read passes nil.
+func UnconfinedScope() tenancy.Scope { return tenancy.Scope{} }

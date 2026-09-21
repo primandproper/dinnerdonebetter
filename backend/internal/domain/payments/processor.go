@@ -3,7 +3,7 @@ package payments
 import (
 	"net/http"
 
-	"github.com/primandproper/platform-go/v13/capitalism"
+	"github.com/primandproper/primitives-go/v2/capitalism"
 )
 
 // ParsedWebhookEvent holds the result of parsing a provider webhook payload.
@@ -19,6 +19,20 @@ type ParsedWebhookEvent struct {
 	// the billing store writes: an adapter that could hand over a word the store
 	// refuses would be an adapter whose mistake surfaced as a database error.
 	Status capitalism.SubscriptionStatus
+
+	// StatusUnrecognized says the provider reported a standing and no adapter could
+	// place it, which is a different fact from reporting none at all.
+	//
+	// capitalism cannot express the difference: SubscriptionStatusUnknown is the empty
+	// string and its documentation covers both "a status no adapter recognized" and the
+	// zero value. Collapsing them here meant a word Stripe adds next year arrived looking
+	// exactly like an event that carried no standing, and the manager reads *that* as a
+	// sync of a live subscription — so an unrecognized status entitled the account.
+	//
+	// An adapter sets this when it saw something and could not place it. The manager then
+	// leaves the account's standing alone, which is what billing/standing's Classify
+	// contract asks a caller to do with a status it cannot place.
+	StatusUnrecognized bool
 }
 
 // PaymentProcessor defines the interface for payment provider webhook handling.

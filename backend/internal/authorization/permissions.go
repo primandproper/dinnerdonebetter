@@ -1,24 +1,43 @@
 package authorization
 
+import (
+	platformauthz "github.com/primandproper/primitives-go/v2/authorization"
+)
+
 type (
 	role int
 
-	// Permission is a simple string alias.
-	Permission string
+	// Permission names an action a principal may be authorized to perform.
+	//
+	// It is an alias for the platform's type rather than a defined type of its
+	// own, which is the adoption platform documents and the thing that lets this
+	// application's permission maps be composed with the ones platform's own gRPC
+	// surfaces ship — see internal/build/services/api/grpc.AggregateMethodPermissions,
+	// which now merges commentsgrpc.Permissions() alongside this repo's own. A
+	// defined type would have made that one conversion per domain, for thirteen
+	// domains.
+	Permission = platformauthz.Permission
 )
 
 var (
 	// ServiceAdminPermissions is every service admin permission.
-	ServiceAdminPermissions = []Permission{
+	ServiceAdminPermissions = append([]Permission{
 		ReadUserDataPermission,
-		UpdateUserStatusPermission,
-		ReadUserPermission,
-		SearchUserPermission,
-		ArchiveUserPermission,
 		CreateOAuth2ClientsPermission,
 		ArchiveOAuth2ClientsPermission,
+
+		// Reading the registry joins the two writes as a service admin's, which it was
+		// not: every signed-in member could list every OAuth2 client in the deployment.
+		//
+		// That was a disclosure twice over. The registry is four first-party applications
+		// and the MCP server — there is no console a member reaches it from, so the grant
+		// bought nothing — and the read put the secret's digest on the wire with the rest
+		// of the row, because the converter copied every field of the type. platform's
+		// Client carries SecretHash as json:"-" and its converter never renders one
+		// outside the creation response, so half of this closed with the adoption; the
+		// other half is here.
+		ReadOAuth2ClientsPermission,
 		ArchiveSettingDefinitionsPermission,
-		CreateUserNotificationsPermission,
 		ImpersonateUserPermission,
 		ManageUserSessionsPermission,
 		PublishArbitraryQueueMessagePermission,
@@ -36,11 +55,68 @@ var (
 		ReadProductsPermission,
 		UpdateProductsPermission,
 		ArchiveProductsPermission,
-		CreateSubscriptionsPermission,
 		ReadSubscriptionsPermission,
-		UpdateSubscriptionsPermission,
 		ArchiveSubscriptionsPermission,
-	}
+
+		// The rest of the adopted surfaces' administrative halves. Each of these is
+		// a method platform's server mounts, and a permission no role held until
+		// now — which made the method callable by nobody, refused exactly as it
+		// would be for a caller who genuinely lacked it. See
+		// internal/build/services/api/grpc.TestMethodTableIsCoveredByThePolicy,
+		// which is the check that says so.
+		VerifyAuditChainPermission,
+		ModerateCommentsPermission,
+		ReadAllSettingValuesPermission,
+		WriteAdminSettingValuesPermission,
+		InviteWaitlistSignupsPermission,
+		ConvertWaitlistSignupsPermission,
+		EraseWaitlistSignupsPermission,
+
+		// Both of these were a member's, and both are operator grants — platform says so
+		// in as many words. "Rewriting the operator's note against a signup" is not
+		// something the person on the list does, and archiving is explicitly not
+		// withdrawing: the row is hidden and the address is still stored, so it is a
+		// queue being tidied rather than an opt-out being honored. The opt-out is
+		// Withdraw, which a member reaches under JoinWaitlistsPermission and which the
+		// signup authorizer confines to their own.
+		//
+		// Leaving them with the member was a cross-tenant hole rather than a generous
+		// reading: signups are scoped globally here and neither RPC has an ownership
+		// seam, so any signed-in caller could rewrite or retire anybody's signup by
+		// naming its id.
+		UpdateWaitlistSignupsPermission,
+		ArchiveWaitlistSignupsPermission,
+
+		// Reading signups is a service admin's and nobody else's, which costs a member
+		// the ability to see their own place in a queue.
+		//
+		// platform puts four reads behind this one grant — a signup by id, one by the
+		// address it was made with, a list's page, and one subject's signups — and warns
+		// that it is the grant to think hardest about, because a holder can ask whether
+		// any address they can type is on any list. Granting it to a member would hand
+		// every signed-in user that question about every other user's address.
+		//
+		// The own-signup half is not lost with it. platform grew AuthorizeSubjectRead for
+		// this — a seam asked inside the handler, after the subject has been read and
+		// before any row is — so ListSignupsForSubject is declared here under
+		// ReadOwnWaitlistSignupsPermission, which a member holds, and the authorizer
+		// refuses a subject that is not the caller's own. The other three reads, the
+		// oracle among them, stay behind this grant.
+		ReadWaitlistSignupsPermission,
+
+		// The fleet-wide ledger reads, which are separate permissions from the
+		// account-scoped ones an account admin holds precisely so that reading one
+		// account's money is not reading everybody's.
+		ListAllSubscriptionsPermission,
+		ListAllPurchasesPermission,
+		ListAllTransactionsPermission,
+		ReadTransactionsPermission,
+		ArchivePurchasesPermission,
+		ArchiveTransactionsPermission,
+		// The directory reads and the three operator writes, which are platform's now.
+		// They are not an account holder's: a support engineer reading a user does not
+		// become a member of the account they are looking at.
+	}, IdentityOperatorPermissions...)
 
 	// ServiceDataAdminPermissions is every service data admin permission.
 	ServiceDataAdminPermissions = []Permission{
@@ -89,19 +165,17 @@ var (
 	}
 
 	// AccountAdminPermissions is every account admin permission.
-	AccountAdminPermissions = []Permission{
-		UpdateAccountPermission,
-		ArchiveAccountPermission,
-		TransferAccountPermission,
-		InviteUserToAccountPermission,
-		ModifyMemberPermissionsForAccountPermission,
-		RemoveMemberAccountPermission,
-		CreateWebhooksPermission,
-		UpdateWebhooksPermission,
-		ArchiveWebhooksPermission,
+	AccountAdminPermissions = append([]Permission{
 		CreateIssueReportsPermission,
 		UpdateIssueReportsPermission,
 		ArchiveIssueReportsPermission,
+		// Working the queue is an account admin's, because the queue is the account's:
+		// a report is filed in the account it is about and no read crosses that line.
+		// These are the two halves of what "update.issue_reports" gated before the
+		// adoption split it — paging the queue by status or subject, and moving a
+		// report through it.
+		TriageIssueReportsPermission,
+		TransitionIssueReportsPermission,
 		CreateMealPlansPermission,
 		UpdateMealPlansPermission,
 		ArchiveMealPlansPermission,
@@ -114,12 +188,6 @@ var (
 		CreateAccountInstrumentOwnershipsPermission,
 		UpdateAccountInstrumentOwnershipsPermission,
 		ArchiveAccountInstrumentOwnershipsPermission,
-		CreateWebhookTriggerConfigsPermission,
-		ArchiveWebhookTriggerConfigsPermission,
-		CreateWebhookTriggerEventsPermission,
-		ReadWebhookTriggerEventsPermission,
-		UpdateWebhookTriggerEventsPermission,
-		ArchiveWebhookTriggerEventsPermission,
 		CreateMealListsPermission,
 		ReadMealListsPermission,
 		UpdateMealListsPermission,
@@ -133,15 +201,27 @@ var (
 		ReadPurchasesPermission,
 		ReadPaymentHistoryPermission,
 		ReadSubscriptionsPermission,
-	}
+
+		// Platform's webhook writes, which are account-scoped in this application:
+		// an account's admin manages that account's endpoints and what they hear
+		// about. They are finer than the four this repository's own webhooks
+		// service used — an endpoint, a subscription and a secret rotation are
+		// separately grantable now, where "update.webhooks" covered all three.
+		// The reads are a member's, below, as "read.webhooks" was.
+		SaveWebhookEndpointsPermission,
+		ArchiveWebhookEndpointsPermission,
+		RotateWebhookSecretPermission,
+		AddWebhookSubscriptionsPermission,
+		ArchiveWebhookSubscriptionsPermission,
+		// Everything an account administrator holds over the account itself, which is
+		// platform's identity surface now. See identity_permissions.go.
+	}, IdentityAccountPermissions...)
 
 	// AccountMemberPermissions is every account member permission.
-	AccountMemberPermissions = []Permission{
+	AccountMemberPermissions = append([]Permission{
 		ReportAnalyticsEventsPermission,
-		ReadWebhooksPermission,
 		ReadIssueReportsPermission,
 		ReadAuditLogEntriesPermission,
-		ReadOAuth2ClientsPermission,
 		ReadSettingDefinitionsPermission,
 		CreateUploadedMediaPermission,
 		ReadUploadedMediaPermission,
@@ -231,9 +311,8 @@ var (
 		ReadMealPlanRecipeOptionSelectionsPermission,
 		UpdateMealPlanRecipeOptionSelectionsPermission,
 		ArchiveMealPlanRecipeOptionSelectionsPermission,
-		CreateSettingValuesPermission,
+		WriteSettingValuesPermission,
 		ReadSettingValuesPermission,
-		ArchiveSettingValuesPermission,
 		ReadMealPlanTasksPermission,
 		UpdateMealPlanTasksPermission,
 		CreateUserIngredientPreferencesPermission,
@@ -250,15 +329,14 @@ var (
 		UpdateRecipeRatingsPermission,
 		ArchiveRecipeRatingsPermission,
 		ReadUserNotificationsPermission,
-		UpdateUserNotificationsPermission,
+		MarkUserNotificationsReadPermission,
+		ArchiveUserNotificationsPermission,
 		CreateUserDeviceTokensPermission,
 		ReadUserDeviceTokensPermission,
 		ArchiveUserDeviceTokensPermission,
-		CreateWaitlistSignupsPermission,
-		UpdateWaitlistSignupsPermission,
-		ArchiveWaitlistSignupsPermission,
+		JoinWaitlistsPermission,
+		ReadOwnWaitlistSignupsPermission,
 		ReadWaitlistsPermission,
-		ReadWaitlistSignupsPermission,
 		ReadValidPrepTaskConfigsPermission,
 		CreateCheckoutSessionPermission,
 		CancelSubscriptionPermission,
@@ -268,5 +346,16 @@ var (
 		CreateUserDataReportsPermission,
 		ReadUserDataReportsPermission,
 		DestroyUserDataPermission,
-	}
+
+		// The webhook reads, which a member held as "read.webhooks" before the
+		// adoption split it. A member seeing an endpoint learns nothing they
+		// should not: platform's converter never renders the signing secret, for
+		// exactly the reason a read permission would otherwise be a write one.
+		ReadWebhookEndpointsPermission,
+		ReadWebhookSubscriptionsPermission,
+		ReadWebhookAttemptsPermission,
+		ReadWebhookEventTypesPermission,
+		// What every member holds over themselves. See identity_permissions.go for why
+		// these are this application's to declare rather than platform's.
+	}, IdentitySelfPermissions...)
 )

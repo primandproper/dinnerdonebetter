@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -11,8 +12,12 @@ import (
 	mealplanninggrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
 	converters "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/grpc/converters"
 
+	errorsgrpc "github.com/primandproper/primitives-go/v2/errors/grpc"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func checkRecipeEquality(t *testing.T, expected, actual *mealplanning.Recipe) {
@@ -1872,8 +1877,7 @@ func TestRecipes_Validation(T *testing.T) {
 		_, err := adminClient.CreateRecipe(ctx, &mealplanninggrpc.CreateRecipeRequest{
 			Input: converters.ConvertRecipeCreationRequestInputToGRPCRecipeCreationRequestInput(input),
 		})
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "at least 2 steps")
+		requireRecipeInputRefused(t, ctx, err, "at least 2 steps")
 	})
 
 	T.Run("step requirements - only instruments", func(t *testing.T) {
@@ -2086,8 +2090,7 @@ func TestRecipes_Validation(T *testing.T) {
 		_, err := adminClient.CreateRecipe(ctx, &mealplanninggrpc.CreateRecipeRequest{
 			Input: converters.ConvertRecipeCreationRequestInputToGRPCRecipeCreationRequestInput(input),
 		})
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "at least one instrument or vessel")
+		requireRecipeInputRefused(t, ctx, err, "at least one instrument or vessel")
 	})
 
 	T.Run("bridge table validation - invalid ValidIngredientPreparationID", func(t *testing.T) {
@@ -2161,10 +2164,7 @@ func TestRecipes_Validation(T *testing.T) {
 		_, err := adminClient.CreateRecipe(ctx, &mealplanninggrpc.CreateRecipeRequest{
 			Input: converters.ConvertRecipeCreationRequestInputToGRPCRecipeCreationRequestInput(input),
 		})
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "step 0 ingredient 0")
-		assert.Contains(t, err.Error(), "ValidIngredientPreparation")
-		assert.Contains(t, err.Error(), "not found")
+		requireRecipeInputRefused(t, ctx, err, "step 0 ingredient 0", "ValidIngredientPreparation", "not found")
 	})
 
 	T.Run("bridge table validation - mismatched preparation for ingredient", func(t *testing.T) {
@@ -2240,10 +2240,7 @@ func TestRecipes_Validation(T *testing.T) {
 		_, err := adminClient.CreateRecipe(ctx, &mealplanninggrpc.CreateRecipeRequest{
 			Input: converters.ConvertRecipeCreationRequestInputToGRPCRecipeCreationRequestInput(input),
 		})
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "step 0 ingredient 0")
-		assert.Contains(t, err.Error(), "is for preparation")
-		assert.Contains(t, err.Error(), "but step uses preparation")
+		requireRecipeInputRefused(t, ctx, err, "step 0 ingredient 0", "is for preparation", "but step uses preparation")
 	})
 
 	T.Run("bridge table validation - mismatched preparation for instrument", func(t *testing.T) {
@@ -2319,10 +2316,7 @@ func TestRecipes_Validation(T *testing.T) {
 		_, err := adminClient.CreateRecipe(ctx, &mealplanninggrpc.CreateRecipeRequest{
 			Input: converters.ConvertRecipeCreationRequestInputToGRPCRecipeCreationRequestInput(input),
 		})
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "step 0 instrument 0")
-		assert.Contains(t, err.Error(), "is for preparation")
-		assert.Contains(t, err.Error(), "but step uses preparation")
+		requireRecipeInputRefused(t, ctx, err, "step 0 instrument 0", "is for preparation", "but step uses preparation")
 	})
 
 	T.Run("bridge table validation - mismatched ingredient for ValidIngredientMeasurementUnit", func(t *testing.T) {
@@ -2398,11 +2392,7 @@ func TestRecipes_Validation(T *testing.T) {
 		_, err := adminClient.CreateRecipe(ctx, &mealplanninggrpc.CreateRecipeRequest{
 			Input: converters.ConvertRecipeCreationRequestInputToGRPCRecipeCreationRequestInput(input),
 		})
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "step 0 ingredient 0")
-		assert.Contains(t, err.Error(), "ValidIngredientMeasurementUnit")
-		assert.Contains(t, err.Error(), "is for ingredient")
-		assert.Contains(t, err.Error(), "but ingredient")
+		requireRecipeInputRefused(t, ctx, err, "step 0 ingredient 0", "ValidIngredientMeasurementUnit", "is for ingredient", "but ingredient")
 	})
 
 	T.Run("required fields - missing name", func(t *testing.T) {
@@ -3082,4 +3072,30 @@ func TestRecipes_AssociatedRecipes(T *testing.T) {
 		_, err = adminClient.ArchiveRecipe(ctx, &mealplanninggrpc.ArchiveRecipeRequest{RecipeId: firstRecipe.ID})
 		assert.NoError(t, err)
 	})
+}
+
+// requireRecipeInputRefused pins a refusal of a recipe that cannot be stored as described.
+//
+// It asserts on the status detail rather than on the message, because the message is
+// deliberately generic: primitives-go derives it from the gRPC code, on the stated ground
+// that a handler error's text is the whole wrapped chain and belongs nowhere a client can
+// read it. The chain still travels — UnaryErrorEncodingInterceptor attaches it as a status
+// detail and DecodeErrorFromStatus reads it back — and that is where the words naming the
+// rule broken, or the reference that disagreed, live.
+//
+// The code is asserted too, and it is the half that changed: these used to reach a client
+// as Internal, telling somebody the server broke when what broke is the recipe they sent.
+// See mealplanning.ErrInvalidRecipeInput.
+func requireRecipeInputRefused(t *testing.T, ctx context.Context, err error, contains ...string) {
+	t.Helper()
+
+	require.Error(t, err)
+	assert.Equal(t, codes.InvalidArgument, status.Code(err))
+
+	decoded := errorsgrpc.DecodeErrorFromStatus(ctx, err)
+	require.Error(t, decoded, "the refusal carried no detail to read")
+
+	for _, want := range contains {
+		assert.Contains(t, decoded.Error(), want)
+	}
 }

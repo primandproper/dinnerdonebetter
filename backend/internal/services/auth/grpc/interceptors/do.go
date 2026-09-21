@@ -1,14 +1,16 @@
 package interceptors
 
 import (
+	identitybuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
-	identitymanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/manager"
 
-	"github.com/primandproper/platform-go/v13/authentication/oauth2server"
-	oauth2servercfg "github.com/primandproper/platform-go/v13/authentication/oauth2server/config"
-	"github.com/primandproper/platform-go/v13/authentication/tokens"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
+	oauth2servercfg "github.com/primandproper/platform-go/v14/authentication/oauth2serverstore/config"
+	platformidentity "github.com/primandproper/platform-go/v14/identity"
+	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
+	"github.com/primandproper/primitives-go/v2/authentication/tokens"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
 
 	"github.com/samber/do/v2"
 )
@@ -19,7 +21,9 @@ func RegisterAuthInterceptor(i do.Injector) {
 		return ProvideAuthInterceptor(
 			do.MustInvoke[tracing.Provider](i),
 			do.MustInvoke[logging.Logger](i),
-			do.MustInvoke[identitymanager.IdentityDataManager](i),
+			do.MustInvoke[platformidentity.Store](i),
+			do.MustInvoke[database.Client](i),
+			do.MustInvoke[*identitybuild.SessionBuilder](i),
 			do.MustInvoke[auth.SessionStore](i),
 			do.MustInvoke[*oauth2server.Server](i),
 			resourceIdentifier(do.MustInvoke[*oauth2servercfg.Config](i)),

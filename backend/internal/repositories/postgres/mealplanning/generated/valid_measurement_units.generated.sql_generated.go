@@ -615,12 +615,12 @@ LIMIT COALESCE($2, 50)
 `
 
 type ScanValidMeasurementUnitIDsForReindexParams struct {
-	PageCursor  string
-	ResultLimit interface{}
+	ReindexCursor string
+	ResultLimit   interface{}
 }
 
 func (q *Queries) ScanValidMeasurementUnitIDsForReindex(ctx context.Context, db DBTX, arg *ScanValidMeasurementUnitIDsForReindexParams) ([]string, error) {
-	rows, err := db.QueryContext(ctx, scanValidMeasurementUnitIDsForReindex, arg.PageCursor, arg.ResultLimit)
+	rows, err := db.QueryContext(ctx, scanValidMeasurementUnitIDsForReindex, arg.ReindexCursor, arg.ResultLimit)
 	if err != nil {
 		return nil, err
 	}

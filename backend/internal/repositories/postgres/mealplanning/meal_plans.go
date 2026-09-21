@@ -6,17 +6,18 @@ import (
 	"strings"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
-	"github.com/primandproper/platform-go/v13/database"
-	platformerrors "github.com/primandproper/platform-go/v13/errors"
-	"github.com/primandproper/platform-go/v13/filtering"
-	"github.com/primandproper/platform-go/v13/identifiers"
-	"github.com/primandproper/platform-go/v13/observability"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
+	"github.com/primandproper/primitives-go/v2/database"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/filtering"
+	"github.com/primandproper/primitives-go/v2/identifiers"
+	"github.com/primandproper/primitives-go/v2/observability"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
 )
 
 const (
@@ -621,9 +622,9 @@ func (q *repository) AttemptToFinalizeMealPlan(ctx context.Context, mealPlanID, 
 
 	logger.Info("attempting to finalize meal plan")
 
-	account, err := q.identityRepo.GetAccount(ctx, accountID)
+	members, err := identity.MembersOfAccount(ctx, q.roster, q.readDB, accountID)
 	if err != nil {
-		return false, observability.PrepareAndLogError(err, logger, span, "fetching account")
+		return false, observability.PrepareAndLogError(err, logger, span, "fetching account members")
 	}
 
 	// fetch meal plan
@@ -648,8 +649,8 @@ func (q *repository) AttemptToFinalizeMealPlan(ctx context.Context, mealPlanID, 
 			// we load this map with false for each member of the account
 			// and then iterate through the votes and mark each voter as true
 			userHasVoted := map[string]bool{}
-			for _, member := range account.Members {
-				userHasVoted[member.BelongsToUser.ID] = false
+			for _, memberID := range members {
+				userHasVoted[memberID] = false
 			}
 
 			alreadyChosen := false
@@ -880,9 +881,9 @@ func (q *repository) FetchMissingVotesForMealPlan(ctx context.Context, mealPlanI
 	logger = logger.WithValue(identitykeys.AccountIDKey, accountID)
 	tracing.AttachToSpan(span, identitykeys.AccountIDKey, accountID)
 
-	account, err := q.identityRepo.GetAccount(ctx, accountID)
+	members, err := identity.MembersOfAccount(ctx, q.roster, q.readDB, accountID)
 	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "fetching account to determine missing votes")
+		return nil, observability.PrepareAndLogError(err, logger, span, "fetching account members to determine missing votes")
 	}
 
 	mealPlan, err := q.GetMealPlan(ctx, mealPlanID, accountID)
@@ -893,10 +894,10 @@ func (q *repository) FetchMissingVotesForMealPlan(ctx context.Context, mealPlanI
 	var missingVotes []*types.MissingVote
 	for _, event := range mealPlan.Events {
 		for _, option := range event.Options {
-			for _, membership := range account.Members {
+			for _, memberID := range members {
 				var voteFoundForMemberForOption bool
 				for _, vote := range option.Votes {
-					if vote.ByUser == membership.BelongsToUser.ID {
+					if vote.ByUser == memberID {
 						voteFoundForMemberForOption = true
 						break
 					}
@@ -906,7 +907,7 @@ func (q *repository) FetchMissingVotesForMealPlan(ctx context.Context, mealPlanI
 					missingVotes = append(missingVotes, &types.MissingVote{
 						EventID:  event.ID,
 						OptionID: option.ID,
-						UserID:   membership.BelongsToUser.ID,
+						UserID:   memberID,
 					})
 				}
 			}

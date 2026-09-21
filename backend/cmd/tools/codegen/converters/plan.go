@@ -9,7 +9,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/primandproper/platform-go/v13/errors"
+	"github.com/primandproper/primitives-go/v2/errors"
 )
 
 // plan is one conversion resolved against the types it reads and writes: every destination field

@@ -12,7 +12,7 @@ import (
 	dataprivacygrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/dataprivacy"
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
 
-	platformdataprivacy "github.com/primandproper/platform-go/v13/dataprivacy"
+	platformdataprivacy "github.com/primandproper/platform-go/v14/dataprivacy"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -87,7 +87,10 @@ func awaitTerminalStoredRequest(t *testing.T, ctx context.Context, requestID str
 	var request *platformdataprivacy.Request
 
 	require.Eventually(t, func() bool {
-		stored, err := dataPrivacyFulfillment.Store.Get(ctx, requestID)
+		// A nil scope reads across every one, which is what this assertion wants: the
+		// fulfillment worker is checking its own bookkeeping rather than serving a
+		// tenant. A request's scope is the subject's, and this test does not know it.
+		stored, err := dataPrivacyFulfillment.Store.Get(ctx, databaseClient.Reader(), nil, requestID)
 		if err != nil {
 			return false
 		}
@@ -147,7 +150,7 @@ func userRowCount(t *testing.T, ctx context.Context, userID string) int {
 
 	var count int
 	require.NoError(t, databaseClient.Reader().
-		QueryRowContext(ctx, "SELECT COUNT(*) FROM users WHERE id = $1", userID).Scan(&count))
+		QueryRowContext(ctx, "SELECT COUNT(*) FROM ddb_identity_users WHERE id = $1", userID).Scan(&count))
 
 	return count
 }
@@ -179,12 +182,22 @@ func TestDataPrivacy_Export(T *testing.T) {
 
 		// A second user, whose data must not appear. Created before the export is submitted,
 		// so a collector reading a whole table rather than a subject's rows would pick them up.
-		stranger, strangerClient := createUserAndClientForTest(t)
-		createWebhookForTest(t, strangerClient)
+		stranger, _ := createUserAndClientForTest(t)
+		createUserNotificationForTest(t, stranger.ID)
 
 		// Something of the subject's own beyond the user row, so the export has to reach past
 		// the identity collector to be right.
-		subjectWebhook := createWebhookForTest(t, subjectClient)
+		//
+		// A notification rather than a webhook, which is what this used to use: webhooks are
+		// no longer collected, because nothing in that domain names a person. An endpoint is
+		// an account's delivery configuration. See docs/data-privacy.md.
+		subjectNotification := createUserNotificationForTest(t, subject.ID)
+
+		// And a credential, which is the half of an export somebody asks for when they think
+		// they have been compromised: which devices can sign in as them. Inserted rather than
+		// enrolled, because what is under test is whether the collector is registered at all,
+		// not the ceremony that writes the row.
+		subjectPasskey := insertWebAuthnCredentialForTest(t, subject.ID, "The Subject's Laptop")
 
 		requestID := submitExport(t, ctx, subjectClient)
 
@@ -211,12 +224,18 @@ func TestDataPrivacy_Export(T *testing.T) {
 			assert.Contains(t, document.Data, section, "a manifest section with no data behind it")
 		}
 
-		// The three this subject certainly has data in: they registered, they own a webhook,
-		// and both of those were audited.
+		// The four this subject certainly has data in: they registered, they were sent a
+		// notification, the registration was audited, and they hold a passkey.
+		//
+		// The passkey one is here because it was missing. The collector existed in platform
+		// over a store this deployment already ran, and nothing registered it, so every export
+		// ever produced said nothing about anybody's credentials and said it in a manifest
+		// that reported success.
 		for _, key := range []string{
 			ddbdataprivacy.CollectorKeyIdentity,
-			ddbdataprivacy.CollectorKeyWebhooks,
+			ddbdataprivacy.CollectorKeyNotifications,
 			ddbdataprivacy.CollectorKeyAuditLog,
+			ddbdataprivacy.CollectorKeyPasskeys,
 		} {
 			assert.Contains(t, document.Data, key, "the export is missing the %q section", key)
 			assert.Contains(t, document.Manifest.Sections, key)
@@ -224,7 +243,9 @@ func TestDataPrivacy_Export(T *testing.T) {
 
 		// The subject's own data is in it, from two different collectors.
 		assert.Contains(t, string(document.Data[ddbdataprivacy.CollectorKeyIdentity]), subject.Username)
-		assert.Contains(t, string(document.Data[ddbdataprivacy.CollectorKeyWebhooks]), subjectWebhook.ID)
+		assert.Contains(t, string(document.Data[ddbdataprivacy.CollectorKeyNotifications]), subjectNotification.ID)
+		assert.Contains(t, string(document.Data[ddbdataprivacy.CollectorKeyPasskeys]), subjectPasskey,
+			"the passkey section does not name the subject's credential")
 
 		// And nobody else's, anywhere in the artifact. Searched over the whole document rather
 		// than per section, because a leak would not announce which collector caused it.

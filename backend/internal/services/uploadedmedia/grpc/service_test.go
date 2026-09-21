@@ -4,12 +4,13 @@ import (
 	"testing"
 
 	uploadedmediasvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/testutils"
 
-	meteringmock "github.com/primandproper/platform-go/v13/metering/mock"
-	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v13/observability/tracing/noop"
-	mockuploads "github.com/primandproper/platform-go/v13/uploads/mock"
-	registrymock "github.com/primandproper/platform-go/v13/uploads/registry/mock"
+	registrymock "github.com/primandproper/platform-go/v14/mediaregistry/mock"
+	meteringmock "github.com/primandproper/platform-go/v14/metering/mock"
+	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
+	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
+	mockuploads "github.com/primandproper/primitives-go/v2/uploads/mock"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -27,7 +28,7 @@ func TestNewService(t *testing.T) {
 		uploadManager := &mockuploads.UploadManagerMock{}
 		usageRecorder := &meteringmock.RecorderMock{}
 
-		service := NewService(logger, tracerProvider, uploadsRegistry, uploadManager, usageRecorder)
+		service := NewService(logger, tracerProvider, testutils.MockDatabaseClient(), uploadsRegistry, uploadManager, usageRecorder)
 
 		assert.NotNil(t, service)
 		assert.Implements(t, (*uploadedmediasvc.UploadedMediaServiceServer)(nil), service)

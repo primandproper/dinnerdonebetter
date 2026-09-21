@@ -105,17 +105,17 @@ struct AcceptInvitationSheet: View {
     errorMessage = nil
 
     do {
-      var input = Identity_AccountInvitationUpdateRequestInput()
-      input.token = invitationToken
-      input.note = "Accepted via invite link"
+      // The token is on the request rather than in an input, and it is what admits the
+      // caller: whoever holds the link may answer it, and the comparison happens on the
+      // row the id names rather than on an index of tokens.
+      var request = Primandproper_Platform_Identity_V1_AcceptInvitationRequest()
+      request.invitationID = invitationID
+      request.token = invitationToken
+      request.statusNote = "Accepted via invite link"
 
-      var request = Identity_AcceptAccountInvitationRequest()
-      request.accountInvitationID = invitationID
-      request.input = input
-
-      _ = try await authManager.authenticatedCall("acceptAccountInvitation") {
+      _ = try await authManager.authenticatedCall("acceptInvitation") {
         client, metadata, options in
-        try await client.identity.acceptAccountInvitation(
+        try await client.identity.acceptInvitation(
           request, metadata: metadata, options: options)
       }
 

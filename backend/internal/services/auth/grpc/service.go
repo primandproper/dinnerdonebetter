@@ -4,13 +4,14 @@ import (
 	authentication2 "github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/webauthn"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/managers"
-	identitymanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/manager"
 	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
 
-	"github.com/primandproper/platform-go/v13/encoding"
-	"github.com/primandproper/platform-go/v13/featureflags"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
+	platformidentity "github.com/primandproper/platform-go/v14/identity"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/encoding"
+	"github.com/primandproper/primitives-go/v2/featureflags"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
 )
 
 const (
@@ -24,7 +25,8 @@ type (
 		authsvc.UnimplementedAuthServiceServer
 		tracer                tracing.Tracer
 		logger                logging.Logger
-		identityDataManager   identitymanager.IdentityDataManager
+		directory             platformidentity.Store
+		db                    database.Client
 		authenticationManager authentication2.Manager
 		authManager           managers.AuthManagerInterface
 		featureFlagManager    featureflags.FeatureFlagManager
@@ -36,7 +38,8 @@ type (
 func NewAuthService(
 	logger logging.Logger,
 	tracerProvider tracing.Provider,
-	identityDataManager identitymanager.IdentityDataManager,
+	directory platformidentity.Store,
+	db database.Client,
 	authManager managers.AuthManagerInterface,
 	authenticationManager authentication2.Manager,
 	featureFlagManager featureflags.FeatureFlagManager,
@@ -49,7 +52,8 @@ func NewAuthService(
 	return &serviceImpl{
 		logger:                logging.NewNamedLogger(logger, o11yName),
 		tracer:                tracing.NewNamedTracer(tracerProvider, o11yName),
-		identityDataManager:   identityDataManager,
+		directory:             directory,
+		db:                    db,
 		authManager:           authManager,
 		authenticationManager: authenticationManager,
 		featureFlagManager:    featureFlagManager,

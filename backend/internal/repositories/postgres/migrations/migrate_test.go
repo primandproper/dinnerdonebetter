@@ -8,10 +8,10 @@ import (
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 	mealplantasknotifications "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_task_notifications"
 
-	"github.com/primandproper/platform-go/v13/identifiers"
-	"github.com/primandproper/platform-go/v13/metering"
-	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
-	"github.com/primandproper/platform-go/v13/workqueue"
+	"github.com/primandproper/platform-go/v14/metering"
+	"github.com/primandproper/platform-go/v14/workqueue"
+	"github.com/primandproper/primitives-go/v2/identifiers"
+	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -64,13 +64,19 @@ func TestQuerier_Migrate(T *testing.T) {
 		require.NoError(t, err, "retention has to be able to delete")
 	})
 
-	// The metering event ledger dedupes on (meter, idempotency_key) rather than on the key
-	// alone, and the difference is money. Callers are told to key usage by the identifier of
-	// the thing that caused it, and one such thing routinely feeds more than one meter — an
+	// The metering event ledger dedupes on (scope, meter, idempotency_key) rather than on the
+	// key alone, and the difference is money. Callers are told to key usage by the identifier
+	// of the thing that caused it, and one such thing routinely feeds more than one meter — an
 	// upload that bills both a byte count and a request count. Keyed on the key alone, the
 	// second meter's insert is silently deduped against the first and that meter is
-	// under-billed forever. This asserts the fix landed in the DDL we actually apply.
-	T.Run("metering events dedupe per meter", func(t *testing.T) {
+	// under-billed forever.
+	//
+	// The scope leads the key for the same reason one meter down, and it is platform-go v14
+	// that put it there: two tenants' request identifiers come from two sequences nobody
+	// reconciled, so a key that happened to be shared between them would dedupe one tenant's
+	// usage against the other's and bill neither. This asserts both halves landed in the DDL
+	// we actually apply.
+	T.Run("metering events dedupe per scope and meter", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
@@ -82,19 +88,22 @@ func TestQuerier_Migrate(T *testing.T) {
 		events := metering.DefaultTablePrefix + "metering_events"
 		key, subject := identifiers.New(), identifiers.New()
 
-		insert := func(meter string) error {
+		insert := func(scope, meter string) error {
 			_, execErr := db.ExecContext(ctx,
 				`INSERT INTO `+events+`
-				 (idempotency_key, subject, meter, quantity, occurred_at, recorded_at, period_start)
-				 VALUES ($1, $2, $3, 1, NOW(), NOW(), NOW())`,
-				key, subject, meter)
+				 (scope, idempotency_key, subject, meter, quantity, occurred_at, recorded_at, period_start)
+				 VALUES ($1, $2, $3, $4, 1, NOW(), NOW(), NOW())`,
+				scope, key, subject, meter)
 
 			return execErr
 		}
 
-		require.NoError(t, insert("uploaded_media_bytes"))
-		require.NoError(t, insert("api_requests"), "one key feeding two meters must record twice")
-		require.Error(t, insert("api_requests"), "the same key on the same meter must record once")
+		scope, otherScope := identifiers.New(), identifiers.New()
+
+		require.NoError(t, insert(scope, "uploaded_media_bytes"))
+		require.NoError(t, insert(scope, "api_requests"), "one key feeding two meters must record twice")
+		require.Error(t, insert(scope, "api_requests"), "the same key on the same meter must record once")
+		require.NoError(t, insert(otherScope, "api_requests"), "two tenants' keys must not dedupe against each other")
 	})
 
 	// The work queue's one table serves every logical queue, partitioned by queue_name, which

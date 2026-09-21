@@ -13,15 +13,15 @@ import (
 	mealplanfinalization "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_finalization"
 	mealplantasknotifications "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_task_notifications"
 
-	platformdataprivacy "github.com/primandproper/platform-go/v13/dataprivacy"
-	"github.com/primandproper/platform-go/v13/dataprivacy/auditerasure"
-	"github.com/primandproper/platform-go/v13/jobs"
-	"github.com/primandproper/platform-go/v13/metering"
-	"github.com/primandproper/platform-go/v13/operations"
-	"github.com/primandproper/platform-go/v13/outbox"
-	"github.com/primandproper/platform-go/v13/retention"
-	"github.com/primandproper/platform-go/v13/saga"
-	"github.com/primandproper/platform-go/v13/webhooks"
+	platformdataprivacy "github.com/primandproper/platform-go/v14/dataprivacy"
+	"github.com/primandproper/platform-go/v14/dataprivacy/auditerasure"
+	"github.com/primandproper/platform-go/v14/metering"
+	"github.com/primandproper/platform-go/v14/operations"
+	"github.com/primandproper/platform-go/v14/outbox"
+	"github.com/primandproper/platform-go/v14/retention"
+	"github.com/primandproper/platform-go/v14/saga"
+	"github.com/primandproper/platform-go/v14/webhooks"
+	"github.com/primandproper/primitives-go/v2/jobs"
 
 	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"
@@ -115,26 +115,58 @@ func TestWorkerWiring_Scheduler(T *testing.T) {
 		// happens to hold nothing under — so a domain that stopped being registered produces an
 		// export that is complete by its own manifest and missing a domain's worth of somebody's
 		// data. There is no other place that would notice.
+		//
+		// It notices a domain that stops being registered. It did not notice three that never
+		// were: passkeys, password reset tokens and registered OAuth2 clients were absent from
+		// the registry and therefore absent from this list, which is written from what is
+		// registered rather than from what holds a subject's data. A list like this pins a set
+		// against drift and cannot tell you the set was wrong to begin with — the three were
+		// found by reading platform's privacy packages against this one, not by a failure here.
+		// There is no webhooks key, and its absence is asserted by this list being exact:
+		// nothing in that domain names a person, so a collector over it answered a question
+		// about a subject with an account's delivery configuration. See docs/data-privacy.md
+		// for the one obligation that leaves here, which retention discharges.
 		assert.ElementsMatch(t, []string{
 			ddbdataprivacy.CollectorKeyIdentity,
 			ddbdataprivacy.CollectorKeyMealPlanning,
-			ddbdataprivacy.CollectorKeyWebhooks,
 			ddbdataprivacy.CollectorKeySettings,
 			ddbdataprivacy.CollectorKeyNotifications,
-			ddbdataprivacy.CollectorKeyPayments,
+			ddbdataprivacy.CollectorKeyBilling,
 			ddbdataprivacy.CollectorKeyAuditLog,
 			ddbdataprivacy.CollectorKeyIssueReports,
-			ddbdataprivacy.CollectorKeyUploadedMedia,
+			ddbdataprivacy.CollectorKeyMediaRegistry,
 			ddbdataprivacy.CollectorKeyWaitlists,
 			ddbdataprivacy.CollectorKeyComments,
+			ddbdataprivacy.CollectorKeyPasskeys,
+			ddbdataprivacy.CollectorKeyPasswordReset,
+			ddbdataprivacy.CollectorKeyOAuth2Clients,
 		}, registry.CollectorKeys())
 
 		// The erasers are the destructive half, and the audit one is a policy decision that is
 		// on in this deployment. An eraser missing here is data that survives a right-to-be-
 		// forgotten request.
+		//
+		// There are ten where there used to be five, and the five that arrived are the ones
+		// privacyadapters registers alongside their collectors: a domain's adapter builds
+		// both halves. Four of them delete rows the identity cascade would have taken
+		// anyway — settings values, issue reports, passkeys, reset tokens.
+		//
+		// That redundancy reverses what docs/data-privacy.md used to argue, and the reason
+		// it reverses is in this repository's own history. Those statements are platform's
+		// rather than ours, so the "eleven statements that can only agree with the one that
+		// ran first" objection does not apply; and a cascade is exactly the thing that goes
+		// missing silently. ddb_webauthn_credentials lost its foreign key during the
+		// identity adoption and erasure stopped reaching a deleted user's passkeys, with
+		// nothing raising — a registered eraser would have kept working through it.
 		assert.ElementsMatch(t, []string{
-			ddbdataprivacy.EraserKeyComments,
-			ddbdataprivacy.EraserKeyWaitlists,
+			ddbdataprivacy.CollectorKeyComments,
+			ddbdataprivacy.CollectorKeyWaitlists,
+			ddbdataprivacy.CollectorKeyOAuth2Clients,
+			ddbdataprivacy.CollectorKeySettings,
+			ddbdataprivacy.CollectorKeyIssueReports,
+			ddbdataprivacy.CollectorKeyMediaRegistry,
+			ddbdataprivacy.CollectorKeyPasskeys,
+			ddbdataprivacy.CollectorKeyPasswordReset,
 			ddbdataprivacy.EraserKeyIdentity,
 			auditerasure.DefaultKey,
 		}, registry.EraserKeys())

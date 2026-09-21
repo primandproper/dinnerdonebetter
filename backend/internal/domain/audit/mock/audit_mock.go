@@ -10,8 +10,9 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 
-	"github.com/primandproper/platform-go/v13/database"
-	"github.com/primandproper/platform-go/v13/filtering"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/filtering"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
 // Ensure, that RepositoryMock does implement audit.Repository.
@@ -42,7 +43,7 @@ var _ audit.Repository = &RepositoryMock{}
 //			RecordFunc: func(ctx context.Context, querier database.Tx, entries ...*audit.AuditLogEntry) error {
 //				panic("mock out the Record method")
 //			},
-//			VerifyChainFunc: func(ctx context.Context, scope string, from time.Time, to time.Time) (*audit.VerificationResult, error) {
+//			VerifyChainFunc: func(ctx context.Context, scope tenancy.Scope, from time.Time, to time.Time) (*audit.VerificationResult, error) {
 //				panic("mock out the VerifyChain method")
 //			},
 //		}
@@ -71,7 +72,7 @@ type RepositoryMock struct {
 	RecordFunc func(ctx context.Context, querier database.Tx, entries ...*audit.AuditLogEntry) error
 
 	// VerifyChainFunc mocks the VerifyChain method.
-	VerifyChainFunc func(ctx context.Context, scope string, from time.Time, to time.Time) (*audit.VerificationResult, error)
+	VerifyChainFunc func(ctx context.Context, scope tenancy.Scope, from time.Time, to time.Time) (*audit.VerificationResult, error)
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -136,7 +137,7 @@ type RepositoryMock struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
 			// Scope is the scope argument value.
-			Scope string
+			Scope tenancy.Scope
 			// From is the from argument value.
 			From time.Time
 			// To is the to argument value.
@@ -397,13 +398,13 @@ func (mock *RepositoryMock) RecordCalls() []struct {
 }
 
 // VerifyChain calls VerifyChainFunc.
-func (mock *RepositoryMock) VerifyChain(ctx context.Context, scope string, from time.Time, to time.Time) (*audit.VerificationResult, error) {
+func (mock *RepositoryMock) VerifyChain(ctx context.Context, scope tenancy.Scope, from time.Time, to time.Time) (*audit.VerificationResult, error) {
 	if mock.VerifyChainFunc == nil {
 		panic("RepositoryMock.VerifyChainFunc: method is nil but Repository.VerifyChain was just called")
 	}
 	callInfo := struct {
 		Ctx   context.Context
-		Scope string
+		Scope tenancy.Scope
 		From  time.Time
 		To    time.Time
 	}{
@@ -424,13 +425,13 @@ func (mock *RepositoryMock) VerifyChain(ctx context.Context, scope string, from 
 //	len(mockedRepository.VerifyChainCalls())
 func (mock *RepositoryMock) VerifyChainCalls() []struct {
 	Ctx   context.Context
-	Scope string
+	Scope tenancy.Scope
 	From  time.Time
 	To    time.Time
 } {
 	var calls []struct {
 		Ctx   context.Context
-		Scope string
+		Scope tenancy.Scope
 		From  time.Time
 		To    time.Time
 	}

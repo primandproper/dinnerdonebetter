@@ -7,19 +7,18 @@ import (
 
 	ddbauthz "github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningconverters "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	mealplanningfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/localdev"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
-	identityrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity"
 	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	databasecfg "github.com/primandproper/platform-go/v13/database/config"
-	"github.com/primandproper/platform-go/v13/identifiers"
+	platformidentity "github.com/primandproper/platform-go/v14/identity"
+	databasecfg "github.com/primandproper/primitives-go/v2/database/config"
+	"github.com/primandproper/primitives-go/v2/identifiers"
 )
 
 const (
@@ -51,7 +50,7 @@ var (
 	// adminUser is the account the login form is driven with. Its HashedPassword field
 	// holds the digest by the time CreatePremadeAdminUser returns, which is why the
 	// plaintext is a constant beside it rather than read back off this.
-	adminUser *identity.User
+	adminUser *platformidentity.User
 
 	// seededIngredient is the row a tool call reads back. A tool returning an empty page
 	// proves only that the handler ran; returning this proves it reached Postgres through
@@ -137,28 +136,27 @@ func buildDatabase(ctx context.Context, cfg *config.MCPServiceConfig) (*sql.DB, 
 		return nil, err
 	}
 
-	policy, err := ddbauthz.NewDatabaseResolver(databaseClient.Reader(), pillars.Logger, pillars.TracerProvider, nil)
-	if err != nil {
-		return nil, err
+	identityDirectory, identityStore, identityErr := localdev.IdentityDirectory(pillars.Logger, pillars.TracerProvider, databaseClient)
+	if identityErr != nil {
+		log.Fatal(identityErr)
 	}
-
-	identityRepo := identityrepo.ProvideIdentityRepository(pillars.Logger, pillars.TracerProvider, auditRepo, databaseClient, nil, uploads, policy)
 
 	// The MCP login form is admin-only and checks a second factor whenever the account
 	// has a verified secret, both of which this helper arranges — so the flow the suite
 	// drives is the whole one, not a version of it with the second factor turned off.
-	adminUser, err = localdev.CreatePremadeAdminUser(ctx, pillars.Logger, pillars.TracerProvider, identityRepo, databaseClient, &identity.User{
+	adminUser, err = localdev.CreatePremadeAdminUser(ctx, pillars.Logger, pillars.TracerProvider, identityDirectory, identityStore, databaseClient, &platformidentity.User{
 		ID:              identifiers.New(),
 		TwoFactorSecret: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
 		EmailAddress:    "mcp_integration_tests@example.email",
 		Username:        "mcp_admin_user",
 		HashedPassword:  adminUserPassword,
+		ServiceRoles:    []string{ddbauthz.ServiceUserRoleName},
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	mealPlanningRepo := mealplanningrepo.ProvideMealPlanningRepository(pillars.Logger, pillars.TracerProvider, auditRepo, identityRepo, databaseClient, nil, uploads)
+	mealPlanningRepo := mealplanningrepo.ProvideMealPlanningRepository(pillars.Logger, pillars.TracerProvider, auditRepo, identityStore, databaseClient, nil, uploads)
 
 	seededIngredient, err = mealPlanningRepo.CreateValidIngredient(ctx,
 		mealplanningconverters.ConvertValidIngredientToValidIngredientDatabaseCreationInput(mealplanningfakes.BuildFakeValidIngredient()))

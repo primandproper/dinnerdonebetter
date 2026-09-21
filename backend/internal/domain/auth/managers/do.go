@@ -5,16 +5,18 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
-	"github.com/primandproper/platform-go/v13/authentication/passwordreset"
-	"github.com/primandproper/platform-go/v13/authentication/totp"
-	"github.com/primandproper/platform-go/v13/messagequeue"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
-	"github.com/primandproper/platform-go/v13/qrcodes"
-	"github.com/primandproper/platform-go/v13/random"
+	"github.com/primandproper/platform-go/v14/authentication/passwordreset"
+	"github.com/primandproper/platform-go/v14/authentication/signin"
+	platformidentity "github.com/primandproper/platform-go/v14/identity"
+	"github.com/primandproper/primitives-go/v2/authentication/totp"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/messagequeue"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
+	"github.com/primandproper/primitives-go/v2/qrcodes"
+	"github.com/primandproper/primitives-go/v2/random"
 
 	"github.com/samber/do/v2"
 )
@@ -26,9 +28,12 @@ func RegisterAuthManager(i do.Injector) {
 			do.MustInvoke[context.Context](i),
 			do.MustInvoke[logging.Logger](i),
 			do.MustInvoke[tracing.Provider](i),
+			do.MustInvoke[database.Client](i),
 			do.MustInvoke[passwordreset.Store](i),
 			do.MustInvoke[auth.SessionStore](i),
-			do.MustInvoke[identity.UserDataManager](i),
+			do.MustInvoke[*platformidentity.Service](i),
+			do.MustInvoke[platformidentity.Store](i),
+			do.MustInvoke[*signin.Service](i),
 			do.MustInvoke[authentication.Authenticator](i),
 			do.MustInvoke[totp.Verifier](i),
 			do.MustInvoke[messagequeue.PublisherProvider](i),

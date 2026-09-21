@@ -29,7 +29,7 @@ SELECT EXISTS (
 SELECT meals.id
 FROM meals
 WHERE meals.archived_at IS NULL
-	AND meals.id COLLATE "C" > sqlc.arg(page_cursor)
+	AND meals.id COLLATE "C" > sqlc.arg(reindex_cursor)
 ORDER BY meals.id COLLATE "C"
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 

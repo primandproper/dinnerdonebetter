@@ -1,45 +1,34 @@
 package authorization
 
-const (
-	// CreateSettingDefinitionsPermission is a service admin permission: adding a
-	// setting to the catalog.
-	CreateSettingDefinitionsPermission Permission = "create.setting_definitions"
-	// ReadSettingDefinitionsPermission is an account member permission. Reading
-	// the catalog is what a preferences page needs before it can render
-	// anything; the settings marked admin-only are filtered out of what a
-	// non-admin is shown.
-	ReadSettingDefinitionsPermission Permission = "read.setting_definitions"
-	// UpdateSettingDefinitionsPermission is a service admin permission: editing
-	// a setting's kind, default or enumeration, which decides how every answer
-	// already stored against it is read.
-	UpdateSettingDefinitionsPermission Permission = "update.setting_definitions"
-	// ArchiveSettingDefinitionsPermission is a service admin permission.
-	ArchiveSettingDefinitionsPermission Permission = "archive.setting_definitions"
-
-	// CreateSettingValuesPermission is an account member permission: answering a
-	// setting about yourself.
-	//
-	// It covers changing an answer as well as making one. The store's write
-	// converges on the row, so the two are the same statement, and a separate
-	// update permission would be a grant nothing could be given without this
-	// one.
-	CreateSettingValuesPermission Permission = "create.setting_values"
-	// ReadSettingValuesPermission is an account member permission.
-	ReadSettingValuesPermission Permission = "read.setting_values"
-	// ArchiveSettingValuesPermission is an account member permission: taking
-	// your answer back, which leaves you on the setting's default.
-	ArchiveSettingValuesPermission Permission = "archive.setting_values"
+import (
+	settingsgrpc "github.com/primandproper/platform-go/v14/settings/grpc"
 )
 
-var (
-	// SettingsPermissions contains all settings-related permissions.
-	SettingsPermissions = []Permission{
-		CreateSettingDefinitionsPermission,
-		ReadSettingDefinitionsPermission,
-		UpdateSettingDefinitionsPermission,
-		ArchiveSettingDefinitionsPermission,
-		CreateSettingValuesPermission,
-		ReadSettingValuesPermission,
-		ArchiveSettingValuesPermission,
-	}
+// The settings permissions are platform's, re-exported under the names this
+// application's policy already spells. See comments_permissions.go for why
+// re-exporting rather than declaring is what keeps a grant and the method that
+// requires it from drifting.
+//
+// WriteAdminSettingValuesPermission has no local predecessor. It is the grant
+// platform asks inside the handler for a setting the catalog marked AdminOnly,
+// and it replaces the IsServiceAdmin() check the deleted service performed. It
+// belongs to service admins and to nobody else.
+const (
+	// CreateSettingDefinitionsPermission is a permission.
+	CreateSettingDefinitionsPermission = settingsgrpc.PermissionCreateDefinitions
+	// ReadSettingDefinitionsPermission is a permission.
+	ReadSettingDefinitionsPermission = settingsgrpc.PermissionReadDefinitions
+	// UpdateSettingDefinitionsPermission is a permission.
+	UpdateSettingDefinitionsPermission = settingsgrpc.PermissionUpdateDefinitions
+	// ArchiveSettingDefinitionsPermission is a permission.
+	ArchiveSettingDefinitionsPermission = settingsgrpc.PermissionArchiveDefinitions
+	// WriteSettingValuesPermission covers setting and clearing a value.
+	WriteSettingValuesPermission = settingsgrpc.PermissionWriteValues
+	// ReadSettingValuesPermission is a permission.
+	ReadSettingValuesPermission = settingsgrpc.PermissionReadValues
+	// ReadAllSettingValuesPermission covers the administrative read of who has
+	// overridden a setting.
+	ReadAllSettingValuesPermission = settingsgrpc.PermissionReadAllValues
+	// WriteAdminSettingValuesPermission covers writing a setting marked AdminOnly.
+	WriteAdminSettingValuesPermission = settingsgrpc.PermissionWriteAdminValues
 )

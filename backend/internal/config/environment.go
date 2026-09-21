@@ -12,25 +12,25 @@ import (
 	ddboauth "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
 	appentitlements "github.com/primandproper/dinnerdonebetter/backend/internal/entitlements"
 
-	"github.com/primandproper/platform-go/v13/audit"
-	auditcfg "github.com/primandproper/platform-go/v13/audit/config"
-	oauth2servercfg "github.com/primandproper/platform-go/v13/authentication/oauth2server/config"
-	oauth2database "github.com/primandproper/platform-go/v13/authentication/oauth2server/database"
-	platformconfig "github.com/primandproper/platform-go/v13/config"
-	"github.com/primandproper/platform-go/v13/database/dialect"
-	distributedlockcfg "github.com/primandproper/platform-go/v13/distributedlock/config"
-	pglock "github.com/primandproper/platform-go/v13/distributedlock/postgres"
-	"github.com/primandproper/platform-go/v13/entitlements"
-	entitlementscfg "github.com/primandproper/platform-go/v13/entitlements/config"
-	"github.com/primandproper/platform-go/v13/jobs"
-	"github.com/primandproper/platform-go/v13/metering"
-	meteringcfg "github.com/primandproper/platform-go/v13/metering/config"
-	"github.com/primandproper/platform-go/v13/observability"
-	operationscfg "github.com/primandproper/platform-go/v13/operations/config"
-	"github.com/primandproper/platform-go/v13/outbox"
-	"github.com/primandproper/platform-go/v13/retention"
-	retrycfg "github.com/primandproper/platform-go/v13/retry/config"
-	"github.com/primandproper/platform-go/v13/saga"
+	"github.com/primandproper/platform-go/v14/audit"
+	auditcfg "github.com/primandproper/platform-go/v14/audit/config"
+	oauth2database "github.com/primandproper/platform-go/v14/authentication/oauth2serverstore"
+	oauth2servercfg "github.com/primandproper/platform-go/v14/authentication/oauth2serverstore/config"
+	"github.com/primandproper/platform-go/v14/entitlements"
+	entitlementscfg "github.com/primandproper/platform-go/v14/entitlements/config"
+	"github.com/primandproper/platform-go/v14/metering"
+	meteringcfg "github.com/primandproper/platform-go/v14/metering/config"
+	operationscfg "github.com/primandproper/platform-go/v14/operations/config"
+	"github.com/primandproper/platform-go/v14/outbox"
+	"github.com/primandproper/platform-go/v14/retention"
+	"github.com/primandproper/platform-go/v14/saga"
+	platformconfig "github.com/primandproper/primitives-go/v2/config"
+	"github.com/primandproper/primitives-go/v2/database/dialect"
+	distributedlockcfg "github.com/primandproper/primitives-go/v2/distributedlock/config"
+	pglock "github.com/primandproper/primitives-go/v2/distributedlock/postgres"
+	"github.com/primandproper/primitives-go/v2/jobs"
+	"github.com/primandproper/primitives-go/v2/observability"
+	retrycfg "github.com/primandproper/primitives-go/v2/retry/config"
 
 	"github.com/hashicorp/go-multierror"
 )
@@ -309,6 +309,17 @@ func defaultOutboxRelayConfig() outbox.RelayConfig {
 		// busy table can wake the relay faster than it can drain one, which spends the
 		// cycle budget on wakeups rather than on publishing.
 		MinWakeInterval: outbox.DefaultMinWakeInterval,
+		// New in v14: how long a quarantined row is kept before it is reaped. A
+		// quarantined row is one the relay gave up on, so it is the one thing in this
+		// table nobody has seen — the platform's thirty days is long enough that an
+		// incident review a fortnight later still finds it.
+		//
+		// Spelled out rather than left to EnsureDefaults for the reason the saga config
+		// below gives: these are rendered into files people read. EnsureDefaults does
+		// fill it, so a process that omitted it would still run — but this struct is
+		// validated as written, before any constructor sees it, so a blank one fails the
+		// render rather than quietly becoming thirty days.
+		QuarantineRetention: outbox.DefaultQuarantineRetention,
 	}
 }
 
@@ -355,7 +366,11 @@ func defaultSagaWorkerConfig() saga.WorkerConfig {
 			Multiplier:   2,
 			UseJitter:    true,
 		},
-		PollInterval:   time.Second,
+		PollInterval: time.Second,
+		// New in v14: how often the worker samples the stuck level onto its gauge. Its own
+		// knob rather than a multiple of PollInterval because the two reads cost different
+		// things — a poll claims, and this one counts.
+		StatsInterval:  saga.DefaultStatsInterval,
 		StepTimeout:    2 * time.Minute,
 		AdvanceTimeout: 5 * time.Minute,
 		LeaseDuration:  10 * time.Minute,

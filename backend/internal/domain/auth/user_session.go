@@ -1,8 +1,8 @@
 package auth
 
 import (
-	"github.com/primandproper/platform-go/v13/sessions"
-	"github.com/primandproper/platform-go/v13/tenancy"
+	"github.com/primandproper/platform-go/v14/sessions"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
 const (

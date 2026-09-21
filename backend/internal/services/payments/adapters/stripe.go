@@ -6,11 +6,11 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 
-	"github.com/primandproper/platform-go/v13/capitalism"
-	capstripe "github.com/primandproper/platform-go/v13/capitalism/stripe"
-	"github.com/primandproper/platform-go/v13/observability"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
+	"github.com/primandproper/primitives-go/v2/capitalism"
+	capstripe "github.com/primandproper/primitives-go/v2/capitalism/stripe"
+	"github.com/primandproper/primitives-go/v2/observability"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
 
 	"github.com/stripe/stripe-go/v81"
 )
@@ -93,7 +93,7 @@ func parseStripeEvent(event *capitalism.Event) (*payments.ParsedWebhookEvent, er
 		}
 
 		result.SubscriptionID = subn.ID
-		result.Status = stripeSubscriptionStatus(subn.Status)
+		result.Status, result.StatusUnrecognized = stripeSubscriptionStatus(subn.Status)
 		if subn.Customer != nil {
 			result.AccountID = subn.Customer.ID
 		}
@@ -112,12 +112,20 @@ func parseStripeEvent(event *capitalism.Event) (*payments.ParsedWebhookEvent, er
 // the set the industry copied — so this is a conversion rather than a mapping.
 // What it adds is the check: a status stripe-go decodes that capitalism does not
 // know comes back as SubscriptionStatusUnknown rather than as a word the billing
-// store would refuse, and the manager reads unknown as "the event did not say".
-func stripeSubscriptionStatus(status stripe.SubscriptionStatus) capitalism.SubscriptionStatus {
-	converted := capitalism.SubscriptionStatus(status)
-	if !converted.Known() {
-		return capitalism.SubscriptionStatusUnknown
+// store would refuse — and, now, says so, because the manager cannot tell that from an
+// event that carried no standing at all and used to read both as "still live".
+//
+// The second return is false for a genuinely absent status, which stripe-go gives as the
+// empty string, and true only for a word that was there and could not be placed.
+func stripeSubscriptionStatus(status stripe.SubscriptionStatus) (capitalism.SubscriptionStatus, bool) {
+	if status == "" {
+		return capitalism.SubscriptionStatusUnknown, false
 	}
 
-	return converted
+	converted := capitalism.SubscriptionStatus(status)
+	if !converted.Known() {
+		return capitalism.SubscriptionStatusUnknown, true
+	}
+
+	return converted, false
 }

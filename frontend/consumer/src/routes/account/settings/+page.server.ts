@@ -1,5 +1,5 @@
 import type { PageServerLoad } from './$types';
-import { getSelf, getAccountsForUser } from '$lib/grpc/clients';
+import { getSelf, listAccountsForUser } from '$lib/grpc/clients';
 import { QueryFilter } from '@dinnerdonebetter/api-client';
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -17,7 +17,7 @@ export const load: PageServerLoad = async ({ locals }) => {
       return { hasAccount: false };
     }
 
-    const accountsRes = await getAccountsForUser(token, {
+    const accountsRes = await listAccountsForUser(token, {
       userId,
       filter: QueryFilter.create({ maxResponseSize: 1 }),
     });

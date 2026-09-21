@@ -11,11 +11,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/primandproper/platform-go/v13/capitalism"
-	caprevenuecat "github.com/primandproper/platform-go/v13/capitalism/revenuecat"
-	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v13/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v13/webhooks/inbound"
+	"github.com/primandproper/primitives-go/v2/capitalism"
+	caprevenuecat "github.com/primandproper/primitives-go/v2/capitalism/revenuecat"
+	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
+	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
+	"github.com/primandproper/primitives-go/v2/webhooks/inbound"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

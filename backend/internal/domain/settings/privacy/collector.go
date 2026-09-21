@@ -16,9 +16,11 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings"
 
-	platformdataprivacy "github.com/primandproper/platform-go/v13/dataprivacy"
-	"github.com/primandproper/platform-go/v13/filtering"
-	platformsettings "github.com/primandproper/platform-go/v13/settings"
+	platformdataprivacy "github.com/primandproper/platform-go/v14/dataprivacy"
+	platformsettings "github.com/primandproper/platform-go/v14/settings"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/filtering"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
 // NewCollector builds the settings collector: every value the subject has
@@ -30,8 +32,12 @@ import (
 // export would describe this deployment rather than them. The value names the
 // definition it answers, which is what makes the export readable against the
 // catalog somebody can already list.
-func NewCollector(store platformsettings.ValueStore) platformdataprivacy.Collector {
-	return platformdataprivacy.CollectorFor(func(ctx context.Context, subject platformdataprivacy.Subject, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[platformsettings.Value], error) {
-		return store.ListValuesForSubject(ctx, settings.Scope(), settings.SubjectFor(subject.ID), filter)
+//
+// The reader is taken at construction because dataprivacy.Collector.Collect is
+// handed no executor. The request scope is not consulted: every value this
+// deployment stores is in settings.Scope.
+func NewCollector(store platformsettings.ValueStore, reader database.SQLQueryExecutor) platformdataprivacy.Collector {
+	return platformdataprivacy.CollectorFor(func(ctx context.Context, _ tenancy.Scope, subject platformdataprivacy.Subject, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[platformsettings.Value], error) {
+		return store.ListValuesForSubject(ctx, reader, settings.Scope(), settings.SubjectFor(subject.ID), filter)
 	})
 }

@@ -9,13 +9,13 @@ import (
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	eatingindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
-	platformerrors "github.com/primandproper/platform-go/v13/errors"
-	"github.com/primandproper/platform-go/v13/filtering"
-	"github.com/primandproper/platform-go/v13/observability"
-	platformkeys "github.com/primandproper/platform-go/v13/observability/keys"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
-	searchpagination "github.com/primandproper/platform-go/v13/search/pagination"
-	"github.com/primandproper/platform-go/v13/uploads/registry"
+	"github.com/primandproper/platform-go/v14/mediaregistry"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/filtering"
+	"github.com/primandproper/primitives-go/v2/observability"
+	platformkeys "github.com/primandproper/primitives-go/v2/observability/keys"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
+	searchpagination "github.com/primandproper/primitives-go/v2/search/pagination"
 )
 
 func (m *mealPlanningManager) SearchValidIngredients(ctx context.Context, query string, useSearchService bool, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.ValidIngredient], error) {
@@ -244,11 +244,11 @@ func (m *mealPlanningManager) enrichValidIngredientWithMedia(ctx context.Context
 	if err != nil {
 		return err
 	}
-	mediaByID := make(map[string]*registry.Object)
+	mediaByID := make(map[string]*mediaregistry.Object)
 	for _, um := range mediaList {
 		mediaByID[um.ID] = um
 	}
-	ing.Media = make([]*registry.Object, 0, len(rows))
+	ing.Media = make([]*mediaregistry.Object, 0, len(rows))
 	for _, r := range rows {
 		if um := mediaByID[r.UploadedMediaID]; um != nil {
 			ing.Media = append(ing.Media, um)

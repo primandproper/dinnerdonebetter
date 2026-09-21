@@ -6,13 +6,14 @@ import (
 	mpconverters "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	mpfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
-	auditsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/audit"
 	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
-	identitysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
 	mealplanninggrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
-	waitlistssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/waitlists"
-	webhookssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/webhooks"
 	mpgrpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/grpc/converters"
+
+	auditsvc "github.com/primandproper/platform-go/v14/audit/auditpb"
+	"github.com/primandproper/platform-go/v14/identity/identitypb"
+	waitlistspb "github.com/primandproper/platform-go/v14/waitlists/waitlistspb"
+	webhookspb "github.com/primandproper/platform-go/v14/webhooks/webhookspb"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -50,9 +51,14 @@ func getActiveAccountIDForClientForTest(t *testing.T, resp *authsvc.GetActiveAcc
 	return resp.Result.Id
 }
 
-// TestCrossTenant_AuditLogForAccount_Denied asserts that a user cannot read the account-scoped audit
-// log of an account they are not a member of. audit/grpc/service.go GetAuditLogEntriesForAccount
-// returns codes.PermissionDenied for non-members.
+// TestCrossTenant_AuditLogForAccount_Denied asserts that a user cannot read the account-scoped
+// audit log of an account they are not a member of.
+//
+// It is not a denial any more, and that is the stronger answer. The RPC this replaced took an
+// account id and checked membership afterwards; platform's ListEntries takes none, because the
+// chain a request reads is the one its session is in — see internal/build/auditlog, where the
+// scope resolver is the active account. So B asking cannot name A's account: B's read is B's
+// chain, and the assertion is that A's entries are not in it.
 func TestCrossTenant_AuditLogForAccount_Denied(T *testing.T) {
 	T.Parallel()
 
@@ -60,32 +66,40 @@ func TestCrossTenant_AuditLogForAccount_Denied(T *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
-		_, clientA := createUserAndClientForTest(t)
+		userA, clientA := createUserAndClientForTest(t)
 		_, clientB := createUserAndClientForTest(t)
 
-		activeA, err := clientA.GetActiveAccount(ctx, &authsvc.GetActiveAccountRequest{})
+		// positive control: A can read its own account's audit log, and A is in it.
+		ownResp, err := clientA.ListEntries(ctx, &auditsvc.ListEntriesRequest{})
 		require.NoError(t, err)
-		accountAID := getActiveAccountIDForClientForTest(t, activeA)
+		require.NotEmpty(t, ownResp.GetResults())
 
-		// positive control: A can read its own account's audit log.
-		ownResp, err := clientA.GetAuditLogEntriesForAccount(ctx, &auditsvc.GetAuditLogEntriesForAccountRequest{
-			AccountId: accountAID,
-		})
+		var ownEntryID string
+		for _, entry := range ownResp.GetResults() {
+			if entry.GetActor().GetId() == userA.ID {
+				ownEntryID = entry.GetId()
+				break
+			}
+		}
+		require.NotEmpty(t, ownEntryID, "A's own account chain holds no entry naming A")
+
+		// cross-tenant: B's read is B's chain. A's entry is not in it.
+		crossResp, err := clientB.ListEntries(ctx, &auditsvc.ListEntriesRequest{})
 		require.NoError(t, err)
-		require.NotNil(t, ownResp)
 
-		// cross-tenant: B is not a member of A's account.
-		_, err = clientB.GetAuditLogEntriesForAccount(ctx, &auditsvc.GetAuditLogEntriesForAccountRequest{
-			AccountId: accountAID,
-		})
-		require.Error(t, err)
-		assert.Equal(t, codes.PermissionDenied, status.Code(err))
+		for _, entry := range crossResp.GetResults() {
+			assert.NotEqual(t, ownEntryID, entry.GetId(), "another account's audit entry reached this caller")
+			assert.NotEqual(t, userA.ID, entry.GetActor().GetId(), "another user's audit entry reached this caller")
+		}
 	})
 }
 
-// TestCrossTenant_AuditLogForUser_Denied asserts that a user cannot read another user's user-scoped
-// audit log. audit/grpc/service.go GetAuditLogEntriesForUser returns codes.PermissionDenied unless
-// the requester is the target user (or a service admin).
+// TestCrossTenant_AuditLogForUser_Denied asserts that a user cannot read another user's audit
+// entries.
+//
+// Same shape as the account case above: the actor is a query field, but the scope is not, so
+// filtering by A's actor id from B's session searches B's chain for entries A never wrote
+// there. The answer is empty rather than refused, which is what makes it structural.
 func TestCrossTenant_AuditLogForUser_Denied(T *testing.T) {
 	T.Parallel()
 
@@ -96,26 +110,29 @@ func TestCrossTenant_AuditLogForUser_Denied(T *testing.T) {
 		userA, clientA := createUserAndClientForTest(t)
 		_, clientB := createUserAndClientForTest(t)
 
-		// positive control: A can read its own user audit log.
-		ownResp, err := clientA.GetAuditLogEntriesForUser(ctx, &auditsvc.GetAuditLogEntriesForUserRequest{
-			UserId: userA.ID,
+		// positive control: A can read its own entries.
+		ownResp, err := clientA.ListEntries(ctx, &auditsvc.ListEntriesRequest{
+			Query: &auditsvc.EntryQuery{ActorId: userA.ID},
 		})
 		require.NoError(t, err)
-		require.NotNil(t, ownResp)
+		require.NotEmpty(t, ownResp.GetResults())
 
-		// cross-tenant: B may not read A's user audit log.
-		_, err = clientB.GetAuditLogEntriesForUser(ctx, &auditsvc.GetAuditLogEntriesForUserRequest{
-			UserId: userA.ID,
+		// cross-tenant: B naming A's actor id finds nothing, because the chain it searches
+		// is B's own.
+		crossResp, err := clientB.ListEntries(ctx, &auditsvc.ListEntriesRequest{
+			Query: &auditsvc.EntryQuery{ActorId: userA.ID},
 		})
-		require.Error(t, err)
-		assert.Equal(t, codes.PermissionDenied, status.Code(err))
+		require.NoError(t, err)
+		assert.Empty(t, crossResp.GetResults(), "another user's audit entries reached this caller")
 	})
 }
 
-// TestCrossTenant_AuditLogEntryByID_Denied asserts that a user cannot read an individual audit log
-// entry belonging to another user/account by its ID. audit/grpc/service.go GetAuditLogEntryByID
-// returns codes.PermissionDenied when the entry belongs to neither the requester nor their active
-// account.
+// TestCrossTenant_AuditLogEntryByID_Denied asserts that a user cannot read an individual audit
+// log entry belonging to another user or account by its id.
+//
+// This is the one of the three that is still a refusal rather than an empty answer, and it has
+// to be: an id names a row directly, so there is no scope in the request to bound it. GetEntry
+// reads the entry and then checks that it is in the caller's chain.
 func TestCrossTenant_AuditLogEntryByID_Denied(T *testing.T) {
 	T.Parallel()
 
@@ -129,29 +146,32 @@ func TestCrossTenant_AuditLogEntryByID_Denied(T *testing.T) {
 		// A performs an auditable op so that a fresh, A-owned entry exists.
 		createWebhookForTest(t, clientA)
 
-		// A lists its OWN entries (allowed — self) and picks one to target.
-		forUser, err := clientA.GetAuditLogEntriesForUser(ctx, &auditsvc.GetAuditLogEntriesForUserRequest{
-			UserId: userA.ID,
+		// A lists its OWN entries (its own chain) and picks one to target.
+		forUser, err := clientA.ListEntries(ctx, &auditsvc.ListEntriesRequest{
+			Query: &auditsvc.EntryQuery{ActorId: userA.ID},
 		})
 		require.NoError(t, err)
-		require.NotEmpty(t, forUser.Results)
-		entryID := forUser.Results[0].Id
+		require.NotEmpty(t, forUser.GetResults())
+
+		entryID := forUser.GetResults()[0].GetId()
 		require.NotEmpty(t, entryID)
 
 		// positive control: A can fetch its own entry by ID.
-		ownEntry, err := clientA.GetAuditLogEntryByID(ctx, &auditsvc.GetAuditLogEntryByIDRequest{
-			AuditLogEntryId: entryID,
-		})
+		ownEntry, err := clientA.GetEntry(ctx, &auditsvc.GetEntryRequest{EntryId: entryID})
 		require.NoError(t, err)
-		require.NotNil(t, ownEntry)
-		assert.Equal(t, entryID, ownEntry.Result.Id)
+		require.NotNil(t, ownEntry.GetEntry())
+		assert.Equal(t, entryID, ownEntry.GetEntry().GetId())
 
-		// cross-tenant: B may not fetch A's entry by ID.
-		_, err = clientB.GetAuditLogEntryByID(ctx, &auditsvc.GetAuditLogEntryByIDRequest{
-			AuditLogEntryId: entryID,
-		})
+		// cross-tenant: B may not fetch A's entry by ID, and the refusal is NotFound
+		// rather than PermissionDenied. That is stricter than what this case originally
+		// asserted, not looser: the scope goes into the read rather than into a check
+		// after it, so B's read never touches the row, and an entry belonging to
+		// somebody else comes back exactly as an id that does not exist does. A
+		// PermissionDenied here would make the call an oracle for which entry ids exist
+		// in another tenant's log.
+		_, err = clientB.GetEntry(ctx, &auditsvc.GetEntryRequest{EntryId: entryID})
 		require.Error(t, err)
-		assert.Equal(t, codes.PermissionDenied, status.Code(err))
+		assert.Equal(t, codes.NotFound, status.Code(err))
 	})
 }
 
@@ -173,13 +193,13 @@ func TestCrossTenant_GetAccount_Denied(T *testing.T) {
 		accountAID := getActiveAccountIDForClientForTest(t, activeA)
 
 		// positive control: A can read its own account.
-		ownAccount, err := clientA.GetAccount(ctx, &identitysvc.GetAccountRequest{AccountId: accountAID})
+		ownAccount, err := clientA.IdentityService().GetAccount(ctx, &identitypb.GetAccountRequest{AccountId: accountAID})
 		require.NoError(t, err)
 		require.NotNil(t, ownAccount)
-		assert.Equal(t, accountAID, ownAccount.Result.Id)
+		assert.Equal(t, accountAID, ownAccount.GetAccount().GetId())
 
 		// cross-tenant: B is not a member of A's account.
-		_, err = clientB.GetAccount(ctx, &identitysvc.GetAccountRequest{AccountId: accountAID})
+		_, err = clientB.IdentityService().GetAccount(ctx, &identitypb.GetAccountRequest{AccountId: accountAID})
 		require.Error(t, err)
 		assert.Equal(t, codes.PermissionDenied, status.Code(err))
 	})
@@ -306,54 +326,57 @@ func TestCrossTenant_WebhookTriggerConfig_Denied(T *testing.T) {
 		_, clientA := createUserAndClientForTest(t)
 		_, clientB := createUserAndClientForTest(t)
 
-		// A creates a webhook and adds a trigger config to it.
-		webhookA := createWebhookForTest(t, clientA)
+		// A registers an endpoint and subscribes it to a second event type.
+		endpointA := createWebhookForTest(t, clientA)
 
-		// A second event type, distinct from the one the fake already carries.
+		// Distinct from the one the registration already carries.
 		eventType := webhooks.WebhookArchivedServiceEventType
-		if webhookA.TriggerConfigs[0].EventType == eventType {
+		if endpointA.GetSubscriptions()[0].GetEventType() == eventType {
 			eventType = webhooks.WebhookCreatedServiceEventType
 		}
 
-		addedConfig, err := clientA.AddWebhookTriggerConfig(ctx, &webhookssvc.AddWebhookTriggerConfigRequest{
-			WebhookId: webhookA.ID,
-			Input: &webhookssvc.WebhookTriggerConfigCreationRequestInput{
-				BelongsToWebhook: webhookA.ID,
-				EventType:        eventType,
-			},
+		added, err := clientA.WebhooksService().AddSubscription(ctx, &webhookspb.AddSubscriptionRequest{
+			EndpointId: endpointA.GetId(),
+			EventType:  eventType,
 		})
 		require.NoError(t, err)
-		require.NotNil(t, addedConfig.Created)
-		configID := addedConfig.Created.Id
-		require.NotEmpty(t, configID)
+		require.NotNil(t, added.GetResult())
 
-		// cross-tenant: B attempts to archive A's trigger config. Ownership is enforced via the
-		// account-scoped GetWebhook lookup, which cannot see A's webhook from B's session, so the
-		// handler surfaces codes.Internal rather than PermissionDenied.
-		_, err = clientB.ArchiveWebhookTriggerConfig(ctx, &webhookssvc.ArchiveWebhookTriggerConfigRequest{
-			WebhookId:              webhookA.ID,
-			WebhookTriggerConfigId: configID,
+		subscriptionID := added.GetResult().GetId()
+		require.NotEmpty(t, subscriptionID)
+
+		// cross-tenant: B attempts to archive A's subscription. The write is scoped to the
+		// caller's account, so it matches nothing from B's session — and platform answers
+		// that with success rather than an error, deliberately: an id naming nothing under
+		// the caller's own endpoints is a nil subscription and no error, so the call cannot
+		// be walked to find out which subscription ids exist in somebody else's account.
+		//
+		// Which makes the reply say nothing either way, and the assertion that follows the
+		// only one worth making: what matters is that A's row is untouched, not what B was
+		// told.
+		_, err = clientB.WebhooksService().ArchiveSubscription(ctx, &webhookspb.ArchiveSubscriptionRequest{
+			SubscriptionId: subscriptionID,
 		})
-		require.Error(t, err)
+		require.NoError(t, err, "a cross-tenant archive is answered rather than refused")
 
-		// security property: A's trigger config must still exist after B's attempt.
-		refreshed, err := clientA.GetWebhook(ctx, &webhookssvc.GetWebhookRequest{WebhookId: webhookA.ID})
+		// security property: A's subscription must still exist after B's attempt.
+		refreshed, err := clientA.WebhooksService().ListSubscriptions(ctx, &webhookspb.ListSubscriptionsRequest{
+			EndpointId: endpointA.GetId(),
+		})
 		require.NoError(t, err)
-		require.NotNil(t, refreshed.Result)
 
 		var stillPresent bool
-		for _, cfg := range refreshed.Result.TriggerConfigs {
-			if cfg.Id == configID {
+		for _, subscription := range refreshed.GetResults() {
+			if subscription.GetId() == subscriptionID {
 				stillPresent = true
 				break
 			}
 		}
-		assert.True(t, stillPresent, "expected A's webhook trigger config %q to survive B's cross-tenant archive attempt", configID)
+		assert.True(t, stillPresent, "expected A's webhook subscription %q to survive B's cross-tenant archive attempt", subscriptionID)
 
-		// positive control: A can archive its own trigger config.
-		_, err = clientA.ArchiveWebhookTriggerConfig(ctx, &webhookssvc.ArchiveWebhookTriggerConfigRequest{
-			WebhookId:              webhookA.ID,
-			WebhookTriggerConfigId: configID,
+		// positive control: A can archive its own subscription.
+		_, err = clientA.WebhooksService().ArchiveSubscription(ctx, &webhookspb.ArchiveSubscriptionRequest{
+			SubscriptionId: subscriptionID,
 		})
 		require.NoError(t, err)
 	})
@@ -467,8 +490,8 @@ func TestCrossTenant_MealPlanRecipeOptionSelections_Denied(T *testing.T) {
 // leaves 'awaiting_votes') is covered by manager unit tests; driving a plan out of awaiting_votes
 // deterministically requires the finalization worker, which this harness does not run.
 // TestCrossTenant_WaitlistSignups_Denied asserts that waitlist signups are user-owned (M23): user B
-// may not read, update, withdraw, or archive user A's signup by ID, and the waitlist-wide signup
-// listing is reserved for service admins. Waitlists themselves are global, admin-managed records;
+// may not read, update, withdraw, or archive user A's signup by ID, may not read A's signups by
+// naming A as the subject, and the waitlist-wide signup listing is reserved for service admins. Waitlists themselves are global, admin-managed records;
 // signups are per-user opt-ins, and after adoption they carry the address the list writes to — so
 // the listing is a read of every signatory's email and the ownership check is what keeps a signup
 // private. Positive controls prove the owner (and a service admin) still succeed.
@@ -483,24 +506,27 @@ func TestCrossTenant_WaitlistSignups_Denied(T *testing.T) {
 		_, clientB := createUserAndClientForTest(t)
 
 		waitlist := createWaitlistForTest(t, clientA)
-		signup := createWaitlistSignupForTest(t, clientA, waitlist.ID)
+		signup := createWaitlistSignupForTest(t, clientA, waitlist.GetId())
 
-		// cross-tenant: B may not read A's signup.
-		_, err := clientB.GetWaitlistSignup(ctx, &waitlistssvc.GetWaitlistSignupRequest{
-			WaitlistId:       waitlist.ID,
-			WaitlistSignupId: signup.ID,
+		// cross-tenant: B may not read A's signup by id. Denied by the grant rather than by
+		// ownership — a read by id is a service admin's — which is stricter than what this
+		// case was written to check and still refuses what it was written to refuse.
+		_, err := clientB.GetSignup(ctx, &waitlistspb.GetSignupRequest{
+			ListId:   waitlist.GetId(),
+			SignupId: signup.GetId(),
 		})
 		require.Error(t, err)
 		assert.Equal(t, codes.PermissionDenied, status.Code(err))
 
-		// cross-tenant: B may not update A's signup.
-		hijackedNotes := "hijacked notes"
-		_, err = clientB.UpdateWaitlistSignup(ctx, &waitlistssvc.UpdateWaitlistSignupRequest{
-			WaitlistId:       waitlist.ID,
-			WaitlistSignupId: signup.ID,
-			Input: &waitlistssvc.WaitlistSignupUpdateRequestInput{
-				Notes: &hijackedNotes,
-			},
+		// cross-tenant: B may not rewrite the note on A's signup. Denied by the grant,
+		// which B does not hold — the note is the operator's, and this RPC has no
+		// ownership seam, so the grant is the whole of its defense. It used to be a
+		// member's here, which made it a cross-tenant hole: signups are globally scoped,
+		// so any signed-in caller could rewrite anybody's by naming its id.
+		_, err = clientB.UpdateSignupNotes(ctx, &waitlistspb.UpdateSignupNotesRequest{
+			ListId:   waitlist.GetId(),
+			SignupId: signup.GetId(),
+			Notes:    "hijacked notes",
 		})
 		require.Error(t, err)
 		assert.Equal(t, codes.PermissionDenied, status.Code(err))
@@ -508,72 +534,108 @@ func TestCrossTenant_WaitlistSignups_Denied(T *testing.T) {
 		// cross-tenant: B may not unsubscribe A. A withdrawal is irreversible by
 		// design — the address stays suppressed after it — so this is the most
 		// damaging of the four.
-		_, err = clientB.WithdrawFromWaitlist(ctx, &waitlistssvc.WithdrawFromWaitlistRequest{
-			WaitlistId:       waitlist.ID,
-			WaitlistSignupId: signup.ID,
+		//
+		// Refused by the authorizer rather than by a grant, since Withdraw is the
+		// member's own opt-out and B holds it for their own signups. NotFound is what
+		// that refusal looks like, deliberately: the caller is frequently anonymous and
+		// holds an identifier somebody handed them, so telling a signup that is not
+		// theirs apart from one that does not exist would make this an enumeration.
+		_, err = clientB.Withdraw(ctx, &waitlistspb.WithdrawRequest{
+			ListId:   waitlist.GetId(),
+			SignupId: signup.GetId(),
 		})
 		require.Error(t, err)
-		assert.Equal(t, codes.PermissionDenied, status.Code(err))
+		assert.Equal(t, codes.NotFound, status.Code(err))
 
-		// cross-tenant: B may not archive A's signup.
-		_, err = clientB.ArchiveWaitlistSignup(ctx, &waitlistssvc.ArchiveWaitlistSignupRequest{
-			WaitlistId:       waitlist.ID,
-			WaitlistSignupId: signup.ID,
+		// cross-tenant: B may not archive A's signup. By the grant again — archiving is
+		// the queue being tidied, not an opt-out being honored.
+		_, err = clientB.ArchiveSignup(ctx, &waitlistspb.ArchiveSignupRequest{
+			ListId:   waitlist.GetId(),
+			SignupId: signup.GetId(),
 		})
 		require.Error(t, err)
 		assert.Equal(t, codes.PermissionDenied, status.Code(err))
 
 		// cross-tenant: B may not work the queue either. Being on a list does not
 		// make somebody its operator.
-		_, err = clientB.InviteWaitlistSignup(ctx, &waitlistssvc.InviteWaitlistSignupRequest{
-			WaitlistId:       waitlist.ID,
-			WaitlistSignupId: signup.ID,
+		_, err = clientB.Invite(ctx, &waitlistspb.InviteRequest{
+			ListId:   waitlist.GetId(),
+			SignupId: signup.GetId(),
 		})
 		require.Error(t, err)
 		assert.Equal(t, codes.PermissionDenied, status.Code(err))
 
 		// the waitlist-wide listing is denied to regular users (it would expose every user's address)...
-		_, err = clientB.GetWaitlistSignupsForWaitlist(ctx, &waitlistssvc.GetWaitlistSignupsForWaitlistRequest{
-			WaitlistId: waitlist.ID,
-		})
+		_, err = clientB.ListSignups(ctx, &waitlistspb.ListSignupsRequest{ListId: waitlist.GetId()})
 		require.Error(t, err)
 		assert.Equal(t, codes.PermissionDenied, status.Code(err))
 
 		// ...but allowed for service admins.
-		listed, err := adminClient.GetWaitlistSignupsForWaitlist(ctx, &waitlistssvc.GetWaitlistSignupsForWaitlistRequest{
-			WaitlistId: waitlist.ID,
-		})
+		listed, err := adminClient.ListSignups(ctx, &waitlistspb.ListSignupsRequest{ListId: waitlist.GetId()})
 		require.NoError(t, err)
 		require.NotNil(t, listed)
 		assert.NotEmpty(t, listed.GetResults())
 
 		// a service admin may also read another user's signup by ID.
-		_, err = adminClient.GetWaitlistSignup(ctx, &waitlistssvc.GetWaitlistSignupRequest{
-			WaitlistId:       waitlist.ID,
-			WaitlistSignupId: signup.ID,
+		_, err = adminClient.GetSignup(ctx, &waitlistspb.GetSignupRequest{
+			ListId:   waitlist.GetId(),
+			SignupId: signup.GetId(),
 		})
 		require.NoError(t, err)
 
-		// positive control: A may read, update, and archive its own signup.
-		_, err = clientA.GetWaitlistSignup(ctx, &waitlistssvc.GetWaitlistSignupRequest{
-			WaitlistId:       waitlist.ID,
-			WaitlistSignupId: signup.ID,
+		// A cannot read its own signup by id either, and that is not a cross-tenant rule —
+		// it is the grant: GetSignup shares one with GetSignupByContact, which can ask
+		// whether any address is on any list, so all three of those reads are an admin's.
+		_, err = clientA.GetSignup(ctx, &waitlistspb.GetSignupRequest{
+			ListId:   waitlist.GetId(),
+			SignupId: signup.GetId(),
+		})
+		require.Error(t, err)
+		assert.Equal(t, codes.PermissionDenied, status.Code(err))
+
+		// The fourth read is the one A gets to keep: its own place in the queue, under
+		// ReadOwnWaitlistSignupsPermission.
+		own, err := clientA.ListSignupsForSubject(ctx, subjectRequestFor(t, clientA))
+		require.NoError(t, err)
+		assert.NotEmpty(t, own.GetResults())
+
+		// And the grant is not what keeps B out of it, because B holds the same one. The
+		// subject comes off the request, so the refusal is the handler's: platform asks
+		// AuthorizeSubjectRead before it reads a row, and this deployment answers
+		// own-subject-or-admin. NotFound rather than PermissionDenied, so a subject that
+		// belongs to somebody else and one that belongs to nobody are the same answer.
+		_, err = clientB.ListSignupsForSubject(ctx, subjectRequestFor(t, clientA))
+		require.Error(t, err)
+		assert.Equal(t, codes.NotFound, status.Code(err))
+
+		// A service admin reads anybody's, which is what the split was carved out of.
+		theirs, err := adminClient.ListSignupsForSubject(ctx, subjectRequestFor(t, clientA))
+		require.NoError(t, err)
+		assert.NotEmpty(t, theirs.GetResults())
+
+		// positive control: A may still leave the list, which is the one write on a
+		// signup that belongs to the person on it. Amending the note and archiving the
+		// row are the operator's, so A is refused them exactly as B is — the denials
+		// above are the grant working, not a cross-tenant rule, and the control that
+		// measures them has to be a write A actually holds.
+		_, err = clientA.UpdateSignupNotes(ctx, &waitlistspb.UpdateSignupNotesRequest{
+			ListId:   waitlist.GetId(),
+			SignupId: signup.GetId(),
+			Notes:    "owner-updated notes",
+		})
+		require.Error(t, err)
+		assert.Equal(t, codes.PermissionDenied, status.Code(err))
+
+		_, err = clientA.Withdraw(ctx, &waitlistspb.WithdrawRequest{
+			ListId:   waitlist.GetId(),
+			SignupId: signup.GetId(),
 		})
 		require.NoError(t, err)
 
-		ownNotes := "owner-updated notes"
-		_, err = clientA.UpdateWaitlistSignup(ctx, &waitlistssvc.UpdateWaitlistSignupRequest{
-			WaitlistId:       waitlist.ID,
-			WaitlistSignupId: signup.ID,
-			Input: &waitlistssvc.WaitlistSignupUpdateRequestInput{
-				Notes: &ownNotes,
-			},
-		})
-		require.NoError(t, err)
-
-		_, err = clientA.ArchiveWaitlistSignup(ctx, &waitlistssvc.ArchiveWaitlistSignupRequest{
-			WaitlistId:       waitlist.ID,
-			WaitlistSignupId: signup.ID,
+		// And an operator may archive it, which is the other half of the same split.
+		_, err = adminClient.ArchiveSignup(ctx, &waitlistspb.ArchiveSignupRequest{
+			ListId:   waitlist.GetId(),
+			SignupId: signup.GetId(),
 		})
 		require.NoError(t, err)
 	})

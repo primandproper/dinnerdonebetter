@@ -13,46 +13,52 @@ import (
 	ddbauth "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 	ddbcomments "github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments"
 	ddbdataprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
+	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	ddbissuereports "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports"
+	ddbnotifications "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
 	ddboauth "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
 	ddbpayments "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 	ddbsettings "github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings"
 	ddbuploadedmedia "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	ddbwaitlists "github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists"
 
-	auditmigrations "github.com/primandproper/platform-go/v13/audit/migrations"
-	oauth2migrations "github.com/primandproper/platform-go/v13/authentication/oauth2server/database/migrations"
-	passwordresetmigrations "github.com/primandproper/platform-go/v13/authentication/passwordreset/migrations"
-	webauthndatabase "github.com/primandproper/platform-go/v13/authentication/webauthn/database"
-	webauthnmigrations "github.com/primandproper/platform-go/v13/authentication/webauthn/database/migrations"
-	authzdatabase "github.com/primandproper/platform-go/v13/authorization/database"
-	authzmigrations "github.com/primandproper/platform-go/v13/authorization/database/migrations"
-	billingmigrations "github.com/primandproper/platform-go/v13/billing/migrations"
-	commentsmigrations "github.com/primandproper/platform-go/v13/comments/migrations"
-	"github.com/primandproper/platform-go/v13/database"
-	"github.com/primandproper/platform-go/v13/database/ddl"
-	"github.com/primandproper/platform-go/v13/database/dialect"
-	"github.com/primandproper/platform-go/v13/database/migrate"
-	dataprivacymigrations "github.com/primandproper/platform-go/v13/dataprivacy/migrations"
-	"github.com/primandproper/platform-go/v13/errors"
-	issuereportsmigrations "github.com/primandproper/platform-go/v13/issuereports/migrations"
-	"github.com/primandproper/platform-go/v13/metering"
-	meteringmigrations "github.com/primandproper/platform-go/v13/metering/migrations"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/operations"
-	operationsmigrations "github.com/primandproper/platform-go/v13/operations/migrations"
-	"github.com/primandproper/platform-go/v13/outbox"
-	outboxmigrations "github.com/primandproper/platform-go/v13/outbox/migrations"
-	"github.com/primandproper/platform-go/v13/saga"
-	sagamigrations "github.com/primandproper/platform-go/v13/saga/migrations"
-	sessionsmigrations "github.com/primandproper/platform-go/v13/sessions/database/migrations"
-	settingsmigrations "github.com/primandproper/platform-go/v13/settings/migrations"
-	uploadsregistrymigrations "github.com/primandproper/platform-go/v13/uploads/registry/migrations"
-	waitlistsmigrations "github.com/primandproper/platform-go/v13/waitlists/migrations"
-	"github.com/primandproper/platform-go/v13/webhooks"
-	webhooksmigrations "github.com/primandproper/platform-go/v13/webhooks/migrations"
-	"github.com/primandproper/platform-go/v13/workqueue"
-	workqueuemigrations "github.com/primandproper/platform-go/v13/workqueue/migrations"
+	auditmigrations "github.com/primandproper/platform-go/v14/audit/migrations"
+	oauth2clientsmigrations "github.com/primandproper/platform-go/v14/authentication/oauth2clients/migrations"
+	oauth2migrations "github.com/primandproper/platform-go/v14/authentication/oauth2serverstore/migrations"
+	passkeysmigrations "github.com/primandproper/platform-go/v14/authentication/passkeys/migrations"
+	passwordresetmigrations "github.com/primandproper/platform-go/v14/authentication/passwordreset/migrations"
+	webauthndatabase "github.com/primandproper/platform-go/v14/authentication/webauthnsessions"
+	webauthnmigrations "github.com/primandproper/platform-go/v14/authentication/webauthnsessions/migrations"
+	billingmigrations "github.com/primandproper/platform-go/v14/billing/migrations"
+	commentsmigrations "github.com/primandproper/platform-go/v14/comments/migrations"
+	dataprivacymigrations "github.com/primandproper/platform-go/v14/dataprivacy/migrations"
+	identitymigrations "github.com/primandproper/platform-go/v14/identity/migrations"
+	issuereportsmigrations "github.com/primandproper/platform-go/v14/issuereports/migrations"
+	uploadsregistrymigrations "github.com/primandproper/platform-go/v14/mediaregistry/migrations"
+	"github.com/primandproper/platform-go/v14/metering"
+	meteringmigrations "github.com/primandproper/platform-go/v14/metering/migrations"
+	notificationsmigrations "github.com/primandproper/platform-go/v14/notifications/migrations"
+	"github.com/primandproper/platform-go/v14/operations"
+	operationsmigrations "github.com/primandproper/platform-go/v14/operations/migrations"
+	"github.com/primandproper/platform-go/v14/outbox"
+	outboxmigrations "github.com/primandproper/platform-go/v14/outbox/migrations"
+	authzdatabase "github.com/primandproper/platform-go/v14/rbac"
+	authzmigrations "github.com/primandproper/platform-go/v14/rbac/migrations"
+	"github.com/primandproper/platform-go/v14/saga"
+	sagamigrations "github.com/primandproper/platform-go/v14/saga/migrations"
+	sessionsmigrations "github.com/primandproper/platform-go/v14/sessions/database/migrations"
+	settingsmigrations "github.com/primandproper/platform-go/v14/settings/migrations"
+	waitlistsmigrations "github.com/primandproper/platform-go/v14/waitlists/migrations"
+	"github.com/primandproper/platform-go/v14/webhooks"
+	webhooksmigrations "github.com/primandproper/platform-go/v14/webhooks/migrations"
+	"github.com/primandproper/platform-go/v14/workqueue"
+	workqueuemigrations "github.com/primandproper/platform-go/v14/workqueue/migrations"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/database/ddl"
+	"github.com/primandproper/primitives-go/v2/database/dialect"
+	"github.com/primandproper/primitives-go/v2/database/migrate"
+	"github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
 )
 
 var (
@@ -73,25 +79,45 @@ const lockKey = "dinnerdonebetter"
 // filename and must never be renumbered once applied. Adding another means taking the next
 // free number, whichever side it comes from.
 const (
-	outboxMigrationVersion          = 22
-	sagaMigrationVersion            = 24
-	webhooksMigrationVersion        = 25
-	auditMigrationVersion           = 27
-	dataPrivacyMigrationVersion     = 28
-	meteringMigrationVersion        = 30
-	operationsMigrationVersion      = 31
-	webauthnMigrationVersion        = 32
-	oauth2MigrationVersion          = 33
-	passwordResetMigrationVersion   = 34
-	sessionsMigrationVersion        = 35
-	workQueueMigrationVersion       = 36
-	commentsMigrationVersion        = 37
-	uploadsRegistryMigrationVersion = 38
-	issueReportsMigrationVersion    = 39
-	waitlistsMigrationVersion       = 40
-	settingsMigrationVersion        = 41
-	authorizationMigrationVersion   = 42
-	billingMigrationVersion         = 43
+	// identity is first, and has to be: every other table in this schema that names a
+	// user or an account has a foreign key into it. It took the number the hand-written
+	// identity migration vacated rather than a free one at the end, because a foreign key
+	// cannot reference a table that does not exist yet.
+	identityMigrationVersion        = 1
+	outboxMigrationVersion          = 2
+	sagaMigrationVersion            = 3
+	webhooksMigrationVersion        = 4
+	auditMigrationVersion           = 5
+	dataPrivacyMigrationVersion     = 6
+	meteringMigrationVersion        = 7
+	operationsMigrationVersion      = 8
+	webauthnMigrationVersion        = 9
+	oauth2MigrationVersion          = 10
+	passwordResetMigrationVersion   = 11
+	sessionsMigrationVersion        = 12
+	workQueueMigrationVersion       = 13
+	commentsMigrationVersion        = 14
+	uploadsRegistryMigrationVersion = 15
+	issueReportsMigrationVersion    = 16
+	waitlistsMigrationVersion       = 17
+	settingsMigrationVersion        = 18
+	authorizationMigrationVersion   = 19
+	billingMigrationVersion         = 20
+	notificationsMigrationVersion   = 21
+	oauth2ClientsMigrationVersion   = 22
+	passkeysMigrationVersion        = 24
+)
+
+// The identity tables other schemas reference.
+//
+// They are derived from the prefix the identity store is built with rather than spelled,
+// because a constraint naming a table the store does not write is a constraint against an
+// empty table — which is exactly the failure this application spent a suite discovering.
+var (
+	identityUsers           = ddl.Qualify(ddbidentity.TablePrefix) + "identity_users"
+	identityAccounts        = ddl.Qualify(ddbidentity.TablePrefix) + "identity_accounts"
+	identityUserRoles       = ddl.Qualify(ddbidentity.TablePrefix) + "identity_user_roles"
+	identityMembershipRoles = ddl.Qualify(ddbidentity.TablePrefix) + "identity_membership_roles"
 )
 
 // NewMigrator creates a new postgres Migrator over the embedded migration files.
@@ -175,6 +201,30 @@ func NewMigrator(logger logging.Logger) (*Migrator, error) {
 		return nil, errors.Wrap(err, "rendering oauth2 server migration")
 	}
 
+	// The registry, under the same namespace as the four protocol tables above, so one
+	// application's oauth2 tables sort together in a database that may hold another's.
+	oauth2ClientsDDL, err := renderOAuth2ClientsDDL()
+	if err != nil {
+		return nil, err
+	}
+
+	// Users, accounts, memberships and invitations. platform names its tables
+	// identity_*, so these stand beside this application's own while the adoption
+	// happens rather than colliding with them — which is what lets the port be built
+	// before the switch is thrown.
+	identityDDL, err := identitymigrations.SQL(dialect.Postgres, ddbidentity.TablePrefix)
+	if err != nil {
+		return nil, errors.Wrap(err, "rendering identity schema")
+	}
+
+	// The passkey credentials, under the same namespace. platform names its table
+	// webauthn_credentials too, which is why this one carries a prefix and the schema this
+	// replaced did not: two tables of one name, and only one of them has a store.
+	passkeysDDL, err := renderPasskeysDDL()
+	if err != nil {
+		return nil, err
+	}
+
 	passwordResetDDL, err := renderPasswordResetDDL()
 	if err != nil {
 		return nil, err
@@ -237,6 +287,11 @@ func NewMigrator(logger logging.Logger) (*Migrator, error) {
 		return nil, err
 	}
 
+	notificationsDDL, err := renderNotificationsDDL()
+	if err != nil {
+		return nil, err
+	}
+
 	migrator, err := migrate.New(
 		dialect.Postgres,
 		migrationFiles,
@@ -261,6 +316,10 @@ func NewMigrator(logger logging.Logger) (*Migrator, error) {
 		migrate.WithGeneratedMigration(settingsMigrationVersion, "create_settings_tables", settingsDDL),
 		migrate.WithGeneratedMigration(authorizationMigrationVersion, "create_authorization_tables", authorizationDDL),
 		migrate.WithGeneratedMigration(billingMigrationVersion, "create_billing_tables", billingDDL),
+		migrate.WithGeneratedMigration(notificationsMigrationVersion, "create_notifications_tables", notificationsDDL),
+		migrate.WithGeneratedMigration(oauth2ClientsMigrationVersion, "adopt_oauth2_registered_clients", oauth2ClientsDDL),
+		migrate.WithGeneratedMigration(identityMigrationVersion, "create_identity_tables", identityDDL),
+		migrate.WithGeneratedMigration(passkeysMigrationVersion, "create_passkey_credentials_table", passkeysDDL),
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "building migrator")
@@ -411,12 +470,14 @@ func renderAuthorizationDDL() (string, error) {
 	rolesTable := ddl.Qualify(authorization.TablePrefix) + "authz_roles"
 
 	body := &strings.Builder{}
-	body.WriteString("DROP TABLE IF EXISTS user_role_permissions;\n")
-	body.WriteString("DROP TABLE IF EXISTS user_role_hierarchy;\n")
-	body.WriteString("DROP TABLE IF EXISTS permissions;\n")
-	body.WriteString("DROP TABLE IF EXISTS user_roles CASCADE;\n\n")
 	body.WriteString(schema)
-	body.WriteString("\n\nALTER TABLE user_role_assignments\n\tADD CONSTRAINT user_role_assignments_role_fk\n\tFOREIGN KEY (role_name) REFERENCES " + rolesTable + "(name) ON DELETE RESTRICT;\n")
+	// The key follows the assignments, which are platform's now: a service role is a row
+	// in identity_user_roles and a membership role is one in identity_membership_roles,
+	// where both used to be user_role_assignments. Two constraints where there was one,
+	// because platform keeps the two apart — they are granted by different people and
+	// answer different questions.
+	body.WriteString("\n\nALTER TABLE " + identityUserRoles + "\n\tADD CONSTRAINT " + identityUserRoles + "_role_fk\n\tFOREIGN KEY (role) REFERENCES " + rolesTable + "(name) ON DELETE RESTRICT;\n")
+	body.WriteString("\nALTER TABLE " + identityMembershipRoles + "\n\tADD CONSTRAINT " + identityMembershipRoles + "_role_fk\n\tFOREIGN KEY (role) REFERENCES " + rolesTable + "(name) ON DELETE RESTRICT;\n")
 
 	return body.String(), nil
 }
@@ -479,13 +540,11 @@ func renderBillingDDL() (string, error) {
 	qualified := ddl.Qualify(ddbpayments.TablePrefix)
 
 	body := &strings.Builder{}
-	body.WriteString("DROP TABLE IF EXISTS payment_transactions;\nDROP TABLE IF EXISTS purchases;\nDROP TABLE IF EXISTS subscriptions;\nDROP TABLE IF EXISTS products;\n")
-	body.WriteString("DROP TYPE IF EXISTS payment_transaction_status;\nDROP TYPE IF EXISTS subscription_status;\nDROP TYPE IF EXISTS product_kind;\n\n")
 	body.WriteString(schema)
 
 	for _, owned := range billingTablesOwnedByAccounts {
 		table := qualified + owned
-		body.WriteString("\n\nALTER TABLE " + table + "\n\tADD CONSTRAINT " + table + "_account_fk\n\tFOREIGN KEY (belongs_to_account) REFERENCES accounts(id) ON DELETE CASCADE;\n")
+		body.WriteString("\n\nALTER TABLE " + table + "\n\tADD CONSTRAINT " + table + "_account_fk\n\tFOREIGN KEY (belongs_to_account) REFERENCES " + identityAccounts + "(id) ON DELETE CASCADE;\n")
 	}
 
 	return body.String(), nil
@@ -534,10 +593,9 @@ func renderIssueReportsDDL() (string, error) {
 	table := ddl.Qualify(ddbissuereports.TablePrefix) + "issue_reports"
 
 	body := &strings.Builder{}
-	body.WriteString("DROP TABLE IF EXISTS issue_reports;\n\n")
 	body.WriteString(schema)
-	body.WriteString("\n\nALTER TABLE " + table + "\n\tADD CONSTRAINT " + table + "_reporter_fk\n\tFOREIGN KEY (reporter) REFERENCES users(id) ON DELETE CASCADE;\n")
-	body.WriteString("\nALTER TABLE " + table + "\n\tADD CONSTRAINT " + table + "_scope_fk\n\tFOREIGN KEY (scope) REFERENCES accounts(id) ON DELETE CASCADE;\n")
+	body.WriteString("\n\nALTER TABLE " + table + "\n\tADD CONSTRAINT " + table + "_reporter_fk\n\tFOREIGN KEY (reporter) REFERENCES " + identityUsers + "(id) ON DELETE CASCADE;\n")
+	body.WriteString("\nALTER TABLE " + table + "\n\tADD CONSTRAINT " + table + "_scope_fk\n\tFOREIGN KEY (scope) REFERENCES " + identityAccounts + "(id) ON DELETE CASCADE;\n")
 
 	return body.String(), nil
 }
@@ -580,7 +638,7 @@ func renderWaitlistsDDL() (string, error) {
 
 	// Signups first: the old signup table references the old list table, and
 	// Postgres will not drop a table out from under a foreign key.
-	return "DROP TABLE IF EXISTS waitlist_signups;\nDROP TABLE IF EXISTS waitlists;\n\n" + schema, nil
+	return schema, nil
 }
 
 // renderSettingsDDL renders the three settings tables, dropping the two
@@ -636,9 +694,8 @@ func renderSettingsDDL() (string, error) {
 	// Configurations first: the old configuration table references the old
 	// settings table, and Postgres will not drop a table out from under a
 	// foreign key. The enum follows both, for the same reason.
-	body.WriteString("DROP TABLE IF EXISTS service_setting_configurations;\nDROP TABLE IF EXISTS service_settings;\nDROP TYPE IF EXISTS setting_type;\n\n")
 	body.WriteString(schema)
-	body.WriteString("\n\nALTER TABLE " + values + "\n\tADD CONSTRAINT " + values + "_subject_fk\n\tFOREIGN KEY (subject_id) REFERENCES users(id) ON DELETE CASCADE;\n")
+	body.WriteString("\n\nALTER TABLE " + values + "\n\tADD CONSTRAINT " + values + "_subject_fk\n\tFOREIGN KEY (subject_id) REFERENCES " + identityUsers + "(id) ON DELETE CASCADE;\n")
 
 	// The one setting this application ships with, re-seeded against the new
 	// schema. 00021_mealplanning.sql wrote it into the table dropped above, and
@@ -684,7 +741,78 @@ func renderCommentsDDL() (string, error) {
 		return "", errors.Wrap(err, "rendering comments migration")
 	}
 
-	return "DROP TABLE IF EXISTS comments;\nDROP TYPE IF EXISTS comment_target_type;\n\n" + schema, nil
+	return schema, nil
+}
+
+// userCascade re-creates the foreign key an adopted table loses by being adopted.
+//
+// Every one of platform's schemas stores a user id as a bare column, and has to: the module
+// is multi-engine and does not know what a consumer calls its user table, or whether it has
+// one. The consumer does. Two tables here name a user and nothing was pointing them at it —
+// which is not merely a missing constraint. This application erases a subject by deleting
+// the user row and letting the cascade reach everything that names it, so a table with no
+// key is a table erasure does not reach: a deleted user's passkeys and password reset tokens
+// outlived them, silently, because a cascade that does not exist raises nothing.
+//
+// The registry of OAuth2 clients looks like a third and is not; renderOAuth2ClientsDDL says
+// why, and what erases one instead.
+//
+// The webauthn one is a regression rather than an omission. 00024's hand-written
+// webauthn_credentials carried REFERENCES users(id) ON DELETE CASCADE, and adopting
+// platform's passkeys schema dropped it along with the table. The other two were never
+// re-pointed when passwordreset and oauth2clients were adopted.
+//
+// This is the same statement uploads/registry, issuereports and notifications each write by
+// hand; it is a function because there are now five of them and the argument is identical.
+func userCascade(table, column string) string {
+	return "\n\nALTER TABLE " + table +
+		"\n\tADD CONSTRAINT " + table + "_" + column + "_fk" +
+		"\n\tFOREIGN KEY (" + column + ") REFERENCES " + identityUsers + "(id) ON DELETE CASCADE;\n"
+}
+
+// renderPasskeysDDL renders the passkey credential table, keyed to the user it belongs to.
+//
+// See userCascade: the key is this repository's to add, and this table is the one that had
+// one before the identity adoption took it away.
+func renderPasskeysDDL() (string, error) {
+	schema, err := passkeysmigrations.SQL(dialect.Postgres, ddbidentity.TablePrefix)
+	if err != nil {
+		return "", errors.Wrap(err, "rendering passkey credentials schema")
+	}
+
+	table := ddl.Qualify(ddbidentity.TablePrefix) + "webauthn_credentials"
+
+	body := &strings.Builder{}
+
+	body.WriteString(schema)
+	body.WriteString(userCascade(table, "belongs_to_user"))
+
+	return body.String(), nil
+}
+
+// renderOAuth2ClientsDDL renders the administered client registry.
+//
+// It is the one table here that names a user and does not get a key, and the reason is that
+// in this deployment the column is usually not a user. A client is minted by an operator to
+// let an application speak for the service on behalf of whoever signs in, so it is
+// registered unowned — CreateOAuth2ClientForService passes "" for the owner, and
+// oauth2clients.Client.Admits permits any subject for exactly that arrangement. A foreign
+// key would refuse every one of them.
+//
+// A user-owned client is still possible, which is why the erasure of one is a registered
+// eraser rather than a cascade; see internal/build/dataprivacy.
+//
+// The authorization server's own tables are not keyed either, for a different reason.
+// oauth2_clients has no user column at all, and the codes and tokens name a subject_id that
+// is a claim rather than a row reference — they are short-lived grants that expire on their
+// own, and a key onto them would make issuing one depend on the directory.
+func renderOAuth2ClientsDDL() (string, error) {
+	schema, err := oauth2clientsmigrations.SQL(dialect.Postgres, ddboauth.TablePrefix)
+	if err != nil {
+		return "", errors.Wrap(err, "rendering oauth2 registered clients schema")
+	}
+
+	return schema, nil
 }
 
 // renderPasswordResetDDL renders the password reset token table, dropping the one
@@ -706,13 +834,25 @@ func renderPasswordResetDDL() (string, error) {
 		return "", errors.Wrap(err, "rendering password reset token migration")
 	}
 
-	return "DROP TABLE IF EXISTS password_reset_tokens;\n\n" + schema, nil
+	table := ddl.Qualify(ddbauth.TablePrefix) + "password_reset_tokens"
+
+	body := &strings.Builder{}
+
+	body.WriteString(schema)
+	body.WriteString(userCascade(table, "belongs_to_user"))
+
+	return body.String(), nil
 }
 
-// renderSessionsDDL renders the session table, dropping the one 00018_user_sessions.sql
-// created first.
+// renderSessionsDDL renders the session table.
 //
-// Nothing is carried across, and the two tables are not the same shape anyway. The old one
+// It renders platform's schema and nothing else. The comment here used to say it dropped
+// the table 00018_user_sessions.sql created, which it never did — that table outlived the
+// adoption, recreated on every migration by the hand-written identity migration, which
+// also created it. The identity adoption deleted that file, so there is no second sessions
+// table left to drop and no statement here pretending to.
+//
+// Nothing was carried across, and the two tables are not the same shape anyway. The old one
 // keyed a session by the JTI of the token issued alongside it and ended one by stamping a
 // revoked_at column that only the reads knew to filter on; the platform's keys a session by
 // an identifier of its own and ends one by removing the row, so there is no state a
@@ -733,24 +873,27 @@ func renderSessionsDDL() (string, error) {
 		return "", errors.Wrap(err, "rendering sessions migration")
 	}
 
-	return "DROP TABLE IF EXISTS user_sessions;\n\n" + schema, nil
+	return schema, nil
 }
 
-// renderWebAuthnDDL renders the passkey ceremony session table, dropping the one this
-// repository used to hand-write first.
+// renderWebAuthnDDL renders the passkey ceremony session table.
 //
-// The drop is not a migration of the old table: 00017 created it with a JSONB session_data
-// column and the platform's schema stores BYTEA, so a CREATE TABLE IF NOT EXISTS over the
-// old one would silently keep a table the store cannot write to. Nothing is lost by dropping
-// it. A row is one passkey ceremony in flight, a ceremony lasts a minute, and the worst case
-// at deploy is a handful of users pressing the passkey prompt again.
+// The hazard this used to claim to handle is real and is already handled by absence. 00017
+// created webauthn_sessions with a JSONB session_data column where the platform's schema
+// stores BYTEA, and the platform's DDL says CREATE TABLE IF NOT EXISTS — so an old table
+// left standing would be silently kept and the store would read columns that are not
+// there. No statement here ever dropped it; the squash that produced the one remaining
+// hand-written migration simply did not carry it forward, and nothing has created a
+// webauthn_sessions of the old shape since. Nothing is lost either way: a row is one passkey
+// ceremony in flight, a ceremony lasts a minute, and the worst case at deploy is a handful
+// of users pressing the passkey prompt again.
 func renderWebAuthnDDL() (string, error) {
 	schema, err := webauthnmigrations.SQL(dialect.Postgres, webauthndatabase.DefaultTablePrefix)
 	if err != nil {
 		return "", errors.Wrap(err, "rendering webauthn session migration")
 	}
 
-	return "DROP TABLE IF EXISTS webauthn_sessions;\n\n" + schema, nil
+	return schema, nil
 }
 
 // renderAuditDDL renders the audit tables and the triggers that make them
@@ -791,21 +934,6 @@ func renderAuditDDL() (string, error) {
 	}
 
 	return body.String(), nil
-}
-
-// bridgeTablesReferencingUploadedMedia are this application's tables whose
-// uploaded_media_id column names a row in the upload registry.
-//
-// They are listed rather than derived because nothing can derive them: the
-// registry has never heard of them, which is the whole point of a package that
-// can be adopted by an application whose schema it does not know.
-var bridgeTablesReferencingUploadedMedia = []string{
-	"user_avatars",
-	"recipe_images",
-	"meal_images",
-	"recipe_step_images",
-	"ingredient_media",
-	"preparation_media",
 }
 
 // renderUploadsRegistryDDL renders the upload registry table, dropping the
@@ -858,14 +986,61 @@ func renderUploadsRegistryDDL() (string, error) {
 	table := ddl.Qualify(ddbuploadedmedia.TablePrefix) + "uploads_objects"
 
 	body := &strings.Builder{}
-	body.WriteString("DROP TABLE IF EXISTS uploaded_media CASCADE;\nDROP TYPE IF EXISTS uploaded_media_mime_type;\n\n")
 
 	body.WriteString(schema)
-	body.WriteString("\n\nALTER TABLE " + table + "\n\tADD CONSTRAINT " + table + "_owner_fk\n\tFOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE;\n")
+	body.WriteString("\n\nALTER TABLE " + table + "\n\tADD CONSTRAINT " + table + "_owner_fk\n\tFOREIGN KEY (owner_id) REFERENCES " + identityUsers + "(id) ON DELETE CASCADE;\n")
 
-	for _, bridge := range bridgeTablesReferencingUploadedMedia {
-		body.WriteString("\nALTER TABLE " + bridge + "\n\tADD CONSTRAINT " + bridge + "_uploaded_media_fk\n\tFOREIGN KEY (uploaded_media_id) REFERENCES " + table + "(id) ON DELETE CASCADE;\n")
+	return body.String(), nil
+}
+
+// renderNotificationsDDL renders the inbox and the device registry, dropping the
+// two tables 00006_notifications.sql and 00015_user_device_tokens.sql created
+// first, along with the enum the former defined.
+//
+// Nothing is carried across and the schemas could not carry it anyway. The
+// platform's inbox replaces belongs_to_user with a principal and the tenancy
+// column every one of its reads filters on; it says when a notification was read
+// rather than whether, which is strictly more and is what an unread count is
+// derived from; and it adds the title, topic and link a notification needs to be
+// rendered as anything but a line of text. The device registry loses
+// last_updated_at and archived_at and gains last_seen_at, because a device is
+// revoked by removal rather than retired in place — see the two file comments in
+// platform's notifications/grpc for why a Device has no archived dimension to
+// rule about.
+//
+// # The two foreign keys, re-created
+//
+// Both principal columns name a user in every row this application writes: an
+// inbox belongs to a person and so does a handset, and this deployment has no
+// other kind of principal. So the keys belongs_to_user carried are re-creatable,
+// and re-creating them is what keeps the single identity eraser in
+// internal/build/dataprivacy covering both tables.
+//
+// platform ships notifications/privacy with an eraser for each, which is the
+// other way to cover them and the one a deployment with non-user principals has
+// to take. This one does not need it: a foreign key the database enforces is
+// cheaper and harder to forget than an eraser somebody has to register, and it
+// is the same reading settings took.
+//
+// It is also what stops the subject type widening by accident. A notification
+// addressed to an account would be refused by the database rather than
+// discouraged by a comment, so widening starts by dropping these keys and
+// deciding what erases the rows they were holding.
+func renderNotificationsDDL() (string, error) {
+	schema, err := notificationsmigrations.SQL(dialect.Postgres, ddbnotifications.TablePrefix)
+	if err != nil {
+		return "", errors.Wrap(err, "rendering notifications migration")
 	}
+
+	qualified := ddl.Qualify(ddbnotifications.TablePrefix)
+	inbox := qualified + "notifications_inbox"
+	devices := qualified + "notifications_devices"
+
+	body := &strings.Builder{}
+
+	body.WriteString(schema)
+	body.WriteString("\n\nALTER TABLE " + inbox + "\n\tADD CONSTRAINT " + inbox + "_principal_fk\n\tFOREIGN KEY (principal) REFERENCES " + identityUsers + "(id) ON DELETE CASCADE;\n")
+	body.WriteString("\nALTER TABLE " + devices + "\n\tADD CONSTRAINT " + devices + "_principal_fk\n\tFOREIGN KEY (principal) REFERENCES " + identityUsers + "(id) ON DELETE CASCADE;\n")
 
 	return body.String(), nil
 }

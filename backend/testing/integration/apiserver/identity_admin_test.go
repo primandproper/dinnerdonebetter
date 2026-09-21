@@ -1,16 +1,14 @@
 package integration
 
 import (
-	"net/http"
 	"testing"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
 	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
-	identitysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
-	webhookssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/webhooks"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/services/webhooks/grpc/converters"
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
+
+	"github.com/primandproper/platform-go/v14/identity/identitypb"
+	webhookspb "github.com/primandproper/platform-go/v14/webhooks/webhookspb"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -29,18 +27,22 @@ func TestAdmin_BanningUsers(T *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, status)
 
-		newStatus := identity.BannedUserAccountStatus.String()
-
-		_, err = adminClient.AdminUpdateUserStatus(ctx, &identitysvc.AdminUpdateUserStatusRequest{
-			TargetUserId: createdUser.ID,
-			NewStatus:    newStatus,
-			Reason:       t.Name(),
+		_, err = adminClient.IdentityService().UpdateUserAccountStatus(ctx, &identitypb.UpdateUserAccountStatusRequest{
+			UserId:      createdUser.ID,
+			Status:      identitypb.AccountStatus_ACCOUNT_STATUS_BANNED,
+			Explanation: t.Name(),
 		})
 		require.NoError(t, err)
 
-		status, err = testClient.GetAuthStatus(ctx, &authsvc.GetAuthStatusRequest{})
+		// A ban takes effect on the next request, on every surface at once: the read every
+		// authenticated request makes refuses a status that does not admit signing in, so
+		// this session is not merely marked — it stops resolving.
+		_, err = testClient.GetAuthStatus(ctx, &authsvc.GetAuthStatusRequest{})
+		require.Error(t, err)
+
+		banned, err := adminClient.IdentityService().GetUser(ctx, &identitypb.GetUserRequest{UserId: createdUser.ID})
 		require.NoError(t, err)
-		assert.Equal(t, status.AccountStatus, newStatus)
+		assert.Equal(t, identitypb.AccountStatus_ACCOUNT_STATUS_BANNED, banned.GetUser().GetAccountStatus())
 	})
 
 	T.Run("fails for non-admin user", func(t *testing.T) {
@@ -53,10 +55,10 @@ func TestAdmin_BanningUsers(T *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, status)
 
-		_, err = testClient.AdminUpdateUserStatus(ctx, &identitysvc.AdminUpdateUserStatusRequest{
-			TargetUserId: createdUser.ID,
-			NewStatus:    identity.BannedUserAccountStatus.String(),
-			Reason:       t.Name(),
+		_, err = testClient.IdentityService().UpdateUserAccountStatus(ctx, &identitypb.UpdateUserAccountStatusRequest{
+			UserId:      createdUser.ID,
+			Status:      identitypb.AccountStatus_ACCOUNT_STATUS_BANNED,
+			Explanation: t.Name(),
 		})
 		require.Error(t, err)
 	})
@@ -65,10 +67,10 @@ func TestAdmin_BanningUsers(T *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
-		_, err := adminClient.AdminUpdateUserStatus(ctx, &identitysvc.AdminUpdateUserStatusRequest{
-			TargetUserId: nonexistentID,
-			NewStatus:    identity.BannedUserAccountStatus.String(),
-			Reason:       t.Name(),
+		_, err := adminClient.IdentityService().UpdateUserAccountStatus(ctx, &identitypb.UpdateUserAccountStatusRequest{
+			UserId:      nonexistentID,
+			Status:      identitypb.AccountStatus_ACCOUNT_STATUS_BANNED,
+			Explanation: t.Name(),
 		})
 		require.Error(t, err)
 	})
@@ -90,9 +92,9 @@ func TestAdmin_UserImpersonation(T *testing.T) {
 
 		impersonatedCtx := client.ImpersonateUseAndAccountContext(ctx, user.ID, account.Result.Id)
 
-		t.Logf("impersonating user %s and account %s to get webhook %s", user.ID, account.Result.Id, webhook.ID)
+		t.Logf("impersonating user %s and account %s to get webhook %s", user.ID, account.Result.Id, webhook.GetId())
 
-		retrievedWebhook, err := adminClient.GetWebhook(impersonatedCtx, &webhookssvc.GetWebhookRequest{WebhookId: webhook.ID})
+		retrievedWebhook, err := adminClient.WebhooksService().GetEndpoint(impersonatedCtx, &webhookspb.GetEndpointRequest{EndpointId: webhook.GetId()})
 		require.NoError(t, err)
 		assert.NotNil(t, retrievedWebhook)
 	})
@@ -104,20 +106,18 @@ func TestAdmin_UserImpersonation(T *testing.T) {
 		user, testClient := createUserAndClientForTest(t)
 		_, testClient2 := createUserAndClientForTest(t)
 
-		exampleWebhookInput := &webhooks.WebhookCreationRequestInput{
-			ContentType: "application/json",
-			Method:      http.MethodPost,
-			Name:        t.Name(),
-			URL:         "https://192.0.2.1/webhook",
-			Events:      []string{webhooks.WebhookCreatedServiceEventType},
-		}
-
-		input := converters.ConvertWebhookCreationRequestInputToGRPCWebhookCreationRequestInput(exampleWebhookInput)
-
-		createdWebhook, err := testClient.CreateWebhook(ctx, &webhookssvc.CreateWebhookRequest{Input: input})
+		createdWebhook, err := testClient.WebhooksService().SaveEndpoint(ctx, &webhookspb.SaveEndpointRequest{
+			Endpoint: &webhookspb.WebhookEndpointInput{
+				ContentType: "application/json",
+				Name:        t.Name(),
+				Url:         "https://192.0.2.1/webhook",
+				EventTypes:  []string{webhooks.WebhookCreatedServiceEventType},
+			},
+			SigningKeys: signingSecretForTest(),
+		})
 		require.NoError(t, err)
 
-		retrievedWebhook, err := testClient.GetWebhook(ctx, &webhookssvc.GetWebhookRequest{WebhookId: createdWebhook.Created.Id})
+		retrievedWebhook, err := testClient.WebhooksService().GetEndpoint(ctx, &webhookspb.GetEndpointRequest{EndpointId: createdWebhook.GetResult().GetId()})
 		require.NoError(t, err)
 		require.NotNil(t, retrievedWebhook)
 
@@ -127,9 +127,9 @@ func TestAdmin_UserImpersonation(T *testing.T) {
 
 		impersonatedCtx := client.ImpersonateUseAndAccountContext(ctx, user.ID, account.Result.Id)
 
-		t.Logf("impersonating user %s and account %s to get webhook %s", user.ID, account.Result.Id, retrievedWebhook.Result.Id)
+		t.Logf("impersonating user %s and account %s to get webhook %s", user.ID, account.Result.Id, retrievedWebhook.GetResult().GetId())
 
-		webhook, err := testClient2.GetWebhook(impersonatedCtx, &webhookssvc.GetWebhookRequest{WebhookId: retrievedWebhook.Result.Id})
+		webhook, err := testClient2.WebhooksService().GetEndpoint(impersonatedCtx, &webhookspb.GetEndpointRequest{EndpointId: retrievedWebhook.GetResult().GetId()})
 		require.Error(t, err)
 		assert.Nil(t, webhook)
 	})

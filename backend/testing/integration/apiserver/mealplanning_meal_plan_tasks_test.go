@@ -8,11 +8,12 @@ import (
 	mpconverters "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	authgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
-	identitygrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
 	mealplanninggrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 	converters "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/grpc/converters"
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
+
+	"github.com/primandproper/platform-go/v14/identity/identitypb"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -86,25 +87,16 @@ func createFinalizedMealPlanWithTasks(t *testing.T) (string, client.Client) {
 	for range 2 {
 		u, c := createUserAndClientForTest(t)
 
-		invitation, err := accountAdminUserClient.CreateAccountInvitation(ctx, &identitygrpc.CreateAccountInvitationRequest{
-			Input: &identitygrpc.AccountInvitationCreationRequestInput{
-				Note:    t.Name(),
-				ToName:  t.Name(),
-				ToEmail: u.EmailAddress,
-			},
+		invitation := inviteForTest(t, selfIDForTest(t, accountAdminUserClient), relevantAccountID, u.EmailAddress)
+
+		_, err := c.IdentityService().AcceptInvitation(ctx, &identitypb.AcceptInvitationRequest{
+			InvitationId: invitation.ID,
+			Token:        invitation.Token,
+			StatusNote:   t.Name(),
 		})
 		require.NoError(t, err)
 
-		_, err = c.AcceptAccountInvitation(ctx, &identitygrpc.AcceptAccountInvitationRequest{
-			AccountInvitationId: invitation.Created.Id,
-			Input: &identitygrpc.AccountInvitationUpdateRequestInput{
-				Token: invitation.Created.Token,
-				Note:  t.Name(),
-			},
-		})
-		require.NoError(t, err)
-
-		_, err = c.SetDefaultAccount(ctx, &identitygrpc.SetDefaultAccountRequest{AccountId: relevantAccountID})
+		_, err = c.IdentityService().SetDefaultAccount(ctx, &identitypb.SetDefaultAccountRequest{AccountId: relevantAccountID})
 		require.NoError(t, err)
 
 		tokenResponse, err := c.LoginForToken(ctx, &authgrpc.LoginForTokenRequest{Input: &authgrpc.UserLoginInput{

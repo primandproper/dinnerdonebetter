@@ -5,23 +5,49 @@ import (
 	"testing"
 	"time"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
-	identityconverters "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/converters"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
-	identitysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
-	webhookssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/webhooks"
-	identitygrpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/grpc/converters"
+
+	"github.com/primandproper/platform-go/v14/identity/identitypb"
+	webhookspb "github.com/primandproper/platform-go/v14/webhooks/webhookspb"
+	"github.com/primandproper/primitives-go/v2/pointer"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 const (
 	defaultNumberOfAccountsAssociatedWithUsers = 1
 )
+
+// newAccountName is a name for an account a test mints.
+//
+// Account names are not unique — two unrelated households may both be called "Acme", and
+// enforcing otherwise would make registration fail for a reason nobody can act on — so
+// this exists for legibility in a failure rather than for uniqueness.
+func newAccountName(t *testing.T) string {
+	t.Helper()
+
+	return fmt.Sprintf("account_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano)))
+}
+
+// createAccountForTest mints an account owned by the caller, with them as its administrator.
+func createAccountForTest(t *testing.T, c interface {
+	IdentityService() identitypb.IdentityServiceClient
+},
+) *identitypb.Account {
+	t.Helper()
+	ctx := t.Context()
+
+	created, err := c.IdentityService().CreateAccount(ctx, &identitypb.CreateAccountRequest{
+		Name:       newAccountName(t),
+		OwnerRoles: []string{authorization.AccountAdminRoleName},
+	})
+	require.NoError(t, err)
+	require.NotNil(t, created.GetAccount())
+
+	return created.GetAccount()
+}
 
 func TestAccounts_Creating(T *testing.T) {
 	T.Parallel()
@@ -32,15 +58,10 @@ func TestAccounts_Creating(T *testing.T) {
 
 		_, testClient := createUserAndClientForTest(t)
 
-		exampleAccount := fakes.BuildFakeAccountCreationRequestInput()
-		exampleAccountInput := identitygrpcconverters.ConvertAccountCreationRequestInputToGRPCAccountCreationRequestInput(exampleAccount)
+		createdAccount := createAccountForTest(t, testClient)
 
-		createdAccount, err := testClient.CreateAccount(ctx, &identitysvc.CreateAccountRequest{Input: exampleAccountInput})
-		require.NoError(t, err)
-		assert.NotNil(t, createdAccount)
-
-		AssertAuditLogContainsFuzzy(t, ctx, testClient, createdAccount.Created.Id, 10, []*ExpectedAuditEntry{
-			{EventType: "created", ResourceType: "accounts", RelevantID: createdAccount.Created.Id},
+		AssertAuditLogContainsFuzzyForResource(t, ctx, "accounts", createdAccount.GetId(), 10, []*ExpectedAuditEntry{
+			{EventType: "created", ResourceType: "accounts", RelevantID: createdAccount.GetId()},
 		})
 	})
 
@@ -50,28 +71,26 @@ func TestAccounts_Creating(T *testing.T) {
 
 		testClient := buildUnauthenticatedGRPCClientForTest(t)
 
-		exampleAccount := fakes.BuildFakeAccountCreationRequestInput()
-		exampleAccountInput := identitygrpcconverters.ConvertAccountCreationRequestInputToGRPCAccountCreationRequestInput(exampleAccount)
-
-		createdAccount, err := testClient.CreateAccount(ctx, &identitysvc.CreateAccountRequest{Input: exampleAccountInput})
-		require.Error(t, err)
-		assert.Nil(t, createdAccount)
+		_, err := testClient.IdentityService().CreateAccount(ctx, &identitypb.CreateAccountRequest{
+			Name:       newAccountName(t),
+			OwnerRoles: []string{authorization.AccountAdminRoleName},
+		})
+		assert.Error(t, err)
 	})
 
-	T.Run("with invalid input", func(t *testing.T) {
+	// The owner's roles are required: a membership with none is a member who may do
+	// nothing in the account they own, and the store refuses it rather than writing a row
+	// whose emptiness surfaces later as an authorization bug.
+	T.Run("refuses an owner with no roles", func(t *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
 		_, testClient := createUserAndClientForTest(t)
 
-		exampleAccount := fakes.BuildFakeAccountCreationRequestInput()
-		exampleAccountInput := identitygrpcconverters.ConvertAccountCreationRequestInputToGRPCAccountCreationRequestInput(exampleAccount)
-		// not allowed
-		exampleAccountInput.Name = ""
-
-		createdAccount, err := testClient.CreateAccount(ctx, &identitysvc.CreateAccountRequest{Input: exampleAccountInput})
-		require.Error(t, err)
-		assert.Nil(t, createdAccount)
+		_, err := testClient.IdentityService().CreateAccount(ctx, &identitypb.CreateAccountRequest{
+			Name: newAccountName(t),
+		})
+		assert.Error(t, err)
 	})
 }
 
@@ -82,24 +101,19 @@ func TestAccounts_Listing(T *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
-		_, testClient := createUserAndClientForTest(t)
+		user, testClient := createUserAndClientForTest(t)
 
-		var createdAccounts []*identitysvc.Account
+		var createdAccounts []*identitypb.Account
 		for range 5 {
-			exampleAccount := fakes.BuildFakeAccountCreationRequestInput()
-			exampleAccountInput := identitygrpcconverters.ConvertAccountCreationRequestInputToGRPCAccountCreationRequestInput(exampleAccount)
-
-			createdAccount, err := testClient.CreateAccount(ctx, &identitysvc.CreateAccountRequest{Input: exampleAccountInput})
-			require.NoError(t, err)
-			require.NotNil(t, createdAccount)
-
-			createdAccounts = append(createdAccounts, createdAccount.Created)
+			createdAccounts = append(createdAccounts, createAccountForTest(t, testClient))
 		}
 
-		accounts, err := testClient.GetAccounts(ctx, &identitysvc.GetAccountsRequest{})
+		accounts, err := testClient.IdentityService().ListAccountsForUser(ctx, &identitypb.ListAccountsForUserRequest{
+			UserId: user.ID,
+		})
 		require.NoError(t, err)
 		assert.NotNil(t, accounts)
-		assert.Equal(t, len(accounts.Results), len(createdAccounts)+defaultNumberOfAccountsAssociatedWithUsers)
+		assert.Len(t, accounts.GetResults(), len(createdAccounts)+defaultNumberOfAccountsAssociatedWithUsers)
 	})
 
 	T.Run("requires auth", func(t *testing.T) {
@@ -107,10 +121,28 @@ func TestAccounts_Listing(T *testing.T) {
 		ctx := t.Context()
 
 		// create a user so that the account actually exists
-		_, _ = createUserAndClientForTest(t)
+		user, _ := createUserAndClientForTest(t)
 		testClient := buildUnauthenticatedGRPCClientForTest(t)
 
-		_, err := testClient.GetAccounts(ctx, &identitysvc.GetAccountsRequest{})
+		_, err := testClient.IdentityService().ListAccountsForUser(ctx, &identitypb.ListAccountsForUserRequest{
+			UserId: user.ID,
+		})
+		assert.Error(t, err)
+	})
+
+	// One member cannot enumerate another's households. The permission is on the method
+	// and the authorizer decides whose rows an allowed call may touch, which for a
+	// directory read is the caller and the accounts they are in.
+	T.Run("one user cannot list another's accounts", func(t *testing.T) {
+		t.Parallel()
+		ctx := t.Context()
+
+		subject, _ := createUserAndClientForTest(t)
+		_, otherClient := createUserAndClientForTest(t)
+
+		_, err := otherClient.IdentityService().ListAccountsForUser(ctx, &identitypb.ListAccountsForUserRequest{
+			UserId: subject.ID,
+		})
 		assert.Error(t, err)
 	})
 }
@@ -124,20 +156,17 @@ func TestAccounts_Reading(T *testing.T) {
 
 		_, testClient := createUserAndClientForTest(t)
 
-		exampleAccount := fakes.BuildFakeAccountCreationRequestInput()
-		exampleAccountInput := identitygrpcconverters.ConvertAccountCreationRequestInputToGRPCAccountCreationRequestInput(exampleAccount)
+		createdAccount := createAccountForTest(t, testClient)
 
-		createdAccount, err := testClient.CreateAccount(ctx, &identitysvc.CreateAccountRequest{Input: exampleAccountInput})
+		retrievedAccount, err := testClient.IdentityService().GetAccount(ctx, &identitypb.GetAccountRequest{
+			AccountId: createdAccount.GetId(),
+		})
 		require.NoError(t, err)
-		require.NotNil(t, createdAccount)
+		require.NotNil(t, retrievedAccount.GetAccount())
 
-		retrievedAccount, err := testClient.GetAccount(ctx, &identitysvc.GetAccountRequest{AccountId: createdAccount.Created.Id})
-		require.NoError(t, err)
-		assert.NotNil(t, createdAccount)
-
-		converted := identitygrpcconverters.ConvertGRPCAccountToAccount(retrievedAccount.Result)
-
-		assertRoughEquality(t, identitygrpcconverters.ConvertGRPCAccountToAccount(createdAccount.Created), converted, append(defaultIgnoredFields(), "Members")...)
+		assert.Equal(t, createdAccount.GetId(), retrievedAccount.GetAccount().GetId())
+		assert.Equal(t, createdAccount.GetName(), retrievedAccount.GetAccount().GetName())
+		assert.Equal(t, createdAccount.GetOwnerUserId(), retrievedAccount.GetAccount().GetOwnerUserId())
 	})
 
 	T.Run("requires auth", func(t *testing.T) {
@@ -152,9 +181,9 @@ func TestAccounts_Reading(T *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, account)
 
-		testClient = buildUnauthenticatedGRPCClientForTest(t)
+		unauthenticated := buildUnauthenticatedGRPCClientForTest(t)
 
-		_, err = testClient.GetAccount(ctx, &identitysvc.GetAccountRequest{AccountId: account.Result.Id})
+		_, err = unauthenticated.IdentityService().GetAccount(ctx, &identitypb.GetAccountRequest{AccountId: account.Result.GetId()})
 		assert.Error(t, err)
 	})
 
@@ -164,7 +193,7 @@ func TestAccounts_Reading(T *testing.T) {
 
 		_, testClient := createUserAndClientForTest(t)
 
-		retrievedAccount, err := testClient.GetAccount(ctx, &identitysvc.GetAccountRequest{AccountId: nonexistentID})
+		retrievedAccount, err := testClient.IdentityService().GetAccount(ctx, &identitypb.GetAccountRequest{AccountId: nonexistentID})
 		require.Error(t, err)
 		assert.Nil(t, retrievedAccount)
 	})
@@ -179,35 +208,68 @@ func TestAccounts_Updating(T *testing.T) {
 
 		_, testClient := createUserAndClientForTest(t)
 
-		exampleAccount := fakes.BuildFakeAccountCreationRequestInput()
-		exampleAccountInput := identitygrpcconverters.ConvertAccountCreationRequestInputToGRPCAccountCreationRequestInput(exampleAccount)
+		createdAccount := createAccountForTest(t, testClient)
 
-		createdAccount, err := testClient.CreateAccount(ctx, &identitysvc.CreateAccountRequest{Input: exampleAccountInput})
-		require.NoError(t, err)
-		require.NotNil(t, createdAccount)
-
-		converted := identitygrpcconverters.ConvertGRPCAccountToAccount(createdAccount.Created)
-		converted.Name = "Updated name"
-
-		_, err = testClient.SetDefaultAccount(ctx, &identitysvc.SetDefaultAccountRequest{AccountId: converted.ID})
-		require.NoError(t, err)
-
-		updateInput := identityconverters.ConvertAccountToAccountUpdateRequestInput(converted)
-		_, err = testClient.UpdateAccount(ctx, &identitysvc.UpdateAccountRequest{
-			AccountId: converted.ID,
-			Input:     identitygrpcconverters.ConvertAccountUpdateRequestInputToGRPCAccountUpdateRequestInput(updateInput),
+		_, err := testClient.IdentityService().SetDefaultAccount(ctx, &identitypb.SetDefaultAccountRequest{
+			AccountId: createdAccount.GetId(),
 		})
 		require.NoError(t, err)
 
-		updatedClient, err := testClient.GetAccount(ctx, &identitysvc.GetAccountRequest{AccountId: converted.ID})
-		require.NoError(t, err)
-		assert.NotNil(t, updatedClient)
-		assert.Equal(t, converted.Name, updatedClient.Result.Name)
-
-		AssertAuditLogContainsFuzzy(t, ctx, testClient, converted.ID, 10, []*ExpectedAuditEntry{
-			{EventType: "created", ResourceType: "accounts", RelevantID: converted.ID},
-			{EventType: "updated", ResourceType: "accounts", RelevantID: converted.ID},
+		_, err = testClient.IdentityService().UpdateAccount(ctx, &identitypb.UpdateAccountRequest{
+			AccountId: createdAccount.GetId(),
+			Input:     &identitypb.AccountUpdateInput{Name: pointer.To("Updated name")},
 		})
+		require.NoError(t, err)
+
+		updated, err := testClient.IdentityService().GetAccount(ctx, &identitypb.GetAccountRequest{AccountId: createdAccount.GetId()})
+		require.NoError(t, err)
+		assert.Equal(t, "Updated name", updated.GetAccount().GetName())
+
+		AssertAuditLogContainsFuzzy(t, ctx, testClient, createdAccount.GetId(), 10, []*ExpectedAuditEntry{
+			{EventType: "created", ResourceType: "accounts", RelevantID: createdAccount.GetId()},
+			{EventType: "updated", ResourceType: "accounts", RelevantID: createdAccount.GetId()},
+		})
+	})
+
+	// Neither the billing state nor the owner is on the update, which is what keeps a
+	// read-modify-write over a name from losing whatever a processor webhook or an
+	// ownership transfer did in between.
+	T.Run("leaves unnamed fields alone", func(t *testing.T) {
+		t.Parallel()
+		ctx := t.Context()
+
+		_, testClient := createUserAndClientForTest(t)
+
+		createdAccount := createAccountForTest(t, testClient)
+
+		_, err := testClient.IdentityService().UpdateAccount(ctx, &identitypb.UpdateAccountRequest{
+			AccountId: createdAccount.GetId(),
+			Input:     &identitypb.AccountUpdateInput{TimeZone: pointer.To("America/Chicago")},
+		})
+		require.NoError(t, err)
+
+		updated, err := testClient.IdentityService().GetAccount(ctx, &identitypb.GetAccountRequest{AccountId: createdAccount.GetId()})
+		require.NoError(t, err)
+		assert.Equal(t, "America/Chicago", updated.GetAccount().GetTimeZone())
+		assert.Equal(t, createdAccount.GetName(), updated.GetAccount().GetName())
+		assert.Equal(t, createdAccount.GetOwnerUserId(), updated.GetAccount().GetOwnerUserId())
+	})
+
+	// A zone name that does not load renders every date on the account wrong, forever,
+	// without anything saying so. Failing the write is what keeps that a typo.
+	T.Run("refuses a time zone that does not load", func(t *testing.T) {
+		t.Parallel()
+		ctx := t.Context()
+
+		_, testClient := createUserAndClientForTest(t)
+
+		createdAccount := createAccountForTest(t, testClient)
+
+		_, err := testClient.IdentityService().UpdateAccount(ctx, &identitypb.UpdateAccountRequest{
+			AccountId: createdAccount.GetId(),
+			Input:     &identitypb.AccountUpdateInput{TimeZone: pointer.To("America/Chicagoo")},
+		})
+		assert.Error(t, err)
 	})
 
 	T.Run("requires auth", func(t *testing.T) {
@@ -217,24 +279,17 @@ func TestAccounts_Updating(T *testing.T) {
 		// create a user so that the account actually exists
 		_, testClient := createUserAndClientForTest(t)
 
-		// fetch the account
 		account, err := testClient.GetActiveAccount(ctx, &authsvc.GetActiveAccountRequest{})
 		require.NoError(t, err)
 		require.NotNil(t, account)
 
-		testClient = buildUnauthenticatedGRPCClientForTest(t)
+		unauthenticated := buildUnauthenticatedGRPCClientForTest(t)
 
-		_, err = testClient.UpdateAccount(ctx, &identitysvc.UpdateAccountRequest{AccountId: account.Result.Id})
+		_, err = unauthenticated.IdentityService().UpdateAccount(ctx, &identitypb.UpdateAccountRequest{
+			AccountId: account.Result.GetId(),
+			Input:     &identitypb.AccountUpdateInput{Name: pointer.To("nope")},
+		})
 		assert.Error(t, err)
-	})
-
-	T.Run("with invalid input", func(t *testing.T) {
-		t.Parallel()
-
-		/*
-			there's no way to provide invalid input to this method, but
-			I want to make it explicit that tests should be written the moment that changes
-		*/
 	})
 
 	T.Run("for nonexistent account", func(t *testing.T) {
@@ -243,21 +298,11 @@ func TestAccounts_Updating(T *testing.T) {
 
 		_, testClient := createUserAndClientForTest(t)
 
-		converted := fakes.BuildFakeAccount()
-		updateInput := identityconverters.ConvertAccountToAccountUpdateRequestInput(converted)
-		// M25: UpdateAccount only ever mutates the caller's active account; a request account ID that
-		// doesn't match the active account (here, a nonexistent one) is now rejected with InvalidArgument
-		// rather than silently updating the caller's own account.
-		_, err := testClient.UpdateAccount(ctx, &identitysvc.UpdateAccountRequest{
+		_, err := testClient.IdentityService().UpdateAccount(ctx, &identitypb.UpdateAccountRequest{
 			AccountId: nonexistentID,
-			Input:     identitygrpcconverters.ConvertAccountUpdateRequestInputToGRPCAccountUpdateRequestInput(updateInput),
+			Input:     &identitypb.AccountUpdateInput{Name: pointer.To("nope")},
 		})
 		require.Error(t, err)
-		assert.Equal(t, codes.InvalidArgument, status.Code(err))
-
-		updatedClient, err := testClient.GetAccount(ctx, &identitysvc.GetAccountRequest{AccountId: converted.ID})
-		require.Error(t, err)
-		assert.Nil(t, updatedClient)
 	})
 }
 
@@ -270,19 +315,18 @@ func TestAccounts_Archiving(T *testing.T) {
 
 		_, testClient := createUserAndClientForTest(t)
 
-		exampleAccount := fakes.BuildFakeAccountCreationRequestInput()
-		exampleAccountInput := identitygrpcconverters.ConvertAccountCreationRequestInputToGRPCAccountCreationRequestInput(exampleAccount)
+		createdAccount := createAccountForTest(t, testClient)
 
-		createdAccount, err := testClient.CreateAccount(ctx, &identitysvc.CreateAccountRequest{Input: exampleAccountInput})
-		require.NoError(t, err)
-		require.NotNil(t, createdAccount)
-
-		_, err = testClient.ArchiveAccount(ctx, &identitysvc.ArchiveAccountRequest{AccountId: createdAccount.Created.Id})
+		_, err := testClient.IdentityService().ArchiveAccount(ctx, &identitypb.ArchiveAccountRequest{
+			AccountId: createdAccount.GetId(),
+		})
 		require.NoError(t, err)
 
-		AssertAuditLogContainsFuzzy(t, ctx, testClient, createdAccount.Created.Id, 10, []*ExpectedAuditEntry{
-			{EventType: "created", ResourceType: "accounts", RelevantID: createdAccount.Created.Id},
-			{EventType: "archived", ResourceType: "accounts", RelevantID: createdAccount.Created.Id},
+		// By resource rather than by chain: the account just created is one the caller is
+		// not inside, so its entries are not on any chain this session can read.
+		AssertAuditLogContainsFuzzyForResource(t, ctx, "accounts", createdAccount.GetId(), 10, []*ExpectedAuditEntry{
+			{EventType: "created", ResourceType: "accounts", RelevantID: createdAccount.GetId()},
+			{EventType: "archived", ResourceType: "accounts", RelevantID: createdAccount.GetId()},
 		})
 	})
 
@@ -293,14 +337,15 @@ func TestAccounts_Archiving(T *testing.T) {
 		// create a user so that the account actually exists
 		_, testClient := createUserAndClientForTest(t)
 
-		// fetch the account
 		account, err := testClient.GetActiveAccount(ctx, &authsvc.GetActiveAccountRequest{})
 		require.NoError(t, err)
 		require.NotNil(t, account)
 
-		testClient = buildUnauthenticatedGRPCClientForTest(t)
+		unauthenticated := buildUnauthenticatedGRPCClientForTest(t)
 
-		_, err = testClient.ArchiveAccount(ctx, &identitysvc.ArchiveAccountRequest{AccountId: account.Result.Id})
+		_, err = unauthenticated.IdentityService().ArchiveAccount(ctx, &identitypb.ArchiveAccountRequest{
+			AccountId: account.Result.GetId(),
+		})
 		assert.Error(t, err)
 	})
 
@@ -308,7 +353,7 @@ func TestAccounts_Archiving(T *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
-		_, err := adminClient.ArchiveAccount(ctx, &identitysvc.ArchiveAccountRequest{AccountId: nonexistentID})
+		_, err := adminClient.IdentityService().ArchiveAccount(ctx, &identitypb.ArchiveAccountRequest{AccountId: nonexistentID})
 		assert.Error(t, err)
 	})
 }
@@ -322,61 +367,43 @@ func TestAccounts_Inviting(T *testing.T) {
 
 		// create the inviting user and get the account ID to send invites for
 		_, testClient := createUserAndClientForTest(t)
-		accountRes, err := testClient.GetActiveAccount(ctx, &authsvc.GetActiveAccountRequest{})
-		require.NoError(t, err)
-		accountID := accountRes.Result.Id
+		accountID := getAccountIDForTest(t, testClient)
 
 		// create a webhook (to demonstrate access with later)
 		createdWebhook := createWebhookForTest(t, testClient)
 
 		// create a user to invite
-		inviteeEmailAddress := fmt.Sprintf("some_fake_email%d@testing.com", time.Now().UnixMicro())
-		input := &identity.UserRegistrationInput{
-			Birthday:              new(time.Now()),
-			EmailAddress:          inviteeEmailAddress,
-			FirstName:             fmt.Sprintf("test_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
-			AccountName:           fmt.Sprintf("test_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
-			LastName:              fmt.Sprintf("test_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
-			Password:              fmt.Sprintf("test_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
-			Username:              fmt.Sprintf("test_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
-			AcceptedPrivacyPolicy: true,
-			AcceptedTOS:           true,
-		}
+		input := buildUserRegistrationInputForTest(t)
 		invitee, inviteeClient := createUserAndClientForTestWithRegistrationInput(t, input)
 
 		// create the invitation for the user
-		invitation, err := testClient.CreateAccountInvitation(ctx, &identitysvc.CreateAccountInvitationRequest{
-			Input: &identitysvc.AccountInvitationCreationRequestInput{
-				Note:    t.Name(),
-				ToName:  t.Name(),
-				ToEmail: inviteeEmailAddress,
-			},
-		})
-		require.NoError(t, err)
+		invitation := inviteForTest(t, selfIDForTest(t, testClient), accountID, input.EmailAddress)
 
 		AssertAuditLogContainsFuzzy(t, ctx, testClient, accountID, 10, []*ExpectedAuditEntry{
-			{EventType: "created", ResourceType: "account_invitations", RelevantID: invitation.Created.Id},
+			{EventType: "created", ResourceType: "account_invitations", RelevantID: invitation.ID},
 		})
 
 		// verify that we can retrieve the invitation we just created
-		sentInvitations, err := testClient.GetSentAccountInvitations(ctx, &identitysvc.GetSentAccountInvitationsRequest{})
+		sentInvitations, err := testClient.IdentityService().ListInvitationsFromUser(ctx, &identitypb.ListInvitationsFromUserRequest{})
 		require.NoError(t, err)
 		require.NotNil(t, sentInvitations)
-		assert.NotEmpty(t, sentInvitations.Results)
+		assert.NotEmpty(t, sentInvitations.GetResults())
+
+		// Proven first: listing what was sent to an address is gated on having proven it,
+		// because anybody may claim any address at registration.
+		verifyEmailAddressForTest(t, invitee.ID)
 
 		// verify the invitee can see the invitation as received
-		invitations, err := inviteeClient.GetReceivedAccountInvitations(ctx, &identitysvc.GetReceivedAccountInvitationsRequest{})
+		invitations, err := inviteeClient.IdentityService().ListInvitationsForEmailAddress(ctx, &identitypb.ListInvitationsForEmailAddressRequest{})
 		require.NoError(t, err)
 		require.NotNil(t, invitations)
-		assert.NotEmpty(t, invitations.Results)
+		assert.NotEmpty(t, invitations.GetResults())
 
 		// accept the invitation
-		_, err = inviteeClient.AcceptAccountInvitation(ctx, &identitysvc.AcceptAccountInvitationRequest{
-			AccountInvitationId: invitation.Created.Id,
-			Input: &identitysvc.AccountInvitationUpdateRequestInput{
-				Token: invitation.Created.Token,
-				Note:  t.Name(),
-			},
+		_, err = inviteeClient.IdentityService().AcceptInvitation(ctx, &identitypb.AcceptInvitationRequest{
+			InvitationId: invitation.ID,
+			Token:        invitation.Token,
+			StatusNote:   t.Name(),
 		})
 		require.NoError(t, err)
 
@@ -385,31 +412,33 @@ func TestAccounts_Inviting(T *testing.T) {
 		require.NoError(t, err)
 
 		// verify that we don't have any sent invitations because they've all been accepted
-		sentInvitations, err = testClient.GetSentAccountInvitations(ctx, nil)
+		sentInvitations, err = testClient.IdentityService().ListInvitationsFromUser(ctx, &identitypb.ListInvitationsFromUserRequest{})
 		require.NoError(t, err)
 		require.NotNil(t, sentInvitations)
-		assert.Empty(t, sentInvitations.Results)
+		assert.Empty(t, sentInvitations.GetResults())
 
 		// verify that the invited user can see the account in their accounts list
-		accounts, err := inviteeClient.GetAccounts(ctx, &identitysvc.GetAccountsRequest{})
+		accounts, err := inviteeClient.IdentityService().ListAccountsForUser(ctx, &identitypb.ListAccountsForUserRequest{
+			UserId: invitee.ID,
+		})
 		require.NoError(t, err)
 		require.NotNil(t, accounts)
-		assert.Len(t, accounts.Results, 2)
+		assert.Len(t, accounts.GetResults(), 2)
 
 		var found bool
-		for _, account := range accounts.Results {
+		for _, account := range accounts.GetResults() {
 			if !found {
-				found = account.Id == accountID
+				found = account.GetId() == accountID
 			}
 		}
 		require.True(t, found)
 
 		// change to the new account
-		_, err = inviteeClient.SetDefaultAccount(ctx, &identitysvc.SetDefaultAccountRequest{AccountId: accountID})
+		_, err = inviteeClient.IdentityService().SetDefaultAccount(ctx, &identitypb.SetDefaultAccountRequest{AccountId: accountID})
 		require.NoError(t, err)
 
 		// validate we can see the webhook created before our user existed
-		webhook, err := inviteeClient.GetWebhook(ctx, &webhookssvc.GetWebhookRequest{WebhookId: createdWebhook.ID})
+		webhook, err := inviteeClient.WebhooksService().GetEndpoint(ctx, &webhookspb.GetEndpointRequest{EndpointId: createdWebhook.GetId()})
 		require.NoError(t, err)
 		require.NotNil(t, webhook)
 	})
@@ -418,83 +447,61 @@ func TestAccounts_Inviting(T *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
-		// create the inviting user and get the account MealPlanTaskID to send invites for
+		// create the inviting user and get the account ID to send invites for
 		_, testClient := createUserAndClientForTest(t)
-		accountRes, err := testClient.GetActiveAccount(ctx, &authsvc.GetActiveAccountRequest{})
-		require.NoError(t, err)
-		accountID := accountRes.Result.Id
+		accountID := getAccountIDForTest(t, testClient)
 
 		// create a webhook (to demonstrate access with later)
 		createdWebhook := createWebhookForTest(t, testClient)
 
-		// create the invitation for the user
-		invitation, err := testClient.CreateAccountInvitation(ctx, &identitysvc.CreateAccountInvitationRequest{
-			Input: &identitysvc.AccountInvitationCreationRequestInput{
-				Note:   t.Name(),
-				ToName: t.Name(),
-			},
-		})
-		require.NoError(t, err)
+		// the registrant, and the invitation addressed to them
+		input := buildUserRegistrationInputForTest(t)
+
+		invitation := inviteForTest(t, selfIDForTest(t, testClient), accountID, input.EmailAddress)
 
 		AssertAuditLogContainsFuzzy(t, ctx, testClient, accountID, 10, []*ExpectedAuditEntry{
-			{EventType: "created", ResourceType: "account_invitations", RelevantID: invitation.Created.Id},
+			{EventType: "created", ResourceType: "account_invitations", RelevantID: invitation.ID},
 		})
 
 		// verify that we can retrieve the invitation we just created
-		sentInvitations, err := testClient.GetSentAccountInvitations(ctx, &identitysvc.GetSentAccountInvitationsRequest{})
+		sentInvitations, err := testClient.IdentityService().ListInvitationsFromUser(ctx, &identitypb.ListInvitationsFromUserRequest{})
 		require.NoError(t, err)
 		require.NotNil(t, sentInvitations)
-		assert.NotEmpty(t, sentInvitations.Results)
+		assert.NotEmpty(t, sentInvitations.GetResults())
 
-		// create a user to invite
-		inviteeEmailAddress := fmt.Sprintf("some_fake_email%d@testing.com", time.Now().UnixMicro())
-		input := &identity.UserRegistrationInput{
-			Birthday:              new(time.Now()),
-			EmailAddress:          inviteeEmailAddress,
-			FirstName:             fmt.Sprintf("test_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
-			AccountName:           fmt.Sprintf("test_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
-			LastName:              fmt.Sprintf("test_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
-			Password:              fmt.Sprintf("test_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
-			Username:              fmt.Sprintf("test_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
-			InvitationID:          invitation.Created.Id,
-			InvitationToken:       invitation.Created.Token,
-			AcceptedPrivacyPolicy: true,
-			AcceptedTOS:           true,
-		}
-		_, inviteeClient := createUserAndClientForTestWithRegistrationInput(t, input)
+		// registering against the link answers it in the same transaction that makes the
+		// user, so there is no second call to accept it
+		input.InvitationID = invitation.ID
+		input.InvitationToken = invitation.Token
+		invitee, inviteeClient := createUserAndClientForTestWithRegistrationInput(t, input)
 
-		// verify the invitee can see the invitation as received
-		invitations, err := inviteeClient.GetReceivedAccountInvitations(ctx, &identitysvc.GetReceivedAccountInvitationsRequest{})
+		// Proven first: listing what was sent to an address is gated on having proven it.
+		verifyEmailAddressForTest(t, invitee.ID)
+
+		// nothing outstanding for the invitee, because the registration answered it
+		invitations, err := inviteeClient.IdentityService().ListInvitationsForEmailAddress(ctx, &identitypb.ListInvitationsForEmailAddressRequest{})
 		require.NoError(t, err)
 		require.NotNil(t, invitations)
-		assert.Empty(t, invitations.Results)
+		assert.Empty(t, invitations.GetResults())
 
-		// verify that we don't have any sent invitations because they've all been accepted
-		sentInvitations, err = testClient.GetSentAccountInvitations(ctx, &identitysvc.GetSentAccountInvitationsRequest{})
+		// and nothing outstanding for the sender either
+		sentInvitations, err = testClient.IdentityService().ListInvitationsFromUser(ctx, &identitypb.ListInvitationsFromUserRequest{})
 		require.NoError(t, err)
 		require.NotNil(t, sentInvitations)
-		assert.Empty(t, sentInvitations.Results)
+		assert.Empty(t, sentInvitations.GetResults())
 
-		// verify that the invited user can see the account in their accounts list
-		accounts, err := inviteeClient.GetAccounts(ctx, &identitysvc.GetAccountsRequest{})
+		// A registration by invitation joins the inviter's account rather than minting
+		// one of its own, so this is the only account the registrant holds.
+		accounts, err := inviteeClient.IdentityService().ListAccountsForUser(ctx, &identitypb.ListAccountsForUserRequest{
+			UserId: invitee.ID,
+		})
 		require.NoError(t, err)
 		require.NotNil(t, accounts)
-		assert.Len(t, accounts.Results, 2)
-
-		var found bool
-		for _, account := range accounts.Results {
-			if !found {
-				found = account.Id == accountID
-			}
-		}
-		require.True(t, found)
-
-		// change to the new account
-		_, err = inviteeClient.SetDefaultAccount(ctx, &identitysvc.SetDefaultAccountRequest{AccountId: accountID})
-		require.NoError(t, err)
+		require.Len(t, accounts.GetResults(), 1)
+		assert.Equal(t, accountID, accounts.GetResults()[0].GetId())
 
 		// validate we can see the webhook created before our user existed
-		webhook, err := inviteeClient.GetWebhook(ctx, &webhookssvc.GetWebhookRequest{WebhookId: createdWebhook.ID})
+		webhook, err := inviteeClient.WebhooksService().GetEndpoint(ctx, &webhookspb.GetEndpointRequest{EndpointId: createdWebhook.GetId()})
 		require.NoError(t, err)
 		require.NotNil(t, webhook)
 	})
@@ -503,80 +510,61 @@ func TestAccounts_Inviting(T *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
-		// create the inviting user and get the account MealPlanTaskID to send invites for
+		// create the inviting user
 		_, testClient := createUserAndClientForTest(t)
 
 		// create a webhook (to demonstrate access with later)
 		createdWebhook := createWebhookForTest(t, testClient)
 
 		// create a user to invite
-		inviteeEmailAddress := fmt.Sprintf("some_fake_email%d@testing.com", time.Now().UnixMicro())
-		input := &identity.UserRegistrationInput{
-			Birthday:              new(time.Now()),
-			EmailAddress:          inviteeEmailAddress,
-			FirstName:             fmt.Sprintf("test_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
-			AccountName:           fmt.Sprintf("test_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
-			LastName:              fmt.Sprintf("test_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
-			Password:              fmt.Sprintf("test_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
-			Username:              fmt.Sprintf("test_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
-			AcceptedPrivacyPolicy: true,
-			AcceptedTOS:           true,
-		}
-		_, inviteeClient := createUserAndClientForTestWithRegistrationInput(t, input)
+		input := buildUserRegistrationInputForTest(t)
+		invitee, inviteeClient := createUserAndClientForTestWithRegistrationInput(t, input)
 
 		// create the invitation for the user
-		invitation, err := testClient.CreateAccountInvitation(ctx, &identitysvc.CreateAccountInvitationRequest{
-			Input: &identitysvc.AccountInvitationCreationRequestInput{
-				Note:    t.Name(),
-				ToName:  t.Name(),
-				ToEmail: inviteeEmailAddress,
-			},
-		})
-		require.NoError(t, err)
+		invitation := inviteForTest(t, selfIDForTest(t, testClient), getAccountIDForTest(t, testClient), input.EmailAddress)
 
 		AssertAuditLogContainsFuzzy(t, ctx, testClient, getAccountIDForTest(t, testClient), 10, []*ExpectedAuditEntry{
-			{EventType: "created", ResourceType: "account_invitations", RelevantID: invitation.Created.Id},
+			{EventType: "created", ResourceType: "account_invitations", RelevantID: invitation.ID},
 		})
 
 		// verify that we can retrieve the invitation we just created
-		sentInvitations, err := testClient.GetSentAccountInvitations(ctx, &identitysvc.GetSentAccountInvitationsRequest{})
+		sentInvitations, err := testClient.IdentityService().ListInvitationsFromUser(ctx, &identitypb.ListInvitationsFromUserRequest{})
 		require.NoError(t, err)
 		require.NotNil(t, sentInvitations)
-		assert.NotEmpty(t, sentInvitations.Results)
+		assert.NotEmpty(t, sentInvitations.GetResults())
+
+		// Proven first: listing what was sent to an address is gated on having proven it,
+		// because anybody may claim any address at registration.
+		verifyEmailAddressForTest(t, invitee.ID)
 
 		// verify the invitee can see the invitation as received
-		invitations, err := inviteeClient.GetReceivedAccountInvitations(ctx, &identitysvc.GetReceivedAccountInvitationsRequest{})
+		invitations, err := inviteeClient.IdentityService().ListInvitationsForEmailAddress(ctx, &identitypb.ListInvitationsForEmailAddressRequest{})
 		require.NoError(t, err)
 		require.NotNil(t, invitations)
-		assert.NotEmpty(t, invitations.Results)
+		assert.NotEmpty(t, invitations.GetResults())
 
-		_, err = testClient.CancelAccountInvitation(ctx, &identitysvc.CancelAccountInvitationRequest{
-			AccountInvitationId: invitation.Created.Id,
-			Input: &identitysvc.AccountInvitationUpdateRequestInput{
-				Token: invitation.Created.Token,
-				Note:  t.Name(),
-			},
+		_, err = testClient.IdentityService().CancelInvitation(ctx, &identitypb.CancelInvitationRequest{
+			InvitationId: invitation.ID,
+			StatusNote:   t.Name(),
 		})
 		require.NoError(t, err)
 
-		// accept the invitation
-		_, err = inviteeClient.AcceptAccountInvitation(ctx, &identitysvc.AcceptAccountInvitationRequest{
-			AccountInvitationId: invitation.Created.Id,
-			Input: &identitysvc.AccountInvitationUpdateRequestInput{
-				Token: invitation.Created.Token,
-				Note:  t.Name(),
-			},
+		// a withdrawn invitation can no longer be answered
+		_, err = inviteeClient.IdentityService().AcceptInvitation(ctx, &identitypb.AcceptInvitationRequest{
+			InvitationId: invitation.ID,
+			Token:        invitation.Token,
+			StatusNote:   t.Name(),
 		})
 		require.Error(t, err)
 
-		// verify that we don't have any sent invitations because they've all been accepted
-		sentInvitations, err = testClient.GetSentAccountInvitations(ctx, nil)
+		// nothing is outstanding any more
+		sentInvitations, err = testClient.IdentityService().ListInvitationsFromUser(ctx, &identitypb.ListInvitationsFromUserRequest{})
 		require.NoError(t, err)
 		require.NotNil(t, sentInvitations)
-		assert.Empty(t, sentInvitations.Results)
+		assert.Empty(t, sentInvitations.GetResults())
 
-		// validate we can see the webhook created before our user existed
-		webhook, err := inviteeClient.GetWebhook(ctx, &webhookssvc.GetWebhookRequest{WebhookId: createdWebhook.ID})
+		// and the invitee never got into the account
+		webhook, err := inviteeClient.WebhooksService().GetEndpoint(ctx, &webhookspb.GetEndpointRequest{EndpointId: createdWebhook.GetId()})
 		require.Error(t, err)
 		assert.Nil(t, webhook)
 	})
@@ -585,69 +573,77 @@ func TestAccounts_Inviting(T *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
-		// create the inviting user and get the account MealPlanTaskID to send invites for
+		// create the inviting user
 		_, testClient := createUserAndClientForTest(t)
 
 		// create a user to invite
-		inviteeEmailAddress := fmt.Sprintf("some_fake_email%d@testing.com", time.Now().UnixMicro())
-		input := &identity.UserRegistrationInput{
-			Birthday:              new(time.Now()),
-			EmailAddress:          inviteeEmailAddress,
-			FirstName:             fmt.Sprintf("test_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
-			AccountName:           fmt.Sprintf("test_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
-			LastName:              fmt.Sprintf("test_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
-			Password:              fmt.Sprintf("test_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
-			Username:              fmt.Sprintf("test_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
-			AcceptedPrivacyPolicy: true,
-			AcceptedTOS:           true,
-		}
-		_, inviteeClient := createUserAndClientForTestWithRegistrationInput(t, input)
+		input := buildUserRegistrationInputForTest(t)
+		invitee, inviteeClient := createUserAndClientForTestWithRegistrationInput(t, input)
 
 		// create the invitation for the user
-		invitation, err := testClient.CreateAccountInvitation(ctx, &identitysvc.CreateAccountInvitationRequest{
-			Input: &identitysvc.AccountInvitationCreationRequestInput{
-				Note:    t.Name(),
-				ToName:  t.Name(),
-				ToEmail: inviteeEmailAddress,
-			},
-		})
-		require.NoError(t, err)
+		invitation := inviteForTest(t, selfIDForTest(t, testClient), getAccountIDForTest(t, testClient), input.EmailAddress)
 
 		AssertAuditLogContainsFuzzy(t, ctx, testClient, getAccountIDForTest(t, testClient), 10, []*ExpectedAuditEntry{
-			{EventType: "created", ResourceType: "account_invitations", RelevantID: invitation.Created.Id},
+			{EventType: "created", ResourceType: "account_invitations", RelevantID: invitation.ID},
 		})
 
 		// verify that we can retrieve the invitation we just created
-		sentInvitations, err := testClient.GetSentAccountInvitations(ctx, &identitysvc.GetSentAccountInvitationsRequest{})
+		sentInvitations, err := testClient.IdentityService().ListInvitationsFromUser(ctx, &identitypb.ListInvitationsFromUserRequest{})
 		require.NoError(t, err)
 		require.NotNil(t, sentInvitations)
-		assert.NotEmpty(t, sentInvitations.Results)
+		assert.NotEmpty(t, sentInvitations.GetResults())
+
+		// Proven first: listing what was sent to an address is gated on having proven it,
+		// because anybody may claim any address at registration.
+		verifyEmailAddressForTest(t, invitee.ID)
 
 		// verify the invitee can see the invitation as received
-		invitations, err := inviteeClient.GetReceivedAccountInvitations(ctx, &identitysvc.GetReceivedAccountInvitationsRequest{})
+		invitations, err := inviteeClient.IdentityService().ListInvitationsForEmailAddress(ctx, &identitypb.ListInvitationsForEmailAddressRequest{})
 		require.NoError(t, err)
 		require.NotNil(t, invitations)
-		assert.NotEmpty(t, invitations.Results)
+		assert.NotEmpty(t, invitations.GetResults())
 
-		// accept the invitation
-		_, err = inviteeClient.RejectAccountInvitation(ctx, &identitysvc.RejectAccountInvitationRequest{
-			AccountInvitationId: invitation.Created.Id,
-			Input: &identitysvc.AccountInvitationUpdateRequestInput{
-				Token: invitation.Created.Token,
-				Note:  t.Name(),
-			},
+		_, err = inviteeClient.IdentityService().RejectInvitation(ctx, &identitypb.RejectInvitationRequest{
+			InvitationId: invitation.ID,
+			Token:        invitation.Token,
+			StatusNote:   t.Name(),
 		})
 		require.NoError(t, err)
 
-		// verify that we don't have any sent invitations because they've all been accepted
-		sentInvitations, err = testClient.GetSentAccountInvitations(ctx, nil)
+		// nothing is outstanding any more
+		sentInvitations, err = testClient.IdentityService().ListInvitationsFromUser(ctx, &identitypb.ListInvitationsFromUserRequest{})
 		require.NoError(t, err)
 		require.NotNil(t, sentInvitations)
-		assert.Empty(t, sentInvitations.Results)
+		assert.Empty(t, sentInvitations.GetResults())
+	})
+
+	// An invitation link is a bearer credential for joining somebody else's account, so
+	// the token is compared on the row the id names rather than being an index key.
+	T.Run("a wrong token answers nothing", func(t *testing.T) {
+		t.Parallel()
+		ctx := t.Context()
+
+		_, testClient := createUserAndClientForTest(t)
+
+		input := buildUserRegistrationInputForTest(t)
+		_, inviteeClient := createUserAndClientForTestWithRegistrationInput(t, input)
+
+		invitation := inviteForTest(t, selfIDForTest(t, testClient), getAccountIDForTest(t, testClient), input.EmailAddress)
+
+		_, err := inviteeClient.IdentityService().AcceptInvitation(ctx, &identitypb.AcceptInvitationRequest{
+			InvitationId: invitation.ID,
+			Token:        "not the token",
+		})
+		require.Error(t, err)
+
+		// and it is still outstanding
+		sentInvitations, err := testClient.IdentityService().ListInvitationsFromUser(ctx, &identitypb.ListInvitationsFromUserRequest{})
+		require.NoError(t, err)
+		assert.NotEmpty(t, sentInvitations.GetResults())
 	})
 }
 
-func TestAccounts_GetAccountInvitation(T *testing.T) {
+func TestAccounts_GetInvitation(T *testing.T) {
 	T.Parallel()
 
 	T.Run("happy path", func(t *testing.T) {
@@ -656,38 +652,22 @@ func TestAccounts_GetAccountInvitation(T *testing.T) {
 
 		_, testClient := createUserAndClientForTest(t)
 
-		inviteeEmailAddress := fmt.Sprintf("some_fake_email%d@testing.com", time.Now().UnixMicro())
-		input := &identity.UserRegistrationInput{
-			Birthday:              new(time.Now()),
-			EmailAddress:          inviteeEmailAddress,
-			FirstName:             fmt.Sprintf("test_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
-			AccountName:           fmt.Sprintf("test_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
-			LastName:              fmt.Sprintf("test_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
-			Password:              fmt.Sprintf("test_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
-			Username:              fmt.Sprintf("test_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
-			AcceptedPrivacyPolicy: true,
-			AcceptedTOS:           true,
-		}
+		input := buildUserRegistrationInputForTest(t)
 		_, _ = createUserAndClientForTestWithRegistrationInput(t, input)
 
-		// create the invitation
-		invitation, err := testClient.CreateAccountInvitation(ctx, &identitysvc.CreateAccountInvitationRequest{
-			Input: &identitysvc.AccountInvitationCreationRequestInput{
-				Note:    t.Name(),
-				ToName:  t.Name(),
-				ToEmail: inviteeEmailAddress,
-			},
-		})
-		require.NoError(t, err)
+		invitation := inviteForTest(t, selfIDForTest(t, testClient), getAccountIDForTest(t, testClient), input.EmailAddress)
 		require.NotNil(t, invitation)
 
-		// retrieve the single invitation by ID
-		result, err := testClient.GetAccountInvitation(ctx, &identitysvc.GetAccountInvitationRequest{
-			AccountInvitationId: invitation.Created.Id,
+		result, err := testClient.IdentityService().GetInvitation(ctx, &identitypb.GetInvitationRequest{
+			InvitationId: invitation.ID,
 		})
 		require.NoError(t, err)
 		assert.NotNil(t, result)
-		assert.Equal(t, invitation.Created.Id, result.Result.Id)
+		assert.Equal(t, invitation.ID, result.GetInvitation().GetId())
+
+		// There is no token on the message at all. Field 15 is reserved for the one it
+		// would have held, which is platform saying in the schema what a comment would
+		// otherwise have to: an invitation read back carries no secret to replay.
 	})
 
 	T.Run("nonexistent invitation", func(t *testing.T) {
@@ -696,8 +676,8 @@ func TestAccounts_GetAccountInvitation(T *testing.T) {
 
 		_, testClient := createUserAndClientForTest(t)
 
-		result, err := testClient.GetAccountInvitation(ctx, &identitysvc.GetAccountInvitationRequest{
-			AccountInvitationId: nonexistentID,
+		result, err := testClient.IdentityService().GetInvitation(ctx, &identitypb.GetInvitationRequest{
+			InvitationId: nonexistentID,
 		})
 		require.Error(t, err)
 		assert.Nil(t, result)
@@ -709,15 +689,15 @@ func TestAccounts_GetAccountInvitation(T *testing.T) {
 
 		testClient := buildUnauthenticatedGRPCClientForTest(t)
 
-		result, err := testClient.GetAccountInvitation(ctx, &identitysvc.GetAccountInvitationRequest{
-			AccountInvitationId: nonexistentID,
+		result, err := testClient.IdentityService().GetInvitation(ctx, &identitypb.GetInvitationRequest{
+			InvitationId: nonexistentID,
 		})
 		require.Error(t, err)
 		assert.Nil(t, result)
 	})
 }
 
-func TestAccounts_GetAccountsForUser(T *testing.T) {
+func TestAccounts_ListAccountsForUser(T *testing.T) {
 	T.Parallel()
 
 	T.Run("happy path", func(t *testing.T) {
@@ -728,32 +708,30 @@ func TestAccounts_GetAccountsForUser(T *testing.T) {
 
 		// create additional accounts
 		for range 3 {
-			exampleAccount := fakes.BuildFakeAccountCreationRequestInput()
-			exampleAccountInput := identitygrpcconverters.ConvertAccountCreationRequestInputToGRPCAccountCreationRequestInput(exampleAccount)
-
-			_, err := testClient.CreateAccount(ctx, &identitysvc.CreateAccountRequest{Input: exampleAccountInput})
-			require.NoError(t, err)
+			createAccountForTest(t, testClient)
 		}
 
 		// admin fetches accounts for the user
-		accounts, err := adminClient.GetAccountsForUser(ctx, &identitysvc.GetAccountsForUserRequest{
+		accounts, err := adminClient.IdentityService().ListAccountsForUser(ctx, &identitypb.ListAccountsForUserRequest{
 			UserId: user.ID,
 		})
 		require.NoError(t, err)
 		assert.NotNil(t, accounts)
 		// 1 default account + 3 created accounts
-		assert.Len(t, accounts.Results, 4)
+		assert.Len(t, accounts.GetResults(), 4)
 	})
 
+	// A user who does not exist has no accounts, which is an empty page rather than an
+	// error: the read is "what does this subject have", and the honest answer is nothing.
 	T.Run("nonexistent user", func(t *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
-		accounts, err := adminClient.GetAccountsForUser(ctx, &identitysvc.GetAccountsForUserRequest{
+		accounts, err := adminClient.IdentityService().ListAccountsForUser(ctx, &identitypb.ListAccountsForUserRequest{
 			UserId: nonexistentID,
 		})
-		require.Error(t, err)
-		assert.Nil(t, accounts)
+		require.NoError(t, err)
+		assert.Empty(t, accounts.GetResults())
 	})
 
 	T.Run("requires auth", func(t *testing.T) {
@@ -763,20 +741,7 @@ func TestAccounts_GetAccountsForUser(T *testing.T) {
 		user, _ := createUserAndClientForTest(t)
 		c := buildUnauthenticatedGRPCClientForTest(t)
 
-		accounts, err := c.GetAccountsForUser(ctx, &identitysvc.GetAccountsForUserRequest{
-			UserId: user.ID,
-		})
-		require.Error(t, err)
-		assert.Nil(t, accounts)
-	})
-
-	T.Run("only admins can do it", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		user, testClient := createUserAndClientForTest(t)
-
-		accounts, err := testClient.GetAccountsForUser(ctx, &identitysvc.GetAccountsForUserRequest{
+		accounts, err := c.IdentityService().ListAccountsForUser(ctx, &identitypb.ListAccountsForUserRequest{
 			UserId: user.ID,
 		})
 		require.Error(t, err)
@@ -791,153 +756,138 @@ func TestAccounts_OwnershipTransfer(T *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
-		// create the inviting user and get the account MealPlanTaskID to send invites for
-		ogUser, testClient := createUserAndClientForTest(t)
-		accountRes, err := testClient.GetActiveAccount(ctx, &authsvc.GetActiveAccountRequest{})
-		require.NoError(t, err)
-		accountID := accountRes.Result.Id
+		// create the transferring user and get the account to transfer
+		_, testClient := createUserAndClientForTest(t)
+		accountID := getAccountIDForTest(t, testClient)
 
 		// create a webhook (to demonstrate access with later)
 		createdWebhook := createWebhookForTest(t, testClient)
 
-		// create a user to invite
-		inviteeEmailAddress := fmt.Sprintf("some_fake_email%d@testing.com", time.Now().UnixMicro())
-		input := &identity.UserRegistrationInput{
-			Birthday:              new(time.Now()),
-			EmailAddress:          inviteeEmailAddress,
-			FirstName:             fmt.Sprintf("test_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
-			AccountName:           fmt.Sprintf("test_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
-			LastName:              fmt.Sprintf("test_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
-			Password:              fmt.Sprintf("test_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
-			Username:              fmt.Sprintf("test_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
-			AcceptedPrivacyPolicy: true,
-			AcceptedTOS:           true,
-		}
-		invitee, _ := createUserAndClientForTestWithRegistrationInput(t, input)
+		// The recipient joins first. An account can only be handed to somebody the caller
+		// already shares one with — the authorizer permits the caller themselves and
+		// anybody they share a live account with, and a stranger is neither — so the flow
+		// a household actually uses is invite, accept, transfer.
+		input := buildUserRegistrationInputForTest(t)
+		recipient, recipientClient := createUserAndClientForTestWithRegistrationInput(t, input)
 
-		// create the invitation for the user
-		_, err = testClient.TransferAccountOwnership(ctx, &identitysvc.TransferAccountOwnershipRequest{
-			AccountId: accountID,
-			Input: &identitysvc.AccountOwnershipTransferInput{
-				Reason:       t.Name(),
-				CurrentOwner: ogUser.ID,
-				NewOwner:     invitee.ID,
-			},
+		invitation := inviteForTest(t, selfIDForTest(t, testClient), accountID, input.EmailAddress)
+
+		_, err := recipientClient.IdentityService().AcceptInvitation(ctx, &identitypb.AcceptInvitationRequest{
+			InvitationId: invitation.ID,
+			Token:        invitation.Token,
 		})
 		require.NoError(t, err)
 
-		// the invited user needs a new token that indicates they're a member of this account
-		inviteeClient, err := buildAuthedGRPCClient(ctx, fetchLoginTokenForUserForTest(t, invitee))
+		_, err = testClient.IdentityService().TransferAccountOwnership(ctx, &identitypb.TransferAccountOwnershipRequest{
+			AccountId:      accountID,
+			NewOwnerUserId: recipient.ID,
+		})
+		require.NoError(t, err)
+
+		// A minted membership carries no roles, because ownership is the standing and
+		// platform does not know what a role of ours means. Granting them is a separate
+		// act, and it is the one that lets the new owner do anything in the account.
+		//
+		// The token is minted after the grant rather than before. There used to be one on
+		// either side and only the second was ever used — a token says what the roles were
+		// when it was issued, so the earlier one could not have carried the grant that had
+		// not happened yet.
+		_, err = testClient.IdentityService().SetMembershipRoles(ctx, &identitypb.SetMembershipRolesRequest{
+			AccountId: accountID,
+			UserId:    recipient.ID,
+			Roles:     []string{authorization.AccountAdminRoleName},
+		})
+		require.NoError(t, err)
+
+		recipientClient, err = buildAuthedGRPCClient(ctx, fetchLoginTokenForUserForTest(t, recipient))
 		require.NoError(t, err)
 
 		// change to the new account
-		_, err = inviteeClient.SetDefaultAccount(ctx, &identitysvc.SetDefaultAccountRequest{AccountId: accountID})
+		_, err = recipientClient.IdentityService().SetDefaultAccount(ctx, &identitypb.SetDefaultAccountRequest{AccountId: accountID})
+		require.NoError(t, err)
+
+		recipientClient, err = buildAuthedGRPCClient(ctx, fetchLoginTokenForUserForTest(t, recipient))
 		require.NoError(t, err)
 
 		// validate we can see the webhook created before our user existed
-		webhook, err := inviteeClient.GetWebhook(ctx, &webhookssvc.GetWebhookRequest{WebhookId: createdWebhook.ID})
+		webhook, err := recipientClient.WebhooksService().GetEndpoint(ctx, &webhookspb.GetEndpointRequest{EndpointId: createdWebhook.GetId()})
 		require.NoError(t, err)
 		require.NotNil(t, webhook)
 
-		// The audit log for an account is only readable by a current member of that account. After the
-		// ownership transfer the original owner is no longer a member, so read the log as the new owner.
-		AssertAuditLogContainsFuzzy(t, ctx, inviteeClient, accountID, 15, []*ExpectedAuditEntry{
-			{EventType: "updated", ResourceType: "account_user_memberships"},
+		// The old owner keeps their membership: transferring ownership and ejecting
+		// somebody are different acts, and doing both here would make the common case —
+		// handing over and staying on — impossible to express.
+		AssertAuditLogContainsFuzzy(t, ctx, testClient, accountID, 15, []*ExpectedAuditEntry{
+			{EventType: "updated", ResourceType: "accounts", RelevantID: accountID},
 		})
 	})
 }
 
-func TestAccounts_UsersHaveBackupAccountCreatedForThemWhenRemovedFromLastAccount(T *testing.T) {
+// Removing a member is refused for the account's owner and permitted for everybody else,
+// and a removed member's default moves rather than being left naming an account they are
+// no longer in.
+//
+// It replaces a test that asserted a backup account was created for a user removed from
+// their last one. Nothing creates one now, and nothing needs to: an owner cannot be
+// removed from the account they own, so the state that test was insuring against — a user
+// with memberships nowhere — is one the store refuses to produce.
+func TestAccounts_RemovingMembers(T *testing.T) {
 	T.Parallel()
 
-	T.Run("happy path", func(t *testing.T) {
+	T.Run("the owner cannot be removed", func(t *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
-		// create the inviting user and get the account MealPlanTaskID to send invites for
-		testUser, testClient := createUserAndClientForTest(t)
-		accountRes, err := testClient.GetActiveAccount(ctx, &authsvc.GetActiveAccountRequest{})
-		require.NoError(t, err)
-		accountID := accountRes.Result.Id
+		owner, ownerClient := createUserAndClientForTest(t)
+		accountID := getAccountIDForTest(t, ownerClient)
 
-		inviteeEmailAddress := fmt.Sprintf("some_fake_email%d@testing.com", time.Now().UnixMicro())
-		inviteRes, err := testClient.CreateAccountInvitation(ctx, &identitysvc.CreateAccountInvitationRequest{
-			Input: &identitysvc.AccountInvitationCreationRequestInput{
-				Note:    t.Name(),
-				ToEmail: inviteeEmailAddress,
-				ToName:  fmt.Sprintf("test_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
-			},
-		})
-		require.NoError(t, err)
-		require.NotNil(t, inviteRes)
-
-		// create a user to invite
-		input := &identity.UserRegistrationInput{
-			Birthday:              new(time.Now()),
-			EmailAddress:          inviteeEmailAddress,
-			FirstName:             fmt.Sprintf("test_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
-			AccountName:           fmt.Sprintf("test_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
-			LastName:              fmt.Sprintf("test_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
-			Password:              fmt.Sprintf("test_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
-			Username:              fmt.Sprintf("test_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
-			InvitationID:          inviteRes.Created.Id,
-			InvitationToken:       inviteRes.Created.Token,
-			AcceptedPrivacyPolicy: true,
-			AcceptedTOS:           true,
-		}
-		invitee, inviteeClient := createUserAndClientForTestWithRegistrationInput(t, input)
-
-		inviteeAccountsRes, err := inviteeClient.GetAccounts(ctx, &identitysvc.GetAccountsRequest{})
-		require.NoError(t, err)
-		require.Len(t, inviteeAccountsRes.Results, 2)
-
-		_, err = testClient.UpdateAccountMemberPermissions(ctx, &identitysvc.UpdateAccountMemberPermissionsRequest{
-			UserId: invitee.ID,
-			Input: &identitysvc.ModifyUserPermissionsInput{
-				Reason:  t.Name(),
-				NewRole: "account_admin",
-			},
-		})
-		require.NoError(t, err)
-
-		///////
-
-		var (
-			found          bool
-			otherAccountID string
-		)
-
-		for _, account := range inviteeAccountsRes.Results {
-			if account.Id == accountID {
-				if !found {
-					found = true
-				}
-			} else {
-				otherAccountID = account.Id
-			}
-		}
-
-		require.NotEmpty(t, otherAccountID)
-		require.True(t, found)
-
-		_, err = inviteeClient.ArchiveUserMembership(ctx, &identitysvc.ArchiveUserMembershipRequest{
+		_, err := ownerClient.IdentityService().RemoveMembership(ctx, &identitypb.RemoveMembershipRequest{
 			AccountId: accountID,
-			UserId:    testUser.ID,
+			UserId:    owner.ID,
+		})
+		assert.Error(t, err)
+	})
+
+	T.Run("a member's default moves when they are removed", func(t *testing.T) {
+		t.Parallel()
+		ctx := t.Context()
+
+		_, ownerClient := createUserAndClientForTest(t)
+		accountID := getAccountIDForTest(t, ownerClient)
+
+		input := buildUserRegistrationInputForTest(t)
+		invitee, inviteeClient := createUserAndClientForTestWithRegistrationInput(t, input)
+		inviteeOwnAccountID := getAccountIDForTest(t, inviteeClient)
+
+		invitation := inviteForTest(t, selfIDForTest(t, ownerClient), accountID, input.EmailAddress)
+
+		_, err := inviteeClient.IdentityService().AcceptInvitation(ctx, &identitypb.AcceptInvitationRequest{
+			InvitationId: invitation.ID,
+			Token:        invitation.Token,
 		})
 		require.NoError(t, err)
 
-		account, err := inviteeClient.GetActiveAccount(ctx, &authsvc.GetActiveAccountRequest{})
+		inviteeClient, err = buildAuthedGRPCClient(ctx, fetchLoginTokenForUserForTest(t, invitee))
 		require.NoError(t, err)
-		require.NotNil(t, account)
-		assert.NotEqual(t, account, accountID)
 
-		require.True(t, found)
+		_, err = inviteeClient.IdentityService().SetDefaultAccount(ctx, &identitypb.SetDefaultAccountRequest{AccountId: accountID})
+		require.NoError(t, err)
 
-		// testUser was just removed from this account, so it can no longer read the account's audit log.
-		// The invitee remains an account_admin member, so read the log through the invitee's client.
-		AssertAuditLogContainsFuzzy(t, ctx, inviteeClient, accountID, 20, []*ExpectedAuditEntry{
-			{EventType: "created", ResourceType: "account_invitations", RelevantID: inviteRes.Created.Id},
-			{EventType: "updated", ResourceType: "account_user_memberships"},
+		// the owner removes them
+		_, err = ownerClient.IdentityService().RemoveMembership(ctx, &identitypb.RemoveMembershipRequest{
+			AccountId: accountID,
+			UserId:    invitee.ID,
+		})
+		require.NoError(t, err)
+
+		// they land in the account they still hold rather than in one they were removed from
+		inviteeClient, err = buildAuthedGRPCClient(ctx, fetchLoginTokenForUserForTest(t, invitee))
+		require.NoError(t, err)
+
+		assert.Equal(t, inviteeOwnAccountID, getAccountIDForTest(t, inviteeClient))
+
+		AssertAuditLogContainsFuzzy(t, ctx, ownerClient, accountID, 20, []*ExpectedAuditEntry{
+			{EventType: "created", ResourceType: "account_invitations", RelevantID: invitation.ID},
 			{EventType: "archived", ResourceType: "account_user_memberships"},
 		})
 	})

@@ -6,10 +6,11 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	platformauthz "github.com/primandproper/platform-go/v13/authorization"
-	authzdatabase "github.com/primandproper/platform-go/v13/authorization/database"
-	"github.com/primandproper/platform-go/v13/database/dialect"
-	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
+	authzdatabase "github.com/primandproper/platform-go/v14/rbac"
+	platformauthz "github.com/primandproper/primitives-go/v2/authorization"
+	"github.com/primandproper/primitives-go/v2/database/dialect"
+	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -143,23 +144,25 @@ func TestSeededPolicyMatchesTheDeclaredPolicy(T *testing.T) {
 		require.NoError(t, migrator.Migrate(ctx, db))
 
 		// A real user, so the assignment reaches the role key rather than tripping
-		// the user key first.
+		// the user key first. The table is platform's now — a service role is a row in
+		// identity_user_roles, where it used to be one in user_role_assignments.
 		_, err = db.ExecContext(ctx,
-			"INSERT INTO users (id, username, email_address, hashed_password, two_factor_secret) VALUES ($1, $2, $3, '', '')",
-			"user_1", "somebody", "somebody@example.com")
+			"INSERT INTO ddb_identity_users (id, scope, username, display_name, email_address, hashed_password, two_factor_secret, account_status) "+
+				"VALUES ($1, $2, $3, $3, $4, '', '', 'good')",
+			"user_1", tenancy.Global().Owner(), "somebody", "somebody@example.com")
 		require.NoError(t, err)
 
 		_, err = db.ExecContext(ctx,
-			"INSERT INTO user_role_assignments (id, user_id, role_name) VALUES ($1, $2, $3)",
-			"assignment_1", "user_1", "a_role_nobody_declared")
+			"INSERT INTO ddb_identity_user_roles (user_id, role) VALUES ($1, $2)",
+			"user_1", "a_role_nobody_declared")
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "user_role_assignments_role_fk")
+		assert.Contains(t, err.Error(), "ddb_identity_user_roles_role_fk")
 
 		// And the same insert naming a declared role is accepted, so the failure
 		// above is the key doing its job rather than the statement being wrong.
 		_, err = db.ExecContext(ctx,
-			"INSERT INTO user_role_assignments (id, user_id, role_name) VALUES ($1, $2, $3)",
-			"assignment_1", "user_1", authorization.ServiceUserRoleName)
+			"INSERT INTO ddb_identity_user_roles (user_id, role) VALUES ($1, $2)",
+			"user_1", authorization.ServiceUserRoleName)
 		require.NoError(t, err)
 	})
 }

@@ -1,13 +1,14 @@
 package indexing
 
 import (
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/indexstamp"
 
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/metrics"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
-	searchsync "github.com/primandproper/platform-go/v13/search/sync"
+	platformidentity "github.com/primandproper/platform-go/v14/identity"
+	searchsync "github.com/primandproper/platform-go/v14/searchsync"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/metrics"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
 
 	"github.com/samber/do/v2"
 )
@@ -24,7 +25,7 @@ func RegisterUserSyncer(i do.Injector) {
 	// type. do retires it on container shutdown, which is where its goroutine is accounted for.
 	do.ProvideNamed(i, stampBufferName, func(i do.Injector) (*indexstamp.Buffer, error) {
 		return indexstamp.New(
-			do.MustInvoke[identity.Repository](i).MarkUsersAsIndexed,
+			UserStamps(do.MustInvoke[database.Client](i), do.MustInvoke[platformidentity.Store](i)),
 			do.MustInvoke[logging.Logger](i),
 			do.MustInvoke[tracing.Provider](i),
 			do.MustInvoke[metrics.Provider](i),
@@ -33,7 +34,8 @@ func RegisterUserSyncer(i do.Injector) {
 
 	do.Provide(i, func(i do.Injector) (*searchsync.Syncer[UserSearchSubset], error) {
 		return NewUserSyncer(
-			do.MustInvoke[identity.Repository](i),
+			do.MustInvoke[database.Client](i),
+			do.MustInvoke[platformidentity.Store](i),
 			do.MustInvoke[UserTextSearcher](i),
 			do.MustInvokeNamed[*indexstamp.Buffer](i, stampBufferName),
 			do.MustInvoke[logging.Logger](i),
@@ -47,7 +49,8 @@ func RegisterUserSyncer(i do.Injector) {
 func RegisterUserReindexer(i do.Injector) {
 	do.Provide(i, func(i do.Injector) (*searchsync.Reindexer[UserSearchSubset], error) {
 		return NewUserReindexer(
-			do.MustInvoke[identity.Repository](i),
+			do.MustInvoke[database.Client](i),
+			do.MustInvoke[platformidentity.Store](i),
 			do.MustInvoke[UserTextSearcher](i),
 			do.MustInvoke[logging.Logger](i),
 			do.MustInvoke[tracing.Provider](i),

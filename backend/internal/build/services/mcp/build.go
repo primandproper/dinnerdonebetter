@@ -4,22 +4,24 @@ import (
 	"context"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
+	identitybuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	auditrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
-	identityrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity"
+	identitystore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identitystore"
 	issuereportsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/issuereports"
 	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
 	uploadedmediarepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/uploadedmedia"
 	waitlistsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/waitlists"
-	webhooksrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhooks"
+	webhooksstore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhooksstore"
 
-	databasecfg "github.com/primandproper/platform-go/v13/database/config"
-	"github.com/primandproper/platform-go/v13/database/postgres"
-	"github.com/primandproper/platform-go/v13/observability"
-	loggingcfg "github.com/primandproper/platform-go/v13/observability/logging/config"
-	metricscfg "github.com/primandproper/platform-go/v13/observability/metrics/config"
-	tracingcfg "github.com/primandproper/platform-go/v13/observability/tracing/config"
+	databasecfg "github.com/primandproper/primitives-go/v2/database/config"
+	"github.com/primandproper/primitives-go/v2/database/postgres"
+	"github.com/primandproper/primitives-go/v2/observability"
+	loggingcfg "github.com/primandproper/primitives-go/v2/observability/logging/config"
+	metricscfg "github.com/primandproper/primitives-go/v2/observability/metrics/config"
+	tracingcfg "github.com/primandproper/primitives-go/v2/observability/tracing/config"
 
 	"github.com/samber/do/v2"
 )
@@ -50,15 +52,16 @@ func BuildInjector(ctx context.Context, cfg *config.MCPServiceConfig) *do.RootSc
 	// What a role grants, read from the policy tables the migrator seeds. The
 	// identity repository resolves a principal's role names through it when it
 	// builds a session.
-	identityrepo.RegisterPolicyResolver(i)
-	identityrepo.RegisterIdentityRepository(i)
+	authorization.RegisterPolicyResolver(i)
+	identitystore.RegisterIdentityStore(i)
+	identitybuild.RegisterSessionBuilder(i)
 	events.RegisterOutboxEmitter(i)
 
 	// The upload registry, because both repositories above read media through it —
 	// a user's avatar, a recipe step's images.
 	uploadedmediarepo.RegisterUploadedMediaRepository(i)
 	mealplanningrepo.RegisterMealPlanningRepository(i)
-	webhooksrepo.RegisterWebhooksRepository(i)
+	webhooksstore.RegisterWebhooksStore(i)
 	waitlistsrepo.RegisterWaitlistsRepository(i)
 	issuereportsrepo.RegisterIssueReportsRepository(i)
 

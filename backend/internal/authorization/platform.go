@@ -1,10 +1,10 @@
 package authorization
 
 import (
-	platformauthz "github.com/primandproper/platform-go/v13/authorization"
+	platformauthz "github.com/primandproper/primitives-go/v2/authorization"
 )
 
-// This file bridges this package's permission model onto platform-go/v13's
+// This file bridges this package's permission model onto platform-go/v14's
 // authorization package.
 //
 // The permissions themselves stay here: what this service can be asked to do is
@@ -52,9 +52,7 @@ func (r accountRoleCollection) GrantedPermissions() *platformauthz.PermissionSet
 // distinct types only because each package declares its own.
 func ToPlatformPermissions(perms []Permission) []platformauthz.Permission {
 	out := make([]platformauthz.Permission, len(perms))
-	for i, p := range perms {
-		out[i] = platformauthz.Permission(p)
-	}
+	copy(out, perms)
 
 	return out
 }

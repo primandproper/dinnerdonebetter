@@ -15,13 +15,14 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	"github.com/primandproper/platform-go/v13/database"
-	"github.com/primandproper/platform-go/v13/database/postgres"
-	"github.com/primandproper/platform-go/v13/identifiers"
-	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
-	metricsnoop "github.com/primandproper/platform-go/v13/observability/metrics/noop"
-	tracingnoop "github.com/primandproper/platform-go/v13/observability/tracing/noop"
-	waitlists "github.com/primandproper/platform-go/v13/waitlists"
+	waitlists "github.com/primandproper/platform-go/v14/waitlists"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/database/postgres"
+	"github.com/primandproper/primitives-go/v2/identifiers"
+	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
+	metricsnoop "github.com/primandproper/primitives-go/v2/observability/metrics/noop"
+	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -43,7 +44,7 @@ func TestMain(m *testing.M) {
 }
 
 // buildDatabaseClientForTest builds the store over a real database.
-func buildDatabaseClientForTest(t *testing.T) (waitlists.Store, audit.Repository, database.SQLQueryExecutor) {
+func buildDatabaseClientForTest(t *testing.T) (waitlists.Store, audit.Repository, database.Client) {
 	t.Helper()
 
 	ctx := t.Context()
@@ -68,7 +69,7 @@ func buildDatabaseClientForTest(t *testing.T) (waitlists.Store, audit.Repository
 	)
 	require.NoError(t, err)
 
-	return c, auditLogEntryRepo, pgc.Writer()
+	return c, auditLogEntryRepo, pgc
 }
 
 // signatoryForTest creates a user and an account for them, and returns the user.
@@ -76,20 +77,22 @@ func buildDatabaseClientForTest(t *testing.T) (waitlists.Store, audit.Repository
 // The signup table has no foreign key to either — a withdrawal blanks the
 // subject reference, so it cannot have one — but the audit entry a signup write
 // records names the user, and the audit chain does.
-func signatoryForTest(t *testing.T, writer database.SQLQueryExecutor) string {
+func signatoryForTest(t *testing.T, db database.Client) string {
 	t.Helper()
 
-	user := pgtesting.CreateUserForTest(t, nil, writer)
-	pgtesting.CreateAccountForTest(t, nil, user.ID, writer)
+	user := pgtesting.CreateUserForTest(t, nil, db.Writer())
+	pgtesting.CreateAccountForTest(t, nil, user.ID, db.Writer())
 
 	return user.ID
 }
 
 // openListForTest opens one list that is still taking signups.
-func openListForTest(t *testing.T, ctx context.Context, dbc waitlists.Store) *waitlists.List {
+func openListForTest(t *testing.T, ctx context.Context, dbc waitlists.Store, db database.Client) *waitlists.List {
 	t.Helper()
 
-	list, err := dbc.CreateList(ctx, ddbwaitlists.Scope(), fakes.BuildFakeWaitlist())
+	list, err := writeT(ctx, db, func(tx database.Tx) (*waitlists.List, error) {
+		return dbc.CreateList(ctx, tx, ddbwaitlists.Scope(), fakes.BuildFakeWaitlist())
+	})
 	require.NoError(t, err)
 
 	return list
@@ -97,12 +100,14 @@ func openListForTest(t *testing.T, ctx context.Context, dbc waitlists.Store) *wa
 
 func TestRepository_Integration_Waitlists(t *testing.T) {
 	ctx := t.Context()
-	dbc, auditRepo, _ := buildDatabaseClientForTest(t)
+	dbc, auditRepo, db := buildDatabaseClientForTest(t)
 	scope := ddbwaitlists.Scope()
 
 	example := fakes.BuildFakeWaitlist()
 
-	created, err := dbc.CreateList(ctx, scope, example)
+	created, err := writeT(ctx, db, func(tx database.Tx) (*waitlists.List, error) {
+		return dbc.CreateList(ctx, tx, scope, example)
+	})
 	require.NoError(t, err)
 	assert.NotEmpty(t, created.ID)
 	assert.False(t, created.CreatedAt.IsZero())
@@ -115,32 +120,42 @@ func TestRepository_Integration_Waitlists(t *testing.T) {
 		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeWaitlists, RelevantID: created.ID},
 	})
 
-	fetched, err := dbc.GetList(ctx, scope, created.ID)
+	fetched, err := dbc.GetList(ctx, db.Reader(), scope, created.ID)
 	require.NoError(t, err)
 	assert.Equal(t, example.Name, fetched.Name)
 	assert.Equal(t, example.Description, fetched.Description)
 
-	page, err := dbc.ListLists(ctx, scope, nil)
+	page, err := dbc.ListLists(ctx, db.Reader(), scope, nil)
 	require.NoError(t, err)
 	require.Len(t, page.Data, 1)
 	assert.Equal(t, created.ID, page.Data[0].ID)
 
 	// An open list is on the open page, which is the read a signup form offers.
-	open, err := dbc.ListOpenLists(ctx, scope, nil)
+	open, err := dbc.ListOpenLists(ctx, db.Reader(), scope, nil)
 	require.NoError(t, err)
 	require.Len(t, open.Data, 1)
 
 	fetched.Name = "renamed"
-	require.NoError(t, dbc.UpdateList(ctx, scope, fetched))
 
-	updated, err := dbc.GetList(ctx, scope, created.ID)
+	// v14's write methods answer with the row as stored, so the assertions below could read
+	// it from here. They re-read instead: what a later request sees is what these tests are
+	// about, and a returned struct cannot tell a committed write from an uncommitted one.
+	_, err = writeT(ctx, db, func(tx database.Tx) (*waitlists.List, error) {
+		return dbc.UpdateList(ctx, tx, scope, fetched)
+	})
+	require.NoError(t, err)
+
+	updated, err := dbc.GetList(ctx, db.Reader(), scope, created.ID)
 	require.NoError(t, err)
 	assert.Equal(t, "renamed", updated.Name)
 	assert.NotNil(t, updated.LastUpdatedAt)
 
-	require.NoError(t, dbc.ArchiveList(ctx, scope, created.ID))
+	_, err = writeT(ctx, db, func(tx database.Tx) (*waitlists.List, error) {
+		return dbc.ArchiveList(ctx, tx, scope, created.ID)
+	})
+	require.NoError(t, err)
 
-	afterArchive, err := dbc.GetList(ctx, scope, created.ID)
+	afterArchive, err := dbc.GetList(ctx, db.Reader(), scope, created.ID)
 	require.Error(t, err)
 	assert.Nil(t, afterArchive)
 	require.ErrorIs(t, err, waitlists.ErrListNotFound)
@@ -156,15 +171,18 @@ func TestRepository_Integration_Waitlists(t *testing.T) {
 // list closes it immediately, whatever its closing time says.
 func TestRepository_Integration_ArchivedListTakesNoSignups(t *testing.T) {
 	ctx := t.Context()
-	dbc, _, writer := buildDatabaseClientForTest(t)
+	dbc, _, db := buildDatabaseClientForTest(t)
 	scope := ddbwaitlists.Scope()
 
-	userID := signatoryForTest(t, writer)
-	list := openListForTest(t, ctx, dbc)
+	userID := signatoryForTest(t, db)
+	list := openListForTest(t, ctx, dbc, db)
 
-	require.NoError(t, dbc.ArchiveList(ctx, scope, list.ID))
+	_, err := writeT(ctx, db, func(tx database.Tx) (*waitlists.List, error) {
+		return dbc.ArchiveList(ctx, tx, scope, list.ID)
+	})
+	require.NoError(t, err)
 
-	_, err := dbc.Join(ctx, scope, list.ID, fakes.BuildFakeWaitlistSignupForUser(userID))
+	_, err = joinT(ctx, db, dbc, scope, list.ID, fakes.BuildFakeWaitlistSignupForUser(userID))
 	require.Error(t, err)
 	// The list is gone as far as the signup path is concerned: the read that
 	// decides whether it is open cannot find it.
@@ -175,42 +193,44 @@ func TestRepository_Integration_ArchivedListTakesNoSignups(t *testing.T) {
 // list past its closing time refuses a signup and says why.
 func TestRepository_Integration_ClosedListTakesNoSignups(t *testing.T) {
 	ctx := t.Context()
-	dbc, _, writer := buildDatabaseClientForTest(t)
+	dbc, _, db := buildDatabaseClientForTest(t)
 	scope := ddbwaitlists.Scope()
 
-	userID := signatoryForTest(t, writer)
+	userID := signatoryForTest(t, db)
 
 	closed := fakes.BuildFakeWaitlist()
 	closed.ClosesAt = time.Now().Add(-time.Hour).UTC()
 
-	list, err := dbc.CreateList(ctx, scope, closed)
+	list, err := writeT(ctx, db, func(tx database.Tx) (*waitlists.List, error) {
+		return dbc.CreateList(ctx, tx, scope, closed)
+	})
 	require.NoError(t, err)
 
-	_, err = dbc.Join(ctx, scope, list.ID, fakes.BuildFakeWaitlistSignupForUser(userID))
+	_, err = joinT(ctx, db, dbc, scope, list.ID, fakes.BuildFakeWaitlistSignupForUser(userID))
 	require.Error(t, err)
 	require.ErrorIs(t, err, waitlists.ErrListClosed)
 
 	// And it is off the open page while still being in the catalog.
-	open, err := dbc.ListOpenLists(ctx, scope, nil)
+	open, err := dbc.ListOpenLists(ctx, db.Reader(), scope, nil)
 	require.NoError(t, err)
 	assert.Empty(t, open.Data)
 
-	all, err := dbc.ListLists(ctx, scope, nil)
+	all, err := dbc.ListLists(ctx, db.Reader(), scope, nil)
 	require.NoError(t, err)
 	assert.Len(t, all.Data, 1)
 }
 
 func TestRepository_Integration_WaitlistSignups(t *testing.T) {
 	ctx := t.Context()
-	dbc, auditRepo, writer := buildDatabaseClientForTest(t)
+	dbc, auditRepo, db := buildDatabaseClientForTest(t)
 	scope := ddbwaitlists.Scope()
 
-	userID := signatoryForTest(t, writer)
-	list := openListForTest(t, ctx, dbc)
+	userID := signatoryForTest(t, db)
+	list := openListForTest(t, ctx, dbc, db)
 
 	example := fakes.BuildFakeWaitlistSignupForUser(userID)
 
-	joined, err := dbc.Join(ctx, scope, list.ID, example)
+	joined, err := joinT(ctx, db, dbc, scope, list.ID, example)
 	require.NoError(t, err)
 	assert.Equal(t, waitlists.StatusWaiting, joined.Status)
 	assert.Equal(t, list.ID, joined.ListID)
@@ -220,35 +240,41 @@ func TestRepository_Integration_WaitlistSignups(t *testing.T) {
 		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeWaitlistSignups, RelevantID: joined.ID},
 	})
 
-	fetched, err := dbc.GetSignup(ctx, scope, list.ID, joined.ID)
+	fetched, err := dbc.GetSignup(ctx, db.Reader(), scope, list.ID, joined.ID)
 	require.NoError(t, err)
 	assert.Equal(t, example.Contact, fetched.Contact)
 	assert.Equal(t, ddbwaitlists.SubjectFor(userID), fetched.Subject)
 
 	// The address finds the row whichever capitalization the caller has.
-	byContact, err := dbc.GetSignupByContact(ctx, scope, list.ID, strings.ToUpper(example.Contact))
+	byContact, err := dbc.GetSignupByContact(ctx, db.Reader(), scope, list.ID, strings.ToUpper(example.Contact))
 	require.NoError(t, err)
 	assert.Equal(t, joined.ID, byContact.ID)
 
-	forList, err := dbc.ListSignups(ctx, scope, list.ID, nil)
+	forList, err := dbc.ListSignups(ctx, db.Reader(), scope, list.ID, nil)
 	require.NoError(t, err)
 	require.Len(t, forList.Data, 1)
 
-	forSubject, err := dbc.ListSignupsForSubject(ctx, scope, ddbwaitlists.SubjectFor(userID), nil)
+	forSubject, err := dbc.ListSignupsForSubject(ctx, db.Reader(), scope, ddbwaitlists.SubjectFor(userID), nil)
 	require.NoError(t, err)
 	require.Len(t, forSubject.Data, 1)
 
-	require.NoError(t, dbc.UpdateSignupNotes(ctx, scope, list.ID, joined.ID, "moved up the queue"))
+	_, err = writeT(ctx, db, func(tx database.Tx) (*waitlists.Signup, error) {
+		return dbc.UpdateSignupNotes(ctx, tx, scope, list.ID, joined.ID, "moved up the queue")
+	})
+	require.NoError(t, err)
 
-	noted, err := dbc.GetSignup(ctx, scope, list.ID, joined.ID)
+	noted, err := dbc.GetSignup(ctx, db.Reader(), scope, list.ID, joined.ID)
 	require.NoError(t, err)
 	assert.Equal(t, "moved up the queue", noted.Notes)
 	// A note moves nobody, which is the whole reason the two stamps are separate.
 	assert.Nil(t, noted.StatusChangedAt)
 
-	require.NoError(t, dbc.ArchiveSignup(ctx, scope, list.ID, joined.ID))
+	_, err = writeT(ctx, db, func(tx database.Tx) (*waitlists.Signup, error) {
+		return dbc.ArchiveSignup(ctx, tx, scope, list.ID, joined.ID)
+	})
+	require.NoError(t, err)
 
-	afterArchive, err := dbc.GetSignup(ctx, scope, list.ID, joined.ID)
+	afterArchive, err := dbc.GetSignup(ctx, db.Reader(), scope, list.ID, joined.ID)
 	require.Error(t, err)
 	assert.Nil(t, afterArchive)
 	require.ErrorIs(t, err, waitlists.ErrSignupNotFound)
@@ -266,30 +292,38 @@ func TestRepository_Integration_WaitlistSignups(t *testing.T) {
 // the second one's side.
 func TestRepository_Integration_SignupLifecycle(t *testing.T) {
 	ctx := t.Context()
-	dbc, auditRepo, writer := buildDatabaseClientForTest(t)
+	dbc, auditRepo, db := buildDatabaseClientForTest(t)
 	scope := ddbwaitlists.Scope()
 
-	userID := signatoryForTest(t, writer)
-	list := openListForTest(t, ctx, dbc)
+	userID := signatoryForTest(t, db)
+	list := openListForTest(t, ctx, dbc, db)
 
-	joined, err := dbc.Join(ctx, scope, list.ID, fakes.BuildFakeWaitlistSignupForUser(userID))
+	joined, err := joinT(ctx, db, dbc, scope, list.ID, fakes.BuildFakeWaitlistSignupForUser(userID))
 	require.NoError(t, err)
 
-	require.NoError(t, dbc.Invite(ctx, scope, list.ID, joined.ID))
+	_, err = writeT(ctx, db, func(tx database.Tx) (*waitlists.Signup, error) {
+		return dbc.Invite(ctx, tx, scope, list.ID, joined.ID)
+	})
+	require.NoError(t, err)
 
-	invited, err := dbc.GetSignup(ctx, scope, list.ID, joined.ID)
+	invited, err := dbc.GetSignup(ctx, db.Reader(), scope, list.ID, joined.ID)
 	require.NoError(t, err)
 	assert.Equal(t, waitlists.StatusInvited, invited.Status)
 	require.NotNil(t, invited.StatusChangedAt)
 
 	// The second invitation is refused rather than sending a second email.
-	err = dbc.Invite(ctx, scope, list.ID, joined.ID)
+	_, err = writeT(ctx, db, func(tx database.Tx) (*waitlists.Signup, error) {
+		return dbc.Invite(ctx, tx, scope, list.ID, joined.ID)
+	})
 	require.Error(t, err)
 	require.ErrorIs(t, err, waitlists.ErrWrongStatus)
 
-	require.NoError(t, dbc.Convert(ctx, scope, list.ID, joined.ID))
+	_, err = writeT(ctx, db, func(tx database.Tx) (*waitlists.Signup, error) {
+		return dbc.Convert(ctx, tx, scope, list.ID, joined.ID)
+	})
+	require.NoError(t, err)
 
-	converted, err := dbc.GetSignup(ctx, scope, list.ID, joined.ID)
+	converted, err := dbc.GetSignup(ctx, db.Reader(), scope, list.ID, joined.ID)
 	require.NoError(t, err)
 	assert.Equal(t, waitlists.StatusConverted, converted.Status)
 
@@ -308,21 +342,24 @@ func TestRepository_Integration_SignupLifecycle(t *testing.T) {
 // signup from the same person simply succeeded.
 func TestRepository_Integration_WithdrawalOutlivesTheAddress(t *testing.T) {
 	ctx := t.Context()
-	dbc, auditRepo, writer := buildDatabaseClientForTest(t)
+	dbc, auditRepo, db := buildDatabaseClientForTest(t)
 	scope := ddbwaitlists.Scope()
 
-	userID := signatoryForTest(t, writer)
-	list := openListForTest(t, ctx, dbc)
+	userID := signatoryForTest(t, db)
+	list := openListForTest(t, ctx, dbc, db)
 
 	example := fakes.BuildFakeWaitlistSignupForUser(userID)
 
-	joined, err := dbc.Join(ctx, scope, list.ID, example)
+	joined, err := joinT(ctx, db, dbc, scope, list.ID, example)
 	require.NoError(t, err)
 
-	require.NoError(t, dbc.Withdraw(ctx, scope, list.ID, joined.ID))
+	_, err = writeT(ctx, db, func(tx database.Tx) (*waitlists.Signup, error) {
+		return dbc.Withdraw(ctx, tx, scope, list.ID, joined.ID)
+	})
+	require.NoError(t, err)
 
 	// The row is still live, and it no longer says who it was about.
-	withdrawn, err := dbc.GetSignup(ctx, scope, list.ID, joined.ID)
+	withdrawn, err := dbc.GetSignup(ctx, db.Reader(), scope, list.ID, joined.ID)
 	require.NoError(t, err)
 	assert.Equal(t, waitlists.StatusWithdrawn, withdrawn.Status)
 	assert.Empty(t, withdrawn.Contact)
@@ -337,13 +374,15 @@ func TestRepository_Integration_WithdrawalOutlivesTheAddress(t *testing.T) {
 	again := fakes.BuildFakeWaitlistSignupForUser(userID)
 	again.Contact = example.Contact
 
-	_, err = dbc.Join(ctx, scope, list.ID, again)
+	_, err = joinT(ctx, db, dbc, scope, list.ID, again)
 	require.Error(t, err)
 	require.ErrorIs(t, err, waitlists.ErrContactWithdrawn)
 
 	// A second withdrawal reports itself rather than restamping the moment they
 	// left.
-	err = dbc.Withdraw(ctx, scope, list.ID, joined.ID)
+	_, err = writeT(ctx, db, func(tx database.Tx) (*waitlists.Signup, error) {
+		return dbc.Withdraw(ctx, tx, scope, list.ID, joined.ID)
+	})
 	require.Error(t, err)
 	require.ErrorIs(t, err, waitlists.ErrAlreadyWithdrawn)
 
@@ -360,22 +399,26 @@ func TestRepository_Integration_WithdrawalOutlivesTheAddress(t *testing.T) {
 // next attempt from it is a duplicate rather than an honored opt-out.
 func TestRepository_Integration_ArchivingIsNotWithdrawing(t *testing.T) {
 	ctx := t.Context()
-	dbc, _, writer := buildDatabaseClientForTest(t)
+	dbc, _, db := buildDatabaseClientForTest(t)
 	scope := ddbwaitlists.Scope()
 
-	userID := signatoryForTest(t, writer)
-	list := openListForTest(t, ctx, dbc)
+	userID := signatoryForTest(t, db)
+	list := openListForTest(t, ctx, dbc, db)
 
 	example := fakes.BuildFakeWaitlistSignupForUser(userID)
 
-	joined, err := dbc.Join(ctx, scope, list.ID, example)
+	joined, err := joinT(ctx, db, dbc, scope, list.ID, example)
 	require.NoError(t, err)
-	require.NoError(t, dbc.ArchiveSignup(ctx, scope, list.ID, joined.ID))
+
+	_, err = writeT(ctx, db, func(tx database.Tx) (*waitlists.Signup, error) {
+		return dbc.ArchiveSignup(ctx, tx, scope, list.ID, joined.ID)
+	})
+	require.NoError(t, err)
 
 	again := fakes.BuildFakeWaitlistSignupForUser(userID)
 	again.Contact = example.Contact
 
-	_, err = dbc.Join(ctx, scope, list.ID, again)
+	_, err = joinT(ctx, db, dbc, scope, list.ID, again)
 	require.Error(t, err)
 	require.ErrorIs(t, err, waitlists.ErrAlreadySignedUp)
 	assert.NotErrorIs(t, err, waitlists.ErrContactWithdrawn)
@@ -385,18 +428,59 @@ func TestRepository_Integration_ArchivingIsNotWithdrawing(t *testing.T) {
 // a row that is not there is an error before anything is written down about it.
 func TestRepository_Integration_MissingRowsRecordNothing(t *testing.T) {
 	ctx := t.Context()
-	dbc, auditRepo, writer := buildDatabaseClientForTest(t)
+	dbc, auditRepo, db := buildDatabaseClientForTest(t)
 	scope := ddbwaitlists.Scope()
 
-	userID := signatoryForTest(t, writer)
-	list := openListForTest(t, ctx, dbc)
+	userID := signatoryForTest(t, db)
+	list := openListForTest(t, ctx, dbc, db)
 
-	require.ErrorIs(t, dbc.ArchiveList(ctx, scope, identifiers.New()), waitlists.ErrListNotFound)
-	require.ErrorIs(t, dbc.ArchiveSignup(ctx, scope, list.ID, identifiers.New()), waitlists.ErrSignupNotFound)
-	require.ErrorIs(t, dbc.Withdraw(ctx, scope, list.ID, identifiers.New()), waitlists.ErrSignupNotFound)
-	require.ErrorIs(t, dbc.Invite(ctx, scope, list.ID, identifiers.New()), waitlists.ErrSignupNotFound)
+	_, err := writeT(ctx, db, func(tx database.Tx) (*waitlists.List, error) {
+		return dbc.ArchiveList(ctx, tx, scope, identifiers.New())
+	})
+	require.ErrorIs(t, err, waitlists.ErrListNotFound)
+
+	for _, write := range map[string]func(tx database.Tx) (*waitlists.Signup, error){
+		"archive": func(tx database.Tx) (*waitlists.Signup, error) {
+			return dbc.ArchiveSignup(ctx, tx, scope, list.ID, identifiers.New())
+		},
+		"withdraw": func(tx database.Tx) (*waitlists.Signup, error) {
+			return dbc.Withdraw(ctx, tx, scope, list.ID, identifiers.New())
+		},
+		"invite": func(tx database.Tx) (*waitlists.Signup, error) {
+			return dbc.Invite(ctx, tx, scope, list.ID, identifiers.New())
+		},
+	} {
+		_, err = writeT(ctx, db, write)
+		require.ErrorIs(t, err, waitlists.ErrSignupNotFound)
+	}
 
 	entries, err := auditRepo.GetAuditLogEntriesForUser(ctx, userID, nil)
 	require.NoError(t, err)
 	assert.Empty(t, entries.Data)
+}
+
+// writeT runs one store write on a transaction of its own.
+//
+// As of platform-go v14 a store write takes the caller's database.Tx, so a test that wants one
+// row written supplies the transaction the production caller would. It answers with the error
+// rather than asserting on it, so the assertions above read as they did — and because several of
+// them are about a write that is *supposed* to fail.
+func writeT[T any](ctx context.Context, db database.Client, write func(tx database.Tx) (T, error)) (T, error) {
+	var out T
+
+	err := db.WithTransaction(ctx, func(tx database.Tx) error {
+		var writeErr error
+		out, writeErr = write(tx)
+
+		return writeErr
+	})
+
+	return out, err
+}
+
+// joinT signs one person up, which happens often enough here to be worth naming.
+func joinT(ctx context.Context, db database.Client, dbc waitlists.Store, scope tenancy.Scope, listID string, signup *waitlists.Signup) (*waitlists.Signup, error) {
+	return writeT(ctx, db, func(tx database.Tx) (*waitlists.Signup, error) {
+		return dbc.Join(ctx, tx, scope, listID, signup)
+	})
 }

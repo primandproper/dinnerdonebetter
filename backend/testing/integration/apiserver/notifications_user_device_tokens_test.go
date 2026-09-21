@@ -1,20 +1,29 @@
 package integration
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/converters"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/fakes"
-	notificationssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/notifications"
-	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/services/notifications/grpc/converters"
+
+	notificationspb "github.com/primandproper/platform-go/v14/notifications/notificationspb"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func createUserDeviceTokenForTest(t *testing.T, forUser string, deviceTokenOverride ...string) *notifications.UserDeviceToken {
+// The device surface is platform's now, and it is three RPCs where this application's was
+// four: register, list, revoke. There is no read-one, because platform's registry has none
+// — a handset is identified by the token it registered with, and a caller holding an id
+// already got it from the list. The cases that read one back by id are gone with it.
+//
+// A registered Device does not carry its token back either. The token is the credential a
+// push is sent with, so rendering it over an API would hand anybody who can list devices
+// the ability to push to them. That is why the assertions below check the platform and the
+// id rather than the token they sent.
+
+func createUserDeviceTokenForTest(t *testing.T, forUser string) *notifications.UserDeviceToken {
 	t.Helper()
 
 	ctx := t.Context()
@@ -22,9 +31,6 @@ func createUserDeviceTokenForTest(t *testing.T, forUser string, deviceTokenOverr
 	creationInput := fakes.BuildFakeUserDeviceToken()
 	input := converters.ConvertUserDeviceTokenToUserDeviceTokenDatabaseCreationInput(creationInput)
 	input.BelongsToUser = forUser
-	if len(deviceTokenOverride) > 0 {
-		input.DeviceToken = deviceTokenOverride[0]
-	}
 
 	created, err := notifsRepo.CreateUserDeviceToken(ctx, input)
 	require.NoError(t, err)
@@ -40,56 +46,55 @@ func TestUserDeviceTokens_RegisterAndRead(T *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
-		user, testClient := createUserAndClientForTest(t)
+		_, testClient := createUserAndClientForTest(t)
 		exampleToken := fakes.BuildFakeUserDeviceToken()
 
-		response, err := testClient.RegisterDeviceToken(ctx, &notificationssvc.RegisterDeviceTokenRequest{
-			Input: &notificationssvc.UserDeviceTokenCreationRequestInput{
-				DeviceToken: exampleToken.DeviceToken,
-				Platform:    exampleToken.Platform,
+		response, err := testClient.RegisterDevice(ctx, &notificationspb.RegisterDeviceRequest{
+			Input: &notificationspb.DeviceRegistrationInput{
+				Token:    exampleToken.DeviceToken,
+				Platform: notificationspb.DevicePlatform_DEVICE_PLATFORM_IOS,
 			},
 		})
 		require.NoError(t, err)
 		require.NotNil(t, response)
-		require.NotNil(t, response.Created)
-		assert.NotEmpty(t, response.Created.Id)
-		assert.Equal(t, exampleToken.DeviceToken, response.Created.DeviceToken)
-		assert.Equal(t, exampleToken.Platform, response.Created.Platform)
-		assert.Equal(t, user.ID, response.Created.BelongsToUser)
+		require.NotNil(t, response.GetResult())
+		assert.NotEmpty(t, response.GetResult().GetId())
+		assert.Equal(t, notificationspb.DevicePlatform_DEVICE_PLATFORM_IOS, response.GetResult().GetPlatform())
+		assert.NotNil(t, response.GetResult().GetCreatedAt())
 
-		retrieved, err := testClient.GetUserDeviceToken(ctx, &notificationssvc.GetUserDeviceTokenRequest{
-			UserDeviceTokenId: response.Created.Id,
-		})
+		// The registration is visible on the caller's own list, which is the read that
+		// replaced the read-one. It is scoped to the session's user by the server, so a
+		// list is never a list of somebody else's handsets.
+		listed, err := testClient.ListDevices(ctx, &notificationspb.ListDevicesRequest{})
 		require.NoError(t, err)
-		require.NotNil(t, retrieved)
-		converted := grpcconverters.ConvertGRPCUserDeviceTokenToUserDeviceToken(retrieved.Result)
-		assert.Equal(t, response.Created.Id, converted.ID)
-		assert.Equal(t, exampleToken.DeviceToken, converted.DeviceToken)
-		assert.Equal(t, exampleToken.Platform, converted.Platform)
+		require.NotEmpty(t, listed.GetResults())
+
+		var found bool
+		for _, device := range listed.GetResults() {
+			if device.GetId() == response.GetResult().GetId() {
+				found = true
+
+				assert.Equal(t, notificationspb.DevicePlatform_DEVICE_PLATFORM_IOS, device.GetPlatform())
+			}
+		}
+		assert.True(t, found, "the registered device was not on the caller's own list")
 	})
 
 	T.Run("requires auth", func(t *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
-		user, _ := createUserAndClientForTest(t)
-		created := createUserDeviceTokenForTest(t, user.ID)
-
 		c := buildUnauthenticatedGRPCClientForTest(t)
 
-		_, err := c.GetUserDeviceToken(ctx, &notificationssvc.GetUserDeviceTokenRequest{
-			UserDeviceTokenId: created.ID,
-		})
+		_, err := c.ListDevices(ctx, &notificationspb.ListDevicesRequest{})
 		assert.Error(t, err)
 	})
 
-	T.Run("invalid token ID", func(t *testing.T) {
+	T.Run("revoking a device nobody registered is refused", func(t *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
-		_, err := adminClient.GetUserDeviceToken(ctx, &notificationssvc.GetUserDeviceTokenRequest{
-			UserDeviceTokenId: nonexistentID,
-		})
+		_, err := adminClient.RevokeDevice(ctx, &notificationspb.RevokeDeviceRequest{DeviceId: nonexistentID})
 		assert.Error(t, err)
 	})
 }
@@ -99,11 +104,12 @@ func TestUserDeviceTokens_Listing(T *testing.T) {
 
 	u, testClient := createUserAndClientForTest(T)
 	createdTokens := []*notifications.UserDeviceToken{}
-	for i := range exampleQuantity {
-		// Use unique device token per creation; CreateUserDeviceToken upserts on (user, token), so
-		// duplicate tokens would result in a single DB row.
-		uniqueToken := fmt.Sprintf("a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef%06x", i)
-		created := createUserDeviceTokenForTest(T, u.ID, uniqueToken)
+	for range exampleQuantity {
+		// Each registration is its own row because each fake carries its own token:
+		// the write converges on (scope, platform, token), so a repeated one would be
+		// one handset re-registering rather than five. See fakes.BuildFakeUserDeviceToken,
+		// which used to hand out a literal and made exactly that mistake.
+		created := createUserDeviceTokenForTest(T, u.ID)
 		createdTokens = append(createdTokens, created)
 	}
 
@@ -111,10 +117,10 @@ func TestUserDeviceTokens_Listing(T *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
-		retrieved, err := testClient.GetUserDeviceTokens(ctx, &notificationssvc.GetUserDeviceTokensRequest{})
+		retrieved, err := testClient.ListDevices(ctx, &notificationspb.ListDevicesRequest{})
 		require.NoError(t, err)
 		require.NotNil(t, retrieved)
-		assert.GreaterOrEqual(t, len(retrieved.Results), len(createdTokens))
+		assert.GreaterOrEqual(t, len(retrieved.GetResults()), len(createdTokens))
 	})
 
 	T.Run("requires auth", func(t *testing.T) {
@@ -123,7 +129,7 @@ func TestUserDeviceTokens_Listing(T *testing.T) {
 
 		c := buildUnauthenticatedGRPCClientForTest(t)
 
-		_, err := c.GetUserDeviceTokens(ctx, &notificationssvc.GetUserDeviceTokensRequest{})
+		_, err := c.ListDevices(ctx, &notificationspb.ListDevicesRequest{})
 		assert.Error(t, err)
 	})
 }
@@ -138,15 +144,15 @@ func TestUserDeviceTokens_Archive(T *testing.T) {
 		user, testClient := createUserAndClientForTest(t)
 		created := createUserDeviceTokenForTest(t, user.ID)
 
-		_, err := testClient.ArchiveUserDeviceToken(ctx, &notificationssvc.ArchiveUserDeviceTokenRequest{
-			UserDeviceTokenId: created.ID,
-		})
+		_, err := testClient.RevokeDevice(ctx, &notificationspb.RevokeDeviceRequest{DeviceId: created.ID})
 		require.NoError(t, err)
 
-		_, err = testClient.GetUserDeviceToken(ctx, &notificationssvc.GetUserDeviceTokenRequest{
-			UserDeviceTokenId: created.ID,
-		})
-		require.Error(t, err)
+		// Gone from the caller's list, which is the only read there is.
+		listed, err := testClient.ListDevices(ctx, &notificationspb.ListDevicesRequest{})
+		require.NoError(t, err)
+		for _, device := range listed.GetResults() {
+			assert.NotEqual(t, created.ID, device.GetId(), "a revoked device is still listed")
+		}
 
 		AssertAuditLogContainsFuzzyForUser(t, ctx, testClient, user.ID, 15, []*ExpectedAuditEntry{
 			{EventType: "archived", ResourceType: "user_device_tokens", RelevantID: created.ID},
@@ -162,9 +168,7 @@ func TestUserDeviceTokens_Archive(T *testing.T) {
 
 		c := buildUnauthenticatedGRPCClientForTest(t)
 
-		_, err := c.ArchiveUserDeviceToken(ctx, &notificationssvc.ArchiveUserDeviceTokenRequest{
-			UserDeviceTokenId: created.ID,
-		})
+		_, err := c.RevokeDevice(ctx, &notificationspb.RevokeDeviceRequest{DeviceId: created.ID})
 		assert.Error(t, err)
 	})
 }

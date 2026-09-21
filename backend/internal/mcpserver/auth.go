@@ -8,12 +8,15 @@ import (
 	"slices"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
+	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 
-	"github.com/primandproper/platform-go/v13/authentication/oauth2server"
-	"github.com/primandproper/platform-go/v13/authentication/totp"
-	"github.com/primandproper/platform-go/v13/observability/logging"
+	platformidentity "github.com/primandproper/platform-go/v14/identity"
+	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
+	"github.com/primandproper/primitives-go/v2/authentication/totp"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
 
 	"github.com/modelcontextprotocol/go-sdk/auth"
 )
@@ -44,7 +47,8 @@ const accessDeniedMessage = "Access denied. Admin credentials required."
 // it — PKCE, redirect URI matching, code redemption, token rotation — is the
 // platform's.
 type subjectAuthenticator struct {
-	identityRepo  identity.Repository
+	directory     platformidentity.Store
+	db            database.Client
 	authenticator authentication.Authenticator
 	totpVerifier  totp.Verifier
 }
@@ -63,16 +67,21 @@ func (a *subjectAuthenticator) AuthenticateSubject(ctx context.Context, req *htt
 	password := req.FormValue("password")
 	totpToken := req.FormValue("totp_token")
 
-	// Admin-only, and the lookup is what enforces it: there is no non-admin
-	// branch to fall through to.
-	user, err := a.identityRepo.GetAdminUserByUsername(ctx, username)
+	user, err := a.directory.GetUserByUsername(ctx, a.db.Reader(), ddbidentity.Scope(), username)
 	if err != nil || user == nil {
 		return nil, oauth2server.NewLoginError(accessDeniedMessage, err)
 	}
 
-	if user.IsBanned() {
-		return nil, oauth2server.NewLoginError("Access denied. Account is banned.", nil)
+	// Admin-only, and this is what enforces it. It used to be enforced by the lookup —
+	// a query that filtered non-admins out — which meant "no such user" and "not an
+	// administrator" arrived as the same answer. They are refused with the same message
+	// on purpose, because a login form must not say which, but the log line now can.
+	if !slices.Contains(user.ServiceRoles, authorization.ServiceAdminRoleName) {
+		return nil, oauth2server.NewLoginError(accessDeniedMessage, nil)
 	}
+
+	// No status check here: the principal read below refuses a user whose status does
+	// not admit signing in, before it reads a membership.
 
 	matches, err := a.authenticator.PasswordMatches(ctx, user.HashedPassword, password)
 	if err != nil || !matches {
@@ -92,14 +101,14 @@ func (a *subjectAuthenticator) AuthenticateSubject(ctx context.Context, req *htt
 	// Not a LoginError. The credentials were right and the account still has no
 	// resolvable default account, which is a broken record rather than a wrong
 	// password — re-rendering the form would ask the human to fix it by typing.
-	accountID, err := a.identityRepo.GetDefaultAccountIDForUser(ctx, user.ID)
+	principal, err := a.directory.GetPrincipal(ctx, a.db.Reader(), ddbidentity.Scope(), user.ID, "")
 	if err != nil {
 		return nil, err
 	}
 
 	return &oauth2server.Subject{
 		ID:     user.ID,
-		Claims: map[string]string{claimAccountID: accountID},
+		Claims: map[string]string{claimAccountID: principal.ActiveAccountID},
 	}, nil
 }
 

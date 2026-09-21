@@ -12,6 +12,7 @@ var (
 
 // AuthManagerInterface defines the methods that the auth manager must implement.
 type AuthManagerInterface interface {
+	RegisterUser(ctx context.Context, input *auth.UserRegistrationInput) (*auth.UserCreationResponse, error)
 	CheckUserPermissions(ctx context.Context, input *auth.UserPermissionsRequestInput) (*auth.UserPermissionsResponse, error)
 	PasswordResetTokenRedemption(ctx context.Context, input *auth.PasswordResetTokenRedemptionRequestInput) error
 	NewTOTPSecret(ctx context.Context, input *auth.TOTPSecretRefreshInput) (*auth.TOTPSecretRefreshResponse, error)
@@ -22,6 +23,8 @@ type AuthManagerInterface interface {
 	VerifyUserEmailAddressByToken(ctx context.Context, token string) error
 	TOTPSecretVerification(ctx context.Context, input *auth.TOTPSecretVerificationInput) error
 	UpdatePassword(ctx context.Context, input *auth.PasswordUpdateInput) error
+	UpdateUserEmailAddress(ctx context.Context, input *auth.UserEmailAddressUpdateInput) error
+	UpdateUserUsername(ctx context.Context, input *auth.UsernameUpdateInput) error
 	GetActiveSessionsForUser(ctx context.Context, userID, currentSessionID string) ([]*auth.UserSession, error)
 	RevokeSession(ctx context.Context, sessionID, userID string) error
 	RevokeAllSessionsForUserExcept(ctx context.Context, userID, currentSessionID string) error

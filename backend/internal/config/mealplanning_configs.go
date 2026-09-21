@@ -7,7 +7,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/primandproper/platform-go/v13/workqueue"
+	"github.com/primandproper/platform-go/v14/workqueue"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/hashicorp/go-multierror"

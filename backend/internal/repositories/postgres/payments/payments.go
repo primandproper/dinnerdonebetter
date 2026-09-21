@@ -13,23 +13,20 @@ webhook event catalog (internal/domain/webhooks/catalog), so a subscriber can
 already ask for them; a write that skipped the pair would be a row with no
 provenance and a subscriber that never heard.
 
-# The transaction the events are not in
+# The transaction the events are in
 
-Every hand-written repository here emits inside the transaction that wrote the
-row, so the event lives or dies with what it describes (see
-internal/repositories/postgres/events). This one cannot: platform's writes own
-their transactions and take no executor, so the audit entry and the event are a
-second transaction after the first has committed.
+Every hand-written repository here emits inside the transaction that wrote
+the row, so the event lives or dies with what it describes (see
+internal/repositories/postgres/events). This one now does too. It could not
+before: platform's writes owned their transactions and took no executor, so
+the audit entry and the event were a second transaction after the first had
+committed, and a subscription could exist that nothing had recorded.
 
-The gap that opens is the ordinary one — the row lands, the process dies, and
-nothing is recorded about it. It is narrow and it is one-directional: a
-subscription can exist with no event, but no event can name a subscription that
-was not written. Closing it needs platform's write methods to accept a
-database.Tx, which is the same gap comments (platform-go #457), waitlists (#458),
-settings (#460) and issuereports (#465) have. It is filed for this package as
-platform-go #466 rather than worked around here — a gap papered over locally
-stops being a gap anyone remembers. See #1419 for what deletes here when it
-lands.
+As of platform-go v14 a store write takes the caller's database.Tx, so the
+write, the entry and the event are one transaction and share one fate. The
+gap filed for this package as platform-go #466 is closed by that convention
+rather than by anything here, which is why this package has no workaround to
+delete.
 
 # Which writes emit, and which only record
 
@@ -66,13 +63,13 @@ import (
 	ddbpayments "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 	paymentskeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/keys"
 
-	"github.com/primandproper/platform-go/v13/billing"
-	"github.com/primandproper/platform-go/v13/capitalism"
-	"github.com/primandproper/platform-go/v13/database"
-	"github.com/primandproper/platform-go/v13/identifiers"
-	"github.com/primandproper/platform-go/v13/observability"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
-	"github.com/primandproper/platform-go/v13/tenancy"
+	"github.com/primandproper/platform-go/v14/billing"
+	"github.com/primandproper/primitives-go/v2/capitalism"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/identifiers"
+	"github.com/primandproper/primitives-go/v2/observability"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
 // What an audit entry about each table names. They are the names of the tables
@@ -88,18 +85,18 @@ const (
 var _ billing.Store = (*repository)(nil)
 
 // CreateProduct adds the product to the catalog, then records it.
-func (r *repository) CreateProduct(ctx context.Context, scope tenancy.Scope, product *billing.Product) (*billing.Product, error) {
+func (r *repository) CreateProduct(ctx context.Context, tx database.Tx, scope tenancy.Scope, product *billing.Product) (*billing.Product, error) {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
-	created, err := r.Store.CreateProduct(ctx, scope, product)
+	created, err := r.Store.CreateProduct(ctx, tx, scope, product)
 	if err != nil {
 		return nil, err
 	}
 
 	tracing.AttachToSpan(span, paymentskeys.ProductIDKey, created.ID)
 
-	if err = r.recordProduct(ctx, created, audit.AuditLogEventTypeCreated, ddbpayments.ProductCreatedServiceEventType); err != nil {
+	if err = r.recordProduct(ctx, tx, created, audit.AuditLogEventTypeCreated, ddbpayments.ProductCreatedServiceEventType); err != nil {
 		return nil, err
 	}
 
@@ -107,51 +104,65 @@ func (r *repository) CreateProduct(ctx context.Context, scope tenancy.Scope, pro
 }
 
 // UpdateProduct rewrites the product, then records it.
-func (r *repository) UpdateProduct(ctx context.Context, scope tenancy.Scope, product *billing.Product) error {
+func (r *repository) UpdateProduct(ctx context.Context, tx database.Tx, scope tenancy.Scope, product *billing.Product) (*billing.Product, error) {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
-	if err := r.Store.UpdateProduct(ctx, scope, product); err != nil {
-		return err
+	result, err := r.Store.UpdateProduct(ctx, tx, scope, product)
+	if err != nil {
+		return nil, err
 	}
 
 	tracing.AttachToSpan(span, paymentskeys.ProductIDKey, product.ID)
 
-	return r.recordProduct(ctx, product, audit.AuditLogEventTypeUpdated, ddbpayments.ProductUpdatedServiceEventType)
+	// The stored row rather than the argument. Both carry an id here, so this is not a bug
+	// being fixed — it is the rule that stops one: what is recorded is what was written.
+	// issuereports recorded its argument and, once v14's store stopped writing into it,
+	// every entry and event it emitted named no report at all.
+	if err = r.recordProduct(ctx, tx, result, audit.AuditLogEventTypeUpdated, ddbpayments.ProductUpdatedServiceEventType); err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
 // ArchiveProduct withdraws the product from sale, then records it.
-func (r *repository) ArchiveProduct(ctx context.Context, scope tenancy.Scope, productID string) error {
+func (r *repository) ArchiveProduct(ctx context.Context, tx database.Tx, scope tenancy.Scope, productID string) (*billing.Product, error) {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
 	tracing.AttachToSpan(span, paymentskeys.ProductIDKey, productID)
 
-	product, err := r.GetProduct(ctx, scope, productID)
+	product, err := r.GetProduct(ctx, tx, scope, productID)
 	if err != nil {
-		return observability.PrepareError(err, span, "fetching product to record")
+		return nil, observability.PrepareError(err, span, "fetching product to record")
 	}
 
-	if err = r.Store.ArchiveProduct(ctx, scope, productID); err != nil {
-		return err
+	result, err := r.Store.ArchiveProduct(ctx, tx, scope, productID)
+	if err != nil {
+		return nil, err
 	}
 
-	return r.recordProduct(ctx, product, audit.AuditLogEventTypeArchived, ddbpayments.ProductArchivedServiceEventType)
+	if err = r.recordProduct(ctx, tx, product, audit.AuditLogEventTypeArchived, ddbpayments.ProductArchivedServiceEventType); err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
 // CreateSubscription opens the agreement, then records it.
-func (r *repository) CreateSubscription(ctx context.Context, scope tenancy.Scope, subscription *billing.Subscription) (*billing.Subscription, error) {
+func (r *repository) CreateSubscription(ctx context.Context, tx database.Tx, scope tenancy.Scope, subscription *billing.Subscription) (*billing.Subscription, error) {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
-	created, err := r.Store.CreateSubscription(ctx, scope, subscription)
+	created, err := r.Store.CreateSubscription(ctx, tx, scope, subscription)
 	if err != nil {
 		return nil, err
 	}
 
 	tracing.AttachToSpan(span, paymentskeys.SubscriptionIDKey, created.ID)
 
-	if err = r.recordSubscription(ctx, created, audit.AuditLogEventTypeCreated, ddbpayments.SubscriptionCreatedServiceEventType); err != nil {
+	if err = r.recordSubscription(ctx, tx, created, audit.AuditLogEventTypeCreated, ddbpayments.SubscriptionCreatedServiceEventType); err != nil {
 		return nil, err
 	}
 
@@ -159,17 +170,22 @@ func (r *repository) CreateSubscription(ctx context.Context, scope tenancy.Scope
 }
 
 // UpdateSubscription rewrites the subscription, then records it.
-func (r *repository) UpdateSubscription(ctx context.Context, scope tenancy.Scope, subscription *billing.Subscription) error {
+func (r *repository) UpdateSubscription(ctx context.Context, tx database.Tx, scope tenancy.Scope, subscription *billing.Subscription) (*billing.Subscription, error) {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
-	if err := r.Store.UpdateSubscription(ctx, scope, subscription); err != nil {
-		return err
+	result, err := r.Store.UpdateSubscription(ctx, tx, scope, subscription)
+	if err != nil {
+		return nil, err
 	}
 
 	tracing.AttachToSpan(span, paymentskeys.SubscriptionIDKey, subscription.ID)
 
-	return r.recordSubscription(ctx, subscription, audit.AuditLogEventTypeUpdated, ddbpayments.SubscriptionUpdatedServiceEventType)
+	if err = r.recordSubscription(ctx, tx, subscription, audit.AuditLogEventTypeUpdated, ddbpayments.SubscriptionUpdatedServiceEventType); err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
 // SetSubscriptionStatus moves the subscription's standing, then records it.
@@ -177,58 +193,63 @@ func (r *repository) UpdateSubscription(ctx context.Context, scope tenancy.Scope
 // A redelivered event is reported by the store as billing.ErrStatusUnchanged
 // before anything here runs, so a replay records nothing: there is no second
 // entry for a change that did not happen.
-func (r *repository) SetSubscriptionStatus(ctx context.Context, scope tenancy.Scope, subscriptionID string, status capitalism.SubscriptionStatus) error {
+func (r *repository) SetSubscriptionStatus(ctx context.Context, tx database.Tx, scope tenancy.Scope, subscriptionID string, status capitalism.SubscriptionStatus) error {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
 	tracing.AttachToSpan(span, paymentskeys.SubscriptionIDKey, subscriptionID)
 
-	subscription, err := r.GetSubscription(ctx, scope, subscriptionID)
+	subscription, err := r.GetSubscription(ctx, tx, scope, subscriptionID)
 	if err != nil {
 		return observability.PrepareError(err, span, "fetching subscription to record")
 	}
 
-	if err = r.Store.SetSubscriptionStatus(ctx, scope, subscriptionID, status); err != nil {
+	if err = r.Store.SetSubscriptionStatus(ctx, tx, scope, subscriptionID, status); err != nil {
 		return err
 	}
 
 	subscription.Status = status
 
-	return r.recordSubscription(ctx, subscription, audit.AuditLogEventTypeUpdated, ddbpayments.SubscriptionUpdatedServiceEventType)
+	return r.recordSubscription(ctx, tx, subscription, audit.AuditLogEventTypeUpdated, ddbpayments.SubscriptionUpdatedServiceEventType)
 }
 
 // ArchiveSubscription retires the subscription administratively, then records it.
-func (r *repository) ArchiveSubscription(ctx context.Context, scope tenancy.Scope, subscriptionID string) error {
+func (r *repository) ArchiveSubscription(ctx context.Context, tx database.Tx, scope tenancy.Scope, subscriptionID string) (*billing.Subscription, error) {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
 	tracing.AttachToSpan(span, paymentskeys.SubscriptionIDKey, subscriptionID)
 
-	subscription, err := r.GetSubscription(ctx, scope, subscriptionID)
+	subscription, err := r.GetSubscription(ctx, tx, scope, subscriptionID)
 	if err != nil {
-		return observability.PrepareError(err, span, "fetching subscription to record")
+		return nil, observability.PrepareError(err, span, "fetching subscription to record")
 	}
 
-	if err = r.Store.ArchiveSubscription(ctx, scope, subscriptionID); err != nil {
-		return err
+	result, err := r.Store.ArchiveSubscription(ctx, tx, scope, subscriptionID)
+	if err != nil {
+		return nil, err
 	}
 
-	return r.recordSubscription(ctx, subscription, audit.AuditLogEventTypeArchived, ddbpayments.SubscriptionArchivedServiceEventType)
+	if err = r.recordSubscription(ctx, tx, subscription, audit.AuditLogEventTypeArchived, ddbpayments.SubscriptionArchivedServiceEventType); err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
 // CreatePurchase writes the purchase, then records it.
-func (r *repository) CreatePurchase(ctx context.Context, scope tenancy.Scope, purchase *billing.Purchase) (*billing.Purchase, error) {
+func (r *repository) CreatePurchase(ctx context.Context, tx database.Tx, scope tenancy.Scope, purchase *billing.Purchase) (*billing.Purchase, error) {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
-	created, err := r.Store.CreatePurchase(ctx, scope, purchase)
+	created, err := r.Store.CreatePurchase(ctx, tx, scope, purchase)
 	if err != nil {
 		return nil, err
 	}
 
 	tracing.AttachToSpan(span, paymentskeys.PurchaseIDKey, created.ID)
 
-	if err = r.recordPurchase(ctx, created, audit.AuditLogEventTypeCreated); err != nil {
+	if err = r.recordPurchase(ctx, tx, created, audit.AuditLogEventTypeCreated); err != nil {
 		return nil, err
 	}
 
@@ -236,56 +257,66 @@ func (r *repository) CreatePurchase(ctx context.Context, scope tenancy.Scope, pu
 }
 
 // CompletePurchase stamps the moment the money arrived, then records it.
-func (r *repository) CompletePurchase(ctx context.Context, scope tenancy.Scope, purchaseID string, at time.Time) error {
+func (r *repository) CompletePurchase(ctx context.Context, tx database.Tx, scope tenancy.Scope, purchaseID string, at time.Time) (*billing.Purchase, error) {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
 	tracing.AttachToSpan(span, paymentskeys.PurchaseIDKey, purchaseID)
 
-	purchase, err := r.GetPurchase(ctx, scope, purchaseID)
+	purchase, err := r.GetPurchase(ctx, tx, scope, purchaseID)
 	if err != nil {
-		return observability.PrepareError(err, span, "fetching purchase to record")
+		return nil, observability.PrepareError(err, span, "fetching purchase to record")
 	}
 
-	if err = r.Store.CompletePurchase(ctx, scope, purchaseID, at); err != nil {
-		return err
+	result, err := r.Store.CompletePurchase(ctx, tx, scope, purchaseID, at)
+	if err != nil {
+		return nil, err
 	}
 
-	return r.recordPurchase(ctx, purchase, audit.AuditLogEventTypeUpdated)
+	if err = r.recordPurchase(ctx, tx, purchase, audit.AuditLogEventTypeUpdated); err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
 // ArchivePurchase retires the purchase administratively, then records it.
-func (r *repository) ArchivePurchase(ctx context.Context, scope tenancy.Scope, purchaseID string) error {
+func (r *repository) ArchivePurchase(ctx context.Context, tx database.Tx, scope tenancy.Scope, purchaseID string) (*billing.Purchase, error) {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
 	tracing.AttachToSpan(span, paymentskeys.PurchaseIDKey, purchaseID)
 
-	purchase, err := r.GetPurchase(ctx, scope, purchaseID)
+	purchase, err := r.GetPurchase(ctx, tx, scope, purchaseID)
 	if err != nil {
-		return observability.PrepareError(err, span, "fetching purchase to record")
+		return nil, observability.PrepareError(err, span, "fetching purchase to record")
 	}
 
-	if err = r.Store.ArchivePurchase(ctx, scope, purchaseID); err != nil {
-		return err
+	result, err := r.Store.ArchivePurchase(ctx, tx, scope, purchaseID)
+	if err != nil {
+		return nil, err
 	}
 
-	return r.recordPurchase(ctx, purchase, audit.AuditLogEventTypeArchived)
+	if err = r.recordPurchase(ctx, tx, purchase, audit.AuditLogEventTypeArchived); err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
 // RecordTransaction writes the ledger row, then records it.
-func (r *repository) RecordTransaction(ctx context.Context, scope tenancy.Scope, transaction *billing.Transaction) (*billing.Transaction, error) {
+func (r *repository) RecordTransaction(ctx context.Context, tx database.Tx, scope tenancy.Scope, transaction *billing.Transaction) (*billing.Transaction, error) {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
-	recorded, err := r.Store.RecordTransaction(ctx, scope, transaction)
+	recorded, err := r.Store.RecordTransaction(ctx, tx, scope, transaction)
 	if err != nil {
 		return nil, err
 	}
 
 	tracing.AttachToSpan(span, paymentskeys.PaymentTransactionIDKey, recorded.ID)
 
-	if err = r.recordTransaction(ctx, recorded, audit.AuditLogEventTypeCreated); err != nil {
+	if err = r.recordTransaction(ctx, tx, recorded, audit.AuditLogEventTypeCreated); err != nil {
 		return nil, err
 	}
 
@@ -294,41 +325,46 @@ func (r *repository) RecordTransaction(ctx context.Context, scope tenancy.Scope,
 
 // SetTransactionStatus moves the attempt's outcome, then records it. A replay is
 // billing.ErrStatusUnchanged and records nothing — see SetSubscriptionStatus.
-func (r *repository) SetTransactionStatus(ctx context.Context, scope tenancy.Scope, transactionID string, status billing.TransactionStatus) error {
+func (r *repository) SetTransactionStatus(ctx context.Context, tx database.Tx, scope tenancy.Scope, transactionID string, status billing.TransactionStatus) error {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
 	tracing.AttachToSpan(span, paymentskeys.PaymentTransactionIDKey, transactionID)
 
-	transaction, err := r.GetTransaction(ctx, scope, transactionID)
+	transaction, err := r.GetTransaction(ctx, tx, scope, transactionID)
 	if err != nil {
 		return observability.PrepareError(err, span, "fetching transaction to record")
 	}
 
-	if err = r.Store.SetTransactionStatus(ctx, scope, transactionID, status); err != nil {
+	if err = r.Store.SetTransactionStatus(ctx, tx, scope, transactionID, status); err != nil {
 		return err
 	}
 
-	return r.recordTransaction(ctx, transaction, audit.AuditLogEventTypeUpdated)
+	return r.recordTransaction(ctx, tx, transaction, audit.AuditLogEventTypeUpdated)
 }
 
 // ArchiveTransaction retires the ledger row administratively, then records it.
-func (r *repository) ArchiveTransaction(ctx context.Context, scope tenancy.Scope, transactionID string) error {
+func (r *repository) ArchiveTransaction(ctx context.Context, tx database.Tx, scope tenancy.Scope, transactionID string) (*billing.Transaction, error) {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
 	tracing.AttachToSpan(span, paymentskeys.PaymentTransactionIDKey, transactionID)
 
-	transaction, err := r.GetTransaction(ctx, scope, transactionID)
+	transaction, err := r.GetTransaction(ctx, tx, scope, transactionID)
 	if err != nil {
-		return observability.PrepareError(err, span, "fetching transaction to record")
+		return nil, observability.PrepareError(err, span, "fetching transaction to record")
 	}
 
-	if err = r.Store.ArchiveTransaction(ctx, scope, transactionID); err != nil {
-		return err
+	result, err := r.Store.ArchiveTransaction(ctx, tx, scope, transactionID)
+	if err != nil {
+		return nil, err
 	}
 
-	return r.recordTransaction(ctx, transaction, audit.AuditLogEventTypeArchived)
+	if err = r.recordTransaction(ctx, tx, transaction, audit.AuditLogEventTypeArchived); err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
 // recordProduct writes the audit entry and the data change event for a write to
@@ -339,8 +375,8 @@ func (r *repository) ArchiveTransaction(ctx context.Context, scope tenancy.Scope
 // recorder resolves. The event names no account either, so it is service-wide —
 // it reaches a webhook subscriber under whichever account the requester had
 // active, resolved from the context by the emitter.
-func (r *repository) recordProduct(ctx context.Context, product *billing.Product, auditEventType, changeEventType string) error {
-	return r.recordAndEmit(ctx, "", resourceTypeProducts, product.ID, auditEventType, changeEventType, map[string]any{
+func (r *repository) recordProduct(ctx context.Context, tx database.Tx, product *billing.Product, auditEventType, changeEventType string) error {
+	return r.recordAndEmit(ctx, tx, "", resourceTypeProducts, product.ID, auditEventType, changeEventType, map[string]any{
 		paymentskeys.ProductIDKey: product.ID,
 	})
 }
@@ -353,8 +389,8 @@ func (r *repository) recordProduct(ctx context.Context, product *billing.Product
 // off the context. Most of these writes have no session: a provider's webhook
 // carries no user, and an event that had to find its account on the context
 // would find nobody there.
-func (r *repository) recordSubscription(ctx context.Context, subscription *billing.Subscription, auditEventType, changeEventType string) error {
-	return r.recordAndEmit(ctx, subscription.BelongsToAccount, resourceTypeSubscriptions, subscription.ID, auditEventType, changeEventType, map[string]any{
+func (r *repository) recordSubscription(ctx context.Context, tx database.Tx, subscription *billing.Subscription, auditEventType, changeEventType string) error {
+	return r.recordAndEmit(ctx, tx, subscription.BelongsToAccount, resourceTypeSubscriptions, subscription.ID, auditEventType, changeEventType, map[string]any{
 		paymentskeys.SubscriptionIDKey: subscription.ID,
 		paymentskeys.ProductIDKey:      subscription.ProductID,
 		identitykeys.AccountIDKey:      subscription.BelongsToAccount,
@@ -362,13 +398,13 @@ func (r *repository) recordSubscription(ctx context.Context, subscription *billi
 }
 
 // recordPurchase writes the audit entry for a write to one account's purchase.
-func (r *repository) recordPurchase(ctx context.Context, purchase *billing.Purchase, auditEventType string) error {
-	return r.record(ctx, purchase.BelongsToAccount, resourceTypePurchases, purchase.ID, auditEventType)
+func (r *repository) recordPurchase(ctx context.Context, tx database.Tx, purchase *billing.Purchase, auditEventType string) error {
+	return r.record(ctx, tx, purchase.BelongsToAccount, resourceTypePurchases, purchase.ID, auditEventType)
 }
 
 // recordTransaction writes the audit entry for a write to one account's ledger.
-func (r *repository) recordTransaction(ctx context.Context, transaction *billing.Transaction, auditEventType string) error {
-	return r.record(ctx, transaction.BelongsToAccount, resourceTypePaymentTransactions, transaction.ID, auditEventType)
+func (r *repository) recordTransaction(ctx context.Context, tx database.Tx, transaction *billing.Transaction, auditEventType string) error {
+	return r.record(ctx, tx, transaction.BelongsToAccount, resourceTypePaymentTransactions, transaction.ID, auditEventType)
 }
 
 // recordAndEmit writes the audit entry and enqueues the data change event, in
@@ -379,7 +415,7 @@ func (r *repository) recordTransaction(ctx context.Context, transaction *billing
 // whoever needs to know now — and a write that carried one without the other
 // would be a write nobody could tell was incomplete.
 func (r *repository) recordAndEmit(
-	ctx context.Context,
+	ctx context.Context, tx database.Tx,
 	accountID, resourceType, relevantID, auditEventType, changeEventType string,
 	metadata map[string]any,
 ) error {
@@ -388,24 +424,20 @@ func (r *repository) recordAndEmit(
 
 	logger := r.logger.WithSpan(span).WithValue(resourceType, relevantID)
 
-	return r.client.WithTransaction(ctx, func(tx database.Tx) error {
-		return r.recorder.RecordAndEmit(ctx, tx, logger, auditEntry(accountID, resourceType, relevantID, auditEventType), changeEventType, accountID, metadata)
-	})
+	return r.recorder.RecordAndEmit(ctx, tx, logger, auditEntry(accountID, resourceType, relevantID, auditEventType), changeEventType, accountID, metadata)
 }
 
 // record writes the audit entry alone, for the writes that owe an entry and no
 // event. See the package documentation for which those are.
-func (r *repository) record(ctx context.Context, accountID, resourceType, relevantID, auditEventType string) error {
+func (r *repository) record(ctx context.Context, tx database.Tx, accountID, resourceType, relevantID, auditEventType string) error {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
-	return r.client.WithTransaction(ctx, func(tx database.Tx) error {
-		if err := r.auditLogEntryRepo.Record(ctx, tx, auditEntry(accountID, resourceType, relevantID, auditEventType)); err != nil {
-			return observability.PrepareError(err, span, "creating audit log entry")
-		}
+	if err := r.auditLogEntryRepo.Record(ctx, tx, auditEntry(accountID, resourceType, relevantID, auditEventType)); err != nil {
+		return observability.PrepareError(err, span, "creating audit log entry")
+	}
 
-		return nil
-	})
+	return nil
 }
 
 // auditEntry is the entry every write here records. The account is a pointer

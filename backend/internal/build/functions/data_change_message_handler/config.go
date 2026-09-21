@@ -5,15 +5,15 @@ import (
 	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
-	analyticscfg "github.com/primandproper/platform-go/v13/analytics/config"
-	databasecfg "github.com/primandproper/platform-go/v13/database/config"
-	emailcfg "github.com/primandproper/platform-go/v13/email/config"
-	"github.com/primandproper/platform-go/v13/encoding"
-	httpclientcfg "github.com/primandproper/platform-go/v13/httpclient"
-	msgconfig "github.com/primandproper/platform-go/v13/messagequeue/config"
-	notificationscfg "github.com/primandproper/platform-go/v13/notifications/mobile/config"
-	"github.com/primandproper/platform-go/v13/observability"
-	textsearchcfg "github.com/primandproper/platform-go/v13/search/text/config"
+	analyticscfg "github.com/primandproper/primitives-go/v2/analytics/config"
+	databasecfg "github.com/primandproper/primitives-go/v2/database/config"
+	emailcfg "github.com/primandproper/primitives-go/v2/email/config"
+	"github.com/primandproper/primitives-go/v2/encoding"
+	httpclientcfg "github.com/primandproper/primitives-go/v2/httpclient"
+	msgconfig "github.com/primandproper/primitives-go/v2/messagequeue/config"
+	notificationscfg "github.com/primandproper/primitives-go/v2/notifications/mobile/config"
+	"github.com/primandproper/primitives-go/v2/observability"
+	textsearchcfg "github.com/primandproper/primitives-go/v2/search/text/config"
 
 	"github.com/samber/do/v2"
 )
@@ -59,8 +59,9 @@ func RegisterConfigs(i do.Injector) {
 		cfg := do.MustInvoke[*config.AsyncMessageHandlerConfig](i)
 		return cfg.Encoding, nil
 	})
-	do.Provide[notificationscfg.Config](i, func(i do.Injector) (notificationscfg.Config, error) {
-		cfg := do.MustInvoke[*config.AsyncMessageHandlerConfig](i)
-		return cfg.PushNotifications, nil
+	// A pointer, which is what RegisterPushSender resolves: NewPushSender applies its
+	// defaults to what it is handed, and a value copy would discard them.
+	do.Provide[*notificationscfg.Config](i, func(i do.Injector) (*notificationscfg.Config, error) {
+		return &do.MustInvoke[*config.AsyncMessageHandlerConfig](i).PushNotifications, nil
 	})
 }

@@ -11,22 +11,20 @@ webhook event catalog, so a subscriber can already ask for them; a write that
 skipped the pair would be a row with no provenance and a subscriber that never
 heard.
 
-# The transaction the events are not in
+# The transaction the events are in
 
-Every hand-written repository here emits inside the transaction that wrote the
-row, so the event lives or dies with what it describes (see
-internal/repositories/postgres/events). This one cannot: platform's
-CreateComment, UpdateComment and ArchiveComment own their transactions and take
-no executor, so the audit entry and the event are a second transaction after the
-first has committed.
+Every hand-written repository here emits inside the transaction that wrote
+the row, so the event lives or dies with what it describes (see
+internal/repositories/postgres/events). This one now does too. It could not
+before: platform's writes owned their transactions and took no executor, so
+the audit entry and the event were a second transaction after the first had
+committed, and a comment could exist that nothing had recorded.
 
-The gap that opens is the ordinary one — the comment lands, the process dies, and
-nothing is recorded about it. It is narrow and it is one-directional: a comment
-can exist with no event, but no event can name a comment that was not written.
-Closing it needs platform's write methods to accept a database.Tx the way
-DeleteCommentsForTarget and DeleteCommentsByAuthor already do. That is filed
-upstream as platform-go #457 rather than worked around here — a gap papered over
-locally stops being a gap anyone remembers.
+As of platform-go v14 a store write takes the caller's database.Tx, so the
+write, the entry and the event are one transaction and share one fate. The
+gap filed upstream as platform-go #457 is closed by that convention rather
+than by anything here, which is why this package has no workaround to
+delete.
 */
 package comments
 
@@ -37,12 +35,11 @@ import (
 	ddbcomments "github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments"
 	commentskeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments/keys"
 
-	platformcomments "github.com/primandproper/platform-go/v13/comments"
-	"github.com/primandproper/platform-go/v13/database"
-	"github.com/primandproper/platform-go/v13/identifiers"
-	"github.com/primandproper/platform-go/v13/observability"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
-	"github.com/primandproper/platform-go/v13/tenancy"
+	platformcomments "github.com/primandproper/platform-go/v14/comments"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/identifiers"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
 // resourceTypeComments is what an audit entry about a comment names.
@@ -51,80 +48,92 @@ const resourceTypeComments = "comments"
 var _ platformcomments.Store = (*repository)(nil)
 
 // CreateComment writes the comment, then records it.
-func (q *repository) CreateComment(ctx context.Context, comment *platformcomments.Comment) error {
+func (q *repository) CreateComment(ctx context.Context, tx database.Tx, scope tenancy.Scope, comment *platformcomments.Comment) (*platformcomments.Comment, error) {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	if err := q.Store.CreateComment(ctx, comment); err != nil {
-		return err
+	created, err := q.Store.CreateComment(ctx, tx, scope, comment)
+	if err != nil {
+		return nil, err
 	}
 
-	tracing.AttachToSpan(span, commentskeys.CommentIDKey, comment.ID)
+	tracing.AttachToSpan(span, commentskeys.CommentIDKey, created.ID)
 
-	return q.record(ctx, comment.ID, comment.Author, audit.AuditLogEventTypeCreated, ddbcomments.CommentCreatedServiceEventType)
+	if err = q.record(ctx, tx, created.ID, created.Author, audit.AuditLogEventTypeCreated, ddbcomments.CommentCreatedServiceEventType); err != nil {
+		return nil, err
+	}
+
+	return created, nil
 }
 
 // UpdateComment revises the body, then records it.
-func (q *repository) UpdateComment(ctx context.Context, comment *platformcomments.Comment) error {
+func (q *repository) UpdateComment(ctx context.Context, tx database.Tx, scope tenancy.Scope, comment *platformcomments.Comment) (*platformcomments.Comment, error) {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
-	if err := q.Store.UpdateComment(ctx, comment); err != nil {
-		return err
+	updated, err := q.Store.UpdateComment(ctx, tx, scope, comment)
+	if err != nil {
+		return nil, err
 	}
 
-	tracing.AttachToSpan(span, commentskeys.CommentIDKey, comment.ID)
+	tracing.AttachToSpan(span, commentskeys.CommentIDKey, updated.ID)
 
-	return q.record(ctx, comment.ID, comment.Author, audit.AuditLogEventTypeUpdated, ddbcomments.CommentUpdatedServiceEventType)
+	if err = q.record(ctx, tx, updated.ID, updated.Author, audit.AuditLogEventTypeUpdated, ddbcomments.CommentUpdatedServiceEventType); err != nil {
+		return nil, err
+	}
+
+	return updated, nil
 }
 
 // ArchiveComment removes the comment from the discussion, then records it.
 //
-// The author is read before the archive rather than after, because an audit entry
-// names who the row belonged to and the archived row is the one this method is
-// about. A read that fails is the archive's failure too: platform answers an
-// absent, archived, or other-scope comment as ErrCommentNotFound either way, so
-// returning it from here is the same answer one call earlier.
-func (q *repository) ArchiveComment(ctx context.Context, scope tenancy.Scope, commentID string) error {
+// The author no longer needs a read of its own. v14's ArchiveComment returns the
+// row it archived, so the entry names who the row belonged to without the extra
+// round trip the old signature forced — and without the window between the read
+// and the archive.
+func (q *repository) ArchiveComment(ctx context.Context, tx database.Tx, scope tenancy.Scope, commentID string) (*platformcomments.Comment, error) {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
 	tracing.AttachToSpan(span, commentskeys.CommentIDKey, commentID)
 
-	comment, err := q.GetComment(ctx, scope, commentID)
+	archived, err := q.Store.ArchiveComment(ctx, tx, scope, commentID)
 	if err != nil {
-		return observability.PrepareError(err, span, "fetching comment for archive")
+		return nil, err
 	}
 
-	if err = q.Store.ArchiveComment(ctx, scope, commentID); err != nil {
-		return err
+	if err = q.record(ctx, tx, commentID, archived.Author, audit.AuditLogEventTypeArchived, ddbcomments.CommentArchivedServiceEventType); err != nil {
+		return nil, err
 	}
 
-	return q.record(ctx, commentID, comment.Author, audit.AuditLogEventTypeArchived, ddbcomments.CommentArchivedServiceEventType)
+	return archived, nil
 }
 
-// record writes the audit entry and enqueues the data change event, in one
-// transaction of their own.
+// record writes the audit entry and enqueues the data change event, inside the
+// caller's transaction.
+//
+// It used to open one of its own, because the write it describes had already
+// committed inside the platform store. As of platform-go v14 that store takes
+// the caller's executor, so the comment, the entry and the event commit
+// together or not at all.
 //
 // The two travel together because they answer the same question from opposite
 // sides — the audit log for whoever asks later who did this, the outbox for
 // whoever needs to know now — and a write that carried one without the other
 // would be a write nobody could tell was incomplete.
-func (q *repository) record(ctx context.Context, commentID, author, auditEventType, changeEventType string) error {
+func (q *repository) record(ctx context.Context, tx database.Tx, commentID, author, auditEventType, changeEventType string) error {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
 	logger := q.logger.WithSpan(span).WithValue(commentskeys.CommentIDKey, commentID)
 
-	return q.client.WithTransaction(ctx, func(tx database.Tx) error {
-		return q.recorder.RecordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
-			ID:            identifiers.New(),
-			ResourceType:  resourceTypeComments,
-			RelevantID:    commentID,
-			EventType:     auditEventType,
-			BelongsToUser: author,
-		}, changeEventType, "", map[string]any{
-			commentskeys.CommentIDKey: commentID,
-		})
+	return q.recorder.RecordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
+		ID:            identifiers.New(),
+		ResourceType:  resourceTypeComments,
+		RelevantID:    commentID,
+		EventType:     auditEventType,
+		BelongsToUser: author,
+	}, changeEventType, "", map[string]any{
+		commentskeys.CommentIDKey: commentID,
 	})
 }

@@ -256,10 +256,11 @@
 			},
 			"oauth2": {
 				"provider": "database",
-				"issuer": "https://http-api.dinnerdonebetter.com",
 				"database": {
 					"tablePrefix": "ddb"
 				},
+				"sweepInterval": 0,
+				"issuer": "https://http-api.dinnerdonebetter.com",
 				"resources": [
 					"https://http-api.dinnerdonebetter.com"
 				]
@@ -386,7 +387,7 @@
 				"useJitter": true
 			},
 			"pollInterval": 1000000000,
-			"leaseDuration": 60000000000,
+			"leaseDuration": 120000000000,
 			"requestTimeout": 10000000000,
 			"circuitOpenRetryDelay": 30000000000,
 			"retention": 604800000000000,

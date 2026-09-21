@@ -8,8 +8,8 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 
-	platformwebauthn "github.com/primandproper/platform-go/v13/authentication/webauthn"
-	webauthncfg "github.com/primandproper/platform-go/v13/authentication/webauthn/config"
+	webauthncfg "github.com/primandproper/platform-go/v14/authentication/webauthnsessions/config"
+	platformwebauthn "github.com/primandproper/primitives-go/v2/authentication/webauthn"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -60,7 +60,12 @@ func TestProvidePasskeyConfig(T *testing.T) {
 
 		actual.EnsureDefaults()
 		assert.Equal(t, webauthncfg.ProviderDatabase, actual.Provider)
-		assert.Positive(t, actual.SweepInterval)
+
+		// A pointer as of v14, so that "the operator asked for no sweeping" is expressible
+		// and distinct from "the operator said nothing". EnsureDefaults has to fill it,
+		// because a nil here is the second of those and the table would grow forever.
+		require.NotNil(t, actual.SweepInterval)
+		assert.Positive(t, *actual.SweepInterval)
 	})
 
 	// The fallback must not smuggle in a config the relying party then refuses to be built

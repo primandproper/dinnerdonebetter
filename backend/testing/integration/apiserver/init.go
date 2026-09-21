@@ -8,21 +8,20 @@ import (
 	"net"
 	"time"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	apiserver "github.com/primandproper/dinnerdonebetter/backend/internal/build/services/api"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/localdev"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
-	identityrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity"
-	notificationsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/notifications"
+	notificationsstore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/notificationsstore"
+	paymentsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/payments"
 
-	"github.com/primandproper/platform-go/v13/database"
-	"github.com/primandproper/platform-go/v13/identifiers"
-	msgconfig "github.com/primandproper/platform-go/v13/messagequeue/config"
-	"github.com/primandproper/platform-go/v13/random"
+	platformoauth2clients "github.com/primandproper/platform-go/v14/authentication/oauth2clients"
+	"github.com/primandproper/platform-go/v14/billing"
+	"github.com/primandproper/primitives-go/v2/database"
+	msgconfig "github.com/primandproper/primitives-go/v2/messagequeue/config"
+	metricsnoop "github.com/primandproper/primitives-go/v2/observability/metrics/noop"
 )
 
 const (
@@ -47,7 +46,16 @@ var (
 	databaseClient                       database.Client
 	apiServiceConfig                     *config.APIServiceConfig
 	notifsRepo                           notifications.Repository
-	httpTestServerAddress                string
+
+	// billingStore seeds the rows two RPCs used to write.
+	//
+	// platform's billing surface has no CreateSubscription or UpdateSubscription, and that
+	// is the ruling rather than a gap: a Subscription mirrors what a payment provider says
+	// is paid for, so one created over the wire would grant paid features with nothing
+	// behind them. A test that needs a subscription to read therefore writes one the way
+	// the webhook handler does — through the store.
+	billingStore          billing.Store
+	httpTestServerAddress string
 
 	// dataPrivacyFulfillment is the scheduler's half of a subject access request, run in this
 	// process. See the note beside where it is started.
@@ -141,27 +149,30 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	uploadsRegistryStore, err := localdev.UploadsRegistry(pillars.Logger, pillars.TracerProvider, databaseClient)
+	identityDirectory, identityStore, err := localdev.IdentityDirectory(pillars.Logger, pillars.TracerProvider, databaseClient)
 	if err != nil {
 		log.Fatal(err)
 	}
-	policy, err := authorization.NewDatabaseResolver(databaseClient.Reader(), pillars.Logger, pillars.TracerProvider, nil)
+	notifsRepo, err = notificationsstore.ProvideAdapter(ctx, pillars.Logger, pillars.TracerProvider,
+		metricsnoop.NewMetricsProvider(), auditLogRepo, nil, databaseClient)
 	if err != nil {
 		log.Fatal(err)
 	}
-	identityRepo := identityrepo.ProvideIdentityRepository(pillars.Logger, pillars.TracerProvider, auditLogRepo, databaseClient, nil, uploadsRegistryStore, policy)
-	notifsRepo = notificationsrepo.ProvideNotificationsRepository(nil, nil, auditLogRepo, &dbCfg.Config, databaseClient, nil)
-	adminUser, err := localdev.CreatePremadeAdminUser(ctx, pillars.Logger, pillars.TracerProvider, identityRepo, databaseClient, premadeAdminUser)
+	billingStore, err = paymentsrepo.ProvidePaymentsRepository(ctx, pillars.Logger, pillars.TracerProvider,
+		metricsnoop.NewMetricsProvider(), auditLogRepo, databaseClient, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	adminUser, err := localdev.CreatePremadeAdminUser(ctx, pillars.Logger, pillars.TracerProvider, identityDirectory, identityStore, databaseClient, premadeAdminUser)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	createdClient, err := localdev.CreateOAuth2ClientForService(ctx, databaseClient, dbCfg, &oauth.OAuth2ClientDatabaseCreationInput{
-		ID:           identifiers.New(),
-		Name:         "integration_client",
-		Description:  "integration test client",
-		ClientID:     random.MustGenerateHexEncodedString(ctx, oauth.ClientIDSize),
-		ClientSecret: random.MustGenerateHexEncodedString(ctx, oauth.ClientSecretSize),
+	// The credentials are the registry's to mint, and the plaintext secret exists on what
+	// this returns and nowhere else — the row holds a digest and no read reverses it.
+	issuedClient, err := localdev.CreateOAuth2ClientForService(ctx, databaseClient, &platformoauth2clients.CreationInput{
+		Name:        "integration_client",
+		Description: "integration test client",
 		// Registered, and matched byte for byte at /authorize and again at /token. The suite
 		// authorizes against the API server's own address — nothing listens for the redirect,
 		// because the code is read off the Location header rather than followed — and that
@@ -171,7 +182,7 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	createdClientID, createdClientSecret = createdClient.ClientID, createdClient.ClientSecret
+	createdClientID, createdClientSecret = issuedClient.Client.ClientID, issuedClient.Secret
 
 	// The scheduler's half of the system. The API only starts sagas; without something
 	// advancing them, everything downstream of meal plan finalization would never happen and

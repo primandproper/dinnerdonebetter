@@ -3,6 +3,7 @@ package scheduler
 import (
 	"context"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	commentstargets "github.com/primandproper/dinnerdonebetter/backend/internal/build/comments"
 	dataprivacybuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/dataprivacy"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/build/sagas"
@@ -13,17 +14,19 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/push"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
+	authrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auth"
 	commentsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/comments"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
-	identityrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity"
+	identitystore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identitystore"
 	internalopsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/internalops"
 	issuereportsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/issuereports"
 	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
+	oauth2clientsstore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/oauth2clientsstore"
 	paymentsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/payments"
 	settingsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/settings"
 	uploadedmediarepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/uploadedmedia"
 	waitlistsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/waitlists"
-	webhooksrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhooks"
+	webhooksstore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhooksstore"
 	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
 	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
 	queuetest "github.com/primandproper/dinnerdonebetter/backend/internal/services/internalops/workers/queue_test"
@@ -31,22 +34,22 @@ import (
 	mealplanfinalization "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_finalization"
 	mealplantasknotifications "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_task_notifications"
 
-	"github.com/primandproper/platform-go/v13/database"
-	databasecfg "github.com/primandproper/platform-go/v13/database/config"
-	"github.com/primandproper/platform-go/v13/database/postgres"
-	"github.com/primandproper/platform-go/v13/distributedlock"
-	distributedlockcfg "github.com/primandproper/platform-go/v13/distributedlock/config"
-	"github.com/primandproper/platform-go/v13/jobs"
-	msgconfig "github.com/primandproper/platform-go/v13/messagequeue/config"
-	notificationscfg "github.com/primandproper/platform-go/v13/notifications/mobile/config"
-	"github.com/primandproper/platform-go/v13/observability"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	loggingcfg "github.com/primandproper/platform-go/v13/observability/logging/config"
-	"github.com/primandproper/platform-go/v13/observability/metrics"
-	metricscfg "github.com/primandproper/platform-go/v13/observability/metrics/config"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
-	tracingcfg "github.com/primandproper/platform-go/v13/observability/tracing/config"
-	operationscfg "github.com/primandproper/platform-go/v13/operations/config"
+	operationscfg "github.com/primandproper/platform-go/v14/operations/config"
+	"github.com/primandproper/primitives-go/v2/database"
+	databasecfg "github.com/primandproper/primitives-go/v2/database/config"
+	"github.com/primandproper/primitives-go/v2/database/postgres"
+	"github.com/primandproper/primitives-go/v2/distributedlock"
+	distributedlockcfg "github.com/primandproper/primitives-go/v2/distributedlock/config"
+	"github.com/primandproper/primitives-go/v2/jobs"
+	msgconfig "github.com/primandproper/primitives-go/v2/messagequeue/config"
+	notificationscfg "github.com/primandproper/primitives-go/v2/notifications/mobile/config"
+	"github.com/primandproper/primitives-go/v2/observability"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	loggingcfg "github.com/primandproper/primitives-go/v2/observability/logging/config"
+	"github.com/primandproper/primitives-go/v2/observability/metrics"
+	metricscfg "github.com/primandproper/primitives-go/v2/observability/metrics/config"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
+	tracingcfg "github.com/primandproper/primitives-go/v2/observability/tracing/config"
 
 	"github.com/samber/do/v2"
 )
@@ -96,8 +99,8 @@ func BuildInjector(
 	// What a role grants, read from the policy tables the migrator seeds. The
 	// identity repository resolves a principal's role names through it when it
 	// builds a session.
-	identityrepo.RegisterPolicyResolver(i)
-	identityrepo.RegisterIdentityRepository(i)
+	authorization.RegisterPolicyResolver(i)
+	identitystore.RegisterIdentityStore(i)
 	internalopsrepo.RegisterInternalOpsRepository(i)
 	issuereportsrepo.RegisterIssueReportsRepository(i)
 	paymentsrepo.RegisterPaymentsRepository(i)
@@ -107,7 +110,7 @@ func BuildInjector(
 	// This also registers the webhook Store and Dispatcher, which this process needs in both
 	// directions: dispatch happens inside the transaction that causes the event, and the meal
 	// plan finalizer emits events like any request does.
-	webhooksrepo.RegisterWebhooksRepository(i)
+	webhooksstore.RegisterWebhooksStore(i)
 
 	// The notifications manager and the push fan-out over it. The manager registers the
 	// notifications repository on its own, which is why that one is absent from the list
@@ -116,6 +119,17 @@ func BuildInjector(
 	// handler builds the same one.
 	notificationsmanager.RegisterNotificationsDataManager(i)
 	push.RegisterFanout(i)
+
+	// The two credential stores the privacy registry collects from and nothing else in
+	// this process touches. The passkey store arrives with the identity store above.
+	//
+	// They are here because this is the process that fulfills a subject access request, and
+	// an export owes the subject every domain that holds them — including which devices can
+	// sign in as them, which reset links are outstanding, and what holds API access on their
+	// behalf. A registry built in a container missing one of these fails when the worker
+	// starts; a registry that skipped it instead would deliver an export that looks complete.
+	authrepo.RegisterAuthRepository(i)
+	oauth2clientsstore.RegisterOAuth2ClientsStore(i)
 
 	// The data privacy machinery: the bucket and cipher artifacts are written with, the
 	// registry of who holds data about a person, the worker that fulfills, and the sweeper

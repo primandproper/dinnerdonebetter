@@ -3,11 +3,11 @@ package metering
 import (
 	"context"
 
-	"github.com/primandproper/platform-go/v13/capitalism"
-	"github.com/primandproper/platform-go/v13/database"
-	platformmetering "github.com/primandproper/platform-go/v13/metering"
-	meteringcfg "github.com/primandproper/platform-go/v13/metering/config"
-	"github.com/primandproper/platform-go/v13/observability"
+	platformmetering "github.com/primandproper/platform-go/v14/metering"
+	meteringcfg "github.com/primandproper/platform-go/v14/metering/config"
+	"github.com/primandproper/primitives-go/v2/capitalism"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/observability"
 
 	"github.com/samber/do/v2"
 )
@@ -110,12 +110,17 @@ func RegisterEnforcer(i do.Injector) {
 		return meteringcfg.NewEnforcer(
 			ctx,
 			do.MustInvoke[*meteringcfg.Config](i),
+			// The enforcer is the one metering constructor that takes a client:
+			// Consume reserves under a row lock held for the caller's transaction,
+			// which is what makes the decision a reservation rather than a reading.
+			do.MustInvoke[database.Client](i),
 			do.MustInvoke[platformmetering.Store](i),
 			do.MustInvoke[*platformmetering.Registry](i),
 			nil,
-			do.MustInvoke[platformmetering.QuotaSource](i),
-			// No cache — see above.
-			nil,
+			// v14 moved the quota source and the totals cache out of the parameter
+			// list and into options, which is what lets this site stop passing a
+			// bare nil for the cache it does not use. See above for why there is none.
+			meteringcfg.WithEnforcerQuotaSource(do.MustInvoke[platformmetering.QuotaSource](i)),
 			meteringcfg.WithPillars(pillars),
 		)
 	})

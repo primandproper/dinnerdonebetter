@@ -12,14 +12,14 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/recipevalidator"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
-	"github.com/primandproper/platform-go/v13/database"
-	platformerrors "github.com/primandproper/platform-go/v13/errors"
-	"github.com/primandproper/platform-go/v13/filtering"
-	"github.com/primandproper/platform-go/v13/identifiers"
-	"github.com/primandproper/platform-go/v13/observability"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
-	"github.com/primandproper/platform-go/v13/pointer"
-	"github.com/primandproper/platform-go/v13/uploads/registry"
+	"github.com/primandproper/platform-go/v14/mediaregistry"
+	"github.com/primandproper/primitives-go/v2/database"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/filtering"
+	"github.com/primandproper/primitives-go/v2/identifiers"
+	"github.com/primandproper/primitives-go/v2/observability"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
+	"github.com/primandproper/primitives-go/v2/pointer"
 )
 
 var (
@@ -234,7 +234,7 @@ func (q *repository) getRecipe(ctx context.Context, recipeID string, visited ...
 		}
 		x.Steps[i].Media = recipeMedia
 
-		var stepImages []*registry.Object
+		var stepImages []*mediaregistry.Object
 		stepImages, err = q.enrichRecipeStepWithStepImages(ctx, step.ID)
 		if err != nil {
 			return nil, observability.PrepareError(err, span, "fetching recipe step images")
@@ -669,8 +669,8 @@ func (q *repository) ScanRecipeIDsForReindex(ctx context.Context, after string, 
 	defer span.End()
 
 	results, err := q.generatedQuerier.ScanRecipeIDsForReindex(ctx, q.readDB, &generated.ScanRecipeIDsForReindexParams{
-		PageCursor:  after,
-		ResultLimit: limit,
+		ReindexCursor: after,
+		ResultLimit:   limit,
 	})
 	if err != nil {
 		return nil, observability.PrepareError(err, span, "executing recipes reindex scan query")
@@ -910,7 +910,11 @@ func (q *repository) validateAndPopulateRecipeInput(ctx context.Context, input *
 	// Create validator and validate/populate the input
 	validator := recipevalidator.NewRecipeValidator(vipMap, vimuMap, vpiMap, vpvMap)
 	if err = validator.ValidateAndPopulate(input); err != nil {
-		return observability.PrepareError(err, span, "validating recipe input")
+		// Joined with the sentinel rather than replaced by it: the sentinel is what the
+		// error mapper reads to answer InvalidArgument, and the validator's own message is
+		// what names the reference that disagreed. A caller needs both.
+		return observability.PrepareError(
+			fmt.Errorf("%w: %w", mealplanning.ErrInvalidRecipeInput, err), span, "validating recipe input")
 	}
 
 	return nil
@@ -927,8 +931,12 @@ func (q *repository) CreateRecipe(ctx context.Context, input *mealplanning.Recip
 	logger := q.logger.WithValue(mealplanningkeys.RecipeIDKey, input.ID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeIDKey, input.ID)
 
+	// Joined with the sentinel rather than replaced by it: the sentinel is what the error
+	// mapper reads to answer InvalidArgument, and the validation's own message is what says
+	// which rule the recipe broke. A caller needs both.
 	if err := input.ValidateWithContext(ctx); err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "validating recipe input")
+		return nil, observability.PrepareAndLogError(
+			fmt.Errorf("%w: %w", mealplanning.ErrInvalidRecipeInput, err), logger, span, "validating recipe input")
 	}
 
 	// Validate and populate bridge table IDs if any are present

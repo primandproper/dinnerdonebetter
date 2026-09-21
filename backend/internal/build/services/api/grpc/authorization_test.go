@@ -7,13 +7,14 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
-	paymentssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/payments"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc/interceptors"
 
-	platformauthz "github.com/primandproper/platform-go/v13/authorization"
-	"github.com/primandproper/platform-go/v13/authorization/static"
-	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
-	metricsnoop "github.com/primandproper/platform-go/v13/observability/metrics/noop"
+	billingpb "github.com/primandproper/platform-go/v14/billing/billingpb"
+	billinggrpc "github.com/primandproper/platform-go/v14/billing/grpc"
+	platformauthz "github.com/primandproper/primitives-go/v2/authorization"
+	"github.com/primandproper/primitives-go/v2/authorization/static"
+	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
+	metricsnoop "github.com/primandproper/primitives-go/v2/observability/metrics/noop"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -84,15 +85,15 @@ func TestPlatformGrants(T *testing.T) {
 		t.Parallel()
 
 		service := authorization.NewServiceRolePermissionChecker(
-			[]string{authorization.ServiceAdminRoleName}, []authorization.Permission{authorization.ReadUserPermission})
+			[]string{authorization.ServiceAdminRoleName}, []authorization.Permission{authorization.PermissionReadUsers})
 		account := authorization.NewAccountRolePermissionChecker(
-			[]authorization.Permission{authorization.CreateWebhooksPermission})
+			[]authorization.Permission{authorization.SaveWebhookEndpointsPermission})
 
 		grants := authorization.PlatformGrants(service, account)
 
-		assert.True(t, grants.Has(platformauthz.Permission(authorization.ReadUserPermission)))
-		assert.True(t, grants.Has(platformauthz.Permission(authorization.CreateWebhooksPermission)))
-		assert.False(t, grants.Has(platformauthz.Permission(authorization.ArchiveUserPermission)))
+		assert.True(t, grants.Has(authorization.PermissionReadUsers))
+		assert.True(t, grants.Has(authorization.SaveWebhookEndpointsPermission))
+		assert.False(t, grants.Has(authorization.PermissionArchiveUsers))
 	})
 
 	T.Run("with no checkers at all", func(t *testing.T) {
@@ -108,12 +109,12 @@ func buildTestEnforcer(t *testing.T) *grpc.UnaryServerInterceptor {
 	t.Helper()
 
 	perms := interceptors.MethodPermissionsMap{
-		paymentssvc.PaymentsService_CreateSubscription_FullMethodName: {authorization.CreateSubscriptionsPermission},
+		billingpb.BillingService_ArchiveSubscription_FullMethodName: {billinggrpc.PermissionArchiveSubscriptions},
 	}
 
 	enforcer, err := ProvideAuthorizationEnforcer(
 		perms,
-		interceptors.ProvideAuthInterceptor(nil, loggingnoop.NewLogger(), nil, nil, nil, "", nil, perms),
+		interceptors.ProvideAuthInterceptor(nil, loggingnoop.NewLogger(), nil, nil, nil, nil, nil, "", nil, perms),
 		loggingnoop.NewLogger(),
 		metricsnoop.NewMetricsProvider(),
 		true,
@@ -137,15 +138,15 @@ func TestProvideAuthorizationEnforcer(T *testing.T) {
 		handler := func(context.Context, any) (any, error) {
 			called++
 
-			return &paymentssvc.CreateSubscriptionResponse{}, nil
+			return &billingpb.ArchiveSubscriptionResponse{}, nil
 		}
 
-		info := &grpc.UnaryServerInfo{FullMethod: paymentssvc.PaymentsService_CreateSubscription_FullMethodName}
+		info := &grpc.UnaryServerInfo{FullMethod: billingpb.BillingService_ArchiveSubscription_FullMethodName}
 
 		// A caller with no session at all would be refused under enforcement. Audit mode
 		// records that and runs the handler anyway — which is the whole point, and the
 		// property that makes deploying this safe.
-		_, err := interceptor(t.Context(), &paymentssvc.CreateSubscriptionRequest{}, info, handler)
+		_, err := interceptor(t.Context(), &billingpb.ArchiveSubscriptionRequest{}, info, handler)
 		require.NoError(t, err)
 		assert.Equal(t, 1, called)
 	})
@@ -159,7 +160,7 @@ func TestProvideAuthorizationEnforcer(T *testing.T) {
 		handler := func(context.Context, any) (any, error) {
 			called++
 
-			return &paymentssvc.CreateSubscriptionResponse{}, nil
+			return &billingpb.ArchiveSubscriptionResponse{}, nil
 		}
 
 		ctx := sessions.AttachToContext(t.Context(), &sessions.ContextData{
@@ -167,14 +168,14 @@ func TestProvideAuthorizationEnforcer(T *testing.T) {
 				UserID: "user_1",
 				ServicePermissions: authorization.NewServiceRolePermissionChecker(
 					[]string{authorization.ServiceAdminRoleName},
-					[]authorization.Permission{authorization.CreateSubscriptionsPermission},
+					[]authorization.Permission{billinggrpc.PermissionArchiveSubscriptions},
 				),
 			},
 		})
 
-		info := &grpc.UnaryServerInfo{FullMethod: paymentssvc.PaymentsService_CreateSubscription_FullMethodName}
+		info := &grpc.UnaryServerInfo{FullMethod: billingpb.BillingService_ArchiveSubscription_FullMethodName}
 
-		_, err := interceptor(ctx, &paymentssvc.CreateSubscriptionRequest{}, info, handler)
+		_, err := interceptor(ctx, &billingpb.ArchiveSubscriptionRequest{}, info, handler)
 		require.NoError(t, err)
 		assert.Equal(t, 1, called)
 	})

@@ -2,12 +2,15 @@ package integration
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"testing"
 
-	auditgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/audit"
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
 
-	"github.com/primandproper/platform-go/v13/filtering/filteringpb"
+	auditgrpc "github.com/primandproper/platform-go/v14/audit/auditpb"
+	"github.com/primandproper/primitives-go/v2/filtering"
+	"github.com/primandproper/primitives-go/v2/filtering/filteringpb"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -23,7 +26,7 @@ type ExpectedAuditEntry struct {
 }
 
 // entryMatches returns true if the actual proto entry matches all non-empty expected criteria.
-func entryMatches(actual *auditgrpc.AuditLogEntry, exp *ExpectedAuditEntry) bool {
+func entryMatches(actual *auditgrpc.Entry, exp *ExpectedAuditEntry) bool {
 	if exp == nil {
 		return false
 	}
@@ -33,7 +36,7 @@ func entryMatches(actual *auditgrpc.AuditLogEntry, exp *ExpectedAuditEntry) bool
 	if exp.ResourceType != "" && actual.GetResourceType() != exp.ResourceType {
 		return false
 	}
-	if exp.RelevantID != "" && actual.GetRelevantId() != exp.RelevantID {
+	if exp.RelevantID != "" && actual.GetResourceId() != exp.RelevantID {
 		return false
 	}
 	for _, k := range exp.ChangesHasKeys {
@@ -47,7 +50,11 @@ func entryMatches(actual *auditgrpc.AuditLogEntry, exp *ExpectedAuditEntry) bool
 		if !ok || c == nil {
 			return false
 		}
-		if c.GetNewValue() != want {
+		// platform types a change's values as structpb.Value rather than string,
+		// which is what lets a numeric change read as a number rather than as its
+		// rendering. Every expectation here is a string, so this reads the string
+		// arm; a non-string expectation would want its own.
+		if c.GetNewValue().GetStringValue() != want {
 			return false
 		}
 	}
@@ -60,10 +67,22 @@ func AssertAuditLogContainsFuzzy(t *testing.T, ctx context.Context, c client.Cli
 	t.Helper()
 
 	limit32 := uint32(limit)
-	resp, err := c.GetAuditLogEntriesForAccount(ctx, &auditgrpc.GetAuditLogEntriesForAccountRequest{
-		AccountId: accountID,
+	// The account is the scope the connection resolves, so it is not a request
+	// field any more — platform binds the query's scope off the principal and the
+	// proto argues at length why there can be no scope field. accountID is kept
+	// in the signature because every caller has it and the assertion message
+	// names it.
+	_ = accountID
+
+	resp, err := c.ListEntries(ctx, &auditgrpc.ListEntriesRequest{
 		Filter: &filteringpb.QueryFilter{
 			MaxResponseSize: &limit32,
+			// Newest first. An audit chain is seq-ordered and platform pages it
+			// ascending by default, so a bounded window without this is the account's
+			// oldest entries — its registration, every time — and never the write the
+			// caller just made. The RPC this replaced sorted the other way, which is why
+			// the window was small enough to be a useful assertion in the first place.
+			SortBy: filtering.SortDescending,
 		},
 	})
 	require.NoError(t, err)
@@ -79,8 +98,8 @@ func AssertAuditLogContainsFuzzy(t *testing.T, ctx context.Context, c client.Cli
 			}
 		}
 		assert.True(t, found,
-			"expected audit log entry with EventType=%q ResourceType=%q RelevantID=%q within %d entries",
-			exp.EventType, exp.ResourceType, exp.RelevantID, limit)
+			"expected audit log entry with EventType=%q ResourceType=%q RelevantID=%q within %d entries, got %s",
+			exp.EventType, exp.ResourceType, exp.RelevantID, limit, summarizeEntries(entries))
 	}
 }
 
@@ -90,10 +109,21 @@ func AssertAuditLogContainsFuzzyForUser(t *testing.T, ctx context.Context, c cli
 	t.Helper()
 
 	limit32 := uint32(limit)
-	resp, err := c.GetAuditLogEntriesForUser(ctx, &auditgrpc.GetAuditLogEntriesForUserRequest{
-		UserId: userID,
+	// By actor, within the scope the connection resolved. That is narrower than
+	// the RPC this replaced, which filtered on actor across every chain the user
+	// appeared in; platform's surface reads one scope per request. See
+	// internal/build/auditlog for why, and why the cross-chain view is the
+	// privacy export rather than an API read.
+	resp, err := c.ListEntries(ctx, &auditgrpc.ListEntriesRequest{
+		Query: &auditgrpc.EntryQuery{ActorId: userID},
 		Filter: &filteringpb.QueryFilter{
 			MaxResponseSize: &limit32,
+			// Newest first. An audit chain is seq-ordered and platform pages it
+			// ascending by default, so a bounded window without this is the account's
+			// oldest entries — its registration, every time — and never the write the
+			// caller just made. The RPC this replaced sorted the other way, which is why
+			// the window was small enough to be a useful assertion in the first place.
+			SortBy: filtering.SortDescending,
 		},
 	})
 	require.NoError(t, err)
@@ -109,7 +139,77 @@ func AssertAuditLogContainsFuzzyForUser(t *testing.T, ctx context.Context, c cli
 			}
 		}
 		assert.True(t, found,
-			"expected audit log entry with EventType=%q ResourceType=%q RelevantID=%q within %d entries",
-			exp.EventType, exp.ResourceType, exp.RelevantID, limit)
+			"expected audit log entry with EventType=%q ResourceType=%q RelevantID=%q within %d entries, got %s",
+			exp.EventType, exp.ResourceType, exp.RelevantID, limit, summarizeEntries(entries))
 	}
+}
+
+// AssertAuditLogContainsFuzzyForResource asserts about the chain of something the caller is
+// not inside, by naming the resource rather than the chain.
+//
+// It exists because a chain is not always reachable from the session that wrote it. An
+// account's entries are filed under that account, and a member who creates a second account
+// does not move into it — there is no RPC that would — so from their own session the new
+// account's log is a chain they are not in. Nor can they ask for it: the query has no
+// account selector, deliberately, because the scope is the selector and platform binds it
+// to the connection.
+//
+// So this reads as a service administrator, whose read spans every chain (see
+// internal/build/auditlog), and narrows with the one selector that survives being unscoped:
+// the resource. That is the operator's read of "everything anybody recorded about this
+// thing", which is the question these assertions are actually asking.
+func AssertAuditLogContainsFuzzyForResource(
+	t *testing.T,
+	ctx context.Context,
+	resourceType, resourceID string,
+	limit int,
+	expected []*ExpectedAuditEntry,
+) {
+	t.Helper()
+
+	limit32 := uint32(limit)
+
+	resp, err := adminClient.ListEntries(ctx, &auditgrpc.ListEntriesRequest{
+		Query: &auditgrpc.EntryQuery{ResourceType: resourceType, ResourceId: resourceID},
+		Filter: &filteringpb.QueryFilter{
+			MaxResponseSize: &limit32,
+			SortBy:          filtering.SortDescending,
+		},
+	})
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+
+	entries := resp.GetResults()
+	for _, exp := range expected {
+		var found bool
+		for _, e := range entries {
+			if entryMatches(e, exp) {
+				found = true
+				break
+			}
+		}
+		assert.True(t, found,
+			"expected audit log entry with EventType=%q ResourceType=%q RelevantID=%q within %d entries, got %s",
+			exp.EventType, exp.ResourceType, exp.RelevantID, limit, summarizeEntries(entries))
+	}
+}
+
+// summarizeEntries renders what a window actually held, for an assertion that did not find
+// what it wanted in it.
+//
+// "Should be true" is the least useful thing a failing audit assertion can say: the window
+// is bounded and ordered, so the interesting question is always whether the entry is absent,
+// in another chain, or simply further down than the limit reached — and the answer is in the
+// rows that did come back.
+func summarizeEntries(entries []*auditgrpc.Entry) string {
+	if len(entries) == 0 {
+		return "an empty window"
+	}
+
+	seen := make([]string, 0, len(entries))
+	for _, e := range entries {
+		seen = append(seen, fmt.Sprintf("%s/%s/%s", e.GetEventType(), e.GetResourceType(), e.GetResourceId()))
+	}
+
+	return strings.Join(seen, ", ")
 }

@@ -20,12 +20,6 @@ import {
   type UntypedServiceImplementation,
 } from '@grpc/grpc-js';
 import {
-  AddCommentToMealPlanRequest,
-  AddCommentToMealPlanResponse,
-  AddCommentToMealRequest,
-  AddCommentToMealResponse,
-  AddCommentToRecipeRequest,
-  AddCommentToRecipeResponse,
   ArchiveAccountInstrumentOwnershipRequest,
   ArchiveAccountInstrumentOwnershipResponse,
   ArchiveMealListItemRequest,
@@ -480,39 +474,6 @@ export const protobufPackage = 'mealplanning';
 
 export type MealPlanningServiceService = typeof MealPlanningServiceService;
 export const MealPlanningServiceService = {
-  addCommentToMeal: {
-    path: '/mealplanning.MealPlanningService/AddCommentToMeal' as const,
-    requestStream: false as const,
-    responseStream: false as const,
-    requestSerialize: (value: AddCommentToMealRequest): Buffer =>
-      Buffer.from(AddCommentToMealRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): AddCommentToMealRequest => AddCommentToMealRequest.decode(value),
-    responseSerialize: (value: AddCommentToMealResponse): Buffer =>
-      Buffer.from(AddCommentToMealResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): AddCommentToMealResponse => AddCommentToMealResponse.decode(value),
-  },
-  addCommentToMealPlan: {
-    path: '/mealplanning.MealPlanningService/AddCommentToMealPlan' as const,
-    requestStream: false as const,
-    responseStream: false as const,
-    requestSerialize: (value: AddCommentToMealPlanRequest): Buffer =>
-      Buffer.from(AddCommentToMealPlanRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): AddCommentToMealPlanRequest => AddCommentToMealPlanRequest.decode(value),
-    responseSerialize: (value: AddCommentToMealPlanResponse): Buffer =>
-      Buffer.from(AddCommentToMealPlanResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): AddCommentToMealPlanResponse => AddCommentToMealPlanResponse.decode(value),
-  },
-  addCommentToRecipe: {
-    path: '/mealplanning.MealPlanningService/AddCommentToRecipe' as const,
-    requestStream: false as const,
-    responseStream: false as const,
-    requestSerialize: (value: AddCommentToRecipeRequest): Buffer =>
-      Buffer.from(AddCommentToRecipeRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): AddCommentToRecipeRequest => AddCommentToRecipeRequest.decode(value),
-    responseSerialize: (value: AddCommentToRecipeResponse): Buffer =>
-      Buffer.from(AddCommentToRecipeResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): AddCommentToRecipeResponse => AddCommentToRecipeResponse.decode(value),
-  },
   archiveMeal: {
     path: '/mealplanning.MealPlanningService/ArchiveMeal' as const,
     requestStream: false as const,
@@ -3214,9 +3175,6 @@ export const MealPlanningServiceService = {
 } as const;
 
 export interface MealPlanningServiceServer extends UntypedServiceImplementation {
-  addCommentToMeal: handleUnaryCall<AddCommentToMealRequest, AddCommentToMealResponse>;
-  addCommentToMealPlan: handleUnaryCall<AddCommentToMealPlanRequest, AddCommentToMealPlanResponse>;
-  addCommentToRecipe: handleUnaryCall<AddCommentToRecipeRequest, AddCommentToRecipeResponse>;
   archiveMeal: handleUnaryCall<ArchiveMealRequest, ArchiveMealResponse>;
   archiveMealPlan: handleUnaryCall<ArchiveMealPlanRequest, ArchiveMealPlanResponse>;
   archiveMealPlanEvent: handleUnaryCall<ArchiveMealPlanEventRequest, ArchiveMealPlanEventResponse>;
@@ -3669,51 +3627,6 @@ export interface MealPlanningServiceServer extends UntypedServiceImplementation 
 }
 
 export interface MealPlanningServiceClient extends Client {
-  addCommentToMeal(
-    request: AddCommentToMealRequest,
-    callback: (error: ServiceError | null, response: AddCommentToMealResponse) => void,
-  ): ClientUnaryCall;
-  addCommentToMeal(
-    request: AddCommentToMealRequest,
-    metadata: Metadata,
-    callback: (error: ServiceError | null, response: AddCommentToMealResponse) => void,
-  ): ClientUnaryCall;
-  addCommentToMeal(
-    request: AddCommentToMealRequest,
-    metadata: Metadata,
-    options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: AddCommentToMealResponse) => void,
-  ): ClientUnaryCall;
-  addCommentToMealPlan(
-    request: AddCommentToMealPlanRequest,
-    callback: (error: ServiceError | null, response: AddCommentToMealPlanResponse) => void,
-  ): ClientUnaryCall;
-  addCommentToMealPlan(
-    request: AddCommentToMealPlanRequest,
-    metadata: Metadata,
-    callback: (error: ServiceError | null, response: AddCommentToMealPlanResponse) => void,
-  ): ClientUnaryCall;
-  addCommentToMealPlan(
-    request: AddCommentToMealPlanRequest,
-    metadata: Metadata,
-    options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: AddCommentToMealPlanResponse) => void,
-  ): ClientUnaryCall;
-  addCommentToRecipe(
-    request: AddCommentToRecipeRequest,
-    callback: (error: ServiceError | null, response: AddCommentToRecipeResponse) => void,
-  ): ClientUnaryCall;
-  addCommentToRecipe(
-    request: AddCommentToRecipeRequest,
-    metadata: Metadata,
-    callback: (error: ServiceError | null, response: AddCommentToRecipeResponse) => void,
-  ): ClientUnaryCall;
-  addCommentToRecipe(
-    request: AddCommentToRecipeRequest,
-    metadata: Metadata,
-    options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: AddCommentToRecipeResponse) => void,
-  ): ClientUnaryCall;
   archiveMeal(
     request: ArchiveMealRequest,
     callback: (error: ServiceError | null, response: ArchiveMealResponse) => void,

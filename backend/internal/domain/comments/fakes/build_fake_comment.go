@@ -4,9 +4,9 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 
-	platformcomments "github.com/primandproper/platform-go/v13/comments"
-	"github.com/primandproper/platform-go/v13/fake"
-	"github.com/primandproper/platform-go/v13/filtering"
+	platformcomments "github.com/primandproper/platform-go/v14/comments"
+	"github.com/primandproper/primitives-go/v2/fake"
+	"github.com/primandproper/primitives-go/v2/filtering"
 )
 
 // BuildFakeComment builds a faked Comment.

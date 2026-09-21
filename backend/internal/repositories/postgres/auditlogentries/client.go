@@ -3,12 +3,12 @@ package auditlogentries
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 
-	platformaudit "github.com/primandproper/platform-go/v13/audit"
-	"github.com/primandproper/platform-go/v13/database"
-	platformerrors "github.com/primandproper/platform-go/v13/errors"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/metrics"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
+	platformaudit "github.com/primandproper/platform-go/v14/audit"
+	"github.com/primandproper/primitives-go/v2/database"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/metrics"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
 )
 
 const (
@@ -17,15 +17,17 @@ const (
 
 // repository is the audit log entry repository implementation.
 //
-// It holds no database handle. Writes take the caller's executor, so an entry
-// commits with the change it describes or not at all; reads go through the
-// platform Reader, which owns its own. The schema belongs to the platform as
+// Writes take the caller's executor, so an entry commits with the change it
+// describes or not at all. Reads take this repository's own read executor: as
+// of v14 the platform Reader holds no handle either, so the client is held
+// here to supply one. The schema belongs to the platform as
 // well — the uniqueness constraint that makes a forked chain unrepresentable is
 // the guarantee rather than an incidental storage detail — so there is no
 // generated querier here and no SQL in this package.
 type repository struct {
 	tracer   tracing.Tracer
 	logger   logging.Logger
+	db       database.Client
 	recorder platformaudit.Recorder
 	reader   platformaudit.Reader
 }
@@ -68,7 +70,7 @@ func ProvideAuditLogRepository(
 	}
 
 	reader, err := platformaudit.NewReader(
-		client,
+		client.Dialect(),
 		platformaudit.WithReaderTablePrefix(audit.TablePrefix),
 		platformaudit.WithReaderLogger(logging.EnsureLogger(logger)),
 		platformaudit.WithReaderTracerProvider(tracerProvider),
@@ -81,7 +83,35 @@ func ProvideAuditLogRepository(
 	return &repository{
 		tracer:   tracing.NewNamedTracer(tracerProvider, o11yName),
 		logger:   logging.NewNamedLogger(logger, o11yName),
+		db:       client,
 		recorder: recorder,
 		reader:   reader,
 	}, nil
+}
+
+// PlatformReader is the reader this repository built, for the surfaces that read
+// the log directly.
+//
+// It is exposed rather than rebuilt because rebuilding is the failure this
+// package's construction exists to prevent: a Reader assembled elsewhere could
+// be assembled with a different table prefix, and would then answer "no entries"
+// about a log that is full. platform's audit/grpc takes an audit.Reader, so this
+// is how it gets the one whose prefix matches the Recorder's.
+func (q *repository) PlatformReader() platformaudit.Reader { return q.reader }
+
+// ReaderFrom answers with the platform reader behind an audit.Repository.
+//
+// The assertion cannot fail for a repository this package built, and a
+// repository it did not build is a caller who has substituted the audit log —
+// in which case there is no platform reader and the surfaces that need one
+// should not be mounted.
+func ReaderFrom(repo audit.Repository) (platformaudit.Reader, bool) {
+	exposer, ok := repo.(interface {
+		PlatformReader() platformaudit.Reader
+	})
+	if !ok {
+		return nil, false
+	}
+
+	return exposer.PlatformReader(), true
 }

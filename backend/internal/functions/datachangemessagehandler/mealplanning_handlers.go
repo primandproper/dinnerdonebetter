@@ -5,20 +5,21 @@ import (
 	"fmt"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
+	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	eatingemails "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/emails"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	queuemessages "github.com/primandproper/dinnerdonebetter/backend/internal/queues/messages"
 
-	"github.com/primandproper/platform-go/v13/observability"
+	platformidentity "github.com/primandproper/platform-go/v14/identity"
+	"github.com/primandproper/primitives-go/v2/observability"
 )
 
 // handleMealPlanningOutboundNotification handles outbound notifications for meal planning domain events.
 func (a *AsyncDataChangeMessageHandler) handleMealPlanningOutboundNotification(
 	ctx context.Context,
 	changeMessage *audit.DataChangeMessage,
-	_ *identity.User,
+	_ *platformidentity.User,
 ) (
 	handled bool,
 	emailType string,
@@ -63,15 +64,23 @@ func (a *AsyncDataChangeMessageHandler) handleMealPlanCreatedNotification(
 		return nil, observability.PrepareError(fmt.Errorf("meal plan is nil"), span, "publishing meal plan created email")
 	}
 
-	account, err := a.identityRepo.GetAccount(ctx, mealPlan.BelongsToAccount)
+	// The roster, paged to the end. The read this replaced answered with an Account
+	// carrying its whole membership list, so a household past the first page would have
+	// had its later members silently left off the mailing.
+	members, err := ddbidentity.MembersOfAccount(ctx, a.directory, a.db.Reader(), mealPlan.BelongsToAccount)
 	if err != nil {
-		return nil, observability.PrepareError(err, span, "getting account")
+		return nil, observability.PrepareError(err, span, "getting account members")
+	}
+
+	users, err := a.directory.ListUsersByIDs(ctx, a.db.Reader(), ddbidentity.Scope(), members)
+	if err != nil {
+		return nil, observability.PrepareError(err, span, "getting account members")
 	}
 
 	var outboundEmailMessages []*queuemessages.OutboundEmailMessage
-	for _, member := range account.Members {
-		if member.BelongsToUser.EmailAddressVerifiedAt != nil {
-			msg, emailErr := eatingemails.BuildMealPlanCreatedEmail(member.BelongsToUser, mealPlan, a.baseURL)
+	for _, member := range users {
+		if member.EmailAddressVerifiedAt != nil {
+			msg, emailErr := eatingemails.BuildMealPlanCreatedEmail(member, mealPlan, a.baseURL)
 			if emailErr != nil {
 				return nil, observability.PrepareAndLogError(emailErr, logger, span, "building meal plan created email")
 			}

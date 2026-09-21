@@ -2,35 +2,32 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"log"
+	"slices"
 	"strings"
 	"time"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
-	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
+	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
-	identityrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity"
-	oauthrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/oauth"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/localdev"
 
-	"github.com/primandproper/platform-go/v13/authentication/argon2"
-	"github.com/primandproper/platform-go/v13/database"
-	databasecfg "github.com/primandproper/platform-go/v13/database/config"
-	"github.com/primandproper/platform-go/v13/database/postgres"
-	"github.com/primandproper/platform-go/v13/identifiers"
-	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
-	metricsnoop "github.com/primandproper/platform-go/v13/observability/metrics/noop"
-	tracingnoop "github.com/primandproper/platform-go/v13/observability/tracing/noop"
-	"github.com/primandproper/platform-go/v13/random"
-	"github.com/primandproper/platform-go/v13/secrets/kubernetes"
-	"github.com/primandproper/platform-go/v13/uploads/registry"
+	platformoauth2clients "github.com/primandproper/platform-go/v14/authentication/oauth2clients"
+	platformidentity "github.com/primandproper/platform-go/v14/identity"
+	"github.com/primandproper/primitives-go/v2/authentication/argon2"
+	"github.com/primandproper/primitives-go/v2/database"
+	databasecfg "github.com/primandproper/primitives-go/v2/database/config"
+	"github.com/primandproper/primitives-go/v2/database/postgres"
+	"github.com/primandproper/primitives-go/v2/identifiers"
+	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
+	metricsnoop "github.com/primandproper/primitives-go/v2/observability/metrics/noop"
+	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
+	"github.com/primandproper/primitives-go/v2/secrets/kubernetes"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/tools/clientcmd"
@@ -185,14 +182,6 @@ func runInit(db *dbFlags, adminUsername, adminPassword, adminEmail, apiServerURL
 		DisableSSL: db.sslDisable,
 	}
 
-	dbConfig := &dbcfg.Config{
-		Provider:        databasecfg.ProviderPostgres,
-		MaxPingAttempts: 10,
-		PingWaitPeriod:  time.Second,
-		ReadConnection:  connDetails,
-		WriteConnection: connDetails,
-	}
-
 	clientConfig := &bootstrapClientConfig{connDetails: connDetails}
 	client, err := postgres.NewDatabaseClient(ctx, clientConfig, postgres.WithLogger(logger), postgres.WithTracerProvider(tracerProvider))
 	if err != nil {
@@ -213,33 +202,25 @@ func runInit(db *dbFlags, adminUsername, adminPassword, adminEmail, apiServerURL
 		return fmt.Errorf("pinging database client: %w", err)
 	}
 
-	auditRepo, err := auditlogentries.ProvideAuditLogRepository(logger, tracerProvider, nil, client)
+	// The directory, without hooks: bootstrap runs before there is anybody to attribute
+	// a registration to, and an audit entry naming nobody is noise in a log whose value
+	// is attribution. The API server's registrations are recorded.
+	directory, identityStore, err := localdev.IdentityDirectory(logger, tracerProvider, client)
 	if err != nil {
-		return fmt.Errorf("building audit log repository: %w", err)
+		return fmt.Errorf("building identity directory: %w", err)
 	}
-	// A real registry store rather than nil: the identity repository hydrates a
-	// user's avatar through it, and the admin user this tool reads back may have
-	// one. It needs no emitter or metrics — nothing here writes an object.
-	uploadsRegistry, err := registry.NewSQLStore(
-		client,
-		registry.WithTablePrefix(uploadedmedia.TablePrefix),
-		registry.WithStoreLogger(logger),
-		registry.WithStoreTracerProvider(tracerProvider),
-	)
+	oauthStore, err := platformoauth2clients.NewSQLStore(client, platformoauth2clients.WithTablePrefix(oauth.TablePrefix))
 	if err != nil {
-		return fmt.Errorf("building upload registry store: %w", err)
+		return fmt.Errorf("building OAuth2 client store: %w", err)
 	}
 
-	policy, err := authorization.NewDatabaseResolver(client.Reader(), logger, tracerProvider, nil)
+	oauthRegistry, err := platformoauth2clients.NewService(client, oauthStore)
 	if err != nil {
-		return fmt.Errorf("building authorization policy resolver: %w", err)
+		return fmt.Errorf("building OAuth2 client registry: %w", err)
 	}
-
-	identityRepo := identityrepo.ProvideIdentityRepository(logger, tracerProvider, auditRepo, client, nil, uploadsRegistry, policy)
-	oauthRepo := oauthrepo.ProvideOAuthRepository(ctx, logger, tracerProvider, auditRepo, dbConfig, client)
 
 	// --- Admin user (idempotent) ---
-	user, err := identityRepo.GetUserByUsername(ctx, adminUsername)
+	user, err := identityStore.GetUserByUsername(ctx, client.Reader(), ddbidentity.Scope(), adminUsername)
 	if err != nil {
 		hasher := authentication.NewArgon2Authenticator(argon2.WithLogger(logger), argon2.WithTracerProvider(tracerProvider))
 		hashedPassword, hashErr := hasher.HashPassword(ctx, adminPassword)
@@ -247,48 +228,40 @@ func runInit(db *dbFlags, adminUsername, adminPassword, adminEmail, apiServerURL
 			return fmt.Errorf("hashing password: %w", hashErr)
 		}
 
-		user, err = identityRepo.CreateUser(ctx, &identity.UserDatabaseCreationInput{
+		// Registered rather than inserted: the user, the account they own and the
+		// membership between them are one transaction, which is what makes a half-made
+		// administrator unrepresentable rather than merely unlikely.
+		registration, registerErr := directory.Register(ctx, ddbidentity.Scope(), &platformidentity.User{
 			ID:              identifiers.New(),
 			Username:        strings.TrimSpace(adminUsername),
 			EmailAddress:    strings.TrimSpace(strings.ToLower(adminEmail)),
 			FirstName:       "Admin",
-			LastName:        "",
 			HashedPassword:  hashedPassword,
 			TwoFactorSecret: twoFactorSecretPlaceholder,
-			AccountName:     "Bootstrap account",
-		})
-		if err != nil {
-			if errors.Is(err, database.ErrUserAlreadyExists) {
-				return fmt.Errorf("user %q already exists but could not be fetched: %w", adminUsername, err)
-			}
-			return fmt.Errorf("creating user: %w", err)
+			AccountStatus:   platformidentity.StatusGood,
+			ServiceRoles:    []string{authorization.ServiceUserRoleName},
+		}, &platformidentity.Account{
+			Name: "Bootstrap account",
+		}, []string{authorization.AccountAdminRoleName})
+		if registerErr != nil {
+			return fmt.Errorf("creating user: %w", registerErr)
 		}
+
+		user = registration.User
 		fmt.Printf("Admin user %q created.\n", adminUsername)
 	} else {
 		fmt.Printf("Admin user %q already exists, skipping creation.\n", adminUsername)
 	}
 
 	// --- Service admin role (idempotent) ---
-	var hasAdminRole bool
-	err = client.Reader().QueryRowContext(ctx,
-		"SELECT EXISTS(SELECT 1 FROM user_role_assignments WHERE user_id = $1 AND role_name = $2 AND archived_at IS NULL)",
-		user.ID, authorization.ServiceAdminRoleName,
-	).Scan(&hasAdminRole)
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return fmt.Errorf("checking admin role: %w", err)
-	}
-
-	if !hasAdminRole {
-		if _, err = client.Writer().ExecContext(ctx,
-			"UPDATE user_role_assignments SET archived_at = NOW() WHERE user_id = $1 AND account_id IS NULL AND archived_at IS NULL",
-			user.ID,
-		); err != nil {
-			return fmt.Errorf("archiving old service role: %w", err)
-		}
-		if _, err = client.Writer().ExecContext(ctx,
-			"INSERT INTO user_role_assignments (id, user_id, role_name) VALUES ($1, $2, $3)",
-			identifiers.New(), user.ID, authorization.ServiceAdminRoleName,
-		); err != nil {
+	//
+	// Through the operation that exists for it rather than through two statements against
+	// a role-assignment table this application no longer owns. It replaces rather than
+	// merges, which is why the archival of the old row has gone with the insert: setting
+	// the set is one write.
+	if !slices.Contains(user.ServiceRoles, authorization.ServiceAdminRoleName) {
+		if user, err = directory.SetUserServiceRoles(ctx, ddbidentity.Scope(), user.ID,
+			[]string{authorization.ServiceAdminRoleName}); err != nil {
 			return fmt.Errorf("promoting user to admin: %w", err)
 		}
 		fmt.Println("Promoted user to service_admin.")
@@ -298,7 +271,7 @@ func runInit(db *dbFlags, adminUsername, adminPassword, adminEmail, apiServerURL
 
 	// --- 2FA verification (idempotent) ---
 	if user.TwoFactorSecretVerifiedAt == nil {
-		if err = identityRepo.MarkUserTwoFactorSecretAsVerified(ctx, user.ID); err != nil {
+		if _, err = directory.MarkUserTwoFactorSecretVerified(ctx, ddbidentity.Scope(), user.ID); err != nil {
 			return fmt.Errorf("marking 2FA as verified: %w", err)
 		}
 		fmt.Println("Marked 2FA as verified.")
@@ -329,12 +302,12 @@ func runInit(db *dbFlags, adminUsername, adminPassword, adminEmail, apiServerURL
 		{"MCP Server", "MCP server OAuth2 client", redirectURIs},
 	}
 
-	existingClients, err := oauthRepo.GetOAuth2Clients(ctx, nil)
+	existingClients, err := oauthStore.ListClients(ctx, client.Reader(), tenancy.Global(), nil)
 	if err != nil {
 		return fmt.Errorf("listing existing OAuth2 clients: %w", err)
 	}
 
-	existingByName := make(map[string]*oauth.OAuth2Client)
+	existingByName := make(map[string]*platformoauth2clients.Client)
 	for _, c := range existingClients.Data {
 		existingByName[c.Name] = c
 	}
@@ -347,29 +320,19 @@ func runInit(db *dbFlags, adminUsername, adminPassword, adminEmail, apiServerURL
 			continue
 		}
 
-		clientID, clientIDErr := random.GenerateHexEncodedString(ctx, oauth.ClientIDSize)
-		if clientIDErr != nil {
-			return fmt.Errorf("generating client ID for %s: %w", want.name, clientIDErr)
-		}
-
-		clientSecret, clientSecErr := random.GenerateHexEncodedString(ctx, oauth.ClientSecretSize)
-		if clientSecErr != nil {
-			return fmt.Errorf("generating client secret for %s: %w", want.name, clientSecErr)
-		}
-
-		created, creationErr := oauthRepo.CreateOAuth2Client(ctx, &oauth.OAuth2ClientDatabaseCreationInput{
-			ID:           identifiers.New(),
+		// Global and unowned: an operator mints these to let four applications speak for
+		// the service on behalf of whoever signs in, which is the registry
+		// oauth2clients.Client.Admits lets any subject through.
+		issued, creationErr := oauthRegistry.CreateClient(ctx, tenancy.Global(), "", &platformoauth2clients.CreationInput{
 			Name:         want.name,
 			Description:  want.desc,
-			ClientID:     clientID,
-			ClientSecret: oauth.HashClientSecret(clientSecret),
 			RedirectURIs: want.redirectURIs,
 		})
 		if creationErr != nil {
 			return fmt.Errorf("creating OAuth2 client %s: %w", want.name, creationErr)
 		}
 		// print the plaintext secret: this is the only time it is recoverable.
-		fmt.Printf("  %s: created (client_id=%s client_secret=%s)\n", want.name, created.ClientID, clientSecret)
+		fmt.Printf("  %s: created (client_id=%s client_secret=%s)\n", want.name, issued.Client.ClientID, issued.Secret)
 	}
 
 	fmt.Println()

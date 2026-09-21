@@ -7,7 +7,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
 
-	"github.com/primandproper/platform-go/v13/fake"
+	"github.com/primandproper/primitives-go/v2/fake"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -39,11 +39,16 @@ func TestBuildInviteMemberEmail(T *testing.T) {
 		t.Parallel()
 
 		user := fakes.BuildFakeUser()
-		invitation := fakes.BuildFakeAccountInvitation()
+		invitation := fakes.BuildFakeInvitation()
 
 		actual, err := BuildInviteMemberEmail(user, invitation, "https://example.com")
 		require.NoError(t, err)
 		assert.NotNil(t, actual)
+
+		// The token is what makes the link followable, and it reaches this builder on the
+		// invitation rather than off a read — the column holds a digest. A link without it
+		// is the failure this asserts against.
+		assert.Contains(t, actual.HTMLContent, invitation.Token)
 	})
 }
 

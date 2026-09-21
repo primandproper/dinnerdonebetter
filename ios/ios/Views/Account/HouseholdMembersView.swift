@@ -33,7 +33,7 @@ struct HouseholdMembersView: View {
     if let account = viewModel.account {
       ScrollView {
         VStack(spacing: DSTheme.Spacing.xl) {
-          membersSection(account: account)
+          membersSection(members: viewModel.members)
           if viewModel.isAccountAdmin {
             sendInvitationSection
           }
@@ -46,15 +46,18 @@ struct HouseholdMembersView: View {
     }
   }
 
-  private func membersSection(account: Identity_Account) -> some View {
+  // The roster is a read of its own rather than a field of the account.
+  private func membersSection(members: [Primandproper_Platform_Identity_V1_MembershipWithUser])
+    -> some View
+  {
     DSSection("Household Members") {
-      if account.members.isEmpty {
+      if members.isEmpty {
         DSSectionEmptyContent(
           "No members yet. Invite someone to join your household.",
           icon: "person.2"
         )
       } else {
-        ForEach(account.members, id: \.id) { member in
+        ForEach(members, id: \.membership.id) { member in
           MemberCard(
             member: member,
             currentUserID: viewModel.currentUserID,
@@ -62,7 +65,7 @@ struct HouseholdMembersView: View {
             onRoleChange: { newRole, reason in
               Task {
                 await viewModel.updateMemberRole(
-                  membershipID: member.id, newRole: newRole, reason: reason)
+                  membershipID: member.membership.id, newRole: newRole, reason: reason)
               }
             }
           )
@@ -131,7 +134,7 @@ struct HouseholdMembersView: View {
 // MARK: - Member Card
 
 struct MemberCard: View {
-  let member: Identity_AccountUserMembershipWithUser
+  let member: Primandproper_Platform_Identity_V1_MembershipWithUser
   let currentUserID: String
   let isAccountAdmin: Bool
   let onRoleChange: (String, String) -> Void
@@ -143,7 +146,7 @@ struct MemberCard: View {
   @State private var originalRole: String
 
   init(
-    member: Identity_AccountUserMembershipWithUser,
+    member: Primandproper_Platform_Identity_V1_MembershipWithUser,
     currentUserID: String,
     isAccountAdmin: Bool,
     onRoleChange: @escaping (String, String) -> Void
@@ -152,7 +155,7 @@ struct MemberCard: View {
     self.currentUserID = currentUserID
     self.isAccountAdmin = isAccountAdmin
     self.onRoleChange = onRoleChange
-    let initialRole = member.accountRole == "account_admin" ? "Admin" : "Member"
+    let initialRole = member.membership.roles.contains("account_admin") ? "Admin" : "Member"
     _selectedRole = State(initialValue: initialRole)
     _originalRole = State(initialValue: initialRole)
   }
@@ -164,10 +167,8 @@ struct MemberCard: View {
         DSAvatar(
           name: displayName,
           size: .lg,
-          imageURL: member.hasBelongsToUser && member.belongsToUser.hasAvatar
-            ? APIConfiguration.mediaURL(
-              forStoragePath: member.belongsToUser.avatar.objectKey, bucket: "avatars")
-            : nil
+          // See HomeView: an avatar is not a field of the directory's user.
+          imageURL: nil
         )
 
         VStack(alignment: .leading, spacing: DSTheme.Spacing.xxs) {
@@ -175,7 +176,7 @@ struct MemberCard: View {
             .font(DSTheme.Typography.label)
             .foregroundColor(DSTheme.Colors.textPrimary)
 
-          if member.hasBelongsToUser && member.belongsToUser.id == currentUserID {
+          if member.hasUser && member.user.id == currentUserID {
             Text("(You)")
               .font(DSTheme.Typography.caption)
               .foregroundColor(DSTheme.Colors.textSecondary)
@@ -191,7 +192,7 @@ struct MemberCard: View {
               get: { selectedRole },
               set: { newValue in
                 let newRole = newValue == "Admin" ? "account_admin" : "account_member"
-                let currentRole = member.accountRole
+                let currentRole = member.membership.roles.first ?? "account_member"
                 if newRole != currentRole {
                   pendingNewRole = newRole
                   reasonText = ""
@@ -209,7 +210,7 @@ struct MemberCard: View {
         } else {
           DSStatusBadge(
             .custom(
-              member.accountRole == "account_admin" ? "Admin" : "Member",
+              member.membership.roles.contains("account_admin") ? "Admin" : "Member",
               DSTheme.Colors.textSecondary
             ),
             style: .minimal
@@ -217,8 +218,8 @@ struct MemberCard: View {
         }
       }
     }
-    .onChange(of: member.accountRole) { _, newRole in
-      let newRoleString = newRole == "account_admin" ? "Admin" : "Member"
+    .onChange(of: member.membership.roles) { _, newRoles in
+      let newRoleString = newRoles.contains("account_admin") ? "Admin" : "Member"
       originalRole = newRoleString
       selectedRole = newRoleString
     }
@@ -270,18 +271,14 @@ struct MemberCard: View {
     }
   }
 
+  // DisplayName is never empty on a read — a row whose column is blank reads its handle
+  // back — so this is one field rather than a fallback chain that could produce a blank.
   private var displayName: String {
-    guard member.hasBelongsToUser else {
+    guard member.hasUser else {
       return "Unknown User"
     }
-    let user = member.belongsToUser
-    if !user.firstName.isEmpty {
-      if !user.lastName.isEmpty {
-        return "\(user.firstName) \(user.lastName)"
-      }
-      return user.firstName
-    }
-    return user.username.isEmpty ? "Unknown User" : user.username
+
+    return member.user.displayName.isEmpty ? "Unknown User" : member.user.displayName
   }
 }
 
@@ -289,9 +286,13 @@ struct MemberCard: View {
 
 struct InvitationCard: View {
   @Environment(EventReporterService.self) private var eventReporterService
-  let invitation: Identity_AccountInvitation
+  let invitation: Primandproper_Platform_Identity_V1_Invitation
   let isAccountAdmin: Bool
   let onCancel: (() async -> Void)?
+
+  private var isPending: Bool {
+    invitation.status == .pending
+  }
 
   var body: some View {
     DSCard {
@@ -307,34 +308,19 @@ struct InvitationCard: View {
               .foregroundColor(DSTheme.Colors.textSecondary)
           }
 
-          DSStatusBadge(status: invitation.status)
+          DSStatusBadge(status: isPending ? "pending" : "answered")
         }
 
         Spacer()
 
-        if invitation.status.lowercased() == "pending" {
-          HStack(spacing: DSTheme.Spacing.sm) {
-            DSButton("Copy Link", style: .ghost, size: .small) {
-              eventReporterService.reporter.track(
-                event: "household_invite_copy_link", properties: [:])
-              guard
-                var components = URLComponents(
-                  string: "\(APIConfiguration.webURL)/accept_invitation")
-              else { return }
-              components.queryItems = [
-                URLQueryItem(name: "i", value: invitation.id),
-                URLQueryItem(name: "t", value: invitation.token),
-              ]
-              if let url = components.url?.absoluteString {
-                UIPasteboard.general.string = url
-              }
-            }
-            if isAccountAdmin {
-              DSButton("Cancel", style: .ghost, size: .small) {
-                Task {
-                  await onCancel?()
-                }
-              }
+        // No "Copy Link". An invitation's token is the secret half of a bearer credential
+        // for joining somebody else's household, and no read returns one — the sender
+        // mints it, the store keeps a digest, and the only copy goes to the address it was
+        // sent to. A sender who could copy the link could join as the person they invited.
+        if isPending && isAccountAdmin {
+          DSButton("Cancel", style: .ghost, size: .small) {
+            Task {
+              await onCancel?()
             }
           }
         }

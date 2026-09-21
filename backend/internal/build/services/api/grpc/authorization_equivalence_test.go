@@ -6,27 +6,27 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
+	identitybuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/identity"
+	oauth2clientsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/oauth2clients"
+	waitlistsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/waitlists"
 	analyticsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/analytics/grpc"
-	auditgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/audit/grpc"
 	authgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc/interceptors"
-	commentsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/comments/grpc"
 	dataprivacygrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/grpc"
-	identitygrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/grpc"
 	internalopsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/internalops/grpc"
-	issuereportsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/issuereports/grpc"
 	mealplanninggrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/grpc"
-	notificationsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/notifications/grpc"
-	oauthgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/oauth/grpc"
-	paymentsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/grpc"
-	settingsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/settings/grpc"
 	uploadedmediagrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/grpc"
-	waitlistsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/waitlists/grpc"
-	webhooksgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/webhooks/grpc"
 
-	platformauthz "github.com/primandproper/platform-go/v13/authorization"
-	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
-	metricsnoop "github.com/primandproper/platform-go/v13/observability/metrics/noop"
+	auditgrpc "github.com/primandproper/platform-go/v14/audit/grpc"
+	paymentsgrpc "github.com/primandproper/platform-go/v14/billing/grpc"
+	commentsgrpc "github.com/primandproper/platform-go/v14/comments/grpc"
+	issuereportsgrpc "github.com/primandproper/platform-go/v14/issuereports/grpc"
+	notificationsgrpc "github.com/primandproper/platform-go/v14/notifications/grpc"
+	settingsgrpc "github.com/primandproper/platform-go/v14/settings/grpc"
+	webhooksgrpc "github.com/primandproper/platform-go/v14/webhooks/grpc"
+	platformauthz "github.com/primandproper/primitives-go/v2/authorization"
+	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
+	metricsnoop "github.com/primandproper/primitives-go/v2/observability/metrics/noop"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -37,21 +37,21 @@ import (
 func realMethodPermissions() interceptors.MethodPermissionsMap {
 	return AggregateMethodPermissions(
 		analyticsgrpc.ProvideMethodPermissions(),
-		auditgrpc.ProvideMethodPermissions(),
+		auditgrpc.Permissions(),
 		authgrpc.ProvideMethodPermissions(),
-		commentsgrpc.ProvideMethodPermissions(),
+		commentsgrpc.Permissions(),
 		dataprivacygrpc.ProvideMethodPermissions(),
-		identitygrpc.ProvideMethodPermissions(),
+		identitybuild.Permissions(),
 		internalopsgrpc.ProvideMethodPermissions(),
-		issuereportsgrpc.ProvideMethodPermissions(),
+		issuereportsgrpc.Permissions(),
 		mealplanninggrpc.ProvideMethodPermissions(),
-		notificationsgrpc.ProvideMethodPermissions(),
-		oauthgrpc.ProvideMethodPermissions(),
-		paymentsgrpc.ProvideMethodPermissions(),
-		settingsgrpc.ProvideMethodPermissions(),
+		notificationsgrpc.Permissions(),
+		oauth2clientsbuild.Permissions(),
+		paymentsgrpc.Permissions(),
+		settingsgrpc.Permissions(),
 		uploadedmediagrpc.ProvideMethodPermissions(),
-		waitlistsgrpc.ProvideMethodPermissions(),
-		webhooksgrpc.ProvideMethodPermissions(),
+		waitlistsbuild.Permissions(),
+		webhooksgrpc.Permissions(),
 	)
 }
 
@@ -93,7 +93,7 @@ func TestAuthorizationEnforcerMatchesTheHandRolledCheck(t *testing.T) {
 	perms := realMethodPermissions()
 	require.NotEmpty(t, perms)
 
-	authInterceptor := interceptors.ProvideAuthInterceptor(nil, loggingnoop.NewLogger(), nil, nil, nil, "", nil, perms)
+	authInterceptor := interceptors.ProvideAuthInterceptor(nil, loggingnoop.NewLogger(), nil, nil, nil, nil, nil, "", nil, perms)
 
 	// Built enforcing, not audit-only: an audit-only enforcer allows everything, so comparing
 	// one against the real check would prove nothing.
@@ -124,9 +124,7 @@ func TestAuthorizationEnforcerMatchesTheHandRolledCheck(t *testing.T) {
 		require.True(t, ok, "policy declares no role %q", role)
 
 		out := make([]authorization.Permission, 0, set.Len())
-		for _, p := range set.Slice() {
-			out = append(out, authorization.Permission(p))
-		}
+		out = append(out, set.Slice()...)
 
 		return out
 	}

@@ -6,9 +6,10 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 
-	platformaudit "github.com/primandproper/platform-go/v13/audit"
-	"github.com/primandproper/platform-go/v13/identifiers"
-	"github.com/primandproper/platform-go/v13/pointer"
+	platformaudit "github.com/primandproper/platform-go/v14/audit"
+	"github.com/primandproper/primitives-go/v2/identifiers"
+	"github.com/primandproper/primitives-go/v2/pointer"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -31,7 +32,7 @@ func TestToPlatformEntry(T *testing.T) {
 			ActorIP:          "203.0.113.7",
 		})
 
-		assert.Equal(t, accountID, converted.Scope)
+		assert.Equal(t, tenancy.Of(accountID), converted.Scope)
 		assert.Equal(t, userID, converted.Actor.ID)
 		assert.Equal(t, platformaudit.ActorUser, converted.Actor.Type)
 		assert.Equal(t, "203.0.113.7", converted.Actor.IP)
@@ -50,7 +51,7 @@ func TestToPlatformEntry(T *testing.T) {
 			EventType:     audit.AuditLogEventTypeCreated,
 		})
 
-		assert.Equal(t, userID, converted.Scope)
+		assert.Equal(t, tenancy.Of(userID), converted.Scope)
 		assert.Equal(t, userID, converted.Actor.ID)
 	})
 
@@ -86,7 +87,7 @@ func TestFromPlatformEntry(T *testing.T) {
 		recordedAt := time.Now().UTC().Truncate(time.Microsecond)
 
 		converted := fromPlatformEntry(&platformaudit.Entry{
-			Scope:        accountID,
+			Scope:        tenancy.Of(accountID),
 			Actor:        platformaudit.Actor{ID: userID, Type: platformaudit.ActorUser},
 			RecordedAt:   recordedAt,
 			ResourceType: "recipes",
@@ -113,7 +114,7 @@ func TestFromPlatformEntry(T *testing.T) {
 		userID := identifiers.New()
 
 		converted := fromPlatformEntry(&platformaudit.Entry{
-			Scope:        userID,
+			Scope:        tenancy.Of(userID),
 			Actor:        platformaudit.Actor{ID: userID},
 			ResourceType: "users",
 			EventType:    platformaudit.EventCreated,

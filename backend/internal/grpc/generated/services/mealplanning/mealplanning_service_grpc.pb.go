@@ -20,9 +20,6 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	MealPlanningService_AddCommentToMeal_FullMethodName                                    = "/mealplanning.MealPlanningService/AddCommentToMeal"
-	MealPlanningService_AddCommentToMealPlan_FullMethodName                                = "/mealplanning.MealPlanningService/AddCommentToMealPlan"
-	MealPlanningService_AddCommentToRecipe_FullMethodName                                  = "/mealplanning.MealPlanningService/AddCommentToRecipe"
 	MealPlanningService_ArchiveMeal_FullMethodName                                         = "/mealplanning.MealPlanningService/ArchiveMeal"
 	MealPlanningService_ArchiveMealPlan_FullMethodName                                     = "/mealplanning.MealPlanningService/ArchiveMealPlan"
 	MealPlanningService_ArchiveMealPlanEvent_FullMethodName                                = "/mealplanning.MealPlanningService/ArchiveMealPlanEvent"
@@ -253,9 +250,6 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type MealPlanningServiceClient interface {
-	AddCommentToMeal(ctx context.Context, in *AddCommentToMealRequest, opts ...grpc.CallOption) (*AddCommentToMealResponse, error)
-	AddCommentToMealPlan(ctx context.Context, in *AddCommentToMealPlanRequest, opts ...grpc.CallOption) (*AddCommentToMealPlanResponse, error)
-	AddCommentToRecipe(ctx context.Context, in *AddCommentToRecipeRequest, opts ...grpc.CallOption) (*AddCommentToRecipeResponse, error)
 	ArchiveMeal(ctx context.Context, in *ArchiveMealRequest, opts ...grpc.CallOption) (*ArchiveMealResponse, error)
 	ArchiveMealPlan(ctx context.Context, in *ArchiveMealPlanRequest, opts ...grpc.CallOption) (*ArchiveMealPlanResponse, error)
 	ArchiveMealPlanEvent(ctx context.Context, in *ArchiveMealPlanEventRequest, opts ...grpc.CallOption) (*ArchiveMealPlanEventResponse, error)
@@ -488,36 +482,6 @@ type mealPlanningServiceClient struct {
 
 func NewMealPlanningServiceClient(cc grpc.ClientConnInterface) MealPlanningServiceClient {
 	return &mealPlanningServiceClient{cc}
-}
-
-func (c *mealPlanningServiceClient) AddCommentToMeal(ctx context.Context, in *AddCommentToMealRequest, opts ...grpc.CallOption) (*AddCommentToMealResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(AddCommentToMealResponse)
-	err := c.cc.Invoke(ctx, MealPlanningService_AddCommentToMeal_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *mealPlanningServiceClient) AddCommentToMealPlan(ctx context.Context, in *AddCommentToMealPlanRequest, opts ...grpc.CallOption) (*AddCommentToMealPlanResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(AddCommentToMealPlanResponse)
-	err := c.cc.Invoke(ctx, MealPlanningService_AddCommentToMealPlan_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *mealPlanningServiceClient) AddCommentToRecipe(ctx context.Context, in *AddCommentToRecipeRequest, opts ...grpc.CallOption) (*AddCommentToRecipeResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(AddCommentToRecipeResponse)
-	err := c.cc.Invoke(ctx, MealPlanningService_AddCommentToRecipe_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
 }
 
 func (c *mealPlanningServiceClient) ArchiveMeal(ctx context.Context, in *ArchiveMealRequest, opts ...grpc.CallOption) (*ArchiveMealResponse, error) {
@@ -2779,9 +2743,6 @@ type MealPlanningService_UploadRecipeStepImageClient = grpc.ClientStreamingClien
 // All implementations must embed UnimplementedMealPlanningServiceServer
 // for forward compatibility.
 type MealPlanningServiceServer interface {
-	AddCommentToMeal(context.Context, *AddCommentToMealRequest) (*AddCommentToMealResponse, error)
-	AddCommentToMealPlan(context.Context, *AddCommentToMealPlanRequest) (*AddCommentToMealPlanResponse, error)
-	AddCommentToRecipe(context.Context, *AddCommentToRecipeRequest) (*AddCommentToRecipeResponse, error)
 	ArchiveMeal(context.Context, *ArchiveMealRequest) (*ArchiveMealResponse, error)
 	ArchiveMealPlan(context.Context, *ArchiveMealPlanRequest) (*ArchiveMealPlanResponse, error)
 	ArchiveMealPlanEvent(context.Context, *ArchiveMealPlanEventRequest) (*ArchiveMealPlanEventResponse, error)
@@ -3016,15 +2977,6 @@ type MealPlanningServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedMealPlanningServiceServer struct{}
 
-func (UnimplementedMealPlanningServiceServer) AddCommentToMeal(context.Context, *AddCommentToMealRequest) (*AddCommentToMealResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AddCommentToMeal not implemented")
-}
-func (UnimplementedMealPlanningServiceServer) AddCommentToMealPlan(context.Context, *AddCommentToMealPlanRequest) (*AddCommentToMealPlanResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AddCommentToMealPlan not implemented")
-}
-func (UnimplementedMealPlanningServiceServer) AddCommentToRecipe(context.Context, *AddCommentToRecipeRequest) (*AddCommentToRecipeResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AddCommentToRecipe not implemented")
-}
 func (UnimplementedMealPlanningServiceServer) ArchiveMeal(context.Context, *ArchiveMealRequest) (*ArchiveMealResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ArchiveMeal not implemented")
 }
@@ -3716,60 +3668,6 @@ func RegisterMealPlanningServiceServer(s grpc.ServiceRegistrar, srv MealPlanning
 		t.testEmbeddedByValue()
 	}
 	s.RegisterService(&MealPlanningService_ServiceDesc, srv)
-}
-
-func _MealPlanningService_AddCommentToMeal_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AddCommentToMealRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(MealPlanningServiceServer).AddCommentToMeal(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: MealPlanningService_AddCommentToMeal_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MealPlanningServiceServer).AddCommentToMeal(ctx, req.(*AddCommentToMealRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _MealPlanningService_AddCommentToMealPlan_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AddCommentToMealPlanRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(MealPlanningServiceServer).AddCommentToMealPlan(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: MealPlanningService_AddCommentToMealPlan_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MealPlanningServiceServer).AddCommentToMealPlan(ctx, req.(*AddCommentToMealPlanRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _MealPlanningService_AddCommentToRecipe_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AddCommentToRecipeRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(MealPlanningServiceServer).AddCommentToRecipe(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: MealPlanningService_AddCommentToRecipe_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MealPlanningServiceServer).AddCommentToRecipe(ctx, req.(*AddCommentToRecipeRequest))
-	}
-	return interceptor(ctx, in, info, handler)
 }
 
 func _MealPlanningService_ArchiveMeal_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -7756,18 +7654,6 @@ var MealPlanningService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "mealplanning.MealPlanningService",
 	HandlerType: (*MealPlanningServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
-		{
-			MethodName: "AddCommentToMeal",
-			Handler:    _MealPlanningService_AddCommentToMeal_Handler,
-		},
-		{
-			MethodName: "AddCommentToMealPlan",
-			Handler:    _MealPlanningService_AddCommentToMealPlan_Handler,
-		},
-		{
-			MethodName: "AddCommentToRecipe",
-			Handler:    _MealPlanningService_AddCommentToRecipe_Handler,
-		},
 		{
 			MethodName: "ArchiveMeal",
 			Handler:    _MealPlanningService_ArchiveMeal_Handler,

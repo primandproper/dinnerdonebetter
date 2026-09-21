@@ -8,13 +8,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/primandproper/platform-go/v13/capitalism"
-	capstripe "github.com/primandproper/platform-go/v13/capitalism/stripe"
-	loggingnoop "github.com/primandproper/platform-go/v13/observability/logging/noop"
-	tracingnoop "github.com/primandproper/platform-go/v13/observability/tracing/noop"
+	"github.com/primandproper/primitives-go/v2/capitalism"
+	capstripe "github.com/primandproper/primitives-go/v2/capitalism/stripe"
+	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
+	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/stripe/stripe-go/v81"
 	"github.com/stripe/stripe-go/v81/webhook"
 )
 
@@ -211,5 +212,47 @@ func TestParseStripeEvent(T *testing.T) {
 		})
 		require.Error(t, err)
 		assert.Nil(t, actual)
+	})
+}
+
+// TestStripeSubscriptionStatus_TellsAbsentFromUnrecognized pins the distinction the
+// manager needs and capitalism cannot express.
+//
+// SubscriptionStatusUnknown is the empty string, and its documentation covers both "a
+// status no adapter recognized" and the zero value. So the conversion below is the last
+// place that knows which of the two happened: after it, a word Stripe adds next year looks
+// exactly like an event carrying no standing, and the manager reads that as a sync of a
+// live subscription and marks the account paid.
+//
+// This is testable without a Stripe account because the conversion takes the provider's
+// own string, which is what a made-up status is.
+func TestStripeSubscriptionStatus_TellsAbsentFromUnrecognized(T *testing.T) {
+	T.Parallel()
+
+	T.Run("a status Stripe has not invented yet is unrecognized rather than absent", func(t *testing.T) {
+		t.Parallel()
+
+		status, unrecognized := stripeSubscriptionStatus("dunning_grace_period")
+
+		assert.Equal(t, capitalism.SubscriptionStatusUnknown, status)
+		assert.True(t, unrecognized, "an unplaceable word must not look like an absent one")
+	})
+
+	T.Run("no status at all is absent rather than unrecognized", func(t *testing.T) {
+		t.Parallel()
+
+		status, unrecognized := stripeSubscriptionStatus("")
+
+		assert.Equal(t, capitalism.SubscriptionStatusUnknown, status)
+		assert.False(t, unrecognized)
+	})
+
+	T.Run("a status capitalism knows converts and is neither", func(t *testing.T) {
+		t.Parallel()
+
+		status, unrecognized := stripeSubscriptionStatus(stripe.SubscriptionStatusPastDue)
+
+		assert.Equal(t, capitalism.SubscriptionStatusPastDue, status)
+		assert.False(t, unrecognized)
 	})
 }

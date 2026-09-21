@@ -17,14 +17,15 @@ import (
 	appmetering "github.com/primandproper/dinnerdonebetter/backend/internal/metering"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/grpc/converters"
 
-	platformerrors "github.com/primandproper/platform-go/v13/errors"
-	errorsgrpc "github.com/primandproper/platform-go/v13/errors/grpc"
-	filteringgrpc "github.com/primandproper/platform-go/v13/filtering/grpc"
-	"github.com/primandproper/platform-go/v13/identifiers"
-	"github.com/primandproper/platform-go/v13/metering"
-	"github.com/primandproper/platform-go/v13/observability"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/uploads/registry"
+	"github.com/primandproper/platform-go/v14/mediaregistry"
+	"github.com/primandproper/platform-go/v14/metering"
+	"github.com/primandproper/primitives-go/v2/database"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	errorsgrpc "github.com/primandproper/primitives-go/v2/errors/grpc"
+	filteringgrpc "github.com/primandproper/primitives-go/v2/filtering/grpc"
+	"github.com/primandproper/primitives-go/v2/identifiers"
+	"github.com/primandproper/primitives-go/v2/observability"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
 
 	"google.golang.org/grpc/codes"
 )
@@ -157,23 +158,25 @@ func (s *serviceImpl) Upload(stream uploadedmediasvc.UploadedMediaService_Upload
 	// before anything writes them.
 	fileID := identifiers.New()
 
-	object := &registry.Object{
+	input := mediaregistry.ObjectInput{
 		ID:          fileID,
-		Scope:       uploadedmedia.Scope(),
 		Key:         filepath.Join(sessionContextData.GetUserID(), fileID, metadata.ObjectName),
 		ContentType: contentType,
 		OwnerID:     sessionContextData.GetUserID(),
-	}
-
-	if err = object.ValidateWithContext(ctx); err != nil {
-		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "failed to validate uploaded media")
 	}
 
 	// Bytes first, then the row, and the size on the row is what actually went
 	// past rather than what the chunks claimed. A failure between the two leaves
 	// an object with no row, which is invisible to every read; the other order
 	// leaves a row promising bytes that are not there.
-	if err = registry.StoreAndRecord(ctx, s.uploadManager, s.registry, object, &fileData); err != nil {
+	//
+	// v14's transaction is open across the upload. The streaming handler above caps
+	// the size, so a connection is held for a bounded time; an uncapped upload would
+	// want Save outside the transaction and RecordObject inside a short one.
+	object, err := inTransaction(ctx, s.db, func(tx database.Tx) (*mediaregistry.Object, error) {
+		return mediaregistry.StoreAndRecord(ctx, tx, uploadedmedia.Scope(), s.uploadManager, s.registry, input, &fileData)
+	})
+	if err != nil {
 		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to store uploaded media")
 	}
 
@@ -212,19 +215,25 @@ func (s *serviceImpl) recordUploadUsage(ctx context.Context, accountID, mediaID,
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
-	if err := s.usageRecorder.Record(ctx, metering.Usage{
-		Subject:        accountID,
-		Meter:          appmetering.UploadedMediaBytesMeter,
-		Quantity:       sizeBytes,
-		IdempotencyKey: mediaID,
-		Dimensions: map[string]string{
-			// Stored against the event for later analysis and deliberately not part of
-			// the aggregate or of enforcement: the totals table answers "how much", and
-			// only the ledger can answer "how much of it was video". The cardinality is
-			// bounded because uploadedmedia.IsValidMimeType already refused everything
-			// outside a fixed set before this ran.
-			"mime_type": contentType,
-		},
+	// A transaction of its own, deliberately. This runs after the upload has
+	// committed and is explicitly non-fatal — see above — so joining it to the
+	// upload's transaction would trade a countable gap in a dashboard for a failed
+	// upload.
+	if err := s.db.WithTransaction(ctx, func(tx database.Tx) error {
+		return s.usageRecorder.Record(ctx, tx, uploadedmedia.Scope(), metering.Usage{
+			Subject:        accountID,
+			Meter:          appmetering.UploadedMediaBytesMeter,
+			Quantity:       sizeBytes,
+			IdempotencyKey: mediaID,
+			Dimensions: map[string]string{
+				// Stored against the event for later analysis and deliberately not part of
+				// the aggregate or of enforcement: the totals table answers "how much", and
+				// only the ledger can answer "how much of it was video". The cardinality is
+				// bounded because uploadedmedia.IsValidMimeType already refused everything
+				// outside a fixed set before this ran.
+				"mime_type": contentType,
+			},
+		})
 	}); err != nil {
 		observability.AcknowledgeError(err, logger, span, "recording uploaded media usage")
 	}
@@ -261,9 +270,8 @@ func (s *serviceImpl) CreateUploadedMedia(ctx context.Context, request *uploaded
 		)
 	}
 
-	object := &registry.Object{
+	objectInput := mediaregistry.ObjectInput{
 		ID:          identifiers.New(),
-		Scope:       uploadedmedia.Scope(),
 		Key:         input.ObjectKey,
 		ContentType: input.ContentType,
 		Size:        input.SizeBytes,
@@ -271,14 +279,21 @@ func (s *serviceImpl) CreateUploadedMedia(ctx context.Context, request *uploaded
 		// who could name an owner could register an object as somebody else's, and
 		// the owner is the whole of what a read's permission check consults.
 		OwnerID:   sessionContextData.GetUserID(),
-		BelongsTo: registry.Subject{Type: input.BelongsToType, ID: input.BelongsToId},
+		BelongsTo: mediaregistry.Subject{Type: input.BelongsToType, ID: input.BelongsToId},
 	}
 
-	if err = object.ValidateWithContext(ctx); err != nil {
+	// Checked here rather than left to the store, because the two answer differently: a
+	// malformed request is the caller's to fix and reads as InvalidArgument, where the same
+	// refusal arriving from the store would be indistinguishable from the database being
+	// down. The store validates again, which is its business.
+	if err = objectInput.ValidateWithContext(ctx); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "failed to validate uploaded media creation request")
 	}
 
-	if err = s.registry.RecordObject(ctx, object); err != nil {
+	recorded, err := inTransaction(ctx, s.db, func(tx database.Tx) (*mediaregistry.Object, error) {
+		return s.registry.RecordObject(ctx, tx, uploadedmedia.Scope(), objectInput)
+	})
+	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to create uploaded media")
 	}
 
@@ -287,7 +302,7 @@ func (s *serviceImpl) CreateUploadedMedia(ctx context.Context, request *uploaded
 			TraceId:          span.SpanContext().TraceID().String(),
 			CurrentAccountId: sessionContextData.GetActiveAccountID(),
 		},
-		Created: converters.ConvertUploadedMediaToGRPCUploadedMedia(object),
+		Created: converters.ConvertUploadedMediaToGRPCUploadedMedia(recorded),
 	}
 
 	return x, nil
@@ -305,7 +320,7 @@ func (s *serviceImpl) GetUploadedMedia(ctx context.Context, request *uploadedmed
 	}
 	logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.GetUserID())
 
-	object, err := s.registry.GetObject(ctx, uploadedmedia.Scope(), request.UploadedMediaId)
+	object, err := s.registry.GetObject(ctx, s.db.Reader(), uploadedmedia.Scope(), request.UploadedMediaId)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to fetch uploaded media")
 	}
@@ -355,9 +370,9 @@ func (s *serviceImpl) GetUploadedMediaWithIDs(ctx context.Context, request *uplo
 	}
 
 	for _, id := range request.Ids {
-		object, readErr := s.registry.GetObject(ctx, uploadedmedia.Scope(), id)
+		object, readErr := s.registry.GetObject(ctx, s.db.Reader(), uploadedmedia.Scope(), id)
 		if readErr != nil {
-			if errors.Is(readErr, registry.ErrObjectNotFound) {
+			if errors.Is(readErr, mediaregistry.ErrObjectNotFound) {
 				continue
 			}
 
@@ -394,7 +409,7 @@ func (s *serviceImpl) GetUploadedMediaForUser(ctx context.Context, request *uplo
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	objects, err := s.registry.ListObjectsByOwner(ctx, uploadedmedia.Scope(), request.UserId, filter)
+	objects, err := s.registry.ListObjectsByOwner(ctx, s.db.Reader(), uploadedmedia.Scope(), request.UserId, filter)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to fetch uploaded media for user")
 	}
@@ -427,7 +442,7 @@ func (s *serviceImpl) ArchiveUploadedMedia(ctx context.Context, request *uploade
 	logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.GetUserID())
 
 	// Fetch the existing uploaded media to verify ownership
-	object, err := s.registry.GetObject(ctx, uploadedmedia.Scope(), request.UploadedMediaId)
+	object, err := s.registry.GetObject(ctx, s.db.Reader(), uploadedmedia.Scope(), request.UploadedMediaId)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to fetch uploaded media")
 	}
@@ -437,7 +452,9 @@ func (s *serviceImpl) ArchiveUploadedMedia(ctx context.Context, request *uploade
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(platformerrors.New("permission denied"), logger, span, codes.PermissionDenied, "uploaded media does not belong to user")
 	}
 
-	if err = s.registry.ArchiveObject(ctx, uploadedmedia.Scope(), request.UploadedMediaId); err != nil {
+	if _, err = inTransaction(ctx, s.db, func(tx database.Tx) (*mediaregistry.Object, error) {
+		return s.registry.ArchiveObject(ctx, tx, uploadedmedia.Scope(), request.UploadedMediaId)
+	}); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to archive uploaded media")
 	}
 

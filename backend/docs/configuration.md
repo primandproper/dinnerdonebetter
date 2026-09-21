@@ -68,6 +68,64 @@ Port uint16 `env:"PORT" json:"port"`
 - `envPrefix:"..."` – Prefix for nested struct fields (only on struct-typed fields)
 - `json:"-"` – Field is excluded from both JSON and env parsing
 
+## platform-go's `*/config` packages, and why most of them are unused
+
+platform ships a `<domain>/config` package for twenty-five of its domains: a `Config` struct with
+`env` tags and a constructor that assembles that domain's store from it. Eleven are used here and
+fourteen are not, and the split used to be historical. It is a rule now.
+
+**This application configures a platform component by embedding platform's own `Config` struct
+into its single config tree, not by calling platform's constructor package.** `internal/config`
+already holds `outbox.RelayConfig`, `retention.SweeperConfig` and `saga.WorkerConfig` under
+`envPrefix` tags, so those settings are env-driven, rendered per environment by
+`internal/config/environments`, and covered by the generated constants `make env_vars` produces. A
+`*/config` package alongside that would be a second configuration path for the same knob, reading
+the same environment and answering to nothing.
+
+So, per package:
+
+| package | ruling |
+| --- | --- |
+| `outbox/config`, `retention/config`, `saga/config` | **No.** Their `Config` types are embedded in this application's own tree already. |
+| `comments/config`, `issuereports/config`, `mediaregistry/config`, `waitlists/config` | **No.** Their only field is `TablePrefix`, and that one must *not* be environment-settable here — see below. |
+| `identity/config` | **No.** Its `InvitationTTL` and `MaxInvitationTTL` are taken as `identitygrpc`'s defaults, seven days and the cap above it. Nothing has asked for another number; when something does, the field belongs in this application's tree beside the others rather than in a second one. |
+| `rbac/config` | **No.** It selects a policy backend, and this application resolves against the SQL one the migrator seeds. |
+| `links/config`, `shredding/config`, `timers/config`, `sessions/config` | **No**, inherited: the parent package is ruled out (`links` #1385, `shredding` #1387, `timers` #1384) or the config specifically was (`sessions` #1373). |
+
+### The table prefix is deliberately not configuration
+
+Every prefix-only config package is refused for the same reason, and it is worth stating once. A
+prefix has to match the prefix the migration was rendered with. Both come from one Go constant —
+`ddbcomments.TablePrefix` and its siblings — read by `internal/repositories/postgres/migrations`
+when it renders the DDL and by the store when it builds its statements. An environment variable
+that could set one of those without the other is a way to point a store at tables that do not
+exist, and the failure is at the first query rather than at boot.
+
+### And the four `*/http` surfaces, for completeness
+
+`dataprivacy/http`, `mediaregistry/http`, `operations/http` and `sessions/http` are **no**, on one
+reason: this application's API is gRPC, and its HTTP server exists for the handful of things that
+cannot be — the OAuth2 authorization endpoints, the payment processors' webhooks, and health. A
+domain reachable over gRPC does not want a second transport with a second authorization surface to
+keep in step.
+
+`sessions/cache` is **no** for the reason `links` was parked: it stores records in a
+`cache.Cache`, and nothing but localdev provisions a Redis. This deployment uses
+`sessions/database`, which is what the session table in the migrations is.
+
+### The eleven that are used
+
+They are not wrong, but one of them is worth knowing about: the notifications store is built
+through `notificationscfg.NewStore` with an **empty** `Config{}` and then has the only field that
+`Config` carries overridden by `WithStoreOptions(WithTablePrefix(...))`. It reads as though the
+prefix comes from the environment and it does not. Harmless, and left alone rather than churned —
+but if that file is being edited for another reason, calling `notifications.NewSQLStore` directly
+is what it actually does.
+
+`dataprivacy/config` is the one earning its keep most clearly: `RegisterAuditEraser` is a policy
+flag — whether this deployment erases audit records at all — and that is genuinely a deployment's
+answer rather than a constant.
+
 ## Deployment
 
 - **Kubernetes**: Each deployment/cronjob sets `CONFIGURATION_FILEPATH` and mounts a ConfigMap containing the service-specific JSON config. Environment-specific overrides (e.g. database URLs, secrets) are often applied via patches that inject additional env vars.

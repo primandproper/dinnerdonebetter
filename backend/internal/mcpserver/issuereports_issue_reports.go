@@ -5,8 +5,8 @@ import (
 
 	ddbissuereports "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports"
 
-	"github.com/primandproper/platform-go/v13/filtering"
-	issuereports "github.com/primandproper/platform-go/v13/issuereports"
+	issuereports "github.com/primandproper/platform-go/v14/issuereports"
+	"github.com/primandproper/primitives-go/v2/filtering"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -51,7 +51,7 @@ func (h *mcpToolManager) GetIssueReport() mcp.ToolHandlerFor[*GetIssueReportInvo
 			return nil, nil, err
 		}
 
-		result, err := h.issueReports.GetReport(ctx, ddbissuereports.Scope(accountID), x.IssueReportID)
+		result, err := h.issueReports.GetReport(ctx, h.reader, ddbissuereports.Scope(accountID), x.IssueReportID)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -88,7 +88,7 @@ func (h *mcpToolManager) GetIssueReports() mcp.ToolHandlerFor[*GetIssueReportsIn
 			return nil, nil, err
 		}
 
-		results, err := h.issueReports.ListReports(ctx, ddbissuereports.Scope(accountID), x.Filter)
+		results, err := h.issueReports.ListReports(ctx, h.reader, ddbissuereports.Scope(accountID), x.Filter)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -138,7 +138,7 @@ func (h *mcpToolManager) GetIssueReportsByStatus() mcp.ToolHandlerFor[*GetIssueR
 			return nil, nil, issuereports.ErrUnknownStatus
 		}
 
-		results, err := h.issueReports.ListReportsByStatus(ctx, ddbissuereports.Scope(accountID), status, x.Filter)
+		results, err := h.issueReports.ListReportsByStatus(ctx, h.reader, ddbissuereports.Scope(accountID), status, x.Filter)
 		if err != nil {
 			return nil, nil, err
 		}

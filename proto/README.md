@@ -12,7 +12,7 @@ version of the schema this repo builds against, and there is nothing to keep in 
 The root `Makefile` puts the module's proto directory on protoc's path:
 
 ```make
-PLATFORM_PROTO_PATH := $(shell cd backend && go list -m -f '{{.Dir}}' github.com/primandproper/platform-go/v13)/filtering/proto
+PLATFORM_PROTO_PATH := $(shell cd backend && go list -m -f '{{.Dir}}' github.com/primandproper/primitives-go/v2)/filtering/proto
 ```
 
 A file here imports it by its canonical name, exactly as it already imports
@@ -27,9 +27,9 @@ message GetThingsRequest {
 ```
 
 Go does not generate that file. It links against the bindings platform already generated, in
-`platform-go/v13/filtering/filteringpb`, via the `-M` mapping in `proto_golang` — because the
+`primitives-go/v2/filtering/filteringpb`, via the `-M` mapping in `proto_golang` — because the
 page-size clamp, the default, and the cursor asymmetry are server-side rules, and a second copy of
-one can be wrong in a way nothing reports. The conversions live in `platform-go/v13/filtering/grpc`;
+one can be wrong in a way nothing reports. The conversions live in `primitives-go/v2/filtering/grpc`;
 this repo has no filter converters of its own.
 
 Swift and TypeScript *do* generate it, from the same file, which is why `proto_swift` and

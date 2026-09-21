@@ -3,12 +3,12 @@ package dbcleaner
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 
-	"github.com/primandproper/platform-go/v13/authentication/oauth2server"
-	"github.com/primandproper/platform-go/v13/authentication/passwordreset"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/metrics"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
-	sessionsdatabase "github.com/primandproper/platform-go/v13/sessions/database"
+	"github.com/primandproper/platform-go/v14/authentication/passwordreset"
+	sessionsdatabase "github.com/primandproper/platform-go/v14/sessions/database"
+	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/metrics"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
 
 	"github.com/samber/do/v2"
 )

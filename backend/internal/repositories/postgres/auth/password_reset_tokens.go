@@ -8,12 +8,12 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 	authkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/keys"
 
-	"github.com/primandproper/platform-go/v13/authentication/passwordreset"
-	"github.com/primandproper/platform-go/v13/database"
-	"github.com/primandproper/platform-go/v13/observability"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
-	"github.com/primandproper/platform-go/v13/tenancy"
+	"github.com/primandproper/platform-go/v14/authentication/passwordreset"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/observability"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
 const (
@@ -43,10 +43,12 @@ var _ passwordreset.Store = (*auditedPasswordResetTokenStore)(nil)
 // entry per call would bury the two that matter. RevokeForUser is only ever called
 // immediately after a Consume this store has already recorded, so its entry would say
 // nothing the redemption's does not.
+// It holds no database handle. It used to, to open the transaction its audit entry was
+// written in; as of platform-go v14 the entry goes in the caller's transaction, so there
+// is nothing left for this store to open.
 type auditedPasswordResetTokenStore struct {
 	passwordreset.Store
 
-	db                database.Client
 	auditLogEntryRepo audit.Repository
 	tracer            tracing.Tracer
 	logger            logging.Logger
@@ -95,7 +97,6 @@ func ProvidePasswordResetTokenStore(
 
 	return &auditedPasswordResetTokenStore{
 		Store:             store,
-		db:                client,
 		auditLogEntryRepo: auditLogEntryRepo,
 		tracer:            tracing.NewNamedTracer(tracerProvider, passwordResetO11yName),
 		logger:            logging.NewNamedLogger(logger, passwordResetO11yName),
@@ -103,17 +104,17 @@ func ProvidePasswordResetTokenStore(
 }
 
 // Issue mints a token and records that a reset was asked for.
-func (s *auditedPasswordResetTokenStore) Issue(ctx context.Context, scope tenancy.Scope, userID string, ttl time.Duration) (*passwordreset.Issuance, error) {
+func (s *auditedPasswordResetTokenStore) Issue(ctx context.Context, tx database.Tx, scope tenancy.Scope, userID string, ttl time.Duration) (*passwordreset.Issuance, error) {
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
-	issuance, err := s.Store.Issue(ctx, scope, userID, ttl)
+	issuance, err := s.Store.Issue(ctx, tx, scope, userID, ttl)
 	if err != nil {
 		return nil, err
 	}
 	tracing.AttachToSpan(span, authkeys.PasswordResetTokenIDKey, issuance.Token.ID)
 
-	if err = s.record(ctx, span, issuance.Token, audit.AuditLogEventTypeCreated); err != nil {
+	if err = s.record(ctx, tx, span, issuance.Token, audit.AuditLogEventTypeCreated); err != nil {
 		return nil, err
 	}
 
@@ -121,44 +122,43 @@ func (s *auditedPasswordResetTokenStore) Issue(ctx context.Context, scope tenanc
 }
 
 // Consume spends a token and records the redemption.
-func (s *auditedPasswordResetTokenStore) Consume(ctx context.Context, scope tenancy.Scope, secret string) (*passwordreset.Token, error) {
+func (s *auditedPasswordResetTokenStore) Consume(ctx context.Context, tx database.Tx, scope tenancy.Scope, secret string) (*passwordreset.Token, error) {
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
-	token, err := s.Store.Consume(ctx, scope, secret)
+	token, err := s.Store.Consume(ctx, tx, scope, secret)
 	if err != nil {
 		return nil, err
 	}
 	tracing.AttachToSpan(span, authkeys.PasswordResetTokenIDKey, token.ID)
 
-	if err = s.record(ctx, span, token, audit.AuditLogEventTypeUpdated); err != nil {
+	if err = s.record(ctx, tx, span, token, audit.AuditLogEventTypeUpdated); err != nil {
 		return nil, err
 	}
 
 	return token, nil
 }
 
-// record writes one audit entry for a token, in a transaction of its own.
+// record writes one audit entry for a token, inside the caller's transaction.
 //
-// Of its own, because the write it describes has already committed inside the platform
-// store — Consume's redemption is one transaction there by design, and nothing outside
-// that package can join it. So the pair is not atomic, and the gap has a direction: a
-// crash between them loses the entry, never the redemption. That is the right way round.
-// The alternative, recording first, would put entries in the log for resets that never
-// happened, and an audit log that reports events which did not occur is worse than one
-// that occasionally misses one.
+// It used to open one of its own, and had to: the write it describes committed inside the
+// platform store — a redemption was one transaction there by design — and nothing outside
+// that package could join it. The pair was therefore not atomic, and the gap had a
+// direction: a crash between them lost the entry, never the redemption.
 //
-// A failure to record is returned rather than swallowed. A reset the log has no record of
-// is precisely the reset an investigation needs, so refusing the operation is better than
-// completing it silently — the caller retries, or the user asks for another link.
-func (s *auditedPasswordResetTokenStore) record(ctx context.Context, span tracing.Span, token *passwordreset.Token, eventType string) error {
-	if err := s.db.WithTransaction(ctx, func(tx database.Tx) error {
-		return s.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
-			ResourceType:  resourceTypePasswordResetTokens,
-			RelevantID:    token.ID,
-			EventType:     eventType,
-			BelongsToUser: token.UserID,
-		})
+// platform-go v14 removed the reason. Issue and Consume take the caller's executor, so
+// the token write and the entry describing it are now one transaction, and an entry
+// cannot be lost by a crash that keeps the redemption. The gap is closed rather than
+// merely pointed the right way.
+//
+// A failure to record still fails the operation, and now rolls it back. A reset the log
+// has no record of is precisely the reset an investigation needs.
+func (s *auditedPasswordResetTokenStore) record(ctx context.Context, tx database.Tx, span tracing.Span, token *passwordreset.Token, eventType string) error {
+	if err := s.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
+		ResourceType:  resourceTypePasswordResetTokens,
+		RelevantID:    token.ID,
+		EventType:     eventType,
+		BelongsToUser: token.UserID,
 	}); err != nil {
 		return observability.PrepareAndLogError(err, s.logger, span, "recording password reset token audit log entry")
 	}

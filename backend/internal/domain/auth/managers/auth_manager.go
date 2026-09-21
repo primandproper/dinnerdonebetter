@@ -14,28 +14,37 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 	authkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/keys"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
+	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
-	"github.com/primandproper/platform-go/v13/authentication/passwordreset"
-	platformtotp "github.com/primandproper/platform-go/v13/authentication/totp"
-	perrors "github.com/primandproper/platform-go/v13/errors"
-	"github.com/primandproper/platform-go/v13/messagequeue"
-	"github.com/primandproper/platform-go/v13/observability"
-	platformkeys "github.com/primandproper/platform-go/v13/observability/keys"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
-	"github.com/primandproper/platform-go/v13/qrcodes"
-	"github.com/primandproper/platform-go/v13/random"
-	"github.com/primandproper/platform-go/v13/tenancy"
+	"github.com/primandproper/platform-go/v14/authentication/passwordreset"
+	"github.com/primandproper/platform-go/v14/authentication/signin"
+	platformidentity "github.com/primandproper/platform-go/v14/identity"
+	platformtotp "github.com/primandproper/primitives-go/v2/authentication/totp"
+	"github.com/primandproper/primitives-go/v2/database"
+	perrors "github.com/primandproper/primitives-go/v2/errors"
+	"github.com/primandproper/primitives-go/v2/messagequeue"
+	"github.com/primandproper/primitives-go/v2/observability"
+	platformkeys "github.com/primandproper/primitives-go/v2/observability/keys"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
+	"github.com/primandproper/primitives-go/v2/qrcodes"
+	"github.com/primandproper/primitives-go/v2/random"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	passwordvalidator "github.com/wagslane/go-password-validator"
 )
 
 const (
-	o11yName               = "auth_manager"
-	totpSecretSize         = 64
+	o11yName       = "auth_manager"
+	totpSecretSize = 64
+
+	// emailVerificationTokenSize is how many bytes of entropy a verification link carries.
+	// It is a bearer credential that proves an address, so it is sized like the TOTP secret
+	// beside it rather than like an identifier.
+	emailVerificationTokenSize = 64
+
 	minimumPasswordEntropy = 60
 
 	// passwordResetTokenLifetime is how long a reset link is good for.
@@ -71,9 +80,15 @@ func (a servicePermissionCheckerAdapter) IsServiceAdmin() bool {
 }
 
 type AuthManager struct {
+	// db supplies the transaction the password reset store's writes now take.
+	// Each of the three is a single write, so each gets one transaction — and
+	// the audit entry the repository wraps around it commits with it.
+	db                    database.Client
 	passwordResetTokens   passwordreset.Store
 	sessionStore          auth.SessionStore
-	userDataManager       identity.UserDataManager
+	directory             *platformidentity.Service
+	users                 platformidentity.Store
+	signIn                *signin.Service
 	tracer                tracing.Tracer
 	authenticator         authentication.Authenticator
 	totpVerifier          platformtotp.Verifier
@@ -88,9 +103,12 @@ func ProvideAuthManager(
 	ctx context.Context,
 	logger logging.Logger,
 	tracerProvider tracing.Provider,
+	db database.Client,
 	passwordResetTokens passwordreset.Store,
 	sessionStore auth.SessionStore,
-	userDataManager identity.UserDataManager,
+	directory *platformidentity.Service,
+	users platformidentity.Store,
+	signInService *signin.Service,
 	authenticator authentication.Authenticator,
 	totpVerifier platformtotp.Verifier,
 	publisherProvider messagequeue.PublisherProvider,
@@ -110,9 +128,12 @@ func ProvideAuthManager(
 	return &AuthManager{
 		logger:                logging.NewNamedLogger(logger, o11yName),
 		tracer:                tracing.NewNamedTracer(tracerProvider, o11yName),
+		db:                    db,
 		passwordResetTokens:   passwordResetTokens,
 		sessionStore:          sessionStore,
-		userDataManager:       userDataManager,
+		directory:             directory,
+		users:                 users,
+		signIn:                signInService,
 		authenticator:         authenticator,
 		totpVerifier:          totpVerifier,
 		secretGenerator:       secretGenerator,
@@ -122,7 +143,7 @@ func ProvideAuthManager(
 	}, nil
 }
 
-func (l *AuthManager) Self(ctx context.Context) (*identity.User, error) {
+func (l *AuthManager) Self(ctx context.Context) (*platformidentity.User, error) {
 	ctx, span := l.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -138,7 +159,7 @@ func (l *AuthManager) Self(ctx context.Context) (*identity.User, error) {
 	tracing.AttachToSpan(span, platformkeys.RequesterIDKey, requester)
 
 	// fetch user data.
-	user, err := l.userDataManager.GetUser(ctx, requester)
+	user, err := l.users.GetUser(ctx, l.db.Reader(), ddbidentity.Scope(), requester)
 	if errors.Is(err, sql.ErrNoRows) {
 		logger.Debug("no such user")
 		return nil, observability.PrepareError(err, span, "no such user")
@@ -192,39 +213,24 @@ func (l *AuthManager) TOTPSecretVerification(ctx context.Context, input *auth.TO
 	}
 
 	logger = logger.WithValue(identitykeys.UserIDKey, input.UserID)
-	logger.Info("validated input, getting user")
+	tracing.AttachToSpan(span, identitykeys.UserIDKey, input.UserID)
 
-	user, err := l.userDataManager.GetUserWithUnverifiedTwoFactorSecret(ctx, input.UserID)
-	if err != nil {
-		return observability.PrepareError(err, span, "fetching user to verify two factor secret")
-	}
-
-	tracing.AttachToSpan(span, identitykeys.UserIDKey, user.ID)
-	tracing.AttachToSpan(span, identitykeys.UsernameKey, user.Username)
-	logger = logger.WithValue(identitykeys.UsernameKey, user.Username)
-
-	if user.TwoFactorSecretVerifiedAt != nil {
-		// I suppose if this happens too many times, we might want to keep track of that?
-		return errors.New("two factor secret already verified")
-	}
-
-	// Verify through the injected verifier (rather than calling totp.Validate directly) so the
-	// configured verifier is honored, and pass the non-nil verification error: PrepareError returns
-	// nil on a nil error, which would otherwise report success on an invalid code.
-	if verifyErr := l.totpVerifier.Verify(ctx, user.TwoFactorSecret, input.TOTPToken); verifyErr != nil {
-		return observability.PrepareError(verifyErr, span, "TOTP code was invalid")
-	}
-
-	if err = l.userDataManager.MarkUserTwoFactorSecretAsVerified(ctx, user.ID); err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "verifying user two factor secret")
+	// The read, the already-verified check, the code comparison and the write were four
+	// steps here and are one call now. platform refuses a replayed verification with a
+	// sentinel of its own rather than with a bare errors.New, which is what this returned
+	// — so "already verified" is something a caller can match on instead of a string.
+	if err := l.signIn.VerifyTOTPSecret(ctx, ddbidentity.Scope(), input.UserID, input.TOTPToken); err != nil {
+		return observability.PrepareError(err, span, "verifying two factor secret")
 	}
 
 	dcm := &audit.DataChangeMessage{
 		EventType: auth.TwoFactorSecretVerifiedServiceEventType,
-		UserID:    user.ID,
+		UserID:    input.UserID,
 	}
 
 	l.dataChangesPublisher.PublishAsync(ctx, dcm)
+
+	logger.Info("two factor secret verified")
 
 	return nil
 }
@@ -247,52 +253,34 @@ func (l *AuthManager) NewTOTPSecret(ctx context.Context, input *auth.TOTPSecretR
 
 	tracing.AttachSessionContextDataToSpan(span, &sessionContextDataForTracing{sessionContextData})
 	logger = sessionContextData.AttachToLogger(logger)
-
-	// fetch user
-	user, err := l.userDataManager.GetUser(ctx, sessionContextData.GetUserID())
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, observability.PrepareError(err, span, "user does not exist")
-		}
-		return nil, observability.PrepareError(err, span, "retrieving user from database")
-	}
-
-	if user.TwoFactorSecretVerifiedAt != nil {
-		matches, validationErr := l.authenticator.PasswordMatches(ctx, user.HashedPassword, input.CurrentPassword)
-		if validationErr != nil {
-			return nil, observability.PrepareError(validationErr, span, "validating credentials")
-		}
-
-		if !matches {
-			// Use an explicit error instead of the nil validationErr
-			return nil, observability.PrepareError(errors.New("password mismatch"), span, "invalid credentials")
-		}
-
-		if verifyErr := l.totpVerifier.Verify(ctx, user.TwoFactorSecret, input.TOTPToken); verifyErr != nil {
-			return nil, observability.PrepareError(verifyErr, span, "invalid credentials")
-		}
-	} else {
-		return nil, observability.PrepareError(errors.New("unverified secret"), span, "two factor secret not yet verified")
-	}
-
-	// document who this is for.
 	tracing.AttachToSpan(span, platformkeys.RequesterIDKey, sessionContextData.GetUserID())
-	tracing.AttachToSpan(span, identitykeys.UsernameKey, user.Username)
-	logger = logger.WithValue(identitykeys.UserIDKey, user.ID)
 
-	// set the two factor secret.
-	tfs, err := l.secretGenerator.GenerateBase32EncodedString(ctx, totpSecretSize)
+	// The password check, the code check, the secret generation and the write are one call.
+	//
+	// One rule loosened with it, deliberately. This refused a user whose current secret was
+	// not yet proven — "two factor secret not yet verified" — which left somebody who
+	// registered, never finished enrollment and lost the secret with no way to get another;
+	// the only credential they could still prove was the password, and this is the call a
+	// password proves. platform asks for the password always and for a code only from
+	// somebody who holds a proven secret, which is the same protection without the corner.
+	enrollment, err := l.signIn.RefreshTOTPSecret(ctx, ddbidentity.Scope(), sessionContextData.GetUserID(),
+		&signin.SecretRefresh{
+			CurrentPassword: input.CurrentPassword,
+			TOTPCode:        input.TOTPToken,
+		})
 	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "generating 2FA secret")
+		return nil, observability.PrepareError(err, span, "refreshing two factor secret")
 	}
 
-	// update the user in the database.
-	if err = l.userDataManager.MarkUserTwoFactorSecretAsUnverified(ctx, user.ID, tfs); err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "updating 2FA secret")
+	// The username, for the QR code's label. platform hands back an otpauth URI carrying
+	// the same thing, and rendering that instead would mean a builder that takes a URI —
+	// worth doing when something else wants one.
+	user, err := l.users.GetUser(ctx, l.db.Reader(), ddbidentity.Scope(), sessionContextData.GetUserID())
+	if err != nil {
+		return nil, observability.PrepareAndLogError(err, logger, span, "reading the user the secret belongs to")
 	}
 
-	user.TwoFactorSecret = tfs
-	user.TwoFactorSecretVerifiedAt = nil
+	tracing.AttachToSpan(span, identitykeys.UsernameKey, user.Username)
 
 	dcm := &audit.DataChangeMessage{
 		EventType: auth.TwoFactorSecretChangedServiceEventType,
@@ -301,17 +289,15 @@ func (l *AuthManager) NewTOTPSecret(ctx context.Context, input *auth.TOTPSecretR
 
 	l.dataChangesPublisher.PublishAsync(ctx, dcm)
 
-	qrCode, err := l.qrCodeBuilder.BuildQRCode(ctx, user.Username, user.TwoFactorSecret)
+	qrCode, err := l.qrCodeBuilder.BuildQRCode(ctx, user.Username, enrollment.Secret)
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "building QR code")
 	}
 
-	result := &auth.TOTPSecretRefreshResponse{
-		TwoFactorSecret: user.TwoFactorSecret,
+	return &auth.TOTPSecretRefreshResponse{
+		TwoFactorSecret: enrollment.Secret,
 		TwoFactorQRCode: qrCode,
-	}
-
-	return result, nil
+	}, nil
 }
 
 func (l *AuthManager) UpdatePassword(ctx context.Context, input *auth.PasswordUpdateInput) error {
@@ -334,36 +320,30 @@ func (l *AuthManager) UpdatePassword(ctx context.Context, input *auth.PasswordUp
 	tracing.AttachToSpan(span, platformkeys.RequesterIDKey, sessionContextData.GetUserID())
 	logger = sessionContextData.AttachToLogger(logger)
 
-	user, err := l.validateCredentialsForUpdateRequest(
-		ctx,
-		sessionContextData.GetUserID(),
-		input.CurrentPassword,
-		input.TOTPToken,
-	)
-	if err != nil {
-		return observability.PrepareError(err, span, "validating credentials")
-	}
-	tracing.AttachToSpan(span, identitykeys.UsernameKey, user.Username)
-
-	// ensure the password isn't garbage-tier
+	// The password policy stays here, and platform says so: PasswordUpdate's doc notes
+	// that whether a password is long enough or unusual enough is the consumer's rule,
+	// applied before the call, because a policy inside the package is one every consumer
+	// then has to work around. Ours is the entropy floor below.
 	if err = passwordvalidator.Validate(input.NewPassword, minimumPasswordEntropy); err != nil {
 		return observability.PrepareError(err, span, "invalid password provided")
 	}
 
-	// hash the new password.
-	newPasswordHash, err := l.authenticator.HashPassword(ctx, strings.TrimSpace(input.NewPassword))
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "hashing password")
-	}
-
-	// update the user.
-	if err = l.userDataManager.UpdateUserPassword(ctx, user.ID, newPasswordHash); err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "updating user")
+	// What moves is everything after it: the credential check, the hash and the write.
+	// The current password is required whatever the session says, which is platform's
+	// rule and was this application's too — a session is not proof enough to change the
+	// credential the session was obtained with.
+	if err = l.signIn.UpdatePassword(ctx, ddbidentity.Scope(), sessionContextData.GetUserID(),
+		&signin.PasswordUpdate{
+			CurrentPassword: input.CurrentPassword,
+			NewPassword:     strings.TrimSpace(input.NewPassword),
+			TOTPCode:        input.TOTPToken,
+		}); err != nil {
+		return observability.PrepareAndLogError(err, logger, span, "updating password")
 	}
 
 	dcm := &audit.DataChangeMessage{
 		EventType: auth.PasswordChangedEventType,
-		UserID:    user.ID,
+		UserID:    sessionContextData.GetUserID(),
 	}
 
 	l.dataChangesPublisher.PublishAsync(ctx, dcm)
@@ -403,7 +383,9 @@ func (l *AuthManager) UpdateUserEmailAddress(ctx context.Context, input *auth.Us
 	}
 
 	// update the user.
-	if err = l.userDataManager.UpdateUserEmailAddress(ctx, user.ID, input.NewEmailAddress); err != nil {
+	if _, err = l.directory.UpdateProfile(ctx, ddbidentity.Scope(), user.ID, &platformidentity.ProfileUpdate{
+		EmailAddress: &input.NewEmailAddress,
+	}); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "updating user")
 	}
 
@@ -449,7 +431,9 @@ func (l *AuthManager) UpdateUserUsername(ctx context.Context, input *auth.Userna
 	}
 
 	// update the user.
-	if err = l.userDataManager.UpdateUserUsername(ctx, user.ID, input.NewUsername); err != nil {
+	if _, err = l.directory.UpdateProfile(ctx, ddbidentity.Scope(), user.ID, &platformidentity.ProfileUpdate{
+		Username: &input.NewUsername,
+	}); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "updating user")
 	}
 
@@ -481,7 +465,7 @@ func (l *AuthManager) RequestUsernameReminder(ctx context.Context, input *auth.U
 		return observability.PrepareError(err, span, "provided input was invalid")
 	}
 
-	u, err := l.userDataManager.GetUserByEmail(ctx, input.EmailAddress)
+	u, err := l.users.GetUserByEmailAddress(ctx, l.db.Reader(), ddbidentity.Scope(), input.EmailAddress)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
 		// Do not leak user existence; return success without sending a reminder.
 		return nil
@@ -508,7 +492,7 @@ func (l *AuthManager) CreatePasswordResetToken(ctx context.Context, input *auth.
 		return observability.PrepareError(err, span, "provided input was invalid")
 	}
 
-	u, err := l.userDataManager.GetUserByEmail(ctx, input.EmailAddress)
+	u, err := l.users.GetUserByEmailAddress(ctx, l.db.Reader(), ddbidentity.Scope(), input.EmailAddress)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
 		// Do not leak user existence; return success without sending email.
 		return nil
@@ -521,7 +505,9 @@ func (l *AuthManager) CreatePasswordResetToken(ctx context.Context, input *auth.
 	// asking for one is not signed in and has no active account to name, and a link that
 	// only worked in the account they happened to have selected last would be a link that
 	// stops working when they switch.
-	issuance, err := l.passwordResetTokens.Issue(ctx, tenancy.Global(), u.ID, passwordResetTokenLifetime)
+	issuance, err := inTransaction(ctx, l.db, func(tx database.Tx) (*passwordreset.Issuance, error) {
+		return l.passwordResetTokens.Issue(ctx, tx, tenancy.Global(), u.ID, passwordResetTokenLifetime)
+	})
 	if err != nil {
 		return observability.PrepareError(err, span, "creating password reset token")
 	}
@@ -577,13 +563,15 @@ func (l *AuthManager) PasswordResetTokenRedemption(ctx context.Context, input *a
 	// Single use is decided here, by the store, in one statement. Two requests answering the
 	// same link at the same instant both find the row live; exactly one of them gets a token
 	// back and the other is told it has already been redeemed.
-	t, err := l.passwordResetTokens.Consume(ctx, tenancy.Global(), input.Token)
+	t, err := inTransaction(ctx, l.db, func(tx database.Tx) (*passwordreset.Token, error) {
+		return l.passwordResetTokens.Consume(ctx, tx, tenancy.Global(), input.Token)
+	})
 	if err != nil {
 		return observability.PrepareError(err, span, "redeeming password reset token")
 	}
 	tracing.AttachToSpan(span, authkeys.PasswordResetTokenIDKey, t.ID)
 
-	u, err := l.userDataManager.GetUser(ctx, t.UserID)
+	u, err := l.users.GetUser(ctx, l.db.Reader(), ddbidentity.Scope(), t.UserID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return observability.PrepareError(err, span, "user not found")
@@ -598,7 +586,7 @@ func (l *AuthManager) PasswordResetTokenRedemption(ctx context.Context, input *a
 	}
 
 	// update the user.
-	if err = l.userDataManager.UpdateUserPassword(ctx, u.ID, newPasswordHash); err != nil {
+	if _, err = l.directory.UpdateUserPassword(ctx, ddbidentity.Scope(), u.ID, newPasswordHash); err != nil {
 		observability.AcknowledgeError(err, logger, span, "updating user")
 		if errors.Is(err, sql.ErrNoRows) {
 			return observability.PrepareError(err, span, "user not found")
@@ -610,7 +598,9 @@ func (l *AuthManager) PasswordResetTokenRedemption(ctx context.Context, input *a
 	// Every other link this user was holding stops working. Somebody who asked for a reset
 	// twice and completed the second one should not be left with a first link that still
 	// resets the password they just chose.
-	if _, err = l.passwordResetTokens.RevokeForUser(ctx, tenancy.Global(), u.ID); err != nil {
+	if _, err = inTransaction(ctx, l.db, func(tx database.Tx) (int64, error) {
+		return l.passwordResetTokens.RevokeForUser(ctx, tx, tenancy.Global(), u.ID)
+	}); err != nil {
 		// The reset itself succeeded, so this is reported rather than returned: failing the
 		// request here would tell the user their password did not change when it did.
 		observability.AcknowledgeError(err, logger, span, "revoking outstanding password reset tokens")
@@ -638,11 +628,26 @@ func (l *AuthManager) RequestEmailVerificationEmail(ctx context.Context) error {
 	}
 	logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.GetUserID())
 
-	verificationToken, err := l.userDataManager.GetEmailAddressVerificationTokenForUser(ctx, sessionContextData.GetUserID())
-	if err != nil && errors.Is(err, sql.ErrNoRows) {
-		return observability.PrepareError(err, span, "email verification token not found")
-	} else if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "fetching email verification token")
+	// Minted here rather than read back, because there is nothing to read back: the
+	// column holds a digest, and no read fills the secret in. That is a change in
+	// behavior and the right one — asking for the mail again issues a fresh link and
+	// retires the one that went missing, where the read this replaced re-sent whatever
+	// token was already outstanding forever.
+	verificationToken, err := l.secretGenerator.GenerateBase32EncodedString(ctx, emailVerificationTokenSize)
+	if err != nil {
+		return observability.PrepareAndLogError(err, logger, span, "generating email verification token")
+	}
+
+	// The deadline is computed here and compared in Go by the store, never in SQL —
+	// platform's ruling, and the reason is that a CURRENT_TIMESTAMP predicate would be the
+	// database's clock judging a deadline this clock set, which under a test clock are
+	// years apart. The TTL is platform's default rather than a number of this
+	// application's: 72 hours is long enough for somebody to find the mail on Monday.
+	expiresAt := l.db.CurrentTime().Add(signin.DefaultVerificationLinkTTL)
+
+	if _, err = l.directory.SetUserEmailAddressVerificationToken(ctx, ddbidentity.Scope(),
+		sessionContextData.GetUserID(), verificationToken, expiresAt); err != nil {
+		return observability.PrepareAndLogError(err, logger, span, "storing email verification token")
 	}
 
 	l.dataChangesPublisher.PublishAsync(ctx, &audit.DataChangeMessage{
@@ -672,19 +677,22 @@ func (l *AuthManager) VerifyUserEmailAddress(ctx context.Context, input *auth.Em
 		return observability.PrepareError(err, span, "provided input was invalid")
 	}
 
-	user, err := l.userDataManager.GetUserByEmailAddressVerificationToken(ctx, input.Token)
+	// Read first, for the user id the event below names — VerifyEmailAddress answers
+	// with an error and nothing else, and the link is spent by the time it returns.
+	user, err := l.users.GetUserByEmailVerificationToken(ctx, l.db.Reader(), ddbidentity.Scope(), input.Token)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return observability.PrepareError(err, span, "user not found")
-		}
-		return observability.PrepareAndLogError(err, logger, span, "fetching user")
+		// Deliberately not told apart from a token that simply does not match. This used
+		// to answer "user not found" for an unknown token and something else for a write
+		// that matched no row, which made the endpoint a way to ask whether a given
+		// verification token was live. signin's rule is that expired, already spent,
+		// never issued and simply wrong are one answer, because the caller's remedy is
+		// the same in every case and telling them apart tells whoever is guessing which
+		// guesses are getting warm.
+		return observability.PrepareError(signin.ErrInvalidVerificationToken, span, "verifying email address")
 	}
 
-	if err = l.userDataManager.MarkUserEmailAddressAsVerified(ctx, user.ID, input.Token); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return observability.PrepareError(err, span, "user not found")
-		}
-		return observability.PrepareAndLogError(err, logger, span, "marking user email as verified")
+	if err = l.signIn.VerifyEmailAddress(ctx, ddbidentity.Scope(), input.Token); err != nil {
+		return observability.PrepareAndLogError(err, logger, span, "verifying email address")
 	}
 
 	l.dataChangesPublisher.PublishAsync(ctx, &audit.DataChangeMessage{
@@ -708,19 +716,22 @@ func (l *AuthManager) VerifyUserEmailAddressByToken(ctx context.Context, token s
 		return observability.PrepareError(err, span, "provided input was invalid")
 	}
 
-	user, err := l.userDataManager.GetUserByEmailAddressVerificationToken(ctx, token)
+	// Read first, for the user id the event below names — VerifyEmailAddress answers
+	// with an error and nothing else, and the link is spent by the time it returns.
+	user, err := l.users.GetUserByEmailVerificationToken(ctx, l.db.Reader(), ddbidentity.Scope(), token)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return observability.PrepareError(err, span, "user not found")
-		}
-		return observability.PrepareAndLogError(err, logger, span, "fetching user")
+		// Deliberately not told apart from a token that simply does not match. This used
+		// to answer "user not found" for an unknown token and something else for a write
+		// that matched no row, which made the endpoint a way to ask whether a given
+		// verification token was live. signin's rule is that expired, already spent,
+		// never issued and simply wrong are one answer, because the caller's remedy is
+		// the same in every case and telling them apart tells whoever is guessing which
+		// guesses are getting warm.
+		return observability.PrepareError(signin.ErrInvalidVerificationToken, span, "verifying email address")
 	}
 
-	if err = l.userDataManager.MarkUserEmailAddressAsVerified(ctx, user.ID, token); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return observability.PrepareError(err, span, "user not found")
-		}
-		return observability.PrepareAndLogError(err, logger, span, "marking user email as verified")
+	if err = l.signIn.VerifyEmailAddress(ctx, ddbidentity.Scope(), token); err != nil {
+		return observability.PrepareAndLogError(err, logger, span, "verifying email address")
 	}
 
 	l.dataChangesPublisher.PublishAsync(ctx, &audit.DataChangeMessage{
@@ -732,14 +743,14 @@ func (l *AuthManager) VerifyUserEmailAddressByToken(ctx context.Context, token s
 }
 
 // validateCredentialsForUpdateRequest takes a user's credentials and determines if they match what is on record.
-func (l *AuthManager) validateCredentialsForUpdateRequest(ctx context.Context, userID, password, totpToken string) (*identity.User, error) {
+func (l *AuthManager) validateCredentialsForUpdateRequest(ctx context.Context, userID, password, totpToken string) (*platformidentity.User, error) {
 	ctx, span := l.tracer.StartSpan(ctx)
 	defer span.End()
 
 	logger := l.logger.WithValue(identitykeys.UserIDKey, userID)
 
 	// fetch user data.
-	user, err := l.userDataManager.GetUser(ctx, userID)
+	user, err := l.users.GetUser(ctx, l.db.Reader(), ddbidentity.Scope(), userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, err
@@ -829,4 +840,24 @@ func (l *AuthManager) RevokeAllSessionsForUser(ctx context.Context, userID strin
 	_, err := l.sessionStore.RevokeAll(ctx, auth.SessionHolder(userID))
 
 	return err
+}
+
+// inTransaction runs one store write on a transaction of its own.
+//
+// As of platform-go v14 a store holds no database handle: a write takes the
+// caller's database.Tx. Every write in this service is a single store call, so
+// each gets one transaction — which is exactly what the store opened for itself
+// before the caller was required to supply it. A handler that ever writes twice
+// should take one transaction across both rather than call this twice.
+func inTransaction[T any](ctx context.Context, db database.Client, write func(tx database.Tx) (T, error)) (T, error) {
+	var out T
+
+	err := db.WithTransaction(ctx, func(tx database.Tx) error {
+		var writeErr error
+		out, writeErr = write(tx)
+
+		return writeErr
+	})
+
+	return out, err
 }

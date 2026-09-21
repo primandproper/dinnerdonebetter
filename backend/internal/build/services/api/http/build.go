@@ -5,33 +5,34 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
 	authcfg "github.com/primandproper/dinnerdonebetter/backend/internal/authentication/config"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
+	identitybuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
-	identitymgr "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/manager"
 	paymentsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/manager"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories"
 	auditrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
-	identityrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity"
-	oauthrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/oauth"
+	identitystore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identitystore"
+	oauth2clientsstore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/oauth2clientsstore"
 	paymentsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/payments"
 	uploadedmediarepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/uploadedmedia"
 	authservice "github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/handlers/authentication"
 	paymentsadapters "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/adapters"
 	paymentshttp "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/http"
 
-	analyticscfg "github.com/primandproper/platform-go/v13/analytics/config"
-	"github.com/primandproper/platform-go/v13/database"
-	databasecfg "github.com/primandproper/platform-go/v13/database/config"
-	"github.com/primandproper/platform-go/v13/encoding"
-	"github.com/primandproper/platform-go/v13/healthcheck"
-	msgconfig "github.com/primandproper/platform-go/v13/messagequeue/config"
-	"github.com/primandproper/platform-go/v13/observability"
-	loggingcfg "github.com/primandproper/platform-go/v13/observability/logging/config"
-	metricscfg "github.com/primandproper/platform-go/v13/observability/metrics/config"
-	tracingcfg "github.com/primandproper/platform-go/v13/observability/tracing/config"
-	"github.com/primandproper/platform-go/v13/qrcodes"
-	"github.com/primandproper/platform-go/v13/random"
-	"github.com/primandproper/platform-go/v13/server/http"
+	analyticscfg "github.com/primandproper/primitives-go/v2/analytics/config"
+	"github.com/primandproper/primitives-go/v2/database"
+	databasecfg "github.com/primandproper/primitives-go/v2/database/config"
+	"github.com/primandproper/primitives-go/v2/encoding"
+	"github.com/primandproper/primitives-go/v2/healthcheck"
+	msgconfig "github.com/primandproper/primitives-go/v2/messagequeue/config"
+	"github.com/primandproper/primitives-go/v2/observability"
+	loggingcfg "github.com/primandproper/primitives-go/v2/observability/logging/config"
+	metricscfg "github.com/primandproper/primitives-go/v2/observability/metrics/config"
+	tracingcfg "github.com/primandproper/primitives-go/v2/observability/tracing/config"
+	"github.com/primandproper/primitives-go/v2/qrcodes"
+	"github.com/primandproper/primitives-go/v2/random"
+	"github.com/primandproper/primitives-go/v2/server/http"
 
 	"github.com/samber/do/v2"
 )
@@ -99,17 +100,17 @@ func BuildInjector(
 	// What a role grants, read from the policy tables the migrator seeds. The
 	// identity repository resolves a principal's role names through it when it
 	// builds a session.
-	identityrepo.RegisterPolicyResolver(i)
-	identityrepo.RegisterIdentityRepository(i)
+	authorization.RegisterPolicyResolver(i)
+	identitystore.RegisterIdentityStore(i)
+	identitybuild.RegisterSessionBuilder(i)
 
 	// The upload registry, because the identity repository reads a user's avatar
 	// through it.
 	uploadedmediarepo.RegisterUploadedMediaRepository(i)
-	oauthrepo.RegisterOAuthRepository(i)
+	oauth2clientsstore.RegisterOAuth2ClientsStore(i)
 	paymentsrepo.RegisterPaymentsRepository(i)
 
 	// managers
-	identitymgr.RegisterIdentityDataManager(i)
 	paymentsmanager.RegisterPaymentsDataManager(i)
 	paymentsadapters.RegisterPaymentProcessorRegistry(i)
 

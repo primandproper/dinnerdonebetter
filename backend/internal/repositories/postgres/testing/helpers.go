@@ -12,16 +12,16 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity/generated"
+	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
+	fakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
 
-	"github.com/primandproper/platform-go/v13/database"
-	mockdatabase "github.com/primandproper/platform-go/v13/database/mock"
-	"github.com/primandproper/platform-go/v13/filtering"
-	"github.com/primandproper/platform-go/v13/identifiers"
-	"github.com/primandproper/platform-go/v13/testutils/containers"
-	"github.com/primandproper/platform-go/v13/testutils/containers/pgtest"
+	platformidentity "github.com/primandproper/platform-go/v14/identity"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/database/dialect"
+	mockdatabase "github.com/primandproper/primitives-go/v2/database/mock"
+	"github.com/primandproper/primitives-go/v2/filtering"
+	"github.com/primandproper/primitives-go/v2/testutils/containers"
+	"github.com/primandproper/primitives-go/v2/testutils/containers/pgtest"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/stretchr/testify/assert"
@@ -83,33 +83,6 @@ const (
 )
 
 // userFromGetUserByIDRow converts a GetUserByIDRow to User. Used by CreateUserForTest.
-func userFromGetUserByIDRow(row *generated.GetUserByIDRow) *identity.User {
-	// The avatar row itself is not built here. It lives in platform-go's upload
-	// registry now, which this helper has no store for, and the user rows these
-	// helpers create carry no avatar — see avatarFor in the identity repository
-	// for the read that hydrates one.
-	return &identity.User{
-		CreatedAt:                  row.CreatedAt,
-		PasswordLastChangedAt:      database.TimePointerFromNullTime(row.PasswordLastChangedAt),
-		LastUpdatedAt:              database.TimePointerFromNullTime(row.LastUpdatedAt),
-		LastAcceptedTermsOfService: database.TimePointerFromNullTime(row.LastAcceptedTermsOfService),
-		LastAcceptedPrivacyPolicy:  database.TimePointerFromNullTime(row.LastAcceptedPrivacyPolicy),
-		TwoFactorSecretVerifiedAt:  database.TimePointerFromNullTime(row.TwoFactorSecretVerifiedAt),
-		Birthday:                   database.TimePointerFromNullTime(row.Birthday),
-		ArchivedAt:                 database.TimePointerFromNullTime(row.ArchivedAt),
-		AccountStatusExplanation:   row.UserAccountStatusExplanation,
-		TwoFactorSecret:            row.TwoFactorSecret,
-		HashedPassword:             row.HashedPassword,
-		ID:                         row.ID,
-		AccountStatus:              row.UserAccountStatus,
-		Username:                   row.Username,
-		FirstName:                  row.FirstName,
-		LastName:                   row.LastName,
-		EmailAddress:               row.EmailAddress,
-		EmailAddressVerifiedAt:     database.TimePointerFromNullTime(row.EmailAddressVerifiedAt),
-		RequiresPasswordChange:     row.RequiresPasswordChange,
-	}
-}
 
 // startupDeadline bounds how long a container has to become ready. It is applied
 // to each sub-strategy individually as well as to the wait as a whole — see
@@ -247,133 +220,87 @@ func BuildDatabaseContainer(ctx context.Context, dbName string, customizers ...t
 	return container, db, dbConfig, nil
 }
 
-func CreateUserForTest(t *testing.T, exampleUser *identity.User, db database.SQLQueryExecutor) *identity.User {
+// CreateUserForTest writes a user straight into the directory, bypassing registration.
+//
+// The store rather than the service, because these helpers exist to put a row in front of a
+// repository test and a registration would write an account and a membership too. The
+// transaction is database.NewTxForTesting over whatever executor the caller holds, which is
+// the only way to produce a Tx outside the database package and exactly what it is for.
+func CreateUserForTest(t *testing.T, exampleUser *platformidentity.User, db database.SQLQueryExecutor) *platformidentity.User {
 	t.Helper()
 
 	ctx := t.Context()
 
-	// create
 	if exampleUser == nil {
 		exampleUser = fakes.BuildFakeUser()
 	}
 	exampleUser.TwoFactorSecretVerifiedAt = nil
 
-	dbc := generated.New()
+	store := identityStoreForTest(t, db)
 
-	err := dbc.CreateUser(ctx, db, &generated.CreateUserParams{
-		ID:                            exampleUser.ID,
-		Username:                      exampleUser.Username,
-		EmailAddress:                  exampleUser.EmailAddress,
-		HashedPassword:                exampleUser.HashedPassword,
-		RequiresPasswordChange:        exampleUser.RequiresPasswordChange,
-		TwoFactorSecret:               exampleUser.TwoFactorSecret,
-		TwoFactorSecretVerifiedAt:     database.NullTimeFromTimePointer(exampleUser.TwoFactorSecretVerifiedAt),
-		UserAccountStatus:             exampleUser.AccountStatus,
-		UserAccountStatusExplanation:  exampleUser.AccountStatusExplanation,
-		Birthday:                      database.NullTimeFromTimePointer(exampleUser.Birthday),
-		EmailAddressVerificationToken: database.NullStringFromString("token"),
-		FirstName:                     exampleUser.FirstName,
-		LastName:                      exampleUser.LastName,
-	})
+	created, err := store.CreateUser(ctx, database.NewTxForTesting(db), ddbidentity.Scope(), exampleUser)
 	require.NoError(t, err)
-
-	// Assign default service_user role.
-	require.NoError(t, dbc.AssignRoleToUser(ctx, db, &generated.AssignRoleToUserParams{
-		ID:        identifiers.New(),
-		UserID:    exampleUser.ID,
-		RoleName:  authorization.ServiceUserRoleName,
-		AccountID: sql.NullString{},
-	}))
-
-	dbCreated, err := dbc.GetUserByID(ctx, db, exampleUser.ID)
-	require.NoError(t, err)
-
-	created := userFromGetUserByIDRow(dbCreated)
-	exampleUser.CreatedAt = created.CreatedAt
-	exampleUser.Birthday = created.Birthday
-	exampleUser.TwoFactorSecretVerifiedAt = created.TwoFactorSecretVerifiedAt
-	assert.Equal(t, exampleUser, created)
+	require.NotNil(t, created)
 
 	return created
 }
 
-func CreateAccountForTest(t *testing.T, exampleAccount *identity.Account, userID string, db database.SQLQueryExecutor) *identity.Account {
+// identityStoreForTest builds the directory store these helpers write through.
+//
+// The executor is what the store is actually pointed at — every one of its methods takes
+// the transaction the caller supplies — and the client exists only because NewSQLStore
+// reads a dialect off one. Hence a client wrapping the executor the caller already holds,
+// rather than a second pool against the same database.
+func identityStoreForTest(t *testing.T, db database.SQLQueryExecutor) platformidentity.Store {
 	t.Helper()
 
-	// create
-	if exampleAccount == nil {
-		exampleAccount = fakes.BuildFakeAccount()
-		exampleAccount.BelongsToUser = userID
-	}
-	exampleAccount.PaymentProcessorCustomerID = ""
-	exampleAccount.Members = nil
+	store, err := platformidentity.NewSQLStore(
+		&mockdatabase.ClientMock{
+			DialectFunc:     func() dialect.Dialect { return dialect.Postgres },
+			ReaderFunc:      func() database.SQLQueryExecutor { return db },
+			WriterFunc:      func() database.SQLQueryExecutor { return db },
+			CurrentTimeFunc: time.Now,
+			CloseFunc:       func() error { return nil },
+		},
+		platformidentity.WithTablePrefix(ddbidentity.TablePrefix),
+	)
+	require.NoError(t, err)
+
+	return store
+}
+
+// CreateAccountForTest writes an account and its owner's membership.
+//
+// Both, because an account with no member is a row every read filters out — the directory
+// answers an account through the memberships that reach it — so a helper that wrote only
+// the account would hand a test a row nothing can find.
+func CreateAccountForTest(t *testing.T, exampleAccount *platformidentity.Account, userID string, db database.SQLQueryExecutor) *platformidentity.Account {
+	t.Helper()
 
 	ctx := t.Context()
-	dbc := generated.New()
 
-	require.NoError(t, dbc.CreateAccount(ctx, db, &generated.CreateAccountParams{
-		ID:                exampleAccount.ID,
-		Name:              exampleAccount.Name,
-		BillingStatus:     exampleAccount.BillingStatus,
-		ContactPhone:      exampleAccount.ContactPhone,
-		BelongsToUser:     userID,
-		AddressLine1:      exampleAccount.AddressLine1,
-		AddressLine2:      exampleAccount.AddressLine2,
-		City:              exampleAccount.City,
-		State:             exampleAccount.State,
-		ZipCode:           exampleAccount.ZipCode,
-		Country:           exampleAccount.Country,
-		Latitude:          database.NullStringFromFloat64Pointer(exampleAccount.Latitude),
-		Longitude:         database.NullStringFromFloat64Pointer(exampleAccount.Longitude),
-		WebhookHmacSecret: exampleAccount.WebhookEncryptionKey,
-	}))
+	if exampleAccount == nil {
+		exampleAccount = fakes.BuildFakeAccount()
+	}
+	exampleAccount.OwnerUserID = userID
 
-	require.NoError(t, dbc.CreateAccountUserMembershipForNewUser(ctx, db, &generated.CreateAccountUserMembershipForNewUserParams{
-		ID:               identifiers.New(),
-		BelongsToAccount: exampleAccount.ID,
+	store := identityStoreForTest(t, db)
+	tx := database.NewTxForTesting(db)
+
+	created, err := store.CreateAccount(ctx, tx, ddbidentity.Scope(), exampleAccount)
+	require.NoError(t, err)
+
+	// The owner's roles travel on the membership now rather than being a role assignment
+	// of their own: the membership type requires them, and a member with none is a member
+	// who may do nothing in the account they own.
+	_, err = store.CreateMembership(ctx, tx, ddbidentity.Scope(), &platformidentity.Membership{
+		Scope:            ddbidentity.Scope(),
 		BelongsToUser:    userID,
+		BelongsToAccount: created.ID,
+		Roles:            []string{authorization.AccountAdminRoleName},
 		DefaultAccount:   true,
-	}))
-
-	// Account owners get account_admin role.
-	require.NoError(t, dbc.AssignRoleToUser(ctx, db, &generated.AssignRoleToUserParams{
-		ID:        identifiers.New(),
-		UserID:    userID,
-		RoleName:  authorization.AccountAdminRoleName,
-		AccountID: sql.NullString{String: exampleAccount.ID, Valid: true},
-	}))
-
-	dbCreated, err := dbc.GetAccountsForUser(ctx, db, &generated.GetAccountsForUserParams{
-		BelongsToUser: userID,
 	})
 	require.NoError(t, err)
-	require.Len(t, dbCreated, 1)
-
-	created := &identity.Account{
-		CreatedAt:                  dbCreated[0].CreatedAt,
-		SubscriptionPlanID:         database.StringPointerFromNullString(dbCreated[0].SubscriptionPlanID),
-		LastUpdatedAt:              database.TimePointerFromNullTime(dbCreated[0].LastUpdatedAt),
-		ArchivedAt:                 database.TimePointerFromNullTime(dbCreated[0].ArchivedAt),
-		Longitude:                  database.Float64PointerFromNullString(dbCreated[0].Longitude),
-		Latitude:                   database.Float64PointerFromNullString(dbCreated[0].Latitude),
-		State:                      dbCreated[0].State,
-		ContactPhone:               dbCreated[0].ContactPhone,
-		City:                       dbCreated[0].City,
-		AddressLine1:               dbCreated[0].AddressLine1,
-		ZipCode:                    dbCreated[0].ZipCode,
-		Country:                    dbCreated[0].Country,
-		BillingStatus:              dbCreated[0].BillingStatus,
-		AddressLine2:               dbCreated[0].AddressLine2,
-		PaymentProcessorCustomerID: dbCreated[0].PaymentProcessorCustomerID,
-		BelongsToUser:              dbCreated[0].BelongsToUser,
-		ID:                         dbCreated[0].ID,
-		Name:                       dbCreated[0].Name,
-		WebhookEncryptionKey:       dbCreated[0].WebhookHmacSecret,
-	}
-
-	exampleAccount.CreatedAt = created.CreatedAt
-	exampleAccount.WebhookEncryptionKey = created.WebhookEncryptionKey
-	assert.Equal(t, exampleAccount, created)
 
 	return created
 }

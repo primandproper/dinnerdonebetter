@@ -10,6 +10,7 @@ service AuthService {
   rpc EvaluateBooleanFeatureFlag(EvaluateBooleanFeatureFlagRequest) returns (EvaluateBooleanFeatureFlagResponse);
   rpc EvaluateInt64FeatureFlag(EvaluateInt64FeatureFlagRequest) returns (EvaluateInt64FeatureFlagResponse);
   rpc EvaluateStringFeatureFlag(EvaluateStringFeatureFlagRequest) returns (EvaluateStringFeatureFlagResponse);
+  rpc RegisterUser(RegisterUserRequest) returns (RegisterUserResponse);
   rpc GetAuthStatus(GetAuthStatusRequest) returns (GetAuthStatusResponse);
   rpc ExchangeToken(ExchangeTokenRequest) returns (ExchangeTokenResponse);
   rpc AdminLoginForToken(AdminLoginForTokenRequest) returns (LoginForTokenResponse);
@@ -25,6 +26,8 @@ service AuthService {
   rpc VerifyEmailAddress(VerifyEmailAddressRequest) returns (VerifyEmailAddressResponse);
   rpc VerifyTOTPSecret(VerifyTOTPSecretRequest) returns (VerifyTOTPSecretResponse);
   rpc UpdatePassword(UpdatePasswordRequest) returns (UpdatePasswordResponse);
+  rpc UpdateUserEmailAddress(UpdateUserEmailAddressRequest) returns (UpdateUserEmailAddressResponse);
+  rpc UpdateUserUsername(UpdateUserUsernameRequest) returns (UpdateUserUsernameResponse);
   rpc BeginPasskeyRegistration(BeginPasskeyRegistrationRequest) returns (BeginPasskeyRegistrationResponse);
   rpc FinishPasskeyRegistration(FinishPasskeyRegistrationRequest) returns (FinishPasskeyRegistrationResponse);
   rpc BeginPasskeyAuthentication(BeginPasskeyAuthenticationRequest) returns (BeginPasskeyAuthenticationResponse);

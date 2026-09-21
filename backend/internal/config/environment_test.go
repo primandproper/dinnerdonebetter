@@ -6,9 +6,9 @@ import (
 	appentitlements "github.com/primandproper/dinnerdonebetter/backend/internal/entitlements"
 	appmetering "github.com/primandproper/dinnerdonebetter/backend/internal/metering"
 
-	"github.com/primandproper/platform-go/v13/entitlements"
-	entitlementscfg "github.com/primandproper/platform-go/v13/entitlements/config"
-	meteringmock "github.com/primandproper/platform-go/v13/metering/mock"
+	"github.com/primandproper/platform-go/v14/entitlements"
+	entitlementscfg "github.com/primandproper/platform-go/v14/entitlements/config"
+	meteringmock "github.com/primandproper/platform-go/v14/metering/mock"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -105,9 +105,7 @@ func TestDefaultEntitlementsConfig(T *testing.T) {
 			&cfg,
 			catalog,
 			entitlements.NewStaticPlanSource(appentitlements.SubscriberPlan),
-			&meteringmock.EnforcerMock{},
-			nil,
-			nil,
+			entitlementscfg.WithEnforcer(&meteringmock.EnforcerMock{}),
 		)
 		require.NoError(t, err)
 		assert.NotNil(t, checker)

@@ -73,6 +73,15 @@ type AuthManagerInterfaceMock struct {
 	// CheckUserPermissionsFunc mocks the CheckUserPermissions method.
 	CheckUserPermissionsFunc func(ctx context.Context, input *auth.UserPermissionsRequestInput) (*auth.UserPermissionsResponse, error)
 
+	// RegisterUserFunc mocks the RegisterUser method.
+	RegisterUserFunc func(ctx context.Context, input *auth.UserRegistrationInput) (*auth.UserCreationResponse, error)
+
+	// UpdateUserEmailAddressFunc mocks the UpdateUserEmailAddress method.
+	UpdateUserEmailAddressFunc func(ctx context.Context, input *auth.UserEmailAddressUpdateInput) error
+
+	// UpdateUserUsernameFunc mocks the UpdateUserUsername method.
+	UpdateUserUsernameFunc func(ctx context.Context, input *auth.UsernameUpdateInput) error
+
 	// CreatePasswordResetTokenFunc mocks the CreatePasswordResetToken method.
 	CreatePasswordResetTokenFunc func(ctx context.Context, input *auth.PasswordResetTokenCreationRequestInput) error
 
@@ -120,6 +129,27 @@ type AuthManagerInterfaceMock struct {
 			Ctx context.Context
 			// Input is the input argument value.
 			Input *auth.UserPermissionsRequestInput
+		}
+		// RegisterUser holds details about calls to the RegisterUser method.
+		RegisterUser []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// Input is the input argument value.
+			Input *auth.UserRegistrationInput
+		}
+		// UpdateUserEmailAddress holds details about calls to the UpdateUserEmailAddress method.
+		UpdateUserEmailAddress []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// Input is the input argument value.
+			Input *auth.UserEmailAddressUpdateInput
+		}
+		// UpdateUserUsername holds details about calls to the UpdateUserUsername method.
+		UpdateUserUsername []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// Input is the input argument value.
+			Input *auth.UsernameUpdateInput
 		}
 		// CreatePasswordResetToken holds details about calls to the CreatePasswordResetToken method.
 		CreatePasswordResetToken []struct {
@@ -218,6 +248,9 @@ type AuthManagerInterfaceMock struct {
 		}
 	}
 	lockCheckUserPermissions           sync.RWMutex
+	lockRegisterUser                   sync.RWMutex
+	lockUpdateUserEmailAddress         sync.RWMutex
+	lockUpdateUserUsername             sync.RWMutex
 	lockCreatePasswordResetToken       sync.RWMutex
 	lockGetActiveSessionsForUser       sync.RWMutex
 	lockNewTOTPSecret                  sync.RWMutex
@@ -742,5 +775,113 @@ func (mock *AuthManagerInterfaceMock) VerifyUserEmailAddressByTokenCalls() []str
 	mock.lockVerifyUserEmailAddressByToken.RLock()
 	calls = mock.calls.VerifyUserEmailAddressByToken
 	mock.lockVerifyUserEmailAddressByToken.RUnlock()
+	return calls
+}
+
+// RegisterUser calls RegisterUserFunc.
+func (mock *AuthManagerInterfaceMock) RegisterUser(ctx context.Context, input *auth.UserRegistrationInput) (*auth.UserCreationResponse, error) {
+	if mock.RegisterUserFunc == nil {
+		panic("AuthManagerInterfaceMock.RegisterUserFunc: method is nil but AuthManagerInterface.RegisterUser was just called")
+	}
+	callInfo := struct {
+		Ctx   context.Context
+		Input *auth.UserRegistrationInput
+	}{
+		Ctx:   ctx,
+		Input: input,
+	}
+	mock.lockRegisterUser.Lock()
+	mock.calls.RegisterUser = append(mock.calls.RegisterUser, callInfo)
+	mock.lockRegisterUser.Unlock()
+	return mock.RegisterUserFunc(ctx, input)
+}
+
+// RegisterUserCalls gets all the calls that were made to RegisterUser.
+// Check the length with:
+//
+//	len(mockedAuthManagerInterface.RegisterUserCalls())
+func (mock *AuthManagerInterfaceMock) RegisterUserCalls() []struct {
+	Ctx   context.Context
+	Input *auth.UserRegistrationInput
+} {
+	var calls []struct {
+		Ctx   context.Context
+		Input *auth.UserRegistrationInput
+	}
+	mock.lockRegisterUser.RLock()
+	calls = mock.calls.RegisterUser
+	mock.lockRegisterUser.RUnlock()
+	return calls
+}
+
+// UpdateUserEmailAddress calls UpdateUserEmailAddressFunc.
+func (mock *AuthManagerInterfaceMock) UpdateUserEmailAddress(ctx context.Context, input *auth.UserEmailAddressUpdateInput) error {
+	if mock.UpdateUserEmailAddressFunc == nil {
+		panic("AuthManagerInterfaceMock.UpdateUserEmailAddressFunc: method is nil but AuthManagerInterface.UpdateUserEmailAddress was just called")
+	}
+	callInfo := struct {
+		Ctx   context.Context
+		Input *auth.UserEmailAddressUpdateInput
+	}{
+		Ctx:   ctx,
+		Input: input,
+	}
+	mock.lockUpdateUserEmailAddress.Lock()
+	mock.calls.UpdateUserEmailAddress = append(mock.calls.UpdateUserEmailAddress, callInfo)
+	mock.lockUpdateUserEmailAddress.Unlock()
+	return mock.UpdateUserEmailAddressFunc(ctx, input)
+}
+
+// UpdateUserEmailAddressCalls gets all the calls that were made to UpdateUserEmailAddress.
+// Check the length with:
+//
+//	len(mockedAuthManagerInterface.UpdateUserEmailAddressCalls())
+func (mock *AuthManagerInterfaceMock) UpdateUserEmailAddressCalls() []struct {
+	Ctx   context.Context
+	Input *auth.UserEmailAddressUpdateInput
+} {
+	var calls []struct {
+		Ctx   context.Context
+		Input *auth.UserEmailAddressUpdateInput
+	}
+	mock.lockUpdateUserEmailAddress.RLock()
+	calls = mock.calls.UpdateUserEmailAddress
+	mock.lockUpdateUserEmailAddress.RUnlock()
+	return calls
+}
+
+// UpdateUserUsername calls UpdateUserUsernameFunc.
+func (mock *AuthManagerInterfaceMock) UpdateUserUsername(ctx context.Context, input *auth.UsernameUpdateInput) error {
+	if mock.UpdateUserUsernameFunc == nil {
+		panic("AuthManagerInterfaceMock.UpdateUserUsernameFunc: method is nil but AuthManagerInterface.UpdateUserUsername was just called")
+	}
+	callInfo := struct {
+		Ctx   context.Context
+		Input *auth.UsernameUpdateInput
+	}{
+		Ctx:   ctx,
+		Input: input,
+	}
+	mock.lockUpdateUserUsername.Lock()
+	mock.calls.UpdateUserUsername = append(mock.calls.UpdateUserUsername, callInfo)
+	mock.lockUpdateUserUsername.Unlock()
+	return mock.UpdateUserUsernameFunc(ctx, input)
+}
+
+// UpdateUserUsernameCalls gets all the calls that were made to UpdateUserUsername.
+// Check the length with:
+//
+//	len(mockedAuthManagerInterface.UpdateUserUsernameCalls())
+func (mock *AuthManagerInterfaceMock) UpdateUserUsernameCalls() []struct {
+	Ctx   context.Context
+	Input *auth.UsernameUpdateInput
+} {
+	var calls []struct {
+		Ctx   context.Context
+		Input *auth.UsernameUpdateInput
+	}
+	mock.lockUpdateUserUsername.RLock()
+	calls = mock.calls.UpdateUserUsername
+	mock.lockUpdateUserUsername.RUnlock()
 	return calls
 }

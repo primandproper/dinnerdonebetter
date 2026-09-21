@@ -6,18 +6,18 @@ import (
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
 
-	analyticscfg "github.com/primandproper/platform-go/v13/analytics/config"
-	capitalismcfg "github.com/primandproper/platform-go/v13/capitalism/config"
-	databasecfg "github.com/primandproper/platform-go/v13/database/config"
-	msgconfig "github.com/primandproper/platform-go/v13/messagequeue/config"
-	meteringcfg "github.com/primandproper/platform-go/v13/metering/config"
-	notificationscfg "github.com/primandproper/platform-go/v13/notifications/mobile/config"
-	"github.com/primandproper/platform-go/v13/observability"
-	operationscfg "github.com/primandproper/platform-go/v13/operations/config"
-	"github.com/primandproper/platform-go/v13/saga"
-	textsearchcfg "github.com/primandproper/platform-go/v13/search/text/config"
-	webhookscfg "github.com/primandproper/platform-go/v13/webhooks/config"
-	"github.com/primandproper/platform-go/v13/workqueue"
+	meteringcfg "github.com/primandproper/platform-go/v14/metering/config"
+	operationscfg "github.com/primandproper/platform-go/v14/operations/config"
+	"github.com/primandproper/platform-go/v14/saga"
+	webhookscfg "github.com/primandproper/platform-go/v14/webhooks/config"
+	"github.com/primandproper/platform-go/v14/workqueue"
+	analyticscfg "github.com/primandproper/primitives-go/v2/analytics/config"
+	capitalismcfg "github.com/primandproper/primitives-go/v2/capitalism/config"
+	databasecfg "github.com/primandproper/primitives-go/v2/database/config"
+	msgconfig "github.com/primandproper/primitives-go/v2/messagequeue/config"
+	notificationscfg "github.com/primandproper/primitives-go/v2/notifications/mobile/config"
+	"github.com/primandproper/primitives-go/v2/observability"
+	textsearchcfg "github.com/primandproper/primitives-go/v2/search/text/config"
 
 	"github.com/samber/do/v2"
 )
@@ -66,8 +66,10 @@ func RegisterConfigs(i do.Injector) {
 	do.Provide[*webhookscfg.Config](i, func(i do.Injector) (*webhookscfg.Config, error) {
 		return &do.MustInvoke[*config.SchedulerConfig](i).Webhooks, nil
 	})
-	do.Provide[notificationscfg.Config](i, func(i do.Injector) (notificationscfg.Config, error) {
-		return do.MustInvoke[*config.SchedulerConfig](i).PushNotifications, nil
+	// A pointer, which is what RegisterPushSender resolves: NewPushSender applies its
+	// defaults to what it is handed, and a value copy would discard them.
+	do.Provide[*notificationscfg.Config](i, func(i do.Injector) (*notificationscfg.Config, error) {
+		return &do.MustInvoke[*config.SchedulerConfig](i).PushNotifications, nil
 	})
 	// The one work queue this process runs. It is provided as the bare *workqueue.Config the
 	// platform's constructor takes, because there is exactly one — a second would need a name

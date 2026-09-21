@@ -21,7 +21,7 @@ bucket until a retention policy removes it.
 package uploadedmedia
 
 import (
-	"github.com/primandproper/platform-go/v13/tenancy"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
 // TablePrefix namespaces the platform-go upload registry table, rendering

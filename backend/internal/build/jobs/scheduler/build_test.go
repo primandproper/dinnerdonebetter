@@ -49,11 +49,47 @@ func TestBuildInjector_RegistersTheNotificationChain(t *testing.T) {
 	for _, name := range []string{
 		"*github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_task_notifications.Worker",
 		"*github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_task_notifications.TaskQueue",
-		"*github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/push.Fanout",
+		"*github.com/primandproper/platform-go/v14/notifications/push.Fanout",
 		"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/manager.NotificationsDataManager",
-		"github.com/primandproper/platform-go/v13/notifications/mobile.PushNotificationSender",
-		"*github.com/primandproper/platform-go/v13/workqueue.Config",
+		"github.com/primandproper/primitives-go/v2/notifications/mobile.PushNotificationSender",
+		"*github.com/primandproper/platform-go/v14/workqueue.Config",
 	} {
 		assert.True(t, declared[name], "the scheduler must provide %s", name)
+	}
+}
+
+// TestBuildInjector_RegistersEveryPrivacyCollectorStore names the stores the data privacy
+// registry resolves that nothing else in this process touches.
+//
+// This is the container that fulfills a subject access request, so the registry it builds is
+// the one that decides what an export contains. Three of its collectors read a store this
+// process has no other use for — passkeys, password reset tokens, registered OAuth2 clients
+// — and each arrived here from a different place: the passkey store with the identity store,
+// the other two from Register lines added for this and nothing else.
+//
+// A store the registry wants and this container does not declare is not a compile error,
+// because `do` resolves by type at runtime. Without this test the symptom is the privacy
+// worker failing on its first request, in an environment, with a message naming a type
+// rather than a missing Register line. The API server builds the same registry and has all
+// three for its own reasons, so the gap only ever shows up here.
+//
+// Declarations rather than resolutions, for the reason the notification chain test gives:
+// every one of these needs a database.Client.
+func TestBuildInjector_RegistersEveryPrivacyCollectorStore(t *testing.T) {
+	t.Parallel()
+
+	i := BuildInjector(context.Background(), &config.SchedulerConfig{})
+
+	declared := map[string]bool{}
+	for _, service := range i.ListProvidedServices() {
+		declared[service.Service] = true
+	}
+
+	for _, name := range []string{
+		"github.com/primandproper/platform-go/v14/authentication/passkeys.Store",
+		"github.com/primandproper/platform-go/v14/authentication/passwordreset.Store",
+		"github.com/primandproper/platform-go/v14/authentication/oauth2clients.Store",
+	} {
+		assert.True(t, declared[name], "the data privacy registry resolves %s and this container does not declare it", name)
 	}
 }

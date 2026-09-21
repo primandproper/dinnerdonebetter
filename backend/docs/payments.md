@@ -119,10 +119,11 @@ Three things about it are worth knowing that the old schema did not have:
 accounts live. That preserves what the old tables did; whether billing rows should instead be
 retained and anonymized is a policy question `docs/data-privacy.md` records as open.
 
-The store owns its transactions and does not lend them out, so the audit entry and the data change
-event the repository records land in a second transaction after the row's. That is the same gap
-`comments`, `issuereports`, `settings` and `waitlists` carry, filed for billing as
-platform-go #466 and tracked on #1419 — see `docs/audit.md`.
+The store takes the caller's transaction, so the audit entry and the data change event the
+repository records are in the same transaction as the row and share its fate. That was not true
+before platform-go v14 — the store owned its transaction and committed the row before recording
+was attempted, a gap `comments`, `issuereports`, `settings` and `waitlists` carried too, filed for
+billing as platform-go #466. See `docs/audit.md`.
 
 ### Identity Integration
 
@@ -249,6 +250,24 @@ one.
 4. **Event types supported**:
    - `subscription.updated`, `subscription.created`, `customer.subscription.updated` → sync status, update account billing.
    - `subscription.deleted`, `customer.subscription.deleted` → mark `canceled`, set account to unpaid.
+
+5. **Which standing a reported status means** is `billing/standing.Strict`, platform's reading,
+   passed rather than defaulted so that taking it is this deployment saying *yes, that is our
+   rule*: active is paid, trialing is a trial, and the other six leave the account unpaid. No
+   dunning window and no grace on `past_due` — a deployment that wants either writes its own
+   `standing.Classify`.
+
+   A status `Strict` cannot place leaves the account **alone**, which is platform's contract for
+   that case and is not what this application used to do. `capitalism.SubscriptionStatusUnknown`
+   is the empty string and covers both "a status no adapter recognized" and "no status at all", so
+   a word a provider adds later arrived looking like an event carrying no standing — and that is
+   read as a sync of a live subscription, which marked the account **paid**. `ParsedWebhookEvent`
+   now carries `StatusUnrecognized` so the two are distinguishable, the Stripe adapter sets it,
+   and the manager returns without writing either side.
+
+   The RevenueCat adapter cannot set it: `capitalism` has already collapsed the distinction before
+   that code sees the event, so the provider's own spelling never reaches it. If RevenueCat grows a
+   status `capitalism` does not know, the fix is upstream rather than in that adapter.
 
 ---
 
@@ -391,8 +410,9 @@ member read another account's billing by asking.
 
 **`internal/repositories/postgres/payments/`** pins the recording half against a real database: every
 write leaves its audit entry under the right account, a refused replay leaves none, and
-`TestRepository_Integration_RecordAndEmitFailureSurfaces` is the canary that fails the day
-platform-go #466 lands.
+`TestRepository_Integration_RecordAndEmitFailureSurfaces` pins that a product whose audit entry
+the database refuses rolls back with it. That test was the canary for platform-go #466; it now
+asserts the behaviour #466 asked for.
 
 ---
 

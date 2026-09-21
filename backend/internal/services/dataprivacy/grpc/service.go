@@ -6,19 +6,20 @@ import (
 	"io"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
+	ddbdataprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
 	dataprivacykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy/keys"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	dataprivacysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/dataprivacy"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/grpc/converters"
 
-	platformdataprivacy "github.com/primandproper/platform-go/v13/dataprivacy"
-	platformerrors "github.com/primandproper/platform-go/v13/errors"
-	errorsgrpc "github.com/primandproper/platform-go/v13/errors/grpc"
-	filteringgrpc "github.com/primandproper/platform-go/v13/filtering/grpc"
-	"github.com/primandproper/platform-go/v13/observability"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
+	platformdataprivacy "github.com/primandproper/platform-go/v14/dataprivacy"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	errorsgrpc "github.com/primandproper/primitives-go/v2/errors/grpc"
+	filteringgrpc "github.com/primandproper/primitives-go/v2/filtering/grpc"
+	"github.com/primandproper/primitives-go/v2/observability"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
 
 	"google.golang.org/grpc/codes"
 )
@@ -122,7 +123,7 @@ func (s *serviceImpl) FetchUserDataReport(ctx context.Context, request *datapriv
 
 	logger := s.logger.WithSpan(span).WithValue(dataprivacykeys.RequestIDKey, requestID)
 
-	artifact, err := s.requests.Open(ctx, stored.ID)
+	artifact, err := s.requests.Open(ctx, nil, stored.ID)
 	if err != nil {
 		// Unavailable covers an erasure, an export that has not completed, and one whose
 		// artifact has expired and been deleted. The code that reaches the client is
@@ -194,7 +195,7 @@ func (s *serviceImpl) ListDataPrivacyRequests(ctx context.Context, request *data
 
 	tracing.AttachQueryFilterToSpan(span, filter)
 
-	result, err := s.requests.List(ctx, subjectFor(userID), filter)
+	result, err := s.requests.List(ctx, nil, subjectFor(userID), filter)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "listing data privacy requests")
 	}
@@ -225,7 +226,7 @@ func (s *serviceImpl) submit(ctx context.Context, span tracing.Span, requestType
 	tracing.AttachToSpan(span, identitykeys.UserIDKey, userID)
 	tracing.AttachToSpan(span, dataprivacykeys.RequestTypeKey, string(requestType))
 
-	request, err := s.requests.Submit(ctx, subjectFor(userID), requestType)
+	request, err := s.requests.Submit(ctx, ddbdataprivacy.UnconfinedScope(), subjectFor(userID), requestType)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "submitting data privacy request")
 	}
@@ -249,7 +250,7 @@ func (s *serviceImpl) ownedRequest(ctx context.Context, span tracing.Span, reque
 	logger := s.logger.WithSpan(span).WithValue(dataprivacykeys.RequestIDKey, requestID)
 	tracing.AttachToSpan(span, dataprivacykeys.RequestIDKey, requestID)
 
-	request, err := s.requests.Get(ctx, requestID)
+	request, err := s.requests.Get(ctx, nil, requestID)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.NotFound, "fetching data privacy request")
 	}

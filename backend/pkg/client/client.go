@@ -9,25 +9,25 @@ import (
 	"net/http"
 
 	analyticsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/analytics"
-	auditgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/audit"
 	authgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
-	commentsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/comments"
 	dataprivacygrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/dataprivacy"
-	identitygrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
 	internalopsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/internalops"
-	issuereportsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/issue_reports"
 	mealplanninggrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
-	notificationsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/notifications"
-	oauthgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/oauth"
-	paymentsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/payments"
-	settingsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/settings"
 	uploadedmediagrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
-	waitlistsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/waitlists"
-	webhooksgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/webhooks"
 
-	"github.com/primandproper/platform-go/v13/authentication/oauth2server"
-	"github.com/primandproper/platform-go/v13/httpclient"
-	"github.com/primandproper/platform-go/v13/random"
+	auditgrpc "github.com/primandproper/platform-go/v14/audit/auditpb"
+	oauth2clientsgrpc "github.com/primandproper/platform-go/v14/authentication/oauth2clients/oauth2clientspb"
+	paymentsgrpc "github.com/primandproper/platform-go/v14/billing/billingpb"
+	commentsgrpc "github.com/primandproper/platform-go/v14/comments/commentspb"
+	identitygrpc "github.com/primandproper/platform-go/v14/identity/identitypb"
+	issuereportsgrpc "github.com/primandproper/platform-go/v14/issuereports/issuereportspb"
+	notificationsgrpc "github.com/primandproper/platform-go/v14/notifications/notificationspb"
+	settingsgrpc "github.com/primandproper/platform-go/v14/settings/settingspb"
+	waitlistsgrpc "github.com/primandproper/platform-go/v14/waitlists/waitlistspb"
+	webhooksgrpc "github.com/primandproper/platform-go/v14/webhooks/webhookspb"
+	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
+	"github.com/primandproper/primitives-go/v2/httpclient"
+	"github.com/primandproper/primitives-go/v2/random"
 
 	"golang.org/x/oauth2"
 	"google.golang.org/grpc"
@@ -45,23 +45,40 @@ const (
 type Client interface {
 	analyticsgrpc.AnalyticsServiceClient
 	authgrpc.AuthServiceClient
-	identitygrpc.IdentityServiceClient
 	auditgrpc.AuditServiceClient
 	dataprivacygrpc.DataPrivacyServiceClient
 	internalopsgrpc.InternalOperationsClient
 	issuereportsgrpc.IssueReportsServiceClient
 	mealplanninggrpc.MealPlanningServiceClient
-	notificationsgrpc.UserNotificationsServiceClient
-	oauthgrpc.OAuthServiceClient
-	paymentsgrpc.PaymentsServiceClient
+	notificationsgrpc.NotificationsServiceClient
+	oauth2clientsgrpc.OAuth2ClientsServiceClient
+	paymentsgrpc.BillingServiceClient
 	settingsgrpc.SettingsServiceClient
 	uploadedmediagrpc.UploadedMediaServiceClient
 	waitlistsgrpc.WaitlistsServiceClient
-	webhooksgrpc.WebhooksServiceClient
+
+	// IdentityService returns the directory client: users, accounts, memberships and
+	// invitations.
+	//
+	// It is an accessor rather than an embed because identity and waitlists both name an
+	// RPC Invite — an offer of membership in an account on one, an offer of a place off a
+	// waiting list on the other — and a type embedding both has an ambiguous selector and
+	// does not compile. Identity is the one moved because its RPCs are platform's and
+	// reaching for them deliberately is no worse than reaching for the comments client
+	// below, which is here for the same reason.
+	IdentityService() identitygrpc.IdentityServiceClient
 
 	// CommentsService returns the standalone CommentsService client. Use this to call
 	// CommentsService RPCs directly instead of via MealPlanningService.
 	CommentsService() commentsgrpc.CommentsServiceClient
+
+	// WebhooksService returns the webhooks client.
+	//
+	// It is an accessor rather than an embed because billing and webhooks both
+	// name three RPCs Subscription — a paid plan on one, an endpoint's interest in
+	// an event type on the other — and a type embedding both has three ambiguous
+	// selectors and does not compile.
+	WebhooksService() webhooksgrpc.WebhooksServiceClient
 
 	// Close releases the underlying gRPC connection. Callers that build clients repeatedly
 	// must call this to avoid leaking connections.
@@ -71,21 +88,21 @@ type Client interface {
 type client struct {
 	analyticsgrpc.AnalyticsServiceClient
 	authgrpc.AuthServiceClient
-	identitygrpc.IdentityServiceClient
 	auditgrpc.AuditServiceClient
 	dataprivacygrpc.DataPrivacyServiceClient
 	internalopsgrpc.InternalOperationsClient
 	issuereportsgrpc.IssueReportsServiceClient
 	mealplanninggrpc.MealPlanningServiceClient
-	notificationsgrpc.UserNotificationsServiceClient
-	oauthgrpc.OAuthServiceClient
-	paymentsgrpc.PaymentsServiceClient
+	notificationsgrpc.NotificationsServiceClient
+	oauth2clientsgrpc.OAuth2ClientsServiceClient
+	paymentsgrpc.BillingServiceClient
 	settingsgrpc.SettingsServiceClient
 	uploadedmediagrpc.UploadedMediaServiceClient
 	waitlistsgrpc.WaitlistsServiceClient
-	webhooksgrpc.WebhooksServiceClient
 
+	identityClient identitygrpc.IdentityServiceClient
 	commentsClient commentsgrpc.CommentsServiceClient
+	webhooksClient webhooksgrpc.WebhooksServiceClient
 	conn           *grpc.ClientConn
 }
 
@@ -97,30 +114,40 @@ func BuildClient(grpcServerAddress string, opts ...grpc.DialOption) (Client, err
 	}
 
 	c := &client{
-		AnalyticsServiceClient:         analyticsgrpc.NewAnalyticsServiceClient(conn),
-		AuthServiceClient:              authgrpc.NewAuthServiceClient(conn),
-		IdentityServiceClient:          identitygrpc.NewIdentityServiceClient(conn),
-		AuditServiceClient:             auditgrpc.NewAuditServiceClient(conn),
-		DataPrivacyServiceClient:       dataprivacygrpc.NewDataPrivacyServiceClient(conn),
-		InternalOperationsClient:       internalopsgrpc.NewInternalOperationsClient(conn),
-		IssueReportsServiceClient:      issuereportsgrpc.NewIssueReportsServiceClient(conn),
-		MealPlanningServiceClient:      mealplanninggrpc.NewMealPlanningServiceClient(conn),
-		UserNotificationsServiceClient: notificationsgrpc.NewUserNotificationsServiceClient(conn),
-		OAuthServiceClient:             oauthgrpc.NewOAuthServiceClient(conn),
-		PaymentsServiceClient:          paymentsgrpc.NewPaymentsServiceClient(conn),
-		SettingsServiceClient:          settingsgrpc.NewSettingsServiceClient(conn),
-		UploadedMediaServiceClient:     uploadedmediagrpc.NewUploadedMediaServiceClient(conn),
-		WaitlistsServiceClient:         waitlistsgrpc.NewWaitlistsServiceClient(conn),
-		WebhooksServiceClient:          webhooksgrpc.NewWebhooksServiceClient(conn),
-		commentsClient:                 commentsgrpc.NewCommentsServiceClient(conn),
-		conn:                           conn,
+		AnalyticsServiceClient:     analyticsgrpc.NewAnalyticsServiceClient(conn),
+		AuthServiceClient:          authgrpc.NewAuthServiceClient(conn),
+		AuditServiceClient:         auditgrpc.NewAuditServiceClient(conn),
+		DataPrivacyServiceClient:   dataprivacygrpc.NewDataPrivacyServiceClient(conn),
+		InternalOperationsClient:   internalopsgrpc.NewInternalOperationsClient(conn),
+		IssueReportsServiceClient:  issuereportsgrpc.NewIssueReportsServiceClient(conn),
+		MealPlanningServiceClient:  mealplanninggrpc.NewMealPlanningServiceClient(conn),
+		NotificationsServiceClient: notificationsgrpc.NewNotificationsServiceClient(conn),
+		OAuth2ClientsServiceClient: oauth2clientsgrpc.NewOAuth2ClientsServiceClient(conn),
+		BillingServiceClient:       paymentsgrpc.NewBillingServiceClient(conn),
+		SettingsServiceClient:      settingsgrpc.NewSettingsServiceClient(conn),
+		UploadedMediaServiceClient: uploadedmediagrpc.NewUploadedMediaServiceClient(conn),
+		WaitlistsServiceClient:     waitlistsgrpc.NewWaitlistsServiceClient(conn),
+		identityClient:             identitygrpc.NewIdentityServiceClient(conn),
+		commentsClient:             commentsgrpc.NewCommentsServiceClient(conn),
+		webhooksClient:             webhooksgrpc.NewWebhooksServiceClient(conn),
+		conn:                       conn,
 	}
 
 	return c, nil
 }
 
+func (c *client) IdentityService() identitygrpc.IdentityServiceClient {
+	return c.identityClient
+}
+
 func (c *client) CommentsService() commentsgrpc.CommentsServiceClient {
 	return c.commentsClient
+}
+
+// WebhooksService returns the webhooks client. See the interface for why it is
+// not embedded.
+func (c *client) WebhooksService() webhooksgrpc.WebhooksServiceClient {
+	return c.webhooksClient
 }
 
 // Close releases the underlying gRPC connection.

@@ -11,22 +11,20 @@ and issue_report_archived are all in the webhook event catalog, so a subscriber
 can already ask for them; a write that skipped the pair would be a row with no
 provenance and a subscriber that never heard.
 
-# The transaction the events are not in
+# The transaction the events are in
 
-Every hand-written repository here emits inside the transaction that wrote the
-row, so the event lives or dies with what it describes (see
-internal/repositories/postgres/events). This one cannot: platform's
-CreateReport, UpdateReport, TransitionReport and ArchiveReport own their
-transactions and take no executor, so the audit entry and the event are a second
-transaction after the first has committed.
+Every hand-written repository here emits inside the transaction that wrote
+the row, so the event lives or dies with what it describes (see
+internal/repositories/postgres/events). This one now does too. It could not
+before: platform's writes owned their transactions and took no executor, so
+the audit entry and the event were a second transaction after the first had
+committed, and a report could exist that nothing had recorded.
 
-The gap that opens is the ordinary one — the report lands, the process dies, and
-nothing is recorded about it. It is narrow and it is one-directional: a report
-can exist with no event, but no event can name a report that was not written.
-Closing it needs platform's write methods to accept a database.Tx the way
-DeleteReportsByReporter already does. That is filed upstream as platform-go
-#465 rather than worked around here — a gap papered over locally stops being a
-gap anyone remembers. See #1419 for what deletes here when it lands.
+As of platform-go v14 a store write takes the caller's database.Tx, so the
+write, the entry and the event are one transaction and share one fate. The
+gap filed upstream as platform-go #465 is closed by that convention rather
+than by anything here, which is why this package has no workaround to
+delete.
 */
 package issuereports
 
@@ -37,12 +35,12 @@ import (
 	ddbissuereports "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports"
 	issuereportkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports/keys"
 
-	"github.com/primandproper/platform-go/v13/database"
-	"github.com/primandproper/platform-go/v13/identifiers"
-	platformissuereports "github.com/primandproper/platform-go/v13/issuereports"
-	"github.com/primandproper/platform-go/v13/observability"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
-	"github.com/primandproper/platform-go/v13/tenancy"
+	platformissuereports "github.com/primandproper/platform-go/v14/issuereports"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/identifiers"
+	"github.com/primandproper/primitives-go/v2/observability"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
 // resourceTypeIssueReports is what an audit entry about an issue report names.
@@ -51,34 +49,49 @@ const resourceTypeIssueReports = "issue_reports"
 var _ platformissuereports.Store = (*repository)(nil)
 
 // CreateReport files the report, then records it.
-func (r *repository) CreateReport(ctx context.Context, report *platformissuereports.Report) error {
+func (r *repository) CreateReport(ctx context.Context, tx database.Tx, scope tenancy.Scope, report *platformissuereports.Report) (*platformissuereports.Report, error) {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
-	if err := r.Store.CreateReport(ctx, report); err != nil {
-		return err
+	result, err := r.Store.CreateReport(ctx, tx, scope, report)
+	if err != nil {
+		return nil, err
 	}
 
 	tracing.AttachToSpan(span, issuereportkeys.IssueReportIDKey, report.ID)
 
-	return r.record(ctx, report, audit.AuditLogEventTypeCreated, ddbissuereports.IssueReportCreatedServiceEventType)
+	// The stored row, not the input. As of platform-go v14 the store answers with what it
+	// wrote and leaves the argument alone, so the input's id is still empty here — an entry
+	// recorded from it names no report, and so does the event a subscriber receives.
+	if err = r.record(ctx, tx, result, audit.AuditLogEventTypeCreated, ddbissuereports.IssueReportCreatedServiceEventType); err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
 // UpdateReport revises what the reporter said, then records it.
 //
 // It does not move the status and cannot: the lifecycle's one door is
 // TransitionReport. So this always records an update, never a transition.
-func (r *repository) UpdateReport(ctx context.Context, report *platformissuereports.Report) error {
+func (r *repository) UpdateReport(ctx context.Context, tx database.Tx, scope tenancy.Scope, report *platformissuereports.Report) (*platformissuereports.Report, error) {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
-	if err := r.Store.UpdateReport(ctx, report); err != nil {
-		return err
+	result, err := r.Store.UpdateReport(ctx, tx, scope, report)
+	if err != nil {
+		return nil, err
 	}
 
 	tracing.AttachToSpan(span, issuereportkeys.IssueReportIDKey, report.ID)
 
-	return r.record(ctx, report, audit.AuditLogEventTypeUpdated, ddbissuereports.IssueReportUpdatedServiceEventType)
+	// The stored row for the same reason, though this input does carry an id: what is
+	// recorded should be what was written, not what was asked for.
+	if err = r.record(ctx, tx, result, audit.AuditLogEventTypeUpdated, ddbissuereports.IssueReportUpdatedServiceEventType); err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
 // TransitionReport moves the report through the triage lifecycle, then records
@@ -91,6 +104,7 @@ func (r *repository) UpdateReport(ctx context.Context, report *platformissuerepo
 // the report worth putting in its audit trail.
 func (r *repository) TransitionReport(
 	ctx context.Context,
+	tx database.Tx,
 	scope tenancy.Scope,
 	reportID string,
 	from, to platformissuereports.Status,
@@ -101,14 +115,14 @@ func (r *repository) TransitionReport(
 
 	tracing.AttachToSpan(span, issuereportkeys.IssueReportIDKey, reportID)
 
-	report, err := r.Store.TransitionReport(ctx, scope, reportID, from, to, resolution)
+	report, err := r.Store.TransitionReport(ctx, tx, scope, reportID, from, to, resolution)
 	if err != nil {
 		return nil, err
 	}
 
 	tracing.AttachToSpan(span, issuereportkeys.IssueReportStatusKey, report.Status.String())
 
-	if err = r.record(ctx, report, audit.AuditLogEventTypeUpdated, ddbissuereports.IssueReportTransitionedServiceEventType); err != nil {
+	if err = r.record(ctx, tx, report, audit.AuditLogEventTypeUpdated, ddbissuereports.IssueReportTransitionedServiceEventType); err != nil {
 		return nil, err
 	}
 
@@ -122,26 +136,36 @@ func (r *repository) TransitionReport(
 // about. A read that fails is the archive's failure too: platform answers an
 // absent, archived, or other-scope report as ErrReportNotFound either way, so
 // returning it from here is the same answer one call earlier.
-func (r *repository) ArchiveReport(ctx context.Context, scope tenancy.Scope, reportID string) error {
+func (r *repository) ArchiveReport(ctx context.Context, tx database.Tx, scope tenancy.Scope, reportID string) (*platformissuereports.Report, error) {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
 	tracing.AttachToSpan(span, issuereportkeys.IssueReportIDKey, reportID)
 
-	report, err := r.GetReport(ctx, scope, reportID)
+	report, err := r.GetReport(ctx, tx, scope, reportID)
 	if err != nil {
-		return observability.PrepareError(err, span, "fetching issue report for archive")
+		return nil, observability.PrepareError(err, span, "fetching issue report for archive")
 	}
 
-	if err = r.Store.ArchiveReport(ctx, scope, reportID); err != nil {
-		return err
+	result, err := r.Store.ArchiveReport(ctx, tx, scope, reportID)
+	if err != nil {
+		return nil, err
 	}
 
-	return r.record(ctx, report, audit.AuditLogEventTypeArchived, ddbissuereports.IssueReportArchivedServiceEventType)
+	if err = r.record(ctx, tx, report, audit.AuditLogEventTypeArchived, ddbissuereports.IssueReportArchivedServiceEventType); err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
-// record writes the audit entry and enqueues the data change event, in one
-// transaction of their own.
+// record writes the audit entry and enqueues the data change event, inside the
+// caller's transaction.
+//
+// It used to open one of its own, because the write it describes had already
+// committed inside the platform store. As of platform-go v14 that store takes
+// the caller's executor, so the row, the entry and the event commit together or
+// not at all.
 //
 // The two travel together because they answer the same question from opposite
 // sides — the audit log for whoever asks later who did this, the outbox for
@@ -152,7 +176,7 @@ func (r *repository) ArchiveReport(ctx context.Context, scope tenancy.Scope, rep
 // a report's tenant is the account it was filed under and that is the account a
 // webhook subscriber is resolved within. A background job reaching here has no
 // session, and an event with no account reaches no subscriber at all.
-func (r *repository) record(ctx context.Context, report *platformissuereports.Report, auditEventType, changeEventType string) error {
+func (r *repository) record(ctx context.Context, tx database.Tx, report *platformissuereports.Report, auditEventType, changeEventType string) error {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -160,17 +184,15 @@ func (r *repository) record(ctx context.Context, report *platformissuereports.Re
 
 	accountID := report.Scope.Owner()
 
-	return r.client.WithTransaction(ctx, func(tx database.Tx) error {
-		return r.recorder.RecordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
-			ID:               identifiers.New(),
-			ResourceType:     resourceTypeIssueReports,
-			RelevantID:       report.ID,
-			EventType:        auditEventType,
-			BelongsToUser:    report.Reporter,
-			BelongsToAccount: &accountID,
-		}, changeEventType, accountID, map[string]any{
-			issuereportkeys.IssueReportIDKey:     report.ID,
-			issuereportkeys.IssueReportStatusKey: report.Status.String(),
-		})
+	return r.recorder.RecordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
+		ID:               identifiers.New(),
+		ResourceType:     resourceTypeIssueReports,
+		RelevantID:       report.ID,
+		EventType:        auditEventType,
+		BelongsToUser:    report.Reporter,
+		BelongsToAccount: &accountID,
+	}, changeEventType, accountID, map[string]any{
+		issuereportkeys.IssueReportIDKey:     report.ID,
+		issuereportkeys.IssueReportStatusKey: report.Status.String(),
 	})
 }

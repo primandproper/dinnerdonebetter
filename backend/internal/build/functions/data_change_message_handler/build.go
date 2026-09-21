@@ -3,6 +3,7 @@ package datachangemessagehandler
 import (
 	"context"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	commentstargets "github.com/primandproper/dinnerdonebetter/backend/internal/build/comments"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	mealplanningregistration "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/registration"
@@ -11,28 +12,28 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/functions/datachangemessagehandler"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	commentsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/comments"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity"
+	identitystore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identitystore"
 	internalopsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/internalops"
 	issue_reports "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/issuereports"
 	paymentsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/payments"
 	settingsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/settings"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/uploadedmedia"
 	waitlistsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/waitlists"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhooks"
+	webhooksstore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhooksstore"
 	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
 
-	analyticscfg "github.com/primandproper/platform-go/v13/analytics/config"
-	databasecfg "github.com/primandproper/platform-go/v13/database/config"
-	"github.com/primandproper/platform-go/v13/database/postgres"
-	emailcfg "github.com/primandproper/platform-go/v13/email/config"
-	"github.com/primandproper/platform-go/v13/encoding"
-	"github.com/primandproper/platform-go/v13/httpclient"
-	msgconfig "github.com/primandproper/platform-go/v13/messagequeue/config"
-	notificationscfg "github.com/primandproper/platform-go/v13/notifications/mobile/config"
-	"github.com/primandproper/platform-go/v13/observability"
-	loggingcfg "github.com/primandproper/platform-go/v13/observability/logging/config"
-	metricscfg "github.com/primandproper/platform-go/v13/observability/metrics/config"
-	tracingcfg "github.com/primandproper/platform-go/v13/observability/tracing/config"
+	analyticscfg "github.com/primandproper/primitives-go/v2/analytics/config"
+	databasecfg "github.com/primandproper/primitives-go/v2/database/config"
+	"github.com/primandproper/primitives-go/v2/database/postgres"
+	emailcfg "github.com/primandproper/primitives-go/v2/email/config"
+	"github.com/primandproper/primitives-go/v2/encoding"
+	"github.com/primandproper/primitives-go/v2/httpclient"
+	msgconfig "github.com/primandproper/primitives-go/v2/messagequeue/config"
+	notificationscfg "github.com/primandproper/primitives-go/v2/notifications/mobile/config"
+	"github.com/primandproper/primitives-go/v2/observability"
+	loggingcfg "github.com/primandproper/primitives-go/v2/observability/logging/config"
+	metricscfg "github.com/primandproper/primitives-go/v2/observability/metrics/config"
+	tracingcfg "github.com/primandproper/primitives-go/v2/observability/tracing/config"
 
 	"github.com/samber/do/v2"
 )
@@ -77,11 +78,11 @@ func BuildInjector(
 	// What a role grants, read from the policy tables the migrator seeds. The
 	// identity repository resolves a principal's role names through it when it
 	// builds a session.
-	identity.RegisterPolicyResolver(i)
-	identity.RegisterIdentityRepository(i)
+	authorization.RegisterPolicyResolver(i)
+	identitystore.RegisterIdentityStore(i)
 	issue_reports.RegisterIssueReportsRepository(i)
 	uploadedmedia.RegisterUploadedMediaRepository(i)
-	webhooks.RegisterWebhooksRepository(i)
+	webhooksstore.RegisterWebhooksStore(i)
 	internalopsrepo.RegisterInternalOpsRepository(i)
 
 	// managers

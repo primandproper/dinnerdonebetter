@@ -20,13 +20,13 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/recipeanalysis"
 	mealplanfinalization "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_finalization"
 
-	"github.com/primandproper/platform-go/v13/database"
-	"github.com/primandproper/platform-go/v13/distributedlock"
-	"github.com/primandproper/platform-go/v13/observability/logging"
-	"github.com/primandproper/platform-go/v13/observability/metrics"
-	"github.com/primandproper/platform-go/v13/observability/tracing"
-	"github.com/primandproper/platform-go/v13/outbox"
-	"github.com/primandproper/platform-go/v13/saga"
+	"github.com/primandproper/platform-go/v14/outbox"
+	"github.com/primandproper/platform-go/v14/saga"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/distributedlock"
+	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/metrics"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
 
 	"github.com/samber/do/v2"
 )
@@ -70,6 +70,7 @@ func RegisterSagas(i do.Injector) {
 	// Domain: mealplanning — one runner per state type, over the one shared store.
 	do.Provide[saga.Runner[mealplanning.MealPlanFinalizationState]](i, func(i do.Injector) (saga.Runner[mealplanning.MealPlanFinalizationState], error) {
 		return saga.NewRunner[mealplanning.MealPlanFinalizationState](
+			do.MustInvoke[database.Client](i),
 			do.MustInvoke[saga.Store](i),
 			do.MustInvoke[*saga.Registry](i),
 			saga.WithRunnerEventPublisher(do.MustInvoke[saga.EventPublisher](i)),
@@ -102,6 +103,7 @@ func RegisterSagaWorker(i do.Injector) {
 		return saga.NewWorker(
 			do.MustInvoke[context.Context](i),
 			do.MustInvoke[*saga.WorkerConfig](i),
+			do.MustInvoke[database.Client](i),
 			do.MustInvoke[saga.Store](i),
 			do.MustInvoke[*saga.Registry](i),
 			locker,

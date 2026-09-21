@@ -7,10 +7,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// sessionsTableName is not a constant this package otherwise has, precisely because no
-// builder here generates queries against the session table — which is what put it among
-// the tables the old registry-derived TRUNCATE missed.
-const sessionsTableName = "sessions"
+// Neither of these is a constant this package otherwise has, precisely because no builder
+// here generates queries against either table — the session table never had one, and the
+// identity adoption took the user tables to platform and deleted the builders that did.
+// That is what put both among the tables the old registry-derived TRUNCATE missed.
+const (
+	usersTableName    = "users"
+	sessionsTableName = "sessions"
+)
 
 func Test_buildMaintenanceQueries(T *testing.T) {
 	T.Parallel()
@@ -36,7 +40,7 @@ func Test_buildMaintenanceQueries(T *testing.T) {
 			usersTableName,
 			sessionsTableName,
 			recipesTableName,
-			webhooksTableName,
+			mealsTableName,
 		} {
 			assert.NotContains(t, destroy.Content, table)
 		}
