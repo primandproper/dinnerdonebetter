@@ -2,6 +2,7 @@ package testutils
 
 import (
 	"context"
+	"time"
 
 	"github.com/primandproper/primitives-go/v2/database"
 	mockdatabase "github.com/primandproper/primitives-go/v2/database/mock"
@@ -28,5 +29,11 @@ func MockDatabaseClient() *mockdatabase.ClientMock {
 		WithTransactionFunc: func(ctx context.Context, fn func(querier database.Tx) error) error {
 			return fn(database.NewTxForTesting(executor))
 		},
+
+		// The wall clock, because this is the clock this application stamps through and
+		// a deadline it computes has to be comparable with one platform's stores compute
+		// from theirs. A test that needs a known distance between two instants replaces
+		// this on its own client rather than moving everybody's.
+		CurrentTimeFunc: time.Now,
 	}
 }

@@ -255,6 +255,17 @@ field it used to occupy is reserved. The one thing that needs the token in the c
 so the invitation hook puts it on the outbox event the email worker reads; see
 [`internal/repositories/postgres/identitystore/hooks.go`](../backend/internal/repositories/postgres/identitystore/hooks.go).
 
+A verification link expires. 72 hours — platform's `signin.DefaultVerificationLinkTTL` — set when
+the link is minted and compared in Go rather than in SQL, because a `CURRENT_TIMESTAMP` predicate
+would be the database's clock judging a deadline the store's clock computed. Asking for the mail
+again mints a fresh link and retires the one that went missing.
+
+An expired link is refused as `NotFound` and is deliberately indistinguishable from a token that
+names nobody: a verification link is found by the digest of the token alone, so telling "expired"
+from "unknown" would tell whoever is submitting guesses that a guess was once real. That is the
+opposite of an expired *invitation*, which is found by id and answers `FailedPrecondition` in its
+own words, because the caller already named a row that exists.
+
 Listing the invitations sent to an email address requires having **proven** that address, which is
 platform's rule and is kept. Anybody may claim any address at registration, so the alternative is
 an oracle over other people's invitations.

@@ -638,8 +638,15 @@ func (l *AuthManager) RequestEmailVerificationEmail(ctx context.Context) error {
 		return observability.PrepareAndLogError(err, logger, span, "generating email verification token")
 	}
 
+	// The deadline is computed here and compared in Go by the store, never in SQL —
+	// platform's ruling, and the reason is that a CURRENT_TIMESTAMP predicate would be the
+	// database's clock judging a deadline this clock set, which under a test clock are
+	// years apart. The TTL is platform's default rather than a number of this
+	// application's: 72 hours is long enough for somebody to find the mail on Monday.
+	expiresAt := l.db.CurrentTime().Add(signin.DefaultVerificationLinkTTL)
+
 	if _, err = l.directory.SetUserEmailAddressVerificationToken(ctx, ddbidentity.Scope(),
-		sessionContextData.GetUserID(), verificationToken); err != nil {
+		sessionContextData.GetUserID(), verificationToken, expiresAt); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "storing email verification token")
 	}
 

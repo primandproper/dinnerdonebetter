@@ -559,9 +559,16 @@ func TestAuthManager_RequestEmailVerificationEmail_Success(t *testing.T) {
 		},
 		// The token is minted and stored rather than read back: the column holds a
 		// digest, and no read fills the secret in.
-		SetUserEmailAddressVerificationTokenFunc: func(_ context.Context, _ database.Tx, _ tenancy.Scope, actualUserID, token string) error {
+		SetUserEmailAddressVerificationTokenFunc: func(_ context.Context, _ database.Tx, _ tenancy.Scope, actualUserID, token string, expiresAt time.Time) error {
 			assert.Equal(t, userID, actualUserID)
 			assert.NotEmpty(t, token)
+
+			// A deadline, and one in the future. platform refuses a zero one, so the
+			// assertion that matters is not that the column is set but that this
+			// application computed something usable: a link minted with a deadline
+			// already past is a mail nobody can act on.
+			assert.False(t, expiresAt.IsZero())
+			assert.True(t, expiresAt.After(time.Now()))
 
 			return nil
 		},

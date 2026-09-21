@@ -60,6 +60,20 @@
 /// password on this wire would put the choice of hashing engine in the
 /// transport.
 ///
+/// SetUserRequiresPasswordChange is the one write that looks like a credential
+/// RPC and is not one. It carries no secret in either direction -- it assigns a
+/// boolean on a directory row, which the sign-in service reads on its status
+/// call and which SignInService.UpdatePassword clears -- so the sentence above
+/// does not reach it: there is nothing here that a hashing engine produced. It
+/// is an operator write on a directory column and belongs with ArchiveUser,
+/// UpdateUserAccountStatus and SetUserServiceRoles, which is where it sits.
+///
+/// The sign-in service is deliberately not where it lives, even though that is
+/// the service that enforces the flag. signin.Directory is the narrowest
+/// interface the component holding everybody's passwords can be given, and an
+/// interface that could also impose a forced change on any user is one that
+/// could be made to.
+///
 /// Registration here therefore mints the passwordless user that package already
 /// treats as first-class. A registration that carries a credential is
 /// SignInService.Register, in signin.proto: that service holds the authenticator,
@@ -298,6 +312,18 @@ internal enum Primandproper_Platform_Identity_V1_IdentityService {
                 method: "SetUserServiceRoles"
             )
         }
+        /// Namespace for "SetUserRequiresPasswordChange" metadata.
+        internal enum SetUserRequiresPasswordChange {
+            /// Request type for "SetUserRequiresPasswordChange".
+            internal typealias Input = Primandproper_Platform_Identity_V1_SetUserRequiresPasswordChangeRequest
+            /// Response type for "SetUserRequiresPasswordChange".
+            internal typealias Output = Primandproper_Platform_Identity_V1_SetUserRequiresPasswordChangeResponse
+            /// Descriptor for "SetUserRequiresPasswordChange".
+            internal static let descriptor = GRPCCore.MethodDescriptor(
+                service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "primandproper.platform.identity.v1.IdentityService"),
+                method: "SetUserRequiresPasswordChange"
+            )
+        }
         /// Namespace for "GetPrincipal" metadata.
         internal enum GetPrincipal {
             /// Request type for "GetPrincipal".
@@ -473,6 +499,7 @@ internal enum Primandproper_Platform_Identity_V1_IdentityService {
             ArchiveAccount.descriptor,
             UpdateUserAccountStatus.descriptor,
             SetUserServiceRoles.descriptor,
+            SetUserRequiresPasswordChange.descriptor,
             GetPrincipal.descriptor,
             GetUser.descriptor,
             ListUsers.descriptor,
@@ -845,6 +872,25 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
             deserializer: some GRPCCore.MessageDeserializer<Primandproper_Platform_Identity_V1_SetUserServiceRolesResponse>,
             options: GRPCCore.CallOptions,
             onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Primandproper_Platform_Identity_V1_SetUserServiceRolesResponse>) async throws -> Result
+        ) async throws -> Result where Result: Sendable
+
+        /// Call the "SetUserRequiresPasswordChange" method.
+        ///
+        /// - Parameters:
+        ///   - request: A request containing a single `Primandproper_Platform_Identity_V1_SetUserRequiresPasswordChangeRequest` message.
+        ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_SetUserRequiresPasswordChangeRequest` messages.
+        ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_SetUserRequiresPasswordChangeResponse` messages.
+        ///   - options: Options to apply to this RPC.
+        ///   - handleResponse: A closure which handles the response, the result of which is
+        ///       returned to the caller. Returning from the closure will cancel the RPC if it
+        ///       hasn't already finished.
+        /// - Returns: The result of `handleResponse`.
+        func setUserRequiresPasswordChange<Result>(
+            request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_SetUserRequiresPasswordChangeRequest>,
+            serializer: some GRPCCore.MessageSerializer<Primandproper_Platform_Identity_V1_SetUserRequiresPasswordChangeRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Primandproper_Platform_Identity_V1_SetUserRequiresPasswordChangeResponse>,
+            options: GRPCCore.CallOptions,
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Primandproper_Platform_Identity_V1_SetUserRequiresPasswordChangeResponse>) async throws -> Result
         ) async throws -> Result where Result: Sendable
 
         /// Call the "GetPrincipal" method.
@@ -1637,6 +1683,36 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
             try await self.client.unary(
                 request: request,
                 descriptor: Primandproper_Platform_Identity_V1_IdentityService.Method.SetUserServiceRoles.descriptor,
+                serializer: serializer,
+                deserializer: deserializer,
+                options: options,
+                onResponse: handleResponse
+            )
+        }
+
+        /// Call the "SetUserRequiresPasswordChange" method.
+        ///
+        /// - Parameters:
+        ///   - request: A request containing a single `Primandproper_Platform_Identity_V1_SetUserRequiresPasswordChangeRequest` message.
+        ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_SetUserRequiresPasswordChangeRequest` messages.
+        ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_SetUserRequiresPasswordChangeResponse` messages.
+        ///   - options: Options to apply to this RPC.
+        ///   - handleResponse: A closure which handles the response, the result of which is
+        ///       returned to the caller. Returning from the closure will cancel the RPC if it
+        ///       hasn't already finished.
+        /// - Returns: The result of `handleResponse`.
+        internal func setUserRequiresPasswordChange<Result>(
+            request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_SetUserRequiresPasswordChangeRequest>,
+            serializer: some GRPCCore.MessageSerializer<Primandproper_Platform_Identity_V1_SetUserRequiresPasswordChangeRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Primandproper_Platform_Identity_V1_SetUserRequiresPasswordChangeResponse>,
+            options: GRPCCore.CallOptions = .defaults,
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Primandproper_Platform_Identity_V1_SetUserRequiresPasswordChangeResponse>) async throws -> Result = { response in
+                try response.message
+            }
+        ) async throws -> Result where Result: Sendable {
+            try await self.client.unary(
+                request: request,
+                descriptor: Primandproper_Platform_Identity_V1_IdentityService.Method.SetUserRequiresPasswordChange.descriptor,
                 serializer: serializer,
                 deserializer: deserializer,
                 options: options,
@@ -2472,6 +2548,31 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
         )
     }
 
+    /// Call the "SetUserRequiresPasswordChange" method.
+    ///
+    /// - Parameters:
+    ///   - request: A request containing a single `Primandproper_Platform_Identity_V1_SetUserRequiresPasswordChangeRequest` message.
+    ///   - options: Options to apply to this RPC.
+    ///   - handleResponse: A closure which handles the response, the result of which is
+    ///       returned to the caller. Returning from the closure will cancel the RPC if it
+    ///       hasn't already finished.
+    /// - Returns: The result of `handleResponse`.
+    internal func setUserRequiresPasswordChange<Result>(
+        request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_SetUserRequiresPasswordChangeRequest>,
+        options: GRPCCore.CallOptions = .defaults,
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Primandproper_Platform_Identity_V1_SetUserRequiresPasswordChangeResponse>) async throws -> Result = { response in
+            try response.message
+        }
+    ) async throws -> Result where Result: Sendable {
+        try await self.setUserRequiresPasswordChange(
+            request: request,
+            serializer: GRPCProtobuf.ProtobufSerializer<Primandproper_Platform_Identity_V1_SetUserRequiresPasswordChangeRequest>(),
+            deserializer: GRPCProtobuf.ProtobufDeserializer<Primandproper_Platform_Identity_V1_SetUserRequiresPasswordChangeResponse>(),
+            options: options,
+            onResponse: handleResponse
+        )
+    }
+
     /// Call the "GetPrincipal" method.
     ///
     /// > Source IDL Documentation:
@@ -3296,6 +3397,35 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
             metadata: metadata
         )
         return try await self.setUserServiceRoles(
+            request: request,
+            options: options,
+            onResponse: handleResponse
+        )
+    }
+
+    /// Call the "SetUserRequiresPasswordChange" method.
+    ///
+    /// - Parameters:
+    ///   - message: request message to send.
+    ///   - metadata: Additional metadata to send, defaults to empty.
+    ///   - options: Options to apply to this RPC, defaults to `.defaults`.
+    ///   - handleResponse: A closure which handles the response, the result of which is
+    ///       returned to the caller. Returning from the closure will cancel the RPC if it
+    ///       hasn't already finished.
+    /// - Returns: The result of `handleResponse`.
+    internal func setUserRequiresPasswordChange<Result>(
+        _ message: Primandproper_Platform_Identity_V1_SetUserRequiresPasswordChangeRequest,
+        metadata: GRPCCore.Metadata = [:],
+        options: GRPCCore.CallOptions = .defaults,
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Primandproper_Platform_Identity_V1_SetUserRequiresPasswordChangeResponse>) async throws -> Result = { response in
+            try response.message
+        }
+    ) async throws -> Result where Result: Sendable {
+        let request = GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_SetUserRequiresPasswordChangeRequest>(
+            message: message,
+            metadata: metadata
+        )
+        return try await self.setUserRequiresPasswordChange(
             request: request,
             options: options,
             onResponse: handleResponse

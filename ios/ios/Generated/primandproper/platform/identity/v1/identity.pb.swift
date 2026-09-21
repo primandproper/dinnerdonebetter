@@ -70,6 +70,20 @@
 /// password on this wire would put the choice of hashing engine in the
 /// transport.
 ///
+/// SetUserRequiresPasswordChange is the one write that looks like a credential
+/// RPC and is not one. It carries no secret in either direction -- it assigns a
+/// boolean on a directory row, which the sign-in service reads on its status
+/// call and which SignInService.UpdatePassword clears -- so the sentence above
+/// does not reach it: there is nothing here that a hashing engine produced. It
+/// is an operator write on a directory column and belongs with ArchiveUser,
+/// UpdateUserAccountStatus and SetUserServiceRoles, which is where it sits.
+///
+/// The sign-in service is deliberately not where it lives, even though that is
+/// the service that enforces the flag. signin.Directory is the narrowest
+/// interface the component holding everybody's passwords can be given, and an
+/// interface that could also impose a forced change on any user is one that
+/// could be made to.
+///
 /// Registration here therefore mints the passwordless user that package already
 /// treats as first-class. A registration that carries a credential is
 /// SignInService.Register, in signin.proto: that service holds the authenticator,
@@ -451,6 +465,25 @@ public struct Primandproper_Platform_Identity_V1_User: @unchecked Sendable {
     get {return _storage._displayName}
     set {_uniqueStorage()._displayName = newValue}
   }
+
+  /// email_address_verification_token_expires_at is when the outstanding
+  /// verification link stops being answerable, and is absent when no link is
+  /// outstanding.
+  ///
+  /// It is here where the digest beside it is not, and the file comment's rule
+  /// is why: the credential columns are absent and the timestamps about them are
+  /// present. A deadline is not a verifier for guesses at the secret -- it
+  /// answers "how long do I have", which is the sentence a client renders beside
+  /// "we sent you a link", and "the link is dead, ask for another" without a
+  /// round trip that would be told the same thing in the shape of an absence.
+  public var emailAddressVerificationTokenExpiresAt: SwiftProtobuf.Google_Protobuf_Timestamp {
+    get {return _storage._emailAddressVerificationTokenExpiresAt ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
+    set {_uniqueStorage()._emailAddressVerificationTokenExpiresAt = newValue}
+  }
+  /// Returns true if `emailAddressVerificationTokenExpiresAt` has been explicitly set.
+  public var hasEmailAddressVerificationTokenExpiresAt: Bool {return _storage._emailAddressVerificationTokenExpiresAt != nil}
+  /// Clears the value of `emailAddressVerificationTokenExpiresAt`. Subsequent reads from it will return its default value.
+  public mutating func clearEmailAddressVerificationTokenExpiresAt() {_uniqueStorage()._emailAddressVerificationTokenExpiresAt = nil}
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
@@ -1777,6 +1810,57 @@ public struct Primandproper_Platform_Identity_V1_SetUserServiceRolesResponse: Se
   fileprivate var _user: Primandproper_Platform_Identity_V1_User? = nil
 }
 
+public struct Primandproper_Platform_Identity_V1_SetUserRequiresPasswordChangeRequest: Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  public var userID: String = String()
+
+  /// requires_password_change is optional because false is a real instruction
+  /// and not an absence: sending it releases a requirement somebody imposed. A
+  /// request that omits the field is refused for the reason
+  /// UpdateUserAccountStatusRequest.status refuses UNSPECIFIED -- the value a
+  /// forgotten field carries is the one that undoes an operator's decision, and
+  /// a wire that cannot tell "release it" from "I did not say" would perform
+  /// the release either way.
+  public var requiresPasswordChange: Bool {
+    get {return _requiresPasswordChange ?? false}
+    set {_requiresPasswordChange = newValue}
+  }
+  /// Returns true if `requiresPasswordChange` has been explicitly set.
+  public var hasRequiresPasswordChange: Bool {return self._requiresPasswordChange != nil}
+  /// Clears the value of `requiresPasswordChange`. Subsequent reads from it will return its default value.
+  public mutating func clearRequiresPasswordChange() {self._requiresPasswordChange = nil}
+
+  public var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  public init() {}
+
+  fileprivate var _requiresPasswordChange: Bool? = nil
+}
+
+public struct Primandproper_Platform_Identity_V1_SetUserRequiresPasswordChangeResponse: Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  public var user: Primandproper_Platform_Identity_V1_User {
+    get {return _user ?? Primandproper_Platform_Identity_V1_User()}
+    set {_user = newValue}
+  }
+  /// Returns true if `user` has been explicitly set.
+  public var hasUser: Bool {return self._user != nil}
+  /// Clears the value of `user`. Subsequent reads from it will return its default value.
+  public mutating func clearUser() {self._user = nil}
+
+  public var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  public init() {}
+
+  fileprivate var _user: Primandproper_Platform_Identity_V1_User? = nil
+}
+
 public struct Primandproper_Platform_Identity_V1_GetPrincipalRequest: Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
@@ -2325,7 +2409,7 @@ extension Primandproper_Platform_Identity_V1_Agreement: SwiftProtobuf._ProtoName
 
 extension Primandproper_Platform_Identity_V1_User: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".User"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}id\0\u{1}username\0\u{3}email_address\0\u{3}first_name\0\u{3}last_name\0\u{3}account_status\0\u{3}account_status_explanation\0\u{3}service_roles\0\u{3}requires_password_change\0\u{3}created_at\0\u{3}last_updated_at\0\u{3}archived_at\0\u{3}email_address_verified_at\0\u{3}password_last_changed_at\0\u{3}two_factor_secret_verified_at\0\u{3}last_accepted_terms_of_service\0\u{3}last_accepted_privacy_policy\0\u{4}\u{2}display_name\0\u{b}scope\0\u{c}\u{12}\u{1}")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}id\0\u{1}username\0\u{3}email_address\0\u{3}first_name\0\u{3}last_name\0\u{3}account_status\0\u{3}account_status_explanation\0\u{3}service_roles\0\u{3}requires_password_change\0\u{3}created_at\0\u{3}last_updated_at\0\u{3}archived_at\0\u{3}email_address_verified_at\0\u{3}password_last_changed_at\0\u{3}two_factor_secret_verified_at\0\u{3}last_accepted_terms_of_service\0\u{3}last_accepted_privacy_policy\0\u{4}\u{2}display_name\0\u{3}email_address_verification_token_expires_at\0\u{b}scope\0\u{c}\u{12}\u{1}")
 
   fileprivate class _StorageClass {
     var _id: String = String()
@@ -2346,6 +2430,7 @@ extension Primandproper_Platform_Identity_V1_User: SwiftProtobuf.Message, SwiftP
     var _lastAcceptedTermsOfService: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
     var _lastAcceptedPrivacyPolicy: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
     var _displayName: String = String()
+    var _emailAddressVerificationTokenExpiresAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
 
       // This property is used as the initial default value for new instances of the type.
       // The type itself is protecting the reference to its storage via CoW semantics.
@@ -2374,6 +2459,7 @@ extension Primandproper_Platform_Identity_V1_User: SwiftProtobuf.Message, SwiftP
       _lastAcceptedTermsOfService = source._lastAcceptedTermsOfService
       _lastAcceptedPrivacyPolicy = source._lastAcceptedPrivacyPolicy
       _displayName = source._displayName
+      _emailAddressVerificationTokenExpiresAt = source._emailAddressVerificationTokenExpiresAt
     }
   }
 
@@ -2410,6 +2496,7 @@ extension Primandproper_Platform_Identity_V1_User: SwiftProtobuf.Message, SwiftP
         case 16: try { try decoder.decodeSingularMessageField(value: &_storage._lastAcceptedTermsOfService) }()
         case 17: try { try decoder.decodeSingularMessageField(value: &_storage._lastAcceptedPrivacyPolicy) }()
         case 19: try { try decoder.decodeSingularStringField(value: &_storage._displayName) }()
+        case 20: try { try decoder.decodeSingularMessageField(value: &_storage._emailAddressVerificationTokenExpiresAt) }()
         default: break
         }
       }
@@ -2476,6 +2563,9 @@ extension Primandproper_Platform_Identity_V1_User: SwiftProtobuf.Message, SwiftP
       if !_storage._displayName.isEmpty {
         try visitor.visitSingularStringField(value: _storage._displayName, fieldNumber: 19)
       }
+      try { if let v = _storage._emailAddressVerificationTokenExpiresAt {
+        try visitor.visitSingularMessageField(value: v, fieldNumber: 20)
+      } }()
     }
     try unknownFields.traverse(visitor: &visitor)
   }
@@ -2503,6 +2593,7 @@ extension Primandproper_Platform_Identity_V1_User: SwiftProtobuf.Message, SwiftP
         if _storage._lastAcceptedTermsOfService != rhs_storage._lastAcceptedTermsOfService {return false}
         if _storage._lastAcceptedPrivacyPolicy != rhs_storage._lastAcceptedPrivacyPolicy {return false}
         if _storage._displayName != rhs_storage._displayName {return false}
+        if _storage._emailAddressVerificationTokenExpiresAt != rhs_storage._emailAddressVerificationTokenExpiresAt {return false}
         return true
       }
       if !storagesAreEqual {return false}
@@ -4505,6 +4596,79 @@ extension Primandproper_Platform_Identity_V1_SetUserServiceRolesResponse: SwiftP
   }
 
   public static func ==(lhs: Primandproper_Platform_Identity_V1_SetUserServiceRolesResponse, rhs: Primandproper_Platform_Identity_V1_SetUserServiceRolesResponse) -> Bool {
+    if lhs._user != rhs._user {return false}
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+extension Primandproper_Platform_Identity_V1_SetUserRequiresPasswordChangeRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".SetUserRequiresPasswordChangeRequest"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{5}user_id\0userID\0\u{3}requires_password_change\0\u{b}scope\0")
+
+  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularStringField(value: &self.userID) }()
+      case 2: try { try decoder.decodeSingularBoolField(value: &self._requiresPasswordChange) }()
+      default: break
+      }
+    }
+  }
+
+  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    // The use of inline closures is to circumvent an issue where the compiler
+    // allocates stack space for every if/case branch local when no optimizations
+    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
+    // https://github.com/apple/swift-protobuf/issues/1182
+    if !self.userID.isEmpty {
+      try visitor.visitSingularStringField(value: self.userID, fieldNumber: 1)
+    }
+    try { if let v = self._requiresPasswordChange {
+      try visitor.visitSingularBoolField(value: v, fieldNumber: 2)
+    } }()
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  public static func ==(lhs: Primandproper_Platform_Identity_V1_SetUserRequiresPasswordChangeRequest, rhs: Primandproper_Platform_Identity_V1_SetUserRequiresPasswordChangeRequest) -> Bool {
+    if lhs.userID != rhs.userID {return false}
+    if lhs._requiresPasswordChange != rhs._requiresPasswordChange {return false}
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+extension Primandproper_Platform_Identity_V1_SetUserRequiresPasswordChangeResponse: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".SetUserRequiresPasswordChangeResponse"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}user\0")
+
+  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularMessageField(value: &self._user) }()
+      default: break
+      }
+    }
+  }
+
+  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    // The use of inline closures is to circumvent an issue where the compiler
+    // allocates stack space for every if/case branch local when no optimizations
+    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
+    // https://github.com/apple/swift-protobuf/issues/1182
+    try { if let v = self._user {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
+    } }()
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  public static func ==(lhs: Primandproper_Platform_Identity_V1_SetUserRequiresPasswordChangeResponse, rhs: Primandproper_Platform_Identity_V1_SetUserRequiresPasswordChangeResponse) -> Bool {
     if lhs._user != rhs._user {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true

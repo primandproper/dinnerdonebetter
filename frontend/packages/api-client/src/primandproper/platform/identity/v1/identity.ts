@@ -86,6 +86,20 @@ export const protobufPackage = 'primandproper.platform.identity.v1';
  * password on this wire would put the choice of hashing engine in the
  * transport.
  *
+ * SetUserRequiresPasswordChange is the one write that looks like a credential
+ * RPC and is not one. It carries no secret in either direction -- it assigns a
+ * boolean on a directory row, which the sign-in service reads on its status
+ * call and which SignInService.UpdatePassword clears -- so the sentence above
+ * does not reach it: there is nothing here that a hashing engine produced. It
+ * is an operator write on a directory column and belongs with ArchiveUser,
+ * UpdateUserAccountStatus and SetUserServiceRoles, which is where it sits.
+ *
+ * The sign-in service is deliberately not where it lives, even though that is
+ * the service that enforces the flag. signin.Directory is the narrowest
+ * interface the component holding everybody's passwords can be given, and an
+ * interface that could also impose a forced change on any user is one that
+ * could be made to.
+ *
  * Registration here therefore mints the passwordless user that package already
  * treats as first-class. A registration that carries a credential is
  * SignInService.Register, in signin.proto: that service holds the authenticator,
@@ -386,6 +400,19 @@ export interface User {
    * are unrelated, so sending one is not sending the other.
    */
   displayName: string;
+  /**
+   * email_address_verification_token_expires_at is when the outstanding
+   * verification link stops being answerable, and is absent when no link is
+   * outstanding.
+   *
+   * It is here where the digest beside it is not, and the file comment's rule
+   * is why: the credential columns are absent and the timestamps about them are
+   * present. A deadline is not a verifier for guesses at the secret -- it
+   * answers "how long do I have", which is the sentence a client renders beside
+   * "we sent you a link", and "the link is dead, ask for another" without a
+   * round trip that would be told the same thing in the shape of an absence.
+   */
+  emailAddressVerificationTokenExpiresAt: Date | undefined;
 }
 
 /** BillingAddress is where an account's invoices go. */
@@ -832,6 +859,24 @@ export interface SetUserServiceRolesResponse {
   user: User | undefined;
 }
 
+export interface SetUserRequiresPasswordChangeRequest {
+  userId: string;
+  /**
+   * requires_password_change is optional because false is a real instruction
+   * and not an absence: sending it releases a requirement somebody imposed. A
+   * request that omits the field is refused for the reason
+   * UpdateUserAccountStatusRequest.status refuses UNSPECIFIED -- the value a
+   * forgotten field carries is the one that undoes an operator's decision, and
+   * a wire that cannot tell "release it" from "I did not say" would perform
+   * the release either way.
+   */
+  requiresPasswordChange?: boolean | undefined;
+}
+
+export interface SetUserRequiresPasswordChangeResponse {
+  user: User | undefined;
+}
+
 export interface GetPrincipalRequest {
   /**
    * active_account_id names which of the caller's accounts this is about.
@@ -987,6 +1032,7 @@ function createBaseUser(): User {
     lastAcceptedTermsOfService: undefined,
     lastAcceptedPrivacyPolicy: undefined,
     displayName: '',
+    emailAddressVerificationTokenExpiresAt: undefined,
   };
 }
 
@@ -1045,6 +1091,9 @@ export const User: MessageFns<User> = {
     }
     if (message.displayName !== '') {
       writer.uint32(154).string(message.displayName);
+    }
+    if (message.emailAddressVerificationTokenExpiresAt !== undefined) {
+      Timestamp.encode(toTimestamp(message.emailAddressVerificationTokenExpiresAt), writer.uint32(162).fork()).join();
     }
     return writer;
   },
@@ -1200,6 +1249,14 @@ export const User: MessageFns<User> = {
           message.displayName = reader.string();
           continue;
         }
+        case 20: {
+          if (tag !== 162) {
+            break;
+          }
+
+          message.emailAddressVerificationTokenExpiresAt = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -1293,6 +1350,11 @@ export const User: MessageFns<User> = {
         : isSet(object.display_name)
           ? globalThis.String(object.display_name)
           : '',
+      emailAddressVerificationTokenExpiresAt: isSet(object.emailAddressVerificationTokenExpiresAt)
+        ? fromJsonTimestamp(object.emailAddressVerificationTokenExpiresAt)
+        : isSet(object.email_address_verification_token_expires_at)
+          ? fromJsonTimestamp(object.email_address_verification_token_expires_at)
+          : undefined,
     };
   },
 
@@ -1352,6 +1414,9 @@ export const User: MessageFns<User> = {
     if (message.displayName !== '') {
       obj.displayName = message.displayName;
     }
+    if (message.emailAddressVerificationTokenExpiresAt !== undefined) {
+      obj.emailAddressVerificationTokenExpiresAt = message.emailAddressVerificationTokenExpiresAt.toISOString();
+    }
     return obj;
   },
 
@@ -1378,6 +1443,7 @@ export const User: MessageFns<User> = {
     message.lastAcceptedTermsOfService = object.lastAcceptedTermsOfService ?? undefined;
     message.lastAcceptedPrivacyPolicy = object.lastAcceptedPrivacyPolicy ?? undefined;
     message.displayName = object.displayName ?? '';
+    message.emailAddressVerificationTokenExpiresAt = object.emailAddressVerificationTokenExpiresAt ?? undefined;
     return message;
   },
 };
@@ -5683,6 +5749,156 @@ export const SetUserServiceRolesResponse: MessageFns<SetUserServiceRolesResponse
   },
 };
 
+function createBaseSetUserRequiresPasswordChangeRequest(): SetUserRequiresPasswordChangeRequest {
+  return { userId: '', requiresPasswordChange: undefined };
+}
+
+export const SetUserRequiresPasswordChangeRequest: MessageFns<SetUserRequiresPasswordChangeRequest> = {
+  encode(message: SetUserRequiresPasswordChangeRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.userId !== '') {
+      writer.uint32(10).string(message.userId);
+    }
+    if (message.requiresPasswordChange !== undefined) {
+      writer.uint32(16).bool(message.requiresPasswordChange);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): SetUserRequiresPasswordChangeRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseSetUserRequiresPasswordChangeRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.requiresPasswordChange = reader.bool();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): SetUserRequiresPasswordChangeRequest {
+    return {
+      userId: isSet(object.userID)
+        ? globalThis.String(object.userID)
+        : isSet(object.user_id)
+          ? globalThis.String(object.user_id)
+          : '',
+      requiresPasswordChange: isSet(object.requiresPasswordChange)
+        ? globalThis.Boolean(object.requiresPasswordChange)
+        : isSet(object.requires_password_change)
+          ? globalThis.Boolean(object.requires_password_change)
+          : undefined,
+    };
+  },
+
+  toJSON(message: SetUserRequiresPasswordChangeRequest): unknown {
+    const obj: any = {};
+    if (message.userId !== '') {
+      obj.userID = message.userId;
+    }
+    if (message.requiresPasswordChange !== undefined) {
+      obj.requiresPasswordChange = message.requiresPasswordChange;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<SetUserRequiresPasswordChangeRequest>, I>>(
+    base?: I,
+  ): SetUserRequiresPasswordChangeRequest {
+    return SetUserRequiresPasswordChangeRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<SetUserRequiresPasswordChangeRequest>, I>>(
+    object: I,
+  ): SetUserRequiresPasswordChangeRequest {
+    const message = createBaseSetUserRequiresPasswordChangeRequest();
+    message.userId = object.userId ?? '';
+    message.requiresPasswordChange = object.requiresPasswordChange ?? undefined;
+    return message;
+  },
+};
+
+function createBaseSetUserRequiresPasswordChangeResponse(): SetUserRequiresPasswordChangeResponse {
+  return { user: undefined };
+}
+
+export const SetUserRequiresPasswordChangeResponse: MessageFns<SetUserRequiresPasswordChangeResponse> = {
+  encode(message: SetUserRequiresPasswordChangeResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.user !== undefined) {
+      User.encode(message.user, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): SetUserRequiresPasswordChangeResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseSetUserRequiresPasswordChangeResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.user = User.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): SetUserRequiresPasswordChangeResponse {
+    return { user: isSet(object.user) ? User.fromJSON(object.user) : undefined };
+  },
+
+  toJSON(message: SetUserRequiresPasswordChangeResponse): unknown {
+    const obj: any = {};
+    if (message.user !== undefined) {
+      obj.user = User.toJSON(message.user);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<SetUserRequiresPasswordChangeResponse>, I>>(
+    base?: I,
+  ): SetUserRequiresPasswordChangeResponse {
+    return SetUserRequiresPasswordChangeResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<SetUserRequiresPasswordChangeResponse>, I>>(
+    object: I,
+  ): SetUserRequiresPasswordChangeResponse {
+    const message = createBaseSetUserRequiresPasswordChangeResponse();
+    message.user = object.user !== undefined && object.user !== null ? User.fromPartial(object.user) : undefined;
+    return message;
+  },
+};
+
 function createBaseGetPrincipalRequest(): GetPrincipalRequest {
   return { activeAccountId: undefined };
 }
@@ -7691,6 +7907,19 @@ export const IdentityServiceService = {
       Buffer.from(SetUserServiceRolesResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): SetUserServiceRolesResponse => SetUserServiceRolesResponse.decode(value),
   },
+  setUserRequiresPasswordChange: {
+    path: '/primandproper.platform.identity.v1.IdentityService/SetUserRequiresPasswordChange' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: SetUserRequiresPasswordChangeRequest): Buffer =>
+      Buffer.from(SetUserRequiresPasswordChangeRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): SetUserRequiresPasswordChangeRequest =>
+      SetUserRequiresPasswordChangeRequest.decode(value),
+    responseSerialize: (value: SetUserRequiresPasswordChangeResponse): Buffer =>
+      Buffer.from(SetUserRequiresPasswordChangeResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): SetUserRequiresPasswordChangeResponse =>
+      SetUserRequiresPasswordChangeResponse.decode(value),
+  },
   /** The reads. */
   getPrincipal: {
     path: '/primandproper.platform.identity.v1.IdentityService/GetPrincipal' as const,
@@ -7850,6 +8079,10 @@ export interface IdentityServiceServer extends UntypedServiceImplementation {
   archiveAccount: handleUnaryCall<ArchiveAccountRequest, ArchiveAccountResponse>;
   updateUserAccountStatus: handleUnaryCall<UpdateUserAccountStatusRequest, UpdateUserAccountStatusResponse>;
   setUserServiceRoles: handleUnaryCall<SetUserServiceRolesRequest, SetUserServiceRolesResponse>;
+  setUserRequiresPasswordChange: handleUnaryCall<
+    SetUserRequiresPasswordChangeRequest,
+    SetUserRequiresPasswordChangeResponse
+  >;
   /** The reads. */
   getPrincipal: handleUnaryCall<GetPrincipalRequest, GetPrincipalResponse>;
   getUser: handleUnaryCall<GetUserRequest, GetUserResponse>;
@@ -8125,6 +8358,21 @@ export interface IdentityServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: SetUserServiceRolesResponse) => void,
+  ): ClientUnaryCall;
+  setUserRequiresPasswordChange(
+    request: SetUserRequiresPasswordChangeRequest,
+    callback: (error: ServiceError | null, response: SetUserRequiresPasswordChangeResponse) => void,
+  ): ClientUnaryCall;
+  setUserRequiresPasswordChange(
+    request: SetUserRequiresPasswordChangeRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: SetUserRequiresPasswordChangeResponse) => void,
+  ): ClientUnaryCall;
+  setUserRequiresPasswordChange(
+    request: SetUserRequiresPasswordChangeRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: SetUserRequiresPasswordChangeResponse) => void,
   ): ClientUnaryCall;
   /** The reads. */
   getPrincipal(
