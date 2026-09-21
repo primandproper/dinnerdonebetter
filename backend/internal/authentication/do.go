@@ -5,6 +5,7 @@ import (
 
 	authcfg "github.com/primandproper/dinnerdonebetter/backend/internal/authentication/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
@@ -61,6 +62,9 @@ func RegisterAuth(i do.Injector) {
 			signin.WithSecondFactorPolicy(signin.SecondFactorWhenEnrolled),
 			signin.WithAdminServiceRoles(authorization.ServiceAdminRoleName),
 			signin.WithTOTPVerifier(do.MustInvoke[totp.Verifier](i)),
+			// The label an authenticator app shows beside the code, which has to match
+			// what the QR builder encodes or a re-enrollment renames the entry.
+			signin.WithTOTPIssuer(branding.CompanyName),
 			signin.WithLogger(do.MustInvoke[logging.Logger](i)),
 			signin.WithTracerProvider(do.MustInvoke[tracing.Provider](i)),
 			signin.WithMetricsProvider(do.MustInvoke[metrics.Provider](i)),

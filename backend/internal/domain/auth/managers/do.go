@@ -8,6 +8,7 @@ import (
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
 	"github.com/primandproper/platform-go/v14/authentication/passwordreset"
+	"github.com/primandproper/platform-go/v14/authentication/signin"
 	platformidentity "github.com/primandproper/platform-go/v14/identity"
 	"github.com/primandproper/primitives-go/v2/authentication/totp"
 	"github.com/primandproper/primitives-go/v2/database"
@@ -32,6 +33,7 @@ func RegisterAuthManager(i do.Injector) {
 			do.MustInvoke[auth.SessionStore](i),
 			do.MustInvoke[*platformidentity.Service](i),
 			do.MustInvoke[platformidentity.Store](i),
+			do.MustInvoke[*signin.Service](i),
 			do.MustInvoke[authentication.Authenticator](i),
 			do.MustInvoke[totp.Verifier](i),
 			do.MustInvoke[messagequeue.PublisherProvider](i),

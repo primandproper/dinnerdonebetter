@@ -19,6 +19,7 @@ import (
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
 	"github.com/primandproper/platform-go/v14/authentication/passwordreset"
+	"github.com/primandproper/platform-go/v14/authentication/signin"
 	platformidentity "github.com/primandproper/platform-go/v14/identity"
 	platformtotp "github.com/primandproper/primitives-go/v2/authentication/totp"
 	"github.com/primandproper/primitives-go/v2/database"
@@ -87,6 +88,7 @@ type AuthManager struct {
 	sessionStore          auth.SessionStore
 	directory             *platformidentity.Service
 	users                 platformidentity.Store
+	signIn                *signin.Service
 	tracer                tracing.Tracer
 	authenticator         authentication.Authenticator
 	totpVerifier          platformtotp.Verifier
@@ -106,6 +108,7 @@ func ProvideAuthManager(
 	sessionStore auth.SessionStore,
 	directory *platformidentity.Service,
 	users platformidentity.Store,
+	signInService *signin.Service,
 	authenticator authentication.Authenticator,
 	totpVerifier platformtotp.Verifier,
 	publisherProvider messagequeue.PublisherProvider,
@@ -130,6 +133,7 @@ func ProvideAuthManager(
 		sessionStore:          sessionStore,
 		directory:             directory,
 		users:                 users,
+		signIn:                signInService,
 		authenticator:         authenticator,
 		totpVerifier:          totpVerifier,
 		secretGenerator:       secretGenerator,
@@ -209,43 +213,24 @@ func (l *AuthManager) TOTPSecretVerification(ctx context.Context, input *auth.TO
 	}
 
 	logger = logger.WithValue(identitykeys.UserIDKey, input.UserID)
-	logger.Info("validated input, getting user")
+	tracing.AttachToSpan(span, identitykeys.UserIDKey, input.UserID)
 
-	// The ordinary read, and the "is it already verified" check below rather than a read
-	// that filtered on it. The filtered read this replaced answered an already-verified
-	// user with no rows, which made a replayed verification and a mistyped user id the
-	// same answer — and the error the caller got said neither.
-	user, err := l.users.GetUser(ctx, l.db.Reader(), ddbidentity.Scope(), input.UserID)
-	if err != nil {
-		return observability.PrepareError(err, span, "fetching user to verify two factor secret")
-	}
-
-	tracing.AttachToSpan(span, identitykeys.UserIDKey, user.ID)
-	tracing.AttachToSpan(span, identitykeys.UsernameKey, user.Username)
-	logger = logger.WithValue(identitykeys.UsernameKey, user.Username)
-
-	if user.TwoFactorSecretVerifiedAt != nil {
-		// I suppose if this happens too many times, we might want to keep track of that?
-		return errors.New("two factor secret already verified")
-	}
-
-	// Verify through the injected verifier (rather than calling totp.Validate directly) so the
-	// configured verifier is honored, and pass the non-nil verification error: PrepareError returns
-	// nil on a nil error, which would otherwise report success on an invalid code.
-	if verifyErr := l.totpVerifier.Verify(ctx, user.TwoFactorSecret, input.TOTPToken); verifyErr != nil {
-		return observability.PrepareError(verifyErr, span, "TOTP code was invalid")
-	}
-
-	if _, err = l.directory.MarkUserTwoFactorSecretVerified(ctx, ddbidentity.Scope(), user.ID); err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "verifying user two factor secret")
+	// The read, the already-verified check, the code comparison and the write were four
+	// steps here and are one call now. platform refuses a replayed verification with a
+	// sentinel of its own rather than with a bare errors.New, which is what this returned
+	// — so "already verified" is something a caller can match on instead of a string.
+	if err := l.signIn.VerifyTOTPSecret(ctx, ddbidentity.Scope(), input.UserID, input.TOTPToken); err != nil {
+		return observability.PrepareError(err, span, "verifying two factor secret")
 	}
 
 	dcm := &audit.DataChangeMessage{
 		EventType: auth.TwoFactorSecretVerifiedServiceEventType,
-		UserID:    user.ID,
+		UserID:    input.UserID,
 	}
 
 	l.dataChangesPublisher.PublishAsync(ctx, dcm)
+
+	logger.Info("two factor secret verified")
 
 	return nil
 }
@@ -268,52 +253,34 @@ func (l *AuthManager) NewTOTPSecret(ctx context.Context, input *auth.TOTPSecretR
 
 	tracing.AttachSessionContextDataToSpan(span, &sessionContextDataForTracing{sessionContextData})
 	logger = sessionContextData.AttachToLogger(logger)
+	tracing.AttachToSpan(span, platformkeys.RequesterIDKey, sessionContextData.GetUserID())
 
-	// fetch user
+	// The password check, the code check, the secret generation and the write are one call.
+	//
+	// One rule loosened with it, deliberately. This refused a user whose current secret was
+	// not yet proven — "two factor secret not yet verified" — which left somebody who
+	// registered, never finished enrollment and lost the secret with no way to get another;
+	// the only credential they could still prove was the password, and this is the call a
+	// password proves. platform asks for the password always and for a code only from
+	// somebody who holds a proven secret, which is the same protection without the corner.
+	enrollment, err := l.signIn.RefreshTOTPSecret(ctx, ddbidentity.Scope(), sessionContextData.GetUserID(),
+		&signin.SecretRefresh{
+			CurrentPassword: input.CurrentPassword,
+			TOTPCode:        input.TOTPToken,
+		})
+	if err != nil {
+		return nil, observability.PrepareError(err, span, "refreshing two factor secret")
+	}
+
+	// The username, for the QR code's label. platform hands back an otpauth URI carrying
+	// the same thing, and rendering that instead would mean a builder that takes a URI —
+	// worth doing when something else wants one.
 	user, err := l.users.GetUser(ctx, l.db.Reader(), ddbidentity.Scope(), sessionContextData.GetUserID())
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, observability.PrepareError(err, span, "user does not exist")
-		}
-		return nil, observability.PrepareError(err, span, "retrieving user from database")
+		return nil, observability.PrepareAndLogError(err, logger, span, "reading the user the secret belongs to")
 	}
 
-	if user.TwoFactorSecretVerifiedAt != nil {
-		matches, validationErr := l.authenticator.PasswordMatches(ctx, user.HashedPassword, input.CurrentPassword)
-		if validationErr != nil {
-			return nil, observability.PrepareError(validationErr, span, "validating credentials")
-		}
-
-		if !matches {
-			// Use an explicit error instead of the nil validationErr
-			return nil, observability.PrepareError(errors.New("password mismatch"), span, "invalid credentials")
-		}
-
-		if verifyErr := l.totpVerifier.Verify(ctx, user.TwoFactorSecret, input.TOTPToken); verifyErr != nil {
-			return nil, observability.PrepareError(verifyErr, span, "invalid credentials")
-		}
-	} else {
-		return nil, observability.PrepareError(errors.New("unverified secret"), span, "two factor secret not yet verified")
-	}
-
-	// document who this is for.
-	tracing.AttachToSpan(span, platformkeys.RequesterIDKey, sessionContextData.GetUserID())
 	tracing.AttachToSpan(span, identitykeys.UsernameKey, user.Username)
-	logger = logger.WithValue(identitykeys.UserIDKey, user.ID)
-
-	// set the two factor secret.
-	tfs, err := l.secretGenerator.GenerateBase32EncodedString(ctx, totpSecretSize)
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "generating 2FA secret")
-	}
-
-	// update the user in the database.
-	if _, err = l.directory.UpdateUserTwoFactorSecret(ctx, ddbidentity.Scope(), user.ID, tfs); err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "updating 2FA secret")
-	}
-
-	user.TwoFactorSecret = tfs
-	user.TwoFactorSecretVerifiedAt = nil
 
 	dcm := &audit.DataChangeMessage{
 		EventType: auth.TwoFactorSecretChangedServiceEventType,
@@ -322,17 +289,15 @@ func (l *AuthManager) NewTOTPSecret(ctx context.Context, input *auth.TOTPSecretR
 
 	l.dataChangesPublisher.PublishAsync(ctx, dcm)
 
-	qrCode, err := l.qrCodeBuilder.BuildQRCode(ctx, user.Username, user.TwoFactorSecret)
+	qrCode, err := l.qrCodeBuilder.BuildQRCode(ctx, user.Username, enrollment.Secret)
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "building QR code")
 	}
 
-	result := &auth.TOTPSecretRefreshResponse{
-		TwoFactorSecret: user.TwoFactorSecret,
+	return &auth.TOTPSecretRefreshResponse{
+		TwoFactorSecret: enrollment.Secret,
 		TwoFactorQRCode: qrCode,
-	}
-
-	return result, nil
+	}, nil
 }
 
 func (l *AuthManager) UpdatePassword(ctx context.Context, input *auth.PasswordUpdateInput) error {
@@ -355,36 +320,30 @@ func (l *AuthManager) UpdatePassword(ctx context.Context, input *auth.PasswordUp
 	tracing.AttachToSpan(span, platformkeys.RequesterIDKey, sessionContextData.GetUserID())
 	logger = sessionContextData.AttachToLogger(logger)
 
-	user, err := l.validateCredentialsForUpdateRequest(
-		ctx,
-		sessionContextData.GetUserID(),
-		input.CurrentPassword,
-		input.TOTPToken,
-	)
-	if err != nil {
-		return observability.PrepareError(err, span, "validating credentials")
-	}
-	tracing.AttachToSpan(span, identitykeys.UsernameKey, user.Username)
-
-	// ensure the password isn't garbage-tier
+	// The password policy stays here, and platform says so: PasswordUpdate's doc notes
+	// that whether a password is long enough or unusual enough is the consumer's rule,
+	// applied before the call, because a policy inside the package is one every consumer
+	// then has to work around. Ours is the entropy floor below.
 	if err = passwordvalidator.Validate(input.NewPassword, minimumPasswordEntropy); err != nil {
 		return observability.PrepareError(err, span, "invalid password provided")
 	}
 
-	// hash the new password.
-	newPasswordHash, err := l.authenticator.HashPassword(ctx, strings.TrimSpace(input.NewPassword))
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "hashing password")
-	}
-
-	// update the user.
-	if _, err = l.directory.UpdateUserPassword(ctx, ddbidentity.Scope(), user.ID, newPasswordHash); err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "updating user")
+	// What moves is everything after it: the credential check, the hash and the write.
+	// The current password is required whatever the session says, which is platform's
+	// rule and was this application's too — a session is not proof enough to change the
+	// credential the session was obtained with.
+	if err = l.signIn.UpdatePassword(ctx, ddbidentity.Scope(), sessionContextData.GetUserID(),
+		&signin.PasswordUpdate{
+			CurrentPassword: input.CurrentPassword,
+			NewPassword:     strings.TrimSpace(input.NewPassword),
+			TOTPCode:        input.TOTPToken,
+		}); err != nil {
+		return observability.PrepareAndLogError(err, logger, span, "updating password")
 	}
 
 	dcm := &audit.DataChangeMessage{
 		EventType: auth.PasswordChangedEventType,
-		UserID:    user.ID,
+		UserID:    sessionContextData.GetUserID(),
 	}
 
 	l.dataChangesPublisher.PublishAsync(ctx, dcm)
