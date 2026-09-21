@@ -8,7 +8,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/managers"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
 
 	"github.com/primandproper/platform-go/v14/authentication/passkeys"
@@ -43,17 +42,9 @@ func RegisterAuthService(i do.Injector) {
 		)
 	})
 
-	// The passkey credential store, under the same namespace as the directory: platform
-	// names its table webauthn_credentials too, and this deployment holds both.
-	do.Provide[passkeys.Store](i, func(i do.Injector) (passkeys.Store, error) {
-		return passkeys.NewSQLStore(
-			do.MustInvoke[database.Client](i),
-			passkeys.WithTablePrefix(identity.TablePrefix),
-			passkeys.WithLogger(do.MustInvoke[logging.Logger](i)),
-			passkeys.WithTracerProvider(do.MustInvoke[tracing.Provider](i)),
-			passkeys.WithMetricsProvider(do.MustInvoke[metrics.Provider](i)),
-		)
-	})
+	// The passkey credential store is registered with the identity store, which every
+	// container holding this service also registers — see identitystore.RegisterPasskeyStore
+	// for why it moved.
 
 	do.Provide[*webauthn.Service](i, func(i do.Injector) (*webauthn.Service, error) {
 		return ProvidePasskeyService(

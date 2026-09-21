@@ -193,6 +193,12 @@ func TestDataPrivacy_Export(T *testing.T) {
 		// an account's delivery configuration. See docs/data-privacy.md.
 		subjectNotification := createUserNotificationForTest(t, subject.ID)
 
+		// And a credential, which is the half of an export somebody asks for when they think
+		// they have been compromised: which devices can sign in as them. Inserted rather than
+		// enrolled, because what is under test is whether the collector is registered at all,
+		// not the ceremony that writes the row.
+		subjectPasskey := insertWebAuthnCredentialForTest(t, subject.ID, "The Subject's Laptop")
+
 		requestID := submitExport(t, ctx, subjectClient)
 
 		request := awaitTerminalPrivacyRequest(t, ctx, subjectClient, requestID)
@@ -218,12 +224,18 @@ func TestDataPrivacy_Export(T *testing.T) {
 			assert.Contains(t, document.Data, section, "a manifest section with no data behind it")
 		}
 
-		// The three this subject certainly has data in: they registered, they were sent a
-		// notification, and the registration was audited.
+		// The four this subject certainly has data in: they registered, they were sent a
+		// notification, the registration was audited, and they hold a passkey.
+		//
+		// The passkey one is here because it was missing. The collector existed in platform
+		// over a store this deployment already ran, and nothing registered it, so every export
+		// ever produced said nothing about anybody's credentials and said it in a manifest
+		// that reported success.
 		for _, key := range []string{
 			ddbdataprivacy.CollectorKeyIdentity,
 			ddbdataprivacy.CollectorKeyNotifications,
 			ddbdataprivacy.CollectorKeyAuditLog,
+			ddbdataprivacy.CollectorKeyPasskeys,
 		} {
 			assert.Contains(t, document.Data, key, "the export is missing the %q section", key)
 			assert.Contains(t, document.Manifest.Sections, key)
@@ -232,6 +244,8 @@ func TestDataPrivacy_Export(T *testing.T) {
 		// The subject's own data is in it, from two different collectors.
 		assert.Contains(t, string(document.Data[ddbdataprivacy.CollectorKeyIdentity]), subject.Username)
 		assert.Contains(t, string(document.Data[ddbdataprivacy.CollectorKeyNotifications]), subjectNotification.ID)
+		assert.Contains(t, string(document.Data[ddbdataprivacy.CollectorKeyPasskeys]), subjectPasskey,
+			"the passkey section does not name the subject's credential")
 
 		// And nobody else's, anywhere in the artifact. Searched over the whole document rather
 		// than per section, because a leak would not announce which collector caused it.

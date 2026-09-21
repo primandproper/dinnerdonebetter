@@ -14,12 +14,14 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/push"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
+	authrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auth"
 	commentsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/comments"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	identitystore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identitystore"
 	internalopsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/internalops"
 	issuereportsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/issuereports"
 	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
+	oauth2clientsstore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/oauth2clientsstore"
 	paymentsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/payments"
 	settingsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/settings"
 	uploadedmediarepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/uploadedmedia"
@@ -117,6 +119,17 @@ func BuildInjector(
 	// handler builds the same one.
 	notificationsmanager.RegisterNotificationsDataManager(i)
 	push.RegisterFanout(i)
+
+	// The two credential stores the privacy registry collects from and nothing else in
+	// this process touches. The passkey store arrives with the identity store above.
+	//
+	// They are here because this is the process that fulfills a subject access request, and
+	// an export owes the subject every domain that holds them — including which devices can
+	// sign in as them, which reset links are outstanding, and what holds API access on their
+	// behalf. A registry built in a container missing one of these fails when the worker
+	// starts; a registry that skipped it instead would deliver an export that looks complete.
+	authrepo.RegisterAuthRepository(i)
+	oauth2clientsstore.RegisterOAuth2ClientsStore(i)
 
 	// The data privacy machinery: the bucket and cipher artifacts are written with, the
 	// registry of who holds data about a person, the worker that fulfills, and the sweeper

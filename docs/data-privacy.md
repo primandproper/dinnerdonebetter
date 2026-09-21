@@ -60,6 +60,20 @@ inside one.
 | `uploaded_media` | `uploadedmedia/privacy` | Registry rows for objects the subject uploaded (not the bytes) |
 | `waitlists` | `waitlists/privacy` over platform-go's | Waitlist signups the subject made (withdrawn ones excluded — they no longer name anybody) |
 | `comments` | platform-go's `comments/privacy` | Comments the subject authored |
+| `passkeys` | platform-go's `authentication/passkeys/privacy` | The passkeys registered to the subject — public keys and device labels, no secret |
+| `password_reset` | platform-go's `authentication/passwordreset/privacy` | Outstanding and spent reset tokens — digests and expiries, never a secret |
+| `oauth2_clients` | platform-go's `authentication/oauth2clients/privacy` | OAuth2 clients the subject registered (most of this deployment's are unowned, so most subjects hold none) |
+
+The last three were absent until 2026-09-20, and how they were absent is worth recording because
+the mechanism is still there. Each collector existed in platform-go, over a store this deployment
+already ran, and nothing registered it. Nothing raised: the fulfiller collects what the registry
+holds, writes a manifest naming exactly the sections it produced, and reports success — so every
+export ever produced said nothing about anybody's credentials, in a document that read as
+complete. The list in `TestWorkerWiring_Scheduler` did not catch it either, because a list written
+from what is registered pins a set against drift and cannot tell you the set was wrong to begin
+with. They were found by reading platform-go's privacy packages against this repository's
+registry. platform-go's `privacyadapters` exists to make that reading unnecessary and is not
+adopted here yet.
 
 Registration happens in one place, `internal/build/dataprivacy/registry.go`. **Adding a domain to
 an export is a line there and a collector beside the domain.** It replaces a `UserDataCollection`
@@ -124,7 +138,7 @@ delivery queue for up to a week.
 
 ## Erasers: what a deletion removes
 
-Four erasers are registered, and they run **serially inside one transaction** along with the
+Five erasers are registered, and they run **serially inside one transaction** along with the
 bookkeeping that records the erasure happened. A subject is never left deleted from eight domains
 and present in three.
 
@@ -167,6 +181,16 @@ withdrawals do **not** run inside the request's transaction (platform's `Withdra
 and administratively archived signups are out of reach (the store's read of a subject's signups is
 a read of live rows). Both need a store change upstream, filed as platform-go #458.
 
+**`oauth2_clients`** (platform-go's `authentication/oauth2clients/privacy`) deletes every client
+the subject registered. It is the third eraser registered because the cascade cannot reach it, and
+its reason is the opposite of the other two: not that a key is unshipped or impossible, but that
+the column mostly does not name a user. A client in this deployment is minted by an operator to
+act for whoever signs in — `CreateOAuth2ClientForService` passes `""` for the owner, and
+`oauth2clients.Client.Admits` permits any subject for exactly that — so a foreign key would refuse
+almost every row in the table. Most subjects therefore erase nothing here, and the eraser exists
+for the one who registered something. Deleting the row is also what stops the tokens it issued: a
+token names a `client_id` nothing resolves any more.
+
 **`identity`** deletes the user row. Every `belongs_to_user` and `belongs_to_account` foreign key
 in this schema carries `ON DELETE CASCADE`, so that single `DELETE` is the erasure for every other
 domain.
@@ -179,6 +203,15 @@ consumer's tables holds a principal — so `renderUploadsRegistryDDL`, `renderIs
 `renderSettingsDDL` and `renderBillingDDL` in `internal/repositories/postgres/migrations` add
 them, pointing at `users` or `accounts` and cascading. Without them a deleted subject would leave
 rows nobody can name and nothing erases, exactly as comments would.
+
+Two more keys were added on 2026-09-20, and one of them was a regression rather than an omission.
+`renderPasskeysDDL` and `renderPasswordResetDDL` now point `belongs_to_user` at the identity
+users table; before that a deleted subject's **passkeys survived them**, which is a credential
+that still authenticates somebody the service has erased. The hand-written
+`webauthn_credentials` carried `REFERENCES users(id) ON DELETE CASCADE` and adopting platform's
+passkeys schema dropped the key along with the table. The password reset table was never
+re-pointed when `passwordreset` was adopted. `TestQuerier_Migrate_ErasingAUserTakesTheirCredentials`
+is what says so now, and it fails if either key goes.
 
 Billing is the one where the key preserves a behavior rather than settling a question. platform-go's
 `billing/privacy` ships a collector and deliberately **no** eraser, on the grounds that financial

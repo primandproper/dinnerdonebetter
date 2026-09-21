@@ -115,6 +115,13 @@ func TestWorkerWiring_Scheduler(T *testing.T) {
 		// happens to hold nothing under — so a domain that stopped being registered produces an
 		// export that is complete by its own manifest and missing a domain's worth of somebody's
 		// data. There is no other place that would notice.
+		//
+		// It notices a domain that stops being registered. It did not notice three that never
+		// were: passkeys, password reset tokens and registered OAuth2 clients were absent from
+		// the registry and therefore absent from this list, which is written from what is
+		// registered rather than from what holds a subject's data. A list like this pins a set
+		// against drift and cannot tell you the set was wrong to begin with — the three were
+		// found by reading platform's privacy packages against this one, not by a failure here.
 		// There is no webhooks key, and its absence is asserted by this list being exact:
 		// nothing in that domain names a person, so a collector over it answered a question
 		// about a subject with an account's delivery configuration. See docs/data-privacy.md
@@ -130,6 +137,9 @@ func TestWorkerWiring_Scheduler(T *testing.T) {
 			ddbdataprivacy.CollectorKeyUploadedMedia,
 			ddbdataprivacy.CollectorKeyWaitlists,
 			ddbdataprivacy.CollectorKeyComments,
+			ddbdataprivacy.CollectorKeyPasskeys,
+			ddbdataprivacy.CollectorKeyPasswordReset,
+			ddbdataprivacy.CollectorKeyOAuth2Clients,
 		}, registry.CollectorKeys())
 
 		// The erasers are the destructive half, and the audit one is a policy decision that is
@@ -138,6 +148,7 @@ func TestWorkerWiring_Scheduler(T *testing.T) {
 		assert.ElementsMatch(t, []string{
 			ddbdataprivacy.EraserKeyComments,
 			ddbdataprivacy.EraserKeyWaitlists,
+			ddbdataprivacy.EraserKeyOAuth2Clients,
 			ddbdataprivacy.EraserKeyIdentity,
 			auditerasure.DefaultKey,
 		}, registry.EraserKeys())

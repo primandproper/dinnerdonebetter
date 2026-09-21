@@ -36,6 +36,12 @@ import (
 	waitlistsprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists/privacy"
 	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
 
+	oauth2clients "github.com/primandproper/platform-go/v14/authentication/oauth2clients"
+	oauth2clientsprivacy "github.com/primandproper/platform-go/v14/authentication/oauth2clients/privacy"
+	"github.com/primandproper/platform-go/v14/authentication/passkeys"
+	passkeysprivacy "github.com/primandproper/platform-go/v14/authentication/passkeys/privacy"
+	"github.com/primandproper/platform-go/v14/authentication/passwordreset"
+	passwordresetprivacy "github.com/primandproper/platform-go/v14/authentication/passwordreset/privacy"
 	"github.com/primandproper/platform-go/v14/billing"
 	platformcomments "github.com/primandproper/platform-go/v14/comments"
 	commentsprivacy "github.com/primandproper/platform-go/v14/comments/privacy"
@@ -121,6 +127,34 @@ func buildRegistry(i do.Injector) (*platformdataprivacy.Registry, error) {
 		return nil, platformerrors.Wrap(identityErr, "building the identity data privacy collector")
 	}
 
+	// The three credential collectors. Each is platform's, over a store this
+	// deployment already runs, and all three write under the one scope this
+	// deployment has — the same resolver identity's own adapters take.
+	//
+	// They take a scope resolver where the four above take none, because a
+	// credential is not filed under an account: passkeys, reset tokens and
+	// registered clients all name a user directly, so the question "which scopes
+	// hold this subject's rows" is the only one their collectors have to ask.
+	credentialScopes := identityprivacy.Scopes()
+
+	passkeysCollector, passkeysErr := passkeysprivacy.NewCollector(
+		do.MustInvoke[passkeys.Store](i), reader, credentialScopes)
+	if passkeysErr != nil {
+		return nil, platformerrors.Wrap(passkeysErr, "building the passkeys data privacy collector")
+	}
+
+	passwordResetCollector, passwordResetErr := passwordresetprivacy.NewCollector(
+		do.MustInvoke[passwordreset.Store](i), reader, credentialScopes)
+	if passwordResetErr != nil {
+		return nil, platformerrors.Wrap(passwordResetErr, "building the password reset data privacy collector")
+	}
+
+	oauth2ClientsCollector, oauth2ClientsErr := oauth2clientsprivacy.NewCollector(
+		do.MustInvoke[oauth2clients.Store](i), reader, credentialScopes)
+	if oauth2ClientsErr != nil {
+		return nil, platformerrors.Wrap(oauth2ClientsErr, "building the oauth2 clients data privacy collector")
+	}
+
 	collectors := map[string]platformdataprivacy.Collector{
 		ddbdataprivacy.CollectorKeyIdentity: identityCollector,
 		ddbdataprivacy.CollectorKeyMealPlanning: mealplanningprivacy.NewCollector(
@@ -134,6 +168,9 @@ func buildRegistry(i do.Injector) (*platformdataprivacy.Registry, error) {
 		ddbdataprivacy.CollectorKeyWaitlists:     waitlistsprivacy.NewCollector(do.MustInvoke[platformwaitlists.Store](i), reader),
 		ddbdataprivacy.CollectorKeySettings:      settingsprivacy.NewCollector(do.MustInvoke[platformsettings.Store](i), reader),
 		ddbdataprivacy.CollectorKeyComments:      commentsCollector,
+		ddbdataprivacy.CollectorKeyPasskeys:      passkeysCollector,
+		ddbdataprivacy.CollectorKeyPasswordReset: passwordResetCollector,
+		ddbdataprivacy.CollectorKeyOAuth2Clients: oauth2ClientsCollector,
 	}
 
 	for key, collector := range collectors {
@@ -178,6 +215,22 @@ func buildRegistry(i do.Injector) (*platformdataprivacy.Registry, error) {
 		identityEraser,
 	); err != nil {
 		return nil, platformerrors.Wrap(err, "registering identity data privacy eraser")
+	}
+
+	// The registered OAuth2 clients, which the cascade cannot reach either, and for a
+	// reason the other two do not share: the table has no key to users because most of its
+	// rows do not name one. See ddbdataprivacy.EraserKeyOAuth2Clients.
+	oauth2ClientsEraser, oauth2ClientsEraserErr := oauth2clientsprivacy.NewEraser(
+		do.MustInvoke[oauth2clients.Store](i), credentialScopes)
+	if oauth2ClientsEraserErr != nil {
+		return nil, platformerrors.Wrap(oauth2ClientsEraserErr, "building the oauth2 clients data privacy eraser")
+	}
+
+	if err := registry.RegisterEraser(
+		ddbdataprivacy.EraserKeyOAuth2Clients,
+		oauth2ClientsEraser,
+	); err != nil {
+		return nil, platformerrors.Wrap(err, "registering oauth2 clients data privacy eraser")
 	}
 
 	// The audit log is the one store the cascade cannot reach, because a hash chain

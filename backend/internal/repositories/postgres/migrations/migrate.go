@@ -203,9 +203,9 @@ func NewMigrator(logger logging.Logger) (*Migrator, error) {
 
 	// The registry, under the same namespace as the four protocol tables above, so one
 	// application's oauth2 tables sort together in a database that may hold another's.
-	oauth2ClientsDDL, err := oauth2clientsmigrations.SQL(dialect.Postgres, ddboauth.TablePrefix)
+	oauth2ClientsDDL, err := renderOAuth2ClientsDDL()
 	if err != nil {
-		return nil, errors.Wrap(err, "rendering oauth2 registered clients schema")
+		return nil, err
 	}
 
 	// Users, accounts, memberships and invitations. platform names its tables
@@ -220,9 +220,9 @@ func NewMigrator(logger logging.Logger) (*Migrator, error) {
 	// The passkey credentials, under the same namespace. platform names its table
 	// webauthn_credentials too, which is why this one carries a prefix and the schema this
 	// replaced did not: two tables of one name, and only one of them has a store.
-	passkeysDDL, err := passkeysmigrations.SQL(dialect.Postgres, ddbidentity.TablePrefix)
+	passkeysDDL, err := renderPasskeysDDL()
 	if err != nil {
-		return nil, errors.Wrap(err, "rendering passkey credentials schema")
+		return nil, err
 	}
 
 	passwordResetDDL, err := renderPasswordResetDDL()
@@ -744,6 +744,77 @@ func renderCommentsDDL() (string, error) {
 	return schema, nil
 }
 
+// userCascade re-creates the foreign key an adopted table loses by being adopted.
+//
+// Every one of platform's schemas stores a user id as a bare column, and has to: the module
+// is multi-engine and does not know what a consumer calls its user table, or whether it has
+// one. The consumer does. Two tables here name a user and nothing was pointing them at it —
+// which is not merely a missing constraint. This application erases a subject by deleting
+// the user row and letting the cascade reach everything that names it, so a table with no
+// key is a table erasure does not reach: a deleted user's passkeys and password reset tokens
+// outlived them, silently, because a cascade that does not exist raises nothing.
+//
+// The registry of OAuth2 clients looks like a third and is not; renderOAuth2ClientsDDL says
+// why, and what erases one instead.
+//
+// The webauthn one is a regression rather than an omission. 00024's hand-written
+// webauthn_credentials carried REFERENCES users(id) ON DELETE CASCADE, and adopting
+// platform's passkeys schema dropped it along with the table. The other two were never
+// re-pointed when passwordreset and oauth2clients were adopted.
+//
+// This is the same statement uploads/registry, issuereports and notifications each write by
+// hand; it is a function because there are now five of them and the argument is identical.
+func userCascade(table, column string) string {
+	return "\n\nALTER TABLE " + table +
+		"\n\tADD CONSTRAINT " + table + "_" + column + "_fk" +
+		"\n\tFOREIGN KEY (" + column + ") REFERENCES " + identityUsers + "(id) ON DELETE CASCADE;\n"
+}
+
+// renderPasskeysDDL renders the passkey credential table, keyed to the user it belongs to.
+//
+// See userCascade: the key is this repository's to add, and this table is the one that had
+// one before the identity adoption took it away.
+func renderPasskeysDDL() (string, error) {
+	schema, err := passkeysmigrations.SQL(dialect.Postgres, ddbidentity.TablePrefix)
+	if err != nil {
+		return "", errors.Wrap(err, "rendering passkey credentials schema")
+	}
+
+	table := ddl.Qualify(ddbidentity.TablePrefix) + "webauthn_credentials"
+
+	body := &strings.Builder{}
+
+	body.WriteString(schema)
+	body.WriteString(userCascade(table, "belongs_to_user"))
+
+	return body.String(), nil
+}
+
+// renderOAuth2ClientsDDL renders the administered client registry.
+//
+// It is the one table here that names a user and does not get a key, and the reason is that
+// in this deployment the column is usually not a user. A client is minted by an operator to
+// let an application speak for the service on behalf of whoever signs in, so it is
+// registered unowned — CreateOAuth2ClientForService passes "" for the owner, and
+// oauth2clients.Client.Admits permits any subject for exactly that arrangement. A foreign
+// key would refuse every one of them.
+//
+// A user-owned client is still possible, which is why the erasure of one is a registered
+// eraser rather than a cascade; see internal/build/dataprivacy.
+//
+// The authorization server's own tables are not keyed either, for a different reason.
+// oauth2_clients has no user column at all, and the codes and tokens name a subject_id that
+// is a claim rather than a row reference — they are short-lived grants that expire on their
+// own, and a key onto them would make issuing one depend on the directory.
+func renderOAuth2ClientsDDL() (string, error) {
+	schema, err := oauth2clientsmigrations.SQL(dialect.Postgres, ddboauth.TablePrefix)
+	if err != nil {
+		return "", errors.Wrap(err, "rendering oauth2 registered clients schema")
+	}
+
+	return schema, nil
+}
+
 // renderPasswordResetDDL renders the password reset token table, dropping the one
 // 00003_auth.sql created first.
 //
@@ -763,7 +834,14 @@ func renderPasswordResetDDL() (string, error) {
 		return "", errors.Wrap(err, "rendering password reset token migration")
 	}
 
-	return schema, nil
+	table := ddl.Qualify(ddbauth.TablePrefix) + "password_reset_tokens"
+
+	body := &strings.Builder{}
+
+	body.WriteString(schema)
+	body.WriteString(userCascade(table, "belongs_to_user"))
+
+	return body.String(), nil
 }
 
 // renderSessionsDDL renders the session table.

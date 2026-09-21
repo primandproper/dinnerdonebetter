@@ -26,6 +26,9 @@ package dataprivacy
 import (
 	"context"
 
+	oauth2clientsprivacy "github.com/primandproper/platform-go/v14/authentication/oauth2clients/privacy"
+	passkeysprivacy "github.com/primandproper/platform-go/v14/authentication/passkeys/privacy"
+	passwordresetprivacy "github.com/primandproper/platform-go/v14/authentication/passwordreset/privacy"
 	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
@@ -85,6 +88,28 @@ const (
 	// CollectorKeyComments covers comments the subject authored.
 	CollectorKeyComments = "comments"
 
+	// The three credential domains, keyed by platform's own names rather than by a
+	// string here, because each package ships the key its collector is normally
+	// registered under and two spellings of one section is a section nobody finds.
+	//
+	// They were absent for longer than they should have been, and absence is the
+	// failure this whole arrangement is most exposed to: a collector nobody
+	// registered raises nothing at all. The fulfiller collects what is registered,
+	// writes a manifest listing exactly the sections it produced, and reports
+	// success — so an export with no passkeys section is indistinguishable from an
+	// export of somebody who has no passkeys.
+	//
+	// None of the three carries a secret into the artifact. A passkey is a public
+	// key and a device label, a reset token is a digest and an expiry, a registered
+	// client is a name and a redirect URI; the secrets are hashes their stores never
+	// read back. What the subject learns is which devices can sign in as them, which
+	// reset links are outstanding, and what holds API access on their behalf — which
+	// is exactly the part of an access request somebody makes when they suspect they
+	// have been compromised.
+	CollectorKeyPasskeys      = passkeysprivacy.DefaultKey
+	CollectorKeyPasswordReset = passwordresetprivacy.DefaultKey
+	CollectorKeyOAuth2Clients = oauth2clientsprivacy.DefaultKey
+
 	// EraserKeyComments is the eraser that destroys the comments a subject wrote.
 	//
 	// It is registered because comments are the one store the identity cascade no
@@ -135,6 +160,20 @@ const (
 	// run serially in sorted order inside one transaction, so the audit scopes
 	// are resolved and deleted while the accounts that name them still exist.
 	EraserKeyIdentity = "identity"
+
+	// EraserKeyOAuth2Clients is the eraser that destroys the OAuth2 clients a subject
+	// registered.
+	//
+	// It is registered for the reason EraserKeyComments and EraserKeyWaitlists are: the
+	// identity cascade cannot reach this table, because it has no foreign key and cannot
+	// have one. Most rows in the registry are unowned — an operator's client, registered
+	// with "" for an owner so that it may act for whoever signs in — and a key onto users
+	// would refuse every one of them. See renderOAuth2ClientsDDL.
+	//
+	// A subject who registered nothing erases nothing, which is most of them. The eraser
+	// exists for the one who did, and deleting the row is also what stops the tokens it
+	// issued: a token names a client_id nothing resolves any more.
+	EraserKeyOAuth2Clients = oauth2clientsprivacy.DefaultKey
 )
 
 // AccountIDResolver answers "which accounts does this user appear in", which is
