@@ -13,7 +13,9 @@ Two of the deleted service's had no counterpart and did not want one.
 UploadUserAvatar is an upload, and avatars are not in platform's User at all —
 correctly, since what this application stores is a row in the uploads registry
 and a reference, so it belongs on the media surface. AdminSetPasswordChangeRequired
-is Service.SetUserRequiresPasswordChange under another name.
+is SetUserRequiresPasswordChange under another name — the fourth operator write,
+which platform had built at every layer but the surface until this adoption asked
+for it.
 
 What this application still owns is the recording. An identity operation writes
 several rows in one transaction, so the audit entry and the outbox row go in

@@ -370,9 +370,11 @@ sequenceDiagram
   identity read hands it to a client, because platform's `User` has no field for it and this
   application has not yet added the read on the media surface that would replace the join it
   used to do.
-- **Gap**: the admin write that forces a password change has no RPC. `Service.SetUserRequiresPasswordChange`
-  exists in platform, the column is on the wire, and the three sibling operator writes are exposed
-  — this one is not, so `AdminSetPasswordChangeRequired` has no counterpart until upstream adds it.
+- ~~**Gap**: the admin write that forces a password change has no RPC.~~ Closed upstream. It is
+  `SetUserRequiresPasswordChange`, the fourth operator write, gated on
+  `identity.users.require_password_change` and held here by the service admin. The `requires`
+  field is an `optional bool` and an absent one is refused, because the value a forgotten field
+  carries is the one that undoes an operator's decision.
 
 ### Future Improvements
 

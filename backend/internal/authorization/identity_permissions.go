@@ -40,6 +40,9 @@ const (
 	PermissionUpdateUserStatus = identitygrpc.PermissionUpdateUserStatus
 	// PermissionUpdateUserServiceRoles gates granting and revoking operator roles.
 	PermissionUpdateUserServiceRoles = identitygrpc.PermissionUpdateUserServiceRoles
+	// PermissionRequirePasswordChange gates forcing a password change at a user's next
+	// sign-in, and withdrawing the requirement again.
+	PermissionRequirePasswordChange = identitygrpc.PermissionRequirePasswordChange
 
 	// PermissionReadAccounts gates reading an account, its roster and its memberships.
 	PermissionReadAccounts = identitygrpc.PermissionReadAccounts
@@ -85,17 +88,26 @@ var (
 	}
 
 	// IdentityOperatorPermissions is what an operator holds over the directory: reading
-	// anybody, banning anybody, granting operator roles, and walking every account.
+	// anybody, banning anybody, granting operator roles, forcing a password change, and
+	// walking every account.
 	//
 	// None of it is an account holder's. A support engineer reading a user does not
 	// become a member of the account they are looking at, which is the distinction
 	// platform draws between a service role and a membership role.
+	//
+	// All four operator writes sit in one set here because this application has one
+	// operator role. platform gives the password-change write its own grant on the
+	// argument that it is the lightest of the four — it destroys nothing, discloses
+	// nothing, and the subject clears it by choosing a password — so a deployment with a
+	// support desk can hand out that one without also handing out the ban. If this
+	// application ever grows that role, this is the permission to move first.
 	IdentityOperatorPermissions = []Permission{
 		Permission(PermissionReadUsers),
 		Permission(PermissionCreateUsers),
 		Permission(PermissionArchiveUsers),
 		Permission(PermissionUpdateUserStatus),
 		Permission(PermissionUpdateUserServiceRoles),
+		Permission(PermissionRequirePasswordChange),
 		Permission(PermissionListAllAccounts),
 	}
 
