@@ -46,7 +46,7 @@ import (
 // The reader is taken at construction because dataprivacy.Collector.Collect is
 // handed no executor.
 func NewCollector(store billing.Store, reader database.SQLQueryExecutor, resolveAccounts dataprivacy.AccountIDResolver) (platformdataprivacy.Collector, error) {
-	collector, err := billingprivacy.NewCollector(store, reader, accountResolver(resolveAccounts))
+	collector, err := billingprivacy.NewCollector(store, reader, AccountResolver(resolveAccounts))
 	if err != nil {
 		return nil, platformerrors.Wrap(err, "building the billing data privacy collector")
 	}
@@ -59,7 +59,14 @@ func NewCollector(store billing.Store, reader database.SQLQueryExecutor, resolve
 //
 // Every account is in the one scope this application keeps its billing under, so
 // the resolver's only real work is naming the accounts; see payments.Scope.
-func accountResolver(resolveAccounts dataprivacy.AccountIDResolver) billingprivacy.AccountResolver {
+// AccountResolver turns this application's "which accounts is this subject in" into the
+// shape billing's collector wants: a list of accounts, each with the scope its rows are
+// filed under.
+//
+// It is exported because privacyadapters.BillingAdapter takes the billing spelling
+// directly, so the conversion has to be reachable from the wiring rather than only from
+// this package's own constructor.
+func AccountResolver(resolveAccounts dataprivacy.AccountIDResolver) billingprivacy.AccountResolver {
 	// The request scope is not consulted; see the sibling issuereports resolver.
 	return func(ctx context.Context, _ tenancy.Scope, subject platformdataprivacy.Subject) ([]billingprivacy.Account, error) {
 		accountIDs, err := resolveAccounts(ctx, subject.ID)

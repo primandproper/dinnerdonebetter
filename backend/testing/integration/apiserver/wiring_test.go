@@ -131,10 +131,10 @@ func TestWorkerWiring_Scheduler(T *testing.T) {
 			ddbdataprivacy.CollectorKeyMealPlanning,
 			ddbdataprivacy.CollectorKeySettings,
 			ddbdataprivacy.CollectorKeyNotifications,
-			ddbdataprivacy.CollectorKeyPayments,
+			ddbdataprivacy.CollectorKeyBilling,
 			ddbdataprivacy.CollectorKeyAuditLog,
 			ddbdataprivacy.CollectorKeyIssueReports,
-			ddbdataprivacy.CollectorKeyUploadedMedia,
+			ddbdataprivacy.CollectorKeyMediaRegistry,
 			ddbdataprivacy.CollectorKeyWaitlists,
 			ddbdataprivacy.CollectorKeyComments,
 			ddbdataprivacy.CollectorKeyPasskeys,
@@ -145,10 +145,28 @@ func TestWorkerWiring_Scheduler(T *testing.T) {
 		// The erasers are the destructive half, and the audit one is a policy decision that is
 		// on in this deployment. An eraser missing here is data that survives a right-to-be-
 		// forgotten request.
+		//
+		// There are ten where there used to be five, and the five that arrived are the ones
+		// privacyadapters registers alongside their collectors: a domain's adapter builds
+		// both halves. Four of them delete rows the identity cascade would have taken
+		// anyway — settings values, issue reports, passkeys, reset tokens.
+		//
+		// That redundancy reverses what docs/data-privacy.md used to argue, and the reason
+		// it reverses is in this repository's own history. Those statements are platform's
+		// rather than ours, so the "eleven statements that can only agree with the one that
+		// ran first" objection does not apply; and a cascade is exactly the thing that goes
+		// missing silently. ddb_webauthn_credentials lost its foreign key during the
+		// identity adoption and erasure stopped reaching a deleted user's passkeys, with
+		// nothing raising — a registered eraser would have kept working through it.
 		assert.ElementsMatch(t, []string{
-			ddbdataprivacy.EraserKeyComments,
-			ddbdataprivacy.EraserKeyWaitlists,
-			ddbdataprivacy.EraserKeyOAuth2Clients,
+			ddbdataprivacy.CollectorKeyComments,
+			ddbdataprivacy.CollectorKeyWaitlists,
+			ddbdataprivacy.CollectorKeyOAuth2Clients,
+			ddbdataprivacy.CollectorKeySettings,
+			ddbdataprivacy.CollectorKeyIssueReports,
+			ddbdataprivacy.CollectorKeyMediaRegistry,
+			ddbdataprivacy.CollectorKeyPasskeys,
+			ddbdataprivacy.CollectorKeyPasswordReset,
 			ddbdataprivacy.EraserKeyIdentity,
 			auditerasure.DefaultKey,
 		}, registry.EraserKeys())

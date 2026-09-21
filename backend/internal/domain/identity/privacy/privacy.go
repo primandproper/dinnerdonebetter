@@ -41,49 +41,59 @@ func NewCollector(store identity.Store, reader database.SQLQueryExecutor) (platf
 	return identityprivacy.NewCollector(store, reader, Scopes())
 }
 
-// Eraser is platform's identity eraser with this application's succession rule in
-// front of it.
+// SuccessionStep is this application's rule about the households a departing owner
+// leaves behind, in the shape privacyadapters runs ahead of identity's own eraser.
 //
-// The order is the whole of it, and it is not a preference: a membership cascades
-// from the user row, so after EraseUser there is nothing left that says which
-// households the subject was in. Both halves run on the caller's transaction, so a
-// failure in either takes the other back with it.
-type Eraser struct {
-	_ struct{} `json:"-"`
-
-	succession *succession.Succession
-	inner      platformdataprivacy.Eraser
-}
-
-var _ platformdataprivacy.Eraser = (*Eraser)(nil)
-
-// NewEraser builds the identity eraser.
-func NewEraser(store identity.Store) (*Eraser, error) {
+// The order is the whole of it, and it is not a preference: a membership cascades from
+// the user row, so after the eraser has run there is nothing left that says which
+// households the subject was in. It has to happen first or it cannot happen at all.
+//
+// It is a BeforeErase rather than a wrapper around platform's eraser, and platform
+// declines to offer the wrapper on purpose. An ErasureOutcome's Retained carries the
+// legal basis for anything kept, and that goes into the request record and in front of a
+// regulator; a wrapper holding the real eraser could report counts that eraser never
+// produced, and a falsified count is not detectable from outside — the key is registered,
+// the roster is satisfied and the artifact is well-formed. So this never holds it.
+//
+// What it gets in exchange is the guarantee it actually needed: every eraser registered
+// for one request runs on one transaction, so the transfer below commits with the erasure
+// or not at all.
+//
+// The outcome is empty by construction. Deleted and Anonymized sum across steps and a
+// household that changed hands is neither — it is somebody else's now, and still there.
+// Retained would be a legal basis for keeping something, and this keeps nothing that the
+// erasure would otherwise have taken.
+//
+// A failure here takes the whole erasure down and identity's eraser does not run, which
+// is the right way round: a precondition that failed is a precondition. It does mean a bug
+// in the succession rule blocks erasure for that subject until it is fixed — loud and
+// recoverable, where the alternative is a subject told they were erased who was not.
+func SuccessionStep(store identity.Store) (platformdataprivacy.Eraser, error) {
 	rule, err := succession.New(store, ddbidentity.TablePrefix)
 	if err != nil {
 		return nil, err
 	}
 
-	inner, err := identityprivacy.NewEraser(store, Scopes())
-	if err != nil {
-		return nil, err
-	}
-
-	return &Eraser{succession: rule, inner: inner}, nil
+	return &successionStep{rule: rule}, nil
 }
 
-// Erase settles the subject's households and then destroys the subject.
-func (e *Eraser) Erase(
+type successionStep struct {
+	_ struct{} `json:"-"`
+
+	rule *succession.Succession
+}
+
+func (e *successionStep) Erase(
 	ctx context.Context,
 	tx database.Tx,
-	requestScope tenancy.Scope,
+	_ tenancy.Scope,
 	subject platformdataprivacy.Subject,
 ) (platformdataprivacy.ErasureOutcome, error) {
-	if _, err := e.succession.Apply(ctx, tx, ddbidentity.Scope(), subject.ID); err != nil {
+	if _, err := e.rule.Apply(ctx, tx, ddbidentity.Scope(), subject.ID); err != nil {
 		return platformdataprivacy.ErasureOutcome{}, platformerrors.Wrap(err, "settling the subject's households")
 	}
 
-	return e.inner.Erase(ctx, tx, requestScope, subject)
+	return platformdataprivacy.ErasureOutcome{}, nil
 }
 
 // ResolveAccountIDs builds the AccountIDResolver every account-scoped collector is

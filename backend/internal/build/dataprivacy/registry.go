@@ -31,17 +31,14 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
 	notificationsprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/privacy"
 	paymentsprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/privacy"
-	settingsprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings/privacy"
-	uploadedmediaprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia/privacy"
-	waitlistsprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists/privacy"
+	ddbsettings "github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings"
+	ddbuploadedmedia "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
+	ddbwaitlists "github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists"
 	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
 
 	oauth2clients "github.com/primandproper/platform-go/v14/authentication/oauth2clients"
-	oauth2clientsprivacy "github.com/primandproper/platform-go/v14/authentication/oauth2clients/privacy"
 	"github.com/primandproper/platform-go/v14/authentication/passkeys"
-	passkeysprivacy "github.com/primandproper/platform-go/v14/authentication/passkeys/privacy"
 	"github.com/primandproper/platform-go/v14/authentication/passwordreset"
-	passwordresetprivacy "github.com/primandproper/platform-go/v14/authentication/passwordreset/privacy"
 	"github.com/primandproper/platform-go/v14/billing"
 	platformcomments "github.com/primandproper/platform-go/v14/comments"
 	commentsprivacy "github.com/primandproper/platform-go/v14/comments/privacy"
@@ -52,6 +49,7 @@ import (
 	issuereports "github.com/primandproper/platform-go/v14/issuereports"
 	uploadsregistry "github.com/primandproper/platform-go/v14/mediaregistry"
 	"github.com/primandproper/platform-go/v14/operations"
+	"github.com/primandproper/platform-go/v14/privacyadapters"
 	platformsettings "github.com/primandproper/platform-go/v14/settings"
 	platformwaitlists "github.com/primandproper/platform-go/v14/waitlists"
 	"github.com/primandproper/primitives-go/v2/database"
@@ -95,82 +93,131 @@ func buildRegistry(i do.Injector) (*platformdataprivacy.Registry, error) {
 	// cost is visible in one place.
 	resolveAccounts := identityprivacy.ResolveAccountIDs(identityStore, reader)
 
-	// Named rather than plain err: the registration blocks below each take an err of
-	// their own, and an outer one declared here would make every one of them a shadow.
-	commentsCollector, commentsEraser, commentsErr := commentsPrivacy(i)
-	if commentsErr != nil {
-		return nil, commentsErr
-	}
-
-	issueReportsCollector, issueReportsErr := issuereportsprivacy.NewCollector(
-		do.MustInvoke[issuereports.Store](i), reader, resolveAccounts)
-	if issueReportsErr != nil {
-		return nil, platformerrors.Wrap(issueReportsErr, "building the issue reports data privacy collector")
-	}
-
-	paymentsCollector, paymentsErr := paymentsprivacy.NewCollector(do.MustInvoke[billing.Store](i), reader, resolveAccounts)
-	if paymentsErr != nil {
-		return nil, paymentsErr
-	}
-
-	// Four of these take a repository and nothing else, because a collector whose
-	// whole body is "page one list read and encode the rows" is
-	// platformdataprivacy.CollectorFor and has no observability of its own to do.
-	// The Fulfiller already opens a span per section, tags it with the section key
-	// and the subject, times it, and records the error, so a second span inside the
-	// collector added a name and no information. What still carries a logger and a
-	// tracer is the collector that has something to say between reads — several
-	// reads to attribute an error to, an account hop, a user record whose absence is
-	// a different failure from an empty section.
-	identityCollector, identityErr := identityprivacy.NewCollector(identityStore, reader)
-	if identityErr != nil {
-		return nil, platformerrors.Wrap(identityErr, "building the identity data privacy collector")
-	}
-
-	// The three credential collectors. Each is platform's, over a store this
-	// deployment already runs, and all three write under the one scope this
-	// deployment has — the same resolver identity's own adapters take.
+	// The nine adapters platform ships that this deployment runs, registered in one call
+	// under each package's own DefaultKey.
 	//
-	// They take a scope resolver where the four above take none, because a
-	// credential is not filed under an account: passkeys, reset tokens and
-	// registered clients all name a user directly, so the question "which scopes
-	// hold this subject's rows" is the only one their collectors have to ask.
+	// This replaces nine hand-written constructor calls, and the reason to prefer the call
+	// is not that it is shorter. Register is all-or-nothing: every adapter is built before
+	// any is registered, and the keys are checked against what the registry already holds
+	// first, so a nil store in the last field cannot leave a registry holding eight of
+	// nine. A half-registered registry is exactly the state that produces an export that
+	// is well-formed, reports success, and is missing a domain — which is the failure this
+	// application shipped for months and closed by hand two days ago.
+	//
+	// It also fails upstream when platform adds a twelfth adapter: privacyadapters' own
+	// roster test requires every key the module ships to come back from Register, so a new
+	// domain is a compile or a test failure rather than a section nobody notices is absent.
+	//
+	// Three fields are deliberately nil, and nil means "this deployment does not run it",
+	// so each is a claim worth defending:
+	//
+	//   - Identity, because this application's eraser is not platform's. It is platform's
+	//     with the succession rule in front of it — the households a departing owner leaves
+	//     behind are transferred to their longest-tenured member before the user row goes.
+	//     IdentityAdapter takes a Store and a resolver and builds both halves itself, so
+	//     there is nowhere to hand it a decorated eraser. Registered by hand below.
+	//   - Notifications, because this application's collector reads its own Repository
+	//     rather than platform's Inbox and Registry, and answers as one section where
+	//     platform answers as two.
+	//   - AuditErasure, because whether the audit log is erased at all is a config flag
+	//     this deployment sets through dataprivacycfg.RegisterAuditEraser — which
+	//     privacyadapters' own documentation names as the deliberate alternative.
+	//
+	// The first of those is the one to revisit: identity is the domain whose absence from
+	// the roster guarantee matters most, and the only reason it is absent is an adapter
+	// that cannot take an eraser somebody else built.
 	credentialScopes := identityprivacy.Scopes()
 
-	passkeysCollector, passkeysErr := passkeysprivacy.NewCollector(
-		do.MustInvoke[passkeys.Store](i), reader, credentialScopes)
-	if passkeysErr != nil {
-		return nil, platformerrors.Wrap(passkeysErr, "building the passkeys data privacy collector")
+	successionStep, successionErr := identityprivacy.SuccessionStep(identityStore)
+	if successionErr != nil {
+		return nil, platformerrors.Wrap(successionErr, "building the household succession rule")
 	}
 
-	passwordResetCollector, passwordResetErr := passwordresetprivacy.NewCollector(
-		do.MustInvoke[passwordreset.Store](i), reader, credentialScopes)
-	if passwordResetErr != nil {
-		return nil, platformerrors.Wrap(passwordResetErr, "building the password reset data privacy collector")
+	adopted, adoptedErr := privacyadapters.Register(registry, &privacyadapters.Adapters{
+		Reader: reader,
+
+		Comments: &privacyadapters.CommentsAdapter{
+			Store:   do.MustInvoke[platformcomments.Store](i),
+			Resolve: platformdataprivacy.FixedScopes(ddbcomments.Scope()),
+		},
+		// Issue reports are filed per account, so the resolver turns this application's
+		// account ids into the scopes those rows live under. Same conversion the
+		// hand-written constructor made internally, now spelled at the wiring.
+		IssueReports: &privacyadapters.IssueReportsAdapter{
+			Store:   do.MustInvoke[issuereports.Store](i),
+			Resolve: issuereportsprivacy.AccountScopes(resolveAccounts),
+		},
+		Settings: &privacyadapters.SettingsAdapter{
+			Store:   do.MustInvoke[platformsettings.Store](i),
+			Resolve: platformdataprivacy.FixedScopes(ddbsettings.Scope()),
+		},
+		Waitlists: &privacyadapters.WaitlistsAdapter{
+			Store:   do.MustInvoke[platformwaitlists.Store](i),
+			Resolve: platformdataprivacy.FixedScopes(ddbwaitlists.Scope()),
+		},
+		MediaRegistry: &privacyadapters.MediaRegistryAdapter{
+			Store:   do.MustInvoke[uploadsregistry.Store](i),
+			Resolve: platformdataprivacy.FixedScopes(ddbuploadedmedia.Scope()),
+		},
+
+		// The three credential domains, all under the one scope this directory has.
+		OAuth2Clients: &privacyadapters.OAuth2ClientsAdapter{
+			Store:   do.MustInvoke[oauth2clients.Store](i),
+			Resolve: credentialScopes,
+		},
+		Passkeys: &privacyadapters.PasskeysAdapter{
+			Store:   do.MustInvoke[passkeys.Store](i),
+			Resolve: credentialScopes,
+		},
+		PasswordReset: &privacyadapters.PasswordResetAdapter{
+			Store:   do.MustInvoke[passwordreset.Store](i),
+			Resolve: credentialScopes,
+		},
+
+		// Identity, with the succession rule running ahead of platform's eraser. That
+		// seam is why this is here rather than hand-registered below: the adapter builds
+		// both halves and there was no way to put anything in front of the eraser, so
+		// identity — the domain whose absence from the roster matters most — sat outside
+		// it. platform added BeforeErase for exactly this.
+		Identity: &privacyadapters.IdentityAdapter{
+			Store:       identityStore,
+			Resolve:     credentialScopes,
+			BeforeErase: successionStep,
+		},
+
+		// Billing takes a resolver of its own shape — accounts rather than scopes —
+		// because what it pages is filed per account. The conversion is this
+		// application's tenancy model and lives beside the payments domain.
+		Billing: &privacyadapters.BillingAdapter{
+			Store:   do.MustInvoke[billing.Store](i),
+			Resolve: paymentsprivacy.AccountResolver(resolveAccounts),
+		},
+	})
+	if adoptedErr != nil {
+		return nil, platformerrors.Wrap(adoptedErr, "registering platform's privacy adapters")
 	}
 
-	oauth2ClientsCollector, oauth2ClientsErr := oauth2clientsprivacy.NewCollector(
-		do.MustInvoke[oauth2clients.Store](i), reader, credentialScopes)
-	if oauth2ClientsErr != nil {
-		return nil, platformerrors.Wrap(oauth2ClientsErr, "building the oauth2 clients data privacy collector")
-	}
+	logger.WithValue("keys", adopted).Info("registered platform's privacy adapters")
 
+	// And the three this application answers for itself, none of which platform ships a
+	// counterpart for that this deployment uses: meal planning is the domain this
+	// application is, the audit log is a hash chain nothing else models, and the
+	// notifications collector reads one repository and answers as one section where
+	// platform's reads an inbox and a device registry and answers as two.
+	//
+	// A collector whose whole body is "page one list read and encode the rows" is
+	// platformdataprivacy.CollectorFor and has no observability of its own to do: the
+	// Fulfiller already opens a span per section, tags it with the section key and the
+	// subject, times it, and records the error. What still carries a logger and a tracer
+	// is the collector with something to say between reads — several reads to attribute an
+	// error to, an account hop, a user record whose absence is a different failure from an
+	// empty section.
 	collectors := map[string]platformdataprivacy.Collector{
-		ddbdataprivacy.CollectorKeyIdentity: identityCollector,
 		ddbdataprivacy.CollectorKeyMealPlanning: mealplanningprivacy.NewCollector(
 			do.MustInvoke[mealplanning.Repository](i), resolveAccounts, logger, tracerProvider),
 		ddbdataprivacy.CollectorKeyNotifications: notificationsprivacy.NewCollector(
 			do.MustInvoke[notifications.Repository](i), logger, tracerProvider),
-		ddbdataprivacy.CollectorKeyPayments:      paymentsCollector,
-		ddbdataprivacy.CollectorKeyAuditLog:      auditprivacy.NewCollector(do.MustInvoke[auditdomain.Repository](i)),
-		ddbdataprivacy.CollectorKeyIssueReports:  issueReportsCollector,
-		ddbdataprivacy.CollectorKeyUploadedMedia: uploadedmediaprivacy.NewCollector(do.MustInvoke[uploadsregistry.Store](i), reader),
-		ddbdataprivacy.CollectorKeyWaitlists:     waitlistsprivacy.NewCollector(do.MustInvoke[platformwaitlists.Store](i), reader),
-		ddbdataprivacy.CollectorKeySettings:      settingsprivacy.NewCollector(do.MustInvoke[platformsettings.Store](i), reader),
-		ddbdataprivacy.CollectorKeyComments:      commentsCollector,
-		ddbdataprivacy.CollectorKeyPasskeys:      passkeysCollector,
-		ddbdataprivacy.CollectorKeyPasswordReset: passwordResetCollector,
-		ddbdataprivacy.CollectorKeyOAuth2Clients: oauth2ClientsCollector,
+		ddbdataprivacy.CollectorKeyAuditLog: auditprivacy.NewCollector(do.MustInvoke[auditdomain.Repository](i)),
 	}
 
 	for key, collector := range collectors {
@@ -179,59 +226,13 @@ func buildRegistry(i do.Injector) (*platformdataprivacy.Registry, error) {
 		}
 	}
 
-	// Comments erase through their own eraser rather than through the cascade,
-	// because platform-go's comment table has no foreign key to cascade from — see
-	// ddbdataprivacy.EraserKeyComments. Both halves resolve the same single scope
-	// this deployment files every comment under.
-	if err := registry.RegisterEraser(
-		ddbdataprivacy.EraserKeyComments,
-		commentsEraser,
-	); err != nil {
-		return nil, platformerrors.Wrap(err, "registering comments data privacy eraser")
-	}
-
-	// Waitlist signups erase through their own eraser rather than through the
-	// cascade, because platform-go's signup table has no foreign key to cascade
-	// from and cannot have one: a withdrawal blanks the subject reference, which a
-	// key to users would refuse. See ddbdataprivacy.EraserKeyWaitlists.
-	if err := registry.RegisterEraser(
-		ddbdataprivacy.EraserKeyWaitlists,
-		waitlistsprivacy.NewEraser(do.MustInvoke[platformwaitlists.Store](i)),
-	); err != nil {
-		return nil, platformerrors.Wrap(err, "registering waitlists data privacy eraser")
-	}
-
-	// One application eraser for the cascading tables, because every belongs_to_user
-	// and belongs_to_account foreign key in this schema cascades from the user row. See
-	// internal/domain/identity/privacy for what that covers and what would make a
-	// second one worth writing.
-	identityEraser, identityEraserErr := identityprivacy.NewEraser(identityStore)
-	if identityEraserErr != nil {
-		return nil, platformerrors.Wrap(identityEraserErr, "building the identity data privacy eraser")
-	}
-
-	if err := registry.RegisterEraser(
-		ddbdataprivacy.EraserKeyIdentity,
-		identityEraser,
-	); err != nil {
-		return nil, platformerrors.Wrap(err, "registering identity data privacy eraser")
-	}
-
-	// The registered OAuth2 clients, which the cascade cannot reach either, and for a
-	// reason the other two do not share: the table has no key to users because most of its
-	// rows do not name one. See ddbdataprivacy.EraserKeyOAuth2Clients.
-	oauth2ClientsEraser, oauth2ClientsEraserErr := oauth2clientsprivacy.NewEraser(
-		do.MustInvoke[oauth2clients.Store](i), credentialScopes)
-	if oauth2ClientsEraserErr != nil {
-		return nil, platformerrors.Wrap(oauth2ClientsEraserErr, "building the oauth2 clients data privacy eraser")
-	}
-
-	if err := registry.RegisterEraser(
-		ddbdataprivacy.EraserKeyOAuth2Clients,
-		oauth2ClientsEraser,
-	); err != nil {
-		return nil, platformerrors.Wrap(err, "registering oauth2 clients data privacy eraser")
-	}
+	// Three erasers this file used to register by hand — comments, waitlist signups and
+	// registered OAuth2 clients — are registered by the call above, because each is
+	// platform's over a platform store and the adapter builds both halves. Why each needs
+	// an eraser at all rather than riding the identity cascade is unchanged and is
+	// documented in docs/data-privacy.md: comments have no key to cascade from, waitlist
+	// signups cannot have one because withdrawal blanks the column, and the client
+	// registry's column mostly does not name a user.
 
 	// The audit log is the one store the cascade cannot reach, because a hash chain
 	// cannot carry a foreign key that removes rows from the middle of it. Whether it

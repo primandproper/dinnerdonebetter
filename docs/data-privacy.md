@@ -72,11 +72,33 @@ export ever produced said nothing about anybody's credentials, in a document tha
 complete. The list in `TestWorkerWiring_Scheduler` did not catch it either, because a list written
 from what is registered pins a set against drift and cannot tell you the set was wrong to begin
 with. They were found by reading platform-go's privacy packages against this repository's
-registry. platform-go's `privacyadapters` exists to make that reading unnecessary and is not
-adopted here yet.
+registry. platform-go's `privacyadapters` exists to make that reading unnecessary, and is adopted
+now — see below.
 
-Registration happens in one place, `internal/build/dataprivacy/registry.go`. **Adding a domain to
-an export is a line there and a collector beside the domain.** It replaces a `UserDataCollection`
+Registration happens in one place, `internal/build/dataprivacy/registry.go`, and most of it is one
+call. `privacyadapters.Register` wires the ten adapters platform ships that this deployment runs,
+each under its own package's `DefaultKey`. It is all-or-nothing — every adapter is built before any
+is registered, and the keys are checked against what the registry already holds first — so a nil
+store in the last field cannot leave a registry holding nine of ten. A half-populated registry is
+exactly the state that produces an export which is well-formed, reports success, and is missing a
+domain, which is what this application shipped until 2026-09-20.
+
+It also fails when platform adds an eleventh: `privacyadapters`' own roster test requires every key
+the module ships to come back from `Register`, so a new domain is a build failure here rather than
+a section nobody notices is absent.
+
+Identity goes through it too, with this application's succession rule as the adapter's
+`BeforeErase` — a step that runs inside the erasure's transaction, ahead of platform's eraser,
+because a membership cascades from the user row and after the eraser there is nothing left saying
+which households the subject was in. It is not a wrapper around that eraser, and platform declines
+to offer one: an `ErasureOutcome`'s `Retained` carries the legal basis for anything kept, and a
+wrapper holding the real eraser could report counts it never produced, undetectably.
+
+Two sections were renamed when they took platform's names: `uploaded_media` is `media_registry`,
+and `payments` is `billing`.
+
+**Adding a domain of this application's own to an export is a line there and a collector beside the
+domain.** It replaces a `UserDataCollection`
 struct that imported all eleven domains and that every collector wrote into — a central type
 edited on every schema change, in the file most likely to conflict.
 
@@ -228,8 +250,20 @@ than replaced with further erasers, because in this application every uploader a
 is a user. platform-go ships an `issuereports/privacy` eraser for consumers where that is not
 true; if that foreign key ever goes, it has to be registered.
 
-There is deliberately no eraser per domain beyond those. Eleven statements that can only agree
-with the one that ran first are eleven places for that agreement to rot. What makes a domain's own
+There used to be deliberately no eraser per domain beyond those, on the argument that eleven
+statements which can only agree with the one that ran first are eleven places for that agreement to
+rot. Adopting `privacyadapters` reversed it, and the reversal is better rather than merely forced.
+
+A domain's adapter builds both halves, so five more erasers arrived with their collectors —
+settings, issue reports, media registry, passkeys, password reset. Four delete rows the cascade
+would have taken anyway. The old objection does not reach them: they are platform's statements,
+maintained and tested upstream, not eleven of ours. And the failure the redundancy guards against
+is one this repository has already had — `ddb_webauthn_credentials` carried
+`belongs_to_user REFERENCES users ON DELETE CASCADE`, the identity adoption replaced the table with
+platform's and dropped the key with it, and erasure stopped reaching a deleted user's passkeys with
+nothing raising. A registered eraser would have kept working through that.
+
+What makes a domain's own
 eraser worth writing is retention, anonymization, or — as with comments — no foreign key to
 cascade from. Retention is the case that has not arrived yet; the likeliest first instance is
 payment records, which tax law generally requires be retained for years. When it does, that domain
