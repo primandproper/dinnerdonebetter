@@ -2,14 +2,10 @@ package authentication
 
 import (
 	"context"
-	"database/sql"
-	"errors"
-	"slices"
 	"strings"
 	"time"
 
 	authcfg "github.com/primandproper/dinnerdonebetter/backend/internal/authentication/config"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
@@ -17,10 +13,10 @@ import (
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
+	"github.com/primandproper/platform-go/v14/authentication/signin"
 	platformidentity "github.com/primandproper/platform-go/v14/identity"
 	"github.com/primandproper/platform-go/v14/sessions"
 	"github.com/primandproper/primitives-go/v2/authentication/tokens"
-	"github.com/primandproper/primitives-go/v2/authentication/totp"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/messagequeue"
 	"github.com/primandproper/primitives-go/v2/observability"
@@ -47,8 +43,7 @@ type (
 
 	manager struct {
 		tokenIssuer             tokens.Issuer
-		authenticator           Authenticator
-		totpVerifier            totp.Verifier
+		signIn                  *signin.Service
 		tracer                  tracing.Tracer
 		logger                  logging.Logger
 		dataChangesPublisher    messagequeue.Publisher
@@ -64,8 +59,7 @@ func NewManager(
 	ctx context.Context,
 	queuesConfig *queuescfg.Config,
 	tokenIssuer tokens.Issuer,
-	authenticator Authenticator,
-	totpVerifier totp.Verifier,
+	signInService *signin.Service,
 	tracingProvider tracing.Provider,
 	logger logging.Logger,
 	publisherProvider messagequeue.PublisherProvider,
@@ -85,8 +79,7 @@ func NewManager(
 		tracer:                  tracing.NewNamedTracer(tracingProvider, name),
 		logger:                  logging.NewNamedLogger(logger, name),
 		tokenIssuer:             tokenIssuer,
-		authenticator:           authenticator,
-		totpVerifier:            totpVerifier,
+		signIn:                  signInService,
 		dataChangesPublisher:    dataChangesPublisher,
 		directory:               directory,
 		db:                      db,
@@ -94,45 +87,6 @@ func NewManager(
 	}
 
 	return m, nil
-}
-
-// validateLogin takes login information and returns whether the login is valid.
-// In the event that there's an error, this function will return false and the error.
-func (m *manager) validateLogin(ctx context.Context, user *platformidentity.User, loginInput *auth.UserLoginInput) (bool, error) {
-	ctx, span := m.tracer.StartSpan(ctx)
-	defer span.End()
-
-	loginInput.TOTPToken = strings.TrimSpace(loginInput.TOTPToken)
-	loginInput.Password = strings.TrimSpace(loginInput.Password)
-	loginInput.Username = strings.TrimSpace(loginInput.Username)
-
-	// alias the relevant data.
-	logger := m.logger.WithValue(identitykeys.UsernameKey, user.Username)
-
-	// check the password first. platform's Authenticator.PasswordMatches returns
-	// (false, nil) on a non-match; callers are responsible for turning that into
-	// whatever error the app exposes.
-	matches, err := m.authenticator.PasswordMatches(ctx, user.HashedPassword, loginInput.Password)
-	if err != nil {
-		return false, observability.PrepareError(err, span, "validating password")
-	}
-	if !matches {
-		return false, ErrPasswordDoesNotMatch
-	}
-
-	// if the user has TOTP enabled, verify the code separately.
-	if user.TwoFactorSecretVerifiedAt != nil {
-		if err = m.totpVerifier.Verify(ctx, user.TwoFactorSecret, loginInput.TOTPToken); err != nil {
-			if errors.Is(err, totp.ErrCodeRequired) || errors.Is(err, totp.ErrInvalidCode) {
-				return false, err
-			}
-			return false, observability.PrepareError(err, span, "verifying TOTP code")
-		}
-	}
-
-	logger.Debug("login validated")
-
-	return true, nil
 }
 
 func (m *manager) ProcessLogin(ctx context.Context, adminOnly bool, loginData *auth.UserLoginInput, meta *LoginMetadata) (*auth.TokenResponse, error) {
@@ -147,52 +101,45 @@ func (m *manager) ProcessLogin(ctx context.Context, adminOnly bool, loginData *a
 
 	logger = logger.WithValue(identitykeys.UsernameKey, loginData.Username)
 
-	// The sign-in read, which is the one read here that must not be redacted: the
-	// password hash and the TOTP secret are what the next two checks compare against.
-	user, err := m.directory.GetUserByUsername(ctx, m.db.Reader(), ddbidentity.Scope(), loginData.Username)
-	if err != nil || user == nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, observability.PrepareError(err, span, "user does not exist")
-		}
-
-		return nil, observability.PrepareError(err, span, "fetching user")
+	// The handle is not trimmed and the two secrets are, which is what this replaced did
+	// and is worth saying out loud now that one call does all three. The lookup ran on the
+	// username as given; the trims happened afterwards, so they only ever reached the
+	// password comparison and the TOTP check. Trimming the handle here would make
+	// " alice" sign in where it used to fail, and untrimming the code would refuse a
+	// pasted one — both are changes, and neither belongs in an adoption.
+	credentials := &signin.Credentials{
+		Username:        loginData.Username,
+		Password:        strings.TrimSpace(loginData.Password),
+		TOTPCode:        strings.TrimSpace(loginData.TOTPToken),
+		ActiveAccountID: loginData.DesiredAccountID,
 	}
+
+	// One call where there were five: the handle read, the password comparison, the
+	// status check, the second factor and the principal resolution. platform does them in
+	// that order for reasons this application had not thought about and now inherits —
+	// the status is checked after the password, so somebody who cannot prove the password
+	// cannot learn whether an account exists, is suspended or was terminated; and a
+	// handle naming nobody still costs a password hash, so a stopwatch cannot tell the
+	// two apart either. This code returned on an unknown handle without hashing anything.
+	//
+	// The administrative door is the same call through AdminAuthenticate, which adds the
+	// service role check and demands a proven second factor whatever the policy says.
+	// That is the rule this package enforced by hand, minus the hand.
+	authenticate := m.signIn.Authenticate
+	if adminOnly {
+		authenticate = m.signIn.AdminAuthenticate
+	}
+
+	principal, err := authenticate(ctx, ddbidentity.Scope(), credentials)
+	if err != nil {
+		return nil, observability.PrepareError(err, span, "authenticating")
+	}
+
+	user, accountID := principal.User, principal.ActiveAccountID
 
 	logger = logger.WithValue(identitykeys.UserIDKey, user.ID)
 	tracing.AttachToSpan(span, identitykeys.UserIDKey, user.ID)
-
-	// The admin-only door is a role check rather than a second lookup. The read it
-	// replaced filtered inside the query, which made "no such user" and "not an
-	// administrator" the same answer — and made the filter something the query had to
-	// remember rather than something this function states.
-	if adminOnly && !slices.Contains(user.ServiceRoles, authorization.ServiceAdminRoleName) {
-		return nil, observability.PrepareError(ErrUserNotAdmin, span, "checking administrator status")
-	}
-
-	loginValid, err := m.validateLogin(ctx, user, loginData)
-	logger.WithValue("login_valid", loginValid)
-
-	if err != nil {
-		switch {
-		case errors.Is(err, ErrInvalidTOTPToken):
-			return nil, observability.PrepareError(err, span, "invalid TOTP AccessToken")
-		case errors.Is(err, ErrTOTPRequired):
-			return nil, observability.PrepareError(err, span, "processing login")
-		case errors.Is(err, ErrPasswordDoesNotMatch):
-			return nil, observability.PrepareError(err, span, "password did not match")
-		default:
-			return nil, observability.PrepareError(err, span, "validating login")
-		}
-	} else if !loginValid {
-		return nil, observability.PrepareError(err, span, "login was invalid")
-	}
-
-	principal, err := m.signInPrincipal(ctx, user.ID, loginData.DesiredAccountID)
-	if err != nil {
-		return nil, observability.PrepareError(err, span, "resolving the account to sign in to")
-	}
-
-	accountID := principal.ActiveAccountID
+	logger.Debug("login validated")
 
 	response, err := m.issueTokensWithSession(ctx, user, accountID, auth.LoginMethodPassword, meta)
 	if err != nil {

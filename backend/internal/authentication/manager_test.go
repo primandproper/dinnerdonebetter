@@ -9,6 +9,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 
+	"github.com/primandproper/platform-go/v14/authentication/signin"
 	identity "github.com/primandproper/platform-go/v14/identity"
 	identitymock "github.com/primandproper/platform-go/v14/identity/mock"
 	"github.com/primandproper/platform-go/v14/sessions"
@@ -93,18 +94,47 @@ func buildTestManager(t *testing.T) (*manager, *managerTestMocks) {
 		},
 	}
 
+	// The real sign-in service over the same mocks, rather than a mock of it.
+	//
+	// signin.Service is a concrete type and deliberately has no interface, so the choice
+	// was to introduce one here or to build the real thing — and the real thing is what
+	// these tests want anyway. Every argument it takes is already mocked: the identity
+	// store is its Directory, AuthenticatorMock is its Authenticator, IssuerMock is its
+	// TokenIssuer. What the subtests below assert is therefore that this package's door
+	// wires platform's orchestration correctly, which is the thing an adoption can get
+	// wrong; that the orchestration itself refuses a wrong password is platform's test.
+	//
+	// WithTransaction is the one call the mocks above do not cover. signin runs its hooks
+	// inside a transaction, and the hooks here are the default no-ops, so the callback is
+	// invoked with a nil Tx and does nothing with it.
+	db := &mockdatabase.ClientMock{
+		ReaderFunc: func() database.SQLQueryExecutor { return nil },
+		WriterFunc: func() database.SQLQueryExecutor { return nil },
+		WithTransactionFunc: func(ctx context.Context, fn func(database.Tx) error) error {
+			return fn(nil)
+		},
+	}
+
+	signInService, err := signin.NewService(
+		db,
+		mocks.directory,
+		mocks.authenticator,
+		mocks.tokenIssuer,
+		signin.WithSecondFactorPolicy(signin.SecondFactorWhenEnrolled),
+		signin.WithAdminServiceRoles(authorization.ServiceAdminRoleName),
+		signin.WithTOTPVerifier(mocks.totpVerifier),
+	)
+	require.NoError(t, err)
+
 	m := &manager{
 		tokenIssuer:          mocks.tokenIssuer,
-		authenticator:        mocks.authenticator,
-		totpVerifier:         mocks.totpVerifier,
+		signIn:               signInService,
 		tracer:               tracing.NewNamedTracer(tracingnoop.NewTracerProvider(), "test"),
 		logger:               loggingnoop.NewLogger(),
 		dataChangesPublisher: mocks.publisher,
 		directory:            mocks.directory,
-		db: &mockdatabase.ClientMock{
-			ReaderFunc: func() database.SQLQueryExecutor { return nil },
-			WriterFunc: func() database.SQLQueryExecutor { return nil },
-		},
+		db:                   db,
+
 		sessionStore:            mocks.sessionStore,
 		maxAccessTokenLifetime:  15 * time.Minute,
 		maxRefreshTokenLifetime: 24 * time.Hour,
@@ -317,22 +347,23 @@ func TestManager_ProcessLogin(T *testing.T) {
 		}
 		mocks.authenticator.PasswordMatchesFunc = func(context.Context, string, string) (bool, error) { return true, nil }
 
-		// The ban is the principal read's refusal rather than a field this path inspects.
-		// It therefore lands after the credentials are checked, which is the right way
-		// round: a banned person presenting the wrong password is told the password is
-		// wrong, not that they are banned.
-		mocks.directory.GetPrincipalFunc = func(context.Context, database.SQLQueryExecutor, tenancy.Scope, string, string) (*identity.Principal, error) {
-			return nil, identity.ErrSignInNotAdmitted
-		}
-
 		response, err := m.ProcessLogin(ctx, false, loginInput, nil)
 
-		// A banned user must be rejected with an error and no token response.
-		require.ErrorIs(t, err, ErrUserBanned)
+		// A banned user must be rejected with an error and no token response, and after
+		// the credentials are checked rather than before: a banned person presenting the
+		// wrong password is told the password is wrong, not that they are banned.
+		//
+		// The sentinel is signin's rather than identity's, and the principal is never
+		// read. The status check used to be a side effect of GetPrincipal refusing; signin
+		// makes it a step of its own, between the password and the second factor, and
+		// names the three statuses apart — suspended, terminated, unverified — where the
+		// directory has one refusal for all of them.
+		require.ErrorIs(t, err, signin.ErrUserBanned)
 		assert.Nil(t, response)
 
 		assert.Len(t, mocks.directory.GetUserByUsernameCalls(), 1)
-		assert.Len(t, mocks.directory.GetPrincipalCalls(), 1)
+		assert.Len(t, mocks.authenticator.PasswordMatchesCalls(), 1)
+		assert.Empty(t, mocks.directory.GetPrincipalCalls())
 	})
 
 	T.Run("with nonexistent user", func(t *testing.T) {
@@ -412,12 +443,16 @@ func TestManager_ProcessLogin(T *testing.T) {
 
 		response, err := m.ProcessLogin(ctx, false, loginInput, nil)
 
-		require.Error(t, err)
+		require.ErrorIs(t, err, signin.ErrSecondFactorRequired)
 		assert.Nil(t, response)
 
 		assert.Len(t, mocks.directory.GetUserByUsernameCalls(), 1)
 		assert.Len(t, mocks.authenticator.PasswordMatchesCalls(), 1)
-		assert.Len(t, mocks.totpVerifier.VerifyCalls(), 1)
+
+		// The verifier is not consulted. A user who holds a proven second factor and
+		// supplied no code is refused without one, which is the same answer the verifier
+		// would have given and one fewer thing handed an empty string.
+		assert.Empty(t, mocks.totpVerifier.VerifyCalls())
 	})
 
 	T.Run("with user not member of desired account", func(t *testing.T) {
@@ -461,10 +496,16 @@ func TestManager_ProcessLogin(T *testing.T) {
 		assert.Len(t, mocks.directory.GetPrincipalCalls(), 1)
 	})
 
-	// The administrator-only door is a role check rather than a filtered lookup. The read
-	// it replaced filtered non-administrators out inside the query, which made "no such
-	// user" and "not an administrator" the same answer — and made the filter something the
-	// query had to remember rather than something this function states.
+	// The administrator-only door refuses a real user who holds no administrator role, and
+	// it refuses them *after* proving the password. That ordering is platform's and it is
+	// the opposite of what this package used to do.
+	//
+	// Checking the role first is cheaper and is an enumeration oracle: an anonymous caller
+	// who can distinguish "not an administrator" from "wrong password" can walk a list of
+	// handles and learn which of them are operators, without holding a credential for any
+	// of them. Paying for the hash first costs one comparison and closes it. The assertion
+	// that the password was never checked has been inverted for that reason — it was
+	// pinning the leak.
 	T.Run("admin only refuses a user who holds no administrator role", func(t *testing.T) {
 		t.Parallel()
 
@@ -482,14 +523,18 @@ func TestManager_ProcessLogin(T *testing.T) {
 
 			return user, nil
 		}
+		mocks.authenticator.PasswordMatchesFunc = func(context.Context, string, string) (bool, error) {
+			return true, nil
+		}
 
 		response, err := m.ProcessLogin(ctx, true, loginInput, nil)
 
-		require.ErrorIs(t, err, ErrUserNotAdmin)
+		require.ErrorIs(t, err, signin.ErrNotAnAdministrator)
 		assert.Nil(t, response)
 
-		// The credentials are never checked, because the door was shut first.
-		assert.Empty(t, mocks.authenticator.PasswordMatchesCalls())
+		// The password was proven and the role was not there, in that order. Nothing was
+		// issued and no principal was resolved, which is where the refusal stops.
+		assert.Len(t, mocks.authenticator.PasswordMatchesCalls(), 1)
 		assert.Empty(t, mocks.directory.GetPrincipalCalls())
 	})
 
@@ -499,12 +544,22 @@ func TestManager_ProcessLogin(T *testing.T) {
 		ctx := t.Context()
 		m, mocks := buildTestManager(t)
 
+		// A proven second factor and a code for it, both of which the administrative door
+		// requires whatever the service's policy is. This package used to check the
+		// second factor only for a user who had proven one, on the administrative door as
+		// well as the ordinary one — so an operator who never finished TOTP enrollment
+		// could reach it with a password alone. docs/identity.md has said for a long time
+		// that admin login "**requires** a valid TOTP token"; the code did not.
+		now := time.Now()
 		user := buildExampleUser()
 		user.ServiceRoles = []string{authorization.ServiceAdminRoleName}
+		user.TwoFactorSecret = "ASECRET"
+		user.TwoFactorSecretVerifiedAt = &now
 
 		loginInput := &auth.UserLoginInput{
-			Username: "testuser",
-			Password: "validP@ssw0rd",
+			Username:  "testuser",
+			Password:  "validP@ssw0rd",
+			TOTPToken: "123456",
 		}
 
 		mocks.directory.GetUserByUsernameFunc = func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, username string) (*identity.User, error) {
@@ -515,6 +570,12 @@ func TestManager_ProcessLogin(T *testing.T) {
 			assert.Equal(t, user.HashedPassword, hash)
 			assert.Equal(t, loginInput.Password, password)
 			return true, nil
+		}
+		mocks.totpVerifier.VerifyFunc = func(_ context.Context, secret, code string) error {
+			assert.Equal(t, user.TwoFactorSecret, secret)
+			assert.Equal(t, loginInput.TOTPToken, code)
+
+			return nil
 		}
 		mocks.directory.GetPrincipalFunc = func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, userID, activeAccountID string) (*identity.Principal, error) {
 			assert.Equal(t, user.ID, userID)

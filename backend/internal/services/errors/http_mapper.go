@@ -6,6 +6,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 
+	"github.com/primandproper/platform-go/v14/authentication/signin"
 	platformidentity "github.com/primandproper/platform-go/v14/identity"
 	httperrors "github.com/primandproper/primitives-go/v2/errors/http"
 )
@@ -15,6 +16,13 @@ func init() {
 
 	// platform's directory, for the reason its gRPC mapper is registered beside it.
 	httperrors.RegisterHTTPErrorMapper(platformidentity.HTTPMapper)
+
+	// And platform's sign-in orchestration, which now owns the refusals this application's
+	// login door used to name itself. It is a separate registration from the directory's
+	// because they answer about different things: identity refuses a principal read,
+	// signin refuses a credential — and signin tells suspended, terminated and unverified
+	// apart where the directory has one sentinel for all three.
+	httperrors.RegisterHTTPErrorMapper(signin.HTTPMapper)
 }
 
 type authSessionIdentityHTTPMapper struct{}

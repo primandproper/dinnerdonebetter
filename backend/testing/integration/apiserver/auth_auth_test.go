@@ -8,7 +8,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	authfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/fakes"
+	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/localdev"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
@@ -176,6 +178,54 @@ func TestAuth_AdminLoginForToken(T *testing.T) {
 		require.NoError(t, err)
 		assert.NotNil(t, tokenRes)
 		assert.NotEmpty(t, tokenRes.Result.AccessToken)
+	})
+
+	// The administrative door demands a proven second factor whatever the service's
+	// ordinary policy is, and this pins it because for a long time it did not.
+	//
+	// This application asks for a TOTP code only from a user who has proven their secret,
+	// which is the right rule for the ordinary door and the wrong one for this door: an
+	// operator who registered, was granted the role and never finished enrollment could
+	// reach the administrative login with a password alone. docs/identity.md has said
+	// since it was written that admin login "**requires** a valid TOTP token"; the code
+	// checked the role and then applied the ordinary policy. platform's AdminLoginForToken
+	// closes it, and this is the test that would notice if the door ever loosened again.
+	T.Run("an administrator who has not proven a second factor cannot login via this route", func(t *testing.T) {
+		t.Parallel()
+		ctx := t.Context()
+
+		// Registered and promoted, with the TOTP secret left unproven — which is the
+		// state every user is in between signing up and finishing enrollment.
+		input := authfakes.BuildFakeUserRegistrationInput()
+		user := createServiceUserForTest(t, false, input)
+
+		_, err := identityDirectoryWithHooks(t).SetUserServiceRoles(ctx, ddbidentity.Scope(), user.ID,
+			[]string{authorization.ServiceAdminRoleName})
+		require.NoError(t, err)
+
+		unauthedClient := buildUnauthenticatedGRPCClientForTest(t)
+
+		// No code, because they have nothing to generate one from that the door would
+		// accept. The ordinary door lets this user in; this one must not.
+		tokenRes, err := unauthedClient.AdminLoginForToken(ctx, &authsvc.AdminLoginForTokenRequest{
+			Input: &authsvc.UserLoginInput{
+				Username: input.Username,
+				Password: input.Password,
+			},
+		})
+		require.Error(t, err)
+		assert.Nil(t, tokenRes)
+
+		// And the same credentials do work on the ordinary door, so the refusal above is
+		// the second-factor rule rather than the account being unusable.
+		ordinary, err := unauthedClient.LoginForToken(ctx, &authsvc.LoginForTokenRequest{
+			Input: &authsvc.UserLoginInput{
+				Username: input.Username,
+				Password: input.Password,
+			},
+		})
+		require.NoError(t, err)
+		assert.NotEmpty(t, ordinary.Result.AccessToken)
 	})
 
 	T.Run("non-admin users cannot login via this route", func(t *testing.T) {
