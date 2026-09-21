@@ -6,9 +6,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	identityfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
-	identitymock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/mock"
+	"github.com/primandproper/platform-go/v14/authentication/passkeys"
+	passkeysmock "github.com/primandproper/platform-go/v14/authentication/passkeys/mock"
+	identity "github.com/primandproper/platform-go/v14/identity"
+	"github.com/primandproper/primitives-go/v2/database"
+	mockdatabase "github.com/primandproper/primitives-go/v2/database/mock"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	platformwebauthn "github.com/primandproper/primitives-go/v2/authentication/webauthn"
 	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
@@ -59,7 +63,7 @@ func (s *sharedSessionStore) Consume(_ context.Context, challenge string) (*plat
 
 // buildTestService builds a service over the given store, so that a test can build two of them
 // and prove a ceremony crosses between them.
-func buildTestService(t *testing.T, store platformwebauthn.SessionStore) (*Service, *identitymock.RepositoryMock, *identity.User) {
+func buildTestService(t *testing.T, store platformwebauthn.SessionStore) (*Service, *passkeysmock.StoreMock, *identity.User) {
 	t.Helper()
 
 	ctx := t.Context()
@@ -76,7 +80,7 @@ func buildTestService(t *testing.T, store platformwebauthn.SessionStore) (*Servi
 
 	user := identityfakes.BuildFakeUser()
 
-	credentials := []*identity.WebAuthnCredential{
+	credentials := []*passkeys.Credential{
 		{
 			ID:            t.Name(),
 			BelongsToUser: user.ID,
@@ -85,13 +89,19 @@ func buildTestService(t *testing.T, store platformwebauthn.SessionStore) (*Servi
 		},
 	}
 
-	repo := &identitymock.RepositoryMock{
-		GetWebAuthnCredentialsForUserFunc: func(context.Context, string) ([]*identity.WebAuthnCredential, error) {
+	repo := &passkeysmock.StoreMock{
+		GetCredentialsForUserFunc: func(context.Context, database.SQLQueryExecutor, tenancy.Scope, string) ([]*passkeys.Credential, error) {
 			return credentials, nil
 		},
 	}
 
-	service, err := NewService(logger, tracerProvider, relyingParty, repo, &staticUserStore{user: user})
+	db := &mockdatabase.ClientMock{
+		ReaderFunc:          func() database.SQLQueryExecutor { return nil },
+		WriterFunc:          func() database.SQLQueryExecutor { return nil },
+		WithTransactionFunc: func(ctx context.Context, fn func(tx database.Tx) error) error { return fn(nil) },
+	}
+
+	service, err := NewService(logger, tracerProvider, relyingParty, repo, db, &staticUserStore{user: user})
 	require.NoError(t, err)
 
 	return service, repo, user
@@ -131,7 +141,7 @@ func TestNewService(T *testing.T) {
 	T.Run("without a relying party", func(t *testing.T) {
 		t.Parallel()
 
-		service, err := NewService(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, nil, nil)
+		service, err := NewService(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, nil, nil, nil)
 
 		assert.Nil(t, service)
 		assert.ErrorIs(t, err, ErrNilRelyingParty)

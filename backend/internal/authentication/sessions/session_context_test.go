@@ -113,7 +113,7 @@ func TestContextData_gettersAreNilSafe(T *testing.T) {
 		// has always answered this way; the service side was the outlier.
 		require.NotNil(t, x.GetServicePermissions())
 		assert.False(t, x.GetServicePermissions().IsServiceAdmin())
-		assert.False(t, x.GetServicePermissions().HasPermission(authorization.ReadUserPermission))
+		assert.False(t, x.GetServicePermissions().HasPermission(authorization.Permission(authorization.PermissionReadUsers)))
 
 		require.NotNil(t, x.ServiceRolePermissionChecker())
 		assert.False(t, x.ServiceRolePermissionChecker().IsServiceAdmin())

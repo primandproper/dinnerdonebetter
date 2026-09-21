@@ -7,10 +7,13 @@ import (
 	"testing"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
+	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	identityfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
+	identity "github.com/primandproper/platform-go/v14/identity"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -28,7 +31,7 @@ func TestAsyncDataChangeMessageHandler_DataChangesEventHandler(t *testing.T) {
 
 		// Create a test data change message
 		dataChangeMessage := &audit.DataChangeMessage{
-			EventType: identity.UserSignedUpServiceEventType,
+			EventType: ddbidentity.UserSignedUpServiceEventType,
 			UserID:    "test-user-id",
 			AccountID: "test-account-id",
 			Context:   nil, // When marshaled as empty map {} and unmarshaled, becomes nil
@@ -47,7 +50,7 @@ func TestAsyncDataChangeMessageHandler_DataChangesEventHandler(t *testing.T) {
 		// Set up mock expectations
 		analyticsReporter.EventOccurredFunc = func(_ context.Context, _ string, _ string, _ map[string]any) error { return nil }
 		analyticsReporter.AddUserFunc = func(_ context.Context, _ string, _ map[string]any) error { return nil }
-		identityRepo.GetUserFunc = func(_ context.Context, userID string) (*identity.User, error) {
+		identityRepo.GetUserFunc = func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, userID string) (*identity.User, error) {
 			assert.Equal(t, dataChangeMessage.UserID, userID)
 
 			return identityfakes.BuildFakeUser(), nil
@@ -86,7 +89,7 @@ func TestAsyncDataChangeMessageHandler_DataChangesEventHandler(t *testing.T) {
 
 			return nil
 		}
-		identityRepo.GetUserFunc = func(_ context.Context, _ string) (*identity.User, error) {
+		identityRepo.GetUserFunc = func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, _ string) (*identity.User, error) {
 			return identityfakes.BuildFakeUser(), nil
 		}
 
@@ -135,7 +138,7 @@ func TestAsyncDataChangeMessageHandler_handleDataChangeMessage(t *testing.T) {
 		ctx := t.Context()
 
 		dataChangeMessage := &audit.DataChangeMessage{
-			EventType: identity.UserSignedUpServiceEventType,
+			EventType: ddbidentity.UserSignedUpServiceEventType,
 			UserID:    "test-user-id",
 			AccountID: "test-account-id",
 			Context:   nil,
@@ -143,7 +146,7 @@ func TestAsyncDataChangeMessageHandler_handleDataChangeMessage(t *testing.T) {
 
 		analyticsEventReporter.EventOccurredFunc = func(_ context.Context, _ string, _ string, _ map[string]any) error { return nil }
 		analyticsEventReporter.AddUserFunc = func(_ context.Context, _ string, _ map[string]any) error { return nil }
-		identityRepo.GetUserFunc = func(_ context.Context, userID string) (*identity.User, error) {
+		identityRepo.GetUserFunc = func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, userID string) (*identity.User, error) {
 			assert.Equal(t, dataChangeMessage.UserID, userID)
 
 			return identityfakes.BuildFakeUser(), nil
@@ -177,7 +180,7 @@ func TestAsyncDataChangeMessageHandler_handleOutboundNotifications(T *testing.T)
 		evf := "email-verification-token"
 
 		dataChangeMessage := &audit.DataChangeMessage{
-			EventType: identity.UserSignedUpServiceEventType,
+			EventType: ddbidentity.UserSignedUpServiceEventType,
 			UserID:    user.ID,
 			AccountID: "test-account-id",
 			Context: map[string]any{
@@ -185,7 +188,7 @@ func TestAsyncDataChangeMessageHandler_handleOutboundNotifications(T *testing.T)
 			},
 		}
 
-		identityRepo.GetUserFunc = func(_ context.Context, userID string) (*identity.User, error) {
+		identityRepo.GetUserFunc = func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, userID string) (*identity.User, error) {
 			assert.Equal(t, user.ID, userID)
 
 			return user, nil
@@ -207,14 +210,14 @@ func TestAsyncDataChangeMessageHandler_handleOutboundNotifications(T *testing.T)
 		ctx := t.Context()
 
 		dataChangeMessage := &audit.DataChangeMessage{
-			EventType: identity.UserSignedUpServiceEventType,
+			EventType: ddbidentity.UserSignedUpServiceEventType,
 			UserID:    "test-user-id",
 			AccountID: "test-account-id",
 			Context:   nil,
 		}
 
 		expectedError := errors.New("user fetch error")
-		identityRepo.GetUserFunc = func(_ context.Context, userID string) (*identity.User, error) {
+		identityRepo.GetUserFunc = func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, userID string) (*identity.User, error) {
 			assert.Equal(t, "test-user-id", userID)
 
 			return nil, expectedError
@@ -244,7 +247,7 @@ func TestAsyncDataChangeMessageHandler_handleOutboundNotifications(T *testing.T)
 			Context:   nil,
 		}
 
-		identityRepo.GetUserFunc = func(_ context.Context, userID string) (*identity.User, error) {
+		identityRepo.GetUserFunc = func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, userID string) (*identity.User, error) {
 			assert.Equal(t, user.ID, userID)
 
 			return user, nil

@@ -12,9 +12,11 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	identityfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
 	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
+	identity "github.com/primandproper/platform-go/v14/identity"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	platformsessions "github.com/primandproper/platform-go/v14/sessions"
 	"github.com/primandproper/primitives-go/v2/fake"
@@ -32,7 +34,7 @@ func buildFakeSessionContextData() *sessions.ContextData {
 	return &sessions.ContextData{
 		Requester: sessions.RequesterInfo{
 			UserID:                   fake.BuildFakeID(),
-			AccountStatus:            identity.GoodStandingUserAccountStatus.String(),
+			AccountStatus:            string(identity.StatusGood),
 			AccountStatusExplanation: "",
 			ServicePermissions:       authorization.NewServiceRolePermissionChecker([]string{"service_user"}, nil),
 		},
@@ -56,12 +58,13 @@ func TestServiceImpl_GetAuthStatus(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		service, identityDataManager, _, _, _ := buildTestService(t)
+		service, directory, _, _, _ := buildTestService(t)
 		ctx := buildContextWithSessionData(t)
 
-		identityDataManager.UserRequiresPasswordChangeFunc = func(_ context.Context, userID string) (bool, error) {
+		directory.GetUserFunc = func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, userID string) (*identity.User, error) {
 			assert.NotEmpty(t, userID)
-			return false, nil
+
+			return &identity.User{ID: userID}, nil
 		}
 
 		request := &authsvc.GetAuthStatusRequest{}
@@ -74,7 +77,7 @@ func TestServiceImpl_GetAuthStatus(t *testing.T) {
 		assert.NotEmpty(t, response.ResponseDetails.TraceId)
 		assert.NotEmpty(t, response.UserId)
 		assert.NotEmpty(t, response.ActiveAccount)
-		assert.Equal(t, identity.GoodStandingUserAccountStatus.String(), response.AccountStatus)
+		assert.Equal(t, string(identity.StatusGood), response.AccountStatus)
 		assert.False(t, response.RequiresPasswordChange)
 	})
 
@@ -544,7 +547,7 @@ func TestServiceImpl_GetActiveAccount(t *testing.T) {
 		fakeAccount := identityfakes.BuildFakeAccount()
 
 		sessionData := ctx.Value(sessions.SessionContextDataKey).(*sessions.ContextData)
-		identityRepo.GetAccountFunc = func(_ context.Context, accountID string) (*identity.Account, error) {
+		identityRepo.GetAccountFunc = func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, accountID string) (*identity.Account, error) {
 			assert.Equal(t, sessionData.GetActiveAccountID(), accountID)
 			return fakeAccount, nil
 		}
@@ -588,7 +591,7 @@ func TestServiceImpl_GetActiveAccount(t *testing.T) {
 		ctx := buildContextWithSessionData(t)
 
 		sessionData := ctx.Value(sessions.SessionContextDataKey).(*sessions.ContextData)
-		identityRepo.GetAccountFunc = func(_ context.Context, accountID string) (*identity.Account, error) {
+		identityRepo.GetAccountFunc = func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, accountID string) (*identity.Account, error) {
 			assert.Equal(t, sessionData.GetActiveAccountID(), accountID)
 			return nil, sql.ErrNoRows
 		}
@@ -614,7 +617,7 @@ func TestServiceImpl_GetActiveAccount(t *testing.T) {
 		ctx := buildContextWithSessionData(t)
 
 		sessionData := ctx.Value(sessions.SessionContextDataKey).(*sessions.ContextData)
-		identityRepo.GetAccountFunc = func(_ context.Context, accountID string) (*identity.Account, error) {
+		identityRepo.GetAccountFunc = func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, accountID string) (*identity.Account, error) {
 			assert.Equal(t, sessionData.GetActiveAccountID(), accountID)
 			return nil, errors.New("database error")
 		}
@@ -646,7 +649,7 @@ func TestServiceImpl_GetSelf(t *testing.T) {
 		fakeUser := identityfakes.BuildFakeUser()
 
 		sessionData := ctx.Value(sessions.SessionContextDataKey).(*sessions.ContextData)
-		identityRepo.GetUserFunc = func(_ context.Context, userID string) (*identity.User, error) {
+		identityRepo.GetUserFunc = func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, userID string) (*identity.User, error) {
 			assert.Equal(t, sessionData.GetUserID(), userID)
 			return fakeUser, nil
 		}
@@ -690,7 +693,7 @@ func TestServiceImpl_GetSelf(t *testing.T) {
 		ctx := buildContextWithSessionData(t)
 
 		sessionData := ctx.Value(sessions.SessionContextDataKey).(*sessions.ContextData)
-		identityRepo.GetUserFunc = func(_ context.Context, userID string) (*identity.User, error) {
+		identityRepo.GetUserFunc = func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, userID string) (*identity.User, error) {
 			assert.Equal(t, sessionData.GetUserID(), userID)
 			return nil, sql.ErrNoRows
 		}
@@ -716,7 +719,7 @@ func TestServiceImpl_GetSelf(t *testing.T) {
 		ctx := buildContextWithSessionData(t)
 
 		sessionData := ctx.Value(sessions.SessionContextDataKey).(*sessions.ContextData)
-		identityRepo.GetUserFunc = func(_ context.Context, userID string) (*identity.User, error) {
+		identityRepo.GetUserFunc = func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, userID string) (*identity.User, error) {
 			assert.Equal(t, sessionData.GetUserID(), userID)
 			return nil, errors.New("database error")
 		}
@@ -1332,7 +1335,7 @@ func buildContextWithSessionDataAndSessionID(t *testing.T) (context.Context, *se
 	sessionData := &sessions.ContextData{
 		Requester: sessions.RequesterInfo{
 			UserID:                   fake.BuildFakeID(),
-			AccountStatus:            identity.GoodStandingUserAccountStatus.String(),
+			AccountStatus:            string(identity.StatusGood),
 			AccountStatusExplanation: "",
 			ServicePermissions:       authorization.NewServiceRolePermissionChecker([]string{"service_user"}, nil),
 		},

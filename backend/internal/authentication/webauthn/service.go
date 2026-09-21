@@ -89,6 +89,7 @@ func NewService(
 		tracer:       tracing.NewNamedTracer(tracerProvider, o11yName),
 		relyingParty: relyingParty,
 		credStore:    credStore,
+		db:           db,
 		userStore:    userStore,
 	}, nil
 }

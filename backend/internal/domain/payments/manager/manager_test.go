@@ -3,13 +3,12 @@ package manager
 import (
 	"context"
 	"testing"
-	"time"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
-	identitymock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/manager/mock"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/fakes"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/testutils"
+	platformidentity "github.com/primandproper/platform-go/v14/identity"
+	identitymock "github.com/primandproper/platform-go/v14/identity/mock"
 
 	"github.com/primandproper/platform-go/v14/billing"
 	billingmock "github.com/primandproper/platform-go/v14/billing/mock"
@@ -25,12 +24,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// billingUpdate is one call the manager made to the identity manager, recorded
-// so a test can say what the account's standing became.
+// billingUpdate is one write the manager made to the directory's billing surface,
+// recorded so a test can say what the account's standing became.
+//
+// The plan is a pointer where the status is not, because the two answers differ: a
+// subscription that ended names no plan, and an empty string would be a plan called "".
 type billingUpdate struct {
-	status    *string
 	planID    *string
 	accountID string
+	status    platformidentity.BillingStatus
 }
 
 // buildPaymentsManagerForTest wires the manager over a billing store mock and an
@@ -40,9 +42,14 @@ func buildPaymentsManagerForTest(t *testing.T, store *billingmock.StoreMock) (*p
 
 	updates := &[]billingUpdate{}
 
-	identityMgr := &identitymock.IdentityDataManagerMock{
-		UpdateAccountBillingFieldsFunc: func(_ context.Context, accountID string, billingStatus, subscriptionPlanID, _ *string, _ *time.Time) error {
-			*updates = append(*updates, billingUpdate{accountID: accountID, status: billingStatus, planID: subscriptionPlanID})
+	identityMgr := &identitymock.StoreMock{
+		RecordAccountSubscriptionFunc: func(_ context.Context, _ database.Tx, _ tenancy.Scope, accountID string, status platformidentity.BillingStatus, planID string) error {
+			*updates = append(*updates, billingUpdate{accountID: accountID, status: status, planID: &planID})
+
+			return nil
+		},
+		RecordAccountSubscriptionEndedFunc: func(_ context.Context, _ database.Tx, _ tenancy.Scope, accountID string, status platformidentity.BillingStatus) error {
+			*updates = append(*updates, billingUpdate{accountID: accountID, status: status})
 
 			return nil
 		},
@@ -106,7 +113,7 @@ func TestPaymentsManager_ProcessWebhookEvent(T *testing.T) {
 		assert.Equal(t, []capitalism.SubscriptionStatus{capitalism.SubscriptionStatusTrialing}, *statuses)
 		require.Len(t, *updates, 1)
 		assert.Equal(t, subscription.BelongsToAccount, (*updates)[0].accountID)
-		assert.Equal(t, identity.TrialAccountBillingStatus, *(*updates)[0].status)
+		assert.Equal(t, platformidentity.BillingTrial, (*updates)[0].status)
 		assert.Equal(t, subscription.ProductID, *(*updates)[0].planID)
 	})
 
@@ -126,7 +133,7 @@ func TestPaymentsManager_ProcessWebhookEvent(T *testing.T) {
 
 		assert.Equal(t, []capitalism.SubscriptionStatus{capitalism.SubscriptionStatusActive}, *statuses)
 		require.Len(t, *updates, 1)
-		assert.Equal(t, identity.PaidAccountBillingStatus, *(*updates)[0].status)
+		assert.Equal(t, platformidentity.BillingPaid, (*updates)[0].status)
 	})
 
 	// The store reports a replayed event as ErrStatusUnchanged. That is the provider telling
@@ -167,7 +174,7 @@ func TestPaymentsManager_ProcessWebhookEvent(T *testing.T) {
 
 		assert.Equal(t, []capitalism.SubscriptionStatus{capitalism.SubscriptionStatusCanceled}, *statuses)
 		require.Len(t, *updates, 1)
-		assert.Equal(t, identity.UnpaidAccountBillingStatus, *(*updates)[0].status)
+		assert.Equal(t, platformidentity.BillingUnpaid, (*updates)[0].status)
 		assert.Nil(t, (*updates)[0].planID)
 	})
 
@@ -232,7 +239,7 @@ func TestPaymentsManager_ProcessWebhookEvent(T *testing.T) {
 
 		require.Len(t, *updates, 1)
 		assert.Equal(t, accountID, (*updates)[0].accountID)
-		assert.Equal(t, identity.PaidAccountBillingStatus, *(*updates)[0].status)
+		assert.Equal(t, platformidentity.BillingPaid, (*updates)[0].status)
 		assert.Equal(t, product.ID, *(*updates)[0].planID)
 	})
 
@@ -275,7 +282,7 @@ func TestPaymentsManager_ProcessWebhookEvent(T *testing.T) {
 
 		assert.Equal(t, []capitalism.SubscriptionStatus{capitalism.SubscriptionStatusCanceled}, *statuses)
 		require.Len(t, *updates, 1)
-		assert.Equal(t, identity.UnpaidAccountBillingStatus, *(*updates)[0].status)
+		assert.Equal(t, platformidentity.BillingUnpaid, (*updates)[0].status)
 	})
 
 	T.Run("an expiration of a subscription nobody has still marks the account unpaid", func(t *testing.T) {
@@ -294,7 +301,7 @@ func TestPaymentsManager_ProcessWebhookEvent(T *testing.T) {
 
 		require.Len(t, *updates, 1)
 		assert.Equal(t, accountID, (*updates)[0].accountID)
-		assert.Equal(t, identity.UnpaidAccountBillingStatus, *(*updates)[0].status)
+		assert.Equal(t, platformidentity.BillingUnpaid, (*updates)[0].status)
 	})
 
 	T.Run("a cancellation of a subscription nobody has yet is a no-op", func(t *testing.T) {
@@ -360,16 +367,16 @@ func TestSubscriptionStatusToBillingStatus(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		expected := map[capitalism.SubscriptionStatus]string{
-			capitalism.SubscriptionStatusActive:            identity.PaidAccountBillingStatus,
-			capitalism.SubscriptionStatusTrialing:          identity.TrialAccountBillingStatus,
-			capitalism.SubscriptionStatusPastDue:           identity.UnpaidAccountBillingStatus,
-			capitalism.SubscriptionStatusCanceled:          identity.UnpaidAccountBillingStatus,
-			capitalism.SubscriptionStatusIncomplete:        identity.UnpaidAccountBillingStatus,
-			capitalism.SubscriptionStatusIncompleteExpired: identity.UnpaidAccountBillingStatus,
-			capitalism.SubscriptionStatusUnpaid:            identity.UnpaidAccountBillingStatus,
-			capitalism.SubscriptionStatusPaused:            identity.UnpaidAccountBillingStatus,
-			capitalism.SubscriptionStatusUnknown:           identity.UnpaidAccountBillingStatus,
+		expected := map[capitalism.SubscriptionStatus]platformidentity.BillingStatus{
+			capitalism.SubscriptionStatusActive:            platformidentity.BillingPaid,
+			capitalism.SubscriptionStatusTrialing:          platformidentity.BillingTrial,
+			capitalism.SubscriptionStatusPastDue:           platformidentity.BillingUnpaid,
+			capitalism.SubscriptionStatusCanceled:          platformidentity.BillingUnpaid,
+			capitalism.SubscriptionStatusIncomplete:        platformidentity.BillingUnpaid,
+			capitalism.SubscriptionStatusIncompleteExpired: platformidentity.BillingUnpaid,
+			capitalism.SubscriptionStatusUnpaid:            platformidentity.BillingUnpaid,
+			capitalism.SubscriptionStatusPaused:            platformidentity.BillingUnpaid,
+			capitalism.SubscriptionStatusUnknown:           platformidentity.BillingUnpaid,
 		}
 
 		for status, want := range expected {

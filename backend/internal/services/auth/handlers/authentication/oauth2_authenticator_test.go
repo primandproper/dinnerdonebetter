@@ -10,10 +10,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
 	mockauthn "github.com/primandproper/dinnerdonebetter/backend/internal/authentication/mock"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	identityfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
-	identitymock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/mock"
+	identity "github.com/primandproper/platform-go/v14/identity"
+	identitymock "github.com/primandproper/platform-go/v14/identity/mock"
+	"github.com/primandproper/primitives-go/v2/database"
+	mockdatabase "github.com/primandproper/primitives-go/v2/database/mock"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
 	"github.com/primandproper/primitives-go/v2/authentication/tokens"
@@ -57,10 +61,12 @@ func TestSubjectAuthenticator_BearerPath(T *testing.T) {
 
 		a := &subjectAuthenticator{
 			tokenIssuer: stubIssuer(user.ID, nil),
-			identityRepo: &identitymock.RepositoryMock{
-				GetDefaultAccountIDForUserFunc: func(_ context.Context, userID string) (string, error) {
+			db:          mockDBForTest(),
+			directory: &identitymock.StoreMock{
+				GetPrincipalFunc: func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, userID, _ string) (*identity.Principal, error) {
 					assert.Equal(t, user.ID, userID)
-					return accountID, nil
+
+					return &identity.Principal{User: user, ActiveAccountID: accountID}, nil
 				},
 			},
 		}
@@ -83,10 +89,12 @@ func TestSubjectAuthenticator_BearerPath(T *testing.T) {
 		// their default — so the repository must not be consulted at all here.
 		a := &subjectAuthenticator{
 			tokenIssuer: stubIssuerWithClaims(user.ID, map[string]string{ClaimAccountID: accountID}, nil),
-			identityRepo: &identitymock.RepositoryMock{
-				GetDefaultAccountIDForUserFunc: func(context.Context, string) (string, error) {
+			db:          mockDBForTest(),
+			directory: &identitymock.StoreMock{
+				GetPrincipalFunc: func(context.Context, database.SQLQueryExecutor, tenancy.Scope, string, string) (*identity.Principal, error) {
 					t.Fatal("the default account was resolved for a token that already named one")
-					return "", nil
+
+					return nil, nil
 				},
 			},
 		}
@@ -133,13 +141,14 @@ func TestSubjectAuthenticator_CredentialPath(T *testing.T) {
 		accountID := identityfakes.BuildFakeAccount().ID
 
 		a := &subjectAuthenticator{
-			identityRepo: &identitymock.RepositoryMock{
-				GetUserByUsernameFunc: func(_ context.Context, username string) (*identity.User, error) {
+			db: mockDBForTest(),
+			directory: &identitymock.StoreMock{
+				GetUserByUsernameFunc: func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, username string) (*identity.User, error) {
 					assert.Equal(t, user.Username, username)
 					return user, nil
 				},
-				GetDefaultAccountIDForUserFunc: func(context.Context, string) (string, error) {
-					return accountID, nil
+				GetPrincipalFunc: func(context.Context, database.SQLQueryExecutor, tenancy.Scope, string, string) (*identity.Principal, error) {
+					return &identity.Principal{User: user, ActiveAccountID: accountID}, nil
 				},
 			},
 			authenticator: &mockauthn.AuthenticatorMock{
@@ -164,8 +173,11 @@ func TestSubjectAuthenticator_CredentialPath(T *testing.T) {
 		user := identityfakes.BuildFakeUser()
 
 		a := &subjectAuthenticator{
-			identityRepo: &identitymock.RepositoryMock{
-				GetUserByUsernameFunc: func(context.Context, string) (*identity.User, error) { return user, nil },
+			db: mockDBForTest(),
+			directory: &identitymock.StoreMock{
+				GetUserByUsernameFunc: func(context.Context, database.SQLQueryExecutor, tenancy.Scope, string) (*identity.User, error) {
+					return user, nil
+				},
 			},
 			authenticator: &mockauthn.AuthenticatorMock{
 				PasswordMatchesFunc: func(context.Context, string, string) (bool, error) { return false, nil },
@@ -187,8 +199,9 @@ func TestSubjectAuthenticator_CredentialPath(T *testing.T) {
 		// The same message as a wrong password, deliberately: distinguishable answers make a
 		// public form an account enumeration oracle.
 		a := &subjectAuthenticator{
-			identityRepo: &identitymock.RepositoryMock{
-				GetUserByUsernameFunc: func(context.Context, string) (*identity.User, error) {
+			db: mockDBForTest(),
+			directory: &identitymock.StoreMock{
+				GetUserByUsernameFunc: func(context.Context, database.SQLQueryExecutor, tenancy.Scope, string) (*identity.User, error) {
 					return nil, errors.New("no such user")
 				},
 			},
@@ -208,18 +221,34 @@ func TestSubjectAuthenticator_CredentialPath(T *testing.T) {
 		t.Parallel()
 
 		user := identityfakes.BuildFakeUser()
-		user.AccountStatus = string(identity.BannedUserAccountStatus)
+		user.AccountStatus = identity.StatusBanned
 
 		a := &subjectAuthenticator{
-			identityRepo: &identitymock.RepositoryMock{
-				GetUserByUsernameFunc: func(context.Context, string) (*identity.User, error) { return user, nil },
+			db: mockDBForTest(),
+			directory: &identitymock.StoreMock{
+				GetUserByUsernameFunc: func(context.Context, database.SQLQueryExecutor, tenancy.Scope, string) (*identity.User, error) {
+					return user, nil
+				},
+				// The status is no longer checked in this authenticator. GetPrincipal
+				// refuses one that does not admit signing in, before it reads a
+				// membership — so the refusal arrives from the read every authenticated
+				// request already makes rather than from a check each surface remembers.
+				GetPrincipalFunc: func(context.Context, database.SQLQueryExecutor, tenancy.Scope, string, string) (*identity.Principal, error) {
+					return nil, identity.ErrSignInNotAdmitted
+				},
+			},
+			authenticator: &authentication.AuthenticatorMock{
+				PasswordMatchesFunc: func(context.Context, string, string) (bool, error) { return true, nil },
+			},
+			totpVerifier: &totpmock.VerifierMock{
+				VerifyFunc: func(context.Context, string, string) error { return nil },
 			},
 		}
 
 		subject, err := a.AuthenticateSubject(t.Context(), formRequest(t, url.Values{"username": {user.Username}}))
 
 		assert.Nil(t, subject)
-		assert.ErrorIs(t, err, oauth2server.ErrLoginFailed)
+		assert.ErrorIs(t, err, identity.ErrSignInNotAdmitted)
 	})
 
 	T.Run("with a missing TOTP code", func(t *testing.T) {
@@ -230,8 +259,11 @@ func TestSubjectAuthenticator_CredentialPath(T *testing.T) {
 		user.TwoFactorSecretVerifiedAt = &verifiedAt
 
 		a := &subjectAuthenticator{
-			identityRepo: &identitymock.RepositoryMock{
-				GetUserByUsernameFunc: func(context.Context, string) (*identity.User, error) { return user, nil },
+			db: mockDBForTest(),
+			directory: &identitymock.StoreMock{
+				GetUserByUsernameFunc: func(context.Context, database.SQLQueryExecutor, tenancy.Scope, string) (*identity.User, error) {
+					return user, nil
+				},
 			},
 			authenticator: &mockauthn.AuthenticatorMock{
 				PasswordMatchesFunc: func(context.Context, string, string) (bool, error) { return true, nil },
@@ -262,10 +294,13 @@ func TestSubjectAuthenticator_CredentialPath(T *testing.T) {
 		user.TwoFactorSecretVerifiedAt = nil
 
 		a := &subjectAuthenticator{
-			identityRepo: &identitymock.RepositoryMock{
-				GetUserByUsernameFunc: func(context.Context, string) (*identity.User, error) { return user, nil },
-				GetDefaultAccountIDForUserFunc: func(context.Context, string) (string, error) {
-					return "", errors.New("no memberships")
+			db: mockDBForTest(),
+			directory: &identitymock.StoreMock{
+				GetUserByUsernameFunc: func(context.Context, database.SQLQueryExecutor, tenancy.Scope, string) (*identity.User, error) {
+					return user, nil
+				},
+				GetPrincipalFunc: func(context.Context, database.SQLQueryExecutor, tenancy.Scope, string, string) (*identity.Principal, error) {
+					return nil, errors.New("no memberships")
 				},
 			},
 			authenticator: &mockauthn.AuthenticatorMock{
@@ -350,4 +385,13 @@ func (c *stubClaims) Get(key string) (any, bool) {
 func (c *stubClaims) GetString(key string) (string, bool) {
 	value, ok := c.extra[key]
 	return value, ok
+}
+
+// mockDBForTest is a client whose executors are nil, because the store above them is a
+// mock and never sends a statement.
+func mockDBForTest() *mockdatabase.ClientMock {
+	return &mockdatabase.ClientMock{
+		ReaderFunc: func() database.SQLQueryExecutor { return nil },
+		WriterFunc: func() database.SQLQueryExecutor { return nil },
+	}
 }

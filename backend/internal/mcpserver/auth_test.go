@@ -11,9 +11,13 @@ import (
 	"time"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	identityfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
-	identitymock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/mock"
+	identity "github.com/primandproper/platform-go/v14/identity"
+	identitymock "github.com/primandproper/platform-go/v14/identity/mock"
+	"github.com/primandproper/primitives-go/v2/database"
+	mockdatabase "github.com/primandproper/primitives-go/v2/database/mock"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
 	oauth2memory "github.com/primandproper/primitives-go/v2/authentication/oauth2server/memory"
@@ -55,22 +59,24 @@ func TestSubjectAuthenticator_AuthenticateSubject(T *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		exampleUser := identityfakes.BuildFakeUser()
+		exampleUser := buildFakeAdminForTest()
 		exampleAccountID := identityfakes.BuildFakeAccount().ID
 
-		identityRepo := &identitymock.RepositoryMock{
-			GetAdminUserByUsernameFunc: func(_ context.Context, username string) (*identity.User, error) {
+		directory := &identitymock.StoreMock{
+			GetUserByUsernameFunc: func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, username string) (*identity.User, error) {
 				assert.Equal(t, exampleUser.Username, username)
 				return exampleUser, nil
 			},
-			GetDefaultAccountIDForUserFunc: func(_ context.Context, userID string) (string, error) {
+			GetPrincipalFunc: func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, userID, _ string) (*identity.Principal, error) {
 				assert.Equal(t, exampleUser.ID, userID)
-				return exampleAccountID, nil
+
+				return &identity.Principal{User: exampleUser, ActiveAccountID: exampleAccountID}, nil
 			},
 		}
 
 		a := &subjectAuthenticator{
-			identityRepo: identityRepo,
+			directory: directory,
+			db:        mockDBForTest(),
 			authenticator: &authentication.AuthenticatorMock{
 				PasswordMatchesFunc: func(context.Context, string, string) (bool, error) { return true, nil },
 			},
@@ -91,11 +97,12 @@ func TestSubjectAuthenticator_AuthenticateSubject(T *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		exampleUser := identityfakes.BuildFakeUser()
+		exampleUser := buildFakeAdminForTest()
 
 		a := &subjectAuthenticator{
-			identityRepo: &identitymock.RepositoryMock{
-				GetAdminUserByUsernameFunc: func(context.Context, string) (*identity.User, error) {
+			db: mockDBForTest(),
+			directory: &identitymock.StoreMock{
+				GetUserByUsernameFunc: func(context.Context, database.SQLQueryExecutor, tenancy.Scope, string) (*identity.User, error) {
 					return nil, errors.New("blah")
 				},
 			},
@@ -117,12 +124,48 @@ func TestSubjectAuthenticator_AuthenticateSubject(T *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		exampleUser := identityfakes.BuildFakeUser()
-		exampleUser.AccountStatus = string(identity.BannedUserAccountStatus)
+		exampleUser := buildFakeAdminForTest()
+		exampleUser.AccountStatus = identity.StatusBanned
 
 		a := &subjectAuthenticator{
-			identityRepo: &identitymock.RepositoryMock{
-				GetAdminUserByUsernameFunc: func(context.Context, string) (*identity.User, error) {
+			db: mockDBForTest(),
+			directory: &identitymock.StoreMock{
+				GetUserByUsernameFunc: func(context.Context, database.SQLQueryExecutor, tenancy.Scope, string) (*identity.User, error) {
+					return exampleUser, nil
+				},
+				// The status is no longer checked here. GetPrincipal refuses one that
+				// does not admit signing in, before it reads a membership, which is what
+				// makes the check one thing rather than one per surface.
+				GetPrincipalFunc: func(context.Context, database.SQLQueryExecutor, tenancy.Scope, string, string) (*identity.Principal, error) {
+					return nil, identity.ErrSignInNotAdmitted
+				},
+			},
+			authenticator: &authentication.AuthenticatorMock{
+				PasswordMatchesFunc: func(context.Context, string, string) (bool, error) { return true, nil },
+			},
+			totpVerifier: &totpmock.VerifierMock{
+				VerifyFunc: func(context.Context, string, string) error { return nil },
+			},
+		}
+
+		subject, err := a.AuthenticateSubject(ctx, authorizeRequest(ctx, t, exampleUser.Username, examplePassword, exampleTOTPToken))
+		assert.Nil(t, subject)
+		require.ErrorIs(t, err, identity.ErrSignInNotAdmitted)
+	})
+
+	// The door is admin-only, and it is a role check rather than a filtered lookup — so a
+	// perfectly real user who holds no administrator role is refused with the message a
+	// missing user gets, and not with a different one.
+	T.Run("with a non-administrator", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		exampleUser := identityfakes.BuildFakeUser()
+
+		a := &subjectAuthenticator{
+			db: mockDBForTest(),
+			directory: &identitymock.StoreMock{
+				GetUserByUsernameFunc: func(context.Context, database.SQLQueryExecutor, tenancy.Scope, string) (*identity.User, error) {
 					return exampleUser, nil
 				},
 			},
@@ -131,17 +174,22 @@ func TestSubjectAuthenticator_AuthenticateSubject(T *testing.T) {
 		subject, err := a.AuthenticateSubject(ctx, authorizeRequest(ctx, t, exampleUser.Username, examplePassword, exampleTOTPToken))
 		assert.Nil(t, subject)
 		require.ErrorIs(t, err, oauth2server.ErrLoginFailed)
+
+		var loginErr *oauth2server.LoginError
+		require.ErrorAs(t, err, &loginErr)
+		assert.Equal(t, accessDeniedMessage, loginErr.Message)
 	})
 
 	T.Run("with wrong password", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		exampleUser := identityfakes.BuildFakeUser()
+		exampleUser := buildFakeAdminForTest()
 
 		a := &subjectAuthenticator{
-			identityRepo: &identitymock.RepositoryMock{
-				GetAdminUserByUsernameFunc: func(context.Context, string) (*identity.User, error) {
+			db: mockDBForTest(),
+			directory: &identitymock.StoreMock{
+				GetUserByUsernameFunc: func(context.Context, database.SQLQueryExecutor, tenancy.Scope, string) (*identity.User, error) {
 					return exampleUser, nil
 				},
 			},
@@ -165,11 +213,12 @@ func TestSubjectAuthenticator_AuthenticateSubject(T *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		exampleUser := identityfakes.BuildFakeUser()
+		exampleUser := buildFakeAdminForTest()
 
 		a := &subjectAuthenticator{
-			identityRepo: &identitymock.RepositoryMock{
-				GetAdminUserByUsernameFunc: func(context.Context, string) (*identity.User, error) {
+			db: mockDBForTest(),
+			directory: &identitymock.StoreMock{
+				GetUserByUsernameFunc: func(context.Context, database.SQLQueryExecutor, tenancy.Scope, string) (*identity.User, error) {
 					return exampleUser, nil
 				},
 			},
@@ -195,11 +244,12 @@ func TestSubjectAuthenticator_AuthenticateSubject(T *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		exampleUser := identityfakes.BuildFakeUser()
+		exampleUser := buildFakeAdminForTest()
 
 		a := &subjectAuthenticator{
-			identityRepo: &identitymock.RepositoryMock{
-				GetAdminUserByUsernameFunc: func(context.Context, string) (*identity.User, error) {
+			db: mockDBForTest(),
+			directory: &identitymock.StoreMock{
+				GetUserByUsernameFunc: func(context.Context, database.SQLQueryExecutor, tenancy.Scope, string) (*identity.User, error) {
 					return exampleUser, nil
 				},
 			},
@@ -220,7 +270,7 @@ func TestSubjectAuthenticator_AuthenticateSubject(T *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		exampleUser := identityfakes.BuildFakeUser()
+		exampleUser := buildFakeAdminForTest()
 		exampleUser.TwoFactorSecretVerifiedAt = nil
 		exampleAccountID := identityfakes.BuildFakeAccount().ID
 
@@ -229,12 +279,13 @@ func TestSubjectAuthenticator_AuthenticateSubject(T *testing.T) {
 		}
 
 		a := &subjectAuthenticator{
-			identityRepo: &identitymock.RepositoryMock{
-				GetAdminUserByUsernameFunc: func(context.Context, string) (*identity.User, error) {
+			db: mockDBForTest(),
+			directory: &identitymock.StoreMock{
+				GetUserByUsernameFunc: func(context.Context, database.SQLQueryExecutor, tenancy.Scope, string) (*identity.User, error) {
 					return exampleUser, nil
 				},
-				GetDefaultAccountIDForUserFunc: func(context.Context, string) (string, error) {
-					return exampleAccountID, nil
+				GetPrincipalFunc: func(context.Context, database.SQLQueryExecutor, tenancy.Scope, string, string) (*identity.Principal, error) {
+					return &identity.Principal{User: exampleUser, ActiveAccountID: exampleAccountID}, nil
 				},
 			},
 			authenticator: &authentication.AuthenticatorMock{
@@ -253,15 +304,16 @@ func TestSubjectAuthenticator_AuthenticateSubject(T *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		exampleUser := identityfakes.BuildFakeUser()
+		exampleUser := buildFakeAdminForTest()
 
 		a := &subjectAuthenticator{
-			identityRepo: &identitymock.RepositoryMock{
-				GetAdminUserByUsernameFunc: func(context.Context, string) (*identity.User, error) {
+			db: mockDBForTest(),
+			directory: &identitymock.StoreMock{
+				GetUserByUsernameFunc: func(context.Context, database.SQLQueryExecutor, tenancy.Scope, string) (*identity.User, error) {
 					return exampleUser, nil
 				},
-				GetDefaultAccountIDForUserFunc: func(context.Context, string) (string, error) {
-					return "", errors.New("blah")
+				GetPrincipalFunc: func(context.Context, database.SQLQueryExecutor, tenancy.Scope, string, string) (*identity.Principal, error) {
+					return nil, errors.New("blah")
 				},
 			},
 			authenticator: &authentication.AuthenticatorMock{
@@ -309,7 +361,7 @@ func plantAccessToken(t *testing.T, store oauth2server.Store, audience []string)
 
 	ctx := t.Context()
 	bearer = "totally-opaque-access-token"
-	exampleUser := identityfakes.BuildFakeUser()
+	exampleUser := buildFakeAdminForTest()
 	exampleAccountID := identityfakes.BuildFakeAccount().ID
 
 	require.NoError(t, store.CreateAccessToken(ctx, &oauth2server.AccessToken{
@@ -411,4 +463,23 @@ func TestNewTokenVerifier(T *testing.T) {
 		assert.Nil(t, info)
 		require.ErrorIs(t, err, auth.ErrInvalidToken)
 	})
+}
+
+// buildFakeAdminForTest is a user the MCP login form admits: a real user who holds the
+// service administrator role, which is what the door checks now that the lookup no longer
+// filters non-administrators out inside the query.
+func buildFakeAdminForTest() *identity.User {
+	user := identityfakes.BuildFakeUser()
+	user.ServiceRoles = []string{authorization.ServiceAdminRoleName}
+
+	return user
+}
+
+// mockDBForTest is a client whose executors are nil, because the store above them is a
+// mock and never sends a statement.
+func mockDBForTest() *mockdatabase.ClientMock {
+	return &mockdatabase.ClientMock{
+		ReaderFunc: func() database.SQLQueryExecutor { return nil },
+		WriterFunc: func() database.SQLQueryExecutor { return nil },
+	}
 }

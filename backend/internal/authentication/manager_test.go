@@ -6,9 +6,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
-	identitymock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/mock"
+	identity "github.com/primandproper/platform-go/v14/identity"
+	identitymock "github.com/primandproper/platform-go/v14/identity/mock"
+	"github.com/primandproper/primitives-go/v2/database"
+	mockdatabase "github.com/primandproper/primitives-go/v2/database/mock"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/primandproper/platform-go/v14/sessions"
 	sessionsmock "github.com/primandproper/platform-go/v14/sessions/mock"
@@ -48,12 +52,12 @@ func newClaimsMock(sub, jti string, extras map[string]string) *mocktokens.Claims
 }
 
 type managerTestMocks struct {
-	tokenIssuer         *mocktokens.IssuerMock
-	authenticator       *AuthenticatorMock
-	totpVerifier        *mocktotp.VerifierMock
-	userAuthDataManager *identitymock.RepositoryMock
-	sessionStore        *sessionsmock.StoreMock[auth.SessionPayload]
-	publisher           *mockpublishers.PublisherMock
+	tokenIssuer   *mocktokens.IssuerMock
+	authenticator *AuthenticatorMock
+	totpVerifier  *mocktotp.VerifierMock
+	directory     *identitymock.StoreMock
+	sessionStore  *sessionsmock.StoreMock[auth.SessionPayload]
+	publisher     *mockpublishers.PublisherMock
 }
 
 // exampleSessionID is what the session store mock hands back from NewFor, and therefore what
@@ -78,11 +82,11 @@ func buildTestManager(t *testing.T) (*manager, *managerTestMocks) {
 	t.Helper()
 
 	mocks := &managerTestMocks{
-		tokenIssuer:         &mocktokens.IssuerMock{},
-		authenticator:       &AuthenticatorMock{},
-		totpVerifier:        &mocktotp.VerifierMock{},
-		userAuthDataManager: &identitymock.RepositoryMock{},
-		sessionStore:        newSessionStoreMock(),
+		tokenIssuer:   &mocktokens.IssuerMock{},
+		authenticator: &AuthenticatorMock{},
+		totpVerifier:  &mocktotp.VerifierMock{},
+		directory:     &identitymock.StoreMock{},
+		sessionStore:  newSessionStoreMock(),
 		publisher: &mockpublishers.PublisherMock{
 			PublishFunc:      func(_ context.Context, _ any, _ ...messagequeue.PublishOption) error { return nil },
 			PublishAsyncFunc: func(_ context.Context, _ any, _ ...messagequeue.PublishOption) {},
@@ -90,13 +94,17 @@ func buildTestManager(t *testing.T) (*manager, *managerTestMocks) {
 	}
 
 	m := &manager{
-		tokenIssuer:             mocks.tokenIssuer,
-		authenticator:           mocks.authenticator,
-		totpVerifier:            mocks.totpVerifier,
-		tracer:                  tracing.NewNamedTracer(tracingnoop.NewTracerProvider(), "test"),
-		logger:                  loggingnoop.NewLogger(),
-		dataChangesPublisher:    mocks.publisher,
-		userAuthDataManager:     mocks.userAuthDataManager,
+		tokenIssuer:          mocks.tokenIssuer,
+		authenticator:        mocks.authenticator,
+		totpVerifier:         mocks.totpVerifier,
+		tracer:               tracing.NewNamedTracer(tracingnoop.NewTracerProvider(), "test"),
+		logger:               loggingnoop.NewLogger(),
+		dataChangesPublisher: mocks.publisher,
+		directory:            mocks.directory,
+		db: &mockdatabase.ClientMock{
+			ReaderFunc: func() database.SQLQueryExecutor { return nil },
+			WriterFunc: func() database.SQLQueryExecutor { return nil },
+		},
 		sessionStore:            mocks.sessionStore,
 		maxAccessTokenLifetime:  15 * time.Minute,
 		maxRefreshTokenLifetime: 24 * time.Hour,
@@ -110,7 +118,7 @@ func buildExampleUser() *identity.User {
 		ID:             "user123",
 		Username:       "testuser",
 		HashedPassword: "hashedpassword",
-		AccountStatus:  string(identity.GoodStandingUserAccountStatus),
+		AccountStatus:  identity.StatusGood,
 		EmailAddress:   "test@example.com",
 		FirstName:      "Test",
 		LastName:       "User",
@@ -174,7 +182,7 @@ func TestManager_ProcessLogin(T *testing.T) {
 			Password: "validP@ssw0rd",
 		}
 
-		mocks.userAuthDataManager.GetUserByUsernameFunc = func(_ context.Context, username string) (*identity.User, error) {
+		mocks.directory.GetUserByUsernameFunc = func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, username string) (*identity.User, error) {
 			assert.Equal(t, loginInput.Username, username)
 			return user, nil
 		}
@@ -183,9 +191,11 @@ func TestManager_ProcessLogin(T *testing.T) {
 			assert.Equal(t, loginInput.Password, password)
 			return true, nil
 		}
-		mocks.userAuthDataManager.GetDefaultAccountIDForUserFunc = func(_ context.Context, userID string) (string, error) {
+		mocks.directory.GetPrincipalFunc = func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, userID, activeAccountID string) (*identity.Principal, error) {
 			assert.Equal(t, user.ID, userID)
-			return "account123", nil
+			assert.Empty(t, activeAccountID)
+
+			return &identity.Principal{User: user, ActiveAccountID: "account123"}, nil
 		}
 
 		mocks.tokenIssuer.IssueTokenFunc = issueTokenFunc("access-token", "access-jti", "refresh-token", "refresh-jti")
@@ -202,9 +212,9 @@ func TestManager_ProcessLogin(T *testing.T) {
 		assert.Equal(t, user.ID, response.UserID)
 		assert.Equal(t, "account123", response.AccountID)
 
-		assert.Len(t, mocks.userAuthDataManager.GetUserByUsernameCalls(), 1)
+		assert.Len(t, mocks.directory.GetUserByUsernameCalls(), 1)
 		assert.Len(t, mocks.authenticator.PasswordMatchesCalls(), 1)
-		assert.Len(t, mocks.userAuthDataManager.GetDefaultAccountIDForUserCalls(), 1)
+		assert.Len(t, mocks.directory.GetPrincipalCalls(), 1)
 		assert.Len(t, mocks.sessionStore.NewForCalls(), 1)
 		assert.Len(t, mocks.sessionStore.SaveCalls(), 1)
 		assert.Len(t, mocks.tokenIssuer.IssueTokenCalls(), 2)
@@ -223,7 +233,7 @@ func TestManager_ProcessLogin(T *testing.T) {
 			DesiredAccountID: "specific-account",
 		}
 
-		mocks.userAuthDataManager.GetUserByUsernameFunc = func(_ context.Context, username string) (*identity.User, error) {
+		mocks.directory.GetUserByUsernameFunc = func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, username string) (*identity.User, error) {
 			assert.Equal(t, loginInput.Username, username)
 			return user, nil
 		}
@@ -232,10 +242,11 @@ func TestManager_ProcessLogin(T *testing.T) {
 			assert.Equal(t, loginInput.Password, password)
 			return true, nil
 		}
-		mocks.userAuthDataManager.UserIsMemberOfAccountFunc = func(_ context.Context, userID, accountID string) (bool, error) {
+		mocks.directory.GetPrincipalFunc = func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, userID, activeAccountID string) (*identity.Principal, error) {
 			assert.Equal(t, user.ID, userID)
-			assert.Equal(t, "specific-account", accountID)
-			return true, nil
+			assert.Equal(t, "specific-account", activeAccountID)
+
+			return &identity.Principal{User: user, ActiveAccountID: activeAccountID}, nil
 		}
 
 		mocks.tokenIssuer.IssueTokenFunc = issueTokenFunc("access-token", "access-jti", "refresh-token", "refresh-jti")
@@ -246,9 +257,9 @@ func TestManager_ProcessLogin(T *testing.T) {
 		require.NotNil(t, response)
 		assert.Equal(t, "specific-account", response.AccountID)
 
-		assert.Len(t, mocks.userAuthDataManager.GetUserByUsernameCalls(), 1)
+		assert.Len(t, mocks.directory.GetUserByUsernameCalls(), 1)
 		assert.Len(t, mocks.authenticator.PasswordMatchesCalls(), 1)
-		assert.Len(t, mocks.userAuthDataManager.UserIsMemberOfAccountCalls(), 1)
+		assert.Len(t, mocks.directory.GetPrincipalCalls(), 1)
 		assert.Len(t, mocks.sessionStore.NewForCalls(), 1)
 		assert.Len(t, mocks.sessionStore.SaveCalls(), 1)
 	})
@@ -265,7 +276,7 @@ func TestManager_ProcessLogin(T *testing.T) {
 			Password: "wrongP@ssw0rd",
 		}
 
-		mocks.userAuthDataManager.GetUserByUsernameFunc = func(_ context.Context, username string) (*identity.User, error) {
+		mocks.directory.GetUserByUsernameFunc = func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, username string) (*identity.User, error) {
 			assert.Equal(t, loginInput.Username, username)
 			return user, nil
 		}
@@ -281,7 +292,7 @@ func TestManager_ProcessLogin(T *testing.T) {
 		require.Error(t, err)
 		assert.Nil(t, response)
 
-		assert.Len(t, mocks.userAuthDataManager.GetUserByUsernameCalls(), 1)
+		assert.Len(t, mocks.directory.GetUserByUsernameCalls(), 1)
 		assert.Len(t, mocks.authenticator.PasswordMatchesCalls(), 1)
 	})
 
@@ -292,26 +303,36 @@ func TestManager_ProcessLogin(T *testing.T) {
 		m, mocks := buildTestManager(t)
 
 		user := buildExampleUser()
-		user.AccountStatus = string(identity.BannedUserAccountStatus)
+		user.AccountStatus = identity.StatusBanned
 
 		loginInput := &auth.UserLoginInput{
 			Username: "testuser",
 			Password: "validP@ssw0rd",
 		}
 
-		mocks.userAuthDataManager.GetUserByUsernameFunc = func(_ context.Context, username string) (*identity.User, error) {
+		mocks.directory.GetUserByUsernameFunc = func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, username string) (*identity.User, error) {
 			assert.Equal(t, loginInput.Username, username)
+
 			return user, nil
+		}
+		mocks.authenticator.PasswordMatchesFunc = func(context.Context, string, string) (bool, error) { return true, nil }
+
+		// The ban is the principal read's refusal rather than a field this path inspects.
+		// It therefore lands after the credentials are checked, which is the right way
+		// round: a banned person presenting the wrong password is told the password is
+		// wrong, not that they are banned.
+		mocks.directory.GetPrincipalFunc = func(context.Context, database.SQLQueryExecutor, tenancy.Scope, string, string) (*identity.Principal, error) {
+			return nil, identity.ErrSignInNotAdmitted
 		}
 
 		response, err := m.ProcessLogin(ctx, false, loginInput, nil)
 
 		// A banned user must be rejected with an error and no token response.
-		require.Error(t, err)
 		require.ErrorIs(t, err, ErrUserBanned)
 		assert.Nil(t, response)
 
-		assert.Len(t, mocks.userAuthDataManager.GetUserByUsernameCalls(), 1)
+		assert.Len(t, mocks.directory.GetUserByUsernameCalls(), 1)
+		assert.Len(t, mocks.directory.GetPrincipalCalls(), 1)
 	})
 
 	T.Run("with nonexistent user", func(t *testing.T) {
@@ -325,7 +346,7 @@ func TestManager_ProcessLogin(T *testing.T) {
 			Password: "validP@ssw0rd",
 		}
 
-		mocks.userAuthDataManager.GetUserByUsernameFunc = func(_ context.Context, username string) (*identity.User, error) {
+		mocks.directory.GetUserByUsernameFunc = func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, username string) (*identity.User, error) {
 			assert.Equal(t, loginInput.Username, username)
 			return nil, errors.New("not found")
 		}
@@ -335,7 +356,7 @@ func TestManager_ProcessLogin(T *testing.T) {
 		require.Error(t, err)
 		assert.Nil(t, response)
 
-		assert.Len(t, mocks.userAuthDataManager.GetUserByUsernameCalls(), 1)
+		assert.Len(t, mocks.directory.GetUserByUsernameCalls(), 1)
 	})
 
 	T.Run("with invalid login input", func(t *testing.T) {
@@ -372,7 +393,7 @@ func TestManager_ProcessLogin(T *testing.T) {
 			// TOTPToken intentionally left empty
 		}
 
-		mocks.userAuthDataManager.GetUserByUsernameFunc = func(_ context.Context, username string) (*identity.User, error) {
+		mocks.directory.GetUserByUsernameFunc = func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, username string) (*identity.User, error) {
 			assert.Equal(t, loginInput.Username, username)
 			return user, nil
 		}
@@ -394,7 +415,7 @@ func TestManager_ProcessLogin(T *testing.T) {
 		require.Error(t, err)
 		assert.Nil(t, response)
 
-		assert.Len(t, mocks.userAuthDataManager.GetUserByUsernameCalls(), 1)
+		assert.Len(t, mocks.directory.GetUserByUsernameCalls(), 1)
 		assert.Len(t, mocks.authenticator.PasswordMatchesCalls(), 1)
 		assert.Len(t, mocks.totpVerifier.VerifyCalls(), 1)
 	})
@@ -412,7 +433,7 @@ func TestManager_ProcessLogin(T *testing.T) {
 			DesiredAccountID: "other-account",
 		}
 
-		mocks.userAuthDataManager.GetUserByUsernameFunc = func(_ context.Context, username string) (*identity.User, error) {
+		mocks.directory.GetUserByUsernameFunc = func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, username string) (*identity.User, error) {
 			assert.Equal(t, loginInput.Username, username)
 			return user, nil
 		}
@@ -421,10 +442,13 @@ func TestManager_ProcessLogin(T *testing.T) {
 			assert.Equal(t, loginInput.Password, password)
 			return true, nil
 		}
-		mocks.userAuthDataManager.UserIsMemberOfAccountFunc = func(_ context.Context, userID, accountID string) (bool, error) {
+		// A named account the caller is not a live member of is refused by the read
+		// itself, rather than answered with a principal claiming it.
+		mocks.directory.GetPrincipalFunc = func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, userID, activeAccountID string) (*identity.Principal, error) {
 			assert.Equal(t, user.ID, userID)
-			assert.Equal(t, "other-account", accountID)
-			return false, nil
+			assert.Equal(t, "other-account", activeAccountID)
+
+			return nil, identity.ErrMembershipNotFound
 		}
 
 		response, err := m.ProcessLogin(ctx, false, loginInput, nil)
@@ -432,12 +456,16 @@ func TestManager_ProcessLogin(T *testing.T) {
 		require.Error(t, err)
 		assert.Nil(t, response)
 
-		assert.Len(t, mocks.userAuthDataManager.GetUserByUsernameCalls(), 1)
+		assert.Len(t, mocks.directory.GetUserByUsernameCalls(), 1)
 		assert.Len(t, mocks.authenticator.PasswordMatchesCalls(), 1)
-		assert.Len(t, mocks.userAuthDataManager.UserIsMemberOfAccountCalls(), 1)
+		assert.Len(t, mocks.directory.GetPrincipalCalls(), 1)
 	})
 
-	T.Run("admin only", func(t *testing.T) {
+	// The administrator-only door is a role check rather than a filtered lookup. The read
+	// it replaced filtered non-administrators out inside the query, which made "no such
+	// user" and "not an administrator" the same answer — and made the filter something the
+	// query had to remember rather than something this function states.
+	T.Run("admin only refuses a user who holds no administrator role", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
@@ -449,7 +477,37 @@ func TestManager_ProcessLogin(T *testing.T) {
 			Password: "validP@ssw0rd",
 		}
 
-		mocks.userAuthDataManager.GetAdminUserByUsernameFunc = func(_ context.Context, username string) (*identity.User, error) {
+		mocks.directory.GetUserByUsernameFunc = func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, username string) (*identity.User, error) {
+			assert.Equal(t, loginInput.Username, username)
+
+			return user, nil
+		}
+
+		response, err := m.ProcessLogin(ctx, true, loginInput, nil)
+
+		require.ErrorIs(t, err, ErrUserNotAdmin)
+		assert.Nil(t, response)
+
+		// The credentials are never checked, because the door was shut first.
+		assert.Empty(t, mocks.authenticator.PasswordMatchesCalls())
+		assert.Empty(t, mocks.directory.GetPrincipalCalls())
+	})
+
+	T.Run("admin only", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		m, mocks := buildTestManager(t)
+
+		user := buildExampleUser()
+		user.ServiceRoles = []string{authorization.ServiceAdminRoleName}
+
+		loginInput := &auth.UserLoginInput{
+			Username: "testuser",
+			Password: "validP@ssw0rd",
+		}
+
+		mocks.directory.GetUserByUsernameFunc = func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, username string) (*identity.User, error) {
 			assert.Equal(t, loginInput.Username, username)
 			return user, nil
 		}
@@ -458,9 +516,11 @@ func TestManager_ProcessLogin(T *testing.T) {
 			assert.Equal(t, loginInput.Password, password)
 			return true, nil
 		}
-		mocks.userAuthDataManager.GetDefaultAccountIDForUserFunc = func(_ context.Context, userID string) (string, error) {
+		mocks.directory.GetPrincipalFunc = func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, userID, activeAccountID string) (*identity.Principal, error) {
 			assert.Equal(t, user.ID, userID)
-			return "account123", nil
+			assert.Empty(t, activeAccountID)
+
+			return &identity.Principal{User: user, ActiveAccountID: "account123"}, nil
 		}
 
 		mocks.tokenIssuer.IssueTokenFunc = issueTokenFunc("access-token", "access-jti", "refresh-token", "refresh-jti")
@@ -470,9 +530,9 @@ func TestManager_ProcessLogin(T *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, response)
 
-		assert.Len(t, mocks.userAuthDataManager.GetAdminUserByUsernameCalls(), 1)
+		assert.Len(t, mocks.directory.GetUserByUsernameCalls(), 1)
 		assert.Len(t, mocks.authenticator.PasswordMatchesCalls(), 1)
-		assert.Len(t, mocks.userAuthDataManager.GetDefaultAccountIDForUserCalls(), 1)
+		assert.Len(t, mocks.directory.GetPrincipalCalls(), 1)
 		assert.Len(t, mocks.sessionStore.NewForCalls(), 1)
 		assert.Len(t, mocks.sessionStore.SaveCalls(), 1)
 	})
@@ -489,13 +549,11 @@ func TestManager_ProcessPasskeyLogin(T *testing.T) {
 
 		user := buildExampleUser()
 
-		mocks.userAuthDataManager.GetUserFunc = func(_ context.Context, userID string) (*identity.User, error) {
+		mocks.directory.GetPrincipalFunc = func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, userID, activeAccountID string) (*identity.Principal, error) {
 			assert.Equal(t, user.ID, userID)
-			return user, nil
-		}
-		mocks.userAuthDataManager.GetDefaultAccountIDForUserFunc = func(_ context.Context, userID string) (string, error) {
-			assert.Equal(t, user.ID, userID)
-			return "account123", nil
+			assert.Empty(t, activeAccountID)
+
+			return &identity.Principal{User: user, ActiveAccountID: "account123"}, nil
 		}
 
 		mocks.tokenIssuer.IssueTokenFunc = issueTokenFunc("access-token", "access-jti", "refresh-token", "refresh-jti")
@@ -520,8 +578,7 @@ func TestManager_ProcessPasskeyLogin(T *testing.T) {
 		assert.Equal(t, user.ID, response.UserID)
 		assert.Equal(t, "account123", response.AccountID)
 
-		assert.Len(t, mocks.userAuthDataManager.GetUserCalls(), 1)
-		assert.Len(t, mocks.userAuthDataManager.GetDefaultAccountIDForUserCalls(), 1)
+		assert.Len(t, mocks.directory.GetPrincipalCalls(), 1)
 		assert.Len(t, mocks.sessionStore.NewForCalls(), 1)
 		assert.Len(t, mocks.sessionStore.SaveCalls(), 1)
 	})
@@ -534,14 +591,11 @@ func TestManager_ProcessPasskeyLogin(T *testing.T) {
 
 		user := buildExampleUser()
 
-		mocks.userAuthDataManager.GetUserFunc = func(_ context.Context, userID string) (*identity.User, error) {
+		mocks.directory.GetPrincipalFunc = func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, userID, activeAccountID string) (*identity.Principal, error) {
 			assert.Equal(t, user.ID, userID)
-			return user, nil
-		}
-		mocks.userAuthDataManager.UserIsMemberOfAccountFunc = func(_ context.Context, userID, accountID string) (bool, error) {
-			assert.Equal(t, user.ID, userID)
-			assert.Equal(t, "specific-account", accountID)
-			return true, nil
+			assert.Equal(t, "specific-account", activeAccountID)
+
+			return &identity.Principal{User: user, ActiveAccountID: activeAccountID}, nil
 		}
 
 		mocks.tokenIssuer.IssueTokenFunc = issueTokenFunc("access-token", "access-jti", "refresh-token", "refresh-jti")
@@ -552,8 +606,9 @@ func TestManager_ProcessPasskeyLogin(T *testing.T) {
 		require.NotNil(t, response)
 		assert.Equal(t, "specific-account", response.AccountID)
 
-		assert.Len(t, mocks.userAuthDataManager.GetUserCalls(), 1)
-		assert.Len(t, mocks.userAuthDataManager.UserIsMemberOfAccountCalls(), 1)
+		// One read. The user and the account they land in come back together, which is
+		// what the three calls this path used to make have collapsed into.
+		assert.Len(t, mocks.directory.GetPrincipalCalls(), 1)
 		assert.Len(t, mocks.sessionStore.NewForCalls(), 1)
 		assert.Len(t, mocks.sessionStore.SaveCalls(), 1)
 	})
@@ -565,19 +620,22 @@ func TestManager_ProcessPasskeyLogin(T *testing.T) {
 		m, mocks := buildTestManager(t)
 
 		user := buildExampleUser()
-		user.AccountStatus = string(identity.BannedUserAccountStatus)
+		user.AccountStatus = identity.StatusBanned
 
-		mocks.userAuthDataManager.GetUserFunc = func(_ context.Context, userID string) (*identity.User, error) {
+		// The ban is the read's refusal rather than a field this path inspects: a status
+		// that does not admit signing in is refused before any membership is read.
+		mocks.directory.GetPrincipalFunc = func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, userID, _ string) (*identity.Principal, error) {
 			assert.Equal(t, user.ID, userID)
-			return user, nil
+
+			return nil, identity.ErrSignInNotAdmitted
 		}
 
 		response, err := m.ProcessPasskeyLogin(ctx, user.ID, "", nil)
 
-		require.Error(t, err)
+		require.ErrorIs(t, err, ErrUserBanned)
 		assert.Nil(t, response)
 
-		assert.Len(t, mocks.userAuthDataManager.GetUserCalls(), 1)
+		assert.Len(t, mocks.directory.GetPrincipalCalls(), 1)
 	})
 
 	T.Run("with nonexistent user", func(t *testing.T) {
@@ -586,8 +644,9 @@ func TestManager_ProcessPasskeyLogin(T *testing.T) {
 		ctx := t.Context()
 		m, mocks := buildTestManager(t)
 
-		mocks.userAuthDataManager.GetUserFunc = func(_ context.Context, userID string) (*identity.User, error) {
+		mocks.directory.GetPrincipalFunc = func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, userID, _ string) (*identity.Principal, error) {
 			assert.Equal(t, "nonexistent", userID)
+
 			return nil, errors.New("not found")
 		}
 
@@ -596,7 +655,7 @@ func TestManager_ProcessPasskeyLogin(T *testing.T) {
 		require.Error(t, err)
 		assert.Nil(t, response)
 
-		assert.Len(t, mocks.userAuthDataManager.GetUserCalls(), 1)
+		assert.Len(t, mocks.directory.GetPrincipalCalls(), 1)
 	})
 
 	T.Run("with user not member of desired account", func(t *testing.T) {
@@ -607,14 +666,13 @@ func TestManager_ProcessPasskeyLogin(T *testing.T) {
 
 		user := buildExampleUser()
 
-		mocks.userAuthDataManager.GetUserFunc = func(_ context.Context, userID string) (*identity.User, error) {
+		// A named account the caller is not a live member of is refused by the read
+		// itself, rather than answered with a principal claiming it.
+		mocks.directory.GetPrincipalFunc = func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, userID, activeAccountID string) (*identity.Principal, error) {
 			assert.Equal(t, user.ID, userID)
-			return user, nil
-		}
-		mocks.userAuthDataManager.UserIsMemberOfAccountFunc = func(_ context.Context, userID, accountID string) (bool, error) {
-			assert.Equal(t, user.ID, userID)
-			assert.Equal(t, "other-account", accountID)
-			return false, nil
+			assert.Equal(t, "other-account", activeAccountID)
+
+			return nil, identity.ErrMembershipNotFound
 		}
 
 		response, err := m.ProcessPasskeyLogin(ctx, user.ID, "other-account", nil)
@@ -622,8 +680,7 @@ func TestManager_ProcessPasskeyLogin(T *testing.T) {
 		require.Error(t, err)
 		assert.Nil(t, response)
 
-		assert.Len(t, mocks.userAuthDataManager.GetUserCalls(), 1)
-		assert.Len(t, mocks.userAuthDataManager.UserIsMemberOfAccountCalls(), 1)
+		assert.Len(t, mocks.directory.GetPrincipalCalls(), 1)
 	})
 }
 
@@ -642,9 +699,14 @@ func TestManager_ExchangeTokenForUser(T *testing.T) {
 		mocks.tokenIssuer.ParseTokenFunc = func(_ context.Context, _ string) (tokens.Claims, error) {
 			return newClaimsMock(user.ID, "refresh-jti-old", map[string]string{"account_id": "account123", "sid": exampleSessionID}), nil
 		}
-		mocks.userAuthDataManager.GetUserFunc = func(_ context.Context, userID string) (*identity.User, error) {
+		mocks.directory.GetPrincipalFunc = func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, userID, activeAccountID string) (*identity.Principal, error) {
 			assert.Equal(t, user.ID, userID)
-			return user, nil
+
+			if activeAccountID == "" {
+				activeAccountID = "account123"
+			}
+
+			return &identity.Principal{User: user, ActiveAccountID: activeAccountID}, nil
 		}
 
 		mocks.sessionStore.GetFunc = func(_ context.Context, id string) (*auth.UserSession, error) {
@@ -656,9 +718,11 @@ func TestManager_ExchangeTokenForUser(T *testing.T) {
 			}, nil
 		}
 
-		mocks.userAuthDataManager.GetDefaultAccountIDForUserFunc = func(_ context.Context, userID string) (string, error) {
+		mocks.directory.GetPrincipalFunc = func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, userID, activeAccountID string) (*identity.Principal, error) {
 			assert.Equal(t, user.ID, userID)
-			return "account123", nil
+			assert.Empty(t, activeAccountID)
+
+			return &identity.Principal{User: user, ActiveAccountID: "account123"}, nil
 		}
 
 		mocks.tokenIssuer.IssueTokenFunc = issueTokenFunc("new-access-token", "new-access-jti", "new-refresh-token", "new-refresh-jti")
@@ -679,9 +743,8 @@ func TestManager_ExchangeTokenForUser(T *testing.T) {
 		assert.Equal(t, user.ID, response.UserID)
 		assert.Equal(t, "account123", response.AccountID)
 
-		assert.Len(t, mocks.userAuthDataManager.GetUserCalls(), 1)
 		assert.Len(t, mocks.sessionStore.GetCalls(), 1)
-		assert.Len(t, mocks.userAuthDataManager.GetDefaultAccountIDForUserCalls(), 1)
+		assert.Len(t, mocks.directory.GetPrincipalCalls(), 1)
 		assert.Len(t, mocks.sessionStore.SaveCalls(), 1)
 	})
 
@@ -697,9 +760,14 @@ func TestManager_ExchangeTokenForUser(T *testing.T) {
 		mocks.tokenIssuer.ParseTokenFunc = func(_ context.Context, _ string) (tokens.Claims, error) {
 			return newClaimsMock(user.ID, "old-jti", map[string]string{"account_id": "account123", "sid": exampleSessionID}), nil
 		}
-		mocks.userAuthDataManager.GetUserFunc = func(_ context.Context, userID string) (*identity.User, error) {
+		mocks.directory.GetPrincipalFunc = func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, userID, activeAccountID string) (*identity.Principal, error) {
 			assert.Equal(t, user.ID, userID)
-			return user, nil
+
+			if activeAccountID == "" {
+				activeAccountID = "account123"
+			}
+
+			return &identity.Principal{User: user, ActiveAccountID: activeAccountID}, nil
 		}
 
 		// A session the store cannot find is one that was revoked or has expired. Either
@@ -714,7 +782,7 @@ func TestManager_ExchangeTokenForUser(T *testing.T) {
 		require.Error(t, err)
 		assert.Nil(t, response)
 
-		assert.Len(t, mocks.userAuthDataManager.GetUserCalls(), 1)
+		assert.Len(t, mocks.directory.GetPrincipalCalls(), 1)
 		assert.Len(t, mocks.sessionStore.GetCalls(), 1)
 	})
 
@@ -730,9 +798,14 @@ func TestManager_ExchangeTokenForUser(T *testing.T) {
 		mocks.tokenIssuer.ParseTokenFunc = func(_ context.Context, _ string) (tokens.Claims, error) {
 			return newClaimsMock(user.ID, "refresh-jti", map[string]string{"account_id": "account123", "sid": exampleSessionID}), nil
 		}
-		mocks.userAuthDataManager.GetUserFunc = func(_ context.Context, userID string) (*identity.User, error) {
+		mocks.directory.GetPrincipalFunc = func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, userID, activeAccountID string) (*identity.Principal, error) {
 			assert.Equal(t, user.ID, userID)
-			return user, nil
+
+			if activeAccountID == "" {
+				activeAccountID = "account123"
+			}
+
+			return &identity.Principal{User: user, ActiveAccountID: activeAccountID}, nil
 		}
 
 		mocks.sessionStore.GetFunc = func(_ context.Context, id string) (*auth.UserSession, error) {
@@ -743,10 +816,11 @@ func TestManager_ExchangeTokenForUser(T *testing.T) {
 			}, nil
 		}
 
-		mocks.userAuthDataManager.UserIsMemberOfAccountFunc = func(_ context.Context, userID, accountID string) (bool, error) {
+		mocks.directory.GetPrincipalFunc = func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, userID, activeAccountID string) (*identity.Principal, error) {
 			assert.Equal(t, user.ID, userID)
-			assert.Equal(t, "desired-account", accountID)
-			return true, nil
+			assert.Equal(t, "desired-account", activeAccountID)
+
+			return &identity.Principal{User: user, ActiveAccountID: activeAccountID}, nil
 		}
 
 		mocks.tokenIssuer.IssueTokenFunc = issueTokenFunc("new-access-token", "new-access-jti", "new-refresh-token", "new-refresh-jti")
@@ -764,9 +838,8 @@ func TestManager_ExchangeTokenForUser(T *testing.T) {
 		require.NotNil(t, response)
 		assert.Equal(t, "desired-account", response.AccountID)
 
-		assert.Len(t, mocks.userAuthDataManager.GetUserCalls(), 1)
 		assert.Len(t, mocks.sessionStore.GetCalls(), 1)
-		assert.Len(t, mocks.userAuthDataManager.UserIsMemberOfAccountCalls(), 1)
+		assert.Len(t, mocks.directory.GetPrincipalCalls(), 1)
 		assert.Len(t, mocks.sessionStore.SaveCalls(), 1)
 	})
 
@@ -777,25 +850,28 @@ func TestManager_ExchangeTokenForUser(T *testing.T) {
 		m, mocks := buildTestManager(t)
 
 		user := buildExampleUser()
-		user.AccountStatus = string(identity.BannedUserAccountStatus)
+		user.AccountStatus = identity.StatusBanned
 		refreshToken := "valid-refresh-token"
 
 		mocks.tokenIssuer.ParseTokenFunc = func(_ context.Context, _ string) (tokens.Claims, error) {
 			return newClaimsMock(user.ID, "jti", map[string]string{"account_id": "account123"}), nil
 		}
-		mocks.userAuthDataManager.GetUserFunc = func(_ context.Context, userID string) (*identity.User, error) {
+		// The ban refuses the read, before the session the token names is even looked
+		// at: somebody who may not sign in should not have their session touched.
+		mocks.directory.GetPrincipalFunc = func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, userID, _ string) (*identity.Principal, error) {
 			assert.Equal(t, user.ID, userID)
-			return user, nil
+
+			return nil, identity.ErrSignInNotAdmitted
 		}
 
 		response, err := m.ExchangeTokenForUser(ctx, refreshToken, "")
 
 		// A banned user must be rejected with an error and no token response.
-		require.Error(t, err)
 		require.ErrorIs(t, err, ErrUserBanned)
 		assert.Nil(t, response)
 
-		assert.Len(t, mocks.userAuthDataManager.GetUserCalls(), 1)
+		assert.Len(t, mocks.directory.GetPrincipalCalls(), 1)
+		assert.Empty(t, mocks.sessionStore.GetCalls())
 	})
 
 	T.Run("with a refresh token naming no session", func(t *testing.T) {
@@ -813,9 +889,14 @@ func TestManager_ExchangeTokenForUser(T *testing.T) {
 		mocks.tokenIssuer.ParseTokenFunc = func(_ context.Context, _ string) (tokens.Claims, error) {
 			return newClaimsMock(user.ID, "", map[string]string{"account_id": "account123"}), nil
 		}
-		mocks.userAuthDataManager.GetUserFunc = func(_ context.Context, userID string) (*identity.User, error) {
+		mocks.directory.GetPrincipalFunc = func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, userID, activeAccountID string) (*identity.Principal, error) {
 			assert.Equal(t, user.ID, userID)
-			return user, nil
+
+			if activeAccountID == "" {
+				activeAccountID = "account123"
+			}
+
+			return &identity.Principal{User: user, ActiveAccountID: activeAccountID}, nil
 		}
 		mocks.sessionStore.GetFunc = func(_ context.Context, id string) (*auth.UserSession, error) {
 			assert.Empty(t, id)
@@ -827,7 +908,7 @@ func TestManager_ExchangeTokenForUser(T *testing.T) {
 		require.Error(t, err)
 		assert.Nil(t, response)
 
-		assert.Len(t, mocks.userAuthDataManager.GetUserCalls(), 1)
+		assert.Len(t, mocks.directory.GetPrincipalCalls(), 1)
 		assert.Empty(t, mocks.tokenIssuer.IssueTokenCalls())
 	})
 
@@ -843,9 +924,14 @@ func TestManager_ExchangeTokenForUser(T *testing.T) {
 		mocks.tokenIssuer.ParseTokenFunc = func(_ context.Context, _ string) (tokens.Claims, error) {
 			return newClaimsMock(user.ID, "spent-jti", map[string]string{"account_id": "account123", "sid": exampleSessionID}), nil
 		}
-		mocks.userAuthDataManager.GetUserFunc = func(_ context.Context, userID string) (*identity.User, error) {
+		mocks.directory.GetPrincipalFunc = func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, userID, activeAccountID string) (*identity.Principal, error) {
 			assert.Equal(t, user.ID, userID)
-			return user, nil
+
+			if activeAccountID == "" {
+				activeAccountID = "account123"
+			}
+
+			return &identity.Principal{User: user, ActiveAccountID: activeAccountID}, nil
 		}
 
 		// The session is perfectly live; it has simply been issued a newer pair since,
@@ -897,8 +983,9 @@ func TestManager_ExchangeTokenForUser(T *testing.T) {
 		mocks.tokenIssuer.ParseTokenFunc = func(_ context.Context, _ string) (tokens.Claims, error) {
 			return newClaimsMock("nonexistent-user", "jti", map[string]string{"account_id": "account123"}), nil
 		}
-		mocks.userAuthDataManager.GetUserFunc = func(_ context.Context, userID string) (*identity.User, error) {
+		mocks.directory.GetPrincipalFunc = func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, userID, _ string) (*identity.Principal, error) {
 			assert.Equal(t, "nonexistent-user", userID)
+
 			return nil, errors.New("not found")
 		}
 
@@ -907,7 +994,7 @@ func TestManager_ExchangeTokenForUser(T *testing.T) {
 		require.Error(t, err)
 		assert.Nil(t, response)
 
-		assert.Len(t, mocks.userAuthDataManager.GetUserCalls(), 1)
+		assert.Len(t, mocks.directory.GetPrincipalCalls(), 1)
 	})
 
 	T.Run("with user not member of desired account", func(t *testing.T) {
@@ -922,23 +1009,24 @@ func TestManager_ExchangeTokenForUser(T *testing.T) {
 		mocks.tokenIssuer.ParseTokenFunc = func(_ context.Context, _ string) (tokens.Claims, error) {
 			return newClaimsMock(user.ID, "jti", map[string]string{"account_id": "account123", "sid": exampleSessionID}), nil
 		}
-		mocks.userAuthDataManager.GetUserFunc = func(_ context.Context, userID string) (*identity.User, error) {
+		mocks.directory.GetPrincipalFunc = func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, userID, activeAccountID string) (*identity.Principal, error) {
 			assert.Equal(t, user.ID, userID)
-			return user, nil
+
+			if activeAccountID == "" {
+				activeAccountID = "account123"
+			}
+
+			return &identity.Principal{User: user, ActiveAccountID: activeAccountID}, nil
 		}
 
-		mocks.sessionStore.GetFunc = func(_ context.Context, id string) (*auth.UserSession, error) {
-			assert.Equal(t, exampleSessionID, id)
-			return &auth.UserSession{
-				ID:   exampleSessionID,
-				Data: &auth.SessionPayload{RefreshTokenID: "jti"},
-			}, nil
-		}
-
-		mocks.userAuthDataManager.UserIsMemberOfAccountFunc = func(_ context.Context, userID, accountID string) (bool, error) {
+		// A named account the caller is not a live member of is refused by the read
+		// itself, rather than answered with a principal claiming it — and the refusal
+		// lands before the session is read, for the reason the banned case gives.
+		mocks.directory.GetPrincipalFunc = func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, userID, activeAccountID string) (*identity.Principal, error) {
 			assert.Equal(t, user.ID, userID)
-			assert.Equal(t, "wrong-account", accountID)
-			return false, nil
+			assert.Equal(t, "wrong-account", activeAccountID)
+
+			return nil, identity.ErrMembershipNotFound
 		}
 
 		response, err := m.ExchangeTokenForUser(ctx, refreshToken, "wrong-account")
@@ -946,8 +1034,7 @@ func TestManager_ExchangeTokenForUser(T *testing.T) {
 		require.Error(t, err)
 		assert.Nil(t, response)
 
-		assert.Len(t, mocks.userAuthDataManager.GetUserCalls(), 1)
-		assert.Len(t, mocks.sessionStore.GetCalls(), 1)
-		assert.Len(t, mocks.userAuthDataManager.UserIsMemberOfAccountCalls(), 1)
+		assert.Len(t, mocks.directory.GetPrincipalCalls(), 1)
+		assert.Empty(t, mocks.sessionStore.GetCalls())
 	})
 }

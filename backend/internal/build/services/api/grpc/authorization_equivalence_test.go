@@ -6,13 +6,13 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
+	identitybuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/identity"
 	oauth2clientsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/oauth2clients"
 	waitlistsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/waitlists"
 	analyticsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/analytics/grpc"
 	authgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc/interceptors"
 	dataprivacygrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/grpc"
-	identitygrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/grpc"
 	internalopsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/internalops/grpc"
 	mealplanninggrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/grpc"
 	uploadedmediagrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/grpc"
@@ -41,7 +41,7 @@ func realMethodPermissions() interceptors.MethodPermissionsMap {
 		authgrpc.ProvideMethodPermissions(),
 		commentsgrpc.Permissions(),
 		dataprivacygrpc.ProvideMethodPermissions(),
-		identitygrpc.ProvideMethodPermissions(),
+		identitybuild.Permissions(),
 		internalopsgrpc.ProvideMethodPermissions(),
 		issuereportsgrpc.Permissions(),
 		mealplanninggrpc.ProvideMethodPermissions(),
@@ -93,7 +93,7 @@ func TestAuthorizationEnforcerMatchesTheHandRolledCheck(t *testing.T) {
 	perms := realMethodPermissions()
 	require.NotEmpty(t, perms)
 
-	authInterceptor := interceptors.ProvideAuthInterceptor(nil, loggingnoop.NewLogger(), nil, nil, nil, "", nil, perms)
+	authInterceptor := interceptors.ProvideAuthInterceptor(nil, loggingnoop.NewLogger(), nil, nil, nil, nil, nil, "", nil, perms)
 
 	// Built enforcing, not audit-only: an audit-only enforcer allows everything, so comparing
 	// one against the real check would prove nothing.

@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	identityfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
+	identity "github.com/primandproper/platform-go/v14/identity"
 
 	platformaudit "github.com/primandproper/platform-go/v14/audit"
 	"github.com/primandproper/primitives-go/v2/database"
@@ -58,7 +58,7 @@ func accountForTest(t *testing.T, client database.Client) (*identity.User, *iden
 	user := pgtesting.CreateUserForTest(t, nil, client.Writer())
 
 	exampleAccount := identityfakes.BuildFakeAccount()
-	exampleAccount.BelongsToUser = user.ID
+	exampleAccount.OwnerUserID = user.ID
 
 	return user, pgtesting.CreateAccountForTest(t, exampleAccount, user.ID, client.Writer())
 }
