@@ -70,13 +70,6 @@ func main() {
 		"mealplanning/sqlc_queries/meal_plan_recipe_option_selections":           buildMealPlanRecipeOptionSelectionsQueries(databaseToUse),
 		"mealplanning/sqlc_queries/meal_list_items":                              buildMealListItemsQueries(databaseToUse),
 		"mealplanning/sqlc_queries/recipe_list_items":                            buildRecipeListItemsQueries(databaseToUse),
-		"oauth/sqlc_queries/oauth2_clients":                                      buildOAuth2ClientsQueries(databaseToUse),
-		"identity/sqlc_queries/account_invitations":                              buildAccountInvitationsQueries(databaseToUse),
-		"identity/sqlc_queries/account_user_memberships":                         buildAccountUserMembershipsQueries(databaseToUse),
-		"identity/sqlc_queries/accounts":                                         buildAccountsQueries(databaseToUse),
-		"identity/sqlc_queries/admin":                                            buildAdminQueries(databaseToUse),
-		"identity/sqlc_queries/users":                                            buildUsersQueries(databaseToUse),
-		"identity/sqlc_queries/user_role_assignments":                            buildUserRoleAssignmentsQueries(databaseToUse),
 	}
 
 	checkOnly := *checkOnlyFlag

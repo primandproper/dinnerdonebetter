@@ -338,8 +338,8 @@ func (q *repository) ScanValidMeasurementUnitIDsForReindex(ctx context.Context, 
 	defer span.End()
 
 	results, err := q.generatedQuerier.ScanValidMeasurementUnitIDsForReindex(ctx, q.readDB, &generated.ScanValidMeasurementUnitIDsForReindexParams{
-		PageCursor:  after,
-		ResultLimit: limit,
+		ReindexCursor: after,
+		ResultLimit:   limit,
 	})
 	if err != nil {
 		return nil, observability.PrepareError(err, span, "executing valid measurement units reindex scan query")

@@ -669,8 +669,8 @@ func (q *repository) ScanRecipeIDsForReindex(ctx context.Context, after string, 
 	defer span.End()
 
 	results, err := q.generatedQuerier.ScanRecipeIDsForReindex(ctx, q.readDB, &generated.ScanRecipeIDsForReindexParams{
-		PageCursor:  after,
-		ResultLimit: limit,
+		ReindexCursor: after,
+		ResultLimit:   limit,
 	})
 	if err != nil {
 		return nil, observability.PrepareError(err, span, "executing recipes reindex scan query")

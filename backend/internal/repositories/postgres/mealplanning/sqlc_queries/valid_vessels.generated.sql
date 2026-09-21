@@ -71,7 +71,7 @@ WHERE archived_at IS NULL
 SELECT valid_vessels.id
 FROM valid_vessels
 WHERE valid_vessels.archived_at IS NULL
-	AND valid_vessels.id COLLATE "C" > sqlc.arg(page_cursor)
+	AND valid_vessels.id COLLATE "C" > sqlc.arg(reindex_cursor)
 ORDER BY valid_vessels.id COLLATE "C"
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 

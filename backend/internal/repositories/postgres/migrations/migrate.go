@@ -766,10 +766,15 @@ func renderPasswordResetDDL() (string, error) {
 	return schema, nil
 }
 
-// renderSessionsDDL renders the session table, dropping the one 00018_user_sessions.sql
-// created first.
+// renderSessionsDDL renders the session table.
 //
-// Nothing is carried across, and the two tables are not the same shape anyway. The old one
+// It renders platform's schema and nothing else. The comment here used to say it dropped
+// the table 00018_user_sessions.sql created, which it never did — that table outlived the
+// adoption, recreated on every migration by the hand-written identity migration, which
+// also created it. The identity adoption deleted that file, so there is no second sessions
+// table left to drop and no statement here pretending to.
+//
+// Nothing was carried across, and the two tables are not the same shape anyway. The old one
 // keyed a session by the JTI of the token issued alongside it and ended one by stamping a
 // revoked_at column that only the reads knew to filter on; the platform's keys a session by
 // an identifier of its own and ends one by removing the row, so there is no state a
@@ -793,14 +798,17 @@ func renderSessionsDDL() (string, error) {
 	return schema, nil
 }
 
-// renderWebAuthnDDL renders the passkey ceremony session table, dropping the one this
-// repository used to hand-write first.
+// renderWebAuthnDDL renders the passkey ceremony session table.
 //
-// The drop is not a migration of the old table: 00017 created it with a JSONB session_data
-// column and the platform's schema stores BYTEA, so a CREATE TABLE IF NOT EXISTS over the
-// old one would silently keep a table the store cannot write to. Nothing is lost by dropping
-// it. A row is one passkey ceremony in flight, a ceremony lasts a minute, and the worst case
-// at deploy is a handful of users pressing the passkey prompt again.
+// The hazard this used to claim to handle is real and is already handled by absence. 00017
+// created webauthn_sessions with a JSONB session_data column where the platform's schema
+// stores BYTEA, and the platform's DDL says CREATE TABLE IF NOT EXISTS — so an old table
+// left standing would be silently kept and the store would read columns that are not
+// there. No statement here ever dropped it; the squash that produced the one remaining
+// hand-written migration simply did not carry it forward, and nothing has created a
+// webauthn_sessions of the old shape since. Nothing is lost either way: a row is one passkey
+// ceremony in flight, a ceremony lasts a minute, and the worst case at deploy is a handful
+// of users pressing the passkey prompt again.
 func renderWebAuthnDDL() (string, error) {
 	schema, err := webauthnmigrations.SQL(dialect.Postgres, webauthndatabase.DefaultTablePrefix)
 	if err != nil {

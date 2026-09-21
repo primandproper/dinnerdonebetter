@@ -327,8 +327,8 @@ func (q *repository) ScanValidInstrumentIDsForReindex(ctx context.Context, after
 	defer span.End()
 
 	results, err := q.generatedQuerier.ScanValidInstrumentIDsForReindex(ctx, q.readDB, &generated.ScanValidInstrumentIDsForReindexParams{
-		PageCursor:  after,
-		ResultLimit: limit,
+		ReindexCursor: after,
+		ResultLimit:   limit,
 	})
 	if err != nil {
 		return nil, observability.PrepareError(err, span, "executing valid instruments reindex scan query")

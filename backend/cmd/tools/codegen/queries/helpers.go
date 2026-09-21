@@ -25,6 +25,11 @@ const (
 	belongsToAccountColumn = "belongs_to_account"
 	belongsToUserColumn    = "belongs_to_user"
 
+	// createdByUserColumn names the author of a recipe, a meal or a meal plan. It used
+	// to live beside the user table's own columns; those builders went to platform with
+	// the identity adoption, and this one stayed because the tables that carry it did.
+	createdByUserColumn = "created_by_user"
+
 	// Columns several tables share, spelled here rather than once per table.
 	optionalColumn                           = "optional"
 	optionIndexColumn                        = "option_index"

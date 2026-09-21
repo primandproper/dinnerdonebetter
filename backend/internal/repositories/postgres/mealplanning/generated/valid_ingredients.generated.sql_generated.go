@@ -883,12 +883,12 @@ LIMIT COALESCE($2, 50)
 `
 
 type ScanValidIngredientIDsForReindexParams struct {
-	PageCursor  string
-	ResultLimit interface{}
+	ReindexCursor string
+	ResultLimit   interface{}
 }
 
 func (q *Queries) ScanValidIngredientIDsForReindex(ctx context.Context, db DBTX, arg *ScanValidIngredientIDsForReindexParams) ([]string, error) {
-	rows, err := db.QueryContext(ctx, scanValidIngredientIDsForReindex, arg.PageCursor, arg.ResultLimit)
+	rows, err := db.QueryContext(ctx, scanValidIngredientIDsForReindex, arg.ReindexCursor, arg.ResultLimit)
 	if err != nil {
 		return nil, err
 	}

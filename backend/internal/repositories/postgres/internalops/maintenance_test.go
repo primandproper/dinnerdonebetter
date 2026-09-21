@@ -35,17 +35,20 @@ func TestQuerier_Integration_DestroyAllData(t *testing.T) {
 	ctx := t.Context()
 	dbc := buildDatabaseClientForTest(t)
 
-	// sessions is one of the tables the registry-derived list missed, and it takes rows
-	// without needing a user to belong to. queue_test_messages was in that list, so
-	// seeding both says the fix added tables rather than swapped one set for another.
+	// ddb_sessions is one of the tables the registry-derived list missed, and it takes
+	// rows without needing a user to belong to — principal is a bare column here, not a
+	// foreign key. queue_test_messages was in that list, so seeding both says the fix
+	// added tables rather than swapped one set for another.
 	_, err := dbc.writeDB.ExecContext(ctx,
-		"INSERT INTO sessions (token, data, expiry) VALUES ($1, $2, NOW() + INTERVAL '1 hour')",
-		identifiers.New(), []byte("session data"),
+		`INSERT INTO ddb_sessions
+			(id, scope, principal, data, device_name, ip_address, user_agent, login_method, created_at, last_seen_at, expires_at, version)
+		 VALUES ($1, '', $2, $3, '', '', '', 'password', NOW(), NOW(), NOW() + INTERVAL '1 hour', 1)`,
+		identifiers.New(), identifiers.New(), []byte("session data"),
 	)
 	require.NoError(t, err)
 	require.NoError(t, dbc.CreateQueueTestMessage(ctx, identifiers.New(), "destroy-all-data-"+identifiers.New()[:8]))
 
-	require.NotZero(t, countRows(ctx, t, dbc.readDB, "sessions"))
+	require.NotZero(t, countRows(ctx, t, dbc.readDB, "ddb_sessions"))
 	require.NotZero(t, countRows(ctx, t, dbc.readDB, "queue_test_messages"))
 
 	appliedMigrations := countRows(ctx, t, dbc.readDB, gooseVersionTable)
@@ -59,9 +62,14 @@ func TestQuerier_Integration_DestroyAllData(t *testing.T) {
 	// user_data_disclosures (00029), webhook_trigger_events (00026), and
 	// user_device_tokens (00044, which moved the device registry onto
 	// ddb_notifications_devices).
+	//
+	// Two more are here under new names. sessions and webauthn_credentials were created
+	// by the hand-written identity migration, which the identity adoption deleted along
+	// with the users and accounts tables it was really about; the live tables are
+	// platform's, namespaced, and this test seeds the session one above.
 	for _, table := range []string{
 		"ingredient_media", "meal_images", "preparation_media", "recipe_images",
-		"recipe_step_images", "sessions", "webauthn_credentials",
+		"recipe_step_images", "ddb_sessions", "ddb_webauthn_credentials",
 		"webauthn_sessions",
 	} {
 		require.Contains(t, before, table)
@@ -69,7 +77,7 @@ func TestQuerier_Integration_DestroyAllData(t *testing.T) {
 
 	require.NoError(t, dbc.generatedQuerier.DestroyAllData(ctx, dbc.writeDB))
 
-	assert.Zero(t, countRows(ctx, t, dbc.readDB, "sessions"))
+	assert.Zero(t, countRows(ctx, t, dbc.readDB, "ddb_sessions"))
 	assert.Zero(t, countRows(ctx, t, dbc.readDB, "queue_test_messages"))
 
 	// Emptiness is not enough to prove coverage, because a table nobody seeded is empty

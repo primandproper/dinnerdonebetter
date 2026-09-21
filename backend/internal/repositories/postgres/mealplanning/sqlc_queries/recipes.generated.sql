@@ -52,7 +52,7 @@ WHERE archived_at IS NULL
 SELECT recipes.id
 FROM recipes
 WHERE recipes.archived_at IS NULL
-	AND recipes.id COLLATE "C" > sqlc.arg(page_cursor)
+	AND recipes.id COLLATE "C" > sqlc.arg(reindex_cursor)
 ORDER BY recipes.id COLLATE "C"
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 

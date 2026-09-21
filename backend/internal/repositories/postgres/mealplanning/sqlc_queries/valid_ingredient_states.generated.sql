@@ -64,7 +64,7 @@ WHERE archived_at IS NULL
 SELECT valid_ingredient_states.id
 FROM valid_ingredient_states
 WHERE valid_ingredient_states.archived_at IS NULL
-	AND valid_ingredient_states.id COLLATE "C" > sqlc.arg(page_cursor)
+	AND valid_ingredient_states.id COLLATE "C" > sqlc.arg(reindex_cursor)
 ORDER BY valid_ingredient_states.id COLLATE "C"
 LIMIT COALESCE(sqlc.narg(result_limit), 50);
 

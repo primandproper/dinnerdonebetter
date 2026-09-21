@@ -377,8 +377,8 @@ func (q *repository) ScanValidVesselIDsForReindex(ctx context.Context, after str
 	defer span.End()
 
 	results, err := q.generatedQuerier.ScanValidVesselIDsForReindex(ctx, q.readDB, &generated.ScanValidVesselIDsForReindexParams{
-		PageCursor:  after,
-		ResultLimit: limit,
+		ReindexCursor: after,
+		ResultLimit:   limit,
 	})
 	if err != nil {
 		return nil, observability.PrepareError(err, span, "executing valid vessels reindex scan query")

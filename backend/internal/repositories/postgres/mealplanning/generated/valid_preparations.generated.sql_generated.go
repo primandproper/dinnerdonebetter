@@ -627,12 +627,12 @@ LIMIT COALESCE($2, 50)
 `
 
 type ScanValidPreparationIDsForReindexParams struct {
-	PageCursor  string
-	ResultLimit interface{}
+	ReindexCursor string
+	ResultLimit   interface{}
 }
 
 func (q *Queries) ScanValidPreparationIDsForReindex(ctx context.Context, db DBTX, arg *ScanValidPreparationIDsForReindexParams) ([]string, error) {
-	rows, err := db.QueryContext(ctx, scanValidPreparationIDsForReindex, arg.PageCursor, arg.ResultLimit)
+	rows, err := db.QueryContext(ctx, scanValidPreparationIDsForReindex, arg.ReindexCursor, arg.ResultLimit)
 	if err != nil {
 		return nil, err
 	}

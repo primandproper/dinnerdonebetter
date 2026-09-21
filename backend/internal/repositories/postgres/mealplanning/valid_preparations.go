@@ -322,8 +322,8 @@ func (q *repository) ScanValidPreparationIDsForReindex(ctx context.Context, afte
 	defer span.End()
 
 	results, err := q.generatedQuerier.ScanValidPreparationIDsForReindex(ctx, q.readDB, &generated.ScanValidPreparationIDsForReindexParams{
-		PageCursor:  after,
-		ResultLimit: limit,
+		ReindexCursor: after,
+		ResultLimit:   limit,
 	})
 	if err != nil {
 		return nil, observability.PrepareError(err, span, "executing valid preparations reindex scan query")

@@ -233,8 +233,8 @@ func (q *repository) ScanValidIngredientStateIDsForReindex(ctx context.Context, 
 	defer span.End()
 
 	results, err := q.generatedQuerier.ScanValidIngredientStateIDsForReindex(ctx, q.readDB, &generated.ScanValidIngredientStateIDsForReindexParams{
-		PageCursor:  after,
-		ResultLimit: limit,
+		ReindexCursor: after,
+		ResultLimit:   limit,
 	})
 	if err != nil {
 		return nil, observability.PrepareError(err, span, "executing valid ingredient states reindex scan query")
