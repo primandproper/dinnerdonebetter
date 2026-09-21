@@ -183,13 +183,34 @@ class AccountSettingsViewModel {
       options: clientManager.defaultCallOptions
     )
 
-    guard identityResponse.hasResult else {
+    guard identityResponse.hasAccount else {
       throw NSError(
         domain: "AccountSettingsViewModel", code: 4,
         userInfo: [NSLocalizedDescriptionKey: "Account not found"])
     }
 
-    return identityResponse.result
+    return identityResponse.account
+  }
+
+  // The roster is a read of its own rather than a field of the account: an account with
+  // thirty members would otherwise be thirty users on every read of it.
+  private func fetchMembers() async throws
+    -> [Primandproper_Platform_Identity_V1_MembershipWithUser]
+  {
+    let (clientManager, metadata) = try await getClientManagerAndMetadata()
+    let accountID = try await getActiveAccountID(clientManager: clientManager, metadata: metadata)
+
+    var request = Primandproper_Platform_Identity_V1_ListAccountMembersRequest()
+    request.accountID = accountID
+    request.filter = QueryFilterMessage()
+
+    let response = try await clientManager.client.identity.listAccountMembers(
+      request,
+      metadata: metadata,
+      options: clientManager.defaultCallOptions
+    )
+
+    return response.results
   }
 
   private func fetchUser() async throws -> Auth_GetSelfResponse {
@@ -637,15 +658,18 @@ class AccountSettingsViewModel {
     return (clientManager, metadata)
   }
 
+  // The address is one value rather than seven fields — see createAccountUpdateInput.
   var accountDataHasChanged: Bool {
     guard let account = account else { return false }
+    let address = account.billingAddress
+
     return account.name != accountName
-      || account.contactPhone != contactPhone
-      || account.addressLine1 != addressLine1
-      || account.addressLine2 != addressLine2
-      || account.city != city
-      || account.state != state
-      || account.zipCode != zipCode
-      || account.country != country
+      || address.phone != contactPhone
+      || address.line1 != addressLine1
+      || address.line2 != addressLine2
+      || address.city != city
+      || address.state != state
+      || address.postalCode != zipCode
+      || address.country != country
   }
 }

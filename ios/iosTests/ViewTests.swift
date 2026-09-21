@@ -206,12 +206,13 @@ struct MemberCardTests {
   @MainActor
   func testMemberCardDisplayNameFirstLast() async {
     var member = createMockMembership()
-    var user = Identity_User()
+    var user = Primandproper_Platform_Identity_V1_User()
     user.id = "user-1"
     user.firstName = "John"
     user.lastName = "Doe"
     user.username = "johndoe"
-    member.belongsToUser = user
+
+    member.user = user
 
     _ = MemberCard(
       member: member,
@@ -225,11 +226,12 @@ struct MemberCardTests {
   @MainActor
   func testMemberCardDisplayNameFirstOnly() async {
     var member = createMockMembership()
-    var user = Identity_User()
+    var user = Primandproper_Platform_Identity_V1_User()
     user.id = "user-1"
     user.firstName = "John"
     user.username = "johndoe"
-    member.belongsToUser = user
+
+    member.user = user
 
     _ = MemberCard(
       member: member,
@@ -243,10 +245,11 @@ struct MemberCardTests {
   @MainActor
   func testMemberCardDisplayNameUsername() async {
     var member = createMockMembership()
-    var user = Identity_User()
+    var user = Primandproper_Platform_Identity_V1_User()
     user.id = "user-1"
     user.username = "johndoe"
-    member.belongsToUser = user
+
+    member.user = user
 
     _ = MemberCard(
       member: member,
@@ -260,7 +263,7 @@ struct MemberCardTests {
   @MainActor
   func testMemberCardDisplayNameUnknown() async {
     var member = createMockMembership()
-    member.clearBelongsToUser()
+    member.clearUser()
 
     _ = MemberCard(
       member: member,
@@ -274,10 +277,11 @@ struct MemberCardTests {
   @MainActor
   func testMemberCardShowsCurrentUser() async {
     var member = createMockMembership(userID: "user-1")
-    var user = Identity_User()
+    var user = Primandproper_Platform_Identity_V1_User()
     user.id = "user-1"
     user.username = "currentuser"
-    member.belongsToUser = user
+
+    member.user = user
 
     _ = MemberCard(
       member: member,
@@ -291,9 +295,10 @@ struct MemberCardTests {
   @MainActor
   func testMemberCardInitializesRole() async {
     var member = createMockMembership(role: "account_admin")
-    var user = Identity_User()
+    var user = Primandproper_Platform_Identity_V1_User()
     user.id = "user-1"
-    member.belongsToUser = user
+
+    member.user = user
 
     _ = MemberCard(
       member: member,
@@ -310,10 +315,10 @@ struct InvitationCardTests {
   @Test("InvitationCard displays email")
   @MainActor
   func testInvitationCardDisplaysEmail() async {
-    var invitation = Identity_AccountInvitation()
+    var invitation = Primandproper_Platform_Identity_V1_Invitation()
     invitation.toEmail = "test@example.com"
     invitation.toName = "Test User"
-    invitation.status = "pending"
+    invitation.status = .pending
 
     _ = InvitationCard(
       invitation: invitation,
@@ -325,10 +330,10 @@ struct InvitationCardTests {
   @Test("InvitationCard displays name when available")
   @MainActor
   func testInvitationCardDisplaysName() async {
-    var invitation = Identity_AccountInvitation()
+    var invitation = Primandproper_Platform_Identity_V1_Invitation()
     invitation.toEmail = "test@example.com"
     invitation.toName = "Test User"
-    invitation.status = "pending"
+    invitation.status = .pending
 
     _ = InvitationCard(
       invitation: invitation,
@@ -340,9 +345,9 @@ struct InvitationCardTests {
   @Test("InvitationCard displays status")
   @MainActor
   func testInvitationCardDisplaysStatus() async {
-    var invitation = Identity_AccountInvitation()
+    var invitation = Primandproper_Platform_Identity_V1_Invitation()
     invitation.toEmail = "test@example.com"
-    invitation.status = "accepted"
+    invitation.status = .accepted
 
     _ = InvitationCard(
       invitation: invitation,
@@ -354,10 +359,10 @@ struct InvitationCardTests {
   @Test("InvitationCard handles empty name")
   @MainActor
   func testInvitationCardHandlesEmptyName() async {
-    var invitation = Identity_AccountInvitation()
+    var invitation = Primandproper_Platform_Identity_V1_Invitation()
     invitation.toEmail = "test@example.com"
     invitation.toName = ""
-    invitation.status = "pending"
+    invitation.status = .pending
 
     _ = InvitationCard(
       invitation: invitation,
@@ -369,10 +374,10 @@ struct InvitationCardTests {
   @Test("InvitationCard handles different statuses")
   @MainActor
   func testInvitationCardHandlesStatuses() async {
-    let statuses = ["pending", "accepted", "declined", "expired"]
+    let statuses: [Primandproper_Platform_Identity_V1_InvitationStatus] = [.pending, .accepted, .rejected, .cancelled]
 
     for status in statuses {
-      var invitation = Identity_AccountInvitation()
+      var invitation = Primandproper_Platform_Identity_V1_Invitation()
       invitation.toEmail = "test@example.com"
       invitation.status = status
 

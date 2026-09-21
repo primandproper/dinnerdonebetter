@@ -384,8 +384,8 @@ struct VoteMealPlanView: View {
       } else {
         ScrollView(.horizontal, showsIndicators: false) {
           HStack(spacing: 12) {
-            ForEach(viewModel.accountMembers, id: \.id) { member in
-              if member.hasBelongsToUser {
+            ForEach(viewModel.accountMembers, id: \.membership.id) { member in
+              if member.hasUser {
                 memberVotingStatusCard(
                   member: member,
                   status: viewModel.votingStatus[member.user.id],

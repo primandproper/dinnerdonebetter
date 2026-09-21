@@ -12,39 +12,52 @@ import Testing
 
 // MARK: - Helper Functions for Test Data
 
-func createMockAccount(id: String = "account-1", name: String = "Test Account") -> Identity_Account {
-  var account = Identity_Account()
+func createMockAccount(id: String = "account-1", name: String = "Test Account") -> Primandproper_Platform_Identity_V1_Account {
+  // The address is one value rather than seven fields: it travels as a unit, and an
+  // application that never collects one leaves a zero rather than seven empty strings.
+  var address = Primandproper_Platform_Identity_V1_BillingAddress()
+  address.phone = "555-1234"
+  address.line1 = "123 Main St"
+  address.line2 = "Apt 4"
+  address.city = "Springfield"
+  address.state = "IL"
+  address.postalCode = "62701"
+  address.country = "USA"
+
+  var account = Primandproper_Platform_Identity_V1_Account()
   account.id = id
   account.name = name
-  account.contactPhone = "555-1234"
-  account.addressLine1 = "123 Main St"
-  account.addressLine2 = "Apt 4"
-  account.city = "Springfield"
-  account.state = "IL"
-  account.zipCode = "62701"
-  account.country = "USA"
+  account.billingAddress = address
   return account
 }
 
 func createMockUser(id: String = "user-1") -> Auth_GetSelfResponse {
   var response = Auth_GetSelfResponse()
-  var user = Identity_User()
+  var user = Primandproper_Platform_Identity_V1_User()
   user.id = id
   response.result = user
   return response
 }
 
+// A membership carries a set of roles rather than one, because a role is a grant and
+// somebody may hold several.
+
 func createMockMembership(
   id: String = "membership-1",
   userID: String = "user-1",
   role: String = "account_admin"
-) -> Identity_AccountUserMembershipWithUser {
-  var membership = Identity_AccountUserMembershipWithUser()
-  membership.id = id
-  membership.accountRole = role
-  var user = Identity_User()
+) -> Primandproper_Platform_Identity_V1_MembershipWithUser {
+  var inner = Primandproper_Platform_Identity_V1_Membership()
+  inner.id = id
+  inner.belongsToUser = userID
+  inner.roles = [role]
+
+  var user = Primandproper_Platform_Identity_V1_User()
   user.id = userID
-  membership.belongsToUser = user
+
+  var membership = Primandproper_Platform_Identity_V1_MembershipWithUser()
+  membership.membership = inner
+  membership.user = user
   return membership
 }
 
@@ -82,9 +95,9 @@ struct ComputedPropertiesTests {
     let authManager = createMockAuthenticationManagerForAccount()
     let viewModel = AccountSettingsViewModel(authManager: authManager)
 
-    var account = createMockAccount()
+    let account = createMockAccount()
     let membership = createMockMembership(role: "account_admin")
-    account.members = [membership]
+    viewModel.members = [membership]
 
     let user = createMockUser()
     viewModel.user = user
@@ -99,9 +112,9 @@ struct ComputedPropertiesTests {
     let authManager = createMockAuthenticationManagerForAccount()
     let viewModel = AccountSettingsViewModel(authManager: authManager)
 
-    var account = createMockAccount()
+    let account = createMockAccount()
     let membership = createMockMembership(role: "member")
-    account.members = [membership]
+    viewModel.members = [membership]
 
     let user = createMockUser()
     viewModel.user = user
@@ -129,16 +142,16 @@ struct ComputedPropertiesTests {
     let authManager = createMockAuthenticationManagerForAccount()
     let viewModel = AccountSettingsViewModel(authManager: authManager)
 
-    var account = createMockAccount()
+    let account = createMockAccount()
     let membership = createMockMembership()
-    account.members = [membership]
+    viewModel.members = [membership]
 
     let user = createMockUser()
     viewModel.user = user
     viewModel.account = account
 
     #expect(viewModel.currentUserMembership != nil)
-    #expect(viewModel.currentUserMembership?.id == membership.id)
+    #expect(viewModel.currentUserMembership?.membership.id == membership.membership.id)
   }
 
   @Test("currentUserMembership returns nil when not found")
@@ -147,9 +160,9 @@ struct ComputedPropertiesTests {
     let authManager = createMockAuthenticationManagerForAccount()
     let viewModel = AccountSettingsViewModel(authManager: authManager)
 
-    var account = createMockAccount()
+    let account = createMockAccount()
     let membership = createMockMembership(userID: "different-user")
-    account.members = [membership]
+    viewModel.members = [membership]
 
     let user = createMockUser()
     viewModel.user = user
@@ -203,13 +216,13 @@ struct ComputedPropertiesTests {
     let account = createMockAccount()
     viewModel.account = account
     viewModel.accountName = account.name
-    viewModel.contactPhone = account.contactPhone
-    viewModel.addressLine1 = account.addressLine1
-    viewModel.addressLine2 = account.addressLine2
-    viewModel.city = account.city
-    viewModel.state = account.state
-    viewModel.zipCode = account.zipCode
-    viewModel.country = account.country
+    viewModel.contactPhone = account.billingAddress.phone
+    viewModel.addressLine1 = account.billingAddress.line1
+    viewModel.addressLine2 = account.billingAddress.line2
+    viewModel.city = account.billingAddress.city
+    viewModel.state = account.billingAddress.state
+    viewModel.zipCode = account.billingAddress.postalCode
+    viewModel.country = account.billingAddress.country
 
     #expect(viewModel.accountDataHasChanged == false)
   }
@@ -237,13 +250,13 @@ struct FormInitializationTests {
 
     var account = createMockAccount()
     account.name = "Test Account"
-    account.contactPhone = "555-9999"
-    account.addressLine1 = "456 Oak Ave"
-    account.addressLine2 = "Suite 2"
-    account.city = "Chicago"
-    account.state = "IL"
-    account.zipCode = "60601"
-    account.country = "USA"
+    account.billingAddress.phone = "555-9999"
+    account.billingAddress.line1 = "456 Oak Ave"
+    account.billingAddress.line2 = "Suite 2"
+    account.billingAddress.city = "Chicago"
+    account.billingAddress.state = "IL"
+    account.billingAddress.postalCode = "60601"
+    account.billingAddress.country = "USA"
 
     viewModel.account = account
     let user = createMockUser()
@@ -278,9 +291,9 @@ struct AccountSettingsValidationTests {
     let authManager = createMockAuthenticationManagerForAccount()
     let viewModel = AccountSettingsViewModel(authManager: authManager)
 
-    var account = createMockAccount()
+    let account = createMockAccount()
     let membership = createMockMembership(role: "member")
-    account.members = [membership]
+    viewModel.members = [membership]
 
     let user = createMockUser()
     viewModel.user = user
@@ -313,9 +326,9 @@ struct AccountSettingsValidationTests {
     let authManager = createMockAuthenticationManagerForAccount()
     let viewModel = AccountSettingsViewModel(authManager: authManager)
 
-    var account = createMockAccount()
+    let account = createMockAccount()
     let membership = createMockMembership(role: "member")
-    account.members = [membership]
+    viewModel.members = [membership]
 
     let user = createMockUser()
     viewModel.user = user
@@ -334,9 +347,9 @@ struct AccountSettingsValidationTests {
     let authManager = createMockAuthenticationManagerForAccount()
     let viewModel = AccountSettingsViewModel(authManager: authManager)
 
-    var account = createMockAccount()
+    let account = createMockAccount()
     let membership = createMockMembership(role: "account_admin")
-    account.members = [membership]
+    viewModel.members = [membership]
 
     let user = createMockUser()
     viewModel.user = user
@@ -355,9 +368,9 @@ struct AccountSettingsValidationTests {
     let authManager = createMockAuthenticationManagerForAccount()
     let viewModel = AccountSettingsViewModel(authManager: authManager)
 
-    var account = createMockAccount()
+    let account = createMockAccount()
     let membership = createMockMembership(role: "account_admin")
-    account.members = [membership]
+    viewModel.members = [membership]
 
     let user = createMockUser()
     viewModel.user = user
@@ -376,9 +389,9 @@ struct AccountSettingsValidationTests {
     let authManager = createMockAuthenticationManagerForAccount()
     let viewModel = AccountSettingsViewModel(authManager: authManager)
 
-    var account = createMockAccount()
+    let account = createMockAccount()
     let membership = createMockMembership(role: "member")
-    account.members = [membership]
+    viewModel.members = [membership]
 
     let user = createMockUser()
     viewModel.user = user
@@ -396,9 +409,9 @@ struct AccountSettingsValidationTests {
     let authManager = createMockAuthenticationManagerForAccount()
     let viewModel = AccountSettingsViewModel(authManager: authManager)
 
-    var account = createMockAccount()
+    let account = createMockAccount()
     let membership = createMockMembership(role: "account_admin")
-    account.members = [membership]
+    viewModel.members = [membership]
 
     let user = createMockUser()
     viewModel.user = user
@@ -416,9 +429,9 @@ struct AccountSettingsValidationTests {
     let authManager = createMockAuthenticationManagerForAccount()
     let viewModel = AccountSettingsViewModel(authManager: authManager)
 
-    var account = createMockAccount()
+    let account = createMockAccount()
     let membership = createMockMembership(role: "account_admin")
-    account.members = [membership]
+    viewModel.members = [membership]
 
     let user = createMockUser()
     viewModel.user = user
@@ -453,9 +466,9 @@ struct StateManagementTests {
     let authManager = createMockAuthenticationManagerForAccount()
     let viewModel = AccountSettingsViewModel(authManager: authManager)
 
-    var account = createMockAccount()
+    let account = createMockAccount()
     let membership = createMockMembership(role: "account_admin")
-    account.members = [membership]
+    viewModel.members = [membership]
 
     let user = createMockUser()
     viewModel.user = user
@@ -472,9 +485,9 @@ struct StateManagementTests {
     let authManager = createMockAuthenticationManagerForAccount()
     let viewModel = AccountSettingsViewModel(authManager: authManager)
 
-    var account = createMockAccount()
+    let account = createMockAccount()
     let membership = createMockMembership(role: "account_admin")
-    account.members = [membership]
+    viewModel.members = [membership]
 
     let user = createMockUser()
     viewModel.user = user
@@ -508,7 +521,7 @@ struct AccountSettingsEdgeCaseTests {
     viewModel.contactPhone = "Changed"
     #expect(viewModel.accountDataHasChanged == true)
 
-    viewModel.contactPhone = account.contactPhone
+    viewModel.contactPhone = account.billingAddress.phone
     viewModel.addressLine1 = "Changed"
     #expect(viewModel.accountDataHasChanged == true)
   }
@@ -521,7 +534,7 @@ struct AccountSettingsEdgeCaseTests {
 
     var account = createMockAccount()
     account.name = ""
-    account.country = ""
+    account.billingAddress.country = ""
 
     viewModel.account = account
     let user = createMockUser()
@@ -538,10 +551,10 @@ struct AccountSettingsEdgeCaseTests {
     let authManager = createMockAuthenticationManagerForAccount()
     let viewModel = AccountSettingsViewModel(authManager: authManager)
 
-    var account = createMockAccount()
+    let account = createMockAccount()
     let member1 = createMockMembership(userID: "user-1", role: "member")
     let member2 = createMockMembership(userID: "user-2", role: "account_admin")
-    account.members = [member1, member2]
+    viewModel.members = [member1, member2]
 
     let user = createMockUser(id: "user-2")
     viewModel.user = user

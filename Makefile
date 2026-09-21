@@ -244,8 +244,20 @@ proto_swift: ensure_protoc-gen-swift_installed ensure_protoc-gen-grpc-swift_inst
 		--proto_path $(PLATFORM_PROTO_PATH) \
 		--proto_path $(PLATFORM_IDENTITY_PROTO_PATH) \
 		$(PROTO_FILES_PATH) $(PLATFORM_PROTO_PATH)/$(PLATFORM_FILTERING_PROTO) $(PLATFORM_IDENTITY_PROTO_PATH)/$(PLATFORM_IDENTITY_PROTO)
+	mkdir -p $(ARTIFACTS_DIR)/proto_swift_preserved
+	for d in $(PROTO_SWIFT_STALE_ADOPTED); do \
+		if [ -d $(PROTO_OUTPUT_IOS_PATH)/$$d ]; then \
+			cp -R $(PROTO_OUTPUT_IOS_PATH)/$$d $(ARTIFACTS_DIR)/proto_swift_preserved/$$d; \
+		fi; \
+	done
 	rm -rf $(PROTO_OUTPUT_IOS_PATH)
 	mv $(ARTIFACTS_DIR)/proto_swift $(PROTO_OUTPUT_IOS_PATH)
+	for d in $(PROTO_SWIFT_STALE_ADOPTED); do \
+		if [ -d $(ARTIFACTS_DIR)/proto_swift_preserved/$$d ]; then \
+			cp -R $(ARTIFACTS_DIR)/proto_swift_preserved/$$d $(PROTO_OUTPUT_IOS_PATH)/$$d; \
+		fi; \
+	done
+	rm -rf $(ARTIFACTS_DIR)/proto_swift_preserved
 	(cd ios && $(MAKE) format)
 
 # Hand-written files in the TS proto output directory that must survive regeneration
@@ -262,6 +274,11 @@ PROTO_TS_HANDWRITTEN := index.ts create-clients.ts admin-clients.ts
 # porting every frontend call site for it, which is that domain's work rather than this
 # target's. identity is the exception and is generated above, from platform's schema.
 PROTO_TS_STALE_ADOPTED := audit comments issue_reports notifications oauth payments settings waitlists
+
+# The same directories in the Swift output, plus webhooks, which the iOS app uses and the
+# web apps do not. See PROTO_TS_STALE_ADOPTED for why they are preserved rather than
+# regenerated.
+PROTO_SWIFT_STALE_ADOPTED := audit comments issue_reports notifications oauth payments settings waitlists webhooks
 
 .PHONY: proto_typescript
 proto_typescript: ensure_protoc_installed ensure_proto_ts_plugin_installed
