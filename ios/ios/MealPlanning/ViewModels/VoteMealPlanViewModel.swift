@@ -43,7 +43,7 @@ class VoteMealPlanViewModel {
   var submissionSuccess = false
 
   // Voting status for account members (only loaded if user is creator)
-  var accountMembers: [Identity_AccountUserMembershipWithUser] = []
+  var accountMembers: [Primandproper_Platform_Identity_V1_MembershipWithUser] = []
   var votingStatus: [String: VotingStatus] = [:]  // Maps user ID to voting status
   var isLoadingVotingStatus = false
 
@@ -226,31 +226,27 @@ class VoteMealPlanViewModel {
     isLoadingVotingStatus = true
 
     do {
-      // Get account details to get members
-      var accountRequest = Identity_GetAccountRequest()
-      accountRequest.accountID = mealPlan.belongsToAccount
+      // The roster is a read of its own rather than a field of the account.
+      var membersRequest = Primandproper_Platform_Identity_V1_ListAccountMembersRequest()
+      membersRequest.accountID = mealPlan.belongsToAccount
+      membersRequest.filter = QueryFilterMessage()
 
-      let accountResponse = try await authManager.authenticatedCall("getAccount", idempotent: true)
-      {
+      let membersResponse = try await authManager.authenticatedCall(
+        "listAccountMembers", idempotent: true
+      ) {
         client, metadata, options in
-        try await client.identity.getAccount(accountRequest, metadata: metadata, options: options)
+        try await client.identity.listAccountMembers(
+          membersRequest, metadata: metadata, options: options)
       }
 
-      guard accountResponse.hasResult else {
-        print("⚠️ Account not found")
-        isLoadingVotingStatus = false
-        return
-      }
-
-      let account = accountResponse.result
-      accountMembers = account.members
+      accountMembers = membersResponse.results
 
       // Determine voting status for each member
       var statusMap: [String: VotingStatus] = [:]
 
-      for member in account.members {
-        guard member.hasBelongsToUser else { continue }
-        let userID = member.belongsToUser.id
+      for member in accountMembers {
+        guard member.hasUser else { continue }
+        let userID = member.user.id
 
         var eventsVoted: Set<String> = []
         var eventsAbstained: Set<String> = []

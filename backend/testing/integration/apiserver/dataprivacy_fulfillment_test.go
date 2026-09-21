@@ -150,7 +150,7 @@ func userRowCount(t *testing.T, ctx context.Context, userID string) int {
 
 	var count int
 	require.NoError(t, databaseClient.Reader().
-		QueryRowContext(ctx, "SELECT COUNT(*) FROM users WHERE id = $1", userID).Scan(&count))
+		QueryRowContext(ctx, "SELECT COUNT(*) FROM ddb_identity_users WHERE id = $1", userID).Scan(&count))
 
 	return count
 }

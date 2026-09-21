@@ -36,10 +36,16 @@ func BuildFakeUser() *identity.User {
 	// fake with a random display name disagrees with a user created from it.
 	user.DisplayName = user.Username
 
-	// A user who has not verified their email yet, which is what a user who just
-	// registered is. The explanation goes with it: nothing on the registration path sets
-	// one, so a generated value disagrees with every user read back out of the store.
-	user.AccountStatus = identity.StatusUnverified
+	// Good standing, which is what this application's registration writes.
+	//
+	// It is not platform's default — platform starts a user unverified and refuses
+	// sign-in to anything else — and the disagreement is deliberate policy, stated at the
+	// registration site. A fake carrying platform's default would be a user no test could
+	// log in as, which is a fake of nobody this application creates.
+	//
+	// The explanation goes with it: nothing on the registration path sets one, so a
+	// generated value disagrees with every user read back out of the store.
+	user.AccountStatus = identity.StatusGood
 	user.AccountStatusExplanation = ""
 
 	// Registration never demands a password change; that flag is raised later by an

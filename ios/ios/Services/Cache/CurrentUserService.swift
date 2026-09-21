@@ -29,10 +29,10 @@ actor CurrentUserService {
 
   /// Returns the current user — from cache when fresh, else via `getSelf` (cached on success).
   func currentUser(using authManager: AuthenticationManager, forceRefresh: Bool = false)
-    async throws -> Identity_User
+    async throws -> Primandproper_Platform_Identity_V1_User
   {
     if !forceRefresh, let data = try? await cache.get(Self.key),
-      let user = try? Identity_User(serializedData: data)
+      let user = try? Primandproper_Platform_Identity_V1_User(serializedData: data)
     {
       return user
     }

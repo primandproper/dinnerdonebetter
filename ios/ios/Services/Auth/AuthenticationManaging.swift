@@ -30,7 +30,6 @@ struct RegistrationInput {
   let accountName: String
   let firstName: String
   let lastName: String
-  let birthday: Date?
   let invitationToken: String
   let invitationID: String
 }

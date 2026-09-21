@@ -16,16 +16,22 @@ import SwiftUI
 // swiftlint:disable:next type_body_length
 class AccountSettingsViewModel {
   private struct FetchDataResult {
-    let account: Identity_Account
+    let account: Primandproper_Platform_Identity_V1_Account
+    let members: [Primandproper_Platform_Identity_V1_MembershipWithUser]
     let user: Auth_GetSelfResponse
-    let invitations: [Identity_AccountInvitation]
+    let invitations: [Primandproper_Platform_Identity_V1_Invitation]
     let instrumentOwnerships: [Mealplanning_AccountInstrumentOwnership]
     let validInstruments: [Mealplanning_ValidInstrument]
   }
   // Data
-  var account: Identity_Account?
+  var account: Primandproper_Platform_Identity_V1_Account?
+  /// The household's roster.
+  ///
+  /// A read of its own rather than a field of the account: an account with thirty members
+  /// would otherwise be thirty users on every read of it.
+  var members: [Primandproper_Platform_Identity_V1_MembershipWithUser] = []
   var user: Auth_GetSelfResponse?
-  var invitations: [Identity_AccountInvitation] = []
+  var invitations: [Primandproper_Platform_Identity_V1_Invitation] = []
   var instrumentOwnerships: [Mealplanning_AccountInstrumentOwnership] = []
   var validInstruments: [Mealplanning_ValidInstrument] = []
 
@@ -59,16 +65,16 @@ class AccountSettingsViewModel {
 
   // Computed properties
   var isAccountAdmin: Bool {
-    guard let userID = getCurrentUserID() else { return false }
-    return account?.members.first { membership in
-      membership.hasBelongsToUser && membership.belongsToUser.id == userID
-    }?.accountRole == "account_admin"
+    guard let membership = currentUserMembership else { return false }
+    // A membership carries a set of roles rather than one, because a role is a grant and
+    // somebody may hold several.
+    return membership.membership.roles.contains("account_admin")
   }
 
-  var currentUserMembership: Identity_AccountUserMembershipWithUser? {
+  var currentUserMembership: Primandproper_Platform_Identity_V1_MembershipWithUser? {
     guard let userID = getCurrentUserID() else { return nil }
-    return account?.members.first { membership in
-      membership.hasBelongsToUser && membership.belongsToUser.id == userID
+    return members.first { membership in
+      membership.hasUser && membership.user.id == userID
     }
   }
 
@@ -100,6 +106,7 @@ class AccountSettingsViewModel {
     do {
       let result = try await fetchAllData()
       self.account = result.account
+      self.members = result.members
       self.user = result.user
       self.invitations = result.invitations
       self.instrumentOwnerships = result.instrumentOwnerships
@@ -121,12 +128,14 @@ class AccountSettingsViewModel {
 
   private func fetchAllData() async throws -> FetchDataResult {
     async let accountTask = fetchActiveAccount()
+    async let membersTask = fetchMembers()
     async let userTask = fetchUser()
     async let invitationsTask = fetchInvitations()
     async let instrumentOwnershipsTask = fetchInstrumentOwnerships()
     async let validInstrumentsTask = fetchValidInstruments()
     return FetchDataResult(
       account: try await accountTask,
+      members: try await membersTask,
       user: try await userTask,
       invitations: try await invitationsTask,
       instrumentOwnerships: try await instrumentOwnershipsTask,
@@ -134,7 +143,7 @@ class AccountSettingsViewModel {
     )
   }
 
-  private func fetchActiveAccount() async throws -> Identity_Account {
+  private func fetchActiveAccount() async throws -> Primandproper_Platform_Identity_V1_Account {
     let (clientManager, metadata) = try await getClientManagerAndMetadata()
     let accountID = try await getActiveAccountID(clientManager: clientManager, metadata: metadata)
     return try await getAccountDetails(
@@ -164,8 +173,8 @@ class AccountSettingsViewModel {
     accountID: String,
     clientManager: ClientManager<HTTP2ClientTransport.TransportServices>,
     metadata: GRPCCore.Metadata
-  ) async throws -> Identity_Account {
-    var request = Identity_GetAccountRequest()
+  ) async throws -> Primandproper_Platform_Identity_V1_Account {
+    var request = Primandproper_Platform_Identity_V1_GetAccountRequest()
     request.accountID = accountID
 
     let identityResponse = try await clientManager.client.identity.getAccount(
@@ -192,13 +201,13 @@ class AccountSettingsViewModel {
     )
   }
 
-  private func fetchInvitations() async throws -> [Identity_AccountInvitation] {
+  private func fetchInvitations() async throws -> [Primandproper_Platform_Identity_V1_Invitation] {
     let (clientManager, metadata) = try await getClientManagerAndMetadata()
     let filter = QueryFilterMessage()
-    var request = Identity_GetSentAccountInvitationsRequest()
+    var request = Primandproper_Platform_Identity_V1_ListInvitationsFromUserRequest()
     request.filter = filter
 
-    let response = try await clientManager.client.identity.getSentAccountInvitations(
+    let response = try await clientManager.client.identity.listInvitationsFromUser(
       request,
       metadata: metadata,
       options: clientManager.defaultCallOptions
@@ -388,7 +397,7 @@ class AccountSettingsViewModel {
   private func executeAccountUpdate(accountID: String) async throws {
     let (clientManager, metadata) = try await getClientManagerAndMetadata()
     let updateInput = createAccountUpdateInput()
-    var request = Identity_UpdateAccountRequest()
+    var request = Primandproper_Platform_Identity_V1_UpdateAccountRequest()
     request.accountID = accountID
     request.input = updateInput
 
@@ -399,16 +408,22 @@ class AccountSettingsViewModel {
     )
   }
 
-  private func createAccountUpdateInput() -> Identity_AccountUpdateRequestInput {
-    var updateInput = Identity_AccountUpdateRequestInput()
+  // The address is one value rather than seven fields, because it travels as one: a caller
+  // updating an address updates all of it, and an application that never collects one
+  // leaves a zero rather than seven empty strings.
+  private func createAccountUpdateInput() -> Primandproper_Platform_Identity_V1_AccountUpdateInput {
+    var address = Primandproper_Platform_Identity_V1_BillingAddress()
+    address.line1 = addressLine1
+    address.line2 = addressLine2
+    address.city = city
+    address.state = state
+    address.postalCode = zipCode
+    address.country = country
+    address.phone = contactPhone
+
+    var updateInput = Primandproper_Platform_Identity_V1_AccountUpdateInput()
     updateInput.name = accountName
-    updateInput.contactPhone = contactPhone
-    updateInput.addressLine1 = addressLine1
-    updateInput.addressLine2 = addressLine2
-    updateInput.city = city
-    updateInput.state = state
-    updateInput.zipCode = zipCode
-    updateInput.country = country
+    updateInput.billingAddress = address
     return updateInput
   }
 
@@ -458,21 +473,21 @@ class AccountSettingsViewModel {
     return emailPredicate.evaluate(with: email)
   }
 
-  private func createInvitationInput() -> Identity_AccountInvitationCreationRequestInput {
-    var invitationInput = Identity_AccountInvitationCreationRequestInput()
-    invitationInput.toEmail = invitationEmail
-    invitationInput.toName = invitationName
-    invitationInput.note = invitationNote
-    return invitationInput
-  }
-
   private func executeInvitationCreation() async throws {
     let (clientManager, metadata) = try await getClientManagerAndMetadata()
-    let invitationInput = createInvitationInput()
-    var request = Identity_CreateAccountInvitationRequest()
-    request.input = invitationInput
+    let accountID = try await getActiveAccountID(clientManager: clientManager, metadata: metadata)
 
-    _ = try await clientManager.client.identity.createAccountInvitation(
+    // The account is named on the request rather than taken from the session, and the roles
+    // the invitation promises come from here: what somebody was invited to is what they
+    // get, and an acceptance cannot ask for more.
+    var request = Primandproper_Platform_Identity_V1_InviteRequest()
+    request.accountID = accountID
+    request.toEmail = invitationEmail
+    request.toName = invitationName
+    request.note = invitationNote
+    request.roles = ["account_member"]
+
+    _ = try await clientManager.client.identity.invite(
       request,
       metadata: metadata,
       options: clientManager.defaultCallOptions
@@ -491,11 +506,12 @@ class AccountSettingsViewModel {
 
     return await performUpdate {
       let (clientManager, metadata) = try await getClientManagerAndMetadata()
-      var request = Identity_CancelAccountInvitationRequest()
-      request.accountInvitationID = invitationID
-      request.input = Identity_AccountInvitationUpdateRequestInput()
+      // No token: withdrawing is the sender's act, and the secret half of the link is the
+      // recipient's. No read returns one.
+      var request = Primandproper_Platform_Identity_V1_CancelInvitationRequest()
+      request.invitationID = invitationID
 
-      _ = try await clientManager.client.identity.cancelAccountInvitation(
+      _ = try await clientManager.client.identity.cancelInvitation(
         request,
         metadata: metadata,
         options: clientManager.defaultCallOptions
@@ -514,7 +530,7 @@ class AccountSettingsViewModel {
 
     return await performUpdate {
       try await executeMemberRoleUpdate(
-        userID: membership.belongsToUser.id, newRole: newRole, reason: reason)
+        userID: membership.user.id, newRole: newRole, reason: reason)
       await loadData()
     } errorMessage: {
       "Failed to update member role: \($0.localizedDescription)"
@@ -523,7 +539,7 @@ class AccountSettingsViewModel {
 
   private func validateMemberRoleUpdate(
     membershipID: String, reason: String
-  ) -> Identity_AccountUserMembershipWithUser? {
+  ) -> Primandproper_Platform_Identity_V1_MembershipWithUser? {
     guard isAccountAdmin else {
       errorMessage = "Only household admins can change member roles"
       return nil
@@ -534,12 +550,12 @@ class AccountSettingsViewModel {
       return nil
     }
 
-    guard let membership = account?.members.first(where: { $0.id == membershipID }) else {
+    guard let membership = members.first(where: { $0.membership.id == membershipID }) else {
       errorMessage = "Member not found"
       return nil
     }
 
-    guard membership.hasBelongsToUser, !membership.belongsToUser.id.isEmpty else {
+    guard membership.hasUser, !membership.user.id.isEmpty else {
       errorMessage = "User ID not found"
       return nil
     }
@@ -567,40 +583,39 @@ class AccountSettingsViewModel {
     }
   }
 
-  private func createMemberRoleUpdateInput(newRole: String, reason: String)
-    -> Identity_ModifyUserPermissionsInput
-  {
-    var updateInput = Identity_ModifyUserPermissionsInput()
-    updateInput.newRole = newRole
-    updateInput.reason = reason
-    return updateInput
-  }
-
+  // Roles are replaced rather than merged, and the account is named. A caller adding a role
+  // reads the membership and writes the union, which is visible at the call site; a merging
+  // setter could not express a revocation at all.
+  //
+  // The reason is no longer sent. platform records who changed what through the hook this
+  // application registers rather than through a field on the request, so a reason here
+  // would be a value nothing stored — it is still required of the user, and still shown.
   private func executeMemberRoleUpdate(userID: String, newRole: String, reason: String) async throws
   {
     let (clientManager, metadata) = try await getClientManagerAndMetadata()
-    let updateInput = createMemberRoleUpdateInput(newRole: newRole, reason: reason)
+    let accountID = try await getActiveAccountID(clientManager: clientManager, metadata: metadata)
 
-    var request = Identity_UpdateAccountMemberPermissionsRequest()
+    var request = Primandproper_Platform_Identity_V1_SetMembershipRolesRequest()
+    request.accountID = accountID
     request.userID = userID
-    request.input = updateInput
+    request.roles = [newRole]
 
-    _ = try await clientManager.client.identity.updateAccountMemberPermissions(
+    _ = try await clientManager.client.identity.setMembershipRoles(
       request,
       metadata: metadata,
       options: clientManager.defaultCallOptions
     )
   }
 
-  private func initializeFormFields(from account: Identity_Account) {
+  private func initializeFormFields(from account: Primandproper_Platform_Identity_V1_Account) {
     accountName = account.name
-    contactPhone = account.contactPhone
-    addressLine1 = account.addressLine1
-    addressLine2 = account.addressLine2
-    city = account.city
-    state = account.state
-    zipCode = account.zipCode
-    country = account.country.isEmpty ? "USA" : account.country
+    contactPhone = account.billingAddress.phone
+    addressLine1 = account.billingAddress.line1
+    addressLine2 = account.billingAddress.line2
+    city = account.billingAddress.city
+    state = account.billingAddress.state
+    zipCode = account.billingAddress.postalCode
+    country = account.billingAddress.country.isEmpty ? "USA" : account.billingAddress.country
   }
 
   private func getClientManagerAndMetadata() async throws -> (

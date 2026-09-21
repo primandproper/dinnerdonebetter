@@ -79,6 +79,11 @@ const lockKey = "dinnerdonebetter"
 // filename and must never be renumbered once applied. Adding another means taking the next
 // free number, whichever side it comes from.
 const (
+	// identity is first, and has to be: every other table in this schema that names a
+	// user or an account has a foreign key into it. It took the number the hand-written
+	// identity migration vacated rather than a free one at the end, because a foreign key
+	// cannot reference a table that does not exist yet.
+	identityMigrationVersion        = 1
 	outboxMigrationVersion          = 2
 	sagaMigrationVersion            = 3
 	webhooksMigrationVersion        = 4
@@ -100,8 +105,19 @@ const (
 	billingMigrationVersion         = 20
 	notificationsMigrationVersion   = 21
 	oauth2ClientsMigrationVersion   = 22
-	identityMigrationVersion        = 23
 	passkeysMigrationVersion        = 24
+)
+
+// The identity tables other schemas reference.
+//
+// They are derived from the prefix the identity store is built with rather than spelled,
+// because a constraint naming a table the store does not write is a constraint against an
+// empty table — which is exactly the failure this application spent a suite discovering.
+var (
+	identityUsers           = ddl.Qualify(ddbidentity.TablePrefix) + "identity_users"
+	identityAccounts        = ddl.Qualify(ddbidentity.TablePrefix) + "identity_accounts"
+	identityUserRoles       = ddl.Qualify(ddbidentity.TablePrefix) + "identity_user_roles"
+	identityMembershipRoles = ddl.Qualify(ddbidentity.TablePrefix) + "identity_membership_roles"
 )
 
 // NewMigrator creates a new postgres Migrator over the embedded migration files.
@@ -455,7 +471,13 @@ func renderAuthorizationDDL() (string, error) {
 
 	body := &strings.Builder{}
 	body.WriteString(schema)
-	body.WriteString("\n\nALTER TABLE user_role_assignments\n\tADD CONSTRAINT user_role_assignments_role_fk\n\tFOREIGN KEY (role_name) REFERENCES " + rolesTable + "(name) ON DELETE RESTRICT;\n")
+	// The key follows the assignments, which are platform's now: a service role is a row
+	// in identity_user_roles and a membership role is one in identity_membership_roles,
+	// where both used to be user_role_assignments. Two constraints where there was one,
+	// because platform keeps the two apart — they are granted by different people and
+	// answer different questions.
+	body.WriteString("\n\nALTER TABLE " + identityUserRoles + "\n\tADD CONSTRAINT " + identityUserRoles + "_role_fk\n\tFOREIGN KEY (role) REFERENCES " + rolesTable + "(name) ON DELETE RESTRICT;\n")
+	body.WriteString("\nALTER TABLE " + identityMembershipRoles + "\n\tADD CONSTRAINT " + identityMembershipRoles + "_role_fk\n\tFOREIGN KEY (role) REFERENCES " + rolesTable + "(name) ON DELETE RESTRICT;\n")
 
 	return body.String(), nil
 }
@@ -522,7 +544,7 @@ func renderBillingDDL() (string, error) {
 
 	for _, owned := range billingTablesOwnedByAccounts {
 		table := qualified + owned
-		body.WriteString("\n\nALTER TABLE " + table + "\n\tADD CONSTRAINT " + table + "_account_fk\n\tFOREIGN KEY (belongs_to_account) REFERENCES accounts(id) ON DELETE CASCADE;\n")
+		body.WriteString("\n\nALTER TABLE " + table + "\n\tADD CONSTRAINT " + table + "_account_fk\n\tFOREIGN KEY (belongs_to_account) REFERENCES " + identityAccounts + "(id) ON DELETE CASCADE;\n")
 	}
 
 	return body.String(), nil
@@ -572,8 +594,8 @@ func renderIssueReportsDDL() (string, error) {
 
 	body := &strings.Builder{}
 	body.WriteString(schema)
-	body.WriteString("\n\nALTER TABLE " + table + "\n\tADD CONSTRAINT " + table + "_reporter_fk\n\tFOREIGN KEY (reporter) REFERENCES users(id) ON DELETE CASCADE;\n")
-	body.WriteString("\nALTER TABLE " + table + "\n\tADD CONSTRAINT " + table + "_scope_fk\n\tFOREIGN KEY (scope) REFERENCES accounts(id) ON DELETE CASCADE;\n")
+	body.WriteString("\n\nALTER TABLE " + table + "\n\tADD CONSTRAINT " + table + "_reporter_fk\n\tFOREIGN KEY (reporter) REFERENCES " + identityUsers + "(id) ON DELETE CASCADE;\n")
+	body.WriteString("\nALTER TABLE " + table + "\n\tADD CONSTRAINT " + table + "_scope_fk\n\tFOREIGN KEY (scope) REFERENCES " + identityAccounts + "(id) ON DELETE CASCADE;\n")
 
 	return body.String(), nil
 }
@@ -673,7 +695,7 @@ func renderSettingsDDL() (string, error) {
 	// settings table, and Postgres will not drop a table out from under a
 	// foreign key. The enum follows both, for the same reason.
 	body.WriteString(schema)
-	body.WriteString("\n\nALTER TABLE " + values + "\n\tADD CONSTRAINT " + values + "_subject_fk\n\tFOREIGN KEY (subject_id) REFERENCES users(id) ON DELETE CASCADE;\n")
+	body.WriteString("\n\nALTER TABLE " + values + "\n\tADD CONSTRAINT " + values + "_subject_fk\n\tFOREIGN KEY (subject_id) REFERENCES " + identityUsers + "(id) ON DELETE CASCADE;\n")
 
 	// The one setting this application ships with, re-seeded against the new
 	// schema. 00021_mealplanning.sql wrote it into the table dropped above, and
@@ -880,7 +902,7 @@ func renderUploadsRegistryDDL() (string, error) {
 	body := &strings.Builder{}
 
 	body.WriteString(schema)
-	body.WriteString("\n\nALTER TABLE " + table + "\n\tADD CONSTRAINT " + table + "_owner_fk\n\tFOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE;\n")
+	body.WriteString("\n\nALTER TABLE " + table + "\n\tADD CONSTRAINT " + table + "_owner_fk\n\tFOREIGN KEY (owner_id) REFERENCES " + identityUsers + "(id) ON DELETE CASCADE;\n")
 
 	return body.String(), nil
 }
@@ -931,8 +953,8 @@ func renderNotificationsDDL() (string, error) {
 	body := &strings.Builder{}
 
 	body.WriteString(schema)
-	body.WriteString("\n\nALTER TABLE " + inbox + "\n\tADD CONSTRAINT " + inbox + "_principal_fk\n\tFOREIGN KEY (principal) REFERENCES users(id) ON DELETE CASCADE;\n")
-	body.WriteString("\nALTER TABLE " + devices + "\n\tADD CONSTRAINT " + devices + "_principal_fk\n\tFOREIGN KEY (principal) REFERENCES users(id) ON DELETE CASCADE;\n")
+	body.WriteString("\n\nALTER TABLE " + inbox + "\n\tADD CONSTRAINT " + inbox + "_principal_fk\n\tFOREIGN KEY (principal) REFERENCES " + identityUsers + "(id) ON DELETE CASCADE;\n")
+	body.WriteString("\nALTER TABLE " + devices + "\n\tADD CONSTRAINT " + devices + "_principal_fk\n\tFOREIGN KEY (principal) REFERENCES " + identityUsers + "(id) ON DELETE CASCADE;\n")
 
 	return body.String(), nil
 }

@@ -387,7 +387,7 @@ CREATE TABLE IF NOT EXISTS user_ingredient_preferences (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
     last_updated_at TIMESTAMP WITH TIME ZONE,
     archived_at TIMESTAMP WITH TIME ZONE,
-    belongs_to_user TEXT NOT NULL REFERENCES users("id") ON DELETE CASCADE,
+    belongs_to_user TEXT NOT NULL REFERENCES ddb_identity_users("id") ON DELETE CASCADE,
     UNIQUE(belongs_to_user, ingredient)
 );
 
@@ -396,7 +396,7 @@ CREATE TABLE IF NOT EXISTS account_instrument_ownerships (
     notes TEXT DEFAULT ''::TEXT NOT NULL,
     quantity INTEGER DEFAULT 0 NOT NULL,
     valid_instrument_id TEXT NOT NULL,
-    belongs_to_account TEXT NOT NULL REFERENCES accounts("id") ON DELETE CASCADE,
+    belongs_to_account TEXT NOT NULL REFERENCES ddb_identity_accounts("id") ON DELETE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
     last_updated_at TIMESTAMP WITH TIME ZONE,
     archived_at TIMESTAMP WITH TIME ZONE,
@@ -422,7 +422,7 @@ CREATE TABLE IF NOT EXISTS recipes (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
     last_updated_at TIMESTAMP WITH TIME ZONE,
     archived_at TIMESTAMP WITH TIME ZONE,
-    created_by_user TEXT NOT NULL REFERENCES users("id") ON DELETE CASCADE,
+    created_by_user TEXT NOT NULL REFERENCES ddb_identity_users("id") ON DELETE CASCADE,
     min_estimated_portions NUMERIC(14,2) DEFAULT 1 NOT NULL,
     slug TEXT DEFAULT ''::TEXT NOT NULL,
     portion_name TEXT DEFAULT 'portion'::TEXT NOT NULL,
@@ -612,7 +612,7 @@ CREATE TABLE IF NOT EXISTS recipe_ratings (
     instructions NUMERIC(14,2),
     overall NUMERIC(14,2),
     notes TEXT DEFAULT ''::TEXT NOT NULL,
-    created_by_user TEXT NOT NULL REFERENCES users("id") ON DELETE CASCADE,
+    created_by_user TEXT NOT NULL REFERENCES ddb_identity_users("id") ON DELETE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
     last_updated_at TIMESTAMP WITH TIME ZONE,
     archived_at TIMESTAMP WITH TIME ZONE,
@@ -630,7 +630,7 @@ CREATE TABLE IF NOT EXISTS meals (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
     last_updated_at TIMESTAMP WITH TIME ZONE,
     archived_at TIMESTAMP WITH TIME ZONE,
-    created_by_user TEXT NOT NULL REFERENCES users("id") ON DELETE CASCADE,
+    created_by_user TEXT NOT NULL REFERENCES ddb_identity_users("id") ON DELETE CASCADE,
     min_estimated_portions NUMERIC(14,2) DEFAULT 1.0 NOT NULL,
     max_estimated_portions NUMERIC(14,2),
     eligible_for_meal_plans BOOLEAN DEFAULT true NOT NULL,
@@ -665,11 +665,11 @@ CREATE TABLE IF NOT EXISTS meal_plans (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
     last_updated_at TIMESTAMP WITH TIME ZONE,
     archived_at TIMESTAMP WITH TIME ZONE,
-    belongs_to_account TEXT NOT NULL REFERENCES accounts("id") ON DELETE CASCADE,
+    belongs_to_account TEXT NOT NULL REFERENCES ddb_identity_accounts("id") ON DELETE CASCADE,
     grocery_list_initialized BOOLEAN DEFAULT FALSE NOT NULL,
     tasks_created BOOLEAN DEFAULT FALSE NOT NULL,
     election_method valid_election_method DEFAULT 'schulze'::valid_election_method NOT NULL,
-    created_by_user TEXT NOT NULL REFERENCES users("id") ON DELETE CASCADE,
+    created_by_user TEXT NOT NULL REFERENCES ddb_identity_users("id") ON DELETE CASCADE,
     -- What makes starting a finalization saga idempotent: the job that starts them
     -- selects plans with no saga attached, and the attach happens in the same
     -- transaction as the instance row.
@@ -717,8 +717,8 @@ CREATE TABLE IF NOT EXISTS meal_plan_options (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
     last_updated_at TIMESTAMP WITH TIME ZONE,
     archived_at TIMESTAMP WITH TIME ZONE,
-    assigned_cook TEXT REFERENCES users("id") ON DELETE CASCADE,
-    assigned_dishwasher TEXT REFERENCES users("id") ON DELETE CASCADE,
+    assigned_cook TEXT REFERENCES ddb_identity_users("id") ON DELETE CASCADE,
+    assigned_dishwasher TEXT REFERENCES ddb_identity_users("id") ON DELETE CASCADE,
     belongs_to_meal_plan_event TEXT REFERENCES meal_plan_events("id") ON DELETE CASCADE,
     meal_scale NUMERIC(14,2) DEFAULT 1.0 NOT NULL
 );
@@ -751,7 +751,7 @@ CREATE TABLE IF NOT EXISTS meal_plan_option_votes (
     rank INTEGER NOT NULL,
     abstain BOOLEAN NOT NULL,
     notes TEXT NOT NULL,
-    by_user TEXT NOT NULL REFERENCES users("id") ON DELETE CASCADE,
+    by_user TEXT NOT NULL REFERENCES ddb_identity_users("id") ON DELETE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
     last_updated_at TIMESTAMP WITH TIME ZONE,
     archived_at TIMESTAMP WITH TIME ZONE,
@@ -784,7 +784,7 @@ CREATE TABLE IF NOT EXISTS meal_plan_tasks (
     notification_sent_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
     last_updated_at TIMESTAMP WITH TIME ZONE,
-    assigned_to_user TEXT REFERENCES users("id") ON DELETE CASCADE,
+    assigned_to_user TEXT REFERENCES ddb_identity_users("id") ON DELETE CASCADE,
     completed_at TIMESTAMP WITH TIME ZONE
 );
 
@@ -797,7 +797,7 @@ CREATE TABLE IF NOT EXISTS meal_lists (
     "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     "last_updated_at" TIMESTAMP WITH TIME ZONE DEFAULT NULL,
     "archived_at" TIMESTAMP WITH TIME ZONE DEFAULT NULL,
-    "belongs_to_user" TEXT NOT NULL REFERENCES users("id") ON DELETE CASCADE ON UPDATE CASCADE
+    "belongs_to_user" TEXT NOT NULL REFERENCES ddb_identity_users("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS meal_list_items (
@@ -817,7 +817,7 @@ CREATE TABLE IF NOT EXISTS recipe_lists (
     "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     "last_updated_at" TIMESTAMP WITH TIME ZONE DEFAULT NULL,
     "archived_at" TIMESTAMP WITH TIME ZONE DEFAULT NULL,
-    "belongs_to_user" TEXT NOT NULL REFERENCES users("id") ON DELETE CASCADE ON UPDATE CASCADE
+    "belongs_to_user" TEXT NOT NULL REFERENCES ddb_identity_users("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS recipe_list_items (
@@ -834,7 +834,7 @@ CREATE TABLE IF NOT EXISTS recipe_images (
     id TEXT NOT NULL PRIMARY KEY,
     belongs_to_recipe TEXT NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
     uploaded_media_id TEXT NOT NULL REFERENCES ddb_uploads_objects(id) ON DELETE CASCADE,
-    uploaded_by_user TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    uploaded_by_user TEXT NOT NULL REFERENCES ddb_identity_users("id") ON DELETE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     archived_at TIMESTAMP WITH TIME ZONE
 );
@@ -843,7 +843,7 @@ CREATE TABLE IF NOT EXISTS meal_images (
     id TEXT NOT NULL PRIMARY KEY,
     belongs_to_meal TEXT NOT NULL REFERENCES meals(id) ON DELETE CASCADE,
     uploaded_media_id TEXT NOT NULL REFERENCES ddb_uploads_objects(id) ON DELETE CASCADE,
-    uploaded_by_user TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    uploaded_by_user TEXT NOT NULL REFERENCES ddb_identity_users("id") ON DELETE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     archived_at TIMESTAMP WITH TIME ZONE
 );
@@ -1155,7 +1155,7 @@ CREATE TABLE IF NOT EXISTS recipe_step_images (
     id TEXT NOT NULL PRIMARY KEY,
     belongs_to_recipe_step TEXT NOT NULL REFERENCES recipe_steps(id) ON DELETE CASCADE,
     uploaded_media_id TEXT NOT NULL REFERENCES ddb_uploads_objects(id) ON DELETE CASCADE,
-    uploaded_by_user TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    uploaded_by_user TEXT NOT NULL REFERENCES ddb_identity_users("id") ON DELETE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
     archived_at TIMESTAMP WITH TIME ZONE
 );
@@ -1179,7 +1179,7 @@ CREATE INDEX idx_recipe_step_images_step ON recipe_step_images (belongs_to_recip
 -- counterpart in the registry that replaced it.
 CREATE TABLE IF NOT EXISTS user_avatars (
     id TEXT NOT NULL PRIMARY KEY,
-    belongs_to_user TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    belongs_to_user TEXT NOT NULL REFERENCES ddb_identity_users("id") ON DELETE CASCADE,
     uploaded_media_id TEXT NOT NULL REFERENCES ddb_uploads_objects(id) ON DELETE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     archived_at TIMESTAMP WITH TIME ZONE,

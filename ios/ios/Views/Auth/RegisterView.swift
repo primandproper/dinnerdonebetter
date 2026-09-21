@@ -23,8 +23,6 @@ struct RegisterView: View {
   @State private var accountName: String = ""
   @State private var firstName: String = ""
   @State private var lastName: String = ""
-  @State private var birthday: Date?
-  @State private var showBirthdayPicker: Bool = false
   @State private var errorMessage: String = ""
   @State private var isLoading: Bool = false
   @State private var registrationTask: Task<Void, Never>?
@@ -128,46 +126,10 @@ struct RegisterView: View {
           )
           .accessibilityIdentifier("registrationAccountNameInput")
 
-          // Birthday picker
-          Button {
-            showBirthdayPicker.toggle()
-          } label: {
-            HStack {
-              if let birthday = birthday {
-                Text(formatDate(birthday))
-                  .foregroundColor(DSTheme.Colors.textPrimary)
-              } else {
-                Text("Birthday (optional)")
-                  .foregroundColor(DSTheme.Colors.textSecondary)
-              }
-              Spacer()
-              Image(systemName: "calendar")
-                .foregroundColor(DSTheme.Colors.textSecondary)
-            }
-            .padding(DSTheme.Spacing.md)
-            .background(DSTheme.Colors.cardBackground)
-            .cornerRadius(DSTheme.Radius.sm)
-          }
-          .disabled(isLoading)
-          .accessibilityIdentifier("registrationBirthdayInput")
-
-          if showBirthdayPicker {
-            let maxDate = Calendar.current.date(byAdding: .year, value: -13, to: Date()) ?? Date()
-            DatePicker(
-              "Birthday",
-              selection: Binding(
-                get: { birthday ?? maxDate },
-                set: { birthday = $0 }
-              ),
-              in: ...maxDate,
-              displayedComponents: .date
-            )
-            .datePickerStyle(.compact)
-            .labelsHidden()
-            .onChange(of: birthday) { _, _ in
-              showBirthdayPicker = false
-            }
-          }
+          // The birthday field is gone with the column behind it. platform's user has
+          // none, nothing on the backend ever read one, and storing it means a table of
+          // this application's own — which is its own piece of work rather than part of
+          // the directory adoption.
 
           HStack(spacing: DSTheme.Spacing.md) {
             DSTextField(
@@ -247,12 +209,6 @@ struct RegisterView: View {
     return emailPredicate.evaluate(with: email)
   }
 
-  private func formatDate(_ date: Date) -> String {
-    let formatter = DateFormatter()
-    formatter.dateStyle = .medium
-    return formatter.string(from: date)
-  }
-
   // MARK: - Registration
 
   private func handleRegistration() async {
@@ -294,7 +250,6 @@ struct RegisterView: View {
       accountName: accountName.trimmingCharacters(in: .whitespaces),
       firstName: firstName.trimmingCharacters(in: .whitespaces),
       lastName: lastName.trimmingCharacters(in: .whitespaces),
-      birthday: birthday,
       invitationToken: invitationToken.trimmingCharacters(in: .whitespaces),
       invitationID: invitationID.trimmingCharacters(in: .whitespaces)
     )
@@ -327,7 +282,6 @@ struct RegisterView: View {
     accountName = ""
     firstName = ""
     lastName = ""
-    birthday = nil
   }
 }
 

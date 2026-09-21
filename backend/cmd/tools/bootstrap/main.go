@@ -239,6 +239,7 @@ func runInit(db *dbFlags, adminUsername, adminPassword, adminEmail, apiServerURL
 			FirstName:       "Admin",
 			HashedPassword:  hashedPassword,
 			TwoFactorSecret: twoFactorSecretPlaceholder,
+			AccountStatus:   platformidentity.StatusGood,
 			ServiceRoles:    []string{authorization.ServiceUserRoleName},
 		}, &platformidentity.Account{
 			Name: "Bootstrap account",

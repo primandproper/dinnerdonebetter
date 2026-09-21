@@ -388,7 +388,7 @@ struct VoteMealPlanView: View {
               if member.hasBelongsToUser {
                 memberVotingStatusCard(
                   member: member,
-                  status: viewModel.votingStatus[member.belongsToUser.id],
+                  status: viewModel.votingStatus[member.user.id],
                   totalEvents: viewModel.mealPlan.events.count
                 )
               }
@@ -403,15 +403,15 @@ struct VoteMealPlanView: View {
   }
 
   private func memberVotingStatusCard(
-    member: Identity_AccountUserMembershipWithUser,
+    member: Primandproper_Platform_Identity_V1_MembershipWithUser,
     status: VoteMealPlanViewModel.VotingStatus?,
     totalEvents: Int
   ) -> some View {
     let userName =
-      member.belongsToUser.username.isEmpty
-      ? "\(member.belongsToUser.firstName) \(member.belongsToUser.lastName)".trimmingCharacters(
+      member.user.displayName.isEmpty
+      ? "\(member.user.firstName) \(member.user.lastName)".trimmingCharacters(
         in: .whitespaces)
-      : member.belongsToUser.username
+      : member.user.displayName
 
     let displayName = userName.isEmpty ? "Unknown User" : userName
 

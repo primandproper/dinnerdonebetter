@@ -79,7 +79,24 @@ func (l *AuthManager) RegisterUser(ctx context.Context, input *auth.UserRegistra
 	}
 
 	registrant := &platformidentity.User{
-		ID:                            identifiers.New(),
+		ID: identifiers.New(),
+
+		// Good standing from the moment they register, which disagrees with platform's
+		// default and is this application's call to make.
+		//
+		// platform defaults a new user to unverified and refuses sign-in to anything but
+		// good, on the reading that "admitting them by default is the mistake worth making
+		// unspellable". That is the right default for a directory. It is not this
+		// application's policy: nothing here has ever gated use on a verified email — the
+		// verification mail exists, and a user who ignores it keeps cooking — so adopting
+		// platform's reading would be a product change arriving as a side effect of a
+		// library upgrade, and would lock out everybody who registered and closed the tab.
+		//
+		// The status is the consumer's to set, which is what makes this a statement rather
+		// than a workaround: platform supplies a default for a caller who names none.
+		// Gating on verification later means writing unverified here and promoting on
+		// MarkUserEmailAddressVerified, and nothing else.
+		AccountStatus:                 platformidentity.StatusGood,
 		Username:                      input.Username,
 		EmailAddress:                  input.EmailAddress,
 		FirstName:                     input.FirstName,

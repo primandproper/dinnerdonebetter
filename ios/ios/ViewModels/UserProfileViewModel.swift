@@ -12,7 +12,7 @@ import SwiftUI
 @Observable
 @MainActor
 class UserProfileViewModel {
-  var user: Identity_User?
+  var user: Primandproper_Platform_Identity_V1_User?
   var isLoading = false
   var errorMessage: String?
   var didSucceed = false
@@ -20,7 +20,6 @@ class UserProfileViewModel {
   var username: String = ""
   var firstName: String = ""
   var lastName: String = ""
-  var birthday = Date()
 
   var hasTwoFactor: Bool {
     user?.hasTwoFactorSecretVerifiedAt == true
@@ -33,10 +32,7 @@ class UserProfileViewModel {
 
   var detailsHasChanged: Bool {
     guard let user = user else { return false }
-    let currentBirthday = user.hasBirthday ? dateFromTimestamp(user.birthday) : nil
-    return user.firstName != firstName
-      || user.lastName != lastName
-      || (currentBirthday?.timeIntervalSince1970 ?? 0) != birthday.timeIntervalSince1970
+    return user.firstName != firstName || user.lastName != lastName
   }
 
   private let authManager: AuthenticationManager
@@ -63,15 +59,24 @@ class UserProfileViewModel {
     isLoading = false
   }
 
-  func updateUsername() async -> Bool {
+  // Changing the handle is on the auth service rather than in the directory's profile
+  // update, and it asks for the password and a second factor: a handle is what somebody
+  // signs in with, so moving it is a credential change.
+  func updateUsername(currentPassword: String, totpToken: String = "") async -> Bool {
     guard usernameHasChanged, !username.isEmpty else { return false }
+    guard !currentPassword.isEmpty else {
+      errorMessage = "Password is required"
+      return false
+    }
 
     return await performUpdate {
       let (clientManager, metadata) = try await getClientManagerAndMetadata()
-      var request = Identity_UpdateUserUsernameRequest()
+      var request = Auth_UpdateUserUsernameRequest()
       request.newUsername = username
+      request.currentPassword = currentPassword
+      request.totpToken = totpToken
 
-      _ = try await clientManager.client.identity.updateUserUsername(
+      _ = try await clientManager.client.auth.updateUserUsername(
         request,
         metadata: metadata,
         options: clientManager.defaultCallOptions
@@ -80,26 +85,25 @@ class UserProfileViewModel {
     }
   }
 
-  func updateUserDetails(currentPassword: String, totpToken: String = "") async -> Bool {
+  // A name is not a credential, so nothing is asked for. Each field is absent unless it is
+  // being set, which is what keeps sending a first name from blanking a last one.
+  //
+  // The birthday is gone. platform's user carries no such column, nothing on this backend
+  // ever read one, and storing it means a table of this application's own — which is its
+  // own piece of work rather than part of this port.
+  func updateUserDetails() async -> Bool {
     guard detailsHasChanged else { return false }
-    guard !currentPassword.isEmpty else {
-      errorMessage = "Password is required"
-      return false
-    }
 
     return await performUpdate {
       let (clientManager, metadata) = try await getClientManagerAndMetadata()
-      var input = Identity_UserDetailsUpdateRequestInput()
+      var input = Primandproper_Platform_Identity_V1_ProfileUpdateInput()
       input.firstName = firstName
       input.lastName = lastName
-      input.birthday = timestampFromDate(birthday)
-      input.currentPassword = currentPassword
-      input.totpToken = totpToken
 
-      var request = Identity_UpdateUserDetailsRequest()
+      var request = Primandproper_Platform_Identity_V1_UpdateProfileRequest()
       request.input = input
 
-      _ = try await clientManager.client.identity.updateUserDetails(
+      _ = try await clientManager.client.identity.updateProfile(
         request,
         metadata: metadata,
         options: clientManager.defaultCallOptions
@@ -117,24 +121,10 @@ class UserProfileViewModel {
     )
   }
 
-  private func initializeFormFields(from user: Identity_User) {
+  private func initializeFormFields(from user: Primandproper_Platform_Identity_V1_User) {
     username = user.username
     firstName = user.firstName
     lastName = user.lastName
-    birthday = user.hasBirthday ? dateFromTimestamp(user.birthday) : Date()
-  }
-
-  private func dateFromTimestamp(_ timestamp: SwiftProtobuf.Google_Protobuf_Timestamp) -> Date {
-    let seconds = TimeInterval(timestamp.seconds)
-    let nanos = TimeInterval(timestamp.nanos) / 1_000_000_000.0
-    return Date(timeIntervalSince1970: seconds + nanos)
-  }
-
-  private func timestampFromDate(_ date: Date) -> SwiftProtobuf.Google_Protobuf_Timestamp {
-    var timestamp = SwiftProtobuf.Google_Protobuf_Timestamp()
-    timestamp.seconds = Int64(date.timeIntervalSince1970)
-    timestamp.nanos = 0
-    return timestamp
   }
 
   private func performUpdate(operation: () async throws -> Void) async -> Bool {

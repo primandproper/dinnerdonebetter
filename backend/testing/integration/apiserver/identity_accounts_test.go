@@ -389,6 +389,10 @@ func TestAccounts_Inviting(T *testing.T) {
 		require.NotNil(t, sentInvitations)
 		assert.NotEmpty(t, sentInvitations.GetResults())
 
+		// Proven first: listing what was sent to an address is gated on having proven it,
+		// because anybody may claim any address at registration.
+		verifyEmailAddressForTest(t, invitee.ID)
+
 		// verify the invitee can see the invitation as received
 		invitations, err := inviteeClient.IdentityService().ListInvitationsForEmailAddress(ctx, &identitypb.ListInvitationsForEmailAddressRequest{})
 		require.NoError(t, err)
@@ -471,6 +475,9 @@ func TestAccounts_Inviting(T *testing.T) {
 		input.InvitationToken = invitation.Token
 		invitee, inviteeClient := createUserAndClientForTestWithRegistrationInput(t, input)
 
+		// Proven first: listing what was sent to an address is gated on having proven it.
+		verifyEmailAddressForTest(t, invitee.ID)
+
 		// nothing outstanding for the invitee, because the registration answered it
 		invitations, err := inviteeClient.IdentityService().ListInvitationsForEmailAddress(ctx, &identitypb.ListInvitationsForEmailAddressRequest{})
 		require.NoError(t, err)
@@ -511,7 +518,7 @@ func TestAccounts_Inviting(T *testing.T) {
 
 		// create a user to invite
 		input := buildUserRegistrationInputForTest(t)
-		_, inviteeClient := createUserAndClientForTestWithRegistrationInput(t, input)
+		invitee, inviteeClient := createUserAndClientForTestWithRegistrationInput(t, input)
 
 		// create the invitation for the user
 		invitation := inviteForTest(t, selfIDForTest(t, testClient), getAccountIDForTest(t, testClient), input.EmailAddress)
@@ -525,6 +532,10 @@ func TestAccounts_Inviting(T *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, sentInvitations)
 		assert.NotEmpty(t, sentInvitations.GetResults())
+
+		// Proven first: listing what was sent to an address is gated on having proven it,
+		// because anybody may claim any address at registration.
+		verifyEmailAddressForTest(t, invitee.ID)
 
 		// verify the invitee can see the invitation as received
 		invitations, err := inviteeClient.IdentityService().ListInvitationsForEmailAddress(ctx, &identitypb.ListInvitationsForEmailAddressRequest{})
@@ -567,7 +578,7 @@ func TestAccounts_Inviting(T *testing.T) {
 
 		// create a user to invite
 		input := buildUserRegistrationInputForTest(t)
-		_, inviteeClient := createUserAndClientForTestWithRegistrationInput(t, input)
+		invitee, inviteeClient := createUserAndClientForTestWithRegistrationInput(t, input)
 
 		// create the invitation for the user
 		invitation := inviteForTest(t, selfIDForTest(t, testClient), getAccountIDForTest(t, testClient), input.EmailAddress)
@@ -581,6 +592,10 @@ func TestAccounts_Inviting(T *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, sentInvitations)
 		assert.NotEmpty(t, sentInvitations.GetResults())
+
+		// Proven first: listing what was sent to an address is gated on having proven it,
+		// because anybody may claim any address at registration.
+		verifyEmailAddressForTest(t, invitee.ID)
 
 		// verify the invitee can see the invitation as received
 		invitations, err := inviteeClient.IdentityService().ListInvitationsForEmailAddress(ctx, &identitypb.ListInvitationsForEmailAddressRequest{})
@@ -748,18 +763,29 @@ func TestAccounts_OwnershipTransfer(T *testing.T) {
 		// create a webhook (to demonstrate access with later)
 		createdWebhook := createWebhookForTest(t, testClient)
 
-		// the user the account is going to
+		// The recipient joins first. An account can only be handed to somebody the caller
+		// already shares one with — the authorizer permits the caller themselves and
+		// anybody they share a live account with, and a stranger is neither — so the flow
+		// a household actually uses is invite, accept, transfer.
 		input := buildUserRegistrationInputForTest(t)
-		recipient, _ := createUserAndClientForTestWithRegistrationInput(t, input)
+		recipient, recipientClient := createUserAndClientForTestWithRegistrationInput(t, input)
 
-		_, err := testClient.IdentityService().TransferAccountOwnership(ctx, &identitypb.TransferAccountOwnershipRequest{
+		invitation := inviteForTest(t, selfIDForTest(t, testClient), accountID, input.EmailAddress)
+
+		_, err := recipientClient.IdentityService().AcceptInvitation(ctx, &identitypb.AcceptInvitationRequest{
+			InvitationId: invitation.ID,
+			Token:        invitation.Token,
+		})
+		require.NoError(t, err)
+
+		_, err = testClient.IdentityService().TransferAccountOwnership(ctx, &identitypb.TransferAccountOwnershipRequest{
 			AccountId:      accountID,
 			NewOwnerUserId: recipient.ID,
 		})
 		require.NoError(t, err)
 
 		// the new owner needs a token that says they're a member of this account
-		recipientClient, err := buildAuthedGRPCClient(ctx, fetchLoginTokenForUserForTest(t, recipient))
+		recipientClient, err = buildAuthedGRPCClient(ctx, fetchLoginTokenForUserForTest(t, recipient))
 		require.NoError(t, err)
 
 		// A minted membership carries no roles, because ownership is the standing and

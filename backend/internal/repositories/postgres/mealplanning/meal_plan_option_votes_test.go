@@ -4,6 +4,10 @@ import (
 	"context"
 	"testing"
 
+	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
+	platformidentity "github.com/primandproper/platform-go/v14/identity"
+	"github.com/primandproper/primitives-go/v2/database"
+
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
@@ -12,7 +16,6 @@ import (
 
 	"github.com/primandproper/primitives-go/v2/fake"
 	"github.com/primandproper/primitives-go/v2/filtering"
-	"github.com/primandproper/primitives-go/v2/identifiers"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -297,14 +300,20 @@ func TestQuerier_Integration_MealPlanOptionVotes_CursorBasedPagination(t *testin
 
 	// Add extra non-voting users to the account to prevent the meal plan from being finalized
 	// when all votes are received (we'll create 9 votes but have 10+ users in the account)
+	// Through the store rather than by hand: a membership and the roles it carries are two
+	// tables now, and a row written into one without the other is a member who may do
+	// nothing — which is not the non-voting member this test wants.
 	addUserToAccountHelper := func(userID string) {
-		_, execErr := dbc.writeDB.ExecContext(ctx,
-			`INSERT INTO account_user_memberships (id, belongs_to_user, belongs_to_account, default_account) VALUES ($1, $2, $3, $4)`,
-			identifiers.New(), userID, account.ID, false)
-		require.NoError(t, execErr)
-		_, execErr = dbc.writeDB.ExecContext(ctx,
-			`INSERT INTO user_role_assignments (id, user_id, role_name, account_id) VALUES ($1, $2, $3, $4)`,
-			identifiers.New(), userID, authorization.AccountMemberRoleName, account.ID)
+		store, storeErr := platformidentity.NewSQLStore(dbc.Client, platformidentity.WithTablePrefix(ddbidentity.TablePrefix))
+		require.NoError(t, storeErr)
+
+		_, execErr := store.CreateMembership(ctx, database.NewTxForTesting(dbc.writeDB), ddbidentity.Scope(),
+			&platformidentity.Membership{
+				Scope:            ddbidentity.Scope(),
+				BelongsToUser:    userID,
+				BelongsToAccount: account.ID,
+				Roles:            []string{authorization.AccountMemberRoleName},
+			})
 		require.NoError(t, execErr)
 	}
 	// Add one extra non-voting user

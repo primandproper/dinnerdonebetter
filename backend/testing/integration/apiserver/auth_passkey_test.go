@@ -227,7 +227,7 @@ func TestAuth_PasskeyCeremony(T *testing.T) {
 
 			var stored uint32
 			require.NoError(t, databaseClient.Reader().QueryRowContext(ctx,
-				`SELECT sign_count FROM webauthn_credentials WHERE belongs_to_user = $1`, user.ID).Scan(&stored))
+				`SELECT sign_count FROM ddb_webauthn_credentials WHERE belongs_to_user = $1`, user.ID).Scan(&stored))
 
 			signCounts = append(signCounts, stored)
 		}

@@ -26,6 +26,8 @@ package identity
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
+	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/succession"
 
 	platformidentity "github.com/primandproper/platform-go/v14/identity"
 	identitygrpc "github.com/primandproper/platform-go/v14/identity/grpc"
@@ -54,7 +56,7 @@ func RegisterIdentityService(i do.Injector) {
 			return nil, err
 		}
 
-		return identitygrpc.NewServer(
+		server, err := identitygrpc.NewServer(
 			do.MustInvoke[*platformidentity.Service](i),
 			store,
 			client,
@@ -64,15 +66,69 @@ func RegisterIdentityService(i do.Injector) {
 			identitygrpc.WithTracerProvider(do.MustInvoke[tracing.Provider](i)),
 			identitygrpc.WithMetricsProvider(do.MustInvoke[metrics.Provider](i)),
 		)
+		if err != nil {
+			return nil, err
+		}
+
+		rule, err := succession.New(store, ddbidentity.TablePrefix)
+		if err != nil {
+			return nil, err
+		}
+
+		// Archiving a user settles the households they own first — see archival.go.
+		return &settlesAccountsOnArchival{
+			IdentityServiceServer: server,
+			directory:             do.MustInvoke[*platformidentity.Service](i),
+			rule:                  rule,
+			db:                    client,
+			logger:                do.MustInvoke[logging.Logger](i),
+			tracer:                tracing.NewNamedTracer(do.MustInvoke[tracing.Provider](i), "identity_archival"),
+		}, nil
 	})
 }
 
-// Permissions is platform's map, unamended.
+// Permissions is platform's map, plus the eight RPCs it deliberately leaves out.
 //
-// Every one of these RPCs is behind a grant upstream, so unlike waitlists there is no
-// method platform deliberately leaves public that this application has to declare. The
-// registration path is not here at all — signing up happens on the auth surface, which is
-// where a caller with no session can reach it.
+// platform gates every RPC whose subject is somebody else and declines to gate the ones
+// whose subject is the caller — a grant on the method cannot say "only about yourself", so
+// it leaves that decision here rather than inventing a permission that would be a lie.
+//
+// This application's interceptor refuses a method it has no entry for, so leaving the map
+// unamended made those eight unreachable rather than public: every user was locked out of
+// editing their own name, accepting the terms, answering an invitation and choosing which
+// account they land in. They are declared below, granted to an account member, which is
+// everybody — registration mints an account. See internal/authorization for the grants and
+// waitlists' build package for the same arrangement.
+//
+// The registration path is not here at all: signing up happens on the auth surface, which
+// is where a caller with no session can reach it.
 func Permissions() map[string][]authorization.Permission {
-	return identitygrpc.Permissions()
+	out := identitygrpc.Permissions()
+
+	out[identitypb.IdentityService_UpdateProfile_FullMethodName] = []authorization.Permission{
+		authorization.UpdateOwnProfilePermission,
+	}
+	out[identitypb.IdentityService_RecordAgreement_FullMethodName] = []authorization.Permission{
+		authorization.RecordOwnAgreementPermission,
+	}
+	out[identitypb.IdentityService_GetPrincipal_FullMethodName] = []authorization.Permission{
+		authorization.ReadOwnPrincipalPermission,
+	}
+	out[identitypb.IdentityService_SetDefaultAccount_FullMethodName] = []authorization.Permission{
+		authorization.SetOwnDefaultAccountPermission,
+	}
+	out[identitypb.IdentityService_AcceptInvitation_FullMethodName] = []authorization.Permission{
+		authorization.AnswerOwnInvitationsPermission,
+	}
+	out[identitypb.IdentityService_RejectInvitation_FullMethodName] = []authorization.Permission{
+		authorization.AnswerOwnInvitationsPermission,
+	}
+	out[identitypb.IdentityService_ListInvitationsFromUser_FullMethodName] = []authorization.Permission{
+		authorization.ReadOwnInvitationsPermission,
+	}
+	out[identitypb.IdentityService_ListInvitationsForEmailAddress_FullMethodName] = []authorization.Permission{
+		authorization.ReadOwnInvitationsPermission,
+	}
+
+	return out
 }

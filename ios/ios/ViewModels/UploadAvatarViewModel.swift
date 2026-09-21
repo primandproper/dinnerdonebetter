@@ -11,6 +11,17 @@ import SwiftUI
 private let uploadChunkSize = 64 * 1024  // 64 KB
 private let uploadBucketName = "avatars"
 
+/// Uploading a user's avatar.
+///
+/// It goes to the media service now, where every other image already went. The RPC it used
+/// to call was on the identity service, and platform's directory has no method for one —
+/// correctly, since an avatar is a row in the upload registry and a reference to it rather
+/// than a field of a user.
+///
+/// What is missing is the other half: nothing yet records that this object is *this user's*
+/// avatar, so the image lands in the bucket and no read hands it back. Reading one is a
+/// media-surface RPC that does not exist yet, which is why the avatar comes back as
+/// initials everywhere it is rendered.
 @Observable
 @MainActor
 class UploadAvatarViewModel {
@@ -35,7 +46,7 @@ class UploadAvatarViewModel {
       var uploadOptions = GRPCCore.CallOptions.defaults
       uploadOptions.timeout = .seconds(60)
 
-      _ = try await clientManager.client.identity.uploadUserAvatar(
+      _ = try await clientManager.client.uploadedMedia.upload(
         metadata: metadata,
         options: uploadOptions,
         requestProducer: { writer in

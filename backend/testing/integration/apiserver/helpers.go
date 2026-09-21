@@ -29,6 +29,7 @@ import (
 
 	identity "github.com/primandproper/platform-go/v14/identity"
 	"github.com/primandproper/platform-go/v14/outbox"
+	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/database/dialect"
 	"github.com/primandproper/primitives-go/v2/identifiers"
 	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
@@ -577,4 +578,26 @@ func selfIDForTest(t *testing.T, c client.Client) string {
 	require.NotNil(t, self.GetResult())
 
 	return self.GetResult().GetId()
+}
+
+// verifyEmailAddressForTest marks a user's address proven.
+//
+// Listing the invitations addressed to you is gated on having proven the address, and the
+// gate is right: anybody may claim any address at registration, so reading what was sent
+// to one you have not proven would be an oracle over other people's invitations.
+//
+// It goes through Store.MarkUserEmailAddressProven, which exists for exactly a caller who
+// proved the address without holding the link that was mailed for it. The link flow is a
+// path of its own and is tested as one; what this asserts is that the address is proven,
+// not how.
+func verifyEmailAddressForTest(t *testing.T, userID string) {
+	t.Helper()
+	ctx := t.Context()
+
+	store, err := identity.NewSQLStore(databaseClient, identity.WithTablePrefix(ddbidentity.TablePrefix))
+	require.NoError(t, err)
+
+	require.NoError(t, databaseClient.WithTransaction(ctx, func(tx database.Tx) error {
+		return store.MarkUserEmailAddressProven(ctx, tx, ddbidentity.Scope(), userID)
+	}))
 }

@@ -14,7 +14,7 @@ struct UserProfileView: View {
   @State private var profileViewModel: UserProfileViewModel?
   @State private var avatarViewModel: UploadAvatarViewModel?
   @State private var selectedAvatarItem: PhotosPickerItem?
-  @State private var showDetailsConfirmSheet = false
+  @State private var showUsernameConfirmSheet = false
   @State private var confirmPassword = ""
   @State private var confirmTotpToken = ""
 
@@ -61,8 +61,8 @@ struct UserProfileView: View {
         Task { await profileViewModel?.loadUser() }
       }
     }
-    .sheet(isPresented: $showDetailsConfirmSheet) {
-      confirmDetailsSheet
+    .sheet(isPresented: $showUsernameConfirmSheet) {
+      confirmUsernameSheet
     }
   }
 
@@ -148,9 +148,9 @@ struct UserProfileView: View {
             fullWidth: true,
             isDisabled: viewModel.username.isEmpty || viewModel.isLoading
           ) {
-            Task {
-              await viewModel.updateUsername()
-            }
+            confirmPassword = ""
+            confirmTotpToken = ""
+            showUsernameConfirmSheet = true
           }
         }
 
@@ -164,13 +164,9 @@ struct UserProfileView: View {
           text: Binding(get: { viewModel.lastName }, set: { viewModel.lastName = $0 })
         )
 
-        DatePicker(
-          "Birthday",
-          selection: Binding(get: { viewModel.birthday }, set: { viewModel.birthday = $0 }),
-          displayedComponents: .date
-        )
-        .font(DSTheme.Typography.body)
-        .foregroundColor(DSTheme.Colors.textPrimary)
+        // The birthday field is gone with the column behind it. platform's user has none,
+        // nothing on the backend ever read one, and storing it means a table of this
+        // application's own — which is its own piece of work.
 
         DSButton(
           "Update Details",
@@ -178,21 +174,26 @@ struct UserProfileView: View {
           fullWidth: true,
           isDisabled: !viewModel.detailsHasChanged || viewModel.isLoading
         ) {
-          confirmPassword = ""
-          confirmTotpToken = ""
-          showDetailsConfirmSheet = true
+          Task {
+            if await profileViewModel?.updateUserDetails() == true {
+              eventReporterService.reporter.track(
+                event: "profile_details_updated", properties: [:])
+            }
+          }
         }
       }
     }
   }
 
-  // MARK: - Confirm Details Sheet
+  // MARK: - Confirm Username Sheet
 
-  private var confirmDetailsSheet: some View {
+  // Changing a handle is a credential change — it is what somebody signs in with — so it is
+  // re-authenticated. Changing a name is not, and asks for nothing.
+  private var confirmUsernameSheet: some View {
     NavigationStack {
       Form {
         Section {
-          Text("Confirm your password to update your profile details.")
+          Text("Confirm your password to change your username.")
             .font(DSTheme.Typography.body)
             .foregroundColor(DSTheme.Colors.textSecondary)
         }
@@ -209,19 +210,19 @@ struct UserProfileView: View {
       .toolbar {
         ToolbarItem(placement: .cancellationAction) {
           Button("Cancel") {
-            showDetailsConfirmSheet = false
+            showUsernameConfirmSheet = false
           }
         }
         ToolbarItem(placement: .confirmationAction) {
           Button("Update") {
             Task {
-              if await profileViewModel?.updateUserDetails(
+              if await profileViewModel?.updateUsername(
                 currentPassword: confirmPassword,
                 totpToken: confirmTotpToken
               ) == true {
                 eventReporterService.reporter.track(
-                  event: "profile_details_updated", properties: [:])
-                showDetailsConfirmSheet = false
+                  event: "profile_username_updated", properties: [:])
+                showUsernameConfirmSheet = false
               }
             }
           }

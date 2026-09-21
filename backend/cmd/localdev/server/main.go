@@ -136,6 +136,7 @@ func main() {
 					EmailAddress:    memberUser.email,
 					HashedPassword:  hashedPassword,
 					TwoFactorSecret: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+					AccountStatus:   platformidentity.StatusGood,
 					FirstName:       memberUser.firstName,
 					LastName:        memberUser.lastName,
 					ServiceRoles:    []string{authorization.ServiceUserRoleName},

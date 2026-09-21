@@ -985,11 +985,14 @@ func insertWebAuthnCredentialForTest(t *testing.T, userID, friendlyName string) 
 	credentialIDBytes := fmt.Appendf(nil, "test-cred-%s-%d", credID, time.Now().UnixNano())
 	publicKeyBytes := []byte("test-public-key-data")
 
+	// platform's table, under this application's prefix: it names its own
+	// webauthn_credentials too, and a scope is a column here where the schema this
+	// replaced had none.
 	_, err := databaseClient.Writer().ExecContext(
 		t.Context(),
-		`INSERT INTO webauthn_credentials (id, belongs_to_user, credential_id, public_key, sign_count, transports, friendly_name)
-		 VALUES ($1, $2, $3, $4, 0, '', $5)`,
-		credID, userID, credentialIDBytes, publicKeyBytes, friendlyName,
+		`INSERT INTO ddb_webauthn_credentials (id, scope, belongs_to_user, credential_id, public_key, sign_count, transports, friendly_name)
+		 VALUES ($1, $2, $3, $4, $5, 0, '[]', $6)`,
+		credID, tenancy.Global().String(), userID, credentialIDBytes, publicKeyBytes, friendlyName,
 	)
 	require.NoError(t, err)
 

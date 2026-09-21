@@ -24,8 +24,11 @@ internal struct Client<Transport> where Transport: GRPCCore.ClientTransport {
   /// Auth service client
   internal let auth: Auth_AuthService.Client<Transport>
 
-  /// Identity service client
-  internal let identity: Identity_IdentityService.Client<Transport>
+  /// Identity service client.
+  ///
+  /// platform-go's directory, so its generated namespace is platform's rather than this
+  /// repository's — see the proto path in the root Makefile.
+  internal let identity: Primandproper_Platform_Identity_V1_IdentityService.Client<Transport>
 
   /// Audit service client
   internal let audit: Audit_AuditService.Client<Transport>
@@ -70,7 +73,7 @@ internal struct Client<Transport> where Transport: GRPCCore.ClientTransport {
     // This follows the best practice of reusing a single GRPCClient instance
     // across multiple service clients (see grpc-swift issue #2211)
     self.auth = Auth_AuthService.Client(wrapping: grpcClient)
-    self.identity = Identity_IdentityService.Client(wrapping: grpcClient)
+    self.identity = Primandproper_Platform_Identity_V1_IdentityService.Client(wrapping: grpcClient)
     self.audit = Audit_AuditService.Client(wrapping: grpcClient)
     self.dataPrivacy = Dataprivacy_DataPrivacyService.Client(wrapping: grpcClient)
     self.internalOps = Internalops_InternalOperations.Client(wrapping: grpcClient)

@@ -218,7 +218,7 @@ var (
 	}, IdentityAccountPermissions...)
 
 	// AccountMemberPermissions is every account member permission.
-	AccountMemberPermissions = []Permission{
+	AccountMemberPermissions = append([]Permission{
 		ReportAnalyticsEventsPermission,
 		ReadIssueReportsPermission,
 		ReadAuditLogEntriesPermission,
@@ -355,5 +355,7 @@ var (
 		ReadWebhookSubscriptionsPermission,
 		ReadWebhookAttemptsPermission,
 		ReadWebhookEventTypesPermission,
-	}
+		// What every member holds over themselves. See identity_permissions.go for why
+		// these are this application's to declare rather than platform's.
+	}, IdentitySelfPermissions...)
 )

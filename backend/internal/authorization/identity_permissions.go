@@ -99,3 +99,45 @@ var (
 	// IdentityPermissions contains all identity-related permissions.
 	IdentityPermissions = append(append([]Permission{}, IdentityAccountPermissions...), IdentityOperatorPermissions...)
 )
+
+// The self-service grants, which are this application's rather than platform's.
+//
+// platform leaves eight of its RPCs out of identitygrpc.Permissions() — the ones whose
+// subject is the caller themselves. That is the right default for a directory: a grant on
+// the method cannot say "only about yourself", so platform declines to invent one and
+// leaves the decision to the consumer.
+//
+// This application's interceptor refuses a method it has no entry for, which makes the
+// omission a closed door rather than an open one. So the eight are declared here, under
+// names this application owns, and granted to an account member — which is everybody, since
+// registration mints an account. It is the same arrangement waitlists needed for Join and
+// Withdraw, and for the same reason.
+const (
+	// UpdateOwnProfilePermission gates a user editing their own names.
+	UpdateOwnProfilePermission Permission = "identity.self.update_profile"
+	// RecordOwnAgreementPermission gates a user accepting the terms or the privacy policy.
+	RecordOwnAgreementPermission Permission = "identity.self.record_agreement"
+	// ReadOwnPrincipalPermission gates a user reading themselves and their memberships.
+	ReadOwnPrincipalPermission Permission = "identity.self.read_principal"
+	// SetOwnDefaultAccountPermission gates a user choosing which account they land in.
+	SetOwnDefaultAccountPermission Permission = "identity.self.set_default_account"
+	// AnswerOwnInvitationsPermission gates accepting or rejecting an invitation.
+	//
+	// Whoever holds the link may answer it, which is what the token on the request
+	// establishes — so the grant says a member may answer invitations at all, and the
+	// token says which one.
+	AnswerOwnInvitationsPermission Permission = "identity.self.answer_invitations"
+	// ReadOwnInvitationsPermission gates the two invitation lists keyed on the caller:
+	// what they sent, and what they were sent.
+	ReadOwnInvitationsPermission Permission = "identity.self.read_invitations"
+)
+
+// IdentitySelfPermissions is what every member holds over themselves.
+var IdentitySelfPermissions = []Permission{
+	UpdateOwnProfilePermission,
+	RecordOwnAgreementPermission,
+	ReadOwnPrincipalPermission,
+	SetOwnDefaultAccountPermission,
+	AnswerOwnInvitationsPermission,
+	ReadOwnInvitationsPermission,
+}

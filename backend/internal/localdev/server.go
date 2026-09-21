@@ -96,6 +96,11 @@ func CreatePremadeAdminUser(
 	}
 	premadeAdminUser.HashedPassword = actuallyHashedPass
 
+	// Good standing, for the reason the registration path gives: this application does not
+	// gate sign-in on a verified email, and platform's default would lock the seeded
+	// administrator out of the deployment it exists to administer.
+	premadeAdminUser.AccountStatus = platformidentity.StatusGood
+
 	if existing, lookupErr := store.GetUserByUsername(ctx, dbClient.Reader(), ddbidentity.Scope(), premadeAdminUser.Username); lookupErr == nil && existing != nil {
 		return existing, nil
 	}

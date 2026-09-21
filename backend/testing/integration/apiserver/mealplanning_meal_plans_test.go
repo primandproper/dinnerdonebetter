@@ -204,7 +204,14 @@ func TestMealPlans_CompleteLifecycleForAllVotesReceived(T *testing.T) {
 			require.NoError(t, err)
 			assert.NotEmpty(t, sentInvitations.Results)
 
-			invitations, err := c.IdentityService().ListInvitationsForEmailAddress(ctx, &identitypb.ListInvitationsForEmailAddressRequest{})
+			// Proven first: listing what was sent to an address is gated on having proven
+			// it, because anybody may claim any address at registration.
+			verifyEmailAddressForTest(t, u.ID)
+
+			// Proven first: listing what was sent to an address is gated on having proven it.
+		verifyEmailAddressForTest(t, u.ID)
+
+		invitations, err := c.IdentityService().ListInvitationsForEmailAddress(ctx, &identitypb.ListInvitationsForEmailAddressRequest{})
 			require.NotNil(t, invitations)
 			require.NoError(t, err)
 			assert.NotEmpty(t, invitations.Results)
@@ -663,7 +670,14 @@ func TestMealPlans_CompleteLifecycleForSomeVotesReceived(T *testing.T) {
 			require.NoError(t, err)
 			assert.NotEmpty(t, sentInvitations.Results)
 
-			invitations, err := c.IdentityService().ListInvitationsForEmailAddress(ctx, &identitypb.ListInvitationsForEmailAddressRequest{})
+			// Proven first: listing what was sent to an address is gated on having proven
+			// it, because anybody may claim any address at registration.
+			verifyEmailAddressForTest(t, u.ID)
+
+			// Proven first: listing what was sent to an address is gated on having proven it.
+		verifyEmailAddressForTest(t, u.ID)
+
+		invitations, err := c.IdentityService().ListInvitationsForEmailAddress(ctx, &identitypb.ListInvitationsForEmailAddressRequest{})
 			require.NotNil(t, invitations)
 			require.NoError(t, err)
 			assert.NotEmpty(t, invitations.Results)

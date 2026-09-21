@@ -412,7 +412,7 @@ func TestRepository_Integration_ErasingAUserTakesTheirSettings(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	_, err = db.Writer().ExecContext(ctx, "DELETE FROM users WHERE id = $1", userID)
+	_, err = db.Writer().ExecContext(ctx, "DELETE FROM ddb_identity_users WHERE id = $1", userID)
 	require.NoError(t, err)
 
 	gone, err := dbc.ListValuesForSubject(ctx, db.Reader(), scope, subject, nil)

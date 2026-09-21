@@ -267,7 +267,7 @@ func TestRepository_Integration_ErasureFollowsTheReporter(t *testing.T) {
 	_, err := createT(ctx, db, dbc, report)
 	require.NoError(t, err)
 
-	_, err = db.Writer().ExecContext(ctx, "DELETE FROM users WHERE id = $1", userID)
+	_, err = db.Writer().ExecContext(ctx, "DELETE FROM ddb_identity_users WHERE id = $1", userID)
 	require.NoError(t, err)
 
 	fetched, err := dbc.GetReport(ctx, db.Reader(), ddbissuereports.Scope(accountID), report.ID)

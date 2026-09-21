@@ -237,7 +237,7 @@ func TestRepository_Integration_ErasingTheOwnerRemovesTheRow(t *testing.T) {
 	object, err := recordT(ctx, db, dbc, ownedBy(user.ID))
 	require.NoError(t, err)
 
-	_, err = db.Writer().ExecContext(ctx, "DELETE FROM users WHERE id = $1", user.ID)
+	_, err = db.Writer().ExecContext(ctx, "DELETE FROM ddb_identity_users WHERE id = $1", user.ID)
 	require.NoError(t, err)
 
 	fetched, err := dbc.GetObject(ctx, db.Reader(), ddbuploadedmedia.Scope(), object.ID)
