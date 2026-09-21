@@ -65,6 +65,11 @@ func RegisterAuth(i do.Injector) {
 			// The label an authenticator app shows beside the code, which has to match
 			// what the QR builder encodes or a re-enrollment renames the entry.
 			signin.WithTOTPIssuer(branding.CompanyName),
+			// The registrar signing somebody up runs through. identity.Service satisfies
+			// signin.Registrar outright, so registration is one call that hashes the
+			// password, mints the verification token and writes the user, the account and
+			// the membership on one transaction.
+			signin.WithRegistrar(do.MustInvoke[*platformidentity.Service](i)),
 			signin.WithLogger(do.MustInvoke[logging.Logger](i)),
 			signin.WithTracerProvider(do.MustInvoke[tracing.Provider](i)),
 			signin.WithMetricsProvider(do.MustInvoke[metrics.Provider](i)),

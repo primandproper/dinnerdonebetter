@@ -9,6 +9,7 @@ import (
 	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 
+	"github.com/primandproper/platform-go/v14/authentication/signin"
 	platformidentity "github.com/primandproper/platform-go/v14/identity"
 	perrors "github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/identifiers"
@@ -59,23 +60,9 @@ func (l *AuthManager) RegisterUser(ctx context.Context, input *auth.UserRegistra
 		return nil, observability.PrepareAndLogError(err, logger, span, "weak password provided for user creation")
 	}
 
-	hashedPassword, err := l.authenticator.HashPassword(ctx, input.Password)
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "hashing user creation password")
-	}
-
 	twoFactorSecret, err := l.secretGenerator.GenerateBase32EncodedString(ctx, totpSecretSize)
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "generating two factor secret")
-	}
-
-	// The verification token rides in on the user rather than being set afterwards,
-	// because the store holds only its digest and the mail that carries the secret is
-	// queued from the registration's own hook. A token set in a second call would be a
-	// second transaction, and a link that committed without the user it proves.
-	verificationToken, err := l.secretGenerator.GenerateBase32EncodedString(ctx, emailVerificationTokenSize)
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "generating email verification token")
 	}
 
 	registrant := &platformidentity.User{
@@ -96,21 +83,47 @@ func (l *AuthManager) RegisterUser(ctx context.Context, input *auth.UserRegistra
 		// than a workaround: platform supplies a default for a caller who names none.
 		// Gating on verification later means writing unverified here and promoting on
 		// MarkUserEmailAddressVerified, and nothing else.
-		AccountStatus:                 platformidentity.StatusGood,
-		Username:                      input.Username,
-		EmailAddress:                  input.EmailAddress,
-		FirstName:                     input.FirstName,
-		LastName:                      input.LastName,
-		HashedPassword:                hashedPassword,
-		TwoFactorSecret:               twoFactorSecret,
-		EmailAddressVerificationToken: verificationToken,
-		ServiceRoles:                  []string{authorization.ServiceUserRoleName},
+		AccountStatus: platformidentity.StatusGood,
+		Username:      input.Username,
+		EmailAddress:  input.EmailAddress,
+		FirstName:     input.FirstName,
+		LastName:      input.LastName,
+
+		// The second factor is this application's to mint and is not a credential signin
+		// knows about: it overwrites HashedPassword and EmailAddressVerificationToken on
+		// the user it is handed, and leaves everything else — this secret, the standing
+		// above, the service role below — exactly as given.
+		TwoFactorSecret: twoFactorSecret,
+		ServiceRoles:    []string{authorization.ServiceUserRoleName},
 	}
 
-	user, accountID, err := l.register(ctx, input, registrant)
+	// One call for both registrations. The hash, the verification token and the directory
+	// write happen inside it, on one transaction: naming an invitation runs identity's
+	// invitation registration and mints no account, naming none runs the ordinary one.
+	//
+	// The password arrives as a Credential rather than a hash because a caller who could
+	// supply a hash is a caller who could choose somebody's secret, which is why the field
+	// on the user is ignored. NoPassword is the other member of that set and this
+	// application has no passwordless arrival, so naming it is not a branch here.
+	accountName := strings.TrimSpace(input.AccountName)
+	if accountName == "" {
+		accountName = input.Username + "'s account"
+	}
+
+	registered, err := l.signIn.Register(ctx, ddbidentity.Scope(), &signin.Registration{
+		User:            registrant,
+		Account:         &platformidentity.Account{Name: accountName},
+		Credential:      signin.Password(input.Password),
+		InvitationID:    input.InvitationID,
+		InvitationToken: input.InvitationToken,
+		OwnerRoles:      []string{authorization.AccountAdminRoleName},
+	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "registering user")
 	}
+
+	user := registered.User
+	accountID := registered.Membership.BelongsToAccount
 
 	tracing.AttachToSpan(span, identitykeys.UserIDKey, user.ID)
 
@@ -148,41 +161,4 @@ func (l *AuthManager) RegisterUser(ctx context.Context, input *auth.UserRegistra
 		FirstName:        user.FirstName,
 		LastName:         user.LastName,
 	}, nil
-}
-
-// register makes the registration the input describes, and answers with the registrant and
-// the account they landed in.
-//
-// Two operations rather than one with a flag, because platform ships two and the difference
-// is not a detail: a registration by invitation mints no account — the registrant is
-// joining one that already exists — and an invitation that no longer admits them takes the
-// whole registration down with it rather than leaving a user committed against a dead link.
-func (l *AuthManager) register(
-	ctx context.Context,
-	input *auth.UserRegistrationInput,
-	registrant *platformidentity.User,
-) (*platformidentity.User, string, error) {
-	if input.InvitationID != "" && input.InvitationToken != "" {
-		registration, err := l.directory.RegisterWithInvitation(ctx, ddbidentity.Scope(), registrant,
-			input.InvitationID, input.InvitationToken, "")
-		if err != nil {
-			return nil, "", err
-		}
-
-		return registration.User, registration.Membership.BelongsToAccount, nil
-	}
-
-	accountName := strings.TrimSpace(input.AccountName)
-	if accountName == "" {
-		accountName = input.Username + "'s account"
-	}
-
-	registration, err := l.directory.Register(ctx, ddbidentity.Scope(), registrant, &platformidentity.Account{
-		Name: accountName,
-	}, []string{authorization.AccountAdminRoleName})
-	if err != nil {
-		return nil, "", err
-	}
-
-	return registration.User, registration.Account.ID, nil
 }
