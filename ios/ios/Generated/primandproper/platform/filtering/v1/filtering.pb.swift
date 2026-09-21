@@ -17,10 +17,10 @@
 /// puts the module's proto directory on protoc's path and imports this file by
 /// its canonical name:
 ///
-///	PLATFORM_PROTO := $(shell go list -m -f '{{.Dir}}' github.com/primandproper/platform-go/v13)/filtering/proto
+///	PLATFORM_PROTO := $(shell go list -m -f '{{.Dir}}' github.com/primandproper/primitives-go/v2)/filtering/proto
 ///
 ///	protoc --proto_path proto/ --proto_path $(PLATFORM_PROTO) \
-///	    --go_opt=Mprimandproper/platform/filtering/v1/filtering.proto=github.com/primandproper/platform-go/v13/filtering/filteringpb \
+///	    --go_opt=Mprimandproper/platform/filtering/v1/filtering.proto=github.com/primandproper/primitives-go/v2/filtering/filteringpb \
 ///	    $(CONSUMER_PROTO_FILES)   # this file deliberately absent from that list
 ///
 /// which is how google/protobuf/timestamp.proto already works in a consumer's
@@ -29,7 +29,7 @@
 /// there is no protos repository to stand up and nothing to vendor.
 ///
 /// The Go bindings are pre-generated into
-/// github.com/primandproper/platform-go/v13/filtering/filteringpb, and the
+/// github.com/primandproper/primitives-go/v2/filtering/filteringpb, and the
 /// converters between them and the Go types live beside them in
 /// .../filtering/grpc. Go is the language that needs shared *code* rather than
 /// shared *schema*: the page-size clamp, the default, and the cursor asymmetry

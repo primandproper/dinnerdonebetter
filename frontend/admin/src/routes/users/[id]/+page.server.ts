@@ -1,12 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { QueryFilter } from '@dinnerdonebetter/api-client';
-import {
-  getUser,
-  getAccountsForUser,
-  getAuditLogEntriesForUser,
-  adminSetPasswordChangeRequired,
-} from '$lib/grpc/clients';
+import { getUser, listAccountsForUser, getAuditLogEntriesForUser } from '$lib/grpc/clients';
 
 export const load: PageServerLoad = async ({ locals, params, url }) => {
   const token = locals.accessToken;
@@ -22,8 +17,8 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
     };
   }
   try {
-    const userRes = (await getUser(token, { userId })) as { result?: Record<string, unknown> };
-    const user = userRes?.result ?? null;
+    const userRes = (await getUser(token, { userId })) as { user?: Record<string, unknown> };
+    const user = userRes?.user ?? null;
 
     let accounts: unknown[] = [];
     let auditLog: unknown[] = [];
@@ -31,7 +26,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 
     if (user?.id) {
       try {
-        const accRes = (await getAccountsForUser(token, {
+        const accRes = (await listAccountsForUser(token, {
           userId: user.id as string,
           filter: QueryFilter.create({ maxResponseSize: 50 }),
         })) as { results?: unknown[] };
@@ -67,38 +62,9 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
   }
 };
 
-export const actions: Actions = {
-  'require-password-change': async ({ locals, params }) => {
-    const token = locals.accessToken;
-    if (!token) throw redirect(302, '/login');
-
-    const userId = params.id;
-
-    try {
-      await adminSetPasswordChangeRequired(token, { targetUserId: userId, requiresPasswordChange: true });
-      throw redirect(302, `/users/${userId}?password_change_updated=1`);
-    } catch (e) {
-      if (e && typeof e === 'object' && 'status' in e && (e as { status: number }).status === 302) {
-        throw e;
-      }
-      throw redirect(302, `/users/${userId}?error=password_change_failed`);
-    }
-  },
-
-  'clear-password-change': async ({ locals, params }) => {
-    const token = locals.accessToken;
-    if (!token) throw redirect(302, '/login');
-
-    const userId = params.id;
-
-    try {
-      await adminSetPasswordChangeRequired(token, { targetUserId: userId, requiresPasswordChange: false });
-      throw redirect(302, `/users/${userId}?password_change_updated=1`);
-    } catch (e) {
-      if (e && typeof e === 'object' && 'status' in e && (e as { status: number }).status === 302) {
-        throw e;
-      }
-      throw redirect(302, `/users/${userId}?error=password_change_failed`);
-    }
-  },
-};
+// The two "require a password change" actions are gone with the RPC they called.
+//
+// platform's identity service exposes three operator writes — an account status, a set of
+// service roles, an archival — and this is not one of them, although the Service and the
+// Store both have SetUserRequiresPasswordChange behind them. Restoring the button means an
+// RPC upstream rather than a second directory here; see docs/platform-go-v14-adoption.md.

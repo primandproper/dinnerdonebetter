@@ -1,11 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import { getSelf, updateUserUsername, updateUserDetails, uploadUserAvatar } from '$lib/grpc/clients';
-import { logger } from '$lib/logger';
+import { getSelf, updateProfile, updateUserUsername } from '$lib/grpc/clients';
 import { env } from '$env/dynamic/private';
-
-const MAX_AVATAR_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
-const ALLOWED_AVATAR_TYPES = ['image/png', 'image/jpeg', 'image/gif'];
 
 export const load: PageServerLoad = async ({ locals, url }) => {
   const token = locals.oauthToken;
@@ -34,13 +30,18 @@ export const actions: Actions = {
 
     const formData = await request.formData();
     const username = (formData.get('username') as string)?.trim() ?? '';
+    const currentPassword = (formData.get('current_password') as string)?.trim() ?? '';
+    const totpToken = (formData.get('totp_token') as string)?.trim() ?? '';
 
     if (!username) {
       throw redirect(302, '/account/profile?error=invalid_username');
     }
+    if (!currentPassword) {
+      throw redirect(302, '/account/profile?error=invalid_password');
+    }
 
     try {
-      await updateUserUsername(token, { newUsername: username });
+      await updateUserUsername(token, { newUsername: username, currentPassword, totpToken });
       throw redirect(302, '/account/profile?updated=1');
     } catch (e) {
       if (e && typeof e === 'object' && 'status' in e && (e as { status: number }).status === 302) {
@@ -58,33 +59,22 @@ export const actions: Actions = {
     const formData = await request.formData();
     const firstName = (formData.get('first_name') as string)?.trim() ?? '';
     const lastName = (formData.get('last_name') as string)?.trim() ?? '';
-    const currentPassword = (formData.get('current_password') as string)?.trim() ?? '';
-    const totpToken = (formData.get('totp_token') as string)?.trim() ?? '';
-    const birthdayStr = (formData.get('birthday') as string)?.trim() ?? '';
-
     if (!firstName) {
       throw redirect(302, '/account/profile?error=invalid_first_name');
     }
-    if (!currentPassword) {
-      throw redirect(302, '/account/profile?error=invalid_password');
-    }
-
-    let birthday: Date | undefined;
-    if (birthdayStr) {
-      const parsed = new Date(birthdayStr);
-      if (!isNaN(parsed.getTime())) {
-        birthday = parsed;
-      }
-    }
 
     try {
-      await updateUserDetails(token, {
+      // One update where there were three, and each field absent unless it is being set —
+      // so sending a first name no longer blanks a last one.
+      //
+      // No password or second factor is asked for. A name is not a credential, and the
+      // directory's profile update asks for nothing; the two changes that *are* credential
+      // changes — the handle and the address — are on the auth surface and are
+      // re-authenticated there.
+      await updateProfile(token, {
         input: {
           firstName,
           lastName,
-          birthday,
-          currentPassword,
-          totpToken,
         },
       });
       throw redirect(302, '/account/profile?updated=1');
@@ -95,43 +85,7 @@ export const actions: Actions = {
       throw redirect(302, '/account/profile?error=update_failed');
     }
   },
-  'update-avatar': async ({ request, locals }) => {
-    const token = locals.oauthToken;
-    if (!token) {
-      throw redirect(302, '/login');
-    }
-
-    const formData = await request.formData();
-    const file = formData.get('avatar') as File | null;
-    if (!file || !(file instanceof File) || file.size === 0) {
-      throw redirect(302, '/account/profile?error=avatar_upload_failed');
-    }
-
-    if (!ALLOWED_AVATAR_TYPES.includes(file.type)) {
-      throw redirect(302, '/account/profile?error=avatar_upload_failed');
-    }
-    if (file.size > MAX_AVATAR_SIZE_BYTES) {
-      throw redirect(302, '/account/profile?error=avatar_upload_failed');
-    }
-
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    const filename = file.name || 'avatar';
-
-    try {
-      const apiResponse = await uploadUserAvatar(token, buffer, filename, file.type);
-      const objectKey =
-        apiResponse?.created?.objectKey ?? (apiResponse?.created as { object_key?: string } | undefined)?.object_key;
-      logger.with({ objectKey: objectKey ?? null }).debug('avatar upload returning');
-      if (objectKey) {
-        return { updated: true, avatarStoragePath: objectKey };
-      }
-      return { updated: true };
-    } catch (e) {
-      if (e && typeof e === 'object' && 'status' in e && (e as { status: number }).status === 302) {
-        throw e;
-      }
-      throw redirect(302, '/account/profile?error=avatar_upload_failed');
-    }
-  },
+  // 'update-avatar' is gone with the RPC it called. An avatar is a row in the upload
+  // registry and a reference to it rather than a field of the directory's user, so
+  // restoring it means an RPC on the media surface — see the api-client package.
 };

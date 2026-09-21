@@ -10,8 +10,7 @@
     "./auth/auth_service": "./src/auth/auth_service.ts",
     "./auth/auth_messages": "./src/auth/auth_messages.ts",
     "./auth/auth_service_types": "./src/auth/auth_service_types.ts",
-    "./identity/identity_messages": "./src/identity/identity_messages.ts",
-    "./identity/identity_service_types": "./src/identity/identity_service_types.ts",
+    "./primandproper/platform/identity/v1/identity": "./src/primandproper/platform/identity/v1/identity.ts",
     "./settings/settings_messages": "./src/settings/settings_messages.ts",
     "./mealplanning/mealplanning_service_types": "./src/mealplanning/mealplanning_service_types.ts",
     "./mealplanning/mealplanning_messages": "./src/mealplanning/mealplanning_messages.ts"

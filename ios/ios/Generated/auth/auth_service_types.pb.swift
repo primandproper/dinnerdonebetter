@@ -21,6 +21,64 @@ fileprivate struct _GeneratedWithProtocGenSwiftVersion: SwiftProtobuf.ProtobufAP
   typealias Version = _2
 }
 
+/// RegisterUserRequest is a sign-up: the one request on this service made by somebody who
+/// is not yet in the directory.
+///
+/// It is here rather than on the identity service because that service's Register requires
+/// a registrar's principal — an open sign-up is a flow with policy in front of it, and this
+/// is where a caller with no session can reach one.
+public struct Auth_RegisterUserRequest: Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  public var input: Auth_UserRegistrationInput {
+    get {return _input ?? Auth_UserRegistrationInput()}
+    set {_input = newValue}
+  }
+  /// Returns true if `input` has been explicitly set.
+  public var hasInput: Bool {return self._input != nil}
+  /// Clears the value of `input`. Subsequent reads from it will return its default value.
+  public mutating func clearInput() {self._input = nil}
+
+  public var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  public init() {}
+
+  fileprivate var _input: Auth_UserRegistrationInput? = nil
+}
+
+public struct Auth_RegisterUserResponse: Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  public var responseDetails: Common_ResponseDetails {
+    get {return _responseDetails ?? Common_ResponseDetails()}
+    set {_responseDetails = newValue}
+  }
+  /// Returns true if `responseDetails` has been explicitly set.
+  public var hasResponseDetails: Bool {return self._responseDetails != nil}
+  /// Clears the value of `responseDetails`. Subsequent reads from it will return its default value.
+  public mutating func clearResponseDetails() {self._responseDetails = nil}
+
+  public var created: Auth_UserCreationResponse {
+    get {return _created ?? Auth_UserCreationResponse()}
+    set {_created = newValue}
+  }
+  /// Returns true if `created` has been explicitly set.
+  public var hasCreated: Bool {return self._created != nil}
+  /// Clears the value of `created`. Subsequent reads from it will return its default value.
+  public mutating func clearCreated() {self._created = nil}
+
+  public var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  public init() {}
+
+  fileprivate var _responseDetails: Common_ResponseDetails? = nil
+  fileprivate var _created: Auth_UserCreationResponse? = nil
+}
+
 public struct Auth_LoginForTokenRequest: Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
@@ -202,8 +260,8 @@ public struct Auth_GetActiveAccountResponse: Sendable {
   /// Clears the value of `responseDetails`. Subsequent reads from it will return its default value.
   public mutating func clearResponseDetails() {self._responseDetails = nil}
 
-  public var result: Identity_Account {
-    get {return _result ?? Identity_Account()}
+  public var result: Primandproper_Platform_Identity_V1_Account {
+    get {return _result ?? Primandproper_Platform_Identity_V1_Account()}
     set {_result = newValue}
   }
   /// Returns true if `result` has been explicitly set.
@@ -216,7 +274,7 @@ public struct Auth_GetActiveAccountResponse: Sendable {
   public init() {}
 
   fileprivate var _responseDetails: Common_ResponseDetails? = nil
-  fileprivate var _result: Identity_Account? = nil
+  fileprivate var _result: Primandproper_Platform_Identity_V1_Account? = nil
 }
 
 public struct Auth_GetAuthStatusRequest: Sendable {
@@ -1001,8 +1059,8 @@ public struct Auth_GetSelfResponse: Sendable {
   /// Clears the value of `responseDetails`. Subsequent reads from it will return its default value.
   public mutating func clearResponseDetails() {self._responseDetails = nil}
 
-  public var result: Identity_User {
-    get {return _result ?? Identity_User()}
+  public var result: Primandproper_Platform_Identity_V1_User {
+    get {return _result ?? Primandproper_Platform_Identity_V1_User()}
     set {_result = newValue}
   }
   /// Returns true if `result` has been explicitly set.
@@ -1015,7 +1073,7 @@ public struct Auth_GetSelfResponse: Sendable {
   public init() {}
 
   fileprivate var _responseDetails: Common_ResponseDetails? = nil
-  fileprivate var _result: Identity_User? = nil
+  fileprivate var _result: Primandproper_Platform_Identity_V1_User? = nil
 }
 
 public struct Auth_ListPasskeysRequest: Sendable {
@@ -1288,9 +1346,241 @@ public struct Auth_AdminRevokeAllUserSessionsRequest: Sendable {
   public init() {}
 }
 
+/// UserRegistrationInput is what somebody signing up supplies.
+///
+/// It is not platform's message of the same name. That one carries a handle, an address and
+/// a name, because platform's directory holds no credentials policy; this one carries the
+/// password, the agreements this application requires, and the invitation a registrant may
+/// be answering.
+public struct Auth_UserRegistrationInput: Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  public var password: String = String()
+
+  public var emailAddress: String = String()
+
+  public var invitationToken: String = String()
+
+  public var invitationID: String = String()
+
+  public var username: String = String()
+
+  public var firstName: String = String()
+
+  public var lastName: String = String()
+
+  public var accountName: String = String()
+
+  public var acceptedTos: Bool = false
+
+  public var acceptedPrivacyPolicy: Bool = false
+
+  public var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  public init() {}
+}
+
+/// UserCreationResponse is what a registration answers with, and the one time the two-factor
+/// secret is ever handed back.
+public struct Auth_UserCreationResponse: Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  public var createdAt: SwiftProtobuf.Google_Protobuf_Timestamp {
+    get {return _createdAt ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
+    set {_createdAt = newValue}
+  }
+  /// Returns true if `createdAt` has been explicitly set.
+  public var hasCreatedAt: Bool {return self._createdAt != nil}
+  /// Clears the value of `createdAt`. Subsequent reads from it will return its default value.
+  public mutating func clearCreatedAt() {self._createdAt = nil}
+
+  public var username: String = String()
+
+  public var emailAddress: String = String()
+
+  public var twoFactorQrCode: String = String()
+
+  public var createdUserID: String = String()
+
+  public var accountStatus: String = String()
+
+  public var twoFactorSecret: String = String()
+
+  public var firstName: String = String()
+
+  public var lastName: String = String()
+
+  public var createdAccountID: String = String()
+
+  public var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  public init() {}
+
+  fileprivate var _createdAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
+}
+
+/// UpdateUserEmailAddressRequest changes the address a user signs in and is reached at.
+///
+/// It is on this service rather than folded into the directory's UpdateProfile, and the
+/// three fields say why: an address change is a credential change — whoever holds it can
+/// take the account through a password reset — so it is re-authenticated. UpdateProfile
+/// asks for nothing, correctly, because a display name is not a credential.
+public struct Auth_UpdateUserEmailAddressRequest: Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  public var newEmailAddress: String = String()
+
+  public var currentPassword: String = String()
+
+  public var totpToken: String = String()
+
+  public var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  public init() {}
+}
+
+public struct Auth_UpdateUserEmailAddressResponse: Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  public var responseDetails: Common_ResponseDetails {
+    get {return _responseDetails ?? Common_ResponseDetails()}
+    set {_responseDetails = newValue}
+  }
+  /// Returns true if `responseDetails` has been explicitly set.
+  public var hasResponseDetails: Bool {return self._responseDetails != nil}
+  /// Clears the value of `responseDetails`. Subsequent reads from it will return its default value.
+  public mutating func clearResponseDetails() {self._responseDetails = nil}
+
+  public var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  public init() {}
+
+  fileprivate var _responseDetails: Common_ResponseDetails? = nil
+}
+
+/// UpdateUserUsernameRequest changes the handle a user signs in with, re-authenticated for
+/// the reason above.
+public struct Auth_UpdateUserUsernameRequest: Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  public var newUsername: String = String()
+
+  public var currentPassword: String = String()
+
+  public var totpToken: String = String()
+
+  public var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  public init() {}
+}
+
+public struct Auth_UpdateUserUsernameResponse: Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  public var responseDetails: Common_ResponseDetails {
+    get {return _responseDetails ?? Common_ResponseDetails()}
+    set {_responseDetails = newValue}
+  }
+  /// Returns true if `responseDetails` has been explicitly set.
+  public var hasResponseDetails: Bool {return self._responseDetails != nil}
+  /// Clears the value of `responseDetails`. Subsequent reads from it will return its default value.
+  public mutating func clearResponseDetails() {self._responseDetails = nil}
+
+  public var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  public init() {}
+
+  fileprivate var _responseDetails: Common_ResponseDetails? = nil
+}
+
 // MARK: - Code below here is support for the SwiftProtobuf runtime.
 
 fileprivate let _protobuf_package = "auth"
+
+extension Auth_RegisterUserRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".RegisterUserRequest"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}input\0")
+
+  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularMessageField(value: &self._input) }()
+      default: break
+      }
+    }
+  }
+
+  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    // The use of inline closures is to circumvent an issue where the compiler
+    // allocates stack space for every if/case branch local when no optimizations
+    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
+    // https://github.com/apple/swift-protobuf/issues/1182
+    try { if let v = self._input {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
+    } }()
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  public static func ==(lhs: Auth_RegisterUserRequest, rhs: Auth_RegisterUserRequest) -> Bool {
+    if lhs._input != rhs._input {return false}
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+extension Auth_RegisterUserResponse: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".RegisterUserResponse"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}response_details\0\u{1}created\0")
+
+  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularMessageField(value: &self._responseDetails) }()
+      case 2: try { try decoder.decodeSingularMessageField(value: &self._created) }()
+      default: break
+      }
+    }
+  }
+
+  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    // The use of inline closures is to circumvent an issue where the compiler
+    // allocates stack space for every if/case branch local when no optimizations
+    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
+    // https://github.com/apple/swift-protobuf/issues/1182
+    try { if let v = self._responseDetails {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
+    } }()
+    try { if let v = self._created {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
+    } }()
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  public static func ==(lhs: Auth_RegisterUserResponse, rhs: Auth_RegisterUserResponse) -> Bool {
+    if lhs._responseDetails != rhs._responseDetails {return false}
+    if lhs._created != rhs._created {return false}
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
 
 extension Auth_LoginForTokenRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".LoginForTokenRequest"
@@ -3630,6 +3920,308 @@ extension Auth_AdminRevokeAllUserSessionsRequest: SwiftProtobuf.Message, SwiftPr
 
   public static func ==(lhs: Auth_AdminRevokeAllUserSessionsRequest, rhs: Auth_AdminRevokeAllUserSessionsRequest) -> Bool {
     if lhs.userID != rhs.userID {return false}
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+extension Auth_UserRegistrationInput: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".UserRegistrationInput"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}password\0\u{3}email_address\0\u{3}invitation_token\0\u{3}invitation_id\0\u{1}username\0\u{3}first_name\0\u{3}last_name\0\u{3}account_name\0\u{3}accepted_tos\0\u{3}accepted_privacy_policy\0")
+
+  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularStringField(value: &self.password) }()
+      case 2: try { try decoder.decodeSingularStringField(value: &self.emailAddress) }()
+      case 3: try { try decoder.decodeSingularStringField(value: &self.invitationToken) }()
+      case 4: try { try decoder.decodeSingularStringField(value: &self.invitationID) }()
+      case 5: try { try decoder.decodeSingularStringField(value: &self.username) }()
+      case 6: try { try decoder.decodeSingularStringField(value: &self.firstName) }()
+      case 7: try { try decoder.decodeSingularStringField(value: &self.lastName) }()
+      case 8: try { try decoder.decodeSingularStringField(value: &self.accountName) }()
+      case 9: try { try decoder.decodeSingularBoolField(value: &self.acceptedTos) }()
+      case 10: try { try decoder.decodeSingularBoolField(value: &self.acceptedPrivacyPolicy) }()
+      default: break
+      }
+    }
+  }
+
+  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    if !self.password.isEmpty {
+      try visitor.visitSingularStringField(value: self.password, fieldNumber: 1)
+    }
+    if !self.emailAddress.isEmpty {
+      try visitor.visitSingularStringField(value: self.emailAddress, fieldNumber: 2)
+    }
+    if !self.invitationToken.isEmpty {
+      try visitor.visitSingularStringField(value: self.invitationToken, fieldNumber: 3)
+    }
+    if !self.invitationID.isEmpty {
+      try visitor.visitSingularStringField(value: self.invitationID, fieldNumber: 4)
+    }
+    if !self.username.isEmpty {
+      try visitor.visitSingularStringField(value: self.username, fieldNumber: 5)
+    }
+    if !self.firstName.isEmpty {
+      try visitor.visitSingularStringField(value: self.firstName, fieldNumber: 6)
+    }
+    if !self.lastName.isEmpty {
+      try visitor.visitSingularStringField(value: self.lastName, fieldNumber: 7)
+    }
+    if !self.accountName.isEmpty {
+      try visitor.visitSingularStringField(value: self.accountName, fieldNumber: 8)
+    }
+    if self.acceptedTos != false {
+      try visitor.visitSingularBoolField(value: self.acceptedTos, fieldNumber: 9)
+    }
+    if self.acceptedPrivacyPolicy != false {
+      try visitor.visitSingularBoolField(value: self.acceptedPrivacyPolicy, fieldNumber: 10)
+    }
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  public static func ==(lhs: Auth_UserRegistrationInput, rhs: Auth_UserRegistrationInput) -> Bool {
+    if lhs.password != rhs.password {return false}
+    if lhs.emailAddress != rhs.emailAddress {return false}
+    if lhs.invitationToken != rhs.invitationToken {return false}
+    if lhs.invitationID != rhs.invitationID {return false}
+    if lhs.username != rhs.username {return false}
+    if lhs.firstName != rhs.firstName {return false}
+    if lhs.lastName != rhs.lastName {return false}
+    if lhs.accountName != rhs.accountName {return false}
+    if lhs.acceptedTos != rhs.acceptedTos {return false}
+    if lhs.acceptedPrivacyPolicy != rhs.acceptedPrivacyPolicy {return false}
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+extension Auth_UserCreationResponse: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".UserCreationResponse"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}created_at\0\u{1}username\0\u{3}email_address\0\u{3}two_factor_qr_code\0\u{3}created_user_id\0\u{3}account_status\0\u{3}two_factor_secret\0\u{3}first_name\0\u{3}last_name\0\u{3}created_account_id\0")
+
+  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularMessageField(value: &self._createdAt) }()
+      case 2: try { try decoder.decodeSingularStringField(value: &self.username) }()
+      case 3: try { try decoder.decodeSingularStringField(value: &self.emailAddress) }()
+      case 4: try { try decoder.decodeSingularStringField(value: &self.twoFactorQrCode) }()
+      case 5: try { try decoder.decodeSingularStringField(value: &self.createdUserID) }()
+      case 6: try { try decoder.decodeSingularStringField(value: &self.accountStatus) }()
+      case 7: try { try decoder.decodeSingularStringField(value: &self.twoFactorSecret) }()
+      case 8: try { try decoder.decodeSingularStringField(value: &self.firstName) }()
+      case 9: try { try decoder.decodeSingularStringField(value: &self.lastName) }()
+      case 10: try { try decoder.decodeSingularStringField(value: &self.createdAccountID) }()
+      default: break
+      }
+    }
+  }
+
+  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    // The use of inline closures is to circumvent an issue where the compiler
+    // allocates stack space for every if/case branch local when no optimizations
+    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
+    // https://github.com/apple/swift-protobuf/issues/1182
+    try { if let v = self._createdAt {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
+    } }()
+    if !self.username.isEmpty {
+      try visitor.visitSingularStringField(value: self.username, fieldNumber: 2)
+    }
+    if !self.emailAddress.isEmpty {
+      try visitor.visitSingularStringField(value: self.emailAddress, fieldNumber: 3)
+    }
+    if !self.twoFactorQrCode.isEmpty {
+      try visitor.visitSingularStringField(value: self.twoFactorQrCode, fieldNumber: 4)
+    }
+    if !self.createdUserID.isEmpty {
+      try visitor.visitSingularStringField(value: self.createdUserID, fieldNumber: 5)
+    }
+    if !self.accountStatus.isEmpty {
+      try visitor.visitSingularStringField(value: self.accountStatus, fieldNumber: 6)
+    }
+    if !self.twoFactorSecret.isEmpty {
+      try visitor.visitSingularStringField(value: self.twoFactorSecret, fieldNumber: 7)
+    }
+    if !self.firstName.isEmpty {
+      try visitor.visitSingularStringField(value: self.firstName, fieldNumber: 8)
+    }
+    if !self.lastName.isEmpty {
+      try visitor.visitSingularStringField(value: self.lastName, fieldNumber: 9)
+    }
+    if !self.createdAccountID.isEmpty {
+      try visitor.visitSingularStringField(value: self.createdAccountID, fieldNumber: 10)
+    }
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  public static func ==(lhs: Auth_UserCreationResponse, rhs: Auth_UserCreationResponse) -> Bool {
+    if lhs._createdAt != rhs._createdAt {return false}
+    if lhs.username != rhs.username {return false}
+    if lhs.emailAddress != rhs.emailAddress {return false}
+    if lhs.twoFactorQrCode != rhs.twoFactorQrCode {return false}
+    if lhs.createdUserID != rhs.createdUserID {return false}
+    if lhs.accountStatus != rhs.accountStatus {return false}
+    if lhs.twoFactorSecret != rhs.twoFactorSecret {return false}
+    if lhs.firstName != rhs.firstName {return false}
+    if lhs.lastName != rhs.lastName {return false}
+    if lhs.createdAccountID != rhs.createdAccountID {return false}
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+extension Auth_UpdateUserEmailAddressRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".UpdateUserEmailAddressRequest"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}new_email_address\0\u{3}current_password\0\u{3}totp_token\0")
+
+  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularStringField(value: &self.newEmailAddress) }()
+      case 2: try { try decoder.decodeSingularStringField(value: &self.currentPassword) }()
+      case 3: try { try decoder.decodeSingularStringField(value: &self.totpToken) }()
+      default: break
+      }
+    }
+  }
+
+  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    if !self.newEmailAddress.isEmpty {
+      try visitor.visitSingularStringField(value: self.newEmailAddress, fieldNumber: 1)
+    }
+    if !self.currentPassword.isEmpty {
+      try visitor.visitSingularStringField(value: self.currentPassword, fieldNumber: 2)
+    }
+    if !self.totpToken.isEmpty {
+      try visitor.visitSingularStringField(value: self.totpToken, fieldNumber: 3)
+    }
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  public static func ==(lhs: Auth_UpdateUserEmailAddressRequest, rhs: Auth_UpdateUserEmailAddressRequest) -> Bool {
+    if lhs.newEmailAddress != rhs.newEmailAddress {return false}
+    if lhs.currentPassword != rhs.currentPassword {return false}
+    if lhs.totpToken != rhs.totpToken {return false}
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+extension Auth_UpdateUserEmailAddressResponse: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".UpdateUserEmailAddressResponse"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}response_details\0")
+
+  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularMessageField(value: &self._responseDetails) }()
+      default: break
+      }
+    }
+  }
+
+  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    // The use of inline closures is to circumvent an issue where the compiler
+    // allocates stack space for every if/case branch local when no optimizations
+    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
+    // https://github.com/apple/swift-protobuf/issues/1182
+    try { if let v = self._responseDetails {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
+    } }()
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  public static func ==(lhs: Auth_UpdateUserEmailAddressResponse, rhs: Auth_UpdateUserEmailAddressResponse) -> Bool {
+    if lhs._responseDetails != rhs._responseDetails {return false}
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+extension Auth_UpdateUserUsernameRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".UpdateUserUsernameRequest"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}new_username\0\u{3}current_password\0\u{3}totp_token\0")
+
+  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularStringField(value: &self.newUsername) }()
+      case 2: try { try decoder.decodeSingularStringField(value: &self.currentPassword) }()
+      case 3: try { try decoder.decodeSingularStringField(value: &self.totpToken) }()
+      default: break
+      }
+    }
+  }
+
+  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    if !self.newUsername.isEmpty {
+      try visitor.visitSingularStringField(value: self.newUsername, fieldNumber: 1)
+    }
+    if !self.currentPassword.isEmpty {
+      try visitor.visitSingularStringField(value: self.currentPassword, fieldNumber: 2)
+    }
+    if !self.totpToken.isEmpty {
+      try visitor.visitSingularStringField(value: self.totpToken, fieldNumber: 3)
+    }
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  public static func ==(lhs: Auth_UpdateUserUsernameRequest, rhs: Auth_UpdateUserUsernameRequest) -> Bool {
+    if lhs.newUsername != rhs.newUsername {return false}
+    if lhs.currentPassword != rhs.currentPassword {return false}
+    if lhs.totpToken != rhs.totpToken {return false}
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+extension Auth_UpdateUserUsernameResponse: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".UpdateUserUsernameResponse"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}response_details\0")
+
+  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularMessageField(value: &self._responseDetails) }()
+      default: break
+      }
+    }
+  }
+
+  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    // The use of inline closures is to circumvent an issue where the compiler
+    // allocates stack space for every if/case branch local when no optimizations
+    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
+    // https://github.com/apple/swift-protobuf/issues/1182
+    try { if let v = self._responseDetails {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
+    } }()
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  public static func ==(lhs: Auth_UpdateUserUsernameResponse, rhs: Auth_UpdateUserUsernameResponse) -> Bool {
+    if lhs._responseDetails != rhs._responseDetails {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }

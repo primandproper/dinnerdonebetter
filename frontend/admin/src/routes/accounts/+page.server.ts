@@ -1,5 +1,5 @@
 import type { PageServerLoad } from './$types';
-import { getAccounts } from '$lib/grpc/clients';
+import { listAccounts } from '$lib/grpc/clients';
 import { QueryFilter } from '@dinnerdonebetter/api-client';
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -8,7 +8,7 @@ export const load: PageServerLoad = async ({ locals }) => {
     return { accounts: [], error: 'Not authenticated' };
   }
   try {
-    const res = (await getAccounts(token, { filter: QueryFilter.create({ maxResponseSize: 100 }) })) as {
+    const res = (await listAccounts(token, { filter: QueryFilter.create({ maxResponseSize: 100 }) })) as {
       results?: Array<{ id?: string; name?: string }>;
     };
     return { accounts: res?.results ?? [] };

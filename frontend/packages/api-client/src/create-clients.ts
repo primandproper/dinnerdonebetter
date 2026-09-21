@@ -40,28 +40,35 @@ import type {
   RevokeCurrentSessionResponse,
   ExchangeTokenRequest,
   ExchangeTokenResponse,
-} from './auth/auth_service_types.js';
-import { IdentityServiceClient } from './identity/identity_service.js';
-import type {
-  GetAccountsForUserRequest,
-  GetAccountsForUserResponse,
-  GetSentAccountInvitationsRequest,
-  GetSentAccountInvitationsResponse,
-  CreateAccountInvitationRequest,
-  CreateAccountInvitationResponse,
-  CancelAccountInvitationRequest,
-  CancelAccountInvitationResponse,
-  UpdateAccountMemberPermissionsRequest,
-  UpdateAccountMemberPermissionsResponse,
-  UpdateAccountRequest,
-  UpdateAccountResponse,
+  UpdateUserEmailAddressRequest,
+  UpdateUserEmailAddressResponse,
   UpdateUserUsernameRequest,
   UpdateUserUsernameResponse,
-  UpdateUserDetailsRequest,
-  UpdateUserDetailsResponse,
-  UploadUserAvatarResponse,
-} from './identity/identity_service_types.js';
-import { UploadRequest, UploadMetadata } from './uploaded_media/uploaded_media_messages.js';
+} from './auth/auth_service_types.js';
+// The directory is platform's, so its client and its messages come from the schema
+// platform-go ships rather than from one of this repository's own protos. The RPC names
+// changed with it: CreateAccountInvitation is Invite, GetAccountsForUser is
+// ListAccountsForUser, and the three calls that each changed one field of a user are one
+// UpdateProfile.
+import { IdentityServiceClient } from './primandproper/platform/identity/v1/identity.js';
+import type {
+  ListAccountsForUserRequest,
+  ListAccountsForUserResponse,
+  ListAccountMembersRequest,
+  ListAccountMembersResponse,
+  ListInvitationsFromUserRequest,
+  ListInvitationsFromUserResponse,
+  InviteRequest,
+  InviteResponse,
+  CancelInvitationRequest,
+  CancelInvitationResponse,
+  SetMembershipRolesRequest,
+  SetMembershipRolesResponse,
+  UpdateAccountRequest,
+  UpdateAccountResponse,
+  UpdateProfileRequest,
+  UpdateProfileResponse,
+} from './primandproper/platform/identity/v1/identity.js';
 import { SettingsServiceClient } from './settings/settings_service.js';
 import type {
   GetSettingDefinitionsRequest,
@@ -135,7 +142,6 @@ function promisifyUnary<TRequest, TResponse>(
     });
 }
 
-const UPLOAD_AVATAR_CHUNK_SIZE = 64 * 1024; // 64 KB, match iOS
 // QueryFilter is platform's schema, and its four timestamp windows are message
 // fields rather than `optional` scalars, so a bare object literal is not one.
 // The generated factory fills every field, which is what it is for.
@@ -273,55 +279,16 @@ export function createGrpcClients(config: GrpcClientConfig) {
         getAuthClient().revokeCurrentSession.bind(getAuthClient()),
       )({}, authMetadata(token)),
 
-    exchangeToken: (refreshToken: string, desiredAccountId?: string): Promise<ExchangeTokenResponse> =>
-      promisifyUnary<ExchangeTokenRequest, ExchangeTokenResponse>(getAuthClient().exchangeToken.bind(getAuthClient()))(
-        { refreshToken, desiredAccountId: desiredAccountId ?? '' },
-        emptyMetadata,
-      ),
-
-    getAccountsForUser: (
+    // The handle and the address are on the auth surface rather than in the directory's
+    // profile update, and they ask for the password and a second factor: whoever holds the
+    // address can take the account through a password reset, so changing it is a
+    // credential change.
+    updateUserEmailAddress: (
       oauth2Token: string,
-      request: GetAccountsForUserRequest,
-    ): Promise<GetAccountsForUserResponse> =>
-      promisifyUnary<GetAccountsForUserRequest, GetAccountsForUserResponse>(
-        getIdentityClient().getAccountsForUser.bind(getIdentityClient()),
-      )(request, authMetadata(oauth2Token)),
-
-    getSentAccountInvitations: (
-      oauth2Token: string,
-      request: GetSentAccountInvitationsRequest,
-    ): Promise<GetSentAccountInvitationsResponse> =>
-      promisifyUnary<GetSentAccountInvitationsRequest, GetSentAccountInvitationsResponse>(
-        getIdentityClient().getSentAccountInvitations.bind(getIdentityClient()),
-      )(request, authMetadata(oauth2Token)),
-
-    createAccountInvitation: (
-      oauth2Token: string,
-      request: CreateAccountInvitationRequest,
-    ): Promise<CreateAccountInvitationResponse> =>
-      promisifyUnary<CreateAccountInvitationRequest, CreateAccountInvitationResponse>(
-        getIdentityClient().createAccountInvitation.bind(getIdentityClient()),
-      )(request, authMetadata(oauth2Token)),
-
-    cancelAccountInvitation: (
-      oauth2Token: string,
-      request: CancelAccountInvitationRequest,
-    ): Promise<CancelAccountInvitationResponse> =>
-      promisifyUnary<CancelAccountInvitationRequest, CancelAccountInvitationResponse>(
-        getIdentityClient().cancelAccountInvitation.bind(getIdentityClient()),
-      )(request, authMetadata(oauth2Token)),
-
-    updateAccountMemberPermissions: (
-      oauth2Token: string,
-      request: UpdateAccountMemberPermissionsRequest,
-    ): Promise<UpdateAccountMemberPermissionsResponse> =>
-      promisifyUnary<UpdateAccountMemberPermissionsRequest, UpdateAccountMemberPermissionsResponse>(
-        getIdentityClient().updateAccountMemberPermissions.bind(getIdentityClient()),
-      )(request, authMetadata(oauth2Token)),
-
-    updateAccount: (oauth2Token: string, request: UpdateAccountRequest): Promise<UpdateAccountResponse> =>
-      promisifyUnary<UpdateAccountRequest, UpdateAccountResponse>(
-        getIdentityClient().updateAccount.bind(getIdentityClient()),
+      request: UpdateUserEmailAddressRequest,
+    ): Promise<UpdateUserEmailAddressResponse> =>
+      promisifyUnary<UpdateUserEmailAddressRequest, UpdateUserEmailAddressResponse>(
+        getAuthClient().updateUserEmailAddress.bind(getAuthClient()),
       )(request, authMetadata(oauth2Token)),
 
     updateUserUsername: (
@@ -329,65 +296,78 @@ export function createGrpcClients(config: GrpcClientConfig) {
       request: UpdateUserUsernameRequest,
     ): Promise<UpdateUserUsernameResponse> =>
       promisifyUnary<UpdateUserUsernameRequest, UpdateUserUsernameResponse>(
-        getIdentityClient().updateUserUsername.bind(getIdentityClient()),
+        getAuthClient().updateUserUsername.bind(getAuthClient()),
       )(request, authMetadata(oauth2Token)),
 
-    updateUserDetails: (oauth2Token: string, request: UpdateUserDetailsRequest): Promise<UpdateUserDetailsResponse> =>
-      promisifyUnary<UpdateUserDetailsRequest, UpdateUserDetailsResponse>(
-        getIdentityClient().updateUserDetails.bind(getIdentityClient()),
-      )(request, authMetadata(oauth2Token)),
+    exchangeToken: (refreshToken: string, desiredAccountId?: string): Promise<ExchangeTokenResponse> =>
+      promisifyUnary<ExchangeTokenRequest, ExchangeTokenResponse>(getAuthClient().exchangeToken.bind(getAuthClient()))(
+        { refreshToken, desiredAccountId: desiredAccountId ?? '' },
+        emptyMetadata,
+      ),
 
-    uploadUserAvatar: async (
+    listAccountsForUser: (
       oauth2Token: string,
-      fileBuffer: Buffer,
-      filename: string,
-      contentType: string,
-    ): Promise<UploadUserAvatarResponse> => {
-      const client = getIdentityClient();
-      const meta = authMetadata(oauth2Token);
-      return new Promise((resolve, reject) => {
-        const stream = client.uploadUserAvatar(meta, (err, response) => {
-          if (err) reject(err);
-          else if (response) resolve(response);
-          else reject(new Error('No response'));
-        });
-        const metadataReq = UploadRequest.create({
-          metadata: UploadMetadata.create({
-            bucket: 'avatars',
-            objectName: filename,
-            contentType,
-          }),
-        });
-        stream.write(metadataReq, (writeErr: unknown) => {
-          if (writeErr) {
-            const err = writeErr instanceof Error ? writeErr : new Error(String(writeErr));
-            stream.destroy(err);
-            reject(err);
-            return;
-          }
-          let offset = 0;
-          const writeNext = () => {
-            if (offset >= fileBuffer.length) {
-              stream.end();
-              return;
-            }
-            const end = Math.min(offset + UPLOAD_AVATAR_CHUNK_SIZE, fileBuffer.length);
-            const chunk = fileBuffer.subarray(offset, end);
-            offset = end;
-            stream.write(UploadRequest.create({ chunk: new Uint8Array(chunk) }), (chunkErr: unknown) => {
-              if (chunkErr) {
-                const err = chunkErr instanceof Error ? chunkErr : new Error(String(chunkErr));
-                stream.destroy(err);
-                reject(err);
-                return;
-              }
-              writeNext();
-            });
-          };
-          writeNext();
-        });
-      });
-    },
+      request: ListAccountsForUserRequest,
+    ): Promise<ListAccountsForUserResponse> =>
+      promisifyUnary<ListAccountsForUserRequest, ListAccountsForUserResponse>(
+        getIdentityClient().listAccountsForUser.bind(getIdentityClient()),
+      )(request, authMetadata(oauth2Token)),
+
+    listAccountMembers: (
+      oauth2Token: string,
+      request: ListAccountMembersRequest,
+    ): Promise<ListAccountMembersResponse> =>
+      promisifyUnary<ListAccountMembersRequest, ListAccountMembersResponse>(
+        getIdentityClient().listAccountMembers.bind(getIdentityClient()),
+      )(request, authMetadata(oauth2Token)),
+
+    listInvitationsFromUser: (
+      oauth2Token: string,
+      request: ListInvitationsFromUserRequest,
+    ): Promise<ListInvitationsFromUserResponse> =>
+      promisifyUnary<ListInvitationsFromUserRequest, ListInvitationsFromUserResponse>(
+        getIdentityClient().listInvitationsFromUser.bind(getIdentityClient()),
+      )(request, authMetadata(oauth2Token)),
+
+    invite: (oauth2Token: string, request: InviteRequest): Promise<InviteResponse> =>
+      promisifyUnary<InviteRequest, InviteResponse>(getIdentityClient().invite.bind(getIdentityClient()))(
+        request,
+        authMetadata(oauth2Token),
+      ),
+
+    cancelInvitation: (oauth2Token: string, request: CancelInvitationRequest): Promise<CancelInvitationResponse> =>
+      promisifyUnary<CancelInvitationRequest, CancelInvitationResponse>(
+        getIdentityClient().cancelInvitation.bind(getIdentityClient()),
+      )(request, authMetadata(oauth2Token)),
+
+    setMembershipRoles: (
+      oauth2Token: string,
+      request: SetMembershipRolesRequest,
+    ): Promise<SetMembershipRolesResponse> =>
+      promisifyUnary<SetMembershipRolesRequest, SetMembershipRolesResponse>(
+        getIdentityClient().setMembershipRoles.bind(getIdentityClient()),
+      )(request, authMetadata(oauth2Token)),
+
+    updateAccount: (oauth2Token: string, request: UpdateAccountRequest): Promise<UpdateAccountResponse> =>
+      promisifyUnary<UpdateAccountRequest, UpdateAccountResponse>(
+        getIdentityClient().updateAccount.bind(getIdentityClient()),
+      )(request, authMetadata(oauth2Token)),
+
+    // One call where there were three. A handle, a display name and the two parts of a
+    // name are all fields of the same update, and each is absent unless it is being set —
+    // so sending one no longer blanks the others.
+    updateProfile: (oauth2Token: string, request: UpdateProfileRequest): Promise<UpdateProfileResponse> =>
+      promisifyUnary<UpdateProfileRequest, UpdateProfileResponse>(
+        getIdentityClient().updateProfile.bind(getIdentityClient()),
+      )(request, authMetadata(oauth2Token)),
+
+    // uploadUserAvatar is gone with the RPC it called.
+    //
+    // An avatar was never in the directory's User — it is a row in this application's
+    // upload registry and a reference to it — so platform's identity surface has no
+    // method for one, correctly. Restoring it means an RPC on the media surface and a
+    // read that hydrates the reference, which is its own piece of work rather than part
+    // of this cutover.
 
     getSettingDefinitions: (
       oauth2Token: string,

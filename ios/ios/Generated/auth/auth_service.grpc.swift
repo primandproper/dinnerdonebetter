@@ -56,6 +56,18 @@ internal enum Auth_AuthService {
                 method: "EvaluateStringFeatureFlag"
             )
         }
+        /// Namespace for "RegisterUser" metadata.
+        internal enum RegisterUser {
+            /// Request type for "RegisterUser".
+            internal typealias Input = Auth_RegisterUserRequest
+            /// Response type for "RegisterUser".
+            internal typealias Output = Auth_RegisterUserResponse
+            /// Descriptor for "RegisterUser".
+            internal static let descriptor = GRPCCore.MethodDescriptor(
+                service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "auth.AuthService"),
+                method: "RegisterUser"
+            )
+        }
         /// Namespace for "GetAuthStatus" metadata.
         internal enum GetAuthStatus {
             /// Request type for "GetAuthStatus".
@@ -236,6 +248,30 @@ internal enum Auth_AuthService {
                 method: "UpdatePassword"
             )
         }
+        /// Namespace for "UpdateUserEmailAddress" metadata.
+        internal enum UpdateUserEmailAddress {
+            /// Request type for "UpdateUserEmailAddress".
+            internal typealias Input = Auth_UpdateUserEmailAddressRequest
+            /// Response type for "UpdateUserEmailAddress".
+            internal typealias Output = Auth_UpdateUserEmailAddressResponse
+            /// Descriptor for "UpdateUserEmailAddress".
+            internal static let descriptor = GRPCCore.MethodDescriptor(
+                service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "auth.AuthService"),
+                method: "UpdateUserEmailAddress"
+            )
+        }
+        /// Namespace for "UpdateUserUsername" metadata.
+        internal enum UpdateUserUsername {
+            /// Request type for "UpdateUserUsername".
+            internal typealias Input = Auth_UpdateUserUsernameRequest
+            /// Response type for "UpdateUserUsername".
+            internal typealias Output = Auth_UpdateUserUsernameResponse
+            /// Descriptor for "UpdateUserUsername".
+            internal static let descriptor = GRPCCore.MethodDescriptor(
+                service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "auth.AuthService"),
+                method: "UpdateUserUsername"
+            )
+        }
         /// Namespace for "BeginPasskeyRegistration" metadata.
         internal enum BeginPasskeyRegistration {
             /// Request type for "BeginPasskeyRegistration".
@@ -397,6 +433,7 @@ internal enum Auth_AuthService {
             EvaluateBooleanFeatureFlag.descriptor,
             EvaluateInt64FeatureFlag.descriptor,
             EvaluateStringFeatureFlag.descriptor,
+            RegisterUser.descriptor,
             GetAuthStatus.descriptor,
             ExchangeToken.descriptor,
             AdminLoginForToken.descriptor,
@@ -412,6 +449,8 @@ internal enum Auth_AuthService {
             VerifyEmailAddress.descriptor,
             VerifyTOTPSecret.descriptor,
             UpdatePassword.descriptor,
+            UpdateUserEmailAddress.descriptor,
+            UpdateUserUsername.descriptor,
             BeginPasskeyRegistration.descriptor,
             FinishPasskeyRegistration.descriptor,
             BeginPasskeyAuthentication.descriptor,
@@ -499,6 +538,25 @@ extension Auth_AuthService {
             deserializer: some GRPCCore.MessageDeserializer<Auth_EvaluateStringFeatureFlagResponse>,
             options: GRPCCore.CallOptions,
             onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Auth_EvaluateStringFeatureFlagResponse>) async throws -> Result
+        ) async throws -> Result where Result: Sendable
+
+        /// Call the "RegisterUser" method.
+        ///
+        /// - Parameters:
+        ///   - request: A request containing a single `Auth_RegisterUserRequest` message.
+        ///   - serializer: A serializer for `Auth_RegisterUserRequest` messages.
+        ///   - deserializer: A deserializer for `Auth_RegisterUserResponse` messages.
+        ///   - options: Options to apply to this RPC.
+        ///   - handleResponse: A closure which handles the response, the result of which is
+        ///       returned to the caller. Returning from the closure will cancel the RPC if it
+        ///       hasn't already finished.
+        /// - Returns: The result of `handleResponse`.
+        func registerUser<Result>(
+            request: GRPCCore.ClientRequest<Auth_RegisterUserRequest>,
+            serializer: some GRPCCore.MessageSerializer<Auth_RegisterUserRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Auth_RegisterUserResponse>,
+            options: GRPCCore.CallOptions,
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Auth_RegisterUserResponse>) async throws -> Result
         ) async throws -> Result where Result: Sendable
 
         /// Call the "GetAuthStatus" method.
@@ -784,6 +842,44 @@ extension Auth_AuthService {
             deserializer: some GRPCCore.MessageDeserializer<Auth_UpdatePasswordResponse>,
             options: GRPCCore.CallOptions,
             onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Auth_UpdatePasswordResponse>) async throws -> Result
+        ) async throws -> Result where Result: Sendable
+
+        /// Call the "UpdateUserEmailAddress" method.
+        ///
+        /// - Parameters:
+        ///   - request: A request containing a single `Auth_UpdateUserEmailAddressRequest` message.
+        ///   - serializer: A serializer for `Auth_UpdateUserEmailAddressRequest` messages.
+        ///   - deserializer: A deserializer for `Auth_UpdateUserEmailAddressResponse` messages.
+        ///   - options: Options to apply to this RPC.
+        ///   - handleResponse: A closure which handles the response, the result of which is
+        ///       returned to the caller. Returning from the closure will cancel the RPC if it
+        ///       hasn't already finished.
+        /// - Returns: The result of `handleResponse`.
+        func updateUserEmailAddress<Result>(
+            request: GRPCCore.ClientRequest<Auth_UpdateUserEmailAddressRequest>,
+            serializer: some GRPCCore.MessageSerializer<Auth_UpdateUserEmailAddressRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Auth_UpdateUserEmailAddressResponse>,
+            options: GRPCCore.CallOptions,
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Auth_UpdateUserEmailAddressResponse>) async throws -> Result
+        ) async throws -> Result where Result: Sendable
+
+        /// Call the "UpdateUserUsername" method.
+        ///
+        /// - Parameters:
+        ///   - request: A request containing a single `Auth_UpdateUserUsernameRequest` message.
+        ///   - serializer: A serializer for `Auth_UpdateUserUsernameRequest` messages.
+        ///   - deserializer: A deserializer for `Auth_UpdateUserUsernameResponse` messages.
+        ///   - options: Options to apply to this RPC.
+        ///   - handleResponse: A closure which handles the response, the result of which is
+        ///       returned to the caller. Returning from the closure will cancel the RPC if it
+        ///       hasn't already finished.
+        /// - Returns: The result of `handleResponse`.
+        func updateUserUsername<Result>(
+            request: GRPCCore.ClientRequest<Auth_UpdateUserUsernameRequest>,
+            serializer: some GRPCCore.MessageSerializer<Auth_UpdateUserUsernameRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Auth_UpdateUserUsernameResponse>,
+            options: GRPCCore.CallOptions,
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Auth_UpdateUserUsernameResponse>) async throws -> Result
         ) async throws -> Result where Result: Sendable
 
         /// Call the "BeginPasskeyRegistration" method.
@@ -1133,6 +1229,36 @@ extension Auth_AuthService {
             try await self.client.unary(
                 request: request,
                 descriptor: Auth_AuthService.Method.EvaluateStringFeatureFlag.descriptor,
+                serializer: serializer,
+                deserializer: deserializer,
+                options: options,
+                onResponse: handleResponse
+            )
+        }
+
+        /// Call the "RegisterUser" method.
+        ///
+        /// - Parameters:
+        ///   - request: A request containing a single `Auth_RegisterUserRequest` message.
+        ///   - serializer: A serializer for `Auth_RegisterUserRequest` messages.
+        ///   - deserializer: A deserializer for `Auth_RegisterUserResponse` messages.
+        ///   - options: Options to apply to this RPC.
+        ///   - handleResponse: A closure which handles the response, the result of which is
+        ///       returned to the caller. Returning from the closure will cancel the RPC if it
+        ///       hasn't already finished.
+        /// - Returns: The result of `handleResponse`.
+        internal func registerUser<Result>(
+            request: GRPCCore.ClientRequest<Auth_RegisterUserRequest>,
+            serializer: some GRPCCore.MessageSerializer<Auth_RegisterUserRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Auth_RegisterUserResponse>,
+            options: GRPCCore.CallOptions = .defaults,
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Auth_RegisterUserResponse>) async throws -> Result = { response in
+                try response.message
+            }
+        ) async throws -> Result where Result: Sendable {
+            try await self.client.unary(
+                request: request,
+                descriptor: Auth_AuthService.Method.RegisterUser.descriptor,
                 serializer: serializer,
                 deserializer: deserializer,
                 options: options,
@@ -1583,6 +1709,66 @@ extension Auth_AuthService {
             try await self.client.unary(
                 request: request,
                 descriptor: Auth_AuthService.Method.UpdatePassword.descriptor,
+                serializer: serializer,
+                deserializer: deserializer,
+                options: options,
+                onResponse: handleResponse
+            )
+        }
+
+        /// Call the "UpdateUserEmailAddress" method.
+        ///
+        /// - Parameters:
+        ///   - request: A request containing a single `Auth_UpdateUserEmailAddressRequest` message.
+        ///   - serializer: A serializer for `Auth_UpdateUserEmailAddressRequest` messages.
+        ///   - deserializer: A deserializer for `Auth_UpdateUserEmailAddressResponse` messages.
+        ///   - options: Options to apply to this RPC.
+        ///   - handleResponse: A closure which handles the response, the result of which is
+        ///       returned to the caller. Returning from the closure will cancel the RPC if it
+        ///       hasn't already finished.
+        /// - Returns: The result of `handleResponse`.
+        internal func updateUserEmailAddress<Result>(
+            request: GRPCCore.ClientRequest<Auth_UpdateUserEmailAddressRequest>,
+            serializer: some GRPCCore.MessageSerializer<Auth_UpdateUserEmailAddressRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Auth_UpdateUserEmailAddressResponse>,
+            options: GRPCCore.CallOptions = .defaults,
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Auth_UpdateUserEmailAddressResponse>) async throws -> Result = { response in
+                try response.message
+            }
+        ) async throws -> Result where Result: Sendable {
+            try await self.client.unary(
+                request: request,
+                descriptor: Auth_AuthService.Method.UpdateUserEmailAddress.descriptor,
+                serializer: serializer,
+                deserializer: deserializer,
+                options: options,
+                onResponse: handleResponse
+            )
+        }
+
+        /// Call the "UpdateUserUsername" method.
+        ///
+        /// - Parameters:
+        ///   - request: A request containing a single `Auth_UpdateUserUsernameRequest` message.
+        ///   - serializer: A serializer for `Auth_UpdateUserUsernameRequest` messages.
+        ///   - deserializer: A deserializer for `Auth_UpdateUserUsernameResponse` messages.
+        ///   - options: Options to apply to this RPC.
+        ///   - handleResponse: A closure which handles the response, the result of which is
+        ///       returned to the caller. Returning from the closure will cancel the RPC if it
+        ///       hasn't already finished.
+        /// - Returns: The result of `handleResponse`.
+        internal func updateUserUsername<Result>(
+            request: GRPCCore.ClientRequest<Auth_UpdateUserUsernameRequest>,
+            serializer: some GRPCCore.MessageSerializer<Auth_UpdateUserUsernameRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Auth_UpdateUserUsernameResponse>,
+            options: GRPCCore.CallOptions = .defaults,
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Auth_UpdateUserUsernameResponse>) async throws -> Result = { response in
+                try response.message
+            }
+        ) async throws -> Result where Result: Sendable {
+            try await self.client.unary(
+                request: request,
+                descriptor: Auth_AuthService.Method.UpdateUserUsername.descriptor,
                 serializer: serializer,
                 deserializer: deserializer,
                 options: options,
@@ -2060,6 +2246,31 @@ extension Auth_AuthService.ClientProtocol {
         )
     }
 
+    /// Call the "RegisterUser" method.
+    ///
+    /// - Parameters:
+    ///   - request: A request containing a single `Auth_RegisterUserRequest` message.
+    ///   - options: Options to apply to this RPC.
+    ///   - handleResponse: A closure which handles the response, the result of which is
+    ///       returned to the caller. Returning from the closure will cancel the RPC if it
+    ///       hasn't already finished.
+    /// - Returns: The result of `handleResponse`.
+    internal func registerUser<Result>(
+        request: GRPCCore.ClientRequest<Auth_RegisterUserRequest>,
+        options: GRPCCore.CallOptions = .defaults,
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Auth_RegisterUserResponse>) async throws -> Result = { response in
+            try response.message
+        }
+    ) async throws -> Result where Result: Sendable {
+        try await self.registerUser(
+            request: request,
+            serializer: GRPCProtobuf.ProtobufSerializer<Auth_RegisterUserRequest>(),
+            deserializer: GRPCProtobuf.ProtobufDeserializer<Auth_RegisterUserResponse>(),
+            options: options,
+            onResponse: handleResponse
+        )
+    }
+
     /// Call the "GetAuthStatus" method.
     ///
     /// - Parameters:
@@ -2430,6 +2641,56 @@ extension Auth_AuthService.ClientProtocol {
             request: request,
             serializer: GRPCProtobuf.ProtobufSerializer<Auth_UpdatePasswordRequest>(),
             deserializer: GRPCProtobuf.ProtobufDeserializer<Auth_UpdatePasswordResponse>(),
+            options: options,
+            onResponse: handleResponse
+        )
+    }
+
+    /// Call the "UpdateUserEmailAddress" method.
+    ///
+    /// - Parameters:
+    ///   - request: A request containing a single `Auth_UpdateUserEmailAddressRequest` message.
+    ///   - options: Options to apply to this RPC.
+    ///   - handleResponse: A closure which handles the response, the result of which is
+    ///       returned to the caller. Returning from the closure will cancel the RPC if it
+    ///       hasn't already finished.
+    /// - Returns: The result of `handleResponse`.
+    internal func updateUserEmailAddress<Result>(
+        request: GRPCCore.ClientRequest<Auth_UpdateUserEmailAddressRequest>,
+        options: GRPCCore.CallOptions = .defaults,
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Auth_UpdateUserEmailAddressResponse>) async throws -> Result = { response in
+            try response.message
+        }
+    ) async throws -> Result where Result: Sendable {
+        try await self.updateUserEmailAddress(
+            request: request,
+            serializer: GRPCProtobuf.ProtobufSerializer<Auth_UpdateUserEmailAddressRequest>(),
+            deserializer: GRPCProtobuf.ProtobufDeserializer<Auth_UpdateUserEmailAddressResponse>(),
+            options: options,
+            onResponse: handleResponse
+        )
+    }
+
+    /// Call the "UpdateUserUsername" method.
+    ///
+    /// - Parameters:
+    ///   - request: A request containing a single `Auth_UpdateUserUsernameRequest` message.
+    ///   - options: Options to apply to this RPC.
+    ///   - handleResponse: A closure which handles the response, the result of which is
+    ///       returned to the caller. Returning from the closure will cancel the RPC if it
+    ///       hasn't already finished.
+    /// - Returns: The result of `handleResponse`.
+    internal func updateUserUsername<Result>(
+        request: GRPCCore.ClientRequest<Auth_UpdateUserUsernameRequest>,
+        options: GRPCCore.CallOptions = .defaults,
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Auth_UpdateUserUsernameResponse>) async throws -> Result = { response in
+            try response.message
+        }
+    ) async throws -> Result where Result: Sendable {
+        try await self.updateUserUsername(
+            request: request,
+            serializer: GRPCProtobuf.ProtobufSerializer<Auth_UpdateUserUsernameRequest>(),
+            deserializer: GRPCProtobuf.ProtobufDeserializer<Auth_UpdateUserUsernameResponse>(),
             options: options,
             onResponse: handleResponse
         )
@@ -2845,6 +3106,35 @@ extension Auth_AuthService.ClientProtocol {
             metadata: metadata
         )
         return try await self.evaluateStringFeatureFlag(
+            request: request,
+            options: options,
+            onResponse: handleResponse
+        )
+    }
+
+    /// Call the "RegisterUser" method.
+    ///
+    /// - Parameters:
+    ///   - message: request message to send.
+    ///   - metadata: Additional metadata to send, defaults to empty.
+    ///   - options: Options to apply to this RPC, defaults to `.defaults`.
+    ///   - handleResponse: A closure which handles the response, the result of which is
+    ///       returned to the caller. Returning from the closure will cancel the RPC if it
+    ///       hasn't already finished.
+    /// - Returns: The result of `handleResponse`.
+    internal func registerUser<Result>(
+        _ message: Auth_RegisterUserRequest,
+        metadata: GRPCCore.Metadata = [:],
+        options: GRPCCore.CallOptions = .defaults,
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Auth_RegisterUserResponse>) async throws -> Result = { response in
+            try response.message
+        }
+    ) async throws -> Result where Result: Sendable {
+        let request = GRPCCore.ClientRequest<Auth_RegisterUserRequest>(
+            message: message,
+            metadata: metadata
+        )
+        return try await self.registerUser(
             request: request,
             options: options,
             onResponse: handleResponse
@@ -3280,6 +3570,64 @@ extension Auth_AuthService.ClientProtocol {
             metadata: metadata
         )
         return try await self.updatePassword(
+            request: request,
+            options: options,
+            onResponse: handleResponse
+        )
+    }
+
+    /// Call the "UpdateUserEmailAddress" method.
+    ///
+    /// - Parameters:
+    ///   - message: request message to send.
+    ///   - metadata: Additional metadata to send, defaults to empty.
+    ///   - options: Options to apply to this RPC, defaults to `.defaults`.
+    ///   - handleResponse: A closure which handles the response, the result of which is
+    ///       returned to the caller. Returning from the closure will cancel the RPC if it
+    ///       hasn't already finished.
+    /// - Returns: The result of `handleResponse`.
+    internal func updateUserEmailAddress<Result>(
+        _ message: Auth_UpdateUserEmailAddressRequest,
+        metadata: GRPCCore.Metadata = [:],
+        options: GRPCCore.CallOptions = .defaults,
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Auth_UpdateUserEmailAddressResponse>) async throws -> Result = { response in
+            try response.message
+        }
+    ) async throws -> Result where Result: Sendable {
+        let request = GRPCCore.ClientRequest<Auth_UpdateUserEmailAddressRequest>(
+            message: message,
+            metadata: metadata
+        )
+        return try await self.updateUserEmailAddress(
+            request: request,
+            options: options,
+            onResponse: handleResponse
+        )
+    }
+
+    /// Call the "UpdateUserUsername" method.
+    ///
+    /// - Parameters:
+    ///   - message: request message to send.
+    ///   - metadata: Additional metadata to send, defaults to empty.
+    ///   - options: Options to apply to this RPC, defaults to `.defaults`.
+    ///   - handleResponse: A closure which handles the response, the result of which is
+    ///       returned to the caller. Returning from the closure will cancel the RPC if it
+    ///       hasn't already finished.
+    /// - Returns: The result of `handleResponse`.
+    internal func updateUserUsername<Result>(
+        _ message: Auth_UpdateUserUsernameRequest,
+        metadata: GRPCCore.Metadata = [:],
+        options: GRPCCore.CallOptions = .defaults,
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Auth_UpdateUserUsernameResponse>) async throws -> Result = { response in
+            try response.message
+        }
+    ) async throws -> Result where Result: Sendable {
+        let request = GRPCCore.ClientRequest<Auth_UpdateUserUsernameRequest>(
+            message: message,
+            metadata: metadata
+        )
+        return try await self.updateUserUsername(
             request: request,
             options: options,
             onResponse: handleResponse

@@ -1,5 +1,5 @@
 import type { PageServerLoad } from './$types';
-import { getAccount, getUsersForAccount, getAuditLogEntriesForAccount } from '$lib/grpc/clients';
+import { getAccount, listAccountMembers, getAuditLogEntriesForAccount } from '$lib/grpc/clients';
 import { QueryFilter } from '@dinnerdonebetter/api-client';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
@@ -9,15 +9,15 @@ export const load: PageServerLoad = async ({ locals, params }) => {
     return { account: null, users: [], auditLog: [], error: 'Not authenticated' };
   }
   try {
-    const accountRes = (await getAccount(token, { accountId })) as { result?: Record<string, unknown> };
-    const account = accountRes?.result ?? null;
+    const accountRes = (await getAccount(token, { accountId })) as { account?: Record<string, unknown> };
+    const account = accountRes?.account ?? null;
 
     let users: unknown[] = [];
     let auditLog: unknown[] = [];
 
     if (accountId) {
       try {
-        const usersRes = (await getUsersForAccount(token, {
+        const usersRes = (await listAccountMembers(token, {
           accountId,
           filter: QueryFilter.create({ maxResponseSize: 50 }),
         })) as { results?: unknown[] };

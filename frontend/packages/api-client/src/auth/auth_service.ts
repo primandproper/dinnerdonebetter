@@ -55,6 +55,8 @@ import {
   RedeemPasswordResetTokenResponse,
   RefreshTOTPSecretRequest,
   RefreshTOTPSecretResponse,
+  RegisterUserRequest,
+  RegisterUserResponse,
   RequestEmailVerificationEmailRequest,
   RequestEmailVerificationEmailResponse,
   RequestPasswordResetTokenRequest,
@@ -69,6 +71,10 @@ import {
   RevokeSessionResponse,
   UpdatePasswordRequest,
   UpdatePasswordResponse,
+  UpdateUserEmailAddressRequest,
+  UpdateUserEmailAddressResponse,
+  UpdateUserUsernameRequest,
+  UpdateUserUsernameResponse,
   UserPermissionsRequestInput,
   UserPermissionsResponse,
   VerifyEmailAddressRequest,
@@ -119,6 +125,16 @@ export const AuthServiceService = {
       Buffer.from(EvaluateStringFeatureFlagResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): EvaluateStringFeatureFlagResponse =>
       EvaluateStringFeatureFlagResponse.decode(value),
+  },
+  registerUser: {
+    path: '/auth.AuthService/RegisterUser' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: RegisterUserRequest): Buffer => Buffer.from(RegisterUserRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): RegisterUserRequest => RegisterUserRequest.decode(value),
+    responseSerialize: (value: RegisterUserResponse): Buffer =>
+      Buffer.from(RegisterUserResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): RegisterUserResponse => RegisterUserResponse.decode(value),
   },
   getAuthStatus: {
     path: '/auth.AuthService/GetAuthStatus' as const,
@@ -287,6 +303,29 @@ export const AuthServiceService = {
       Buffer.from(UpdatePasswordResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): UpdatePasswordResponse => UpdatePasswordResponse.decode(value),
   },
+  updateUserEmailAddress: {
+    path: '/auth.AuthService/UpdateUserEmailAddress' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: UpdateUserEmailAddressRequest): Buffer =>
+      Buffer.from(UpdateUserEmailAddressRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): UpdateUserEmailAddressRequest => UpdateUserEmailAddressRequest.decode(value),
+    responseSerialize: (value: UpdateUserEmailAddressResponse): Buffer =>
+      Buffer.from(UpdateUserEmailAddressResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): UpdateUserEmailAddressResponse =>
+      UpdateUserEmailAddressResponse.decode(value),
+  },
+  updateUserUsername: {
+    path: '/auth.AuthService/UpdateUserUsername' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: UpdateUserUsernameRequest): Buffer =>
+      Buffer.from(UpdateUserUsernameRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): UpdateUserUsernameRequest => UpdateUserUsernameRequest.decode(value),
+    responseSerialize: (value: UpdateUserUsernameResponse): Buffer =>
+      Buffer.from(UpdateUserUsernameResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): UpdateUserUsernameResponse => UpdateUserUsernameResponse.decode(value),
+  },
   beginPasskeyRegistration: {
     path: '/auth.AuthService/BeginPasskeyRegistration' as const,
     requestStream: false as const,
@@ -445,6 +484,7 @@ export interface AuthServiceServer extends UntypedServiceImplementation {
   evaluateBooleanFeatureFlag: handleUnaryCall<EvaluateBooleanFeatureFlagRequest, EvaluateBooleanFeatureFlagResponse>;
   evaluateInt64FeatureFlag: handleUnaryCall<EvaluateInt64FeatureFlagRequest, EvaluateInt64FeatureFlagResponse>;
   evaluateStringFeatureFlag: handleUnaryCall<EvaluateStringFeatureFlagRequest, EvaluateStringFeatureFlagResponse>;
+  registerUser: handleUnaryCall<RegisterUserRequest, RegisterUserResponse>;
   getAuthStatus: handleUnaryCall<GetAuthStatusRequest, GetAuthStatusResponse>;
   exchangeToken: handleUnaryCall<ExchangeTokenRequest, ExchangeTokenResponse>;
   adminLoginForToken: handleUnaryCall<AdminLoginForTokenRequest, LoginForTokenResponse>;
@@ -463,6 +503,8 @@ export interface AuthServiceServer extends UntypedServiceImplementation {
   verifyEmailAddress: handleUnaryCall<VerifyEmailAddressRequest, VerifyEmailAddressResponse>;
   verifyTotpSecret: handleUnaryCall<VerifyTOTPSecretRequest, VerifyTOTPSecretResponse>;
   updatePassword: handleUnaryCall<UpdatePasswordRequest, UpdatePasswordResponse>;
+  updateUserEmailAddress: handleUnaryCall<UpdateUserEmailAddressRequest, UpdateUserEmailAddressResponse>;
+  updateUserUsername: handleUnaryCall<UpdateUserUsernameRequest, UpdateUserUsernameResponse>;
   beginPasskeyRegistration: handleUnaryCall<BeginPasskeyRegistrationRequest, BeginPasskeyRegistrationResponse>;
   finishPasskeyRegistration: handleUnaryCall<FinishPasskeyRegistrationRequest, FinishPasskeyRegistrationResponse>;
   beginPasskeyAuthentication: handleUnaryCall<BeginPasskeyAuthenticationRequest, BeginPasskeyAuthenticationResponse>;
@@ -524,6 +566,21 @@ export interface AuthServiceClient extends Client {
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: EvaluateStringFeatureFlagResponse) => void,
   ): ClientUnaryCall;
+  registerUser(
+    request: RegisterUserRequest,
+    callback: (error: ServiceError | null, response: RegisterUserResponse) => void,
+  ): ClientUnaryCall;
+  registerUser(
+    request: RegisterUserRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: RegisterUserResponse) => void,
+  ): ClientUnaryCall;
+  registerUser(
+    request: RegisterUserRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: RegisterUserResponse) => void,
+  ): ClientUnaryCall;
   getAuthStatus(
     request: GetAuthStatusRequest,
     callback: (error: ServiceError | null, response: GetAuthStatusResponse) => void,
@@ -748,6 +805,36 @@ export interface AuthServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: UpdatePasswordResponse) => void,
+  ): ClientUnaryCall;
+  updateUserEmailAddress(
+    request: UpdateUserEmailAddressRequest,
+    callback: (error: ServiceError | null, response: UpdateUserEmailAddressResponse) => void,
+  ): ClientUnaryCall;
+  updateUserEmailAddress(
+    request: UpdateUserEmailAddressRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: UpdateUserEmailAddressResponse) => void,
+  ): ClientUnaryCall;
+  updateUserEmailAddress(
+    request: UpdateUserEmailAddressRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: UpdateUserEmailAddressResponse) => void,
+  ): ClientUnaryCall;
+  updateUserUsername(
+    request: UpdateUserUsernameRequest,
+    callback: (error: ServiceError | null, response: UpdateUserUsernameResponse) => void,
+  ): ClientUnaryCall;
+  updateUserUsername(
+    request: UpdateUserUsernameRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: UpdateUserUsernameResponse) => void,
+  ): ClientUnaryCall;
+  updateUserUsername(
+    request: UpdateUserUsernameRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: UpdateUserUsernameResponse) => void,
   ): ClientUnaryCall;
   beginPasskeyRegistration(
     request: BeginPasskeyRegistrationRequest,

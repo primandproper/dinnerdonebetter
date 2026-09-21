@@ -251,6 +251,18 @@ proto_swift: ensure_protoc-gen-swift_installed ensure_protoc-gen-grpc-swift_inst
 # Hand-written files in the TS proto output directory that must survive regeneration
 PROTO_TS_HANDWRITTEN := index.ts create-clients.ts admin-clients.ts
 
+# Generated TypeScript for adopted domains, which this target deletes and does not
+# regenerate.
+#
+# Their .proto files live in platform-go rather than here, so PROTO_FILES_PATH does not
+# reach them — but the rm -rf below does, and did, silently, on every run since the first
+# adoption. What is in these directories is worse than stale: it was generated from this
+# repository's own protos before each domain moved, so it describes services the server no
+# longer runs. They are preserved rather than regenerated because regenerating one means
+# porting every frontend call site for it, which is that domain's work rather than this
+# target's. identity is the exception and is generated above, from platform's schema.
+PROTO_TS_STALE_ADOPTED := audit comments issue_reports notifications oauth payments settings waitlists
+
 .PHONY: proto_typescript
 proto_typescript: ensure_protoc_installed ensure_proto_ts_plugin_installed
 	rm -rf $(ARTIFACTS_DIR)/proto_typescript
@@ -269,11 +281,21 @@ proto_typescript: ensure_protoc_installed ensure_proto_ts_plugin_installed
 			cp $(PROTO_TS_OUTPUT_PATH)/$$f $(ARTIFACTS_DIR)/proto_ts_handwritten/$$f; \
 		fi; \
 	done
+	for d in $(PROTO_TS_STALE_ADOPTED); do \
+		if [ -d $(PROTO_TS_OUTPUT_PATH)/$$d ]; then \
+			cp -R $(PROTO_TS_OUTPUT_PATH)/$$d $(ARTIFACTS_DIR)/proto_ts_handwritten/$$d; \
+		fi; \
+	done
 	rm -rf $(PROTO_TS_OUTPUT_PATH)
 	mv $(ARTIFACTS_DIR)/proto_typescript $(PROTO_TS_OUTPUT_PATH)
 	for f in $(PROTO_TS_HANDWRITTEN); do \
 		if [ -f $(ARTIFACTS_DIR)/proto_ts_handwritten/$$f ]; then \
 			cp $(ARTIFACTS_DIR)/proto_ts_handwritten/$$f $(PROTO_TS_OUTPUT_PATH)/$$f; \
+		fi; \
+	done
+	for d in $(PROTO_TS_STALE_ADOPTED); do \
+		if [ -d $(ARTIFACTS_DIR)/proto_ts_handwritten/$$d ]; then \
+			cp -R $(ARTIFACTS_DIR)/proto_ts_handwritten/$$d $(PROTO_TS_OUTPUT_PATH)/$$d; \
 		fi; \
 	done
 	rm -rf $(ARTIFACTS_DIR)/proto_ts_handwritten
