@@ -11,6 +11,7 @@ import (
 	paymentskeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/keys"
 
 	"github.com/primandproper/platform-go/v14/billing"
+	"github.com/primandproper/platform-go/v14/billing/standing"
 	platformidentity "github.com/primandproper/platform-go/v14/identity"
 	"github.com/primandproper/primitives-go/v2/capitalism"
 	"github.com/primandproper/primitives-go/v2/database"
@@ -95,11 +96,24 @@ func (m *paymentsManager) ProcessWebhookEvent(ctx context.Context, provider stri
 			return observability.PrepareAndLogError(err, logger, span, "fetching subscription by external ID")
 		}
 
-		// An event that carries no standing is a sync of a subscription the
-		// provider still considers live, which is what "updated" has always been
-		// read as here.
+		// An event that carries no standing at all is a sync of a subscription the
+		// provider still considers live, which is what "updated" has always been read
+		// as here. An event carrying a word this module does not recognise is not that,
+		// and the two used to be the same branch: !Known() is true for both, so a status
+		// Stripe adds next year was rewritten to active and the account came out paid.
+		//
+		// The comment on the mapping this replaced claimed the opposite — "a word the
+		// provider added last week should not entitle an account on its own" — and its
+		// unpaid default was unreachable, because the coercion above had already run.
+		if parsed.StatusUnrecognized {
+			logger.WithValue(paymentskeys.SubscriptionStatusKey, parsed.Status).
+				Info("provider reported a standing no adapter could place; leaving the account alone")
+
+			return nil
+		}
+
 		status := parsed.Status
-		if !status.Known() {
+		if status == "" {
 			status = capitalism.SubscriptionStatusActive
 		}
 
@@ -107,7 +121,23 @@ func (m *paymentsManager) ProcessWebhookEvent(ctx context.Context, provider stri
 			return observability.PrepareAndLogError(err, logger, span, "updating subscription status")
 		}
 
-		billingStatus := subscriptionStatusToBillingStatus(status)
+		// standing.Strict is platform's reading and this application's rule: active is
+		// paid, trialing is a trial, the other six leave the account unpaid. It is passed
+		// rather than defaulted so that taking it is this deployment saying "yes, that is
+		// our rule" — no dunning window, no grace on past_due.
+		//
+		// Reporting false means the status is not one it can place, and platform's
+		// contract for that is to leave the account alone rather than to pick a standing.
+		// That is the fix for the defect above: an unrecognised word now changes nothing
+		// about what the account may do, and says so where somebody will see it, instead
+		// of silently entitling or silently demoting.
+		billingStatus, placed := standing.Strict(status)
+		if !placed {
+			logger.WithValue(paymentskeys.SubscriptionStatusKey, status).
+				Info("subscription status could not be placed; leaving the account's standing alone")
+			return nil
+		}
+
 		if err = m.recordSubscription(ctx, sub.BelongsToAccount, billingStatus, sub.ProductID); err != nil {
 			return observability.PrepareAndLogError(err, logger, span, "recording account subscription")
 		}
@@ -259,32 +289,6 @@ func (m *paymentsManager) handleRevenueCatSubscriptionExpired(
 		m.recordSubscriptionEnded(ctx, sub.BelongsToAccount),
 		logger, span, "recording ended account subscription",
 	)
-}
-
-// subscriptionStatusToBillingStatus is the mapping onto identity.Account's
-// coarse standing — the one platform says a consumer still writes, because it
-// includes a suspension no processor reports.
-//
-// Trialing is the one status that is not paid and not unpaid. Everything else
-// that is not active — past due, unpaid, paused, canceled, incomplete in either
-// form — is unpaid, because nothing is being collected. A status this module does
-// not know is unpaid too, rather than active: a word the provider added last week
-// should not entitle an account on its own.
-// subscriptionStatusToBillingStatus renames a processor's subscription standing into the
-// directory's billing standing.
-//
-// Two vocabularies rather than one, because they answer different questions: a subscription
-// is active or trialing or canceled with the processor, and an account is paid or unpaid
-// with us. The default is unpaid, which is the answer that fails closed.
-func subscriptionStatusToBillingStatus(status capitalism.SubscriptionStatus) platformidentity.BillingStatus {
-	switch status {
-	case capitalism.SubscriptionStatusActive:
-		return platformidentity.BillingPaid
-	case capitalism.SubscriptionStatusTrialing:
-		return platformidentity.BillingTrial
-	default:
-		return platformidentity.BillingUnpaid
-	}
 }
 
 // recordSubscription writes what a processor delivery reported about an account: its

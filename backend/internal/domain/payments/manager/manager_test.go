@@ -359,28 +359,62 @@ func TestPaymentsManager_ProcessWebhookEvent(T *testing.T) {
 	})
 }
 
-// The mapping onto the account's coarse standing is the one judgment platform
-// says a consumer still writes, so it is pinned value by value.
-func TestSubscriptionStatusToBillingStatus(T *testing.T) {
+// An unrecognised standing leaves the account where it was, which is the one judgment this
+// application makes about billing/standing's contract.
+//
+// The mapping itself is platform's now — standing.Strict, tested upstream value by value —
+// and this application passes it rather than writing its own, which is a deployment saying
+// "yes, that is our rule": no dunning window, no grace on past_due.
+//
+// What is pinned here is the case Strict reports it cannot place, because getting there at
+// all took a change at the adapter boundary. capitalism's SubscriptionStatusUnknown is the
+// empty string and its documentation covers both "a status no adapter recognized" and the
+// zero value, so a word Stripe adds next year used to arrive looking exactly like an event
+// carrying no standing — and that reading is "a sync of a subscription the provider still
+// considers live", which made the account paid.
+func TestPaymentsManager_UnrecognizedSubscriptionStatus(T *testing.T) {
 	T.Parallel()
 
-	T.Run("standard", func(t *testing.T) {
+	T.Run("a standing no adapter could place leaves the account alone", func(t *testing.T) {
 		t.Parallel()
 
-		expected := map[capitalism.SubscriptionStatus]platformidentity.BillingStatus{
-			capitalism.SubscriptionStatusActive:            platformidentity.BillingPaid,
-			capitalism.SubscriptionStatusTrialing:          platformidentity.BillingTrial,
-			capitalism.SubscriptionStatusPastDue:           platformidentity.BillingUnpaid,
-			capitalism.SubscriptionStatusCanceled:          platformidentity.BillingUnpaid,
-			capitalism.SubscriptionStatusIncomplete:        platformidentity.BillingUnpaid,
-			capitalism.SubscriptionStatusIncompleteExpired: platformidentity.BillingUnpaid,
-			capitalism.SubscriptionStatusUnpaid:            platformidentity.BillingUnpaid,
-			capitalism.SubscriptionStatusPaused:            platformidentity.BillingUnpaid,
-			capitalism.SubscriptionStatusUnknown:           platformidentity.BillingUnpaid,
-		}
+		subscription := fakes.BuildFakeSubscription(fake.BuildFakeID(), fake.BuildFakeID())
+		store, statuses := subscriptionLookup(subscription)
+		pm, updates := buildPaymentsManagerForTest(t, store)
 
-		for status, want := range expected {
-			assert.Equal(t, want, subscriptionStatusToBillingStatus(status), "mapping %s", status.String())
-		}
+		err := pm.ProcessWebhookEvent(t.Context(), "stripe", &payments.ParsedWebhookEvent{
+			EventType:          "customer.subscription.updated",
+			SubscriptionID:     subscription.ExternalSubscriptionID,
+			Status:             capitalism.SubscriptionStatusUnknown,
+			StatusUnrecognized: true,
+		}, "")
+		require.NoError(t, err)
+
+		// Nothing written on either side. The subscription's own status is not moved
+		// either, because what the provider reported is not a value this schema holds.
+		assert.Empty(t, *statuses)
+		assert.Empty(t, *updates)
+	})
+
+	// And the case it must not be confused with: an event that genuinely carries no
+	// standing is still read as a live subscription, which is what "updated" has always
+	// meant here.
+	T.Run("an event carrying no standing is still read as active", func(t *testing.T) {
+		t.Parallel()
+
+		subscription := fakes.BuildFakeSubscription(fake.BuildFakeID(), fake.BuildFakeID())
+		store, statuses := subscriptionLookup(subscription)
+		pm, updates := buildPaymentsManagerForTest(t, store)
+
+		err := pm.ProcessWebhookEvent(t.Context(), "stripe", &payments.ParsedWebhookEvent{
+			EventType:      "customer.subscription.updated",
+			SubscriptionID: subscription.ExternalSubscriptionID,
+			Status:         capitalism.SubscriptionStatusUnknown,
+		}, "")
+		require.NoError(t, err)
+
+		assert.Equal(t, []capitalism.SubscriptionStatus{capitalism.SubscriptionStatusActive}, *statuses)
+		require.Len(t, *updates, 1)
+		assert.Equal(t, platformidentity.BillingPaid, (*updates)[0].status)
 	})
 }

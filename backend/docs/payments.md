@@ -251,6 +251,24 @@ one.
    - `subscription.updated`, `subscription.created`, `customer.subscription.updated` → sync status, update account billing.
    - `subscription.deleted`, `customer.subscription.deleted` → mark `canceled`, set account to unpaid.
 
+5. **Which standing a reported status means** is `billing/standing.Strict`, platform's reading,
+   passed rather than defaulted so that taking it is this deployment saying *yes, that is our
+   rule*: active is paid, trialing is a trial, and the other six leave the account unpaid. No
+   dunning window and no grace on `past_due` — a deployment that wants either writes its own
+   `standing.Classify`.
+
+   A status `Strict` cannot place leaves the account **alone**, which is platform's contract for
+   that case and is not what this application used to do. `capitalism.SubscriptionStatusUnknown`
+   is the empty string and covers both "a status no adapter recognized" and "no status at all", so
+   a word a provider adds later arrived looking like an event carrying no standing — and that is
+   read as a sync of a live subscription, which marked the account **paid**. `ParsedWebhookEvent`
+   now carries `StatusUnrecognized` so the two are distinguishable, the Stripe adapter sets it,
+   and the manager returns without writing either side.
+
+   The RevenueCat adapter cannot set it: `capitalism` has already collapsed the distinction before
+   that code sees the event, so the provider's own spelling never reaches it. If RevenueCat grows a
+   status `capitalism` does not know, the fix is upstream rather than in that adapter.
+
 ---
 
 ## Configuration and Build
