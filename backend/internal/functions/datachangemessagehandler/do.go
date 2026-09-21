@@ -6,9 +6,9 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/internalops"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/push"
 	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
 	mealplanningindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
+	"github.com/primandproper/platform-go/v14/notifications/push"
 
 	platformidentity "github.com/primandproper/platform-go/v14/identity"
 	searchsync "github.com/primandproper/platform-go/v14/searchsync"

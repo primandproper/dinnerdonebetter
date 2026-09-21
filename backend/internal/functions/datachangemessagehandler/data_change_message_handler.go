@@ -9,9 +9,9 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/internalops"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/push"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 	queuemessages "github.com/primandproper/dinnerdonebetter/backend/internal/queues/messages"
+	"github.com/primandproper/platform-go/v14/notifications/push"
 
 	platformidentity "github.com/primandproper/platform-go/v14/identity"
 	"github.com/primandproper/primitives-go/v2/analytics"

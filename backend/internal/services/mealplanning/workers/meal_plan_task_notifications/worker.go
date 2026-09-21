@@ -8,10 +8,12 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/push"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers"
+	"github.com/primandproper/platform-go/v14/notifications/push"
 
+	ddbnotifications "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
 	"github.com/primandproper/primitives-go/v2/database"
+
 	platformnotifications "github.com/primandproper/primitives-go/v2/notifications/mobile"
 	"github.com/primandproper/primitives-go/v2/observability"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
@@ -325,12 +327,31 @@ func (w *Worker) notify(ctx context.Context, logger logging.Logger, mealPlanTask
 
 	title, body := content(notificationContext)
 
-	result, err := w.fanout.Send(ctx, RequestType, recipients, platformnotifications.PushMessage{Title: title, Body: body})
-	if err != nil {
+	tracing.AttachToSpan(span, "notification.request_type", RequestType)
+
+	result, err := w.fanout.Push(ctx, w.db.Reader(), ddbnotifications.Scope(), recipients,
+		platformnotifications.PushMessage{Title: title, Body: body})
+
+	// A nil result is the read that resolves recipients to handsets having failed, which is
+	// the only case where nothing was attempted. Everything else comes back with counts,
+	// including a push where every handset refused — platform returns the joined delivery
+	// errors *and* the result, and this worker's decision is made from the counts.
+	if result == nil {
 		return observability.PrepareError(err, span, "sending meal plan task notification")
 	}
 
-	if !result.Reached() && !result.Unreachable() {
+	// A partial failure is not worth repeating. Somebody's phone has the notification, and
+	// the alternative is releasing the task and telling the handsets that did accept it a
+	// second time. The sender has already logged and spanned each failed round trip, so
+	// this acknowledges rather than re-reports.
+	if err != nil && result.Sent > 0 {
+		observability.AcknowledgeError(err, w.logger, span, "some handsets refused a meal plan task notification")
+	}
+
+	// Reached and Unreachable were this application's two predicates over its own result.
+	// platform's carries the same two facts in more detail — Sent, Failed, Invalidated and
+	// a Delivery per handset — so they are spelled here rather than wrapped.
+	if result.Sent == 0 && len(result.Deliveries) > 0 {
 		// There were devices and every one of them refused, which is usually the push
 		// provider rather than the task. Left unstamped so the queue offers it again after
 		// the release delay.

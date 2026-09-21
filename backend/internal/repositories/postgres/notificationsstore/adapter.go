@@ -315,3 +315,11 @@ func (a *Adapter) ArchiveUserDeviceToken(ctx context.Context, userID, tokenID st
 		return err
 	})
 }
+
+// Registry hands back the device registry this adapter decorates.
+//
+// It exists for the callers that want the registry and not the rest of the adapter —
+// platform's push fanout is the one, and it takes a Registry because resolving recipients
+// to handsets is the only thing it reads. A harness that built an Adapter has already
+// built the registry inside it, and reaching for it is cheaper than building a second.
+func (a *Adapter) Registry() platformnotifications.Registry { return a.registry }

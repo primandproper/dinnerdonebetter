@@ -10,8 +10,9 @@ import (
 	mealplanningfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	mealplanningmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
 	domainnotifications "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
-	notificationsmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/mock"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/push"
+	platformnotifs "github.com/primandproper/platform-go/v14/notifications"
+	platformnotificationsmock "github.com/primandproper/platform-go/v14/notifications/mock"
+	"github.com/primandproper/platform-go/v14/notifications/push"
 
 	platformidentity "github.com/primandproper/platform-go/v14/identity"
 	identitymock "github.com/primandproper/platform-go/v14/identity/mock"
@@ -150,7 +151,7 @@ type testWorker struct {
 	queue   *queueSpy
 	repo    *mealplanningmock.RepositoryMock
 	users   *identitymock.StoreMock
-	devices *notificationsmock.RepositoryMock
+	devices *platformnotificationsmock.RegistryMock
 	sender  *stubSender
 }
 
@@ -158,10 +159,11 @@ func buildTestWorker(t *testing.T) *testWorker {
 	t.Helper()
 
 	logger := loggingnoop.NewLogger()
-	devices := &notificationsmock.RepositoryMock{}
+	devices := &platformnotificationsmock.RegistryMock{}
 	sender := &stubSender{}
 
-	fanout, err := push.NewFanout(logger, devices, sender, metricsnoop.NewMetricsProvider())
+	fanout, err := push.NewFanout(devices, sender,
+		push.WithLogger(logger), push.WithMetricsProvider(metricsnoop.NewMetricsProvider()))
 	require.NoError(t, err)
 
 	queue := &queueSpy{}
@@ -203,7 +205,24 @@ func (w *testWorker) notifiable(t *testing.T, taskID string) (assignedUser strin
 		}, nil
 	}
 	w.repo.MarkMealPlanTaskNotificationSentFunc = func(context.Context, string) error { return nil }
-	w.devices.GetUserDeviceTokensFunc = func(_ context.Context, userID string, _ *filtering.QueryFilter, _ *string) (*filtering.QueryFilteredResult[domainnotifications.UserDeviceToken], error) {
+	// One read for every recipient at once, where this used to be one read per recipient.
+	// platform's fanout resolves the whole set in a single query, which is the half of the
+	// adoption that fixed something: the loop it replaced also took only the first page of
+	// each user's devices.
+	w.devices.ListDevicesByPrincipalsFunc = func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, principals []string) ([]*platformnotifs.Device, error) {
+		devices := make([]*platformnotifs.Device, 0, len(principals))
+		for _, principal := range principals {
+			devices = append(devices, &platformnotifs.Device{
+				ID:        fake.BuildFakeID(),
+				Token:     fake.BuildFakeID(),
+				Platform:  platformnotifs.PlatformIOS,
+				Principal: principal,
+			})
+		}
+
+		return devices, nil
+	}
+	_ = func(_ context.Context, userID string, _ *filtering.QueryFilter, _ *string) (*filtering.QueryFilteredResult[domainnotifications.UserDeviceToken], error) {
 		return &filtering.QueryFilteredResult[domainnotifications.UserDeviceToken]{
 			Data: []*domainnotifications.UserDeviceToken{
 				{
@@ -328,8 +347,8 @@ func TestWorker_Work(t *testing.T) {
 		w.repo.GetMealPlanTaskIDsThatNeedNotificationFunc = func(context.Context) ([]string, error) { return nil, nil }
 		w.queue.ready = readyWith(taskID)
 		w.notifiable(t, taskID)
-		w.devices.GetUserDeviceTokensFunc = func(context.Context, string, *filtering.QueryFilter, *string) (*filtering.QueryFilteredResult[domainnotifications.UserDeviceToken], error) {
-			return &filtering.QueryFilteredResult[domainnotifications.UserDeviceToken]{}, nil
+		w.devices.ListDevicesByPrincipalsFunc = func(context.Context, database.SQLQueryExecutor, tenancy.Scope, []string) ([]*platformnotifs.Device, error) {
+			return nil, nil
 		}
 
 		sent, err := w.worker.Work(t.Context())
@@ -379,7 +398,13 @@ func TestWorker_Work(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Equal(t, int64(1), sent)
-		assert.Len(t, w.devices.GetUserDeviceTokensCalls(), 2)
+		// One read carrying both members, where this used to assert two reads because the
+		// fanout it replaced looked each recipient up separately. What the test is about
+		// is that both members were notified, so it asks the read what it was given
+		// rather than how many times it happened — the stronger assertion, and the one
+		// that survives the batching.
+		require.Len(t, w.devices.ListDevicesByPrincipalsCalls(), 1)
+		assert.ElementsMatch(t, []string{memberA, memberB}, w.devices.ListDevicesByPrincipalsCalls()[0].Principals)
 	})
 
 	// A discovery that fails must not cost the queue its backlog: work enqueued by an earlier

@@ -7,12 +7,13 @@ import (
 	"testing"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
-	domainnotifications "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
-	notificationsmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/mock"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/push"
+	platformnotifs "github.com/primandproper/platform-go/v14/notifications"
+	platformnotificationsmock "github.com/primandproper/platform-go/v14/notifications/mock"
+	"github.com/primandproper/platform-go/v14/notifications/push"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/primandproper/primitives-go/v2/fake"
-	"github.com/primandproper/primitives-go/v2/filtering"
 	notifications "github.com/primandproper/primitives-go/v2/notifications/mobile"
 	noopnotifications "github.com/primandproper/primitives-go/v2/notifications/mobile/noop"
 	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
@@ -24,14 +25,14 @@ import (
 
 // withFanoutOver hands the handler a push fan-out reading from tokens, so a test can assert what
 // reached the devices rather than only what the router decided.
-func withFanoutOver(t *testing.T, handler *AsyncDataChangeMessageHandler, tokens *notificationsmock.RepositoryMock) {
+func withFanoutOver(t *testing.T, handler *AsyncDataChangeMessageHandler, devices *platformnotificationsmock.RegistryMock) {
 	t.Helper()
 
 	fanout, err := push.NewFanout(
-		loggingnoop.NewLogger(),
-		tokens,
+		devices,
 		noopnotifications.NewPushNotificationSender(),
-		metricsnoop.NewMetricsProvider(),
+		push.WithLogger(loggingnoop.NewLogger()),
+		push.WithMetricsProvider(metricsnoop.NewMetricsProvider()),
 	)
 	require.NoError(t, err)
 
@@ -47,22 +48,20 @@ func TestMobileNotificationsEventHandler(t *testing.T) {
 		handler, _, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
 
 		recipient := fake.BuildFakeID()
-		tokens := &notificationsmock.RepositoryMock{}
-		withFanoutOver(t, handler, tokens)
+		devices := &platformnotificationsmock.RegistryMock{}
+		withFanoutOver(t, handler, devices)
 
-		deviceToken := &domainnotifications.UserDeviceToken{
-			ID:            fake.BuildFakeID(),
-			DeviceToken:   strings.Repeat("a", 64),
-			Platform:      domainnotifications.UserDeviceTokenPlatformIOS,
-			BelongsToUser: recipient,
+		device := &platformnotifs.Device{
+			ID:        fake.BuildFakeID(),
+			Token:     strings.Repeat("a", 64),
+			Platform:  platformnotifs.PlatformIOS,
+			Principal: recipient,
 		}
-		tokens.GetUserDeviceTokensFunc = func(_ context.Context, userID string, _ *filtering.QueryFilter, platformFilter *string) (*filtering.QueryFilteredResult[domainnotifications.UserDeviceToken], error) {
-			assert.Equal(t, recipient, userID)
-			assert.Nil(t, platformFilter)
+		// One read for the whole recipient set, which is the read platform's fanout makes.
+		devices.ListDevicesByPrincipalsFunc = func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, principals []string) ([]*platformnotifs.Device, error) {
+			assert.Equal(t, []string{recipient}, principals)
 
-			return &filtering.QueryFilteredResult[domainnotifications.UserDeviceToken]{
-				Data: []*domainnotifications.UserDeviceToken{deviceToken},
-			}, nil
+			return []*platformnotifs.Device{device}, nil
 		}
 
 		req := notifications.MobileNotificationRequest{
@@ -75,7 +74,7 @@ func TestMobileNotificationsEventHandler(t *testing.T) {
 		require.NoError(t, err)
 
 		require.NoError(t, handler.MobileNotificationsEventHandler("mobile_notifications")(t.Context(), raw))
-		assert.Len(t, tokens.GetUserDeviceTokensCalls(), 1)
+		assert.Len(t, devices.ListDevicesByPrincipalsCalls(), 1)
 	})
 
 	// A recipient with no registered device is not a failure. Nothing is owed to somebody who
@@ -85,11 +84,11 @@ func TestMobileNotificationsEventHandler(t *testing.T) {
 
 		handler, _, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
 
-		tokens := &notificationsmock.RepositoryMock{}
-		withFanoutOver(t, handler, tokens)
+		devices := &platformnotificationsmock.RegistryMock{}
+		withFanoutOver(t, handler, devices)
 
-		tokens.GetUserDeviceTokensFunc = func(_ context.Context, _ string, _ *filtering.QueryFilter, _ *string) (*filtering.QueryFilteredResult[domainnotifications.UserDeviceToken], error) {
-			return &filtering.QueryFilteredResult[domainnotifications.UserDeviceToken]{}, nil
+		devices.ListDevicesByPrincipalsFunc = func(context.Context, database.SQLQueryExecutor, tenancy.Scope, []string) ([]*platformnotifs.Device, error) {
+			return nil, nil
 		}
 
 		req := notifications.MobileNotificationRequest{

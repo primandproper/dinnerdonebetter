@@ -7,9 +7,9 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	internalopsmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/internalops/mock"
 	mealplanningmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
-	notificationsmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/mock"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/push"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
+	platformnotificationsmock "github.com/primandproper/platform-go/v14/notifications/mock"
+	"github.com/primandproper/platform-go/v14/notifications/push"
 
 	identitymock "github.com/primandproper/platform-go/v14/identity/mock"
 	analyticsmock "github.com/primandproper/primitives-go/v2/analytics/mock"
@@ -73,7 +73,9 @@ func buildTestAsyncDataChangeMessageHandler(t *testing.T) (*AsyncDataChangeMessa
 	internalOpsRepo := &internalopsmock.InternalOpsDataManagerMock{}
 	mealPlanRepo := &mealplanningmock.RepositoryMock{}
 
-	pushFanout, err := push.NewFanout(logger, &notificationsmock.RepositoryMock{}, noopnotifications.NewPushNotificationSender(), noopProvider)
+	pushFanout, err := push.NewFanout(&platformnotificationsmock.RegistryMock{},
+		noopnotifications.NewPushNotificationSender(),
+		push.WithLogger(logger), push.WithMetricsProvider(noopProvider))
 	require.NoError(t, err)
 
 	handler := &AsyncDataChangeMessageHandler{
@@ -171,7 +173,9 @@ func TestNewAsyncDataChangeMessageHandler(t *testing.T) {
 		internalOpsRepo := &internalopsmock.InternalOpsDataManagerMock{}
 		mealPlanRepo := &mealplanningmock.RepositoryMock{}
 
-		pushFanout, err := push.NewFanout(logger, &notificationsmock.RepositoryMock{}, noopnotifications.NewPushNotificationSender(), noopProvider)
+		pushFanout, err := push.NewFanout(&platformnotificationsmock.RegistryMock{},
+			noopnotifications.NewPushNotificationSender(),
+			push.WithLogger(logger), push.WithMetricsProvider(noopProvider))
 		require.NoError(t, err)
 
 		handler, err := NewAsyncDataChangeMessageHandler(

@@ -8,9 +8,11 @@ import (
 	"time"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
+	ddbnotifications "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
 
 	notifications "github.com/primandproper/primitives-go/v2/notifications/mobile"
 	"github.com/primandproper/primitives-go/v2/observability"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
 	"github.com/primandproper/primitives-go/v2/retry"
 
 	"go.opentelemetry.io/otel/attribute"
@@ -97,7 +99,12 @@ func (a *AsyncDataChangeMessageHandler) handleHouseholdInvitationAcceptedNotific
 
 	msg := notifications.PushMessage{Title: req.Title, Body: req.Body, BadgeCount: req.BadgeCount}
 
-	if _, err := a.pushFanout.Send(ctx, req.RequestType, req.RecipientUserIDs, msg); err != nil {
+	// The request type rides on the span rather than on a metric attribute. platform's
+	// fanout instruments the push itself and takes no such dimension, and what the type
+	// answers — which kind of notification this was — is a question about this handler.
+	tracing.AttachToSpan(span, "notification.request_type", req.RequestType)
+
+	if _, err := a.pushFanout.Push(ctx, a.db.Reader(), ddbnotifications.Scope(), req.RecipientUserIDs, msg); err != nil {
 		return observability.PrepareAndLogError(err, a.logger, span, "sending household invitation notification")
 	}
 

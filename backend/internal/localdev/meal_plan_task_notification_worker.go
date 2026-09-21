@@ -5,11 +5,11 @@ import (
 	"fmt"
 
 	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/push"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
 	notificationsstore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/notificationsstore"
 	mealplantasknotifications "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_task_notifications"
+	"github.com/primandproper/platform-go/v14/notifications/push"
 
 	platformidentity "github.com/primandproper/platform-go/v14/identity"
 	"github.com/primandproper/platform-go/v14/workqueue"
@@ -78,7 +78,10 @@ func NewMealPlanTaskNotificationWorker(
 		return nil, nil, fmt.Errorf("building notifications repository: %w", err)
 	}
 
-	fanout, err := push.NewFanout(logger, notificationsRepo, sender, metricsProvider)
+	fanout, err := push.NewFanout(notificationsRepo.Registry(), sender,
+		push.WithLogger(logger),
+		push.WithTracerProvider(tracerProvider),
+		push.WithMetricsProvider(metricsProvider))
 	if err != nil {
 		return nil, nil, fmt.Errorf("building push fanout: %w", err)
 	}
