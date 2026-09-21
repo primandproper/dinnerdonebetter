@@ -58,6 +58,12 @@ func RegisterIdentityService(i do.Injector) {
 			return nil, err
 		}
 
+		// No WithInvitationTTL. platform's defaults stand — seven days for an invitation a
+		// client sends no expiry with, and the cap above it — and that is a ruling rather
+		// than an omission: identity/config exists to make both environment-settable and
+		// is refused here, because a knob this application configures belongs in its own
+		// config tree beside the others rather than in a second one. See
+		// docs/configuration.md.
 		server, err := identitygrpc.NewServer(
 			do.MustInvoke[*platformidentity.Service](i),
 			store,
