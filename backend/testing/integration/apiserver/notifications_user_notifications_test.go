@@ -171,7 +171,7 @@ func TestUserNotifications_Archiving(T *testing.T) {
 		require.NoError(t, err)
 
 		_, err = testClient.GetNotification(ctx, &notificationspb.GetNotificationRequest{NotificationId: created.ID})
-		assert.Error(t, err)
+		require.Error(t, err)
 
 		AssertAuditLogContainsFuzzyForUser(t, ctx, testClient, user.ID, 15, []*ExpectedAuditEntry{
 			{EventType: "archived", ResourceType: "user_notifications", RelevantID: created.ID},

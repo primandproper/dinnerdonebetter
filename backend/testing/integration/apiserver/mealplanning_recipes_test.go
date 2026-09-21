@@ -3093,7 +3093,7 @@ func requireRecipeInputRefused(t *testing.T, ctx context.Context, err error, con
 	assert.Equal(t, codes.InvalidArgument, status.Code(err))
 
 	decoded := errorsgrpc.DecodeErrorFromStatus(ctx, err)
-	require.NotNil(t, decoded, "the refusal carried no detail to read")
+	require.Error(t, decoded, "the refusal carried no detail to read")
 
 	for _, want := range contains {
 		assert.Contains(t, decoded.Error(), want)

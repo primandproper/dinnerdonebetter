@@ -78,13 +78,13 @@ var (
 	// kind of call and the authorizer says whose rows, so holding the read hostage to
 	// administration would mean a member could not see the household they are in.
 	IdentityAccountPermissions = []Permission{
-		Permission(PermissionCreateAccounts),
-		Permission(PermissionUpdateAccounts),
-		Permission(PermissionArchiveAccounts),
-		Permission(PermissionTransferAccountOwnership),
-		Permission(PermissionManageMembers),
-		Permission(PermissionInviteMembers),
-		Permission(PermissionReadInvitations),
+		PermissionCreateAccounts,
+		PermissionUpdateAccounts,
+		PermissionArchiveAccounts,
+		PermissionTransferAccountOwnership,
+		PermissionManageMembers,
+		PermissionInviteMembers,
+		PermissionReadInvitations,
 	}
 
 	// IdentityOperatorPermissions is what an operator holds over the directory: reading
@@ -102,13 +102,13 @@ var (
 	// support desk can hand out that one without also handing out the ban. If this
 	// application ever grows that role, this is the permission to move first.
 	IdentityOperatorPermissions = []Permission{
-		Permission(PermissionReadUsers),
-		Permission(PermissionCreateUsers),
-		Permission(PermissionArchiveUsers),
-		Permission(PermissionUpdateUserStatus),
-		Permission(PermissionUpdateUserServiceRoles),
-		Permission(PermissionRequirePasswordChange),
-		Permission(PermissionListAllAccounts),
+		PermissionReadUsers,
+		PermissionCreateUsers,
+		PermissionArchiveUsers,
+		PermissionUpdateUserStatus,
+		PermissionUpdateUserServiceRoles,
+		PermissionRequirePasswordChange,
+		PermissionListAllAccounts,
 	}
 
 	// IdentityPermissions contains all identity-related permissions.
@@ -157,7 +157,7 @@ var IdentitySelfPermissions = []Permission{
 	// PermissionReadUsers is deliberately not here. It gates the two directory-wide
 	// reads as well as the keyed one — listing every user and searching them — which is
 	// an operator's question and not a member's.
-	Permission(PermissionReadAccounts),
+	PermissionReadAccounts,
 	UpdateOwnProfilePermission,
 	RecordOwnAgreementPermission,
 	ReadOwnPrincipalPermission,

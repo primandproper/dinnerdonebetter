@@ -66,7 +66,7 @@ func TestNewDataPrivacyService(t *testing.T) {
 // As of v14 the mappers do not register themselves, so a process that has not made this call
 // answers every platform sentinel with whatever default code the handler named — which is a
 // different answer from the one production gives, since BuildInjector makes the call. A test
-// package asserting on codes without it would be pinning the wrong behaviour.
+// package asserting on codes without it would be pinning the wrong behavior.
 func TestMain(m *testing.M) {
 	platformerrormappers.Register()
 

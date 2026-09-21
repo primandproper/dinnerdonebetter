@@ -8,7 +8,6 @@ import (
 	authcfg "github.com/primandproper/dinnerdonebetter/backend/internal/authentication/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
@@ -147,7 +146,7 @@ func (m *manager) ProcessLogin(ctx context.Context, adminOnly bool, loginData *a
 	}
 
 	dcm := &audit.DataChangeMessage{
-		EventType: identity.UserLoggedInServiceEventType,
+		EventType: ddbidentity.UserLoggedInServiceEventType,
 		AccountID: accountID,
 		UserID:    user.ID,
 	}
@@ -179,7 +178,7 @@ func (m *manager) ProcessPasskeyLogin(ctx context.Context, userID, desiredAccoun
 	}
 
 	dcm := &audit.DataChangeMessage{
-		EventType: identity.UserLoggedInServiceEventType,
+		EventType: ddbidentity.UserLoggedInServiceEventType,
 		AccountID: accountID,
 		UserID:    user.ID,
 	}
@@ -265,7 +264,7 @@ func (m *manager) ExchangeTokenForUser(ctx context.Context, refreshToken, desire
 	}
 
 	dcm := &audit.DataChangeMessage{
-		EventType: identity.UserLoggedInServiceEventType,
+		EventType: ddbidentity.UserLoggedInServiceEventType,
 		AccountID: accountID,
 		UserID:    user.ID,
 	}

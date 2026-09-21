@@ -15,7 +15,6 @@ tool (
 )
 
 require (
-	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/brianvoe/gofakeit/v7 v7.15.0
 	github.com/ccoveille/go-safecast v1.8.2
 	github.com/cristalhq/builq v0.15.0
@@ -24,7 +23,6 @@ require (
 	github.com/go-chi/chi/v5 v5.3.0
 	github.com/go-ozzo/ozzo-validation/v4 v4.3.0
 	github.com/go-webauthn/webauthn v0.17.4
-	github.com/google/uuid v1.6.0
 	github.com/hako/durafmt v0.0.0-20210608085754-5c1018a4e16b
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/heimdalr/dag v1.5.1
@@ -213,6 +211,7 @@ require (
 	github.com/google/renameio/v2 v2.0.2 // indirect
 	github.com/google/s2a-go v0.1.9 // indirect
 	github.com/google/safehtml v0.1.0 // indirect
+	github.com/google/uuid v1.6.0 // indirect
 	github.com/google/wire v0.7.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.17 // indirect
 	github.com/googleapis/gax-go/v2 v2.23.0 // indirect
@@ -429,7 +428,3 @@ require (
 	sigs.k8s.io/structured-merge-diff/v6 v6.4.0 // indirect
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
-
-replace github.com/primandproper/platform-go/v14 => ../../platform-go
-
-replace github.com/primandproper/primitives-go/v2 => ../../primitives-go

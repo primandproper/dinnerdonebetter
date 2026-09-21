@@ -45,14 +45,14 @@ func NewPaymentsDataManager(
 	logger logging.Logger,
 	db database.Client,
 	store billing.Store,
-	billing platformidentity.BillingWriter,
+	billingWriter platformidentity.BillingWriter,
 ) (PaymentsDataManager, error) {
 	return &paymentsManager{
 		tracer:  tracing.NewNamedTracer(tracerProvider, o11yName),
 		logger:  logging.NewNamedLogger(logger, o11yName),
 		db:      db,
 		store:   store,
-		billing: billing,
+		billing: billingWriter,
 	}, nil
 }
 
@@ -98,7 +98,7 @@ func (m *paymentsManager) ProcessWebhookEvent(ctx context.Context, provider stri
 
 		// An event that carries no standing at all is a sync of a subscription the
 		// provider still considers live, which is what "updated" has always been read
-		// as here. An event carrying a word this module does not recognise is not that,
+		// as here. An event carrying a word this module does not recognize is not that,
 		// and the two used to be the same branch: !Known() is true for both, so a status
 		// Stripe adds next year was rewritten to active and the account came out paid.
 		//
@@ -128,7 +128,7 @@ func (m *paymentsManager) ProcessWebhookEvent(ctx context.Context, provider stri
 		//
 		// Reporting false means the status is not one it can place, and platform's
 		// contract for that is to leave the account alone rather than to pick a standing.
-		// That is the fix for the defect above: an unrecognised word now changes nothing
+		// That is the fix for the defect above: an unrecognized word now changes nothing
 		// about what the account may do, and says so where somebody will see it, instead
 		// of silently entitling or silently demoting.
 		billingStatus, placed := standing.Strict(status)
@@ -205,7 +205,7 @@ func (m *paymentsManager) ProcessWebhookEvent(ctx context.Context, provider stri
 func (m *paymentsManager) setSubscriptionStatus(ctx context.Context, subscriptionID string, status capitalism.SubscriptionStatus) error {
 	// One transaction per status write, which is exactly what the store opened
 	// for itself before v14. Widening it to span the identity manager's writes
-	// as well is now possible and is a behaviour change rather than a port; see
+	// as well is now possible and is a behavior change rather than a port; see
 	// the note on ProcessWebhookEvent.
 	err := m.db.WithTransaction(ctx, func(tx database.Tx) error {
 		return m.store.SetSubscriptionStatus(ctx, tx, payments.Scope(), subscriptionID, status)
@@ -271,7 +271,6 @@ func (m *paymentsManager) handleRevenueCatSubscriptionExpired(
 	span tracing.Span,
 	accountID, transactionID string,
 ) error {
-
 	sub, err := m.store.GetSubscriptionByExternalID(ctx, m.db.Reader(), payments.Scope(), transactionID)
 	if err != nil {
 		// Subscription may not exist; still update account to unpaid

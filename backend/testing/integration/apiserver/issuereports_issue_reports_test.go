@@ -349,7 +349,7 @@ func TestIssueReports_Updating(T *testing.T) {
 		})
 	})
 
-	// The behaviour a client has to know about. The local RPC took *string fields and
+	// The behavior a client has to know about. The local RPC took *string fields and
 	// merged, so a partial update left the rest alone; platform's takes plain strings and
 	// writes all four, so an omitted field is cleared rather than kept — a read before the
 	// write is the client's job now.
@@ -511,7 +511,7 @@ func TestIssueReports_Triaging(T *testing.T) {
 		created := createIssueReportForTest(t, testClient)
 
 		// InvalidArgument rather than Aborted, and the difference is the whole point of
-		// the two statuses travelling together: Aborted is "the row moved under you, read
+		// the two statuses traveling together: Aborted is "the row moved under you, read
 		// it again", which the case above pins, and this is "that move does not exist",
 		// which no re-read will change. A lifecycle the queue does not admit is refused
 		// before anything is written.

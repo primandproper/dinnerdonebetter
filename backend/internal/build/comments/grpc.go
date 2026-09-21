@@ -36,7 +36,7 @@ import (
 // moderator role, so naming an authorizer here would only restate the default.
 //
 // The GrantsExtractor is wired, unlike when this was first adopted. Its absence
-// is fail-closed — every read is confined, which is the behaviour the deleted
+// is fail-closed — every read is confined, which is the behavior the deleted
 // service had, since it exposed no archived read at all — but leaving it absent
 // makes comments.archive a name rather than a policy, and the three sibling
 // surfaces adopted since all carry one. An archivist paging removed comments is

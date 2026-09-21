@@ -7,7 +7,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	authkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/keys"
 	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
-	identityroster "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	queuemessages "github.com/primandproper/dinnerdonebetter/backend/internal/queues/messages"
 	coreemails "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/emails"
@@ -161,7 +160,7 @@ func (a *AsyncDataChangeMessageHandler) handleIdentityOutboundNotification(
 		// Paged to the end rather than one page: a household past the first page would
 		// otherwise have its later members told nothing.
 		var members []string
-		members, err = identityroster.MembersOfAccount(ctx, a.directory, a.db.Reader(), destinationAccountID)
+		members, err = ddbidentity.MembersOfAccount(ctx, a.directory, a.db.Reader(), destinationAccountID)
 		if err != nil {
 			return true, "", nil, observability.PrepareAndLogError(err, logger, span, "getting users for account")
 		}

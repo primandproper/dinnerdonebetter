@@ -137,11 +137,11 @@ func createWaitlistSignupForTest(t *testing.T, testClient client.Client, waitlis
 func signupForSubject(t *testing.T, testClient client.Client, waitlistID string) *waitlistspb.Signup {
 	t.Helper()
 
-	status, err := testClient.GetAuthStatus(t.Context(), &authsvc.GetAuthStatusRequest{})
+	authStatus, err := testClient.GetAuthStatus(t.Context(), &authsvc.GetAuthStatusRequest{})
 	require.NoError(t, err)
 
 	mine, err := testClient.ListSignupsForSubject(t.Context(), &waitlistspb.ListSignupsForSubjectRequest{
-		Subject: &waitlistspb.SignupSubject{Type: string(waitlists.SubjectUser), Id: status.GetUserId()},
+		Subject: &waitlistspb.SignupSubject{Type: string(waitlists.SubjectUser), Id: authStatus.GetUserId()},
 	})
 	require.NoError(t, err)
 
@@ -934,10 +934,10 @@ func TestWaitlistSignups_Archiving(T *testing.T) {
 func subjectRequestFor(t *testing.T, testClient client.Client) *waitlistspb.ListSignupsForSubjectRequest {
 	t.Helper()
 
-	status, err := testClient.GetAuthStatus(t.Context(), &authsvc.GetAuthStatusRequest{})
+	authStatus, err := testClient.GetAuthStatus(t.Context(), &authsvc.GetAuthStatusRequest{})
 	require.NoError(t, err)
 
 	return &waitlistspb.ListSignupsForSubjectRequest{
-		Subject: &waitlistspb.SignupSubject{Type: string(waitlists.SubjectUser), Id: status.GetUserId()},
+		Subject: &waitlistspb.SignupSubject{Type: string(waitlists.SubjectUser), Id: authStatus.GetUserId()},
 	}
 }

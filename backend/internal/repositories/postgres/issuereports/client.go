@@ -27,7 +27,6 @@ const (
 // from it.
 type repository struct {
 	platformissuereports.Store
-	client   database.Client
 	tracer   tracing.Tracer
 	logger   logging.Logger
 	recorder *recording.Recorder
@@ -57,7 +56,6 @@ func ProvideIssueReportsRepository(
 
 	return &repository{
 		Store:    store,
-		client:   client,
 		tracer:   tracer,
 		logger:   logging.NewNamedLogger(logger, o11yName),
 		recorder: recording.NewRecorder(tracer, auditLogEntryRepo, eventEmitter),

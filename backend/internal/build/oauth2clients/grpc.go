@@ -12,7 +12,7 @@ mints is an operator's: minted to let an application speak for the service on
 behalf of whoever signs in, admitting any subject, which is exactly what
 oauth2clients.Client.Admits calls the global registry naming no owner. That is
 the arrangement the deleted table had — it had no column for anything else — so
-adopting the wider one preserves the behaviour and leaves the narrower
+adopting the wider one preserves the behavior and leaves the narrower
 arrangements available to whoever wants them later.
 
 There is no Update on the wire, and platform's store has one. The four RPCs are

@@ -67,7 +67,7 @@ func (r AccountRole) String() string {
 
 // HasPermission returns whether a user can do something or not.
 func (r accountRoleCollection) HasPermission(p Permission) bool {
-	return r.Permissions.Has(platformauthz.Permission(p))
+	return r.Permissions.Has(p)
 }
 
 // IsAccountAdmin returns whether a user is an account admin.

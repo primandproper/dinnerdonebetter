@@ -29,7 +29,6 @@ const (
 // rather than forwarding stubs that could drift from it.
 type repository struct {
 	platformsettings.Store
-	client   database.Client
 	tracer   tracing.Tracer
 	logger   logging.Logger
 	recorder *recording.Recorder
@@ -67,7 +66,6 @@ func ProvideSettingsRepository(
 
 	return &repository{
 		Store:    store,
-		client:   client,
 		tracer:   tracer,
 		logger:   logging.NewNamedLogger(logger, o11yName),
 		recorder: recording.NewRecorder(tracer, auditLogEntryRepo, eventEmitter),

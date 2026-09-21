@@ -6,7 +6,6 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
-	identityroster "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	eatingemails "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/emails"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
@@ -68,7 +67,7 @@ func (a *AsyncDataChangeMessageHandler) handleMealPlanCreatedNotification(
 	// The roster, paged to the end. The read this replaced answered with an Account
 	// carrying its whole membership list, so a household past the first page would have
 	// had its later members silently left off the mailing.
-	members, err := identityroster.MembersOfAccount(ctx, a.directory, a.db.Reader(), mealPlan.BelongsToAccount)
+	members, err := ddbidentity.MembersOfAccount(ctx, a.directory, a.db.Reader(), mealPlan.BelongsToAccount)
 	if err != nil {
 		return nil, observability.PrepareError(err, span, "getting account members")
 	}

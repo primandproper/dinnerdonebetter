@@ -26,7 +26,6 @@ const (
 // forwarding stubs that could drift from it.
 type repository struct {
 	platformwaitlists.Store
-	client   database.Client
 	tracer   tracing.Tracer
 	logger   logging.Logger
 	recorder *recording.Recorder
@@ -56,7 +55,6 @@ func ProvideWaitlistsRepository(
 
 	return &repository{
 		Store:    store,
-		client:   client,
 		tracer:   tracer,
 		logger:   logging.NewNamedLogger(logger, o11yName),
 		recorder: recording.NewRecorder(tracer, auditLogEntryRepo, eventEmitter),

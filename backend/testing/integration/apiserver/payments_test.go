@@ -451,7 +451,7 @@ func TestPayments_GetSubscriptionsForAccount(T *testing.T) {
 	//
 	// The refusal is the better answer of the two. Silently substituting the session's
 	// account means a client that got the id wrong is handed a correct-looking page of
-	// somebody else's subscriptions — no, of its own, labelled with an id it did not ask
+	// somebody else's subscriptions — no, of its own, labeled with an id it did not ask
 	// for — and cannot tell that its request was ignored.
 	T.Run("another account's id is refused", func(t *testing.T) {
 		t.Parallel()

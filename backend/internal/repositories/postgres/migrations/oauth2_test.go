@@ -31,7 +31,7 @@ import (
 // own client table is platform's oauth2_clients. Two tables under one prefix rather
 // than a prefixed one beside a bare one — which is the arrangement that still needs
 // pinning, because a registry whose rows landed in the server's clients table would
-// be a registration endpoint quietly minting credentials the server honours.
+// be a registration endpoint quietly minting credentials the server honors.
 func TestQuerier_Migrate_OAuth2ServerTables(T *testing.T) {
 	T.Parallel()
 

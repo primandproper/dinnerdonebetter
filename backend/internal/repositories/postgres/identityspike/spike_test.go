@@ -187,14 +187,20 @@ func (f *fixture) count(t *testing.T, ctx context.Context, query string, args ..
 }
 
 func (f *fixture) userRows(t *testing.T, ctx context.Context, username string) int {
+	t.Helper()
+
 	return f.count(t, ctx, `SELECT COUNT(*) FROM `+tablePrefix+`_identity_users WHERE username = $1`, username)
 }
 
 func (f *fixture) recordRows(t *testing.T, ctx context.Context) int {
+	t.Helper()
+
 	return f.count(t, ctx, `SELECT COUNT(*) FROM spike_identity_records`)
 }
 
 func (f *fixture) outboxRows(t *testing.T, ctx context.Context) int {
+	t.Helper()
+
 	return f.count(t, ctx, `SELECT COUNT(*) FROM outbox_messages`)
 }
 
@@ -240,7 +246,7 @@ func TestHooks_CommitsWithTheOperation(T *testing.T) {
 }
 
 // TestHooks_RollBackWithTheOperation is the load-bearing half, and the identity
-// analogue of the comments test.
+// analog of the comments test.
 //
 // The hook fails. The registration's own writes — the user, the account and the
 // owner membership — have already run on the transaction by then, and all of

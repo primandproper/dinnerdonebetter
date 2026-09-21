@@ -1069,7 +1069,7 @@ func TestAuthManager_NewTOTPSecret_Success(t *testing.T) {
 	assert.Equal(t, userStore.UpdateUserTwoFactorSecretCalls()[0].Secret, result.TwoFactorSecret)
 	assert.NotEmpty(t, result.TwoFactorSecret)
 	// Two reads: signin's, to prove the password and generate against, and this manager's
-	// afterwards for the username the QR code is labelled with. The third was the
+	// afterwards for the username the QR code is labeled with. The third was the
 	// directory service reading back what it had just written, which nothing here wanted.
 	assert.Len(t, userStore.GetUserCalls(), 2)
 	assert.Len(t, authenticator.PasswordMatchesCalls(), 1)
@@ -1501,7 +1501,7 @@ func TestAuthManager_RevokeAllSessionsForUser(t *testing.T) {
 // directoryForTest builds the real identity service over a mocked store.
 //
 // The manager holds a *identity.Service rather than an interface, and that is not a seam
-// this package is missing: the service is platform's, its behaviour is platform's to test,
+// this package is missing: the service is platform's, its behavior is platform's to test,
 // and what a unit test here wants to substitute is the store underneath it. So these tests
 // build a real one over a mock and assert on what the store was asked for — which is a
 // stronger claim than asserting on what a mocked service was told, because the service's

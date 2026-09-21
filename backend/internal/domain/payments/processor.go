@@ -27,7 +27,7 @@ type ParsedWebhookEvent struct {
 	// string and its documentation covers both "a status no adapter recognized" and the
 	// zero value. Collapsing them here meant a word Stripe adds next year arrived looking
 	// exactly like an event that carried no standing, and the manager reads *that* as a
-	// sync of a live subscription — so an unrecognised status entitled the account.
+	// sync of a live subscription — so an unrecognized status entitled the account.
 	//
 	// An adapter sets this when it saw something and could not place it. The manager then
 	// leaves the account's standing alone, which is what billing/standing's Classify

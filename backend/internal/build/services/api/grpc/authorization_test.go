@@ -85,15 +85,15 @@ func TestPlatformGrants(T *testing.T) {
 		t.Parallel()
 
 		service := authorization.NewServiceRolePermissionChecker(
-			[]string{authorization.ServiceAdminRoleName}, []authorization.Permission{authorization.Permission(authorization.PermissionReadUsers)})
+			[]string{authorization.ServiceAdminRoleName}, []authorization.Permission{authorization.PermissionReadUsers})
 		account := authorization.NewAccountRolePermissionChecker(
 			[]authorization.Permission{authorization.SaveWebhookEndpointsPermission})
 
 		grants := authorization.PlatformGrants(service, account)
 
-		assert.True(t, grants.Has(platformauthz.Permission(authorization.Permission(authorization.PermissionReadUsers))))
-		assert.True(t, grants.Has(platformauthz.Permission(authorization.SaveWebhookEndpointsPermission)))
-		assert.False(t, grants.Has(platformauthz.Permission(authorization.Permission(authorization.PermissionArchiveUsers))))
+		assert.True(t, grants.Has(authorization.PermissionReadUsers))
+		assert.True(t, grants.Has(authorization.SaveWebhookEndpointsPermission))
+		assert.False(t, grants.Has(authorization.PermissionArchiveUsers))
 	})
 
 	T.Run("with no checkers at all", func(t *testing.T) {

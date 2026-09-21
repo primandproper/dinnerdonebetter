@@ -37,7 +37,7 @@ func TestMethodTableIsCoveredByThePolicy(T *testing.T) {
 		grantable := map[authorization.Permission]struct{}{}
 		for _, set := range expanded {
 			for _, p := range set.Slice() {
-				grantable[authorization.Permission(p)] = struct{}{}
+				grantable[p] = struct{}{}
 			}
 		}
 

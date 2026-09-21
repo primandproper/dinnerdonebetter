@@ -634,7 +634,7 @@ func TestAccounts_Inviting(T *testing.T) {
 			InvitationId: invitation.ID,
 			Token:        "not the token",
 		})
-		assert.Error(t, err)
+		require.Error(t, err)
 
 		// and it is still outstanding
 		sentInvitations, err := testClient.IdentityService().ListInvitationsFromUser(ctx, &identitypb.ListInvitationsFromUserRequest{})
@@ -784,13 +784,14 @@ func TestAccounts_OwnershipTransfer(T *testing.T) {
 		})
 		require.NoError(t, err)
 
-		// the new owner needs a token that says they're a member of this account
-		recipientClient, err = buildAuthedGRPCClient(ctx, fetchLoginTokenForUserForTest(t, recipient))
-		require.NoError(t, err)
-
 		// A minted membership carries no roles, because ownership is the standing and
 		// platform does not know what a role of ours means. Granting them is a separate
 		// act, and it is the one that lets the new owner do anything in the account.
+		//
+		// The token is minted after the grant rather than before. There used to be one on
+		// either side and only the second was ever used — a token says what the roles were
+		// when it was issued, so the earlier one could not have carried the grant that had
+		// not happened yet.
 		_, err = testClient.IdentityService().SetMembershipRoles(ctx, &identitypb.SetMembershipRolesRequest{
 			AccountId: accountID,
 			UserId:    recipient.ID,

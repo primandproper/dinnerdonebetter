@@ -54,9 +54,9 @@ import (
 //
 // Reading the signatures is not proof. These two tests are.
 
-// failingAuditRepository is the real audit repository with Record replaced.
+// failingAuditRepository is the actual audit repository with Record replaced.
 //
-// Embedded rather than mocked, so every other method is the real one and the
+// Embedded rather than mocked, so every other method is the actual one and the
 // only difference from production is the failure being induced.
 type failingAuditRepository struct {
 	audit.Repository
@@ -69,7 +69,7 @@ func (f *failingAuditRepository) Record(context.Context, database.Tx, ...*audit.
 }
 
 // commentsFixture is one wired stack: platform's server over this package's
-// repository over a real database, with a real outbox behind it.
+// repository over a actual database, with a actual outbox behind it.
 type commentsFixture struct {
 	server commentspb.CommentsServiceServer
 	store  platformcomments.Store
@@ -80,7 +80,7 @@ type commentsFixture struct {
 // buildFixture wires the stack.
 //
 // decorate is how a test induces a failure in one of the three statements the
-// transaction carries: it is handed the real audit repository and returns
+// transaction carries: it is handed the actual audit repository and returns
 // whatever the repository should actually be given. Everything else is
 // production wiring — the same store constructor, the same emitter, the same
 // server.
@@ -106,7 +106,7 @@ func buildFixture(t *testing.T, decorate func(audit.Repository) audit.Repository
 		recording = decorate(audits)
 	}
 
-	// A real writer against the real table, because an outbox row that rolls back
+	// A actual writer against the actual table, because an outbox row that rolls back
 	// is the half of the claim a fake emitter could not demonstrate.
 	writer, err := outbox.NewWriter(dialect.Postgres,
 		outbox.WithWriterLogger(loggingnoop.NewLogger()),
@@ -240,8 +240,8 @@ func TestServer_Integration_RecordingRollsBackWithTheWrite(T *testing.T) {
 
 		errAuditUnavailable := platformerrors.New("audit log is unavailable")
 
-		fixture := buildFixture(t, func(real audit.Repository) audit.Repository {
-			return &failingAuditRepository{Repository: real, err: errAuditUnavailable}
+		fixture := buildFixture(t, func(actual audit.Repository) audit.Repository {
+			return &failingAuditRepository{Repository: actual, err: errAuditUnavailable}
 		})
 
 		user := pgtesting.CreateUserForTest(t, nil, fixture.db.Writer())

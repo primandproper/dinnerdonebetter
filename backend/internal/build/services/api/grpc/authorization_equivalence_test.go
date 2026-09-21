@@ -124,9 +124,7 @@ func TestAuthorizationEnforcerMatchesTheHandRolledCheck(t *testing.T) {
 		require.True(t, ok, "policy declares no role %q", role)
 
 		out := make([]authorization.Permission, 0, set.Len())
-		for _, p := range set.Slice() {
-			out = append(out, authorization.Permission(p))
-		}
+		out = append(out, set.Slice()...)
 
 		return out
 	}

@@ -656,7 +656,7 @@ func TestSettingValues_AreNotReadableByOtherMembers(T *testing.T) {
 			Subject: settingsSubjectFor(firstUser.ID),
 			Name:    definition.GetName(),
 		})
-		assert.Error(t, readErr)
+		require.Error(t, readErr)
 
 		_, listErr := secondClient.ListValuesForSubject(ctx, &settingspb.ListValuesForSubjectRequest{
 			Subject: settingsSubjectFor(firstUser.ID),

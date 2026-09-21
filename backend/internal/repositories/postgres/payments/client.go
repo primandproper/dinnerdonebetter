@@ -30,7 +30,6 @@ const (
 // own rather than forwarding stubs that could drift from it.
 type repository struct {
 	billing.Store
-	client            database.Client
 	tracer            tracing.Tracer
 	logger            logging.Logger
 	auditLogEntryRepo audit.Repository
@@ -69,7 +68,6 @@ func ProvidePaymentsRepository(
 
 	return &repository{
 		Store:             store,
-		client:            client,
 		tracer:            tracer,
 		logger:            logging.NewNamedLogger(logger, o11yName),
 		auditLogEntryRepo: auditLogEntryRepo,

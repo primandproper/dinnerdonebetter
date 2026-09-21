@@ -3,7 +3,6 @@ package dbcleaner
 import (
 	"context"
 	"errors"
-	"time"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 
@@ -56,7 +55,6 @@ type Job struct {
 	oauth2Store           oauth2server.Store
 	passwordResetStore    *passwordreset.SQLStore
 	sessionBackend        *sessionsdatabase.Backend[auth.SessionPayload]
-	clock                 func() time.Time
 }
 
 func NewDBCleaner(
@@ -79,7 +77,6 @@ func NewDBCleaner(
 		oauth2Store:           oauth2Store,
 		passwordResetStore:    passwordResetStore,
 		sessionBackend:        sessionBackend,
-		clock:                 time.Now,
 	}, nil
 }
 

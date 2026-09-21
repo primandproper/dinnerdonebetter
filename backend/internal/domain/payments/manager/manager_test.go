@@ -359,7 +359,7 @@ func TestPaymentsManager_ProcessWebhookEvent(T *testing.T) {
 	})
 }
 
-// An unrecognised standing leaves the account where it was, which is the one judgment this
+// An unrecognized standing leaves the account where it was, which is the one judgment this
 // application makes about billing/standing's contract.
 //
 // The mapping itself is platform's now — standing.Strict, tested upstream value by value —

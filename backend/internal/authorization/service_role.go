@@ -92,7 +92,7 @@ func (r serviceRoleCollection) AsAccountRolePermissionChecker() AccountRolePermi
 
 // HasPermission returns whether a user can do something or not.
 func (r serviceRoleCollection) HasPermission(p Permission) bool {
-	return r.Permissions.Has(platformauthz.Permission(p))
+	return r.Permissions.Has(p)
 }
 
 // IsServiceAdmin returns if a role is an admin.
@@ -102,7 +102,7 @@ func (r serviceRoleCollection) IsServiceAdmin() bool {
 
 // CanUpdateUserAccountStatuses returns whether a user can update user account statuses.
 func (r serviceRoleCollection) CanUpdateUserAccountStatuses() bool {
-	return r.HasPermission(Permission(PermissionUpdateUserStatus))
+	return r.HasPermission(PermissionUpdateUserStatus)
 }
 
 // CanImpersonateUsers returns whether a user can impersonate others.

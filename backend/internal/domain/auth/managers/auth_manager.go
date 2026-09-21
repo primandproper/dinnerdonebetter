@@ -630,7 +630,7 @@ func (l *AuthManager) RequestEmailVerificationEmail(ctx context.Context) error {
 
 	// Minted here rather than read back, because there is nothing to read back: the
 	// column holds a digest, and no read fills the secret in. That is a change in
-	// behaviour and the right one — asking for the mail again issues a fresh link and
+	// behavior and the right one — asking for the mail again issues a fresh link and
 	// retires the one that went missing, where the read this replaced re-sent whatever
 	// token was already outstanding forever.
 	verificationToken, err := l.secretGenerator.GenerateBase32EncodedString(ctx, emailVerificationTokenSize)

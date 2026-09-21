@@ -41,7 +41,6 @@ import (
 	"github.com/primandproper/platform-go/v14/authentication/passwordreset"
 	"github.com/primandproper/platform-go/v14/billing"
 	platformcomments "github.com/primandproper/platform-go/v14/comments"
-	commentsprivacy "github.com/primandproper/platform-go/v14/comments/privacy"
 	platformdataprivacy "github.com/primandproper/platform-go/v14/dataprivacy"
 	"github.com/primandproper/platform-go/v14/dataprivacy/auditerasure"
 	platformdataprivacycfg "github.com/primandproper/platform-go/v14/dataprivacy/config"
@@ -344,29 +343,4 @@ func prepareConfig(i do.Injector) *platformdataprivacycfg.Config {
 		do.MustInvoke[*dataprivacycfg.Config](i),
 		do.MustInvoke[database.Client](i),
 	)
-}
-
-// commentsPrivacy builds the comment collector and eraser, which are
-// platform-go's over platform-go's store.
-//
-// Both take a scope resolver rather than reading the subject's scope, because a
-// deployment that files comments per tenant has to be told which tenants to walk.
-// This one files them all in the single scope ddbcomments.Scope names, so the
-// resolver is fixed and shared — neither half can drift from the other about
-// which rows a subject's comments are.
-func commentsPrivacy(i do.Injector) (platformdataprivacy.Collector, platformdataprivacy.Eraser, error) {
-	store := do.MustInvoke[platformcomments.Store](i)
-	resolveScopes := commentsprivacy.FixedScopes(ddbcomments.Scope())
-
-	collector, err := commentsprivacy.NewCollector(store, do.MustInvoke[database.Client](i).Reader(), resolveScopes)
-	if err != nil {
-		return nil, nil, platformerrors.Wrap(err, "building the comments data privacy collector")
-	}
-
-	eraser, err := commentsprivacy.NewEraser(store, resolveScopes)
-	if err != nil {
-		return nil, nil, platformerrors.Wrap(err, "building the comments data privacy eraser")
-	}
-
-	return collector, eraser, nil
 }

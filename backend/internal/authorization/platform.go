@@ -52,9 +52,7 @@ func (r accountRoleCollection) GrantedPermissions() *platformauthz.PermissionSet
 // distinct types only because each package declares its own.
 func ToPlatformPermissions(perms []Permission) []platformauthz.Permission {
 	out := make([]platformauthz.Permission, len(perms))
-	for i, p := range perms {
-		out[i] = platformauthz.Permission(p)
-	}
+	copy(out, perms)
 
 	return out
 }

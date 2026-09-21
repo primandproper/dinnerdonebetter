@@ -8,9 +8,9 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
 	mealplanningindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
-	"github.com/primandproper/platform-go/v14/notifications/push"
 
 	platformidentity "github.com/primandproper/platform-go/v14/identity"
+	"github.com/primandproper/platform-go/v14/notifications/push"
 	searchsync "github.com/primandproper/platform-go/v14/searchsync"
 	"github.com/primandproper/primitives-go/v2/analytics"
 	"github.com/primandproper/primitives-go/v2/database"

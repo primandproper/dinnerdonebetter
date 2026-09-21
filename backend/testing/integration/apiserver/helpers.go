@@ -38,7 +38,6 @@ import (
 	"github.com/pquerna/otp/totp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 const (
@@ -500,11 +499,6 @@ func requireStreamSend(t *testing.T, err error) {
 // left behind is not a standing key to somebody's household.
 const invitationLifetime = time.Hour
 
-// oneHourFromNow is the expiry every invitation in this suite carries.
-func oneHourFromNow() *timestamppb.Timestamp {
-	return timestamppb.New(time.Now().Add(invitationLifetime).UTC())
-}
-
 // inviteForTest issues an invitation the test knows the token of.
 //
 // Through the same service the server runs, hooks and all, so the audit entry and the
@@ -517,13 +511,14 @@ func oneHourFromNow() *timestamppb.Timestamp {
 //
 // Everything from the acceptance onwards is the real path. It is the same arrangement
 // passwordResetStoreForTest exists for, and for the same reason.
-func inviteForTest(t *testing.T, fromUserID, accountID, toEmail string, roles ...string) *identity.Invitation {
+func inviteForTest(t *testing.T, fromUserID, accountID, toEmail string) *identity.Invitation {
 	t.Helper()
 	ctx := t.Context()
 
-	if len(roles) == 0 {
-		roles = []string{authorization.AccountMemberRoleName}
-	}
+	// Every caller wants the member role, which is why it is not a parameter: the one
+	// that took a roles slice was only ever passed nil, and an argument nobody varies is
+	// an argument that reads like a choice somebody made.
+	roles := []string{authorization.AccountMemberRoleName}
 
 	invitation, err := identityDirectoryWithHooks(t).Invite(ctx, ddbidentity.Scope(), &identity.Invitation{
 		BelongsToAccount: accountID,
