@@ -151,7 +151,7 @@ func (f *fixture) define(t *testing.T, ctx context.Context, adminOnly bool) stri
 
 // callerCtx is a signed-in member. Their session carries no service-admin role:
 // the grant that decides these tests is the one the GrantsExtractor supplies.
-func callerCtx(t *testing.T, ctx context.Context, db database.Client) (context.Context, string) {
+func callerCtx(t *testing.T, ctx context.Context, db database.Client) (signedIn context.Context, userID string) {
 	t.Helper()
 
 	user := pgtesting.CreateUserForTest(t, nil, db.Writer())

@@ -82,9 +82,9 @@ func BuildFakeUsersList() *filtering.QueryFilteredResult[identity.User] {
 // The asymmetry is deliberate and is what the sign-in tests need: a test that wants to log
 // somebody in has to hold the password they registered with, and the User type has nowhere
 // else to put it. Nothing writes this user to the directory.
-func BuildFakeUserWithPassword() (*identity.User, string) {
-	user := BuildFakeUser()
-	password := fake.BuildFakePassword()
+func BuildFakeUserWithPassword() (user *identity.User, password string) {
+	user = BuildFakeUser()
+	password = fake.BuildFakePassword()
 	user.HashedPassword = password
 
 	return user, password

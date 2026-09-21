@@ -87,7 +87,7 @@ out with the port.
 the one finding this port hit by accident rather than by looking.
 
 | path (unchanged) | v13 | primitives v2 | SQL version now at |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `authentication/oauth2server/config` | `NewStore(ctx, cfg, db, opts...)` | `NewStore(ctx, cfg, opts...)` → **memory** | `platform/authentication/oauth2serverstore/config` |
 | `authentication/webauthn/config` | `NewSessionStore(ctx, cfg, db, opts...)` | `NewSessionStore(ctx, cfg, opts...)` → **cache** | `platform/authentication/webauthnsessions/config` |
 | `authorization/config` | `NewPolicyResolver(ctx, cfg, db, cache, opts...)` | `NewPolicyResolver(ctx, cfg, cache, opts...)` → **static** | `platform/rbac/config` |
@@ -198,13 +198,13 @@ finding 1, and it is a rename.
 
 ---
 
-# Pass 2 spike: comments
+## Pass 2 spike: comments
 
 Done on the same branch. The standalone comments service, its proto and its
 generated code are gone; platform's `comments/grpc.Server` is mounted over this
 repo's existing repository. The backend builds and the comments suite passes.
 
-## What the spike had to prove
+### What the spike had to prove
 
 The whole pass-2 plan rests on one claim: that this repo's audit entry and
 outbox event survive adoption, because platform's server takes the
@@ -236,10 +236,10 @@ on precisely the right assertion:
 So the test is not passing vacuously: it distinguishes v14's shape from v13's,
 which is the only thing it was written to do.
 
-## What came out, and what went in
+### What came out, and what went in
 
 | | lines |
-|---|---|
+| --- | --- |
 | deleted: local service, converters, permissions, generated stubs, `proto/comments` | −2,611 |
 | deleted: the four `AddCommentTo…` RPCs and their messages from the mealplanning and issue_reports protos | −722 |
 | added: `sessions.Principal` + extractor (one-time, serves all thirteen) | +57 |
@@ -249,7 +249,7 @@ which is the only thing it was written to do.
 Net −2,925 for the domain, and the only new production code that is not
 comments-specific is the 57-line principal adapter.
 
-## Four things the spike found that reading could not
+### Four things the spike found that reading could not
 
 **The convenience RPCs go too.** `AddCommentToRecipe`, `AddCommentToMeal`,
 `AddCommentToMealPlan` and `AddCommentToIssueReport` lived on two *other*
@@ -281,7 +281,7 @@ the absent `GrantsExtractor` clears `include_archived`, which is the behaviour
 the deleted service had (it exposed no archived read at all). Both are left at
 their defaults, with the reasons written down where the server is built.
 
-## Two findings fixed upstream mid-spike
+### Two findings fixed upstream mid-spike
 
 `audit.NewReader` now takes a `dialect.Dialect` rather than a `database.Client`,
 and `oauth2serverstore/config.WithServerOptions` is now
@@ -290,7 +290,7 @@ clears findings 2 and 3; finding 1 — the three constructors that silently lose
 their SQL backend — is the one still open, and it is still the only thing worth
 blocking the tag on.
 
-## What this says about the remaining twelve
+### What this says about the remaining twelve
 
 The shape holds and the cost is now measured rather than estimated. Per domain,
 expect: delete the service, converters, proto and generated stubs; add a
@@ -306,13 +306,13 @@ way.
 
 ---
 
-# Pass 2 spike: identity
+## Pass 2 spike: identity
 
 Identity was the domain most likely to surprise us, and it did — but not in the
 seam, which is the part that matters. Nothing here was ported: this spike
 establishes the shape and proves the one mechanism the adoption would rest on.
 
-## The seam is different, and it is better
+### The seam is different, and it is better
 
 Comments adopts by decorating `comments.Store`: platform's server opens the
 transaction and calls the decorated store inside it, so this repo's audit entry
@@ -348,7 +348,7 @@ Hooks is a better seam than the store decorator — it sees whole operations
 rather than individual rows — and the nine `recordAndEmit` sites in this repo's
 identity repository map onto it directly.
 
-## The surface maps almost exactly
+### The surface maps almost exactly
 
 Twenty-nine RPCs on each side, and the same operations under different names:
 `GetAccounts`/`ListAccounts`, `ArchiveUserMembership`/`RemoveMembership`,
@@ -374,7 +374,7 @@ Three do not map, and each for a stated reason:
 Platform adds four this repo has no equivalent for: `GetPrincipal`,
 `GetMembership`, `ListMembershipsForUser`, `RecordAgreement`.
 
-## What makes identity genuinely harder than comments
+### What makes identity genuinely harder than comments
 
 **Identity is the root of the schema.** Comments was a leaf on a table this repo
 had already adopted. `users` and `accounts` are this application's own tables,
@@ -422,7 +422,7 @@ blocked links adoption (#1385) left standing.
 `birthday` and `last_indexed_at` have no platform home and become the side table
 platform names as the intended pattern.
 
-## Verdict
+### Verdict on identity
 
 The seam works and is better than comments'. The surface maps. What identity
 costs is not code but schema: 34 foreign keys to re-point, and one product
@@ -430,7 +430,7 @@ decision about what happens to a household when its owner is erased.
 
 **That decision is made**, and the blocker is cleared — see below.
 
-## The succession rule
+### The succession rule
 
 An erasure transfers the household to the longest-tenured remaining member, and
 deletes it only if the owner was alone. platform leaves the account standing;
@@ -459,7 +459,7 @@ the rule do nothing at all — which is exactly the state platform's `EraseUser`
 leaves — fails the invariant on "every surviving household should name an owner
 who still exists".
 
-### Two decisions inside the rule worth knowing about
+#### Two decisions inside the rule worth knowing about
 
 **Tenure ties break on the membership identifier.** Two people added in one
 transaction share a `created_at`, and an erasure that picked between them
@@ -479,7 +479,7 @@ schema change upstream lands on a comment rather than a surprise.
 
 ---
 
-# Pass 2 spike: settings
+## Pass 2 spike: settings
 
 **Closed.** platform-go now enforces AdminOnly on the value-write path, and
 settings is adoptable. The finding and its verification are kept below, because
@@ -490,7 +490,7 @@ would repeat comments. It did not. The adoption was stopped before any deletion,
 because mounting platform's settings surface dropped an authorization check this
 application performs today.
 
-## What settings does that comments did not
+### What settings does that comments did not
 
 `settings.Definition.AdminOnly` marks a setting only an administrator may write.
 platform records it and deliberately does not enforce it, and says so
@@ -505,7 +505,7 @@ check lives: `writableSetting` reads the definition before every value write and
 refuses a non-administrator reaching for an admin-only one, and the read path
 does the same.
 
-## The gap
+### The gap
 
 platform's own gRPC surface gives that check nowhere to stand.
 
@@ -531,7 +531,7 @@ the self-service `SubjectAuthorizer` platform's own documentation supplies
 (`settings/grpc/authorizer.go:60`), and an admin-only definition. The write
 succeeds and the value is read back. The test passing *is* the finding.
 
-## How bad, honestly
+### How bad, honestly
 
 The mechanism is real and reachable. The blast radius here today is small: the
 only definitions this repo marks `AdminOnly` are two examples in the localdev
@@ -543,7 +543,7 @@ It also does not generalize. "Recorded rather than enforced" appears in settings
 and nowhere else in platform, so this is one seam on one surface rather than a
 systemic hole.
 
-## What it means for the tag
+### What it means for the tag
 
 It does **not** force a `/v15`. An additive `WithDefinitionAuthorizer` option,
 called just after `GetDefinitionByName` inside the write's transaction, closes it
@@ -560,7 +560,7 @@ nobody has written either.
 The failure mode also argues for settling it early: a consumer adopts the
 surface, the check quietly stops happening, and nothing fails.
 
-## How it was closed
+### How it was closed
 
 Not with the `WithDefinitionAuthorizer` option this write-up first proposed —
 platform found a better answer. `settings/grpc` now asks a new

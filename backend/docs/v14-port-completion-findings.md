@@ -24,8 +24,8 @@ Findings B and D are the two worth reading first.
 
 ---
 
-
 ## A. waitlists: an anonymous Join writes a signup no privacy read can find
+
 **CLOSED.** Nothing to change here — this repo already declares Join under its
 own grant rather than mounting `PublicMethods()`, so every signup carries the
 caller as subject. platform wrote the fork into `PublicMethods` and
@@ -54,6 +54,7 @@ package's — saying an anonymous signup is outside the subject machinery. This
 repo gates all three behind grants, because joining here requires a session.
 
 ## B. callers.Principal.Scope() assumes one tenancy model per consumer
+
 **FIXED on `pre-v14-final`.** `callers/principal.go` now says the scope is the
 surface's and not the consumer's, that a consumer whose domains disagree hands
 each surface its own extractor, and that getting it wrong is quiet. This repo's
@@ -91,6 +92,7 @@ tenancy supplies a different extractor per surface. One sentence; the failure it
 prevents is a cross-tenant read.
 
 ## C. audit/grpc reads one scope, so "every entry about me" is not on the wire
+
 **Where:** `audit/grpc/rpcs.go:93` — `query.Scope = pointer.To(req.scope)`
 **Severity:** behaviour change to note, probably not a defect.
 
@@ -110,6 +112,7 @@ belongs to the export anyway. Recorded because a consumer with per-user chains
 will meet it, and the proto's reasoning does not mention that shape.
 
 ## D. Surface adoption is gated on store adoption
+
 **Withdrawn as a finding.** A server taking its store is the design, not a gap.
 Recorded here only because it is the shape of the remaining work: four of the six
 outstanding surfaces need their tables on platform's schema before there is
@@ -124,7 +127,7 @@ this repo has not already adopted — there is nothing to hand it.
 Where that leaves the eleven surfaces:
 
 | surface | store adopted? | status |
-|---|---|---|
+| --- | --- | --- |
 | comments, settings, waitlists, issuereports, audit | yes | **adopted this run** |
 | billing (payments) | yes | adoptable; stopped on finding F |
 | webhooks | **no — see the correction below** | blocked on a store adoption |
@@ -164,6 +167,7 @@ the identity-shaped job: rename the tables, re-point the foreign keys, delete th
 local querier. The surfaces then follow in an afternoon each, as these five did.
 
 ## E. billing/grpc alone does not gate include_archived
+
 **FIXED on `pre-v14-final`, and it was bigger than reported.** Not one surface
 but three — billing, notifications and webhooks — twelve read sites, and none of
 the three had a grants seam at all. Each gains a `WithGrantsExtractor` whose
@@ -196,14 +200,15 @@ extractor three times and cannot tell whether the fourth omission is deliberate.
 `billing/grpc/doc.go` saying archived billing rows are not sensitive and why.
 
 ## F. payments: two RPCs with no platform counterpart, and it is a product question
+
 **Status: adoption stopped, decision needed. Not a platform defect.**
 
 Ten of this repo's twelve payments RPCs map onto platform's billing surface as
 renames — `GetProducts`/`ListProducts`, `GetPurchasesForAccount`/
 `ListPurchasesForAccount`, and so on. Two do not:
 
-  - `CreateSubscription`
-  - `UpdateSubscription`
+- `CreateSubscription`
+- `UpdateSubscription`
 
 platform's billing surface has no client-facing way to create or change a
 subscription, and that reads as deliberate rather than missing: a subscription is
@@ -221,6 +226,7 @@ proto/payments — they belong to the capitalism/RevenueCat handlers, which are
 HTTP and outside this surface either way.
 
 ## G. webhooks: the event catalog is not on the wire
+
 **Where:** `webhooks/proto/.../webhooks.proto` — ten RPCs, none of them a catalog read.
 **Severity:** low, but it is the one thing that stops webhooks deleting cleanly.
 
@@ -287,6 +293,7 @@ everything above touches `users` and `accounts` and doing identity first would
 churn them twice.
 
 ## H. webhooks is the one domain with no privacy package, and nothing says why
+
 **Where:** platform ships `billing/privacy`, `comments/privacy`,
 `identity/privacy`, `issuereports/privacy`, `mediaregistry/privacy`,
 `notifications/privacy`, `settings/privacy`, `waitlists/privacy` — and no
@@ -309,6 +316,7 @@ Proceeding without waiting: this repo keeps its own collector and reads
 platform's store through it. Swapping to a platform package later is small.
 
 ## I. "Subscription" means two different things on two sibling surfaces
+
 **Where:** `billing/billingpb` — `GetSubscription`, `ListSubscriptions`,
 `ArchiveSubscription` (a paid plan). `webhooks/webhookspb` — the same three
 names (an endpoint's subscription to an event type).

@@ -56,6 +56,8 @@ const resourceTypeUploadedMedia = "uploaded_media"
 var _ mediaregistry.Store = (*repository)(nil)
 
 // RecordObject registers the object, then records it.
+//
+//nolint:gocritic // hugeParam: the value receiver is mediaregistry.Store's signature, not ours
 func (r *repository) RecordObject(ctx context.Context, tx database.Tx, scope tenancy.Scope, input mediaregistry.ObjectInput) (*mediaregistry.Object, error) {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()

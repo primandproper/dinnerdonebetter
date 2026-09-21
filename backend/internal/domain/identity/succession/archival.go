@@ -58,27 +58,29 @@ func (s *Succession) SettleForArchival(
 		return outcome, err
 	}
 
-	for _, account := range owned {
-		successor, findErr := s.successorFor(ctx, database.NewTxForTesting(reader), scope, account.ID, userID)
+	for i := range owned {
+		accountID := owned[i].ID
+
+		successor, findErr := s.successorFor(ctx, database.NewTxForTesting(reader), scope, accountID, userID)
 		if findErr != nil {
 			return outcome, findErr
 		}
 
 		if successor == "" {
-			if _, archiveErr := directory.ArchiveAccount(ctx, scope, account.ID); archiveErr != nil {
-				return outcome, platformerrors.Wrapf(archiveErr, "archiving account %q", account.ID)
+			if _, archiveErr := directory.ArchiveAccount(ctx, scope, accountID); archiveErr != nil {
+				return outcome, platformerrors.Wrapf(archiveErr, "archiving account %q", accountID)
 			}
 
-			outcome.ArchivedAccountIDs = append(outcome.ArchivedAccountIDs, account.ID)
+			outcome.ArchivedAccountIDs = append(outcome.ArchivedAccountIDs, accountID)
 
 			continue
 		}
 
-		if _, transferErr := directory.TransferAccountOwnership(ctx, scope, account.ID, successor); transferErr != nil {
-			return outcome, platformerrors.Wrapf(transferErr, "transferring account %q", account.ID)
+		if _, transferErr := directory.TransferAccountOwnership(ctx, scope, accountID, successor); transferErr != nil {
+			return outcome, platformerrors.Wrapf(transferErr, "transferring account %q", accountID)
 		}
 
-		outcome.Transferred = append(outcome.Transferred, Transfer{AccountID: account.ID, NewOwnerUserID: successor})
+		outcome.Transferred = append(outcome.Transferred, Transfer{AccountID: accountID, NewOwnerUserID: successor})
 	}
 
 	return outcome, nil

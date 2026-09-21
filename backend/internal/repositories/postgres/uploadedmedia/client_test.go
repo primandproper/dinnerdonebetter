@@ -70,11 +70,11 @@ func buildDatabaseClientForTest(t *testing.T) (mediaregistry.Store, audit.Reposi
 }
 
 // ownedBy builds the RecordObject input for an object belonging to userID.
-func ownedBy(userID string) mediaregistry.ObjectInput {
+func ownedBy(userID string) *mediaregistry.ObjectInput {
 	input := fakes.BuildFakeUploadedMediaInput()
 	input.OwnerID = userID
 
-	return input
+	return &input
 }
 
 // recordT registers one object on a transaction of its own.
@@ -82,9 +82,9 @@ func ownedBy(userID string) mediaregistry.ObjectInput {
 // As of platform-go v14 a store write takes the caller's database.Tx, so a test that wants one
 // row written supplies the transaction the production caller would. These helpers answer with
 // the error rather than asserting on it, because two of the writes here are supposed to fail.
-func recordT(ctx context.Context, db database.Client, dbc mediaregistry.Store, input mediaregistry.ObjectInput) (*mediaregistry.Object, error) {
+func recordT(ctx context.Context, db database.Client, dbc mediaregistry.Store, input *mediaregistry.ObjectInput) (*mediaregistry.Object, error) {
 	return writeT(ctx, db, func(tx database.Tx) (*mediaregistry.Object, error) {
-		return dbc.RecordObject(ctx, tx, ddbuploadedmedia.Scope(), input)
+		return dbc.RecordObject(ctx, tx, ddbuploadedmedia.Scope(), *input)
 	})
 }
 

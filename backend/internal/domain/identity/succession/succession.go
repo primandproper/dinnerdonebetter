@@ -143,27 +143,29 @@ func (s *Succession) Apply(
 		return outcome, err
 	}
 
-	for _, account := range owned {
-		successor, findErr := s.successorFor(ctx, tx, scope, account.ID, userID)
+	for i := range owned {
+		accountID := owned[i].ID
+
+		successor, findErr := s.successorFor(ctx, tx, scope, accountID, userID)
 		if findErr != nil {
 			return outcome, findErr
 		}
 
 		if successor == "" {
-			if deleteErr := s.deleteAccount(ctx, tx, account.ID); deleteErr != nil {
+			if deleteErr := s.deleteAccount(ctx, tx, accountID); deleteErr != nil {
 				return outcome, deleteErr
 			}
 
-			outcome.DeletedAccountIDs = append(outcome.DeletedAccountIDs, account.ID)
+			outcome.DeletedAccountIDs = append(outcome.DeletedAccountIDs, accountID)
 
 			continue
 		}
 
-		if transferErr := s.store.TransferAccountOwnership(ctx, tx, scope, account.ID, successor); transferErr != nil {
-			return outcome, platformerrors.Wrapf(transferErr, "transferring account %q", account.ID)
+		if transferErr := s.store.TransferAccountOwnership(ctx, tx, scope, accountID, successor); transferErr != nil {
+			return outcome, platformerrors.Wrapf(transferErr, "transferring account %q", accountID)
 		}
 
-		outcome.Transferred = append(outcome.Transferred, Transfer{AccountID: account.ID, NewOwnerUserID: successor})
+		outcome.Transferred = append(outcome.Transferred, Transfer{AccountID: accountID, NewOwnerUserID: successor})
 	}
 
 	return outcome, nil

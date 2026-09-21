@@ -86,8 +86,8 @@ func (q *queueSpy) Complete(_ context.Context, items ...Item) error {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 
-	for _, item := range items {
-		q.completed = append(q.completed, item.Key)
+	for i := range items {
+		q.completed = append(q.completed, items[i].Key)
 	}
 
 	return nil
@@ -97,8 +97,8 @@ func (q *queueSpy) Release(_ context.Context, _ time.Duration, cause error, item
 	q.mu.Lock()
 	defer q.mu.Unlock()
 
-	for _, item := range items {
-		q.released = append(q.released, item.Key)
+	for i := range items {
+		q.released = append(q.released, items[i].Key)
 	}
 	q.cause = cause
 

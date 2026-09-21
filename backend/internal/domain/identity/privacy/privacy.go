@@ -111,8 +111,8 @@ func ResolveAccountIDs(store identity.Store, reader database.SQLQueryExecutor) d
 		}
 
 		ids := make([]string, 0, len(accounts))
-		for _, account := range accounts {
-			ids = append(ids, account.ID)
+		for i := range accounts {
+			ids = append(ids, accounts[i].ID)
 		}
 
 		return ids, nil

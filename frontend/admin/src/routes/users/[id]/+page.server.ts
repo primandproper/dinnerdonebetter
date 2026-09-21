@@ -1,5 +1,4 @@
-import { redirect } from '@sveltejs/kit';
-import type { Actions, PageServerLoad } from './$types';
+import type { PageServerLoad } from './$types';
 import { QueryFilter } from '@dinnerdonebetter/api-client';
 import { getUser, listAccountsForUser, getAuditLogEntriesForUser } from '$lib/grpc/clients';
 
