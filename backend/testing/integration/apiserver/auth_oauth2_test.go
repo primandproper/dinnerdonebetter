@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/localdev"
+	identity "github.com/primandproper/platform-go/v14/identity"
 
 	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
 

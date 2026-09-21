@@ -15,7 +15,8 @@ import (
 	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/localdev"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
+
+	platformidentity "github.com/primandproper/platform-go/v14/identity"
 
 	platformoauth2clients "github.com/primandproper/platform-go/v14/authentication/oauth2clients"
 	"github.com/primandproper/primitives-go/v2/authentication/argon2"
@@ -202,10 +203,6 @@ func runInit(db *dbFlags, adminUsername, adminPassword, adminEmail, apiServerURL
 		return fmt.Errorf("pinging database client: %w", err)
 	}
 
-	auditRepo, err := auditlogentries.ProvideAuditLogRepository(logger, tracerProvider, nil, client)
-	if err != nil {
-		return fmt.Errorf("building audit log repository: %w", err)
-	}
 	// The directory, without hooks: bootstrap runs before there is anybody to attribute
 	// a registration to, and an audit entry naming nobody is noise in a log whose value
 	// is attribution. The API server's registrations are recorded.

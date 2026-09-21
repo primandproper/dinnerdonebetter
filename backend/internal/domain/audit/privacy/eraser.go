@@ -3,10 +3,12 @@ package privacy
 import (
 	"context"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
+	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 
 	platformdataprivacy "github.com/primandproper/platform-go/v14/dataprivacy"
 	"github.com/primandproper/platform-go/v14/dataprivacy/auditerasure"
+	platformidentity "github.com/primandproper/platform-go/v14/identity"
+	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/filtering"
 	"github.com/primandproper/primitives-go/v2/tenancy"
 )
@@ -49,9 +51,9 @@ reports them as retained, with a stated basis, rather than silently keeping them
 // subject's", and the chains an owned account holds are the same set whether or
 // not the request confined itself to one of them; narrowing here would leave the
 // other accounts' chains behind while reporting a complete erasure.
-func ErasableScopeResolver(repo identity.Repository) auditerasure.ScopeResolver {
+func ErasableScopeResolver(store platformidentity.Store, reader database.SQLQueryExecutor) auditerasure.ScopeResolver {
 	return func(ctx context.Context, _ tenancy.Scope, subject platformdataprivacy.Subject) ([]tenancy.Scope, error) {
-		return erasableScopes(ctx, repo, subject.ID)
+		return erasableScopes(ctx, store, reader, subject.ID)
 	}
 }
 
@@ -61,9 +63,9 @@ func ErasableScopeResolver(repo identity.Repository) auditerasure.ScopeResolver 
 // Owned, not merely joined. Deleting the scope of an account the user was one
 // member of would destroy the audit trail of everyone else in it, which is the
 // failure platform-go's own documentation warns is worth being exact about.
-func erasableScopes(ctx context.Context, repo identity.Repository, userID string) ([]tenancy.Scope, error) {
-	accounts, err := platformdataprivacy.CollectAll(ctx, func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[identity.Account], error) {
-		return repo.GetAccounts(ctx, userID, filter)
+func erasableScopes(ctx context.Context, store platformidentity.Store, reader database.SQLQueryExecutor, userID string) ([]tenancy.Scope, error) {
+	accounts, err := platformdataprivacy.CollectAll(ctx, func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[platformidentity.Account], error) {
+		return store.ListAccountsForUser(ctx, reader, ddbidentity.Scope(), userID, filter)
 	})
 	if err != nil {
 		return nil, err
@@ -75,7 +77,7 @@ func erasableScopes(ctx context.Context, repo identity.Repository, userID string
 	scopes := []tenancy.Scope{tenancy.Of(userID)}
 
 	for i := range accounts {
-		if accounts[i].BelongsToUser == userID {
+		if accounts[i].OwnerUserID == userID {
 			scopes = append(scopes, tenancy.Of(accounts[i].ID))
 		}
 	}

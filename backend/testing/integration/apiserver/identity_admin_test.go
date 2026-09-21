@@ -3,11 +3,11 @@ package integration
 import (
 	"testing"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
 	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
-	identitysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
+
+	"github.com/primandproper/platform-go/v14/identity/identitypb"
 
 	webhookspb "github.com/primandproper/platform-go/v14/webhooks/webhookspb"
 
@@ -28,18 +28,22 @@ func TestAdmin_BanningUsers(T *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, status)
 
-		newStatus := identity.BannedUserAccountStatus.String()
-
-		_, err = adminClient.AdminUpdateUserStatus(ctx, &identitysvc.AdminUpdateUserStatusRequest{
-			TargetUserId: createdUser.ID,
-			NewStatus:    newStatus,
-			Reason:       t.Name(),
+		_, err = adminClient.IdentityService().UpdateUserAccountStatus(ctx, &identitypb.UpdateUserAccountStatusRequest{
+			UserId:      createdUser.ID,
+			Status:      identitypb.AccountStatus_ACCOUNT_STATUS_BANNED,
+			Explanation: t.Name(),
 		})
 		require.NoError(t, err)
 
-		status, err = testClient.GetAuthStatus(ctx, &authsvc.GetAuthStatusRequest{})
+		// A ban takes effect on the next request, on every surface at once: the read every
+		// authenticated request makes refuses a status that does not admit signing in, so
+		// this session is not merely marked — it stops resolving.
+		_, err = testClient.GetAuthStatus(ctx, &authsvc.GetAuthStatusRequest{})
+		require.Error(t, err)
+
+		banned, err := adminClient.IdentityService().GetUser(ctx, &identitypb.GetUserRequest{UserId: createdUser.ID})
 		require.NoError(t, err)
-		assert.Equal(t, status.AccountStatus, newStatus)
+		assert.Equal(t, identitypb.AccountStatus_ACCOUNT_STATUS_BANNED, banned.GetUser().GetAccountStatus())
 	})
 
 	T.Run("fails for non-admin user", func(t *testing.T) {
@@ -52,10 +56,10 @@ func TestAdmin_BanningUsers(T *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, status)
 
-		_, err = testClient.AdminUpdateUserStatus(ctx, &identitysvc.AdminUpdateUserStatusRequest{
-			TargetUserId: createdUser.ID,
-			NewStatus:    identity.BannedUserAccountStatus.String(),
-			Reason:       t.Name(),
+		_, err = testClient.IdentityService().UpdateUserAccountStatus(ctx, &identitypb.UpdateUserAccountStatusRequest{
+			UserId:      createdUser.ID,
+			Status:      identitypb.AccountStatus_ACCOUNT_STATUS_BANNED,
+			Explanation: t.Name(),
 		})
 		require.Error(t, err)
 	})
@@ -64,10 +68,10 @@ func TestAdmin_BanningUsers(T *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
-		_, err := adminClient.AdminUpdateUserStatus(ctx, &identitysvc.AdminUpdateUserStatusRequest{
-			TargetUserId: nonexistentID,
-			NewStatus:    identity.BannedUserAccountStatus.String(),
-			Reason:       t.Name(),
+		_, err := adminClient.IdentityService().UpdateUserAccountStatus(ctx, &identitypb.UpdateUserAccountStatusRequest{
+			UserId:      nonexistentID,
+			Status:      identitypb.AccountStatus_ACCOUNT_STATUS_BANNED,
+			Explanation: t.Name(),
 		})
 		require.Error(t, err)
 	})

@@ -4,7 +4,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
+	platformidentity "github.com/primandproper/platform-go/v14/identity"
 
 	"github.com/primandproper/primitives-go/v2/fake"
 
@@ -17,7 +17,7 @@ func BuildFakeSessionContextData() *sessions.ContextData {
 		AccountPermissions: map[string]authorization.AccountRolePermissionsChecker{},
 		Requester: sessions.RequesterInfo{
 			ServicePermissions:       nil,
-			AccountStatus:            identity.GoodStandingUserAccountStatus.String(),
+			AccountStatus:            platformidentity.StatusGood.String(),
 			AccountStatusExplanation: "fake",
 			UserID:                   fake.BuildFakeID(),
 			EmailAddress:             gofakeit.Email(),
@@ -38,7 +38,7 @@ func BuildFakeChangeActiveAccountInput() *auth.ChangeActiveAccountInput {
 func BuildFakeUserStatusResponse() *auth.UserStatusResponse {
 	return &auth.UserStatusResponse{
 		UserID:                   fake.BuildFakeID(),
-		AccountStatus:            identity.GoodStandingUserAccountStatus.String(),
+		AccountStatus:            platformidentity.StatusGood.String(),
 		AccountStatusExplanation: "",
 		ActiveAccount:            fake.BuildFakeID(),
 		UserIsAuthenticated:      true,

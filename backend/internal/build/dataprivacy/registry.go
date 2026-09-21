@@ -24,7 +24,6 @@ import (
 	auditprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit/privacy"
 	ddbcomments "github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments"
 	ddbdataprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	identityprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/privacy"
 	issuereportsprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports/privacy"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
@@ -43,6 +42,7 @@ import (
 	platformdataprivacy "github.com/primandproper/platform-go/v14/dataprivacy"
 	"github.com/primandproper/platform-go/v14/dataprivacy/auditerasure"
 	platformdataprivacycfg "github.com/primandproper/platform-go/v14/dataprivacy/config"
+	platformidentity "github.com/primandproper/platform-go/v14/identity"
 	issuereports "github.com/primandproper/platform-go/v14/issuereports"
 	uploadsregistry "github.com/primandproper/platform-go/v14/mediaregistry"
 	"github.com/primandproper/platform-go/v14/operations"
@@ -72,16 +72,22 @@ func buildRegistry(i do.Injector) (*platformdataprivacy.Registry, error) {
 		ctx            = do.MustInvoke[context.Context](i)
 		logger         = do.MustInvoke[logging.Logger](i)
 		tracerProvider = do.MustInvoke[tracing.Provider](i)
-		identityRepo   = do.MustInvoke[identity.Repository](i)
+		identityStore  = do.MustInvoke[platformidentity.Store](i)
 		registry       = platformdataprivacy.NewRegistry()
 	)
+
+	// Every collector below takes a read executor at construction, because
+	// dataprivacy.Collector.Collect is handed none: an export is a read, and it
+	// runs outside the erasure transaction by design. The erasers, which do run
+	// inside it, are handed the request's database.Tx per call.
+	reader := do.MustInvoke[database.Client](i).Reader()
 
 	// Which accounts a subject appears in, which is the one question an
 	// account-scoped collector cannot answer from its own domain. Resolved once and
 	// shared, so five collectors asking it do not become five identical page walks
 	// per collector — they still each call it, but through one implementation whose
 	// cost is visible in one place.
-	resolveAccounts := identityprivacy.ResolveAccountIDs(identityRepo)
+	resolveAccounts := identityprivacy.ResolveAccountIDs(identityStore, reader)
 
 	// Named rather than plain err: the registration blocks below each take an err of
 	// their own, and an outer one declared here would make every one of them a shadow.
@@ -89,12 +95,6 @@ func buildRegistry(i do.Injector) (*platformdataprivacy.Registry, error) {
 	if commentsErr != nil {
 		return nil, commentsErr
 	}
-
-	// Every collector below takes a read executor at construction, because
-	// dataprivacy.Collector.Collect is handed none: an export is a read, and it
-	// runs outside the erasure transaction by design. The erasers, which do run
-	// inside it, are handed the request's database.Tx per call.
-	reader := do.MustInvoke[database.Client](i).Reader()
 
 	issueReportsCollector, issueReportsErr := issuereportsprivacy.NewCollector(
 		do.MustInvoke[issuereports.Store](i), reader, resolveAccounts)
@@ -116,9 +116,13 @@ func buildRegistry(i do.Injector) (*platformdataprivacy.Registry, error) {
 	// tracer is the collector that has something to say between reads — several
 	// reads to attribute an error to, an account hop, a user record whose absence is
 	// a different failure from an empty section.
+	identityCollector, identityErr := identityprivacy.NewCollector(identityStore, reader)
+	if identityErr != nil {
+		return nil, platformerrors.Wrap(identityErr, "building the identity data privacy collector")
+	}
+
 	collectors := map[string]platformdataprivacy.Collector{
-		ddbdataprivacy.CollectorKeyIdentity: identityprivacy.NewCollector(
-			identityRepo, logger, tracerProvider),
+		ddbdataprivacy.CollectorKeyIdentity: identityCollector,
 		ddbdataprivacy.CollectorKeyMealPlanning: mealplanningprivacy.NewCollector(
 			do.MustInvoke[mealplanning.Repository](i), resolveAccounts, logger, tracerProvider),
 		ddbdataprivacy.CollectorKeyNotifications: notificationsprivacy.NewCollector(
@@ -164,9 +168,14 @@ func buildRegistry(i do.Injector) (*platformdataprivacy.Registry, error) {
 	// and belongs_to_account foreign key in this schema cascades from the user row. See
 	// internal/domain/identity/privacy for what that covers and what would make a
 	// second one worth writing.
+	identityEraser, identityEraserErr := identityprivacy.NewEraser(identityStore)
+	if identityEraserErr != nil {
+		return nil, platformerrors.Wrap(identityEraserErr, "building the identity data privacy eraser")
+	}
+
 	if err := registry.RegisterEraser(
 		ddbdataprivacy.EraserKeyIdentity,
-		identityprivacy.NewEraser(identityRepo, logger, tracerProvider),
+		identityEraser,
 	); err != nil {
 		return nil, platformerrors.Wrap(err, "registering identity data privacy eraser")
 	}
@@ -182,7 +191,7 @@ func buildRegistry(i do.Injector) (*platformdataprivacy.Registry, error) {
 		prepareConfig(i),
 		registry,
 		platformdataprivacycfg.WithAuditEraserOptions(
-			auditerasure.WithScopeResolver(auditprivacy.ErasableScopeResolver(identityRepo)),
+			auditerasure.WithScopeResolver(auditprivacy.ErasableScopeResolver(identityStore, reader)),
 		),
 	)
 	if err != nil {

@@ -38,6 +38,8 @@ const (
 	AuthService_VerifyEmailAddress_FullMethodName            = "/auth.AuthService/VerifyEmailAddress"
 	AuthService_VerifyTOTPSecret_FullMethodName              = "/auth.AuthService/VerifyTOTPSecret"
 	AuthService_UpdatePassword_FullMethodName                = "/auth.AuthService/UpdatePassword"
+	AuthService_UpdateUserEmailAddress_FullMethodName        = "/auth.AuthService/UpdateUserEmailAddress"
+	AuthService_UpdateUserUsername_FullMethodName            = "/auth.AuthService/UpdateUserUsername"
 	AuthService_BeginPasskeyRegistration_FullMethodName      = "/auth.AuthService/BeginPasskeyRegistration"
 	AuthService_FinishPasskeyRegistration_FullMethodName     = "/auth.AuthService/FinishPasskeyRegistration"
 	AuthService_BeginPasskeyAuthentication_FullMethodName    = "/auth.AuthService/BeginPasskeyAuthentication"
@@ -76,6 +78,8 @@ type AuthServiceClient interface {
 	VerifyEmailAddress(ctx context.Context, in *VerifyEmailAddressRequest, opts ...grpc.CallOption) (*VerifyEmailAddressResponse, error)
 	VerifyTOTPSecret(ctx context.Context, in *VerifyTOTPSecretRequest, opts ...grpc.CallOption) (*VerifyTOTPSecretResponse, error)
 	UpdatePassword(ctx context.Context, in *UpdatePasswordRequest, opts ...grpc.CallOption) (*UpdatePasswordResponse, error)
+	UpdateUserEmailAddress(ctx context.Context, in *UpdateUserEmailAddressRequest, opts ...grpc.CallOption) (*UpdateUserEmailAddressResponse, error)
+	UpdateUserUsername(ctx context.Context, in *UpdateUserUsernameRequest, opts ...grpc.CallOption) (*UpdateUserUsernameResponse, error)
 	BeginPasskeyRegistration(ctx context.Context, in *BeginPasskeyRegistrationRequest, opts ...grpc.CallOption) (*BeginPasskeyRegistrationResponse, error)
 	FinishPasskeyRegistration(ctx context.Context, in *FinishPasskeyRegistrationRequest, opts ...grpc.CallOption) (*FinishPasskeyRegistrationResponse, error)
 	BeginPasskeyAuthentication(ctx context.Context, in *BeginPasskeyAuthenticationRequest, opts ...grpc.CallOption) (*BeginPasskeyAuthenticationResponse, error)
@@ -289,6 +293,26 @@ func (c *authServiceClient) UpdatePassword(ctx context.Context, in *UpdatePasswo
 	return out, nil
 }
 
+func (c *authServiceClient) UpdateUserEmailAddress(ctx context.Context, in *UpdateUserEmailAddressRequest, opts ...grpc.CallOption) (*UpdateUserEmailAddressResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateUserEmailAddressResponse)
+	err := c.cc.Invoke(ctx, AuthService_UpdateUserEmailAddress_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) UpdateUserUsername(ctx context.Context, in *UpdateUserUsernameRequest, opts ...grpc.CallOption) (*UpdateUserUsernameResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateUserUsernameResponse)
+	err := c.cc.Invoke(ctx, AuthService_UpdateUserUsername_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *authServiceClient) BeginPasskeyRegistration(ctx context.Context, in *BeginPasskeyRegistrationRequest, opts ...grpc.CallOption) (*BeginPasskeyRegistrationResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(BeginPasskeyRegistrationResponse)
@@ -442,6 +466,8 @@ type AuthServiceServer interface {
 	VerifyEmailAddress(context.Context, *VerifyEmailAddressRequest) (*VerifyEmailAddressResponse, error)
 	VerifyTOTPSecret(context.Context, *VerifyTOTPSecretRequest) (*VerifyTOTPSecretResponse, error)
 	UpdatePassword(context.Context, *UpdatePasswordRequest) (*UpdatePasswordResponse, error)
+	UpdateUserEmailAddress(context.Context, *UpdateUserEmailAddressRequest) (*UpdateUserEmailAddressResponse, error)
+	UpdateUserUsername(context.Context, *UpdateUserUsernameRequest) (*UpdateUserUsernameResponse, error)
 	BeginPasskeyRegistration(context.Context, *BeginPasskeyRegistrationRequest) (*BeginPasskeyRegistrationResponse, error)
 	FinishPasskeyRegistration(context.Context, *FinishPasskeyRegistrationRequest) (*FinishPasskeyRegistrationResponse, error)
 	BeginPasskeyAuthentication(context.Context, *BeginPasskeyAuthenticationRequest) (*BeginPasskeyAuthenticationResponse, error)
@@ -521,6 +547,12 @@ func (UnimplementedAuthServiceServer) VerifyTOTPSecret(context.Context, *VerifyT
 }
 func (UnimplementedAuthServiceServer) UpdatePassword(context.Context, *UpdatePasswordRequest) (*UpdatePasswordResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdatePassword not implemented")
+}
+func (UnimplementedAuthServiceServer) UpdateUserEmailAddress(context.Context, *UpdateUserEmailAddressRequest) (*UpdateUserEmailAddressResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateUserEmailAddress not implemented")
+}
+func (UnimplementedAuthServiceServer) UpdateUserUsername(context.Context, *UpdateUserUsernameRequest) (*UpdateUserUsernameResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateUserUsername not implemented")
 }
 func (UnimplementedAuthServiceServer) BeginPasskeyRegistration(context.Context, *BeginPasskeyRegistrationRequest) (*BeginPasskeyRegistrationResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method BeginPasskeyRegistration not implemented")
@@ -924,6 +956,42 @@ func _AuthService_UpdatePassword_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthService_UpdateUserEmailAddress_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateUserEmailAddressRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).UpdateUserEmailAddress(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_UpdateUserEmailAddress_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).UpdateUserEmailAddress(ctx, req.(*UpdateUserEmailAddressRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_UpdateUserUsername_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateUserUsernameRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).UpdateUserUsername(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_UpdateUserUsername_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).UpdateUserUsername(ctx, req.(*UpdateUserUsernameRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _AuthService_BeginPasskeyRegistration_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(BeginPasskeyRegistrationRequest)
 	if err := dec(in); err != nil {
@@ -1240,6 +1308,14 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UpdatePassword",
 			Handler:    _AuthService_UpdatePassword_Handler,
+		},
+		{
+			MethodName: "UpdateUserEmailAddress",
+			Handler:    _AuthService_UpdateUserEmailAddress_Handler,
+		},
+		{
+			MethodName: "UpdateUserUsername",
+			Handler:    _AuthService_UpdateUserUsername_Handler,
 		},
 		{
 			MethodName: "BeginPasskeyRegistration",

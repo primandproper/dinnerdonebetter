@@ -8,14 +8,12 @@ import (
 	"net"
 	"time"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	apiserver "github.com/primandproper/dinnerdonebetter/backend/internal/build/services/api"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/localdev"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
-	identityrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identity"
 	notificationsstore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/notificationsstore"
 	paymentsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/payments"
 
@@ -151,15 +149,10 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	uploadsRegistryStore, err := localdev.UploadsRegistry(pillars.Logger, pillars.TracerProvider, databaseClient)
+	identityDirectory, identityStore, err := localdev.IdentityDirectory(pillars.Logger, pillars.TracerProvider, databaseClient)
 	if err != nil {
 		log.Fatal(err)
 	}
-	policy, err := authorization.NewDatabaseResolver(databaseClient.Reader(), pillars.Logger, pillars.TracerProvider, nil)
-	if err != nil {
-		log.Fatal(err)
-	}
-	identityRepo := identityrepo.ProvideIdentityRepository(pillars.Logger, pillars.TracerProvider, auditLogRepo, databaseClient, nil, uploadsRegistryStore, policy)
 	notifsRepo, err = notificationsstore.ProvideAdapter(ctx, pillars.Logger, pillars.TracerProvider,
 		metricsnoop.NewMetricsProvider(), auditLogRepo, nil, databaseClient)
 	if err != nil {
@@ -170,7 +163,7 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	adminUser, err := localdev.CreatePremadeAdminUser(ctx, pillars.Logger, pillars.TracerProvider, identityRepo, databaseClient, premadeAdminUser)
+	adminUser, err := localdev.CreatePremadeAdminUser(ctx, pillars.Logger, pillars.TracerProvider, identityDirectory, identityStore, databaseClient, premadeAdminUser)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	queuemessages "github.com/primandproper/dinnerdonebetter/backend/internal/queues/messages"
+	identity "github.com/primandproper/platform-go/v14/identity"
 
 	"github.com/matcornic/hermes/v2"
 )
@@ -15,8 +15,16 @@ var (
 	ErrUnverifiedEmailRecipient = errors.New("missing email address verification for user")
 )
 
+// The name on an envelope is the user's DisplayName rather than their first and last
+// names joined.
+//
+// It is the field platform keeps for exactly this — what the person is shown as, theirs
+// to set, and never empty on a read, because a row with a blank column reads its handle
+// back. The join it replaces produced " " for the many users who gave neither name, and
+// an envelope addressed to a space is worse than one addressed to a handle.
+
 // BuildInviteMemberEmail builds an email notifying a user that they've been invited to join an account.
-func BuildInviteMemberEmail(recipient *identity.User, accountInvitation *identity.AccountInvitation, baseURL string) (*queuemessages.OutboundEmailMessage, error) {
+func BuildInviteMemberEmail(recipient *identity.User, accountInvitation *identity.Invitation, baseURL string) (*queuemessages.OutboundEmailMessage, error) {
 	e := hermes.Email{
 		Body: hermes.Body{
 			Name: accountInvitation.ToEmail,
@@ -42,7 +50,7 @@ func BuildInviteMemberEmail(recipient *identity.User, accountInvitation *identit
 
 	msg := &queuemessages.OutboundEmailMessage{
 		ToAddress:   accountInvitation.ToEmail,
-		ToName:      recipient.FullName(),
+		ToName:      recipient.DisplayName,
 		FromAddress: branding.FromEmail,
 		FromName:    branding.CompanyName,
 		Subject:     "You've been invited!",
@@ -91,7 +99,7 @@ func BuildGeneratedPasswordResetTokenEmail(recipient *identity.User, passwordRes
 
 	msg := &queuemessages.OutboundEmailMessage{
 		ToAddress:   recipient.EmailAddress,
-		ToName:      recipient.FullName(),
+		ToName:      recipient.DisplayName,
 		FromAddress: branding.FromEmail,
 		FromName:    branding.CompanyName,
 		Subject:     fmt.Sprintf("A password reset link was requested for your %s account", branding.CompanyName),
@@ -126,7 +134,7 @@ func BuildUsernameReminderEmail(recipient *identity.User, baseURL string) (*queu
 	}
 
 	msg := &queuemessages.OutboundEmailMessage{
-		ToName:      recipient.FullName(),
+		ToName:      recipient.DisplayName,
 		ToAddress:   recipient.EmailAddress,
 		FromAddress: branding.FromEmail,
 		FromName:    branding.CompanyName,
@@ -163,7 +171,7 @@ func BuildPasswordResetTokenRedeemedEmail(recipient *identity.User, baseURL stri
 
 	msg := &queuemessages.OutboundEmailMessage{
 		ToAddress:   recipient.EmailAddress,
-		ToName:      recipient.FullName(),
+		ToName:      recipient.DisplayName,
 		FromAddress: branding.FromEmail,
 		FromName:    branding.CompanyName,
 		Subject:     fmt.Sprintf("Your %s account password has been changed.", branding.CompanyName),
@@ -199,7 +207,7 @@ func BuildPasswordChangedEmail(recipient *identity.User, baseURL string) (*queue
 
 	msg := &queuemessages.OutboundEmailMessage{
 		ToAddress:   recipient.EmailAddress,
-		ToName:      recipient.FullName(),
+		ToName:      recipient.DisplayName,
 		FromAddress: branding.FromEmail,
 		FromName:    branding.CompanyName,
 		Subject:     fmt.Sprintf("Your %s account password has been changed.", branding.CompanyName),
@@ -250,7 +258,7 @@ func BuildVerifyEmailAddressEmail(recipient *identity.User, emailVerificationTok
 
 	msg := &queuemessages.OutboundEmailMessage{
 		ToAddress:   recipient.EmailAddress,
-		ToName:      recipient.FullName(),
+		ToName:      recipient.DisplayName,
 		FromAddress: branding.FromEmail,
 		FromName:    branding.CompanyName,
 		Subject:     fmt.Sprintf("Verify your email with %s", branding.CompanyName),

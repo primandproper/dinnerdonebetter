@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
+
 	analyticsevents "github.com/primandproper/dinnerdonebetter/backend/internal/domain/analytics"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 
@@ -124,7 +126,7 @@ func (a *AsyncDataChangeMessageHandler) handleOutboundNotifications(
 		return nil
 	}
 
-	user, err := a.identityRepo.GetUser(ctx, changeMessage.UserID)
+	user, err := a.directory.GetUser(ctx, a.db.Reader(), ddbidentity.Scope(), changeMessage.UserID)
 	if err != nil {
 		return observability.PrepareAndLogError(err, a.logger, span, "getting user")
 	}

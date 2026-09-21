@@ -3705,6 +3705,222 @@ func (x *UserCreationResponse) GetCreatedAccountId() string {
 	return ""
 }
 
+// UpdateUserEmailAddressRequest changes the address a user signs in and is reached at.
+//
+// It is on this service rather than folded into the directory's UpdateProfile, and the
+// three fields say why: an address change is a credential change — whoever holds it can
+// take the account through a password reset — so it is re-authenticated. UpdateProfile
+// asks for nothing, correctly, because a display name is not a credential.
+type UpdateUserEmailAddressRequest struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	NewEmailAddress string                 `protobuf:"bytes,1,opt,name=new_email_address,json=newEmailAddress,proto3" json:"new_email_address,omitempty"`
+	CurrentPassword string                 `protobuf:"bytes,2,opt,name=current_password,json=currentPassword,proto3" json:"current_password,omitempty"`
+	TotpToken       string                 `protobuf:"bytes,3,opt,name=totp_token,json=totpToken,proto3" json:"totp_token,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *UpdateUserEmailAddressRequest) Reset() {
+	*x = UpdateUserEmailAddressRequest{}
+	mi := &file_auth_auth_service_types_proto_msgTypes[72]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateUserEmailAddressRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateUserEmailAddressRequest) ProtoMessage() {}
+
+func (x *UpdateUserEmailAddressRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_auth_auth_service_types_proto_msgTypes[72]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateUserEmailAddressRequest.ProtoReflect.Descriptor instead.
+func (*UpdateUserEmailAddressRequest) Descriptor() ([]byte, []int) {
+	return file_auth_auth_service_types_proto_rawDescGZIP(), []int{72}
+}
+
+func (x *UpdateUserEmailAddressRequest) GetNewEmailAddress() string {
+	if x != nil {
+		return x.NewEmailAddress
+	}
+	return ""
+}
+
+func (x *UpdateUserEmailAddressRequest) GetCurrentPassword() string {
+	if x != nil {
+		return x.CurrentPassword
+	}
+	return ""
+}
+
+func (x *UpdateUserEmailAddressRequest) GetTotpToken() string {
+	if x != nil {
+		return x.TotpToken
+	}
+	return ""
+}
+
+type UpdateUserEmailAddressResponse struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	ResponseDetails *types.ResponseDetails `protobuf:"bytes,1,opt,name=response_details,json=responseDetails,proto3" json:"response_details,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *UpdateUserEmailAddressResponse) Reset() {
+	*x = UpdateUserEmailAddressResponse{}
+	mi := &file_auth_auth_service_types_proto_msgTypes[73]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateUserEmailAddressResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateUserEmailAddressResponse) ProtoMessage() {}
+
+func (x *UpdateUserEmailAddressResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_auth_auth_service_types_proto_msgTypes[73]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateUserEmailAddressResponse.ProtoReflect.Descriptor instead.
+func (*UpdateUserEmailAddressResponse) Descriptor() ([]byte, []int) {
+	return file_auth_auth_service_types_proto_rawDescGZIP(), []int{73}
+}
+
+func (x *UpdateUserEmailAddressResponse) GetResponseDetails() *types.ResponseDetails {
+	if x != nil {
+		return x.ResponseDetails
+	}
+	return nil
+}
+
+// UpdateUserUsernameRequest changes the handle a user signs in with, re-authenticated for
+// the reason above.
+type UpdateUserUsernameRequest struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	NewUsername     string                 `protobuf:"bytes,1,opt,name=new_username,json=newUsername,proto3" json:"new_username,omitempty"`
+	CurrentPassword string                 `protobuf:"bytes,2,opt,name=current_password,json=currentPassword,proto3" json:"current_password,omitempty"`
+	TotpToken       string                 `protobuf:"bytes,3,opt,name=totp_token,json=totpToken,proto3" json:"totp_token,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *UpdateUserUsernameRequest) Reset() {
+	*x = UpdateUserUsernameRequest{}
+	mi := &file_auth_auth_service_types_proto_msgTypes[74]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateUserUsernameRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateUserUsernameRequest) ProtoMessage() {}
+
+func (x *UpdateUserUsernameRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_auth_auth_service_types_proto_msgTypes[74]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateUserUsernameRequest.ProtoReflect.Descriptor instead.
+func (*UpdateUserUsernameRequest) Descriptor() ([]byte, []int) {
+	return file_auth_auth_service_types_proto_rawDescGZIP(), []int{74}
+}
+
+func (x *UpdateUserUsernameRequest) GetNewUsername() string {
+	if x != nil {
+		return x.NewUsername
+	}
+	return ""
+}
+
+func (x *UpdateUserUsernameRequest) GetCurrentPassword() string {
+	if x != nil {
+		return x.CurrentPassword
+	}
+	return ""
+}
+
+func (x *UpdateUserUsernameRequest) GetTotpToken() string {
+	if x != nil {
+		return x.TotpToken
+	}
+	return ""
+}
+
+type UpdateUserUsernameResponse struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	ResponseDetails *types.ResponseDetails `protobuf:"bytes,1,opt,name=response_details,json=responseDetails,proto3" json:"response_details,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *UpdateUserUsernameResponse) Reset() {
+	*x = UpdateUserUsernameResponse{}
+	mi := &file_auth_auth_service_types_proto_msgTypes[75]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateUserUsernameResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateUserUsernameResponse) ProtoMessage() {}
+
+func (x *UpdateUserUsernameResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_auth_auth_service_types_proto_msgTypes[75]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateUserUsernameResponse.ProtoReflect.Descriptor instead.
+func (*UpdateUserUsernameResponse) Descriptor() ([]byte, []int) {
+	return file_auth_auth_service_types_proto_rawDescGZIP(), []int{75}
+}
+
+func (x *UpdateUserUsernameResponse) GetResponseDetails() *types.ResponseDetails {
+	if x != nil {
+		return x.ResponseDetails
+	}
+	return nil
+}
+
 var File_auth_auth_service_types_proto protoreflect.FileDescriptor
 
 var file_auth_auth_service_types_proto_rawDesc = string([]byte{
@@ -4240,13 +4456,44 @@ var file_auth_auth_service_types_proto_rawDesc = string([]byte{
 	0x09, 0x20, 0x01, 0x28, 0x09, 0x52, 0x08, 0x6c, 0x61, 0x73, 0x74, 0x4e, 0x61, 0x6d, 0x65, 0x12,
 	0x2c, 0x0a, 0x12, 0x63, 0x72, 0x65, 0x61, 0x74, 0x65, 0x64, 0x5f, 0x61, 0x63, 0x63, 0x6f, 0x75,
 	0x6e, 0x74, 0x5f, 0x69, 0x64, 0x18, 0x0a, 0x20, 0x01, 0x28, 0x09, 0x52, 0x10, 0x63, 0x72, 0x65,
-	0x61, 0x74, 0x65, 0x64, 0x41, 0x63, 0x63, 0x6f, 0x75, 0x6e, 0x74, 0x49, 0x64, 0x42, 0x59, 0x5a,
-	0x57, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x70, 0x72, 0x69, 0x6d,
-	0x61, 0x6e, 0x64, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x2f, 0x64, 0x69, 0x6e, 0x6e, 0x65, 0x72,
-	0x64, 0x6f, 0x6e, 0x65, 0x62, 0x65, 0x74, 0x74, 0x65, 0x72, 0x2f, 0x62, 0x61, 0x63, 0x6b, 0x65,
-	0x6e, 0x64, 0x2f, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2f, 0x67, 0x72, 0x70, 0x63,
-	0x2f, 0x67, 0x65, 0x6e, 0x65, 0x72, 0x61, 0x74, 0x65, 0x64, 0x2f, 0x73, 0x65, 0x72, 0x76, 0x69,
-	0x63, 0x65, 0x73, 0x2f, 0x61, 0x75, 0x74, 0x68, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x61, 0x74, 0x65, 0x64, 0x41, 0x63, 0x63, 0x6f, 0x75, 0x6e, 0x74, 0x49, 0x64, 0x22, 0x95, 0x01,
+	0x0a, 0x1d, 0x55, 0x70, 0x64, 0x61, 0x74, 0x65, 0x55, 0x73, 0x65, 0x72, 0x45, 0x6d, 0x61, 0x69,
+	0x6c, 0x41, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12,
+	0x2a, 0x0a, 0x11, 0x6e, 0x65, 0x77, 0x5f, 0x65, 0x6d, 0x61, 0x69, 0x6c, 0x5f, 0x61, 0x64, 0x64,
+	0x72, 0x65, 0x73, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0f, 0x6e, 0x65, 0x77, 0x45,
+	0x6d, 0x61, 0x69, 0x6c, 0x41, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x12, 0x29, 0x0a, 0x10, 0x63,
+	0x75, 0x72, 0x72, 0x65, 0x6e, 0x74, 0x5f, 0x70, 0x61, 0x73, 0x73, 0x77, 0x6f, 0x72, 0x64, 0x18,
+	0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0f, 0x63, 0x75, 0x72, 0x72, 0x65, 0x6e, 0x74, 0x50, 0x61,
+	0x73, 0x73, 0x77, 0x6f, 0x72, 0x64, 0x12, 0x1d, 0x0a, 0x0a, 0x74, 0x6f, 0x74, 0x70, 0x5f, 0x74,
+	0x6f, 0x6b, 0x65, 0x6e, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x09, 0x74, 0x6f, 0x74, 0x70,
+	0x54, 0x6f, 0x6b, 0x65, 0x6e, 0x22, 0x64, 0x0a, 0x1e, 0x55, 0x70, 0x64, 0x61, 0x74, 0x65, 0x55,
+	0x73, 0x65, 0x72, 0x45, 0x6d, 0x61, 0x69, 0x6c, 0x41, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x52,
+	0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x42, 0x0a, 0x10, 0x72, 0x65, 0x73, 0x70, 0x6f,
+	0x6e, 0x73, 0x65, 0x5f, 0x64, 0x65, 0x74, 0x61, 0x69, 0x6c, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28,
+	0x0b, 0x32, 0x17, 0x2e, 0x63, 0x6f, 0x6d, 0x6d, 0x6f, 0x6e, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f,
+	0x6e, 0x73, 0x65, 0x44, 0x65, 0x74, 0x61, 0x69, 0x6c, 0x73, 0x52, 0x0f, 0x72, 0x65, 0x73, 0x70,
+	0x6f, 0x6e, 0x73, 0x65, 0x44, 0x65, 0x74, 0x61, 0x69, 0x6c, 0x73, 0x22, 0x88, 0x01, 0x0a, 0x19,
+	0x55, 0x70, 0x64, 0x61, 0x74, 0x65, 0x55, 0x73, 0x65, 0x72, 0x55, 0x73, 0x65, 0x72, 0x6e, 0x61,
+	0x6d, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x21, 0x0a, 0x0c, 0x6e, 0x65, 0x77,
+	0x5f, 0x75, 0x73, 0x65, 0x72, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52,
+	0x0b, 0x6e, 0x65, 0x77, 0x55, 0x73, 0x65, 0x72, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x29, 0x0a, 0x10,
+	0x63, 0x75, 0x72, 0x72, 0x65, 0x6e, 0x74, 0x5f, 0x70, 0x61, 0x73, 0x73, 0x77, 0x6f, 0x72, 0x64,
+	0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0f, 0x63, 0x75, 0x72, 0x72, 0x65, 0x6e, 0x74, 0x50,
+	0x61, 0x73, 0x73, 0x77, 0x6f, 0x72, 0x64, 0x12, 0x1d, 0x0a, 0x0a, 0x74, 0x6f, 0x74, 0x70, 0x5f,
+	0x74, 0x6f, 0x6b, 0x65, 0x6e, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x09, 0x74, 0x6f, 0x74,
+	0x70, 0x54, 0x6f, 0x6b, 0x65, 0x6e, 0x22, 0x60, 0x0a, 0x1a, 0x55, 0x70, 0x64, 0x61, 0x74, 0x65,
+	0x55, 0x73, 0x65, 0x72, 0x55, 0x73, 0x65, 0x72, 0x6e, 0x61, 0x6d, 0x65, 0x52, 0x65, 0x73, 0x70,
+	0x6f, 0x6e, 0x73, 0x65, 0x12, 0x42, 0x0a, 0x10, 0x72, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65,
+	0x5f, 0x64, 0x65, 0x74, 0x61, 0x69, 0x6c, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x17,
+	0x2e, 0x63, 0x6f, 0x6d, 0x6d, 0x6f, 0x6e, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65,
+	0x44, 0x65, 0x74, 0x61, 0x69, 0x6c, 0x73, 0x52, 0x0f, 0x72, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73,
+	0x65, 0x44, 0x65, 0x74, 0x61, 0x69, 0x6c, 0x73, 0x42, 0x59, 0x5a, 0x57, 0x67, 0x69, 0x74, 0x68,
+	0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x70, 0x72, 0x69, 0x6d, 0x61, 0x6e, 0x64, 0x70, 0x72,
+	0x6f, 0x70, 0x65, 0x72, 0x2f, 0x64, 0x69, 0x6e, 0x6e, 0x65, 0x72, 0x64, 0x6f, 0x6e, 0x65, 0x62,
+	0x65, 0x74, 0x74, 0x65, 0x72, 0x2f, 0x62, 0x61, 0x63, 0x6b, 0x65, 0x6e, 0x64, 0x2f, 0x69, 0x6e,
+	0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2f, 0x67, 0x72, 0x70, 0x63, 0x2f, 0x67, 0x65, 0x6e, 0x65,
+	0x72, 0x61, 0x74, 0x65, 0x64, 0x2f, 0x73, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x73, 0x2f, 0x61,
+	0x75, 0x74, 0x68, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 })
 
 var (
@@ -4261,7 +4508,7 @@ func file_auth_auth_service_types_proto_rawDescGZIP() []byte {
 	return file_auth_auth_service_types_proto_rawDescData
 }
 
-var file_auth_auth_service_types_proto_msgTypes = make([]protoimpl.MessageInfo, 73)
+var file_auth_auth_service_types_proto_msgTypes = make([]protoimpl.MessageInfo, 77)
 var file_auth_auth_service_types_proto_goTypes = []any{
 	(*RegisterUserRequest)(nil),                      // 0: auth.RegisterUserRequest
 	(*RegisterUserResponse)(nil),                     // 1: auth.RegisterUserResponse
@@ -4335,68 +4582,74 @@ var file_auth_auth_service_types_proto_goTypes = []any{
 	(*AdminRevokeAllUserSessionsRequest)(nil),        // 69: auth.AdminRevokeAllUserSessionsRequest
 	(*UserRegistrationInput)(nil),                    // 70: auth.UserRegistrationInput
 	(*UserCreationResponse)(nil),                     // 71: auth.UserCreationResponse
-	nil,                                              // 72: auth.UserPermissionsResponse.PermissionsEntry
-	(*types.ResponseDetails)(nil),                    // 73: common.ResponseDetails
-	(*UserLoginInput)(nil),                           // 74: auth.UserLoginInput
-	(*timestamppb.Timestamp)(nil),                    // 75: google.protobuf.Timestamp
-	(*identitypb.Account)(nil),                       // 76: primandproper.platform.identity.v1.Account
-	(*identitypb.User)(nil),                          // 77: primandproper.platform.identity.v1.User
-	(*UserSession)(nil),                              // 78: auth.UserSession
+	(*UpdateUserEmailAddressRequest)(nil),            // 72: auth.UpdateUserEmailAddressRequest
+	(*UpdateUserEmailAddressResponse)(nil),           // 73: auth.UpdateUserEmailAddressResponse
+	(*UpdateUserUsernameRequest)(nil),                // 74: auth.UpdateUserUsernameRequest
+	(*UpdateUserUsernameResponse)(nil),               // 75: auth.UpdateUserUsernameResponse
+	nil,                                              // 76: auth.UserPermissionsResponse.PermissionsEntry
+	(*types.ResponseDetails)(nil),                    // 77: common.ResponseDetails
+	(*UserLoginInput)(nil),                           // 78: auth.UserLoginInput
+	(*timestamppb.Timestamp)(nil),                    // 79: google.protobuf.Timestamp
+	(*identitypb.Account)(nil),                       // 80: primandproper.platform.identity.v1.Account
+	(*identitypb.User)(nil),                          // 81: primandproper.platform.identity.v1.User
+	(*UserSession)(nil),                              // 82: auth.UserSession
 }
 var file_auth_auth_service_types_proto_depIdxs = []int32{
 	70, // 0: auth.RegisterUserRequest.input:type_name -> auth.UserRegistrationInput
-	73, // 1: auth.RegisterUserResponse.response_details:type_name -> common.ResponseDetails
+	77, // 1: auth.RegisterUserResponse.response_details:type_name -> common.ResponseDetails
 	71, // 2: auth.RegisterUserResponse.created:type_name -> auth.UserCreationResponse
-	74, // 3: auth.LoginForTokenRequest.input:type_name -> auth.UserLoginInput
-	73, // 4: auth.LoginForTokenResponse.response_details:type_name -> common.ResponseDetails
+	78, // 3: auth.LoginForTokenRequest.input:type_name -> auth.UserLoginInput
+	77, // 4: auth.LoginForTokenResponse.response_details:type_name -> common.ResponseDetails
 	35, // 5: auth.LoginForTokenResponse.result:type_name -> auth.TokenResponse
-	74, // 6: auth.AdminLoginForTokenRequest.input:type_name -> auth.UserLoginInput
-	73, // 7: auth.AdminLoginForTokenResponse.response_details:type_name -> common.ResponseDetails
+	78, // 6: auth.AdminLoginForTokenRequest.input:type_name -> auth.UserLoginInput
+	77, // 7: auth.AdminLoginForTokenResponse.response_details:type_name -> common.ResponseDetails
 	35, // 8: auth.AdminLoginForTokenResponse.result:type_name -> auth.TokenResponse
-	73, // 9: auth.ExchangeTokenResponse.response_details:type_name -> common.ResponseDetails
-	75, // 10: auth.ExchangeTokenResponse.expires_utc:type_name -> google.protobuf.Timestamp
-	73, // 11: auth.GetActiveAccountResponse.response_details:type_name -> common.ResponseDetails
-	76, // 12: auth.GetActiveAccountResponse.result:type_name -> primandproper.platform.identity.v1.Account
-	73, // 13: auth.GetAuthStatusResponse.response_details:type_name -> common.ResponseDetails
-	73, // 14: auth.RedeemPasswordResetTokenResponse.response_details:type_name -> common.ResponseDetails
-	73, // 15: auth.RefreshTOTPSecretResponse.response_details:type_name -> common.ResponseDetails
+	77, // 9: auth.ExchangeTokenResponse.response_details:type_name -> common.ResponseDetails
+	79, // 10: auth.ExchangeTokenResponse.expires_utc:type_name -> google.protobuf.Timestamp
+	77, // 11: auth.GetActiveAccountResponse.response_details:type_name -> common.ResponseDetails
+	80, // 12: auth.GetActiveAccountResponse.result:type_name -> primandproper.platform.identity.v1.Account
+	77, // 13: auth.GetAuthStatusResponse.response_details:type_name -> common.ResponseDetails
+	77, // 14: auth.RedeemPasswordResetTokenResponse.response_details:type_name -> common.ResponseDetails
+	77, // 15: auth.RefreshTOTPSecretResponse.response_details:type_name -> common.ResponseDetails
 	33, // 16: auth.RefreshTOTPSecretResponse.result:type_name -> auth.TOTPSecretRefreshResponse
-	73, // 17: auth.RequestEmailVerificationEmailResponse.response_details:type_name -> common.ResponseDetails
-	73, // 18: auth.RequestPasswordResetTokenResponse.response_details:type_name -> common.ResponseDetails
-	73, // 19: auth.RequestUsernameReminderResponse.response_details:type_name -> common.ResponseDetails
-	73, // 20: auth.UpdatePasswordResponse.response_details:type_name -> common.ResponseDetails
-	73, // 21: auth.VerifyEmailAddressResponse.response_details:type_name -> common.ResponseDetails
-	73, // 22: auth.VerifyTOTPSecretResponse.response_details:type_name -> common.ResponseDetails
-	73, // 23: auth.EmailAddressVerificationResponse.response_details:type_name -> common.ResponseDetails
-	73, // 24: auth.PasswordResetResponse.response_details:type_name -> common.ResponseDetails
-	73, // 25: auth.TOTPSecretVerificationResponse.response_details:type_name -> common.ResponseDetails
-	75, // 26: auth.TokenResponse.expires_utc:type_name -> google.protobuf.Timestamp
-	73, // 27: auth.UserPermissionsResponse.response_details:type_name -> common.ResponseDetails
-	72, // 28: auth.UserPermissionsResponse.permissions:type_name -> auth.UserPermissionsResponse.PermissionsEntry
-	73, // 29: auth.EvaluateBooleanFeatureFlagResponse.response_details:type_name -> common.ResponseDetails
-	73, // 30: auth.EvaluateInt64FeatureFlagResponse.response_details:type_name -> common.ResponseDetails
-	73, // 31: auth.EvaluateStringFeatureFlagResponse.response_details:type_name -> common.ResponseDetails
-	73, // 32: auth.BeginPasskeyRegistrationResponse.response_details:type_name -> common.ResponseDetails
-	73, // 33: auth.FinishPasskeyRegistrationResponse.response_details:type_name -> common.ResponseDetails
-	73, // 34: auth.BeginPasskeyAuthenticationResponse.response_details:type_name -> common.ResponseDetails
-	73, // 35: auth.GetSelfResponse.response_details:type_name -> common.ResponseDetails
-	77, // 36: auth.GetSelfResponse.result:type_name -> primandproper.platform.identity.v1.User
-	73, // 37: auth.ListPasskeysResponse.response_details:type_name -> common.ResponseDetails
+	77, // 17: auth.RequestEmailVerificationEmailResponse.response_details:type_name -> common.ResponseDetails
+	77, // 18: auth.RequestPasswordResetTokenResponse.response_details:type_name -> common.ResponseDetails
+	77, // 19: auth.RequestUsernameReminderResponse.response_details:type_name -> common.ResponseDetails
+	77, // 20: auth.UpdatePasswordResponse.response_details:type_name -> common.ResponseDetails
+	77, // 21: auth.VerifyEmailAddressResponse.response_details:type_name -> common.ResponseDetails
+	77, // 22: auth.VerifyTOTPSecretResponse.response_details:type_name -> common.ResponseDetails
+	77, // 23: auth.EmailAddressVerificationResponse.response_details:type_name -> common.ResponseDetails
+	77, // 24: auth.PasswordResetResponse.response_details:type_name -> common.ResponseDetails
+	77, // 25: auth.TOTPSecretVerificationResponse.response_details:type_name -> common.ResponseDetails
+	79, // 26: auth.TokenResponse.expires_utc:type_name -> google.protobuf.Timestamp
+	77, // 27: auth.UserPermissionsResponse.response_details:type_name -> common.ResponseDetails
+	76, // 28: auth.UserPermissionsResponse.permissions:type_name -> auth.UserPermissionsResponse.PermissionsEntry
+	77, // 29: auth.EvaluateBooleanFeatureFlagResponse.response_details:type_name -> common.ResponseDetails
+	77, // 30: auth.EvaluateInt64FeatureFlagResponse.response_details:type_name -> common.ResponseDetails
+	77, // 31: auth.EvaluateStringFeatureFlagResponse.response_details:type_name -> common.ResponseDetails
+	77, // 32: auth.BeginPasskeyRegistrationResponse.response_details:type_name -> common.ResponseDetails
+	77, // 33: auth.FinishPasskeyRegistrationResponse.response_details:type_name -> common.ResponseDetails
+	77, // 34: auth.BeginPasskeyAuthenticationResponse.response_details:type_name -> common.ResponseDetails
+	77, // 35: auth.GetSelfResponse.response_details:type_name -> common.ResponseDetails
+	81, // 36: auth.GetSelfResponse.result:type_name -> primandproper.platform.identity.v1.User
+	77, // 37: auth.ListPasskeysResponse.response_details:type_name -> common.ResponseDetails
 	56, // 38: auth.ListPasskeysResponse.results:type_name -> auth.PasskeyCredential
-	75, // 39: auth.PasskeyCredential.created_at:type_name -> google.protobuf.Timestamp
-	75, // 40: auth.PasskeyCredential.last_used_at:type_name -> google.protobuf.Timestamp
-	73, // 41: auth.ArchivePasskeyResponse.response_details:type_name -> common.ResponseDetails
-	73, // 42: auth.ListActiveSessionsResponse.response_details:type_name -> common.ResponseDetails
-	78, // 43: auth.ListActiveSessionsResponse.sessions:type_name -> auth.UserSession
-	73, // 44: auth.RevokeSessionResponse.response_details:type_name -> common.ResponseDetails
-	73, // 45: auth.RevokeAllOtherSessionsResponse.response_details:type_name -> common.ResponseDetails
-	73, // 46: auth.RevokeCurrentSessionResponse.response_details:type_name -> common.ResponseDetails
-	75, // 47: auth.UserCreationResponse.created_at:type_name -> google.protobuf.Timestamp
-	48, // [48:48] is the sub-list for method output_type
-	48, // [48:48] is the sub-list for method input_type
-	48, // [48:48] is the sub-list for extension type_name
-	48, // [48:48] is the sub-list for extension extendee
-	0,  // [0:48] is the sub-list for field type_name
+	79, // 39: auth.PasskeyCredential.created_at:type_name -> google.protobuf.Timestamp
+	79, // 40: auth.PasskeyCredential.last_used_at:type_name -> google.protobuf.Timestamp
+	77, // 41: auth.ArchivePasskeyResponse.response_details:type_name -> common.ResponseDetails
+	77, // 42: auth.ListActiveSessionsResponse.response_details:type_name -> common.ResponseDetails
+	82, // 43: auth.ListActiveSessionsResponse.sessions:type_name -> auth.UserSession
+	77, // 44: auth.RevokeSessionResponse.response_details:type_name -> common.ResponseDetails
+	77, // 45: auth.RevokeAllOtherSessionsResponse.response_details:type_name -> common.ResponseDetails
+	77, // 46: auth.RevokeCurrentSessionResponse.response_details:type_name -> common.ResponseDetails
+	79, // 47: auth.UserCreationResponse.created_at:type_name -> google.protobuf.Timestamp
+	77, // 48: auth.UpdateUserEmailAddressResponse.response_details:type_name -> common.ResponseDetails
+	77, // 49: auth.UpdateUserUsernameResponse.response_details:type_name -> common.ResponseDetails
+	50, // [50:50] is the sub-list for method output_type
+	50, // [50:50] is the sub-list for method input_type
+	50, // [50:50] is the sub-list for extension type_name
+	50, // [50:50] is the sub-list for extension extendee
+	0,  // [0:50] is the sub-list for field type_name
 }
 
 func init() { file_auth_auth_service_types_proto_init() }
@@ -4411,7 +4664,7 @@ func file_auth_auth_service_types_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_auth_auth_service_types_proto_rawDesc), len(file_auth_auth_service_types_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   73,
+			NumMessages:   77,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

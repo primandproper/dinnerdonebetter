@@ -3,8 +3,9 @@ package integration
 import (
 	"testing"
 
-	identitysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
+	"github.com/primandproper/platform-go/v14/identity/identitypb"
 
 	auditgrpc "github.com/primandproper/platform-go/v14/audit/auditpb"
 
@@ -109,11 +110,13 @@ func TestAuditLogEntries_Listing_ForAccount(T *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
-		_, userClient := createUserAndClientForTest(t)
+		user, userClient := createUserAndClientForTest(t)
 
-		accountsRes, err := userClient.GetAccounts(ctx, &identitysvc.GetAccountsRequest{})
+		accountsRes, err := userClient.IdentityService().ListAccountsForUser(ctx, &identitypb.ListAccountsForUserRequest{
+			UserId: user.ID,
+		})
 		require.NoError(t, err)
-		require.NotEmpty(t, accountsRes.Results, "user registration should create a default account")
+		require.NotEmpty(t, accountsRes.GetResults(), "user registration should create a default account")
 
 		// The default account is the session's active one, and the active one is the scope
 		// this read resolves — so the account is not named here.
@@ -132,17 +135,13 @@ func TestAuditLogEntries_Listing_ForAccount(T *testing.T) {
 
 		user, userClient := createUserAndClientForTest(t)
 
-		lat, lng := float32(39.15643684457086), float32(-83.09156328830157)
-		createRes, err := userClient.CreateAccount(ctx, &identitysvc.CreateAccountRequest{
-			Input: &identitysvc.AccountCreationRequestInput{
-				Name:      "integration test account",
-				Latitude:  &lat,
-				Longitude: &lng,
-			},
+		createRes, err := userClient.IdentityService().CreateAccount(ctx, &identitypb.CreateAccountRequest{
+			Name:       "integration test account",
+			OwnerRoles: []string{authorization.AccountAdminRoleName},
 		})
 		require.NoError(t, err)
-		require.NotNil(t, createRes.Created)
-		accountID := createRes.Created.Id
+		require.NotNil(t, createRes.GetAccount())
+		accountID := createRes.GetAccount().GetId()
 
 		// Read as somebody whose active account is the new one, which takes
 		// impersonation: a chain is read by being in it, and the account a session is

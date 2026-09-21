@@ -21,12 +21,8 @@ type (
 
 var (
 	// ServiceAdminPermissions is every service admin permission.
-	ServiceAdminPermissions = []Permission{
+	ServiceAdminPermissions = append([]Permission{
 		ReadUserDataPermission,
-		UpdateUserStatusPermission,
-		ReadUserPermission,
-		SearchUserPermission,
-		ArchiveUserPermission,
 		CreateOAuth2ClientsPermission,
 		ArchiveOAuth2ClientsPermission,
 
@@ -117,7 +113,10 @@ var (
 		ReadTransactionsPermission,
 		ArchivePurchasesPermission,
 		ArchiveTransactionsPermission,
-	}
+		// The directory reads and the three operator writes, which are platform's now.
+		// They are not an account holder's: a support engineer reading a user does not
+		// become a member of the account they are looking at.
+	}, IdentityOperatorPermissions...)
 
 	// ServiceDataAdminPermissions is every service data admin permission.
 	ServiceDataAdminPermissions = []Permission{
@@ -166,13 +165,7 @@ var (
 	}
 
 	// AccountAdminPermissions is every account admin permission.
-	AccountAdminPermissions = []Permission{
-		UpdateAccountPermission,
-		ArchiveAccountPermission,
-		TransferAccountPermission,
-		InviteUserToAccountPermission,
-		ModifyMemberPermissionsForAccountPermission,
-		RemoveMemberAccountPermission,
+	AccountAdminPermissions = append([]Permission{
 		CreateIssueReportsPermission,
 		UpdateIssueReportsPermission,
 		ArchiveIssueReportsPermission,
@@ -220,7 +213,9 @@ var (
 		RotateWebhookSecretPermission,
 		AddWebhookSubscriptionsPermission,
 		ArchiveWebhookSubscriptionsPermission,
-	}
+		// Everything an account administrator holds over the account itself, which is
+		// platform's identity surface now. See identity_permissions.go.
+	}, IdentityAccountPermissions...)
 
 	// AccountMemberPermissions is every account member permission.
 	AccountMemberPermissions = []Permission{

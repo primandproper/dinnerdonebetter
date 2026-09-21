@@ -3,8 +3,10 @@ package datachangemessagehandler
 import (
 	"context"
 
+	platformidentity "github.com/primandproper/platform-go/v14/identity"
+	"github.com/primandproper/primitives-go/v2/database"
+
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/internalops"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/push"
@@ -31,7 +33,8 @@ func RegisterAsyncDataChangeMessageHandler(i do.Injector) {
 			do.MustInvoke[logging.Logger](i),
 			do.MustInvoke[tracing.Provider](i),
 			do.MustInvoke[*config.AsyncMessageHandlerConfig](i),
-			do.MustInvoke[identity.Repository](i),
+			do.MustInvoke[platformidentity.Store](i),
+			do.MustInvoke[database.Client](i),
 			do.MustInvoke[internalops.InternalOpsDataManager](i),
 			do.MustInvoke[messagequeue.ConsumerProvider](i),
 			do.MustInvoke[messagequeue.PublisherProvider](i),

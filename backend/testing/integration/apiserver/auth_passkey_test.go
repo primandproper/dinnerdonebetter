@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
+	identity "github.com/primandproper/platform-go/v14/identity"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

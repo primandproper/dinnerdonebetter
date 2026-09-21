@@ -83,7 +83,7 @@ func ProvideAuthInterceptor(
 		"/auth.AuthService/AdminLoginForToken",
 		"/auth.AuthService/BeginPasskeyAuthentication",
 		"/auth.AuthService/FinishPasskeyAuthentication",
-		"/identity.IdentityService/CreateUser",
+		"/auth.AuthService/RegisterUser",
 		"/auth.AuthService/VerifyTOTPSecret",
 		"/auth.AuthService/LoginForToken",
 		"/auth.AuthService/RequestPasswordResetToken",

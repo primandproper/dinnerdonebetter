@@ -86,7 +86,8 @@ func (h *Hooks) AfterInvite(
 	}
 
 	return h.record(ctx, tx, invitationEntry(invitation.ID, invitation.BelongsToAccount,
-		audit.AuditLogEventTypeCreated, ddbidentity.AccountInvitationCreatedServiceEventType))
+		audit.AuditLogEventTypeCreated, ddbidentity.AccountInvitationCreatedServiceEventType).
+		WithToken(invitation.Token))
 }
 
 // AfterAcceptInvitation records an invitation answered yes, and the membership it produced.

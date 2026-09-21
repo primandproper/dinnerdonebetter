@@ -102,7 +102,7 @@ func (r serviceRoleCollection) IsServiceAdmin() bool {
 
 // CanUpdateUserAccountStatuses returns whether a user can update user account statuses.
 func (r serviceRoleCollection) CanUpdateUserAccountStatuses() bool {
-	return r.HasPermission(UpdateUserStatusPermission)
+	return r.HasPermission(Permission(PermissionUpdateUserStatus))
 }
 
 // CanImpersonateUsers returns whether a user can impersonate others.

@@ -29,6 +29,30 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// RegisterUser signs somebody up.
+//
+// The one RPC on this service reachable without a session, and it is on this service for
+// that reason: platform's identity surface registers a user on a registrar's behalf, and
+// every method there is behind a grant. A sign-up has nobody to grant it.
+func (s *serviceImpl) RegisterUser(ctx context.Context, request *authsvc.RegisterUserRequest) (*authsvc.RegisterUserResponse, error) {
+	ctx, span := s.tracer.StartSpan(ctx)
+	defer span.End()
+
+	logger := s.logger.WithSpan(span)
+
+	created, err := s.authManager.RegisterUser(ctx, converters.ConvertGRPCUserRegistrationInputToUserRegistrationInput(request.GetInput()))
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "registering user")
+	}
+
+	return &authsvc.RegisterUserResponse{
+		ResponseDetails: &types.ResponseDetails{
+			TraceId: span.SpanContext().TraceID().String(),
+		},
+		Created: converters.ConvertUserCreationResponseToGRPCUserCreationResponse(created),
+	}, nil
+}
+
 func (s *serviceImpl) EvaluateBooleanFeatureFlag(ctx context.Context, req *authsvc.EvaluateBooleanFeatureFlagRequest) (*authsvc.EvaluateBooleanFeatureFlagResponse, error) {
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
@@ -488,6 +512,44 @@ func (s *serviceImpl) UpdatePassword(ctx context.Context, request *authsvc.Updat
 	}
 
 	return x, nil
+}
+
+func (s *serviceImpl) UpdateUserEmailAddress(ctx context.Context, request *authsvc.UpdateUserEmailAddressRequest) (*authsvc.UpdateUserEmailAddressResponse, error) {
+	ctx, span := s.tracer.StartSpan(ctx)
+	defer span.End()
+
+	logger := s.logger.WithSpan(span)
+
+	if err := s.authManager.UpdateUserEmailAddress(ctx, &auth.UserEmailAddressUpdateInput{
+		NewEmailAddress: request.GetNewEmailAddress(),
+		CurrentPassword: request.GetCurrentPassword(),
+		TOTPToken:       request.GetTotpToken(),
+	}); err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "updating email address")
+	}
+
+	return &authsvc.UpdateUserEmailAddressResponse{
+		ResponseDetails: &types.ResponseDetails{TraceId: span.SpanContext().TraceID().String()},
+	}, nil
+}
+
+func (s *serviceImpl) UpdateUserUsername(ctx context.Context, request *authsvc.UpdateUserUsernameRequest) (*authsvc.UpdateUserUsernameResponse, error) {
+	ctx, span := s.tracer.StartSpan(ctx)
+	defer span.End()
+
+	logger := s.logger.WithSpan(span)
+
+	if err := s.authManager.UpdateUserUsername(ctx, &auth.UsernameUpdateInput{
+		NewUsername:     request.GetNewUsername(),
+		CurrentPassword: request.GetCurrentPassword(),
+		TOTPToken:       request.GetTotpToken(),
+	}); err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "updating username")
+	}
+
+	return &authsvc.UpdateUserUsernameResponse{
+		ResponseDetails: &types.ResponseDetails{TraceId: span.SpanContext().TraceID().String()},
+	}, nil
 }
 
 func (s *serviceImpl) BeginPasskeyRegistration(ctx context.Context, _ *authsvc.BeginPasskeyRegistrationRequest) (*authsvc.BeginPasskeyRegistrationResponse, error) {

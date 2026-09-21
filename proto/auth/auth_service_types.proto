@@ -375,3 +375,31 @@ message UserCreationResponse {
   string last_name = 9;
   string created_account_id = 10;
 }
+
+// UpdateUserEmailAddressRequest changes the address a user signs in and is reached at.
+//
+// It is on this service rather than folded into the directory's UpdateProfile, and the
+// three fields say why: an address change is a credential change — whoever holds it can
+// take the account through a password reset — so it is re-authenticated. UpdateProfile
+// asks for nothing, correctly, because a display name is not a credential.
+message UpdateUserEmailAddressRequest {
+  string new_email_address = 1;
+  string current_password = 2;
+  string totp_token = 3;
+}
+
+message UpdateUserEmailAddressResponse {
+  common.ResponseDetails response_details = 1;
+}
+
+// UpdateUserUsernameRequest changes the handle a user signs in with, re-authenticated for
+// the reason above.
+message UpdateUserUsernameRequest {
+  string new_username = 1;
+  string current_password = 2;
+  string totp_token = 3;
+}
+
+message UpdateUserUsernameResponse {
+  common.ResponseDetails response_details = 1;
+}

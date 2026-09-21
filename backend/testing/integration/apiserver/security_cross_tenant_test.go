@@ -7,9 +7,9 @@ import (
 	mpfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
 	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
-	identitysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
 	mealplanninggrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
 	mpgrpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/grpc/converters"
+	"github.com/primandproper/platform-go/v14/identity/identitypb"
 
 	auditsvc "github.com/primandproper/platform-go/v14/audit/auditpb"
 	waitlistspb "github.com/primandproper/platform-go/v14/waitlists/waitlistspb"
@@ -193,13 +193,13 @@ func TestCrossTenant_GetAccount_Denied(T *testing.T) {
 		accountAID := getActiveAccountIDForClientForTest(t, activeA)
 
 		// positive control: A can read its own account.
-		ownAccount, err := clientA.GetAccount(ctx, &identitysvc.GetAccountRequest{AccountId: accountAID})
+		ownAccount, err := clientA.IdentityService().GetAccount(ctx, &identitypb.GetAccountRequest{AccountId: accountAID})
 		require.NoError(t, err)
 		require.NotNil(t, ownAccount)
-		assert.Equal(t, accountAID, ownAccount.Result.Id)
+		assert.Equal(t, accountAID, ownAccount.GetAccount().GetId())
 
 		// cross-tenant: B is not a member of A's account.
-		_, err = clientB.GetAccount(ctx, &identitysvc.GetAccountRequest{AccountId: accountAID})
+		_, err = clientB.IdentityService().GetAccount(ctx, &identitypb.GetAccountRequest{AccountId: accountAID})
 		require.Error(t, err)
 		assert.Equal(t, codes.PermissionDenied, status.Code(err))
 	})

@@ -155,3 +155,18 @@ func invitationEntry(invitationID, accountID, auditEventType, changeEventType st
 		},
 	}
 }
+
+// withToken puts an invitation's secret on the event.
+//
+// Only AfterInvite uses it, and only because the mail that event triggers is a link: the
+// store keeps a digest, so a handler that read the invitation back would compose a link
+// with an empty token in it and nothing would report the difference. The secret travels no
+// further than the outbox row and the mail it is rendered into — an audit entry carries the
+// invitation's id, which is what an operator reading the log is asking about.
+func (e *entry) WithToken(token string) *entry {
+	if token != "" {
+		e.metadata[identitykeys.AccountInvitationTokenKey] = token
+	}
+
+	return e
+}

@@ -10,10 +10,10 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	mcpbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/services/mcp"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 
 	oauth2servercfg "github.com/primandproper/platform-go/v14/authentication/oauth2serverstore/config"
+	platformidentity "github.com/primandproper/platform-go/v14/identity"
 	issuereports "github.com/primandproper/platform-go/v14/issuereports"
 	waitlists "github.com/primandproper/platform-go/v14/waitlists"
 	platformwebhooks "github.com/primandproper/platform-go/v14/webhooks"
@@ -125,9 +125,9 @@ func NewService(ctx context.Context, cfg *config.MCPServiceConfig, baseURL strin
 		return nil, fmt.Errorf("resolving issue reports store: %w", err)
 	}
 
-	identityRepo, err := do.Invoke[identity.Repository](injector)
+	identityStore, err := do.Invoke[platformidentity.Store](injector)
 	if err != nil {
-		return nil, fmt.Errorf("resolving identity repository: %w", err)
+		return nil, fmt.Errorf("resolving identity store: %w", err)
 	}
 
 	authenticator, err := do.Invoke[authentication.Authenticator](injector)
@@ -152,7 +152,8 @@ func NewService(ctx context.Context, cfg *config.MCPServiceConfig, baseURL strin
 	// outlives a deploy.
 	authServer, err := oauth2servercfg.NewServer(ctx, &cfg.OAuth2, dbClient,
 		&subjectAuthenticator{
-			identityRepo:  identityRepo,
+			directory:     identityStore,
+			db:            dbClient,
 			authenticator: authenticator,
 			totpVerifier:  totpVerifier,
 		},

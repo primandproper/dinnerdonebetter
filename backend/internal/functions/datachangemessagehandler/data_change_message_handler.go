@@ -5,9 +5,10 @@ import (
 	"errors"
 	"fmt"
 
+	platformidentity "github.com/primandproper/platform-go/v14/identity"
+
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/internalops"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/push"
@@ -15,6 +16,7 @@ import (
 	queuemessages "github.com/primandproper/dinnerdonebetter/backend/internal/queues/messages"
 
 	"github.com/primandproper/primitives-go/v2/analytics"
+	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/email"
 	"github.com/primandproper/primitives-go/v2/encoding"
 	"github.com/primandproper/primitives-go/v2/jobs"
@@ -41,7 +43,7 @@ const (
 
 // OutboundNotificationHandler handles outbound notifications for a domain's events.
 // Returns true if the event was handled. May return emails to be published by the caller.
-type OutboundNotificationHandler func(ctx context.Context, msg *audit.DataChangeMessage, user *identity.User) (handled bool, emailType string, emails []*queuemessages.OutboundEmailMessage, err error)
+type OutboundNotificationHandler func(ctx context.Context, msg *audit.DataChangeMessage, user *platformidentity.User) (handled bool, emailType string, emails []*queuemessages.OutboundEmailMessage, err error)
 
 var errRequiredDataIsNil = errors.New("required data is nil")
 
@@ -66,7 +68,8 @@ type AsyncDataChangeMessageHandler struct {
 	dataChangesExecutionTimeHistogram         metrics.Float64Histogram
 	mobileNotificationsPublisher              messagequeue.Publisher
 	emailer                                   email.Emailer
-	identityRepo                              identity.Repository
+	directory                                 platformidentity.Store
+	db                                        database.Client
 	consumerProvider                          messagequeue.ConsumerProvider
 	mealPlanRepo                              mealplanning.Repository
 	pushFanout                                *push.Fanout
@@ -99,7 +102,8 @@ func NewAsyncDataChangeMessageHandler(
 	logger logging.Logger,
 	tracerProvider tracing.Provider,
 	cfg *config.AsyncMessageHandlerConfig,
-	identityRepo identity.Repository,
+	directory platformidentity.Store,
+	db database.Client,
 	internalOpsRepo internalops.InternalOpsDataManager,
 	consumerProvider messagequeue.ConsumerProvider,
 	publisherProvider messagequeue.PublisherProvider,
@@ -179,7 +183,8 @@ func NewAsyncDataChangeMessageHandler(
 		metricsProvider:                      metricsProvider,
 		poolsConfig:                          cfg.Pools,
 		deadLetter:                           deadLetter,
-		identityRepo:                         identityRepo,
+		directory:                            directory,
+		db:                                   db,
 		internalOpsRepo:                      internalOpsRepo,
 		consumerProvider:                     consumerProvider,
 		analyticsEventReporter:               analyticsEventReporter,

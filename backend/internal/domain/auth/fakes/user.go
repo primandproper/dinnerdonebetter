@@ -7,7 +7,7 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
+	platformidentity "github.com/primandproper/platform-go/v14/identity"
 
 	"github.com/primandproper/primitives-go/v2/fake"
 
@@ -16,7 +16,7 @@ import (
 )
 
 // BuildFakeUserLoginInputFromUser builds a faked UserLoginInput.
-func BuildFakeUserLoginInputFromUser(user *identity.User) *types.UserLoginInput {
+func BuildFakeUserLoginInputFromUser(user *platformidentity.User) *types.UserLoginInput {
 	return &types.UserLoginInput{
 		Username:  user.Username,
 		Password:  fake.BuildFakePassword(),
@@ -60,7 +60,7 @@ func BuildFakeUserPermissionsRequestInput() *types.UserPermissionsRequestInput {
 }
 
 // BuildFakeTOTPSecretVerificationInput builds a faked TOTPSecretVerificationInput for a given user.
-func BuildFakeTOTPSecretVerificationInput(user *identity.User) *types.TOTPSecretVerificationInput {
+func BuildFakeTOTPSecretVerificationInput(user *platformidentity.User) *types.TOTPSecretVerificationInput {
 	token, err := totp.GenerateCode(user.TwoFactorSecret, time.Now().UTC())
 	if err != nil {
 		log.Panicf("error generating TOTP token for fakes user: %v", err)

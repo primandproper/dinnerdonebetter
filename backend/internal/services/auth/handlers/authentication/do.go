@@ -5,10 +5,10 @@ import (
 
 	authn "github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 
 	platformoauth2clients "github.com/primandproper/platform-go/v14/authentication/oauth2clients"
 	oauth2servercfg "github.com/primandproper/platform-go/v14/authentication/oauth2serverstore/config"
+	platformidentity "github.com/primandproper/platform-go/v14/identity"
 	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
 	"github.com/primandproper/primitives-go/v2/authentication/tokens"
 	"github.com/primandproper/primitives-go/v2/authentication/totp"
@@ -35,7 +35,8 @@ func RegisterAuthHTTPService(i do.Injector) {
 			do.MustInvoke[*oauth2servercfg.Config](i),
 			do.MustInvoke[database.Client](i),
 			&subjectAuthenticator{
-				identityRepo:  do.MustInvoke[identity.Repository](i),
+				directory:     do.MustInvoke[platformidentity.Store](i),
+				db:            do.MustInvoke[database.Client](i),
 				authenticator: do.MustInvoke[authn.Authenticator](i),
 				totpVerifier:  do.MustInvoke[totp.Verifier](i),
 				tokenIssuer:   do.MustInvoke[tokens.Issuer](i),

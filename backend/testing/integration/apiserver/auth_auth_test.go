@@ -8,13 +8,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
+	authfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/fakes"
 	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
-	identitysvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/localdev"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	authrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auth"
+	"github.com/primandproper/platform-go/v14/identity/identitypb"
 
 	"github.com/primandproper/platform-go/v14/authentication/passwordreset"
 	"github.com/primandproper/primitives-go/v2/database"
@@ -43,37 +42,17 @@ func TestAuth_LoginForToken_DesiredAccount(T *testing.T) {
 		inviterAccountID := accountRes.Result.Id
 
 		// Create invitee user + client; invitee gets account B (their default from registration).
-		inviteeEmailAddress := fmt.Sprintf("invitee%d@testing.com", time.Now().UnixMicro())
-		input := &identity.UserRegistrationInput{
-			Birthday:              new(time.Now()),
-			EmailAddress:          inviteeEmailAddress,
-			FirstName:             fmt.Sprintf("invitee_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
-			AccountName:           fmt.Sprintf("invitee_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
-			LastName:              fmt.Sprintf("invitee_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
-			Password:              fmt.Sprintf("invitee_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
-			Username:              fmt.Sprintf("invitee_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
-			AcceptedPrivacyPolicy: true,
-			AcceptedTOS:           true,
-		}
+		input := buildUserRegistrationInputForTest(t)
 		invitee, inviteeClient := createUserAndClientForTestWithRegistrationInput(t, input)
 
 		// Inviter creates invitation for invitee.
-		invitation, err := testClient.CreateAccountInvitation(ctx, &identitysvc.CreateAccountInvitationRequest{
-			Input: &identitysvc.AccountInvitationCreationRequestInput{
-				Note:    t.Name(),
-				ToName:  t.Name(),
-				ToEmail: inviteeEmailAddress,
-			},
-		})
-		require.NoError(t, err)
+		invitation := inviteForTest(t, selfIDForTest(t, testClient), inviterAccountID, input.EmailAddress)
 
 		// Invitee accepts invitation. Invitee now has accounts A and B; B remains default.
-		_, err = inviteeClient.AcceptAccountInvitation(ctx, &identitysvc.AcceptAccountInvitationRequest{
-			AccountInvitationId: invitation.Created.Id,
-			Input: &identitysvc.AccountInvitationUpdateRequestInput{
-				Token: invitation.Created.Token,
-				Note:  t.Name(),
-			},
+		_, err = inviteeClient.IdentityService().AcceptInvitation(ctx, &identitypb.AcceptInvitationRequest{
+			InvitationId: invitation.ID,
+			Token:        invitation.Token,
+			StatusNote:   t.Name(),
 		})
 		require.NoError(t, err)
 
@@ -129,7 +108,7 @@ func TestAuth_LoginForToken(T *testing.T) {
 	T.Run("happy path", func(t *testing.T) {
 		t.Parallel()
 
-		user := createServiceUserForTest(t, true, fakes.BuildFakeUserRegistrationInput())
+		user := createServiceUserForTest(t, true, authfakes.BuildFakeUserRegistrationInput())
 		actual := fetchLoginTokenForUserForTest(t, user)
 
 		assert.NotEmpty(t, actual)
@@ -139,7 +118,7 @@ func TestAuth_LoginForToken(T *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
-		user := createServiceUserForTest(t, false, fakes.BuildFakeUserRegistrationInput())
+		user := createServiceUserForTest(t, false, authfakes.BuildFakeUserRegistrationInput())
 
 		loginInput := &authsvc.UserLoginInput{
 			Username: user.Username,
@@ -203,7 +182,7 @@ func TestAuth_AdminLoginForToken(T *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
-		user := createServiceUserForTest(t, true, fakes.BuildFakeUserRegistrationInput())
+		user := createServiceUserForTest(t, true, authfakes.BuildFakeUserRegistrationInput())
 
 		loginInput := &authsvc.UserLoginInput{
 			Username:  user.Username,
