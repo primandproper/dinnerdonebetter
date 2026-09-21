@@ -988,11 +988,15 @@ func insertWebAuthnCredentialForTest(t *testing.T, userID, friendlyName string) 
 	// platform's table, under this application's prefix: it names its own
 	// webauthn_credentials too, and a scope is a column here where the schema this
 	// replaced had none.
+	//
+	// Owner rather than String: the global scope's identifier is the empty string, and
+	// "<global>" is only how it reads in a log line. A row written with the prose spelling
+	// is one every scoped read passes over.
 	_, err := databaseClient.Writer().ExecContext(
 		t.Context(),
 		`INSERT INTO ddb_webauthn_credentials (id, scope, belongs_to_user, credential_id, public_key, sign_count, transports, friendly_name)
 		 VALUES ($1, $2, $3, $4, $5, 0, '[]', $6)`,
-		credID, tenancy.Global().String(), userID, credentialIDBytes, publicKeyBytes, friendlyName,
+		credID, tenancy.Global().Owner(), userID, credentialIDBytes, publicKeyBytes, friendlyName,
 	)
 	require.NoError(t, err)
 

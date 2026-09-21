@@ -70,8 +70,11 @@ var (
 	// Creating an account is here too. Every user may mint one — registration already
 	// gave them the first — and the authorizer decides which rows an allowed call may
 	// touch, which for a creation is none that exist yet.
+	//
+	// Reading is not here. It is a member's, below: the grant says a caller may make this
+	// kind of call and the authorizer says whose rows, so holding the read hostage to
+	// administration would mean a member could not see the household they are in.
 	IdentityAccountPermissions = []Permission{
-		Permission(PermissionReadAccounts),
 		Permission(PermissionCreateAccounts),
 		Permission(PermissionUpdateAccounts),
 		Permission(PermissionArchiveAccounts),
@@ -134,6 +137,15 @@ const (
 
 // IdentitySelfPermissions is what every member holds over themselves.
 var IdentitySelfPermissions = []Permission{
+	// Reading an account, its roster and a user's memberships. It is a member's grant
+	// because the authorizer is what narrows it: platform permits an account the caller
+	// holds a live membership in, and a user they share one with. An administrator's
+	// grant would make a member unable to see the household they are in.
+	//
+	// PermissionReadUsers is deliberately not here. It gates the two directory-wide
+	// reads as well as the keyed one — listing every user and searching them — which is
+	// an operator's question and not a member's.
+	Permission(PermissionReadAccounts),
 	UpdateOwnProfilePermission,
 	RecordOwnAgreementPermission,
 	ReadOwnPrincipalPermission,

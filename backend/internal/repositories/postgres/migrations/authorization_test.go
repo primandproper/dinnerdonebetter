@@ -150,7 +150,7 @@ func TestSeededPolicyMatchesTheDeclaredPolicy(T *testing.T) {
 		_, err = db.ExecContext(ctx,
 			"INSERT INTO ddb_identity_users (id, scope, username, display_name, email_address, hashed_password, two_factor_secret, account_status) "+
 				"VALUES ($1, $2, $3, $3, $4, '', '', 'good')",
-			"user_1", tenancy.Global().String(), "somebody", "somebody@example.com")
+			"user_1", tenancy.Global().Owner(), "somebody", "somebody@example.com")
 		require.NoError(t, err)
 
 		_, err = db.ExecContext(ctx,
