@@ -102,6 +102,16 @@ func RegisterIdentityService(i do.Injector) {
 //
 // The registration path is not here at all: signing up happens on the auth surface, which
 // is where a caller with no session can reach it.
+//
+// The eight are identitygrpc.SelfServiceMethods(), and grpc_test.go asserts that this map
+// amends exactly that set — a ninth arriving in a later platform version is a failing test
+// here rather than a method the enforcer quietly refuses.
+//
+// platform's own suggestion is to declare them Public, which this application could also
+// do: its requirements builder reads an empty permission slice as Public, and roughly forty
+// methods already go through that path. Naming them instead is the arrangement waitlists
+// took for Join and Withdraw, and it keeps the policy tables answering "what may a member
+// do" in one place rather than two.
 func Permissions() map[string][]authorization.Permission {
 	out := identitygrpc.Permissions()
 

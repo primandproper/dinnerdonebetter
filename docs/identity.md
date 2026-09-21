@@ -1,6 +1,15 @@
 # Identity System Documentation
 
-This document describes the identity and authentication system used in this application. The system is built around three core concepts: **Users**, **Accounts**, and **Account Memberships**.
+This document describes the identity and authentication system used in this application. The system is built around three core concepts: **Users**, **Accounts**, and **Memberships**.
+
+Users, accounts, memberships and invitations are platform-go's, not this application's.
+[`platform-go/v14/identity`](https://github.com/primandproper/platform-go/tree/main/identity) owns
+the types, the store, the service and the gRPC surface; what this repository owns is the schema's
+namespace, the hooks that write an audit entry and an outbox row inside the same transaction, and
+the handful of rules platform leaves to a consumer. Where a name below differs from the one this
+application used before the adoption, the platform's name is the one a client sees:
+`CreateAccountInvitation` is `Invite`, `GetUsersForAccount` is `ListAccountMembers`, and the three
+RPCs that each changed one field of a user are one `UpdateProfile`.
 
 ## Core Concepts
 
@@ -10,35 +19,54 @@ Users represent individual people in the system. Each user has:
 
 - A unique identifier (`ID`)
 - Authentication credentials (username, email, password)
-- Personal information (first name, last name, birthday)
-- A service-level role (admin, user, etc.)
-- Account status (active, banned, terminated)
+- Personal information (first name, last name)
+- A **set** of service-level roles, not one — a role is a grant and somebody may hold several
+- An account status, of which only `good` admits sign-in
 
-**Domain Definition**: [`internal/domain/identity/user.go`](internal/domain/identity/user.go)
+There is no birthday. platform's user does not carry one and this application never read it for
+anything, so the field, its conversions and the tests that covered them are gone rather than
+stored in a column nothing consults.
+
+There is no avatar either, which is correct: what this application stores is a row in the uploads
+registry and a reference to it, so an avatar belongs on the media surface rather than on a
+directory's user. Uploading one works; see the gap noted under **Known Issues** for the read.
+
+**Domain Definition**: platform-go's `identity.User`. This repository's
+[`internal/domain/identity`](../backend/internal/domain/identity) holds what sits beside it — the
+table prefix, the roster walk, the succession rule — and the fakes the tests build inputs from.
 
 ### Accounts
 
 Accounts represent organizations or groups that users can belong to. Most data in the system is associated with accounts rather than individual users. Each account has:
 
 - A unique identifier (`ID`)
-- A name and contact information
-- A billing status
-- A webhook encryption key (unused; webhooks sign per endpoint — see `docs/webhooks.md`)
-- A list of members
+- A name and an owner
+- A billing address, which is one `BillingAddress` value rather than seven flat columns
+- A billing status, and the payment processor's customer id
+- A subscription plan id
 
-**Domain Definition**: [`internal/domain/identity/account.go`](internal/domain/identity/account.go)
+An account does **not** carry its members. The roster is a separate, paged read
+(`ListAccountMembers`), which is why a caller that wants every member walks the cursor to the end
+— see `MembersOfAccount` in [`internal/domain/identity/roster.go`](../backend/internal/domain/identity/roster.go),
+which exists so that no caller decides a meal plan's voting is complete on the strength of the
+first fifty.
 
-### Account Memberships
+**Domain Definition**: platform-go's `identity.Account`.
 
-Account memberships define the relationship between users and accounts. Each membership has:
+### Memberships
+
+Memberships define the relationship between users and accounts. Each membership has:
 
 - A unique identifier (`ID`)
 - A user ID (`BelongsToUser`)
 - An account ID (`BelongsToAccount`)
-- An account role (admin or member)
+- A **set** of account roles
 - A flag indicating if this is the user's default account
 
-**Domain Definition**: [`internal/domain/identity/account_user_membership.go`](internal/domain/identity/account_user_membership.go)
+A roster read hands back `MembershipWithUser`: the membership, and the user it names beside it
+rather than nested inside it.
+
+**Domain Definition**: platform-go's `identity.Membership`.
 
 ## Data Ownership Model
 
@@ -106,17 +134,20 @@ The session context contains:
 
 The system supports a special admin-only login mode that has stricter requirements:
 
-1. **Service Role Restriction**: Only users with `service_role = 'service_admin'` can use admin login
+1. **Service Role Restriction**: only a user whose `ServiceRoles` contain `service_admin` can use admin login
 2. **2FA Requirement**: Admin login **requires** a valid TOTP token (6-digit code)
 3. **Verified 2FA**: The user must have a verified 2FA secret (`two_factor_secret_verified_at IS NOT NULL`)
-4. **Database Query**: Uses `GetAdminUserByUsername` instead of `GetUserByUsername` which includes additional filters
+4. **Where the restriction lives**: in Go, not in SQL. There used to be a second query,
+   `GetAdminUserByUsername`, whose extra `WHERE` clause was the whole difference; the directory
+   answers one sign-in read now, and `internal/authentication/manager.go` checks the role set on
+   what comes back. A filter a query forgets is a door left open, and a filter beside the decision
+   it gates is one a reader can see.
 
 **Key Differences from Regular Login**:
 
 - Regular users can have unverified 2FA secrets and login without TOTP
 - Admin login **always** requires TOTP validation
-- Admin login only works for users with service admin privileges
-- Admin login uses a separate database query with stricter filtering
+- Admin login only works for users holding the service admin role
 
 **Implementation**: [`internal/authentication/manager.go:ProcessLogin`](internal/authentication/manager.go) and [`internal/services/auth/handlers/authentication/authentication_http_routes.go:BuildLoginHandler`](internal/services/auth/handlers/authentication/authentication_http_routes.go)
 
@@ -162,15 +193,17 @@ service_user         —
 
 ### Which roles a principal holds
 
-Assignments live in `user_role_assignments`, which is this repository's table rather than the
-platform's, because an assignment names a user and an account and no platform package can
-model those without owning them. A row with a NULL `account_id` is a service-wide assignment;
-anything else is scoped to that account. The row names its role by name, and a foreign key
-onto the roles table refuses a name nothing declares.
+Assignments live in platform's two tables, `ddb_identity_user_roles` and
+`ddb_identity_membership_roles`, where this repository used to keep both in one
+`user_role_assignments` whose `account_id` was NULL for a service-wide grant. They are apart
+because they are granted by different people and answer different questions: a service role is
+the directory's, a membership role is an account admin's. Each table's `role` column carries a
+foreign key onto the roles table, so a name nothing declares is refused at write time — one
+constraint became two for the same reason.
 
-Which roles may be assigned where is enforced in Go: `ModifyUserPermissionsInput` accepts only
-the two account roles, because the role it names is written into an account-scoped assignment
-and resolved within that account.
+Which roles may be assigned where is still enforced in Go, and is now enforced by which RPC is
+called: `SetUserServiceRoles` writes the service set and needs an operator's permission,
+`SetMembershipRoles` writes an account's and needs an account admin's.
 
 ## Account Creation and User Registration
 
@@ -178,10 +211,20 @@ and resolved within that account.
 
 When a user registers without an invitation:
 
-1. User account is created
+1. User account is created, with `account_status` **good**
 2. A default account is automatically created for the user
-3. User is made an admin of their default account
+3. User is made the owner and an admin of their default account
 4. This account becomes their default account
+
+Registration is on the **auth** surface, not the identity one, because a caller signing up has no
+session and the identity surface's methods all assume one. See
+[`internal/domain/auth/managers/registration.go`](../backend/internal/domain/auth/managers/registration.go).
+
+The status is a deliberate disagreement with platform, which starts a user `unverified` and admits
+only `good` to sign in. That is the right default for a directory and is not this application's
+policy — nothing here has ever gated use on a proven email address — so registration writes `good`
+and says so at the site that writes it. What a proven address does gate is listing the invitations
+sent to it; see below.
 
 ### Registration with Invitation
 
@@ -207,7 +250,16 @@ When a user registers with an invitation token:
 3. When a user registers with the invitation token, they're automatically added to the account
 4. If the invitation was sent to an email, it's automatically associated when that email registers
 
-**Domain Definition**: [`internal/domain/identity/account_invitation.go`](internal/domain/identity/account_invitation.go)
+An invitation's token is stored as a digest and is never rendered onto a gRPC response — the proto
+field it used to occupy is reserved. The one thing that needs the token in the clear is the email,
+so the invitation hook puts it on the outbox event the email worker reads; see
+[`internal/repositories/postgres/identitystore/hooks.go`](../backend/internal/repositories/postgres/identitystore/hooks.go).
+
+Listing the invitations sent to an email address requires having **proven** that address, which is
+platform's rule and is kept. Anybody may claim any address at registration, so the alternative is
+an oracle over other people's invitations.
+
+**Domain Definition**: platform-go's `identity.Invitation`.
 
 ## Account Switching
 
@@ -226,9 +278,19 @@ Users can switch between accounts they're members of:
 
 Users can be removed from accounts by account admins. When a user is removed:
 
-1. Their membership is archived
-2. If they have no remaining accounts, a new default account is created
-3. If they have remaining accounts, one is set as their new default
+1. The default-account flag comes off the membership, then the membership is archived
+2. If the removal took the user's landing account away, the removal reports which account they
+   land in next — and nothing mints a replacement, so a user removed from their only account has
+   no default until they choose one with `SetDefaultAccount`
+3. An account's **owner** cannot be removed at all: platform refuses with `ErrLastAccountOwner`,
+   and asks the caller to transfer or archive the account first
+
+That last rule is why archiving a user is not one call. Every registered user solely owns the
+household registration minted for them, so `ArchiveUser` would always refuse; this application
+settles those accounts first — transferring each to its longest-tenured other member, archiving
+the ones where there is nobody to transfer to — and then archives the user. See
+[`internal/domain/identity/succession`](../backend/internal/domain/identity/succession) and the
+decorator in [`internal/build/identity/archival.go`](../backend/internal/build/identity/archival.go).
 
 **Important**: Users cannot remove themselves from accounts - this must be done by an account admin.
 
@@ -304,6 +366,13 @@ sequenceDiagram
 ### Critical Issues
 
 - **TODO**: If a user's default account is deleted, the system likely breaks. Need to implement proper handling for this scenario.
+- **Gap**: nothing reads an avatar back. The upload works and the reference is stored, but no
+  identity read hands it to a client, because platform's `User` has no field for it and this
+  application has not yet added the read on the media surface that would replace the join it
+  used to do.
+- **Gap**: the admin write that forces a password change has no RPC. `Service.SetUserRequiresPasswordChange`
+  exists in platform, the column is on the wire, and the three sibling operator writes are exposed
+  — this one is not, so `AdminSetPasswordChangeRequired` has no counterpart until upstream adds it.
 
 ### Future Improvements
 
@@ -311,12 +380,15 @@ sequenceDiagram
 
 ### gRPC Services
 
-- **Auth Service**: [`internal/services/auth/grpc/`](internal/services/auth/grpc/) - Authentication and authorization
-- **Identity Service**: [`internal/services/identity/grpc/`](internal/services/identity/grpc/) - User and account management
+- **Auth Service**: [`internal/services/auth/grpc/`](../backend/internal/services/auth/grpc/) — authentication, registration, credential changes
+- **Identity Service**: platform-go's, mounted by [`internal/build/identity/`](../backend/internal/build/identity) — users, accounts, memberships, invitations
 
 ## Related Files
 
-- **Domain Models**: [`internal/domain/identity/`](internal/domain/identity/)
-- **Authentication**: [`internal/services/auth/`](internal/services/auth/)
-- **Authorization**: [`internal/authorization/`](internal/authorization/)
-- **Session Management**: [`internal/authentication/sessions/`](internal/authentication/sessions/)
+- **Domain Models**: platform-go's `identity`; this repository's
+  [`internal/domain/identity/`](../backend/internal/domain/identity/) for what sits beside them
+- **Store, hooks and recording**: [`internal/repositories/postgres/identitystore/`](../backend/internal/repositories/postgres/identitystore/)
+- **Wiring, grants and the archival decorator**: [`internal/build/identity/`](../backend/internal/build/identity/)
+- **Authentication**: [`internal/services/auth/`](../backend/internal/services/auth/)
+- **Authorization**: [`internal/authorization/`](../backend/internal/authorization/)
+- **Session Management**: [`internal/authentication/sessions/`](../backend/internal/authentication/sessions/)
