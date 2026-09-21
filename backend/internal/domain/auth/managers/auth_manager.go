@@ -670,19 +670,22 @@ func (l *AuthManager) VerifyUserEmailAddress(ctx context.Context, input *auth.Em
 		return observability.PrepareError(err, span, "provided input was invalid")
 	}
 
+	// Read first, for the user id the event below names — VerifyEmailAddress answers
+	// with an error and nothing else, and the link is spent by the time it returns.
 	user, err := l.users.GetUserByEmailVerificationToken(ctx, l.db.Reader(), ddbidentity.Scope(), input.Token)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return observability.PrepareError(err, span, "user not found")
-		}
-		return observability.PrepareAndLogError(err, logger, span, "fetching user")
+		// Deliberately not told apart from a token that simply does not match. This used
+		// to answer "user not found" for an unknown token and something else for a write
+		// that matched no row, which made the endpoint a way to ask whether a given
+		// verification token was live. signin's rule is that expired, already spent,
+		// never issued and simply wrong are one answer, because the caller's remedy is
+		// the same in every case and telling them apart tells whoever is guessing which
+		// guesses are getting warm.
+		return observability.PrepareError(signin.ErrInvalidVerificationToken, span, "verifying email address")
 	}
 
-	if _, err = l.directory.MarkUserEmailAddressVerified(ctx, ddbidentity.Scope(), user.ID, input.Token); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return observability.PrepareError(err, span, "user not found")
-		}
-		return observability.PrepareAndLogError(err, logger, span, "marking user email as verified")
+	if err = l.signIn.VerifyEmailAddress(ctx, ddbidentity.Scope(), input.Token); err != nil {
+		return observability.PrepareAndLogError(err, logger, span, "verifying email address")
 	}
 
 	l.dataChangesPublisher.PublishAsync(ctx, &audit.DataChangeMessage{
@@ -706,19 +709,22 @@ func (l *AuthManager) VerifyUserEmailAddressByToken(ctx context.Context, token s
 		return observability.PrepareError(err, span, "provided input was invalid")
 	}
 
+	// Read first, for the user id the event below names — VerifyEmailAddress answers
+	// with an error and nothing else, and the link is spent by the time it returns.
 	user, err := l.users.GetUserByEmailVerificationToken(ctx, l.db.Reader(), ddbidentity.Scope(), token)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return observability.PrepareError(err, span, "user not found")
-		}
-		return observability.PrepareAndLogError(err, logger, span, "fetching user")
+		// Deliberately not told apart from a token that simply does not match. This used
+		// to answer "user not found" for an unknown token and something else for a write
+		// that matched no row, which made the endpoint a way to ask whether a given
+		// verification token was live. signin's rule is that expired, already spent,
+		// never issued and simply wrong are one answer, because the caller's remedy is
+		// the same in every case and telling them apart tells whoever is guessing which
+		// guesses are getting warm.
+		return observability.PrepareError(signin.ErrInvalidVerificationToken, span, "verifying email address")
 	}
 
-	if _, err = l.directory.MarkUserEmailAddressVerified(ctx, ddbidentity.Scope(), user.ID, token); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return observability.PrepareError(err, span, "user not found")
-		}
-		return observability.PrepareAndLogError(err, logger, span, "marking user email as verified")
+	if err = l.signIn.VerifyEmailAddress(ctx, ddbidentity.Scope(), token); err != nil {
+		return observability.PrepareAndLogError(err, logger, span, "verifying email address")
 	}
 
 	l.dataChangesPublisher.PublishAsync(ctx, &audit.DataChangeMessage{

@@ -70,6 +70,9 @@ func RegisterAuth(i do.Injector) {
 			// password, mints the verification token and writes the user, the account and
 			// the membership on one transaction.
 			signin.WithRegistrar(do.MustInvoke[*platformidentity.Service](i)),
+			// And the verification reads and writes an emailed link is answered through.
+			// The identity store satisfies this one outright too.
+			signin.WithVerifications(do.MustInvoke[platformidentity.Store](i)),
 			signin.WithLogger(do.MustInvoke[logging.Logger](i)),
 			signin.WithTracerProvider(do.MustInvoke[tracing.Provider](i)),
 			signin.WithMetricsProvider(do.MustInvoke[metrics.Provider](i)),

@@ -634,7 +634,12 @@ func TestAuthManager_VerifyUserEmailAddress_Success(t *testing.T) {
 	err := manager.VerifyUserEmailAddress(ctx, input)
 
 	require.NoError(t, err)
-	assert.Len(t, userStore.GetUserByEmailVerificationTokenCalls(), 1)
+	// Two reads by the token: this manager's, for the user id its event names, and
+	// signin's own inside VerifyEmailAddress. The second is the price of an event that
+	// names somebody — VerifyEmailAddress answers with an error and nothing else, and
+	// by the time it returns the link is spent and the column that found the user is
+	// cleared, so the read cannot happen afterwards.
+	assert.Len(t, userStore.GetUserByEmailVerificationTokenCalls(), 2)
 	assert.Len(t, userStore.MarkUserEmailAddressVerifiedCalls(), 1)
 }
 
@@ -679,7 +684,12 @@ func TestAuthManager_VerifyUserEmailAddressByToken_Success(t *testing.T) {
 	err := manager.VerifyUserEmailAddressByToken(ctx, token)
 
 	require.NoError(t, err)
-	assert.Len(t, userStore.GetUserByEmailVerificationTokenCalls(), 1)
+	// Two reads by the token: this manager's, for the user id its event names, and
+	// signin's own inside VerifyEmailAddress. The second is the price of an event that
+	// names somebody — VerifyEmailAddress answers with an error and nothing else, and
+	// by the time it returns the link is spent and the column that found the user is
+	// cleared, so the read cannot happen afterwards.
+	assert.Len(t, userStore.GetUserByEmailVerificationTokenCalls(), 2)
 	assert.Len(t, userStore.MarkUserEmailAddressVerifiedCalls(), 1)
 }
 
@@ -1534,6 +1544,7 @@ func signInForTest(
 		signin.WithTOTPVerifier(verifier),
 		signin.WithTOTPIssuer("test"),
 		signin.WithSecretGenerator(generator),
+		signin.WithVerifications(store),
 	)
 	require.NoError(t, err)
 
