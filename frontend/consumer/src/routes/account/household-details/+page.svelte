@@ -1,7 +1,7 @@
 <script lang="ts">
   import { enhance } from '$app/forms';
   import { PageContainer, FormField, Input, Button, Alert, Link } from '@dinnerdonebetter/ui';
-  import type { Account } from '@dinnerdonebetter/api-client/identity/identity_messages';
+  import type { Account } from '@dinnerdonebetter/api-client/primandproper/platform/identity/v1/identity';
 
   let { data } = $props();
   const account = data?.account as Account | null | undefined;
@@ -50,7 +50,7 @@
           id="contact_phone"
           name="contact_phone"
           type="tel"
-          value={account.contactPhone ?? ''}
+          value={account.billingAddress?.phone ?? ''}
           dataTestId="household-details-contact-phone"
         />
       </FormField>
@@ -61,7 +61,7 @@
             id="address_line_1"
             name="address_line_1"
             type="text"
-            value={account.addressLine1 ?? ''}
+            value={account.billingAddress?.line1 ?? ''}
             dataTestId="household-details-address-line-1"
           />
         </FormField>
@@ -70,22 +70,34 @@
             id="address_line_2"
             name="address_line_2"
             type="text"
-            value={account.addressLine2 ?? ''}
+            value={account.billingAddress?.line2 ?? ''}
             dataTestId="household-details-address-line-2"
           />
         </FormField>
         <FormField id="city" label="City">
-          <Input id="city" name="city" type="text" value={account.city ?? ''} dataTestId="household-details-city" />
+          <Input
+            id="city"
+            name="city"
+            type="text"
+            value={account.billingAddress?.city ?? ''}
+            dataTestId="household-details-city"
+          />
         </FormField>
         <FormField id="state" label="State / Province">
-          <Input id="state" name="state" type="text" value={account.state ?? ''} dataTestId="household-details-state" />
+          <Input
+            id="state"
+            name="state"
+            type="text"
+            value={account.billingAddress?.state ?? ''}
+            dataTestId="household-details-state"
+          />
         </FormField>
         <FormField id="zip_code" label="ZIP / Postal Code">
           <Input
             id="zip_code"
             name="zip_code"
             type="text"
-            value={account.zipCode ?? ''}
+            value={account.billingAddress?.postalCode ?? ''}
             dataTestId="household-details-zip-code"
           />
         </FormField>
@@ -94,7 +106,7 @@
             id="country"
             name="country"
             type="text"
-            value={account.country ?? ''}
+            value={account.billingAddress?.country ?? ''}
             dataTestId="household-details-country"
           />
         </FormField>

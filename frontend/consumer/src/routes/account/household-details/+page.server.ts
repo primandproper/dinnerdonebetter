@@ -1,6 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import { getActiveAccount, getSelf, updateAccount } from '$lib/grpc/clients';
+import { QueryFilter } from '@dinnerdonebetter/api-client';
+import { getActiveAccount, getSelf, listAccountMembers, updateAccount } from '$lib/grpc/clients';
 
 const ACCOUNT_ADMIN_ROLE = 'account_admin';
 
@@ -26,10 +27,17 @@ export const load: PageServerLoad = async ({ locals, url }) => {
     const selfRes = await getSelf(token);
     const currentUserId = selfRes.result?.id ?? '';
 
+    // Who is an admin is a read of its own: platform's Account carries no member list,
+    // and a membership holds a set of roles rather than one. Same shape as the roster on
+    // /account/household-members.
+    const membersRes = await listAccountMembers(token, {
+      accountId: account.id,
+      filter: QueryFilter.create({ maxResponseSize: 50 }),
+    });
+
     let isAdmin = false;
-    for (const m of account.members ?? []) {
-      const userId = m.belongsToUser?.id ?? '';
-      if (userId === currentUserId && m.accountRole === ACCOUNT_ADMIN_ROLE) {
+    for (const m of membersRes.results ?? []) {
+      if (m.user?.id === currentUserId && (m.membership?.roles ?? []).includes(ACCOUNT_ADMIN_ROLE)) {
         isAdmin = true;
         break;
       }
@@ -86,14 +94,18 @@ export const actions: Actions = {
         accountId: account.id,
         input: {
           name,
-          contactPhone: contactPhone || undefined,
-          addressLine1: addressLine1 || undefined,
-          addressLine2: addressLine2 || undefined,
-          city: city || undefined,
-          state: state || undefined,
-          zipCode: zipCode || undefined,
-          country: country || undefined,
-          belongsToUser: account.belongsToUser,
+          // One BillingAddress in place of six fields of the account, with the contact
+          // phone on it. belongsToUser is not sent at all — ownership moves through
+          // TransferAccountOwnership and is not something an update may carry.
+          billingAddress: {
+            line1: addressLine1,
+            line2: addressLine2,
+            city,
+            state,
+            postalCode: zipCode,
+            country,
+            phone: contactPhone,
+          },
         },
       });
       throw redirect(302, '/account/household-details?updated=1');
