@@ -24,17 +24,21 @@ import (
 // does not reach. Nothing raises. The delete succeeds, the request reports Deleted, and the
 // rows are still there.
 //
-// All three of these had no key until this test was written. platform stores a user id as a
+// The first two had no key until this test was written. platform stores a user id as a
 // bare column and has to: the module is multi-engine and does not know what a consumer calls
 // its user table. Re-creating the key is the consumer's job, which uploads/registry,
-// issuereports and notifications each did at adoption and these three did not.
+// issuereports and notifications each did at adoption and these two did not.
+//
+// signin_refresh_tokens is here because it is the next table of the kind, and was keyed at
+// adoption rather than after: a refresh token is a credential that would go on signing in
+// somebody the service has erased.
 //
 // webauthn_credentials is the sharpest case, because it is a regression rather than an
 // omission: the hand-written table carried REFERENCES users(id) ON DELETE CASCADE, and
 // adopting platform's passkeys schema dropped the key with the table. A passkey is a
 // credential that still authenticates somebody the service has erased.
 //
-// The registry of OAuth2 clients is the third table that names a user and is deliberately
+// The registry of OAuth2 clients is another table that names a user and is deliberately
 // not here: most of its rows name nobody, so it can have no key, and a registered eraser
 // covers the ones that do. See renderOAuth2ClientsDDL and EraserKeyOAuth2Clients.
 func TestQuerier_Migrate_ErasingAUserTakesTheirCredentials(T *testing.T) {
@@ -64,36 +68,47 @@ func TestQuerier_Migrate_ErasingAUserTakesTheirCredentials(T *testing.T) {
 
 		writes := []struct {
 			table     string
+			column    string
 			statement string
 			args      []any
 		}{
 			{
-				table: "ddb_webauthn_credentials",
+				table:  "ddb_webauthn_credentials",
+				column: "belongs_to_user",
 				statement: `INSERT INTO ddb_webauthn_credentials
 					(id, scope, belongs_to_user, credential_id, public_key, sign_count, transports, friendly_name)
 					VALUES ($1, $2, $3, $4, $5, 0, '[]', 'a passkey')`,
 				args: []any{"cred_1", scope, userID, []byte("credential-id"), []byte("public-key")},
 			},
 			{
-				table: "ddb_password_reset_tokens",
+				table:  "ddb_password_reset_tokens",
+				column: "belongs_to_user",
 				statement: `INSERT INTO ddb_password_reset_tokens
 					(id, scope, belongs_to_user, token_digest, expires_at, created_at)
 					VALUES ($1, $2, $3, $4, NOW() + INTERVAL '1 hour', NOW())`,
 				args: []any{"reset_1", scope, userID, "digest"},
+			},
+			{
+				table:  "ddb_signin_refresh_tokens",
+				column: "subject_id",
+				statement: `INSERT INTO ddb_signin_refresh_tokens
+					(hash, scope, family_id, subject_id, active_account_id, administrative, issued_at, expires_at, purge_after)
+					VALUES ($1, $2, $3, $4, '', false, NOW(), NOW() + INTERVAL '1 hour', NOW() + INTERVAL '2 hours')`,
+				args: []any{"digest", scope, "family_1", userID},
 			},
 		}
 
 		for _, write := range writes {
 			_, err = db.ExecContext(ctx, write.statement, write.args...)
 			require.NoError(t, err, "seeding %s", write.table)
-			require.Equal(t, 1, countFor(ctx, t, db, write.table, userID), "seeding %s", write.table)
+			require.Equal(t, 1, countFor(ctx, t, db, write.table, write.column, userID), "seeding %s", write.table)
 		}
 
 		_, err = db.ExecContext(ctx, "DELETE FROM ddb_identity_users WHERE id = $1", userID)
 		require.NoError(t, err)
 
 		for _, write := range writes {
-			assert.Zero(t, countFor(ctx, t, db, write.table, userID),
+			assert.Zero(t, countFor(ctx, t, db, write.table, write.column, userID),
 				"%s outlived the user it belongs to", write.table)
 		}
 	})
@@ -101,15 +116,15 @@ func TestQuerier_Migrate_ErasingAUserTakesTheirCredentials(T *testing.T) {
 
 // countFor counts the rows in table belonging to userID.
 //
-// The table name is interpolated because a table name cannot be a bind parameter and the
-// three values it takes are constants above, not input.
-func countFor(ctx context.Context, t *testing.T, db *sql.DB, table, userID string) int {
+// The table and column are interpolated because neither can be a bind parameter, and the
+// values they take are constants above, not input.
+func countFor(ctx context.Context, t *testing.T, db *sql.DB, table, column, userID string) int {
 	t.Helper()
 
 	var count int
-	// #nosec G201 -- the table name is one of three constants declared in this file.
+	// #nosec G201 -- the table and column names are constants declared in this file.
 	require.NoError(t, db.QueryRowContext(ctx,
-		"SELECT COUNT(*) FROM "+table+" WHERE belongs_to_user = $1", userID).Scan(&count))
+		"SELECT COUNT(*) FROM "+table+" WHERE "+column+" = $1", userID).Scan(&count))
 
 	return count
 }

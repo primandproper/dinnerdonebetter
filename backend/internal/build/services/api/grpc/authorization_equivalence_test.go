@@ -8,6 +8,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	identitybuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/identity"
 	oauth2clientsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/oauth2clients"
+	signinbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/signin"
 	waitlistsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/waitlists"
 	analyticsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/analytics/grpc"
 	authgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc"
@@ -49,6 +50,7 @@ func realMethodPermissions() interceptors.MethodPermissionsMap {
 		oauth2clientsbuild.Permissions(),
 		paymentsgrpc.Permissions(),
 		settingsgrpc.Permissions(),
+		signinbuild.Permissions(),
 		uploadedmediagrpc.ProvideMethodPermissions(),
 		waitlistsbuild.Permissions(),
 		webhooksgrpc.Permissions(),

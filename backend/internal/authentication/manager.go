@@ -140,19 +140,11 @@ func (m *manager) ProcessLogin(ctx context.Context, adminOnly bool, loginData *a
 	tracing.AttachToSpan(span, identitykeys.UserIDKey, user.ID)
 	logger.Debug("login validated")
 
+	// The "logged in" event is not published here. It is signInHooks.AfterAuthenticate's, which
+	// runs inside the call above for this door and for platform's SignInService alike.
 	response, err := m.issueTokensWithSession(ctx, user, accountID, auth.LoginMethodPassword, meta)
 	if err != nil {
 		return nil, observability.PrepareError(err, span, "issuing tokens with session")
-	}
-
-	dcm := &audit.DataChangeMessage{
-		EventType: ddbidentity.UserLoggedInServiceEventType,
-		AccountID: accountID,
-		UserID:    user.ID,
-	}
-
-	if err = m.dataChangesPublisher.Publish(ctx, dcm); err != nil {
-		return nil, observability.PrepareError(err, span, "publishing data change")
 	}
 
 	return response, nil

@@ -6,6 +6,7 @@ import (
 	domainauth "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 
 	"github.com/primandproper/platform-go/v14/authentication/passwordreset"
+	"github.com/primandproper/platform-go/v14/authentication/signin/refreshtokens"
 	sessionsdatabase "github.com/primandproper/platform-go/v14/sessions/database"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
@@ -18,6 +19,7 @@ import (
 // RegisterAuthRepository registers the auth repository with the injector.
 func RegisterAuthRepository(i do.Injector) {
 	RegisterPasswordResetTokenSQLStore(i)
+	RegisterRefreshTokenSQLStore(i)
 	RegisterUserSessionBackend(i)
 
 	do.Provide[passwordreset.Store](i, func(i do.Injector) (passwordreset.Store, error) {
@@ -70,6 +72,21 @@ func RegisterPasswordResetTokenSQLStore(i do.Injector) {
 		return ProvidePasswordResetTokenSQLStore(
 			do.MustInvoke[logging.Logger](i),
 			do.MustInvoke[tracing.Provider](i),
+			do.MustInvoke[database.Client](i),
+		)
+	})
+}
+
+// RegisterRefreshTokenSQLStore registers the platform's refresh token store with the injector.
+//
+// It is separate from RegisterAuthRepository for the reason the password reset store is: the
+// db-cleaner job sweeps it, and that job's container has nothing else from this package.
+func RegisterRefreshTokenSQLStore(i do.Injector) {
+	do.Provide[*refreshtokens.SQLStore](i, func(i do.Injector) (*refreshtokens.SQLStore, error) {
+		return ProvideRefreshTokenSQLStore(
+			do.MustInvoke[logging.Logger](i),
+			do.MustInvoke[tracing.Provider](i),
+			do.MustInvoke[metrics.Provider](i),
 			do.MustInvoke[database.Client](i),
 		)
 	})
