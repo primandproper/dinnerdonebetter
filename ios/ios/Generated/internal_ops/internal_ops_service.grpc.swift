@@ -15,13 +15,13 @@ import GRPCProtobuf
 
 /// Namespace containing generated types for the "internalops.InternalOperations" service.
 @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
-internal enum Internalops_InternalOperations {
+internal enum Internalops_InternalOperations: Sendable {
     /// Service descriptor for the "internalops.InternalOperations" service.
     internal static let descriptor = GRPCCore.ServiceDescriptor(fullyQualifiedService: "internalops.InternalOperations")
     /// Namespace for method metadata.
-    internal enum Method {
+    internal enum Method: Sendable {
         /// Namespace for "TestQueueMessage" metadata.
-        internal enum TestQueueMessage {
+        internal enum TestQueueMessage: Sendable {
             /// Request type for "TestQueueMessage".
             internal typealias Input = Internalops_TestQueueMessageRequest
             /// Response type for "TestQueueMessage".
@@ -29,7 +29,8 @@ internal enum Internalops_InternalOperations {
             /// Descriptor for "TestQueueMessage".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "internalops.InternalOperations"),
-                method: "TestQueueMessage"
+                method: "TestQueueMessage",
+                type: .unary
             )
         }
         /// Descriptors for all methods in the "internalops.InternalOperations" service.
@@ -61,9 +62,9 @@ extension Internalops_InternalOperations {
         ///   - serializer: A serializer for `Internalops_TestQueueMessageRequest` messages.
         ///   - deserializer: A deserializer for `Internalops_TestQueueMessageResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func testQueueMessage<Result>(
             request: GRPCCore.ClientRequest<Internalops_TestQueueMessageRequest>,
@@ -97,9 +98,9 @@ extension Internalops_InternalOperations {
         ///   - serializer: A serializer for `Internalops_TestQueueMessageRequest` messages.
         ///   - deserializer: A deserializer for `Internalops_TestQueueMessageResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func testQueueMessage<Result>(
             request: GRPCCore.ClientRequest<Internalops_TestQueueMessageRequest>,
@@ -130,9 +131,9 @@ extension Internalops_InternalOperations.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Internalops_TestQueueMessageRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func testQueueMessage<Result>(
         request: GRPCCore.ClientRequest<Internalops_TestQueueMessageRequest>,
@@ -160,9 +161,9 @@ extension Internalops_InternalOperations.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func testQueueMessage<Result>(
         _ message: Internalops_TestQueueMessageRequest,

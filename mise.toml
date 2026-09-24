@@ -8,7 +8,7 @@ terraform = "1.14.5"  # infra/**/_terraform_.tf required_version
 
 # Protobuf toolchain
 buf                = "1.70.0"  # Makefile PROTOBUF_FORMAT (was Docker image bufbuild/buf:1.5.0)
-protoc             = "35.0"    # was: brew install protobuf (unversioned)
+protoc             = "33.1"    # Makefile PROTOC_VERSION; stamped into every generated Go and TS file
 protoc-gen-go      = "1.36.4"  # Makefile: go install protoc-gen-go@v1.36.4
 protoc-gen-go-grpc = "1.5.1"   # Makefile: go install protoc-gen-go-grpc@v1.5.1
 

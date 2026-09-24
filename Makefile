@@ -45,6 +45,28 @@ BACKEND_REPO_NAME         := github.com/primandproper/dinnerdonebetter/backend
 PROTO_TS_OUTPUT_PATH      := frontend/packages/api-client/src
 PROTO_TS_PLUGIN           := frontend/node_modules/.bin/protoc-gen-ts_proto
 
+# The codegen toolchain is pinned, not just the schema: every generator here stamps or
+# shapes its output by version, so an unpinned one turns a regeneration with no schema
+# change into a diff nobody can review. protoc's version is written into the header of
+# every generated Go and TypeScript file; the Swift plugins changed their output between
+# releases (and brew's build of protoc-gen-grpc-swift 2.1.1 is not the same generator as
+# the 2.1.1 tag). Each generation target asserts these before it runs, so a mismatch is
+# reported as a version rather than discovered as a four-thousand-line diff.
+#
+# protoc cannot be installed by version from brew, so it comes from mise (mise.toml pins
+# it) or any other source with the right version on PATH. The Swift plugins are built
+# from the manifests in scripts/protoc-plugins, which pin them exactly and match
+# platform-client-swift's, so the two generate identical code from identical schemas.
+PROTOC_VERSION                := 33.1
+PROTOC_GEN_GO_VERSION         := 1.36.4
+PROTOC_GEN_GO_GRPC_VERSION    := 1.5.1
+PROTOC_GEN_SWIFT_VERSION      := 1.33.3
+PROTOC_GEN_GRPC_SWIFT_VERSION := 2.1.1
+ASSERT_TOOL_VERSION           := ./scripts/assert_tool_version.sh
+PROTOC_PLUGINS_DIR            := scripts/protoc-plugins
+PROTOC_GEN_SWIFT              := $(PROTOC_PLUGINS_DIR)/protoc-gen-swift/.build/release/protoc-gen-swift
+PROTOC_GEN_GRPC_SWIFT         := $(PROTOC_PLUGINS_DIR)/protoc-gen-grpc-swift-2/.build/release/protoc-gen-grpc-swift-2
+
 # ──────────────────────────────────────────────────────────────────────────────
 # Setup & prerequisites
 # ──────────────────────────────────────────────────────────────────────────────
@@ -61,33 +83,38 @@ endif
 
 .PHONY: ensure_protoc_installed
 ensure_protoc_installed:
-ifeq (, $(shell which protoc-gen-go-grpc))
-	$(shell brew install protobuf)
-endif
+	@$(ASSERT_TOOL_VERSION) protoc "libprotoc $(PROTOC_VERSION)" \
+		"install protoc $(PROTOC_VERSION) (mise install protoc), or put it first on PATH"
 
 .PHONY: ensure_protoc-gen-go_installed
 ensure_protoc-gen-go_installed: ensure_protoc_installed
-ifeq (, $(shell which protoc-gen-go-grpc))
-	$(shell go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.4)
+ifeq (, $(shell which protoc-gen-go))
+	$(shell go install google.golang.org/protobuf/cmd/protoc-gen-go@v$(PROTOC_GEN_GO_VERSION))
 endif
+	@$(ASSERT_TOOL_VERSION) protoc-gen-go "protoc-gen-go v$(PROTOC_GEN_GO_VERSION)" \
+		"go install google.golang.org/protobuf/cmd/protoc-gen-go@v$(PROTOC_GEN_GO_VERSION)"
 
 .PHONY: ensure_protoc-gen-go-grpc_installed
 ensure_protoc-gen-go-grpc_installed: ensure_protoc_installed
 ifeq (, $(shell which protoc-gen-go-grpc))
-	$(shell go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.5.1)
+	$(shell go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v$(PROTOC_GEN_GO_GRPC_VERSION))
 endif
+	@$(ASSERT_TOOL_VERSION) protoc-gen-go-grpc "protoc-gen-go-grpc $(PROTOC_GEN_GO_GRPC_VERSION)" \
+		"go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v$(PROTOC_GEN_GO_GRPC_VERSION)"
 
+# The Swift plugins are built rather than looked up on PATH, so there is no guard to get
+# wrong: swift build is a no-op when the pinned binary is already current.
 .PHONY: ensure_protoc-gen-swift_installed
 ensure_protoc-gen-swift_installed: ensure_protoc_installed
-ifeq (, $(shell which protoc-gen-swift))
-	$(shell brew install swift-protobuf)
-endif
+	swift build -c release --package-path $(PROTOC_PLUGINS_DIR)/protoc-gen-swift --product protoc-gen-swift
+	@$(ASSERT_TOOL_VERSION) $(PROTOC_GEN_SWIFT) "protoc-gen-swift $(PROTOC_GEN_SWIFT_VERSION)" \
+		"bump $(PROTOC_PLUGINS_DIR)/protoc-gen-swift/Package.swift and PROTOC_GEN_SWIFT_VERSION together"
 
 .PHONY: ensure_protoc-gen-grpc-swift_installed
 ensure_protoc-gen-grpc-swift_installed: ensure_protoc_installed
-ifeq (, $(shell which protoc-gen-grpc-swift-2))
-	$(shell brew install protoc-gen-grpc-swift)
-endif
+	swift build -c release --package-path $(PROTOC_PLUGINS_DIR)/protoc-gen-grpc-swift-2 --product protoc-gen-grpc-swift-2
+	@$(ASSERT_TOOL_VERSION) $(PROTOC_GEN_GRPC_SWIFT) "protoc-gen-grpc-swift-2 $(PROTOC_GEN_GRPC_SWIFT_VERSION)" \
+		"bump $(PROTOC_PLUGINS_DIR)/protoc-gen-grpc-swift-2/Package.swift and PROTOC_GEN_GRPC_SWIFT_VERSION together"
 
 .PHONY: ensure_proto_ts_plugin_installed
 ensure_proto_ts_plugin_installed:
@@ -125,10 +152,14 @@ lint_markdown:
 	./scripts/lint_markdown.sh
 
 .PHONY: test
-test:
+test: test_scripts
 	(cd backend && $(MAKE) test)
 	(cd frontend && $(MAKE) test)
 	(cd ios && $(MAKE) test)
+
+.PHONY: test_scripts
+test_scripts:
+	./scripts/assert_tool_version_test.sh
 
 .PHONY: build
 build:
@@ -236,10 +267,12 @@ proto_golang: ensure_protoc_installed ensure_protoc-gen-go_installed ensure_prot
 proto_swift: ensure_protoc-gen-swift_installed ensure_protoc-gen-grpc-swift_installed
 	rm -rf $(ARTIFACTS_DIR)/proto_swift
 	mkdir -p $(ARTIFACTS_DIR)/proto_swift
-	protoc --swift_out=$(ARTIFACTS_DIR)/proto_swift \
+	protoc --plugin=protoc-gen-swift=$(PROTOC_GEN_SWIFT) \
+		--plugin=protoc-gen-grpc-swift-2=$(PROTOC_GEN_GRPC_SWIFT) \
+		--swift_out=$(ARTIFACTS_DIR)/proto_swift \
 		--grpc-swift-2_out=$(ARTIFACTS_DIR)/proto_swift \
-      	--grpc-swift-2_opt=Client=true,Server=false \
-      	--swift_opt=Visibility=Public \
+		--grpc-swift-2_opt=Client=true,Server=false \
+		--swift_opt=Visibility=Public \
 		--proto_path proto/ \
 		--proto_path $(PLATFORM_PROTO_PATH) \
 		--proto_path $(PLATFORM_IDENTITY_PROTO_PATH) \

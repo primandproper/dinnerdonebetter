@@ -15,13 +15,13 @@ import GRPCProtobuf
 
 /// Namespace containing generated types for the "auth.AuthService" service.
 @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
-internal enum Auth_AuthService {
+internal enum Auth_AuthService: Sendable {
     /// Service descriptor for the "auth.AuthService" service.
     internal static let descriptor = GRPCCore.ServiceDescriptor(fullyQualifiedService: "auth.AuthService")
     /// Namespace for method metadata.
-    internal enum Method {
+    internal enum Method: Sendable {
         /// Namespace for "EvaluateBooleanFeatureFlag" metadata.
-        internal enum EvaluateBooleanFeatureFlag {
+        internal enum EvaluateBooleanFeatureFlag: Sendable {
             /// Request type for "EvaluateBooleanFeatureFlag".
             internal typealias Input = Auth_EvaluateBooleanFeatureFlagRequest
             /// Response type for "EvaluateBooleanFeatureFlag".
@@ -29,11 +29,12 @@ internal enum Auth_AuthService {
             /// Descriptor for "EvaluateBooleanFeatureFlag".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "auth.AuthService"),
-                method: "EvaluateBooleanFeatureFlag"
+                method: "EvaluateBooleanFeatureFlag",
+                type: .unary
             )
         }
         /// Namespace for "EvaluateInt64FeatureFlag" metadata.
-        internal enum EvaluateInt64FeatureFlag {
+        internal enum EvaluateInt64FeatureFlag: Sendable {
             /// Request type for "EvaluateInt64FeatureFlag".
             internal typealias Input = Auth_EvaluateInt64FeatureFlagRequest
             /// Response type for "EvaluateInt64FeatureFlag".
@@ -41,11 +42,12 @@ internal enum Auth_AuthService {
             /// Descriptor for "EvaluateInt64FeatureFlag".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "auth.AuthService"),
-                method: "EvaluateInt64FeatureFlag"
+                method: "EvaluateInt64FeatureFlag",
+                type: .unary
             )
         }
         /// Namespace for "EvaluateStringFeatureFlag" metadata.
-        internal enum EvaluateStringFeatureFlag {
+        internal enum EvaluateStringFeatureFlag: Sendable {
             /// Request type for "EvaluateStringFeatureFlag".
             internal typealias Input = Auth_EvaluateStringFeatureFlagRequest
             /// Response type for "EvaluateStringFeatureFlag".
@@ -53,11 +55,12 @@ internal enum Auth_AuthService {
             /// Descriptor for "EvaluateStringFeatureFlag".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "auth.AuthService"),
-                method: "EvaluateStringFeatureFlag"
+                method: "EvaluateStringFeatureFlag",
+                type: .unary
             )
         }
         /// Namespace for "RegisterUser" metadata.
-        internal enum RegisterUser {
+        internal enum RegisterUser: Sendable {
             /// Request type for "RegisterUser".
             internal typealias Input = Auth_RegisterUserRequest
             /// Response type for "RegisterUser".
@@ -65,11 +68,12 @@ internal enum Auth_AuthService {
             /// Descriptor for "RegisterUser".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "auth.AuthService"),
-                method: "RegisterUser"
+                method: "RegisterUser",
+                type: .unary
             )
         }
         /// Namespace for "GetAuthStatus" metadata.
-        internal enum GetAuthStatus {
+        internal enum GetAuthStatus: Sendable {
             /// Request type for "GetAuthStatus".
             internal typealias Input = Auth_GetAuthStatusRequest
             /// Response type for "GetAuthStatus".
@@ -77,11 +81,12 @@ internal enum Auth_AuthService {
             /// Descriptor for "GetAuthStatus".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "auth.AuthService"),
-                method: "GetAuthStatus"
+                method: "GetAuthStatus",
+                type: .unary
             )
         }
         /// Namespace for "ExchangeToken" metadata.
-        internal enum ExchangeToken {
+        internal enum ExchangeToken: Sendable {
             /// Request type for "ExchangeToken".
             internal typealias Input = Auth_ExchangeTokenRequest
             /// Response type for "ExchangeToken".
@@ -89,11 +94,12 @@ internal enum Auth_AuthService {
             /// Descriptor for "ExchangeToken".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "auth.AuthService"),
-                method: "ExchangeToken"
+                method: "ExchangeToken",
+                type: .unary
             )
         }
         /// Namespace for "AdminLoginForToken" metadata.
-        internal enum AdminLoginForToken {
+        internal enum AdminLoginForToken: Sendable {
             /// Request type for "AdminLoginForToken".
             internal typealias Input = Auth_AdminLoginForTokenRequest
             /// Response type for "AdminLoginForToken".
@@ -101,11 +107,12 @@ internal enum Auth_AuthService {
             /// Descriptor for "AdminLoginForToken".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "auth.AuthService"),
-                method: "AdminLoginForToken"
+                method: "AdminLoginForToken",
+                type: .unary
             )
         }
         /// Namespace for "CheckPermissions" metadata.
-        internal enum CheckPermissions {
+        internal enum CheckPermissions: Sendable {
             /// Request type for "CheckPermissions".
             internal typealias Input = Auth_UserPermissionsRequestInput
             /// Response type for "CheckPermissions".
@@ -113,11 +120,12 @@ internal enum Auth_AuthService {
             /// Descriptor for "CheckPermissions".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "auth.AuthService"),
-                method: "CheckPermissions"
+                method: "CheckPermissions",
+                type: .unary
             )
         }
         /// Namespace for "GetActiveAccount" metadata.
-        internal enum GetActiveAccount {
+        internal enum GetActiveAccount: Sendable {
             /// Request type for "GetActiveAccount".
             internal typealias Input = Auth_GetActiveAccountRequest
             /// Response type for "GetActiveAccount".
@@ -125,11 +133,12 @@ internal enum Auth_AuthService {
             /// Descriptor for "GetActiveAccount".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "auth.AuthService"),
-                method: "GetActiveAccount"
+                method: "GetActiveAccount",
+                type: .unary
             )
         }
         /// Namespace for "GetSelf" metadata.
-        internal enum GetSelf {
+        internal enum GetSelf: Sendable {
             /// Request type for "GetSelf".
             internal typealias Input = Auth_GetSelfRequest
             /// Response type for "GetSelf".
@@ -137,11 +146,12 @@ internal enum Auth_AuthService {
             /// Descriptor for "GetSelf".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "auth.AuthService"),
-                method: "GetSelf"
+                method: "GetSelf",
+                type: .unary
             )
         }
         /// Namespace for "LoginForToken" metadata.
-        internal enum LoginForToken {
+        internal enum LoginForToken: Sendable {
             /// Request type for "LoginForToken".
             internal typealias Input = Auth_LoginForTokenRequest
             /// Response type for "LoginForToken".
@@ -149,11 +159,12 @@ internal enum Auth_AuthService {
             /// Descriptor for "LoginForToken".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "auth.AuthService"),
-                method: "LoginForToken"
+                method: "LoginForToken",
+                type: .unary
             )
         }
         /// Namespace for "RedeemPasswordResetToken" metadata.
-        internal enum RedeemPasswordResetToken {
+        internal enum RedeemPasswordResetToken: Sendable {
             /// Request type for "RedeemPasswordResetToken".
             internal typealias Input = Auth_RedeemPasswordResetTokenRequest
             /// Response type for "RedeemPasswordResetToken".
@@ -161,11 +172,12 @@ internal enum Auth_AuthService {
             /// Descriptor for "RedeemPasswordResetToken".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "auth.AuthService"),
-                method: "RedeemPasswordResetToken"
+                method: "RedeemPasswordResetToken",
+                type: .unary
             )
         }
         /// Namespace for "RefreshTOTPSecret" metadata.
-        internal enum RefreshTOTPSecret {
+        internal enum RefreshTOTPSecret: Sendable {
             /// Request type for "RefreshTOTPSecret".
             internal typealias Input = Auth_RefreshTOTPSecretRequest
             /// Response type for "RefreshTOTPSecret".
@@ -173,11 +185,12 @@ internal enum Auth_AuthService {
             /// Descriptor for "RefreshTOTPSecret".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "auth.AuthService"),
-                method: "RefreshTOTPSecret"
+                method: "RefreshTOTPSecret",
+                type: .unary
             )
         }
         /// Namespace for "RequestEmailVerificationEmail" metadata.
-        internal enum RequestEmailVerificationEmail {
+        internal enum RequestEmailVerificationEmail: Sendable {
             /// Request type for "RequestEmailVerificationEmail".
             internal typealias Input = Auth_RequestEmailVerificationEmailRequest
             /// Response type for "RequestEmailVerificationEmail".
@@ -185,11 +198,12 @@ internal enum Auth_AuthService {
             /// Descriptor for "RequestEmailVerificationEmail".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "auth.AuthService"),
-                method: "RequestEmailVerificationEmail"
+                method: "RequestEmailVerificationEmail",
+                type: .unary
             )
         }
         /// Namespace for "RequestPasswordResetToken" metadata.
-        internal enum RequestPasswordResetToken {
+        internal enum RequestPasswordResetToken: Sendable {
             /// Request type for "RequestPasswordResetToken".
             internal typealias Input = Auth_RequestPasswordResetTokenRequest
             /// Response type for "RequestPasswordResetToken".
@@ -197,11 +211,12 @@ internal enum Auth_AuthService {
             /// Descriptor for "RequestPasswordResetToken".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "auth.AuthService"),
-                method: "RequestPasswordResetToken"
+                method: "RequestPasswordResetToken",
+                type: .unary
             )
         }
         /// Namespace for "RequestUsernameReminder" metadata.
-        internal enum RequestUsernameReminder {
+        internal enum RequestUsernameReminder: Sendable {
             /// Request type for "RequestUsernameReminder".
             internal typealias Input = Auth_RequestUsernameReminderRequest
             /// Response type for "RequestUsernameReminder".
@@ -209,11 +224,12 @@ internal enum Auth_AuthService {
             /// Descriptor for "RequestUsernameReminder".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "auth.AuthService"),
-                method: "RequestUsernameReminder"
+                method: "RequestUsernameReminder",
+                type: .unary
             )
         }
         /// Namespace for "VerifyEmailAddress" metadata.
-        internal enum VerifyEmailAddress {
+        internal enum VerifyEmailAddress: Sendable {
             /// Request type for "VerifyEmailAddress".
             internal typealias Input = Auth_VerifyEmailAddressRequest
             /// Response type for "VerifyEmailAddress".
@@ -221,11 +237,12 @@ internal enum Auth_AuthService {
             /// Descriptor for "VerifyEmailAddress".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "auth.AuthService"),
-                method: "VerifyEmailAddress"
+                method: "VerifyEmailAddress",
+                type: .unary
             )
         }
         /// Namespace for "VerifyTOTPSecret" metadata.
-        internal enum VerifyTOTPSecret {
+        internal enum VerifyTOTPSecret: Sendable {
             /// Request type for "VerifyTOTPSecret".
             internal typealias Input = Auth_VerifyTOTPSecretRequest
             /// Response type for "VerifyTOTPSecret".
@@ -233,11 +250,12 @@ internal enum Auth_AuthService {
             /// Descriptor for "VerifyTOTPSecret".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "auth.AuthService"),
-                method: "VerifyTOTPSecret"
+                method: "VerifyTOTPSecret",
+                type: .unary
             )
         }
         /// Namespace for "UpdatePassword" metadata.
-        internal enum UpdatePassword {
+        internal enum UpdatePassword: Sendable {
             /// Request type for "UpdatePassword".
             internal typealias Input = Auth_UpdatePasswordRequest
             /// Response type for "UpdatePassword".
@@ -245,11 +263,12 @@ internal enum Auth_AuthService {
             /// Descriptor for "UpdatePassword".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "auth.AuthService"),
-                method: "UpdatePassword"
+                method: "UpdatePassword",
+                type: .unary
             )
         }
         /// Namespace for "UpdateUserEmailAddress" metadata.
-        internal enum UpdateUserEmailAddress {
+        internal enum UpdateUserEmailAddress: Sendable {
             /// Request type for "UpdateUserEmailAddress".
             internal typealias Input = Auth_UpdateUserEmailAddressRequest
             /// Response type for "UpdateUserEmailAddress".
@@ -257,11 +276,12 @@ internal enum Auth_AuthService {
             /// Descriptor for "UpdateUserEmailAddress".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "auth.AuthService"),
-                method: "UpdateUserEmailAddress"
+                method: "UpdateUserEmailAddress",
+                type: .unary
             )
         }
         /// Namespace for "UpdateUserUsername" metadata.
-        internal enum UpdateUserUsername {
+        internal enum UpdateUserUsername: Sendable {
             /// Request type for "UpdateUserUsername".
             internal typealias Input = Auth_UpdateUserUsernameRequest
             /// Response type for "UpdateUserUsername".
@@ -269,11 +289,12 @@ internal enum Auth_AuthService {
             /// Descriptor for "UpdateUserUsername".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "auth.AuthService"),
-                method: "UpdateUserUsername"
+                method: "UpdateUserUsername",
+                type: .unary
             )
         }
         /// Namespace for "BeginPasskeyRegistration" metadata.
-        internal enum BeginPasskeyRegistration {
+        internal enum BeginPasskeyRegistration: Sendable {
             /// Request type for "BeginPasskeyRegistration".
             internal typealias Input = Auth_BeginPasskeyRegistrationRequest
             /// Response type for "BeginPasskeyRegistration".
@@ -281,11 +302,12 @@ internal enum Auth_AuthService {
             /// Descriptor for "BeginPasskeyRegistration".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "auth.AuthService"),
-                method: "BeginPasskeyRegistration"
+                method: "BeginPasskeyRegistration",
+                type: .unary
             )
         }
         /// Namespace for "FinishPasskeyRegistration" metadata.
-        internal enum FinishPasskeyRegistration {
+        internal enum FinishPasskeyRegistration: Sendable {
             /// Request type for "FinishPasskeyRegistration".
             internal typealias Input = Auth_FinishPasskeyRegistrationRequest
             /// Response type for "FinishPasskeyRegistration".
@@ -293,11 +315,12 @@ internal enum Auth_AuthService {
             /// Descriptor for "FinishPasskeyRegistration".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "auth.AuthService"),
-                method: "FinishPasskeyRegistration"
+                method: "FinishPasskeyRegistration",
+                type: .unary
             )
         }
         /// Namespace for "BeginPasskeyAuthentication" metadata.
-        internal enum BeginPasskeyAuthentication {
+        internal enum BeginPasskeyAuthentication: Sendable {
             /// Request type for "BeginPasskeyAuthentication".
             internal typealias Input = Auth_BeginPasskeyAuthenticationRequest
             /// Response type for "BeginPasskeyAuthentication".
@@ -305,11 +328,12 @@ internal enum Auth_AuthService {
             /// Descriptor for "BeginPasskeyAuthentication".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "auth.AuthService"),
-                method: "BeginPasskeyAuthentication"
+                method: "BeginPasskeyAuthentication",
+                type: .unary
             )
         }
         /// Namespace for "FinishPasskeyAuthentication" metadata.
-        internal enum FinishPasskeyAuthentication {
+        internal enum FinishPasskeyAuthentication: Sendable {
             /// Request type for "FinishPasskeyAuthentication".
             internal typealias Input = Auth_FinishPasskeyAuthenticationRequest
             /// Response type for "FinishPasskeyAuthentication".
@@ -317,11 +341,12 @@ internal enum Auth_AuthService {
             /// Descriptor for "FinishPasskeyAuthentication".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "auth.AuthService"),
-                method: "FinishPasskeyAuthentication"
+                method: "FinishPasskeyAuthentication",
+                type: .unary
             )
         }
         /// Namespace for "ListPasskeys" metadata.
-        internal enum ListPasskeys {
+        internal enum ListPasskeys: Sendable {
             /// Request type for "ListPasskeys".
             internal typealias Input = Auth_ListPasskeysRequest
             /// Response type for "ListPasskeys".
@@ -329,11 +354,12 @@ internal enum Auth_AuthService {
             /// Descriptor for "ListPasskeys".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "auth.AuthService"),
-                method: "ListPasskeys"
+                method: "ListPasskeys",
+                type: .unary
             )
         }
         /// Namespace for "ArchivePasskey" metadata.
-        internal enum ArchivePasskey {
+        internal enum ArchivePasskey: Sendable {
             /// Request type for "ArchivePasskey".
             internal typealias Input = Auth_ArchivePasskeyRequest
             /// Response type for "ArchivePasskey".
@@ -341,11 +367,12 @@ internal enum Auth_AuthService {
             /// Descriptor for "ArchivePasskey".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "auth.AuthService"),
-                method: "ArchivePasskey"
+                method: "ArchivePasskey",
+                type: .unary
             )
         }
         /// Namespace for "ListActiveSessions" metadata.
-        internal enum ListActiveSessions {
+        internal enum ListActiveSessions: Sendable {
             /// Request type for "ListActiveSessions".
             internal typealias Input = Auth_ListActiveSessionsRequest
             /// Response type for "ListActiveSessions".
@@ -353,11 +380,12 @@ internal enum Auth_AuthService {
             /// Descriptor for "ListActiveSessions".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "auth.AuthService"),
-                method: "ListActiveSessions"
+                method: "ListActiveSessions",
+                type: .unary
             )
         }
         /// Namespace for "RevokeSession" metadata.
-        internal enum RevokeSession {
+        internal enum RevokeSession: Sendable {
             /// Request type for "RevokeSession".
             internal typealias Input = Auth_RevokeSessionRequest
             /// Response type for "RevokeSession".
@@ -365,11 +393,12 @@ internal enum Auth_AuthService {
             /// Descriptor for "RevokeSession".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "auth.AuthService"),
-                method: "RevokeSession"
+                method: "RevokeSession",
+                type: .unary
             )
         }
         /// Namespace for "RevokeAllOtherSessions" metadata.
-        internal enum RevokeAllOtherSessions {
+        internal enum RevokeAllOtherSessions: Sendable {
             /// Request type for "RevokeAllOtherSessions".
             internal typealias Input = Auth_RevokeAllOtherSessionsRequest
             /// Response type for "RevokeAllOtherSessions".
@@ -377,11 +406,12 @@ internal enum Auth_AuthService {
             /// Descriptor for "RevokeAllOtherSessions".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "auth.AuthService"),
-                method: "RevokeAllOtherSessions"
+                method: "RevokeAllOtherSessions",
+                type: .unary
             )
         }
         /// Namespace for "RevokeCurrentSession" metadata.
-        internal enum RevokeCurrentSession {
+        internal enum RevokeCurrentSession: Sendable {
             /// Request type for "RevokeCurrentSession".
             internal typealias Input = Auth_RevokeCurrentSessionRequest
             /// Response type for "RevokeCurrentSession".
@@ -389,11 +419,12 @@ internal enum Auth_AuthService {
             /// Descriptor for "RevokeCurrentSession".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "auth.AuthService"),
-                method: "RevokeCurrentSession"
+                method: "RevokeCurrentSession",
+                type: .unary
             )
         }
         /// Namespace for "AdminListSessionsForUser" metadata.
-        internal enum AdminListSessionsForUser {
+        internal enum AdminListSessionsForUser: Sendable {
             /// Request type for "AdminListSessionsForUser".
             internal typealias Input = Auth_AdminListSessionsForUserRequest
             /// Response type for "AdminListSessionsForUser".
@@ -401,11 +432,12 @@ internal enum Auth_AuthService {
             /// Descriptor for "AdminListSessionsForUser".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "auth.AuthService"),
-                method: "AdminListSessionsForUser"
+                method: "AdminListSessionsForUser",
+                type: .unary
             )
         }
         /// Namespace for "AdminRevokeUserSession" metadata.
-        internal enum AdminRevokeUserSession {
+        internal enum AdminRevokeUserSession: Sendable {
             /// Request type for "AdminRevokeUserSession".
             internal typealias Input = Auth_AdminRevokeUserSessionRequest
             /// Response type for "AdminRevokeUserSession".
@@ -413,11 +445,12 @@ internal enum Auth_AuthService {
             /// Descriptor for "AdminRevokeUserSession".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "auth.AuthService"),
-                method: "AdminRevokeUserSession"
+                method: "AdminRevokeUserSession",
+                type: .unary
             )
         }
         /// Namespace for "AdminRevokeAllUserSessions" metadata.
-        internal enum AdminRevokeAllUserSessions {
+        internal enum AdminRevokeAllUserSessions: Sendable {
             /// Request type for "AdminRevokeAllUserSessions".
             internal typealias Input = Auth_AdminRevokeAllUserSessionsRequest
             /// Response type for "AdminRevokeAllUserSessions".
@@ -425,7 +458,8 @@ internal enum Auth_AuthService {
             /// Descriptor for "AdminRevokeAllUserSessions".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "auth.AuthService"),
-                method: "AdminRevokeAllUserSessions"
+                method: "AdminRevokeAllUserSessions",
+                type: .unary
             )
         }
         /// Descriptors for all methods in the "auth.AuthService" service.
@@ -490,9 +524,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_EvaluateBooleanFeatureFlagRequest` messages.
         ///   - deserializer: A deserializer for `Auth_EvaluateBooleanFeatureFlagResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func evaluateBooleanFeatureFlag<Result>(
             request: GRPCCore.ClientRequest<Auth_EvaluateBooleanFeatureFlagRequest>,
@@ -509,9 +543,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_EvaluateInt64FeatureFlagRequest` messages.
         ///   - deserializer: A deserializer for `Auth_EvaluateInt64FeatureFlagResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func evaluateInt64FeatureFlag<Result>(
             request: GRPCCore.ClientRequest<Auth_EvaluateInt64FeatureFlagRequest>,
@@ -528,9 +562,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_EvaluateStringFeatureFlagRequest` messages.
         ///   - deserializer: A deserializer for `Auth_EvaluateStringFeatureFlagResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func evaluateStringFeatureFlag<Result>(
             request: GRPCCore.ClientRequest<Auth_EvaluateStringFeatureFlagRequest>,
@@ -547,9 +581,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_RegisterUserRequest` messages.
         ///   - deserializer: A deserializer for `Auth_RegisterUserResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func registerUser<Result>(
             request: GRPCCore.ClientRequest<Auth_RegisterUserRequest>,
@@ -566,9 +600,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_GetAuthStatusRequest` messages.
         ///   - deserializer: A deserializer for `Auth_GetAuthStatusResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func getAuthStatus<Result>(
             request: GRPCCore.ClientRequest<Auth_GetAuthStatusRequest>,
@@ -585,9 +619,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_ExchangeTokenRequest` messages.
         ///   - deserializer: A deserializer for `Auth_ExchangeTokenResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func exchangeToken<Result>(
             request: GRPCCore.ClientRequest<Auth_ExchangeTokenRequest>,
@@ -604,9 +638,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_AdminLoginForTokenRequest` messages.
         ///   - deserializer: A deserializer for `Auth_LoginForTokenResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func adminLoginForToken<Result>(
             request: GRPCCore.ClientRequest<Auth_AdminLoginForTokenRequest>,
@@ -623,9 +657,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_UserPermissionsRequestInput` messages.
         ///   - deserializer: A deserializer for `Auth_UserPermissionsResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func checkPermissions<Result>(
             request: GRPCCore.ClientRequest<Auth_UserPermissionsRequestInput>,
@@ -642,9 +676,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_GetActiveAccountRequest` messages.
         ///   - deserializer: A deserializer for `Auth_GetActiveAccountResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func getActiveAccount<Result>(
             request: GRPCCore.ClientRequest<Auth_GetActiveAccountRequest>,
@@ -661,9 +695,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_GetSelfRequest` messages.
         ///   - deserializer: A deserializer for `Auth_GetSelfResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func getSelf<Result>(
             request: GRPCCore.ClientRequest<Auth_GetSelfRequest>,
@@ -680,9 +714,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_LoginForTokenRequest` messages.
         ///   - deserializer: A deserializer for `Auth_LoginForTokenResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func loginForToken<Result>(
             request: GRPCCore.ClientRequest<Auth_LoginForTokenRequest>,
@@ -699,9 +733,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_RedeemPasswordResetTokenRequest` messages.
         ///   - deserializer: A deserializer for `Auth_RedeemPasswordResetTokenResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func redeemPasswordResetToken<Result>(
             request: GRPCCore.ClientRequest<Auth_RedeemPasswordResetTokenRequest>,
@@ -718,9 +752,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_RefreshTOTPSecretRequest` messages.
         ///   - deserializer: A deserializer for `Auth_RefreshTOTPSecretResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func refreshTOTPSecret<Result>(
             request: GRPCCore.ClientRequest<Auth_RefreshTOTPSecretRequest>,
@@ -737,9 +771,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_RequestEmailVerificationEmailRequest` messages.
         ///   - deserializer: A deserializer for `Auth_RequestEmailVerificationEmailResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func requestEmailVerificationEmail<Result>(
             request: GRPCCore.ClientRequest<Auth_RequestEmailVerificationEmailRequest>,
@@ -756,9 +790,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_RequestPasswordResetTokenRequest` messages.
         ///   - deserializer: A deserializer for `Auth_RequestPasswordResetTokenResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func requestPasswordResetToken<Result>(
             request: GRPCCore.ClientRequest<Auth_RequestPasswordResetTokenRequest>,
@@ -775,9 +809,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_RequestUsernameReminderRequest` messages.
         ///   - deserializer: A deserializer for `Auth_RequestUsernameReminderResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func requestUsernameReminder<Result>(
             request: GRPCCore.ClientRequest<Auth_RequestUsernameReminderRequest>,
@@ -794,9 +828,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_VerifyEmailAddressRequest` messages.
         ///   - deserializer: A deserializer for `Auth_VerifyEmailAddressResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func verifyEmailAddress<Result>(
             request: GRPCCore.ClientRequest<Auth_VerifyEmailAddressRequest>,
@@ -813,9 +847,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_VerifyTOTPSecretRequest` messages.
         ///   - deserializer: A deserializer for `Auth_VerifyTOTPSecretResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func verifyTOTPSecret<Result>(
             request: GRPCCore.ClientRequest<Auth_VerifyTOTPSecretRequest>,
@@ -832,9 +866,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_UpdatePasswordRequest` messages.
         ///   - deserializer: A deserializer for `Auth_UpdatePasswordResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func updatePassword<Result>(
             request: GRPCCore.ClientRequest<Auth_UpdatePasswordRequest>,
@@ -851,9 +885,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_UpdateUserEmailAddressRequest` messages.
         ///   - deserializer: A deserializer for `Auth_UpdateUserEmailAddressResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func updateUserEmailAddress<Result>(
             request: GRPCCore.ClientRequest<Auth_UpdateUserEmailAddressRequest>,
@@ -870,9 +904,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_UpdateUserUsernameRequest` messages.
         ///   - deserializer: A deserializer for `Auth_UpdateUserUsernameResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func updateUserUsername<Result>(
             request: GRPCCore.ClientRequest<Auth_UpdateUserUsernameRequest>,
@@ -889,9 +923,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_BeginPasskeyRegistrationRequest` messages.
         ///   - deserializer: A deserializer for `Auth_BeginPasskeyRegistrationResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func beginPasskeyRegistration<Result>(
             request: GRPCCore.ClientRequest<Auth_BeginPasskeyRegistrationRequest>,
@@ -908,9 +942,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_FinishPasskeyRegistrationRequest` messages.
         ///   - deserializer: A deserializer for `Auth_FinishPasskeyRegistrationResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func finishPasskeyRegistration<Result>(
             request: GRPCCore.ClientRequest<Auth_FinishPasskeyRegistrationRequest>,
@@ -927,9 +961,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_BeginPasskeyAuthenticationRequest` messages.
         ///   - deserializer: A deserializer for `Auth_BeginPasskeyAuthenticationResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func beginPasskeyAuthentication<Result>(
             request: GRPCCore.ClientRequest<Auth_BeginPasskeyAuthenticationRequest>,
@@ -946,9 +980,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_FinishPasskeyAuthenticationRequest` messages.
         ///   - deserializer: A deserializer for `Auth_LoginForTokenResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func finishPasskeyAuthentication<Result>(
             request: GRPCCore.ClientRequest<Auth_FinishPasskeyAuthenticationRequest>,
@@ -965,9 +999,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_ListPasskeysRequest` messages.
         ///   - deserializer: A deserializer for `Auth_ListPasskeysResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func listPasskeys<Result>(
             request: GRPCCore.ClientRequest<Auth_ListPasskeysRequest>,
@@ -984,9 +1018,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_ArchivePasskeyRequest` messages.
         ///   - deserializer: A deserializer for `Auth_ArchivePasskeyResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func archivePasskey<Result>(
             request: GRPCCore.ClientRequest<Auth_ArchivePasskeyRequest>,
@@ -1003,9 +1037,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_ListActiveSessionsRequest` messages.
         ///   - deserializer: A deserializer for `Auth_ListActiveSessionsResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func listActiveSessions<Result>(
             request: GRPCCore.ClientRequest<Auth_ListActiveSessionsRequest>,
@@ -1022,9 +1056,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_RevokeSessionRequest` messages.
         ///   - deserializer: A deserializer for `Auth_RevokeSessionResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func revokeSession<Result>(
             request: GRPCCore.ClientRequest<Auth_RevokeSessionRequest>,
@@ -1041,9 +1075,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_RevokeAllOtherSessionsRequest` messages.
         ///   - deserializer: A deserializer for `Auth_RevokeAllOtherSessionsResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func revokeAllOtherSessions<Result>(
             request: GRPCCore.ClientRequest<Auth_RevokeAllOtherSessionsRequest>,
@@ -1060,9 +1094,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_RevokeCurrentSessionRequest` messages.
         ///   - deserializer: A deserializer for `Auth_RevokeCurrentSessionResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func revokeCurrentSession<Result>(
             request: GRPCCore.ClientRequest<Auth_RevokeCurrentSessionRequest>,
@@ -1079,9 +1113,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_AdminListSessionsForUserRequest` messages.
         ///   - deserializer: A deserializer for `Auth_ListActiveSessionsResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func adminListSessionsForUser<Result>(
             request: GRPCCore.ClientRequest<Auth_AdminListSessionsForUserRequest>,
@@ -1098,9 +1132,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_AdminRevokeUserSessionRequest` messages.
         ///   - deserializer: A deserializer for `Auth_RevokeSessionResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func adminRevokeUserSession<Result>(
             request: GRPCCore.ClientRequest<Auth_AdminRevokeUserSessionRequest>,
@@ -1117,9 +1151,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_AdminRevokeAllUserSessionsRequest` messages.
         ///   - deserializer: A deserializer for `Auth_RevokeAllOtherSessionsResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func adminRevokeAllUserSessions<Result>(
             request: GRPCCore.ClientRequest<Auth_AdminRevokeAllUserSessionsRequest>,
@@ -1153,9 +1187,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_EvaluateBooleanFeatureFlagRequest` messages.
         ///   - deserializer: A deserializer for `Auth_EvaluateBooleanFeatureFlagResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func evaluateBooleanFeatureFlag<Result>(
             request: GRPCCore.ClientRequest<Auth_EvaluateBooleanFeatureFlagRequest>,
@@ -1183,9 +1217,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_EvaluateInt64FeatureFlagRequest` messages.
         ///   - deserializer: A deserializer for `Auth_EvaluateInt64FeatureFlagResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func evaluateInt64FeatureFlag<Result>(
             request: GRPCCore.ClientRequest<Auth_EvaluateInt64FeatureFlagRequest>,
@@ -1213,9 +1247,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_EvaluateStringFeatureFlagRequest` messages.
         ///   - deserializer: A deserializer for `Auth_EvaluateStringFeatureFlagResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func evaluateStringFeatureFlag<Result>(
             request: GRPCCore.ClientRequest<Auth_EvaluateStringFeatureFlagRequest>,
@@ -1243,9 +1277,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_RegisterUserRequest` messages.
         ///   - deserializer: A deserializer for `Auth_RegisterUserResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func registerUser<Result>(
             request: GRPCCore.ClientRequest<Auth_RegisterUserRequest>,
@@ -1273,9 +1307,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_GetAuthStatusRequest` messages.
         ///   - deserializer: A deserializer for `Auth_GetAuthStatusResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func getAuthStatus<Result>(
             request: GRPCCore.ClientRequest<Auth_GetAuthStatusRequest>,
@@ -1303,9 +1337,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_ExchangeTokenRequest` messages.
         ///   - deserializer: A deserializer for `Auth_ExchangeTokenResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func exchangeToken<Result>(
             request: GRPCCore.ClientRequest<Auth_ExchangeTokenRequest>,
@@ -1333,9 +1367,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_AdminLoginForTokenRequest` messages.
         ///   - deserializer: A deserializer for `Auth_LoginForTokenResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func adminLoginForToken<Result>(
             request: GRPCCore.ClientRequest<Auth_AdminLoginForTokenRequest>,
@@ -1363,9 +1397,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_UserPermissionsRequestInput` messages.
         ///   - deserializer: A deserializer for `Auth_UserPermissionsResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func checkPermissions<Result>(
             request: GRPCCore.ClientRequest<Auth_UserPermissionsRequestInput>,
@@ -1393,9 +1427,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_GetActiveAccountRequest` messages.
         ///   - deserializer: A deserializer for `Auth_GetActiveAccountResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func getActiveAccount<Result>(
             request: GRPCCore.ClientRequest<Auth_GetActiveAccountRequest>,
@@ -1423,9 +1457,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_GetSelfRequest` messages.
         ///   - deserializer: A deserializer for `Auth_GetSelfResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func getSelf<Result>(
             request: GRPCCore.ClientRequest<Auth_GetSelfRequest>,
@@ -1453,9 +1487,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_LoginForTokenRequest` messages.
         ///   - deserializer: A deserializer for `Auth_LoginForTokenResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func loginForToken<Result>(
             request: GRPCCore.ClientRequest<Auth_LoginForTokenRequest>,
@@ -1483,9 +1517,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_RedeemPasswordResetTokenRequest` messages.
         ///   - deserializer: A deserializer for `Auth_RedeemPasswordResetTokenResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func redeemPasswordResetToken<Result>(
             request: GRPCCore.ClientRequest<Auth_RedeemPasswordResetTokenRequest>,
@@ -1513,9 +1547,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_RefreshTOTPSecretRequest` messages.
         ///   - deserializer: A deserializer for `Auth_RefreshTOTPSecretResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func refreshTOTPSecret<Result>(
             request: GRPCCore.ClientRequest<Auth_RefreshTOTPSecretRequest>,
@@ -1543,9 +1577,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_RequestEmailVerificationEmailRequest` messages.
         ///   - deserializer: A deserializer for `Auth_RequestEmailVerificationEmailResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func requestEmailVerificationEmail<Result>(
             request: GRPCCore.ClientRequest<Auth_RequestEmailVerificationEmailRequest>,
@@ -1573,9 +1607,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_RequestPasswordResetTokenRequest` messages.
         ///   - deserializer: A deserializer for `Auth_RequestPasswordResetTokenResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func requestPasswordResetToken<Result>(
             request: GRPCCore.ClientRequest<Auth_RequestPasswordResetTokenRequest>,
@@ -1603,9 +1637,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_RequestUsernameReminderRequest` messages.
         ///   - deserializer: A deserializer for `Auth_RequestUsernameReminderResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func requestUsernameReminder<Result>(
             request: GRPCCore.ClientRequest<Auth_RequestUsernameReminderRequest>,
@@ -1633,9 +1667,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_VerifyEmailAddressRequest` messages.
         ///   - deserializer: A deserializer for `Auth_VerifyEmailAddressResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func verifyEmailAddress<Result>(
             request: GRPCCore.ClientRequest<Auth_VerifyEmailAddressRequest>,
@@ -1663,9 +1697,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_VerifyTOTPSecretRequest` messages.
         ///   - deserializer: A deserializer for `Auth_VerifyTOTPSecretResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func verifyTOTPSecret<Result>(
             request: GRPCCore.ClientRequest<Auth_VerifyTOTPSecretRequest>,
@@ -1693,9 +1727,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_UpdatePasswordRequest` messages.
         ///   - deserializer: A deserializer for `Auth_UpdatePasswordResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func updatePassword<Result>(
             request: GRPCCore.ClientRequest<Auth_UpdatePasswordRequest>,
@@ -1723,9 +1757,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_UpdateUserEmailAddressRequest` messages.
         ///   - deserializer: A deserializer for `Auth_UpdateUserEmailAddressResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func updateUserEmailAddress<Result>(
             request: GRPCCore.ClientRequest<Auth_UpdateUserEmailAddressRequest>,
@@ -1753,9 +1787,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_UpdateUserUsernameRequest` messages.
         ///   - deserializer: A deserializer for `Auth_UpdateUserUsernameResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func updateUserUsername<Result>(
             request: GRPCCore.ClientRequest<Auth_UpdateUserUsernameRequest>,
@@ -1783,9 +1817,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_BeginPasskeyRegistrationRequest` messages.
         ///   - deserializer: A deserializer for `Auth_BeginPasskeyRegistrationResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func beginPasskeyRegistration<Result>(
             request: GRPCCore.ClientRequest<Auth_BeginPasskeyRegistrationRequest>,
@@ -1813,9 +1847,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_FinishPasskeyRegistrationRequest` messages.
         ///   - deserializer: A deserializer for `Auth_FinishPasskeyRegistrationResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func finishPasskeyRegistration<Result>(
             request: GRPCCore.ClientRequest<Auth_FinishPasskeyRegistrationRequest>,
@@ -1843,9 +1877,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_BeginPasskeyAuthenticationRequest` messages.
         ///   - deserializer: A deserializer for `Auth_BeginPasskeyAuthenticationResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func beginPasskeyAuthentication<Result>(
             request: GRPCCore.ClientRequest<Auth_BeginPasskeyAuthenticationRequest>,
@@ -1873,9 +1907,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_FinishPasskeyAuthenticationRequest` messages.
         ///   - deserializer: A deserializer for `Auth_LoginForTokenResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func finishPasskeyAuthentication<Result>(
             request: GRPCCore.ClientRequest<Auth_FinishPasskeyAuthenticationRequest>,
@@ -1903,9 +1937,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_ListPasskeysRequest` messages.
         ///   - deserializer: A deserializer for `Auth_ListPasskeysResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func listPasskeys<Result>(
             request: GRPCCore.ClientRequest<Auth_ListPasskeysRequest>,
@@ -1933,9 +1967,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_ArchivePasskeyRequest` messages.
         ///   - deserializer: A deserializer for `Auth_ArchivePasskeyResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func archivePasskey<Result>(
             request: GRPCCore.ClientRequest<Auth_ArchivePasskeyRequest>,
@@ -1963,9 +1997,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_ListActiveSessionsRequest` messages.
         ///   - deserializer: A deserializer for `Auth_ListActiveSessionsResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func listActiveSessions<Result>(
             request: GRPCCore.ClientRequest<Auth_ListActiveSessionsRequest>,
@@ -1993,9 +2027,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_RevokeSessionRequest` messages.
         ///   - deserializer: A deserializer for `Auth_RevokeSessionResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func revokeSession<Result>(
             request: GRPCCore.ClientRequest<Auth_RevokeSessionRequest>,
@@ -2023,9 +2057,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_RevokeAllOtherSessionsRequest` messages.
         ///   - deserializer: A deserializer for `Auth_RevokeAllOtherSessionsResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func revokeAllOtherSessions<Result>(
             request: GRPCCore.ClientRequest<Auth_RevokeAllOtherSessionsRequest>,
@@ -2053,9 +2087,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_RevokeCurrentSessionRequest` messages.
         ///   - deserializer: A deserializer for `Auth_RevokeCurrentSessionResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func revokeCurrentSession<Result>(
             request: GRPCCore.ClientRequest<Auth_RevokeCurrentSessionRequest>,
@@ -2083,9 +2117,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_AdminListSessionsForUserRequest` messages.
         ///   - deserializer: A deserializer for `Auth_ListActiveSessionsResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func adminListSessionsForUser<Result>(
             request: GRPCCore.ClientRequest<Auth_AdminListSessionsForUserRequest>,
@@ -2113,9 +2147,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_AdminRevokeUserSessionRequest` messages.
         ///   - deserializer: A deserializer for `Auth_RevokeSessionResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func adminRevokeUserSession<Result>(
             request: GRPCCore.ClientRequest<Auth_AdminRevokeUserSessionRequest>,
@@ -2143,9 +2177,9 @@ extension Auth_AuthService {
         ///   - serializer: A serializer for `Auth_AdminRevokeAllUserSessionsRequest` messages.
         ///   - deserializer: A deserializer for `Auth_RevokeAllOtherSessionsResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func adminRevokeAllUserSessions<Result>(
             request: GRPCCore.ClientRequest<Auth_AdminRevokeAllUserSessionsRequest>,
@@ -2176,9 +2210,9 @@ extension Auth_AuthService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Auth_EvaluateBooleanFeatureFlagRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func evaluateBooleanFeatureFlag<Result>(
         request: GRPCCore.ClientRequest<Auth_EvaluateBooleanFeatureFlagRequest>,
@@ -2201,9 +2235,9 @@ extension Auth_AuthService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Auth_EvaluateInt64FeatureFlagRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func evaluateInt64FeatureFlag<Result>(
         request: GRPCCore.ClientRequest<Auth_EvaluateInt64FeatureFlagRequest>,
@@ -2226,9 +2260,9 @@ extension Auth_AuthService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Auth_EvaluateStringFeatureFlagRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func evaluateStringFeatureFlag<Result>(
         request: GRPCCore.ClientRequest<Auth_EvaluateStringFeatureFlagRequest>,
@@ -2251,9 +2285,9 @@ extension Auth_AuthService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Auth_RegisterUserRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func registerUser<Result>(
         request: GRPCCore.ClientRequest<Auth_RegisterUserRequest>,
@@ -2276,9 +2310,9 @@ extension Auth_AuthService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Auth_GetAuthStatusRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func getAuthStatus<Result>(
         request: GRPCCore.ClientRequest<Auth_GetAuthStatusRequest>,
@@ -2301,9 +2335,9 @@ extension Auth_AuthService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Auth_ExchangeTokenRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func exchangeToken<Result>(
         request: GRPCCore.ClientRequest<Auth_ExchangeTokenRequest>,
@@ -2326,9 +2360,9 @@ extension Auth_AuthService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Auth_AdminLoginForTokenRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func adminLoginForToken<Result>(
         request: GRPCCore.ClientRequest<Auth_AdminLoginForTokenRequest>,
@@ -2351,9 +2385,9 @@ extension Auth_AuthService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Auth_UserPermissionsRequestInput` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func checkPermissions<Result>(
         request: GRPCCore.ClientRequest<Auth_UserPermissionsRequestInput>,
@@ -2376,9 +2410,9 @@ extension Auth_AuthService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Auth_GetActiveAccountRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func getActiveAccount<Result>(
         request: GRPCCore.ClientRequest<Auth_GetActiveAccountRequest>,
@@ -2401,9 +2435,9 @@ extension Auth_AuthService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Auth_GetSelfRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func getSelf<Result>(
         request: GRPCCore.ClientRequest<Auth_GetSelfRequest>,
@@ -2426,9 +2460,9 @@ extension Auth_AuthService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Auth_LoginForTokenRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func loginForToken<Result>(
         request: GRPCCore.ClientRequest<Auth_LoginForTokenRequest>,
@@ -2451,9 +2485,9 @@ extension Auth_AuthService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Auth_RedeemPasswordResetTokenRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func redeemPasswordResetToken<Result>(
         request: GRPCCore.ClientRequest<Auth_RedeemPasswordResetTokenRequest>,
@@ -2476,9 +2510,9 @@ extension Auth_AuthService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Auth_RefreshTOTPSecretRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func refreshTOTPSecret<Result>(
         request: GRPCCore.ClientRequest<Auth_RefreshTOTPSecretRequest>,
@@ -2501,9 +2535,9 @@ extension Auth_AuthService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Auth_RequestEmailVerificationEmailRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func requestEmailVerificationEmail<Result>(
         request: GRPCCore.ClientRequest<Auth_RequestEmailVerificationEmailRequest>,
@@ -2526,9 +2560,9 @@ extension Auth_AuthService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Auth_RequestPasswordResetTokenRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func requestPasswordResetToken<Result>(
         request: GRPCCore.ClientRequest<Auth_RequestPasswordResetTokenRequest>,
@@ -2551,9 +2585,9 @@ extension Auth_AuthService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Auth_RequestUsernameReminderRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func requestUsernameReminder<Result>(
         request: GRPCCore.ClientRequest<Auth_RequestUsernameReminderRequest>,
@@ -2576,9 +2610,9 @@ extension Auth_AuthService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Auth_VerifyEmailAddressRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func verifyEmailAddress<Result>(
         request: GRPCCore.ClientRequest<Auth_VerifyEmailAddressRequest>,
@@ -2601,9 +2635,9 @@ extension Auth_AuthService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Auth_VerifyTOTPSecretRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func verifyTOTPSecret<Result>(
         request: GRPCCore.ClientRequest<Auth_VerifyTOTPSecretRequest>,
@@ -2626,9 +2660,9 @@ extension Auth_AuthService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Auth_UpdatePasswordRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func updatePassword<Result>(
         request: GRPCCore.ClientRequest<Auth_UpdatePasswordRequest>,
@@ -2651,9 +2685,9 @@ extension Auth_AuthService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Auth_UpdateUserEmailAddressRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func updateUserEmailAddress<Result>(
         request: GRPCCore.ClientRequest<Auth_UpdateUserEmailAddressRequest>,
@@ -2676,9 +2710,9 @@ extension Auth_AuthService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Auth_UpdateUserUsernameRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func updateUserUsername<Result>(
         request: GRPCCore.ClientRequest<Auth_UpdateUserUsernameRequest>,
@@ -2701,9 +2735,9 @@ extension Auth_AuthService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Auth_BeginPasskeyRegistrationRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func beginPasskeyRegistration<Result>(
         request: GRPCCore.ClientRequest<Auth_BeginPasskeyRegistrationRequest>,
@@ -2726,9 +2760,9 @@ extension Auth_AuthService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Auth_FinishPasskeyRegistrationRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func finishPasskeyRegistration<Result>(
         request: GRPCCore.ClientRequest<Auth_FinishPasskeyRegistrationRequest>,
@@ -2751,9 +2785,9 @@ extension Auth_AuthService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Auth_BeginPasskeyAuthenticationRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func beginPasskeyAuthentication<Result>(
         request: GRPCCore.ClientRequest<Auth_BeginPasskeyAuthenticationRequest>,
@@ -2776,9 +2810,9 @@ extension Auth_AuthService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Auth_FinishPasskeyAuthenticationRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func finishPasskeyAuthentication<Result>(
         request: GRPCCore.ClientRequest<Auth_FinishPasskeyAuthenticationRequest>,
@@ -2801,9 +2835,9 @@ extension Auth_AuthService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Auth_ListPasskeysRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func listPasskeys<Result>(
         request: GRPCCore.ClientRequest<Auth_ListPasskeysRequest>,
@@ -2826,9 +2860,9 @@ extension Auth_AuthService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Auth_ArchivePasskeyRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func archivePasskey<Result>(
         request: GRPCCore.ClientRequest<Auth_ArchivePasskeyRequest>,
@@ -2851,9 +2885,9 @@ extension Auth_AuthService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Auth_ListActiveSessionsRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func listActiveSessions<Result>(
         request: GRPCCore.ClientRequest<Auth_ListActiveSessionsRequest>,
@@ -2876,9 +2910,9 @@ extension Auth_AuthService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Auth_RevokeSessionRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func revokeSession<Result>(
         request: GRPCCore.ClientRequest<Auth_RevokeSessionRequest>,
@@ -2901,9 +2935,9 @@ extension Auth_AuthService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Auth_RevokeAllOtherSessionsRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func revokeAllOtherSessions<Result>(
         request: GRPCCore.ClientRequest<Auth_RevokeAllOtherSessionsRequest>,
@@ -2926,9 +2960,9 @@ extension Auth_AuthService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Auth_RevokeCurrentSessionRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func revokeCurrentSession<Result>(
         request: GRPCCore.ClientRequest<Auth_RevokeCurrentSessionRequest>,
@@ -2951,9 +2985,9 @@ extension Auth_AuthService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Auth_AdminListSessionsForUserRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func adminListSessionsForUser<Result>(
         request: GRPCCore.ClientRequest<Auth_AdminListSessionsForUserRequest>,
@@ -2976,9 +3010,9 @@ extension Auth_AuthService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Auth_AdminRevokeUserSessionRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func adminRevokeUserSession<Result>(
         request: GRPCCore.ClientRequest<Auth_AdminRevokeUserSessionRequest>,
@@ -3001,9 +3035,9 @@ extension Auth_AuthService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Auth_AdminRevokeAllUserSessionsRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func adminRevokeAllUserSessions<Result>(
         request: GRPCCore.ClientRequest<Auth_AdminRevokeAllUserSessionsRequest>,
@@ -3031,9 +3065,9 @@ extension Auth_AuthService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func evaluateBooleanFeatureFlag<Result>(
         _ message: Auth_EvaluateBooleanFeatureFlagRequest,
@@ -3060,9 +3094,9 @@ extension Auth_AuthService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func evaluateInt64FeatureFlag<Result>(
         _ message: Auth_EvaluateInt64FeatureFlagRequest,
@@ -3089,9 +3123,9 @@ extension Auth_AuthService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func evaluateStringFeatureFlag<Result>(
         _ message: Auth_EvaluateStringFeatureFlagRequest,
@@ -3118,9 +3152,9 @@ extension Auth_AuthService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func registerUser<Result>(
         _ message: Auth_RegisterUserRequest,
@@ -3147,9 +3181,9 @@ extension Auth_AuthService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func getAuthStatus<Result>(
         _ message: Auth_GetAuthStatusRequest,
@@ -3176,9 +3210,9 @@ extension Auth_AuthService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func exchangeToken<Result>(
         _ message: Auth_ExchangeTokenRequest,
@@ -3205,9 +3239,9 @@ extension Auth_AuthService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func adminLoginForToken<Result>(
         _ message: Auth_AdminLoginForTokenRequest,
@@ -3234,9 +3268,9 @@ extension Auth_AuthService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func checkPermissions<Result>(
         _ message: Auth_UserPermissionsRequestInput,
@@ -3263,9 +3297,9 @@ extension Auth_AuthService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func getActiveAccount<Result>(
         _ message: Auth_GetActiveAccountRequest,
@@ -3292,9 +3326,9 @@ extension Auth_AuthService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func getSelf<Result>(
         _ message: Auth_GetSelfRequest,
@@ -3321,9 +3355,9 @@ extension Auth_AuthService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func loginForToken<Result>(
         _ message: Auth_LoginForTokenRequest,
@@ -3350,9 +3384,9 @@ extension Auth_AuthService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func redeemPasswordResetToken<Result>(
         _ message: Auth_RedeemPasswordResetTokenRequest,
@@ -3379,9 +3413,9 @@ extension Auth_AuthService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func refreshTOTPSecret<Result>(
         _ message: Auth_RefreshTOTPSecretRequest,
@@ -3408,9 +3442,9 @@ extension Auth_AuthService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func requestEmailVerificationEmail<Result>(
         _ message: Auth_RequestEmailVerificationEmailRequest,
@@ -3437,9 +3471,9 @@ extension Auth_AuthService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func requestPasswordResetToken<Result>(
         _ message: Auth_RequestPasswordResetTokenRequest,
@@ -3466,9 +3500,9 @@ extension Auth_AuthService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func requestUsernameReminder<Result>(
         _ message: Auth_RequestUsernameReminderRequest,
@@ -3495,9 +3529,9 @@ extension Auth_AuthService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func verifyEmailAddress<Result>(
         _ message: Auth_VerifyEmailAddressRequest,
@@ -3524,9 +3558,9 @@ extension Auth_AuthService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func verifyTOTPSecret<Result>(
         _ message: Auth_VerifyTOTPSecretRequest,
@@ -3553,9 +3587,9 @@ extension Auth_AuthService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func updatePassword<Result>(
         _ message: Auth_UpdatePasswordRequest,
@@ -3582,9 +3616,9 @@ extension Auth_AuthService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func updateUserEmailAddress<Result>(
         _ message: Auth_UpdateUserEmailAddressRequest,
@@ -3611,9 +3645,9 @@ extension Auth_AuthService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func updateUserUsername<Result>(
         _ message: Auth_UpdateUserUsernameRequest,
@@ -3640,9 +3674,9 @@ extension Auth_AuthService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func beginPasskeyRegistration<Result>(
         _ message: Auth_BeginPasskeyRegistrationRequest,
@@ -3669,9 +3703,9 @@ extension Auth_AuthService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func finishPasskeyRegistration<Result>(
         _ message: Auth_FinishPasskeyRegistrationRequest,
@@ -3698,9 +3732,9 @@ extension Auth_AuthService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func beginPasskeyAuthentication<Result>(
         _ message: Auth_BeginPasskeyAuthenticationRequest,
@@ -3727,9 +3761,9 @@ extension Auth_AuthService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func finishPasskeyAuthentication<Result>(
         _ message: Auth_FinishPasskeyAuthenticationRequest,
@@ -3756,9 +3790,9 @@ extension Auth_AuthService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func listPasskeys<Result>(
         _ message: Auth_ListPasskeysRequest,
@@ -3785,9 +3819,9 @@ extension Auth_AuthService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func archivePasskey<Result>(
         _ message: Auth_ArchivePasskeyRequest,
@@ -3814,9 +3848,9 @@ extension Auth_AuthService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func listActiveSessions<Result>(
         _ message: Auth_ListActiveSessionsRequest,
@@ -3843,9 +3877,9 @@ extension Auth_AuthService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func revokeSession<Result>(
         _ message: Auth_RevokeSessionRequest,
@@ -3872,9 +3906,9 @@ extension Auth_AuthService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func revokeAllOtherSessions<Result>(
         _ message: Auth_RevokeAllOtherSessionsRequest,
@@ -3901,9 +3935,9 @@ extension Auth_AuthService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func revokeCurrentSession<Result>(
         _ message: Auth_RevokeCurrentSessionRequest,
@@ -3930,9 +3964,9 @@ extension Auth_AuthService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func adminListSessionsForUser<Result>(
         _ message: Auth_AdminListSessionsForUserRequest,
@@ -3959,9 +3993,9 @@ extension Auth_AuthService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func adminRevokeUserSession<Result>(
         _ message: Auth_AdminRevokeUserSessionRequest,
@@ -3988,9 +4022,9 @@ extension Auth_AuthService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func adminRevokeAllUserSessions<Result>(
         _ message: Auth_AdminRevokeAllUserSessionsRequest,

@@ -125,7 +125,7 @@ Deploy pipeline (see [docs/deployment.md](docs/deployment.md)):
 - **Generate:** `make proto` (format, then `proto_golang` and `proto_swift`). For the frontend API client: `make proto_typescript` (outputs to `frontend/packages/api-client/src`).
 - **Output:** Go → `backend/internal/grpc`, Swift → `ios/ios/Generated`, TypeScript → `frontend/packages/api-client/src`.
 
-Requires `protoc`, `protoc-gen-go`, `protoc-gen-go-grpc`, and for Swift `protoc-gen-swift` and `protoc-gen-grpc-swift`. The root Makefile has `ensure_*` targets; see `make proto` and [Makefile](Makefile) around the `PROTO_*` variables.
+Requires `protoc` 33.1 (pinned in [mise.toml](mise.toml)), `protoc-gen-go`, and `protoc-gen-go-grpc`, plus a Swift toolchain: the Swift plugins are built from the pinned manifests in [scripts/protoc-plugins](scripts/protoc-plugins/README.md) rather than installed. Each generation target refuses to run on the wrong version of any of them, because the generated output differs by version. See `make proto` and [Makefile](Makefile) around the `PROTOC_*` and `PROTO_*` variables.
 
 ---
 
