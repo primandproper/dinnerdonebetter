@@ -3,6 +3,7 @@ package grpcapi
 import (
 	"bytes"
 	"context"
+	"slices"
 	"testing"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc/interceptors"
@@ -22,8 +23,8 @@ import (
 
 // chainUnary composes interceptors the way grpc.ChainUnaryInterceptor does: the first is outermost.
 func chainUnary(chain []grpc.UnaryServerInterceptor, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) grpc.UnaryHandler {
-	for i := len(chain) - 1; i >= 0; i-- {
-		interceptor, next := chain[i], handler
+	for _, c := range slices.Backward(chain) {
+		interceptor, next := c, handler
 		handler = func(ctx context.Context, req any) (any, error) {
 			return interceptor(ctx, req, info, next)
 		}
@@ -34,8 +35,8 @@ func chainUnary(chain []grpc.UnaryServerInterceptor, info *grpc.UnaryServerInfo,
 
 // chainStream is chainUnary for streams.
 func chainStream(chain []grpc.StreamServerInterceptor, info *grpc.StreamServerInfo, handler grpc.StreamHandler) grpc.StreamHandler {
-	for i := len(chain) - 1; i >= 0; i-- {
-		interceptor, next := chain[i], handler
+	for _, c := range slices.Backward(chain) {
+		interceptor, next := c, handler
 		handler = func(srv any, ss grpc.ServerStream) error {
 			return interceptor(srv, ss, info, next)
 		}
