@@ -75,3 +75,6 @@ legacy_frontend
 # ran by hand.
 backend/server
 backend/bootstrap
+
+# Built protoc plugins (see scripts/protoc-plugins)
+scripts/protoc-plugins/*/.build/

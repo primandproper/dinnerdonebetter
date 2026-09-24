@@ -3,4 +3,5 @@ ruby      = "3.3.11"  # Gemfile has no version constraint; Bundler 4.0.3 require
 swiftlint = "0.63.3"  # ios/Makefile: was brew install swiftlint (unversioned)
 
 # swift-format has no mise plugin; remains a brew dependency in ios/Makefile.
-# protoc-gen-swift and protoc-gen-grpc-swift likewise remain as brew dependencies.
+# protoc-gen-swift and protoc-gen-grpc-swift-2 are built from the pinned manifests in
+# ../scripts/protoc-plugins by the root Makefile.
