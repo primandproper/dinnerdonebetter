@@ -8,6 +8,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 
 	"github.com/primandproper/platform-go/v14/authentication/signin"
 	"github.com/primandproper/platform-go/v14/authentication/signin/refreshtokens"
@@ -55,19 +56,6 @@ func RegisterAuth(i do.Injector) {
 	// and demands a proven second factor whatever it says, which is platform's rule and
 	// the one this application already enforced by hand.
 	do.Provide[*signin.Service](i, func(i do.Injector) (*signin.Service, error) {
-		dataChangesPublisher, err := do.MustInvoke[messagequeue.PublisherProvider](i).NewPublisher(
-			do.MustInvoke[context.Context](i),
-			do.MustInvoke[*queuescfg.Config](i).DataChangesTopicName,
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		hooks, err := NewSignInHooks(dataChangesPublisher)
-		if err != nil {
-			return nil, err
-		}
-
 		return signin.NewService(
 			do.MustInvoke[database.Client](i),
 			do.MustInvoke[platformidentity.Store](i),
@@ -98,7 +86,10 @@ func RegisterAuth(i do.Injector) {
 			// token here is not checked against anything but its signature, so its lifetime
 			// is how long a sign-out takes to take effect.
 			signin.WithRefreshTokenStore(do.MustInvoke[*refreshtokens.SQLStore](i)),
-			signin.WithHooks(hooks),
+			signin.WithHooks(NewSignInHooks(
+				do.MustInvoke[logging.Logger](i),
+				do.MustInvoke[*events.Emitter](i),
+			)),
 			signin.WithLogger(do.MustInvoke[logging.Logger](i)),
 			signin.WithTracerProvider(do.MustInvoke[tracing.Provider](i)),
 			signin.WithMetricsProvider(do.MustInvoke[metrics.Provider](i)),

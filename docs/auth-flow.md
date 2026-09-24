@@ -109,8 +109,9 @@ assertion, and the sign count advancing between logins.
 The same password sign-in, through the door `@primandproper/platform-client`'s `Session` calls:
 `primandproper.platform.signin.v1.SignInService`. Both doors prove the credentials with the same
 `signin.Service`, built in `internal/authentication/do.go`, so they check the same things in the
-same order and publish the same "logged in" event (a sign-in hook, `signin_hooks.go`). What
-differs is what they hand back:
+same order and record the same "logged in" event (a sign-in hook, `signin_hooks.go`). The hook
+writes the event to the outbox on sign-in's own transaction, so on this door it commits with the
+refresh token or not at all. What differs is what they hand back:
 
 | | `AuthService.LoginForToken` | `SignInService.LoginForToken` |
 | --- | --- | --- |
