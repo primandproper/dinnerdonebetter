@@ -229,6 +229,9 @@ func BuildUnaryServerInterceptors(
 	return []grpc.UnaryServerInterceptor{
 		// recovery must be outermost so it catches panics from downstream interceptors and handlers.
 		RecoveryUnaryServerInterceptor(logger),
+		// Next, so nothing any interceptor below returns reaches a client with the encoded error
+		// chain still attached. See error_details.go.
+		StripEncodedErrorDetailUnaryInterceptor(),
 		authInterceptor.UnaryServerInterceptor(),
 		// Runs after the interceptor above so it sees the session that one established.
 		// Both enforce, and they are proven equivalent — see auditOnlyAuthorization.
@@ -244,6 +247,9 @@ func BuildStreamServerInterceptors(logger logging.Logger, authInterceptor *inter
 	return []grpc.StreamServerInterceptor{
 		// recovery must be outermost so it catches panics from downstream interceptors and handlers.
 		RecoveryStreamServerInterceptor(logger),
+		// Next, so nothing any interceptor below returns reaches a client with the encoded error
+		// chain still attached. See error_details.go.
+		StripEncodedErrorDetailStreamInterceptor(),
 		authInterceptor.StreamServerInterceptor(),
 		errorsgrpc.StreamErrorEncodingInterceptor(),
 	}
