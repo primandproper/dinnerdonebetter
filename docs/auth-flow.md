@@ -113,7 +113,7 @@ same order and publish the same "logged in" event (a sign-in hook, `signin_hooks
 differs is what they hand back:
 
 | | `AuthService.LoginForToken` | `SignInService.LoginForToken` |
-|---|---|---|
+| --- | --- | --- |
 | Access token | JWT naming a row in `ddb_sessions` (`sid`) | JWT naming a login (`sid` is the refresh token family) and the directory it was issued in (`scope`) |
 | Refresh token | JWT, checked against the session row | Opaque, single use, rotated on every exchange; presenting a spent one ends the login |
 | Sign-out takes effect | On the next request (the session row is deleted) | When the access token expires (an hour; 15 minutes for an administrator) |
@@ -378,32 +378,32 @@ store refuses a session past either deadline whether or not anything has swept i
 
 ## Key File Reference
 
-| Area                                          | Path                                                                                |
-|-----------------------------------------------|-------------------------------------------------------------------------------------|
-| Auth manager (login, passkey, token exchange) | `internal/authentication/manager.go`                                                |
-| JWT issuance/parsing                          | `internal/authentication/tokens/jwt/jwt.go`                                         |
-| WebAuthn service (credentials, sign count)    | `internal/authentication/webauthn/service.go`                                       |
-| WebAuthn user adapter                         | `internal/authentication/webauthn/user_adapter.go`                                  |
-| Passkey ceremony config + wiring              | `internal/services/auth/grpc/do.go`                                                 |
-| gRPC auth service                             | `internal/services/auth/grpc/auth.go`                                               |
-| Auth interceptor                              | `internal/services/auth/grpc/interceptors/authn_interceptor.go`                     |
-| OAuth2 server                                 | `internal/services/auth/handlers/authentication/oauth2.go`                          |
-| OAuth2 client registry store                  | `internal/services/auth/handlers/authentication/oauth2_store.go`                    |
-| OAuth2 subject authenticator                  | `internal/services/auth/handlers/authentication/oauth2_authenticator.go`            |
-| Passkey HTTP endpoints (web)                  | `frontend/consumer/src/routes/auth/passkey/`                                        |
-| Web app auth middleware                       | `internal/platform/webappauth/middleware.go`                                        |
-| Client builder (OAuth2 + JWT)                 | `internal/platform/webappauth/client_builder.go`                                    |
-| gRPC client (OAuth2, Bearer)                  | `pkg/client/client.go`                                                              |
-| Password reset store (audit wrapper)          | `internal/repositories/postgres/auth/password_reset_tokens.go`                      |
-| Password reset flow (issue, redeem)           | `internal/domain/auth/managers/auth_manager.go`                                     |
-| Expired-row sweep (oauth2, reset, sessions, refresh tokens) | `internal/services/oauth/workers/db_cleaner/db_cleaner.go`            |
-| Platform SignInService mount                  | `internal/build/signin/grpc.go`                                                     |
-| Sign-in hooks (the "logged in" event)         | `internal/authentication/signin_hooks.go`                                           |
-| Sign-in refresh token store                   | `internal/repositories/postgres/auth/refresh_tokens.go`                             |
-| Session payload, holder, aliases              | `internal/domain/auth/user_session.go`                                              |
-| Session store + audit wrapper                 | `internal/repositories/postgres/auth/user_sessions.go`                              |
-| Session expiry policy config                  | `internal/authentication/config/config.go`                                          |
-| Session table migration (version 35)          | `internal/repositories/postgres/migrations/migrate.go`                              |
+| Area                                                        | Path                                                                     |
+|-------------------------------------------------------------|--------------------------------------------------------------------------|
+| Auth manager (login, passkey, token exchange)               | `internal/authentication/manager.go`                                     |
+| JWT issuance/parsing                                        | `internal/authentication/tokens/jwt/jwt.go`                              |
+| WebAuthn service (credentials, sign count)                  | `internal/authentication/webauthn/service.go`                            |
+| WebAuthn user adapter                                       | `internal/authentication/webauthn/user_adapter.go`                       |
+| Passkey ceremony config + wiring                            | `internal/services/auth/grpc/do.go`                                      |
+| gRPC auth service                                           | `internal/services/auth/grpc/auth.go`                                    |
+| Auth interceptor                                            | `internal/services/auth/grpc/interceptors/authn_interceptor.go`          |
+| OAuth2 server                                               | `internal/services/auth/handlers/authentication/oauth2.go`               |
+| OAuth2 client registry store                                | `internal/services/auth/handlers/authentication/oauth2_store.go`         |
+| OAuth2 subject authenticator                                | `internal/services/auth/handlers/authentication/oauth2_authenticator.go` |
+| Passkey HTTP endpoints (web)                                | `frontend/consumer/src/routes/auth/passkey/`                             |
+| Web app auth middleware                                     | `internal/platform/webappauth/middleware.go`                             |
+| Client builder (OAuth2 + JWT)                               | `internal/platform/webappauth/client_builder.go`                         |
+| gRPC client (OAuth2, Bearer)                                | `pkg/client/client.go`                                                   |
+| Password reset store (audit wrapper)                        | `internal/repositories/postgres/auth/password_reset_tokens.go`           |
+| Password reset flow (issue, redeem)                         | `internal/domain/auth/managers/auth_manager.go`                          |
+| Expired-row sweep (oauth2, reset, sessions, refresh tokens) | `internal/services/oauth/workers/db_cleaner/db_cleaner.go`               |
+| Platform SignInService mount                                | `internal/build/signin/grpc.go`                                          |
+| Sign-in hooks (the "logged in" event)                       | `internal/authentication/signin_hooks.go`                                |
+| Sign-in refresh token store                                 | `internal/repositories/postgres/auth/refresh_tokens.go`                  |
+| Session payload, holder, aliases                            | `internal/domain/auth/user_session.go`                                   |
+| Session store + audit wrapper                               | `internal/repositories/postgres/auth/user_sessions.go`                   |
+| Session expiry policy config                                | `internal/authentication/config/config.go`                               |
+| Session table migration (version 35)                        | `internal/repositories/postgres/migrations/migrate.go`                   |
 
 ## Flow Diagram
 
