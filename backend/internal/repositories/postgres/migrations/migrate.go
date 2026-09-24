@@ -27,6 +27,7 @@ import (
 	oauth2migrations "github.com/primandproper/platform-go/v14/authentication/oauth2serverstore/migrations"
 	passkeysmigrations "github.com/primandproper/platform-go/v14/authentication/passkeys/migrations"
 	passwordresetmigrations "github.com/primandproper/platform-go/v14/authentication/passwordreset/migrations"
+	refreshtokensmigrations "github.com/primandproper/platform-go/v14/authentication/signin/refreshtokens/migrations"
 	webauthndatabase "github.com/primandproper/platform-go/v14/authentication/webauthnsessions"
 	webauthnmigrations "github.com/primandproper/platform-go/v14/authentication/webauthnsessions/migrations"
 	billingmigrations "github.com/primandproper/platform-go/v14/billing/migrations"
@@ -105,6 +106,7 @@ const (
 	billingMigrationVersion         = 20
 	notificationsMigrationVersion   = 21
 	oauth2ClientsMigrationVersion   = 22
+	refreshTokensMigrationVersion   = 23
 	passkeysMigrationVersion        = 24
 )
 
@@ -292,6 +294,11 @@ func NewMigrator(logger logging.Logger) (*Migrator, error) {
 		return nil, err
 	}
 
+	refreshTokensDDL, err := renderRefreshTokensDDL()
+	if err != nil {
+		return nil, err
+	}
+
 	migrator, err := migrate.New(
 		dialect.Postgres,
 		migrationFiles,
@@ -318,6 +325,7 @@ func NewMigrator(logger logging.Logger) (*Migrator, error) {
 		migrate.WithGeneratedMigration(billingMigrationVersion, "create_billing_tables", billingDDL),
 		migrate.WithGeneratedMigration(notificationsMigrationVersion, "create_notifications_tables", notificationsDDL),
 		migrate.WithGeneratedMigration(oauth2ClientsMigrationVersion, "adopt_oauth2_registered_clients", oauth2ClientsDDL),
+		migrate.WithGeneratedMigration(refreshTokensMigrationVersion, "create_signin_refresh_tokens_table", refreshTokensDDL),
 		migrate.WithGeneratedMigration(identityMigrationVersion, "create_identity_tables", identityDDL),
 		migrate.WithGeneratedMigration(passkeysMigrationVersion, "create_passkey_credentials_table", passkeysDDL),
 	)
@@ -840,6 +848,35 @@ func renderPasswordResetDDL() (string, error) {
 
 	body.WriteString(schema)
 	body.WriteString(userCascade(table, "belongs_to_user"))
+
+	return body.String(), nil
+}
+
+// renderRefreshTokensDDL renders the table platform's sign-in keeps its rotating refresh
+// tokens in, keyed to the user each one was issued to.
+//
+// See userCascade: a refresh token is a credential, and one that outlived the erasure of
+// the person it signs in would be the same leftover the other credential tables had. The
+// column is subject_id, which in this deployment is always a user — a refresh token is
+// minted only by a password sign-in, and nothing signs in but a person.
+//
+// It took 23, the one gap left in the sequence, rather than the next number at the end. The
+// sequence is ordered by version, and nothing after 23 depends on this table either way.
+//
+// The prefix is auth.TablePrefix, so this renders ddb_signin_refresh_tokens, beside the
+// other two tables this application's sign-in writes.
+func renderRefreshTokensDDL() (string, error) {
+	schema, err := refreshtokensmigrations.SQL(dialect.Postgres, ddbauth.TablePrefix)
+	if err != nil {
+		return "", errors.Wrap(err, "rendering refresh token migration")
+	}
+
+	table := ddl.Qualify(ddbauth.TablePrefix) + "signin_refresh_tokens"
+
+	body := &strings.Builder{}
+
+	body.WriteString(schema)
+	body.WriteString(userCascade(table, "subject_id"))
 
 	return body.String(), nil
 }

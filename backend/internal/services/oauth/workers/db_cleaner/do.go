@@ -4,6 +4,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 
 	"github.com/primandproper/platform-go/v14/authentication/passwordreset"
+	"github.com/primandproper/platform-go/v14/authentication/signin/refreshtokens"
 	sessionsdatabase "github.com/primandproper/platform-go/v14/sessions/database"
 	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
@@ -22,6 +23,7 @@ func RegisterDBCleaner(i do.Injector) {
 			do.MustInvoke[metrics.Provider](i),
 			do.MustInvoke[oauth2server.Store](i),
 			do.MustInvoke[*passwordreset.SQLStore](i),
+			do.MustInvoke[*refreshtokens.SQLStore](i),
 			do.MustInvoke[*sessionsdatabase.Backend[auth.SessionPayload]](i),
 		)
 	})

@@ -67,6 +67,7 @@ type EmitOption func(*emitConfig)
 
 type emitConfig struct {
 	orderingKey string
+	userID      string
 }
 
 // WithOrderingKey sets the webhook ordering key for this event, overriding the default of the
@@ -84,6 +85,19 @@ func WithOrderingKey(key string) EmitOption {
 	return func(c *emitConfig) {
 		if key != "" {
 			c.orderingKey = key
+		}
+	}
+}
+
+// WithUserID attributes this event to the given user, overriding the one read from the context.
+//
+// It is for the writes made before anybody has a session: a sign-in is recorded inside the
+// transaction that proves it, and the context there carries nobody yet, so the user the event
+// is about has to be named rather than read.
+func WithUserID(userID string) EmitOption {
+	return func(c *emitConfig) {
+		if userID != "" {
+			c.userID = userID
 		}
 	}
 }
@@ -116,6 +130,10 @@ func (e *Emitter) Emit(ctx context.Context, q database.Tx, logger logging.Logger
 		if opt != nil {
 			opt(cfg)
 		}
+	}
+
+	if cfg.userID != "" {
+		msg.UserID = cfg.userID
 	}
 
 	// The data change event is enqueued inside the caller's transaction, and the registered

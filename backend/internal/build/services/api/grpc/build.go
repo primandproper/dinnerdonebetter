@@ -16,6 +16,7 @@ import (
 	paymentsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/payments"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/build/sagas"
 	settingsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/settings"
+	signinbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/signin"
 	waitlistsbuild2 "github.com/primandproper/dinnerdonebetter/backend/internal/build/waitlists"
 	webhooksbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/webhooks"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
@@ -204,6 +205,7 @@ func BuildInjector(
 	issuereportsbuild.RegisterIssueReportsService(i)
 	notificationsbuild.RegisterNotificationsService(i)
 	settingsbuild.RegisterSettingsService(i)
+	signinbuild.RegisterSignInService(i)
 	uploadedmediasvc.RegisterUploadedMediaService(i)
 	webhooksbuild.RegisterWebhooksService(i)
 	oauth2clientsbuild.RegisterOAuth2ClientsService(i)

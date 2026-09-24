@@ -9,6 +9,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	identitybuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/identity"
 	oauth2clientsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/oauth2clients"
+	signinbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/signin"
 	waitlistsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/waitlists"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	analyticspb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/analytics"
@@ -29,6 +30,7 @@ import (
 	auditpb "github.com/primandproper/platform-go/v14/audit/auditpb"
 	auditgrpc "github.com/primandproper/platform-go/v14/audit/grpc"
 	"github.com/primandproper/platform-go/v14/authentication/oauth2clients/oauth2clientspb"
+	"github.com/primandproper/platform-go/v14/authentication/signin/signinpb"
 	billingpb "github.com/primandproper/platform-go/v14/billing/billingpb"
 	paymentsgrpc "github.com/primandproper/platform-go/v14/billing/grpc"
 	commentspb "github.com/primandproper/platform-go/v14/comments/commentspb"
@@ -90,6 +92,7 @@ func RegisterExtras(i do.Injector) {
 			oauth2clientsbuild.Permissions(),
 			paymentsgrpc.Permissions(),
 			settingsgrpc.Permissions(),
+			signinbuild.Permissions(),
 			do.MustInvoke[uploadedmediagrpc.UploadedMediaMethodPermissions](i),
 			waitlistsbuild.Permissions(),
 			webhooksgrpc.Permissions(),
@@ -147,6 +150,7 @@ func RegisterExtras(i do.Injector) {
 			do.MustInvoke[oauth2clientspb.OAuth2ClientsServiceServer](i),
 			do.MustInvoke[billingpb.BillingServiceServer](i),
 			do.MustInvoke[settingspb.SettingsServiceServer](i),
+			do.MustInvoke[signinpb.SignInServiceServer](i),
 			do.MustInvoke[uploadedmediasvcpb.UploadedMediaServiceServer](i),
 			do.MustInvoke[waitlistspb.WaitlistsServiceServer](i),
 			do.MustInvoke[webhookspb.WebhooksServiceServer](i),
@@ -188,6 +192,7 @@ func BuildRegistrationFuncs(
 	oauth2ClientsService oauth2clientspb.OAuth2ClientsServiceServer,
 	paymentsService billingpb.BillingServiceServer,
 	settingsService settingspb.SettingsServiceServer,
+	signInService signinpb.SignInServiceServer,
 	uploadedMediaService uploadedmediasvcpb.UploadedMediaServiceServer,
 	waitlistsService waitlistspb.WaitlistsServiceServer,
 	webhooksService webhookspb.WebhooksServiceServer,
@@ -207,6 +212,7 @@ func BuildRegistrationFuncs(
 			oauth2clientspb.RegisterOAuth2ClientsServiceServer(server, oauth2ClientsService)
 			billingpb.RegisterBillingServiceServer(server, paymentsService)
 			settingspb.RegisterSettingsServiceServer(server, settingsService)
+			signinpb.RegisterSignInServiceServer(server, signInService)
 			uploadedmediasvcpb.RegisterUploadedMediaServiceServer(server, uploadedMediaService)
 			waitlistspb.RegisterWaitlistsServiceServer(server, waitlistsService)
 			webhookspb.RegisterWebhooksServiceServer(server, webhooksService)
@@ -309,6 +315,7 @@ func AggregateMethodPermissions(
 	oauth2ClientsPermissions map[string][]authorization.Permission,
 	paymentsPermissions map[string][]authorization.Permission,
 	settingsPermissions map[string][]authorization.Permission,
+	signInPermissions map[string][]authorization.Permission,
 	uploadedmediaPermissions uploadedmediagrpc.UploadedMediaMethodPermissions,
 	waitlistsPermissions map[string][]authorization.Permission,
 	webhooksPermissions map[string][]authorization.Permission,
@@ -328,6 +335,7 @@ func AggregateMethodPermissions(
 	maps.Copy(result, oauth2ClientsPermissions)
 	maps.Copy(result, paymentsPermissions)
 	maps.Copy(result, settingsPermissions)
+	maps.Copy(result, signInPermissions)
 	maps.Copy(result, uploadedmediaPermissions)
 	maps.Copy(result, waitlistsPermissions)
 	maps.Copy(result, webhooksPermissions)

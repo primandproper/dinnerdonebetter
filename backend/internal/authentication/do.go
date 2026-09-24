@@ -8,8 +8,10 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 
 	"github.com/primandproper/platform-go/v14/authentication/signin"
+	"github.com/primandproper/platform-go/v14/authentication/signin/refreshtokens"
 	platformidentity "github.com/primandproper/platform-go/v14/identity"
 	"github.com/primandproper/primitives-go/v2/authentication/argon2"
 	"github.com/primandproper/primitives-go/v2/authentication/tokens"
@@ -73,6 +75,21 @@ func RegisterAuth(i do.Injector) {
 			// And the verification reads and writes an emailed link is answered through.
 			// The identity store satisfies this one outright too.
 			signin.WithVerifications(do.MustInvoke[platformidentity.Store](i)),
+			// Where a sign-in through platform's SignInService keeps the refresh token that
+			// outlives its access token. With a store named, LoginForToken mints a rotating
+			// pair and the three refresh doors work; without one they refuse.
+			//
+			// The lifetimes are platform's defaults: an hour for an access token and thirty
+			// days for a sign-in, fifteen minutes and twelve hours for an administrative one.
+			// This application's own TokensConfig lifetimes are not reused — they are unset in
+			// every environment, which issues tokens with no lifetime at all, and an access
+			// token here is not checked against anything but its signature, so its lifetime
+			// is how long a sign-out takes to take effect.
+			signin.WithRefreshTokenStore(do.MustInvoke[*refreshtokens.SQLStore](i)),
+			signin.WithHooks(NewSignInHooks(
+				do.MustInvoke[logging.Logger](i),
+				do.MustInvoke[*events.Emitter](i),
+			)),
 			signin.WithLogger(do.MustInvoke[logging.Logger](i)),
 			signin.WithTracerProvider(do.MustInvoke[tracing.Provider](i)),
 			signin.WithMetricsProvider(do.MustInvoke[metrics.Provider](i)),
