@@ -1,5 +1,5 @@
 import type { PageServerLoad } from './$types';
-import { getSubscriptionsForAccount } from '$lib/grpc/clients';
+import { listSubscriptionsForAccount } from '$lib/grpc/clients';
 import { QueryFilter } from '@dinnerdonebetter/api-client';
 
 const DEFAULT_LIST_FILTER = QueryFilter.create({ maxResponseSize: 100 });
@@ -14,7 +14,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
     return { items: [], accountId: null, error: null };
   }
   try {
-    const res = (await getSubscriptionsForAccount(token, {
+    const res = (await listSubscriptionsForAccount(token, {
       accountId,
       filter: DEFAULT_LIST_FILTER,
     })) as {

@@ -8,7 +8,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
     return { waitlist: null, error: 'Not authenticated' };
   }
   try {
-    const res = (await getWaitlist(token, { waitlistId: id })) as { result?: Record<string, unknown> };
+    const res = (await getWaitlist(token, { listId: id })) as { result?: Record<string, unknown> };
     return { waitlist: res?.result ?? null };
   } catch (e) {
     return {

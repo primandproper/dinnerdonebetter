@@ -45,43 +45,6 @@ import type {
   UpdateUserUsernameRequest,
   UpdateUserUsernameResponse,
 } from './auth/auth_service_types.js';
-// The directory is platform's, so its client and its messages come from the schema
-// platform-go ships rather than from one of this repository's own protos. The RPC names
-// changed with it: CreateAccountInvitation is Invite, GetAccountsForUser is
-// ListAccountsForUser, and the three calls that each changed one field of a user are one
-// UpdateProfile.
-import { IdentityServiceClient } from './primandproper/platform/identity/v1/identity.js';
-import type {
-  ListAccountsForUserRequest,
-  ListAccountsForUserResponse,
-  ListAccountMembersRequest,
-  ListAccountMembersResponse,
-  ListInvitationsFromUserRequest,
-  ListInvitationsFromUserResponse,
-  InviteRequest,
-  InviteResponse,
-  CancelInvitationRequest,
-  CancelInvitationResponse,
-  SetMembershipRolesRequest,
-  SetMembershipRolesResponse,
-  UpdateAccountRequest,
-  UpdateAccountResponse,
-  UpdateProfileRequest,
-  UpdateProfileResponse,
-} from './primandproper/platform/identity/v1/identity.js';
-import { SettingsServiceClient } from './settings/settings_service.js';
-import type {
-  GetSettingDefinitionsRequest,
-  GetSettingDefinitionsResponse,
-  GetSettingValuesRequest,
-  GetSettingValuesResponse,
-  ResolveSettingsRequest,
-  ResolveSettingsResponse,
-  SetSettingValueRequest,
-  SetSettingValueResponse,
-  ClearSettingValueRequest,
-  ClearSettingValueResponse,
-} from './settings/settings_service_types.js';
 import { MealPlanningServiceClient } from './mealplanning/mealplanning_service.js';
 import { AnalyticsServiceClient } from './analytics/analytics_service.js';
 import type {
@@ -152,22 +115,12 @@ export function createGrpcClients(config: GrpcClientConfig) {
   const serverUrl = config.serverUrl;
 
   let authClient: AuthServiceClient | null = null;
-  let identityClient: IdentityServiceClient | null = null;
-  let settingsClient: SettingsServiceClient | null = null;
   let mealplanningClient: MealPlanningServiceClient | null = null;
   let analyticsClient: AnalyticsServiceClient | null = null;
 
   function getAuthClient(): AuthServiceClient {
     if (!authClient) authClient = new AuthServiceClient(serverUrl, credentials);
     return authClient;
-  }
-  function getIdentityClient(): IdentityServiceClient {
-    if (!identityClient) identityClient = new IdentityServiceClient(serverUrl, credentials);
-    return identityClient;
-  }
-  function getSettingsClient(): SettingsServiceClient {
-    if (!settingsClient) settingsClient = new SettingsServiceClient(serverUrl, credentials);
-    return settingsClient;
   }
   function getMealplanningClient(): MealPlanningServiceClient {
     if (!mealplanningClient) mealplanningClient = new MealPlanningServiceClient(serverUrl, credentials);
@@ -304,103 +257,6 @@ export function createGrpcClients(config: GrpcClientConfig) {
         { refreshToken, desiredAccountId: desiredAccountId ?? '' },
         emptyMetadata,
       ),
-
-    listAccountsForUser: (
-      oauth2Token: string,
-      request: ListAccountsForUserRequest,
-    ): Promise<ListAccountsForUserResponse> =>
-      promisifyUnary<ListAccountsForUserRequest, ListAccountsForUserResponse>(
-        getIdentityClient().listAccountsForUser.bind(getIdentityClient()),
-      )(request, authMetadata(oauth2Token)),
-
-    listAccountMembers: (
-      oauth2Token: string,
-      request: ListAccountMembersRequest,
-    ): Promise<ListAccountMembersResponse> =>
-      promisifyUnary<ListAccountMembersRequest, ListAccountMembersResponse>(
-        getIdentityClient().listAccountMembers.bind(getIdentityClient()),
-      )(request, authMetadata(oauth2Token)),
-
-    listInvitationsFromUser: (
-      oauth2Token: string,
-      request: ListInvitationsFromUserRequest,
-    ): Promise<ListInvitationsFromUserResponse> =>
-      promisifyUnary<ListInvitationsFromUserRequest, ListInvitationsFromUserResponse>(
-        getIdentityClient().listInvitationsFromUser.bind(getIdentityClient()),
-      )(request, authMetadata(oauth2Token)),
-
-    invite: (oauth2Token: string, request: InviteRequest): Promise<InviteResponse> =>
-      promisifyUnary<InviteRequest, InviteResponse>(getIdentityClient().invite.bind(getIdentityClient()))(
-        request,
-        authMetadata(oauth2Token),
-      ),
-
-    cancelInvitation: (oauth2Token: string, request: CancelInvitationRequest): Promise<CancelInvitationResponse> =>
-      promisifyUnary<CancelInvitationRequest, CancelInvitationResponse>(
-        getIdentityClient().cancelInvitation.bind(getIdentityClient()),
-      )(request, authMetadata(oauth2Token)),
-
-    setMembershipRoles: (
-      oauth2Token: string,
-      request: SetMembershipRolesRequest,
-    ): Promise<SetMembershipRolesResponse> =>
-      promisifyUnary<SetMembershipRolesRequest, SetMembershipRolesResponse>(
-        getIdentityClient().setMembershipRoles.bind(getIdentityClient()),
-      )(request, authMetadata(oauth2Token)),
-
-    updateAccount: (oauth2Token: string, request: UpdateAccountRequest): Promise<UpdateAccountResponse> =>
-      promisifyUnary<UpdateAccountRequest, UpdateAccountResponse>(
-        getIdentityClient().updateAccount.bind(getIdentityClient()),
-      )(request, authMetadata(oauth2Token)),
-
-    // One call where there were three. A handle, a display name and the two parts of a
-    // name are all fields of the same update, and each is absent unless it is being set —
-    // so sending one no longer blanks the others.
-    updateProfile: (oauth2Token: string, request: UpdateProfileRequest): Promise<UpdateProfileResponse> =>
-      promisifyUnary<UpdateProfileRequest, UpdateProfileResponse>(
-        getIdentityClient().updateProfile.bind(getIdentityClient()),
-      )(request, authMetadata(oauth2Token)),
-
-    // uploadUserAvatar is gone with the RPC it called.
-    //
-    // An avatar was never in the directory's User — it is a row in this application's
-    // upload registry and a reference to it — so platform's identity surface has no
-    // method for one, correctly. Restoring it means an RPC on the media surface and a
-    // read that hydrates the reference, which is its own piece of work rather than part
-    // of this cutover.
-
-    getSettingDefinitions: (
-      oauth2Token: string,
-      request: GetSettingDefinitionsRequest,
-    ): Promise<GetSettingDefinitionsResponse> =>
-      promisifyUnary<GetSettingDefinitionsRequest, GetSettingDefinitionsResponse>(
-        getSettingsClient().getSettingDefinitions.bind(getSettingsClient()),
-      )(request, authMetadata(oauth2Token)),
-
-    getSettingValues: (oauth2Token: string, request: GetSettingValuesRequest): Promise<GetSettingValuesResponse> =>
-      promisifyUnary<GetSettingValuesRequest, GetSettingValuesResponse>(
-        getSettingsClient().getSettingValues.bind(getSettingsClient()),
-      )(request, authMetadata(oauth2Token)),
-
-    // resolveSettings is the read a preferences page wants: every setting the
-    // signed-in user may see, paired with the value that applies to them — their
-    // own answer, or the setting's default where they have not answered.
-    resolveSettings: (oauth2Token: string, request: ResolveSettingsRequest): Promise<ResolveSettingsResponse> =>
-      promisifyUnary<ResolveSettingsRequest, ResolveSettingsResponse>(
-        getSettingsClient().resolveSettings.bind(getSettingsClient()),
-      )(request, authMetadata(oauth2Token)),
-
-    // One call whether or not the user had answered before: the server converges
-    // on the row, so a first answer and a changed one are the same write.
-    setSettingValue: (oauth2Token: string, request: SetSettingValueRequest): Promise<SetSettingValueResponse> =>
-      promisifyUnary<SetSettingValueRequest, SetSettingValueResponse>(
-        getSettingsClient().setSettingValue.bind(getSettingsClient()),
-      )(request, authMetadata(oauth2Token)),
-
-    clearSettingValue: (oauth2Token: string, request: ClearSettingValueRequest): Promise<ClearSettingValueResponse> =>
-      promisifyUnary<ClearSettingValueRequest, ClearSettingValueResponse>(
-        getSettingsClient().clearSettingValue.bind(getSettingsClient()),
-      )(request, authMetadata(oauth2Token)),
 
     getValidPreparations: (
       oauth2Token: string,

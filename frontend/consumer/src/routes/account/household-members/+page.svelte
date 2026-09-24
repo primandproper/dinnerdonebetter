@@ -6,7 +6,7 @@
     type Account,
     type Invitation,
     type MembershipWithUser,
-  } from '@dinnerdonebetter/api-client/primandproper/platform/identity/v1/identity';
+  } from '@primandproper/platform-client/identity/v1';
 
   let { data } = $props();
   const account = $derived(data?.account as Account | null | undefined);

@@ -12,13 +12,13 @@ export const load: PageServerLoad = async ({ locals }) => {
   let recipeCount = '-';
 
   try {
-    const usersRes = (await listUsers(token, {})) as { results?: unknown[] };
+    const usersRes = (await listUsers(token, { filter: undefined })) as { results?: unknown[] };
     if (usersRes?.results) userCount = String(usersRes.results.length);
   } catch {
     // leave as '-'
   }
   try {
-    const accountsRes = (await listAccounts(token, {})) as { results?: unknown[] };
+    const accountsRes = (await listAccounts(token, { filter: undefined })) as { results?: unknown[] };
     if (accountsRes?.results) accountCount = String(accountsRes.results.length);
   } catch {
     // leave as '-'

@@ -1,5 +1,5 @@
 import type { PageServerLoad } from './$types';
-import { getWaitlists } from '$lib/grpc/clients';
+import { listWaitlists } from '$lib/grpc/clients';
 import { QueryFilter } from '@dinnerdonebetter/api-client';
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -8,7 +8,7 @@ export const load: PageServerLoad = async ({ locals }) => {
     return { waitlists: [], error: 'Not authenticated' };
   }
   try {
-    const res = (await getWaitlists(token, { filter: QueryFilter.create({ maxResponseSize: 100 }) })) as {
+    const res = (await listWaitlists(token, { filter: QueryFilter.create({ maxResponseSize: 100 }) })) as {
       results?: Array<{ id?: string; name?: string }>;
     };
     return { waitlists: res?.results ?? [] };

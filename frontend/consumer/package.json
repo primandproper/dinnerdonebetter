@@ -39,6 +39,7 @@
     "@primandproper/httpclient": "0.0.2",
     "@primandproper/numbers": "0.0.2",
     "@primandproper/observability": "0.1.0",
+    "@primandproper/platform-client": "file:../../../platform-client-ts/primandproper-platform-client-0.0.0.tgz",
     "marked": "17.0.4",
     "mermaid": "11.13.0"
   },
