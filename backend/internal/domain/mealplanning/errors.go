@@ -33,7 +33,7 @@ var (
 // It exists to give those refusals a gRPC code. They are the caller's mistake and read as
 // InvalidArgument; without a sentinel they reached a client as Internal, which tells
 // somebody the server broke when what broke is the recipe they sent. The detail — which
-// step, which instrument, which preparation — travels in the status details, because a
-// status message is deliberately generic and a caller fixing this needs to know which of
-// thirty references was wrong.
+// step, which instrument, which preparation — is joined into the chain beside it, which is
+// where logs and traces read it. It does not reach a client: the status message is
+// deliberately generic, and the encoded chain is stripped at the server's edge (#1424).
 var ErrInvalidRecipeInput = platformerrors.New("recipe cannot be stored as described")

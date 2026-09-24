@@ -3076,26 +3076,32 @@ func TestRecipes_AssociatedRecipes(T *testing.T) {
 
 // requireRecipeInputRefused pins a refusal of a recipe that cannot be stored as described.
 //
-// It asserts on the status detail rather than on the message, because the message is
-// deliberately generic: primitives-go derives it from the gRPC code, on the stated ground
-// that a handler error's text is the whole wrapped chain and belongs nowhere a client can
-// read it. The chain still travels — UnaryErrorEncodingInterceptor attaches it as a status
-// detail and DecodeErrorFromStatus reads it back — and that is where the words naming the
-// rule broken, or the reference that disagreed, live.
+// The code is the half a client can act on, and the half that changed first: these used to
+// reach a client as Internal, telling somebody the server broke when what broke is the recipe
+// they sent. See mealplanning.ErrInvalidRecipeInput.
 //
-// The code is asserted too, and it is the half that changed: these used to reach a client
-// as Internal, telling somebody the server broke when what broke is the recipe they sent.
-// See mealplanning.ErrInvalidRecipeInput.
-func requireRecipeInputRefused(t *testing.T, ctx context.Context, err error, contains ...string) {
+// The rest pins what a client can no longer read. The words naming the rule broken, or the
+// reference that disagreed, travel only in the wrapped chain, and the server strips that from
+// every response before it leaves (#1424): the chain is for trusted peers, and every caller of
+// this server is a phone or a browser. So neither the status details nor the message may carry
+// them, and DecodeErrorFromStatus must find nothing to reconstruct. The words are passed in so
+// each call site still says which rule it drove the server into.
+func requireRecipeInputRefused(t *testing.T, ctx context.Context, err error, internal ...string) {
 	t.Helper()
 
 	require.Error(t, err)
 	assert.Equal(t, codes.InvalidArgument, status.Code(err))
 
-	decoded := errorsgrpc.DecodeErrorFromStatus(ctx, err)
-	require.Error(t, decoded, "the refusal carried no detail to read")
-
-	for _, want := range contains {
-		assert.Contains(t, decoded.Error(), want)
+	st := status.Convert(err)
+	for _, detail := range st.Proto().GetDetails() {
+		for _, word := range internal {
+			assert.NotContains(t, string(detail.GetValue()), word, "a %s detail carries the internal chain", detail.GetTypeUrl())
+		}
 	}
+	for _, word := range internal {
+		assert.NotContains(t, st.Message(), word)
+	}
+
+	assert.NotErrorIs(t, errorsgrpc.DecodeErrorFromStatus(ctx, err), mealplanning.ErrInvalidRecipeInput,
+		"the encoded error chain reached the client")
 }
