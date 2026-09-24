@@ -1,6 +1,7 @@
 import type { PageServerLoad } from './$types';
 import { QueryFilter } from '@dinnerdonebetter/api-client';
-import { getUser, listAccountsForUser, getAuditLogEntriesForUser } from '$lib/grpc/clients';
+import { EntryQuery } from '@primandproper/platform-client/audit/v1';
+import { getUser, listAccountsForUser, listAuditEntries } from '$lib/grpc/clients';
 
 export const load: PageServerLoad = async ({ locals, params, url }) => {
   const token = locals.accessToken;
@@ -34,8 +35,8 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
         // ignore
       }
       try {
-        const auditRes = (await getAuditLogEntriesForUser(token, {
-          userId: user.id as string,
+        const auditRes = (await listAuditEntries(token, {
+          query: EntryQuery.create({ resourceType: 'users', resourceId: user.id as string }),
           filter: QueryFilter.create({ maxResponseSize: 20 }),
         })) as { results?: unknown[] };
         auditLog = auditRes?.results ?? [];

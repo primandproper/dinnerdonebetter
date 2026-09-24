@@ -52,7 +52,7 @@
           <tbody>
             {#each data.auditLog as entry, i ((entry as Record<string, unknown>).id ?? i)}
               <tr>
-                <td>{(entry as Record<string, unknown>).createdAt ?? '-'}</td>
+                <td>{(entry as Record<string, unknown>).recordedAt ?? '-'}</td>
                 <td>{(entry as Record<string, unknown>).eventType ?? '-'}</td>
               </tr>
             {/each}

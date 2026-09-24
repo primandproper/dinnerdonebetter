@@ -3,59 +3,52 @@
  */
 
 import { env } from '$env/dynamic/private';
-import { createAdminGrpcClients } from '@dinnerdonebetter/api-client';
+import { createAdminGrpcClients, createPlatformClient } from '@dinnerdonebetter/api-client';
+import { AuditServiceService, type ListEntriesRequest } from '@primandproper/platform-client/audit/v1';
+import {
+  BillingServiceService,
+  type ListProductsRequest,
+  type ListSubscriptionsForAccountRequest,
+} from '@primandproper/platform-client/billing/v1';
+import {
+  IdentityServiceService,
+  type GetAccountRequest,
+  type GetUserRequest,
+  type ListAccountMembersRequest,
+  type ListAccountsForUserRequest,
+  type ListAccountsRequest,
+  type ListUsersRequest,
+} from '@primandproper/platform-client/identity/v1';
+import {
+  IssueReportsServiceService,
+  type GetReportRequest,
+  type ListReportsRequest,
+} from '@primandproper/platform-client/issuereports/v1';
+import {
+  OAuth2ClientsServiceService,
+  type GetOAuth2ClientRequest,
+  type ListOAuth2ClientsRequest,
+} from '@primandproper/platform-client/oauth2clients/v1';
+import { SettingsServiceService, type ListDefinitionsRequest } from '@primandproper/platform-client/settings/v1';
+import {
+  WaitlistsServiceService,
+  type GetListRequest,
+  type ListListsRequest,
+} from '@primandproper/platform-client/waitlists/v1';
 
-const clients = createAdminGrpcClients({
+const config = {
   serverUrl: env.GRPC_API_SERVER_URL ?? 'localhost:50051',
   insecure: env.DEVELOPING_LOCALLY === 'true',
-});
+};
+
+const clients = createAdminGrpcClients(config);
+const platform = createPlatformClient(config);
 
 export const authMetadata = clients.authMetadata;
 export const adminLoginForToken = clients.adminLoginForToken;
 export const beginPasskeyAuthentication = clients.beginPasskeyAuthentication;
 export const finishPasskeyAuthentication = clients.finishPasskeyAuthentication;
-// The directory's names — see the consumer app's clients.ts.
-export const getUser = clients.getUser;
-export const listUsers = clients.listUsers;
-export const getAccount = clients.getAccount;
-export const listAccounts = clients.listAccounts;
-export const searchUsersByUsername = clients.searchUsersByUsername;
-export const listAccountMembers = clients.listAccountMembers;
-export const listAccountsForUser = clients.listAccountsForUser;
-export const updateUserAccountStatus = clients.updateUserAccountStatus;
-export const updateProfile = clients.updateProfile;
-export const updateAccount = clients.updateAccount;
-export const getOAuth2Clients = clients.getOAuth2Clients;
-export const getOAuth2Client = clients.getOAuth2Client;
-export const createOAuth2Client = clients.createOAuth2Client;
-export const archiveOAuth2Client = clients.archiveOAuth2Client;
-export const getProducts = clients.getProducts;
-export const getProduct = clients.getProduct;
-export const createProduct = clients.createProduct;
-export const updateProduct = clients.updateProduct;
-export const archiveProduct = clients.archiveProduct;
-export const getSubscription = clients.getSubscription;
-export const createSubscription = clients.createSubscription;
-export const updateSubscription = clients.updateSubscription;
-export const archiveSubscription = clients.archiveSubscription;
-export const getSubscriptionsForAccount = clients.getSubscriptionsForAccount;
-export const getSettingDefinitions = clients.getSettingDefinitions;
-export const getSettingDefinition = clients.getSettingDefinition;
-export const getSettingDefinitionByName = clients.getSettingDefinitionByName;
-export const createSettingDefinition = clients.createSettingDefinition;
-export const updateSettingDefinition = clients.updateSettingDefinition;
-export const archiveSettingDefinition = clients.archiveSettingDefinition;
-export const getSettingValuesForDefinition = clients.getSettingValuesForDefinition;
-export const getWaitlists = clients.getWaitlists;
-export const getWaitlist = clients.getWaitlist;
-export const getWaitlistSignupsForWaitlist = clients.getWaitlistSignupsForWaitlist;
-export const getIssueReports = clients.getIssueReports;
-export const getIssueReport = clients.getIssueReport;
-export const updateIssueReport = clients.updateIssueReport;
-export const archiveIssueReport = clients.archiveIssueReport;
 export const testQueueMessage = clients.testQueueMessage;
-export const getAuditLogEntriesForUser = clients.getAuditLogEntriesForUser;
-export const getAuditLogEntriesForAccount = clients.getAuditLogEntriesForAccount;
 export const trackEvent = clients.trackEvent;
 export const trackAnonymousEvent = clients.trackAnonymousEvent;
 export const getRecipes = clients.getRecipes;
@@ -120,3 +113,41 @@ export const adminListSessionsForUser = clients.adminListSessionsForUser;
 export const adminRevokeUserSession = clients.adminRevokeUserSession;
 export const adminRevokeAllUserSessions = clients.adminRevokeAllUserSessions;
 export const revokeCurrentSession = clients.revokeCurrentSession;
+
+// Platform's services, called through @primandproper/platform-client's stubs rather
+// than any generated here. Only the reads a page calls are here: the writes these
+// pages once had called services the server no longer runs, and nothing reached them.
+export const getUser = (token: string, request: GetUserRequest) =>
+  platform.call(IdentityServiceService.getUser, token, request);
+export const listUsers = (token: string, request: ListUsersRequest) =>
+  platform.call(IdentityServiceService.listUsers, token, request);
+export const getAccount = (token: string, request: GetAccountRequest) =>
+  platform.call(IdentityServiceService.getAccount, token, request);
+export const listAccounts = (token: string, request: ListAccountsRequest) =>
+  platform.call(IdentityServiceService.listAccounts, token, request);
+export const listAccountMembers = (token: string, request: ListAccountMembersRequest) =>
+  platform.call(IdentityServiceService.listAccountMembers, token, request);
+export const listAccountsForUser = (token: string, request: ListAccountsForUserRequest) =>
+  platform.call(IdentityServiceService.listAccountsForUser, token, request);
+export const listOAuth2Clients = (token: string, request: ListOAuth2ClientsRequest) =>
+  platform.call(OAuth2ClientsServiceService.listOAuth2Clients, token, request);
+export const getOAuth2Client = (token: string, request: GetOAuth2ClientRequest) =>
+  platform.call(OAuth2ClientsServiceService.getOAuth2Client, token, request);
+export const listProducts = (token: string, request: ListProductsRequest) =>
+  platform.call(BillingServiceService.listProducts, token, request);
+export const listSubscriptionsForAccount = (token: string, request: ListSubscriptionsForAccountRequest) =>
+  platform.call(BillingServiceService.listSubscriptionsForAccount, token, request);
+export const listSettingDefinitions = (token: string, request: ListDefinitionsRequest) =>
+  platform.call(SettingsServiceService.listDefinitions, token, request);
+export const listWaitlists = (token: string, request: ListListsRequest) =>
+  platform.call(WaitlistsServiceService.listLists, token, request);
+export const getWaitlist = (token: string, request: GetListRequest) =>
+  platform.call(WaitlistsServiceService.getList, token, request);
+export const listIssueReports = (token: string, request: ListReportsRequest) =>
+  platform.call(IssueReportsServiceService.listReports, token, request);
+export const getIssueReport = (token: string, request: GetReportRequest) =>
+  platform.call(IssueReportsServiceService.getReport, token, request);
+// An operator's read is unscoped on the server, so a query by resource reaches every
+// chain an entry about that user or account could be on.
+export const listAuditEntries = (token: string, request: ListEntriesRequest) =>
+  platform.call(AuditServiceService.listEntries, token, request);

@@ -1,15 +1,9 @@
 import type { PageServerLoad } from './$types';
-import { getSettingDefinitions } from '$lib/grpc/clients';
+import { listSettingDefinitions } from '$lib/grpc/clients';
 import { QueryFilter } from '@dinnerdonebetter/api-client';
+import type { SettingDefinition } from '@primandproper/platform-client/settings/v1';
 
 const DEFAULT_LIST_FILTER = QueryFilter.create({ maxResponseSize: 100 });
-
-interface SettingDefinitionRow {
-  id?: string;
-  name?: string;
-  kind?: string;
-  adminOnly?: boolean;
-}
 
 /**
  * The catalog has no search behind it: platform's settings store lists
@@ -19,10 +13,10 @@ interface SettingDefinitionRow {
  * it always was — and a filter that returns nothing means nothing on this page
  * matched, not that the setting does not exist.
  */
-function matching(settings: SettingDefinitionRow[], query: string): SettingDefinitionRow[] {
+function matching(settings: SettingDefinition[], query: string): SettingDefinition[] {
   if (query === '') return settings;
   const needle = query.toLowerCase();
-  return settings.filter((setting) => (setting.name ?? '').toLowerCase().includes(needle));
+  return settings.filter((setting) => setting.name.toLowerCase().includes(needle));
 }
 
 export const load: PageServerLoad = async ({ locals, url }) => {
@@ -32,10 +26,8 @@ export const load: PageServerLoad = async ({ locals, url }) => {
   }
   const query = url.searchParams.get('q')?.trim() ?? '';
   try {
-    const res = (await getSettingDefinitions(token, { filter: DEFAULT_LIST_FILTER })) as {
-      results?: SettingDefinitionRow[];
-    };
-    return { settings: matching(res?.results ?? [], query), query };
+    const res = await listSettingDefinitions(token, { filter: DEFAULT_LIST_FILTER });
+    return { settings: matching(res.results, query), query };
   } catch (e) {
     return {
       settings: [],

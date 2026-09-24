@@ -8,7 +8,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
     return { report: null, error: 'Not authenticated' };
   }
   try {
-    const res = (await getIssueReport(token, { issueReportId: id })) as { result?: Record<string, unknown> };
+    const res = (await getIssueReport(token, { reportId: id })) as { result?: Record<string, unknown> };
     return { report: res?.result ?? null };
   } catch (e) {
     return {

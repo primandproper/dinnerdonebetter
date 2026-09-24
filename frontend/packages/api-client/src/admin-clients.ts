@@ -20,15 +20,7 @@ import type {
   RevokeCurrentSessionRequest,
   RevokeCurrentSessionResponse,
 } from './auth/auth_service_types.js';
-// The directory is platform's — see create-clients.ts for what its RPCs are called now.
-import { IdentityServiceClient } from './primandproper/platform/identity/v1/identity.js';
-import { OAuthServiceClient } from './oauth/oauth_service.js';
-import { PaymentsServiceClient } from './payments/payments_service.js';
-import { SettingsServiceClient } from './settings/settings_service.js';
-import { WaitlistsServiceClient } from './waitlists/waitlists_service.js';
-import { IssueReportsServiceClient } from './issue_reports/issue_reports_service.js';
 import { InternalOperationsClient } from './internal_ops/internal_ops_service.js';
-import { AuditServiceClient } from './audit/audit_service.js';
 import { AnalyticsServiceClient } from './analytics/analytics_service.js';
 import { MealPlanningServiceClient } from './mealplanning/mealplanning_service.js';
 import type { CreateRecipeRequest, CreateRecipeResponse } from './mealplanning/mealplanning_service_types.js';
@@ -56,14 +48,7 @@ export function createAdminGrpcClients(config: GrpcClientConfig) {
   const serverUrl = config.serverUrl;
 
   let authClient: AuthServiceClient | null = null;
-  let identityClient: IdentityServiceClient | null = null;
-  let oauthClient: OAuthServiceClient | null = null;
-  let paymentsClient: PaymentsServiceClient | null = null;
-  let settingsClient: SettingsServiceClient | null = null;
-  let waitlistsClient: WaitlistsServiceClient | null = null;
-  let issueReportsClient: IssueReportsServiceClient | null = null;
   let internalOpsClient: InternalOperationsClient | null = null;
-  let auditClient: AuditServiceClient | null = null;
   let analyticsClient: AnalyticsServiceClient | null = null;
   let mealplanningClient: MealPlanningServiceClient | null = null;
 
@@ -72,37 +57,9 @@ export function createAdminGrpcClients(config: GrpcClientConfig) {
       if (!authClient) authClient = new AuthServiceClient(serverUrl, credentials);
       return authClient;
     },
-    identity: () => {
-      if (!identityClient) identityClient = new IdentityServiceClient(serverUrl, credentials);
-      return identityClient;
-    },
-    oauth: () => {
-      if (!oauthClient) oauthClient = new OAuthServiceClient(serverUrl, credentials);
-      return oauthClient;
-    },
-    payments: () => {
-      if (!paymentsClient) paymentsClient = new PaymentsServiceClient(serverUrl, credentials);
-      return paymentsClient;
-    },
-    settings: () => {
-      if (!settingsClient) settingsClient = new SettingsServiceClient(serverUrl, credentials);
-      return settingsClient;
-    },
-    waitlists: () => {
-      if (!waitlistsClient) waitlistsClient = new WaitlistsServiceClient(serverUrl, credentials);
-      return waitlistsClient;
-    },
-    issueReports: () => {
-      if (!issueReportsClient) issueReportsClient = new IssueReportsServiceClient(serverUrl, credentials);
-      return issueReportsClient;
-    },
     internalOps: () => {
       if (!internalOpsClient) internalOpsClient = new InternalOperationsClient(serverUrl, credentials);
       return internalOpsClient;
-    },
-    audit: () => {
-      if (!auditClient) auditClient = new AuditServiceClient(serverUrl, credentials);
-      return auditClient;
     },
     analytics: () => {
       if (!analyticsClient) analyticsClient = new AnalyticsServiceClient(serverUrl, credentials);
@@ -164,208 +121,10 @@ export function createAdminGrpcClients(config: GrpcClientConfig) {
         get.auth().revokeCurrentSession.bind(get.auth()),
       )({}, authMetadata(token)),
 
-    // Identity – request types are intentionally loose; callers pass proto-shaped objects
-    getUser: (token: string, request: { userId: string }) =>
-      promisifyUnary(get.identity().getUser.bind(get.identity()))(request as any, authMetadata(token)),
-    listUsers: (token: string, request: Record<string, unknown>) =>
-      promisifyUnary(get.identity().listUsers.bind(get.identity()))(
-        request as unknown as Parameters<IdentityServiceClient['listUsers']>[0],
-        authMetadata(token),
-      ),
-    getAccount: (token: string, request: { accountId: string }) =>
-      promisifyUnary(get.identity().getAccount.bind(get.identity()))(request as any, authMetadata(token)),
-    listAccounts: (token: string, request: Record<string, unknown>) =>
-      promisifyUnary(get.identity().listAccounts.bind(get.identity()))(
-        request as unknown as Parameters<IdentityServiceClient['listAccounts']>[0],
-        authMetadata(token),
-      ),
-    // Searching and reading are one permission upstream, on the reading that finding a
-    // user and reading one are the same disclosure.
-    searchUsersByUsername: (token: string, request: Record<string, unknown>) =>
-      promisifyUnary(get.identity().searchUsersByUsername.bind(get.identity()))(
-        request as unknown as Parameters<IdentityServiceClient['searchUsersByUsername']>[0],
-        authMetadata(token),
-      ),
-    listAccountMembers: (token: string, request: Record<string, unknown>) =>
-      promisifyUnary(get.identity().listAccountMembers.bind(get.identity()))(
-        request as unknown as Parameters<IdentityServiceClient['listAccountMembers']>[0],
-        authMetadata(token),
-      ),
-    listAccountsForUser: (token: string, request: Record<string, unknown>) =>
-      promisifyUnary(get.identity().listAccountsForUser.bind(get.identity()))(
-        request as unknown as Parameters<IdentityServiceClient['listAccountsForUser']>[0],
-        authMetadata(token),
-      ),
-    updateUserAccountStatus: (token: string, request: Record<string, unknown>) =>
-      promisifyUnary(get.identity().updateUserAccountStatus.bind(get.identity()))(
-        request as unknown as Parameters<IdentityServiceClient['updateUserAccountStatus']>[0],
-        authMetadata(token),
-      ),
-    updateProfile: (token: string, request: Record<string, unknown>) =>
-      promisifyUnary(get.identity().updateProfile.bind(get.identity()))(
-        request as unknown as Parameters<IdentityServiceClient['updateProfile']>[0],
-        authMetadata(token),
-      ),
-    updateAccount: (token: string, request: Record<string, unknown>) =>
-      promisifyUnary(get.identity().updateAccount.bind(get.identity()))(
-        request as unknown as Parameters<IdentityServiceClient['updateAccount']>[0],
-        authMetadata(token),
-      ),
-
-    // OAuth
-    getOAuth2Clients: (token: string, request: Record<string, unknown>) =>
-      promisifyUnary(get.oauth().getOAuth2Clients.bind(get.oauth()))(
-        request as unknown as Parameters<OAuthServiceClient['getOAuth2Clients']>[0],
-        authMetadata(token),
-      ),
-    getOAuth2Client: (token: string, request: { oauth2ClientId: string }) =>
-      promisifyUnary(get.oauth().getOAuth2Client.bind(get.oauth()))(request as any, authMetadata(token)),
-    createOAuth2Client: (token: string, request: Record<string, unknown>) =>
-      promisifyUnary(get.oauth().createOAuth2Client.bind(get.oauth()))(
-        request as unknown as Parameters<OAuthServiceClient['createOAuth2Client']>[0],
-        authMetadata(token),
-      ),
-    archiveOAuth2Client: (token: string, request: Record<string, unknown>) =>
-      promisifyUnary(get.oauth().archiveOAuth2Client.bind(get.oauth()))(
-        request as unknown as Parameters<OAuthServiceClient['archiveOAuth2Client']>[0],
-        authMetadata(token),
-      ),
-
-    // Payments
-    getProducts: (token: string, request: Record<string, unknown>) =>
-      promisifyUnary(get.payments().getProducts.bind(get.payments()))(
-        request as unknown as Parameters<PaymentsServiceClient['getProducts']>[0],
-        authMetadata(token),
-      ),
-    getProduct: (token: string, request: { productId: string }) =>
-      promisifyUnary(get.payments().getProduct.bind(get.payments()))(request as any, authMetadata(token)),
-    createProduct: (token: string, request: Record<string, unknown>) =>
-      promisifyUnary(get.payments().createProduct.bind(get.payments()))(
-        request as unknown as Parameters<PaymentsServiceClient['createProduct']>[0],
-        authMetadata(token),
-      ),
-    updateProduct: (token: string, request: Record<string, unknown>) =>
-      promisifyUnary(get.payments().updateProduct.bind(get.payments()))(
-        request as unknown as Parameters<PaymentsServiceClient['updateProduct']>[0],
-        authMetadata(token),
-      ),
-    archiveProduct: (token: string, request: Record<string, unknown>) =>
-      promisifyUnary(get.payments().archiveProduct.bind(get.payments()))(
-        request as unknown as Parameters<PaymentsServiceClient['archiveProduct']>[0],
-        authMetadata(token),
-      ),
-    getSubscription: (token: string, request: { subscriptionId: string }) =>
-      promisifyUnary(get.payments().getSubscription.bind(get.payments()))(request as any, authMetadata(token)),
-    createSubscription: (token: string, request: Record<string, unknown>) =>
-      promisifyUnary(get.payments().createSubscription.bind(get.payments()))(
-        request as unknown as Parameters<PaymentsServiceClient['createSubscription']>[0],
-        authMetadata(token),
-      ),
-    updateSubscription: (token: string, request: Record<string, unknown>) =>
-      promisifyUnary(get.payments().updateSubscription.bind(get.payments()))(
-        request as unknown as Parameters<PaymentsServiceClient['updateSubscription']>[0],
-        authMetadata(token),
-      ),
-    archiveSubscription: (token: string, request: Record<string, unknown>) =>
-      promisifyUnary(get.payments().archiveSubscription.bind(get.payments()))(
-        request as unknown as Parameters<PaymentsServiceClient['archiveSubscription']>[0],
-        authMetadata(token),
-      ),
-    getSubscriptionsForAccount: (token: string, request: Record<string, unknown>) =>
-      promisifyUnary(get.payments().getSubscriptionsForAccount.bind(get.payments()))(
-        request as unknown as Parameters<PaymentsServiceClient['getSubscriptionsForAccount']>[0],
-        authMetadata(token),
-      ),
-
-    // Settings
-    //
-    // The catalog is administrative: a deployment decides which settings exist,
-    // and these are the calls that decide it. A person's own answers are not
-    // here — those are resolved for the signed-in user by the consumer client.
-    getSettingDefinitions: (token: string, request: Record<string, unknown>) =>
-      promisifyUnary(get.settings().getSettingDefinitions.bind(get.settings()))(
-        request as unknown as Parameters<SettingsServiceClient['getSettingDefinitions']>[0],
-        authMetadata(token),
-      ),
-    getSettingDefinition: (token: string, request: { settingDefinitionId: string }) =>
-      promisifyUnary(get.settings().getSettingDefinition.bind(get.settings()))(request as any, authMetadata(token)),
-    getSettingDefinitionByName: (token: string, request: { settingName: string }) =>
-      promisifyUnary(get.settings().getSettingDefinitionByName.bind(get.settings()))(
-        request as any,
-        authMetadata(token),
-      ),
-    createSettingDefinition: (token: string, request: Record<string, unknown>) =>
-      promisifyUnary(get.settings().createSettingDefinition.bind(get.settings()))(
-        request as unknown as Parameters<SettingsServiceClient['createSettingDefinition']>[0],
-        authMetadata(token),
-      ),
-    updateSettingDefinition: (token: string, request: Record<string, unknown>) =>
-      promisifyUnary(get.settings().updateSettingDefinition.bind(get.settings()))(
-        request as unknown as Parameters<SettingsServiceClient['updateSettingDefinition']>[0],
-        authMetadata(token),
-      ),
-    archiveSettingDefinition: (token: string, request: Record<string, unknown>) =>
-      promisifyUnary(get.settings().archiveSettingDefinition.bind(get.settings()))(
-        request as unknown as Parameters<SettingsServiceClient['archiveSettingDefinition']>[0],
-        authMetadata(token),
-      ),
-    // Who has overridden a setting. This is the administrative read that the old
-    // per-account list stood in for, and it is service-admin only on the server.
-    getSettingValuesForDefinition: (token: string, request: Record<string, unknown>) =>
-      promisifyUnary(get.settings().getSettingValuesForDefinition.bind(get.settings()))(
-        request as unknown as Parameters<SettingsServiceClient['getSettingValuesForDefinition']>[0],
-        authMetadata(token),
-      ),
-
-    // Waitlists
-    getWaitlists: (token: string, request: Record<string, unknown>) =>
-      promisifyUnary(get.waitlists().getWaitlists.bind(get.waitlists()))(
-        request as unknown as Parameters<WaitlistsServiceClient['getWaitlists']>[0],
-        authMetadata(token),
-      ),
-    getWaitlist: (token: string, request: { waitlistId: string }) =>
-      promisifyUnary(get.waitlists().getWaitlist.bind(get.waitlists()))(request as any, authMetadata(token)),
-    getWaitlistSignupsForWaitlist: (token: string, request: Record<string, unknown>) =>
-      promisifyUnary(get.waitlists().getWaitlistSignupsForWaitlist.bind(get.waitlists()))(
-        request as unknown as Parameters<WaitlistsServiceClient['getWaitlistSignupsForWaitlist']>[0],
-        authMetadata(token),
-      ),
-
-    // Issue Reports
-    getIssueReports: (token: string, request: Record<string, unknown>) =>
-      promisifyUnary(get.issueReports().getIssueReports.bind(get.issueReports()))(
-        request as unknown as Parameters<IssueReportsServiceClient['getIssueReports']>[0],
-        authMetadata(token),
-      ),
-    getIssueReport: (token: string, request: { issueReportId: string }) =>
-      promisifyUnary(get.issueReports().getIssueReport.bind(get.issueReports()))(request as any, authMetadata(token)),
-    updateIssueReport: (token: string, request: Record<string, unknown>) =>
-      promisifyUnary(get.issueReports().updateIssueReport.bind(get.issueReports()))(
-        request as unknown as Parameters<IssueReportsServiceClient['updateIssueReport']>[0],
-        authMetadata(token),
-      ),
-    archiveIssueReport: (token: string, request: Record<string, unknown>) =>
-      promisifyUnary(get.issueReports().archiveIssueReport.bind(get.issueReports()))(
-        request as unknown as Parameters<IssueReportsServiceClient['archiveIssueReport']>[0],
-        authMetadata(token),
-      ),
-
     // Internal Ops
     testQueueMessage: (token: string, request: Record<string, unknown>) =>
       promisifyUnary(get.internalOps().testQueueMessage.bind(get.internalOps()))(
         request as unknown as Parameters<InternalOperationsClient['testQueueMessage']>[0],
-        authMetadata(token),
-      ),
-
-    // Audit
-    getAuditLogEntriesForUser: (token: string, request: Record<string, unknown>) =>
-      promisifyUnary(get.audit().getAuditLogEntriesForUser.bind(get.audit()))(
-        request as unknown as Parameters<AuditServiceClient['getAuditLogEntriesForUser']>[0],
-        authMetadata(token),
-      ),
-    getAuditLogEntriesForAccount: (token: string, request: Record<string, unknown>) =>
-      promisifyUnary(get.audit().getAuditLogEntriesForAccount.bind(get.audit()))(
-        request as unknown as Parameters<AuditServiceClient['getAuditLogEntriesForAccount']>[0],
         authMetadata(token),
       ),
 
