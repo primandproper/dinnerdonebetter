@@ -103,13 +103,13 @@ import GRPCProtobuf
 
 /// Namespace containing generated types for the "primandproper.platform.identity.v1.IdentityService" service.
 @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
-internal enum Primandproper_Platform_Identity_V1_IdentityService {
+internal enum Primandproper_Platform_Identity_V1_IdentityService: Sendable {
     /// Service descriptor for the "primandproper.platform.identity.v1.IdentityService" service.
     internal static let descriptor = GRPCCore.ServiceDescriptor(fullyQualifiedService: "primandproper.platform.identity.v1.IdentityService")
     /// Namespace for method metadata.
-    internal enum Method {
+    internal enum Method: Sendable {
         /// Namespace for "Register" metadata.
-        internal enum Register {
+        internal enum Register: Sendable {
             /// Request type for "Register".
             internal typealias Input = Primandproper_Platform_Identity_V1_RegisterRequest
             /// Response type for "Register".
@@ -117,11 +117,12 @@ internal enum Primandproper_Platform_Identity_V1_IdentityService {
             /// Descriptor for "Register".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "primandproper.platform.identity.v1.IdentityService"),
-                method: "Register"
+                method: "Register",
+                type: .unary
             )
         }
         /// Namespace for "UpdateProfile" metadata.
-        internal enum UpdateProfile {
+        internal enum UpdateProfile: Sendable {
             /// Request type for "UpdateProfile".
             internal typealias Input = Primandproper_Platform_Identity_V1_UpdateProfileRequest
             /// Response type for "UpdateProfile".
@@ -129,11 +130,12 @@ internal enum Primandproper_Platform_Identity_V1_IdentityService {
             /// Descriptor for "UpdateProfile".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "primandproper.platform.identity.v1.IdentityService"),
-                method: "UpdateProfile"
+                method: "UpdateProfile",
+                type: .unary
             )
         }
         /// Namespace for "UpdateAccount" metadata.
-        internal enum UpdateAccount {
+        internal enum UpdateAccount: Sendable {
             /// Request type for "UpdateAccount".
             internal typealias Input = Primandproper_Platform_Identity_V1_UpdateAccountRequest
             /// Response type for "UpdateAccount".
@@ -141,11 +143,12 @@ internal enum Primandproper_Platform_Identity_V1_IdentityService {
             /// Descriptor for "UpdateAccount".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "primandproper.platform.identity.v1.IdentityService"),
-                method: "UpdateAccount"
+                method: "UpdateAccount",
+                type: .unary
             )
         }
         /// Namespace for "RecordAgreement" metadata.
-        internal enum RecordAgreement {
+        internal enum RecordAgreement: Sendable {
             /// Request type for "RecordAgreement".
             internal typealias Input = Primandproper_Platform_Identity_V1_RecordAgreementRequest
             /// Response type for "RecordAgreement".
@@ -153,11 +156,12 @@ internal enum Primandproper_Platform_Identity_V1_IdentityService {
             /// Descriptor for "RecordAgreement".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "primandproper.platform.identity.v1.IdentityService"),
-                method: "RecordAgreement"
+                method: "RecordAgreement",
+                type: .unary
             )
         }
         /// Namespace for "Invite" metadata.
-        internal enum Invite {
+        internal enum Invite: Sendable {
             /// Request type for "Invite".
             internal typealias Input = Primandproper_Platform_Identity_V1_InviteRequest
             /// Response type for "Invite".
@@ -165,11 +169,12 @@ internal enum Primandproper_Platform_Identity_V1_IdentityService {
             /// Descriptor for "Invite".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "primandproper.platform.identity.v1.IdentityService"),
-                method: "Invite"
+                method: "Invite",
+                type: .unary
             )
         }
         /// Namespace for "AcceptInvitation" metadata.
-        internal enum AcceptInvitation {
+        internal enum AcceptInvitation: Sendable {
             /// Request type for "AcceptInvitation".
             internal typealias Input = Primandproper_Platform_Identity_V1_AcceptInvitationRequest
             /// Response type for "AcceptInvitation".
@@ -177,11 +182,12 @@ internal enum Primandproper_Platform_Identity_V1_IdentityService {
             /// Descriptor for "AcceptInvitation".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "primandproper.platform.identity.v1.IdentityService"),
-                method: "AcceptInvitation"
+                method: "AcceptInvitation",
+                type: .unary
             )
         }
         /// Namespace for "RejectInvitation" metadata.
-        internal enum RejectInvitation {
+        internal enum RejectInvitation: Sendable {
             /// Request type for "RejectInvitation".
             internal typealias Input = Primandproper_Platform_Identity_V1_RejectInvitationRequest
             /// Response type for "RejectInvitation".
@@ -189,11 +195,12 @@ internal enum Primandproper_Platform_Identity_V1_IdentityService {
             /// Descriptor for "RejectInvitation".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "primandproper.platform.identity.v1.IdentityService"),
-                method: "RejectInvitation"
+                method: "RejectInvitation",
+                type: .unary
             )
         }
         /// Namespace for "CancelInvitation" metadata.
-        internal enum CancelInvitation {
+        internal enum CancelInvitation: Sendable {
             /// Request type for "CancelInvitation".
             internal typealias Input = Primandproper_Platform_Identity_V1_CancelInvitationRequest
             /// Response type for "CancelInvitation".
@@ -201,11 +208,12 @@ internal enum Primandproper_Platform_Identity_V1_IdentityService {
             /// Descriptor for "CancelInvitation".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "primandproper.platform.identity.v1.IdentityService"),
-                method: "CancelInvitation"
+                method: "CancelInvitation",
+                type: .unary
             )
         }
         /// Namespace for "CreateAccount" metadata.
-        internal enum CreateAccount {
+        internal enum CreateAccount: Sendable {
             /// Request type for "CreateAccount".
             internal typealias Input = Primandproper_Platform_Identity_V1_CreateAccountRequest
             /// Response type for "CreateAccount".
@@ -213,11 +221,12 @@ internal enum Primandproper_Platform_Identity_V1_IdentityService {
             /// Descriptor for "CreateAccount".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "primandproper.platform.identity.v1.IdentityService"),
-                method: "CreateAccount"
+                method: "CreateAccount",
+                type: .unary
             )
         }
         /// Namespace for "TransferAccountOwnership" metadata.
-        internal enum TransferAccountOwnership {
+        internal enum TransferAccountOwnership: Sendable {
             /// Request type for "TransferAccountOwnership".
             internal typealias Input = Primandproper_Platform_Identity_V1_TransferAccountOwnershipRequest
             /// Response type for "TransferAccountOwnership".
@@ -225,11 +234,12 @@ internal enum Primandproper_Platform_Identity_V1_IdentityService {
             /// Descriptor for "TransferAccountOwnership".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "primandproper.platform.identity.v1.IdentityService"),
-                method: "TransferAccountOwnership"
+                method: "TransferAccountOwnership",
+                type: .unary
             )
         }
         /// Namespace for "SetDefaultAccount" metadata.
-        internal enum SetDefaultAccount {
+        internal enum SetDefaultAccount: Sendable {
             /// Request type for "SetDefaultAccount".
             internal typealias Input = Primandproper_Platform_Identity_V1_SetDefaultAccountRequest
             /// Response type for "SetDefaultAccount".
@@ -237,11 +247,12 @@ internal enum Primandproper_Platform_Identity_V1_IdentityService {
             /// Descriptor for "SetDefaultAccount".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "primandproper.platform.identity.v1.IdentityService"),
-                method: "SetDefaultAccount"
+                method: "SetDefaultAccount",
+                type: .unary
             )
         }
         /// Namespace for "SetMembershipRoles" metadata.
-        internal enum SetMembershipRoles {
+        internal enum SetMembershipRoles: Sendable {
             /// Request type for "SetMembershipRoles".
             internal typealias Input = Primandproper_Platform_Identity_V1_SetMembershipRolesRequest
             /// Response type for "SetMembershipRoles".
@@ -249,11 +260,12 @@ internal enum Primandproper_Platform_Identity_V1_IdentityService {
             /// Descriptor for "SetMembershipRoles".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "primandproper.platform.identity.v1.IdentityService"),
-                method: "SetMembershipRoles"
+                method: "SetMembershipRoles",
+                type: .unary
             )
         }
         /// Namespace for "RemoveMembership" metadata.
-        internal enum RemoveMembership {
+        internal enum RemoveMembership: Sendable {
             /// Request type for "RemoveMembership".
             internal typealias Input = Primandproper_Platform_Identity_V1_RemoveMembershipRequest
             /// Response type for "RemoveMembership".
@@ -261,11 +273,12 @@ internal enum Primandproper_Platform_Identity_V1_IdentityService {
             /// Descriptor for "RemoveMembership".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "primandproper.platform.identity.v1.IdentityService"),
-                method: "RemoveMembership"
+                method: "RemoveMembership",
+                type: .unary
             )
         }
         /// Namespace for "ArchiveUser" metadata.
-        internal enum ArchiveUser {
+        internal enum ArchiveUser: Sendable {
             /// Request type for "ArchiveUser".
             internal typealias Input = Primandproper_Platform_Identity_V1_ArchiveUserRequest
             /// Response type for "ArchiveUser".
@@ -273,11 +286,12 @@ internal enum Primandproper_Platform_Identity_V1_IdentityService {
             /// Descriptor for "ArchiveUser".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "primandproper.platform.identity.v1.IdentityService"),
-                method: "ArchiveUser"
+                method: "ArchiveUser",
+                type: .unary
             )
         }
         /// Namespace for "ArchiveAccount" metadata.
-        internal enum ArchiveAccount {
+        internal enum ArchiveAccount: Sendable {
             /// Request type for "ArchiveAccount".
             internal typealias Input = Primandproper_Platform_Identity_V1_ArchiveAccountRequest
             /// Response type for "ArchiveAccount".
@@ -285,11 +299,12 @@ internal enum Primandproper_Platform_Identity_V1_IdentityService {
             /// Descriptor for "ArchiveAccount".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "primandproper.platform.identity.v1.IdentityService"),
-                method: "ArchiveAccount"
+                method: "ArchiveAccount",
+                type: .unary
             )
         }
         /// Namespace for "UpdateUserAccountStatus" metadata.
-        internal enum UpdateUserAccountStatus {
+        internal enum UpdateUserAccountStatus: Sendable {
             /// Request type for "UpdateUserAccountStatus".
             internal typealias Input = Primandproper_Platform_Identity_V1_UpdateUserAccountStatusRequest
             /// Response type for "UpdateUserAccountStatus".
@@ -297,11 +312,12 @@ internal enum Primandproper_Platform_Identity_V1_IdentityService {
             /// Descriptor for "UpdateUserAccountStatus".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "primandproper.platform.identity.v1.IdentityService"),
-                method: "UpdateUserAccountStatus"
+                method: "UpdateUserAccountStatus",
+                type: .unary
             )
         }
         /// Namespace for "SetUserServiceRoles" metadata.
-        internal enum SetUserServiceRoles {
+        internal enum SetUserServiceRoles: Sendable {
             /// Request type for "SetUserServiceRoles".
             internal typealias Input = Primandproper_Platform_Identity_V1_SetUserServiceRolesRequest
             /// Response type for "SetUserServiceRoles".
@@ -309,11 +325,12 @@ internal enum Primandproper_Platform_Identity_V1_IdentityService {
             /// Descriptor for "SetUserServiceRoles".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "primandproper.platform.identity.v1.IdentityService"),
-                method: "SetUserServiceRoles"
+                method: "SetUserServiceRoles",
+                type: .unary
             )
         }
         /// Namespace for "SetUserRequiresPasswordChange" metadata.
-        internal enum SetUserRequiresPasswordChange {
+        internal enum SetUserRequiresPasswordChange: Sendable {
             /// Request type for "SetUserRequiresPasswordChange".
             internal typealias Input = Primandproper_Platform_Identity_V1_SetUserRequiresPasswordChangeRequest
             /// Response type for "SetUserRequiresPasswordChange".
@@ -321,11 +338,12 @@ internal enum Primandproper_Platform_Identity_V1_IdentityService {
             /// Descriptor for "SetUserRequiresPasswordChange".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "primandproper.platform.identity.v1.IdentityService"),
-                method: "SetUserRequiresPasswordChange"
+                method: "SetUserRequiresPasswordChange",
+                type: .unary
             )
         }
         /// Namespace for "GetPrincipal" metadata.
-        internal enum GetPrincipal {
+        internal enum GetPrincipal: Sendable {
             /// Request type for "GetPrincipal".
             internal typealias Input = Primandproper_Platform_Identity_V1_GetPrincipalRequest
             /// Response type for "GetPrincipal".
@@ -333,11 +351,12 @@ internal enum Primandproper_Platform_Identity_V1_IdentityService {
             /// Descriptor for "GetPrincipal".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "primandproper.platform.identity.v1.IdentityService"),
-                method: "GetPrincipal"
+                method: "GetPrincipal",
+                type: .unary
             )
         }
         /// Namespace for "GetUser" metadata.
-        internal enum GetUser {
+        internal enum GetUser: Sendable {
             /// Request type for "GetUser".
             internal typealias Input = Primandproper_Platform_Identity_V1_GetUserRequest
             /// Response type for "GetUser".
@@ -345,11 +364,12 @@ internal enum Primandproper_Platform_Identity_V1_IdentityService {
             /// Descriptor for "GetUser".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "primandproper.platform.identity.v1.IdentityService"),
-                method: "GetUser"
+                method: "GetUser",
+                type: .unary
             )
         }
         /// Namespace for "ListUsers" metadata.
-        internal enum ListUsers {
+        internal enum ListUsers: Sendable {
             /// Request type for "ListUsers".
             internal typealias Input = Primandproper_Platform_Identity_V1_ListUsersRequest
             /// Response type for "ListUsers".
@@ -357,11 +377,12 @@ internal enum Primandproper_Platform_Identity_V1_IdentityService {
             /// Descriptor for "ListUsers".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "primandproper.platform.identity.v1.IdentityService"),
-                method: "ListUsers"
+                method: "ListUsers",
+                type: .unary
             )
         }
         /// Namespace for "SearchUsersByUsername" metadata.
-        internal enum SearchUsersByUsername {
+        internal enum SearchUsersByUsername: Sendable {
             /// Request type for "SearchUsersByUsername".
             internal typealias Input = Primandproper_Platform_Identity_V1_SearchUsersByUsernameRequest
             /// Response type for "SearchUsersByUsername".
@@ -369,11 +390,12 @@ internal enum Primandproper_Platform_Identity_V1_IdentityService {
             /// Descriptor for "SearchUsersByUsername".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "primandproper.platform.identity.v1.IdentityService"),
-                method: "SearchUsersByUsername"
+                method: "SearchUsersByUsername",
+                type: .unary
             )
         }
         /// Namespace for "GetAccount" metadata.
-        internal enum GetAccount {
+        internal enum GetAccount: Sendable {
             /// Request type for "GetAccount".
             internal typealias Input = Primandproper_Platform_Identity_V1_GetAccountRequest
             /// Response type for "GetAccount".
@@ -381,11 +403,12 @@ internal enum Primandproper_Platform_Identity_V1_IdentityService {
             /// Descriptor for "GetAccount".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "primandproper.platform.identity.v1.IdentityService"),
-                method: "GetAccount"
+                method: "GetAccount",
+                type: .unary
             )
         }
         /// Namespace for "ListAccounts" metadata.
-        internal enum ListAccounts {
+        internal enum ListAccounts: Sendable {
             /// Request type for "ListAccounts".
             internal typealias Input = Primandproper_Platform_Identity_V1_ListAccountsRequest
             /// Response type for "ListAccounts".
@@ -393,11 +416,12 @@ internal enum Primandproper_Platform_Identity_V1_IdentityService {
             /// Descriptor for "ListAccounts".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "primandproper.platform.identity.v1.IdentityService"),
-                method: "ListAccounts"
+                method: "ListAccounts",
+                type: .unary
             )
         }
         /// Namespace for "ListAccountsForUser" metadata.
-        internal enum ListAccountsForUser {
+        internal enum ListAccountsForUser: Sendable {
             /// Request type for "ListAccountsForUser".
             internal typealias Input = Primandproper_Platform_Identity_V1_ListAccountsForUserRequest
             /// Response type for "ListAccountsForUser".
@@ -405,11 +429,12 @@ internal enum Primandproper_Platform_Identity_V1_IdentityService {
             /// Descriptor for "ListAccountsForUser".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "primandproper.platform.identity.v1.IdentityService"),
-                method: "ListAccountsForUser"
+                method: "ListAccountsForUser",
+                type: .unary
             )
         }
         /// Namespace for "GetMembership" metadata.
-        internal enum GetMembership {
+        internal enum GetMembership: Sendable {
             /// Request type for "GetMembership".
             internal typealias Input = Primandproper_Platform_Identity_V1_GetMembershipRequest
             /// Response type for "GetMembership".
@@ -417,11 +442,12 @@ internal enum Primandproper_Platform_Identity_V1_IdentityService {
             /// Descriptor for "GetMembership".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "primandproper.platform.identity.v1.IdentityService"),
-                method: "GetMembership"
+                method: "GetMembership",
+                type: .unary
             )
         }
         /// Namespace for "ListMembershipsForUser" metadata.
-        internal enum ListMembershipsForUser {
+        internal enum ListMembershipsForUser: Sendable {
             /// Request type for "ListMembershipsForUser".
             internal typealias Input = Primandproper_Platform_Identity_V1_ListMembershipsForUserRequest
             /// Response type for "ListMembershipsForUser".
@@ -429,11 +455,12 @@ internal enum Primandproper_Platform_Identity_V1_IdentityService {
             /// Descriptor for "ListMembershipsForUser".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "primandproper.platform.identity.v1.IdentityService"),
-                method: "ListMembershipsForUser"
+                method: "ListMembershipsForUser",
+                type: .unary
             )
         }
         /// Namespace for "ListAccountMembers" metadata.
-        internal enum ListAccountMembers {
+        internal enum ListAccountMembers: Sendable {
             /// Request type for "ListAccountMembers".
             internal typealias Input = Primandproper_Platform_Identity_V1_ListAccountMembersRequest
             /// Response type for "ListAccountMembers".
@@ -441,11 +468,12 @@ internal enum Primandproper_Platform_Identity_V1_IdentityService {
             /// Descriptor for "ListAccountMembers".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "primandproper.platform.identity.v1.IdentityService"),
-                method: "ListAccountMembers"
+                method: "ListAccountMembers",
+                type: .unary
             )
         }
         /// Namespace for "GetInvitation" metadata.
-        internal enum GetInvitation {
+        internal enum GetInvitation: Sendable {
             /// Request type for "GetInvitation".
             internal typealias Input = Primandproper_Platform_Identity_V1_GetInvitationRequest
             /// Response type for "GetInvitation".
@@ -453,11 +481,12 @@ internal enum Primandproper_Platform_Identity_V1_IdentityService {
             /// Descriptor for "GetInvitation".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "primandproper.platform.identity.v1.IdentityService"),
-                method: "GetInvitation"
+                method: "GetInvitation",
+                type: .unary
             )
         }
         /// Namespace for "ListInvitationsFromUser" metadata.
-        internal enum ListInvitationsFromUser {
+        internal enum ListInvitationsFromUser: Sendable {
             /// Request type for "ListInvitationsFromUser".
             internal typealias Input = Primandproper_Platform_Identity_V1_ListInvitationsFromUserRequest
             /// Response type for "ListInvitationsFromUser".
@@ -465,11 +494,12 @@ internal enum Primandproper_Platform_Identity_V1_IdentityService {
             /// Descriptor for "ListInvitationsFromUser".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "primandproper.platform.identity.v1.IdentityService"),
-                method: "ListInvitationsFromUser"
+                method: "ListInvitationsFromUser",
+                type: .unary
             )
         }
         /// Namespace for "ListInvitationsForEmailAddress" metadata.
-        internal enum ListInvitationsForEmailAddress {
+        internal enum ListInvitationsForEmailAddress: Sendable {
             /// Request type for "ListInvitationsForEmailAddress".
             internal typealias Input = Primandproper_Platform_Identity_V1_ListInvitationsForEmailAddressRequest
             /// Response type for "ListInvitationsForEmailAddress".
@@ -477,7 +507,8 @@ internal enum Primandproper_Platform_Identity_V1_IdentityService {
             /// Descriptor for "ListInvitationsForEmailAddress".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "primandproper.platform.identity.v1.IdentityService"),
-                method: "ListInvitationsForEmailAddress"
+                method: "ListInvitationsForEmailAddress",
+                type: .unary
             )
         }
         /// Descriptors for all methods in the "primandproper.platform.identity.v1.IdentityService" service.
@@ -558,9 +589,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_RegisterRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_RegisterResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func register<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_RegisterRequest>,
@@ -577,9 +608,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_UpdateProfileRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_UpdateProfileResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func updateProfile<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_UpdateProfileRequest>,
@@ -596,9 +627,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_UpdateAccountRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_UpdateAccountResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func updateAccount<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_UpdateAccountRequest>,
@@ -615,9 +646,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_RecordAgreementRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_RecordAgreementResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func recordAgreement<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_RecordAgreementRequest>,
@@ -634,9 +665,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_InviteRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_InviteResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func invite<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_InviteRequest>,
@@ -653,9 +684,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_AcceptInvitationRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_AcceptInvitationResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func acceptInvitation<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_AcceptInvitationRequest>,
@@ -672,9 +703,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_RejectInvitationRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_RejectInvitationResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func rejectInvitation<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_RejectInvitationRequest>,
@@ -691,9 +722,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_CancelInvitationRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_CancelInvitationResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func cancelInvitation<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_CancelInvitationRequest>,
@@ -710,9 +741,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_CreateAccountRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_CreateAccountResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func createAccount<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_CreateAccountRequest>,
@@ -729,9 +760,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_TransferAccountOwnershipRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_TransferAccountOwnershipResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func transferAccountOwnership<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_TransferAccountOwnershipRequest>,
@@ -748,9 +779,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_SetDefaultAccountRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_SetDefaultAccountResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func setDefaultAccount<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_SetDefaultAccountRequest>,
@@ -767,9 +798,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_SetMembershipRolesRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_SetMembershipRolesResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func setMembershipRoles<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_SetMembershipRolesRequest>,
@@ -786,9 +817,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_RemoveMembershipRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_RemoveMembershipResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func removeMembership<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_RemoveMembershipRequest>,
@@ -805,9 +836,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_ArchiveUserRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_ArchiveUserResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func archiveUser<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_ArchiveUserRequest>,
@@ -824,9 +855,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_ArchiveAccountRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_ArchiveAccountResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func archiveAccount<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_ArchiveAccountRequest>,
@@ -843,9 +874,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_UpdateUserAccountStatusRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_UpdateUserAccountStatusResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func updateUserAccountStatus<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_UpdateUserAccountStatusRequest>,
@@ -862,9 +893,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_SetUserServiceRolesRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_SetUserServiceRolesResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func setUserServiceRoles<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_SetUserServiceRolesRequest>,
@@ -881,9 +912,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_SetUserRequiresPasswordChangeRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_SetUserRequiresPasswordChangeResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func setUserRequiresPasswordChange<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_SetUserRequiresPasswordChangeRequest>,
@@ -904,9 +935,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_GetPrincipalRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_GetPrincipalResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func getPrincipal<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_GetPrincipalRequest>,
@@ -923,9 +954,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_GetUserRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_GetUserResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func getUser<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_GetUserRequest>,
@@ -942,9 +973,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_ListUsersRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_ListUsersResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func listUsers<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_ListUsersRequest>,
@@ -961,9 +992,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_SearchUsersByUsernameRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_SearchUsersByUsernameResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func searchUsersByUsername<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_SearchUsersByUsernameRequest>,
@@ -980,9 +1011,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_GetAccountRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_GetAccountResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func getAccount<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_GetAccountRequest>,
@@ -999,9 +1030,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_ListAccountsRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_ListAccountsResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func listAccounts<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_ListAccountsRequest>,
@@ -1018,9 +1049,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_ListAccountsForUserRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_ListAccountsForUserResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func listAccountsForUser<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_ListAccountsForUserRequest>,
@@ -1037,9 +1068,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_GetMembershipRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_GetMembershipResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func getMembership<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_GetMembershipRequest>,
@@ -1056,9 +1087,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_ListMembershipsForUserRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_ListMembershipsForUserResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func listMembershipsForUser<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_ListMembershipsForUserRequest>,
@@ -1075,9 +1106,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_ListAccountMembersRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_ListAccountMembersResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func listAccountMembers<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_ListAccountMembersRequest>,
@@ -1094,9 +1125,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_GetInvitationRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_GetInvitationResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func getInvitation<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_GetInvitationRequest>,
@@ -1113,9 +1144,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_ListInvitationsFromUserRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_ListInvitationsFromUserResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func listInvitationsFromUser<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_ListInvitationsFromUserRequest>,
@@ -1132,9 +1163,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_ListInvitationsForEmailAddressRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_ListInvitationsForEmailAddressResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func listInvitationsForEmailAddress<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_ListInvitationsForEmailAddressRequest>,
@@ -1187,9 +1218,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_RegisterRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_RegisterResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func register<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_RegisterRequest>,
@@ -1217,9 +1248,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_UpdateProfileRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_UpdateProfileResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func updateProfile<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_UpdateProfileRequest>,
@@ -1247,9 +1278,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_UpdateAccountRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_UpdateAccountResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func updateAccount<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_UpdateAccountRequest>,
@@ -1277,9 +1308,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_RecordAgreementRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_RecordAgreementResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func recordAgreement<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_RecordAgreementRequest>,
@@ -1307,9 +1338,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_InviteRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_InviteResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func invite<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_InviteRequest>,
@@ -1337,9 +1368,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_AcceptInvitationRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_AcceptInvitationResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func acceptInvitation<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_AcceptInvitationRequest>,
@@ -1367,9 +1398,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_RejectInvitationRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_RejectInvitationResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func rejectInvitation<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_RejectInvitationRequest>,
@@ -1397,9 +1428,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_CancelInvitationRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_CancelInvitationResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func cancelInvitation<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_CancelInvitationRequest>,
@@ -1427,9 +1458,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_CreateAccountRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_CreateAccountResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func createAccount<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_CreateAccountRequest>,
@@ -1457,9 +1488,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_TransferAccountOwnershipRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_TransferAccountOwnershipResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func transferAccountOwnership<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_TransferAccountOwnershipRequest>,
@@ -1487,9 +1518,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_SetDefaultAccountRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_SetDefaultAccountResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func setDefaultAccount<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_SetDefaultAccountRequest>,
@@ -1517,9 +1548,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_SetMembershipRolesRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_SetMembershipRolesResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func setMembershipRoles<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_SetMembershipRolesRequest>,
@@ -1547,9 +1578,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_RemoveMembershipRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_RemoveMembershipResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func removeMembership<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_RemoveMembershipRequest>,
@@ -1577,9 +1608,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_ArchiveUserRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_ArchiveUserResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func archiveUser<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_ArchiveUserRequest>,
@@ -1607,9 +1638,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_ArchiveAccountRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_ArchiveAccountResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func archiveAccount<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_ArchiveAccountRequest>,
@@ -1637,9 +1668,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_UpdateUserAccountStatusRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_UpdateUserAccountStatusResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func updateUserAccountStatus<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_UpdateUserAccountStatusRequest>,
@@ -1667,9 +1698,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_SetUserServiceRolesRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_SetUserServiceRolesResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func setUserServiceRoles<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_SetUserServiceRolesRequest>,
@@ -1697,9 +1728,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_SetUserRequiresPasswordChangeRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_SetUserRequiresPasswordChangeResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func setUserRequiresPasswordChange<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_SetUserRequiresPasswordChangeRequest>,
@@ -1731,9 +1762,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_GetPrincipalRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_GetPrincipalResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func getPrincipal<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_GetPrincipalRequest>,
@@ -1761,9 +1792,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_GetUserRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_GetUserResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func getUser<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_GetUserRequest>,
@@ -1791,9 +1822,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_ListUsersRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_ListUsersResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func listUsers<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_ListUsersRequest>,
@@ -1821,9 +1852,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_SearchUsersByUsernameRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_SearchUsersByUsernameResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func searchUsersByUsername<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_SearchUsersByUsernameRequest>,
@@ -1851,9 +1882,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_GetAccountRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_GetAccountResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func getAccount<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_GetAccountRequest>,
@@ -1881,9 +1912,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_ListAccountsRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_ListAccountsResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func listAccounts<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_ListAccountsRequest>,
@@ -1911,9 +1942,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_ListAccountsForUserRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_ListAccountsForUserResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func listAccountsForUser<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_ListAccountsForUserRequest>,
@@ -1941,9 +1972,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_GetMembershipRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_GetMembershipResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func getMembership<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_GetMembershipRequest>,
@@ -1971,9 +2002,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_ListMembershipsForUserRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_ListMembershipsForUserResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func listMembershipsForUser<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_ListMembershipsForUserRequest>,
@@ -2001,9 +2032,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_ListAccountMembersRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_ListAccountMembersResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func listAccountMembers<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_ListAccountMembersRequest>,
@@ -2031,9 +2062,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_GetInvitationRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_GetInvitationResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func getInvitation<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_GetInvitationRequest>,
@@ -2061,9 +2092,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_ListInvitationsFromUserRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_ListInvitationsFromUserResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func listInvitationsFromUser<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_ListInvitationsFromUserRequest>,
@@ -2091,9 +2122,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService {
         ///   - serializer: A serializer for `Primandproper_Platform_Identity_V1_ListInvitationsForEmailAddressRequest` messages.
         ///   - deserializer: A deserializer for `Primandproper_Platform_Identity_V1_ListInvitationsForEmailAddressResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func listInvitationsForEmailAddress<Result>(
             request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_ListInvitationsForEmailAddressRequest>,
@@ -2128,9 +2159,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Primandproper_Platform_Identity_V1_RegisterRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func register<Result>(
         request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_RegisterRequest>,
@@ -2153,9 +2184,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Primandproper_Platform_Identity_V1_UpdateProfileRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func updateProfile<Result>(
         request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_UpdateProfileRequest>,
@@ -2178,9 +2209,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Primandproper_Platform_Identity_V1_UpdateAccountRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func updateAccount<Result>(
         request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_UpdateAccountRequest>,
@@ -2203,9 +2234,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Primandproper_Platform_Identity_V1_RecordAgreementRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func recordAgreement<Result>(
         request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_RecordAgreementRequest>,
@@ -2228,9 +2259,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Primandproper_Platform_Identity_V1_InviteRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func invite<Result>(
         request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_InviteRequest>,
@@ -2253,9 +2284,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Primandproper_Platform_Identity_V1_AcceptInvitationRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func acceptInvitation<Result>(
         request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_AcceptInvitationRequest>,
@@ -2278,9 +2309,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Primandproper_Platform_Identity_V1_RejectInvitationRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func rejectInvitation<Result>(
         request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_RejectInvitationRequest>,
@@ -2303,9 +2334,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Primandproper_Platform_Identity_V1_CancelInvitationRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func cancelInvitation<Result>(
         request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_CancelInvitationRequest>,
@@ -2328,9 +2359,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Primandproper_Platform_Identity_V1_CreateAccountRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func createAccount<Result>(
         request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_CreateAccountRequest>,
@@ -2353,9 +2384,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Primandproper_Platform_Identity_V1_TransferAccountOwnershipRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func transferAccountOwnership<Result>(
         request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_TransferAccountOwnershipRequest>,
@@ -2378,9 +2409,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Primandproper_Platform_Identity_V1_SetDefaultAccountRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func setDefaultAccount<Result>(
         request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_SetDefaultAccountRequest>,
@@ -2403,9 +2434,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Primandproper_Platform_Identity_V1_SetMembershipRolesRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func setMembershipRoles<Result>(
         request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_SetMembershipRolesRequest>,
@@ -2428,9 +2459,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Primandproper_Platform_Identity_V1_RemoveMembershipRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func removeMembership<Result>(
         request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_RemoveMembershipRequest>,
@@ -2453,9 +2484,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Primandproper_Platform_Identity_V1_ArchiveUserRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func archiveUser<Result>(
         request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_ArchiveUserRequest>,
@@ -2478,9 +2509,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Primandproper_Platform_Identity_V1_ArchiveAccountRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func archiveAccount<Result>(
         request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_ArchiveAccountRequest>,
@@ -2503,9 +2534,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Primandproper_Platform_Identity_V1_UpdateUserAccountStatusRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func updateUserAccountStatus<Result>(
         request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_UpdateUserAccountStatusRequest>,
@@ -2528,9 +2559,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Primandproper_Platform_Identity_V1_SetUserServiceRolesRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func setUserServiceRoles<Result>(
         request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_SetUserServiceRolesRequest>,
@@ -2553,9 +2584,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Primandproper_Platform_Identity_V1_SetUserRequiresPasswordChangeRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func setUserRequiresPasswordChange<Result>(
         request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_SetUserRequiresPasswordChangeRequest>,
@@ -2582,9 +2613,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Primandproper_Platform_Identity_V1_GetPrincipalRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func getPrincipal<Result>(
         request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_GetPrincipalRequest>,
@@ -2607,9 +2638,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Primandproper_Platform_Identity_V1_GetUserRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func getUser<Result>(
         request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_GetUserRequest>,
@@ -2632,9 +2663,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Primandproper_Platform_Identity_V1_ListUsersRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func listUsers<Result>(
         request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_ListUsersRequest>,
@@ -2657,9 +2688,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Primandproper_Platform_Identity_V1_SearchUsersByUsernameRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func searchUsersByUsername<Result>(
         request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_SearchUsersByUsernameRequest>,
@@ -2682,9 +2713,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Primandproper_Platform_Identity_V1_GetAccountRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func getAccount<Result>(
         request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_GetAccountRequest>,
@@ -2707,9 +2738,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Primandproper_Platform_Identity_V1_ListAccountsRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func listAccounts<Result>(
         request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_ListAccountsRequest>,
@@ -2732,9 +2763,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Primandproper_Platform_Identity_V1_ListAccountsForUserRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func listAccountsForUser<Result>(
         request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_ListAccountsForUserRequest>,
@@ -2757,9 +2788,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Primandproper_Platform_Identity_V1_GetMembershipRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func getMembership<Result>(
         request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_GetMembershipRequest>,
@@ -2782,9 +2813,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Primandproper_Platform_Identity_V1_ListMembershipsForUserRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func listMembershipsForUser<Result>(
         request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_ListMembershipsForUserRequest>,
@@ -2807,9 +2838,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Primandproper_Platform_Identity_V1_ListAccountMembersRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func listAccountMembers<Result>(
         request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_ListAccountMembersRequest>,
@@ -2832,9 +2863,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Primandproper_Platform_Identity_V1_GetInvitationRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func getInvitation<Result>(
         request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_GetInvitationRequest>,
@@ -2857,9 +2888,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Primandproper_Platform_Identity_V1_ListInvitationsFromUserRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func listInvitationsFromUser<Result>(
         request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_ListInvitationsFromUserRequest>,
@@ -2882,9 +2913,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Primandproper_Platform_Identity_V1_ListInvitationsForEmailAddressRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func listInvitationsForEmailAddress<Result>(
         request: GRPCCore.ClientRequest<Primandproper_Platform_Identity_V1_ListInvitationsForEmailAddressRequest>,
@@ -2916,9 +2947,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func register<Result>(
         _ message: Primandproper_Platform_Identity_V1_RegisterRequest,
@@ -2945,9 +2976,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func updateProfile<Result>(
         _ message: Primandproper_Platform_Identity_V1_UpdateProfileRequest,
@@ -2974,9 +3005,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func updateAccount<Result>(
         _ message: Primandproper_Platform_Identity_V1_UpdateAccountRequest,
@@ -3003,9 +3034,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func recordAgreement<Result>(
         _ message: Primandproper_Platform_Identity_V1_RecordAgreementRequest,
@@ -3032,9 +3063,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func invite<Result>(
         _ message: Primandproper_Platform_Identity_V1_InviteRequest,
@@ -3061,9 +3092,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func acceptInvitation<Result>(
         _ message: Primandproper_Platform_Identity_V1_AcceptInvitationRequest,
@@ -3090,9 +3121,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func rejectInvitation<Result>(
         _ message: Primandproper_Platform_Identity_V1_RejectInvitationRequest,
@@ -3119,9 +3150,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func cancelInvitation<Result>(
         _ message: Primandproper_Platform_Identity_V1_CancelInvitationRequest,
@@ -3148,9 +3179,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func createAccount<Result>(
         _ message: Primandproper_Platform_Identity_V1_CreateAccountRequest,
@@ -3177,9 +3208,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func transferAccountOwnership<Result>(
         _ message: Primandproper_Platform_Identity_V1_TransferAccountOwnershipRequest,
@@ -3206,9 +3237,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func setDefaultAccount<Result>(
         _ message: Primandproper_Platform_Identity_V1_SetDefaultAccountRequest,
@@ -3235,9 +3266,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func setMembershipRoles<Result>(
         _ message: Primandproper_Platform_Identity_V1_SetMembershipRolesRequest,
@@ -3264,9 +3295,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func removeMembership<Result>(
         _ message: Primandproper_Platform_Identity_V1_RemoveMembershipRequest,
@@ -3293,9 +3324,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func archiveUser<Result>(
         _ message: Primandproper_Platform_Identity_V1_ArchiveUserRequest,
@@ -3322,9 +3353,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func archiveAccount<Result>(
         _ message: Primandproper_Platform_Identity_V1_ArchiveAccountRequest,
@@ -3351,9 +3382,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func updateUserAccountStatus<Result>(
         _ message: Primandproper_Platform_Identity_V1_UpdateUserAccountStatusRequest,
@@ -3380,9 +3411,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func setUserServiceRoles<Result>(
         _ message: Primandproper_Platform_Identity_V1_SetUserServiceRolesRequest,
@@ -3409,9 +3440,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func setUserRequiresPasswordChange<Result>(
         _ message: Primandproper_Platform_Identity_V1_SetUserRequiresPasswordChangeRequest,
@@ -3442,9 +3473,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func getPrincipal<Result>(
         _ message: Primandproper_Platform_Identity_V1_GetPrincipalRequest,
@@ -3471,9 +3502,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func getUser<Result>(
         _ message: Primandproper_Platform_Identity_V1_GetUserRequest,
@@ -3500,9 +3531,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func listUsers<Result>(
         _ message: Primandproper_Platform_Identity_V1_ListUsersRequest,
@@ -3529,9 +3560,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func searchUsersByUsername<Result>(
         _ message: Primandproper_Platform_Identity_V1_SearchUsersByUsernameRequest,
@@ -3558,9 +3589,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func getAccount<Result>(
         _ message: Primandproper_Platform_Identity_V1_GetAccountRequest,
@@ -3587,9 +3618,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func listAccounts<Result>(
         _ message: Primandproper_Platform_Identity_V1_ListAccountsRequest,
@@ -3616,9 +3647,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func listAccountsForUser<Result>(
         _ message: Primandproper_Platform_Identity_V1_ListAccountsForUserRequest,
@@ -3645,9 +3676,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func getMembership<Result>(
         _ message: Primandproper_Platform_Identity_V1_GetMembershipRequest,
@@ -3674,9 +3705,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func listMembershipsForUser<Result>(
         _ message: Primandproper_Platform_Identity_V1_ListMembershipsForUserRequest,
@@ -3703,9 +3734,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func listAccountMembers<Result>(
         _ message: Primandproper_Platform_Identity_V1_ListAccountMembersRequest,
@@ -3732,9 +3763,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func getInvitation<Result>(
         _ message: Primandproper_Platform_Identity_V1_GetInvitationRequest,
@@ -3761,9 +3792,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func listInvitationsFromUser<Result>(
         _ message: Primandproper_Platform_Identity_V1_ListInvitationsFromUserRequest,
@@ -3790,9 +3821,9 @@ extension Primandproper_Platform_Identity_V1_IdentityService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func listInvitationsForEmailAddress<Result>(
         _ message: Primandproper_Platform_Identity_V1_ListInvitationsForEmailAddressRequest,

@@ -15,13 +15,13 @@ import GRPCProtobuf
 
 /// Namespace containing generated types for the "analytics.AnalyticsService" service.
 @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
-internal enum Analytics_AnalyticsService {
+internal enum Analytics_AnalyticsService: Sendable {
     /// Service descriptor for the "analytics.AnalyticsService" service.
     internal static let descriptor = GRPCCore.ServiceDescriptor(fullyQualifiedService: "analytics.AnalyticsService")
     /// Namespace for method metadata.
-    internal enum Method {
+    internal enum Method: Sendable {
         /// Namespace for "TrackEvent" metadata.
-        internal enum TrackEvent {
+        internal enum TrackEvent: Sendable {
             /// Request type for "TrackEvent".
             internal typealias Input = Analytics_TrackEventRequest
             /// Response type for "TrackEvent".
@@ -29,11 +29,12 @@ internal enum Analytics_AnalyticsService {
             /// Descriptor for "TrackEvent".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "analytics.AnalyticsService"),
-                method: "TrackEvent"
+                method: "TrackEvent",
+                type: .unary
             )
         }
         /// Namespace for "TrackAnonymousEvent" metadata.
-        internal enum TrackAnonymousEvent {
+        internal enum TrackAnonymousEvent: Sendable {
             /// Request type for "TrackAnonymousEvent".
             internal typealias Input = Analytics_TrackAnonymousEventRequest
             /// Response type for "TrackAnonymousEvent".
@@ -41,7 +42,8 @@ internal enum Analytics_AnalyticsService {
             /// Descriptor for "TrackAnonymousEvent".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "analytics.AnalyticsService"),
-                method: "TrackAnonymousEvent"
+                method: "TrackAnonymousEvent",
+                type: .unary
             )
         }
         /// Descriptors for all methods in the "analytics.AnalyticsService" service.
@@ -74,9 +76,9 @@ extension Analytics_AnalyticsService {
         ///   - serializer: A serializer for `Analytics_TrackEventRequest` messages.
         ///   - deserializer: A deserializer for `Analytics_TrackEventResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func trackEvent<Result>(
             request: GRPCCore.ClientRequest<Analytics_TrackEventRequest>,
@@ -93,9 +95,9 @@ extension Analytics_AnalyticsService {
         ///   - serializer: A serializer for `Analytics_TrackAnonymousEventRequest` messages.
         ///   - deserializer: A deserializer for `Analytics_TrackAnonymousEventResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func trackAnonymousEvent<Result>(
             request: GRPCCore.ClientRequest<Analytics_TrackAnonymousEventRequest>,
@@ -129,9 +131,9 @@ extension Analytics_AnalyticsService {
         ///   - serializer: A serializer for `Analytics_TrackEventRequest` messages.
         ///   - deserializer: A deserializer for `Analytics_TrackEventResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func trackEvent<Result>(
             request: GRPCCore.ClientRequest<Analytics_TrackEventRequest>,
@@ -159,9 +161,9 @@ extension Analytics_AnalyticsService {
         ///   - serializer: A serializer for `Analytics_TrackAnonymousEventRequest` messages.
         ///   - deserializer: A deserializer for `Analytics_TrackAnonymousEventResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func trackAnonymousEvent<Result>(
             request: GRPCCore.ClientRequest<Analytics_TrackAnonymousEventRequest>,
@@ -192,9 +194,9 @@ extension Analytics_AnalyticsService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Analytics_TrackEventRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func trackEvent<Result>(
         request: GRPCCore.ClientRequest<Analytics_TrackEventRequest>,
@@ -217,9 +219,9 @@ extension Analytics_AnalyticsService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Analytics_TrackAnonymousEventRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func trackAnonymousEvent<Result>(
         request: GRPCCore.ClientRequest<Analytics_TrackAnonymousEventRequest>,
@@ -247,9 +249,9 @@ extension Analytics_AnalyticsService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func trackEvent<Result>(
         _ message: Analytics_TrackEventRequest,
@@ -276,9 +278,9 @@ extension Analytics_AnalyticsService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func trackAnonymousEvent<Result>(
         _ message: Analytics_TrackAnonymousEventRequest,

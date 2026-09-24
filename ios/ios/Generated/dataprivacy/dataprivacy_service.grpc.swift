@@ -15,13 +15,13 @@ import GRPCProtobuf
 
 /// Namespace containing generated types for the "dataprivacy.DataPrivacyService" service.
 @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
-internal enum Dataprivacy_DataPrivacyService {
+internal enum Dataprivacy_DataPrivacyService: Sendable {
     /// Service descriptor for the "dataprivacy.DataPrivacyService" service.
     internal static let descriptor = GRPCCore.ServiceDescriptor(fullyQualifiedService: "dataprivacy.DataPrivacyService")
     /// Namespace for method metadata.
-    internal enum Method {
+    internal enum Method: Sendable {
         /// Namespace for "AggregateUserDataReport" metadata.
-        internal enum AggregateUserDataReport {
+        internal enum AggregateUserDataReport: Sendable {
             /// Request type for "AggregateUserDataReport".
             internal typealias Input = Dataprivacy_AggregateUserDataReportRequest
             /// Response type for "AggregateUserDataReport".
@@ -29,11 +29,12 @@ internal enum Dataprivacy_DataPrivacyService {
             /// Descriptor for "AggregateUserDataReport".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "dataprivacy.DataPrivacyService"),
-                method: "AggregateUserDataReport"
+                method: "AggregateUserDataReport",
+                type: .unary
             )
         }
         /// Namespace for "DestroyAllUserData" metadata.
-        internal enum DestroyAllUserData {
+        internal enum DestroyAllUserData: Sendable {
             /// Request type for "DestroyAllUserData".
             internal typealias Input = Dataprivacy_DestroyAllUserDataRequest
             /// Response type for "DestroyAllUserData".
@@ -41,11 +42,12 @@ internal enum Dataprivacy_DataPrivacyService {
             /// Descriptor for "DestroyAllUserData".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "dataprivacy.DataPrivacyService"),
-                method: "DestroyAllUserData"
+                method: "DestroyAllUserData",
+                type: .unary
             )
         }
         /// Namespace for "FetchUserDataReport" metadata.
-        internal enum FetchUserDataReport {
+        internal enum FetchUserDataReport: Sendable {
             /// Request type for "FetchUserDataReport".
             internal typealias Input = Dataprivacy_FetchUserDataReportRequest
             /// Response type for "FetchUserDataReport".
@@ -53,11 +55,12 @@ internal enum Dataprivacy_DataPrivacyService {
             /// Descriptor for "FetchUserDataReport".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "dataprivacy.DataPrivacyService"),
-                method: "FetchUserDataReport"
+                method: "FetchUserDataReport",
+                type: .unary
             )
         }
         /// Namespace for "GetDataPrivacyRequest" metadata.
-        internal enum GetDataPrivacyRequest {
+        internal enum GetDataPrivacyRequest: Sendable {
             /// Request type for "GetDataPrivacyRequest".
             internal typealias Input = Dataprivacy_GetDataPrivacyRequestRequest
             /// Response type for "GetDataPrivacyRequest".
@@ -65,11 +68,12 @@ internal enum Dataprivacy_DataPrivacyService {
             /// Descriptor for "GetDataPrivacyRequest".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "dataprivacy.DataPrivacyService"),
-                method: "GetDataPrivacyRequest"
+                method: "GetDataPrivacyRequest",
+                type: .unary
             )
         }
         /// Namespace for "ListDataPrivacyRequests" metadata.
-        internal enum ListDataPrivacyRequests {
+        internal enum ListDataPrivacyRequests: Sendable {
             /// Request type for "ListDataPrivacyRequests".
             internal typealias Input = Dataprivacy_ListDataPrivacyRequestsRequest
             /// Response type for "ListDataPrivacyRequests".
@@ -77,7 +81,8 @@ internal enum Dataprivacy_DataPrivacyService {
             /// Descriptor for "ListDataPrivacyRequests".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "dataprivacy.DataPrivacyService"),
-                method: "ListDataPrivacyRequests"
+                method: "ListDataPrivacyRequests",
+                type: .unary
             )
         }
         /// Descriptors for all methods in the "dataprivacy.DataPrivacyService" service.
@@ -113,9 +118,9 @@ extension Dataprivacy_DataPrivacyService {
         ///   - serializer: A serializer for `Dataprivacy_AggregateUserDataReportRequest` messages.
         ///   - deserializer: A deserializer for `Dataprivacy_AggregateUserDataReportResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func aggregateUserDataReport<Result>(
             request: GRPCCore.ClientRequest<Dataprivacy_AggregateUserDataReportRequest>,
@@ -132,9 +137,9 @@ extension Dataprivacy_DataPrivacyService {
         ///   - serializer: A serializer for `Dataprivacy_DestroyAllUserDataRequest` messages.
         ///   - deserializer: A deserializer for `Dataprivacy_DestroyAllUserDataResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func destroyAllUserData<Result>(
             request: GRPCCore.ClientRequest<Dataprivacy_DestroyAllUserDataRequest>,
@@ -151,9 +156,9 @@ extension Dataprivacy_DataPrivacyService {
         ///   - serializer: A serializer for `Dataprivacy_FetchUserDataReportRequest` messages.
         ///   - deserializer: A deserializer for `Dataprivacy_FetchUserDataReportResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func fetchUserDataReport<Result>(
             request: GRPCCore.ClientRequest<Dataprivacy_FetchUserDataReportRequest>,
@@ -170,9 +175,9 @@ extension Dataprivacy_DataPrivacyService {
         ///   - serializer: A serializer for `Dataprivacy_GetDataPrivacyRequestRequest` messages.
         ///   - deserializer: A deserializer for `Dataprivacy_GetDataPrivacyRequestResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func getDataPrivacyRequest<Result>(
             request: GRPCCore.ClientRequest<Dataprivacy_GetDataPrivacyRequestRequest>,
@@ -189,9 +194,9 @@ extension Dataprivacy_DataPrivacyService {
         ///   - serializer: A serializer for `Dataprivacy_ListDataPrivacyRequestsRequest` messages.
         ///   - deserializer: A deserializer for `Dataprivacy_ListDataPrivacyRequestsResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func listDataPrivacyRequests<Result>(
             request: GRPCCore.ClientRequest<Dataprivacy_ListDataPrivacyRequestsRequest>,
@@ -225,9 +230,9 @@ extension Dataprivacy_DataPrivacyService {
         ///   - serializer: A serializer for `Dataprivacy_AggregateUserDataReportRequest` messages.
         ///   - deserializer: A deserializer for `Dataprivacy_AggregateUserDataReportResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func aggregateUserDataReport<Result>(
             request: GRPCCore.ClientRequest<Dataprivacy_AggregateUserDataReportRequest>,
@@ -255,9 +260,9 @@ extension Dataprivacy_DataPrivacyService {
         ///   - serializer: A serializer for `Dataprivacy_DestroyAllUserDataRequest` messages.
         ///   - deserializer: A deserializer for `Dataprivacy_DestroyAllUserDataResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func destroyAllUserData<Result>(
             request: GRPCCore.ClientRequest<Dataprivacy_DestroyAllUserDataRequest>,
@@ -285,9 +290,9 @@ extension Dataprivacy_DataPrivacyService {
         ///   - serializer: A serializer for `Dataprivacy_FetchUserDataReportRequest` messages.
         ///   - deserializer: A deserializer for `Dataprivacy_FetchUserDataReportResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func fetchUserDataReport<Result>(
             request: GRPCCore.ClientRequest<Dataprivacy_FetchUserDataReportRequest>,
@@ -315,9 +320,9 @@ extension Dataprivacy_DataPrivacyService {
         ///   - serializer: A serializer for `Dataprivacy_GetDataPrivacyRequestRequest` messages.
         ///   - deserializer: A deserializer for `Dataprivacy_GetDataPrivacyRequestResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func getDataPrivacyRequest<Result>(
             request: GRPCCore.ClientRequest<Dataprivacy_GetDataPrivacyRequestRequest>,
@@ -345,9 +350,9 @@ extension Dataprivacy_DataPrivacyService {
         ///   - serializer: A serializer for `Dataprivacy_ListDataPrivacyRequestsRequest` messages.
         ///   - deserializer: A deserializer for `Dataprivacy_ListDataPrivacyRequestsResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func listDataPrivacyRequests<Result>(
             request: GRPCCore.ClientRequest<Dataprivacy_ListDataPrivacyRequestsRequest>,
@@ -378,9 +383,9 @@ extension Dataprivacy_DataPrivacyService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Dataprivacy_AggregateUserDataReportRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func aggregateUserDataReport<Result>(
         request: GRPCCore.ClientRequest<Dataprivacy_AggregateUserDataReportRequest>,
@@ -403,9 +408,9 @@ extension Dataprivacy_DataPrivacyService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Dataprivacy_DestroyAllUserDataRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func destroyAllUserData<Result>(
         request: GRPCCore.ClientRequest<Dataprivacy_DestroyAllUserDataRequest>,
@@ -428,9 +433,9 @@ extension Dataprivacy_DataPrivacyService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Dataprivacy_FetchUserDataReportRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func fetchUserDataReport<Result>(
         request: GRPCCore.ClientRequest<Dataprivacy_FetchUserDataReportRequest>,
@@ -453,9 +458,9 @@ extension Dataprivacy_DataPrivacyService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Dataprivacy_GetDataPrivacyRequestRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func getDataPrivacyRequest<Result>(
         request: GRPCCore.ClientRequest<Dataprivacy_GetDataPrivacyRequestRequest>,
@@ -478,9 +483,9 @@ extension Dataprivacy_DataPrivacyService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `Dataprivacy_ListDataPrivacyRequestsRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func listDataPrivacyRequests<Result>(
         request: GRPCCore.ClientRequest<Dataprivacy_ListDataPrivacyRequestsRequest>,
@@ -508,9 +513,9 @@ extension Dataprivacy_DataPrivacyService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func aggregateUserDataReport<Result>(
         _ message: Dataprivacy_AggregateUserDataReportRequest,
@@ -537,9 +542,9 @@ extension Dataprivacy_DataPrivacyService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func destroyAllUserData<Result>(
         _ message: Dataprivacy_DestroyAllUserDataRequest,
@@ -566,9 +571,9 @@ extension Dataprivacy_DataPrivacyService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func fetchUserDataReport<Result>(
         _ message: Dataprivacy_FetchUserDataReportRequest,
@@ -595,9 +600,9 @@ extension Dataprivacy_DataPrivacyService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func getDataPrivacyRequest<Result>(
         _ message: Dataprivacy_GetDataPrivacyRequestRequest,
@@ -624,9 +629,9 @@ extension Dataprivacy_DataPrivacyService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func listDataPrivacyRequests<Result>(
         _ message: Dataprivacy_ListDataPrivacyRequestsRequest,

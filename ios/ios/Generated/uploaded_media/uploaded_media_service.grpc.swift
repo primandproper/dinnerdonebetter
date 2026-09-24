@@ -15,13 +15,13 @@ import GRPCProtobuf
 
 /// Namespace containing generated types for the "uploaded_media.UploadedMediaService" service.
 @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
-internal enum UploadedMedia_UploadedMediaService {
+internal enum UploadedMedia_UploadedMediaService: Sendable {
     /// Service descriptor for the "uploaded_media.UploadedMediaService" service.
     internal static let descriptor = GRPCCore.ServiceDescriptor(fullyQualifiedService: "uploaded_media.UploadedMediaService")
     /// Namespace for method metadata.
-    internal enum Method {
+    internal enum Method: Sendable {
         /// Namespace for "Upload" metadata.
-        internal enum Upload {
+        internal enum Upload: Sendable {
             /// Request type for "Upload".
             internal typealias Input = UploadedMedia_UploadRequest
             /// Response type for "Upload".
@@ -29,11 +29,12 @@ internal enum UploadedMedia_UploadedMediaService {
             /// Descriptor for "Upload".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "uploaded_media.UploadedMediaService"),
-                method: "Upload"
+                method: "Upload",
+                type: .clientStreaming
             )
         }
         /// Namespace for "CreateUploadedMedia" metadata.
-        internal enum CreateUploadedMedia {
+        internal enum CreateUploadedMedia: Sendable {
             /// Request type for "CreateUploadedMedia".
             internal typealias Input = UploadedMedia_CreateUploadedMediaRequest
             /// Response type for "CreateUploadedMedia".
@@ -41,11 +42,12 @@ internal enum UploadedMedia_UploadedMediaService {
             /// Descriptor for "CreateUploadedMedia".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "uploaded_media.UploadedMediaService"),
-                method: "CreateUploadedMedia"
+                method: "CreateUploadedMedia",
+                type: .unary
             )
         }
         /// Namespace for "GetUploadedMedia" metadata.
-        internal enum GetUploadedMedia {
+        internal enum GetUploadedMedia: Sendable {
             /// Request type for "GetUploadedMedia".
             internal typealias Input = UploadedMedia_GetUploadedMediaRequest
             /// Response type for "GetUploadedMedia".
@@ -53,11 +55,12 @@ internal enum UploadedMedia_UploadedMediaService {
             /// Descriptor for "GetUploadedMedia".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "uploaded_media.UploadedMediaService"),
-                method: "GetUploadedMedia"
+                method: "GetUploadedMedia",
+                type: .unary
             )
         }
         /// Namespace for "GetUploadedMediaWithIDs" metadata.
-        internal enum GetUploadedMediaWithIDs {
+        internal enum GetUploadedMediaWithIDs: Sendable {
             /// Request type for "GetUploadedMediaWithIDs".
             internal typealias Input = UploadedMedia_GetUploadedMediaWithIDsRequest
             /// Response type for "GetUploadedMediaWithIDs".
@@ -65,11 +68,12 @@ internal enum UploadedMedia_UploadedMediaService {
             /// Descriptor for "GetUploadedMediaWithIDs".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "uploaded_media.UploadedMediaService"),
-                method: "GetUploadedMediaWithIDs"
+                method: "GetUploadedMediaWithIDs",
+                type: .unary
             )
         }
         /// Namespace for "GetUploadedMediaForUser" metadata.
-        internal enum GetUploadedMediaForUser {
+        internal enum GetUploadedMediaForUser: Sendable {
             /// Request type for "GetUploadedMediaForUser".
             internal typealias Input = UploadedMedia_GetUploadedMediaForUserRequest
             /// Response type for "GetUploadedMediaForUser".
@@ -77,11 +81,12 @@ internal enum UploadedMedia_UploadedMediaService {
             /// Descriptor for "GetUploadedMediaForUser".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "uploaded_media.UploadedMediaService"),
-                method: "GetUploadedMediaForUser"
+                method: "GetUploadedMediaForUser",
+                type: .unary
             )
         }
         /// Namespace for "ArchiveUploadedMedia" metadata.
-        internal enum ArchiveUploadedMedia {
+        internal enum ArchiveUploadedMedia: Sendable {
             /// Request type for "ArchiveUploadedMedia".
             internal typealias Input = UploadedMedia_ArchiveUploadedMediaRequest
             /// Response type for "ArchiveUploadedMedia".
@@ -89,7 +94,8 @@ internal enum UploadedMedia_UploadedMediaService {
             /// Descriptor for "ArchiveUploadedMedia".
             internal static let descriptor = GRPCCore.MethodDescriptor(
                 service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "uploaded_media.UploadedMediaService"),
-                method: "ArchiveUploadedMedia"
+                method: "ArchiveUploadedMedia",
+                type: .unary
             )
         }
         /// Descriptors for all methods in the "uploaded_media.UploadedMediaService" service.
@@ -126,9 +132,9 @@ extension UploadedMedia_UploadedMediaService {
         ///   - serializer: A serializer for `UploadedMedia_UploadRequest` messages.
         ///   - deserializer: A deserializer for `UploadedMedia_UploadResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func upload<Result>(
             request: GRPCCore.StreamingClientRequest<UploadedMedia_UploadRequest>,
@@ -145,9 +151,9 @@ extension UploadedMedia_UploadedMediaService {
         ///   - serializer: A serializer for `UploadedMedia_CreateUploadedMediaRequest` messages.
         ///   - deserializer: A deserializer for `UploadedMedia_CreateUploadedMediaResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func createUploadedMedia<Result>(
             request: GRPCCore.ClientRequest<UploadedMedia_CreateUploadedMediaRequest>,
@@ -164,9 +170,9 @@ extension UploadedMedia_UploadedMediaService {
         ///   - serializer: A serializer for `UploadedMedia_GetUploadedMediaRequest` messages.
         ///   - deserializer: A deserializer for `UploadedMedia_GetUploadedMediaResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func getUploadedMedia<Result>(
             request: GRPCCore.ClientRequest<UploadedMedia_GetUploadedMediaRequest>,
@@ -183,9 +189,9 @@ extension UploadedMedia_UploadedMediaService {
         ///   - serializer: A serializer for `UploadedMedia_GetUploadedMediaWithIDsRequest` messages.
         ///   - deserializer: A deserializer for `UploadedMedia_GetUploadedMediaWithIDsResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func getUploadedMediaWithIDs<Result>(
             request: GRPCCore.ClientRequest<UploadedMedia_GetUploadedMediaWithIDsRequest>,
@@ -202,9 +208,9 @@ extension UploadedMedia_UploadedMediaService {
         ///   - serializer: A serializer for `UploadedMedia_GetUploadedMediaForUserRequest` messages.
         ///   - deserializer: A deserializer for `UploadedMedia_GetUploadedMediaForUserResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func getUploadedMediaForUser<Result>(
             request: GRPCCore.ClientRequest<UploadedMedia_GetUploadedMediaForUserRequest>,
@@ -221,9 +227,9 @@ extension UploadedMedia_UploadedMediaService {
         ///   - serializer: A serializer for `UploadedMedia_ArchiveUploadedMediaRequest` messages.
         ///   - deserializer: A deserializer for `UploadedMedia_ArchiveUploadedMediaResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         func archiveUploadedMedia<Result>(
             request: GRPCCore.ClientRequest<UploadedMedia_ArchiveUploadedMediaRequest>,
@@ -257,9 +263,9 @@ extension UploadedMedia_UploadedMediaService {
         ///   - serializer: A serializer for `UploadedMedia_UploadRequest` messages.
         ///   - deserializer: A deserializer for `UploadedMedia_UploadResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func upload<Result>(
             request: GRPCCore.StreamingClientRequest<UploadedMedia_UploadRequest>,
@@ -287,9 +293,9 @@ extension UploadedMedia_UploadedMediaService {
         ///   - serializer: A serializer for `UploadedMedia_CreateUploadedMediaRequest` messages.
         ///   - deserializer: A deserializer for `UploadedMedia_CreateUploadedMediaResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func createUploadedMedia<Result>(
             request: GRPCCore.ClientRequest<UploadedMedia_CreateUploadedMediaRequest>,
@@ -317,9 +323,9 @@ extension UploadedMedia_UploadedMediaService {
         ///   - serializer: A serializer for `UploadedMedia_GetUploadedMediaRequest` messages.
         ///   - deserializer: A deserializer for `UploadedMedia_GetUploadedMediaResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func getUploadedMedia<Result>(
             request: GRPCCore.ClientRequest<UploadedMedia_GetUploadedMediaRequest>,
@@ -347,9 +353,9 @@ extension UploadedMedia_UploadedMediaService {
         ///   - serializer: A serializer for `UploadedMedia_GetUploadedMediaWithIDsRequest` messages.
         ///   - deserializer: A deserializer for `UploadedMedia_GetUploadedMediaWithIDsResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func getUploadedMediaWithIDs<Result>(
             request: GRPCCore.ClientRequest<UploadedMedia_GetUploadedMediaWithIDsRequest>,
@@ -377,9 +383,9 @@ extension UploadedMedia_UploadedMediaService {
         ///   - serializer: A serializer for `UploadedMedia_GetUploadedMediaForUserRequest` messages.
         ///   - deserializer: A deserializer for `UploadedMedia_GetUploadedMediaForUserResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func getUploadedMediaForUser<Result>(
             request: GRPCCore.ClientRequest<UploadedMedia_GetUploadedMediaForUserRequest>,
@@ -407,9 +413,9 @@ extension UploadedMedia_UploadedMediaService {
         ///   - serializer: A serializer for `UploadedMedia_ArchiveUploadedMediaRequest` messages.
         ///   - deserializer: A deserializer for `UploadedMedia_ArchiveUploadedMediaResponse` messages.
         ///   - options: Options to apply to this RPC.
-        ///   - handleResponse: A closure which handles the response, the result of which is
-        ///       returned to the caller. Returning from the closure will cancel the RPC if it
-        ///       hasn't already finished.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
         /// - Returns: The result of `handleResponse`.
         internal func archiveUploadedMedia<Result>(
             request: GRPCCore.ClientRequest<UploadedMedia_ArchiveUploadedMediaRequest>,
@@ -440,9 +446,9 @@ extension UploadedMedia_UploadedMediaService.ClientProtocol {
     /// - Parameters:
     ///   - request: A streaming request producing `UploadedMedia_UploadRequest` messages.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func upload<Result>(
         request: GRPCCore.StreamingClientRequest<UploadedMedia_UploadRequest>,
@@ -465,9 +471,9 @@ extension UploadedMedia_UploadedMediaService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `UploadedMedia_CreateUploadedMediaRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func createUploadedMedia<Result>(
         request: GRPCCore.ClientRequest<UploadedMedia_CreateUploadedMediaRequest>,
@@ -490,9 +496,9 @@ extension UploadedMedia_UploadedMediaService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `UploadedMedia_GetUploadedMediaRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func getUploadedMedia<Result>(
         request: GRPCCore.ClientRequest<UploadedMedia_GetUploadedMediaRequest>,
@@ -515,9 +521,9 @@ extension UploadedMedia_UploadedMediaService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `UploadedMedia_GetUploadedMediaWithIDsRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func getUploadedMediaWithIDs<Result>(
         request: GRPCCore.ClientRequest<UploadedMedia_GetUploadedMediaWithIDsRequest>,
@@ -540,9 +546,9 @@ extension UploadedMedia_UploadedMediaService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `UploadedMedia_GetUploadedMediaForUserRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func getUploadedMediaForUser<Result>(
         request: GRPCCore.ClientRequest<UploadedMedia_GetUploadedMediaForUserRequest>,
@@ -565,9 +571,9 @@ extension UploadedMedia_UploadedMediaService.ClientProtocol {
     /// - Parameters:
     ///   - request: A request containing a single `UploadedMedia_ArchiveUploadedMediaRequest` message.
     ///   - options: Options to apply to this RPC.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func archiveUploadedMedia<Result>(
         request: GRPCCore.ClientRequest<UploadedMedia_ArchiveUploadedMediaRequest>,
@@ -594,11 +600,11 @@ extension UploadedMedia_UploadedMediaService.ClientProtocol {
     /// - Parameters:
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - producer: A closure producing request messages to send to the server. The request
-    ///       stream is closed when the closure returns.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - producer: A closure producing request messages to send to the server. Returning
+    ///       from the closure closes the request stream.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func upload<Result>(
         metadata: GRPCCore.Metadata = [:],
@@ -625,9 +631,9 @@ extension UploadedMedia_UploadedMediaService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func createUploadedMedia<Result>(
         _ message: UploadedMedia_CreateUploadedMediaRequest,
@@ -654,9 +660,9 @@ extension UploadedMedia_UploadedMediaService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func getUploadedMedia<Result>(
         _ message: UploadedMedia_GetUploadedMediaRequest,
@@ -683,9 +689,9 @@ extension UploadedMedia_UploadedMediaService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func getUploadedMediaWithIDs<Result>(
         _ message: UploadedMedia_GetUploadedMediaWithIDsRequest,
@@ -712,9 +718,9 @@ extension UploadedMedia_UploadedMediaService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func getUploadedMediaForUser<Result>(
         _ message: UploadedMedia_GetUploadedMediaForUserRequest,
@@ -741,9 +747,9 @@ extension UploadedMedia_UploadedMediaService.ClientProtocol {
     ///   - message: request message to send.
     ///   - metadata: Additional metadata to send, defaults to empty.
     ///   - options: Options to apply to this RPC, defaults to `.defaults`.
-    ///   - handleResponse: A closure which handles the response, the result of which is
-    ///       returned to the caller. Returning from the closure will cancel the RPC if it
-    ///       hasn't already finished.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
     /// - Returns: The result of `handleResponse`.
     internal func archiveUploadedMedia<Result>(
         _ message: UploadedMedia_ArchiveUploadedMediaRequest,
