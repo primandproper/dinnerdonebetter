@@ -7,13 +7,9 @@ function toBase64(bytes: Uint8Array): string {
 }
 
 export const POST: RequestHandler = async ({ locals }) => {
-  const token = locals.oauthToken;
-  if (!token) {
-    return json({ error: 'authentication required' }, { status: 401 });
-  }
-
+  const session = locals.session;
   try {
-    const res = await beginPasskeyRegistration(token);
+    const res = await beginPasskeyRegistration(session, {});
     const optionsBytes = res.publicKeyCredentialCreationOptions;
     const bytes = optionsBytes instanceof Uint8Array ? optionsBytes : new Uint8Array(optionsBytes as ArrayBuffer);
     const publicKeyCredentialCreationOptions = toBase64(bytes);

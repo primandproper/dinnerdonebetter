@@ -1,28 +1,25 @@
 import { redirect } from '@sveltejs/kit';
+import type { Session } from '@primandproper/platform-client';
 import type { Actions, PageServerLoad } from './$types';
 import { getSelf, resolveSettings, setSettingValue } from '$lib/grpc/clients';
 import { configurableSettings, settingsSubject, typedValue } from '$lib/settings/resolutions';
 
 /** The signed-in person's user id, which every settings call names as its subject. */
-async function selfId(token: string): Promise<string> {
-  const self = await getSelf(token);
+async function selfId(session: Session): Promise<string> {
+  const self = await getSelf(session);
   const id = self.result?.id;
   if (!id) throw new Error('no user for this session');
   return id;
 }
 
 export const load: PageServerLoad = async ({ locals, url }) => {
-  const token = locals.oauthToken;
-  if (!token) {
-    return { configurableSettings: [], error: null, updated: false };
-  }
-
+  const session = locals.session;
   try {
     // One call. The catalog and the user's answers used to be two requests
     // joined here, with the fallback to a setting's default reimplemented
     // alongside; the server does both now. It also decides which settings this
     // user may see, so admin-only ones are absent rather than filtered out here.
-    const resolved = await resolveSettings(token, { subject: settingsSubject(await selfId(token)) });
+    const resolved = await resolveSettings(session, { subject: settingsSubject(await selfId(session)) });
 
     const error = url.searchParams.get('error');
     const updated = url.searchParams.get('updated') === '1';
@@ -45,9 +42,7 @@ const _errorMessages: Record<string, string> = {
 
 export const actions: Actions = {
   update: async ({ request, locals }) => {
-    const token = locals.oauthToken;
-    if (!token) throw redirect(302, '/login');
-
+    const session = locals.session;
     const formData = await request.formData();
     const settingName = (formData.get('setting_name') as string)?.trim() ?? '';
     const raw = (formData.get('value') as string)?.trim() ?? '';
@@ -61,7 +56,7 @@ export const actions: Actions = {
       // One call whether or not they had answered before: the server converges on
       // the row, so a first answer and a changed one are the same write and this
       // no longer has to know which it is making.
-      await setSettingValue(token, { subject: settingsSubject(await selfId(token)), name: settingName, value });
+      await setSettingValue(session, { subject: settingsSubject(await selfId(session)), name: settingName, value });
       throw redirect(302, '/account/preferences?updated=1');
     } catch (e) {
       if (e && typeof e === 'object' && 'status' in e && (e as { status: number }).status === 302) {

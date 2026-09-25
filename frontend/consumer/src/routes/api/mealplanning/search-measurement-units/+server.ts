@@ -11,18 +11,14 @@ import { QueryFilter } from '@dinnerdonebetter/api-client';
 const DEFAULT_LIST_FILTER = QueryFilter.create({ maxResponseSize: 100 });
 
 export const GET: RequestHandler = async ({ url, locals }) => {
-  const token = locals.oauthToken;
-  if (!token) {
-    return json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
+  const session = locals.session;
   const q = url.searchParams.get('q') ?? '';
   const ingredientId = url.searchParams.get('ingredientId') ?? '';
 
   try {
     if (ingredientId) {
       // Use getValidIngredientMeasurementUnitsByIngredient for bridge IDs
-      const res = await getValidIngredientMeasurementUnitsByIngredient(token, {
+      const res = await getValidIngredientMeasurementUnitsByIngredient(session, {
         validIngredientId: ingredientId,
         filter: QueryFilter.create({ maxResponseSize: 50 }),
       });
@@ -35,8 +31,8 @@ export const GET: RequestHandler = async ({ url, locals }) => {
     }
     const res =
       q === ''
-        ? await getValidMeasurementUnits(token, { filter: DEFAULT_LIST_FILTER })
-        : await searchForValidMeasurementUnits(token, {
+        ? await getValidMeasurementUnits(session, { filter: DEFAULT_LIST_FILTER })
+        : await searchForValidMeasurementUnits(session, {
             filter: DEFAULT_LIST_FILTER,
             query: q,
             useSearchService: q.length > 2,

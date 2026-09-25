@@ -294,7 +294,7 @@ proto_swift: ensure_protoc-gen-swift_installed ensure_protoc-gen-grpc-swift_inst
 	(cd ios && $(MAKE) format)
 
 # Hand-written files in the TS proto output directory that must survive regeneration
-PROTO_TS_HANDWRITTEN := index.ts create-clients.ts admin-clients.ts platform.ts
+PROTO_TS_HANDWRITTEN := index.ts admin-clients.ts platform.ts
 
 # The web apps call platform's services through @primandproper/platform-client, whose
 # stubs are generated from the platform-go tag it pins, so nothing platform owns is

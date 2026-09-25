@@ -14,6 +14,7 @@
     "./mealplanning/mealplanning_messages": "./src/mealplanning/mealplanning_messages.ts"
   },
   "dependencies": {
+    "@bufbuild/protobuf": "2.11.0",
     "@grpc/grpc-js": "1.14.3",
     "@primandproper/platform-client": "file:../../../../platform-client-ts/primandproper-platform-client-0.0.0.tgz"
   },

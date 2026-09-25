@@ -3,13 +3,9 @@ import type { Actions, PageServerLoad } from './$types';
 import { listPasskeys, archivePasskey } from '$lib/grpc/clients';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
-  const token = locals.oauthToken;
-  if (!token) {
-    return { passkeys: [], error: null, deleted: false };
-  }
-
+  const session = locals.session;
   try {
-    const res = await listPasskeys(token);
+    const res = await listPasskeys(session);
     const passkeys = res.results ?? [];
     const error = url.searchParams.get('error');
     const deleted = url.searchParams.get('deleted') === '1';
@@ -21,9 +17,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 export const actions: Actions = {
   delete: async ({ request, locals }) => {
-    const token = locals.oauthToken;
-    if (!token) throw redirect(302, '/login');
-
+    const session = locals.session;
     const formData = await request.formData();
     const credentialId = (formData.get('credential_id') as string)?.trim() ?? '';
     if (!credentialId) {
@@ -31,7 +25,7 @@ export const actions: Actions = {
     }
 
     try {
-      await archivePasskey(token, { credentialId });
+      await archivePasskey(session, { credentialId });
       throw redirect(302, '/account/passkeys?deleted=1');
     } catch (e) {
       if (e && typeof e === 'object' && 'status' in e && (e as { status: number }).status === 302) {

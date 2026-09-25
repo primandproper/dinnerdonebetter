@@ -4,18 +4,14 @@ import { getValidPreparationInstrumentsByPreparation } from '$lib/grpc/clients';
 import { logger } from '$lib/logger';
 
 export const GET: RequestHandler = async ({ url, locals }) => {
-  const token = locals.oauthToken;
-  if (!token) {
-    return json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
+  const session = locals.session;
   const preparationId = url.searchParams.get('preparationId') ?? '';
   if (!preparationId) {
     return json({ results: [] });
   }
 
   try {
-    const res = await getValidPreparationInstrumentsByPreparation(token, {
+    const res = await getValidPreparationInstrumentsByPreparation(session, {
       validPreparationId: preparationId,
       filter: undefined,
     });
