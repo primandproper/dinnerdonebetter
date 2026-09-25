@@ -1,10 +1,12 @@
 // See https://svelte.dev/docs/kit/types#app.d.ts
 // for information about these interfaces
+import type { Session } from '@primandproper/platform-client';
+
 declare global {
   namespace App {
     // interface Error {}
     interface Locals {
-      oauthToken?: string;
+      session: Session;
     }
     // interface PageData {}
     // interface PageState {}

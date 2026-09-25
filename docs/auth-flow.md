@@ -9,7 +9,7 @@ Authentication in this app is **convoluted by design**: there are several ways t
 1. **Multiple auth methods**: Password+TOTP and Passkey (WebAuthn)
 2. **Three token systems**: JWT from this application's `AuthService` (names a server-side session), JWT from platform's `SignInService` (names a login, checked by signature alone), and OAuth2 (opaque, stored as a digest, used for gRPC)
 3. **Multiple client types**: Consumer web app, Admin web app, mobile apps, API clients, integration tests
-4. **Different paths for different clients**: Web apps use cookies + OAuth2 exchange; some clients send JWT directly
+4. **Different paths for different clients**: the consumer web app holds a platform login in a cookie, the admin web app an `AuthService` JWT; API clients exchange for OAuth2; some clients send a JWT directly
 
 ## Token Types
 
@@ -52,8 +52,8 @@ store read per request, which is the trade `oauth2server`'s package doc argues.
 
 **Entry points**:
 
-- **Consumer web app**: `POST /login/submit` → `LoginForToken` → JWT stored in cookie
-- **Admin web app**: `POST /login/submit` → `AdminLoginForToken` → JWT stored in cookie
+- **Consumer web app**: `?/login` on `/login` → platform's `SignInService.LoginForToken` (see [3](#3-password--totp-through-platforms-signinservice)) → stored in the session cookie
+- **Admin web app**: `?/login` on `/login` → `AdminLoginForToken` → JWT stored in cookie
 - **gRPC clients**: Call `LoginForToken` directly, use token as Bearer or exchange for OAuth2
 
 **Implementation**: [`internal/authentication/manager.go`](backend/internal/authentication/manager.go), [`internal/services/auth/grpc/auth.go`](backend/internal/services/auth/grpc/auth.go)
@@ -174,17 +174,38 @@ was it used?" is a question asked months later, after the sweeper has removed th
 
 ## Web App Auth Flow (Consumer / Admin)
 
-The consumer and admin frontends use the same pattern:
+Both web apps are SvelteKit servers that keep the login in an AES-GCM encrypted, HTTP-only
+cookie and send the access token straight to gRPC as `Authorization: Bearer <token>`. Neither
+exchanges it for an OAuth2 token.
 
-1. **Login**: User submits credentials (password or passkey) → `LoginForToken` or passkey handlers → JWT returned.
-2. **Cookie**: JWT is encoded and stored in a signed cookie (`AuthPayload{AccessToken}`).
-3. **Per-request**: `AuthMiddleware` reads cookie, decodes JWT, calls `BuildAuthedClient(ctx, config, accessToken, developingLocally)`.
-4. **Client build**:
-   - **Production**: `WithOAuth2Credentials` — uses JWT as Bearer to hit `POST /authorize`, gets code, exchanges for OAuth2 token, uses OAuth2 token for gRPC.
-   - **Local dev**: `BuildInsecureOAuthedGRPCClient` — same OAuth2 flow but over HTTP.
-5. **gRPC calls**: Authenticated client sends OAuth2 access token (or JWT in some paths) as `Authorization: Bearer <token>`.
+**Consumer**: `@primandproper/platform-client`'s `Session`, one per request over a
+`CredentialStore` backed by the cookie.
 
-**Implementation**: [`internal/platform/webappauth/middleware.go`](backend/internal/platform/webappauth/middleware.go), [`internal/platform/webappauth/client_builder.go`](backend/internal/platform/webappauth/client_builder.go)
+1. **Sign-in**: `signIn` through platform's `SignInService`. The cookie holds the `IssuedToken`,
+   refresh token included, and expires when the refresh token does.
+2. **Per request**: the hook builds the `Session` and redirects to `/login` when no login is
+   held. It doesn't call the server.
+3. **Calls**: every call, to platform's services and this repository's alike, goes through
+   `Session.call`. That refreshes inside thirty seconds of expiry, and on `Unauthenticated`
+   refreshes and retries once. A successor is written back to the cookie. Requests that
+   arrive together with the same cookie exchange its refresh token once between them,
+   through the process's `InMemoryExchangeCoordinator`; more than one replica needs a
+   `SharedExchangeCoordinator`.
+4. **Ended logins**: a refresh the server refuses clears the cookie. A page navigation
+   redirects to `/login`, and a form action or API endpoint answers with its own error.
+5. **Sign-out**: `signOut`, which revokes the refresh token's family through `SignOut`. An
+   access token already issued keeps working until it expires.
+
+A passkey sign-in has no door on `SignInService` yet (platform-go#874), so it stores
+`AuthService`'s access token with no refresh token. It lasts until the server refuses it,
+and signing out also calls `RevokeCurrentSession`. The `/account/sessions` page lists only
+these `AuthService` sessions; platform can't list a user's logins (platform-go#886).
+
+**Admin**: `AdminLoginForToken` on `AuthService`. The JWT is stored in the cookie and sent as
+is, with no refresh. It moves to platform's administrative door once platform's tokens record
+that they came through it (platform-go#887).
+
+**Implementation**: [`frontend/consumer/src/hooks.server.ts`](frontend/consumer/src/hooks.server.ts), [`frontend/consumer/src/lib/auth/session.ts`](frontend/consumer/src/lib/auth/session.ts), [`frontend/consumer/src/lib/grpc/clients.ts`](frontend/consumer/src/lib/grpc/clients.ts), [`frontend/admin/src/hooks.server.ts`](frontend/admin/src/hooks.server.ts)
 
 ## gRPC Auth Interceptor
 
@@ -392,8 +413,7 @@ store refuses a session past either deadline whether or not anything has swept i
 | OAuth2 client registry store                                | `internal/services/auth/handlers/authentication/oauth2_store.go`         |
 | OAuth2 subject authenticator                                | `internal/services/auth/handlers/authentication/oauth2_authenticator.go` |
 | Passkey HTTP endpoints (web)                                | `frontend/consumer/src/routes/auth/passkey/`                             |
-| Web app auth middleware                                     | `internal/platform/webappauth/middleware.go`                             |
-| Client builder (OAuth2 + JWT)                               | `internal/platform/webappauth/client_builder.go`                         |
+| Consumer web app session (cookie store, hook)               | `frontend/consumer/src/lib/auth/session.ts`                              |
 | gRPC client (OAuth2, Bearer)                                | `pkg/client/client.go`                                                   |
 | Password reset store (audit wrapper)                        | `internal/repositories/postgres/auth/password_reset_tokens.go`           |
 | Password reset flow (issue, redeem)                         | `internal/domain/auth/managers/auth_manager.go`                          |
@@ -427,18 +447,12 @@ flowchart TB
     PM --> SESS
     PM --> JWT
 
-    subgraph "Web App Path"
-        Cookie[Auth Cookie]
-        MW[AuthMiddleware]
-        BC[BuildAuthedClient]
+    subgraph "API Client Path"
         OAuth2[OAuth2 Exchange]
         OAT[OAuth2 Access Token]
     end
 
-    JWT --> Cookie
-    Cookie --> MW
-    MW --> BC
-    BC --> OAuth2
+    JWT --> OAuth2
     OAuth2 --> OAT
 
     subgraph "gRPC Path"

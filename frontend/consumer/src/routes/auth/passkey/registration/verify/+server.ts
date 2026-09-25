@@ -3,11 +3,7 @@ import type { RequestHandler } from './$types';
 import { finishPasskeyRegistration } from '$lib/grpc/clients';
 
 export const POST: RequestHandler = async ({ request, locals }) => {
-  const token = locals.oauthToken;
-  if (!token) {
-    return json({ error: 'authentication required' }, { status: 401 });
-  }
-
+  const session = locals.session;
   let body: { challenge?: string; attestationResponse?: string };
   try {
     body = await request.json();
@@ -28,7 +24,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       : new TextEncoder().encode(JSON.stringify(attestationResponse));
 
   try {
-    await finishPasskeyRegistration(token, {
+    await finishPasskeyRegistration(session, {
       challenge,
       attestationResponse: attestationBytes,
     });

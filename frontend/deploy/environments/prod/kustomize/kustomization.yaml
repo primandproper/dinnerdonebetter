@@ -28,27 +28,6 @@ patches:
       - op: add
         path: "/spec/template/spec/containers/0/env/-"
         value:
-          name: HTTP_API_SERVER_URL
-          value: "https://http-api.dinnerdonebetter.com"
-      - op: add
-        path: "/spec/template/spec/containers/0/env/-"
-        value:
-          name: OAUTH2_CLIENT_ID
-          valueFrom:
-            secretKeyRef:
-              name: dinner-done-better-consumer-webapp-secrets
-              key: OAUTH2_CLIENT_ID
-      - op: add
-        path: "/spec/template/spec/containers/0/env/-"
-        value:
-          name: OAUTH2_CLIENT_SECRET
-          valueFrom:
-            secretKeyRef:
-              name: dinner-done-better-consumer-webapp-secrets
-              key: OAUTH2_CLIENT_SECRET
-      - op: add
-        path: "/spec/template/spec/containers/0/env/-"
-        value:
           name: COOKIE_NAME
           valueFrom:
             secretKeyRef:

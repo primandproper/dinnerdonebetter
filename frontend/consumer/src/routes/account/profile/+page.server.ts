@@ -4,13 +4,9 @@ import { getSelf, updateProfile, updateUserUsername } from '$lib/grpc/clients';
 import { env } from '$env/dynamic/private';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
-  const token = locals.oauthToken;
-  if (!token) {
-    return { user: null, error: null, updated: false, avatarMediaBaseUrl: '' };
-  }
-
+  const session = locals.session;
   try {
-    const selfRes = await getSelf(token);
+    const selfRes = await getSelf(session);
     const user = selfRes.result ?? null;
     const error = url.searchParams.get('error');
     const updated = url.searchParams.get('updated') === '1';
@@ -23,11 +19,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 export const actions: Actions = {
   'update-username': async ({ request, locals }) => {
-    const token = locals.oauthToken;
-    if (!token) {
-      throw redirect(302, '/login');
-    }
-
+    const session = locals.session;
     const formData = await request.formData();
     const username = (formData.get('username') as string)?.trim() ?? '';
     const currentPassword = (formData.get('current_password') as string)?.trim() ?? '';
@@ -41,7 +33,7 @@ export const actions: Actions = {
     }
 
     try {
-      await updateUserUsername(token, { newUsername: username, currentPassword, totpToken });
+      await updateUserUsername(session, { newUsername: username, currentPassword, totpToken });
       throw redirect(302, '/account/profile?updated=1');
     } catch (e) {
       if (e && typeof e === 'object' && 'status' in e && (e as { status: number }).status === 302) {
@@ -51,11 +43,7 @@ export const actions: Actions = {
     }
   },
   'update-details': async ({ request, locals }) => {
-    const token = locals.oauthToken;
-    if (!token) {
-      throw redirect(302, '/login');
-    }
-
+    const session = locals.session;
     const formData = await request.formData();
     const firstName = (formData.get('first_name') as string)?.trim() ?? '';
     const lastName = (formData.get('last_name') as string)?.trim() ?? '';
@@ -71,7 +59,7 @@ export const actions: Actions = {
       // directory's profile update asks for nothing; the two changes that *are* credential
       // changes — the handle and the address — are on the auth surface and are
       // re-authenticated there.
-      await updateProfile(token, {
+      await updateProfile(session, {
         input: {
           firstName,
           lastName,

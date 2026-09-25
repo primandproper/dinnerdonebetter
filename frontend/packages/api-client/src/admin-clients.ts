@@ -24,7 +24,7 @@ import { InternalOperationsClient } from './internal_ops/internal_ops_service.js
 import { AnalyticsServiceClient } from './analytics/analytics_service.js';
 import { MealPlanningServiceClient } from './mealplanning/mealplanning_service.js';
 import type { CreateRecipeRequest, CreateRecipeResponse } from './mealplanning/mealplanning_service_types.js';
-import type { GrpcClientConfig } from './create-clients.js';
+import type { PlatformTransportConfig } from './platform.js';
 
 function promisifyUnary<TRequest, TResponse>(
   call: (
@@ -43,7 +43,7 @@ function promisifyUnary<TRequest, TResponse>(
     });
 }
 
-export function createAdminGrpcClients(config: GrpcClientConfig) {
+export function createAdminGrpcClients(config: PlatformTransportConfig) {
   const credentials = config.insecure ? grpc.credentials.createInsecure() : grpc.credentials.createSsl();
   const serverUrl = config.serverUrl;
 

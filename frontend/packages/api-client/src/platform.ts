@@ -1,13 +1,13 @@
 /**
- * Calls to the services platform-go ships — identity, settings, waitlists, billing and the
- * rest — go through @primandproper/platform-client rather than through stubs generated
- * here. Their schema is platform's, so the stubs are too: this package generates only what
- * this repository's own protos describe.
+ * Every call goes over @primandproper/platform-client's transport: platform's services
+ * through the library's own stubs, and this repository's through the method definitions
+ * generated here, which have the same shape.
  *
- * Only the transport and the method definitions are adopted. The library's Session, which
- * holds and refreshes the login, refreshes through platform's SignInService, and this
- * server does not register it: sign-in is still this repository's AuthService, so tokens
- * are still minted, exchanged and carried by the apps themselves.
+ * The consumer app holds its login in the library's Session, which signs in, refreshes and
+ * signs out through platform's SignInService. The admin app still signs in through this
+ * repository's AuthService, because platform's tokens don't record whether they came
+ * through the administrative door until platform-go#887 is released, so it carries a token
+ * it holds itself through createPlatformClient.
  */
 
 import * as grpc from '@grpc/grpc-js';
@@ -15,9 +15,22 @@ import {
   bearerAuthorizer,
   type CallOptions,
   createGrpcJsTransport,
+  type Transport,
   type UnaryMethod,
 } from '@primandproper/platform-client';
-import type { GrpcClientConfig } from './create-clients.js';
+
+export interface PlatformTransportConfig {
+  serverUrl: string;
+  insecure?: boolean;
+}
+
+/** createPlatformTransport dials the API server. One per process: it holds the channel. */
+export function createPlatformTransport(config: PlatformTransportConfig): Transport {
+  return createGrpcJsTransport({
+    address: config.serverUrl,
+    credentials: config.insecure ? grpc.credentials.createInsecure() : grpc.credentials.createSsl(),
+  });
+}
 
 export interface PlatformClient {
   /** call makes an authenticated call, carrying `oauth2AccessToken` as a bearer credential. */
@@ -26,11 +39,8 @@ export interface PlatformClient {
   callAnonymous<Req, Res>(method: UnaryMethod<Req, Res>, request: Req): Promise<Res>;
 }
 
-export function createPlatformClient(config: GrpcClientConfig): PlatformClient {
-  const transport = createGrpcJsTransport({
-    address: config.serverUrl,
-    credentials: config.insecure ? grpc.credentials.createInsecure() : grpc.credentials.createSsl(),
-  });
+export function createPlatformClient(config: PlatformTransportConfig): PlatformClient {
+  const transport = createPlatformTransport(config);
 
   return {
     call: (method, oauth2AccessToken, request) => {

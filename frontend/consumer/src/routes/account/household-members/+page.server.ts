@@ -15,22 +15,9 @@ const ACCOUNT_ADMIN_ROLE = 'account_admin';
 const ACCOUNT_MEMBER_ROLE = 'account_member';
 
 export const load: PageServerLoad = async ({ locals, url, request }) => {
-  const token = locals.oauthToken;
-  if (!token) {
-    return {
-      account: null,
-      members: [],
-      invitations: [],
-      currentUserId: '',
-      isAdmin: false,
-      baseUrl: '',
-      error: null,
-      invited: false,
-    };
-  }
-
+  const session = locals.session;
   try {
-    const activeRes = await getActiveAccount(token);
+    const activeRes = await getActiveAccount(session);
     const account = activeRes.result ?? null;
 
     if (!account) {
@@ -46,14 +33,14 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
       };
     }
 
-    const selfRes = await getSelf(token);
+    const selfRes = await getSelf(session);
     const currentUserId = selfRes.result?.id ?? '';
 
     // The roster is a read of its own now. platform's Account carries no member list —
     // an account with thirty members would otherwise be thirty users on every read of it
     // — so who is in it is a paged read, and a membership carries a set of roles rather
     // than a single one.
-    const membersRes = await listAccountMembers(token, {
+    const membersRes = await listAccountMembers(session, {
       accountId: account.id,
       filter: QueryFilter.create({ maxResponseSize: 50 }),
     });
@@ -67,7 +54,7 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
       }
     }
 
-    const invRes = await listInvitationsFromUser(token, {
+    const invRes = await listInvitationsFromUser(session, {
       filter: QueryFilter.create({ maxResponseSize: 50 }),
     });
     const invitations = (invRes.results ?? []).filter((inv) => inv.belongsToAccount === account.id);
@@ -117,9 +104,7 @@ const _errorMessages: Record<string, string> = {
 
 export const actions: Actions = {
   'send-invitation': async ({ request, locals }) => {
-    const token = locals.oauthToken;
-    if (!token) throw redirect(302, '/login');
-
+    const session = locals.session;
     const formData = await request.formData();
     const email = (formData.get('email') as string)?.trim() ?? '';
     const name = (formData.get('name') as string)?.trim() ?? '';
@@ -134,8 +119,8 @@ export const actions: Actions = {
       // The account is named on the request rather than taken from the session, and the
       // roles the invitation promises come from here: what somebody was invited to is
       // what they get, and an acceptance cannot ask for more.
-      const activeRes = await getActiveAccount(token);
-      await invite(token, {
+      const activeRes = await getActiveAccount(session);
+      await invite(session, {
         accountId: activeRes.result?.id ?? '',
         toEmail: email,
         toName: name,
@@ -152,9 +137,7 @@ export const actions: Actions = {
     }
   },
   'cancel-invitation': async ({ request, locals }) => {
-    const token = locals.oauthToken;
-    if (!token) throw redirect(302, '/login');
-
+    const session = locals.session;
     const formData = await request.formData();
     const invitationId = (formData.get('invitation_id') as string)?.trim() ?? '';
     if (!invitationId) {
@@ -164,7 +147,7 @@ export const actions: Actions = {
     try {
       // No token: withdrawing is the sender's act, and the secret half of the link is
       // the recipient's. The sender never holds it — no read returns one.
-      await cancelInvitation(token, {
+      await cancelInvitation(session, {
         invitationId,
         statusNote: '',
       });
@@ -177,9 +160,7 @@ export const actions: Actions = {
     }
   },
   'update-role': async ({ request, locals }) => {
-    const token = locals.oauthToken;
-    if (!token) throw redirect(302, '/login');
-
+    const session = locals.session;
     const formData = await request.formData();
     const userId = (formData.get('user_id') as string)?.trim() ?? '';
     const newRole = (formData.get('new_role') as string)?.trim() ?? '';
@@ -196,8 +177,8 @@ export const actions: Actions = {
       // Roles are replaced rather than merged, and the account is named: a caller adding
       // one reads the membership and writes the union, which is visible here rather than
       // hidden in a setter that could not express a revocation.
-      const activeRes = await getActiveAccount(token);
-      await setMembershipRoles(token, {
+      const activeRes = await getActiveAccount(session);
+      await setMembershipRoles(session, {
         accountId: activeRes.result?.id ?? '',
         userId,
         roles: [newRole],

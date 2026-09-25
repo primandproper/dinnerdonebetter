@@ -1,21 +1,16 @@
 /**
  * @dinnerdonebetter/api-client
- * gRPC client factory and types for the Dinner Done Better API.
+ * gRPC method definitions and types for the Dinner Done Better API.
  */
 
-import * as grpc from '@grpc/grpc-js';
-import type { Metadata } from '@grpc/grpc-js';
-
-export { createGrpcClients, type GrpcClientConfig } from './create-clients.js';
 export { createAdminGrpcClients } from './admin-clients.js';
-export { createPlatformClient, type PlatformClient } from './platform.js';
+export {
+  createPlatformClient,
+  createPlatformTransport,
+  type PlatformClient,
+  type PlatformTransportConfig,
+} from './platform.js';
 export { QueryFilter, Pagination } from './primandproper/platform/filtering/v1/filtering.js';
-
-/**
- * Metadata with Bearer token for authenticated gRPC calls.
- */
-export function authMetadata(oauth2AccessToken: string): Metadata {
-  const metadata = new grpc.Metadata();
-  metadata.add('authorization', `Bearer ${oauth2AccessToken}`);
-  return metadata;
-}
+export { AnalyticsServiceService } from './analytics/analytics_service.js';
+export { AuthServiceService } from './auth/auth_service.js';
+export { MealPlanningServiceService } from './mealplanning/mealplanning_service.js';

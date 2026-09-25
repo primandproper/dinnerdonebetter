@@ -3,13 +3,9 @@ import { getSelf, listAccountsForUser } from '$lib/grpc/clients';
 import { QueryFilter } from '@dinnerdonebetter/api-client';
 
 export const load: PageServerLoad = async ({ locals }) => {
-  const token = locals.oauthToken;
-  if (!token) {
-    return { hasAccount: false };
-  }
-
+  const session = locals.session;
   try {
-    const selfRes = await getSelf(token);
+    const selfRes = await getSelf(session);
     const user = selfRes.result;
     const userId = user?.id ?? '';
 
@@ -17,7 +13,7 @@ export const load: PageServerLoad = async ({ locals }) => {
       return { hasAccount: false };
     }
 
-    const accountsRes = await listAccountsForUser(token, {
+    const accountsRes = await listAccountsForUser(session, {
       userId,
       filter: QueryFilter.create({ maxResponseSize: 1 }),
     });

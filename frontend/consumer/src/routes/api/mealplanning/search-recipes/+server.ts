@@ -4,14 +4,10 @@ import { searchForRecipes } from '$lib/grpc/clients';
 import { logger } from '$lib/logger';
 
 export const GET: RequestHandler = async ({ url, locals }) => {
-  const token = locals.oauthToken;
-  if (!token) {
-    return json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
+  const session = locals.session;
   const q = url.searchParams.get('q') ?? '';
   try {
-    const res = await searchForRecipes(token, {
+    const res = await searchForRecipes(session, {
       query: q,
       useSearchService: q.length > 2,
     });

@@ -6,13 +6,9 @@ import { getActiveAccount, getSelf, listAccountMembers, updateAccount } from '$l
 const ACCOUNT_ADMIN_ROLE = 'account_admin';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
-  const token = locals.oauthToken;
-  if (!token) {
-    return { account: null, isAdmin: false, error: null, updated: false };
-  }
-
+  const session = locals.session;
   try {
-    const activeRes = await getActiveAccount(token);
+    const activeRes = await getActiveAccount(session);
     const account = activeRes.result ?? null;
 
     if (!account) {
@@ -24,13 +20,13 @@ export const load: PageServerLoad = async ({ locals, url }) => {
       };
     }
 
-    const selfRes = await getSelf(token);
+    const selfRes = await getSelf(session);
     const currentUserId = selfRes.result?.id ?? '';
 
     // Who is an admin is a read of its own: platform's Account carries no member list,
     // and a membership holds a set of roles rather than one. Same shape as the roster on
     // /account/household-members.
-    const membersRes = await listAccountMembers(token, {
+    const membersRes = await listAccountMembers(session, {
       accountId: account.id,
       filter: QueryFilter.create({ maxResponseSize: 50 }),
     });
@@ -66,10 +62,8 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 export const actions: Actions = {
   update: async ({ request, locals }) => {
-    const token = locals.oauthToken;
-    if (!token) throw redirect(302, '/login');
-
-    const activeRes = await getActiveAccount(token);
+    const session = locals.session;
+    const activeRes = await getActiveAccount(session);
     const account = activeRes.result;
     if (!account) {
       throw redirect(302, '/account/household-details?error=server');
@@ -90,7 +84,7 @@ export const actions: Actions = {
     }
 
     try {
-      await updateAccount(token, {
+      await updateAccount(session, {
         accountId: account.id,
         input: {
           name,

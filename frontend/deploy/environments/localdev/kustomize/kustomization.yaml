@@ -26,27 +26,6 @@ patches:
       - op: add
         path: "/spec/template/spec/containers/0/env/-"
         value:
-          name: HTTP_API_SERVER_URL
-          value: "http://dinner-done-better-api-svc.localdev.svc.cluster.local:8000"
-      - op: add
-        path: "/spec/template/spec/containers/0/env/-"
-        value:
-          name: OAUTH2_CLIENT_ID
-          valueFrom:
-            secretKeyRef:
-              name: dinner-done-better-consumer-webapp-secrets
-              key: OAUTH2_CLIENT_ID
-      - op: add
-        path: "/spec/template/spec/containers/0/env/-"
-        value:
-          name: OAUTH2_CLIENT_SECRET
-          valueFrom:
-            secretKeyRef:
-              name: dinner-done-better-consumer-webapp-secrets
-              key: OAUTH2_CLIENT_SECRET
-      - op: add
-        path: "/spec/template/spec/containers/0/env/-"
-        value:
           name: COOKIE_NAME
           value: "consumer_session"
       - op: add
@@ -155,8 +134,6 @@ secretGenerator:
   - name: dinner-done-better-consumer-webapp-secrets
     namespace: localdev
     literals:
-      - OAUTH2_CLIENT_ID=localdev-consumer-client
-      - OAUTH2_CLIENT_SECRET=localdev-consumer-secret
       - COOKIE_ENCRYPTION_KEY=dGVzdGtleTEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2
     options:
       disableNameSuffixHash: true

@@ -1,7 +1,8 @@
 import { json } from '@sveltejs/kit';
+import { IssuedToken } from '@primandproper/platform-client';
 import type { RequestHandler } from './$types';
 import { finishPasskeyAuthentication } from '$lib/grpc/clients';
-import { encodeSession, getCookieOptions } from '$lib/auth/session';
+import { cookieStore } from '$lib/auth/session';
 
 export const POST: RequestHandler = async ({ request, cookies }) => {
   let body: { challenge?: string; username?: string; assertionResponse?: unknown };
@@ -30,21 +31,23 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
       username,
       assertionResponse: assertionBytes,
     });
-    const accessToken = tokenRes.result?.accessToken;
-    if (!accessToken) {
+    const result = tokenRes.result;
+    if (!result?.accessToken) {
       return json({ error: 'no access token' }, { status: 500 });
     }
 
-    const refreshToken = tokenRes.result?.refreshToken;
-    const encoded = encodeSession({ accessToken, refreshToken });
-    const opts = getCookieOptions();
-    cookies.set(opts.name, encoded, {
-      path: opts.path,
-      httpOnly: opts.httpOnly,
-      secure: opts.secure,
-      sameSite: opts.sameSite,
-      maxAge: opts.maxAge,
-    });
+    // Platform has no door a passkey can sign in through yet (platform-go#874), so this is
+    // AuthService's token, and platform's refresh can't exchange AuthService's refresh token.
+    // It is held without one: the login lasts as long as the access token does. That is the
+    // server's to say, not expiresUtc's, which reads as the moment of issue whenever the
+    // lifetime is left to the token issuer's default. With no expiry here the Session sends
+    // the token until the server refuses it, and a refusal ends the login.
+    await cookieStore(cookies).save(
+      IssuedToken.create({
+        token: result.accessToken,
+        activeAccountId: result.accountId,
+      }),
+    );
 
     return json({ success: true, redirect: '/' });
   } catch {

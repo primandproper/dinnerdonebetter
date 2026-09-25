@@ -1,8 +1,6 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { messageOf } from '@primandproper/errors';
+import { PlatformError, SignInReason, signIn } from '@primandproper/platform-client';
 import type { Actions, PageServerLoad } from './$types';
-import { loginForToken } from '$lib/grpc/clients';
-import { encodeSession, getCookieOptions } from '$lib/auth/session';
 
 export const load: PageServerLoad = async ({ url }) => {
   const resetSuccess = url.searchParams.get('reset') === 'success';
@@ -10,11 +8,11 @@ export const load: PageServerLoad = async ({ url }) => {
 };
 
 export const actions: Actions = {
-  login: async ({ request, cookies }) => {
+  login: async ({ request, locals }) => {
     const formData = await request.formData();
     const username = (formData.get('username') as string)?.trim() ?? '';
     const password = (formData.get('password') as string) ?? '';
-    const totpToken = (formData.get('totpToken') as string)?.trim() ?? '';
+    const totpCode = (formData.get('totpToken') as string)?.trim() ?? '';
 
     if (!username) {
       return fail(400, { error: 'Username is required', username });
@@ -24,45 +22,28 @@ export const actions: Actions = {
     }
 
     try {
-      const response = await loginForToken({
-        input: {
-          username,
-          password,
-          totpToken,
-          desiredAccountId: '',
-        },
-      });
-      const accessToken = response.result?.accessToken;
-      if (!accessToken) {
-        return fail(500, { error: 'No access token in response', username });
+      // The code is sent whenever the person typed one: it is ignored for anyone without a
+      // second factor, so the form needs no branch to know which they are.
+      const result = await signIn(locals.session, { handle: { username }, password, totpCode });
+      if (result.kind === 'second_factor_required') {
+        // The form sends the password again with the code, so the resend isn't needed.
+        return fail(401, { error: 'Enter the code from your authenticator app', username, totpRequired: true });
       }
-
-      const refreshToken = response.result?.refreshToken;
-      const encoded = encodeSession({ accessToken, refreshToken });
-      const opts = getCookieOptions();
-      cookies.set(opts.name, encoded, {
-        path: opts.path,
-        httpOnly: opts.httpOnly,
-        secure: opts.secure,
-        sameSite: opts.sameSite,
-        maxAge: opts.maxAge,
-      });
     } catch (err) {
-      let message = 'Login failed';
-      if (err instanceof Error) {
-        message =
-          err.message.includes('ECONNREFUSED') || err.message.includes('UNAVAILABLE')
-            ? 'Cannot reach API server. Check GRPC_API_SERVER_URL and ensure the API is reachable (or port-forward for local dev).'
-            : err.message;
-      }
-      const errMsg = messageOf(err);
-      const totpRequired =
-        errMsg.toLowerCase().includes('totp') ||
-        errMsg.toLowerCase().includes('two factor') ||
-        errMsg.toLowerCase().includes('2fa');
-      return fail(401, { error: message, username, totpRequired });
+      return fail(401, { error: refusal(err), username, totpRequired: !!totpCode });
     }
 
     throw redirect(302, '/');
   },
 };
+
+/** refusal is what to tell the person about a sign-in that didn't go through. */
+function refusal(err: unknown): string {
+  if (!(err instanceof PlatformError)) {
+    return 'Cannot reach the API server. Check GRPC_API_SERVER_URL and that it is reachable.';
+  }
+  if (err.is(SignInReason.INVALID_CREDENTIALS)) {
+    return 'Invalid username, password or code';
+  }
+  return err.serverMessage || 'Sign-in failed';
+}
