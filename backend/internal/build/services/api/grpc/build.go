@@ -46,7 +46,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc/interceptors"
 	authhttpsvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/handlers/authentication"
 	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
-	dataprivacysvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/grpc"
 	internalopssvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/internalops/grpc"
 	paymentsadapters "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/adapters"
 	uploadedmediacfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/config"
@@ -127,6 +126,10 @@ func BuildInjector(
 	operationscfg.RegisterStore(i)
 	operationscfg.RegisterQueue(i)
 	operationscfg.RegisterService(i)
+	// The loop that pushes operation snapshots to the event stream operations/http serves,
+	// which is where a privacy request's receipt tells a client to follow it. service.New
+	// resolves and runs it.
+	operationscfg.RegisterWatcher(i)
 
 	dataprivacycfg.RegisterRequestService(i)
 	featureflagscfg.RegisterFeatureFlagManager(i)
@@ -196,10 +199,6 @@ func BuildInjector(
 	auditrepo.RegisterPlatformReader(i)
 	auditbuild.RegisterAuditService(i)
 	commentstargets.RegisterCommentsService(i)
-	dataprivacysvc.RegisterDataPrivacyService(i)
-	do.Provide[dataprivacysvc.DataPrivacyMethodPermissions](i, func(i do.Injector) (dataprivacysvc.DataPrivacyMethodPermissions, error) {
-		return dataprivacysvc.ProvideMethodPermissions(), nil
-	})
 	identitybuild.RegisterIdentityService(i)
 	internalopssvc.RegisterInternalOpsService(i)
 	issuereportsbuild.RegisterIssueReportsService(i)

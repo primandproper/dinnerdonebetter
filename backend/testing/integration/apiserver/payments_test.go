@@ -16,6 +16,12 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// The billing surface's behavior — the catalog, subscription reads, confinement to an account and
+// a tenant — is asserted by platform's billing conformance suite, run against this deployment in
+// conformance_test.go, and its reach without a caller by the anonymous suite. What remains here
+// is this application's own: that the catalog is a service admin's to write, the product
+// validation the suite does not reach, and the audit entries its store records.
+//
 // The billing surface is platform's, and it is two RPCs shorter than the one it replaced.
 //
 // CreateSubscription and UpdateSubscription are gone, and deliberately: a Subscription here
@@ -104,21 +110,6 @@ func requireGRPCCode(t *testing.T, err error, expected codes.Code) {
 func TestPayments_CreateProduct(T *testing.T) {
 	T.Parallel()
 
-	T.Run("happy path", func(t *testing.T) {
-		t.Parallel()
-		createProductForTest(t)
-	})
-
-	T.Run("requires auth", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		c := buildUnauthenticatedGRPCClientForTest(t)
-		created, err := c.CreateProduct(ctx, &billingpb.CreateProductRequest{Input: productInputForTest()})
-		require.Error(t, err)
-		assert.Nil(t, created)
-	})
-
 	T.Run("invalid input empty name", func(t *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
@@ -145,32 +136,6 @@ func TestPayments_CreateProduct(T *testing.T) {
 		assert.Nil(t, created)
 	})
 
-	T.Run("invalid input currency that is not a code", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		input := productInputForTest()
-		input.Currency = "dollars"
-
-		created, err := adminClient.CreateProduct(ctx, &billingpb.CreateProductRequest{Input: input})
-		requireGRPCCode(t, err, codes.InvalidArgument)
-		assert.Nil(t, created)
-	})
-
-	T.Run("a provider-side id claimed twice is refused as a duplicate", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		first := createProductForTest(t)
-
-		input := productInputForTest()
-		input.ExternalProductId = first.GetExternalProductId()
-
-		created, err := adminClient.CreateProduct(ctx, &billingpb.CreateProductRequest{Input: input})
-		requireGRPCCode(t, err, codes.AlreadyExists)
-		assert.Nil(t, created)
-	})
-
 	T.Run("non-admin users are forbidden from creating", func(t *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
@@ -183,123 +148,8 @@ func TestPayments_CreateProduct(T *testing.T) {
 	})
 }
 
-func TestPayments_GetProduct(T *testing.T) {
-	T.Parallel()
-
-	T.Run("happy path", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		created := createProductForTest(t)
-
-		retrieved, err := adminClient.GetProduct(ctx, &billingpb.GetProductRequest{ProductId: created.GetId()})
-		require.NoError(t, err)
-		require.NotNil(t, retrieved.GetResult())
-		assert.Equal(t, created.GetId(), retrieved.GetResult().GetId())
-		assert.Equal(t, created.GetName(), retrieved.GetResult().GetName())
-	})
-
-	T.Run("requires auth", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		created := createProductForTest(t)
-		c := buildUnauthenticatedGRPCClientForTest(t)
-
-		_, err := c.GetProduct(ctx, &billingpb.GetProductRequest{ProductId: created.GetId()})
-		assert.Error(t, err)
-	})
-
-	T.Run("nonexistent ID", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		_, err := adminClient.GetProduct(ctx, &billingpb.GetProductRequest{ProductId: nonexistentID})
-		requireGRPCCode(t, err, codes.NotFound)
-	})
-}
-
-func TestPayments_GetProducts(T *testing.T) {
-	T.Parallel()
-
-	T.Run("happy path", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		created := createProductForTest(t)
-
-		res, err := adminClient.ListProducts(ctx, &billingpb.ListProductsRequest{})
-		require.NoError(t, err)
-		require.NotNil(t, res)
-
-		var found bool
-		for _, p := range res.GetResults() {
-			if p.GetId() == created.GetId() {
-				found = true
-				break
-			}
-		}
-		assert.True(t, found)
-	})
-
-	T.Run("requires auth", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		c := buildUnauthenticatedGRPCClientForTest(t)
-		_, err := c.ListProducts(ctx, &billingpb.ListProductsRequest{})
-		assert.Error(t, err)
-	})
-}
-
 func TestPayments_UpdateProduct(T *testing.T) {
 	T.Parallel()
-
-	// UpdateProduct replaces rather than patches: its input carries every field, so a caller
-	// restates the ones it is keeping. The local RPC took pointer fields and merged.
-	T.Run("happy path", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		created := createProductForTest(t)
-
-		const newName = "updated product name"
-		newAmount := created.GetAmountCents() + 1
-
-		_, err := adminClient.UpdateProduct(ctx, &billingpb.UpdateProductRequest{
-			ProductId: created.GetId(),
-			Input: &billingpb.ProductUpdateInput{
-				Name:                  newName,
-				Description:           created.GetDescription(),
-				Kind:                  created.GetKind(),
-				Currency:              created.GetCurrency(),
-				ExternalProductId:     created.GetExternalProductId(),
-				AmountCents:           newAmount,
-				BillingIntervalMonths: created.GetBillingIntervalMonths(),
-			},
-		})
-		require.NoError(t, err)
-
-		res, err := adminClient.GetProduct(ctx, &billingpb.GetProductRequest{ProductId: created.GetId()})
-		require.NoError(t, err)
-		assert.Equal(t, newName, res.GetResult().GetName())
-		assert.Equal(t, newAmount, res.GetResult().GetAmountCents())
-		assert.Equal(t, created.GetDescription(), res.GetResult().GetDescription())
-	})
-
-	T.Run("requires auth", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		created := createProductForTest(t)
-		c := buildUnauthenticatedGRPCClientForTest(t)
-
-		_, err := c.UpdateProduct(ctx, &billingpb.UpdateProductRequest{
-			ProductId: created.GetId(),
-			Input:     &billingpb.ProductUpdateInput{Name: "x"},
-		})
-		assert.Error(t, err)
-	})
 
 	T.Run("non-admin forbidden", func(t *testing.T) {
 		t.Parallel()
@@ -318,31 +168,6 @@ func TestPayments_UpdateProduct(T *testing.T) {
 
 func TestPayments_ArchiveProduct(T *testing.T) {
 	T.Parallel()
-
-	T.Run("happy path", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		created := createProductForTest(t)
-
-		_, err := adminClient.ArchiveProduct(ctx, &billingpb.ArchiveProductRequest{ProductId: created.GetId()})
-		require.NoError(t, err)
-
-		res, err := adminClient.GetProduct(ctx, &billingpb.GetProductRequest{ProductId: created.GetId()})
-		assert.Nil(t, res)
-		requireGRPCCode(t, err, codes.NotFound)
-	})
-
-	T.Run("requires auth", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		created := createProductForTest(t)
-		c := buildUnauthenticatedGRPCClientForTest(t)
-
-		_, err := c.ArchiveProduct(ctx, &billingpb.ArchiveProductRequest{ProductId: created.GetId()})
-		assert.Error(t, err)
-	})
 
 	T.Run("non-admin forbidden", func(t *testing.T) {
 		t.Parallel()
@@ -380,108 +205,6 @@ func TestPayments_SubscriptionsAreNotWritableOverTheWire(T *testing.T) {
 	})
 }
 
-func TestPayments_GetSubscription(T *testing.T) {
-	T.Parallel()
-
-	_, testClient := createUserAndClientForTest(T)
-
-	T.Run("happy path", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		product := createProductForTest(t)
-		accountID := getAccountIDForTest(t, testClient)
-		created := createSubscriptionForTest(t, product.GetId(), accountID)
-
-		retrieved, err := testClient.GetSubscription(ctx, &billingpb.GetSubscriptionRequest{SubscriptionId: created.ID})
-		require.NoError(t, err)
-		assert.Equal(t, created.ID, retrieved.GetResult().GetId())
-		assert.Equal(t, created.BelongsToAccount, retrieved.GetResult().GetBelongsToAccount())
-	})
-
-	T.Run("requires auth", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		product := createProductForTest(t)
-		accountID := getAccountIDForTest(t, testClient)
-		created := createSubscriptionForTest(t, product.GetId(), accountID)
-
-		c := buildUnauthenticatedGRPCClientForTest(t)
-		_, err := c.GetSubscription(ctx, &billingpb.GetSubscriptionRequest{SubscriptionId: created.ID})
-		assert.Error(t, err)
-	})
-
-	T.Run("nonexistent ID", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		_, err := adminClient.GetSubscription(ctx, &billingpb.GetSubscriptionRequest{SubscriptionId: nonexistentID})
-		requireGRPCCode(t, err, codes.NotFound)
-	})
-}
-
-func TestPayments_GetSubscriptionsForAccount(T *testing.T) {
-	T.Parallel()
-
-	T.Run("happy path", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		product := createProductForTest(t)
-		_, accountClient := createUserAndClientForTest(t)
-		accountID := getAccountIDForTest(t, accountClient)
-		created := createSubscriptionForTest(t, product.GetId(), accountID)
-
-		res, err := accountClient.ListSubscriptionsForAccount(ctx, &billingpb.ListSubscriptionsForAccountRequest{AccountId: accountID})
-		require.NoError(t, err)
-
-		var found bool
-		for _, s := range res.GetResults() {
-			if s.GetId() == created.ID {
-				found = true
-				break
-			}
-		}
-		assert.True(t, found)
-	})
-
-	// Naming another account's id is refused rather than quietly answered with the
-	// caller's own, which is what this used to assert.
-	//
-	// The refusal is the better answer of the two. Silently substituting the session's
-	// account means a client that got the id wrong is handed a correct-looking page of
-	// somebody else's subscriptions — no, of its own, labeled with an id it did not ask
-	// for — and cannot tell that its request was ignored.
-	T.Run("another account's id is refused", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		product := createProductForTest(t)
-		_, ownerClient := createUserAndClientForTest(t)
-		ownerAccountID := getAccountIDForTest(t, ownerClient)
-		createSubscriptionForTest(t, product.GetId(), ownerAccountID)
-
-		_, otherClient := createUserAndClientForTest(t)
-
-		_, err := otherClient.ListSubscriptionsForAccount(ctx, &billingpb.ListSubscriptionsForAccountRequest{AccountId: ownerAccountID})
-		require.Error(t, err)
-		assert.Equal(t, codes.PermissionDenied, status.Code(err))
-	})
-
-	T.Run("requires auth", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		_, accountClient := createUserAndClientForTest(t)
-		accountID := getAccountIDForTest(t, accountClient)
-
-		c := buildUnauthenticatedGRPCClientForTest(t)
-		_, err := c.ListSubscriptionsForAccount(ctx, &billingpb.ListSubscriptionsForAccountRequest{AccountId: accountID})
-		assert.Error(t, err)
-	})
-}
-
 func TestPayments_ArchiveSubscription(T *testing.T) {
 	T.Parallel()
 
@@ -505,75 +228,5 @@ func TestPayments_ArchiveSubscription(T *testing.T) {
 			{EventType: "created", ResourceType: "subscriptions", RelevantID: created.ID},
 			{EventType: "archived", ResourceType: "subscriptions", RelevantID: created.ID},
 		})
-	})
-
-	T.Run("requires auth", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		product := createProductForTest(t)
-		_, accountClient := createUserAndClientForTest(t)
-		accountID := getAccountIDForTest(t, accountClient)
-		created := createSubscriptionForTest(t, product.GetId(), accountID)
-
-		c := buildUnauthenticatedGRPCClientForTest(t)
-		_, err := c.ArchiveSubscription(ctx, &billingpb.ArchiveSubscriptionRequest{SubscriptionId: created.ID})
-		assert.Error(t, err)
-	})
-}
-
-func TestPayments_GetPurchasesForAccount(T *testing.T) {
-	T.Parallel()
-
-	T.Run("happy path may be empty", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		_, accountClient := createUserAndClientForTest(t)
-		accountID := getAccountIDForTest(t, accountClient)
-
-		res, err := accountClient.ListPurchasesForAccount(ctx, &billingpb.ListPurchasesForAccountRequest{AccountId: accountID})
-		require.NoError(t, err)
-		require.NotNil(t, res)
-	})
-
-	T.Run("requires auth", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		_, accountClient := createUserAndClientForTest(t)
-		accountID := getAccountIDForTest(t, accountClient)
-
-		c := buildUnauthenticatedGRPCClientForTest(t)
-		_, err := c.ListPurchasesForAccount(ctx, &billingpb.ListPurchasesForAccountRequest{AccountId: accountID})
-		assert.Error(t, err)
-	})
-}
-
-func TestPayments_GetPaymentHistoryForAccount(T *testing.T) {
-	T.Parallel()
-
-	T.Run("happy path may be empty", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		_, accountClient := createUserAndClientForTest(t)
-		accountID := getAccountIDForTest(t, accountClient)
-
-		res, err := accountClient.ListTransactionsForAccount(ctx, &billingpb.ListTransactionsForAccountRequest{AccountId: accountID})
-		require.NoError(t, err)
-		require.NotNil(t, res)
-	})
-
-	T.Run("requires auth", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		_, accountClient := createUserAndClientForTest(t)
-		accountID := getAccountIDForTest(t, accountClient)
-
-		c := buildUnauthenticatedGRPCClientForTest(t)
-		_, err := c.ListTransactionsForAccount(ctx, &billingpb.ListTransactionsForAccountRequest{AccountId: accountID})
-		assert.Error(t, err)
 	})
 }

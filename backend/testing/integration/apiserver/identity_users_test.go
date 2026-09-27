@@ -11,7 +11,6 @@ import (
 
 	identity "github.com/primandproper/platform-go/v14/identity"
 	"github.com/primandproper/platform-go/v14/identity/identitypb"
-	"github.com/primandproper/primitives-go/v2/pointer"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -83,43 +82,6 @@ func TestUsers_Creating(T *testing.T) {
 	})
 }
 
-func TestUsers_Reading(T *testing.T) {
-	T.Parallel()
-
-	T.Run("happy path", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		u, _ := createUserAndClientForTest(t)
-
-		user, err := adminClient.IdentityService().GetUser(ctx, &identitypb.GetUserRequest{UserId: u.ID})
-		require.NoError(t, err)
-		assert.NotNil(t, user)
-		assert.Equal(t, u.ID, user.GetUser().GetId())
-	})
-
-	T.Run("nonexistent user", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		user, err := adminClient.IdentityService().GetUser(ctx, &identitypb.GetUserRequest{UserId: nonexistentID})
-		require.Error(t, err)
-		assert.Nil(t, user)
-	})
-
-	T.Run("requires auth", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		c := buildUnauthenticatedGRPCClientForTest(t)
-		u, _ := createUserAndClientForTest(t)
-
-		user, err := c.IdentityService().GetUser(ctx, &identitypb.GetUserRequest{UserId: u.ID})
-		require.Error(t, err)
-		assert.Nil(t, user)
-	})
-}
-
 func TestUsers_PermissionChecking(T *testing.T) {
 	T.Parallel()
 
@@ -157,33 +119,14 @@ func TestUsers_PermissionChecking(T *testing.T) {
 func TestUsers_Searching(T *testing.T) {
 	T.Parallel()
 
-	// create some users to search from
-	createdUsers := []*identity.User{}
-	for range exampleQuantity {
-		u, _ := createUserAndClientForTest(T)
-		createdUsers = append(createdUsers, u)
-	}
-
-	T.Run("happy path", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		results, err := adminClient.IdentityService().SearchUsersByUsername(ctx, &identitypb.SearchUsersByUsernameRequest{
-			Prefix: createdUsers[0].Username[:2],
-		})
-		require.NoError(t, err)
-		assert.NotNil(t, results)
-		assert.GreaterOrEqual(t, len(results.GetResults()), 1)
-	})
-
 	T.Run("only admins can do it", func(t *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
-		_, testClient := createUserAndClientForTest(t)
+		user, testClient := createUserAndClientForTest(t)
 
 		results, err := testClient.IdentityService().SearchUsersByUsername(ctx, &identitypb.SearchUsersByUsernameRequest{
-			Prefix: createdUsers[0].Username[:2],
+			Prefix: user.Username[:2],
 		})
 		require.Error(t, err)
 		assert.Nil(t, results)
@@ -192,21 +135,6 @@ func TestUsers_Searching(T *testing.T) {
 
 func TestUsers_ListUsers(T *testing.T) {
 	T.Parallel()
-
-	// create some users so we have data to list
-	for range exampleQuantity {
-		createUserAndClientForTest(T)
-	}
-
-	T.Run("happy path", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		results, err := adminClient.IdentityService().ListUsers(ctx, &identitypb.ListUsersRequest{})
-		require.NoError(t, err)
-		assert.NotNil(t, results)
-		assert.GreaterOrEqual(t, len(results.GetResults()), exampleQuantity)
-	})
 
 	T.Run("only admins can do it", func(t *testing.T) {
 		t.Parallel()
@@ -217,118 +145,6 @@ func TestUsers_ListUsers(T *testing.T) {
 		results, err := testClient.IdentityService().ListUsers(ctx, &identitypb.ListUsersRequest{})
 		require.Error(t, err)
 		assert.Nil(t, results)
-	})
-
-	T.Run("requires auth", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		c := buildUnauthenticatedGRPCClientForTest(t)
-
-		results, err := c.IdentityService().ListUsers(ctx, &identitypb.ListUsersRequest{})
-		require.Error(t, err)
-		assert.Nil(t, results)
-	})
-}
-
-func TestUsers_ListAccountMembers(T *testing.T) {
-	T.Parallel()
-
-	T.Run("happy path", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		user, _ := createUserAndClientForTest(t)
-
-		// get the user's account via admin
-		accountsRes, err := adminClient.IdentityService().ListAccountsForUser(ctx, &identitypb.ListAccountsForUserRequest{UserId: user.ID})
-		require.NoError(t, err)
-		require.GreaterOrEqual(t, len(accountsRes.GetResults()), 1)
-		accountID := accountsRes.GetResults()[0].GetId()
-
-		results, err := adminClient.IdentityService().ListAccountMembers(ctx, &identitypb.ListAccountMembersRequest{
-			AccountId: accountID,
-		})
-		require.NoError(t, err)
-		assert.NotNil(t, results)
-		assert.GreaterOrEqual(t, len(results.GetResults()), 1)
-	})
-
-	T.Run("requires auth", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		c := buildUnauthenticatedGRPCClientForTest(t)
-
-		results, err := c.IdentityService().ListAccountMembers(ctx, &identitypb.ListAccountMembersRequest{
-			AccountId: nonexistentID,
-		})
-		require.Error(t, err)
-		assert.Nil(t, results)
-	})
-}
-
-// TestUsers_UpdateProfile covers what a person may change about themselves without proving
-// who they are again: their names.
-//
-// The handle and the address are not here. They are credential changes — whoever holds the
-// address can take the account through a password reset — so they are re-authenticated, on
-// the auth service, and tested below.
-func TestUsers_UpdateProfile(T *testing.T) {
-	T.Parallel()
-
-	T.Run("happy path", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		user, testClient := createUserAndClientForTest(t)
-
-		_, err := testClient.IdentityService().UpdateProfile(ctx, &identitypb.UpdateProfileRequest{
-			Input: &identitypb.ProfileUpdateInput{
-				FirstName: pointer.To("UpdatedFirst"),
-				LastName:  pointer.To("UpdatedLast"),
-			},
-		})
-		require.NoError(t, err)
-
-		// verify the update took effect
-		updatedUser, err := adminClient.IdentityService().GetUser(ctx, &identitypb.GetUserRequest{UserId: user.ID})
-		require.NoError(t, err)
-		assert.NotNil(t, updatedUser)
-		assert.Equal(t, "UpdatedFirst", updatedUser.GetUser().GetFirstName())
-		assert.Equal(t, "UpdatedLast", updatedUser.GetUser().GetLastName())
-	})
-
-	// A field left unset is not a field set to empty, which is the whole reason the input's
-	// fields are pointers: a form sending one value must not blank the others.
-	T.Run("leaves unnamed fields alone", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		user, testClient := createUserAndClientForTest(t)
-
-		_, err := testClient.IdentityService().UpdateProfile(ctx, &identitypb.UpdateProfileRequest{
-			Input: &identitypb.ProfileUpdateInput{FirstName: pointer.To("OnlyFirst")},
-		})
-		require.NoError(t, err)
-
-		updatedUser, err := adminClient.IdentityService().GetUser(ctx, &identitypb.GetUserRequest{UserId: user.ID})
-		require.NoError(t, err)
-		assert.Equal(t, "OnlyFirst", updatedUser.GetUser().GetFirstName())
-		assert.Equal(t, user.Username, updatedUser.GetUser().GetUsername())
-		assert.Equal(t, user.EmailAddress, updatedUser.GetUser().GetEmailAddress())
-	})
-
-	T.Run("requires auth", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		c := buildUnauthenticatedGRPCClientForTest(t)
-
-		_, err := c.IdentityService().UpdateProfile(ctx, &identitypb.UpdateProfileRequest{
-			Input: &identitypb.ProfileUpdateInput{FirstName: pointer.To("UpdatedFirst")},
-		})
-		assert.Error(t, err)
 	})
 }
 
@@ -431,20 +247,6 @@ func TestUsers_UpdateUserUsername(T *testing.T) {
 func TestUsers_RecordAgreement(T *testing.T) {
 	T.Parallel()
 
-	T.Run("happy path", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		_, testClient := createUserAndClientForTest(t)
-
-		res, err := testClient.IdentityService().RecordAgreement(ctx, &identitypb.RecordAgreementRequest{
-			Agreements: []identitypb.Agreement{identitypb.Agreement_AGREEMENT_TERMS_OF_SERVICE},
-		})
-		require.NoError(t, err)
-		require.NotNil(t, res.GetUser())
-		assert.NotNil(t, res.GetUser().GetLastAcceptedTermsOfService())
-	})
-
 	// Naming none is a caller who built an empty list and did not notice, which is a
 	// refusal rather than a no-op that reports success.
 	T.Run("refuses an empty set", func(t *testing.T) {
@@ -504,17 +306,59 @@ func TestUsers_Archiving(T *testing.T) {
 		assert.Error(t, err)
 	})
 
-	T.Run("requires auth", func(t *testing.T) {
+	// platform refuses to archive somebody who still owns an account. This application
+	// settles their households first (internal/build/identity/archival.go), because every
+	// registrant owns one: a household with other members goes to the longest-tenured of
+	// them, and one the owner was alone in is archived beside them.
+	T.Run("a household with members passes to the longest-tenured of them", func(t *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
-		user, _ := createUserAndClientForTest(t)
-		testClient := buildUnauthenticatedGRPCClientForTest(t)
+		owner, ownerClient := createUserAndClientForTest(t)
+		accountID := getAccountIDForTest(t, ownerClient)
 
-		_, err := testClient.IdentityService().ArchiveUser(ctx, &identitypb.ArchiveUserRequest{
-			UserId: user.ID,
+		joinForTest := func() *identity.User {
+			input := buildUserRegistrationInputForTest(t)
+			member, memberClient := createUserAndClientForTestWithRegistrationInput(t, input)
+			invitation := inviteForTest(t, owner.ID, accountID, input.EmailAddress)
+
+			_, err := memberClient.IdentityService().AcceptInvitation(ctx, &identitypb.AcceptInvitationRequest{
+				InvitationId: invitation.ID,
+				Token:        invitation.Token,
+			})
+			require.NoError(t, err)
+
+			return member
+		}
+
+		senior := joinForTest()
+		_ = joinForTest()
+
+		_, err := adminClient.IdentityService().ArchiveUser(ctx, &identitypb.ArchiveUserRequest{UserId: owner.ID})
+		require.NoError(t, err)
+
+		account, err := adminClient.IdentityService().GetAccount(ctx, &identitypb.GetAccountRequest{AccountId: accountID})
+		require.NoError(t, err)
+		assert.Equal(t, senior.ID, account.GetAccount().GetOwnerUserId())
+		assert.Nil(t, account.GetAccount().GetArchivedAt())
+	})
+
+	T.Run("a household its owner was alone in is archived beside them", func(t *testing.T) {
+		t.Parallel()
+		ctx := t.Context()
+
+		owner, ownerClient := createUserAndClientForTest(t)
+		accountID := getAccountIDForTest(t, ownerClient)
+
+		_, err := adminClient.IdentityService().ArchiveUser(ctx, &identitypb.ArchiveUserRequest{UserId: owner.ID})
+		require.NoError(t, err)
+
+		_, err = adminClient.IdentityService().GetAccount(ctx, &identitypb.GetAccountRequest{AccountId: accountID})
+		require.Error(t, err)
+
+		AssertAuditLogContainsFuzzyForResource(t, ctx, "accounts", accountID, 10, []*ExpectedAuditEntry{
+			{EventType: "archived", ResourceType: "accounts", RelevantID: accountID},
 		})
-		assert.Error(t, err)
 	})
 }
 

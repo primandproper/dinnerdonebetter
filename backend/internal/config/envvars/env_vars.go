@@ -1266,6 +1266,30 @@ const (
 	// override `SchedulerConfig.Jobs.SearchDataIndexScheduler.Timeout`.
 	JobsSearchDataIndexSchedulerTimeoutEnvVarKey = "DINNER_DONE_BETTER_JOBS_SEARCH_DATA_INDEX_SCHEDULER_TIMEOUT"
 
+	// LinksAllowInsecureUrlsEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Links.AllowInsecureURLs`.
+	LinksAllowInsecureUrlsEnvVarKey = "DINNER_DONE_BETTER_LINKS_ALLOW_INSECURE_URLS"
+
+	// LinksDatabaseTablePrefixEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Links.Database.TablePrefix`.
+	LinksDatabaseTablePrefixEnvVarKey = "DINNER_DONE_BETTER_LINKS_DATABASE_TABLE_PREFIX"
+
+	// LinksMaxTokenLengthEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Links.MaxTokenLength`.
+	LinksMaxTokenLengthEnvVarKey = "DINNER_DONE_BETTER_LINKS_MAX_TOKEN_LENGTH"
+
+	// LinksRetentionEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Links.Retention`.
+	LinksRetentionEnvVarKey = "DINNER_DONE_BETTER_LINKS_RETENTION"
+
+	// LinksSweepIntervalEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Links.SweepInterval`.
+	LinksSweepIntervalEnvVarKey = "DINNER_DONE_BETTER_LINKS_SWEEP_INTERVAL"
+
+	// LinksTokenBytesEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Links.TokenBytes`.
+	LinksTokenBytesEnvVarKey = "DINNER_DONE_BETTER_LINKS_TOKEN_BYTES"
+
 	// MetaDebugEnvVarKey is the environment variable name to set to override
 	// `APIServiceConfig.Meta.Debug`, `MCPServiceConfig.Meta.Debug`.
 	MetaDebugEnvVarKey = "DINNER_DONE_BETTER_META_DEBUG"

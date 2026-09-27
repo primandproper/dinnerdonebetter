@@ -6,6 +6,7 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
+	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 
 	platformidentity "github.com/primandproper/platform-go/v14/identity"
 	"github.com/primandproper/primitives-go/v2/database"
@@ -44,11 +45,28 @@ func (h *Hooks) AfterRegister(
 	}
 
 	return h.record(ctx, tx,
-		userEntry(registration.User.ID, audit.AuditLogEventTypeCreated, ddbidentity.UserSignedUpServiceEventType),
+		signedUpEntry(registration.User.ID, registration.EmailAddressVerificationToken),
 		accountEntry(registration.Account.ID, registration.User.ID, audit.AuditLogEventTypeCreated, ""),
 		membershipEntry(registration.Membership.ID, registration.User.ID, registration.Account.ID,
 			audit.AuditLogEventTypeCreated, ""),
 	)
+}
+
+// signedUpEntry is the user half of a registration, carrying the verification link's secret on
+// the event that mails it.
+//
+// The secret goes on the data change event and nowhere else: the event is what the handler
+// builds the verification mail from, and the users row holds only a digest, so there is no
+// later read that could supply it. The audit entry is written from the entry's other fields and
+// never sees the metadata. An empty token — a registration that minted no link — is left off,
+// and the handler refuses to mail a link that does not exist.
+func signedUpEntry(userID, verificationToken string) *entry {
+	e := userEntry(userID, audit.AuditLogEventTypeCreated, ddbidentity.UserSignedUpServiceEventType)
+	if verificationToken != "" {
+		e.metadata[identitykeys.UserEmailVerificationTokenKey] = verificationToken
+	}
+
+	return e
 }
 
 // AfterRegisterWithInvitation records a person who arrived because somebody asked them to.
@@ -66,7 +84,7 @@ func (h *Hooks) AfterRegisterWithInvitation(
 	}
 
 	return h.record(ctx, tx,
-		userEntry(registration.User.ID, audit.AuditLogEventTypeCreated, ddbidentity.UserSignedUpServiceEventType),
+		signedUpEntry(registration.User.ID, registration.EmailAddressVerificationToken),
 		invitationEntry(registration.Invitation.ID, registration.Membership.BelongsToAccount,
 			audit.AuditLogEventTypeUpdated, ddbidentity.AccountInvitationAcceptedServiceEventType),
 		membershipEntry(registration.Membership.ID, registration.User.ID,

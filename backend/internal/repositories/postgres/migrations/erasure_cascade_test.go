@@ -92,8 +92,8 @@ func TestQuerier_Migrate_ErasingAUserTakesTheirCredentials(T *testing.T) {
 				table:  "ddb_signin_refresh_tokens",
 				column: "subject_id",
 				statement: `INSERT INTO ddb_signin_refresh_tokens
-					(hash, scope, family_id, subject_id, active_account_id, administrative, issued_at, expires_at, purge_after)
-					VALUES ($1, $2, $3, $4, '', false, NOW(), NOW() + INTERVAL '1 hour', NOW() + INTERVAL '2 hours')`,
+					(hash, scope, family_id, subject_id, active_account_id, administrative, signed_in_at, issued_at, expires_at, purge_after)
+					VALUES ($1, $2, $3, $4, '', false, NOW(), NOW(), NOW() + INTERVAL '1 hour', NOW() + INTERVAL '2 hours')`,
 				args: []any{"digest", scope, "family_1", userID},
 			},
 		}

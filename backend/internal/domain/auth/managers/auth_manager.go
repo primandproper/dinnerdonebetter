@@ -37,15 +37,12 @@ import (
 )
 
 const (
-	o11yName       = "auth_manager"
-	totpSecretSize = 64
+	o11yName = "auth_manager"
 
 	// emailVerificationTokenSize is how many bytes of entropy a verification link carries.
-	// It is a bearer credential that proves an address, so it is sized like the TOTP secret
-	// beside it rather than like an identifier.
+	// It is a bearer credential that proves an address, so it is sized like a secret rather
+	// than like an identifier.
 	emailVerificationTokenSize = 64
-
-	minimumPasswordEntropy = 60
 
 	// passwordResetTokenLifetime is how long a reset link is good for.
 	//
@@ -223,12 +220,9 @@ func (l *AuthManager) TOTPSecretVerification(ctx context.Context, input *auth.TO
 		return observability.PrepareError(err, span, "verifying two factor secret")
 	}
 
-	dcm := &audit.DataChangeMessage{
-		EventType: auth.TwoFactorSecretVerifiedServiceEventType,
-		UserID:    input.UserID,
-	}
-
-	l.dataChangesPublisher.PublishAsync(ctx, dcm)
+	// No event is published here: signin's AfterVerifyTOTPSecret hook records it on the
+	// write's own transaction, for this door and platform's alike. See
+	// internal/authentication/signin_hooks.go.
 
 	logger.Info("two factor secret verified")
 
@@ -282,12 +276,7 @@ func (l *AuthManager) NewTOTPSecret(ctx context.Context, input *auth.TOTPSecretR
 
 	tracing.AttachToSpan(span, identitykeys.UsernameKey, user.Username)
 
-	dcm := &audit.DataChangeMessage{
-		EventType: auth.TwoFactorSecretChangedServiceEventType,
-		UserID:    user.ID,
-	}
-
-	l.dataChangesPublisher.PublishAsync(ctx, dcm)
+	// The event is AfterRefreshTOTPSecret's, recorded on the write's transaction.
 
 	qrCode, err := l.qrCodeBuilder.BuildQRCode(ctx, user.Username, enrollment.Secret)
 	if err != nil {
@@ -320,11 +309,10 @@ func (l *AuthManager) UpdatePassword(ctx context.Context, input *auth.PasswordUp
 	tracing.AttachToSpan(span, platformkeys.RequesterIDKey, sessionContextData.GetUserID())
 	logger = sessionContextData.AttachToLogger(logger)
 
-	// The password policy stays here, and platform says so: PasswordUpdate's doc notes
-	// that whether a password is long enough or unusual enough is the consumer's rule,
-	// applied before the call, because a policy inside the package is one every consumer
-	// then has to work around. Ours is the entropy floor below.
-	if err = passwordvalidator.Validate(input.NewPassword, minimumPasswordEntropy); err != nil {
+	// The sign-in service applies the same floor through authentication.PasswordPolicy;
+	// checking it here as well refuses before the credential check spends a hash
+	// comparison, and keeps this door's refusal in the words it has always used.
+	if err = passwordvalidator.Validate(input.NewPassword, authentication.MinimumPasswordEntropy); err != nil {
 		return observability.PrepareError(err, span, "invalid password provided")
 	}
 
@@ -341,12 +329,7 @@ func (l *AuthManager) UpdatePassword(ctx context.Context, input *auth.PasswordUp
 		return observability.PrepareAndLogError(err, logger, span, "updating password")
 	}
 
-	dcm := &audit.DataChangeMessage{
-		EventType: auth.PasswordChangedEventType,
-		UserID:    sessionContextData.GetUserID(),
-	}
-
-	l.dataChangesPublisher.PublishAsync(ctx, dcm)
+	// The event is AfterUpdatePassword's, recorded on the write's transaction.
 
 	return nil
 }
@@ -556,7 +539,7 @@ func (l *AuthManager) PasswordResetTokenRedemption(ctx context.Context, input *a
 
 	// ensure the password isn't garbage-tier
 	newPassword := strings.TrimSpace(input.NewPassword)
-	if err := passwordvalidator.Validate(newPassword, minimumPasswordEntropy); err != nil {
+	if err := passwordvalidator.Validate(newPassword, authentication.MinimumPasswordEntropy); err != nil {
 		return observability.PrepareError(err, span, "provided password was invalid")
 	}
 
@@ -677,28 +660,15 @@ func (l *AuthManager) VerifyUserEmailAddress(ctx context.Context, input *auth.Em
 		return observability.PrepareError(err, span, "provided input was invalid")
 	}
 
-	// Read first, for the user id the event below names — VerifyEmailAddress answers
-	// with an error and nothing else, and the link is spent by the time it returns.
-	user, err := l.users.GetUserByEmailVerificationToken(ctx, l.db.Reader(), ddbidentity.Scope(), input.Token)
-	if err != nil {
-		// Deliberately not told apart from a token that simply does not match. This used
-		// to answer "user not found" for an unknown token and something else for a write
-		// that matched no row, which made the endpoint a way to ask whether a given
-		// verification token was live. signin's rule is that expired, already spent,
-		// never issued and simply wrong are one answer, because the caller's remedy is
-		// the same in every case and telling them apart tells whoever is guessing which
-		// guesses are getting warm.
-		return observability.PrepareError(signin.ErrInvalidVerificationToken, span, "verifying email address")
-	}
-
+	// An unknown, expired, spent or simply wrong token is one answer,
+	// signin.ErrInvalidVerificationToken, because the caller's remedy is the same in every
+	// case and telling them apart tells whoever is guessing which guesses are getting warm.
+	// signin gives that answer itself.
 	if err = l.signIn.VerifyEmailAddress(ctx, ddbidentity.Scope(), input.Token); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "verifying email address")
 	}
 
-	l.dataChangesPublisher.PublishAsync(ctx, &audit.DataChangeMessage{
-		EventType: auth.UserEmailAddressVerifiedEventType,
-		UserID:    user.ID,
-	})
+	// The event is AfterVerify's, recorded on the write's transaction.
 
 	return nil
 }
@@ -716,28 +686,15 @@ func (l *AuthManager) VerifyUserEmailAddressByToken(ctx context.Context, token s
 		return observability.PrepareError(err, span, "provided input was invalid")
 	}
 
-	// Read first, for the user id the event below names — VerifyEmailAddress answers
-	// with an error and nothing else, and the link is spent by the time it returns.
-	user, err := l.users.GetUserByEmailVerificationToken(ctx, l.db.Reader(), ddbidentity.Scope(), token)
-	if err != nil {
-		// Deliberately not told apart from a token that simply does not match. This used
-		// to answer "user not found" for an unknown token and something else for a write
-		// that matched no row, which made the endpoint a way to ask whether a given
-		// verification token was live. signin's rule is that expired, already spent,
-		// never issued and simply wrong are one answer, because the caller's remedy is
-		// the same in every case and telling them apart tells whoever is guessing which
-		// guesses are getting warm.
-		return observability.PrepareError(signin.ErrInvalidVerificationToken, span, "verifying email address")
-	}
-
-	if err = l.signIn.VerifyEmailAddress(ctx, ddbidentity.Scope(), token); err != nil {
+	// An unknown, expired, spent or simply wrong token is one answer,
+	// signin.ErrInvalidVerificationToken, because the caller's remedy is the same in every
+	// case and telling them apart tells whoever is guessing which guesses are getting warm.
+	// signin gives that answer itself.
+	if err := l.signIn.VerifyEmailAddress(ctx, ddbidentity.Scope(), token); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "verifying email address")
 	}
 
-	l.dataChangesPublisher.PublishAsync(ctx, &audit.DataChangeMessage{
-		EventType: auth.UserEmailAddressVerifiedEventType,
-		UserID:    user.ID,
-	})
+	// The event is AfterVerify's, recorded on the write's transaction.
 
 	return nil
 }

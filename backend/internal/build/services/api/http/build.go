@@ -61,6 +61,7 @@ func RegisterHTTPServerServices(i do.Injector) {
 	paymentshttp.RegisterPaymentsHTTP(i)
 
 	// routes
+	RegisterPlatformSurfaces(i)
 	RegisterAPIRouter(i)
 }
 

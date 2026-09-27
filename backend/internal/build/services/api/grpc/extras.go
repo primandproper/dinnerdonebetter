@@ -14,14 +14,12 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	analyticspb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/analytics"
 	authsvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
-	dataprivacysvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/dataprivacy"
 	internalopssvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/internalops"
 	mealplanningsvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
 	uploadedmediasvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
 	analyticsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/analytics/grpc"
 	authgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc/interceptors"
-	dataprivacygrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/grpc"
 	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
 	internalopsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/internalops/grpc"
 	mealplanninggrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/grpc"
@@ -77,26 +75,8 @@ func RegisterExtras(i do.Injector) {
 		return ProvideUserTextSearcher(ctx, logger, tracerProvider, metricsProvider, cfg)
 	})
 
-	do.Provide(i, func(i do.Injector) (interceptors.MethodPermissionsMap, error) {
-		return AggregateMethodPermissions(
-			do.MustInvoke[analyticsgrpc.AnalyticsMethodPermissions](i),
-			auditgrpc.Permissions(),
-			do.MustInvoke[authgrpc.AuthMethodPermissions](i),
-			commentsgrpc.Permissions(),
-			do.MustInvoke[dataprivacygrpc.DataPrivacyMethodPermissions](i),
-			identitybuild.Permissions(),
-			do.MustInvoke[internalopsgrpc.InternalOpsMethodPermissions](i),
-			issuereportsgrpc.Permissions(),
-			do.MustInvoke[mealplanninggrpc.MealPlanningMethodPermissions](i),
-			notificationsgrpc.Permissions(),
-			oauth2clientsbuild.Permissions(),
-			paymentsgrpc.Permissions(),
-			settingsgrpc.Permissions(),
-			signinbuild.Permissions(),
-			do.MustInvoke[uploadedmediagrpc.UploadedMediaMethodPermissions](i),
-			waitlistsbuild.Permissions(),
-			webhooksgrpc.Permissions(),
-		), nil
+	do.Provide(i, func(do.Injector) (interceptors.MethodPermissionsMap, error) {
+		return MethodPermissions(), nil
 	})
 
 	do.Provide(i, func(i do.Injector) ([]grpc.UnaryServerInterceptor, error) {
@@ -141,7 +121,6 @@ func RegisterExtras(i do.Injector) {
 			do.MustInvoke[auditpb.AuditServiceServer](i),
 			do.MustInvoke[authsvcpb.AuthServiceServer](i),
 			do.MustInvoke[commentspb.CommentsServiceServer](i),
-			do.MustInvoke[dataprivacysvcpb.DataPrivacyServiceServer](i),
 			do.MustInvoke[identitypb.IdentityServiceServer](i),
 			do.MustInvoke[internalopssvcpb.InternalOperationsServer](i),
 			do.MustInvoke[issuereportspb.IssueReportsServiceServer](i),
@@ -161,7 +140,6 @@ func RegisterExtras(i do.Injector) {
 		return NewGRPCService(
 			do.MustInvoke[auditpb.AuditServiceServer](i),
 			do.MustInvoke[authsvcpb.AuthServiceServer](i),
-			do.MustInvoke[dataprivacysvcpb.DataPrivacyServiceServer](i),
 			do.MustInvoke[identitypb.IdentityServiceServer](i),
 			do.MustInvoke[internalopssvcpb.InternalOperationsServer](i),
 			do.MustInvoke[issuereportspb.IssueReportsServiceServer](i),
@@ -183,7 +161,6 @@ func BuildRegistrationFuncs(
 	auditLogService auditpb.AuditServiceServer,
 	authService authsvcpb.AuthServiceServer,
 	commentsService commentspb.CommentsServiceServer,
-	dataPrivacyServer dataprivacysvcpb.DataPrivacyServiceServer,
 	identityServiceServer identitypb.IdentityServiceServer,
 	internalOpsService internalopssvcpb.InternalOperationsServer,
 	issueReportsService issuereportspb.IssueReportsServiceServer,
@@ -203,7 +180,6 @@ func BuildRegistrationFuncs(
 			auditpb.RegisterAuditServiceServer(server, auditLogService)
 			authsvcpb.RegisterAuthServiceServer(server, authService)
 			commentspb.RegisterCommentsServiceServer(server, commentsService)
-			dataprivacysvcpb.RegisterDataPrivacyServiceServer(server, dataPrivacyServer)
 			identitypb.RegisterIdentityServiceServer(server, identityServiceServer)
 			internalopssvcpb.RegisterInternalOperationsServer(server, internalOpsService)
 			issuereportspb.RegisterIssueReportsServiceServer(server, issueReportsService)
@@ -306,13 +282,39 @@ func ProvideUserTextSearcher(
 	)
 }
 
+// MethodPermissions is the table the server's authorization interceptor enforces: every method
+// this deployment serves, and the permissions a caller must hold to make it.
+//
+// It is assembled here rather than in the injector so that what reads it outside the server —
+// the enforcer equivalence proof, and the conformance harness deriving which calls this
+// deployment reserves to an operator — reads the table the server enforces rather than a copy.
+func MethodPermissions() interceptors.MethodPermissionsMap {
+	return AggregateMethodPermissions(
+		analyticsgrpc.ProvideMethodPermissions(),
+		auditgrpc.Permissions(),
+		authgrpc.ProvideMethodPermissions(),
+		commentsgrpc.Permissions(),
+		identitybuild.Permissions(),
+		internalopsgrpc.ProvideMethodPermissions(),
+		issuereportsgrpc.Permissions(),
+		mealplanninggrpc.ProvideMethodPermissions(),
+		notificationsgrpc.Permissions(),
+		oauth2clientsbuild.Permissions(),
+		paymentsgrpc.Permissions(),
+		settingsgrpc.Permissions(),
+		signinbuild.Permissions(),
+		uploadedmediagrpc.ProvideMethodPermissions(),
+		waitlistsbuild.Permissions(),
+		webhooksgrpc.Permissions(),
+	)
+}
+
 // AggregateMethodPermissions combines method permissions from all services into a single map.
 func AggregateMethodPermissions(
 	analyticsPermissions analyticsgrpc.AnalyticsMethodPermissions,
 	auditPermissions map[string][]authorization.Permission,
 	authPermissions authgrpc.AuthMethodPermissions,
 	commentsPermissions map[string][]authorization.Permission,
-	dataprivacyPermissions dataprivacygrpc.DataPrivacyMethodPermissions,
 	identityPermissions map[string][]authorization.Permission,
 	internalopsPermissions internalopsgrpc.InternalOpsMethodPermissions,
 	issuereportsPermissions map[string][]authorization.Permission,
@@ -332,7 +334,6 @@ func AggregateMethodPermissions(
 	maps.Copy(result, auditPermissions)
 	maps.Copy(result, authPermissions)
 	maps.Copy(result, commentsPermissions)
-	maps.Copy(result, dataprivacyPermissions)
 	maps.Copy(result, identityPermissions)
 	maps.Copy(result, internalopsPermissions)
 	maps.Copy(result, issuereportsPermissions)

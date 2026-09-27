@@ -33,9 +33,6 @@ internal struct Client<Transport> where Transport: GRPCCore.ClientTransport {
   /// Audit service client
   internal let audit: Audit_AuditService.Client<Transport>
 
-  /// Data privacy service client
-  internal let dataPrivacy: Dataprivacy_DataPrivacyService.Client<Transport>
-
   /// Internal operations service client
   internal let internalOps: Internalops_InternalOperations.Client<Transport>
 
@@ -75,7 +72,6 @@ internal struct Client<Transport> where Transport: GRPCCore.ClientTransport {
     self.auth = Auth_AuthService.Client(wrapping: grpcClient)
     self.identity = Primandproper_Platform_Identity_V1_IdentityService.Client(wrapping: grpcClient)
     self.audit = Audit_AuditService.Client(wrapping: grpcClient)
-    self.dataPrivacy = Dataprivacy_DataPrivacyService.Client(wrapping: grpcClient)
     self.internalOps = Internalops_InternalOperations.Client(wrapping: grpcClient)
     self.mealPlanning = Mealplanning_MealPlanningService.Client(wrapping: grpcClient)
     self.notifications = Notifications_UserNotificationsService.Client(wrapping: grpcClient)

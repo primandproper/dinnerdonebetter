@@ -12,6 +12,11 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// The registry's behavior is asserted by platform's oauth2clients conformance suite, run against
+// this deployment in conformance_test.go, and its reach without a caller by the anonymous suite.
+// What remains here is this application's own: the audit entries its store records, the
+// validation the suite does not reach, and that the registry is a service admin's to touch.
+//
 // The registry is platform's now, and the two things that changed about it on the wire are
 // what most of this file is about.
 //
@@ -80,19 +85,6 @@ func TestOAuth2Clients_Creating(T *testing.T) {
 		})
 	})
 
-	T.Run("requires auth", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		c := buildUnauthenticatedGRPCClientForTest(t)
-
-		created, err := c.CreateOAuth2Client(ctx, &oauth2clientspb.CreateOAuth2ClientRequest{
-			Input: clientInputForTest(t),
-		})
-		require.Error(t, err)
-		assert.Nil(t, created.GetIssued())
-	})
-
 	T.Run("invalid input", func(t *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
@@ -139,33 +131,6 @@ func TestOAuth2Clients_Creating(T *testing.T) {
 func TestOAuth2Clients_Reading(T *testing.T) {
 	T.Parallel()
 
-	T.Run("happy path", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		created := createOAuth2ClientForTest(t)
-
-		retrieved, err := adminClient.GetOAuth2Client(ctx, &oauth2clientspb.GetOAuth2ClientRequest{
-			Oauth2ClientId: created.GetId(),
-		})
-		require.NoError(t, err)
-		require.NotNil(t, retrieved.GetResult())
-		assert.Equal(t, created.GetId(), retrieved.GetResult().GetId())
-		assert.Equal(t, created.GetName(), retrieved.GetResult().GetName())
-		assert.Equal(t, created.GetRedirectUris(), retrieved.GetResult().GetRedirectUris())
-	})
-
-	T.Run("requires auth", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		created := createOAuth2ClientForTest(t)
-		c := buildUnauthenticatedGRPCClientForTest(t)
-
-		_, err := c.GetOAuth2Client(ctx, &oauth2clientspb.GetOAuth2ClientRequest{Oauth2ClientId: created.GetId()})
-		assert.Error(t, err)
-	})
-
 	// The registry is four first-party applications and the MCP server, and there is no
 	// console a member reaches it from. Reading it used to be a member's grant, which made
 	// every registration in the deployment — names, client_ids, redirect URIs, and the
@@ -186,17 +151,6 @@ func TestOAuth2Clients_Reading(T *testing.T) {
 		_, err = testClient.ListOAuth2Clients(ctx, &oauth2clientspb.ListOAuth2ClientsRequest{})
 		require.Error(t, err)
 		assert.Equal(t, codes.PermissionDenied, status.Code(err))
-	})
-
-	T.Run("invalid ID", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		_, err := adminClient.GetOAuth2Client(ctx, &oauth2clientspb.GetOAuth2ClientRequest{
-			Oauth2ClientId: nonexistentID,
-		})
-		require.Error(t, err)
-		assert.Equal(t, codes.NotFound, status.Code(err))
 	})
 }
 
@@ -227,30 +181,6 @@ func TestOAuth2Clients_Archiving(T *testing.T) {
 		})
 	})
 
-	T.Run("requires auth", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		created := createOAuth2ClientForTest(t)
-		c := buildUnauthenticatedGRPCClientForTest(t)
-
-		_, err := c.ArchiveOAuth2Client(ctx, &oauth2clientspb.ArchiveOAuth2ClientRequest{
-			Oauth2ClientId: created.GetId(),
-		})
-		assert.Error(t, err)
-	})
-
-	T.Run("invalid ID", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		_, err := adminClient.ArchiveOAuth2Client(ctx, &oauth2clientspb.ArchiveOAuth2ClientRequest{
-			Oauth2ClientId: nonexistentID,
-		})
-		require.Error(t, err)
-		assert.Equal(t, codes.NotFound, status.Code(err))
-	})
-
 	T.Run("non-admin users are forbidden from archiving", func(t *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
@@ -263,40 +193,5 @@ func TestOAuth2Clients_Archiving(T *testing.T) {
 		})
 		require.Error(t, err)
 		assert.Equal(t, codes.PermissionDenied, status.Code(err))
-	})
-}
-
-func TestOAuth2Clients_Listing(T *testing.T) {
-	T.Parallel()
-
-	created := make([]*oauth2clientspb.OAuth2Client, 0, exampleQuantity)
-	for range exampleQuantity {
-		created = append(created, createOAuth2ClientForTest(T))
-	}
-
-	T.Run("happy path", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		retrieved, err := adminClient.ListOAuth2Clients(ctx, &oauth2clientspb.ListOAuth2ClientsRequest{})
-		require.NoError(t, err)
-		require.NotNil(t, retrieved)
-		assert.GreaterOrEqual(t, len(retrieved.GetResults()), len(created))
-
-		// No secret on any of them, which is the property the type split buys: a digest is
-		// a stored credential and a listing is the worst place for one.
-		for _, client := range retrieved.GetResults() {
-			assert.NotEmpty(t, client.GetClientId(), "a listed registration has no client_id")
-		}
-	})
-
-	T.Run("requires auth", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		c := buildUnauthenticatedGRPCClientForTest(t)
-
-		_, err := c.ListOAuth2Clients(ctx, &oauth2clientspb.ListOAuth2ClientsRequest{})
-		assert.Error(t, err)
 	})
 }

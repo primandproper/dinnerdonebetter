@@ -13,6 +13,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// The audit surface's behavior — reads by id, confinement to the caller's chain, verification —
+// is asserted by platform's audit conformance suite, run against this deployment in
+// conformance_test.go. What remains here is this application's own: that registering a user and
+// creating an account record the entries this application's identity hooks write.
 func TestAuditLogEntries_Listing_ForUser(T *testing.T) {
 	T.Parallel()
 
@@ -29,77 +33,6 @@ func TestAuditLogEntries_Listing_ForUser(T *testing.T) {
 		require.NoError(t, err)
 
 		assert.GreaterOrEqual(t, len(forUser.GetResults()), 3, "expected at least 3 audit log entries (user, account, membership)")
-	})
-
-	T.Run("create user and fetch audit logs for that user returns entries with expected structure", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		user, userClient := createUserAndClientForTest(t)
-
-		forUser, err := userClient.ListEntries(ctx, &auditgrpc.ListEntriesRequest{
-			Query: &auditgrpc.EntryQuery{ActorId: user.ID},
-		})
-		require.NoError(t, err)
-		require.NotEmpty(t, forUser.GetResults())
-
-		// Verify we have at least one entry with the user's ID
-		foundUserEntry := false
-		for _, entry := range forUser.GetResults() {
-			if entry.GetActor().GetId() == user.ID {
-				foundUserEntry = true
-				break
-			}
-		}
-		assert.True(t, foundUserEntry, "expected at least one audit log entry belonging to the created user")
-	})
-}
-
-func TestAuditLogEntries_GetByID(T *testing.T) {
-	T.Parallel()
-
-	T.Run("happy path", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		user, userClient := createUserAndClientForTest(t)
-
-		// User creation generates audit log entries; fetch them for the user
-		forUser, err := userClient.ListEntries(ctx, &auditgrpc.ListEntriesRequest{
-			Query: &auditgrpc.EntryQuery{ActorId: user.ID},
-		})
-		require.NoError(t, err)
-		require.NotEmpty(t, forUser.GetResults())
-
-		// pick the first entry and get it by ID
-		entryID := forUser.GetResults()[0].Id
-
-		result, err := userClient.GetEntry(ctx, &auditgrpc.GetEntryRequest{EntryId: entryID})
-		require.NoError(t, err)
-		assert.NotNil(t, result)
-		assert.Equal(t, entryID, result.GetEntry().GetId())
-	})
-
-	T.Run("nonexistent entry", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		_, userClient := createUserAndClientForTest(t)
-
-		result, err := userClient.GetEntry(ctx, &auditgrpc.GetEntryRequest{EntryId: nonexistentID})
-		require.Error(t, err)
-		assert.Nil(t, result)
-	})
-
-	T.Run("requires auth", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		c := buildUnauthenticatedGRPCClientForTest(t)
-
-		result, err := c.GetEntry(ctx, &auditgrpc.GetEntryRequest{EntryId: nonexistentID})
-		require.Error(t, err)
-		assert.Nil(t, result)
 	})
 }
 

@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
@@ -9,9 +10,12 @@ import (
 
 	"github.com/primandproper/platform-go/v14/identity/identitypb"
 	webhookspb "github.com/primandproper/platform-go/v14/webhooks/webhookspb"
+	"github.com/primandproper/primitives-go/v2/pointer"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func TestAdmin_BanningUsers(T *testing.T) {
@@ -22,10 +26,13 @@ func TestAdmin_BanningUsers(T *testing.T) {
 		ctx := t.Context()
 
 		createdUser, testClient := createUserAndClientForTest(t)
-
-		status, err := testClient.GetAuthStatus(ctx, &authsvc.GetAuthStatusRequest{})
+		token, err := loginForConformance(ctx, createdUser, "")
 		require.NoError(t, err)
-		require.NotNil(t, status)
+		require.Equal(t, http.StatusOK, privacyRequestsStatusFor(t, token), "the control: the HTTP routes admit this caller before the ban")
+
+		authStatus, err := testClient.GetAuthStatus(ctx, &authsvc.GetAuthStatusRequest{})
+		require.NoError(t, err)
+		require.NotNil(t, authStatus)
 
 		_, err = adminClient.IdentityService().UpdateUserAccountStatus(ctx, &identitypb.UpdateUserAccountStatusRequest{
 			UserId:      createdUser.ID,
@@ -36,9 +43,14 @@ func TestAdmin_BanningUsers(T *testing.T) {
 
 		// A ban takes effect on the next request, on every surface at once: the read every
 		// authenticated request makes refuses a status that does not admit signing in, so
-		// this session is not merely marked — it stops resolving.
+		// this session is not merely marked — it stops resolving. PermissionDenied rather
+		// than Unauthenticated, because the token is genuine and refreshing it would not help.
 		_, err = testClient.GetAuthStatus(ctx, &authsvc.GetAuthStatusRequest{})
 		require.Error(t, err)
+		assert.Equal(t, codes.PermissionDenied, status.Code(err))
+
+		// And on the HTTP routes, which would otherwise be the way around it.
+		assert.Equal(t, http.StatusForbidden, privacyRequestsStatusFor(t, token))
 
 		banned, err := adminClient.IdentityService().GetUser(ctx, &identitypb.GetUserRequest{UserId: createdUser.ID})
 		require.NoError(t, err)
@@ -51,9 +63,9 @@ func TestAdmin_BanningUsers(T *testing.T) {
 
 		createdUser, testClient := createUserAndClientForTest(t)
 
-		status, err := testClient.GetAuthStatus(ctx, &authsvc.GetAuthStatusRequest{})
+		authStatus, err := testClient.GetAuthStatus(ctx, &authsvc.GetAuthStatusRequest{})
 		require.NoError(t, err)
-		require.NotNil(t, status)
+		require.NotNil(t, authStatus)
 
 		_, err = testClient.IdentityService().UpdateUserAccountStatus(ctx, &identitypb.UpdateUserAccountStatusRequest{
 			UserId:      createdUser.ID,
@@ -133,4 +145,54 @@ func TestAdmin_UserImpersonation(T *testing.T) {
 		require.Error(t, err)
 		assert.Nil(t, webhook)
 	})
+}
+
+// TestAdmin_ForcedPasswordChange pins what a user told to change their password may still
+// do: learn who they are and change it, on either surface, and nothing else.
+func TestAdmin_ForcedPasswordChange(T *testing.T) {
+	T.Parallel()
+
+	T.Run("the caller may read who they are, and nothing else", func(t *testing.T) {
+		t.Parallel()
+		ctx := t.Context()
+
+		user, testClient := createUserAndClientForTest(t)
+		token, err := loginForConformance(ctx, user, "")
+		require.NoError(t, err)
+
+		_, err = adminClient.IdentityService().SetUserRequiresPasswordChange(ctx, &identitypb.SetUserRequiresPasswordChangeRequest{
+			UserId:                 user.ID,
+			RequiresPasswordChange: pointer.To(true),
+		})
+		require.NoError(t, err)
+
+		principal, err := testClient.IdentityService().GetPrincipal(ctx, &identitypb.GetPrincipalRequest{})
+		require.NoError(t, err)
+		assert.Equal(t, user.ID, principal.GetPrincipal().GetUser().GetId())
+
+		_, err = testClient.GetAuthStatus(ctx, &authsvc.GetAuthStatusRequest{})
+		require.NoError(t, err)
+
+		_, err = testClient.WebhooksService().ListEndpoints(ctx, &webhookspb.ListEndpointsRequest{})
+		assert.Equal(t, codes.FailedPrecondition, status.Code(err))
+
+		// No HTTP route is the change, so every one is refused.
+		assert.Equal(t, http.StatusForbidden, privacyRequestsStatusFor(t, token))
+	})
+}
+
+// privacyRequestsStatusFor is the status the privacy-request listing answers a caller holding
+// token — an HTTP route every signed-in caller may otherwise use.
+func privacyRequestsStatusFor(t *testing.T, token string) int {
+	t.Helper()
+
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, httpTestServerAddress+"/privacy-requests", http.NoBody)
+	require.NoError(t, err)
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	res, err := http.DefaultClient.Do(req)
+	require.NoError(t, err)
+	require.NoError(t, res.Body.Close())
+
+	return res.StatusCode
 }

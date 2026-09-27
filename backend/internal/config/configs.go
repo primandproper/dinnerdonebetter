@@ -16,6 +16,7 @@ import (
 
 	oauth2servercfg "github.com/primandproper/platform-go/v14/authentication/oauth2serverstore/config"
 	entitlementscfg "github.com/primandproper/platform-go/v14/entitlements/config"
+	linkscfg "github.com/primandproper/platform-go/v14/links/config"
 	meteringcfg "github.com/primandproper/platform-go/v14/metering/config"
 	operationscfg "github.com/primandproper/platform-go/v14/operations/config"
 	webhookscfg "github.com/primandproper/platform-go/v14/webhooks/config"
@@ -84,8 +85,12 @@ type (
 
 	// APIServiceConfig configures an instance of the service. It is composed of all the other setting structs.
 	APIServiceConfig struct {
-		_                 struct{}                `json:"-"`
-		HTTPClient        *httpclientcfg.Config   `envPrefix:"HTTP_CLIENT_"        json:"httpClient,omitempty"`
+		_          struct{}              `json:"-"`
+		HTTPClient *httpclientcfg.Config `envPrefix:"HTTP_CLIENT_" json:"httpClient,omitempty"`
+		// Links is the action-link minter: single-use secrets mailed as URLs. Its action
+		// registry names every link this server mints, where each points and how long it
+		// lives, and it is the only place those are decided — see DefaultLinksConfig.
+		Links             linkscfg.Config         `envPrefix:"LINKS_"              json:"links,omitzero"`
 		Queues            queuescfg.Config        `envPrefix:"QUEUES_"             json:"queues,omitzero"`
 		Routing           routingcfg.Config       `envPrefix:"ROUTING_"            json:"routing,omitzero"`
 		PushNotifications notificationscfg.Config `envPrefix:"PUSH_NOTIFICATIONS_" json:"pushNotifications,omitzero"`
@@ -284,6 +289,7 @@ func (cfg *APIServiceConfig) ValidateWithContext(ctx context.Context) error {
 		"Metering":           cfg.Metering.ValidateWithContext,
 		"Entitlements":       cfg.Entitlements.ValidateWithContext,
 		"Operations":         cfg.Operations.ValidateWithContext,
+		"Links":              cfg.Links.ValidateWithContext,
 		// no "Events" here, that's a collection of publisher/subscriber configs that can each optionally be setup
 	}
 

@@ -200,6 +200,7 @@ func buildAPIRouter(t *testing.T, authService *stubAuthService, registry *stubPr
 		authService,
 		paymentswebhook.NewWebhookHandler(logger, tracerProvider, nil, registry),
 		&stubRegistry{result: &healthcheck.Result{Status: healthcheck.StatusUp}},
+		nil,
 	)
 	require.NoError(t, err)
 

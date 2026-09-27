@@ -13,6 +13,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// The settings surface's behavior — definitions, values, resolution, confinement to the caller's
+// own subject, and the admin-only write check — is asserted by platform's settings conformance
+// suite, run against this deployment in conformance_test.go, and its reach without a caller by the
+// anonymous suite. What remains here is this application's own: that the catalog and the
+// "who answered this" read are a service admin's, and the few store rules no suite reaches.
+//
 // The settings surface is platform's, and the difference that runs through this file is the
 // subject.
 //
@@ -97,37 +103,6 @@ func TestSettingDefinitions_Creating(T *testing.T) {
 
 	_, testClient := createUserAndClientForTest(T)
 
-	T.Run("happy path", func(t *testing.T) {
-		t.Parallel()
-
-		createSettingDefinitionForTest(t, testClient)
-	})
-
-	T.Run("requires auth", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		c := buildUnauthenticatedGRPCClientForTest(t)
-		created, err := c.CreateDefinition(ctx, &settingspb.CreateDefinitionRequest{Definition: definitionInputForTest()})
-		require.Error(t, err)
-		assert.Nil(t, created)
-	})
-
-	// A kind decides how every stored value is read back, so the set is closed. It is an enum
-	// now, which means the unparseable kind the local RPC could be sent as a string is gone —
-	// what is left to refuse is the zero value, a definition that names no kind at all.
-	T.Run("refuses a definition with no kind", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		input := definitionInputForTest()
-		input.Kind = settingspb.SettingKind_SETTING_KIND_UNSPECIFIED
-
-		created, err := adminClient.CreateDefinition(ctx, &settingspb.CreateDefinitionRequest{Definition: input})
-		require.Error(t, err)
-		assert.Nil(t, created)
-	})
-
 	T.Run("refuses a default the setting would not admit", func(t *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
@@ -152,59 +127,14 @@ func TestSettingDefinitions_Creating(T *testing.T) {
 	})
 }
 
-func TestSettingDefinitions_Reading(T *testing.T) {
+// TestSettingDefinitions_AdminOnlyIsReadable pins the other half of the admin-only check: the
+// write refusal is asserted by the settings suite's reserved-settings assertions, and it is a
+// write check and only a write check. The flag reaches every reader, which is what lets a client
+// hide the setting from a self-service page instead of offering a control that always refuses.
+func TestSettingDefinitions_AdminOnlyIsReadable(T *testing.T) {
 	T.Parallel()
 
 	_, testClient := createUserAndClientForTest(T)
-
-	T.Run("happy path", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		created := createSettingDefinitionForTest(t, testClient)
-
-		// The name is the handle application code holds, and it finds the same row
-		// as the id does.
-		retrieved, err := testClient.GetDefinitionByName(ctx, &settingspb.GetDefinitionByNameRequest{
-			Name: created.GetName(),
-		})
-		require.NoError(t, err)
-		assert.Equal(t, created.GetId(), retrieved.GetResult().GetId())
-	})
-
-	T.Run("requires auth", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		created := createSettingDefinitionForTest(t, testClient)
-
-		c := buildUnauthenticatedGRPCClientForTest(t)
-
-		_, err := c.GetDefinition(ctx, &settingspb.GetDefinitionRequest{DefinitionId: created.GetId()})
-		assert.Error(t, err)
-	})
-
-	T.Run("invalid ID", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		_, err := adminClient.GetDefinition(ctx, &settingspb.GetDefinitionRequest{DefinitionId: nonexistentID})
-		assert.Error(t, err)
-	})
-}
-
-// TestSettingDefinitions_AdminOnlyIsEnforced pins the check platform asks in the handler,
-// against the definition it has already read: PermissionWriteAdminValues, carried by the
-// grants extractor. The store records AdminOnly and never acts on it, because it has no
-// notion of who is calling.
-//
-// It is a write check and only a write check. The flag reaches every reader, which is what
-// lets a client hide the setting from a self-service page instead of offering a control
-// that always refuses.
-func TestSettingDefinitions_AdminOnlyIsEnforced(T *testing.T) {
-	T.Parallel()
-
-	user, testClient := createUserAndClientForTest(T)
 
 	input := definitionInputForTest()
 	input.AdminOnly = true
@@ -228,99 +158,12 @@ func TestSettingDefinitions_AdminOnlyIsEnforced(T *testing.T) {
 		require.NoError(t, readErr)
 		assert.True(t, retrieved.GetResult().GetAdminOnly())
 	})
-
-	T.Run("a non-admin cannot answer it", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		_, writeErr := testClient.SetValue(ctx, &settingspb.SetValueRequest{
-			Subject: settingsSubjectFor(user.ID),
-			Name:    input.GetName(),
-			Value:   stringValue(input.GetEnumeration()[0]),
-		})
-		assert.Error(t, writeErr)
-	})
-
-	T.Run("an admin can", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		retrieved, retrieveErr := adminClient.GetDefinition(ctx, &settingspb.GetDefinitionRequest{
-			DefinitionId: created.GetResult().GetId(),
-		})
-		require.NoError(t, retrieveErr)
-		assert.True(t, retrieved.GetResult().GetAdminOnly())
-	})
 }
 
 func TestSettingDefinitions_Updating(T *testing.T) {
 	T.Parallel()
 
-	user, testClient := createUserAndClientForTest(T)
-
-	// UpdateDefinition takes a whole definition rather than a patch of one, so a caller
-	// restates the fields it is keeping. The local RPC took pointer fields and left an
-	// omission alone.
-	T.Run("happy path", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		created := createSettingDefinitionForTest(t, testClient)
-
-		updated, err := adminClient.UpdateDefinition(ctx, &settingspb.UpdateDefinitionRequest{
-			DefinitionId: created.GetId(),
-			Definition: &settingspb.SettingDefinitionInput{
-				Name:         created.GetName(),
-				Description:  "a better description",
-				Kind:         created.GetKind(),
-				DefaultValue: created.DefaultValue,
-				Enumeration:  created.GetEnumeration(),
-			},
-		})
-		require.NoError(t, err)
-		assert.Equal(t, "a better description", updated.GetResult().GetDescription())
-
-		assert.Equal(t, created.GetName(), updated.GetResult().GetName())
-		assert.ElementsMatch(t, created.GetEnumeration(), updated.GetResult().GetEnumeration())
-	})
-
-	T.Run("refuses an edit that would strand a stored value", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		created := createSettingDefinitionForTest(t, testClient)
-		stranded := created.GetEnumeration()[1]
-
-		_, err := testClient.SetValue(ctx, &settingspb.SetValueRequest{
-			Subject: settingsSubjectFor(user.ID),
-			Name:    created.GetName(),
-			Value:   stringValue(stranded),
-		})
-		require.NoError(t, err)
-
-		// This is the rule the store exists to own. Applied, the value somebody
-		// chose would still be in the table and every read of it would fail.
-		_, err = adminClient.UpdateDefinition(ctx, &settingspb.UpdateDefinitionRequest{
-			DefinitionId: created.GetId(),
-			Definition: &settingspb.SettingDefinitionInput{
-				Name:         created.GetName(),
-				Description:  created.GetDescription(),
-				Kind:         created.GetKind(),
-				DefaultValue: pointer.To(created.GetEnumeration()[0]),
-				Enumeration:  []string{created.GetEnumeration()[0]},
-			},
-		})
-		require.Error(t, err)
-
-		// And the value is still readable, because the edit was refused rather
-		// than half-applied.
-		still, err := testClient.GetValue(ctx, &settingspb.GetValueRequest{
-			Subject: settingsSubjectFor(user.ID),
-			Name:    created.GetName(),
-		})
-		require.NoError(t, err)
-		assert.Equal(t, stranded, still.GetResult().GetRaw())
-	})
+	_, testClient := createUserAndClientForTest(T)
 
 	T.Run("non-admin users are forbidden from updating", func(t *testing.T) {
 		t.Parallel()
@@ -345,34 +188,6 @@ func TestSettingDefinitions_Archiving(T *testing.T) {
 
 	_, testClient := createUserAndClientForTest(T)
 
-	T.Run("happy path", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		created := createSettingDefinitionForTest(t, testClient)
-
-		_, err := adminClient.ArchiveDefinition(ctx, &settingspb.ArchiveDefinitionRequest{
-			DefinitionId: created.GetId(),
-		})
-		require.NoError(t, err)
-
-		x, err := adminClient.GetDefinition(ctx, &settingspb.GetDefinitionRequest{DefinitionId: created.GetId()})
-		assert.Nil(t, x)
-		assert.Error(t, err)
-	})
-
-	T.Run("requires auth", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		created := createSettingDefinitionForTest(t, testClient)
-
-		c := buildUnauthenticatedGRPCClientForTest(t)
-
-		_, err := c.ArchiveDefinition(ctx, &settingspb.ArchiveDefinitionRequest{DefinitionId: created.GetId()})
-		assert.Error(t, err)
-	})
-
 	T.Run("non-admin users are forbidden from archiving", func(t *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
@@ -380,37 +195,6 @@ func TestSettingDefinitions_Archiving(T *testing.T) {
 		created := createSettingDefinitionForTest(t, testClient)
 
 		_, err := testClient.ArchiveDefinition(ctx, &settingspb.ArchiveDefinitionRequest{DefinitionId: created.GetId()})
-		assert.Error(t, err)
-	})
-}
-
-func TestSettingDefinitions_Listing(T *testing.T) {
-	T.Parallel()
-
-	_, testClient := createUserAndClientForTest(T)
-
-	created := make([]*settingspb.SettingDefinition, 0, exampleQuantity)
-	for range exampleQuantity {
-		created = append(created, createSettingDefinitionForTest(T, testClient))
-	}
-
-	T.Run("happy path", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		retrieved, err := testClient.ListDefinitions(ctx, &settingspb.ListDefinitionsRequest{})
-		require.NoError(t, err)
-		require.NotNil(t, retrieved)
-		assert.GreaterOrEqual(t, len(retrieved.GetResults()), len(created))
-	})
-
-	T.Run("requires auth", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		c := buildUnauthenticatedGRPCClientForTest(t)
-
-		_, err := c.ListDefinitions(ctx, &settingspb.ListDefinitionsRequest{})
 		assert.Error(t, err)
 	})
 }
@@ -462,151 +246,6 @@ func TestSettingValues_Answering(T *testing.T) {
 			assert.Equal(t, user.ID, value.GetSubject().GetId(), "this read is the requester's own answers and nobody else's")
 		}
 	})
-
-	T.Run("refuses a value the setting does not admit", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		definition := createSettingDefinitionForTest(t, testClient)
-
-		_, err := testClient.SetValue(ctx, &settingspb.SetValueRequest{
-			Subject: subject,
-			Name:    definition.GetName(),
-			Value:   stringValue("not-in-the-enumeration"),
-		})
-		require.Error(t, err)
-	})
-
-	T.Run("refuses an answer to a setting that does not exist", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		_, err := testClient.SetValue(ctx, &settingspb.SetValueRequest{
-			Subject: subject,
-			Name:    "no-such-setting",
-			Value:   stringValue("anything"),
-		})
-		assert.Error(t, err)
-	})
-
-	T.Run("requires auth", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		definition := createSettingDefinitionForTest(t, testClient)
-
-		c := buildUnauthenticatedGRPCClientForTest(t)
-
-		_, err := c.SetValue(ctx, &settingspb.SetValueRequest{
-			Subject: subject,
-			Name:    definition.GetName(),
-			Value:   stringValue(definition.GetEnumeration()[0]),
-		})
-		assert.Error(t, err)
-	})
-}
-
-// TestSettingValues_Resolving walks the tri-state end to end, which is the whole
-// reason a resolution is on the wire rather than a bare value.
-func TestSettingValues_Resolving(T *testing.T) {
-	T.Parallel()
-
-	user, testClient := createUserAndClientForTest(T)
-	subject := settingsSubjectFor(user.ID)
-
-	T.Run("falls back to the default, then reports the subject, then falls back again", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		definition := createSettingDefinitionForTest(t, testClient)
-
-		fromDefault, err := testClient.Resolve(ctx, &settingspb.ResolveRequest{Subject: subject, Name: definition.GetName()})
-		require.NoError(t, err)
-		assert.Equal(t, settingspb.ValueSource_VALUE_SOURCE_DEFAULT, fromDefault.GetResolution().GetSource())
-		assert.Equal(t, definition.GetDefaultValue(), fromDefault.GetResolution().GetTypedValue().GetStringValue())
-
-		_, err = testClient.SetValue(ctx, &settingspb.SetValueRequest{
-			Subject: subject,
-			Name:    definition.GetName(),
-			Value:   stringValue(definition.GetEnumeration()[1]),
-		})
-		require.NoError(t, err)
-
-		fromSubject, err := testClient.Resolve(ctx, &settingspb.ResolveRequest{Subject: subject, Name: definition.GetName()})
-		require.NoError(t, err)
-		assert.Equal(t, settingspb.ValueSource_VALUE_SOURCE_SUBJECT, fromSubject.GetResolution().GetSource())
-		assert.Equal(t, definition.GetEnumeration()[1], fromSubject.GetResolution().GetTypedValue().GetStringValue())
-
-		// Clearing puts them back on the default rather than leaving them
-		// unanswered, and the raw row is gone.
-		_, err = testClient.ClearValue(ctx, &settingspb.ClearValueRequest{Subject: subject, Name: definition.GetName()})
-		require.NoError(t, err)
-
-		_, err = testClient.GetValue(ctx, &settingspb.GetValueRequest{Subject: subject, Name: definition.GetName()})
-		require.Error(t, err)
-
-		backToDefault, err := testClient.Resolve(ctx, &settingspb.ResolveRequest{Subject: subject, Name: definition.GetName()})
-		require.NoError(t, err)
-		assert.Equal(t, settingspb.ValueSource_VALUE_SOURCE_DEFAULT, backToDefault.GetResolution().GetSource())
-	})
-
-	T.Run("reports a setting nobody has answered that has no default", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		input := definitionInputForTest()
-		input.DefaultValue = nil
-		input.Enumeration = nil
-
-		created, err := adminClient.CreateDefinition(ctx, &settingspb.CreateDefinitionRequest{Definition: input})
-		require.NoError(t, err)
-		// The absent default survives the wire, which is what makes the unset case
-		// expressible at all.
-		assert.Nil(t, created.GetResult().DefaultValue)
-
-		unset, err := testClient.Resolve(ctx, &settingspb.ResolveRequest{Subject: subject, Name: input.GetName()})
-		require.NoError(t, err)
-		assert.Equal(t, settingspb.ValueSource_VALUE_SOURCE_UNSET, unset.GetResolution().GetSource())
-		assert.Nil(t, unset.GetResolution().GetValue())
-	})
-
-	T.Run("resolves the whole catalog in one call", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		definition := createSettingDefinitionForTest(t, testClient)
-
-		// This is the read a preferences page makes: every setting, including the
-		// ones nobody has touched, each with the value that applies.
-		all, err := testClient.ResolveAll(ctx, &settingspb.ResolveAllRequest{Subject: subject})
-		require.NoError(t, err)
-
-		// An admin-only setting is shown here, flag and all, and that is the design
-		// rather than a leak. AdminOnly restricts who may write a value — SetValue and
-		// ClearValue refuse it without the grant, which the case below pins — and
-		// platform says in as many words that the flag on the wire "is also what an
-		// admin UI reads to know which settings to hide from a self-service page". So
-		// the page does the hiding, and it can only do it because the read answered.
-		var found bool
-		for _, resolution := range all.GetResolutions() {
-			if resolution.GetDefinition().GetId() == definition.GetId() {
-				found = true
-				assert.Equal(t, settingspb.ValueSource_VALUE_SOURCE_DEFAULT, resolution.GetSource())
-			}
-		}
-
-		assert.True(t, found, "expected the setting just defined to be among the resolved ones")
-	})
-
-	T.Run("requires auth", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		c := buildUnauthenticatedGRPCClientForTest(t)
-
-		_, err := c.ResolveAll(ctx, &settingspb.ResolveAllRequest{Subject: subject})
-		assert.Error(t, err)
-	})
 }
 
 // TestSettingValues_AreNotReadableByOtherMembers is the leak this adoption closed.
@@ -621,7 +260,7 @@ func TestSettingValues_AreNotReadableByOtherMembers(T *testing.T) {
 	T.Parallel()
 
 	firstUser, firstClient := createUserAndClientForTest(T)
-	secondUser, secondClient := createUserAndClientForTest(T)
+	_, secondClient := createUserAndClientForTest(T)
 
 	definition := createSettingDefinitionForTest(T, firstClient)
 
@@ -632,38 +271,6 @@ func TestSettingValues_AreNotReadableByOtherMembers(T *testing.T) {
 	})
 	require.NoError(T, err)
 
-	T.Run("the other member's own answers do not include it", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		// Not merely filtered out of the response: the second user has not
-		// answered this setting, so there is no row of theirs to return.
-		_, readErr := secondClient.GetValue(ctx, &settingspb.GetValueRequest{
-			Subject: settingsSubjectFor(secondUser.ID),
-			Name:    definition.GetName(),
-		})
-		assert.Error(t, readErr)
-	})
-
-	// Naming the subject is a request a caller can make, which is precisely why the
-	// authorizer exists: a subject that is not the caller's own is refused before any read
-	// happens. See internal/build/settings.selfServiceOnly.
-	T.Run("and they cannot ask for it by naming the other subject", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		_, readErr := secondClient.GetValue(ctx, &settingspb.GetValueRequest{
-			Subject: settingsSubjectFor(firstUser.ID),
-			Name:    definition.GetName(),
-		})
-		require.Error(t, readErr)
-
-		_, listErr := secondClient.ListValuesForSubject(ctx, &settingspb.ListValuesForSubjectRequest{
-			Subject: settingsSubjectFor(firstUser.ID),
-		})
-		assert.Error(t, listErr)
-	})
-
 	T.Run("and they cannot ask who has answered it", func(t *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
@@ -672,16 +279,5 @@ func TestSettingValues_AreNotReadableByOtherMembers(T *testing.T) {
 			Name: definition.GetName(),
 		})
 		assert.Error(t, listErr)
-	})
-
-	T.Run("an admin can", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		answers, listErr := adminClient.ListValuesForDefinition(ctx, &settingspb.ListValuesForDefinitionRequest{
-			Name: definition.GetName(),
-		})
-		require.NoError(t, listErr)
-		assert.Len(t, answers.GetResults(), 1)
 	})
 }

@@ -62,6 +62,7 @@ func BuildIntegrationTestsConfig() *config.APIServiceConfig {
 		Metering:     config.DefaultMeteringConfig(),
 		Entitlements: config.DefaultEntitlementsConfig(),
 		Operations:   config.DefaultOperationsConfig(),
+		Links:        config.DefaultLinksConfig(branding.LocalDevConsumerWebAppURL),
 		Routing: routingcfg.Config{
 			Provider: routingcfg.ProviderChi,
 			Chi: &chi.Config{

@@ -35,6 +35,7 @@ import (
 	dataprivacymigrations "github.com/primandproper/platform-go/v14/dataprivacy/migrations"
 	identitymigrations "github.com/primandproper/platform-go/v14/identity/migrations"
 	issuereportsmigrations "github.com/primandproper/platform-go/v14/issuereports/migrations"
+	linksmigrations "github.com/primandproper/platform-go/v14/links/database/migrations"
 	uploadsregistrymigrations "github.com/primandproper/platform-go/v14/mediaregistry/migrations"
 	"github.com/primandproper/platform-go/v14/metering"
 	meteringmigrations "github.com/primandproper/platform-go/v14/metering/migrations"
@@ -108,6 +109,8 @@ const (
 	oauth2ClientsMigrationVersion   = 22
 	refreshTokensMigrationVersion   = 23
 	passkeysMigrationVersion        = 24
+	// 25 is migration_files/00025_dinnerdonebetter.sql.
+	actionLinksMigrationVersion = 26
 )
 
 // The identity tables other schemas reference.
@@ -299,6 +302,11 @@ func NewMigrator(logger logging.Logger) (*Migrator, error) {
 		return nil, err
 	}
 
+	actionLinksDDL, err := renderActionLinksDDL()
+	if err != nil {
+		return nil, err
+	}
+
 	migrator, err := migrate.New(
 		dialect.Postgres,
 		migrationFiles,
@@ -328,6 +336,7 @@ func NewMigrator(logger logging.Logger) (*Migrator, error) {
 		migrate.WithGeneratedMigration(refreshTokensMigrationVersion, "create_signin_refresh_tokens_table", refreshTokensDDL),
 		migrate.WithGeneratedMigration(identityMigrationVersion, "create_identity_tables", identityDDL),
 		migrate.WithGeneratedMigration(passkeysMigrationVersion, "create_passkey_credentials_table", passkeysDDL),
+		migrate.WithGeneratedMigration(actionLinksMigrationVersion, "create_action_links_table", actionLinksDDL),
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "building migrator")
@@ -879,6 +888,28 @@ func renderRefreshTokensDDL() (string, error) {
 	body.WriteString(userCascade(table, "subject_id"))
 
 	return body.String(), nil
+}
+
+// renderActionLinksDDL renders the action-link table the waitlist confirmation loop mints
+// into: a confirmation link and an unsubscribe link for every pending signup.
+//
+// It renders platform's schema and nothing else. A link's subject is the signup it was minted
+// for, and the signup table carries no foreign key a link could follow (see
+// renderWaitlistsDDL), so there is no cascade to add: an erased signup's links name a row that
+// no longer answers, and a link whose signup is gone is refused by the surface that redeems it
+// rather than by the table. What reclaims the rows is the store's sweeper, run in the API
+// server — see internal/build/waitlists.
+//
+// The prefix is waitlists', so this renders ddb_action_links beside the tables whose links it
+// holds. A second action that is not a waitlist's would still belong in it: the table is keyed
+// by action, and the minter is one registry.
+func renderActionLinksDDL() (string, error) {
+	schema, err := linksmigrations.SQL(dialect.Postgres, ddbwaitlists.TablePrefix)
+	if err != nil {
+		return "", errors.Wrap(err, "rendering action link migration")
+	}
+
+	return schema, nil
 }
 
 // renderSessionsDDL renders the session table.

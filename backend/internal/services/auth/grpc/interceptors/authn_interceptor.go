@@ -13,11 +13,14 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	identitybuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/identity"
 	signinbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/signin"
+	waitlistsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/waitlists"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 
 	"github.com/primandproper/platform-go/v14/authentication/signin"
+	"github.com/primandproper/platform-go/v14/authentication/signin/signinpb"
 	platformidentity "github.com/primandproper/platform-go/v14/identity"
+	"github.com/primandproper/platform-go/v14/identity/identitypb"
 	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
 	"github.com/primandproper/primitives-go/v2/authentication/tokens"
 	"github.com/primandproper/primitives-go/v2/database"
@@ -129,9 +132,17 @@ func ProvideAuthInterceptor(
 			"/auth.AuthService/RevokeCurrentSession",
 			"/auth.AuthService/GetAuthStatus",
 			"/auth.AuthService/GetActiveAccount",
+			// GetAuthStatus's counterpart on platform's surface: a client told to change its
+			// password has to be able to learn whose password it is changing.
+			identitypb.IdentityService_GetPrincipal_FullMethodName,
+			// And UpdatePassword's counterpart, which a client on platform's surface changes
+			// the password through.
+			signinpb.SignInService_UpdatePassword_FullMethodName,
 		},
 		unauthenticatedRoutes: unauthenticatedRoutes,
-		optionalRoutes:        signinbuild.OptionallyAuthenticatedMethods(),
+		// The signup page answers a visitor and reads a signed-in caller's session when one
+		// is sent: see internal/build/waitlists.
+		optionalRoutes: append(signinbuild.OptionallyAuthenticatedMethods(), waitlistsbuild.PublicMethods()...),
 	}
 }
 
@@ -378,12 +389,7 @@ func (s *AuthInterceptor) UnaryServerInterceptor() grpc.UnaryServerInterceptor {
 
 		sessionContextData, err := s.extractSessionContextData(ctx, md)
 		if err != nil {
-			// Propagate the original status (e.g. a genuine Unauthenticated) rather than masking every
-			// failure as Internal, which breaks client token-refresh retry logic.
-			if _, isStatusErr := status.FromError(err); isStatusErr {
-				return nil, err
-			}
-			return nil, status.Error(codes.Internal, "building session context data for user")
+			return nil, sessionFailure(err)
 		}
 
 		proceed := true
@@ -423,6 +429,44 @@ func (s *AuthInterceptor) UnaryServerInterceptor() grpc.UnaryServerInterceptor {
 	}
 }
 
+// SessionFromAuthorization builds the caller an Authorization header names, the way the gRPC
+// interceptors do for a request's metadata.
+//
+// It is the HTTP routes' way in. The platform surfaces this server mounts on its router —
+// privacy requests, the operations that fulfill them, the object read — resolve their caller
+// from the session context the same as every gRPC surface does, and a second token parser for
+// HTTP would be a second place for the two protocols to disagree about who somebody is.
+func (s *AuthInterceptor) SessionFromAuthorization(ctx context.Context, header string) (*sessions.ContextData, error) {
+	return s.extractSessionContextData(ctx, metadata.Pairs(authHeaderName, header))
+}
+
+// RequiresPasswordChange reports whether userID has been told to change their password, which
+// the gRPC interceptor answers by refusing everything but the change itself. It is exported so
+// the HTTP routes can hold a caller to the same rule.
+func (s *AuthInterceptor) RequiresPasswordChange(ctx context.Context, userID string) (bool, error) {
+	return s.userRequiresPasswordChange(ctx, userID)
+}
+
+// sessionFailure is the status a caller is answered with when their session could not be built.
+//
+// A status the extraction already chose (a genuine Unauthenticated, say) is propagated rather
+// than masked, because masking every failure as Internal breaks a client's token-refresh retry.
+// A user whose account status does not admit sign-in — banned, terminated — is a caller the
+// directory refuses rather than a server fault, and is answered PermissionDenied: the token is
+// genuine, so Unauthenticated would send the client to refresh a token that works. Anything
+// else is Internal.
+func sessionFailure(err error) error {
+	if _, isStatusErr := status.FromError(err); isStatusErr {
+		return err
+	}
+
+	if errors.Is(err, platformidentity.ErrSignInNotAdmitted) {
+		return status.Error(codes.PermissionDenied, "this account may not sign in")
+	}
+
+	return status.Error(codes.Internal, "building session context data for user")
+}
+
 // serverStreamWithContext wraps grpc.ServerStream to inject a modified context.
 type serverStreamWithContext struct {
 	grpc.ServerStream
@@ -456,12 +500,7 @@ func (s *AuthInterceptor) StreamServerInterceptor() grpc.StreamServerInterceptor
 
 		sessionContextData, err := s.extractSessionContextData(ss.Context(), md)
 		if err != nil {
-			// Propagate the original status (e.g. a genuine Unauthenticated) rather than masking every
-			// failure as Internal, which breaks client token-refresh retry logic.
-			if _, isStatusErr := status.FromError(err); isStatusErr {
-				return err
-			}
-			return status.Error(codes.Internal, "building session context data for user")
+			return sessionFailure(err)
 		}
 
 		proceed := true
@@ -504,11 +543,13 @@ func (s *AuthInterceptor) StreamServerInterceptor() grpc.StreamServerInterceptor
 //
 // A call with no token is anonymous and goes straight through. A call with one is held to it:
 // a token that no longer works is refused as Unauthenticated, exactly as on any other method,
-// rather than quietly answered as though nobody had asked. The difference matters to the one
-// method here, GetAuthStatus — a client whose access token has expired has to be told so, so
-// that it refreshes, and not told that it is signed out.
+// rather than quietly answered as though nobody had asked. The difference matters to
+// GetAuthStatus — a client whose access token has expired has to be told so, so that it
+// refreshes, and not told that it is signed out — and to the waitlist signup page, where a
+// signed-in caller's join is theirs and an expired token must not quietly make it a visitor's.
 //
-// No permission is asked for. What these methods say about a caller is about that caller.
+// No permission is asked for. These methods are public by design; what a caller may do on
+// them is decided by the handler, which reads the session when there is one.
 func (s *AuthInterceptor) optionallyAuthenticated(ctx context.Context, md metadata.MD, req any, handler grpc.UnaryHandler) (any, error) {
 	if len(md.Get(authHeaderName)) == 0 {
 		return handler(ctx, req)
@@ -516,11 +557,7 @@ func (s *AuthInterceptor) optionallyAuthenticated(ctx context.Context, md metada
 
 	sessionContextData, err := s.extractSessionContextData(ctx, md)
 	if err != nil {
-		if _, isStatusErr := status.FromError(err); isStatusErr {
-			return nil, err
-		}
-
-		return nil, status.Error(codes.Internal, "building session context data for user")
+		return nil, sessionFailure(err)
 	}
 
 	return handler(sessions.AttachToContext(ctx, sessionContextData), req)

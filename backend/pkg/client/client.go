@@ -10,7 +10,6 @@ import (
 
 	analyticsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/analytics"
 	authgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
-	dataprivacygrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/dataprivacy"
 	internalopsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/internalops"
 	mealplanninggrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
 	uploadedmediagrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
@@ -46,7 +45,6 @@ type Client interface {
 	analyticsgrpc.AnalyticsServiceClient
 	authgrpc.AuthServiceClient
 	auditgrpc.AuditServiceClient
-	dataprivacygrpc.DataPrivacyServiceClient
 	internalopsgrpc.InternalOperationsClient
 	issuereportsgrpc.IssueReportsServiceClient
 	mealplanninggrpc.MealPlanningServiceClient
@@ -89,7 +87,6 @@ type client struct {
 	analyticsgrpc.AnalyticsServiceClient
 	authgrpc.AuthServiceClient
 	auditgrpc.AuditServiceClient
-	dataprivacygrpc.DataPrivacyServiceClient
 	internalopsgrpc.InternalOperationsClient
 	issuereportsgrpc.IssueReportsServiceClient
 	mealplanninggrpc.MealPlanningServiceClient
@@ -117,7 +114,6 @@ func BuildClient(grpcServerAddress string, opts ...grpc.DialOption) (Client, err
 		AnalyticsServiceClient:     analyticsgrpc.NewAnalyticsServiceClient(conn),
 		AuthServiceClient:          authgrpc.NewAuthServiceClient(conn),
 		AuditServiceClient:         auditgrpc.NewAuditServiceClient(conn),
-		DataPrivacyServiceClient:   dataprivacygrpc.NewDataPrivacyServiceClient(conn),
 		InternalOperationsClient:   internalopsgrpc.NewInternalOperationsClient(conn),
 		IssueReportsServiceClient:  issuereportsgrpc.NewIssueReportsServiceClient(conn),
 		MealPlanningServiceClient:  mealplanninggrpc.NewMealPlanningServiceClient(conn),

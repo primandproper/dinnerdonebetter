@@ -7,9 +7,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
 
 	"github.com/primandproper/platform-go/v14/authentication/signin/signinpb"
+	"github.com/primandproper/platform-go/v14/identity/identitypb"
+	"github.com/primandproper/primitives-go/v2/identifiers"
 
 	"github.com/pquerna/otp/totp"
 	"github.com/stretchr/testify/assert"
@@ -311,30 +314,106 @@ func TestSignIn_GetAuthStatus(T *testing.T) {
 	})
 }
 
-// TestSignIn_WithheldMethods pins the methods internal/build/signin leaves out. They write a
-// password, and platform's server applies no password policy, so reaching them here would let
-// through a password AuthService refuses.
-func TestSignIn_WithheldMethods(T *testing.T) {
+// TestSignIn_ThisApplicationsRules pins what this application adds to platform's doors: its
+// password floor on a password written through them, and its registration policy on Register,
+// which is an operator's call here. The conformance suites assert the doors themselves; these are
+// the rules no suite can know.
+func TestSignIn_ThisApplicationsRules(T *testing.T) {
 	T.Parallel()
 
-	T.Run("Register is not reachable anonymously", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		_, err := buildSignInClientForTest(t).Register(ctx, &signinpb.RegisterRequest{})
-
-		assert.Equal(t, codes.Unauthenticated, status.Code(err))
-	})
-
-	T.Run("UpdatePassword is refused to a signed-in caller", func(t *testing.T) {
+	T.Run("Register is refused to an ordinary caller", func(t *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
 		signIn := buildSignInClientForTest(t)
 		token, _ := signInForTest(t, signIn)
 
-		_, err := signIn.UpdatePassword(withBearerToken(ctx, token.GetToken()), &signinpb.UpdatePasswordRequest{})
+		_, err := signIn.Register(withBearerToken(ctx, token.GetToken()), registrationForTest(true))
 
 		assert.Equal(t, codes.PermissionDenied, status.Code(err))
 	})
+
+	T.Run("a registration that accepts no agreements is refused", func(t *testing.T) {
+		t.Parallel()
+		ctx := t.Context()
+
+		_, err := adminSignInClientForTest(t).Register(ctx, registrationForTest(false))
+
+		assert.Equal(t, codes.InvalidArgument, status.Code(err))
+	})
+
+	T.Run("a registration is shaped by this application's policy", func(t *testing.T) {
+		t.Parallel()
+		ctx := t.Context()
+
+		res, err := adminSignInClientForTest(t).Register(ctx, registrationForTest(true))
+		require.NoError(t, err)
+
+		registered := res.GetRegistration()
+		assert.Equal(t, []string{authorization.ServiceUserRoleName}, registered.GetUser().GetServiceRoles())
+		assert.Equal(t, []string{authorization.AccountAdminRoleName}, registered.GetMembership().GetRoles(),
+			"the roles a request names are replaced by this application's owner role")
+		assert.NotEmpty(t, registered.GetTotpEnrollment().GetSecret(), "every registrant is issued a second factor")
+		assert.NotNil(t, registered.GetUser().GetLastAcceptedTermsOfService())
+		assert.NotNil(t, registered.GetUser().GetLastAcceptedPrivacyPolicy())
+	})
+
+	T.Run("a password change through platform's door answers to this application's floor", func(t *testing.T) {
+		t.Parallel()
+		ctx := t.Context()
+
+		signIn := buildSignInClientForTest(t)
+		user := createServiceUserForTest(t, true, buildUserRegistrationInputForTest(t))
+		token, err := signIn.LoginForToken(ctx, &signinpb.LoginForTokenRequest{
+			Credentials: &signinpb.Credentials{
+				Username: user.Username,
+				Password: user.HashedPassword,
+				TotpCode: generateTOTPCodeForUserForTest(t, user),
+			},
+		})
+		require.NoError(t, err)
+
+		_, err = signIn.UpdatePassword(withBearerToken(ctx, token.GetToken().GetToken()), &signinpb.UpdatePasswordRequest{
+			CurrentPassword: user.HashedPassword,
+			NewPassword:     "password",
+			TotpCode:        generateTOTPCodeForUserForTest(t, user),
+		})
+
+		assert.Equal(t, codes.InvalidArgument, status.Code(err))
+	})
+}
+
+// registrationForTest is a registration for somebody nobody has registered, naming a role this
+// application does not use, so that the policy replacing it is observable.
+func registrationForTest(agreeing bool) *signinpb.RegisterRequest {
+	username := "reg_" + identifiers.New()
+
+	request := &signinpb.RegisterRequest{
+		User: &identitypb.UserRegistrationInput{
+			Username:     username,
+			EmailAddress: username + "@example.invalid",
+		},
+		Account:    &identitypb.AccountCreationInput{},
+		OwnerRoles: []string{"owner"},
+		Credential: &signinpb.RegisterRequest_Password{Password: identifiers.New() + identifiers.New()},
+	}
+
+	if agreeing {
+		request.Agreements = []identitypb.Agreement{
+			identitypb.Agreement_AGREEMENT_TERMS_OF_SERVICE,
+			identitypb.Agreement_AGREEMENT_PRIVACY_POLICY,
+		}
+	}
+
+	return request
+}
+
+// adminSignInClientForTest is platform's SignInService as the premade administrator.
+func adminSignInClientForTest(t *testing.T) signinpb.SignInServiceClient {
+	t.Helper()
+
+	subject, err := conformanceSubjectFor(t.Context(), premadeAdminUser, "")
+	require.NoError(t, err)
+
+	return subject.Surfaces.SignIn
 }

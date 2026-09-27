@@ -18,12 +18,15 @@ import (
 	oauth2servercfg "github.com/primandproper/platform-go/v14/authentication/oauth2serverstore/config"
 	"github.com/primandproper/platform-go/v14/entitlements"
 	entitlementscfg "github.com/primandproper/platform-go/v14/entitlements/config"
+	"github.com/primandproper/platform-go/v14/links"
+	linkscfg "github.com/primandproper/platform-go/v14/links/config"
 	"github.com/primandproper/platform-go/v14/metering"
 	meteringcfg "github.com/primandproper/platform-go/v14/metering/config"
 	operationscfg "github.com/primandproper/platform-go/v14/operations/config"
 	"github.com/primandproper/platform-go/v14/outbox"
 	"github.com/primandproper/platform-go/v14/retention"
 	"github.com/primandproper/platform-go/v14/saga"
+	waitlistsgrpc "github.com/primandproper/platform-go/v14/waitlists/grpc"
 	platformconfig "github.com/primandproper/primitives-go/v2/config"
 	"github.com/primandproper/primitives-go/v2/database/dialect"
 	distributedlockcfg "github.com/primandproper/primitives-go/v2/distributedlock/config"
@@ -195,6 +198,36 @@ func defaultAuditSweeperConfig() auditcfg.Config {
 // is a table of pending operations that nothing ever claims.
 func DefaultOperationsConfig() operationscfg.Config {
 	cfg := operationscfg.Config{}
+	cfg.EnsureDefaults()
+
+	return cfg
+}
+
+// DefaultLinksConfig is the action-link registry: the two links a waitlist signup is mailed,
+// pointed at the consumer web app served at webAppURL.
+//
+// A link's lifetime is a security policy rather than a deployment knob, which is why the
+// registry is written out here and rendered into every environment's configuration rather than
+// read from one. The confirmation link is short — an address that has not said yes in three
+// days is one nobody should keep waiting on — and the unsubscribe link sits in an inbox until
+// the day somebody wants off the list, so it lives for a year.
+//
+// The table prefix is not set here, and a rendered one is ignored: the store is built with the
+// prefix the migration was rendered with — see internal/build/waitlists and
+// docs/configuration.md.
+func DefaultLinksConfig(webAppURL string) linkscfg.Config {
+	cfg := linkscfg.Config{
+		Actions: map[links.Action]links.ActionPolicy{
+			waitlistsgrpc.ConfirmAction: {
+				URL: webAppURL + "/waitlists/confirm?t=" + links.TokenPlaceholder,
+				TTL: links.Duration(72 * time.Hour),
+			},
+			waitlistsgrpc.UnsubscribeAction: {
+				URL: webAppURL + "/waitlists/unsubscribe?t=" + links.TokenPlaceholder,
+				TTL: links.Duration(365 * 24 * time.Hour),
+			},
+		},
+	}
 	cfg.EnsureDefaults()
 
 	return cfg

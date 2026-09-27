@@ -41,7 +41,7 @@ func TestMethodTableIsCoveredByThePolicy(T *testing.T) {
 			}
 		}
 
-		perms := realMethodPermissions()
+		perms := MethodPermissions()
 		require.NotEmpty(t, perms)
 
 		for method, required := range perms {

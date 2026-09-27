@@ -15,6 +15,7 @@ import (
 
 	oauth2servercfg "github.com/primandproper/platform-go/v14/authentication/oauth2serverstore/config"
 	entitlementscfg "github.com/primandproper/platform-go/v14/entitlements/config"
+	linkscfg "github.com/primandproper/platform-go/v14/links/config"
 	meteringcfg "github.com/primandproper/platform-go/v14/metering/config"
 	operationscfg "github.com/primandproper/platform-go/v14/operations/config"
 	webhookscfg "github.com/primandproper/platform-go/v14/webhooks/config"
@@ -73,6 +74,10 @@ func RegisterConfigs(i do.Injector) {
 	do.Provide[*operationscfg.Config](i, func(i do.Injector) (*operationscfg.Config, error) {
 		cfg := do.MustInvoke[*config.APIServiceConfig](i)
 		return &cfg.Operations, nil
+	})
+	do.Provide[*linkscfg.Config](i, func(i do.Injector) (*linkscfg.Config, error) {
+		cfg := do.MustInvoke[*config.APIServiceConfig](i)
+		return &cfg.Links, nil
 	})
 	do.Provide[*featureflagscfg.Config](i, func(i do.Injector) (*featureflagscfg.Config, error) {
 		cfg := do.MustInvoke[*config.APIServiceConfig](i)

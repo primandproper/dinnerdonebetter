@@ -13,21 +13,43 @@ AuthInterceptor.signInSessionContextData for what that trades away.
 
 Not every RPC on the surface is reachable. The interceptor denies a method no
 permission table names, so a method is exposed by being named below and withheld by
-being left out. Withheld, and why:
+being left out.
 
-  - Register, UpdatePassword and AttachPassword write a password, and platform's
-    server applies no password policy and offers no seam for one. This application
-    refuses a weak password on each of those writes today, through AuthService, and
-    would stop refusing it here.
-  - RefreshTOTPSecret, VerifyTOTPSecret and VerifyEmailAddress are credential writes
-    whose events AuthService publishes around the call. They move once the hooks in
-    internal/authentication publish them for both doors, as they already do for
-    sign-in.
-  - RequestMagicLink and RedeemMagicLink: this deployment names no magic link store,
-    so signin refuses both anyway.
+Exposed without a caller, beyond the sign-in doors themselves:
 
-Password reset is not mounted at all, for the first of those reasons: its last step
-writes a password.
+  - VerifyEmailAddress, whose authority is the mailed link it carries. It is the
+    same write AuthService's two verification doors make, through the same
+    signin.Service, and its event is recorded by the AfterVerify hook in
+    internal/authentication for all three.
+  - AttachPassword furnishes an account that has no password, once, with the link it
+    was mailed. This application has no passwordless arrival, so today it only ever
+    answers that a password is already set; it is reachable so that the refusal is
+    platform's rather than this interceptor's, and it writes nothing this
+    application's rule would refuse, because the sign-in service is built with
+    authentication.PasswordPolicy.
+  - RequestMagicLink and RedeemMagicLink. This deployment names no magic link store,
+    so platform refuses both; what reaching them buys is that the refusal says so,
+    rather than claiming a caller was missing.
+
+Exposed to any signed-in caller, about themselves: GetSelf, SignOutEverywhere, and the
+three credential writes UpdatePassword, RefreshTOTPSecret and VerifyTOTPSecret. Each
+write's event is recorded by a hook in internal/authentication on the write's own
+transaction, which is what lets platform's door and AuthService's record the same
+event; and UpdatePassword answers to authentication.PasswordPolicy, the rule
+AuthService applies.
+
+Reserved to an operator: Register. platform's Register is made by a registrar on
+somebody else's behalf — it requires a caller, and the caller is not the registrant —
+so it is gated as identity's Register is, by PermissionCreateUsers, which only a
+service administrator holds. What it writes is this application's registrant rather
+than platform's default one, because the sign-in service is built with
+authentication.RegistrationPolicy: good standing, the service role, a second factor,
+this application's owner role, and the terms and privacy agreements, refused without
+them. Somebody signing themselves up still does it through AuthService.RegisterUser,
+which runs through the same policy.
+
+Password reset is not mounted at all: AuthService carries this application's reset
+flow, and platform's would be a second one.
 */
 package signin
 
@@ -69,13 +91,19 @@ func RegisterSignInService(i do.Injector) {
 }
 
 // AnonymousMethods are the exposed RPCs a caller reaches without a token: the two sign-in
-// doors, the refresh exchange, and sign-out, whose authority is the refresh token it carries.
+// doors, the refresh exchange, and sign-out, whose authority is the refresh token it carries;
+// and the doors whose authority is a mailed link, which are refused by platform rather than
+// here — see the package documentation.
 func AnonymousMethods() []string {
 	return []string{
 		signinpb.SignInService_LoginForToken_FullMethodName,
 		signinpb.SignInService_AdminLoginForToken_FullMethodName,
 		signinpb.SignInService_ExchangeRefreshToken_FullMethodName,
 		signinpb.SignInService_SignOut_FullMethodName,
+		signinpb.SignInService_AttachPassword_FullMethodName,
+		signinpb.SignInService_VerifyEmailAddress_FullMethodName,
+		signinpb.SignInService_RequestMagicLink_FullMethodName,
+		signinpb.SignInService_RedeemMagicLink_FullMethodName,
 	}
 }
 
@@ -92,12 +120,19 @@ func OptionallyAuthenticatedMethods() []string {
 
 // Permissions maps the exposed RPCs that need a signed-in caller.
 //
-// Each maps to no permission, which is how this application's interceptor spells "any
-// signed-in caller": they act on the caller alone, and platform's own list calls them
-// self-service for that reason.
+// The self-service ones map to no permission, which is how this application's
+// interceptor spells "any signed-in caller": they act on the caller alone, and platform's
+// own list calls them self-service for that reason. Register is the exception, and is
+// an operator's — see the package documentation.
 func Permissions() map[string][]authorization.Permission {
 	return map[string][]authorization.Permission{
 		signinpb.SignInService_GetSelf_FullMethodName:           {},
 		signinpb.SignInService_SignOutEverywhere_FullMethodName: {},
+		signinpb.SignInService_UpdatePassword_FullMethodName:    {},
+		signinpb.SignInService_RefreshTOTPSecret_FullMethodName: {},
+		signinpb.SignInService_VerifyTOTPSecret_FullMethodName:  {},
+		signinpb.SignInService_Register_FullMethodName: {
+			authorization.PermissionCreateUsers,
+		},
 	}
 }

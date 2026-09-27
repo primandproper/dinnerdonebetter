@@ -641,12 +641,10 @@ func TestAuthManager_VerifyUserEmailAddress_Success(t *testing.T) {
 	err := manager.VerifyUserEmailAddress(ctx, input)
 
 	require.NoError(t, err)
-	// Two reads by the token: this manager's, for the user id its event names, and
-	// signin's own inside VerifyEmailAddress. The second is the price of an event that
-	// names somebody — VerifyEmailAddress answers with an error and nothing else, and
-	// by the time it returns the link is spent and the column that found the user is
-	// cleared, so the read cannot happen afterwards.
-	assert.Len(t, userStore.GetUserByEmailVerificationTokenCalls(), 2)
+	// One read by the token, signin's own. The event is signin's AfterVerify hook's now,
+	// which is handed the user, so this manager neither reads for it nor publishes it.
+	assert.Len(t, userStore.GetUserByEmailVerificationTokenCalls(), 1)
+	assert.Empty(t, publisher.PublishAsyncCalls(), "the verified event is the sign-in hook's to record")
 	assert.Len(t, userStore.MarkUserEmailAddressVerifiedCalls(), 1)
 }
 
@@ -691,12 +689,10 @@ func TestAuthManager_VerifyUserEmailAddressByToken_Success(t *testing.T) {
 	err := manager.VerifyUserEmailAddressByToken(ctx, token)
 
 	require.NoError(t, err)
-	// Two reads by the token: this manager's, for the user id its event names, and
-	// signin's own inside VerifyEmailAddress. The second is the price of an event that
-	// names somebody — VerifyEmailAddress answers with an error and nothing else, and
-	// by the time it returns the link is spent and the column that found the user is
-	// cleared, so the read cannot happen afterwards.
-	assert.Len(t, userStore.GetUserByEmailVerificationTokenCalls(), 2)
+	// One read by the token, signin's own. The event is signin's AfterVerify hook's now,
+	// which is handed the user, so this manager neither reads for it nor publishes it.
+	assert.Len(t, userStore.GetUserByEmailVerificationTokenCalls(), 1)
+	assert.Empty(t, publisher.PublishAsyncCalls(), "the verified event is the sign-in hook's to record")
 	assert.Len(t, userStore.MarkUserEmailAddressVerifiedCalls(), 1)
 }
 

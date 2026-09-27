@@ -161,6 +161,7 @@ func BuildLocalDevConfig() *config.APIServiceConfig {
 		Metering:     config.DefaultMeteringConfig(),
 		Entitlements: config.DefaultEntitlementsConfig(),
 		Operations:   config.DefaultOperationsConfig(),
+		Links:        config.DefaultLinksConfig(branding.LocalDevConsumerWebAppURL),
 		// Localdev has a Redis, so the record store is shared and the interceptor means
 		// something. Prod does not yet; see the prod config.
 		Idempotency: config.IdempotencyConfig{

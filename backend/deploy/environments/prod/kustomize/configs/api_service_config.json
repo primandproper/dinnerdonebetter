@@ -401,5 +401,21 @@
 			"maxIdleConns": 100,
 			"maxIdleConnsPerHost": 100
 		}
+	},
+	"links": {
+		"actions": {
+			"waitlist_confirm": {
+				"url": "https://dinnerdonebetter.com/waitlists/confirm?t={token}",
+				"ttl": "72h0m0s"
+			},
+			"waitlist_unsubscribe": {
+				"url": "https://dinnerdonebetter.com/waitlists/unsubscribe?t={token}",
+				"ttl": "8760h0m0s"
+			}
+		},
+		"sweepInterval": 300000000000,
+		"retention": 86400000000000,
+		"tokenBytes": 32,
+		"maxTokenLength": 512
 	}
 }

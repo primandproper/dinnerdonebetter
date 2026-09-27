@@ -1,23 +1,24 @@
 package integration
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
-	"strings"
+	"io"
+	"net/http"
 	"sync"
 	"testing"
 	"time"
 
+	httpapi "github.com/primandproper/dinnerdonebetter/backend/internal/build/services/api/http"
 	ddbdataprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
-	dataprivacygrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/dataprivacy"
-	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
 
 	platformdataprivacy "github.com/primandproper/platform-go/v14/dataprivacy"
+	dataprivacyhttp "github.com/primandproper/platform-go/v14/dataprivacy/http"
+	"github.com/primandproper/platform-go/v14/identity"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 // fulfillmentBudget is how long a test waits for the operations worker to pick a request up and
@@ -50,27 +51,109 @@ func serializeDataPrivacy(t *testing.T) {
 	t.Cleanup(dataPrivacySweepMu.Unlock)
 }
 
+// privacyCaller is somebody reaching the privacy-request surface over HTTP, as a bearer token.
+type privacyCaller string
+
+// privacyCallerForTest signs a fresh user in and returns them with the token their privacy
+// requests are made with.
+func privacyCallerForTest(t *testing.T) (*identity.User, privacyCaller) {
+	t.Helper()
+
+	user := createServiceUserForTest(t, true, buildUserRegistrationInputForTest(t))
+
+	return user, privacyCaller(fetchLoginTokenForUserForTest(t, user))
+}
+
+// do makes one request against the API server's router as this caller.
+func (c privacyCaller) do(t *testing.T, ctx context.Context, method, path string, body []byte) (status int, response []byte) {
+	t.Helper()
+
+	var reader io.Reader
+	if body != nil {
+		reader = bytes.NewReader(body)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, method, httpTestServerAddress+path, reader)
+	require.NoError(t, err)
+
+	req.Header.Set("Authorization", "Bearer "+string(c))
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+
+	res, err := http.DefaultClient.Do(req)
+	require.NoError(t, err)
+
+	defer func() { assert.NoError(t, res.Body.Close()) }()
+
+	response, err = io.ReadAll(res.Body)
+	require.NoError(t, err)
+
+	return res.StatusCode, response
+}
+
+// privacyReceipt is how the surface answers about one request.
+type privacyReceipt struct {
+	Data struct {
+		Request *platformdataprivacy.Request `json:"request"`
+	} `json:"data"`
+}
+
+// readPrivacyRequest reads one request as the caller, returning the status and, on a 200, the
+// request.
+func (c privacyCaller) readPrivacyRequest(t *testing.T, ctx context.Context, requestID string) (int, *platformdataprivacy.Request) {
+	t.Helper()
+
+	status, body := c.do(t, ctx, http.MethodGet, dataprivacyhttp.BasePath+"/"+requestID, nil)
+	if status != http.StatusOK {
+		return status, nil
+	}
+
+	receipt := &privacyReceipt{}
+	require.NoError(t, json.Unmarshal(body, receipt))
+
+	return status, receipt.Data.Request
+}
+
+// submitPrivacyRequest asks for a request of kind as the caller and returns it as recorded.
+func (c privacyCaller) submitPrivacyRequest(t *testing.T, ctx context.Context, kind platformdataprivacy.RequestType) *platformdataprivacy.Request {
+	t.Helper()
+
+	status, body := c.do(t, ctx, http.MethodPost, dataprivacyhttp.BasePath, []byte(`{"type":"`+string(kind)+`"}`))
+	require.True(t, status >= 200 && status < 300, "submitting a %s request answered %d: %s", kind, status, body)
+
+	receipt := &privacyReceipt{}
+	require.NoError(t, json.Unmarshal(body, receipt))
+	require.NotNil(t, receipt.Data.Request)
+	require.NotEmpty(t, receipt.Data.Request.ID)
+
+	return receipt.Data.Request
+}
+
+// artifactPath is where this server serves a completed export's artifact.
+func artifactPath(requestID string) string {
+	return dataprivacyhttp.BasePath + "/" + requestID + httpapi.ArtifactSuffix
+}
+
 // awaitTerminalPrivacyRequest polls a request until it stops moving, and returns it.
 //
 // It polls the request rather than the operation behind it because that is what a subject can
 // see: the row is the answer to "is my export ready", and an operation that finished without
 // moving the row would be a request nobody could ever collect.
-func awaitTerminalPrivacyRequest(t *testing.T, ctx context.Context, c client.Client, requestID string) *dataprivacygrpc.DataPrivacyRequest {
+func awaitTerminalPrivacyRequest(t *testing.T, ctx context.Context, c privacyCaller, requestID string) *platformdataprivacy.Request {
 	t.Helper()
 
-	var request *dataprivacygrpc.DataPrivacyRequest
+	var request *platformdataprivacy.Request
 
 	require.Eventually(t, func() bool {
-		response, err := c.GetDataPrivacyRequest(ctx, &dataprivacygrpc.GetDataPrivacyRequestRequest{
-			DataPrivacyRequestId: requestID,
-		})
-		if err != nil {
+		status, read := c.readPrivacyRequest(t, ctx, requestID)
+		if status != http.StatusOK {
 			return false
 		}
 
-		request = response.GetRequest()
+		request = read
 
-		return platformdataprivacy.Status(request.GetStatus()).Terminal()
+		return request.Status.Terminal()
 	}, fulfillmentBudget, 250*time.Millisecond, "expected the fulfillment worker to reach a terminal state")
 
 	return request
@@ -104,22 +187,17 @@ func awaitTerminalStoredRequest(t *testing.T, ctx context.Context, requestID str
 }
 
 // submitExport asks for the caller's data and returns the request's ID.
-func submitExport(t *testing.T, ctx context.Context, c client.Client) string {
+func submitExport(t *testing.T, ctx context.Context, c privacyCaller) string {
 	t.Helper()
 
-	response, err := c.AggregateUserDataReport(ctx, &dataprivacygrpc.AggregateUserDataReportRequest{})
-	require.NoError(t, err)
-
-	request := response.GetRequest()
-	require.NotEmpty(t, request.GetId())
-	assert.Equal(t, string(platformdataprivacy.RequestExport), request.GetRequestType())
+	request := c.submitPrivacyRequest(t, ctx, platformdataprivacy.RequestExport)
+	assert.Equal(t, platformdataprivacy.RequestExport, request.Type)
 
 	// Recorded, not fulfilled. The whole reason the worker below exists is that this call
 	// returns before any of the work has happened.
-	assert.False(t, platformdataprivacy.Status(request.GetStatus()).Terminal(),
-		"a submission must return before the export has been produced")
+	assert.False(t, request.Status.Terminal(), "a submission must return before the export has been produced")
 
-	return request.GetId()
+	return request.ID
 }
 
 // fetchExportDocument reads a completed export back through the API and decodes it.
@@ -127,15 +205,11 @@ func submitExport(t *testing.T, ctx context.Context, c client.Client) string {
 // Through the API rather than out of the bucket, because the bucket holds ciphertext: artifacts
 // are encrypted at rest, and the reader's compressor and cipher agreeing with the writer's is
 // exactly the thing that has no other way of being checked.
-func fetchExportDocument(t *testing.T, ctx context.Context, c client.Client, requestID string) (document *platformdataprivacy.Document, artifact []byte) {
+func fetchExportDocument(t *testing.T, ctx context.Context, c privacyCaller, requestID string) (document *platformdataprivacy.Document, artifact []byte) {
 	t.Helper()
 
-	response, err := c.FetchUserDataReport(ctx, &dataprivacygrpc.FetchUserDataReportRequest{
-		DataPrivacyRequestId: requestID,
-	})
-	require.NoError(t, err)
-
-	artifact = response.GetArtifact()
+	status, artifact := c.do(t, ctx, http.MethodGet, artifactPath(requestID), nil)
+	require.Equal(t, http.StatusOK, status, "fetching the artifact answered %d: %s", status, artifact)
 	require.NotEmpty(t, artifact)
 
 	document = new(platformdataprivacy.Document)
@@ -178,7 +252,7 @@ func TestDataPrivacy_Export(T *testing.T) {
 
 		ctx := t.Context()
 
-		subject, subjectClient := createUserAndClientForTest(t)
+		subject, subjectCaller := privacyCallerForTest(t)
 
 		// A second user, whose data must not appear. Created before the export is submitted,
 		// so a collector reading a whole table rather than a subject's rows would pick them up.
@@ -199,15 +273,15 @@ func TestDataPrivacy_Export(T *testing.T) {
 		// not the ceremony that writes the row.
 		subjectPasskey := insertWebAuthnCredentialForTest(t, subject.ID, "The Subject's Laptop")
 
-		requestID := submitExport(t, ctx, subjectClient)
+		requestID := submitExport(t, ctx, subjectCaller)
 
-		request := awaitTerminalPrivacyRequest(t, ctx, subjectClient, requestID)
-		require.Equal(t, string(platformdataprivacy.StatusCompleted), request.GetStatus(),
-			"the export did not complete: %v", request.GetFailures())
-		assert.Empty(t, request.GetFailures(), "every registered collector must succeed against the real schema")
-		assert.NotNil(t, request.GetExpiresAt(), "a completed export's artifact has to have an expiry")
+		request := awaitTerminalPrivacyRequest(t, ctx, subjectCaller, requestID)
+		require.Equal(t, platformdataprivacy.StatusCompleted, request.Status,
+			"the export did not complete: %v", request.Failures)
+		assert.Empty(t, request.Failures, "every registered collector must succeed against the real schema")
+		assert.False(t, request.ExpiresAt.IsZero(), "a completed export's artifact has to have an expiry")
 
-		document, artifact := fetchExportDocument(t, ctx, subjectClient, requestID)
+		document, artifact := fetchExportDocument(t, ctx, subjectCaller, requestID)
 
 		assert.True(t, document.Complete(), "a document with failures is a partial export")
 		assert.Equal(t, subject.ID, document.Manifest.Subject.ID)
@@ -255,34 +329,32 @@ func TestDataPrivacy_Export(T *testing.T) {
 			"another user's data reached this subject's export")
 	})
 
-	T.Run("refuses to hand an artifact to anybody but its subject", func(t *testing.T) {
+	// The request read is platform's surface, and the conformance suite asserts it is absent to
+	// a neighbor — but only between two tenants, and a privacy request here names a person
+	// rather than an account, so the suite's pair shares one and skips. The artifact is this
+	// application's own route. Both are asserted here, between two people.
+	T.Run("refuses a request and its artifact to anybody but its subject", func(t *testing.T) {
 		t.Parallel()
 		serializeDataPrivacy(t)
 
 		ctx := t.Context()
 
-		_, subjectClient := createUserAndClientForTest(t)
-		_, strangerClient := createUserAndClientForTest(t)
+		_, subjectCaller := privacyCallerForTest(t)
+		_, strangerCaller := privacyCallerForTest(t)
 
-		requestID := submitExport(t, ctx, subjectClient)
+		requestID := submitExport(t, ctx, subjectCaller)
 
-		request := awaitTerminalPrivacyRequest(t, ctx, subjectClient, requestID)
-		require.Equal(t, string(platformdataprivacy.StatusCompleted), request.GetStatus())
+		request := awaitTerminalPrivacyRequest(t, ctx, subjectCaller, requestID)
+		require.Equal(t, platformdataprivacy.StatusCompleted, request.Status)
 
-		// NotFound rather than PermissionDenied, in both the missing and the not-yours case: a
-		// distinct denial would confirm that a given request ID exists, and whether somebody
-		// has asked for their data is itself a fact about them.
-		_, err := strangerClient.FetchUserDataReport(ctx, &dataprivacygrpc.FetchUserDataReportRequest{
-			DataPrivacyRequestId: requestID,
-		})
-		require.Error(t, err)
-		assert.Equal(t, codes.NotFound, status.Code(err))
+		// Absent rather than forbidden, in both the missing and the not-yours case: a distinct
+		// denial would confirm that a given request ID exists, and whether somebody has asked
+		// for their data is itself a fact about them.
+		status, _ := strangerCaller.do(t, ctx, http.MethodGet, artifactPath(requestID), nil)
+		assert.Equal(t, http.StatusNotFound, status)
 
-		_, err = strangerClient.GetDataPrivacyRequest(ctx, &dataprivacygrpc.GetDataPrivacyRequestRequest{
-			DataPrivacyRequestId: requestID,
-		})
-		require.Error(t, err)
-		assert.Equal(t, codes.NotFound, status.Code(err))
+		status, _ = strangerCaller.readPrivacyRequest(t, ctx, requestID)
+		assert.Equal(t, http.StatusNotFound, status)
 	})
 }
 
@@ -303,29 +375,26 @@ func TestDataPrivacy_Erasure(T *testing.T) {
 
 		subject, subjectClient := createUserAndClientForTest(t)
 		createWebhookForTest(t, subjectClient)
+		subjectCaller := privacyCaller(fetchLoginTokenForUserForTest(t, subject))
 
 		// A bystander, to show the erasure is scoped to its subject rather than to the table.
 		bystander, _ := createUserAndClientForTest(t)
 
 		require.Equal(t, 1, userRowCount(t, ctx, subject.ID))
 
-		response, err := subjectClient.DestroyAllUserData(ctx, &dataprivacygrpc.DestroyAllUserDataRequest{})
-		require.NoError(t, err)
-
-		request := response.GetRequest()
-		require.NotEmpty(t, request.GetId())
-		assert.Equal(t, string(platformdataprivacy.RequestErasure), request.GetRequestType())
+		request := subjectCaller.submitPrivacyRequest(t, ctx, platformdataprivacy.RequestErasure)
+		assert.Equal(t, platformdataprivacy.RequestErasure, request.Type)
 		// Queued, not deleted. The confirmation window is zero, so nothing further is needed
 		// from the subject — but the deletion still happens in the worker's transaction rather
 		// than on the request path, where a timeout halfway through would leave a subject in a
 		// state no status could describe.
-		assert.False(t, platformdataprivacy.Status(request.GetStatus()).Terminal())
+		assert.False(t, request.Status.Terminal())
 
 		// Read off the row rather than through the API, and that is not a shortcut: an
 		// erasure ends by deleting its subject, and the API scopes every read of a privacy
 		// request to the subject it belongs to. The one principal entitled to ask how this
 		// request ended no longer exists by the time it has. An operator reads the row.
-		erasure := awaitTerminalStoredRequest(t, ctx, request.GetId())
+		erasure := awaitTerminalStoredRequest(t, ctx, request.ID)
 		require.Equal(t, platformdataprivacy.StatusCompleted, erasure.Status,
 			"the erasure did not complete: %v", erasure.Failures)
 		assert.Empty(t, erasure.Failures, "every registered eraser must succeed against the real schema")
@@ -359,20 +428,20 @@ func TestDataPrivacy_Sweeper(T *testing.T) {
 
 		ctx := t.Context()
 
-		_, subjectClient := createUserAndClientForTest(t)
+		_, subjectCaller := privacyCallerForTest(t)
 
-		requestID := submitExport(t, ctx, subjectClient)
+		requestID := submitExport(t, ctx, subjectCaller)
 
-		request := awaitTerminalPrivacyRequest(t, ctx, subjectClient, requestID)
-		require.Equal(t, string(platformdataprivacy.StatusCompleted), request.GetStatus())
-		require.NotNil(t, request.GetExpiresAt())
+		request := awaitTerminalPrivacyRequest(t, ctx, subjectCaller, requestID)
+		require.Equal(t, platformdataprivacy.StatusCompleted, request.Status)
+		require.False(t, request.ExpiresAt.IsZero())
 
 		// Readable before the sweep, or the assertion after it proves nothing.
-		fetchExportDocument(t, ctx, subjectClient, requestID)
+		fetchExportDocument(t, ctx, subjectCaller, requestID)
 
 		// One second past the expiry this artifact was actually stamped with, so the sweep is
 		// asked the same question it is asked in production rather than a broader one.
-		sweeper, err := dataPrivacyFulfillment.SweeperAt(ctx, request.GetExpiresAt().AsTime().Add(time.Second))
+		sweeper, err := dataPrivacyFulfillment.SweeperAt(ctx, request.ExpiresAt.Add(time.Second))
 		require.NoError(t, err)
 
 		result, err := sweeper.Sweep(ctx)
@@ -381,25 +450,14 @@ func TestDataPrivacy_Sweeper(T *testing.T) {
 
 		// The row survives — a subject is entitled to know what was asked in their name — and
 		// says the artifact is gone.
-		after, err := subjectClient.GetDataPrivacyRequest(ctx, &dataprivacygrpc.GetDataPrivacyRequestRequest{
-			DataPrivacyRequestId: requestID,
-		})
-		require.NoError(t, err)
-		assert.Equal(t, string(platformdataprivacy.StatusExpired), after.GetRequest().GetStatus())
+		status, after := subjectCaller.readPrivacyRequest(t, ctx, requestID)
+		require.Equal(t, http.StatusOK, status)
+		assert.Equal(t, platformdataprivacy.StatusExpired, after.Status)
 
-		// And the artifact is unavailable rather than an internal error about our storage.
-		//
-		// FailedPrecondition, not NotFound. The service asks for NotFound and does not get it:
-		// platform-go's error mapper recognizes ErrArtifactUnavailable and overrides the
-		// default code with its own, on the grounds that the request exists and the caller may
-		// see it — it is simply not in a state this call can serve. That is the behavior a
-		// client has to handle, so it is the behavior pinned here.
-		_, err = subjectClient.FetchUserDataReport(ctx, &dataprivacygrpc.FetchUserDataReportRequest{
-			DataPrivacyRequestId: requestID,
-		})
-		require.Error(t, err)
-		assert.Equal(t, codes.FailedPrecondition, status.Code(err))
-		assert.Contains(t, strings.ToLower(status.Convert(err).Message()), "artifact",
-			"the refusal should say the artifact is unavailable")
+		// And the artifact is unavailable rather than an internal error about our storage: a
+		// conflict, because the request exists and the caller may see it — it is simply not in
+		// a state that has an artifact. That is platform's mapping of ErrArtifactUnavailable.
+		status, body := subjectCaller.do(t, ctx, http.MethodGet, artifactPath(requestID), nil)
+		assert.Equal(t, http.StatusConflict, status, "fetching an expired artifact answered: %s", body)
 	})
 }

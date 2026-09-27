@@ -6,9 +6,11 @@ import (
 	authcfg "github.com/primandproper/dinnerdonebetter/backend/internal/authentication/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/recording"
 
 	"github.com/primandproper/platform-go/v14/authentication/signin"
 	"github.com/primandproper/platform-go/v14/authentication/signin/refreshtokens"
@@ -75,6 +77,14 @@ func RegisterAuth(i do.Injector) {
 			// And the verification reads and writes an emailed link is answered through.
 			// The identity store satisfies this one outright too.
 			signin.WithVerifications(do.MustInvoke[platformidentity.Store](i)),
+			// The rule AuthService applies to every password it writes, applied to the ones
+			// platform's server writes too, so a door mounted from platform cannot accept a
+			// password this application refuses.
+			signin.WithPasswordPolicy(PasswordPolicy),
+			// And the rest of this application's registration — standing, roles, the second
+			// factor, the agreements — applied to every registration signin writes, so the
+			// two doors that register somebody register the same person.
+			signin.WithRegistrationPolicy(RegistrationPolicy),
 			// Where a sign-in through platform's SignInService keeps the refresh token that
 			// outlives its access token. With a store named, LoginForToken mints a rotating
 			// pair and the three refresh doors work; without one they refuse.
@@ -89,6 +99,11 @@ func RegisterAuth(i do.Injector) {
 			signin.WithHooks(NewSignInHooks(
 				do.MustInvoke[logging.Logger](i),
 				do.MustInvoke[*events.Emitter](i),
+				recording.NewRecorder(
+					tracing.NewNamedTracer(do.MustInvoke[tracing.Provider](i), "signin_hooks"),
+					do.MustInvoke[audit.Repository](i),
+					do.MustInvoke[*events.Emitter](i),
+				),
 			)),
 			signin.WithLogger(do.MustInvoke[logging.Logger](i)),
 			signin.WithTracerProvider(do.MustInvoke[tracing.Provider](i)),

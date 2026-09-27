@@ -334,6 +334,42 @@ func TestRepository_Integration_SignupLifecycle(t *testing.T) {
 	assert.Len(t, entries.Data, 3)
 }
 
+// TestRepository_Integration_ConfirmationIsRecorded pins the override platform's new
+// SignupStore method needed: a pending signup confirmed through this repository is recorded,
+// where the embedded store alone would move it silently.
+func TestRepository_Integration_ConfirmationIsRecorded(t *testing.T) {
+	ctx := t.Context()
+	dbc, auditRepo, db := buildDatabaseClientForTest(t)
+	scope := ddbwaitlists.Scope()
+
+	userID := signatoryForTest(t, db)
+	list := openListForTest(t, ctx, dbc, db)
+
+	pending := fakes.BuildFakeWaitlistSignupForUser(userID)
+	pending.Status = waitlists.StatusPending
+
+	joined, err := joinT(ctx, db, dbc, scope, list.ID, pending)
+	require.NoError(t, err)
+	require.Equal(t, waitlists.StatusPending, joined.Status)
+
+	confirmed, err := writeT(ctx, db, func(tx database.Tx) (*waitlists.Signup, error) {
+		return dbc.Confirm(ctx, tx, scope, list.ID, joined.ID)
+	})
+	require.NoError(t, err)
+	assert.Equal(t, waitlists.StatusWaiting, confirmed.Status)
+
+	// A second confirmation is refused, and records nothing.
+	_, err = writeT(ctx, db, func(tx database.Tx) (*waitlists.Signup, error) {
+		return dbc.Confirm(ctx, tx, scope, list.ID, joined.ID)
+	})
+	require.ErrorIs(t, err, waitlists.ErrWrongStatus)
+
+	// Two entries: the join and the confirmation.
+	entries, err := auditRepo.GetAuditLogEntriesForUser(ctx, userID, nil)
+	require.NoError(t, err)
+	assert.Len(t, entries.Data, 2)
+}
+
 // TestRepository_Integration_WithdrawalOutlivesTheAddress is the obligation this
 // adoption was for.
 //

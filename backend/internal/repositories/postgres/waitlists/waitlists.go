@@ -176,6 +176,15 @@ func (r *repository) Convert(ctx context.Context, tx database.Tx, scope tenancy.
 	return r.recordedTransition(ctx, tx, scope, listID, signupID, platformwaitlists.StatusConverted, r.Store.Convert)
 }
 
+// Confirm holds a pending signup to the address that followed its confirmation link,
+// then records the move.
+//
+// It is recorded as the transition it is: pending to waiting is somebody entering the
+// queue, which is what an invitation and a conversion are recorded as moving through.
+func (r *repository) Confirm(ctx context.Context, tx database.Tx, scope tenancy.Scope, listID, signupID string) (*platformwaitlists.Signup, error) {
+	return r.recordedTransition(ctx, tx, scope, listID, signupID, platformwaitlists.StatusWaiting, r.Store.Confirm)
+}
+
 // Withdraw takes somebody off the list at their own request, then records it.
 //
 // The signup is read before the store runs, because a withdrawal blanks the
@@ -226,7 +235,7 @@ func (r *repository) ArchiveSignup(ctx context.Context, tx database.Tx, scope te
 	return result, nil
 }
 
-// recordedTransition is Invite and Convert: read whose signup it is, move it,
+// recordedTransition is Confirm, Invite and Convert: read whose signup it is, move it,
 // and record the move under the status it landed in.
 //
 // The status is the one the guard required rather than one read back, because

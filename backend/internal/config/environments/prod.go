@@ -142,6 +142,7 @@ func BuildProdConfig() *config.APIServiceConfig {
 		Metering:     config.DefaultMeteringConfig(),
 		Entitlements: config.DefaultEntitlementsConfig(),
 		Operations:   config.DefaultOperationsConfig(),
+		Links:        config.DefaultLinksConfig(branding.ConsumerWebAppURL),
 		Routing: routingcfg.Config{
 			Provider: routingcfg.ProviderChi,
 			Chi: &chi.Config{

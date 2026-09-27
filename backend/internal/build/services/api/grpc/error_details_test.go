@@ -98,7 +98,7 @@ func (f *internalFailure) requireNoInternalText(t *testing.T, err error) {
 }
 
 func buildTestAuthInterceptor() *interceptors.AuthInterceptor {
-	return interceptors.ProvideAuthInterceptor(nil, loggingnoop.NewLogger(), nil, nil, nil, nil, nil, "", nil, realMethodPermissions())
+	return interceptors.ProvideAuthInterceptor(nil, loggingnoop.NewLogger(), nil, nil, nil, nil, nil, "", nil, MethodPermissions())
 }
 
 func TestErrorEncodingInterceptor_leaksWithoutStripping(T *testing.T) {
@@ -126,7 +126,7 @@ func TestBuildUnaryServerInterceptors_stripsTheEncodedChain(T *testing.T) {
 	T.Parallel()
 
 	authInterceptor := buildTestAuthInterceptor()
-	enforcer, enforcerErr := ProvideAuthorizationEnforcer(realMethodPermissions(), authInterceptor, loggingnoop.NewLogger(), metricsnoop.NewMetricsProvider(), false)
+	enforcer, enforcerErr := ProvideAuthorizationEnforcer(MethodPermissions(), authInterceptor, loggingnoop.NewLogger(), metricsnoop.NewMetricsProvider(), false)
 	require.NoError(T, enforcerErr)
 
 	passthrough := func(ctx context.Context, req any, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
