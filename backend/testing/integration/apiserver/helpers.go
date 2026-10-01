@@ -14,22 +14,18 @@ import (
 	"time"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
-	authfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/fakes"
 	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
-	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/converters"
-	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
 	internalopssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/internalops"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/indexevents"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/localdev"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identitystore"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc/converters"
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
 
 	"github.com/primandproper/platform-go/v14/authentication/signin/signinpb"
 	identity "github.com/primandproper/platform-go/v14/identity"
+	"github.com/primandproper/platform-go/v14/identity/identitypb"
 	"github.com/primandproper/platform-go/v14/outbox"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/database/dialect"
@@ -122,7 +118,7 @@ func hashStringToNumber(s string) uint64 {
 	return h.Sum64()
 }
 
-func createServiceUserForTest(t *testing.T, in *auth.UserRegistrationInput) *identity.User {
+func createServiceUserForTest(t *testing.T, in *signinpb.RegisterRequest) *identity.User {
 	t.Helper()
 
 	user, err := createServiceUser(t.Context(), true, in)
@@ -131,43 +127,46 @@ func createServiceUserForTest(t *testing.T, in *auth.UserRegistrationInput) *ide
 	return user
 }
 
-// createServiceUser registers somebody through the same RPC a sign-up form calls.
-//
-// RegisterUser on the auth service, not CreateUser on the identity service: the directory
-// is platform's now and every method on it is behind a grant, so the one call a caller
-// with no session makes is on the surface that has always served them.
-func createServiceUser(ctx context.Context, verifyTOTP bool, in *auth.UserRegistrationInput) (*identity.User, error) {
+// createServiceUser registers somebody through the RPC a sign-up form calls:
+// SignInService.Register, open to anybody, with this application's RegistrationPolicy in front.
+func createServiceUser(ctx context.Context, verifyTOTP bool, in *signinpb.RegisterRequest) (_ *identity.User, err error) {
 	c, err := client.BuildUnauthenticatedGRPCClient(fmt.Sprintf(":%d", apiServiceConfig.GRPCServer.Port))
 	if err != nil {
 		return nil, fmt.Errorf("initializing client: %w", err)
 	}
 
+	defer func() {
+		if closeErr := c.Close(); closeErr != nil && err == nil {
+			err = closeErr
+		}
+	}()
+
 	if in == nil {
-		in = authfakes.BuildFakeUserRegistrationInput()
+		in = buildRegisterRequest(identifiers.New())
 	}
 
-	res, err := c.RegisterUser(ctx, &authsvc.RegisterUserRequest{
-		Input: converters.ConvertUserRegistrationInputToGRPCUserRegistrationInput(in),
-	})
+	res, err := c.Register(ctx, in)
 	if err != nil {
 		return nil, fmt.Errorf("creating user: %w", err)
 	}
-	ucr := res.Created
+
+	registered := res.GetRegistration()
+	twoFactorSecret := registered.GetTotpEnrollment().GetSecret()
 
 	if verifyTOTP {
-		if err = verifyTOTPSecretForUser(ctx, ucr.Username, in.Password, ucr.TwoFactorSecret); err != nil {
+		if err = verifyTOTPSecretForUser(ctx, registered.GetUser().GetUsername(), in.GetPassword(), twoFactorSecret); err != nil {
 			return nil, fmt.Errorf("verifying totp code: %w", err)
 		}
 	}
 
 	u := &identity.User{
-		ID:              ucr.CreatedUserId,
-		Username:        ucr.Username,
-		EmailAddress:    ucr.EmailAddress,
-		TwoFactorSecret: ucr.TwoFactorSecret,
-		CreatedAt:       grpcconverters.ConvertPBTimestampToTime(ucr.CreatedAt),
+		ID:              registered.GetUser().GetId(),
+		Username:        registered.GetUser().GetUsername(),
+		EmailAddress:    registered.GetUser().GetEmailAddress(),
+		TwoFactorSecret: twoFactorSecret,
+		CreatedAt:       registered.GetUser().GetCreatedAt().AsTime(),
 		// this is a dirty trick to reuse this field to provide the password to the caller.
-		HashedPassword: in.Password,
+		HashedPassword: in.GetPassword(),
 	}
 
 	return u, nil
@@ -222,18 +221,30 @@ func createClientForUser(ctx context.Context, user *identity.User) (client.Clien
 	return oauthedClient, nil
 }
 
-func buildUserRegistrationInputForTest(t *testing.T) *auth.UserRegistrationInput {
+// buildUserRegistrationInputForTest is a sign-up, unique to the test, that this application's
+// registration policy admits: a password strong enough, and both agreements accepted.
+func buildUserRegistrationInputForTest(t *testing.T) *signinpb.RegisterRequest {
 	t.Helper()
 
-	return &auth.UserRegistrationInput{
-		EmailAddress:          fmt.Sprintf("test+%d@whatever.com", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
-		FirstName:             fmt.Sprintf("test_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
-		AccountName:           fmt.Sprintf("test_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
-		LastName:              fmt.Sprintf("test_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
-		Password:              fmt.Sprintf("test_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
-		Username:              fmt.Sprintf("test_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
-		AcceptedPrivacyPolicy: true,
-		AcceptedTOS:           true,
+	return buildRegisterRequest(fmt.Sprintf("%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))))
+}
+
+func buildRegisterRequest(suffix string) *signinpb.RegisterRequest {
+	name := "test_" + suffix
+
+	return &signinpb.RegisterRequest{
+		User: &identitypb.UserRegistrationInput{
+			Username:     name,
+			EmailAddress: fmt.Sprintf("test+%s@whatever.com", suffix),
+			FirstName:    name,
+			LastName:     name,
+		},
+		Account:    &identitypb.AccountCreationInput{Name: name},
+		Credential: &signinpb.RegisterRequest_Password{Password: name + "-a-password-with-plenty-of-entropy"},
+		Agreements: []identitypb.Agreement{
+			identitypb.Agreement_AGREEMENT_TERMS_OF_SERVICE,
+			identitypb.Agreement_AGREEMENT_PRIVACY_POLICY,
+		},
 	}
 }
 
@@ -243,7 +254,7 @@ func createUserAndClientForTest(t *testing.T) (*identity.User, client.Client) {
 	return createUserAndClientForTestWithRegistrationInput(t, buildUserRegistrationInputForTest(t))
 }
 
-func createUserAndClientForTestWithRegistrationInput(t *testing.T, input *auth.UserRegistrationInput) (*identity.User, client.Client) {
+func createUserAndClientForTestWithRegistrationInput(t *testing.T, input *signinpb.RegisterRequest) (*identity.User, client.Client) {
 	t.Helper()
 
 	ctx := t.Context()

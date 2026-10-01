@@ -11,11 +11,10 @@ to are platform's, mounted on this server:
 
 | Surface                                          | What it is for                                                                                   | Mounted in                       |
 |--------------------------------------------------|--------------------------------------------------------------------------------------------------|----------------------------------|
-| `primandproper.platform.signin.v1.SignInService` | Password + TOTP sign-in, refresh, sign-out, the caller's own credentials and logins, auth status | `internal/build/signin`          |
+| `primandproper.platform.signin.v1.SignInService` | Sign-up, password + TOTP sign-in, refresh, account switching, sign-out, the caller's own credentials and logins, auth status | `internal/build/signin`          |
 | `SignInAdministrationService`                    | An operator listing and ending somebody else's logins                                            | `internal/build/signin`          |
 | `PasswordResetService`                           | A link mailed to somebody who cannot sign in, and the password they choose with it               | `internal/build/passwordreset`   |
 | `PasskeysService`                                | Passkey enrollment, listing, archiving, and sign-in                                              | `internal/build/passkeys`        |
-| `auth.AuthService` (this application's)          | `RegisterUser` and `ExchangeToken`, until platform ships replacements                            | `internal/services/auth/grpc`    |
 | `internalops.InternalOperations.ImpersonateUser` | An operator acting as somebody else                                                              | `internal/services/internalops`  |
 
 There are two token systems: the tokens `signin.Service` mints (a signed access token naming a
@@ -43,7 +42,7 @@ What this application still decides, and where:
 ### Sign-in tokens
 
 - **Issued by**: `signin.Service` — through `SignInService.LoginForToken` / `AdminLoginForToken`,
-  `PasskeysService.FinishLogin`, `AuthService.ExchangeToken`, or
+  `ExchangeRefreshToken` / `SwitchAccount`, `PasskeysService.FinishLogin`, or
   `InternalOperations.ImpersonateUser`.
 - **Access token**: signed (PASETO, configured under `auth.tokens`), with `sub`, `account_id`,
   `scope` (the directory, present and empty for this application's global one), `sid` (the
@@ -73,17 +72,14 @@ token stop working on the next request rather than at the end of its lifetime.
 
 ## Signing up
 
-`AuthService.RegisterUser` is the one door somebody with no session signs up through. It is
-`signin.Service.Register` with no registrar, which platform's `SignInService.Register` will not
-do: there, `Register` is an operator's call, gated by `PermissionCreateUsers`. Both run through
-`RegistrationPolicy`, so they register the same person. The response carries the TOTP secret and
-its QR code, the one time either is handed back.
+`SignInService.Register` is open to anybody, signed in or not. What stands in front of it is
+`RegistrationPolicy`, which signin runs on every registration before anything is written: no
+agreements, no registration. The response carries the TOTP secret and its provisioning URI, the
+one time either is handed back; a client renders the QR code from the URI. A registration may
+answer an invitation, in which case it joins the inviter's account rather than creating one.
 
 A registrant signs in at once, with their password alone: their second factor is unproven until
 they call `SignInService.VerifyTOTPSecret`, and nothing is asked of an unproven one.
-
-`RegisterUser` moves to platform when `SignInService` has an open sign-up door
-([platform-go#1068](https://github.com/primandproper/platform-go/issues/1068)).
 
 ## Signing in
 
@@ -128,19 +124,11 @@ Archiving a user's last passkey is refused only when they hold no password to fa
 
 ### Switching households
 
-`AuthService.ExchangeToken(refresh_token, desired_account_id)` moves a login into another of the
-user's accounts without a credential prompt. The refresh token is its whole authority. It is built
-from platform's doors until `SignInService` can do it in one
-([platform-go#1069](https://github.com/primandproper/platform-go/issues/1069)):
-
-1. The refresh token is exchanged, which proves the login and retires the token.
-2. With no account named, or the login's own, that successor is the answer.
-3. Otherwise a new login is issued on the named account through `IssueForPrincipal`, which
-   refuses an account the user is not a live member of, and the rotated login is signed out. A
-   refused switch signs it out too: its successor was never handed back.
-
-A switch is therefore a new login, listed separately by `ListSignIns`; platform's version will
-keep it one.
+`SignInService.SwitchAccount(refresh_token, account_id)` moves a login into another of the user's
+accounts without a credential prompt; the refresh token is its whole authority. The successor
+stays in the same login — one entry in `ListSignIns`, ended by one `EndSignIn` — and an account the
+user is not a live member of is refused with the login left where it was. The sign-in hook records
+the move as `changed_active_account`.
 
 ## Impersonation
 
@@ -200,19 +188,20 @@ created/updated, by a wrapper around the platform store.
 4. **Client build**: the sign-in token is the bearer at `POST /authorize`; the code is exchanged
    for an OAuth2 token, which the client uses for gRPC.
 
-The web frontend and the iOS app have not been moved off the AuthService RPCs this change deleted,
-and are fixed separately.
+The web frontend and the iOS app have not been moved off the deleted AuthService, and are fixed
+separately.
 
 ## gRPC Auth Interceptor
 
 Every gRPC request goes through `AuthInterceptor`
 ([`authn_interceptor.go`](../backend/internal/services/auth/grpc/interceptors/authn_interceptor.go)):
 
-1. **Unauthenticated routes** go straight through: `AuthService.RegisterUser` and `ExchangeToken`;
-   `SignInService`'s sign-in, refresh and sign-out doors and those whose authority is a mailed link
-   (see `internal/build/signin`); every `PasswordResetService` RPC; `PasskeysService.BeginLogin`
+1. **Unauthenticated routes** go straight through: `SignInService`'s sign-in, refresh, account
+   switch and sign-out doors and those whose authority is a mailed link (see
+   `internal/build/signin`); every `PasswordResetService` RPC; `PasskeysService.BeginLogin`
    and `FinishLogin`; and the anonymous analytics event.
-2. **Optionally authenticated routes** (`SignInService.GetAuthStatus`, the waitlist signup page)
+2. **Optionally authenticated routes** (`SignInService.GetAuthStatus` and `Register`, the waitlist
+   signup page)
    answer an anonymous caller, and hold a caller who sends a token to it.
 3. **Resolve the caller** from `Authorization: Bearer <token>`:
    - **OAuth2 first**: a store lookup by digest. The token's audience is checked against this
@@ -300,7 +289,6 @@ already refuses an expired row.
 | SignInService mount and its permissions           | `internal/build/signin/grpc.go`                                          |
 | PasswordResetService mount                        | `internal/build/passwordreset/grpc.go`                                   |
 | PasskeysService mount, relying party              | `internal/build/passkeys/grpc.go`                                        |
-| AuthService (RegisterUser, ExchangeToken)         | `internal/services/auth/grpc/auth.go`                                    |
 | Impersonation RPC                                 | `internal/services/internalops/grpc/impersonation.go`                    |
 | Auth interceptor                                  | `internal/services/auth/grpc/interceptors/authn_interceptor.go`          |
 | OAuth2 server and subject authenticator           | `internal/services/auth/handlers/authentication/`                        |

@@ -64,6 +64,9 @@ func RegisterAuth(i do.Injector) {
 			do.MustInvoke[platformidentity.Store](i),
 			do.MustInvoke[Authenticator](i),
 			do.MustInvoke[tokens.Issuer](i),
+			// The role a registrant owns their account with. RegistrationPolicy names it too;
+			// the service requires a default of its own whatever a policy does.
+			[]string{authorization.AccountAdminRoleName},
 			signin.WithSecondFactorPolicy(signin.SecondFactorWhenEnrolled),
 			signin.WithAdminServiceRoles(authorization.ServiceAdminRoleName),
 			signin.WithTOTPVerifier(do.MustInvoke[totp.Verifier](i)),
@@ -83,9 +86,8 @@ func RegisterAuth(i do.Injector) {
 			// application refuses.
 			signin.WithPasswordPolicy(PasswordPolicy),
 			// And the rest of this application's registration — standing, roles, the second
-			// factor, the agreements — applied to every registration signin writes, so the
-			// two doors that register somebody (AuthService.RegisterUser and SignInService's
-			// operator Register) register the same person.
+			// factor, the agreements — applied to every registration SignInService.Register
+			// writes, which is open to anybody: this policy is what stands in front of it.
 			signin.WithRegistrationPolicy(RegistrationPolicy),
 			// Where a sign-in through platform's SignInService keeps the refresh token that
 			// outlives its access token. With a store named, LoginForToken mints a rotating

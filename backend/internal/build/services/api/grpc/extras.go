@@ -14,7 +14,6 @@ import (
 	waitlistsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/waitlists"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	analyticspb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/analytics"
-	authsvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
 	internalopssvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/internalops"
 	mealplanningsvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
 	uploadedmediasvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
@@ -121,7 +120,6 @@ func RegisterExtras(i do.Injector) {
 		return BuildRegistrationFuncs(
 			do.MustInvoke[analyticspb.AnalyticsServiceServer](i),
 			do.MustInvoke[auditpb.AuditServiceServer](i),
-			do.MustInvoke[authsvcpb.AuthServiceServer](i),
 			do.MustInvoke[commentspb.CommentsServiceServer](i),
 			do.MustInvoke[identitypb.IdentityServiceServer](i),
 			do.MustInvoke[internalopssvcpb.InternalOperationsServer](i),
@@ -143,7 +141,6 @@ func RegisterExtras(i do.Injector) {
 	do.Provide(i, func(i do.Injector) (*GRPCService, error) {
 		return NewGRPCService(
 			do.MustInvoke[auditpb.AuditServiceServer](i),
-			do.MustInvoke[authsvcpb.AuthServiceServer](i),
 			do.MustInvoke[identitypb.IdentityServiceServer](i),
 			do.MustInvoke[internalopssvcpb.InternalOperationsServer](i),
 			do.MustInvoke[issuereportspb.IssueReportsServiceServer](i),
@@ -163,7 +160,6 @@ func RegisterExtras(i do.Injector) {
 func BuildRegistrationFuncs(
 	analyticsService analyticspb.AnalyticsServiceServer,
 	auditLogService auditpb.AuditServiceServer,
-	authService authsvcpb.AuthServiceServer,
 	commentsService commentspb.CommentsServiceServer,
 	identityServiceServer identitypb.IdentityServiceServer,
 	internalOpsService internalopssvcpb.InternalOperationsServer,
@@ -186,7 +182,6 @@ func BuildRegistrationFuncs(
 			registerWithAdministration(server, auditLogService, func(server *grpc.Server) {
 				auditpb.RegisterAuditServiceServer(server, auditLogService)
 			})
-			authsvcpb.RegisterAuthServiceServer(server, authService)
 			commentspb.RegisterCommentsServiceServer(server, commentsService)
 			identitypb.RegisterIdentityServiceServer(server, identityServiceServer)
 			internalopssvcpb.RegisterInternalOperationsServer(server, internalOpsService)

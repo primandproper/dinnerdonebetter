@@ -27,11 +27,10 @@ func init() {
 // RegistrationPolicy is this application's registration, in the shape signin.WithRegistrationPolicy
 // takes: what it adds to somebody signing up, and what it refuses.
 //
-// It is the one statement of it for every door that registers somebody. AuthService.RegisterUser
-// runs through it, because it registers through signin.Service; and so does platform's
-// SignInService Register, an operator's door, which without it would write a user this
-// application does not recognize — unverified, holding no service role, owning an account under
-// whatever role names the request made up. What it says:
+// It is what stands in front of SignInService.Register, which is open to anybody: signin runs it
+// on every registration, before anything is hashed, minted or written. Without it the door would
+// write a user this application does not recognize — unverified, holding no service role, with no
+// second factor and no agreements. What it says:
 //
 //   - A registrant starts in good standing. platform's default is unverified, which is the
 //     right default for a directory and not this application's policy: nothing here gates use
@@ -40,9 +39,8 @@ func init() {
 //   - They are issued a second factor with the registration. It is unproven until they prove
 //     it, and signin asks for it from then on.
 //   - The account they own is named for them when they did not name it, and they hold
-//     account_admin in it. Role names are this application's vocabulary, so whatever the
-//     request named is replaced rather than trusted: a registrant choosing their own roles is a
-//     registrant choosing their own permissions.
+//     account_admin in it — the service's default owner role too, named here so the policy
+//     says the whole of what a registrant is.
 //   - They have accepted the terms of service and the privacy policy. A registration that has
 //     not is refused before anything is written, with ErrAgreementsRequired.
 //

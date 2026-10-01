@@ -209,8 +209,8 @@ func TestSignInHooks_CredentialWrites(T *testing.T) {
 	T.Parallel()
 
 	// Each credential write platform's sign-in makes, by the hook it runs and the event this
-	// application records for it. Both doors — AuthService and platform's SignInService —
-	// reach these through signin.Service, so this is the only place the event is written.
+	// application records for it. Every door reaches these through signin.Service, so this is
+	// the only place the event is written.
 	writes := map[string]struct {
 		call      func(ctx context.Context, hooks signin.Hooks, tx database.Tx, user *identity.User) error
 		eventType string
@@ -282,5 +282,37 @@ func TestSignInHooks_CredentialWrites(T *testing.T) {
 			&signin.Verification{User: identityfakes.BuildFakeUser(), Promoted: true})
 		require.NoError(t, err)
 		assert.Empty(t, harness.enqueued(t))
+	})
+}
+
+func TestSignInHooks_AfterSwitchAccount(T *testing.T) {
+	T.Parallel()
+
+	T.Run("records the switch on the switch's transaction", func(t *testing.T) {
+		t.Parallel()
+
+		harness := buildSignInHooksHarness(t, nil)
+		user := identityfakes.BuildFakeUser()
+		from, to := identityfakes.BuildFakeAccountForUser(user.ID), identityfakes.BuildFakeAccountForUser(user.ID)
+
+		require.NoError(t, harness.hooks.AfterSwitchAccount(t.Context(), harness.tx, tenancy.Global(), &signin.AccountSwitch{
+			SubjectID:     user.ID,
+			FromAccountID: from.ID,
+			ToAccountID:   to.ID,
+		}))
+
+		enqueued := harness.enqueued(t)
+		require.Len(t, enqueued, 1)
+		assert.Equal(t, ddbidentity.UserChangedActiveAccountServiceEventType, enqueued[0].EventType)
+		assert.Equal(t, user.ID, enqueued[0].UserID)
+		assert.Equal(t, to.ID, enqueued[0].AccountID)
+	})
+
+	T.Run("refuses a switch naming nobody", func(t *testing.T) {
+		t.Parallel()
+
+		harness := buildSignInHooksHarness(t, nil)
+
+		assert.Error(t, harness.hooks.AfterSwitchAccount(t.Context(), harness.tx, tenancy.Global(), &signin.AccountSwitch{}))
 	})
 }

@@ -1,7 +1,6 @@
 package grpcapi
 
 import (
-	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
 	internalopssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/internalops"
 	mealplanningsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
 	uploadedmediasvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
@@ -20,7 +19,6 @@ import (
 
 type GRPCService struct {
 	auditsvc.AuditServiceServer
-	authsvc.AuthServiceServer
 	identitypb.IdentityServiceServer
 	internalopssvc.InternalOperationsServer
 	issuereportssvc.IssueReportsServiceServer
@@ -37,7 +35,6 @@ type GRPCService struct {
 
 func NewGRPCService(
 	auditServiceServer auditsvc.AuditServiceServer,
-	authServiceServer authsvc.AuthServiceServer,
 	identityServiceServer identitypb.IdentityServiceServer,
 	internalOperationsServer internalopssvc.InternalOperationsServer,
 	issueReportsServiceServer issuereportssvc.IssueReportsServiceServer,
@@ -54,7 +51,6 @@ func NewGRPCService(
 	return &GRPCService{
 		Server:                     server,
 		AuditServiceServer:         auditServiceServer,
-		AuthServiceServer:          authServiceServer,
 		IdentityServiceServer:      identityServiceServer,
 		InternalOperationsServer:   internalOperationsServer,
 		IssueReportsServiceServer:  issueReportsServiceServer,

@@ -30,10 +30,6 @@ const (
 	// PermissionReadUsers gates reading a user who is not you. Reading yourself is
 	// GetPrincipal, which needs nothing.
 	PermissionReadUsers = identitygrpc.PermissionReadUsers
-	// PermissionCreateUsers gates registering somebody on a registrar's behalf. The
-	// open sign-up this application serves is on the auth surface and is behind no
-	// grant at all, because the caller has no session.
-	PermissionCreateUsers = identitygrpc.PermissionCreateUsers
 	// PermissionArchiveUsers gates deactivating a user.
 	PermissionArchiveUsers = identitygrpc.PermissionArchiveUsers
 	// PermissionUpdateUserStatus gates banning and reinstating.
@@ -110,7 +106,6 @@ var (
 	// application ever grows that role, this is the permission to move first.
 	IdentityOperatorPermissions = []Permission{
 		PermissionReadUsers,
-		PermissionCreateUsers,
 		PermissionArchiveUsers,
 		PermissionUpdateUserStatus,
 		PermissionUpdateUserServiceRoles,

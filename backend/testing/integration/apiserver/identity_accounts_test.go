@@ -136,7 +136,7 @@ func TestAccounts_Inviting(T *testing.T) {
 		input := buildUserRegistrationInputForTest(t)
 		invitee, inviteeClient := createUserAndClientForTestWithRegistrationInput(t, input)
 
-		invitation := inviteForTest(t, selfIDForTest(t, testClient), accountID, input.EmailAddress)
+		invitation := inviteForTest(t, selfIDForTest(t, testClient), accountID, input.GetUser().GetEmailAddress())
 
 		AssertAuditLogContainsFuzzy(t, ctx, testClient, accountID, 10, []*ExpectedAuditEntry{
 			{EventType: "created", ResourceType: "account_invitations", RelevantID: invitation.ID},
@@ -171,7 +171,7 @@ func TestAccounts_Inviting(T *testing.T) {
 		input := buildUserRegistrationInputForTest(t)
 		_, inviteeClient := createUserAndClientForTestWithRegistrationInput(t, input)
 
-		invitation := inviteForTest(t, selfIDForTest(t, testClient), getAccountIDForTest(t, testClient), input.EmailAddress)
+		invitation := inviteForTest(t, selfIDForTest(t, testClient), getAccountIDForTest(t, testClient), input.GetUser().GetEmailAddress())
 
 		_, err := testClient.IdentityService().CancelInvitation(ctx, &identitypb.CancelInvitationRequest{
 			InvitationId: invitation.ID,
@@ -250,7 +250,7 @@ func TestAccounts_OwnershipTransfer(T *testing.T) {
 		input := buildUserRegistrationInputForTest(t)
 		recipient, recipientClient := createUserAndClientForTestWithRegistrationInput(t, input)
 
-		invitation := inviteForTest(t, selfIDForTest(t, testClient), accountID, input.EmailAddress)
+		invitation := inviteForTest(t, selfIDForTest(t, testClient), accountID, input.GetUser().GetEmailAddress())
 
 		_, err := recipientClient.IdentityService().AcceptInvitation(ctx, &identitypb.AcceptInvitationRequest{
 			InvitationId: invitation.ID,
@@ -325,7 +325,7 @@ func TestAccounts_RemovingMembers(T *testing.T) {
 		invitee, inviteeClient := createUserAndClientForTestWithRegistrationInput(t, input)
 		inviteeOwnAccountID := getAccountIDForTest(t, inviteeClient)
 
-		invitation := inviteForTest(t, selfIDForTest(t, ownerClient), accountID, input.EmailAddress)
+		invitation := inviteForTest(t, selfIDForTest(t, ownerClient), accountID, input.GetUser().GetEmailAddress())
 
 		_, err := inviteeClient.IdentityService().AcceptInvitation(ctx, &identitypb.AcceptInvitationRequest{
 			InvitationId: invitation.ID,

@@ -107,12 +107,20 @@ func TestSignIn_TokensReachThisApplicationsServices(T *testing.T) {
 
 // TestSignIn_ThisApplicationsRules pins what this application adds to platform's doors: its
 // password floor on a password written through them, and its registration policy on Register,
-// which is an operator's call here. The conformance suites assert the doors themselves; these are
-// the rules no suite can know.
+// which is open to anybody. The conformance suites assert the doors themselves; these are the
+// rules no suite can know.
 func TestSignIn_ThisApplicationsRules(T *testing.T) {
 	T.Parallel()
 
-	T.Run("Register is refused to an ordinary caller", func(t *testing.T) {
+	T.Run("Register is open to somebody with no session", func(t *testing.T) {
+		t.Parallel()
+		ctx := t.Context()
+
+		_, err := buildSignInClientForTest(t).Register(ctx, registrationForTest(true))
+		require.NoError(t, err)
+	})
+
+	T.Run("Register reads a signed-in caller's token, and refuses one that no longer works", func(t *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
@@ -120,15 +128,20 @@ func TestSignIn_ThisApplicationsRules(T *testing.T) {
 		token, _ := signInForTest(t, signIn)
 
 		_, err := signIn.Register(withBearerToken(ctx, token.GetToken()), registrationForTest(true))
+		require.NoError(t, err)
 
-		assert.Equal(t, codes.PermissionDenied, status.Code(err))
+		_, err = signIn.SignOut(ctx, &signinpb.SignOutRequest{RefreshToken: token.GetRefreshToken()})
+		require.NoError(t, err)
+
+		_, err = signIn.Register(withBearerToken(ctx, token.GetToken()), registrationForTest(true))
+		assert.Equal(t, codes.Unauthenticated, status.Code(err))
 	})
 
 	T.Run("a registration that accepts no agreements is refused", func(t *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
-		_, err := adminSignInClientForTest(t).Register(ctx, registrationForTest(false))
+		_, err := buildSignInClientForTest(t).Register(ctx, registrationForTest(false))
 
 		assert.Equal(t, codes.InvalidArgument, status.Code(err))
 	})
@@ -137,13 +150,13 @@ func TestSignIn_ThisApplicationsRules(T *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
-		res, err := adminSignInClientForTest(t).Register(ctx, registrationForTest(true))
+		res, err := buildSignInClientForTest(t).Register(ctx, registrationForTest(true))
 		require.NoError(t, err)
 
 		registered := res.GetRegistration()
 		assert.Equal(t, []string{authorization.ServiceUserRoleName}, registered.GetUser().GetServiceRoles())
 		assert.Equal(t, []string{authorization.AccountAdminRoleName}, registered.GetMembership().GetRoles(),
-			"the roles a request names are replaced by this application's owner role")
+			"a registrant owns their account with this application's owner role")
 		assert.NotEmpty(t, registered.GetTotpEnrollment().GetSecret(), "every registrant is issued a second factor")
 		assert.NotNil(t, registered.GetUser().GetLastAcceptedTermsOfService())
 		assert.NotNil(t, registered.GetUser().GetLastAcceptedPrivacyPolicy())
@@ -174,8 +187,7 @@ func TestSignIn_ThisApplicationsRules(T *testing.T) {
 	})
 }
 
-// registrationForTest is a registration for somebody nobody has registered, naming a role this
-// application does not use, so that the policy replacing it is observable.
+// registrationForTest is a registration for somebody nobody has registered.
 func registrationForTest(agreeing bool) *signinpb.RegisterRequest {
 	username := "reg_" + identifiers.New()
 
@@ -185,7 +197,6 @@ func registrationForTest(agreeing bool) *signinpb.RegisterRequest {
 			EmailAddress: username + "@example.invalid",
 		},
 		Account:    &identitypb.AccountCreationInput{},
-		OwnerRoles: []string{"owner"},
 		Credential: &signinpb.RegisterRequest_Password{Password: identifiers.New() + identifiers.New()},
 	}
 
@@ -197,14 +208,4 @@ func registrationForTest(agreeing bool) *signinpb.RegisterRequest {
 	}
 
 	return request
-}
-
-// adminSignInClientForTest is platform's SignInService as the premade administrator.
-func adminSignInClientForTest(t *testing.T) signinpb.SignInServiceClient {
-	t.Helper()
-
-	subject, err := conformanceSubjectFor(t.Context(), premadeAdminUser, "")
-	require.NoError(t, err)
-
-	return subject.Surfaces.SignIn
 }

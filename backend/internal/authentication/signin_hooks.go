@@ -23,9 +23,9 @@ import (
 // writes one of their credentials.
 //
 // Every door that signs somebody in goes through signin.Service — SignInService's password
-// doors, PasskeysService's FinishLogin, AuthService's account switch and the impersonation
-// door on InternalOperations — and AfterAuthenticate runs for each of them, so it is the one
-// place the "logged in" event is recorded without one door forgetting it.
+// doors, PasskeysService's FinishLogin, and the impersonation door on InternalOperations — and
+// AfterAuthenticate runs for each of them, so it is the one place the "logged in" event is
+// recorded without one door forgetting it.
 //
 // The event goes on the outbox, on the transaction signin hands the hook, rather than to the
 // broker. That transaction also writes the login's refresh token, so the event and the login
@@ -117,6 +117,27 @@ func (h *signInHooks) recordImpersonation(ctx context.Context, tx database.Tx, l
 			identitykeys.ImpersonatorIDKey: authentication.ActorID,
 		}, events.WithUserID(authentication.ActorID)); err != nil {
 		return platformerrors.Wrap(err, "recording an impersonation")
+	}
+
+	return nil
+}
+
+// AfterSwitchAccount records a login moving to another of its user's accounts, on the switch's
+// own transaction, as the event a switch of active account has always been.
+func (h *signInHooks) AfterSwitchAccount(ctx context.Context, tx database.Tx, _ tenancy.Scope, change *signin.AccountSwitch) error {
+	if change == nil || change.SubjectID == "" {
+		return platformerrors.New("account switch hook called with nobody")
+	}
+
+	logger := h.logger.WithValue(identitykeys.UserIDKey, change.SubjectID)
+
+	if err := h.emitter.Emit(ctx, tx, logger,
+		ddbidentity.UserChangedActiveAccountServiceEventType,
+		change.ToAccountID,
+		map[string]any{identitykeys.AccountIDKey: change.FromAccountID},
+		events.WithUserID(change.SubjectID),
+	); err != nil {
+		return platformerrors.Wrap(err, "recording an account switch")
 	}
 
 	return nil

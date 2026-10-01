@@ -3,9 +3,7 @@ package integration
 import (
 	"testing"
 
-	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
-	authconverters "github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc/converters"
-
+	"github.com/primandproper/platform-go/v14/authentication/signin/signinpb"
 	identity "github.com/primandproper/platform-go/v14/identity"
 	"github.com/primandproper/platform-go/v14/identity/identitypb"
 
@@ -36,14 +34,10 @@ func TestUsers_Creating(T *testing.T) {
 		input := buildUserRegistrationInputForTest(t)
 		testClient := buildUnauthenticatedGRPCClientForTest(t)
 
-		_, err := testClient.RegisterUser(ctx, &authsvc.RegisterUserRequest{
-			Input: authconverters.ConvertUserRegistrationInputToGRPCUserRegistrationInput(input),
-		})
+		_, err := testClient.Register(ctx, input)
 		require.NoError(t, err)
 
-		_, err = testClient.RegisterUser(ctx, &authsvc.RegisterUserRequest{
-			Input: authconverters.ConvertUserRegistrationInputToGRPCUserRegistrationInput(input),
-		})
+		_, err = testClient.Register(ctx, input)
 		assert.Error(t, err)
 	})
 
@@ -52,12 +46,10 @@ func TestUsers_Creating(T *testing.T) {
 		ctx := t.Context()
 
 		input := buildUserRegistrationInputForTest(t)
-		input.Username = ""
+		input.User.Username = ""
 
 		testClient := buildUnauthenticatedGRPCClientForTest(t)
-		_, err := testClient.RegisterUser(ctx, &authsvc.RegisterUserRequest{
-			Input: authconverters.ConvertUserRegistrationInputToGRPCUserRegistrationInput(input),
-		})
+		_, err := testClient.Register(ctx, input)
 		assert.Error(t, err)
 	})
 
@@ -69,12 +61,10 @@ func TestUsers_Creating(T *testing.T) {
 		ctx := t.Context()
 
 		input := buildUserRegistrationInputForTest(t)
-		input.AcceptedTOS = false
+		input.Agreements = []identitypb.Agreement{identitypb.Agreement_AGREEMENT_PRIVACY_POLICY}
 
 		testClient := buildUnauthenticatedGRPCClientForTest(t)
-		_, err := testClient.RegisterUser(ctx, &authsvc.RegisterUserRequest{
-			Input: authconverters.ConvertUserRegistrationInputToGRPCUserRegistrationInput(input),
-		})
+		_, err := testClient.Register(ctx, input)
 		assert.Error(t, err)
 	})
 }
@@ -116,7 +106,7 @@ func TestUsers_Archiving(T *testing.T) {
 		joinForTest := func() *identity.User {
 			input := buildUserRegistrationInputForTest(t)
 			member, memberClient := createUserAndClientForTestWithRegistrationInput(t, input)
-			invitation := inviteForTest(t, owner.ID, accountID, input.EmailAddress)
+			invitation := inviteForTest(t, owner.ID, accountID, input.GetUser().GetEmailAddress())
 
 			_, err := memberClient.IdentityService().AcceptInvitation(ctx, &identitypb.AcceptInvitationRequest{
 				InvitationId: invitation.ID,
@@ -173,11 +163,10 @@ func TestUsers_RegisteringAgainstAnInvitation(T *testing.T) {
 
 		registrant := buildUserRegistrationInputForTest(t)
 
-		invitation := inviteForTest(t, selfIDForTest(t, inviterClient), accountID, registrant.EmailAddress)
+		invitation := inviteForTest(t, selfIDForTest(t, inviterClient), accountID, registrant.GetUser().GetEmailAddress())
 		require.NotEmpty(t, invitation.Token)
 
-		registrant.InvitationID = invitation.ID
-		registrant.InvitationToken = invitation.Token
+		registrant.Invitation = &signinpb.RegistrationInvitation{InvitationId: invitation.ID, Token: invitation.Token}
 
 		created := createServiceUserForTest(t, registrant)
 
@@ -203,20 +192,17 @@ func TestUsers_RegisteringAgainstAnInvitation(T *testing.T) {
 
 		registrant := buildUserRegistrationInputForTest(t)
 
-		invitation := inviteForTest(t, selfIDForTest(t, inviterClient), accountID, registrant.EmailAddress)
+		invitation := inviteForTest(t, selfIDForTest(t, inviterClient), accountID, registrant.GetUser().GetEmailAddress())
 
-		registrant.InvitationID = invitation.ID
-		registrant.InvitationToken = "not the token"
+		registrant.Invitation = &signinpb.RegistrationInvitation{InvitationId: invitation.ID, Token: "not the token"}
 
 		c := buildUnauthenticatedGRPCClientForTest(t)
-		_, err := c.RegisterUser(ctx, &authsvc.RegisterUserRequest{
-			Input: authconverters.ConvertUserRegistrationInputToGRPCUserRegistrationInput(registrant),
-		})
+		_, err := c.Register(ctx, registrant)
 		require.Error(t, err)
 
 		// And the registrant is not in the directory: the whole transaction rolled back.
 		users, err := adminClient.IdentityService().SearchUsersByUsername(ctx, &identitypb.SearchUsersByUsernameRequest{
-			Prefix: registrant.Username,
+			Prefix: registrant.GetUser().GetUsername(),
 		})
 		require.NoError(t, err)
 		assert.Empty(t, users.GetResults())

@@ -101,13 +101,15 @@ export const protobufPackage = 'primandproper.platform.identity.v1';
  * interface that could also impose a forced change on any user is one that
  * could be made to.
  *
- * Registration here therefore mints the passwordless user that package already
- * treats as first-class. A registration that carries a credential is
- * SignInService.Register, in signin.proto: that service holds the authenticator,
- * hashes what arrives, and comes back through this package's own registration on
- * one transaction. Which of the two a consumer calls is the question of whether
- * the registrant is choosing a password at that moment -- a directory being
- * filled from elsewhere is this one, and somebody signing up is that one.
+ * No registration either. Registering somebody is SignInService.Register, in
+ * signin.proto, and it is the module's only registration on the wire: that
+ * service holds the authenticator, hashes what arrives, mints the verification
+ * mail, runs the deployment's registration policy and hooks, and comes back
+ * through this package's own registration on one transaction. A second door
+ * here could do none of that -- it would mint a user with no credential and no
+ * verification mail, and let its caller name their own roles -- which made it
+ * the one way around the deployment's policy. An operator provisioning users
+ * calls SignInService.Register signed in.
  *
  * No avatar. The media registry is this module's, but identity has no avatar
  * column and joining one is a contract between two packages that has not been
@@ -639,21 +641,6 @@ export interface AccountUpdateInput {
   name?: string | undefined;
   timeZone?: string | undefined;
   billingAddress: BillingAddress | undefined;
-}
-
-export interface RegisterRequest {
-  user: UserRegistrationInput | undefined;
-  account: AccountCreationInput | undefined;
-  /**
-   * owner_roles are the roles the registrant holds in the account they now own.
-   * They are the consumer's role names and are required: a membership with none
-   * is a member who may do nothing.
-   */
-  ownerRoles: string[];
-}
-
-export interface RegisterResponse {
-  registration: Registration | undefined;
 }
 
 export interface UpdateProfileRequest {
@@ -3317,167 +3304,6 @@ export const AccountUpdateInput: MessageFns<AccountUpdateInput> = {
     message.billingAddress =
       object.billingAddress !== undefined && object.billingAddress !== null
         ? BillingAddress.fromPartial(object.billingAddress)
-        : undefined;
-    return message;
-  },
-};
-
-function createBaseRegisterRequest(): RegisterRequest {
-  return { user: undefined, account: undefined, ownerRoles: [] };
-}
-
-export const RegisterRequest: MessageFns<RegisterRequest> = {
-  encode(message: RegisterRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.user !== undefined) {
-      UserRegistrationInput.encode(message.user, writer.uint32(10).fork()).join();
-    }
-    if (message.account !== undefined) {
-      AccountCreationInput.encode(message.account, writer.uint32(18).fork()).join();
-    }
-    for (const v of message.ownerRoles) {
-      writer.uint32(26).string(v!);
-    }
-    return writer;
-  },
-
-  decode(input: BinaryReader | Uint8Array, length?: number): RegisterRequest {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseRegisterRequest();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
-
-          message.user = UserRegistrationInput.decode(reader, reader.uint32());
-          continue;
-        }
-        case 2: {
-          if (tag !== 18) {
-            break;
-          }
-
-          message.account = AccountCreationInput.decode(reader, reader.uint32());
-          continue;
-        }
-        case 3: {
-          if (tag !== 26) {
-            break;
-          }
-
-          message.ownerRoles.push(reader.string());
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
-
-  fromJSON(object: any): RegisterRequest {
-    return {
-      user: isSet(object.user) ? UserRegistrationInput.fromJSON(object.user) : undefined,
-      account: isSet(object.account) ? AccountCreationInput.fromJSON(object.account) : undefined,
-      ownerRoles: globalThis.Array.isArray(object?.ownerRoles)
-        ? object.ownerRoles.map((e: any) => globalThis.String(e))
-        : globalThis.Array.isArray(object?.owner_roles)
-          ? object.owner_roles.map((e: any) => globalThis.String(e))
-          : [],
-    };
-  },
-
-  toJSON(message: RegisterRequest): unknown {
-    const obj: any = {};
-    if (message.user !== undefined) {
-      obj.user = UserRegistrationInput.toJSON(message.user);
-    }
-    if (message.account !== undefined) {
-      obj.account = AccountCreationInput.toJSON(message.account);
-    }
-    if (message.ownerRoles?.length) {
-      obj.ownerRoles = message.ownerRoles;
-    }
-    return obj;
-  },
-
-  create<I extends Exact<DeepPartial<RegisterRequest>, I>>(base?: I): RegisterRequest {
-    return RegisterRequest.fromPartial(base ?? ({} as any));
-  },
-  fromPartial<I extends Exact<DeepPartial<RegisterRequest>, I>>(object: I): RegisterRequest {
-    const message = createBaseRegisterRequest();
-    message.user =
-      object.user !== undefined && object.user !== null ? UserRegistrationInput.fromPartial(object.user) : undefined;
-    message.account =
-      object.account !== undefined && object.account !== null
-        ? AccountCreationInput.fromPartial(object.account)
-        : undefined;
-    message.ownerRoles = object.ownerRoles?.map((e) => e) || [];
-    return message;
-  },
-};
-
-function createBaseRegisterResponse(): RegisterResponse {
-  return { registration: undefined };
-}
-
-export const RegisterResponse: MessageFns<RegisterResponse> = {
-  encode(message: RegisterResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.registration !== undefined) {
-      Registration.encode(message.registration, writer.uint32(10).fork()).join();
-    }
-    return writer;
-  },
-
-  decode(input: BinaryReader | Uint8Array, length?: number): RegisterResponse {
-    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-    const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseRegisterResponse();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
-
-          message.registration = Registration.decode(reader, reader.uint32());
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
-
-  fromJSON(object: any): RegisterResponse {
-    return { registration: isSet(object.registration) ? Registration.fromJSON(object.registration) : undefined };
-  },
-
-  toJSON(message: RegisterResponse): unknown {
-    const obj: any = {};
-    if (message.registration !== undefined) {
-      obj.registration = Registration.toJSON(message.registration);
-    }
-    return obj;
-  },
-
-  create<I extends Exact<DeepPartial<RegisterResponse>, I>>(base?: I): RegisterResponse {
-    return RegisterResponse.fromPartial(base ?? ({} as any));
-  },
-  fromPartial<I extends Exact<DeepPartial<RegisterResponse>, I>>(object: I): RegisterResponse {
-    const message = createBaseRegisterResponse();
-    message.registration =
-      object.registration !== undefined && object.registration !== null
-        ? Registration.fromPartial(object.registration)
         : undefined;
     return message;
   },
@@ -7916,16 +7742,7 @@ export const ListInvitationsForEmailAddressResponse: MessageFns<ListInvitationsF
  */
 export type IdentityServiceService = typeof IdentityServiceService;
 export const IdentityServiceService = {
-  /** The writes. */
-  register: {
-    path: '/primandproper.platform.identity.v1.IdentityService/Register' as const,
-    requestStream: false as const,
-    responseStream: false as const,
-    requestSerialize: (value: RegisterRequest): Buffer => Buffer.from(RegisterRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): RegisterRequest => RegisterRequest.decode(value),
-    responseSerialize: (value: RegisterResponse): Buffer => Buffer.from(RegisterResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): RegisterResponse => RegisterResponse.decode(value),
-  },
+  /** The writes. There is no Register: see the file documentation. */
   updateProfile: {
     path: '/primandproper.platform.identity.v1.IdentityService/UpdateProfile' as const,
     requestStream: false as const,
@@ -8252,8 +8069,7 @@ export const IdentityServiceService = {
 } as const;
 
 export interface IdentityServiceServer extends UntypedServiceImplementation {
-  /** The writes. */
-  register: handleUnaryCall<RegisterRequest, RegisterResponse>;
+  /** The writes. There is no Register: see the file documentation. */
   updateProfile: handleUnaryCall<UpdateProfileRequest, UpdateProfileResponse>;
   updateAccount: handleUnaryCall<UpdateAccountRequest, UpdateAccountResponse>;
   recordAgreement: handleUnaryCall<RecordAgreementRequest, RecordAgreementResponse>;
@@ -8294,22 +8110,7 @@ export interface IdentityServiceServer extends UntypedServiceImplementation {
 }
 
 export interface IdentityServiceClient extends Client {
-  /** The writes. */
-  register(
-    request: RegisterRequest,
-    callback: (error: ServiceError | null, response: RegisterResponse) => void,
-  ): ClientUnaryCall;
-  register(
-    request: RegisterRequest,
-    metadata: Metadata,
-    callback: (error: ServiceError | null, response: RegisterResponse) => void,
-  ): ClientUnaryCall;
-  register(
-    request: RegisterRequest,
-    metadata: Metadata,
-    options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: RegisterResponse) => void,
-  ): ClientUnaryCall;
+  /** The writes. There is no Register: see the file documentation. */
   updateProfile(
     request: UpdateProfileRequest,
     callback: (error: ServiceError | null, response: UpdateProfileResponse) => void,

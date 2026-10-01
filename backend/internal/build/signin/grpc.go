@@ -36,13 +36,11 @@ RefreshTOTPSecret and VerifyTOTPSecret. Each write's event is recorded by a hook
 internal/authentication on the write's own transaction, and UpdatePassword answers to
 authentication.PasswordPolicy.
 
-Reserved to an operator: Register. platform's Register is made by a registrar on somebody else's
-behalf — it requires a caller, and the caller is not the registrant — so it is gated as
-identity's Register is, by PermissionCreateUsers, which only a service administrator holds. What
-it writes is this application's registrant, because the sign-in service is built with
-authentication.RegistrationPolicy. Somebody signing themselves up does it through
-AuthService.RegisterUser, which runs through the same policy, until platform has an open sign-up
-door (platform-go#1068).
+Open to anybody: Register, the sign-up door. Who may sign up, and as what — good standing, the
+service role, a second factor, ownership of their account, and the terms and privacy agreements,
+refused without them — is authentication.RegistrationPolicy's, which the sign-in service runs on
+every registration. It reads a token when one is sent, so a signed-in operator registering
+somebody is still somebody to the policy.
 
 Reserved to an operator: SignInAdministrationService, which lists and ends somebody else's
 sign-ins. Its two permissions are a service administrator's.
@@ -90,7 +88,8 @@ func RegisterSignInService(i do.Injector) {
 }
 
 // AnonymousMethods are the exposed RPCs a caller reaches without a token: the two sign-in
-// doors, the refresh exchange, and sign-out, whose authority is the refresh token it carries;
+// doors, the refresh exchange and the account switch, and sign-out, whose authority is the
+// refresh token it carries;
 // and the doors whose authority is a mailed link, which are refused by platform rather than
 // here — see the package documentation.
 func AnonymousMethods() []string {
@@ -98,6 +97,7 @@ func AnonymousMethods() []string {
 		signinpb.SignInService_LoginForToken_FullMethodName,
 		signinpb.SignInService_AdminLoginForToken_FullMethodName,
 		signinpb.SignInService_ExchangeRefreshToken_FullMethodName,
+		signinpb.SignInService_SwitchAccount_FullMethodName,
 		signinpb.SignInService_SignOut_FullMethodName,
 		signinpb.SignInService_AttachPassword_FullMethodName,
 		signinpb.SignInService_VerifyEmailAddress_FullMethodName,
@@ -110,12 +110,16 @@ func AnonymousMethods() []string {
 
 // OptionallyAuthenticatedMethods answer an anonymous caller and a signed-in one differently.
 //
-// GetAuthStatus is the only one. It is anonymous on platform's list, and it is also the call
-// a client makes to learn what a signed-in user still owes — a verified address, a second
-// factor, a new password — which it can only answer if the token that came with it is read.
+// GetAuthStatus is anonymous on platform's list, and it is also the call a client makes to learn
+// what a signed-in user still owes — a verified address, a second factor, a new password — which
+// it can only answer if the token that came with it is read.
+//
+// Register is anonymous too, and platform declares it optional for the same reason: an operator
+// registering somebody is resolved, so RegistrationPolicy can read who is asking.
 func OptionallyAuthenticatedMethods() []string {
 	return []string{
 		signinpb.SignInService_GetAuthStatus_FullMethodName,
+		signinpb.SignInService_Register_FullMethodName,
 	}
 }
 
@@ -123,8 +127,7 @@ func OptionallyAuthenticatedMethods() []string {
 //
 // The self-service ones map to no permission, which is how this application's
 // interceptor spells "any signed-in caller": they act on the caller alone, and platform's
-// own list calls them self-service for that reason. Register is the exception, and is
-// an operator's — see the package documentation.
+// own list calls them self-service for that reason.
 func Permissions() map[string][]authorization.Permission {
 	return map[string][]authorization.Permission{
 		signinpb.SignInService_GetSelf_FullMethodName:                  {},
@@ -138,9 +141,6 @@ func Permissions() map[string][]authorization.Permission {
 		signinpb.SignInService_RequestVerificationEmail_FullMethodName: {},
 		signinpb.SignInService_UpdateEmailAddress_FullMethodName:       {},
 		signinpb.SignInService_UpdateUsername_FullMethodName:           {},
-		signinpb.SignInService_Register_FullMethodName: {
-			authorization.PermissionCreateUsers,
-		},
 		signinpb.SignInAdministrationService_ListSignInsForUser_FullMethodName: {
 			authorization.ReadAnySignInsPermission,
 		},

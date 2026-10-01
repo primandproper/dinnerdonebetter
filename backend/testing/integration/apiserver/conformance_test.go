@@ -135,6 +135,10 @@ func TestPlatformConformance(T *testing.T) {
 		ImmediateRevocation: true,
 		// GetPrincipal is built with identitygrpc.WithPermissionResolver.
 		PrincipalPermissions: true,
+		// authentication.RegistrationPolicy registers somebody in good standing and issues them a
+		// second factor, unproven until they answer it.
+		RegistrantsAdmittedUnverified:  true,
+		RegistrationIssuesSecondFactor: true,
 		// The relying party the testing config renders, which is what PasskeysService verifies a
 		// ceremony against.
 		WebAuthn: &conformance.WebAuthnDeployment{

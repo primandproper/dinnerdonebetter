@@ -17,7 +17,6 @@ import (
 	signinbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/signin"
 	waitlistsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/waitlists"
 	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
-	authgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc"
 
 	"github.com/primandproper/platform-go/v14/authentication/signin"
 	"github.com/primandproper/platform-go/v14/authentication/signin/signinpb"
@@ -92,10 +91,6 @@ func ProvideAuthInterceptor(
 		// Analytics proxy: anonymous events (no auth)
 		"/analytics.AnalyticsService/TrackAnonymousEvent",
 	}
-
-	// This application's AuthService: a sign-up, and an exchange whose authority is the
-	// refresh token it carries.
-	unauthenticatedRoutes = append(unauthenticatedRoutes, authgrpc.AnonymousMethods()...)
 
 	// platform's SignInService: its two sign-in doors, the refresh exchange, and sign-out.
 	// See internal/build/signin for which of its RPCs are exposed at all.
