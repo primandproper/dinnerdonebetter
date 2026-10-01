@@ -22,7 +22,6 @@ require (
 	github.com/fxamacker/cbor/v2 v2.9.2
 	github.com/go-chi/chi/v5 v5.3.0
 	github.com/go-ozzo/ozzo-validation/v4 v4.3.0
-	github.com/go-webauthn/webauthn v0.17.4
 	github.com/hako/durafmt v0.0.0-20210608085754-5c1018a4e16b
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/heimdalr/dag v1.5.1
@@ -32,7 +31,7 @@ require (
 	github.com/matcornic/hermes/v2 v2.1.0
 	github.com/modelcontextprotocol/go-sdk v1.6.1
 	github.com/pquerna/otp v1.5.0
-	github.com/primandproper/platform-go/v14 v14.1.0
+	github.com/primandproper/platform-go/v14 v14.2.0
 	github.com/primandproper/primitives-go/v2 v2.12.0
 	github.com/samber/do/v2 v2.0.0
 	github.com/shopspring/decimal v1.4.0
@@ -193,6 +192,7 @@ require (
 	github.com/go-playground/validator/v10 v10.30.1 // indirect
 	github.com/go-sql-driver/mysql v1.10.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.5.0 // indirect
+	github.com/go-webauthn/webauthn v0.17.4 // indirect
 	github.com/go-webauthn/x v0.2.6 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/goccy/go-json v0.10.6 // indirect
@@ -428,5 +428,3 @@ require (
 	sigs.k8s.io/structured-merge-diff/v6 v6.4.0 // indirect
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
-
-replace github.com/primandproper/platform-go/v14 => ../../platform-go
