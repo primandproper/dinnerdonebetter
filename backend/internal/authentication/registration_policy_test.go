@@ -28,6 +28,7 @@ func agreedRegistration(t *testing.T) *signin.Registration {
 		},
 		Account:    &platformidentity.Account{Name: identityfakes.BuildFakeAccount().Name},
 		OwnerRoles: []string{identityfakes.BuildFakeUser().ID},
+		Credential: signin.Password("a password with plenty of entropy"),
 		Agreements: []platformidentity.Agreement{platformidentity.TermsOfService, platformidentity.PrivacyPolicy},
 	}
 }
@@ -76,5 +77,14 @@ func TestRegistrationPolicy(T *testing.T) {
 
 			require.ErrorIs(t, RegistrationPolicy(t.Context(), registration), ErrAgreementsRequired)
 		}
+	})
+
+	T.Run("refuses a registration that chose no password", func(t *testing.T) {
+		t.Parallel()
+
+		registration := agreedRegistration(t)
+		registration.Credential = signin.NoPassword()
+
+		require.ErrorIs(t, RegistrationPolicy(t.Context(), registration), ErrPasswordRequired)
 	})
 }

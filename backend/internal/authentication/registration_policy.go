@@ -18,10 +18,15 @@ import (
 // client-safe below.
 var ErrAgreementsRequired = platformerrors.New("the terms of service and the privacy policy must both be accepted to register")
 
+// ErrPasswordRequired is a registration that chose no password. This application has no
+// passwordless arrival yet: every door it serves but a passkey proves a password, and a
+// registrant cannot hold a passkey before they can sign in to enroll one.
+var ErrPasswordRequired = platformerrors.New("a password is required to register")
+
 func init() {
 	// This repository's own sentinels register from an init — see the note beside
 	// platformerrormappers.Register in the API server's injector.
-	grpcerrors.RegisterClientSafeSentinels(ErrAgreementsRequired)
+	grpcerrors.RegisterClientSafeSentinels(ErrAgreementsRequired, ErrPasswordRequired)
 }
 
 // RegistrationPolicy is this application's registration, in the shape signin.WithRegistrationPolicy
@@ -43,10 +48,19 @@ func init() {
 //     says the whole of what a registrant is.
 //   - They have accepted the terms of service and the privacy policy. A registration that has
 //     not is refused before anything is written, with ErrAgreementsRequired.
+//   - They chose a password. platform supports registering with none, which this application
+//     does not yet: such a registrant could only get in by attaching a password from the
+//     verification link, so they are refused with ErrPasswordRequired instead.
 //
 // The password is not here. It is PasswordPolicy's, which signin applies to every password it
 // writes, this one included.
 func RegistrationPolicy(_ context.Context, registration *signin.Registration) error {
+	// The credential is a sealed interface; its passwordless arm is a value, compared as one. A
+	// registration naming no credential at all is platform's to refuse, in its own words.
+	if registration.Credential == signin.NoPassword() {
+		return ErrPasswordRequired
+	}
+
 	if !slices.Contains(registration.Agreements, platformidentity.TermsOfService) ||
 		!slices.Contains(registration.Agreements, platformidentity.PrivacyPolicy) {
 		return ErrAgreementsRequired

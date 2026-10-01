@@ -146,6 +146,17 @@ func TestSignIn_ThisApplicationsRules(T *testing.T) {
 		assert.Equal(t, codes.InvalidArgument, status.Code(err))
 	})
 
+	T.Run("a registration that chooses no password is refused", func(t *testing.T) {
+		t.Parallel()
+		ctx := t.Context()
+
+		request := registrationForTest(true)
+		request.Credential = &signinpb.RegisterRequest_NoPassword{NoPassword: &signinpb.NoPassword{}}
+
+		_, err := buildSignInClientForTest(t).Register(ctx, request)
+		assert.Equal(t, codes.InvalidArgument, status.Code(err))
+	})
+
 	T.Run("a registration is shaped by this application's policy", func(t *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
