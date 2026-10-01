@@ -139,6 +139,9 @@ func TestPlatformConformance(T *testing.T) {
 		// second factor, unproven until they answer it.
 		RegistrantsAdmittedUnverified:  true,
 		RegistrationIssuesSecondFactor: true,
+		// And refuses a registrant who names no password: this application has no passwordless
+		// arrival yet.
+		PasswordlessRegistrationRefused: true,
 		// The relying party the testing config renders, which is what PasskeysService verifies a
 		// ceremony against.
 		WebAuthn: &conformance.WebAuthnDeployment{
