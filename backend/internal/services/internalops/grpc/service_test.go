@@ -21,7 +21,7 @@ func TestNewService(t *testing.T) {
 		logger := loggingnoop.NewLogger()
 		tracerProvider := tracingnoop.NewTracerProvider()
 		msgConfig := &msgconfig.Config{}
-		service := NewService(logger, tracerProvider, msgConfig, nil)
+		service := NewService(logger, tracerProvider, msgConfig, nil, nil)
 
 		assert.NotNil(t, service)
 		assert.Implements(t, (*settingssvc.InternalOperationsServer)(nil), service)

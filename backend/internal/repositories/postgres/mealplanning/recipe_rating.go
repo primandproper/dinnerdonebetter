@@ -100,7 +100,9 @@ func (q *repository) GetRecipeRatingsForRecipe(ctx context.Context, recipeID str
 		filter = filtering.DefaultQueryFilter()
 	}
 	logger = filter.AttachToLogger(logger)
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	if recipeID == "" {
 		return nil, platformerrors.ErrInvalidIDProvided
@@ -163,7 +165,9 @@ func (q *repository) GetRecipeRatingsForUser(ctx context.Context, userID string,
 		filter = filtering.DefaultQueryFilter()
 	}
 	logger = filter.AttachToLogger(logger)
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	if userID == "" {
 		return nil, platformerrors.ErrInvalidIDProvided

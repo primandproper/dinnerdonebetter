@@ -8,4 +8,9 @@ option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/
 
 service InternalOperations {
   rpc TestQueueMessage(TestQueueMessageRequest) returns (TestQueueMessageResponse);
+  // ImpersonateUser mints a short-lived token for subject_id in account_id that the calling
+  // operator acts through. The operator is the caller, never a field: platform's
+  // signin.Service.IssueImpersonationToken takes an operator ID on trust, which is why
+  // platform exposes no RPC for it and this one reads it off the authenticated session.
+  rpc ImpersonateUser(ImpersonateUserRequest) returns (ImpersonateUserResponse);
 }

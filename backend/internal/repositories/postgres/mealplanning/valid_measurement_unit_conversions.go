@@ -262,7 +262,9 @@ func (q *repository) GetValidMeasurementUnitConversionsForUnit(ctx context.Conte
 	if filter == nil {
 		filter = filtering.DefaultQueryFilter()
 	}
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 	logger = filter.AttachToLogger(logger)
 
 	filterArgs := filtering.ToSQLArgs(filter)

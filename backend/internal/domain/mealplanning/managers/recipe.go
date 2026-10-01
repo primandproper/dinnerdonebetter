@@ -28,7 +28,9 @@ func (m *mealPlanningManager) ListRecipes(ctx context.Context, status string, fi
 	if filter == nil {
 		filter = filtering.DefaultQueryFilter()
 	}
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 	logger = filter.AttachToLogger(logger)
 
 	if status == "" {
@@ -121,7 +123,9 @@ func (m *mealPlanningManager) SearchRecipes(ctx context.Context, query string, u
 	if filter == nil {
 		filter = filtering.DefaultQueryFilter()
 	}
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 	logger = filter.AttachToLogger(logger)
 
 	var (
@@ -177,7 +181,9 @@ func (m *mealPlanningManager) SearchForMealEligibleRecipes(ctx context.Context, 
 	if filter == nil {
 		filter = filtering.DefaultQueryFilter()
 	}
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 	logger = filter.AttachToLogger(logger)
 
 	recipes, err := m.db.SearchForMealEligibleRecipes(ctx, query, filter)
@@ -198,7 +204,9 @@ func (m *mealPlanningManager) SearchRecipesWithInstrumentOwnership(ctx context.C
 	if filter == nil {
 		filter = filtering.DefaultQueryFilter()
 	}
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 	logger = filter.AttachToLogger(logger)
 
 	recipes, err := m.db.SearchForRecipesWithInstrumentOwnership(ctx, accountID, query, filter)

@@ -35,6 +35,8 @@ const (
 	UsernameReminderRequestedEventType = "username_reminder_requested"
 	// UserLoggedInServiceEventType indicates a user has logged in.
 	UserLoggedInServiceEventType = "user_logged_in"
+	// UserImpersonatedServiceEventType indicates an operator was issued a token to act as a user.
+	UserImpersonatedServiceEventType = "user_impersonated"
 	// UserLoggedOutServiceEventType indicates a user has logged out.
 	UserLoggedOutServiceEventType = "user_logged_out"
 	// UserChangedActiveAccountServiceEventType indicates a user switched their active account.

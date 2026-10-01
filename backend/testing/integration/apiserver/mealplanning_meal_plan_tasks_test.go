@@ -7,12 +7,12 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mpconverters "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
-	authgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
 	mealplanninggrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 	converters "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/grpc/converters"
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
 
+	"github.com/primandproper/platform-go/v14/authentication/signin/signinpb"
 	"github.com/primandproper/platform-go/v14/identity/identitypb"
 
 	"github.com/stretchr/testify/assert"
@@ -77,10 +77,10 @@ func createFinalizedMealPlanWithTasks(t *testing.T) (string, client.Client) {
 
 	_, accountAdminUserClient := createUserAndClientForTest(t)
 
-	currentStatus, statusErr := accountAdminUserClient.GetAuthStatus(ctx, &authgrpc.GetAuthStatusRequest{})
+	currentStatus, statusErr := accountAdminUserClient.GetAuthStatus(ctx, &signinpb.GetAuthStatusRequest{})
 	require.NotNil(t, currentStatus)
 	require.NoError(t, statusErr)
-	relevantAccountID := currentStatus.ActiveAccount
+	relevantAccountID := currentStatus.GetStatus().GetActiveAccountId()
 
 	// Create 2 additional household members
 	createdClients := []client.Client{}
@@ -99,10 +99,10 @@ func createFinalizedMealPlanWithTasks(t *testing.T) (string, client.Client) {
 		_, err = c.IdentityService().SetDefaultAccount(ctx, &identitypb.SetDefaultAccountRequest{AccountId: relevantAccountID})
 		require.NoError(t, err)
 
-		tokenResponse, err := c.LoginForToken(ctx, &authgrpc.LoginForTokenRequest{Input: &authgrpc.UserLoginInput{
-			Username:  u.Username,
-			Password:  u.HashedPassword,
-			TotpToken: generateTOTPCodeForUserForTest(t, u),
+		tokenResponse, err := c.LoginForToken(ctx, &signinpb.LoginForTokenRequest{Credentials: &signinpb.Credentials{
+			Username: u.Username,
+			Password: u.HashedPassword,
+			TotpCode: generateTOTPCodeForUserForTest(t, u),
 		}})
 		require.NoError(t, err)
 		assert.NotNil(t, tokenResponse)

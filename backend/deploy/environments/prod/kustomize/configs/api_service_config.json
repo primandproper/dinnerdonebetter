@@ -1,4 +1,20 @@
 {
+	"links": {
+		"actions": {
+			"waitlist_confirm": {
+				"url": "https://dinnerdonebetter.com/waitlists/confirm?t={token}",
+				"ttl": "72h0m0s"
+			},
+			"waitlist_unsubscribe": {
+				"url": "https://dinnerdonebetter.com/waitlists/unsubscribe?t={token}",
+				"ttl": "8760h0m0s"
+			}
+		},
+		"sweepInterval": 300000000000,
+		"retention": 86400000000000,
+		"tokenBytes": 32,
+		"maxTokenLength": 512
+	},
 	"queues": {
 		"dataChangesTopicName": "data_changes",
 		"outboundEmailsTopicName": "outbound_emails",
@@ -175,11 +191,6 @@
 				"ceremonyTimeout": 120000000000
 			}
 		},
-		"sessions": {
-			"absoluteTimeout": 2592000000000000,
-			"idleTimeout": 604800000000000,
-			"touchInterval": 3600000000000
-		},
 		"enableUserSignup": true,
 		"minimumUsernameLength": 3,
 		"minimumPasswordLength": 8
@@ -347,6 +358,14 @@
 			"recoverAfter": 60000000000,
 			"reapBatchSize": 1000,
 			"recoverBatchSize": 200
+		},
+		"recover": {
+			"interval": 60000000000,
+			"leaseTTL": 60000000000
+		},
+		"reap": {
+			"interval": 3600000000000,
+			"leaseTTL": 600000000000
 		},
 		"queue": {
 			"name": "operations",

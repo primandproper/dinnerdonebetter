@@ -20,6 +20,11 @@ const (
 	// questions: a reader asks what happened, and a verifier asks whether what is
 	// recorded has been tampered with.
 	VerifyAuditChainPermission = auditgrpc.PermissionVerifyChain
+
+	// ReadAnyAuditLogEntriesPermission allows reading every tenant's chain, through
+	// AuditAdministrationService. It is an operator's, and every read it allows is
+	// itself recorded.
+	ReadAnyAuditLogEntriesPermission = auditgrpc.PermissionReadAnyEntries
 )
 
 var (
@@ -27,5 +32,6 @@ var (
 	AuditPermissions = []Permission{
 		ReadAuditLogEntriesPermission,
 		VerifyAuditChainPermission,
+		ReadAnyAuditLogEntriesPermission,
 	}
 )

@@ -1,13 +1,16 @@
 ---
 on:
-  pull_request:
-    paths:
-      - ios/**/*.swift
-      - ios/.swiftlint.yml
-      - ios/Makefile
-      - ios/scripts/lint.sh
-      - ios/scripts/ensure_swiftlint.sh
-      - .github/workflows/ios_lint.yaml
+  # Disabled until the iOS app moves off the retired AuthService onto platform's SignInService,
+  # PasswordResetService and PasskeysService. Restore the trigger below then.
+  workflow_dispatch:
+  # pull_request:
+  #   paths:
+  #     - ios/**/*.swift
+  #     - ios/.swiftlint.yml
+  #     - ios/Makefile
+  #     - ios/scripts/lint.sh
+  #     - ios/scripts/ensure_swiftlint.sh
+  #     - .github/workflows/ios_lint.yaml
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}

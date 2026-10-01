@@ -90,7 +90,8 @@ So, per package:
 | `comments/config`, `issuereports/config`, `mediaregistry/config`, `waitlists/config` | **No.** Their only field is `TablePrefix`, and that one must *not* be environment-settable here — see below. |
 | `identity/config` | **No.** Its `InvitationTTL` and `MaxInvitationTTL` are taken as `identitygrpc`'s defaults, seven days and the cap above it. Nothing has asked for another number; when something does, the field belongs in this application's tree beside the others rather than in a second one. |
 | `rbac/config` | **No.** It selects a policy backend, and this application resolves against the SQL one the migrator seeds. |
-| `links/config`, `shredding/config`, `timers/config`, `sessions/config` | **No**, inherited: the parent package is ruled out (`links` #1385, `shredding` #1387, `timers` #1384) or the config specifically was (`sessions` #1373). |
+| `links/config` | **Yes**, as `APIServiceConfig.Links`. `links` was ruled out for email verification (#1385), and adopted for the waitlist double opt-in, which needs a minter and has no other. Its action registry — where each link points and how long it lives — is rendered per environment by `config.DefaultLinksConfig`, which is what makes it reviewable. Its `Database.TablePrefix` is overwritten in code with the prefix the migration renders, for the reason below. |
+| `shredding/config`, `timers/config`, `sessions/config` | **No**, inherited: the parent package is ruled out (`shredding` #1387, `timers` #1384) or the config specifically was (`sessions` #1373). |
 
 ### The table prefix is deliberately not configuration
 

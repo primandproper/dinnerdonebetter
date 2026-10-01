@@ -272,7 +272,9 @@ func (q *repository) GetMeals(ctx context.Context, filter *filtering.QueryFilter
 		filter = filtering.DefaultQueryFilter()
 	}
 	logger = filter.AttachToLogger(logger)
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	var (
 		data          []*mealplanning.Meal
@@ -376,7 +378,9 @@ func (q *repository) GetMealsCreatedByUser(ctx context.Context, userID string, f
 		filter = filtering.DefaultQueryFilter()
 	}
 	logger = filter.AttachToLogger(logger)
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	var (
 		data          []*mealplanning.Meal
@@ -565,7 +569,9 @@ func (q *repository) SearchForMeals(ctx context.Context, mealNameQuery string, f
 		filter = filtering.DefaultQueryFilter()
 	}
 	logger = filter.AttachToLogger(logger)
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	var (
 		data          []*mealplanning.Meal

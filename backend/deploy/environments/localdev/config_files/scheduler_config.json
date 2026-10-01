@@ -295,6 +295,14 @@
 			"reapBatchSize": 1000,
 			"recoverBatchSize": 200
 		},
+		"recover": {
+			"interval": 60000000000,
+			"leaseTTL": 60000000000
+		},
+		"reap": {
+			"interval": 3600000000000,
+			"leaseTTL": 600000000000
+		},
 		"queue": {
 			"name": "operations",
 			"retention": 86400000000000,

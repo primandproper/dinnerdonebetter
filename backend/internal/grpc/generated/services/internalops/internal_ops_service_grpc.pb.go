@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	InternalOperations_TestQueueMessage_FullMethodName = "/internalops.InternalOperations/TestQueueMessage"
+	InternalOperations_ImpersonateUser_FullMethodName  = "/internalops.InternalOperations/ImpersonateUser"
 )
 
 // InternalOperationsClient is the client API for InternalOperations service.
@@ -28,6 +29,11 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type InternalOperationsClient interface {
 	TestQueueMessage(ctx context.Context, in *TestQueueMessageRequest, opts ...grpc.CallOption) (*TestQueueMessageResponse, error)
+	// ImpersonateUser mints a short-lived token for subject_id in account_id that the calling
+	// operator acts through. The operator is the caller, never a field: platform's
+	// signin.Service.IssueImpersonationToken takes an operator ID on trust, which is why
+	// platform exposes no RPC for it and this one reads it off the authenticated session.
+	ImpersonateUser(ctx context.Context, in *ImpersonateUserRequest, opts ...grpc.CallOption) (*ImpersonateUserResponse, error)
 }
 
 type internalOperationsClient struct {
@@ -48,11 +54,26 @@ func (c *internalOperationsClient) TestQueueMessage(ctx context.Context, in *Tes
 	return out, nil
 }
 
+func (c *internalOperationsClient) ImpersonateUser(ctx context.Context, in *ImpersonateUserRequest, opts ...grpc.CallOption) (*ImpersonateUserResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ImpersonateUserResponse)
+	err := c.cc.Invoke(ctx, InternalOperations_ImpersonateUser_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // InternalOperationsServer is the server API for InternalOperations service.
 // All implementations must embed UnimplementedInternalOperationsServer
 // for forward compatibility.
 type InternalOperationsServer interface {
 	TestQueueMessage(context.Context, *TestQueueMessageRequest) (*TestQueueMessageResponse, error)
+	// ImpersonateUser mints a short-lived token for subject_id in account_id that the calling
+	// operator acts through. The operator is the caller, never a field: platform's
+	// signin.Service.IssueImpersonationToken takes an operator ID on trust, which is why
+	// platform exposes no RPC for it and this one reads it off the authenticated session.
+	ImpersonateUser(context.Context, *ImpersonateUserRequest) (*ImpersonateUserResponse, error)
 	mustEmbedUnimplementedInternalOperationsServer()
 }
 
@@ -65,6 +86,9 @@ type UnimplementedInternalOperationsServer struct{}
 
 func (UnimplementedInternalOperationsServer) TestQueueMessage(context.Context, *TestQueueMessageRequest) (*TestQueueMessageResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method TestQueueMessage not implemented")
+}
+func (UnimplementedInternalOperationsServer) ImpersonateUser(context.Context, *ImpersonateUserRequest) (*ImpersonateUserResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ImpersonateUser not implemented")
 }
 func (UnimplementedInternalOperationsServer) mustEmbedUnimplementedInternalOperationsServer() {}
 func (UnimplementedInternalOperationsServer) testEmbeddedByValue()                            {}
@@ -105,6 +129,24 @@ func _InternalOperations_TestQueueMessage_Handler(srv interface{}, ctx context.C
 	return interceptor(ctx, in, info, handler)
 }
 
+func _InternalOperations_ImpersonateUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ImpersonateUserRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InternalOperationsServer).ImpersonateUser(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InternalOperations_ImpersonateUser_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InternalOperationsServer).ImpersonateUser(ctx, req.(*ImpersonateUserRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // InternalOperations_ServiceDesc is the grpc.ServiceDesc for InternalOperations service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -115,6 +157,10 @@ var InternalOperations_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "TestQueueMessage",
 			Handler:    _InternalOperations_TestQueueMessage_Handler,
+		},
+		{
+			MethodName: "ImpersonateUser",
+			Handler:    _InternalOperations_ImpersonateUser_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

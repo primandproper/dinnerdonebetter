@@ -50,6 +50,9 @@ func RegisterOAuth2ClientsService(i do.Injector) {
 			do.MustInvoke[platformoauth2clients.Store](i),
 			do.MustInvoke[database.Client](i),
 			sessions.PrincipalFromContext,
+			// Whether a page honors include_archived: an operator who may withdraw a
+			// registration may see the withdrawn ones.
+			oauth2clientsgrpc.WithGrantsExtractor(sessions.GrantsFromContext),
 			oauth2clientsgrpc.WithLogger(do.MustInvoke[logging.Logger](i)),
 			oauth2clientsgrpc.WithTracerProvider(do.MustInvoke[tracing.Provider](i)),
 			oauth2clientsgrpc.WithMetricsProvider(do.MustInvoke[metrics.Provider](i)),

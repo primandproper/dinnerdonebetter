@@ -31,9 +31,11 @@ import (
 	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/succession"
 
+	platformaudit "github.com/primandproper/platform-go/v14/audit"
 	platformidentity "github.com/primandproper/platform-go/v14/identity"
 	identitygrpc "github.com/primandproper/platform-go/v14/identity/grpc"
 	"github.com/primandproper/platform-go/v14/identity/identitypb"
+	platformauthz "github.com/primandproper/primitives-go/v2/authorization"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/metrics"
@@ -69,7 +71,17 @@ func RegisterIdentityService(i do.Injector) {
 			store,
 			client,
 			sessions.PrincipalFromContext,
-			identitygrpc.WithTargetAuthorizer(&operatorOrMember{inner: memberships}),
+			identitygrpc.WithTargetAuthorizer(memberships),
+			// Operators share no account with the people they act on, so the membership rule
+			// refuses them. These let a holder of identity.directory.read_any or act_any past
+			// it, and record every such admission in the audit log before the call proceeds.
+			// The same grants decide whether a page honors include_archived.
+			identitygrpc.WithGrantsExtractor(sessions.GrantsFromContext),
+			identitygrpc.WithOperatorRecorder(do.MustInvoke[platformaudit.Recorder](i)),
+			// GetPrincipal answers what the caller may do in the account it resolved, off the
+			// same policy the session's grants are resolved from, so a client can shape its
+			// screens without guessing at roles.
+			identitygrpc.WithPermissionResolver(do.MustInvoke[platformauthz.PolicyResolver](i)),
 			identitygrpc.WithLogger(do.MustInvoke[logging.Logger](i)),
 			identitygrpc.WithTracerProvider(do.MustInvoke[tracing.Provider](i)),
 			identitygrpc.WithMetricsProvider(do.MustInvoke[metrics.Provider](i)),

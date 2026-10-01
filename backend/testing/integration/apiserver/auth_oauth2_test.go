@@ -2,15 +2,16 @@ package integration
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"strings"
 	"testing"
 
-	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/localdev"
 
+	"github.com/primandproper/platform-go/v14/authentication/signin/signinpb"
 	identity "github.com/primandproper/platform-go/v14/identity"
 	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
 
@@ -182,7 +183,7 @@ func assertGrantRefused(t *testing.T, status int, token *oauth2TokenResponse) {
 func createUserAndJWTForTest(t *testing.T) (user *identity.User, jwt string) {
 	t.Helper()
 
-	user = createServiceUserForTest(t, true, buildUserRegistrationInputForTest(t))
+	user = createServiceUserForTest(t, buildUserRegistrationInputForTest(t))
 
 	return user, fetchLoginTokenForUserForTest(t, user)
 }
@@ -237,9 +238,9 @@ func TestAuth_OAuth2AuthorizationCodeFlow(T *testing.T) {
 		c, err := buildAuthedGRPCClientWithBearerToken(token.AccessToken)
 		require.NoError(t, err)
 
-		authStatus, err := c.GetAuthStatus(ctx, &authsvc.GetAuthStatusRequest{})
+		authStatus, err := c.GetAuthStatus(ctx, &signinpb.GetAuthStatusRequest{})
 		require.NoError(t, err)
-		assert.Equal(t, user.ID, authStatus.UserId)
+		assert.Equal(t, user.ID, authStatus.GetStatus().GetUser().GetId())
 	})
 
 	T.Run("a code verifier that does not match the challenge is rejected", func(t *testing.T) {
@@ -334,7 +335,7 @@ func TestAuth_OAuth2AuthorizationCodeFlow(T *testing.T) {
 		c, err := buildAuthedGRPCClientWithBearerToken(token.AccessToken)
 		require.NoError(t, err)
 
-		_, err = c.GetAuthStatus(ctx, &authsvc.GetAuthStatusRequest{})
+		_, err = c.GetAuthStatus(ctx, &signinpb.GetAuthStatusRequest{})
 		assert.Error(t, err, "a replayed code must revoke the tokens it issued")
 	})
 
@@ -665,9 +666,9 @@ func TestAuth_OAuth2RefreshTokenGrant(T *testing.T) {
 		c, err := buildAuthedGRPCClientWithBearerToken(refreshed.AccessToken)
 		require.NoError(t, err)
 
-		authStatus, err := c.GetAuthStatus(ctx, &authsvc.GetAuthStatusRequest{})
+		authStatus, err := c.GetAuthStatus(ctx, &signinpb.GetAuthStatusRequest{})
 		require.NoError(t, err)
-		assert.Equal(t, user.ID, authStatus.UserId)
+		assert.Equal(t, user.ID, authStatus.GetStatus().GetUser().GetId())
 	})
 
 	T.Run("redeeming a refresh token invalidates the tokens it replaces", func(t *testing.T) {
@@ -687,7 +688,7 @@ func TestAuth_OAuth2RefreshTokenGrant(T *testing.T) {
 		oldClient, err := buildAuthedGRPCClientWithBearerToken(token.AccessToken)
 		require.NoError(t, err)
 
-		_, err = oldClient.GetAuthStatus(ctx, &authsvc.GetAuthStatusRequest{})
+		_, err = oldClient.GetAuthStatus(ctx, &signinpb.GetAuthStatusRequest{})
 		assert.Error(t, err, "the access token the refresh replaced must stop working")
 	})
 
@@ -711,7 +712,7 @@ func TestAuth_OAuth2RefreshTokenGrant(T *testing.T) {
 		c, err := buildAuthedGRPCClientWithBearerToken(refreshed.AccessToken)
 		require.NoError(t, err)
 
-		_, err = c.GetAuthStatus(ctx, &authsvc.GetAuthStatusRequest{})
+		_, err = c.GetAuthStatus(ctx, &signinpb.GetAuthStatusRequest{})
 		assert.Error(t, err, "a detected refresh replay must revoke the whole family")
 	})
 
@@ -750,7 +751,7 @@ func TestAuth_OAuth2PasswordGrant(T *testing.T) {
 	T.Run("valid credentials do not yield a token", func(t *testing.T) {
 		t.Parallel()
 
-		user := createServiceUserForTest(t, true, buildUserRegistrationInputForTest(t))
+		user := createServiceUserForTest(t, buildUserRegistrationInputForTest(t))
 
 		form := url.Values{}
 		form.Set("grant_type", "password")
@@ -813,4 +814,62 @@ func TestAuth_OAuth2Metadata(T *testing.T) {
 // wants to reach the row behind a code it is holding has to compute the same digest.
 func oauth2HashForTest(credential string) string {
 	return oauth2server.Hash(credential)
+}
+
+// TestAuth_OAuth2Revocation pins that this resource server honors a revocation at once: the
+// access token is opaque and read from the store on every request.
+func TestAuth_OAuth2Revocation(T *testing.T) {
+	T.Parallel()
+
+	T.Run("happy path", func(t *testing.T) {
+		t.Parallel()
+		ctx := t.Context()
+
+		user, _ := createUserAndClientForTest(t)
+		credentials := &signinpb.Credentials{
+			Username: user.Username,
+			Password: user.HashedPassword,
+			TotpCode: generateTOTPCodeForUserForTest(t, user),
+		}
+
+		oauth2Token, err := localdev.FetchOAuth2TokenForUser(
+			ctx,
+			httpTestServerAddress,
+			fmt.Sprintf(":%d", apiServiceConfig.GRPCServer.Port),
+			createdClientID,
+			createdClientSecret,
+			credentials,
+		)
+		require.NoError(t, err)
+		require.NotNil(t, oauth2Token)
+		require.NotEmpty(t, oauth2Token.AccessToken)
+
+		// Verify token works before revocation
+		clientWithToken, err := buildAuthedGRPCClientWithBearerToken(oauth2Token.AccessToken)
+		require.NoError(t, err)
+		_, err = clientWithToken.GetAuthStatus(ctx, &signinpb.GetAuthStatusRequest{})
+		require.NoError(t, err)
+
+		// Revoke the access token
+		form := url.Values{}
+		form.Set("token", oauth2Token.AccessToken)
+		form.Set("token_type_hint", "access_token")
+		form.Set("client_id", createdClientID)
+		form.Set("client_secret", createdClientSecret)
+
+		revokeReq, err := http.NewRequestWithContext(ctx, http.MethodPost, httpTestServerAddress+"/revoke", strings.NewReader(form.Encode()))
+		require.NoError(t, err)
+		revokeReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+		httpClient := &http.Client{}
+		revokeRes, err := httpClient.Do(revokeReq)
+		require.NoError(t, err)
+		defer revokeRes.Body.Close()
+
+		assert.Equal(t, http.StatusOK, revokeRes.StatusCode, "revoke endpoint should return 200")
+
+		// Token should be invalid after revocation
+		_, err = clientWithToken.GetAuthStatus(ctx, &signinpb.GetAuthStatusRequest{})
+		assert.Error(t, err, "API calls with revoked token should fail")
+	})
 }

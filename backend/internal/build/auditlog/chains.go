@@ -20,11 +20,9 @@ import (
 // queries directly, so one derived from a request field would hand the caller a
 // cross-tenant read. Neither is.
 //
-// A service administrator is deliberately not answered here, and gets one chain rather than
-// two. Their read is wider than any list this could return — every chain in the deployment —
-// and there is no way to say that in a slice of scopes. spanningReader turns that single
-// read into platform's operator read instead, which is the one place the session decides
-// how wide a read is rather than which rows are in it.
+// A service administrator is answered like anybody else. Their wider read — every chain in
+// the deployment — cannot be said in a slice of scopes, and is a different service:
+// AuditAdministrationService, behind a permission of its own.
 //
 // The two are never the same scope, because an account id and a user id are separate rows
 // identifiers, so nothing here dedupes: a guard against naming one chain twice would be a
@@ -35,10 +33,6 @@ import (
 // an account reads exactly what they would have read before this existed.
 func callerChains(ctx context.Context) ([]tenancy.Scope, error) {
 	data := sessions.FromContext(ctx)
-
-	if data.GetServicePermissions().IsServiceAdmin() {
-		return nil, nil
-	}
 
 	chains := make([]tenancy.Scope, 0, 2)
 

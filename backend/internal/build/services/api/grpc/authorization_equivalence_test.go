@@ -6,25 +6,8 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
-	identitybuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/identity"
-	oauth2clientsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/oauth2clients"
-	signinbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/signin"
-	waitlistsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/waitlists"
-	analyticsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/analytics/grpc"
-	authgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc/interceptors"
-	dataprivacygrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/grpc"
-	internalopsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/internalops/grpc"
-	mealplanninggrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/grpc"
-	uploadedmediagrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/grpc"
 
-	auditgrpc "github.com/primandproper/platform-go/v14/audit/grpc"
-	paymentsgrpc "github.com/primandproper/platform-go/v14/billing/grpc"
-	commentsgrpc "github.com/primandproper/platform-go/v14/comments/grpc"
-	issuereportsgrpc "github.com/primandproper/platform-go/v14/issuereports/grpc"
-	notificationsgrpc "github.com/primandproper/platform-go/v14/notifications/grpc"
-	settingsgrpc "github.com/primandproper/platform-go/v14/settings/grpc"
-	webhooksgrpc "github.com/primandproper/platform-go/v14/webhooks/grpc"
 	platformauthz "github.com/primandproper/primitives-go/v2/authorization"
 	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
 	metricsnoop "github.com/primandproper/primitives-go/v2/observability/metrics/noop"
@@ -33,29 +16,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 )
-
-// realMethodPermissions is the same table the running server enforces, assembled the same way.
-func realMethodPermissions() interceptors.MethodPermissionsMap {
-	return AggregateMethodPermissions(
-		analyticsgrpc.ProvideMethodPermissions(),
-		auditgrpc.Permissions(),
-		authgrpc.ProvideMethodPermissions(),
-		commentsgrpc.Permissions(),
-		dataprivacygrpc.ProvideMethodPermissions(),
-		identitybuild.Permissions(),
-		internalopsgrpc.ProvideMethodPermissions(),
-		issuereportsgrpc.Permissions(),
-		mealplanninggrpc.ProvideMethodPermissions(),
-		notificationsgrpc.Permissions(),
-		oauth2clientsbuild.Permissions(),
-		paymentsgrpc.Permissions(),
-		settingsgrpc.Permissions(),
-		signinbuild.Permissions(),
-		uploadedmediagrpc.ProvideMethodPermissions(),
-		waitlistsbuild.Permissions(),
-		webhooksgrpc.Permissions(),
-	)
-}
 
 // interceptorWouldAllow reimplements the hand-rolled check exactly as AuthInterceptor performs
 // it: every required permission must be held by the service-wide or the per-account checker, and
@@ -92,10 +52,10 @@ func interceptorWouldAllow(
 func TestAuthorizationEnforcerMatchesTheHandRolledCheck(t *testing.T) {
 	t.Parallel()
 
-	perms := realMethodPermissions()
+	perms := MethodPermissions()
 	require.NotEmpty(t, perms)
 
-	authInterceptor := interceptors.ProvideAuthInterceptor(nil, loggingnoop.NewLogger(), nil, nil, nil, nil, nil, "", nil, perms)
+	authInterceptor := interceptors.ProvideAuthInterceptor(nil, loggingnoop.NewLogger(), nil, nil, nil, nil, "", nil, nil, perms)
 
 	// Built enforcing, not audit-only: an audit-only enforcer allows everything, so comparing
 	// one against the real check would prove nothing.

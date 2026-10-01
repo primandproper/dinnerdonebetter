@@ -62,6 +62,7 @@ func BuildIntegrationTestsConfig() *config.APIServiceConfig {
 		Metering:     config.DefaultMeteringConfig(),
 		Entitlements: config.DefaultEntitlementsConfig(),
 		Operations:   config.DefaultOperationsConfig(),
+		Links:        config.DefaultLinksConfig(branding.LocalDevConsumerWebAppURL),
 		Routing: routingcfg.Config{
 			Provider: routingcfg.ProviderChi,
 			Chi: &chi.Config{
@@ -193,11 +194,6 @@ func BuildIntegrationTestsConfig() *config.APIServiceConfig {
 		// claims this origin, and either one disagreeing is a ceremony that fails
 		// verification. The store is the table, which is what the suite is checking.
 		Auth: authcfg.Config{
-			Sessions: authcfg.SessionsConfig{
-				AbsoluteTimeout: sessionAbsoluteTimeout,
-				IdleTimeout:     sessionIdleTimeout,
-				TouchInterval:   sessionTouchInterval,
-			},
 			Passkey: webauthncfg.Config{
 				Provider: webauthncfg.ProviderDatabase,
 				RelyingParty: platformwebauthn.Config{

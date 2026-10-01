@@ -62,7 +62,13 @@ type ContextData struct {
 	AccountPermissions map[string]authorization.AccountRolePermissionsChecker `json:"-"`
 	Requester          RequesterInfo                                          `json:"-"`
 	ActiveAccountID    string                                                 `json:"-"`
-	SessionID          string                                                 `json:"-"`
+	// SignInFamilyID is the login a platform sign-in token belongs to, and empty for a caller
+	// that came in on an OAuth2 access token.
+	SignInFamilyID string `json:"-"`
+	// ImpersonatorID is the operator acting through an impersonation token, and empty when the
+	// requester is acting for themselves. Requester stays the subject: the request is theirs,
+	// and this is who is really making it.
+	ImpersonatorID string `json:"-"`
 }
 
 // RequesterInfo contains data relevant to the user making a request.
@@ -133,15 +139,6 @@ func (x *ContextData) GetActiveAccountID() string {
 	}
 
 	return x.ActiveAccountID
-}
-
-// GetSessionID is a simple getter.
-func (x *ContextData) GetSessionID() string {
-	if x == nil {
-		return ""
-	}
-
-	return x.SessionID
 }
 
 // AccountRolePermissionsChecker returns the relevant AccountRolePermissionsChecker.

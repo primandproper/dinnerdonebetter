@@ -4,6 +4,7 @@ import (
 	domaininternalops "github.com/primandproper/dinnerdonebetter/backend/internal/domain/internalops"
 	settingssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/internalops"
 
+	"github.com/primandproper/platform-go/v14/authentication/signin"
 	msgconfig "github.com/primandproper/primitives-go/v2/messagequeue/config"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
@@ -23,6 +24,7 @@ func RegisterInternalOpsService(i do.Injector) {
 			do.MustInvoke[tracing.Provider](i),
 			do.MustInvoke[*msgconfig.Config](i),
 			do.MustInvoke[domaininternalops.InternalOpsDataManager](i),
+			do.MustInvoke[*signin.Service](i),
 		), nil
 	})
 }

@@ -9,19 +9,16 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	identitybuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/identity"
 	oauth2clientsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/oauth2clients"
+	passkeysbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/passkeys"
 	signinbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/signin"
 	waitlistsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/waitlists"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	analyticspb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/analytics"
-	authsvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
-	dataprivacysvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/dataprivacy"
 	internalopssvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/internalops"
 	mealplanningsvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
 	uploadedmediasvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
 	analyticsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/analytics/grpc"
-	authgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc/interceptors"
-	dataprivacygrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/grpc"
 	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
 	internalopsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/internalops/grpc"
 	mealplanninggrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/grpc"
@@ -30,6 +27,8 @@ import (
 	auditpb "github.com/primandproper/platform-go/v14/audit/auditpb"
 	auditgrpc "github.com/primandproper/platform-go/v14/audit/grpc"
 	"github.com/primandproper/platform-go/v14/authentication/oauth2clients/oauth2clientspb"
+	"github.com/primandproper/platform-go/v14/authentication/passkeys/passkeyspb"
+	"github.com/primandproper/platform-go/v14/authentication/passwordreset/passwordresetpb"
 	"github.com/primandproper/platform-go/v14/authentication/signin/signinpb"
 	billingpb "github.com/primandproper/platform-go/v14/billing/billingpb"
 	paymentsgrpc "github.com/primandproper/platform-go/v14/billing/grpc"
@@ -77,26 +76,8 @@ func RegisterExtras(i do.Injector) {
 		return ProvideUserTextSearcher(ctx, logger, tracerProvider, metricsProvider, cfg)
 	})
 
-	do.Provide(i, func(i do.Injector) (interceptors.MethodPermissionsMap, error) {
-		return AggregateMethodPermissions(
-			do.MustInvoke[analyticsgrpc.AnalyticsMethodPermissions](i),
-			auditgrpc.Permissions(),
-			do.MustInvoke[authgrpc.AuthMethodPermissions](i),
-			commentsgrpc.Permissions(),
-			do.MustInvoke[dataprivacygrpc.DataPrivacyMethodPermissions](i),
-			identitybuild.Permissions(),
-			do.MustInvoke[internalopsgrpc.InternalOpsMethodPermissions](i),
-			issuereportsgrpc.Permissions(),
-			do.MustInvoke[mealplanninggrpc.MealPlanningMethodPermissions](i),
-			notificationsgrpc.Permissions(),
-			oauth2clientsbuild.Permissions(),
-			paymentsgrpc.Permissions(),
-			settingsgrpc.Permissions(),
-			signinbuild.Permissions(),
-			do.MustInvoke[uploadedmediagrpc.UploadedMediaMethodPermissions](i),
-			waitlistsbuild.Permissions(),
-			webhooksgrpc.Permissions(),
-		), nil
+	do.Provide(i, func(do.Injector) (interceptors.MethodPermissionsMap, error) {
+		return MethodPermissions(), nil
 	})
 
 	do.Provide(i, func(i do.Injector) ([]grpc.UnaryServerInterceptor, error) {
@@ -139,9 +120,7 @@ func RegisterExtras(i do.Injector) {
 		return BuildRegistrationFuncs(
 			do.MustInvoke[analyticspb.AnalyticsServiceServer](i),
 			do.MustInvoke[auditpb.AuditServiceServer](i),
-			do.MustInvoke[authsvcpb.AuthServiceServer](i),
 			do.MustInvoke[commentspb.CommentsServiceServer](i),
-			do.MustInvoke[dataprivacysvcpb.DataPrivacyServiceServer](i),
 			do.MustInvoke[identitypb.IdentityServiceServer](i),
 			do.MustInvoke[internalopssvcpb.InternalOperationsServer](i),
 			do.MustInvoke[issuereportspb.IssueReportsServiceServer](i),
@@ -151,6 +130,8 @@ func RegisterExtras(i do.Injector) {
 			do.MustInvoke[billingpb.BillingServiceServer](i),
 			do.MustInvoke[settingspb.SettingsServiceServer](i),
 			do.MustInvoke[signinpb.SignInServiceServer](i),
+			do.MustInvoke[passwordresetpb.PasswordResetServiceServer](i),
+			do.MustInvoke[passkeyspb.PasskeysServiceServer](i),
 			do.MustInvoke[uploadedmediasvcpb.UploadedMediaServiceServer](i),
 			do.MustInvoke[waitlistspb.WaitlistsServiceServer](i),
 			do.MustInvoke[webhookspb.WebhooksServiceServer](i),
@@ -160,8 +141,6 @@ func RegisterExtras(i do.Injector) {
 	do.Provide(i, func(i do.Injector) (*GRPCService, error) {
 		return NewGRPCService(
 			do.MustInvoke[auditpb.AuditServiceServer](i),
-			do.MustInvoke[authsvcpb.AuthServiceServer](i),
-			do.MustInvoke[dataprivacysvcpb.DataPrivacyServiceServer](i),
 			do.MustInvoke[identitypb.IdentityServiceServer](i),
 			do.MustInvoke[internalopssvcpb.InternalOperationsServer](i),
 			do.MustInvoke[issuereportspb.IssueReportsServiceServer](i),
@@ -181,9 +160,7 @@ func RegisterExtras(i do.Injector) {
 func BuildRegistrationFuncs(
 	analyticsService analyticspb.AnalyticsServiceServer,
 	auditLogService auditpb.AuditServiceServer,
-	authService authsvcpb.AuthServiceServer,
 	commentsService commentspb.CommentsServiceServer,
-	dataPrivacyServer dataprivacysvcpb.DataPrivacyServiceServer,
 	identityServiceServer identitypb.IdentityServiceServer,
 	internalOpsService internalopssvcpb.InternalOperationsServer,
 	issueReportsService issuereportspb.IssueReportsServiceServer,
@@ -193,6 +170,8 @@ func BuildRegistrationFuncs(
 	paymentsService billingpb.BillingServiceServer,
 	settingsService settingspb.SettingsServiceServer,
 	signInService signinpb.SignInServiceServer,
+	passwordResetService passwordresetpb.PasswordResetServiceServer,
+	passkeysService passkeyspb.PasskeysServiceServer,
 	uploadedMediaService uploadedmediasvcpb.UploadedMediaServiceServer,
 	waitlistsService waitlistspb.WaitlistsServiceServer,
 	webhooksService webhookspb.WebhooksServiceServer,
@@ -200,10 +179,10 @@ func BuildRegistrationFuncs(
 	return []platformgrpc.RegistrationFunc{
 		func(server *grpc.Server) {
 			analyticspb.RegisterAnalyticsServiceServer(server, analyticsService)
-			auditpb.RegisterAuditServiceServer(server, auditLogService)
-			authsvcpb.RegisterAuthServiceServer(server, authService)
+			registerWithAdministration(server, auditLogService, func(server *grpc.Server) {
+				auditpb.RegisterAuditServiceServer(server, auditLogService)
+			})
 			commentspb.RegisterCommentsServiceServer(server, commentsService)
-			dataprivacysvcpb.RegisterDataPrivacyServiceServer(server, dataPrivacyServer)
 			identitypb.RegisterIdentityServiceServer(server, identityServiceServer)
 			internalopssvcpb.RegisterInternalOperationsServer(server, internalOpsService)
 			issuereportspb.RegisterIssueReportsServiceServer(server, issueReportsService)
@@ -212,12 +191,30 @@ func BuildRegistrationFuncs(
 			oauth2clientspb.RegisterOAuth2ClientsServiceServer(server, oauth2ClientsService)
 			billingpb.RegisterBillingServiceServer(server, paymentsService)
 			settingspb.RegisterSettingsServiceServer(server, settingsService)
-			signinpb.RegisterSignInServiceServer(server, signInService)
+			registerWithAdministration(server, signInService, func(server *grpc.Server) {
+				signinpb.RegisterSignInServiceServer(server, signInService)
+			})
+			passwordresetpb.RegisterPasswordResetServiceServer(server, passwordResetService)
+			passkeyspb.RegisterPasskeysServiceServer(server, passkeysService)
 			uploadedmediasvcpb.RegisterUploadedMediaServiceServer(server, uploadedMediaService)
 			waitlistspb.RegisterWaitlistsServiceServer(server, waitlistsService)
 			webhookspb.RegisterWebhooksServiceServer(server, webhooksService)
 		},
 	}
+}
+
+// registerWithAdministration mounts a platform surface through its own RegisterOn where it has
+// one, which registers the surface's operator half beside it — AuditAdministrationService beside
+// AuditService, SignInAdministrationService beside SignInService. Mounting the half grants
+// nothing: each of its methods requires a permission only an operator holds. A server without
+// RegisterOn, a test double say, is registered as the plain service.
+func registerWithAdministration(server *grpc.Server, impl any, plain func(*grpc.Server)) {
+	if registrar, ok := impl.(interface{ RegisterOn(*grpc.Server) }); ok {
+		registrar.RegisterOn(server)
+		return
+	}
+
+	plain(server)
 }
 
 func BuildUnaryServerInterceptors(
@@ -232,14 +229,17 @@ func BuildUnaryServerInterceptors(
 		// Next, so nothing any interceptor below returns reaches a client with the encoded error
 		// chain still attached. See error_details.go.
 		StripEncodedErrorDetailUnaryInterceptor(),
+		// Outside authentication, so the refusals the interceptors below make are encoded the
+		// way a handler's are — with a client-safe reason where the error names one, which is
+		// how a forced password change says PASSWORD_CHANGE_REQUIRED.
+		errorsgrpc.UnaryErrorEncodingInterceptor(),
 		authInterceptor.UnaryServerInterceptor(),
 		// Runs after the interceptor above so it sees the session that one established.
 		// Both enforce, and they are proven equivalent — see auditOnlyAuthorization.
 		authzEnforcer.UnaryServerInterceptor(),
-		// after auth, because the key is scoped to the authenticated principal, and before the
+		// after auth, because the key is scoped to the authenticated principal, and inside the
 		// error encoder, because it records the handler's status code rather than a rendered one.
 		idempotencyInterceptor,
-		errorsgrpc.UnaryErrorEncodingInterceptor(),
 	}
 }
 
@@ -250,8 +250,8 @@ func BuildStreamServerInterceptors(logger logging.Logger, authInterceptor *inter
 		// Next, so nothing any interceptor below returns reaches a client with the encoded error
 		// chain still attached. See error_details.go.
 		StripEncodedErrorDetailStreamInterceptor(),
-		authInterceptor.StreamServerInterceptor(),
 		errorsgrpc.StreamErrorEncodingInterceptor(),
+		authInterceptor.StreamServerInterceptor(),
 	}
 }
 
@@ -306,19 +306,45 @@ func ProvideUserTextSearcher(
 	)
 }
 
+// MethodPermissions is the table the server's authorization interceptor enforces: every method
+// this deployment serves, and the permissions a caller must hold to make it.
+//
+// It is assembled here rather than in the injector so that what reads it outside the server —
+// the enforcer equivalence proof, and the conformance harness deriving which calls this
+// deployment reserves to an operator — reads the table the server enforces rather than a copy.
+func MethodPermissions() interceptors.MethodPermissionsMap {
+	return AggregateMethodPermissions(
+		analyticsgrpc.ProvideMethodPermissions(),
+		auditgrpc.Permissions(),
+		commentsgrpc.Permissions(),
+		identitybuild.Permissions(),
+		internalopsgrpc.ProvideMethodPermissions(),
+		issuereportsgrpc.Permissions(),
+		mealplanninggrpc.ProvideMethodPermissions(),
+		notificationsgrpc.Permissions(),
+		oauth2clientsbuild.Permissions(),
+		passkeysbuild.Permissions(),
+		paymentsgrpc.Permissions(),
+		settingsgrpc.Permissions(),
+		signinbuild.Permissions(),
+		uploadedmediagrpc.ProvideMethodPermissions(),
+		waitlistsbuild.Permissions(),
+		webhooksgrpc.Permissions(),
+	)
+}
+
 // AggregateMethodPermissions combines method permissions from all services into a single map.
 func AggregateMethodPermissions(
 	analyticsPermissions analyticsgrpc.AnalyticsMethodPermissions,
 	auditPermissions map[string][]authorization.Permission,
-	authPermissions authgrpc.AuthMethodPermissions,
 	commentsPermissions map[string][]authorization.Permission,
-	dataprivacyPermissions dataprivacygrpc.DataPrivacyMethodPermissions,
 	identityPermissions map[string][]authorization.Permission,
 	internalopsPermissions internalopsgrpc.InternalOpsMethodPermissions,
 	issuereportsPermissions map[string][]authorization.Permission,
 	mealplanningPermissions mealplanninggrpc.MealPlanningMethodPermissions,
 	notificationsPermissions map[string][]authorization.Permission,
 	oauth2ClientsPermissions map[string][]authorization.Permission,
+	passkeysPermissions map[string][]authorization.Permission,
 	paymentsPermissions map[string][]authorization.Permission,
 	settingsPermissions map[string][]authorization.Permission,
 	signInPermissions map[string][]authorization.Permission,
@@ -330,15 +356,14 @@ func AggregateMethodPermissions(
 
 	maps.Copy(result, analyticsPermissions)
 	maps.Copy(result, auditPermissions)
-	maps.Copy(result, authPermissions)
 	maps.Copy(result, commentsPermissions)
-	maps.Copy(result, dataprivacyPermissions)
 	maps.Copy(result, identityPermissions)
 	maps.Copy(result, internalopsPermissions)
 	maps.Copy(result, issuereportsPermissions)
 	maps.Copy(result, mealplanningPermissions)
 	maps.Copy(result, notificationsPermissions)
 	maps.Copy(result, oauth2ClientsPermissions)
+	maps.Copy(result, passkeysPermissions)
 	maps.Copy(result, paymentsPermissions)
 	maps.Copy(result, settingsPermissions)
 	maps.Copy(result, signInPermissions)

@@ -22,6 +22,8 @@ const (
 	AccountInvitationTokenKey = "account_invitation.token"
 	// UserIDKey is the standard key for referring to a user ID (re-exported for domain use).
 	UserIDKey = "user" + idSuffix
+	// ImpersonatorIDKey is the operator acting through somebody else's identity.
+	ImpersonatorIDKey = "impersonator" + idSuffix
 	// UserEmailAddressKey is the standard key for referring to a user's email address.
 	UserEmailAddressKey = "user.email_address"
 	// UsernameKey is the standard key for referring to a username (re-exported for domain use).

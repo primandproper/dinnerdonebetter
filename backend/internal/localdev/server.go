@@ -17,7 +17,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
-	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	authrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auth"
@@ -29,6 +28,7 @@ import (
 
 	platformoauth2clients "github.com/primandproper/platform-go/v14/authentication/oauth2clients"
 	"github.com/primandproper/platform-go/v14/authentication/passwordreset"
+	"github.com/primandproper/platform-go/v14/authentication/signin/signinpb"
 	platformidentity "github.com/primandproper/platform-go/v14/identity"
 	platformsettings "github.com/primandproper/platform-go/v14/settings"
 	"github.com/primandproper/primitives-go/v2/authentication/argon2"
@@ -563,36 +563,39 @@ func (i *insecureOAuth) RequireTransportSecurity() bool {
 	return false // Explicitly allow insecure transport
 }
 
-func FetchLoginTokenForUser(ctx context.Context, grpcServerAddr string, loginInput *authsvc.UserLoginInput) (string, error) {
+// FetchLoginTokenForUser signs somebody in through SignInService.LoginForToken and returns the
+// access token it issued.
+func FetchLoginTokenForUser(ctx context.Context, grpcServerAddr string, credentials *signinpb.Credentials) (string, error) {
 	unauthedClient, err := client.BuildUnauthenticatedGRPCClient(grpcServerAddr)
 	if err != nil {
 		return "", fmt.Errorf("initializing client: %w", err)
 	}
 
-	return FetchLoginTokenForUserWithClient(ctx, unauthedClient, loginInput)
+	return FetchLoginTokenForUserWithClient(ctx, unauthedClient, credentials)
 }
 
-// FetchLoginTokenForUserWithClient calls LoginForToken using the given client.
+// FetchLoginTokenForUserWithClient calls SignInService.LoginForToken using the given client.
 // Use this when the client must use TLS (e.g. for api.dinnerdonebetter.com).
-func FetchLoginTokenForUserWithClient(ctx context.Context, c client.Client, loginInput *authsvc.UserLoginInput) (string, error) {
-	tokenRes, err := c.LoginForToken(ctx, &authsvc.LoginForTokenRequest{
-		Input: loginInput,
+func FetchLoginTokenForUserWithClient(ctx context.Context, c client.Client, credentials *signinpb.Credentials) (string, error) {
+	tokenRes, err := c.LoginForToken(ctx, &signinpb.LoginForTokenRequest{
+		Credentials: credentials,
 	})
 	if err != nil {
 		return "", fmt.Errorf("fetching login token: %w", err)
 	}
 
-	return tokenRes.Result.AccessToken, nil
+	return tokenRes.GetToken().GetToken(), nil
 }
 
-// FetchOAuth2TokenForUser performs the OAuth2 authorization code flow using the given JWT
-// and returns the OAuth2 access and refresh tokens. Used by integration tests for token revocation.
+// FetchOAuth2TokenForUser performs the OAuth2 authorization code flow as the person the
+// credentials sign in, and returns the OAuth2 access and refresh tokens. Used by integration
+// tests for token revocation.
 func FetchOAuth2TokenForUser(
 	ctx context.Context,
 	httpServerAddress, grpcServerAddress, clientID, clientSecret string,
-	loginInput *authsvc.UserLoginInput,
+	credentials *signinpb.Credentials,
 ) (*oauth2.Token, error) {
-	jwt, err := FetchLoginTokenForUser(ctx, grpcServerAddress, loginInput)
+	jwt, err := FetchLoginTokenForUser(ctx, grpcServerAddress, credentials)
 	if err != nil {
 		return nil, fmt.Errorf("fetching JWT for OAuth2 exchange: %w", err)
 	}

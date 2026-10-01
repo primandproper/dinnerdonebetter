@@ -7,4 +7,4 @@ package mockauthn
 
 // Regenerate the moq mocks via `go generate ./internal/authentication/mock/`.
 
-//go:generate go tool github.com/matryer/moq -out authentication_mock.go -pkg mockauthn -rm -fmt goimports .. Manager:ManagerMock Authenticator:AuthenticatorMock
+//go:generate go tool github.com/matryer/moq -out authentication_mock.go -pkg mockauthn -rm -fmt goimports .. Authenticator:AuthenticatorMock

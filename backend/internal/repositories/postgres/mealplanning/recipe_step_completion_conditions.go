@@ -222,7 +222,9 @@ func (q *repository) GetRecipeStepCompletionConditions(ctx context.Context, reci
 		filter = filtering.DefaultQueryFilter()
 	}
 	logger = filter.AttachToLogger(logger)
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	var (
 		data          []*types.RecipeStepCompletionCondition

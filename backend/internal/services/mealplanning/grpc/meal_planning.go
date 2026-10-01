@@ -302,7 +302,9 @@ func (s *serviceImpl) GetMealLists(ctx context.Context, request *mealplanningsvc
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	lists, err := s.mealPlanningManager.ListMealLists(ctx, sessionContextData.GetUserID(), filter)
 	if err != nil {
@@ -422,7 +424,9 @@ func (s *serviceImpl) GetMealListItems(ctx context.Context, request *mealplannin
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	items, err := s.mealPlanningManager.ListMealListItems(ctx, request.MealListId, sessionContextData.GetUserID(), filter)
 	if err != nil {

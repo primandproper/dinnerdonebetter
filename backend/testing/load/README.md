@@ -6,8 +6,8 @@ Load tests for the Dinner Done Better API that exercise read-only gRPC endpoints
 
 Uses the same flow as the mobile and web apps:
 
-1. **LoginForToken** (gRPC, unauthenticated) – submit username/password, get JWT
-2. **OAuth2 authorize** – GET `/oauth2/authorize` with Bearer JWT + client creds, receive auth code via redirect
+1. **SignInService.LoginForToken** (gRPC, unauthenticated) – submit username/password, get a sign-in token
+2. **OAuth2 authorize** – GET `/oauth2/authorize` with the sign-in token as Bearer + client creds, receive auth code via redirect
 3. **OAuth2 token exchange** – POST `/oauth2/token` with code + client creds, get access token
 4. **gRPC calls** – use access token as Bearer for read-only RPCs
 
@@ -70,7 +70,7 @@ Then run with `--env` or export before `k6 run`.
 
 ## Endpoints Exercised
 
-Read-only only. Setup fetches `account_id` and `user_id` via GetActiveAccount/GetSelf for context-dependent calls.
+Read-only only. Setup fetches `account_id` and `user_id` via SignInService.GetAuthStatus for context-dependent calls.
 
 **Valid enums (shared):** GetValidInstruments, GetValidIngredients, GetValidVessels, GetValidPreparations, GetValidIngredientGroups, GetValidMeasurementUnits, SearchForValidIngredients, SearchForValidInstruments, SearchForValidVessels, SearchForValidPreparations, SearchForValidMeasurementUnits
 
@@ -88,7 +88,7 @@ Read-only only. Setup fetches `account_id` and `user_id` via GetActiveAccount/Ge
 
 **Issue reports:** GetIssueReports, GetIssueReportsByStatus, GetIssueReportsBySubjectType
 
-**Auth:** GetAuthStatus, GetActiveAccount, GetSelf
+**Sign-in:** SignInService.GetAuthStatus, SignInService.GetSelf, IdentityService.GetPrincipal
 
 ## Token Lifetime
 

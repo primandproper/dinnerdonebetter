@@ -28,6 +28,7 @@ func RegisterAPIRouter(i do.Injector) {
 			do.MustInvoke[auth.AuthDataService](i),
 			do.MustInvoke[*paymentswebhook.WebhookHandler](i),
 			do.MustInvoke[healthcheck.Registry](i),
+			do.MustInvoke[*PlatformSurfaces](i),
 		)
 	})
 }

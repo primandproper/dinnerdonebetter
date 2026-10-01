@@ -2,8 +2,8 @@
  * k6 read-only load test for the Dinner Done Better API.
  *
  * Auth flow (same as mobile/web apps):
- * 1. LoginForToken (gRPC) with username/password → JWT
- * 2. OAuth2 authorize with Bearer JWT + client creds → auth code
+ * 1. SignInService.LoginForToken (gRPC) with username/password → sign-in token
+ * 2. OAuth2 authorize with the sign-in token as Bearer + client creds → auth code
  * 3. OAuth2 token exchange (code + client creds) → access token
  * 4. Use access token as Bearer for gRPC read calls
  *
@@ -91,9 +91,9 @@ const READ_ENDPOINTS = [
   { method: "issue_reports.IssueReportsService/GetIssueReportsByStatus", request: { status: "open", filter: {} } },
   { method: "issue_reports.IssueReportsService/GetIssueReportsBySubjectType", request: { subject_type: "recipes", filter: {} } },
   // Auth
-  { method: "auth.AuthService/GetAuthStatus", request: {} },
-  { method: "auth.AuthService/GetActiveAccount", request: {} },
-  { method: "auth.AuthService/GetSelf", request: {} },
+  { method: "primandproper.platform.signin.v1.SignInService/GetAuthStatus", request: {} },
+  { method: "primandproper.platform.signin.v1.SignInService/GetSelf", request: {} },
+  { method: "primandproper.platform.identity.v1.IdentityService/GetPrincipal", request: {} },
 ];
 
 function randomElement(arr) {
@@ -101,14 +101,14 @@ function randomElement(arr) {
 }
 
 /**
- * Fetch JWT via LoginForToken (gRPC, unauthenticated).
+ * Fetch a sign-in token via SignInService.LoginForToken (gRPC, unauthenticated).
  */
 function fetchLoginToken() {
   const client = new grpc.Client();
   client.connect(grpcTarget, { plaintext: usePlaintext, reflect: true });
 
-  const response = client.invoke("auth.AuthService/LoginForToken", {
-    input: {
+  const response = client.invoke("primandproper.platform.signin.v1.SignInService/LoginForToken", {
+    credentials: {
       username: username,
       password: password,
     },
@@ -122,21 +122,18 @@ function fetchLoginToken() {
     );
   }
 
-  // Protobuf JSON may use snake_case or camelCase depending on k6/grpc version
-  const result = response.message?.result;
-  const token =
-    result?.access_token || result?.accessToken;
+  const token = response.message?.token?.token;
   if (!token) {
     const msg = JSON.stringify(response.message || response);
     throw new Error(
-      `LoginForToken: no access_token in response. Status=${response.status}. Response: ${msg}`
+      `LoginForToken: no token in response. Status=${response.status}. Response: ${msg}`
     );
   }
   return token;
 }
 
 /**
- * Exchange JWT for OAuth2 tokens via authorize + token flow.
+ * Exchange the sign-in token for OAuth2 tokens via authorize + token flow.
  */
 function exchangeForOAuth2Token(jwt) {
   const state = `k6-${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -214,21 +211,16 @@ function fetchAccountAndUserIds(accessToken) {
   const client = new grpc.Client();
   client.connect(grpcTarget, { plaintext: usePlaintext, reflect: true });
 
-  const accountRes = client.invoke("auth.AuthService/GetActiveAccount", {}, {
-    metadata: { authorization: `Bearer ${accessToken}` },
-  });
-  const selfRes = client.invoke("auth.AuthService/GetSelf", {}, {
+  const statusRes = client.invoke("primandproper.platform.signin.v1.SignInService/GetAuthStatus", {}, {
     metadata: { authorization: `Bearer ${accessToken}` },
   });
 
   client.close();
 
-  const accountId = accountRes?.status === grpc.StatusOK && accountRes?.message?.result
-    ? (accountRes.message.result.id || accountRes.message.result.Id || "")
-    : "";
-  const userId = selfRes?.status === grpc.StatusOK && selfRes?.message?.result
-    ? (selfRes.message.result.id || selfRes.message.result.Id || "")
-    : "";
+  // Protobuf JSON may use snake_case or camelCase depending on k6/grpc version
+  const status = statusRes?.status === grpc.StatusOK ? statusRes?.message?.status : undefined;
+  const accountId = status?.active_account_id || status?.activeAccountId || "";
+  const userId = status?.user?.id || "";
 
   return { accountId, userId };
 }

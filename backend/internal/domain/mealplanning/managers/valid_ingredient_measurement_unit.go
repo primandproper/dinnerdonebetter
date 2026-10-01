@@ -20,7 +20,9 @@ func (m *mealPlanningManager) ListValidIngredientMeasurementUnits(ctx context.Co
 	if filter == nil {
 		filter = filtering.DefaultQueryFilter()
 	}
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	logger := m.logger.WithSpan(span)
 
@@ -120,7 +122,9 @@ func (m *mealPlanningManager) SearchValidIngredientMeasurementUnitsByIngredient(
 	if filter == nil {
 		filter = filtering.DefaultQueryFilter()
 	}
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	logger := m.logger.WithSpan(span).WithValue(mealplanningkeys.ValidIngredientIDKey, validIngredientID)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidIngredientIDKey, validIngredientID)
@@ -140,7 +144,9 @@ func (m *mealPlanningManager) SearchValidIngredientMeasurementUnitsByMeasurement
 	if filter == nil {
 		filter = filtering.DefaultQueryFilter()
 	}
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	logger := m.logger.WithSpan(span).WithValue(mealplanningkeys.ValidMeasurementUnitIDKey, validMeasurementUnitID)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidMeasurementUnitIDKey, validMeasurementUnitID)

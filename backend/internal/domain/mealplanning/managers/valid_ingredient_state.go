@@ -23,7 +23,9 @@ func (m *mealPlanningManager) SearchValidIngredientStates(ctx context.Context, q
 	if filter == nil {
 		filter = filtering.DefaultQueryFilter()
 	}
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	logger := m.logger.WithSpan(span).WithValue(platformkeys.SearchQueryKey, query).WithValue(platformkeys.UseDatabaseKey, !useSearchService)
 	tracing.AttachToSpan(span, platformkeys.SearchQueryKey, query)
@@ -56,7 +58,9 @@ func (m *mealPlanningManager) ListValidIngredientStates(ctx context.Context, fil
 	if filter == nil {
 		filter = filtering.DefaultQueryFilter()
 	}
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	logger := m.logger.WithSpan(span)
 

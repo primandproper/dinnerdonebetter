@@ -14,6 +14,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 // ExpectedAuditEntry describes fuzzy match criteria for an audit log entry.
@@ -169,7 +171,9 @@ func AssertAuditLogContainsFuzzyForResource(
 
 	limit32 := uint32(limit)
 
-	resp, err := adminClient.ListEntries(ctx, &auditgrpc.ListEntriesRequest{
+	// Whoever acted, the entry is in their chain rather than the admin's, so this is an
+	// operator's read across every tenant: AuditAdministrationService, which records the read.
+	resp, err := operatorAuditClient(ctx, t).ListAnyEntries(ctx, &auditgrpc.ListAnyEntriesRequest{
 		Query: &auditgrpc.EntryQuery{ResourceType: resourceType, ResourceId: resourceID},
 		Filter: &filteringpb.QueryFilter{
 			MaxResponseSize: &limit32,
@@ -179,7 +183,10 @@ func AssertAuditLogContainsFuzzyForResource(
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 
-	entries := resp.GetResults()
+	entries := make([]*auditgrpc.Entry, 0, len(resp.GetResults()))
+	for _, owned := range resp.GetResults() {
+		entries = append(entries, owned.GetEntry())
+	}
 	for _, exp := range expected {
 		var found bool
 		for _, e := range entries {
@@ -212,4 +219,21 @@ func summarizeEntries(entries []*auditgrpc.Entry) string {
 	}
 
 	return strings.Join(seen, ", ")
+}
+
+// operatorAuditClient is AuditAdministrationService as the premade administrator.
+func operatorAuditClient(ctx context.Context, t *testing.T) auditgrpc.AuditAdministrationServiceClient {
+	t.Helper()
+
+	token, err := fetchLoginTokenForUser(ctx, premadeAdminUser)
+	require.NoError(t, err)
+
+	conn, err := grpc.NewClient(fmt.Sprintf("127.0.0.1:%d", apiServiceConfig.GRPCServer.Port),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		client.WithBearerTokenCredentials(token),
+	)
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, conn.Close()) })
+
+	return auditgrpc.NewAuditAdministrationServiceClient(conn)
 }

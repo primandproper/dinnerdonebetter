@@ -135,7 +135,8 @@ func RegisterRequestService(i do.Injector) {
 		// The upload manager is the read path, not a delivery path. Artifacts are
 		// encrypted, so Download is refused outright by platform-go and Open — which
 		// reads the object, decrypts, and decompresses — is the only way a subject
-		// gets their export. See FetchUserDataReport.
+		// gets their export. See the artifact route in
+		// internal/build/services/api/http/platform_surfaces.go.
 		serviceOpts = append(serviceOpts,
 			platformdataprivacy.WithServiceUploadManager(do.MustInvoke[ArtifactUploadManager](i).UploadManager),
 		)

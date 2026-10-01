@@ -1,29 +1,23 @@
 package auth
 
 import (
-	"context"
 	"net/http"
-	"time"
-
-	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
 
 // TablePrefix namespaces the platform-go tables this domain owns, rendering
-// ddb_password_reset_tokens and ddb_sessions.
+// ddb_password_reset_tokens and ddb_signin_refresh_tokens.
 //
 // A prefix rather than the platform's empty default, and for the reset tokens the
 // collision is not hypothetical: the platform's table is named password_reset_tokens,
 // which is exactly the name 00003_auth.sql gave the hand-written one it replaces. Its DDL
 // says CREATE TABLE IF NOT EXISTS, so against a database still holding the old table the
 // platform's schema would be a silent no-op followed by a store reading columns that are
-// not there. The session table's name is "sessions", generic enough that the same thing
-// would eventually happen to it in a shared database. Both migrations drop the old table
-// as well, and the prefix means a database where a drop somehow did not run fails loudly
+// not there. The prefix means a database where a drop somehow did not run fails loudly
 // rather than quietly reading the wrong rows.
 //
 // It is referenced by the migrations that create the tables and by the stores that read
 // and write them; a prefix that differs between the two is the misconfiguration nobody
-// notices until a reset link says it was never issued, or a sign-in says it never happened.
+// notices until a reset link says it was never issued, or a refresh says it never happened.
 const TablePrefix = "ddb"
 
 const (
@@ -65,48 +59,6 @@ const (
 )
 
 type (
-	// UserStatusResponse is what we encode when a user wants to check auth status.
-	UserStatusResponse struct {
-		_ struct{} `json:"-"`
-
-		UserID                   string `json:"userID"`
-		AccountStatus            string `json:"accountStatus,omitempty"`
-		AccountStatusExplanation string `json:"accountStatusExplanation"`
-		ActiveAccount            string `json:"activeAccount,omitempty"`
-		UserIsAuthenticated      bool   `json:"isAuthenticated"`
-	}
-
-	// TokenResponse is used to return a JWT to a user.
-	TokenResponse struct {
-		_            struct{}  `json:"-"`
-		ExpiresUTC   time.Time `json:"expires"`
-		UserID       string    `json:"userID"`
-		AccountID    string    `json:"accountID"`
-		AccessToken  string    `json:"accessToken"`
-		RefreshToken string    `json:"refreshToken"`
-	}
-
-	// UserPermissionsRequestInput is what we decode when a user wants to check permission status.
-	UserPermissionsRequestInput struct {
-		_ struct{} `json:"-"`
-
-		Permissions []string `json:"permissions"`
-	}
-
-	// UserPermissionsResponse is what we encode when a user wants to check permission status.
-	UserPermissionsResponse struct {
-		_ struct{} `json:"-"`
-
-		Permissions map[string]bool `json:"permissions"`
-	}
-
-	// ChangeActiveAccountInput represents what a User could set as input for switching accounts.
-	ChangeActiveAccountInput struct {
-		_ struct{} `json:"-"`
-
-		AccountID string `json:"accountID"`
-	}
-
 	// AuthDataService describes a structure capable of handling passwords and authorization requests.
 	//
 	// The four handlers are the OAuth 2.1 authorization server's HTTP surface. Registration
@@ -119,21 +71,3 @@ type (
 		AuthorizationServerMetadataHandler(res http.ResponseWriter, req *http.Request)
 	}
 )
-
-var _ validation.ValidatableWithContext = (*ChangeActiveAccountInput)(nil)
-
-// ValidateWithContext validates a ChangeActiveAccountInput.
-func (x *ChangeActiveAccountInput) ValidateWithContext(ctx context.Context) error {
-	return validation.ValidateStructWithContext(ctx, x,
-		validation.Field(&x.AccountID, validation.Required),
-	)
-}
-
-var _ validation.ValidatableWithContext = (*UserPermissionsRequestInput)(nil)
-
-// ValidateWithContext validates a UserPermissionsRequestInput.
-func (x *UserPermissionsRequestInput) ValidateWithContext(ctx context.Context) error {
-	return validation.ValidateStructWithContext(ctx, x,
-		validation.Field(&x.Permissions, validation.Required),
-	)
-}

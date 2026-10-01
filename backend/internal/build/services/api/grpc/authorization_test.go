@@ -63,11 +63,13 @@ func TestPlatformPolicy(T *testing.T) {
 				authorization.AccountAdminPermissions,
 				authorization.AccountMemberPermissions,
 				authorization.ServiceDataAdminPermissions,
+				authorization.ServiceUserPermissions,
 			)},
-			// Assigned to every user at signup, and service-wide. The authority an
-			// ordinary user has is account_member, held per account — granting it
-			// here would grant it in every account.
-			{authorization.ServiceUserRoleName, nil},
+			// Assigned to every user at signup, and service-wide, so it holds only what a
+			// person holds about themselves. The authority an ordinary user has over an
+			// account is account_member, held per account — granting it here would grant
+			// it in every account.
+			{authorization.ServiceUserRoleName, authorization.ServiceUserPermissions},
 		} {
 			set, resolveErr := resolver.PermissionsForRoles(t.Context(), tc.role)
 			require.NoError(t, resolveErr, tc.role)
@@ -114,7 +116,7 @@ func buildTestEnforcer(t *testing.T) *grpc.UnaryServerInterceptor {
 
 	enforcer, err := ProvideAuthorizationEnforcer(
 		perms,
-		interceptors.ProvideAuthInterceptor(nil, loggingnoop.NewLogger(), nil, nil, nil, nil, nil, "", nil, perms),
+		interceptors.ProvideAuthInterceptor(nil, loggingnoop.NewLogger(), nil, nil, nil, nil, "", nil, nil, perms),
 		loggingnoop.NewLogger(),
 		metricsnoop.NewMetricsProvider(),
 		true,

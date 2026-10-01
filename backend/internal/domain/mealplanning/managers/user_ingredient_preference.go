@@ -21,7 +21,9 @@ func (m *mealPlanningManager) ListUserIngredientPreferences(ctx context.Context,
 	if filter == nil {
 		filter = filtering.DefaultQueryFilter()
 	}
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	if ownerID == "" {
 		return nil, platformerrors.ErrEmptyInputParameter

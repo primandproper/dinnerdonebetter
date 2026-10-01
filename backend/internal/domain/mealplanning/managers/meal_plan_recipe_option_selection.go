@@ -54,7 +54,9 @@ func (m *mealPlanningManager) GetMealPlanRecipeOptionSelectionsForMealPlanOption
 
 	logger := m.logger.WithSpan(span).WithValue(mealplanningkeys.MealPlanOptionIDKey, mealPlanOptionID)
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanOptionIDKey, mealPlanOptionID)
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	results, err := m.db.GetSelectionsForMealPlanOption(ctx, mealPlanOptionID, filter)
 	if err != nil {

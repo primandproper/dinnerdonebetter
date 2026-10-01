@@ -124,7 +124,9 @@ func (q *repository) SearchForValidMeasurementUnits(ctx context.Context, query s
 		filter = filtering.DefaultQueryFilter()
 	}
 	logger = filter.AttachToLogger(logger)
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	filterArgs := filtering.ToSQLArgs(filter)
 
@@ -182,7 +184,9 @@ func (q *repository) ValidMeasurementUnitsForIngredientID(ctx context.Context, v
 		filter = filtering.DefaultQueryFilter()
 	}
 	logger = filter.AttachToLogger(logger)
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	if validIngredientID == "" {
 		return nil, platformerrors.ErrEmptyInputProvided
@@ -246,7 +250,9 @@ func (q *repository) GetValidMeasurementUnits(ctx context.Context, filter *filte
 		filter = filtering.DefaultQueryFilter()
 	}
 	logger = filter.AttachToLogger(logger)
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	filterArgs := filtering.ToSQLArgs(filter)
 

@@ -161,6 +161,7 @@ func BuildLocalDevConfig() *config.APIServiceConfig {
 		Metering:     config.DefaultMeteringConfig(),
 		Entitlements: config.DefaultEntitlementsConfig(),
 		Operations:   config.DefaultOperationsConfig(),
+		Links:        config.DefaultLinksConfig(branding.LocalDevConsumerWebAppURL),
 		// Localdev has a Redis, so the record store is shared and the interceptor means
 		// something. Prod does not yet; see the prod config.
 		Idempotency: config.IdempotencyConfig{
@@ -297,11 +298,6 @@ func BuildLocalDevConfig() *config.APIServiceConfig {
 		// environment used to get by omitting a provider is gone; a local run and a deployed
 		// one now fail the same way when something is wrong with it.
 		Auth: authcfg.Config{
-			Sessions: authcfg.SessionsConfig{
-				AbsoluteTimeout: sessionAbsoluteTimeout,
-				IdleTimeout:     sessionIdleTimeout,
-				TouchInterval:   sessionTouchInterval,
-			},
 			Passkey: webauthncfg.Config{
 				Provider: webauthncfg.ProviderDatabase,
 				RelyingParty: platformwebauthn.Config{

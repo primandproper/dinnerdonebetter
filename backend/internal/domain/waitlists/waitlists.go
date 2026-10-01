@@ -80,11 +80,13 @@ func Scope() tenancy.Scope { return tenancy.Global() }
 
 // SubjectFor is the principal a signup made by a signed-in user belongs to.
 //
-// Every signup this application writes names one. The platform allows an
-// anonymous signup — a pre-launch list whose form asks for an address and
-// nothing else — and this deployment has no such path: joining a list requires a
-// session, so the user is always known, and it is the subject that makes
-// "which lists am I on" and a subject access request answerable at all.
+// A signup made by a signed-in caller names one, and it is the subject that makes
+// "which lists am I on" and a subject access request answerable. A visitor's
+// signup names none: the signup page is public, and its address is vouched for by
+// the double opt-in rather than by a session (see internal/build/waitlists). Such
+// a signup is not reached by a subject access request or the subject eraser; it
+// is reached by its address, through the unsubscribe link every confirmation
+// mail carries, which withdraws it and suppresses the address.
 //
 // The account is deliberately not part of it. A signup follows the person rather
 // than whichever account they had active when they filled the form in, and the

@@ -38,6 +38,7 @@ func ProvideAPIRouter(
 	authService auth.AuthDataService,
 	paymentsWebhookHandler *paymentswebhook.WebhookHandler,
 	healthRegistry healthcheck.Registry,
+	platformSurfaces *PlatformSurfaces,
 ) (*routing.Router, error) {
 	encoder := encoding.NewServerEncoderDecoder(encoding.ContentTypeJSON, encoding.WithLogger(logger), encoding.WithTracerProvider(tracerProvider))
 
@@ -50,6 +51,9 @@ func ProvideAPIRouter(
 	if err != nil {
 		return nil, err
 	}
+
+	// First, because it installs the session middleware, which has to precede every route.
+	platformSurfaces.Mount(router)
 
 	registerOpsRoutes(router, healthRegistry)
 

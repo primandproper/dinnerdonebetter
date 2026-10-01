@@ -54,12 +54,19 @@ type DataPrivacyFulfillment struct {
 	// read that request's outcome no longer exists. An operator reads the row; so does a test.
 	Store platformdataprivacy.Store
 
+	// Operations starts work the worker above runs, and OperationsRegistry is the registry
+	// it runs from — for a harness that needs an operation of a kind of its own.
+	Operations         operations.Service
+	OperationsRegistry *operations.Registry
+
+	// Artifacts is where completed exports' artifacts are kept.
+	Artifacts dataprivacycfg.ArtifactUploadManager
+
 	// Shutdown releases the container: the connection pool this half opened, and the queue's
 	// goroutine.
 	Shutdown func(context.Context) error
 
-	artifacts dataprivacycfg.ArtifactUploadManager
-	cfg       *platformdataprivacycfg.Config
+	cfg *platformdataprivacycfg.Config
 }
 
 // NewDataPrivacyFulfillment builds the fulfillment worker and the sweeper from a scheduler
@@ -99,11 +106,24 @@ func NewDataPrivacyFulfillment(ctx context.Context, cfg *config.SchedulerConfig)
 		return nil, fmt.Errorf("building the data privacy registry: %w", err)
 	}
 
+	ops, err := do.Invoke[operations.Service](i)
+	if err != nil {
+		return nil, fmt.Errorf("building the operations service: %w", err)
+	}
+
+	opsRegistry, err := do.Invoke[*operations.Registry](i)
+	if err != nil {
+		return nil, fmt.Errorf("building the operations registry: %w", err)
+	}
+
 	return &DataPrivacyFulfillment{
-		Worker:   worker,
-		Sweeper:  sweeper,
-		Registry: registry,
-		Store:    store,
+		Worker:             worker,
+		Sweeper:            sweeper,
+		Registry:           registry,
+		Store:              store,
+		Operations:         ops,
+		OperationsRegistry: opsRegistry,
+		Artifacts:          artifacts,
 		Shutdown: func(ctx context.Context) error {
 			if report := i.ShutdownWithContext(ctx); report != nil && !report.Succeed {
 				return report
@@ -111,7 +131,6 @@ func NewDataPrivacyFulfillment(ctx context.Context, cfg *config.SchedulerConfig)
 
 			return nil
 		},
-		artifacts: artifacts,
 		cfg: dataprivacycfg.PlatformConfig(
 			&cfg.DataPrivacy,
 			do.MustInvoke[database.Client](i),
@@ -133,7 +152,7 @@ func (f *DataPrivacyFulfillment) SweeperAt(ctx context.Context, now time.Time) (
 		ctx,
 		f.cfg,
 		f.Store,
-		f.artifacts.UploadManager,
+		f.Artifacts.UploadManager,
 		platformdataprivacycfg.WithSweeperOptions(platformdataprivacy.WithSweeperClock(fixedClock{now: now})),
 	)
 }

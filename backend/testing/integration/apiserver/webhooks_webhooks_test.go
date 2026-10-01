@@ -13,6 +13,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// The webhooks surface's behavior is asserted by platform's webhooks conformance suite, run
+// against this deployment in conformance_test.go. What remains here is this application's own:
+// the audit entries its store records, and its event type catalog.
+//
 // The webhooks surface is platform's eleven RPCs now, and the model beneath it is a different
 // shape rather than a renamed one.
 //
@@ -117,117 +121,6 @@ func TestWebhooks_Creating(T *testing.T) {
 			{EventType: "created", ResourceType: "webhooks", RelevantID: created.GetId()},
 		})
 	})
-
-	T.Run("requires auth", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		c := buildUnauthenticatedGRPCClientForTest(t)
-
-		_, err := c.WebhooksService().SaveEndpoint(ctx, &webhookspb.SaveEndpointRequest{})
-		require.Error(t, err)
-	})
-
-	// An endpoint with no signing secret is refused rather than given one, because a
-	// subscriber that cannot verify a delivery cannot tell it from an attacker's.
-	T.Run("without a signing secret", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		_, testClient := createUserAndClientForTest(t)
-
-		_, err := testClient.WebhooksService().SaveEndpoint(ctx, &webhookspb.SaveEndpointRequest{
-			Endpoint: endpointInputForTest(t),
-		})
-		assert.Error(t, err)
-	})
-
-	T.Run("invalid input", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		_, testClient := createUserAndClientForTest(t)
-
-		_, err := testClient.WebhooksService().SaveEndpoint(ctx, &webhookspb.SaveEndpointRequest{
-			Endpoint: &webhookspb.WebhookEndpointInput{
-				Name:        t.Name(),
-				Url:         "invalid protocol :\\ neato.ai",
-				ContentType: "application/whatever",
-			},
-			SigningKeys: signingSecretForTest(),
-		})
-		assert.Error(t, err)
-	})
-}
-
-func TestWebhooks_Reading(T *testing.T) {
-	T.Parallel()
-
-	T.Run("happy path", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		_, testClient := createUserAndClientForTest(t)
-		created := createWebhookForTest(t, testClient)
-
-		retrieved, err := testClient.WebhooksService().GetEndpoint(ctx, &webhookspb.GetEndpointRequest{
-			EndpointId: created.GetId(),
-		})
-		require.NoError(t, err)
-		assert.NotNil(t, retrieved)
-	})
-
-	T.Run("nonexistent ID", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		_, testClient := createUserAndClientForTest(t)
-
-		retrieved, err := testClient.WebhooksService().GetEndpoint(ctx, &webhookspb.GetEndpointRequest{
-			EndpointId: nonexistentID,
-		})
-		require.Error(t, err)
-		assert.Nil(t, retrieved)
-	})
-
-	T.Run("requires auth", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		c := buildUnauthenticatedGRPCClientForTest(t)
-		_, err := c.WebhooksService().GetEndpoint(ctx, &webhookspb.GetEndpointRequest{})
-		assert.Error(t, err)
-	})
-}
-
-func TestWebhooks_Listing(T *testing.T) {
-	T.Parallel()
-
-	T.Run("happy path", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		_, testClient := createUserAndClientForTest(t)
-
-		created := []*webhookspb.WebhookEndpoint{}
-		for range exampleQuantity {
-			created = append(created, createWebhookForTest(t, testClient))
-		}
-
-		results, err := testClient.WebhooksService().ListEndpoints(ctx, &webhookspb.ListEndpointsRequest{})
-		require.NoError(t, err)
-		assert.NotNil(t, results)
-		assert.GreaterOrEqual(t, len(results.GetResults()), len(created))
-	})
-
-	T.Run("requires auth", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		c := buildUnauthenticatedGRPCClientForTest(t)
-		_, err := c.WebhooksService().ListEndpoints(ctx, &webhookspb.ListEndpointsRequest{})
-		assert.Error(t, err)
-	})
 }
 
 func TestWebhooks_Archiving(T *testing.T) {
@@ -249,96 +142,6 @@ func TestWebhooks_Archiving(T *testing.T) {
 			{EventType: "archived", ResourceType: "webhooks", RelevantID: created.GetId()},
 		})
 	})
-
-	// Archiving an id that names nothing is answered OK, not NotFound, and the endpoint
-	// the caller does own is untouched.
-	//
-	// That is platform's decision and it is the right one: an archive that named nothing
-	// and an archive of something already archived are both the state the caller asked
-	// for, and a NotFound here would make this the one method that says whether an
-	// identifier exists in somebody else's tenant. So the assertion is on the surviving
-	// row rather than on the reply, which has nothing to say.
-	T.Run("nonexistentID", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		_, testClient := createUserAndClientForTest(t)
-		mine := createWebhookForTest(t, testClient)
-
-		_, err := testClient.WebhooksService().ArchiveEndpoint(ctx, &webhookspb.ArchiveEndpointRequest{
-			EndpointId: nonexistentID,
-		})
-		require.NoError(t, err, "archiving an id that names nothing is answered rather than refused")
-
-		survived, err := testClient.WebhooksService().GetEndpoint(ctx, &webhookspb.GetEndpointRequest{
-			EndpointId: mine.GetId(),
-		})
-		require.NoError(t, err)
-		assert.Equal(t, mine.GetId(), survived.GetResult().GetId())
-	})
-
-	T.Run("requires auth", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		c := buildUnauthenticatedGRPCClientForTest(t)
-		_, err := c.WebhooksService().ArchiveEndpoint(ctx, &webhookspb.ArchiveEndpointRequest{})
-		assert.Error(t, err)
-	})
-}
-
-// TestWebhooks_RotatingSecrets covers the RPC the local service had no equivalent for.
-//
-// A rotation is its own call rather than a field on the endpoint, because it is the one write
-// that invalidates every signature a subscriber has already learned to check — and the keyring
-// keeps the previous secret so a subscriber that has not yet picked up the new one still
-// verifies.
-func TestWebhooks_RotatingSecrets(T *testing.T) {
-	T.Parallel()
-
-	T.Run("happy path", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		_, testClient := createUserAndClientForTest(t)
-		created := createWebhookForTest(t, testClient)
-
-		_, err := testClient.WebhooksService().RotateSecret(ctx, &webhookspb.RotateSecretRequest{
-			EndpointId: created.GetId(),
-			SigningKey: []byte(identifiers.New()),
-		})
-		require.NoError(t, err)
-
-		// The secret does not come back on a read, which is the property that makes an
-		// endpoint safe for an account member to look at.
-		retrieved, err := testClient.WebhooksService().GetEndpoint(ctx, &webhookspb.GetEndpointRequest{
-			EndpointId: created.GetId(),
-		})
-		require.NoError(t, err)
-		assert.NotNil(t, retrieved.GetResult())
-	})
-
-	T.Run("nonexistent ID", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		_, testClient := createUserAndClientForTest(t)
-
-		_, err := testClient.WebhooksService().RotateSecret(ctx, &webhookspb.RotateSecretRequest{
-			EndpointId: nonexistentID,
-			SigningKey: []byte(identifiers.New()),
-		})
-		assert.Error(t, err)
-	})
-
-	T.Run("requires auth", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		c := buildUnauthenticatedGRPCClientForTest(t)
-		_, err := c.WebhooksService().RotateSecret(ctx, &webhookspb.RotateSecretRequest{})
-		assert.Error(t, err)
-	})
 }
 
 func TestWebhookSubscriptions_Adding(T *testing.T) {
@@ -357,22 +160,6 @@ func TestWebhookSubscriptions_Adding(T *testing.T) {
 		})
 		require.NoError(t, err)
 		require.NotNil(t, added.GetResult())
-		assert.Equal(t, webhooks.WebhookArchivedServiceEventType, added.GetResult().GetEventType())
-		assert.Equal(t, created.GetId(), added.GetResult().GetEndpointId())
-
-		// Readable on its own, which is what having an id of its own buys.
-		fetched, err := testClient.WebhooksService().GetSubscription(ctx, &webhookspb.GetSubscriptionRequest{
-			SubscriptionId: added.GetResult().GetId(),
-		})
-		require.NoError(t, err)
-		assert.Equal(t, added.GetResult().GetId(), fetched.GetResult().GetId())
-
-		// And on the endpoint's list, alongside the one the registration asked for.
-		listed, err := testClient.WebhooksService().ListSubscriptions(ctx, &webhookspb.ListSubscriptionsRequest{
-			EndpointId: created.GetId(),
-		})
-		require.NoError(t, err)
-		assert.Len(t, listed.GetResults(), 2)
 
 		// webhook_trigger_configs, which is the name the table had before the store moved
 		// to platform. The audit log keeps it on purpose — an investigation asking what
@@ -381,100 +168,6 @@ func TestWebhookSubscriptions_Adding(T *testing.T) {
 		AssertAuditLogContainsFuzzy(t, ctx, testClient, getAccountIDForTest(t, testClient), 15, []*ExpectedAuditEntry{
 			{EventType: "created", ResourceType: "webhook_trigger_configs", RelevantID: added.GetResult().GetId()},
 		})
-	})
-
-	T.Run("nonexistentID", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		_, testClient := createUserAndClientForTest(t)
-		createWebhookForTest(t, testClient)
-
-		_, err := testClient.WebhooksService().AddSubscription(ctx, &webhookspb.AddSubscriptionRequest{
-			EndpointId: nonexistentID,
-			EventType:  webhooks.WebhookArchivedServiceEventType,
-		})
-		assert.Error(t, err)
-	})
-
-	T.Run("requires auth", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		c := buildUnauthenticatedGRPCClientForTest(t)
-		_, err := c.WebhooksService().AddSubscription(ctx, &webhookspb.AddSubscriptionRequest{})
-		assert.Error(t, err)
-	})
-}
-
-func TestWebhookSubscriptions_Removing(T *testing.T) {
-	T.Parallel()
-
-	T.Run("happy path", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		_, testClient := createUserAndClientForTest(t)
-		created := createWebhookForTest(t, testClient)
-
-		added, err := testClient.WebhooksService().AddSubscription(ctx, &webhookspb.AddSubscriptionRequest{
-			EndpointId: created.GetId(),
-			EventType:  webhooks.WebhookArchivedServiceEventType,
-		})
-		require.NoError(t, err)
-
-		// Archiving a subscription leaves the endpoint standing, which is the whole reason
-		// a subscription is a row rather than a field.
-		_, err = testClient.WebhooksService().ArchiveSubscription(ctx, &webhookspb.ArchiveSubscriptionRequest{
-			SubscriptionId: added.GetResult().GetId(),
-		})
-		require.NoError(t, err)
-
-		stillThere, err := testClient.WebhooksService().GetEndpoint(ctx, &webhookspb.GetEndpointRequest{
-			EndpointId: created.GetId(),
-		})
-		require.NoError(t, err)
-		assert.NotNil(t, stillThere.GetResult())
-
-		listed, err := testClient.WebhooksService().ListSubscriptions(ctx, &webhookspb.ListSubscriptionsRequest{
-			EndpointId: created.GetId(),
-		})
-		require.NoError(t, err)
-		for _, subscription := range listed.GetResults() {
-			assert.NotEqual(t, added.GetResult().GetId(), subscription.GetId(), "an archived subscription is still listed")
-		}
-	})
-
-	// Answered OK rather than refused, for ArchiveEndpoint's reason: an id that names
-	// nothing under the caller's own endpoints is a nil subscription and no error, so the
-	// call cannot be walked to find out which subscription ids exist elsewhere. The
-	// endpoint's own subscriptions are what the assertion is on.
-	T.Run("nonexistentID", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		_, testClient := createUserAndClientForTest(t)
-		endpoint := createWebhookForTest(t, testClient)
-
-		_, err := testClient.WebhooksService().ArchiveSubscription(ctx, &webhookspb.ArchiveSubscriptionRequest{
-			SubscriptionId: nonexistentID,
-		})
-		require.NoError(t, err, "archiving an id that names nothing is answered rather than refused")
-
-		listed, err := testClient.WebhooksService().ListSubscriptions(ctx, &webhookspb.ListSubscriptionsRequest{
-			EndpointId: endpoint.GetId(),
-		})
-		require.NoError(t, err)
-		assert.NotEmpty(t, listed.GetResults(), "the endpoint's own subscription went with it")
-	})
-
-	T.Run("requires auth", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		c := buildUnauthenticatedGRPCClientForTest(t)
-		_, err := c.WebhooksService().ArchiveSubscription(ctx, &webhookspb.ArchiveSubscriptionRequest{})
-		assert.Error(t, err)
 	})
 }
 
@@ -511,14 +204,5 @@ func TestWebhookEventTypes_Listing(T *testing.T) {
 		// subscription above was accepted against an event nothing will ever fire.
 		assert.Contains(t, byType, webhooks.WebhookCreatedServiceEventType)
 		assert.Contains(t, byType, webhooks.WebhookArchivedServiceEventType)
-	})
-
-	T.Run("requires auth", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		c := buildUnauthenticatedGRPCClientForTest(t)
-		_, err := c.WebhooksService().ListEventTypes(ctx, &webhookspb.ListEventTypesRequest{})
-		assert.Error(t, err)
 	})
 }

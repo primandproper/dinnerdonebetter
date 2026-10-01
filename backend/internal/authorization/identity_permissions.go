@@ -30,10 +30,6 @@ const (
 	// PermissionReadUsers gates reading a user who is not you. Reading yourself is
 	// GetPrincipal, which needs nothing.
 	PermissionReadUsers = identitygrpc.PermissionReadUsers
-	// PermissionCreateUsers gates registering somebody on a registrar's behalf. The
-	// open sign-up this application serves is on the auth surface and is behind no
-	// grant at all, because the caller has no session.
-	PermissionCreateUsers = identitygrpc.PermissionCreateUsers
 	// PermissionArchiveUsers gates deactivating a user.
 	PermissionArchiveUsers = identitygrpc.PermissionArchiveUsers
 	// PermissionUpdateUserStatus gates banning and reinstating.
@@ -64,6 +60,13 @@ const (
 	PermissionInviteMembers = identitygrpc.PermissionInviteMembers
 	// PermissionReadInvitations gates reading one the caller sent.
 	PermissionReadInvitations = identitygrpc.PermissionReadInvitations
+
+	// PermissionOperatorRead lets its holder past the membership rule on the directory's
+	// reads, and PermissionOperatorAct on its writes. Neither is a method's grant: they decide
+	// which rows a call already allowed may touch, for somebody who shares no account with the
+	// person they are acting on. Every admission either makes is recorded in the audit log.
+	PermissionOperatorRead = identitygrpc.PermissionOperatorRead
+	PermissionOperatorAct  = identitygrpc.PermissionOperatorAct
 )
 
 var (
@@ -103,12 +106,13 @@ var (
 	// application ever grows that role, this is the permission to move first.
 	IdentityOperatorPermissions = []Permission{
 		PermissionReadUsers,
-		PermissionCreateUsers,
 		PermissionArchiveUsers,
 		PermissionUpdateUserStatus,
 		PermissionUpdateUserServiceRoles,
 		PermissionRequirePasswordChange,
 		PermissionListAllAccounts,
+		PermissionOperatorRead,
+		PermissionOperatorAct,
 	}
 
 	// IdentityPermissions contains all identity-related permissions.

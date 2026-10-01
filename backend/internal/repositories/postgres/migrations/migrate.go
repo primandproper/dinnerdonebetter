@@ -35,6 +35,7 @@ import (
 	dataprivacymigrations "github.com/primandproper/platform-go/v14/dataprivacy/migrations"
 	identitymigrations "github.com/primandproper/platform-go/v14/identity/migrations"
 	issuereportsmigrations "github.com/primandproper/platform-go/v14/issuereports/migrations"
+	linksmigrations "github.com/primandproper/platform-go/v14/links/database/migrations"
 	uploadsregistrymigrations "github.com/primandproper/platform-go/v14/mediaregistry/migrations"
 	"github.com/primandproper/platform-go/v14/metering"
 	meteringmigrations "github.com/primandproper/platform-go/v14/metering/migrations"
@@ -47,7 +48,6 @@ import (
 	authzmigrations "github.com/primandproper/platform-go/v14/rbac/migrations"
 	"github.com/primandproper/platform-go/v14/saga"
 	sagamigrations "github.com/primandproper/platform-go/v14/saga/migrations"
-	sessionsmigrations "github.com/primandproper/platform-go/v14/sessions/database/migrations"
 	settingsmigrations "github.com/primandproper/platform-go/v14/settings/migrations"
 	waitlistsmigrations "github.com/primandproper/platform-go/v14/waitlists/migrations"
 	"github.com/primandproper/platform-go/v14/webhooks"
@@ -84,18 +84,20 @@ const (
 	// user or an account has a foreign key into it. It took the number the hand-written
 	// identity migration vacated rather than a free one at the end, because a foreign key
 	// cannot reference a table that does not exist yet.
-	identityMigrationVersion        = 1
-	outboxMigrationVersion          = 2
-	sagaMigrationVersion            = 3
-	webhooksMigrationVersion        = 4
-	auditMigrationVersion           = 5
-	dataPrivacyMigrationVersion     = 6
-	meteringMigrationVersion        = 7
-	operationsMigrationVersion      = 8
-	webauthnMigrationVersion        = 9
-	oauth2MigrationVersion          = 10
-	passwordResetMigrationVersion   = 11
-	sessionsMigrationVersion        = 12
+	identityMigrationVersion      = 1
+	outboxMigrationVersion        = 2
+	sagaMigrationVersion          = 3
+	webhooksMigrationVersion      = 4
+	auditMigrationVersion         = 5
+	dataPrivacyMigrationVersion   = 6
+	meteringMigrationVersion      = 7
+	operationsMigrationVersion    = 8
+	webauthnMigrationVersion      = 9
+	oauth2MigrationVersion        = 10
+	passwordResetMigrationVersion = 11
+	// 12 was this application's own session store, retired when sign-in moved to platform's
+	// SignInService, whose logins are refresh token families (refreshTokensMigrationVersion).
+	// The number stays unused rather than renumbering everything after it.
 	workQueueMigrationVersion       = 13
 	commentsMigrationVersion        = 14
 	uploadsRegistryMigrationVersion = 15
@@ -108,6 +110,8 @@ const (
 	oauth2ClientsMigrationVersion   = 22
 	refreshTokensMigrationVersion   = 23
 	passkeysMigrationVersion        = 24
+	// 25 is migration_files/00025_dinnerdonebetter.sql.
+	actionLinksMigrationVersion = 26
 )
 
 // The identity tables other schemas reference.
@@ -232,11 +236,6 @@ func NewMigrator(logger logging.Logger) (*Migrator, error) {
 		return nil, err
 	}
 
-	sessionsDDL, err := renderSessionsDDL()
-	if err != nil {
-		return nil, err
-	}
-
 	// And the leased work queue's one table, which meal plan task notifications are claimed
 	// from. Its two partial indexes are the claim and reap predicates: copied by hand, they
 	// are how a claim that should touch the ready backlog starts scanning every item the
@@ -299,6 +298,11 @@ func NewMigrator(logger logging.Logger) (*Migrator, error) {
 		return nil, err
 	}
 
+	actionLinksDDL, err := renderActionLinksDDL()
+	if err != nil {
+		return nil, err
+	}
+
 	migrator, err := migrate.New(
 		dialect.Postgres,
 		migrationFiles,
@@ -314,7 +318,6 @@ func NewMigrator(logger logging.Logger) (*Migrator, error) {
 		migrate.WithGeneratedMigration(webauthnMigrationVersion, "create_webauthn_sessions_table", webauthnDDL),
 		migrate.WithGeneratedMigration(oauth2MigrationVersion, "create_oauth2_server_tables", oauth2DDL),
 		migrate.WithGeneratedMigration(passwordResetMigrationVersion, "create_password_reset_tokens_table", passwordResetDDL),
-		migrate.WithGeneratedMigration(sessionsMigrationVersion, "create_sessions_table", sessionsDDL),
 		migrate.WithGeneratedMigration(workQueueMigrationVersion, "create_work_queue_items_table", workQueueDDL),
 		migrate.WithGeneratedMigration(commentsMigrationVersion, "create_comments_table", commentsDDL),
 		migrate.WithGeneratedMigration(uploadsRegistryMigrationVersion, "create_uploads_objects_table", uploadsRegistryDDL),
@@ -328,6 +331,7 @@ func NewMigrator(logger logging.Logger) (*Migrator, error) {
 		migrate.WithGeneratedMigration(refreshTokensMigrationVersion, "create_signin_refresh_tokens_table", refreshTokensDDL),
 		migrate.WithGeneratedMigration(identityMigrationVersion, "create_identity_tables", identityDDL),
 		migrate.WithGeneratedMigration(passkeysMigrationVersion, "create_passkey_credentials_table", passkeysDDL),
+		migrate.WithGeneratedMigration(actionLinksMigrationVersion, "create_action_links_table", actionLinksDDL),
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "building migrator")
@@ -881,33 +885,23 @@ func renderRefreshTokensDDL() (string, error) {
 	return body.String(), nil
 }
 
-// renderSessionsDDL renders the session table.
+// renderActionLinksDDL renders the action-link table the waitlist confirmation loop mints
+// into: a confirmation link and an unsubscribe link for every pending signup.
 //
-// It renders platform's schema and nothing else. The comment here used to say it dropped
-// the table 00018_user_sessions.sql created, which it never did — that table outlived the
-// adoption, recreated on every migration by the hand-written identity migration, which
-// also created it. The identity adoption deleted that file, so there is no second sessions
-// table left to drop and no statement here pretending to.
+// It renders platform's schema and nothing else. A link's subject is the signup it was minted
+// for, and the signup table carries no foreign key a link could follow (see
+// renderWaitlistsDDL), so there is no cascade to add: an erased signup's links name a row that
+// no longer answers, and a link whose signup is gone is refused by the surface that redeems it
+// rather than by the table. What reclaims the rows is the store's sweeper, run in the API
+// server — see internal/build/waitlists.
 //
-// Nothing was carried across, and the two tables are not the same shape anyway. The old one
-// keyed a session by the JTI of the token issued alongside it and ended one by stamping a
-// revoked_at column that only the reads knew to filter on; the platform's keys a session by
-// an identifier of its own and ends one by removing the row, so there is no state a
-// revocation can be read past. The worst case at deploy is that everybody signs in again,
-// which is what a session store's rows are for.
-//
-// The old table is dropped rather than left behind because a second table recording which
-// sessions are live is the one thing sessions/database exists to prevent: the moment the
-// two disagree a revocation has not taken, and nothing says which of them was right.
-//
-// The prefix is auth.TablePrefix, so this renders ddb_sessions. The platform's own name is
-// "sessions", generic enough that a database shared with anything else would eventually
-// collide — and its DDL says CREATE TABLE IF NOT EXISTS, so the collision would be a silent
-// no-op followed by a store reading columns that are not there.
-func renderSessionsDDL() (string, error) {
-	schema, err := sessionsmigrations.SQL(dialect.Postgres, ddbauth.TablePrefix)
+// The prefix is waitlists', so this renders ddb_action_links beside the tables whose links it
+// holds. A second action that is not a waitlist's would still belong in it: the table is keyed
+// by action, and the minter is one registry.
+func renderActionLinksDDL() (string, error) {
+	schema, err := linksmigrations.SQL(dialect.Postgres, ddbwaitlists.TablePrefix)
 	if err != nil {
-		return "", errors.Wrap(err, "rendering sessions migration")
+		return "", errors.Wrap(err, "rendering action link migration")
 	}
 
 	return schema, nil

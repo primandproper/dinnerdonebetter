@@ -9,14 +9,15 @@ import (
 	"net/http"
 
 	analyticsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/analytics"
-	authgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
-	dataprivacygrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/dataprivacy"
 	internalopsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/internalops"
 	mealplanninggrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
 	uploadedmediagrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
 
 	auditgrpc "github.com/primandproper/platform-go/v14/audit/auditpb"
 	oauth2clientsgrpc "github.com/primandproper/platform-go/v14/authentication/oauth2clients/oauth2clientspb"
+	passkeysgrpc "github.com/primandproper/platform-go/v14/authentication/passkeys/passkeyspb"
+	passwordresetgrpc "github.com/primandproper/platform-go/v14/authentication/passwordreset/passwordresetpb"
+	signingrpc "github.com/primandproper/platform-go/v14/authentication/signin/signinpb"
 	paymentsgrpc "github.com/primandproper/platform-go/v14/billing/billingpb"
 	commentsgrpc "github.com/primandproper/platform-go/v14/comments/commentspb"
 	identitygrpc "github.com/primandproper/platform-go/v14/identity/identitypb"
@@ -34,26 +35,21 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/credentials/oauth"
-	"google.golang.org/grpc/metadata"
-)
-
-const (
-	zuckModeUserHeader    = "X-Zuck-Mode-User"
-	zuckModeAccountHeader = "X-Zuck-Mode-Account"
 )
 
 type Client interface {
 	analyticsgrpc.AnalyticsServiceClient
-	authgrpc.AuthServiceClient
 	auditgrpc.AuditServiceClient
-	dataprivacygrpc.DataPrivacyServiceClient
 	internalopsgrpc.InternalOperationsClient
 	issuereportsgrpc.IssueReportsServiceClient
 	mealplanninggrpc.MealPlanningServiceClient
 	notificationsgrpc.NotificationsServiceClient
 	oauth2clientsgrpc.OAuth2ClientsServiceClient
+	passkeysgrpc.PasskeysServiceClient
+	passwordresetgrpc.PasswordResetServiceClient
 	paymentsgrpc.BillingServiceClient
 	settingsgrpc.SettingsServiceClient
+	signingrpc.SignInServiceClient
 	uploadedmediagrpc.UploadedMediaServiceClient
 	waitlistsgrpc.WaitlistsServiceClient
 
@@ -67,6 +63,10 @@ type Client interface {
 	// reaching for them deliberately is no worse than reaching for the comments client
 	// below, which is here for the same reason.
 	IdentityService() identitygrpc.IdentityServiceClient
+
+	// SignInAdministrationService returns the operator half of sign-in: somebody else's logins,
+	// listed and ended.
+	SignInAdministrationService() signingrpc.SignInAdministrationServiceClient
 
 	// CommentsService returns the standalone CommentsService client. Use this to call
 	// CommentsService RPCs directly instead of via MealPlanningService.
@@ -87,23 +87,25 @@ type Client interface {
 
 type client struct {
 	analyticsgrpc.AnalyticsServiceClient
-	authgrpc.AuthServiceClient
 	auditgrpc.AuditServiceClient
-	dataprivacygrpc.DataPrivacyServiceClient
 	internalopsgrpc.InternalOperationsClient
 	issuereportsgrpc.IssueReportsServiceClient
 	mealplanninggrpc.MealPlanningServiceClient
 	notificationsgrpc.NotificationsServiceClient
 	oauth2clientsgrpc.OAuth2ClientsServiceClient
+	passkeysgrpc.PasskeysServiceClient
+	passwordresetgrpc.PasswordResetServiceClient
 	paymentsgrpc.BillingServiceClient
 	settingsgrpc.SettingsServiceClient
+	signingrpc.SignInServiceClient
 	uploadedmediagrpc.UploadedMediaServiceClient
 	waitlistsgrpc.WaitlistsServiceClient
 
-	identityClient identitygrpc.IdentityServiceClient
-	commentsClient commentsgrpc.CommentsServiceClient
-	webhooksClient webhooksgrpc.WebhooksServiceClient
-	conn           *grpc.ClientConn
+	identityClient             identitygrpc.IdentityServiceClient
+	signInAdministrationClient signingrpc.SignInAdministrationServiceClient
+	commentsClient             commentsgrpc.CommentsServiceClient
+	webhooksClient             webhooksgrpc.WebhooksServiceClient
+	conn                       *grpc.ClientConn
 }
 
 // BuildClient builds a new Client.
@@ -115,19 +117,21 @@ func BuildClient(grpcServerAddress string, opts ...grpc.DialOption) (Client, err
 
 	c := &client{
 		AnalyticsServiceClient:     analyticsgrpc.NewAnalyticsServiceClient(conn),
-		AuthServiceClient:          authgrpc.NewAuthServiceClient(conn),
 		AuditServiceClient:         auditgrpc.NewAuditServiceClient(conn),
-		DataPrivacyServiceClient:   dataprivacygrpc.NewDataPrivacyServiceClient(conn),
 		InternalOperationsClient:   internalopsgrpc.NewInternalOperationsClient(conn),
 		IssueReportsServiceClient:  issuereportsgrpc.NewIssueReportsServiceClient(conn),
 		MealPlanningServiceClient:  mealplanninggrpc.NewMealPlanningServiceClient(conn),
 		NotificationsServiceClient: notificationsgrpc.NewNotificationsServiceClient(conn),
 		OAuth2ClientsServiceClient: oauth2clientsgrpc.NewOAuth2ClientsServiceClient(conn),
+		PasskeysServiceClient:      passkeysgrpc.NewPasskeysServiceClient(conn),
+		PasswordResetServiceClient: passwordresetgrpc.NewPasswordResetServiceClient(conn),
 		BillingServiceClient:       paymentsgrpc.NewBillingServiceClient(conn),
 		SettingsServiceClient:      settingsgrpc.NewSettingsServiceClient(conn),
+		SignInServiceClient:        signingrpc.NewSignInServiceClient(conn),
 		UploadedMediaServiceClient: uploadedmediagrpc.NewUploadedMediaServiceClient(conn),
 		WaitlistsServiceClient:     waitlistsgrpc.NewWaitlistsServiceClient(conn),
 		identityClient:             identitygrpc.NewIdentityServiceClient(conn),
+		signInAdministrationClient: signingrpc.NewSignInAdministrationServiceClient(conn),
 		commentsClient:             commentsgrpc.NewCommentsServiceClient(conn),
 		webhooksClient:             webhooksgrpc.NewWebhooksServiceClient(conn),
 		conn:                       conn,
@@ -138,6 +142,10 @@ func BuildClient(grpcServerAddress string, opts ...grpc.DialOption) (Client, err
 
 func (c *client) IdentityService() identitygrpc.IdentityServiceClient {
 	return c.identityClient
+}
+
+func (c *client) SignInAdministrationService() signingrpc.SignInAdministrationServiceClient {
+	return c.signInAdministrationClient
 }
 
 func (c *client) CommentsService() commentsgrpc.CommentsServiceClient {
@@ -265,13 +273,6 @@ func WithOAuth2Credentials(
 	}), nil
 }
 
-func ImpersonateUseAndAccountContext(ctx context.Context, userID, accountID string) context.Context {
-	return metadata.NewOutgoingContext(ctx, metadata.New(map[string]string{
-		zuckModeUserHeader:    userID,
-		zuckModeAccountHeader: accountID,
-	}))
-}
-
 // bearerTokenCredential adds a static Bearer token to each RPC.
 type bearerTokenCredential struct {
 	token string
@@ -288,13 +289,13 @@ func (bearerTokenCredential) RequireTransportSecurity() bool {
 }
 
 // WithBearerTokenCredentials returns a DialOption that attaches the given token as a Bearer token to every RPC.
-// Use this when the token is a JWT (e.g. from LoginForToken) that should be sent directly without OAuth2 exchange.
+// Use this when the token is one SignInService.LoginForToken issued, sent directly rather than exchanged for an OAuth2 token.
 func WithBearerTokenCredentials(token string) grpc.DialOption {
 	return grpc.WithPerRPCCredentials(bearerTokenCredential{token: token})
 }
 
-// BuildUnauthenticatedGRPCClientWithBearerToken connects with a Bearer token (e.g. JWT from LoginForToken).
-// Use this when the token includes an account_id claim and you want the session to use that account.
+// BuildUnauthenticatedGRPCClientWithBearerToken connects with a Bearer token SignInService issued, over plaintext.
+// The token names the account it was issued for, and every call this client makes is against that account.
 func BuildUnauthenticatedGRPCClientWithBearerToken(grpcServerAddr, token string) (Client, error) {
 	return BuildClient(grpcServerAddr,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),

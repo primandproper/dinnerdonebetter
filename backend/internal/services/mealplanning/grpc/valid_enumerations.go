@@ -630,7 +630,9 @@ func (s *serviceImpl) GetValidIngredientGroups(ctx context.Context, request *mea
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	x, err := s.mealPlanningManager.ListValidIngredientGroups(ctx, filter)
 	if err != nil {
@@ -676,7 +678,9 @@ func (s *serviceImpl) GetValidIngredientMeasurementUnits(ctx context.Context, re
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	x, err := s.mealPlanningManager.ListValidIngredientMeasurementUnits(ctx, filter)
 	if err != nil {
@@ -704,7 +708,9 @@ func (s *serviceImpl) GetValidIngredientMeasurementUnitsByIngredient(ctx context
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	x, err := s.mealPlanningManager.SearchValidIngredientMeasurementUnitsByIngredient(ctx, request.ValidIngredientId, filter)
 	if err != nil {
@@ -732,7 +738,9 @@ func (s *serviceImpl) GetValidIngredientMeasurementUnitsByMeasurementUnit(ctx co
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	x, err := s.mealPlanningManager.SearchValidIngredientMeasurementUnitsByMeasurementUnit(ctx, request.ValidMeasurementUnitId, filter)
 	if err != nil {
@@ -779,7 +787,9 @@ func (s *serviceImpl) GetValidIngredientPreparations(ctx context.Context, reques
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	x, err := s.mealPlanningManager.ListValidIngredientPreparations(ctx, filter)
 	if err != nil {
@@ -808,7 +818,9 @@ func (s *serviceImpl) GetValidIngredientPreparationsByIngredient(ctx context.Con
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	x, err := s.mealPlanningManager.SearchValidIngredientPreparationsByIngredient(ctx, request.ValidIngredientId, filter)
 	if err != nil {
@@ -837,7 +849,9 @@ func (s *serviceImpl) GetValidIngredientPreparationsByPreparation(ctx context.Co
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	x, err := s.mealPlanningManager.SearchValidIngredientPreparationsByPreparation(ctx, request.ValidPreparationId, filter)
 	if err != nil {
@@ -884,7 +898,9 @@ func (s *serviceImpl) GetValidPrepTaskConfigs(ctx context.Context, request *meal
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	x, err := s.mealPlanningManager.ListValidPrepTaskConfigs(ctx, filter)
 	if err != nil {
@@ -913,7 +929,9 @@ func (s *serviceImpl) GetValidPrepTaskConfigsByIngredient(ctx context.Context, r
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	x, err := s.mealPlanningManager.SearchValidPrepTaskConfigsByIngredient(ctx, request.ValidIngredientId, filter)
 	if err != nil {
@@ -942,7 +960,9 @@ func (s *serviceImpl) GetValidPrepTaskConfigsByPreparation(ctx context.Context, 
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	x, err := s.mealPlanningManager.SearchValidPrepTaskConfigsByPreparation(ctx, request.ValidPreparationId, filter)
 	if err != nil {
@@ -974,7 +994,9 @@ func (s *serviceImpl) GetValidPrepTaskConfigsByIngredientAndPreparation(ctx cont
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	x, err := s.mealPlanningManager.SearchValidPrepTaskConfigsByIngredientAndPreparation(ctx, request.ValidIngredientId, request.ValidPreparationId, filter)
 	if err != nil {
@@ -1040,7 +1062,9 @@ func (s *serviceImpl) GetValidIngredientStateIngredients(ctx context.Context, re
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	x, err := s.mealPlanningManager.ListValidIngredientStateIngredients(ctx, filter)
 	if err != nil {
@@ -1069,7 +1093,9 @@ func (s *serviceImpl) GetValidIngredientStateIngredientsByIngredient(ctx context
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	x, err := s.mealPlanningManager.SearchValidIngredientStateIngredientsByIngredient(ctx, request.ValidIngredientId, filter)
 	if err != nil {
@@ -1098,7 +1124,9 @@ func (s *serviceImpl) GetValidIngredientStateIngredientsByIngredientState(ctx co
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	x, err := s.mealPlanningManager.SearchValidIngredientStateIngredientsByIngredientState(ctx, request.ValidIngredientStateId, filter)
 	if err != nil {
@@ -1126,7 +1154,9 @@ func (s *serviceImpl) GetValidIngredientStates(ctx context.Context, request *mea
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	x, err := s.mealPlanningManager.ListValidIngredientStates(ctx, filter)
 	if err != nil {
@@ -1154,7 +1184,9 @@ func (s *serviceImpl) GetValidIngredients(ctx context.Context, request *mealplan
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	x, err := s.mealPlanningManager.ListValidIngredients(ctx, filter)
 	if err != nil {
@@ -1203,7 +1235,9 @@ func (s *serviceImpl) GetValidInstruments(ctx context.Context, request *mealplan
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	x, err := s.mealPlanningManager.ListValidInstruments(ctx, filter)
 	if err != nil {
@@ -1271,7 +1305,9 @@ func (s *serviceImpl) GetValidMeasurementUnitConversionsForUnit(ctx context.Cont
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	x, err := s.mealPlanningManager.ValidMeasurementUnitConversionsForMeasurementUnit(ctx, request.ValidMeasurementUnitId, filter)
 	if err != nil {
@@ -1340,7 +1376,9 @@ func (s *serviceImpl) GetValidMeasurementUnits(ctx context.Context, request *mea
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	x, err := s.mealPlanningManager.ListValidMeasurementUnits(ctx, filter)
 	if err != nil {
@@ -1406,7 +1444,9 @@ func (s *serviceImpl) GetValidPreparationInstruments(ctx context.Context, reques
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	x, err := s.mealPlanningManager.ListValidPreparationInstruments(ctx, filter)
 	if err != nil {
@@ -1435,7 +1475,9 @@ func (s *serviceImpl) GetValidPreparationInstrumentsByInstrument(ctx context.Con
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	x, err := s.mealPlanningManager.SearchValidPreparationInstrumentsByInstrument(ctx, request.ValidInstrumentId, filter)
 	if err != nil {
@@ -1464,7 +1506,9 @@ func (s *serviceImpl) GetValidPreparationInstrumentsByPreparation(ctx context.Co
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	x, err := s.mealPlanningManager.SearchValidPreparationInstrumentsByPreparation(ctx, request.ValidPreparationId, filter)
 	if err != nil {
@@ -1511,7 +1555,9 @@ func (s *serviceImpl) GetValidPreparationVessels(ctx context.Context, request *m
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	x, err := s.mealPlanningManager.ListValidPreparationVessels(ctx, filter)
 	if err != nil {
@@ -1540,7 +1586,9 @@ func (s *serviceImpl) GetValidPreparationVesselsByPreparation(ctx context.Contex
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	x, err := s.mealPlanningManager.SearchValidPreparationVesselsByPreparation(ctx, request.ValidPreparationId, filter)
 	if err != nil {
@@ -1569,7 +1617,9 @@ func (s *serviceImpl) GetValidPreparationVesselsByVessel(ctx context.Context, re
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	x, err := s.mealPlanningManager.SearchValidPreparationVesselsByVessel(ctx, request.ValidVesselId, filter)
 	if err != nil {
@@ -1597,7 +1647,9 @@ func (s *serviceImpl) GetValidPreparations(ctx context.Context, request *mealpla
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	x, err := s.mealPlanningManager.ListValidPreparations(ctx, filter)
 	if err != nil {
@@ -1644,7 +1696,9 @@ func (s *serviceImpl) GetValidVessels(ctx context.Context, request *mealplanning
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	x, err := s.mealPlanningManager.ListValidVessels(ctx, filter)
 	if err != nil {
@@ -1672,7 +1726,9 @@ func (s *serviceImpl) SearchForValidIngredientGroups(ctx context.Context, reques
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	x, err := s.mealPlanningManager.SearchValidIngredientGroups(ctx, request.Query, request.UseSearchService, filter)
 	if err != nil {
@@ -1700,7 +1756,9 @@ func (s *serviceImpl) SearchForValidIngredientStates(ctx context.Context, reques
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	x, err := s.mealPlanningManager.SearchValidIngredientStates(ctx, request.Query, request.UseSearchService, filter)
 	if err != nil {
@@ -1728,7 +1786,9 @@ func (s *serviceImpl) SearchForValidIngredients(ctx context.Context, request *me
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	x, err := s.mealPlanningManager.SearchValidIngredients(ctx, request.Query, request.UseSearchService, filter)
 	if err != nil {
@@ -1756,7 +1816,9 @@ func (s *serviceImpl) SearchForValidInstruments(ctx context.Context, request *me
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	x, err := s.mealPlanningManager.SearchValidInstruments(ctx, request.Query, request.UseSearchService, filter)
 	if err != nil {
@@ -1784,7 +1846,9 @@ func (s *serviceImpl) SearchForValidMeasurementUnits(ctx context.Context, reques
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	x, err := s.mealPlanningManager.SearchValidMeasurementUnits(ctx, request.Query, request.UseSearchService, filter)
 	if err != nil {
@@ -1812,7 +1876,9 @@ func (s *serviceImpl) SearchForValidPreparations(ctx context.Context, request *m
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	x, err := s.mealPlanningManager.SearchValidPreparations(ctx, request.Query, request.UseSearchService, filter)
 	if err != nil {
@@ -1840,7 +1906,9 @@ func (s *serviceImpl) SearchForValidVessels(ctx context.Context, request *mealpl
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	x, err := s.mealPlanningManager.SearchValidVessels(ctx, request.Query, request.UseSearchService, filter)
 	if err != nil {
@@ -1869,7 +1937,9 @@ func (s *serviceImpl) SearchValidIngredientsByPreparation(ctx context.Context, r
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	x, err := s.mealPlanningManager.SearchValidIngredientsByPreparationAndIngredientName(ctx, request.ValidPreparationId, request.Query, filter)
 	if err != nil {
@@ -1898,7 +1968,9 @@ func (s *serviceImpl) SearchValidMeasurementUnitsByIngredient(ctx context.Contex
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	x, err := s.mealPlanningManager.SearchValidMeasurementUnitsByIngredientID(ctx, request.ValidIngredientId, filter)
 	if err != nil {

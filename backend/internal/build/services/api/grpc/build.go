@@ -13,6 +13,8 @@ import (
 	issuereportsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/issuereports"
 	notificationsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/notifications"
 	oauth2clientsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/oauth2clients"
+	passkeysbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/passkeys"
+	passwordresetbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/passwordreset"
 	paymentsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/payments"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/build/sagas"
 	settingsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/settings"
@@ -21,7 +23,6 @@ import (
 	webhooksbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/webhooks"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	auditmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit/manager"
-	authmgr "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/managers"
 	mealplanningregistration "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/registration"
 	notificationsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/manager"
 	paymentsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/manager"
@@ -42,11 +43,9 @@ import (
 	waitlistsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/waitlists"
 	webhooksstore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhooksstore"
 	analyticssvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/analytics/grpc"
-	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc/interceptors"
 	authhttpsvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/handlers/authentication"
 	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
-	dataprivacysvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/grpc"
 	internalopssvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/internalops/grpc"
 	paymentsadapters "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/adapters"
 	uploadedmediacfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/config"
@@ -127,6 +126,10 @@ func BuildInjector(
 	operationscfg.RegisterStore(i)
 	operationscfg.RegisterQueue(i)
 	operationscfg.RegisterService(i)
+	// The loop that pushes operation snapshots to the event stream operations/http serves,
+	// which is where a privacy request's receipt tells a client to follow it. service.New
+	// resolves and runs it.
+	operationscfg.RegisterWatcher(i)
 
 	dataprivacycfg.RegisterRequestService(i)
 	featureflagscfg.RegisterFeatureFlagManager(i)
@@ -181,7 +184,6 @@ func BuildInjector(
 
 	// managers
 	auditmanager.RegisterAuditDataManager(i)
-	authmgr.RegisterAuthManager(i)
 	notificationsmanager.RegisterNotificationsDataManager(i)
 	paymentsmanager.RegisterPaymentsDataManager(i)
 	webhooksmanager.RegisterWebhookDataManager(i)
@@ -190,22 +192,20 @@ func BuildInjector(
 	paymentsadapters.RegisterPaymentProcessorRegistry(i)
 
 	// services
-	authsvc.RegisterAuthService(i)
 	authhttpsvc.RegisterAuthHTTPService(i)
 	analyticssvc.RegisterAnalyticsService(i)
 	auditrepo.RegisterPlatformReader(i)
+	auditrepo.RegisterPlatformRecorder(i)
 	auditbuild.RegisterAuditService(i)
 	commentstargets.RegisterCommentsService(i)
-	dataprivacysvc.RegisterDataPrivacyService(i)
-	do.Provide[dataprivacysvc.DataPrivacyMethodPermissions](i, func(i do.Injector) (dataprivacysvc.DataPrivacyMethodPermissions, error) {
-		return dataprivacysvc.ProvideMethodPermissions(), nil
-	})
 	identitybuild.RegisterIdentityService(i)
 	internalopssvc.RegisterInternalOpsService(i)
 	issuereportsbuild.RegisterIssueReportsService(i)
 	notificationsbuild.RegisterNotificationsService(i)
 	settingsbuild.RegisterSettingsService(i)
 	signinbuild.RegisterSignInService(i)
+	passwordresetbuild.RegisterPasswordResetService(i)
+	passkeysbuild.RegisterPasskeysService(i)
 	uploadedmediasvc.RegisterUploadedMediaService(i)
 	webhooksbuild.RegisterWebhooksService(i)
 	oauth2clientsbuild.RegisterOAuth2ClientsService(i)

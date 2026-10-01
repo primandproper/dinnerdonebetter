@@ -21,12 +21,10 @@ right. That lives upstream rather than here because the merge is easy to get
 quietly wrong and impossible to do in the store: a set of scopes cannot be bound
 alongside a cursor and a limit on two of the three dialects audit serves.
 
-One read is still this package's, and it is the one the resolver deliberately
-cannot express: the operator's, every chain at once, which is a nil query scope
-rather than a slice anybody could enumerate. operatorReader makes that decision,
-and which chains a caller may read is not something a grant on the method can
-say — the grant is an account member's, for the reason waitlists' subject read
-is decided inside its handler rather than by PermissionReadSignups.
+The operator's read — every chain at once — is platform's too:
+AuditAdministrationService, behind audit.entries.read_any, which only the
+service administrator role is granted. Every such read is itself recorded, in
+the operator's own chain, before anything is returned; see WithOperatorRecorder.
 
 The privacy export remains the answer for a subject asking for everything held
 about them, because that reaches the repository rather than the wire.
@@ -64,12 +62,14 @@ func activeAccountScope(ctx context.Context) (tenancy.Scope, error) {
 func RegisterAuditService(i do.Injector) {
 	do.Provide[auditpb.AuditServiceServer](i, func(i do.Injector) (auditpb.AuditServiceServer, error) {
 		return auditgrpc.NewServer(
-			// Wrapped for the two reads the chains resolver does not reach: an entry by
-			// id, and an operator's. See operatorReader.
-			operatorReader{Reader: do.MustInvoke[platformaudit.Reader](i)},
+			do.MustInvoke[platformaudit.Reader](i),
 			do.MustInvoke[database.Client](i),
 			auditgrpc.WithScopeResolver(activeAccountScope),
 			auditgrpc.WithChainsResolver(callerChains),
+			auditgrpc.WithOperatorRecorder(
+				do.MustInvoke[platformaudit.Recorder](i),
+				sessions.AccountScopedPrincipalFromContext,
+			),
 			auditgrpc.WithLogger(do.MustInvoke[logging.Logger](i)),
 			auditgrpc.WithTracerProvider(do.MustInvoke[tracing.Provider](i)),
 			auditgrpc.WithMetricsProvider(do.MustInvoke[metrics.Provider](i)),

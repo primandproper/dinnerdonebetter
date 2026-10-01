@@ -7,12 +7,12 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mpconverters "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
-	authgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
 	mealplanninggrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 	converters "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/grpc/converters"
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
 
+	"github.com/primandproper/platform-go/v14/authentication/signin/signinpb"
 	"github.com/primandproper/platform-go/v14/identity/identitypb"
 	"github.com/primandproper/primitives-go/v2/filtering/filteringpb"
 
@@ -188,10 +188,10 @@ func TestMealPlans_CompleteLifecycleForAllVotesReceived(T *testing.T) {
 		_, accountAdminUserClient := createUserAndClientForTest(t)
 
 		// create account members
-		currentStatus, statusErr := accountAdminUserClient.GetAuthStatus(ctx, &authgrpc.GetAuthStatusRequest{})
+		currentStatus, statusErr := accountAdminUserClient.GetAuthStatus(ctx, &signinpb.GetAuthStatusRequest{})
 		require.NotNil(t, currentStatus)
 		require.NoError(t, statusErr)
-		relevantAccountID := currentStatus.ActiveAccount
+		relevantAccountID := currentStatus.GetStatus().GetActiveAccountId()
 
 		createdClients := []client.Client{}
 		for range 2 {
@@ -226,10 +226,10 @@ func TestMealPlans_CompleteLifecycleForAllVotesReceived(T *testing.T) {
 			_, err = c.IdentityService().SetDefaultAccount(ctx, &identitypb.SetDefaultAccountRequest{AccountId: relevantAccountID})
 			require.NoError(t, err)
 
-			tokenResponse, err := c.LoginForToken(ctx, &authgrpc.LoginForTokenRequest{Input: &authgrpc.UserLoginInput{
-				Username:  u.Username,
-				Password:  u.HashedPassword,
-				TotpToken: generateTOTPCodeForUserForTest(t, u),
+			tokenResponse, err := c.LoginForToken(ctx, &signinpb.LoginForTokenRequest{Credentials: &signinpb.Credentials{
+				Username: u.Username,
+				Password: u.HashedPassword,
+				TotpCode: generateTOTPCodeForUserForTest(t, u),
 			}})
 			require.NoError(t, err)
 			assert.NotNil(t, tokenResponse)
@@ -457,10 +457,10 @@ func TestMealPlans_FinalizeMealPlan(T *testing.T) {
 		_, accountAdminUserClient := createUserAndClientForTest(t)
 
 		// Get account ID
-		currentStatus, statusErr := accountAdminUserClient.GetAuthStatus(ctx, &authgrpc.GetAuthStatusRequest{})
+		currentStatus, statusErr := accountAdminUserClient.GetAuthStatus(ctx, &signinpb.GetAuthStatusRequest{})
 		require.NotNil(t, currentStatus)
 		require.NoError(t, statusErr)
-		relevantAccountID := currentStatus.ActiveAccount
+		relevantAccountID := currentStatus.GetStatus().GetActiveAccountId()
 
 		// Create 2 additional household members (total 3 including admin)
 		createdClients := []client.Client{}
@@ -479,10 +479,10 @@ func TestMealPlans_FinalizeMealPlan(T *testing.T) {
 			_, err = c.IdentityService().SetDefaultAccount(ctx, &identitypb.SetDefaultAccountRequest{AccountId: relevantAccountID})
 			require.NoError(t, err)
 
-			tokenResponse, err := c.LoginForToken(ctx, &authgrpc.LoginForTokenRequest{Input: &authgrpc.UserLoginInput{
-				Username:  u.Username,
-				Password:  u.HashedPassword,
-				TotpToken: generateTOTPCodeForUserForTest(t, u),
+			tokenResponse, err := c.LoginForToken(ctx, &signinpb.LoginForTokenRequest{Credentials: &signinpb.Credentials{
+				Username: u.Username,
+				Password: u.HashedPassword,
+				TotpCode: generateTOTPCodeForUserForTest(t, u),
 			}})
 			require.NoError(t, err)
 			assert.NotNil(t, tokenResponse)
@@ -654,10 +654,10 @@ func TestMealPlans_CompleteLifecycleForSomeVotesReceived(T *testing.T) {
 		_, accountAdminUserClient := createUserAndClientForTest(t)
 
 		// create account members
-		currentStatus, statusErr := accountAdminUserClient.GetAuthStatus(ctx, &authgrpc.GetAuthStatusRequest{})
+		currentStatus, statusErr := accountAdminUserClient.GetAuthStatus(ctx, &signinpb.GetAuthStatusRequest{})
 		require.NotNil(t, currentStatus)
 		require.NoError(t, statusErr)
-		relevantAccountID := currentStatus.ActiveAccount
+		relevantAccountID := currentStatus.GetStatus().GetActiveAccountId()
 
 		createdClients := []client.Client{}
 		for range 2 {
@@ -692,10 +692,10 @@ func TestMealPlans_CompleteLifecycleForSomeVotesReceived(T *testing.T) {
 			_, err = c.IdentityService().SetDefaultAccount(ctx, &identitypb.SetDefaultAccountRequest{AccountId: relevantAccountID})
 			require.NoError(t, err)
 
-			tokenResponse, err := c.LoginForToken(ctx, &authgrpc.LoginForTokenRequest{Input: &authgrpc.UserLoginInput{
-				Username:  u.Username,
-				Password:  u.HashedPassword,
-				TotpToken: generateTOTPCodeForUserForTest(t, u),
+			tokenResponse, err := c.LoginForToken(ctx, &signinpb.LoginForTokenRequest{Credentials: &signinpb.Credentials{
+				Username: u.Username,
+				Password: u.HashedPassword,
+				TotpCode: generateTOTPCodeForUserForTest(t, u),
 			}})
 			require.NoError(t, err)
 			assert.NotNil(t, tokenResponse)

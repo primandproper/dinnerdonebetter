@@ -14,20 +14,18 @@ import (
 	"time"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
-	authfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/fakes"
 	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
-	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/converters"
-	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
+	internalopssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/internalops"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/indexevents"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/localdev"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identitystore"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc/converters"
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
 
+	"github.com/primandproper/platform-go/v14/authentication/signin/signinpb"
 	identity "github.com/primandproper/platform-go/v14/identity"
+	"github.com/primandproper/platform-go/v14/identity/identitypb"
 	"github.com/primandproper/platform-go/v14/outbox"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/database/dialect"
@@ -63,11 +61,11 @@ func getAccountIDForTest(t *testing.T, c client.Client) string {
 	t.Helper()
 	ctx := t.Context()
 
-	status, err := c.GetAuthStatus(ctx, &authsvc.GetAuthStatusRequest{})
+	status, err := c.GetAuthStatus(ctx, &signinpb.GetAuthStatusRequest{})
 	require.NoError(t, err)
 	require.NotNil(t, status)
-	require.NotEmpty(t, status.ActiveAccount)
-	return status.ActiveAccount
+	require.NotEmpty(t, status.GetStatus().GetActiveAccountId())
+	return status.GetStatus().GetActiveAccountId()
 }
 
 func buildUnauthenticatedGRPCClientForTest(t *testing.T) client.Client {
@@ -120,67 +118,89 @@ func hashStringToNumber(s string) uint64 {
 	return h.Sum64()
 }
 
-func createServiceUserForTest(t *testing.T, verifyTOTP bool, in *auth.UserRegistrationInput) *identity.User {
+func createServiceUserForTest(t *testing.T, in *signinpb.RegisterRequest) *identity.User {
 	t.Helper()
 
-	user, err := createServiceUser(t.Context(), verifyTOTP, in)
+	user, err := createServiceUser(t.Context(), true, in)
 	require.NoError(t, err)
 
 	return user
 }
 
-// createServiceUser registers somebody through the same RPC a sign-up form calls.
-//
-// RegisterUser on the auth service, not CreateUser on the identity service: the directory
-// is platform's now and every method on it is behind a grant, so the one call a caller
-// with no session makes is on the surface that has always served them.
-func createServiceUser(ctx context.Context, verifyTOTP bool, in *auth.UserRegistrationInput) (*identity.User, error) {
+// createServiceUser registers somebody through the RPC a sign-up form calls:
+// SignInService.Register, open to anybody, with this application's RegistrationPolicy in front.
+func createServiceUser(ctx context.Context, verifyTOTP bool, in *signinpb.RegisterRequest) (_ *identity.User, err error) {
 	c, err := client.BuildUnauthenticatedGRPCClient(fmt.Sprintf(":%d", apiServiceConfig.GRPCServer.Port))
 	if err != nil {
 		return nil, fmt.Errorf("initializing client: %w", err)
 	}
 
+	defer func() {
+		if closeErr := c.Close(); closeErr != nil && err == nil {
+			err = closeErr
+		}
+	}()
+
 	if in == nil {
-		in = authfakes.BuildFakeUserRegistrationInput()
+		in = buildRegisterRequest(identifiers.New())
 	}
 
-	res, err := c.RegisterUser(ctx, &authsvc.RegisterUserRequest{
-		Input: converters.ConvertUserRegistrationInputToGRPCUserRegistrationInput(in),
-	})
+	res, err := c.Register(ctx, in)
 	if err != nil {
 		return nil, fmt.Errorf("creating user: %w", err)
 	}
-	ucr := res.Created
+
+	registered := res.GetRegistration()
+	twoFactorSecret := registered.GetTotpEnrollment().GetSecret()
 
 	if verifyTOTP {
-		if err = verifyTOTPSecretForUser(ctx, c, ucr.CreatedUserId, ucr.TwoFactorSecret); err != nil {
+		if err = verifyTOTPSecretForUser(ctx, registered.GetUser().GetUsername(), in.GetPassword(), twoFactorSecret); err != nil {
 			return nil, fmt.Errorf("verifying totp code: %w", err)
 		}
 	}
 
 	u := &identity.User{
-		ID:              ucr.CreatedUserId,
-		Username:        ucr.Username,
-		EmailAddress:    ucr.EmailAddress,
-		TwoFactorSecret: ucr.TwoFactorSecret,
-		CreatedAt:       grpcconverters.ConvertPBTimestampToTime(ucr.CreatedAt),
+		ID:              registered.GetUser().GetId(),
+		Username:        registered.GetUser().GetUsername(),
+		EmailAddress:    registered.GetUser().GetEmailAddress(),
+		TwoFactorSecret: twoFactorSecret,
+		CreatedAt:       registered.GetUser().GetCreatedAt().AsTime(),
 		// this is a dirty trick to reuse this field to provide the password to the caller.
-		HashedPassword: in.Password,
+		HashedPassword: in.GetPassword(),
 	}
 
 	return u, nil
 }
 
-func verifyTOTPSecretForUser(ctx context.Context, c client.Client, userID, twoFactorSecret string) error {
-	token, tokenErr := totp.GenerateCode(twoFactorSecret, time.Now().UTC())
-	if tokenErr != nil {
-		return fmt.Errorf("generating totp code: %w", tokenErr)
+// verifyTOTPSecretForUser proves a registrant's second factor the way a person finishing
+// enrollment does: signed in with their password alone, which is all a registrant who has not
+// proven one is asked for, and then with a code from the secret registration handed them.
+func verifyTOTPSecretForUser(ctx context.Context, username, password, twoFactorSecret string) (err error) {
+	token, err := localdev.FetchLoginTokenForUser(ctx, fmt.Sprintf(":%d", apiServiceConfig.GRPCServer.Port), &signinpb.Credentials{
+		Username: username,
+		Password: password,
+	})
+	if err != nil {
+		return fmt.Errorf("signing in to prove a second factor: %w", err)
 	}
 
-	if _, err := c.VerifyTOTPSecret(ctx, &authsvc.VerifyTOTPSecretRequest{
-		TotpToken: token,
-		UserId:    userID,
-	}); err != nil {
+	c, err := buildAuthedGRPCClientWithBearerToken(token)
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		if closeErr := c.Close(); closeErr != nil && err == nil {
+			err = closeErr
+		}
+	}()
+
+	code, err := totp.GenerateCode(twoFactorSecret, time.Now().UTC())
+	if err != nil {
+		return fmt.Errorf("generating totp code: %w", err)
+	}
+
+	if _, err = c.VerifyTOTPSecret(ctx, &signinpb.VerifyTOTPSecretRequest{TotpCode: code}); err != nil {
 		return fmt.Errorf("verifying totp code: %w", err)
 	}
 
@@ -201,18 +221,30 @@ func createClientForUser(ctx context.Context, user *identity.User) (client.Clien
 	return oauthedClient, nil
 }
 
-func buildUserRegistrationInputForTest(t *testing.T) *auth.UserRegistrationInput {
+// buildUserRegistrationInputForTest is a sign-up, unique to the test, that this application's
+// registration policy admits: a password strong enough, and both agreements accepted.
+func buildUserRegistrationInputForTest(t *testing.T) *signinpb.RegisterRequest {
 	t.Helper()
 
-	return &auth.UserRegistrationInput{
-		EmailAddress:          fmt.Sprintf("test+%d@whatever.com", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
-		FirstName:             fmt.Sprintf("test_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
-		AccountName:           fmt.Sprintf("test_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
-		LastName:              fmt.Sprintf("test_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
-		Password:              fmt.Sprintf("test_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
-		Username:              fmt.Sprintf("test_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))),
-		AcceptedPrivacyPolicy: true,
-		AcceptedTOS:           true,
+	return buildRegisterRequest(fmt.Sprintf("%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano))))
+}
+
+func buildRegisterRequest(suffix string) *signinpb.RegisterRequest {
+	name := "test_" + suffix
+
+	return &signinpb.RegisterRequest{
+		User: &identitypb.UserRegistrationInput{
+			Username:     name,
+			EmailAddress: fmt.Sprintf("test+%s@whatever.com", suffix),
+			FirstName:    name,
+			LastName:     name,
+		},
+		Account:    &identitypb.AccountCreationInput{Name: name},
+		Credential: &signinpb.RegisterRequest_Password{Password: name + "-a-password-with-plenty-of-entropy"},
+		Agreements: []identitypb.Agreement{
+			identitypb.Agreement_AGREEMENT_TERMS_OF_SERVICE,
+			identitypb.Agreement_AGREEMENT_PRIVACY_POLICY,
+		},
 	}
 }
 
@@ -222,12 +254,12 @@ func createUserAndClientForTest(t *testing.T) (*identity.User, client.Client) {
 	return createUserAndClientForTestWithRegistrationInput(t, buildUserRegistrationInputForTest(t))
 }
 
-func createUserAndClientForTestWithRegistrationInput(t *testing.T, input *auth.UserRegistrationInput) (*identity.User, client.Client) {
+func createUserAndClientForTestWithRegistrationInput(t *testing.T, input *signinpb.RegisterRequest) (*identity.User, client.Client) {
 	t.Helper()
 
 	ctx := t.Context()
 
-	user := createServiceUserForTest(t, true, input)
+	user := createServiceUserForTest(t, input)
 	oauthedClient, err := buildAuthedGRPCClient(ctx, fetchLoginTokenForUserForTest(t, user))
 	require.NoError(t, err)
 
@@ -259,18 +291,18 @@ func fetchLoginTokenForUser(ctx context.Context, user *identity.User) (string, e
 		return "", err
 	}
 
-	loginInput := &authsvc.UserLoginInput{
-		Username:  user.Username,
-		Password:  user.HashedPassword,
-		TotpToken: code,
+	credentials := &signinpb.Credentials{
+		Username: user.Username,
+		Password: user.HashedPassword,
+		TotpCode: code,
 	}
 
 	// wretched hack that unfortunately works
 	if user.Username == premadeAdminUser.Username {
-		loginInput.Password = adminUserPassword
+		credentials.Password = adminUserPassword
 	}
 
-	return localdev.FetchLoginTokenForUser(ctx, fmt.Sprintf(":%d", apiServiceConfig.GRPCServer.Port), loginInput)
+	return localdev.FetchLoginTokenForUser(ctx, fmt.Sprintf(":%d", apiServiceConfig.GRPCServer.Port), credentials)
 }
 
 //// ChatGPT Zone
@@ -509,8 +541,7 @@ const invitationLifetime = time.Hour
 // A test that took the token off the response would be testing a response that must not
 // carry one.
 //
-// Everything from the acceptance onwards is the real path. It is the same arrangement
-// passwordResetStoreForTest exists for, and for the same reason.
+// Everything from the acceptance onwards is the real path.
 func inviteForTest(t *testing.T, fromUserID, accountID, toEmail string) *identity.Invitation {
 	t.Helper()
 	ctx := t.Context()
@@ -568,11 +599,11 @@ func selfIDForTest(t *testing.T, c client.Client) string {
 	t.Helper()
 	ctx := t.Context()
 
-	self, err := c.GetSelf(ctx, &authsvc.GetSelfRequest{})
+	self, err := c.GetSelf(ctx, &signinpb.GetSelfRequest{})
 	require.NoError(t, err)
-	require.NotNil(t, self.GetResult())
+	require.NotNil(t, self.GetUser())
 
-	return self.GetResult().GetId()
+	return self.GetUser().GetId()
 }
 
 // verifyEmailAddressForTest marks a user's address proven.
@@ -595,4 +626,23 @@ func verifyEmailAddressForTest(t *testing.T, userID string) {
 	require.NoError(t, databaseClient.WithTransaction(ctx, func(tx database.Tx) error {
 		return store.MarkUserEmailAddressProven(ctx, tx, ddbidentity.Scope(), userID)
 	}))
+}
+
+// impersonationClientForTest is operator acting as subjectID in accountID, through the token
+// InternalOperations.ImpersonateUser mints.
+func impersonationClientForTest(t *testing.T, operator client.Client, subjectID, accountID string) client.Client {
+	t.Helper()
+
+	res, err := operator.ImpersonateUser(t.Context(), &internalopssvc.ImpersonateUserRequest{
+		SubjectId: subjectID,
+		AccountId: accountID,
+	})
+	require.NoError(t, err)
+	require.NotEmpty(t, res.GetToken())
+
+	impersonated, err := buildAuthedGRPCClientWithBearerToken(res.GetToken())
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, impersonated.Close()) })
+
+	return impersonated
 }

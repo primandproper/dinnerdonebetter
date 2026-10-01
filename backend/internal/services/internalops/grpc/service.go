@@ -37,6 +37,7 @@ type (
 		logger          logging.Logger
 		msgConfig       *msgconfig.Config
 		internalOpsRepo domaininternalops.InternalOpsDataManager
+		impersonator    Impersonator
 	}
 )
 
@@ -45,10 +46,12 @@ func NewService(
 	tracerProvider tracing.Provider,
 	msgConfig *msgconfig.Config,
 	repo domaininternalops.InternalOpsDataManager,
+	impersonator Impersonator,
 ) settingssvc.InternalOperationsServer {
 	return &serviceImpl{
 		msgConfig:       msgConfig,
 		internalOpsRepo: repo,
+		impersonator:    impersonator,
 		logger:          logging.NewNamedLogger(logger, o11yName),
 		tracer:          tracing.NewNamedTracer(tracerProvider, o11yName),
 	}

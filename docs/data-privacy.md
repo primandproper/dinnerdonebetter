@@ -32,15 +32,28 @@ authenticated call.
 
 | Step | Who | What happens |
 | ------ | ----- | -------------- |
-| Submit | API server (`AggregateUserDataReport` / `DestroyAllUserData`) | Writes a `pending` row, stamps `due_at` from the response window, returns the request. |
+| Submit | API server (`POST /privacy-requests`, `{"type": "export"}` or `"erasure"`) | Writes a `pending` row, stamps `due_at` from the response window, returns the request. |
 | Fulfill | Scheduler (`dataprivacy.Worker`) | Fans out over the registry; writes the artifact, or runs every eraser in one transaction. |
-| Delivery | API server (`FetchUserDataReport`) | `Open`s the artifact — decrypt, decompress — and returns the JSON. |
+| Delivery | API server (`GET /privacy-requests/{requestID}/artifact`, platform's route) | `Open`s the artifact — decrypt, decompress — and streams the JSON. |
 | Expiry | Scheduler (`data_privacy_sweep`) | Deletes the artifact, then clears the reference and marks the request `expired`. |
 
 Submission no longer publishes to a message queue. A request is a row a worker claims, so the
 durability that a topic was providing now comes from the table — and a request can no longer be
 accepted, acknowledged, and then lost because the broker dropped it. The
 `user_data_aggregation_requests` topic and its subscription are gone.
+
+The surface is platform's `dataprivacy/http`, mounted on the API server's router at
+`/privacy-requests` beside `operations/http` at `/operations`, which is where a request's progress
+is polled or streamed (its receipt names both paths). There is no gRPC privacy service: the
+application's own `DataPrivacyService` was a second spelling of the same five calls and was
+deleted when platform's surface was mounted. The artifact download is platform's too
+(`dataprivacyhttp`'s `MountArtifact`, which `Mount` includes): an encrypted artifact is streamed
+through `Open`, which decrypts, rather than handed out as a signed URL to ciphertext. Every route
+but the confirmation link and the download asks the caller for a grant —
+`dataprivacy.requests.submit`, `.read` and `.cancel`, which every user holds through
+`service_user` — and is then narrowed to the caller's own requests. See
+`backend/internal/build/services/api/http/platform_surfaces.go`, which also resolves the caller
+from the same bearer token the gRPC interceptor reads.
 
 ## Collectors: what goes in an export
 
@@ -197,6 +210,12 @@ quietly succeeding. Deleting the row would free the unique key, so somebody eras
 request could be put back on a mailing list by filling the form in again; erasing somebody and
 then re-subscribing them is not an erasure. The outcome reports the digest as retained, with that
 basis.
+
+A signup made on the public signup page by somebody not signed in names no subject, so neither
+the collector nor the eraser reaches it. Its person is reached by address instead: every such
+signup is pending until the address confirms it, and the confirmation mail carries an unsubscribe
+link that withdraws the signup — with the same digest kept — whether or not it was ever confirmed.
+See `internal/build/waitlists`.
 
 Two caveats are stated in `internal/domain/waitlists/privacy` rather than worked around: the
 withdrawals do **not** run inside the request's transaction (platform's `Withdraw` owns its own),

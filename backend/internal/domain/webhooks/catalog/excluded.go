@@ -1,7 +1,6 @@
 package catalog
 
 import (
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
 )
@@ -37,10 +36,9 @@ var excluded = map[string]struct{}{
 	identity.UserDetailsChangedEventType:                         {},
 	identity.UsernameReminderRequestedEventType:                  {},
 	identity.UserLoggedInServiceEventType:                        {},
+	identity.UserImpersonatedServiceEventType:                    {},
 	identity.UserLoggedOutServiceEventType:                       {},
 	identity.UserChangedActiveAccountServiceEventType:            {},
-	auth.UserSessionCreatedEventType:                             {},
-	auth.UserSessionRevokedEventType:                             {},
 	identity.UserEmailAddressVerifiedEventType:                   {},
 	identity.UserEmailAddressVerificationEmailRequestedEventType: {},
 	identity.AccountInvitationAcceptedServiceEventType:           {},

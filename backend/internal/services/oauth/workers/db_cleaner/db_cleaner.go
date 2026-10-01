@@ -4,11 +4,8 @@ import (
 	"context"
 	"errors"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
-
 	"github.com/primandproper/platform-go/v14/authentication/passwordreset"
 	"github.com/primandproper/platform-go/v14/authentication/signin/refreshtokens"
-	sessionsdatabase "github.com/primandproper/platform-go/v14/sessions/database"
 	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/metrics"
@@ -22,23 +19,22 @@ const (
 	serviceName = "db_cleaner"
 )
 
-// Job removes the dead records of the four authentication stores that keep expiring rows:
-// the authorization server's codes and tokens, the password reset tokens, the user sessions,
-// and the refresh tokens platform's sign-in rotates.
+// Job removes the dead records of the three authentication stores that keep expiring rows:
+// the authorization server's codes and tokens, the password reset tokens, and the refresh
+// tokens platform's sign-in rotates.
 //
-// It is a garbage collector rather than a security control. Every read any of the four
-// performs already refuses an expired, revoked, or redeemed record — a session past either
-// of its deadlines is refused by the store's policy rather than by the row's absence — so a
-// row this has not reached yet is unusable. What it stops is those tables growing: with
-// every login on two of them, with every refresh on the fourth, and with every password
-// anybody ever forgot on the third, including the requests nobody followed up, which are the
-// ones no redemption ever removes.
+// It is a garbage collector rather than a security control. Every read any of the three
+// performs already refuses an expired, revoked, or redeemed record, so a row this has not
+// reached yet is unusable. What it stops is those tables growing: with every login and every
+// refresh on the refresh tokens, and with every password anybody ever forgot on the reset
+// tokens, including the requests nobody followed up, which are the ones no redemption ever
+// removes.
 //
 // It runs here, as one scheduled sweep for the fleet, rather than as any store's own sweeper
 // goroutine: a sweeper per replica would have every pod running the same full-table delete on
 // its own timer.
 //
-// Three of the four stores are built without WithSweeper, so that intent takes effect. The
+// Two of the three stores are built without WithSweeper, so that intent takes effect. The
 // authorization server's is not, and cannot be from where it is configured: its config
 // documents a non-positive SweepInterval as "no sweeper", but EnsureDefaults rewrites the
 // zero the deployed configurations set to ten minutes before it reaches WithSweeper — so
@@ -57,7 +53,6 @@ type Job struct {
 	oauth2Store           oauth2server.Store
 	passwordResetStore    *passwordreset.SQLStore
 	refreshTokenStore     *refreshtokens.SQLStore
-	sessionBackend        *sessionsdatabase.Backend[auth.SessionPayload]
 }
 
 func NewDBCleaner(
@@ -67,7 +62,6 @@ func NewDBCleaner(
 	oauth2Store oauth2server.Store,
 	passwordResetStore *passwordreset.SQLStore,
 	refreshTokenStore *refreshtokens.SQLStore,
-	sessionBackend *sessionsdatabase.Backend[auth.SessionPayload],
 ) (*Job, error) {
 	handledRecordsCounter, err := metricsProvider.NewInt64Counter("db_cleaner.handled_records")
 	if err != nil {
@@ -81,7 +75,6 @@ func NewDBCleaner(
 		oauth2Store:           oauth2Store,
 		passwordResetStore:    passwordResetStore,
 		refreshTokenStore:     refreshTokenStore,
-		sessionBackend:        sessionBackend,
 	}, nil
 }
 
@@ -93,7 +86,6 @@ func (j *Job) Do(ctx context.Context) error {
 		j.sweepOAuth2(ctx),
 		j.sweepPasswordResetTokens(ctx),
 		j.sweepRefreshTokens(ctx),
-		j.sweepUserSessions(ctx),
 	)
 }
 
@@ -148,27 +140,6 @@ func (j *Job) sweepRefreshTokens(ctx context.Context) error {
 
 	j.recordSwept(ctx, "signin_refresh_tokens", deleted)
 	j.logger.WithValue("swept", deleted).Info("swept purgeable refresh tokens")
-
-	return nil
-}
-
-// sweepUserSessions deletes session rows whose deadlines have passed.
-//
-// Like the reset tokens above it takes no clock argument: the backend compares against its
-// own, which is the clock expires_at was stamped from. Asking the database server for the
-// time instead would put two clocks on the two sides of one comparison.
-//
-// A revoked session never reaches this. Revocation removes the row, which is the whole
-// reason the platform's table has no revoked_at column for a sweep to have to interpret.
-func (j *Job) sweepUserSessions(ctx context.Context) error {
-	deleted, err := j.sessionBackend.Sweep(ctx)
-	if err != nil {
-		j.logger.Error("sweeping expired user sessions", err)
-		return err
-	}
-
-	j.recordSwept(ctx, "sessions", deleted)
-	j.logger.WithValue("swept", deleted).Info("swept expired user sessions")
 
 	return nil
 }

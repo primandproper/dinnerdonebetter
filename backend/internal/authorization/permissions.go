@@ -39,7 +39,8 @@ var (
 		ReadOAuth2ClientsPermission,
 		ArchiveSettingDefinitionsPermission,
 		ImpersonateUserPermission,
-		ManageUserSessionsPermission,
+		ReadAnySignInsPermission,
+		EndAnySignInsPermission,
 		PublishArbitraryQueueMessagePermission,
 		RunMealPlanWorkersPermission,
 		UpdateRecipesStatusPermission,
@@ -65,6 +66,8 @@ var (
 		// internal/build/services/api/grpc.TestMethodTableIsCoveredByThePolicy,
 		// which is the check that says so.
 		VerifyAuditChainPermission,
+		ReadAnyAuditLogEntriesPermission,
+		ReadAnyIssueReportsPermission,
 		ModerateCommentsPermission,
 		ReadAllSettingValuesPermission,
 		WriteAdminSettingValuesPermission,
@@ -77,8 +80,8 @@ var (
 		// something the person on the list does, and archiving is explicitly not
 		// withdrawing: the row is hidden and the address is still stored, so it is a
 		// queue being tidied rather than an opt-out being honored. The opt-out is
-		// Withdraw, which a member reaches under JoinWaitlistsPermission and which the
-		// signup authorizer confines to their own.
+		// Withdraw, which is public and which the signup authorizer confines to the
+		// caller's own, or the unsubscribe link the confirmation mail carried.
 		//
 		// Leaving them with the member was a cross-tenant hole rather than a generous
 		// reading: signups are scoped globally here and neither RPC has an ownership
@@ -334,7 +337,6 @@ var (
 		CreateUserDeviceTokensPermission,
 		ReadUserDeviceTokensPermission,
 		ArchiveUserDeviceTokensPermission,
-		JoinWaitlistsPermission,
 		ReadOwnWaitlistSignupsPermission,
 		ReadWaitlistsPermission,
 		ReadValidPrepTaskConfigsPermission,
@@ -343,9 +345,6 @@ var (
 		ReadPurchasesPermission,
 		ReadPaymentHistoryPermission,
 		ReadSubscriptionsPermission,
-		CreateUserDataReportsPermission,
-		ReadUserDataReportsPermission,
-		DestroyUserDataPermission,
 
 		// The webhook reads, which a member held as "read.webhooks" before the
 		// adoption split it. A member seeing an endpoint learns nothing they

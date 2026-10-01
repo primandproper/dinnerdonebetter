@@ -156,7 +156,9 @@ func (q *repository) GetRecipeStepInstruments(ctx context.Context, recipeID, rec
 		filter = filtering.DefaultQueryFilter()
 	}
 	logger = filter.AttachToLogger(logger)
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	filterArgs := filtering.ToSQLArgs(filter)
 
