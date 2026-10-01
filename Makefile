@@ -32,9 +32,9 @@ PROTO_GO_FILTERING_MAP    := M$(PLATFORM_FILTERING_PROTO)=github.com/primandprop
 
 # identity's schema arrives the same way, from platform-go rather than
 # primitives-go, because the directory is a service and filtering is a value
-# type. The auth service's GetSelf and GetActiveAccount answer with platform's
-# User and Account, so their messages have to come from the module that defines
-# them rather than from a copy here that could disagree with the server.
+# type. No proto here imports it since AuthService was retired, but the
+# TypeScript api-client is still generated from it, so its messages come from the
+# module that defines them rather than from a copy that could disagree with the server.
 PLATFORM_IDENTITY_PROTO_PATH := $(shell cd backend && go list -m -f '{{.Dir}}' github.com/primandproper/platform-go/v14)/identity/proto
 PLATFORM_IDENTITY_PROTO      := primandproper/platform/identity/v1/identity.proto
 PROTO_GO_IDENTITY_MAP        := M$(PLATFORM_IDENTITY_PROTO)=github.com/primandproper/platform-go/v14/identity/identitypb
@@ -129,9 +129,9 @@ ensure_proto_ts_plugin_installed:
 
 .PHONY: format
 format: format_yaml
+	# frontend and ios are out of these targets until they move off the retired AuthService onto
+	# platform's SignInService, PasswordResetService and PasskeysService. Restore them then.
 	(cd backend && $(MAKE) format)
-	(cd frontend && $(MAKE) format)
-	(cd ios && $(MAKE) format)
 
 .PHONY: format_yaml
 format_yaml: ensure_yamlfmt_installed
@@ -143,9 +143,9 @@ terraformat:
 
 .PHONY: lint
 lint:
+	# frontend and ios are out of these targets until they move off the retired AuthService onto
+	# platform's SignInService, PasswordResetService and PasskeysService. Restore them then.
 	(cd backend && $(MAKE) lint)
-	(cd frontend && $(MAKE) lint)
-	(cd ios && $(MAKE) lint)
 
 .PHONY: lint_markdown
 lint_markdown:
@@ -153,9 +153,9 @@ lint_markdown:
 
 .PHONY: test
 test: test_scripts
+	# frontend and ios are out of these targets until they move off the retired AuthService onto
+	# platform's SignInService, PasswordResetService and PasskeysService. Restore them then.
 	(cd backend && $(MAKE) test)
-	(cd frontend && $(MAKE) test)
-	(cd ios && $(MAKE) test)
 
 .PHONY: test_scripts
 test_scripts:
@@ -163,9 +163,9 @@ test_scripts:
 
 .PHONY: build
 build:
+	# frontend and ios are out of these targets until they move off the retired AuthService onto
+	# platform's SignInService, PasswordResetService and PasskeysService. Restore them then.
 	(cd backend && $(MAKE) build)
-	(cd frontend && $(MAKE) build)
-	(cd ios && $(MAKE) build)
 
 .PHONY: pre_commit
 pre_commit: proto build format test lint
@@ -357,7 +357,10 @@ proto_typescript: ensure_protoc_installed ensure_proto_ts_plugin_installed
 	(cd frontend && $(MAKE) format)
 
 .PHONY: proto
-proto: format_proto proto_golang proto_swift proto_typescript
+# proto_swift is out of proto until the iOS app moves off the retired AuthService; its generated
+# code is stale until then. The TypeScript is regenerated, because the api-client package is
+# checked against it.
+proto: format_proto proto_golang proto_typescript
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Utilities
