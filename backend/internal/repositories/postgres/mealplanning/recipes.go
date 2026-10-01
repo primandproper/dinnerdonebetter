@@ -411,7 +411,9 @@ func (q *repository) GetRecipes(ctx context.Context, status string, filter *filt
 		filter = filtering.DefaultQueryFilter()
 	}
 	logger = filter.AttachToLogger(logger)
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	if status == "" {
 		status = mealplanning.RecipeStatusApproved
@@ -478,7 +480,9 @@ func (q *repository) GetRecipesCreatedByUser(ctx context.Context, userID string,
 		filter = filtering.DefaultQueryFilter()
 	}
 	logger = filter.AttachToLogger(logger)
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	if userID == "" {
 		return nil, platformerrors.ErrInvalidIDProvided
@@ -690,7 +694,9 @@ func (q *repository) SearchForRecipes(ctx context.Context, recipeNameQuery strin
 		filter = filtering.DefaultQueryFilter()
 	}
 	logger = filter.AttachToLogger(logger)
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	filterArgs := filtering.ToSQLArgs(filter)
 
@@ -753,7 +759,9 @@ func (q *repository) SearchForMealEligibleRecipes(ctx context.Context, recipeNam
 		filter = filtering.DefaultQueryFilter()
 	}
 	logger = filter.AttachToLogger(logger)
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	filterArgs := filtering.ToSQLArgs(filter)
 
@@ -816,7 +824,9 @@ func (q *repository) SearchForRecipesWithInstrumentOwnership(ctx context.Context
 		filter = filtering.DefaultQueryFilter()
 	}
 	logger = filter.AttachToLogger(logger)
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	filterArgs := filtering.ToSQLArgs(filter)
 

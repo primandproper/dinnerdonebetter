@@ -143,7 +143,9 @@ func (q *repository) SearchForValidIngredientGroups(ctx context.Context, query s
 	if filter == nil {
 		filter = filtering.DefaultQueryFilter()
 	}
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 	filter.AttachToLogger(logger)
 
 	filterArgs := filtering.ToSQLArgs(filter)
@@ -256,7 +258,9 @@ func (q *repository) GetValidIngredientGroups(ctx context.Context, filter *filte
 		filter = filtering.DefaultQueryFilter()
 	}
 	logger = filter.AttachToLogger(logger)
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	filterArgs := filtering.ToSQLArgs(filter)
 

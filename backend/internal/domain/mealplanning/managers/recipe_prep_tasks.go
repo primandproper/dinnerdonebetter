@@ -23,7 +23,9 @@ func (m *mealPlanningManager) ListRecipePrepTask(ctx context.Context, recipeID s
 	if filter == nil {
 		filter = filtering.DefaultQueryFilter()
 	}
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 	logger = filter.AttachToLogger(logger)
 
 	results, err := m.db.GetRecipePrepTasks(ctx, recipeID, filter)

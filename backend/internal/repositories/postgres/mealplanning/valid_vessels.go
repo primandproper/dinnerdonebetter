@@ -163,7 +163,9 @@ func (q *repository) SearchForValidVessels(ctx context.Context, query string, fi
 		filter = filtering.DefaultQueryFilter()
 	}
 	logger = filter.AttachToLogger(logger)
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	filterArgs := filtering.ToSQLArgs(filter)
 
@@ -239,7 +241,9 @@ func (q *repository) GetValidVessels(ctx context.Context, filter *filtering.Quer
 		filter = filtering.DefaultQueryFilter()
 	}
 	logger = filter.AttachToLogger(logger)
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	filterArgs := filtering.ToSQLArgs(filter)
 

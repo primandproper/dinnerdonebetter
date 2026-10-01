@@ -20,7 +20,9 @@ func (m *mealPlanningManager) ListValidPreparationVessels(ctx context.Context, f
 	if filter == nil {
 		filter = filtering.DefaultQueryFilter()
 	}
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	logger := m.logger.WithSpan(span)
 
@@ -120,7 +122,9 @@ func (m *mealPlanningManager) SearchValidPreparationVesselsByPreparation(ctx con
 	if filter == nil {
 		filter = filtering.DefaultQueryFilter()
 	}
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	logger := m.logger.WithSpan(span).WithValue(mealplanningkeys.ValidPreparationIDKey, validPreparationID)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidPreparationIDKey, validPreparationID)
@@ -140,7 +144,9 @@ func (m *mealPlanningManager) SearchValidPreparationVesselsByVessel(ctx context.
 	if filter == nil {
 		filter = filtering.DefaultQueryFilter()
 	}
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	logger := m.logger.WithSpan(span).WithValue(mealplanningkeys.ValidVesselIDKey, validVesselID)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidVesselIDKey, validVesselID)

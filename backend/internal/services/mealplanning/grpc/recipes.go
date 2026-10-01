@@ -722,7 +722,9 @@ func (s *serviceImpl) GetRecipePrepTasks(ctx context.Context, request *mealplann
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	recipePrepTasks, err := s.mealPlanningManager.ListRecipePrepTask(ctx, request.RecipeId, filter)
 	if err != nil {
@@ -780,7 +782,9 @@ func (s *serviceImpl) GetRecipeRatingsForRecipe(ctx context.Context, request *me
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	recipeRatings, err := s.mealPlanningManager.ListRecipeRatings(ctx, request.RecipeId, filter)
 	if err != nil {
@@ -863,7 +867,9 @@ func (s *serviceImpl) GetRecipeStepCompletionConditions(ctx context.Context, req
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	recipeStepCompletionConditions, err := s.mealPlanningManager.ListRecipeStepCompletionConditions(ctx, request.RecipeId, request.RecipeStepId, filter)
 	if err != nil {
@@ -922,7 +928,9 @@ func (s *serviceImpl) GetRecipeStepIngredients(ctx context.Context, request *mea
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	recipeStepIngredients, err := s.mealPlanningManager.ListRecipeStepIngredients(ctx, request.RecipeId, request.RecipeStepId, filter)
 	if err != nil {
@@ -981,7 +989,9 @@ func (s *serviceImpl) GetRecipeStepInstruments(ctx context.Context, request *mea
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	recipeStepInstruments, err := s.mealPlanningManager.ListRecipeStepInstruments(ctx, request.RecipeId, request.RecipeStepId, filter)
 	if err != nil {
@@ -1040,7 +1050,9 @@ func (s *serviceImpl) GetRecipeStepProducts(ctx context.Context, request *mealpl
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	recipeStepProducts, err := s.mealPlanningManager.ListRecipeStepProducts(ctx, request.RecipeId, request.RecipeStepId, filter)
 	if err != nil {
@@ -1099,7 +1111,9 @@ func (s *serviceImpl) GetRecipeStepVessels(ctx context.Context, request *mealpla
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	recipeStepVessels, err := s.mealPlanningManager.ListRecipeStepVessels(ctx, request.RecipeId, request.RecipeStepId, filter)
 	if err != nil {
@@ -1132,7 +1146,9 @@ func (s *serviceImpl) GetRecipeSteps(ctx context.Context, request *mealplanning.
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	recipeSteps, err := s.mealPlanningManager.ListRecipeSteps(ctx, request.RecipeId, filter)
 	if err != nil {
@@ -1163,7 +1179,9 @@ func (s *serviceImpl) GetRecipeLists(ctx context.Context, request *mealplanning.
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	lists, err := s.mealPlanningManager.ListRecipeLists(ctx, filter)
 	if err != nil {
@@ -1278,7 +1296,9 @@ func (s *serviceImpl) GetRecipeListItems(ctx context.Context, request *mealplann
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	items, err := s.mealPlanningManager.ListRecipeListItems(ctx, request.RecipeListId, filter)
 	if err != nil {
@@ -1381,7 +1401,9 @@ func (s *serviceImpl) GetRecipes(ctx context.Context, request *mealplanning.GetR
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	recipes, err := s.mealPlanningManager.ListRecipes(ctx, request.Status, filter)
 	if err != nil {
@@ -1414,7 +1436,9 @@ func (s *serviceImpl) SearchForRecipes(ctx context.Context, request *mealplannin
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	recipes, err := s.mealPlanningManager.SearchRecipes(ctx, request.Query, request.UseSearchService, filter)
 	if err != nil {
@@ -1448,7 +1472,9 @@ func (s *serviceImpl) SearchForMealEligibleRecipes(ctx context.Context, request 
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	recipes, err := s.mealPlanningManager.SearchForMealEligibleRecipes(ctx, request.Query, filter)
 	if err != nil {
@@ -1487,7 +1513,9 @@ func (s *serviceImpl) SearchForRecipesWithInstrumentOwnership(ctx context.Contex
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	recipes, err := s.mealPlanningManager.SearchRecipesWithInstrumentOwnership(ctx, sessionContextData.GetActiveAccountID(), request.Query, filter)
 	if err != nil {

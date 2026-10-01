@@ -9,13 +9,13 @@ Signing in is platform-go's. Every door that proves who somebody is goes through
 `signin.Service`, built in `internal/authentication/do.go`, and the gRPC surfaces a client talks
 to are platform's, mounted on this server:
 
-| Surface                                          | What it is for                                                                                   | Mounted in                       |
-|--------------------------------------------------|--------------------------------------------------------------------------------------------------|----------------------------------|
-| `primandproper.platform.signin.v1.SignInService` | Sign-up, password + TOTP sign-in, refresh, account switching, sign-out, the caller's own credentials and logins, auth status | `internal/build/signin`          |
-| `SignInAdministrationService`                    | An operator listing and ending somebody else's logins                                            | `internal/build/signin`          |
-| `PasswordResetService`                           | A link mailed to somebody who cannot sign in, and the password they choose with it               | `internal/build/passwordreset`   |
-| `PasskeysService`                                | Passkey enrollment, listing, archiving, and sign-in                                              | `internal/build/passkeys`        |
-| `internalops.InternalOperations.ImpersonateUser` | An operator acting as somebody else                                                              | `internal/services/internalops`  |
+| Surface                                          | What it is for                                                                                                               | Mounted in                      |
+|--------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------|---------------------------------|
+| `primandproper.platform.signin.v1.SignInService` | Sign-up, password + TOTP sign-in, refresh, account switching, sign-out, the caller's own credentials and logins, auth status | `internal/build/signin`         |
+| `SignInAdministrationService`                    | An operator listing and ending somebody else's logins                                                                        | `internal/build/signin`         |
+| `PasswordResetService`                           | A link mailed to somebody who cannot sign in, and the password they choose with it                                           | `internal/build/passwordreset`  |
+| `PasskeysService`                                | Passkey enrollment, listing, archiving, and sign-in                                                                          | `internal/build/passkeys`       |
+| `internalops.InternalOperations.ImpersonateUser` | An operator acting as somebody else                                                                                          | `internal/services/internalops` |
 
 There are two token systems: the tokens `signin.Service` mints (a signed access token naming a
 login, and an opaque rotating refresh token), and the OAuth2 authorization server's opaque

@@ -27,7 +27,9 @@ func (m *mealPlanningManager) ListRecipeStepProducts(ctx context.Context, recipe
 	if filter == nil {
 		filter = filtering.DefaultQueryFilter()
 	}
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 	logger = filter.AttachToLogger(logger)
 
 	results, err := m.db.GetRecipeStepProducts(ctx, recipeID, recipeStepID, filter)

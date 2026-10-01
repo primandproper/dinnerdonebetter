@@ -174,7 +174,9 @@ func (q *repository) SearchForValidIngredients(ctx context.Context, query string
 		filter = filtering.DefaultQueryFilter()
 	}
 	logger = filter.AttachToLogger(logger)
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	filterArgs := filtering.ToSQLArgs(filter)
 
@@ -269,7 +271,9 @@ func (q *repository) SearchForValidIngredientsForPreparation(ctx context.Context
 	if filter == nil {
 		filter = filtering.DefaultQueryFilter()
 	}
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 	logger = filter.AttachToLogger(logger)
 
 	results, err := q.generatedQuerier.SearchValidIngredientsByPreparationAndIngredientName(ctx, q.readDB, &generated.SearchValidIngredientsByPreparationAndIngredientNameParams{
@@ -347,7 +351,9 @@ func (q *repository) GetValidIngredients(ctx context.Context, filter *filtering.
 		filter = filtering.DefaultQueryFilter()
 	}
 	logger = filter.AttachToLogger(logger)
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	filterArgs := filtering.ToSQLArgs(filter)
 

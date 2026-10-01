@@ -20,7 +20,9 @@ func (m *mealPlanningManager) ListValidPrepTaskConfigs(ctx context.Context, filt
 	if filter == nil {
 		filter = filtering.DefaultQueryFilter()
 	}
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	logger := m.logger.WithSpan(span)
 
@@ -120,7 +122,9 @@ func (m *mealPlanningManager) SearchValidPrepTaskConfigsByIngredient(ctx context
 	if filter == nil {
 		filter = filtering.DefaultQueryFilter()
 	}
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	logger := m.logger.WithSpan(span).WithValue(mealplanningkeys.ValidIngredientIDKey, ingredientID)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidIngredientIDKey, ingredientID)
@@ -140,7 +144,9 @@ func (m *mealPlanningManager) SearchValidPrepTaskConfigsByPreparation(ctx contex
 	if filter == nil {
 		filter = filtering.DefaultQueryFilter()
 	}
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	logger := m.logger.WithSpan(span).WithValue(mealplanningkeys.ValidPreparationIDKey, preparationID)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidPreparationIDKey, preparationID)
@@ -160,7 +166,9 @@ func (m *mealPlanningManager) SearchValidPrepTaskConfigsByIngredientAndPreparati
 	if filter == nil {
 		filter = filtering.DefaultQueryFilter()
 	}
-	tracing.AttachQueryFilterToSpan(span, filter)
+	for key, value := range filter.ObservabilityValues() {
+		tracing.AttachToSpan(span, key, value)
+	}
 
 	logger := m.logger.WithSpan(span).
 		WithValue(mealplanningkeys.ValidIngredientIDKey, ingredientID).
