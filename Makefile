@@ -129,9 +129,10 @@ ensure_proto_ts_plugin_installed:
 
 .PHONY: format
 format: format_yaml
-	# frontend and ios are out of these targets until they move off the retired AuthService onto
-	# platform's SignInService, PasswordResetService and PasskeysService. Restore them then.
+	# ios is out of these targets until it moves off the retired AuthService onto platform's
+	# SignInService, PasswordResetService and PasskeysService. Restore it then.
 	(cd backend && $(MAKE) format)
+	(cd frontend && $(MAKE) format)
 
 .PHONY: format_yaml
 format_yaml: ensure_yamlfmt_installed
@@ -143,9 +144,10 @@ terraformat:
 
 .PHONY: lint
 lint:
-	# frontend and ios are out of these targets until they move off the retired AuthService onto
-	# platform's SignInService, PasswordResetService and PasskeysService. Restore them then.
+	# ios is out of these targets until it moves off the retired AuthService onto platform's
+	# SignInService, PasswordResetService and PasskeysService. Restore it then.
 	(cd backend && $(MAKE) lint)
+	(cd frontend && $(MAKE) lint)
 
 .PHONY: lint_markdown
 lint_markdown:
@@ -153,9 +155,10 @@ lint_markdown:
 
 .PHONY: test
 test: test_scripts
-	# frontend and ios are out of these targets until they move off the retired AuthService onto
-	# platform's SignInService, PasswordResetService and PasskeysService. Restore them then.
+	# ios is out of these targets until it moves off the retired AuthService onto platform's
+	# SignInService, PasswordResetService and PasskeysService. Restore it then.
 	(cd backend && $(MAKE) test)
+	(cd frontend && $(MAKE) test)
 
 .PHONY: test_scripts
 test_scripts:
@@ -163,9 +166,10 @@ test_scripts:
 
 .PHONY: build
 build:
-	# frontend and ios are out of these targets until they move off the retired AuthService onto
-	# platform's SignInService, PasswordResetService and PasskeysService. Restore them then.
+	# ios is out of these targets until it moves off the retired AuthService onto platform's
+	# SignInService, PasswordResetService and PasskeysService. Restore it then.
 	(cd backend && $(MAKE) build)
+	(cd frontend && $(MAKE) build)
 
 .PHONY: pre_commit
 pre_commit: proto build format test lint
