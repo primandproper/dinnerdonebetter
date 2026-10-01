@@ -1,13 +1,13 @@
 import { fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import { requestPasswordResetToken } from '$lib/grpc/clients';
+import { requestPasswordReset } from '@primandproper/platform-client';
 
 export const load: PageServerLoad = async () => {
   return {};
 };
 
 export const actions: Actions = {
-  default: async ({ request }) => {
+  default: async ({ request, locals }) => {
     const formData = await request.formData();
     const email = (formData.get('email') as string)?.trim() ?? '';
 
@@ -27,11 +27,10 @@ export const actions: Actions = {
     }
 
     try {
-      await requestPasswordResetToken({ emailAddress: email });
-      return { success: true, error: null };
+      await requestPasswordReset(locals.session, email);
     } catch {
-      // Always show success to avoid email enumeration
-      return { success: true, error: null };
+      // The same screen either way: one that differed would say which addresses hold an account.
     }
+    return { success: true, error: null };
   },
 };

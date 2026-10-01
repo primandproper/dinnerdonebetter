@@ -4,17 +4,14 @@ import { testQueueMessage } from '$lib/grpc/clients';
 
 export const actions: Actions = {
   default: async ({ request, locals }) => {
-    const token = locals.accessToken;
-    if (!token) {
-      return fail(401, { error: 'Not authenticated' });
-    }
+    const session = locals.session;
     const formData = await request.formData();
     const queueName = (formData.get('queue_name') as string)?.trim() ?? '';
     if (!queueName) {
       return fail(400, { error: 'Queue name is required' });
     }
     try {
-      const res = (await testQueueMessage(token, { queueName })) as {
+      const res = (await testQueueMessage(session, { queueName })) as {
         success?: boolean;
         testId?: string;
         roundTripMs?: number;

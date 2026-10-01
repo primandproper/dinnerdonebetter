@@ -9,7 +9,6 @@ import { env } from '$env/dynamic/private';
 import { redirect } from '@sveltejs/kit';
 import {
   AnalyticsServiceService,
-  AuthServiceService,
   MealPlanningServiceService,
   QueryFilter,
   createPlatformTransport,
@@ -22,6 +21,8 @@ import {
   type UnaryMethod,
 } from '@primandproper/platform-client';
 import { IdentityServiceService } from '@primandproper/platform-client/identity/v1';
+import { PasskeysServiceService } from '@primandproper/platform-client/passkeys/v1';
+import { SignInServiceService } from '@primandproper/platform-client/signin/v1';
 import { SettingsServiceService } from '@primandproper/platform-client/settings/v1';
 
 const transport = createPlatformTransport({
@@ -61,10 +62,6 @@ function authed<Req, Res>(method: UnaryMethod<Req, Res>) {
   return (session: Session, request: Req) => call(session, method, request);
 }
 
-function unauthed<Req, Res>(method: UnaryMethod<Req, Res>) {
-  return (request: Req) => anonymous.callAnonymous(method, request);
-}
-
 // QueryFilter is platform's schema, and its four timestamp windows are message fields
 // rather than `optional` scalars, so a bare object literal is not one. The generated
 // factory fills every field, which is what it is for.
@@ -76,30 +73,30 @@ function filtered<Req extends { filter: QueryFilter | undefined }, Res>(method: 
     call(session, method, { ...request, filter: request.filter ?? defaultSearchFilter } as Req);
 }
 
-// Sign-in is platform's, through signIn and signOut on the Session; what AuthService still
-// does is everything platform's SignInService doesn't expose yet.
-export const requestPasswordResetToken = unauthed(AuthServiceService.requestPasswordResetToken);
-export const redeemPasswordResetToken = unauthed(AuthServiceService.redeemPasswordResetToken);
-export const verifyEmailAddress = unauthed(AuthServiceService.verifyEmailAddress);
-export const beginPasskeyAuthentication = unauthed(AuthServiceService.beginPasskeyAuthentication);
-export const finishPasskeyAuthentication = unauthed(AuthServiceService.finishPasskeyAuthentication);
-export const beginPasskeyRegistration = authed(AuthServiceService.beginPasskeyRegistration);
-export const finishPasskeyRegistration = authed(AuthServiceService.finishPasskeyRegistration);
-export const getSelf = (session: Session) => call(session, AuthServiceService.getSelf, {});
-export const getActiveAccount = (session: Session) => call(session, AuthServiceService.getActiveAccount, {});
-export const listPasskeys = (session: Session) => call(session, AuthServiceService.listPasskeys, {});
-export const archivePasskey = authed(AuthServiceService.archivePasskey);
-export const listActiveSessions = (session: Session) =>
-  call(session, AuthServiceService.listActiveSessions, { filter: undefined });
-export const revokeSession = authed(AuthServiceService.revokeSession);
-export const revokeAllOtherSessions = (session: Session) =>
-  call(session, AuthServiceService.revokeAllOtherSessions, {});
-export const revokeCurrentSession = (session: Session) => call(session, AuthServiceService.revokeCurrentSession, {});
-// The handle and the address are on the auth surface rather than in the directory's profile
-// update, and they ask for the password and a second factor: whoever holds the address can
-// take the account through a password reset, so changing it is a credential change.
-export const updateUserUsername = authed(AuthServiceService.updateUserUsername);
-export const updateUserEmailAddress = authed(AuthServiceService.updateUserEmailAddress);
+// Sign-in, sign-out, password reset, email verification and passkey sign-in are the
+// library's own helpers (signIn, signOut, requestPasswordReset, passkeySignIn and the
+// rest), called with the request's Session. What's here is the caller's own credentials
+// and logins, which are plain calls on platform's services.
+export const getSelf = async (session: Session) => (await call(session, SignInServiceService.getSelf, {})).user;
+export const getPrincipal = (session: Session) => call(session, IdentityServiceService.getPrincipal, {});
+export const getActiveAccount = async (session: Session) => (await getPrincipal(session)).activeAccount;
+export const beginPasskeyRegistration = (session: Session) =>
+  call(session, PasskeysServiceService.beginRegistration, {});
+export const finishPasskeyRegistration = authed(PasskeysServiceService.finishRegistration);
+export const listPasskeys = async (session: Session) =>
+  (await call(session, PasskeysServiceService.listPasskeys, {})).passkeys;
+export const archivePasskey = authed(PasskeysServiceService.archivePasskey);
+// A person's own logins: one per device or browser they've signed in on.
+export const listSignIns = async (session: Session) =>
+  (await call(session, SignInServiceService.listSignIns, { limit: 0 })).signIns;
+export const endSignIn = authed(SignInServiceService.endSignIn);
+export const endOtherSignIns = (session: Session) => call(session, SignInServiceService.endOtherSignIns, {});
+// The handle and the address are on the sign-in surface rather than in the directory's
+// profile update, and they ask for the password and a second factor: whoever holds the
+// address can take the account through a password reset, so changing it is a credential
+// change.
+export const updateUsername = authed(SignInServiceService.updateUsername);
+export const updateEmailAddress = authed(SignInServiceService.updateEmailAddress);
 
 // The directory and settings are platform's services, called through
 // @primandproper/platform-client's stubs rather than any generated here.

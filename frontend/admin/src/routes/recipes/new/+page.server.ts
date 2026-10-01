@@ -4,20 +4,13 @@ import { createRecipe } from '$lib/grpc/clients';
 import { logger } from '$lib/logger';
 import type { RecipeCreationRequestInput } from '@dinnerdonebetter/api-client/mealplanning/mealplanning_service_types';
 
-export const load: PageServerLoad = async ({ locals }) => {
-  const token = locals.accessToken;
-  if (!token) {
-    throw redirect(302, '/login');
-  }
+export const load: PageServerLoad = async () => {
   return {};
 };
 
 export const actions: Actions = {
   default: async ({ request, locals }) => {
-    const token = locals.accessToken;
-    if (!token) {
-      throw redirect(302, '/login');
-    }
+    const session = locals.session;
 
     const formData = await request.formData();
     const recipeJson = formData.get('recipe') as string | null;
@@ -44,7 +37,7 @@ export const actions: Actions = {
     }
 
     try {
-      const res = await createRecipe(token, { input });
+      const res = await createRecipe(session, { input });
       const created = res.created;
       if (created?.id) {
         throw redirect(302, `/recipes/${created.id}`);

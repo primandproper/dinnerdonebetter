@@ -3,12 +3,9 @@ import { listWaitlists } from '$lib/grpc/clients';
 import { QueryFilter } from '@dinnerdonebetter/api-client';
 
 export const load: PageServerLoad = async ({ locals }) => {
-  const token = locals.accessToken;
-  if (!token) {
-    return { waitlists: [], error: 'Not authenticated' };
-  }
+  const session = locals.session;
   try {
-    const res = (await listWaitlists(token, { filter: QueryFilter.create({ maxResponseSize: 100 }) })) as {
+    const res = (await listWaitlists(session, { filter: QueryFilter.create({ maxResponseSize: 100 }) })) as {
       results?: Array<{ id?: string; name?: string }>;
     };
     return { waitlists: res?.results ?? [] };

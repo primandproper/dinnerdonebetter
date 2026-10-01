@@ -3,12 +3,9 @@ import { listIssueReports } from '$lib/grpc/clients';
 import { QueryFilter } from '@dinnerdonebetter/api-client';
 
 export const load: PageServerLoad = async ({ locals }) => {
-  const token = locals.accessToken;
-  if (!token) {
-    return { reports: [], error: 'Not authenticated' };
-  }
+  const session = locals.session;
   try {
-    const res = (await listIssueReports(token, { filter: QueryFilter.create({ maxResponseSize: 100 }) })) as {
+    const res = (await listIssueReports(session, { filter: QueryFilter.create({ maxResponseSize: 100 }) })) as {
       results?: Array<{ id?: string }>;
     };
     return { reports: res?.results ?? [] };

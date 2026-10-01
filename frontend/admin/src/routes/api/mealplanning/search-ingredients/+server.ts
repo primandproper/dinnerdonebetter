@@ -4,10 +4,7 @@ import { searchValidIngredientsByPreparation } from '$lib/grpc/clients';
 import { logger } from '$lib/logger';
 
 export const GET: RequestHandler = async ({ url, locals }) => {
-  const token = locals.accessToken;
-  if (!token) {
-    return json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const session = locals.session;
 
   const q = url.searchParams.get('q') ?? '';
   const preparationId = url.searchParams.get('preparationId') ?? '';
@@ -16,7 +13,7 @@ export const GET: RequestHandler = async ({ url, locals }) => {
   }
 
   try {
-    const res = await searchValidIngredientsByPreparation(token, {
+    const res = await searchValidIngredientsByPreparation(session, {
       query: q,
       validPreparationId: preparationId,
       filter: undefined,

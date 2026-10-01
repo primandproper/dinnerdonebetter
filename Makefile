@@ -294,14 +294,14 @@ proto_swift: ensure_protoc-gen-swift_installed ensure_protoc-gen-grpc-swift_inst
 	(cd ios && $(MAKE) format)
 
 # Hand-written files in the TS proto output directory that must survive regeneration
-PROTO_TS_HANDWRITTEN := index.ts admin-clients.ts platform.ts
+PROTO_TS_HANDWRITTEN := index.ts platform.ts
 
 # The web apps call platform's services through @primandproper/platform-client, whose
 # stubs are generated from the platform-go tag it pins, so nothing platform owns is
-# generated or preserved here any more. filtering and identity are still generated,
-# because this repository's own protos import them and ts-proto cannot point an import at
-# a package; they exist for auth and mealplanning to compile against, and the apps import
-# platform's types from the library rather than from these copies.
+# generated or preserved here any more. Whatever of platform's this repository's own protos
+# import is still generated, because ts-proto cannot point an import at a package; those
+# copies exist for this repository's stubs to compile against, and the apps import
+# platform's types from the library rather than from them.
 
 # The Swift output still preserves its stale copies of the adopted domains, plus webhooks,
 # which the iOS app uses. They were generated from this repository's own protos before

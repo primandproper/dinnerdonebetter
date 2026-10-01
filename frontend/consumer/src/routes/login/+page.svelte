@@ -27,7 +27,10 @@
       return Uint8Array.from(binary, (c) => c.charCodeAt(0)).buffer;
     }
 
-    try {
+    // One ceremony: options from the server, the key, and the assertion back. A key tapped
+    // with no PIN or biometric is one factor, so a person with a second factor is asked for
+    // their code and taps again: the first assertion's challenge is spent.
+    async function ceremony(totpCode: string): Promise<{ totpRequired?: boolean; redirect?: string }> {
       const optsRes = await fetch('/auth/passkey/authentication/options', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -37,15 +40,11 @@
       if (!optsRes.ok) throw new Error('Failed to get options');
       const opts = await optsRes.json();
 
-      const raw = atob(opts.publicKeyCredentialRequestOptions);
-      const obj = JSON.parse(raw);
+      const obj = JSON.parse(atob(opts.options));
       const pk = obj.publicKey || obj;
       if (typeof pk.challenge === 'string') pk.challenge = b64dec(pk.challenge);
-      if (pk.allowCredentials) {
-        for (let i = 0; i < pk.allowCredentials.length; i++) {
-          const c = pk.allowCredentials[i];
-          if (typeof c.id === 'string') c.id = b64dec(c.id);
-        }
+      for (const c of pk.allowCredentials ?? []) {
+        if (typeof c.id === 'string') c.id = b64dec(c.id);
       }
 
       const cred = await navigator.credentials.get({ publicKey: pk });
@@ -68,20 +67,24 @@
       const verifyRes = await fetch('/auth/passkey/authentication/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          challenge: opts.challenge,
-          username,
-          assertionResponse: assertion,
-        }),
+        body: JSON.stringify({ username, assertionResponse: assertion, totpCode }),
         credentials: 'include',
       });
-      if (!verifyRes.ok) throw new Error('Authentication failed');
-      const result = await verifyRes.json();
-      if (result.redirect) {
-        window.location.href = result.redirect;
-      } else {
-        window.location.href = '/';
+      const result = await verifyRes.json().catch(() => ({}));
+      if (result.totpRequired) return { totpRequired: true };
+      if (!verifyRes.ok) throw new Error(result.error ?? 'Authentication failed');
+      return result;
+    }
+
+    try {
+      let result = await ceremony('');
+      if (result.totpRequired) {
+        const code = prompt('Enter the code from your authenticator app, then use your passkey again.')?.trim();
+        if (!code) return;
+        result = await ceremony(code);
+        if (result.totpRequired) throw new Error('That code was not accepted');
       }
+      window.location.href = result.redirect ?? '/';
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Passkey sign-in failed');
     }

@@ -1,14 +1,14 @@
 <script lang="ts">
   import { enhance } from '$app/forms';
   import { PageContainer, Button, Alert, Link } from '@dinnerdonebetter/ui';
-  import type { UserSession } from '@dinnerdonebetter/api-client/auth/auth_messages';
+  import type { ActiveSignIn } from '@primandproper/platform-client/signin/v1';
 
   let { data } = $props();
-  const sessions = $derived((data?.sessions ?? []) as UserSession[]);
+  const signIns = $derived((data?.signIns ?? []) as ActiveSignIn[]);
   const error = $derived(data?.error as string | null | undefined);
   const revoked = $derived(data?.revoked ?? false);
   const revokedAll = $derived(data?.revokedAll ?? false);
-  const hasOtherSessions = $derived(sessions.some((s) => !s.isCurrent));
+  const hasOtherSessions = $derived(signIns.some((s) => !s.current));
 
   const errorMessages: Record<string, string> = {
     invalid: 'Invalid request.',
@@ -17,6 +17,14 @@
     server: 'Something went wrong. Please try again.',
   };
   const displayError = $derived(error ? (errorMessages[error] ?? 'Something went wrong.') : null);
+
+  const credentialKinds: Record<string, string> = {
+    password: 'Password',
+    passkey: 'Passkey',
+    recovery_code: 'Recovery code',
+    magic_link: 'Email link',
+    impersonation: 'Support access',
+  };
 
   function formatDateTime(d: Date | undefined): string {
     if (!d) return '';
@@ -53,43 +61,39 @@
       </div>
     {/if}
 
-    {#if sessions.length > 0}
+    {#if signIns.length > 0}
       <div class="session-list">
-        {#each sessions as session (session.id)}
-          <div class="session-card" class:session-current={session.isCurrent}>
+        {#each signIns as signIn (signIn.familyId)}
+          <div class="session-card" class:session-current={signIn.current}>
             <div class="session-info">
               <div class="session-header">
-                <span class="session-device">{session.deviceName || 'Unknown device'}</span>
-                {#if session.isCurrent}
+                <span class="session-device">
+                  {credentialKinds[signIn.credentialKind] ?? (signIn.credentialKind || 'Sign-in')}
+                </span>
+                {#if signIn.current}
                   <span class="current-badge">Current session</span>
                 {/if}
               </div>
-              <div class="session-details">
-                {#if session.loginMethod}
-                  <span>Login: {session.loginMethod}</span>
-                {/if}
-                {#if session.clientIp}
-                  <span>IP: {session.clientIp}</span>
-                {/if}
-              </div>
-              {#if session.userAgent}
-                <div class="session-ua">{session.userAgent}</div>
+              {#if signIn.actorId}
+                <div class="session-details">
+                  <span>Opened by support staff signed in as you</span>
+                </div>
               {/if}
               <div class="session-timestamps">
-                {#if session.createdAt}
-                  <span>Created {formatDateTime(session.createdAt)}</span>
+                {#if signIn.signedInAt}
+                  <span>Signed in {formatDateTime(signIn.signedInAt)}</span>
                 {/if}
-                {#if session.lastActiveAt}
-                  <span>Last active {formatDateTime(session.lastActiveAt)}</span>
+                {#if signIn.lastRefreshedAt}
+                  <span>Last active {formatDateTime(signIn.lastRefreshedAt)}</span>
                 {/if}
-                {#if session.expiresAt}
-                  <span>Expires {formatDateTime(session.expiresAt)}</span>
+                {#if signIn.expiresAt}
+                  <span>Expires {formatDateTime(signIn.expiresAt)}</span>
                 {/if}
               </div>
             </div>
-            {#if !session.isCurrent}
+            {#if !signIn.current}
               <form method="POST" action="?/revoke" use:enhance class="revoke-form">
-                <input type="hidden" name="session_id" value={session.id} />
+                <input type="hidden" name="family_id" value={signIn.familyId} />
                 <Button type="submit" variant="default" class="revoke-btn">Revoke</Button>
               </form>
             {/if}
@@ -165,14 +169,6 @@
     gap: var(--space-md);
     font-size: 0.875rem;
     color: var(--color-muted, #666);
-  }
-  .session-ua {
-    font-size: 0.8125rem;
-    color: var(--color-muted, #666);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: 500px;
   }
   .session-timestamps {
     display: flex;

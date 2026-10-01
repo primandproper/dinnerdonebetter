@@ -17,8 +17,7 @@ const ACCOUNT_MEMBER_ROLE = 'account_member';
 export const load: PageServerLoad = async ({ locals, url, request }) => {
   const session = locals.session;
   try {
-    const activeRes = await getActiveAccount(session);
-    const account = activeRes.result ?? null;
+    const account = (await getActiveAccount(session)) ?? null;
 
     if (!account) {
       return {
@@ -33,8 +32,8 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
       };
     }
 
-    const selfRes = await getSelf(session);
-    const currentUserId = selfRes.result?.id ?? '';
+    const self = await getSelf(session);
+    const currentUserId = self?.id ?? '';
 
     // The roster is a read of its own now. platform's Account carries no member list —
     // an account with thirty members would otherwise be thirty users on every read of it
@@ -119,9 +118,9 @@ export const actions: Actions = {
       // The account is named on the request rather than taken from the session, and the
       // roles the invitation promises come from here: what somebody was invited to is
       // what they get, and an acceptance cannot ask for more.
-      const activeRes = await getActiveAccount(session);
+      const activeAccount = await getActiveAccount(session);
       await invite(session, {
-        accountId: activeRes.result?.id ?? '',
+        accountId: activeAccount?.id ?? '',
         toEmail: email,
         toName: name,
         note,
@@ -177,9 +176,9 @@ export const actions: Actions = {
       // Roles are replaced rather than merged, and the account is named: a caller adding
       // one reads the membership and writes the union, which is visible here rather than
       // hidden in a setter that could not express a revocation.
-      const activeRes = await getActiveAccount(session);
+      const activeAccount = await getActiveAccount(session);
       await setMembershipRoles(session, {
-        accountId: activeRes.result?.id ?? '',
+        accountId: activeAccount?.id ?? '',
         userId,
         roles: [newRole],
       });

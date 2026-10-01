@@ -1,12 +1,12 @@
-import { redirect } from '@sveltejs/kit';
+import { isRedirect, redirect } from '@sveltejs/kit';
+import { PasskeyReason, PlatformError } from '@primandproper/platform-client';
 import type { Actions, PageServerLoad } from './$types';
 import { listPasskeys, archivePasskey } from '$lib/grpc/clients';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
   const session = locals.session;
   try {
-    const res = await listPasskeys(session);
-    const passkeys = res.results ?? [];
+    const passkeys = await listPasskeys(session);
     const error = url.searchParams.get('error');
     const deleted = url.searchParams.get('deleted') === '1';
     return { passkeys, error, deleted };
@@ -25,11 +25,14 @@ export const actions: Actions = {
     }
 
     try {
-      await archivePasskey(session, { credentialId });
+      await archivePasskey(session, { id: credentialId });
       throw redirect(302, '/account/passkeys?deleted=1');
     } catch (e) {
-      if (e && typeof e === 'object' && 'status' in e && (e as { status: number }).status === 302) {
+      if (isRedirect(e)) {
         throw e;
+      }
+      if (e instanceof PlatformError && e.is(PasskeyReason.LAST_PASSKEY)) {
+        throw redirect(302, '/account/passkeys?error=last_passkey');
       }
       throw redirect(302, '/account/passkeys?error=delete_failed');
     }

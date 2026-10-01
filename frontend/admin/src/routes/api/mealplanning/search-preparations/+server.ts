@@ -7,17 +7,14 @@ import { QueryFilter } from '@dinnerdonebetter/api-client';
 const DEFAULT_LIST_FILTER = QueryFilter.create({ maxResponseSize: 100 });
 
 export const GET: RequestHandler = async ({ url, locals }) => {
-  const token = locals.accessToken;
-  if (!token) {
-    return json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const session = locals.session;
 
   const q = url.searchParams.get('q') ?? '';
   try {
     const res =
       q === ''
-        ? await getValidPreparations(token, { filter: DEFAULT_LIST_FILTER })
-        : await searchForValidPreparations(token, {
+        ? await getValidPreparations(session, { filter: DEFAULT_LIST_FILTER })
+        : await searchForValidPreparations(session, {
             filter: DEFAULT_LIST_FILTER,
             query: q,
             useSearchService: q.length > 2,

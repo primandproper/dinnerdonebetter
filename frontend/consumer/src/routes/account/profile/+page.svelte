@@ -27,6 +27,8 @@
     invalid_username: 'Username is required.',
     invalid_first_name: 'First name is required.',
     invalid_password: 'Password is required to update details.',
+    wrong_password: 'That password or code was not right.',
+    totp_required: 'Enter the code from your authenticator app as well.',
     invalid_input: 'Invalid input. Please check your entries.',
     update_failed: 'Failed to save. Please try again.',
     server: 'Something went wrong. Please try again.',

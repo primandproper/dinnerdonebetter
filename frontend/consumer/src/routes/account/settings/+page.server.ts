@@ -5,8 +5,8 @@ import { QueryFilter } from '@dinnerdonebetter/api-client';
 export const load: PageServerLoad = async ({ locals }) => {
   const session = locals.session;
   try {
-    const selfRes = await getSelf(session);
-    const user = selfRes.result;
+    const self = await getSelf(session);
+    const user = self;
     const userId = user?.id ?? '';
 
     if (!userId) {

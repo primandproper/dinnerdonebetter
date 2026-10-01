@@ -7,9 +7,6 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./auth/auth_service": "./src/auth/auth_service.ts",
-    "./auth/auth_messages": "./src/auth/auth_messages.ts",
-    "./auth/auth_service_types": "./src/auth/auth_service_types.ts",
     "./mealplanning/mealplanning_service_types": "./src/mealplanning/mealplanning_service_types.ts",
     "./mealplanning/mealplanning_messages": "./src/mealplanning/mealplanning_messages.ts"
   },

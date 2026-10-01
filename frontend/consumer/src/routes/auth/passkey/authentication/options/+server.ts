@@ -1,8 +1,8 @@
 import { json } from '@sveltejs/kit';
+import { beginPasskeySignIn } from '@primandproper/platform-client';
 import type { RequestHandler } from './$types';
-import { beginPasskeyAuthentication } from '$lib/grpc/clients';
 
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async ({ request, locals }) => {
   let body: { username?: string };
   try {
     body = await request.json();
@@ -10,17 +10,11 @@ export const POST: RequestHandler = async ({ request }) => {
     return json({ error: 'invalid request' }, { status: 400 });
   }
 
-  const username = (body.username ?? '').trim();
-
   try {
-    const res = await beginPasskeyAuthentication({ username });
-    const optionsBytes = res.publicKeyCredentialRequestOptions;
-    const bytes = optionsBytes instanceof Uint8Array ? optionsBytes : new Uint8Array(optionsBytes as ArrayBuffer);
-    const publicKeyCredentialRequestOptions = Buffer.from(bytes).toString('base64');
-    return json({
-      challenge: res.challenge,
-      publicKeyCredentialRequestOptions,
-    });
+    // An empty username is the discoverable login. Either way the answer looks the same
+    // whether or not anybody holds the name, so the prompt does too.
+    const options = await beginPasskeySignIn(locals.session, (body.username ?? '').trim());
+    return json({ options: Buffer.from(options).toString('base64') });
   } catch {
     return json({ error: 'failed to get passkey options' }, { status: 500 });
   }

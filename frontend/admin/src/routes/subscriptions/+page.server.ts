@@ -5,16 +5,13 @@ import { QueryFilter } from '@dinnerdonebetter/api-client';
 const DEFAULT_LIST_FILTER = QueryFilter.create({ maxResponseSize: 100 });
 
 export const load: PageServerLoad = async ({ locals, url }) => {
-  const token = locals.accessToken;
-  if (!token) {
-    return { items: [], accountId: null, error: 'Not authenticated' };
-  }
+  const session = locals.session;
   const accountId = url.searchParams.get('account_id')?.trim() ?? '';
   if (!accountId) {
     return { items: [], accountId: null, error: null };
   }
   try {
-    const res = (await listSubscriptionsForAccount(token, {
+    const res = (await listSubscriptionsForAccount(session, {
       accountId,
       filter: DEFAULT_LIST_FILTER,
     })) as {

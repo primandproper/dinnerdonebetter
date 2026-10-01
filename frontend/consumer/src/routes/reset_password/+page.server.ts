@@ -1,14 +1,32 @@
 import { fail, redirect } from '@sveltejs/kit';
+import {
+  completePasswordReset,
+  PasswordResetReason,
+  PlatformError,
+  verifyPasswordResetToken,
+} from '@primandproper/platform-client';
 import type { Actions, PageServerLoad } from './$types';
-import { redeemPasswordResetToken } from '$lib/grpc/clients';
 
-export const load: PageServerLoad = async ({ url }) => {
+const deadLinkMessage = 'This reset link is invalid or has expired. Please request a new one.';
+
+export const load: PageServerLoad = async ({ url, locals }) => {
   const token = url.searchParams.get('t') ?? '';
-  return { token, missingToken: !token };
+  if (!token) {
+    return { token, missingToken: true, deadLink: false };
+  }
+  // The link is checked before the form is shown, so nobody types a new password into a form
+  // that was never going to take it.
+  try {
+    const result = await verifyPasswordResetToken(locals.session, token);
+    return { token, missingToken: false, deadLink: result.kind === 'dead_link' };
+  } catch {
+    // Unreachable rather than refused: show the form, and let the submission say.
+    return { token, missingToken: false, deadLink: false };
+  }
 };
 
 export const actions: Actions = {
-  default: async ({ request }) => {
+  default: async ({ request, locals }) => {
     const formData = await request.formData();
     const token = (formData.get('token') as string)?.trim() ?? '';
     const newPassword = (formData.get('new_password') as string) ?? '';
@@ -35,17 +53,18 @@ export const actions: Actions = {
       });
     }
 
+    let result;
     try {
-      await redeemPasswordResetToken({ token, newPassword });
-      throw redirect(302, '/login?reset=success');
-    } catch (e) {
-      if (e && typeof e === 'object' && 'status' in e && (e as { status: number }).status === 302) {
-        throw e;
+      result = await completePasswordReset(locals.session, token, newPassword);
+    } catch (err) {
+      if (err instanceof PlatformError && err.is(PasswordResetReason.REPLACEMENT_PASSWORD_REFUSED)) {
+        return fail(400, { error: err.serverMessage || 'Choose a different password.', token });
       }
-      return fail(400, {
-        error: 'Invalid or expired reset link. Please request a new one.',
-        token,
-      });
+      return fail(500, { error: 'Something went wrong. Please try again.', token });
     }
+    if (result.kind === 'dead_link') {
+      return fail(400, { error: deadLinkMessage, token });
+    }
+    throw redirect(302, '/login?reset=success');
   },
 };

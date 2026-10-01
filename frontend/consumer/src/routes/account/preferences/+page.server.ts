@@ -7,7 +7,7 @@ import { configurableSettings, settingsSubject, typedValue } from '$lib/settings
 /** The signed-in person's user id, which every settings call names as its subject. */
 async function selfId(session: Session): Promise<string> {
   const self = await getSelf(session);
-  const id = self.result?.id;
+  const id = self?.id;
   if (!id) throw new Error('no user for this session');
   return id;
 }

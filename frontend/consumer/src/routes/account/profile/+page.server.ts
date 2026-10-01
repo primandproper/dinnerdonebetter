@@ -1,13 +1,14 @@
-import { redirect } from '@sveltejs/kit';
+import { isRedirect, redirect } from '@sveltejs/kit';
+import { PlatformError, SignInReason } from '@primandproper/platform-client';
 import type { Actions, PageServerLoad } from './$types';
-import { getSelf, updateProfile, updateUserUsername } from '$lib/grpc/clients';
+import { getSelf, updateProfile, updateUsername } from '$lib/grpc/clients';
 import { env } from '$env/dynamic/private';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
   const session = locals.session;
   try {
-    const selfRes = await getSelf(session);
-    const user = selfRes.result ?? null;
+    const self = await getSelf(session);
+    const user = self ?? null;
     const error = url.searchParams.get('error');
     const updated = url.searchParams.get('updated') === '1';
     const avatarMediaBaseUrl = env.PUBLIC_AVATAR_MEDIA_URL_PREFIX ?? '';
@@ -33,11 +34,18 @@ export const actions: Actions = {
     }
 
     try {
-      await updateUserUsername(session, { newUsername: username, currentPassword, totpToken });
+      await updateUsername(session, { newUsername: username, currentPassword, totpCode: totpToken });
       throw redirect(302, '/account/profile?updated=1');
     } catch (e) {
-      if (e && typeof e === 'object' && 'status' in e && (e as { status: number }).status === 302) {
+      if (isRedirect(e)) {
         throw e;
+      }
+      // Refused re-authentication leaves the session alone: the reason says what to ask for.
+      if (e instanceof PlatformError && e.is(SignInReason.INVALID_CREDENTIALS)) {
+        throw redirect(302, '/account/profile?error=wrong_password');
+      }
+      if (e instanceof PlatformError && e.is(SignInReason.SECOND_FACTOR_REQUIRED)) {
+        throw redirect(302, '/account/profile?error=totp_required');
       }
       throw redirect(302, '/account/profile?error=update_failed');
     }

@@ -4,13 +4,10 @@ import { getAccount, listAccountMembers, listAuditEntries } from '$lib/grpc/clie
 import { QueryFilter } from '@dinnerdonebetter/api-client';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
-  const token = locals.accessToken;
+  const session = locals.session;
   const accountId = params.id;
-  if (!token) {
-    return { account: null, users: [], auditLog: [], error: 'Not authenticated' };
-  }
   try {
-    const accountRes = (await getAccount(token, { accountId })) as { account?: Record<string, unknown> };
+    const accountRes = (await getAccount(session, { accountId })) as { account?: Record<string, unknown> };
     const account = accountRes?.account ?? null;
 
     let users: unknown[] = [];
@@ -18,7 +15,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
     if (accountId) {
       try {
-        const usersRes = (await listAccountMembers(token, {
+        const usersRes = (await listAccountMembers(session, {
           accountId,
           filter: QueryFilter.create({ maxResponseSize: 50 }),
         })) as { results?: unknown[] };
@@ -27,7 +24,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
         // ignore
       }
       try {
-        const auditRes = (await listAuditEntries(token, {
+        const auditRes = (await listAuditEntries(session, {
           query: EntryQuery.create({ resourceType: 'accounts', resourceId: accountId }),
           filter: QueryFilter.create({ maxResponseSize: 20 }),
         })) as { results?: unknown[] };

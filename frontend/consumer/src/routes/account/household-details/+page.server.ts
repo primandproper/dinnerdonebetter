@@ -8,8 +8,7 @@ const ACCOUNT_ADMIN_ROLE = 'account_admin';
 export const load: PageServerLoad = async ({ locals, url }) => {
   const session = locals.session;
   try {
-    const activeRes = await getActiveAccount(session);
-    const account = activeRes.result ?? null;
+    const account = (await getActiveAccount(session)) ?? null;
 
     if (!account) {
       return {
@@ -20,8 +19,8 @@ export const load: PageServerLoad = async ({ locals, url }) => {
       };
     }
 
-    const selfRes = await getSelf(session);
-    const currentUserId = selfRes.result?.id ?? '';
+    const self = await getSelf(session);
+    const currentUserId = self?.id ?? '';
 
     // Who is an admin is a read of its own: platform's Account carries no member list,
     // and a membership holds a set of roles rather than one. Same shape as the roster on
@@ -63,8 +62,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 export const actions: Actions = {
   update: async ({ request, locals }) => {
     const session = locals.session;
-    const activeRes = await getActiveAccount(session);
-    const account = activeRes.result;
+    const account = await getActiveAccount(session);
     if (!account) {
       throw redirect(302, '/account/household-details?error=server');
     }

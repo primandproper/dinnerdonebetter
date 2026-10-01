@@ -4,14 +4,11 @@ import { trackEvent } from '$lib/grpc/clients';
 
 export const actions: Actions = {
   default: async ({ request, locals }) => {
-    const token = locals.accessToken;
-    if (!token) {
-      return fail(401, { error: 'Not authenticated' });
-    }
+    const session = locals.session;
     const formData = await request.formData();
     const eventName = (formData.get('event_name') as string)?.trim() ?? 'admin_analytics_test';
     try {
-      await trackEvent(token, {
+      await trackEvent(session, {
         source: 'admin',
         event: eventName,
         properties: {},

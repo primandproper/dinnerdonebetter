@@ -20,13 +20,10 @@ function matching(settings: SettingDefinition[], query: string): SettingDefiniti
 }
 
 export const load: PageServerLoad = async ({ locals, url }) => {
-  const token = locals.accessToken;
-  if (!token) {
-    return { settings: [], query: '', error: 'Not authenticated' };
-  }
+  const session = locals.session;
   const query = url.searchParams.get('q')?.trim() ?? '';
   try {
-    const res = await listSettingDefinitions(token, { filter: DEFAULT_LIST_FILTER });
+    const res = await listSettingDefinitions(session, { filter: DEFAULT_LIST_FILTER });
     return { settings: matching(res.results, query), query };
   } catch (e) {
     return {

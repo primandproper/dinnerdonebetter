@@ -2,13 +2,10 @@ import type { PageServerLoad } from './$types';
 import { getRecipe } from '$lib/grpc/clients';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
-  const token = locals.accessToken;
+  const session = locals.session;
   const id = params.id;
-  if (!token) {
-    return { recipe: null, error: 'Not authenticated' };
-  }
   try {
-    const res = (await getRecipe(token, { recipeId: id })) as { result?: Record<string, unknown> };
+    const res = (await getRecipe(session, { recipeId: id })) as { result?: Record<string, unknown> };
     return { recipe: res?.result ?? null };
   } catch (e) {
     return {
