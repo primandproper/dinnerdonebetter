@@ -208,14 +208,14 @@ func newRegistration() (*identity.User, *identity.Account) {
 	username := "spike_" + identifiers.New()
 
 	return &identity.User{
-		ID:            identifiers.New(),
-		Username:      username,
-		EmailAddress:  username + "@example.com",
-		AccountStatus: identity.StatusUnverified,
-	}, &identity.Account{
-		ID:   identifiers.New(),
-		Name: "the " + username + " household",
-	}
+			ID:            identifiers.New(),
+			Username:      username,
+			EmailAddress:  username + "@example.com",
+			AccountStatus: identity.StatusUnverified,
+		}, &identity.Account{
+			ID:   identifiers.New(),
+			Name: "the " + username + " household",
+		}
 }
 
 // TestHooks_CommitsWithTheOperation is the happy half: a registration writes a

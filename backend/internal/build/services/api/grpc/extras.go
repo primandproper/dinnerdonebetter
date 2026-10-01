@@ -9,6 +9,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	identitybuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/identity"
 	oauth2clientsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/oauth2clients"
+	passkeysbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/passkeys"
 	signinbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/signin"
 	waitlistsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/waitlists"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
@@ -18,7 +19,6 @@ import (
 	mealplanningsvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
 	uploadedmediasvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
 	analyticsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/analytics/grpc"
-	authgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc/interceptors"
 	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
 	internalopsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/internalops/grpc"
@@ -28,6 +28,8 @@ import (
 	auditpb "github.com/primandproper/platform-go/v14/audit/auditpb"
 	auditgrpc "github.com/primandproper/platform-go/v14/audit/grpc"
 	"github.com/primandproper/platform-go/v14/authentication/oauth2clients/oauth2clientspb"
+	"github.com/primandproper/platform-go/v14/authentication/passkeys/passkeyspb"
+	"github.com/primandproper/platform-go/v14/authentication/passwordreset/passwordresetpb"
 	"github.com/primandproper/platform-go/v14/authentication/signin/signinpb"
 	billingpb "github.com/primandproper/platform-go/v14/billing/billingpb"
 	paymentsgrpc "github.com/primandproper/platform-go/v14/billing/grpc"
@@ -130,6 +132,8 @@ func RegisterExtras(i do.Injector) {
 			do.MustInvoke[billingpb.BillingServiceServer](i),
 			do.MustInvoke[settingspb.SettingsServiceServer](i),
 			do.MustInvoke[signinpb.SignInServiceServer](i),
+			do.MustInvoke[passwordresetpb.PasswordResetServiceServer](i),
+			do.MustInvoke[passkeyspb.PasskeysServiceServer](i),
 			do.MustInvoke[uploadedmediasvcpb.UploadedMediaServiceServer](i),
 			do.MustInvoke[waitlistspb.WaitlistsServiceServer](i),
 			do.MustInvoke[webhookspb.WebhooksServiceServer](i),
@@ -170,6 +174,8 @@ func BuildRegistrationFuncs(
 	paymentsService billingpb.BillingServiceServer,
 	settingsService settingspb.SettingsServiceServer,
 	signInService signinpb.SignInServiceServer,
+	passwordResetService passwordresetpb.PasswordResetServiceServer,
+	passkeysService passkeyspb.PasskeysServiceServer,
 	uploadedMediaService uploadedmediasvcpb.UploadedMediaServiceServer,
 	waitlistsService waitlistspb.WaitlistsServiceServer,
 	webhooksService webhookspb.WebhooksServiceServer,
@@ -193,6 +199,8 @@ func BuildRegistrationFuncs(
 			registerWithAdministration(server, signInService, func(server *grpc.Server) {
 				signinpb.RegisterSignInServiceServer(server, signInService)
 			})
+			passwordresetpb.RegisterPasswordResetServiceServer(server, passwordResetService)
+			passkeyspb.RegisterPasskeysServiceServer(server, passkeysService)
 			uploadedmediasvcpb.RegisterUploadedMediaServiceServer(server, uploadedMediaService)
 			waitlistspb.RegisterWaitlistsServiceServer(server, waitlistsService)
 			webhookspb.RegisterWebhooksServiceServer(server, webhooksService)
@@ -313,7 +321,6 @@ func MethodPermissions() interceptors.MethodPermissionsMap {
 	return AggregateMethodPermissions(
 		analyticsgrpc.ProvideMethodPermissions(),
 		auditgrpc.Permissions(),
-		authgrpc.ProvideMethodPermissions(),
 		commentsgrpc.Permissions(),
 		identitybuild.Permissions(),
 		internalopsgrpc.ProvideMethodPermissions(),
@@ -321,6 +328,7 @@ func MethodPermissions() interceptors.MethodPermissionsMap {
 		mealplanninggrpc.ProvideMethodPermissions(),
 		notificationsgrpc.Permissions(),
 		oauth2clientsbuild.Permissions(),
+		passkeysbuild.Permissions(),
 		paymentsgrpc.Permissions(),
 		settingsgrpc.Permissions(),
 		signinbuild.Permissions(),
@@ -334,7 +342,6 @@ func MethodPermissions() interceptors.MethodPermissionsMap {
 func AggregateMethodPermissions(
 	analyticsPermissions analyticsgrpc.AnalyticsMethodPermissions,
 	auditPermissions map[string][]authorization.Permission,
-	authPermissions authgrpc.AuthMethodPermissions,
 	commentsPermissions map[string][]authorization.Permission,
 	identityPermissions map[string][]authorization.Permission,
 	internalopsPermissions internalopsgrpc.InternalOpsMethodPermissions,
@@ -342,6 +349,7 @@ func AggregateMethodPermissions(
 	mealplanningPermissions mealplanninggrpc.MealPlanningMethodPermissions,
 	notificationsPermissions map[string][]authorization.Permission,
 	oauth2ClientsPermissions map[string][]authorization.Permission,
+	passkeysPermissions map[string][]authorization.Permission,
 	paymentsPermissions map[string][]authorization.Permission,
 	settingsPermissions map[string][]authorization.Permission,
 	signInPermissions map[string][]authorization.Permission,
@@ -353,7 +361,6 @@ func AggregateMethodPermissions(
 
 	maps.Copy(result, analyticsPermissions)
 	maps.Copy(result, auditPermissions)
-	maps.Copy(result, authPermissions)
 	maps.Copy(result, commentsPermissions)
 	maps.Copy(result, identityPermissions)
 	maps.Copy(result, internalopsPermissions)
@@ -361,6 +368,7 @@ func AggregateMethodPermissions(
 	maps.Copy(result, mealplanningPermissions)
 	maps.Copy(result, notificationsPermissions)
 	maps.Copy(result, oauth2ClientsPermissions)
+	maps.Copy(result, passkeysPermissions)
 	maps.Copy(result, paymentsPermissions)
 	maps.Copy(result, settingsPermissions)
 	maps.Copy(result, signInPermissions)

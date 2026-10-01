@@ -41,7 +41,6 @@ func BuildInjector(
 	oauth2servercfg.RegisterStore(i)
 	authrepo.RegisterPasswordResetTokenSQLStore(i)
 	authrepo.RegisterRefreshTokenSQLStore(i)
-	authrepo.RegisterUserSessionBackend(i)
 	dbcleaner.RegisterDBCleaner(i)
 
 	return i

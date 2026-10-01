@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
-	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
+	mealplanningsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
 
 	"github.com/primandproper/platform-go/v14/authentication/signin/signinpb"
 	"github.com/primandproper/platform-go/v14/identity/identitypb"
@@ -50,7 +50,7 @@ func withBearerToken(ctx context.Context, token string) context.Context {
 func signInForTest(t *testing.T, signIn signinpb.SignInServiceClient) (token *signinpb.IssuedToken, userID string) {
 	t.Helper()
 
-	user := createServiceUserForTest(t, true, buildUserRegistrationInputForTest(t))
+	user := createServiceUserForTest(t, buildUserRegistrationInputForTest(t))
 
 	res, err := signIn.LoginForToken(t.Context(), &signinpb.LoginForTokenRequest{
 		Credentials: &signinpb.Credentials{
@@ -66,8 +66,8 @@ func signInForTest(t *testing.T, signIn signinpb.SignInServiceClient) (token *si
 }
 
 // TestSignIn_TokensReachThisApplicationsServices pins the seam between platform's sign-in and
-// this application's own services: AuthInterceptor recognizes a token it did not mint, and checks
-// its login the way it checks a session it did. The doors themselves — both sign-ins, rotation,
+// this application's own services: AuthInterceptor recognizes a token platform minted, and checks
+// its login on every request. The doors themselves — both sign-ins, rotation,
 // reuse, sign-out — are platform's conformance suite's; see conformance_test.go.
 func TestSignIn_TokensReachThisApplicationsServices(T *testing.T) {
 	T.Parallel()
@@ -76,22 +76,21 @@ func TestSignIn_TokensReachThisApplicationsServices(T *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
-		token, userID := signInForTest(t, buildSignInClientForTest(t))
+		token, _ := signInForTest(t, buildSignInClientForTest(t))
 
 		ddbClient, err := buildAuthedGRPCClientWithBearerToken(token.GetToken())
 		require.NoError(t, err)
 
-		self, err := ddbClient.GetSelf(ctx, &authsvc.GetSelfRequest{})
+		_, err = ddbClient.GetValidVessels(ctx, &mealplanningsvc.GetValidVesselsRequest{})
 		require.NoError(t, err)
-		assert.Equal(t, userID, self.GetResult().GetId())
 	})
 
 	T.Run("a signed-out login's access token stops at once, on this application's services too", func(t *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
-		// A token from AuthService stops when its session row goes; one from platform's door
-		// stops when its login ends, because the interceptor reads the login on every request.
+		// The interceptor reads the login on every request, so a token stops when its login ends
+		// rather than when it expires.
 		signIn := buildSignInClientForTest(t)
 		token, _ := signInForTest(t, signIn)
 
@@ -101,7 +100,7 @@ func TestSignIn_TokensReachThisApplicationsServices(T *testing.T) {
 		ddbClient, err := buildAuthedGRPCClientWithBearerToken(token.GetToken())
 		require.NoError(t, err)
 
-		_, err = ddbClient.GetSelf(ctx, &authsvc.GetSelfRequest{})
+		_, err = ddbClient.GetValidVessels(ctx, &mealplanningsvc.GetValidVesselsRequest{})
 		assert.Equal(t, codes.Unauthenticated, status.Code(err))
 	})
 }
@@ -155,7 +154,7 @@ func TestSignIn_ThisApplicationsRules(T *testing.T) {
 		ctx := t.Context()
 
 		signIn := buildSignInClientForTest(t)
-		user := createServiceUserForTest(t, true, buildUserRegistrationInputForTest(t))
+		user := createServiceUserForTest(t, buildUserRegistrationInputForTest(t))
 		token, err := signIn.LoginForToken(ctx, &signinpb.LoginForTokenRequest{
 			Credentials: &signinpb.Credentials{
 				Username: user.Username,

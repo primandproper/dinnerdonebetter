@@ -19,39 +19,24 @@ import (
 	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
-// signInHooks is what this application does when platform's sign-in proves somebody.
+// signInHooks is what this application does when platform's sign-in proves somebody, or
+// writes one of their credentials.
 //
-// There are two doors into a password sign-in now: this repository's AuthService, through
-// Manager.ProcessLogin, and platform's SignInService, which this server registers as well.
-// Both prove the password through the same signin.Service, and AfterAuthenticate runs for
-// both, so it is the one place the "logged in" event can be recorded without one door
-// forgetting it. It used to be published by ProcessLogin after the call returned, which is
-// what a second door would have skipped.
+// Every door that signs somebody in goes through signin.Service — SignInService's password
+// doors, PasskeysService's FinishLogin, AuthService's account switch and the impersonation
+// door on InternalOperations — and AfterAuthenticate runs for each of them, so it is the one
+// place the "logged in" event is recorded without one door forgetting it.
 //
 // The event goes on the outbox, on the transaction signin hands the hook, rather than to the
-// broker. On SignInService's door that transaction also writes the refresh token, so the
-// event and the login commit together: a sign-in that fails after proving the password —
-// the refresh token write, or a later hook — rolls the event back with it, where a publish
-// from here would already have told the broker about a login that never happened. And a
-// failed enqueue refuses the sign-in, which is the arrangement ProcessLogin had — a publish
-// that failed failed the login — kept on purpose: the event feeds the audit trail, and a
+// broker. That transaction also writes the login's refresh token, so the event and the login
+// commit together: a sign-in that fails after proving its credential rolls the event back
+// with it. And a failed enqueue refuses the sign-in: the event feeds the audit trail, and a
 // sign-in nobody has a record of is the one an investigation would ask about.
 //
-// AuthService's door is narrower and not fully closed. It proves the password through
-// signin.Authenticate, whose transaction holds this hook alone, and issues its session
-// afterwards; a session write that fails leaves the event committed. What the event says is
-// then still true — the password was proven — which is what platform means by this hook,
-// and it is the only door that can be read that way.
-//
 // The four credential writes — a password change, a second factor refreshed or proven, and
-// an email address proven — are recorded here for the same reason. Both doors make them
-// through signin.Service: AuthService's UpdatePassword, NewTOTPSecret, TOTPSecretVerification
-// and the two email verifications, and platform's SignInService RPCs of the same names. Each
-// used to be published by AuthService after the call returned, which is exactly what the
-// second door would have skipped, and published to the broker after the write had committed,
-// so an outage between the two lost the event. On the hook's transaction it commits with the
-// write or not at all, and a failed enqueue refuses the write — the audit trail is what a
-// "who changed my password" investigation reads.
+// an email address proven — are recorded here for the same reason, on the write's own
+// transaction, so each commits with the write or not at all. The audit trail is what a "who
+// changed my password" investigation reads.
 //
 // The remaining hooks are NoopHooks'. See internal/build/signin for which doors are mounted.
 type signInHooks struct {
@@ -78,8 +63,8 @@ func NewSignInHooks(logger logging.Logger, emitter *events.Emitter, recorder *re
 	}
 }
 
-// AfterAuthenticate records the "logged in" event for a proven sign-in, through either door
-// and whether or not it was administrative.
+// AfterAuthenticate records the "logged in" event for a proven sign-in, through any door and
+// whether or not it was administrative, and an impersonation as the operator's act.
 func (h *signInHooks) AfterAuthenticate(ctx context.Context, tx database.Tx, _ tenancy.Scope, authentication *signin.Authentication) error {
 	if authentication == nil || authentication.Principal == nil || authentication.Principal.User == nil {
 		return platformerrors.New("sign-in hook called with no principal")
@@ -87,6 +72,10 @@ func (h *signInHooks) AfterAuthenticate(ctx context.Context, tx database.Tx, _ t
 
 	principal := authentication.Principal
 	logger := h.logger.WithValue(identitykeys.UserIDKey, principal.User.ID)
+
+	if authentication.ActorID != "" {
+		return h.recordImpersonation(ctx, tx, logger, authentication)
+	}
 
 	if err := h.emitter.Emit(ctx, tx, logger,
 		ddbidentity.UserLoggedInServiceEventType,
@@ -100,23 +89,56 @@ func (h *signInHooks) AfterAuthenticate(ctx context.Context, tx database.Tx, _ t
 	return nil
 }
 
-// AfterUpdatePassword records a password change, through either door.
+// recordImpersonation records an operator being issued a token to act as somebody: an audit
+// entry filed under the operator, naming the subject, with the event beside it.
+//
+// It is not a sign-in of the subject's, so no "logged in" event is written for them. And the
+// entry is the operator's because the act is: platform refuses the token when this write
+// fails, so there is no impersonation without the record of who asked for it.
+func (h *signInHooks) recordImpersonation(ctx context.Context, tx database.Tx, logger logging.Logger, authentication *signin.Authentication) error {
+	if h.recorder == nil {
+		return nil
+	}
+
+	principal := authentication.Principal
+
+	entry := &audit.AuditLogEntry{
+		ID:            identifiers.New(),
+		ResourceType:  usersResourceType,
+		RelevantID:    principal.User.ID,
+		EventType:     audit.AuditLogEventTypeOther,
+		BelongsToUser: authentication.ActorID,
+	}
+
+	if err := h.recorder.RecordAndEmit(ctx, tx, logger.WithValue(identitykeys.ImpersonatorIDKey, authentication.ActorID), entry,
+		ddbidentity.UserImpersonatedServiceEventType, principal.ActiveAccountID,
+		map[string]any{
+			identitykeys.UserIDKey:         principal.User.ID,
+			identitykeys.ImpersonatorIDKey: authentication.ActorID,
+		}, events.WithUserID(authentication.ActorID)); err != nil {
+		return platformerrors.Wrap(err, "recording an impersonation")
+	}
+
+	return nil
+}
+
+// AfterUpdatePassword records a password change, through any door.
 func (h *signInHooks) AfterUpdatePassword(ctx context.Context, tx database.Tx, _ tenancy.Scope, user *identity.User) error {
 	return h.recordCredentialWrite(ctx, tx, user, auth.PasswordChangedEventType, "recording a password change")
 }
 
-// AfterRefreshTOTPSecret records a second factor being replaced, through either door. The
+// AfterRefreshTOTPSecret records a second factor being replaced, through any door. The
 // secret itself is not on the user and is not recorded.
 func (h *signInHooks) AfterRefreshTOTPSecret(ctx context.Context, tx database.Tx, _ tenancy.Scope, user *identity.User) error {
 	return h.recordCredentialWrite(ctx, tx, user, auth.TwoFactorSecretChangedServiceEventType, "recording a second factor refresh")
 }
 
-// AfterVerifyTOTPSecret records a second factor being proven, through either door.
+// AfterVerifyTOTPSecret records a second factor being proven, through any door.
 func (h *signInHooks) AfterVerifyTOTPSecret(ctx context.Context, tx database.Tx, _ tenancy.Scope, user *identity.User) error {
 	return h.recordCredentialWrite(ctx, tx, user, auth.TwoFactorSecretVerifiedServiceEventType, "recording a second factor verification")
 }
 
-// AfterVerify records an email address proven by its mailed link, through either door.
+// AfterVerify records an email address proven by its mailed link, through any door.
 //
 // Only the link door is an email verification. CompleteVerification promotes somebody on a
 // proof this application does not ask for, and says nothing about the address, so it records

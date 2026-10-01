@@ -27,7 +27,6 @@ func TestServiceRoles(T *testing.T) {
 		assert.True(t, r.IsServiceAdmin())
 		assert.True(t, r.CanUpdateUserAccountStatuses())
 		assert.True(t, r.CanImpersonateUsers())
-		assert.True(t, r.CanManageUserSessions())
 	})
 
 	T.Run("both", func(t *testing.T) {

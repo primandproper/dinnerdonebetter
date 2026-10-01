@@ -29,9 +29,9 @@ func init() {
 //
 // It is the one statement of it for every door that registers somebody. AuthService.RegisterUser
 // runs through it, because it registers through signin.Service; and so does platform's
-// SignInService Register, which without it would write a user this application does not
-// recognize — unverified, holding no service role, owning an account under whatever role names
-// the request made up. What it says:
+// SignInService Register, an operator's door, which without it would write a user this
+// application does not recognize — unverified, holding no service role, owning an account under
+// whatever role names the request made up. What it says:
 //
 //   - A registrant starts in good standing. platform's default is unverified, which is the
 //     right default for a directory and not this application's policy: nothing here gates use

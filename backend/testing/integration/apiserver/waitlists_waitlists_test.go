@@ -4,9 +4,9 @@ import (
 	"testing"
 
 	waitlistfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists/fakes"
-	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
 
+	"github.com/primandproper/platform-go/v14/authentication/signin/signinpb"
 	waitlists "github.com/primandproper/platform-go/v14/waitlists"
 	waitlistspb "github.com/primandproper/platform-go/v14/waitlists/waitlistspb"
 	"github.com/primandproper/primitives-go/v2/identifiers"
@@ -84,11 +84,11 @@ func signupForSubject(t *testing.T, testClient client.Client, listID string) *wa
 func subjectRequestFor(t *testing.T, testClient client.Client) *waitlistspb.ListSignupsForSubjectRequest {
 	t.Helper()
 
-	authStatus, err := testClient.GetAuthStatus(t.Context(), &authsvc.GetAuthStatusRequest{})
+	authStatus, err := testClient.GetAuthStatus(t.Context(), &signinpb.GetAuthStatusRequest{})
 	require.NoError(t, err)
 
 	return &waitlistspb.ListSignupsForSubjectRequest{
-		Subject: &waitlistspb.SignupSubject{Type: string(waitlists.SubjectUser), Id: authStatus.GetUserId()},
+		Subject: &waitlistspb.SignupSubject{Type: string(waitlists.SubjectUser), Id: authStatus.GetStatus().GetUser().GetId()},
 	}
 }
 

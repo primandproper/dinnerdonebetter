@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	auditkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit/keys"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
@@ -164,6 +165,24 @@ func (q *repository) list(
 	), nil
 }
 
+// attachImpersonator names the operator on an entry the request's subject is recorded as acting
+// in, when the request came through an impersonation token.
+//
+// The entry stays the subject's — it is their data, and a query for what happened to their
+// account has to find it — and Impersonator is the second slot that stops it saying they did it.
+// An entry filed under somebody else, or under nobody, is left alone: the operator was not
+// acting as them.
+func attachImpersonator(ctx context.Context, entry *platformaudit.Entry) {
+	session := sessions.FromContext(ctx)
+	if session == nil || session.ImpersonatorID == "" {
+		return
+	}
+
+	if entry.Actor.Type == platformaudit.ActorUser && entry.Actor.ID == session.GetUserID() {
+		entry.Actor.Impersonator = session.ImpersonatorID
+	}
+}
+
 // Record appends audit log entries inside the caller's transaction.
 func (q *repository) Record(ctx context.Context, querier database.Tx, entries ...*audit.AuditLogEntry) error {
 	ctx, span := q.tracer.StartSpan(ctx)
@@ -190,6 +209,7 @@ func (q *repository) Record(ctx context.Context, querier database.Tx, entries ..
 		}
 
 		converted[i] = toPlatformEntry(entry)
+		attachImpersonator(ctx, converted[i])
 
 		scope := converted[i].Scope
 		if _, ok := groups[scope]; !ok {

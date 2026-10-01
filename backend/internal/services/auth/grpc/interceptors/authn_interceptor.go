@@ -12,10 +12,12 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	identitybuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/identity"
+	passkeysbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/passkeys"
+	passwordresetbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/passwordreset"
 	signinbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/signin"
 	waitlistsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/waitlists"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
+	authgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc"
 
 	"github.com/primandproper/platform-go/v14/authentication/signin"
 	"github.com/primandproper/platform-go/v14/authentication/signin/signinpb"
@@ -42,10 +44,6 @@ const (
 	authHeaderName = "Authorization"
 	tokenPrefix    = "Bearer "
 
-	// TODO: organize this so that the API client gets the same source.
-	zuckModeUserHeader    = "X-Zuck-Mode-User"
-	zuckModeAccountHeader = "X-Zuck-Mode-Account"
-
 	// runModeEnvVarKey is the environment variable describing the current run mode (development,
 	// testing, or production). Kept as a literal here to avoid importing internal/config.
 	runModeEnvVarKey = "DINNER_DONE_BETTER_META_RUN_MODE"
@@ -57,7 +55,6 @@ type AuthInterceptor struct {
 	directory                   platformidentity.Store
 	db                          database.Client
 	sessions                    *identitybuild.SessionBuilder
-	sessionStore                auth.SessionStore
 	methodPermissions           map[string][]authorization.Permission
 	oauth2Server                *oauth2server.Server
 	tokenIssuer                 tokens.Issuer
@@ -85,33 +82,30 @@ func ProvideAuthInterceptor(
 	directory platformidentity.Store,
 	db database.Client,
 	sessionBuilder *identitybuild.SessionBuilder,
-	sessionStore auth.SessionStore,
 	oauth2Server *oauth2server.Server,
 	oauth2Resource string,
 	tokenIssuer tokens.Issuer,
 	signIns SignInChecker,
 	aggregatedPermissions MethodPermissionsMap,
 ) *AuthInterceptor {
-	// TODO: configure this elsewhere
 	unauthenticatedRoutes := []string{
-		"/auth.AuthService/AdminLoginForToken",
-		"/auth.AuthService/BeginPasskeyAuthentication",
-		"/auth.AuthService/FinishPasskeyAuthentication",
-		"/auth.AuthService/RegisterUser",
-		"/auth.AuthService/VerifyTOTPSecret",
-		"/auth.AuthService/LoginForToken",
-		"/auth.AuthService/RequestPasswordResetToken",
-		"/auth.AuthService/RedeemPasswordResetToken",
-		// A user who forgot their username can't authenticate first.
-		"/auth.AuthService/RequestUsernameReminder",
-		"/auth.AuthService/VerifyEmailAddress",
 		// Analytics proxy: anonymous events (no auth)
 		"/analytics.AnalyticsService/TrackAnonymousEvent",
 	}
 
+	// This application's AuthService: a sign-up, and an exchange whose authority is the
+	// refresh token it carries.
+	unauthenticatedRoutes = append(unauthenticatedRoutes, authgrpc.AnonymousMethods()...)
+
 	// platform's SignInService: its two sign-in doors, the refresh exchange, and sign-out.
 	// See internal/build/signin for which of its RPCs are exposed at all.
 	unauthenticatedRoutes = append(unauthenticatedRoutes, signinbuild.AnonymousMethods()...)
+
+	// platform's PasswordResetService, every RPC of which is for somebody who cannot sign in,
+	// and PasskeysService's login ceremony. See internal/build/passwordreset and
+	// internal/build/passkeys.
+	unauthenticatedRoutes = append(unauthenticatedRoutes, passwordresetbuild.AnonymousMethods()...)
+	unauthenticatedRoutes = append(unauthenticatedRoutes, passkeysbuild.AnonymousMethods()...)
 
 	// gRPC reflection exposes the full service catalog to unauthenticated callers. It's handy for
 	// local tooling (grpcurl, k6) but should not be reachable in production, so only allow-list it
@@ -129,7 +123,6 @@ func ProvideAuthInterceptor(
 		directory:         directory,
 		db:                db,
 		sessions:          sessionBuilder,
-		sessionStore:      sessionStore,
 		oauth2Server:      oauth2Server,
 		oauth2Resource:    oauth2Resource,
 		tokenIssuer:       tokenIssuer,
@@ -137,16 +130,13 @@ func ProvideAuthInterceptor(
 		methodPermissions: aggregatedPermissions,
 		// Routes allowed when requires_password_change is true.
 		passwordChangeAllowedRoutes: []string{
-			"/auth.AuthService/UpdatePassword",
-			"/auth.AuthService/RevokeCurrentSession",
-			"/auth.AuthService/GetAuthStatus",
-			"/auth.AuthService/GetActiveAccount",
-			// GetAuthStatus's counterpart on platform's surface: a client told to change its
-			// password has to be able to learn whose password it is changing.
+			// A client told to change its password has to be able to learn whose password it
+			// is changing.
 			identitypb.IdentityService_GetPrincipal_FullMethodName,
-			// And UpdatePassword's counterpart, which a client on platform's surface changes
-			// the password through.
+			// The change itself.
 			signinpb.SignInService_UpdatePassword_FullMethodName,
+			// And signing out instead, which a person handed somebody else's device needs.
+			signinpb.SignInService_SignOutEverywhere_FullMethodName,
 		},
 		unauthenticatedRoutes: unauthenticatedRoutes,
 		// The signup page answers a visitor and reads a signed-in caller's session when one
@@ -166,11 +156,6 @@ func grpcReflectionEnabled() bool {
 	}
 }
 
-var (
-	// ErrUserNotAuthorizedToImpersonateOthers is returned when a user is not authorized to impersonate others.
-	ErrUserNotAuthorizedToImpersonateOthers = errors.New("user not authorized to impersonate others")
-)
-
 // errPasswordChangeRequired refuses a caller who owes a password change, carrying platform's
 // sentinel so the error encoder attaches its client-safe reason — PASSWORD_CHANGE_REQUIRED, the
 // one a client sends them to the form on — whichever door they signed in through.
@@ -180,41 +165,6 @@ func errPasswordChangeRequired() error {
 
 func Unauthenticated(msg string) error {
 	return status.Error(codes.Unauthenticated, msg)
-}
-
-func (s *AuthInterceptor) determineZuckMode(ctx context.Context, metaData metadata.MD, sessionContextData *sessions.ContextData) (userID, accountID string, err error) {
-	ctx, span := s.tracer.StartSpan(ctx)
-	defer span.End()
-
-	if zuckUserHeaders := metaData.Get(zuckModeUserHeader); len(zuckUserHeaders) > 0 {
-		var (
-			zuckUserID    = zuckUserHeaders[0]
-			zuckAccountID string
-		)
-
-		if !sessionContextData.ServiceRolePermissionChecker().CanImpersonateUsers() {
-			return "", "", ErrUserNotAuthorizedToImpersonateOthers
-		}
-
-		if _, err = s.directory.GetUser(ctx, s.db.Reader(), tenancy.Global(), zuckUserID); err != nil {
-			return "", "", observability.PrepareError(err, span, "fetching user info")
-		}
-
-		if zuckAccountIDs := metaData.Get(zuckModeAccountHeader); len(zuckAccountIDs) > 0 {
-			zuckAccountID = zuckAccountIDs[0]
-
-			// Honor the specifically requested impersonation account instead of always falling back
-			// to the user's default. BuildSessionContextDataForUser validates that the impersonated
-			// user is actually a member of the requested account and errors out otherwise.
-			if _, err = s.sessions.BuildSessionContextDataForUser(ctx, zuckUserID, zuckAccountID); err != nil {
-				return "", "", observability.PrepareError(err, span, "validating impersonated account membership")
-			}
-		}
-
-		return zuckUserID, zuckAccountID, nil
-	}
-
-	return "", "", nil
 }
 
 func (s *AuthInterceptor) extractSessionContextData(ctx context.Context, metaData metadata.MD) (*sessions.ContextData, error) {
@@ -256,80 +206,41 @@ func (s *AuthInterceptor) extractSessionContextData(ctx context.Context, metaDat
 			if sessionErr != nil {
 				return nil, observability.PrepareAndLogError(sessionErr, logger, span, "fetching user info for oauth2 token")
 			}
-			return s.applyZuckMode(ctx, metaData, sessionCtxData)
+
+			return sessionCtxData, nil
 		}
 	}
 
-	// Fallback: treat Bearer token as JWT (e.g. from LoginForToken with DesiredAccountID).
+	// Otherwise the token has to be one platform's sign-in minted. It says which directory it
+	// was issued in, and the claim cannot be added to a token by anybody but the server, which
+	// signs it. It is read by its presence: the directory is named by its owner, and the
+	// global directory this application's is has none, so the claim is present and empty.
 	claims, parseErr := s.tokenIssuer.ParseToken(ctx, accessToken)
 	if parseErr == nil {
-		userID := claims.Subject()
-		if userID != "" {
-			// A token platform's SignInService minted says which directory it was issued in,
-			// and nothing this application mints does. Both are signed by the same issuer, so
-			// the claim cannot be added to a token by anybody but the server. It is read by its
-			// presence: the directory is named by its owner, and the global directory this
-			// application's is has none, so the claim is present and empty.
+		if userID := claims.Subject(); userID != "" {
 			if issuedIn, ok := claims.GetString(signin.ClaimScope); ok {
-				return s.signInSessionContextData(ctx, metaData, claims, userID, issuedIn)
+				return s.signInSessionContextData(ctx, claims, userID, issuedIn)
 			}
-
-			accountID, _ := claims.GetString("account_id")
-			// The token names a session; the session has to still be there, and this has
-			// to be the access token it was last issued with. The second half is what
-			// makes a refresh retire the token it replaced — the session outlives the
-			// rotation, so its liveness alone would not.
-			//
-			// The read is also the touch. sessions.Store refreshes the idle deadline on
-			// Get, at most once per configured touch interval, which is why there is no
-			// fire-and-forget goroutine here any more: the version that had one wrote on
-			// every authenticated request, and did it in a goroutine to hide the cost.
-			sessionID, _ := claims.GetString("sid")
-			if sessionID == "" {
-				return nil, Unauthenticated("token names no session")
-			}
-
-			session, sessErr := s.sessionStore.Get(ctx, sessionID)
-			if sessErr != nil {
-				return nil, Unauthenticated("session has been revoked or expired")
-			}
-
-			if session.Data == nil || session.Data.SessionTokenID != claims.JTI() {
-				return nil, Unauthenticated("token has been superseded")
-			}
-
-			sessionCtxData, sessionErr := s.sessions.BuildSessionContextDataForUser(ctx, userID, accountID)
-			if sessionErr != nil {
-				return nil, observability.PrepareAndLogError(sessionErr, logger, span, "fetching user info from token")
-			}
-			sessionCtxData.SessionID = sessionID
-			return s.applyZuckMode(ctx, metaData, sessionCtxData)
 		}
 	}
 
 	return nil, Unauthenticated("invalid or expired token")
 }
 
-// signInSessionContextData turns a token platform's SignInService minted into a caller.
+// signInSessionContextData turns a token platform's sign-in minted into a caller.
 //
-// A token this application mints names a row in the session store, and a revocation deletes
-// the row. A token platform mints names a login — its sid is the refresh token family, not a
-// session — and the login is read on every request through signin.Service.CheckSignIn, so a
-// sign-out, an ended sign-in or a detected refresh-token reuse stops the access token on its next
-// request, as a revoked session does. The read is on the write pool, for the reason CheckSignIn
-// gives: a refresh's successor is presented at once, and a lagging replica would refuse it.
+// The token names a login — its sid is the refresh token family — and the login is read on
+// every request through signin.Service.CheckSignIn, so a sign-out, an ended sign-in or a
+// detected refresh-token reuse stops the access token on its next request rather than when it
+// expires. The read is on the write pool, for the reason CheckSignIn gives: a refresh's
+// successor is presented at once, and a lagging replica would refuse it.
 //
 // So the checks are the signature, which ParseToken has already made; the directory, which
 // has to be this application's; the login, which has to be named, because a token that names
-// none is not one platform issued; and that the login is still live.
-//
-// The session context carries no SessionID. The session features on this application's
-// AuthService — list, revoke one, revoke the others — act on rows in the session store, and
-// a caller holding one of these tokens has none; naming the family there would point those
-// calls at a row that does not exist.
+// none is not one platform issued; that the login is still live; and, on an impersonation,
+// that the operator still stands.
 func (s *AuthInterceptor) signInSessionContextData(
 	ctx context.Context,
-	metaData metadata.MD,
 	claims tokens.Claims,
 	userID, issuedIn string,
 ) (*sessions.ContextData, error) {
@@ -367,30 +278,57 @@ func (s *AuthInterceptor) signInSessionContextData(
 	// Which login is asking, so the doors that act on "this one" or "every other one" can tell.
 	sessionCtxData.SignInFamilyID = familyID
 
-	return s.applyZuckMode(ctx, metaData, sessionCtxData)
-}
-
-func (s *AuthInterceptor) applyZuckMode(ctx context.Context, metaData metadata.MD, sessionCtxData *sessions.ContextData) (*sessions.ContextData, error) {
-	ctx, span := s.tracer.StartSpan(ctx)
-	defer span.End()
-
-	logger := s.logger.WithSpan(span)
-
-	zuckUserID, zuckAccountID, zuckErr := s.determineZuckMode(ctx, metaData, sessionCtxData)
-	if zuckErr != nil {
-		return nil, observability.PrepareAndLogError(zuckErr, logger, span, "fetching user info for zuck mode")
-	}
-
-	if zuckUserID != "" {
-		sessionCtxData.Requester.UserID = zuckUserID
-	}
-
-	if zuckAccountID != "" {
-		sessionCtxData.ActiveAccountID = zuckAccountID
-		sessionCtxData.AccountPermissions[zuckAccountID] = authorization.NewAccountRolePermissionChecker(nil)
+	if err = s.applyImpersonator(ctx, claims, sessionCtxData); err != nil {
+		return nil, err
 	}
 
 	return sessionCtxData, nil
+}
+
+// applyImpersonator puts the operator acting through an impersonation token on the session, and
+// leaves every other token's session as it is.
+//
+// The request stays the subject's: their identity, their account, their memberships, their
+// rows. What the token adds is who is really at the keyboard — signin.ClaimActor, which signin
+// stamps on an impersonation and strips from everything else, so a claims builder can neither
+// forge nor drop it — and the session carries it so that the audit log records the operator
+// beside the subject.
+//
+// It also carries the operator's service-level grants in place of the subject's, which is this
+// application's answer to the question platform leaves to it. An operator acting in somebody's
+// account is still an operator — verifying that account's audit chain, say, is operator work —
+// and a customer's service role grants nothing an operator lacks. What the subject's account
+// lets them do is unchanged: that is the subject's membership, read from the subject's
+// principal.
+//
+// The operator is read again on every request, in the scope the token says they are in, for
+// platform's extractor's reason: suspending an operator mid-impersonation has to stop them on
+// their next request, not when the token lapses.
+func (s *AuthInterceptor) applyImpersonator(ctx context.Context, claims tokens.Claims, session *sessions.ContextData) error {
+	actorID, _ := claims.GetString(signin.ClaimActor)
+	if actorID == "" || actorID == session.GetUserID() {
+		return nil
+	}
+
+	actorScope, present := claims.GetString(signin.ClaimActorScope)
+	if !present {
+		return Unauthenticated("token names an operator and no directory for them")
+	}
+
+	// This application has one directory, operators and customers alike.
+	if actorScope != ddbidentity.Scope().Owner() {
+		return Unauthenticated("token names an operator in another directory")
+	}
+
+	operator, err := s.sessions.BuildSessionContextDataForUser(ctx, actorID, "")
+	if err != nil {
+		return observability.PrepareError(err, nil, "resolving an impersonation's operator")
+	}
+
+	session.ImpersonatorID = actorID
+	session.Requester.ServicePermissions = operator.Requester.ServicePermissions
+
+	return nil
 }
 
 func (s *AuthInterceptor) UnaryServerInterceptor() grpc.UnaryServerInterceptor {

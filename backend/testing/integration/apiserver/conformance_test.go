@@ -16,6 +16,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	grpcapi "github.com/primandproper/dinnerdonebetter/backend/internal/build/services/api/grpc"
 	ddbaudit "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
+	authkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/keys"
 	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
@@ -23,7 +24,7 @@ import (
 	notificationfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/fakes"
 	ddbpayments "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 	ddbuploadedmedia "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
-	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
+	internalopssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/internalops"
 	uploadedmediasvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/localdev"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
@@ -33,6 +34,8 @@ import (
 	"github.com/primandproper/platform-go/v14/audit/auditpb"
 	auditclient "github.com/primandproper/platform-go/v14/audit/grpc/client"
 	oauth2clientsclient "github.com/primandproper/platform-go/v14/authentication/oauth2clients/grpc/client"
+	"github.com/primandproper/platform-go/v14/authentication/passkeys/passkeyspb"
+	"github.com/primandproper/platform-go/v14/authentication/passwordreset/passwordresetpb"
 	signinclient "github.com/primandproper/platform-go/v14/authentication/signin/grpc/client"
 	"github.com/primandproper/platform-go/v14/authentication/signin/signinpb"
 	"github.com/primandproper/platform-go/v14/billing"
@@ -65,7 +68,6 @@ import (
 	"github.com/pquerna/otp/totp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/metadata"
 )
 
 // TestPlatformConformance runs platform-go's own promises against this deployment.
@@ -96,19 +98,21 @@ func TestPlatformConformance(T *testing.T) {
 			return dialConformance(client.WithBearerTokenCredentials(issued.GetToken()))
 		},
 		Actions: conformance.Actions{
-			Auditable:         conformanceAuditable,
-			Credentialed:      conformanceCredentialed,
-			InvitationToken:   conformanceInvitationToken,
-			EmailVerified:     conformanceEmailVerified,
-			Subscribed:        conformanceSubscribed,
-			Notified:          conformanceNotified,
-			CommentTarget:     conformanceCommentTarget,
-			VerificationToken: conformanceVerificationToken,
-			WaitlistLinks:     conformanceWaitlistLinks,
-			Registered:        conformanceRegistered,
-			HandleReminder:    conformanceHandleReminder,
-			Operated:          conformanceOperated,
-			ArtifactExpired:   conformanceArtifactExpired,
+			Auditable:          conformanceAuditable,
+			Authorized:         conformanceAuthorized,
+			PasswordResetToken: conformancePasswordResetToken,
+			Credentialed:       conformanceCredentialed,
+			InvitationToken:    conformanceInvitationToken,
+			EmailVerified:      conformanceEmailVerified,
+			Subscribed:         conformanceSubscribed,
+			Notified:           conformanceNotified,
+			CommentTarget:      conformanceCommentTarget,
+			VerificationToken:  conformanceVerificationToken,
+			WaitlistLinks:      conformanceWaitlistLinks,
+			Registered:         conformanceRegistered,
+			HandleReminder:     conformanceHandleReminder,
+			Operated:           conformanceOperated,
+			ArtifactExpired:    conformanceArtifactExpired,
 		},
 		CommentTargetType: string(mealplanning.CommentTargetTypeRecipes),
 		OperatorMethods:   conformanceOperatorMethods(),
@@ -131,6 +135,12 @@ func TestPlatformConformance(T *testing.T) {
 		ImmediateRevocation: true,
 		// GetPrincipal is built with identitygrpc.WithPermissionResolver.
 		PrincipalPermissions: true,
+		// The relying party the testing config renders, which is what PasskeysService verifies a
+		// ceremony against.
+		WebAuthn: &conformance.WebAuthnDeployment{
+			RPID:   apiServiceConfig.Auth.Passkey.RelyingParty.RPID,
+			Origin: apiServiceConfig.Auth.Passkey.RelyingParty.RPOrigins[0],
+		},
 	})
 }
 
@@ -182,8 +192,8 @@ var accountScopedSurfaces = []string{"audit", "issuereports", "webhooks"}
 // The audit surface is the exception to "in an account of their own". Its reads confine to the
 // caller's active account and its request names none, so an operator verifying somebody's chain
 // has to be acting in their account — which this deployment's operators do by impersonating its
-// owner. The service role is kept, so every chain stays readable; what moves is the account the
-// request is in.
+// owner, through InternalOperations.ImpersonateUser. The request is then the owner's, in their
+// account, and names the operator as who made it.
 func conformanceAdmin(ctx context.Context, req *conformance.SubjectRequest) (*conformance.Subject, error) {
 	user, err := createServiceUser(ctx, true, nil)
 	if err != nil {
@@ -200,17 +210,26 @@ func conformanceAdmin(ctx context.Context, req *conformance.SubjectRequest) (*co
 		return nil, fmt.Errorf("granting the service administrator role: %w", err)
 	}
 
-	var opts []grpc.DialOption
+	token, err := loginForConformance(ctx, user, "")
+	if err != nil {
+		return nil, err
+	}
+
+	conformanceTokens.Store(user.ID, token)
+
+	connToken := token
 	if req.Scope != nil && req.Surface == "audit" {
 		account, accountErr := store.GetAccount(ctx, databaseClient.Reader(), ddbidentity.Scope(), req.Scope.Owner())
 		if accountErr != nil {
 			return nil, fmt.Errorf("reading the account an operator is asked to act in: %w", accountErr)
 		}
 
-		opts = append(opts, withOutgoingMetadata("X-Zuck-Mode-User", account.OwnerUserID, "X-Zuck-Mode-Account", account.ID))
+		if connToken, err = impersonateForConformance(ctx, token, account.OwnerUserID, account.ID); err != nil {
+			return nil, err
+		}
 	}
 
-	subject, err := conformanceSubjectFor(ctx, user, "", opts...)
+	subject, err := conformanceSubjectWithToken(ctx, user.ID, connToken)
 	if err != nil {
 		return nil, err
 	}
@@ -220,6 +239,26 @@ func conformanceAdmin(ctx context.Context, req *conformance.SubjectRequest) (*co
 	}
 
 	return subject, nil
+}
+
+// impersonateForConformance mints the token an operator, signed in as operatorToken, acts as
+// subjectID in accountID through.
+func impersonateForConformance(ctx context.Context, operatorToken, subjectID, accountID string) (string, error) {
+	operator, err := buildAuthedGRPCClientWithBearerToken(operatorToken)
+	if err != nil {
+		return "", err
+	}
+	defer func() { _ = operator.Close() }()
+
+	res, err := operator.ImpersonateUser(ctx, &internalopssvc.ImpersonateUserRequest{
+		SubjectId: subjectID,
+		AccountId: accountID,
+	})
+	if err != nil {
+		return "", fmt.Errorf("impersonating the owner of account %s: %w", accountID, err)
+	}
+
+	return res.GetToken(), nil
 }
 
 // conformanceOperatorMethods are the calls this deployment reserves to an operator: every method
@@ -285,46 +324,47 @@ func conformanceOperatorRoutes() []string {
 	return reserved
 }
 
-// withOutgoingMetadata adds kv to every call made on a connection.
-func withOutgoingMetadata(kv ...string) grpc.DialOption {
-	return grpc.WithChainUnaryInterceptor(func(ctx context.Context, method string, req, reply any, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
-		return invoker(metadata.AppendToOutgoingContext(ctx, kv...), method, req, reply, cc, opts...)
-	})
-}
-
-func conformanceSubjectFor(ctx context.Context, user *identity.User, desiredAccount string, opts ...grpc.DialOption) (*conformance.Subject, error) {
+func conformanceSubjectFor(ctx context.Context, user *identity.User, desiredAccount string) (*conformance.Subject, error) {
 	token, err := loginForConformance(ctx, user, desiredAccount)
-	if err != nil {
-		return nil, err
-	}
-
-	ddbClient, err := buildAuthedGRPCClientWithBearerToken(token)
-	if err != nil {
-		return nil, err
-	}
-
-	status, err := ddbClient.GetAuthStatus(ctx, &authsvc.GetAuthStatusRequest{})
-	if err != nil {
-		return nil, fmt.Errorf("reading the subject's active account: %w", err)
-	}
-
-	conn, err := dialConformance(append([]grpc.DialOption{client.WithBearerTokenCredentials(token)}, opts...)...)
 	if err != nil {
 		return nil, err
 	}
 
 	conformanceTokens.Store(user.ID, token)
 
+	return conformanceSubjectWithToken(ctx, user.ID, token)
+}
+
+// conformanceSubjectWithToken is userID, calling with token.
+func conformanceSubjectWithToken(ctx context.Context, userID, token string) (*conformance.Subject, error) {
+	ddbClient, err := buildAuthedGRPCClientWithBearerToken(token)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = ddbClient.Close() }()
+
+	status, err := ddbClient.GetAuthStatus(ctx, &signinpb.GetAuthStatusRequest{})
+	if err != nil {
+		return nil, fmt.Errorf("reading the subject's active account: %w", err)
+	}
+
+	activeAccount := status.GetStatus().GetActiveAccountId()
+
+	conn, err := dialConformance(client.WithBearerTokenCredentials(token))
+	if err != nil {
+		return nil, err
+	}
+
 	scopes := map[string]tenancy.Scope{}
 	for _, surface := range accountScopedSurfaces {
-		scopes[surface] = tenancy.Of(status.GetActiveAccount())
+		scopes[surface] = tenancy.Of(activeAccount)
 	}
 
 	return &conformance.Subject{
 		Scope:     tenancy.Global(),
 		Scopes:    scopes,
-		UserID:    user.ID,
-		AccountID: status.GetActiveAccount(),
+		UserID:    userID,
+		AccountID: activeAccount,
 		Conn:      conn,
 		// The surfaces platform serves over HTTP, on the API server's router, at their
 		// packages' default base paths.
@@ -336,6 +376,8 @@ func conformanceSubjectFor(ctx context.Context, user *identity.User, desiredAcco
 			Operations:    true,
 			// The API server runs an operations.Watcher, so the event stream is mounted.
 			OperationEvents: true,
+			// The authorization server's routes, mounted at the paths oauth2server fixes.
+			OAuth2Server: true,
 		},
 		Surfaces: conformance.Surfaces{
 			Audit:         auditclient.Wrap(conn),
@@ -345,6 +387,8 @@ func conformanceSubjectFor(ctx context.Context, user *identity.User, desiredAcco
 			IssueReports:  issuereportsclient.Wrap(conn),
 			Notifications: notificationsclient.Wrap(conn),
 			OAuth2Clients: oauth2clientsclient.Wrap(conn),
+			Passkeys:      passkeyspb.NewPasskeysServiceClient(conn),
+			PasswordReset: passwordresetpb.NewPasswordResetServiceClient(conn),
 			Settings:      settingsclient.Wrap(conn),
 			SignIn:        signinclient.Wrap(conn),
 			Waitlists:     waitlistsclient.Wrap(conn),
@@ -367,11 +411,11 @@ func loginForConformance(ctx context.Context, user *identity.User, desiredAccoun
 		password = adminUserPassword
 	}
 
-	return localdev.FetchLoginTokenForUser(ctx, fmt.Sprintf(":%d", apiServiceConfig.GRPCServer.Port), &authsvc.UserLoginInput{
-		Username:         user.Username,
-		Password:         password,
-		TotpToken:        code,
-		DesiredAccountId: desiredAccount,
+	return localdev.FetchLoginTokenForUser(ctx, fmt.Sprintf(":%d", apiServiceConfig.GRPCServer.Port), &signinpb.Credentials{
+		Username:        user.Username,
+		Password:        password,
+		TotpCode:        code,
+		ActiveAccountId: desiredAccount,
 	})
 }
 
@@ -754,6 +798,68 @@ func conformanceRegistered(ctx context.Context, _ tenancy.Scope, userID string) 
 	}
 
 	return nil, fmt.Errorf("the upload stored %s and no row of the uploader's names it", uploaded.GetObjectUrl())
+}
+
+// conformancePasswordResetToken reads the reset link's secret off the newest event that queued a
+// reset mail for the address. The token store holds only a digest, so the event is the one place
+// the secret survives.
+func conformancePasswordResetToken(ctx context.Context, _ tenancy.Scope, emailAddress string) (string, error) {
+	var userID string
+	if err := databaseClient.Reader().QueryRowContext(ctx,
+		`SELECT id FROM ddb_identity_users WHERE email_address = $1`, emailAddress).Scan(&userID); err != nil {
+		return "", fmt.Errorf("finding the user registered as %s: %w", emailAddress, err)
+	}
+
+	payloads, err := outboxPayloads(ctx,
+		`convert_from(payload, 'UTF8') LIKE '%' || $1 || '%' AND convert_from(payload, 'UTF8') LIKE '%' || $2 || '%'`,
+		userID, ddbidentity.PasswordResetTokenCreatedEventType)
+	if err != nil {
+		return "", err
+	}
+
+	for _, payload := range payloads {
+		if secret := findStringKey(payload, authkeys.PasswordResetTokenSecretKey); secret != "" {
+			return secret, nil
+		}
+	}
+
+	return "", fmt.Errorf("no queued event carries a password reset link for %s", emailAddress)
+}
+
+// conformanceAuthorized approves an authorization request as userID, the way this deployment's
+// authorization server is answered: a POST to /authorize carrying the person's bearer token, the
+// request's parameters left in the query. The redirect is read, not followed.
+func conformanceAuthorized(ctx context.Context, _ tenancy.Scope, userID, authorizeURL string) (string, error) {
+	token, ok := conformanceTokens.Load(userID)
+	if !ok {
+		return "", fmt.Errorf("no subject minted in this run is user %s", userID)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, authorizeURL, http.NoBody)
+	if err != nil {
+		return "", err
+	}
+
+	req.Header.Set("Authorization", "Bearer "+token.(string))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	httpClient, err := localdev.NewNonRedirectingHTTPClient()
+	if err != nil {
+		return "", err
+	}
+
+	res, err := httpClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer func() { _ = res.Body.Close() }()
+
+	location := res.Header.Get("Location")
+	if location == "" {
+		return "", fmt.Errorf("the authorization server answered %d with no redirect", res.StatusCode)
+	}
+
+	return location, nil
 }
 
 // conformanceHandleReminder reports the username the newest reminder queued to an address names.

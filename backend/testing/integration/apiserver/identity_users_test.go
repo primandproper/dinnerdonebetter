@@ -1,11 +1,8 @@
 package integration
 
 import (
-	"fmt"
 	"testing"
-	"time"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
 	authconverters "github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc/converters"
 
@@ -77,136 +74,6 @@ func TestUsers_Creating(T *testing.T) {
 		testClient := buildUnauthenticatedGRPCClientForTest(t)
 		_, err := testClient.RegisterUser(ctx, &authsvc.RegisterUserRequest{
 			Input: authconverters.ConvertUserRegistrationInputToGRPCUserRegistrationInput(input),
-		})
-		assert.Error(t, err)
-	})
-}
-
-func TestUsers_PermissionChecking(T *testing.T) {
-	T.Parallel()
-
-	T.Run("happy path", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		_, testClient := createUserAndClientForTest(t)
-
-		response, err := testClient.CheckPermissions(ctx, &authsvc.UserPermissionsRequestInput{Permissions: []string{
-			string(authorization.ImpersonateUserPermission),
-			string(authorization.ReadWebhookEndpointsPermission), // permission everyone has
-		}})
-		require.NoError(t, err)
-		assert.NotNil(t, response)
-
-		assert.Equal(t, map[string]bool{
-			string(authorization.ImpersonateUserPermission):      false,
-			string(authorization.ReadWebhookEndpointsPermission): true,
-		}, response.Permissions)
-	})
-
-	T.Run("requires auth", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		testClient := buildUnauthenticatedGRPCClientForTest(t)
-
-		response, err := testClient.CheckPermissions(ctx, &authsvc.UserPermissionsRequestInput{Permissions: []string{string(authorization.ReadWebhookEndpointsPermission)}})
-		require.Error(t, err)
-		assert.Nil(t, response)
-	})
-}
-
-func TestUsers_UpdateUserEmailAddress(T *testing.T) {
-	T.Parallel()
-
-	T.Run("happy path", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		user, testClient := createUserAndClientForTest(t)
-
-		newEmail := fmt.Sprintf("updated_%d@whatever.com", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano)))
-
-		_, err := testClient.UpdateUserEmailAddress(ctx, &authsvc.UpdateUserEmailAddressRequest{
-			NewEmailAddress: newEmail,
-			CurrentPassword: user.HashedPassword,
-			TotpToken:       generateTOTPCodeForUserForTest(t, user),
-		})
-		require.NoError(t, err)
-
-		// verify the update took effect
-		updatedUser, err := adminClient.IdentityService().GetUser(ctx, &identitypb.GetUserRequest{UserId: user.ID})
-		require.NoError(t, err)
-		assert.NotNil(t, updatedUser)
-		assert.Equal(t, newEmail, updatedUser.GetUser().GetEmailAddress())
-	})
-
-	// The re-authentication is the point of this RPC existing rather than the change going
-	// through the directory's UpdateProfile, so a wrong password has to fail it.
-	T.Run("refuses a wrong password", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		user, testClient := createUserAndClientForTest(t)
-
-		_, err := testClient.UpdateUserEmailAddress(ctx, &authsvc.UpdateUserEmailAddressRequest{
-			NewEmailAddress: fmt.Sprintf("nope_%d@whatever.com", hashStringToNumber(t.Name())),
-			CurrentPassword: "not the password",
-			TotpToken:       generateTOTPCodeForUserForTest(t, user),
-		})
-		assert.Error(t, err)
-	})
-
-	T.Run("requires auth", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		c := buildUnauthenticatedGRPCClientForTest(t)
-
-		_, err := c.UpdateUserEmailAddress(ctx, &authsvc.UpdateUserEmailAddressRequest{
-			NewEmailAddress: "new@example.com",
-			CurrentPassword: "whatever",
-			TotpToken:       "000000",
-		})
-		assert.Error(t, err)
-	})
-}
-
-func TestUsers_UpdateUserUsername(T *testing.T) {
-	T.Parallel()
-
-	T.Run("happy path", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		user, testClient := createUserAndClientForTest(t)
-
-		newUsername := fmt.Sprintf("updated_%d", hashStringToNumber(t.Name()+time.Now().Format(time.RFC3339Nano)))
-
-		_, err := testClient.UpdateUserUsername(ctx, &authsvc.UpdateUserUsernameRequest{
-			NewUsername:     newUsername,
-			CurrentPassword: user.HashedPassword,
-			TotpToken:       generateTOTPCodeForUserForTest(t, user),
-		})
-		require.NoError(t, err)
-
-		// verify the update took effect
-		updatedUser, err := adminClient.IdentityService().GetUser(ctx, &identitypb.GetUserRequest{UserId: user.ID})
-		require.NoError(t, err)
-		assert.NotNil(t, updatedUser)
-		assert.Equal(t, newUsername, updatedUser.GetUser().GetUsername())
-	})
-
-	T.Run("requires auth", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		c := buildUnauthenticatedGRPCClientForTest(t)
-
-		_, err := c.UpdateUserUsername(ctx, &authsvc.UpdateUserUsernameRequest{
-			NewUsername:     "newusername",
-			CurrentPassword: "whatever",
-			TotpToken:       "000000",
 		})
 		assert.Error(t, err)
 	})
@@ -312,7 +179,7 @@ func TestUsers_RegisteringAgainstAnInvitation(T *testing.T) {
 		registrant.InvitationID = invitation.ID
 		registrant.InvitationToken = invitation.Token
 
-		created := createServiceUserForTest(t, true, registrant)
+		created := createServiceUserForTest(t, registrant)
 
 		// The account they landed in is the inviter's, not one of their own.
 		accounts, err := adminClient.IdentityService().ListAccountsForUser(ctx, &identitypb.ListAccountsForUserRequest{

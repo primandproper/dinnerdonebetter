@@ -2,7 +2,6 @@ package interceptors
 
 import (
 	identitybuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/identity"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 
 	oauth2servercfg "github.com/primandproper/platform-go/v14/authentication/oauth2serverstore/config"
 	"github.com/primandproper/platform-go/v14/authentication/signin"
@@ -25,7 +24,6 @@ func RegisterAuthInterceptor(i do.Injector) {
 			do.MustInvoke[platformidentity.Store](i),
 			do.MustInvoke[database.Client](i),
 			do.MustInvoke[*identitybuild.SessionBuilder](i),
-			do.MustInvoke[auth.SessionStore](i),
 			do.MustInvoke[*oauth2server.Server](i),
 			resourceIdentifier(do.MustInvoke[*oauth2servercfg.Config](i)),
 			do.MustInvoke[tokens.Issuer](i),

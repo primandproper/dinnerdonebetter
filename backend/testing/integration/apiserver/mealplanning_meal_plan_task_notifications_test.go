@@ -6,11 +6,11 @@ import (
 	"sync"
 	"testing"
 
-	authgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/localdev"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 	mealplantasknotifications "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_task_notifications"
 
+	"github.com/primandproper/platform-go/v14/authentication/signin/signinpb"
 	"github.com/primandproper/platform-go/v14/workqueue"
 	platformnotifications "github.com/primandproper/primitives-go/v2/notifications/mobile"
 	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
@@ -144,13 +144,13 @@ func TestMealPlanTaskNotifications_Worker(T *testing.T) {
 		tasks := awaitMealPlanTasks(t, ctx, userClient, mealPlanID)
 		require.NotEmpty(t, tasks)
 
-		status, err := userClient.GetAuthStatus(ctx, &authgrpc.GetAuthStatusRequest{})
+		status, err := userClient.GetAuthStatus(ctx, &signinpb.GetAuthStatusRequest{})
 		require.NoError(t, err)
-		require.NotEmpty(t, status.UserId)
+		require.NotEmpty(t, status.GetStatus().GetUser().GetId())
 
 		// The tasks the finalization saga wrote are unassigned, so their recipients are
 		// everybody in the account — which includes this user, and now this device.
-		deviceToken := createUserDeviceTokenForTest(t, status.UserId)
+		deviceToken := createUserDeviceTokenForTest(t, status.GetStatus().GetUser().GetId())
 
 		sender := newRecordingPushSender()
 		worker := buildNotificationWorkerForTest(t, sender)
@@ -203,10 +203,10 @@ func TestMealPlanTaskNotifications_PoisonTask(T *testing.T) {
 		tasks := awaitMealPlanTasks(t, ctx, userClient, mealPlanID)
 		require.NotEmpty(t, tasks)
 
-		status, err := userClient.GetAuthStatus(ctx, &authgrpc.GetAuthStatusRequest{})
+		status, err := userClient.GetAuthStatus(ctx, &signinpb.GetAuthStatusRequest{})
 		require.NoError(t, err)
 
-		deviceToken := createUserDeviceTokenForTest(t, status.UserId)
+		deviceToken := createUserDeviceTokenForTest(t, status.GetStatus().GetUser().GetId())
 
 		sender := newRecordingPushSender()
 		sender.err = errors.New("APNs is having a moment")

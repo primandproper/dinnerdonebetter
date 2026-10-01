@@ -1,31 +1,65 @@
 # Authentication Flow
 
-This document describes how authentication works across the Dinner Done Better application. The system supports multiple auth methods, multiple client types, and a layered token model. For identity concepts (users, accounts, memberships), see [identity.md](identity.md).
+This document describes how authentication works across the Dinner Done Better application. For
+identity concepts (users, accounts, memberships), see [identity.md](identity.md).
 
 ## Overview
 
-Authentication in this app is **convoluted by design**: there are several ways to log in, several token types, and the same token can flow through different paths depending on the client. The main sources of complexity:
+Signing in is platform-go's. Every door that proves who somebody is goes through one
+`signin.Service`, built in `internal/authentication/do.go`, and the gRPC surfaces a client talks
+to are platform's, mounted on this server:
 
-1. **Multiple auth methods**: Password+TOTP and Passkey (WebAuthn)
-2. **Three token systems**: JWT from this application's `AuthService` (names a server-side session), JWT from platform's `SignInService` (names a login, checked against it on every request), and OAuth2 (opaque, stored as a digest, used for gRPC)
-3. **Multiple client types**: Consumer web app, Admin web app, mobile apps, API clients, integration tests
-4. **Different paths for different clients**: Web apps use cookies + OAuth2 exchange; some clients send JWT directly
+| Surface                                          | What it is for                                                                                   | Mounted in                       |
+|--------------------------------------------------|--------------------------------------------------------------------------------------------------|----------------------------------|
+| `primandproper.platform.signin.v1.SignInService` | Password + TOTP sign-in, refresh, sign-out, the caller's own credentials and logins, auth status | `internal/build/signin`          |
+| `SignInAdministrationService`                    | An operator listing and ending somebody else's logins                                            | `internal/build/signin`          |
+| `PasswordResetService`                           | A link mailed to somebody who cannot sign in, and the password they choose with it               | `internal/build/passwordreset`   |
+| `PasskeysService`                                | Passkey enrollment, listing, archiving, and sign-in                                              | `internal/build/passkeys`        |
+| `auth.AuthService` (this application's)          | `RegisterUser` and `ExchangeToken`, until platform ships replacements                            | `internal/services/auth/grpc`    |
+| `internalops.InternalOperations.ImpersonateUser` | An operator acting as somebody else                                                              | `internal/services/internalops`  |
 
-## Token Types
+There are two token systems: the tokens `signin.Service` mints (a signed access token naming a
+login, and an opaque rotating refresh token), and the OAuth2 authorization server's opaque
+access tokens, which the web apps and API clients exchange a sign-in token for.
 
-### JWT (from LoginForToken / ProcessLogin / ProcessPasskeyLogin)
+What this application still decides, and where:
 
-- **Issued by**: `internal/authentication/manager.go` via `ProcessLogin`, `ProcessPasskeyLogin`, or `ExchangeTokenForUser`
-- **Format**: JWT (or PASETO, configurable) with claims: `sub` (user ID), `account_id` (optional), `sid` (session ID), `jti` (unique token ID), `exp`, `aud`, `iss`
-- **Lifetime**: Configurable (e.g. 5–10 min access, 72h refresh)
-- **Used for**:
-  - Stored in web app auth cookie
-  - Input to OAuth2 authorization flow (Bearer token proves user identity)
-  - Direct Bearer token for gRPC when using `WithBearerTokenCredentials` (e.g. localdev, tests)
+- **Who a registrant is** — `authentication.RegistrationPolicy`: good standing (no verification
+  gate), the `service_user` role, an issued but unproven TOTP secret, ownership of their account,
+  and both agreements, refused without them.
+- **What a password must be** — `authentication.PasswordPolicy`, applied by every door that
+  writes one: registration, change, and reset.
+- **When a second factor is asked for** — `signin.SecondFactorWhenEnrolled`: only once somebody
+  has proven one. The administrative door demands one whatever the policy says.
+- **Who may impersonate** — `authentication.NewImpersonationPolicy`: an operator whose service
+  roles grant `imitate.user`.
+- **What gets recorded** — the sign-in hooks (`authentication/signin_hooks.go`) write the "logged
+  in" event, the credential-change audit entries, and the impersonation record on sign-in's own
+  transaction; the mailers (`authentication/signin_mailers.go`) turn platform's mails into outbox
+  events the data change message handler renders.
 
-**Implementation**: [`internal/authentication/tokens/jwt/jwt.go`](backend/internal/authentication/tokens/jwt/jwt.go)
+## Tokens
 
-### OAuth2 Access Token
+### Sign-in tokens
+
+- **Issued by**: `signin.Service` — through `SignInService.LoginForToken` / `AdminLoginForToken`,
+  `PasskeysService.FinishLogin`, `AuthService.ExchangeToken`, or
+  `InternalOperations.ImpersonateUser`.
+- **Access token**: signed (PASETO, configured under `auth.tokens`), with `sub`, `account_id`,
+  `scope` (the directory, present and empty for this application's global one), `sid` (the
+  login: its refresh token family), `jti`, and on an impersonation `actor_id` and `actor_scope`.
+  An hour by default; fifteen minutes on an administrative or impersonation login.
+- **Refresh token**: opaque, single use, rotated on every exchange; presenting a spent one ends
+  the whole login. Thirty days by default, twelve hours administrative, none on an impersonation.
+  Stored in `ddb_signin_refresh_tokens`, keyed to the user so erasure takes them with it.
+- **Used for**: the web apps' cookie, the bearer token a client sends directly, and the input to
+  the OAuth2 authorization flow.
+
+The login is read on every request (`signin.Service.CheckSignIn`), so a sign-out, an ended
+login, or a detected refresh-token reuse stops the access token on its next request rather than
+when it expires.
+
+### OAuth2 access tokens
 
 - **Issued by**: the OAuth 2.1 authorization server at `/authorize` + `/token`
 - **Format**: opaque string; the store holds only its hex SHA-256 digest, never the token
@@ -33,461 +67,250 @@ Authentication in this app is **convoluted by design**: there are several ways t
 - **Used for**: gRPC `Authorization: Bearer <token>` when clients use the full OAuth2 flow
 
 Opaque and looked up rather than signed and verified locally: that is what makes a revoked
-token stop working on the next request rather than at the end of its lifetime. The cost is a
-store read per request, which is the trade `oauth2server`'s package doc argues.
+token stop working on the next request rather than at the end of its lifetime.
 
-**Implementation**: [`internal/services/auth/handlers/authentication/oauth2.go`](backend/internal/services/auth/handlers/authentication/oauth2.go), [`oauth2_store.go`](backend/internal/services/auth/handlers/authentication/oauth2_store.go), [`oauth2_authenticator.go`](backend/internal/services/auth/handlers/authentication/oauth2_authenticator.go)
+**Implementation**: [`internal/services/auth/handlers/authentication/oauth2.go`](../backend/internal/services/auth/handlers/authentication/oauth2.go), [`oauth2_authenticator.go`](../backend/internal/services/auth/handlers/authentication/oauth2_authenticator.go)
 
-## Auth Methods
+## Signing up
 
-### 1. Password + TOTP (LoginForToken / AdminLoginForToken)
+`AuthService.RegisterUser` is the one door somebody with no session signs up through. It is
+`signin.Service.Register` with no registrar, which platform's `SignInService.Register` will not
+do: there, `Register` is an operator's call, gated by `PermissionCreateUsers`. Both run through
+`RegistrationPolicy`, so they register the same person. The response carries the TOTP secret and
+its QR code, the one time either is handed back.
 
-**Flow**:
+A registrant signs in at once, with their password alone: their second factor is unproven until
+they call `SignInService.VerifyTOTPSecret`, and nothing is asked of an unproven one.
 
-1. Client calls gRPC `LoginForToken` (or `AdminLoginForToken` for admin-only) with username, password, and optionally TOTP.
-2. `ProcessLogin` validates credentials via `Authenticator.CredentialsAreValid` (password + TOTP if 2FA verified).
-3. Manager establishes a server-side session in the `ddb_sessions` table with device metadata (IP, User-Agent).
-4. Manager issues JWT with `IssueToken` (user ID + account ID + session ID + JTI).
-5. Client receives `TokenResponse` with `AccessToken` and `RefreshToken`.
+`RegisterUser` moves to platform when `SignInService` has an open sign-up door
+([platform-go#1068](https://github.com/primandproper/platform-go/issues/1068)).
 
-**Entry points**:
+## Signing in
 
-- **Consumer web app**: `POST /login/submit` → `LoginForToken` → JWT stored in cookie
-- **Admin web app**: `POST /login/submit` → `AdminLoginForToken` → JWT stored in cookie
-- **gRPC clients**: Call `LoginForToken` directly, use token as Bearer or exchange for OAuth2
+### Password + TOTP
 
-**Implementation**: [`internal/authentication/manager.go`](backend/internal/authentication/manager.go), [`internal/services/auth/grpc/auth.go`](backend/internal/services/auth/grpc/auth.go)
+1. The client calls `SignInService.LoginForToken` (or `AdminLoginForToken`) with a username or
+   email address, the password, a TOTP code once the user has proven a second factor, and
+   optionally the account to sign into.
+2. `signin.Service` reads the user, proves the password (hashing even for a handle naming nobody),
+   checks their standing, then the second factor, then resolves the account.
+3. The sign-in hook writes the `user_logged_in` event on the transaction that writes the refresh
+   token.
+4. The client receives an `IssuedToken`: the access token, the refresh token, and their deadlines.
 
-### 2. Passkey (WebAuthn)
+**Refreshing**: `SignInService.ExchangeRefreshToken`. **Signing out**: `SignOut` (this login, by
+its refresh token), `SignOutEverywhere`, `EndSignIn` / `EndOtherSignIns` (from `ListSignIns`).
 
-**Flow**:
+### Passkey
 
-1. Client calls `BeginPasskeyAuthentication` (unauthenticated) with optional username.
-2. Server returns `PublicKeyCredentialRequestOptions` and challenge; challenge stored in session.
-3. User completes passkey assertion in browser.
-4. Client calls `FinishPasskeyAuthentication` with assertion response and challenge.
-5. WebAuthn service validates assertion, returns user ID.
-6. `ProcessPasskeyLogin` creates a session record and issues JWT (same as password login).
-7. Client stores JWT in cookie (web app) or uses it directly.
+1. A signed-in user enrolls through `PasskeysService.BeginRegistration` and `FinishRegistration`.
+2. To sign in, the client calls `BeginLogin` — with a username, or without one for a discoverable
+   credential — and answers the options with the authenticator's assertion in `FinishLogin`.
+3. `FinishLogin` mints through `signin.Service.IssueForPrincipal`, so a passkey login is a login
+   like any other: the same token, refresh token, hooks and event. A passkey asserted with user
+   verification counts as both factors; one without is asked for a TOTP code beside it.
 
-**Entry points**:
+A credential's WebAuthn user handle is the user's ID. The ceremony state lives in a table
+(`webauthn_sessions`), consumed on use, so a ceremony works across replicas and a replayed
+response finds nothing:
 
-- **Consumer web app**: `POST /auth/passkey/authentication/options`, `POST /auth/passkey/authentication/verify`
-- **Admin web app**: Same routes
-- **gRPC**: `BeginPasskeyAuthentication`, `FinishPasskeyAuthentication`
-
-**Implementation**: [`internal/authentication/webauthn/service.go`](backend/internal/authentication/webauthn/service.go), [`frontend/consumer/src/routes/auth/passkey/`](frontend/consumer/src/routes/auth/passkey/)
-
-**Where the ceremony lives**: the ceremony itself — issuing the challenge, storing it between the
-two requests, verifying the response against it — is platform's
-`authentication/webauthn.RelyingParty`, configured under `auth.passkey`. What this repository owns
-is the `webauthn.User` adapter, where a registered credential is stored, and the sign count written
-back after a login. Two things about it are worth knowing:
-
-- **The ceremony store is a table, in every environment.** A ceremony spans two requests and
-  nothing pins them to a pod, so a per-process store fails a fraction of passkey logins on a
-  multi-replica deployment in a way that reads as a browser bug. `auth.passkey.provider` defaults
-  to `database`; there is no in-memory option to fall into by leaving it blank. Rows are swept
-  every `auth.passkey.sweepInterval` (5 minutes by default) and the challenge is *consumed* — read
-  and removed in one operation — so an assertion replayed inside its TTL finds nothing.
+- **The ceremony store is a table, in every environment.** `auth.passkey.provider` defaults to
+  `database`; there is no in-memory option to fall into by leaving it blank. Rows are swept every
+  `auth.passkey.sweepInterval` (5 minutes by default).
 - **One timeout, not three.** `auth.passkey.relyingParty.ceremonyTimeout` is the timeout the
-  browser is asked to honor, the deadline go-webauthn enforces when the response comes back, and
-  the TTL the row is stored under. It is 2 minutes, chosen to cover a cross-device prompt (scan the
-  QR code, approve on the phone) rather than only a local touch.
-- **The origins come from `internal/branding`.** `RPOrigins` is
-  `branding.WebAppOrigins()` in prod and `branding.LocalDevWebAppOrigins()` locally, so a
-  rebrand or a moved port changes them in one place. An origin the config does not name is
+  browser is asked to honor, the deadline go-webauthn enforces, and the TTL the row is stored
+  under: 2 minutes, to cover a cross-device prompt.
+- **The origins come from `internal/branding`.** `RPOrigins` is `branding.WebAppOrigins()` in
+  prod and `branding.LocalDevWebAppOrigins()` locally. An origin the config does not name is
   every passkey ceremony on that host failing verification.
 
-Both ceremonies are covered end to end by `testing/integration/apiserver/auth_passkey_test.go`,
-which drives a virtual ES256 authenticator (`auth_passkey_authenticator.go`) against a real
-Postgres: registration, username login, usernameless login, replay of both an attestation and an
-assertion, and the sign count advancing between logins.
+Archiving a user's last passkey is refused only when they hold no password to fall back on.
 
-### 3. Password + TOTP through platform's SignInService
+### Switching households
 
-The same password sign-in, through the door `@primandproper/platform-client`'s `Session` calls:
-`primandproper.platform.signin.v1.SignInService`. Both doors prove the credentials with the same
-`signin.Service`, built in `internal/authentication/do.go`, so they check the same things in the
-same order and record the same "logged in" event (a sign-in hook, `signin_hooks.go`). The hook
-writes the event to the outbox on sign-in's own transaction, so on this door it commits with the
-refresh token or not at all. What differs is what they hand back:
+`AuthService.ExchangeToken(refresh_token, desired_account_id)` moves a login into another of the
+user's accounts without a credential prompt. The refresh token is its whole authority. It is built
+from platform's doors until `SignInService` can do it in one
+([platform-go#1069](https://github.com/primandproper/platform-go/issues/1069)):
 
-| | `AuthService.LoginForToken` | `SignInService.LoginForToken` |
-| --- | --- | --- |
-| Access token | JWT naming a row in `ddb_sessions` (`sid`) | JWT naming a login (`sid` is the refresh token family) and the directory it was issued in (`scope`) |
-| Refresh token | JWT, checked against the session row | Opaque, single use, rotated on every exchange; presenting a spent one ends the login |
-| Sign-out takes effect | On the next request (the session row is deleted) | On the next request (the interceptor reads the login through `signin.Service.CheckSignIn`) |
-| Listed by | `AuthService.ListActiveSessions` | `SignInService.ListSignIns`, and `SignInAdministrationService.ListSignInsForUser` for an operator |
+1. The refresh token is exchanged, which proves the login and retires the token.
+2. With no account named, or the login's own, that successor is the answer.
+3. Otherwise a new login is issued on the named account through `IssueForPrincipal`, which
+   refuses an account the user is not a live member of, and the rotated login is signed out. A
+   refused switch signs it out too: its successor was never handed back.
 
-Refresh tokens live in `ddb_signin_refresh_tokens` (migration 23), keyed to the user so erasure
-takes them with it, and swept by the db-cleaner job.
+A switch is therefore a new login, listed separately by `ListSignIns`; platform's version will
+keep it one.
 
-**Exposed without a caller**: `LoginForToken`, `AdminLoginForToken`, `ExchangeRefreshToken`,
-`SignOut`, `AttachPassword`, `VerifyEmailAddress`, `RequestVerificationEmailByAddress`,
-`RequestHandleReminder`, and the magic link doors (which this deployment doesn't configure, so
-platform refuses them in its own words). `GetAuthStatus` is optionally authenticated.
-**Exposed to a signed-in caller, about themselves**: `GetSelf`, `UpdatePassword`,
-`RefreshTOTPSecret`, `VerifyTOTPSecret`, `UpdateEmailAddress`, `UpdateUsername` (each handle
-change asks the current password again), `RequestVerificationEmail`, `ListSignIns`,
-`EndSignIn`, `EndOtherSignIns`, `SignOutEverywhere`. **Reserved to an operator**: `Register`
-(behind `PermissionCreateUsers`), and `SignInAdministrationService`'s three methods, behind
-`signin.sign_ins.read_any` and `signin.sign_ins.end_any`. Every password written through the
-surface answers to `authentication.PasswordPolicy`, and every registration to
-`authentication.RegistrationPolicy`. The verification and username-reminder mails go through the
-same outbox events `AuthService`'s do (`authentication.SignInMailers`). `PasswordResetService`
-isn't mounted: `AuthService` carries this application's reset flow.
+## Impersonation
 
-**Implementation**: [`internal/build/signin/grpc.go`](backend/internal/build/signin/grpc.go), [`internal/authentication/signin_hooks.go`](backend/internal/authentication/signin_hooks.go), [`internal/repositories/postgres/auth/refresh_tokens.go`](backend/internal/repositories/postgres/auth/refresh_tokens.go)
+An operator acts as somebody through `InternalOperations.ImpersonateUser(subject_id, account_id)`,
+which returns a fifteen-minute token with no refresh token, minted by
+`signin.Service.IssueImpersonationToken`.
 
-## Password Reset
+- **The operator is the caller**, never a request field. Platform exposes no RPC for this door
+  because it takes an operator's ID on trust; this one reads it off the authenticated session.
+- **Who may**: an operator holding `imitate.user` (the permission table refuses everybody else,
+  and `NewImpersonationPolicy` refuses again inside the sign-in service). Somebody already acting
+  through an impersonation may not start another.
+- **What the token is**: the subject's — their identity, account, memberships and rows — with the
+  operator named on it (`actor_id`). The interceptor carries the operator on the session
+  (`ContextData.ImpersonatorID`) and gives the request the operator's service-level grants in
+  place of the subject's, because an operator acting in an account is still doing operator work.
+- **What is recorded**: the impersonation itself, as an audit entry filed under the operator and a
+  `user_impersonated` event; and every audit entry the request writes as the subject names the
+  operator as its impersonator — DDB's own repositories through
+  `auditlogentries.attachImpersonator`, platform's surfaces through `callers.Delegated` on the
+  session's principal.
+- **Ending it**: it expires, or the subject ends it from `ListSignIns`, where it appears with the
+  operator named. Suspending the operator stops it on their next request.
 
-Reset tokens are platform-go's `authentication/passwordreset`, not this repo's. What that buys
-is three properties a hand-written store gets wrong, and this one did:
+## Password reset
 
-**The token is stored as a digest, never as itself.** `ddb_password_reset_tokens.token_digest`
-holds SHA-256 of the secret, hex-encoded. The secret exists exactly once, in the `Issuance` that
-`Store.Issue` returns. A database copy — a backup, a read replica, a support engineer's SELECT —
-is therefore not a password reset for every account with an outstanding link.
+`PasswordResetService`, every RPC of which is anonymous:
 
-**Single use is the store's job, not the caller's.** `Store.Consume` reads the row and stamps
-its redemption inside one transaction, and it is the stamp's affected-row count that decides who
-owns the token. Two requests answering one link at the same instant both find the row live; one
-gets the token, the other gets `ErrTokenRedeemed`. Deciding on the read, with an update
-afterwards, leaves a window exactly as wide as the password write that follows.
+1. `RequestPasswordReset(email_address)` answers every address the same way, in the same time.
+   For a real one, `passwordreset.Service` issues a token and hands the mail to
+   `authentication.SignInMailers`, which writes a `password_reset_token_created` event carrying the
+   secret under `password_reset_token.secret`. The data change message handler renders the email.
+2. `VerifyPasswordResetToken` lets the form say whether a link is still good.
+3. `CompletePasswordReset(token, new_password)` checks the password against `PasswordPolicy`,
+   spends the token, writes the password and revokes the user's other links, on one transaction.
+   The password write goes through `authentication.PasswordResetDirectory`, which queues the
+   "your password was reset" mail (`password_reset_token_redeemed`) on that same transaction.
 
-**Expiry is refused rather than swept.** A row past its deadline is dead to `Verify` and
-`Consume` whether or not anything has deleted it. The `ddb job db-cleaner` sweep reclaims the
-rows; it is not what makes a link expire.
+What the store guarantees:
 
-The redemption runs in the order that fails safe: vet the password, consume the token, write the
-password, then `RevokeForUser` so the user's other outstanding links stop working. Consuming
-after the write would leave a live reset link for an account whose password just changed.
+- **The token is stored as a digest, never as itself.** `ddb_password_reset_tokens.token_digest`
+  holds SHA-256 of the secret. The secret exists once, in the issuance, and travels only on the
+  event the mail is rendered from — never on a span, a log line, or an audit entry.
+- **Single use is the store's decision.** Two requests answering one link at once both find the
+  row live; exactly one spends it.
+- **Expiry is refused rather than swept.** The `ddb job db-cleaner` sweep reclaims rows; it is not
+  what makes a link expire.
 
-### Where the secret travels
-
-`CreatePasswordResetToken` issues the token and publishes a data change message; the async
-handler turns that into the email. The secret rides **on the message**, under
-`password_reset_token.secret`, because there is nowhere to read it back from — the row holds a
-digest. The email verification token travels the same way for the same reason.
-
-That is the one place it appears, and the email link is the one place it lands. It is never
-attached to a span, a log line, or an audit entry; `RelevantID` on the audit entries below is the
-row's ID, which cannot be exchanged for a token.
-
-Issuing and redeeming are both recorded in the audit log as `password_reset_tokens`
-created/updated, by a thin wrapper around the platform store — the platform has no opinion about
-who wants a record of a reset, and "was a link issued for this account before the takeover, and
-was it used?" is a question asked months later, after the sweeper has removed the row.
+A link lives thirty minutes. Issuing and spending one are audited as `password_reset_tokens`
+created/updated, by a wrapper around the platform store.
 
 ## Web App Auth Flow (Consumer / Admin)
 
-The consumer and admin frontends use the same pattern:
+1. **Login**: the user signs in (password or passkey) and the web app receives a sign-in token.
+2. **Cookie**: the token is stored in a signed cookie.
+3. **Per-request**: the auth middleware reads the cookie and builds an authenticated client.
+4. **Client build**: the sign-in token is the bearer at `POST /authorize`; the code is exchanged
+   for an OAuth2 token, which the client uses for gRPC.
 
-1. **Login**: User submits credentials (password or passkey) → `LoginForToken` or passkey handlers → JWT returned.
-2. **Cookie**: JWT is encoded and stored in a signed cookie (`AuthPayload{AccessToken}`).
-3. **Per-request**: `AuthMiddleware` reads cookie, decodes JWT, calls `BuildAuthedClient(ctx, config, accessToken, developingLocally)`.
-4. **Client build**:
-   - **Production**: `WithOAuth2Credentials` — uses JWT as Bearer to hit `POST /authorize`, gets code, exchanges for OAuth2 token, uses OAuth2 token for gRPC.
-   - **Local dev**: `BuildInsecureOAuthedGRPCClient` — same OAuth2 flow but over HTTP.
-5. **gRPC calls**: Authenticated client sends OAuth2 access token (or JWT in some paths) as `Authorization: Bearer <token>`.
-
-**Implementation**: [`internal/platform/webappauth/middleware.go`](backend/internal/platform/webappauth/middleware.go), [`internal/platform/webappauth/client_builder.go`](backend/internal/platform/webappauth/client_builder.go)
+The web frontend and the iOS app have not been moved off the AuthService RPCs this change deleted,
+and are fixed separately.
 
 ## gRPC Auth Interceptor
 
-Every gRPC request (except unauthenticated routes) goes through `AuthInterceptor`:
+Every gRPC request goes through `AuthInterceptor`
+([`authn_interceptor.go`](../backend/internal/services/auth/grpc/interceptors/authn_interceptor.go)):
 
-1. **Extract token**: Read `Authorization: Bearer <token>` from metadata.
-2. **Resolve session** (in order):
-   - **OAuth2 first**: `oauth2Server.Authenticate(ctx, accessToken)` — a Store lookup by digest. If it resolves, the token's audience is checked against this server's own resource identifier (RFC 8707) and the subject's `sub` becomes the user ID. An audience naming somewhere else — the MCP server, which shares this database and therefore this store — is refused; an empty audience is accepted, because a client that sent no `resource` parameter gets one.
-   - **JWT fallback**: `tokenIssuer.ParseToken(ctx, accessToken)` — if OAuth2 fails, treat as JWT.
-3. **Validate session** (JWT path only). A token carrying a `scope` claim was minted by platform's `SignInService`: its directory has to be this one (the claim is present and empty for the global directory), it has to name a login (`sid`), and that login has to still be live — see [Password + TOTP through platform's SignInService](#3-password--totp-through-platforms-signinservice). Any other JWT: read the session the `sid` claim names, and check that the token's `jti` is the one the session was last issued with. A missing `sid`, a session that is gone or past either deadline, and a superseded token are all 401. The read is also the touch: the store refreshes the session's idle deadline, at most once per configured touch interval.
-4. **Build session context**: `identityDataManager.BuildSessionContextDataForUser(ctx, userID, accountID)`. The session ID is attached to `ContextData.SessionID`.
-5. **Zuck mode** (optional): If `X-Zuck-Mode-User` header present and user can impersonate, override session with that user/account.
-6. **Permissions**: Check method’s required permissions against session; deny if missing.
-7. **Inject context**: Store `sessions.ContextData` in request context for handlers.
-
-**Unauthenticated routes** (skip interceptor):
-
-- `LoginForToken`, `AdminLoginForToken` — on both `AuthService` and `SignInService`
-- `SignInService.ExchangeRefreshToken`, `SignInService.SignOut` (the refresh token they carry is their authority)
-- `SignInService.AttachPassword`, `VerifyEmailAddress` (the mailed link is their authority), and `RequestVerificationEmailByAddress`, `RequestHandleReminder` (they answer every address alike and mail only its holder)
-- `BeginPasskeyAuthentication`, `FinishPasskeyAuthentication`
-- `CreateUser`, `VerifyTOTPSecret`
-- `RequestPasswordResetToken`, `RedeemPasswordResetToken`
-- `VerifyEmailAddress`
-
-**Optionally authenticated**: `SignInService.GetAuthStatus` answers an anonymous caller, and
-reads the token when one is sent — a token that no longer works is refused as `Unauthenticated`,
-so a client refreshes instead of being told it is signed out.
-
-**Implementation**: [`internal/services/auth/grpc/interceptors/authn_interceptor.go`](backend/internal/services/auth/grpc/interceptors/authn_interceptor.go)
+1. **Unauthenticated routes** go straight through: `AuthService.RegisterUser` and `ExchangeToken`;
+   `SignInService`'s sign-in, refresh and sign-out doors and those whose authority is a mailed link
+   (see `internal/build/signin`); every `PasswordResetService` RPC; `PasskeysService.BeginLogin`
+   and `FinishLogin`; and the anonymous analytics event.
+2. **Optionally authenticated routes** (`SignInService.GetAuthStatus`, the waitlist signup page)
+   answer an anonymous caller, and hold a caller who sends a token to it.
+3. **Resolve the caller** from `Authorization: Bearer <token>`:
+   - **OAuth2 first**: a store lookup by digest. The token's audience is checked against this
+     server's resource identifier (RFC 8707); one naming somewhere else — the MCP server, which
+     shares this store — is refused.
+   - **Otherwise a sign-in token**: its signature, its directory (`scope` has to be this one), its
+     login (`sid` has to name one, and that login has to be live), and on an impersonation, that
+     the operator still stands.
+4. **Build the session**: `SessionBuilder.BuildSessionContextDataForUser(user, account)`, which
+   refuses a user whose standing does not admit sign-in (`PermissionDenied`, not
+   `Unauthenticated`: the token is genuine).
+5. **Permissions**: the method's required permissions, from the aggregated table in
+   `internal/build/services/api/grpc/extras.go`. A method no table names is denied.
+6. **Forced password change**: a user told to change their password may only read who they are
+   (`IdentityService.GetPrincipal`, `SignInService.GetAuthStatus`), change it
+   (`SignInService.UpdatePassword`), or `SignOutEverywhere`.
 
 ## OAuth2 Flow (for gRPC clients)
 
-Clients that use OAuth2 (e.g. web app via `WithOAuth2Credentials`) follow this flow:
-
-1. Client has a JWT (from `LoginForToken` or equivalent).
-2. Client calls `POST /authorize?client_id=X&state=Y&code_challenge=…&code_challenge_method=S256&…`
-   with `Authorization: Bearer <JWT>`.
-3. The `SubjectAuthenticator` parses the JWT, extracts `sub` (user ID), and resolves the account
-   the authorization is granted against.
-4. The authorization server issues an authorization code and redirects to `redirect_uri?code=Z`,
-   with `state` and the RFC 9207 `iss` parameter echoed back.
-5. Client (with `CheckRedirect = ErrUseLastResponse`) reads `code` from the `Location` header.
-6. Client calls `POST /token` with `code`, `code_verifier`, `client_id`, `client_secret` →
-   receives OAuth2 access + refresh tokens.
-7. Client uses the OAuth2 access token for gRPC `Authorization: Bearer <oauth2_access_token>`.
+1. The client has a sign-in token.
+2. It calls `POST /authorize?client_id=X&state=Y&code_challenge=…&code_challenge_method=S256&…`
+   with `Authorization: Bearer <token>`.
+3. The `SubjectAuthenticator` resolves the user, and the account the authorization is granted
+   against.
+4. The authorization server redirects to `redirect_uri?code=Z`, echoing `state` and the RFC 9207
+   `iss` parameter.
+5. The client reads `code` off the `Location` header without following it, and calls
+   `POST /token` with `code`, `code_verifier`, `client_id`, `client_secret`.
+6. It uses the OAuth2 access token for gRPC.
 
 **POST, not GET, at step 2.** A `GET /authorize` renders the login form — the answer for a
 browser arriving without a session — and only a POST runs the authenticator that reads the
-bearer token. Both methods carry the authorization parameters in the query string, so the
-request that issues the code is validated against exactly the same bytes the GET would have been.
+bearer token.
 
-**Endpoints** (API server):
+**Endpoints** (API server): `GET /.well-known/oauth-authorization-server`, `GET|POST /authorize`,
+`POST /token` (`authorization_code` and `refresh_token` only), `POST /revoke` (RFC 7009).
+`POST /register` is **not** served: an OAuth2 client here is an administered object created
+through the permission-gated gRPC surface.
 
-- `GET /.well-known/oauth-authorization-server` — RFC 8414 discovery
-- `GET|POST /authorize` — authorization (GET renders the login form; POST authenticates)
-- `POST /token` — token exchange (`authorization_code` and `refresh_token` only)
-- `POST /revoke` — RFC 7009 token revocation
-
-`POST /register` is **not** served. RFC 7591 dynamic registration is open by construction, and an
-OAuth2 client here is an administered object created through the permission-gated gRPC surface —
-an anonymous endpoint writing to the same registry would be a way around those permissions. The
-discovery document therefore omits `registration_endpoint` rather than advertising a 404.
-
-### What the API server's authorization server enforces
-
-- **Redirect URIs matched byte for byte**, at `/authorize` and again at `/token` against the URI
-  the code was issued for. Not by hostname, not ignoring ports. A client registers the exact
-  string it will send.
-- **PKCE mandatory, S256 only.** No `plain`, and an absent `code_challenge_method` is refused
-  rather than defaulted — RFC 7636 defaults it to `plain`, so silence is a request for the
-  method this server does not accept.
-- **Refresh token rotation with reuse detection.** A replayed refresh token revokes the whole
-  family, not just itself.
-- **Every credential stored as a hex SHA-256 digest**, never as itself.
-- **`authorization_code` and `refresh_token` only.** No password grant, no client credentials, no
-  implicit.
+What the authorization server enforces: redirect URIs matched byte for byte, at `/authorize` and
+again at `/token`; PKCE mandatory, S256 only; refresh token rotation with reuse detection; every
+credential stored as a digest; no password, client-credentials or implicit grants. Platform's
+`oauth2server` conformance suite asserts the storage half of this against this deployment.
 
 ### Two servers, one Store
 
-`ddb serve` and `ddb serve mcp` are different processes running the same authorization server
-package over the same four `ddb_oauth2_*` tables. That is the intended shape: `oauth2server`
-ships no RFC 7662 introspection endpoint, so a resource server either shares the Store or lives
-in the same process, and both of these reach the same Postgres.
+`ddb serve` and `ddb serve mcp` run the same authorization server package over the same
+`ddb_oauth2_*` tables. That is why the audience check in the interceptor is load-bearing: a token
+minted by the MCP server is in the table this server reads, and what stops it being spent here is
+that its audience names somewhere else.
 
-It is also why the audience check in the gRPC interceptor is load-bearing rather than decorative.
-A token minted by the MCP server is in the same table this server reads, so what stops it being
-spent here is that its audience names somewhere else.
+|                     | API server                         | MCP server                                          |
+|---------------------|------------------------------------|-----------------------------------------------------|
+| Who the subject is  | a sign-in token                    | a username, argon2 password, and TOTP — admins only |
+| Client registration | administered, via the gRPC surface | RFC 7591 dynamic, open, 90-day expiry               |
+| `POST /register`    | not served                         | served                                              |
 
-## The MCP server's authorization server
-
-`ddb serve mcp` runs the same `oauth2server` package, over the same tables, at the same paths.
-What differs is the two things the package deliberately leaves to the application:
-
-|                     | API server                                     | MCP server                                          |
-|---------------------|------------------------------------------------|-----------------------------------------------------|
-| Who the subject is  | a session JWT, or a username + password + TOTP | a username, argon2 password, and TOTP — admins only |
-| Client registration | administered, via the gRPC surface             | RFC 7591 dynamic, open, 90-day expiry               |
-| `POST /register`    | not served                                     | served                                              |
-
-Everything else — the endpoints, the tables, exact redirect URI matching, mandatory S256 PKCE,
-rotation with reuse detection, opaque 15-minute access tokens — is one implementation.
-
-The MCP side is documented in [`backend/docs/mcp-usage-guide.md`](backend/docs/mcp-usage-guide.md).
+The MCP side is documented in [`backend/docs/mcp-usage-guide.md`](../backend/docs/mcp-usage-guide.md).
 
 ## Session Context
 
-After auth, handlers receive `sessions.ContextData` in the request context. It contains:
+After auth, handlers receive `sessions.ContextData` in the request context:
 
-- `Requester`: User ID, username, email, account status, service role
-- `ActiveAccountID`: Account for this request
-- `AccountPermissions`: Map of account ID → role checker
-- `SessionID`: The server-side session ID (from the `sid` claim; empty for OAuth2 tokens, which name no session)
+- `Requester`: user ID, username, email, account status, service permissions
+- `ActiveAccountID`: the account this request is against
+- `AccountPermissions`: account ID → role checker, for every account the user belongs to
+- `SignInFamilyID`: the login a sign-in token belongs to (empty on an OAuth2 token)
+- `ImpersonatorID`: the operator acting through an impersonation token (empty otherwise)
 
-**Implementation**: [`internal/authentication/sessions/session_context.go`](backend/internal/authentication/sessions/session_context.go)
+Platform's surfaces read the same session through `sessions.PrincipalFromContext`, whose
+principal reports the impersonator as `callers.Delegated`.
 
-## Session Management
+## Sweeping
 
-Users can view and manage their active login sessions. Each login (password, passkey)
-establishes a session in platform-go's `sessions` store, backed by the `ddb_sessions` table,
-which tracks:
-
-- **Device metadata**: client IP, User-Agent, friendly device name (derived from the
-  User-Agent), and login method — every field the client's own account of itself, rendered
-  and never compared against anything
-- **Activity**: `created_at`, `last_seen_at`, `expires_at`
-- **Token linkage**: the JTI of the access token and of the refresh token the session was
-  last issued alongside, rotated on each refresh
-
-### Two timeouts
-
-The store enforces both an idle timeout and an absolute one, and a session's `expires_at` is
-the earlier of the two. Idle asks how long somebody may close the app and come back; absolute
-asks how long a session may exist at all, which is the only bound on a stolen refresh token
-— a thief is not idle. The deployed values are a week idle and thirty days absolute; see
-`sessionIdleTimeout` in `internal/config/environments/utils.go`.
-
-Reading a session refreshes its idle deadline, but no more often than the configured touch
-interval — an hour, against a week. So `last_seen_at` is a session's last activity to within
-an hour, and always understates it, which expires a session early rather than late.
-
-### Revocation is a delete
-
-Ending a session removes its row. There is no `revoked_at` column that reads have to
-remember to filter on, and no second table recording which sessions are live — a session
-table maintained beside the store's is a second account of the same fact, and the moment the
-two disagree a revocation has not taken.
-
-### Token Refresh and Session Continuity
-
-When a client calls `ExchangeToken` with a refresh token, the system:
-
-1. Extracts the `sid` and `jti` from the refresh token.
-2. Reads the session — rejects if it is gone or past either deadline.
-3. Rejects if this is not the refresh token the session was last issued with, which is what
-   retires a refresh token that has already been spent.
-4. Issues new access + refresh tokens with the same `sid` but new JTIs.
-5. Writes the new pair back to the session before returning the tokens.
-
-The session identifier is stable across refreshes, while individual tokens rotate. It is not
-rotated because it is not a credential a client ever holds on its own — it rides inside a
-token this server signs — so there is no identifier an attacker could have planted for a
-rotation to invalidate.
-
-### gRPC Endpoints
-
-- **`ListActiveSessions`**: returns the live sessions the current user holds, newest first,
-  each with an `is_current` flag. There is no page: a person's live sessions are the devices
-  they are signed in on, which is a handful.
-- **`RevokeSession`**: ends one session by ID. A session that is not the caller's is answered
-  as absent rather than as forbidden, so the answer does not confirm that somebody else's
-  identifier names anything.
-- **`RevokeAllOtherSessions`**: ends every session but the caller's own.
-- **`AdminListSessionsForUser`**, **`AdminRevokeUserSession`**,
-  **`AdminRevokeAllUserSessions`**: the same three for an administrator, gated on
-  `manage.user_sessions`.
-
-### Every token names a session
-
-A JWT this application issues always carries a `sid`, and the interceptor refuses one that
-does not. A token naming no session is a token nothing can sign out. A token platform's
-`SignInService` issues also carries a `sid`, but it names the login's refresh token family
-rather than a session, and a sign-out ends it by revoking the family's refresh tokens; the
-interceptor reads the family on every request, so its access token stops at once too.
-
-### Sweeping
-
-Expired rows are removed by `ddb job db-cleaner`, alongside the authorization server's, the
-password reset store's and the sign-in refresh tokens' — one scheduled sweep for the fleet rather than a sweeper
-goroutine in every replica. The sweep is a garbage collector, not a security control: the
-store refuses a session past either deadline whether or not anything has swept it.
-
-**Implementation**: [`internal/domain/auth/user_session.go`](backend/internal/domain/auth/user_session.go), [`internal/repositories/postgres/auth/user_sessions.go`](backend/internal/repositories/postgres/auth/user_sessions.go), [`internal/services/auth/grpc/auth.go`](backend/internal/services/auth/grpc/auth.go)
+`ddb job db-cleaner` removes expired rows from the authorization server's tables, the password
+reset tokens and the sign-in refresh tokens — one scheduled sweep for the fleet rather than a
+sweeper goroutine in every replica. It is a garbage collector, not a security control: every read
+already refuses an expired row.
 
 ## Key File Reference
 
-| Area                                                        | Path                                                                     |
-|-------------------------------------------------------------|--------------------------------------------------------------------------|
-| Auth manager (login, passkey, token exchange)               | `internal/authentication/manager.go`                                     |
-| JWT issuance/parsing                                        | `internal/authentication/tokens/jwt/jwt.go`                              |
-| WebAuthn service (credentials, sign count)                  | `internal/authentication/webauthn/service.go`                            |
-| WebAuthn user adapter                                       | `internal/authentication/webauthn/user_adapter.go`                       |
-| Passkey ceremony config + wiring                            | `internal/services/auth/grpc/do.go`                                      |
-| gRPC auth service                                           | `internal/services/auth/grpc/auth.go`                                    |
-| Auth interceptor                                            | `internal/services/auth/grpc/interceptors/authn_interceptor.go`          |
-| OAuth2 server                                               | `internal/services/auth/handlers/authentication/oauth2.go`               |
-| OAuth2 client registry store                                | `internal/services/auth/handlers/authentication/oauth2_store.go`         |
-| OAuth2 subject authenticator                                | `internal/services/auth/handlers/authentication/oauth2_authenticator.go` |
-| Passkey HTTP endpoints (web)                                | `frontend/consumer/src/routes/auth/passkey/`                             |
-| Web app auth middleware                                     | `internal/platform/webappauth/middleware.go`                             |
-| Client builder (OAuth2 + JWT)                               | `internal/platform/webappauth/client_builder.go`                         |
-| gRPC client (OAuth2, Bearer)                                | `pkg/client/client.go`                                                   |
-| Password reset store (audit wrapper)                        | `internal/repositories/postgres/auth/password_reset_tokens.go`           |
-| Password reset flow (issue, redeem)                         | `internal/domain/auth/managers/auth_manager.go`                          |
-| Expired-row sweep (oauth2, reset, sessions, refresh tokens) | `internal/services/oauth/workers/db_cleaner/db_cleaner.go`               |
-| Platform SignInService mount                                | `internal/build/signin/grpc.go`                                          |
-| Sign-in hooks (the "logged in" event)                       | `internal/authentication/signin_hooks.go`                                |
-| Sign-in refresh token store                                 | `internal/repositories/postgres/auth/refresh_tokens.go`                  |
-| Session payload, holder, aliases                            | `internal/domain/auth/user_session.go`                                   |
-| Session store + audit wrapper                               | `internal/repositories/postgres/auth/user_sessions.go`                   |
-| Session expiry policy config                                | `internal/authentication/config/config.go`                               |
-| Session table migration (version 35)                        | `internal/repositories/postgres/migrations/migrate.go`                   |
-
-## Flow Diagram
-
-```mermaid
-flowchart TB
-    subgraph "Login Entry Points"
-        PW[Password + TOTP]
-        PK[Passkey]
-    end
-
-    subgraph "Token Issuance"
-        PM[ProcessLogin / ProcessPasskeyLogin]
-        SESS[(ddb_sessions table)]
-        JWT[JWT with user_id + account_id + sid + jti]
-    end
-
-    PW --> PM
-    PK --> PM
-
-    PM --> SESS
-    PM --> JWT
-
-    subgraph "Web App Path"
-        Cookie[Auth Cookie]
-        MW[AuthMiddleware]
-        BC[BuildAuthedClient]
-        OAuth2[OAuth2 Exchange]
-        OAT[OAuth2 Access Token]
-    end
-
-    JWT --> Cookie
-    Cookie --> MW
-    MW --> BC
-    BC --> OAuth2
-    OAuth2 --> OAT
-
-    subgraph "gRPC Path"
-        OAT --> gRPC[gRPC with Bearer]
-        JWT --> gRPC
-    end
-
-    subgraph "Auth Interceptor"
-        AI[Extract Bearer]
-        O2Check{OAuth2 token?}
-        JWTCheck{JWT?}
-        SessCheck{Session valid?}
-        SC[Session Context]
-    end
-
-    gRPC --> AI
-    AI --> O2Check
-    O2Check -->|yes| SC
-    O2Check -->|no| JWTCheck
-    JWTCheck -->|yes| SessCheck
-    JWTCheck -->|no| Err[401 Unauthenticated]
-    SessCheck -->|yes| SC
-    SessCheck -->|revoked/expired| Err
-
-    subgraph "Session Management"
-        LS[ListActiveSessions]
-        RS[RevokeSession]
-        RA[RevokeAllOtherSessions]
-    end
-
-    SC --> LS
-    SC --> RS
-    SC --> RA
-    RS --> SESS
-    RA --> SESS
-```
+| Area                                              | Path                                                                     |
+|---------------------------------------------------|--------------------------------------------------------------------------|
+| Sign-in service, policies, hooks, mailers         | `internal/authentication/`                                               |
+| SignInService mount and its permissions           | `internal/build/signin/grpc.go`                                          |
+| PasswordResetService mount                        | `internal/build/passwordreset/grpc.go`                                   |
+| PasskeysService mount, relying party              | `internal/build/passkeys/grpc.go`                                        |
+| AuthService (RegisterUser, ExchangeToken)         | `internal/services/auth/grpc/auth.go`                                    |
+| Impersonation RPC                                 | `internal/services/internalops/grpc/impersonation.go`                    |
+| Auth interceptor                                  | `internal/services/auth/grpc/interceptors/authn_interceptor.go`          |
+| OAuth2 server and subject authenticator           | `internal/services/auth/handlers/authentication/`                        |
+| Password reset store (audit wrapper)              | `internal/repositories/postgres/auth/password_reset_tokens.go`           |
+| Sign-in refresh token store                       | `internal/repositories/postgres/auth/refresh_tokens.go`                  |
+| Expired-row sweep                                 | `internal/services/oauth/workers/db_cleaner/db_cleaner.go`               |
+| gRPC client                                       | `pkg/client/client.go`                                                   |
 
 ## Related Documentation
 
 - [identity.md](identity.md) — Users, accounts, memberships, roles, permissions
 - [email_verification.md](email_verification.md) — Email verification flow
-- [backend/docs/adding_a_new_domain.md](backend/docs/adding_a_new_domain.md) — Authorization permissions for new domains
+- [backend/docs/adding_a_new_domain.md](../backend/docs/adding_a_new_domain.md) — Authorization permissions for new domains

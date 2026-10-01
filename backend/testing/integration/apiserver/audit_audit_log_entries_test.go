@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
-	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
 
 	auditgrpc "github.com/primandproper/platform-go/v14/audit/auditpb"
 	"github.com/primandproper/platform-go/v14/identity/identitypb"
@@ -76,13 +75,13 @@ func TestAuditLogEntries_Listing_ForAccount(T *testing.T) {
 		require.NotNil(t, createRes.GetAccount())
 		accountID := createRes.GetAccount().GetId()
 
-		// Read as somebody whose active account is the new one, which takes
-		// impersonation: a chain is read by being in it, and the account a session is
-		// in is not a request field. The RPC this replaced took an account id and
-		// checked membership afterwards; that check is the scope now.
-		impersonated := client.ImpersonateUseAndAccountContext(ctx, user.ID, accountID)
+		// Read as somebody whose active account is the new one, which takes an operator
+		// impersonating its owner: a chain is read by being in it, and the account a session
+		// is in is not a request field. The RPC this replaced took an account id and checked
+		// membership afterwards; that check is the scope now.
+		impersonated := impersonationClientForTest(t, adminClient, user.ID, accountID)
 
-		forAccount, err := adminClient.ListEntries(impersonated, &auditgrpc.ListEntriesRequest{})
+		forAccount, err := impersonated.ListEntries(ctx, &auditgrpc.ListEntriesRequest{})
 		require.NoError(t, err)
 
 		// Account creation creates: account, account_user_membership.

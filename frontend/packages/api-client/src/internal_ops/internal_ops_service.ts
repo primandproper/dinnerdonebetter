@@ -17,7 +17,12 @@ import {
   type ServiceError,
   type UntypedServiceImplementation,
 } from '@grpc/grpc-js';
-import { TestQueueMessageRequest, TestQueueMessageResponse } from './internal_ops_service_types';
+import {
+  ImpersonateUserRequest,
+  ImpersonateUserResponse,
+  TestQueueMessageRequest,
+  TestQueueMessageResponse,
+} from './internal_ops_service_types';
 
 export const protobufPackage = 'internalops';
 
@@ -34,10 +39,34 @@ export const InternalOperationsService = {
       Buffer.from(TestQueueMessageResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): TestQueueMessageResponse => TestQueueMessageResponse.decode(value),
   },
+  /**
+   * ImpersonateUser mints a short-lived token for subject_id in account_id that the calling
+   * operator acts through. The operator is the caller, never a field: platform's
+   * signin.Service.IssueImpersonationToken takes an operator ID on trust, which is why
+   * platform exposes no RPC for it and this one reads it off the authenticated session.
+   */
+  impersonateUser: {
+    path: '/internalops.InternalOperations/ImpersonateUser' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: ImpersonateUserRequest): Buffer =>
+      Buffer.from(ImpersonateUserRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): ImpersonateUserRequest => ImpersonateUserRequest.decode(value),
+    responseSerialize: (value: ImpersonateUserResponse): Buffer =>
+      Buffer.from(ImpersonateUserResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): ImpersonateUserResponse => ImpersonateUserResponse.decode(value),
+  },
 } as const;
 
 export interface InternalOperationsServer extends UntypedServiceImplementation {
   testQueueMessage: handleUnaryCall<TestQueueMessageRequest, TestQueueMessageResponse>;
+  /**
+   * ImpersonateUser mints a short-lived token for subject_id in account_id that the calling
+   * operator acts through. The operator is the caller, never a field: platform's
+   * signin.Service.IssueImpersonationToken takes an operator ID on trust, which is why
+   * platform exposes no RPC for it and this one reads it off the authenticated session.
+   */
+  impersonateUser: handleUnaryCall<ImpersonateUserRequest, ImpersonateUserResponse>;
 }
 
 export interface InternalOperationsClient extends Client {
@@ -55,6 +84,27 @@ export interface InternalOperationsClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: TestQueueMessageResponse) => void,
+  ): ClientUnaryCall;
+  /**
+   * ImpersonateUser mints a short-lived token for subject_id in account_id that the calling
+   * operator acts through. The operator is the caller, never a field: platform's
+   * signin.Service.IssueImpersonationToken takes an operator ID on trust, which is why
+   * platform exposes no RPC for it and this one reads it off the authenticated session.
+   */
+  impersonateUser(
+    request: ImpersonateUserRequest,
+    callback: (error: ServiceError | null, response: ImpersonateUserResponse) => void,
+  ): ClientUnaryCall;
+  impersonateUser(
+    request: ImpersonateUserRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: ImpersonateUserResponse) => void,
+  ): ClientUnaryCall;
+  impersonateUser(
+    request: ImpersonateUserRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: ImpersonateUserResponse) => void,
   ): ClientUnaryCall;
 }
 

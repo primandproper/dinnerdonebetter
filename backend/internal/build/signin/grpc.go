@@ -1,66 +1,54 @@
 /*
-Package signin mounts platform-go's sign-in surface, SignInService, beside this
-application's own AuthService.
+Package signin mounts platform-go's sign-in surface: SignInService, and the operator half beside
+it, SignInAdministrationService.
 
-It is the door @primandproper/platform-client's Session signs in and refreshes
-through. The sign-in it runs is the same signin.Service AuthService proves passwords
-with, built in internal/authentication, so the two doors check the same credentials
-in the same order and publish the same "logged in" event; what differs is the token
-they hand back. AuthService's names a row in the session store. This one's names a
-login, rotates a refresh token through the store in
-internal/repositories/postgres/auth, and is checked against that login on every request —
-see AuthInterceptor.signInSessionContextData.
+It is the door every client signs in, refreshes and signs out through, and the one
+@primandproper/platform-client's Session calls. The signin.Service it runs is built in
+internal/authentication, with this application's password, registration, second-factor and
+impersonation policies, and its hooks and mailers. A token it issues names a login, rotates a
+refresh token through the store in internal/repositories/postgres/auth, and is checked against
+that login on every request — see AuthInterceptor.signInSessionContextData.
 
-Not every RPC on the surface is reachable. The interceptor denies a method no
-permission table names, so a method is exposed by being named below and withheld by
-being left out.
+Not every RPC on the surface is reachable. The interceptor denies a method no permission table
+names, so a method is exposed by being named below and withheld by being left out.
 
 Exposed without a caller, beyond the sign-in doors themselves:
 
-  - VerifyEmailAddress, whose authority is the mailed link it carries. It is the
-    same write AuthService's two verification doors make, through the same
-    signin.Service, and its event is recorded by the AfterVerify hook in
-    internal/authentication for all three.
-  - AttachPassword furnishes an account that has no password, once, with the link it
-    was mailed. This application has no passwordless arrival, so today it only ever
-    answers that a password is already set; it is reachable so that the refusal is
-    platform's rather than this interceptor's, and it writes nothing this
-    application's rule would refuse, because the sign-in service is built with
-    authentication.PasswordPolicy.
-  - RequestMagicLink and RedeemMagicLink. This deployment names no magic link store,
-    so platform refuses both; what reaching them buys is that the refusal says so,
-    rather than claiming a caller was missing.
-  - RequestVerificationEmailByAddress and RequestHandleReminder, which answer every
-    address the same way and mail only its holder. Both mails go through the pipeline
-    AuthService's resend and username reminder use — see
+  - VerifyEmailAddress, whose authority is the mailed link it carries. Its event is recorded by
+    the AfterVerify hook in internal/authentication.
+  - AttachPassword furnishes an account that has no password, once, with the link it was mailed.
+    This application has no passwordless arrival, so today it only ever answers that a password
+    is already set; it is reachable so that the refusal is platform's rather than this
+    interceptor's, and it writes nothing this application's rule would refuse, because the
+    sign-in service is built with authentication.PasswordPolicy.
+  - RequestMagicLink and RedeemMagicLink. This deployment names no magic link store, so platform
+    refuses both; what reaching them buys is that the refusal says so, rather than claiming a
+    caller was missing.
+  - RequestVerificationEmailByAddress and RequestHandleReminder, which answer every address the
+    same way and mail only its holder, through this application's outbox — see
     authentication.SignInMailers.
 
-Exposed to any signed-in caller, about themselves: GetSelf, SignOutEverywhere, the
-sign-ins they hold (ListSignIns, EndSignIn, EndOtherSignIns), another verification
-link (RequestVerificationEmail), their handles (UpdateEmailAddress and UpdateUsername,
-each of which asks the current password again), and the three credential writes
-UpdatePassword, RefreshTOTPSecret and VerifyTOTPSecret. Each
-write's event is recorded by a hook in internal/authentication on the write's own
-transaction, which is what lets platform's door and AuthService's record the same
-event; and UpdatePassword answers to authentication.PasswordPolicy, the rule
-AuthService applies.
+Exposed to any signed-in caller, about themselves: GetSelf, SignOutEverywhere, the sign-ins they
+hold (ListSignIns, EndSignIn, EndOtherSignIns), another verification link
+(RequestVerificationEmail), their handles (UpdateEmailAddress and UpdateUsername, each of which
+asks the current password again), and the three credential writes UpdatePassword,
+RefreshTOTPSecret and VerifyTOTPSecret. Each write's event is recorded by a hook in
+internal/authentication on the write's own transaction, and UpdatePassword answers to
+authentication.PasswordPolicy.
 
-Reserved to an operator: Register. platform's Register is made by a registrar on
-somebody else's behalf — it requires a caller, and the caller is not the registrant —
-so it is gated as identity's Register is, by PermissionCreateUsers, which only a
-service administrator holds. What it writes is this application's registrant rather
-than platform's default one, because the sign-in service is built with
-authentication.RegistrationPolicy: good standing, the service role, a second factor,
-this application's owner role, and the terms and privacy agreements, refused without
-them. Somebody signing themselves up still does it through AuthService.RegisterUser,
-which runs through the same policy.
+Reserved to an operator: Register. platform's Register is made by a registrar on somebody else's
+behalf — it requires a caller, and the caller is not the registrant — so it is gated as
+identity's Register is, by PermissionCreateUsers, which only a service administrator holds. What
+it writes is this application's registrant, because the sign-in service is built with
+authentication.RegistrationPolicy. Somebody signing themselves up does it through
+AuthService.RegisterUser, which runs through the same policy, until platform has an open sign-up
+door (platform-go#1068).
 
-Reserved to an operator: SignInAdministrationService, the operator half of the same
-surface, which lists and ends somebody else's sign-ins. Its two permissions are a
-service administrator's.
+Reserved to an operator: SignInAdministrationService, which lists and ends somebody else's
+sign-ins. Its two permissions are a service administrator's.
 
-Password reset is not mounted at all: AuthService carries this application's reset
-flow, and platform's would be a second one.
+Password reset is PasswordResetService, mounted in internal/build/passwordreset; passkeys are
+PasskeysService, mounted in internal/build/passkeys.
 */
 package signin
 

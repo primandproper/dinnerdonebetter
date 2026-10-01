@@ -298,11 +298,6 @@ func BuildLocalDevConfig() *config.APIServiceConfig {
 		// environment used to get by omitting a provider is gone; a local run and a deployed
 		// one now fail the same way when something is wrong with it.
 		Auth: authcfg.Config{
-			Sessions: authcfg.SessionsConfig{
-				AbsoluteTimeout: sessionAbsoluteTimeout,
-				IdleTimeout:     sessionIdleTimeout,
-				TouchInterval:   sessionTouchInterval,
-			},
 			Passkey: webauthncfg.Config{
 				Provider: webauthncfg.ProviderDatabase,
 				RelyingParty: platformwebauthn.Config{

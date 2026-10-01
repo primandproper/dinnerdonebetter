@@ -11,21 +11,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestChangeActiveAccountInput_ValidateWithContext(T *testing.T) {
-	T.Parallel()
-
-	T.Run("standard", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		x := &ChangeActiveAccountInput{
-			AccountID: "123",
-		}
-
-		assert.NoError(t, x.ValidateWithContext(ctx))
-	})
-}
-
 func TestSessionContextData_AttachToLogger(T *testing.T) {
 	T.Parallel()
 

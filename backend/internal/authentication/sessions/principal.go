@@ -24,7 +24,10 @@ type Principal struct {
 	data *ContextData
 }
 
-var _ callers.Principal = (*Principal)(nil)
+var (
+	_ callers.Principal = (*Principal)(nil)
+	_ callers.Delegated = (*Principal)(nil)
+)
 
 // UserID is the calling user.
 func (p *Principal) UserID() string { return p.data.GetUserID() }
@@ -44,8 +47,13 @@ func (*Principal) Scope() tenancy.Scope { return tenancy.Global() }
 // caller named none.
 func (p *Principal) ActiveAccountID() string { return p.data.GetActiveAccountID() }
 
+// ActorID is the operator acting through an impersonation token, or empty when the user is
+// acting for themselves. It is what makes an impersonated request's audit entries name the
+// operator beside the subject — see callers.Delegated.
+func (p *Principal) ActorID() string { return p.data.ImpersonatorID }
+
 // FamilyID is the platform login the request came through, which sign-in's doors read to keep
-// the one asking when ending the others. Empty for a session this application minted.
+// the one asking when ending the others. Empty for a caller on an OAuth2 access token.
 func (p *Principal) FamilyID() string {
 	if p.data == nil {
 		return ""
@@ -126,7 +134,10 @@ type AccountScopedPrincipal struct {
 	data *ContextData
 }
 
-var _ callers.Principal = (*AccountScopedPrincipal)(nil)
+var (
+	_ callers.Principal = (*AccountScopedPrincipal)(nil)
+	_ callers.Delegated = (*AccountScopedPrincipal)(nil)
+)
 
 // UserID is the calling user.
 func (p *AccountScopedPrincipal) UserID() string { return p.data.GetUserID() }
@@ -142,6 +153,9 @@ func (p *AccountScopedPrincipal) Scope() tenancy.Scope {
 
 // ActiveAccountID is the account this request is against.
 func (p *AccountScopedPrincipal) ActiveAccountID() string { return p.data.GetActiveAccountID() }
+
+// ActorID is the operator acting through an impersonation token, as Principal.ActorID.
+func (p *AccountScopedPrincipal) ActorID() string { return p.data.ImpersonatorID }
 
 // AccountScopedPrincipalFromContext is the callers.PrincipalExtractor for
 // surfaces whose rows belong to an account.

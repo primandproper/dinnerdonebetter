@@ -5,7 +5,6 @@ import (
 
 	mpconverters "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	mpfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
-	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
 	mealplanninggrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
 	mpgrpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/grpc/converters"
 
@@ -36,15 +35,6 @@ import (
 // suite that a listing, an actor query and a read by id are all confined to the caller's own
 // chain, a neighbor's entry reading as an id nobody wrote; and the billing suite that naming
 // another account's subscriptions, purchases or transactions is refused.
-
-// getActiveAccountIDForClientForTest returns the active account ID for the given client's session.
-func getActiveAccountIDForClientForTest(t *testing.T, resp *authsvc.GetActiveAccountResponse) string {
-	t.Helper()
-	require.NotNil(t, resp)
-	require.NotNil(t, resp.Result)
-	require.NotEmpty(t, resp.Result.Id)
-	return resp.Result.Id
-}
 
 // TestCrossTenant_RecipeRating_Denied asserts that a user cannot mutate a recipe rating authored by
 // another user. mealplanning/grpc/recipes.go verifyRecipeRatingOwnership returns codes.PermissionDenied

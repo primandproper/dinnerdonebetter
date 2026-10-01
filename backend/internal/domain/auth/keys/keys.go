@@ -16,9 +16,4 @@ const (
 	// entry. The email verification token travels the same way, for the same reason.
 	/* #nosec G101 */
 	PasswordResetTokenSecretKey = PasswordResetTokenKey + ".secret"
-
-	// UserSessionKey is the standard key for referring to a user session.
-	UserSessionKey = "user_session"
-	// UserSessionIDKey is the standard key for referring to a user session's ID.
-	UserSessionIDKey = UserSessionKey + idSuffix
 )

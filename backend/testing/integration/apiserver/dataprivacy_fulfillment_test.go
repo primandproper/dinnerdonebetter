@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"sync"
@@ -15,6 +16,8 @@ import (
 	platformdataprivacy "github.com/primandproper/platform-go/v14/dataprivacy"
 	dataprivacyhttp "github.com/primandproper/platform-go/v14/dataprivacy/http"
 	"github.com/primandproper/platform-go/v14/identity"
+	"github.com/primandproper/primitives-go/v2/identifiers"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -58,7 +61,7 @@ type privacyCaller string
 func privacyCallerForTest(t *testing.T) (*identity.User, privacyCaller) {
 	t.Helper()
 
-	user := createServiceUserForTest(t, true, buildUserRegistrationInputForTest(t))
+	user := createServiceUserForTest(t, buildUserRegistrationInputForTest(t))
 
 	return user, privacyCaller(fetchLoginTokenForUserForTest(t, user))
 }
@@ -459,4 +462,31 @@ func TestDataPrivacy_Sweeper(T *testing.T) {
 		status, body := subjectCaller.do(t, ctx, http.MethodGet, artifactPath(requestID), nil)
 		assert.Equal(t, http.StatusConflict, status, "fetching an expired artifact answered: %s", body)
 	})
+}
+
+// insertWebAuthnCredentialForTest inserts a test WebAuthn credential for the given user.
+// Returns the credential's internal ID (used by ListPasskeys/ArchivePasskey).
+func insertWebAuthnCredentialForTest(t *testing.T, userID, friendlyName string) string {
+	t.Helper()
+
+	credID := identifiers.New()
+	credentialIDBytes := fmt.Appendf(nil, "test-cred-%s-%d", credID, time.Now().UnixNano())
+	publicKeyBytes := []byte("test-public-key-data")
+
+	// platform's table, under this application's prefix: it names its own
+	// webauthn_credentials too, and a scope is a column here where the schema this
+	// replaced had none.
+	//
+	// Owner rather than String: the global scope's identifier is the empty string, and
+	// "<global>" is only how it reads in a log line. A row written with the prose spelling
+	// is one every scoped read passes over.
+	_, err := databaseClient.Writer().ExecContext(
+		t.Context(),
+		`INSERT INTO ddb_webauthn_credentials (id, scope, belongs_to_user, credential_id, public_key, sign_count, transports, friendly_name)
+		 VALUES ($1, $2, $3, $4, $5, 0, '[]', $6)`,
+		credID, tenancy.Global().Owner(), userID, credentialIDBytes, publicKeyBytes, friendlyName,
+	)
+	require.NoError(t, err)
+
+	return credID
 }

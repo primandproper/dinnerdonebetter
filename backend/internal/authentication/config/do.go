@@ -16,9 +16,4 @@ func RegisterConfigs(i do.Injector) {
 	do.Provide[*tokenscfg.Config](i, func(i do.Injector) (*tokenscfg.Config, error) {
 		return &do.MustInvoke[*TokensConfig](i).Config, nil
 	})
-
-	do.Provide[*SessionsConfig](i, func(i do.Injector) (*SessionsConfig, error) {
-		cfg := do.MustInvoke[*Config](i)
-		return &cfg.Sessions, nil
-	})
 }

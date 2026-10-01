@@ -173,18 +173,6 @@ const (
 	// `APIServiceConfig.Auth.Passkey.SweepInterval`.
 	AuthPasskeySweepIntervalEnvVarKey = "DINNER_DONE_BETTER_AUTH_PASSKEY_SWEEP_INTERVAL"
 
-	// AuthSessionsAbsoluteTimeoutEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Auth.Sessions.AbsoluteTimeout`.
-	AuthSessionsAbsoluteTimeoutEnvVarKey = "DINNER_DONE_BETTER_AUTH_SESSIONS_ABSOLUTE_TIMEOUT"
-
-	// AuthSessionsIdleTimeoutEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Auth.Sessions.IdleTimeout`.
-	AuthSessionsIdleTimeoutEnvVarKey = "DINNER_DONE_BETTER_AUTH_SESSIONS_IDLE_TIMEOUT"
-
-	// AuthSessionsTouchIntervalEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Auth.Sessions.TouchInterval`.
-	AuthSessionsTouchIntervalEnvVarKey = "DINNER_DONE_BETTER_AUTH_SESSIONS_TOUCH_INTERVAL"
-
 	// AuthTokensAudienceEnvVarKey is the environment variable name to set to override
 	// `APIServiceConfig.Auth.Tokens.Config.Audience`.
 	AuthTokensAudienceEnvVarKey = "DINNER_DONE_BETTER_AUTH_TOKENS_AUDIENCE"
@@ -192,14 +180,6 @@ const (
 	// AuthTokensIssuerEnvVarKey is the environment variable name to set to override
 	// `APIServiceConfig.Auth.Tokens.Config.Issuer`.
 	AuthTokensIssuerEnvVarKey = "DINNER_DONE_BETTER_AUTH_TOKENS_ISSUER"
-
-	// AuthTokensMaxAccessTokenLifetimeEnvVarKey is the environment variable name to set to
-	// override `APIServiceConfig.Auth.Tokens.MaxAccessTokenLifetime`.
-	AuthTokensMaxAccessTokenLifetimeEnvVarKey = "DINNER_DONE_BETTER_AUTH_TOKENS_MAX_ACCESS_TOKEN_LIFETIME"
-
-	// AuthTokensMaxRefreshTokenLifetimeEnvVarKey is the environment variable name to set to
-	// override `APIServiceConfig.Auth.Tokens.MaxRefreshTokenLifetime`.
-	AuthTokensMaxRefreshTokenLifetimeEnvVarKey = "DINNER_DONE_BETTER_AUTH_TOKENS_MAX_REFRESH_TOKEN_LIFETIME"
 
 	// AuthTokensProviderEnvVarKey is the environment variable name to set to override
 	// `APIServiceConfig.Auth.Tokens.Config.Provider`.
@@ -2659,14 +2639,6 @@ const (
 	// ServiceAuthTokensIssuerEnvVarKey is the environment variable name to set to override
 	// `APIServiceConfig.Services.Auth.Tokens.Config.Issuer`.
 	ServiceAuthTokensIssuerEnvVarKey = "DINNER_DONE_BETTER_SERVICE_AUTH_TOKENS_ISSUER"
-
-	// ServiceAuthTokensMaxAccessTokenLifetimeEnvVarKey is the environment variable name to set to
-	// override `APIServiceConfig.Services.Auth.Tokens.MaxAccessTokenLifetime`.
-	ServiceAuthTokensMaxAccessTokenLifetimeEnvVarKey = "DINNER_DONE_BETTER_SERVICE_AUTH_TOKENS_MAX_ACCESS_TOKEN_LIFETIME"
-
-	// ServiceAuthTokensMaxRefreshTokenLifetimeEnvVarKey is the environment variable name to set to
-	// override `APIServiceConfig.Services.Auth.Tokens.MaxRefreshTokenLifetime`.
-	ServiceAuthTokensMaxRefreshTokenLifetimeEnvVarKey = "DINNER_DONE_BETTER_SERVICE_AUTH_TOKENS_MAX_REFRESH_TOKEN_LIFETIME"
 
 	// ServiceAuthTokensProviderEnvVarKey is the environment variable name to set to override
 	// `APIServiceConfig.Services.Auth.Tokens.Config.Provider`.

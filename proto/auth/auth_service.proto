@@ -6,39 +6,15 @@ import "auth/auth_service_types.proto";
 
 option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth";
 
+// AuthService is what is left of this application's own sign-in surface: the two doors
+// platform's SignInService does not have yet. Everything else a client signs in, proves a
+// credential or manages a login through is platform's — SignInService, PasswordResetService
+// and PasskeysService.
 service AuthService {
-  rpc EvaluateBooleanFeatureFlag(EvaluateBooleanFeatureFlagRequest) returns (EvaluateBooleanFeatureFlagResponse);
-  rpc EvaluateInt64FeatureFlag(EvaluateInt64FeatureFlagRequest) returns (EvaluateInt64FeatureFlagResponse);
-  rpc EvaluateStringFeatureFlag(EvaluateStringFeatureFlagRequest) returns (EvaluateStringFeatureFlagResponse);
+  // RegisterUser is a sign-up, until platform's SignInService has an open sign-up door
+  // (platform-go#1068).
   rpc RegisterUser(RegisterUserRequest) returns (RegisterUserResponse);
-  rpc GetAuthStatus(GetAuthStatusRequest) returns (GetAuthStatusResponse);
+  // ExchangeToken moves a login into another of its user's accounts, until platform's
+  // SignInService can (platform-go#1069).
   rpc ExchangeToken(ExchangeTokenRequest) returns (ExchangeTokenResponse);
-  rpc AdminLoginForToken(AdminLoginForTokenRequest) returns (LoginForTokenResponse);
-  rpc CheckPermissions(UserPermissionsRequestInput) returns (UserPermissionsResponse);
-  rpc GetActiveAccount(GetActiveAccountRequest) returns (GetActiveAccountResponse);
-  rpc GetSelf(GetSelfRequest) returns (GetSelfResponse);
-  rpc LoginForToken(LoginForTokenRequest) returns (LoginForTokenResponse);
-  rpc RedeemPasswordResetToken(RedeemPasswordResetTokenRequest) returns (RedeemPasswordResetTokenResponse);
-  rpc RefreshTOTPSecret(RefreshTOTPSecretRequest) returns (RefreshTOTPSecretResponse);
-  rpc RequestEmailVerificationEmail(RequestEmailVerificationEmailRequest) returns (RequestEmailVerificationEmailResponse);
-  rpc RequestPasswordResetToken(RequestPasswordResetTokenRequest) returns (RequestPasswordResetTokenResponse);
-  rpc RequestUsernameReminder(RequestUsernameReminderRequest) returns (RequestUsernameReminderResponse);
-  rpc VerifyEmailAddress(VerifyEmailAddressRequest) returns (VerifyEmailAddressResponse);
-  rpc VerifyTOTPSecret(VerifyTOTPSecretRequest) returns (VerifyTOTPSecretResponse);
-  rpc UpdatePassword(UpdatePasswordRequest) returns (UpdatePasswordResponse);
-  rpc UpdateUserEmailAddress(UpdateUserEmailAddressRequest) returns (UpdateUserEmailAddressResponse);
-  rpc UpdateUserUsername(UpdateUserUsernameRequest) returns (UpdateUserUsernameResponse);
-  rpc BeginPasskeyRegistration(BeginPasskeyRegistrationRequest) returns (BeginPasskeyRegistrationResponse);
-  rpc FinishPasskeyRegistration(FinishPasskeyRegistrationRequest) returns (FinishPasskeyRegistrationResponse);
-  rpc BeginPasskeyAuthentication(BeginPasskeyAuthenticationRequest) returns (BeginPasskeyAuthenticationResponse);
-  rpc FinishPasskeyAuthentication(FinishPasskeyAuthenticationRequest) returns (LoginForTokenResponse);
-  rpc ListPasskeys(ListPasskeysRequest) returns (ListPasskeysResponse);
-  rpc ArchivePasskey(ArchivePasskeyRequest) returns (ArchivePasskeyResponse);
-  rpc ListActiveSessions(ListActiveSessionsRequest) returns (ListActiveSessionsResponse);
-  rpc RevokeSession(RevokeSessionRequest) returns (RevokeSessionResponse);
-  rpc RevokeAllOtherSessions(RevokeAllOtherSessionsRequest) returns (RevokeAllOtherSessionsResponse);
-  rpc RevokeCurrentSession(RevokeCurrentSessionRequest) returns (RevokeCurrentSessionResponse);
-  rpc AdminListSessionsForUser(AdminListSessionsForUserRequest) returns (ListActiveSessionsResponse);
-  rpc AdminRevokeUserSession(AdminRevokeUserSessionRequest) returns (RevokeSessionResponse);
-  rpc AdminRevokeAllUserSessions(AdminRevokeAllUserSessionsRequest) returns (RevokeAllOtherSessionsResponse);
 }

@@ -7,6 +7,7 @@
 /* eslint-disable */
 import { BinaryReader, BinaryWriter } from '@bufbuild/protobuf/wire';
 import { ResponseDetails } from '../common';
+import { Timestamp } from '../google/protobuf/timestamp';
 
 export const protobufPackage = 'internalops';
 
@@ -19,6 +20,27 @@ export interface TestQueueMessageResponse {
   success: boolean;
   testId: string;
   roundTripMs: number;
+}
+
+/**
+ * ImpersonateUserRequest names who the operator acts as, and in which of their accounts. An
+ * empty account_id is the subject's default.
+ */
+export interface ImpersonateUserRequest {
+  subjectId: string;
+  accountId: string;
+}
+
+/**
+ * ImpersonateUserResponse carries the token the operator acts through. There is no refresh
+ * token: an impersonation ends when its token does, and an operator who needs longer asks
+ * again.
+ */
+export interface ImpersonateUserResponse {
+  responseDetails: ResponseDetails | undefined;
+  token: string;
+  accountId: string;
+  expiresAt: Date | undefined;
 }
 
 function createBaseTestQueueMessageRequest(): TestQueueMessageRequest {
@@ -208,6 +230,213 @@ export const TestQueueMessageResponse: MessageFns<TestQueueMessageResponse> = {
   },
 };
 
+function createBaseImpersonateUserRequest(): ImpersonateUserRequest {
+  return { subjectId: '', accountId: '' };
+}
+
+export const ImpersonateUserRequest: MessageFns<ImpersonateUserRequest> = {
+  encode(message: ImpersonateUserRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.subjectId !== '') {
+      writer.uint32(10).string(message.subjectId);
+    }
+    if (message.accountId !== '') {
+      writer.uint32(18).string(message.accountId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ImpersonateUserRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseImpersonateUserRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.subjectId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.accountId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ImpersonateUserRequest {
+    return {
+      subjectId: isSet(object.subjectId)
+        ? globalThis.String(object.subjectId)
+        : isSet(object.subject_id)
+          ? globalThis.String(object.subject_id)
+          : '',
+      accountId: isSet(object.accountId)
+        ? globalThis.String(object.accountId)
+        : isSet(object.account_id)
+          ? globalThis.String(object.account_id)
+          : '',
+    };
+  },
+
+  toJSON(message: ImpersonateUserRequest): unknown {
+    const obj: any = {};
+    if (message.subjectId !== '') {
+      obj.subjectId = message.subjectId;
+    }
+    if (message.accountId !== '') {
+      obj.accountId = message.accountId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ImpersonateUserRequest>, I>>(base?: I): ImpersonateUserRequest {
+    return ImpersonateUserRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ImpersonateUserRequest>, I>>(object: I): ImpersonateUserRequest {
+    const message = createBaseImpersonateUserRequest();
+    message.subjectId = object.subjectId ?? '';
+    message.accountId = object.accountId ?? '';
+    return message;
+  },
+};
+
+function createBaseImpersonateUserResponse(): ImpersonateUserResponse {
+  return { responseDetails: undefined, token: '', accountId: '', expiresAt: undefined };
+}
+
+export const ImpersonateUserResponse: MessageFns<ImpersonateUserResponse> = {
+  encode(message: ImpersonateUserResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.responseDetails !== undefined) {
+      ResponseDetails.encode(message.responseDetails, writer.uint32(10).fork()).join();
+    }
+    if (message.token !== '') {
+      writer.uint32(18).string(message.token);
+    }
+    if (message.accountId !== '') {
+      writer.uint32(26).string(message.accountId);
+    }
+    if (message.expiresAt !== undefined) {
+      Timestamp.encode(toTimestamp(message.expiresAt), writer.uint32(34).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ImpersonateUserResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseImpersonateUserResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.responseDetails = ResponseDetails.decode(reader, reader.uint32());
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.token = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.accountId = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.expiresAt = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ImpersonateUserResponse {
+    return {
+      responseDetails: isSet(object.responseDetails)
+        ? ResponseDetails.fromJSON(object.responseDetails)
+        : isSet(object.response_details)
+          ? ResponseDetails.fromJSON(object.response_details)
+          : undefined,
+      token: isSet(object.token) ? globalThis.String(object.token) : '',
+      accountId: isSet(object.accountId)
+        ? globalThis.String(object.accountId)
+        : isSet(object.account_id)
+          ? globalThis.String(object.account_id)
+          : '',
+      expiresAt: isSet(object.expiresAt)
+        ? fromJsonTimestamp(object.expiresAt)
+        : isSet(object.expires_at)
+          ? fromJsonTimestamp(object.expires_at)
+          : undefined,
+    };
+  },
+
+  toJSON(message: ImpersonateUserResponse): unknown {
+    const obj: any = {};
+    if (message.responseDetails !== undefined) {
+      obj.responseDetails = ResponseDetails.toJSON(message.responseDetails);
+    }
+    if (message.token !== '') {
+      obj.token = message.token;
+    }
+    if (message.accountId !== '') {
+      obj.accountId = message.accountId;
+    }
+    if (message.expiresAt !== undefined) {
+      obj.expiresAt = message.expiresAt.toISOString();
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ImpersonateUserResponse>, I>>(base?: I): ImpersonateUserResponse {
+    return ImpersonateUserResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ImpersonateUserResponse>, I>>(object: I): ImpersonateUserResponse {
+    const message = createBaseImpersonateUserResponse();
+    message.responseDetails =
+      object.responseDetails !== undefined && object.responseDetails !== null
+        ? ResponseDetails.fromPartial(object.responseDetails)
+        : undefined;
+    message.token = object.token ?? '';
+    message.accountId = object.accountId ?? '';
+    message.expiresAt = object.expiresAt ?? undefined;
+    return message;
+  },
+};
+
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 
 export type DeepPartial<T> = T extends Builtin
@@ -224,6 +453,28 @@ type KeysOfUnion<T> = T extends T ? keyof T : never;
 export type Exact<P, I extends P> = P extends Builtin
   ? P
   : P & { [K in keyof P]: Exact<P[K], I[K]> } & { [K in Exclude<keyof I, KeysOfUnion<P>>]: never };
+
+function toTimestamp(date: Date): Timestamp {
+  const seconds = Math.trunc(date.getTime() / 1_000);
+  const nanos = (date.getTime() % 1_000) * 1_000_000;
+  return { seconds, nanos };
+}
+
+function fromTimestamp(t: Timestamp): Date {
+  let millis = (t.seconds || 0) * 1_000;
+  millis += (t.nanos || 0) / 1_000_000;
+  return new globalThis.Date(millis);
+}
+
+function fromJsonTimestamp(o: any): Date {
+  if (o instanceof globalThis.Date) {
+    return o;
+  } else if (typeof o === 'string') {
+    return new globalThis.Date(o);
+  } else {
+    return fromTimestamp(Timestamp.fromJSON(o));
+  }
+}
 
 function longToNumber(int64: { toString(): string }): number {
   const num = globalThis.Number(int64.toString());

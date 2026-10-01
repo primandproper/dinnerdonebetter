@@ -39,7 +39,6 @@ var (
 		ReadOAuth2ClientsPermission,
 		ArchiveSettingDefinitionsPermission,
 		ImpersonateUserPermission,
-		ManageUserSessionsPermission,
 		ReadAnySignInsPermission,
 		EndAnySignInsPermission,
 		PublishArbitraryQueueMessagePermission,

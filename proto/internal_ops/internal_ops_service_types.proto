@@ -3,6 +3,7 @@ syntax = "proto3";
 package internalops;
 
 import "common.proto";
+import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/internalops";
 
@@ -15,4 +16,21 @@ message TestQueueMessageResponse {
   bool success = 2;
   string test_id = 3;
   int64 round_trip_ms = 4;
+}
+
+// ImpersonateUserRequest names who the operator acts as, and in which of their accounts. An
+// empty account_id is the subject's default.
+message ImpersonateUserRequest {
+  string subject_id = 1;
+  string account_id = 2;
+}
+
+// ImpersonateUserResponse carries the token the operator acts through. There is no refresh
+// token: an impersonation ends when its token does, and an operator who needs longer asks
+// again.
+message ImpersonateUserResponse {
+  common.ResponseDetails response_details = 1;
+  string token = 2;
+  string account_id = 3;
+  google.protobuf.Timestamp expires_at = 4;
 }

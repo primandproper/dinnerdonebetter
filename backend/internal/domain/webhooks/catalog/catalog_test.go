@@ -50,8 +50,7 @@ func TestCatalog(T *testing.T) {
 		for _, eventType := range []string{
 			"user_logged_in",
 			"user_logged_out",
-			"user_session_created",
-			"user_session_revoked",
+			"user_impersonated",
 			"password_changed",
 			"two_factor_secret_changed",
 			"two_factor_deactivated",

@@ -78,10 +78,9 @@ func TestContextData_gettersAreNilSafe(T *testing.T) {
 	T.Run("populated", func(t *testing.T) {
 		t.Parallel()
 
-		userID, accountID, sessionID := identifiers.New(), identifiers.New(), identifiers.New()
+		userID, accountID := identifiers.New(), identifiers.New()
 		x := &ContextData{
 			ActiveAccountID: accountID,
-			SessionID:       sessionID,
 			Requester: RequesterInfo{
 				UserID:       userID,
 				EmailAddress: "requester@example.com",
@@ -91,7 +90,6 @@ func TestContextData_gettersAreNilSafe(T *testing.T) {
 
 		require.Equal(t, userID, x.GetUserID())
 		require.Equal(t, accountID, x.GetActiveAccountID())
-		require.Equal(t, sessionID, x.GetSessionID())
 		require.Equal(t, "requester@example.com", x.GetEmailAddress())
 		require.Equal(t, "requester", x.GetUsername())
 	})
@@ -103,7 +101,6 @@ func TestContextData_gettersAreNilSafe(T *testing.T) {
 
 		require.Empty(t, x.GetUserID())
 		require.Empty(t, x.GetActiveAccountID())
-		require.Empty(t, x.GetSessionID())
 		require.Empty(t, x.GetEmailAddress())
 		require.Empty(t, x.GetUsername())
 		// Not nil. Every caller in the tree calls IsServiceAdmin or HasPermission on

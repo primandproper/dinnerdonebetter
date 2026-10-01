@@ -4,10 +4,11 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
-	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
-	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
+	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
+	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
+	internalopssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/internalops"
 
+	"github.com/primandproper/platform-go/v14/authentication/signin/signinpb"
 	"github.com/primandproper/platform-go/v14/identity/identitypb"
 	webhookspb "github.com/primandproper/platform-go/v14/webhooks/webhookspb"
 	"github.com/primandproper/primitives-go/v2/pointer"
@@ -30,7 +31,7 @@ func TestAdmin_BanningUsers(T *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, privacyRequestsStatusFor(t, token), "the control: the HTTP routes admit this caller before the ban")
 
-		authStatus, err := testClient.GetAuthStatus(ctx, &authsvc.GetAuthStatusRequest{})
+		authStatus, err := testClient.GetAuthStatus(ctx, &signinpb.GetAuthStatusRequest{})
 		require.NoError(t, err)
 		require.NotNil(t, authStatus)
 
@@ -45,7 +46,7 @@ func TestAdmin_BanningUsers(T *testing.T) {
 		// authenticated request makes refuses a status that does not admit signing in, so
 		// this session is not merely marked — it stops resolving. PermissionDenied rather
 		// than Unauthenticated, because the token is genuine and refreshing it would not help.
-		_, err = testClient.GetAuthStatus(ctx, &authsvc.GetAuthStatusRequest{})
+		_, err = testClient.GetAuthStatus(ctx, &signinpb.GetAuthStatusRequest{})
 		require.Error(t, err)
 		assert.Equal(t, codes.PermissionDenied, status.Code(err))
 
@@ -58,62 +59,73 @@ func TestAdmin_BanningUsers(T *testing.T) {
 	})
 }
 
+// TestAdmin_UserImpersonation pins this application's half of impersonation: who may ask for a
+// token (an operator holding imitate.user, and nobody acting through one already), that the token
+// acts as the subject in the account it names, and that what it does is recorded as the
+// operator's. The token itself — its claims, its lifetime, its login — is platform's.
 func TestAdmin_UserImpersonation(T *testing.T) {
 	T.Parallel()
 
-	T.Run("standard", func(t *testing.T) {
+	T.Run("an operator acts as a user, in the user's account", func(t *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
 		user, testClient := createUserAndClientForTest(t)
 		webhook := createWebhookForTest(t, testClient)
+		accountID := getAccountIDForTest(t, testClient)
 
-		account, err := testClient.GetActiveAccount(ctx, &authsvc.GetActiveAccountRequest{})
+		impersonated := impersonationClientForTest(t, adminClient, user.ID, accountID)
+
+		retrievedWebhook, err := impersonated.WebhooksService().GetEndpoint(ctx, &webhookspb.GetEndpointRequest{EndpointId: webhook.GetId()})
 		require.NoError(t, err)
-		require.NotNil(t, account)
+		assert.Equal(t, webhook.GetId(), retrievedWebhook.GetResult().GetId())
 
-		impersonatedCtx := client.ImpersonateUseAndAccountContext(ctx, user.ID, account.Result.Id)
-
-		t.Logf("impersonating user %s and account %s to get webhook %s", user.ID, account.Result.Id, webhook.GetId())
-
-		retrievedWebhook, err := adminClient.WebhooksService().GetEndpoint(impersonatedCtx, &webhookspb.GetEndpointRequest{EndpointId: webhook.GetId()})
+		authStatus, err := impersonated.GetAuthStatus(ctx, &signinpb.GetAuthStatusRequest{})
 		require.NoError(t, err)
-		assert.NotNil(t, retrievedWebhook)
+		assert.Equal(t, user.ID, authStatus.GetStatus().GetUser().GetId())
+		assert.Equal(t, accountID, authStatus.GetStatus().GetActiveAccountId())
 	})
 
-	T.Run("standard user should not be able to impersonate others", func(t *testing.T) {
+	T.Run("the impersonation is recorded as the operator's", func(t *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
 		user, testClient := createUserAndClientForTest(t)
-		_, testClient2 := createUserAndClientForTest(t)
+		impersonationClientForTest(t, adminClient, user.ID, getAccountIDForTest(t, testClient))
 
-		createdWebhook, err := testClient.WebhooksService().SaveEndpoint(ctx, &webhookspb.SaveEndpointRequest{
-			Endpoint: &webhookspb.WebhookEndpointInput{
-				ContentType: "application/json",
-				Name:        t.Name(),
-				Url:         "https://192.0.2.1/webhook",
-				EventTypes:  []string{webhooks.WebhookCreatedServiceEventType},
-			},
-			SigningKeys: signingSecretForTest(),
+		recorded, err := outboxPayloads(ctx,
+			`convert_from(payload, 'UTF8') LIKE '%' || $1 || '%' AND convert_from(payload, 'UTF8') LIKE '%' || $2 || '%'`,
+			user.ID, ddbidentity.UserImpersonatedServiceEventType)
+		require.NoError(t, err)
+		require.Len(t, recorded, 1)
+		assert.Equal(t, premadeAdminUser.ID, findStringKey(recorded[0], identitykeys.ImpersonatorIDKey))
+	})
+
+	T.Run("an ordinary user may not impersonate anybody", func(t *testing.T) {
+		t.Parallel()
+		ctx := t.Context()
+
+		user, testClient := createUserAndClientForTest(t)
+		_, otherClient := createUserAndClientForTest(t)
+
+		_, err := otherClient.ImpersonateUser(ctx, &internalopssvc.ImpersonateUserRequest{
+			SubjectId: user.ID,
+			AccountId: getAccountIDForTest(t, testClient),
 		})
-		require.NoError(t, err)
+		assert.Equal(t, codes.PermissionDenied, status.Code(err))
+	})
 
-		retrievedWebhook, err := testClient.WebhooksService().GetEndpoint(ctx, &webhookspb.GetEndpointRequest{EndpointId: createdWebhook.GetResult().GetId()})
-		require.NoError(t, err)
-		require.NotNil(t, retrievedWebhook)
+	T.Run("an impersonation cannot start another", func(t *testing.T) {
+		t.Parallel()
+		ctx := t.Context()
 
-		account, err := testClient.GetActiveAccount(ctx, &authsvc.GetActiveAccountRequest{})
-		require.NoError(t, err)
-		require.NotNil(t, account)
+		user, testClient := createUserAndClientForTest(t)
+		other, _ := createUserAndClientForTest(t)
 
-		impersonatedCtx := client.ImpersonateUseAndAccountContext(ctx, user.ID, account.Result.Id)
+		impersonated := impersonationClientForTest(t, adminClient, user.ID, getAccountIDForTest(t, testClient))
 
-		t.Logf("impersonating user %s and account %s to get webhook %s", user.ID, account.Result.Id, retrievedWebhook.GetResult().GetId())
-
-		webhook, err := testClient2.WebhooksService().GetEndpoint(impersonatedCtx, &webhookspb.GetEndpointRequest{EndpointId: retrievedWebhook.GetResult().GetId()})
-		require.Error(t, err)
-		assert.Nil(t, webhook)
+		_, err := impersonated.ImpersonateUser(ctx, &internalopssvc.ImpersonateUserRequest{SubjectId: other.ID})
+		assert.Equal(t, codes.PermissionDenied, status.Code(err))
 	})
 }
 
@@ -140,7 +152,7 @@ func TestAdmin_ForcedPasswordChange(T *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, user.ID, principal.GetPrincipal().GetUser().GetId())
 
-		_, err = testClient.GetAuthStatus(ctx, &authsvc.GetAuthStatusRequest{})
+		_, err = testClient.GetAuthStatus(ctx, &signinpb.GetAuthStatusRequest{})
 		require.NoError(t, err)
 
 		_, err = testClient.WebhooksService().ListEndpoints(ctx, &webhookspb.ListEndpointsRequest{})

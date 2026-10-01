@@ -14,5 +14,8 @@ func ProvideMethodPermissions() InternalOpsMethodPermissions {
 		internalopssvc.InternalOperations_TestQueueMessage_FullMethodName: {
 			authorization.PublishArbitraryQueueMessagePermission,
 		},
+		internalopssvc.InternalOperations_ImpersonateUser_FullMethodName: {
+			authorization.ImpersonateUserPermission,
+		},
 	}
 }

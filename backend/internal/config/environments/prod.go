@@ -287,11 +287,6 @@ func BuildProdConfig() *config.APIServiceConfig {
 			},
 		},
 		Auth: authcfg.Config{
-			Sessions: authcfg.SessionsConfig{
-				AbsoluteTimeout: sessionAbsoluteTimeout,
-				IdleTimeout:     sessionIdleTimeout,
-				TouchInterval:   sessionTouchInterval,
-			},
 			Passkey: webauthncfg.Config{
 				// The table, named rather than left to the default. Ceremony state has to
 				// outlive the replica that issued the challenge, and a passkey login that

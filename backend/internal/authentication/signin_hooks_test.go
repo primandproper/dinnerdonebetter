@@ -136,6 +136,34 @@ func TestSignInHooks_AfterAuthenticate(T *testing.T) {
 		assert.Equal(t, user.ID, enqueued[0].UserID)
 	})
 
+	T.Run("records an impersonation as the operator's, and no sign-in of the subject's", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		harness := buildSignInHooksHarness(t, nil)
+
+		user := identityfakes.BuildFakeUser()
+		operator := identityfakes.BuildFakeUser()
+
+		err := harness.hooks.AfterAuthenticate(ctx, harness.tx, tenancy.Global(), &signin.Authentication{
+			Principal:      &identity.Principal{User: user},
+			CredentialKind: signin.CredentialKindImpersonation,
+			ActorID:        operator.ID,
+		})
+		require.NoError(t, err)
+
+		enqueued := harness.enqueued(t)
+		require.Len(t, enqueued, 1)
+		assert.Equal(t, ddbidentity.UserImpersonatedServiceEventType, enqueued[0].EventType)
+		assert.Equal(t, operator.ID, enqueued[0].UserID)
+
+		calls := harness.audited.RecordCalls()
+		require.Len(t, calls, 1)
+		require.Len(t, calls[0].Entries, 1)
+		assert.Equal(t, operator.ID, calls[0].Entries[0].BelongsToUser)
+		assert.Equal(t, user.ID, calls[0].Entries[0].RelevantID)
+	})
+
 	T.Run("refuses the sign-in when the event cannot be enqueued", func(t *testing.T) {
 		t.Parallel()
 

@@ -16,13 +16,10 @@ import (
 const (
 	// ImpersonateUserPermission is a service admin permission.
 	ImpersonateUserPermission Permission = "imitate.user"
-	// ManageUserSessionsPermission is a service admin permission.
-	ManageUserSessionsPermission Permission = "manage.user_sessions"
 
 	// ReadAnySignInsPermission allows listing somebody else's sign-ins through platform's
 	// SignInAdministrationService, and EndAnySignInsPermission ending them. They are the
-	// operator half of platform's sign-in, and the counterpart there of
-	// ManageUserSessionsPermission over AuthService's sessions.
+	// operator half of platform's sign-in.
 	ReadAnySignInsPermission = signingrpc.PermissionReadAnySignIns
 	EndAnySignInsPermission  = signingrpc.PermissionEndAnySignIns
 )
@@ -31,7 +28,6 @@ var (
 	// AuthPermissions contains all authentication-related permissions.
 	AuthPermissions = []Permission{
 		ImpersonateUserPermission,
-		ManageUserSessionsPermission,
 		ReadAnySignInsPermission,
 		EndAnySignInsPermission,
 	}

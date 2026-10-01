@@ -1,14 +1,9 @@
 package authentication
 
 import (
-	"context"
-
-	authcfg "github.com/primandproper/dinnerdonebetter/backend/internal/authentication/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
-	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/recording"
 
@@ -18,8 +13,8 @@ import (
 	"github.com/primandproper/primitives-go/v2/authentication/argon2"
 	"github.com/primandproper/primitives-go/v2/authentication/tokens"
 	"github.com/primandproper/primitives-go/v2/authentication/totp"
+	platformauthz "github.com/primandproper/primitives-go/v2/authorization"
 	"github.com/primandproper/primitives-go/v2/database"
-	"github.com/primandproper/primitives-go/v2/messagequeue"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/metrics"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
@@ -44,7 +39,7 @@ func RegisterAuth(i do.Injector) {
 		return totp.NewVerifier(totp.WithTracerProvider(do.MustInvoke[tracing.Provider](i))), nil
 	})
 
-	// platform's sign-in orchestration, which the Manager below proves passwords through.
+	// platform's sign-in orchestration, which every door that signs somebody in goes through.
 	//
 	// It takes the identity store as its Directory and this application's token issuer as
 	// its TokenIssuer, both without an adapter: identity.Store satisfies signin.Directory
@@ -83,13 +78,14 @@ func RegisterAuth(i do.Injector) {
 			// And the verification reads and writes an emailed link is answered through.
 			// The identity store satisfies this one outright too.
 			signin.WithVerifications(do.MustInvoke[platformidentity.Store](i)),
-			// The rule AuthService applies to every password it writes, applied to the ones
-			// platform's server writes too, so a door mounted from platform cannot accept a
-			// password this application refuses.
+			// This application's password rule, applied to every password the sign-in
+			// service writes, so no door mounted from platform accepts a password this
+			// application refuses.
 			signin.WithPasswordPolicy(PasswordPolicy),
 			// And the rest of this application's registration — standing, roles, the second
 			// factor, the agreements — applied to every registration signin writes, so the
-			// two doors that register somebody register the same person.
+			// two doors that register somebody (AuthService.RegisterUser and SignInService's
+			// operator Register) register the same person.
 			signin.WithRegistrationPolicy(RegistrationPolicy),
 			// Where a sign-in through platform's SignInService keeps the refresh token that
 			// outlives its access token. With a store named, LoginForToken mints a rotating
@@ -103,15 +99,16 @@ func RegisterAuth(i do.Injector) {
 			// is how long a sign-out takes to take effect.
 			signin.WithRefreshTokenStore(do.MustInvoke[*refreshtokens.SQLStore](i)),
 			// The two mails platform's own doors send — another verification link, and a
-			// reminder of somebody's username — go through the pipeline AuthService's
-			// resend and reminder already use, so the person gets the same email from
-			// either door.
+			// reminder of somebody's username — go through this application's outbox and
+			// its data change message handler, which renders the email.
 			signin.WithVerificationMailer(mailers),
 			// The profile write the two handle doors make. identity's service rather than its
 			// store, so identity's AfterUpdateProfile hook records the change as it does for
 			// every other profile write; each door asks the current password first.
 			signin.WithProfileUpdater(do.MustInvoke[*platformidentity.Service](i)),
 			signin.WithHandleReminderMailer(mailers),
+			// Who may act as somebody else. Without a policy every impersonation is refused.
+			signin.WithImpersonationPolicy(NewImpersonationPolicy(do.MustInvoke[platformauthz.PolicyResolver](i))),
 			signin.WithHooks(NewSignInHooks(
 				do.MustInvoke[logging.Logger](i),
 				do.MustInvoke[*events.Emitter](i),
@@ -124,22 +121,6 @@ func RegisterAuth(i do.Injector) {
 			signin.WithLogger(do.MustInvoke[logging.Logger](i)),
 			signin.WithTracerProvider(do.MustInvoke[tracing.Provider](i)),
 			signin.WithMetricsProvider(do.MustInvoke[metrics.Provider](i)),
-		)
-	})
-
-	do.Provide[Manager](i, func(i do.Injector) (Manager, error) {
-		return NewManager(
-			do.MustInvoke[context.Context](i),
-			do.MustInvoke[*queuescfg.Config](i),
-			do.MustInvoke[tokens.Issuer](i),
-			do.MustInvoke[*signin.Service](i),
-			do.MustInvoke[tracing.Provider](i),
-			do.MustInvoke[logging.Logger](i),
-			do.MustInvoke[messagequeue.PublisherProvider](i),
-			do.MustInvoke[platformidentity.Store](i),
-			do.MustInvoke[database.Client](i),
-			do.MustInvoke[auth.SessionStore](i),
-			do.MustInvoke[*authcfg.TokensConfig](i),
 		)
 	})
 }
