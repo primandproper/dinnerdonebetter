@@ -1,13 +1,10 @@
 package grpcapi
 
 import (
-	"context"
-
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc/interceptors"
 
-	platformauthz "github.com/primandproper/primitives-go/v2/authorization"
 	authzgrpc "github.com/primandproper/primitives-go/v2/authorization/grpc"
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
@@ -102,21 +99,5 @@ func ProvideAuthorizationEnforcer(
 		opts = append(opts, authzgrpc.WithAuditOnly())
 	}
 
-	return authzgrpc.NewEnforcer(reqs, grantsFromSession, opts...)
-}
-
-// grantsFromSession bridges this service's session type onto the platform's Grants.
-//
-// Service-wide and per-account authority are handed over as separate sets and unioned, which is
-// how the existing check already treats them: a permission held in either place is held.
-func grantsFromSession(ctx context.Context) (platformauthz.Grants, bool) {
-	sessionCtxData, err := sessions.RequireFromContext(ctx)
-	if err != nil || sessionCtxData == nil {
-		return platformauthz.Grants{}, false
-	}
-
-	return authorization.PlatformGrants(
-		sessionCtxData.ServiceRolePermissionChecker(),
-		sessionCtxData.AccountRolePermissionsChecker(),
-	), true
+	return authzgrpc.NewEnforcer(reqs, sessions.GrantsFromContext, opts...)
 }

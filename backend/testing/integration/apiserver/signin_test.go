@@ -3,9 +3,7 @@ package integration
 import (
 	"context"
 	"fmt"
-	"strings"
 	"testing"
-	"time"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	authsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/auth"
@@ -14,7 +12,6 @@ import (
 	"github.com/primandproper/platform-go/v14/identity/identitypb"
 	"github.com/primandproper/primitives-go/v2/identifiers"
 
-	"github.com/pquerna/otp/totp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
@@ -68,22 +65,19 @@ func signInForTest(t *testing.T, signIn signinpb.SignInServiceClient) (token *si
 	return res.GetToken(), user.ID
 }
 
-func TestSignIn_LoginForToken(T *testing.T) {
+// TestSignIn_TokensReachThisApplicationsServices pins the seam between platform's sign-in and
+// this application's own services: AuthInterceptor recognizes a token it did not mint, and checks
+// its login the way it checks a session it did. The doors themselves — both sign-ins, rotation,
+// reuse, sign-out — are platform's conformance suite's; see conformance_test.go.
+func TestSignIn_TokensReachThisApplicationsServices(T *testing.T) {
 	T.Parallel()
 
-	T.Run("issues a rotating pair whose access token this application's services accept", func(t *testing.T) {
+	T.Run("a platform access token is accepted by this application's services", func(t *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
 		token, userID := signInForTest(t, buildSignInClientForTest(t))
 
-		assert.NotEmpty(t, token.GetToken())
-		assert.NotEmpty(t, token.GetRefreshToken(), "a sign-in with a refresh token store names issues a refresh token")
-		assert.NotEmpty(t, token.GetFamilyId())
-		assert.False(t, token.GetAdministrative())
-
-		// The token is platform's, and AuthService is this application's: the interceptor
-		// has to recognize a token it did not mint for the two doors to be one sign-in.
 		ddbClient, err := buildAuthedGRPCClientWithBearerToken(token.GetToken())
 		require.NoError(t, err)
 
@@ -92,224 +86,22 @@ func TestSignIn_LoginForToken(T *testing.T) {
 		assert.Equal(t, userID, self.GetResult().GetId())
 	})
 
-	T.Run("refuses a wrong password as Unauthenticated", func(t *testing.T) {
+	T.Run("a signed-out login's access token stops at once, on this application's services too", func(t *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
-		user := createServiceUserForTest(t, true, buildUserRegistrationInputForTest(t))
-
-		_, err := buildSignInClientForTest(t).LoginForToken(ctx, &signinpb.LoginForTokenRequest{
-			Credentials: &signinpb.Credentials{
-				Username: user.Username,
-				Password: user.HashedPassword + user.HashedPassword,
-				TotpCode: generateTOTPCodeForUserForTest(t, user),
-			},
-		})
-
-		assert.Equal(t, codes.Unauthenticated, status.Code(err))
-	})
-}
-
-func TestSignIn_AdminLoginForToken(T *testing.T) {
-	T.Parallel()
-
-	T.Run("issues an administrative token to a service administrator", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		code, err := totp.GenerateCode(strings.ToUpper(premadeAdminUser.TwoFactorSecret), time.Now().UTC())
-		require.NoError(t, err)
-
-		res, err := buildSignInClientForTest(t).AdminLoginForToken(ctx, &signinpb.AdminLoginForTokenRequest{
-			Credentials: &signinpb.Credentials{
-				Username: premadeAdminUser.Username,
-				Password: adminUserPassword,
-				TotpCode: code,
-			},
-		})
-		require.NoError(t, err)
-
-		assert.True(t, res.GetToken().GetAdministrative())
-		assert.NotEmpty(t, res.GetToken().GetRefreshToken())
-	})
-
-	T.Run("refuses somebody who is not one", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		user := createServiceUserForTest(t, true, buildUserRegistrationInputForTest(t))
-
-		_, err := buildSignInClientForTest(t).AdminLoginForToken(ctx, &signinpb.AdminLoginForTokenRequest{
-			Credentials: &signinpb.Credentials{
-				Username: user.Username,
-				Password: user.HashedPassword,
-				TotpCode: generateTOTPCodeForUserForTest(t, user),
-			},
-		})
-
-		assert.Error(t, err)
-	})
-}
-
-func TestSignIn_ExchangeRefreshToken(T *testing.T) {
-	T.Parallel()
-
-	T.Run("rotates the refresh token and keeps the login", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		signIn := buildSignInClientForTest(t)
-		first, _ := signInForTest(t, signIn)
-
-		res, err := signIn.ExchangeRefreshToken(ctx, &signinpb.ExchangeRefreshTokenRequest{RefreshToken: first.GetRefreshToken()})
-		require.NoError(t, err)
-
-		successor := res.GetToken()
-		assert.NotEqual(t, first.GetRefreshToken(), successor.GetRefreshToken())
-		assert.Equal(t, first.GetFamilyId(), successor.GetFamilyId(), "an exchange continues the login rather than starting one")
-	})
-
-	T.Run("a spent refresh token presented again ends the login", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		signIn := buildSignInClientForTest(t)
-		first, _ := signInForTest(t, signIn)
-
-		res, err := signIn.ExchangeRefreshToken(ctx, &signinpb.ExchangeRefreshTokenRequest{RefreshToken: first.GetRefreshToken()})
-		require.NoError(t, err)
-		successor := res.GetToken()
-
-		// The replay: somebody presents the token the rightful holder has already spent.
-		_, err = signIn.ExchangeRefreshToken(ctx, &signinpb.ExchangeRefreshTokenRequest{RefreshToken: first.GetRefreshToken()})
-		assert.Equal(t, codes.Unauthenticated, status.Code(err))
-
-		// And the successor, which is still unspent, went with the family.
-		_, err = signIn.ExchangeRefreshToken(ctx, &signinpb.ExchangeRefreshTokenRequest{RefreshToken: successor.GetRefreshToken()})
-		assert.Equal(t, codes.Unauthenticated, status.Code(err))
-	})
-}
-
-func TestSignIn_SignOut(T *testing.T) {
-	T.Parallel()
-
-	T.Run("ends the login's refresh tokens", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
+		// A token from AuthService stops when its session row goes; one from platform's door
+		// stops when its login ends, because the interceptor reads the login on every request.
 		signIn := buildSignInClientForTest(t)
 		token, _ := signInForTest(t, signIn)
 
 		_, err := signIn.SignOut(ctx, &signinpb.SignOutRequest{RefreshToken: token.GetRefreshToken()})
 		require.NoError(t, err)
 
-		_, err = signIn.ExchangeRefreshToken(ctx, &signinpb.ExchangeRefreshTokenRequest{RefreshToken: token.GetRefreshToken()})
-		assert.Equal(t, codes.Unauthenticated, status.Code(err))
-	})
-
-	T.Run("leaves the access token in hand working until it expires", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		// This pins the model rather than a defect. A platform access token is checked by
-		// its signature and nothing else, so a sign-out stops it being replaced and does
-		// not stop it being used; its lifetime is how long a sign-out takes to take effect.
-		// A token from this application's AuthService behaves differently, and a change
-		// that made these two agree should have to change this test to do it.
-		signIn := buildSignInClientForTest(t)
-		token, userID := signInForTest(t, signIn)
-
-		_, err := signIn.SignOut(ctx, &signinpb.SignOutRequest{RefreshToken: token.GetRefreshToken()})
+		ddbClient, err := buildAuthedGRPCClientWithBearerToken(token.GetToken())
 		require.NoError(t, err)
 
-		self, err := signIn.GetSelf(withBearerToken(ctx, token.GetToken()), &signinpb.GetSelfRequest{})
-		require.NoError(t, err)
-		assert.Equal(t, userID, self.GetUser().GetId())
-	})
-}
-
-func TestSignIn_SignOutEverywhere(T *testing.T) {
-	T.Parallel()
-
-	T.Run("ends every login the caller holds", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		signIn := buildSignInClientForTest(t)
-		user := createServiceUserForTest(t, true, buildUserRegistrationInputForTest(t))
-
-		login := func() *signinpb.IssuedToken {
-			res, err := signIn.LoginForToken(ctx, &signinpb.LoginForTokenRequest{
-				Credentials: &signinpb.Credentials{
-					Username: user.Username,
-					Password: user.HashedPassword,
-					TotpCode: generateTOTPCodeForUserForTest(t, user),
-				},
-			})
-			require.NoError(t, err)
-
-			return res.GetToken()
-		}
-
-		here, elsewhere := login(), login()
-		require.NotEqual(t, here.GetFamilyId(), elsewhere.GetFamilyId())
-
-		_, err := signIn.SignOutEverywhere(withBearerToken(ctx, here.GetToken()), &signinpb.SignOutEverywhereRequest{})
-		require.NoError(t, err)
-
-		for _, token := range []*signinpb.IssuedToken{here, elsewhere} {
-			_, err = signIn.ExchangeRefreshToken(ctx, &signinpb.ExchangeRefreshTokenRequest{RefreshToken: token.GetRefreshToken()})
-			assert.Equal(t, codes.Unauthenticated, status.Code(err))
-		}
-	})
-
-	T.Run("requires a signed-in caller", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		_, err := buildSignInClientForTest(t).SignOutEverywhere(ctx, &signinpb.SignOutEverywhereRequest{})
-
-		assert.Equal(t, codes.Unauthenticated, status.Code(err))
-	})
-}
-
-func TestSignIn_GetAuthStatus(T *testing.T) {
-	T.Parallel()
-
-	T.Run("answers an anonymous caller", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		res, err := buildSignInClientForTest(t).GetAuthStatus(ctx, &signinpb.GetAuthStatusRequest{})
-		require.NoError(t, err)
-
-		assert.False(t, res.GetAuthenticated())
-	})
-
-	T.Run("reads the token a signed-in caller sends", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		signIn := buildSignInClientForTest(t)
-		token, _ := signInForTest(t, signIn)
-
-		res, err := signIn.GetAuthStatus(withBearerToken(ctx, token.GetToken()), &signinpb.GetAuthStatusRequest{})
-		require.NoError(t, err)
-
-		assert.True(t, res.GetAuthenticated())
-	})
-
-	T.Run("refuses a token that does not work rather than answering as though none was sent", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		// Told "not signed in", a client with an expired token would sign its user out.
-		// Told Unauthenticated, it refreshes — which is what it should do.
-		signIn := buildSignInClientForTest(t)
-		token, _ := signInForTest(t, signIn)
-
-		_, err := signIn.GetAuthStatus(withBearerToken(ctx, token.GetToken()+token.GetToken()), &signinpb.GetAuthStatusRequest{})
-
+		_, err = ddbClient.GetSelf(ctx, &authsvc.GetSelfRequest{})
 		assert.Equal(t, codes.Unauthenticated, status.Code(err))
 	})
 }

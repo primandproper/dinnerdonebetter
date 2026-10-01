@@ -197,6 +197,7 @@ func BuildInjector(
 	authhttpsvc.RegisterAuthHTTPService(i)
 	analyticssvc.RegisterAnalyticsService(i)
 	auditrepo.RegisterPlatformReader(i)
+	auditrepo.RegisterPlatformRecorder(i)
 	auditbuild.RegisterAuditService(i)
 	commentstargets.RegisterCommentsService(i)
 	identitybuild.RegisterIdentityService(i)

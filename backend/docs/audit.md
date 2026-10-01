@@ -231,17 +231,23 @@ already.
 
 ## Reading it
 
-`GetAuditLogEntriesForAccount` / `ForUser` (and the `AndResourceTypes` variants) and
-`GetAuditLogEntry` are unchanged in shape and still page with `filtering.QueryFilter`.
+In Go, `GetAuditLogEntriesForAccount` / `ForUser` (and the `AndResourceTypes` variants) and
+`GetAuditLogEntry` page with `filtering.QueryFilter`. An account's reads name its chain; a
+user's, and the read of one entry by id, go through the platform reader's `ListAcrossScopes` /
+`GetAcrossScopes`, because a user's entries are filed under whichever account they acted in.
 `VerifyChain(ctx, scope, from, to)` walks a chain and reports the first break.
 
-The gRPC `AuditLogEntry` now carries `scope`, `seq`, `prev_hash`, `hash`,
-`actor_type` and `actor_ip` alongside the fields it always had, so a caller can
-check the chain rather than trust this service to have checked it. `ChangeLog`
-still carries two strings: values are stored typed, and the rendering to text
-happens at the edge.
+Over the wire it is platform's `audit/grpc`, mounted in `internal/build/auditlog`:
 
-## Watching it
+- **`AuditService`** reads the caller's own chains — their active account's and their own,
+  merged into one page (`callerChains`). Nobody's read widens past those two, a service
+  administrator's included.
+- **`AuditAdministrationService`** (`GetAnyEntry`, `ListAnyEntries`) reads every tenant's
+  chains, behind `audit.entries.read_any`, which only `service_admin` holds. Each answer names
+  the tenant an entry belongs to, and every such read is itself recorded in the operator's own
+  chain before anything is returned.
+
+## Watching it## Watching it
 
 Alert on **`audit_chain_breaks`**. Everything else the package emits describes
 throughput; that one means the log has stopped being evidence. The rest are

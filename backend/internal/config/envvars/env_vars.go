@@ -413,6 +413,80 @@ const (
 	// `SchedulerConfig.DataPrivacy.Encryption.Provider`.
 	DataPrivacyEncryptionProviderEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_ENCRYPTION_PROVIDER"
 
+	// DataPrivacyRequestsArtifactsEncryptionCurrentKeyIDEnvVarKey is the environment variable name
+	// to set to override `SchedulerConfig.DataPrivacy.Requests.Artifacts.Encryption.CurrentKeyID`.
+	DataPrivacyRequestsArtifactsEncryptionCurrentKeyIDEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_ARTIFACTS_ENCRYPTION_CURRENT_KEY_ID"
+
+	// DataPrivacyRequestsArtifactsEncryptionProviderEnvVarKey is the environment variable name to
+	// set to override `SchedulerConfig.DataPrivacy.Requests.Artifacts.Encryption.Provider`.
+	DataPrivacyRequestsArtifactsEncryptionProviderEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_ARTIFACTS_ENCRYPTION_PROVIDER"
+
+	// DataPrivacyRequestsArtifactsStorageBackblazeB2ApplicationKeyEnvVarKey is the environment
+	// variable name to set to override
+	// `SchedulerConfig.DataPrivacy.Requests.Artifacts.Storage.BackblazeB2Config.ApplicationKey`.
+	DataPrivacyRequestsArtifactsStorageBackblazeB2ApplicationKeyEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_ARTIFACTS_STORAGE_BACKBLAZE_B2_APPLICATION_KEY"
+
+	// DataPrivacyRequestsArtifactsStorageBackblazeB2ApplicationKeyIDEnvVarKey is the environment
+	// variable name to set to override
+	// `SchedulerConfig.DataPrivacy.Requests.Artifacts.Storage.BackblazeB2Config.ApplicationKeyID`.
+	DataPrivacyRequestsArtifactsStorageBackblazeB2ApplicationKeyIDEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_ARTIFACTS_STORAGE_BACKBLAZE_B2_APPLICATION_KEY_ID"
+
+	// DataPrivacyRequestsArtifactsStorageBackblazeB2RegionEnvVarKey is the environment variable
+	// name to set to override
+	// `SchedulerConfig.DataPrivacy.Requests.Artifacts.Storage.BackblazeB2Config.Region`.
+	DataPrivacyRequestsArtifactsStorageBackblazeB2RegionEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_ARTIFACTS_STORAGE_BACKBLAZE_B2_REGION"
+
+	// DataPrivacyRequestsArtifactsStorageBucketNameEnvVarKey is the environment variable name to
+	// set to override `SchedulerConfig.DataPrivacy.Requests.Artifacts.Storage.BucketName`.
+	DataPrivacyRequestsArtifactsStorageBucketNameEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_ARTIFACTS_STORAGE_BUCKET_NAME"
+
+	// DataPrivacyRequestsArtifactsStorageBucketPrefixEnvVarKey is the environment variable name to
+	// set to override `SchedulerConfig.DataPrivacy.Requests.Artifacts.Storage.BucketPrefix`.
+	DataPrivacyRequestsArtifactsStorageBucketPrefixEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_ARTIFACTS_STORAGE_BUCKET_PREFIX"
+
+	// DataPrivacyRequestsArtifactsStorageCircuitBreakingErrorRateEnvVarKey is the environment
+	// variable name to set to override
+	// `SchedulerConfig.DataPrivacy.Requests.Artifacts.Storage.CircuitBreaker.ErrorRate`.
+	DataPrivacyRequestsArtifactsStorageCircuitBreakingErrorRateEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_ARTIFACTS_STORAGE_CIRCUIT_BREAKING_ERROR_RATE"
+
+	// DataPrivacyRequestsArtifactsStorageCircuitBreakingMinimumSampleThresholdEnvVarKey is the
+	// environment variable name to set to override
+	// `SchedulerConfig.DataPrivacy.Requests.Artifacts.Storage.CircuitBreaker.MinimumSampleThreshold`.
+	DataPrivacyRequestsArtifactsStorageCircuitBreakingMinimumSampleThresholdEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_ARTIFACTS_STORAGE_CIRCUIT_BREAKING_MINIMUM_SAMPLE_THRESHOLD"
+
+	// DataPrivacyRequestsArtifactsStorageCircuitBreakingNameEnvVarKey is the environment variable
+	// name to set to override
+	// `SchedulerConfig.DataPrivacy.Requests.Artifacts.Storage.CircuitBreaker.Name`.
+	DataPrivacyRequestsArtifactsStorageCircuitBreakingNameEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_ARTIFACTS_STORAGE_CIRCUIT_BREAKING_NAME"
+
+	// DataPrivacyRequestsArtifactsStorageFilesystemDirectoryModeEnvVarKey is the environment
+	// variable name to set to override
+	// `SchedulerConfig.DataPrivacy.Requests.Artifacts.Storage.FilesystemConfig.DirectoryMode`.
+	DataPrivacyRequestsArtifactsStorageFilesystemDirectoryModeEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_ARTIFACTS_STORAGE_FILESYSTEM_DIRECTORY_MODE"
+
+	// DataPrivacyRequestsArtifactsStorageFilesystemRootDirectoryEnvVarKey is the environment
+	// variable name to set to override
+	// `SchedulerConfig.DataPrivacy.Requests.Artifacts.Storage.FilesystemConfig.RootDirectory`.
+	DataPrivacyRequestsArtifactsStorageFilesystemRootDirectoryEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_ARTIFACTS_STORAGE_FILESYSTEM_ROOT_DIRECTORY"
+
+	// DataPrivacyRequestsArtifactsStorageProviderEnvVarKey is the environment variable name to set
+	// to override `SchedulerConfig.DataPrivacy.Requests.Artifacts.Storage.Provider`.
+	DataPrivacyRequestsArtifactsStorageProviderEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_ARTIFACTS_STORAGE_PROVIDER"
+
+	// DataPrivacyRequestsArtifactsStorageR2AccessKeyIDEnvVarKey is the environment variable name
+	// to set to override
+	// `SchedulerConfig.DataPrivacy.Requests.Artifacts.Storage.R2Config.AccessKeyID`.
+	DataPrivacyRequestsArtifactsStorageR2AccessKeyIDEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_ARTIFACTS_STORAGE_R2_ACCESS_KEY_ID"
+
+	// DataPrivacyRequestsArtifactsStorageR2AccountIDEnvVarKey is the environment variable name to
+	// set to override `SchedulerConfig.DataPrivacy.Requests.Artifacts.Storage.R2Config.AccountID`.
+	DataPrivacyRequestsArtifactsStorageR2AccountIDEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_ARTIFACTS_STORAGE_R2_ACCOUNT_ID"
+
+	// DataPrivacyRequestsArtifactsStorageR2SecretAccessKeyEnvVarKey is the environment variable
+	// name to set to override
+	// `SchedulerConfig.DataPrivacy.Requests.Artifacts.Storage.R2Config.SecretAccessKey`.
+	DataPrivacyRequestsArtifactsStorageR2SecretAccessKeyEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_ARTIFACTS_STORAGE_R2_SECRET_ACCESS_KEY"
+
 	// DataPrivacyRequestsAuditErasureDisabledEnvVarKey is the environment variable name to set to
 	// override `SchedulerConfig.DataPrivacy.Requests.AuditErasure.Disabled`.
 	DataPrivacyRequestsAuditErasureDisabledEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_AUDIT_ERASURE_DISABLED"
@@ -1381,15 +1455,15 @@ const (
 	// `SchedulerConfig.Metering.Flusher.ReapBatchSize`.
 	MeteringFlusherReapBatchSizeEnvVarKey = "DINNER_DONE_BETTER_METERING_FLUSHER_REAP_BATCH_SIZE"
 
+	// MeteringRecorderAllowUnknownMetersEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Metering.Recorder.AllowUnknownMeters`,
+	// `SchedulerConfig.Metering.Recorder.AllowUnknownMeters`.
+	MeteringRecorderAllowUnknownMetersEnvVarKey = "DINNER_DONE_BETTER_METERING_RECORDER_ALLOW_UNKNOWN_METERS"
+
 	// MeteringRecorderBatchSizeEnvVarKey is the environment variable name to set to override
 	// `APIServiceConfig.Metering.Recorder.BatchSize`,
 	// `SchedulerConfig.Metering.Recorder.BatchSize`.
 	MeteringRecorderBatchSizeEnvVarKey = "DINNER_DONE_BETTER_METERING_RECORDER_BATCH_SIZE"
-
-	// MeteringRecorderRejectUnknownMetersEnvVarKey is the environment variable name to set to
-	// override `APIServiceConfig.Metering.Recorder.RejectUnknownMeters`,
-	// `SchedulerConfig.Metering.Recorder.RejectUnknownMeters`.
-	MeteringRecorderRejectUnknownMetersEnvVarKey = "DINNER_DONE_BETTER_METERING_RECORDER_REJECT_UNKNOWN_METERS"
 
 	// MeteringTablePrefixEnvVarKey is the environment variable name to set to override
 	// `APIServiceConfig.Metering.TablePrefix`, `SchedulerConfig.Metering.TablePrefix`.
@@ -1457,6 +1531,30 @@ const (
 	// `DBCleanerConfig.OAuth2.Config.SweepInterval`,
 	// `MCPServiceConfig.OAuth2.Config.SweepInterval`.
 	Oauth2SweepIntervalEnvVarKey = "DINNER_DONE_BETTER_OAUTH2_SWEEP_INTERVAL"
+
+	// Oauth2SweepJobDisabledEnvVarKey is the environment variable name to set to override
+	// `DBCleanerConfig.OAuth2.SweepJob.Disabled`, `MCPServiceConfig.OAuth2.SweepJob.Disabled`.
+	Oauth2SweepJobDisabledEnvVarKey = "DINNER_DONE_BETTER_OAUTH2_SWEEP_JOB_DISABLED"
+
+	// Oauth2SweepJobIntervalEnvVarKey is the environment variable name to set to override
+	// `DBCleanerConfig.OAuth2.SweepJob.Interval`, `MCPServiceConfig.OAuth2.SweepJob.Interval`.
+	Oauth2SweepJobIntervalEnvVarKey = "DINNER_DONE_BETTER_OAUTH2_SWEEP_JOB_INTERVAL"
+
+	// Oauth2SweepJobLeaseTTLEnvVarKey is the environment variable name to set to override
+	// `DBCleanerConfig.OAuth2.SweepJob.LeaseTTL`, `MCPServiceConfig.OAuth2.SweepJob.LeaseTTL`.
+	Oauth2SweepJobLeaseTTLEnvVarKey = "DINNER_DONE_BETTER_OAUTH2_SWEEP_JOB_LEASE_TTL"
+
+	// Oauth2SweepJobRunOnStartEnvVarKey is the environment variable name to set to override
+	// `DBCleanerConfig.OAuth2.SweepJob.RunOnStart`, `MCPServiceConfig.OAuth2.SweepJob.RunOnStart`.
+	Oauth2SweepJobRunOnStartEnvVarKey = "DINNER_DONE_BETTER_OAUTH2_SWEEP_JOB_RUN_ON_START"
+
+	// Oauth2SweepJobScheduleEnvVarKey is the environment variable name to set to override
+	// `DBCleanerConfig.OAuth2.SweepJob.Schedule`, `MCPServiceConfig.OAuth2.SweepJob.Schedule`.
+	Oauth2SweepJobScheduleEnvVarKey = "DINNER_DONE_BETTER_OAUTH2_SWEEP_JOB_SCHEDULE"
+
+	// Oauth2SweepJobTimeoutEnvVarKey is the environment variable name to set to override
+	// `DBCleanerConfig.OAuth2.SweepJob.Timeout`, `MCPServiceConfig.OAuth2.SweepJob.Timeout`.
+	Oauth2SweepJobTimeoutEnvVarKey = "DINNER_DONE_BETTER_OAUTH2_SWEEP_JOB_TIMEOUT"
 
 	// ObservabilityLoggingLevelEnvVarKey is the environment variable name to set to override
 	// `APIServiceConfig.Observability.Logging.Level`,
@@ -1801,6 +1899,30 @@ const (
 	// `SchedulerConfig.Operations.Operations.ReapBatchSize`.
 	OperationsReapBatchSizeEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_REAP_BATCH_SIZE"
 
+	// OperationsReapDisabledEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Operations.Reap.Disabled`, `SchedulerConfig.Operations.Reap.Disabled`.
+	OperationsReapDisabledEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_REAP_DISABLED"
+
+	// OperationsReapIntervalEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Operations.Reap.Interval`, `SchedulerConfig.Operations.Reap.Interval`.
+	OperationsReapIntervalEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_REAP_INTERVAL"
+
+	// OperationsReapLeaseTTLEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Operations.Reap.LeaseTTL`, `SchedulerConfig.Operations.Reap.LeaseTTL`.
+	OperationsReapLeaseTTLEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_REAP_LEASE_TTL"
+
+	// OperationsReapRunOnStartEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Operations.Reap.RunOnStart`, `SchedulerConfig.Operations.Reap.RunOnStart`.
+	OperationsReapRunOnStartEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_REAP_RUN_ON_START"
+
+	// OperationsReapScheduleEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Operations.Reap.Schedule`, `SchedulerConfig.Operations.Reap.Schedule`.
+	OperationsReapScheduleEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_REAP_SCHEDULE"
+
+	// OperationsReapTimeoutEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Operations.Reap.Timeout`, `SchedulerConfig.Operations.Reap.Timeout`.
+	OperationsReapTimeoutEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_REAP_TIMEOUT"
+
 	// OperationsRecoverAfterEnvVarKey is the environment variable name to set to override
 	// `APIServiceConfig.Operations.Operations.RecoverAfter`,
 	// `SchedulerConfig.Operations.Operations.RecoverAfter`.
@@ -1810,6 +1932,35 @@ const (
 	// `APIServiceConfig.Operations.Operations.RecoverBatchSize`,
 	// `SchedulerConfig.Operations.Operations.RecoverBatchSize`.
 	OperationsRecoverBatchSizeEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_RECOVER_BATCH_SIZE"
+
+	// OperationsRecoverDisabledEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Operations.Recover.Disabled`,
+	// `SchedulerConfig.Operations.Recover.Disabled`.
+	OperationsRecoverDisabledEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_RECOVER_DISABLED"
+
+	// OperationsRecoverIntervalEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Operations.Recover.Interval`,
+	// `SchedulerConfig.Operations.Recover.Interval`.
+	OperationsRecoverIntervalEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_RECOVER_INTERVAL"
+
+	// OperationsRecoverLeaseTTLEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Operations.Recover.LeaseTTL`,
+	// `SchedulerConfig.Operations.Recover.LeaseTTL`.
+	OperationsRecoverLeaseTTLEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_RECOVER_LEASE_TTL"
+
+	// OperationsRecoverRunOnStartEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Operations.Recover.RunOnStart`,
+	// `SchedulerConfig.Operations.Recover.RunOnStart`.
+	OperationsRecoverRunOnStartEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_RECOVER_RUN_ON_START"
+
+	// OperationsRecoverScheduleEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Operations.Recover.Schedule`,
+	// `SchedulerConfig.Operations.Recover.Schedule`.
+	OperationsRecoverScheduleEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_RECOVER_SCHEDULE"
+
+	// OperationsRecoverTimeoutEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Operations.Recover.Timeout`, `SchedulerConfig.Operations.Recover.Timeout`.
+	OperationsRecoverTimeoutEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_RECOVER_TIMEOUT"
 
 	// OperationsRetentionEnvVarKey is the environment variable name to set to override
 	// `APIServiceConfig.Operations.Operations.Retention`,
@@ -2477,6 +2628,30 @@ const (
 	// `APIServiceConfig.Services.Auth.OAuth2.Config.SweepInterval`.
 	ServiceAuthOauth2SweepIntervalEnvVarKey = "DINNER_DONE_BETTER_SERVICE_AUTH_OAUTH2_SWEEP_INTERVAL"
 
+	// ServiceAuthOauth2SweepJobDisabledEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Services.Auth.OAuth2.SweepJob.Disabled`.
+	ServiceAuthOauth2SweepJobDisabledEnvVarKey = "DINNER_DONE_BETTER_SERVICE_AUTH_OAUTH2_SWEEP_JOB_DISABLED"
+
+	// ServiceAuthOauth2SweepJobIntervalEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Services.Auth.OAuth2.SweepJob.Interval`.
+	ServiceAuthOauth2SweepJobIntervalEnvVarKey = "DINNER_DONE_BETTER_SERVICE_AUTH_OAUTH2_SWEEP_JOB_INTERVAL"
+
+	// ServiceAuthOauth2SweepJobLeaseTTLEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Services.Auth.OAuth2.SweepJob.LeaseTTL`.
+	ServiceAuthOauth2SweepJobLeaseTTLEnvVarKey = "DINNER_DONE_BETTER_SERVICE_AUTH_OAUTH2_SWEEP_JOB_LEASE_TTL"
+
+	// ServiceAuthOauth2SweepJobRunOnStartEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Services.Auth.OAuth2.SweepJob.RunOnStart`.
+	ServiceAuthOauth2SweepJobRunOnStartEnvVarKey = "DINNER_DONE_BETTER_SERVICE_AUTH_OAUTH2_SWEEP_JOB_RUN_ON_START"
+
+	// ServiceAuthOauth2SweepJobScheduleEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Services.Auth.OAuth2.SweepJob.Schedule`.
+	ServiceAuthOauth2SweepJobScheduleEnvVarKey = "DINNER_DONE_BETTER_SERVICE_AUTH_OAUTH2_SWEEP_JOB_SCHEDULE"
+
+	// ServiceAuthOauth2SweepJobTimeoutEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Services.Auth.OAuth2.SweepJob.Timeout`.
+	ServiceAuthOauth2SweepJobTimeoutEnvVarKey = "DINNER_DONE_BETTER_SERVICE_AUTH_OAUTH2_SWEEP_JOB_TIMEOUT"
+
 	// ServiceAuthTokensAudienceEnvVarKey is the environment variable name to set to override
 	// `APIServiceConfig.Services.Auth.Tokens.Config.Audience`.
 	ServiceAuthTokensAudienceEnvVarKey = "DINNER_DONE_BETTER_SERVICE_AUTH_TOKENS_AUDIENCE"
@@ -2512,6 +2687,86 @@ const (
 	// ServiceDataPrivacyEncryptionProviderEnvVarKey is the environment variable name to set to
 	// override `APIServiceConfig.Services.DataPrivacy.Encryption.Provider`.
 	ServiceDataPrivacyEncryptionProviderEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_ENCRYPTION_PROVIDER"
+
+	// ServiceDataPrivacyRequestsArtifactsEncryptionCurrentKeyIDEnvVarKey is the environment
+	// variable name to set to override
+	// `APIServiceConfig.Services.DataPrivacy.Requests.Artifacts.Encryption.CurrentKeyID`.
+	ServiceDataPrivacyRequestsArtifactsEncryptionCurrentKeyIDEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_ARTIFACTS_ENCRYPTION_CURRENT_KEY_ID"
+
+	// ServiceDataPrivacyRequestsArtifactsEncryptionProviderEnvVarKey is the environment variable
+	// name to set to override
+	// `APIServiceConfig.Services.DataPrivacy.Requests.Artifacts.Encryption.Provider`.
+	ServiceDataPrivacyRequestsArtifactsEncryptionProviderEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_ARTIFACTS_ENCRYPTION_PROVIDER"
+
+	// ServiceDataPrivacyRequestsArtifactsStorageBackblazeB2ApplicationKeyEnvVarKey is the
+	// environment variable name to set to override
+	// `APIServiceConfig.Services.DataPrivacy.Requests.Artifacts.Storage.BackblazeB2Config.ApplicationKey`.
+	ServiceDataPrivacyRequestsArtifactsStorageBackblazeB2ApplicationKeyEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_ARTIFACTS_STORAGE_BACKBLAZE_B2_APPLICATION_KEY"
+
+	// ServiceDataPrivacyRequestsArtifactsStorageBackblazeB2ApplicationKeyIDEnvVarKey is the
+	// environment variable name to set to override
+	// `APIServiceConfig.Services.DataPrivacy.Requests.Artifacts.Storage.BackblazeB2Config.ApplicationKeyID`.
+	ServiceDataPrivacyRequestsArtifactsStorageBackblazeB2ApplicationKeyIDEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_ARTIFACTS_STORAGE_BACKBLAZE_B2_APPLICATION_KEY_ID"
+
+	// ServiceDataPrivacyRequestsArtifactsStorageBackblazeB2RegionEnvVarKey is the environment
+	// variable name to set to override
+	// `APIServiceConfig.Services.DataPrivacy.Requests.Artifacts.Storage.BackblazeB2Config.Region`.
+	ServiceDataPrivacyRequestsArtifactsStorageBackblazeB2RegionEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_ARTIFACTS_STORAGE_BACKBLAZE_B2_REGION"
+
+	// ServiceDataPrivacyRequestsArtifactsStorageBucketNameEnvVarKey is the environment variable
+	// name to set to override
+	// `APIServiceConfig.Services.DataPrivacy.Requests.Artifacts.Storage.BucketName`.
+	ServiceDataPrivacyRequestsArtifactsStorageBucketNameEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_ARTIFACTS_STORAGE_BUCKET_NAME"
+
+	// ServiceDataPrivacyRequestsArtifactsStorageBucketPrefixEnvVarKey is the environment variable
+	// name to set to override
+	// `APIServiceConfig.Services.DataPrivacy.Requests.Artifacts.Storage.BucketPrefix`.
+	ServiceDataPrivacyRequestsArtifactsStorageBucketPrefixEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_ARTIFACTS_STORAGE_BUCKET_PREFIX"
+
+	// ServiceDataPrivacyRequestsArtifactsStorageCircuitBreakingErrorRateEnvVarKey is the
+	// environment variable name to set to override
+	// `APIServiceConfig.Services.DataPrivacy.Requests.Artifacts.Storage.CircuitBreaker.ErrorRate`.
+	ServiceDataPrivacyRequestsArtifactsStorageCircuitBreakingErrorRateEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_ARTIFACTS_STORAGE_CIRCUIT_BREAKING_ERROR_RATE"
+
+	// ServiceDataPrivacyRequestsArtifactsStorageCircuitBreakingMinimumSampleThresholdEnvVarKey is
+	// the environment variable name to set to override
+	// `APIServiceConfig.Services.DataPrivacy.Requests.Artifacts.Storage.CircuitBreaker.MinimumSampleThreshold`.
+	ServiceDataPrivacyRequestsArtifactsStorageCircuitBreakingMinimumSampleThresholdEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_ARTIFACTS_STORAGE_CIRCUIT_BREAKING_MINIMUM_SAMPLE_THRESHOLD"
+
+	// ServiceDataPrivacyRequestsArtifactsStorageCircuitBreakingNameEnvVarKey is the environment
+	// variable name to set to override
+	// `APIServiceConfig.Services.DataPrivacy.Requests.Artifacts.Storage.CircuitBreaker.Name`.
+	ServiceDataPrivacyRequestsArtifactsStorageCircuitBreakingNameEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_ARTIFACTS_STORAGE_CIRCUIT_BREAKING_NAME"
+
+	// ServiceDataPrivacyRequestsArtifactsStorageFilesystemDirectoryModeEnvVarKey is the
+	// environment variable name to set to override
+	// `APIServiceConfig.Services.DataPrivacy.Requests.Artifacts.Storage.FilesystemConfig.DirectoryMode`.
+	ServiceDataPrivacyRequestsArtifactsStorageFilesystemDirectoryModeEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_ARTIFACTS_STORAGE_FILESYSTEM_DIRECTORY_MODE"
+
+	// ServiceDataPrivacyRequestsArtifactsStorageFilesystemRootDirectoryEnvVarKey is the
+	// environment variable name to set to override
+	// `APIServiceConfig.Services.DataPrivacy.Requests.Artifacts.Storage.FilesystemConfig.RootDirectory`.
+	ServiceDataPrivacyRequestsArtifactsStorageFilesystemRootDirectoryEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_ARTIFACTS_STORAGE_FILESYSTEM_ROOT_DIRECTORY"
+
+	// ServiceDataPrivacyRequestsArtifactsStorageProviderEnvVarKey is the environment variable name
+	// to set to override
+	// `APIServiceConfig.Services.DataPrivacy.Requests.Artifacts.Storage.Provider`.
+	ServiceDataPrivacyRequestsArtifactsStorageProviderEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_ARTIFACTS_STORAGE_PROVIDER"
+
+	// ServiceDataPrivacyRequestsArtifactsStorageR2AccessKeyIDEnvVarKey is the environment variable
+	// name to set to override
+	// `APIServiceConfig.Services.DataPrivacy.Requests.Artifacts.Storage.R2Config.AccessKeyID`.
+	ServiceDataPrivacyRequestsArtifactsStorageR2AccessKeyIDEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_ARTIFACTS_STORAGE_R2_ACCESS_KEY_ID"
+
+	// ServiceDataPrivacyRequestsArtifactsStorageR2AccountIDEnvVarKey is the environment variable
+	// name to set to override
+	// `APIServiceConfig.Services.DataPrivacy.Requests.Artifacts.Storage.R2Config.AccountID`.
+	ServiceDataPrivacyRequestsArtifactsStorageR2AccountIDEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_ARTIFACTS_STORAGE_R2_ACCOUNT_ID"
+
+	// ServiceDataPrivacyRequestsArtifactsStorageR2SecretAccessKeyEnvVarKey is the environment
+	// variable name to set to override
+	// `APIServiceConfig.Services.DataPrivacy.Requests.Artifacts.Storage.R2Config.SecretAccessKey`.
+	ServiceDataPrivacyRequestsArtifactsStorageR2SecretAccessKeyEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_ARTIFACTS_STORAGE_R2_SECRET_ACCESS_KEY"
 
 	// ServiceDataPrivacyRequestsAuditErasureDisabledEnvVarKey is the environment variable name to
 	// set to override `APIServiceConfig.Services.DataPrivacy.Requests.AuditErasure.Disabled`.

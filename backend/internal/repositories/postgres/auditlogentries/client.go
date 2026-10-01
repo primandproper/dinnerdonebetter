@@ -99,6 +99,23 @@ func ProvideAuditLogRepository(
 // is how it gets the one whose prefix matches the Recorder's.
 func (q *repository) PlatformReader() platformaudit.Reader { return q.reader }
 
+// PlatformRecorder is the recorder this repository built, for the surfaces that
+// record into the log directly — for the same reason PlatformReader exists.
+func (q *repository) PlatformRecorder() platformaudit.Recorder { return q.recorder }
+
+// RecorderFrom answers with the platform recorder behind an audit.Repository,
+// on the same terms as ReaderFrom.
+func RecorderFrom(repo audit.Repository) (platformaudit.Recorder, bool) {
+	exposer, ok := repo.(interface {
+		PlatformRecorder() platformaudit.Recorder
+	})
+	if !ok {
+		return nil, false
+	}
+
+	return exposer.PlatformRecorder(), true
+}
+
 // ReaderFrom answers with the platform reader behind an audit.Repository.
 //
 // The assertion cannot fail for a repository this package built, and a

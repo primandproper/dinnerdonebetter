@@ -3,9 +3,7 @@ package api
 import (
 	"context"
 	"errors"
-	"io"
 	"net/http"
-	"path"
 	"strings"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
@@ -20,19 +18,17 @@ import (
 	mediaregistryhttp "github.com/primandproper/platform-go/v14/mediaregistry/http"
 	"github.com/primandproper/platform-go/v14/operations"
 	operationshttp "github.com/primandproper/platform-go/v14/operations/http"
+	authzhttp "github.com/primandproper/primitives-go/v2/authorization/http"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/observability/metrics"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
 	"github.com/primandproper/primitives-go/v2/routing"
 	"github.com/primandproper/primitives-go/v2/tenancy"
 	"github.com/primandproper/primitives-go/v2/uploads"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/samber/do/v2"
 )
-
-// ArtifactSuffix is where a completed export's artifact is served, under its request.
-const ArtifactSuffix = "/artifact"
 
 // PlatformSurfaces are the surfaces platform-go serves over HTTP rather than gRPC, as this
 // server mounts them on its router.
@@ -49,9 +45,6 @@ type PlatformSurfaces struct {
 	privacy        *dataprivacyhttp.Handlers
 	operations     *operationshttp.Handlers
 	objects        *mediaregistryhttp.Handler
-	requests       platformdataprivacy.Service
-	logger         logging.Logger
-	tracer         tracing.Tracer
 }
 
 // RegisterPlatformSurfaces registers the HTTP surfaces with the injector.
@@ -60,9 +53,19 @@ func RegisterPlatformSurfaces(i do.Injector) {
 		logger := do.MustInvoke[logging.Logger](i)
 		tracerProvider := do.MustInvoke[tracing.Provider](i)
 
-		requests := do.MustInvoke[platformdataprivacy.Service](i)
+		// Each route's permission is checked against the grants the session carries, the
+		// same grants the gRPC enforcer reads. The permissions are a person's, held through
+		// service_user — see authorization.ServiceUserPermissions.
+		enforcer, err := authzhttp.NewEnforcer(sessions.GrantsFromContext,
+			authzhttp.WithLogger(logger),
+			authzhttp.WithMetricsProvider(do.MustInvoke[metrics.Provider](i)),
+		)
+		if err != nil {
+			return nil, err
+		}
 
-		privacy, err := dataprivacyhttp.New(requests,
+		privacy, err := dataprivacyhttp.New(do.MustInvoke[platformdataprivacy.Service](i),
+			dataprivacyhttp.WithEnforcer(enforcer),
 			dataprivacyhttp.WithSubjectResolver(privacySubject),
 			// No scope resolver: dataprivacyhttp.UnconfinedRequests is the default, and it is
 			// this application's answer. A request here is about a person rather than an
@@ -75,6 +78,7 @@ func RegisterPlatformSurfaces(i do.Injector) {
 		}
 
 		ops, err := operationshttp.New(do.MustInvoke[operations.Service](i),
+			operationshttp.WithEnforcer(enforcer),
 			// dataprivacy starts its operations owned by the subject, and no other operation
 			// this application starts names an owner, so a caller's operations are their own.
 			operationshttp.WithOwnerResolver(operationOwner),
@@ -94,6 +98,7 @@ func RegisterPlatformSurfaces(i do.Injector) {
 			// The default entitlement, OwnerOnly, is the rule UploadedMediaService's reads
 			// already apply: an object is its uploader's.
 			mediaregistryhttp.WithCallerResolver(objectCaller),
+			mediaregistryhttp.WithEnforcer(enforcer),
 			mediaregistryhttp.WithLogger(logger),
 			mediaregistryhttp.WithTracerProvider(tracerProvider),
 		)
@@ -107,9 +112,6 @@ func RegisterPlatformSurfaces(i do.Injector) {
 			privacy:        privacy,
 			operations:     ops,
 			objects:        objects,
-			requests:       requests,
-			logger:         logging.NewNamedLogger(logger, "platform_http_surfaces"),
-			tracer:         tracing.NewNamedTracer(tracerProvider, "platform_http_surfaces"),
 		}, nil
 	})
 }
@@ -124,13 +126,11 @@ func (p *PlatformSurfaces) Mount(router *routing.Router) {
 
 	router.Use(p.sessionFromAuthorization)
 
+	// The privacy surface's Mount includes the artifact download, which serves a subject
+	// their own export and nobody else's.
 	p.privacy.Mount(router)
 	p.operations.Mount(router)
 	p.objects.Mount(router)
-
-	router.Handle(http.MethodGet,
-		path.Join(dataprivacyhttp.BasePath, "/{requestID}", ArtifactSuffix),
-		http.HandlerFunc(p.serveArtifact))
 }
 
 // sessionFromAuthorization attaches the caller a bearer token names.
@@ -176,59 +176,6 @@ func (p *PlatformSurfaces) sessionFromAuthorization(next http.Handler) http.Hand
 
 		next.ServeHTTP(res, req.WithContext(sessions.AttachToContext(req.Context(), data)))
 	})
-}
-
-// serveArtifact hands a completed export to its subject.
-//
-// This application's own route, beside platform's five, and platform's documentation says why
-// there is one: serving the bytes is a different kind of endpoint from a resource surface, and
-// the artifact is encrypted at rest, so Download's signed URL would be ciphertext and Open —
-// which decrypts — is the only way a subject reads it. The request is checked against the
-// caller before a byte is read, and a request that is not theirs is absent rather than
-// forbidden, as it is on platform's read.
-func (p *PlatformSurfaces) serveArtifact(res http.ResponseWriter, req *http.Request) {
-	ctx, span := p.tracer.StartSpan(req.Context())
-	defer span.End()
-
-	subject, err := privacySubject(ctx)
-	if err != nil {
-		http.Error(res, "authentication required", http.StatusUnauthorized)
-		return
-	}
-
-	requestID := chi.URLParam(req, "requestID")
-
-	stored, err := p.requests.Get(ctx, nil, requestID)
-	if err != nil || stored == nil || stored.Subject.ID != subject.ID {
-		http.Error(res, "not found", http.StatusNotFound)
-		return
-	}
-
-	artifact, err := p.requests.Open(ctx, nil, stored.ID)
-	if err != nil {
-		if errors.Is(err, platformdataprivacy.ErrArtifactUnavailable) {
-			http.Error(res, "the artifact is not available", http.StatusConflict)
-			return
-		}
-
-		p.logger.WithSpan(span).Error("opening a privacy request artifact", err)
-		http.Error(res, "opening the artifact", http.StatusInternalServerError)
-
-		return
-	}
-
-	defer func() {
-		if closeErr := artifact.Close(); closeErr != nil {
-			p.logger.WithSpan(span).Error("closing a privacy request artifact", closeErr)
-		}
-	}()
-
-	res.Header().Set("Content-Type", "application/octet-stream")
-	res.Header().Set("Cache-Control", "no-store")
-
-	if _, err = io.Copy(res, artifact); err != nil {
-		p.logger.WithSpan(span).Error("writing a privacy request artifact", err)
-	}
 }
 
 // privacySubject is the signed-in user, as the subject of their own privacy requests.

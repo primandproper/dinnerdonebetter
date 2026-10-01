@@ -237,12 +237,9 @@ func DefaultMeteringConfig() meteringcfg.Config {
 	cfg := meteringcfg.Config{
 		Recorder: metering.RecorderConfig{
 			BatchSize: metering.DefaultBatchSize,
-			// Drop and count a record naming an unregistered meter rather than
-			// returning an error to the write site. A deploy that adds a meter reaches
-			// the ingest path before it reaches every replica's wiring, and a Record
-			// that failed in that window would turn a rollout into an outage on a path
-			// that is supposed to be incidental to the request it rides on.
-			RejectUnknownMeters: false,
+			// AllowUnknownMeters stays false: every meter is recorded in the process
+			// that registered it, from one build, so a record naming an unregistered
+			// meter is a wiring mistake and Record should say so.
 		},
 		Enforcer: metering.EnforcerConfig{
 			CachePrefix: metering.DefaultCachePrefix,

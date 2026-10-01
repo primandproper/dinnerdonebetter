@@ -177,7 +177,9 @@ func BuildRegistrationFuncs(
 	return []platformgrpc.RegistrationFunc{
 		func(server *grpc.Server) {
 			analyticspb.RegisterAnalyticsServiceServer(server, analyticsService)
-			auditpb.RegisterAuditServiceServer(server, auditLogService)
+			registerWithAdministration(server, auditLogService, func(server *grpc.Server) {
+				auditpb.RegisterAuditServiceServer(server, auditLogService)
+			})
 			authsvcpb.RegisterAuthServiceServer(server, authService)
 			commentspb.RegisterCommentsServiceServer(server, commentsService)
 			identitypb.RegisterIdentityServiceServer(server, identityServiceServer)
@@ -188,12 +190,28 @@ func BuildRegistrationFuncs(
 			oauth2clientspb.RegisterOAuth2ClientsServiceServer(server, oauth2ClientsService)
 			billingpb.RegisterBillingServiceServer(server, paymentsService)
 			settingspb.RegisterSettingsServiceServer(server, settingsService)
-			signinpb.RegisterSignInServiceServer(server, signInService)
+			registerWithAdministration(server, signInService, func(server *grpc.Server) {
+				signinpb.RegisterSignInServiceServer(server, signInService)
+			})
 			uploadedmediasvcpb.RegisterUploadedMediaServiceServer(server, uploadedMediaService)
 			waitlistspb.RegisterWaitlistsServiceServer(server, waitlistsService)
 			webhookspb.RegisterWebhooksServiceServer(server, webhooksService)
 		},
 	}
+}
+
+// registerWithAdministration mounts a platform surface through its own RegisterOn where it has
+// one, which registers the surface's operator half beside it — AuditAdministrationService beside
+// AuditService, SignInAdministrationService beside SignInService. Mounting the half grants
+// nothing: each of its methods requires a permission only an operator holds. A server without
+// RegisterOn, a test double say, is registered as the plain service.
+func registerWithAdministration(server *grpc.Server, impl any, plain func(*grpc.Server)) {
+	if registrar, ok := impl.(interface{ RegisterOn(*grpc.Server) }); ok {
+		registrar.RegisterOn(server)
+		return
+	}
+
+	plain(server)
 }
 
 func BuildUnaryServerInterceptors(
@@ -208,14 +226,17 @@ func BuildUnaryServerInterceptors(
 		// Next, so nothing any interceptor below returns reaches a client with the encoded error
 		// chain still attached. See error_details.go.
 		StripEncodedErrorDetailUnaryInterceptor(),
+		// Outside authentication, so the refusals the interceptors below make are encoded the
+		// way a handler's are — with a client-safe reason where the error names one, which is
+		// how a forced password change says PASSWORD_CHANGE_REQUIRED.
+		errorsgrpc.UnaryErrorEncodingInterceptor(),
 		authInterceptor.UnaryServerInterceptor(),
 		// Runs after the interceptor above so it sees the session that one established.
 		// Both enforce, and they are proven equivalent — see auditOnlyAuthorization.
 		authzEnforcer.UnaryServerInterceptor(),
-		// after auth, because the key is scoped to the authenticated principal, and before the
+		// after auth, because the key is scoped to the authenticated principal, and inside the
 		// error encoder, because it records the handler's status code rather than a rendered one.
 		idempotencyInterceptor,
-		errorsgrpc.UnaryErrorEncodingInterceptor(),
 	}
 }
 
@@ -226,8 +247,8 @@ func BuildStreamServerInterceptors(logger logging.Logger, authInterceptor *inter
 		// Next, so nothing any interceptor below returns reaches a client with the encoded error
 		// chain still attached. See error_details.go.
 		StripEncodedErrorDetailStreamInterceptor(),
-		authInterceptor.StreamServerInterceptor(),
 		errorsgrpc.StreamErrorEncodingInterceptor(),
+		authInterceptor.StreamServerInterceptor(),
 	}
 }
 

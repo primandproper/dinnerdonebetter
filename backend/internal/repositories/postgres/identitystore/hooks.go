@@ -500,17 +500,13 @@ func (h *Hooks) AfterSetUserEmailAddressVerificationToken(
 	tx database.Tx,
 	_ tenancy.Scope,
 	user *platformidentity.User,
-	previousAddressVerifiedAt *time.Time,
 ) error {
 	if user == nil {
 		return nil
 	}
 
-	e := userEntry(user.ID, audit.AuditLogEventTypeUpdated,
-		ddbidentity.UserEmailAddressVerificationEmailRequestedEventType)
-	e.metadata["hadVerifiedAddress"] = previousAddressVerifiedAt != nil
-
-	return h.record(ctx, tx, e)
+	return h.record(ctx, tx, userEntry(user.ID, audit.AuditLogEventTypeUpdated,
+		ddbidentity.UserEmailAddressVerificationEmailRequestedEventType))
 }
 
 // AfterMarkUserEmailAddressVerified records an address proven.

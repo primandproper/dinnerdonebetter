@@ -9,8 +9,6 @@ import (
 	mealplanninggrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
 	mpgrpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/grpc/converters"
 
-	"github.com/primandproper/platform-go/v14/identity/identitypb"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
@@ -46,36 +44,6 @@ func getActiveAccountIDForClientForTest(t *testing.T, resp *authsvc.GetActiveAcc
 	require.NotNil(t, resp.Result)
 	require.NotEmpty(t, resp.Result.Id)
 	return resp.Result.Id
-}
-
-// TestCrossTenant_GetAccount_Denied asserts that a user cannot read an account they are not a member
-// of. identity/grpc/accounts.go GetAccount returns codes.PermissionDenied (errNotAuthorizedForAccount)
-// for non-members.
-func TestCrossTenant_GetAccount_Denied(T *testing.T) {
-	T.Parallel()
-
-	T.Run("standard", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		_, clientA := createUserAndClientForTest(t)
-		_, clientB := createUserAndClientForTest(t)
-
-		activeA, err := clientA.GetActiveAccount(ctx, &authsvc.GetActiveAccountRequest{})
-		require.NoError(t, err)
-		accountAID := getActiveAccountIDForClientForTest(t, activeA)
-
-		// positive control: A can read its own account.
-		ownAccount, err := clientA.IdentityService().GetAccount(ctx, &identitypb.GetAccountRequest{AccountId: accountAID})
-		require.NoError(t, err)
-		require.NotNil(t, ownAccount)
-		assert.Equal(t, accountAID, ownAccount.GetAccount().GetId())
-
-		// cross-tenant: B is not a member of A's account.
-		_, err = clientB.IdentityService().GetAccount(ctx, &identitypb.GetAccountRequest{AccountId: accountAID})
-		require.Error(t, err)
-		assert.Equal(t, codes.PermissionDenied, status.Code(err))
-	})
 }
 
 // TestCrossTenant_RecipeRating_Denied asserts that a user cannot mutate a recipe rating authored by

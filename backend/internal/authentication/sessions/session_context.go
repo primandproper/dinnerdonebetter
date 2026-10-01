@@ -63,6 +63,9 @@ type ContextData struct {
 	Requester          RequesterInfo                                          `json:"-"`
 	ActiveAccountID    string                                                 `json:"-"`
 	SessionID          string                                                 `json:"-"`
+	// SignInFamilyID is the login a platform sign-in token belongs to, and empty for a session
+	// this application minted.
+	SignInFamilyID string `json:"-"`
 }
 
 // RequesterInfo contains data relevant to the user making a request.

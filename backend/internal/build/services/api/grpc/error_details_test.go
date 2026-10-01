@@ -98,7 +98,7 @@ func (f *internalFailure) requireNoInternalText(t *testing.T, err error) {
 }
 
 func buildTestAuthInterceptor() *interceptors.AuthInterceptor {
-	return interceptors.ProvideAuthInterceptor(nil, loggingnoop.NewLogger(), nil, nil, nil, nil, nil, "", nil, MethodPermissions())
+	return interceptors.ProvideAuthInterceptor(nil, loggingnoop.NewLogger(), nil, nil, nil, nil, nil, "", nil, nil, MethodPermissions())
 }
 
 func TestErrorEncodingInterceptor_leaksWithoutStripping(T *testing.T) {

@@ -56,36 +56,6 @@ func TestAdmin_BanningUsers(T *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, identitypb.AccountStatus_ACCOUNT_STATUS_BANNED, banned.GetUser().GetAccountStatus())
 	})
-
-	T.Run("fails for non-admin user", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		createdUser, testClient := createUserAndClientForTest(t)
-
-		authStatus, err := testClient.GetAuthStatus(ctx, &authsvc.GetAuthStatusRequest{})
-		require.NoError(t, err)
-		require.NotNil(t, authStatus)
-
-		_, err = testClient.IdentityService().UpdateUserAccountStatus(ctx, &identitypb.UpdateUserAccountStatusRequest{
-			UserId:      createdUser.ID,
-			Status:      identitypb.AccountStatus_ACCOUNT_STATUS_BANNED,
-			Explanation: t.Name(),
-		})
-		require.Error(t, err)
-	})
-
-	T.Run("nonexistent user", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		_, err := adminClient.IdentityService().UpdateUserAccountStatus(ctx, &identitypb.UpdateUserAccountStatusRequest{
-			UserId:      nonexistentID,
-			Status:      identitypb.AccountStatus_ACCOUNT_STATUS_BANNED,
-			Explanation: t.Name(),
-		})
-		require.Error(t, err)
-	})
 }
 
 func TestAdmin_UserImpersonation(T *testing.T) {

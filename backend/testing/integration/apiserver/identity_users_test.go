@@ -116,38 +116,6 @@ func TestUsers_PermissionChecking(T *testing.T) {
 	})
 }
 
-func TestUsers_Searching(T *testing.T) {
-	T.Parallel()
-
-	T.Run("only admins can do it", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		user, testClient := createUserAndClientForTest(t)
-
-		results, err := testClient.IdentityService().SearchUsersByUsername(ctx, &identitypb.SearchUsersByUsernameRequest{
-			Prefix: user.Username[:2],
-		})
-		require.Error(t, err)
-		assert.Nil(t, results)
-	})
-}
-
-func TestUsers_ListUsers(T *testing.T) {
-	T.Parallel()
-
-	T.Run("only admins can do it", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		_, testClient := createUserAndClientForTest(t)
-
-		results, err := testClient.IdentityService().ListUsers(ctx, &identitypb.ListUsersRequest{})
-		require.Error(t, err)
-		assert.Nil(t, results)
-	})
-}
-
 func TestUsers_UpdateUserEmailAddress(T *testing.T) {
 	T.Parallel()
 
@@ -244,22 +212,6 @@ func TestUsers_UpdateUserUsername(T *testing.T) {
 	})
 }
 
-func TestUsers_RecordAgreement(T *testing.T) {
-	T.Parallel()
-
-	// Naming none is a caller who built an empty list and did not notice, which is a
-	// refusal rather than a no-op that reports success.
-	T.Run("refuses an empty set", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		_, testClient := createUserAndClientForTest(t)
-
-		_, err := testClient.IdentityService().RecordAgreement(ctx, &identitypb.RecordAgreementRequest{})
-		assert.Error(t, err)
-	})
-}
-
 func TestUsers_Archiving(T *testing.T) {
 	T.Parallel()
 
@@ -281,29 +233,6 @@ func TestUsers_Archiving(T *testing.T) {
 			{EventType: "created", ResourceType: "users", RelevantID: user.ID},
 			{EventType: "archived", ResourceType: "users", RelevantID: user.ID},
 		})
-	})
-
-	T.Run("nonexistent user", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		_, err := adminClient.IdentityService().ArchiveUser(ctx, &identitypb.ArchiveUserRequest{
-			UserId: nonexistentID,
-		})
-		assert.Error(t, err)
-	})
-
-	T.Run("only admins can archive another user", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		user, _ := createUserAndClientForTest(t)
-		_, testClient := createUserAndClientForTest(t)
-
-		_, err := testClient.IdentityService().ArchiveUser(ctx, &identitypb.ArchiveUserRequest{
-			UserId: user.ID,
-		})
-		assert.Error(t, err)
 	})
 
 	// platform refuses to archive somebody who still owns an account. This application

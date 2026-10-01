@@ -8,17 +8,8 @@ package main
 // and is rendered into the generated source, so a reader of the output meets it where the field
 // would have been.
 var fieldExceptions = map[string]map[string]Rule{
-	"ConvertAccountCreationRequestInputToAccountDatabaseCreationInput": {
-		"WebhookEncryptionKey": Skip("The HMAC key an account signs its webhook deliveries with. It is generated for the account rather than requested, and the repository writes it as webhook_hmac_secret."),
-	},
 	"ConvertAccountInstrumentOwnershipCreationRequestInputToAccountInstrumentOwnershipDatabaseCreationInput": {
 		fieldBelongsToAccount: Skip(ownerFromSession),
-	},
-	"ConvertAccountUserMembershipToAccountUserMembershipDatabaseCreationInput": {
-		"UserID":    Expr("x.BelongsToUser", "The membership names its user as BelongsToUser; the row that creates one calls the same thing UserID."),
-		"AccountID": Expr("x.BelongsToAccount", "The membership names its account as BelongsToAccount; the row that creates one calls the same thing AccountID."),
-		"Reason":    Skip("The reason a membership was granted is supplied by whoever grants it. A membership read back does not carry one."),
-		"ID":        NewID("A membership row created from an existing membership is a new grant, not the same one moved, so it gets its own identifier."),
 	},
 	"ConvertMealCreationRequestInputToMealDatabaseCreationInput": {
 		fieldCreatedByUser: Skip(ownerFromSession),
@@ -110,13 +101,6 @@ var fieldExceptions = map[string]map[string]Rule{
 	"ConvertValidIngredientGroupToValidIngredientGroupCreationRequestInput": {
 		"Members": Skip("A stored group carries its members as rows that already name the ingredients they point at. Mapping them back into a creation request would make the request name ingredients the caller never asked to group, so the converter this replaced left them out and this one does too."),
 	},
-	"ConvertUserToUserDatabaseCreationInput": {
-		"AcceptedTOS":           Skip("Registration input. A stored User records neither the acceptance nor when it happened."),
-		"AcceptedPrivacyPolicy": Skip("Registration input; see AcceptedTOS."),
-		"AccountName":           Skip("Names the household account created alongside the user. It belongs to the registration request, not to the user it created."),
-		"DestinationAccountID":  Skip("Set only when the registration is redeeming an invitation; a stored User does not record which one."),
-		"InvitationToken":       Skip("The invitation being redeemed, consumed during registration and not kept on the user."),
-	},
 	"ConvertWebhookToWebhookCreationRequestInput": {
 		"Events": Expr("x.EventTypes()", "A request lists event types; a webhook stores one trigger config per subscription. EventTypes flattens the configs back to the strings they subscribe to."),
 	},
@@ -156,7 +140,6 @@ const (
 // for nil. A conversion that is a field copy with a handful of exceptions does not belong here;
 // it belongs above, where the generator still guarantees no field is silently dropped.
 var handWritten = map[string]string{
-	"ConvertAccountInvitationCreationRequestInputToAccountInvitationDatabaseCreationInput":                         "An invitation with no expiry given is given one in the year 9999, and the inviter, the destination account and the token all come from the caller.",
 	"ConvertMealPlanCreationRequestInputToMealPlanDatabaseCreationInput":                                           "It builds each recipe option selection inline, minting an ID per row and leaving the owning option for a later pass.",
 	"ConvertMealPlanEventToMealPlanEventCreationRequestInput":                                                      "It stamps the event's ID onto each option of the entity it was handed before converting it, which mutates its own argument.",
 	"ConvertMealPlanOptionVoteToMealPlanOptionVoteCreationRequestInput":                                            "It wraps one vote in the one-element slice the batch input expects, building the element inline.",

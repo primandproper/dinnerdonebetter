@@ -34,7 +34,7 @@ func (q *repository) GetAuditLogEntry(ctx context.Context, auditLogEntryID strin
 	logger = logger.WithValue(auditkeys.AuditLogEntryIDKey, auditLogEntryID)
 	tracing.AttachToSpan(span, auditkeys.AuditLogEntryIDKey, auditLogEntryID)
 
-	entry, err := q.reader.Get(ctx, q.db.Reader(), nil, auditLogEntryID)
+	entry, err := q.reader.GetAcrossScopes(ctx, q.db.Reader(), auditLogEntryID)
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching audit log entry")
 	}
@@ -51,7 +51,7 @@ func (q *repository) GetAuditLogEntriesForUser(ctx context.Context, userID strin
 		return nil, platformerrors.ErrInvalidIDProvided
 	}
 
-	return q.list(ctx, span, &platformaudit.Query{ActorID: userID}, filter,
+	return q.list(ctx, span, nil, &platformaudit.Query{ActorID: userID}, filter,
 		identitykeys.UserIDKey, userID)
 }
 
@@ -69,7 +69,7 @@ func (q *repository) GetAuditLogEntriesForUserAndResourceTypes(ctx context.Conte
 
 	tracing.AttachToSpan(span, auditkeys.AuditLogEntryResourceTypesKey, resourceType)
 
-	return q.list(ctx, span, &platformaudit.Query{ActorID: userID, ResourceType: resourceType}, filter,
+	return q.list(ctx, span, nil, &platformaudit.Query{ActorID: userID, ResourceType: resourceType}, filter,
 		identitykeys.UserIDKey, userID)
 }
 
@@ -82,12 +82,11 @@ func (q *repository) GetAuditLogEntriesForAccount(ctx context.Context, accountID
 		return nil, platformerrors.ErrInvalidIDProvided
 	}
 
-	// Scope is a pointer in the platform query because the global scope is a real
-	// scope. Naming the account rather than passing nil is what keeps this from
-	// reading every tenant's entries.
+	// Naming the account is what keeps this from reading every tenant's entries;
+	// the read that does is a separate method on the platform reader.
 	scope := tenancy.Of(accountID)
 
-	return q.list(ctx, span, &platformaudit.Query{Scope: &scope}, filter,
+	return q.list(ctx, span, &scope, nil, filter,
 		identitykeys.AccountIDKey, accountID)
 }
 
@@ -107,11 +106,14 @@ func (q *repository) GetAuditLogEntriesForAccountAndResourceTypes(ctx context.Co
 
 	scope := tenancy.Of(accountID)
 
-	return q.list(ctx, span, &platformaudit.Query{Scope: &scope, ResourceType: resourceType}, filter,
+	return q.list(ctx, span, &scope, &platformaudit.Query{ResourceType: resourceType}, filter,
 		identitykeys.AccountIDKey, accountID)
 }
 
 // list runs one platform query and converts the page it returns.
+//
+// A nil scope is a read across every tenant's chain, which is what a user's
+// own entries need: ScopeFor files them under whichever account they acted in.
 //
 // The five read methods differ only in the query they build and the identifier
 // they log, so everything after that lives here — including the conversion,
@@ -119,6 +121,7 @@ func (q *repository) GetAuditLogEntriesForAccountAndResourceTypes(ctx context.Co
 func (q *repository) list(
 	ctx context.Context,
 	span tracing.Span,
+	scope *tenancy.Scope,
 	query *platformaudit.Query,
 	filter *filtering.QueryFilter,
 	logKey, logValue string,
@@ -132,7 +135,15 @@ func (q *repository) list(
 	logger = filter.AttachToLogger(logger)
 	tracing.AttachQueryFilterToSpan(span, filter)
 
-	results, err := q.reader.List(ctx, q.db.Reader(), query, filter)
+	var (
+		results *filtering.QueryFilteredResult[platformaudit.Entry]
+		err     error
+	)
+	if scope == nil {
+		results, err = q.reader.ListAcrossScopes(ctx, q.db.Reader(), query, filter)
+	} else {
+		results, err = q.reader.List(ctx, q.db.Reader(), *scope, query, filter)
+	}
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching audit log entries from database")
 	}

@@ -1,5 +1,9 @@
 package authorization
 
+import (
+	signingrpc "github.com/primandproper/platform-go/v14/authentication/signin/grpc"
+)
+
 // What is left here after the identity adoption: the two authority questions that
 // are this application's rather than the directory's.
 //
@@ -14,6 +18,13 @@ const (
 	ImpersonateUserPermission Permission = "imitate.user"
 	// ManageUserSessionsPermission is a service admin permission.
 	ManageUserSessionsPermission Permission = "manage.user_sessions"
+
+	// ReadAnySignInsPermission allows listing somebody else's sign-ins through platform's
+	// SignInAdministrationService, and EndAnySignInsPermission ending them. They are the
+	// operator half of platform's sign-in, and the counterpart there of
+	// ManageUserSessionsPermission over AuthService's sessions.
+	ReadAnySignInsPermission = signingrpc.PermissionReadAnySignIns
+	EndAnySignInsPermission  = signingrpc.PermissionEndAnySignIns
 )
 
 var (
@@ -21,5 +32,7 @@ var (
 	AuthPermissions = []Permission{
 		ImpersonateUserPermission,
 		ManageUserSessionsPermission,
+		ReadAnySignInsPermission,
+		EndAnySignInsPermission,
 	}
 )

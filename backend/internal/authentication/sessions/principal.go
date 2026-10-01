@@ -44,6 +44,16 @@ func (*Principal) Scope() tenancy.Scope { return tenancy.Global() }
 // caller named none.
 func (p *Principal) ActiveAccountID() string { return p.data.GetActiveAccountID() }
 
+// FamilyID is the platform login the request came through, which sign-in's doors read to keep
+// the one asking when ending the others. Empty for a session this application minted.
+func (p *Principal) FamilyID() string {
+	if p.data == nil {
+		return ""
+	}
+
+	return p.data.SignInFamilyID
+}
+
 // PrincipalFromContext is the callers.PrincipalExtractor for this application.
 //
 // The false return is an unauthenticated call, which every platform surface

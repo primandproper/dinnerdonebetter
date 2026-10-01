@@ -5,6 +5,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 
 	oauth2servercfg "github.com/primandproper/platform-go/v14/authentication/oauth2serverstore/config"
+	"github.com/primandproper/platform-go/v14/authentication/signin"
 	platformidentity "github.com/primandproper/platform-go/v14/identity"
 	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
 	"github.com/primandproper/primitives-go/v2/authentication/tokens"
@@ -28,6 +29,7 @@ func RegisterAuthInterceptor(i do.Injector) {
 			do.MustInvoke[*oauth2server.Server](i),
 			resourceIdentifier(do.MustInvoke[*oauth2servercfg.Config](i)),
 			do.MustInvoke[tokens.Issuer](i),
+			do.MustInvoke[*signin.Service](i),
 			do.MustInvoke[MethodPermissionsMap](i),
 		), nil
 	})

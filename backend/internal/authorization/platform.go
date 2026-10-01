@@ -84,17 +84,21 @@ func ToPlatformPermissions(perms []Permission) []platformauthz.Permission {
 //     and a duplicated grant list resolve to the same set, and only one of them
 //     can drift.
 //
-// service_user holds nothing, which is not an oversight. Every user is assigned
-// it at signup and it is a service-wide assignment; the authority an ordinary
-// user has is account_member, held per account. Granting account_member here
-// would hand every account-scoped permission to every user unscoped by account.
+// service_user holds only what a person holds about themselves — see
+// ServiceUserPermissions. Every user is assigned it at signup and it is a
+// service-wide assignment; the authority an ordinary user has over an account is
+// account_member, held per account. Granting account_member here would hand
+// every account-scoped permission to every user unscoped by account.
+//
+// service_admin inherits service_user, because an administrator is also a
+// person, with their own privacy requests and uploads.
 func PlatformPolicy() []platformauthz.Role {
 	return []platformauthz.Role{
 		{
 			Name:        ServiceAdminRoleName,
 			Description: "service-wide administrator",
 			Permissions: ToPlatformPermissions(ServiceAdminPermissions),
-			Inherits:    []string{AccountAdminRoleName, ServiceDataAdminRoleName},
+			Inherits:    []string{AccountAdminRoleName, ServiceDataAdminRoleName, ServiceUserRoleName},
 		},
 		{
 			Name:        ServiceDataAdminRoleName,
@@ -104,6 +108,7 @@ func PlatformPolicy() []platformauthz.Role {
 		{
 			Name:        ServiceUserRoleName,
 			Description: "an ordinary user of the service",
+			Permissions: ToPlatformPermissions(ServiceUserPermissions),
 		},
 		{
 			Name:        AccountAdminRoleName,

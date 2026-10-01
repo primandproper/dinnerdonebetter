@@ -39,3 +39,17 @@ func RegisterPlatformReader(i do.Injector) {
 		return reader, nil
 	})
 }
+
+// RegisterPlatformRecorder registers the recorder platform's surfaces record
+// into. Like RegisterPlatformReader, it resolves the repository's own, so the
+// redactions and the table prefix come with it. See RecorderFrom.
+func RegisterPlatformRecorder(i do.Injector) {
+	do.Provide[platformaudit.Recorder](i, func(i do.Injector) (platformaudit.Recorder, error) {
+		recorder, ok := RecorderFrom(do.MustInvoke[audit.Repository](i))
+		if !ok {
+			return nil, platformerrors.New("audit repository exposes no platform recorder")
+		}
+
+		return recorder, nil
+	})
+}

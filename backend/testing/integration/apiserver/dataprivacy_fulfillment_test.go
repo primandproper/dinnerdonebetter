@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	httpapi "github.com/primandproper/dinnerdonebetter/backend/internal/build/services/api/http"
 	ddbdataprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
 
 	platformdataprivacy "github.com/primandproper/platform-go/v14/dataprivacy"
@@ -132,7 +131,7 @@ func (c privacyCaller) submitPrivacyRequest(t *testing.T, ctx context.Context, k
 
 // artifactPath is where this server serves a completed export's artifact.
 func artifactPath(requestID string) string {
-	return dataprivacyhttp.BasePath + "/" + requestID + httpapi.ArtifactSuffix
+	return dataprivacyhttp.BasePath + "/" + requestID + dataprivacyhttp.ArtifactSuffix
 }
 
 // awaitTerminalPrivacyRequest polls a request until it stops moving, and returns it.

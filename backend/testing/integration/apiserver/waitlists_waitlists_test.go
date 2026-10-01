@@ -132,99 +132,11 @@ func TestWaitlistSignups_Confirmation(T *testing.T) {
 	})
 }
 
-// TestWaitlists_ThisDeploymentsAuthorization pins how this deployment divides the surface among
-// its roles. The suites make each reserved call as an operator and never ask whether an ordinary
-// member is refused it, and the three authorizers this deployment supplies are its own rules.
-//
-// Signups are global rows carrying the address the list writes to, so the listing is a read of
-// every signatory's email and the operator's grant is what keeps it private.
+// TestWaitlists_ThisDeploymentsAuthorization pins the authorizer rules this deployment supplies
+// that no suite can know. That a member is refused every reserved call is conformance/reservations',
+// and that a member reads only their own signups is conformance/waitlists'.
 func TestWaitlists_ThisDeploymentsAuthorization(T *testing.T) {
 	T.Parallel()
-
-	T.Run("a member may not work a list or its queue", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		_, owner := createUserAndClientForTest(t)
-		_, member := createUserAndClientForTest(t)
-
-		waitlist := createWaitlistForTest(t)
-		signup := joinAndConfirmForTest(t, owner, waitlist.GetId())
-		list, signupID := waitlist.GetId(), signup.GetId()
-
-		refusals := map[string]func() error{
-			"CreateList": func() error {
-				_, err := member.CreateList(ctx, &waitlistspb.CreateListRequest{List: &waitlistspb.WaitlistInput{Name: t.Name()}})
-				return err
-			},
-			"UpdateList": func() error {
-				_, err := member.UpdateList(ctx, &waitlistspb.UpdateListRequest{List: &waitlistspb.WaitlistInput{Id: list, Name: t.Name()}})
-				return err
-			},
-			"ArchiveList": func() error {
-				_, err := member.ArchiveList(ctx, &waitlistspb.ArchiveListRequest{ListId: list})
-				return err
-			},
-			"GetSignup": func() error {
-				_, err := member.GetSignup(ctx, &waitlistspb.GetSignupRequest{ListId: list, SignupId: signupID})
-				return err
-			},
-			"ListSignups": func() error {
-				_, err := member.ListSignups(ctx, &waitlistspb.ListSignupsRequest{ListId: list})
-				return err
-			},
-			"UpdateSignupNotes": func() error {
-				_, err := member.UpdateSignupNotes(ctx, &waitlistspb.UpdateSignupNotesRequest{ListId: list, SignupId: signupID, Notes: t.Name()})
-				return err
-			},
-			"Invite": func() error {
-				_, err := member.Invite(ctx, &waitlistspb.InviteRequest{ListId: list, SignupId: signupID})
-				return err
-			},
-			"Convert": func() error {
-				_, err := member.Convert(ctx, &waitlistspb.ConvertRequest{ListId: list, SignupId: signupID})
-				return err
-			},
-			"ArchiveSignup": func() error {
-				_, err := member.ArchiveSignup(ctx, &waitlistspb.ArchiveSignupRequest{ListId: list, SignupId: signupID})
-				return err
-			},
-		}
-
-		for name, call := range refusals {
-			assert.Equal(t, codes.PermissionDenied, status.Code(call()), "a member was not refused %s", name)
-		}
-
-		// Including the person on the list: a place in the queue is not a seat at its desk.
-		_, err := owner.GetSignup(ctx, &waitlistspb.GetSignupRequest{ListId: list, SignupId: signupID})
-		assert.Equal(t, codes.PermissionDenied, status.Code(err))
-	})
-
-	// ListSignupsForSubject is a member's under ReadOwnWaitlistSignupsPermission, and the grant
-	// cannot say whose: the subject comes off the request. The SubjectRead authorizer does,
-	// before any row is read, and answers NotFound so that somebody else's subject and nobody's
-	// are the same answer.
-	T.Run("a member reads their own signups and nobody else's", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		_, owner := createUserAndClientForTest(t)
-		_, member := createUserAndClientForTest(t)
-
-		waitlist := createWaitlistForTest(t)
-		joinAndConfirmForTest(t, owner, waitlist.GetId())
-
-		own, err := owner.ListSignupsForSubject(ctx, subjectRequestFor(t, owner))
-		require.NoError(t, err)
-		assert.NotEmpty(t, own.GetResults())
-
-		_, err = member.ListSignupsForSubject(ctx, subjectRequestFor(t, owner))
-		assert.Equal(t, codes.NotFound, status.Code(err))
-
-		theirs, err := adminClient.ListSignupsForSubject(ctx, subjectRequestFor(t, owner))
-		require.NoError(t, err)
-		assert.NotEmpty(t, theirs.GetResults())
-	})
 
 	// Withdraw by signup id is the signed-in door: its own signup's person or a service admin.
 	// Somebody holding only an identifier — signed in or not — is refused as though it named

@@ -8,8 +8,8 @@ with, built in internal/authentication, so the two doors check the same credenti
 in the same order and publish the same "logged in" event; what differs is the token
 they hand back. AuthService's names a row in the session store. This one's names a
 login, rotates a refresh token through the store in
-internal/repositories/postgres/auth, and is checked by signature alone — see
-AuthInterceptor.signInSessionContextData for what that trades away.
+internal/repositories/postgres/auth, and is checked against that login on every request —
+see AuthInterceptor.signInSessionContextData.
 
 Not every RPC on the surface is reachable. The interceptor denies a method no
 permission table names, so a method is exposed by being named below and withheld by
@@ -30,9 +30,16 @@ Exposed without a caller, beyond the sign-in doors themselves:
   - RequestMagicLink and RedeemMagicLink. This deployment names no magic link store,
     so platform refuses both; what reaching them buys is that the refusal says so,
     rather than claiming a caller was missing.
+  - RequestVerificationEmailByAddress and RequestHandleReminder, which answer every
+    address the same way and mail only its holder. Both mails go through the pipeline
+    AuthService's resend and username reminder use — see
+    authentication.SignInMailers.
 
-Exposed to any signed-in caller, about themselves: GetSelf, SignOutEverywhere, and the
-three credential writes UpdatePassword, RefreshTOTPSecret and VerifyTOTPSecret. Each
+Exposed to any signed-in caller, about themselves: GetSelf, SignOutEverywhere, the
+sign-ins they hold (ListSignIns, EndSignIn, EndOtherSignIns), another verification
+link (RequestVerificationEmail), their handles (UpdateEmailAddress and UpdateUsername,
+each of which asks the current password again), and the three credential writes
+UpdatePassword, RefreshTOTPSecret and VerifyTOTPSecret. Each
 write's event is recorded by a hook in internal/authentication on the write's own
 transaction, which is what lets platform's door and AuthService's record the same
 event; and UpdatePassword answers to authentication.PasswordPolicy, the rule
@@ -47,6 +54,10 @@ authentication.RegistrationPolicy: good standing, the service role, a second fac
 this application's owner role, and the terms and privacy agreements, refused without
 them. Somebody signing themselves up still does it through AuthService.RegisterUser,
 which runs through the same policy.
+
+Reserved to an operator: SignInAdministrationService, the operator half of the same
+surface, which lists and ends somebody else's sign-ins. Its two permissions are a
+service administrator's.
 
 Password reset is not mounted at all: AuthService carries this application's reset
 flow, and platform's would be a second one.
@@ -104,6 +115,8 @@ func AnonymousMethods() []string {
 		signinpb.SignInService_VerifyEmailAddress_FullMethodName,
 		signinpb.SignInService_RequestMagicLink_FullMethodName,
 		signinpb.SignInService_RedeemMagicLink_FullMethodName,
+		signinpb.SignInService_RequestVerificationEmailByAddress_FullMethodName,
+		signinpb.SignInService_RequestHandleReminder_FullMethodName,
 	}
 }
 
@@ -126,13 +139,28 @@ func OptionallyAuthenticatedMethods() []string {
 // an operator's — see the package documentation.
 func Permissions() map[string][]authorization.Permission {
 	return map[string][]authorization.Permission{
-		signinpb.SignInService_GetSelf_FullMethodName:           {},
-		signinpb.SignInService_SignOutEverywhere_FullMethodName: {},
-		signinpb.SignInService_UpdatePassword_FullMethodName:    {},
-		signinpb.SignInService_RefreshTOTPSecret_FullMethodName: {},
-		signinpb.SignInService_VerifyTOTPSecret_FullMethodName:  {},
+		signinpb.SignInService_GetSelf_FullMethodName:                  {},
+		signinpb.SignInService_SignOutEverywhere_FullMethodName:        {},
+		signinpb.SignInService_UpdatePassword_FullMethodName:           {},
+		signinpb.SignInService_RefreshTOTPSecret_FullMethodName:        {},
+		signinpb.SignInService_VerifyTOTPSecret_FullMethodName:         {},
+		signinpb.SignInService_ListSignIns_FullMethodName:              {},
+		signinpb.SignInService_EndSignIn_FullMethodName:                {},
+		signinpb.SignInService_EndOtherSignIns_FullMethodName:          {},
+		signinpb.SignInService_RequestVerificationEmail_FullMethodName: {},
+		signinpb.SignInService_UpdateEmailAddress_FullMethodName:       {},
+		signinpb.SignInService_UpdateUsername_FullMethodName:           {},
 		signinpb.SignInService_Register_FullMethodName: {
 			authorization.PermissionCreateUsers,
+		},
+		signinpb.SignInAdministrationService_ListSignInsForUser_FullMethodName: {
+			authorization.ReadAnySignInsPermission,
+		},
+		signinpb.SignInAdministrationService_EndSignInForUser_FullMethodName: {
+			authorization.EndAnySignInsPermission,
+		},
+		signinpb.SignInAdministrationService_EndAllSignInsForUser_FullMethodName: {
+			authorization.EndAnySignInsPermission,
 		},
 	}
 }

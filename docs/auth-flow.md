@@ -7,7 +7,7 @@ This document describes how authentication works across the Dinner Done Better a
 Authentication in this app is **convoluted by design**: there are several ways to log in, several token types, and the same token can flow through different paths depending on the client. The main sources of complexity:
 
 1. **Multiple auth methods**: Password+TOTP and Passkey (WebAuthn)
-2. **Three token systems**: JWT from this application's `AuthService` (names a server-side session), JWT from platform's `SignInService` (names a login, checked by signature alone), and OAuth2 (opaque, stored as a digest, used for gRPC)
+2. **Three token systems**: JWT from this application's `AuthService` (names a server-side session), JWT from platform's `SignInService` (names a login, checked against it on every request), and OAuth2 (opaque, stored as a digest, used for gRPC)
 3. **Multiple client types**: Consumer web app, Admin web app, mobile apps, API clients, integration tests
 4. **Different paths for different clients**: Web apps use cookies + OAuth2 exchange; some clients send JWT directly
 
@@ -117,18 +117,26 @@ refresh token or not at all. What differs is what they hand back:
 | --- | --- | --- |
 | Access token | JWT naming a row in `ddb_sessions` (`sid`) | JWT naming a login (`sid` is the refresh token family) and the directory it was issued in (`scope`) |
 | Refresh token | JWT, checked against the session row | Opaque, single use, rotated on every exchange; presenting a spent one ends the login |
-| Sign-out takes effect | On the next request (the session row is deleted) | When the access token expires (an hour; 15 minutes for an administrator) |
-| Listed by `ListActiveSessions` | Yes | No — platform can't list a user's logins yet (platform-go#886) |
+| Sign-out takes effect | On the next request (the session row is deleted) | On the next request (the interceptor reads the login through `signin.Service.CheckSignIn`) |
+| Listed by | `AuthService.ListActiveSessions` | `SignInService.ListSignIns`, and `SignInAdministrationService.ListSignInsForUser` for an operator |
 
 Refresh tokens live in `ddb_signin_refresh_tokens` (migration 23), keyed to the user so erasure
 takes them with it, and swept by the db-cleaner job.
 
-**Exposed**: `LoginForToken`, `AdminLoginForToken`, `ExchangeRefreshToken`, `SignOut`,
-`SignOutEverywhere`, `GetAuthStatus`, `GetSelf`. **Withheld**, by being left out of the
-permission table: `Register`, `UpdatePassword` and `AttachPassword`, because platform's server
-applies no password policy (platform-go#885); the TOTP and email verification writes, whose
-events `AuthService` still publishes itself; and the magic link doors, which this deployment
-doesn't configure. `PasswordResetService` isn't mounted, for the password policy reason.
+**Exposed without a caller**: `LoginForToken`, `AdminLoginForToken`, `ExchangeRefreshToken`,
+`SignOut`, `AttachPassword`, `VerifyEmailAddress`, `RequestVerificationEmailByAddress`,
+`RequestHandleReminder`, and the magic link doors (which this deployment doesn't configure, so
+platform refuses them in its own words). `GetAuthStatus` is optionally authenticated.
+**Exposed to a signed-in caller, about themselves**: `GetSelf`, `UpdatePassword`,
+`RefreshTOTPSecret`, `VerifyTOTPSecret`, `UpdateEmailAddress`, `UpdateUsername` (each handle
+change asks the current password again), `RequestVerificationEmail`, `ListSignIns`,
+`EndSignIn`, `EndOtherSignIns`, `SignOutEverywhere`. **Reserved to an operator**: `Register`
+(behind `PermissionCreateUsers`), and `SignInAdministrationService`'s three methods, behind
+`signin.sign_ins.read_any` and `signin.sign_ins.end_any`. Every password written through the
+surface answers to `authentication.PasswordPolicy`, and every registration to
+`authentication.RegistrationPolicy`. The verification and username-reminder mails go through the
+same outbox events `AuthService`'s do (`authentication.SignInMailers`). `PasswordResetService`
+isn't mounted: `AuthService` carries this application's reset flow.
 
 **Implementation**: [`internal/build/signin/grpc.go`](backend/internal/build/signin/grpc.go), [`internal/authentication/signin_hooks.go`](backend/internal/authentication/signin_hooks.go), [`internal/repositories/postgres/auth/refresh_tokens.go`](backend/internal/repositories/postgres/auth/refresh_tokens.go)
 
@@ -194,7 +202,7 @@ Every gRPC request (except unauthenticated routes) goes through `AuthInterceptor
 2. **Resolve session** (in order):
    - **OAuth2 first**: `oauth2Server.Authenticate(ctx, accessToken)` — a Store lookup by digest. If it resolves, the token's audience is checked against this server's own resource identifier (RFC 8707) and the subject's `sub` becomes the user ID. An audience naming somewhere else — the MCP server, which shares this database and therefore this store — is refused; an empty audience is accepted, because a client that sent no `resource` parameter gets one.
    - **JWT fallback**: `tokenIssuer.ParseToken(ctx, accessToken)` — if OAuth2 fails, treat as JWT.
-3. **Validate session** (JWT path only). A token carrying a `scope` claim was minted by platform's `SignInService`: its directory has to be this one and it has to name a login (`sid`), and nothing else is checked — see [Password + TOTP through platform's SignInService](#3-password--totp-through-platforms-signinservice). Any other JWT: read the session the `sid` claim names, and check that the token's `jti` is the one the session was last issued with. A missing `sid`, a session that is gone or past either deadline, and a superseded token are all 401. The read is also the touch: the store refreshes the session's idle deadline, at most once per configured touch interval.
+3. **Validate session** (JWT path only). A token carrying a `scope` claim was minted by platform's `SignInService`: its directory has to be this one (the claim is present and empty for the global directory), it has to name a login (`sid`), and that login has to still be live — see [Password + TOTP through platform's SignInService](#3-password--totp-through-platforms-signinservice). Any other JWT: read the session the `sid` claim names, and check that the token's `jti` is the one the session was last issued with. A missing `sid`, a session that is gone or past either deadline, and a superseded token are all 401. The read is also the touch: the store refreshes the session's idle deadline, at most once per configured touch interval.
 4. **Build session context**: `identityDataManager.BuildSessionContextDataForUser(ctx, userID, accountID)`. The session ID is attached to `ContextData.SessionID`.
 5. **Zuck mode** (optional): If `X-Zuck-Mode-User` header present and user can impersonate, override session with that user/account.
 6. **Permissions**: Check method’s required permissions against session; deny if missing.
@@ -204,6 +212,7 @@ Every gRPC request (except unauthenticated routes) goes through `AuthInterceptor
 
 - `LoginForToken`, `AdminLoginForToken` — on both `AuthService` and `SignInService`
 - `SignInService.ExchangeRefreshToken`, `SignInService.SignOut` (the refresh token they carry is their authority)
+- `SignInService.AttachPassword`, `VerifyEmailAddress` (the mailed link is their authority), and `RequestVerificationEmailByAddress`, `RequestHandleReminder` (they answer every address alike and mail only its holder)
 - `BeginPasskeyAuthentication`, `FinishPasskeyAuthentication`
 - `CreateUser`, `VerifyTOTPSecret`
 - `RequestPasswordResetToken`, `RedeemPasswordResetToken`
@@ -366,7 +375,8 @@ rotation to invalidate.
 A JWT this application issues always carries a `sid`, and the interceptor refuses one that
 does not. A token naming no session is a token nothing can sign out. A token platform's
 `SignInService` issues also carries a `sid`, but it names the login's refresh token family
-rather than a session, and a sign-out ends it by revoking the family's refresh tokens.
+rather than a session, and a sign-out ends it by revoking the family's refresh tokens; the
+interceptor reads the family on every request, so its access token stops at once too.
 
 ### Sweeping
 

@@ -58,6 +58,12 @@ func RegisterAuth(i do.Injector) {
 	// and demands a proven second factor whatever it says, which is platform's rule and
 	// the one this application already enforced by hand.
 	do.Provide[*signin.Service](i, func(i do.Injector) (*signin.Service, error) {
+		mailers := NewSignInMailers(
+			do.MustInvoke[logging.Logger](i),
+			do.MustInvoke[database.Client](i),
+			do.MustInvoke[*events.Emitter](i),
+		)
+
 		return signin.NewService(
 			do.MustInvoke[database.Client](i),
 			do.MustInvoke[platformidentity.Store](i),
@@ -96,6 +102,16 @@ func RegisterAuth(i do.Injector) {
 			// token here is not checked against anything but its signature, so its lifetime
 			// is how long a sign-out takes to take effect.
 			signin.WithRefreshTokenStore(do.MustInvoke[*refreshtokens.SQLStore](i)),
+			// The two mails platform's own doors send — another verification link, and a
+			// reminder of somebody's username — go through the pipeline AuthService's
+			// resend and reminder already use, so the person gets the same email from
+			// either door.
+			signin.WithVerificationMailer(mailers),
+			// The profile write the two handle doors make. identity's service rather than its
+			// store, so identity's AfterUpdateProfile hook records the change as it does for
+			// every other profile write; each door asks the current password first.
+			signin.WithProfileUpdater(do.MustInvoke[*platformidentity.Service](i)),
+			signin.WithHandleReminderMailer(mailers),
 			signin.WithHooks(NewSignInHooks(
 				do.MustInvoke[logging.Logger](i),
 				do.MustInvoke[*events.Emitter](i),

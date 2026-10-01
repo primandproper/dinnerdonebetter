@@ -30,23 +30,31 @@ import (
 	mealplanninggenerated "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
 
+	"github.com/primandproper/platform-go/v14/audit/auditpb"
 	auditclient "github.com/primandproper/platform-go/v14/audit/grpc/client"
 	oauth2clientsclient "github.com/primandproper/platform-go/v14/authentication/oauth2clients/grpc/client"
 	signinclient "github.com/primandproper/platform-go/v14/authentication/signin/grpc/client"
+	"github.com/primandproper/platform-go/v14/authentication/signin/signinpb"
 	"github.com/primandproper/platform-go/v14/billing"
 	billingclient "github.com/primandproper/platform-go/v14/billing/grpc/client"
 	commentsclient "github.com/primandproper/platform-go/v14/comments/grpc/client"
 	"github.com/primandproper/platform-go/v14/conformance"
 	conformanceall "github.com/primandproper/platform-go/v14/conformance/all"
+	platformdataprivacy "github.com/primandproper/platform-go/v14/dataprivacy"
+	dataprivacyhttp "github.com/primandproper/platform-go/v14/dataprivacy/http"
 	"github.com/primandproper/platform-go/v14/identity"
 	identityclient "github.com/primandproper/platform-go/v14/identity/grpc/client"
 	issuereportsclient "github.com/primandproper/platform-go/v14/issuereports/grpc/client"
+	mediaregistryhttp "github.com/primandproper/platform-go/v14/mediaregistry/http"
 	notificationsclient "github.com/primandproper/platform-go/v14/notifications/grpc/client"
+	"github.com/primandproper/platform-go/v14/operations"
+	operationshttp "github.com/primandproper/platform-go/v14/operations/http"
 	settingsclient "github.com/primandproper/platform-go/v14/settings/grpc/client"
 	waitlistsclient "github.com/primandproper/platform-go/v14/waitlists/grpc/client"
 	webhooksclient "github.com/primandproper/platform-go/v14/webhooks/grpc/client"
 	platformauthz "github.com/primandproper/primitives-go/v2/authorization"
 	"github.com/primandproper/primitives-go/v2/capitalism"
+	"github.com/primandproper/primitives-go/v2/clock"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/database/dialect"
 	"github.com/primandproper/primitives-go/v2/identifiers"
@@ -83,6 +91,10 @@ func TestPlatformConformance(T *testing.T) {
 		AnonymousHTTP: func(context.Context) (*http.Client, error) {
 			return &http.Client{}, nil
 		},
+		// A token platform's sign-in issued is carried the way every client here carries one.
+		SignedIn: func(_ context.Context, issued *signinpb.IssuedToken) (grpc.ClientConnInterface, error) {
+			return dialConformance(client.WithBearerTokenCredentials(issued.GetToken()))
+		},
 		Actions: conformance.Actions{
 			Auditable:         conformanceAuditable,
 			Credentialed:      conformanceCredentialed,
@@ -94,18 +106,31 @@ func TestPlatformConformance(T *testing.T) {
 			VerificationToken: conformanceVerificationToken,
 			WaitlistLinks:     conformanceWaitlistLinks,
 			Registered:        conformanceRegistered,
+			HandleReminder:    conformanceHandleReminder,
+			Operated:          conformanceOperated,
+			ArtifactExpired:   conformanceArtifactExpired,
 		},
 		CommentTargetType: string(mealplanning.CommentTargetTypeRecipes),
 		OperatorMethods:   conformanceOperatorMethods(),
+		OperatorRoutes:    conformanceOperatorRoutes(),
 		// The roles are foreign-keyed, so the suites grant from this deployment's own.
 		Roles: conformance.Roles{
-			Owner:      authorization.AccountAdminRoleName,
-			Service:    authorization.ServiceAdminRoleName,
-			Membership: [2]string{authorization.AccountAdminRoleName, authorization.AccountMemberRoleName},
+			Owner:   authorization.AccountAdminRoleName,
+			Service: authorization.ServiceAdminRoleName,
+			// The role sign-in's administrative door admits — see signin.WithAdminServiceRoles.
+			Administrator: authorization.ServiceAdminRoleName,
+			Membership:    [2]string{authorization.AccountAdminRoleName, authorization.AccountMemberRoleName},
 		},
 		Dialect: dialect.Postgres,
 		// waitlists resolves a visitor to the directory's scope, which is global.
 		VisitorScope: new(ddbidentity.Scope()),
+		// Settings here have one subject type, the user — see internal/domain/settings — so no
+		// caller resolves an account's setting, their own included.
+		AccountSettingsUnresolved: true,
+		// The interceptor checks a platform sign-in token's login on every request.
+		ImmediateRevocation: true,
+		// GetPrincipal is built with identitygrpc.WithPermissionResolver.
+		PrincipalPermissions: true,
 	})
 }
 
@@ -149,30 +174,43 @@ func newConformanceSubject(ctx context.Context, opts ...conformance.SubjectOptio
 // sessions.AccountScopedPrincipal, and so confines a caller to their active account.
 var accountScopedSurfaces = []string{"audit", "issuereports", "webhooks"}
 
-// conformanceAdmin is the premade service administrator. A service role reaches every account,
-// so an administrator asked for in somebody's tenant is the same person, reported in it.
+// conformanceAdmin is a service administrator of the suite's own: somebody registered the way
+// everybody is, in an account of their own, and then granted the service role. One per request,
+// because the suites ask for two operators and tell them apart by tenant — an operator reading
+// another operator's audit chain is a read that has to be observably somebody else's.
 //
-// The audit surface is the exception. Its reads confine to the caller's active account and its
-// request names none, so an operator verifying somebody's chain has to be acting in their
-// account — which this deployment's operators do by impersonating its owner. The service role
-// is kept, so every chain stays readable; what moves is the account the request is in.
+// The audit surface is the exception to "in an account of their own". Its reads confine to the
+// caller's active account and its request names none, so an operator verifying somebody's chain
+// has to be acting in their account — which this deployment's operators do by impersonating its
+// owner. The service role is kept, so every chain stays readable; what moves is the account the
+// request is in.
 func conformanceAdmin(ctx context.Context, req *conformance.SubjectRequest) (*conformance.Subject, error) {
+	user, err := createServiceUser(ctx, true, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	directory, store, err := conformanceDirectory()
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err = directory.SetUserServiceRoles(ctx, ddbidentity.Scope(), user.ID,
+		[]string{authorization.ServiceAdminRoleName}); err != nil {
+		return nil, fmt.Errorf("granting the service administrator role: %w", err)
+	}
+
 	var opts []grpc.DialOption
 	if req.Scope != nil && req.Surface == "audit" {
-		_, store, err := conformanceDirectory()
-		if err != nil {
-			return nil, err
-		}
-
-		account, err := store.GetAccount(ctx, databaseClient.Reader(), ddbidentity.Scope(), req.Scope.Owner())
-		if err != nil {
-			return nil, fmt.Errorf("reading the account an operator is asked to act in: %w", err)
+		account, accountErr := store.GetAccount(ctx, databaseClient.Reader(), ddbidentity.Scope(), req.Scope.Owner())
+		if accountErr != nil {
+			return nil, fmt.Errorf("reading the account an operator is asked to act in: %w", accountErr)
 		}
 
 		opts = append(opts, withOutgoingMetadata("X-Zuck-Mode-User", account.OwnerUserID, "X-Zuck-Mode-Account", account.ID))
 	}
 
-	subject, err := conformanceSubjectFor(ctx, premadeAdminUser, "", opts...)
+	subject, err := conformanceSubjectFor(ctx, user, "", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -205,6 +243,39 @@ func conformanceOperatorMethods() []string {
 			if !service.HasPermission(p) && !account.HasPermission(p) {
 				reserved = append(reserved, method)
 				break
+			}
+		}
+	}
+
+	slices.Sort(reserved)
+
+	return reserved
+}
+
+// conformanceOperatorRoutes are the routes on platform's HTTP surfaces this deployment reserves
+// to an operator: every route whose permission an ordinary caller does not hold, derived from the
+// surfaces' own tables for conformanceOperatorMethods' reason.
+func conformanceOperatorRoutes() []string {
+	expanded, err := platformauthz.ExpandInheritance(authorization.PlatformPolicy()...)
+	if err != nil {
+		panic(err)
+	}
+
+	service := authorization.NewServiceRolePermissionCheckerFromSet(nil, expanded[authorization.ServiceUserRoleName])
+	account := authorization.NewAccountRolePermissionCheckerFromSet(nil, expanded[authorization.AccountAdminRoleName])
+
+	var reserved []string
+	for _, table := range []map[string][]platformauthz.Permission{
+		dataprivacyhttp.Permissions(),
+		mediaregistryhttp.Permissions(),
+		operationshttp.Permissions(),
+	} {
+		for route, required := range table {
+			for _, p := range required {
+				if !service.HasPermission(p) && !account.HasPermission(p) {
+					reserved = append(reserved, route)
+					break
+				}
 			}
 		}
 	}
@@ -263,6 +334,8 @@ func conformanceSubjectFor(ctx context.Context, user *identity.User, desiredAcco
 			DataPrivacy:   true,
 			MediaRegistry: true,
 			Operations:    true,
+			// The API server runs an operations.Watcher, so the event stream is mounted.
+			OperationEvents: true,
 		},
 		Surfaces: conformance.Surfaces{
 			Audit:         auditclient.Wrap(conn),
@@ -276,6 +349,9 @@ func conformanceSubjectFor(ctx context.Context, user *identity.User, desiredAcco
 			SignIn:        signinclient.Wrap(conn),
 			Waitlists:     waitlistsclient.Wrap(conn),
 			Webhooks:      webhooksclient.Wrap(conn),
+			// The operator halves, which audit's and sign-in's servers register beside them.
+			AuditAdministration:  auditpb.NewAuditAdministrationServiceClient(conn),
+			SignInAdministration: signinpb.NewSignInAdministrationServiceClient(conn),
 		},
 	}, nil
 }
@@ -679,3 +755,138 @@ func conformanceRegistered(ctx context.Context, _ tenancy.Scope, userID string) 
 
 	return nil, fmt.Errorf("the upload stored %s and no row of the uploader's names it", uploaded.GetObjectUrl())
 }
+
+// conformanceHandleReminder reports the username the newest reminder queued to an address names.
+// The event names the user and the mail is rendered from their row, so the reminder is found by
+// the user the address belongs to.
+func conformanceHandleReminder(ctx context.Context, _ tenancy.Scope, emailAddress string) (string, error) {
+	var userID, username string
+	if err := databaseClient.Reader().QueryRowContext(ctx,
+		`SELECT id, username FROM ddb_identity_users WHERE email_address = $1`, emailAddress).Scan(&userID, &username); err != nil {
+		return "", fmt.Errorf("finding the user registered as %s: %w", emailAddress, err)
+	}
+
+	payloads, err := outboxPayloads(ctx,
+		`convert_from(payload, 'UTF8') LIKE '%' || $1 || '%' AND convert_from(payload, 'UTF8') LIKE '%' || $2 || '%'`,
+		userID, ddbidentity.UsernameReminderRequestedEventType)
+	if err != nil {
+		return "", err
+	}
+
+	if len(payloads) == 0 {
+		return "", fmt.Errorf("no username reminder was queued for %s", emailAddress)
+	}
+
+	return username, nil
+}
+
+// conformanceOperatedKind is work that waits to be cancelled, registered beside this
+// application's own kinds so the Operated action has a kind operations.Service.Start accepts.
+// A finished operation is one a cancellation leaves untouched, so an assertion that a refused
+// cancellation changed nothing would pass whatever the surface did on one.
+const (
+	conformanceOperatedKind     = "conformance.operated"
+	conformanceOperatedBackstop = 30 * time.Second
+)
+
+var registerConformanceOperatedKind = sync.OnceFunc(func() {
+	operations.MustRegister(dataPrivacyFulfillment.OperationsRegistry, operations.Definition[struct{}]{
+		Kind: conformanceOperatedKind,
+		Run: func(ctx context.Context, _ struct{}, rep operations.Reporter) (*operations.Result, error) {
+			backstop := time.NewTimer(conformanceOperatedBackstop)
+			defer backstop.Stop()
+
+			select {
+			case <-rep.Cancelled():
+			case <-backstop.C:
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			}
+
+			return nil, nil
+		},
+	})
+})
+
+// conformanceOperated starts an operation owned by the tenant, through the operations service
+// the scheduler runs — the end of the path any of this application's start endpoints takes.
+func conformanceOperated(ctx context.Context, scope tenancy.Scope) (string, error) {
+	registerConformanceOperatedKind()
+
+	op, err := dataPrivacyFulfillment.Operations.Start(ctx, conformanceOperatedKind, struct{}{}, operations.WithOwner(scope))
+	if err != nil {
+		return "", err
+	}
+
+	return op.ID, nil
+}
+
+// conformanceArtifactExpired runs dataprivacy's sweep at a clock a second past the request's
+// expiry, over a store whose sweep sees that one request: at that clock, an unconfined sweep would
+// expire every export the run has made, including ones a parallel assertion is reading.
+func conformanceArtifactExpired(ctx context.Context, _ tenancy.Scope, requestID string) error {
+	store := dataPrivacyFulfillment.Store
+
+	req, err := store.Get(ctx, databaseClient.Reader(), nil, requestID)
+	if err != nil {
+		return fmt.Errorf("reading the request to expire: %w", err)
+	}
+
+	if req.ArtifactRef == "" || req.ExpiresAt.IsZero() {
+		return fmt.Errorf("request %s names no artifact to expire", requestID)
+	}
+
+	sweeper, err := platformdataprivacy.NewSweeper(ctx,
+		&platformdataprivacy.SweeperConfig{BatchSize: 1 << 16, DisableReap: true},
+		&oneRequestStore{Store: store, requestID: requestID},
+		platformdataprivacy.WithSweeperUploadManager(dataPrivacyFulfillment.Artifacts.UploadManager),
+		platformdataprivacy.WithSweeperClock(stoppedClock{at: req.ExpiresAt.Add(time.Second)}),
+	)
+	if err != nil {
+		return fmt.Errorf("building the sweeper: %w", err)
+	}
+
+	result, err := sweeper.Sweep(ctx)
+	if err != nil {
+		return fmt.Errorf("sweeping: %w", err)
+	}
+
+	if result.ArtifactsExpired != 1 {
+		return fmt.Errorf("the sweep did not expire request %s's artifact", requestID)
+	}
+
+	return nil
+}
+
+// oneRequestStore is a dataprivacy.Store whose sweep sees one request and nothing else.
+type oneRequestStore struct {
+	platformdataprivacy.Store
+
+	requestID string
+}
+
+func (o *oneRequestStore) ExpiringArtifacts(ctx context.Context, now time.Time, limit int) ([]*platformdataprivacy.Request, error) {
+	due, err := o.Store.ExpiringArtifacts(ctx, now, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	return slices.DeleteFunc(due, func(req *platformdataprivacy.Request) bool { return req.ID != o.requestID }), nil
+}
+
+// LapseUnconfirmed lapses nothing: at a clock days ahead, every erasure a parallel assertion is
+// waiting to confirm would go with it.
+func (o *oneRequestStore) LapseUnconfirmed(context.Context, time.Time, int) (int64, error) {
+	return 0, nil
+}
+
+// stoppedClock reads one moment, whenever it is asked.
+type stoppedClock struct {
+	clock.WallClock
+
+	at time.Time
+}
+
+func (c stoppedClock) Now() time.Time { return c.at }
+
+func (c stoppedClock) Since(t time.Time) time.Duration { return c.at.Sub(t) }

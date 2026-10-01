@@ -40,6 +40,8 @@ var (
 		ArchiveSettingDefinitionsPermission,
 		ImpersonateUserPermission,
 		ManageUserSessionsPermission,
+		ReadAnySignInsPermission,
+		EndAnySignInsPermission,
 		PublishArbitraryQueueMessagePermission,
 		RunMealPlanWorkersPermission,
 		UpdateRecipesStatusPermission,
@@ -65,6 +67,8 @@ var (
 		// internal/build/services/api/grpc.TestMethodTableIsCoveredByThePolicy,
 		// which is the check that says so.
 		VerifyAuditChainPermission,
+		ReadAnyAuditLogEntriesPermission,
+		ReadAnyIssueReportsPermission,
 		ModerateCommentsPermission,
 		ReadAllSettingValuesPermission,
 		WriteAdminSettingValuesPermission,

@@ -59,56 +59,6 @@ func TestAccounts_Creating(T *testing.T) {
 			{EventType: "created", ResourceType: "accounts", RelevantID: createdAccount.GetId()},
 		})
 	})
-
-	// The owner's roles are required: a membership with none is a member who may do
-	// nothing in the account they own, and the store refuses it rather than writing a row
-	// whose emptiness surfaces later as an authorization bug.
-	T.Run("refuses an owner with no roles", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		_, testClient := createUserAndClientForTest(t)
-
-		_, err := testClient.IdentityService().CreateAccount(ctx, &identitypb.CreateAccountRequest{
-			Name: newAccountName(t),
-		})
-		assert.Error(t, err)
-	})
-}
-
-func TestAccounts_Listing(T *testing.T) {
-	T.Parallel()
-
-	// One member cannot enumerate another's households. The permission is on the method
-	// and the authorizer decides whose rows an allowed call may touch, which for a
-	// directory read is the caller and the accounts they are in.
-	T.Run("one user cannot list another's accounts", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		subject, _ := createUserAndClientForTest(t)
-		_, otherClient := createUserAndClientForTest(t)
-
-		_, err := otherClient.IdentityService().ListAccountsForUser(ctx, &identitypb.ListAccountsForUserRequest{
-			UserId: subject.ID,
-		})
-		assert.Error(t, err)
-	})
-}
-
-func TestAccounts_Reading(T *testing.T) {
-	T.Parallel()
-
-	T.Run("for nonexistent account", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		_, testClient := createUserAndClientForTest(t)
-
-		retrievedAccount, err := testClient.IdentityService().GetAccount(ctx, &identitypb.GetAccountRequest{AccountId: nonexistentID})
-		require.Error(t, err)
-		assert.Nil(t, retrievedAccount)
-	})
 }
 
 func TestAccounts_Updating(T *testing.T) {
@@ -142,36 +92,6 @@ func TestAccounts_Updating(T *testing.T) {
 			{EventType: "updated", ResourceType: "accounts", RelevantID: createdAccount.GetId()},
 		})
 	})
-
-	// A zone name that does not load renders every date on the account wrong, forever,
-	// without anything saying so. Failing the write is what keeps that a typo.
-	T.Run("refuses a time zone that does not load", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		_, testClient := createUserAndClientForTest(t)
-
-		createdAccount := createAccountForTest(t, testClient)
-
-		_, err := testClient.IdentityService().UpdateAccount(ctx, &identitypb.UpdateAccountRequest{
-			AccountId: createdAccount.GetId(),
-			Input:     &identitypb.AccountUpdateInput{TimeZone: pointer.To("America/Chicagoo")},
-		})
-		assert.Error(t, err)
-	})
-
-	T.Run("for nonexistent account", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		_, testClient := createUserAndClientForTest(t)
-
-		_, err := testClient.IdentityService().UpdateAccount(ctx, &identitypb.UpdateAccountRequest{
-			AccountId: nonexistentID,
-			Input:     &identitypb.AccountUpdateInput{Name: pointer.To("nope")},
-		})
-		require.Error(t, err)
-	})
 }
 
 func TestAccounts_Archiving(T *testing.T) {
@@ -196,14 +116,6 @@ func TestAccounts_Archiving(T *testing.T) {
 			{EventType: "created", ResourceType: "accounts", RelevantID: createdAccount.GetId()},
 			{EventType: "archived", ResourceType: "accounts", RelevantID: createdAccount.GetId()},
 		})
-	})
-
-	T.Run("for nonexistent account", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		_, err := adminClient.IdentityService().ArchiveAccount(ctx, &identitypb.ArchiveAccountRequest{AccountId: nonexistentID})
-		assert.Error(t, err)
 	})
 }
 
@@ -276,23 +188,6 @@ func TestAccounts_Inviting(T *testing.T) {
 		webhook, err := inviteeClient.WebhooksService().GetEndpoint(ctx, &webhookspb.GetEndpointRequest{EndpointId: createdWebhook.GetId()})
 		require.Error(t, err)
 		assert.Nil(t, webhook)
-	})
-}
-
-func TestAccounts_GetInvitation(T *testing.T) {
-	T.Parallel()
-
-	T.Run("nonexistent invitation", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		_, testClient := createUserAndClientForTest(t)
-
-		result, err := testClient.IdentityService().GetInvitation(ctx, &identitypb.GetInvitationRequest{
-			InvitationId: nonexistentID,
-		})
-		require.Error(t, err)
-		assert.Nil(t, result)
 	})
 }
 

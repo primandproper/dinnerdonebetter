@@ -34,7 +34,7 @@ authenticated call.
 | ------ | ----- | -------------- |
 | Submit | API server (`POST /privacy-requests`, `{"type": "export"}` or `"erasure"`) | Writes a `pending` row, stamps `due_at` from the response window, returns the request. |
 | Fulfill | Scheduler (`dataprivacy.Worker`) | Fans out over the registry; writes the artifact, or runs every eraser in one transaction. |
-| Delivery | API server (`GET /privacy-requests/{requestID}/artifact`) | `Open`s the artifact — decrypt, decompress — and returns the JSON. |
+| Delivery | API server (`GET /privacy-requests/{requestID}/artifact`, platform's route) | `Open`s the artifact — decrypt, decompress — and streams the JSON. |
 | Expiry | Scheduler (`data_privacy_sweep`) | Deletes the artifact, then clears the reference and marks the request `expired`. |
 
 Submission no longer publishes to a message queue. A request is a row a worker claims, so the
@@ -46,9 +46,12 @@ The surface is platform's `dataprivacy/http`, mounted on the API server's router
 `/privacy-requests` beside `operations/http` at `/operations`, which is where a request's progress
 is polled or streamed (its receipt names both paths). There is no gRPC privacy service: the
 application's own `DataPrivacyService` was a second spelling of the same five calls and was
-deleted when platform's surface was mounted. The one route this application adds is the artifact
-download, because platform deliberately ships none — a signed URL would hand the subject
-ciphertext, and `Open` is the only read that decrypts. See
+deleted when platform's surface was mounted. The artifact download is platform's too
+(`dataprivacyhttp`'s `MountArtifact`, which `Mount` includes): an encrypted artifact is streamed
+through `Open`, which decrypts, rather than handed out as a signed URL to ciphertext. Every route
+but the confirmation link and the download asks the caller for a grant —
+`dataprivacy.requests.submit`, `.read` and `.cancel`, which every user holds through
+`service_user` — and is then narrowed to the caller's own requests. See
 `backend/internal/build/services/api/http/platform_surfaces.go`, which also resolves the caller
 from the same bearer token the gRPC interceptor reads.
 
