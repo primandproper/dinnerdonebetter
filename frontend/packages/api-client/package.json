@@ -13,7 +13,7 @@
   "dependencies": {
     "@bufbuild/protobuf": "2.11.0",
     "@grpc/grpc-js": "1.14.3",
-    "@primandproper/platform-client": "file:../../../../platform-client-ts/primandproper-platform-client-0.0.0.tgz"
+    "@primandproper/platform-client": "0.0.1"
   },
   "devDependencies": {
     "ts-proto": "2.11.5",
