@@ -35,9 +35,9 @@ import (
 	ddbcomments "github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments"
 	commentskeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments/keys"
 
+	platformaudit "github.com/primandproper/platform-go/v14/audit"
 	platformcomments "github.com/primandproper/platform-go/v14/comments"
 	"github.com/primandproper/primitives-go/v2/database"
-	"github.com/primandproper/primitives-go/v2/identifiers"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
 	"github.com/primandproper/primitives-go/v2/tenancy"
 )
@@ -59,7 +59,7 @@ func (q *repository) CreateComment(ctx context.Context, tx database.Tx, scope te
 
 	tracing.AttachToSpan(span, commentskeys.CommentIDKey, created.ID)
 
-	if err = q.record(ctx, tx, created.ID, created.Author, audit.AuditLogEventTypeCreated, ddbcomments.CommentCreatedServiceEventType); err != nil {
+	if err = q.record(ctx, tx, created.ID, created.Author, platformaudit.EventCreated, ddbcomments.CommentCreatedServiceEventType); err != nil {
 		return nil, err
 	}
 
@@ -78,7 +78,7 @@ func (q *repository) UpdateComment(ctx context.Context, tx database.Tx, scope te
 
 	tracing.AttachToSpan(span, commentskeys.CommentIDKey, updated.ID)
 
-	if err = q.record(ctx, tx, updated.ID, updated.Author, audit.AuditLogEventTypeUpdated, ddbcomments.CommentUpdatedServiceEventType); err != nil {
+	if err = q.record(ctx, tx, updated.ID, updated.Author, platformaudit.EventUpdated, ddbcomments.CommentUpdatedServiceEventType); err != nil {
 		return nil, err
 	}
 
@@ -102,7 +102,7 @@ func (q *repository) ArchiveComment(ctx context.Context, tx database.Tx, scope t
 		return nil, err
 	}
 
-	if err = q.record(ctx, tx, commentID, archived.Author, audit.AuditLogEventTypeArchived, ddbcomments.CommentArchivedServiceEventType); err != nil {
+	if err = q.record(ctx, tx, commentID, archived.Author, platformaudit.EventArchived, ddbcomments.CommentArchivedServiceEventType); err != nil {
 		return nil, err
 	}
 
@@ -121,19 +121,13 @@ func (q *repository) ArchiveComment(ctx context.Context, tx database.Tx, scope t
 // sides — the audit log for whoever asks later who did this, the outbox for
 // whoever needs to know now — and a write that carried one without the other
 // would be a write nobody could tell was incomplete.
-func (q *repository) record(ctx context.Context, tx database.Tx, commentID, author, auditEventType, changeEventType string) error {
+func (q *repository) record(ctx context.Context, tx database.Tx, commentID, author string, auditEventType platformaudit.EventType, changeEventType string) error {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
 	logger := q.logger.WithSpan(span).WithValue(commentskeys.CommentIDKey, commentID)
 
-	return q.recorder.RecordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
-		ID:            identifiers.New(),
-		ResourceType:  resourceTypeComments,
-		RelevantID:    commentID,
-		EventType:     auditEventType,
-		BelongsToUser: author,
-	}, changeEventType, "", map[string]any{
+	return q.recorder.RecordAndEmit(ctx, tx, logger, audit.NewEntry(author, "", resourceTypeComments, commentID, auditEventType), changeEventType, "", map[string]any{
 		commentskeys.CommentIDKey: commentID,
 	})
 }

@@ -15,6 +15,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
+	platformaudit "github.com/primandproper/platform-go/v14/audit"
 	waitlists "github.com/primandproper/platform-go/v14/waitlists"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/database/postgres"
@@ -117,7 +118,7 @@ func TestRepository_Integration_Waitlists(t *testing.T) {
 	// and the reason internal/domain/audit names that actor rather than leaving
 	// it blank.
 	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, audit.UnattributedActorID, []pgtesting.ExpectedAuditEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeWaitlists, ResourceID: created.ID},
+		{EventType: platformaudit.EventCreated, ResourceType: resourceTypeWaitlists, ResourceID: created.ID},
 	})
 
 	fetched, err := dbc.GetList(ctx, db.Reader(), scope, created.ID)
@@ -161,9 +162,9 @@ func TestRepository_Integration_Waitlists(t *testing.T) {
 	require.ErrorIs(t, err, waitlists.ErrListNotFound)
 
 	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, audit.UnattributedActorID, []pgtesting.ExpectedAuditEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeWaitlists, ResourceID: created.ID},
-		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeWaitlists, ResourceID: created.ID},
-		{EventType: audit.AuditLogEventTypeArchived, ResourceType: resourceTypeWaitlists, ResourceID: created.ID},
+		{EventType: platformaudit.EventCreated, ResourceType: resourceTypeWaitlists, ResourceID: created.ID},
+		{EventType: platformaudit.EventUpdated, ResourceType: resourceTypeWaitlists, ResourceID: created.ID},
+		{EventType: platformaudit.EventArchived, ResourceType: resourceTypeWaitlists, ResourceID: created.ID},
 	})
 }
 
@@ -237,7 +238,7 @@ func TestRepository_Integration_WaitlistSignups(t *testing.T) {
 	assert.NotEmpty(t, joined.ContactDigest)
 
 	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, userID, []pgtesting.ExpectedAuditEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeWaitlistSignups, ResourceID: joined.ID},
+		{EventType: platformaudit.EventCreated, ResourceType: resourceTypeWaitlistSignups, ResourceID: joined.ID},
 	})
 
 	fetched, err := dbc.GetSignup(ctx, db.Reader(), scope, list.ID, joined.ID)
@@ -280,9 +281,9 @@ func TestRepository_Integration_WaitlistSignups(t *testing.T) {
 	require.ErrorIs(t, err, waitlists.ErrSignupNotFound)
 
 	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, userID, []pgtesting.ExpectedAuditEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeWaitlistSignups, ResourceID: joined.ID},
-		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeWaitlistSignups, ResourceID: joined.ID},
-		{EventType: audit.AuditLogEventTypeArchived, ResourceType: resourceTypeWaitlistSignups, ResourceID: joined.ID},
+		{EventType: platformaudit.EventCreated, ResourceType: resourceTypeWaitlistSignups, ResourceID: joined.ID},
+		{EventType: platformaudit.EventUpdated, ResourceType: resourceTypeWaitlistSignups, ResourceID: joined.ID},
+		{EventType: platformaudit.EventArchived, ResourceType: resourceTypeWaitlistSignups, ResourceID: joined.ID},
 	})
 }
 
@@ -423,8 +424,8 @@ func TestRepository_Integration_WithdrawalOutlivesTheAddress(t *testing.T) {
 	// The audit entry still names them, which is the point of reading the signup
 	// before the store blanks it.
 	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, userID, []pgtesting.ExpectedAuditEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeWaitlistSignups, ResourceID: joined.ID},
-		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeWaitlistSignups, ResourceID: joined.ID},
+		{EventType: platformaudit.EventCreated, ResourceType: resourceTypeWaitlistSignups, ResourceID: joined.ID},
+		{EventType: platformaudit.EventUpdated, ResourceType: resourceTypeWaitlistSignups, ResourceID: joined.ID},
 	})
 }
 

@@ -13,6 +13,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
+	platformaudit "github.com/primandproper/platform-go/v14/audit"
 	issuereports "github.com/primandproper/platform-go/v14/issuereports"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/database/postgres"
@@ -96,7 +97,7 @@ func TestRepository_Integration_IssueReports(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, issuereports.StatusOpen, created.Status)
 	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, userID, []pgtesting.ExpectedAuditEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeIssueReports, ResourceID: report.ID},
+		{EventType: platformaudit.EventCreated, ResourceType: resourceTypeIssueReports, ResourceID: report.ID},
 	})
 
 	fetched, err := dbc.GetReport(ctx, db.Reader(), ddbissuereports.Scope(accountID), report.ID)
@@ -123,8 +124,8 @@ func TestRepository_Integration_IssueReports(t *testing.T) {
 	})
 	require.NoError(t, err)
 	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, userID, []pgtesting.ExpectedAuditEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeIssueReports, ResourceID: report.ID},
-		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeIssueReports, ResourceID: report.ID},
+		{EventType: platformaudit.EventCreated, ResourceType: resourceTypeIssueReports, ResourceID: report.ID},
+		{EventType: platformaudit.EventUpdated, ResourceType: resourceTypeIssueReports, ResourceID: report.ID},
 	})
 
 	updated, err := dbc.GetReport(ctx, db.Reader(), ddbissuereports.Scope(accountID), report.ID)
@@ -138,9 +139,9 @@ func TestRepository_Integration_IssueReports(t *testing.T) {
 	})
 	require.NoError(t, err)
 	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, userID, []pgtesting.ExpectedAuditEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeIssueReports, ResourceID: report.ID},
-		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeIssueReports, ResourceID: report.ID},
-		{EventType: audit.AuditLogEventTypeArchived, ResourceType: resourceTypeIssueReports, ResourceID: report.ID},
+		{EventType: platformaudit.EventCreated, ResourceType: resourceTypeIssueReports, ResourceID: report.ID},
+		{EventType: platformaudit.EventUpdated, ResourceType: resourceTypeIssueReports, ResourceID: report.ID},
+		{EventType: platformaudit.EventArchived, ResourceType: resourceTypeIssueReports, ResourceID: report.ID},
 	})
 
 	afterArchive, err := dbc.GetReport(ctx, db.Reader(), ddbissuereports.Scope(accountID), report.ID)
@@ -186,10 +187,10 @@ func TestRepository_Integration_TriageLifecycle(t *testing.T) {
 	// Every move is recorded, so "who resolved this and when" is answerable from
 	// the audit log rather than from the one row the last write left behind.
 	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, userID, []pgtesting.ExpectedAuditEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeIssueReports, ResourceID: report.ID},
-		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeIssueReports, ResourceID: report.ID},
-		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeIssueReports, ResourceID: report.ID},
-		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeIssueReports, ResourceID: report.ID},
+		{EventType: platformaudit.EventCreated, ResourceType: resourceTypeIssueReports, ResourceID: report.ID},
+		{EventType: platformaudit.EventUpdated, ResourceType: resourceTypeIssueReports, ResourceID: report.ID},
+		{EventType: platformaudit.EventUpdated, ResourceType: resourceTypeIssueReports, ResourceID: report.ID},
+		{EventType: platformaudit.EventUpdated, ResourceType: resourceTypeIssueReports, ResourceID: report.ID},
 	})
 }
 

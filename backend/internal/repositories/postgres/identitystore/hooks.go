@@ -4,10 +4,10 @@ import (
 	"context"
 	"time"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 
+	platformaudit "github.com/primandproper/platform-go/v14/audit"
 	platformidentity "github.com/primandproper/platform-go/v14/identity"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/tenancy"
@@ -46,9 +46,9 @@ func (h *Hooks) AfterRegister(
 
 	return h.record(ctx, tx,
 		signedUpEntry(registration.User.ID, registration.EmailAddressVerificationToken),
-		accountEntry(registration.Account.ID, registration.User.ID, audit.AuditLogEventTypeCreated, ""),
+		accountEntry(registration.Account.ID, registration.User.ID, platformaudit.EventCreated, ""),
 		membershipEntry(registration.Membership.ID, registration.User.ID, registration.Account.ID,
-			audit.AuditLogEventTypeCreated, ""),
+			platformaudit.EventCreated, ""),
 	)
 }
 
@@ -61,7 +61,7 @@ func (h *Hooks) AfterRegister(
 // never sees the metadata. An empty token — a registration that minted no link — is left off,
 // and the handler refuses to mail a link that does not exist.
 func signedUpEntry(userID, verificationToken string) *entry {
-	e := userEntry(userID, audit.AuditLogEventTypeCreated, ddbidentity.UserSignedUpServiceEventType)
+	e := userEntry(userID, platformaudit.EventCreated, ddbidentity.UserSignedUpServiceEventType)
 	if verificationToken != "" {
 		e.metadata[identitykeys.UserEmailVerificationTokenKey] = verificationToken
 	}
@@ -86,9 +86,9 @@ func (h *Hooks) AfterRegisterWithInvitation(
 	return h.record(ctx, tx,
 		signedUpEntry(registration.User.ID, registration.EmailAddressVerificationToken),
 		invitationEntry(registration.Invitation.ID, registration.Membership.BelongsToAccount,
-			audit.AuditLogEventTypeUpdated, ddbidentity.AccountInvitationAcceptedServiceEventType),
+			platformaudit.EventUpdated, ddbidentity.AccountInvitationAcceptedServiceEventType),
 		membershipEntry(registration.Membership.ID, registration.User.ID,
-			registration.Membership.BelongsToAccount, audit.AuditLogEventTypeCreated, ""),
+			registration.Membership.BelongsToAccount, platformaudit.EventCreated, ""),
 	)
 }
 
@@ -104,7 +104,7 @@ func (h *Hooks) AfterInvite(
 	}
 
 	return h.record(ctx, tx, invitationEntry(invitation.ID, invitation.BelongsToAccount,
-		audit.AuditLogEventTypeCreated, ddbidentity.AccountInvitationCreatedServiceEventType).
+		platformaudit.EventCreated, ddbidentity.AccountInvitationCreatedServiceEventType).
 		WithToken(invitation.Token))
 }
 
@@ -121,9 +121,9 @@ func (h *Hooks) AfterAcceptInvitation(
 
 	return h.record(ctx, tx,
 		invitationEntry(acceptance.Invitation.ID, acceptance.Invitation.BelongsToAccount,
-			audit.AuditLogEventTypeUpdated, ddbidentity.AccountInvitationAcceptedServiceEventType),
+			platformaudit.EventUpdated, ddbidentity.AccountInvitationAcceptedServiceEventType),
 		membershipEntry(acceptance.Membership.ID, acceptance.Membership.BelongsToUser,
-			acceptance.Membership.BelongsToAccount, audit.AuditLogEventTypeCreated, ""),
+			acceptance.Membership.BelongsToAccount, platformaudit.EventCreated, ""),
 	)
 }
 
@@ -139,7 +139,7 @@ func (h *Hooks) AfterRejectInvitation(
 	}
 
 	return h.record(ctx, tx, invitationEntry(invitation.ID, invitation.BelongsToAccount,
-		audit.AuditLogEventTypeUpdated, ddbidentity.AccountInvitationRejectedServiceEventType))
+		platformaudit.EventUpdated, ddbidentity.AccountInvitationRejectedServiceEventType))
 }
 
 // AfterCancelInvitation records an account withdrawing an invitation it sent.
@@ -154,7 +154,7 @@ func (h *Hooks) AfterCancelInvitation(
 	}
 
 	return h.record(ctx, tx, invitationEntry(invitation.ID, invitation.BelongsToAccount,
-		audit.AuditLogEventTypeArchived, ddbidentity.AccountInvitationCanceledServiceEventType))
+		platformaudit.EventArchived, ddbidentity.AccountInvitationCanceledServiceEventType))
 }
 
 // AfterCreateAccount records somebody who was already here starting a second household.
@@ -174,10 +174,10 @@ func (h *Hooks) AfterCreateAccount(
 	}
 
 	return h.record(ctx, tx,
-		accountEntry(account.ID, account.OwnerUserID, audit.AuditLogEventTypeCreated,
+		accountEntry(account.ID, account.OwnerUserID, platformaudit.EventCreated,
 			ddbidentity.AccountCreatedServiceEventType),
 		membershipEntry(membership.ID, membership.BelongsToUser, membership.BelongsToAccount,
-			audit.AuditLogEventTypeCreated, ""),
+			platformaudit.EventCreated, ""),
 	)
 }
 
@@ -193,7 +193,7 @@ func (h *Hooks) AfterTransferAccountOwnership(
 		return nil
 	}
 
-	e := accountEntry(account.ID, account.OwnerUserID, audit.AuditLogEventTypeUpdated,
+	e := accountEntry(account.ID, account.OwnerUserID, platformaudit.EventUpdated,
 		ddbidentity.AccountOwnershipTransferredServiceEventType)
 	// The previous owner is on the entry because the column no longer holds them: by the
 	// time this runs it names the new one, so an entry that did not carry this could not
@@ -216,7 +216,7 @@ func (h *Hooks) AfterSetDefaultAccount(
 	}
 
 	e := membershipEntry(membership.ID, membership.BelongsToUser, membership.BelongsToAccount,
-		audit.AuditLogEventTypeUpdated, ddbidentity.UserChangedActiveAccountServiceEventType)
+		platformaudit.EventUpdated, ddbidentity.UserChangedActiveAccountServiceEventType)
 	e.metadata["previousAccountID"] = previousAccountID
 
 	return h.record(ctx, tx, e)
@@ -234,12 +234,12 @@ func (h *Hooks) AfterArchiveUser(
 		return nil
 	}
 
-	entries := []*entry{userEntry(user.ID, audit.AuditLogEventTypeArchived, ddbidentity.UserArchivedServiceEventType)}
+	entries := []*entry{userEntry(user.ID, platformaudit.EventArchived, ddbidentity.UserArchivedServiceEventType)}
 	for _, m := range endedMemberships {
 		// Each account learns that it lost a member, on its own chain, because that is
 		// where whoever is left will look for it.
 		entries = append(entries, membershipEntry(m.ID, m.BelongsToUser, m.BelongsToAccount,
-			audit.AuditLogEventTypeArchived, ddbidentity.AccountMemberRemovedServiceEventType))
+			platformaudit.EventArchived, ddbidentity.AccountMemberRemovedServiceEventType))
 	}
 
 	return h.record(ctx, tx, entries...)
@@ -257,11 +257,11 @@ func (h *Hooks) AfterArchiveAccount(
 		return nil
 	}
 
-	entries := []*entry{accountEntry(account.ID, account.OwnerUserID, audit.AuditLogEventTypeArchived,
+	entries := []*entry{accountEntry(account.ID, account.OwnerUserID, platformaudit.EventArchived,
 		ddbidentity.AccountArchivedServiceEventType)}
 	for _, m := range endedMemberships {
 		entries = append(entries, membershipEntry(m.ID, m.BelongsToUser, m.BelongsToAccount,
-			audit.AuditLogEventTypeArchived, ""))
+			platformaudit.EventArchived, ""))
 	}
 
 	return h.record(ctx, tx, entries...)
@@ -279,7 +279,7 @@ func (h *Hooks) AfterUpdateUserAccountStatus(
 		return nil
 	}
 
-	e := userEntry(user.ID, audit.AuditLogEventTypeUpdated, ddbidentity.UserStatusChangedServiceEventType)
+	e := userEntry(user.ID, platformaudit.EventUpdated, ddbidentity.UserStatusChangedServiceEventType)
 	e.metadata["previousStatus"] = string(previousStatus)
 	e.metadata["newStatus"] = string(user.AccountStatus)
 
@@ -298,7 +298,7 @@ func (h *Hooks) AfterSetUserServiceRoles(
 		return nil
 	}
 
-	e := userEntry(user.ID, audit.AuditLogEventTypeUpdated, ddbidentity.UserServiceRolesChangedServiceEventType)
+	e := userEntry(user.ID, platformaudit.EventUpdated, ddbidentity.UserServiceRolesChangedServiceEventType)
 	e.metadata["previousRoles"] = previousRoles
 	e.metadata["newRoles"] = user.ServiceRoles
 
@@ -322,7 +322,7 @@ func (h *Hooks) AfterUpdateProfile(
 		return nil
 	}
 
-	e := userEntry(user.ID, audit.AuditLogEventTypeUpdated, ddbidentity.UserDetailsChangedEventType)
+	e := userEntry(user.ID, platformaudit.EventUpdated, ddbidentity.UserDetailsChangedEventType)
 	e.metadata["changed"] = changed
 
 	return h.record(ctx, tx, e)
@@ -340,7 +340,7 @@ func (h *Hooks) AfterUpdateAccount(
 		return nil
 	}
 
-	e := accountEntry(account.ID, account.OwnerUserID, audit.AuditLogEventTypeUpdated,
+	e := accountEntry(account.ID, account.OwnerUserID, platformaudit.EventUpdated,
 		ddbidentity.AccountUpdatedServiceEventType)
 	e.metadata["changed"] = changed
 
@@ -364,7 +364,7 @@ func (h *Hooks) AfterRecordAgreement(
 		accepted = append(accepted, string(a))
 	}
 
-	e := userEntry(user.ID, audit.AuditLogEventTypeUpdated, ddbidentity.UserAgreementRecordedServiceEventType)
+	e := userEntry(user.ID, platformaudit.EventUpdated, ddbidentity.UserAgreementRecordedServiceEventType)
 	e.metadata["agreements"] = accepted
 
 	return h.record(ctx, tx, e)
@@ -383,7 +383,7 @@ func (h *Hooks) AfterSetMembershipRoles(
 	}
 
 	e := membershipEntry(membership.ID, membership.BelongsToUser, membership.BelongsToAccount,
-		audit.AuditLogEventTypeUpdated, ddbidentity.AccountMembershipPermissionsUpdatedServiceEventType)
+		platformaudit.EventUpdated, ddbidentity.AccountMembershipPermissionsUpdatedServiceEventType)
 	e.metadata["previousRoles"] = previousRoles
 	e.metadata["newRoles"] = membership.Roles
 
@@ -403,7 +403,7 @@ func (h *Hooks) AfterRemoveMembership(
 	}
 
 	e := membershipEntry(membership.ID, membership.BelongsToUser, membership.BelongsToAccount,
-		audit.AuditLogEventTypeArchived, ddbidentity.AccountMemberRemovedServiceEventType)
+		platformaudit.EventArchived, ddbidentity.AccountMemberRemovedServiceEventType)
 	// Where they landed, when losing this membership moved them. A person removed from
 	// the household they were working in is somewhere else afterwards, and the log
 	// saying where is the difference between an entry and an explanation.
@@ -429,7 +429,7 @@ func (h *Hooks) AfterUpdateUserPassword(
 		return nil
 	}
 
-	e := userEntry(user.ID, audit.AuditLogEventTypeUpdated, ddbidentity.PasswordChangedEventType)
+	e := userEntry(user.ID, platformaudit.EventUpdated, ddbidentity.PasswordChangedEventType)
 	// Whether this cleared a forced reset, which is the difference between somebody
 	// changing their password and somebody finally doing as they were told.
 	e.metadata["satisfiedRequiredChange"] = previouslyRequiredChange
@@ -448,7 +448,7 @@ func (h *Hooks) AfterSetUserRequiresPasswordChange(
 		return nil
 	}
 
-	return h.record(ctx, tx, userEntry(user.ID, audit.AuditLogEventTypeUpdated,
+	return h.record(ctx, tx, userEntry(user.ID, platformaudit.EventUpdated,
 		ddbidentity.UserPasswordChangeRequiredServiceEventType))
 }
 
@@ -466,7 +466,7 @@ func (h *Hooks) AfterUpdateUserTwoFactorSecret(
 		return nil
 	}
 
-	e := userEntry(user.ID, audit.AuditLogEventTypeUpdated, ddbidentity.TwoFactorSecretChangedServiceEventType)
+	e := userEntry(user.ID, platformaudit.EventUpdated, ddbidentity.TwoFactorSecretChangedServiceEventType)
 	// Whether this replaced a factor they had proven. Rotating a verified secret leaves
 	// somebody without a second factor until they verify the new one, which is a
 	// different security event from setting one for the first time.
@@ -486,7 +486,7 @@ func (h *Hooks) AfterMarkUserTwoFactorSecretVerified(
 		return nil
 	}
 
-	return h.record(ctx, tx, userEntry(user.ID, audit.AuditLogEventTypeUpdated,
+	return h.record(ctx, tx, userEntry(user.ID, platformaudit.EventUpdated,
 		ddbidentity.TwoFactorSecretVerifiedServiceEventType))
 }
 
@@ -505,7 +505,7 @@ func (h *Hooks) AfterSetUserEmailAddressVerificationToken(
 		return nil
 	}
 
-	return h.record(ctx, tx, userEntry(user.ID, audit.AuditLogEventTypeUpdated,
+	return h.record(ctx, tx, userEntry(user.ID, platformaudit.EventUpdated,
 		ddbidentity.UserEmailAddressVerificationEmailRequestedEventType))
 }
 
@@ -520,7 +520,7 @@ func (h *Hooks) AfterMarkUserEmailAddressVerified(
 		return nil
 	}
 
-	return h.record(ctx, tx, userEntry(user.ID, audit.AuditLogEventTypeUpdated,
+	return h.record(ctx, tx, userEntry(user.ID, platformaudit.EventUpdated,
 		ddbidentity.UserEmailAddressVerifiedEventType))
 }
 
@@ -536,6 +536,6 @@ func (h *Hooks) AfterMarkUserEmailAddressUnverified(
 		return nil
 	}
 
-	return h.record(ctx, tx, userEntry(user.ID, audit.AuditLogEventTypeUpdated,
+	return h.record(ctx, tx, userEntry(user.ID, platformaudit.EventUpdated,
 		ddbidentity.EmailAddressChangedEventType))
 }

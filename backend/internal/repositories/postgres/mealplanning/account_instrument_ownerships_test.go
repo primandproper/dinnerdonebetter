@@ -5,12 +5,12 @@ import (
 	"database/sql"
 	"testing"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
+	platformaudit "github.com/primandproper/platform-go/v14/audit"
 	"github.com/primandproper/primitives-go/v2/fake"
 	"github.com/primandproper/primitives-go/v2/filtering"
 
@@ -65,7 +65,7 @@ func TestQuerier_Integration_AccountInstrumentOwnerships(t *testing.T) {
 	createdAccountInstrumentOwnerships = append(createdAccountInstrumentOwnerships, createAccountInstrumentOwnershipForTest(t, ctx, exampleAccountInstrumentOwnership, dbc))
 
 	pgtesting.AssertAuditLogContains(t, ctx, dbc, account.ID, []pgtesting.ExpectedAuditEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeAccountInstrumentOwnerships, ResourceID: createdAccountInstrumentOwnerships[0].ID},
+		{EventType: platformaudit.EventCreated, ResourceType: resourceTypeAccountInstrumentOwnerships, ResourceID: createdAccountInstrumentOwnerships[0].ID},
 	})
 
 	// update
@@ -87,8 +87,8 @@ func TestQuerier_Integration_AccountInstrumentOwnerships(t *testing.T) {
 	assert.Len(t, accountInstrumentOwnerships.Data, len(createdAccountInstrumentOwnerships))
 
 	pgtesting.AssertAuditLogContains(t, ctx, dbc, account.ID, []pgtesting.ExpectedAuditEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeAccountInstrumentOwnerships, ResourceID: createdAccountInstrumentOwnerships[0].ID},
-		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeAccountInstrumentOwnerships, ResourceID: createdAccountInstrumentOwnerships[0].ID},
+		{EventType: platformaudit.EventCreated, ResourceType: resourceTypeAccountInstrumentOwnerships, ResourceID: createdAccountInstrumentOwnerships[0].ID},
+		{EventType: platformaudit.EventUpdated, ResourceType: resourceTypeAccountInstrumentOwnerships, ResourceID: createdAccountInstrumentOwnerships[0].ID},
 	})
 
 	// delete
@@ -96,7 +96,7 @@ func TestQuerier_Integration_AccountInstrumentOwnerships(t *testing.T) {
 		require.NoError(t, dbc.ArchiveAccountInstrumentOwnership(ctx, accountInstrumentOwnership.ID, account.ID))
 
 		pgtesting.AssertAuditLogContains(t, ctx, dbc, account.ID, []pgtesting.ExpectedAuditEntry{
-			{EventType: audit.AuditLogEventTypeArchived, ResourceType: resourceTypeAccountInstrumentOwnerships, ResourceID: accountInstrumentOwnership.ID},
+			{EventType: platformaudit.EventArchived, ResourceType: resourceTypeAccountInstrumentOwnerships, ResourceID: accountInstrumentOwnership.ID},
 		})
 
 		var exists bool

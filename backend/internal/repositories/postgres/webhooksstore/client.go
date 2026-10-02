@@ -28,10 +28,10 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/recording"
 
+	platformaudit "github.com/primandproper/platform-go/v14/audit"
 	platformwebhooks "github.com/primandproper/platform-go/v14/webhooks"
 	"github.com/primandproper/primitives-go/v2/database"
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
-	"github.com/primandproper/primitives-go/v2/identifiers"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
 	"github.com/primandproper/primitives-go/v2/tenancy"
@@ -122,10 +122,10 @@ func (s *store) SaveEndpoint(
 	tracing.AttachToSpan(span, webhookkeys.WebhookIDKey, saved.ID)
 
 	eventType := ddbwebhooks.WebhookCreatedServiceEventType
-	auditEventType := audit.AuditLogEventTypeCreated
+	auditEventType := platformaudit.EventCreated
 	if saved.LastUpdatedAt != nil {
 		eventType = ddbwebhooks.WebhookUpdatedServiceEventType
-		auditEventType = audit.AuditLogEventTypeUpdated
+		auditEventType = platformaudit.EventUpdated
 	}
 
 	if err = s.record(ctx, tx, scope, saved.ID, resourceTypeWebhooks, auditEventType, eventType,
@@ -154,7 +154,7 @@ func (s *store) ArchiveEndpoint(
 	tracing.AttachToSpan(span, webhookkeys.WebhookIDKey, endpointID)
 
 	if err = s.record(ctx, tx, scope, endpointID, resourceTypeWebhooks,
-		audit.AuditLogEventTypeArchived, ddbwebhooks.WebhookArchivedServiceEventType,
+		platformaudit.EventArchived, ddbwebhooks.WebhookArchivedServiceEventType,
 		webhookkeys.WebhookIDKey); err != nil {
 		return nil, err
 	}
@@ -181,7 +181,7 @@ func (s *store) AddSubscription(
 	tracing.AttachToSpan(span, webhookkeys.WebhookTriggerConfigIDKey, added.ID)
 
 	if err = s.record(ctx, tx, scope, added.ID, resourceTypeWebhookTriggerConfigs,
-		audit.AuditLogEventTypeCreated, ddbwebhooks.WebhookTriggerConfigCreatedServiceEventType,
+		platformaudit.EventCreated, ddbwebhooks.WebhookTriggerConfigCreatedServiceEventType,
 		webhookkeys.WebhookTriggerConfigIDKey); err != nil {
 		return nil, err
 	}
@@ -207,7 +207,7 @@ func (s *store) ArchiveSubscription(
 	tracing.AttachToSpan(span, webhookkeys.WebhookTriggerConfigIDKey, subscriptionID)
 
 	if err = s.record(ctx, tx, scope, subscriptionID, resourceTypeWebhookTriggerConfigs,
-		audit.AuditLogEventTypeArchived, ddbwebhooks.WebhookTriggerConfigArchivedServiceEventType,
+		platformaudit.EventArchived, ddbwebhooks.WebhookTriggerConfigArchivedServiceEventType,
 		webhookkeys.WebhookTriggerConfigIDKey); err != nil {
 		return nil, err
 	}
@@ -237,7 +237,7 @@ func (s *store) RotateSecret(
 	tracing.AttachToSpan(span, webhookkeys.WebhookIDKey, endpointID)
 
 	return s.record(ctx, tx, scope, endpointID, resourceTypeWebhooks,
-		audit.AuditLogEventTypeUpdated, ddbwebhooks.WebhookSecretRotatedServiceEventType,
+		platformaudit.EventUpdated, ddbwebhooks.WebhookSecretRotatedServiceEventType,
 		webhookkeys.WebhookIDKey)
 }
 
@@ -251,7 +251,7 @@ func (s *store) record(
 	ctx context.Context,
 	tx database.Tx,
 	scope tenancy.Scope,
-	relevantID, resourceType, auditEventType, changeEventType, logKey string,
+	relevantID, resourceType string, auditEventType platformaudit.EventType, changeEventType, logKey string,
 ) error {
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
@@ -259,15 +259,7 @@ func (s *store) record(
 	accountID := scope.Owner()
 	logger := s.logger.WithSpan(span).WithValue(logKey, relevantID)
 
-	entry := &audit.AuditLogEntry{
-		ID:           identifiers.New(),
-		ResourceType: resourceType,
-		RelevantID:   relevantID,
-		EventType:    auditEventType,
-	}
-	if accountID != "" {
-		entry.BelongsToAccount = &accountID
-	}
+	entry := audit.NewEntry("", accountID, resourceType, relevantID, auditEventType)
 
 	return s.recorder.RecordAndEmit(ctx, tx, logger, entry, changeEventType, accountID, map[string]any{
 		logKey: relevantID,

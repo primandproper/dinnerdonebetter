@@ -38,7 +38,7 @@ func attachImpersonator(ctx context.Context, entry *platformaudit.Entry) {
 }
 
 // Record appends audit log entries inside the caller's transaction.
-func (q *repository) Record(ctx context.Context, querier database.Tx, entries ...*audit.AuditLogEntry) error {
+func (q *repository) Record(ctx context.Context, querier database.Tx, entries ...*platformaudit.Entry) error {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -54,39 +54,41 @@ func (q *repository) Record(ctx context.Context, querier database.Tx, entries ..
 	// legitimately recorded together — so the batch is split by scope and each
 	// group is appended to its own chain. Order within a scope is preserved,
 	// which is the only order the chain defines.
-	converted := make([]*platformaudit.Entry, len(entries))
 	order := make([]tenancy.Scope, 0, len(entries))
 	groups := map[tenancy.Scope][]*platformaudit.Entry{}
-	for i, entry := range entries {
+	for _, entry := range entries {
 		if entry == nil {
 			return observability.PrepareAndLogError(platformerrors.ErrNilInputParameter, logger, span, "recording audit log entries")
 		}
 
-		converted[i] = toPlatformEntry(entry)
-		attachImpersonator(ctx, converted[i])
-
-		scope := converted[i].Scope
-		if _, ok := groups[scope]; !ok {
-			order = append(order, scope)
+		// The zero scope means nobody decided which chain this belongs to, which is
+		// what audit.NewEntry is for. Every read refuses it, so recording one would
+		// write an entry nothing can find.
+		if entry.Scope == (tenancy.Scope{}) {
+			return observability.PrepareAndLogError(errUnscopedEntry, logger, span, "recording audit log entries")
 		}
-		groups[scope] = append(groups[scope], converted[i])
+
+		attachImpersonator(ctx, entry)
+
+		if _, ok := groups[entry.Scope]; !ok {
+			order = append(order, entry.Scope)
+		}
+		groups[entry.Scope] = append(groups[entry.Scope], entry)
 	}
 
+	// Record assigns the ID, timestamp and chain fields, and applies redaction to
+	// the changes, in the entries it is handed — so a caller that logs or returns
+	// the entry it just wrote describes the row that actually landed.
 	for _, scope := range order {
 		if err := q.recorder.Record(ctx, querier, scope, groups[scope]...); err != nil {
 			return observability.PrepareAndLogError(err, logger, span, "recording audit log entries")
 		}
 	}
 
-	// Record assigns the ID, timestamp, and chain fields, and applies redaction to
-	// the changes. Copying them back means a caller that logs or returns the entry
-	// it just wrote describes the row that actually landed, rather than the value
-	// it hoped to write.
-	for i, entry := range entries {
-		applyRecorded(entry, converted[i])
-	}
-
 	tracing.AttachToSpan(span, auditkeys.AuditLogEntryIDKey, entries[0].ID)
 
 	return nil
 }
+
+// errUnscopedEntry is the refusal of an entry that names no chain.
+var errUnscopedEntry = platformerrors.New("audit entry has no scope; build it with audit.NewEntry")

@@ -8,6 +8,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	authkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/keys"
 
+	platformaudit "github.com/primandproper/platform-go/v14/audit"
 	"github.com/primandproper/platform-go/v14/authentication/passwordreset"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/observability"
@@ -114,7 +115,7 @@ func (s *auditedPasswordResetTokenStore) Issue(ctx context.Context, tx database.
 	}
 	tracing.AttachToSpan(span, authkeys.PasswordResetTokenIDKey, issuance.Token.ID)
 
-	if err = s.record(ctx, tx, span, issuance.Token, audit.AuditLogEventTypeCreated); err != nil {
+	if err = s.record(ctx, tx, span, issuance.Token, platformaudit.EventCreated); err != nil {
 		return nil, err
 	}
 
@@ -132,7 +133,7 @@ func (s *auditedPasswordResetTokenStore) Consume(ctx context.Context, tx databas
 	}
 	tracing.AttachToSpan(span, authkeys.PasswordResetTokenIDKey, token.ID)
 
-	if err = s.record(ctx, tx, span, token, audit.AuditLogEventTypeUpdated); err != nil {
+	if err = s.record(ctx, tx, span, token, platformaudit.EventUpdated); err != nil {
 		return nil, err
 	}
 
@@ -153,13 +154,8 @@ func (s *auditedPasswordResetTokenStore) Consume(ctx context.Context, tx databas
 //
 // A failure to record still fails the operation, and now rolls it back. A reset the log
 // has no record of is precisely the reset an investigation needs.
-func (s *auditedPasswordResetTokenStore) record(ctx context.Context, tx database.Tx, span tracing.Span, token *passwordreset.Token, eventType string) error {
-	if err := s.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
-		ResourceType:  resourceTypePasswordResetTokens,
-		RelevantID:    token.ID,
-		EventType:     eventType,
-		BelongsToUser: token.UserID,
-	}); err != nil {
+func (s *auditedPasswordResetTokenStore) record(ctx context.Context, tx database.Tx, span tracing.Span, token *passwordreset.Token, eventType platformaudit.EventType) error {
+	if err := s.auditLogEntryRepo.Record(ctx, tx, audit.NewEntry(token.UserID, "", resourceTypePasswordResetTokens, token.ID, eventType)); err != nil {
 		return observability.PrepareAndLogError(err, s.logger, span, "recording password reset token audit log entry")
 	}
 

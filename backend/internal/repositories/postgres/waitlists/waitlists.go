@@ -43,9 +43,9 @@ import (
 	ddbwaitlists "github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists"
 	waitlistkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists/keys"
 
+	platformaudit "github.com/primandproper/platform-go/v14/audit"
 	platformwaitlists "github.com/primandproper/platform-go/v14/waitlists"
 	"github.com/primandproper/primitives-go/v2/database"
-	"github.com/primandproper/primitives-go/v2/identifiers"
 	"github.com/primandproper/primitives-go/v2/observability"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
 	"github.com/primandproper/primitives-go/v2/tenancy"
@@ -72,7 +72,7 @@ func (r *repository) CreateList(ctx context.Context, tx database.Tx, scope tenan
 
 	tracing.AttachToSpan(span, waitlistkeys.WaitlistIDKey, created.ID)
 
-	if err = r.recordList(ctx, tx, created.ID, audit.AuditLogEventTypeCreated, ddbwaitlists.WaitlistCreatedServiceEventType); err != nil {
+	if err = r.recordList(ctx, tx, created.ID, platformaudit.EventCreated, ddbwaitlists.WaitlistCreatedServiceEventType); err != nil {
 		return nil, err
 	}
 
@@ -93,7 +93,7 @@ func (r *repository) UpdateList(ctx context.Context, tx database.Tx, scope tenan
 
 	// The stored row's id rather than the argument's, for the reason payments' update
 	// gives: what is recorded is what was written.
-	if err = r.recordList(ctx, tx, result.ID, audit.AuditLogEventTypeUpdated, ddbwaitlists.WaitlistUpdatedServiceEventType); err != nil {
+	if err = r.recordList(ctx, tx, result.ID, platformaudit.EventUpdated, ddbwaitlists.WaitlistUpdatedServiceEventType); err != nil {
 		return nil, err
 	}
 
@@ -112,7 +112,7 @@ func (r *repository) ArchiveList(ctx context.Context, tx database.Tx, scope tena
 		return nil, err
 	}
 
-	if err = r.recordList(ctx, tx, listID, audit.AuditLogEventTypeArchived, ddbwaitlists.WaitlistArchivedServiceEventType); err != nil {
+	if err = r.recordList(ctx, tx, listID, platformaudit.EventArchived, ddbwaitlists.WaitlistArchivedServiceEventType); err != nil {
 		return nil, err
 	}
 
@@ -133,7 +133,7 @@ func (r *repository) Join(ctx context.Context, tx database.Tx, scope tenancy.Sco
 
 	tracing.AttachToSpan(span, waitlistkeys.WaitlistSignupIDKey, joined.ID)
 
-	if err = r.recordSignup(ctx, tx, joined, audit.AuditLogEventTypeCreated, ddbwaitlists.WaitlistSignupCreatedServiceEventType); err != nil {
+	if err = r.recordSignup(ctx, tx, joined, platformaudit.EventCreated, ddbwaitlists.WaitlistSignupCreatedServiceEventType); err != nil {
 		return nil, err
 	}
 
@@ -159,7 +159,7 @@ func (r *repository) UpdateSignupNotes(ctx context.Context, tx database.Tx, scop
 		return nil, err
 	}
 
-	if err = r.recordSignup(ctx, tx, signup, audit.AuditLogEventTypeUpdated, ddbwaitlists.WaitlistSignupUpdatedServiceEventType); err != nil {
+	if err = r.recordSignup(ctx, tx, signup, platformaudit.EventUpdated, ddbwaitlists.WaitlistSignupUpdatedServiceEventType); err != nil {
 		return nil, err
 	}
 
@@ -206,7 +206,7 @@ func (r *repository) Withdraw(ctx context.Context, tx database.Tx, scope tenancy
 
 	signup.Status = platformwaitlists.StatusWithdrawn
 
-	if err = r.recordSignup(ctx, tx, signup, audit.AuditLogEventTypeUpdated, ddbwaitlists.WaitlistSignupWithdrawnServiceEventType); err != nil {
+	if err = r.recordSignup(ctx, tx, signup, platformaudit.EventUpdated, ddbwaitlists.WaitlistSignupWithdrawnServiceEventType); err != nil {
 		return nil, err
 	}
 
@@ -228,7 +228,7 @@ func (r *repository) ArchiveSignup(ctx context.Context, tx database.Tx, scope te
 		return nil, err
 	}
 
-	if err = r.recordSignup(ctx, tx, signup, audit.AuditLogEventTypeArchived, ddbwaitlists.WaitlistSignupArchivedServiceEventType); err != nil {
+	if err = r.recordSignup(ctx, tx, signup, platformaudit.EventArchived, ddbwaitlists.WaitlistSignupArchivedServiceEventType); err != nil {
 		return nil, err
 	}
 
@@ -267,7 +267,7 @@ func (r *repository) recordedTransition(
 		return nil, err
 	}
 
-	if err = r.recordSignup(ctx, tx, moved, audit.AuditLogEventTypeUpdated, ddbwaitlists.WaitlistSignupTransitionedServiceEventType); err != nil {
+	if err = r.recordSignup(ctx, tx, moved, platformaudit.EventUpdated, ddbwaitlists.WaitlistSignupTransitionedServiceEventType); err != nil {
 		return nil, err
 	}
 
@@ -305,7 +305,7 @@ func (r *repository) readSignupToRecord(
 // to nobody: who opened it is the actor on the context, which is what the audit
 // recorder resolves. That is the same shape the table this replaced recorded
 // under.
-func (r *repository) recordList(ctx context.Context, tx database.Tx, listID, auditEventType, changeEventType string) error {
+func (r *repository) recordList(ctx context.Context, tx database.Tx, listID string, auditEventType platformaudit.EventType, changeEventType string) error {
 	return r.record(ctx, tx, "", resourceTypeWaitlists, listID, auditEventType, changeEventType, map[string]any{
 		waitlistkeys.WaitlistIDKey: listID,
 	})
@@ -318,7 +318,7 @@ func (r *repository) recordList(ctx context.Context, tx database.Tx, listID, aud
 // request, so that "which lists was this person on, and what happened to them"
 // is answerable from the audit log after the row itself has been withdrawn and
 // no longer says.
-func (r *repository) recordSignup(ctx context.Context, tx database.Tx, signup *platformwaitlists.Signup, auditEventType, changeEventType string) error {
+func (r *repository) recordSignup(ctx context.Context, tx database.Tx, signup *platformwaitlists.Signup, auditEventType platformaudit.EventType, changeEventType string) error {
 	return r.record(ctx, tx, signup.Subject.ID, resourceTypeWaitlistSignups, signup.ID, auditEventType, changeEventType, map[string]any{
 		waitlistkeys.WaitlistSignupIDKey:     signup.ID,
 		waitlistkeys.WaitlistIDKey:           signup.ListID,
@@ -345,7 +345,7 @@ func (r *repository) recordSignup(ctx context.Context, tx database.Tx, signup *p
 // the emitter.
 func (r *repository) record(
 	ctx context.Context, tx database.Tx,
-	userID, resourceType, relevantID, auditEventType, changeEventType string,
+	userID, resourceType, relevantID string, auditEventType platformaudit.EventType, changeEventType string,
 	metadata map[string]any,
 ) error {
 	ctx, span := r.tracer.StartSpan(ctx)
@@ -353,11 +353,5 @@ func (r *repository) record(
 
 	logger := r.logger.WithSpan(span).WithValue(waitlistkeys.WaitlistIDKey, relevantID)
 
-	return r.recorder.RecordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
-		ID:            identifiers.New(),
-		ResourceType:  resourceType,
-		RelevantID:    relevantID,
-		EventType:     auditEventType,
-		BelongsToUser: userID,
-	}, changeEventType, "", metadata)
+	return r.recorder.RecordAndEmit(ctx, tx, logger, audit.NewEntry(userID, "", resourceType, relevantID, auditEventType), changeEventType, "", metadata)
 }

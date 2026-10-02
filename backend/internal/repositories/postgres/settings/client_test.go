@@ -13,6 +13,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
+	platformaudit "github.com/primandproper/platform-go/v14/audit"
 	settings "github.com/primandproper/platform-go/v14/settings"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/database/postgres"
@@ -118,7 +119,7 @@ func TestRepository_Integration_SettingDefinitions(t *testing.T) {
 	// A definition belongs to nobody, so its entries are recorded under the
 	// unattributed actor — the same shape the table this replaced recorded under.
 	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, audit.UnattributedActorID, []pgtesting.ExpectedAuditEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeSettingDefinitions, ResourceID: created.ID},
+		{EventType: platformaudit.EventCreated, ResourceType: resourceTypeSettingDefinitions, ResourceID: created.ID},
 	})
 
 	fetched, err := dbc.GetDefinition(ctx, db.Reader(), scope, created.ID)
@@ -158,9 +159,9 @@ func TestRepository_Integration_SettingDefinitions(t *testing.T) {
 	require.ErrorIs(t, err, settings.ErrDefinitionNotFound)
 
 	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, audit.UnattributedActorID, []pgtesting.ExpectedAuditEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeSettingDefinitions, ResourceID: created.ID},
-		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeSettingDefinitions, ResourceID: created.ID},
-		{EventType: audit.AuditLogEventTypeArchived, ResourceType: resourceTypeSettingDefinitions, ResourceID: created.ID},
+		{EventType: platformaudit.EventCreated, ResourceType: resourceTypeSettingDefinitions, ResourceID: created.ID},
+		{EventType: platformaudit.EventUpdated, ResourceType: resourceTypeSettingDefinitions, ResourceID: created.ID},
+		{EventType: platformaudit.EventArchived, ResourceType: resourceTypeSettingDefinitions, ResourceID: created.ID},
 	})
 }
 
@@ -214,7 +215,7 @@ func TestRepository_Integration_SettingValues(t *testing.T) {
 
 	// The entry belongs to the person whose setting it is, not to the request.
 	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, userID, []pgtesting.ExpectedAuditEntry{
-		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeSettingValues, ResourceID: value.ID},
+		{EventType: platformaudit.EventUpdated, ResourceType: resourceTypeSettingValues, ResourceID: value.ID},
 	})
 
 	fetched, err := dbc.GetValue(ctx, db.Reader(), scope, subject, definition.Name)
@@ -254,8 +255,8 @@ func TestRepository_Integration_SettingValues(t *testing.T) {
 	require.ErrorIs(t, err, settings.ErrValueNotFound)
 
 	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, userID, []pgtesting.ExpectedAuditEntry{
-		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeSettingValues, ResourceID: value.ID},
-		{EventType: audit.AuditLogEventTypeArchived, ResourceType: resourceTypeSettingValues, ResourceID: value.ID},
+		{EventType: platformaudit.EventUpdated, ResourceType: resourceTypeSettingValues, ResourceID: value.ID},
+		{EventType: platformaudit.EventArchived, ResourceType: resourceTypeSettingValues, ResourceID: value.ID},
 	})
 }
 

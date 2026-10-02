@@ -35,9 +35,9 @@ import (
 	ddbissuereports "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports"
 	issuereportkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports/keys"
 
+	platformaudit "github.com/primandproper/platform-go/v14/audit"
 	platformissuereports "github.com/primandproper/platform-go/v14/issuereports"
 	"github.com/primandproper/primitives-go/v2/database"
-	"github.com/primandproper/primitives-go/v2/identifiers"
 	"github.com/primandproper/primitives-go/v2/observability"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
 	"github.com/primandproper/primitives-go/v2/tenancy"
@@ -63,7 +63,7 @@ func (r *repository) CreateReport(ctx context.Context, tx database.Tx, scope ten
 	// The stored row, not the input. As of platform-go v14 the store answers with what it
 	// wrote and leaves the argument alone, so the input's id is still empty here — an entry
 	// recorded from it names no report, and so does the event a subscriber receives.
-	if err = r.record(ctx, tx, result, audit.AuditLogEventTypeCreated, ddbissuereports.IssueReportCreatedServiceEventType); err != nil {
+	if err = r.record(ctx, tx, result, platformaudit.EventCreated, ddbissuereports.IssueReportCreatedServiceEventType); err != nil {
 		return nil, err
 	}
 
@@ -87,7 +87,7 @@ func (r *repository) UpdateReport(ctx context.Context, tx database.Tx, scope ten
 
 	// The stored row for the same reason, though this input does carry an id: what is
 	// recorded should be what was written, not what was asked for.
-	if err = r.record(ctx, tx, result, audit.AuditLogEventTypeUpdated, ddbissuereports.IssueReportUpdatedServiceEventType); err != nil {
+	if err = r.record(ctx, tx, result, platformaudit.EventUpdated, ddbissuereports.IssueReportUpdatedServiceEventType); err != nil {
 		return nil, err
 	}
 
@@ -122,7 +122,7 @@ func (r *repository) TransitionReport(
 
 	tracing.AttachToSpan(span, issuereportkeys.IssueReportStatusKey, report.Status.String())
 
-	if err = r.record(ctx, tx, report, audit.AuditLogEventTypeUpdated, ddbissuereports.IssueReportTransitionedServiceEventType); err != nil {
+	if err = r.record(ctx, tx, report, platformaudit.EventUpdated, ddbissuereports.IssueReportTransitionedServiceEventType); err != nil {
 		return nil, err
 	}
 
@@ -152,7 +152,7 @@ func (r *repository) ArchiveReport(ctx context.Context, tx database.Tx, scope te
 		return nil, err
 	}
 
-	if err = r.record(ctx, tx, report, audit.AuditLogEventTypeArchived, ddbissuereports.IssueReportArchivedServiceEventType); err != nil {
+	if err = r.record(ctx, tx, report, platformaudit.EventArchived, ddbissuereports.IssueReportArchivedServiceEventType); err != nil {
 		return nil, err
 	}
 
@@ -176,7 +176,7 @@ func (r *repository) ArchiveReport(ctx context.Context, tx database.Tx, scope te
 // a report's tenant is the account it was filed under and that is the account a
 // webhook subscriber is resolved within. A background job reaching here has no
 // session, and an event with no account reaches no subscriber at all.
-func (r *repository) record(ctx context.Context, tx database.Tx, report *platformissuereports.Report, auditEventType, changeEventType string) error {
+func (r *repository) record(ctx context.Context, tx database.Tx, report *platformissuereports.Report, auditEventType platformaudit.EventType, changeEventType string) error {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -184,14 +184,7 @@ func (r *repository) record(ctx context.Context, tx database.Tx, report *platfor
 
 	accountID := report.Scope.Owner()
 
-	return r.recorder.RecordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
-		ID:               identifiers.New(),
-		ResourceType:     resourceTypeIssueReports,
-		RelevantID:       report.ID,
-		EventType:        auditEventType,
-		BelongsToUser:    report.Reporter,
-		BelongsToAccount: &accountID,
-	}, changeEventType, accountID, map[string]any{
+	return r.recorder.RecordAndEmit(ctx, tx, logger, audit.NewEntry(report.Reporter, accountID, resourceTypeIssueReports, report.ID, auditEventType), changeEventType, accountID, map[string]any{
 		issuereportkeys.IssueReportIDKey:     report.ID,
 		issuereportkeys.IssueReportStatusKey: report.Status.String(),
 	})

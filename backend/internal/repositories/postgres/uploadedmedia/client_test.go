@@ -12,6 +12,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
+	platformaudit "github.com/primandproper/platform-go/v14/audit"
 	"github.com/primandproper/platform-go/v14/mediaregistry"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/database/postgres"
@@ -120,7 +121,7 @@ func TestRepository_Integration_UploadedMedia(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotZero(t, object.CreatedAt)
 	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, user.ID, []pgtesting.ExpectedAuditEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeUploadedMedia, ResourceID: object.ID},
+		{EventType: platformaudit.EventCreated, ResourceType: resourceTypeUploadedMedia, ResourceID: object.ID},
 	})
 
 	fetched, err := dbc.GetObject(ctx, db.Reader(), tenancy.Global(), object.ID)
@@ -144,8 +145,8 @@ func TestRepository_Integration_UploadedMedia(t *testing.T) {
 	_, err = archiveT(ctx, db, dbc, object.ID)
 	require.NoError(t, err)
 	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, user.ID, []pgtesting.ExpectedAuditEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeUploadedMedia, ResourceID: object.ID},
-		{EventType: audit.AuditLogEventTypeArchived, ResourceType: resourceTypeUploadedMedia, ResourceID: object.ID},
+		{EventType: platformaudit.EventCreated, ResourceType: resourceTypeUploadedMedia, ResourceID: object.ID},
+		{EventType: platformaudit.EventArchived, ResourceType: resourceTypeUploadedMedia, ResourceID: object.ID},
 	})
 
 	fetchedAfterArchive, err := dbc.GetObject(ctx, db.Reader(), tenancy.Global(), object.ID)
@@ -173,8 +174,8 @@ func TestRepository_Integration_ArchiveRecordsTheOwner(t *testing.T) {
 	// The entry belongs to whoever uploaded the object, not to whoever happened to be
 	// signed in when it was archived.
 	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, owner.ID, []pgtesting.ExpectedAuditEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeUploadedMedia, ResourceID: object.ID},
-		{EventType: audit.AuditLogEventTypeArchived, ResourceType: resourceTypeUploadedMedia, ResourceID: object.ID},
+		{EventType: platformaudit.EventCreated, ResourceType: resourceTypeUploadedMedia, ResourceID: object.ID},
+		{EventType: platformaudit.EventArchived, ResourceType: resourceTypeUploadedMedia, ResourceID: object.ID},
 	})
 
 	entries := pgtesting.AuditEntriesForActor(t, ctx, db, archiver.ID)

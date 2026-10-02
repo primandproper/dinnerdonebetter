@@ -43,9 +43,9 @@ import (
 	ddbuploadedmedia "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	uploadedmediakeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia/keys"
 
+	platformaudit "github.com/primandproper/platform-go/v14/audit"
 	"github.com/primandproper/platform-go/v14/mediaregistry"
 	"github.com/primandproper/primitives-go/v2/database"
-	"github.com/primandproper/primitives-go/v2/identifiers"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
 	"github.com/primandproper/primitives-go/v2/tenancy"
 )
@@ -69,7 +69,7 @@ func (r *repository) RecordObject(ctx context.Context, tx database.Tx, scope ten
 
 	tracing.AttachToSpan(span, uploadedmediakeys.UploadedMediaIDKey, object.ID)
 
-	if err = r.record(ctx, tx, object.ID, object.OwnerID, audit.AuditLogEventTypeCreated, ddbuploadedmedia.UploadedMediaCreatedServiceEventType); err != nil {
+	if err = r.record(ctx, tx, object.ID, object.OwnerID, platformaudit.EventCreated, ddbuploadedmedia.UploadedMediaCreatedServiceEventType); err != nil {
 		return nil, err
 	}
 
@@ -92,7 +92,7 @@ func (r *repository) ArchiveObject(ctx context.Context, tx database.Tx, scope te
 		return nil, err
 	}
 
-	if err = r.record(ctx, tx, objectID, archived.OwnerID, audit.AuditLogEventTypeArchived, ddbuploadedmedia.UploadedMediaArchivedServiceEventType); err != nil {
+	if err = r.record(ctx, tx, objectID, archived.OwnerID, platformaudit.EventArchived, ddbuploadedmedia.UploadedMediaArchivedServiceEventType); err != nil {
 		return nil, err
 	}
 
@@ -110,19 +110,13 @@ func (r *repository) ArchiveObject(ctx context.Context, tx database.Tx, scope te
 // sides — the audit log for whoever asks later who did this, the outbox for
 // whoever needs to know now — and a write that carried one without the other
 // would be a write nobody could tell was incomplete.
-func (r *repository) record(ctx context.Context, tx database.Tx, objectID, ownerID, auditEventType, changeEventType string) error {
+func (r *repository) record(ctx context.Context, tx database.Tx, objectID, ownerID string, auditEventType platformaudit.EventType, changeEventType string) error {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
 	logger := r.logger.WithSpan(span).WithValue(uploadedmediakeys.UploadedMediaIDKey, objectID)
 
-	return r.recorder.RecordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
-		ID:            identifiers.New(),
-		ResourceType:  resourceTypeUploadedMedia,
-		RelevantID:    objectID,
-		EventType:     auditEventType,
-		BelongsToUser: ownerID,
-	}, changeEventType, "", map[string]any{
+	return r.recorder.RecordAndEmit(ctx, tx, logger, audit.NewEntry(ownerID, "", resourceTypeUploadedMedia, objectID, auditEventType), changeEventType, "", map[string]any{
 		uploadedmediakeys.UploadedMediaIDKey: objectID,
 	})
 }

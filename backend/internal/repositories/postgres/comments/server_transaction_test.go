@@ -12,6 +12,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
+	platformaudit "github.com/primandproper/platform-go/v14/audit"
 	platformcomments "github.com/primandproper/platform-go/v14/comments"
 	"github.com/primandproper/platform-go/v14/comments/commentspb"
 	commentsgrpc "github.com/primandproper/platform-go/v14/comments/grpc"
@@ -64,7 +65,7 @@ type failingAuditRepository struct {
 	err error
 }
 
-func (f *failingAuditRepository) Record(context.Context, database.Tx, ...*audit.AuditLogEntry) error {
+func (f *failingAuditRepository) Record(context.Context, database.Tx, ...*platformaudit.Entry) error {
 	return f.err
 }
 
@@ -211,7 +212,7 @@ func TestServer_Integration_RecordingCommitsWithTheWrite(T *testing.T) {
 		// The entry, filed under the author — written by this package's decorator,
 		// inside platform's transaction.
 		pgtesting.AssertAuditLogContainsForUser(t, ctx, fixture.db, user.ID, []pgtesting.ExpectedAuditEntry{
-			{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeComments, ResourceID: commentID},
+			{EventType: platformaudit.EventCreated, ResourceType: resourceTypeComments, ResourceID: commentID},
 		})
 
 		// The event.

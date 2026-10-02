@@ -46,9 +46,9 @@ import (
 	ddbsettings "github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings"
 	settingskeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings/keys"
 
+	platformaudit "github.com/primandproper/platform-go/v14/audit"
 	platformsettings "github.com/primandproper/platform-go/v14/settings"
 	"github.com/primandproper/primitives-go/v2/database"
-	"github.com/primandproper/primitives-go/v2/identifiers"
 	"github.com/primandproper/primitives-go/v2/observability"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
 	"github.com/primandproper/primitives-go/v2/tenancy"
@@ -76,7 +76,7 @@ func (r *repository) CreateDefinition(ctx context.Context, tx database.Tx, scope
 	tracing.AttachToSpan(span, settingskeys.SettingDefinitionIDKey, created.ID)
 	tracing.AttachToSpan(span, settingskeys.SettingNameKey, created.Name)
 
-	if err = r.recordDefinition(ctx, tx, created, audit.AuditLogEventTypeCreated, ddbsettings.SettingDefinitionCreatedServiceEventType); err != nil {
+	if err = r.recordDefinition(ctx, tx, created, platformaudit.EventCreated, ddbsettings.SettingDefinitionCreatedServiceEventType); err != nil {
 		return nil, err
 	}
 
@@ -96,7 +96,7 @@ func (r *repository) UpdateDefinition(ctx context.Context, tx database.Tx, scope
 	tracing.AttachToSpan(span, settingskeys.SettingDefinitionIDKey, definition.ID)
 	tracing.AttachToSpan(span, settingskeys.SettingNameKey, definition.Name)
 
-	if err = r.recordDefinition(ctx, tx, updated, audit.AuditLogEventTypeUpdated, ddbsettings.SettingDefinitionUpdatedServiceEventType); err != nil {
+	if err = r.recordDefinition(ctx, tx, updated, platformaudit.EventUpdated, ddbsettings.SettingDefinitionUpdatedServiceEventType); err != nil {
 		return nil, err
 	}
 
@@ -125,7 +125,7 @@ func (r *repository) ArchiveDefinition(ctx context.Context, tx database.Tx, scop
 		return err
 	}
 
-	return r.recordDefinition(ctx, tx, definition, audit.AuditLogEventTypeArchived, ddbsettings.SettingDefinitionArchivedServiceEventType)
+	return r.recordDefinition(ctx, tx, definition, platformaudit.EventArchived, ddbsettings.SettingDefinitionArchivedServiceEventType)
 }
 
 // SetValue stores the subject's answer, then records it.
@@ -142,7 +142,7 @@ func (r *repository) SetValue(ctx context.Context, tx database.Tx, scope tenancy
 
 	tracing.AttachToSpan(span, settingskeys.SettingValueIDKey, value.ID)
 
-	if err = r.recordValue(ctx, tx, value, name, audit.AuditLogEventTypeUpdated, ddbsettings.SettingValueSetServiceEventType); err != nil {
+	if err = r.recordValue(ctx, tx, value, name, platformaudit.EventUpdated, ddbsettings.SettingValueSetServiceEventType); err != nil {
 		return nil, err
 	}
 
@@ -168,7 +168,7 @@ func (r *repository) ClearValue(ctx context.Context, tx database.Tx, scope tenan
 
 	tracing.AttachToSpan(span, settingskeys.SettingValueIDKey, cleared.ID)
 
-	if err = r.recordValue(ctx, tx, cleared, name, audit.AuditLogEventTypeArchived, ddbsettings.SettingValueClearedServiceEventType); err != nil {
+	if err = r.recordValue(ctx, tx, cleared, name, platformaudit.EventArchived, ddbsettings.SettingValueClearedServiceEventType); err != nil {
 		return nil, err
 	}
 
@@ -182,7 +182,7 @@ func (r *repository) ClearValue(ctx context.Context, tx database.Tx, scope tenan
 // belongs to nobody: who wrote it is the actor on the context, which is what the
 // audit recorder resolves. That is the same shape the table this replaced
 // recorded under.
-func (r *repository) recordDefinition(ctx context.Context, tx database.Tx, definition *platformsettings.Definition, auditEventType, changeEventType string) error {
+func (r *repository) recordDefinition(ctx context.Context, tx database.Tx, definition *platformsettings.Definition, auditEventType platformaudit.EventType, changeEventType string) error {
 	return r.record(ctx, tx, "", resourceTypeSettingDefinitions, definition.ID, auditEventType, changeEventType, map[string]any{
 		settingskeys.SettingDefinitionIDKey: definition.ID,
 		settingskeys.SettingNameKey:         definition.Name,
@@ -196,7 +196,7 @@ func (r *repository) recordDefinition(ctx context.Context, tx database.Tx, defin
 // request. The two are the same today — nobody may write somebody else's setting
 // — and filing it under the subject is what keeps "what has this person chosen,
 // and when did they change it" answerable if that ever stops being true.
-func (r *repository) recordValue(ctx context.Context, tx database.Tx, value *platformsettings.Value, name, auditEventType, changeEventType string) error {
+func (r *repository) recordValue(ctx context.Context, tx database.Tx, value *platformsettings.Value, name string, auditEventType platformaudit.EventType, changeEventType string) error {
 	return r.record(ctx, tx, value.Subject.ID, resourceTypeSettingValues, value.ID, auditEventType, changeEventType, map[string]any{
 		settingskeys.SettingValueIDKey:      value.ID,
 		settingskeys.SettingDefinitionIDKey: value.DefinitionID,
@@ -225,7 +225,7 @@ func (r *repository) recordValue(ctx context.Context, tx database.Tx, value *pla
 func (r *repository) record(
 	ctx context.Context,
 	tx database.Tx,
-	userID, resourceType, relevantID, auditEventType, changeEventType string,
+	userID, resourceType, relevantID string, auditEventType platformaudit.EventType, changeEventType string,
 	metadata map[string]any,
 ) error {
 	ctx, span := r.tracer.StartSpan(ctx)
@@ -233,11 +233,5 @@ func (r *repository) record(
 
 	logger := r.logger.WithSpan(span).WithValue(settingskeys.SettingNameKey, metadata[settingskeys.SettingNameKey])
 
-	return r.recorder.RecordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
-		ID:            identifiers.New(),
-		ResourceType:  resourceType,
-		RelevantID:    relevantID,
-		EventType:     auditEventType,
-		BelongsToUser: userID,
-	}, changeEventType, "", metadata)
+	return r.recorder.RecordAndEmit(ctx, tx, logger, audit.NewEntry(userID, "", resourceType, relevantID, auditEventType), changeEventType, "", metadata)
 }

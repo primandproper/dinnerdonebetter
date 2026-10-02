@@ -9,6 +9,7 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 
+	platformaudit "github.com/primandproper/platform-go/v14/audit"
 	"github.com/primandproper/primitives-go/v2/database"
 )
 
@@ -22,7 +23,7 @@ var _ audit.Repository = &RepositoryMock{}
 //
 //		// make and configure a mocked audit.Repository
 //		mockedRepository := &RepositoryMock{
-//			RecordFunc: func(ctx context.Context, querier database.Tx, entries ...*audit.AuditLogEntry) error {
+//			RecordFunc: func(ctx context.Context, querier database.Tx, entries ...*platformaudit.Entry) error {
 //				panic("mock out the Record method")
 //			},
 //		}
@@ -33,7 +34,7 @@ var _ audit.Repository = &RepositoryMock{}
 //	}
 type RepositoryMock struct {
 	// RecordFunc mocks the Record method.
-	RecordFunc func(ctx context.Context, querier database.Tx, entries ...*audit.AuditLogEntry) error
+	RecordFunc func(ctx context.Context, querier database.Tx, entries ...*platformaudit.Entry) error
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -44,21 +45,21 @@ type RepositoryMock struct {
 			// Querier is the querier argument value.
 			Querier database.Tx
 			// Entries is the entries argument value.
-			Entries []*audit.AuditLogEntry
+			Entries []*platformaudit.Entry
 		}
 	}
 	lockRecord sync.RWMutex
 }
 
 // Record calls RecordFunc.
-func (mock *RepositoryMock) Record(ctx context.Context, querier database.Tx, entries ...*audit.AuditLogEntry) error {
+func (mock *RepositoryMock) Record(ctx context.Context, querier database.Tx, entries ...*platformaudit.Entry) error {
 	if mock.RecordFunc == nil {
 		panic("RepositoryMock.RecordFunc: method is nil but Repository.Record was just called")
 	}
 	callInfo := struct {
 		Ctx     context.Context
 		Querier database.Tx
-		Entries []*audit.AuditLogEntry
+		Entries []*platformaudit.Entry
 	}{
 		Ctx:     ctx,
 		Querier: querier,
@@ -77,12 +78,12 @@ func (mock *RepositoryMock) Record(ctx context.Context, querier database.Tx, ent
 func (mock *RepositoryMock) RecordCalls() []struct {
 	Ctx     context.Context
 	Querier database.Tx
-	Entries []*audit.AuditLogEntry
+	Entries []*platformaudit.Entry
 } {
 	var calls []struct {
 		Ctx     context.Context
 		Querier database.Tx
-		Entries []*audit.AuditLogEntry
+		Entries []*platformaudit.Entry
 	}
 	mock.lockRecord.RLock()
 	calls = mock.calls.Record

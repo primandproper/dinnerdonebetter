@@ -19,7 +19,7 @@ import (
 // this resource. Everything else on an entry — the actor, the chain, the hash — is the
 // recorder's to decide and not what these tests pin.
 type ExpectedAuditEntry struct {
-	EventType    string
+	EventType    platformaudit.EventType
 	ResourceType string
 	ResourceID   string
 }
@@ -77,7 +77,7 @@ func assertContains(t *testing.T, entries []*platformaudit.Entry, expected []Exp
 
 		var found bool
 		for _, e := range entries {
-			if string(e.EventType) == exp.EventType && e.ResourceType == exp.ResourceType && e.ResourceID == exp.ResourceID {
+			if e.EventType == exp.EventType && e.ResourceType == exp.ResourceType && e.ResourceID == exp.ResourceID {
 				found = true
 				break
 			}

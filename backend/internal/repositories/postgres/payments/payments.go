@@ -63,10 +63,10 @@ import (
 	ddbpayments "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 	paymentskeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/keys"
 
+	platformaudit "github.com/primandproper/platform-go/v14/audit"
 	"github.com/primandproper/platform-go/v14/billing"
 	"github.com/primandproper/primitives-go/v2/capitalism"
 	"github.com/primandproper/primitives-go/v2/database"
-	"github.com/primandproper/primitives-go/v2/identifiers"
 	"github.com/primandproper/primitives-go/v2/observability"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
 	"github.com/primandproper/primitives-go/v2/tenancy"
@@ -96,7 +96,7 @@ func (r *repository) CreateProduct(ctx context.Context, tx database.Tx, scope te
 
 	tracing.AttachToSpan(span, paymentskeys.ProductIDKey, created.ID)
 
-	if err = r.recordProduct(ctx, tx, created, audit.AuditLogEventTypeCreated, ddbpayments.ProductCreatedServiceEventType); err != nil {
+	if err = r.recordProduct(ctx, tx, created, platformaudit.EventCreated, ddbpayments.ProductCreatedServiceEventType); err != nil {
 		return nil, err
 	}
 
@@ -119,7 +119,7 @@ func (r *repository) UpdateProduct(ctx context.Context, tx database.Tx, scope te
 	// being fixed — it is the rule that stops one: what is recorded is what was written.
 	// issuereports recorded its argument and, once v14's store stopped writing into it,
 	// every entry and event it emitted named no report at all.
-	if err = r.recordProduct(ctx, tx, result, audit.AuditLogEventTypeUpdated, ddbpayments.ProductUpdatedServiceEventType); err != nil {
+	if err = r.recordProduct(ctx, tx, result, platformaudit.EventUpdated, ddbpayments.ProductUpdatedServiceEventType); err != nil {
 		return nil, err
 	}
 
@@ -143,7 +143,7 @@ func (r *repository) ArchiveProduct(ctx context.Context, tx database.Tx, scope t
 		return nil, err
 	}
 
-	if err = r.recordProduct(ctx, tx, product, audit.AuditLogEventTypeArchived, ddbpayments.ProductArchivedServiceEventType); err != nil {
+	if err = r.recordProduct(ctx, tx, product, platformaudit.EventArchived, ddbpayments.ProductArchivedServiceEventType); err != nil {
 		return nil, err
 	}
 
@@ -162,7 +162,7 @@ func (r *repository) CreateSubscription(ctx context.Context, tx database.Tx, sco
 
 	tracing.AttachToSpan(span, paymentskeys.SubscriptionIDKey, created.ID)
 
-	if err = r.recordSubscription(ctx, tx, created, audit.AuditLogEventTypeCreated, ddbpayments.SubscriptionCreatedServiceEventType); err != nil {
+	if err = r.recordSubscription(ctx, tx, created, platformaudit.EventCreated, ddbpayments.SubscriptionCreatedServiceEventType); err != nil {
 		return nil, err
 	}
 
@@ -181,7 +181,7 @@ func (r *repository) UpdateSubscription(ctx context.Context, tx database.Tx, sco
 
 	tracing.AttachToSpan(span, paymentskeys.SubscriptionIDKey, subscription.ID)
 
-	if err = r.recordSubscription(ctx, tx, subscription, audit.AuditLogEventTypeUpdated, ddbpayments.SubscriptionUpdatedServiceEventType); err != nil {
+	if err = r.recordSubscription(ctx, tx, subscription, platformaudit.EventUpdated, ddbpayments.SubscriptionUpdatedServiceEventType); err != nil {
 		return nil, err
 	}
 
@@ -210,7 +210,7 @@ func (r *repository) SetSubscriptionStatus(ctx context.Context, tx database.Tx, 
 
 	subscription.Status = status
 
-	return r.recordSubscription(ctx, tx, subscription, audit.AuditLogEventTypeUpdated, ddbpayments.SubscriptionUpdatedServiceEventType)
+	return r.recordSubscription(ctx, tx, subscription, platformaudit.EventUpdated, ddbpayments.SubscriptionUpdatedServiceEventType)
 }
 
 // ArchiveSubscription retires the subscription administratively, then records it.
@@ -230,7 +230,7 @@ func (r *repository) ArchiveSubscription(ctx context.Context, tx database.Tx, sc
 		return nil, err
 	}
 
-	if err = r.recordSubscription(ctx, tx, subscription, audit.AuditLogEventTypeArchived, ddbpayments.SubscriptionArchivedServiceEventType); err != nil {
+	if err = r.recordSubscription(ctx, tx, subscription, platformaudit.EventArchived, ddbpayments.SubscriptionArchivedServiceEventType); err != nil {
 		return nil, err
 	}
 
@@ -249,7 +249,7 @@ func (r *repository) CreatePurchase(ctx context.Context, tx database.Tx, scope t
 
 	tracing.AttachToSpan(span, paymentskeys.PurchaseIDKey, created.ID)
 
-	if err = r.recordPurchase(ctx, tx, created, audit.AuditLogEventTypeCreated); err != nil {
+	if err = r.recordPurchase(ctx, tx, created, platformaudit.EventCreated); err != nil {
 		return nil, err
 	}
 
@@ -273,7 +273,7 @@ func (r *repository) CompletePurchase(ctx context.Context, tx database.Tx, scope
 		return nil, err
 	}
 
-	if err = r.recordPurchase(ctx, tx, purchase, audit.AuditLogEventTypeUpdated); err != nil {
+	if err = r.recordPurchase(ctx, tx, purchase, platformaudit.EventUpdated); err != nil {
 		return nil, err
 	}
 
@@ -297,7 +297,7 @@ func (r *repository) ArchivePurchase(ctx context.Context, tx database.Tx, scope 
 		return nil, err
 	}
 
-	if err = r.recordPurchase(ctx, tx, purchase, audit.AuditLogEventTypeArchived); err != nil {
+	if err = r.recordPurchase(ctx, tx, purchase, platformaudit.EventArchived); err != nil {
 		return nil, err
 	}
 
@@ -316,7 +316,7 @@ func (r *repository) RecordTransaction(ctx context.Context, tx database.Tx, scop
 
 	tracing.AttachToSpan(span, paymentskeys.PaymentTransactionIDKey, recorded.ID)
 
-	if err = r.recordTransaction(ctx, tx, recorded, audit.AuditLogEventTypeCreated); err != nil {
+	if err = r.recordTransaction(ctx, tx, recorded, platformaudit.EventCreated); err != nil {
 		return nil, err
 	}
 
@@ -340,7 +340,7 @@ func (r *repository) SetTransactionStatus(ctx context.Context, tx database.Tx, s
 		return err
 	}
 
-	return r.recordTransaction(ctx, tx, transaction, audit.AuditLogEventTypeUpdated)
+	return r.recordTransaction(ctx, tx, transaction, platformaudit.EventUpdated)
 }
 
 // ArchiveTransaction retires the ledger row administratively, then records it.
@@ -360,7 +360,7 @@ func (r *repository) ArchiveTransaction(ctx context.Context, tx database.Tx, sco
 		return nil, err
 	}
 
-	if err = r.recordTransaction(ctx, tx, transaction, audit.AuditLogEventTypeArchived); err != nil {
+	if err = r.recordTransaction(ctx, tx, transaction, platformaudit.EventArchived); err != nil {
 		return nil, err
 	}
 
@@ -375,7 +375,7 @@ func (r *repository) ArchiveTransaction(ctx context.Context, tx database.Tx, sco
 // recorder resolves. The event names no account either, so it is service-wide —
 // it reaches a webhook subscriber under whichever account the requester had
 // active, resolved from the context by the emitter.
-func (r *repository) recordProduct(ctx context.Context, tx database.Tx, product *billing.Product, auditEventType, changeEventType string) error {
+func (r *repository) recordProduct(ctx context.Context, tx database.Tx, product *billing.Product, auditEventType platformaudit.EventType, changeEventType string) error {
 	return r.recordAndEmit(ctx, tx, "", resourceTypeProducts, product.ID, auditEventType, changeEventType, map[string]any{
 		paymentskeys.ProductIDKey: product.ID,
 	})
@@ -389,7 +389,7 @@ func (r *repository) recordProduct(ctx context.Context, tx database.Tx, product 
 // off the context. Most of these writes have no session: a provider's webhook
 // carries no user, and an event that had to find its account on the context
 // would find nobody there.
-func (r *repository) recordSubscription(ctx context.Context, tx database.Tx, subscription *billing.Subscription, auditEventType, changeEventType string) error {
+func (r *repository) recordSubscription(ctx context.Context, tx database.Tx, subscription *billing.Subscription, auditEventType platformaudit.EventType, changeEventType string) error {
 	return r.recordAndEmit(ctx, tx, subscription.BelongsToAccount, resourceTypeSubscriptions, subscription.ID, auditEventType, changeEventType, map[string]any{
 		paymentskeys.SubscriptionIDKey: subscription.ID,
 		paymentskeys.ProductIDKey:      subscription.ProductID,
@@ -398,12 +398,12 @@ func (r *repository) recordSubscription(ctx context.Context, tx database.Tx, sub
 }
 
 // recordPurchase writes the audit entry for a write to one account's purchase.
-func (r *repository) recordPurchase(ctx context.Context, tx database.Tx, purchase *billing.Purchase, auditEventType string) error {
+func (r *repository) recordPurchase(ctx context.Context, tx database.Tx, purchase *billing.Purchase, auditEventType platformaudit.EventType) error {
 	return r.record(ctx, tx, purchase.BelongsToAccount, resourceTypePurchases, purchase.ID, auditEventType)
 }
 
 // recordTransaction writes the audit entry for a write to one account's ledger.
-func (r *repository) recordTransaction(ctx context.Context, tx database.Tx, transaction *billing.Transaction, auditEventType string) error {
+func (r *repository) recordTransaction(ctx context.Context, tx database.Tx, transaction *billing.Transaction, auditEventType platformaudit.EventType) error {
 	return r.record(ctx, tx, transaction.BelongsToAccount, resourceTypePaymentTransactions, transaction.ID, auditEventType)
 }
 
@@ -416,7 +416,7 @@ func (r *repository) recordTransaction(ctx context.Context, tx database.Tx, tran
 // would be a write nobody could tell was incomplete.
 func (r *repository) recordAndEmit(
 	ctx context.Context, tx database.Tx,
-	accountID, resourceType, relevantID, auditEventType, changeEventType string,
+	accountID, resourceType, relevantID string, auditEventType platformaudit.EventType, changeEventType string,
 	metadata map[string]any,
 ) error {
 	ctx, span := r.tracer.StartSpan(ctx)
@@ -424,35 +424,18 @@ func (r *repository) recordAndEmit(
 
 	logger := r.logger.WithSpan(span).WithValue(resourceType, relevantID)
 
-	return r.recorder.RecordAndEmit(ctx, tx, logger, auditEntry(accountID, resourceType, relevantID, auditEventType), changeEventType, accountID, metadata)
+	return r.recorder.RecordAndEmit(ctx, tx, logger, audit.NewEntry("", accountID, resourceType, relevantID, auditEventType), changeEventType, accountID, metadata)
 }
 
 // record writes the audit entry alone, for the writes that owe an entry and no
 // event. See the package documentation for which those are.
-func (r *repository) record(ctx context.Context, tx database.Tx, accountID, resourceType, relevantID, auditEventType string) error {
+func (r *repository) record(ctx context.Context, tx database.Tx, accountID, resourceType, relevantID string, auditEventType platformaudit.EventType) error {
 	ctx, span := r.tracer.StartSpan(ctx)
 	defer span.End()
 
-	if err := r.auditLogEntryRepo.Record(ctx, tx, auditEntry(accountID, resourceType, relevantID, auditEventType)); err != nil {
+	if err := r.auditLogEntryRepo.Record(ctx, tx, audit.NewEntry("", accountID, resourceType, relevantID, auditEventType)); err != nil {
 		return observability.PrepareError(err, span, "creating audit log entry")
 	}
 
 	return nil
-}
-
-// auditEntry is the entry every write here records. The account is a pointer
-// because the catalog has none, and a product's entry has to be able to say so.
-func auditEntry(accountID, resourceType, relevantID, auditEventType string) *audit.AuditLogEntry {
-	entry := &audit.AuditLogEntry{
-		ID:           identifiers.New(),
-		ResourceType: resourceType,
-		RelevantID:   relevantID,
-		EventType:    auditEventType,
-	}
-
-	if accountID != "" {
-		entry.BelongsToAccount = &accountID
-	}
-
-	return entry
 }

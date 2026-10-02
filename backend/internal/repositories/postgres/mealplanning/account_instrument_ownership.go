@@ -10,6 +10,7 @@ import (
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
+	platformaudit "github.com/primandproper/platform-go/v14/audit"
 	"github.com/primandproper/primitives-go/v2/database"
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/filtering"
@@ -202,12 +203,7 @@ func (q *repository) CreateAccountInstrumentOwnership(ctx context.Context, input
 			return err
 		}
 
-		return q.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
-			BelongsToAccount: &input.BelongsToAccount,
-			ResourceType:     resourceTypeAccountInstrumentOwnerships,
-			RelevantID:       input.ID,
-			EventType:        audit.AuditLogEventTypeCreated,
-		})
+		return q.auditLogEntryRepo.Record(ctx, tx, audit.NewEntry("", input.BelongsToAccount, resourceTypeAccountInstrumentOwnerships, input.ID, platformaudit.EventCreated))
 	}); err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "performing account instrument ownership creation query")
 	}
@@ -250,12 +246,7 @@ func (q *repository) UpdateAccountInstrumentOwnership(ctx context.Context, updat
 			return updateErr
 		}
 
-		return q.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
-			BelongsToAccount: &updated.BelongsToAccount,
-			ResourceType:     resourceTypeAccountInstrumentOwnerships,
-			RelevantID:       updated.ID,
-			EventType:        audit.AuditLogEventTypeUpdated,
-		})
+		return q.auditLogEntryRepo.Record(ctx, tx, audit.NewEntry("", updated.BelongsToAccount, resourceTypeAccountInstrumentOwnerships, updated.ID, platformaudit.EventUpdated))
 	}); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "updating account instrument ownership")
 	}
@@ -301,12 +292,7 @@ func (q *repository) ArchiveAccountInstrumentOwnership(ctx context.Context, acco
 
 		// The audit log entry belongs in this transaction too: it describes the same
 		// write, and half of a write is not something to record.
-		if auditErr := q.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
-			BelongsToAccount: &accountID,
-			ResourceType:     resourceTypeAccountInstrumentOwnerships,
-			RelevantID:       accountInstrumentOwnershipID,
-			EventType:        audit.AuditLogEventTypeArchived,
-		}); auditErr != nil {
+		if auditErr := q.auditLogEntryRepo.Record(ctx, tx, audit.NewEntry("", accountID, resourceTypeAccountInstrumentOwnerships, accountInstrumentOwnershipID, platformaudit.EventArchived)); auditErr != nil {
 			return observability.PrepareError(auditErr, span, "creating audit log entry")
 		}
 

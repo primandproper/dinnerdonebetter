@@ -8,9 +8,9 @@ import (
 	notificationskeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/recording"
 
+	platformaudit "github.com/primandproper/platform-go/v14/audit"
 	platformnotifications "github.com/primandproper/platform-go/v14/notifications"
 	"github.com/primandproper/primitives-go/v2/database"
-	"github.com/primandproper/primitives-go/v2/identifiers"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
 	"github.com/primandproper/primitives-go/v2/tenancy"
@@ -48,7 +48,7 @@ func (i *inbox) CreateNotification(
 
 	if err = i.record(ctx, tx, created.ID, created.Principal,
 		resourceTypeUserNotifications,
-		audit.AuditLogEventTypeCreated,
+		platformaudit.EventCreated,
 		ddbnotifications.UserNotificationCreatedServiceEventType,
 		notificationskeys.UserNotificationIDKey); err != nil {
 		return nil, err
@@ -76,7 +76,7 @@ func (i *inbox) ArchiveNotification(
 
 	if err = i.record(ctx, tx, notificationID, principal,
 		resourceTypeUserNotifications,
-		audit.AuditLogEventTypeArchived,
+		platformaudit.EventArchived,
 		ddbnotifications.UserNotificationUpdatedServiceEventType,
 		notificationskeys.UserNotificationIDKey); err != nil {
 		return nil, err
@@ -104,7 +104,7 @@ func (r *registry) RegisterDevice(
 
 	if err = r.record(ctx, tx, registered.ID, registered.Principal,
 		resourceTypeUserDeviceTokens,
-		audit.AuditLogEventTypeCreated,
+		platformaudit.EventCreated,
 		ddbnotifications.UserDeviceTokenCreatedServiceEventType,
 		notificationskeys.UserDeviceTokenIDKey); err != nil {
 		return nil, err
@@ -136,7 +136,7 @@ func (r *registry) RevokeDevice(
 
 	if err = r.record(ctx, tx, deviceID, principal,
 		resourceTypeUserDeviceTokens,
-		audit.AuditLogEventTypeArchived,
+		platformaudit.EventArchived,
 		ddbnotifications.UserDeviceTokenArchivedServiceEventType,
 		notificationskeys.UserDeviceTokenIDKey); err != nil {
 		return nil, err
@@ -150,7 +150,7 @@ func (r *registry) RevokeDevice(
 func (i *inbox) record(
 	ctx context.Context,
 	tx database.Tx,
-	relevantID, principal, resourceType, auditEventType, changeEventType, logKey string,
+	relevantID, principal, resourceType string, auditEventType platformaudit.EventType, changeEventType, logKey string,
 ) error {
 	return recordOne(ctx, tx, i.tracer, i.logger, i.recorder,
 		relevantID, principal, resourceType, auditEventType, changeEventType, logKey)
@@ -159,7 +159,7 @@ func (i *inbox) record(
 func (r *registry) record(
 	ctx context.Context,
 	tx database.Tx,
-	relevantID, principal, resourceType, auditEventType, changeEventType, logKey string,
+	relevantID, principal, resourceType string, auditEventType platformaudit.EventType, changeEventType, logKey string,
 ) error {
 	return recordOne(ctx, tx, r.tracer, r.logger, r.recorder,
 		relevantID, principal, resourceType, auditEventType, changeEventType, logKey)
@@ -178,16 +178,10 @@ func recordOne(
 	tracer tracing.Tracer,
 	logger logging.Logger,
 	recorder *recording.Recorder,
-	relevantID, principal, resourceType, auditEventType, changeEventType, logKey string,
+	relevantID, principal, resourceType string, auditEventType platformaudit.EventType, changeEventType, logKey string,
 ) error {
 	ctx, span := tracer.StartSpan(ctx)
 	defer span.End()
 
-	return recorder.RecordAndEmit(ctx, tx, logger.WithSpan(span).WithValue(logKey, relevantID), &audit.AuditLogEntry{
-		ID:            identifiers.New(),
-		ResourceType:  resourceType,
-		RelevantID:    relevantID,
-		EventType:     auditEventType,
-		BelongsToUser: principal,
-	}, changeEventType, "", map[string]any{logKey: relevantID})
+	return recorder.RecordAndEmit(ctx, tx, logger.WithSpan(span).WithValue(logKey, relevantID), audit.NewEntry(principal, "", resourceType, relevantID, auditEventType), changeEventType, "", map[string]any{logKey: relevantID})
 }

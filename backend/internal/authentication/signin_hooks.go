@@ -10,11 +10,11 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/recording"
 
+	platformaudit "github.com/primandproper/platform-go/v14/audit"
 	"github.com/primandproper/platform-go/v14/authentication/signin"
 	"github.com/primandproper/platform-go/v14/identity"
 	"github.com/primandproper/primitives-go/v2/database"
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
-	"github.com/primandproper/primitives-go/v2/identifiers"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/tenancy"
 )
@@ -102,13 +102,7 @@ func (h *signInHooks) recordImpersonation(ctx context.Context, tx database.Tx, l
 
 	principal := authentication.Principal
 
-	entry := &audit.AuditLogEntry{
-		ID:            identifiers.New(),
-		ResourceType:  usersResourceType,
-		RelevantID:    principal.User.ID,
-		EventType:     audit.AuditLogEventTypeOther,
-		BelongsToUser: authentication.ActorID,
-	}
+	entry := audit.NewEntry(authentication.ActorID, "", usersResourceType, principal.User.ID, platformaudit.EventOther)
 
 	if err := h.recorder.RecordAndEmit(ctx, tx, logger.WithValue(identitykeys.ImpersonatorIDKey, authentication.ActorID), entry,
 		ddbidentity.UserImpersonatedServiceEventType, principal.ActiveAccountID,
@@ -193,13 +187,7 @@ func (h *signInHooks) recordCredentialWrite(ctx context.Context, tx database.Tx,
 
 	logger := h.logger.WithValue(identitykeys.UserIDKey, user.ID)
 
-	entry := &audit.AuditLogEntry{
-		ID:            identifiers.New(),
-		ResourceType:  usersResourceType,
-		RelevantID:    user.ID,
-		EventType:     audit.AuditLogEventTypeUpdated,
-		BelongsToUser: user.ID,
-	}
+	entry := audit.NewEntry(user.ID, "", usersResourceType, user.ID, platformaudit.EventUpdated)
 
 	if err := h.recorder.RecordAndEmit(ctx, tx, logger, entry, eventType, "",
 		map[string]any{identitykeys.UserIDKey: user.ID}, events.WithUserID(user.ID)); err != nil {

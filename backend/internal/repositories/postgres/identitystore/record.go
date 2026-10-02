@@ -6,8 +6,8 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 
+	platformaudit "github.com/primandproper/platform-go/v14/audit"
 	"github.com/primandproper/primitives-go/v2/database"
-	"github.com/primandproper/primitives-go/v2/identifiers"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
 )
 
@@ -28,7 +28,7 @@ type entry struct {
 	relevantID   string
 
 	// auditEventType is created, updated or archived.
-	auditEventType string
+	auditEventType platformaudit.EventType
 
 	// changeEventType is what goes on the outbox, and is empty for a row whose change
 	// nothing subscribes to. An operation's several entries frequently share one event:
@@ -66,17 +66,7 @@ func (h *Hooks) record(ctx context.Context, tx database.Tx, entries ...*entry) e
 
 		tracing.AttachToSpan(span, e.resourceType, e.relevantID)
 
-		auditEntry := &audit.AuditLogEntry{
-			ID:            identifiers.New(),
-			ResourceType:  e.resourceType,
-			RelevantID:    e.relevantID,
-			EventType:     e.auditEventType,
-			BelongsToUser: e.belongsToUser,
-		}
-
-		if e.belongsToAccount != "" {
-			auditEntry.BelongsToAccount = &e.belongsToAccount
-		}
+		auditEntry := audit.NewEntry(e.belongsToUser, e.belongsToAccount, e.resourceType, e.relevantID, e.auditEventType)
 
 		metadata := e.metadata
 		if metadata == nil {
@@ -93,7 +83,7 @@ func (h *Hooks) record(ctx context.Context, tx database.Tx, entries ...*entry) e
 }
 
 // userEntry names a row that is about one person and no account.
-func userEntry(userID, auditEventType, changeEventType string) *entry {
+func userEntry(userID string, auditEventType platformaudit.EventType, changeEventType string) *entry {
 	return &entry{
 		resourceType:    resourceTypeUsers,
 		relevantID:      userID,
@@ -105,7 +95,7 @@ func userEntry(userID, auditEventType, changeEventType string) *entry {
 }
 
 // accountEntry names a row that is about an account, filed on that account's chain.
-func accountEntry(accountID, ownerUserID, auditEventType, changeEventType string) *entry {
+func accountEntry(accountID, ownerUserID string, auditEventType platformaudit.EventType, changeEventType string) *entry {
 	return &entry{
 		resourceType:     resourceTypeAccounts,
 		relevantID:       accountID,
@@ -121,7 +111,7 @@ func accountEntry(accountID, ownerUserID, auditEventType, changeEventType string
 }
 
 // membershipEntry names somebody's place in an account.
-func membershipEntry(membershipID, userID, accountID, auditEventType, changeEventType string) *entry {
+func membershipEntry(membershipID, userID, accountID string, auditEventType platformaudit.EventType, changeEventType string) *entry {
 	return &entry{
 		resourceType:     resourceTypeAccountUserMemberships,
 		relevantID:       membershipID,
@@ -142,7 +132,7 @@ func membershipEntry(membershipID, userID, accountID, auditEventType, changeEven
 // the invitee frequently has no user row yet — an invitation to an address nobody has
 // registered is the ordinary case, and an entry filed under a user who does not exist is
 // an entry nobody can read.
-func invitationEntry(invitationID, accountID, auditEventType, changeEventType string) *entry {
+func invitationEntry(invitationID, accountID string, auditEventType platformaudit.EventType, changeEventType string) *entry {
 	return &entry{
 		resourceType:     resourceTypeAccountInvitations,
 		relevantID:       invitationID,

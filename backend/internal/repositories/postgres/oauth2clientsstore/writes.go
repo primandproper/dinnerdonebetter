@@ -7,9 +7,9 @@ import (
 	ddboauth "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
 	oauthkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth/keys"
 
+	platformaudit "github.com/primandproper/platform-go/v14/audit"
 	platformoauth2clients "github.com/primandproper/platform-go/v14/authentication/oauth2clients"
 	"github.com/primandproper/primitives-go/v2/database"
-	"github.com/primandproper/primitives-go/v2/identifiers"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
 	"github.com/primandproper/primitives-go/v2/tenancy"
 )
@@ -42,7 +42,7 @@ func (s *store) CreateClient(
 	}
 
 	if err = s.record(ctx, tx, created,
-		audit.AuditLogEventTypeCreated,
+		platformaudit.EventCreated,
 		ddboauth.OAuth2ClientCreatedServiceEventType); err != nil {
 		return nil, err
 	}
@@ -67,7 +67,7 @@ func (s *store) UpdateClient(
 	}
 
 	if err = s.record(ctx, tx, revised,
-		audit.AuditLogEventTypeUpdated,
+		platformaudit.EventUpdated,
 		ddboauth.OAuth2ClientUpdatedServiceEventType); err != nil {
 		return nil, err
 	}
@@ -95,7 +95,7 @@ func (s *store) ArchiveClient(
 	}
 
 	if err = s.record(ctx, tx, withdrawn,
-		audit.AuditLogEventTypeArchived,
+		platformaudit.EventArchived,
 		ddboauth.OAuth2ClientArchivedServiceEventType); err != nil {
 		return nil, err
 	}
@@ -119,7 +119,7 @@ func (s *store) record(
 	ctx context.Context,
 	tx database.Tx,
 	client *platformoauth2clients.Client,
-	auditEventType, changeEventType string,
+	auditEventType platformaudit.EventType, changeEventType string,
 ) error {
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
@@ -135,13 +135,7 @@ func (s *store) record(
 
 	logger := s.logger.WithSpan(span).WithValue(oauthkeys.OAuth2ClientIDKey, client.ID)
 
-	return s.recorder.RecordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
-		ID:            identifiers.New(),
-		ResourceType:  resourceTypeOAuth2Clients,
-		RelevantID:    client.ID,
-		EventType:     auditEventType,
-		BelongsToUser: client.BelongsToUser,
-	}, changeEventType, "", map[string]any{
+	return s.recorder.RecordAndEmit(ctx, tx, logger, audit.NewEntry(client.BelongsToUser, "", resourceTypeOAuth2Clients, client.ID, auditEventType), changeEventType, "", map[string]any{
 		oauthkeys.OAuth2ClientIDKey:       client.ID,
 		oauthkeys.OAuth2ClientClientIDKey: client.ClientID,
 	})

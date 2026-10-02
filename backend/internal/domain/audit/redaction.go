@@ -4,10 +4,6 @@ import (
 	platformaudit "github.com/primandproper/platform-go/v14/audit"
 )
 
-// Redaction declares what happens to a resource type's named fields on the way
-// into the log.
-type Redaction = platformaudit.Redaction
-
 // Redactions is this application's policy for what never becomes durable in the
 // audit log, keyed by resource type. The empty key applies to every resource
 // type.
@@ -29,7 +25,7 @@ type Redaction = platformaudit.Redaction
 // Hash rather than Drop where the audit question is "did this change, and is it
 // the same value as that one" — rotating a credential is a real event worth
 // recording, and the new credential is not a thing to write down.
-var Redactions = map[string]Redaction{
+var Redactions = map[string]platformaudit.Redaction{
 	"": {
 		Drop: []string{
 			"password",

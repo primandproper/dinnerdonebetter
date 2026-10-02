@@ -15,7 +15,7 @@ is which tracer names the span, and that is a constructor argument.
 
 # Why this is not in platform-go
 
-Both halves are this application's vocabulary sitting on platform's engines. audit.AuditLogEntry
+Both halves are this application's vocabulary sitting on platform's engines. platformaudit.Entry
 names a BelongsToUser and a BelongsToAccount because tenancy depth is an application's decision
 and ours is two-level; the local audit.Recorder translates that to platform's Actor and Scope.
 events.Emitter builds this application's DataChangeMessage from the context and hands it to
@@ -36,6 +36,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 
+	platformaudit "github.com/primandproper/platform-go/v14/audit"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/observability"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
@@ -84,7 +85,7 @@ func (r *Recorder) RecordAndEmit(
 	ctx context.Context,
 	tx database.Tx,
 	logger logging.Logger,
-	entry *audit.AuditLogEntry,
+	entry *platformaudit.Entry,
 	eventType, accountID string,
 	metadata map[string]any,
 	opts ...events.EmitOption,

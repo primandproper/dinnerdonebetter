@@ -14,6 +14,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
+	platformaudit "github.com/primandproper/platform-go/v14/audit"
 	platformcomments "github.com/primandproper/platform-go/v14/comments"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/database/postgres"
@@ -112,7 +113,7 @@ func TestRepository_Integration_Comments(t *testing.T) {
 	_, err := createComment(t, ctx, db, dbc, comment)
 	require.NoError(t, err)
 	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, user.ID, []pgtesting.ExpectedAuditEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeComments, ResourceID: comment.ID},
+		{EventType: platformaudit.EventCreated, ResourceType: resourceTypeComments, ResourceID: comment.ID},
 	})
 
 	fetched, err := dbc.GetComment(ctx, db.Reader(), tenancy.Global(), comment.ID)
@@ -135,8 +136,8 @@ func TestRepository_Integration_Comments(t *testing.T) {
 		return updateErr
 	}))
 	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, user.ID, []pgtesting.ExpectedAuditEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeComments, ResourceID: comment.ID},
-		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeComments, ResourceID: comment.ID},
+		{EventType: platformaudit.EventCreated, ResourceType: resourceTypeComments, ResourceID: comment.ID},
+		{EventType: platformaudit.EventUpdated, ResourceType: resourceTypeComments, ResourceID: comment.ID},
 	})
 
 	updated, err := dbc.GetComment(ctx, db.Reader(), tenancy.Global(), comment.ID)
@@ -151,9 +152,9 @@ func TestRepository_Integration_Comments(t *testing.T) {
 		return archiveErr
 	}))
 	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, user.ID, []pgtesting.ExpectedAuditEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeComments, ResourceID: comment.ID},
-		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeComments, ResourceID: comment.ID},
-		{EventType: audit.AuditLogEventTypeArchived, ResourceType: resourceTypeComments, ResourceID: comment.ID},
+		{EventType: platformaudit.EventCreated, ResourceType: resourceTypeComments, ResourceID: comment.ID},
+		{EventType: platformaudit.EventUpdated, ResourceType: resourceTypeComments, ResourceID: comment.ID},
+		{EventType: platformaudit.EventArchived, ResourceType: resourceTypeComments, ResourceID: comment.ID},
 	})
 
 	fetchedAfterArchive, err := dbc.GetComment(ctx, db.Reader(), tenancy.Global(), comment.ID)
@@ -186,8 +187,8 @@ func TestRepository_Integration_ArchiveRecordsTheAuthor(t *testing.T) {
 	// The entry belongs to whoever wrote the comment, not to whoever happened to be
 	// signed in when it was archived.
 	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, author.ID, []pgtesting.ExpectedAuditEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeComments, ResourceID: comment.ID},
-		{EventType: audit.AuditLogEventTypeArchived, ResourceType: resourceTypeComments, ResourceID: comment.ID},
+		{EventType: platformaudit.EventCreated, ResourceType: resourceTypeComments, ResourceID: comment.ID},
+		{EventType: platformaudit.EventArchived, ResourceType: resourceTypeComments, ResourceID: comment.ID},
 	})
 
 	entries := pgtesting.AuditEntriesForActor(t, ctx, db, archiver.ID)

@@ -8,6 +8,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
+	platformaudit "github.com/primandproper/platform-go/v14/audit"
 	"github.com/primandproper/platform-go/v14/authentication/passwordreset"
 	passwordresetmock "github.com/primandproper/platform-go/v14/authentication/passwordreset/mock"
 	"github.com/primandproper/primitives-go/v2/database"
@@ -52,7 +53,7 @@ func TestQuerier_Integration_PasswordResetTokens(t *testing.T) {
 	assert.Nil(t, issuance.Token.RedeemedAt)
 
 	pgtesting.AssertAuditLogContainsForUser(t, ctx, dbc, user.ID, []pgtesting.ExpectedAuditEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypePasswordResetTokens, ResourceID: issuance.Token.ID},
+		{EventType: platformaudit.EventCreated, ResourceType: resourceTypePasswordResetTokens, ResourceID: issuance.Token.ID},
 	})
 
 	// the row holds a digest, not the token. This is the property the hand-written store
@@ -76,8 +77,8 @@ func TestQuerier_Integration_PasswordResetTokens(t *testing.T) {
 	assert.NotNil(t, consumed.RedeemedAt)
 
 	pgtesting.AssertAuditLogContainsForUser(t, ctx, dbc, user.ID, []pgtesting.ExpectedAuditEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypePasswordResetTokens, ResourceID: issuance.Token.ID},
-		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypePasswordResetTokens, ResourceID: issuance.Token.ID},
+		{EventType: platformaudit.EventCreated, ResourceType: resourceTypePasswordResetTokens, ResourceID: issuance.Token.ID},
+		{EventType: platformaudit.EventUpdated, ResourceType: resourceTypePasswordResetTokens, ResourceID: issuance.Token.ID},
 	})
 
 	// a token is spendable exactly once, and the store is what says so

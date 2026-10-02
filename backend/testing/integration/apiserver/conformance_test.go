@@ -28,6 +28,7 @@ import (
 	mealplanninggenerated "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
 
+	platformaudit "github.com/primandproper/platform-go/v14/audit"
 	"github.com/primandproper/platform-go/v14/audit/auditpb"
 	auditclient "github.com/primandproper/platform-go/v14/audit/grpc/client"
 	oauth2clientsclient "github.com/primandproper/platform-go/v14/authentication/oauth2clients/grpc/client"
@@ -469,13 +470,7 @@ func conformanceAuditable(ctx context.Context, scope tenancy.Scope) (*conformanc
 	}
 
 	accountID := scope.Owner()
-	entry := &ddbaudit.AuditLogEntry{
-		BelongsToAccount: &accountID,
-		BelongsToUser:    identifiers.New(),
-		ResourceType:     "conformance_audited",
-		RelevantID:       identifiers.New(),
-		EventType:        ddbaudit.AuditLogEventTypeOther,
-	}
+	entry := ddbaudit.NewEntry(identifiers.New(), accountID, "conformance_audited", identifiers.New(), platformaudit.EventOther)
 
 	if err = databaseClient.WithTransaction(context.WithoutCancel(ctx), func(tx database.Tx) error {
 		return repo.Record(ctx, tx, entry)
@@ -485,8 +480,8 @@ func conformanceAuditable(ctx context.Context, scope tenancy.Scope) (*conformanc
 
 	return &conformance.Audited{
 		ResourceType: entry.ResourceType,
-		ResourceID:   entry.RelevantID,
-		ActorID:      entry.BelongsToUser,
+		ResourceID:   entry.ResourceID,
+		ActorID:      entry.Actor.ID,
 	}, nil
 }
 

@@ -7,7 +7,6 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	auditmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit/mock"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/datachanges"
@@ -16,6 +15,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/recording"
 
+	platformaudit "github.com/primandproper/platform-go/v14/audit"
 	"github.com/primandproper/platform-go/v14/authentication/signin"
 	"github.com/primandproper/platform-go/v14/identity"
 	"github.com/primandproper/platform-go/v14/outbox"
@@ -54,7 +54,7 @@ func buildSignInHooksHarness(t *testing.T, execErr error) *signInHooksHarness {
 
 	emitter := events.NewEmitter(writer, t.Name(), nil, nil)
 	audited := &auditmock.RepositoryMock{
-		RecordFunc: func(context.Context, database.Tx, ...*audit.AuditLogEntry) error { return nil },
+		RecordFunc: func(context.Context, database.Tx, ...*platformaudit.Entry) error { return nil },
 	}
 
 	return &signInHooksHarness{
@@ -161,8 +161,8 @@ func TestSignInHooks_AfterAuthenticate(T *testing.T) {
 		calls := harness.audited.RecordCalls()
 		require.Len(t, calls, 1)
 		require.Len(t, calls[0].Entries, 1)
-		assert.Equal(t, operator.ID, calls[0].Entries[0].BelongsToUser)
-		assert.Equal(t, user.ID, calls[0].Entries[0].RelevantID)
+		assert.Equal(t, operator.ID, calls[0].Entries[0].Actor.ID)
+		assert.Equal(t, user.ID, calls[0].Entries[0].ResourceID)
 	})
 
 	T.Run("refuses the sign-in when the event cannot be enqueued", func(t *testing.T) {
@@ -259,9 +259,9 @@ func TestSignInHooks_CredentialWrites(T *testing.T) {
 			recorded := harness.audited.RecordCalls()
 			require.Len(t, recorded, 1)
 			require.Len(t, recorded[0].Entries, 1)
-			assert.Equal(t, audit.AuditLogEventTypeUpdated, recorded[0].Entries[0].EventType)
+			assert.Equal(t, platformaudit.EventUpdated, recorded[0].Entries[0].EventType)
 			assert.Equal(t, usersResourceType, recorded[0].Entries[0].ResourceType)
-			assert.Equal(t, user.ID, recorded[0].Entries[0].RelevantID)
+			assert.Equal(t, user.ID, recorded[0].Entries[0].ResourceID)
 		})
 
 		T.Run(name+" is refused when the event cannot be enqueued", func(t *testing.T) {

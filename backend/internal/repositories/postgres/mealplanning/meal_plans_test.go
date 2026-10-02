@@ -5,12 +5,12 @@ import (
 	"database/sql"
 	"testing"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
+	platformaudit "github.com/primandproper/platform-go/v14/audit"
 	"github.com/primandproper/primitives-go/v2/fake"
 	"github.com/primandproper/primitives-go/v2/filtering"
 
@@ -146,7 +146,7 @@ func TestQuerier_Integration_MealPlans(t *testing.T) {
 	createdMealPlans = append(createdMealPlans, createMealPlanForTest(t, ctx, exampleMealPlan, dbc))
 
 	pgtesting.AssertAuditLogContains(t, ctx, dbc, accountID, []pgtesting.ExpectedAuditEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeMealPlans, ResourceID: createdMealPlans[0].ID},
+		{EventType: platformaudit.EventCreated, ResourceType: resourceTypeMealPlans, ResourceID: createdMealPlans[0].ID},
 	})
 
 	// create more
@@ -177,7 +177,7 @@ func TestQuerier_Integration_MealPlans(t *testing.T) {
 		require.NoError(t, dbc.ArchiveMealPlan(ctx, mealPlan.ID, accountID))
 
 		pgtesting.AssertAuditLogContains(t, ctx, dbc, accountID, []pgtesting.ExpectedAuditEntry{
-			{EventType: audit.AuditLogEventTypeArchived, ResourceType: resourceTypeMealPlans, ResourceID: mealPlan.ID},
+			{EventType: platformaudit.EventArchived, ResourceType: resourceTypeMealPlans, ResourceID: mealPlan.ID},
 		})
 
 		var exists bool

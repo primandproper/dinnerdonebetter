@@ -5,11 +5,11 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	auditmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit/mock"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings/fakes"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/recording"
 
+	platformaudit "github.com/primandproper/platform-go/v14/audit"
 	settings "github.com/primandproper/platform-go/v14/settings"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/tenancy"
@@ -52,7 +52,7 @@ func TestQuerier_Integration_RecordAndEmitFailureSurfaces(t *testing.T) {
 	// test asserting nothing. The emitter is nil because the harness builds none, which is what
 	// ProvideSettingsRepository was handed above.
 	repo.recorder = recording.NewRecorder(repo.tracer, &auditmock.RepositoryMock{
-		RecordFunc: func(context.Context, database.Tx, ...*audit.AuditLogEntry) error {
+		RecordFunc: func(context.Context, database.Tx, ...*platformaudit.Entry) error {
 			return expected
 		},
 	}, nil)
