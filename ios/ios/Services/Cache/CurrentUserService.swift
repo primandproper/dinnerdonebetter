@@ -8,6 +8,7 @@
 import Cache
 import Foundation
 import Observability
+import PlatformClient
 import SwiftProtobuf
 
 enum CurrentUserError: Error { case noUser }
@@ -38,10 +39,10 @@ actor CurrentUserService {
     }
     let response = try await authManager.authenticatedCall("getSelf", idempotent: true) {
       client, metadata, options in
-      try await client.auth.getSelf(Auth_GetSelfRequest(), metadata: metadata, options: options)
+      try await client.signIn.getSelf(.init(), metadata: metadata, options: options)
     }
-    guard response.hasResult else { throw CurrentUserError.noUser }
-    let user = response.result
+    guard response.hasUser else { throw CurrentUserError.noUser }
+    let user = response.user
     if let data = try? user.serializedData() {
       try? await cache.set(Self.key, to: data)
     }

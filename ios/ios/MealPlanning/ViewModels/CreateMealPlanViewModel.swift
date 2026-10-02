@@ -7,6 +7,7 @@
 
 import Foundation
 import GRPCCore
+import PlatformClient
 import SwiftProtobuf
 import SwiftUI
 
@@ -477,23 +478,25 @@ class CreateMealPlanViewModel {
       createdMealPlanID = createdPlan.id
       isCreating = false
       return true
-    } catch let error as GRPCCore.RPCError {
-      creationError =
-        error.code == .alreadyExists
-        ? "One or more meals are already in this plan."
-        : "Failed to create meal plan: \(error.localizedDescription)"
-      AnalyticsConfiguration.provideEventReporter().track(
-        event: "meal_plan_creation_failed",
-        properties: ["error": creationError ?? "Unknown error"])
-      isCreating = false
-      return false
     } catch {
-      creationError = "Failed to create meal plan: \(error.localizedDescription)"
-      AnalyticsConfiguration.provideEventReporter().track(
-        event: "meal_plan_creation_failed",
-        properties: ["error": creationError ?? "Unknown error"])
-      isCreating = false
-      return false
+      if let error = error.platformError {
+        creationError =
+          error.code == .alreadyExists
+          ? "One or more meals are already in this plan."
+          : "Failed to create meal plan: \(error.localizedDescription)"
+        AnalyticsConfiguration.provideEventReporter().track(
+          event: "meal_plan_creation_failed",
+          properties: ["error": creationError ?? "Unknown error"])
+        isCreating = false
+        return false
+      } else {
+        creationError = "Failed to create meal plan: \(error.localizedDescription)"
+        AnalyticsConfiguration.provideEventReporter().track(
+          event: "meal_plan_creation_failed",
+          properties: ["error": creationError ?? "Unknown error"])
+        isCreating = false
+        return false
+      }
     }
   }
 

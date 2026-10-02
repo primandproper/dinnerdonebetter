@@ -1,5 +1,5 @@
 {
-  "originHash" : "f5218eaa05d1dd8b951dc37599d6d419a7a71558c4a1a32a27a8352dfaa8fee7",
+  "originHash" : "f5fcdbe32cc5e1e11c4b39be7bb2f7c972a7b5838e2d2606b87340ac2edaa5e8",
   "pins" : [
     {
       "identity" : "beautiful-mermaid-swift",
@@ -44,6 +44,15 @@
       "state" : {
         "revision" : "c008d356d9e9c2255602711888bf25b542a30919",
         "version" : "2.1.1"
+      }
+    },
+    {
+      "identity" : "platform-client-swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/primandproper/platform-client-swift.git",
+      "state" : {
+        "revision" : "c72aede9944c91b9d29953c5def1e72d0cc5e118",
+        "version" : "0.0.1"
       }
     },
     {

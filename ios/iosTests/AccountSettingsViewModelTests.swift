@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import PlatformClient
 import SwiftProtobuf
 @testable import ios
 import Testing
@@ -31,12 +32,10 @@ func createMockAccount(id: String = "account-1", name: String = "Test Account") 
   return account
 }
 
-func createMockUser(id: String = "user-1") -> Auth_GetSelfResponse {
-  var response = Auth_GetSelfResponse()
+func createMockUser(id: String = "user-1") -> Primandproper_Platform_Identity_V1_User {
   var user = Primandproper_Platform_Identity_V1_User()
   user.id = id
-  response.result = user
-  return response
+  return user
 }
 
 // A membership carries a set of roles rather than one, because a role is a grant and
@@ -64,7 +63,6 @@ func createMockMembership(
 func createMockAuthenticationManagerForAccount() -> AuthenticationManager {
   let manager = AuthenticationManager()
   manager.isAuthenticated = true
-  manager.oauth2AccessToken = "mock-oauth2-token"
   return manager
 }
 

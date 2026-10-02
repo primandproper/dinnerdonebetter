@@ -18,11 +18,6 @@ struct AuthenticationManagerTests {
         
         #expect(manager.isAuthenticated == false)
         #expect(manager.username.isEmpty)
-        #expect(manager.accessToken.isEmpty)
-        #expect(manager.refreshToken.isEmpty)
-        #expect(manager.oauth2AccessToken.isEmpty)
-        #expect(manager.oauth2RefreshToken.isEmpty)
-        #expect(manager.oauth2TokenExpiresAt == nil)
         #expect(manager.userID.isEmpty)
         #expect(manager.accountID.isEmpty)
     }
@@ -37,11 +32,6 @@ struct AuthenticationManagerTests {
         await MainActor.run {
             manager.isAuthenticated = true
             manager.username = "testuser"
-            manager.accessToken = "test-access-token"
-            manager.refreshToken = "test-refresh-token"
-            manager.oauth2AccessToken = "test-oauth2-access-token"
-            manager.oauth2RefreshToken = "test-oauth2-refresh-token"
-            manager.oauth2TokenExpiresAt = Date()
             manager.userID = "user-123"
             manager.accountID = "account-456"
         }
@@ -49,7 +39,6 @@ struct AuthenticationManagerTests {
         // Verify state is set
         #expect(manager.isAuthenticated == true)
         #expect(manager.username == "testuser")
-        #expect(!manager.accessToken.isEmpty)
         
         // Logout
         await manager.logout()
@@ -57,11 +46,6 @@ struct AuthenticationManagerTests {
         // Verify all state is cleared
         #expect(manager.isAuthenticated == false)
         #expect(manager.username.isEmpty)
-        #expect(manager.accessToken.isEmpty)
-        #expect(manager.refreshToken.isEmpty)
-        #expect(manager.oauth2AccessToken.isEmpty)
-        #expect(manager.oauth2RefreshToken.isEmpty)
-        #expect(manager.oauth2TokenExpiresAt == nil)
         #expect(manager.userID.isEmpty)
         #expect(manager.accountID.isEmpty)
     }
@@ -84,133 +68,6 @@ struct AuthenticationManagerTests {
         // Verify state remains cleared
         #expect(manager.isAuthenticated == false)
         #expect(manager.username.isEmpty)
-    }
-    
-    // MARK: - OAuth2 Token Expiration Tests
-    
-    @Test("getOAuth2AccessToken returns nil when no token is available")
-    func testGetOAuth2AccessTokenWithNoToken() async {
-        let manager = AuthenticationManager()
-        
-        let token = await manager.getOAuth2AccessToken()
-        
-        #expect(token == nil)
-    }
-    
-    @Test("getOAuth2AccessToken returns token when not expired")
-    func testGetOAuth2AccessTokenWithValidToken() async {
-        let manager = AuthenticationManager()
-        
-        // Set a valid token that expires in 1 hour
-        await MainActor.run {
-            manager.oauth2AccessToken = "valid-token"
-            manager.oauth2TokenExpiresAt = Date().addingTimeInterval(3600) // 1 hour from now
-        }
-        
-        let token = await manager.getOAuth2AccessToken()
-        
-        #expect(token == "valid-token")
-    }
-    
-    @Test("getOAuth2AccessToken returns nil when token is expired and no refresh token")
-    func testGetOAuth2AccessTokenWithExpiredTokenNoRefresh() async {
-        let manager = AuthenticationManager()
-        
-        // Set an expired token with no refresh token
-        await MainActor.run {
-            manager.oauth2AccessToken = "expired-token"
-            manager.oauth2TokenExpiresAt = Date().addingTimeInterval(-3600) // 1 hour ago
-            manager.oauth2RefreshToken = "" // No refresh token
-        }
-        
-        let token = await manager.getOAuth2AccessToken()
-        
-        // Should return nil since refresh will fail and no JWT token available
-        #expect(token == nil)
-    }
-    
-    @Test("getOAuth2AccessToken detects token expiring soon")
-    func testGetOAuth2AccessTokenWithTokenExpiringSoon() async {
-        let manager = AuthenticationManager()
-        
-        // Set a token that expires in 4 minutes (less than 5 minute threshold)
-        await MainActor.run {
-            manager.oauth2AccessToken = "expiring-token"
-            manager.oauth2TokenExpiresAt = Date().addingTimeInterval(240) // 4 minutes from now
-            manager.oauth2RefreshToken = "" // No refresh token to test the path
-        }
-        
-        // This will attempt to refresh, but since there's no refresh token,
-        // it will try to use JWT token (which is also empty), so returns nil
-        let token = await manager.getOAuth2AccessToken()
-        
-        // Should return nil since refresh will fail
-        #expect(token == nil)
-    }
-    
-    @Test("getOAuth2AccessToken returns token when exactly at 5 minute threshold")
-    func testGetOAuth2AccessTokenAtThreshold() async {
-        let manager = AuthenticationManager()
-        
-        // Set a token that expires in exactly 5 minutes (at the threshold)
-        await MainActor.run {
-            manager.oauth2AccessToken = "threshold-token"
-            manager.oauth2TokenExpiresAt = Date().addingTimeInterval(300) // Exactly 5 minutes
-        }
-        
-        // Should attempt to refresh since it's at the threshold
-        let token = await manager.getOAuth2AccessToken()
-        
-        // Will return nil since refresh will fail (no refresh token)
-        #expect(token == nil)
-    }
-    
-    @Test("getOAuth2AccessToken returns token when over 5 minute threshold")
-    func testGetOAuth2AccessTokenJustOverThreshold() async {
-        let manager = AuthenticationManager()
-        
-        // Set a token that expires in 6 minutes (well over the 5 minute threshold)
-        // Using 360 seconds instead of 301 to avoid race conditions in CI
-        await MainActor.run {
-            manager.oauth2AccessToken = "valid-token"
-            manager.oauth2TokenExpiresAt = Date().addingTimeInterval(360) // 6 minutes
-        }
-        
-        let token = await manager.getOAuth2AccessToken()
-        
-        // Should return the token without attempting refresh
-        #expect(token == "valid-token")
-    }
-    
-    @Test("getOAuth2AccessToken handles token with no expiration date")
-    func testGetOAuth2AccessTokenWithNoExpiration() async {
-        let manager = AuthenticationManager()
-        
-        // Set a token with no expiration date
-        await MainActor.run {
-            manager.oauth2AccessToken = "no-expiry-token"
-            manager.oauth2TokenExpiresAt = nil
-        }
-        
-        let token = await manager.getOAuth2AccessToken()
-        
-        // Should return the token since there's no expiration to check
-        #expect(token == "no-expiry-token")
-    }
-    
-    // MARK: - Refresh Token Tests
-    
-    @Test("refreshOAuth2Token returns false when no refresh token available")
-    func testRefreshOAuth2TokenWithNoRefreshToken() async {
-        let manager = AuthenticationManager()
-        
-        await MainActor.run {
-            manager.oauth2RefreshToken = ""
-        }
-        
-        let result = await manager.refreshOAuth2Token()
-        
-        #expect(result == false)
     }
     
     // MARK: - Client Manager Tests
@@ -336,7 +193,6 @@ struct AuthenticationManagerTests {
         await MainActor.run {
             manager.isAuthenticated = true
             manager.username = "user1"
-            manager.accessToken = "token1"
         }
         
         // Logout
@@ -369,66 +225,14 @@ struct AuthenticationManagerTests {
         // In a real scenario with a running server, it would verify:
         // - isAuthenticated is set to true
         // - username is set
-        // - accessToken is set
-        // - refreshToken is set
         // - userID is set
         // - accountID is set
-        // - OAuth2 token exchange is attempted
+        // - the Session holds the issued token
         
         // For now, we just verify the initial state
         #expect(manager.isAuthenticated == false)
     }
     
-    @Test("OAuth2 token exchange is attempted after successful login")
-    func testOAuth2ExchangeAfterLogin() async {
-        let manager = AuthenticationManager()
-        
-        // This test documents that OAuth2 exchange should happen after login
-        // In a real scenario, we'd verify that exchangeJWTForOAuth2Token is called
-        // and that oauth2AccessToken, oauth2RefreshToken, and oauth2TokenExpiresAt are set
-        
-        // For now, we verify initial OAuth2 state
-        #expect(manager.oauth2AccessToken.isEmpty)
-        #expect(manager.oauth2RefreshToken.isEmpty)
-        #expect(manager.oauth2TokenExpiresAt == nil)
-    }
-    
-    // MARK: - Token Expiration Edge Cases
-    
-    @Test("Token expiration calculation handles future dates correctly")
-    func testTokenExpirationFutureDate() async {
-        let manager = AuthenticationManager()
-        
-        // Set token expiring in 10 hours
-        let futureDate = Date().addingTimeInterval(36000) // 10 hours
-        await MainActor.run {
-            manager.oauth2AccessToken = "future-token"
-            manager.oauth2TokenExpiresAt = futureDate
-        }
-        
-        let token = await manager.getOAuth2AccessToken()
-        
-        // Should return token without attempting refresh
-        #expect(token == "future-token")
-    }
-    
-    @Test("Token expiration calculation handles past dates correctly")
-    func testTokenExpirationPastDate() async {
-        let manager = AuthenticationManager()
-        
-        // Set token that expired 1 hour ago
-        let pastDate = Date().addingTimeInterval(-3600) // 1 hour ago
-        await MainActor.run {
-            manager.oauth2AccessToken = "past-token"
-            manager.oauth2TokenExpiresAt = pastDate
-            manager.oauth2RefreshToken = "" // No refresh token
-        }
-        
-        let token = await manager.getOAuth2AccessToken()
-        
-        // Should return nil since token is expired and can't refresh
-        #expect(token == nil)
-    }
     
     // MARK: - Login Return Value Tests
     

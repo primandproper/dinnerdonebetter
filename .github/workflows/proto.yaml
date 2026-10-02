@@ -1,0 +1,120 @@
+---
+# Everything that depends on the .proto files, under one trigger: a change to the schema can
+# break its formatting and any of the three generated languages, so all of them run, in
+# parallel, whenever any of their inputs change.
+#
+# The generated gRPC code is committed, so each language's job proves it is what the pinned
+# toolchain produces from the committed .proto files. That catches a hand-edited generated file,
+# a pin bumped without regenerating, and a regeneration nobody committed.
+on:
+  pull_request:
+    paths:
+      - proto/**
+      - .protolint.yaml
+      - Makefile
+      - mise.toml
+      - scripts/assert_tool_version*.sh
+      - scripts/protoc-plugins/**
+      - backend/go.mod
+      - backend/internal/grpc/generated/**
+      - frontend/package-lock.json
+      - frontend/packages/api-client/src/**
+      - ios/ios/Generated/**
+      - .github/workflows/proto.yaml
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+name: proto
+jobs:
+  formatting:
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Check formatting
+        run: make check_proto_format
+
+  toolchain_assertions:
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Test the version assertion
+        run: make test_scripts
+
+  generated_files:
+    name: generated files (${{ matrix.language }})
+    timeout-minutes: ${{ matrix.timeout }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      # Each language is its own answer: a stale Swift tree says nothing about the Go one.
+      fail-fast: false
+      matrix:
+        include:
+          - language: go
+            runner: ubuntu-latest
+            timeout: 20
+            target: proto_golang
+            generated: backend/internal/grpc/generated
+          - language: typescript
+            runner: ubuntu-latest
+            timeout: 20
+            target: proto_typescript
+            generated: frontend/packages/api-client/src
+          # macOS for the Swift toolchain the pinned plugins are built with.
+          - language: swift
+            runner: macos-latest
+            timeout: 30
+            target: proto_swift
+            generated: ios/ios/Generated
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      # Every language needs Go: the platform .proto files are read out of the Go module
+      # cache, which the Makefile resolves with `go list` before any target runs.
+      - name: Install Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.27.x'
+          cache: true
+          cache-dependency-path: backend/go.sum
+
+      - name: Download Go modules
+        working-directory: backend
+        run: go mod download
+
+      # The TypeScript plugin, ts-proto, is a frontend dependency.
+      - name: Setup Node.js
+        if: matrix.language == 'typescript'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        if: matrix.language == 'typescript'
+        working-directory: frontend
+        run: npm ci
+
+      # Keep in step with PROTOC_VERSION in the Makefile, which asserts it.
+      - name: Install protoc
+        uses: arduino/setup-protoc@v3
+        with:
+          version: '33.1'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Regenerate
+        run: make ${{ matrix.target }}
+
+      # Only the generated directory: the TypeScript and Swift targets also run their
+      # formatter over the whole app, which is not what this job is checking.
+      - name: Check for changes
+        run: git diff --exit-code -- ${{ matrix.generated }}

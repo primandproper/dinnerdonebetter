@@ -36,22 +36,18 @@ struct RegistrationInput {
 
 /// Protocol defining the authentication interface
 /// Allows both AuthenticationManager and MockAuthenticationManager to be used interchangeably
+///
+/// It holds no tokens. The login lives in the ClientManager's Session, which refreshes it and
+/// keeps it in the Keychain; what is here is who the login belongs to, for the UI.
 protocol AuthenticationManaging: AnyObject {
   var isAuthenticated: Bool { get set }
   var username: String { get set }
-  var accessToken: String { get set }
-  var refreshToken: String { get set }
-  var oauth2AccessToken: String { get set }
-  var oauth2RefreshToken: String { get set }
-  var oauth2TokenExpiresAt: Date? { get set }
   var userID: String { get set }
   var accountID: String { get set }
 
   func login(username: String, password: String, totpToken: String?) async -> LoginResult
   func register(input: RegistrationInput) async -> RegistrationResult
   func getClientManager() throws -> ClientManager<HTTP2ClientTransport.TransportServices>
-  func getOAuth2AccessToken() async -> String?
-  func refreshOAuth2Token() async -> Bool
   func invalidateCredentialsIfSessionError(_ error: Error) async
   func logout() async
 }

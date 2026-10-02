@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import PlatformClient
 import SwiftProtobuf
 import SwiftUI
 @testable import ios

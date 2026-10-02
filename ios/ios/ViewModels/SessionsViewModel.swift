@@ -1,11 +1,15 @@
 import Foundation
 import GRPCCore
 import GRPCNIOTransportHTTP2
+import PlatformClient
+
+/// One login the signed-in user holds: this device's, or another's.
+typealias SignIn = Primandproper_Platform_Signin_V1_ActiveSignIn
 
 @Observable
 @MainActor
 class SessionsViewModel {
-  var sessions: [Auth_UserSession] = []
+  var sessions: [SignIn] = []
   var isLoading = false
   var errorMessage: String?
 
@@ -20,13 +24,11 @@ class SessionsViewModel {
     errorMessage = nil
 
     do {
-      let (clientManager, metadata) = try getClientManagerAndJwtMetadata()
-      let response = try await clientManager.client.auth.listActiveSessions(
-        Auth_ListActiveSessionsRequest(),
-        metadata: metadata,
-        options: clientManager.defaultCallOptions
-      )
-      sessions = response.sessions
+      let response = try await authManager.authenticatedCall("listSignIns", idempotent: true) {
+        client, metadata, options in
+        try await client.signIn.listSignIns(.init(), metadata: metadata, options: options)
+      }
+      sessions = response.signIns
     } catch {
       await authManager.invalidateCredentialsIfSessionError(error)
       errorMessage = "Failed to load sessions"
@@ -36,20 +38,19 @@ class SessionsViewModel {
     isLoading = false
   }
 
-  func revokeSession(sessionID: String) async -> Bool {
+  /// Ends another login. A login is a refresh-token family, so this ends it on whichever
+  /// device holds it at its next refresh.
+  func revokeSession(familyID: String) async -> Bool {
     isLoading = true
     errorMessage = nil
 
     do {
-      let (clientManager, metadata) = try getClientManagerAndJwtMetadata()
-      var request = Auth_RevokeSessionRequest()
-      request.sessionID = sessionID
-      _ = try await clientManager.client.auth.revokeSession(
-        request,
-        metadata: metadata,
-        options: clientManager.defaultCallOptions
-      )
-      sessions.removeAll { $0.id == sessionID }
+      var request = Primandproper_Platform_Signin_V1_EndSignInRequest()
+      request.familyID = familyID
+      _ = try await authManager.authenticatedCall("endSignIn") { client, metadata, options in
+        try await client.signIn.endSignIn(request, metadata: metadata, options: options)
+      }
+      sessions.removeAll { $0.familyID == familyID }
       isLoading = false
       return true
     } catch {
@@ -66,13 +67,10 @@ class SessionsViewModel {
     errorMessage = nil
 
     do {
-      let (clientManager, metadata) = try getClientManagerAndJwtMetadata()
-      _ = try await clientManager.client.auth.revokeAllOtherSessions(
-        Auth_RevokeAllOtherSessionsRequest(),
-        metadata: metadata,
-        options: clientManager.defaultCallOptions
-      )
-      sessions.removeAll { !$0.isCurrent }
+      _ = try await authManager.authenticatedCall("endOtherSignIns") { client, metadata, options in
+        try await client.signIn.endOtherSignIns(.init(), metadata: metadata, options: options)
+      }
+      sessions.removeAll { !$0.current }
       isLoading = false
       return true
     } catch {
@@ -82,14 +80,5 @@ class SessionsViewModel {
       isLoading = false
       return false
     }
-  }
-
-  // Use JWT (not OAuth2) for session management so isCurrent is set correctly
-  private func getClientManagerAndJwtMetadata() throws -> (
-    ClientManager<HTTP2ClientTransport.TransportServices>, GRPCCore.Metadata
-  ) {
-    let clientManager = try authManager.getClientManager()
-    let metadata = clientManager.authenticatedMetadata(accessToken: authManager.accessToken)
-    return (clientManager, metadata)
   }
 }

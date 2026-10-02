@@ -33,9 +33,23 @@ internal enum Internalops_InternalOperations: Sendable {
                 type: .unary
             )
         }
+        /// Namespace for "ImpersonateUser" metadata.
+        internal enum ImpersonateUser: Sendable {
+            /// Request type for "ImpersonateUser".
+            internal typealias Input = Internalops_ImpersonateUserRequest
+            /// Response type for "ImpersonateUser".
+            internal typealias Output = Internalops_ImpersonateUserResponse
+            /// Descriptor for "ImpersonateUser".
+            internal static let descriptor = GRPCCore.MethodDescriptor(
+                service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "internalops.InternalOperations"),
+                method: "ImpersonateUser",
+                type: .unary
+            )
+        }
         /// Descriptors for all methods in the "internalops.InternalOperations" service.
         internal static let descriptors: [GRPCCore.MethodDescriptor] = [
-            TestQueueMessage.descriptor
+            TestQueueMessage.descriptor,
+            ImpersonateUser.descriptor
         ]
     }
 }
@@ -72,6 +86,32 @@ extension Internalops_InternalOperations {
             deserializer: some GRPCCore.MessageDeserializer<Internalops_TestQueueMessageResponse>,
             options: GRPCCore.CallOptions,
             onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Internalops_TestQueueMessageResponse>) async throws -> Result
+        ) async throws -> Result where Result: Sendable
+
+        /// Call the "ImpersonateUser" method.
+        ///
+        /// > Source IDL Documentation:
+        /// >
+        /// > ImpersonateUser mints a short-lived token for subject_id in account_id that the calling
+        /// > operator acts through. The operator is the caller, never a field: platform's
+        /// > signin.Service.IssueImpersonationToken takes an operator ID on trust, which is why
+        /// > platform exposes no RPC for it and this one reads it off the authenticated session.
+        ///
+        /// - Parameters:
+        ///   - request: A request containing a single `Internalops_ImpersonateUserRequest` message.
+        ///   - serializer: A serializer for `Internalops_ImpersonateUserRequest` messages.
+        ///   - deserializer: A deserializer for `Internalops_ImpersonateUserResponse` messages.
+        ///   - options: Options to apply to this RPC.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
+        /// - Returns: The result of `handleResponse`.
+        func impersonateUser<Result>(
+            request: GRPCCore.ClientRequest<Internalops_ImpersonateUserRequest>,
+            serializer: some GRPCCore.MessageSerializer<Internalops_ImpersonateUserRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Internalops_ImpersonateUserResponse>,
+            options: GRPCCore.CallOptions,
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Internalops_ImpersonateUserResponse>) async throws -> Result
         ) async throws -> Result where Result: Sendable
     }
 
@@ -120,6 +160,43 @@ extension Internalops_InternalOperations {
                 onResponse: handleResponse
             )
         }
+
+        /// Call the "ImpersonateUser" method.
+        ///
+        /// > Source IDL Documentation:
+        /// >
+        /// > ImpersonateUser mints a short-lived token for subject_id in account_id that the calling
+        /// > operator acts through. The operator is the caller, never a field: platform's
+        /// > signin.Service.IssueImpersonationToken takes an operator ID on trust, which is why
+        /// > platform exposes no RPC for it and this one reads it off the authenticated session.
+        ///
+        /// - Parameters:
+        ///   - request: A request containing a single `Internalops_ImpersonateUserRequest` message.
+        ///   - serializer: A serializer for `Internalops_ImpersonateUserRequest` messages.
+        ///   - deserializer: A deserializer for `Internalops_ImpersonateUserResponse` messages.
+        ///   - options: Options to apply to this RPC.
+        ///   - handleResponse: A closure which handles the response and returns its result to
+        ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+        ///       already finished.
+        /// - Returns: The result of `handleResponse`.
+        internal func impersonateUser<Result>(
+            request: GRPCCore.ClientRequest<Internalops_ImpersonateUserRequest>,
+            serializer: some GRPCCore.MessageSerializer<Internalops_ImpersonateUserRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Internalops_ImpersonateUserResponse>,
+            options: GRPCCore.CallOptions = .defaults,
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Internalops_ImpersonateUserResponse>) async throws -> Result = { response in
+                try response.message
+            }
+        ) async throws -> Result where Result: Sendable {
+            try await self.client.unary(
+                request: request,
+                descriptor: Internalops_InternalOperations.Method.ImpersonateUser.descriptor,
+                serializer: serializer,
+                deserializer: deserializer,
+                options: options,
+                onResponse: handleResponse
+            )
+        }
     }
 }
 
@@ -146,6 +223,38 @@ extension Internalops_InternalOperations.ClientProtocol {
             request: request,
             serializer: GRPCProtobuf.ProtobufSerializer<Internalops_TestQueueMessageRequest>(),
             deserializer: GRPCProtobuf.ProtobufDeserializer<Internalops_TestQueueMessageResponse>(),
+            options: options,
+            onResponse: handleResponse
+        )
+    }
+
+    /// Call the "ImpersonateUser" method.
+    ///
+    /// > Source IDL Documentation:
+    /// >
+    /// > ImpersonateUser mints a short-lived token for subject_id in account_id that the calling
+    /// > operator acts through. The operator is the caller, never a field: platform's
+    /// > signin.Service.IssueImpersonationToken takes an operator ID on trust, which is why
+    /// > platform exposes no RPC for it and this one reads it off the authenticated session.
+    ///
+    /// - Parameters:
+    ///   - request: A request containing a single `Internalops_ImpersonateUserRequest` message.
+    ///   - options: Options to apply to this RPC.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
+    /// - Returns: The result of `handleResponse`.
+    internal func impersonateUser<Result>(
+        request: GRPCCore.ClientRequest<Internalops_ImpersonateUserRequest>,
+        options: GRPCCore.CallOptions = .defaults,
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Internalops_ImpersonateUserResponse>) async throws -> Result = { response in
+            try response.message
+        }
+    ) async throws -> Result where Result: Sendable {
+        try await self.impersonateUser(
+            request: request,
+            serializer: GRPCProtobuf.ProtobufSerializer<Internalops_ImpersonateUserRequest>(),
+            deserializer: GRPCProtobuf.ProtobufDeserializer<Internalops_ImpersonateUserResponse>(),
             options: options,
             onResponse: handleResponse
         )
@@ -178,6 +287,42 @@ extension Internalops_InternalOperations.ClientProtocol {
             metadata: metadata
         )
         return try await self.testQueueMessage(
+            request: request,
+            options: options,
+            onResponse: handleResponse
+        )
+    }
+
+    /// Call the "ImpersonateUser" method.
+    ///
+    /// > Source IDL Documentation:
+    /// >
+    /// > ImpersonateUser mints a short-lived token for subject_id in account_id that the calling
+    /// > operator acts through. The operator is the caller, never a field: platform's
+    /// > signin.Service.IssueImpersonationToken takes an operator ID on trust, which is why
+    /// > platform exposes no RPC for it and this one reads it off the authenticated session.
+    ///
+    /// - Parameters:
+    ///   - message: request message to send.
+    ///   - metadata: Additional metadata to send, defaults to empty.
+    ///   - options: Options to apply to this RPC, defaults to `.defaults`.
+    ///   - handleResponse: A closure which handles the response and returns its result to
+    ///       the caller. Returning from the closure will cancel the RPC if it hasn't
+    ///       already finished.
+    /// - Returns: The result of `handleResponse`.
+    internal func impersonateUser<Result>(
+        _ message: Internalops_ImpersonateUserRequest,
+        metadata: GRPCCore.Metadata = [:],
+        options: GRPCCore.CallOptions = .defaults,
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Internalops_ImpersonateUserResponse>) async throws -> Result = { response in
+            try response.message
+        }
+    ) async throws -> Result where Result: Sendable {
+        let request = GRPCCore.ClientRequest<Internalops_ImpersonateUserRequest>(
+            message: message,
+            metadata: metadata
+        )
+        return try await self.impersonateUser(
             request: request,
             options: options,
             onResponse: handleResponse

@@ -1,0 +1,8 @@
+# Platform's protos that this repository's protos import, and the Swift module that already
+# defines them. protoc-gen-swift and protoc-gen-grpc-swift-2 both read this, so the iOS app's
+# generated code imports platform's types from PlatformClient instead of compiling a second
+# copy of them into the app.
+mapping {
+  module_name: "PlatformClient"
+  proto_file_path: "primandproper/platform/filtering/v1/filtering.proto"
+}

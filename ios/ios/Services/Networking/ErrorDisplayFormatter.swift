@@ -9,6 +9,8 @@
 import Darwin
 import Foundation
 import GRPCCore
+import Observability
+import PlatformClient
 import SwiftUI
 
 /// Display info for showing an error to the user.
@@ -42,8 +44,8 @@ enum ErrorDisplayFormatter {
 
   /// Returns true if the error indicates the server is down or unreachable.
   static func isServerDown(_ error: Error) -> Bool {
-    if let rpcError = error as? GRPCCore.RPCError {
-      switch rpcError.code {
+    if let refusal = error.platformError {
+      switch refusal.code {
       case .unavailable, .deadlineExceeded, .cancelled:
         return true
       default:
@@ -79,5 +81,18 @@ enum ErrorDisplayFormatter {
       return serverDownDisplay
     }
     return genericDisplay(for: error, context: context)
+  }
+}
+
+extension Error {
+  /// The server's answer behind this error, when there is one. `authenticatedCall` wraps what
+  /// it throws in an `ObservabilityError`, and the Session hands statuses back as
+  /// PlatformErrors rather than RPCErrors, so neither `as? RPCError` nor `as? PlatformError`
+  /// sees through to it on its own.
+  var platformError: PlatformError? {
+    if let wrapped = self as? ObservabilityError {
+      return wrapped.underlying.platformError
+    }
+    return toPlatformError(self) as? PlatformError
   }
 }

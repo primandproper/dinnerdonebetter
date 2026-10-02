@@ -31,7 +31,6 @@ func createMockMealSummary(id: String = "meal-1", name: String = "Test Meal")
 func createMockAuthenticationManagerForMealPlan() -> AuthenticationManager {
   let manager = AuthenticationManager()
   manager.isAuthenticated = true
-  manager.oauth2AccessToken = "mock-oauth2-token"
   return manager
 }
 

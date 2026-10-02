@@ -8,6 +8,7 @@
 
 import Foundation
 import GRPCNIOTransportHTTP2TransportServices
+import PlatformClient
 
 private let analyticsSource = "ios"
 private let anonymousIDKey = "AnalyticsAnonymousID"
@@ -51,17 +52,17 @@ final class BackendEventReporter: EventReporter {
     do {
       let manager = try authManager.getClientManager()
 
-      if isAuthenticated, let token = await authManager.getOAuth2AccessToken() {
+      if isAuthenticated {
         var request = Analytics_TrackEventRequest()
         request.source = analyticsSource
         request.event = event
         request.properties = properties
 
-        _ = try await manager.client.analytics.trackEvent(
-          request,
-          metadata: manager.authenticatedMetadata(accessToken: token),
-          options: manager.defaultCallOptions
-        )
+        let client = manager.client
+        let options = manager.defaultCallOptions
+        _ = try await manager.session.call { metadata in
+          try await client.analytics.trackEvent(request, metadata: metadata, options: options)
+        }
       } else {
         let anonymousID = getOrCreateAnonymousID()
         var request = Analytics_TrackAnonymousEventRequest()

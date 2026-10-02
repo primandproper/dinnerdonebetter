@@ -8,6 +8,7 @@
 import Foundation
 import GRPCCore
 import GRPCNIOTransportHTTP2
+import PlatformClient
 import SwiftProtobuf
 import SwiftUI
 
@@ -18,7 +19,7 @@ class AccountSettingsViewModel {
   private struct FetchDataResult {
     let account: Primandproper_Platform_Identity_V1_Account
     let members: [Primandproper_Platform_Identity_V1_MembershipWithUser]
-    let user: Auth_GetSelfResponse
+    let user: Primandproper_Platform_Identity_V1_User
     let invitations: [Primandproper_Platform_Identity_V1_Invitation]
     let instrumentOwnerships: [Mealplanning_AccountInstrumentOwnership]
     let validInstruments: [Mealplanning_ValidInstrument]
@@ -30,7 +31,7 @@ class AccountSettingsViewModel {
   /// A read of its own rather than a field of the account: an account with thirty members
   /// would otherwise be thirty users on every read of it.
   var members: [Primandproper_Platform_Identity_V1_MembershipWithUser] = []
-  var user: Auth_GetSelfResponse?
+  var user: Primandproper_Platform_Identity_V1_User?
   var invitations: [Primandproper_Platform_Identity_V1_Invitation] = []
   var instrumentOwnerships: [Mealplanning_AccountInstrumentOwnership] = []
   var validInstruments: [Mealplanning_ValidInstrument] = []
@@ -83,10 +84,10 @@ class AccountSettingsViewModel {
   }
 
   private func getCurrentUserID() -> String? {
-    guard let user = user, user.hasResult, !user.result.id.isEmpty else {
+    guard let user = user, !user.id.isEmpty else {
       return nil
     }
-    return user.result.id
+    return user.id
   }
 
   private let authManager: AuthenticationManager
@@ -144,44 +145,24 @@ class AccountSettingsViewModel {
   }
 
   private func fetchActiveAccount() async throws -> Primandproper_Platform_Identity_V1_Account {
-    let (clientManager, metadata) = try await getClientManagerAndMetadata()
-    let accountID = try await getActiveAccountID(clientManager: clientManager, metadata: metadata)
-    return try await getAccountDetails(
-      accountID: accountID, clientManager: clientManager, metadata: metadata)
-  }
-
-  private func getActiveAccountID(
-    clientManager: ClientManager<HTTP2ClientTransport.TransportServices>,
-    metadata: GRPCCore.Metadata
-  ) async throws -> String {
-    let authResponse = try await clientManager.client.auth.getActiveAccount(
-      Auth_GetActiveAccountRequest(),
-      metadata: metadata,
-      options: clientManager.defaultCallOptions
-    )
-
-    guard authResponse.hasResult, !authResponse.result.id.isEmpty else {
-      throw NSError(
-        domain: "AccountSettingsViewModel", code: 3,
-        userInfo: [NSLocalizedDescriptionKey: "No active account found"])
-    }
-
-    return authResponse.result.id
+    let accountID = try await authManager.activeAccountID()
+    return try await getAccountDetails(accountID: accountID)
   }
 
   private func getAccountDetails(
-    accountID: String,
-    clientManager: ClientManager<HTTP2ClientTransport.TransportServices>,
-    metadata: GRPCCore.Metadata
+    accountID: String
   ) async throws -> Primandproper_Platform_Identity_V1_Account {
     var request = Primandproper_Platform_Identity_V1_GetAccountRequest()
     request.accountID = accountID
 
-    let identityResponse = try await clientManager.client.identity.getAccount(
-      request,
-      metadata: metadata,
-      options: clientManager.defaultCallOptions
-    )
+    let identityResponse = try await authManager.authenticatedCall("getAccount", idempotent: true) {
+      client, metadata, options in
+      try await client.identity.getAccount(
+        request,
+        metadata: metadata,
+        options: options
+      )
+    }
 
     guard identityResponse.hasAccount else {
       throw NSError(
@@ -197,73 +178,78 @@ class AccountSettingsViewModel {
   private func fetchMembers() async throws
     -> [Primandproper_Platform_Identity_V1_MembershipWithUser]
   {
-    let (clientManager, metadata) = try await getClientManagerAndMetadata()
-    let accountID = try await getActiveAccountID(clientManager: clientManager, metadata: metadata)
+    let accountID = try await authManager.activeAccountID()
 
     var request = Primandproper_Platform_Identity_V1_ListAccountMembersRequest()
     request.accountID = accountID
     request.filter = QueryFilterMessage()
 
-    let response = try await clientManager.client.identity.listAccountMembers(
-      request,
-      metadata: metadata,
-      options: clientManager.defaultCallOptions
-    )
+    let response = try await authManager.authenticatedCall("listAccountMembers", idempotent: true) {
+      client, metadata, options in
+      try await client.identity.listAccountMembers(
+        request,
+        metadata: metadata,
+        options: options
+      )
+    }
 
     return response.results
   }
 
-  private func fetchUser() async throws -> Auth_GetSelfResponse {
-    let (clientManager, metadata) = try await getClientManagerAndMetadata()
-    return try await clientManager.client.auth.getSelf(
-      Auth_GetSelfRequest(),
-      metadata: metadata,
-      options: clientManager.defaultCallOptions
-    )
+  private func fetchUser() async throws -> Primandproper_Platform_Identity_V1_User {
+    try await authManager.authenticatedCall("getSelf", idempotent: true) {
+      client, metadata, options in
+      try await client.signIn.getSelf(.init(), metadata: metadata, options: options)
+    }.user
   }
 
   private func fetchInvitations() async throws -> [Primandproper_Platform_Identity_V1_Invitation] {
-    let (clientManager, metadata) = try await getClientManagerAndMetadata()
     let filter = QueryFilterMessage()
     var request = Primandproper_Platform_Identity_V1_ListInvitationsFromUserRequest()
     request.filter = filter
 
-    let response = try await clientManager.client.identity.listInvitationsFromUser(
-      request,
-      metadata: metadata,
-      options: clientManager.defaultCallOptions
-    )
+    let response = try await authManager.authenticatedCall(
+      "listInvitationsFromUser", idempotent: true
+    ) { client, metadata, options in
+      try await client.identity.listInvitationsFromUser(
+        request,
+        metadata: metadata,
+        options: options
+      )
+    }
 
     return response.results
   }
 
   private func fetchInstrumentOwnerships() async throws -> [Mealplanning_AccountInstrumentOwnership]
   {
-    let (clientManager, metadata) = try await getClientManagerAndMetadata()
     var request = Mealplanning_GetAccountInstrumentOwnershipsRequest()
     request.filter = QueryFilterMessage()
 
-    let response = try await clientManager.client.mealPlanning.getAccountInstrumentOwnerships(
-      request,
-      metadata: metadata,
-      options: clientManager.defaultCallOptions
-    )
+    let response = try await authManager.authenticatedCall(
+      "getAccountInstrumentOwnerships", idempotent: true
+    ) { client, metadata, options in
+      try await client.mealPlanning.getAccountInstrumentOwnerships(
+        request,
+        metadata: metadata,
+        options: options
+      )
+    }
 
     return response.results
   }
 
   private func fetchValidInstruments() async throws -> [Mealplanning_ValidInstrument] {
-    let (clientManager, metadata) = try await getClientManagerAndMetadata()
     var request = Mealplanning_SearchForValidInstrumentsNotOwnedByAccountRequest()
     request.query = ""
     request.filter = QueryFilterMessage()
 
-    let response = try await clientManager.client.mealPlanning
-      .searchForValidInstrumentsNotOwnedByAccount(
-        request,
-        metadata: metadata,
-        options: clientManager.defaultCallOptions
-      )
+    let response = try await authManager.authenticatedCall(
+      "searchForValidInstrumentsNotOwnedByAccount", idempotent: true
+    ) { client, metadata, options in
+      try await client.mealPlanning.searchForValidInstrumentsNotOwnedByAccount(
+        request, metadata: metadata, options: options)
+    }
 
     return response.results
   }
@@ -299,7 +285,6 @@ class AccountSettingsViewModel {
   }
 
   private func executeInstrumentOwnershipCreation() async throws {
-    let (clientManager, metadata) = try await getClientManagerAndMetadata()
     var input = Mealplanning_AccountInstrumentOwnershipCreationRequestInput()
     input.validInstrumentID = newInstrumentValidInstrumentID
     input.quantity = newInstrumentQuantity
@@ -308,11 +293,14 @@ class AccountSettingsViewModel {
     var request = Mealplanning_CreateAccountInstrumentOwnershipRequest()
     request.input = input
 
-    _ = try await clientManager.client.mealPlanning.createAccountInstrumentOwnership(
-      request,
-      metadata: metadata,
-      options: clientManager.defaultCallOptions
-    )
+    _ = try await authManager.authenticatedCall("createAccountInstrumentOwnership") {
+      client, metadata, options in
+      try await client.mealPlanning.createAccountInstrumentOwnership(
+        request,
+        metadata: metadata,
+        options: options
+      )
+    }
   }
 
   func updateInstrumentOwnership(
@@ -342,7 +330,6 @@ class AccountSettingsViewModel {
     quantity: UInt32?,
     notes: String?
   ) async throws {
-    let (clientManager, metadata) = try await getClientManagerAndMetadata()
     var input = Mealplanning_AccountInstrumentOwnershipUpdateRequestInput()
     if let quantity = quantity {
       input.quantity = quantity
@@ -355,11 +342,14 @@ class AccountSettingsViewModel {
     request.accountInstrumentOwnershipID = ownershipID
     request.input = input
 
-    _ = try await clientManager.client.mealPlanning.updateAccountInstrumentOwnership(
-      request,
-      metadata: metadata,
-      options: clientManager.defaultCallOptions
-    )
+    _ = try await authManager.authenticatedCall("updateAccountInstrumentOwnership") {
+      client, metadata, options in
+      try await client.mealPlanning.updateAccountInstrumentOwnership(
+        request,
+        metadata: metadata,
+        options: options
+      )
+    }
   }
 
   func archiveInstrumentOwnership(ownershipID: String) async -> Bool {
@@ -377,15 +367,17 @@ class AccountSettingsViewModel {
   }
 
   private func executeInstrumentOwnershipArchive(ownershipID: String) async throws {
-    let (clientManager, metadata) = try await getClientManagerAndMetadata()
     var request = Mealplanning_ArchiveAccountInstrumentOwnershipRequest()
     request.accountInstrumentOwnershipID = ownershipID
 
-    _ = try await clientManager.client.mealPlanning.archiveAccountInstrumentOwnership(
-      request,
-      metadata: metadata,
-      options: clientManager.defaultCallOptions
-    )
+    _ = try await authManager.authenticatedCall("archiveAccountInstrumentOwnership") {
+      client, metadata, options in
+      try await client.mealPlanning.archiveAccountInstrumentOwnership(
+        request,
+        metadata: metadata,
+        options: options
+      )
+    }
   }
 
   func updateAccount() async -> Bool {
@@ -416,17 +408,18 @@ class AccountSettingsViewModel {
   }
 
   private func executeAccountUpdate(accountID: String) async throws {
-    let (clientManager, metadata) = try await getClientManagerAndMetadata()
     let updateInput = createAccountUpdateInput()
     var request = Primandproper_Platform_Identity_V1_UpdateAccountRequest()
     request.accountID = accountID
     request.input = updateInput
 
-    _ = try await clientManager.client.identity.updateAccount(
-      request,
-      metadata: metadata,
-      options: clientManager.defaultCallOptions
-    )
+    _ = try await authManager.authenticatedCall("updateAccount") { client, metadata, options in
+      try await client.identity.updateAccount(
+        request,
+        metadata: metadata,
+        options: options
+      )
+    }
   }
 
   // The address is one value rather than seven fields, because it travels as one: a caller
@@ -495,8 +488,7 @@ class AccountSettingsViewModel {
   }
 
   private func executeInvitationCreation() async throws {
-    let (clientManager, metadata) = try await getClientManagerAndMetadata()
-    let accountID = try await getActiveAccountID(clientManager: clientManager, metadata: metadata)
+    let accountID = try await authManager.activeAccountID()
 
     // The account is named on the request rather than taken from the session, and the roles
     // the invitation promises come from here: what somebody was invited to is what they
@@ -508,11 +500,13 @@ class AccountSettingsViewModel {
     request.note = invitationNote
     request.roles = ["account_member"]
 
-    _ = try await clientManager.client.identity.invite(
-      request,
-      metadata: metadata,
-      options: clientManager.defaultCallOptions
-    )
+    _ = try await authManager.authenticatedCall("invite") { client, metadata, options in
+      try await client.identity.invite(
+        request,
+        metadata: metadata,
+        options: options
+      )
+    }
   }
 
   func cancelInvitation(invitationID: String) async -> Bool {
@@ -526,17 +520,18 @@ class AccountSettingsViewModel {
     }
 
     return await performUpdate {
-      let (clientManager, metadata) = try await getClientManagerAndMetadata()
       // No token: withdrawing is the sender's act, and the secret half of the link is the
       // recipient's. No read returns one.
       var request = Primandproper_Platform_Identity_V1_CancelInvitationRequest()
       request.invitationID = invitationID
 
-      _ = try await clientManager.client.identity.cancelInvitation(
-        request,
-        metadata: metadata,
-        options: clientManager.defaultCallOptions
-      )
+      _ = try await authManager.authenticatedCall("cancelInvitation") { client, metadata, options in
+        try await client.identity.cancelInvitation(
+          request,
+          metadata: metadata,
+          options: options
+        )
+      }
       await loadData()
     } errorMessage: {
       "Failed to cancel invitation: \($0.localizedDescription)"
@@ -613,19 +608,20 @@ class AccountSettingsViewModel {
   // would be a value nothing stored — it is still required of the user, and still shown.
   private func executeMemberRoleUpdate(userID: String, newRole: String, reason: String) async throws
   {
-    let (clientManager, metadata) = try await getClientManagerAndMetadata()
-    let accountID = try await getActiveAccountID(clientManager: clientManager, metadata: metadata)
+    let accountID = try await authManager.activeAccountID()
 
     var request = Primandproper_Platform_Identity_V1_SetMembershipRolesRequest()
     request.accountID = accountID
     request.userID = userID
     request.roles = [newRole]
 
-    _ = try await clientManager.client.identity.setMembershipRoles(
-      request,
-      metadata: metadata,
-      options: clientManager.defaultCallOptions
-    )
+    _ = try await authManager.authenticatedCall("setMembershipRoles") { client, metadata, options in
+      try await client.identity.setMembershipRoles(
+        request,
+        metadata: metadata,
+        options: options
+      )
+    }
   }
 
   private func initializeFormFields(from account: Primandproper_Platform_Identity_V1_Account) {
@@ -637,25 +633,6 @@ class AccountSettingsViewModel {
     state = account.billingAddress.state
     zipCode = account.billingAddress.postalCode
     country = account.billingAddress.country.isEmpty ? "USA" : account.billingAddress.country
-  }
-
-  private func getClientManagerAndMetadata() async throws -> (
-    ClientManager<HTTP2ClientTransport.TransportServices>, GRPCCore.Metadata
-  ) {
-    guard let clientManager = try? authManager.getClientManager() else {
-      throw NSError(
-        domain: "AccountSettingsViewModel", code: 1,
-        userInfo: [NSLocalizedDescriptionKey: "Failed to get client manager"])
-    }
-
-    guard let oauth2Token = await authManager.getOAuth2AccessToken() else {
-      throw NSError(
-        domain: "AccountSettingsViewModel", code: 2,
-        userInfo: [NSLocalizedDescriptionKey: "Failed to get OAuth2 access token"])
-    }
-
-    let metadata = clientManager.authenticatedMetadata(accessToken: oauth2Token)
-    return (clientManager, metadata)
   }
 
   // The address is one value rather than seven fields — see createAccountUpdateInput.

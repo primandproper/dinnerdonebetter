@@ -5,6 +5,7 @@
 //  Shown when a logged-in user taps an invite link. Lets them accept and join the household.
 //
 
+import PlatformClient
 import SwiftUI
 
 struct AcceptInvitationSheet: View {

@@ -8,6 +8,7 @@
 import Foundation
 import GRPCCore
 import GRPCNIOTransportHTTP2
+import PlatformClient
 import SwiftProtobuf
 import SwiftUI
 
@@ -16,7 +17,7 @@ import SwiftUI
 /// answered.
 struct ConfigurableSetting: Identifiable {
   let id: String
-  let setting: Settings_SettingDefinition
+  let setting: SettingDefinition
   let currentValue: String
 }
 
@@ -71,24 +72,29 @@ class ServiceSettingsViewModel {
   /// There is one call for it whether or not they had answered before: the server
   /// converges on the row, so a first answer and a changed one are the same write
   /// and this no longer has to know which it is making.
-  func saveSetting(definition: Settings_SettingDefinition, value: String) async -> Bool {
+  func saveSetting(definition: SettingDefinition, value: String) async -> Bool {
     if !definition.enumeration.isEmpty, !definition.enumeration.contains(value) {
       errorMessage = "Invalid value for \(definition.name)"
       return false
     }
 
+    let typed: Primandproper_Platform_Settings_V1_TypedValue
     do {
-      let (clientManager, metadata) = try await getClientManagerAndMetadata()
+      typed = try .init(text: value, kind: definition.kind)
+    } catch {
+      errorMessage = "Invalid value for \(definition.name): \(error)"
+      return false
+    }
 
-      var request = Settings_SetSettingValueRequest()
-      request.settingName = definition.name
-      request.value = value
+    do {
+      var request = Primandproper_Platform_Settings_V1_SetValueRequest()
+      request.subject = SettingValues.subject(userID: authManager.userID)
+      request.name = definition.name
+      request.value = typed
 
-      _ = try await clientManager.client.settings.setSettingValue(
-        request,
-        metadata: metadata,
-        options: clientManager.defaultCallOptions
-      )
+      _ = try await authManager.authenticatedCall("setValue") { client, metadata, options in
+        try await client.settings.setValue(request, metadata: metadata, options: options)
+      }
 
       updateSettingLocally(settingID: definition.id, value: value)
       userSettingsService.updateValue(value, for: definition.name)
@@ -113,18 +119,16 @@ class ServiceSettingsViewModel {
   /// the fallback to a setting's default reimplemented alongside. The server does
   /// both now, and it also decides which settings this user may see — so the
   /// admin-only ones are absent rather than filtered out below.
-  private func fetchResolvedSettings() async throws -> [Settings_SettingResolution] {
-    let (clientManager, metadata) = try await getClientManagerAndMetadata()
+  private func fetchResolvedSettings() async throws -> [ResolvedSetting] {
+    var request = Primandproper_Platform_Settings_V1_ResolveAllRequest()
+    request.subject = SettingValues.subject(userID: authManager.userID)
 
-    let request = Settings_ResolveSettingsRequest()
+    let response = try await authManager.authenticatedCall("resolveAll", idempotent: true) {
+      client, metadata, options in
+      try await client.settings.resolveAll(request, metadata: metadata, options: options)
+    }
 
-    let response = try await clientManager.client.settings.resolveSettings(
-      request,
-      metadata: metadata,
-      options: clientManager.defaultCallOptions
-    )
-
-    return response.results
+    return response.resolutions
   }
 
   /// Pair one resolution with the value the picker should start on.
@@ -132,12 +136,9 @@ class ServiceSettingsViewModel {
   /// A resolution whose source is "unset" is a setting nobody has answered that
   /// has no default. There is no value to show, so the first enumerated option
   /// stands in — which is what the picker would have to fall back to anyway.
-  private func configurableSetting(from resolution: Settings_SettingResolution)
-    -> ConfigurableSetting
-  {
+  private func configurableSetting(from resolution: ResolvedSetting) -> ConfigurableSetting {
     let definition = resolution.definition
-    let currentValue =
-      resolution.source == "unset" ? (definition.enumeration.first ?? "") : resolution.raw
+    let currentValue = resolution.typedValue.text ?? (definition.enumeration.first ?? "")
 
     return ConfigurableSetting(
       id: definition.id,
@@ -160,22 +161,4 @@ class ServiceSettingsViewModel {
     )
   }
 
-  private func getClientManagerAndMetadata() async throws -> (
-    ClientManager<HTTP2ClientTransport.TransportServices>, GRPCCore.Metadata
-  ) {
-    guard let clientManager = try? authManager.getClientManager() else {
-      throw NSError(
-        domain: "ServiceSettingsViewModel", code: 1,
-        userInfo: [NSLocalizedDescriptionKey: "Failed to get client manager"])
-    }
-
-    guard let oauth2Token = await authManager.getOAuth2AccessToken() else {
-      throw NSError(
-        domain: "ServiceSettingsViewModel", code: 2,
-        userInfo: [NSLocalizedDescriptionKey: "Failed to get OAuth2 access token"])
-    }
-
-    let metadata = clientManager.authenticatedMetadata(accessToken: oauth2Token)
-    return (clientManager, metadata)
-  }
 }

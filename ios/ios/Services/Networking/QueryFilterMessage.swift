@@ -1,4 +1,5 @@
 import Foundation
+import PlatformClient
 
 /// The wire type for a list query's request half.
 ///
