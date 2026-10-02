@@ -8,6 +8,7 @@
 import Foundation
 import GRPCCore
 import GRPCNIOTransportHTTP2TransportServices
+import PlatformClient
 import SwiftProtobuf
 
 /// Service that registers APNs device tokens with the backend and archives them on logout.
@@ -60,18 +61,15 @@ actor DeviceTokenRegistrationService {
 
     do {
       let manager = try authManager.getClientManager()
-      guard let oauth2Token = await authManager.getOAuth2AccessToken() else { return }
 
-      var request = Notifications_ArchiveUserDeviceTokenRequest()
-      request.userDeviceTokenID = tokenID
+      var request = Primandproper_Platform_Notifications_V1_RevokeDeviceRequest()
+      request.deviceID = tokenID
 
-      let metadata = manager.authenticatedMetadata(accessToken: oauth2Token)
-
-      _ = try await manager.client.notifications.archiveUserDeviceToken(
-        request,
-        metadata: metadata,
-        options: manager.defaultCallOptions
-      )
+      let client = manager.client
+      let options = manager.defaultCallOptions
+      _ = try await manager.session.call { metadata in
+        try await client.notifications.revokeDevice(request, metadata: metadata, options: options)
+      }
 
       _userDeviceTokenID = nil
 
@@ -92,24 +90,18 @@ actor DeviceTokenRegistrationService {
 
     do {
       let clientManager = try auth.getClientManager()
-      guard let oauth2Token = await auth.getOAuth2AccessToken() else { return }
 
-      var input = Notifications_UserDeviceTokenCreationRequestInput()
-      input.deviceToken = hexToken
-      input.platform = "ios"
+      var request = Primandproper_Platform_Notifications_V1_RegisterDeviceRequest()
+      request.input.token = hexToken
+      request.input.platform = .ios
 
-      var request = Notifications_RegisterDeviceTokenRequest()
-      request.input = input
+      let client = clientManager.client
+      let options = clientManager.defaultCallOptions
+      let response = try await clientManager.session.call { metadata in
+        try await client.notifications.registerDevice(request, metadata: metadata, options: options)
+      }
 
-      let metadata = clientManager.authenticatedMetadata(accessToken: oauth2Token)
-
-      let response = try await clientManager.client.notifications.registerDeviceToken(
-        request,
-        metadata: metadata,
-        options: clientManager.defaultCallOptions
-      )
-
-      _userDeviceTokenID = response.created.id
+      _userDeviceTokenID = response.result.id
 
       print("✅ Registered device token with backend")
     } catch {

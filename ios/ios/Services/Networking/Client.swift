@@ -10,6 +10,7 @@ import GRPCCore
 import GRPCNIOTransportHTTP2
 import GRPCNIOTransportHTTP2TransportServices
 import Observability
+import PlatformClient
 
 /// A unified gRPC client that provides access to all service clients.
 /// This is the Swift analog of the Go client in backend/pkg/client/client.go
@@ -21,17 +22,12 @@ import Observability
 /// connection management.
 @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
 internal struct Client<Transport> where Transport: GRPCCore.ClientTransport {
-  /// Auth service client
-  internal let auth: Auth_AuthService.Client<Transport>
+  /// Sign-in service client: who the caller is, their logins, and their credentials. Signing
+  /// in and out goes through the Session, which owns the tokens; this is for everything else.
+  internal let signIn: Primandproper_Platform_Signin_V1_SignInService.Client<Transport>
 
-  /// Identity service client.
-  ///
-  /// platform-go's directory, so its generated namespace is platform's rather than this
-  /// repository's — see the proto path in the root Makefile.
+  /// Identity service client: the directory of users, accounts, memberships and invitations.
   internal let identity: Primandproper_Platform_Identity_V1_IdentityService.Client<Transport>
-
-  /// Audit service client
-  internal let audit: Audit_AuditService.Client<Transport>
 
   /// Internal operations service client
   internal let internalOps: Internalops_InternalOperations.Client<Transport>
@@ -40,16 +36,11 @@ internal struct Client<Transport> where Transport: GRPCCore.ClientTransport {
   internal let mealPlanning: Mealplanning_MealPlanningService.Client<Transport>
 
   /// Notifications service client
-  internal let notifications: Notifications_UserNotificationsService.Client<Transport>
-
-  /// OAuth service client
-  internal let oauth: Oauth_OAuthService.Client<Transport>
+  internal let notifications:
+    Primandproper_Platform_Notifications_V1_NotificationsService.Client<Transport>
 
   /// Settings service client
-  internal let settings: Settings_SettingsService.Client<Transport>
-
-  /// Webhooks service client
-  internal let webhooks: Webhooks_WebhooksService.Client<Transport>
+  internal let settings: Primandproper_Platform_Settings_V1_SettingsService.Client<Transport>
 
   /// Uploaded media service client
   internal let uploadedMedia: UploadedMedia_UploadedMediaService.Client<Transport>
@@ -69,15 +60,14 @@ internal struct Client<Transport> where Transport: GRPCCore.ClientTransport {
     // Initialize all service clients with the same underlying gRPC client
     // This follows the best practice of reusing a single GRPCClient instance
     // across multiple service clients (see grpc-swift issue #2211)
-    self.auth = Auth_AuthService.Client(wrapping: grpcClient)
+    self.signIn = Primandproper_Platform_Signin_V1_SignInService.Client(wrapping: grpcClient)
     self.identity = Primandproper_Platform_Identity_V1_IdentityService.Client(wrapping: grpcClient)
-    self.audit = Audit_AuditService.Client(wrapping: grpcClient)
     self.internalOps = Internalops_InternalOperations.Client(wrapping: grpcClient)
     self.mealPlanning = Mealplanning_MealPlanningService.Client(wrapping: grpcClient)
-    self.notifications = Notifications_UserNotificationsService.Client(wrapping: grpcClient)
-    self.oauth = Oauth_OAuthService.Client(wrapping: grpcClient)
-    self.settings = Settings_SettingsService.Client(wrapping: grpcClient)
-    self.webhooks = Webhooks_WebhooksService.Client(wrapping: grpcClient)
+    self.notifications = Primandproper_Platform_Notifications_V1_NotificationsService.Client(
+      wrapping: grpcClient)
+    self.settings = Primandproper_Platform_Settings_V1_SettingsService.Client(
+      wrapping: grpcClient)
     self.uploadedMedia = UploadedMedia_UploadedMediaService.Client(wrapping: grpcClient)
     self.analytics = Analytics_AnalyticsService.Client(wrapping: grpcClient)
   }
@@ -105,9 +95,11 @@ internal struct Client<Transport> where Transport: GRPCCore.ClientTransport {
 ///
 /// Example usage:
 /// ```swift
-/// let clientManager = try ClientManager(host: "127.0.0.1", port: 8001)
+/// let clientManager = try ClientManager(host: "127.0.0.1", port: 8001, store: store)
 /// // Connections are automatically started
-/// let response = try await clientManager.client.auth.loginForToken(request)
+/// let me = try await clientManager.session.call { metadata in
+///   try await clientManager.client.signIn.getSelf(.init(), metadata: metadata)
+/// }
 /// ```
 @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
 internal class ClientManager<Transport: GRPCCore.ClientTransport> {
@@ -117,6 +109,11 @@ internal class ClientManager<Transport: GRPCCore.ClientTransport> {
   /// The unified client providing access to all service clients
   internal let client: Client<Transport>
 
+  /// The one Session in the process: it holds the login, refreshes it, and is what every
+  /// authenticated call goes through. Two would present the same refresh token twice, which
+  /// the server treats as theft and answers by revoking the login.
+  internal let session: Session
+
   /// Default call options to use for all RPC calls.
   /// These can be overridden on a per-call basis.
   internal var defaultCallOptions: GRPCCore.CallOptions
@@ -125,10 +122,12 @@ internal class ClientManager<Transport: GRPCCore.ClientTransport> {
   ///
   /// - Parameters:
   ///   - transport: The transport to use for the gRPC client
+  ///   - store: Where the Session keeps the login it holds
   ///   - defaultCallOptions: Default call options to use for all RPC calls (default: 5 second timeout)
   /// - Throws: An error if the client cannot be created
   internal init(
     transport: Transport,
+    store: any CredentialStore,
     defaultCallOptions: GRPCCore.CallOptions = {
       var options = GRPCCore.CallOptions.defaults
       options.timeout = .seconds(5)
@@ -140,6 +139,7 @@ internal class ClientManager<Transport: GRPCCore.ClientTransport> {
 
     // Create the unified client wrapper
     self.client = Client(grpcClient: grpcTransportClient)
+    self.session = Session(client: grpcTransportClient, store: store)
 
     // Store default call options
     self.defaultCallOptions = defaultCallOptions
@@ -160,12 +160,14 @@ internal class ClientManager<Transport: GRPCCore.ClientTransport> {
   ///   - host: The server host (e.g., "127.0.0.1" or "localhost")
   ///   - port: The server port (default: 8001)
   ///   - useTLS: Whether to use TLS for the connection (default: false for plaintext)
+  ///   - store: Where the Session keeps the login it holds
   ///   - defaultCallOptions: Default call options to use for all RPC calls (default: 5 second timeout)
   /// - Throws: An error if the transport cannot be created
   internal convenience init(
     host: String = "127.0.0.1",
     port: Int = 8001,
     useTLS: Bool = false,
+    store: any CredentialStore,
     defaultCallOptions: GRPCCore.CallOptions = {
       var options = GRPCCore.CallOptions.defaults
       options.timeout = .seconds(5)
@@ -184,7 +186,7 @@ internal class ClientManager<Transport: GRPCCore.ClientTransport> {
         transportSecurity: .plaintext
       )
     }
-    try self.init(transport: transport, defaultCallOptions: defaultCallOptions)
+    try self.init(transport: transport, store: store, defaultCallOptions: defaultCallOptions)
   }
 
   /// Get call options by merging default options with any overrides.
@@ -208,14 +210,6 @@ internal class ClientManager<Transport: GRPCCore.ClientTransport> {
     }
 
     return merged
-  }
-
-  /// Get authenticated metadata with authorization header.
-  ///
-  /// - Parameter accessToken: The access token to include in the authorization header
-  /// - Returns: Metadata dictionary with authorization header
-  internal func authenticatedMetadata(accessToken: String) -> GRPCCore.Metadata {
-    return ["authorization": "Bearer \(accessToken)"]
   }
 }
 

@@ -129,10 +129,9 @@ ensure_proto_ts_plugin_installed:
 
 .PHONY: format
 format: format_yaml
-	# ios is out of these targets until it moves off the retired AuthService onto platform's
-	# SignInService, PasswordResetService and PasskeysService. Restore it then.
 	(cd backend && $(MAKE) format)
 	(cd frontend && $(MAKE) format)
+	(cd ios && $(MAKE) format)
 
 .PHONY: format_yaml
 format_yaml: ensure_yamlfmt_installed
@@ -144,10 +143,9 @@ terraformat:
 
 .PHONY: lint
 lint:
-	# ios is out of these targets until it moves off the retired AuthService onto platform's
-	# SignInService, PasswordResetService and PasskeysService. Restore it then.
 	(cd backend && $(MAKE) lint)
 	(cd frontend && $(MAKE) lint)
+	(cd ios && $(MAKE) lint)
 
 .PHONY: lint_markdown
 lint_markdown:
@@ -155,10 +153,9 @@ lint_markdown:
 
 .PHONY: test
 test: test_scripts
-	# ios is out of these targets until it moves off the retired AuthService onto platform's
-	# SignInService, PasswordResetService and PasskeysService. Restore it then.
 	(cd backend && $(MAKE) test)
 	(cd frontend && $(MAKE) test)
+	(cd ios && $(MAKE) test)
 
 .PHONY: test_scripts
 test_scripts:
@@ -166,10 +163,9 @@ test_scripts:
 
 .PHONY: build
 build:
-	# ios is out of these targets until it moves off the retired AuthService onto platform's
-	# SignInService, PasswordResetService and PasskeysService. Restore it then.
 	(cd backend && $(MAKE) build)
 	(cd frontend && $(MAKE) build)
+	(cd ios && $(MAKE) build)
 
 .PHONY: pre_commit
 pre_commit: proto build format test lint
@@ -275,26 +271,13 @@ proto_swift: ensure_protoc-gen-swift_installed ensure_protoc-gen-grpc-swift_inst
 		--plugin=protoc-gen-grpc-swift-2=$(PROTOC_GEN_GRPC_SWIFT) \
 		--swift_out=$(ARTIFACTS_DIR)/proto_swift \
 		--grpc-swift-2_out=$(ARTIFACTS_DIR)/proto_swift \
-		--grpc-swift-2_opt=Client=true,Server=false \
-		--swift_opt=Visibility=Public \
+		--grpc-swift-2_opt=Client=true,Server=false,ProtoPathModuleMappings=$(PROTO_SWIFT_MODULE_MAPPINGS) \
+		--swift_opt=Visibility=Public,ProtoPathModuleMappings=$(PROTO_SWIFT_MODULE_MAPPINGS) \
 		--proto_path proto/ \
 		--proto_path $(PLATFORM_PROTO_PATH) \
-		--proto_path $(PLATFORM_IDENTITY_PROTO_PATH) \
-		$(PROTO_FILES_PATH) $(PLATFORM_PROTO_PATH)/$(PLATFORM_FILTERING_PROTO) $(PLATFORM_IDENTITY_PROTO_PATH)/$(PLATFORM_IDENTITY_PROTO)
-	mkdir -p $(ARTIFACTS_DIR)/proto_swift_preserved
-	for d in $(PROTO_SWIFT_STALE_ADOPTED); do \
-		if [ -d $(PROTO_OUTPUT_IOS_PATH)/$$d ]; then \
-			cp -R $(PROTO_OUTPUT_IOS_PATH)/$$d $(ARTIFACTS_DIR)/proto_swift_preserved/$$d; \
-		fi; \
-	done
+		$(PROTO_FILES_PATH)
 	rm -rf $(PROTO_OUTPUT_IOS_PATH)
 	mv $(ARTIFACTS_DIR)/proto_swift $(PROTO_OUTPUT_IOS_PATH)
-	for d in $(PROTO_SWIFT_STALE_ADOPTED); do \
-		if [ -d $(ARTIFACTS_DIR)/proto_swift_preserved/$$d ]; then \
-			cp -R $(ARTIFACTS_DIR)/proto_swift_preserved/$$d $(PROTO_OUTPUT_IOS_PATH)/$$d; \
-		fi; \
-	done
-	rm -rf $(ARTIFACTS_DIR)/proto_swift_preserved
 	(cd ios && $(MAKE) format)
 
 # Hand-written files in the TS proto output directory that must survive regeneration
@@ -307,12 +290,12 @@ PROTO_TS_HANDWRITTEN := index.ts platform.ts
 # copies exist for this repository's stubs to compile against, and the apps import
 # platform's types from the library rather than from them.
 
-# The Swift output still preserves its stale copies of the adopted domains, plus webhooks,
-# which the iOS app uses. They were generated from this repository's own protos before
-# each domain moved to platform-go, so they describe services the server no longer runs;
-# they are preserved rather than regenerated because regenerating one means porting every
-# iOS call site for it.
-PROTO_SWIFT_STALE_ADOPTED := audit comments issue_reports notifications oauth payments settings waitlists webhooks
+# The iOS app calls platform's services through platform-client-swift, which generates their
+# stubs from the platform-go tag it pins, so nothing platform owns is generated here. Unlike
+# ts-proto, the Swift generators can point an import at a module: the mappings file sends
+# every platform proto this repository's own protos import to PlatformClient, so the app holds
+# one copy of each platform type, the library's.
+PROTO_SWIFT_MODULE_MAPPINGS := proto/swift_module_mappings.asciipb
 
 .PHONY: proto_typescript
 proto_typescript: ensure_protoc_installed ensure_proto_ts_plugin_installed
@@ -343,10 +326,7 @@ proto_typescript: ensure_protoc_installed ensure_proto_ts_plugin_installed
 	(cd frontend && $(MAKE) format)
 
 .PHONY: proto
-# proto_swift is out of proto until the iOS app moves off the retired AuthService; its generated
-# code is stale until then. The TypeScript is regenerated, because the api-client package is
-# checked against it.
-proto: format_proto proto_golang proto_typescript
+proto: format_proto proto_golang proto_typescript proto_swift
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Utilities

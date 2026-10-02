@@ -3,6 +3,7 @@
 //  ios
 //
 
+import PlatformClient
 import SwiftUI
 import UIKit
 

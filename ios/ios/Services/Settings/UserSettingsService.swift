@@ -8,6 +8,7 @@
 import Foundation
 import GRPCCore
 import GRPCNIOTransportHTTP2
+import PlatformClient
 import SwiftUI
 
 /// App-wide cache of the signed-in user's resolved setting values. Load once when
@@ -45,8 +46,8 @@ class UserSettingsService {
         // "unset" is a setting nobody has answered that has no default, which is
         // not the same as an answer of "". Leaving it out of the cache is what
         // lets value(for:default:) hand back the caller's own fallback.
-        if !name.isEmpty, resolution.source != "unset" {
-          newValues[name] = resolution.raw
+        if !name.isEmpty, let raw = resolution.typedValue.text {
+          newValues[name] = raw
         }
       }
       values = newValues
@@ -81,17 +82,17 @@ class UserSettingsService {
   /// against a list of stored values. It also decides which settings the user may
   /// see, so an admin-only setting is simply absent rather than filtered here.
   private func fetchResolvedSettings(authManager: AuthenticationManager) async throws
-    -> [Settings_SettingResolution]
+    -> [ResolvedSetting]
   {
-    let request = Settings_ResolveSettingsRequest()
+    var request = Primandproper_Platform_Settings_V1_ResolveAllRequest()
+    request.subject = SettingValues.subject(userID: authManager.userID)
 
     let response = try await authManager.authenticatedCall(
-      "resolveSettings", idempotent: true
+      "resolveAll", idempotent: true
     ) { client, metadata, options in
-      try await client.settings.resolveSettings(
-        request, metadata: metadata, options: options)
+      try await client.settings.resolveAll(request, metadata: metadata, options: options)
     }
 
-    return response.results
+    return response.resolutions
   }
 }

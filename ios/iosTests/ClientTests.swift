@@ -10,7 +10,17 @@ import GRPCCore
 import GRPCNIOTransportHTTP2
 import GRPCNIOTransportHTTP2TransportServices
 @testable import ios
+import PlatformClient
 import Testing
+
+/// Holds a session in memory, so a ClientManager built here never touches the Keychain.
+actor TestCredentialStore: CredentialStore {
+  private var token: IssuedToken?
+
+  func load() async throws -> IssuedToken? { token }
+  func save(_ token: IssuedToken) async throws { self.token = token }
+  func clear() async throws { token = nil }
+}
 
 // MARK: - Client Initialization Tests
 
@@ -54,7 +64,8 @@ struct ClientManagerInitializationTests {
   func testClientManagerDefaultCallOptions() throws {
     let manager = try ClientManager<HTTP2ClientTransport.TransportServices>(
       host: "127.0.0.1",
-      port: 8001
+      port: 8001,
+      store: TestCredentialStore()
     )
 
     // Verify default call options are set (5 second timeout)
@@ -69,6 +80,7 @@ struct ClientManagerInitializationTests {
     let manager = try ClientManager<HTTP2ClientTransport.TransportServices>(
       host: "127.0.0.1",
       port: 8001,
+      store: TestCredentialStore(),
       defaultCallOptions: customOptions
     )
 
@@ -78,7 +90,7 @@ struct ClientManagerInitializationTests {
 
   @Test("ClientManager initializes with default host and port")
   func testClientManagerDefaultHostPort() throws {
-    let manager = try ClientManager<HTTP2ClientTransport.TransportServices>()
+    let manager = try ClientManager<HTTP2ClientTransport.TransportServices>(store: TestCredentialStore())
 
     // Should use default host (127.0.0.1) and port (8001)
     #expect(manager.defaultCallOptions.timeout == .seconds(5))
@@ -88,7 +100,8 @@ struct ClientManagerInitializationTests {
   func testClientManagerCustomHostPort() throws {
     let manager = try ClientManager<HTTP2ClientTransport.TransportServices>(
       host: "localhost",
-      port: 9000
+      port: 9000,
+      store: TestCredentialStore()
     )
 
     // Verify client was created with custom host/port (non-nil by type)
@@ -99,7 +112,8 @@ struct ClientManagerInitializationTests {
   func testClientManagerCreatesUnifiedClient() throws {
     let manager = try ClientManager<HTTP2ClientTransport.TransportServices>(
       host: "127.0.0.1",
-      port: 8001
+      port: 8001,
+      store: TestCredentialStore()
     )
 
     // Verify the unified client is accessible (non-nil by type)
@@ -110,7 +124,8 @@ struct ClientManagerInitializationTests {
   func testClientManagerClientReuse() throws {
     let manager = try ClientManager<HTTP2ClientTransport.TransportServices>(
       host: "127.0.0.1",
-      port: 8001
+      port: 8001,
+      store: TestCredentialStore()
     )
 
     let client1 = manager.client
@@ -118,8 +133,8 @@ struct ClientManagerInitializationTests {
 
     // Should return the same client instance (reused)
     // Since Client is a struct, we verify both are accessible (structs are value types)
-    _ = client1.auth
-    _ = client2.auth
+    _ = client1.signIn
+    _ = client2.signIn
   }
 }
 
@@ -134,6 +149,7 @@ struct CallOptionsTests {
     let manager = try ClientManager<HTTP2ClientTransport.TransportServices>(
       host: "127.0.0.1",
       port: 8001,
+      store: TestCredentialStore(),
       defaultCallOptions: defaultOptions
     )
 
@@ -151,6 +167,7 @@ struct CallOptionsTests {
     let manager = try ClientManager<HTTP2ClientTransport.TransportServices>(
       host: "127.0.0.1",
       port: 8001,
+      store: TestCredentialStore(),
       defaultCallOptions: defaultOptions
     )
 
@@ -171,6 +188,7 @@ struct CallOptionsTests {
     let manager = try ClientManager<HTTP2ClientTransport.TransportServices>(
       host: "127.0.0.1",
       port: 8001,
+      store: TestCredentialStore(),
       defaultCallOptions: defaultOptions
     )
 
@@ -190,6 +208,7 @@ struct CallOptionsTests {
     let manager = try ClientManager<HTTP2ClientTransport.TransportServices>(
       host: "127.0.0.1",
       port: 8001,
+      store: TestCredentialStore(),
       defaultCallOptions: defaultOptions
     )
 
@@ -210,6 +229,7 @@ struct CallOptionsTests {
     let manager = try ClientManager<HTTP2ClientTransport.TransportServices>(
       host: "127.0.0.1",
       port: 8001,
+      store: TestCredentialStore(),
       defaultCallOptions: defaultOptions
     )
 
@@ -222,79 +242,6 @@ struct CallOptionsTests {
     // Both overrides should be applied
     #expect(mergedOptions.timeout == .seconds(20))
     #expect(mergedOptions.compression == .gzip)
-  }
-}
-
-// MARK: - Authenticated Metadata Tests
-
-struct AuthenticatedMetadataTests {
-  @Test("authenticatedMetadata creates correct authorization header")
-  func testAuthenticatedMetadata() throws {
-    let manager = try ClientManager<HTTP2ClientTransport.TransportServices>(
-      host: "127.0.0.1",
-      port: 8001
-    )
-
-    let token = "test-access-token-123"
-    let metadata = manager.authenticatedMetadata(accessToken: token)
-
-    // Should contain authorization header with Bearer token
-    let authValues = metadata["authorization"]
-    let authValue = authValues.first { _ in true }
-    #expect(authValue?.description == "Bearer test-access-token-123" || String(describing: authValue).contains("Bearer test-access-token-123"))
-  }
-
-  @Test("authenticatedMetadata handles empty token")
-  func testAuthenticatedMetadataEmptyToken() throws {
-    let manager = try ClientManager<HTTP2ClientTransport.TransportServices>(
-      host: "127.0.0.1",
-      port: 8001
-    )
-
-    let metadata = manager.authenticatedMetadata(accessToken: "")
-
-    // Should still create metadata with Bearer prefix
-    let authValues = metadata["authorization"]
-    let authValue = authValues.first { _ in true }
-    #expect(authValue?.description == "Bearer " || String(describing: authValue).contains("Bearer "))
-  }
-
-  @Test("authenticatedMetadata handles special characters in token")
-  func testAuthenticatedMetadataSpecialCharacters() throws {
-    let manager = try ClientManager<HTTP2ClientTransport.TransportServices>(
-      host: "127.0.0.1",
-      port: 8001
-    )
-
-    let token = "token-with-special-chars-123_abc"
-    let metadata = manager.authenticatedMetadata(accessToken: token)
-
-    // Should preserve special characters
-    let authValues = metadata["authorization"]
-    let authValue = authValues.first { _ in true }
-    let valueString = String(describing: authValue)
-    #expect(valueString.contains("Bearer token-with-special-chars-123_abc"))
-  }
-
-  @Test("authenticatedMetadata creates new metadata each time")
-  func testAuthenticatedMetadataCreatesNewInstance() throws {
-    let manager = try ClientManager<HTTP2ClientTransport.TransportServices>(
-      host: "127.0.0.1",
-      port: 8001
-    )
-
-    let metadata1 = manager.authenticatedMetadata(accessToken: "token1")
-    let metadata2 = manager.authenticatedMetadata(accessToken: "token2")
-
-    // Should create separate metadata instances
-    let authValues1 = metadata1["authorization"]
-    let authValues2 = metadata2["authorization"]
-    let authValue1 = authValues1.first { _ in true }
-    let authValue2 = authValues2.first { _ in true }
-    let valueString1 = String(describing: authValue1)
-    let valueString2 = String(describing: authValue2)
-    #expect(valueString1.contains("Bearer token1"))
-    #expect(valueString2.contains("Bearer token2"))
   }
 }
 
@@ -349,7 +296,8 @@ struct ClientErrorHandlingTests {
     do {
       _ = try ClientManager<HTTP2ClientTransport.TransportServices>(
         host: "invalid..host..name",
-        port: 8001
+        port: 8001,
+        store: TestCredentialStore()
       )
       // If it doesn't throw, that's also valid (DNS might resolve it)
     } catch {
@@ -363,7 +311,8 @@ struct ClientErrorHandlingTests {
     do {
       _ = try ClientManager<HTTP2ClientTransport.TransportServices>(
         host: "127.0.0.1",
-        port: 0
+        port: 0,
+        store: TestCredentialStore()
       )
       // Some systems might allow port 0, so this is also valid
     } catch {
@@ -405,7 +354,8 @@ struct ClientLifecycleTests {
   func testClientManagerStartsConnections() throws {
     let manager = try ClientManager<HTTP2ClientTransport.TransportServices>(
       host: "127.0.0.1",
-      port: 8001
+      port: 8001,
+      store: TestCredentialStore()
     )
 
     // Connections should be started automatically (client is non-nil by type)
@@ -426,29 +376,29 @@ struct ServiceClientAccessTests {
     let client = Client(grpcClient: grpcClient)
 
     // Verify all service clients are accessible (non-nil by type)
-    _ = client.auth
+    _ = client.signIn
     _ = client.identity
-    _ = client.audit
-    _ = client.dataPrivacy
     _ = client.internalOps
     _ = client.mealPlanning
     _ = client.notifications
-    _ = client.oauth
     _ = client.settings
-    _ = client.webhooks
+    _ = client.uploadedMedia
+    _ = client.analytics
   }
 
   @Test("ClientManager provides access to unified client")
   func testClientManagerUnifiedClient() throws {
     let manager = try ClientManager<HTTP2ClientTransport.TransportServices>(
       host: "127.0.0.1",
-      port: 8001
+      port: 8001,
+      store: TestCredentialStore()
     )
 
     // Verify unified client is accessible (non-nil by type)
     _ = manager.client
-    _ = manager.client.auth
+    _ = manager.client.signIn
     _ = manager.client.identity
+    _ = manager.session
   }
 }
 
@@ -459,11 +409,13 @@ struct ConcurrentAccessTests {
   func testConcurrentClientManagerCreation() async throws {
     async let manager1 = try ClientManager<HTTP2ClientTransport.TransportServices>(
       host: "127.0.0.1",
-      port: 8001
+      port: 8001,
+      store: TestCredentialStore()
     )
     async let manager2 = try ClientManager<HTTP2ClientTransport.TransportServices>(
       host: "127.0.0.1",
-      port: 8001
+      port: 8001,
+      store: TestCredentialStore()
     )
 
     let managers = try await [manager1, manager2]
@@ -478,23 +430,20 @@ struct ConcurrentAccessTests {
   func testConcurrentClientAccess() async throws {
     let manager = try ClientManager<HTTP2ClientTransport.TransportServices>(
       host: "127.0.0.1",
-      port: 8001
+      port: 8001,
+      store: TestCredentialStore()
     )
 
     let client1 = manager.client
     let client2 = manager.client
-    let metadata1 = manager.authenticatedMetadata(accessToken: "token1")
-    let metadata2 = manager.authenticatedMetadata(accessToken: "token2")
 
-    // All should succeed (service clients non-nil by type)
-    _ = client1.auth
-    _ = client2.auth
-    let authValues1 = metadata1["authorization"]
-    let authValues2 = metadata2["authorization"]
-    let valueString1 = String(describing: authValues1.first { _ in true })
-    let valueString2 = String(describing: authValues2.first { _ in true })
-    #expect(valueString1.contains("Bearer token1"))
-    #expect(valueString2.contains("Bearer token2"))
+    // All should succeed (service clients non-nil by type), and the one Session is shared.
+    _ = client1.signIn
+    _ = client2.signIn
+    async let held1 = manager.session.held()
+    async let held2 = manager.session.held()
+    #expect(try await held1 == nil)
+    #expect(try await held2 == nil)
   }
 }
 

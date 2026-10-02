@@ -30,7 +30,7 @@ struct ContentView: View {
 
   var body: some View {
     Group {
-      if authManager.isAuthenticated && !authManager.oauth2AccessToken.isEmpty {
+      if authManager.isAuthenticated {
         if RevenueCatConfiguration.isConfigured, let offering = launchOffering {
           HomeView()
             .presentPaywallIfNeeded(
@@ -105,7 +105,7 @@ struct ContentView: View {
       pendingInvitationToken = token
       deepLinkHandler.clearPendingDestination()
 
-      if authManager.isAuthenticated && !authManager.oauth2AccessToken.isEmpty {
+      if authManager.isAuthenticated {
         // Logged in: show accept-invitation sheet
         showAcceptInvitationSheet = true
       } else {

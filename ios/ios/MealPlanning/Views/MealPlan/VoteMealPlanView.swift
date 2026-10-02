@@ -5,6 +5,7 @@
 //  Created by Auto on 12/8/25.
 //
 
+import PlatformClient
 import SwiftProtobuf
 import SwiftUI
 

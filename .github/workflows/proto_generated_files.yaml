@@ -34,9 +34,6 @@ jobs:
         run: make test_scripts
 
   swift:
-    # Disabled until the iOS app moves off the retired AuthService: its generated code is stale
-    # until then, and `make proto` no longer regenerates it.
-    if: false
     timeout-minutes: 30
     # macOS for the Swift toolchain the pinned plugins are built with.
     runs-on: macos-latest

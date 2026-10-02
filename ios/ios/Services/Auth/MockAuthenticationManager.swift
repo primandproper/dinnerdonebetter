@@ -27,11 +27,6 @@ class MockAuthenticationManager: AuthenticationManaging {
   // Public properties matching AuthenticationManager
   var isAuthenticated: Bool = false
   var username: String = ""
-  var accessToken: String = ""
-  var refreshToken: String = ""
-  var oauth2AccessToken: String = ""
-  var oauth2RefreshToken: String = ""
-  var oauth2TokenExpiresAt: Date?
   var userID: String = ""
   var accountID: String = ""
 
@@ -65,8 +60,6 @@ class MockAuthenticationManager: AuthenticationManaging {
       await MainActor.run {
         self.isAuthenticated = true
         self.username = username
-        self.accessToken = "mock-access-token-\(UUID().uuidString)"
-        self.refreshToken = "mock-refresh-token-\(UUID().uuidString)"
         self.userID = "mock-user-123"
         self.accountID = "mock-account-456"
       }
@@ -81,8 +74,6 @@ class MockAuthenticationManager: AuthenticationManaging {
         await MainActor.run {
           self.isAuthenticated = true
           self.username = username
-          self.accessToken = "mock-access-token-\(UUID().uuidString)"
-          self.refreshToken = "mock-refresh-token-\(UUID().uuidString)"
           self.userID = "mock-user-123"
           self.accountID = "mock-account-456"
         }
@@ -104,8 +95,6 @@ class MockAuthenticationManager: AuthenticationManaging {
           await MainActor.run {
             self.isAuthenticated = true
             self.username = username
-            self.accessToken = "mock-access-token-\(UUID().uuidString)"
-            self.refreshToken = "mock-refresh-token-\(UUID().uuidString)"
             self.userID = "mock-user-123"
             self.accountID = "mock-account-456"
           }
@@ -140,26 +129,6 @@ class MockAuthenticationManager: AuthenticationManaging {
     )
   }
 
-  func getOAuth2AccessToken() async -> String? {
-    // Return a mock OAuth2 token if authenticated
-    if isAuthenticated {
-      return "mock-oauth2-token-\(UUID().uuidString)"
-    }
-    return nil
-  }
-
-  func refreshOAuth2Token() async -> Bool {
-    // Mock refresh - always succeeds if authenticated
-    if isAuthenticated {
-      await MainActor.run {
-        self.oauth2AccessToken = "mock-oauth2-token-refreshed-\(UUID().uuidString)"
-        self.oauth2TokenExpiresAt = Date().addingTimeInterval(3600)  // 1 hour from now
-      }
-      return true
-    }
-    return false
-  }
-
   func register(input: RegistrationInput) async -> RegistrationResult {
     print("🎭 MockAuthenticationManager: Registration attempt for user: \(input.username)")
 
@@ -177,11 +146,6 @@ class MockAuthenticationManager: AuthenticationManaging {
   func logout() async {
     self.isAuthenticated = false
     self.username = ""
-    self.accessToken = ""
-    self.refreshToken = ""
-    self.oauth2AccessToken = ""
-    self.oauth2RefreshToken = ""
-    self.oauth2TokenExpiresAt = nil
     self.userID = ""
     self.accountID = ""
   }

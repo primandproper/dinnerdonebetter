@@ -6,6 +6,7 @@
 import Foundation
 import GRPCCore
 import GRPCNIOTransportHTTP2
+import PlatformClient
 import SwiftProtobuf
 import SwiftUI
 
@@ -47,9 +48,9 @@ class UserProfileViewModel {
 
     do {
       let response = try await fetchUser()
-      if response.hasResult {
-        self.user = response.result
-        initializeFormFields(from: response.result)
+      if response.hasUser {
+        self.user = response.user
+        initializeFormFields(from: response.user)
       }
     } catch {
       await authManager.invalidateCredentialsIfSessionError(error)
@@ -59,7 +60,7 @@ class UserProfileViewModel {
     isLoading = false
   }
 
-  // Changing the handle is on the auth service rather than in the directory's profile
+  // Changing the handle is on the sign-in service rather than in the directory's profile
   // update, and it asks for the password and a second factor: a handle is what somebody
   // signs in with, so moving it is a credential change.
   func updateUsername(currentPassword: String, totpToken: String = "") async -> Bool {
@@ -70,17 +71,18 @@ class UserProfileViewModel {
     }
 
     return await performUpdate {
-      let (clientManager, metadata) = try await getClientManagerAndMetadata()
-      var request = Auth_UpdateUserUsernameRequest()
+      var request = Primandproper_Platform_Signin_V1_UpdateUsernameRequest()
       request.newUsername = username
       request.currentPassword = currentPassword
-      request.totpToken = totpToken
+      request.totpCode = totpToken
 
-      _ = try await clientManager.client.auth.updateUserUsername(
-        request,
-        metadata: metadata,
-        options: clientManager.defaultCallOptions
-      )
+      _ = try await authManager.authenticatedCall("updateUsername") { client, metadata, options in
+        try await client.signIn.updateUsername(
+          request,
+          metadata: metadata,
+          options: options
+        )
+      }
       await loadUser()
     }
   }
@@ -95,7 +97,6 @@ class UserProfileViewModel {
     guard detailsHasChanged else { return false }
 
     return await performUpdate {
-      let (clientManager, metadata) = try await getClientManagerAndMetadata()
       var input = Primandproper_Platform_Identity_V1_ProfileUpdateInput()
       input.firstName = firstName
       input.lastName = lastName
@@ -103,22 +104,22 @@ class UserProfileViewModel {
       var request = Primandproper_Platform_Identity_V1_UpdateProfileRequest()
       request.input = input
 
-      _ = try await clientManager.client.identity.updateProfile(
-        request,
-        metadata: metadata,
-        options: clientManager.defaultCallOptions
-      )
+      _ = try await authManager.authenticatedCall("updateProfile") { client, metadata, options in
+        try await client.identity.updateProfile(
+          request,
+          metadata: metadata,
+          options: options
+        )
+      }
       await loadUser()
     }
   }
 
-  private func fetchUser() async throws -> Auth_GetSelfResponse {
-    let (clientManager, metadata) = try await getClientManagerAndMetadata()
-    return try await clientManager.client.auth.getSelf(
-      Auth_GetSelfRequest(),
-      metadata: metadata,
-      options: clientManager.defaultCallOptions
-    )
+  private func fetchUser() async throws -> Primandproper_Platform_Signin_V1_GetSelfResponse {
+    try await authManager.authenticatedCall("getSelf", idempotent: true) {
+      client, metadata, options in
+      try await client.signIn.getSelf(.init(), metadata: metadata, options: options)
+    }
   }
 
   private func initializeFormFields(from user: Primandproper_Platform_Identity_V1_User) {
@@ -144,22 +145,4 @@ class UserProfileViewModel {
     }
   }
 
-  private func getClientManagerAndMetadata() async throws -> (
-    ClientManager<HTTP2ClientTransport.TransportServices>, GRPCCore.Metadata
-  ) {
-    guard let clientManager = try? authManager.getClientManager() else {
-      throw NSError(
-        domain: "UserProfileViewModel", code: 1,
-        userInfo: [NSLocalizedDescriptionKey: "Failed to get client manager"])
-    }
-
-    guard let oauth2Token = await authManager.getOAuth2AccessToken() else {
-      throw NSError(
-        domain: "UserProfileViewModel", code: 2,
-        userInfo: [NSLocalizedDescriptionKey: "Failed to get OAuth2 access token"])
-    }
-
-    let metadata = clientManager.authenticatedMetadata(accessToken: oauth2Token)
-    return (clientManager, metadata)
-  }
 }

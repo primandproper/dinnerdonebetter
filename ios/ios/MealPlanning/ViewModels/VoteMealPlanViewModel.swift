@@ -7,6 +7,7 @@
 
 import Foundation
 import GRPCCore
+import PlatformClient
 import SwiftProtobuf
 import SwiftUI
 

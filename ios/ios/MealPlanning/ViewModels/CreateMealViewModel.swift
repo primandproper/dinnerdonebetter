@@ -7,6 +7,7 @@
 
 import Foundation
 import GRPCCore
+import PlatformClient
 import SwiftProtobuf
 import SwiftUI
 
@@ -227,17 +228,19 @@ class CreateMealViewModel {
       createdMealID = response.created.id
       isCreating = false
       return true
-    } catch let error as GRPCCore.RPCError {
-      creationError =
-        error.code == .alreadyExists
-        ? "A meal with this name and components already exists."
-        : "Failed to create meal: \(error.localizedDescription)"
-      isCreating = false
-      return false
     } catch {
-      creationError = "Failed to create meal: \(error.localizedDescription)"
-      isCreating = false
-      return false
+      if let error = error.platformError {
+        creationError =
+          error.code == .alreadyExists
+          ? "A meal with this name and components already exists."
+          : "Failed to create meal: \(error.localizedDescription)"
+        isCreating = false
+        return false
+      } else {
+        creationError = "Failed to create meal: \(error.localizedDescription)"
+        isCreating = false
+        return false
+      }
     }
   }
 }

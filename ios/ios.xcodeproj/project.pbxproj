@@ -22,6 +22,7 @@
 		FADE0100000000000000CC06 /* Analytics in Frameworks */ = {isa = PBXBuildFile; productRef = FADE0100000000000000BB06 /* Analytics */; };
 		FADE0100000000000000CC07 /* Cache in Frameworks */ = {isa = PBXBuildFile; productRef = FADE0100000000000000BB07 /* Cache */; };
 		FADE0100000000000000CC08 /* FeatureFlags in Frameworks */ = {isa = PBXBuildFile; productRef = FADE0100000000000000BB08 /* FeatureFlags */; };
+		FADE0200000000000000CC01 /* PlatformClient in Frameworks */ = {isa = PBXBuildFile; productRef = FADE0200000000000000BB01 /* PlatformClient */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -99,6 +100,7 @@
 				FADE0100000000000000CC06 /* Analytics in Frameworks */,
 				FADE0100000000000000CC07 /* Cache in Frameworks */,
 				FADE0100000000000000CC08 /* FeatureFlags in Frameworks */,
+				FADE0200000000000000CC01 /* PlatformClient in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -183,6 +185,7 @@
 				FADE0100000000000000BB06 /* Analytics */,
 				FADE0100000000000000BB07 /* Cache */,
 				FADE0100000000000000BB08 /* FeatureFlags */,
+				FADE0200000000000000BB01 /* PlatformClient */,
 			);
 			productName = ios;
 			productReference = 00D164F42EE78B510033A550 /* ios.app */;
@@ -272,6 +275,7 @@
 				002AAC2C2EE8AB7B00BEA5A7 /* XCRemoteSwiftPackageReference "beautiful-mermaid-swift" */,
 				002AAC302EE8AB7C00BEA5A7 /* XCRemoteSwiftPackageReference "purchases-ios-spm" */,
 				FADE0100000000000000AA00 /* XCRemoteSwiftPackageReference "platform-swift" */,
+				FADE0200000000000000AA00 /* XCRemoteSwiftPackageReference "platform-client-swift" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 00D164F52EE78B510033A550 /* Products */;
@@ -696,6 +700,14 @@
 				version = 0.0.1;
 			};
 		};
+		FADE0200000000000000AA00 /* XCRemoteSwiftPackageReference "platform-client-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/primandproper/platform-client-swift.git";
+			requirement = {
+				kind = upToNextMinorVersion;
+				minimumVersion = 0.0.1;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -773,6 +785,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = FADE0100000000000000AA00 /* XCRemoteSwiftPackageReference "platform-swift" */;
 			productName = FeatureFlags;
+		};
+		FADE0200000000000000BB01 /* PlatformClient */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FADE0200000000000000AA00 /* XCRemoteSwiftPackageReference "platform-client-swift" */;
+			productName = PlatformClient;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

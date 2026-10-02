@@ -4,7 +4,7 @@ struct SessionsView: View {
   @Environment(AuthenticationManager.self) private var authManager
   @Environment(EventReporterService.self) private var eventReporterService
   @State private var viewModel: SessionsViewModel?
-  @State private var sessionToRevoke: Auth_UserSession?
+  @State private var sessionToRevoke: SignIn?
   @State private var showRevokeAllConfirmation = false
 
   var body: some View {
@@ -23,7 +23,7 @@ struct SessionsView: View {
               revokeAllButton
             }
 
-            ForEach(sessions, id: \.id) { session in
+            ForEach(sessions, id: \.familyID) { session in
               sessionCard(session)
             }
 
@@ -56,14 +56,14 @@ struct SessionsView: View {
       Button("Revoke", role: .destructive) {
         if let session = sessionToRevoke {
           Task {
-            _ = await viewModel?.revokeSession(sessionID: session.id)
+            _ = await viewModel?.revokeSession(familyID: session.familyID)
           }
         }
       }
     } message: {
       if let session = sessionToRevoke {
         Text(
-          "Revoke the session from \(session.deviceName.isEmpty ? "Unknown device" : session.deviceName)?"
+          "Revoke the session from \(deviceName(session).isEmpty ? "Unknown device" : deviceName(session))?"
         )
       }
     }
@@ -81,12 +81,12 @@ struct SessionsView: View {
 
   // MARK: - Computed Properties
 
-  private var sessions: [Auth_UserSession] {
+  private var sessions: [SignIn] {
     viewModel?.sessions ?? []
   }
 
   private var hasOtherSessions: Bool {
-    sessions.contains { !$0.isCurrent }
+    sessions.contains { !$0.current }
   }
 
   // MARK: - Subviews
@@ -97,25 +97,25 @@ struct SessionsView: View {
     }
   }
 
-  private func sessionCard(_ session: Auth_UserSession) -> some View {
+  private func sessionCard(_ session: SignIn) -> some View {
     DSCard {
       VStack(alignment: .leading, spacing: DSTheme.Spacing.sm) {
         // Header: device name + current badge
         HStack {
-          Image(systemName: iconForDevice(session.deviceName))
+          Image(systemName: iconForDevice(deviceName(session)))
             .foregroundColor(DSTheme.Colors.primary)
             .font(.title3)
           VStack(alignment: .leading, spacing: 2) {
-            Text(session.deviceName.isEmpty ? "Unknown device" : session.deviceName)
+            Text(deviceName(session).isEmpty ? "Unknown device" : deviceName(session))
               .font(.headline)
-            if !session.loginMethod.isEmpty {
-              Text("via \(session.loginMethod)")
+            if !session.credentialKind.isEmpty {
+              Text("via \(session.credentialKind)")
                 .font(.caption)
                 .foregroundColor(DSTheme.Colors.textSecondary)
             }
           }
           Spacer()
-          if session.isCurrent {
+          if session.current {
             Text("Current")
               .font(.caption)
               .fontWeight(.semibold)
@@ -131,14 +131,14 @@ struct SessionsView: View {
 
         // Details
         VStack(alignment: .leading, spacing: 4) {
-          if !session.clientIp.isEmpty {
-            detailRow(icon: "network", text: session.clientIp)
+          if let address = session.attributes["client_ip"], !address.isEmpty {
+            detailRow(icon: "network", text: address)
           }
-          if session.hasCreatedAt {
-            detailRow(icon: "calendar", text: "Created \(formatDate(session.createdAt.date))")
+          if session.hasSignedInAt {
+            detailRow(icon: "calendar", text: "Created \(formatDate(session.signedInAt.date))")
           }
-          if session.hasLastActiveAt {
-            detailRow(icon: "clock", text: "Active \(formatDate(session.lastActiveAt.date))")
+          if session.hasLastRefreshedAt {
+            detailRow(icon: "clock", text: "Active \(formatDate(session.lastRefreshedAt.date))")
           }
           if session.hasExpiresAt {
             detailRow(icon: "timer", text: "Expires \(formatDate(session.expiresAt.date))")
@@ -146,7 +146,7 @@ struct SessionsView: View {
         }
 
         // Revoke button (only for non-current sessions)
-        if !session.isCurrent {
+        if !session.current {
           HStack {
             Spacer()
             DSButton("Revoke", style: .ghost, size: .small) {
@@ -168,6 +168,12 @@ struct SessionsView: View {
         .font(.caption)
         .foregroundColor(DSTheme.Colors.textSecondary)
     }
+  }
+
+  /// The device a login is on, as the server's sign-in annotator recorded it. Empty when the
+  /// server records nothing, which this one does not yet.
+  private func deviceName(_ session: SignIn) -> String {
+    session.attributes["device_name"] ?? session.attributes["user_agent"] ?? ""
   }
 
   private func iconForDevice(_ deviceName: String) -> String {
