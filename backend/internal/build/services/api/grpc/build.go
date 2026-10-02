@@ -22,7 +22,6 @@ import (
 	waitlistsbuild2 "github.com/primandproper/dinnerdonebetter/backend/internal/build/waitlists"
 	webhooksbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/webhooks"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
-	auditmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit/manager"
 	mealplanningregistration "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/registration"
 	paymentsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/manager"
 	appentitlements "github.com/primandproper/dinnerdonebetter/backend/internal/entitlements"
@@ -183,7 +182,6 @@ func BuildInjector(
 	internalopsrepo.RegisterInternalOpsRepository(i)
 
 	// managers
-	auditmanager.RegisterAuditDataManager(i)
 	paymentsmanager.RegisterPaymentsDataManager(i)
 	settingsrepo.RegisterSettingsRepository(i)
 	waitlistsrepo.RegisterWaitlistsRepository(i)

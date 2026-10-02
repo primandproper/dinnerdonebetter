@@ -99,7 +99,7 @@ func createComment(t *testing.T, ctx context.Context, db database.Client, store 
 
 func TestRepository_Integration_Comments(t *testing.T) {
 	ctx := t.Context()
-	dbc, auditRepo, db := buildDatabaseClientForTest(t)
+	dbc, _, db := buildDatabaseClientForTest(t)
 
 	user := pgtesting.CreateUserForTest(t, nil, db.Writer())
 	target := platformcomments.Target{Type: mealplanning.CommentTargetTypeRecipes, ID: identifiers.New()}
@@ -111,8 +111,8 @@ func TestRepository_Integration_Comments(t *testing.T) {
 	// create
 	_, err := createComment(t, ctx, db, dbc, comment)
 	require.NoError(t, err)
-	pgtesting.AssertAuditLogContainsForUser(t, ctx, auditRepo, user.ID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeComments, RelevantID: comment.ID},
+	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, user.ID, []pgtesting.ExpectedAuditEntry{
+		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeComments, ResourceID: comment.ID},
 	})
 
 	fetched, err := dbc.GetComment(ctx, db.Reader(), tenancy.Global(), comment.ID)
@@ -134,9 +134,9 @@ func TestRepository_Integration_Comments(t *testing.T) {
 
 		return updateErr
 	}))
-	pgtesting.AssertAuditLogContainsForUser(t, ctx, auditRepo, user.ID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeComments, RelevantID: comment.ID},
-		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeComments, RelevantID: comment.ID},
+	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, user.ID, []pgtesting.ExpectedAuditEntry{
+		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeComments, ResourceID: comment.ID},
+		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeComments, ResourceID: comment.ID},
 	})
 
 	updated, err := dbc.GetComment(ctx, db.Reader(), tenancy.Global(), comment.ID)
@@ -150,10 +150,10 @@ func TestRepository_Integration_Comments(t *testing.T) {
 
 		return archiveErr
 	}))
-	pgtesting.AssertAuditLogContainsForUser(t, ctx, auditRepo, user.ID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeComments, RelevantID: comment.ID},
-		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeComments, RelevantID: comment.ID},
-		{EventType: audit.AuditLogEventTypeArchived, ResourceType: resourceTypeComments, RelevantID: comment.ID},
+	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, user.ID, []pgtesting.ExpectedAuditEntry{
+		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeComments, ResourceID: comment.ID},
+		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeComments, ResourceID: comment.ID},
+		{EventType: audit.AuditLogEventTypeArchived, ResourceType: resourceTypeComments, ResourceID: comment.ID},
 	})
 
 	fetchedAfterArchive, err := dbc.GetComment(ctx, db.Reader(), tenancy.Global(), comment.ID)
@@ -167,7 +167,7 @@ func TestRepository_Integration_Comments(t *testing.T) {
 // first so the audit entry can name whose it was.
 func TestRepository_Integration_ArchiveRecordsTheAuthor(t *testing.T) {
 	ctx := t.Context()
-	dbc, auditRepo, db := buildDatabaseClientForTest(t)
+	dbc, _, db := buildDatabaseClientForTest(t)
 
 	author := pgtesting.CreateUserForTest(t, nil, db.Writer())
 	archiver := pgtesting.CreateUserForTest(t, nil, db.Writer())
@@ -185,14 +185,13 @@ func TestRepository_Integration_ArchiveRecordsTheAuthor(t *testing.T) {
 
 	// The entry belongs to whoever wrote the comment, not to whoever happened to be
 	// signed in when it was archived.
-	pgtesting.AssertAuditLogContainsForUser(t, ctx, auditRepo, author.ID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeComments, RelevantID: comment.ID},
-		{EventType: audit.AuditLogEventTypeArchived, ResourceType: resourceTypeComments, RelevantID: comment.ID},
+	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, author.ID, []pgtesting.ExpectedAuditEntry{
+		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeComments, ResourceID: comment.ID},
+		{EventType: audit.AuditLogEventTypeArchived, ResourceType: resourceTypeComments, ResourceID: comment.ID},
 	})
 
-	entries, err := auditRepo.GetAuditLogEntriesForUser(ctx, archiver.ID, nil)
-	require.NoError(t, err)
-	assert.Empty(t, entries.Data)
+	entries := pgtesting.AuditEntriesForActor(t, ctx, db, archiver.ID)
+	assert.Empty(t, entries)
 }
 
 // TestRepository_Integration_ArchiveMissingRecordsNothing pins that a failed

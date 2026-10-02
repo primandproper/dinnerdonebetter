@@ -79,7 +79,7 @@ func TestQuerier_Integration_AuditLogChain(t *testing.T) {
 	}
 
 	t.Run("verifies clean", func(t *testing.T) {
-		result, err := dbc.VerifyChain(ctx, tenancy.Of(account.ID), time.Time{}, time.Time{})
+		result, err := dbc.reader.Verify(ctx, client.Reader(), tenancy.Of(account.ID), time.Time{}, time.Time{}, platformaudit.ChainStart)
 		require.NoError(t, err)
 		require.NotNil(t, result)
 
@@ -108,7 +108,7 @@ func TestQuerier_Integration_AuditLogChain(t *testing.T) {
 			"DELETE FROM "+branding.TablePrefix+"_audit_log_entries WHERE id = $1", recorded[1].ID)
 		require.NoError(t, err)
 
-		result, err := dbc.VerifyChain(ctx, tenancy.Of(account.ID), time.Time{}, time.Time{})
+		result, err := dbc.reader.Verify(ctx, client.Reader(), tenancy.Of(account.ID), time.Time{}, time.Time{}, platformaudit.ChainStart)
 		require.NoError(t, err)
 		require.NotNil(t, result)
 
@@ -150,7 +150,7 @@ func TestQuerier_Integration_AuditLogRedaction(t *testing.T) {
 	assert.NotContains(t, entry.Changes, "password")
 	assert.Contains(t, entry.Changes, "firstName")
 
-	fetched, err := dbc.GetAuditLogEntry(ctx, entry.ID)
+	fetched, err := dbc.reader.GetAcrossScopes(ctx, client.Reader(), entry.ID)
 	require.NoError(t, err)
 	assert.NotContains(t, fetched.Changes, "password")
 	require.Contains(t, fetched.Changes, "firstName")
@@ -161,19 +161,4 @@ func TestQuerier_Integration_AuditLogRedaction(t *testing.T) {
 	require.NoError(t, client.Reader().QueryRowContext(ctx,
 		"SELECT change_set FROM "+branding.TablePrefix+"_audit_log_entries WHERE id = $1", entry.ID).Scan(&raw))
 	assert.NotContains(t, string(raw), "hunter2")
-}
-
-func TestQuerier_GetAuditLogEntry(T *testing.T) {
-	T.Parallel()
-
-	T.Run("with empty ID", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		c := buildInertClientForTest(t)
-
-		actual, err := c.GetAuditLogEntry(ctx, "")
-		require.Error(t, err)
-		assert.Nil(t, actual)
-	})
 }

@@ -73,7 +73,6 @@ func (f *failingAuditRepository) Record(context.Context, database.Tx, ...*audit.
 type commentsFixture struct {
 	server commentspb.CommentsServiceServer
 	store  platformcomments.Store
-	audits audit.Repository
 	db     database.Client
 }
 
@@ -133,9 +132,7 @@ func buildFixture(t *testing.T, decorate func(audit.Repository) audit.Repository
 		commentsgrpc.WithMetricsProvider(metricsnoop.NewMetricsProvider()))
 	require.NoError(t, err)
 
-	// audits, not recording: a test asserting on the log reads through the real
-	// repository even when the one the write was given is the failing one.
-	return &commentsFixture{server: server, store: store, audits: audits, db: db}
+	return &commentsFixture{server: server, store: store, db: db}
 }
 
 // callerContext puts a session on the context, which is what
@@ -213,8 +210,8 @@ func TestServer_Integration_RecordingCommitsWithTheWrite(T *testing.T) {
 
 		// The entry, filed under the author — written by this package's decorator,
 		// inside platform's transaction.
-		pgtesting.AssertAuditLogContainsForUser(t, ctx, fixture.audits, user.ID, []*audit.AuditLogEntry{
-			{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeComments, RelevantID: commentID},
+		pgtesting.AssertAuditLogContainsForUser(t, ctx, fixture.db, user.ID, []pgtesting.ExpectedAuditEntry{
+			{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeComments, ResourceID: commentID},
 		})
 
 		// The event.
@@ -287,9 +284,8 @@ func TestServer_Integration_AFailedWriteRecordsNothing(T *testing.T) {
 		require.Error(t, err)
 		assert.Nil(t, response)
 
-		entries, listErr := fixture.audits.GetAuditLogEntriesForUser(ctx, user.ID, nil)
-		require.NoError(t, listErr)
-		assert.Empty(t, entries.Data, "a refused write should have recorded no audit entry")
+		assert.Empty(t, pgtesting.AuditEntriesForActor(t, ctx, fixture.db, user.ID),
+			"a refused write should have recorded no audit entry")
 
 		assert.Zero(t, fixture.outboxDepth(t, ctx), "a refused write should have emitted no event")
 	})

@@ -271,7 +271,9 @@ So the audit eraser does the one deletion the structure permits: **whole scopes*
 entries and chain rows together. A scope that disappears entirely leaves no gap in
 any surviving chain, because there is nothing left to verify against. It is
 platform-go's `dataprivacy/auditerasure`, registered under the `audit` key with the
-scope resolver in `internal/domain/audit/privacy`.
+scope resolver in `internal/domain/audit/privacy`. The export's audit section is
+registered under the same key: platform-go's `audit/privacy` collector, with a
+resolver in the same package naming every chain the subject's entries can be in.
 
 `ScopeFor` is what makes that cover most of a departing user's trail:
 

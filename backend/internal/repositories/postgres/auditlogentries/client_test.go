@@ -10,8 +10,6 @@ import (
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
 	"github.com/primandproper/primitives-go/v2/database"
-	"github.com/primandproper/primitives-go/v2/database/dialect"
-	mockdatabase "github.com/primandproper/primitives-go/v2/database/mock"
 	"github.com/primandproper/primitives-go/v2/database/postgres"
 	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
 	metricsnoop "github.com/primandproper/primitives-go/v2/observability/metrics/noop"
@@ -57,17 +55,4 @@ func buildDatabaseClientForTest(t *testing.T) (*repository, database.Client) {
 	require.NoError(t, err)
 
 	return c.(*repository), pgc
-}
-
-func buildInertClientForTest(t *testing.T) *repository {
-	t.Helper()
-
-	c, err := ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), metricsnoop.NewMetricsProvider(), &mockdatabase.ClientMock{
-		ReaderFunc:  func() database.SQLQueryExecutor { return nil },
-		WriterFunc:  func() database.SQLQueryExecutor { return nil },
-		DialectFunc: func() dialect.Dialect { return dialect.Postgres },
-	})
-	require.NoError(t, err)
-
-	return c.(*repository)
 }

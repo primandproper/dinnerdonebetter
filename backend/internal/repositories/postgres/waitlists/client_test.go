@@ -100,7 +100,7 @@ func openListForTest(t *testing.T, ctx context.Context, dbc waitlists.Store, db 
 
 func TestRepository_Integration_Waitlists(t *testing.T) {
 	ctx := t.Context()
-	dbc, auditRepo, db := buildDatabaseClientForTest(t)
+	dbc, _, db := buildDatabaseClientForTest(t)
 	scope := tenancy.Global()
 
 	example := fakes.BuildFakeWaitlist()
@@ -116,8 +116,8 @@ func TestRepository_Integration_Waitlists(t *testing.T) {
 	// unattributed actor — the same shape the table this replaced recorded under,
 	// and the reason internal/domain/audit names that actor rather than leaving
 	// it blank.
-	pgtesting.AssertAuditLogContainsForUser(t, ctx, auditRepo, audit.UnattributedActorID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeWaitlists, RelevantID: created.ID},
+	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, audit.UnattributedActorID, []pgtesting.ExpectedAuditEntry{
+		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeWaitlists, ResourceID: created.ID},
 	})
 
 	fetched, err := dbc.GetList(ctx, db.Reader(), scope, created.ID)
@@ -160,10 +160,10 @@ func TestRepository_Integration_Waitlists(t *testing.T) {
 	assert.Nil(t, afterArchive)
 	require.ErrorIs(t, err, waitlists.ErrListNotFound)
 
-	pgtesting.AssertAuditLogContainsForUser(t, ctx, auditRepo, audit.UnattributedActorID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeWaitlists, RelevantID: created.ID},
-		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeWaitlists, RelevantID: created.ID},
-		{EventType: audit.AuditLogEventTypeArchived, ResourceType: resourceTypeWaitlists, RelevantID: created.ID},
+	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, audit.UnattributedActorID, []pgtesting.ExpectedAuditEntry{
+		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeWaitlists, ResourceID: created.ID},
+		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeWaitlists, ResourceID: created.ID},
+		{EventType: audit.AuditLogEventTypeArchived, ResourceType: resourceTypeWaitlists, ResourceID: created.ID},
 	})
 }
 
@@ -222,7 +222,7 @@ func TestRepository_Integration_ClosedListTakesNoSignups(t *testing.T) {
 
 func TestRepository_Integration_WaitlistSignups(t *testing.T) {
 	ctx := t.Context()
-	dbc, auditRepo, db := buildDatabaseClientForTest(t)
+	dbc, _, db := buildDatabaseClientForTest(t)
 	scope := tenancy.Global()
 
 	userID := signatoryForTest(t, db)
@@ -236,8 +236,8 @@ func TestRepository_Integration_WaitlistSignups(t *testing.T) {
 	assert.Equal(t, list.ID, joined.ListID)
 	assert.NotEmpty(t, joined.ContactDigest)
 
-	pgtesting.AssertAuditLogContainsForUser(t, ctx, auditRepo, userID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeWaitlistSignups, RelevantID: joined.ID},
+	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, userID, []pgtesting.ExpectedAuditEntry{
+		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeWaitlistSignups, ResourceID: joined.ID},
 	})
 
 	fetched, err := dbc.GetSignup(ctx, db.Reader(), scope, list.ID, joined.ID)
@@ -279,10 +279,10 @@ func TestRepository_Integration_WaitlistSignups(t *testing.T) {
 	assert.Nil(t, afterArchive)
 	require.ErrorIs(t, err, waitlists.ErrSignupNotFound)
 
-	pgtesting.AssertAuditLogContainsForUser(t, ctx, auditRepo, userID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeWaitlistSignups, RelevantID: joined.ID},
-		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeWaitlistSignups, RelevantID: joined.ID},
-		{EventType: audit.AuditLogEventTypeArchived, ResourceType: resourceTypeWaitlistSignups, RelevantID: joined.ID},
+	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, userID, []pgtesting.ExpectedAuditEntry{
+		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeWaitlistSignups, ResourceID: joined.ID},
+		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeWaitlistSignups, ResourceID: joined.ID},
+		{EventType: audit.AuditLogEventTypeArchived, ResourceType: resourceTypeWaitlistSignups, ResourceID: joined.ID},
 	})
 }
 
@@ -292,7 +292,7 @@ func TestRepository_Integration_WaitlistSignups(t *testing.T) {
 // the second one's side.
 func TestRepository_Integration_SignupLifecycle(t *testing.T) {
 	ctx := t.Context()
-	dbc, auditRepo, db := buildDatabaseClientForTest(t)
+	dbc, _, db := buildDatabaseClientForTest(t)
 	scope := tenancy.Global()
 
 	userID := signatoryForTest(t, db)
@@ -329,9 +329,8 @@ func TestRepository_Integration_SignupLifecycle(t *testing.T) {
 
 	// Three entries: the join, and the two moves that took. The refused
 	// invitation is not among them.
-	entries, err := auditRepo.GetAuditLogEntriesForUser(ctx, userID, nil)
-	require.NoError(t, err)
-	assert.Len(t, entries.Data, 3)
+	entries := pgtesting.AuditEntriesForActor(t, ctx, db, userID)
+	assert.Len(t, entries, 3)
 }
 
 // TestRepository_Integration_ConfirmationIsRecorded pins the override platform's new
@@ -339,7 +338,7 @@ func TestRepository_Integration_SignupLifecycle(t *testing.T) {
 // where the embedded store alone would move it silently.
 func TestRepository_Integration_ConfirmationIsRecorded(t *testing.T) {
 	ctx := t.Context()
-	dbc, auditRepo, db := buildDatabaseClientForTest(t)
+	dbc, _, db := buildDatabaseClientForTest(t)
 	scope := tenancy.Global()
 
 	userID := signatoryForTest(t, db)
@@ -365,9 +364,8 @@ func TestRepository_Integration_ConfirmationIsRecorded(t *testing.T) {
 	require.ErrorIs(t, err, waitlists.ErrWrongStatus)
 
 	// Two entries: the join and the confirmation.
-	entries, err := auditRepo.GetAuditLogEntriesForUser(ctx, userID, nil)
-	require.NoError(t, err)
-	assert.Len(t, entries.Data, 2)
+	entries := pgtesting.AuditEntriesForActor(t, ctx, db, userID)
+	assert.Len(t, entries, 2)
 }
 
 // TestRepository_Integration_WithdrawalOutlivesTheAddress is the obligation this
@@ -378,7 +376,7 @@ func TestRepository_Integration_ConfirmationIsRecorded(t *testing.T) {
 // signup from the same person simply succeeded.
 func TestRepository_Integration_WithdrawalOutlivesTheAddress(t *testing.T) {
 	ctx := t.Context()
-	dbc, auditRepo, db := buildDatabaseClientForTest(t)
+	dbc, _, db := buildDatabaseClientForTest(t)
 	scope := tenancy.Global()
 
 	userID := signatoryForTest(t, db)
@@ -424,9 +422,9 @@ func TestRepository_Integration_WithdrawalOutlivesTheAddress(t *testing.T) {
 
 	// The audit entry still names them, which is the point of reading the signup
 	// before the store blanks it.
-	pgtesting.AssertAuditLogContainsForUser(t, ctx, auditRepo, userID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeWaitlistSignups, RelevantID: joined.ID},
-		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeWaitlistSignups, RelevantID: joined.ID},
+	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, userID, []pgtesting.ExpectedAuditEntry{
+		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeWaitlistSignups, ResourceID: joined.ID},
+		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeWaitlistSignups, ResourceID: joined.ID},
 	})
 }
 
@@ -464,7 +462,7 @@ func TestRepository_Integration_ArchivingIsNotWithdrawing(t *testing.T) {
 // a row that is not there is an error before anything is written down about it.
 func TestRepository_Integration_MissingRowsRecordNothing(t *testing.T) {
 	ctx := t.Context()
-	dbc, auditRepo, db := buildDatabaseClientForTest(t)
+	dbc, _, db := buildDatabaseClientForTest(t)
 	scope := tenancy.Global()
 
 	userID := signatoryForTest(t, db)
@@ -490,9 +488,8 @@ func TestRepository_Integration_MissingRowsRecordNothing(t *testing.T) {
 		require.ErrorIs(t, err, waitlists.ErrSignupNotFound)
 	}
 
-	entries, err := auditRepo.GetAuditLogEntriesForUser(ctx, userID, nil)
-	require.NoError(t, err)
-	assert.Empty(t, entries.Data)
+	entries := pgtesting.AuditEntriesForActor(t, ctx, db, userID)
+	assert.Empty(t, entries)
 }
 
 // writeT runs one store write on a transaction of its own.

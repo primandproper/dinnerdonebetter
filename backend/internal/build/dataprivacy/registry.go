@@ -20,7 +20,6 @@ package dataprivacy
 import (
 	"context"
 
-	auditdomain "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	auditprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit/privacy"
 	ddbdataprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
 	identityprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/privacy"
@@ -30,6 +29,7 @@ import (
 	paymentsprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/privacy"
 	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
 
+	platformaudit "github.com/primandproper/platform-go/v14/audit"
 	oauth2clients "github.com/primandproper/platform-go/v14/authentication/oauth2clients"
 	"github.com/primandproper/platform-go/v14/authentication/passkeys"
 	"github.com/primandproper/platform-go/v14/authentication/passwordreset"
@@ -176,6 +176,15 @@ func buildRegistry(i do.Injector) (*platformdataprivacy.Registry, error) {
 			Resolve:  platformdataprivacy.FixedScopes(tenancy.Global()),
 		},
 
+		// The audit log, read in every chain the subject's entries can be in. Which chain
+		// an entry lands in is this application's rule, so the resolver is too; the
+		// collector is platform's, and reads what the subject was acted on in and what
+		// they did while impersonating somebody, which the one it replaced did not.
+		Audit: &privacyadapters.AuditAdapter{
+			Log:     do.MustInvoke[platformaudit.Reader](i),
+			Resolve: auditprivacy.CollectableScopeResolver(identityStore, do.MustInvoke[platformaudit.Reader](i), reader),
+		},
+
 		// Billing takes a resolver of its own shape — accounts rather than scopes —
 		// because what it pages is filed per account. The conversion is this
 		// application's tenancy model and lives beside the payments domain.
@@ -190,9 +199,8 @@ func buildRegistry(i do.Injector) (*platformdataprivacy.Registry, error) {
 
 	logger.WithValue("keys", adopted).Info("registered platform's privacy adapters")
 
-	// And the two this application answers for itself, neither of which platform ships a
-	// counterpart for that this deployment uses: meal planning is the domain this
-	// application is, and the audit log is a hash chain nothing else models.
+	// And the one this application answers for itself: meal planning, which is the domain
+	// this application is and has no platform counterpart.
 	//
 	// A collector whose whole body is "page one list read and encode the rows" is
 	// platformdataprivacy.CollectorFor and has no observability of its own to do: the
@@ -204,7 +212,6 @@ func buildRegistry(i do.Injector) (*platformdataprivacy.Registry, error) {
 	collectors := map[string]platformdataprivacy.Collector{
 		ddbdataprivacy.CollectorKeyMealPlanning: mealplanningprivacy.NewCollector(
 			do.MustInvoke[mealplanning.Repository](i), resolveAccounts, logger, tracerProvider),
-		ddbdataprivacy.CollectorKeyAuditLog: auditprivacy.NewCollector(do.MustInvoke[auditdomain.Repository](i)),
 	}
 
 	for key, collector := range collectors {

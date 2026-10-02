@@ -110,7 +110,7 @@ func writeT[T any](ctx context.Context, db database.Client, write func(tx databa
 
 func TestRepository_Integration_UploadedMedia(t *testing.T) {
 	ctx := t.Context()
-	dbc, auditRepo, db := buildDatabaseClientForTest(t)
+	dbc, _, db := buildDatabaseClientForTest(t)
 
 	user := pgtesting.CreateUserForTest(t, nil, db.Writer())
 	input := ownedBy(user.ID)
@@ -119,8 +119,8 @@ func TestRepository_Integration_UploadedMedia(t *testing.T) {
 	object, err := recordT(ctx, db, dbc, input)
 	require.NoError(t, err)
 	assert.NotZero(t, object.CreatedAt)
-	pgtesting.AssertAuditLogContainsForUser(t, ctx, auditRepo, user.ID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeUploadedMedia, RelevantID: object.ID},
+	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, user.ID, []pgtesting.ExpectedAuditEntry{
+		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeUploadedMedia, ResourceID: object.ID},
 	})
 
 	fetched, err := dbc.GetObject(ctx, db.Reader(), tenancy.Global(), object.ID)
@@ -143,9 +143,9 @@ func TestRepository_Integration_UploadedMedia(t *testing.T) {
 	// archive
 	_, err = archiveT(ctx, db, dbc, object.ID)
 	require.NoError(t, err)
-	pgtesting.AssertAuditLogContainsForUser(t, ctx, auditRepo, user.ID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeUploadedMedia, RelevantID: object.ID},
-		{EventType: audit.AuditLogEventTypeArchived, ResourceType: resourceTypeUploadedMedia, RelevantID: object.ID},
+	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, user.ID, []pgtesting.ExpectedAuditEntry{
+		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeUploadedMedia, ResourceID: object.ID},
+		{EventType: audit.AuditLogEventTypeArchived, ResourceType: resourceTypeUploadedMedia, ResourceID: object.ID},
 	})
 
 	fetchedAfterArchive, err := dbc.GetObject(ctx, db.Reader(), tenancy.Global(), object.ID)
@@ -159,7 +159,7 @@ func TestRepository_Integration_UploadedMedia(t *testing.T) {
 // audit entry can name whose it was.
 func TestRepository_Integration_ArchiveRecordsTheOwner(t *testing.T) {
 	ctx := t.Context()
-	dbc, auditRepo, db := buildDatabaseClientForTest(t)
+	dbc, _, db := buildDatabaseClientForTest(t)
 
 	owner := pgtesting.CreateUserForTest(t, nil, db.Writer())
 	archiver := pgtesting.CreateUserForTest(t, nil, db.Writer())
@@ -172,14 +172,13 @@ func TestRepository_Integration_ArchiveRecordsTheOwner(t *testing.T) {
 
 	// The entry belongs to whoever uploaded the object, not to whoever happened to be
 	// signed in when it was archived.
-	pgtesting.AssertAuditLogContainsForUser(t, ctx, auditRepo, owner.ID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeUploadedMedia, RelevantID: object.ID},
-		{EventType: audit.AuditLogEventTypeArchived, ResourceType: resourceTypeUploadedMedia, RelevantID: object.ID},
+	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, owner.ID, []pgtesting.ExpectedAuditEntry{
+		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeUploadedMedia, ResourceID: object.ID},
+		{EventType: audit.AuditLogEventTypeArchived, ResourceType: resourceTypeUploadedMedia, ResourceID: object.ID},
 	})
 
-	entries, err := auditRepo.GetAuditLogEntriesForUser(ctx, archiver.ID, nil)
-	require.NoError(t, err)
-	assert.Empty(t, entries.Data)
+	entries := pgtesting.AuditEntriesForActor(t, ctx, db, archiver.ID)
+	assert.Empty(t, entries)
 }
 
 // TestRepository_Integration_ArchiveMissingRecordsNothing pins that a failed archive

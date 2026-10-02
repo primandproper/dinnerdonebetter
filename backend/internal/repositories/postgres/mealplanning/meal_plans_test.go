@@ -129,7 +129,7 @@ func createMealPlanForTest(t *testing.T, ctx context.Context, exampleMealPlan *t
 
 func TestQuerier_Integration_MealPlans(t *testing.T) {
 	ctx := t.Context()
-	dbc, auditRepo := buildDatabaseClientForTest(t)
+	dbc, _ := buildDatabaseClientForTest(t)
 
 	user := pgtesting.CreateUserForTest(t, nil, dbc.writeDB)
 	account := pgtesting.CreateAccountForTest(t, nil, user.ID, dbc.writeDB)
@@ -145,8 +145,8 @@ func TestQuerier_Integration_MealPlans(t *testing.T) {
 	// create
 	createdMealPlans = append(createdMealPlans, createMealPlanForTest(t, ctx, exampleMealPlan, dbc))
 
-	pgtesting.AssertAuditLogContains(t, ctx, auditRepo, accountID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeMealPlans, RelevantID: createdMealPlans[0].ID},
+	pgtesting.AssertAuditLogContains(t, ctx, dbc, accountID, []pgtesting.ExpectedAuditEntry{
+		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeMealPlans, ResourceID: createdMealPlans[0].ID},
 	})
 
 	// create more
@@ -176,8 +176,8 @@ func TestQuerier_Integration_MealPlans(t *testing.T) {
 		require.ErrorIs(t, err, ErrAlreadyFinalized)
 		require.NoError(t, dbc.ArchiveMealPlan(ctx, mealPlan.ID, accountID))
 
-		pgtesting.AssertAuditLogContains(t, ctx, auditRepo, accountID, []*audit.AuditLogEntry{
-			{EventType: audit.AuditLogEventTypeArchived, ResourceType: resourceTypeMealPlans, RelevantID: mealPlan.ID},
+		pgtesting.AssertAuditLogContains(t, ctx, dbc, accountID, []pgtesting.ExpectedAuditEntry{
+			{EventType: audit.AuditLogEventTypeArchived, ResourceType: resourceTypeMealPlans, ResourceID: mealPlan.ID},
 		})
 
 		var exists bool

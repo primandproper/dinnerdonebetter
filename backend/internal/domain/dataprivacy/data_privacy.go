@@ -26,6 +26,7 @@ package dataprivacy
 import (
 	"context"
 
+	auditprivacy "github.com/primandproper/platform-go/v14/audit/privacy"
 	oauth2clientsprivacy "github.com/primandproper/platform-go/v14/authentication/oauth2clients/privacy"
 	passkeysprivacy "github.com/primandproper/platform-go/v14/authentication/passkeys/privacy"
 	passwordresetprivacy "github.com/primandproper/platform-go/v14/authentication/passwordreset/privacy"
@@ -67,8 +68,10 @@ const (
 	// preferences, and ratings. There is no platform counterpart; this is the domain
 	// this application is.
 	CollectorKeyMealPlanning = "meal_planning"
-	// CollectorKeyAuditLog covers the audit entries recorded about the subject.
-	CollectorKeyAuditLog = "audit_log"
+	// CollectorKeyAuditLog covers the audit entries recorded about the subject. It is
+	// platform's key, and the same one the audit eraser is registered under, so an
+	// export's audit section and an erasure's audit line describe the same log.
+	CollectorKeyAuditLog = auditprivacy.DefaultKey
 
 	// The sections platform's own adapters register, named by the packages that own
 	// them so that this application cannot drift from the artifact everybody else reads.

@@ -84,7 +84,7 @@ func reporterForTest(t *testing.T, db database.Client) (userID, accountID string
 
 func TestRepository_Integration_IssueReports(t *testing.T) {
 	ctx := t.Context()
-	dbc, auditRepo, db := buildDatabaseClientForTest(t)
+	dbc, _, db := buildDatabaseClientForTest(t)
 
 	userID, accountID := reporterForTest(t, db)
 
@@ -95,8 +95,8 @@ func TestRepository_Integration_IssueReports(t *testing.T) {
 	created, err := createT(ctx, db, dbc, report)
 	require.NoError(t, err)
 	assert.Equal(t, issuereports.StatusOpen, created.Status)
-	pgtesting.AssertAuditLogContainsForUser(t, ctx, auditRepo, userID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeIssueReports, RelevantID: report.ID},
+	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, userID, []pgtesting.ExpectedAuditEntry{
+		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeIssueReports, ResourceID: report.ID},
 	})
 
 	fetched, err := dbc.GetReport(ctx, db.Reader(), ddbissuereports.Scope(accountID), report.ID)
@@ -122,9 +122,9 @@ func TestRepository_Integration_IssueReports(t *testing.T) {
 		return dbc.UpdateReport(ctx, tx, ddbissuereports.Scope(accountID), fetched)
 	})
 	require.NoError(t, err)
-	pgtesting.AssertAuditLogContainsForUser(t, ctx, auditRepo, userID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeIssueReports, RelevantID: report.ID},
-		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeIssueReports, RelevantID: report.ID},
+	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, userID, []pgtesting.ExpectedAuditEntry{
+		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeIssueReports, ResourceID: report.ID},
+		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeIssueReports, ResourceID: report.ID},
 	})
 
 	updated, err := dbc.GetReport(ctx, db.Reader(), ddbissuereports.Scope(accountID), report.ID)
@@ -137,10 +137,10 @@ func TestRepository_Integration_IssueReports(t *testing.T) {
 		return dbc.ArchiveReport(ctx, tx, ddbissuereports.Scope(accountID), report.ID)
 	})
 	require.NoError(t, err)
-	pgtesting.AssertAuditLogContainsForUser(t, ctx, auditRepo, userID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeIssueReports, RelevantID: report.ID},
-		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeIssueReports, RelevantID: report.ID},
-		{EventType: audit.AuditLogEventTypeArchived, ResourceType: resourceTypeIssueReports, RelevantID: report.ID},
+	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, userID, []pgtesting.ExpectedAuditEntry{
+		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeIssueReports, ResourceID: report.ID},
+		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeIssueReports, ResourceID: report.ID},
+		{EventType: audit.AuditLogEventTypeArchived, ResourceType: resourceTypeIssueReports, ResourceID: report.ID},
 	})
 
 	afterArchive, err := dbc.GetReport(ctx, db.Reader(), ddbissuereports.Scope(accountID), report.ID)
@@ -154,7 +154,7 @@ func TestRepository_Integration_IssueReports(t *testing.T) {
 // closed_at and stores the note, and reopening clears both.
 func TestRepository_Integration_TriageLifecycle(t *testing.T) {
 	ctx := t.Context()
-	dbc, auditRepo, db := buildDatabaseClientForTest(t)
+	dbc, _, db := buildDatabaseClientForTest(t)
 
 	userID, accountID := reporterForTest(t, db)
 	scope := ddbissuereports.Scope(accountID)
@@ -185,11 +185,11 @@ func TestRepository_Integration_TriageLifecycle(t *testing.T) {
 
 	// Every move is recorded, so "who resolved this and when" is answerable from
 	// the audit log rather than from the one row the last write left behind.
-	pgtesting.AssertAuditLogContainsForUser(t, ctx, auditRepo, userID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeIssueReports, RelevantID: report.ID},
-		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeIssueReports, RelevantID: report.ID},
-		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeIssueReports, RelevantID: report.ID},
-		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeIssueReports, RelevantID: report.ID},
+	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, userID, []pgtesting.ExpectedAuditEntry{
+		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeIssueReports, ResourceID: report.ID},
+		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeIssueReports, ResourceID: report.ID},
+		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeIssueReports, ResourceID: report.ID},
+		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeIssueReports, ResourceID: report.ID},
 	})
 }
 
@@ -198,7 +198,7 @@ func TestRepository_Integration_TriageLifecycle(t *testing.T) {
 // exactly what this looks like from the second one's side.
 func TestRepository_Integration_TransitionGuardRecordsNothing(t *testing.T) {
 	ctx := t.Context()
-	dbc, auditRepo, db := buildDatabaseClientForTest(t)
+	dbc, _, db := buildDatabaseClientForTest(t)
 
 	userID, accountID := reporterForTest(t, db)
 	scope := ddbissuereports.Scope(accountID)
@@ -222,9 +222,8 @@ func TestRepository_Integration_TransitionGuardRecordsNothing(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "first", stored.Resolution)
 
-	entries, err := auditRepo.GetAuditLogEntriesForUser(ctx, userID, nil)
-	require.NoError(t, err)
-	assert.Len(t, entries.Data, 2)
+	entries := pgtesting.AuditEntriesForActor(t, ctx, db, userID)
+	assert.Len(t, entries, 2)
 }
 
 // TestRepository_Integration_ScopeIsTheAccountBoundary pins that a report filed in

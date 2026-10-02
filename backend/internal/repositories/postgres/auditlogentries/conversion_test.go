@@ -2,7 +2,6 @@ package auditlogentries
 
 import (
 	"testing"
-	"time"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 
@@ -74,113 +73,5 @@ func TestToPlatformEntry(T *testing.T) {
 		require.NotEmpty(t, converted.Actor.ID)
 		require.NotEmpty(t, converted.ResourceType)
 		require.NotEmpty(t, converted.EventType)
-	})
-}
-
-func TestFromPlatformEntry(T *testing.T) {
-	T.Parallel()
-
-	T.Run("recovers the account from the scope", func(t *testing.T) {
-		t.Parallel()
-
-		accountID, userID := identifiers.New(), identifiers.New()
-		recordedAt := time.Now().UTC().Truncate(time.Microsecond)
-
-		converted := fromPlatformEntry(&platformaudit.Entry{
-			Scope:        tenancy.Of(accountID),
-			Actor:        platformaudit.Actor{ID: userID, Type: platformaudit.ActorUser},
-			RecordedAt:   recordedAt,
-			ResourceType: "recipes",
-			EventType:    platformaudit.EventUpdated,
-			Seq:          7,
-			Hash:         "abc",
-			PrevHash:     "def",
-		})
-
-		require.NotNil(t, converted.BelongsToAccount)
-		assert.Equal(t, accountID, *converted.BelongsToAccount)
-		assert.Equal(t, userID, converted.BelongsToUser)
-		assert.Equal(t, recordedAt, converted.CreatedAt)
-		assert.Equal(t, int64(7), converted.Seq)
-		assert.Equal(t, "abc", converted.Hash)
-		assert.Equal(t, "def", converted.PrevHash)
-	})
-
-	// A scope equal to the actor's own ID is a user chain, not an account. Getting
-	// this backwards would report a user ID as an account ID to every reader.
-	T.Run("reports no account when the scope is the actor", func(t *testing.T) {
-		t.Parallel()
-
-		userID := identifiers.New()
-
-		converted := fromPlatformEntry(&platformaudit.Entry{
-			Scope:        tenancy.Of(userID),
-			Actor:        platformaudit.Actor{ID: userID},
-			ResourceType: "users",
-			EventType:    platformaudit.EventCreated,
-		})
-
-		assert.Nil(t, converted.BelongsToAccount)
-		assert.Equal(t, userID, converted.BelongsToUser)
-	})
-
-	T.Run("reports no account for a platform-scoped entry", func(t *testing.T) {
-		t.Parallel()
-
-		converted := fromPlatformEntry(&platformaudit.Entry{
-			Actor:        platformaudit.Actor{ID: audit.UnattributedActorID},
-			ResourceType: "service_settings",
-			EventType:    platformaudit.EventArchived,
-		})
-
-		assert.Nil(t, converted.BelongsToAccount)
-	})
-}
-
-// The round trip is what the read path depends on: an entry written through
-// Record and read back through the Reader has to describe the same event.
-func TestConversionRoundTrip(T *testing.T) {
-	T.Parallel()
-
-	T.Run("preserves an account-scoped entry", func(t *testing.T) {
-		t.Parallel()
-
-		original := &audit.AuditLogEntry{
-			BelongsToAccount: pointer.To(identifiers.New()),
-			BelongsToUser:    identifiers.New(),
-			ID:               identifiers.New(),
-			ResourceType:     "recipes",
-			RelevantID:       identifiers.New(),
-			EventType:        audit.AuditLogEventTypeUpdated,
-			CreatedAt:        time.Now().UTC().Truncate(time.Microsecond),
-			Changes:          map[string]audit.Change{"name": {Old: "before", New: "after"}},
-		}
-
-		result := fromPlatformEntry(toPlatformEntry(original))
-
-		assert.Equal(t, *original.BelongsToAccount, *result.BelongsToAccount)
-		assert.Equal(t, original.BelongsToUser, result.BelongsToUser)
-		assert.Equal(t, original.ID, result.ID)
-		assert.Equal(t, original.ResourceType, result.ResourceType)
-		assert.Equal(t, original.RelevantID, result.RelevantID)
-		assert.Equal(t, original.EventType, result.EventType)
-		assert.Equal(t, original.CreatedAt, result.CreatedAt)
-		assert.Equal(t, original.Changes, result.Changes)
-	})
-
-	T.Run("preserves a user-scoped entry", func(t *testing.T) {
-		t.Parallel()
-
-		original := &audit.AuditLogEntry{
-			BelongsToUser: identifiers.New(),
-			ResourceType:  "users",
-			RelevantID:    identifiers.New(),
-			EventType:     audit.AuditLogEventTypeCreated,
-		}
-
-		result := fromPlatformEntry(toPlatformEntry(original))
-
-		assert.Nil(t, result.BelongsToAccount)
-		assert.Equal(t, original.BelongsToUser, result.BelongsToUser)
 	})
 }

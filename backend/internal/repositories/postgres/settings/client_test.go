@@ -102,7 +102,7 @@ func definitionForTest(t *testing.T, ctx context.Context, dbc settings.Store, db
 
 func TestRepository_Integration_SettingDefinitions(t *testing.T) {
 	ctx := t.Context()
-	dbc, auditRepo, db := buildDatabaseClientForTest(t)
+	dbc, _, db := buildDatabaseClientForTest(t)
 	scope := tenancy.Global()
 
 	example := fakes.BuildFakeSettingDefinition()
@@ -117,8 +117,8 @@ func TestRepository_Integration_SettingDefinitions(t *testing.T) {
 
 	// A definition belongs to nobody, so its entries are recorded under the
 	// unattributed actor — the same shape the table this replaced recorded under.
-	pgtesting.AssertAuditLogContainsForUser(t, ctx, auditRepo, audit.UnattributedActorID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeSettingDefinitions, RelevantID: created.ID},
+	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, audit.UnattributedActorID, []pgtesting.ExpectedAuditEntry{
+		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeSettingDefinitions, ResourceID: created.ID},
 	})
 
 	fetched, err := dbc.GetDefinition(ctx, db.Reader(), scope, created.ID)
@@ -157,10 +157,10 @@ func TestRepository_Integration_SettingDefinitions(t *testing.T) {
 	assert.Nil(t, afterArchive)
 	require.ErrorIs(t, err, settings.ErrDefinitionNotFound)
 
-	pgtesting.AssertAuditLogContainsForUser(t, ctx, auditRepo, audit.UnattributedActorID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeSettingDefinitions, RelevantID: created.ID},
-		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeSettingDefinitions, RelevantID: created.ID},
-		{EventType: audit.AuditLogEventTypeArchived, ResourceType: resourceTypeSettingDefinitions, RelevantID: created.ID},
+	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, audit.UnattributedActorID, []pgtesting.ExpectedAuditEntry{
+		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeSettingDefinitions, ResourceID: created.ID},
+		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeSettingDefinitions, ResourceID: created.ID},
+		{EventType: audit.AuditLogEventTypeArchived, ResourceType: resourceTypeSettingDefinitions, ResourceID: created.ID},
 	})
 }
 
@@ -196,7 +196,7 @@ func TestRepository_Integration_ArchivingKeepsTheNameClaimed(t *testing.T) {
 
 func TestRepository_Integration_SettingValues(t *testing.T) {
 	ctx := t.Context()
-	dbc, auditRepo, db := buildDatabaseClientForTest(t)
+	dbc, _, db := buildDatabaseClientForTest(t)
 	scope := tenancy.Global()
 
 	userID := subjectForTest(t, db)
@@ -213,8 +213,8 @@ func TestRepository_Integration_SettingValues(t *testing.T) {
 	assert.Equal(t, subject, value.Subject)
 
 	// The entry belongs to the person whose setting it is, not to the request.
-	pgtesting.AssertAuditLogContainsForUser(t, ctx, auditRepo, userID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeSettingValues, RelevantID: value.ID},
+	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, userID, []pgtesting.ExpectedAuditEntry{
+		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeSettingValues, ResourceID: value.ID},
 	})
 
 	fetched, err := dbc.GetValue(ctx, db.Reader(), scope, subject, definition.Name)
@@ -253,9 +253,9 @@ func TestRepository_Integration_SettingValues(t *testing.T) {
 	assert.Nil(t, afterClear)
 	require.ErrorIs(t, err, settings.ErrValueNotFound)
 
-	pgtesting.AssertAuditLogContainsForUser(t, ctx, auditRepo, userID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeSettingValues, RelevantID: value.ID},
-		{EventType: audit.AuditLogEventTypeArchived, ResourceType: resourceTypeSettingValues, RelevantID: value.ID},
+	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, userID, []pgtesting.ExpectedAuditEntry{
+		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeSettingValues, ResourceID: value.ID},
+		{EventType: audit.AuditLogEventTypeArchived, ResourceType: resourceTypeSettingValues, ResourceID: value.ID},
 	})
 }
 

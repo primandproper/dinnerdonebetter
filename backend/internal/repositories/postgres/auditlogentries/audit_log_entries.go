@@ -2,170 +2,22 @@ package auditlogentries
 
 import (
 	"context"
-	"time"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	auditkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit/keys"
-	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 
 	platformaudit "github.com/primandproper/platform-go/v14/audit"
 	"github.com/primandproper/primitives-go/v2/database"
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
-	"github.com/primandproper/primitives-go/v2/filtering"
 	"github.com/primandproper/primitives-go/v2/observability"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
 	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
 var (
-	_ audit.AuditLogEntryDataManager = (*repository)(nil)
+	_ audit.Repository = (*repository)(nil)
 )
-
-// GetAuditLogEntry fetches an audit log entry from the database.
-func (q *repository) GetAuditLogEntry(ctx context.Context, auditLogEntryID string) (*audit.AuditLogEntry, error) {
-	ctx, span := q.tracer.StartSpan(ctx)
-	defer span.End()
-
-	logger := q.logger.Clone()
-
-	if auditLogEntryID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
-	}
-	logger = logger.WithValue(auditkeys.AuditLogEntryIDKey, auditLogEntryID)
-	tracing.AttachToSpan(span, auditkeys.AuditLogEntryIDKey, auditLogEntryID)
-
-	entry, err := q.reader.GetAcrossScopes(ctx, q.db.Reader(), auditLogEntryID)
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "fetching audit log entry")
-	}
-
-	return fromPlatformEntry(entry), nil
-}
-
-// GetAuditLogEntriesForUser fetches a list of audit log entries from the database that meet a particular filter.
-func (q *repository) GetAuditLogEntriesForUser(ctx context.Context, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[audit.AuditLogEntry], error) {
-	ctx, span := q.tracer.StartSpan(ctx)
-	defer span.End()
-
-	if userID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
-	}
-
-	return q.list(ctx, span, nil, &platformaudit.Query{ActorID: userID}, filter,
-		identitykeys.UserIDKey, userID)
-}
-
-// GetAuditLogEntriesForUserAndResourceTypes fetches a list of audit log entries from the database that meet a particular filter.
-func (q *repository) GetAuditLogEntriesForUserAndResourceTypes(ctx context.Context, userID, resourceType string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[audit.AuditLogEntry], error) {
-	ctx, span := q.tracer.StartSpan(ctx)
-	defer span.End()
-
-	if userID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
-	}
-	if resourceType == "" {
-		return nil, platformerrors.ErrEmptyInputProvided
-	}
-
-	tracing.AttachToSpan(span, auditkeys.AuditLogEntryResourceTypesKey, resourceType)
-
-	return q.list(ctx, span, nil, &platformaudit.Query{ActorID: userID, ResourceType: resourceType}, filter,
-		identitykeys.UserIDKey, userID)
-}
-
-// GetAuditLogEntriesForAccount fetches a list of audit log entries from the database that meet a particular filter.
-func (q *repository) GetAuditLogEntriesForAccount(ctx context.Context, accountID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[audit.AuditLogEntry], error) {
-	ctx, span := q.tracer.StartSpan(ctx)
-	defer span.End()
-
-	if accountID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
-	}
-
-	// Naming the account is what keeps this from reading every tenant's entries;
-	// the read that does is a separate method on the platform reader.
-	scope := tenancy.Of(accountID)
-
-	return q.list(ctx, span, &scope, nil, filter,
-		identitykeys.AccountIDKey, accountID)
-}
-
-// GetAuditLogEntriesForAccountAndResourceTypes fetches a list of audit log entries from the database that meet a particular filter.
-func (q *repository) GetAuditLogEntriesForAccountAndResourceTypes(ctx context.Context, accountID, resourceType string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[audit.AuditLogEntry], error) {
-	ctx, span := q.tracer.StartSpan(ctx)
-	defer span.End()
-
-	if accountID == "" {
-		return nil, platformerrors.ErrInvalidIDProvided
-	}
-	if resourceType == "" {
-		return nil, platformerrors.ErrEmptyInputProvided
-	}
-
-	tracing.AttachToSpan(span, auditkeys.AuditLogEntryResourceTypesKey, resourceType)
-
-	scope := tenancy.Of(accountID)
-
-	return q.list(ctx, span, &scope, &platformaudit.Query{ResourceType: resourceType}, filter,
-		identitykeys.AccountIDKey, accountID)
-}
-
-// list runs one platform query and converts the page it returns.
-//
-// A nil scope is a read across every tenant's chain, which is what a user's
-// own entries need: ScopeFor files them under whichever account they acted in.
-//
-// The five read methods differ only in the query they build and the identifier
-// they log, so everything after that lives here — including the conversion,
-// which is the part that would otherwise be copied five times and drift.
-func (q *repository) list(
-	ctx context.Context,
-	span tracing.Span,
-	scope *tenancy.Scope,
-	query *platformaudit.Query,
-	filter *filtering.QueryFilter,
-	logKey, logValue string,
-) (*filtering.QueryFilteredResult[audit.AuditLogEntry], error) {
-	logger := q.logger.Clone().WithValue(logKey, logValue)
-	tracing.AttachToSpan(span, logKey, logValue)
-
-	if filter == nil {
-		filter = filtering.DefaultQueryFilter()
-	}
-	logger = filter.AttachToLogger(logger)
-	for key, value := range filter.ObservabilityValues() {
-		tracing.AttachToSpan(span, key, value)
-	}
-
-	var (
-		results *filtering.QueryFilteredResult[platformaudit.Entry]
-		err     error
-	)
-	if scope == nil {
-		results, err = q.reader.ListAcrossScopes(ctx, q.db.Reader(), query, filter)
-	} else {
-		results, err = q.reader.List(ctx, q.db.Reader(), *scope, query, filter)
-	}
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "fetching audit log entries from database")
-	}
-
-	data := make([]*audit.AuditLogEntry, 0, len(results.Data))
-	for _, result := range results.Data {
-		data = append(data, fromPlatformEntry(result))
-	}
-
-	return filtering.NewQueryFilteredResult(
-		data,
-		results.FilteredCount,
-		results.TotalCount,
-		func(t *audit.AuditLogEntry) string {
-			return t.ID
-		},
-		filter,
-	), nil
-}
 
 // attachImpersonator names the operator on an entry the request's subject is recorded as acting
 // in, when the request came through an impersonation token.
@@ -237,20 +89,4 @@ func (q *repository) Record(ctx context.Context, querier database.Tx, entries ..
 	tracing.AttachToSpan(span, auditkeys.AuditLogEntryIDKey, entries[0].ID)
 
 	return nil
-}
-
-// VerifyChain walks one scope's hash chain and reports the first break.
-func (q *repository) VerifyChain(ctx context.Context, scope tenancy.Scope, from, to time.Time) (*audit.VerificationResult, error) {
-	ctx, span := q.tracer.StartSpan(ctx)
-	defer span.End()
-
-	// ChainStart walks the range from its beginning. Resuming from a previous
-	// result's LastSeq is the platform's affordance for paging a long
-	// verification; this application verifies a range in one call.
-	result, err := q.reader.Verify(ctx, q.db.Reader(), scope, from, to, platformaudit.ChainStart)
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, q.logger.Clone(), span, "verifying audit log chain")
-	}
-
-	return result, nil
 }

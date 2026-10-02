@@ -51,8 +51,8 @@ func TestQuerier_Integration_PasswordResetTokens(t *testing.T) {
 	assert.Equal(t, user.ID, issuance.Token.UserID)
 	assert.Nil(t, issuance.Token.RedeemedAt)
 
-	pgtesting.AssertAuditLogContainsForUser(t, ctx, auditRepo, user.ID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypePasswordResetTokens, RelevantID: issuance.Token.ID},
+	pgtesting.AssertAuditLogContainsForUser(t, ctx, dbc, user.ID, []pgtesting.ExpectedAuditEntry{
+		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypePasswordResetTokens, ResourceID: issuance.Token.ID},
 	})
 
 	// the row holds a digest, not the token. This is the property the hand-written store
@@ -75,9 +75,9 @@ func TestQuerier_Integration_PasswordResetTokens(t *testing.T) {
 	assert.Equal(t, issuance.Token.ID, consumed.ID)
 	assert.NotNil(t, consumed.RedeemedAt)
 
-	pgtesting.AssertAuditLogContainsForUser(t, ctx, auditRepo, user.ID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypePasswordResetTokens, RelevantID: issuance.Token.ID},
-		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypePasswordResetTokens, RelevantID: issuance.Token.ID},
+	pgtesting.AssertAuditLogContainsForUser(t, ctx, dbc, user.ID, []pgtesting.ExpectedAuditEntry{
+		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypePasswordResetTokens, ResourceID: issuance.Token.ID},
+		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypePasswordResetTokens, ResourceID: issuance.Token.ID},
 	})
 
 	// a token is spendable exactly once, and the store is what says so

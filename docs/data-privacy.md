@@ -69,7 +69,7 @@ inside one.
 | `notifications.inbox` | platform-go's `notifications/privacy` | In-app notifications sent to the subject |
 | `notifications.devices` | platform-go's `notifications/privacy` | Handsets the subject registered for push, tokens included |
 | `payments` | `payments/privacy` over platform-go's `billing/privacy` | Subscriptions, purchases and payment transactions, in every account the subject appears in, archived rows included |
-| `audit_log` | `audit/privacy` | Audit entries recorded about the subject |
+| `audit` | platform-go's `audit/privacy`, with the chain resolver in `audit/privacy` | Audit entries the subject acted in, was acted on in, or recorded while impersonating somebody — in their own chain, every account they belong to, and every chain they acted in, which reaches accounts they have left |
 | `issue_reports` | `issuereports/privacy` over platform-go's | Issue reports the subject filed, in every account they appear in |
 | `uploaded_media` | `uploadedmedia/privacy` | Registry rows for objects the subject uploaded (not the bytes) |
 | `waitlists` | `waitlists/privacy` over platform-go's | Waitlist signups the subject made (withdrawn ones excluded — they no longer name anybody) |
@@ -129,8 +129,8 @@ A collector that holds nothing returns `nil`, and the section is omitted rather 
 Neither that rule nor the paging beneath it is restated per domain. `dataprivacy.CollectAll`
 walks a cursor-paginated read to its end, `dataprivacy.Fragment` turns "did this domain hold
 anything" into a fragment or a `nil`, and `dataprivacy.CollectorFor` is both of those wrapped
-around a single list read — which is the whole body of the `audit_log`, `uploaded_media`, and
-`waitlists` collectors, so those are one call each with no type of their own. `comments` is the
+around a single list read — which is the whole body of the `uploaded_media` and `waitlists`
+collectors, so those are one call each with no type of their own. `comments` is the
 same shape and is not written here at all: platform-go's `comments/privacy` ships it.
 
 A collector that stopped after one page would produce a truncated export that is

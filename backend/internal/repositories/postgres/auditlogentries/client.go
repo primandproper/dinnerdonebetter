@@ -28,7 +28,6 @@ const (
 type repository struct {
 	tracer   tracing.Tracer
 	logger   logging.Logger
-	db       database.Client
 	recorder platformaudit.Recorder
 	reader   platformaudit.Reader
 }
@@ -84,7 +83,6 @@ func ProvideAuditLogRepository(
 	return &repository{
 		tracer:   tracing.NewNamedTracer(tracerProvider, o11yName),
 		logger:   logging.NewNamedLogger(logger, o11yName),
-		db:       client,
 		recorder: recorder,
 		reader:   reader,
 	}, nil

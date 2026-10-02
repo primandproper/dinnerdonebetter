@@ -46,40 +46,6 @@ func toPlatformEntry(entry *audit.AuditLogEntry) *platformaudit.Entry {
 	}
 }
 
-// fromPlatformEntry renders a stored entry in the application's vocabulary.
-func fromPlatformEntry(entry *platformaudit.Entry) *audit.AuditLogEntry {
-	if entry == nil {
-		return nil
-	}
-
-	x := &audit.AuditLogEntry{
-		CreatedAt:     entry.RecordedAt,
-		Changes:       entry.Changes,
-		ID:            entry.ID,
-		ResourceType:  entry.ResourceType,
-		RelevantID:    entry.ResourceID,
-		EventType:     string(entry.EventType),
-		BelongsToUser: entry.Actor.ID,
-		ActorType:     string(entry.Actor.Type),
-		ActorIP:       entry.Actor.IP,
-		Scope:         entry.Scope,
-		PrevHash:      entry.PrevHash,
-		Hash:          entry.Hash,
-		Seq:           entry.Seq,
-	}
-
-	// ScopeFor files an entry under its account when it has one and under its actor
-	// otherwise, so a scope that is not the actor's own ID is an account ID. The row
-	// carries one scope column rather than a discriminated pair, so this is the only
-	// signal available — and it is exact, because an account never shares an ID with
-	// a user.
-	if owner := entry.Scope.Owner(); owner != "" && owner != entry.Actor.ID {
-		x.BelongsToAccount = &owner
-	}
-
-	return x
-}
-
 // applyRecorded copies back what Record assigned: identity, timestamp, the
 // redacted change set, and the chain fields.
 func applyRecorded(entry *audit.AuditLogEntry, recorded *platformaudit.Entry) {

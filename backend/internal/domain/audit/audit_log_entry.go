@@ -6,7 +6,6 @@ import (
 
 	platformaudit "github.com/primandproper/platform-go/v14/audit"
 	"github.com/primandproper/primitives-go/v2/database"
-	"github.com/primandproper/primitives-go/v2/filtering"
 	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
@@ -97,15 +96,9 @@ type (
 		Seq int64 `json:"seq"`
 	}
 
-	// AuditLogEntryDataManager describes a structure capable of storing and
-	// retrieving audit log entries.
-	AuditLogEntryDataManager interface {
-		GetAuditLogEntry(ctx context.Context, auditLogID string) (*AuditLogEntry, error)
-		GetAuditLogEntriesForUser(ctx context.Context, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[AuditLogEntry], error)
-		GetAuditLogEntriesForUserAndResourceTypes(ctx context.Context, userID, resourceType string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[AuditLogEntry], error)
-		GetAuditLogEntriesForAccount(ctx context.Context, accountID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[AuditLogEntry], error)
-		GetAuditLogEntriesForAccountAndResourceTypes(ctx context.Context, accountID, resourceType string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[AuditLogEntry], error)
-
+	// Repository writes the audit log. Reading it is platform's audit.Reader, which
+	// the gRPC surface and the privacy collector take directly.
+	Repository interface {
 		// Record appends entries to the log inside the caller's transaction, so an
 		// entry commits with the change it describes or not at all. It writes each
 		// entry's assigned ID, timestamp, and chain fields back into the value it was
@@ -115,17 +108,8 @@ type (
 		// one chain-head lookup and one INSERT rather than three of each. Prefer one
 		// call with three entries to three calls with one.
 		Record(ctx context.Context, querier database.Tx, entries ...*AuditLogEntry) error
-
-		// VerifyChain walks one scope's hash chain over a time range and reports the
-		// first break, or that there was none. See ScopeFor for what a scope is here.
-		VerifyChain(ctx context.Context, scope tenancy.Scope, from, to time.Time) (*VerificationResult, error)
 	}
 )
-
-// VerificationResult is what a VerifyChain found. It is the platform's type: a
-// break is described by position and reason, neither of which this application
-// has anything to add to.
-type VerificationResult = platformaudit.VerificationResult
 
 // UnattributedActorID is the actor recorded when a write reaches the log with no
 // requester in scope.

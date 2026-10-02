@@ -92,6 +92,7 @@ func BuildInjector(
 	// process that claims has to be able to answer. It is paid once at startup — the pools and
 	// the tracer are constructed here regardless — rather than per request.
 	auditlogentries.RegisterAuditLogRepository(i)
+	auditlogentries.RegisterPlatformReader(i)
 	// No existence checks on the catalog: this process reads and erases comments
 	// but never writes one, and the catalog gates writes rather than reads.
 	commentstargets.RegisterReadOnlyTargets(i)
