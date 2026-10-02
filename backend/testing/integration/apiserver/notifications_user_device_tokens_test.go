@@ -1,13 +1,16 @@
 package integration
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"testing"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/converters"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/fakes"
 
+	platformnotifications "github.com/primandproper/platform-go/v14/notifications"
 	notificationspb "github.com/primandproper/platform-go/v14/notifications/notificationspb"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/identifiers"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -17,17 +20,29 @@ import (
 // against this deployment in conformance_test.go. What remains here is the audit entry this
 // application's store records when a device is revoked.
 
-func createUserDeviceTokenForTest(t *testing.T, forUser string) *notifications.UserDeviceToken {
+// createUserDeviceForTest registers a handset through the decorated registry.
+func createUserDeviceForTest(t *testing.T, forUser string) *platformnotifications.Device {
 	t.Helper()
 
 	ctx := t.Context()
 
-	creationInput := fakes.BuildFakeUserDeviceToken()
-	input := converters.ConvertUserDeviceTokenToUserDeviceTokenDatabaseCreationInput(creationInput)
-	input.BelongsToUser = forUser
-
-	created, err := notifsRepo.CreateUserDeviceToken(ctx, input)
+	// An APNs token is 32 bytes, rendered as 64 hex characters.
+	token := make([]byte, 32)
+	_, err := rand.Read(token)
 	require.NoError(t, err)
+
+	var created *platformnotifications.Device
+	require.NoError(t, databaseClient.WithTransaction(ctx, func(tx database.Tx) error {
+		var writeErr error
+		created, writeErr = notifsRegistry.RegisterDevice(ctx, tx, notifications.Scope(), &platformnotifications.Device{
+			ID:        identifiers.New(),
+			Principal: forUser,
+			Token:     hex.EncodeToString(token),
+			Platform:  platformnotifications.PlatformIOS,
+		})
+
+		return writeErr
+	}))
 	assert.NotNil(t, created)
 
 	return created
@@ -41,7 +56,7 @@ func TestUserDeviceTokens_Archive(T *testing.T) {
 		ctx := t.Context()
 
 		user, testClient := createUserAndClientForTest(t)
-		created := createUserDeviceTokenForTest(t, user.ID)
+		created := createUserDeviceForTest(t, user.ID)
 
 		_, err := testClient.RevokeDevice(ctx, &notificationspb.RevokeDeviceRequest{DeviceId: created.ID})
 		require.NoError(t, err)

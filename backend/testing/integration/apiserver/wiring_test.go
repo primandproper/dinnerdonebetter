@@ -130,7 +130,8 @@ func TestWorkerWiring_Scheduler(T *testing.T) {
 			ddbdataprivacy.CollectorKeyIdentity,
 			ddbdataprivacy.CollectorKeyMealPlanning,
 			ddbdataprivacy.CollectorKeySettings,
-			ddbdataprivacy.CollectorKeyNotifications,
+			ddbdataprivacy.CollectorKeyNotificationsInbox,
+			ddbdataprivacy.CollectorKeyNotificationsDevices,
 			ddbdataprivacy.CollectorKeyBilling,
 			ddbdataprivacy.CollectorKeyAuditLog,
 			ddbdataprivacy.CollectorKeyIssueReports,
@@ -146,10 +147,10 @@ func TestWorkerWiring_Scheduler(T *testing.T) {
 		// on in this deployment. An eraser missing here is data that survives a right-to-be-
 		// forgotten request.
 		//
-		// There are ten where there used to be five, and the five that arrived are the ones
-		// privacyadapters registers alongside their collectors: a domain's adapter builds
-		// both halves. Four of them delete rows the identity cascade would have taken
-		// anyway — settings values, issue reports, passkeys, reset tokens.
+		// Most of them are the ones privacyadapters registers alongside their collectors: a
+		// domain's adapter builds both halves. Six of them delete rows the identity cascade
+		// would have taken anyway — settings values, issue reports, passkeys, reset tokens,
+		// and the notification inbox and device registry.
 		//
 		// That redundancy reverses what docs/data-privacy.md used to argue, and the reason
 		// it reverses is in this repository's own history. Those statements are platform's
@@ -167,6 +168,8 @@ func TestWorkerWiring_Scheduler(T *testing.T) {
 			ddbdataprivacy.CollectorKeyMediaRegistry,
 			ddbdataprivacy.CollectorKeyPasskeys,
 			ddbdataprivacy.CollectorKeyPasswordReset,
+			ddbdataprivacy.CollectorKeyNotificationsInbox,
+			ddbdataprivacy.CollectorKeyNotificationsDevices,
 			ddbdataprivacy.EraserKeyIdentity,
 			auditerasure.DefaultKey,
 		}, registry.EraserKeys())

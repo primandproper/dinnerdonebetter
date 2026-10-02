@@ -66,7 +66,8 @@ inside one.
 | `identity` | `identity/privacy` | The user, their accounts, invitations sent and received |
 | `meal_planning` | `mealplanning/privacy` | Recipes, meals, meal plans, ingredient preferences, ratings |
 | `settings` | `settings/privacy` over platform-go's | The setting values the subject stored about themselves |
-| `notifications` | `notifications/privacy` | In-app notifications |
+| `notifications.inbox` | platform-go's `notifications/privacy` | In-app notifications sent to the subject |
+| `notifications.devices` | platform-go's `notifications/privacy` | Handsets the subject registered for push, tokens included |
 | `payments` | `payments/privacy` over platform-go's `billing/privacy` | Subscriptions, purchases and payment transactions, in every account the subject appears in, archived rows included |
 | `audit_log` | `audit/privacy` | Audit entries recorded about the subject |
 | `issue_reports` | `issuereports/privacy` over platform-go's | Issue reports the subject filed, in every account they appear in |

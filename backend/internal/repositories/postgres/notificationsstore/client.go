@@ -104,15 +104,15 @@ func ProvideRegistry(
 	}, nil
 }
 
-// ProvideAdapter builds the whole stack for a caller outside the injector: the
-// platform store at this application's prefix, the recording around its writes,
-// and the adapter presenting it as notifications.Repository.
+// ProvideStores builds the whole stack for a caller outside the injector: the
+// platform store at this application's prefix, and the recording around the
+// writes of both of its halves.
 //
 // It exists for localdev and the integration harness, which build repositories
 // directly rather than through samber/do. Keeping it here rather than repeating
-// the three steps at each of them is what stops one of them wiring the
-// undecorated store and losing the audit entries.
-func ProvideAdapter(
+// the steps at each of them is what stops one of them wiring the undecorated
+// store and losing the audit entries.
+func ProvideStores(
 	ctx context.Context,
 	logger logging.Logger,
 	tracerProvider tracing.Provider,
@@ -120,7 +120,7 @@ func ProvideAdapter(
 	auditLogEntryRepo audit.Repository,
 	eventEmitter *events.Emitter,
 	db database.Client,
-) (*Adapter, error) {
+) (platformnotifications.Inbox, platformnotifications.Registry, error) {
 	store, err := notificationscfg.NewStore(ctx, &notificationscfg.Config{}, db,
 		notificationscfg.WithLogger(logger),
 		notificationscfg.WithTracerProvider(tracerProvider),
@@ -129,18 +129,18 @@ func ProvideAdapter(
 		),
 	)
 	if err != nil {
-		return nil, platformerrors.Wrap(err, "building the notifications store")
+		return nil, nil, platformerrors.Wrap(err, "building the notifications store")
 	}
 
 	decoratedInbox, err := ProvideInbox(logger, tracerProvider, metricsProvider, auditLogEntryRepo, eventEmitter, store)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	decoratedRegistry, err := ProvideRegistry(logger, tracerProvider, metricsProvider, auditLogEntryRepo, eventEmitter, store)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return NewAdapter(decoratedInbox, decoratedRegistry, db)
+	return decoratedInbox, decoratedRegistry, nil
 }

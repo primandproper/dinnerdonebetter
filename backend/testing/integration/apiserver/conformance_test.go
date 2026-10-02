@@ -20,8 +20,6 @@ import (
 	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/converters"
-	notificationfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/fakes"
 	ddbpayments "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 	ddbuploadedmedia "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	internalopssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/internalops"
@@ -622,13 +620,10 @@ func conformanceSubscribed(ctx context.Context, _ tenancy.Scope, accountID strin
 	return subscription, nil
 }
 
-// conformanceNotified files a notification through the repository the application's own
+// conformanceNotified files a notification through the decorated inbox the application's own
 // announcements go through.
 func conformanceNotified(ctx context.Context, _ tenancy.Scope, userID string) (string, error) {
-	input := converters.ConvertUserNotificationToUserNotificationDatabaseCreationInput(notificationfakes.BuildFakeUserNotification())
-	input.BelongsToUser = userID
-
-	created, err := notifsRepo.CreateUserNotification(ctx, input)
+	created, err := createUserNotification(ctx, userID)
 	if err != nil {
 		return "", err
 	}

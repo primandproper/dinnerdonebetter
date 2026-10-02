@@ -15,13 +15,11 @@ import (
 	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
 	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	authrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auth"
 	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
-	notificationsstore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/notificationsstore"
 	settingsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/settings"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
@@ -360,28 +358,6 @@ func WithSettingsRepository(fn func(ctx context.Context, store platformsettings.
 		}
 
 		return fn(ctx, settingsStore, logger, tracerProvider, dbClient)
-	}
-}
-
-// WithWebhooksRepository is gone with the repository it provided.
-//
-// Nothing called it: it existed so a localdev hook could write webhooks
-// directly, and the endpoints are platform's now. A hook that wants one builds
-// webhooksstore.RegisterWebhooksStore's dependencies, or asks the API.
-
-// WithNotificationsRepository provides a notifications repository for custom operations.
-// The provided function receives a fully configured notifications.Repository along with logger and tracer.
-func WithNotificationsRepository(fn func(ctx context.Context, repo notifications.Repository, logger logging.Logger, tracerProvider tracing.Provider) error) DatabaseInitFunc {
-	return func(ctx context.Context, dbClient database.Client, dbCfg *dbcfg.Config, logger logging.Logger, tracerProvider tracing.Provider) error {
-		auditLogRepo, err := auditlogentries.ProvideAuditLogRepository(logger, tracerProvider, nil, dbClient)
-		if err != nil {
-			return err
-		}
-		notificationsRepo, err := notificationsstore.ProvideAdapter(ctx, logger, tracerProvider, metricsnoop.NewMetricsProvider(), auditLogRepo, nil, dbClient)
-		if err != nil {
-			return err
-		}
-		return fn(ctx, notificationsRepo, logger, tracerProvider)
 	}
 }
 

@@ -269,6 +269,10 @@ func TestDataPrivacy_Export(T *testing.T) {
 		// an account's delivery configuration. See docs/data-privacy.md.
 		subjectNotification := createUserNotificationForTest(t, subject.ID)
 
+		// And a handset. No export named one until the notifications section moved onto
+		// platform's adapter: the collector it replaced read the inbox and never the registry.
+		subjectDevice := createUserDeviceForTest(t, subject.ID)
+
 		// And a credential, which is the half of an export somebody asks for when they think
 		// they have been compromised: which devices can sign in as them. Inserted rather than
 		// enrolled, because what is under test is whether the collector is registered at all,
@@ -300,8 +304,9 @@ func TestDataPrivacy_Export(T *testing.T) {
 			assert.Contains(t, document.Data, section, "a manifest section with no data behind it")
 		}
 
-		// The four this subject certainly has data in: they registered, they were sent a
-		// notification, the registration was audited, and they hold a passkey.
+		// The five this subject certainly has data in: they registered, they were sent a
+		// notification, they registered a handset, the registration was audited, and they
+		// hold a passkey.
 		//
 		// The passkey one is here because it was missing. The collector existed in platform
 		// over a store this deployment already ran, and nothing registered it, so every export
@@ -309,7 +314,8 @@ func TestDataPrivacy_Export(T *testing.T) {
 		// that reported success.
 		for _, key := range []string{
 			ddbdataprivacy.CollectorKeyIdentity,
-			ddbdataprivacy.CollectorKeyNotifications,
+			ddbdataprivacy.CollectorKeyNotificationsInbox,
+			ddbdataprivacy.CollectorKeyNotificationsDevices,
 			ddbdataprivacy.CollectorKeyAuditLog,
 			ddbdataprivacy.CollectorKeyPasskeys,
 		} {
@@ -317,9 +323,10 @@ func TestDataPrivacy_Export(T *testing.T) {
 			assert.Contains(t, document.Manifest.Sections, key)
 		}
 
-		// The subject's own data is in it, from two different collectors.
+		// The subject's own data is in it, from several different collectors.
 		assert.Contains(t, string(document.Data[ddbdataprivacy.CollectorKeyIdentity]), subject.Username)
-		assert.Contains(t, string(document.Data[ddbdataprivacy.CollectorKeyNotifications]), subjectNotification.ID)
+		assert.Contains(t, string(document.Data[ddbdataprivacy.CollectorKeyNotificationsInbox]), subjectNotification.ID)
+		assert.Contains(t, string(document.Data[ddbdataprivacy.CollectorKeyNotificationsDevices]), subjectDevice.ID)
 		assert.Contains(t, string(document.Data[ddbdataprivacy.CollectorKeyPasskeys]), subjectPasskey,
 			"the passkey section does not name the subject's credential")
 

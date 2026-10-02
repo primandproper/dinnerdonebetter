@@ -24,9 +24,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	auditmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit/manager"
 	mealplanningregistration "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/registration"
-	notificationsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/manager"
 	paymentsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/manager"
-	webhooksmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/manager"
 	appentitlements "github.com/primandproper/dinnerdonebetter/backend/internal/entitlements"
 	appmetering "github.com/primandproper/dinnerdonebetter/backend/internal/metering"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories"
@@ -36,6 +34,7 @@ import (
 	identitystore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identitystore"
 	internalopsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/internalops"
 	issuereportsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/issuereports"
+	notificationsstore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/notificationsstore"
 	oauth2clientsstore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/oauth2clientsstore"
 	paymentsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/payments"
 	settingsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/settings"
@@ -178,15 +177,14 @@ func BuildInjector(
 	issuereportsrepo.RegisterIssueReportsRepository(i)
 	uploadedmediarepo.RegisterUploadedMediaRepository(i)
 	webhooksstore.RegisterWebhooksStore(i)
+	notificationsstore.RegisterNotificationsStore(i)
 	oauth2clientsstore.RegisterOAuth2ClientsStore(i)
 	paymentsrepo.RegisterPaymentsRepository(i)
 	internalopsrepo.RegisterInternalOpsRepository(i)
 
 	// managers
 	auditmanager.RegisterAuditDataManager(i)
-	notificationsmanager.RegisterNotificationsDataManager(i)
 	paymentsmanager.RegisterPaymentsDataManager(i)
-	webhooksmanager.RegisterWebhookDataManager(i)
 	settingsrepo.RegisterSettingsRepository(i)
 	waitlistsrepo.RegisterWaitlistsRepository(i)
 	paymentsadapters.RegisterPaymentProcessorRegistry(i)

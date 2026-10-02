@@ -1047,11 +1047,11 @@ func renderUploadsRegistryDDL() (string, error) {
 // and re-creating them is what keeps the single identity eraser in
 // internal/build/dataprivacy covering both tables.
 //
-// platform ships notifications/privacy with an eraser for each, which is the
-// other way to cover them and the one a deployment with non-user principals has
-// to take. This one does not need it: a foreign key the database enforces is
-// cheaper and harder to forget than an eraser somebody has to register, and it
-// is the same reading settings took.
+// platform's notifications/privacy erasers are registered as well, and the two
+// are not alternatives here. A deployment with non-user principals has only the
+// erasers; this one keeps the keys too, because a cascade is exactly what goes
+// missing silently in an adoption, and an eraser that deletes rows the cascade
+// already took costs one statement that finds nothing.
 //
 // It is also what stops the subject type widening by accident. A notification
 // addressed to an account would be refused by the database rather than

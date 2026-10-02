@@ -11,7 +11,6 @@ import (
 	apiserver "github.com/primandproper/dinnerdonebetter/backend/internal/build/services/api"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/localdev"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	notificationsstore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/notificationsstore"
@@ -19,6 +18,7 @@ import (
 
 	platformoauth2clients "github.com/primandproper/platform-go/v14/authentication/oauth2clients"
 	"github.com/primandproper/platform-go/v14/billing"
+	platformnotifications "github.com/primandproper/platform-go/v14/notifications"
 	"github.com/primandproper/primitives-go/v2/database"
 	msgconfig "github.com/primandproper/primitives-go/v2/messagequeue/config"
 	metricsnoop "github.com/primandproper/primitives-go/v2/observability/metrics/noop"
@@ -45,7 +45,8 @@ var (
 	createdClientID, createdClientSecret string
 	databaseClient                       database.Client
 	apiServiceConfig                     *config.APIServiceConfig
-	notifsRepo                           notifications.Repository
+	notifsInbox                          platformnotifications.Inbox
+	notifsRegistry                       platformnotifications.Registry
 
 	// billingStore seeds the rows two RPCs used to write.
 	//
@@ -153,7 +154,7 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	notifsRepo, err = notificationsstore.ProvideAdapter(ctx, pillars.Logger, pillars.TracerProvider,
+	notifsInbox, notifsRegistry, err = notificationsstore.ProvideStores(ctx, pillars.Logger, pillars.TracerProvider,
 		metricsnoop.NewMetricsProvider(), auditLogRepo, nil, databaseClient)
 	if err != nil {
 		log.Fatal(err)

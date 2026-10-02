@@ -50,7 +50,8 @@ func TestBuildInjector_RegistersTheNotificationChain(t *testing.T) {
 		"*github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_task_notifications.Worker",
 		"*github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_task_notifications.TaskQueue",
 		"*github.com/primandproper/platform-go/v14/notifications/push.Fanout",
-		"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/manager.NotificationsDataManager",
+		"github.com/primandproper/platform-go/v14/notifications.Inbox",
+		"github.com/primandproper/platform-go/v14/notifications.Registry",
 		"github.com/primandproper/primitives-go/v2/notifications/mobile.PushNotificationSender",
 		"*github.com/primandproper/platform-go/v14/workqueue.Config",
 	} {

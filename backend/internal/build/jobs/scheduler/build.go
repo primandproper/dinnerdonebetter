@@ -10,7 +10,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/grocerylistpreparation"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/recipeanalysis"
-	notificationsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/manager"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/push"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
@@ -21,6 +20,7 @@ import (
 	internalopsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/internalops"
 	issuereportsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/issuereports"
 	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
+	notificationsstore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/notificationsstore"
 	oauth2clientsstore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/oauth2clientsstore"
 	paymentsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/payments"
 	settingsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/settings"
@@ -112,12 +112,11 @@ func BuildInjector(
 	// plan finalizer emits events like any request does.
 	webhooksstore.RegisterWebhooksStore(i)
 
-	// The notifications manager and the push fan-out over it. The manager registers the
-	// notifications repository on its own, which is why that one is absent from the list
-	// above. The fan-out is the part of mobile notifications that has nothing to do with why
-	// one is owed: device tokens in, pushes out, dead tokens retired — and the async message
-	// handler builds the same one.
-	notificationsmanager.RegisterNotificationsDataManager(i)
+	// The notifications store and the push fan-out over its device registry. The fan-out is
+	// the part of mobile notifications that has nothing to do with why one is owed: device
+	// tokens in, pushes out, dead tokens retired — and the async message handler builds the
+	// same one.
+	notificationsstore.RegisterNotificationsStore(i)
 	push.RegisterFanout(i)
 
 	// The two credential stores the privacy registry collects from and nothing else in

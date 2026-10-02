@@ -121,7 +121,6 @@ var definitions = webhooks.Catalog{
 	"user_details_changed":                            {Description: "A user changed their information."},
 	"user_device_token_archived":                      {Description: "A user device token was archived."},
 	"user_device_token_created":                       {Description: "A user device token was created."},
-	"user_device_token_updated":                       {Description: "A user device token was updated."},
 	"user_email_address_verification_email_requested": {Description: "A user created a password reset token."},
 	"user_email_address_verified":                     {Description: "A user created a password reset token."},
 	"user_impersonated":                               {Description: "An operator was issued a token to act as a user."},

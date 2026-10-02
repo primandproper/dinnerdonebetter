@@ -28,8 +28,7 @@ import (
 	issuereportsprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports/privacy"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/privacy"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
-	notificationsprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/privacy"
+	ddbnotifications "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
 	paymentsprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/privacy"
 	ddbsettings "github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings"
 	ddbuploadedmedia "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
@@ -47,6 +46,7 @@ import (
 	platformidentity "github.com/primandproper/platform-go/v14/identity"
 	issuereports "github.com/primandproper/platform-go/v14/issuereports"
 	uploadsregistry "github.com/primandproper/platform-go/v14/mediaregistry"
+	platformnotifications "github.com/primandproper/platform-go/v14/notifications"
 	"github.com/primandproper/platform-go/v14/operations"
 	"github.com/primandproper/platform-go/v14/privacyadapters"
 	platformsettings "github.com/primandproper/platform-go/v14/settings"
@@ -92,39 +92,25 @@ func buildRegistry(i do.Injector) (*platformdataprivacy.Registry, error) {
 	// cost is visible in one place.
 	resolveAccounts := identityprivacy.ResolveAccountIDs(identityStore, reader)
 
-	// The nine adapters platform ships that this deployment runs, registered in one call
-	// under each package's own DefaultKey.
+	// Every adapter platform ships that this deployment runs, registered in one call under
+	// each package's own DefaultKey.
 	//
-	// This replaces nine hand-written constructor calls, and the reason to prefer the call
-	// is not that it is shorter. Register is all-or-nothing: every adapter is built before
-	// any is registered, and the keys are checked against what the registry already holds
-	// first, so a nil store in the last field cannot leave a registry holding eight of
-	// nine. A half-registered registry is exactly the state that produces an export that
-	// is well-formed, reports success, and is missing a domain — which is the failure this
-	// application shipped for months and closed by hand two days ago.
+	// The reason to prefer the call to hand-written constructors is not that it is
+	// shorter. Register is all-or-nothing: every adapter is built before any is
+	// registered, and the keys are checked against what the registry already holds first,
+	// so a nil store in the last field cannot leave a registry holding all but one. A
+	// half-registered registry is exactly the state that produces an export that is
+	// well-formed, reports success, and is missing a domain — which is the failure this
+	// application shipped for months before it was closed by hand.
 	//
-	// It also fails upstream when platform adds a twelfth adapter: privacyadapters' own
-	// roster test requires every key the module ships to come back from Register, so a new
+	// It also fails upstream when platform adds an adapter: privacyadapters' own roster
+	// test requires every key the module ships to come back from Register, so a new
 	// domain is a compile or a test failure rather than a section nobody notices is absent.
 	//
-	// Three fields are deliberately nil, and nil means "this deployment does not run it",
-	// so each is a claim worth defending:
-	//
-	//   - Identity, because this application's eraser is not platform's. It is platform's
-	//     with the succession rule in front of it — the households a departing owner leaves
-	//     behind are transferred to their longest-tenured member before the user row goes.
-	//     IdentityAdapter takes a Store and a resolver and builds both halves itself, so
-	//     there is nowhere to hand it a decorated eraser. Registered by hand below.
-	//   - Notifications, because this application's collector reads its own Repository
-	//     rather than platform's Inbox and Registry, and answers as one section where
-	//     platform answers as two.
-	//   - AuditErasure, because whether the audit log is erased at all is a config flag
-	//     this deployment sets through dataprivacycfg.RegisterAuditEraser — which
-	//     privacyadapters' own documentation names as the deliberate alternative.
-	//
-	// The first of those is the one to revisit: identity is the domain whose absence from
-	// the roster guarantee matters most, and the only reason it is absent is an adapter
-	// that cannot take an eraser somebody else built.
+	// One field is deliberately nil, and nil means "this deployment does not run it":
+	// AuditErasure, because whether the audit log is erased at all is a config flag this
+	// deployment sets through dataprivacycfg.RegisterAuditEraser — which privacyadapters'
+	// own documentation names as the deliberate alternative.
 	credentialScopes := identityprivacy.Scopes()
 
 	successionStep, successionErr := identityprivacy.SuccessionStep(identityStore)
@@ -184,6 +170,16 @@ func buildRegistry(i do.Injector) (*platformdataprivacy.Registry, error) {
 			BeforeErase: successionStep,
 		},
 
+		// Notifications answers as two sections, the inbox and the device registry. It
+		// used to be one, from a collector over an adapter that translated platform's
+		// inbox back into this application's older vocabulary — and that collector never
+		// read the registry at all, so no export ever named a subject's handsets.
+		Notifications: &privacyadapters.NotificationsAdapter{
+			Inbox:    do.MustInvoke[platformnotifications.Inbox](i),
+			Registry: do.MustInvoke[platformnotifications.Registry](i),
+			Resolve:  platformdataprivacy.FixedScopes(ddbnotifications.Scope()),
+		},
+
 		// Billing takes a resolver of its own shape — accounts rather than scopes —
 		// because what it pages is filed per account. The conversion is this
 		// application's tenancy model and lives beside the payments domain.
@@ -198,11 +194,9 @@ func buildRegistry(i do.Injector) (*platformdataprivacy.Registry, error) {
 
 	logger.WithValue("keys", adopted).Info("registered platform's privacy adapters")
 
-	// And the three this application answers for itself, none of which platform ships a
+	// And the two this application answers for itself, neither of which platform ships a
 	// counterpart for that this deployment uses: meal planning is the domain this
-	// application is, the audit log is a hash chain nothing else models, and the
-	// notifications collector reads one repository and answers as one section where
-	// platform's reads an inbox and a device registry and answers as two.
+	// application is, and the audit log is a hash chain nothing else models.
 	//
 	// A collector whose whole body is "page one list read and encode the rows" is
 	// platformdataprivacy.CollectorFor and has no observability of its own to do: the
@@ -214,8 +208,6 @@ func buildRegistry(i do.Injector) (*platformdataprivacy.Registry, error) {
 	collectors := map[string]platformdataprivacy.Collector{
 		ddbdataprivacy.CollectorKeyMealPlanning: mealplanningprivacy.NewCollector(
 			do.MustInvoke[mealplanning.Repository](i), resolveAccounts, logger, tracerProvider),
-		ddbdataprivacy.CollectorKeyNotifications: notificationsprivacy.NewCollector(
-			do.MustInvoke[notifications.Repository](i), logger, tracerProvider),
 		ddbdataprivacy.CollectorKeyAuditLog: auditprivacy.NewCollector(do.MustInvoke[auditdomain.Repository](i)),
 	}
 

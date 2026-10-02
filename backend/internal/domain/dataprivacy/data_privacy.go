@@ -34,6 +34,7 @@ import (
 	identityprivacy "github.com/primandproper/platform-go/v14/identity/privacy"
 	issuereportsprivacy "github.com/primandproper/platform-go/v14/issuereports/privacy"
 	mediaregistryprivacy "github.com/primandproper/platform-go/v14/mediaregistry/privacy"
+	notificationsprivacy "github.com/primandproper/platform-go/v14/notifications/privacy"
 	settingsprivacy "github.com/primandproper/platform-go/v14/settings/privacy"
 	waitlistsprivacy "github.com/primandproper/platform-go/v14/waitlists/privacy"
 	"github.com/primandproper/primitives-go/v2/tenancy"
@@ -78,11 +79,6 @@ const (
 	// preferences, and ratings. There is no platform counterpart; this is the domain
 	// this application is.
 	CollectorKeyMealPlanning = "meal_planning"
-	// CollectorKeyNotifications covers in-app user notifications. platform ships a
-	// collector for its own inbox and device registry and this application does not use
-	// it — ours reads one repository and answers as one section where platform answers
-	// as two.
-	CollectorKeyNotifications = "notifications"
 	// CollectorKeyAuditLog covers the audit entries recorded about the subject.
 	CollectorKeyAuditLog = "audit_log"
 
@@ -97,6 +93,11 @@ const (
 	CollectorKeyPasskeys      = passkeysprivacy.DefaultKey
 	CollectorKeyPasswordReset = passwordresetprivacy.DefaultKey
 	CollectorKeyOAuth2Clients = oauth2clientsprivacy.DefaultKey
+
+	// The notifications domain is two tables with two rulings, so it answers as two
+	// sections: the in-app inbox, and the handsets registered for push.
+	CollectorKeyNotificationsInbox   = notificationsprivacy.DefaultInboxKey
+	CollectorKeyNotificationsDevices = notificationsprivacy.DefaultDeviceKey
 
 	// EraserKeyIdentity is the eraser that deletes the user row, and with it every
 	// table in this schema that carries a foreign key to it.

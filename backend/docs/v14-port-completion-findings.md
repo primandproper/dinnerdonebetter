@@ -251,6 +251,13 @@ question, and the finding is the part worth having.
 
 ## The first store migration: notifications
 
+**Adapter retired.** The translation layer described below is gone: the
+manager, the `UserNotification`/`UserDeviceToken` vocabulary and the adapter were
+deleted, callers take platform's `Inbox` and `Registry` directly, and the privacy
+section moved onto platform's `privacyadapters.NotificationsAdapter` — which also
+put a subject's registered handsets into their export for the first time. The
+webhooks domain's leftover model, manager and mocks went in the same change.
+
 Done, and it is the useful data point for the other four. Net −4,419 lines
 (−5,400 / +981). One focused push, no platform change needed, nothing
 finding-grade against platform.

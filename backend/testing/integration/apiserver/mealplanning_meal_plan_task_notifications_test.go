@@ -150,7 +150,7 @@ func TestMealPlanTaskNotifications_Worker(T *testing.T) {
 
 		// The tasks the finalization saga wrote are unassigned, so their recipients are
 		// everybody in the account — which includes this user, and now this device.
-		deviceToken := createUserDeviceTokenForTest(t, status.GetStatus().GetUser().GetId())
+		deviceToken := createUserDeviceForTest(t, status.GetStatus().GetUser().GetId())
 
 		sender := newRecordingPushSender()
 		worker := buildNotificationWorkerForTest(t, sender)
@@ -160,7 +160,7 @@ func TestMealPlanTaskNotifications_Worker(T *testing.T) {
 		require.NoError(t, err)
 		require.NotZero(t, sent)
 
-		firstPass := sender.countFor(deviceToken.DeviceToken)
+		firstPass := sender.countFor(deviceToken.Token)
 		require.NotZero(t, firstPass, "the first pass should have pushed to this device")
 
 		// The stamp and the queue's completion have to agree, or the next discovery finds the
@@ -175,7 +175,7 @@ func TestMealPlanTaskNotifications_Worker(T *testing.T) {
 		_, err = worker.Work(ctx)
 		require.NoError(t, err)
 
-		assert.Equal(t, firstPass, sender.countFor(deviceToken.DeviceToken),
+		assert.Equal(t, firstPass, sender.countFor(deviceToken.Token),
 			"a second pass must not re-notify a task the first one completed")
 	})
 }
@@ -206,7 +206,7 @@ func TestMealPlanTaskNotifications_PoisonTask(T *testing.T) {
 		status, err := userClient.GetAuthStatus(ctx, &signinpb.GetAuthStatusRequest{})
 		require.NoError(t, err)
 
-		deviceToken := createUserDeviceTokenForTest(t, status.GetStatus().GetUser().GetId())
+		deviceToken := createUserDeviceForTest(t, status.GetStatus().GetUser().GetId())
 
 		sender := newRecordingPushSender()
 		sender.err = errors.New("APNs is having a moment")
@@ -225,7 +225,7 @@ func TestMealPlanTaskNotifications_PoisonTask(T *testing.T) {
 		_, err = worker.Work(ctx)
 		require.Error(t, err)
 
-		afterFirst := sender.countFor(deviceToken.DeviceToken)
+		afterFirst := sender.countFor(deviceToken.Token)
 		require.NotZero(t, afterFirst, "the send should have been attempted")
 
 		// A failed send must never stamp the task, or the reminder is silently lost.
@@ -240,7 +240,7 @@ func TestMealPlanTaskNotifications_PoisonTask(T *testing.T) {
 		_, err = worker.Work(ctx)
 		require.Error(t, err)
 
-		afterSecond := sender.countFor(deviceToken.DeviceToken)
+		afterSecond := sender.countFor(deviceToken.Token)
 		require.Greater(t, afterSecond, afterFirst, "the second attempt should have been made")
 
 		// The third finds this test's tasks unclaimable. They are stalled: excluded from
@@ -248,7 +248,7 @@ func TestMealPlanTaskNotifications_PoisonTask(T *testing.T) {
 		_, err = worker.Work(ctx)
 		require.NoError(t, err, "a pass whose only failing tasks are stalled is not a failed pass")
 
-		assert.Equal(t, afterSecond, sender.countFor(deviceToken.DeviceToken),
+		assert.Equal(t, afterSecond, sender.countFor(deviceToken.Token),
 			"a task out of attempts must stop being retried")
 	})
 }

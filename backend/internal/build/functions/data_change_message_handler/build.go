@@ -7,7 +7,6 @@ import (
 	commentstargets "github.com/primandproper/dinnerdonebetter/backend/internal/build/comments"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	mealplanningregistration "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/registration"
-	notificationsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/manager"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/push"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/functions/datachangemessagehandler"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
@@ -15,6 +14,7 @@ import (
 	identitystore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identitystore"
 	internalopsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/internalops"
 	issue_reports "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/issuereports"
+	notificationsstore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/notificationsstore"
 	paymentsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/payments"
 	settingsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/settings"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/uploadedmedia"
@@ -84,11 +84,11 @@ func BuildInjector(
 	uploadedmedia.RegisterUploadedMediaRepository(i)
 	webhooksstore.RegisterWebhooksStore(i)
 	internalopsrepo.RegisterInternalOpsRepository(i)
+	notificationsstore.RegisterNotificationsStore(i)
 
-	// managers
-	notificationsmanager.RegisterNotificationsDataManager(i)
-	// The push fan-out over that manager. The scheduler builds the same one for the prep task
-	// reminders it now sends itself, so both processes deliver through one component.
+	// The push fan-out over the notifications store's device registry. The scheduler builds
+	// the same one for the prep task reminders it now sends itself, so both processes deliver
+	// through one component.
 	push.RegisterFanout(i)
 	settingsrepo.RegisterSettingsRepository(i)
 	waitlistsrepo.RegisterWaitlistsRepository(i)

@@ -73,12 +73,12 @@ func NewMealPlanTaskNotificationWorker(
 	}
 
 	mealPlanningRepo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditRepo, identityStore, databaseClient, nil, uploads)
-	notificationsRepo, err := notificationsstore.ProvideAdapter(ctx, logger, tracerProvider, metricsnoop.NewMetricsProvider(), auditRepo, nil, databaseClient)
+	_, deviceRegistry, err := notificationsstore.ProvideStores(ctx, logger, tracerProvider, metricsnoop.NewMetricsProvider(), auditRepo, nil, databaseClient)
 	if err != nil {
 		return nil, nil, fmt.Errorf("building notifications repository: %w", err)
 	}
 
-	fanout, err := push.NewFanout(notificationsRepo.Registry(), sender,
+	fanout, err := push.NewFanout(deviceRegistry, sender,
 		push.WithLogger(logger),
 		push.WithTracerProvider(tracerProvider),
 		push.WithMetricsProvider(metricsProvider))
