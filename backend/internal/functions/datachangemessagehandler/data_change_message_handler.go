@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/datachanges"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/internalops"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
@@ -42,7 +42,7 @@ const (
 
 // OutboundNotificationHandler handles outbound notifications for a domain's events.
 // Returns true if the event was handled. May return emails to be published by the caller.
-type OutboundNotificationHandler func(ctx context.Context, msg *audit.DataChangeMessage, user *platformidentity.User) (handled bool, emailType string, emails []*queuemessages.OutboundEmailMessage, err error)
+type OutboundNotificationHandler func(ctx context.Context, msg *datachanges.Message, user *platformidentity.User) (handled bool, emailType string, emails []*queuemessages.OutboundEmailMessage, err error)
 
 var errRequiredDataIsNil = errors.New("required data is nil")
 

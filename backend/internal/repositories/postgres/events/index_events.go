@@ -3,7 +3,7 @@ package events
 import (
 	"context"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/datachanges"
 
 	"github.com/primandproper/platform-go/v14/outbox"
 	"github.com/primandproper/primitives-go/v2/database"
@@ -54,7 +54,7 @@ func (e *Emitter) EmitIndex(ctx context.Context, q database.Tx, trigger string, 
 
 	derived, err := e.sideEffect(ctx, q, []outbox.Message{{
 		Topic:   e.topic,
-		Payload: &audit.DataChangeMessage{EventType: trigger, Context: metadata},
+		Payload: &datachanges.Message{EventType: trigger, Context: metadata},
 	}})
 	if err != nil {
 		return err

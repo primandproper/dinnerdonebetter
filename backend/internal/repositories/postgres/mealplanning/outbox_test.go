@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/datachanges"
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
@@ -48,12 +48,12 @@ func fetchOutboxRows(ctx context.Context, t *testing.T, db database.SQLQueryExec
 
 // decodeDataChangeMessages decodes each row's payload as the message the async handler consumes.
 // The relay republishes these bytes verbatim, so what decodes here is what a consumer receives.
-func decodeDataChangeMessages(t *testing.T, rows []outboxRow) []*audit.DataChangeMessage {
+func decodeDataChangeMessages(t *testing.T, rows []outboxRow) []*datachanges.Message {
 	t.Helper()
 
-	out := make([]*audit.DataChangeMessage, 0, len(rows))
+	out := make([]*datachanges.Message, 0, len(rows))
 	for i := range rows {
-		var msg audit.DataChangeMessage
+		var msg datachanges.Message
 		require.NoError(t, json.Unmarshal(rows[i].payload, &msg))
 		out = append(out, &msg)
 	}
@@ -61,7 +61,7 @@ func decodeDataChangeMessages(t *testing.T, rows []outboxRow) []*audit.DataChang
 	return out
 }
 
-func findEvent(msgs []*audit.DataChangeMessage, eventType string) *audit.DataChangeMessage {
+func findEvent(msgs []*datachanges.Message, eventType string) *datachanges.Message {
 	for _, msg := range msgs {
 		if msg.EventType == eventType {
 			return msg
@@ -97,7 +97,7 @@ func TestQuerier_Integration_MealPlanOutboxEvents(t *testing.T) {
 	// must be keyed by it. Rows for meal-plan child entities carry no account and are keyed by
 	// nothing, which the relay treats as unordered — correct, since nothing orders them.
 	for _, row := range fetchOutboxRows(ctx, t, dbc.writeDB, testDataChangesTopic) {
-		var msg audit.DataChangeMessage
+		var msg datachanges.Message
 		require.NoError(t, json.Unmarshal(row.payload, &msg))
 
 		if msg.AccountID != "" {

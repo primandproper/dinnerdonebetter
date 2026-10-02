@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	authkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/keys"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/datachanges"
 	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	queuemessages "github.com/primandproper/dinnerdonebetter/backend/internal/queues/messages"
@@ -20,7 +20,7 @@ import (
 // handleIdentityOutboundNotification handles outbound notifications for identity domain events.
 func (a *AsyncDataChangeMessageHandler) handleIdentityOutboundNotification(
 	ctx context.Context,
-	changeMessage *audit.DataChangeMessage,
+	changeMessage *datachanges.Message,
 	user *platformidentity.User,
 ) (
 	handled bool,

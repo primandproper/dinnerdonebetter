@@ -6,7 +6,7 @@ import (
 	"time"
 
 	analyticsevents "github.com/primandproper/dinnerdonebetter/backend/internal/domain/analytics"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/datachanges"
 
 	"github.com/primandproper/primitives-go/v2/observability"
 	"github.com/primandproper/primitives-go/v2/retry"
@@ -34,7 +34,7 @@ func (a *AsyncDataChangeMessageHandler) DataChangesEventHandler(topicName string
 			a.recordMessagesProcessed(ctx, topicDataChanges, status)
 		}()
 
-		var dataChangeMessage audit.DataChangeMessage
+		var dataChangeMessage datachanges.Message
 		if err := a.decoder.DecodeBytes(ctx, rawMsg, &dataChangeMessage); err != nil {
 			a.messageDecodeErrorsCounter.Add(ctx, 1, metric.WithAttributes(attribute.String("topic", topicDataChanges)))
 			status = statusFailure
@@ -58,7 +58,7 @@ func (a *AsyncDataChangeMessageHandler) DataChangesEventHandler(topicName string
 
 func (a *AsyncDataChangeMessageHandler) handleDataChangeMessage(
 	ctx context.Context,
-	changeMessage *audit.DataChangeMessage,
+	changeMessage *datachanges.Message,
 	topicName string,
 ) error {
 	ctx, span := a.tracer.StartSpan(ctx)
@@ -111,7 +111,7 @@ func (a *AsyncDataChangeMessageHandler) handleDataChangeMessage(
 
 func (a *AsyncDataChangeMessageHandler) handleOutboundNotifications(
 	ctx context.Context,
-	changeMessage *audit.DataChangeMessage,
+	changeMessage *datachanges.Message,
 ) error {
 	ctx, span := a.tracer.StartSpan(ctx)
 	defer span.End()
@@ -153,7 +153,7 @@ func (a *AsyncDataChangeMessageHandler) handleOutboundNotifications(
 
 // stringFromEventContext returns a string value from the data change message context.
 // The value may be a string or []byte depending on message serialization.
-func stringFromEventContext(changeMessage *audit.DataChangeMessage, key string) string {
+func stringFromEventContext(changeMessage *datachanges.Message, key string) string {
 	if changeMessage == nil || changeMessage.Context == nil {
 		return ""
 	}

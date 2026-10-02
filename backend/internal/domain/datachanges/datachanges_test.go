@@ -1,10 +1,9 @@
-package audit
+package datachanges
 
 import (
 	"testing"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 
 	"github.com/primandproper/primitives-go/v2/fake"
 	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
@@ -12,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_buildDataChangeMessageFromContext(T *testing.T) {
+func TestMessageFromContext(T *testing.T) {
 	T.Parallel()
 
 	T.Run("standard", func(t *testing.T) {
@@ -26,8 +25,8 @@ func Test_buildDataChangeMessageFromContext(T *testing.T) {
 		}
 		ctx = sessions.AttachToContext(ctx, sessionContextData)
 
-		expected := &DataChangeMessage{
-			EventType: mealplanning.MealCreatedServiceEventType,
+		expected := &Message{
+			EventType: "meal_created",
 			Context: map[string]any{
 				"things": "stuff",
 			},
@@ -35,8 +34,18 @@ func Test_buildDataChangeMessageFromContext(T *testing.T) {
 			AccountID: sessionContextData.ActiveAccountID,
 		}
 
-		actual := BuildDataChangeMessageFromContext(ctx, loggingnoop.NewLogger(), expected.EventType, expected.Context)
+		actual := MessageFromContext(ctx, loggingnoop.NewLogger(), expected.EventType, expected.Context)
 
 		assert.Equal(t, expected, actual)
+	})
+
+	T.Run("without a session", func(t *testing.T) {
+		t.Parallel()
+
+		actual := MessageFromContext(t.Context(), loggingnoop.NewLogger(), "meal_created", nil)
+
+		assert.Equal(t, "meal_created", actual.EventType)
+		assert.Empty(t, actual.UserID)
+		assert.Empty(t, actual.AccountID)
 	})
 }

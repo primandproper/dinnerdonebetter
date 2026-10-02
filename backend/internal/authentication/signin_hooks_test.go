@@ -10,6 +10,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	auditmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit/mock"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/datachanges"
 	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	identityfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
@@ -66,10 +67,10 @@ func buildSignInHooksHarness(t *testing.T, execErr error) *signInHooksHarness {
 }
 
 // enqueued is every data change message the transaction was asked to write.
-func (h *signInHooksHarness) enqueued(t *testing.T) []*audit.DataChangeMessage {
+func (h *signInHooksHarness) enqueued(t *testing.T) []*datachanges.Message {
 	t.Helper()
 
-	var out []*audit.DataChangeMessage
+	var out []*datachanges.Message
 	calls := h.executor.ExecContextCalls()
 	for i := range calls {
 		for _, arg := range calls[i].Args {
@@ -78,7 +79,7 @@ func (h *signInHooksHarness) enqueued(t *testing.T) []*audit.DataChangeMessage {
 				continue
 			}
 
-			msg := &audit.DataChangeMessage{}
+			msg := &datachanges.Message{}
 			if json.Unmarshal(raw, msg) == nil && msg.EventType != "" {
 				out = append(out, msg)
 			}

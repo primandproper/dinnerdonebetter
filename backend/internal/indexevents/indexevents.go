@@ -37,7 +37,7 @@ package indexevents
 import (
 	"context"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/datachanges"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
@@ -164,7 +164,7 @@ func SideEffect(_ context.Context, _ database.Tx, msgs []outbox.Message) ([]outb
 	for i := range msgs {
 		// The outbox never looks inside a Payload, so the assertion is ours to make. A message
 		// that is not a data change message is another effect's business or nobody's.
-		msg, ok := msgs[i].Payload.(*audit.DataChangeMessage)
+		msg, ok := msgs[i].Payload.(*datachanges.Message)
 		if !ok {
 			continue
 		}

@@ -153,7 +153,7 @@ reasoning.
 
 What that ruling leaves here is one obligation, and it is live rather than theoretical. A
 delivery's `Payload` is our bytes — platform never interprets it — and ours is the
-`audit.DataChangeMessage` the broker carries, which **names the user who caused the change** in
+`datachanges.Message` the broker carries, which **names the user who caused the change** in
 its `userID` field. So webhook delivery rows do hold personal data, put there by this
 application.
 

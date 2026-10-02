@@ -3,7 +3,7 @@ package internalops
 import (
 	"fmt"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/datachanges"
 	queuemessages "github.com/primandproper/dinnerdonebetter/backend/internal/queues/messages"
 
 	notifications "github.com/primandproper/primitives-go/v2/notifications/mobile"
@@ -17,7 +17,7 @@ const testMessageMarker = "test"
 func BuildQueueTestMessage(topicName, testID, userID string) (any, error) {
 	switch topicName {
 	case "data_changes":
-		return &audit.DataChangeMessage{TestID: testID, UserID: userID}, nil
+		return &datachanges.Message{TestID: testID, UserID: userID}, nil
 	case "outbound_emails":
 		return &queuemessages.OutboundEmailMessage{TestID: testID, UserID: userID}, nil
 	// There is no search_index_requests topic, no webhook_execution_requests topic and no

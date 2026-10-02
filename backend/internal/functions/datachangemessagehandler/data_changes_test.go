@@ -6,7 +6,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/datachanges"
 	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	identityfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
@@ -31,7 +31,7 @@ func TestAsyncDataChangeMessageHandler_DataChangesEventHandler(t *testing.T) {
 		ctx := t.Context()
 
 		// Create a test data change message
-		dataChangeMessage := &audit.DataChangeMessage{
+		dataChangeMessage := &datachanges.Message{
 			EventType: ddbidentity.UserSignedUpServiceEventType,
 			UserID:    "test-user-id",
 			AccountID: "test-account-id",
@@ -43,7 +43,7 @@ func TestAsyncDataChangeMessageHandler_DataChangesEventHandler(t *testing.T) {
 
 		// Set up decoder mock: DataChangesEventHandler decodes rawMsg into a DataChangeMessage
 		decoder.DecodeBytesFunc = func(_ context.Context, _ []byte, dest any) error {
-			d := dest.(*audit.DataChangeMessage)
+			d := dest.(*datachanges.Message)
 			*d = *dataChangeMessage
 			return nil
 		}
@@ -69,7 +69,7 @@ func TestAsyncDataChangeMessageHandler_DataChangesEventHandler(t *testing.T) {
 
 		// Catalog table churn carries a user ID like anything else. It used to reach the
 		// analytics platform for exactly that reason, which was never a reason anyone chose.
-		dataChangeMessage := &audit.DataChangeMessage{
+		dataChangeMessage := &datachanges.Message{
 			EventType: mealplanning.ValidIngredientUpdatedServiceEventType,
 			UserID:    "test-user-id",
 			AccountID: "test-account-id",
@@ -79,7 +79,7 @@ func TestAsyncDataChangeMessageHandler_DataChangesEventHandler(t *testing.T) {
 		require.NoError(t, err)
 
 		decoder.DecodeBytesFunc = func(_ context.Context, _ []byte, dest any) error {
-			d := dest.(*audit.DataChangeMessage)
+			d := dest.(*datachanges.Message)
 			*d = *dataChangeMessage
 			return nil
 		}
@@ -138,7 +138,7 @@ func TestAsyncDataChangeMessageHandler_handleDataChangeMessage(t *testing.T) {
 
 		ctx := t.Context()
 
-		dataChangeMessage := &audit.DataChangeMessage{
+		dataChangeMessage := &datachanges.Message{
 			EventType: ddbidentity.UserSignedUpServiceEventType,
 			UserID:    "test-user-id",
 			AccountID: "test-account-id",
@@ -180,7 +180,7 @@ func TestAsyncDataChangeMessageHandler_handleOutboundNotifications(T *testing.T)
 		user := identityfakes.BuildFakeUser()
 		evf := "email-verification-token"
 
-		dataChangeMessage := &audit.DataChangeMessage{
+		dataChangeMessage := &datachanges.Message{
 			EventType: ddbidentity.UserSignedUpServiceEventType,
 			UserID:    user.ID,
 			AccountID: "test-account-id",
@@ -210,7 +210,7 @@ func TestAsyncDataChangeMessageHandler_handleOutboundNotifications(T *testing.T)
 
 		ctx := t.Context()
 
-		dataChangeMessage := &audit.DataChangeMessage{
+		dataChangeMessage := &datachanges.Message{
 			EventType: ddbidentity.UserSignedUpServiceEventType,
 			UserID:    "test-user-id",
 			AccountID: "test-account-id",
@@ -241,7 +241,7 @@ func TestAsyncDataChangeMessageHandler_handleOutboundNotifications(T *testing.T)
 
 		user := identityfakes.BuildFakeUser()
 
-		dataChangeMessage := &audit.DataChangeMessage{
+		dataChangeMessage := &datachanges.Message{
 			EventType: "unhandled.event.type",
 			UserID:    user.ID,
 			AccountID: "test-account-id",

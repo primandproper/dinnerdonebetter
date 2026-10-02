@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/datachanges"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/fakes"
 
@@ -46,7 +46,7 @@ func TestEmitter_dispatchWebhooks(T *testing.T) {
 			},
 		}
 
-		msg := &audit.DataChangeMessage{
+		msg := &datachanges.Message{
 			AccountID: fake.BuildFakeID(),
 			EventType: fakes.BuildFakeWebhookEventType(),
 		}
@@ -64,7 +64,7 @@ func TestEmitter_dispatchWebhooks(T *testing.T) {
 
 		// The payload is the message itself, marshaled once, so a subscriber and a queue
 		// consumer see byte-identical bodies.
-		var payload audit.DataChangeMessage
+		var payload datachanges.Message
 		require.NoError(t, json.Unmarshal(dispatched.Payload, &payload))
 		assert.Equal(t, msg.EventType, payload.EventType)
 		assert.Equal(t, msg.AccountID, payload.AccountID)
@@ -78,7 +78,7 @@ func TestEmitter_dispatchWebhooks(T *testing.T) {
 		// fail the sign-in. Dispatch is unconfigured, so calling it would panic.
 		dispatcher := &webhooksmock.DispatcherMock{}
 
-		msg := &audit.DataChangeMessage{
+		msg := &datachanges.Message{
 			AccountID: fake.BuildFakeID(),
 			EventType: identity.UserLoggedInServiceEventType,
 		}
@@ -93,7 +93,7 @@ func TestEmitter_dispatchWebhooks(T *testing.T) {
 
 		dispatcher := &webhooksmock.DispatcherMock{}
 
-		msg := &audit.DataChangeMessage{
+		msg := &datachanges.Message{
 			AccountID: fake.BuildFakeID(),
 			EventType: "reciped_created",
 		}
@@ -111,7 +111,7 @@ func TestEmitter_dispatchWebhooks(T *testing.T) {
 		// the delivery would be rejected and the transaction that caused it would fail.
 		dispatcher := &webhooksmock.DispatcherMock{}
 
-		msg := &audit.DataChangeMessage{EventType: fakes.BuildFakeWebhookEventType()}
+		msg := &datachanges.Message{EventType: fakes.BuildFakeWebhookEventType()}
 
 		err := buildEmitterForTest(dispatcher).dispatchWebhooks(t.Context(), database.NewTxForTesting(&mockdatabase.SQLQueryExecutorMock{}), msg, &emitConfig{})
 		require.NoError(t, err)
@@ -122,7 +122,7 @@ func TestEmitter_dispatchWebhooks(T *testing.T) {
 		t.Parallel()
 
 		// A process wired without webhooks still writes rows and emits events.
-		msg := &audit.DataChangeMessage{
+		msg := &datachanges.Message{
 			AccountID: fake.BuildFakeID(),
 			EventType: fakes.BuildFakeWebhookEventType(),
 		}

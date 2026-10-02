@@ -3,7 +3,7 @@ package indexevents
 import (
 	"testing"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/datachanges"
 
 	"github.com/primandproper/platform-go/v14/outbox"
 	searchsync "github.com/primandproper/platform-go/v14/searchsync"
@@ -13,7 +13,7 @@ import (
 )
 
 func message(eventType string, context map[string]any) outbox.Message {
-	return outbox.Message{Topic: "data_changes", Payload: &audit.DataChangeMessage{EventType: eventType, Context: context}}
+	return outbox.Message{Topic: "data_changes", Payload: &datachanges.Message{EventType: eventType, Context: context}}
 }
 
 func TestSideEffect(T *testing.T) {

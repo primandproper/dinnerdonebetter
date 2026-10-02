@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/datachanges"
 	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	eatingemails "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/emails"
@@ -19,7 +19,7 @@ import (
 // handleMealPlanningOutboundNotification handles outbound notifications for meal planning domain events.
 func (a *AsyncDataChangeMessageHandler) handleMealPlanningOutboundNotification(
 	ctx context.Context,
-	changeMessage *audit.DataChangeMessage,
+	changeMessage *datachanges.Message,
 	_ *platformidentity.User,
 ) (
 	handled bool,
@@ -42,7 +42,7 @@ func (a *AsyncDataChangeMessageHandler) handleMealPlanningOutboundNotification(
 // handleMealPlanCreatedNotification builds email notifications for a newly created meal plan.
 func (a *AsyncDataChangeMessageHandler) handleMealPlanCreatedNotification(
 	ctx context.Context,
-	changeMessage *audit.DataChangeMessage,
+	changeMessage *datachanges.Message,
 ) ([]*queuemessages.OutboundEmailMessage, error) {
 	ctx, span := a.tracer.StartSpan(ctx)
 	defer span.End()

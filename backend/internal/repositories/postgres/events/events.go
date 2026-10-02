@@ -14,7 +14,7 @@ and for the same reason, that audit log entries already are.
 
 # Wire compatibility
 
-The message is the same *audit.DataChangeMessage the managers publish directly, marshaled the
+The message is the same *datachanges.Message the managers publish directly, marshaled the
 same way. The relay republishes the stored bytes as json.RawMessage, so what reaches the broker
 is byte-identical to a direct Publish of the same value. Consumers need no change, and a domain
 can be converted one method at a time while the rest still publish directly.
@@ -25,7 +25,7 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/datachanges"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/catalog"
 
 	"github.com/primandproper/platform-go/v14/outbox"
@@ -115,7 +115,7 @@ func (e *Emitter) Emit(ctx context.Context, q database.Tx, logger logging.Logger
 		return nil
 	}
 
-	msg := audit.BuildDataChangeMessageFromContext(ctx, logging.EnsureLogger(logger), eventType, metadata)
+	msg := datachanges.MessageFromContext(ctx, logging.EnsureLogger(logger), eventType, metadata)
 	if accountID != "" {
 		msg.AccountID = accountID
 	}
@@ -170,7 +170,7 @@ func (e *Emitter) Emit(ctx context.Context, q database.Tx, logger logging.Logger
 // The cost is on the same ledger: a webhook table failure now fails the business transaction. It
 // is the same trade the outbox already makes one line above, and for the same reason — the
 // alternative is durable state and delivery diverging with nothing able to detect it.
-func (e *Emitter) dispatchWebhooks(ctx context.Context, q database.Tx, msg *audit.DataChangeMessage, cfg *emitConfig) error {
+func (e *Emitter) dispatchWebhooks(ctx context.Context, q database.Tx, msg *datachanges.Message, cfg *emitConfig) error {
 	// A process wired without webhooks still writes rows and emits events.
 	if e.dispatcher == nil {
 		return nil
@@ -198,7 +198,7 @@ func (e *Emitter) dispatchWebhooks(ctx context.Context, q database.Tx, msg *audi
 		return nil
 	}
 
-	// The payload is the same *audit.DataChangeMessage the broker carries, marshaled once. A
+	// The payload is the same *datachanges.Message the broker carries, marshaled once. A
 	// subscriber and a queue consumer therefore see byte-identical bodies, and the bytes signed
 	// are the bytes sent — re-marshaling between dispatch and delivery is exactly how a
 	// signature comes to cover something other than the request body.
