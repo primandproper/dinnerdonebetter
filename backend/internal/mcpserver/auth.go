@@ -10,13 +10,13 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
-	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 
 	platformidentity "github.com/primandproper/platform-go/v14/identity"
 	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
 	"github.com/primandproper/primitives-go/v2/authentication/totp"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/modelcontextprotocol/go-sdk/auth"
 )
@@ -67,7 +67,7 @@ func (a *subjectAuthenticator) AuthenticateSubject(ctx context.Context, req *htt
 	password := req.FormValue("password")
 	totpToken := req.FormValue("totp_token")
 
-	user, err := a.directory.GetUserByUsername(ctx, a.db.Reader(), ddbidentity.Scope(), username)
+	user, err := a.directory.GetUserByUsername(ctx, a.db.Reader(), tenancy.Global(), username)
 	if err != nil || user == nil {
 		return nil, oauth2server.NewLoginError(accessDeniedMessage, err)
 	}
@@ -101,7 +101,7 @@ func (a *subjectAuthenticator) AuthenticateSubject(ctx context.Context, req *htt
 	// Not a LoginError. The credentials were right and the account still has no
 	// resolvable default account, which is a broken record rather than a wrong
 	// password — re-rendering the form would ask the human to fix it by typing.
-	principal, err := a.directory.GetPrincipal(ctx, a.db.Reader(), ddbidentity.Scope(), user.ID, "")
+	principal, err := a.directory.GetPrincipal(ctx, a.db.Reader(), tenancy.Global(), user.ID, "")
 	if err != nil {
 		return nil, err
 	}

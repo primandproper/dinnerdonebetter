@@ -26,6 +26,7 @@ import (
 	"github.com/primandproper/primitives-go/v2/identifiers"
 	"github.com/primandproper/primitives-go/v2/observability"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"google.golang.org/grpc/codes"
 )
@@ -174,7 +175,7 @@ func (s *serviceImpl) Upload(stream uploadedmediasvc.UploadedMediaService_Upload
 	// the size, so a connection is held for a bounded time; an uncapped upload would
 	// want Save outside the transaction and RecordObject inside a short one.
 	object, err := inTransaction(ctx, s.db, func(tx database.Tx) (*mediaregistry.Object, error) {
-		return mediaregistry.StoreAndRecord(ctx, tx, uploadedmedia.Scope(), s.uploadManager, s.registry, input, &fileData)
+		return mediaregistry.StoreAndRecord(ctx, tx, tenancy.Global(), s.uploadManager, s.registry, input, &fileData)
 	})
 	if err != nil {
 		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to store uploaded media")
@@ -220,7 +221,7 @@ func (s *serviceImpl) recordUploadUsage(ctx context.Context, accountID, mediaID,
 	// upload's transaction would trade a countable gap in a dashboard for a failed
 	// upload.
 	if err := s.db.WithTransaction(ctx, func(tx database.Tx) error {
-		return s.usageRecorder.Record(ctx, tx, uploadedmedia.Scope(), metering.Usage{
+		return s.usageRecorder.Record(ctx, tx, tenancy.Global(), metering.Usage{
 			Subject:        accountID,
 			Meter:          appmetering.UploadedMediaBytesMeter,
 			Quantity:       sizeBytes,
@@ -291,7 +292,7 @@ func (s *serviceImpl) CreateUploadedMedia(ctx context.Context, request *uploaded
 	}
 
 	recorded, err := inTransaction(ctx, s.db, func(tx database.Tx) (*mediaregistry.Object, error) {
-		return s.registry.RecordObject(ctx, tx, uploadedmedia.Scope(), objectInput)
+		return s.registry.RecordObject(ctx, tx, tenancy.Global(), objectInput)
 	})
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to create uploaded media")
@@ -320,7 +321,7 @@ func (s *serviceImpl) GetUploadedMedia(ctx context.Context, request *uploadedmed
 	}
 	logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.GetUserID())
 
-	object, err := s.registry.GetObject(ctx, s.db.Reader(), uploadedmedia.Scope(), request.UploadedMediaId)
+	object, err := s.registry.GetObject(ctx, s.db.Reader(), tenancy.Global(), request.UploadedMediaId)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to fetch uploaded media")
 	}
@@ -370,7 +371,7 @@ func (s *serviceImpl) GetUploadedMediaWithIDs(ctx context.Context, request *uplo
 	}
 
 	for _, id := range request.Ids {
-		object, readErr := s.registry.GetObject(ctx, s.db.Reader(), uploadedmedia.Scope(), id)
+		object, readErr := s.registry.GetObject(ctx, s.db.Reader(), tenancy.Global(), id)
 		if readErr != nil {
 			if errors.Is(readErr, mediaregistry.ErrObjectNotFound) {
 				continue
@@ -409,7 +410,7 @@ func (s *serviceImpl) GetUploadedMediaForUser(ctx context.Context, request *uplo
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
 
-	objects, err := s.registry.ListObjectsByOwner(ctx, s.db.Reader(), uploadedmedia.Scope(), request.UserId, filter)
+	objects, err := s.registry.ListObjectsByOwner(ctx, s.db.Reader(), tenancy.Global(), request.UserId, filter)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to fetch uploaded media for user")
 	}
@@ -442,7 +443,7 @@ func (s *serviceImpl) ArchiveUploadedMedia(ctx context.Context, request *uploade
 	logger = logger.WithValue(identitykeys.UserIDKey, sessionContextData.GetUserID())
 
 	// Fetch the existing uploaded media to verify ownership
-	object, err := s.registry.GetObject(ctx, s.db.Reader(), uploadedmedia.Scope(), request.UploadedMediaId)
+	object, err := s.registry.GetObject(ctx, s.db.Reader(), tenancy.Global(), request.UploadedMediaId)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to fetch uploaded media")
 	}
@@ -453,7 +454,7 @@ func (s *serviceImpl) ArchiveUploadedMedia(ctx context.Context, request *uploade
 	}
 
 	if _, err = inTransaction(ctx, s.db, func(tx database.Tx) (*mediaregistry.Object, error) {
-		return s.registry.ArchiveObject(ctx, tx, uploadedmedia.Scope(), request.UploadedMediaId)
+		return s.registry.ArchiveObject(ctx, tx, tenancy.Global(), request.UploadedMediaId)
 	}); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed to archive uploaded media")
 	}

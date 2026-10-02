@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
-	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/converters"
 	internalopssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/internalops"
@@ -81,8 +80,8 @@ func (s *serviceImpl) ImpersonateUser(ctx context.Context, request *internalopss
 	// One directory for operators and customers alike, so the operator's scope and the
 	// subject's are the same one.
 	signedIn, err := s.impersonator.IssueImpersonationToken(ctx,
-		ddbidentity.Scope(), operatorID,
-		ddbidentity.Scope(), subjectID, strings.TrimSpace(request.GetAccountId()),
+		tenancy.Global(), operatorID,
+		tenancy.Global(), subjectID, strings.TrimSpace(request.GetAccountId()),
 	)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "impersonating a user")

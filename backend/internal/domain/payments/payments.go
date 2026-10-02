@@ -26,7 +26,7 @@ What it holds is what platform declines to decide:
 # One catalog, in the global scope
 
 Every billing table platform ships carries a tenancy scope, and this application
-keeps all four in exactly one: [Scope] is tenancy.Global(). There is one catalog
+keeps all four in exactly one, tenancy.Global(). There is one catalog
 of products, administered by service admins, and an account's subscriptions,
 purchases and ledger rows are filed by account within it — which is what
 belongs_to_account is for. Scoping per account would put the catalog out of
@@ -46,10 +46,6 @@ The product kinds and the transaction statuses went the same way, to
 billing.Kind and billing.TransactionStatus.
 */
 package payments
-
-import (
-	"github.com/primandproper/primitives-go/v2/tenancy"
-)
 
 // The data change events a billing write emits. They are declared in the
 // webhook event catalog (internal/domain/webhooks/catalog), so a subscriber is
@@ -78,7 +74,3 @@ const (
 	// administratively, which is not a cancellation.
 	SubscriptionArchivedServiceEventType = "subscription_archived"
 )
-
-// Scope is the tenancy this application keeps its billing under, which is the
-// global one. See the package documentation.
-func Scope() tenancy.Scope { return tenancy.Global() }

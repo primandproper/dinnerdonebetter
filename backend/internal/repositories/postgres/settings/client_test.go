@@ -20,6 +20,7 @@ import (
 	metricsnoop "github.com/primandproper/primitives-go/v2/observability/metrics/noop"
 	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
 	"github.com/primandproper/primitives-go/v2/pointer"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -92,7 +93,7 @@ func definitionForTest(t *testing.T, ctx context.Context, dbc settings.Store, db
 	t.Helper()
 
 	definition, err := writeT(ctx, db, func(tx database.Tx) (*settings.Definition, error) {
-		return dbc.CreateDefinition(ctx, tx, ddbsettings.Scope(), fakes.BuildFakeSettingDefinition())
+		return dbc.CreateDefinition(ctx, tx, tenancy.Global(), fakes.BuildFakeSettingDefinition())
 	})
 	require.NoError(t, err)
 
@@ -102,7 +103,7 @@ func definitionForTest(t *testing.T, ctx context.Context, dbc settings.Store, db
 func TestRepository_Integration_SettingDefinitions(t *testing.T) {
 	ctx := t.Context()
 	dbc, auditRepo, db := buildDatabaseClientForTest(t)
-	scope := ddbsettings.Scope()
+	scope := tenancy.Global()
 
 	example := fakes.BuildFakeSettingDefinition()
 
@@ -169,7 +170,7 @@ func TestRepository_Integration_SettingDefinitions(t *testing.T) {
 func TestRepository_Integration_ArchivingKeepsTheNameClaimed(t *testing.T) {
 	ctx := t.Context()
 	dbc, _, db := buildDatabaseClientForTest(t)
-	scope := ddbsettings.Scope()
+	scope := tenancy.Global()
 
 	example := fakes.BuildFakeSettingDefinition()
 
@@ -196,7 +197,7 @@ func TestRepository_Integration_ArchivingKeepsTheNameClaimed(t *testing.T) {
 func TestRepository_Integration_SettingValues(t *testing.T) {
 	ctx := t.Context()
 	dbc, auditRepo, db := buildDatabaseClientForTest(t)
-	scope := ddbsettings.Scope()
+	scope := tenancy.Global()
 
 	userID := subjectForTest(t, db)
 	subject := ddbsettings.SubjectFor(userID)
@@ -265,7 +266,7 @@ func TestRepository_Integration_SettingValues(t *testing.T) {
 func TestRepository_Integration_ValueOutsideTheEnumerationIsRefused(t *testing.T) {
 	ctx := t.Context()
 	dbc, _, db := buildDatabaseClientForTest(t)
-	scope := ddbsettings.Scope()
+	scope := tenancy.Global()
 
 	subject := ddbsettings.SubjectFor(subjectForTest(t, db))
 	definition := definitionForTest(t, ctx, dbc, db)
@@ -295,7 +296,7 @@ func TestRepository_Integration_ValueOutsideTheEnumerationIsRefused(t *testing.T
 func TestRepository_Integration_EditRefusesToStrandStoredValues(t *testing.T) {
 	ctx := t.Context()
 	dbc, _, db := buildDatabaseClientForTest(t)
-	scope := ddbsettings.Scope()
+	scope := tenancy.Global()
 
 	subject := ddbsettings.SubjectFor(subjectForTest(t, db))
 	definition := definitionForTest(t, ctx, dbc, db)
@@ -330,7 +331,7 @@ func TestRepository_Integration_EditRefusesToStrandStoredValues(t *testing.T) {
 func TestRepository_Integration_ResolutionHasThreeAnswers(t *testing.T) {
 	ctx := t.Context()
 	dbc, _, db := buildDatabaseClientForTest(t)
-	scope := ddbsettings.Scope()
+	scope := tenancy.Global()
 
 	subject := ddbsettings.SubjectFor(subjectForTest(t, db))
 
@@ -401,7 +402,7 @@ func TestRepository_Integration_ResolutionHasThreeAnswers(t *testing.T) {
 func TestRepository_Integration_ErasingAUserTakesTheirSettings(t *testing.T) {
 	ctx := t.Context()
 	dbc, _, db := buildDatabaseClientForTest(t)
-	scope := ddbsettings.Scope()
+	scope := tenancy.Global()
 
 	userID := subjectForTest(t, db)
 	subject := ddbsettings.SubjectFor(userID)
@@ -432,7 +433,7 @@ func TestRepository_Integration_TheSeededSettingSurvivedTheMigration(t *testing.
 	ctx := t.Context()
 	dbc, _, db := buildDatabaseClientForTest(t)
 
-	seeded, err := dbc.GetDefinitionByName(ctx, db.Reader(), ddbsettings.Scope(), "user_temperature_unit")
+	seeded, err := dbc.GetDefinitionByName(ctx, db.Reader(), tenancy.Global(), "user_temperature_unit")
 	require.NoError(t, err)
 
 	assert.Equal(t, "d6me6i4n9qd3gcf5j1p0", seeded.ID)

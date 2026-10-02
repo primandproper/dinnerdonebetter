@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
-	ddbuploadedmedia "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia/fakes"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
@@ -20,6 +19,7 @@ import (
 	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
 	metricsnoop "github.com/primandproper/primitives-go/v2/observability/metrics/noop"
 	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -84,14 +84,14 @@ func ownedBy(userID string) *mediaregistry.ObjectInput {
 // the error rather than asserting on it, because two of the writes here are supposed to fail.
 func recordT(ctx context.Context, db database.Client, dbc mediaregistry.Store, input *mediaregistry.ObjectInput) (*mediaregistry.Object, error) {
 	return writeT(ctx, db, func(tx database.Tx) (*mediaregistry.Object, error) {
-		return dbc.RecordObject(ctx, tx, ddbuploadedmedia.Scope(), *input)
+		return dbc.RecordObject(ctx, tx, tenancy.Global(), *input)
 	})
 }
 
 // archiveT retires one object on a transaction of its own.
 func archiveT(ctx context.Context, db database.Client, dbc mediaregistry.Store, objectID string) (*mediaregistry.Object, error) {
 	return writeT(ctx, db, func(tx database.Tx) (*mediaregistry.Object, error) {
-		return dbc.ArchiveObject(ctx, tx, ddbuploadedmedia.Scope(), objectID)
+		return dbc.ArchiveObject(ctx, tx, tenancy.Global(), objectID)
 	})
 }
 
@@ -123,19 +123,19 @@ func TestRepository_Integration_UploadedMedia(t *testing.T) {
 		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeUploadedMedia, RelevantID: object.ID},
 	})
 
-	fetched, err := dbc.GetObject(ctx, db.Reader(), ddbuploadedmedia.Scope(), object.ID)
+	fetched, err := dbc.GetObject(ctx, db.Reader(), tenancy.Global(), object.ID)
 	require.NoError(t, err)
 	assert.Equal(t, object.Key, fetched.Key)
 	assert.Equal(t, object.ContentType, fetched.ContentType)
 	assert.Equal(t, user.ID, fetched.OwnerID)
 
 	// the key is how a request holding a URL path rather than a row id finds the row
-	byKey, err := dbc.GetObjectByKey(ctx, db.Reader(), ddbuploadedmedia.Scope(), object.Key)
+	byKey, err := dbc.GetObjectByKey(ctx, db.Reader(), tenancy.Global(), object.Key)
 	require.NoError(t, err)
 	assert.Equal(t, object.ID, byKey.ID)
 
 	// the owner's page
-	page, err := dbc.ListObjectsByOwner(ctx, db.Reader(), ddbuploadedmedia.Scope(), user.ID, nil)
+	page, err := dbc.ListObjectsByOwner(ctx, db.Reader(), tenancy.Global(), user.ID, nil)
 	require.NoError(t, err)
 	require.Len(t, page.Data, 1)
 	assert.Equal(t, object.ID, page.Data[0].ID)
@@ -148,7 +148,7 @@ func TestRepository_Integration_UploadedMedia(t *testing.T) {
 		{EventType: audit.AuditLogEventTypeArchived, ResourceType: resourceTypeUploadedMedia, RelevantID: object.ID},
 	})
 
-	fetchedAfterArchive, err := dbc.GetObject(ctx, db.Reader(), ddbuploadedmedia.Scope(), object.ID)
+	fetchedAfterArchive, err := dbc.GetObject(ctx, db.Reader(), tenancy.Global(), object.ID)
 	require.Error(t, err)
 	assert.Nil(t, fetchedAfterArchive)
 	assert.ErrorIs(t, err, mediaregistry.ErrObjectNotFound)
@@ -240,7 +240,7 @@ func TestRepository_Integration_ErasingTheOwnerRemovesTheRow(t *testing.T) {
 	_, err = db.Writer().ExecContext(ctx, "DELETE FROM ddb_identity_users WHERE id = $1", user.ID)
 	require.NoError(t, err)
 
-	fetched, err := dbc.GetObject(ctx, db.Reader(), ddbuploadedmedia.Scope(), object.ID)
+	fetched, err := dbc.GetObject(ctx, db.Reader(), tenancy.Global(), object.ID)
 	require.Error(t, err)
 	assert.Nil(t, fetched)
 	assert.ErrorIs(t, err, mediaregistry.ErrObjectNotFound)

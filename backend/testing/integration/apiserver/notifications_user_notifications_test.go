@@ -11,6 +11,7 @@ import (
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/fake"
 	"github.com/primandproper/primitives-go/v2/identifiers"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -38,7 +39,7 @@ func createUserNotification(ctx context.Context, forUser string) (*platformnotif
 
 	err := databaseClient.WithTransaction(ctx, func(tx database.Tx) error {
 		var writeErr error
-		created, writeErr = notifsInbox.CreateNotification(ctx, tx, notifications.Scope(), &platformnotifications.Notification{
+		created, writeErr = notifsInbox.CreateNotification(ctx, tx, tenancy.Global(), &platformnotifications.Notification{
 			ID:        identifiers.New(),
 			Principal: forUser,
 			Topic:     notifications.DefaultTopic,

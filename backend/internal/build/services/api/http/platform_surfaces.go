@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
-	ddbuploadedmedia "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc/interceptors"
 
 	"github.com/primandproper/platform-go/v14/callers"
@@ -205,5 +204,5 @@ func objectCaller(ctx context.Context) (mediaregistryhttp.Caller, error) {
 		return mediaregistryhttp.Caller{}, callers.ErrNoPrincipal
 	}
 
-	return mediaregistryhttp.Caller{PrincipalID: userID, Scope: ddbuploadedmedia.Scope()}, nil
+	return mediaregistryhttp.Caller{PrincipalID: userID, Scope: tenancy.Global()}, nil
 }

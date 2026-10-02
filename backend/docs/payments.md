@@ -93,7 +93,7 @@ The schema is platform-go's, rendered by `renderBillingDDL` in
 `internal/repositories/postgres/migrations` as migration 43 with the `ddb` prefix (see
 `branding.TablePrefix`), which drops the four tables `00011_payments.sql` created and the three
 enums they used. Every table carries a tenancy `scope`, and this application keeps all four in the
-global one — see `payments.Scope`.
+global one — see the tenancy section of `internal/domain/payments`.
 
 - **ddb_billing_products** — the catalog: `kind` (`recurring`/`one_time`), `amount_cents` (BIGINT), `currency`, `billing_interval_months` (NULL for one-time), `external_product_id`
 - **ddb_billing_subscriptions** — `belongs_to_account`, `product_id`, `external_subscription_id`, `status` (capitalism's vocabulary), `current_period_start`/`end`

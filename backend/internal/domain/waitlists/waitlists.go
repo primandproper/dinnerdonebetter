@@ -8,12 +8,24 @@ column, the signup lifecycle and — the half this application did not have — 
 withdrawal that keeps somebody off a list after they have asked to come off it.
 What is not the platform's is who a signup belongs to and what address the list
 writes to, and both of those are decided here.
+
+# Tenancy
+
+Every waitlist and every signup is kept under tenancy.Global(), and that is a
+decision rather than a default. A waitlist here is an operator's record of which
+of this deployment's users want a feature that does not exist yet — "which of
+our users wants to opt into X" — so the catalog is one catalog, administered by
+service admins, and the table this replaced carried no ownership column at all.
+Filing lists per account would make a list invisible to the operator who opened
+it the moment they switched accounts.
+
+It does not follow that a signup is unowned. Who a signup belongs to is the
+signup's Subject, not the list's scope; see SubjectFor.
 */
 package waitlists
 
 import (
 	platformwaitlists "github.com/primandproper/platform-go/v14/waitlists"
-	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
 // The data change events a waitlist write emits. They are declared in the
@@ -54,20 +66,6 @@ const (
 	// administratively. It is not a withdrawal — see the platform package.
 	WaitlistSignupArchivedServiceEventType = "waitlist_signup_archived"
 )
-
-// Scope is the tenancy this application keeps every waitlist and every signup
-// under, which is the global one.
-//
-// It is a decision rather than a default. A waitlist here is an operator's
-// record of which of this deployment's users want a feature that does not exist
-// yet — "which of our users wants to opt into X" — so the catalog is one
-// catalog, administered by service admins, and the table this replaced carried
-// no ownership column at all. Filing lists per account would make a list
-// invisible to the operator who opened it the moment they switched accounts.
-//
-// It does not follow that a signup is unowned. Who a signup belongs to is the
-// signup's Subject, not the list's scope; see SubjectFor.
-func Scope() tenancy.Scope { return tenancy.Global() }
 
 // SubjectFor is the principal a signup made by a signed-in user belongs to.
 //

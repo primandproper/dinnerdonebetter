@@ -6,7 +6,6 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
-	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
@@ -16,6 +15,7 @@ import (
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/fake"
 	"github.com/primandproper/primitives-go/v2/filtering"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -307,9 +307,9 @@ func TestQuerier_Integration_MealPlanOptionVotes_CursorBasedPagination(t *testin
 		store, storeErr := platformidentity.NewSQLStore(dbc.Client, platformidentity.WithTablePrefix(branding.TablePrefix))
 		require.NoError(t, storeErr)
 
-		_, execErr := store.CreateMembership(ctx, database.NewTxForTesting(dbc.writeDB), ddbidentity.Scope(),
+		_, execErr := store.CreateMembership(ctx, database.NewTxForTesting(dbc.writeDB), tenancy.Global(),
 			&platformidentity.Membership{
-				Scope:            ddbidentity.Scope(),
+				Scope:            tenancy.Global(),
 				BelongsToUser:    userID,
 				BelongsToAccount: account.ID,
 				Roles:            []string{authorization.AccountMemberRoleName},

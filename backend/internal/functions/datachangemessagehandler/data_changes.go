@@ -7,10 +7,10 @@ import (
 
 	analyticsevents "github.com/primandproper/dinnerdonebetter/backend/internal/domain/analytics"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
-	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 
 	"github.com/primandproper/primitives-go/v2/observability"
 	"github.com/primandproper/primitives-go/v2/retry"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
@@ -125,7 +125,7 @@ func (a *AsyncDataChangeMessageHandler) handleOutboundNotifications(
 		return nil
 	}
 
-	user, err := a.directory.GetUser(ctx, a.db.Reader(), ddbidentity.Scope(), changeMessage.UserID)
+	user, err := a.directory.GetUser(ctx, a.db.Reader(), tenancy.Global(), changeMessage.UserID)
 	if err != nil {
 		return observability.PrepareAndLogError(err, a.logger, span, "getting user")
 	}

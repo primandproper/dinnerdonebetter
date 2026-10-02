@@ -15,7 +15,6 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
-	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	internalopssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/internalops"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/indexevents"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/localdev"
@@ -33,6 +32,7 @@ import (
 	"github.com/primandproper/primitives-go/v2/identifiers"
 	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
 	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/pquerna/otp/totp"
 	"github.com/stretchr/testify/assert"
@@ -552,7 +552,7 @@ func inviteForTest(t *testing.T, fromUserID, accountID, toEmail string) *identit
 	// an argument that reads like a choice somebody made.
 	roles := []string{authorization.AccountMemberRoleName}
 
-	invitation, err := identityDirectoryWithHooks(t).Invite(ctx, ddbidentity.Scope(), &identity.Invitation{
+	invitation, err := identityDirectoryWithHooks(t).Invite(ctx, tenancy.Global(), &identity.Invitation{
 		BelongsToAccount: accountID,
 		FromUser:         fromUserID,
 		ToEmail:          toEmail,
@@ -625,7 +625,7 @@ func verifyEmailAddressForTest(t *testing.T, userID string) {
 	require.NoError(t, err)
 
 	require.NoError(t, databaseClient.WithTransaction(ctx, func(tx database.Tx) error {
-		return store.MarkUserEmailAddressProven(ctx, tx, ddbidentity.Scope(), userID)
+		return store.MarkUserEmailAddressProven(ctx, tx, tenancy.Global(), userID)
 	}))
 }
 

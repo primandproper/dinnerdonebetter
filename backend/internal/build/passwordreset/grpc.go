@@ -22,7 +22,6 @@ import (
 	"time"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
-	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 
 	platformpasswordreset "github.com/primandproper/platform-go/v14/authentication/passwordreset"
@@ -71,7 +70,7 @@ func RegisterPasswordResetService(i do.Injector) {
 			// is named anyway, so that the day this application's directory is scoped, a reset
 			// follows it.
 			passwordresetgrpc.WithScopeResolver(func(context.Context) (tenancy.Scope, error) {
-				return ddbidentity.Scope(), nil
+				return tenancy.Global(), nil
 			}),
 			passwordresetgrpc.WithLogger(do.MustInvoke[logging.Logger](i)),
 			passwordresetgrpc.WithTracerProvider(do.MustInvoke[tracing.Provider](i)),

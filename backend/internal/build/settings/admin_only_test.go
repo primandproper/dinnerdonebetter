@@ -8,7 +8,6 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
-	ddbsettings "github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
@@ -23,6 +22,7 @@ import (
 	metricsnoop "github.com/primandproper/primitives-go/v2/observability/metrics/noop"
 	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
 	"github.com/primandproper/primitives-go/v2/pointer"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -115,7 +115,7 @@ func (f *fixture) define(t *testing.T, ctx context.Context, adminOnly bool) stri
 	name := "setting_" + identifiers.New()
 
 	require.NoError(t, f.db.WithTransaction(ctx, func(tx database.Tx) error {
-		_, err := f.store.CreateDefinition(ctx, tx, ddbsettings.Scope(), &platformsettings.Definition{
+		_, err := f.store.CreateDefinition(ctx, tx, tenancy.Global(), &platformsettings.Definition{
 			ID:          identifiers.New(),
 			Name:        name,
 			Description: "a setting",
@@ -177,7 +177,7 @@ func TestAdminOnly_IsEnforcedForValueWrites(T *testing.T) {
 		assert.Equal(t, codes.PermissionDenied, status.Code(err),
 			"a reserved setting refused for want of a grant is a refusal, not a failure")
 
-		_, readErr := f.store.GetValue(ctx, f.db.Reader(), ddbsettings.Scope(),
+		_, readErr := f.store.GetValue(ctx, f.db.Reader(), tenancy.Global(),
 			platformsettings.Subject{Type: platformsettings.SubjectUser, ID: userID}, name)
 		require.Error(t, readErr, "nothing should have been stored")
 	})
@@ -197,7 +197,7 @@ func TestAdminOnly_IsEnforcedForValueWrites(T *testing.T) {
 		require.NoError(t, setValue(caller, f.server, userID, name, "on"),
 			"self-service must survive the fix, or it has taken more than it closed")
 
-		stored, err := f.store.GetValue(ctx, f.db.Reader(), ddbsettings.Scope(),
+		stored, err := f.store.GetValue(ctx, f.db.Reader(), tenancy.Global(),
 			platformsettings.Subject{Type: platformsettings.SubjectUser, ID: userID}, name)
 		require.NoError(t, err)
 		assert.Equal(t, "on", stored.Raw)
@@ -215,7 +215,7 @@ func TestAdminOnly_IsEnforcedForValueWrites(T *testing.T) {
 		require.NoError(t, setValue(caller, f.server, userID, name, "on"),
 			"the grant exists so that somebody can write these")
 
-		stored, err := f.store.GetValue(ctx, f.db.Reader(), ddbsettings.Scope(),
+		stored, err := f.store.GetValue(ctx, f.db.Reader(), tenancy.Global(),
 			platformsettings.Subject{Type: platformsettings.SubjectUser, ID: userID}, name)
 		require.NoError(t, err)
 		assert.Equal(t, "on", stored.Raw)

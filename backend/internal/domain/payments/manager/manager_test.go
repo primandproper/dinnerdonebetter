@@ -75,7 +75,7 @@ func subscriptionLookup(subscription *billing.Subscription) (*billingmock.StoreM
 
 	return &billingmock.StoreMock{
 		GetSubscriptionByExternalIDFunc: func(_ context.Context, _ database.SQLQueryExecutor, scope tenancy.Scope, externalID string) (*billing.Subscription, error) {
-			if scope != payments.Scope() || externalID != subscription.ExternalSubscriptionID {
+			if scope != tenancy.Global() || externalID != subscription.ExternalSubscriptionID {
 				return nil, billing.ErrSubscriptionNotFound
 			}
 

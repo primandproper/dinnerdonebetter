@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
-	ddbpayments "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/fakes"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
@@ -19,6 +18,7 @@ import (
 	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
 	metricsnoop "github.com/primandproper/primitives-go/v2/observability/metrics/noop"
 	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/stretchr/testify/require"
 )
@@ -87,7 +87,7 @@ func productForTest(t *testing.T, ctx context.Context, dbc billing.Store, db dat
 	t.Helper()
 
 	product, err := writeT(ctx, db, func(tx database.Tx) (*billing.Product, error) {
-		return dbc.CreateProduct(ctx, tx, ddbpayments.Scope(), fakes.BuildFakeProduct())
+		return dbc.CreateProduct(ctx, tx, tenancy.Global(), fakes.BuildFakeProduct())
 	})
 	require.NoError(t, err)
 
@@ -99,7 +99,7 @@ func subscriptionForTest(t *testing.T, ctx context.Context, dbc billing.Store, d
 	t.Helper()
 
 	subscription, err := writeT(ctx, db, func(tx database.Tx) (*billing.Subscription, error) {
-		return dbc.CreateSubscription(ctx, tx, ddbpayments.Scope(), fakes.BuildFakeSubscription(accountID, productID))
+		return dbc.CreateSubscription(ctx, tx, tenancy.Global(), fakes.BuildFakeSubscription(accountID, productID))
 	})
 	require.NoError(t, err)
 

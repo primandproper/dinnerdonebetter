@@ -91,7 +91,7 @@ func openListForTest(t *testing.T, ctx context.Context, dbc waitlists.Store, db 
 	t.Helper()
 
 	list, err := writeT(ctx, db, func(tx database.Tx) (*waitlists.List, error) {
-		return dbc.CreateList(ctx, tx, ddbwaitlists.Scope(), fakes.BuildFakeWaitlist())
+		return dbc.CreateList(ctx, tx, tenancy.Global(), fakes.BuildFakeWaitlist())
 	})
 	require.NoError(t, err)
 
@@ -101,7 +101,7 @@ func openListForTest(t *testing.T, ctx context.Context, dbc waitlists.Store, db 
 func TestRepository_Integration_Waitlists(t *testing.T) {
 	ctx := t.Context()
 	dbc, auditRepo, db := buildDatabaseClientForTest(t)
-	scope := ddbwaitlists.Scope()
+	scope := tenancy.Global()
 
 	example := fakes.BuildFakeWaitlist()
 
@@ -172,7 +172,7 @@ func TestRepository_Integration_Waitlists(t *testing.T) {
 func TestRepository_Integration_ArchivedListTakesNoSignups(t *testing.T) {
 	ctx := t.Context()
 	dbc, _, db := buildDatabaseClientForTest(t)
-	scope := ddbwaitlists.Scope()
+	scope := tenancy.Global()
 
 	userID := signatoryForTest(t, db)
 	list := openListForTest(t, ctx, dbc, db)
@@ -194,7 +194,7 @@ func TestRepository_Integration_ArchivedListTakesNoSignups(t *testing.T) {
 func TestRepository_Integration_ClosedListTakesNoSignups(t *testing.T) {
 	ctx := t.Context()
 	dbc, _, db := buildDatabaseClientForTest(t)
-	scope := ddbwaitlists.Scope()
+	scope := tenancy.Global()
 
 	userID := signatoryForTest(t, db)
 
@@ -223,7 +223,7 @@ func TestRepository_Integration_ClosedListTakesNoSignups(t *testing.T) {
 func TestRepository_Integration_WaitlistSignups(t *testing.T) {
 	ctx := t.Context()
 	dbc, auditRepo, db := buildDatabaseClientForTest(t)
-	scope := ddbwaitlists.Scope()
+	scope := tenancy.Global()
 
 	userID := signatoryForTest(t, db)
 	list := openListForTest(t, ctx, dbc, db)
@@ -293,7 +293,7 @@ func TestRepository_Integration_WaitlistSignups(t *testing.T) {
 func TestRepository_Integration_SignupLifecycle(t *testing.T) {
 	ctx := t.Context()
 	dbc, auditRepo, db := buildDatabaseClientForTest(t)
-	scope := ddbwaitlists.Scope()
+	scope := tenancy.Global()
 
 	userID := signatoryForTest(t, db)
 	list := openListForTest(t, ctx, dbc, db)
@@ -340,7 +340,7 @@ func TestRepository_Integration_SignupLifecycle(t *testing.T) {
 func TestRepository_Integration_ConfirmationIsRecorded(t *testing.T) {
 	ctx := t.Context()
 	dbc, auditRepo, db := buildDatabaseClientForTest(t)
-	scope := ddbwaitlists.Scope()
+	scope := tenancy.Global()
 
 	userID := signatoryForTest(t, db)
 	list := openListForTest(t, ctx, dbc, db)
@@ -379,7 +379,7 @@ func TestRepository_Integration_ConfirmationIsRecorded(t *testing.T) {
 func TestRepository_Integration_WithdrawalOutlivesTheAddress(t *testing.T) {
 	ctx := t.Context()
 	dbc, auditRepo, db := buildDatabaseClientForTest(t)
-	scope := ddbwaitlists.Scope()
+	scope := tenancy.Global()
 
 	userID := signatoryForTest(t, db)
 	list := openListForTest(t, ctx, dbc, db)
@@ -436,7 +436,7 @@ func TestRepository_Integration_WithdrawalOutlivesTheAddress(t *testing.T) {
 func TestRepository_Integration_ArchivingIsNotWithdrawing(t *testing.T) {
 	ctx := t.Context()
 	dbc, _, db := buildDatabaseClientForTest(t)
-	scope := ddbwaitlists.Scope()
+	scope := tenancy.Global()
 
 	userID := signatoryForTest(t, db)
 	list := openListForTest(t, ctx, dbc, db)
@@ -465,7 +465,7 @@ func TestRepository_Integration_ArchivingIsNotWithdrawing(t *testing.T) {
 func TestRepository_Integration_MissingRowsRecordNothing(t *testing.T) {
 	ctx := t.Context()
 	dbc, auditRepo, db := buildDatabaseClientForTest(t)
-	scope := ddbwaitlists.Scope()
+	scope := tenancy.Global()
 
 	userID := signatoryForTest(t, db)
 	list := openListForTest(t, ctx, dbc, db)

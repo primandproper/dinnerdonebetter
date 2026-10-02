@@ -4,8 +4,6 @@ package privacy
 import (
 	"context"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
-
 	platformdataprivacy "github.com/primandproper/platform-go/v14/dataprivacy"
 	"github.com/primandproper/platform-go/v14/mediaregistry"
 	"github.com/primandproper/primitives-go/v2/database"
@@ -24,9 +22,10 @@ import (
 // The reader is taken at construction because dataprivacy.Collector.Collect is
 // handed no executor: an export is a read, and it runs outside the erasure
 // transaction by design. The request scope is not consulted either — every
-// object this deployment registers is in uploadedmedia.Scope.
+// object this deployment registers is in the global scope; see the uploadedmedia
+// package documentation.
 func NewCollector(store mediaregistry.Store, reader database.SQLQueryExecutor) platformdataprivacy.Collector {
 	return platformdataprivacy.CollectorFor(func(ctx context.Context, _ tenancy.Scope, subject platformdataprivacy.Subject, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mediaregistry.Object], error) {
-		return store.ListObjectsByOwner(ctx, reader, uploadedmedia.Scope(), subject.ID, filter)
+		return store.ListObjectsByOwner(ctx, reader, tenancy.Global(), subject.ID, filter)
 	})
 }

@@ -3,8 +3,6 @@ package privacy
 import (
 	"context"
 
-	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
-
 	platformdataprivacy "github.com/primandproper/platform-go/v14/dataprivacy"
 	"github.com/primandproper/platform-go/v14/dataprivacy/auditerasure"
 	platformidentity "github.com/primandproper/platform-go/v14/identity"
@@ -65,7 +63,7 @@ func ErasableScopeResolver(store platformidentity.Store, reader database.SQLQuer
 // failure platform-go's own documentation warns is worth being exact about.
 func erasableScopes(ctx context.Context, store platformidentity.Store, reader database.SQLQueryExecutor, userID string) ([]tenancy.Scope, error) {
 	accounts, err := platformdataprivacy.CollectAll(ctx, func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[platformidentity.Account], error) {
-		return store.ListAccountsForUser(ctx, reader, ddbidentity.Scope(), userID, filter)
+		return store.ListAccountsForUser(ctx, reader, tenancy.Global(), userID, filter)
 	})
 	if err != nil {
 		return nil, err

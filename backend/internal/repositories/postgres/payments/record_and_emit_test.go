@@ -7,12 +7,12 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	auditmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit/mock"
-	ddbpayments "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/fakes"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/recording"
 
 	"github.com/primandproper/platform-go/v14/billing"
 	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -58,7 +58,7 @@ func TestRepository_Integration_RecordAndEmitFailureSurfaces(t *testing.T) {
 	product := fakes.BuildFakeProduct()
 
 	created, err := writeT(ctx, db, func(tx database.Tx) (*billing.Product, error) {
-		return repo.CreateProduct(ctx, tx, ddbpayments.Scope(), product)
+		return repo.CreateProduct(ctx, tx, tenancy.Global(), product)
 	})
 	require.Error(t, err)
 	require.ErrorIs(t, err, expected)
@@ -68,7 +68,7 @@ func TestRepository_Integration_RecordAndEmitFailureSurfaces(t *testing.T) {
 	// rather than on the rolled-back transaction, so what is being asserted is what committed.
 	repo.recorder = recording.NewRecorder(repo.tracer, auditRepo, nil)
 
-	survived, err := repo.GetProduct(ctx, db.Reader(), ddbpayments.Scope(), product.ID)
+	survived, err := repo.GetProduct(ctx, db.Reader(), tenancy.Global(), product.ID)
 	require.Error(t, err)
 	assert.Nil(t, survived)
 }

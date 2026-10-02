@@ -22,17 +22,12 @@ import (
 
 	auditdomain "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	auditprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit/privacy"
-	ddbcomments "github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments"
 	ddbdataprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
 	identityprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/privacy"
 	issuereportsprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports/privacy"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/privacy"
-	ddbnotifications "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
 	paymentsprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/privacy"
-	ddbsettings "github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings"
-	ddbuploadedmedia "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
-	ddbwaitlists "github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists"
 	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
 
 	oauth2clients "github.com/primandproper/platform-go/v14/authentication/oauth2clients"
@@ -56,6 +51,7 @@ import (
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/metrics"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/samber/do/v2"
 )
@@ -123,7 +119,7 @@ func buildRegistry(i do.Injector) (*platformdataprivacy.Registry, error) {
 
 		Comments: &privacyadapters.CommentsAdapter{
 			Store:   do.MustInvoke[platformcomments.Store](i),
-			Resolve: platformdataprivacy.FixedScopes(ddbcomments.Scope()),
+			Resolve: platformdataprivacy.FixedScopes(tenancy.Global()),
 		},
 		// Issue reports are filed per account, so the resolver turns this application's
 		// account ids into the scopes those rows live under. Same conversion the
@@ -134,15 +130,15 @@ func buildRegistry(i do.Injector) (*platformdataprivacy.Registry, error) {
 		},
 		Settings: &privacyadapters.SettingsAdapter{
 			Store:   do.MustInvoke[platformsettings.Store](i),
-			Resolve: platformdataprivacy.FixedScopes(ddbsettings.Scope()),
+			Resolve: platformdataprivacy.FixedScopes(tenancy.Global()),
 		},
 		Waitlists: &privacyadapters.WaitlistsAdapter{
 			Store:   do.MustInvoke[platformwaitlists.Store](i),
-			Resolve: platformdataprivacy.FixedScopes(ddbwaitlists.Scope()),
+			Resolve: platformdataprivacy.FixedScopes(tenancy.Global()),
 		},
 		MediaRegistry: &privacyadapters.MediaRegistryAdapter{
 			Store:   do.MustInvoke[uploadsregistry.Store](i),
-			Resolve: platformdataprivacy.FixedScopes(ddbuploadedmedia.Scope()),
+			Resolve: platformdataprivacy.FixedScopes(tenancy.Global()),
 		},
 
 		// The three credential domains, all under the one scope this directory has.
@@ -177,7 +173,7 @@ func buildRegistry(i do.Injector) (*platformdataprivacy.Registry, error) {
 		Notifications: &privacyadapters.NotificationsAdapter{
 			Inbox:    do.MustInvoke[platformnotifications.Inbox](i),
 			Registry: do.MustInvoke[platformnotifications.Registry](i),
-			Resolve:  platformdataprivacy.FixedScopes(ddbnotifications.Scope()),
+			Resolve:  platformdataprivacy.FixedScopes(tenancy.Global()),
 		},
 
 		// Billing takes a resolver of its own shape — accounts rather than scopes —

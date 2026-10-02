@@ -14,7 +14,6 @@ import (
 	apiserver "github.com/primandproper/dinnerdonebetter/backend/internal/build/services/api"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
-	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
@@ -99,14 +98,14 @@ func CreatePremadeAdminUser(
 	// administrator out of the deployment it exists to administer.
 	premadeAdminUser.AccountStatus = platformidentity.StatusGood
 
-	if existing, lookupErr := store.GetUserByUsername(ctx, dbClient.Reader(), ddbidentity.Scope(), premadeAdminUser.Username); lookupErr == nil && existing != nil {
+	if existing, lookupErr := store.GetUserByUsername(ctx, dbClient.Reader(), tenancy.Global(), premadeAdminUser.Username); lookupErr == nil && existing != nil {
 		return existing, nil
 	}
 
 	// Registered rather than inserted: a user, their account and the membership that puts
 	// them in it are one transaction, and the shape that rules out a user with no account
 	// is the reason Service ships it.
-	registration, err := directory.Register(ctx, ddbidentity.Scope(), premadeAdminUser, &platformidentity.Account{
+	registration, err := directory.Register(ctx, tenancy.Global(), premadeAdminUser, &platformidentity.Account{
 		Name: premadeAdminUser.Username + "'s account",
 	}, []string{authorization.AccountAdminRoleName})
 	if err != nil {
@@ -116,13 +115,13 @@ func CreatePremadeAdminUser(
 	// The service role is a write of its own, through the operation that exists for it
 	// rather than through two statements against a role-assignment table this application
 	// no longer owns.
-	user, err := directory.SetUserServiceRoles(ctx, ddbidentity.Scope(), registration.User.ID,
+	user, err := directory.SetUserServiceRoles(ctx, tenancy.Global(), registration.User.ID,
 		[]string{authorization.ServiceAdminRoleName})
 	if err != nil {
 		return nil, fmt.Errorf("failed to promote user to service admin: %w", err)
 	}
 
-	if _, err = directory.MarkUserTwoFactorSecretVerified(ctx, ddbidentity.Scope(), user.ID); err != nil {
+	if _, err = directory.MarkUserTwoFactorSecretVerified(ctx, tenancy.Global(), user.ID); err != nil {
 		return nil, fmt.Errorf("failed to mark user as verified: %w", err)
 	}
 

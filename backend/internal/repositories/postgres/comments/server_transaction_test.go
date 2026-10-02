@@ -7,7 +7,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	commentsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/comments"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
-	ddbcomments "github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
@@ -25,6 +24,7 @@ import (
 	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
 	metricsnoop "github.com/primandproper/primitives-go/v2/observability/metrics/noop"
 	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -166,7 +166,7 @@ func (f *commentsFixture) rootsOn(t *testing.T, ctx context.Context, targetID st
 
 	target := platformcomments.Target{Type: mealplanning.CommentTargetTypeRecipes, ID: targetID}
 
-	page, err := f.store.ListRootComments(ctx, f.db.Reader(), ddbcomments.Scope(), target, nil)
+	page, err := f.store.ListRootComments(ctx, f.db.Reader(), tenancy.Global(), target, nil)
 	require.NoError(t, err)
 
 	return len(page.Data)

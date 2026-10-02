@@ -8,7 +8,6 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/build/comments"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
-	ddbcomments "github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments/fakes"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
@@ -22,6 +21,7 @@ import (
 	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
 	metricsnoop "github.com/primandproper/primitives-go/v2/observability/metrics/noop"
 	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -89,7 +89,7 @@ func createComment(t *testing.T, ctx context.Context, db database.Client, store 
 
 	err := db.WithTransaction(ctx, func(tx database.Tx) error {
 		var createErr error
-		created, createErr = store.CreateComment(ctx, tx, ddbcomments.Scope(), comment)
+		created, createErr = store.CreateComment(ctx, tx, tenancy.Global(), comment)
 
 		return createErr
 	})
@@ -115,14 +115,14 @@ func TestRepository_Integration_Comments(t *testing.T) {
 		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeComments, RelevantID: comment.ID},
 	})
 
-	fetched, err := dbc.GetComment(ctx, db.Reader(), ddbcomments.Scope(), comment.ID)
+	fetched, err := dbc.GetComment(ctx, db.Reader(), tenancy.Global(), comment.ID)
 	require.NoError(t, err)
 	assert.Equal(t, comment.Body, fetched.Body)
 	assert.Equal(t, target, fetched.Target)
 	assert.Equal(t, user.ID, fetched.Author)
 
 	// read as the target's root list
-	roots, err := dbc.ListRootComments(ctx, db.Reader(), ddbcomments.Scope(), target, nil)
+	roots, err := dbc.ListRootComments(ctx, db.Reader(), tenancy.Global(), target, nil)
 	require.NoError(t, err)
 	require.Len(t, roots.Data, 1)
 	assert.Equal(t, comment.ID, roots.Data[0].ID)
@@ -130,7 +130,7 @@ func TestRepository_Integration_Comments(t *testing.T) {
 	// update
 	fetched.Body = "updated body"
 	require.NoError(t, db.WithTransaction(ctx, func(tx database.Tx) error {
-		_, updateErr := dbc.UpdateComment(ctx, tx, ddbcomments.Scope(), fetched)
+		_, updateErr := dbc.UpdateComment(ctx, tx, tenancy.Global(), fetched)
 
 		return updateErr
 	}))
@@ -139,14 +139,14 @@ func TestRepository_Integration_Comments(t *testing.T) {
 		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeComments, RelevantID: comment.ID},
 	})
 
-	updated, err := dbc.GetComment(ctx, db.Reader(), ddbcomments.Scope(), comment.ID)
+	updated, err := dbc.GetComment(ctx, db.Reader(), tenancy.Global(), comment.ID)
 	require.NoError(t, err)
 	assert.Equal(t, "updated body", updated.Body)
 	assert.NotNil(t, updated.LastUpdatedAt)
 
 	// archive
 	require.NoError(t, db.WithTransaction(ctx, func(tx database.Tx) error {
-		_, archiveErr := dbc.ArchiveComment(ctx, tx, ddbcomments.Scope(), comment.ID)
+		_, archiveErr := dbc.ArchiveComment(ctx, tx, tenancy.Global(), comment.ID)
 
 		return archiveErr
 	}))
@@ -156,7 +156,7 @@ func TestRepository_Integration_Comments(t *testing.T) {
 		{EventType: audit.AuditLogEventTypeArchived, ResourceType: resourceTypeComments, RelevantID: comment.ID},
 	})
 
-	fetchedAfterArchive, err := dbc.GetComment(ctx, db.Reader(), ddbcomments.Scope(), comment.ID)
+	fetchedAfterArchive, err := dbc.GetComment(ctx, db.Reader(), tenancy.Global(), comment.ID)
 	require.Error(t, err)
 	assert.Nil(t, fetchedAfterArchive)
 	assert.ErrorIs(t, err, platformcomments.ErrCommentNotFound)
@@ -178,7 +178,7 @@ func TestRepository_Integration_ArchiveRecordsTheAuthor(t *testing.T) {
 	require.NoError(t, err)
 
 	require.NoError(t, db.WithTransaction(ctx, func(tx database.Tx) error {
-		_, archiveErr := dbc.ArchiveComment(ctx, tx, ddbcomments.Scope(), comment.ID)
+		_, archiveErr := dbc.ArchiveComment(ctx, tx, tenancy.Global(), comment.ID)
 
 		return archiveErr
 	}))
@@ -203,7 +203,7 @@ func TestRepository_Integration_ArchiveMissingRecordsNothing(t *testing.T) {
 	dbc, _, db := buildDatabaseClientForTest(t)
 
 	err := db.WithTransaction(ctx, func(tx database.Tx) error {
-		_, archiveErr := dbc.ArchiveComment(ctx, tx, ddbcomments.Scope(), identifiers.New())
+		_, archiveErr := dbc.ArchiveComment(ctx, tx, tenancy.Global(), identifiers.New())
 
 		return archiveErr
 	})
@@ -250,12 +250,12 @@ func TestRepository_Integration_Replies(t *testing.T) {
 	_, err = createComment(t, ctx, db, dbc, reply)
 	require.NoError(t, err)
 
-	roots, err := dbc.ListRootComments(ctx, db.Reader(), ddbcomments.Scope(), target, nil)
+	roots, err := dbc.ListRootComments(ctx, db.Reader(), tenancy.Global(), target, nil)
 	require.NoError(t, err)
 	require.Len(t, roots.Data, 1)
 	assert.Equal(t, root.ID, roots.Data[0].ID)
 
-	replies, err := dbc.ListReplies(ctx, db.Reader(), ddbcomments.Scope(), target, root.ID, nil)
+	replies, err := dbc.ListReplies(ctx, db.Reader(), tenancy.Global(), target, root.ID, nil)
 	require.NoError(t, err)
 	require.Len(t, replies.Data, 1)
 	assert.Equal(t, reply.ID, replies.Data[0].ID)

@@ -8,12 +8,12 @@ import (
 	"time"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
-	ddbnotifications "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
 
 	notifications "github.com/primandproper/primitives-go/v2/notifications/mobile"
 	"github.com/primandproper/primitives-go/v2/observability"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
 	"github.com/primandproper/primitives-go/v2/retry"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
@@ -104,7 +104,7 @@ func (a *AsyncDataChangeMessageHandler) handleHouseholdInvitationAcceptedNotific
 	// answers — which kind of notification this was — is a question about this handler.
 	tracing.AttachToSpan(span, "notification.request_type", req.RequestType)
 
-	if _, err := a.pushFanout.Push(ctx, a.db.Reader(), ddbnotifications.Scope(), req.RecipientUserIDs, msg); err != nil {
+	if _, err := a.pushFanout.Push(ctx, a.db.Reader(), tenancy.Global(), req.RecipientUserIDs, msg); err != nil {
 		return observability.PrepareAndLogError(err, a.logger, span, "sending household invitation notification")
 	}
 

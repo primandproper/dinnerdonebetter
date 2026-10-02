@@ -9,6 +9,7 @@ import (
 	"github.com/primandproper/primitives-go/v2/fake"
 	"github.com/primandproper/primitives-go/v2/filtering"
 	"github.com/primandproper/primitives-go/v2/pointer"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
 // BuildFakeSettingDefinition builds a faked Definition: a text setting that
@@ -28,7 +29,7 @@ func BuildFakeSettingDefinition() *platformsettings.Definition {
 	definition := fake.BuildFakeRecord[platformsettings.Definition]()
 
 	definition.Kind = platformsettings.KindString
-	definition.Scope = settings.Scope()
+	definition.Scope = tenancy.Global()
 
 	chosen := fake.BuildFakeString()
 	definition.Enumeration = []string{chosen, fake.BuildFakeString()}
@@ -52,7 +53,7 @@ func BuildFakeSettingValue() *platformsettings.Value {
 	value := fake.BuildFakeRecord[platformsettings.Value]()
 
 	value.Subject = platformsettings.Subject{}
-	value.Scope = settings.Scope()
+	value.Scope = tenancy.Global()
 
 	return value
 }

@@ -3,12 +3,12 @@ package integration
 import (
 	"testing"
 
-	ddbpayments "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/fakes"
 
 	"github.com/primandproper/platform-go/v14/billing"
 	billingpb "github.com/primandproper/platform-go/v14/billing/billingpb"
 	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -88,7 +88,7 @@ func createSubscriptionForTest(t *testing.T, productID, accountID string) *billi
 
 	require.NoError(t, databaseClient.WithTransaction(ctx, func(tx database.Tx) error {
 		var writeErr error
-		created, writeErr = billingStore.CreateSubscription(ctx, tx, ddbpayments.Scope(), example)
+		created, writeErr = billingStore.CreateSubscription(ctx, tx, tenancy.Global(), example)
 
 		return writeErr
 	}))

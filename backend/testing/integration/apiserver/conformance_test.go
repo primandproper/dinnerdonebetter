@@ -20,7 +20,6 @@ import (
 	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
-	ddbpayments "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 	ddbuploadedmedia "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	internalopssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/internalops"
 	uploadedmediasvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
@@ -125,7 +124,7 @@ func TestPlatformConformance(T *testing.T) {
 		},
 		Dialect: dialect.Postgres,
 		// waitlists resolves a visitor to the directory's scope, which is global.
-		VisitorScope: new(ddbidentity.Scope()),
+		VisitorScope: new(tenancy.Global()),
 		// Settings here have one subject type, the user — see internal/domain/settings — so no
 		// caller resolves an account's setting, their own included.
 		AccountSettingsUnresolved: true,
@@ -210,7 +209,7 @@ func conformanceAdmin(ctx context.Context, req *conformance.SubjectRequest) (*co
 		return nil, err
 	}
 
-	if _, err = directory.SetUserServiceRoles(ctx, ddbidentity.Scope(), user.ID,
+	if _, err = directory.SetUserServiceRoles(ctx, tenancy.Global(), user.ID,
 		[]string{authorization.ServiceAdminRoleName}); err != nil {
 		return nil, fmt.Errorf("granting the service administrator role: %w", err)
 	}
@@ -224,7 +223,7 @@ func conformanceAdmin(ctx context.Context, req *conformance.SubjectRequest) (*co
 
 	connToken := token
 	if req.Scope != nil && req.Surface == "audit" {
-		account, accountErr := store.GetAccount(ctx, databaseClient.Reader(), ddbidentity.Scope(), req.Scope.Owner())
+		account, accountErr := store.GetAccount(ctx, databaseClient.Reader(), tenancy.Global(), req.Scope.Owner())
 		if accountErr != nil {
 			return nil, fmt.Errorf("reading the account an operator is asked to act in: %w", accountErr)
 		}
@@ -432,12 +431,12 @@ func joinAccount(ctx context.Context, user *identity.User, accountID string) err
 		return err
 	}
 
-	account, err := store.GetAccount(ctx, databaseClient.Reader(), ddbidentity.Scope(), accountID)
+	account, err := store.GetAccount(ctx, databaseClient.Reader(), tenancy.Global(), accountID)
 	if err != nil {
 		return err
 	}
 
-	invitation, err := directory.Invite(ctx, ddbidentity.Scope(), &identity.Invitation{
+	invitation, err := directory.Invite(ctx, tenancy.Global(), &identity.Invitation{
 		BelongsToAccount: accountID,
 		FromUser:         account.OwnerUserID,
 		ToEmail:          user.EmailAddress,
@@ -452,7 +451,7 @@ func joinAccount(ctx context.Context, user *identity.User, accountID string) err
 		return err
 	}
 
-	_, err = directory.AcceptInvitation(ctx, ddbidentity.Scope(), invitation.ID, invitation.Token, user.ID, "")
+	_, err = directory.AcceptInvitation(ctx, tenancy.Global(), invitation.ID, invitation.Token, user.ID, "")
 
 	return err
 }
@@ -498,7 +497,7 @@ func conformanceCredentialed(ctx context.Context, _ tenancy.Scope, userID string
 		return "", err
 	}
 
-	user, err := store.GetUser(ctx, databaseClient.Reader(), ddbidentity.Scope(), userID)
+	user, err := store.GetUser(ctx, databaseClient.Reader(), tenancy.Global(), userID)
 	if err != nil {
 		return "", err
 	}
@@ -579,7 +578,7 @@ func conformanceEmailVerified(ctx context.Context, _ tenancy.Scope, userID strin
 	}
 
 	return databaseClient.WithTransaction(ctx, func(tx database.Tx) error {
-		return store.MarkUserEmailAddressProven(ctx, tx, ddbidentity.Scope(), userID)
+		return store.MarkUserEmailAddressProven(ctx, tx, tenancy.Global(), userID)
 	})
 }
 
@@ -590,7 +589,7 @@ func conformanceSubscribed(ctx context.Context, _ tenancy.Scope, accountID strin
 	var subscription *billing.Subscription
 
 	err := databaseClient.WithTransaction(context.WithoutCancel(ctx), func(tx database.Tx) error {
-		plan, err := billingStore.CreateProduct(ctx, tx, ddbpayments.Scope(), &billing.Product{
+		plan, err := billingStore.CreateProduct(ctx, tx, tenancy.Global(), &billing.Product{
 			Name:                  "conformance plan",
 			Kind:                  billing.KindRecurring,
 			Currency:              "USD",
@@ -602,7 +601,7 @@ func conformanceSubscribed(ctx context.Context, _ tenancy.Scope, accountID strin
 			return err
 		}
 
-		subscription, err = billingStore.CreateSubscription(ctx, tx, ddbpayments.Scope(), &billing.Subscription{
+		subscription, err = billingStore.CreateSubscription(ctx, tx, tenancy.Global(), &billing.Subscription{
 			BelongsToAccount:       accountID,
 			ProductID:              plan.ID,
 			ExternalSubscriptionID: "sub_" + identifiers.New(),

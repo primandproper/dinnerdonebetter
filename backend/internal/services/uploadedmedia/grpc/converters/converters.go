@@ -31,7 +31,7 @@ func ConvertUploadedMediaToGRPCUploadedMedia(object *mediaregistry.Object) *uplo
 //
 // The scope is deliberately absent: it is not on the wire and never should be —
 // a client that could name a tenancy could name somebody else's. Whoever writes
-// a row stamps it from uploadedmedia.Scope.
+// a row stamps it with the global scope uploadedmedia documents.
 func ConvertGRPCUploadedMediaToUploadedMedia(object *uploadedmediasvc.UploadedMedia) *mediaregistry.Object {
 	if object == nil {
 		return nil

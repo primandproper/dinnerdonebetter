@@ -13,6 +13,7 @@ import (
 
 	platformidentity "github.com/primandproper/platform-go/v14/identity"
 	"github.com/primandproper/primitives-go/v2/observability"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
 // handleMealPlanningOutboundNotification handles outbound notifications for meal planning domain events.
@@ -72,7 +73,7 @@ func (a *AsyncDataChangeMessageHandler) handleMealPlanCreatedNotification(
 		return nil, observability.PrepareError(err, span, "getting account members")
 	}
 
-	users, err := a.directory.ListUsersByIDs(ctx, a.db.Reader(), ddbidentity.Scope(), members)
+	users, err := a.directory.ListUsersByIDs(ctx, a.db.Reader(), tenancy.Global(), members)
 	if err != nil {
 		return nil, observability.PrepareError(err, span, "getting account members")
 	}

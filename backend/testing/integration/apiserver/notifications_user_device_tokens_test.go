@@ -5,12 +5,11 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
-
 	platformnotifications "github.com/primandproper/platform-go/v14/notifications"
 	notificationspb "github.com/primandproper/platform-go/v14/notifications/notificationspb"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/identifiers"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -34,7 +33,7 @@ func createUserDeviceForTest(t *testing.T, forUser string) *platformnotification
 	var created *platformnotifications.Device
 	require.NoError(t, databaseClient.WithTransaction(ctx, func(tx database.Tx) error {
 		var writeErr error
-		created, writeErr = notifsRegistry.RegisterDevice(ctx, tx, notifications.Scope(), &platformnotifications.Device{
+		created, writeErr = notifsRegistry.RegisterDevice(ctx, tx, tenancy.Global(), &platformnotifications.Device{
 			ID:        identifiers.New(),
 			Principal: forUser,
 			Token:     hex.EncodeToString(token),

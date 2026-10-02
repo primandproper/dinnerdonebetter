@@ -14,6 +14,7 @@ import (
 	platformidentity "github.com/primandproper/platform-go/v14/identity"
 	notifications "github.com/primandproper/primitives-go/v2/notifications/mobile"
 	"github.com/primandproper/primitives-go/v2/observability"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
 // handleIdentityOutboundNotification handles outbound notifications for identity domain events.
@@ -122,7 +123,7 @@ func (a *AsyncDataChangeMessageHandler) handleIdentityOutboundNotification(
 		}
 
 		var accountInvite *platformidentity.Invitation
-		accountInvite, err = a.directory.GetInvitation(ctx, a.db.Reader(), ddbidentity.Scope(), invitationID)
+		accountInvite, err = a.directory.GetInvitation(ctx, a.db.Reader(), tenancy.Global(), invitationID)
 		if err != nil {
 			return true, emailType, nil, observability.PrepareAndLogError(err, logger, span, "getting account invitation")
 		}

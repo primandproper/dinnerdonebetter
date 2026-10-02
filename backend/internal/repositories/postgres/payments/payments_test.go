@@ -5,13 +5,13 @@ import (
 	"time"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
-	ddbpayments "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/fakes"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
 	"github.com/primandproper/platform-go/v14/billing"
 	"github.com/primandproper/primitives-go/v2/capitalism"
 	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -25,7 +25,7 @@ import (
 func TestRepository_Integration_Products(t *testing.T) {
 	ctx := t.Context()
 	dbc, auditRepo, db := buildDatabaseClientForTest(t)
-	scope := ddbpayments.Scope()
+	scope := tenancy.Global()
 
 	example := fakes.BuildFakeProduct()
 
@@ -97,7 +97,7 @@ func TestRepository_Integration_Products(t *testing.T) {
 func TestRepository_Integration_Subscriptions(t *testing.T) {
 	ctx := t.Context()
 	dbc, auditRepo, db := buildDatabaseClientForTest(t)
-	scope := ddbpayments.Scope()
+	scope := tenancy.Global()
 
 	accountID := accountForTest(t, db)
 	product := productForTest(t, ctx, dbc, db)
@@ -175,7 +175,7 @@ func TestRepository_Integration_Subscriptions(t *testing.T) {
 func TestRepository_Integration_Purchases(t *testing.T) {
 	ctx := t.Context()
 	dbc, auditRepo, db := buildDatabaseClientForTest(t)
-	scope := ddbpayments.Scope()
+	scope := tenancy.Global()
 
 	accountID := accountForTest(t, db)
 
@@ -227,7 +227,7 @@ func TestRepository_Integration_Purchases(t *testing.T) {
 func TestRepository_Integration_Transactions(t *testing.T) {
 	ctx := t.Context()
 	dbc, auditRepo, db := buildDatabaseClientForTest(t)
-	scope := ddbpayments.Scope()
+	scope := tenancy.Global()
 
 	accountID := accountForTest(t, db)
 	product := productForTest(t, ctx, dbc, db)

@@ -7,7 +7,7 @@ the inbox and the device registry separated, plus the two this application had
 no equivalent for: an unread page, and marking a whole inbox read.
 
 The scope is global. A notification is addressed to a person rather than to an
-account — see internal/domain/notifications.Scope — so the principal extractor is
+account — see internal/domain/notifications — so the principal extractor is
 the global one.
 */
 package notifications

@@ -12,7 +12,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
-	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/localdev"
 
 	platformoauth2clients "github.com/primandproper/platform-go/v14/authentication/oauth2clients"
@@ -219,7 +218,7 @@ func runInit(db *dbFlags, adminUsername, adminPassword, adminEmail, apiServerURL
 	}
 
 	// --- Admin user (idempotent) ---
-	user, err := identityStore.GetUserByUsername(ctx, client.Reader(), ddbidentity.Scope(), adminUsername)
+	user, err := identityStore.GetUserByUsername(ctx, client.Reader(), tenancy.Global(), adminUsername)
 	if err != nil {
 		hasher := authentication.NewArgon2Authenticator(argon2.WithLogger(logger), argon2.WithTracerProvider(tracerProvider))
 		hashedPassword, hashErr := hasher.HashPassword(ctx, adminPassword)
@@ -230,7 +229,7 @@ func runInit(db *dbFlags, adminUsername, adminPassword, adminEmail, apiServerURL
 		// Registered rather than inserted: the user, the account they own and the
 		// membership between them are one transaction, which is what makes a half-made
 		// administrator unrepresentable rather than merely unlikely.
-		registration, registerErr := directory.Register(ctx, ddbidentity.Scope(), &platformidentity.User{
+		registration, registerErr := directory.Register(ctx, tenancy.Global(), &platformidentity.User{
 			ID:              identifiers.New(),
 			Username:        strings.TrimSpace(adminUsername),
 			EmailAddress:    strings.TrimSpace(strings.ToLower(adminEmail)),
@@ -259,7 +258,7 @@ func runInit(db *dbFlags, adminUsername, adminPassword, adminEmail, apiServerURL
 	// merges, which is why the archival of the old row has gone with the insert: setting
 	// the set is one write.
 	if !slices.Contains(user.ServiceRoles, authorization.ServiceAdminRoleName) {
-		if user, err = directory.SetUserServiceRoles(ctx, ddbidentity.Scope(), user.ID,
+		if user, err = directory.SetUserServiceRoles(ctx, tenancy.Global(), user.ID,
 			[]string{authorization.ServiceAdminRoleName}); err != nil {
 			return fmt.Errorf("promoting user to admin: %w", err)
 		}
@@ -270,7 +269,7 @@ func runInit(db *dbFlags, adminUsername, adminPassword, adminEmail, apiServerURL
 
 	// --- 2FA verification (idempotent) ---
 	if user.TwoFactorSecretVerifiedAt == nil {
-		if _, err = directory.MarkUserTwoFactorSecretVerified(ctx, ddbidentity.Scope(), user.ID); err != nil {
+		if _, err = directory.MarkUserTwoFactorSecretVerified(ctx, tenancy.Global(), user.ID); err != nil {
 			return fmt.Errorf("marking 2FA as verified: %w", err)
 		}
 		fmt.Println("Marked 2FA as verified.")

@@ -11,9 +11,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
-	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/localdev"
 
 	platformoauth2clients "github.com/primandproper/platform-go/v14/authentication/oauth2clients"
@@ -69,7 +67,7 @@ func main() {
 			// every user in this directory owns exactly one account from the moment
 			// they exist, and this read finds it whether this run made it or a previous
 			// one did.
-			accounts, accountsErr := store.ListAccountsForUser(ctx, dbClient.Reader(), ddbidentity.Scope(), adminUserID, nil)
+			accounts, accountsErr := store.ListAccountsForUser(ctx, dbClient.Reader(), tenancy.Global(), adminUserID, nil)
 			if accountsErr != nil {
 				return fmt.Errorf("failed to get accounts for admin user: %w", accountsErr)
 			}
@@ -110,7 +108,7 @@ func main() {
 			}
 
 			for _, memberUser := range memberUsers {
-				existingUser, userExistsErr := store.GetUserByUsername(ctx, dbClient.Reader(), ddbidentity.Scope(), memberUser.username)
+				existingUser, userExistsErr := store.GetUserByUsername(ctx, dbClient.Reader(), tenancy.Global(), memberUser.username)
 				if userExistsErr == nil && existingUser != nil {
 					logger.Info(fmt.Sprintf("User %s already exists, skipping creation", memberUser.username))
 
@@ -130,7 +128,7 @@ func main() {
 				// gives: a user, an account and the membership between them are one
 				// transaction, and a user with no account is a state nothing here can
 				// represent.
-				registration, registerErr := directory.Register(ctx, ddbidentity.Scope(), &platformidentity.User{
+				registration, registerErr := directory.Register(ctx, tenancy.Global(), &platformidentity.User{
 					ID:              memberUser.userID,
 					Username:        memberUser.username,
 					EmailAddress:    memberUser.email,
@@ -147,7 +145,7 @@ func main() {
 					return fmt.Errorf("failed to create user %s: %w", memberUser.username, registerErr)
 				}
 
-				if _, err = directory.MarkUserTwoFactorSecretVerified(ctx, ddbidentity.Scope(), registration.User.ID); err != nil {
+				if _, err = directory.MarkUserTwoFactorSecretVerified(ctx, tenancy.Global(), registration.User.ID); err != nil {
 					return fmt.Errorf("failed to mark user %s as verified: %w", memberUser.username, err)
 				}
 
@@ -243,7 +241,7 @@ func createExampleSettingDefinitions(ctx context.Context, store platformsettings
 		},
 	} {
 		if err := dbClient.WithTransaction(ctx, func(tx database.Tx) error {
-			_, createErr := store.CreateDefinition(ctx, tx, settings.Scope(), definition)
+			_, createErr := store.CreateDefinition(ctx, tx, tenancy.Global(), definition)
 
 			return createErr
 		}); err != nil {
@@ -272,14 +270,14 @@ func joinAdminAccount(
 	dbClient database.Client,
 	userID, accountID string,
 ) error {
-	existing, err := store.GetMembership(ctx, dbClient.Reader(), ddbidentity.Scope(), userID, accountID)
+	existing, err := store.GetMembership(ctx, dbClient.Reader(), tenancy.Global(), userID, accountID)
 	if err == nil && existing != nil {
 		return nil
 	}
 
 	if err = dbClient.WithTransaction(ctx, func(tx database.Tx) error {
-		_, createErr := store.CreateMembership(ctx, tx, ddbidentity.Scope(), &platformidentity.Membership{
-			Scope:            ddbidentity.Scope(),
+		_, createErr := store.CreateMembership(ctx, tx, tenancy.Global(), &platformidentity.Membership{
+			Scope:            tenancy.Global(),
 			BelongsToUser:    userID,
 			BelongsToAccount: accountID,
 			Roles:            []string{authorization.AccountMemberRoleName},
@@ -290,7 +288,7 @@ func joinAdminAccount(
 		return err
 	}
 
-	_, err = directory.SetDefaultAccount(ctx, ddbidentity.Scope(), userID, accountID)
+	_, err = directory.SetDefaultAccount(ctx, tenancy.Global(), userID, accountID)
 
 	return err
 }

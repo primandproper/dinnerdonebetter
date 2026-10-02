@@ -7,12 +7,12 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	auditmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit/mock"
-	ddbsettings "github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings/fakes"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/recording"
 
 	settings "github.com/primandproper/platform-go/v14/settings"
 	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -60,7 +60,7 @@ func TestQuerier_Integration_RecordAndEmitFailureSurfaces(t *testing.T) {
 	definition := fakes.BuildFakeSettingDefinition()
 
 	created, err := writeT(ctx, db, func(tx database.Tx) (*settings.Definition, error) {
-		return repo.CreateDefinition(ctx, tx, ddbsettings.Scope(), definition)
+		return repo.CreateDefinition(ctx, tx, tenancy.Global(), definition)
 	})
 	require.Error(t, err)
 	require.ErrorIs(t, err, expected)
@@ -70,7 +70,7 @@ func TestQuerier_Integration_RecordAndEmitFailureSurfaces(t *testing.T) {
 	// rather than on the rolled-back transaction, so what is being asserted is what committed.
 	repo.recorder = recording.NewRecorder(repo.tracer, auditRepo, nil)
 
-	survived, err := repo.GetDefinition(ctx, db.Reader(), ddbsettings.Scope(), definition.ID)
+	survived, err := repo.GetDefinition(ctx, db.Reader(), tenancy.Global(), definition.ID)
 	require.Error(t, err)
 	assert.Nil(t, survived)
 }

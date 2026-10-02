@@ -38,12 +38,22 @@ internal/domain/waitlists/privacy for what a domain has to build instead.
 An account-owned setting is therefore a schema change away rather than a line of
 code away: dropping that foreign key, and deciding what erases the rows it was
 holding. Nothing in this application wants one today.
+
+# Tenancy
+
+The catalog is kept under tenancy.Global(), and that is a decision rather than a
+default. A setting here is a service-wide definition — what
+"user_temperature_unit" means, and which units it admits — administered by
+service admins, and the table this replaced had no ownership column at all.
+Filing definitions per account would make a setting invisible to the operator
+who defined it the moment they switched accounts, and would put two scopes into
+every resolution besides: platform requires a definition and the values against
+it to share one.
 */
 package settings
 
 import (
 	platformsettings "github.com/primandproper/platform-go/v14/settings"
-	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
 // The data change events a settings write emits. They are declared in the
@@ -72,18 +82,6 @@ const (
 	// SettingValueClearedServiceEventType indicates somebody took their answer back.
 	SettingValueClearedServiceEventType = "setting_value_cleared"
 )
-
-// Scope is the tenancy this application keeps the settings catalog under, which
-// is the global one.
-//
-// It is a decision rather than a default. A setting here is a service-wide
-// definition — what "user_temperature_unit" means, and which units it admits —
-// administered by service admins, and the table this replaced had no ownership
-// column at all. Filing definitions per account would make a setting invisible to
-// the operator who defined it the moment they switched accounts, and would put
-// two scopes into every resolution besides: platform requires a definition and
-// the values against it to share one.
-func Scope() tenancy.Scope { return tenancy.Global() }
 
 // SubjectFor is the principal a stored setting value belongs to.
 //

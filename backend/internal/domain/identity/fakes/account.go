@@ -1,11 +1,10 @@
 package fakes
 
 import (
-	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
-
 	identity "github.com/primandproper/platform-go/v14/identity"
 	"github.com/primandproper/primitives-go/v2/fake"
 	"github.com/primandproper/primitives-go/v2/filtering"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	gofakeit "github.com/brianvoe/gofakeit/v7"
 )
@@ -20,7 +19,7 @@ const fakeTimeZone = "America/Chicago"
 func BuildFakeAccount() *identity.Account {
 	account := fake.BuildFakeRecord[identity.Account]()
 
-	account.Scope = ddbidentity.Scope()
+	account.Scope = tenancy.Global()
 	account.TimeZone = fakeTimeZone
 
 	// An account that has not paid, which is the state a new one is in. The processor's

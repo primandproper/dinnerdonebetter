@@ -10,6 +10,7 @@ import (
 	platformwaitlists "github.com/primandproper/platform-go/v14/waitlists"
 	"github.com/primandproper/primitives-go/v2/fake"
 	"github.com/primandproper/primitives-go/v2/filtering"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	gofakeit "github.com/brianvoe/gofakeit/v7"
 )
@@ -23,7 +24,7 @@ import (
 func BuildFakeWaitlist() *platformwaitlists.List {
 	list := fake.BuildFakeRecord[platformwaitlists.List]()
 	list.ClosesAt = time.Now().Add(24 * time.Hour).UTC().Truncate(time.Second)
-	list.Scope = waitlists.Scope()
+	list.Scope = tenancy.Global()
 
 	return list
 }
@@ -49,7 +50,7 @@ func BuildFakeWaitlistSignup() *platformwaitlists.Signup {
 	signup.Status = platformwaitlists.StatusWaiting
 	signup.StatusChangedAt = nil
 	signup.Subject = platformwaitlists.Subject{}
-	signup.Scope = waitlists.Scope()
+	signup.Scope = tenancy.Global()
 
 	return signup
 }
