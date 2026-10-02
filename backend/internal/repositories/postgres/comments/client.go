@@ -1,8 +1,8 @@
 package comments
 
 import (
+	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
-	ddbcomments "github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/recording"
 
@@ -49,7 +49,7 @@ func ProvideCommentsRepository(
 ) (platformcomments.Store, error) {
 	store, err := platformcomments.NewSQLStore(
 		client,
-		platformcomments.WithTablePrefix(ddbcomments.TablePrefix),
+		platformcomments.WithTablePrefix(branding.TablePrefix),
 		platformcomments.WithTargets(targets),
 		platformcomments.WithStoreLogger(logger),
 		platformcomments.WithStoreTracerProvider(tracerProvider),

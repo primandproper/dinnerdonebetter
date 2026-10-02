@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
 	notificationsstore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/notificationsstore"
@@ -64,7 +64,7 @@ func NewMealPlanTaskNotificationWorker(
 	}
 
 	identityStore, err := platformidentity.NewSQLStore(databaseClient,
-		platformidentity.WithTablePrefix(ddbidentity.TablePrefix),
+		platformidentity.WithTablePrefix(branding.TablePrefix),
 		platformidentity.WithStoreLogger(logger),
 		platformidentity.WithStoreTracerProvider(tracerProvider),
 	)

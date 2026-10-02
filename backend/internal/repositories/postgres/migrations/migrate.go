@@ -9,18 +9,7 @@ import (
 	"strings"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
-	ddbaudit "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
-	ddbauth "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
-	ddbcomments "github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments"
-	ddbdataprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
-	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
-	ddbissuereports "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports"
-	ddbnotifications "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
-	ddboauth "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
-	ddbpayments "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
-	ddbsettings "github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings"
-	ddbuploadedmedia "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
-	ddbwaitlists "github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 
 	auditmigrations "github.com/primandproper/platform-go/v14/audit/migrations"
 	oauth2clientsmigrations "github.com/primandproper/platform-go/v14/authentication/oauth2clients/migrations"
@@ -120,10 +109,10 @@ const (
 // because a constraint naming a table the store does not write is a constraint against an
 // empty table — which is exactly the failure this application spent a suite discovering.
 var (
-	identityUsers           = ddl.Qualify(ddbidentity.TablePrefix) + "identity_users"
-	identityAccounts        = ddl.Qualify(ddbidentity.TablePrefix) + "identity_accounts"
-	identityUserRoles       = ddl.Qualify(ddbidentity.TablePrefix) + "identity_user_roles"
-	identityMembershipRoles = ddl.Qualify(ddbidentity.TablePrefix) + "identity_membership_roles"
+	identityUsers           = ddl.Qualify(branding.TablePrefix) + "identity_users"
+	identityAccounts        = ddl.Qualify(branding.TablePrefix) + "identity_accounts"
+	identityUserRoles       = ddl.Qualify(branding.TablePrefix) + "identity_user_roles"
+	identityMembershipRoles = ddl.Qualify(branding.TablePrefix) + "identity_membership_roles"
 )
 
 // NewMigrator creates a new postgres Migrator over the embedded migration files.
@@ -180,7 +169,7 @@ func NewMigrator(logger logging.Logger) (*Migrator, error) {
 	// claim, expiry, and overdue predicates all depend on those being partial; copied
 	// by hand, they are how a sweep that should touch the backlog starts scanning
 	// every request the system has ever served.
-	dataPrivacyDDL, err := dataprivacymigrations.SQL(dialect.Postgres, ddbdataprivacy.TablePrefix)
+	dataPrivacyDDL, err := dataprivacymigrations.SQL(dialect.Postgres, branding.TablePrefix)
 	if err != nil {
 		return nil, errors.Wrap(err, "rendering data privacy migration")
 	}
@@ -202,7 +191,7 @@ func NewMigrator(logger logging.Logger) (*Migrator, error) {
 	// access tokens, and refresh tokens. They are created together because the store that
 	// reads them is one interface, and a deployment holding three of the four has a server
 	// that fails at whichever step the missing one serves.
-	oauth2DDL, err := oauth2migrations.SQL(dialect.Postgres, ddboauth.TablePrefix)
+	oauth2DDL, err := oauth2migrations.SQL(dialect.Postgres, branding.TablePrefix)
 	if err != nil {
 		return nil, errors.Wrap(err, "rendering oauth2 server migration")
 	}
@@ -218,7 +207,7 @@ func NewMigrator(logger logging.Logger) (*Migrator, error) {
 	// identity_*, so these stand beside this application's own while the adoption
 	// happens rather than colliding with them — which is what lets the port be built
 	// before the switch is thrown.
-	identityDDL, err := identitymigrations.SQL(dialect.Postgres, ddbidentity.TablePrefix)
+	identityDDL, err := identitymigrations.SQL(dialect.Postgres, branding.TablePrefix)
 	if err != nil {
 		return nil, errors.Wrap(err, "rendering identity schema")
 	}
@@ -407,7 +396,7 @@ func (m *Migrator) seedPolicy(ctx context.Context, db *sql.DB) error {
 	// Built against the transaction so the reads Seed makes to resolve role and
 	// permission ids see the rows it has just written.
 	resolver, err := authzdatabase.NewResolver(
-		&authzdatabase.Config{Dialect: dialect.Postgres, TablePrefix: authorization.TablePrefix},
+		&authzdatabase.Config{Dialect: dialect.Postgres, TablePrefix: branding.TablePrefix},
 		tx,
 		authzdatabase.WithLogger(m.logger),
 	)
@@ -474,12 +463,12 @@ func (m *Migrator) seedPolicy(ctx context.Context, db *sql.DB) error {
 // never consulted it. That is now an allow-list on the input, which is enforced
 // where the column was not.
 func renderAuthorizationDDL() (string, error) {
-	schema, err := authzmigrations.SQL(dialect.Postgres, authorization.TablePrefix)
+	schema, err := authzmigrations.SQL(dialect.Postgres, branding.TablePrefix)
 	if err != nil {
 		return "", errors.Wrap(err, "rendering authorization migration")
 	}
 
-	rolesTable := ddl.Qualify(authorization.TablePrefix) + "authz_roles"
+	rolesTable := ddl.Qualify(branding.TablePrefix) + "authz_roles"
 
 	body := &strings.Builder{}
 	body.WriteString(schema)
@@ -544,12 +533,12 @@ var billingTablesOwnedByAccounts = []string{
 // Platform cannot ship the key either way. It does not know that a consumer's
 // accounts are rows in a table at all.
 func renderBillingDDL() (string, error) {
-	schema, err := billingmigrations.SQL(dialect.Postgres, ddbpayments.TablePrefix)
+	schema, err := billingmigrations.SQL(dialect.Postgres, branding.TablePrefix)
 	if err != nil {
 		return "", errors.Wrap(err, "rendering billing migration")
 	}
 
-	qualified := ddl.Qualify(ddbpayments.TablePrefix)
+	qualified := ddl.Qualify(branding.TablePrefix)
 
 	body := &strings.Builder{}
 	body.WriteString(schema)
@@ -577,7 +566,7 @@ func renderBillingDDL() (string, error) {
 // the platform's default prefix would render, and its DDL says CREATE TABLE IF
 // NOT EXISTS — so a deployment that kept it would eventually get a silent no-op
 // followed by a store reading columns that are not there. This renders
-// ddb_issue_reports; see ddbissuereports.TablePrefix.
+// ddb_issue_reports; see branding.TablePrefix.
 //
 // Both foreign keys are re-created, and neither is something platform could
 // ship: it does not know which of a consumer's tables holds a principal, and it
@@ -597,12 +586,12 @@ func renderBillingDDL() (string, error) {
 // account — see ddbissuereports.Scope, which maps an empty account to the scope
 // the store refuses rather than to the global one.
 func renderIssueReportsDDL() (string, error) {
-	schema, err := issuereportsmigrations.SQL(dialect.Postgres, ddbissuereports.TablePrefix)
+	schema, err := issuereportsmigrations.SQL(dialect.Postgres, branding.TablePrefix)
 	if err != nil {
 		return "", errors.Wrap(err, "rendering issue reports migration")
 	}
 
-	table := ddl.Qualify(ddbissuereports.TablePrefix) + "issue_reports"
+	table := ddl.Qualify(branding.TablePrefix) + "issue_reports"
 
 	body := &strings.Builder{}
 	body.WriteString(schema)
@@ -627,7 +616,7 @@ func renderIssueReportsDDL() (string, error) {
 // the ones the platform's default prefix would render, and its DDL says CREATE
 // TABLE IF NOT EXISTS — so a deployment that kept them would get a silent no-op
 // followed by a store reading columns that are not there. This renders
-// ddb_waitlists and ddb_waitlist_signups; see ddbwaitlists.TablePrefix.
+// ddb_waitlists and ddb_waitlist_signups; see branding.TablePrefix.
 //
 // # No foreign key is re-created, and that is not an oversight
 //
@@ -643,7 +632,7 @@ func renderIssueReportsDDL() (string, error) {
 // internal/build/dataprivacy. See internal/domain/waitlists/privacy for what it
 // erases and what it deliberately keeps.
 func renderWaitlistsDDL() (string, error) {
-	schema, err := waitlistsmigrations.SQL(dialect.Postgres, ddbwaitlists.TablePrefix)
+	schema, err := waitlistsmigrations.SQL(dialect.Postgres, branding.TablePrefix)
 	if err != nil {
 		return "", errors.Wrap(err, "rendering waitlists migration")
 	}
@@ -691,12 +680,12 @@ func renderWaitlistsDDL() (string, error) {
 // principal, and it does not know that a consumer has narrowed the subject types
 // its schema admits to one.
 func renderSettingsDDL() (string, error) {
-	schema, err := settingsmigrations.SQL(dialect.Postgres, ddbsettings.TablePrefix)
+	schema, err := settingsmigrations.SQL(dialect.Postgres, branding.TablePrefix)
 	if err != nil {
 		return "", errors.Wrap(err, "rendering settings migration")
 	}
 
-	qualified := ddl.Qualify(ddbsettings.TablePrefix)
+	qualified := ddl.Qualify(branding.TablePrefix)
 	values := qualified + "settings_values"
 	definitions := qualified + "settings_definitions"
 	options := qualified + "settings_definition_options"
@@ -746,9 +735,9 @@ func renderSettingsDDL() (string, error) {
 // the platform's default prefix would render, and its DDL says CREATE TABLE IF
 // NOT EXISTS — so a deployment that kept it would eventually get a silent no-op
 // followed by a store reading columns that are not there. This renders
-// ddb_comments; see ddbcomments.TablePrefix.
+// ddb_comments; see branding.TablePrefix.
 func renderCommentsDDL() (string, error) {
-	schema, err := commentsmigrations.SQL(dialect.Postgres, ddbcomments.TablePrefix)
+	schema, err := commentsmigrations.SQL(dialect.Postgres, branding.TablePrefix)
 	if err != nil {
 		return "", errors.Wrap(err, "rendering comments migration")
 	}
@@ -787,12 +776,12 @@ func userCascade(table, column string) string {
 // See userCascade: the key is this repository's to add, and this table is the one that had
 // one before the identity adoption took it away.
 func renderPasskeysDDL() (string, error) {
-	schema, err := passkeysmigrations.SQL(dialect.Postgres, ddbidentity.TablePrefix)
+	schema, err := passkeysmigrations.SQL(dialect.Postgres, branding.TablePrefix)
 	if err != nil {
 		return "", errors.Wrap(err, "rendering passkey credentials schema")
 	}
 
-	table := ddl.Qualify(ddbidentity.TablePrefix) + "webauthn_credentials"
+	table := ddl.Qualify(branding.TablePrefix) + "webauthn_credentials"
 
 	body := &strings.Builder{}
 
@@ -819,7 +808,7 @@ func renderPasskeysDDL() (string, error) {
 // is a claim rather than a row reference — they are short-lived grants that expire on their
 // own, and a key onto them would make issuing one depend on the directory.
 func renderOAuth2ClientsDDL() (string, error) {
-	schema, err := oauth2clientsmigrations.SQL(dialect.Postgres, ddboauth.TablePrefix)
+	schema, err := oauth2clientsmigrations.SQL(dialect.Postgres, branding.TablePrefix)
 	if err != nil {
 		return "", errors.Wrap(err, "rendering oauth2 registered clients schema")
 	}
@@ -839,14 +828,14 @@ func renderOAuth2ClientsDDL() (string, error) {
 // The old table is dropped rather than left in place because it is dead weight holding
 // live credentials: a table of plaintext reset tokens that nothing reads, and that no
 // sweeper empties, is a backup waiting to leak. Its name is also the platform schema's,
-// which is why the new table carries auth.TablePrefix — see that constant.
+// which is why the new table carries branding.TablePrefix — see that constant.
 func renderPasswordResetDDL() (string, error) {
-	schema, err := passwordresetmigrations.SQL(dialect.Postgres, ddbauth.TablePrefix)
+	schema, err := passwordresetmigrations.SQL(dialect.Postgres, branding.TablePrefix)
 	if err != nil {
 		return "", errors.Wrap(err, "rendering password reset token migration")
 	}
 
-	table := ddl.Qualify(ddbauth.TablePrefix) + "password_reset_tokens"
+	table := ddl.Qualify(branding.TablePrefix) + "password_reset_tokens"
 
 	body := &strings.Builder{}
 
@@ -867,15 +856,15 @@ func renderPasswordResetDDL() (string, error) {
 // It took 23, the one gap left in the sequence, rather than the next number at the end. The
 // sequence is ordered by version, and nothing after 23 depends on this table either way.
 //
-// The prefix is auth.TablePrefix, so this renders ddb_signin_refresh_tokens, beside the
+// The prefix is branding.TablePrefix, so this renders ddb_signin_refresh_tokens, beside the
 // other two tables this application's sign-in writes.
 func renderRefreshTokensDDL() (string, error) {
-	schema, err := refreshtokensmigrations.SQL(dialect.Postgres, ddbauth.TablePrefix)
+	schema, err := refreshtokensmigrations.SQL(dialect.Postgres, branding.TablePrefix)
 	if err != nil {
 		return "", errors.Wrap(err, "rendering refresh token migration")
 	}
 
-	table := ddl.Qualify(ddbauth.TablePrefix) + "signin_refresh_tokens"
+	table := ddl.Qualify(branding.TablePrefix) + "signin_refresh_tokens"
 
 	body := &strings.Builder{}
 
@@ -899,7 +888,7 @@ func renderRefreshTokensDDL() (string, error) {
 // holds. A second action that is not a waitlist's would still belong in it: the table is keyed
 // by action, and the minter is one registry.
 func renderActionLinksDDL() (string, error) {
-	schema, err := linksmigrations.SQL(dialect.Postgres, ddbwaitlists.TablePrefix)
+	schema, err := linksmigrations.SQL(dialect.Postgres, branding.TablePrefix)
 	if err != nil {
 		return "", errors.Wrap(err, "rendering action link migration")
 	}
@@ -945,12 +934,12 @@ func renderWebAuthnDDL() (string, error) {
 // to execute it whole. Getting this wrong fails at construction rather than
 // mid-deploy: the annotator refuses a dollar-quoted body with no fence.
 func renderAuditDDL() (string, error) {
-	schema, err := auditmigrations.SQL(dialect.Postgres, ddbaudit.TablePrefix)
+	schema, err := auditmigrations.SQL(dialect.Postgres, branding.TablePrefix)
 	if err != nil {
 		return "", errors.Wrap(err, "rendering audit migration")
 	}
 
-	appendOnly, err := auditmigrations.AppendOnlyStatements(dialect.Postgres, ddbaudit.TablePrefix)
+	appendOnly, err := auditmigrations.AppendOnlyStatements(dialect.Postgres, branding.TablePrefix)
 	if err != nil {
 		return "", errors.Wrap(err, "rendering audit append-only triggers")
 	}
@@ -1009,12 +998,12 @@ func renderAuditDDL() (string, error) {
 // to them, so a permission dropped in Go is a grant that disappears on the next
 // migration. See renderAuthorizationDDL.
 func renderUploadsRegistryDDL() (string, error) {
-	schema, err := uploadsregistrymigrations.SQL(dialect.Postgres, ddbuploadedmedia.TablePrefix)
+	schema, err := uploadsregistrymigrations.SQL(dialect.Postgres, branding.TablePrefix)
 	if err != nil {
 		return "", errors.Wrap(err, "rendering uploads registry migration")
 	}
 
-	table := ddl.Qualify(ddbuploadedmedia.TablePrefix) + "uploads_objects"
+	table := ddl.Qualify(branding.TablePrefix) + "uploads_objects"
 
 	body := &strings.Builder{}
 
@@ -1058,12 +1047,12 @@ func renderUploadsRegistryDDL() (string, error) {
 // discouraged by a comment, so widening starts by dropping these keys and
 // deciding what erases the rows they were holding.
 func renderNotificationsDDL() (string, error) {
-	schema, err := notificationsmigrations.SQL(dialect.Postgres, ddbnotifications.TablePrefix)
+	schema, err := notificationsmigrations.SQL(dialect.Postgres, branding.TablePrefix)
 	if err != nil {
 		return "", errors.Wrap(err, "rendering notifications migration")
 	}
 
-	qualified := ddl.Qualify(ddbnotifications.TablePrefix)
+	qualified := ddl.Qualify(branding.TablePrefix)
 	inbox := qualified + "notifications_inbox"
 	devices := qualified + "notifications_devices"
 

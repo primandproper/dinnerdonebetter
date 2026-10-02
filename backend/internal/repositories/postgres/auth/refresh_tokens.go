@@ -1,7 +1,7 @@
 package auth
 
 import (
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 
 	"github.com/primandproper/platform-go/v14/authentication/signin/refreshtokens"
 	"github.com/primandproper/primitives-go/v2/database"
@@ -37,7 +37,7 @@ func ProvideRefreshTokenSQLStore(
 	client database.Client,
 ) (*refreshtokens.SQLStore, error) {
 	return refreshtokens.NewSQLStore(
-		&refreshtokens.Config{TablePrefix: auth.TablePrefix},
+		&refreshtokens.Config{TablePrefix: branding.TablePrefix},
 		client,
 		refreshtokens.WithLogger(logging.NewNamedLogger(logger, refreshTokensO11yName)),
 		refreshtokens.WithTracerProvider(tracerProvider),

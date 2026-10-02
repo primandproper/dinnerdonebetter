@@ -46,16 +46,6 @@ import (
 	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
-// TablePrefix namespaces the platform-go settings tables, rendering
-// ddb_settings_definitions, ddb_settings_definition_options and
-// ddb_settings_values.
-//
-// The platform's own default is the empty prefix. Nothing this replaced carried
-// those names, so the prefix is not avoiding a collision the way waitlists' is —
-// it says which application created the tables in a database that may hold more
-// than one.
-const TablePrefix = "ddb"
-
 // The data change events a settings write emits. They are declared in the
 // webhook event catalog (internal/domain/webhooks/catalog), so a subscriber is
 // already able to ask for them.

@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	internalopssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/internalops"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/indexevents"
@@ -578,7 +579,7 @@ func identityDirectoryWithHooks(t *testing.T) *identity.Service {
 	outboxWriter, err := outbox.NewWriter(dialect.Postgres, outbox.WithWriterSideEffect(indexevents.SideEffectName, indexevents.SideEffect))
 	require.NoError(t, err)
 
-	store, err := identity.NewSQLStore(databaseClient, identity.WithTablePrefix(ddbidentity.TablePrefix))
+	store, err := identity.NewSQLStore(databaseClient, identity.WithTablePrefix(branding.TablePrefix))
 	require.NoError(t, err)
 
 	directory, err := identity.NewService(databaseClient, store,
@@ -620,7 +621,7 @@ func verifyEmailAddressForTest(t *testing.T, userID string) {
 	t.Helper()
 	ctx := t.Context()
 
-	store, err := identity.NewSQLStore(databaseClient, identity.WithTablePrefix(ddbidentity.TablePrefix))
+	store, err := identity.NewSQLStore(databaseClient, identity.WithTablePrefix(branding.TablePrefix))
 	require.NoError(t, err)
 
 	require.NoError(t, databaseClient.WithTransaction(ctx, func(tx database.Tx) error {

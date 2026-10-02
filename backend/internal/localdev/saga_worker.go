@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/grocerylistpreparation"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/recipeanalysis"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
@@ -56,7 +56,7 @@ func StartSagaWorker(
 	}
 
 	identityStore, err := platformidentity.NewSQLStore(databaseClient,
-		platformidentity.WithTablePrefix(ddbidentity.TablePrefix),
+		platformidentity.WithTablePrefix(branding.TablePrefix),
 		platformidentity.WithStoreLogger(logger),
 		platformidentity.WithStoreTracerProvider(tracerProvider),
 	)

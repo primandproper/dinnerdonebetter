@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 	authkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/keys"
 
 	"github.com/primandproper/platform-go/v14/authentication/passwordreset"
@@ -75,7 +75,7 @@ func ProvidePasswordResetTokenSQLStore(
 	client database.Client,
 ) (*passwordreset.SQLStore, error) {
 	return passwordreset.NewSQLStore(
-		&passwordreset.Config{TablePrefix: auth.TablePrefix},
+		&passwordreset.Config{TablePrefix: branding.TablePrefix},
 		client,
 		passwordreset.WithLogger(logging.NewNamedLogger(logger, passwordResetO11yName)),
 		passwordreset.WithTracerProvider(tracerProvider),

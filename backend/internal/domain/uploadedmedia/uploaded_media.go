@@ -24,15 +24,6 @@ import (
 	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
-// TablePrefix namespaces the platform-go upload registry table, rendering
-// ddb_uploads_objects.
-//
-// The platform's own default is the empty prefix, which renders
-// "uploads_objects". Its DDL says CREATE TABLE IF NOT EXISTS, so a collision
-// with anything else sharing the database would be a silent no-op followed by a
-// store reading columns that are not there.
-const TablePrefix = "ddb"
-
 // The data change events an uploaded media write emits. They are declared in the
 // webhook event catalog (internal/domain/webhooks/catalog), so a subscriber is
 // already able to ask for them.

@@ -1,8 +1,8 @@
 package issuereports
 
 import (
+	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
-	ddbissuereports "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/recording"
 
@@ -43,7 +43,7 @@ func ProvideIssueReportsRepository(
 ) (platformissuereports.Store, error) {
 	store, err := platformissuereports.NewSQLStore(
 		client,
-		platformissuereports.WithTablePrefix(ddbissuereports.TablePrefix),
+		platformissuereports.WithTablePrefix(branding.TablePrefix),
 		platformissuereports.WithStoreLogger(logger),
 		platformissuereports.WithStoreTracerProvider(tracerProvider),
 		platformissuereports.WithStoreMetricsProvider(metricsProvider),

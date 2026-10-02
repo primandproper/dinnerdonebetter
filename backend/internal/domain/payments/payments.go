@@ -51,17 +51,6 @@ import (
 	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
-// TablePrefix namespaces the platform-go billing tables, rendering
-// ddb_billing_products, ddb_billing_subscriptions, ddb_billing_purchases and
-// ddb_billing_transactions.
-//
-// The platform's own default is the empty prefix. The tables this replaced were
-// products, subscriptions, purchases and payment_transactions, so the prefix is
-// not avoiding a collision with them — it says which application created the
-// tables in a database that may hold more than one, which is the same reason
-// every other adopted store here carries it.
-const TablePrefix = "ddb"
-
 // The data change events a billing write emits. They are declared in the
 // webhook event catalog (internal/domain/webhooks/catalog), so a subscriber is
 // already able to ask for them.

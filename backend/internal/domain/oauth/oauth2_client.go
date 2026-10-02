@@ -11,23 +11,6 @@ ever declared.
 */
 package oauth
 
-// TablePrefix namespaces the platform's oauth2 tables, rendering
-// ddb_oauth2_registered_clients for the registry and ddb_oauth2_authorization_codes,
-// ddb_oauth2_access_tokens and ddb_oauth2_refresh_tokens for the authorization server.
-//
-// A prefix rather than the platform's empty default, and it is now a tidiness
-// decision rather than a collision one. It was introduced because the platform's
-// authorization server names a table oauth2_clients, which was exactly the name
-// this application's own registry had — and since that DDL says CREATE TABLE IF
-// NOT EXISTS, the platform's schema would have been a silent no-op followed by a
-// store reading columns that were not there.
-//
-// That registry is gone: the administered one is platform's too, and it renders
-// oauth2_registered_clients, which collides with nothing. The prefix stays so
-// that one application's oauth2 tables sort together in a database that may hold
-// another's, which is what the namespace is documented to be for.
-const TablePrefix = "ddb"
-
 const (
 	// ClientIDSize and ClientSecretSize are how many bytes a credential carries.
 	//

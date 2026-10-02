@@ -11,7 +11,7 @@ belongs to a *user* and usually to an *account*, where the platform speaks of an
 *actor* and a *scope*.
 
 The tables are `ddb_audit_log_entries` and `ddb_audit_log_chains`. The prefix is
-`audit.TablePrefix`, and it is deliberate: the platform's default renders
+`branding.TablePrefix`, and it is deliberate: the platform's default renders
 `audit_log_entries`, which is the name the hand-rolled log this replaced already
 held. Its DDL says `CREATE TABLE IF NOT EXISTS`, so against any database that ever
 applied the old migration the new schema would be a silent no-op and the audit code

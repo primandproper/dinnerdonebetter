@@ -3,8 +3,8 @@ package payments
 import (
 	"context"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
-	ddbpayments "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/recording"
 
@@ -54,7 +54,7 @@ func ProvidePaymentsRepository(
 ) (billing.Store, error) {
 	store, err := billingcfg.NewStore(
 		ctx,
-		&billingcfg.Config{TablePrefix: ddbpayments.TablePrefix},
+		&billingcfg.Config{TablePrefix: branding.TablePrefix},
 		client,
 		billingcfg.WithLogger(logger),
 		billingcfg.WithTracerProvider(tracerProvider),

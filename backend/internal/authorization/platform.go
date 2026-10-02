@@ -15,14 +15,6 @@ import (
 // below is now the single declaration: the migrator seeds it, and
 // authorization/database resolves against what it seeded.
 
-// TablePrefix namespaces the policy tables authorization/database renders.
-//
-// The platform's default prefix is empty, which would render authz_roles and
-// authz_permissions — names generic enough to collide in a database this
-// application shares, and the same reason every other adopted store here carries
-// one. Changing it renames tables, so it moves only with a migration.
-const TablePrefix = "ddb"
-
 // PermissionLister is implemented by this package's permission checkers so a
 // resolved set can be handed to the platform without re-deriving it from roles.
 //

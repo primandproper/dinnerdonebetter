@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
 	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	fakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
@@ -262,7 +263,7 @@ func identityStoreForTest(t *testing.T, db database.SQLQueryExecutor) platformid
 			CurrentTimeFunc: time.Now,
 			CloseFunc:       func() error { return nil },
 		},
-		platformidentity.WithTablePrefix(ddbidentity.TablePrefix),
+		platformidentity.WithTablePrefix(branding.TablePrefix),
 	)
 	require.NoError(t, err)
 

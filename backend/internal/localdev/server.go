@@ -10,12 +10,12 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	apiserver "github.com/primandproper/dinnerdonebetter/backend/internal/build/services/api"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
 	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	authrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auth"
@@ -164,7 +164,7 @@ func CreateOAuth2ClientForService(
 // whose whole value is attribution. The API server's registrations go through
 // oauth2clientsstore and are recorded.
 func oauth2ClientRegistry(pgc database.Client, opts ...platformoauth2clients.ServiceOption) (*platformoauth2clients.Service, error) {
-	store, err := platformoauth2clients.NewSQLStore(pgc, platformoauth2clients.WithTablePrefix(oauth.TablePrefix))
+	store, err := platformoauth2clients.NewSQLStore(pgc, platformoauth2clients.WithTablePrefix(branding.TablePrefix))
 	if err != nil {
 		return nil, err
 	}
@@ -252,7 +252,7 @@ func IdentityDirectory(
 	dbClient database.Client,
 ) (*platformidentity.Service, platformidentity.Store, error) {
 	store, err := platformidentity.NewSQLStore(dbClient,
-		platformidentity.WithTablePrefix(ddbidentity.TablePrefix),
+		platformidentity.WithTablePrefix(branding.TablePrefix),
 		platformidentity.WithStoreLogger(logger),
 		platformidentity.WithStoreTracerProvider(tracerProvider),
 	)
@@ -326,7 +326,7 @@ func WithMealPlanningRepository(fn func(ctx context.Context, repo mealplanning.R
 			return err
 		}
 		identityStore, storeErr := platformidentity.NewSQLStore(dbClient,
-			platformidentity.WithTablePrefix(ddbidentity.TablePrefix),
+			platformidentity.WithTablePrefix(branding.TablePrefix),
 			platformidentity.WithStoreLogger(logger),
 			platformidentity.WithStoreTracerProvider(tracerProvider),
 		)

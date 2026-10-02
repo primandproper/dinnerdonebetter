@@ -40,18 +40,6 @@ import (
 	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
-// TablePrefix namespaces the platform's request table, rendering
-// ddb_dataprivacy_requests.
-//
-// A prefix rather than the platform's empty default, for the same reason
-// audit.TablePrefix carries one: the DDL says CREATE TABLE IF NOT EXISTS, so a
-// name that collides with something this repository already created is a silent
-// no-op followed by code running against the wrong columns. It is referenced by
-// the migration that creates the table and by the Store that reads and writes
-// it, and a prefix that differs between the two is the misconfiguration that
-// stays invisible until somebody asks for their data and gets an empty answer.
-const TablePrefix = "ddb"
-
 // Registration keys. These become section names in the export artifact and
 // attribute values in telemetry.
 //

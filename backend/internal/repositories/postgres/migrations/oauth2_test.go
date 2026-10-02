@@ -3,7 +3,7 @@ package migrations
 import (
 	"testing"
 
-	ddboauth "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
 	oauth2database "github.com/primandproper/platform-go/v14/authentication/oauth2serverstore"
@@ -56,8 +56,8 @@ func TestQuerier_Migrate_OAuth2ServerTables(T *testing.T) {
 			var count int
 			require.NoError(t, db.QueryRowContext(ctx,
 				`SELECT COUNT(*) FROM information_schema.tables WHERE table_name = $1`,
-				ddboauth.TablePrefix+table).Scan(&count))
-			assert.Equal(t, 1, count, "missing %s", ddboauth.TablePrefix+table)
+				branding.TablePrefix+table).Scan(&count))
+			assert.Equal(t, 1, count, "missing %s", branding.TablePrefix+table)
 		}
 
 		// And the registry is its own table beside them. It is the fifth, not one of
@@ -66,15 +66,15 @@ func TestQuerier_Migrate_OAuth2ServerTables(T *testing.T) {
 		var registry int
 		require.NoError(t, db.QueryRowContext(ctx,
 			`SELECT COUNT(*) FROM information_schema.tables WHERE table_name = $1`,
-			ddboauth.TablePrefix+"_oauth2_registered_clients").Scan(&registry))
+			branding.TablePrefix+"_oauth2_registered_clients").Scan(&registry))
 		assert.Equal(t, 1, registry, "the client registry table must exist")
 
 		// belongs_to_user is the column that tells them apart: a registered client has
 		// an owner, and the server's clients table has no such notion. Finding it on
 		// one and not the other proves the two DDLs did not land on one table.
 		for table, expected := range map[string]int{
-			ddboauth.TablePrefix + "_oauth2_registered_clients": 1,
-			ddboauth.TablePrefix + "_oauth2_clients":            0,
+			branding.TablePrefix + "_oauth2_registered_clients": 1,
+			branding.TablePrefix + "_oauth2_clients":            0,
 		} {
 			var owned int
 			require.NoError(t, db.QueryRowContext(ctx,
@@ -127,7 +127,7 @@ func TestOAuth2Store_Conformance(T *testing.T) {
 		tb.Helper()
 
 		store, storeErr := oauth2database.NewStore(
-			&oauth2database.Config{TablePrefix: ddboauth.TablePrefix},
+			&oauth2database.Config{TablePrefix: branding.TablePrefix},
 			client,
 			oauth2database.WithClock(c),
 			oauth2database.WithLogger(loggingnoop.NewLogger()),

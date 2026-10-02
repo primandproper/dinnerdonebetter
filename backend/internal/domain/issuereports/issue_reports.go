@@ -14,15 +14,6 @@ import (
 	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
-// TablePrefix namespaces the platform-go issue reports table, rendering
-// ddb_issue_reports.
-//
-// The platform's own default is the empty prefix, which renders
-// "issue_reports" — the exact name the table this replaced carried. Its DDL says
-// CREATE TABLE IF NOT EXISTS, so a deployment that kept both would get a silent
-// no-op followed by a store reading columns that are not there.
-const TablePrefix = "ddb"
-
 // The data change events an issue report write emits. They are declared in the
 // webhook event catalog (internal/domain/webhooks/catalog), so a subscriber is
 // already able to ask for them.

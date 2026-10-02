@@ -1,8 +1,8 @@
 package oauth2clientsstore
 
 import (
+	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
-	ddboauth "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 
 	platformoauth2clients "github.com/primandproper/platform-go/v14/authentication/oauth2clients"
@@ -32,7 +32,7 @@ func RegisterOAuth2ClientsStore(i do.Injector) {
 			do.MustInvoke[database.Client](i),
 			// The same namespace the four protocol tables carry, so one application's
 			// oauth2 tables sort together in a database that may hold another's.
-			platformoauth2clients.WithTablePrefix(ddboauth.TablePrefix),
+			platformoauth2clients.WithTablePrefix(branding.TablePrefix),
 			platformoauth2clients.WithStoreLogger(logger),
 			platformoauth2clients.WithStoreTracerProvider(tracerProvider),
 		)

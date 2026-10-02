@@ -1,6 +1,7 @@
 package auditlogentries
 
 import (
+	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 
 	platformaudit "github.com/primandproper/platform-go/v14/audit"
@@ -55,7 +56,7 @@ func ProvideAuditLogRepository(
 	}
 
 	recorderOptions := []platformaudit.RecorderOption{
-		platformaudit.WithRecorderTablePrefix(audit.TablePrefix),
+		platformaudit.WithRecorderTablePrefix(branding.TablePrefix),
 		platformaudit.WithRecorderLogger(logging.EnsureLogger(logger)),
 		platformaudit.WithRecorderTracerProvider(tracerProvider),
 		platformaudit.WithRecorderMetricsProvider(metricsProvider),
@@ -71,7 +72,7 @@ func ProvideAuditLogRepository(
 
 	reader, err := platformaudit.NewReader(
 		client.Dialect(),
-		platformaudit.WithReaderTablePrefix(audit.TablePrefix),
+		platformaudit.WithReaderTablePrefix(branding.TablePrefix),
 		platformaudit.WithReaderLogger(logging.EnsureLogger(logger)),
 		platformaudit.WithReaderTracerProvider(tracerProvider),
 		platformaudit.WithReaderMetricsProvider(metricsProvider),

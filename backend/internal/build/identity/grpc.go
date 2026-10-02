@@ -28,7 +28,7 @@ package identity
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
-	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/succession"
 
 	platformaudit "github.com/primandproper/platform-go/v14/audit"
@@ -90,7 +90,7 @@ func RegisterIdentityService(i do.Injector) {
 			return nil, err
 		}
 
-		rule, err := succession.New(store, ddbidentity.TablePrefix)
+		rule, err := succession.New(store, branding.TablePrefix)
 		if err != nil {
 			return nil, err
 		}

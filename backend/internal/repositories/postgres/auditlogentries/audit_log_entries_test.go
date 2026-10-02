@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	identityfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
@@ -92,7 +93,7 @@ func TestQuerier_Integration_AuditLogChain(t *testing.T) {
 		// something to be discovered afterwards, it is something the database will
 		// not do.
 		_, err := client.Writer().ExecContext(ctx,
-			"UPDATE "+audit.TablePrefix+"_audit_log_entries SET resource_type = $1 WHERE id = $2",
+			"UPDATE "+branding.TablePrefix+"_audit_log_entries SET resource_type = $1 WHERE id = $2",
 			"tampered", recorded[1].ID)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "append-only")
@@ -104,7 +105,7 @@ func TestQuerier_Integration_AuditLogChain(t *testing.T) {
 		// removing the middle entry must be detectable and must be attributed to the
 		// right position rather than merely somewhere.
 		_, err := client.Writer().ExecContext(ctx,
-			"DELETE FROM "+audit.TablePrefix+"_audit_log_entries WHERE id = $1", recorded[1].ID)
+			"DELETE FROM "+branding.TablePrefix+"_audit_log_entries WHERE id = $1", recorded[1].ID)
 		require.NoError(t, err)
 
 		result, err := dbc.VerifyChain(ctx, tenancy.Of(account.ID), time.Time{}, time.Time{})
@@ -158,7 +159,7 @@ func TestQuerier_Integration_AuditLogRedaction(t *testing.T) {
 
 	var raw []byte
 	require.NoError(t, client.Reader().QueryRowContext(ctx,
-		"SELECT change_set FROM "+audit.TablePrefix+"_audit_log_entries WHERE id = $1", entry.ID).Scan(&raw))
+		"SELECT change_set FROM "+branding.TablePrefix+"_audit_log_entries WHERE id = $1", entry.ID).Scan(&raw))
 	assert.NotContains(t, string(raw), "hunter2")
 }
 

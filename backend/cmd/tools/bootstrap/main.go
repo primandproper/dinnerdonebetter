@@ -13,7 +13,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/localdev"
 
 	platformoauth2clients "github.com/primandproper/platform-go/v14/authentication/oauth2clients"
@@ -209,7 +208,7 @@ func runInit(db *dbFlags, adminUsername, adminPassword, adminEmail, apiServerURL
 	if err != nil {
 		return fmt.Errorf("building identity directory: %w", err)
 	}
-	oauthStore, err := platformoauth2clients.NewSQLStore(client, platformoauth2clients.WithTablePrefix(oauth.TablePrefix))
+	oauthStore, err := platformoauth2clients.NewSQLStore(client, platformoauth2clients.WithTablePrefix(branding.TablePrefix))
 	if err != nil {
 		return fmt.Errorf("building OAuth2 client store: %w", err)
 	}

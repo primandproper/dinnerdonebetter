@@ -1,8 +1,8 @@
 package uploadedmedia
 
 import (
+	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
-	ddbuploadedmedia "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/recording"
 
@@ -42,7 +42,7 @@ func ProvideUploadedMediaRepository(
 ) (mediaregistry.Store, error) {
 	store, err := mediaregistry.NewSQLStore(
 		client,
-		mediaregistry.WithTablePrefix(ddbuploadedmedia.TablePrefix),
+		mediaregistry.WithTablePrefix(branding.TablePrefix),
 		mediaregistry.WithStoreLogger(logger),
 		mediaregistry.WithStoreTracerProvider(tracerProvider),
 		mediaregistry.WithStoreMetricsProvider(metricsProvider),

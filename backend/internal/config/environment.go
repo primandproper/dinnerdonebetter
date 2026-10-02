@@ -7,9 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
-	ddbaudit "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
-	ddboauth "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
 	appentitlements "github.com/primandproper/dinnerdonebetter/backend/internal/entitlements"
 
 	"github.com/primandproper/platform-go/v14/audit"
@@ -170,7 +169,7 @@ func defaultScheduledJobsConfig() ScheduledJobsConfig {
 func defaultAuditSweeperConfig() auditcfg.Config {
 	return auditcfg.Config{
 		Dialect:     dialect.Postgres,
-		TablePrefix: ddbaudit.TablePrefix,
+		TablePrefix: branding.TablePrefix,
 		Retention: audit.RetentionConfig{
 			Retention:     2 * 365 * 24 * time.Hour,
 			BatchSize:     audit.DefaultRetentionBatchSize,
@@ -527,7 +526,7 @@ func (s *EnvironmentConfigSet) Render(ctx context.Context, outputDir string) err
 		// deadlines, which needs neither an issuer nor a lifetime.
 		OAuth2: oauth2servercfg.Config{
 			Provider: oauth2servercfg.ProviderDatabase,
-			Database: oauth2database.Config{TablePrefix: ddboauth.TablePrefix},
+			Database: oauth2database.Config{TablePrefix: branding.TablePrefix},
 		},
 	}
 	dbcConfig.Observability.Tracing.ServiceName = dbcConfigObservabilityServiceName
@@ -662,7 +661,7 @@ func (s *EnvironmentConfigSet) Render(ctx context.Context, outputDir string) err
 		// store is a server that comes up clean and cannot find a table.
 		OAuth2: oauth2servercfg.Config{
 			Provider: oauth2servercfg.ProviderDatabase,
-			Database: oauth2database.Config{TablePrefix: ddboauth.TablePrefix},
+			Database: oauth2database.Config{TablePrefix: branding.TablePrefix},
 		},
 	}
 

@@ -1,8 +1,8 @@
 package identitystore
 
 import (
+	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
-	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 
 	"github.com/primandproper/platform-go/v14/authentication/passkeys"
@@ -28,7 +28,7 @@ func RegisterIdentityStore(i do.Injector) {
 	do.Provide[platformidentity.Store](i, func(i do.Injector) (platformidentity.Store, error) {
 		return platformidentity.NewSQLStore(
 			do.MustInvoke[database.Client](i),
-			platformidentity.WithTablePrefix(ddbidentity.TablePrefix),
+			platformidentity.WithTablePrefix(branding.TablePrefix),
 			platformidentity.WithStoreLogger(do.MustInvoke[logging.Logger](i)),
 			platformidentity.WithStoreTracerProvider(do.MustInvoke[tracing.Provider](i)),
 			platformidentity.WithStoreMetricsProvider(do.MustInvoke[metrics.Provider](i)),
@@ -72,7 +72,7 @@ func RegisterPasskeyStore(i do.Injector) {
 	do.Provide[passkeys.Store](i, func(i do.Injector) (passkeys.Store, error) {
 		return passkeys.NewSQLStore(
 			do.MustInvoke[database.Client](i),
-			passkeys.WithTablePrefix(ddbidentity.TablePrefix),
+			passkeys.WithTablePrefix(branding.TablePrefix),
 			passkeys.WithLogger(do.MustInvoke[logging.Logger](i)),
 			passkeys.WithTracerProvider(do.MustInvoke[tracing.Provider](i)),
 			passkeys.WithMetricsProvider(do.MustInvoke[metrics.Provider](i)),

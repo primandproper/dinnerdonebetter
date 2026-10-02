@@ -1,7 +1,7 @@
 package localdev
 
 import (
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 
 	"github.com/primandproper/platform-go/v14/mediaregistry"
 	"github.com/primandproper/primitives-go/v2/database"
@@ -24,7 +24,7 @@ import (
 func UploadsRegistry(logger logging.Logger, tracerProvider tracing.Provider, client database.Client) (mediaregistry.Store, error) {
 	return mediaregistry.NewSQLStore(
 		client,
-		mediaregistry.WithTablePrefix(uploadedmedia.TablePrefix),
+		mediaregistry.WithTablePrefix(branding.TablePrefix),
 		mediaregistry.WithStoreLogger(logger),
 		mediaregistry.WithStoreTracerProvider(tracerProvider),
 	)

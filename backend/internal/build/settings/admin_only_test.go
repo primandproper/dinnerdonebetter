@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	ddbsettings "github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
@@ -47,7 +48,7 @@ import (
 // setting would pass a one-sided test and remove self-service — so this pins
 // both halves, against this deployment's own subject authorizer.
 
-const tablePrefix = ddbsettings.TablePrefix
+const tablePrefix = branding.TablePrefix
 
 // TestMain migrates the one database this package's tests share. The settings
 // tables are already in this application's migrations — settings was adopted as

@@ -1,8 +1,8 @@
 package waitlists
 
 import (
+	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
-	ddbwaitlists "github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/recording"
 
@@ -42,7 +42,7 @@ func ProvideWaitlistsRepository(
 ) (platformwaitlists.Store, error) {
 	store, err := platformwaitlists.NewSQLStore(
 		client,
-		platformwaitlists.WithTablePrefix(ddbwaitlists.TablePrefix),
+		platformwaitlists.WithTablePrefix(branding.TablePrefix),
 		platformwaitlists.WithStoreLogger(logger),
 		platformwaitlists.WithStoreTracerProvider(tracerProvider),
 		platformwaitlists.WithStoreMetricsProvider(metricsProvider),

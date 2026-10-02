@@ -16,15 +16,6 @@ import (
 	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
-// TablePrefix namespaces the platform-go comments table, rendering ddb_comments.
-//
-// The platform's own default is the empty prefix, which renders "comments" — the
-// exact name the table this replaced carried, and a name generic enough that a
-// database shared with anything else would eventually collide. Its DDL says
-// CREATE TABLE IF NOT EXISTS, so that collision would be a silent no-op followed
-// by a store reading columns that are not there.
-const TablePrefix = "ddb"
-
 // The data change events a comment write emits. They are declared in the webhook
 // event catalog (internal/domain/webhooks/catalog), so a subscriber is already
 // able to ask for them.

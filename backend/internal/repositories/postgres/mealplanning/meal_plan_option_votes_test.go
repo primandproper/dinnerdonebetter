@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
@@ -303,7 +304,7 @@ func TestQuerier_Integration_MealPlanOptionVotes_CursorBasedPagination(t *testin
 	// tables now, and a row written into one without the other is a member who may do
 	// nothing — which is not the non-voting member this test wants.
 	addUserToAccountHelper := func(userID string) {
-		store, storeErr := platformidentity.NewSQLStore(dbc.Client, platformidentity.WithTablePrefix(ddbidentity.TablePrefix))
+		store, storeErr := platformidentity.NewSQLStore(dbc.Client, platformidentity.WithTablePrefix(branding.TablePrefix))
 		require.NoError(t, storeErr)
 
 		_, execErr := store.CreateMembership(ctx, database.NewTxForTesting(dbc.writeDB), ddbidentity.Scope(),

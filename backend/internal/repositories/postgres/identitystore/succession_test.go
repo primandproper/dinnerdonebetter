@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/succession"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
@@ -38,7 +38,7 @@ func TestMain(m *testing.M) {
 	}))
 }
 
-const tablePrefix = ddbidentity.TablePrefix
+const tablePrefix = branding.TablePrefix
 
 type fixture struct {
 	service *identity.Service
@@ -83,15 +83,18 @@ func (f *fixture) count(t *testing.T, ctx context.Context, query string, args ..
 func newRegistration() (*identity.User, *identity.Account) {
 	username := "succession_" + identifiers.New()
 
-	return &identity.User{
+	user := &identity.User{
 		ID:            identifiers.New(),
 		Username:      username,
 		EmailAddress:  username + "@example.com",
 		AccountStatus: identity.StatusUnverified,
-	}, &identity.Account{
+	}
+	account := &identity.Account{
 		ID:   identifiers.New(),
 		Name: "the " + username + " household",
 	}
+
+	return user, account
 }
 
 // The succession rule, against a real database.

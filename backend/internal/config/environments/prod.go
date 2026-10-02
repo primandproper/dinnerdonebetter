@@ -8,7 +8,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
-	ddboauth "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 	authservice "github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/handlers/authentication"
 	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
@@ -336,7 +335,7 @@ func BuildProdConfig() *config.APIServiceConfig {
 					// The table prefix has to be the one migration 33 created the tables
 					// under: a prefix that differs between the DDL and the store is a
 					// server that comes up clean and cannot find a table.
-					Database: oauth2database.Config{TablePrefix: ddboauth.TablePrefix},
+					Database: oauth2database.Config{TablePrefix: branding.TablePrefix},
 					// The issuer is this API server's own public address, not the web app's.
 					// Every endpoint in the discovery document is derived from it, and a
 					// client compares it against the "iss" on an authorization response — so

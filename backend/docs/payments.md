@@ -91,7 +91,7 @@ flowchart TB
 
 The schema is platform-go's, rendered by `renderBillingDDL` in
 `internal/repositories/postgres/migrations` as migration 43 with the `ddb` prefix (see
-`payments.TablePrefix`), which drops the four tables `00011_payments.sql` created and the three
+`branding.TablePrefix`), which drops the four tables `00011_payments.sql` created and the three
 enums they used. Every table carries a tenancy `scope`, and this application keeps all four in the
 global one — see `payments.Scope`.
 

@@ -17,8 +17,8 @@ package notificationsstore
 import (
 	"context"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
-	ddbnotifications "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/recording"
 
@@ -125,7 +125,7 @@ func ProvideStores(
 		notificationscfg.WithLogger(logger),
 		notificationscfg.WithTracerProvider(tracerProvider),
 		notificationscfg.WithStoreOptions(
-			platformnotifications.WithTablePrefix(ddbnotifications.TablePrefix),
+			platformnotifications.WithTablePrefix(branding.TablePrefix),
 		),
 	)
 	if err != nil {

@@ -6,9 +6,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
-	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/indexevents"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
@@ -68,11 +67,11 @@ func buildDatabaseClientForTest(t *testing.T) (*repository, audit.Repository) {
 	require.NoError(t, err)
 	// A real registry store over the same database, so the media hydration these
 	// tests exercise reads the table a request would.
-	uploadsRegistry, err := mediaregistry.NewSQLStore(pgc, mediaregistry.WithTablePrefix(uploadedmedia.TablePrefix))
+	uploadsRegistry, err := mediaregistry.NewSQLStore(pgc, mediaregistry.WithTablePrefix(branding.TablePrefix))
 	require.NoError(t, err)
 
 	// The roster read, which is all meal planning asks the directory for.
-	identityStore, err := platformidentity.NewSQLStore(pgc, platformidentity.WithTablePrefix(ddbidentity.TablePrefix))
+	identityStore, err := platformidentity.NewSQLStore(pgc, platformidentity.WithTablePrefix(branding.TablePrefix))
 	require.NoError(t, err)
 
 	// A real emitter, so the tests exercise the same path production does: the event is

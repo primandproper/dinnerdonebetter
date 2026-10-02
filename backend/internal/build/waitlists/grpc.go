@@ -39,8 +39,8 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
-	ddbwaitlists "github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
 	"github.com/primandproper/platform-go/v14/callers"
@@ -139,7 +139,7 @@ func RegisterWaitlistsService(i do.Injector) {
 	// docs/configuration.md.
 	do.Provide[*links.Minter](i, func(i do.Injector) (*links.Minter, error) {
 		cfg := *do.MustInvoke[*linkscfg.Config](i)
-		cfg.Database.TablePrefix = ddbwaitlists.TablePrefix
+		cfg.Database.TablePrefix = branding.TablePrefix
 
 		return linkscfg.NewMinter(
 			do.MustInvoke[context.Context](i),

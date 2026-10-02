@@ -3,8 +3,8 @@ package settings
 import (
 	"context"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
-	ddbsettings "github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/recording"
 
@@ -52,7 +52,7 @@ func ProvideSettingsRepository(
 ) (platformsettings.Store, error) {
 	store, err := settingscfg.NewStore(
 		ctx,
-		&settingscfg.Config{TablePrefix: ddbsettings.TablePrefix},
+		&settingscfg.Config{TablePrefix: branding.TablePrefix},
 		client,
 		settingscfg.WithLogger(logger),
 		settingscfg.WithTracerProvider(tracerProvider),
