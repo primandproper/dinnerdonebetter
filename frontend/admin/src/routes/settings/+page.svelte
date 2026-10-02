@@ -28,9 +28,9 @@
       <tbody>
         {#each data.settings as setting (setting.id)}
           <tr>
-            <td><code>{(setting as Record<string, unknown>).id ?? '-'}</code></td>
-            <td>{(setting as Record<string, unknown>).name ?? '-'}</td>
-            <td><Link href="/settings/{(setting as Record<string, unknown>).id}">View</Link></td>
+            <td><code>{setting.id || '-'}</code></td>
+            <td>{setting.name || '-'}</td>
+            <td><Link href="/settings/{setting.id}">View</Link></td>
           </tr>
         {/each}
       </tbody>

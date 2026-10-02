@@ -1,21 +1,9 @@
 import { redirect } from '@sveltejs/kit';
+import { signOut } from '@primandproper/platform-client';
 import type { PageServerLoad } from './$types';
-import { decodeSession, getCookieName } from '$lib/auth/session';
-import { revokeCurrentSession } from '$lib/grpc/clients';
 
-export const load: PageServerLoad = async ({ cookies }) => {
-  const cookieName = getCookieName();
-  const cookieValue = cookies.get(cookieName);
-
-  if (cookieValue) {
-    try {
-      const { accessToken } = decodeSession(cookieValue);
-      await revokeCurrentSession(accessToken);
-    } catch {
-      /* best-effort: proceed with logout even if revocation fails */
-    }
-  }
-
-  cookies.delete(cookieName, { path: '/' });
+export const load: PageServerLoad = async ({ locals }) => {
+  // signOut never rejects, and clears the cookie whether or not the server heard it.
+  await signOut(locals.session);
   throw redirect(302, '/login');
 };

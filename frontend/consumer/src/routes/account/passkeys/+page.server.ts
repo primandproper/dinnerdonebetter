@@ -1,16 +1,12 @@
-import { redirect } from '@sveltejs/kit';
+import { isRedirect, redirect } from '@sveltejs/kit';
+import { PasskeyReason, PlatformError } from '@primandproper/platform-client';
 import type { Actions, PageServerLoad } from './$types';
 import { listPasskeys, archivePasskey } from '$lib/grpc/clients';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
-  const token = locals.oauthToken;
-  if (!token) {
-    return { passkeys: [], error: null, deleted: false };
-  }
-
+  const session = locals.session;
   try {
-    const res = await listPasskeys(token);
-    const passkeys = res.results ?? [];
+    const passkeys = await listPasskeys(session);
     const error = url.searchParams.get('error');
     const deleted = url.searchParams.get('deleted') === '1';
     return { passkeys, error, deleted };
@@ -21,9 +17,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 export const actions: Actions = {
   delete: async ({ request, locals }) => {
-    const token = locals.oauthToken;
-    if (!token) throw redirect(302, '/login');
-
+    const session = locals.session;
     const formData = await request.formData();
     const credentialId = (formData.get('credential_id') as string)?.trim() ?? '';
     if (!credentialId) {
@@ -31,11 +25,14 @@ export const actions: Actions = {
     }
 
     try {
-      await archivePasskey(token, { credentialId });
+      await archivePasskey(session, { id: credentialId });
       throw redirect(302, '/account/passkeys?deleted=1');
     } catch (e) {
-      if (e && typeof e === 'object' && 'status' in e && (e as { status: number }).status === 302) {
+      if (isRedirect(e)) {
         throw e;
+      }
+      if (e instanceof PlatformError && e.is(PasskeyReason.LAST_PASSKEY)) {
+        throw redirect(302, '/account/passkeys?error=last_passkey');
       }
       throw redirect(302, '/account/passkeys?error=delete_failed');
     }

@@ -1,9 +1,6 @@
-import { env } from '$env/dynamic/private';
 import { redirect } from '@sveltejs/kit';
-import type { Handle } from '@sveltejs/kit';
-import { decodeSession, encodeSession, getCookieName, getCookieOptions } from '$lib/auth/session';
-import { exchangeJwtForOAuth2Token } from '$lib/grpc/oauth2';
-import { exchangeToken } from '$lib/grpc/clients';
+import type { Handle, RequestEvent } from '@sveltejs/kit';
+import { sessionFor } from '$lib/auth/session';
 import { initServerOtel } from '$lib/otel/server';
 import { recordRequest } from '$lib/otel/server-metrics';
 import { ServerTiming, ServerTimingHeaderName } from '$lib/server-timing';
@@ -31,9 +28,36 @@ function isPublicPath(pathname: string): boolean {
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
 
+/**
+ * loginEndedDuring reports whether a page load found the login over: a refresh the server
+ * refused, which has already cleared the cookie. Most loads catch their own errors, so the
+ * redirect the failed call threw doesn't always reach the response. A form action, a
+ * client-side navigation or an API endpoint answers as it chose to, and the next page load
+ * goes to sign-in.
+ */
+function loginEndedDuring(event: RequestEvent): boolean {
+  return (
+    event.request.method === 'GET' &&
+    !event.isDataRequest &&
+    (event.request.headers.get('accept') ?? '').includes('text/html') &&
+    event.locals.session.state === 'anonymous'
+  );
+}
+
+function toLogin(resolved: Response): Response {
+  const headers = new Headers({ location: LOGIN_PATH });
+  for (const cookie of resolved.headers.getSetCookie()) {
+    headers.append('set-cookie', cookie);
+  }
+  return new Response(null, { status: 302, headers });
+}
+
 export const handle: Handle = async ({ event, resolve }) => {
   const timing = new ServerTiming();
   const totalEvent = timing.addEvent('total', 'Total request time');
+
+  // Public pages get one too: signing in, signing out and the passkey doors all need it.
+  event.locals.session = sessionFor(event.cookies);
 
   if (isPublicPath(event.url.pathname)) {
     const response = await resolve(event);
@@ -43,72 +67,19 @@ export const handle: Handle = async ({ event, resolve }) => {
     return response;
   }
 
-  const cookieName = getCookieName();
-  const cookieValue = event.cookies.get(cookieName);
-
-  if (!cookieValue) {
+  // Only whether a login is held is settled here. Whether it still works is settled by the
+  // first call a page makes, which refreshes it if it has to.
+  const authEvent = timing.addEvent('auth', 'Session load');
+  const held = await event.locals.session.held();
+  authEvent.end();
+  if (!held) {
     throw redirect(302, LOGIN_PATH);
   }
 
-  let payload;
-  try {
-    payload = decodeSession(cookieValue);
-  } catch {
-    event.cookies.delete(cookieName, { path: '/' });
-    throw redirect(302, LOGIN_PATH);
+  let response = await resolve(event);
+  if (loginEndedDuring(event)) {
+    response = toLogin(response);
   }
-
-  const httpApiUrl = env.HTTP_API_SERVER_URL;
-  const clientId = env.OAUTH2_CLIENT_ID;
-  const clientSecret = env.OAUTH2_CLIENT_SECRET;
-
-  if (!httpApiUrl || !clientId || !clientSecret) {
-    throw new Error('HTTP_API_SERVER_URL, OAUTH2_CLIENT_ID, OAUTH2_CLIENT_SECRET are required');
-  }
-
-  const authEvent = timing.addEvent('auth', 'OAuth2 token exchange');
-  try {
-    const { accessToken } = await exchangeJwtForOAuth2Token(httpApiUrl, clientId, clientSecret, payload.accessToken);
-    event.locals.oauthToken = accessToken;
-  } catch {
-    // JWT may be expired — try refreshing with the stored refresh token
-    if (payload.refreshToken) {
-      try {
-        const refreshed = await exchangeToken(payload.refreshToken);
-        const newPayload = {
-          accessToken: refreshed.accessToken,
-          refreshToken: refreshed.refreshToken,
-        };
-        const opts = getCookieOptions();
-        const encoded = encodeSession(newPayload);
-        event.cookies.set(cookieName, encoded, {
-          path: opts.path,
-          httpOnly: opts.httpOnly,
-          secure: opts.secure,
-          sameSite: opts.sameSite,
-          maxAge: opts.maxAge,
-        });
-
-        const { accessToken } = await exchangeJwtForOAuth2Token(
-          httpApiUrl,
-          clientId,
-          clientSecret,
-          refreshed.accessToken,
-        );
-        event.locals.oauthToken = accessToken;
-      } catch {
-        event.cookies.delete(cookieName, { path: '/' });
-        throw redirect(302, LOGIN_PATH);
-      }
-    } else {
-      event.cookies.delete(cookieName, { path: '/' });
-      throw redirect(302, LOGIN_PATH);
-    }
-  } finally {
-    authEvent.end();
-  }
-
-  const response = await resolve(event);
   totalEvent.end();
   response.headers.set(ServerTimingHeaderName, timing.headerValue());
   recordRequest(event.url.pathname, response.status, totalEvent.duration);

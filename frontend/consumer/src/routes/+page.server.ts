@@ -2,12 +2,8 @@ import type { PageServerLoad } from './$types';
 import { getSelf, getActiveAccount } from '$lib/grpc/clients';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
-  const oauthToken = locals.oauthToken;
-  if (!oauthToken) {
-    return { user: null, account: null, flash: null };
-  }
-
-  const [selfRes, accountRes] = await Promise.all([getSelf(oauthToken), getActiveAccount(oauthToken)]);
+  const session = locals.session;
+  const [self, account] = await Promise.all([getSelf(session), getActiveAccount(session)]);
 
   const updated = url.searchParams.get('updated') === '1';
   const invited = url.searchParams.get('invited') === '1';
@@ -21,8 +17,8 @@ export const load: PageServerLoad = async ({ locals, url }) => {
   else if (error) flash = { type: 'error', message: error };
 
   return {
-    user: selfRes.result ?? null,
-    account: accountRes.result ?? null,
+    user: self ?? null,
+    account: account ?? null,
     flash,
   };
 };

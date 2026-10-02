@@ -50,6 +50,8 @@
                 value={item.setting.name}
                 data-testid="preference-setting-name"
               />
+              <!-- A write carries a typed value, and the server refuses one of the wrong kind. -->
+              <input type="hidden" name="setting_kind" value={item.setting.kind} />
               <FormField
                 id="pref-{item.setting.id}"
                 label={humanReadableName(item.setting.name) +

@@ -2,12 +2,9 @@ import type { PageServerLoad } from './$types';
 import { getMeasurementUnitConversionMismatches } from '$lib/grpc/clients';
 
 export const load: PageServerLoad = async ({ locals }) => {
-  const token = locals.accessToken;
-  if (!token) {
-    return { items: [], error: 'Not authenticated' };
-  }
+  const session = locals.session;
   try {
-    const res = (await getMeasurementUnitConversionMismatches(token, {})) as {
+    const res = (await getMeasurementUnitConversionMismatches(session, {})) as {
       mismatches?: Array<{
         ingredient?: { id?: string; name?: string };
         fromUnit?: { id?: string; name?: string };

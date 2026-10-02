@@ -2,13 +2,10 @@ import type { PageServerLoad } from './$types';
 import { getWaitlist } from '$lib/grpc/clients';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
-  const token = locals.accessToken;
+  const session = locals.session;
   const id = params.id;
-  if (!token) {
-    return { waitlist: null, error: 'Not authenticated' };
-  }
   try {
-    const res = (await getWaitlist(token, { waitlistId: id })) as { result?: Record<string, unknown> };
+    const res = (await getWaitlist(session, { listId: id })) as { result?: Record<string, unknown> };
     return { waitlist: res?.result ?? null };
   } catch (e) {
     return {

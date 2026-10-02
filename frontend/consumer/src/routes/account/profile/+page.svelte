@@ -1,7 +1,7 @@
 <script lang="ts">
   import { enhance } from '$app/forms';
   import { PageContainer, FormField, Input, Button, Alert, Link } from '@dinnerdonebetter/ui';
-  import type { User } from '@dinnerdonebetter/api-client/primandproper/platform/identity/v1/identity';
+  import type { User } from '@primandproper/platform-client/identity/v1';
 
   // Two things this page used to do are gone, and both went with the surface underneath them.
   //
@@ -27,6 +27,8 @@
     invalid_username: 'Username is required.',
     invalid_first_name: 'First name is required.',
     invalid_password: 'Password is required to update details.',
+    wrong_password: 'That password or code was not right.',
+    totp_required: 'Enter the code from your authenticator app as well.',
     invalid_input: 'Invalid input. Please check your entries.',
     update_failed: 'Failed to save. Please try again.',
     server: 'Something went wrong. Please try again.',

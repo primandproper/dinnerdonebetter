@@ -2,13 +2,10 @@ import type { PageServerLoad } from './$types';
 import { getIssueReport } from '$lib/grpc/clients';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
-  const token = locals.accessToken;
+  const session = locals.session;
   const id = params.id;
-  if (!token) {
-    return { report: null, error: 'Not authenticated' };
-  }
   try {
-    const res = (await getIssueReport(token, { issueReportId: id })) as { result?: Record<string, unknown> };
+    const res = (await getIssueReport(session, { reportId: id })) as { result?: Record<string, unknown> };
     return { report: res?.result ?? null };
   } catch (e) {
     return {

@@ -19,7 +19,8 @@ to are platform's, mounted on this server:
 
 There are two token systems: the tokens `signin.Service` mints (a signed access token naming a
 login, and an opaque rotating refresh token), and the OAuth2 authorization server's opaque
-access tokens, which the web apps and API clients exchange a sign-in token for.
+access tokens, which API clients exchange a sign-in token for. The web apps send the sign-in
+token itself.
 
 What this application still decides, and where:
 
@@ -51,8 +52,8 @@ What this application still decides, and where:
 - **Refresh token**: opaque, single use, rotated on every exchange; presenting a spent one ends
   the whole login. Thirty days by default, twelve hours administrative, none on an impersonation.
   Stored in `ddb_signin_refresh_tokens`, keyed to the user so erasure takes them with it.
-- **Used for**: the web apps' cookie, the bearer token a client sends directly, and the input to
-  the OAuth2 authorization flow.
+- **Used for**: the web apps' cookie and every call they make, the bearer token any other
+  client sends directly, and the input to the OAuth2 authorization flow.
 
 The login is read on every request (`signin.Service.CheckSignIn`), so a sign-out, an ended
 login, or a detected refresh-token reuse stops the access token on its next request rather than
@@ -182,14 +183,41 @@ created/updated, by a wrapper around the platform store.
 
 ## Web App Auth Flow (Consumer / Admin)
 
-1. **Login**: the user signs in (password or passkey) and the web app receives a sign-in token.
-2. **Cookie**: the token is stored in a signed cookie.
-3. **Per-request**: the auth middleware reads the cookie and builds an authenticated client.
-4. **Client build**: the sign-in token is the bearer at `POST /authorize`; the code is exchanged
-   for an OAuth2 token, which the client uses for gRPC.
+Both web apps are SvelteKit servers that hold the login in `@primandproper/platform-client`'s
+`Session`: one per request, over a `CredentialStore` backed by an AES-GCM encrypted, HTTP-only
+cookie. The cookie holds the whole `IssuedToken`, refresh token included, and never reaches the
+browser's scripts. Every call, to platform's services and this repository's alike, goes through
+`Session.call` with the access token as `Authorization: Bearer <token>`; neither app exchanges it
+for an OAuth2 token.
 
-The web frontend and the iOS app have not been moved off the deleted AuthService, and are fixed
-separately.
+1. **Sign-in**: the consumer app calls `signIn` (`LoginForToken`), the admin app `adminSignIn`
+   (`AdminLoginForToken`). A second-factor refusal is branched on by its reason,
+   `SECOND_FACTOR_REQUIRED`, and the form sends the password again with the code. A passkey
+   sign-in in either app is `beginPasskeySignIn` and `passkeySignIn` through `PasskeysService`,
+   which mints the same login a password does. A key tapped with no user verification is one
+   factor, so a person with a second factor is asked for their code and taps again.
+2. **Per request**: the hook builds the `Session` and redirects to `/login` when no login is
+   held. It doesn't call the server.
+3. **Calls**: `Session.call` refreshes within thirty seconds of expiry, and on `Unauthenticated`
+   refreshes and retries once. A successor is written back to the cookie. Requests that arrive
+   together with the same cookie exchange its refresh token once between them, through the
+   process's `InMemoryExchangeCoordinator`; more than one replica needs a
+   `SharedExchangeCoordinator`.
+4. **Ended logins**: a refresh the server refuses clears the cookie. A page navigation
+   redirects to `/login`, and a form action or API endpoint answers with its own error.
+5. **Sign-out**: `signOut`, which ends the login through `SignOut` and then clears the cookie.
+
+The consumer's account pages are platform's surfaces too: `/account/sessions` is `ListSignIns`,
+`EndSignIn` and `EndOtherSignIns`; `/account/passkeys` is `PasskeysService`; the reset and
+verification links are `PasswordResetService` and `SignInService.VerifyEmailAddress`. The admin
+app's per-user sessions page is `SignInAdministrationService`.
+
+**Implementation**: [`frontend/consumer/src/hooks.server.ts`](../frontend/consumer/src/hooks.server.ts),
+[`frontend/consumer/src/lib/auth/session.ts`](../frontend/consumer/src/lib/auth/session.ts),
+[`frontend/consumer/src/lib/grpc/clients.ts`](../frontend/consumer/src/lib/grpc/clients.ts), and
+their counterparts under `frontend/admin/src`.
+
+The iOS app has not been moved off the deleted AuthService, and is fixed separately.
 
 ## gRPC Auth Interceptor
 

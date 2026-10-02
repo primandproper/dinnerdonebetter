@@ -5,12 +5,9 @@ import { QueryFilter } from '@dinnerdonebetter/api-client';
 const DEFAULT_LIST_FILTER = QueryFilter.create({ maxResponseSize: 100 });
 
 export const load: PageServerLoad = async ({ locals }) => {
-  const token = locals.accessToken;
-  if (!token) {
-    return { items: [], error: 'Not authenticated' };
-  }
+  const session = locals.session;
   try {
-    const res = (await getValidPrepTaskConfigs(token, {
+    const res = (await getValidPrepTaskConfigs(session, {
       filter: DEFAULT_LIST_FILTER,
     })) as {
       results?: Array<{

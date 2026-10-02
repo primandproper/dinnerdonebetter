@@ -1,16 +1,17 @@
 <script lang="ts">
   import { enhance } from '$app/forms';
   import { PageContainer, Button, Alert, Link } from '@dinnerdonebetter/ui';
-  import type { PasskeyCredential } from '@dinnerdonebetter/api-client/auth/auth_service_types';
+  import type { Passkey } from '@primandproper/platform-client/passkeys/v1';
 
   let { data } = $props();
-  const passkeys = $derived((data?.passkeys ?? []) as PasskeyCredential[]);
+  const passkeys = $derived((data?.passkeys ?? []) as Passkey[]);
   const error = $derived(data?.error as string | null | undefined);
   const deleted = $derived(data?.deleted ?? false);
 
   const errorMessages: Record<string, string> = {
     invalid: 'Invalid request.',
     delete_failed: 'Failed to remove passkey. Please try again.',
+    last_passkey: 'This passkey is your only way to sign in. Add a password or another passkey before removing it.',
     server: 'Something went wrong. Please try again.',
   };
   const displayError = $derived(error ? (errorMessages[error] ?? 'Something went wrong.') : null);
@@ -22,6 +23,32 @@
       day: 'numeric',
       year: 'numeric',
     });
+  }
+
+  // friendlyName is what the list calls a new passkey: the browser and platform it was made on.
+  function friendlyName(): string {
+    const ua = navigator.userAgent;
+    const browserName = /Edg\//.test(ua)
+      ? 'Edge'
+      : /Firefox\//.test(ua)
+        ? 'Firefox'
+        : /Chrome\//.test(ua)
+          ? 'Chrome'
+          : /Safari\//.test(ua)
+            ? 'Safari'
+            : 'Browser';
+    const platform = /iPhone|iPad/.test(ua)
+      ? 'iOS'
+      : /Android/.test(ua)
+        ? 'Android'
+        : /Mac/.test(ua)
+          ? 'macOS'
+          : /Windows/.test(ua)
+            ? 'Windows'
+            : /Linux/.test(ua)
+              ? 'Linux'
+              : '';
+    return platform ? `${browserName} on ${platform}` : browserName;
   }
 
   async function addPasskey() {
@@ -52,12 +79,13 @@
       if (!optsRes.ok) throw new Error('Failed to get options');
       const opts = await optsRes.json();
 
-      const raw = atob(opts.publicKeyCredentialCreationOptions);
-      const obj = JSON.parse(raw);
+      const obj = JSON.parse(atob(opts.options));
       const pk = obj.publicKey || obj;
       if (typeof pk.challenge === 'string') pk.challenge = b64dec(pk.challenge);
       if (pk.user && typeof pk.user.id === 'string') pk.user.id = b64dec(pk.user.id);
-
+      for (const c of pk.excludeCredentials ?? []) {
+        if (typeof c.id === 'string') c.id = b64dec(c.id);
+      }
       const cred = await navigator.credentials.create({ publicKey: pk });
       if (!cred) throw new Error('No credential');
 
@@ -78,11 +106,11 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           attestationResponse: attestation,
-          challenge: opts.challenge,
+          friendlyName: friendlyName(),
         }),
         credentials: 'include',
       });
-      if (!verifyRes.ok) throw new Error('Registration failed');
+      if (!verifyRes.ok) throw new Error((await verifyRes.json().catch(() => ({}))).error ?? 'Registration failed');
       window.location.reload();
     } catch (err) {
       btn.removeAttribute('disabled');

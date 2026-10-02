@@ -1,22 +1,13 @@
 import type { PageServerLoad } from './$types';
 import { QueryFilter } from '@dinnerdonebetter/api-client';
-import { getUser, listAccountsForUser, getAuditLogEntriesForUser } from '$lib/grpc/clients';
+import { EntryQuery } from '@primandproper/platform-client/audit/v1';
+import { getUser, listAccountsForUser, listAuditEntries } from '$lib/grpc/clients';
 
 export const load: PageServerLoad = async ({ locals, params, url }) => {
-  const token = locals.accessToken;
+  const session = locals.session;
   const userId = params.id;
-  if (!token) {
-    return {
-      user: null,
-      accounts: [],
-      auditLog: [],
-      subscriptions: [],
-      error: 'Not authenticated',
-      passwordChangeUpdated: false,
-    };
-  }
   try {
-    const userRes = (await getUser(token, { userId })) as { user?: Record<string, unknown> };
+    const userRes = (await getUser(session, { userId })) as { user?: Record<string, unknown> };
     const user = userRes?.user ?? null;
 
     let accounts: unknown[] = [];
@@ -25,7 +16,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 
     if (user?.id) {
       try {
-        const accRes = (await listAccountsForUser(token, {
+        const accRes = (await listAccountsForUser(session, {
           userId: user.id as string,
           filter: QueryFilter.create({ maxResponseSize: 50 }),
         })) as { results?: unknown[] };
@@ -34,8 +25,8 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
         // ignore
       }
       try {
-        const auditRes = (await getAuditLogEntriesForUser(token, {
-          userId: user.id as string,
+        const auditRes = (await listAuditEntries(session, {
+          query: EntryQuery.create({ resourceType: 'users', resourceId: user.id as string }),
           filter: QueryFilter.create({ maxResponseSize: 20 }),
         })) as { results?: unknown[] };
         auditLog = auditRes?.results ?? [];

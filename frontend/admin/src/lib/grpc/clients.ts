@@ -1,122 +1,183 @@
 /**
- * Admin gRPC clients: reads env, creates clients from @dinnerdonebetter/api-client createAdminGrpcClients.
+ * Every call the admin app makes, platform's services and this repository's alike, goes over
+ * one transport. An authenticated call goes through the request's Session (see
+ * $lib/auth/session), which holds the operator's login, refreshes it through platform's
+ * SignInService, and retries a call the server refused once with the successor.
  */
 
 import { env } from '$env/dynamic/private';
-import { createAdminGrpcClients } from '@dinnerdonebetter/api-client';
+import { redirect } from '@sveltejs/kit';
+import {
+  AnalyticsServiceService,
+  InternalOperationsService,
+  MealPlanningServiceService,
+  createPlatformTransport,
+} from '@dinnerdonebetter/api-client';
+import { type CredentialStore, NotSignedInError, Session, type UnaryMethod } from '@primandproper/platform-client';
+import { AuditServiceService } from '@primandproper/platform-client/audit/v1';
+import { BillingServiceService } from '@primandproper/platform-client/billing/v1';
+import { IdentityServiceService } from '@primandproper/platform-client/identity/v1';
+import { IssueReportsServiceService } from '@primandproper/platform-client/issuereports/v1';
+import { OAuth2ClientsServiceService } from '@primandproper/platform-client/oauth2clients/v1';
+import { SettingsServiceService } from '@primandproper/platform-client/settings/v1';
+import { SignInAdministrationServiceService } from '@primandproper/platform-client/signin/v1';
+import { WaitlistsServiceService } from '@primandproper/platform-client/waitlists/v1';
 
-const clients = createAdminGrpcClients({
+const transport = createPlatformTransport({
   serverUrl: env.GRPC_API_SERVER_URL ?? 'localhost:50051',
   insecure: env.DEVELOPING_LOCALLY === 'true',
 });
 
-export const authMetadata = clients.authMetadata;
-export const adminLoginForToken = clients.adminLoginForToken;
-export const beginPasskeyAuthentication = clients.beginPasskeyAuthentication;
-export const finishPasskeyAuthentication = clients.finishPasskeyAuthentication;
-// The directory's names — see the consumer app's clients.ts.
-export const getUser = clients.getUser;
-export const listUsers = clients.listUsers;
-export const getAccount = clients.getAccount;
-export const listAccounts = clients.listAccounts;
-export const searchUsersByUsername = clients.searchUsersByUsername;
-export const listAccountMembers = clients.listAccountMembers;
-export const listAccountsForUser = clients.listAccountsForUser;
-export const updateUserAccountStatus = clients.updateUserAccountStatus;
-export const updateProfile = clients.updateProfile;
-export const updateAccount = clients.updateAccount;
-export const getOAuth2Clients = clients.getOAuth2Clients;
-export const getOAuth2Client = clients.getOAuth2Client;
-export const createOAuth2Client = clients.createOAuth2Client;
-export const archiveOAuth2Client = clients.archiveOAuth2Client;
-export const getProducts = clients.getProducts;
-export const getProduct = clients.getProduct;
-export const createProduct = clients.createProduct;
-export const updateProduct = clients.updateProduct;
-export const archiveProduct = clients.archiveProduct;
-export const getSubscription = clients.getSubscription;
-export const createSubscription = clients.createSubscription;
-export const updateSubscription = clients.updateSubscription;
-export const archiveSubscription = clients.archiveSubscription;
-export const getSubscriptionsForAccount = clients.getSubscriptionsForAccount;
-export const getSettingDefinitions = clients.getSettingDefinitions;
-export const getSettingDefinition = clients.getSettingDefinition;
-export const getSettingDefinitionByName = clients.getSettingDefinitionByName;
-export const createSettingDefinition = clients.createSettingDefinition;
-export const updateSettingDefinition = clients.updateSettingDefinition;
-export const archiveSettingDefinition = clients.archiveSettingDefinition;
-export const getSettingValuesForDefinition = clients.getSettingValuesForDefinition;
-export const getWaitlists = clients.getWaitlists;
-export const getWaitlist = clients.getWaitlist;
-export const getWaitlistSignupsForWaitlist = clients.getWaitlistSignupsForWaitlist;
-export const getIssueReports = clients.getIssueReports;
-export const getIssueReport = clients.getIssueReport;
-export const updateIssueReport = clients.updateIssueReport;
-export const archiveIssueReport = clients.archiveIssueReport;
-export const testQueueMessage = clients.testQueueMessage;
-export const getAuditLogEntriesForUser = clients.getAuditLogEntriesForUser;
-export const getAuditLogEntriesForAccount = clients.getAuditLogEntriesForAccount;
-export const trackEvent = clients.trackEvent;
-export const trackAnonymousEvent = clients.trackAnonymousEvent;
-export const getRecipes = clients.getRecipes;
-export const getRecipe = clients.getRecipe;
-export const searchForRecipes = clients.searchForRecipes;
-export const createRecipe = clients.createRecipe;
-export const getValidIngredients = clients.getValidIngredients;
-export const searchForValidIngredients = clients.searchForValidIngredients;
-export const searchValidIngredientsByPreparation = clients.searchValidIngredientsByPreparation;
-export const getValidIngredient = clients.getValidIngredient;
-export const createValidIngredient = clients.createValidIngredient;
-export const updateValidIngredient = clients.updateValidIngredient;
-export const getValidIngredientMeasurementUnitsByIngredient = clients.getValidIngredientMeasurementUnitsByIngredient;
-export const createValidIngredientMeasurementUnit = clients.createValidIngredientMeasurementUnit;
-export const archiveValidIngredientMeasurementUnit = clients.archiveValidIngredientMeasurementUnit;
-export const getValidIngredientPreparationsByIngredient = clients.getValidIngredientPreparationsByIngredient;
-export const createValidIngredientPreparation = clients.createValidIngredientPreparation;
-export const archiveValidIngredientPreparation = clients.archiveValidIngredientPreparation;
-export const getValidInstruments = clients.getValidInstruments;
-export const searchForValidInstruments = clients.searchForValidInstruments;
-export const getValidInstrument = clients.getValidInstrument;
-export const createValidInstrument = clients.createValidInstrument;
-export const updateValidInstrument = clients.updateValidInstrument;
-export const getValidPreparationInstrumentsByInstrument = clients.getValidPreparationInstrumentsByInstrument;
-export const createValidPreparationInstrument = clients.createValidPreparationInstrument;
-export const archiveValidPreparationInstrument = clients.archiveValidPreparationInstrument;
-export const getValidVessels = clients.getValidVessels;
-export const searchForValidVessels = clients.searchForValidVessels;
-export const getValidVessel = clients.getValidVessel;
-export const createValidVessel = clients.createValidVessel;
-export const updateValidVessel = clients.updateValidVessel;
-export const getValidPreparationVesselsByVessel = clients.getValidPreparationVesselsByVessel;
-export const createValidPreparationVessel = clients.createValidPreparationVessel;
-export const archiveValidPreparationVessel = clients.archiveValidPreparationVessel;
-export const getValidMeasurementUnits = clients.getValidMeasurementUnits;
-export const searchForValidMeasurementUnits = clients.searchForValidMeasurementUnits;
-export const getValidMeasurementUnit = clients.getValidMeasurementUnit;
-export const createValidMeasurementUnit = clients.createValidMeasurementUnit;
-export const updateValidMeasurementUnit = clients.updateValidMeasurementUnit;
-export const getValidMeasurementUnitConversionsForUnit = clients.getValidMeasurementUnitConversionsForUnit;
-export const createValidMeasurementUnitConversion = clients.createValidMeasurementUnitConversion;
-export const archiveValidMeasurementUnitConversion = clients.archiveValidMeasurementUnitConversion;
-export const getValidMeasurementUnitConversionsForIngredients =
-  clients.getValidMeasurementUnitConversionsForIngredients;
-export const getValidIngredientStates = clients.getValidIngredientStates;
-export const searchForValidIngredientStates = clients.searchForValidIngredientStates;
-export const getValidIngredientState = clients.getValidIngredientState;
-export const createValidIngredientState = clients.createValidIngredientState;
-export const updateValidIngredientState = clients.updateValidIngredientState;
-export const getValidPreparations = clients.getValidPreparations;
-export const searchForValidPreparations = clients.searchForValidPreparations;
-export const getValidPreparation = clients.getValidPreparation;
-export const createValidPreparation = clients.createValidPreparation;
-export const updateValidPreparation = clients.updateValidPreparation;
-export const getValidPreparationInstrumentsByPreparation = clients.getValidPreparationInstrumentsByPreparation;
-export const getValidPreparationVesselsByPreparation = clients.getValidPreparationVesselsByPreparation;
-export const getValidIngredientPreparationsByPreparation = clients.getValidIngredientPreparationsByPreparation;
-export const getValidPrepTaskConfig = clients.getValidPrepTaskConfig;
-export const getValidPrepTaskConfigs = clients.getValidPrepTaskConfigs;
-export const getMeasurementUnitConversionMismatches = clients.getMeasurementUnitConversionMismatches;
-export const adminListSessionsForUser = clients.adminListSessionsForUser;
-export const adminRevokeUserSession = clients.adminRevokeUserSession;
-export const adminRevokeAllUserSessions = clients.adminRevokeAllUserSessions;
-export const revokeCurrentSession = clients.revokeCurrentSession;
+/**
+ * newSession is a Session over `store`. Sessions built per request share the process's
+ * exchange coordinator, so concurrent requests carrying the same cookie present its refresh
+ * token once between them. That holds within one process only: more than one replica needs a
+ * SharedExchangeCoordinator.
+ */
+export function newSession(store: CredentialStore): Session {
+  return new Session({ transport, store });
+}
+
+/**
+ * call makes an authenticated call. A login that is over by the time it is made sends the
+ * operator to sign in again; the Session has already cleared the cookie by then.
+ */
+async function call<Req, Res>(session: Session, method: UnaryMethod<Req, Res>, request: Req): Promise<Res> {
+  try {
+    return await session.call(method, request);
+  } catch (err) {
+    if (err instanceof NotSignedInError || session.state === 'anonymous') {
+      throw redirect(302, '/login');
+    }
+    throw err;
+  }
+}
+
+function authed<Req, Res>(method: UnaryMethod<Req, Res>) {
+  return (session: Session, request: Req) => call(session, method, request);
+}
+
+/**
+ * loose is `authed` for the pages that build their requests from form fields as plain
+ * objects, which is how every one of these was called before; their requests are not yet
+ * typed.
+ */
+function loose<Req, Res>(method: UnaryMethod<Req, Res>) {
+  return (session: Session, request: Record<string, unknown>) => call(session, method, request as Req);
+}
+
+// An operator's view of somebody else's logins is SignInAdministrationService: the
+// caller's own RPCs name nobody, so there is no field an administrator could use.
+export const listSignInsForUser = authed(SignInAdministrationServiceService.listSignInsForUser);
+export const endSignInForUser = authed(SignInAdministrationServiceService.endSignInForUser);
+export const endAllSignInsForUser = authed(SignInAdministrationServiceService.endAllSignInsForUser);
+
+export const testQueueMessage = loose(InternalOperationsService.testQueueMessage);
+export const trackEvent = loose(AnalyticsServiceService.trackEvent);
+export const trackAnonymousEvent = loose(AnalyticsServiceService.trackAnonymousEvent);
+export const createRecipe = authed(MealPlanningServiceService.createRecipe);
+export const getRecipes = loose(MealPlanningServiceService.getRecipes);
+export const getRecipe = loose(MealPlanningServiceService.getRecipe);
+export const searchForRecipes = loose(MealPlanningServiceService.searchForRecipes);
+export const getValidIngredients = loose(MealPlanningServiceService.getValidIngredients);
+export const searchForValidIngredients = loose(MealPlanningServiceService.searchForValidIngredients);
+export const searchValidIngredientsByPreparation = loose(
+  MealPlanningServiceService.searchValidIngredientsByPreparation,
+);
+export const getValidIngredient = loose(MealPlanningServiceService.getValidIngredient);
+export const createValidIngredient = loose(MealPlanningServiceService.createValidIngredient);
+export const updateValidIngredient = loose(MealPlanningServiceService.updateValidIngredient);
+export const getValidIngredientMeasurementUnitsByIngredient = loose(
+  MealPlanningServiceService.getValidIngredientMeasurementUnitsByIngredient,
+);
+export const createValidIngredientMeasurementUnit = loose(
+  MealPlanningServiceService.createValidIngredientMeasurementUnit,
+);
+export const archiveValidIngredientMeasurementUnit = loose(
+  MealPlanningServiceService.archiveValidIngredientMeasurementUnit,
+);
+export const getValidIngredientPreparationsByIngredient = loose(
+  MealPlanningServiceService.getValidIngredientPreparationsByIngredient,
+);
+export const createValidIngredientPreparation = loose(MealPlanningServiceService.createValidIngredientPreparation);
+export const archiveValidIngredientPreparation = loose(MealPlanningServiceService.archiveValidIngredientPreparation);
+export const getValidInstruments = loose(MealPlanningServiceService.getValidInstruments);
+export const searchForValidInstruments = loose(MealPlanningServiceService.searchForValidInstruments);
+export const getValidInstrument = loose(MealPlanningServiceService.getValidInstrument);
+export const createValidInstrument = loose(MealPlanningServiceService.createValidInstrument);
+export const updateValidInstrument = loose(MealPlanningServiceService.updateValidInstrument);
+export const getValidPreparationInstrumentsByInstrument = loose(
+  MealPlanningServiceService.getValidPreparationInstrumentsByInstrument,
+);
+export const createValidPreparationInstrument = loose(MealPlanningServiceService.createValidPreparationInstrument);
+export const archiveValidPreparationInstrument = loose(MealPlanningServiceService.archiveValidPreparationInstrument);
+export const getValidVessels = loose(MealPlanningServiceService.getValidVessels);
+export const searchForValidVessels = loose(MealPlanningServiceService.searchForValidVessels);
+export const getValidVessel = loose(MealPlanningServiceService.getValidVessel);
+export const createValidVessel = loose(MealPlanningServiceService.createValidVessel);
+export const updateValidVessel = loose(MealPlanningServiceService.updateValidVessel);
+export const getValidPreparationVesselsByVessel = loose(MealPlanningServiceService.getValidPreparationVesselsByVessel);
+export const createValidPreparationVessel = loose(MealPlanningServiceService.createValidPreparationVessel);
+export const archiveValidPreparationVessel = loose(MealPlanningServiceService.archiveValidPreparationVessel);
+export const getValidMeasurementUnits = loose(MealPlanningServiceService.getValidMeasurementUnits);
+export const searchForValidMeasurementUnits = loose(MealPlanningServiceService.searchForValidMeasurementUnits);
+export const getValidMeasurementUnit = loose(MealPlanningServiceService.getValidMeasurementUnit);
+export const createValidMeasurementUnit = loose(MealPlanningServiceService.createValidMeasurementUnit);
+export const updateValidMeasurementUnit = loose(MealPlanningServiceService.updateValidMeasurementUnit);
+export const getValidMeasurementUnitConversionsForUnit = loose(
+  MealPlanningServiceService.getValidMeasurementUnitConversionsForUnit,
+);
+export const createValidMeasurementUnitConversion = loose(
+  MealPlanningServiceService.createValidMeasurementUnitConversion,
+);
+export const archiveValidMeasurementUnitConversion = loose(
+  MealPlanningServiceService.archiveValidMeasurementUnitConversion,
+);
+export const getValidIngredientStates = loose(MealPlanningServiceService.getValidIngredientStates);
+export const searchForValidIngredientStates = loose(MealPlanningServiceService.searchForValidIngredientStates);
+export const getValidIngredientState = loose(MealPlanningServiceService.getValidIngredientState);
+export const createValidIngredientState = loose(MealPlanningServiceService.createValidIngredientState);
+export const updateValidIngredientState = loose(MealPlanningServiceService.updateValidIngredientState);
+export const getValidPreparations = loose(MealPlanningServiceService.getValidPreparations);
+export const searchForValidPreparations = loose(MealPlanningServiceService.searchForValidPreparations);
+export const getValidPreparation = loose(MealPlanningServiceService.getValidPreparation);
+export const createValidPreparation = loose(MealPlanningServiceService.createValidPreparation);
+export const updateValidPreparation = loose(MealPlanningServiceService.updateValidPreparation);
+export const getValidPreparationInstrumentsByPreparation = loose(
+  MealPlanningServiceService.getValidPreparationInstrumentsByPreparation,
+);
+export const getValidPreparationVesselsByPreparation = loose(
+  MealPlanningServiceService.getValidPreparationVesselsByPreparation,
+);
+export const getValidIngredientPreparationsByPreparation = loose(
+  MealPlanningServiceService.getValidIngredientPreparationsByPreparation,
+);
+export const getValidPrepTaskConfig = loose(MealPlanningServiceService.getValidPrepTaskConfig);
+export const getValidPrepTaskConfigs = loose(MealPlanningServiceService.getValidPrepTaskConfigs);
+export const getMeasurementUnitConversionMismatches = loose(
+  MealPlanningServiceService.getMeasurementUnitConversionMismatches,
+);
+export const getValidMeasurementUnitConversionsForIngredients = loose(
+  MealPlanningServiceService.getValidMeasurementUnitConversionsForIngredients,
+);
+
+// Platform's services, called through @primandproper/platform-client's stubs rather
+// than any generated here. Only the reads a page calls are here.
+export const getUser = authed(IdentityServiceService.getUser);
+export const listUsers = authed(IdentityServiceService.listUsers);
+export const getAccount = authed(IdentityServiceService.getAccount);
+export const listAccounts = authed(IdentityServiceService.listAccounts);
+export const listAccountMembers = authed(IdentityServiceService.listAccountMembers);
+export const listAccountsForUser = authed(IdentityServiceService.listAccountsForUser);
+export const listOAuth2Clients = authed(OAuth2ClientsServiceService.listOAuth2Clients);
+export const getOAuth2Client = authed(OAuth2ClientsServiceService.getOAuth2Client);
+export const listProducts = authed(BillingServiceService.listProducts);
+export const listSubscriptionsForAccount = authed(BillingServiceService.listSubscriptionsForAccount);
+export const listSettingDefinitions = authed(SettingsServiceService.listDefinitions);
+export const listWaitlists = authed(WaitlistsServiceService.listLists);
+export const getWaitlist = authed(WaitlistsServiceService.getList);
+export const listIssueReports = authed(IssueReportsServiceService.listReports);
+export const getIssueReport = authed(IssueReportsServiceService.getReport);
+// An operator's read is unscoped on the server, so a query by resource reaches every
+// chain an entry about that user or account could be on.
+export const listAuditEntries = authed(AuditServiceService.listEntries);

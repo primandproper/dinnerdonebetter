@@ -5,6 +5,7 @@
   let { data, form } = $props();
   const token = data?.token ?? form?.token ?? '';
   const missingToken = data?.missingToken ?? false;
+  const deadLink = $derived(data?.deadLink ?? false);
   const error = form?.error;
 </script>
 
@@ -13,6 +14,9 @@
 
   {#if missingToken && !token}
     <Alert variant="error">Missing reset token. Please use the link from your email.</Alert>
+    <p><Link href="/forgot_password">Request a new reset link</Link></p>
+  {:else if deadLink}
+    <Alert variant="error">This reset link is invalid or has expired. Please request a new one.</Alert>
     <p><Link href="/forgot_password">Request a new reset link</Link></p>
   {:else}
     <div class="reset-form">

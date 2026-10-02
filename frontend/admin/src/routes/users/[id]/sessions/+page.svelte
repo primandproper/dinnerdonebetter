@@ -1,10 +1,10 @@
 <script lang="ts">
   import { enhance } from '$app/forms';
   import { Heading, Button, Alert, Link, Card } from '@dinnerdonebetter/ui';
-  import type { UserSession } from '@dinnerdonebetter/api-client/auth/auth_messages';
+  import type { ActiveSignIn } from '@primandproper/platform-client/signin/v1';
 
   let { data } = $props();
-  const sessions = $derived((data?.sessions ?? []) as UserSession[]);
+  const signIns = $derived((data?.signIns ?? []) as ActiveSignIn[]);
   const error = $derived(data?.error as string | null | undefined);
   const revoked = $derived(data?.revoked ?? false);
   const revokedAll = $derived(data?.revokedAll ?? false);
@@ -43,7 +43,7 @@
   <Alert variant="error">{displayError}</Alert>
 {/if}
 
-{#if sessions.length > 0}
+{#if signIns.length > 0}
   <div class="actions-bar">
     <form method="POST" action="?/revoke-all" use:enhance>
       <Button type="submit" variant="default" class="revoke-all-btn">Revoke all sessions</Button>
@@ -55,29 +55,27 @@
       <table class="data-table">
         <thead>
           <tr>
-            <th>Device</th>
             <th>Login</th>
-            <th>IP</th>
-            <th>User Agent</th>
-            <th>Created</th>
-            <th>Last Active</th>
+            <th>Opened by</th>
+            <th>Account</th>
+            <th>Signed in</th>
+            <th>Last refreshed</th>
             <th>Expires</th>
             <th>Actions</th>
           </tr>
         </thead>
         <tbody>
-          {#each sessions as session (session.id)}
+          {#each signIns as signIn (signIn.familyId)}
             <tr>
-              <td>{session.deviceName || '-'}</td>
-              <td>{session.loginMethod || '-'}</td>
-              <td>{session.clientIp || '-'}</td>
-              <td class="ua-cell">{session.userAgent || '-'}</td>
-              <td>{formatDateTime(session.createdAt)}</td>
-              <td>{formatDateTime(session.lastActiveAt)}</td>
-              <td>{formatDateTime(session.expiresAt)}</td>
+              <td>{signIn.credentialKind || '-'}{signIn.administrative ? ' (admin)' : ''}</td>
+              <td>{signIn.actorId || '-'}</td>
+              <td>{signIn.activeAccountId || '-'}</td>
+              <td>{formatDateTime(signIn.signedInAt)}</td>
+              <td>{formatDateTime(signIn.lastRefreshedAt)}</td>
+              <td>{formatDateTime(signIn.expiresAt)}</td>
               <td>
                 <form method="POST" action="?/revoke" use:enhance class="inline-form">
-                  <input type="hidden" name="session_id" value={session.id} />
+                  <input type="hidden" name="family_id" value={signIn.familyId} />
                   <Button type="submit" variant="default" class="revoke-btn">Revoke</Button>
                 </form>
               </td>
@@ -113,12 +111,6 @@
     padding: var(--space-sm) var(--space-md);
     text-align: left;
     border-bottom: 1px solid var(--color-border);
-  }
-  .ua-cell {
-    max-width: 250px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
   }
   .inline-form {
     display: inline;

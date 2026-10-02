@@ -129,9 +129,10 @@ ensure_proto_ts_plugin_installed:
 
 .PHONY: format
 format: format_yaml
-	# frontend and ios are out of these targets until they move off the retired AuthService onto
-	# platform's SignInService, PasswordResetService and PasskeysService. Restore them then.
+	# ios is out of these targets until it moves off the retired AuthService onto platform's
+	# SignInService, PasswordResetService and PasskeysService. Restore it then.
 	(cd backend && $(MAKE) format)
+	(cd frontend && $(MAKE) format)
 
 .PHONY: format_yaml
 format_yaml: ensure_yamlfmt_installed
@@ -143,9 +144,10 @@ terraformat:
 
 .PHONY: lint
 lint:
-	# frontend and ios are out of these targets until they move off the retired AuthService onto
-	# platform's SignInService, PasswordResetService and PasskeysService. Restore them then.
+	# ios is out of these targets until it moves off the retired AuthService onto platform's
+	# SignInService, PasswordResetService and PasskeysService. Restore it then.
 	(cd backend && $(MAKE) lint)
+	(cd frontend && $(MAKE) lint)
 
 .PHONY: lint_markdown
 lint_markdown:
@@ -153,9 +155,10 @@ lint_markdown:
 
 .PHONY: test
 test: test_scripts
-	# frontend and ios are out of these targets until they move off the retired AuthService onto
-	# platform's SignInService, PasswordResetService and PasskeysService. Restore them then.
+	# ios is out of these targets until it moves off the retired AuthService onto platform's
+	# SignInService, PasswordResetService and PasskeysService. Restore it then.
 	(cd backend && $(MAKE) test)
+	(cd frontend && $(MAKE) test)
 
 .PHONY: test_scripts
 test_scripts:
@@ -163,9 +166,10 @@ test_scripts:
 
 .PHONY: build
 build:
-	# frontend and ios are out of these targets until they move off the retired AuthService onto
-	# platform's SignInService, PasswordResetService and PasskeysService. Restore them then.
+	# ios is out of these targets until it moves off the retired AuthService onto platform's
+	# SignInService, PasswordResetService and PasskeysService. Restore it then.
 	(cd backend && $(MAKE) build)
+	(cd frontend && $(MAKE) build)
 
 .PHONY: pre_commit
 pre_commit: proto build format test lint
@@ -294,28 +298,20 @@ proto_swift: ensure_protoc-gen-swift_installed ensure_protoc-gen-grpc-swift_inst
 	(cd ios && $(MAKE) format)
 
 # Hand-written files in the TS proto output directory that must survive regeneration
-PROTO_TS_HANDWRITTEN := index.ts create-clients.ts admin-clients.ts
+PROTO_TS_HANDWRITTEN := index.ts platform.ts
 
-# Generated TypeScript for adopted domains, which this target deletes and does not
-# regenerate.
-#
-# Their .proto files live in platform-go rather than here, so PROTO_FILES_PATH does not
-# reach them — but the rm -rf below does, and did, silently, on every run since the first
-# adoption. What is in these directories is worse than stale: it was generated from this
-# repository's own protos before each domain moved, so it describes services the server no
-# longer runs. They are preserved rather than regenerated because regenerating one means
-# porting every frontend call site for it, which is that domain's work rather than this
-# target's. identity is the exception and is generated above, from platform's schema.
-PROTO_TS_STALE_ADOPTED := audit comments issue_reports notifications oauth payments settings waitlists
+# The web apps call platform's services through @primandproper/platform-client, whose
+# stubs are generated from the platform-go tag it pins, so nothing platform owns is
+# generated or preserved here any more. Whatever of platform's this repository's own protos
+# import is still generated, because ts-proto cannot point an import at a package; those
+# copies exist for this repository's stubs to compile against, and the apps import
+# platform's types from the library rather than from them.
 
-# webhooks is deliberately not on that list. Its generated client is stale for the same
-# reason the others are, but no web app imports it, so letting the sweep take it removes
-# dead code rather than breaking a build. The iOS app does import it, which is why it is
-# on the Swift list below.
-
-# The same directories in the Swift output, plus webhooks, which the iOS app uses and the
-# web apps do not. See PROTO_TS_STALE_ADOPTED for why they are preserved rather than
-# regenerated.
+# The Swift output still preserves its stale copies of the adopted domains, plus webhooks,
+# which the iOS app uses. They were generated from this repository's own protos before
+# each domain moved to platform-go, so they describe services the server no longer runs;
+# they are preserved rather than regenerated because regenerating one means porting every
+# iOS call site for it.
 PROTO_SWIFT_STALE_ADOPTED := audit comments issue_reports notifications oauth payments settings waitlists webhooks
 
 .PHONY: proto_typescript
@@ -336,21 +332,11 @@ proto_typescript: ensure_protoc_installed ensure_proto_ts_plugin_installed
 			cp $(PROTO_TS_OUTPUT_PATH)/$$f $(ARTIFACTS_DIR)/proto_ts_handwritten/$$f; \
 		fi; \
 	done
-	for d in $(PROTO_TS_STALE_ADOPTED); do \
-		if [ -d $(PROTO_TS_OUTPUT_PATH)/$$d ]; then \
-			cp -R $(PROTO_TS_OUTPUT_PATH)/$$d $(ARTIFACTS_DIR)/proto_ts_handwritten/$$d; \
-		fi; \
-	done
 	rm -rf $(PROTO_TS_OUTPUT_PATH)
 	mv $(ARTIFACTS_DIR)/proto_typescript $(PROTO_TS_OUTPUT_PATH)
 	for f in $(PROTO_TS_HANDWRITTEN); do \
 		if [ -f $(ARTIFACTS_DIR)/proto_ts_handwritten/$$f ]; then \
 			cp $(ARTIFACTS_DIR)/proto_ts_handwritten/$$f $(PROTO_TS_OUTPUT_PATH)/$$f; \
-		fi; \
-	done
-	for d in $(PROTO_TS_STALE_ADOPTED); do \
-		if [ -d $(ARTIFACTS_DIR)/proto_ts_handwritten/$$d ]; then \
-			cp -R $(ARTIFACTS_DIR)/proto_ts_handwritten/$$d $(PROTO_TS_OUTPUT_PATH)/$$d; \
 		fi; \
 	done
 	rm -rf $(ARTIFACTS_DIR)/proto_ts_handwritten

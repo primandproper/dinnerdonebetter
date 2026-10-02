@@ -3,12 +3,9 @@ import { searchForRecipes } from '$lib/grpc/clients';
 import { QueryFilter } from '@dinnerdonebetter/api-client';
 
 export const load: PageServerLoad = async ({ locals }) => {
-  const token = locals.accessToken;
-  if (!token) {
-    return { recipes: [], error: 'Not authenticated' };
-  }
+  const session = locals.session;
   try {
-    const res = (await searchForRecipes(token, {
+    const res = (await searchForRecipes(session, {
       filter: QueryFilter.create({ maxResponseSize: 100 }),
     })) as { results?: Array<{ id?: string; name?: string }> };
     return { recipes: res?.results ?? [] };
