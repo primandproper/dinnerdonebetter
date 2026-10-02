@@ -13,9 +13,9 @@ times, with no way to say which operation it belonged to.
 platform's answer is identity.Hooks: one method per operation, each handed the
 operation's own database.Tx after the writes and before the commit. The audit
 entry and the outbox row this application owes go in there, so they commit with
-the rows they describe or not at all. internal/repositories/postgres/identityspike
-proved that against a real database before any of this was written — including
-the rollback, which is the half that matters.
+the rows they describe or not at all. A spike proved that against a real
+database before any of this was written — including the rollback, which is the
+half that matters.
 
 The hooks embed identity.NoopHooks. An operation added upstream reaches this
 type as a no-op rather than as a compile error naming a method nobody has

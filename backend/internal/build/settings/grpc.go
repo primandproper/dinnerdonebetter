@@ -6,8 +6,8 @@ live in internal/services/settings forwarded thirteen RPCs to the store,
 converted between two spellings of the same fields, and enforced AdminOnly —
 and platform-go v14 ships all three. The last of those arrived late: until
 platform asked PermissionWriteAdminValues inside the handler, mounting this
-surface would have let any member write a setting the catalog had reserved. See
-internal/repositories/postgres/settingsspike for the regression test.
+surface would have let any member write a setting the catalog had reserved.
+admin_only_test.go is the regression test.
 
 What this application still owns is the store it is given: the repository in
 internal/repositories/postgres/settings, which is platform's SQL store with an

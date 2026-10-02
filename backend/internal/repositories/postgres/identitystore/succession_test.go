@@ -1,21 +1,98 @@
-package identityspike
+package identitystore
 
 import (
 	"context"
+	"database/sql"
+	"os"
 	"testing"
 	"time"
 
+	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/succession"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
+	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
 	"github.com/primandproper/platform-go/v14/identity"
 	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/database/postgres"
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/identifiers"
+	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
+	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
 	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// TestMain migrates the one database this package's tests share. The identity
+// tables are in this application's migrations, rendered from platform's DDL.
+func TestMain(m *testing.M) {
+	os.Exit(pgtesting.RunTestsWithSharedDatabase(m, func(ctx context.Context, db *sql.DB) error {
+		migrator, err := migrations.NewMigrator(loggingnoop.NewLogger())
+		if err != nil {
+			return err
+		}
+
+		return migrator.Migrate(ctx, db)
+	}))
+}
+
+const tablePrefix = ddbidentity.TablePrefix
+
+type fixture struct {
+	service *identity.Service
+	store   identity.Store
+	db      database.Client
+}
+
+// buildFixture is platform's identity service over an isolated database.
+//
+// With no-op hooks: what is under test is the succession rule and the erasure
+// it runs ahead of, not the recording this application's hooks add.
+func buildFixture(t *testing.T) *fixture {
+	t.Helper()
+
+	ctx := t.Context()
+
+	_, config := pgtesting.NewIsolatedDatabaseForTest(t)
+
+	db, err := postgres.NewDatabaseClient(ctx, config,
+		postgres.WithLogger(loggingnoop.NewLogger()),
+		postgres.WithTracerProvider(tracingnoop.NewTracerProvider()))
+	require.NoError(t, err)
+
+	store, err := identity.NewSQLStore(db, identity.WithTablePrefix(tablePrefix))
+	require.NoError(t, err)
+
+	service, err := identity.NewService(db, store, identity.WithServiceLogger(loggingnoop.NewLogger()))
+	require.NoError(t, err)
+
+	return &fixture{service: service, store: store, db: db}
+}
+
+func (f *fixture) count(t *testing.T, ctx context.Context, query string, args ...any) int {
+	t.Helper()
+
+	var n int
+	require.NoError(t, f.db.Reader().QueryRowContext(ctx, query, args...).Scan(&n))
+
+	return n
+}
+
+func newRegistration() (*identity.User, *identity.Account) {
+	username := "succession_" + identifiers.New()
+
+	return &identity.User{
+		ID:            identifiers.New(),
+		Username:      username,
+		EmailAddress:  username + "@example.com",
+		AccountStatus: identity.StatusUnverified,
+	}, &identity.Account{
+		ID:   identifiers.New(),
+		Name: "the " + username + " household",
+	}
+}
 
 // The succession rule, against a real database.
 //

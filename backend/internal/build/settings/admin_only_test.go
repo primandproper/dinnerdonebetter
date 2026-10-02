@@ -1,4 +1,4 @@
-package settingsspike
+package settings
 
 import (
 	"context"
@@ -11,7 +11,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	"github.com/primandproper/platform-go/v14/callers"
 	platformsettings "github.com/primandproper/platform-go/v14/settings"
 	settingsgrpc "github.com/primandproper/platform-go/v14/settings/grpc"
 	"github.com/primandproper/platform-go/v14/settings/settingspb"
@@ -30,22 +29,23 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// This file began as a pass-2 spike asking what becomes of the AdminOnly
-// enforcement this application performs when platform's settings surface is
-// mounted. The answer was "it is lost": any member holding the value-write grant
-// — which every self-service user must hold, or they cannot set their own
-// preferences — could set a value for a setting the catalog had reserved.
+// The regression test for AdminOnly, from both directions.
 //
-// platform closed it. settings/grpc now asks PermissionWriteAdminValues inside
-// the handler, against the definition it read, because the fact that decides the
+// Mounting platform's settings surface once lost this application's AdminOnly
+// enforcement: any member holding the value-write grant — which every
+// self-service user must hold, or they cannot set their own preferences — could
+// set a value for a setting the catalog had reserved.
+//
+// platform closed it. settings/grpc asks PermissionWriteAdminValues inside the
+// handler, against the definition it read, because the fact that decides the
 // question is in the request body and not in the method name: SetValue is one
 // method serving both kinds of setting. A per-method grant could not have
 // expressed it, and neither could SubjectAuthorizer, which is handed a caller
 // and a subject and never learns which definition was named.
 //
-// What is left here is the regression test, from both directions. Refusing is
-// only half of correct — a rule that refused every member every setting would
-// pass a one-sided test and remove self-service.
+// Refusing is only half of correct — a rule that refused every member every
+// setting would pass a one-sided test and remove self-service — so this pins
+// both halves, against this deployment's own subject authorizer.
 
 const tablePrefix = ddbsettings.TablePrefix
 
@@ -61,25 +61,6 @@ func TestMain(m *testing.M) {
 
 		return migrator.Migrate(ctx, db)
 	}))
-}
-
-// selfServiceOnly is the SubjectAuthorizer platform's own documentation gives
-// for a deployment like this one: a caller may answer their own settings and
-// nobody else's.
-//
-// It is deliberately the same in every case below, because it is not what
-// separates them. Whose settings these are and whether this setting is one an
-// ordinary member may answer are two different questions, and this one only ever
-// answers the first.
-func selfServiceOnly() settingsgrpc.SubjectAuthorizer {
-	return settingsgrpc.SubjectAuthorizerFunc(
-		func(_ context.Context, caller callers.Principal, subject platformsettings.Subject) error {
-			if subject.Type == platformsettings.SubjectUser && subject.ID == caller.UserID() {
-				return nil
-			}
-
-			return callers.ErrTargetNotPermitted
-		})
 }
 
 // grantsOf is the GrantsExtractor for a caller holding exactly perms.
@@ -130,7 +111,7 @@ func buildFixture(t *testing.T, grants platformauthz.GrantsExtractor) *fixture {
 func (f *fixture) define(t *testing.T, ctx context.Context, adminOnly bool) string {
 	t.Helper()
 
-	name := "spike_setting_" + identifiers.New()
+	name := "setting_" + identifiers.New()
 
 	require.NoError(t, f.db.WithTransaction(ctx, func(tx database.Tx) error {
 		_, err := f.store.CreateDefinition(ctx, tx, ddbsettings.Scope(), &platformsettings.Definition{
