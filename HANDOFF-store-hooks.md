@@ -21,16 +21,16 @@ branch replaces every wrapper with a hooks implementation.
     as a sibling of this repo. It also blocks `make lint`: the linter runs in a
     container where `../../platform-go` does not exist.
   - `3cdad0f47` — decisions 2 and 3 applied (see below).
-- **platform-go branch:** `store-hooks`, renamed from `waitlists-hooks`. The
-  rename **closed** PR primandproper/platform-go#1079 (GitHub deleted the old
-  head ref rather than retargeting); it needs a replacement PR.
+- **platform-go branch:** `store-hooks`, renamed from `waitlists-hooks`,
+  PR primandproper/platform-go#1080. It replaces #1079, which the rename closed
+  (GitHub deleted the old head ref rather than retargeting).
   - `107df8f6` waitlists hooks (the worked example)
   - `0cd5e28a` hooks for settings, comments, issuereports, mediaregistry,
     notifications, billing, webhooks, passwordreset; before/after on updates
   - `45046fd5` identity + oauth2clients update hooks take before/after
     (**breaking** — see decisions)
   - `eb192c0a` webhook `Headers` tagged `audit:"-"`; `NoopHooks` docs name both
-    choices (local only until the replacement PR is opened)
+    choices
 
 ## Conventions the port follows
 
@@ -71,11 +71,12 @@ webhooksstore gained integration tests (they had none).
 
 ## Decisions
 
-1. **Open — breaking change in platform-go.** `identity.Hooks.AfterUpdateAccount`,
+1. **Accepted — breaking change in platform-go.** `identity.Hooks.AfterUpdateAccount`,
    `identity.Hooks.AfterUpdateUserAccountStatus` and
    `oauth2clients.Hooks.AfterUpdateClient` changed signature; both interfaces
-   shipped in v14.2.0. Leaning towards accepting it as a deliberate break,
-   pending a review of the platform code.
+   shipped in v14.2.0. It ships as a v14 minor: v14.2.0 itself made ~80
+   breaking API changes against v14.1.0 (apidiff), including a hook signature
+   change of exactly this kind, so platform-go does not hold v14 to Go semver.
 2. **Done — personal data in audit diffs.** Webhook endpoint `Headers` is
    `audit:"-"` in platform; comment `body` and waitlist signup `notes` are hashed
    in `backend/internal/domain/audit/redaction.go`.
@@ -87,10 +88,8 @@ webhooksstore gained integration tests (they had none).
 
 ## Next steps
 
-1. Decide 1 after reviewing the platform code.
-2. Open the replacement platform PR from `store-hooks` with a description
-   covering all four commits; get it merged and released.
-3. Drop `3c3932690`, bump platform-go in `backend/go.mod`, delete this file.
+1. Review #1080; get it merged and released.
+2. Drop `3c3932690`, bump platform-go in `backend/go.mod`, delete this file.
 
 Earlier context from the same session, not yet acted on: the analytics gRPC
 proxy (`internal/services/analytics/grpc`, iOS `BackendEventReporter.swift`)
