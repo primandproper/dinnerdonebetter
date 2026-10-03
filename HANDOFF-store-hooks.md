@@ -10,22 +10,27 @@ store a `Hooks` interface (one `After…` method per write, called on the
 caller's transaction, updates handed the row before and after), and this
 branch replaces every wrapper with a hooks implementation.
 
-- **DDB branch:** `store-hooks` (off `cleanup` at `818eab2b7`)
+- **DDB branch:** `store-hooks-adoption`, renamed from `store-hooks` (off `cleanup` at `818eab2b7`)
   - `624b78bd9` — the port: waitlists, settings, comments, issuereports,
     uploadedmedia, notificationsstore, payments, webhooksstore, auth
     (password reset), oauth2clientsstore (now uses the Service's hooks),
     identitystore (adapted to the new signatures, no longer embeds NoopHooks).
   - `3c3932690` — **TEMPORARY** `go.mod` replace pointing at `../../platform-go`.
     Drop it and bump platform-go once the platform PR is released. On another
-    machine it only builds if platform-go is checked out on `waitlists-hooks`
-    as a sibling of this repo.
-- **platform-go branch:** `waitlists-hooks`, PR primandproper/platform-go#1079
+    machine it only builds if platform-go is checked out on `store-hooks`
+    as a sibling of this repo. It also blocks `make lint`: the linter runs in a
+    container where `../../platform-go` does not exist.
+  - `3cdad0f47` — decisions 2 and 3 applied (see below).
+- **platform-go branch:** `store-hooks`, renamed from `waitlists-hooks`. The
+  rename **closed** PR primandproper/platform-go#1079 (GitHub deleted the old
+  head ref rather than retargeting); it needs a replacement PR.
   - `107df8f6` waitlists hooks (the worked example)
   - `0cd5e28a` hooks for settings, comments, issuereports, mediaregistry,
     notifications, billing, webhooks, passwordreset; before/after on updates
   - `45046fd5` identity + oauth2clients update hooks take before/after
     (**breaking** — see decisions)
-  - The PR description only covers the first commit; update it.
+  - `eb192c0a` webhook `Headers` tagged `audit:"-"`; `NoopHooks` docs name both
+    choices (local only until the replacement PR is opened)
 
 ## Conventions the port follows
 
@@ -60,42 +65,31 @@ webhooksstore gained integration tests (they had none).
 - DDB: builds and vets; all 11 ported packages pass with
   `RUN_CONTAINER_TESTS=true go test ./internal/repositories/postgres/...`.
   `cmd/tools/codegen/converters` fails, identically on clean `cleanup`.
-- DDB `make lint` was **not** run.
+- DDB lint: clean when golangci-lint runs natively, apart from
+  `gomoddirectives` flagging the temporary replace itself; `make lint` cannot
+  typecheck until the replace is dropped.
 
-## Open decisions
+## Decisions
 
-1. **Breaking change in platform-go.** `identity.Hooks.AfterUpdateAccount`,
+1. **Open — breaking change in platform-go.** `identity.Hooks.AfterUpdateAccount`,
    `identity.Hooks.AfterUpdateUserAccountStatus` and
    `oauth2clients.Hooks.AfterUpdateClient` changed signature; both interfaces
-   shipped in v14.2.0. Accept as a deliberate break, or pull commit `45046fd5`
-   out of the release (DDB's identitystore/oauth2clientsstore would then need
-   reverting to the old signatures).
-2. **Personal data in audit diffs** (the audit log is tamper-evident, so hard
-   to erase):
-   - webhook endpoint `Headers` may hold credentials → suggest `audit:"-"` on
-     the platform field;
-   - comment `body` and waitlist signup `notes` → suggest hash redactions in
-     `backend/internal/domain/audit/redaction.go`
-     (e.g. `"comments": {Hash: []string{"body"}}`).
-3. Smaller calls (recommendation in brackets):
-   - issuereports' transition hook gets before/after because it clears the
-     resolution note [keep];
-   - settings' value hooks also receive the `*Definition` [keep];
-   - auth's Consume diff uses a synthesized before row [drop it];
-   - identity's account event `changed` metadata now includes `lastUpdatedAt`
-     [filter it out];
-   - `identity.AfterUpdateProfile` stays without a before row, for erasure
-     reasons [leave];
-   - platform `NoopHooks` docs say "embed"; DDB deliberately doesn't [add one
-     sentence to the docs naming both choices];
-   - webhooksstore no longer records an "archived" entry for an id that matched
-     nothing; AddSubscription reviving an archived row is still recorded as a
-     creation.
+   shipped in v14.2.0. Leaning towards accepting it as a deliberate break,
+   pending a review of the platform code.
+2. **Done — personal data in audit diffs.** Webhook endpoint `Headers` is
+   `audit:"-"` in platform; comment `body` and waitlist signup `notes` are hashed
+   in `backend/internal/domain/audit/redaction.go`.
+3. **Done — smaller calls.** Kept issuereports' before/after and settings'
+   `*Definition`; `AfterConsume` records no diff; the account event's `changed`
+   list drops `lastUpdatedAt` (the audit diff keeps it); `AfterUpdateProfile`
+   left without a before row; `NoopHooks` docs updated. Webhooksstore's two
+   behavior changes stand as described in the PR.
 
 ## Next steps
 
-1. Decide 1–3, apply, re-run the tests above plus DDB `make lint`.
-2. Update the platform PR description, get it merged and released.
+1. Decide 1 after reviewing the platform code.
+2. Open the replacement platform PR from `store-hooks` with a description
+   covering all four commits; get it merged and released.
 3. Drop `3c3932690`, bump platform-go in `backend/go.mod`, delete this file.
 
 Earlier context from the same session, not yet acted on: the analytics gRPC
