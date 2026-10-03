@@ -21,20 +21,8 @@ const (
 	o11yName = "settings_db_client"
 )
 
-// repository is platform's settings store with this application's recording
-// around it.
-//
-// The store is embedded rather than held in a named field so that the reads —
-// the catalog, a subject's answers, and every resolution — are the platform's own
-// rather than forwarding stubs that could drift from it.
-type repository struct {
-	platformsettings.Store
-	tracer   tracing.Tracer
-	logger   logging.Logger
-	recorder *recording.Recorder
-}
-
-// ProvideSettingsRepository provides a new settings store.
+// ProvideSettingsRepository provides platform's settings store, with this
+// application's recording hung off its writes.
 //
 // The store is assembled through platform's own settings/config rather than by
 // naming settings.NewSQLStore's options here, so the knobs are stated once
@@ -50,6 +38,22 @@ func ProvideSettingsRepository(
 	client database.Client,
 	eventEmitter *events.Emitter,
 ) (platformsettings.Store, error) {
+	tracer := tracing.NewNamedTracer(tracerProvider, o11yName)
+
+	return newStore(ctx, logger, tracerProvider, metricsProvider, client, recording.NewRecorder(tracer, auditLogEntryRepo, eventEmitter))
+}
+
+// newStore builds the store with recorder behind its hooks. It is
+// ProvideSettingsRepository with the recorder already assembled, which is the
+// seam a test that wants the recording to fail reaches for.
+func newStore(
+	ctx context.Context,
+	logger logging.Logger,
+	tracerProvider tracing.Provider,
+	metricsProvider metrics.Provider,
+	client database.Client,
+	recorder *recording.Recorder,
+) (platformsettings.Store, error) {
 	store, err := settingscfg.NewStore(
 		ctx,
 		&settingscfg.Config{TablePrefix: branding.TablePrefix},
@@ -57,17 +61,14 @@ func ProvideSettingsRepository(
 		settingscfg.WithLogger(logger),
 		settingscfg.WithTracerProvider(tracerProvider),
 		settingscfg.WithMetricsProvider(metricsProvider),
+		settingscfg.WithStoreOptions(platformsettings.WithHooks(&hooks{
+			logger:   logging.NewNamedLogger(logger, o11yName),
+			recorder: recorder,
+		})),
 	)
 	if err != nil {
 		return nil, platformerrors.Wrap(err, "building the settings store")
 	}
 
-	tracer := tracing.NewNamedTracer(tracerProvider, o11yName)
-
-	return &repository{
-		Store:    store,
-		tracer:   tracer,
-		logger:   logging.NewNamedLogger(logger, o11yName),
-		recorder: recording.NewRecorder(tracer, auditLogEntryRepo, eventEmitter),
-	}, nil
+	return store, nil
 }

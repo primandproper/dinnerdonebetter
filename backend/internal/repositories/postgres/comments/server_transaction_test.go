@@ -47,11 +47,11 @@ import (
 //	    ...
 //	})
 //
-// So this package's decorator runs inside the server's transaction, and the two
-// statements it adds belong to that transaction. Before v14 they could not: the
-// store owned its own transaction and had already committed by the time the
-// decorator ran, which is what every `record` helper in these repositories used
-// to say in a comment.
+// So this package's hooks, which the store calls on the transaction it was
+// handed, run inside the server's transaction, and the two statements they add
+// belong to that transaction. Before v14 they could not: the store owned its own
+// transaction and had already committed by the time anything here ran, which is
+// what every `record` helper in these repositories used to say in a comment.
 //
 // Reading the signatures is not proof. These two tests are.
 
@@ -209,7 +209,7 @@ func TestServer_Integration_RecordingCommitsWithTheWrite(T *testing.T) {
 		// The row.
 		assert.Equal(t, 1, fixture.rootsOn(t, ctx, targetID))
 
-		// The entry, filed under the author — written by this package's decorator,
+		// The entry, filed under the author — written by this package's hooks,
 		// inside platform's transaction.
 		pgtesting.AssertAuditLogContainsForUser(t, ctx, fixture.db, user.ID, []pgtesting.ExpectedAuditEntry{
 			{EventType: platformaudit.EventCreated, ResourceType: resourceTypeComments, ResourceID: commentID},

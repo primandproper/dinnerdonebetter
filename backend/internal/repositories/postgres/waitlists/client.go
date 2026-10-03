@@ -18,20 +18,8 @@ const (
 	o11yName = "waitlists_db_client"
 )
 
-// repository is platform's waitlist store with this application's recording
-// around it.
-//
-// The store is embedded rather than held in a named field so that the reads —
-// every one of them, on both tables — are the platform's own rather than
-// forwarding stubs that could drift from it.
-type repository struct {
-	platformwaitlists.Store
-	tracer   tracing.Tracer
-	logger   logging.Logger
-	recorder *recording.Recorder
-}
-
-// ProvideWaitlistsRepository provides a new waitlist store.
+// ProvideWaitlistsRepository provides platform's waitlist store, with this
+// application's recording hung off its writes.
 func ProvideWaitlistsRepository(
 	logger logging.Logger,
 	tracerProvider tracing.Provider,
@@ -40,9 +28,15 @@ func ProvideWaitlistsRepository(
 	client database.Client,
 	eventEmitter *events.Emitter,
 ) (platformwaitlists.Store, error) {
+	tracer := tracing.NewNamedTracer(tracerProvider, o11yName)
+
 	store, err := platformwaitlists.NewSQLStore(
 		client,
 		platformwaitlists.WithTablePrefix(branding.TablePrefix),
+		platformwaitlists.WithHooks(&hooks{
+			logger:   logging.NewNamedLogger(logger, o11yName),
+			recorder: recording.NewRecorder(tracer, auditLogEntryRepo, eventEmitter),
+		}),
 		platformwaitlists.WithStoreLogger(logger),
 		platformwaitlists.WithStoreTracerProvider(tracerProvider),
 		platformwaitlists.WithStoreMetricsProvider(metricsProvider),
@@ -51,12 +45,5 @@ func ProvideWaitlistsRepository(
 		return nil, platformerrors.Wrap(err, "building the waitlists store")
 	}
 
-	tracer := tracing.NewNamedTracer(tracerProvider, o11yName)
-
-	return &repository{
-		Store:    store,
-		tracer:   tracer,
-		logger:   logging.NewNamedLogger(logger, o11yName),
-		recorder: recording.NewRecorder(tracer, auditLogEntryRepo, eventEmitter),
-	}, nil
+	return store, nil
 }

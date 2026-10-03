@@ -17,9 +17,11 @@ the rows they describe or not at all. A spike proved that against a real
 database before any of this was written — including the rollback, which is the
 half that matters.
 
-The hooks embed identity.NoopHooks. An operation added upstream reaches this
-type as a no-op rather than as a compile error naming a method nobody has
-decided about yet, which is how AfterCreateAccount arrived.
+The hooks implement identity.Hooks outright rather than embedding
+identity.NoopHooks, so an operation added upstream breaks this build until
+somebody decides what it records. Embedded, it would compile and record
+nothing, which is the one failure an audit log cannot notice — and how
+AfterCreateAccount once arrived here unrecorded.
 */
 package identitystore
 
@@ -49,11 +51,8 @@ const (
 	resourceTypeAccountInvitations     = "account_invitations"
 )
 
-// Hooks is platform's identity.Hooks with this application's recording in every method
-// that has something to record.
+// Hooks is platform's identity.Hooks with this application's recording in every method.
 type Hooks struct {
-	platformidentity.NoopHooks
-
 	tracer   tracing.Tracer
 	logger   logging.Logger
 	recorder *recording.Recorder

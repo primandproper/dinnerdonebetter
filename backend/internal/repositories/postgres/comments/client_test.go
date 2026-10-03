@@ -163,9 +163,8 @@ func TestRepository_Integration_Comments(t *testing.T) {
 	assert.ErrorIs(t, err, platformcomments.ErrCommentNotFound)
 }
 
-// TestRepository_Integration_ArchiveRecordsTheAuthor pins the one thing this
-// package's ArchiveComment does that the platform's does not: it reads the comment
-// first so the audit entry can name whose it was.
+// TestRepository_Integration_ArchiveRecordsTheAuthor pins that an archive's entry
+// names whose comment it was, from the row platform hands AfterArchiveComment.
 func TestRepository_Integration_ArchiveRecordsTheAuthor(t *testing.T) {
 	ctx := t.Context()
 	dbc, _, db := buildDatabaseClientForTest(t)
@@ -196,8 +195,8 @@ func TestRepository_Integration_ArchiveRecordsTheAuthor(t *testing.T) {
 }
 
 // TestRepository_Integration_ArchiveMissingRecordsNothing pins that a failed
-// archive records nothing. The read that finds the author is also what makes an
-// absent comment an error before anything is written down about it.
+// archive records nothing. Platform's guard makes an absent comment an error
+// before the hook that would write anything down is called.
 func TestRepository_Integration_ArchiveMissingRecordsNothing(t *testing.T) {
 	ctx := t.Context()
 	dbc, _, db := buildDatabaseClientForTest(t)

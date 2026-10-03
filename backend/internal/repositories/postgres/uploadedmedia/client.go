@@ -18,20 +18,8 @@ const (
 	o11yName = "uploaded_media_db_client"
 )
 
-// repository is platform's upload registry with this application's recording
-// around it.
-//
-// The store is embedded rather than held in a named field so that the five
-// reads this package adds nothing to are the platform's own rather than five
-// forwarding stubs that could drift from it.
-type repository struct {
-	mediaregistry.Store
-	tracer   tracing.Tracer
-	logger   logging.Logger
-	recorder *recording.Recorder
-}
-
-// ProvideUploadedMediaRepository provides a new upload mediaregistry.
+// ProvideUploadedMediaRepository provides platform's upload registry, with this
+// application's recording hung off its writes.
 func ProvideUploadedMediaRepository(
 	logger logging.Logger,
 	tracerProvider tracing.Provider,
@@ -40,9 +28,15 @@ func ProvideUploadedMediaRepository(
 	client database.Client,
 	eventEmitter *events.Emitter,
 ) (mediaregistry.Store, error) {
+	tracer := tracing.NewNamedTracer(tracerProvider, o11yName)
+
 	store, err := mediaregistry.NewSQLStore(
 		client,
 		mediaregistry.WithTablePrefix(branding.TablePrefix),
+		mediaregistry.WithHooks(&hooks{
+			logger:   logging.NewNamedLogger(logger, o11yName),
+			recorder: recording.NewRecorder(tracer, auditLogEntryRepo, eventEmitter),
+		}),
 		mediaregistry.WithStoreLogger(logger),
 		mediaregistry.WithStoreTracerProvider(tracerProvider),
 		mediaregistry.WithStoreMetricsProvider(metricsProvider),
@@ -51,12 +45,5 @@ func ProvideUploadedMediaRepository(
 		return nil, platformerrors.Wrap(err, "building the upload registry store")
 	}
 
-	tracer := tracing.NewNamedTracer(tracerProvider, o11yName)
-
-	return &repository{
-		Store:    store,
-		tracer:   tracer,
-		logger:   logging.NewNamedLogger(logger, o11yName),
-		recorder: recording.NewRecorder(tracer, auditLogEntryRepo, eventEmitter),
-	}, nil
+	return store, nil
 }

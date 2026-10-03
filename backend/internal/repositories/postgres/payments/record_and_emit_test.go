@@ -12,6 +12,10 @@ import (
 	platformaudit "github.com/primandproper/platform-go/v14/audit"
 	"github.com/primandproper/platform-go/v14/billing"
 	"github.com/primandproper/primitives-go/v2/database"
+	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
+	metricsnoop "github.com/primandproper/primitives-go/v2/observability/metrics/noop"
+	"github.com/primandproper/primitives-go/v2/observability/tracing"
+	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
 	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/stretchr/testify/assert"
@@ -38,22 +42,26 @@ import (
 // here. See docs/audit.md.
 func TestRepository_Integration_RecordAndEmitFailureSurfaces(t *testing.T) {
 	ctx := t.Context()
-	dbc, auditRepo, db := buildDatabaseClientForTest(t)
+	_, _, db := buildDatabaseClientForTest(t)
 
 	expected := errors.New("the log said no")
 
-	repo, ok := dbc.(*repository)
-	require.True(t, ok)
-
-	// The recorder is swapped rather than a field it closed over: it holds its own reference to
+	// A store whose hooks record through a repository that refuses every entry. The recorder is
+	// built over the mock rather than a field swapped afterwards: it holds its own reference to
 	// the audit repository, so reassigning the repository after construction would leave this
-	// test asserting nothing. The emitter is nil because the harness builds none, which is what
-	// ProvidePaymentsRepository was handed above.
-	repo.recorder = recording.NewRecorder(repo.tracer, &auditmock.RepositoryMock{
+	// test asserting nothing. The emitter is nil because the harness builds none.
+	failing := &auditmock.RepositoryMock{
 		RecordFunc: func(context.Context, database.Tx, ...*platformaudit.Entry) error {
 			return expected
 		},
-	}, nil)
+	}
+
+	repo, err := newStore(ctx, loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), metricsnoop.NewMetricsProvider(), db, &hooks{
+		logger:            loggingnoop.NewLogger(),
+		auditLogEntryRepo: failing,
+		recorder:          recording.NewRecorder(tracing.NewNamedTracer(tracingnoop.NewTracerProvider(), o11yName), failing, nil),
+	})
+	require.NoError(t, err)
 
 	product := fakes.BuildFakeProduct()
 
@@ -64,10 +72,8 @@ func TestRepository_Integration_RecordAndEmitFailureSurfaces(t *testing.T) {
 	require.ErrorIs(t, err, expected)
 	assert.Nil(t, created)
 
-	// The catalog row went with the entry. Read with a working recorder and on the database
-	// rather than on the rolled-back transaction, so what is being asserted is what committed.
-	repo.recorder = recording.NewRecorder(repo.tracer, auditRepo, nil)
-
+	// The catalog row went with the entry. Read on the database rather than on the rolled-back
+	// transaction, so what is being asserted is what committed.
 	survived, err := repo.GetProduct(ctx, db.Reader(), tenancy.Global(), product.ID)
 	require.Error(t, err)
 	assert.Nil(t, survived)

@@ -21,22 +21,8 @@ const (
 	o11yName = "payments_db_client"
 )
 
-// repository is platform's billing store with this application's recording
-// around it.
-//
-// The store is embedded rather than held in a named field so that the reads —
-// the catalog, an account's subscriptions, purchases and ledger, and the
-// current-subscription read every entitlement check makes — are the platform's
-// own rather than forwarding stubs that could drift from it.
-type repository struct {
-	billing.Store
-	tracer            tracing.Tracer
-	logger            logging.Logger
-	auditLogEntryRepo audit.Repository
-	recorder          *recording.Recorder
-}
-
-// ProvidePaymentsRepository provides a new billing store.
+// ProvidePaymentsRepository provides platform's billing store, with this
+// application's recording hung off its writes.
 //
 // The store is assembled through platform's own billing/config rather than by
 // naming billing.NewSQLStore's options here, so the knobs are stated once
@@ -52,6 +38,26 @@ func ProvidePaymentsRepository(
 	client database.Client,
 	eventEmitter *events.Emitter,
 ) (billing.Store, error) {
+	tracer := tracing.NewNamedTracer(tracerProvider, o11yName)
+
+	return newStore(ctx, logger, tracerProvider, metricsProvider, client, &hooks{
+		logger:            logging.NewNamedLogger(logger, o11yName),
+		auditLogEntryRepo: auditLogEntryRepo,
+		recorder:          recording.NewRecorder(tracer, auditLogEntryRepo, eventEmitter),
+	})
+}
+
+// newStore builds the billing store with h installed as its hooks. It is
+// ProvidePaymentsRepository with the recording already assembled, which is what
+// lets a test install recording that fails.
+func newStore(
+	ctx context.Context,
+	logger logging.Logger,
+	tracerProvider tracing.Provider,
+	metricsProvider metrics.Provider,
+	client database.Client,
+	h *hooks,
+) (billing.Store, error) {
 	store, err := billingcfg.NewStore(
 		ctx,
 		&billingcfg.Config{TablePrefix: branding.TablePrefix},
@@ -59,18 +65,11 @@ func ProvidePaymentsRepository(
 		billingcfg.WithLogger(logger),
 		billingcfg.WithTracerProvider(tracerProvider),
 		billingcfg.WithMetricsProvider(metricsProvider),
+		billingcfg.WithStoreOptions(billing.WithHooks(h)),
 	)
 	if err != nil {
 		return nil, platformerrors.Wrap(err, "building the billing store")
 	}
 
-	tracer := tracing.NewNamedTracer(tracerProvider, o11yName)
-
-	return &repository{
-		Store:             store,
-		tracer:            tracer,
-		logger:            logging.NewNamedLogger(logger, o11yName),
-		auditLogEntryRepo: auditLogEntryRepo,
-		recorder:          recording.NewRecorder(tracer, auditLogEntryRepo, eventEmitter),
-	}, nil
+	return store, nil
 }

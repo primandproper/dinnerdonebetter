@@ -6,11 +6,11 @@ import (
 	"time"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
+	auditmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit/mock"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
 	platformaudit "github.com/primandproper/platform-go/v14/audit"
 	"github.com/primandproper/platform-go/v14/authentication/passwordreset"
-	passwordresetmock "github.com/primandproper/platform-go/v14/authentication/passwordreset/mock"
 	"github.com/primandproper/primitives-go/v2/database"
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
@@ -24,11 +24,10 @@ import (
 
 const exampleTokenLifetime = 30 * time.Minute
 
-// buildAuditedStoreForTest wraps a store that does nothing but succeed, so the audit half
-// can be exercised without a database.
-func buildAuditedStoreForTest(inner passwordreset.Store, auditRepo audit.Repository) *auditedPasswordResetTokenStore {
-	return &auditedPasswordResetTokenStore{
-		Store:             inner,
+// buildHooksForTest builds the recording hooks over an audit repository a test controls, so
+// what they record can be exercised without a database.
+func buildHooksForTest(auditRepo audit.Repository) *passwordResetHooks {
+	return &passwordResetHooks{
 		auditLogEntryRepo: auditRepo,
 		tracer:            tracing.NewTracerForTest("test"),
 		logger:            loggingnoop.NewLogger(),
@@ -109,54 +108,91 @@ func TestProvidePasswordResetTokenStore(T *testing.T) {
 	})
 }
 
-func TestAuditedPasswordResetTokenStore_Issue(T *testing.T) {
+func TestPasswordResetHooks_AfterIssue(T *testing.T) {
 	T.Parallel()
 
-	T.Run("with error issuing", func(t *testing.T) {
+	T.Run("standard", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		token := &passwordreset.Token{ID: "token", UserID: "user", ExpiresAt: time.Now().Add(exampleTokenLifetime)}
+
+		auditRepo := &auditmock.RepositoryMock{
+			RecordFunc: func(context.Context, database.Tx, ...*platformaudit.Entry) error { return nil },
+		}
+
+		// database.NewTxForTesting exists for exactly this: the marker method on database.Tx
+		// is unexported, so a test double cannot implement one. Nothing is ever sent on this
+		// transaction — the audit repository is mocked.
+		require.NoError(t, buildHooksForTest(auditRepo).AfterIssue(ctx, database.NewTxForTesting(nil), tenancy.Global(), token))
+
+		require.Len(t, auditRepo.RecordCalls(), 1)
+		require.Len(t, auditRepo.RecordCalls()[0].Entries, 1)
+		entry := auditRepo.RecordCalls()[0].Entries[0]
+		assert.Equal(t, platformaudit.EventCreated, entry.EventType)
+		assert.Equal(t, resourceTypePasswordResetTokens, entry.ResourceType)
+		assert.Equal(t, token.ID, entry.ResourceID)
+		assert.Equal(t, token.UserID, entry.Actor.ID)
+		assert.Empty(t, entry.Changes)
+	})
+
+	T.Run("with error recording", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
 		expected := platformerrors.New("blah")
 
-		inner := &passwordresetmock.StoreMock{
-			IssueFunc: func(context.Context, database.Tx, tenancy.Scope, string, time.Duration) (*passwordreset.Issuance, error) {
-				return nil, expected
-			},
+		auditRepo := &auditmock.RepositoryMock{
+			RecordFunc: func(context.Context, database.Tx, ...*platformaudit.Entry) error { return expected },
 		}
 
-		store := buildAuditedStoreForTest(inner, nil)
-
-		// database.NewTxForTesting exists for exactly this: the marker method on database.Tx
-		// is unexported, so a test double cannot implement one. Nothing is ever sent on this
-		// transaction — the inner store is mocked and refuses first.
-		actual, err := store.Issue(ctx, database.NewTxForTesting(nil), tenancy.Global(), t.Name(), exampleTokenLifetime)
+		err := buildHooksForTest(auditRepo).AfterIssue(ctx, database.NewTxForTesting(nil), tenancy.Global(), &passwordreset.Token{ID: "token", UserID: "user"})
 		require.ErrorIs(t, err, expected)
-		assert.Nil(t, actual)
-		require.Len(t, inner.IssueCalls(), 1)
-		assert.Equal(t, exampleTokenLifetime, inner.IssueCalls()[0].TTL)
 	})
 }
 
-func TestAuditedPasswordResetTokenStore_Consume(T *testing.T) {
+func TestPasswordResetHooks_AfterConsume(T *testing.T) {
 	T.Parallel()
 
-	T.Run("with error consuming", func(t *testing.T) {
+	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
+		redeemedAt := time.Now()
+		token := &passwordreset.Token{ID: "token", UserID: "user", RedeemedAt: &redeemedAt}
 
-		inner := &passwordresetmock.StoreMock{
-			ConsumeFunc: func(context.Context, database.Tx, tenancy.Scope, string) (*passwordreset.Token, error) {
-				return nil, passwordreset.ErrTokenRedeemed
-			},
+		auditRepo := &auditmock.RepositoryMock{
+			RecordFunc: func(context.Context, database.Tx, ...*platformaudit.Entry) error { return nil },
 		}
 
-		store := buildAuditedStoreForTest(inner, nil)
+		require.NoError(t, buildHooksForTest(auditRepo).AfterConsume(ctx, database.NewTxForTesting(nil), tenancy.Global(), token))
 
-		actual, err := store.Consume(ctx, database.NewTxForTesting(nil), tenancy.Global(), t.Name())
-		require.ErrorIs(t, err, passwordreset.ErrTokenRedeemed)
-		assert.Nil(t, actual)
-		assert.Len(t, inner.ConsumeCalls(), 1)
+		require.Len(t, auditRepo.RecordCalls(), 1)
+		require.Len(t, auditRepo.RecordCalls()[0].Entries, 1)
+		entry := auditRepo.RecordCalls()[0].Entries[0]
+		assert.Equal(t, platformaudit.EventUpdated, entry.EventType)
+		assert.Equal(t, resourceTypePasswordResetTokens, entry.ResourceType)
+		assert.Equal(t, token.ID, entry.ResourceID)
+		assert.Equal(t, token.UserID, entry.Actor.ID)
+
+		// The redemption is the whole of what changed.
+		require.Len(t, entry.Changes, 1)
+		assert.Contains(t, entry.Changes, "redeemedAt")
+	})
+
+	T.Run("with error recording", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		expected := platformerrors.New("blah")
+		redeemedAt := time.Now()
+
+		auditRepo := &auditmock.RepositoryMock{
+			RecordFunc: func(context.Context, database.Tx, ...*platformaudit.Entry) error { return expected },
+		}
+
+		err := buildHooksForTest(auditRepo).AfterConsume(ctx, database.NewTxForTesting(nil), tenancy.Global(), &passwordreset.Token{ID: "token", UserID: "user", RedeemedAt: &redeemedAt})
+		require.ErrorIs(t, err, expected)
 	})
 }
 

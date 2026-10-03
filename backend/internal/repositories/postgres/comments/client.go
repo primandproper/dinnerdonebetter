@@ -18,21 +18,8 @@ const (
 	o11yName = "comments_db_client"
 )
 
-// repository is platform's comment store with this application's recording
-// around it.
-//
-// The store is embedded rather than held in a named field so that the seven
-// methods this package adds nothing to — every read, and both bulk deletes —
-// are the platform's own rather than seven forwarding stubs that could drift
-// from it.
-type repository struct {
-	platformcomments.Store
-	tracer   tracing.Tracer
-	logger   logging.Logger
-	recorder *recording.Recorder
-}
-
-// ProvideCommentsRepository provides a new comment store.
+// ProvideCommentsRepository provides platform's comment store, with this
+// application's recording hung off its writes.
 //
 // The target catalog is a parameter because it is the one thing platform refuses
 // to guess at, and a store built without one accepts no writes at all. It is
@@ -47,10 +34,16 @@ func ProvideCommentsRepository(
 	eventEmitter *events.Emitter,
 	targets platformcomments.Targets,
 ) (platformcomments.Store, error) {
+	tracer := tracing.NewNamedTracer(tracerProvider, o11yName)
+
 	store, err := platformcomments.NewSQLStore(
 		client,
 		platformcomments.WithTablePrefix(branding.TablePrefix),
 		platformcomments.WithTargets(targets),
+		platformcomments.WithHooks(&hooks{
+			logger:   logging.NewNamedLogger(logger, o11yName),
+			recorder: recording.NewRecorder(tracer, auditLogEntryRepo, eventEmitter),
+		}),
 		platformcomments.WithStoreLogger(logger),
 		platformcomments.WithStoreTracerProvider(tracerProvider),
 		platformcomments.WithStoreMetricsProvider(metricsProvider),
@@ -59,12 +52,5 @@ func ProvideCommentsRepository(
 		return nil, platformerrors.Wrap(err, "building the comments store")
 	}
 
-	tracer := tracing.NewNamedTracer(tracerProvider, o11yName)
-
-	return &repository{
-		Store:    store,
-		tracer:   tracer,
-		logger:   logging.NewNamedLogger(logger, o11yName),
-		recorder: recording.NewRecorder(tracer, auditLogEntryRepo, eventEmitter),
-	}, nil
+	return store, nil
 }

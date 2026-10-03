@@ -155,9 +155,8 @@ func TestRepository_Integration_UploadedMedia(t *testing.T) {
 	assert.ErrorIs(t, err, mediaregistry.ErrObjectNotFound)
 }
 
-// TestRepository_Integration_ArchiveRecordsTheOwner pins the one thing this package's
-// ArchiveObject does that the platform's does not: it reads the object first so the
-// audit entry can name whose it was.
+// TestRepository_Integration_ArchiveRecordsTheOwner pins that the archive's audit entry
+// names whose the object was, from the archived row platform hands AfterArchiveObject.
 func TestRepository_Integration_ArchiveRecordsTheOwner(t *testing.T) {
 	ctx := t.Context()
 	dbc, _, db := buildDatabaseClientForTest(t)
@@ -183,8 +182,7 @@ func TestRepository_Integration_ArchiveRecordsTheOwner(t *testing.T) {
 }
 
 // TestRepository_Integration_ArchiveMissingRecordsNothing pins that a failed archive
-// records nothing. The read that finds the owner is also what makes an absent object
-// an error before anything is written down about it.
+// records nothing: platform refuses an absent object before any hook runs.
 func TestRepository_Integration_ArchiveMissingRecordsNothing(t *testing.T) {
 	ctx := t.Context()
 	dbc, _, db := buildDatabaseClientForTest(t)

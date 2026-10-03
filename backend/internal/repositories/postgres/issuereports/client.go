@@ -18,21 +18,8 @@ const (
 	o11yName = "issue_reports_db_client"
 )
 
-// repository is platform's issue report store with this application's recording
-// around it.
-//
-// The store is embedded rather than held in a named field so that the seven
-// methods this package adds nothing to — every read, and the erasure delete —
-// are the platform's own rather than seven forwarding stubs that could drift
-// from it.
-type repository struct {
-	platformissuereports.Store
-	tracer   tracing.Tracer
-	logger   logging.Logger
-	recorder *recording.Recorder
-}
-
-// ProvideIssueReportsRepository provides a new issue report store.
+// ProvideIssueReportsRepository provides platform's issue report store, with
+// this application's recording hung off its writes.
 func ProvideIssueReportsRepository(
 	logger logging.Logger,
 	tracerProvider tracing.Provider,
@@ -41,9 +28,15 @@ func ProvideIssueReportsRepository(
 	client database.Client,
 	eventEmitter *events.Emitter,
 ) (platformissuereports.Store, error) {
+	tracer := tracing.NewNamedTracer(tracerProvider, o11yName)
+
 	store, err := platformissuereports.NewSQLStore(
 		client,
 		platformissuereports.WithTablePrefix(branding.TablePrefix),
+		platformissuereports.WithHooks(&hooks{
+			logger:   logging.NewNamedLogger(logger, o11yName),
+			recorder: recording.NewRecorder(tracer, auditLogEntryRepo, eventEmitter),
+		}),
 		platformissuereports.WithStoreLogger(logger),
 		platformissuereports.WithStoreTracerProvider(tracerProvider),
 		platformissuereports.WithStoreMetricsProvider(metricsProvider),
@@ -52,12 +45,5 @@ func ProvideIssueReportsRepository(
 		return nil, platformerrors.Wrap(err, "building the issue reports store")
 	}
 
-	tracer := tracing.NewNamedTracer(tracerProvider, o11yName)
-
-	return &repository{
-		Store:    store,
-		tracer:   tracer,
-		logger:   logging.NewNamedLogger(logger, o11yName),
-		recorder: recording.NewRecorder(tracer, auditLogEntryRepo, eventEmitter),
-	}, nil
+	return store, nil
 }

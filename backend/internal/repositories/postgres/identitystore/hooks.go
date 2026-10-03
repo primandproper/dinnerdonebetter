@@ -2,6 +2,8 @@ package identitystore
 
 import (
 	"context"
+	"maps"
+	"slices"
 	"time"
 
 	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
@@ -10,6 +12,7 @@ import (
 	platformaudit "github.com/primandproper/platform-go/v14/audit"
 	platformidentity "github.com/primandproper/platform-go/v14/identity"
 	"github.com/primandproper/primitives-go/v2/database"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
@@ -24,9 +27,12 @@ import (
 //
 // Every value comes off the arguments rather than off a read. platform hands each hook
 // the rows the operation wrote and, where the operation replaced something, what was
-// there before — the previous owner of a transferred account, the roles a membership
-// held, whether a password change was already required. None of that is readable inside
-// the transaction that overwrote it, which is why it is an argument.
+// there before — the account and the user as they stood before an update, the previous
+// owner of a transferred account, the roles a membership held, whether a password change
+// was already required. None of that is readable inside the transaction that overwrote
+// it, which is why it is an argument. Where the argument is a whole before row, the
+// entry's Changes is the diff of the two; where it is one previous value, the entry
+// carries that value on its metadata, as it always has.
 //
 // And the entries a chain has to be able to find go on that chain. An entry about an
 // account is filed under the account; one about a person alone is filed under them. See
@@ -268,20 +274,29 @@ func (h *Hooks) AfterArchiveAccount(
 }
 
 // AfterUpdateUserAccountStatus records a ban, a reinstatement, or any other status move.
+//
+// The diff carries the explanation alongside the status, which is what the before row
+// buys over the previous status alone: a reinstatement whose entry can say what the
+// suspension was for. Both rows are redacted, so no credential column can reach it.
 func (h *Hooks) AfterUpdateUserAccountStatus(
 	ctx context.Context,
 	tx database.Tx,
 	_ tenancy.Scope,
-	user *platformidentity.User,
-	previousStatus platformidentity.AccountStatus,
+	before, after *platformidentity.User,
 ) error {
-	if user == nil {
+	if before == nil || after == nil {
 		return nil
 	}
 
-	e := userEntry(user.ID, platformaudit.EventUpdated, ddbidentity.UserStatusChangedServiceEventType)
-	e.metadata["previousStatus"] = string(previousStatus)
-	e.metadata["newStatus"] = string(user.AccountStatus)
+	changes, err := platformaudit.Diff(before, after)
+	if err != nil {
+		return platformerrors.Wrap(err, "diffing the user's account status")
+	}
+
+	e := userEntry(after.ID, platformaudit.EventUpdated, ddbidentity.UserStatusChangedServiceEventType)
+	e.changes = changes
+	e.metadata["previousStatus"] = string(before.AccountStatus)
+	e.metadata["newStatus"] = string(after.AccountStatus)
 
 	return h.record(ctx, tx, e)
 }
@@ -329,22 +344,41 @@ func (h *Hooks) AfterUpdateProfile(
 }
 
 // AfterUpdateAccount records a household's own details changing.
+//
+// The audit entry carries the diff, old values and new. The event carries only the
+// names of the fields that moved, as it did when platform handed this hook those names
+// rather than the rows: a webhook subscriber told a household changed reads the
+// household for what it is now.
 func (h *Hooks) AfterUpdateAccount(
 	ctx context.Context,
 	tx database.Tx,
 	_ tenancy.Scope,
-	account *platformidentity.Account,
-	changed []string,
+	before, after *platformidentity.Account,
 ) error {
-	if account == nil {
+	if before == nil || after == nil {
 		return nil
 	}
 
-	e := accountEntry(account.ID, account.OwnerUserID, platformaudit.EventUpdated,
+	changes, err := platformaudit.Diff(before, after)
+	if err != nil {
+		return platformerrors.Wrap(err, "diffing the updated account")
+	}
+
+	e := accountEntry(after.ID, after.OwnerUserID, platformaudit.EventUpdated,
 		ddbidentity.AccountUpdatedServiceEventType)
-	e.metadata["changed"] = changed
+	e.changes = changes
+	e.metadata["changed"] = changedFields(changes)
 
 	return h.record(ctx, tx, e)
+}
+
+// changedFields names the fields a diff says moved, in a stable order.
+//
+// It is what platform used to hand AfterUpdateAccount directly, with one difference
+// worth knowing: the diff is of the whole row, so lastUpdatedAt — which every save
+// stamps — is named alongside the fields the account holder edited.
+func changedFields(changes map[string]platformaudit.Change) []string {
+	return slices.Sorted(maps.Keys(changes))
 }
 
 // AfterRecordAgreement records somebody accepting terms.

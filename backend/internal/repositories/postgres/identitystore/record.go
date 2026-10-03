@@ -23,6 +23,10 @@ type entry struct {
 	// metadata is what the data change event carries.
 	metadata map[string]any
 
+	// changes is the field-level diff an update's audit entry carries, and nil for
+	// every entry whose hook was not handed the row as it stood before.
+	changes map[string]platformaudit.Change
+
 	// resourceType and relevantID name the row.
 	resourceType string
 	relevantID   string
@@ -67,6 +71,7 @@ func (h *Hooks) record(ctx context.Context, tx database.Tx, entries ...*entry) e
 		tracing.AttachToSpan(span, e.resourceType, e.relevantID)
 
 		auditEntry := audit.NewEntry(e.belongsToUser, e.belongsToAccount, e.resourceType, e.relevantID, e.auditEventType)
+		auditEntry.Changes = e.changes
 
 		metadata := e.metadata
 		if metadata == nil {
