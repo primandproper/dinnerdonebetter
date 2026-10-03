@@ -175,9 +175,9 @@ func TestPasswordResetHooks_AfterConsume(T *testing.T) {
 		assert.Equal(t, token.ID, entry.ResourceID)
 		assert.Equal(t, token.UserID, entry.Actor.ID)
 
-		// The redemption is the whole of what changed.
-		require.Len(t, entry.Changes, 1)
-		assert.Contains(t, entry.Changes, "redeemedAt")
+		// No diff: platform hands no before row, and inventing one would only restate
+		// the redemption the entry already records.
+		assert.Empty(t, entry.Changes)
 	})
 
 	T.Run("with error recording", func(t *testing.T) {

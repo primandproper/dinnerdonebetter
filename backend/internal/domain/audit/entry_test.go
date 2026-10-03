@@ -99,4 +99,13 @@ func TestRedactions(T *testing.T) {
 		assert.Contains(t, Redactions[""].Hash, "token")
 		assert.Contains(t, Redactions["password_reset_tokens"].Hash, "token")
 	})
+
+	// Free text a person wrote, or that was written about them, would otherwise sit in
+	// the one table their erasure cannot reach.
+	T.Run("hashes free text about a person", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Contains(t, Redactions["comments"].Hash, "body")
+		assert.Contains(t, Redactions["waitlist_signups"].Hash, "notes")
+	})
 }

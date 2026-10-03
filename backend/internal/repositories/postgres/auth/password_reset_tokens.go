@@ -10,7 +10,6 @@ import (
 	platformaudit "github.com/primandproper/platform-go/v14/audit"
 	"github.com/primandproper/platform-go/v14/authentication/passwordreset"
 	"github.com/primandproper/primitives-go/v2/database"
-	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/observability"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
@@ -115,25 +114,12 @@ func (h *passwordResetHooks) AfterIssue(ctx context.Context, tx database.Tx, _ t
 	return h.record(ctx, tx, audit.NewEntry(token.UserID, "", resourceTypePasswordResetTokens, token.ID, platformaudit.EventCreated))
 }
 
-// AfterConsume records the redemption, and what it changed.
+// AfterConsume records the redemption.
 //
-// Platform hands no before row, because a token Consume answers with was unredeemed a
-// moment ago by construction — a redeemed one is refused before anything is written. So
-// the before is the token with its redemption taken off, which is exactly what the row
-// held.
+// The entry carries no diff. Platform hands no before row, and the only field a Consume
+// moves is the redemption time — which the entry's own timestamp already says.
 func (h *passwordResetHooks) AfterConsume(ctx context.Context, tx database.Tx, _ tenancy.Scope, token *passwordreset.Token) error {
-	before := *token
-	before.RedeemedAt = nil
-
-	changes, err := platformaudit.Diff(&before, token)
-	if err != nil {
-		return platformerrors.Wrap(err, "diffing the consumed password reset token")
-	}
-
-	entry := audit.NewEntry(token.UserID, "", resourceTypePasswordResetTokens, token.ID, platformaudit.EventUpdated)
-	entry.Changes = changes
-
-	return h.record(ctx, tx, entry)
+	return h.record(ctx, tx, audit.NewEntry(token.UserID, "", resourceTypePasswordResetTokens, token.ID, platformaudit.EventUpdated))
 }
 
 // AfterRevokeForUser records nothing. It is only ever called immediately after a Consume

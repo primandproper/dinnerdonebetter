@@ -65,4 +65,15 @@ var Redactions = map[string]platformaudit.Redaction{
 	"issue_reports": {
 		Drop: []string{"contact_phone", "contactPhone"},
 	},
+	// What somebody wrote is theirs, and erasing them has to reach it; a copy in the
+	// one table built not to forget would outlive the comment. The digest still says
+	// that the body changed, which is the edit history an audit needs.
+	"comments": {
+		Hash: []string{"body"},
+	},
+	// Notes are free text an administrator wrote about a person on the list —
+	// exactly what a signup's erasure has to take with it.
+	"waitlist_signups": {
+		Hash: []string{"notes"},
+	},
 }

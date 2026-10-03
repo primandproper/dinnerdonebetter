@@ -374,11 +374,14 @@ func (h *Hooks) AfterUpdateAccount(
 
 // changedFields names the fields a diff says moved, in a stable order.
 //
-// It is what platform used to hand AfterUpdateAccount directly, with one difference
-// worth knowing: the diff is of the whole row, so lastUpdatedAt — which every save
-// stamps — is named alongside the fields the account holder edited.
+// It is what platform used to hand AfterUpdateAccount directly. The diff is of the
+// whole row, so it also names lastUpdatedAt, which every save stamps; that is left
+// to the audit entry, since a subscriber asking what the account holder edited is
+// not told anything by it.
 func changedFields(changes map[string]platformaudit.Change) []string {
-	return slices.Sorted(maps.Keys(changes))
+	fields := slices.Sorted(maps.Keys(changes))
+
+	return slices.DeleteFunc(fields, func(field string) bool { return field == "lastUpdatedAt" })
 }
 
 // AfterRecordAgreement records somebody accepting terms.
