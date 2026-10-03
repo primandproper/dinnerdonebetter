@@ -31,6 +31,10 @@ branch replaces every wrapper with a hooks implementation.
     (**breaking** — see decisions)
   - `eb192c0a` webhook `Headers` tagged `audit:"-"`; `NoopHooks` docs name both
     choices
+  - `473508fc` (review) `internal/hookroster` checks every Tx-taking store
+    write has an After hook of its name; no-hooks statement counts pinned per
+    package; `Signup.Contact` tagged `audit:"-"`. DDB needed no change: its
+    waitlist events already name a signup by ID, never by contact.
 
 ## Conventions the port follows
 
