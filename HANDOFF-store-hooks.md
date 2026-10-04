@@ -40,11 +40,6 @@ branch replaces every wrapper with a hooks implementation.
     write has an After hook of its name; no-hooks statement counts pinned per
     package; `Signup.Contact` tagged `audit:"-"`. DDB needed no change: its
     waitlist events already name a signup by ID, never by contact.
-  - `d4039b6d` hooks are a required constructor argument (WithHooks removed).
-    DDB passes its hooks positionally; tools, localdev seeds, the db-cleaner's
-    password reset store and test fixtures pass `NoopHooks{}` by name, each
-    with its reason. DDB uses none of the platform `do` registrations that
-    now require a registered Hooks.
 
 ## Conventions the port follows
 

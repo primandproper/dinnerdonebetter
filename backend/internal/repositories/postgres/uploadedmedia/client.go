@@ -32,11 +32,11 @@ func ProvideUploadedMediaRepository(
 
 	store, err := mediaregistry.NewSQLStore(
 		client,
-		&hooks{
+		mediaregistry.WithTablePrefix(branding.TablePrefix),
+		mediaregistry.WithHooks(&hooks{
 			logger:   logging.NewNamedLogger(logger, o11yName),
 			recorder: recording.NewRecorder(tracer, auditLogEntryRepo, eventEmitter),
-		},
-		mediaregistry.WithTablePrefix(branding.TablePrefix),
+		}),
 		mediaregistry.WithStoreLogger(logger),
 		mediaregistry.WithStoreTracerProvider(tracerProvider),
 		mediaregistry.WithStoreMetricsProvider(metricsProvider),

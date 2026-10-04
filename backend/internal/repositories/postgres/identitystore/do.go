@@ -48,7 +48,9 @@ func RegisterIdentityStore(i do.Injector) {
 		return platformidentity.NewService(
 			do.MustInvoke[database.Client](i),
 			do.MustInvoke[platformidentity.Store](i),
-			do.MustInvoke[*Hooks](i),
+			// Without this every identity write is a write nothing recorded, and the
+			// failure is silent: NoopHooks satisfies the interface.
+			platformidentity.WithHooks(do.MustInvoke[*Hooks](i)),
 			platformidentity.WithServiceLogger(do.MustInvoke[logging.Logger](i)),
 			platformidentity.WithServiceTracerProvider(do.MustInvoke[tracing.Provider](i)),
 			platformidentity.WithServiceMetricsProvider(do.MustInvoke[metrics.Provider](i)),

@@ -200,7 +200,7 @@ func runInit(db *dbFlags, adminUsername, adminPassword, adminEmail, apiServerURL
 		return fmt.Errorf("pinging database client: %w", err)
 	}
 
-	// The directory, with NoopHooks: bootstrap runs before there is anybody to attribute
+	// The directory, without hooks: bootstrap runs before there is anybody to attribute
 	// a registration to, and an audit entry naming nobody is noise in a log whose value
 	// is attribution. The API server's registrations are recorded.
 	directory, identityStore, err := localdev.IdentityDirectory(logger, tracerProvider, client)
@@ -212,8 +212,7 @@ func runInit(db *dbFlags, adminUsername, adminPassword, adminEmail, apiServerURL
 		return fmt.Errorf("building OAuth2 client store: %w", err)
 	}
 
-	// NoopHooks for the directory's reason above: the clients bootstrap seeds are nobody's act.
-	oauthRegistry, err := platformoauth2clients.NewService(client, oauthStore, platformoauth2clients.NoopHooks{})
+	oauthRegistry, err := platformoauth2clients.NewService(client, oauthStore)
 	if err != nil {
 		return fmt.Errorf("building OAuth2 client registry: %w", err)
 	}

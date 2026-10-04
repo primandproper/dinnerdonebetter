@@ -65,7 +65,7 @@ func buildFixture(t *testing.T) *fixture {
 	store, err := identity.NewSQLStore(db, identity.WithTablePrefix(tablePrefix))
 	require.NoError(t, err)
 
-	service, err := identity.NewService(db, store, identity.NoopHooks{}, identity.WithServiceLogger(loggingnoop.NewLogger()))
+	service, err := identity.NewService(db, store, identity.WithServiceLogger(loggingnoop.NewLogger()))
 	require.NoError(t, err)
 
 	return &fixture{service: service, store: store, db: db}

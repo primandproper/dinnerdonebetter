@@ -43,12 +43,12 @@ func RegisterOAuth2ClientsStore(i do.Injector) {
 		return platformoauth2clients.NewService(
 			do.MustInvoke[database.Client](i),
 			do.MustInvoke[platformoauth2clients.Store](i),
-			ProvideHooks(
+			platformoauth2clients.WithHooks(ProvideHooks(
 				logger,
 				tracerProvider,
 				do.MustInvoke[audit.Repository](i),
 				do.MustInvoke[*events.Emitter](i),
-			),
+			)),
 			platformoauth2clients.WithServiceLogger(logger),
 			platformoauth2clients.WithServiceTracerProvider(tracerProvider),
 			platformoauth2clients.WithServiceMetricsProvider(do.MustInvoke[metrics.Provider](i)),

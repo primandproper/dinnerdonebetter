@@ -67,7 +67,7 @@ func buildDatabaseClientForTest(t *testing.T) (*repository, audit.Repository) {
 	require.NoError(t, err)
 	// A real registry store over the same database, so the media hydration these
 	// tests exercise reads the table a request would.
-	uploadsRegistry, err := mediaregistry.NewSQLStore(pgc, mediaregistry.NoopHooks{}, mediaregistry.WithTablePrefix(branding.TablePrefix))
+	uploadsRegistry, err := mediaregistry.NewSQLStore(pgc, mediaregistry.WithTablePrefix(branding.TablePrefix))
 	require.NoError(t, err)
 
 	// The roster read, which is all meal planning asks the directory for.
