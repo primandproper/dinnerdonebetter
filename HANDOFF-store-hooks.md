@@ -21,6 +21,11 @@ branch replaces every wrapper with a hooks implementation.
     as a sibling of this repo. It also blocks `make lint`: the linter runs in a
     container where `../../platform-go` does not exist.
   - `3cdad0f47` — decisions 2 and 3 applied (see below).
+  - Passkeys adopted: `internal/authentication/passkey_hooks.go`, installed in
+    `internal/build/passkeys`. Registered/archived passkeys record an audit
+    entry and a `passkey_registered`/`passkey_archived` event (both excluded
+    from webhooks); a failed passkey login records nothing, as a failed
+    password sign-in doesn't. Every platform package with Hooks is now adopted.
 - **platform-go branch:** `store-hooks`, renamed from `waitlists-hooks`,
   PR primandproper/platform-go#1080. It replaces #1079, which the rename closed
   (GitHub deleted the old head ref rather than retargeting).

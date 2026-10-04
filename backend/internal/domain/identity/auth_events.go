@@ -10,6 +10,10 @@ const (
 	// TwoFactorSecretChangedServiceEventType indicates a user's two factor secret was changed and verified_at timestamp was reset.
 	/* #nosec G101 */
 	TwoFactorSecretChangedServiceEventType = "two_factor_secret_changed"
+	// PasskeyRegisteredServiceEventType indicates a passkey was added to a user's account.
+	PasskeyRegisteredServiceEventType = "passkey_registered"
+	// PasskeyArchivedServiceEventType indicates a passkey was removed from a user's account.
+	PasskeyArchivedServiceEventType = "passkey_archived"
 	// PasswordResetTokenCreatedEventType indicates a user created a password reset token.
 	PasswordResetTokenCreatedEventType = "password_reset_token_created"
 	// PasswordResetTokenRedeemedEventType indicates a user redeemed a password reset token.

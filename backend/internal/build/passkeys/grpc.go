@@ -23,10 +23,14 @@ import (
 	"errors"
 	"strings"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/recording"
 
 	platformpasskeys "github.com/primandproper/platform-go/v14/authentication/passkeys"
 	passkeysgrpc "github.com/primandproper/platform-go/v14/authentication/passkeys/grpc"
@@ -85,6 +89,16 @@ func RegisterPasskeysService(i do.Injector) {
 			platformpasskeys.WithEnrollmentGate(platformpasskeys.AdmitEveryEnrollment),
 			platformpasskeys.WithUsernameResolver(resolveUsername(directory, db)),
 			platformpasskeys.WithAlternativeSignIn(holdsPassword(directory)),
+			// A passkey added or removed is a credential write, recorded on its own transaction
+			// as a password change is. See authentication.NewPasskeyHooks.
+			platformpasskeys.WithHooks(authentication.NewPasskeyHooks(
+				do.MustInvoke[logging.Logger](i),
+				recording.NewRecorder(
+					tracing.NewNamedTracer(do.MustInvoke[tracing.Provider](i), "passkey_hooks"),
+					do.MustInvoke[audit.Repository](i),
+					do.MustInvoke[*events.Emitter](i),
+				),
+			)),
 			platformpasskeys.WithServiceLogger(do.MustInvoke[logging.Logger](i)),
 			platformpasskeys.WithServiceTracerProvider(do.MustInvoke[tracing.Provider](i)),
 			platformpasskeys.WithServiceMetricsProvider(do.MustInvoke[metrics.Provider](i)),

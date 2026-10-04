@@ -70,8 +70,16 @@ func buildSignInHooksHarness(t *testing.T, execErr error) *signInHooksHarness {
 func (h *signInHooksHarness) enqueued(t *testing.T) []*datachanges.Message {
 	t.Helper()
 
+	return enqueuedOn(t, h.executor)
+}
+
+// enqueuedOn is every data change message written through executor, read off the statements
+// that would have enqueued them.
+func enqueuedOn(t *testing.T, executor *mockdatabase.SQLQueryExecutorMock) []*datachanges.Message {
+	t.Helper()
+
 	var out []*datachanges.Message
-	calls := h.executor.ExecContextCalls()
+	calls := executor.ExecContextCalls()
 	for i := range calls {
 		for _, arg := range calls[i].Args {
 			raw, ok := arg.([]byte)

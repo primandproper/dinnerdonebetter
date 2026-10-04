@@ -20,6 +20,8 @@ const (
 	// without it, which is why platform hands the unredacted invitation to the hook.
 	/* #nosec G101 */
 	AccountInvitationTokenKey = "account_invitation.token"
+	// PasskeyIDKey is the standard key for referring to a passkey's ID.
+	PasskeyIDKey = "passkey" + idSuffix
 	// UserIDKey is the standard key for referring to a user ID (re-exported for domain use).
 	UserIDKey = "user" + idSuffix
 	// ImpersonatorIDKey is the operator acting through somebody else's identity.

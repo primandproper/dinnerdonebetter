@@ -54,6 +54,8 @@ func TestCatalog(T *testing.T) {
 			"password_changed",
 			"two_factor_secret_changed",
 			"two_factor_deactivated",
+			"passkey_registered",
+			"passkey_archived",
 			"oauth2_client_created",
 		} {
 			require.True(t, Published(eventType), "event type %q is no longer published; update this test", eventType)

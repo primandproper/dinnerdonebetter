@@ -111,4 +111,25 @@ func TestPasskeys_ThisApplicationsWiring(T *testing.T) {
 		require.NoError(t, err)
 		require.NotEmpty(t, finished.GetToken().GetToken())
 	})
+
+	T.Run("adding and removing a passkey are both in the audit log", func(t *testing.T) {
+		t.Parallel()
+		ctx := t.Context()
+
+		_, testClient := createUserAndClientForTest(t)
+		registerPasskeyForTest(t, testClient)
+
+		listed, err := testClient.ListPasskeys(ctx, &passkeyspb.ListPasskeysRequest{})
+		require.NoError(t, err)
+		require.Len(t, listed.GetPasskeys(), 1)
+		passkeyID := listed.GetPasskeys()[0].GetId()
+
+		_, err = testClient.ArchivePasskey(ctx, &passkeyspb.ArchivePasskeyRequest{Id: passkeyID})
+		require.NoError(t, err)
+
+		AssertAuditLogContainsFuzzyForResource(t, ctx, "passkeys", passkeyID, 10, []*ExpectedAuditEntry{
+			{EventType: "created", ResourceType: "passkeys", RelevantID: passkeyID},
+			{EventType: "archived", ResourceType: "passkeys", RelevantID: passkeyID},
+		})
+	})
 }

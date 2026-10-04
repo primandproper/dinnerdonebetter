@@ -28,6 +28,8 @@ var excluded = map[string]struct{}{
 	identity.TwoFactorSecretVerifiedServiceEventType:             {},
 	identity.TwoFactorDeactivatedServiceEventType:                {},
 	identity.TwoFactorSecretChangedServiceEventType:              {},
+	identity.PasskeyRegisteredServiceEventType:                   {},
+	identity.PasskeyArchivedServiceEventType:                     {},
 	identity.PasswordResetTokenCreatedEventType:                  {},
 	identity.PasswordResetTokenRedeemedEventType:                 {},
 	identity.PasswordChangedEventType:                            {},
