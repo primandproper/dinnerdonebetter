@@ -24,6 +24,7 @@ import (
 func UploadsRegistry(logger logging.Logger, tracerProvider tracing.Provider, client database.Client) (mediaregistry.Store, error) {
 	return mediaregistry.NewSQLStore(
 		client,
+		mediaregistry.NoopHooks{},
 		mediaregistry.WithTablePrefix(branding.TablePrefix),
 		mediaregistry.WithStoreLogger(logger),
 		mediaregistry.WithStoreTracerProvider(tracerProvider),

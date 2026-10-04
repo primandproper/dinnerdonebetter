@@ -58,7 +58,7 @@ var _ passwordreset.Hooks = (*passwordResetHooks)(nil)
 // It is the store itself rather than the Store seam, because two of the things this
 // deployment needs are not on the seam: Sweep, which the db-cleaner job runs for the fleet,
 // and nothing else: the db-cleaner's container has no audit repository, so it gets the store
-// with no hooks on it. Sweep calls none either way.
+// with NoopHooks, named. Sweep calls none either way, and the db-cleaner makes no other write.
 //
 // No sweeper goroutine is started. That is the same call the authorization server's tables
 // make — one scheduled sweep for the deployment rather than one per replica, each running
@@ -73,7 +73,7 @@ func ProvidePasswordResetTokenSQLStore(
 	tracerProvider tracing.Provider,
 	client database.Client,
 ) (*passwordreset.SQLStore, error) {
-	return newPasswordResetTokenSQLStore(logger, tracerProvider, client)
+	return newPasswordResetTokenSQLStore(logger, tracerProvider, client, passwordreset.NoopHooks{})
 }
 
 // ProvidePasswordResetTokenStore builds the password reset token store the API server uses:
@@ -84,11 +84,11 @@ func ProvidePasswordResetTokenStore(
 	auditLogEntryRepo audit.Repository,
 	client database.Client,
 ) (passwordreset.Store, error) {
-	return newPasswordResetTokenSQLStore(logger, tracerProvider, client, passwordreset.WithHooks(&passwordResetHooks{
+	return newPasswordResetTokenSQLStore(logger, tracerProvider, client, &passwordResetHooks{
 		auditLogEntryRepo: auditLogEntryRepo,
 		tracer:            tracing.NewNamedTracer(tracerProvider, passwordResetO11yName),
 		logger:            logging.NewNamedLogger(logger, passwordResetO11yName),
-	}))
+	})
 }
 
 // newPasswordResetTokenSQLStore is the one construction both providers share, so the
@@ -97,15 +97,14 @@ func newPasswordResetTokenSQLStore(
 	logger logging.Logger,
 	tracerProvider tracing.Provider,
 	client database.Client,
-	opts ...passwordreset.Option,
+	hooks passwordreset.Hooks,
 ) (*passwordreset.SQLStore, error) {
 	return passwordreset.NewSQLStore(
 		&passwordreset.Config{TablePrefix: branding.TablePrefix},
 		client,
-		append([]passwordreset.Option{
-			passwordreset.WithLogger(logging.NewNamedLogger(logger, passwordResetO11yName)),
-			passwordreset.WithTracerProvider(tracerProvider),
-		}, opts...)...,
+		hooks,
+		passwordreset.WithLogger(logging.NewNamedLogger(logger, passwordResetO11yName)),
+		passwordreset.WithTracerProvider(tracerProvider),
 	)
 }
 

@@ -32,11 +32,11 @@ func ProvideIssueReportsRepository(
 
 	store, err := platformissuereports.NewSQLStore(
 		client,
-		platformissuereports.WithTablePrefix(branding.TablePrefix),
-		platformissuereports.WithHooks(&hooks{
+		&hooks{
 			logger:   logging.NewNamedLogger(logger, o11yName),
 			recorder: recording.NewRecorder(tracer, auditLogEntryRepo, eventEmitter),
-		}),
+		},
+		platformissuereports.WithTablePrefix(branding.TablePrefix),
 		platformissuereports.WithStoreLogger(logger),
 		platformissuereports.WithStoreTracerProvider(tracerProvider),
 		platformissuereports.WithStoreMetricsProvider(metricsProvider),

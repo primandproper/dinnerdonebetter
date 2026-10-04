@@ -90,7 +90,7 @@ func buildFixture(t *testing.T, grants platformauthz.GrantsExtractor) *fixture {
 		postgres.WithTracerProvider(tracingnoop.NewTracerProvider()))
 	require.NoError(t, err)
 
-	store, err := platformsettings.NewSQLStore(db, platformsettings.WithTablePrefix(tablePrefix))
+	store, err := platformsettings.NewSQLStore(db, platformsettings.NoopHooks{}, platformsettings.WithTablePrefix(tablePrefix))
 	require.NoError(t, err)
 
 	opts := []settingsgrpc.Option{

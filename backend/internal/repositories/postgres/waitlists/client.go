@@ -32,11 +32,11 @@ func ProvideWaitlistsRepository(
 
 	store, err := platformwaitlists.NewSQLStore(
 		client,
-		platformwaitlists.WithTablePrefix(branding.TablePrefix),
-		platformwaitlists.WithHooks(&hooks{
+		&hooks{
 			logger:   logging.NewNamedLogger(logger, o11yName),
 			recorder: recording.NewRecorder(tracer, auditLogEntryRepo, eventEmitter),
-		}),
+		},
+		platformwaitlists.WithTablePrefix(branding.TablePrefix),
 		platformwaitlists.WithStoreLogger(logger),
 		platformwaitlists.WithStoreTracerProvider(tracerProvider),
 		platformwaitlists.WithStoreMetricsProvider(metricsProvider),

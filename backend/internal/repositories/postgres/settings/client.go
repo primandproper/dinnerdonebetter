@@ -58,13 +58,13 @@ func newStore(
 		ctx,
 		&settingscfg.Config{TablePrefix: branding.TablePrefix},
 		client,
+		&hooks{
+			logger:   logging.NewNamedLogger(logger, o11yName),
+			recorder: recorder,
+		},
 		settingscfg.WithLogger(logger),
 		settingscfg.WithTracerProvider(tracerProvider),
 		settingscfg.WithMetricsProvider(metricsProvider),
-		settingscfg.WithStoreOptions(platformsettings.WithHooks(&hooks{
-			logger:   logging.NewNamedLogger(logger, o11yName),
-			recorder: recorder,
-		})),
 	)
 	if err != nil {
 		return nil, platformerrors.Wrap(err, "building the settings store")

@@ -168,7 +168,7 @@ func oauth2ClientRegistry(pgc database.Client, opts ...platformoauth2clients.Ser
 		return nil, err
 	}
 
-	return platformoauth2clients.NewService(pgc, store, opts...)
+	return platformoauth2clients.NewService(pgc, store, platformoauth2clients.NoopHooks{}, opts...)
 }
 
 func BuildInProcessServer(ctx context.Context, cfg *config.APIServiceConfig) (server *apiserver.Server, databaseClient database.Client, dbCfg *dbcfg.Config, err error) {
@@ -240,7 +240,7 @@ func WithIdentityDirectory(fn func(ctx context.Context, directory *platformident
 
 // IdentityDirectory builds the store and the service over it.
 //
-// Without hooks, deliberately. A seed is not a request: there is nobody for its audit
+// With NoopHooks, deliberately. A seed is not a request: there is nobody for its audit
 // entry to name and nobody to deliver its outbox rows, and a localdev bootstrap that
 // queued a "you have been invited" email for a user it invented is a surprise rather than
 // a record. Every identity write a *request* makes goes through the container's service,
@@ -259,7 +259,7 @@ func IdentityDirectory(
 		return nil, nil, err
 	}
 
-	directory, err := platformidentity.NewService(dbClient, store,
+	directory, err := platformidentity.NewService(dbClient, store, platformidentity.NoopHooks{},
 		platformidentity.WithServiceLogger(logger),
 		platformidentity.WithServiceTracerProvider(tracerProvider),
 	)

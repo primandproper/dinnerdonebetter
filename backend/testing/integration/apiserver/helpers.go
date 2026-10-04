@@ -583,12 +583,12 @@ func identityDirectoryWithHooks(t *testing.T) *identity.Service {
 	require.NoError(t, err)
 
 	directory, err := identity.NewService(databaseClient, store,
-		identity.WithHooks(identitystore.ProvideHooks(
+		identitystore.ProvideHooks(
 			loggingnoop.NewLogger(),
 			tracingnoop.NewTracerProvider(),
 			auditLogRepo,
 			events.NewEmitter(outboxWriter, apiServiceConfig.Queues.DataChangesTopicName, nil, indexevents.SideEffect),
-		)),
+		),
 	)
 	require.NoError(t, err)
 

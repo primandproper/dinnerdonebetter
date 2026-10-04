@@ -67,6 +67,15 @@ func RegisterAuth(i do.Injector) {
 			// The role a registrant owns their account with. RegistrationPolicy names it too;
 			// the service requires a default of its own whatever a policy does.
 			[]string{authorization.AccountAdminRoleName},
+			NewSignInHooks(
+				do.MustInvoke[logging.Logger](i),
+				do.MustInvoke[*events.Emitter](i),
+				recording.NewRecorder(
+					tracing.NewNamedTracer(do.MustInvoke[tracing.Provider](i), "signin_hooks"),
+					do.MustInvoke[audit.Repository](i),
+					do.MustInvoke[*events.Emitter](i),
+				),
+			),
 			signin.WithSecondFactorPolicy(signin.SecondFactorWhenEnrolled),
 			signin.WithAdminServiceRoles(authorization.ServiceAdminRoleName),
 			signin.WithTOTPVerifier(do.MustInvoke[totp.Verifier](i)),
@@ -111,15 +120,6 @@ func RegisterAuth(i do.Injector) {
 			signin.WithHandleReminderMailer(mailers),
 			// Who may act as somebody else. Without a policy every impersonation is refused.
 			signin.WithImpersonationPolicy(NewImpersonationPolicy(do.MustInvoke[platformauthz.PolicyResolver](i))),
-			signin.WithHooks(NewSignInHooks(
-				do.MustInvoke[logging.Logger](i),
-				do.MustInvoke[*events.Emitter](i),
-				recording.NewRecorder(
-					tracing.NewNamedTracer(do.MustInvoke[tracing.Provider](i), "signin_hooks"),
-					do.MustInvoke[audit.Repository](i),
-					do.MustInvoke[*events.Emitter](i),
-				),
-			)),
 			signin.WithLogger(do.MustInvoke[logging.Logger](i)),
 			signin.WithTracerProvider(do.MustInvoke[tracing.Provider](i)),
 			signin.WithMetricsProvider(do.MustInvoke[metrics.Provider](i)),

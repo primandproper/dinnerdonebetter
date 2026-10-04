@@ -56,9 +56,9 @@ func TestHooks_Integration(T *testing.T) {
 		store, err := platformoauth2clients.NewSQLStore(db, platformoauth2clients.WithTablePrefix(branding.TablePrefix))
 		require.NoError(t, err)
 
-		svc, err := platformoauth2clients.NewService(db, store, platformoauth2clients.WithHooks(
+		svc, err := platformoauth2clients.NewService(db, store,
 			ProvideHooks(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), auditRepo, nil),
-		))
+		)
 		require.NoError(t, err)
 
 		// The entries are filed under the registration's owner, and the audit chain

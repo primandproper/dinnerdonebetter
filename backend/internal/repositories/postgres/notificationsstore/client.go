@@ -71,16 +71,14 @@ func provideStore(
 	tracer := tracing.NewNamedTracer(tracerProvider, o11yName)
 
 	store, err := notificationscfg.NewStore(ctx, &notificationscfg.Config{}, db,
+		&hooks{
+			logger:   logging.NewNamedLogger(logger, o11yName),
+			recorder: recording.NewRecorder(tracer, auditLogEntryRepo, eventEmitter),
+		},
 		notificationscfg.WithLogger(logger),
 		notificationscfg.WithTracerProvider(tracerProvider),
 		notificationscfg.WithMetricsProvider(metricsProvider),
-		notificationscfg.WithStoreOptions(
-			platformnotifications.WithTablePrefix(branding.TablePrefix),
-			platformnotifications.WithHooks(&hooks{
-				logger:   logging.NewNamedLogger(logger, o11yName),
-				recorder: recording.NewRecorder(tracer, auditLogEntryRepo, eventEmitter),
-			}),
-		),
+		notificationscfg.WithStoreOptions(platformnotifications.WithTablePrefix(branding.TablePrefix)),
 	)
 	if err != nil {
 		return nil, platformerrors.Wrap(err, "building the notifications store")

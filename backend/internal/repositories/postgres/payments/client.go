@@ -62,10 +62,10 @@ func newStore(
 		ctx,
 		&billingcfg.Config{TablePrefix: branding.TablePrefix},
 		client,
+		h,
 		billingcfg.WithLogger(logger),
 		billingcfg.WithTracerProvider(tracerProvider),
 		billingcfg.WithMetricsProvider(metricsProvider),
-		billingcfg.WithStoreOptions(billing.WithHooks(h)),
 	)
 	if err != nil {
 		return nil, platformerrors.Wrap(err, "building the billing store")

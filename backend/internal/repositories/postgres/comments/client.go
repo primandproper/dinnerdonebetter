@@ -38,12 +38,12 @@ func ProvideCommentsRepository(
 
 	store, err := platformcomments.NewSQLStore(
 		client,
-		platformcomments.WithTablePrefix(branding.TablePrefix),
-		platformcomments.WithTargets(targets),
-		platformcomments.WithHooks(&hooks{
+		&hooks{
 			logger:   logging.NewNamedLogger(logger, o11yName),
 			recorder: recording.NewRecorder(tracer, auditLogEntryRepo, eventEmitter),
-		}),
+		},
+		platformcomments.WithTablePrefix(branding.TablePrefix),
+		platformcomments.WithTargets(targets),
 		platformcomments.WithStoreLogger(logger),
 		platformcomments.WithStoreTracerProvider(tracerProvider),
 		platformcomments.WithStoreMetricsProvider(metricsProvider),

@@ -86,19 +86,19 @@ func RegisterPasskeysService(i do.Injector) {
 			store,
 			do.MustInvoke[*platformwebauthn.RelyingParty](i),
 			users,
-			platformpasskeys.WithEnrollmentGate(platformpasskeys.AdmitEveryEnrollment),
-			platformpasskeys.WithUsernameResolver(resolveUsername(directory, db)),
-			platformpasskeys.WithAlternativeSignIn(holdsPassword(directory)),
 			// A passkey added or removed is a credential write, recorded on its own transaction
 			// as a password change is. See authentication.NewPasskeyHooks.
-			platformpasskeys.WithHooks(authentication.NewPasskeyHooks(
+			authentication.NewPasskeyHooks(
 				do.MustInvoke[logging.Logger](i),
 				recording.NewRecorder(
 					tracing.NewNamedTracer(do.MustInvoke[tracing.Provider](i), "passkey_hooks"),
 					do.MustInvoke[audit.Repository](i),
 					do.MustInvoke[*events.Emitter](i),
 				),
-			)),
+			),
+			platformpasskeys.WithEnrollmentGate(platformpasskeys.AdmitEveryEnrollment),
+			platformpasskeys.WithUsernameResolver(resolveUsername(directory, db)),
+			platformpasskeys.WithAlternativeSignIn(holdsPassword(directory)),
 			platformpasskeys.WithServiceLogger(do.MustInvoke[logging.Logger](i)),
 			platformpasskeys.WithServiceTracerProvider(do.MustInvoke[tracing.Provider](i)),
 			platformpasskeys.WithServiceMetricsProvider(do.MustInvoke[metrics.Provider](i)),

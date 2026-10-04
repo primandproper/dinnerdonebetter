@@ -51,11 +51,9 @@ func ProvideStore(
 ) (platformwebhooks.Store, error) {
 	tracer := tracing.NewNamedTracer(tracerProvider, o11yName)
 
-	return webhookscfg.NewStore(ctx, cfg, client,
-		webhookscfg.WithStoreOptions(platformwebhooks.WithHooks(&hooks{
-			tracer:   tracer,
-			logger:   logging.NewNamedLogger(logger, o11yName),
-			recorder: recording.NewRecorder(tracer, auditLogEntryRepo, eventEmitter),
-		})),
-	)
+	return webhookscfg.NewStore(ctx, cfg, client, &hooks{
+		tracer:   tracer,
+		logger:   logging.NewNamedLogger(logger, o11yName),
+		recorder: recording.NewRecorder(tracer, auditLogEntryRepo, eventEmitter),
+	})
 }
