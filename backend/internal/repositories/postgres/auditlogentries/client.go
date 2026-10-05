@@ -60,10 +60,11 @@ func ProvideAuditLogRepository(
 		platformaudit.WithRecorderTracerProvider(tracerProvider),
 		platformaudit.WithRecorderMetricsProvider(metricsProvider),
 	}
-	for resourceType := range audit.Redactions {
-		recorderOptions = append(recorderOptions, platformaudit.WithRedaction(resourceType, audit.Redactions[resourceType]))
-	}
 
+	// No redaction policy of this application's own. Credentials are platform's default
+	// (audit.CredentialRedaction, installed by NewRecorder), and the personal free text on
+	// platform's rows — a comment's body, an operator's note — is hashed by the RecordingHooks
+	// that diff it. A resource type of this application's that needs one adds it here.
 	recorder, err := platformaudit.NewRecorder(client.Dialect(), recorderOptions...)
 	if err != nil {
 		return nil, platformerrors.Wrap(err, "building audit recorder")

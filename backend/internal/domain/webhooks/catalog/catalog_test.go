@@ -3,6 +3,12 @@ package catalog
 import (
 	"testing"
 
+	"github.com/primandproper/platform-go/v15/authentication/oauth2clients"
+	"github.com/primandproper/platform-go/v15/authentication/passkeys"
+	"github.com/primandproper/platform-go/v15/comments"
+	"github.com/primandproper/platform-go/v15/waitlists"
+	"github.com/primandproper/platform-go/v15/webhooks"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -18,25 +24,43 @@ func TestCatalog(T *testing.T) {
 		assert.NotEmpty(t, Catalog())
 	})
 
-	T.Run("partitions every published event into subscribable or excluded", func(t *testing.T) {
+	T.Run("composes without a collision", func(t *testing.T) {
 		t.Parallel()
 
-		// This is what lets Dispatch skip an unknown event type instead of failing the
-		// transaction that emitted it. Dispatch runs inside the caller's transaction, so an
-		// error there fails the meal plan rather than the webhook — the drift has to be
-		// caught here, at build time, rather than at runtime.
-		subscribable := Catalog()
+		// Catalog panics on one, which is what a process should do; this is where it is
+		// caught first. Two packages naming one event is a programming error, and platform's
+		// fragments are prefixed with their package for exactly this reason.
+		assert.NotPanics(t, func() { Catalog() })
+	})
 
+	T.Run("carries every published event, this application's and platform's", func(t *testing.T) {
+		t.Parallel()
+
+		catalog := Catalog()
 		for eventType := range definitions {
-			if Excluded(eventType.String()) {
-				assert.NotContains(t, subscribable, eventType,
-					"event type %q is excluded but still subscribable", eventType)
+			assert.Contains(t, catalog, eventType, "generated event type %q is missing from the catalog", eventType)
+		}
 
-				continue
-			}
+		for eventType := range waitlists.EventCatalog() {
+			assert.Contains(t, catalog, eventType, "platform event type %q is missing from the catalog", eventType)
+		}
 
-			assert.Contains(t, subscribable, eventType,
-				"event type %q is published but neither subscribable nor excluded", eventType)
+		for eventType := range comments.EventCatalog() {
+			assert.Contains(t, catalog, eventType, "platform event type %q is missing from the catalog", eventType)
+		}
+	})
+
+	T.Run("marks every excluded event internal, and no other", func(t *testing.T) {
+		t.Parallel()
+
+		// This is what lets a dispatch of an excluded event be refused rather than fail the
+		// transaction that emitted it, and what keeps the emitter's unsubscribable counter
+		// counting only constants that fell out of the catalog.
+		catalog := Catalog()
+		for eventType, definition := range catalog {
+			assert.Equal(t, Excluded(eventType.String()), definition.Internal,
+				"event type %q: excluded=%t but internal=%t", eventType, Excluded(eventType.String()), definition.Internal)
+			assert.Equal(t, !definition.Internal, catalog.Subscribable(eventType))
 		}
 	})
 
@@ -54,9 +78,9 @@ func TestCatalog(T *testing.T) {
 			"password_changed",
 			"two_factor_secret_changed",
 			"two_factor_deactivated",
-			"passkey_registered",
-			"passkey_archived",
-			"oauth2_client_created",
+			passkeys.EventPasskeyRegistered.String(),
+			passkeys.EventPasskeyArchived.String(),
+			oauth2clients.EventClientCreated.String(),
 		} {
 			require.True(t, Published(eventType), "event type %q is no longer published; update this test", eventType)
 			assert.True(t, Excluded(eventType), "event type %q must not be deliverable to a webhook", eventType)
@@ -64,7 +88,7 @@ func TestCatalog(T *testing.T) {
 		}
 	})
 
-	T.Run("excludes only events the application actually publishes", func(t *testing.T) {
+	T.Run("excludes only events something actually publishes", func(t *testing.T) {
 		t.Parallel()
 
 		// An exclusion naming an event type nothing emits is dead weight that reads as
@@ -82,11 +106,24 @@ func TestCatalog(T *testing.T) {
 		// consumer's mutation change what every other consumer considers dispatchable.
 		first := Catalog()
 		require.NotEmpty(t, first)
-
 		for eventType := range first {
 			delete(first, eventType)
 		}
 
 		assert.NotEmpty(t, Catalog())
+	})
+
+	T.Run("a subscribable event is one a dispatcher accepts", func(t *testing.T) {
+		t.Parallel()
+
+		var known webhooks.EventType
+		for eventType := range definitions {
+			if !Excluded(eventType.String()) {
+				known = eventType
+				break
+			}
+		}
+		require.NotEmpty(t, known)
+		assert.True(t, Known(known.String()))
 	})
 }

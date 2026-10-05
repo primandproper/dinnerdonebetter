@@ -80,6 +80,11 @@ func NewEmitter(emitter *webhooks.Emitter, recorder *platformrecording.Recorder,
 	return &Emitter{emitter: emitter, recorder: recorder, writer: writer, effect: effect}, nil
 }
 
+// Recorder is the platform Recorder this Emitter records through, for a store whose
+// RecordingHooks are built over it outside the injector — the local dev server and the
+// integration suite's seeding build their stores by hand.
+func (e *Emitter) Recorder() *platformrecording.Recorder { return e.recorder }
+
 // EmitOption customizes one Emit.
 type EmitOption func(*emitConfig)
 

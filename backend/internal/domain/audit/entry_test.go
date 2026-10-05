@@ -8,7 +8,6 @@ import (
 	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestScopeFor(T *testing.T) {
@@ -71,41 +70,5 @@ func TestNewEntry(T *testing.T) {
 
 		assert.Equal(t, platformaudit.Actor{ID: UnattributedActorID, Type: platformaudit.ActorSystem}, entry.Actor)
 		assert.Equal(t, tenancy.Global(), entry.Scope)
-	})
-}
-
-// The redaction policy is the one thing here that is load-bearing for secrecy
-// rather than for correctness, so it is worth asserting rather than assuming.
-func TestRedactions(T *testing.T) {
-	T.Parallel()
-
-	T.Run("drops credential-shaped fields under the catch-all", func(t *testing.T) {
-		t.Parallel()
-
-		catchAll, ok := Redactions[""]
-		require.True(t, ok, "the catch-all is what makes the policy about the word rather than about one table")
-
-		for _, field := range []string{"password", "hashed_password", "two_factor_secret", "clientSecret"} {
-			assert.Contains(t, catchAll.Drop, field)
-		}
-	})
-
-	// Hashed rather than dropped: rotating a credential is a real event worth
-	// recording, and the digest still answers whether the token presented was the
-	// token issued.
-	T.Run("hashes tokens rather than dropping them", func(t *testing.T) {
-		t.Parallel()
-
-		assert.Contains(t, Redactions[""].Hash, "token")
-		assert.Contains(t, Redactions["password_reset_tokens"].Hash, "token")
-	})
-
-	// Free text a person wrote, or that was written about them, would otherwise sit in
-	// the one table their erasure cannot reach.
-	T.Run("hashes free text about a person", func(t *testing.T) {
-		t.Parallel()
-
-		assert.Contains(t, Redactions["comments"].Hash, "body")
-		assert.Contains(t, Redactions["waitlist_signups"].Hash, "notes")
 	})
 }
