@@ -1,7 +1,7 @@
 package authorization
 
 import (
-	auditgrpc "github.com/primandproper/platform-go/v14/audit/grpc"
+	auditgrpc "github.com/primandproper/platform-go/v15/audit/grpc"
 )
 
 // The audit log's permissions are platform's, re-exported under this

@@ -7,8 +7,8 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	authkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/keys"
 
-	platformaudit "github.com/primandproper/platform-go/v14/audit"
-	"github.com/primandproper/platform-go/v14/authentication/passwordreset"
+	platformaudit "github.com/primandproper/platform-go/v15/audit"
+	"github.com/primandproper/platform-go/v15/authentication/passwordreset"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/observability"
 	"github.com/primandproper/primitives-go/v2/observability/logging"

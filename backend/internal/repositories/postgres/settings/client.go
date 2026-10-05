@@ -8,8 +8,8 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/recording"
 
-	platformsettings "github.com/primandproper/platform-go/v14/settings"
-	settingscfg "github.com/primandproper/platform-go/v14/settings/config"
+	platformsettings "github.com/primandproper/platform-go/v15/settings"
+	settingscfg "github.com/primandproper/platform-go/v15/settings/config"
 	"github.com/primandproper/primitives-go/v2/database"
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/observability/logging"

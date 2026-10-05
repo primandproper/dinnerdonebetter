@@ -6,9 +6,9 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/indexstamp"
 
-	platformidentity "github.com/primandproper/platform-go/v14/identity"
-	searchsync "github.com/primandproper/platform-go/v14/searchsync"
-	syncsource "github.com/primandproper/platform-go/v14/searchsync/source"
+	platformidentity "github.com/primandproper/platform-go/v15/identity"
+	searchsync "github.com/primandproper/platform-go/v15/searchsync"
+	syncsource "github.com/primandproper/platform-go/v15/searchsync/source"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/metrics"

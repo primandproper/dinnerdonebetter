@@ -3,7 +3,7 @@ package mcpserver
 import (
 	"context"
 
-	waitlists "github.com/primandproper/platform-go/v14/waitlists"
+	waitlists "github.com/primandproper/platform-go/v15/waitlists"
 	"github.com/primandproper/primitives-go/v2/filtering"
 	"github.com/primandproper/primitives-go/v2/tenancy"
 

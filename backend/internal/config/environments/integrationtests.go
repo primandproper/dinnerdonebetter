@@ -16,9 +16,9 @@ import (
 	uploadedmediacfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/testutils"
 
-	oauth2database "github.com/primandproper/platform-go/v14/authentication/oauth2serverstore"
-	oauth2servercfg "github.com/primandproper/platform-go/v14/authentication/oauth2serverstore/config"
-	webauthncfg "github.com/primandproper/platform-go/v14/authentication/webauthnsessions/config"
+	oauth2database "github.com/primandproper/platform-go/v15/authentication/oauth2serverstore"
+	oauth2servercfg "github.com/primandproper/platform-go/v15/authentication/oauth2serverstore/config"
+	webauthncfg "github.com/primandproper/platform-go/v15/authentication/webauthnsessions/config"
 	analyticscfg "github.com/primandproper/primitives-go/v2/analytics/config"
 	tokenscfg "github.com/primandproper/primitives-go/v2/authentication/tokens/config"
 	platformwebauthn "github.com/primandproper/primitives-go/v2/authentication/webauthn"

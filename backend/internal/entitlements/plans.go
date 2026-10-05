@@ -1,9 +1,9 @@
 package entitlements
 
 import (
-	"github.com/primandproper/platform-go/v14/billing"
-	"github.com/primandproper/platform-go/v14/billing/plans"
-	platformentitlements "github.com/primandproper/platform-go/v14/entitlements"
+	"github.com/primandproper/platform-go/v15/billing"
+	"github.com/primandproper/platform-go/v15/billing/plans"
+	platformentitlements "github.com/primandproper/platform-go/v15/entitlements"
 	"github.com/primandproper/primitives-go/v2/capitalism"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/tenancy"

@@ -14,7 +14,7 @@ package config
 import (
 	"context"
 
-	platformdataprivacycfg "github.com/primandproper/platform-go/v14/dataprivacy/config"
+	platformdataprivacycfg "github.com/primandproper/platform-go/v15/dataprivacy/config"
 	"github.com/primandproper/primitives-go/v2/compression"
 	encryptioncfg "github.com/primandproper/primitives-go/v2/cryptography/encryption/config"
 	uploadscfg "github.com/primandproper/primitives-go/v2/uploads/config"

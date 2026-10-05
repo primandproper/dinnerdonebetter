@@ -25,8 +25,8 @@ import (
 	issuereportkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/recording"
 
-	platformaudit "github.com/primandproper/platform-go/v14/audit"
-	platformissuereports "github.com/primandproper/platform-go/v14/issuereports"
+	platformaudit "github.com/primandproper/platform-go/v15/audit"
+	platformissuereports "github.com/primandproper/platform-go/v15/issuereports"
 	"github.com/primandproper/primitives-go/v2/database"
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/observability/logging"

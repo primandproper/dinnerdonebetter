@@ -1,9 +1,9 @@
 package authorization
 
 import (
-	dataprivacyhttp "github.com/primandproper/platform-go/v14/dataprivacy/http"
-	mediaregistryhttp "github.com/primandproper/platform-go/v14/mediaregistry/http"
-	operationshttp "github.com/primandproper/platform-go/v14/operations/http"
+	dataprivacyhttp "github.com/primandproper/platform-go/v15/dataprivacy/http"
+	mediaregistryhttp "github.com/primandproper/platform-go/v15/mediaregistry/http"
+	operationshttp "github.com/primandproper/platform-go/v15/operations/http"
 )
 
 // The permissions of platform's HTTP surfaces, which are about a person rather than an account:

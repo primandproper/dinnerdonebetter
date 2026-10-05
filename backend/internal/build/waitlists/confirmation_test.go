@@ -5,8 +5,8 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists/fakes"
 
-	"github.com/primandproper/platform-go/v14/links"
-	waitlistsgrpc "github.com/primandproper/platform-go/v14/waitlists/grpc"
+	"github.com/primandproper/platform-go/v15/links"
+	waitlistsgrpc "github.com/primandproper/platform-go/v15/waitlists/grpc"
 	"github.com/primandproper/primitives-go/v2/fake"
 
 	"github.com/stretchr/testify/assert"

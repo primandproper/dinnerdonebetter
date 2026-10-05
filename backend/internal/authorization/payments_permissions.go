@@ -1,7 +1,7 @@
 package authorization
 
 import (
-	billinggrpc "github.com/primandproper/platform-go/v14/billing/grpc"
+	billinggrpc "github.com/primandproper/platform-go/v15/billing/grpc"
 )
 
 // The billing permissions are platform's, re-exported under the names this

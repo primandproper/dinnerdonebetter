@@ -7,8 +7,8 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 
-	"github.com/primandproper/platform-go/v14/identity/identitypb"
-	webhookspb "github.com/primandproper/platform-go/v14/webhooks/webhookspb"
+	"github.com/primandproper/platform-go/v15/identity/identitypb"
+	webhookspb "github.com/primandproper/platform-go/v15/webhooks/webhookspb"
 	"github.com/primandproper/primitives-go/v2/pointer"
 
 	"github.com/stretchr/testify/assert"

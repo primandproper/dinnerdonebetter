@@ -5,7 +5,7 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
 
-	platformwebhooks "github.com/primandproper/platform-go/v14/webhooks"
+	platformwebhooks "github.com/primandproper/platform-go/v15/webhooks"
 	"github.com/primandproper/primitives-go/v2/filtering"
 	"github.com/primandproper/primitives-go/v2/tenancy"
 

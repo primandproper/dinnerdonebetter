@@ -30,9 +30,9 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
 
-	"github.com/primandproper/platform-go/v14/billing"
-	billingprivacy "github.com/primandproper/platform-go/v14/billing/privacy"
-	platformdataprivacy "github.com/primandproper/platform-go/v14/dataprivacy"
+	"github.com/primandproper/platform-go/v15/billing"
+	billingprivacy "github.com/primandproper/platform-go/v15/billing/privacy"
+	platformdataprivacy "github.com/primandproper/platform-go/v15/dataprivacy"
 	"github.com/primandproper/primitives-go/v2/database"
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/tenancy"

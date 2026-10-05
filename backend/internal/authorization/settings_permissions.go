@@ -1,7 +1,7 @@
 package authorization
 
 import (
-	settingsgrpc "github.com/primandproper/platform-go/v14/settings/grpc"
+	settingsgrpc "github.com/primandproper/platform-go/v15/settings/grpc"
 )
 
 // The settings permissions are platform's, re-exported under the names this

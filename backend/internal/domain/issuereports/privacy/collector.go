@@ -20,9 +20,9 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
 	ddbissuereports "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports"
 
-	platformdataprivacy "github.com/primandproper/platform-go/v14/dataprivacy"
-	issuereports "github.com/primandproper/platform-go/v14/issuereports"
-	issuereportsprivacy "github.com/primandproper/platform-go/v14/issuereports/privacy"
+	platformdataprivacy "github.com/primandproper/platform-go/v15/dataprivacy"
+	issuereports "github.com/primandproper/platform-go/v15/issuereports"
+	issuereportsprivacy "github.com/primandproper/platform-go/v15/issuereports/privacy"
 	"github.com/primandproper/primitives-go/v2/database"
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/tenancy"

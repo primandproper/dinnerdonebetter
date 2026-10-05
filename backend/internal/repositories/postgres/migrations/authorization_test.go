@@ -7,7 +7,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	authzdatabase "github.com/primandproper/platform-go/v14/rbac"
+	authzdatabase "github.com/primandproper/platform-go/v15/rbac"
 	platformauthz "github.com/primandproper/primitives-go/v2/authorization"
 	"github.com/primandproper/primitives-go/v2/database/dialect"
 	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"

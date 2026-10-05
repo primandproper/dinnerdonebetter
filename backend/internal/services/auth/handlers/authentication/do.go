@@ -6,9 +6,9 @@ import (
 	authn "github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 
-	platformoauth2clients "github.com/primandproper/platform-go/v14/authentication/oauth2clients"
-	oauth2servercfg "github.com/primandproper/platform-go/v14/authentication/oauth2serverstore/config"
-	platformidentity "github.com/primandproper/platform-go/v14/identity"
+	platformoauth2clients "github.com/primandproper/platform-go/v15/authentication/oauth2clients"
+	oauth2servercfg "github.com/primandproper/platform-go/v15/authentication/oauth2serverstore/config"
+	platformidentity "github.com/primandproper/platform-go/v15/identity"
 	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
 	"github.com/primandproper/primitives-go/v2/authentication/tokens"
 	"github.com/primandproper/primitives-go/v2/authentication/totp"

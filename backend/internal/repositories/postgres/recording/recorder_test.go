@@ -8,7 +8,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit/fakes"
 	auditmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit/mock"
 
-	platformaudit "github.com/primandproper/platform-go/v14/audit"
+	platformaudit "github.com/primandproper/platform-go/v15/audit"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/errors"
 	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"

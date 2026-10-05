@@ -49,8 +49,8 @@ import (
 	uploadedmediacfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/config"
 	uploadedmediasvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/grpc"
 
-	platformerrormappers "github.com/primandproper/platform-go/v14/errormappers"
-	operationscfg "github.com/primandproper/platform-go/v14/operations/config"
+	platformerrormappers "github.com/primandproper/platform-go/v15/errormappers"
+	operationscfg "github.com/primandproper/platform-go/v15/operations/config"
 	"github.com/primandproper/primitives-go/v2/analytics/multisource"
 	tokenscfg "github.com/primandproper/primitives-go/v2/authentication/tokens/config"
 	databasecfg "github.com/primandproper/primitives-go/v2/database/config"

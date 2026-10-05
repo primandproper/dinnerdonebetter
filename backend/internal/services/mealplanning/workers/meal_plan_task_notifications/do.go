@@ -5,10 +5,10 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 
-	platformidentity "github.com/primandproper/platform-go/v14/identity"
-	"github.com/primandproper/platform-go/v14/notifications/push"
-	"github.com/primandproper/platform-go/v14/workqueue"
-	workqueuecfg "github.com/primandproper/platform-go/v14/workqueue/config"
+	platformidentity "github.com/primandproper/platform-go/v15/identity"
+	"github.com/primandproper/platform-go/v15/notifications/push"
+	"github.com/primandproper/platform-go/v15/workqueue"
+	workqueuecfg "github.com/primandproper/platform-go/v15/workqueue/config"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/observability"
 	"github.com/primandproper/primitives-go/v2/observability/logging"

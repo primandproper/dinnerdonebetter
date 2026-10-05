@@ -10,7 +10,7 @@ import (
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers"
 
-	"github.com/primandproper/platform-go/v14/notifications/push"
+	"github.com/primandproper/platform-go/v15/notifications/push"
 	"github.com/primandproper/primitives-go/v2/database"
 	platformnotifications "github.com/primandproper/primitives-go/v2/notifications/mobile"
 	"github.com/primandproper/primitives-go/v2/observability"

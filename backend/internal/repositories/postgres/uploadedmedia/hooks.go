@@ -36,8 +36,8 @@ import (
 	uploadedmediakeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/recording"
 
-	platformaudit "github.com/primandproper/platform-go/v14/audit"
-	"github.com/primandproper/platform-go/v14/mediaregistry"
+	platformaudit "github.com/primandproper/platform-go/v15/audit"
+	"github.com/primandproper/platform-go/v15/mediaregistry"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/tenancy"

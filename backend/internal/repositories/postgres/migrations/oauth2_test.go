@@ -6,7 +6,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	oauth2database "github.com/primandproper/platform-go/v14/authentication/oauth2serverstore"
+	oauth2database "github.com/primandproper/platform-go/v15/authentication/oauth2serverstore"
 	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
 	"github.com/primandproper/primitives-go/v2/authentication/oauth2server/oauth2servertest"
 	"github.com/primandproper/primitives-go/v2/clock"

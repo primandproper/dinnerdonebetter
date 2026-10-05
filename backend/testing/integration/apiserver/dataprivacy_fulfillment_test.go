@@ -13,9 +13,9 @@ import (
 
 	ddbdataprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
 
-	platformdataprivacy "github.com/primandproper/platform-go/v14/dataprivacy"
-	dataprivacyhttp "github.com/primandproper/platform-go/v14/dataprivacy/http"
-	"github.com/primandproper/platform-go/v14/identity"
+	platformdataprivacy "github.com/primandproper/platform-go/v15/dataprivacy"
+	dataprivacyhttp "github.com/primandproper/platform-go/v15/dataprivacy/http"
+	"github.com/primandproper/platform-go/v15/identity"
 	"github.com/primandproper/primitives-go/v2/identifiers"
 	"github.com/primandproper/primitives-go/v2/tenancy"
 

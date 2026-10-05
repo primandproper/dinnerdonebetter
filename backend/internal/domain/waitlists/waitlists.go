@@ -25,7 +25,7 @@ signup's Subject, not the list's scope; see SubjectFor.
 package waitlists
 
 import (
-	platformwaitlists "github.com/primandproper/platform-go/v14/waitlists"
+	platformwaitlists "github.com/primandproper/platform-go/v15/waitlists"
 )
 
 // The data change events a waitlist write emits. They are declared in the

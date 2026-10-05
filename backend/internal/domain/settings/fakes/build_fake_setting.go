@@ -5,7 +5,7 @@ package fakes
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings"
 
-	platformsettings "github.com/primandproper/platform-go/v14/settings"
+	platformsettings "github.com/primandproper/platform-go/v15/settings"
 	"github.com/primandproper/primitives-go/v2/fake"
 	"github.com/primandproper/primitives-go/v2/filtering"
 	"github.com/primandproper/primitives-go/v2/pointer"

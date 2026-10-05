@@ -11,8 +11,8 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	platformaudit "github.com/primandproper/platform-go/v14/audit"
-	platformoauth2clients "github.com/primandproper/platform-go/v14/authentication/oauth2clients"
+	platformaudit "github.com/primandproper/platform-go/v15/audit"
+	platformoauth2clients "github.com/primandproper/platform-go/v15/authentication/oauth2clients"
 	"github.com/primandproper/primitives-go/v2/database/postgres"
 	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
 	metricsnoop "github.com/primandproper/primitives-go/v2/observability/metrics/noop"

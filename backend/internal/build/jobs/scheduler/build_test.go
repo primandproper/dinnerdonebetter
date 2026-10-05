@@ -49,11 +49,11 @@ func TestBuildInjector_RegistersTheNotificationChain(t *testing.T) {
 	for _, name := range []string{
 		"*github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_task_notifications.Worker",
 		"*github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_task_notifications.TaskQueue",
-		"*github.com/primandproper/platform-go/v14/notifications/push.Fanout",
-		"github.com/primandproper/platform-go/v14/notifications.Inbox",
-		"github.com/primandproper/platform-go/v14/notifications.Registry",
+		"*github.com/primandproper/platform-go/v15/notifications/push.Fanout",
+		"github.com/primandproper/platform-go/v15/notifications.Inbox",
+		"github.com/primandproper/platform-go/v15/notifications.Registry",
 		"github.com/primandproper/primitives-go/v2/notifications/mobile.PushNotificationSender",
-		"*github.com/primandproper/platform-go/v14/workqueue.Config",
+		"*github.com/primandproper/platform-go/v15/workqueue.Config",
 	} {
 		assert.True(t, declared[name], "the scheduler must provide %s", name)
 	}
@@ -87,9 +87,9 @@ func TestBuildInjector_RegistersEveryPrivacyCollectorStore(t *testing.T) {
 	}
 
 	for _, name := range []string{
-		"github.com/primandproper/platform-go/v14/authentication/passkeys.Store",
-		"github.com/primandproper/platform-go/v14/authentication/passwordreset.Store",
-		"github.com/primandproper/platform-go/v14/authentication/oauth2clients.Store",
+		"github.com/primandproper/platform-go/v15/authentication/passkeys.Store",
+		"github.com/primandproper/platform-go/v15/authentication/passwordreset.Store",
+		"github.com/primandproper/platform-go/v15/authentication/oauth2clients.Store",
 	} {
 		assert.True(t, declared[name], "the data privacy registry resolves %s and this container does not declare it", name)
 	}

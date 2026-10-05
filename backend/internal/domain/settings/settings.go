@@ -53,7 +53,7 @@ it to share one.
 package settings
 
 import (
-	platformsettings "github.com/primandproper/platform-go/v14/settings"
+	platformsettings "github.com/primandproper/platform-go/v15/settings"
 )
 
 // The data change events a settings write emits. They are declared in the

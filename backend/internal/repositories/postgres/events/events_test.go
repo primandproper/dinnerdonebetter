@@ -9,9 +9,9 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/fakes"
 
-	"github.com/primandproper/platform-go/v14/outbox"
-	"github.com/primandproper/platform-go/v14/webhooks"
-	webhooksmock "github.com/primandproper/platform-go/v14/webhooks/mock"
+	"github.com/primandproper/platform-go/v15/outbox"
+	"github.com/primandproper/platform-go/v15/webhooks"
+	webhooksmock "github.com/primandproper/platform-go/v15/webhooks/mock"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/database/dialect"
 	mockdatabase "github.com/primandproper/primitives-go/v2/database/mock"

@@ -3,8 +3,8 @@ package metering
 import (
 	"context"
 
-	platformmetering "github.com/primandproper/platform-go/v14/metering"
-	meteringcfg "github.com/primandproper/platform-go/v14/metering/config"
+	platformmetering "github.com/primandproper/platform-go/v15/metering"
+	meteringcfg "github.com/primandproper/platform-go/v15/metering/config"
 	"github.com/primandproper/primitives-go/v2/capitalism"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/observability"

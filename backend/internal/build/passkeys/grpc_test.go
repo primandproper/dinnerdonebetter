@@ -8,7 +8,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 
-	webauthncfg "github.com/primandproper/platform-go/v14/authentication/webauthnsessions/config"
+	webauthncfg "github.com/primandproper/platform-go/v15/authentication/webauthnsessions/config"
 	platformwebauthn "github.com/primandproper/primitives-go/v2/authentication/webauthn"
 
 	"github.com/stretchr/testify/assert"

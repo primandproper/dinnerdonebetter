@@ -45,8 +45,8 @@ import (
 	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
 	mealplanningindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
-	"github.com/primandproper/platform-go/v14/outbox"
-	searchsync "github.com/primandproper/platform-go/v14/searchsync"
+	"github.com/primandproper/platform-go/v15/outbox"
+	searchsync "github.com/primandproper/platform-go/v15/searchsync"
 	"github.com/primandproper/primitives-go/v2/database"
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 )

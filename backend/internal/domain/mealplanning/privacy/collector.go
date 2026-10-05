@@ -8,7 +8,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 
-	platformdataprivacy "github.com/primandproper/platform-go/v14/dataprivacy"
+	platformdataprivacy "github.com/primandproper/platform-go/v15/dataprivacy"
 	"github.com/primandproper/primitives-go/v2/filtering"
 	"github.com/primandproper/primitives-go/v2/observability"
 	"github.com/primandproper/primitives-go/v2/observability/logging"

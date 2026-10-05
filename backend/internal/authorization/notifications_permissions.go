@@ -1,7 +1,7 @@
 package authorization
 
 import (
-	notificationsgrpc "github.com/primandproper/platform-go/v14/notifications/grpc"
+	notificationsgrpc "github.com/primandproper/platform-go/v15/notifications/grpc"
 )
 
 // The notification permissions are platform's, re-exported under the names this

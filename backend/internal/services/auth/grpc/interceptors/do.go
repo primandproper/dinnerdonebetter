@@ -3,9 +3,9 @@ package interceptors
 import (
 	identitybuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/identity"
 
-	oauth2servercfg "github.com/primandproper/platform-go/v14/authentication/oauth2serverstore/config"
-	"github.com/primandproper/platform-go/v14/authentication/signin"
-	platformidentity "github.com/primandproper/platform-go/v14/identity"
+	oauth2servercfg "github.com/primandproper/platform-go/v15/authentication/oauth2serverstore/config"
+	"github.com/primandproper/platform-go/v15/authentication/signin"
+	platformidentity "github.com/primandproper/platform-go/v15/identity"
 	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
 	"github.com/primandproper/primitives-go/v2/authentication/tokens"
 	"github.com/primandproper/primitives-go/v2/database"

@@ -4,7 +4,7 @@ import (
 	platformauthz "github.com/primandproper/primitives-go/v2/authorization"
 )
 
-// This file bridges this package's permission model onto platform-go/v14's
+// This file bridges this package's permission model onto platform-go/v15's
 // authorization package.
 //
 // The permissions themselves stay here: what this service can be asked to do is

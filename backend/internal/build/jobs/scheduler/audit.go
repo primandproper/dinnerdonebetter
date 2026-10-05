@@ -6,8 +6,8 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 
-	auditcfg "github.com/primandproper/platform-go/v14/audit/config"
-	"github.com/primandproper/platform-go/v14/retention"
+	auditcfg "github.com/primandproper/platform-go/v15/audit/config"
+	"github.com/primandproper/platform-go/v15/retention"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/metrics"

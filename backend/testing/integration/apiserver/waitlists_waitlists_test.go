@@ -6,9 +6,9 @@ import (
 	waitlistfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists/fakes"
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
 
-	"github.com/primandproper/platform-go/v14/authentication/signin/signinpb"
-	waitlists "github.com/primandproper/platform-go/v14/waitlists"
-	waitlistspb "github.com/primandproper/platform-go/v14/waitlists/waitlistspb"
+	"github.com/primandproper/platform-go/v15/authentication/signin/signinpb"
+	waitlists "github.com/primandproper/platform-go/v15/waitlists"
+	waitlistspb "github.com/primandproper/platform-go/v15/waitlists/waitlistspb"
 	"github.com/primandproper/primitives-go/v2/identifiers"
 	"github.com/primandproper/primitives-go/v2/tenancy"
 

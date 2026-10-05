@@ -1,7 +1,7 @@
 package authorization
 
 import (
-	webhooksgrpc "github.com/primandproper/platform-go/v14/webhooks/grpc"
+	webhooksgrpc "github.com/primandproper/platform-go/v15/webhooks/grpc"
 )
 
 // The webhook surface's permissions are platform's, re-exported under this

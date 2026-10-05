@@ -52,8 +52,8 @@ import (
 	paymentskeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/recording"
 
-	platformaudit "github.com/primandproper/platform-go/v14/audit"
-	"github.com/primandproper/platform-go/v14/billing"
+	platformaudit "github.com/primandproper/platform-go/v15/audit"
+	"github.com/primandproper/platform-go/v15/billing"
 	"github.com/primandproper/primitives-go/v2/database"
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/observability/logging"

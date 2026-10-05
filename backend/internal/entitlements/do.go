@@ -1,10 +1,10 @@
 package entitlements
 
 import (
-	"github.com/primandproper/platform-go/v14/billing"
-	platformentitlements "github.com/primandproper/platform-go/v14/entitlements"
-	entitlementscfg "github.com/primandproper/platform-go/v14/entitlements/config"
-	platformmetering "github.com/primandproper/platform-go/v14/metering"
+	"github.com/primandproper/platform-go/v15/billing"
+	platformentitlements "github.com/primandproper/platform-go/v15/entitlements"
+	entitlementscfg "github.com/primandproper/platform-go/v15/entitlements/config"
+	platformmetering "github.com/primandproper/platform-go/v15/metering"
 	"github.com/primandproper/primitives-go/v2/database"
 
 	"github.com/samber/do/v2"

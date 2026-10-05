@@ -25,8 +25,8 @@ import (
 	commentskeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/recording"
 
-	platformaudit "github.com/primandproper/platform-go/v14/audit"
-	platformcomments "github.com/primandproper/platform-go/v14/comments"
+	platformaudit "github.com/primandproper/platform-go/v15/audit"
+	platformcomments "github.com/primandproper/platform-go/v15/comments"
 	"github.com/primandproper/primitives-go/v2/database"
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/observability/logging"

@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	platformaudit "github.com/primandproper/platform-go/v14/audit"
-	platformidentity "github.com/primandproper/platform-go/v14/identity"
+	platformaudit "github.com/primandproper/platform-go/v15/audit"
+	platformidentity "github.com/primandproper/platform-go/v15/identity"
 	"github.com/primandproper/primitives-go/v2/identifiers"
 
 	"github.com/stretchr/testify/assert"

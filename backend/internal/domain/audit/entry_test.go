@@ -3,7 +3,7 @@ package audit
 import (
 	"testing"
 
-	platformaudit "github.com/primandproper/platform-go/v14/audit"
+	platformaudit "github.com/primandproper/platform-go/v15/audit"
 	"github.com/primandproper/primitives-go/v2/identifiers"
 	"github.com/primandproper/primitives-go/v2/tenancy"
 

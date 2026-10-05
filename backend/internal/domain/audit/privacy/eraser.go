@@ -3,9 +3,9 @@ package privacy
 import (
 	"context"
 
-	platformdataprivacy "github.com/primandproper/platform-go/v14/dataprivacy"
-	"github.com/primandproper/platform-go/v14/dataprivacy/auditerasure"
-	platformidentity "github.com/primandproper/platform-go/v14/identity"
+	platformdataprivacy "github.com/primandproper/platform-go/v15/dataprivacy"
+	"github.com/primandproper/platform-go/v15/dataprivacy/auditerasure"
+	platformidentity "github.com/primandproper/platform-go/v15/identity"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/filtering"
 	"github.com/primandproper/primitives-go/v2/tenancy"

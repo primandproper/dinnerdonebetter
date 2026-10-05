@@ -3,7 +3,7 @@ package fakes
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 
-	platformcomments "github.com/primandproper/platform-go/v14/comments"
+	platformcomments "github.com/primandproper/platform-go/v15/comments"
 	"github.com/primandproper/primitives-go/v2/fake"
 	"github.com/primandproper/primitives-go/v2/filtering"
 	"github.com/primandproper/primitives-go/v2/tenancy"

@@ -16,8 +16,8 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings"
 
-	platformdataprivacy "github.com/primandproper/platform-go/v14/dataprivacy"
-	platformsettings "github.com/primandproper/platform-go/v14/settings"
+	platformdataprivacy "github.com/primandproper/platform-go/v15/dataprivacy"
+	platformsettings "github.com/primandproper/platform-go/v15/settings"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/filtering"
 	"github.com/primandproper/primitives-go/v2/tenancy"

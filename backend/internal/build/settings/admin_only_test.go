@@ -11,9 +11,9 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	platformsettings "github.com/primandproper/platform-go/v14/settings"
-	settingsgrpc "github.com/primandproper/platform-go/v14/settings/grpc"
-	"github.com/primandproper/platform-go/v14/settings/settingspb"
+	platformsettings "github.com/primandproper/platform-go/v15/settings"
+	settingsgrpc "github.com/primandproper/platform-go/v15/settings/grpc"
+	"github.com/primandproper/platform-go/v15/settings/settingspb"
 	platformauthz "github.com/primandproper/primitives-go/v2/authorization"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/database/postgres"

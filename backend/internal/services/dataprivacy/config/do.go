@@ -5,9 +5,9 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 
-	platformdataprivacy "github.com/primandproper/platform-go/v14/dataprivacy"
-	platformdataprivacycfg "github.com/primandproper/platform-go/v14/dataprivacy/config"
-	"github.com/primandproper/platform-go/v14/operations"
+	platformdataprivacy "github.com/primandproper/platform-go/v15/dataprivacy"
+	platformdataprivacycfg "github.com/primandproper/platform-go/v15/dataprivacy/config"
+	"github.com/primandproper/platform-go/v15/operations"
 	"github.com/primandproper/primitives-go/v2/compression"
 	"github.com/primandproper/primitives-go/v2/cryptography/encryption"
 	encryptioncfg "github.com/primandproper/primitives-go/v2/cryptography/encryption/config"

@@ -8,8 +8,8 @@ import (
 	webhookkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/recording"
 
-	platformaudit "github.com/primandproper/platform-go/v14/audit"
-	platformwebhooks "github.com/primandproper/platform-go/v14/webhooks"
+	platformaudit "github.com/primandproper/platform-go/v15/audit"
+	platformwebhooks "github.com/primandproper/platform-go/v15/webhooks"
 	"github.com/primandproper/primitives-go/v2/database"
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/observability/logging"

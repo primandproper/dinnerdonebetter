@@ -6,8 +6,8 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/indexstamp"
 
-	searchsync "github.com/primandproper/platform-go/v14/searchsync"
-	syncsource "github.com/primandproper/platform-go/v14/searchsync/source"
+	searchsync "github.com/primandproper/platform-go/v15/searchsync"
+	syncsource "github.com/primandproper/platform-go/v15/searchsync/source"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/metrics"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"

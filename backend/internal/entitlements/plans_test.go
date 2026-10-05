@@ -6,8 +6,8 @@ import (
 
 	paymentsfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/fakes"
 
-	"github.com/primandproper/platform-go/v14/billing"
-	billingmock "github.com/primandproper/platform-go/v14/billing/mock"
+	"github.com/primandproper/platform-go/v15/billing"
+	billingmock "github.com/primandproper/platform-go/v15/billing/mock"
 	"github.com/primandproper/primitives-go/v2/capitalism"
 	"github.com/primandproper/primitives-go/v2/database"
 	mockdatabase "github.com/primandproper/primitives-go/v2/database/mock"

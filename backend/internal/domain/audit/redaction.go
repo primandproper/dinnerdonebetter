@@ -1,7 +1,7 @@
 package audit
 
 import (
-	platformaudit "github.com/primandproper/platform-go/v14/audit"
+	platformaudit "github.com/primandproper/platform-go/v15/audit"
 )
 
 // Redactions is this application's policy for what never becomes durable in the

@@ -3,7 +3,7 @@ package authorization
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 
-	authzdatabase "github.com/primandproper/platform-go/v14/rbac"
+	authzdatabase "github.com/primandproper/platform-go/v15/rbac"
 	platformauthz "github.com/primandproper/primitives-go/v2/authorization"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/database/dialect"

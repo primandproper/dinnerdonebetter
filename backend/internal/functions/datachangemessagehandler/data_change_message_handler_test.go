@@ -9,9 +9,9 @@ import (
 	mealplanningmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
-	identitymock "github.com/primandproper/platform-go/v14/identity/mock"
-	platformnotificationsmock "github.com/primandproper/platform-go/v14/notifications/mock"
-	"github.com/primandproper/platform-go/v14/notifications/push"
+	identitymock "github.com/primandproper/platform-go/v15/identity/mock"
+	platformnotificationsmock "github.com/primandproper/platform-go/v15/notifications/mock"
+	"github.com/primandproper/platform-go/v15/notifications/push"
 	analyticsmock "github.com/primandproper/primitives-go/v2/analytics/mock"
 	"github.com/primandproper/primitives-go/v2/database"
 	mockdatabase "github.com/primandproper/primitives-go/v2/database/mock"

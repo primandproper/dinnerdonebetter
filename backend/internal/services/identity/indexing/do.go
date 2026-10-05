@@ -3,8 +3,8 @@ package indexing
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/indexstamp"
 
-	platformidentity "github.com/primandproper/platform-go/v14/identity"
-	searchsync "github.com/primandproper/platform-go/v14/searchsync"
+	platformidentity "github.com/primandproper/platform-go/v15/identity"
+	searchsync "github.com/primandproper/platform-go/v15/searchsync"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/metrics"

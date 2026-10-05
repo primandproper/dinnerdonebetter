@@ -7,9 +7,9 @@ import (
 	mealplanningsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
 
-	"github.com/primandproper/platform-go/v14/authentication/passkeys/passkeyspb"
-	"github.com/primandproper/platform-go/v14/authentication/signin/signinpb"
-	identity "github.com/primandproper/platform-go/v14/identity"
+	"github.com/primandproper/platform-go/v15/authentication/passkeys/passkeyspb"
+	"github.com/primandproper/platform-go/v15/authentication/signin/signinpb"
+	identity "github.com/primandproper/platform-go/v15/identity"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

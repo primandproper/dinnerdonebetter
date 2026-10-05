@@ -6,7 +6,7 @@ import (
 	issuereportfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports/fakes"
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
 
-	issuereportspb "github.com/primandproper/platform-go/v14/issuereports/issuereportspb"
+	issuereportspb "github.com/primandproper/platform-go/v15/issuereports/issuereportspb"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

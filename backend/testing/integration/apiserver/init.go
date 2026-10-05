@@ -16,9 +16,9 @@ import (
 	notificationsstore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/notificationsstore"
 	paymentsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/payments"
 
-	platformoauth2clients "github.com/primandproper/platform-go/v14/authentication/oauth2clients"
-	"github.com/primandproper/platform-go/v14/billing"
-	platformnotifications "github.com/primandproper/platform-go/v14/notifications"
+	platformoauth2clients "github.com/primandproper/platform-go/v15/authentication/oauth2clients"
+	"github.com/primandproper/platform-go/v15/billing"
+	platformnotifications "github.com/primandproper/platform-go/v15/notifications"
 	"github.com/primandproper/primitives-go/v2/database"
 	msgconfig "github.com/primandproper/primitives-go/v2/messagequeue/config"
 	metricsnoop "github.com/primandproper/primitives-go/v2/observability/metrics/noop"

@@ -1,7 +1,7 @@
 package authorization
 
 import (
-	commentsgrpc "github.com/primandproper/platform-go/v14/comments/grpc"
+	commentsgrpc "github.com/primandproper/platform-go/v15/comments/grpc"
 )
 
 // The comment permissions are platform's, re-exported under the names this

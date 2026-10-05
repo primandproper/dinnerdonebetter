@@ -5,8 +5,8 @@ import (
 	"encoding/hex"
 	"testing"
 
-	platformnotifications "github.com/primandproper/platform-go/v14/notifications"
-	notificationspb "github.com/primandproper/platform-go/v14/notifications/notificationspb"
+	platformnotifications "github.com/primandproper/platform-go/v15/notifications"
+	notificationspb "github.com/primandproper/platform-go/v15/notifications/notificationspb"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/identifiers"
 	"github.com/primandproper/primitives-go/v2/tenancy"

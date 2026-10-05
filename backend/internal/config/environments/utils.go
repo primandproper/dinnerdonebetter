@@ -6,8 +6,8 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 
-	"github.com/primandproper/platform-go/v14/webhooks"
-	webhookscfg "github.com/primandproper/platform-go/v14/webhooks/config"
+	"github.com/primandproper/platform-go/v15/webhooks"
+	webhookscfg "github.com/primandproper/platform-go/v15/webhooks/config"
 	circuitbreakingcfg "github.com/primandproper/primitives-go/v2/circuitbreaking/config"
 	retrycfg "github.com/primandproper/primitives-go/v2/retry/config"
 )

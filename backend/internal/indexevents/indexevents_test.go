@@ -5,8 +5,8 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/datachanges"
 
-	"github.com/primandproper/platform-go/v14/outbox"
-	searchsync "github.com/primandproper/platform-go/v14/searchsync"
+	"github.com/primandproper/platform-go/v15/outbox"
+	searchsync "github.com/primandproper/platform-go/v15/searchsync"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

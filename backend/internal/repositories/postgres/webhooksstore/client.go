@@ -29,8 +29,8 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/recording"
 
-	platformwebhooks "github.com/primandproper/platform-go/v14/webhooks"
-	webhookscfg "github.com/primandproper/platform-go/v14/webhooks/config"
+	platformwebhooks "github.com/primandproper/platform-go/v15/webhooks"
+	webhookscfg "github.com/primandproper/platform-go/v15/webhooks/config"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"

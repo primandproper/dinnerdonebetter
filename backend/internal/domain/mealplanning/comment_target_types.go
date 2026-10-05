@@ -1,7 +1,7 @@
 package mealplanning
 
 import (
-	comments "github.com/primandproper/platform-go/v14/comments"
+	comments "github.com/primandproper/platform-go/v15/comments"
 )
 
 // The kinds of thing in this domain that a comment may be about.

@@ -4,7 +4,7 @@ payment provider's webhook means to an account, the namespace the billing
 tables carry, the tenancy they are kept under, and the data change events a
 write emits.
 
-The stored half is platform-go's. github.com/primandproper/platform-go/v14/billing
+The stored half is platform-go's. github.com/primandproper/platform-go/v15/billing
 owns the catalog, the subscriptions, the one-time purchases and the ledger of
 payment attempts: the schema, the paging, the tenancy column, the uniqueness that
 turns a redelivered webhook into a collision instead of a second row, and the

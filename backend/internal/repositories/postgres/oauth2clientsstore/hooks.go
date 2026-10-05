@@ -29,8 +29,8 @@ import (
 	oauthkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/recording"
 
-	platformaudit "github.com/primandproper/platform-go/v14/audit"
-	platformoauth2clients "github.com/primandproper/platform-go/v14/authentication/oauth2clients"
+	platformaudit "github.com/primandproper/platform-go/v15/audit"
+	platformoauth2clients "github.com/primandproper/platform-go/v15/authentication/oauth2clients"
 	"github.com/primandproper/primitives-go/v2/database"
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/observability/logging"

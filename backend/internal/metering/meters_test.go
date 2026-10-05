@@ -3,7 +3,7 @@ package metering
 import (
 	"testing"
 
-	platformmetering "github.com/primandproper/platform-go/v14/metering"
+	platformmetering "github.com/primandproper/platform-go/v15/metering"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

@@ -31,7 +31,7 @@ require (
 	github.com/matcornic/hermes/v2 v2.1.0
 	github.com/modelcontextprotocol/go-sdk v1.6.1
 	github.com/pquerna/otp v1.5.0
-	github.com/primandproper/platform-go/v14 v14.2.0
+	github.com/primandproper/platform-go/v15 v15.0.0-00010101000000-000000000000
 	github.com/primandproper/primitives-go/v2 v2.12.0
 	github.com/samber/do/v2 v2.0.0
 	github.com/shopspring/decimal v1.4.0
@@ -429,4 +429,7 @@ require (
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
 
-replace github.com/primandproper/platform-go/v14 => ../../platform-go
+replace (
+	github.com/primandproper/platform-go/v15 => ../../platform-go
+	github.com/primandproper/primitives-go/v2 => ../../primitives-go
+)

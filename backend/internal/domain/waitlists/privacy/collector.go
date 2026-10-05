@@ -17,8 +17,8 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists"
 
-	platformdataprivacy "github.com/primandproper/platform-go/v14/dataprivacy"
-	platformwaitlists "github.com/primandproper/platform-go/v14/waitlists"
+	platformdataprivacy "github.com/primandproper/platform-go/v15/dataprivacy"
+	platformwaitlists "github.com/primandproper/platform-go/v15/waitlists"
 	"github.com/primandproper/primitives-go/v2/database"
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/filtering"

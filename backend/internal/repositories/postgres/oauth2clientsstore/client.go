@@ -5,7 +5,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/recording"
 
-	platformoauth2clients "github.com/primandproper/platform-go/v14/authentication/oauth2clients"
+	platformoauth2clients "github.com/primandproper/platform-go/v15/authentication/oauth2clients"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
 )

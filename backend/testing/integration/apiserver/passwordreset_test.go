@@ -5,8 +5,8 @@ import (
 
 	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 
-	"github.com/primandproper/platform-go/v14/authentication/passwordreset/passwordresetpb"
-	"github.com/primandproper/platform-go/v14/authentication/signin/signinpb"
+	"github.com/primandproper/platform-go/v15/authentication/passwordreset/passwordresetpb"
+	"github.com/primandproper/platform-go/v15/authentication/signin/signinpb"
 	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/stretchr/testify/assert"
