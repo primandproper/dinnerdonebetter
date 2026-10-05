@@ -16,19 +16,16 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	internalopssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/internalops"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/indexevents"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/localdev"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identitystore"
+	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
 
 	"github.com/primandproper/platform-go/v15/authentication/signin/signinpb"
 	identity "github.com/primandproper/platform-go/v15/identity"
 	"github.com/primandproper/platform-go/v15/identity/identitypb"
-	"github.com/primandproper/platform-go/v15/outbox"
 	"github.com/primandproper/primitives-go/v2/database"
-	"github.com/primandproper/primitives-go/v2/database/dialect"
 	"github.com/primandproper/primitives-go/v2/identifiers"
 	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
 	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
@@ -576,8 +573,8 @@ func identityDirectoryWithHooks(t *testing.T) *identity.Service {
 	auditLogRepo, err := auditlogentries.ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, databaseClient)
 	require.NoError(t, err)
 
-	outboxWriter, err := outbox.NewWriter(dialect.Postgres, outbox.WithWriterSideEffect(indexevents.SideEffectName, indexevents.SideEffect))
-	require.NoError(t, err)
+	auditRecorder, ok := auditlogentries.RecorderFrom(auditLogRepo)
+	require.True(t, ok)
 
 	store, err := identity.NewSQLStore(databaseClient, identity.WithTablePrefix(branding.TablePrefix))
 	require.NoError(t, err)
@@ -587,7 +584,7 @@ func identityDirectoryWithHooks(t *testing.T) *identity.Service {
 			loggingnoop.NewLogger(),
 			tracingnoop.NewTracerProvider(),
 			auditLogRepo,
-			events.NewEmitter(outboxWriter, apiServiceConfig.Queues.DataChangesTopicName, nil, indexevents.SideEffect),
+			pgtesting.NewEmitterForTest(t, t.Context(), databaseClient, auditRecorder),
 		)),
 	)
 	require.NoError(t, err)

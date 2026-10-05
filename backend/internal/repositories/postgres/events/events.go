@@ -1,34 +1,43 @@
 /*
-Package events writes domain events into the outbox as part of the transaction that produced
-them.
+Package events is this application's seam onto platform's recording spine: the outbox writer,
+the webhooks Emitter that publishes a domain event and fans it out to subscribers on the caller's
+transaction, and the recording.Recorder that writes an audit entry beside it.
 
 Publishing an event after a repository commits is two operations against two systems that share
 no commit: the row lands, the publish fails, and durable state and the event stream diverge with
-nothing to detect it. Every event published from a manager after a repository call has that gap.
+nothing to detect it. Every write here goes through the executor of the transaction that wrote
+the row, so the event lives or dies with it. That guarantee is platform's — outbox.Enqueue and
+webhooks.Emitter.Emit both take the database.Tx — and nothing here re-states it.
 
-The seam is the executor. outbox.Enqueue takes the database.SQLQueryExecutor that
-database.Client.WithTransaction hands its callback, so the event is another statement in the
-transaction that wrote the row and lives or dies with it. That executor only exists inside the
-repository, which is why events are emitted there rather than from the manager — the same place,
-and for the same reason, that audit log entries already are.
+What this package adds is the shape of this application's own events. A write to one of its
+nouns announces itself as a *datachanges.Message — the event type, a context map, and the
+session's user and account — because that is what the async message handler, the analytics
+allowlist and the search index rules read. platform's Emitter takes any payload and never
+interprets it; this is where that payload is built from the request, once, rather than at a
+hundred and fifty call sites.
+
+The platform-owned nouns do not come through here. Their stores' RecordingHooks record through
+the same Recorder with platform's own payloads, which the broker cannot yet tell apart from these
+(platform-go#1130); until it can, the stores whose events the async handler must recognize keep
+their own hooks.
 
 # Wire compatibility
 
-The message is the same *datachanges.Message the managers publish directly, marshaled the
-same way. The relay republishes the stored bytes as json.RawMessage, so what reaches the broker
-is byte-identical to a direct Publish of the same value. Consumers need no change, and a domain
-can be converted one method at a time while the rest still publish directly.
+The message is the same *datachanges.Message the handler has always decoded, marshaled the same
+way. The relay republishes the stored bytes, so what reaches the broker is byte-identical to what
+the local emitter this replaced produced.
 */
 package events
 
 import (
 	"context"
-	"encoding/json"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/datachanges"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/catalog"
 
+	platformaudit "github.com/primandproper/platform-go/v15/audit"
 	"github.com/primandproper/platform-go/v15/outbox"
+	platformrecording "github.com/primandproper/platform-go/v15/recording"
 	"github.com/primandproper/platform-go/v15/webhooks"
 	"github.com/primandproper/primitives-go/v2/database"
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
@@ -36,30 +45,39 @@ import (
 	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
-// Emitter enqueues data change events into the outbox and fans them out to webhooks.
+// Emitter publishes this application's data change events through platform's Emitter, and
+// records the audit entry a write owes beside one through platform's Recorder.
+//
+// It is one type over the two because a write here owes both or one, never neither, and the
+// payload it builds for the event is the same either way.
 type Emitter struct {
-	writer     *outbox.Writer
-	dispatcher webhooks.Dispatcher
-	// sideEffect is the same effect registered on the writer, kept so EmitIndex can run it
+	emitter  *webhooks.Emitter
+	recorder *platformrecording.Recorder
+	writer   *outbox.Writer
+	// effect is the same side effect registered on the writer, kept so EmitIndex can run it
 	// over a message it never enqueues. See index_events.go.
-	sideEffect outbox.SideEffect
-	topic      string
+	effect outbox.SideEffect
 }
 
-// NewEmitter builds an Emitter that writes to the given topic.
+// NewEmitter builds an Emitter over platform's.
 //
-// A nil writer yields a nil Emitter, which is inert: repositories constructed without an outbox
-// keep working and simply emit nothing. That is what lets a repository be built in a test, or
-// in a process with no publisher, without threading a mock through every call site.
-//
-// The dispatcher is separately optional and separately nil-safe, for the same reason at a
-// different granularity: a process with an outbox but no webhook tables still emits events.
-func NewEmitter(writer *outbox.Writer, topic string, dispatcher webhooks.Dispatcher, sideEffect outbox.SideEffect) *Emitter {
-	if writer == nil || topic == "" {
-		return nil
+// Every part is required. The emitter this replaced was nil-inert for a process with no topic,
+// which made a process with no broker a process whose writes announced nothing: an event written
+// to the outbox under the default topic is relayed by whichever worker has a broker, which is
+// what an outbox is for.
+func NewEmitter(emitter *webhooks.Emitter, recorder *platformrecording.Recorder, writer *outbox.Writer, effect outbox.SideEffect) (*Emitter, error) {
+	switch {
+	case emitter == nil:
+		return nil, platformerrors.Wrap(platformerrors.ErrNilInputParameter, "nil webhooks emitter")
+	case recorder == nil:
+		return nil, platformerrors.Wrap(platformerrors.ErrNilInputParameter, "nil recording recorder")
+	case writer == nil:
+		return nil, platformerrors.Wrap(platformerrors.ErrNilInputParameter, "nil outbox writer")
+	case effect == nil:
+		return nil, platformerrors.Wrap(platformerrors.ErrNilInputParameter, "nil index side effect")
 	}
 
-	return &Emitter{writer: writer, topic: topic, dispatcher: dispatcher, sideEffect: sideEffect}
+	return &Emitter{emitter: emitter, recorder: recorder, writer: writer, effect: effect}, nil
 }
 
 // EmitOption customizes one Emit.
@@ -70,14 +88,14 @@ type emitConfig struct {
 	userID      string
 }
 
-// WithOrderingKey sets the webhook ordering key for this event, overriding the default of the
-// account ID.
+// WithOrderingKey sets the ordering key for this event, overriding the default of the scope's
+// own identifier — the account's.
 //
-// Deliveries sharing a key reach a given endpoint in dispatch order, so this should be the
-// subject resource's ID wherever the caller knows it: that is what stops a resource.updated
-// overtaking the resource.created for the same resource. Callers that do not pass one get
-// per-account ordering, which is correct but serializes an account's deliveries to a subscriber
-// more than it needs to.
+// Deliveries sharing a key reach a given endpoint in dispatch order, and outbox messages sharing
+// one publish in order, so this should be the subject resource's ID wherever the caller knows it:
+// that is what stops a resource.updated overtaking the resource.created for the same resource.
+// Callers that do not pass one get per-account ordering, which is correct but serializes an
+// account's events more than it needs to.
 //
 // It is an option rather than a parameter because roughly a hundred and fifty call sites emit
 // events and only some of them know their subject.
@@ -102,30 +120,73 @@ func WithUserID(userID string) EmitOption {
 	}
 }
 
-// Emit enqueues one data change event using the caller's executor, so it commits with whatever
-// else that transaction did.
+// Emit publishes one data change event on the caller's transaction and fans it out to the
+// account's webhook subscribers, so it commits with whatever else that transaction did.
 //
-// The user and account are read from the context exactly as the manager-side publish does, so a
-// converted call site produces the same message it did before. accountID overrides the one from
-// the context and should be passed whenever the repository knows it, because a background job
-// has no session: the finalizer reaches the same repository method as a user request does, and
-// on that path the context carries nobody. Pass "" only when the event genuinely has no account.
-func (e *Emitter) Emit(ctx context.Context, q database.Tx, logger logging.Logger, eventType, accountID string, metadata map[string]any, opts ...EmitOption) error {
-	if e == nil {
-		return nil
+// The user and account are read from the context. accountID overrides the account and should be
+// passed whenever the repository knows it, because a background job has no session: the finalizer
+// reaches the same repository method as a user request does, and on that path the context carries
+// nobody. Pass "" only when the event genuinely has no account; it is then published in the global
+// scope, where no endpoint lives, so it reaches the broker and no subscriber.
+func (e *Emitter) Emit(ctx context.Context, tx database.Tx, logger logging.Logger, eventType, accountID string, metadata map[string]any, opts ...EmitOption) error {
+	msg, event := e.event(ctx, logger, eventType, accountID, metadata, opts)
+
+	return e.emitter.Emit(ctx, tx, scopeFor(msg.AccountID), event)
+}
+
+// Record writes entry to the audit log and publishes the event describing the same write, both
+// on the caller's transaction, through platform's Recorder.
+//
+// The entry is one audit.NewEntry built: its Scope is the chain this application's attribution
+// rule chose for it — the account's where there is one, the user's otherwise — and the event fans
+// out within that same scope. Who did it is the principal on the context, which is platform's
+// rule and the right one: an entry about a comment names the requester, not the comment's author.
+// The one write that reaches here with no principal is the one that establishes who is acting —
+// a sign-in, a registration — and audit.NewEntry has named the user on the entry instead; that is
+// the case RecordAs exists for, and the only one it is used in.
+func (e *Emitter) Record(
+	ctx context.Context,
+	tx database.Tx,
+	logger logging.Logger,
+	entry *platformaudit.Entry,
+	eventType, accountID string,
+	metadata map[string]any,
+	opts ...EmitOption,
+) error {
+	if entry == nil {
+		return platformerrors.Wrap(platformerrors.ErrNilInputParameter, "nil audit entry")
 	}
 
+	msg, event := e.event(ctx, logger, eventType, accountID, metadata, opts)
+
+	scope := entry.Scope
+	if scope == (tenancy.Scope{}) {
+		scope = scopeFor(msg.AccountID)
+	}
+
+	recorded := &platformrecording.Entry{
+		ResourceType: entry.ResourceType,
+		ResourceID:   entry.ResourceID,
+		EventType:    entry.EventType,
+		Changes:      entry.Changes,
+		Metadata:     entry.Metadata,
+	}
+
+	if _, present := sessions.PrincipalFromContext(ctx); !present && entry.Actor.Type == platformaudit.ActorUser && entry.Actor.ID != "" {
+		return e.recorder.RecordAs(ctx, tx, scope, entry.Actor, event, recorded)
+	}
+
+	return e.recorder.Record(ctx, tx, scope, event, recorded)
+}
+
+// event builds the message a data change event carries and the platform event around it.
+func (e *Emitter) event(ctx context.Context, logger logging.Logger, eventType, accountID string, metadata map[string]any, opts []EmitOption) (*datachanges.Message, *webhooks.Event) {
 	msg := datachanges.MessageFromContext(ctx, logging.EnsureLogger(logger), eventType, metadata)
 	if accountID != "" {
 		msg.AccountID = accountID
 	}
 
-	cfg := &emitConfig{
-		// Per-account webhook ordering by default, matching the outbox key below: an
-		// account's deliveries to one endpoint arrive in the order they were written, and
-		// different accounts never wait on each other.
-		orderingKey: msg.AccountID,
-	}
+	cfg := &emitConfig{}
 	for _, opt := range opts {
 		if opt != nil {
 			opt(cfg)
@@ -136,98 +197,19 @@ func (e *Emitter) Emit(ctx context.Context, q database.Tx, logger logging.Logger
 		msg.UserID = cfg.userID
 	}
 
-	// The data change event is enqueued inside the caller's transaction, and the registered
-	// side effect derives this write's index events from it in the same statement. That is what
-	// keeps a search index from diverging from the row the way it could when index events were
-	// published by a consumer downstream of the broker: there, the row committed and the index
-	// event was a second, unrelated write that could fail on its own, and nothing noticed until
-	// the next reindex.
-	msg2 := outbox.Message{
-		Topic:   e.topic,
-		Payload: msg,
-		// Ordering is per account: two events for the same account publish in the order
-		// they were written, and events for different accounts do not wait on each other.
-		Key: msg.AccountID,
+	return msg, &webhooks.Event{
+		EventType:   webhooks.EventType(eventType),
+		OrderingKey: cfg.orderingKey,
+		Payload:     msg,
 	}
-
-	if err := e.writer.Enqueue(ctx, q, msg2); err != nil {
-		return err
-	}
-
-	return e.dispatchWebhooks(ctx, q, msg, cfg)
 }
 
-// dispatchWebhooks fans the same message out to the account's webhook subscribers, through the
-// caller's executor.
-//
-// This is where webhook delivery became transactional. It used to happen in the async message
-// handler, downstream of the broker: the row committed, the event was published, a consumer
-// resolved subscribers and published one execution request per subscriber, and each of those
-// steps could fail independently of the write that caused them. Now the dispatch rows are
-// further statements in the transaction that wrote the row, so a delivery and the state change
-// it describes commit together or not at all.
-//
-// The cost is on the same ledger: a webhook table failure now fails the business transaction. It
-// is the same trade the outbox already makes one line above, and for the same reason — the
-// alternative is durable state and delivery diverging with nothing able to detect it.
-func (e *Emitter) dispatchWebhooks(ctx context.Context, q database.Tx, msg *datachanges.Message, cfg *emitConfig) error {
-	// A process wired without webhooks still writes rows and emits events.
-	if e.dispatcher == nil {
-		return nil
+// scopeFor is the scope an event is published and fanned out in: the account's, or the global
+// one for an event that happened in no account.
+func scopeFor(accountID string) tenancy.Scope {
+	if accountID == "" {
+		return tenancy.Global()
 	}
 
-	// An event with no account belongs to no subscriber. Background jobs emit these, and
-	// tenancy.Of would refuse the empty identifier rather than quietly fanning out globally.
-	if msg.AccountID == "" {
-		return nil
-	}
-
-	// An event type that is not subscribable is skipped here, not handed to Dispatch.
-	//
-	// Two things land here. Most are the deliberate exclusions — sign-ins, two-factor changes,
-	// OAuth2 client lifecycle — which the application publishes and which no webhook may
-	// receive. The rest would be an event type nothing publishes, which is a programming error.
-	//
-	// Neither may fail the caller, which is why the catalog is consulted before Dispatch rather
-	// than letting Dispatch reject it. This runs inside the transaction that wrote the row the
-	// event describes, so an error here does not fail a webhook: it fails the meal plan.
-	// Registration is where a typo'd event type is caught, because that is where a human types
-	// one; a constant that drifts out of the catalog is caught by the catalog's own test, at
-	// build time rather than by taking down a write at runtime.
-	if !catalog.Known(msg.EventType) {
-		return nil
-	}
-
-	// The payload is the same *datachanges.Message the broker carries, marshaled once. A
-	// subscriber and a queue consumer therefore see byte-identical bodies, and the bytes signed
-	// are the bytes sent — re-marshaling between dispatch and delivery is exactly how a
-	// signature comes to cover something other than the request body.
-	//
-	// It names a user, which makes a delivery row personal data this application put there:
-	// platform never interprets a payload and ships no privacy collector for webhooks, so the
-	// obligation is ours. It is discharged by retention rather than by collection — rows are
-	// reaped seven days after delivery, and the store offers no read that would enumerate them
-	// anyway. See docs/data-privacy.md, which states that rather than leaving it to be assumed.
-	payload, err := json.Marshal(msg)
-	if err != nil {
-		return platformerrors.Wrap(err, "marshaling webhook payload")
-	}
-
-	// v14 takes the scope as an argument as well as on the delivery: the argument
-	// is what bounds the fan-out, and a Delivery whose own Scope disagrees is
-	// refused rather than either value quietly winning.
-	scope := tenancy.Of(msg.AccountID)
-
-	return e.dispatcher.Dispatch(ctx, q, scope, &webhooks.Delivery{
-		// The account is the delivery's tenant, and it bounds the fan-out: subscribers are
-		// resolved within it, so one account's meal_plan_created never reaches another
-		// account's endpoints.
-		Scope:     scope,
-		EventType: webhooks.EventType(msg.EventType),
-		// The ordering key is not scoped. It is compared only against other dispatches for
-		// the same endpoint, and an endpoint belongs to one account, so the account would
-		// add nothing but width to an index that is already on the claim path.
-		OrderingKey: cfg.orderingKey,
-		Payload:     payload,
-	})
+	return tenancy.Of(accountID)
 }

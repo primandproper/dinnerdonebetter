@@ -6,19 +6,15 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	commentsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/comments"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
 	platformaudit "github.com/primandproper/platform-go/v15/audit"
 	platformcomments "github.com/primandproper/platform-go/v15/comments"
 	"github.com/primandproper/platform-go/v15/comments/commentspb"
 	commentsgrpc "github.com/primandproper/platform-go/v15/comments/grpc"
-	"github.com/primandproper/platform-go/v15/outbox"
 	"github.com/primandproper/primitives-go/v2/database"
-	"github.com/primandproper/primitives-go/v2/database/dialect"
 	"github.com/primandproper/primitives-go/v2/database/postgres"
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/identifiers"
@@ -59,13 +55,13 @@ import (
 //
 // Embedded rather than mocked, so every other method is the actual one and the
 // only difference from production is the failure being induced.
-type failingAuditRepository struct {
-	audit.Repository
+type failingAuditRecorder struct {
+	platformaudit.Recorder
 
 	err error
 }
 
-func (f *failingAuditRepository) Record(context.Context, database.Tx, ...*platformaudit.Entry) error {
+func (f *failingAuditRecorder) Record(context.Context, database.Tx, tenancy.Scope, ...*platformaudit.Entry) error {
 	return f.err
 }
 
@@ -80,11 +76,11 @@ type commentsFixture struct {
 // buildFixture wires the stack.
 //
 // decorate is how a test induces a failure in one of the three statements the
-// transaction carries: it is handed the actual audit repository and returns
-// whatever the repository should actually be given. Everything else is
+// transaction carries: it is handed the actual audit recorder and returns
+// whatever the recording spine should actually be given. Everything else is
 // production wiring — the same store constructor, the same emitter, the same
 // server.
-func buildFixture(t *testing.T, decorate func(audit.Repository) audit.Repository) *commentsFixture {
+func buildFixture(t *testing.T, decorate func(platformaudit.Recorder) platformaudit.Recorder) *commentsFixture {
 	t.Helper()
 
 	ctx := t.Context()
@@ -101,26 +97,21 @@ func buildFixture(t *testing.T, decorate func(audit.Repository) audit.Repository
 		loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), metricsnoop.NewMetricsProvider(), db)
 	require.NoError(t, err)
 
-	recording := audits
+	auditRecorder, ok := auditlogentries.RecorderFrom(audits)
+	require.True(t, ok)
 	if decorate != nil {
-		recording = decorate(audits)
+		auditRecorder = decorate(auditRecorder)
 	}
 
-	// A actual writer against the actual table, because an outbox row that rolls back
-	// is the half of the claim a fake emitter could not demonstrate.
-	writer, err := outbox.NewWriter(dialect.Postgres,
-		outbox.WithWriterLogger(loggingnoop.NewLogger()),
-		outbox.WithWriterTracerProvider(tracingnoop.NewTracerProvider()))
-	require.NoError(t, err)
-
-	emitter := events.NewEmitter(writer, "data_changes", nil, nil)
-	require.NotNil(t, emitter)
+	// The actual recording spine against the actual tables, because an outbox row that rolls
+	// back is the half of the claim a fake emitter could not demonstrate.
+	emitter := pgtesting.NewEmitterForTest(t, ctx, db, auditRecorder)
 
 	store, err := ProvideCommentsRepository(
 		loggingnoop.NewLogger(),
 		tracingnoop.NewTracerProvider(),
 		metricsnoop.NewMetricsProvider(),
-		recording,
+		audits,
 		db,
 		emitter,
 		commentsbuild.Catalog(),
@@ -238,8 +229,8 @@ func TestServer_Integration_RecordingRollsBackWithTheWrite(T *testing.T) {
 
 		errAuditUnavailable := platformerrors.New("audit log is unavailable")
 
-		fixture := buildFixture(t, func(actual audit.Repository) audit.Repository {
-			return &failingAuditRepository{Repository: actual, err: errAuditUnavailable}
+		fixture := buildFixture(t, func(actual platformaudit.Recorder) platformaudit.Recorder {
+			return &failingAuditRecorder{Recorder: actual, err: errAuditUnavailable}
 		})
 
 		user := pgtesting.CreateUserForTest(t, nil, fixture.db.Writer())

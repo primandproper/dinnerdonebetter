@@ -9,10 +9,11 @@ import (
 	auditmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit/mock"
 	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events/eventstest"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/recording"
 
 	platformaudit "github.com/primandproper/platform-go/v15/audit"
+	platformauditmock "github.com/primandproper/platform-go/v15/audit/mock"
 	"github.com/primandproper/platform-go/v15/authentication/passkeys"
 	"github.com/primandproper/platform-go/v15/outbox"
 	"github.com/primandproper/primitives-go/v2/database"
@@ -30,7 +31,7 @@ import (
 // passkeyHooksHarness is the hooks over a real outbox writer and a transaction whose every
 // statement is captured, as signInHooksHarness is.
 type passkeyHooksHarness struct {
-	audited  *auditmock.RepositoryMock
+	audited  *platformauditmock.RecorderMock
 	hooks    passkeys.Hooks
 	tx       database.Tx
 	executor *mockdatabase.SQLQueryExecutorMock
@@ -48,14 +49,16 @@ func buildPasskeyHooksHarness(t *testing.T, execErr error) *passkeyHooksHarness 
 		},
 	}
 
-	emitter := events.NewEmitter(writer, t.Name(), nil, nil)
-	audited := &auditmock.RepositoryMock{
-		RecordFunc: func(context.Context, database.Tx, ...*platformaudit.Entry) error { return nil },
+	// The entries land on platform's recorder, behind platform's Recorder; the local audit
+	// repository is the path a process with no emitter takes, and must not be reached here.
+	audited := &platformauditmock.RecorderMock{
+		RecordFunc: func(context.Context, database.Tx, tenancy.Scope, ...*platformaudit.Entry) error { return nil },
 	}
+	emitter := eventstest.New(t, writer, audited)
 
 	return &passkeyHooksHarness{
 		audited:  audited,
-		hooks:    NewPasskeyHooks(loggingnoop.NewLogger(), recording.NewRecorder(tracing.NewTracerForTest(t.Name()), audited, emitter)),
+		hooks:    NewPasskeyHooks(loggingnoop.NewLogger(), recording.NewRecorder(tracing.NewTracerForTest(t.Name()), &auditmock.RepositoryMock{}, emitter)),
 		tx:       database.NewTxForTesting(executor),
 		executor: executor,
 	}

@@ -10,6 +10,8 @@ than a fixture in a second place that has to be kept valid as the config structs
 package environments
 
 import (
+	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
+
 	"github.com/primandproper/primitives-go/v2/encoding"
 )
 
@@ -33,7 +35,7 @@ const (
 	appleBundleID = "com.dinnerdonebetter.ios"
 
 	// message provider topics.
-	dataChangesTopicName         = "data_changes"
+	dataChangesTopicName         = queuescfg.DefaultDataChangesTopicName
 	outboundEmailsTopicName      = "outbound_emails"
 	searchIndexRequestsTopicName = "search_index_requests"
 	mobileNotificationsTopicName = "mobile_notifications"

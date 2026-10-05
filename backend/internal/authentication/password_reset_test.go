@@ -9,7 +9,10 @@ import (
 	authkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/keys"
 	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events/eventstest"
 
+	platformaudit "github.com/primandproper/platform-go/v15/audit"
+	platformauditmock "github.com/primandproper/platform-go/v15/audit/mock"
 	"github.com/primandproper/platform-go/v15/authentication/passwordreset"
 	"github.com/primandproper/platform-go/v15/identity"
 	identitymock "github.com/primandproper/platform-go/v15/identity/mock"
@@ -31,7 +34,9 @@ func buildEmitterForTest(t *testing.T) *events.Emitter {
 	writer, err := outbox.NewWriter(dialect.Postgres)
 	require.NoError(t, err)
 
-	return events.NewEmitter(writer, t.Name(), nil, nil)
+	return eventstest.New(t, writer, &platformauditmock.RecorderMock{
+		RecordFunc: func(context.Context, database.Tx, tenancy.Scope, ...*platformaudit.Entry) error { return nil },
+	})
 }
 
 func TestPasswordResetDirectory_UpdateUserPassword(T *testing.T) {

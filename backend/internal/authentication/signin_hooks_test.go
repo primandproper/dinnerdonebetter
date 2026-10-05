@@ -12,10 +12,11 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/datachanges"
 	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	identityfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events/eventstest"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/recording"
 
 	platformaudit "github.com/primandproper/platform-go/v15/audit"
+	platformauditmock "github.com/primandproper/platform-go/v15/audit/mock"
 	"github.com/primandproper/platform-go/v15/authentication/signin"
 	"github.com/primandproper/platform-go/v15/identity"
 	"github.com/primandproper/platform-go/v15/outbox"
@@ -34,7 +35,7 @@ import (
 // statement is captured, so a test reads the event off the statement that would have enqueued
 // it rather than off a mock of the thing that writes it.
 type signInHooksHarness struct {
-	audited  *auditmock.RepositoryMock
+	audited  *platformauditmock.RecorderMock
 	hooks    signin.Hooks
 	tx       database.Tx
 	executor *mockdatabase.SQLQueryExecutorMock
@@ -52,15 +53,17 @@ func buildSignInHooksHarness(t *testing.T, execErr error) *signInHooksHarness {
 		},
 	}
 
-	emitter := events.NewEmitter(writer, t.Name(), nil, nil)
-	audited := &auditmock.RepositoryMock{
-		RecordFunc: func(context.Context, database.Tx, ...*platformaudit.Entry) error { return nil },
+	// The entries land on platform's recorder, behind platform's Recorder; the local audit
+	// repository is the path a process with no emitter takes, and must not be reached here.
+	audited := &platformauditmock.RecorderMock{
+		RecordFunc: func(context.Context, database.Tx, tenancy.Scope, ...*platformaudit.Entry) error { return nil },
 	}
+	emitter := eventstest.New(t, writer, audited)
 
 	return &signInHooksHarness{
 		audited: audited,
 		hooks: NewSignInHooks(loggingnoop.NewLogger(), emitter,
-			recording.NewRecorder(tracing.NewTracerForTest(t.Name()), audited, emitter)),
+			recording.NewRecorder(tracing.NewTracerForTest(t.Name()), &auditmock.RepositoryMock{}, emitter)),
 		tx:       database.NewTxForTesting(executor),
 		executor: executor,
 	}
@@ -185,20 +188,6 @@ func TestSignInHooks_AfterAuthenticate(T *testing.T) {
 		})
 
 		require.ErrorIs(t, err, execErr)
-	})
-
-	T.Run("with no emitter", func(t *testing.T) {
-		t.Parallel()
-
-		// A process with no data changes topic holds a nil emitter, and signs people in
-		// all the same.
-		ctx := t.Context()
-
-		err := NewSignInHooks(loggingnoop.NewLogger(), nil, nil).AfterAuthenticate(ctx, nil, tenancy.Global(), &signin.Authentication{
-			Principal: &identity.Principal{User: identityfakes.BuildFakeUser()},
-		})
-
-		require.NoError(t, err)
 	})
 
 	T.Run("with no principal", func(t *testing.T) {

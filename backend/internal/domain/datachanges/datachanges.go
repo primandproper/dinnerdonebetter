@@ -14,8 +14,14 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 
+	"github.com/primandproper/platform-go/v15/searchsync"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 )
+
+// A Message is what platform's search index bridge reads off the outbox: the
+// event type names the rule and the context holds the document's ID under the
+// key the rule names. See internal/indexevents for the rules.
+var _ searchsync.Change = (*Message)(nil)
 
 // Message is one data change event, as it travels through the outbox.
 type Message struct {
@@ -26,6 +32,22 @@ type Message struct {
 	UserID    string         `json:"userID"`
 	AccountID string         `json:"accountID,omitempty"`
 	TestID    string         `json:"testID,omitempty"`
+}
+
+// IndexEventType is the event type an index rule matches on.
+func (m *Message) IndexEventType() string { return m.EventType }
+
+// IndexDocumentID reads the document ID an index rule names out of the context.
+// A value under the key that is not a string, or no value at all, is reported as
+// absent, which the bridge refuses rather than indexing nothing.
+func (m *Message) IndexDocumentID(key string) (string, bool) {
+	if m.Context == nil {
+		return "", false
+	}
+
+	id, ok := m.Context[key].(string)
+
+	return id, ok
 }
 
 // MessageFromContext builds a message attributed to the request's session.

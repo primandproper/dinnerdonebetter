@@ -93,6 +93,9 @@ func BuildInjector(
 	// the tracer are constructed here regardless — rather than per request.
 	auditlogentries.RegisterAuditLogRepository(i)
 	auditlogentries.RegisterPlatformReader(i)
+	// And the recorder, which the recording spine registered below files every write's
+	// entry through.
+	auditlogentries.RegisterPlatformRecorder(i)
 	// No existence checks on the catalog: this process reads and erases comments
 	// but never writes one, and the catalog gates writes rather than reads.
 	commentstargets.RegisterReadOnlyTargets(i)

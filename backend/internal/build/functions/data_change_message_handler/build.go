@@ -70,6 +70,9 @@ func BuildInjector(
 
 	// repos
 	auditlogentries.RegisterAuditLogRepository(i)
+	// The platform recorder behind it, which the recording spine the mealplanning
+	// registration above installs files every write's entry through.
+	auditlogentries.RegisterPlatformRecorder(i)
 	// No existence checks on the catalog: this process reads and erases comments
 	// but never writes one, and the catalog gates writes rather than reads.
 	commentstargets.RegisterReadOnlyTargets(i)
