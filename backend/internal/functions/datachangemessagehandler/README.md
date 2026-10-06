@@ -27,11 +27,23 @@ events platform's stores record. For each event, it:
 1. **Analytics** — Reports the event to the customer data platform, for the events on the
    allowlist in `internal/domain/analytics` and no others
 2. **Outbound notifications** — Publishes to the Outbound Emails topic when somebody is owed a mail
-   (verification, password reset, an invitation), and to the Mobile Notifications topic when a
-   household is owed a push
+   that carries no secret (a password changed, a reset spent), and to the Mobile Notifications
+   topic when a household is owed a push. A mail that carries a link — verification, password
+   reset, username reminder, invitation, waitlist confirmation — never passes through here; see
+   Queued Mail below
 
 Webhook deliveries and search index events are no longer this handler's: both are rows the
-transaction that caused the event writes, through `internal/repositories/postgres/events`.
+transaction that caused the event writes, through platform's recording spine (built in
+`internal/recordingspine`).
+
+### Queued Mail (`mail.Drainer`)
+
+platform's `notifications/mail` transport for the mail its identity, sign-in, password reset and
+waitlist doors owe. Each door hands its mail to the `QueuedMailer` once its write commits, which
+puts it on the outbox under the queued mail topic; this process runs the `Drainer` on that topic,
+renders each mail in this application's words through `internal/services/identity/emails`'
+`Renderer`, and sends it. The topic is the Drainer's alone: every message on it carries the secret
+its mail delivers.
 
 ### Outbound Emails (`OutboundEmailsEventHandler`)
 

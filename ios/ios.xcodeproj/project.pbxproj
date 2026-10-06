@@ -705,7 +705,7 @@
 			repositoryURL = "https://github.com/primandproper/platform-client-swift.git";
 			requirement = {
 				kind = upToNextMinorVersion;
-				minimumVersion = 0.0.1;
+				minimumVersion = 0.0.2;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */

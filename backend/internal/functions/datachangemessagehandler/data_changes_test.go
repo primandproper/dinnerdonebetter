@@ -4,15 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"strings"
 	"testing"
 	"time"
 
-	authkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/datachanges"
 	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	identityfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
-	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/internalops"
 	internalopsmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/internalops/mock"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
@@ -128,8 +125,8 @@ func TestAsyncDataChangeMessageHandler_DataChangesEventHandler(T *testing.T) {
 
 		assert.Len(t, analyticsReporter.EventOccurredCalls(), 1)
 		assert.Len(t, analyticsReporter.AddUserCalls(), 1)
-		// The verification mail is signin's to send, through SignInMailers, once the
-		// registration commits; it arrives as a mail request of its own.
+		// The verification mail is signin's to send, through the QueuedMailer, once the
+		// registration commits; the mail Drainer sends it, and nothing reaches this handler.
 		assert.Empty(t, emailsPublished(t, *published))
 	})
 
@@ -387,80 +384,6 @@ func TestAsyncDataChangeMessageHandler_handleIdentityOutboundNotification(T *tes
 		require.Error(t, err)
 	})
 
-	T.Run("an invitation is mailed with the token off its mail request", func(t *testing.T) {
-		handler, directory, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
-
-		sender := identityfakes.BuildFakeUser()
-		invitation := identityfakes.BuildFakeInvitationFromUserToAccount(sender.ID, identifiers.New())
-		// As the row reads back: the column holds a digest and no read fills the secret in.
-		invitation.Token = ""
-
-		directory.GetUserFunc = func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, userID string) (*identity.User, error) {
-			assert.Equal(t, sender.ID, userID)
-
-			return sender, nil
-		}
-		directory.GetInvitationFunc = func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, invitationID string) (*identity.Invitation, error) {
-			assert.Equal(t, invitation.ID, invitationID)
-
-			return invitation, nil
-		}
-
-		event := ownEvent(t, ddbidentity.AccountInvitationMailRequestedEventType, sender.ID, map[string]any{
-			identitykeys.AccountInvitationIDKey:    invitation.ID,
-			identitykeys.AccountInvitationTokenKey: "invitation-secret",
-		})
-
-		handled, emailType, emails, err := handler.handleIdentityOutboundNotification(t.Context(), event)
-		require.NoError(t, err)
-		assert.True(t, handled)
-		assert.Equal(t, "account invitation created", emailType)
-		require.Len(t, emails, 1)
-		assert.Equal(t, invitation.ToEmail, emails[0].ToAddress)
-		assert.Contains(t, emails[0].HTMLContent, "invitation-secret")
-	})
-
-	T.Run("an invitation carrying no token is refused rather than mailed as a dead link", func(t *testing.T) {
-		handler, directory, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
-
-		directory.GetUserFunc = returning(identityfakes.BuildFakeUser())
-		event := ownEvent(t, ddbidentity.AccountInvitationMailRequestedEventType, identifiers.New(), map[string]any{
-			identitykeys.AccountInvitationIDKey: identifiers.New(),
-		})
-
-		_, _, _, err := handler.handleIdentityOutboundNotification(t.Context(), event)
-		require.Error(t, err)
-		assert.Empty(t, directory.GetInvitationCalls())
-	})
-
-	T.Run("a reset request is mailed with the secret it carries", func(t *testing.T) {
-		handler, directory, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
-
-		user := verifiedUser()
-		directory.GetUserFunc = returning(user)
-
-		event := ownEvent(t, ddbidentity.PasswordResetTokenCreatedEventType, user.ID, map[string]any{
-			authkeys.PasswordResetTokenIDKey:     identifiers.New(),
-			authkeys.PasswordResetTokenSecretKey: "reset-secret",
-		})
-
-		_, emailType, emails, err := handler.handleIdentityOutboundNotification(t.Context(), event)
-		require.NoError(t, err)
-		assert.Equal(t, "password reset request", emailType)
-		require.Len(t, emails, 1)
-		assert.Contains(t, emails[0].HTMLContent, "reset-secret")
-	})
-
-	T.Run("a reset request carrying no secret is refused", func(t *testing.T) {
-		handler, directory, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
-
-		user := verifiedUser()
-		directory.GetUserFunc = returning(user)
-
-		_, _, _, err := handler.handleIdentityOutboundNotification(t.Context(), ownEvent(t, ddbidentity.PasswordResetTokenCreatedEventType, user.ID, nil))
-		require.Error(t, err)
-	})
-
 	T.Run("a redeemed reset tells the owner", func(t *testing.T) {
 		handler, directory, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
 
@@ -490,29 +413,6 @@ func TestAsyncDataChangeMessageHandler_handleIdentityOutboundNotification(T *tes
 			assert.Equal(t, "password changed", emailType)
 			assert.Len(t, emails, 1)
 		}
-	})
-
-	T.Run("another verification link and a handle reminder are mailed", func(t *testing.T) {
-		handler, directory, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
-
-		// Unproven for the link — a verification mail to a proven address is refused — and
-		// proven for the reminder, which goes only to an address somebody has proven.
-		unverified, verified := identityfakes.BuildFakeUser(), verifiedUser()
-
-		directory.GetUserFunc = returning(unverified)
-		_, _, emails, err := handler.handleIdentityOutboundNotification(t.Context(),
-			ownEvent(t, ddbidentity.UserEmailAddressVerificationEmailRequestedEventType, unverified.ID, map[string]any{identitykeys.UserEmailVerificationTokenKey: "again"}))
-		require.NoError(t, err)
-		require.Len(t, emails, 1)
-		assert.Contains(t, emails[0].HTMLContent, "again")
-
-		user := verified
-		directory.GetUserFunc = returning(user)
-		_, _, emails, err = handler.handleIdentityOutboundNotification(t.Context(),
-			ownEvent(t, ddbidentity.UsernameReminderRequestedEventType, user.ID, nil))
-		require.NoError(t, err)
-		require.Len(t, emails, 1)
-		assert.Contains(t, strings.ToLower(emails[0].HTMLContent), strings.ToLower(user.Username))
 	})
 
 	T.Run("an event about something else is not this handler's", func(t *testing.T) {

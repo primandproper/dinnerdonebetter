@@ -293,7 +293,7 @@ func (q *repository) CreateMealPlanOptionVote(ctx context.Context, input *types.
 
 		// The summary is a statement about this whole batch, and this transaction is the
 		// batch — so it commits with the votes it counts.
-		if emitErr := q.events.Emit(ctx, tx, logger, types.MealPlanOptionVoteCreatedServiceEventType, "", map[string]any{
+		if emitErr := q.emit(ctx, tx, logger, types.MealPlanOptionVoteCreatedServiceEventType, "", map[string]any{
 			"vote_count": len(input.Votes),
 			"created":    len(votes),
 		}); emitErr != nil {

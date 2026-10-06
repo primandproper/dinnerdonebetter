@@ -48,7 +48,7 @@ struct IOSApp: App {
         .environment(deepLinkHandler)
         .onAppear {
           userSettingsService.configure(authManager: authManager)
-          DeviceTokenRegistrationService.shared.configure(authManager: authManager)
+          appDelegate.authManager = authManager
           Task { await authManager.logInToRevenueCatIfNeeded() }
         }
         .task(id: authManager.isAuthenticated) {

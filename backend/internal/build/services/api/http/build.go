@@ -8,6 +8,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	identitybuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/identity"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/build/queuedmail"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	paymentsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/manager"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories"
@@ -103,6 +104,9 @@ func BuildInjector(
 	// builds a session.
 	authorization.RegisterPolicyResolver(i)
 	identitystore.RegisterIdentityStore(i)
+	// The mailer the identity service hands an invitation to, and sign-in, password
+	// reset and waitlists their mail. See internal/build/queuedmail.
+	queuedmail.Register(i)
 	identitybuild.RegisterSessionBuilder(i)
 
 	// The upload registry, because the media byte-serve reads an object's row

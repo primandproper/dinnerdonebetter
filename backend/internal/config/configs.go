@@ -216,6 +216,7 @@ type (
 		OutboundEmails      jobs.PoolConfig `envPrefix:"OUTBOUND_EMAILS_"       json:"outboundEmails,omitzero"`
 		SearchIndexRequests jobs.PoolConfig `envPrefix:"SEARCH_INDEX_REQUESTS_" json:"searchIndexRequests,omitzero"`
 		MobileNotifications jobs.PoolConfig `envPrefix:"MOBILE_NOTIFICATIONS_"  json:"mobileNotifications,omitzero"`
+		QueuedMail          jobs.PoolConfig `envPrefix:"QUEUED_MAIL_"           json:"queuedMail,omitzero"`
 	}
 
 	// EmailDeliverabilityTestConfig configures the email deliverability test cron job.

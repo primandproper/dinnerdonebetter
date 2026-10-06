@@ -1,11 +1,12 @@
 import { json } from '@sveltejs/kit';
+import { beginPasskeyRegistration } from '@primandproper/platform-client';
 import type { RequestHandler } from './$types';
-import { beginPasskeyRegistration } from '$lib/grpc/clients';
 
 export const POST: RequestHandler = async ({ locals }) => {
   try {
-    const res = await beginPasskeyRegistration(locals.session);
-    return json({ options: Buffer.from(res.options).toString('base64') });
+    const options = await beginPasskeyRegistration(locals.session);
+    // The options are JSON already, which the browser hands parseRegistrationOptions as they are.
+    return new Response(new TextDecoder().decode(options), { headers: { 'content-type': 'application/json' } });
   } catch {
     return json({ error: 'failed to get passkey options' }, { status: 500 });
   }

@@ -3,12 +3,10 @@ package integration
 import (
 	"testing"
 
-	authkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/keys"
-	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
-
 	"github.com/primandproper/platform-go/v15/authentication/passwordreset"
 	"github.com/primandproper/platform-go/v15/authentication/passwordreset/passwordresetpb"
 	"github.com/primandproper/platform-go/v15/authentication/signin/signinpb"
+	"github.com/primandproper/platform-go/v15/notifications/mail"
 	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/stretchr/testify/assert"
@@ -18,7 +16,7 @@ import (
 )
 
 // TestPasswordReset_ThisApplicationsRules pins what this application supplies to platform's
-// PasswordResetService: the mail goes through the outbox, the password answers to this
+// PasswordResetService: the mail is queued through platform's QueuedMailer, the password answers to this
 // application's floor, the reset is announced to the person, and the link's life is audited. The
 // flow itself — single use, revocation of the other links, the anti-enumeration answer — is
 // platform's conformance suite's; see conformance_test.go.
@@ -37,7 +35,7 @@ func TestPasswordReset_ThisApplicationsRules(T *testing.T) {
 		})
 		require.NoError(t, err)
 
-		// The secret rides on the event the reset mail is rendered from, and nowhere else.
+		// The secret rides on the queued mail the reset email is rendered from, and nowhere else.
 		secret, err := conformancePasswordResetToken(ctx, tenancy.Global(), user.EmailAddress)
 		require.NoError(t, err)
 
@@ -67,9 +65,9 @@ func TestPasswordReset_ThisApplicationsRules(T *testing.T) {
 		// Issued, then spent: the two writes platform records. By resource rather than by actor,
 		// because a reset is anonymous — the request that asks for the link and the one that
 		// spends it carry no principal — so platform files both entries under the user as their
-		// subject and names nobody as the actor. The token's ID is on the mail request beside
+		// subject and names nobody as the actor. The token's ID is on the queued mail beside
 		// the secret.
-		tokenID := passwordResetTokenIDForTest(t, user.ID)
+		tokenID := passwordResetTokenIDForTest(t, user.EmailAddress)
 		AssertAuditLogContainsFuzzyForResource(t, ctx, passwordreset.ResourceTypeToken, tokenID, 15, []*ExpectedAuditEntry{
 			{EventType: "created", ResourceType: passwordreset.ResourceTypeToken, RelevantID: tokenID},
 			{EventType: "updated", ResourceType: passwordreset.ResourceTypeToken, RelevantID: tokenID},
@@ -105,24 +103,17 @@ func TestPasswordReset_ThisApplicationsRules(T *testing.T) {
 	})
 }
 
-// passwordResetTokenIDForTest reads the ID of the newest reset link mailed to userID off the mail
-// request that carries it, which is the only place a test can learn it: the response to the
+// passwordResetTokenIDForTest reads the ID of the newest reset link mailed to emailAddress off the
+// queued mail that carries it, which is the only place a test can learn it: the response to the
 // request names nothing, deliberately.
-func passwordResetTokenIDForTest(t *testing.T, userID string) string {
+func passwordResetTokenIDForTest(t *testing.T, emailAddress string) string {
 	t.Helper()
 
-	payloads, err := outboxPayloads(t.Context(),
-		`convert_from(payload, 'UTF8') LIKE '%' || $1 || '%' AND convert_from(payload, 'UTF8') LIKE '%' || $2 || '%'`,
-		userID, ddbidentity.PasswordResetTokenCreatedEventType)
+	queued, err := queuedMail(t.Context(), func(m *mail.Mail) bool {
+		return m.Kind == mail.KindPasswordReset && m.PasswordReset.User.EmailAddress == emailAddress
+	})
 	require.NoError(t, err)
+	require.NotNil(t, queued, "no reset mail names a token for the user")
 
-	for _, payload := range payloads {
-		if id := findStringKey(payload, authkeys.PasswordResetTokenIDKey); id != "" {
-			return id
-		}
-	}
-
-	require.FailNow(t, "no reset mail request names a token for the user")
-
-	return ""
+	return queued.PasswordReset.Issuance.Token.ID
 }

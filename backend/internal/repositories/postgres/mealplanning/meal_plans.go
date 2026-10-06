@@ -489,8 +489,8 @@ func (q *repository) CreateMealPlan(ctx context.Context, input *types.MealPlanDa
 		}
 
 		// The event is another statement in this transaction, so it lives or dies with the
-		// meal plan it describes. See internal/repositories/postgres/events.
-		if emitErr := q.events.Emit(ctx, tx, logger, types.MealPlanCreatedServiceEventType, input.BelongsToAccount, map[string]any{
+		// meal plan it describes. See internal/recordingspine.
+		if emitErr := q.emit(ctx, tx, logger, types.MealPlanCreatedServiceEventType, input.BelongsToAccount, map[string]any{
 			mealplanningkeys.MealPlanIDKey: input.ID,
 		}); emitErr != nil {
 			return observability.PrepareError(emitErr, span, "enqueuing meal plan created event")
@@ -537,7 +537,7 @@ func (q *repository) UpdateMealPlan(ctx context.Context, updated *types.MealPlan
 			return sql.ErrNoRows
 		}
 
-		return q.recorder.RecordAndEmit(ctx, tx, logger, audit.NewEntry("", updated.BelongsToAccount, resourceTypeMealPlans, updated.ID, platformaudit.EventUpdated), types.MealPlanUpdatedServiceEventType, updated.BelongsToAccount, map[string]any{
+		return q.record(ctx, tx, logger, audit.NewEntry("", updated.BelongsToAccount, resourceTypeMealPlans, updated.ID, platformaudit.EventUpdated), types.MealPlanUpdatedServiceEventType, updated.BelongsToAccount, map[string]any{
 			mealplanningkeys.MealPlanIDKey: updated.ID,
 		})
 	}); err != nil {
@@ -583,7 +583,7 @@ func (q *repository) ArchiveMealPlan(ctx context.Context, mealPlanID, accountID 
 			return sql.ErrNoRows
 		}
 
-		return q.recorder.RecordAndEmit(ctx, tx, logger, audit.NewEntry("", accountID, resourceTypeMealPlans, mealPlanID, platformaudit.EventArchived), types.MealPlanArchivedServiceEventType, accountID, map[string]any{
+		return q.record(ctx, tx, logger, audit.NewEntry("", accountID, resourceTypeMealPlans, mealPlanID, platformaudit.EventArchived), types.MealPlanArchivedServiceEventType, accountID, map[string]any{
 			mealplanningkeys.MealPlanIDKey: mealPlanID,
 		})
 	})
@@ -704,7 +704,7 @@ func (q *repository) AttemptToFinalizeMealPlan(ctx context.Context, mealPlanID, 
 			// and the finalizer job on a tick — because only this transaction knows the
 			// plan actually finalized, and only in here can the event commit with it.
 			// The account is passed explicitly: the finalizer job has no session context.
-			if emitErr := q.events.Emit(ctx, tx, logger, types.MealPlanFinalizedServiceEventType, accountID, map[string]any{
+			if emitErr := q.emit(ctx, tx, logger, types.MealPlanFinalizedServiceEventType, accountID, map[string]any{
 				mealplanningkeys.MealPlanIDKey: mealPlanID,
 				"meal_plan":                    mealPlan,
 			}); emitErr != nil {

@@ -1059,7 +1059,7 @@ func (q *repository) CreateRecipe(ctx context.Context, input *mealplanning.Recip
 
 		// The event is another statement in this transaction, so it commits with the
 		// rows it describes.
-		if emitErr := q.events.Emit(ctx, tx, logger, mealplanning.RecipeCreatedServiceEventType, "", map[string]any{
+		if emitErr := q.emit(ctx, tx, logger, mealplanning.RecipeCreatedServiceEventType, "", map[string]any{
 			mealplanningkeys.RecipeIDKey: input.ID,
 		}); emitErr != nil {
 			return observability.PrepareError(emitErr, span, "enqueuing data change event")
@@ -1071,7 +1071,7 @@ func (q *repository) CreateRecipe(ctx context.Context, input *mealplanning.Recip
 		// no index event: the new recipe was indexed by the create above, and nothing about
 		// the recipe it was cloned from changed.
 		if input.ClonedFromRecipeID != nil {
-			if emitErr := q.events.Emit(ctx, tx, logger, mealplanning.RecipeClonedServiceEventType, "", map[string]any{
+			if emitErr := q.emit(ctx, tx, logger, mealplanning.RecipeClonedServiceEventType, "", map[string]any{
 				mealplanningkeys.RecipeIDKey: *input.ClonedFromRecipeID,
 			}); emitErr != nil {
 				return observability.PrepareError(emitErr, span, "enqueuing recipe cloned event")

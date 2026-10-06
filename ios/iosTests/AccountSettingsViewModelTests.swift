@@ -60,6 +60,13 @@ func createMockMembership(
   return membership
 }
 
+/// What GetPrincipal answers for a household admin: the three grants the account screens gate on.
+let householdAdminPermissions = CallerPermissions(granted: [
+  CallerPermissions.Name.updateAccount,
+  CallerPermissions.Name.inviteMembers,
+  CallerPermissions.Name.manageMembers,
+])
+
 func createMockAuthenticationManagerForAccount() -> AuthenticationManager {
   let manager = AuthenticationManager()
   manager.isAuthenticated = true
@@ -87,51 +94,46 @@ struct AccountSettingsInitializationTests {
 // MARK: - Computed Properties Tests
 
 struct ComputedPropertiesTests {
-  @Test("isAccountAdmin returns true when user is admin")
+  @Test("the household gates open when GetPrincipal grants their permissions")
   @MainActor
-  func testIsAccountAdminTrue() async {
+  func testGatesOpenWhenGranted() async {
     let authManager = createMockAuthenticationManagerForAccount()
     let viewModel = AccountSettingsViewModel(authManager: authManager)
+    viewModel.account = createMockAccount()
+    viewModel.user = createMockUser()
 
-    let account = createMockAccount()
-    let membership = createMockMembership(role: "account_admin")
-    viewModel.members = [membership]
+    viewModel.permissions = householdAdminPermissions
 
-    let user = createMockUser()
-    viewModel.user = user
-    viewModel.account = account
-
-    #expect(viewModel.isAccountAdmin == true)
+    #expect(viewModel.canUpdateAccount)
+    #expect(viewModel.canInviteMembers)
+    #expect(viewModel.canManageMembers)
   }
 
-  @Test("isAccountAdmin returns false when user is not admin")
+  @Test("each household gate reads its own permission")
   @MainActor
-  func testIsAccountAdminFalse() async {
+  func testEachGateReadsItsOwnPermission() async {
     let authManager = createMockAuthenticationManagerForAccount()
     let viewModel = AccountSettingsViewModel(authManager: authManager)
 
-    let account = createMockAccount()
-    let membership = createMockMembership(role: "member")
-    viewModel.members = [membership]
+    viewModel.permissions = CallerPermissions(granted: [CallerPermissions.Name.inviteMembers])
 
-    let user = createMockUser()
-    viewModel.user = user
-    viewModel.account = account
-
-    #expect(viewModel.isAccountAdmin == false)
+    #expect(viewModel.canInviteMembers)
+    #expect(!viewModel.canUpdateAccount)
+    #expect(!viewModel.canManageMembers)
   }
 
-  @Test("isAccountAdmin returns false when no user")
+  @Test("the household gates are closed until permissions load")
   @MainActor
-  func testIsAccountAdminNoUser() async {
+  func testGatesClosedUntilLoaded() async {
     let authManager = createMockAuthenticationManagerForAccount()
     let viewModel = AccountSettingsViewModel(authManager: authManager)
+    viewModel.account = createMockAccount()
+    viewModel.user = createMockUser()
+    viewModel.members = [createMockMembership(role: "account_admin")]
 
-    let account = createMockAccount()
-    viewModel.account = account
-    viewModel.user = nil
-
-    #expect(viewModel.isAccountAdmin == false)
+    #expect(!viewModel.canUpdateAccount)
+    #expect(!viewModel.canInviteMembers)
+    #expect(!viewModel.canManageMembers)
   }
 
   @Test("currentUserMembership returns membership when found")
@@ -348,6 +350,7 @@ struct AccountSettingsValidationTests {
     let account = createMockAccount()
     let membership = createMockMembership(role: "account_admin")
     viewModel.members = [membership]
+    viewModel.permissions = householdAdminPermissions
 
     let user = createMockUser()
     viewModel.user = user
@@ -369,6 +372,7 @@ struct AccountSettingsValidationTests {
     let account = createMockAccount()
     let membership = createMockMembership(role: "account_admin")
     viewModel.members = [membership]
+    viewModel.permissions = householdAdminPermissions
 
     let user = createMockUser()
     viewModel.user = user
@@ -410,6 +414,7 @@ struct AccountSettingsValidationTests {
     let account = createMockAccount()
     let membership = createMockMembership(role: "account_admin")
     viewModel.members = [membership]
+    viewModel.permissions = householdAdminPermissions
 
     let user = createMockUser()
     viewModel.user = user
@@ -430,6 +435,7 @@ struct AccountSettingsValidationTests {
     let account = createMockAccount()
     let membership = createMockMembership(role: "account_admin")
     viewModel.members = [membership]
+    viewModel.permissions = householdAdminPermissions
 
     let user = createMockUser()
     viewModel.user = user
@@ -467,6 +473,7 @@ struct StateManagementTests {
     let account = createMockAccount()
     let membership = createMockMembership(role: "account_admin")
     viewModel.members = [membership]
+    viewModel.permissions = householdAdminPermissions
 
     let user = createMockUser()
     viewModel.user = user
@@ -486,6 +493,7 @@ struct StateManagementTests {
     let account = createMockAccount()
     let membership = createMockMembership(role: "account_admin")
     viewModel.members = [membership]
+    viewModel.permissions = householdAdminPermissions
 
     let user = createMockUser()
     viewModel.user = user
@@ -543,22 +551,27 @@ struct AccountSettingsEdgeCaseTests {
     #expect(viewModel.isLoading == false)
   }
 
-  @Test("isAccountAdmin handles multiple memberships")
+  @Test("an account_admin role name opens no gate on its own")
   @MainActor
-  func testIsAccountAdminMultipleMemberships() async {
+  func testRoleNameAloneOpensNoGate() async {
     let authManager = createMockAuthenticationManagerForAccount()
     let viewModel = AccountSettingsViewModel(authManager: authManager)
 
     let account = createMockAccount()
-    let member1 = createMockMembership(userID: "user-1", role: "member")
+    let member1 = createMockMembership(userID: "user-1", role: "account_member")
     let member2 = createMockMembership(userID: "user-2", role: "account_admin")
     viewModel.members = [member1, member2]
-
-    let user = createMockUser(id: "user-2")
-    viewModel.user = user
+    viewModel.user = createMockUser(id: "user-2")
     viewModel.account = account
+    // The server's answer is what counts: a role it no longer maps to these grants is not one.
+    viewModel.permissions = CallerPermissions(granted: [])
 
-    #expect(viewModel.isAccountAdmin == true)
+    #expect(!viewModel.canUpdateAccount)
+    #expect(!viewModel.canManageMembers)
+    let result = await viewModel.updateMemberRole(
+      membershipID: member1.membership.id, newRole: "account_admin", reason: "promotion")
+    #expect(result == false)
+    #expect(viewModel.errorMessage?.contains("household admins") == true)
   }
 }
 

@@ -369,7 +369,7 @@ func (m *mealPlanningManager) CloneRecipe(ctx context.Context, recipeID, newOwne
 	}
 
 	// Both the created and the cloned event are enqueued into the outbox by CreateRecipe,
-	// inside the transaction that writes the clone; see internal/repositories/postgres/events.
+	// inside the transaction that writes the clone; see internal/recordingspine.
 
 	return newRecipe, nil
 }

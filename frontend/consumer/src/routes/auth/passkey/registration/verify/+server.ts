@@ -1,23 +1,21 @@
 import { json } from '@sveltejs/kit';
-import { PasskeyReason, PlatformError } from '@primandproper/platform-client';
+import { finishPasskeyRegistration, PasskeyReason, PlatformError } from '@primandproper/platform-client';
 import type { RequestHandler } from './$types';
-import { finishPasskeyRegistration } from '$lib/grpc/clients';
 
 export const POST: RequestHandler = async ({ request, locals }) => {
-  let body: { attestationResponse?: unknown; friendlyName?: string };
+  let body: { attestationResponse?: string; friendlyName?: string };
   try {
     body = await request.json();
   } catch {
     return json({ error: 'invalid request' }, { status: 400 });
   }
 
+  // The browser sends the credential as platform-client's webauthn bridge serialized it.
   const attestationResponse = body.attestationResponse;
-  if (!attestationResponse) {
+  if (typeof attestationResponse !== 'string' || !attestationResponse) {
     return json({ error: 'attestationResponse is required' }, { status: 400 });
   }
-  const response = new TextEncoder().encode(
-    typeof attestationResponse === 'string' ? attestationResponse : JSON.stringify(attestationResponse),
-  );
+  const response = new TextEncoder().encode(attestationResponse);
 
   try {
     await finishPasskeyRegistration(locals.session, { friendlyName: (body.friendlyName ?? '').trim(), response });

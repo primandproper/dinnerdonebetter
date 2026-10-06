@@ -136,7 +136,7 @@ func runExport(dbHost string, dbPort uint16, dbUser, dbPassword, dbName string, 
 		return fmt.Errorf("building the recording spine: %w", err)
 	}
 
-	repo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditRepo, identityStore, client, spine, uploadsRegistry)
+	repo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditRepo, identityStore, client, spine.Emitter, spine.Recorder, spine.Writer, uploadsRegistry)
 
 	export := &ExportData{
 		ExportedAt: time.Now().UTC(),

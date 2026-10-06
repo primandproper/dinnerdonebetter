@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	identityfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events/eventstest"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/recordingspine/recordingspinetest"
 	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
 
 	platformaudit "github.com/primandproper/platform-go/v15/audit"
@@ -43,17 +43,17 @@ func buildHooksHarness(t *testing.T) *hooksHarness {
 		},
 	}
 
-	writer, err := outbox.NewWriter(dialect.Postgres, eventstest.IndexRules(t))
+	writer, err := outbox.NewWriter(dialect.Postgres, recordingspinetest.IndexRules(t))
 	require.NoError(t, err)
 
-	emitter := eventstest.New(t, writer, &platformauditmock.RecorderMock{
+	spine := recordingspinetest.New(t, writer, &platformauditmock.RecorderMock{
 		RecordFunc: func(_ context.Context, _ database.Tx, _ tenancy.Scope, entries ...*platformaudit.Entry) error {
 			h.recorded = append(h.recorded, entries...)
 			return nil
 		},
 	})
 
-	h.hooks, err = ProvideHooks(emitter)
+	h.hooks, err = ProvideHooks(spine.Recorder)
 	require.NoError(t, err)
 	h.tx = database.NewTxForTesting(h.executor)
 
@@ -95,11 +95,11 @@ func (h *hooksHarness) indexEvents(t *testing.T) (topics []string, events []sear
 func TestProvideHooks(T *testing.T) {
 	T.Parallel()
 
-	T.Run("refuses a nil emitter", func(t *testing.T) {
+	T.Run("refuses a nil recorder", func(t *testing.T) {
 		t.Parallel()
 
 		_, err := ProvideHooks(nil)
-		require.ErrorIs(t, err, ErrNilEmitter)
+		require.ErrorIs(t, err, platformidentity.ErrNilRecorder)
 	})
 }
 
