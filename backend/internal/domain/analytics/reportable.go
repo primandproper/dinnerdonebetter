@@ -37,9 +37,8 @@ payload type each platform package declares — identity.UserEvent names its use
 identity.InvitationEvent names the sender as FromUser and the acceptor as ToUser,
 billing.SubscriptionEvent names an account and nobody. The allowlist therefore pairs every event
 with the reading that turns its payload into a report, so the one place that decides an event
-is worth reporting is also the one place that decides what is said about it. A secret on a
-payload — the verification link on a registration, the invitation's token — is read by none of
-them, which the old pass-the-whole-context arrangement did not guarantee.
+is worth reporting is also the one place that decides what is said about it, and nothing the
+vendor is told is a field nobody chose to send.
 
 Events are named by their constants rather than their strings, so deleting an event type from a
 domain fails this package's build rather than leaving a metric that silently stops arriving.
@@ -146,8 +145,7 @@ func ownMessage(payload json.RawMessage) (*Report, error) {
 	return &Report{UserID: msg.UserID, AccountID: msg.AccountID, Properties: msg.Context}, nil
 }
 
-// userEvent reads an event about a user. The verification link a registration carries is not
-// a property; nothing outside the mail that renders it should see it.
+// userEvent reads an event about a user.
 func userEvent(payload json.RawMessage) (*Report, error) {
 	var e identity.UserEvent
 	if err := json.Unmarshal(payload, &e); err != nil {
@@ -180,8 +178,7 @@ func accountEvent(payload json.RawMessage) (*Report, error) {
 	}, nil
 }
 
-// invitationSent reads an invitation issued, attributed to whoever sent it. The token is not a
-// property, for the reason the verification link is not.
+// invitationSent reads an invitation issued, attributed to whoever sent it.
 func invitationSent(payload json.RawMessage) (*Report, error) {
 	e, err := invitationEvent(payload)
 	if err != nil {

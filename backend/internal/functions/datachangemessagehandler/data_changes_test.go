@@ -96,16 +96,15 @@ func TestAsyncDataChangeMessageHandler_DataChangesEventHandler(T *testing.T) {
 	// parallel; the env var is set once here and inherited.
 	T.Setenv("DINNER_DONE_BETTER_SERVICE_ENVIRONMENT", "testing")
 
-	T.Run("routes a registration to the mail and the metrics it implies", func(t *testing.T) {
+	T.Run("routes a registration to the metrics it implies, and mails nothing", func(t *testing.T) {
 		handler, directory, _, _, analyticsReporter, _, _ := buildTestAsyncDataChangeMessageHandler(t)
 		emails, published := capturingPublisher()
 		handler.outboundEmailsPublisher = emails
 
 		user := identityfakes.BuildFakeUser()
 		raw := rawEnvelopeFor(t, identity.EventUserRegistered, &identity.UserEvent{
-			UserID:                        user.ID,
-			AccountID:                     identifiers.New(),
-			EmailAddressVerificationToken: "verification-secret",
+			UserID:    user.ID,
+			AccountID: identifiers.New(),
 		})
 
 		directory.GetUserFunc = func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, userID string) (*identity.User, error) {
@@ -119,12 +118,8 @@ func TestAsyncDataChangeMessageHandler_DataChangesEventHandler(T *testing.T) {
 
 			return nil
 		}
-		analyticsReporter.AddUserFunc = func(_ context.Context, userID string, properties map[string]any) error {
+		analyticsReporter.AddUserFunc = func(_ context.Context, userID string, _ map[string]any) error {
 			assert.Equal(t, user.ID, userID)
-			// The verification link is a bearer secret, and the vendor is not mailing it.
-			for _, v := range properties {
-				assert.NotEqual(t, "verification-secret", v)
-			}
 
 			return nil
 		}
@@ -133,8 +128,9 @@ func TestAsyncDataChangeMessageHandler_DataChangesEventHandler(T *testing.T) {
 
 		assert.Len(t, analyticsReporter.EventOccurredCalls(), 1)
 		assert.Len(t, analyticsReporter.AddUserCalls(), 1)
-		require.Len(t, emailsPublished(t, *published), 1)
-		assert.Contains(t, emailsPublished(t, *published)[0].HTMLContent, "verification-secret")
+		// The verification mail is signin's to send, through SignInMailers, once the
+		// registration commits; it arrives as a mail request of its own.
+		assert.Empty(t, emailsPublished(t, *published))
 	})
 
 	T.Run("an event nothing here acts on passes through", func(t *testing.T) {
@@ -292,7 +288,7 @@ func TestAsyncDataChangeMessageHandler_handleOutboundNotifications(T *testing.T)
 			return nil, expected
 		}
 
-		event := envelopeFor(t, identity.EventUserRegistered, &identity.UserEvent{UserID: identifiers.New(), EmailAddressVerificationToken: "t"})
+		event := envelopeFor(t, identity.EventUserRegistered, &identity.UserEvent{UserID: identifiers.New()})
 
 		err := handler.handleOutboundNotifications(t.Context(), event)
 		require.ErrorIs(t, err, expected)
@@ -334,13 +330,13 @@ func TestAsyncDataChangeMessageHandler_handleIdentityOutboundNotification(T *tes
 		directory.ListAccountMembersFunc = rosterOf(t, accountID, joined, other)
 
 		event := envelopeFor(t, identity.EventUserRegistered, &identity.UserEvent{
-			UserID: joined.ID, AccountID: accountID, InvitationID: identifiers.New(), EmailAddressVerificationToken: "t",
+			UserID: joined.ID, AccountID: accountID, InvitationID: identifiers.New(),
 		})
 
 		handled, _, emails, err := handler.handleIdentityOutboundNotification(t.Context(), event)
 		require.NoError(t, err)
 		assert.True(t, handled)
-		assert.Len(t, emails, 1)
+		assert.Empty(t, emails)
 
 		require.Len(t, *published, 1)
 		push, ok := (*published)[0].(*notifications.MobileNotificationRequest)
@@ -391,7 +387,7 @@ func TestAsyncDataChangeMessageHandler_handleIdentityOutboundNotification(T *tes
 		require.Error(t, err)
 	})
 
-	T.Run("an invitation is mailed with the token off the event", func(t *testing.T) {
+	T.Run("an invitation is mailed with the token off its mail request", func(t *testing.T) {
 		handler, directory, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
 
 		sender := identityfakes.BuildFakeUser()
@@ -410,8 +406,9 @@ func TestAsyncDataChangeMessageHandler_handleIdentityOutboundNotification(T *tes
 			return invitation, nil
 		}
 
-		event := envelopeFor(t, identity.EventInvitationCreated, &identity.InvitationEvent{
-			InvitationID: invitation.ID, AccountID: invitation.BelongsToAccount, FromUser: sender.ID, Token: "invitation-secret",
+		event := ownEvent(t, ddbidentity.AccountInvitationMailRequestedEventType, sender.ID, map[string]any{
+			identitykeys.AccountInvitationIDKey:    invitation.ID,
+			identitykeys.AccountInvitationTokenKey: "invitation-secret",
 		})
 
 		handled, emailType, emails, err := handler.handleIdentityOutboundNotification(t.Context(), event)
@@ -426,8 +423,9 @@ func TestAsyncDataChangeMessageHandler_handleIdentityOutboundNotification(T *tes
 	T.Run("an invitation carrying no token is refused rather than mailed as a dead link", func(t *testing.T) {
 		handler, directory, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
 
-		event := envelopeFor(t, identity.EventInvitationCreated, &identity.InvitationEvent{
-			InvitationID: identifiers.New(), AccountID: identifiers.New(), FromUser: identifiers.New(),
+		directory.GetUserFunc = returning(identityfakes.BuildFakeUser())
+		event := ownEvent(t, ddbidentity.AccountInvitationMailRequestedEventType, identifiers.New(), map[string]any{
+			identitykeys.AccountInvitationIDKey: identifiers.New(),
 		})
 
 		_, _, _, err := handler.handleIdentityOutboundNotification(t.Context(), event)

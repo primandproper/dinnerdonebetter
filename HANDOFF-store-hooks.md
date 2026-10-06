@@ -14,7 +14,7 @@ underneath them is platform's too.
 **None of the libraries are tagged.** That is deliberate: the point is to consume them here
 first and find their bugs before a release. `backend/go.mod` therefore carries two local
 replaces — `platform-go/v15 => ../../platform-go` and `primitives-go/v2 => ../../primitives-go`
-— and builds only with those siblings checked out at or after platform-go `891d5d55` and
+— and builds only with those siblings checked out at or after platform-go `daccb034` and
 primitives-go `e6509109`. `make lint` runs in a container that cannot see them; lint natively
 (`golangci-lint run ./...`) and ignore the two `gomoddirectives` hits on the replaces. The
 frontend and iOS still reference published `0.0.1` client libraries; moving them to local paths
@@ -48,12 +48,12 @@ is step 6 below and has not started.
 
 ## What stays local, and why
 
-- **The three mail-request events** in `internal/domain/identity/auth_events.go`
+- **The four mail-request events** in `internal/domain/identity/auth_events.go`
   (`password_reset_token_created`, `username_reminder_requested`,
-  `user_email_address_verification_email_requested`), emitted by `authentication.SignInMailers`.
-  platform's own events for those writes deliberately carry no secret; the mail cannot be
-  rendered without one, so platform hands the secret to a mailer after commit and the mailer
-  puts it on one of these. All three are `Internal` in the catalog.
+  `user_email_address_verification_email_requested`, `account_invitation_mail_requested`),
+  emitted by `authentication.SignInMailers` and `identitystore.InvitationMailer`. platform's own
+  events carry no secret; the mail cannot be rendered without one, so platform hands the secret
+  to a mailer after commit and the mailer puts it on one of these. All four are `Internal`.
 - **`events.Emitter` and the `recording` adapter** — `Emit`/`Record`/`RecordAndEmit` for the
   mealplanning repositories, whose events are this application's own.
 - **`internal/domain/analytics`** now owns *how each reportable event's payload is read* (who to
@@ -98,10 +98,10 @@ last three, and the commit after them deletes the identity index wrapper and res
 by-actor and by-account audit assertions). Still open from the original review: template-go #7,
 and #1138's question about an account's log showing memberships.
 
-The conformance harness reads links off the outbox: the verification link is now on platform's
-`identity.user.registered` payload (`emailAddressVerificationToken`) or this application's
-re-request mail, and the invitation token is on `identity.invitation.created`
-(`conformance_test.go`).
+platform's events carry no bearer link (platform-go #1143). Every link-bearing mail — the first
+verification link, a re-request, a reset, an invitation — arrives as one of this application's
+four mail requests, queued by `authentication.SignInMailers` or `identitystore.InvitationMailer`,
+and the conformance harness reads links off those (`conformance_test.go`).
 
 Not a defect, but a consequence of building against primitives `main`: 65 `staticcheck` hits for
 `filteringgrpc.FromProto`, deprecated in favour of `QueryFilterFromProto(in, archiveDecision)`.

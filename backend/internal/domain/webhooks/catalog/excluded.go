@@ -18,9 +18,7 @@ import (
 // registering a passkey, minting an OAuth2 client. A subscriber receiving them learns the shape
 // of an account's security activity, and an endpoint URL is attacker-supplied: whoever can
 // create a webhook on an account they have any foothold in would otherwise get a live feed of
-// that account's authentication and membership events. Two of them carry a bearer secret
-// outright — a registration carries its verification link and an invitation its token, because
-// the mail that renders each has nowhere else to take it from.
+// that account's authentication and membership events.
 //
 // The set is whole fragments rather than a list of names, and that is the policy rather than a
 // shortcut. A new domain event that nobody remembered to classify should be deliverable — that
@@ -41,6 +39,7 @@ func excludedEventTypes() map[string]struct{} {
 		ddbidentity.PasswordResetTokenCreatedEventType:                  {},
 		ddbidentity.UsernameReminderRequestedEventType:                  {},
 		ddbidentity.UserEmailAddressVerificationEmailRequestedEventType: {},
+		ddbidentity.AccountInvitationMailRequestedEventType:             {},
 	}
 
 	for _, fragment := range []webhooks.Catalog{

@@ -52,7 +52,6 @@ import (
 	operationshttp "github.com/primandproper/platform-go/v15/operations/http"
 	settingsclient "github.com/primandproper/platform-go/v15/settings/grpc/client"
 	waitlistsclient "github.com/primandproper/platform-go/v15/waitlists/grpc/client"
-	"github.com/primandproper/platform-go/v15/webhooks"
 	webhooksclient "github.com/primandproper/platform-go/v15/webhooks/grpc/client"
 	platformauthz "github.com/primandproper/primitives-go/v2/authorization"
 	"github.com/primandproper/primitives-go/v2/capitalism"
@@ -505,25 +504,21 @@ func conformanceCredentialed(ctx context.Context, _ tenancy.Scope, userID string
 	return user.HashedPassword[len(user.HashedPassword)-16:], nil
 }
 
-// conformanceInvitationToken reads the token off the event platform's identity hooks queued when
-// the invitation was issued — the row the invitation mail is rendered from, and the one moment
-// the secret exists in the clear. Nothing in this suite relays the outbox, so it is still there.
+// conformanceInvitationToken reads the token off the mail request identitystore.InvitationMailer
+// queued once the invitation committed — the row the invitation mail is rendered from, and the one
+// place the secret goes besides the invitee's inbox. Nothing in this suite relays the outbox, so it
+// is still there.
 func conformanceInvitationToken(ctx context.Context, _ tenancy.Scope, invitationID string) (string, error) {
 	payloads, err := outboxPayloads(ctx,
 		`convert_from(payload, 'UTF8') LIKE '%' || $1 || '%' AND convert_from(payload, 'UTF8') LIKE '%' || $2 || '%'`,
-		invitationID, identity.EventInvitationCreated.String())
+		invitationID, ddbidentity.AccountInvitationMailRequestedEventType)
 	if err != nil {
 		return "", err
 	}
 
 	for _, payload := range payloads {
-		var issued identity.InvitationEvent
-		if _, matched, decodeErr := webhooks.Decode([]byte(payload), &issued, identity.EventInvitationCreated); decodeErr != nil || !matched {
-			continue
-		}
-
-		if issued.InvitationID == invitationID && issued.Token != "" {
-			return issued.Token, nil
+		if token := findStringKey(payload, identitykeys.AccountInvitationTokenKey); token != "" {
+			return token, nil
 		}
 	}
 
@@ -668,13 +663,9 @@ func conformanceVerificationToken(ctx context.Context, _ tenancy.Scope, emailAdd
 		return "", err
 	}
 
-	// Two events carry the link: platform's registration event, on its own payload, and this
-	// application's request for another mail, under its own key.
+	// The link travels on this application's mail request alone — at registration, which signin
+	// mails through SignInMailers once it commits, and on every request for another.
 	for _, payload := range payloads {
-		if token := findStringKey(payload, "emailAddressVerificationToken"); token != "" {
-			return token, nil
-		}
-
 		if token := findStringKey(payload, identitykeys.UserEmailVerificationTokenKey); token != "" {
 			return token, nil
 		}

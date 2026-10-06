@@ -101,17 +101,13 @@ func TestRead(T *testing.T) {
 		assert.Equal(t, "r1", report.Properties["recipe.id"])
 	})
 
-	T.Run("reads a registration without its verification link", func(t *testing.T) {
+	T.Run("reads a registration as the registrant's", func(t *testing.T) {
 		t.Parallel()
 
-		// The link is a bearer secret. It is on the event because the mail needs it; the
-		// analytics vendor does not, and the old arrangement — forward the whole context —
-		// sent it anyway.
 		userID, accountID := identifiers.New(), identifiers.New()
 		event := envelopeFor(t, identity.EventUserRegistered, &identity.UserEvent{
-			UserID:                        userID,
-			AccountID:                     accountID,
-			EmailAddressVerificationToken: "secret",
+			UserID:    userID,
+			AccountID: accountID,
 		})
 
 		report, ok, err := Read(event)
@@ -119,10 +115,6 @@ func TestRead(T *testing.T) {
 		require.True(t, ok)
 		assert.Equal(t, userID, report.UserID)
 		assert.Equal(t, accountID, report.Properties["accountID"])
-		assert.NotContains(t, report.Properties, "emailAddressVerificationToken")
-		for _, v := range report.Properties {
-			assert.NotEqual(t, "secret", v)
-		}
 	})
 
 	T.Run("attributes an account opened to its owner", func(t *testing.T) {
@@ -143,14 +135,11 @@ func TestRead(T *testing.T) {
 		from, to := identifiers.New(), identifiers.New()
 
 		sent, ok, err := Read(envelopeFor(t, identity.EventInvitationCreated, &identity.InvitationEvent{
-			InvitationID: identifiers.New(), AccountID: identifiers.New(), FromUser: from, Token: "secret",
+			InvitationID: identifiers.New(), AccountID: identifiers.New(), FromUser: from,
 		}))
 		require.NoError(t, err)
 		require.True(t, ok)
 		assert.Equal(t, from, sent.UserID)
-		for _, v := range sent.Properties {
-			assert.NotEqual(t, "secret", v)
-		}
 
 		accepted, ok, err := Read(envelopeFor(t, identity.EventInvitationAccepted, &identity.InvitationEvent{
 			InvitationID: identifiers.New(), AccountID: identifiers.New(), FromUser: from, ToUser: &to,

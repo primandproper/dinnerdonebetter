@@ -39,12 +39,20 @@ func RegisterIdentityStore(i do.Injector) {
 	})
 
 	do.Provide[*platformidentity.Service](i, func(i do.Injector) (*platformidentity.Service, error) {
+		mailer, err := NewInvitationMailer(do.MustInvoke[logging.Logger](i), do.MustInvoke[database.Client](i), do.MustInvoke[*events.Emitter](i))
+		if err != nil {
+			return nil, err
+		}
+
 		return platformidentity.NewService(
 			do.MustInvoke[database.Client](i),
 			do.MustInvoke[platformidentity.Store](i),
 			// Without this every identity write is a write nothing recorded, and the
 			// failure is silent: NoopHooks satisfies the interface.
 			platformidentity.WithHooks(do.MustInvoke[*Hooks](i)),
+			// The invitation's token reaches the invitee's inbox through this and nothing
+			// else: with a mailer configured, the hooks see the invitation redacted.
+			platformidentity.WithInvitationMailer(mailer),
 			platformidentity.WithServiceLogger(do.MustInvoke[logging.Logger](i)),
 			platformidentity.WithServiceTracerProvider(do.MustInvoke[tracing.Provider](i)),
 			platformidentity.WithServiceMetricsProvider(do.MustInvoke[metrics.Provider](i)),

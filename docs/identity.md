@@ -251,10 +251,13 @@ When a user registers with an invitation token:
 4. If the invitation was sent to an email, it's automatically associated when that email registers
 
 An invitation's token is stored as a digest and is never rendered onto a gRPC response — the proto
-field it used to occupy is reserved. The one thing that needs the token in the clear is the email,
-so platform's recording hook puts it on the `identity.invitation.created` event the email worker
-reads (`identity.InvitationEvent.Token`, set only on that event); see platform-go's
-`identity/recording.go`.
+field it used to occupy is reserved. The one thing that needs the token in the clear is the email.
+platform hands it to the identity service's `InvitationMailer` once the invitation commits, and
+nothing else: `identity.invitation.created` carries no token. This application's mailer,
+[`identitystore.InvitationMailer`](../backend/internal/repositories/postgres/identitystore/invitation_mailer.go),
+queues an `account_invitation_mail_requested` request carrying it, which the data change message
+handler renders. The first verification link travels the same way, through signin's
+`VerificationMailer` once a registration commits.
 
 A verification link expires. 72 hours — platform's `signin.DefaultVerificationLinkTTL` — set when
 the link is minted and compared in Go rather than in SQL, because a `CURRENT_TIMESTAMP` predicate

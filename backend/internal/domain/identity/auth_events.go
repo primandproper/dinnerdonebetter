@@ -1,10 +1,11 @@
 package identity
 
-// The three mail requests this application queues for platform's sign-in and password reset
-// doors, through authentication.SignInMailers.
+// The mail requests this application queues for platform's identity, sign-in and password reset
+// doors, through authentication.SignInMailers and identitystore.InvitationMailer.
 //
 // They are not store events. The write each one follows is recorded by platform's own hooks —
-// signin.EventVerificationEmailRequested, passwordreset.EventTokenIssued — and those events
+// signin.EventVerificationEmailRequested, passwordreset.EventTokenIssued,
+// identity.EventInvitationCreated — and those events
 // deliberately carry no secret. The mail cannot be rendered without one: the store holds a
 // digest of the link's token, and the issuance is the only moment the secret exists. So
 // platform hands the secret to a mailer once the write has committed, and the mailer puts it on
@@ -17,4 +18,6 @@ const (
 	UsernameReminderRequestedEventType = "username_reminder_requested"
 	// UserEmailAddressVerificationEmailRequestedEventType indicates another verification mail was requested; it carries the verification link.
 	UserEmailAddressVerificationEmailRequestedEventType = "user_email_address_verification_email_requested"
+	// AccountInvitationMailRequestedEventType indicates an invitation mail was requested; it carries the invitation link.
+	AccountInvitationMailRequestedEventType = "account_invitation_mail_requested"
 )

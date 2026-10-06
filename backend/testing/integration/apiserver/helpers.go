@@ -566,7 +566,8 @@ func inviteForTest(t *testing.T, fromUserID, accountID, toEmail string) *identit
 }
 
 // identityDirectoryWithHooks builds the directory service this suite issues invitations
-// through: the same store the server holds, with the same hooks, over the same database.
+// through: the same store the server holds, with the same hooks and invitation mailer, over the
+// same database.
 func identityDirectoryWithHooks(t *testing.T) *identity.Service {
 	t.Helper()
 
@@ -579,10 +580,15 @@ func identityDirectoryWithHooks(t *testing.T) *identity.Service {
 	store, err := identity.NewSQLStore(databaseClient, identity.WithTablePrefix(branding.TablePrefix))
 	require.NoError(t, err)
 
-	hooks, err := identitystore.ProvideHooks(pgtesting.NewEmitterForTest(t, t.Context(), databaseClient, auditRecorder))
+	emitter := pgtesting.NewEmitterForTest(t, t.Context(), databaseClient, auditRecorder)
+
+	hooks, err := identitystore.ProvideHooks(emitter)
 	require.NoError(t, err)
 
-	directory, err := identity.NewService(databaseClient, store, identity.WithHooks(hooks))
+	mailer, err := identitystore.NewInvitationMailer(loggingnoop.NewLogger(), databaseClient, emitter)
+	require.NoError(t, err)
+
+	directory, err := identity.NewService(databaseClient, store, identity.WithHooks(hooks), identity.WithInvitationMailer(mailer))
 	require.NoError(t, err)
 
 	return directory

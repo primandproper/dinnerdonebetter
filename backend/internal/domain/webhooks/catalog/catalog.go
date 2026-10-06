@@ -22,6 +22,7 @@ var definitions = webhooks.Catalog{
 	"account_instrument_ownership_archived":           {Description: "An account instrument ownership was archived."},
 	"account_instrument_ownership_created":            {Description: "An account instrument ownership was created."},
 	"account_instrument_ownership_updated":            {Description: "An account instrument ownership was updated."},
+	"account_invitation_mail_requested":               {Description: "An invitation mail was requested; it carries the invitation link."},
 	"meal_archived":                                   {Description: "A meal was archived."},
 	"meal_created":                                    {Description: "A meal was created."},
 	"meal_plan_archived":                              {Description: "A meal plan was archived."},

@@ -26,11 +26,11 @@ import (
 // and password reset events, and this application's own three mail requests — into the mail and
 // the mobile notifications they imply.
 //
-// platform's events carry what the mail needs and nothing it does not: a registration carries its
-// verification link and an invitation its token, because the store holds a digest of each and
-// the event is the one place the secret survives; a reset or a verification link asked for
-// later carries nothing, which is why those two mails, and the handle reminder, arrive as this
-// application's own mail requests with the secret on them (authentication.SignInMailers).
+// platform's events carry no secret. Every mail that needs a link — a verification link, at
+// registration or asked for again, a reset link, an invitation — arrives as this application's
+// own mail request, queued by the mailer platform hands the secret to once the write commits
+// (authentication.SignInMailers, identitystore.InvitationMailer). platform's events drive only the
+// mail and pushes that need no secret.
 func (a *AsyncDataChangeMessageHandler) handleIdentityOutboundNotification(
 	ctx context.Context,
 	event *webhooks.Envelope,
@@ -49,8 +49,7 @@ func (a *AsyncDataChangeMessageHandler) handleIdentityOutboundNotification(
 
 	switch event.EventType {
 	case platformidentity.EventUserRegistered:
-		emailType = "user signup"
-		msg, err = a.userRegistered(ctx, logger, span, event)
+		return true, "", nil, a.userRegistered(ctx, logger, span, event)
 
 	case webhooks.EventType(ddbidentity.UserEmailAddressVerificationEmailRequestedEventType):
 		emailType = "email address verification"
@@ -74,7 +73,7 @@ func (a *AsyncDataChangeMessageHandler) handleIdentityOutboundNotification(
 		emailType = "password changed"
 		msg, err = a.passwordChanged(ctx, logger, span, event)
 
-	case platformidentity.EventInvitationCreated:
+	case webhooks.EventType(ddbidentity.AccountInvitationMailRequestedEventType):
 		emailType = "account invitation created"
 		msg, err = a.invitationSent(ctx, logger, span, event)
 
@@ -96,42 +95,32 @@ func (a *AsyncDataChangeMessageHandler) handleIdentityOutboundNotification(
 	return true, emailType, outboundEmailMessages, nil
 }
 
-// userRegistered welcomes somebody: the analytics platform learns of them, and they are mailed
-// the link that proves their address. A registration through an invitation is also that
-// invitation answered yes, so the household is told as it is for an acceptance.
-func (a *AsyncDataChangeMessageHandler) userRegistered(ctx context.Context, logger logging.Logger, span tracing.Span, event *webhooks.Envelope) (*queuemessages.OutboundEmailMessage, error) {
+// userRegistered welcomes somebody: the analytics platform learns of them. A registration
+// through an invitation is also that invitation answered yes, so the household is told as it is
+// for an acceptance. The verification mail is not this event's: signin mails the first link
+// through SignInMailers after the registration commits, and it arrives as a mail request.
+func (a *AsyncDataChangeMessageHandler) userRegistered(ctx context.Context, logger logging.Logger, span tracing.Span, event *webhooks.Envelope) error {
 	payload, err := payloadAs[platformidentity.UserEvent](event)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	user, err := a.user(ctx, logger, payload.UserID)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	// The account and nothing else: the verification link on this event is a bearer secret
-	// the vendor has no business holding.
 	if err = a.analyticsEventReporter.AddUser(ctx, user.ID, map[string]any{"accountID": payload.AccountID}); err != nil {
 		observability.AcknowledgeError(err, logger, span, "notifying customer data platform")
 	}
 
-	if payload.EmailAddressVerificationToken == "" {
-		return nil, observability.PrepareError(fmt.Errorf("email verification token required"), span, "building address verification email")
-	}
-
-	msg, err := coreemails.BuildVerifyEmailAddressEmail(user, payload.EmailAddressVerificationToken, a.baseURL)
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "building address verification email")
-	}
-
 	if payload.InvitationID != "" {
 		if err = a.notifyHousehold(ctx, logger, span, payload.AccountID, user); err != nil {
-			return nil, err
+			return err
 		}
 	}
 
-	return msg, nil
+	return nil
 }
 
 // verificationEmailRequested mails another verification link. The link's secret is on this
@@ -265,31 +254,29 @@ func (a *AsyncDataChangeMessageHandler) passwordChanged(ctx context.Context, log
 
 // invitationSent mails the invitation, in the sender's name.
 //
-// The token comes off the event rather than off the row. The column holds a digest and no read
-// fills the secret in, so the read below answers with an empty token — and a link composed from it
-// would be a link that cannot be followed, with nothing reporting the difference. platform's hook
-// held the invitation unredacted, which is the one moment the secret exists, and put it on the
-// event for exactly this.
+// The token comes off the mail request rather than off the row. The column holds a digest and no
+// read fills the secret in, so the read below answers with an empty token — and a link composed
+// from it would be a link that cannot be followed, with nothing reporting the difference.
+// platform handed the secret to identitystore.InvitationMailer once, after the invitation
+// committed, and the mailer put it here.
 func (a *AsyncDataChangeMessageHandler) invitationSent(ctx context.Context, logger logging.Logger, span tracing.Span, event *webhooks.Envelope) (*queuemessages.OutboundEmailMessage, error) {
-	payload, err := payloadAs[platformidentity.InvitationEvent](event)
+	request, sender, err := a.mailRequest(ctx, logger, event)
 	if err != nil {
 		return nil, err
 	}
 
-	if payload.InvitationID == "" || payload.AccountID == "" {
-		return nil, observability.PrepareError(fmt.Errorf("invitation created event names no invitation or no account"), span, "building invite member email")
+	invitationID := stringFromEventContext(request, identitykeys.AccountInvitationIDKey)
+	token := stringFromEventContext(request, identitykeys.AccountInvitationTokenKey)
+
+	if invitationID == "" {
+		return nil, observability.PrepareError(fmt.Errorf("invitation mail request names no invitation"), span, "building invite member email")
 	}
 
-	if payload.Token == "" {
-		return nil, observability.PrepareError(fmt.Errorf("invitation created event carries no token"), span, "building invite member email")
+	if token == "" {
+		return nil, observability.PrepareError(fmt.Errorf("invitation mail request carries no token"), span, "building invite member email")
 	}
 
-	sender, err := a.user(ctx, logger, payload.FromUser)
-	if err != nil {
-		return nil, err
-	}
-
-	invitation, err := a.directory.GetInvitation(ctx, a.db.Reader(), tenancy.Global(), payload.InvitationID)
+	invitation, err := a.directory.GetInvitation(ctx, a.db.Reader(), tenancy.Global(), invitationID)
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "getting account invitation")
 	}
@@ -298,7 +285,7 @@ func (a *AsyncDataChangeMessageHandler) invitationSent(ctx context.Context, logg
 		return nil, observability.PrepareError(fmt.Errorf("account invitation not found"), span, "building invite member email")
 	}
 
-	invitation.Token = payload.Token
+	invitation.Token = token
 
 	msg, err := coreemails.BuildInviteMemberEmail(sender, invitation, a.baseURL)
 	if err != nil {
