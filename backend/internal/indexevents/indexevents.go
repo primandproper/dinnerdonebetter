@@ -15,14 +15,15 @@ what it knows, and it is the one place to edit when an entity becomes indexed.
 
 The matching, the refusal of a message with no document ID, and the per-document ordering key
 are platform's (searchsync.NewSideEffect). What is this application's is the table: which of its
-event types feed which index, and under which context key the document's ID travels.
+event types feed which index, and under which key the document's ID travels.
 
 # What the table says
 
 Each row maps an event type to the index it feeds, whether the document is written or removed,
-and the key in the message's context that holds the document's ID. Everything a row needs is
-already in the message: the event type says what happened, and the context map carries the ID.
-datachanges.Message answers both through searchsync.Change.
+and the key that holds the document's ID. Everything a row needs is already in the event: the
+event type says what happened, and the payload carries the ID. This application's own events
+are datachanges.Message, which answers searchsync.Change and reads the key from its context
+map; platform's are its own payload types, which platform's envelope reads by JSON field name.
 
 An event type absent from the table produces no index event, which is right — most of them
 should not.
@@ -42,7 +43,6 @@ package indexevents
 import (
 	"slices"
 
-	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
@@ -81,13 +81,12 @@ func rule(eventType, index, idKey string, op searchsync.Op) searchsync.Rule {
 // repository layer.
 var rules = []searchsync.Rule{
 	// Users, on platform's event names. Both handle doors on sign-in write through the
-	// profile operation, so a username or email change is a profile update here. platform's
-	// payloads do not yet answer searchsync.Change (platform-go #1136), so these rows are run
-	// by the identitystore hooks through EnqueueDerived rather than matched on the
-	// announcement itself; the rows are the same either way.
-	rule(identity.EventUserRegistered.String(), identityindexing.IndexTypeUsers, identitykeys.UserIDKey, searchsync.OpUpsert),
-	rule(identity.EventUserProfileUpdated.String(), identityindexing.IndexTypeUsers, identitykeys.UserIDKey, searchsync.OpUpsert),
-	rule(identity.EventUserArchived.String(), identityindexing.IndexTypeUsers, identitykeys.UserIDKey, searchsync.OpDelete),
+	// profile operation, so a username or email change is a profile update here. The ID key
+	// is a field of platform's identity.UserEvent rather than a context key: a payload that
+	// does not answer for itself is read by its JSON field names (see searchsync's doc).
+	rule(identity.EventUserRegistered.String(), identityindexing.IndexTypeUsers, "userID", searchsync.OpUpsert),
+	rule(identity.EventUserProfileUpdated.String(), identityindexing.IndexTypeUsers, "userID", searchsync.OpUpsert),
+	rule(identity.EventUserArchived.String(), identityindexing.IndexTypeUsers, "userID", searchsync.OpDelete),
 
 	// Meals.
 	rule(types.MealCreatedServiceEventType, mealplanningindexing.IndexTypeMeals, mealplanningkeys.MealIDKey, searchsync.OpUpsert),

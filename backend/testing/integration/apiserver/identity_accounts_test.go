@@ -139,9 +139,7 @@ func TestAccounts_Inviting(T *testing.T) {
 
 		invitation := inviteForTest(t, selfIDForTest(t, testClient), accountID, input.GetUser().GetEmailAddress())
 
-		// By resource: a pending invitation names no subject, so platform files its entry under
-		// the write's scope rather than the account's chain (platform-go #1138).
-		AssertAuditLogContainsFuzzyForResource(t, ctx, identity.ResourceTypeInvitation, invitation.ID, 10, []*ExpectedAuditEntry{
+		AssertAuditLogContainsFuzzy(t, ctx, testClient, accountID, 10, []*ExpectedAuditEntry{
 			{EventType: "created", ResourceType: identity.ResourceTypeInvitation, RelevantID: invitation.ID},
 		})
 
@@ -355,10 +353,10 @@ func TestAccounts_RemovingMembers(T *testing.T) {
 
 		assert.Equal(t, inviteeOwnAccountID, getAccountIDForTest(t, inviteeClient))
 
-		// The invitation by resource, for the reason TestAccounts_Inviting gives. The ended
-		// membership is filed under the member it was about — platform's subject for a
-		// membership entry — so it is read as the member, from the chains their session covers.
-		AssertAuditLogContainsFuzzyForResource(t, ctx, identity.ResourceTypeInvitation, invitation.ID, 20, []*ExpectedAuditEntry{
+		// The invitation is on the account's chain. The ended membership is filed under the
+		// member it was about — platform's subject for a membership entry — so it is read as
+		// the member, from the chains their session covers.
+		AssertAuditLogContainsFuzzy(t, ctx, ownerClient, accountID, 20, []*ExpectedAuditEntry{
 			{EventType: "created", ResourceType: identity.ResourceTypeInvitation, RelevantID: invitation.ID},
 		})
 		AssertAuditLogContainsFuzzy(t, ctx, inviteeClient, inviteeOwnAccountID, 20, []*ExpectedAuditEntry{

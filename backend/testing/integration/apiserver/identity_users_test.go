@@ -20,14 +20,10 @@ func TestUsers_Creating(T *testing.T) {
 
 		user, testClient := createUserAndClientForTest(t)
 
-		// By resource rather than by actor. A registration is the write that establishes
-		// who is acting, so the request that makes it carries no principal, and platform
-		// records its three entries as unattributed rather than as the registrant's.
-		AssertAuditLogContainsFuzzyForResource(t, ctx, identity.ResourceTypeUser, user.ID, 15, []*ExpectedAuditEntry{
+		AssertAuditLogContainsFuzzyForUser(t, ctx, testClient, user.ID, 15, []*ExpectedAuditEntry{
 			{EventType: "created", ResourceType: identity.ResourceTypeUser, RelevantID: user.ID},
-		})
-		AssertAuditLogContainsFuzzyForResource(t, ctx, identity.ResourceTypeAccount, getAccountIDForTest(t, testClient), 15, []*ExpectedAuditEntry{
 			{EventType: "created", ResourceType: identity.ResourceTypeAccount},
+			{EventType: "created", ResourceType: identity.ResourceTypeMembership},
 		})
 	})
 

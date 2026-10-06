@@ -14,7 +14,7 @@ underneath them is platform's too.
 **None of the libraries are tagged.** That is deliberate: the point is to consume them here
 first and find their bugs before a release. `backend/go.mod` therefore carries two local
 replaces — `platform-go/v15 => ../../platform-go` and `primitives-go/v2 => ../../primitives-go`
-— and builds only with those siblings checked out at or after platform-go `ea5b750a` and
+— and builds only with those siblings checked out at or after platform-go `891d5d55` and
 primitives-go `e6509109`. `make lint` runs in a container that cannot see them; lint natively
 (`golangci-lint run ./...`) and ignore the two `gomoddirectives` hits on the replaces. The
 frontend and iOS still reference published `0.0.1` client libraries; moving them to local paths
@@ -48,12 +48,6 @@ is step 6 below and has not started.
 
 ## What stays local, and why
 
-- **`identitystore.Hooks`** — a wrapper over `identity.RecordingHooks` that overrides four
-  methods (register, register-with-invitation, update-profile, archive-user) to run the users
-  index rules through `EnqueueDerived` after platform's recording. It exists because no payload
-  platform's own hooks emit implements `searchsync.Change` (**platform-go #1136**), so platform's
-  events cannot feed an index; the rules in `indexevents` already match platform's event names
-  and only the wrapper goes when #1136 lands.
 - **The three mail-request events** in `internal/domain/identity/auth_events.go`
   (`password_reset_token_created`, `username_reminder_requested`,
   `user_email_address_verification_email_requested`), emitted by `authentication.SignInMailers`.
@@ -90,24 +84,19 @@ is step 6 below and has not started.
   else.
 - **The queue-test probe** on the data changes topic is an envelope (`internalops.QueueTestProbe`,
   acknowledged by its ID); `datachanges.Message.TestID` is gone.
-- A registration's three audit entries are **unattributed** rather than the registrant's
-  (**platform-go #1137**, filed; DDB's adapter used `RecordAs` here and platform's hooks do not).
-  `identity_users_test.go` asserts by resource until it lands.
-- **A pending invitation's entry is on the global chain**, not the account's: platform gives it a
-  subject only once it is answered (**platform-go #1138**, filed). Membership entries are filed
-  under the member, so an account's own log shows nobody joining or leaving; the ticket asks
-  about that too. `identity_accounts_test.go` asserts the invitation by resource and reads the
-  ended membership as the member until it lands.
+- **Membership entries are filed under the member**, so an account's own log shows nobody
+  joining or leaving; platform-go #1141 left that for a ruling (one entry per chain is its
+  suggestion). `identity_accounts_test.go` reads the ended membership as the member.
 - **An anonymous password reset is unattributed** (nobody is signed in to ask for or spend a
   link), with the user as the entries' subject. `passwordreset_test.go` asserts by resource,
   reading the token's ID off the mail request.
 
 ## Found upstream on the way
 
-Filed this round: **#1136** (no platform payload implements `searchsync.Change`; propose the
-envelope answer it), **#1137** (`AfterRegister` should `RecordAs` the registrant), **#1138**
-(a pending invitation's entry names no subject). Earlier: #1130, #1131 (both landed). Still
-open from the original review: template-go #7.
+Filed and landed: #1130, #1131, #1136, #1137, #1138 (platform-go PRs #1139–#1141 closed the
+last three, and the commit after them deletes the identity index wrapper and restores the
+by-actor and by-account audit assertions). Still open from the original review: template-go #7,
+and #1138's question about an account's log showing memberships.
 
 The conformance harness reads links off the outbox: the verification link is now on platform's
 `identity.user.registered` payload (`emailAddressVerificationToken`) or this application's
@@ -140,6 +129,4 @@ That is the `include_archived` seam and a follow-up of its own.
    `oauth2server/mcp.Protect`, `metering.Unbilled`, `filtering.Observe`, `RandomQuery`,
    `billing/http`, `mediaregistry/grpc`, `QueryFilterFromProto`.
 4. Step 6: frontend and iOS onto local paths for `platform-client-ts`/`-swift`.
-5. When #1136 lands: `identitystore.Hooks` deletes down to `identity.NewRecordingHooks`. When
-   #1137 lands: `identity_users_test.go` asserts the registration by actor again.
-6. Tag the libraries; drop the replaces; delete this file.
+5. Tag the libraries; drop the replaces; delete this file.

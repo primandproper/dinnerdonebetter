@@ -24,7 +24,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// hooksHarness is the wrapper over the recording spine's unit-test shape: platform's Recorder
+// hooksHarness is platform's hooks over the recording spine's unit-test shape: platform's Recorder
 // writing entries into a slice, and an outbox writer whose statements run on a mock executor
 // so the index events can be read back off what it would have inserted.
 type hooksHarness struct {
@@ -119,7 +119,7 @@ func TestHooks_AfterRegister(T *testing.T) {
 		})
 		require.NoError(t, err)
 
-		// platform's three entries, as platform writes them: this wrapper adds none.
+		// platform's three entries, as platform writes them.
 		require.Len(t, h.recorded, 3)
 		assert.Equal(t, platformidentity.ResourceTypeUser, h.recorded[0].ResourceType)
 		assert.Equal(t, user.ID, h.recorded[0].ResourceID)
@@ -209,8 +209,8 @@ func TestHooks_AfterUpdateAccount(T *testing.T) {
 	T.Run("records through platform and derives no index event", func(t *testing.T) {
 		t.Parallel()
 
-		// Not overridden: an account is not indexed, so platform's recording is the whole of
-		// what happens, and this is the check that the wrapper adds nothing it should not.
+		// An account is not indexed, so platform's recording is the whole of
+		// what happens, and this is the check that the index rules match nothing they should not.
 		h := buildHooksHarness(t)
 		before := identityfakes.BuildFakeAccount()
 		after := identityfakes.BuildFakeAccount()
