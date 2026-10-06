@@ -26,7 +26,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/privacy"
 	paymentsprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/privacy"
-	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
 
 	platformaudit "github.com/primandproper/platform-go/v15/audit"
 	oauth2clients "github.com/primandproper/platform-go/v15/authentication/oauth2clients"
@@ -48,7 +47,6 @@ import (
 	"github.com/primandproper/primitives-go/v2/database"
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
-	"github.com/primandproper/primitives-go/v2/observability/metrics"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
 	"github.com/primandproper/primitives-go/v2/tenancy"
 
@@ -57,7 +55,7 @@ import (
 
 // RegisterRegistry registers the collector and eraser registry with the injector.
 //
-// Prerequisites: every domain repository named in buildRegistry, plus *Config and
+// Prerequisites: every domain repository named in buildRegistry, plus platform's *Config and
 // database.Client for the audit eraser's policy.
 func RegisterRegistry(i do.Injector) {
 	do.Provide(i, buildRegistry)
@@ -253,7 +251,7 @@ func buildRegistry(i do.Injector) (*platformdataprivacy.Registry, error) {
 	// people's too. It reads the directory on the erasure's own transaction, so an account
 	// the succession step handed to another member earlier in the same request is no
 	// longer the subject's by the time this asks.
-	registered, err := platformdataprivacycfg.RegisterAuditEraser(ctx, prepareConfig(i), registry, eraseAuditScopes)
+	registered, err := platformdataprivacycfg.RegisterAuditEraser(ctx, do.MustInvoke[*platformdataprivacycfg.Config](i), registry, eraseAuditScopes)
 	if err != nil {
 		return nil, platformerrors.Wrap(err, "registering audit data privacy eraser")
 	}
@@ -267,87 +265,24 @@ func buildRegistry(i do.Injector) (*platformdataprivacy.Registry, error) {
 	return registry, nil
 }
 
-// RegisterOperationsRegistry registers the *operations.Registry this application's operations
-// are looked up in, with the data privacy kinds already registered into it.
+// RegisterOperationsRegistry registers the *operations.Registry this application's operations are
+// looked up in.
 //
-// platform-go v10 fulfills privacy requests as operations: the fulfillment loop is no longer a
-// worker of its own but a set of runners registered under operation kinds, which an
-// operations.Worker claims and runs. Building the Fulfiller is what performs that registration.
+// It is empty when it is built, and that is safe in a way it was not before platform built the
+// fulfiller. platform-go fulfills privacy requests as operations, and building its fulfiller is
+// what registers the privacy kinds into this registry. That used to happen inside this provider,
+// by building a fulfiller here and discarding it, because nothing else ordered the two: a registry
+// resolved before the fulfiller existed was an empty one, and an empty registry makes
+// Service.Start refuse every privacy request with ErrUnknownKind.
 //
-// It happens inside the registry's own provider rather than beside it because the ordering is
-// load-bearing and invisible when wrong. samber/do resolves lazily, so a Registry resolved
-// before anything built the Fulfiller is an empty one — and an empty registry does not fail
-// loudly, it makes Service.Start refuse every privacy request with ErrUnknownKind and
-// Worker.Run reject every claim the same way. Depending on the Fulfiller here makes the
-// registration a precondition of holding the registry at all.
+// Platform's registrations order it now. Its dataprivacy service depends on its fulfiller for
+// exactly that reason, and service.New builds everything a service.Config registered before
+// anything runs, so the kinds are in the registry before the first claim or the first request.
 //
 // Both process roles need this, not just the one that runs the work: Start looks the kind up in
-// the registry of the process calling it, so an API server that only submits requests still has
-// to know the kinds exist.
-//
-// Prerequisites: RegisterRegistry, and dataprivacycfg.RegisterArtifactStorage.
+// the registry of the process calling it.
 func RegisterOperationsRegistry(i do.Injector) {
-	do.Provide(i, func(i do.Injector) (*operations.Registry, error) {
-		registry := operations.NewRegistry()
-
-		// The Fulfiller is discarded on purpose. Its whole effect here is the registration
-		// it performs into registry; nothing calls it directly afterwards, because the
-		// operations.Worker runs it through the kinds it registered.
-		if _, err := platformdataprivacycfg.NewFulfiller(
-			do.MustInvoke[context.Context](i),
-			prepareConfig(i),
-			do.MustInvoke[database.Client](i),
-			do.MustInvoke[platformdataprivacy.Store](i),
-			do.MustInvoke[*platformdataprivacy.Registry](i),
-			registry,
-			do.MustInvoke[dataprivacycfg.ArtifactUploadManager](i).UploadManager,
-			platformdataprivacycfg.WithLogger(do.MustInvoke[logging.Logger](i)),
-			platformdataprivacycfg.WithTracerProvider(do.MustInvoke[tracing.Provider](i)),
-			platformdataprivacycfg.WithMetricsProvider(do.MustInvoke[metrics.Provider](i)),
-			// Artifacts are encrypted, so no signed URL can be minted for one: the
-			// stored object is ciphertext and a subject following that link would get a
-			// file they cannot open. v14 reads that off the encryptor rather than off a
-			// flag beside it, which is what stops the two disagreeing — so naming the
-			// encryptor here is also what stops a completion notification carrying a
-			// broken download link.
-			platformdataprivacycfg.WithCompressor(do.MustInvoke[dataprivacycfg.ArtifactCompressor](i).Compressor),
-			platformdataprivacycfg.WithEncryptor(do.MustInvoke[dataprivacycfg.ArtifactEncryptorDecryptor](i).EncryptorDecryptor),
-		); err != nil {
-			return nil, platformerrors.Wrap(err, "registering data privacy operation kinds")
-		}
-
-		return registry, nil
+	do.Provide(i, func(do.Injector) (*operations.Registry, error) {
+		return operations.NewRegistry(), nil
 	})
-}
-
-// RegisterSweeper registers the expiry and retention sweep with the injector.
-//
-// It is the half of this package a deployment can most easily forget to run, and
-// the one whose absence is invisible: without it every export artifact ever written
-// stays in the bucket forever, and nothing about the request rows suggests
-// otherwise. It is registered as a scheduled job rather than a loop of its own — see
-// internal/build/jobs/scheduler.
-//
-// Prerequisites: RegisterArtifactStorage.
-func RegisterSweeper(i do.Injector) {
-	do.Provide(i, func(i do.Injector) (*platformdataprivacy.Sweeper, error) {
-		return platformdataprivacycfg.NewSweeper(
-			do.MustInvoke[context.Context](i),
-			prepareConfig(i),
-			do.MustInvoke[platformdataprivacy.Store](i),
-			do.MustInvoke[dataprivacycfg.ArtifactUploadManager](i).UploadManager,
-			platformdataprivacycfg.WithLogger(do.MustInvoke[logging.Logger](i)),
-			platformdataprivacycfg.WithTracerProvider(do.MustInvoke[tracing.Provider](i)),
-			platformdataprivacycfg.WithMetricsProvider(do.MustInvoke[metrics.Provider](i)),
-		)
-	})
-}
-
-// prepareConfig resolves the platform config with the dialect and table prefixes
-// pinned, the same way every other consumer in this process does.
-func prepareConfig(i do.Injector) *platformdataprivacycfg.Config {
-	return dataprivacycfg.PlatformConfig(
-		do.MustInvoke[*dataprivacycfg.Config](i),
-		do.MustInvoke[database.Client](i),
-	)
 }

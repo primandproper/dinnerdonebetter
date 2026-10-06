@@ -43,8 +43,8 @@ func TestMembersOfAccount(T *testing.T) {
 
 				if filter.Cursor == nil {
 					return &filtering.QueryFilteredResult[platformidentity.MembershipWithUser]{
-						Data:       firstPage,
-						Pagination: filtering.Pagination{Cursor: identifiers.New(), MaxResponseSize: filtering.MaxQueryFilterLimit},
+						Data:   firstPage,
+						Cursor: identifiers.New(), MaxResponseSize: filtering.MaxQueryFilterLimit,
 					}, nil
 				}
 

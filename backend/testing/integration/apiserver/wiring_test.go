@@ -17,9 +17,12 @@ import (
 	"github.com/primandproper/platform-go/v15/dataprivacy/auditerasure"
 	"github.com/primandproper/platform-go/v15/metering"
 	"github.com/primandproper/platform-go/v15/operations"
+	operationscfg "github.com/primandproper/platform-go/v15/operations/config"
 	"github.com/primandproper/platform-go/v15/outbox"
 	"github.com/primandproper/platform-go/v15/retention"
 	"github.com/primandproper/platform-go/v15/saga"
+	sagacfg "github.com/primandproper/platform-go/v15/saga/config"
+	"github.com/primandproper/platform-go/v15/service"
 	"github.com/primandproper/platform-go/v15/webhooks"
 	"github.com/primandproper/primitives-go/v2/jobs"
 
@@ -46,10 +49,14 @@ import (
 
 // buildSchedulerInjector stands up the scheduler's container over this suite's database and
 // releases it when the test ends.
-func buildSchedulerInjector(t *testing.T) do.Injector {
+func buildSchedulerInjector(t *testing.T) *do.RootScope {
 	t.Helper()
 
-	i := schedulerbuild.BuildInjector(context.Background(), schedulerConfig)
+	cfg, err := loadSchedulerConfig()
+	require.NoError(t, err)
+
+	i, err := schedulerbuild.BuildInjector(context.Background(), cfg)
+	require.NoError(t, err)
 
 	shutdownInjector(t, i)
 
@@ -102,6 +109,39 @@ func TestWorkerWiring_Scheduler(T *testing.T) {
 		require.NotNil(t, do.MustInvoke[*platformdataprivacy.Sweeper](i))
 		require.NotNil(t, do.MustInvoke[*retention.Sweeper](i))
 		require.NotNil(t, do.MustInvoke[*metering.Flusher](i))
+	})
+
+	T.Run("schedules the reapers platform's stores own", func(t *testing.T) {
+		t.Parallel()
+
+		i := buildSchedulerInjector(t)
+
+		queue, err := schedulerbuild.NewNotificationQueue(i)
+		require.NoError(t, err)
+
+		// New is what hands the scheduler its jobs — this application's and platform's own — so
+		// the process is assembled exactly as cmd/ddb assembles it.
+		_, err = service.New(i, service.WithRunners(queue))
+		require.NoError(t, err)
+
+		// The scheduler cannot be asked what it holds, but it refuses a second job under a name
+		// it already has, and that refusal is the assertion. Operations' recovery is the one this
+		// is here for: before the scheduler was composed from a service.Config nothing ran it,
+		// and an operation whose worker died between its insert and its enqueue sat pending
+		// forever.
+		scheduler := do.MustInvoke[*jobs.Scheduler](i)
+		for _, name := range []string{
+			operationscfg.RecoverJobName,
+			operationscfg.ReapJobName,
+			sagacfg.RetentionJobName,
+		} {
+			err = scheduler.Register(jobs.Job{
+				Name:     name,
+				Interval: time.Minute,
+				Run:      func(context.Context) error { return nil },
+			})
+			assert.ErrorIs(t, err, jobs.ErrDuplicateJob, "%s is not scheduled", name)
+		}
 	})
 
 	T.Run("registers every data privacy collector and eraser", func(t *testing.T) {
@@ -188,9 +228,21 @@ func TestWorkerWiring_AsyncMessageHandler(T *testing.T) {
 	T.Run("resolves its handler", func(t *testing.T) {
 		t.Parallel()
 
-		i := datachangemessagehandlerbuild.BuildInjector(context.Background(), asyncMessageHandlerConfig)
+		cfg, err := loadAsyncMessageHandlerConfig()
+		require.NoError(t, err)
+
+		i, err := datachangemessagehandlerbuild.BuildInjector(context.Background(), cfg)
+		require.NoError(t, err)
 		shutdownInjector(t, i)
 
 		require.NotNil(t, do.MustInvoke[*datachangemessagehandler.AsyncDataChangeMessageHandler](i))
+
+		// And the whole process assembles: everything its config names builds, and the handler
+		// joins the lifecycle as the runner cmd/ddb hands it.
+		handler, err := datachangemessagehandlerbuild.NewHandlerRunner(i)
+		require.NoError(t, err)
+
+		_, err = service.New(i, service.WithRunners(handler))
+		require.NoError(t, err)
 	})
 }

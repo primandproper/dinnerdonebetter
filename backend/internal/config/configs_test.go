@@ -9,21 +9,24 @@ import (
 	"time"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config/envvars"
-	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
 	meteringcfg "github.com/primandproper/platform-go/v15/metering/config"
+	"github.com/primandproper/platform-go/v15/service"
 	webhookscfg "github.com/primandproper/platform-go/v15/webhooks/config"
 	analyticscfg "github.com/primandproper/primitives-go/v2/analytics/config"
 	databasecfg "github.com/primandproper/primitives-go/v2/database/config"
 	emailcfg "github.com/primandproper/primitives-go/v2/email/config"
 	"github.com/primandproper/primitives-go/v2/encoding"
 	featureflagscfg "github.com/primandproper/primitives-go/v2/featureflags/config"
+	httpclientcfg "github.com/primandproper/primitives-go/v2/httpclient"
+	msgconfig "github.com/primandproper/primitives-go/v2/messagequeue/config"
 	"github.com/primandproper/primitives-go/v2/observability"
 	loggingcfg "github.com/primandproper/primitives-go/v2/observability/logging/config"
 	"github.com/primandproper/primitives-go/v2/routing/backends/chi"
 	routingcfg "github.com/primandproper/primitives-go/v2/routing/config"
 	textsearchcfg "github.com/primandproper/primitives-go/v2/search/text/config"
+	"github.com/primandproper/primitives-go/v2/server/grpc"
 	"github.com/primandproper/primitives-go/v2/server/http"
 
 	"github.com/stretchr/testify/assert"
@@ -37,20 +40,15 @@ func TestAPIServiceConfig_EncodeToFile(T *testing.T) {
 		t.Parallel()
 
 		cfg := &APIServiceConfig{
-			HTTPServer: http.Config{
-				Port:            1234,
-				StartupDeadline: time.Minute,
-			},
-			Meta: MetaSettings{
-				RunMode: DevelopmentRunMode,
-			},
-			Encoding: encoding.Config{
-				ContentType: "application/json",
-			},
-			Observability: observability.Config{},
-			Services:      ServicesConfig{},
-			Database: dbcfg.Config{
-				Config: databasecfg.Config{
+			Service: service.Config{
+				HTTPServer: &http.Config{
+					Port:            1234,
+					StartupDeadline: time.Minute,
+				},
+				Encoding: &encoding.Config{
+					ContentType: "application/json",
+				},
+				Database: &databasecfg.Config{
 					Debug:         true,
 					RunMigrations: true,
 					ReadConnection: databasecfg.ConnectionDetails{
@@ -62,6 +60,10 @@ func TestAPIServiceConfig_EncodeToFile(T *testing.T) {
 					},
 				},
 			},
+			Meta: MetaSettings{
+				RunMode: DevelopmentRunMode,
+			},
+			Services: ServicesConfig{},
 		}
 
 		f, err := os.CreateTemp("", "")
@@ -101,8 +103,8 @@ func TestAPIServiceConfig_EncodeToFile(T *testing.T) {
 func TestLoadConfigFromEnvironment(T *testing.T) {
 	T.Run("standard", func(t *testing.T) {
 		cfg := &APIServiceConfig{
-			Database: dbcfg.Config{
-				Config: databasecfg.Config{
+			Service: service.Config{
+				Database: &databasecfg.Config{
 					Debug: true,
 				},
 			},
@@ -119,14 +121,14 @@ func TestLoadConfigFromEnvironment(T *testing.T) {
 		require.NoError(t, err)
 		assert.NotNil(t, actual)
 
-		assert.True(t, actual.Database.Debug)
+		assert.True(t, actual.Service.Database.Debug)
 	})
 
 	// prior TODOs count here too
 	T.Run("overrides meta", func(t *testing.T) {
 		cfg := &APIServiceConfig{
-			Database: dbcfg.Config{
-				Config: databasecfg.Config{
+			Service: service.Config{
+				Database: &databasecfg.Config{
 					Debug: true,
 				},
 			},
@@ -199,7 +201,7 @@ func TestLoadConfigFromEnvironment(T *testing.T) {
 
 		t.Setenv(ConfigurationFilePathEnvVarKey, configFilepath)
 		// Set an invalid environment variable that would cause parsing to fail
-		t.Setenv(envvars.HTTPPortEnvVarKey, "invalid_port")
+		t.Setenv(envvars.HTTPServerPortEnvVarKey, "invalid_port")
 
 		actual, err := LoadConfigFromEnvironment[APIServiceConfig]()
 		require.Error(t, err)
@@ -289,8 +291,8 @@ func TestLoadConfigFromDotEnvFile(T *testing.T) {
 		// The important thing is that environment variables are applied from the file.
 		if err == nil {
 			require.NotNil(t, actual)
-			assert.Equal(t, "localhost", actual.Database.ReadConnection.Host)
-			assert.Equal(t, "user", actual.Database.ReadConnection.Username)
+			assert.Equal(t, "localhost", actual.Service.Database.ReadConnection.Host)
+			assert.Equal(t, "user", actual.Service.Database.ReadConnection.Username)
 		} else {
 			// If validation fails it must be a validation error, not a file-loading error.
 			assert.NotContains(t, err.Error(), "loading .env file")
@@ -369,18 +371,9 @@ func TestAPIServiceConfig_ValidateWithContext(T *testing.T) {
 
 		ctx := t.Context()
 		cfg := &APIServiceConfig{
+			Service: validAPIServiceBlocksForTest(),
 			Meta: MetaSettings{
 				RunMode: DevelopmentRunMode,
-			},
-			Encoding: encoding.Config{
-				ContentType: "application/json",
-			},
-			Observability: observability.Config{
-				Logging: loggingcfg.Config{ServiceName: "service"},
-			},
-			HTTPServer: http.Config{
-				Port:            8080,
-				StartupDeadline: time.Minute,
 			},
 			Queues: queuescfg.Config{
 				DataChangesTopicName:         "data-changes",
@@ -388,22 +381,9 @@ func TestAPIServiceConfig_ValidateWithContext(T *testing.T) {
 				SearchIndexRequestsTopicName: "search-index-requests",
 				MobileNotificationsTopicName: "mobile-notifications",
 			},
-			Database: dbcfg.Config{
-				Config: databasecfg.Config{
-					Debug: true,
-					ReadConnection: databasecfg.ConnectionDetails{
-						Username: "user",
-						Password: "pass",
-						Database: "db",
-						Host:     "host",
-						Port:     5432,
-					},
-				},
-			},
 			// Each of these has to name a provider: platform-go v9 reports an unset
 			// one rather than substituting a noop that looks configured.
 			Routing:      routingcfg.Config{Provider: routingcfg.ProviderChi, Chi: &chi.Config{ServiceName: "service"}},
-			FeatureFlags: featureflagscfg.Config{Provider: featureflagscfg.ProviderNoop},
 			Analytics:    analyticscfg.Config{SourceConfig: analyticscfg.SourceConfig{Provider: analyticscfg.ProviderNoop}},
 			TextSearch:   textsearchcfg.Config{Provider: textsearchcfg.ProviderNoop},
 			Email:        emailcfg.Config{Provider: emailcfg.ProviderNoop},
@@ -417,38 +397,34 @@ func TestAPIServiceConfig_ValidateWithContext(T *testing.T) {
 		assert.NoError(t, err)
 	})
 
+	T.Run("without a gRPC server", func(t *testing.T) {
+		t.Parallel()
+
+		// A block nobody configured is a block service.Register skips, so a process whose whole
+		// job is serving gRPC has to refuse to start without one rather than start serving
+		// nothing.
+		blocks := validAPIServiceBlocksForTest()
+		blocks.GRPCServer = nil
+
+		cfg := &APIServiceConfig{Service: blocks}
+
+		assert.Error(t, cfg.ValidateWithContext(t.Context()))
+	})
+
 	T.Run("with validateServices enabled", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
 		cfg := &APIServiceConfig{
 			validateServices: true,
+			Service:          validAPIServiceBlocksForTest(),
 			Meta: MetaSettings{
 				RunMode: DevelopmentRunMode,
-			},
-			Encoding: encoding.Config{
-				ContentType: "application/json",
-			},
-			Observability: observability.Config{},
-			HTTPServer: http.Config{
-				Port:            8080,
-				StartupDeadline: time.Minute,
 			},
 			Queues: queuescfg.Config{
 				DataChangesTopicName:         "data-changes",
 				OutboundEmailsTopicName:      "outbound-emails",
 				SearchIndexRequestsTopicName: "search-index-requests",
-			},
-			Database: dbcfg.Config{
-				Config: databasecfg.Config{
-					Debug: true,
-					ReadConnection: databasecfg.ConnectionDetails{
-						Username: "user",
-						Password: "pass",
-						Database: "db",
-						Host:     "host",
-					},
-				},
 			},
 			Services: ServicesConfig{},
 		}
@@ -467,52 +443,85 @@ func TestDBCleanerConfig_ValidateWithContext(T *testing.T) {
 
 		ctx := t.Context()
 		cfg := &DBCleanerConfig{
-			Observability: observability.Config{
-				Logging: loggingcfg.Config{ServiceName: "service"},
-			},
-			Database: dbcfg.Config{
-				Config: databasecfg.Config{
-					Debug: true,
-					ReadConnection: databasecfg.ConnectionDetails{
-						Username: "user",
-						Password: "pass",
-						Database: "db",
-						Host:     "host",
-						Port:     5432,
-					},
+			Service: service.Config{
+				Name: "db_cleaner",
+				Observability: observability.Config{
+					Logging: loggingcfg.Config{ServiceName: "service"},
 				},
+				Database: validDatabaseConfigForTest(),
 			},
 		}
 
 		err := cfg.ValidateWithContext(ctx)
 		assert.NoError(t, err)
 	})
+
+	T.Run("without a database", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := &DBCleanerConfig{Service: service.Config{Name: "db_cleaner"}}
+
+		assert.Error(t, cfg.ValidateWithContext(t.Context()))
+	})
 }
 
 func TestAsyncMessageHandlerConfig_ValidateWithContext(T *testing.T) {
 	T.Parallel()
 
-	T.Run("valid config", func(t *testing.T) {
+	T.Run("without a broker", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
 		cfg := &AsyncMessageHandlerConfig{
-			Observability: observability.Config{},
-			Database: dbcfg.Config{
-				Config: databasecfg.Config{
-					Debug: true,
-					ReadConnection: databasecfg.ConnectionDetails{
-						Username: "user",
-						Password: "pass",
-						Database: "db",
-						Host:     "host",
-					},
-				},
+			Service: service.Config{
+				Name:     "async_message_handler",
+				Database: validDatabaseConfigForTest(),
 			},
 		}
 
-		err := cfg.ValidateWithContext(ctx)
-		// May have validation errors in various configs
-		_ = err
+		assert.Error(t, cfg.ValidateWithContext(t.Context()))
 	})
+}
+
+// validDatabaseConfigForTest returns a database block that validates.
+func validDatabaseConfigForTest() *databasecfg.Config {
+	return &databasecfg.Config{
+		Provider: databasecfg.ProviderPostgres,
+		Debug:    true,
+		ReadConnection: databasecfg.ConnectionDetails{
+			Username: "user",
+			Password: "pass",
+			Database: "db",
+			Host:     "host",
+			Port:     5432,
+		},
+		WriteConnection: databasecfg.ConnectionDetails{
+			Username: "user",
+			Password: "pass",
+			Database: "db",
+			Host:     "host",
+			Port:     5432,
+		},
+	}
+}
+
+// validAPIServiceBlocksForTest returns every service.Config block the API server requires.
+func validAPIServiceBlocksForTest() service.Config {
+	return service.Config{
+		Name: "api_server",
+		Observability: observability.Config{
+			Logging: loggingcfg.Config{ServiceName: "service"},
+		},
+		Encoding: &encoding.Config{
+			ContentType: "application/json",
+		},
+		HTTPServer: &http.Config{
+			Port:            8080,
+			StartupDeadline: time.Minute,
+		},
+		GRPCServer:   &grpc.Config{Port: 8081},
+		Database:     validDatabaseConfigForTest(),
+		MessageQueue: &msgconfig.Config{Consumer: msgconfig.MessageQueueConfig{Provider: msgconfig.ProviderNoop}, Publisher: msgconfig.MessageQueueConfig{Provider: msgconfig.ProviderNoop}},
+		FeatureFlags: &featureflagscfg.Config{Provider: featureflagscfg.ProviderNoop},
+		HTTPClient:   &httpclientcfg.Config{Timeout: time.Minute},
+	}
 }

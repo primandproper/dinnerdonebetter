@@ -33,7 +33,7 @@ const o11yName = "search_sync_source"
 // because do is lazy and nothing is constructed until something asks for it.
 // stampBufferName names one index's stamp buffer in the container.
 func stampBufferName(indexType string) string {
-	return "index_stamp." + indexType
+	return indexstamp.NamePrefix + indexType
 }
 
 func registerPair[E, T any](

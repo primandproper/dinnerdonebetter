@@ -7,7 +7,6 @@ import (
 	authcfg "github.com/primandproper/dinnerdonebetter/backend/internal/authentication/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
-	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 	authservice "github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/handlers/authentication"
 	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
@@ -19,6 +18,8 @@ import (
 	oauth2database "github.com/primandproper/platform-go/v15/authentication/oauth2serverstore"
 	oauth2servercfg "github.com/primandproper/platform-go/v15/authentication/oauth2serverstore/config"
 	webauthncfg "github.com/primandproper/platform-go/v15/authentication/webauthnsessions/config"
+	platformdataprivacycfg "github.com/primandproper/platform-go/v15/dataprivacy/config"
+	"github.com/primandproper/platform-go/v15/service"
 	analyticscfg "github.com/primandproper/primitives-go/v2/analytics/config"
 	tokenscfg "github.com/primandproper/primitives-go/v2/authentication/tokens/config"
 	platformwebauthn "github.com/primandproper/primitives-go/v2/authentication/webauthn"
@@ -57,6 +58,68 @@ func BuildIntegrationTestsConfig() *config.APIServiceConfig {
 	}
 
 	return &config.APIServiceConfig{
+		Service: service.Config{
+			Name:       otelServiceName,
+			HTTPClient: defaultHTTPClientConfig(),
+			Encoding: &encoding.Config{
+				ContentType: contentTypeJSON,
+			},
+			MessageQueue: &msgconfig.Config{
+				Consumer: msgconfig.MessageQueueConfig{
+					Provider: msgconfig.ProviderRedis,
+					Redis: redis.Config{
+						QueueAddresses: []string{dockerComposeWorkerQueueAddress},
+					},
+				},
+				Publisher: msgconfig.MessageQueueConfig{
+					Provider: msgconfig.ProviderRedis,
+					Redis: redis.Config{
+						QueueAddresses: []string{dockerComposeWorkerQueueAddress},
+					},
+				},
+			},
+			Observability: observability.Config{
+				Logging: loggingcfg.Config{
+					ServiceName: otelServiceName,
+					Level:       logging.InfoLevel,
+					Provider:    loggingcfg.ProviderSlog,
+				},
+				Tracing: tracingcfg.Config{
+					Provider:                  "", // noop tracer for integration tests (no tracing-server required)
+					SpanCollectionProbability: 0.0,
+					ServiceName:               otelServiceName,
+				},
+			},
+			GRPCServer: &grpc.Config{
+				Port: defaultGRPCPort,
+			},
+			FeatureFlags: &featureflagscfg.Config{
+				// we're using a noop version of this in dev right now, but it still tries to instantiate a circuit breaker.
+				Provider: featureflagscfg.ProviderNoop,
+				CircuitBreaker: circuitbreakingcfg.Config{
+					Name:                   featureFlaggerSource,
+					ErrorRate:              .5,
+					MinimumSampleThreshold: 100,
+				},
+			},
+			Database: &databasecfg.Config{
+				Provider:        databasecfg.ProviderPostgres,
+				Debug:           true,
+				RunMigrations:   true,
+				LogQueries:      true,
+				MaxPingAttempts: maxAttempts,
+				PingWaitPeriod:  1500 * time.Millisecond,
+				MaxIdleConns:    5,
+				MaxOpenConns:    7,
+				ConnMaxLifetime: 30 * time.Minute,
+				ReadConnection:  localdevPostgresDBConnectionDetails,
+				WriteConnection: localdevPostgresDBConnectionDetails,
+			},
+			HTTPServer: &http.Config{
+				Port:            defaultHTTPPort,
+				StartupDeadline: time.Minute,
+			},
+		},
 		Webhooks:     buildWebhooksConfig(),
 		Metering:     config.DefaultMeteringConfig(),
 		Entitlements: config.DefaultEntitlementsConfig(),
@@ -80,69 +143,9 @@ func BuildIntegrationTestsConfig() *config.APIServiceConfig {
 			SearchIndexRequestsTopicName: searchIndexRequestsTopicName,
 			MobileNotificationsTopicName: mobileNotificationsTopicName,
 		},
-		Events: msgconfig.Config{
-			Consumer: msgconfig.MessageQueueConfig{
-				Provider: msgconfig.ProviderRedis,
-				Redis: redis.Config{
-					QueueAddresses: []string{dockerComposeWorkerQueueAddress},
-				},
-			},
-			Publisher: msgconfig.MessageQueueConfig{
-				Provider: msgconfig.ProviderRedis,
-				Redis: redis.Config{
-					QueueAddresses: []string{dockerComposeWorkerQueueAddress},
-				},
-			},
-		},
-		Encoding: encoding.Config{
-			ContentType: contentTypeJSON,
-		},
-		HTTPServer: http.Config{
-			Port:            defaultHTTPPort,
-			StartupDeadline: time.Minute,
-		},
-		GRPCServer: grpc.Config{
-			Port: defaultGRPCPort,
-		},
-		Database: dbcfg.Config{
-			Config: databasecfg.Config{
-				Provider:        databasecfg.ProviderPostgres,
-				Debug:           true,
-				RunMigrations:   true,
-				LogQueries:      true,
-				MaxPingAttempts: maxAttempts,
-				PingWaitPeriod:  1500 * time.Millisecond,
-				MaxIdleConns:    5,
-				MaxOpenConns:    7,
-				ConnMaxLifetime: 30 * time.Minute,
-				ReadConnection:  localdevPostgresDBConnectionDetails,
-				WriteConnection: localdevPostgresDBConnectionDetails,
-			},
-		},
-		Observability: observability.Config{
-			Logging: loggingcfg.Config{
-				ServiceName: otelServiceName,
-				Level:       logging.InfoLevel,
-				Provider:    loggingcfg.ProviderSlog,
-			},
-			Tracing: tracingcfg.Config{
-				Provider:                  "", // noop tracer for integration tests (no tracing-server required)
-				SpanCollectionProbability: 0.0,
-				ServiceName:               otelServiceName,
-			},
-		},
 		TextSearch: textsearchcfg.Config{
 			// we're using a noop version of this in dev right now, but it still tries to instantiate a circuit breaker.
 			Provider: textsearchcfg.ProviderNoop,
-			CircuitBreaker: circuitbreakingcfg.Config{
-				Name:                   featureFlaggerSource,
-				ErrorRate:              .5,
-				MinimumSampleThreshold: 100,
-			},
-		},
-		FeatureFlags: featureflagscfg.Config{
-			// we're using a noop version of this in dev right now, but it still tries to instantiate a circuit breaker.
-			Provider: featureflagscfg.ProviderNoop,
 			CircuitBreaker: circuitbreakingcfg.Config{
 				Name:                   featureFlaggerSource,
 				ErrorRate:              .5,
@@ -252,16 +255,17 @@ func BuildIntegrationTestsConfig() *config.APIServiceConfig {
 				},
 			},
 			DataPrivacy: dataprivacycfg.Config{
-				Uploads: uploadscfg.Config{
-					Storage: objectstorage.Config{
-						FilesystemConfig: &objectstorage.FilesystemConfig{RootDirectory: "/tmp"},
-						BucketName:       "userdata",
-						Provider:         objectstorage.FilesystemProvider,
-					},
-					Debug: false,
-				},
-				Encryption:            encryptioncfg.Config{Provider: encryptioncfg.ProviderAES, CurrentKeyID: "v1"},
 				ArtifactEncryptionKey: localDisclosureArtifactEncryptionKey,
+				Platform: platformdataprivacycfg.Config{
+					Artifacts: &platformdataprivacycfg.ArtifactsConfig{
+						Storage: &objectstorage.Config{
+							FilesystemConfig: &objectstorage.FilesystemConfig{RootDirectory: "/tmp"},
+							BucketName:       "userdata",
+							Provider:         objectstorage.FilesystemProvider,
+						},
+						Encryption: &encryptioncfg.Config{Provider: encryptioncfg.ProviderAES, CurrentKeyID: "v1"},
+					},
+				},
 			},
 			Users: identitycfg.Config{
 				Uploads: uploadsConfig,

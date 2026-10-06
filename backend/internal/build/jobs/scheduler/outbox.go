@@ -21,11 +21,17 @@ import (
 // runs here rather than in the API service because it is a polling loop that must not be tied
 // to a request, and because running it in one place keeps its claim contention predictable —
 // though ClaimSkipLocked means several replicas would be correct too.
+//
+// It is registered by hand rather than from a service.Config Outbox block, for the reason
+// config.SchedulerConfig.OutboxRelay gives: that block would also register platform's bare
+// writer beside this application's, which carries the search index side effect. service.New
+// still finds the relay — it resolves an *outbox.Relay by type, however it was registered — so
+// it is started and drained with the rest of the process's loops.
 func RegisterOutboxRelay(i do.Injector) {
 	do.Provide[*outbox.Relay](i, func(i do.Injector) (*outbox.Relay, error) {
 		return outbox.NewRelay(
 			do.MustInvoke[context.Context](i),
-			&do.MustInvoke[*config.SchedulerConfig](i).Outbox,
+			&do.MustInvoke[*config.SchedulerConfig](i).OutboxRelay,
 			do.MustInvoke[database.Client](i),
 			do.MustInvoke[messagequeue.PublisherProvider](i),
 			outbox.WithRelayLogger(do.MustInvoke[logging.Logger](i)),

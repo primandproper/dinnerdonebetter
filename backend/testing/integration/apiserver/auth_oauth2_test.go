@@ -835,7 +835,7 @@ func TestAuth_OAuth2Revocation(T *testing.T) {
 		oauth2Token, err := localdev.FetchOAuth2TokenForUser(
 			ctx,
 			httpTestServerAddress,
-			fmt.Sprintf(":%d", apiServiceConfig.GRPCServer.Port),
+			fmt.Sprintf(":%d", apiServiceConfig.Service.GRPCServer.Port),
 			createdClientID,
 			createdClientSecret,
 			credentials,

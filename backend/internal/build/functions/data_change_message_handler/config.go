@@ -2,62 +2,24 @@ package datachangemessagehandler
 
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
-	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
-	analyticscfg "github.com/primandproper/primitives-go/v2/analytics/config"
-	databasecfg "github.com/primandproper/primitives-go/v2/database/config"
-	emailcfg "github.com/primandproper/primitives-go/v2/email/config"
-	"github.com/primandproper/primitives-go/v2/encoding"
-	httpclientcfg "github.com/primandproper/primitives-go/v2/httpclient"
-	msgconfig "github.com/primandproper/primitives-go/v2/messagequeue/config"
 	notificationscfg "github.com/primandproper/primitives-go/v2/notifications/mobile/config"
-	"github.com/primandproper/primitives-go/v2/observability"
 	textsearchcfg "github.com/primandproper/primitives-go/v2/search/text/config"
 
 	"github.com/samber/do/v2"
 )
 
-// RegisterConfigs registers all config sub-fields with the injector.
+// RegisterConfigs registers the config sub-fields this application's own registrations read.
+//
+// Everything platform builds reads its block from the injector already: service.Register put each
+// one there beside the registration that consumes it.
 func RegisterConfigs(i do.Injector) {
 	do.Provide[*queuescfg.Config](i, func(i do.Injector) (*queuescfg.Config, error) {
-		cfg := do.MustInvoke[*config.AsyncMessageHandlerConfig](i)
-		return &cfg.Queues, nil
-	})
-	do.Provide[*emailcfg.Config](i, func(i do.Injector) (*emailcfg.Config, error) {
-		cfg := do.MustInvoke[*config.AsyncMessageHandlerConfig](i)
-		return &cfg.Email, nil
-	})
-	do.Provide[*httpclientcfg.Config](i, func(i do.Injector) (*httpclientcfg.Config, error) {
-		cfg := do.MustInvoke[*config.AsyncMessageHandlerConfig](i)
-		return cfg.HTTPClient, nil
-	})
-	do.Provide[*analyticscfg.Config](i, func(i do.Injector) (*analyticscfg.Config, error) {
-		cfg := do.MustInvoke[*config.AsyncMessageHandlerConfig](i)
-		return &cfg.Analytics, nil
+		return &do.MustInvoke[*config.AsyncMessageHandlerConfig](i).Queues, nil
 	})
 	do.Provide[*textsearchcfg.Config](i, func(i do.Injector) (*textsearchcfg.Config, error) {
-		cfg := do.MustInvoke[*config.AsyncMessageHandlerConfig](i)
-		return &cfg.Search, nil
-	})
-	do.Provide[*msgconfig.Config](i, func(i do.Injector) (*msgconfig.Config, error) {
-		cfg := do.MustInvoke[*config.AsyncMessageHandlerConfig](i)
-		return &cfg.Events, nil
-	})
-	do.Provide[*observability.Config](i, func(i do.Injector) (*observability.Config, error) {
-		cfg := do.MustInvoke[*config.AsyncMessageHandlerConfig](i)
-		return &cfg.Observability, nil
-	})
-	do.Provide[*dbcfg.Config](i, func(i do.Injector) (*dbcfg.Config, error) {
-		cfg := do.MustInvoke[*config.AsyncMessageHandlerConfig](i)
-		return &cfg.Database, nil
-	})
-	do.Provide[*databasecfg.Config](i, func(i do.Injector) (*databasecfg.Config, error) {
-		return &do.MustInvoke[*dbcfg.Config](i).Config, nil
-	})
-	do.Provide[encoding.Config](i, func(i do.Injector) (encoding.Config, error) {
-		cfg := do.MustInvoke[*config.AsyncMessageHandlerConfig](i)
-		return cfg.Encoding, nil
+		return &do.MustInvoke[*config.AsyncMessageHandlerConfig](i).Search, nil
 	})
 	// A pointer, which is what RegisterPushSender resolves: NewPushSender applies its
 	// defaults to what it is handed, and a value copy would discard them.

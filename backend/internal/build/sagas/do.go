@@ -7,14 +7,14 @@
 // one, so a process holding a partially-populated registry is one that fails on the instances it
 // cannot see rather than one that quietly does less.
 //
-// The Worker itself is registered separately — see RegisterSagaWorker — because advancing is
-// background work and belongs in the process that does background work, not in the one serving
-// requests.
+// The Worker is not registered here at all. Advancing is background work, and the scheduler
+// process that does it is composed from a service.Config whose Saga block registers platform's
+// worker, its store, and the retention job that prunes finished instances. That process registers
+// RegisterSagas beside it; the API server, which starts sagas and never advances them, registers
+// RegisterSagaStore as well, since it has no Saga block to build one from.
 package sagas
 
 import (
-	"context"
-
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/grocerylistpreparation"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/recipeanalysis"
@@ -23,7 +23,6 @@ import (
 	"github.com/primandproper/platform-go/v15/outbox"
 	"github.com/primandproper/platform-go/v15/saga"
 	"github.com/primandproper/primitives-go/v2/database"
-	"github.com/primandproper/primitives-go/v2/distributedlock"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/metrics"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
@@ -31,7 +30,9 @@ import (
 	"github.com/samber/do/v2"
 )
 
-// RegisterSagas registers the saga registry, store, event publisher, and runners.
+// RegisterSagas registers the saga registry, event publisher, and runners.
+//
+// Prerequisites: a saga.Store — platform's, from a service.Config Saga block, or RegisterSagaStore.
 func RegisterSagas(i do.Injector) {
 	do.Provide[*saga.Registry](i, func(i do.Injector) (*saga.Registry, error) {
 		registry := saga.NewRegistry()
@@ -49,15 +50,6 @@ func RegisterSagas(i do.Injector) {
 		}
 
 		return registry, nil
-	})
-
-	do.Provide[saga.Store](i, func(i do.Injector) (saga.Store, error) {
-		return saga.NewSQLStore(
-			do.MustInvoke[database.Client](i),
-			saga.WithStoreLogger(do.MustInvoke[logging.Logger](i)),
-			saga.WithStoreTracerProvider(do.MustInvoke[tracing.Provider](i)),
-			saga.WithStoreMetricsProvider(do.MustInvoke[metrics.Provider](i)),
-		)
 	})
 
 	// Lifecycle events go into the outbox this process already runs, in the transaction that
@@ -81,36 +73,16 @@ func RegisterSagas(i do.Injector) {
 	})
 }
 
-// RegisterSagaWorker registers the worker that advances every saga in the process.
-//
-// It is built without an idempotency manager, and that is a decision rather than an omission.
-// The manager suppresses a step whose result was recorded but whose instance row did not catch
-// up, and it does so from a store that commits separately from the step — so for a step that
-// writes to this database it is a weaker guarantee than the step already has. Meal plan
-// finalization's steps each write their work and the flag saying they did it in one transaction,
-// and re-read that flag before doing anything; a step that reached out to something that cannot
-// join a transaction would need the manager, and there is not one yet.
-func RegisterSagaWorker(i do.Injector) {
-	do.Provide[*saga.Worker](i, func(i do.Injector) (*saga.Worker, error) {
-		// The per-instance lock, distinct from the per-job lock the scheduler holds: that one
-		// decides which replica runs a tick, this one stops two workers stepping through the
-		// same instance while a lease lapses.
-		locker, err := distributedlock.NewScopedLocker(do.MustInvoke[distributedlock.Locker](i))
-		if err != nil {
-			return nil, err
-		}
-
-		return saga.NewWorker(
-			do.MustInvoke[context.Context](i),
-			do.MustInvoke[*saga.WorkerConfig](i),
+// RegisterSagaStore registers the store saga instances live in, for a process with no service.Config
+// Saga block to build platform's from. It is the same SQL store over the same table, with the
+// package's default prefix, which is what the migrations render it under.
+func RegisterSagaStore(i do.Injector) {
+	do.Provide[saga.Store](i, func(i do.Injector) (saga.Store, error) {
+		return saga.NewSQLStore(
 			do.MustInvoke[database.Client](i),
-			do.MustInvoke[saga.Store](i),
-			do.MustInvoke[*saga.Registry](i),
-			locker,
-			saga.WithWorkerEventPublisher(do.MustInvoke[saga.EventPublisher](i)),
-			saga.WithWorkerLogger(do.MustInvoke[logging.Logger](i)),
-			saga.WithWorkerTracerProvider(do.MustInvoke[tracing.Provider](i)),
-			saga.WithWorkerMetricsProvider(do.MustInvoke[metrics.Provider](i)),
+			saga.WithStoreLogger(do.MustInvoke[logging.Logger](i)),
+			saga.WithStoreTracerProvider(do.MustInvoke[tracing.Provider](i)),
+			saga.WithStoreMetricsProvider(do.MustInvoke[metrics.Provider](i)),
 		)
 	})
 }

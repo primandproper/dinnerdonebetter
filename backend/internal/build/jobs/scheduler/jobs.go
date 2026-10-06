@@ -15,11 +15,8 @@ import (
 	"github.com/primandproper/platform-go/v15/metering"
 	"github.com/primandproper/platform-go/v15/retention"
 	searchsync "github.com/primandproper/platform-go/v15/searchsync"
-	"github.com/primandproper/primitives-go/v2/distributedlock"
 	"github.com/primandproper/primitives-go/v2/jobs"
-	"github.com/primandproper/primitives-go/v2/observability/logging"
-	"github.com/primandproper/primitives-go/v2/observability/metrics"
-	"github.com/primandproper/primitives-go/v2/observability/tracing"
+	jobscfg "github.com/primandproper/primitives-go/v2/jobs/config"
 
 	"github.com/samber/do/v2"
 )
@@ -36,27 +33,21 @@ const (
 	jobMeteringFlusher             = "metering_flusher"
 )
 
-// RegisterScheduler registers the jobs.Scheduler, with every enabled job already registered on
-// it, with the injector.
-func RegisterScheduler(i do.Injector) {
-	do.Provide[*jobs.Scheduler](i, func(i do.Injector) (*jobs.Scheduler, error) {
+// RegisterJobs registers this application's scheduled jobs, every enabled one already rendered, as
+// the []jobs.Job service.New hands to the scheduler.
+//
+// The scheduler is not built here. platform builds it from the service.Config JobsScheduler block,
+// with the lock that keeps each run to one replica, and New registers these on it together with
+// the jobs platform schedules for itself — operations' recovery and reap, and saga retention — in
+// one call, so a duplicate name or an invalid job anywhere fails the boot rather than leaving a
+// schedule that is partly what was asked for.
+func RegisterJobs(i do.Injector) {
+	do.Provide[[]jobs.Job](i, func(i do.Injector) ([]jobs.Job, error) {
 		jobsCfg := do.MustInvoke[*config.ScheduledJobsConfig](i)
-
-		scheduler, err := jobs.NewScheduler(
-			do.MustInvoke[context.Context](i),
-			&jobsCfg.Scheduler,
-			do.MustInvoke[distributedlock.Locker](i),
-			jobs.WithSchedulerLogger(do.MustInvoke[logging.Logger](i)),
-			jobs.WithSchedulerTracerProvider(do.MustInvoke[tracing.Provider](i)),
-			jobs.WithSchedulerMetricsProvider(do.MustInvoke[metrics.Provider](i)),
-		)
-		if err != nil {
-			return nil, err
-		}
 
 		registrations := []struct {
 			run  func(ctx context.Context) error
-			cfg  *config.ScheduledJobConfig
+			cfg  *jobscfg.JobConfig
 			name string
 		}{
 			{
@@ -149,24 +140,24 @@ func RegisterScheduler(i do.Injector) {
 			},
 		}
 
+		var scheduled []jobs.Job
+
 		for idx := range registrations {
 			r := &registrations[idx]
 
-			if !r.cfg.Enabled {
+			if r.cfg.Disabled {
 				continue
 			}
 
-			job, jobErr := r.cfg.Job(r.name, r.run)
-			if jobErr != nil {
-				return nil, jobErr
-			}
-
-			if err = scheduler.Register(job); err != nil {
+			job, err := r.cfg.Job(r.name, r.run)
+			if err != nil {
 				return nil, err
 			}
+
+			scheduled = append(scheduled, job)
 		}
 
-		return scheduler, nil
+		return scheduled, nil
 	})
 }
 

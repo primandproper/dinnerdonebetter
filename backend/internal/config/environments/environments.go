@@ -13,6 +13,7 @@ import (
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
 	"github.com/primandproper/primitives-go/v2/encoding"
+	"github.com/primandproper/primitives-go/v2/httpclient"
 )
 
 const (
@@ -44,3 +45,16 @@ const (
 var (
 	contentTypeJSON = encoding.ContentTypeJSON.String()
 )
+
+// defaultHTTPClientConfig returns the outbound HTTP client every environment's API server builds
+// its third-party clients over — the feature flag provider's among them.
+//
+// primitives' own defaults, asked for rather than copied, and written out rather than left
+// zero: a block with nothing in it is one service.Register treats as unconfigured, and an API
+// server with no HTTP client is one whose feature flag manager cannot be built.
+func defaultHTTPClientConfig() *httpclient.Config {
+	cfg := &httpclient.Config{EnableTracing: true}
+	cfg.EnsureDefaults()
+
+	return cfg
+}

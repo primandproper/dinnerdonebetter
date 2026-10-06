@@ -7,7 +7,6 @@ import (
 	authcfg "github.com/primandproper/dinnerdonebetter/backend/internal/authentication/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
-	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 	authservice "github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/handlers/authentication"
 	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
@@ -21,6 +20,8 @@ import (
 	oauth2database "github.com/primandproper/platform-go/v15/authentication/oauth2serverstore"
 	oauth2servercfg "github.com/primandproper/platform-go/v15/authentication/oauth2serverstore/config"
 	webauthncfg "github.com/primandproper/platform-go/v15/authentication/webauthnsessions/config"
+	platformdataprivacycfg "github.com/primandproper/platform-go/v15/dataprivacy/config"
+	"github.com/primandproper/platform-go/v15/service"
 	analyticscfg "github.com/primandproper/primitives-go/v2/analytics/config"
 	analyticsposthog "github.com/primandproper/primitives-go/v2/analytics/posthog"
 	tokenscfg "github.com/primandproper/primitives-go/v2/authentication/tokens/config"
@@ -137,6 +138,70 @@ func BuildProdConfig() *config.APIServiceConfig {
 	}
 
 	return &config.APIServiceConfig{
+		Service: service.Config{
+			Name:       otelServiceName,
+			HTTPClient: defaultHTTPClientConfig(),
+			Encoding: &encoding.Config{
+				ContentType: contentTypeJSON,
+			},
+			MessageQueue: &msgconfig.Config{
+				Consumer:  pubsubConfig,
+				Publisher: pubsubConfig,
+			},
+			Observability: prodObservabilityConfig,
+			GRPCServer: &grpc.Config{
+				Port: defaultGRPCPort,
+			},
+			FeatureFlags: &featureflagscfg.Config{
+				Provider: featureflagscfg.ProviderPostHog,
+				// Both keys are placeholders, overridden by env from the CSI secret. v10 made
+				// PersonalAPIKey required, having found that the SDK refuses every flag
+				// evaluation without one — so a config naming only the project key used to
+				// validate clean and then fail to serve a single flag. It is a real secret this
+				// deployment now has to supply.
+				PostHog: &posthog.Config{ProjectAPIKey: placeholderValue, PersonalAPIKey: placeholderValue},
+				CircuitBreaker: circuitbreakingcfg.Config{
+					Name:                   featureFlaggerSource,
+					ErrorRate:              .5,
+					MinimumSampleThreshold: 100,
+				},
+			},
+			Database: &databasecfg.Config{
+				Provider:        databasecfg.ProviderPostgres,
+				Debug:           false,
+				RunMigrations:   true,
+				LogQueries:      false,
+				MaxPingAttempts: maxAttempts,
+				PingWaitPeriod:  time.Second,
+				MaxIdleConns:    5,
+				MaxOpenConns:    7,
+				ConnMaxLifetime: 30 * time.Minute,
+				ReadConnection: databasecfg.ConnectionDetails{
+					Username:   "api_db_user",
+					Password:   replaceAtDeploy, /* #nosec G101 */
+					Database:   serviceName,
+					Host:       replaceAtDeploy,
+					Port:       5432,
+					DisableSSL: false,
+				},
+				WriteConnection: databasecfg.ConnectionDetails{
+					Username:   "api_db_user",
+					Password:   replaceAtDeploy, /* #nosec G101 */
+					Database:   serviceName,
+					Host:       replaceAtDeploy,
+					Port:       5432,
+					DisableSSL: false,
+				},
+			},
+			HTTPServer: &http.Config{
+				Port:            defaultHTTPPort,
+				StartupDeadline: 60 * time.Second,
+				AppleAppSiteAssociation: &http.AppleAppSiteAssociationConfig{
+					TeamID:   appleTeamID,
+					BundleID: appleBundleID,
+				},
+			},
+		},
 		Webhooks:     buildWebhooksConfig(),
 		Metering:     config.DefaultMeteringConfig(),
 		Entitlements: config.DefaultEntitlementsConfig(),
@@ -169,54 +234,6 @@ func BuildProdConfig() *config.APIServiceConfig {
 			Debug:   false,
 			RunMode: "production",
 		},
-		Encoding: encoding.Config{
-			ContentType: contentTypeJSON,
-		},
-		Events: msgconfig.Config{
-			Consumer:  pubsubConfig,
-			Publisher: pubsubConfig,
-		},
-		GRPCServer: grpc.Config{
-			Port: defaultGRPCPort,
-		},
-		HTTPServer: http.Config{
-			Port:            defaultHTTPPort,
-			StartupDeadline: 60 * time.Second,
-			AppleAppSiteAssociation: &http.AppleAppSiteAssociationConfig{
-				TeamID:   appleTeamID,
-				BundleID: appleBundleID,
-			},
-		},
-		Database: dbcfg.Config{
-			Config: databasecfg.Config{
-				Provider:        databasecfg.ProviderPostgres,
-				Debug:           false,
-				RunMigrations:   true,
-				LogQueries:      false,
-				MaxPingAttempts: maxAttempts,
-				PingWaitPeriod:  time.Second,
-				MaxIdleConns:    5,
-				MaxOpenConns:    7,
-				ConnMaxLifetime: 30 * time.Minute,
-				ReadConnection: databasecfg.ConnectionDetails{
-					Username:   "api_db_user",
-					Password:   replaceAtDeploy, /* #nosec G101 */
-					Database:   serviceName,
-					Host:       replaceAtDeploy,
-					Port:       5432,
-					DisableSSL: false,
-				},
-				WriteConnection: databasecfg.ConnectionDetails{
-					Username:   "api_db_user",
-					Password:   replaceAtDeploy, /* #nosec G101 */
-					Database:   serviceName,
-					Host:       replaceAtDeploy,
-					Port:       5432,
-					DisableSSL: false,
-				},
-			},
-		},
-		Observability: prodObservabilityConfig,
 		Email: emailcfg.Config{
 			Provider: emailcfg.ProviderResend,
 			Resend: &resend.Config{
@@ -267,20 +284,6 @@ func BuildProdConfig() *config.APIServiceConfig {
 			},
 			CircuitBreaker: circuitbreakingcfg.Config{
 				Name:                   "prod_text_searcher",
-				ErrorRate:              .5,
-				MinimumSampleThreshold: 100,
-			},
-		},
-		FeatureFlags: featureflagscfg.Config{
-			Provider: featureflagscfg.ProviderPostHog,
-			// Both keys are placeholders, overridden by env from the CSI secret. v10 made
-			// PersonalAPIKey required, having found that the SDK refuses every flag
-			// evaluation without one — so a config naming only the project key used to
-			// validate clean and then fail to serve a single flag. It is a real secret this
-			// deployment now has to supply.
-			PostHog: &posthog.Config{ProjectAPIKey: placeholderValue, PersonalAPIKey: placeholderValue},
-			CircuitBreaker: circuitbreakingcfg.Config{
-				Name:                   featureFlaggerSource,
 				ErrorRate:              .5,
 				MinimumSampleThreshold: 100,
 			},
@@ -372,13 +375,14 @@ func BuildProdConfig() *config.APIServiceConfig {
 				},
 			},
 			DataPrivacy: dataprivacycfg.Config{
-				Uploads: uploadscfg.Config{
-					Storage: gcpUserDataStorage,
-					Debug:   false,
-				},
-				Encryption: encryptioncfg.Config{Provider: encryptioncfg.ProviderAES, CurrentKeyID: "v1"},
 				// Supplied from the environment, like every other secret in this file.
 				ArtifactEncryptionKey: "",
+				Platform: platformdataprivacycfg.Config{
+					Artifacts: &platformdataprivacycfg.ArtifactsConfig{
+						Storage:    &gcpUserDataStorage,
+						Encryption: &encryptioncfg.Config{Provider: encryptioncfg.ProviderAES, CurrentKeyID: "v1"},
+					},
+				},
 			},
 			Users: identitycfg.Config{
 				PublicMediaURLPrefix: "https://" + prodMediaBucket + "/avatars",

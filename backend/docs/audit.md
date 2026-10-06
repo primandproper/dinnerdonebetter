@@ -177,7 +177,7 @@ they cannot.
 
 The `Sweeper` runs in the scheduler process as the `audit_retention_sweeper`
 scheduled job, and prunes entries past **two years**
-(`SchedulerConfig.Audit.Retention`, `DINNER_DONE_BETTER_AUDIT_RETENTION`).
+(`SchedulerConfig.AuditLog.Retention`, `DINNER_DONE_BETTER_AUDIT_LOG_RETENTION`).
 
 A registered job rather than the Sweeper's own `Run` loop, so that exactly one
 replica prunes per tick because the distributed lock says so rather than because

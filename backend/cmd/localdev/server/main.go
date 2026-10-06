@@ -195,7 +195,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	log.Println("database connection string:", apiConfig.Database.GetReadConnectionString())
+	log.Println("database connection string:", apiConfig.Service.Database.GetReadConnectionString())
 	log.Println("starting server")
 
 	if os.Getenv("DRY_RUN") == "true" {

@@ -17,12 +17,16 @@ package indexstamp
 
 import (
 	"context"
+	"errors"
+	"strings"
 
 	searchsync "github.com/primandproper/platform-go/v15/searchsync"
 	"github.com/primandproper/primitives-go/v2/batching"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/metrics"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
+
+	"github.com/samber/do/v2"
 )
 
 // o11yName names the loggers, spans and metrics of the stamp buffers built here.
@@ -74,4 +78,41 @@ func New(
 // stopped, or the last flush races the work that fills it.
 func (b *Buffer) Shutdown(ctx context.Context) error {
 	return b.Close(ctx)
+}
+
+// NamePrefix begins the container name of every index's stamp buffer. Each index registers its
+// own, named NamePrefix plus the index, because they are all one type and do resolves by name.
+const NamePrefix = "index_stamp."
+
+// ShutdownAll flushes and stops every stamp buffer i has built.
+//
+// It exists for a process composed by platform's service.New, whose shutdown releases the
+// database client before the container is retired. Retiring the container is how these buffers
+// have always been flushed, so in such a process their last flush would be written through a
+// client that is already closed — and a lost flush is a document that was indexed and is stamped
+// as though it never was. Calling this after the consumers that fill the buffers have stopped, and
+// before the service releases its clients, puts the flush back where it belongs.
+//
+// A buffer shut down here is gone from the container, so the container's own shutdown afterwards
+// does not flush it a second time. One nobody built is not built to be shut down.
+//
+// platform's searchsync.Registry owns the stamp buffers of the indexes registered on it, and
+// service.New flushes it in exactly this slot; this is what stands in for it until this
+// application's syncers are registered there.
+func ShutdownAll(ctx context.Context, i do.Injector) error {
+	var errs []error
+
+	invoked := i.ListInvokedServices()
+	for idx := range invoked {
+		name := invoked[idx].Service
+		if !strings.HasPrefix(name, NamePrefix) {
+			continue
+		}
+
+		if err := do.ShutdownNamedWithContext(ctx, i, name); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	return errors.Join(errs...)
 }

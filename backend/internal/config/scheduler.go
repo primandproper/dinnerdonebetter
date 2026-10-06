@@ -4,26 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
-	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
-	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
 
 	auditcfg "github.com/primandproper/platform-go/v15/audit/config"
-	meteringcfg "github.com/primandproper/platform-go/v15/metering/config"
-	operationscfg "github.com/primandproper/platform-go/v15/operations/config"
 	"github.com/primandproper/platform-go/v15/outbox"
-	"github.com/primandproper/platform-go/v15/retention"
-	"github.com/primandproper/platform-go/v15/saga"
-	webhookscfg "github.com/primandproper/platform-go/v15/webhooks/config"
-	analyticscfg "github.com/primandproper/primitives-go/v2/analytics/config"
-	capitalismcfg "github.com/primandproper/primitives-go/v2/capitalism/config"
-	distributedlockcfg "github.com/primandproper/primitives-go/v2/distributedlock/config"
-	"github.com/primandproper/primitives-go/v2/jobs"
-	msgconfig "github.com/primandproper/primitives-go/v2/messagequeue/config"
+	"github.com/primandproper/platform-go/v15/service"
+	jobscfg "github.com/primandproper/primitives-go/v2/jobs/config"
 	notificationscfg "github.com/primandproper/primitives-go/v2/notifications/mobile/config"
-	"github.com/primandproper/primitives-go/v2/observability"
 	textsearchcfg "github.com/primandproper/primitives-go/v2/search/text/config"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
@@ -48,107 +36,84 @@ type (
 		// than by publishing a message — see internal/services/mealplanning/workers/
 		// meal_plan_task_notifications for why the send cannot be somebody else's job.
 		//
-		// The async message handler carries the same struct for the notifications that
-		// genuinely are message-driven, so both processes push through one configuration.
+		// It is not Service.MobileNotifications, because service.Config validates every block
+		// it holds and this one cannot pass at render time: its APNs credentials arrive as
+		// environment variables at startup, so a rendered config file has none of them. The
+		// async message handler carries the same struct for the same reason, so both
+		// processes push through one configuration.
 		PushNotifications notificationscfg.Config `envPrefix:"PUSH_NOTIFICATIONS_" json:"pushNotifications,omitzero"`
 
-		// Capitalism is where the flusher's usage reporter comes from. It lives in this
-		// process rather than the API server's because usage reporting happens on a
-		// scheduler tick, and a request path has no business holding the credentials for
-		// it. A provider of "noop" is a supported deployment and the current one: usage
-		// accumulates durably and nothing reaches a billing provider.
-		Capitalism    capitalismcfg.Config `envPrefix:"CAPITALISM_"    json:"capitalism,omitzero"`
-		Events        msgconfig.Config     `envPrefix:"EVENTS_"        json:"events,omitzero"`
-		Observability observability.Config `envPrefix:"OBSERVABILITY_" json:"observability,omitzero"`
-		Analytics     analyticscfg.Config  `envPrefix:"ANALYTICS_"     json:"analytics,omitzero"`
-		Search        textsearchcfg.Config `envPrefix:"SEARCH_"        json:"search,omitzero"`
+		// DataPrivacyArtifactEncryptionKey is the key export artifacts are sealed under,
+		// filed under Service.DataPrivacy.Artifacts.Encryption's CurrentKeyID. It is not part
+		// of that block because platform does not take keys from configuration — a keyring
+		// is built over an encryption.Keyset the container supplies — so this is where the
+		// one key this deployment has comes from.
+		//
+		// The API server carries the same value, because it opens what this process seals.
+		DataPrivacyArtifactEncryptionKey string `env:"DATA_PRIVACY_ARTIFACT_ENCRYPTION_KEY" json:"dataPrivacyArtifactEncryptionKey,omitempty"`
 
-		// Audit carries the retention window for the audit log. It lives here for the
-		// same reason the outbox does — the sweeper is a background loop over the
-		// database — and it runs in exactly one process, unlike the Recorder, which runs
-		// wherever a mutation does.
-		Audit auditcfg.Config `envPrefix:"AUDIT_" json:"audit,omitzero"`
+		// Service is everything platform composes for this process: the database, the
+		// broker, the pillars, the job scheduler and its lock, and every platform-owned
+		// loop this process exists to run — operations, sagas, webhook delivery, the
+		// retention sweep, the metering flusher, and data privacy fulfillment. It is read
+		// by service.Register, which registers what is present and nothing else.
+		//
+		// It carries no envPrefix, so its blocks keep the names they always had here —
+		// DATABASE_, OBSERVABILITY_, OPERATIONS_ — rather than growing a second prefix in
+		// front of them.
+		//
+		// Operations and Saga each bring the reapers their store owns, and service.New
+		// hands those to the scheduler beside this application's own jobs: operations'
+		// recovery and reap, and saga's retention. Recovery is the one that is easy to
+		// miss — an operation whose worker died between its insert and its enqueue sits
+		// pending until a recovery pass re-offers it, and before this process was composed
+		// from a service.Config nothing ever ran one.
+		Service service.Config `json:"service,omitzero"`
+
+		Search textsearchcfg.Config `envPrefix:"SEARCH_" json:"search,omitzero"`
+
+		// AuditLog carries the retention window for the audit log, which the retention sweep
+		// prunes under. It is not Service.Audit for the same kind of reason OutboxRelay is not
+		// Service.Outbox: this application's recorder is platform's with the impersonating
+		// administrator attached to each entry, and Service.Audit would register platform's
+		// bare one beside it. AUDIT_LOG_ rather than AUDIT_, so nothing set here configures
+		// Service.Audit by accident.
+		AuditLog auditcfg.Config `envPrefix:"AUDIT_LOG_" json:"auditLog,omitzero"`
 
 		Jobs ScheduledJobsConfig `envPrefix:"JOBS_" json:"jobs,omitzero"`
 
-		Database dbcfg.Config `envPrefix:"DATABASE_" json:"database,omitzero"`
-
-		// Sagas advances every durable saga instance this build knows how to run. It is the
-		// other half of the scheduled jobs that start them: a job writes an instance, this
-		// loop steps it through, and it polls in seconds rather than minutes because the
-		// poll interval is the floor on how long a step's delay costs.
-		Sagas saga.WorkerConfig `envPrefix:"SAGAS_" json:"sagas,omitzero"`
-
-		// Outbox moves events written inside a caller's transaction onto the broker. It
-		// lives here because it is a background loop, which is what this process is for,
-		// and because it needs exactly what this process already has: the database and a
-		// publisher provider.
-		Outbox outbox.RelayConfig `envPrefix:"OUTBOX_" json:"outbox,omitzero"`
-
-		// DataPrivacy configures the fulfillment worker and the expiry sweep, both of
-		// which run here: the request table, the artifact bucket, and the cipher. It is
-		// the same struct the API server is configured with, because the two have to agree
-		// on all three or an artifact this process writes is not one the API can read —
-		// and a sweep pointed at the wrong bucket deletes nothing and reports success.
+		// OutboxRelay moves events written inside a caller's transaction onto the broker.
 		//
-		// The async message handler no longer carries it. It stopped touching artifacts
-		// when aggregation moved off the queue, and a process holding an encryption key it
-		// has no use for is exposure with nothing on the other side of it.
-		DataPrivacy dataprivacycfg.Config `envPrefix:"DATA_PRIVACY_" json:"dataPrivacy,omitzero"`
-
-		// Metering is the same struct the API server carries, because the flusher has to
-		// read the tables the API server's recorder wrote. Only the flusher half is used
-		// here; the recorder and enforcer knobs are carried anyway so the table prefix
-		// cannot drift between the process that counts and the process that bills.
-		Metering meteringcfg.Config `envPrefix:"METERING_" json:"metering,omitzero"`
-
-		// Operations is the durable record of tracked work, and the loop that runs it.
-		// platform-go v10 fulfills data privacy requests as operations rather than through a
-		// worker of their own, so this process runs the operations worker over a registry the
-		// data privacy fulfiller registers its kinds into.
-		//
-		// The API server carries the same struct: it enqueues operations and reads their
-		// progress, so the two have to agree on the table and the queue name or a request
-		// submitted there is one nothing here ever claims.
-		Operations operationscfg.Config `envPrefix:"OPERATIONS_" json:"operations,omitzero"`
-
-		// Webhooks configures the outbound webhook delivery worker, which lives here for
-		// the same reasons the outbox relay does: it is a polling loop that must not be
-		// tied to a request, and it needs exactly what this process already has.
-		//
-		// Its own tick also reaps delivered dispatches and their attempts past the
-		// retention window, so retention needs no separate scheduled job.
-		Webhooks webhookscfg.Config `envPrefix:"WEBHOOKS_" json:"webhooks,omitzero"`
-
-		// Retention bounds the sweep that enforces the policies above. v10 moved the sweep
-		// loop out of the audit package into a generic one, so the bounds are configured once
-		// here rather than per policy.
-		Retention retention.SweeperConfig `envPrefix:"RETENTION_" json:"retention,omitzero"`
+		// It is not Service.Outbox, and the difference is one option. Every outbox row this
+		// application writes goes through a writer carrying the search index side effect
+		// (internal/indexevents), and platform's outbox/config builds its writer from
+		// configuration alone, with no way to hand it one. Configuring Service.Outbox would
+		// register that bare writer beside this application's own, which samber/do refuses.
+		// So the outbox — and with it the recording spine, which service.Register builds
+		// only when Audit, Webhooks and Outbox are all present — stays wired by hand. The
+		// prefix is OUTBOX_RELAY_ rather than OUTBOX_ so that nothing set for this block can
+		// switch Service.Outbox on.
+		OutboxRelay outbox.RelayConfig `envPrefix:"OUTBOX_RELAY_" json:"outboxRelay,omitzero"`
 	}
 
-	// ScheduledJobsConfig carries the scheduler's own knobs, the lock backend that serializes
-	// executions across replicas, and the schedule for each registered job.
+	// ScheduledJobsConfig carries the schedule for each of this application's own jobs. The
+	// scheduler that runs them, and the lock that serializes them across replicas, are
+	// Service.JobsScheduler; the jobs platform schedules for itself carry their own schedules
+	// inside their own blocks.
 	ScheduledJobsConfig struct {
 		_ struct{} `json:"-"`
 
-		Scheduler jobs.SchedulerConfig `envPrefix:"SCHEDULER_" json:"scheduler,omitzero"`
-
-		// Lock decides which replica runs a given tick. The noop locker acquires
-		// unconditionally, which means every replica runs every job — right for a
-		// single-replica deployment, wrong the moment it scales.
-		Lock distributedlockcfg.Config `envPrefix:"LOCK_" json:"lock,omitzero"`
-
-		SearchDataIndexScheduler ScheduledJobConfig `envPrefix:"SEARCH_DATA_INDEX_SCHEDULER_" json:"searchDataIndexScheduler,omitzero"`
-		QueueTest                ScheduledJobConfig `envPrefix:"QUEUE_TEST_"                  json:"queueTest,omitzero"`
+		SearchDataIndexScheduler jobscfg.JobConfig `envPrefix:"SEARCH_DATA_INDEX_SCHEDULER_" json:"searchDataIndexScheduler,omitzero"`
+		QueueTest                jobscfg.JobConfig `envPrefix:"QUEUE_TEST_"                  json:"queueTest,omitzero"`
 
 		// DataPrivacySweep expires export artifacts, lapses unconfirmed erasures, and
 		// samples the overdue gauge. Disabling it does not pause expiry so much as
 		// abandon it: every artifact ever written — each one everything the system knows
 		// about one person — stays in the bucket and nothing else will ever delete it.
-		DataPrivacySweep ScheduledJobConfig `envPrefix:"DATA_PRIVACY_SWEEP_" json:"dataPrivacySweep,omitzero"`
+		DataPrivacySweep jobscfg.JobConfig `envPrefix:"DATA_PRIVACY_SWEEP_" json:"dataPrivacySweep,omitzero"`
 
 		// AuditRetentionSweeper prunes audit entries past the retention window in
-		// SchedulerConfig.Audit. Disabling it does not pause retention so much as
+		// SchedulerConfig.AuditLog. Disabling it does not pause retention so much as
 		// abandon it: the log grows without bound and nothing else will trim it.
 		//
 		// It is a scheduled job rather than the Sweeper's own Run loop so that one
@@ -156,117 +121,18 @@ type (
 		// Sweeper is safe to run concurrently — it prunes a prefix of a chain inside a
 		// transaction — but every replica sweeping every hour is the same work done
 		// several times for one result, and it is work that deletes.
-		AuditRetentionSweeper ScheduledJobConfig `envPrefix:"AUDIT_RETENTION_SWEEPER_" json:"auditRetentionSweeper,omitzero"`
+		AuditRetentionSweeper jobscfg.JobConfig `envPrefix:"AUDIT_RETENTION_SWEEPER_" json:"auditRetentionSweeper,omitzero"`
 		// MeteringFlusher posts accumulated usage to the billing provider and reaps the
 		// usage event ledger past its retention. Disabling it stops neither the counting
 		// nor the totals it feeds — the recorder is in the API server — but the event
 		// ledger then grows without bound.
-		MeteringFlusher ScheduledJobConfig `envPrefix:"METERING_FLUSHER_" json:"meteringFlusher,omitzero"`
+		MeteringFlusher jobscfg.JobConfig `envPrefix:"METERING_FLUSHER_" json:"meteringFlusher,omitzero"`
 
 		// Domain: mealplanning — swapping the domain replaces this field and the type it
 		// names, and touches nothing else in this struct.
 		MealPlanning MealPlanningScheduledJobsConfig `envPrefix:"MEAL_PLANNING_" json:"mealPlanning,omitzero"`
 	}
-
-	// ScheduledJobConfig is one job's schedule. Exactly one of Schedule and Interval is set:
-	// a job either belongs at an hour or at a frequency, and a job carrying both is rejected
-	// rather than resolved by precedence.
-	ScheduledJobConfig struct {
-		_ struct{} `json:"-"`
-
-		// Schedule is a five-field crontab expression — minute, hour, day of month, month,
-		// day of week — for work that belongs at a wall-clock time rather than at a
-		// frequency. The usual descriptors (@daily, @hourly) are accepted too.
-		//
-		// The zone is the scheduler's Timezone unless the expression names its own with a
-		// CRON_TZ= prefix, which is how one job opts into a calendar the rest do not share.
-		// Anything but UTC needs the zoneinfo database; cmd/workers/scheduler embeds it.
-		//
-		// There is no catch-up. A fire time that passes while the process is down, or while
-		// the previous run is still going, is skipped rather than queued.
-		Schedule string `env:"SCHEDULE" json:"schedule,omitempty"`
-
-		// Interval is how often the job fires. Ticks are not queued: a job that overruns its
-		// interval fires again as soon as it finishes rather than accumulating a backlog.
-		Interval time.Duration `env:"INTERVAL" json:"interval,omitempty"`
-
-		// Timeout bounds one execution.
-		Timeout time.Duration `env:"TIMEOUT" json:"timeout,omitempty"`
-
-		// LeaseTTL is how long the lock is held. It is not renewed while the job runs, so it
-		// must comfortably exceed the job's worst-case duration — past it, a second replica
-		// may start the same job.
-		LeaseTTL time.Duration `env:"LEASE_TTL" json:"leaseTTL,omitempty"`
-
-		// Enabled registers the job. A disabled job is not registered at all rather than
-		// registered and skipped, so it costs nothing and reports nothing.
-		Enabled bool `env:"ENABLED" json:"enabled"`
-
-		// RunOnStart fires the job once at startup instead of waiting a full interval or for
-		// the schedule's next fire time.
-		RunOnStart bool `env:"RUN_ON_START" json:"runOnStart,omitempty"`
-	}
 )
-
-// Job renders the config as the jobs.Job the Scheduler registers, under the given name and
-// running the given work.
-//
-// Which of Interval and Schedule a job is shaped by stays in here rather than at the call site:
-// jobs.Job takes the two as separate fields and rejects a job that sets both, so the mapping is
-// the other half of the invariant ValidateWithContext enforces.
-func (cfg *ScheduledJobConfig) Job(name string, run func(context.Context) error) (jobs.Job, error) {
-	job := jobs.Job{
-		Name:       name,
-		Interval:   cfg.Interval,
-		Timeout:    cfg.Timeout,
-		LeaseTTL:   cfg.LeaseTTL,
-		RunOnStart: cfg.RunOnStart,
-		Run:        run,
-	}
-
-	if cfg.Schedule != "" {
-		schedule, err := jobs.Cron(cfg.Schedule)
-		if err != nil {
-			return jobs.Job{}, fmt.Errorf("parsing cron schedule for job %q: %w", name, err)
-		}
-
-		job.Schedule = schedule
-	}
-
-	return job, nil
-}
-
-var _ validation.ValidatableWithContext = (*ScheduledJobConfig)(nil)
-
-// ValidateWithContext validates a ScheduledJobConfig struct. A disabled job is not validated:
-// it is never registered, so its schedule is inert.
-func (cfg *ScheduledJobConfig) ValidateWithContext(ctx context.Context) error {
-	if !cfg.Enabled {
-		return nil
-	}
-
-	// Checked here rather than left to jobs.Job.validate so that a bad schedule fails config
-	// rendering in CI, where it is a red build, instead of scheduler startup, where it is a
-	// crash loop.
-	switch {
-	case cfg.Schedule != "" && cfg.Interval > 0:
-		return fmt.Errorf("scheduled job sets both an interval and a cron schedule %q", cfg.Schedule)
-	case cfg.Schedule == "" && cfg.Interval <= 0:
-		return errors.New("scheduled job sets neither an interval nor a cron schedule")
-	}
-
-	if cfg.Schedule != "" {
-		if _, err := jobs.Cron(cfg.Schedule); err != nil {
-			return fmt.Errorf("parsing cron schedule: %w", err)
-		}
-	}
-
-	return validation.ValidateStructWithContext(ctx, cfg,
-		validation.Field(&cfg.Interval, validation.When(cfg.Schedule == "", validation.Min(time.Second))),
-		validation.Field(&cfg.LeaseTTL, validation.Required, validation.Min(time.Second)),
-		validation.Field(&cfg.Timeout, validation.Min(time.Duration(0))),
-	)
-}
 
 var _ validation.ValidatableWithContext = (*ScheduledJobsConfig)(nil)
 
@@ -275,8 +141,6 @@ func (cfg *ScheduledJobsConfig) ValidateWithContext(ctx context.Context) error {
 	result := &multierror.Error{}
 
 	validators := map[string]func(context.Context) error{
-		"Scheduler":                cfg.Scheduler.ValidateWithContext,
-		"Lock":                     cfg.Lock.ValidateWithContext,
 		"SearchDataIndexScheduler": cfg.SearchDataIndexScheduler.ValidateWithContext,
 		"QueueTest":                cfg.QueueTest.ValidateWithContext,
 		"DataPrivacySweep":         cfg.DataPrivacySweep.ValidateWithContext,
@@ -297,29 +161,40 @@ func (cfg *ScheduledJobsConfig) ValidateWithContext(ctx context.Context) error {
 var _ validation.ValidatableWithContext = (*SchedulerConfig)(nil)
 
 // ValidateWithContext validates a SchedulerConfig struct.
+//
+// Service is validated first and on its own, because its validation is not only a check: it
+// releases the blocks env parsing allocated and nobody filled in, and until it has run every
+// platform subsystem looks configured. Everything that reads Service afterwards — service.Register
+// above all — has to see what is left.
 func (cfg *SchedulerConfig) ValidateWithContext(ctx context.Context) error {
+	if err := cfg.Service.ValidateWithContext(ctx); err != nil {
+		return fmt.Errorf("error validating Service config: %w", err)
+	}
+
 	result := &multierror.Error{}
 
-	// PushNotifications is not among these, for the same reason it is absent from the API
-	// server's and the async handler's: its APNs credentials arrive as environment variables at
-	// startup, so a rendered config file has none of them and validating one here would reject
-	// every file this repository writes.
 	validators := map[string]func(context.Context) error{
-		sectionQueues:        cfg.Queues.ValidateWithContext,
-		sectionAnalytics:     cfg.Analytics.ValidateWithContext,
-		sectionObservability: cfg.Observability.ValidateWithContext,
-		sectionDatabase:      cfg.Database.ValidateWithContext,
-		"Search":             cfg.Search.ValidateWithContext,
-		"DataPrivacy":        cfg.DataPrivacy.ValidateWithContext,
-		"Operations":         cfg.Operations.ValidateWithContext,
-		"Jobs":               cfg.Jobs.ValidateWithContext,
-		"Outbox":             cfg.Outbox.ValidateWithContext,
-		"Audit":              cfg.Audit.ValidateWithContext,
-		"Webhooks":           cfg.Webhooks.ValidateWithContext,
-		"Sagas":              cfg.Sagas.ValidateWithContext,
-		"Retention":          cfg.Retention.ValidateWithContext,
-		"Metering":           cfg.Metering.ValidateWithContext,
-		"Capitalism":         cfg.Capitalism.ValidateWithContext,
+		sectionQueues: cfg.Queues.ValidateWithContext,
+		"Search":      cfg.Search.ValidateWithContext,
+		"Jobs":        cfg.Jobs.ValidateWithContext,
+		"OutboxRelay": cfg.OutboxRelay.ValidateWithContext,
+		"AuditLog":    cfg.AuditLog.ValidateWithContext,
+		sectionService: func(context.Context) error {
+			return requireBlocks(map[string]bool{
+				sectionDatabase:     cfg.Service.Database != nil,
+				sectionMessageQueue: cfg.Service.MessageQueue != nil,
+				"JobsScheduler":     cfg.Service.JobsScheduler != nil,
+				// The saga worker's per-instance lock is a scoped locker over this one.
+				"DistributedLock": cfg.Service.DistributedLock != nil,
+				"Operations":      cfg.Service.Operations != nil,
+				"DataPrivacy":     cfg.Service.DataPrivacy != nil,
+				"Saga":            cfg.Service.Saga != nil,
+				"Webhooks":        cfg.Service.Webhooks != nil,
+				"Metering":        cfg.Service.Metering != nil,
+				"Retention":       cfg.Service.Retention != nil,
+				"Capitalism":      cfg.Service.Capitalism != nil,
+			})
+		},
 	}
 
 	for name, validator := range validators {
@@ -329,4 +204,24 @@ func (cfg *SchedulerConfig) ValidateWithContext(ctx context.Context) error {
 	}
 
 	return result.ErrorOrNil()
+}
+
+// requireBlocks reports every service.Config block a process cannot run without and that
+// normalization left nil.
+//
+// A process composed from a service.Config treats a missing block as a subsystem nobody asked
+// for, which is right for a library and wrong for a process whose whole purpose is that
+// subsystem: a scheduler with no Operations block is a scheduler that boots, reports healthy,
+// and never fulfills a privacy request. So the blocks a process exists to run are asserted by
+// name here, where a missing one is a red render rather than a quiet deployment.
+func requireBlocks(present map[string]bool) error {
+	var errs []error
+
+	for name, ok := range present {
+		if !ok {
+			errs = append(errs, fmt.Errorf("%s is required", name))
+		}
+	}
+
+	return errors.Join(errs...)
 }

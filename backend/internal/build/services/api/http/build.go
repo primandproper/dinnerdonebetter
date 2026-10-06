@@ -1,38 +1,9 @@
 package api
 
 import (
-	"context"
-
-	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
-	authcfg "github.com/primandproper/dinnerdonebetter/backend/internal/authentication/config"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
-	identitybuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/identity"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
-	paymentsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/manager"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories"
-	auditrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
-	identitystore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identitystore"
-	oauth2clientsstore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/oauth2clientsstore"
-	paymentsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/payments"
-	uploadedmediarepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/uploadedmedia"
-	authservice "github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/handlers/authentication"
-	paymentsadapters "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/adapters"
 	paymentshttp "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/http"
 
 	analyticscfg "github.com/primandproper/primitives-go/v2/analytics/config"
-	"github.com/primandproper/primitives-go/v2/database"
-	databasecfg "github.com/primandproper/primitives-go/v2/database/config"
-	"github.com/primandproper/primitives-go/v2/encoding"
-	"github.com/primandproper/primitives-go/v2/healthcheck"
-	msgconfig "github.com/primandproper/primitives-go/v2/messagequeue/config"
-	"github.com/primandproper/primitives-go/v2/observability"
-	loggingcfg "github.com/primandproper/primitives-go/v2/observability/logging/config"
-	metricscfg "github.com/primandproper/primitives-go/v2/observability/metrics/config"
-	tracingcfg "github.com/primandproper/primitives-go/v2/observability/tracing/config"
-	"github.com/primandproper/primitives-go/v2/qrcodes"
-	"github.com/primandproper/primitives-go/v2/random"
-	"github.com/primandproper/primitives-go/v2/server/http"
 
 	"github.com/samber/do/v2"
 )
@@ -40,22 +11,14 @@ import (
 // RegisterHTTPServerServices registers the providers the HTTP API server needs beyond
 // what the gRPC API injector already provides. It is safe to call on the shared gRPC
 // API injector: none of these registrations overlap with that container's contents.
+//
+// The server itself is not among them. service.Register builds it from the HTTPServer block,
+// with the encoder it serves through and the health registry it mounts at /readyz — a registry
+// that already checks the database and the broker, because those are what Register registered.
+// What is left is what the server serves: the payment processors' webhooks, the platform
+// surfaces, and the router they are all mounted on, which this application builds itself.
 func RegisterHTTPServerServices(i do.Injector) {
-	encoding.RegisterServerEncoderDecoder(i)
 	analyticscfg.RegisterEventReporter(i)
-	do.Provide[healthcheck.Registry](i, func(i do.Injector) (healthcheck.Registry, error) {
-		registry, err := healthcheck.NewRegistry()
-		if err != nil {
-			return nil, err
-		}
-
-		dbClient := do.MustInvoke[database.Client](i)
-		if checker, ok := dbClient.(healthcheck.DatabaseReadyChecker); ok {
-			registry.Register(healthcheck.NewDatabaseChecker("database", checker))
-		}
-		return registry, nil
-	})
-	http.RegisterHTTPServer(i, "api_server")
 
 	// services
 	paymentshttp.RegisterPaymentsHTTP(i)
@@ -63,75 +26,4 @@ func RegisterHTTPServerServices(i do.Injector) {
 	// routes
 	RegisterPlatformSurfaces(i)
 	RegisterAPIRouter(i)
-}
-
-// BuildInjector creates and configures a standalone dependency injection container for
-// the HTTP API server. The combined HTTP+gRPC server does not use this; it registers
-// RegisterHTTPServerServices onto the shared gRPC injector instead.
-func BuildInjector(
-	ctx context.Context,
-	cfg *config.APIServiceConfig,
-) *do.RootScope {
-	i := do.New()
-
-	do.ProvideValue(i, ctx)
-	do.ProvideValue(i, cfg)
-
-	// config field extraction
-	RegisterConfigs(i)
-
-	// platform providers
-	observability.RegisterO11yConfigs(i)
-	loggingcfg.RegisterLogger(i)
-	tracingcfg.RegisterTracerProvider(i)
-	metricscfg.RegisterMetricsProvider(i)
-	msgconfig.RegisterMessageQueue(i)
-	repositories.RegisterMigrator(i)
-	databasecfg.RegisterDatabase(i)
-	random.RegisterGenerator(i)
-	do.ProvideValue(i, qrcodes.Issuer(branding.CompanyName))
-	qrcodes.RegisterBuilder(i)
-
-	// authentication
-	authentication.RegisterAuth(i)
-	authcfg.RegisterConfigs(i)
-
-	// repos
-	auditrepo.RegisterAuditLogRepository(i)
-	// What a role grants, read from the policy tables the migrator seeds. The
-	// identity repository resolves a principal's role names through it when it
-	// builds a session.
-	authorization.RegisterPolicyResolver(i)
-	identitystore.RegisterIdentityStore(i)
-	identitybuild.RegisterSessionBuilder(i)
-
-	// The upload registry, because the identity repository reads a user's avatar
-	// through it.
-	uploadedmediarepo.RegisterUploadedMediaRepository(i)
-	oauth2clientsstore.RegisterOAuth2ClientsStore(i)
-	paymentsrepo.RegisterPaymentsRepository(i)
-
-	// managers
-	paymentsmanager.RegisterPaymentsDataManager(i)
-	paymentsadapters.RegisterPaymentProcessorRegistry(i)
-
-	// services
-	authservice.RegisterAuthHTTPService(i)
-
-	// searchers
-	RegisterSearchers(i)
-
-	// HTTP-server-specific providers (shared with the combined-server path)
-	RegisterHTTPServerServices(i)
-
-	return i
-}
-
-// Build builds a server.
-func Build(
-	ctx context.Context,
-	cfg *config.APIServiceConfig,
-) (http.Server, error) {
-	i := BuildInjector(ctx, cfg)
-	return do.MustInvoke[http.Server](i), nil
 }

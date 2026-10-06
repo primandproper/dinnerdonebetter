@@ -14,7 +14,7 @@ import (
 )
 
 // stampBufferName names the users index's stamp buffer in the container.
-const stampBufferName = "index_stamp.users"
+const stampBufferName = indexstamp.NamePrefix + "users"
 
 // RegisterUserSyncer registers the Syncer that applies users-index events.
 //
