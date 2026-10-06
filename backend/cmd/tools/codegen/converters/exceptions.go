@@ -101,9 +101,6 @@ var fieldExceptions = map[string]map[string]Rule{
 	"ConvertValidIngredientGroupToValidIngredientGroupCreationRequestInput": {
 		"Members": Skip("A stored group carries its members as rows that already name the ingredients they point at. Mapping them back into a creation request would make the request name ingredients the caller never asked to group, so the converter this replaced left them out and this one does too."),
 	},
-	"ConvertWebhookToWebhookCreationRequestInput": {
-		"Events": Expr("x.EventTypes()", "A request lists event types; a webhook stores one trigger config per subscription. EventTypes flattens the configs back to the strings they subscribe to."),
-	},
 }
 
 // ownerFromSession is the same fact about half a dozen entities: who owns a row is established by
@@ -163,7 +160,6 @@ var handWritten = map[string]string{
 	"ConvertRecipeStepProductToRecipeStepProductUpdateRequestInput":                                                returnsNilForNil,
 	"ConvertValidIngredientGroupCreationRequestInputToValidIngredientGroupDatabaseCreationInput":                   inlineGroupMembers,
 	"ConvertValidIngredientGroupToValidIngredientGroupDatabaseCreationInput":                                       inlineGroupMembers,
-	"ConvertWebhookCreationRequestInputToWebhookDatabaseCreationInput":                                             "It fans a flat list of event types out into one trigger config apiece, minting an ID for each and stamping the webhook's own.",
 }
 
 const (

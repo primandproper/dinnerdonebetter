@@ -15,7 +15,6 @@ import (
 	"github.com/primandproper/primitives-go/v2/analytics"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/email"
-	"github.com/primandproper/primitives-go/v2/encoding"
 	"github.com/primandproper/primitives-go/v2/messagequeue"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/metrics"
@@ -40,7 +39,6 @@ func RegisterAsyncDataChangeMessageHandler(i do.Injector) {
 			do.MustInvoke[analytics.EventReporter](i),
 			do.MustInvoke[email.Emailer](i),
 			do.MustInvoke[metrics.Provider](i),
-			do.MustInvoke[encoding.ServerEncoderDecoder](i),
 			searchSyncers(i),
 			do.MustInvoke[mealplanning.Repository](i),
 			do.MustInvoke[*push.Fanout](i),

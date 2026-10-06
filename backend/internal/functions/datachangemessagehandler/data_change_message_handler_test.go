@@ -16,7 +16,6 @@ import (
 	"github.com/primandproper/primitives-go/v2/database"
 	mockdatabase "github.com/primandproper/primitives-go/v2/database/mock"
 	emailmock "github.com/primandproper/primitives-go/v2/email/mock"
-	encodingmock "github.com/primandproper/primitives-go/v2/encoding/mock"
 	"github.com/primandproper/primitives-go/v2/messagequeue"
 	msgqueuemock "github.com/primandproper/primitives-go/v2/messagequeue/mock"
 	noopnotifications "github.com/primandproper/primitives-go/v2/notifications/mobile/noop"
@@ -33,7 +32,7 @@ import (
 )
 
 //nolint:gocritic // I know this returns too many things
-func buildTestAsyncDataChangeMessageHandler(t *testing.T) (*AsyncDataChangeMessageHandler, *identitymock.StoreMock, *msgqueuemock.ConsumerProviderMock, *msgqueuemock.PublisherProviderMock, *analyticsmock.EventReporterMock, *emailmock.EmailerMock, *mockmetrics.ProviderMock, *encodingmock.ServerEncoderDecoderMock) {
+func buildTestAsyncDataChangeMessageHandler(t *testing.T) (*AsyncDataChangeMessageHandler, *identitymock.StoreMock, *msgqueuemock.ConsumerProviderMock, *msgqueuemock.PublisherProviderMock, *analyticsmock.EventReporterMock, *emailmock.EmailerMock, *mockmetrics.ProviderMock) {
 	t.Helper()
 
 	logger := loggingnoop.NewLogger()
@@ -45,7 +44,6 @@ func buildTestAsyncDataChangeMessageHandler(t *testing.T) (*AsyncDataChangeMessa
 	analyticsEventReporter := &analyticsmock.EventReporterMock{}
 	emailer := &emailmock.EmailerMock{}
 	metricsProvider := &mockmetrics.ProviderMock{}
-	decoder := &encodingmock.ServerEncoderDecoderMock{}
 	// Create mock indexers with noop implementations for testing
 	searchSyncers := []SearchSyncer{}
 
@@ -88,7 +86,6 @@ func buildTestAsyncDataChangeMessageHandler(t *testing.T) (*AsyncDataChangeMessa
 		consumerProvider:                     consumerProvider,
 		analyticsEventReporter:               analyticsEventReporter,
 		emailer:                              emailer,
-		decoder:                              decoder,
 		searchSyncers:                        searchSyncers,
 		logger:                               logger,
 		tracer:                               tracer,
@@ -114,7 +111,7 @@ func buildTestAsyncDataChangeMessageHandler(t *testing.T) (*AsyncDataChangeMessa
 		handler.handleIdentityOutboundNotification,
 	}
 
-	return handler, identityRepo, consumerProvider, publisherProvider, analyticsEventReporter, emailer, metricsProvider, decoder
+	return handler, identityRepo, consumerProvider, publisherProvider, analyticsEventReporter, emailer, metricsProvider
 }
 
 func TestNewAsyncDataChangeMessageHandler(t *testing.T) {
@@ -143,7 +140,6 @@ func TestNewAsyncDataChangeMessageHandler(t *testing.T) {
 		analyticsEventReporter := &analyticsmock.EventReporterMock{}
 		emailer := &emailmock.EmailerMock{}
 		metricsProvider := &mockmetrics.ProviderMock{}
-		decoder := &encodingmock.ServerEncoderDecoderMock{}
 		// Empty rather than populated: this asserts the handler carries what it was given,
 		// and a Syncer needs a live index to construct. What each Syncer does with an event
 		// is covered where the Source is, in platform-go's search/sync/source.
@@ -194,7 +190,6 @@ func TestNewAsyncDataChangeMessageHandler(t *testing.T) {
 			analyticsEventReporter,
 			emailer,
 			metricsProvider,
-			decoder,
 			searchSyncers,
 			mealPlanRepo,
 			pushFanout,
@@ -206,7 +201,6 @@ func TestNewAsyncDataChangeMessageHandler(t *testing.T) {
 		assert.Equal(t, consumerProvider, handler.consumerProvider)
 		assert.Equal(t, analyticsEventReporter, handler.analyticsEventReporter)
 		assert.Equal(t, emailer, handler.emailer)
-		assert.Equal(t, decoder, handler.decoder)
 		assert.Equal(t, searchSyncers, handler.searchSyncers)
 
 		// metricsProvider and publisherProvider are moq mocks - no testify assertion needed

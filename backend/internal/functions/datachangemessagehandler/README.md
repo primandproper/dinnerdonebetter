@@ -18,14 +18,20 @@ This is one of the most critical services in the backend: if it stops running, e
 
 ### Data Changes (`DataChangesEventHandler`)
 
-Consumes audit events from across the system. For each event, it:
+Consumes the data change events every write publishes through the outbox. Each message is a
+`webhooks.Envelope` naming its event; the handler routes on the event type and decodes the payload
+into the type that event names — this application's own `datachanges.Message` for its meal planning
+events, platform's payload types (`identity.UserEvent`, `passwordreset.TokenEvent`, …) for the
+events platform's stores record. For each event, it:
 
-1. **Analytics** — Reports the event to the customer data platform (CDP)
-2. **Webhooks** — If the event type has registered webhooks, publishes `WebhookExecutionRequest` messages
-3. **Outbound notifications** — Publishes to the Outbound Emails topic when users need emails (e.g., verification, password reset)
-4. **Search index** — Publishes `IndexRequest` messages for entities that changed (users, recipes, meals, etc.)
+1. **Analytics** — Reports the event to the customer data platform, for the events on the
+   allowlist in `internal/domain/analytics` and no others
+2. **Outbound notifications** — Publishes to the Outbound Emails topic when somebody is owed a mail
+   (verification, password reset, an invitation), and to the Mobile Notifications topic when a
+   household is owed a push
 
-Event types include user lifecycle (signup, archive, email/username changes), meal planning (recipes, meals, grocery lists), OAuth clients, and more.
+Webhook deliveries and search index events are no longer this handler's: both are rows the
+transaction that caused the event writes, through `internal/repositories/postgres/events`.
 
 ### Outbound Emails (`OutboundEmailsEventHandler`)
 

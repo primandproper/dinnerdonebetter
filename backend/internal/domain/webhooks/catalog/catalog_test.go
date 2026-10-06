@@ -3,9 +3,14 @@ package catalog
 import (
 	"testing"
 
+	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
+
 	"github.com/primandproper/platform-go/v15/authentication/oauth2clients"
 	"github.com/primandproper/platform-go/v15/authentication/passkeys"
+	"github.com/primandproper/platform-go/v15/authentication/passwordreset"
+	"github.com/primandproper/platform-go/v15/authentication/signin"
 	"github.com/primandproper/platform-go/v15/comments"
+	"github.com/primandproper/platform-go/v15/identity"
 	"github.com/primandproper/platform-go/v15/waitlists"
 	"github.com/primandproper/platform-go/v15/webhooks"
 
@@ -48,6 +53,10 @@ func TestCatalog(T *testing.T) {
 		for eventType := range comments.EventCatalog() {
 			assert.Contains(t, catalog, eventType, "platform event type %q is missing from the catalog", eventType)
 		}
+
+		for eventType := range identity.EventCatalog() {
+			assert.Contains(t, catalog, eventType, "platform event type %q is missing from the catalog", eventType)
+		}
 	})
 
 	T.Run("marks every excluded event internal, and no other", func(t *testing.T) {
@@ -67,17 +76,22 @@ func TestCatalog(T *testing.T) {
 	T.Run("excludes the events that describe account security activity", func(t *testing.T) {
 		t.Parallel()
 
-		// Named explicitly rather than derived from the exclusion list, so that deleting an
-		// entry from that list fails here instead of quietly widening what a subscriber can
-		// see. An endpoint URL is attacker-supplied; these would be a live feed of an
-		// account's authentication activity.
+		// Named explicitly rather than derived from the exclusion list, so that dropping a
+		// fragment from that list fails here instead of quietly widening what a subscriber
+		// can see. An endpoint URL is attacker-supplied; these would be a live feed of an
+		// account's authentication activity, and two of them carry a bearer secret.
 		for _, eventType := range []string{
-			"user_logged_in",
-			"user_logged_out",
-			"user_impersonated",
-			"password_changed",
-			"two_factor_secret_changed",
-			"two_factor_deactivated",
+			signin.EventUserAuthenticated.String(),
+			signin.EventSignInsRevoked.String(),
+			signin.EventPasswordUpdated.String(),
+			signin.EventTOTPSecretRefreshed.String(),
+			identity.EventUserRegistered.String(),
+			identity.EventUserPasswordChanged.String(),
+			identity.EventInvitationCreated.String(),
+			identity.EventMembershipRemoved.String(),
+			passwordreset.EventTokenIssued.String(),
+			ddbidentity.PasswordResetTokenCreatedEventType,
+			ddbidentity.UserEmailAddressVerificationEmailRequestedEventType,
 			passkeys.EventPasskeyRegistered.String(),
 			passkeys.EventPasskeyArchived.String(),
 			oauth2clients.EventClientCreated.String(),

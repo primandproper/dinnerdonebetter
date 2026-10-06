@@ -3,13 +3,12 @@ package authentication
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/recording"
 
 	"github.com/primandproper/platform-go/v15/authentication/signin"
 	"github.com/primandproper/platform-go/v15/authentication/signin/refreshtokens"
 	platformidentity "github.com/primandproper/platform-go/v15/identity"
+	platformrecording "github.com/primandproper/platform-go/v15/recording"
 	"github.com/primandproper/primitives-go/v2/authentication/argon2"
 	"github.com/primandproper/primitives-go/v2/authentication/tokens"
 	"github.com/primandproper/primitives-go/v2/authentication/totp"
@@ -58,6 +57,18 @@ func RegisterAuth(i do.Injector) {
 			do.MustInvoke[database.Client](i),
 			do.MustInvoke[*events.Emitter](i),
 		)
+
+		// platform's own recording of every sign-in door's writes: the authentication, the
+		// credential writes, the account switch, the revocations — each as an audit entry and
+		// an event on the door's own transaction, filed under the user. An impersonation is
+		// recorded as the subject's authentication with the operator as its Impersonator.
+		// The Recorder is the one recordingcfg.Register provides, which is what every other
+		// adopted store's hooks here are built over; events.Emitter is an adapter over it for
+		// the writes this application still describes itself.
+		hooks, err := signin.NewRecordingHooks(do.MustInvoke[*platformrecording.Recorder](i))
+		if err != nil {
+			return nil, err
+		}
 
 		return signin.NewService(
 			do.MustInvoke[database.Client](i),
@@ -111,15 +122,7 @@ func RegisterAuth(i do.Injector) {
 			signin.WithHandleReminderMailer(mailers),
 			// Who may act as somebody else. Without a policy every impersonation is refused.
 			signin.WithImpersonationPolicy(NewImpersonationPolicy(do.MustInvoke[platformauthz.PolicyResolver](i))),
-			signin.WithHooks(NewSignInHooks(
-				do.MustInvoke[logging.Logger](i),
-				do.MustInvoke[*events.Emitter](i),
-				recording.NewRecorder(
-					tracing.NewNamedTracer(do.MustInvoke[tracing.Provider](i), "signin_hooks"),
-					do.MustInvoke[audit.Repository](i),
-					do.MustInvoke[*events.Emitter](i),
-				),
-			)),
+			signin.WithHooks(hooks),
 			signin.WithLogger(do.MustInvoke[logging.Logger](i)),
 			signin.WithTracerProvider(do.MustInvoke[tracing.Provider](i)),
 			signin.WithMetricsProvider(do.MustInvoke[metrics.Provider](i)),

@@ -1,11 +1,19 @@
 /*
-Package datachanges is the data change event: what a write enqueues on the outbox,
-beside its audit entry and in the same transaction, for the async message handler,
-search indexing and webhook dispatch to act on afterwards.
+Package datachanges is this application's own data change event: what a write to one of
+its own tables enqueues on the outbox, beside its audit entry and in the same
+transaction, for the async message handler, search indexing and webhook dispatch to
+act on afterwards.
 
 It is not the audit log, though the two are written together. An audit entry is the
 durable record of what happened; a data change message is a request for something
 else to happen because of it, and is gone once it has been handled.
+
+It is also not the only payload on the data changes topic. Every event platform's
+stores record travels under platform's own payload types — identity.UserEvent,
+billing.SubscriptionEvent and the rest — and every event, this application's or
+platform's, reaches the broker inside a webhooks.Envelope that names it. A consumer
+reads the envelope's event type and decodes the payload into the type that event
+names; for this application's own events that type is Message.
 */
 package datachanges
 
@@ -31,7 +39,6 @@ type Message struct {
 	Context   map[string]any `json:"context,omitempty"`
 	UserID    string         `json:"userID"`
 	AccountID string         `json:"accountID,omitempty"`
-	TestID    string         `json:"testID,omitempty"`
 }
 
 // IndexEventType is the event type an index rule matches on.

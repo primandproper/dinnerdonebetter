@@ -1,41 +1,20 @@
 package identity
 
+// The three mail requests this application queues for platform's sign-in and password reset
+// doors, through authentication.SignInMailers.
+//
+// They are not store events. The write each one follows is recorded by platform's own hooks —
+// signin.EventVerificationEmailRequested, passwordreset.EventTokenIssued — and those events
+// deliberately carry no secret. The mail cannot be rendered without one: the store holds a
+// digest of the link's token, and the issuance is the only moment the secret exists. So
+// platform hands the secret to a mailer once the write has committed, and the mailer puts it on
+// one of these, for the data change message handler to render. Every one of them is Internal in
+// the webhook catalog for that reason; see internal/domain/webhooks/catalog.
 const (
-	// TwoFactorSecretVerifiedServiceEventType indicates a user's two factor secret was verified.
-	/* #nosec G101 */
-	TwoFactorSecretVerifiedServiceEventType = "two_factor_secret_verified"
-	// TwoFactorDeactivatedServiceEventType indicates a user's two factor secret was deactivated and verified_at timestamp was reset.
-	/* #nosec G101 */
-	TwoFactorDeactivatedServiceEventType = "two_factor_deactivated"
-	// TwoFactorSecretChangedServiceEventType indicates a user's two factor secret was changed and verified_at timestamp was reset.
-	/* #nosec G101 */
-	TwoFactorSecretChangedServiceEventType = "two_factor_secret_changed"
-	// PasswordResetTokenCreatedEventType indicates a user created a password reset token.
+	// PasswordResetTokenCreatedEventType indicates a password reset mail was requested; it carries the reset link.
 	PasswordResetTokenCreatedEventType = "password_reset_token_created"
-	// PasswordResetTokenRedeemedEventType indicates a user redeemed a password reset token.
-	PasswordResetTokenRedeemedEventType = "password_reset_token_redeemed"
-	// PasswordChangedEventType indicates a user changed their password.
-	PasswordChangedEventType = "password_changed"
-	// EmailAddressChangedEventType indicates a user changed their email address.
-	EmailAddressChangedEventType = "email_address_changed"
-	// UsernameChangedEventType indicates a user changed their username.
-	UsernameChangedEventType = "username_changed"
-	// UserAvatarChangedEventType indicates a user changed their avatar.
-	UserAvatarChangedEventType = "user_avatar_changed"
-	// UserDetailsChangedEventType indicates a user changed their information.
-	UserDetailsChangedEventType = "user_details_changed"
-	// UsernameReminderRequestedEventType indicates a user requested a username reminder.
+	// UsernameReminderRequestedEventType indicates a username reminder mail was requested.
 	UsernameReminderRequestedEventType = "username_reminder_requested"
-	// UserLoggedInServiceEventType indicates a user has logged in.
-	UserLoggedInServiceEventType = "user_logged_in"
-	// UserImpersonatedServiceEventType indicates an operator was issued a token to act as a user.
-	UserImpersonatedServiceEventType = "user_impersonated"
-	// UserLoggedOutServiceEventType indicates a user has logged out.
-	UserLoggedOutServiceEventType = "user_logged_out"
-	// UserChangedActiveAccountServiceEventType indicates a user switched their active account.
-	UserChangedActiveAccountServiceEventType = "changed_active_account"
-	// UserEmailAddressVerifiedEventType indicates a user verified their email address.
-	UserEmailAddressVerifiedEventType = "user_email_address_verified"
-	// UserEmailAddressVerificationEmailRequestedEventType indicates a user requested an email address verification email.
+	// UserEmailAddressVerificationEmailRequestedEventType indicates another verification mail was requested; it carries the verification link.
 	UserEmailAddressVerificationEmailRequestedEventType = "user_email_address_verification_email_requested"
 )

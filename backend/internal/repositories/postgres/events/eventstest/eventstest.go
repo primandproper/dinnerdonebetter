@@ -14,6 +14,7 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/catalog"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/indexevents"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 
@@ -52,6 +53,19 @@ func New(t *testing.T, writer *outbox.Writer, recorder platformaudit.Recorder) *
 	require.NoError(t, err)
 
 	return e
+}
+
+// IndexRules is the writer option that registers this application's search index rules, for a
+// test whose subject is expected to derive index events: a writer built without it enqueues what
+// it is handed and derives nothing, which is right for a test of the announcement alone and
+// wrong for a test of what the announcement implies.
+func IndexRules(t *testing.T) outbox.WriterOption {
+	t.Helper()
+
+	effect, err := indexevents.NewSideEffect()
+	require.NoError(t, err)
+
+	return outbox.WithWriterSideEffect(indexevents.SideEffectName, effect)
 }
 
 // bySubject is recordingcfg.FileBySubject's rule, restated because the config package's

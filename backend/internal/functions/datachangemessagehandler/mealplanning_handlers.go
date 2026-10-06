@@ -11,7 +11,7 @@ import (
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	queuemessages "github.com/primandproper/dinnerdonebetter/backend/internal/queues/messages"
 
-	platformidentity "github.com/primandproper/platform-go/v15/identity"
+	"github.com/primandproper/platform-go/v15/webhooks"
 	"github.com/primandproper/primitives-go/v2/observability"
 	"github.com/primandproper/primitives-go/v2/tenancy"
 )
@@ -19,24 +19,35 @@ import (
 // handleMealPlanningOutboundNotification handles outbound notifications for meal planning domain events.
 func (a *AsyncDataChangeMessageHandler) handleMealPlanningOutboundNotification(
 	ctx context.Context,
-	changeMessage *datachanges.Message,
-	_ *platformidentity.User,
+	event *webhooks.Envelope,
 ) (
 	handled bool,
 	emailType string,
 	outgoingMessages []*queuemessages.OutboundEmailMessage,
 	err error,
 ) {
-	if changeMessage.EventType != mealplanning.MealPlanCreatedServiceEventType {
+	if event.EventType != webhooks.EventType(mealplanning.MealPlanCreatedServiceEventType) {
 		return false, "", nil, nil
+	}
+
+	const mealPlanCreated = "meal plan created"
+
+	changeMessage, err := payloadAs[datachanges.Message](event)
+	if err != nil {
+		return true, mealPlanCreated, nil, err
+	}
+
+	// A meal plan nobody made — a background job's — announces itself to nobody.
+	if changeMessage.UserID == "" {
+		return true, mealPlanCreated, nil, nil
 	}
 
 	msgs, err := a.handleMealPlanCreatedNotification(ctx, changeMessage)
 	if err != nil {
-		return true, "meal plan created", nil, err
+		return true, mealPlanCreated, nil, err
 	}
 
-	return true, "meal plan created", msgs, nil
+	return true, mealPlanCreated, msgs, nil
 }
 
 // handleMealPlanCreatedNotification builds email notifications for a newly created meal plan.

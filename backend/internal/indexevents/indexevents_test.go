@@ -5,6 +5,7 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/datachanges"
 
+	"github.com/primandproper/platform-go/v15/identity"
 	"github.com/primandproper/platform-go/v15/outbox"
 	"github.com/primandproper/platform-go/v15/searchsync"
 
@@ -120,6 +121,28 @@ func TestNewSideEffect(T *testing.T) {
 		require.True(t, ok)
 		assert.Equal(t, searchsync.OpUpsert, event.Op)
 		assert.Equal(t, "recipe_1", event.DocumentID)
+	})
+
+	T.Run("a user write feeds the users index under platform's event name", func(t *testing.T) {
+		t.Parallel()
+
+		effect, err := NewSideEffect()
+		require.NoError(t, err)
+
+		registered := ruleFor(t, identity.EventUserRegistered.String())
+		archived := ruleFor(t, identity.EventUserArchived.String())
+		require.Equal(t, registered.IDKey, archived.IDKey)
+
+		derived, err := effect(t.Context(), nil, []outbox.Message{
+			message(identity.EventUserRegistered.String(), map[string]any{registered.IDKey: "user_1"}),
+			message(identity.EventUserArchived.String(), map[string]any{archived.IDKey: "user_1"}),
+		})
+		require.NoError(t, err)
+		require.Len(t, derived, 2)
+
+		assert.Equal(t, "users", derived[0].Topic)
+		assert.Equal(t, searchsync.OpUpsert, derived[0].Payload.(searchsync.Event).Op)
+		assert.Equal(t, searchsync.OpDelete, derived[1].Payload.(searchsync.Event).Op)
 	})
 
 	T.Run("an untabled event type derives nothing", func(t *testing.T) {

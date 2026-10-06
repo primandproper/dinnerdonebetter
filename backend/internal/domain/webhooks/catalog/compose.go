@@ -6,8 +6,11 @@ import (
 
 	"github.com/primandproper/platform-go/v15/authentication/oauth2clients"
 	"github.com/primandproper/platform-go/v15/authentication/passkeys"
+	"github.com/primandproper/platform-go/v15/authentication/passwordreset"
+	"github.com/primandproper/platform-go/v15/authentication/signin"
 	"github.com/primandproper/platform-go/v15/billing"
 	"github.com/primandproper/platform-go/v15/comments"
+	"github.com/primandproper/platform-go/v15/identity"
 	"github.com/primandproper/platform-go/v15/issuereports"
 	"github.com/primandproper/platform-go/v15/mediaregistry"
 	"github.com/primandproper/platform-go/v15/notifications"
@@ -34,6 +37,9 @@ import (
 func Catalog() webhooks.Catalog {
 	merged, err := webhooks.Merge(
 		local(),
+		identity.EventCatalog(),
+		signin.EventCatalog(),
+		passwordreset.EventCatalog(),
 		waitlists.EventCatalog(),
 		settings.EventCatalog(),
 		comments.EventCatalog(),

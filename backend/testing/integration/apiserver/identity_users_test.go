@@ -20,10 +20,14 @@ func TestUsers_Creating(T *testing.T) {
 
 		user, testClient := createUserAndClientForTest(t)
 
-		AssertAuditLogContainsFuzzyForUser(t, ctx, testClient, user.ID, 15, []*ExpectedAuditEntry{
-			{EventType: "created", ResourceType: "users", RelevantID: user.ID},
-			{EventType: "created", ResourceType: "accounts"},
-			{EventType: "created", ResourceType: "account_user_memberships"},
+		// By resource rather than by actor. A registration is the write that establishes
+		// who is acting, so the request that makes it carries no principal, and platform
+		// records its three entries as unattributed rather than as the registrant's.
+		AssertAuditLogContainsFuzzyForResource(t, ctx, identity.ResourceTypeUser, user.ID, 15, []*ExpectedAuditEntry{
+			{EventType: "created", ResourceType: identity.ResourceTypeUser, RelevantID: user.ID},
+		})
+		AssertAuditLogContainsFuzzyForResource(t, ctx, identity.ResourceTypeAccount, getAccountIDForTest(t, testClient), 15, []*ExpectedAuditEntry{
+			{EventType: "created", ResourceType: identity.ResourceTypeAccount},
 		})
 	})
 
@@ -86,9 +90,9 @@ func TestUsers_Archiving(T *testing.T) {
 		// By resource rather than by actor, because the two entries have different actors:
 		// the registration is the user's own act and the archival is the administrator's.
 		// Filtering on either one would assert half of what this is checking.
-		AssertAuditLogContainsFuzzyForResource(t, ctx, "users", user.ID, 15, []*ExpectedAuditEntry{
-			{EventType: "created", ResourceType: "users", RelevantID: user.ID},
-			{EventType: "archived", ResourceType: "users", RelevantID: user.ID},
+		AssertAuditLogContainsFuzzyForResource(t, ctx, identity.ResourceTypeUser, user.ID, 15, []*ExpectedAuditEntry{
+			{EventType: "created", ResourceType: identity.ResourceTypeUser, RelevantID: user.ID},
+			{EventType: "archived", ResourceType: identity.ResourceTypeUser, RelevantID: user.ID},
 		})
 	})
 
@@ -142,8 +146,8 @@ func TestUsers_Archiving(T *testing.T) {
 		_, err = adminClient.IdentityService().GetAccount(ctx, &identitypb.GetAccountRequest{AccountId: accountID})
 		require.Error(t, err)
 
-		AssertAuditLogContainsFuzzyForResource(t, ctx, "accounts", accountID, 10, []*ExpectedAuditEntry{
-			{EventType: "archived", ResourceType: "accounts", RelevantID: accountID},
+		AssertAuditLogContainsFuzzyForResource(t, ctx, identity.ResourceTypeAccount, accountID, 10, []*ExpectedAuditEntry{
+			{EventType: "archived", ResourceType: identity.ResourceTypeAccount, RelevantID: accountID},
 		})
 	})
 }

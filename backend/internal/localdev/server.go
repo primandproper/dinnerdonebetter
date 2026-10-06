@@ -305,7 +305,11 @@ func WithPasswordResetTokenStore(fn func(ctx context.Context, store passwordrese
 		if err != nil {
 			return err
 		}
-		store, err := authrepo.ProvidePasswordResetTokenStore(logger, tracerProvider, auditLogRepo, dbClient)
+		spine, err := Spine(ctx, dbClient, auditLogRepo, logger, tracerProvider)
+		if err != nil {
+			return err
+		}
+		store, err := authrepo.ProvidePasswordResetTokenStore(logger, tracerProvider, spine.Recorder(), dbClient)
 		if err != nil {
 			return err
 		}

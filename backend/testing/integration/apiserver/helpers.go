@@ -579,14 +579,10 @@ func identityDirectoryWithHooks(t *testing.T) *identity.Service {
 	store, err := identity.NewSQLStore(databaseClient, identity.WithTablePrefix(branding.TablePrefix))
 	require.NoError(t, err)
 
-	directory, err := identity.NewService(databaseClient, store,
-		identity.WithHooks(identitystore.ProvideHooks(
-			loggingnoop.NewLogger(),
-			tracingnoop.NewTracerProvider(),
-			auditLogRepo,
-			pgtesting.NewEmitterForTest(t, t.Context(), databaseClient, auditRecorder),
-		)),
-	)
+	hooks, err := identitystore.ProvideHooks(pgtesting.NewEmitterForTest(t, t.Context(), databaseClient, auditRecorder))
+	require.NoError(t, err)
+
+	directory, err := identity.NewService(databaseClient, store, identity.WithHooks(hooks))
 	require.NoError(t, err)
 
 	return directory

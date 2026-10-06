@@ -2,7 +2,6 @@ package identitystore
 
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 
 	"github.com/primandproper/platform-go/v15/authentication/passkeys"
@@ -36,12 +35,7 @@ func RegisterIdentityStore(i do.Injector) {
 	})
 
 	do.Provide[*Hooks](i, func(i do.Injector) (*Hooks, error) {
-		return ProvideHooks(
-			do.MustInvoke[logging.Logger](i),
-			do.MustInvoke[tracing.Provider](i),
-			do.MustInvoke[audit.Repository](i),
-			do.MustInvoke[*events.Emitter](i),
-		), nil
+		return ProvideHooks(do.MustInvoke[*events.Emitter](i))
 	})
 
 	do.Provide[*platformidentity.Service](i, func(i do.Injector) (*platformidentity.Service, error) {

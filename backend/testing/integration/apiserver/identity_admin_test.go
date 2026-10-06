@@ -4,10 +4,9 @@ import (
 	"net/http"
 	"testing"
 
-	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
-	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	internalopssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/internalops"
 
+	"github.com/primandproper/platform-go/v15/authentication/signin"
 	"github.com/primandproper/platform-go/v15/authentication/signin/signinpb"
 	"github.com/primandproper/platform-go/v15/identity/identitypb"
 	webhookspb "github.com/primandproper/platform-go/v15/webhooks/webhookspb"
@@ -86,19 +85,25 @@ func TestAdmin_UserImpersonation(T *testing.T) {
 		assert.Equal(t, accountID, authStatus.GetStatus().GetActiveAccountId())
 	})
 
-	T.Run("the impersonation is recorded as the operator's", func(t *testing.T) {
+	T.Run("the impersonation is recorded as the subject's authentication, naming the operator", func(t *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
 		user, testClient := createUserAndClientForTest(t)
 		impersonationClientForTest(t, adminClient, user.ID, getAccountIDForTest(t, testClient))
 
+		// platform records an impersonation the way it records every proven sign-in — as the
+		// subject's signin.user.authenticated, through RecordAs, with the operator on the
+		// entry as its Impersonator and on the event as its actor. The subject also signed in
+		// for themselves above, which is an authentication naming no actor, so the payload is
+		// found by the operator's ID as well as the subject's and the event's name.
 		recorded, err := outboxPayloads(ctx,
-			`convert_from(payload, 'UTF8') LIKE '%' || $1 || '%' AND convert_from(payload, 'UTF8') LIKE '%' || $2 || '%'`,
-			user.ID, ddbidentity.UserImpersonatedServiceEventType)
+			`convert_from(payload, 'UTF8') LIKE '%' || $1 || '%' AND convert_from(payload, 'UTF8') LIKE '%' || $2 || '%' AND convert_from(payload, 'UTF8') LIKE '%' || $3 || '%'`,
+			user.ID, signin.EventUserAuthenticated.String(), premadeAdminUser.ID)
 		require.NoError(t, err)
 		require.Len(t, recorded, 1)
-		assert.Equal(t, premadeAdminUser.ID, findStringKey(recorded[0], identitykeys.ImpersonatorIDKey))
+		assert.Equal(t, premadeAdminUser.ID, findStringKey(recorded[0], "actorID"))
+		assert.Equal(t, user.ID, findStringKey(recorded[0], "userID"))
 	})
 
 	T.Run("an ordinary user may not impersonate anybody", func(t *testing.T) {

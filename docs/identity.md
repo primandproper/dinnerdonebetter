@@ -252,8 +252,9 @@ When a user registers with an invitation token:
 
 An invitation's token is stored as a digest and is never rendered onto a gRPC response — the proto
 field it used to occupy is reserved. The one thing that needs the token in the clear is the email,
-so the invitation hook puts it on the outbox event the email worker reads; see
-[`internal/repositories/postgres/identitystore/hooks.go`](../backend/internal/repositories/postgres/identitystore/hooks.go).
+so platform's recording hook puts it on the `identity.invitation.created` event the email worker
+reads (`identity.InvitationEvent.Token`, set only on that event); see platform-go's
+`identity/recording.go`.
 
 A verification link expires. 72 hours — platform's `signin.DefaultVerificationLinkTTL` — set when
 the link is minted and compared in Go rather than in SQL, because a `CURRENT_TIMESTAMP` predicate
@@ -400,7 +401,7 @@ sequenceDiagram
 
 - **Domain Models**: platform-go's `identity`; this repository's
   [`internal/domain/identity/`](../backend/internal/domain/identity/) for what sits beside them
-- **Store, hooks and recording**: [`internal/repositories/postgres/identitystore/`](../backend/internal/repositories/postgres/identitystore/)
+- **Store wiring and the users-index bridge over platform's recording hooks**: [`internal/repositories/postgres/identitystore/`](../backend/internal/repositories/postgres/identitystore/)
 - **Wiring, grants and the archival decorator**: [`internal/build/identity/`](../backend/internal/build/identity/)
 - **Authentication**: [`internal/services/auth/`](../backend/internal/services/auth/)
 - **Authorization**: [`internal/authorization/`](../backend/internal/authorization/)

@@ -5,16 +5,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
-	auditmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit/mock"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
 	platformaudit "github.com/primandproper/platform-go/v15/audit"
 	"github.com/primandproper/platform-go/v15/authentication/passwordreset"
 	"github.com/primandproper/primitives-go/v2/database"
-	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
-	"github.com/primandproper/primitives-go/v2/observability/tracing"
 	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
 	"github.com/primandproper/primitives-go/v2/tenancy"
 
@@ -24,23 +21,17 @@ import (
 
 const exampleTokenLifetime = 30 * time.Minute
 
-// buildHooksForTest builds the recording hooks over an audit repository a test controls, so
-// what they record can be exercised without a database.
-func buildHooksForTest(auditRepo audit.Repository) *passwordResetHooks {
-	return &passwordResetHooks{
-		auditLogEntryRepo: auditRepo,
-		tracer:            tracing.NewTracerForTest("test"),
-		logger:            loggingnoop.NewLogger(),
-	}
-}
-
 func TestQuerier_Integration_PasswordResetTokens(t *testing.T) {
 	ctx := t.Context()
 	dbc, auditRepo := buildDatabaseClientForTest(t)
 
+	auditRecorder, ok := auditlogentries.RecorderFrom(auditRepo)
+	require.True(t, ok)
+
 	user := pgtesting.CreateUserForTest(t, nil, dbc.Writer())
 
-	store, err := ProvidePasswordResetTokenStore(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), auditRepo, dbc)
+	store, err := ProvidePasswordResetTokenStore(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(),
+		pgtesting.NewRecorderForTest(t, ctx, dbc, auditRecorder), dbc)
 	require.NoError(t, err)
 
 	// issue
@@ -51,8 +42,12 @@ func TestQuerier_Integration_PasswordResetTokens(t *testing.T) {
 	assert.Equal(t, user.ID, issuance.Token.UserID)
 	assert.Nil(t, issuance.Token.RedeemedAt)
 
-	pgtesting.AssertAuditLogContainsForUser(t, ctx, dbc, user.ID, []pgtesting.ExpectedAuditEntry{
-		{EventType: platformaudit.EventCreated, ResourceType: resourceTypePasswordResetTokens, ResourceID: issuance.Token.ID},
+	// A reset is asked for by somebody who cannot sign in, so there is no principal on the
+	// context and the entry names nobody as its actor. It is filed on the user's own chain all
+	// the same — platform's hooks name the token's user as the entry's subject — which is the
+	// chain "was a link issued for this account" is answered from.
+	pgtesting.AssertAuditLogContains(t, ctx, dbc, user.ID, []pgtesting.ExpectedAuditEntry{
+		{EventType: platformaudit.EventCreated, ResourceType: passwordreset.ResourceTypeToken, ResourceID: issuance.Token.ID},
 	})
 
 	// the row holds a digest, not the token. This is the property the hand-written store
@@ -75,9 +70,9 @@ func TestQuerier_Integration_PasswordResetTokens(t *testing.T) {
 	assert.Equal(t, issuance.Token.ID, consumed.ID)
 	assert.NotNil(t, consumed.RedeemedAt)
 
-	pgtesting.AssertAuditLogContainsForUser(t, ctx, dbc, user.ID, []pgtesting.ExpectedAuditEntry{
-		{EventType: platformaudit.EventCreated, ResourceType: resourceTypePasswordResetTokens, ResourceID: issuance.Token.ID},
-		{EventType: platformaudit.EventUpdated, ResourceType: resourceTypePasswordResetTokens, ResourceID: issuance.Token.ID},
+	pgtesting.AssertAuditLogContains(t, ctx, dbc, user.ID, []pgtesting.ExpectedAuditEntry{
+		{EventType: platformaudit.EventCreated, ResourceType: passwordreset.ResourceTypeToken, ResourceID: issuance.Token.ID},
+		{EventType: platformaudit.EventUpdated, ResourceType: passwordreset.ResourceTypeToken, ResourceID: issuance.Token.ID},
 	})
 
 	// a token is spendable exactly once, and the store is what says so
@@ -99,100 +94,14 @@ func TestQuerier_Integration_PasswordResetTokens(t *testing.T) {
 func TestProvidePasswordResetTokenStore(T *testing.T) {
 	T.Parallel()
 
-	T.Run("with nil database client", func(t *testing.T) {
+	T.Run("with nil recorder", func(t *testing.T) {
 		t.Parallel()
 
+		// Refused before the store is built: a token store that recorded nothing would be
+		// the one an investigation finds empty.
 		actual, err := ProvidePasswordResetTokenStore(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, nil)
-		require.Error(t, err)
+		require.ErrorIs(t, err, passwordreset.ErrNilRecorder)
 		assert.Nil(t, actual)
-	})
-}
-
-func TestPasswordResetHooks_AfterIssue(T *testing.T) {
-	T.Parallel()
-
-	T.Run("standard", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		token := &passwordreset.Token{ID: "token", UserID: "user", ExpiresAt: time.Now().Add(exampleTokenLifetime)}
-
-		auditRepo := &auditmock.RepositoryMock{
-			RecordFunc: func(context.Context, database.Tx, ...*platformaudit.Entry) error { return nil },
-		}
-
-		// database.NewTxForTesting exists for exactly this: the marker method on database.Tx
-		// is unexported, so a test double cannot implement one. Nothing is ever sent on this
-		// transaction — the audit repository is mocked.
-		require.NoError(t, buildHooksForTest(auditRepo).AfterIssue(ctx, database.NewTxForTesting(nil), tenancy.Global(), token))
-
-		require.Len(t, auditRepo.RecordCalls(), 1)
-		require.Len(t, auditRepo.RecordCalls()[0].Entries, 1)
-		entry := auditRepo.RecordCalls()[0].Entries[0]
-		assert.Equal(t, platformaudit.EventCreated, entry.EventType)
-		assert.Equal(t, resourceTypePasswordResetTokens, entry.ResourceType)
-		assert.Equal(t, token.ID, entry.ResourceID)
-		assert.Equal(t, token.UserID, entry.Actor.ID)
-		assert.Empty(t, entry.Changes)
-	})
-
-	T.Run("with error recording", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		expected := platformerrors.New("blah")
-
-		auditRepo := &auditmock.RepositoryMock{
-			RecordFunc: func(context.Context, database.Tx, ...*platformaudit.Entry) error { return expected },
-		}
-
-		err := buildHooksForTest(auditRepo).AfterIssue(ctx, database.NewTxForTesting(nil), tenancy.Global(), &passwordreset.Token{ID: "token", UserID: "user"})
-		require.ErrorIs(t, err, expected)
-	})
-}
-
-func TestPasswordResetHooks_AfterConsume(T *testing.T) {
-	T.Parallel()
-
-	T.Run("standard", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		redeemedAt := time.Now()
-		token := &passwordreset.Token{ID: "token", UserID: "user", RedeemedAt: &redeemedAt}
-
-		auditRepo := &auditmock.RepositoryMock{
-			RecordFunc: func(context.Context, database.Tx, ...*platformaudit.Entry) error { return nil },
-		}
-
-		require.NoError(t, buildHooksForTest(auditRepo).AfterConsume(ctx, database.NewTxForTesting(nil), tenancy.Global(), token))
-
-		require.Len(t, auditRepo.RecordCalls(), 1)
-		require.Len(t, auditRepo.RecordCalls()[0].Entries, 1)
-		entry := auditRepo.RecordCalls()[0].Entries[0]
-		assert.Equal(t, platformaudit.EventUpdated, entry.EventType)
-		assert.Equal(t, resourceTypePasswordResetTokens, entry.ResourceType)
-		assert.Equal(t, token.ID, entry.ResourceID)
-		assert.Equal(t, token.UserID, entry.Actor.ID)
-
-		// No diff: platform hands no before row, and inventing one would only restate
-		// the redemption the entry already records.
-		assert.Empty(t, entry.Changes)
-	})
-
-	T.Run("with error recording", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		expected := platformerrors.New("blah")
-		redeemedAt := time.Now()
-
-		auditRepo := &auditmock.RepositoryMock{
-			RecordFunc: func(context.Context, database.Tx, ...*platformaudit.Entry) error { return expected },
-		}
-
-		err := buildHooksForTest(auditRepo).AfterConsume(ctx, database.NewTxForTesting(nil), tenancy.Global(), &passwordreset.Token{ID: "token", UserID: "user", RedeemedAt: &redeemedAt})
-		require.ErrorIs(t, err, expected)
 	})
 }
 

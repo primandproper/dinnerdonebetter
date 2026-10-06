@@ -42,13 +42,13 @@ package indexevents
 import (
 	"slices"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
 	mealplanningindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
+	"github.com/primandproper/platform-go/v15/identity"
 	"github.com/primandproper/platform-go/v15/outbox"
 	"github.com/primandproper/platform-go/v15/searchsync"
 )
@@ -80,12 +80,14 @@ func rule(eventType, index, idKey string, op searchsync.Op) searchsync.Rule {
 // rules is the table. Adding an indexed entity means adding rows here and nothing in the
 // repository layer.
 var rules = []searchsync.Rule{
-	// Users.
-	rule(identity.UserSignedUpServiceEventType, identityindexing.IndexTypeUsers, identitykeys.UserIDKey, searchsync.OpUpsert),
-	rule(identity.UsernameChangedEventType, identityindexing.IndexTypeUsers, identitykeys.UserIDKey, searchsync.OpUpsert),
-	rule(identity.EmailAddressChangedEventType, identityindexing.IndexTypeUsers, identitykeys.UserIDKey, searchsync.OpUpsert),
-	rule(identity.UserDetailsChangedEventType, identityindexing.IndexTypeUsers, identitykeys.UserIDKey, searchsync.OpUpsert),
-	rule(identity.UserArchivedServiceEventType, identityindexing.IndexTypeUsers, identitykeys.UserIDKey, searchsync.OpDelete),
+	// Users, on platform's event names. Both handle doors on sign-in write through the
+	// profile operation, so a username or email change is a profile update here. platform's
+	// payloads do not yet answer searchsync.Change (platform-go #1136), so these rows are run
+	// by the identitystore hooks through EnqueueDerived rather than matched on the
+	// announcement itself; the rows are the same either way.
+	rule(identity.EventUserRegistered.String(), identityindexing.IndexTypeUsers, identitykeys.UserIDKey, searchsync.OpUpsert),
+	rule(identity.EventUserProfileUpdated.String(), identityindexing.IndexTypeUsers, identitykeys.UserIDKey, searchsync.OpUpsert),
+	rule(identity.EventUserArchived.String(), identityindexing.IndexTypeUsers, identitykeys.UserIDKey, searchsync.OpDelete),
 
 	// Meals.
 	rule(types.MealCreatedServiceEventType, mealplanningindexing.IndexTypeMeals, mealplanningkeys.MealIDKey, searchsync.OpUpsert),

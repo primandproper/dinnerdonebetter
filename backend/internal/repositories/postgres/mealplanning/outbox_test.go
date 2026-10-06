@@ -13,6 +13,7 @@ import (
 	mealplanningindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
 	searchsync "github.com/primandproper/platform-go/v15/searchsync"
+	"github.com/primandproper/platform-go/v15/webhooks"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/identifiers"
 
@@ -53,12 +54,25 @@ func decodeDataChangeMessages(t *testing.T, rows []outboxRow) []*datachanges.Mes
 
 	out := make([]*datachanges.Message, 0, len(rows))
 	for i := range rows {
-		var msg datachanges.Message
-		require.NoError(t, json.Unmarshal(rows[i].payload, &msg))
-		out = append(out, &msg)
+		out = append(out, decodeDataChangeMessage(t, rows[i].payload))
 	}
 
 	return out
+}
+
+// decodeDataChangeMessage reads one row the way the consumer does: platform's envelope names the
+// event, and this application's own message is its payload.
+func decodeDataChangeMessage(t *testing.T, payload []byte) *datachanges.Message {
+	t.Helper()
+
+	var envelope webhooks.Envelope
+	require.NoError(t, json.Unmarshal(payload, &envelope))
+	require.NotEmpty(t, envelope.EventType, "an outbox row on the data changes topic names no event")
+
+	var msg datachanges.Message
+	require.NoError(t, json.Unmarshal(envelope.Payload, &msg))
+
+	return &msg
 }
 
 func findEvent(msgs []*datachanges.Message, eventType string) *datachanges.Message {
@@ -97,8 +111,7 @@ func TestQuerier_Integration_MealPlanOutboxEvents(t *testing.T) {
 	// must be keyed by it. Rows for meal-plan child entities carry no account and are keyed by
 	// nothing, which the relay treats as unordered — correct, since nothing orders them.
 	for _, row := range fetchOutboxRows(ctx, t, dbc.writeDB, testDataChangesTopic) {
-		var msg datachanges.Message
-		require.NoError(t, json.Unmarshal(row.payload, &msg))
+		msg := decodeDataChangeMessage(t, row.payload)
 
 		if msg.AccountID != "" {
 			assert.Equal(t, msg.AccountID, row.partitionKey)
