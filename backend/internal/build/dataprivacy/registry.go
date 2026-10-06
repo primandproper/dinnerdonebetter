@@ -26,6 +26,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/privacy"
 	paymentsprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/privacy"
+	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
 
 	platformaudit "github.com/primandproper/platform-go/v15/audit"
@@ -109,7 +110,7 @@ func buildRegistry(i do.Injector) (*platformdataprivacy.Registry, error) {
 	credentialScopes := identityprivacy.Scopes()
 
 	// Where a subject's audit entries are, for the export and for the erasure. The recorder
-	// files by subject (events.RegisterOutboxEmitter), and the rule that files an entry is
+	// files by subject (recordingspine.Register), and the rule that files an entry is
 	// the one that knows where to find it again: platform hands out the two resolvers as a
 	// pair under that rule, so the export cannot read one rule's chains while the erasure
 	// deletes another's. A deployment filing by write would have to supply its own here.
@@ -290,6 +291,18 @@ func RegisterOperationsRegistry(i do.Injector) {
 	do.Provide(i, func(i do.Injector) (*operations.Registry, error) {
 		registry := operations.NewRegistry()
 
+		// Who is told when a request finishes. platform's do registration would pick a
+		// registered Notifier up on its own; this application calls NewFulfiller itself, so
+		// it hands the notifier over here instead.
+		notifier, notifierErr := newCompletionNotifier(
+			do.MustInvoke[database.Client](i),
+			do.MustInvoke[platformidentity.Store](i),
+			outboundEmailsTopic(do.MustInvoke[*queuescfg.Config](i)),
+		)
+		if notifierErr != nil {
+			return nil, platformerrors.Wrap(notifierErr, "building the data privacy completion notifier")
+		}
+
 		// The Fulfiller is discarded on purpose. Its whole effect here is the registration
 		// it performs into registry; nothing calls it directly afterwards, because the
 		// operations.Worker runs it through the kinds it registered.
@@ -312,6 +325,7 @@ func RegisterOperationsRegistry(i do.Injector) {
 			// broken download link.
 			platformdataprivacycfg.WithCompressor(do.MustInvoke[dataprivacycfg.ArtifactCompressor](i).Compressor),
 			platformdataprivacycfg.WithEncryptor(do.MustInvoke[dataprivacycfg.ArtifactEncryptorDecryptor](i).EncryptorDecryptor),
+			platformdataprivacycfg.WithFulfillerOptions(platformdataprivacy.WithFulfillerNotifier(notifier)),
 		); err != nil {
 			return nil, platformerrors.Wrap(err, "registering data privacy operation kinds")
 		}

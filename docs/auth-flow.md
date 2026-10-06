@@ -163,9 +163,9 @@ which returns a fifteen-minute token with no refresh token, minted by
 `PasswordResetService`, every RPC of which is anonymous:
 
 1. `RequestPasswordReset(email_address)` answers every address the same way, in the same time.
-   For a real one, `passwordreset.Service` issues a token and hands the mail to
-   `authentication.SignInMailers`, which writes a `password_reset_token_created` event carrying the
-   secret under `password_reset_token.secret`. The data change message handler renders the email.
+   For a real one, `passwordreset.Service` issues a token and hands the mail, secret included, to
+   platform's `notifications/mail` `QueuedMailer`, which queues it on the mail topic once the token
+   has committed. The async message handler's mail `Drainer` renders the email and sends it.
 2. `VerifyPasswordResetToken` lets the form say whether a link is still good.
 3. `CompletePasswordReset(token, new_password)` checks the password against `PasswordPolicy`,
    spends the token, writes the password through the identity store and revokes the user's other

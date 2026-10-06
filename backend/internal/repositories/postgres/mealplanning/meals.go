@@ -711,7 +711,7 @@ func (q *repository) CreateMeal(ctx context.Context, input *mealplanning.MealDat
 
 		// The event is another statement in this transaction, so it commits with the
 		// rows it describes.
-		if emitErr := q.events.Emit(ctx, tx, q.logger, mealplanning.MealCreatedServiceEventType, "", map[string]any{
+		if emitErr := q.emit(ctx, tx, q.logger, mealplanning.MealCreatedServiceEventType, "", map[string]any{
 			mealplanningkeys.MealIDKey: input.ID,
 		}); emitErr != nil {
 			return observability.PrepareError(emitErr, span, "enqueuing data change event")

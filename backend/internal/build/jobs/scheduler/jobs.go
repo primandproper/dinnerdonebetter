@@ -2,19 +2,16 @@ package scheduler
 
 import (
 	"context"
-	"errors"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
-	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/searchindexes"
 	queuetest "github.com/primandproper/dinnerdonebetter/backend/internal/services/internalops/workers/queue_test"
-	mealplanningindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 	mealplanfinalization "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_finalization"
 	mealplantasknotifications "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_task_notifications"
 
 	platformdataprivacy "github.com/primandproper/platform-go/v15/dataprivacy"
 	"github.com/primandproper/platform-go/v15/metering"
 	"github.com/primandproper/platform-go/v15/retention"
-	searchsync "github.com/primandproper/platform-go/v15/searchsync"
 	"github.com/primandproper/primitives-go/v2/distributedlock"
 	"github.com/primandproper/primitives-go/v2/jobs"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
@@ -173,31 +170,14 @@ func RegisterScheduler(i do.Injector) {
 // runReindexers walks every search index against its source, one after another.
 //
 // A failure does not stop the others: the indexes are independent, and an Algolia outage on one
-// of them is no reason to leave the other eight un-rebuilt. The errors are joined so the job
-// still reports as failed, with all of what went wrong rather than the first of it.
+// of them is no reason to leave the other eight un-rebuilt. ReindexAll joins the errors, so the
+// job still reports as failed, with all of what went wrong rather than the first of it — and it
+// walks the Registry rather than a list kept here, so an index added to it is rebuilt without
+// this changing.
 func runReindexers(i do.Injector) func(context.Context) error {
 	return func(ctx context.Context) error {
-		reindexers := []interface {
-			Reindex(context.Context) (*searchsync.ReindexResult, error)
-		}{
-			do.MustInvoke[*searchsync.Reindexer[identityindexing.UserSearchSubset]](i),
-			do.MustInvoke[*searchsync.Reindexer[mealplanningindexing.MealSearchSubset]](i),
-			do.MustInvoke[*searchsync.Reindexer[mealplanningindexing.RecipeSearchSubset]](i),
-			do.MustInvoke[*searchsync.Reindexer[mealplanningindexing.ValidIngredientSearchSubset]](i),
-			do.MustInvoke[*searchsync.Reindexer[mealplanningindexing.ValidInstrumentSearchSubset]](i),
-			do.MustInvoke[*searchsync.Reindexer[mealplanningindexing.ValidMeasurementUnitSearchSubset]](i),
-			do.MustInvoke[*searchsync.Reindexer[mealplanningindexing.ValidPreparationSearchSubset]](i),
-			do.MustInvoke[*searchsync.Reindexer[mealplanningindexing.ValidIngredientStateSearchSubset]](i),
-			do.MustInvoke[*searchsync.Reindexer[mealplanningindexing.ValidVesselSearchSubset]](i),
-		}
+		_, err := do.MustInvoke[*searchindexes.Registry](i).ReindexAll(ctx)
 
-		var errs []error
-		for _, reindexer := range reindexers {
-			if _, err := reindexer.Reindex(ctx); err != nil {
-				errs = append(errs, err)
-			}
-		}
-
-		return errors.Join(errs...)
+		return err
 	}
 }

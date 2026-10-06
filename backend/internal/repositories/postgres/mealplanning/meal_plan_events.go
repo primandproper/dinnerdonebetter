@@ -313,7 +313,7 @@ func (q *repository) CreateMealPlanEvent(ctx context.Context, input *types.MealP
 
 		// The event is another statement in this transaction, so it commits with the
 		// rows it describes.
-		if emitErr := q.events.Emit(ctx, tx, q.logger, types.MealPlanEventCreatedServiceEventType, "", map[string]any{
+		if emitErr := q.emit(ctx, tx, q.logger, types.MealPlanEventCreatedServiceEventType, "", map[string]any{
 			mealplanningkeys.MealPlanEventIDKey: input.ID,
 		}); emitErr != nil {
 			return observability.PrepareError(emitErr, span, "enqueuing data change event")
@@ -428,7 +428,7 @@ func (q *repository) SwapMealPlanEvents(ctx context.Context, mealPlanID, mealPla
 
 		// The event is another statement in this transaction, so it commits with the
 		// rows it describes.
-		if emitErr := q.events.Emit(ctx, tx, logger, types.MealPlanEventUpdatedServiceEventType, "", map[string]any{
+		if emitErr := q.emit(ctx, tx, logger, types.MealPlanEventUpdatedServiceEventType, "", map[string]any{
 			mealplanningkeys.MealPlanIDKey: mealPlanID,
 		}); emitErr != nil {
 			return observability.PrepareError(emitErr, span, "enqueuing data change event")

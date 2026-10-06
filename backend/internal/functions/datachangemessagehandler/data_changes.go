@@ -7,7 +7,6 @@ import (
 	"time"
 
 	analyticsevents "github.com/primandproper/dinnerdonebetter/backend/internal/domain/analytics"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/datachanges"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/internalops"
 
 	platformidentity "github.com/primandproper/platform-go/v15/identity"
@@ -99,7 +98,7 @@ func (a *AsyncDataChangeMessageHandler) handleDataChangeMessage(ctx context.Cont
 	//
 	// Webhook deliveries used to be one of these, one queue message per subscriber; they are
 	// now dispatch rows written inside the transaction that caused the event, by
-	// internal/repositories/postgres/events, and claimed by the delivery worker. Search index
+	// internal/recordingspine, and claimed by the delivery worker. Search index
 	// events used to be another; they are now outbox rows written by that same transaction.
 	// Both moved for the same reason: a fan-out performed downstream of a commit can fail on
 	// its own, leaving durable state and everything derived from it disagreeing.
@@ -197,26 +196,4 @@ func (a *AsyncDataChangeMessageHandler) user(ctx context.Context, logger logging
 	}
 
 	return user, nil
-}
-
-// stringFromEventContext returns a string value from one of this application's own messages'
-// context. The value may be a string or []byte depending on message serialization.
-func stringFromEventContext(changeMessage *datachanges.Message, key string) string {
-	if changeMessage == nil || changeMessage.Context == nil {
-		return ""
-	}
-
-	v, ok := changeMessage.Context[key]
-	if !ok {
-		return ""
-	}
-
-	switch s := v.(type) {
-	case string:
-		return s
-	case []byte:
-		return string(s)
-	default:
-		return ""
-	}
 }

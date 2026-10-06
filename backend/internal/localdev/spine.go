@@ -5,8 +5,8 @@ import (
 	"errors"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/recordingspine"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/observability"
@@ -32,13 +32,13 @@ func Spine(
 	auditRepo audit.Repository,
 	logger logging.Logger,
 	tracerProvider tracing.Provider,
-) (*events.Emitter, error) {
+) (*recordingspine.Spine, error) {
 	auditRecorder, ok := auditlogentries.RecorderFrom(auditRepo)
 	if !ok {
 		return nil, errNoPlatformRecorder
 	}
 
-	return events.New(ctx, databaseClient, auditRecorder, events.WithPillars(&observability.Pillars{
+	return recordingspine.New(ctx, databaseClient, auditRecorder, recordingspine.WithPillars(&observability.Pillars{
 		Logger:          logger,
 		TracerProvider:  tracerProvider,
 		MetricsProvider: metricsnoop.NewMetricsProvider(),

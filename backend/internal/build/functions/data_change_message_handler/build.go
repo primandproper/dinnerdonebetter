@@ -5,6 +5,7 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	commentstargets "github.com/primandproper/dinnerdonebetter/backend/internal/build/comments"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/build/queuedmail"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	mealplanningregistration "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/registration"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/push"
@@ -20,7 +21,9 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/uploadedmedia"
 	waitlistsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/waitlists"
 	webhooksstore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhooksstore"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/searchindexes"
 	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
+	mealplanningindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
 	analyticscfg "github.com/primandproper/primitives-go/v2/analytics/config"
 	databasecfg "github.com/primandproper/primitives-go/v2/database/config"
@@ -83,6 +86,9 @@ func BuildInjector(
 	// builds a session.
 	authorization.RegisterPolicyResolver(i)
 	identitystore.RegisterIdentityStore(i)
+	// The mailer the identity service hands an invitation to, and sign-in, password
+	// reset and waitlists their mail. See internal/build/queuedmail.
+	queuedmail.Register(i)
 	issue_reports.RegisterIssueReportsRepository(i)
 	uploadedmedia.RegisterUploadedMediaRepository(i)
 	webhooksstore.RegisterWebhooksStore(i)
@@ -96,8 +102,9 @@ func BuildInjector(
 	settingsrepo.RegisterSettingsRepository(i)
 	waitlistsrepo.RegisterWaitlistsRepository(i)
 
-	// indexing
-	identityindexing.RegisterUserSyncer(i)
+	// Every search index this process drains the topic of: one Registry, built from each
+	// domain's indexes. See internal/searchindexes.
+	searchindexes.Register(ctx, i, identityindexing.RegisterIndexes, mealplanningindexing.RegisterIndexes)
 
 	// searchers
 	RegisterSearchers(i)

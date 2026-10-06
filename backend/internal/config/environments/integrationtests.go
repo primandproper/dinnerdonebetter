@@ -79,6 +79,7 @@ func BuildIntegrationTestsConfig() *config.APIServiceConfig {
 			OutboundEmailsTopicName:      outboundEmailsTopicName,
 			SearchIndexRequestsTopicName: searchIndexRequestsTopicName,
 			MobileNotificationsTopicName: mobileNotificationsTopicName,
+			QueuedMailTopicName:          queuedMailTopicName,
 		},
 		Events: msgconfig.Config{
 			Consumer: msgconfig.MessageQueueConfig{

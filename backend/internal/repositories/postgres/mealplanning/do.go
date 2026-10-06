@@ -3,10 +3,12 @@ package mealplanning
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	domainmealplanning "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 
 	platformidentity "github.com/primandproper/platform-go/v15/identity"
 	"github.com/primandproper/platform-go/v15/mediaregistry"
+	"github.com/primandproper/platform-go/v15/outbox"
+	platformrecording "github.com/primandproper/platform-go/v15/recording"
+	"github.com/primandproper/platform-go/v15/webhooks"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
@@ -23,7 +25,9 @@ func RegisterMealPlanningRepository(i do.Injector) {
 			do.MustInvoke[audit.Repository](i),
 			do.MustInvoke[platformidentity.Store](i),
 			do.MustInvoke[database.Client](i),
-			do.MustInvoke[*events.Emitter](i),
+			do.MustInvoke[*webhooks.Emitter](i),
+			do.MustInvoke[*platformrecording.Recorder](i),
+			do.MustInvoke[*outbox.Writer](i),
 			do.MustInvoke[mediaregistry.Store](i),
 		), nil
 	})

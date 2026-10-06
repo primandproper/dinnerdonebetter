@@ -648,7 +648,7 @@ func (q *repository) CreateRecipeStep(ctx context.Context, input *mealplanning.R
 			return createErr
 		}
 
-		return q.events.EmitIndex(ctx, tx, indexevents.RecipeStepCreatedIndexTrigger, map[string]any{
+		return q.emitIndex(ctx, tx, indexevents.RecipeStepCreatedIndexTrigger, map[string]any{
 			mealplanningkeys.RecipeIDKey: input.BelongsToRecipe,
 		})
 	}); err != nil {

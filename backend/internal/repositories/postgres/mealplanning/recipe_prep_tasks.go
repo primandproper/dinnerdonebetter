@@ -202,7 +202,7 @@ func (q *repository) CreateRecipePrepTask(ctx context.Context, input *mealplanni
 
 		// The event is another statement in this transaction, so it commits with the
 		// rows it describes.
-		if emitErr := q.events.Emit(ctx, tx, logger, mealplanning.RecipePrepTaskCreatedServiceEventType, "", map[string]any{
+		if emitErr := q.emit(ctx, tx, logger, mealplanning.RecipePrepTaskCreatedServiceEventType, "", map[string]any{
 			mealplanningkeys.RecipeIDKey:         input.BelongsToRecipe,
 			mealplanningkeys.RecipePrepTaskIDKey: input.ID,
 		}); emitErr != nil {
