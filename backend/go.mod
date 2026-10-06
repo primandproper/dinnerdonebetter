@@ -31,8 +31,8 @@ require (
 	github.com/matcornic/hermes/v2 v2.1.0
 	github.com/modelcontextprotocol/go-sdk v1.6.1
 	github.com/pquerna/otp v1.5.0
-	github.com/primandproper/platform-go/v15 v15.0.0-00010101000000-000000000000
-	github.com/primandproper/primitives-go/v2 v2.12.0
+	github.com/primandproper/platform-go/v15 v15.0.0
+	github.com/primandproper/primitives-go/v2 v2.14.0
 	github.com/samber/do/v2 v2.0.0
 	github.com/shopspring/decimal v1.4.0
 	github.com/spf13/cobra v1.10.2
@@ -427,9 +427,4 @@ require (
 	sigs.k8s.io/randfill v1.0.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v6 v6.4.0 // indirect
 	sigs.k8s.io/yaml v1.6.0 // indirect
-)
-
-replace (
-	github.com/primandproper/platform-go/v15 => ../../platform-go
-	github.com/primandproper/primitives-go/v2 => ../../primitives-go
 )
