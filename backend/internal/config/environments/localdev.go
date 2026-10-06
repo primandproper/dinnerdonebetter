@@ -7,7 +7,6 @@ import (
 	authcfg "github.com/primandproper/dinnerdonebetter/backend/internal/authentication/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
-	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 	authservice "github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/handlers/authentication"
 	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
@@ -19,6 +18,8 @@ import (
 	oauth2database "github.com/primandproper/platform-go/v15/authentication/oauth2serverstore"
 	oauth2servercfg "github.com/primandproper/platform-go/v15/authentication/oauth2serverstore/config"
 	webauthncfg "github.com/primandproper/platform-go/v15/authentication/webauthnsessions/config"
+	platformdataprivacycfg "github.com/primandproper/platform-go/v15/dataprivacy/config"
+	"github.com/primandproper/platform-go/v15/service"
 	analyticscfg "github.com/primandproper/primitives-go/v2/analytics/config"
 	tokenscfg "github.com/primandproper/primitives-go/v2/authentication/tokens/config"
 	platformwebauthn "github.com/primandproper/primitives-go/v2/authentication/webauthn"
@@ -51,6 +52,7 @@ import (
 	"github.com/primandproper/primitives-go/v2/routing/backends/chi"
 	routingcfg "github.com/primandproper/primitives-go/v2/routing/config"
 	textsearchcfg "github.com/primandproper/primitives-go/v2/search/text/config"
+	"github.com/primandproper/primitives-go/v2/server/grpc"
 	"github.com/primandproper/primitives-go/v2/server/http"
 	uploadscfg "github.com/primandproper/primitives-go/v2/uploads/config"
 	"github.com/primandproper/primitives-go/v2/uploads/objectstorage"
@@ -155,6 +157,63 @@ func BuildLocalDevConfig() *config.APIServiceConfig {
 	}
 
 	return &config.APIServiceConfig{
+		Service: service.Config{
+			Name:       otelServiceName,
+			HTTPClient: defaultHTTPClientConfig(),
+			Encoding: &encoding.Config{
+				ContentType: contentTypeJSON,
+			},
+			MessageQueue: &msgconfig.Config{
+				Consumer: msgconfig.MessageQueueConfig{
+					Provider: msgconfig.ProviderRedis,
+					Redis: redis.Config{
+						QueueAddresses: []string{dockerComposeWorkerQueueAddress},
+					},
+				},
+				Publisher: msgconfig.MessageQueueConfig{
+					Provider: msgconfig.ProviderRedis,
+					Redis: redis.Config{
+						QueueAddresses: []string{dockerComposeWorkerQueueAddress},
+					},
+				},
+			},
+			Observability: localObservabilityConfig(),
+			// Written out rather than left to the server's defaults: a block with nothing in it
+			// is a block nobody configured, and service.Register registers no gRPC server for one.
+			GRPCServer: &grpc.Config{
+				Port: defaultGRPCPort,
+			},
+			FeatureFlags: &featureflagscfg.Config{
+				// we're using a noop version of this in localdev right now, but it still tries to instantiate a circuit breaker.
+				Provider: featureflagscfg.ProviderNoop,
+				CircuitBreaker: circuitbreakingcfg.Config{
+					Name:                   featureFlaggerSource,
+					ErrorRate:              .5,
+					MinimumSampleThreshold: 100,
+				},
+			},
+			Database: &databasecfg.Config{
+				Provider:        databasecfg.ProviderPostgres,
+				Debug:           true,
+				RunMigrations:   true,
+				LogQueries:      true,
+				MaxPingAttempts: maxAttempts,
+				PingWaitPeriod:  time.Second,
+				MaxIdleConns:    5,
+				MaxOpenConns:    7,
+				ConnMaxLifetime: 30 * time.Minute,
+				ReadConnection:  localdevPostgresDBConnectionDetails,
+				WriteConnection: localdevPostgresDBConnectionDetails,
+			},
+			HTTPServer: &http.Config{
+				Port:            defaultHTTPPort,
+				StartupDeadline: time.Minute,
+				AppleAppSiteAssociation: &http.AppleAppSiteAssociationConfig{
+					TeamID:   appleTeamID,
+					BundleID: appleBundleID,
+				},
+			},
+		},
 		Webhooks:     buildWebhooksConfig(),
 		Routing:      localRoutingConfig(),
 		Metering:     config.DefaultMeteringConfig(),
@@ -192,32 +251,6 @@ func BuildLocalDevConfig() *config.APIServiceConfig {
 		Meta: config.MetaSettings{
 			Debug:   true,
 			RunMode: developmentEnv,
-		},
-		Encoding: encoding.Config{
-			ContentType: contentTypeJSON,
-		},
-		Events: msgconfig.Config{
-			Consumer: msgconfig.MessageQueueConfig{
-				Provider: msgconfig.ProviderRedis,
-				Redis: redis.Config{
-					QueueAddresses: []string{dockerComposeWorkerQueueAddress},
-				},
-			},
-			Publisher: msgconfig.MessageQueueConfig{
-				Provider: msgconfig.ProviderRedis,
-				Redis: redis.Config{
-					QueueAddresses: []string{dockerComposeWorkerQueueAddress},
-				},
-			},
-		},
-		FeatureFlags: featureflagscfg.Config{
-			// we're using a noop version of this in localdev right now, but it still tries to instantiate a circuit breaker.
-			Provider: featureflagscfg.ProviderNoop,
-			CircuitBreaker: circuitbreakingcfg.Config{
-				Name:                   featureFlaggerSource,
-				ErrorRate:              .5,
-				MinimumSampleThreshold: 100,
-			},
 		},
 		Email: emailcfg.Config{
 			// Nothing sends mail in this environment; v9 makes that say so rather than assume it.
@@ -268,30 +301,6 @@ func BuildLocalDevConfig() *config.APIServiceConfig {
 				MinimumSampleThreshold: 100,
 			},
 		},
-		HTTPServer: http.Config{
-			Port:            defaultHTTPPort,
-			StartupDeadline: time.Minute,
-			AppleAppSiteAssociation: &http.AppleAppSiteAssociationConfig{
-				TeamID:   appleTeamID,
-				BundleID: appleBundleID,
-			},
-		},
-		Database: dbcfg.Config{
-			Config: databasecfg.Config{
-				Provider:        databasecfg.ProviderPostgres,
-				Debug:           true,
-				RunMigrations:   true,
-				LogQueries:      true,
-				MaxPingAttempts: maxAttempts,
-				PingWaitPeriod:  time.Second,
-				MaxIdleConns:    5,
-				MaxOpenConns:    7,
-				ConnMaxLifetime: 30 * time.Minute,
-				ReadConnection:  localdevPostgresDBConnectionDetails,
-				WriteConnection: localdevPostgresDBConnectionDetails,
-			},
-		},
-		Observability: localObservabilityConfig(),
 		// Written out rather than left to the fallback in ProvidePasskeyConfig, so that a
 		// developer reading this file can see what a passkey ceremony is configured with —
 		// including that the ceremony store is the table here too. The in-memory store this
@@ -360,16 +369,17 @@ func BuildLocalDevConfig() *config.APIServiceConfig {
 				},
 			},
 			DataPrivacy: dataprivacycfg.Config{
-				Uploads: uploadscfg.Config{
-					Storage: objectstorage.Config{
-						FilesystemConfig: &objectstorage.FilesystemConfig{RootDirectory: "/tmp"},
-						BucketName:       "userdata",
-						Provider:         objectstorage.FilesystemProvider,
-					},
-					Debug: false,
-				},
-				Encryption:            encryptioncfg.Config{Provider: encryptioncfg.ProviderAES, CurrentKeyID: "v1"},
 				ArtifactEncryptionKey: localDisclosureArtifactEncryptionKey,
+				Platform: platformdataprivacycfg.Config{
+					Artifacts: &platformdataprivacycfg.ArtifactsConfig{
+						Storage: &objectstorage.Config{
+							FilesystemConfig: &objectstorage.FilesystemConfig{RootDirectory: "/tmp"},
+							BucketName:       "userdata",
+							Provider:         objectstorage.FilesystemProvider,
+						},
+						Encryption: &encryptioncfg.Config{Provider: encryptioncfg.ProviderAES, CurrentKeyID: "v1"},
+					},
+				},
 			},
 			Users: identitycfg.Config{
 				PublicMediaURLPrefix: "http://localhost:8000/uploads",

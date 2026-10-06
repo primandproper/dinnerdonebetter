@@ -19,5 +19,10 @@ type PaymentsDataManager interface {
 	// records. Verification and parsing are a payments.PaymentProcessor's job and happen at the
 	// transport edge, where the request still exists; by the time an event reaches here it is
 	// domain data, and this manager needs to know nothing about HTTP.
-	ProcessWebhookEvent(ctx context.Context, provider string, event *payments.ParsedWebhookEvent, accountID string) error
+	//
+	// The account is the event's own and nothing else's. There is no parameter to name another
+	// one: this used to take an accountID the webhook handler read from an unsigned query
+	// parameter, which overrode the account in the signed payload, so anybody who could reach
+	// the URL could file a provider's report against an account of their choosing.
+	ProcessWebhookEvent(ctx context.Context, provider string, event *payments.ParsedWebhookEvent) error
 }

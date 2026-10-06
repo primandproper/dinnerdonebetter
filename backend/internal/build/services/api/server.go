@@ -13,29 +13,10 @@ import (
 	"github.com/primandproper/primitives-go/v2/observability"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/profiling"
-
-	"github.com/samber/do/v2"
-)
-
-const (
-	// serviceName is what this process calls itself. It is the name the platform HTTP
-	// server was already registered under, so the service and the server it serves from
-	// report the same thing.
-	serviceName = "api_server"
-
-	// shutdownTimeout bounds the whole of service.Shutdown — draining both servers,
-	// closing every client — and, after it, the release of what the service does not
-	// own: the profiler and the DI container.
-	shutdownTimeout = 10 * time.Second
 )
 
 type Server struct {
 	logger logging.Logger
-
-	// svc is the lifecycle platform's service package assembled from the container:
-	// both servers, every client that holds a connection, and the shutdown ordering
-	// between them. It is what used to be written out longhand in Run.
-	svc *service.Service
 
 	// profiler is the one pillar this process builds outside the container — main
 	// builds the pillars before the container exists so a config that fails to boot
@@ -46,22 +27,33 @@ type Server struct {
 	// panics the process on its way out.
 	profiler profiling.Provider
 
+	// svc is the lifecycle platform's service package assembled from the container:
+	// both servers, every client that holds a connection, and the shutdown ordering
+	// between them. It is what used to be written out longhand in Run.
+	svc *service.Service
+
 	// shutdownContainer releases the DI container's resources at shutdown. service.Service
 	// holds an ordering, not the injector, so everything registered with the container that
 	// the platform's own walk does not name — the container's observability providers, the
 	// multi-source analytics reporter — is still the container's to release. Storing it as a
 	// plain error-returning func keeps samber/do confined to the assembly in NewServer.
 	shutdownContainer func(ctx context.Context) error
+
+	// shutdownTimeout bounds the release of what the service does not own — the profiler and
+	// the DI container — after service.Shutdown has spent the same budget on its own drains.
+	shutdownTimeout time.Duration
 }
 
 func NewServer(ctx context.Context, pillars *observability.Pillars, cfg *config.APIServiceConfig) (*Server, error) {
 	// Both servers share one DI container, so expensive singletons (DB pool, message
 	// queue connections, observability stack) are built once and migrations run exactly
 	// once per boot.
-	injector := grpcapi.BuildInjector(ctx, cfg)
-	httpapi.RegisterHTTPServerServices(injector)
+	injector, err := grpcapi.BuildInjector(ctx, cfg)
+	if err != nil {
+		return nil, err
+	}
 
-	provideServiceConfig(injector)
+	httpapi.RegisterHTTPServerServices(injector)
 
 	// New is eager: it builds the database client, the queue providers, and both servers
 	// here rather than at the first request, so a misconfigured dependency is a startup
@@ -74,9 +66,10 @@ func NewServer(ctx context.Context, pillars *observability.Pillars, cfg *config.
 	}
 
 	return &Server{
-		logger:   logging.EnsureLogger(pillars.Logger),
-		svc:      svc,
-		profiler: pillars.Profiler,
+		logger:          logging.EnsureLogger(pillars.Logger),
+		shutdownTimeout: cfg.Service.ShutdownTimeout,
+		svc:             svc,
+		profiler:        pillars.Profiler,
 		shutdownContainer: func(ctx context.Context) error {
 			if report := injector.ShutdownWithContext(ctx); report != nil && !report.Succeed {
 				return report
@@ -84,18 +77,6 @@ func NewServer(ctx context.Context, pillars *observability.Pillars, cfg *config.
 			return nil
 		},
 	}, nil
-}
-
-// provideServiceConfig registers the *service.Config service.New reads.
-//
-// It is not the composition root's config: this service is composed by BuildInjector,
-// which registers every subsystem itself, so the only two fields that mean anything
-// here are the two New reads — the name it logs under and the budget its shutdown gets.
-func provideServiceConfig(i do.Injector) {
-	do.ProvideValue(i, &service.Config{
-		Name:            serviceName,
-		ShutdownTimeout: shutdownTimeout,
-	})
 }
 
 // Run serves until a shutdown signal arrives or either server stops serving, then
@@ -126,7 +107,7 @@ func (s *Server) Run(ctx context.Context) error {
 	// pillars. What is left is what it does not own, and it is released on a context free
 	// of the cancellation that ended Run — draining on a cancelled context cancels every
 	// drain it is made of.
-	releaseCtx, cancelRelease := context.WithTimeout(context.WithoutCancel(ctx), shutdownTimeout)
+	releaseCtx, cancelRelease := context.WithTimeout(context.WithoutCancel(ctx), s.shutdownTimeout)
 	defer cancelRelease()
 
 	if s.profiler != nil {

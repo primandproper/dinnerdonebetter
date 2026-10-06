@@ -12,11 +12,13 @@ import (
 	"context"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 
 	"github.com/primandproper/platform-go/v15/callers"
 	platformissuereports "github.com/primandproper/platform-go/v15/issuereports"
 	issuereportsgrpc "github.com/primandproper/platform-go/v15/issuereports/grpc"
 	"github.com/primandproper/platform-go/v15/issuereports/issuereportspb"
+	platformauthz "github.com/primandproper/primitives-go/v2/authorization"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/metrics"
@@ -25,21 +27,35 @@ import (
 	"github.com/samber/do/v2"
 )
 
-// ownReportOrAdmin is this deployment's rule: a report is its reporter's, and a
-// service administrator's.
+// ownReportOrAdmin is this deployment's rule: a report is its reporter's, and
+// the operator's who holds ReadAnyIssueReportsPermission.
 //
 // The scope has already done most of the work by the time this is asked — a
 // report in another account is not found rather than refused — so what is left
 // is one account's members not reading each other's reports.
-type ownReportOrAdmin struct{}
+//
+// The operator half reads a permission off the caller's grants rather than the
+// name of their role. platform's ReportAuthorizer documentation asks for exactly
+// that, and names the same grant: the one that reads every account's queue is
+// the one that reads any report in it. The reporter half is platform's own
+// ReporterAuthorizer, which refuses a caller with no identifier rather than
+// matching them against a report filed by nobody.
+type ownReportOrAdmin struct {
+	issuereportsgrpc.ReporterAuthorizer
+
+	grants platformauthz.GrantsExtractor
+}
+
+// operator reports whether the caller holds the grant that reads any report.
+func (a ownReportOrAdmin) operator(ctx context.Context) bool {
+	grants, ok := a.grants(ctx)
+
+	return ok && grants.Has(authorization.ReadAnyIssueReportsPermission)
+}
 
 // AuthorizeReport is asked once a keyed read has resolved whose report it is.
-func (ownReportOrAdmin) AuthorizeReport(ctx context.Context, caller callers.Principal, report *platformissuereports.Report) error {
-	if report != nil && caller != nil && report.Reporter == caller.UserID() {
-		return nil
-	}
-
-	if sessions.FromContext(ctx).GetServicePermissions().IsServiceAdmin() {
+func (a ownReportOrAdmin) AuthorizeReport(ctx context.Context, caller callers.Principal, report *platformissuereports.Report) error {
+	if a.ReporterAuthorizer.AuthorizeReport(ctx, caller, report) == nil || a.operator(ctx) {
 		return nil
 	}
 
@@ -47,12 +63,8 @@ func (ownReportOrAdmin) AuthorizeReport(ctx context.Context, caller callers.Prin
 }
 
 // AuthorizeReporter is asked before paging the reports one person filed.
-func (ownReportOrAdmin) AuthorizeReporter(ctx context.Context, caller callers.Principal, reporter string) error {
-	if caller != nil && reporter == caller.UserID() {
-		return nil
-	}
-
-	if sessions.FromContext(ctx).GetServicePermissions().IsServiceAdmin() {
+func (a ownReportOrAdmin) AuthorizeReporter(ctx context.Context, caller callers.Principal, reporter string) error {
+	if a.ReporterAuthorizer.AuthorizeReporter(ctx, caller, reporter) == nil || a.operator(ctx) {
 		return nil
 	}
 
@@ -67,7 +79,7 @@ func RegisterIssueReportsService(i do.Injector) {
 			do.MustInvoke[database.Client](i),
 			// Account-scoped, not global. See the package comment.
 			sessions.AccountScopedPrincipalFromContext,
-			ownReportOrAdmin{},
+			ownReportOrAdmin{grants: sessions.GrantsFromContext},
 			issuereportsgrpc.WithGrantsExtractor(sessions.GrantsFromContext),
 			issuereportsgrpc.WithLogger(do.MustInvoke[logging.Logger](i)),
 			issuereportsgrpc.WithTracerProvider(do.MustInvoke[tracing.Provider](i)),

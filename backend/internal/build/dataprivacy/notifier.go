@@ -16,7 +16,28 @@ import (
 	"github.com/primandproper/primitives-go/v2/email"
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/tenancy"
+
+	"github.com/samber/do/v2"
 )
+
+// RegisterCompletionNotifier registers the dataprivacy.Notifier platform's fulfiller tells when a
+// request finishes. platform's dataprivacy/config registration picks a registered Notifier up on
+// its own, so this is the whole of the wiring; a process that builds no fulfiller never resolves
+// it.
+func RegisterCompletionNotifier(i do.Injector) {
+	do.Provide(i, func(i do.Injector) (platformdataprivacy.Notifier, error) {
+		notifier, err := newCompletionNotifier(
+			do.MustInvoke[database.Client](i),
+			do.MustInvoke[platformidentity.Store](i),
+			outboundEmailsTopic(do.MustInvoke[*queuescfg.Config](i)),
+		)
+		if err != nil {
+			return nil, platformerrors.Wrap(err, "building the data privacy completion notifier")
+		}
+
+		return notifier, nil
+	})
+}
 
 // newCompletionNotifier builds who the Fulfiller tells when a subject access request finishes:
 // platform's EmailNotifier, addressed to the subject's own address, sent through the outbox.

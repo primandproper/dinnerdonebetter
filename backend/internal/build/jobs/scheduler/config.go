@@ -2,69 +2,29 @@ package scheduler
 
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
-	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
-	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
 
-	meteringcfg "github.com/primandproper/platform-go/v15/metering/config"
-	operationscfg "github.com/primandproper/platform-go/v15/operations/config"
-	"github.com/primandproper/platform-go/v15/saga"
-	webhookscfg "github.com/primandproper/platform-go/v15/webhooks/config"
 	"github.com/primandproper/platform-go/v15/workqueue"
-	analyticscfg "github.com/primandproper/primitives-go/v2/analytics/config"
-	capitalismcfg "github.com/primandproper/primitives-go/v2/capitalism/config"
-	databasecfg "github.com/primandproper/primitives-go/v2/database/config"
-	msgconfig "github.com/primandproper/primitives-go/v2/messagequeue/config"
 	notificationscfg "github.com/primandproper/primitives-go/v2/notifications/mobile/config"
-	"github.com/primandproper/primitives-go/v2/observability"
 	textsearchcfg "github.com/primandproper/primitives-go/v2/search/text/config"
 
 	"github.com/samber/do/v2"
 )
 
-// RegisterConfigs registers all config sub-fields with the injector.
+// RegisterConfigs registers the config sub-fields this application's own registrations read.
+//
+// Everything platform builds reads its block from the injector already: service.Register put each
+// one there beside the registration that consumes it. What is left is what platform has no block
+// for.
 func RegisterConfigs(i do.Injector) {
 	do.Provide[*queuescfg.Config](i, func(i do.Injector) (*queuescfg.Config, error) {
 		return &do.MustInvoke[*config.SchedulerConfig](i).Queues, nil
 	})
-	do.Provide[*msgconfig.Config](i, func(i do.Injector) (*msgconfig.Config, error) {
-		return &do.MustInvoke[*config.SchedulerConfig](i).Events, nil
-	})
-	do.Provide[*observability.Config](i, func(i do.Injector) (*observability.Config, error) {
-		return &do.MustInvoke[*config.SchedulerConfig](i).Observability, nil
-	})
-	do.Provide[*dbcfg.Config](i, func(i do.Injector) (*dbcfg.Config, error) {
-		return &do.MustInvoke[*config.SchedulerConfig](i).Database, nil
-	})
-	do.Provide[*databasecfg.Config](i, func(i do.Injector) (*databasecfg.Config, error) {
-		return &do.MustInvoke[*dbcfg.Config](i).Config, nil
-	})
-	do.Provide[*analyticscfg.Config](i, func(i do.Injector) (*analyticscfg.Config, error) {
-		return &do.MustInvoke[*config.SchedulerConfig](i).Analytics, nil
-	})
 	do.Provide[*textsearchcfg.Config](i, func(i do.Injector) (*textsearchcfg.Config, error) {
 		return &do.MustInvoke[*config.SchedulerConfig](i).Search, nil
 	})
-	do.Provide[*dataprivacycfg.Config](i, func(i do.Injector) (*dataprivacycfg.Config, error) {
-		return &do.MustInvoke[*config.SchedulerConfig](i).DataPrivacy, nil
-	})
-	do.Provide[*saga.WorkerConfig](i, func(i do.Injector) (*saga.WorkerConfig, error) {
-		return &do.MustInvoke[*config.SchedulerConfig](i).Sagas, nil
-	})
-	do.Provide[*meteringcfg.Config](i, func(i do.Injector) (*meteringcfg.Config, error) {
-		return &do.MustInvoke[*config.SchedulerConfig](i).Metering, nil
-	})
-	do.Provide[*capitalismcfg.Config](i, func(i do.Injector) (*capitalismcfg.Config, error) {
-		return &do.MustInvoke[*config.SchedulerConfig](i).Capitalism, nil
-	})
-	do.Provide[*operationscfg.Config](i, func(i do.Injector) (*operationscfg.Config, error) {
-		return &do.MustInvoke[*config.SchedulerConfig](i).Operations, nil
-	})
 	do.Provide[*config.ScheduledJobsConfig](i, func(i do.Injector) (*config.ScheduledJobsConfig, error) {
 		return &do.MustInvoke[*config.SchedulerConfig](i).Jobs, nil
-	})
-	do.Provide[*webhookscfg.Config](i, func(i do.Injector) (*webhookscfg.Config, error) {
-		return &do.MustInvoke[*config.SchedulerConfig](i).Webhooks, nil
 	})
 	// A pointer, which is what RegisterPushSender resolves: NewPushSender applies its
 	// defaults to what it is handed, and a value copy would discard them.

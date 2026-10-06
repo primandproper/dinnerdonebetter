@@ -12,7 +12,9 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 	paymentswebhook "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/http"
 
+	capitalismcfg "github.com/primandproper/primitives-go/v2/capitalism/config"
 	"github.com/primandproper/primitives-go/v2/encoding"
+	"github.com/primandproper/primitives-go/v2/fake"
 	"github.com/primandproper/primitives-go/v2/healthcheck"
 	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
 	metricsnoop "github.com/primandproper/primitives-go/v2/observability/metrics/noop"
@@ -267,9 +269,9 @@ func Test_ProvideAPIRouter_requestBodyBound(T *testing.T) {
 
 		res := postTo(t, buildAPIRouter(t, &stubAuthService{}, registry), "/api/payments/webhooks/stripe", `{"type":"test"}`)
 
-		// The stub registry knows no providers, so the handler's own answer is a 400 — which is
+		// The stub registry knows no providers, so the handler's own answer is a 500 — which is
 		// only reachable by running.
-		assert.Equal(t, http.StatusBadRequest, res.Code)
+		assert.Equal(t, http.StatusInternalServerError, res.Code)
 		assert.True(t, registry.consulted)
 	})
 
@@ -283,6 +285,33 @@ func Test_ProvideAPIRouter_requestBodyBound(T *testing.T) {
 		// Signature verification reads the body, so a body nobody has to hold is one nobody has
 		// to verify.
 		assert.Equal(t, http.StatusRequestEntityTooLarge, res.Code)
+		assert.False(t, registry.consulted)
+	})
+}
+
+func Test_ProvideAPIRouter_paymentsWebhookRoutes(T *testing.T) {
+	T.Parallel()
+
+	for _, provider := range []string{capitalismcfg.StripeProvider, capitalismcfg.RevenueCatProvider} {
+		T.Run(provider+" has a route of its own", func(t *testing.T) {
+			t.Parallel()
+
+			registry := &stubProcessorRegistry{}
+
+			postTo(t, buildAPIRouter(t, &stubAuthService{}, registry), "/api/payments/webhooks/"+provider, `{}`)
+
+			assert.True(t, registry.consulted)
+		})
+	}
+
+	T.Run("a provider nobody mounted is the router's 404", func(t *testing.T) {
+		t.Parallel()
+
+		registry := &stubProcessorRegistry{}
+
+		res := postTo(t, buildAPIRouter(t, &stubAuthService{}, registry), "/api/payments/webhooks/"+fake.BuildFakeID(), `{}`)
+
+		assert.Equal(t, http.StatusNotFound, res.Code)
 		assert.False(t, registry.consulted)
 	})
 }

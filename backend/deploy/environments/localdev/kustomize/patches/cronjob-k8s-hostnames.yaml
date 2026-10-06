@@ -13,12 +13,12 @@
 - op: add
   path: "/spec/jobTemplate/spec/template/spec/containers/0/env/-"
   value:
-    name: DINNER_DONE_BETTER_EVENTS_CONSUMER_REDIS_QUEUE_ADDRESSES
+    name: DINNER_DONE_BETTER_MESSAGE_QUEUE_CONSUMER_REDIS_QUEUE_ADDRESSES
     value: "redis-master.localdev.svc.cluster.local:6379"
 - op: add
   path: "/spec/jobTemplate/spec/template/spec/containers/0/env/-"
   value:
-    name: DINNER_DONE_BETTER_EVENTS_PUBLISHER_REDIS_QUEUE_ADDRESSES
+    name: DINNER_DONE_BETTER_MESSAGE_QUEUE_PUBLISHER_REDIS_QUEUE_ADDRESSES
     value: "redis-master.localdev.svc.cluster.local:6379"
 - op: add
   path: "/spec/jobTemplate/spec/template/spec/containers/0/env/-"

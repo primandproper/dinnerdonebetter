@@ -31,23 +31,27 @@ EraseUser documentation says to resolve the subject's accounts first for exactly
 this reason. Every write here takes the caller's database.Tx, so a failure
 anywhere in the erasure takes the transfers and the deletions back with it.
 
-# The one statement that reaches a platform table
+# Deleting a household
 
-Deleting an account is a DELETE this package issues against identity's own
-table, because platform's Store offers ArchiveAccount and no delete.
+A solo household is deleted through identity.Store.DeleteAccount, on the
+erasure's transaction. It is the store's one destructive account write, kept off
+the Service and the wire on purpose, and an erasure that leaves an account with
+nobody to hand it to is one of the two callers platform built it for. It
+carries no hook, so the deletion is recorded by what drives it: the privacy
+request that ran the erasure, and the Outcome this package reports into it.
 
 Archiving would not be an erasure. An archived household keeps the row, and the
 row keeps the name the erased person chose it; and archiving the account leaves
-every one of this application's twelve tables that cascade from it — the meal
-plans, the recipes, the webhooks, the subscriptions — untouched, because they
-cascade from a deletion rather than from a flag. A solo household's contents are
-the erased person's data by definition, so what the subject is owed is the
-deletion the foreign keys already perform.
+every one of this application's tables that cascade from it — the meal plans,
+the recipes, the webhooks, the subscriptions — untouched, because they cascade
+from a deletion rather than from a flag. A solo household's contents are the
+erased person's data by definition, so what the subject is owed is the deletion
+the foreign keys already perform.
 
-A Store.DeleteAccount would be the tidier home for it and is worth asking
-platform for later. It is not worth blocking on: one statement against a table
-whose schema platform owns is a small and visible coupling, and it is named here
-so that a schema change upstream lands on a comment rather than on a surprise.
+DeleteAccount clears identity's own rows — the memberships, their roles, the
+invitations — and leaves a consumer's tables to the consumer. This
+application's are cleared by the same statement: the migrations re-create each
+of their account keys ON DELETE CASCADE, so the row going takes them with it.
 */
 package succession
 
@@ -98,31 +102,15 @@ type Succession struct {
 	_ struct{} `json:"-"`
 
 	store identity.Store
-
-	// tableName is the accounts table the solo-household delete runs against.
-	// It is derived from the same prefix the store was built with; see the
-	// package documentation for why this package issues that statement at all.
-	tableName string
 }
 
 // New builds a Succession over an identity store.
-//
-// tablePrefix must be the prefix the store was built with. They are two
-// arguments rather than one because platform's Store does not report its own
-// prefix, and a Succession that guessed would delete from a table that is not
-// the one the transfers were read from — or, on a shared database, somebody
-// else's.
-func New(store identity.Store, tablePrefix string) (*Succession, error) {
+func New(store identity.Store) (*Succession, error) {
 	if store == nil {
 		return nil, ErrNilStore
 	}
 
-	name := "identity_accounts"
-	if tablePrefix != "" {
-		name = tablePrefix + "_" + name
-	}
-
-	return &Succession{store: store, tableName: name}, nil
+	return &Succession{store: store}, nil
 }
 
 // Apply transfers or deletes every household the subject owns, and reports what
@@ -152,8 +140,8 @@ func (s *Succession) Apply(
 		}
 
 		if successor == "" {
-			if deleteErr := s.deleteAccount(ctx, tx, accountID); deleteErr != nil {
-				return outcome, deleteErr
+			if _, deleteErr := s.store.DeleteAccount(ctx, tx, scope, accountID); deleteErr != nil {
+				return outcome, platformerrors.Wrapf(deleteErr, "deleting account %q", accountID)
 			}
 
 			outcome.DeletedAccountIDs = append(outcome.DeletedAccountIDs, accountID)
@@ -219,18 +207,17 @@ func (s *Succession) successorFor(
 	scope tenancy.Scope,
 	accountID, subjectUserID string,
 ) (string, error) {
-	roster, err := dataprivacy.CollectAll(ctx, func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[identity.MembershipWithUser], error) {
-		return s.store.ListAccountMembers(ctx, tx, scope, accountID, filter)
-	})
+	// On the erasure's transaction, so the roster this decides from is the one the
+	// delete or the transfer then acts on.
+	roster, err := identity.ListAllAccountMembers(ctx, tx, scope, s.store, accountID)
 	if err != nil {
 		return "", platformerrors.Wrapf(err, "listing members of account %q", accountID)
 	}
 
 	var candidates []identity.Membership
 
-	for i := range roster {
-		member := roster[i]
-		if member.BelongsToUser == subjectUserID {
+	for _, member := range roster {
+		if member == nil || member.BelongsToUser == subjectUserID {
 			continue
 		}
 
@@ -257,17 +244,4 @@ func (s *Succession) successorFor(
 	})
 
 	return candidates[0].BelongsToUser, nil
-}
-
-// deleteAccount removes the household row, and with it everything this
-// application's schema hangs off it by ON DELETE CASCADE.
-//
-// See the package documentation for why this is a statement rather than a Store
-// call.
-func (s *Succession) deleteAccount(ctx context.Context, tx database.Tx, accountID string) error {
-	if _, err := tx.ExecContext(ctx, `DELETE FROM `+s.tableName+` WHERE id = $1`, accountID); err != nil {
-		return platformerrors.Wrapf(err, "deleting account %q", accountID)
-	}
-
-	return nil
 }

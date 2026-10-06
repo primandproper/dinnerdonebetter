@@ -7,13 +7,13 @@ import (
 
 	schedulerbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/jobs/scheduler"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
-	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
 
 	platformdataprivacy "github.com/primandproper/platform-go/v15/dataprivacy"
 	platformdataprivacycfg "github.com/primandproper/platform-go/v15/dataprivacy/config"
 	"github.com/primandproper/platform-go/v15/operations"
+	"github.com/primandproper/platform-go/v15/service"
 	"github.com/primandproper/primitives-go/v2/clock"
-	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/uploads"
 
 	"github.com/samber/do/v2"
 )
@@ -59,8 +59,9 @@ type DataPrivacyFulfillment struct {
 	Operations         operations.Service
 	OperationsRegistry *operations.Registry
 
-	// Artifacts is where completed exports' artifacts are kept.
-	Artifacts dataprivacycfg.ArtifactUploadManager
+	// Artifacts is where completed exports' artifacts are kept: the upload manager platform's
+	// artifact storage built for them, not the application's shared one.
+	Artifacts uploads.UploadManager
 
 	// Shutdown releases the container: the connection pool this half opened, and the queue's
 	// goroutine.
@@ -79,7 +80,20 @@ type DataPrivacyFulfillment struct {
 // open, and a request submitted under one queue name is not one anything else claims — and a
 // harness that fed both halves the same struct could never notice if they stopped.
 func NewDataPrivacyFulfillment(ctx context.Context, cfg *config.SchedulerConfig) (*DataPrivacyFulfillment, error) {
-	i := schedulerbuild.BuildInjector(ctx, cfg)
+	i, err := schedulerbuild.BuildInjector(ctx, cfg)
+	if err != nil {
+		return nil, fmt.Errorf("building the scheduler's container: %w", err)
+	}
+
+	// Assembled the way the scheduler process assembles it, though nothing here is run through
+	// it. New builds everything the config named, and one of those things is what this harness
+	// cannot do without: platform's fulfiller registers the privacy kinds into the operations
+	// registry when it is built, and nothing the worker below resolves depends on it. A worker
+	// resolved straight out of the container claims every privacy operation and rejects each one
+	// as a kind it has never heard of.
+	if _, err = service.New(i); err != nil {
+		return nil, fmt.Errorf("assembling the scheduler: %w", err)
+	}
 
 	worker, err := do.Invoke[*operations.Worker](i)
 	if err != nil {
@@ -96,9 +110,14 @@ func NewDataPrivacyFulfillment(ctx context.Context, cfg *config.SchedulerConfig)
 		return nil, fmt.Errorf("building the data privacy store: %w", err)
 	}
 
-	artifacts, err := do.Invoke[dataprivacycfg.ArtifactUploadManager](i)
+	artifacts, err := do.Invoke[*platformdataprivacycfg.ArtifactStorage](i)
 	if err != nil {
-		return nil, fmt.Errorf("building the artifact upload manager: %w", err)
+		return nil, fmt.Errorf("building the artifact storage: %w", err)
+	}
+
+	platformCfg, err := do.Invoke[*platformdataprivacycfg.Config](i)
+	if err != nil {
+		return nil, fmt.Errorf("resolving the data privacy config: %w", err)
 	}
 
 	registry, err := do.Invoke[*platformdataprivacy.Registry](i)
@@ -123,7 +142,7 @@ func NewDataPrivacyFulfillment(ctx context.Context, cfg *config.SchedulerConfig)
 		Store:              store,
 		Operations:         ops,
 		OperationsRegistry: opsRegistry,
-		Artifacts:          artifacts,
+		Artifacts:          artifacts.Manager,
 		Shutdown: func(ctx context.Context) error {
 			if report := i.ShutdownWithContext(ctx); report != nil && !report.Succeed {
 				return report
@@ -131,10 +150,7 @@ func NewDataPrivacyFulfillment(ctx context.Context, cfg *config.SchedulerConfig)
 
 			return nil
 		},
-		cfg: dataprivacycfg.PlatformConfig(
-			&cfg.DataPrivacy,
-			do.MustInvoke[database.Client](i),
-		),
+		cfg: platformCfg,
 	}, nil
 }
 
@@ -152,7 +168,7 @@ func (f *DataPrivacyFulfillment) SweeperAt(ctx context.Context, now time.Time) (
 		ctx,
 		f.cfg,
 		f.Store,
-		f.Artifacts.UploadManager,
+		f.Artifacts,
 		platformdataprivacycfg.WithSweeperOptions(platformdataprivacy.WithSweeperClock(fixedClock{now: now})),
 	)
 }

@@ -11,181 +11,11 @@ import (
 
 	"github.com/primandproper/primitives-go/v2/distributedlock/noop"
 	"github.com/primandproper/primitives-go/v2/jobs"
+	jobscfg "github.com/primandproper/primitives-go/v2/jobs/config"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-func TestScheduledJobConfig_ValidateWithContext(T *testing.T) {
-	T.Parallel()
-
-	T.Run("standard", func(t *testing.T) {
-		t.Parallel()
-
-		cfg := &ScheduledJobConfig{
-			Enabled:  true,
-			Interval: time.Minute,
-			Timeout:  time.Minute,
-			LeaseTTL: 5 * time.Minute,
-		}
-
-		assert.NoError(t, cfg.ValidateWithContext(t.Context()))
-	})
-
-	T.Run("with cron schedule", func(t *testing.T) {
-		t.Parallel()
-
-		cfg := &ScheduledJobConfig{
-			Enabled:  true,
-			Schedule: "0 3 * * *",
-			Timeout:  time.Minute,
-			LeaseTTL: 5 * time.Minute,
-		}
-
-		assert.NoError(t, cfg.ValidateWithContext(t.Context()))
-	})
-
-	T.Run("with cron schedule naming its own timezone", func(t *testing.T) {
-		t.Parallel()
-
-		cfg := &ScheduledJobConfig{
-			Enabled:  true,
-			Schedule: "CRON_TZ=America/Chicago 0 8-21 * * *",
-			Timeout:  time.Minute,
-			LeaseTTL: 5 * time.Minute,
-		}
-
-		assert.NoError(t, cfg.ValidateWithContext(t.Context()))
-	})
-
-	T.Run("with disabled job", func(t *testing.T) {
-		t.Parallel()
-
-		// A disabled job is never registered, so an empty schedule is not an error.
-		assert.NoError(t, (&ScheduledJobConfig{}).ValidateWithContext(t.Context()))
-	})
-
-	T.Run("with enabled job setting neither an interval nor a schedule", func(t *testing.T) {
-		t.Parallel()
-
-		cfg := &ScheduledJobConfig{
-			Enabled:  true,
-			LeaseTTL: time.Minute,
-		}
-
-		assert.Error(t, cfg.ValidateWithContext(t.Context()))
-	})
-
-	T.Run("with enabled job setting both an interval and a schedule", func(t *testing.T) {
-		t.Parallel()
-
-		// The scheduler rejects this at Register rather than picking one, so config must
-		// not be able to express it either.
-		cfg := &ScheduledJobConfig{
-			Enabled:  true,
-			Interval: time.Minute,
-			Schedule: "0 3 * * *",
-			LeaseTTL: 5 * time.Minute,
-		}
-
-		assert.Error(t, cfg.ValidateWithContext(t.Context()))
-	})
-
-	T.Run("with an unparseable cron schedule", func(t *testing.T) {
-		t.Parallel()
-
-		cfg := &ScheduledJobConfig{
-			Enabled:  true,
-			Schedule: "not a cron expression",
-			LeaseTTL: 5 * time.Minute,
-		}
-
-		assert.Error(t, cfg.ValidateWithContext(t.Context()))
-	})
-
-	T.Run("with enabled job missing a lease TTL", func(t *testing.T) {
-		t.Parallel()
-
-		cfg := &ScheduledJobConfig{
-			Enabled:  true,
-			Interval: time.Minute,
-		}
-
-		assert.Error(t, cfg.ValidateWithContext(t.Context()))
-	})
-}
-
-func TestScheduledJobConfig_Job(T *testing.T) {
-	T.Parallel()
-
-	noopRun := func(context.Context) error { return nil }
-
-	T.Run("standard", func(t *testing.T) {
-		t.Parallel()
-
-		cfg := &ScheduledJobConfig{
-			Interval:   time.Minute,
-			Timeout:    30 * time.Second,
-			LeaseTTL:   5 * time.Minute,
-			RunOnStart: true,
-		}
-
-		job, err := cfg.Job("example", noopRun)
-
-		require.NoError(t, err)
-		assert.Equal(t, "example", job.Name)
-		assert.Equal(t, time.Minute, job.Interval)
-		assert.Equal(t, 30*time.Second, job.Timeout)
-		assert.Equal(t, 5*time.Minute, job.LeaseTTL)
-		assert.True(t, job.RunOnStart)
-		// jobs.Job rejects a job that sets both, so an interval-shaped job must leave the
-		// Schedule field nil rather than carrying an interface wrapping a zero value.
-		assert.Nil(t, job.Schedule)
-	})
-
-	T.Run("with a cron schedule", func(t *testing.T) {
-		t.Parallel()
-
-		job, err := (&ScheduledJobConfig{Schedule: "0 3 * * *"}).Job("example", noopRun)
-
-		require.NoError(t, err)
-		require.NotNil(t, job.Schedule)
-		assert.Zero(t, job.Interval)
-
-		// Midnight UTC on a Tuesday, so the next fire is 03:00 the same day.
-		assert.Equal(t,
-			time.Date(2026, 1, 6, 3, 0, 0, 0, time.UTC),
-			job.Schedule.Next(time.Date(2026, 1, 6, 0, 0, 0, 0, time.UTC)).UTC(),
-		)
-	})
-
-	T.Run("with a schedule naming its own timezone", func(t *testing.T) {
-		t.Parallel()
-
-		// A CRON_TZ prefix beats the scheduler's own Timezone, which is how one job opts
-		// into a calendar the rest do not share.
-		job, err := (&ScheduledJobConfig{Schedule: "CRON_TZ=America/Chicago 0 8 * * *"}).Job("example", noopRun)
-
-		require.NoError(t, err)
-		require.NotNil(t, job.Schedule)
-
-		// 08:00 Chicago on a January Tuesday is 14:00 UTC, Central being six hours behind
-		// outside daylight saving.
-		assert.Equal(t,
-			time.Date(2026, 1, 6, 14, 0, 0, 0, time.UTC),
-			job.Schedule.Next(time.Date(2026, 1, 6, 0, 0, 0, 0, time.UTC)).UTC(),
-		)
-	})
-
-	T.Run("with an unparseable schedule", func(t *testing.T) {
-		t.Parallel()
-
-		job, err := (&ScheduledJobConfig{Schedule: "0 3 * *"}).Job("example", noopRun)
-
-		require.Error(t, err)
-		assert.Zero(t, job)
-	})
-}
 
 func TestDefaultScheduledJobsConfig(T *testing.T) {
 	T.Parallel()
@@ -223,7 +53,7 @@ func TestDefaultScheduledJobsConfig(T *testing.T) {
 				continue
 			}
 
-			job, err := cfg.Job(name, nil)
+			job, err := cfg.Job(name, func(context.Context) error { return nil })
 			require.NoError(t, err, "%s has an unparseable schedule", name)
 
 			assert.Greater(t, smallestGap(job.Schedule), cfg.Timeout, "%s can still be running when it is next due", name)
@@ -242,10 +72,10 @@ func TestDefaultScheduledJobsConfig_registersWithTheScheduler(T *testing.T) {
 		// one whose expression will never come true ("0 0 30 2 *" parses cleanly), and two
 		// jobs sharing a name. Without this, all four are a crash loop at rollout rather
 		// than a failure here.
-		cfg := defaultScheduledJobsConfig()
-		cfg.Scheduler.EnsureDefaults()
+		schedulerCfg := defaultJobsSchedulerConfig()
+		schedulerCfg.EnsureDefaults()
 
-		scheduler, err := jobs.NewScheduler(t.Context(), &cfg.Scheduler, noop.NewLocker())
+		scheduler, err := jobs.NewScheduler(t.Context(), &schedulerCfg.Scheduler, noop.NewLocker())
 		require.NoError(t, err)
 
 		noopRun := func(context.Context) error { return nil }
@@ -262,18 +92,21 @@ func TestDefaultScheduledJobsConfig_registersWithTheScheduler(T *testing.T) {
 // enabledDefaultJobs returns every job defaultScheduledJobsConfig enables, by name. The domain
 // jobs are listed alongside the rest because the invariants their callers assert hold for any
 // job the scheduler runs, whatever domain it came from.
-func enabledDefaultJobs() map[string]ScheduledJobConfig {
+func enabledDefaultJobs() map[string]jobscfg.JobConfig {
 	cfg := defaultScheduledJobsConfig()
 
-	all := map[string]ScheduledJobConfig{
+	all := map[string]jobscfg.JobConfig{
 		"search_data_index_scheduler":    cfg.SearchDataIndexScheduler,
 		"queue_test":                     cfg.QueueTest,
 		"meal_plan_finalization_starter": cfg.MealPlanning.MealPlanFinalizationStarter,
 		"meal_plan_task_notifications":   cfg.MealPlanning.MealPlanTaskNotifications,
+		"data_privacy_sweep":             cfg.DataPrivacySweep,
+		"audit_retention_sweeper":        cfg.AuditRetentionSweeper,
+		"metering_flusher":               cfg.MeteringFlusher,
 	}
 
 	for name := range all {
-		if !all[name].Enabled {
+		if all[name].Disabled {
 			delete(all, name)
 		}
 	}

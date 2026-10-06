@@ -1,65 +1,69 @@
 {
-	"observability": {
-		"profiling": {
-			"pyroscope": {
-				"serverAddress": "https://profiles-prod-001.grafana.net",
-				"uploadRate": 15000000000
+	"service": {
+		"database": {
+			"provider": "postgres",
+			"readConnection": {
+				"username": "db_cleaner",
+				"password": "REPLACE_AT_DEPLOY",
+				"database": "dinner-done-better",
+				"hostname": "REPLACE_AT_DEPLOY",
+				"port": 5432
 			},
-			"serviceName": "db_cleaner",
-			"provider": "pyroscope"
-		},
-		"logging": {
-			"serviceName": "db_cleaner",
-			"level": "info",
-			"otelslog": {
-				"endpointURL": "otel-collector-svc.prod.svc.cluster.local:4317",
-				"insecure": true,
-				"timeout": 2000000000
+			"writeConnection": {
+				"username": "db_cleaner",
+				"password": "REPLACE_AT_DEPLOY",
+				"database": "dinner-done-better",
+				"hostname": "REPLACE_AT_DEPLOY",
+				"port": 5432
 			},
-			"provider": "otelslog"
+			"pingWaitPeriod": 1000000000,
+			"maxPingAttempts": 50,
+			"connMaxLifetime": 1800000000000,
+			"maxIdleConns": 5,
+			"maxOpenConns": 7,
+			"runMigrations": true
 		},
-		"metrics": {
-			"otelgrpc": {
-				"metricsCollectorEndpoint": "otel-collector-svc.prod.svc.cluster.local:4317",
-				"collectionInterval": 30000000000,
-				"insecure": true
+		"name": "db_cleaner",
+		"observability": {
+			"profiling": {
+				"pyroscope": {
+					"serverAddress": "https://profiles-prod-001.grafana.net",
+					"uploadRate": 15000000000
+				},
+				"serviceName": "db_cleaner",
+				"provider": "pyroscope"
 			},
-			"serviceName": "db_cleaner",
-			"provider": "otelgrpc",
-			"enabled": true
-		},
-		"tracing": {
-			"otelgrpc": {
-				"collector_endpoint": "otel-collector-svc.prod.svc.cluster.local:4317",
-				"insecure": true
+			"logging": {
+				"serviceName": "db_cleaner",
+				"level": "info",
+				"otelslog": {
+					"endpointURL": "otel-collector-svc.prod.svc.cluster.local:4317",
+					"insecure": true,
+					"timeout": 2000000000
+				},
+				"provider": "otelslog"
 			},
-			"service_name": "db_cleaner",
-			"provider": "otelgrpc",
-			"spanCollectionProbability": 1
-		}
-	},
-	"database": {
-		"provider": "postgres",
-		"readConnection": {
-			"username": "db_cleaner",
-			"password": "REPLACE_AT_DEPLOY",
-			"database": "dinner-done-better",
-			"hostname": "REPLACE_AT_DEPLOY",
-			"port": 5432
+			"metrics": {
+				"otelgrpc": {
+					"metricsCollectorEndpoint": "otel-collector-svc.prod.svc.cluster.local:4317",
+					"collectionInterval": 30000000000,
+					"insecure": true
+				},
+				"serviceName": "db_cleaner",
+				"provider": "otelgrpc",
+				"enabled": true
+			},
+			"tracing": {
+				"otelgrpc": {
+					"collector_endpoint": "otel-collector-svc.prod.svc.cluster.local:4317",
+					"insecure": true
+				},
+				"service_name": "db_cleaner",
+				"provider": "otelgrpc",
+				"spanCollectionProbability": 1
+			}
 		},
-		"writeConnection": {
-			"username": "db_cleaner",
-			"password": "REPLACE_AT_DEPLOY",
-			"database": "dinner-done-better",
-			"hostname": "REPLACE_AT_DEPLOY",
-			"port": 5432
-		},
-		"pingWaitPeriod": 1000000000,
-		"maxPingAttempts": 50,
-		"connMaxLifetime": 1800000000000,
-		"maxIdleConns": 5,
-		"maxOpenConns": 7,
-		"runMigrations": true
+		"shutdownTimeout": 30000000000
 	},
 	"oauth2": {
 		"provider": "database",

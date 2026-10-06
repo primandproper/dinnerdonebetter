@@ -2,6 +2,7 @@ package dbcleaner
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	authrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auth"
@@ -9,48 +10,38 @@ import (
 	dbcleaner "github.com/primandproper/dinnerdonebetter/backend/internal/services/oauth/workers/db_cleaner"
 
 	oauth2servercfg "github.com/primandproper/platform-go/v15/authentication/oauth2serverstore/config"
-	databasecfg "github.com/primandproper/primitives-go/v2/database/config"
-	"github.com/primandproper/primitives-go/v2/database/postgres"
-	"github.com/primandproper/primitives-go/v2/observability"
-	loggingcfg "github.com/primandproper/primitives-go/v2/observability/logging/config"
-	metricscfg "github.com/primandproper/primitives-go/v2/observability/metrics/config"
-	tracingcfg "github.com/primandproper/primitives-go/v2/observability/tracing/config"
+	"github.com/primandproper/platform-go/v15/service"
 
 	"github.com/samber/do/v2"
 )
 
-// BuildInjector creates and configures the dependency injection container.
+// BuildInjector validates cfg and composes the database cleaner from it.
+//
+// service.Register builds the pillars and the database from cfg.Service; the stores the job
+// sweeps, and the job, are registered after it. Validation comes first for the reason the
+// scheduler's BuildInjector gives.
 func BuildInjector(
 	ctx context.Context,
 	cfg *config.DBCleanerConfig,
-) *do.RootScope {
+) (*do.RootScope, error) {
+	if err := cfg.ValidateWithContext(ctx); err != nil {
+		return nil, fmt.Errorf("validating db cleaner config: %w", err)
+	}
+
 	i := do.New()
 
 	do.ProvideValue(i, ctx)
 	do.ProvideValue(i, cfg)
 
+	service.Register(i, &cfg.Service)
+
 	RegisterConfigs(i)
 
-	observability.RegisterO11yConfigs(i)
-	tracingcfg.RegisterTracerProvider(i)
-	loggingcfg.RegisterLogger(i)
-	metricscfg.RegisterMetricsProvider(i)
-	databasecfg.RegisterClientConfig(i)
-	postgres.RegisterDatabaseClient(i)
 	internalops.RegisterInternalOpsRepository(i)
 	oauth2servercfg.RegisterStore(i)
 	authrepo.RegisterPasswordResetTokenSQLStore(i)
 	authrepo.RegisterRefreshTokenSQLStore(i)
 	dbcleaner.RegisterDBCleaner(i)
 
-	return i
-}
-
-// Build builds a server.
-func Build(
-	ctx context.Context,
-	cfg *config.DBCleanerConfig,
-) (*dbcleaner.Job, error) {
-	i := BuildInjector(ctx, cfg)
-	return do.MustInvoke[*dbcleaner.Job](i), nil
+	return i, nil
 }

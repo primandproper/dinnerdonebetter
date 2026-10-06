@@ -23,11 +23,10 @@ import (
 // one scope would let any member of any account read every report anybody had
 // ever filed.
 //
-// What it costs is the operator's console. platform-go's Store deliberately
-// offers no cross-scope listing, so "every tenant's open reports in one page" is
-// not a call this application can make; an operator lists the accounts they
-// administer and pages each. See the Store interface for why the alternative —
-// a read that omits the scope — is worse.
+// What it costs is part of the operator's console. platform-go lists reports
+// across scopes for an operator (ListReportsAcrossScopes), but reads one only in
+// the caller's own scope, so the admin app can list another account's report and
+// not open it. See platform-go#1149.
 //
 // tenancy.Of maps the empty account to the zero scope rather than to the global
 // one, so a report filed by a session that lost its account is refused by the

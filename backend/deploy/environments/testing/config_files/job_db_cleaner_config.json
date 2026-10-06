@@ -1,46 +1,50 @@
 {
-	"observability": {
-		"profiling": {
-			"serviceName": "db_cleaner"
+	"service": {
+		"database": {
+			"provider": "postgres",
+			"readConnection": {
+				"username": "dbuser",
+				"password": "hunter2",
+				"database": "dinner-done-better",
+				"hostname": "pgdatabase",
+				"port": 5432,
+				"disableSSL": true
+			},
+			"writeConnection": {
+				"username": "dbuser",
+				"password": "hunter2",
+				"database": "dinner-done-better",
+				"hostname": "pgdatabase",
+				"port": 5432,
+				"disableSSL": true
+			},
+			"pingWaitPeriod": 1500000000,
+			"maxPingAttempts": 50,
+			"connMaxLifetime": 1800000000000,
+			"maxIdleConns": 5,
+			"maxOpenConns": 7,
+			"debug": true,
+			"logQueries": true,
+			"runMigrations": true
 		},
-		"logging": {
-			"serviceName": "db_cleaner",
-			"level": "info",
-			"provider": "slog"
+		"name": "db_cleaner",
+		"observability": {
+			"profiling": {
+				"serviceName": "db_cleaner"
+			},
+			"logging": {
+				"serviceName": "db_cleaner",
+				"level": "info",
+				"provider": "slog"
+			},
+			"metrics": {
+				"serviceName": "db_cleaner"
+			},
+			"tracing": {
+				"service_name": "db_cleaner"
+			}
 		},
-		"metrics": {
-			"serviceName": "db_cleaner"
-		},
-		"tracing": {
-			"service_name": "db_cleaner"
-		}
-	},
-	"database": {
-		"provider": "postgres",
-		"readConnection": {
-			"username": "dbuser",
-			"password": "hunter2",
-			"database": "dinner-done-better",
-			"hostname": "pgdatabase",
-			"port": 5432,
-			"disableSSL": true
-		},
-		"writeConnection": {
-			"username": "dbuser",
-			"password": "hunter2",
-			"database": "dinner-done-better",
-			"hostname": "pgdatabase",
-			"port": 5432,
-			"disableSSL": true
-		},
-		"pingWaitPeriod": 1500000000,
-		"maxPingAttempts": 50,
-		"connMaxLifetime": 1800000000000,
-		"maxIdleConns": 5,
-		"maxOpenConns": 7,
-		"debug": true,
-		"logQueries": true,
-		"runMigrations": true
+		"shutdownTimeout": 30000000000
 	},
 	"oauth2": {
 		"provider": "database",

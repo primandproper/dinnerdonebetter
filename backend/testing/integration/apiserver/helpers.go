@@ -71,7 +71,7 @@ func getAccountIDForTest(t *testing.T, c client.Client) string {
 func buildUnauthenticatedGRPCClientForTest(t *testing.T) client.Client {
 	t.Helper()
 
-	c, err := client.BuildUnauthenticatedGRPCClient(fmt.Sprintf(":%d", apiServiceConfig.GRPCServer.Port))
+	c, err := client.BuildUnauthenticatedGRPCClient(fmt.Sprintf(":%d", apiServiceConfig.Service.GRPCServer.Port))
 	require.NoError(t, err)
 
 	return c
@@ -83,7 +83,7 @@ func buildAuthedGRPCClient(ctx context.Context, token string) (client.Client, er
 		createdClientID,
 		createdClientSecret,
 		httpTestServerAddress,
-		fmt.Sprintf(":%d", apiServiceConfig.GRPCServer.Port),
+		fmt.Sprintf(":%d", apiServiceConfig.Service.GRPCServer.Port),
 		token,
 	)
 	if err != nil {
@@ -98,7 +98,7 @@ func buildAuthedGRPCClient(ctx context.Context, token string) (client.Client, er
 // so that GetAuthStatus and other calls use that account as the active one.
 func buildAuthedGRPCClientWithBearerToken(token string) (client.Client, error) {
 	return client.BuildUnauthenticatedGRPCClientWithBearerToken(
-		fmt.Sprintf(":%d", apiServiceConfig.GRPCServer.Port),
+		fmt.Sprintf(":%d", apiServiceConfig.Service.GRPCServer.Port),
 		token,
 	)
 }
@@ -130,7 +130,7 @@ func createServiceUserForTest(t *testing.T, in *signinpb.RegisterRequest) *ident
 // createServiceUser registers somebody through the RPC a sign-up form calls:
 // SignInService.Register, open to anybody, with this application's RegistrationPolicy in front.
 func createServiceUser(ctx context.Context, verifyTOTP bool, in *signinpb.RegisterRequest) (_ *identity.User, err error) {
-	c, err := client.BuildUnauthenticatedGRPCClient(fmt.Sprintf(":%d", apiServiceConfig.GRPCServer.Port))
+	c, err := client.BuildUnauthenticatedGRPCClient(fmt.Sprintf(":%d", apiServiceConfig.Service.GRPCServer.Port))
 	if err != nil {
 		return nil, fmt.Errorf("initializing client: %w", err)
 	}
@@ -176,7 +176,7 @@ func createServiceUser(ctx context.Context, verifyTOTP bool, in *signinpb.Regist
 // enrollment does: signed in with their password alone, which is all a registrant who has not
 // proven one is asked for, and then with a code from the secret registration handed them.
 func verifyTOTPSecretForUser(ctx context.Context, username, password, twoFactorSecret string) (err error) {
-	token, err := localdev.FetchLoginTokenForUser(ctx, fmt.Sprintf(":%d", apiServiceConfig.GRPCServer.Port), &signinpb.Credentials{
+	token, err := localdev.FetchLoginTokenForUser(ctx, fmt.Sprintf(":%d", apiServiceConfig.Service.GRPCServer.Port), &signinpb.Credentials{
 		Username: username,
 		Password: password,
 	})
@@ -302,7 +302,7 @@ func fetchLoginTokenForUser(ctx context.Context, user *identity.User) (string, e
 		credentials.Password = adminUserPassword
 	}
 
-	return localdev.FetchLoginTokenForUser(ctx, fmt.Sprintf(":%d", apiServiceConfig.GRPCServer.Port), credentials)
+	return localdev.FetchLoginTokenForUser(ctx, fmt.Sprintf(":%d", apiServiceConfig.Service.GRPCServer.Port), credentials)
 }
 
 //// ChatGPT Zone

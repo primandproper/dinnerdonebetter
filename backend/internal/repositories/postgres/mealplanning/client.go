@@ -5,11 +5,11 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/datachanges"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
 	platformaudit "github.com/primandproper/platform-go/v15/audit"
+	platformidentity "github.com/primandproper/platform-go/v15/identity"
 	"github.com/primandproper/platform-go/v15/mediaregistry"
 	"github.com/primandproper/platform-go/v15/outbox"
 	platformrecording "github.com/primandproper/platform-go/v15/recording"
@@ -35,7 +35,7 @@ type repository struct {
 	tracer            tracing.Tracer
 	logger            logging.Logger
 	generatedQuerier  generated.Querier
-	roster            identity.AccountRoster
+	roster            platformidentity.DirectoryReader
 	auditLogEntryRepo audit.Repository
 	emitter           *webhooks.Emitter
 	recorder          *platformrecording.Recorder
@@ -59,7 +59,7 @@ func ProvideMealPlanningRepository(
 	logger logging.Logger,
 	tracerProvider tracing.Provider,
 	auditLogEntryRepo audit.Repository,
-	roster identity.AccountRoster,
+	roster platformidentity.DirectoryReader,
 	client database.Client,
 	emitter *webhooks.Emitter,
 	recorder *platformrecording.Recorder,

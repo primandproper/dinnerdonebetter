@@ -64,23 +64,21 @@ func NewPaymentsDataManager(
 // answer rather than a failure — the provider already told us this — so it is
 // swallowed and the account's standing is re-derived anyway, which is idempotent.
 // Any other error is reported, so that the provider retries the delivery.
-func (m *paymentsManager) ProcessWebhookEvent(ctx context.Context, provider string, parsed *payments.ParsedWebhookEvent, accountID string) error {
+func (m *paymentsManager) ProcessWebhookEvent(ctx context.Context, provider string, parsed *payments.ParsedWebhookEvent) error {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
-
-	logger := observability.ObserveValues(map[string]any{
-		identitykeys.AccountIDKey: accountID,
-		"provider":                provider,
-	}, span, m.logger)
 
 	if parsed == nil {
 		return platformerrors.ErrNilInputParameter
 	}
 
-	// Use account ID from event payload when not provided in URL (e.g. RevenueCat app_user_id).
-	if accountID == "" && parsed.AccountID != "" {
-		accountID = parsed.AccountID
-	}
+	// The account the provider signed for (RevenueCat's app_user_id), and only that one.
+	accountID := parsed.AccountID
+
+	logger := observability.ObserveValues(map[string]any{
+		identitykeys.AccountIDKey: accountID,
+		"provider":                provider,
+	}, span, m.logger)
 
 	eventType := parsed.EventType
 	subscriptionID := parsed.SubscriptionID

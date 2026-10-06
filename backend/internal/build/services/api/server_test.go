@@ -4,10 +4,12 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	grpcapi "github.com/primandproper/dinnerdonebetter/backend/internal/build/services/api/grpc"
 	httpapi "github.com/primandproper/dinnerdonebetter/backend/internal/build/services/api/http"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/config/environments"
 
 	"github.com/primandproper/platform-go/v15/metering"
 	"github.com/primandproper/platform-go/v15/operations"
@@ -34,10 +36,8 @@ import (
 func TestSharedInjector_HTTPAndGRPCServersShareOneContainer(t *testing.T) {
 	t.Parallel()
 
-	ctx := context.Background()
-	cfg := &config.APIServiceConfig{}
-
-	injector := grpcapi.BuildInjector(ctx, cfg)
+	injector, err := grpcapi.BuildInjector(t.Context(), apiConfig())
+	require.NoError(t, err)
 
 	require.NotPanics(t, func() {
 		httpapi.RegisterHTTPServerServices(injector)
@@ -103,21 +103,20 @@ func TestAPIInjector_RegistersNoBackgroundRunners(t *testing.T) {
 	}
 }
 
-// TestProvideServiceConfig_NamesTheServiceAndBoundsItsShutdown covers the one thing
-// service.New reads a *service.Config for. Without it New fails outright, and with a zero
-// ShutdownTimeout every shutdown would start on an already-expired deadline.
-func TestProvideServiceConfig_NamesTheServiceAndBoundsItsShutdown(t *testing.T) {
+// TestAPIInjector_NamesTheServiceAndBoundsItsShutdown covers the two things service.New reads
+// a *service.Config for, from the config this server is rendered with. Without a name New
+// fails outright, and the budget is what every drain in the shutdown shares.
+func TestAPIInjector_NamesTheServiceAndBoundsItsShutdown(t *testing.T) {
 	t.Parallel()
 
-	injector := do.New()
-	provideServiceConfig(injector)
+	injector, err := grpcapi.BuildInjector(t.Context(), apiConfig())
+	require.NoError(t, err)
 
 	cfg, err := do.Invoke[*service.Config](injector)
 	require.NoError(t, err)
 
-	assert.Equal(t, serviceName, cfg.Name)
-	assert.Equal(t, shutdownTimeout, cfg.ShutdownTimeout)
-	assert.Positive(t, cfg.ShutdownTimeout, "a zero budget makes every shutdown an expired deadline")
+	assert.Equal(t, "api_server", cfg.Name)
+	assert.Equal(t, 10*time.Second, cfg.ShutdownTimeout)
 }
 
 // TestServer_Run_ReleasesWhatTheServiceDoesNotOwn covers the half of Run that is still
@@ -135,9 +134,10 @@ func TestServer_Run_ReleasesWhatTheServiceDoesNotOwn(t *testing.T) {
 	profiler.onShutdown = func() { order = append(order, "profiler shutdown") }
 
 	srv := &Server{
-		logger:   loggingnoop.NewLogger(),
-		svc:      emptyService(t),
-		profiler: profiler,
+		logger:          loggingnoop.NewLogger(),
+		shutdownTimeout: time.Second,
+		svc:             emptyService(t),
+		profiler:        profiler,
 		shutdownContainer: func(context.Context) error {
 			order = append(order, "container shutdown")
 			return nil
@@ -163,9 +163,10 @@ func TestServer_Run_SurvivesAProfilerThatWillNotStart(t *testing.T) {
 	var containerShutDown bool
 
 	srv := &Server{
-		logger:   loggingnoop.NewLogger(),
-		svc:      emptyService(t),
-		profiler: profiler,
+		logger:          loggingnoop.NewLogger(),
+		shutdownTimeout: time.Second,
+		svc:             emptyService(t),
+		profiler:        profiler,
 		shutdownContainer: func(context.Context) error {
 			containerShutDown = true
 			return nil
@@ -195,9 +196,10 @@ func TestServer_Run_ReleasesOnAContextTheShutdownDidNotCancel(t *testing.T) {
 	profiler.onShutdownCtx = func(ctx context.Context) { profilerCtxErr = ctx.Err() }
 
 	srv := &Server{
-		logger:   loggingnoop.NewLogger(),
-		svc:      emptyService(t),
-		profiler: profiler,
+		logger:          loggingnoop.NewLogger(),
+		shutdownTimeout: time.Second,
+		svc:             emptyService(t),
+		profiler:        profiler,
 		shutdownContainer: func(ctx context.Context) error {
 			containerCtxErr = ctx.Err()
 			return nil
@@ -217,7 +219,9 @@ func TestServer_Run_ReleasesOnAContextTheShutdownDidNotCancel(t *testing.T) {
 func providedServices(t *testing.T) map[string]struct{} {
 	t.Helper()
 
-	injector := grpcapi.BuildInjector(context.Background(), &config.APIServiceConfig{})
+	injector, err := grpcapi.BuildInjector(t.Context(), apiConfig())
+	require.NoError(t, err)
+
 	httpapi.RegisterHTTPServerServices(injector)
 
 	services := injector.ListProvidedServices()
@@ -236,7 +240,7 @@ func emptyService(t *testing.T) *service.Service {
 	t.Helper()
 
 	injector := do.New()
-	provideServiceConfig(injector)
+	do.ProvideValue(injector, &service.Config{Name: "api_server", ShutdownTimeout: time.Second})
 
 	svc, err := service.New(injector)
 	require.NoError(t, err)
@@ -270,4 +274,14 @@ func (p *recordingProfiler) Shutdown(ctx context.Context) error {
 	}
 
 	return p.shutdownErr
+}
+
+// apiConfig returns the API server configuration the integration test environment ships, named
+// and budgeted the way rendering it names and budgets it. Each call builds a copy of its own,
+// because composing validates it in place.
+func apiConfig() *config.APIServiceConfig {
+	set := &config.EnvironmentConfigSet{RootConfig: environments.BuildIntegrationTestsConfig()}
+	set.Derive()
+
+	return set.RootConfig
 }

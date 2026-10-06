@@ -47,3 +47,16 @@ const (
 // decided inside the handler by platform's AuthorizeSubjectRead, which this
 // deployment answers with own-subject-or-admin. See internal/build/waitlists.
 const ReadOwnWaitlistSignupsPermission Permission = "waitlists.signups.read_own"
+
+// WithdrawAnyWaitlistSignupsPermission lets its holder withdraw a signup that is
+// not their own.
+//
+// Withdraw is public, and the signup authorizer confines it to the caller's own:
+// the person on the list taking themselves off it. This is the operator doing it
+// for them — a support request answered by hand — and it is a grant of its own
+// rather than a reading of ReadWaitlistSignupsPermission, because being able to
+// see who is on a list is not being able to take them off it.
+//
+// platform declares none, because it ships no rule for one to bypass — see
+// waitlists/grpc's SignupAuthorizer — so the name is this application's.
+const WithdrawAnyWaitlistSignupsPermission Permission = "waitlists.signups.withdraw_any"

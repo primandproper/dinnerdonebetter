@@ -50,9 +50,14 @@ Because that notification job sends its own pushes rather than publishing them, 
 needs the APNs credentials the async message handler has: the env vars from `api-service-config`
 and the `.p8` key mounted at `/mnt/apns`. Both kustomize patches are applied to it.
 
-One long-lived process running `jobs.Scheduler` (from `platform-go/v13/jobs`). Every registered job fires on a schedule, and each execution is held under a `distributedlock` lease, so every replica ticks and only the one that wins the lock actually runs the job. A contended lock is the mechanism working, not an error.
+One long-lived process running `jobs.Scheduler` (from `primitives-go/v2/jobs`). Every registered job fires on a schedule, and each execution is held under a `distributedlock` lease, so every replica ticks and only the one that wins the lock actually runs the job. A contended lock is the mechanism working, not an error.
 
-Jobs are registered in `internal/build/jobs/scheduler/jobs.go` and scheduled by `config.ScheduledJobsConfig`. Adding one means writing the entrypoint, adding a `ScheduledJobConfig` field, and adding a row to `registrations`.
+The process is composed by platform's `service` package from `SchedulerConfig.Service`, a `service.Config`: `service.Register` builds the scheduler and its lock from `JOBS_SCHEDULER_*`, and every platform loop the process runs from its own block — operations, sagas, webhook delivery, the retention sweep, metering, data privacy. `service.New` hands the scheduler two sets of jobs in one call:
+
+- **This application's**, registered in `internal/build/jobs/scheduler/jobs.go` and scheduled by `config.ScheduledJobsConfig`. Adding one means writing the entrypoint, adding a `jobscfg.JobConfig` field, and adding a row to `registrations`. A job runs unless its config says `Disabled`.
+- **The reapers platform's stores own**, scheduled without being asked: operations' `operations-recover` and `operations-reap`, and `saga-retention`. Each is configured inside its own block (`OPERATIONS_RECOVER_*`, `OPERATIONS_REAP_*`, `SAGA_RETENTION_JOB_*`) and switched off only by name. Recovery is the one that matters most: it re-offers an operation whose worker died between its insert and its enqueue, which would otherwise sit `pending` forever.
+
+`service.Run` starts every loop and, on SIGINT or SIGTERM, takes them down in the order their drains need — the loops in reverse, then the final flushes (the operations queue's batched enqueues and the metering flusher's last pass), then the clients, then the pillars — inside `SHUTDOWN_TIMEOUT`. SIGHUP and SIGQUIT get their default dispositions.
 
 Two things to get right when adding a job:
 
@@ -65,7 +70,7 @@ Watch `jobs_scheduler_runs` against `jobs_scheduler_skipped` (together they are 
 
 #### Intervals and calendars
 
-`config.ScheduledJobConfig` carries both `Interval` and `Schedule`, and exactly one of them is set. A job carrying both is rejected at config validation rather than resolved by precedence.
+`jobscfg.JobConfig` carries both `Interval` and `Schedule`, and exactly one of them is set. A job carrying both is rejected at config validation rather than resolved by precedence.
 
 Two jobs are on a calendar:
 

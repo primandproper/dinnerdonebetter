@@ -10,6 +10,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
 	appentitlements "github.com/primandproper/dinnerdonebetter/backend/internal/entitlements"
+	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
 
 	"github.com/primandproper/platform-go/v15/audit"
 	auditcfg "github.com/primandproper/platform-go/v15/audit/config"
@@ -24,13 +25,18 @@ import (
 	operationscfg "github.com/primandproper/platform-go/v15/operations/config"
 	"github.com/primandproper/platform-go/v15/outbox"
 	"github.com/primandproper/platform-go/v15/retention"
+	retentioncfg "github.com/primandproper/platform-go/v15/retention/config"
 	"github.com/primandproper/platform-go/v15/saga"
+	sagacfg "github.com/primandproper/platform-go/v15/saga/config"
+	"github.com/primandproper/platform-go/v15/service"
 	waitlistsgrpc "github.com/primandproper/platform-go/v15/waitlists/grpc"
 	platformconfig "github.com/primandproper/primitives-go/v2/config"
+	databasecfg "github.com/primandproper/primitives-go/v2/database/config"
 	"github.com/primandproper/primitives-go/v2/database/dialect"
 	distributedlockcfg "github.com/primandproper/primitives-go/v2/distributedlock/config"
 	pglock "github.com/primandproper/primitives-go/v2/distributedlock/postgres"
 	"github.com/primandproper/primitives-go/v2/jobs"
+	jobscfg "github.com/primandproper/primitives-go/v2/jobs/config"
 	"github.com/primandproper/primitives-go/v2/observability"
 	retrycfg "github.com/primandproper/primitives-go/v2/retry/config"
 
@@ -49,15 +55,11 @@ type EnvironmentConfigSet struct {
 	MCPServiceConfigPath              string
 }
 
-// defaultScheduledJobsConfig returns the schedule for each periodic job, replacing what used to
-// be one Kubernetes CronJob per job.
-//
-// Every LeaseTTL is set well above the job's observed worst case rather than near it: the lease
-// is not renewed while a job runs, so a job that outlives its lease can be started a second time
-// on another replica. Timeout is the shorter of the two — a job that hangs should be killed
-// before its lease lapses, not after.
-func defaultScheduledJobsConfig() ScheduledJobsConfig {
-	return ScheduledJobsConfig{
+// defaultJobsSchedulerConfig returns the scheduler every periodic job in the scheduler process runs
+// on, and the lock that keeps each execution to one replica — this application's jobs and the
+// reapers platform schedules for itself alike.
+func defaultJobsSchedulerConfig() jobscfg.SchedulerConfig {
+	return jobscfg.SchedulerConfig{
 		Scheduler: jobs.SchedulerConfig{
 			LockKeyPrefix: "dinner_done_better.scheduler.",
 			// Named rather than left empty. The default is UTC either way, but a cron
@@ -68,14 +70,33 @@ func defaultScheduledJobsConfig() ScheduledJobsConfig {
 			DefaultLeaseTTL: 2 * time.Minute,
 			DefaultTimeout:  time.Minute,
 		},
-		Lock: distributedlockcfg.Config{
-			// Postgres advisory locks: no new infrastructure, and a replica that dies
-			// drops its connection, which releases the lock without waiting for a TTL.
-			Provider: distributedlockcfg.PostgresProvider,
-			Postgres: &pglock.Config{
-				ConnWaitTimeout: 5 * time.Second,
-			},
+		Lock: defaultSchedulerLockConfig(),
+	}
+}
+
+// defaultSchedulerLockConfig returns the lock backend the scheduler process serializes on.
+//
+// Postgres advisory locks: no new infrastructure, and a replica that dies drops its connection,
+// which releases the lock without waiting for a TTL. The same backend backs the process's
+// standalone locker, which the saga worker takes a per-instance scope of.
+func defaultSchedulerLockConfig() distributedlockcfg.Config {
+	return distributedlockcfg.Config{
+		Provider: distributedlockcfg.PostgresProvider,
+		Postgres: &pglock.Config{
+			ConnWaitTimeout: 5 * time.Second,
 		},
+	}
+}
+
+// defaultScheduledJobsConfig returns the schedule for each of this application's periodic jobs,
+// replacing what used to be one Kubernetes CronJob per job.
+//
+// Every LeaseTTL is set well above the job's observed worst case rather than near it: the lease
+// is not renewed while a job runs, so a job that outlives its lease can be started a second time
+// on another replica. Timeout is the shorter of the two — a job that hangs should be killed
+// before its lease lapses, not after.
+func defaultScheduledJobsConfig() ScheduledJobsConfig {
+	return ScheduledJobsConfig{
 		// A bulk re-index competing with daytime traffic for the same tables, so it is
 		// confined to the small hours — 06:00-11:59 UTC is roughly midnight to 6am US
 		// Central, an hour later in summer. In UTC and not Central because the window is
@@ -88,8 +109,7 @@ func defaultScheduledJobsConfig() ScheduledJobsConfig {
 		// one fire a night would sweep a given type every nine days on average; thirty-six
 		// fires a night covers all nine with room to spare. The interval this replaced was
 		// really a draw rate dressed up as a frequency.
-		SearchDataIndexScheduler: ScheduledJobConfig{
-			Enabled:  true,
+		SearchDataIndexScheduler: jobscfg.JobConfig{
 			Schedule: "*/10 6-11 * * *",
 			// Fires once at startup as well, because an overnight window is a long time
 			// for a freshly deployed environment to have no sweep at all, and because it
@@ -100,14 +120,12 @@ func defaultScheduledJobsConfig() ScheduledJobsConfig {
 			Timeout:    5 * time.Minute,
 			LeaseTTL:   10 * time.Minute,
 		},
-		QueueTest: ScheduledJobConfig{
-			Enabled:  true,
+		QueueTest: jobscfg.JobConfig{
 			Interval: 15 * time.Minute,
 			Timeout:  time.Minute,
 			LeaseTTL: 2 * time.Minute,
 		},
-		DataPrivacySweep: ScheduledJobConfig{
-			Enabled: true,
+		DataPrivacySweep: jobscfg.JobConfig{
 			// Hourly is far finer than the seven-day artifact TTL needs, and a sweep with
 			// nothing to do costs three indexed queries against partial indexes. It is also
 			// the cadence the overdue gauge is sampled at, which is the reason not to make it
@@ -117,8 +135,7 @@ func defaultScheduledJobsConfig() ScheduledJobsConfig {
 			LeaseTTL:   10 * time.Minute,
 			RunOnStart: true,
 		},
-		AuditRetentionSweeper: ScheduledJobConfig{
-			Enabled: true,
+		AuditRetentionSweeper: jobscfg.JobConfig{
 			// Daily, in the same overnight window the bulk re-index uses and for the same
 			// reason: one sweep removes a bounded batch per scope, so it is cheap, but it
 			// is a DELETE against the table every write path touches.
@@ -140,8 +157,7 @@ func defaultScheduledJobsConfig() ScheduledJobsConfig {
 		// reason that config validates the relation: two flushers posting the same total
 		// concurrently is the one duplicate charge an idempotency key cannot undo, because
 		// the two posts carry different sequence numbers.
-		MeteringFlusher: ScheduledJobConfig{
-			Enabled:  true,
+		MeteringFlusher: jobscfg.JobConfig{
 			Interval: 5 * time.Minute,
 			Timeout:  2 * time.Minute,
 			LeaseTTL: 10 * time.Minute,
@@ -487,14 +503,48 @@ func disableWorkerOtelMetrics(obs *observability.Config) {
 
 // databaseConfigForService returns a copy of the given database config with the username
 // overridden for the named service, if a mapping exists in users. Otherwise returns a copy unchanged.
-func databaseConfigForService(cfg *dbcfg.Config, users map[string]string, serviceName string) dbcfg.Config {
+func databaseConfigForService(cfg *databasecfg.Config, users map[string]string, serviceName string) *databasecfg.Config {
 	out := *cfg
 	if username, ok := users[serviceName]; ok {
 		out.ReadConnection.Username = username
 		out.WriteConnection.Username = username
 	}
-	return out
+	return &out
 }
+
+// observabilityFor returns obs with every pillar named for the given service.
+func observabilityFor(base *observability.Config, serviceName string) observability.Config {
+	obs := *base
+	obs.Tracing.ServiceName = serviceName
+	obs.Metrics.ServiceName = serviceName
+	obs.Logging.ServiceName = serviceName
+	obs.Profiling.ServiceName = serviceName
+
+	return obs
+}
+
+// clone returns a pointer to a copy of what p points at, or nil.
+//
+// Every block a derived config takes from the API server's is cloned rather than shared, because
+// service.Config holds its blocks by pointer and validating one normalizes and defaults them in
+// place: a shared block would let rendering one process's file rewrite another's.
+func clone[T any](p *T) *T {
+	if p == nil {
+		return nil
+	}
+
+	out := *p
+
+	return &out
+}
+
+// schedulerShutdownTimeout bounds the scheduler process's whole shutdown: every loop it runs
+// drains inside it, and a job mid-execution is the slowest of them.
+const schedulerShutdownTimeout = 60 * time.Second
+
+// apiShutdownTimeout bounds the API server's whole shutdown: draining both servers and releasing
+// every client.
+const apiShutdownTimeout = 10 * time.Second
 
 const (
 	apiConfigObservabilityServiceName       = "api_server"
@@ -505,29 +555,49 @@ const (
 	mcpConfigObservabilityServiceName       = "dinner_done_better_mcp_server"
 )
 
-// Render writes one config file per workload into outputDir.
+// DerivedConfigs is every workload's configuration, as Derive builds them from one root.
+type DerivedConfigs struct {
+	DBCleaner               *DBCleanerConfig
+	Scheduler               *SchedulerConfig
+	AsyncMessageHandler     *AsyncMessageHandlerConfig
+	EmailDeliverabilityTest *EmailDeliverabilityTestConfig
+	MCPService              *MCPServiceConfig
+}
+
+// Derive builds every workload's configuration from RootConfig, the way Render writes them.
 //
-// The files go out through platform's config.RenderJSONFiles, the documented inverse of
-// LoadFromJSONFile: what this writes, that reads back. There is one call per config type
-// because Environment[T] is generic over a single T.
-//
-// Indentation is not a parameter. RenderJSONFiles fixes it at one tab, deliberately — these
-// files are checked in and read in diffs, and a file whose indentation depends on its last
-// call site produces a diff that is all whitespace. Neither is validation: every config is
-// validated, every time.
-func (s *EnvironmentConfigSet) Render(ctx context.Context, outputDir string) error {
+// It is Render's first half, exported so that a test which needs a valid configuration for a
+// process other than the API server gets the one that ships rather than a fixture kept valid by
+// hand. It names RootConfig's own service and observability on the way, as Render always has.
+func (s *EnvironmentConfigSet) Derive() *DerivedConfigs {
 	// Ensure API server config has the correct observability name before writing.
-	s.RootConfig.Observability.Tracing.ServiceName = apiConfigObservabilityServiceName
-	s.RootConfig.Observability.Metrics.ServiceName = apiConfigObservabilityServiceName
-	s.RootConfig.Observability.Logging.ServiceName = apiConfigObservabilityServiceName
-	s.RootConfig.Observability.Profiling.ServiceName = apiConfigObservabilityServiceName
+	s.RootConfig.Service.Name = apiConfigObservabilityServiceName
+	// Ten seconds, the budget the API server has always shut down in: it drains two servers and
+	// releases its clients, and a request still in flight past that is one the load balancer
+	// stopped sending traffic to long before.
+	if s.RootConfig.Service.ShutdownTimeout == 0 {
+		s.RootConfig.Service.ShutdownTimeout = apiShutdownTimeout
+	}
+	s.RootConfig.Service.Observability = observabilityFor(&s.RootConfig.Service.Observability, apiConfigObservabilityServiceName)
 	if s.RootConfig.Routing.Chi != nil {
 		s.RootConfig.Routing.Chi.ServiceName = apiConfigObservabilityServiceName
 	}
 
+	root := &s.RootConfig.Service
+
+	// Pinned in the rendered file as well as in code, so the file shows the tables the process
+	// will actually use rather than a blank that platform's validation would refuse.
+	dataprivacycfg.Pin(&s.RootConfig.Services.DataPrivacy.Platform)
+
+	dbcObservability := observabilityFor(&root.Observability, dbcConfigObservabilityServiceName)
+	disableWorkerOtelMetrics(&dbcObservability)
+
 	dbcConfig := &DBCleanerConfig{
-		Observability: s.RootConfig.Observability,
-		Database:      databaseConfigForService(&s.RootConfig.Database, s.ServiceDatabaseUsers, dbcConfigObservabilityServiceName),
+		Service: service.Config{
+			Name:          dbcConfigObservabilityServiceName,
+			Observability: dbcObservability,
+			Database:      databaseConfigForService(root.Database, s.ServiceDatabaseUsers, dbcConfigObservabilityServiceName),
+		},
 		// This job sweeps the authorization server's tables, so it needs the prefix they
 		// were created under and nothing else: a sweep asks the store for rows past their
 		// deadlines, which needs neither an issuer nor a lifetime.
@@ -536,81 +606,93 @@ func (s *EnvironmentConfigSet) Render(ctx context.Context, outputDir string) err
 			Database: oauth2database.Config{TablePrefix: branding.TablePrefix},
 		},
 	}
-	dbcConfig.Observability.Tracing.ServiceName = dbcConfigObservabilityServiceName
-	dbcConfig.Observability.Metrics.ServiceName = dbcConfigObservabilityServiceName
-	dbcConfig.Observability.Logging.ServiceName = dbcConfigObservabilityServiceName
-	dbcConfig.Observability.Profiling.ServiceName = dbcConfigObservabilityServiceName
-	disableWorkerOtelMetrics(&dbcConfig.Observability)
 
 	// One config for every interval-shaped periodic job, because they now share one process.
+
+	// Copied out of the API server's config rather than pointed at, because service.Config
+	// holds its blocks by pointer and validating it normalizes and defaults them in place: a
+	// pointer into RootConfig would let rendering this file rewrite the API server's.
+	// This process runs the operations worker, so it carries the whole tier. The API server
+	// carries the same block for the enqueue-and-read half.
+	schedulerOperations := DefaultOperationsConfig()
+	// The same artifact storage the API server reads exports back from, so what this process
+	// seals is what that one can open.
+	schedulerDataPrivacy := s.RootConfig.Services.DataPrivacy.Platform
+	dataprivacycfg.Pin(&schedulerDataPrivacy)
+	// The same webhook configuration the API service writes with, so the worker claims from
+	// the tables the dispatch rows are written into.
+	schedulerWebhooks := s.RootConfig.Webhooks
+	// Taken from the API server's config rather than rebuilt, so the tables the recorder writes
+	// are by construction the tables the flusher flushes.
+	schedulerMetering := s.RootConfig.Metering
+	// Likewise the billing provider: the flusher posts through whichever one the payments
+	// service was configured with, so enabling real usage billing is one provider setting
+	// rather than two that can disagree.
+	schedulerCapitalism := s.RootConfig.Services.Payments.Capitalism
+	schedulerJobs := defaultJobsSchedulerConfig()
+	schedulerLock := defaultSchedulerLockConfig()
+
 	schedulerConfig := &SchedulerConfig{
-		Observability: s.RootConfig.Observability,
-		// The same sender the async message handler pushes through, so a device token
-		// this process sends to is one that process would have sent to.
-		PushNotifications: s.RootConfig.PushNotifications,
-		Analytics:         s.RootConfig.Analytics,
-		Events:            s.RootConfig.Events,
-		Search:            s.RootConfig.TextSearch,
-		Database:          databaseConfigForService(&s.RootConfig.Database, s.ServiceDatabaseUsers, schedulerConfigObservabilityServiceName),
-		Queues:            s.RootConfig.Queues,
-		DataPrivacy:       s.RootConfig.Services.DataPrivacy,
-		Jobs:              defaultScheduledJobsConfig(),
-		Outbox:            defaultOutboxRelayConfig(),
-		Audit:             defaultAuditSweeperConfig(),
-		Retention:         defaultRetentionSweeperConfig(),
-		Sagas:             defaultSagaWorkerConfig(),
-		// This process runs the operations worker, so it carries the whole tier. The API
-		// server carries the same struct for the enqueue-and-read half.
-		Operations: DefaultOperationsConfig(),
-		// The same webhook configuration the API service writes with, so the worker
-		// claims from the tables the dispatch rows are written into.
-		Webhooks: s.RootConfig.Webhooks,
-		// Taken from the API server's config rather than rebuilt, so the tables the
-		// recorder writes are by construction the tables the flusher flushes.
-		Metering: s.RootConfig.Metering,
-		// Likewise the billing provider: the flusher posts through whichever one the
-		// payments service was configured with, so enabling real usage billing is one
-		// provider setting rather than two that can disagree.
-		Capitalism: s.RootConfig.Services.Payments.Capitalism,
+		Service: service.Config{
+			Name: schedulerConfigObservabilityServiceName,
+			// Generous, because a job killed partway through has already done some of its
+			// work and will redo it on the next tick, and the budget is shared by every
+			// loop this process drains.
+			ShutdownTimeout: schedulerShutdownTimeout,
+			Observability:   observabilityFor(&root.Observability, schedulerConfigObservabilityServiceName),
+			Database:        databaseConfigForService(root.Database, s.ServiceDatabaseUsers, schedulerConfigObservabilityServiceName),
+			MessageQueue:    clone(root.MessageQueue),
+			JobsScheduler:   &schedulerJobs,
+			DistributedLock: &schedulerLock,
+			Operations:      &schedulerOperations,
+			DataPrivacy:     &schedulerDataPrivacy,
+			Saga:            &sagacfg.Config{Worker: defaultSagaWorkerConfig()},
+			Webhooks:        &schedulerWebhooks,
+			Metering:        &schedulerMetering,
+			Retention:       &retentioncfg.Config{Sweeper: defaultRetentionSweeperConfig()},
+			Capitalism:      &schedulerCapitalism,
+		},
+		// The same sender the async message handler pushes through, so a device token this
+		// process sends to is one that process would have sent to.
+		PushNotifications:                s.RootConfig.PushNotifications,
+		Search:                           s.RootConfig.TextSearch,
+		Queues:                           s.RootConfig.Queues,
+		DataPrivacyArtifactEncryptionKey: s.RootConfig.Services.DataPrivacy.ArtifactEncryptionKey,
+		Jobs:                             defaultScheduledJobsConfig(),
+		OutboxRelay:                      defaultOutboxRelayConfig(),
+		AuditLog:                         defaultAuditSweeperConfig(),
 	}
-	schedulerConfig.Observability.Tracing.ServiceName = schedulerConfigObservabilityServiceName
-	schedulerConfig.Observability.Metrics.ServiceName = schedulerConfigObservabilityServiceName
-	schedulerConfig.Observability.Logging.ServiceName = schedulerConfigObservabilityServiceName
-	schedulerConfig.Observability.Profiling.ServiceName = schedulerConfigObservabilityServiceName
+
+	amhEmail := s.RootConfig.Email
+	amhAnalytics := s.RootConfig.Analytics
 
 	amhConfig := &AsyncMessageHandlerConfig{
-		Queues: s.RootConfig.Queues,
-		// The same encoder the API server writes its messages with, which is not a
-		// nicety: the handler decodes what the API published, and this section was
-		// missing entirely — a content type of "" is not a default, it is a decoder
-		// that refuses to be built, so the process could not boot at all.
-		Encoding:          s.RootConfig.Encoding,
-		Email:             s.RootConfig.Email,
-		Analytics:         s.RootConfig.Analytics,
+		Service: service.Config{
+			Name:          amhConfigObservabilityServiceName,
+			Observability: observabilityFor(&root.Observability, amhConfigObservabilityServiceName),
+			Database:      databaseConfigForService(root.Database, s.ServiceDatabaseUsers, amhConfigObservabilityServiceName),
+			MessageQueue:  clone(root.MessageQueue),
+			// The same encoder the API server writes its messages with, which is not a
+			// nicety: the handler decodes what the API published, and this section was
+			// missing entirely once — a content type of "" is not a default, it is a
+			// decoder that refuses to be built, so the process could not boot at all.
+			Encoding:   clone(root.Encoding),
+			HTTPClient: clone(root.HTTPClient),
+			Email:      &amhEmail,
+			Analytics:  &amhAnalytics,
+		},
+		Queues:            s.RootConfig.Queues,
 		Search:            s.RootConfig.TextSearch,
-		Events:            s.RootConfig.Events,
-		Observability:     s.RootConfig.Observability,
-		Database:          databaseConfigForService(&s.RootConfig.Database, s.ServiceDatabaseUsers, amhConfigObservabilityServiceName),
-		PushNotifications: s.RootConfig.PushNotifications,
 		BaseURL:           s.RootConfig.BaseURL,
 		Pools:             defaultWorkerPoolsConfig(),
+		PushNotifications: s.RootConfig.PushNotifications,
 	}
-	amhConfig.Observability.Tracing.ServiceName = amhConfigObservabilityServiceName
-	amhConfig.Observability.Metrics.ServiceName = amhConfigObservabilityServiceName
-	amhConfig.Observability.Logging.ServiceName = amhConfigObservabilityServiceName
-	amhConfig.Observability.Profiling.ServiceName = amhConfigObservabilityServiceName
 
-	edtServiceEnv := "prod"
-	if strings.Contains(outputDir, "localdev") {
-		edtServiceEnv = "dev"
-	} else if strings.Contains(outputDir, "testing") {
-		edtServiceEnv = "testing"
-	}
 	edtConfig := &EmailDeliverabilityTestConfig{
-		Observability:         s.RootConfig.Observability,
+		Observability:         root.Observability,
 		Email:                 s.RootConfig.Email,
 		RecipientEmailAddress: "verygoodsoftwarenotvirus@protonmail.com",
-		ServiceEnvironment:    edtServiceEnv,
+		ServiceEnvironment:    "prod",
 	}
 	edtConfig.Observability.Tracing.ServiceName = edtConfigObservabilityServiceName
 	edtConfig.Observability.Metrics.ServiceName = edtConfigObservabilityServiceName
@@ -618,7 +700,7 @@ func (s *EnvironmentConfigSet) Render(ctx context.Context, outputDir string) err
 	edtConfig.Observability.Profiling.ServiceName = edtConfigObservabilityServiceName
 	disableWorkerOtelMetrics(&edtConfig.Observability)
 
-	mcpObservability := s.RootConfig.Observability
+	mcpObservability := root.Observability
 	mcpObservability.Tracing.ServiceName = mcpConfigObservabilityServiceName
 	mcpObservability.Metrics.ServiceName = mcpConfigObservabilityServiceName
 	mcpObservability.Logging.ServiceName = mcpConfigObservabilityServiceName
@@ -645,14 +727,14 @@ func (s *EnvironmentConfigSet) Render(ctx context.Context, outputDir string) err
 		mcpRouting.Chi = &chiConfig
 	}
 
-	mcpHTTPServer := s.RootConfig.HTTPServer
+	mcpHTTPServer := *root.HTTPServer
 	// The apple-app-site-association document describes the domain the iOS app is
 	// associated with, which is the API's, not the MCP server's. Serving it from here
 	// would publish an association for a host no Universal Link points at.
 	mcpHTTPServer.AppleAppSiteAssociation = nil
 
 	mcpConfig := &MCPServiceConfig{
-		Database:      databaseConfigForService(&s.RootConfig.Database, s.ServiceDatabaseUsers, mcpConfigObservabilityServiceName),
+		Database:      dbcfg.Config{Config: *databaseConfigForService(root.Database, s.ServiceDatabaseUsers, mcpConfigObservabilityServiceName)},
 		Observability: mcpObservability,
 		Routing:       mcpRouting,
 		Meta:          s.RootConfig.Meta,
@@ -670,6 +752,37 @@ func (s *EnvironmentConfigSet) Render(ctx context.Context, outputDir string) err
 			Provider: oauth2servercfg.ProviderDatabase,
 			Database: oauth2database.Config{TablePrefix: branding.TablePrefix},
 		},
+	}
+
+	return &DerivedConfigs{
+		DBCleaner:               dbcConfig,
+		Scheduler:               schedulerConfig,
+		AsyncMessageHandler:     amhConfig,
+		EmailDeliverabilityTest: edtConfig,
+		MCPService:              mcpConfig,
+	}
+}
+
+// Render writes one config file per workload into outputDir.
+//
+// The files go out through platform's config.RenderJSONFiles, the documented inverse of
+// LoadFromJSONFile: what this writes, that reads back. There is one call per config type
+// because Environment[T] is generic over a single T.
+//
+// Indentation is not a parameter. RenderJSONFiles fixes it at one tab, deliberately — these
+// files are checked in and read in diffs, and a file whose indentation depends on its last
+// call site produces a diff that is all whitespace. Neither is validation: every config is
+// validated, every time.
+func (s *EnvironmentConfigSet) Render(ctx context.Context, outputDir string) error {
+	derived := s.Derive()
+	dbcConfig, schedulerConfig, amhConfig, edtConfig, mcpConfig := derived.DBCleaner, derived.Scheduler,
+		derived.AsyncMessageHandler, derived.EmailDeliverabilityTest, derived.MCPService
+
+	switch {
+	case strings.Contains(outputDir, "localdev"):
+		edtConfig.ServiceEnvironment = "dev"
+	case strings.Contains(outputDir, "testing"):
+		edtConfig.ServiceEnvironment = "testing"
 	}
 
 	// RenderJSONFiles validates every environment it is handed before writing any of that

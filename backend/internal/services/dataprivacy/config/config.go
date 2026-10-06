@@ -1,13 +1,18 @@
 /*
 Package config configures this application's half of platform-go's data privacy
-machinery: where export artifacts are stored, what they are encrypted with, and
-the timings of the request state machine that produces them.
+machinery: the one key export artifacts are sealed under, and the pins that keep
+platform's block pointed at this application's tables.
 
-The same struct configures two processes, because two of them touch artifacts:
-the API server reads them back for the subject, and the scheduler writes and
-expires them. They must agree on the bucket, the cipher, and the table prefix, or
-the artifact written by one is unreadable to the next and the sweep meant to
-destroy it deletes nothing and reports success.
+Everything else is platform's own dataprivacy/config block — where artifacts are
+stored, what they are encrypted with, and the timings of the request state machine
+that produces them — and platform builds from it: the artifact storage through
+RegisterArtifactStorage, the store, the fulfiller, the service and the sweep.
+
+The same values configure two processes, because two of them touch artifacts: the
+API server reads them back for the subject, and the scheduler writes and expires
+them. They must agree on the bucket, the cipher, and the table prefix, or the
+artifact written by one is unreadable to the next and the sweep meant to destroy it
+deletes nothing and reports success.
 */
 package config
 
@@ -16,64 +21,58 @@ import (
 
 	platformdataprivacycfg "github.com/primandproper/platform-go/v15/dataprivacy/config"
 	"github.com/primandproper/primitives-go/v2/compression"
-	encryptioncfg "github.com/primandproper/primitives-go/v2/cryptography/encryption/config"
-	uploadscfg "github.com/primandproper/primitives-go/v2/uploads/config"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
 
-// CompressionAlgorithm is what export artifacts are compressed with before they
-// are encrypted.
-//
-// Zstandard rather than S2: an artifact is written once and read at most once,
-// so the ratio is worth more than the decompression speed, and what a bucket
-// bills for is bytes. It is a constant rather than a knob because the Worker
-// that writes and the Service that reads must agree, and the only way to
-// discover that they do not is a subject opening a file that will not
-// decompress.
+// CompressionAlgorithm is what export artifacts are compressed with before they are sealed.
 const CompressionAlgorithm = compression.AlgorithmZstd
 
-// Config configures artifact storage, artifact encryption, and the request
-// lifecycle.
+// Config is the API server's data privacy configuration. The scheduler carries the same two
+// values as its service.Config's DataPrivacy block and a key of its own field.
 type Config struct {
 	_ struct{} `json:"-"`
 
-	// Encryption selects the cipher used for at-rest encryption of disclosure artifacts. A
-	// disclosure artifact is everything the system knows about one person in a single object,
-	// so it is never written in the clear.
-	Encryption encryptioncfg.Config `envPrefix:"ENCRYPTION_" json:"encryption,omitzero"`
-
-	// ArtifactEncryptionKey is the key disclosure artifacts are encrypted with. Rotating it
-	// makes every artifact written under the old key unreadable — which for objects that expire
-	// in a week is a survivable way to revoke them, but is not a decision to make by accident.
-	//
-	// It is not validated as required here, the same way the OAuth2 token key is not: a rendered
-	// config for a real environment carries a blank secret and takes the value from the
-	// environment. An empty key is caught where it matters instead, when the machinery is
-	// constructed at startup.
+	// ArtifactEncryptionKey is the key artifacts are sealed under, filed under
+	// Platform.Artifacts.Encryption's CurrentKeyID. platform builds the keyring over an
+	// encryption.Keyset the container supplies rather than from configuration, so this is
+	// where the one key this deployment has comes from — see RegisterKeyset.
 	ArtifactEncryptionKey string `env:"ARTIFACT_ENCRYPTION_KEY" json:"artifactEncryptionKey,omitempty"`
 
-	Uploads uploadscfg.Config `envPrefix:"UPLOADS_" json:"uploads,omitzero"`
-
-	// Requests carries the platform's own knobs: the response windows a deadline is
-	// stamped from, the confirmation window, the artifact TTL, and the fulfillment
-	// loop's timings.
-	//
-	// Dialect and TablePrefix are filled in rather than read from the environment —
-	// see prepare in do.go. Neither has a second legal value, and a deployment that
-	// set one differently would not be configuring anything, it would be pointing the
-	// Store at a table that does not exist.
-	Requests platformdataprivacycfg.Config `envPrefix:"REQUESTS_" json:"requests,omitzero"`
+	// Platform is platform's own block. Its Artifacts half names the bucket artifacts are
+	// written to and the keyring they are sealed with; its table prefix and dialect are
+	// pinned in code by Pin rather than read from here.
+	Platform platformdataprivacycfg.Config `envPrefix:"PLATFORM_" json:"platform,omitzero"`
 }
 
 var _ validation.ValidatableWithContext = (*Config)(nil)
 
-// ValidateWithContext validates a Config struct.
+// ValidateWithContext validates a Config.
+//
+// Artifacts is required whole. A deployment that left out the storage would write exports into
+// the shared media bucket, and one that left out the encryption would write them there in the
+// clear; platform reads both absences as choices, and this application has made neither.
 func (cfg *Config) ValidateWithContext(ctx context.Context) error {
-	return validation.ValidateStructWithContext(
-		ctx,
-		cfg,
-		validation.Field(&cfg.Uploads, validation.Required),
-		validation.Field(&cfg.Encryption, validation.Required),
-	)
+	return ValidatePlatform(ctx, &cfg.Platform)
+}
+
+// ValidatePlatform validates a platform data privacy block the way this application runs it:
+// artifacts stored in a bucket of their own and sealed under a keyring of their own.
+//
+// The key itself is not checked. It is a secret, so a rendered config never carries one — it
+// arrives from the environment at startup — and RegisterKeyset refuses to build without it.
+func ValidatePlatform(ctx context.Context, cfg *platformdataprivacycfg.Config) error {
+	if err := cfg.ValidateWithContext(ctx); err != nil {
+		return err
+	}
+
+	return validation.Errors{
+		"Artifacts": validation.Validate(cfg.Artifacts, validation.Required),
+		"Artifacts.Storage": validation.Validate(cfg.Artifacts, validation.When(cfg.Artifacts != nil, validation.By(func(any) error {
+			return validation.Validate(cfg.Artifacts.Storage, validation.Required)
+		}))),
+		"Artifacts.Encryption": validation.Validate(cfg.Artifacts, validation.When(cfg.Artifacts != nil, validation.By(func(any) error {
+			return validation.Validate(cfg.Artifacts.Encryption, validation.Required)
+		}))),
+	}.Filter()
 }

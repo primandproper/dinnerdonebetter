@@ -116,6 +116,15 @@ var (
 		ReadTransactionsPermission,
 		ArchivePurchasesPermission,
 		ArchiveTransactionsPermission,
+
+		// The two row-rule bypasses this application names for itself. Each is what a
+		// surface's authorizer reads to admit an operator past "your own" — a ledger that
+		// is not the caller's active account, a signup somebody else made — and each
+		// replaced a check of the caller's role name inside that authorizer. The third
+		// such check, issue reports', reads ReadAnyIssueReportsPermission above.
+		ReadAnyBillingAccountPermission,
+		WithdrawAnyWaitlistSignupsPermission,
+
 		// The directory reads and the three operator writes, which are platform's now.
 		// They are not an account holder's: a support engineer reading a user does not
 		// become a member of the account they are looking at.

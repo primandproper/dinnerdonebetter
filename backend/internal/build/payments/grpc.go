@@ -24,11 +24,13 @@ import (
 	"context"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 
 	"github.com/primandproper/platform-go/v15/billing"
 	"github.com/primandproper/platform-go/v15/billing/billingpb"
 	billinggrpc "github.com/primandproper/platform-go/v15/billing/grpc"
 	"github.com/primandproper/platform-go/v15/callers"
+	platformauthz "github.com/primandproper/primitives-go/v2/authorization"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/metrics"
@@ -38,18 +40,24 @@ import (
 )
 
 // ownAccountOrAdmin is this deployment's rule: a caller sees the billing of the
-// account they have active, and a service administrator sees any.
+// account they have active, and a holder of ReadAnyBillingAccountPermission sees
+// any.
 //
 // It is the whole of the tenancy check on this surface, because the scope is not
 // carrying it — see the package comment.
-func ownAccountOrAdmin() billinggrpc.AccountAuthorizer {
+//
+// The operator half reads a permission off the caller's grants rather than the
+// name of their role, which is what billing/grpc's AccountAuthorizer
+// documentation asks for: the next role that should read ledgers is then a line
+// in the role grid rather than a change here.
+func ownAccountOrAdmin(grants platformauthz.GrantsExtractor) billinggrpc.AccountAuthorizer {
 	return billinggrpc.AccountAuthorizerFunc(
 		func(ctx context.Context, caller callers.Principal, accountID string) error {
 			if caller != nil && accountID != "" && caller.ActiveAccountID() == accountID {
 				return nil
 			}
 
-			if sessions.FromContext(ctx).GetServicePermissions().IsServiceAdmin() {
+			if held, ok := grants(ctx); ok && held.Has(authorization.ReadAnyBillingAccountPermission) {
 				return nil
 			}
 
@@ -64,7 +72,7 @@ func RegisterPaymentsService(i do.Injector) {
 			do.MustInvoke[billing.Store](i),
 			do.MustInvoke[database.Client](i),
 			sessions.PrincipalFromContext,
-			ownAccountOrAdmin(),
+			ownAccountOrAdmin(sessions.GrantsFromContext),
 			// Gates include_archived, which this surface gained with notifications
 			// and webhooks. Its absence is fail-closed, and a withdrawn product or a
 			// cancelled subscription is exactly what an operator needs to page.

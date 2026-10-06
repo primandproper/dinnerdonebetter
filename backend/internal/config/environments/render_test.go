@@ -78,7 +78,7 @@ func TestEnvironmentConfigSet_Render(T *testing.T) {
 		tmpDir := t.TempDir()
 
 		rootConfig := BuildProdConfig()
-		require.NotNil(t, rootConfig.HTTPServer.AppleAppSiteAssociation)
+		require.NotNil(t, rootConfig.Service.HTTPServer.AppleAppSiteAssociation)
 
 		configSet := &config.EnvironmentConfigSet{RootConfig: rootConfig}
 		require.NoError(t, configSet.Render(context.Background(), tmpDir))
@@ -94,7 +94,7 @@ func TestEnvironmentConfigSet_Render(T *testing.T) {
 		assert.NotContains(t, string(mcpConfig), "appleAppSiteAssociation")
 
 		// Rendering the MCP config must not clear the association on the config it copied.
-		assert.NotNil(t, rootConfig.HTTPServer.AppleAppSiteAssociation)
+		assert.NotNil(t, rootConfig.Service.HTTPServer.AppleAppSiteAssociation)
 	})
 
 	T.Run("rendering the MCP config leaves the API's chi config alone", func(t *testing.T) {

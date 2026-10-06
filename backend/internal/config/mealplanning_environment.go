@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/primandproper/platform-go/v15/workqueue"
+	jobscfg "github.com/primandproper/primitives-go/v2/jobs/config"
 )
 
 // defaultMealPlanningScheduledJobsConfig returns the schedules for the meal planning domain's
@@ -19,8 +20,7 @@ import (
 // pipeline's scheduling latency instead of the first of three.
 func defaultMealPlanningScheduledJobsConfig() MealPlanningScheduledJobsConfig {
 	return MealPlanningScheduledJobsConfig{
-		MealPlanFinalizationStarter: ScheduledJobConfig{
-			Enabled:  true,
+		MealPlanFinalizationStarter: jobscfg.JobConfig{
 			Interval: time.Minute,
 			Timeout:  2 * time.Minute,
 			LeaseTTL: 5 * time.Minute,
@@ -36,8 +36,7 @@ func defaultMealPlanningScheduledJobsConfig() MealPlanningScheduledJobsConfig {
 		//
 		// Per-user timezones are the real answer here and a much larger conversation; one
 		// zone's waking hours are strictly better than every two minutes in the meantime.
-		MealPlanTaskNotifications: ScheduledJobConfig{
-			Enabled:  true,
+		MealPlanTaskNotifications: jobscfg.JobConfig{
 			Schedule: "CRON_TZ=America/Chicago 0 8-21 * * *",
 			// One pass now sends the pushes as well as finding the work, and it drains
 			// the queue in batches until it is empty, so the bound is an hour's backlog
