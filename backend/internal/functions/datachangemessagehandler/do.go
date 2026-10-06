@@ -6,12 +6,10 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/internalops"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
-	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
-	mealplanningindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/searchindexes"
 
 	platformidentity "github.com/primandproper/platform-go/v15/identity"
 	"github.com/primandproper/platform-go/v15/notifications/push"
-	searchsync "github.com/primandproper/platform-go/v15/searchsync"
 	"github.com/primandproper/primitives-go/v2/analytics"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/email"
@@ -46,48 +44,16 @@ func RegisterAsyncDataChangeMessageHandler(i do.Injector) {
 	})
 }
 
-// searchSyncers collects every index's Syncer, paired with the topic its events arrive on.
-//
-// The list is written out rather than discovered because it is the definition of which indexes
-// this process consumes for: an index whose Syncer is missing here has a topic nobody reads,
-// and the only symptom is search results that quietly stop moving.
+// searchSyncers is every registered index's Syncer, paired with the topic its events arrive on,
+// read off the one Registry every index is built through — see internal/searchindexes. Which
+// indexes those are is decided where the Registry is registered, not here.
 func searchSyncers(i do.Injector) []SearchSyncer {
-	return []SearchSyncer{
-		{
-			Topic:  identityindexing.IndexTypeUsers,
-			Handle: do.MustInvoke[*searchsync.Syncer[identityindexing.UserSearchSubset]](i).Handle,
-		},
-		{
-			Topic:  mealplanningindexing.IndexTypeMeals,
-			Handle: do.MustInvoke[*searchsync.Syncer[mealplanningindexing.MealSearchSubset]](i).Handle,
-		},
-		{
-			Topic:  mealplanningindexing.IndexTypeRecipes,
-			Handle: do.MustInvoke[*searchsync.Syncer[mealplanningindexing.RecipeSearchSubset]](i).Handle,
-		},
-		{
-			Topic:  mealplanningindexing.IndexTypeValidIngredients,
-			Handle: do.MustInvoke[*searchsync.Syncer[mealplanningindexing.ValidIngredientSearchSubset]](i).Handle,
-		},
-		{
-			Topic:  mealplanningindexing.IndexTypeValidInstruments,
-			Handle: do.MustInvoke[*searchsync.Syncer[mealplanningindexing.ValidInstrumentSearchSubset]](i).Handle,
-		},
-		{
-			Topic:  mealplanningindexing.IndexTypeValidMeasurementUnits,
-			Handle: do.MustInvoke[*searchsync.Syncer[mealplanningindexing.ValidMeasurementUnitSearchSubset]](i).Handle,
-		},
-		{
-			Topic:  mealplanningindexing.IndexTypeValidPreparations,
-			Handle: do.MustInvoke[*searchsync.Syncer[mealplanningindexing.ValidPreparationSearchSubset]](i).Handle,
-		},
-		{
-			Topic:  mealplanningindexing.IndexTypeValidIngredientStates,
-			Handle: do.MustInvoke[*searchsync.Syncer[mealplanningindexing.ValidIngredientStateSearchSubset]](i).Handle,
-		},
-		{
-			Topic:  mealplanningindexing.IndexTypeValidVessels,
-			Handle: do.MustInvoke[*searchsync.Syncer[mealplanningindexing.ValidVesselSearchSubset]](i).Handle,
-		},
+	specs := do.MustInvoke[*searchindexes.Registry](i).PoolSpecs()
+
+	syncers := make([]SearchSyncer, 0, len(specs))
+	for i := range specs {
+		syncers = append(syncers, SearchSyncer{Topic: specs[i].Topic, Handle: specs[i].Handler})
 	}
+
+	return syncers
 }

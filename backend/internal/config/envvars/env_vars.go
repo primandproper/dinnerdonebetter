@@ -2182,6 +2182,42 @@ const (
 	// `AsyncMessageHandlerConfig.Pools.OutboundEmails.Topic`.
 	PoolsOutboundEmailsTopicEnvVarKey = "DINNER_DONE_BETTER_POOLS_OUTBOUND_EMAILS_TOPIC"
 
+	// PoolsQueuedMailConcurrencyEnvVarKey is the environment variable name to set to override
+	// `AsyncMessageHandlerConfig.Pools.QueuedMail.Concurrency`.
+	PoolsQueuedMailConcurrencyEnvVarKey = "DINNER_DONE_BETTER_POOLS_QUEUED_MAIL_CONCURRENCY"
+
+	// PoolsQueuedMailHandlerTimeoutEnvVarKey is the environment variable name to set to override
+	// `AsyncMessageHandlerConfig.Pools.QueuedMail.HandlerTimeout`.
+	PoolsQueuedMailHandlerTimeoutEnvVarKey = "DINNER_DONE_BETTER_POOLS_QUEUED_MAIL_HANDLER_TIMEOUT"
+
+	// PoolsQueuedMailRetryInitialDelayEnvVarKey is the environment variable name to set to
+	// override `AsyncMessageHandlerConfig.Pools.QueuedMail.Retry.InitialDelay`.
+	PoolsQueuedMailRetryInitialDelayEnvVarKey = "DINNER_DONE_BETTER_POOLS_QUEUED_MAIL_RETRY_INITIAL_DELAY"
+
+	// PoolsQueuedMailRetryMaxAttemptsEnvVarKey is the environment variable name to set to override
+	// `AsyncMessageHandlerConfig.Pools.QueuedMail.Retry.MaxAttempts`.
+	PoolsQueuedMailRetryMaxAttemptsEnvVarKey = "DINNER_DONE_BETTER_POOLS_QUEUED_MAIL_RETRY_MAX_ATTEMPTS"
+
+	// PoolsQueuedMailRetryMaxDelayEnvVarKey is the environment variable name to set to override
+	// `AsyncMessageHandlerConfig.Pools.QueuedMail.Retry.MaxDelay`.
+	PoolsQueuedMailRetryMaxDelayEnvVarKey = "DINNER_DONE_BETTER_POOLS_QUEUED_MAIL_RETRY_MAX_DELAY"
+
+	// PoolsQueuedMailRetryMultiplierEnvVarKey is the environment variable name to set to override
+	// `AsyncMessageHandlerConfig.Pools.QueuedMail.Retry.Multiplier`.
+	PoolsQueuedMailRetryMultiplierEnvVarKey = "DINNER_DONE_BETTER_POOLS_QUEUED_MAIL_RETRY_MULTIPLIER"
+
+	// PoolsQueuedMailRetryProviderEnvVarKey is the environment variable name to set to override
+	// `AsyncMessageHandlerConfig.Pools.QueuedMail.Retry.Provider`.
+	PoolsQueuedMailRetryProviderEnvVarKey = "DINNER_DONE_BETTER_POOLS_QUEUED_MAIL_RETRY_PROVIDER"
+
+	// PoolsQueuedMailRetryUseJitterEnvVarKey is the environment variable name to set to override
+	// `AsyncMessageHandlerConfig.Pools.QueuedMail.Retry.UseJitter`.
+	PoolsQueuedMailRetryUseJitterEnvVarKey = "DINNER_DONE_BETTER_POOLS_QUEUED_MAIL_RETRY_USE_JITTER"
+
+	// PoolsQueuedMailTopicEnvVarKey is the environment variable name to set to override
+	// `AsyncMessageHandlerConfig.Pools.QueuedMail.Topic`.
+	PoolsQueuedMailTopicEnvVarKey = "DINNER_DONE_BETTER_POOLS_QUEUED_MAIL_TOPIC"
+
 	// PoolsSearchIndexRequestsConcurrencyEnvVarKey is the environment variable name to set to
 	// override `AsyncMessageHandlerConfig.Pools.SearchIndexRequests.Concurrency`.
 	PoolsSearchIndexRequestsConcurrencyEnvVarKey = "DINNER_DONE_BETTER_POOLS_SEARCH_INDEX_REQUESTS_CONCURRENCY"
@@ -2276,6 +2312,11 @@ const (
 	// `SchedulerConfig.Queues.OutboundEmailsTopicName`,
 	// `AsyncMessageHandlerConfig.Queues.OutboundEmailsTopicName`.
 	QueuesOutboundEmailsTopicNameEnvVarKey = "DINNER_DONE_BETTER_QUEUES_OUTBOUND_EMAILS_TOPIC_NAME"
+
+	// QueuesQueuedMailTopicNameEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Queues.QueuedMailTopicName`, `SchedulerConfig.Queues.QueuedMailTopicName`,
+	// `AsyncMessageHandlerConfig.Queues.QueuedMailTopicName`.
+	QueuesQueuedMailTopicNameEnvVarKey = "DINNER_DONE_BETTER_QUEUES_QUEUED_MAIL_TOPIC_NAME"
 
 	// QueuesSearchIndexRequestsTopicNameEnvVarKey is the environment variable name to set to
 	// override `APIServiceConfig.Queues.SearchIndexRequestsTopicName`,

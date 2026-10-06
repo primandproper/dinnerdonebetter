@@ -5,10 +5,10 @@ cannot sign in, and the new password they choose with it.
 Every RPC on it is anonymous, because a caller who could prove who they are would be changing
 their password through SignInService instead.
 
-What is this application's here is two things. The mail goes through the outbox, as an event
-the data change message handler renders into the reset email — see
-authentication.SignInMailers. And the password is held to authentication.PasswordPolicy, the
-rule every other door that writes a password answers to.
+What is this application's here is two things. The reset mail is queued on the outbox by
+platform's notifications/mail QueuedMailer, and rendered in this application's words by the mail
+Drainer — see internal/build/queuedmail. And the password is held to
+authentication.PasswordPolicy, the rule every other door that writes a password answers to.
 
 The directory the new password is written through is the identity store itself. The "your
 password was reset" mail is rendered from passwordreset.EventTokenRedeemed, which platform's
@@ -24,12 +24,12 @@ import (
 	"time"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 
 	platformpasswordreset "github.com/primandproper/platform-go/v15/authentication/passwordreset"
 	passwordresetgrpc "github.com/primandproper/platform-go/v15/authentication/passwordreset/grpc"
 	"github.com/primandproper/platform-go/v15/authentication/passwordreset/passwordresetpb"
 	platformidentity "github.com/primandproper/platform-go/v15/identity"
+	"github.com/primandproper/platform-go/v15/notifications/mail"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/metrics"
@@ -48,15 +48,13 @@ const tokenLifetime = 30 * time.Minute
 func RegisterPasswordResetService(i do.Injector) {
 	do.Provide[*platformpasswordreset.Service](i, func(i do.Injector) (*platformpasswordreset.Service, error) {
 		logger := do.MustInvoke[logging.Logger](i)
-		db := do.MustInvoke[database.Client](i)
-		emitter := do.MustInvoke[*events.Emitter](i)
 
 		return platformpasswordreset.NewService(
-			db,
+			do.MustInvoke[database.Client](i),
 			do.MustInvoke[platformpasswordreset.Store](i),
 			do.MustInvoke[platformidentity.Store](i),
 			do.MustInvoke[authentication.Authenticator](i),
-			authentication.NewSignInMailers(logger, db, emitter),
+			do.MustInvoke[*mail.QueuedMailer](i),
 			platformpasswordreset.WithTokenLifetime(tokenLifetime),
 			platformpasswordreset.WithPasswordPolicy(authentication.PasswordPolicy),
 			platformpasswordreset.WithServiceLogger(logger),

@@ -25,8 +25,8 @@ Exposed without a caller, beyond the sign-in doors themselves:
     refuses both; what reaching them buys is that the refusal says so, rather than claiming a
     caller was missing.
   - RequestVerificationEmailByAddress and RequestHandleReminder, which answer every address the
-    same way and mail only its holder, through this application's outbox — see
-    authentication.SignInMailers.
+    same way and mail only its holder, through platform's QueuedMailer — see
+    internal/build/queuedmail.
 
 Exposed to any signed-in caller, about themselves: GetSelf, SignOutEverywhere, the sign-ins they
 hold (ListSignIns, EndSignIn, EndOtherSignIns), another verification link

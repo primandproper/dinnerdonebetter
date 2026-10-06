@@ -118,16 +118,52 @@ internal class ClientManager<Transport: GRPCCore.ClientTransport> {
   /// These can be overridden on a per-call basis.
   internal var defaultCallOptions: GRPCCore.CallOptions
 
-  /// Initialize a new client manager with a transport.
+  /// This install's push registration, made through `session` and over the same client. It is
+  /// one per Session for the reason the Session is one per process: both act as the login the
+  /// Session holds, and the registration is persisted under that login so a relaunch revokes
+  /// what the last launch registered.
+  internal let devices: Devices
+
+  /// Initialize a new client manager over a gRPC client whose connections the caller runs.
+  ///
+  /// - Parameters:
+  ///   - grpcClient: The client every service client and the Session share
+  ///   - store: Where the Session keeps the login it holds
+  ///   - deviceStore: Where `devices` keeps this install's push registration
+  ///   - defaultCallOptions: Default call options to use for all RPC calls (default: 5 second timeout)
+  internal init(
+    client grpcClient: GRPCCore.GRPCClient<Transport>,
+    store: any CredentialStore,
+    deviceStore: any DeviceRegistrationStore = KeychainDeviceRegistrationStore(),
+    defaultCallOptions: GRPCCore.CallOptions = {
+      var options = GRPCCore.CallOptions.defaults
+      options.timeout = .seconds(5)
+      return options
+    }()
+  ) {
+    self.grpcTransportClient = grpcClient
+
+    // Create the unified client wrapper
+    self.client = Client(grpcClient: grpcClient)
+    self.session = Session(client: grpcClient, store: store)
+    self.devices = Devices(session: session, client: grpcClient, store: deviceStore)
+
+    // Store default call options
+    self.defaultCallOptions = defaultCallOptions
+  }
+
+  /// Initialize a new client manager with a transport, and start its connections.
   ///
   /// - Parameters:
   ///   - transport: The transport to use for the gRPC client
   ///   - store: Where the Session keeps the login it holds
+  ///   - deviceStore: Where `devices` keeps this install's push registration
   ///   - defaultCallOptions: Default call options to use for all RPC calls (default: 5 second timeout)
   /// - Throws: An error if the client cannot be created
-  internal init(
+  internal convenience init(
     transport: Transport,
     store: any CredentialStore,
+    deviceStore: any DeviceRegistrationStore = KeychainDeviceRegistrationStore(),
     defaultCallOptions: GRPCCore.CallOptions = {
       var options = GRPCCore.CallOptions.defaults
       options.timeout = .seconds(5)
@@ -137,24 +173,35 @@ internal class ClientManager<Transport: GRPCCore.ClientTransport> {
     // Create a single GRPCClient instance. Every call it makes names this device, the
     // Session's own sign-ins and refreshes among them, so the server can say where each login
     // is held.
-    self.grpcTransportClient = GRPCCore.GRPCClient(
+    let grpcClient = GRPCCore.GRPCClient(
       transport: transport, interceptors: [DeviceNameInterceptor.describingThisDevice()])
-
-    // Create the unified client wrapper
-    self.client = Client(grpcClient: grpcTransportClient)
-    self.session = Session(client: grpcTransportClient, store: store)
-
-    // Store default call options
-    self.defaultCallOptions = defaultCallOptions
+    self.init(
+      client: grpcClient, store: store, deviceStore: deviceStore,
+      defaultCallOptions: defaultCallOptions)
 
     // Start the connection asynchronously (following issue #2211 pattern)
     Task {
       do {
-        try await grpcTransportClient.runConnections()
+        try await grpcClient.runConnections()
       } catch {
         PlatformServices.shared.logger("gRPCClient").error("starting gRPC connections", error)
       }
     }
+  }
+
+  /// Ends the login on the server: revokes this install's push registration while the login
+  /// can still make the call, then signs out. Neither throws. A revocation that fails is
+  /// logged and the sign-out goes ahead, since keeping someone signed in because their device
+  /// could not be unregistered would be worse; the registration stays persisted, so the next
+  /// sign-in on this device moves it to whoever that is.
+  internal func signOut() async {
+    do {
+      try await devices.revoke()
+    } catch {
+      PlatformServices.shared.logger("ClientManager")
+        .error("revoking the device registration", error)
+    }
+    await session.signOut()
   }
 
   /// Initialize a new client manager with HTTP2ClientTransport.
@@ -164,6 +211,7 @@ internal class ClientManager<Transport: GRPCCore.ClientTransport> {
   ///   - port: The server port (default: 8001)
   ///   - useTLS: Whether to use TLS for the connection (default: false for plaintext)
   ///   - store: Where the Session keeps the login it holds
+  ///   - deviceStore: Where `devices` keeps this install's push registration
   ///   - defaultCallOptions: Default call options to use for all RPC calls (default: 5 second timeout)
   /// - Throws: An error if the transport cannot be created
   internal convenience init(
@@ -171,6 +219,7 @@ internal class ClientManager<Transport: GRPCCore.ClientTransport> {
     port: Int = 8001,
     useTLS: Bool = false,
     store: any CredentialStore,
+    deviceStore: any DeviceRegistrationStore = KeychainDeviceRegistrationStore(),
     defaultCallOptions: GRPCCore.CallOptions = {
       var options = GRPCCore.CallOptions.defaults
       options.timeout = .seconds(5)
@@ -189,7 +238,9 @@ internal class ClientManager<Transport: GRPCCore.ClientTransport> {
         transportSecurity: .plaintext
       )
     }
-    try self.init(transport: transport, store: store, defaultCallOptions: defaultCallOptions)
+    try self.init(
+      transport: transport, store: store, deviceStore: deviceStore,
+      defaultCallOptions: defaultCallOptions)
   }
 
   /// Get call options by merging default options with any overrides.

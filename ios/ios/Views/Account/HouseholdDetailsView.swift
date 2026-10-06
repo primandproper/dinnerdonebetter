@@ -33,67 +33,67 @@ struct HouseholdDetailsView: View {
       ScrollView {
         DSSection(
           "Household Details",
-          subtitle: viewModel.isAccountAdmin
+          subtitle: viewModel.canUpdateAccount
             ? nil : "Only household admins can edit household details"
         ) {
           VStack(spacing: DSTheme.Spacing.lg) {
             DSTextField(
               "Household Name",
               text: Binding(get: { viewModel.accountName }, set: { viewModel.accountName = $0 }),
-              isDisabled: !viewModel.isAccountAdmin
+              isDisabled: !viewModel.canUpdateAccount
             )
 
             DSTextField(
               "Contact Phone",
               text: Binding(get: { viewModel.contactPhone }, set: { viewModel.contactPhone = $0 }),
               type: .phone,
-              isDisabled: !viewModel.isAccountAdmin
+              isDisabled: !viewModel.canUpdateAccount
             )
 
             DSTextField(
               "Address Line 1",
               text: Binding(get: { viewModel.addressLine1 }, set: { viewModel.addressLine1 = $0 }),
-              isDisabled: !viewModel.isAccountAdmin
+              isDisabled: !viewModel.canUpdateAccount
             )
 
             DSTextField(
               "Address Line 2",
               text: Binding(get: { viewModel.addressLine2 }, set: { viewModel.addressLine2 = $0 }),
-              isDisabled: !viewModel.isAccountAdmin
+              isDisabled: !viewModel.canUpdateAccount
             )
 
             HStack(spacing: DSTheme.Spacing.md) {
               DSTextField(
                 "City",
                 text: Binding(get: { viewModel.city }, set: { viewModel.city = $0 }),
-                isDisabled: !viewModel.isAccountAdmin
+                isDisabled: !viewModel.canUpdateAccount
               )
 
               DSTextField(
                 "State",
                 text: Binding(get: { viewModel.state }, set: { viewModel.state = $0 }),
-                isDisabled: !viewModel.isAccountAdmin
+                isDisabled: !viewModel.canUpdateAccount
               )
 
               DSTextField(
                 "Zip Code",
                 text: Binding(get: { viewModel.zipCode }, set: { viewModel.zipCode = $0 }),
                 type: .number,
-                isDisabled: !viewModel.isAccountAdmin
+                isDisabled: !viewModel.canUpdateAccount
               )
             }
 
             DSTextField(
               "Country",
               text: Binding(get: { viewModel.country }, set: { viewModel.country = $0 }),
-              isDisabled: !viewModel.isAccountAdmin
+              isDisabled: !viewModel.canUpdateAccount
             )
 
             DSButton(
               "Update Household",
               icon: "checkmark",
               fullWidth: true,
-              isDisabled: !viewModel.isAccountAdmin || !viewModel.accountDataHasChanged
+              isDisabled: !viewModel.canUpdateAccount || !viewModel.accountDataHasChanged
             ) {
               eventReporterService.reporter.track(
                 event: "household_details_updated", properties: [:])

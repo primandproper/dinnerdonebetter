@@ -6,9 +6,10 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	identitybuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/identity"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/build/queuedmail"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/recordingspine"
 	auditrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	identitystore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identitystore"
 	issuereportsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/issuereports"
 	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
@@ -57,8 +58,11 @@ func BuildInjector(ctx context.Context, cfg *config.MCPServiceConfig) *do.RootSc
 	// builds a session.
 	authorization.RegisterPolicyResolver(i)
 	identitystore.RegisterIdentityStore(i)
+	// The mailer the identity service hands an invitation to, and sign-in, password
+	// reset and waitlists their mail. See internal/build/queuedmail.
+	queuedmail.Register(i)
 	identitybuild.RegisterSessionBuilder(i)
-	events.RegisterOutboxEmitter(i)
+	recordingspine.Register(i)
 
 	// The upload registry, because both repositories above read media through it —
 	// a user's avatar, a recipe step's images.

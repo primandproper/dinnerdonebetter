@@ -4,10 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	authkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/keys"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/datachanges"
 	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
-	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	queuemessages "github.com/primandproper/dinnerdonebetter/backend/internal/queues/messages"
 	coreemails "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/emails"
 
@@ -19,18 +16,16 @@ import (
 	"github.com/primandproper/primitives-go/v2/observability"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
-	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
-// handleIdentityOutboundNotification turns the events about people — platform's identity, sign-in
-// and password reset events, and this application's own three mail requests — into the mail and
-// the mobile notifications they imply.
+// handleIdentityOutboundNotification turns platform's identity, sign-in and password reset events
+// into the mail and the mobile notifications they imply.
 //
-// platform's events carry no secret. Every mail that needs a link — a verification link, at
-// registration or asked for again, a reset link, an invitation — arrives as this application's
-// own mail request, queued by the mailer platform hands the secret to once the write commits
-// (authentication.SignInMailers, identitystore.InvitationMailer). platform's events drive only the
-// mail and pushes that need no secret.
+// platform's events carry no secret, so they drive only the mail and pushes that need none. Every
+// mail that carries a link — a verification link, at registration or asked for again, a reset
+// link, a username reminder, an invitation — is handed by platform to notifications/mail's
+// QueuedMailer once its write commits, and is rendered and sent by the mail Drainer this process
+// runs on its own topic. None of it passes through here.
 func (a *AsyncDataChangeMessageHandler) handleIdentityOutboundNotification(
 	ctx context.Context,
 	event *webhooks.Envelope,
@@ -51,18 +46,6 @@ func (a *AsyncDataChangeMessageHandler) handleIdentityOutboundNotification(
 	case platformidentity.EventUserRegistered:
 		return true, "", nil, a.userRegistered(ctx, logger, span, event)
 
-	case webhooks.EventType(ddbidentity.UserEmailAddressVerificationEmailRequestedEventType):
-		emailType = "email address verification"
-		msg, err = a.verificationEmailRequested(ctx, logger, span, event)
-
-	case webhooks.EventType(ddbidentity.PasswordResetTokenCreatedEventType):
-		emailType = "password reset request"
-		msg, err = a.passwordResetRequested(ctx, logger, span, event)
-
-	case webhooks.EventType(ddbidentity.UsernameReminderRequestedEventType):
-		emailType = "username reminder"
-		msg, err = a.usernameReminderRequested(ctx, logger, span, event)
-
 	case passwordreset.EventTokenRedeemed:
 		emailType = "password reset token redeemed"
 		msg, err = a.passwordResetRedeemed(ctx, logger, span, event)
@@ -72,10 +55,6 @@ func (a *AsyncDataChangeMessageHandler) handleIdentityOutboundNotification(
 	case signin.EventPasswordUpdated, platformidentity.EventUserPasswordChanged:
 		emailType = "password changed"
 		msg, err = a.passwordChanged(ctx, logger, span, event)
-
-	case webhooks.EventType(ddbidentity.AccountInvitationMailRequestedEventType):
-		emailType = "account invitation created"
-		msg, err = a.invitationSent(ctx, logger, span, event)
 
 	case platformidentity.EventInvitationAccepted:
 		return true, "", nil, a.invitationAccepted(ctx, logger, span, event)
@@ -98,7 +77,7 @@ func (a *AsyncDataChangeMessageHandler) handleIdentityOutboundNotification(
 // userRegistered welcomes somebody: the analytics platform learns of them. A registration
 // through an invitation is also that invitation answered yes, so the household is told as it is
 // for an acceptance. The verification mail is not this event's: signin mails the first link
-// through SignInMailers after the registration commits, and it arrives as a mail request.
+// through the QueuedMailer after the registration commits, and the mail Drainer sends it.
 func (a *AsyncDataChangeMessageHandler) userRegistered(ctx context.Context, logger logging.Logger, span tracing.Span, event *webhooks.Envelope) error {
 	payload, err := payloadAs[platformidentity.UserEvent](event)
 	if err != nil {
@@ -121,78 +100,6 @@ func (a *AsyncDataChangeMessageHandler) userRegistered(ctx context.Context, logg
 	}
 
 	return nil
-}
-
-// verificationEmailRequested mails another verification link. The link's secret is on this
-// application's own mail request, because platform's signin.EventVerificationEmailRequested
-// deliberately carries none.
-func (a *AsyncDataChangeMessageHandler) verificationEmailRequested(ctx context.Context, logger logging.Logger, span tracing.Span, event *webhooks.Envelope) (*queuemessages.OutboundEmailMessage, error) {
-	request, user, err := a.mailRequest(ctx, logger, event)
-	if err != nil {
-		return nil, err
-	}
-
-	token := stringFromEventContext(request, identitykeys.UserEmailVerificationTokenKey)
-	if token == "" {
-		return nil, observability.PrepareError(fmt.Errorf("email verification token required"), span, "building address verification email")
-	}
-
-	msg, err := coreemails.BuildVerifyEmailAddressEmail(user, token, a.baseURL)
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "building address verification email")
-	}
-
-	return msg, nil
-}
-
-// passwordResetRequested mails the reset link. The secret arrives on the mail request and there
-// is nowhere to read it back from: the store holds a digest of it.
-func (a *AsyncDataChangeMessageHandler) passwordResetRequested(ctx context.Context, logger logging.Logger, span tracing.Span, event *webhooks.Envelope) (*queuemessages.OutboundEmailMessage, error) {
-	request, user, err := a.mailRequest(ctx, logger, event)
-	if err != nil {
-		return nil, err
-	}
-
-	resetToken := stringFromEventContext(request, authkeys.PasswordResetTokenSecretKey)
-	if resetToken == "" {
-		return nil, observability.PrepareError(fmt.Errorf("password reset mail request carries no %s", authkeys.PasswordResetTokenSecretKey), span, "building password reset email")
-	}
-
-	msg, err := coreemails.BuildGeneratedPasswordResetTokenEmail(user, resetToken, a.baseURL)
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "building password reset token created email")
-	}
-
-	return msg, nil
-}
-
-func (a *AsyncDataChangeMessageHandler) usernameReminderRequested(ctx context.Context, logger logging.Logger, span tracing.Span, event *webhooks.Envelope) (*queuemessages.OutboundEmailMessage, error) {
-	_, user, err := a.mailRequest(ctx, logger, event)
-	if err != nil {
-		return nil, err
-	}
-
-	msg, err := coreemails.BuildUsernameReminderEmail(user, a.baseURL)
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "building username reminder email")
-	}
-
-	return msg, nil
-}
-
-// mailRequest decodes one of this application's own mail requests and reads the person it is for.
-func (a *AsyncDataChangeMessageHandler) mailRequest(ctx context.Context, logger logging.Logger, event *webhooks.Envelope) (*datachanges.Message, *platformidentity.User, error) {
-	request, err := payloadAs[datachanges.Message](event)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	user, err := a.user(ctx, logger, request.UserID)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return request, user, nil
 }
 
 // passwordResetRedeemed tells somebody their password was reset through a mailed link. platform
@@ -247,49 +154,6 @@ func (a *AsyncDataChangeMessageHandler) passwordChanged(ctx context.Context, log
 	msg, err := coreemails.BuildPasswordChangedEmail(user, a.baseURL)
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "building password changed email")
-	}
-
-	return msg, nil
-}
-
-// invitationSent mails the invitation, in the sender's name.
-//
-// The token comes off the mail request rather than off the row. The column holds a digest and no
-// read fills the secret in, so the read below answers with an empty token — and a link composed
-// from it would be a link that cannot be followed, with nothing reporting the difference.
-// platform handed the secret to identitystore.InvitationMailer once, after the invitation
-// committed, and the mailer put it here.
-func (a *AsyncDataChangeMessageHandler) invitationSent(ctx context.Context, logger logging.Logger, span tracing.Span, event *webhooks.Envelope) (*queuemessages.OutboundEmailMessage, error) {
-	request, sender, err := a.mailRequest(ctx, logger, event)
-	if err != nil {
-		return nil, err
-	}
-
-	invitationID := stringFromEventContext(request, identitykeys.AccountInvitationIDKey)
-	token := stringFromEventContext(request, identitykeys.AccountInvitationTokenKey)
-
-	if invitationID == "" {
-		return nil, observability.PrepareError(fmt.Errorf("invitation mail request names no invitation"), span, "building invite member email")
-	}
-
-	if token == "" {
-		return nil, observability.PrepareError(fmt.Errorf("invitation mail request carries no token"), span, "building invite member email")
-	}
-
-	invitation, err := a.directory.GetInvitation(ctx, a.db.Reader(), tenancy.Global(), invitationID)
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "getting account invitation")
-	}
-
-	if invitation == nil {
-		return nil, observability.PrepareError(fmt.Errorf("account invitation not found"), span, "building invite member email")
-	}
-
-	invitation.Token = token
-
-	msg, err := coreemails.BuildInviteMemberEmail(sender, invitation, a.baseURL)
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "building email message")
 	}
 
 	return msg, nil

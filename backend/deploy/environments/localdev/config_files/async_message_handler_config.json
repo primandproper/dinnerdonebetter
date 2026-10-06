@@ -3,7 +3,8 @@
 		"dataChangesTopicName": "data_changes",
 		"outboundEmailsTopicName": "outbound_emails",
 		"searchIndexRequestsTopicName": "search_index_requests",
-		"mobileNotificationsTopicName": "mobile_notifications"
+		"mobileNotificationsTopicName": "mobile_notifications",
+		"queuedMailTopicName": "queued_mail"
 	},
 	"pushNotifications": {
 		"provider": "noop"
@@ -171,6 +172,17 @@
 				"maxAttempts": 3,
 				"initialDelay": 100000000,
 				"maxDelay": 5000000000,
+				"multiplier": 2,
+				"useJitter": true
+			},
+			"concurrency": 8,
+			"handlerTimeout": 30000000000
+		},
+		"queuedMail": {
+			"retry": {
+				"maxAttempts": 4,
+				"initialDelay": 100000000,
+				"maxDelay": 30000000000,
 				"multiplier": 2,
 				"useJitter": true
 			},

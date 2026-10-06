@@ -474,7 +474,7 @@ func (q *repository) InitializeMealPlanGroceryList(ctx context.Context, mealPlan
 				return observability.PrepareAndLogError(createErr, logger, span, "creating meal plan grocery list item")
 			}
 
-			if emitErr := q.events.Emit(ctx, tx, logger, mealplanning.MealPlanGroceryListItemCreatedServiceEventType, accountID, map[string]any{
+			if emitErr := q.emit(ctx, tx, logger, mealplanning.MealPlanGroceryListItemCreatedServiceEventType, accountID, map[string]any{
 				mealplanningkeys.MealPlanGroceryListItemIDKey: item.ID,
 			}); emitErr != nil {
 				return observability.PrepareError(emitErr, span, "enqueuing meal plan grocery list item created event")

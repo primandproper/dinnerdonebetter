@@ -14,7 +14,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     // An empty username is the discoverable login. Either way the answer looks the same
     // whether or not anybody holds the name, so the prompt does too.
     const options = await beginPasskeySignIn(locals.session, (body.username ?? '').trim());
-    return json({ options: Buffer.from(options).toString('base64') });
+    // The options are JSON already, which the browser hands parseAssertionOptions as they are.
+    return new Response(new TextDecoder().decode(options), { headers: { 'content-type': 'application/json' } });
   } catch {
     return json({ error: 'failed to get passkey options' }, { status: 500 });
   }

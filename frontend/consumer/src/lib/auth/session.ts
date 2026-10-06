@@ -1,18 +1,26 @@
 /**
- * The login lives in one encrypted, HTTP-only cookie, and a Session per request reads and
- * writes it through the CredentialStore below. The cookie holds the refresh token, which is
- * the credential worth stealing, so it never leaves the server: nothing in the browser can
- * read it.
+ * The login lives in one sealed, HTTP-only cookie, and a Session per request reads and writes
+ * it through platform-client's encryptedCredentialStore. The cookie holds the refresh token,
+ * which is the credential worth stealing, so it never leaves the server: nothing in the
+ * browser can read it.
  */
 
 import type { Cookies, RequestEvent } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
-import { type CredentialStore, IssuedToken, type Session } from '@primandproper/platform-client';
+import { type CredentialStore, encryptedCredentialStore, type Session } from '@primandproper/platform-client';
 import { newSession } from '$lib/grpc/clients';
-import { encrypt, decrypt } from './crypto';
 
 export function getCookieName(): string {
   return env.COOKIE_NAME ?? 'consumer_session';
+}
+
+/** cookieKey is COOKIE_ENCRYPTION_KEY, a base64-encoded 32-byte key, which the store checks the length of. */
+function cookieKey(): Uint8Array {
+  const encoded = env.COOKIE_ENCRYPTION_KEY;
+  if (!encoded) {
+    throw new Error('COOKIE_ENCRYPTION_KEY is required');
+  }
+  return Buffer.from(encoded, 'base64');
 }
 
 /**
@@ -24,33 +32,18 @@ export function getCookieName(): string {
 export function cookieStore(cookies: Cookies): CredentialStore {
   const name = getCookieName();
 
-  return {
-    async load() {
-      const value = cookies.get(name);
-      if (!value) {
-        return undefined;
-      }
-      try {
-        const token = IssuedToken.fromJSON(decrypt<unknown>(value));
-        // Anything that decrypts but holds no token (a cookie from before this format) is no login.
-        return token.token ? token : undefined;
-      } catch {
-        return undefined;
-      }
-    },
-    async save(token) {
-      cookies.set(name, encrypt(IssuedToken.toJSON(token)), {
+  return encryptedCredentialStore(cookieKey(), {
+    get: () => cookies.get(name),
+    set: (value, expires) =>
+      cookies.set(name, value, {
         path: '/',
         httpOnly: true,
         secure: env.NODE_ENV === 'production',
         sameSite: 'lax',
-        expires: token.refreshTokenExpiresAt ?? token.expiresAt,
-      });
-    },
-    async clear() {
-      cookies.delete(name, { path: '/' });
-    },
-  };
+        expires,
+      }),
+    delete: () => cookies.delete(name, { path: '/' }),
+  });
 }
 
 /** ClientInfo is the browser a request came from. */

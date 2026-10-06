@@ -7,6 +7,7 @@
 
 import { env } from '$env/dynamic/private';
 import { redirect } from '@sveltejs/kit';
+import { CHANGE_PASSWORD_PATH, mustChangePassword } from '$lib/auth/required-actions';
 import {
   AnalyticsServiceService,
   InternalOperationsService,
@@ -16,7 +17,7 @@ import {
 import {
   type CredentialStore,
   type Metadata,
-  NotSignedInError,
+  redirectOnNotSignedIn,
   Session,
   type UnaryMethod,
 } from '@primandproper/platform-client';
@@ -26,7 +27,7 @@ import { IdentityServiceService } from '@primandproper/platform-client/identity/
 import { IssueReportsServiceService } from '@primandproper/platform-client/issuereports/v1';
 import { OAuth2ClientsServiceService } from '@primandproper/platform-client/oauth2clients/v1';
 import { SettingsServiceService } from '@primandproper/platform-client/settings/v1';
-import { SignInAdministrationServiceService } from '@primandproper/platform-client/signin/v1';
+import { SignInAdministrationServiceService, SignInServiceService } from '@primandproper/platform-client/signin/v1';
 import { WaitlistsServiceService } from '@primandproper/platform-client/waitlists/v1';
 
 const transport = createPlatformTransport({
@@ -48,14 +49,19 @@ export function newSession(store: CredentialStore, metadata: Metadata = {}): Ses
 
 /**
  * call makes an authenticated call. A login that is over by the time it is made sends the
- * operator to sign in again; the Session has already cleared the cookie by then.
+ * operator to sign in again; the Session has already cleared the cookie by then. One refused
+ * because they owe a password change sends them to the form for it.
  */
 async function call<Req, Res>(session: Session, method: UnaryMethod<Req, Res>, request: Req): Promise<Res> {
   try {
-    return await session.call(method, request);
+    return await redirectOnNotSignedIn(
+      session,
+      () => session.call(method, request),
+      () => redirect(302, '/login'),
+    );
   } catch (err) {
-    if (err instanceof NotSignedInError || session.state === 'anonymous') {
-      throw redirect(302, '/login');
+    if (mustChangePassword(err)) {
+      redirect(302, CHANGE_PASSWORD_PATH);
     }
     throw err;
   }
@@ -168,6 +174,10 @@ export const getMeasurementUnitConversionMismatches = loose(
 export const getValidMeasurementUnitConversionsForIngredients = loose(
   MealPlanningServiceService.getValidMeasurementUnitConversionsForIngredients,
 );
+
+// The operator's own password. It is the one call an operator who owes a password change
+// may still make.
+export const updatePassword = authed(SignInServiceService.updatePassword);
 
 // Platform's services, called through @primandproper/platform-client's stubs rather
 // than any generated here. Only the reads a page calls are here.

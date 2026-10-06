@@ -96,7 +96,7 @@ func (m *mealPlanningManager) CreateMealPlanOptionVotes(ctx context.Context, mea
 	}
 
 	// The event is enqueued into the outbox by the repository, inside the same transaction
-	// as the writes it counts; see internal/repositories/postgres/events.
+	// as the writes it counts; see internal/recordingspine.
 
 	return created, nil
 }

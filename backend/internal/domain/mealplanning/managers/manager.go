@@ -369,7 +369,7 @@ var (
 // NewMealPlanningManager returns a new MealPlanningManager.
 //
 // Data change events are enqueued into the outbox by the repository, inside the same
-// transaction as the write they describe; see internal/repositories/postgres/events.
+// transaction as the write they describe; see internal/recordingspine.
 func NewMealPlanningManager(
 	ctx context.Context,
 	logger logging.Logger,

@@ -1,5 +1,6 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { PlatformError, SignInReason, signIn } from '@primandproper/platform-client';
+import { isTransient, PlatformError, SignInReason, signIn } from '@primandproper/platform-client';
+import { landingAfterSignIn } from '$lib/auth/required-actions';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ url }) => {
@@ -33,14 +34,19 @@ export const actions: Actions = {
       return fail(401, { error: refusal(err), username, totpRequired: !!totpCode });
     }
 
-    throw redirect(302, '/');
+    // Somebody an operator has made change their password is signed in all the same, and
+    // goes to the form for it before anything else.
+    throw redirect(302, await landingAfterSignIn(locals.session));
   },
 };
 
 /** refusal is what to tell the person about a sign-in that didn't go through. */
 function refusal(err: unknown): string {
-  if (!(err instanceof PlatformError)) {
+  if (isTransient(err)) {
     return 'Cannot reach the API server. Check GRPC_API_SERVER_URL and that it is reachable.';
+  }
+  if (!(err instanceof PlatformError)) {
+    return 'Sign-in failed';
   }
   if (err.is(SignInReason.INVALID_CREDENTIALS)) {
     return 'Invalid username, password or code';

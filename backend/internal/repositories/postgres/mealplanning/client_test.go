@@ -75,13 +75,17 @@ func buildDatabaseClientForTest(t *testing.T) (*repository, audit.Repository) {
 	auditRecorder, ok := auditlogentries.RecorderFrom(auditLogEntryRepo)
 	require.True(t, ok)
 
+	spine := pgtesting.NewSpineForTest(t, ctx, pgc, auditRecorder)
+
 	c := ProvideMealPlanningRepository(
 		loggingnoop.NewLogger(),
 		tracingnoop.NewTracerProvider(),
 		auditLogEntryRepo,
 		identityStore,
 		pgc,
-		pgtesting.NewEmitterForTest(t, ctx, pgc, auditRecorder),
+		spine.Emitter,
+		spine.Recorder,
+		spine.Writer,
 		uploadsRegistry,
 	)
 
@@ -91,7 +95,7 @@ func buildDatabaseClientForTest(t *testing.T) (*repository, audit.Repository) {
 func buildInertClientForTest(t *testing.T) *repository {
 	t.Helper()
 
-	c := ProvideMealPlanningRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, nil, &mockdatabase.ClientMock{ReaderFunc: func() database.SQLQueryExecutor { return nil }, WriterFunc: func() database.SQLQueryExecutor { return nil }}, nil, &registrymock.StoreMock{})
+	c := ProvideMealPlanningRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, nil, &mockdatabase.ClientMock{ReaderFunc: func() database.SQLQueryExecutor { return nil }, WriterFunc: func() database.SQLQueryExecutor { return nil }}, nil, nil, nil, &registrymock.StoreMock{})
 
 	return c.(*repository)
 }

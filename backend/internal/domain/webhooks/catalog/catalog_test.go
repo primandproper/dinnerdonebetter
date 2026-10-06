@@ -3,8 +3,6 @@ package catalog
 import (
 	"testing"
 
-	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
-
 	"github.com/primandproper/platform-go/v15/authentication/oauth2clients"
 	"github.com/primandproper/platform-go/v15/authentication/passkeys"
 	"github.com/primandproper/platform-go/v15/authentication/passwordreset"
@@ -79,7 +77,7 @@ func TestCatalog(T *testing.T) {
 		// Named explicitly rather than derived from the exclusion list, so that dropping a
 		// fragment from that list fails here instead of quietly widening what a subscriber
 		// can see. An endpoint URL is attacker-supplied; these would be a live feed of an
-		// account's authentication activity, and two of them carry a bearer secret.
+		// account's authentication activity.
 		for _, eventType := range []string{
 			signin.EventUserAuthenticated.String(),
 			signin.EventSignInsRevoked.String(),
@@ -90,8 +88,6 @@ func TestCatalog(T *testing.T) {
 			identity.EventInvitationCreated.String(),
 			identity.EventMembershipRemoved.String(),
 			passwordreset.EventTokenIssued.String(),
-			ddbidentity.PasswordResetTokenCreatedEventType,
-			ddbidentity.UserEmailAddressVerificationEmailRequestedEventType,
 			passkeys.EventPasskeyRegistered.String(),
 			passkeys.EventPasskeyArchived.String(),
 			oauth2clients.EventClientCreated.String(),

@@ -7,6 +7,7 @@ export default defineConfig({
     passWithNoTests: true,
     projects: [
       {
+        extends: './vite.config.ts',
         test: {
           name: 'server',
           environment: 'node',

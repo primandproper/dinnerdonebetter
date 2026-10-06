@@ -2,10 +2,11 @@ package identitystore
 
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 
 	"github.com/primandproper/platform-go/v15/authentication/passkeys"
 	platformidentity "github.com/primandproper/platform-go/v15/identity"
+	"github.com/primandproper/platform-go/v15/notifications/mail"
+	platformrecording "github.com/primandproper/platform-go/v15/recording"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/metrics"
@@ -35,15 +36,10 @@ func RegisterIdentityStore(i do.Injector) {
 	})
 
 	do.Provide[*Hooks](i, func(i do.Injector) (*Hooks, error) {
-		return ProvideHooks(do.MustInvoke[*events.Emitter](i))
+		return ProvideHooks(do.MustInvoke[*platformrecording.Recorder](i))
 	})
 
 	do.Provide[*platformidentity.Service](i, func(i do.Injector) (*platformidentity.Service, error) {
-		mailer, err := NewInvitationMailer(do.MustInvoke[logging.Logger](i), do.MustInvoke[database.Client](i), do.MustInvoke[*events.Emitter](i))
-		if err != nil {
-			return nil, err
-		}
-
 		return platformidentity.NewService(
 			do.MustInvoke[database.Client](i),
 			do.MustInvoke[platformidentity.Store](i),
@@ -51,8 +47,10 @@ func RegisterIdentityStore(i do.Injector) {
 			// failure is silent: NoopHooks satisfies the interface.
 			platformidentity.WithHooks(do.MustInvoke[*Hooks](i)),
 			// The invitation's token reaches the invitee's inbox through this and nothing
-			// else: with a mailer configured, the hooks see the invitation redacted.
-			platformidentity.WithInvitationMailer(mailer),
+			// else: with a mailer configured, the hooks see the invitation redacted. It is
+			// platform's QueuedMailer, which puts the mail on the outbox once the invitation
+			// has committed; see internal/build/queuedmail.
+			platformidentity.WithInvitationMailer(do.MustInvoke[*mail.QueuedMailer](i)),
 			platformidentity.WithServiceLogger(do.MustInvoke[logging.Logger](i)),
 			platformidentity.WithServiceTracerProvider(do.MustInvoke[tracing.Provider](i)),
 			platformidentity.WithServiceMetricsProvider(do.MustInvoke[metrics.Provider](i)),

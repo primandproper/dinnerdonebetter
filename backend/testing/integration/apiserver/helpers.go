@@ -16,6 +16,7 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/build/queuedmail"
 	internalopssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/internalops"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/localdev"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
@@ -30,6 +31,7 @@ import (
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/identifiers"
 	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
+	metricsnoop "github.com/primandproper/primitives-go/v2/observability/metrics/noop"
 	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
 	"github.com/primandproper/primitives-go/v2/tenancy"
 
@@ -625,12 +627,11 @@ func identityDirectoryWithHooks(t *testing.T) *identity.Service {
 	store, err := identity.NewSQLStore(databaseClient, identity.WithTablePrefix(branding.TablePrefix))
 	require.NoError(t, err)
 
-	emitter := pgtesting.NewEmitterForTest(t, t.Context(), databaseClient, auditRecorder)
-
-	hooks, err := identitystore.ProvideHooks(emitter)
+	hooks, err := identitystore.ProvideHooks(pgtesting.NewRecorderForTest(t, t.Context(), databaseClient, auditRecorder))
 	require.NoError(t, err)
 
-	mailer, err := identitystore.NewInvitationMailer(loggingnoop.NewLogger(), databaseClient, emitter)
+	mailer, err := queuedmail.New(databaseClient, apiServiceConfig.Queues.QueuedMailTopicName,
+		loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), metricsnoop.NewMetricsProvider())
 	require.NoError(t, err)
 
 	directory, err := identity.NewService(databaseClient, store, identity.WithHooks(hooks), identity.WithInvitationMailer(mailer))

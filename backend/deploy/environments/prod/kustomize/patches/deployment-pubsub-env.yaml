@@ -48,3 +48,11 @@
       configMapKeyRef:
         name: pubsub-topic-names
         key: mobile_notifications
+- op: add
+  path: "/spec/template/spec/containers/0/env/-"
+  value:
+    name: DINNER_DONE_BETTER_QUEUES_QUEUED_MAIL_TOPIC_NAME
+    valueFrom:
+      configMapKeyRef:
+        name: pubsub-topic-names
+        key: queued_mail

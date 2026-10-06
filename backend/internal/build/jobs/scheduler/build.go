@@ -6,16 +6,17 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	commentstargets "github.com/primandproper/dinnerdonebetter/backend/internal/build/comments"
 	dataprivacybuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/dataprivacy"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/build/queuedmail"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/build/sagas"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/grocerylistpreparation"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/recipeanalysis"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/push"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/recordingspine"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	authrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auth"
 	commentsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/comments"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	identitystore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identitystore"
 	internalopsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/internalops"
 	issuereportsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/issuereports"
@@ -28,6 +29,7 @@ import (
 	uploadedmediarepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/uploadedmedia"
 	waitlistsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/waitlists"
 	webhooksstore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhooksstore"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/searchindexes"
 	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
 	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
 	queuetest "github.com/primandproper/dinnerdonebetter/backend/internal/services/internalops/workers/queue_test"
@@ -106,6 +108,9 @@ func BuildInjector(
 	// builds a session.
 	authorization.RegisterPolicyResolver(i)
 	identitystore.RegisterIdentityStore(i)
+	// The mailer the identity service hands an invitation to, and sign-in, password
+	// reset and waitlists their mail. See internal/build/queuedmail.
+	queuedmail.Register(i)
 	internalopsrepo.RegisterInternalOpsRepository(i)
 	issuereportsrepo.RegisterIssueReportsRepository(i)
 	paymentsrepo.RegisterPaymentsRepository(i)
@@ -158,7 +163,7 @@ func BuildInjector(
 	// produces, signs them, and sends them.
 	RegisterWebhookWorker(i)
 	// Domain: mealplanning
-	events.RegisterOutboxEmitter(i)
+	recordingspine.Register(i)
 	mealplanningrepo.RegisterMealPlanningRepository(i)
 	grocerylistpreparation.RegisterGroceryListCreator(i)
 	recipeanalysis.RegisterRecipeAnalyzer(i)
@@ -177,10 +182,9 @@ func BuildInjector(
 	mealplantasknotifications.RegisterQueue(i)
 	mealplantasknotifications.RegisterWorker(i)
 
-	// The Reindexers this process drives on a schedule. They come from the same registration
-	// as the Syncers the consumer runs, because the two are halves of keeping one index right.
-	identityindexing.RegisterUserReindexer(i)
-	mealplanningindexing.RegisterIndexSyncers(i)
+	// The Reindexers this process drives on a schedule. They come from the same Registry as
+	// the Syncers the consumer runs, because the two are halves of keeping one index right.
+	searchindexes.Register(ctx, i, identityindexing.RegisterIndexes, mealplanningindexing.RegisterIndexes)
 
 	// the lock that decides which replica runs a given tick
 	do.Provide[distributedlock.Locker](i, func(i do.Injector) (distributedlock.Locker, error) {

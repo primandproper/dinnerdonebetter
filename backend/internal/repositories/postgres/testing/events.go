@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/recordingspine"
 
 	platformaudit "github.com/primandproper/platform-go/v15/audit"
 	platformrecording "github.com/primandproper/platform-go/v15/recording"
@@ -14,19 +14,19 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// NewEmitterForTest builds the recording spine over a real database, the way a process does: the
+// NewSpineForTest builds the recording spine over a real database, the way a process does: the
 // outbox writer with the search index rules on it, platform's webhooks Emitter with its own
 // fan-out over the webhooks tables, and platform's Recorder over the audit recorder handed in.
 //
 // It is real rather than mocked because the repository tests that use it are the ones that prove
 // a write's entry and event land, and a mock would prove the mock.
-func NewEmitterForTest(t *testing.T, ctx context.Context, db database.Client, auditRecorder platformaudit.Recorder) *events.Emitter {
+func NewSpineForTest(t *testing.T, ctx context.Context, db database.Client, auditRecorder platformaudit.Recorder) *recordingspine.Spine {
 	t.Helper()
 
-	emitter, err := events.New(ctx, db, auditRecorder)
+	spine, err := recordingspine.New(ctx, db, auditRecorder)
 	require.NoError(t, err)
 
-	return emitter
+	return spine
 }
 
 // NewRecorderForTest is the platform Recorder of the same spine, for a store whose
@@ -34,7 +34,7 @@ func NewEmitterForTest(t *testing.T, ctx context.Context, db database.Client, au
 func NewRecorderForTest(t *testing.T, ctx context.Context, db database.Client, auditRecorder platformaudit.Recorder) *platformrecording.Recorder {
 	t.Helper()
 
-	return NewEmitterForTest(t, ctx, db, auditRecorder).Recorder()
+	return NewSpineForTest(t, ctx, db, auditRecorder).Recorder
 }
 
 // AsRequester puts a session for userID on the context, which is what the recording spine

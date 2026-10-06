@@ -25,6 +25,14 @@ func (a *AsyncDataChangeMessageHandler) poolSpecs() []jobs.PoolSpec {
 			Config:  &a.poolsConfig.OutboundEmails,
 			Handler: a.OutboundEmailsEventHandler(a.queuesConfig.OutboundEmailsTopicName),
 		},
+		// The mail platform's doors queue. It is a topic of its own, never the outbound
+		// emails one: every message on it carries the secret its mail delivers, and the
+		// drain is the one party that renders it into a link.
+		{
+			Topic:   a.queuesConfig.QueuedMailTopicName,
+			Config:  &a.poolsConfig.QueuedMail,
+			Handler: a.mailDrainer.Handle,
+		},
 		// There is no webhook execution pool and no user data aggregation pool. A webhook
 		// delivery is a dispatch row the delivery worker claims, and an export is a request
 		// row the data privacy worker claims — neither is a message on a topic. That is what

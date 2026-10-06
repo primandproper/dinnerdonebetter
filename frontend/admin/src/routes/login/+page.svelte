@@ -1,5 +1,6 @@
 <script lang="ts">
   import { browser } from '$app/environment';
+  import { parseAssertionOptions, serializeAssertion } from '@primandproper/platform-client/webauthn';
   import { PageContainer, LoginForm, Button } from '@dinnerdonebetter/ui';
 
   let { form } = $props();
@@ -13,19 +14,6 @@
     const usernameInput = document.getElementById('username') as HTMLInputElement | null;
     const username = usernameInput?.value?.trim() ?? '';
 
-    function b64enc(buf: ArrayBuffer): string {
-      const b = new Uint8Array(buf);
-      let s = '';
-      for (let i = 0; i < b.length; i++) s += String.fromCharCode(b[i]);
-      return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-    }
-    function b64dec(s: string): ArrayBuffer {
-      const padded = s.replace(/-/g, '+').replace(/_/g, '/');
-      const padded2 = padded + '==='.slice((padded.length + 3) % 4);
-      const binary = atob(padded2);
-      return Uint8Array.from(binary, (c) => c.charCodeAt(0)).buffer;
-    }
-
     // One ceremony: options from the server, the key, and the assertion back. A key tapped
     // with no PIN or biometric is one factor, so a person with a second factor is asked for
     // their code and taps again: the first assertion's challenge is spent.
@@ -37,36 +25,16 @@
         credentials: 'include',
       });
       if (!optsRes.ok) throw new Error('Failed to get options');
-      const opts = await optsRes.json();
+      const publicKey = parseAssertionOptions(new Uint8Array(await optsRes.arrayBuffer()));
 
-      const obj = JSON.parse(atob(opts.options));
-      const pk = obj.publicKey || obj;
-      if (typeof pk.challenge === 'string') pk.challenge = b64dec(pk.challenge);
-      for (const c of pk.allowCredentials ?? []) {
-        if (typeof c.id === 'string') c.id = b64dec(c.id);
-      }
-
-      const cred = await navigator.credentials.get({ publicKey: pk });
+      const cred = await navigator.credentials.get({ publicKey });
       if (!cred) throw new Error('No credential');
-
-      const pkCred = cred as PublicKeyCredential;
-      const r = pkCred.response as AuthenticatorAssertionResponse;
-      const assertion = {
-        id: pkCred.id,
-        rawId: b64enc(pkCred.rawId),
-        type: pkCred.type,
-        response: {
-          clientDataJSON: b64enc(r.clientDataJSON),
-          authenticatorData: b64enc(r.authenticatorData),
-          signature: b64enc(r.signature),
-          userHandle: r.userHandle ? b64enc(r.userHandle) : null,
-        },
-      };
+      const assertionResponse = new TextDecoder().decode(serializeAssertion(cred as PublicKeyCredential));
 
       const verifyRes = await fetch('/auth/passkey/authentication/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, assertionResponse: assertion, totpCode }),
+        body: JSON.stringify({ username, assertionResponse, totpCode }),
         credentials: 'include',
       });
       const result = await verifyRes.json().catch(() => ({}));

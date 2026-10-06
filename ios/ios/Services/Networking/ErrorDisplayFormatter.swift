@@ -44,13 +44,10 @@ enum ErrorDisplayFormatter {
 
   /// Returns true if the error indicates the server is down or unreachable.
   static func isServerDown(_ error: Error) -> Bool {
+    // Whether a status means the server could not answer right now is platform-client's
+    // `isTransient`, not a list of codes kept here.
     if let refusal = error.platformError {
-      switch refusal.code {
-      case .unavailable, .deadlineExceeded, .cancelled:
-        return true
-      default:
-        return false
-      }
+      return isTransient(refusal)
     }
 
     // Check for connection refused, timeout, or other network errors in NSError

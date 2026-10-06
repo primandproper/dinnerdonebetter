@@ -6,10 +6,9 @@ import (
 	grocerylistpreparation "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/grocerylistpreparation"
 	mealplanningmgr "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/managers"
 	recipeanalysis "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/recipeanalysis"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/recordingspine"
 	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
 	mealplanningsvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/grpc"
-	eatingindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 	mealplanfinalization "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_finalization"
 
 	"github.com/samber/do/v2"
@@ -17,8 +16,8 @@ import (
 
 func registerRepository(i do.Injector) {
 	// The repository writes its data change events into the outbox as part of the same
-	// transaction as the row they describe; see internal/repositories/postgres/events.
-	events.RegisterOutboxEmitter(i)
+	// transaction as the row they describe; see internal/recordingspine.
+	recordingspine.Register(i)
 	mealplanningrepo.RegisterMealPlanningRepository(i)
 }
 
@@ -36,16 +35,15 @@ func RegisterForGRPCAPI(i do.Injector) {
 }
 
 // RegisterForDataChangeHandler registers mealplanning components needed by the async message
-// handler, which consumes the index topics and applies their events through the Syncers.
+// handler. Its indexes are not among them: the process registers every domain's indexes into one
+// Registry, through eatingindexing.RegisterIndexes — see internal/searchindexes.
 func RegisterForDataChangeHandler(i do.Injector) {
 	registerRepository(i)
-	eatingindexing.RegisterIndexSyncers(i)
 }
 
-// RegisterForSearchIndexScheduler registers mealplanning components needed by the scheduler,
-// which drives the Reindexers. They come from the same registration as the Syncers: the two are
-// halves of keeping one index right, and the process resolves whichever half it runs.
+// RegisterForSearchIndexScheduler registers mealplanning components needed by the scheduler.
+// Its indexes are registered the same way the async message handler's are, into the one Registry
+// whose Reindexers the scheduler runs.
 func RegisterForSearchIndexScheduler(i do.Injector) {
 	registerRepository(i)
-	eatingindexing.RegisterIndexSyncers(i)
 }

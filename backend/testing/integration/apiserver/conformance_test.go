@@ -16,9 +16,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	grpcapi "github.com/primandproper/dinnerdonebetter/backend/internal/build/services/api/grpc"
 	ddbaudit "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
-	authkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/keys"
-	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
-	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	ddbuploadedmedia "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	internalopssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/internalops"
@@ -48,6 +45,7 @@ import (
 	issuereportsclient "github.com/primandproper/platform-go/v15/issuereports/grpc/client"
 	mediaregistryhttp "github.com/primandproper/platform-go/v15/mediaregistry/http"
 	notificationsclient "github.com/primandproper/platform-go/v15/notifications/grpc/client"
+	"github.com/primandproper/platform-go/v15/notifications/mail"
 	"github.com/primandproper/platform-go/v15/operations"
 	operationshttp "github.com/primandproper/platform-go/v15/operations/http"
 	settingsclient "github.com/primandproper/platform-go/v15/settings/grpc/client"
@@ -58,6 +56,8 @@ import (
 	"github.com/primandproper/primitives-go/v2/clock"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/database/dialect"
+	"github.com/primandproper/primitives-go/v2/email"
+	emailnoop "github.com/primandproper/primitives-go/v2/email/noop"
 	"github.com/primandproper/primitives-go/v2/identifiers"
 	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
 	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
@@ -519,25 +519,22 @@ func conformanceCredentialed(ctx context.Context, _ tenancy.Scope, userID string
 	return user.HashedPassword[len(user.HashedPassword)-16:], nil
 }
 
-// conformanceInvitationToken reads the token off the mail request identitystore.InvitationMailer
-// queued once the invitation committed — the row the invitation mail is rendered from, and the one
-// place the secret goes besides the invitee's inbox. Nothing in this suite relays the outbox, so it
-// is still there.
+// conformanceInvitationToken reads the token off the invitation mail platform's QueuedMailer
+// queued once the invitation committed — the one place the secret goes besides the invitee's
+// inbox. Nothing in this suite drains the mail topic, so it is still there.
 func conformanceInvitationToken(ctx context.Context, _ tenancy.Scope, invitationID string) (string, error) {
-	payloads, err := outboxPayloads(ctx,
-		`convert_from(payload, 'UTF8') LIKE '%' || $1 || '%' AND convert_from(payload, 'UTF8') LIKE '%' || $2 || '%'`,
-		invitationID, ddbidentity.AccountInvitationMailRequestedEventType)
+	queued, err := queuedMail(ctx, func(m *mail.Mail) bool {
+		return m.Kind == mail.KindInvitation && m.Invitation.Invitation.ID == invitationID
+	})
 	if err != nil {
 		return "", err
 	}
 
-	for _, payload := range payloads {
-		if token := findStringKey(payload, identitykeys.AccountInvitationTokenKey); token != "" {
-			return token, nil
-		}
+	if queued == nil {
+		return "", fmt.Errorf("no queued invitation mail names invitation %s", invitationID)
 	}
 
-	return "", fmt.Errorf("no queued invitation mail names invitation %s", invitationID)
+	return queued.Invitation.Token, nil
 }
 
 // findStringKey finds a string value under key at any depth of a JSON document.
@@ -663,30 +660,23 @@ func conformanceCommentTarget(ctx context.Context, _ tenancy.Scope) (targetType,
 	return string(mealplanning.CommentTargetTypeRecipes), id, nil
 }
 
-// conformanceVerificationToken reads the verification link's secret off the newest event that
-// queued a verification mail for the address — a registration, or a request for another link.
-// The users row holds only a digest, so the event is the one place the secret survives.
+// conformanceVerificationToken reads the verification link's secret off the newest verification
+// mail queued to the address — at registration, which signin mails once it commits, and on every
+// request for another. The users row holds only a digest, so the mail is the one place the
+// secret survives.
 func conformanceVerificationToken(ctx context.Context, _ tenancy.Scope, emailAddress string) (string, error) {
-	var userID string
-	if err := databaseClient.Reader().QueryRowContext(ctx,
-		`SELECT id FROM ddb_identity_users WHERE email_address = $1`, emailAddress).Scan(&userID); err != nil {
-		return "", fmt.Errorf("finding the user registered as %s: %w", emailAddress, err)
-	}
-
-	payloads, err := outboxPayloads(ctx, `convert_from(payload, 'UTF8') LIKE '%' || $1 || '%'`, userID)
+	queued, err := queuedMail(ctx, func(m *mail.Mail) bool {
+		return m.Kind == mail.KindVerification && m.Verification.User.EmailAddress == emailAddress
+	})
 	if err != nil {
 		return "", err
 	}
 
-	// The link travels on this application's mail request alone — at registration, which signin
-	// mails through SignInMailers once it commits, and on every request for another.
-	for _, payload := range payloads {
-		if token := findStringKey(payload, identitykeys.UserEmailVerificationTokenKey); token != "" {
-			return token, nil
-		}
+	if queued == nil {
+		return "", fmt.Errorf("no queued mail carries a verification link for %s", emailAddress)
 	}
 
-	return "", fmt.Errorf("no queued event carries a verification link for %s", emailAddress)
+	return queued.Verification.Token, nil
 }
 
 var (
@@ -694,28 +684,74 @@ var (
 	waitlistUnsubscribeLink = regexp.MustCompile(`/waitlists/unsubscribe\?t=([A-Za-z0-9_-]+)`)
 )
 
-// conformanceWaitlistLinks reads the two links out of the newest confirmation mail queued to
+// conformanceWaitlistLinks reads the two links off the newest confirmation mail queued to
 // contact. The suite's contacts are fresh per join, so the address alone names the signup.
 func conformanceWaitlistLinks(ctx context.Context, _ tenancy.Scope, _, contact string) (*conformance.WaitlistLinks, error) {
-	payloads, err := outboxPayloads(ctx,
-		`topic = $1 AND convert_from(payload, 'UTF8') LIKE '%' || $2 || '%'`,
-		apiServiceConfig.Queues.OutboundEmailsTopicName, contact)
+	queued, err := queuedMail(ctx, func(m *mail.Mail) bool {
+		return m.Kind == mail.KindWaitlistConfirmation && m.WaitlistConfirmation.Mail.Signup.Contact == contact
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if queued == nil {
+		return nil, fmt.Errorf("no queued mail carries waitlist links for %s", contact)
+	}
+
+	confirm := waitlistConfirmLink.FindStringSubmatch(queued.WaitlistConfirmation.Mail.Confirm.URL)
+	unsubscribe := waitlistUnsubscribeLink.FindStringSubmatch(queued.WaitlistConfirmation.Mail.Unsubscribe.URL)
+
+	if confirm == nil || unsubscribe == nil {
+		return nil, fmt.Errorf("the confirmation mail queued for %s carries links of an unexpected shape", contact)
+	}
+
+	return &conformance.WaitlistLinks{Confirm: confirm[1], Unsubscribe: unsubscribe[1]}, nil
+}
+
+// queuedMail is the newest mail queued on the mail topic that match accepts, as platform's own
+// Drainer reads it back — the value the seam was handed, secret restored — or nil when none is.
+//
+// The rows are decoded by the Drainer rather than by a copy of its wire format kept here, so
+// what this reads is what the drain would render: a mail the Drainer cannot decode is one no
+// recipient would have received either. Nothing in this suite drains the topic, so every mail
+// queued during the run is still there.
+func queuedMail(ctx context.Context, match func(*mail.Mail) bool) (*mail.Mail, error) {
+	payloads, err := outboxPayloads(ctx, `topic = $1`, apiServiceConfig.Queues.QueuedMailTopicName)
+	if err != nil {
+		return nil, err
+	}
+
+	emailer, err := emailnoop.NewEmailer()
+	if err != nil {
+		return nil, err
+	}
+
+	var decoded *mail.Mail
+
+	drainer, err := mail.NewDrainer(emailer, mail.RendererFunc(func(_ context.Context, m *mail.Mail) (*email.OutboundEmailMessage, error) {
+		decoded = m
+
+		return &email.OutboundEmailMessage{}, nil
+	}))
 	if err != nil {
 		return nil, err
 	}
 
 	for _, payload := range payloads {
-		confirm, unsubscribe := waitlistConfirmLink.FindStringSubmatch(payload), waitlistUnsubscribeLink.FindStringSubmatch(payload)
-		if confirm != nil && unsubscribe != nil {
-			return &conformance.WaitlistLinks{Confirm: confirm[1], Unsubscribe: unsubscribe[1]}, nil
+		decoded = nil
+		if err = drainer.Handle(ctx, []byte(payload)); err != nil {
+			return nil, fmt.Errorf("decoding a queued mail: %w", err)
+		}
+
+		if decoded != nil && match(decoded) {
+			return decoded, nil
 		}
 	}
 
-	return nil, fmt.Errorf("no queued mail carries waitlist links for %s", contact)
+	return nil, nil
 }
 
-// outboxPayloads reads the payloads of the outbox rows matching where, newest first. Nothing in
-// this suite relays the outbox, so every row queued during the run is still there.
+// outboxPayloads reads the payloads of the outbox rows matching where, newest first.
 func outboxPayloads(ctx context.Context, where string, args ...any) ([]string, error) {
 	rows, err := databaseClient.Reader().QueryContext(ctx,
 		`SELECT convert_from(payload, 'UTF8') FROM outbox_messages WHERE `+where+` ORDER BY created_at DESC`, args...)
@@ -805,30 +841,22 @@ func conformanceRegistered(ctx context.Context, _ tenancy.Scope, userID string) 
 	return nil, fmt.Errorf("the upload stored %s and no row of the uploader's names it", uploaded.GetObjectUrl())
 }
 
-// conformancePasswordResetToken reads the reset link's secret off the newest event that queued a
-// reset mail for the address. The token store holds only a digest, so the event is the one place
-// the secret survives.
+// conformancePasswordResetToken reads the reset link's secret off the newest reset mail queued
+// to the address. The token store holds only a digest, so the mail is the one place the secret
+// survives.
 func conformancePasswordResetToken(ctx context.Context, _ tenancy.Scope, emailAddress string) (string, error) {
-	var userID string
-	if err := databaseClient.Reader().QueryRowContext(ctx,
-		`SELECT id FROM ddb_identity_users WHERE email_address = $1`, emailAddress).Scan(&userID); err != nil {
-		return "", fmt.Errorf("finding the user registered as %s: %w", emailAddress, err)
-	}
-
-	payloads, err := outboxPayloads(ctx,
-		`convert_from(payload, 'UTF8') LIKE '%' || $1 || '%' AND convert_from(payload, 'UTF8') LIKE '%' || $2 || '%'`,
-		userID, ddbidentity.PasswordResetTokenCreatedEventType)
+	queued, err := queuedMail(ctx, func(m *mail.Mail) bool {
+		return m.Kind == mail.KindPasswordReset && m.PasswordReset.User.EmailAddress == emailAddress
+	})
 	if err != nil {
 		return "", err
 	}
 
-	for _, payload := range payloads {
-		if secret := findStringKey(payload, authkeys.PasswordResetTokenSecretKey); secret != "" {
-			return secret, nil
-		}
+	if queued == nil {
+		return "", fmt.Errorf("no queued mail carries a password reset link for %s", emailAddress)
 	}
 
-	return "", fmt.Errorf("no queued event carries a password reset link for %s", emailAddress)
+	return queued.PasswordReset.Issuance.Secret, nil
 }
 
 // conformanceAuthorized approves an authorization request as userID, the way this deployment's
@@ -868,27 +896,19 @@ func conformanceAuthorized(ctx context.Context, _ tenancy.Scope, userID, authori
 }
 
 // conformanceHandleReminder reports the username the newest reminder queued to an address names.
-// The event names the user and the mail is rendered from their row, so the reminder is found by
-// the user the address belongs to.
 func conformanceHandleReminder(ctx context.Context, _ tenancy.Scope, emailAddress string) (string, error) {
-	var userID, username string
-	if err := databaseClient.Reader().QueryRowContext(ctx,
-		`SELECT id, username FROM ddb_identity_users WHERE email_address = $1`, emailAddress).Scan(&userID, &username); err != nil {
-		return "", fmt.Errorf("finding the user registered as %s: %w", emailAddress, err)
-	}
-
-	payloads, err := outboxPayloads(ctx,
-		`convert_from(payload, 'UTF8') LIKE '%' || $1 || '%' AND convert_from(payload, 'UTF8') LIKE '%' || $2 || '%'`,
-		userID, ddbidentity.UsernameReminderRequestedEventType)
+	queued, err := queuedMail(ctx, func(m *mail.Mail) bool {
+		return m.Kind == mail.KindHandleReminder && m.HandleReminder.User.EmailAddress == emailAddress
+	})
 	if err != nil {
 		return "", err
 	}
 
-	if len(payloads) == 0 {
+	if queued == nil {
 		return "", fmt.Errorf("no username reminder was queued for %s", emailAddress)
 	}
 
-	return username, nil
+	return queued.HandleReminder.User.Username, nil
 }
 
 // conformanceOperatedKind is work that waits to be cancelled, registered beside this
