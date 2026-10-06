@@ -405,7 +405,7 @@ func (s *serviceImpl) GetUploadedMediaForUser(ctx context.Context, request *uplo
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(platformerrors.New("permission denied"), logger, span, codes.PermissionDenied, "cannot access other user's media")
 	}
 
-	filter, err := filteringgrpc.FromProto(request.Filter)
+	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
