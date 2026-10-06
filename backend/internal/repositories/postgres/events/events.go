@@ -53,10 +53,9 @@ import (
 type Emitter struct {
 	emitter  *webhooks.Emitter
 	recorder *platformrecording.Recorder
-	writer   *outbox.Writer
-	// effect is the same side effect registered on the writer, kept so EmitIndex can run it
-	// over a message it never enqueues. See index_events.go.
-	effect outbox.SideEffect
+	// writer is the outbox writer behind the emitter, with the search index rules registered on
+	// it; EmitIndex runs those rules without announcing anything. See index_events.go.
+	writer *outbox.Writer
 }
 
 // NewEmitter builds an Emitter over platform's.
@@ -65,7 +64,7 @@ type Emitter struct {
 // which made a process with no broker a process whose writes announced nothing: an event written
 // to the outbox under the default topic is relayed by whichever worker has a broker, which is
 // what an outbox is for.
-func NewEmitter(emitter *webhooks.Emitter, recorder *platformrecording.Recorder, writer *outbox.Writer, effect outbox.SideEffect) (*Emitter, error) {
+func NewEmitter(emitter *webhooks.Emitter, recorder *platformrecording.Recorder, writer *outbox.Writer) (*Emitter, error) {
 	switch {
 	case emitter == nil:
 		return nil, platformerrors.Wrap(platformerrors.ErrNilInputParameter, "nil webhooks emitter")
@@ -73,11 +72,9 @@ func NewEmitter(emitter *webhooks.Emitter, recorder *platformrecording.Recorder,
 		return nil, platformerrors.Wrap(platformerrors.ErrNilInputParameter, "nil recording recorder")
 	case writer == nil:
 		return nil, platformerrors.Wrap(platformerrors.ErrNilInputParameter, "nil outbox writer")
-	case effect == nil:
-		return nil, platformerrors.Wrap(platformerrors.ErrNilInputParameter, "nil index side effect")
 	}
 
-	return &Emitter{emitter: emitter, recorder: recorder, writer: writer, effect: effect}, nil
+	return &Emitter{emitter: emitter, recorder: recorder, writer: writer}, nil
 }
 
 // Recorder is the platform Recorder this Emitter records through, for a store whose

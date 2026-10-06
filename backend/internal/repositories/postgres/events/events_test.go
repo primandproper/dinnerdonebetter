@@ -82,10 +82,10 @@ func buildHarness(t *testing.T) *harness {
 	effect, err := indexevents.NewSideEffect()
 	require.NoError(t, err)
 
-	writer, err := outbox.NewWriter(dialect.Postgres)
+	writer, err := outbox.NewWriter(dialect.Postgres, outbox.WithWriterSideEffect(indexevents.SideEffectName, effect))
 	require.NoError(t, err)
 
-	h.emitter, err = NewEmitter(emitter, platformRecorder, writer, effect)
+	h.emitter, err = NewEmitter(emitter, platformRecorder, writer)
 	require.NoError(t, err)
 
 	return h
@@ -101,11 +101,16 @@ func (h *harness) payload(t *testing.T) *datachanges.Message {
 
 	require.Len(t, h.enqueued, 1)
 
+	// Rendered the way the outbox renders it, then read the way the broker consumer reads it:
+	// platform wraps the payload in an envelope naming the event, and Decode is the consumer's
+	// half of that.
 	raw, err := json.Marshal(h.enqueued[0].Payload)
 	require.NoError(t, err)
 
 	msg := &datachanges.Message{}
-	require.NoError(t, json.Unmarshal(raw, msg))
+	eventType, matched, err := webhooks.Decode(raw, msg, webhooks.EventType(h.eventType))
+	require.NoError(t, err)
+	require.True(t, matched, "the envelope named %q rather than the harness's event", eventType)
 
 	return msg
 }
@@ -122,11 +127,10 @@ func TestEmitter_Emit(T *testing.T) {
 		err := h.emitter.Emit(t.Context(), txForTest(), loggingnoop.NewLogger(), h.eventType, accountID, map[string]any{"k": "v"})
 		require.NoError(t, err)
 
-		// The payload is this application's message, typed, so the writer's side effects can
-		// read it and the handler decodes what it always has.
-		require.Len(t, h.enqueued, 1)
-		msg, ok := h.enqueued[0].Payload.(*datachanges.Message)
-		require.True(t, ok)
+		// The payload is this application's message, inside platform's envelope: the writer's
+		// side effects read it by type through the envelope's delegation, and the consumer
+		// decodes it out of the envelope.
+		msg := h.payload(t)
 		assert.Equal(t, h.eventType, msg.EventType)
 		assert.Equal(t, accountID, msg.AccountID)
 		assert.Equal(t, "v", msg.Context["k"])
@@ -302,7 +306,7 @@ func TestNewEmitter(T *testing.T) {
 		// Nothing here is optional any more: the emitter this replaced was nil-inert for a
 		// process with no topic, which made a process with no broker a process whose writes
 		// announced nothing.
-		_, err := NewEmitter(nil, nil, nil, nil)
+		_, err := NewEmitter(nil, nil, nil)
 		require.Error(t, err)
 	})
 }

@@ -272,10 +272,14 @@ which is the property the chain exists to provide.
 So the audit eraser does the one deletion the structure permits: **whole scopes**,
 entries and chain rows together. A scope that disappears entirely leaves no gap in
 any surviving chain, because there is nothing left to verify against. It is
-platform-go's `dataprivacy/auditerasure`, registered under the `audit` key with the
-scope resolver in `internal/domain/audit/privacy`. The export's audit section is
-registered under the same key: platform-go's `audit/privacy` collector, with a
-resolver in the same package naming every chain the subject's entries can be in.
+platform-go's `dataprivacy/auditerasure`, registered under the `audit` key. The
+export's audit section is registered under the same key: platform-go's
+`audit/privacy` collector. Which chains each one reads or deletes is decided by how
+the recorder files entries — by subject, `recordingcfg.FileBySubject` — so the two
+resolvers are platform's own for that rule, handed out together by
+`privacyadapters.AuditScopeResolvers` in `internal/build/dataprivacy`: the export
+reads the subject's chain, every account they belong to and every chain they acted
+in; the erasure deletes their chain and those of the accounts they own.
 
 `ScopeFor` is what makes that cover most of a departing user's trail:
 

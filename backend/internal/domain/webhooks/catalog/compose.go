@@ -44,7 +44,6 @@ func Catalog() webhooks.Catalog {
 		webhooks.EventCatalog(),
 		oauth2clients.EventCatalog(),
 		passkeys.EventCatalog(),
-		omittedByPlatform(),
 	)
 	if err != nil {
 		panic(fmt.Sprintf("composing the webhook catalog: %v", err))
@@ -59,18 +58,6 @@ func Catalog() webhooks.Catalog {
 	}
 
 	return merged
-}
-
-// omittedByPlatform describes the events platform emits and leaves out of its own fragments,
-// which is how it kept a credential event from subscribers before Internal existed. Described
-// here, marked Internal by excluded.go, so the catalog says what they are and the emitter does not
-// count each one as a constant that fell out. platform-go#1131 asks platform to carry them itself;
-// when it does, Merge refuses the duplicate and this fragment goes.
-func omittedByPlatform() webhooks.Catalog {
-	return webhooks.Catalog{
-		passkeys.EventPasskeyRegistered: {Description: "A passkey was added to a user's account."},
-		passkeys.EventPasskeyArchived:   {Description: "A passkey was removed from a user's account."},
-	}
 }
 
 // local is this application's own fragment: the generated definitions, copied.

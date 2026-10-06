@@ -105,5 +105,5 @@ func New(ctx context.Context, db database.Client, auditRecorder platformaudit.Re
 		return nil, platformerrors.Wrap(err, "building the recording recorder")
 	}
 
-	return NewEmitter(emitter, recorder, writer, effect)
+	return NewEmitter(emitter, recorder, writer)
 }

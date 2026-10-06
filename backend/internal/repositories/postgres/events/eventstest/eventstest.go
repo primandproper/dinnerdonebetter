@@ -14,7 +14,6 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/catalog"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/indexevents"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 
@@ -37,9 +36,6 @@ import (
 func New(t *testing.T, writer *outbox.Writer, recorder platformaudit.Recorder) *events.Emitter {
 	t.Helper()
 
-	effect, err := indexevents.NewSideEffect()
-	require.NoError(t, err)
-
 	dispatcher := &webhooksmock.DispatcherMock{
 		CatalogFunc:  catalog.Catalog,
 		DispatchFunc: func(context.Context, database.Tx, tenancy.Scope, *webhooks.Delivery) error { return nil },
@@ -52,7 +48,7 @@ func New(t *testing.T, writer *outbox.Writer, recorder platformaudit.Recorder) *
 		platformrecording.WithScopeResolver(bySubject))
 	require.NoError(t, err)
 
-	e, err := events.NewEmitter(emitter, platformRecorder, writer, effect)
+	e, err := events.NewEmitter(emitter, platformRecorder, writer)
 	require.NoError(t, err)
 
 	return e

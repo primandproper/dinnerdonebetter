@@ -35,21 +35,20 @@ import (
 // dialect and table name, and takes the caller's executor per Enqueue. The same is true of the
 // Emitter and the Recorder, which is why one of each is enough.
 func RegisterOutboxEmitter(i do.Injector) {
-	// The one side effect, built once and shared: the Writer runs it inside every Enqueue, and
-	// EmitIndex runs it over a message it never enqueues. Two instances would be two copies of
-	// one table, which is the drift registering it on the writer exists to remove.
-	do.Provide[outbox.SideEffect](i, func(do.Injector) (outbox.SideEffect, error) {
-		return indexevents.NewSideEffect()
-	})
-
 	do.Provide[*outbox.Writer](i, func(i do.Injector) (*outbox.Writer, error) {
+		effect, err := indexevents.NewSideEffect()
+		if err != nil {
+			return nil, err
+		}
+
 		return outbox.NewWriter(
 			do.MustInvoke[database.Client](i).Dialect(),
 			// Every write to this outbox owes the search index an event, so the index event is
 			// registered here rather than passed per call. A repository method that changes an
 			// indexed row cannot fail to produce one by omitting an option it was never asked
-			// about; see internal/indexevents for which writes feed which index.
-			outbox.WithWriterSideEffect(indexevents.SideEffectName, do.MustInvoke[outbox.SideEffect](i)),
+			// about; see internal/indexevents for which writes feed which index. A write that
+			// owes only the index runs the same registration through EnqueueDerived.
+			outbox.WithWriterSideEffect(indexevents.SideEffectName, effect),
 			outbox.WithWriterLogger(do.MustInvoke[logging.Logger](i)),
 			outbox.WithWriterTracerProvider(do.MustInvoke[tracing.Provider](i)),
 			outbox.WithWriterMetricsProvider(do.MustInvoke[metrics.Provider](i)),
@@ -99,7 +98,6 @@ func RegisterOutboxEmitter(i do.Injector) {
 			do.MustInvoke[*webhooks.Emitter](i),
 			do.MustInvoke[*platformrecording.Recorder](i),
 			do.MustInvoke[*outbox.Writer](i),
-			do.MustInvoke[outbox.SideEffect](i),
 		)
 	})
 }

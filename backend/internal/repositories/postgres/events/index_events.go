@@ -26,21 +26,13 @@ thing every write owes rather than a thing a call site could forget.
 // the writes where that is not true — where putting the event on the wire would be a decision
 // about the public event stream rather than about the index.
 //
-// It runs the same side effect over the same shape of message, so such a write reads out of the
-// same table as every other. The message itself is never enqueued; only what the effect derives
-// from it is. platform-go#1112 asks the outbox writer for this as EnqueueDerived, which is where
-// this method goes when it lands.
+// It is the writer's EnqueueDerived over the same shape of message every announced write sends,
+// so such a write reads out of the same table as every other and the rules it is matched against
+// are the ones registered on the writer, not a copy kept here. The message itself is never
+// enqueued; only what the side effects derive from it is, and a trigger that derives nothing
+// writes nothing.
 func (e *Emitter) EmitIndex(ctx context.Context, tx database.Tx, trigger string, metadata map[string]any) error {
-	derived, err := e.effect(ctx, tx, []outbox.Message{{
+	return e.writer.EnqueueDerived(ctx, tx, outbox.Message{
 		Payload: &datachanges.Message{EventType: trigger, Context: metadata},
-	}})
-	if err != nil {
-		return err
-	}
-
-	if len(derived) == 0 {
-		return nil
-	}
-
-	return e.writer.Enqueue(ctx, tx, derived...)
+	})
 }

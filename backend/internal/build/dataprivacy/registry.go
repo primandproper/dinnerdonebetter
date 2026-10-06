@@ -20,7 +20,6 @@ package dataprivacy
 import (
 	"context"
 
-	auditprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit/privacy"
 	ddbdataprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
 	identityprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/privacy"
 	issuereportsprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports/privacy"
@@ -36,7 +35,6 @@ import (
 	"github.com/primandproper/platform-go/v15/billing"
 	platformcomments "github.com/primandproper/platform-go/v15/comments"
 	platformdataprivacy "github.com/primandproper/platform-go/v15/dataprivacy"
-	"github.com/primandproper/platform-go/v15/dataprivacy/auditerasure"
 	platformdataprivacycfg "github.com/primandproper/platform-go/v15/dataprivacy/config"
 	platformidentity "github.com/primandproper/platform-go/v15/identity"
 	issuereports "github.com/primandproper/platform-go/v15/issuereports"
@@ -44,6 +42,7 @@ import (
 	platformnotifications "github.com/primandproper/platform-go/v15/notifications"
 	"github.com/primandproper/platform-go/v15/operations"
 	"github.com/primandproper/platform-go/v15/privacyadapters"
+	recordingcfg "github.com/primandproper/platform-go/v15/recording/config"
 	platformsettings "github.com/primandproper/platform-go/v15/settings"
 	platformwaitlists "github.com/primandproper/platform-go/v15/waitlists"
 	"github.com/primandproper/primitives-go/v2/database"
@@ -108,6 +107,19 @@ func buildRegistry(i do.Injector) (*platformdataprivacy.Registry, error) {
 	// deployment sets through dataprivacycfg.RegisterAuditEraser — which privacyadapters'
 	// own documentation names as the deliberate alternative.
 	credentialScopes := identityprivacy.Scopes()
+
+	// Where a subject's audit entries are, for the export and for the erasure. The recorder
+	// files by subject (events.RegisterOutboxEmitter), and the rule that files an entry is
+	// the one that knows where to find it again: platform hands out the two resolvers as a
+	// pair under that rule, so the export cannot read one rule's chains while the erasure
+	// deletes another's. A deployment filing by write would have to supply its own here.
+	auditReader := do.MustInvoke[platformaudit.Reader](i)
+
+	collectAuditScopes, eraseAuditScopes, resolversErr := privacyadapters.AuditScopeResolvers(
+		do.MustInvoke[*recordingcfg.Config](i).FileBy, identityStore, auditReader)
+	if resolversErr != nil {
+		return nil, platformerrors.Wrap(resolversErr, "choosing the audit scope resolvers")
+	}
 
 	successionStep, successionErr := identityprivacy.SuccessionStep(identityStore)
 	if successionErr != nil {
@@ -176,13 +188,14 @@ func buildRegistry(i do.Injector) (*platformdataprivacy.Registry, error) {
 			Resolve:  platformdataprivacy.FixedScopes(tenancy.Global()),
 		},
 
-		// The audit log, read in every chain the subject's entries can be in. Which chain
-		// an entry lands in is this application's rule, so the resolver is too; the
-		// collector is platform's, and reads what the subject was acted on in and what
-		// they did while impersonating somebody, which the one it replaced did not.
+		// The audit log, read in every chain the subject's entries can be in. The chains are
+		// decided by the recorder's filing rule, so the resolver is read off that rule
+		// rather than chosen beside it — see auditScopes above. The collector is platform's,
+		// and reads what the subject was acted on in and what they did while impersonating
+		// somebody.
 		Audit: &privacyadapters.AuditAdapter{
-			Log:     do.MustInvoke[platformaudit.Reader](i),
-			Resolve: auditprivacy.CollectableScopeResolver(identityStore, do.MustInvoke[platformaudit.Reader](i), reader),
+			Log:     auditReader,
+			Resolve: collectAuditScopes.On(reader),
 		},
 
 		// Billing takes a resolver of its own shape — accounts rather than scopes —
@@ -234,14 +247,13 @@ func buildRegistry(i do.Injector) (*platformdataprivacy.Registry, error) {
 	// so platform-go makes it a config flag rather than a code change — and reports
 	// which way it went, because "did this deployment erase audit records" gets asked
 	// long afterwards.
-	registered, err := platformdataprivacycfg.RegisterAuditEraser(
-		ctx,
-		prepareConfig(i),
-		registry,
-		platformdataprivacycfg.WithAuditEraserOptions(
-			auditerasure.WithScopeResolver(auditprivacy.ErasableScopeResolver(identityStore, reader)),
-		),
-	)
+	//
+	// The resolver names the chains an erasure deletes whole: the subject's own and those of
+	// the accounts they own, never one they merely belong to, whose history is other
+	// people's too. It reads the directory on the erasure's own transaction, so an account
+	// the succession step handed to another member earlier in the same request is no
+	// longer the subject's by the time this asks.
+	registered, err := platformdataprivacycfg.RegisterAuditEraser(ctx, prepareConfig(i), registry, eraseAuditScopes)
 	if err != nil {
 		return nil, platformerrors.Wrap(err, "registering audit data privacy eraser")
 	}
