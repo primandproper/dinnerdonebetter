@@ -5,7 +5,7 @@
 
   let { data } = $props();
   const account = data?.account as Account | null | undefined;
-  const isAdmin = data?.isAdmin ?? false;
+  const canEdit = data?.canEdit ?? false;
   const error = data?.error as string | null | undefined;
   const updated = data?.updated ?? false;
 
@@ -31,8 +31,8 @@
 
   {#if !account}
     <p>Create or join a household to edit household details.</p>
-  {:else if !isAdmin}
-    <p>Only household admins can edit household details.</p>
+  {:else if !canEdit}
+    <p>You can't edit this household's details.</p>
   {:else}
     <form method="POST" action="?/update" use:enhance class="details-form">
       <FormField id="name" label="Household Name" required>

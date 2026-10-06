@@ -142,6 +142,7 @@ func BuildIntegrationTestsConfig() *config.APIServiceConfig {
 			OutboundEmailsTopicName:      outboundEmailsTopicName,
 			SearchIndexRequestsTopicName: searchIndexRequestsTopicName,
 			MobileNotificationsTopicName: mobileNotificationsTopicName,
+			QueuedMailTopicName:          queuedMailTopicName,
 		},
 		TextSearch: textsearchcfg.Config{
 			// we're using a noop version of this in dev right now, but it still tries to instantiate a circuit breaker.

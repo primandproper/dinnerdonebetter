@@ -7,6 +7,7 @@
 
 import { env } from '$env/dynamic/private';
 import { redirect } from '@sveltejs/kit';
+import { CHANGE_PASSWORD_PATH, mustChangePassword } from '$lib/auth/required-actions';
 import {
   AnalyticsServiceService,
   MealPlanningServiceService,
@@ -15,7 +16,7 @@ import {
 } from '@dinnerdonebetter/api-client';
 import {
   type CredentialStore,
-  NotSignedInError,
+  redirectOnNotSignedIn,
   Session,
   TokenCaller,
   type UnaryMethod,
@@ -45,14 +46,19 @@ export function newSession(store: CredentialStore): Session {
 /**
  * call makes an authenticated call. A login that is over by the time it is made — never
  * held, lapsed, or refused a refresh — sends the person to sign in again; the Session has
- * already cleared the cookie by then.
+ * already cleared the cookie by then. One refused because they owe a password change sends
+ * them to the form for it.
  */
 async function call<Req, Res>(session: Session, method: UnaryMethod<Req, Res>, request: Req): Promise<Res> {
   try {
-    return await session.call(method, request);
+    return await redirectOnNotSignedIn(
+      session,
+      () => session.call(method, request),
+      () => redirect(302, '/login'),
+    );
   } catch (err) {
-    if (err instanceof NotSignedInError || session.state === 'anonymous') {
-      throw redirect(302, '/login');
+    if (mustChangePassword(err)) {
+      redirect(302, CHANGE_PASSWORD_PATH);
     }
     throw err;
   }
@@ -74,15 +80,12 @@ function filtered<Req extends { filter: QueryFilter | undefined }, Res>(method: 
 }
 
 // Sign-in, sign-out, password reset, email verification and passkey sign-in are the
-// library's own helpers (signIn, signOut, requestPasswordReset, passkeySignIn and the
-// rest), called with the request's Session. What's here is the caller's own credentials
-// and logins, which are plain calls on platform's services.
+// library's own helpers (signIn, signOut, requestPasswordReset, passkeySignIn,
+// beginPasskeyRegistration and the rest), called with the request's Session. What's here
+// is the caller's own credentials and logins, which are plain calls on platform's services.
 export const getSelf = async (session: Session) => (await call(session, SignInServiceService.getSelf, {})).user;
 export const getPrincipal = (session: Session) => call(session, IdentityServiceService.getPrincipal, {});
 export const getActiveAccount = async (session: Session) => (await getPrincipal(session)).activeAccount;
-export const beginPasskeyRegistration = (session: Session) =>
-  call(session, PasskeysServiceService.beginRegistration, {});
-export const finishPasskeyRegistration = authed(PasskeysServiceService.finishRegistration);
 export const listPasskeys = async (session: Session) =>
   (await call(session, PasskeysServiceService.listPasskeys, {})).passkeys;
 export const archivePasskey = authed(PasskeysServiceService.archivePasskey);
@@ -97,6 +100,8 @@ export const endOtherSignIns = (session: Session) => call(session, SignInService
 // change.
 export const updateUsername = authed(SignInServiceService.updateUsername);
 export const updateEmailAddress = authed(SignInServiceService.updateEmailAddress);
+// The one call a person who owes a password change may still make.
+export const updatePassword = authed(SignInServiceService.updatePassword);
 
 // The directory and settings are platform's services, called through
 // @primandproper/platform-client's stubs rather than any generated here.

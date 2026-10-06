@@ -55,10 +55,11 @@ and missing one fails at the write rather than landing somewhere nothing reads.
 There is no way to record outside a transaction by accident: holding a
 `database.Tx` from `WithTransaction` means you are already in one.
 
-### Almost always, use `RecordAndEmit`
+### Almost always, record the entry and the event together
 
-A write that records an entry nearly always owes a data change event too, and every
-repository holds a `recording.Recorder` for exactly that pair:
+A write that records an entry nearly always owes a data change event too, and platform's
+`recording.Recorder` writes exactly that pair. The meal planning repository holds one, and
+its `record` helper builds this application's event payload (`datachanges.Event`) for it:
 
 ```go
 return q.WithTransaction(ctx, func(tx database.Tx) error {
@@ -66,7 +67,7 @@ return q.WithTransaction(ctx, func(tx database.Tx) error {
         return err
     }
 
-    return q.recorder.RecordAndEmit(ctx, tx, logger,
+    return q.record(ctx, tx, logger,
         audit.NewEntry(userID, accountID, resourceTypeRecipes, after.ID, platformaudit.EventUpdated),
         mealplanning.RecipeUpdatedServiceEventType, accountID, map[string]any{
         mealplanningkeys.RecipeIDKey: after.ID,
@@ -82,7 +83,7 @@ leaves anything behind to find later. One call cannot half-happen.
 
 Reach past it for `Record` alone only where the pair genuinely does not apply — an
 entry with no event of its own, or a transaction recording several entries at once,
-which `Record`'s variadic form handles and `RecordAndEmit` deliberately does not.
+which `Record`'s variadic form handles and `record` deliberately does not.
 
 There are no exceptions to "in the transaction that performed the write". There used
 to be six, and they were exactly the packages whose writes are an adopted platform
@@ -93,7 +94,7 @@ transaction to record. A row could exist with no entry.
 
 platform-go v14 closed all six at once: a store write takes the caller's
 `database.Tx`, so the write, the entry and the event are one transaction and share one
-fate. That was a property of the stores rather than of `RecordAndEmit`, which is why
+fate. That was a property of the stores rather than of the recorder, which is why
 the fix was a signature change upstream and nothing here had a workaround to delete —
 platform-go #457 (comments), #458 (waitlists), #460 (settings), #465 (issuereports)
 and #466 (payments, over the `billing` store), with #1419 closed behind them.
@@ -104,14 +105,11 @@ may live in Redis rather than in Postgres — so it takes no executor and cannot
 one. The audit entry for a session event is therefore written in a transaction of its
 own, and a crash between the two loses the entry rather than the revocation.
 
-The recorder is one type in `internal/repositories/postgres/recording` rather than a
-method on each repository, because the body was the same body in all nine of them and
-a rule stated nine times is a rule that can be restated wrongly once. It is built from
-the repository's own named tracer, so a span it raises is still attributed to the
-package whose write raised it. Its doc comment records why the pair is not in
-platform-go: both halves are this application's vocabulary over platform's engines, so
-a platform-side version would be generic over two types whose bodies are one call
-each.
+The recorder is platform's: `recording.Recorder` writes the entries and the event on one
+transaction, in one order, with the actor read off the context. This application builds it
+once per process in `internal/recordingspine` — filed by subject, fanned out over this
+application's webhook catalog — and adds nothing to it but the payload its own events carry,
+which `datachanges.Event` builds.
 
 `Record` is variadic. A transaction touching three resources should pass three
 entries to one call rather than making three calls — one chain-head lookup and one

@@ -107,7 +107,7 @@ func buildRegistry(i do.Injector) (*platformdataprivacy.Registry, error) {
 	credentialScopes := identityprivacy.Scopes()
 
 	// Where a subject's audit entries are, for the export and for the erasure. The recorder
-	// files by subject (events.RegisterOutboxEmitter), and the rule that files an entry is
+	// files by subject (recordingspine.Register), and the rule that files an entry is
 	// the one that knows where to find it again: platform hands out the two resolvers as a
 	// pair under that rule, so the export cannot read one rule's chains while the erasure
 	// deletes another's. A deployment filing by write would have to supply its own here.

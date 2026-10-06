@@ -1,8 +1,9 @@
 import { redirect } from '@sveltejs/kit';
-import type { Session } from '@primandproper/platform-client';
+import { type Session, SettingValueError, typedValueFromText } from '@primandproper/platform-client';
+import type { TypedValue } from '@primandproper/platform-client/settings/v1';
 import type { Actions, PageServerLoad } from './$types';
 import { getSelf, resolveSettings, setSettingValue } from '$lib/grpc/clients';
-import { configurableSettings, settingsSubject, typedValue } from '$lib/settings/resolutions';
+import { configurableSettings, settingsSubject } from '$lib/settings/resolutions';
 
 /** The signed-in person's user id, which every settings call names as its subject. */
 async function selfId(session: Session): Promise<string> {
@@ -46,10 +47,20 @@ export const actions: Actions = {
     const formData = await request.formData();
     const settingName = (formData.get('setting_name') as string)?.trim() ?? '';
     const raw = (formData.get('value') as string)?.trim() ?? '';
-    const value = typedValue(Number(formData.get('setting_kind')), raw);
-
-    if (!settingName || !value) {
+    if (!settingName) {
       throw redirect(302, '/account/preferences?error=invalid');
+    }
+
+    // The case follows the setting's kind, never the text: the server refuses a mismatch, so
+    // a text setting is written as text even when its answer looks like a number.
+    let value: TypedValue;
+    try {
+      value = typedValueFromText(raw, Number(formData.get('setting_kind')));
+    } catch (e) {
+      if (e instanceof SettingValueError) {
+        throw redirect(302, '/account/preferences?error=invalid');
+      }
+      throw e;
     }
 
     try {

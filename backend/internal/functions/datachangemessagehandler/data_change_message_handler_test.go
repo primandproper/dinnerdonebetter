@@ -129,6 +129,7 @@ func TestNewAsyncDataChangeMessageHandler(t *testing.T) {
 				OutboundEmailsTopicName:      "outbound-emails",
 				SearchIndexRequestsTopicName: "search-index-requests",
 				MobileNotificationsTopicName: "mobile-notifications",
+				QueuedMailTopicName:          "queued-mail",
 			},
 			Pools: config.WorkerPoolsConfig{
 				DeadLetterTopicName: "dead-letter",

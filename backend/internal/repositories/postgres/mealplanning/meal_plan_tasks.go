@@ -177,7 +177,7 @@ func (q *repository) CreateMealPlanTask(ctx context.Context, input *types.MealPl
 
 		// The event is another statement in this transaction, so it commits with the
 		// rows it describes.
-		if emitErr := q.events.Emit(ctx, tx, logger, types.MealPlanTaskCreatedServiceEventType, "", map[string]any{
+		if emitErr := q.emit(ctx, tx, logger, types.MealPlanTaskCreatedServiceEventType, "", map[string]any{
 			mealplanningkeys.MealPlanTaskIDKey: input.ID,
 		}); emitErr != nil {
 			return observability.PrepareError(emitErr, span, "enqueuing data change event")
@@ -344,7 +344,7 @@ func (q *repository) CreateMealPlanTasksForMealPlan(ctx context.Context, mealPla
 			// publish them after the fact, which is exactly the gap the outbox closes. The job
 			// holds no session, and the finalized-plan query it works from does not name an
 			// account, so the event carries none.
-			if emitErr := q.events.Emit(ctx, tx, logger, types.MealPlanTaskCreatedServiceEventType, "", map[string]any{
+			if emitErr := q.emit(ctx, tx, logger, types.MealPlanTaskCreatedServiceEventType, "", map[string]any{
 				mealplanningkeys.MealPlanIDKey:     mealPlanID,
 				mealplanningkeys.MealPlanTaskIDKey: mealPlanTask.ID,
 				mealplanningkeys.MealPlanTaskKey:   mealPlanTask,

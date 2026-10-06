@@ -163,9 +163,9 @@ which returns a fifteen-minute token with no refresh token, minted by
 `PasswordResetService`, every RPC of which is anonymous:
 
 1. `RequestPasswordReset(email_address)` answers every address the same way, in the same time.
-   For a real one, `passwordreset.Service` issues a token and hands the mail to
-   `authentication.SignInMailers`, which writes a `password_reset_token_created` event carrying the
-   secret under `password_reset_token.secret`. The data change message handler renders the email.
+   For a real one, `passwordreset.Service` issues a token and hands the mail, secret included, to
+   platform's `notifications/mail` `QueuedMailer`, which queues it on the mail topic once the token
+   has committed. The async message handler's mail `Drainer` renders the email and sends it.
 2. `VerifyPasswordResetToken` lets the form say whether a link is still good.
 3. `CompletePasswordReset(token, new_password)` checks the password against `PasswordPolicy`,
    spends the token, writes the password through the identity store and revokes the user's other
@@ -191,8 +191,8 @@ created/updated, by a wrapper around the platform store.
 ## Web App Auth Flow (Consumer / Admin)
 
 Both web apps are SvelteKit servers that hold the login in `@primandproper/platform-client`'s
-`Session`: one per request, over a `CredentialStore` backed by an AES-GCM encrypted, HTTP-only
-cookie. The cookie holds the whole `IssuedToken`, refresh token included, and never reaches the
+`Session`: one per request, over the library's `encryptedCredentialStore`, which seals the token
+with AES-256-GCM under `COOKIE_ENCRYPTION_KEY` into an HTTP-only cookie. The cookie holds the whole `IssuedToken`, refresh token included, and never reaches the
 browser's scripts. Every call, to platform's services and this repository's alike, goes through
 `Session.call` with the access token as `Authorization: Bearer <token>`; neither app exchanges it
 for an OAuth2 token.
@@ -201,10 +201,12 @@ for an OAuth2 token.
    (`AdminLoginForToken`). A second-factor refusal is branched on by its reason,
    `SECOND_FACTOR_REQUIRED`, and the form sends the password again with the code. A passkey
    sign-in in either app is `beginPasskeySignIn` and `passkeySignIn` through `PasskeysService`,
-   which mints the same login a password does. A key tapped with no user verification is one
-   factor, so a person with a second factor is asked for their code and taps again.
-2. **Per request**: the hook builds the `Session` and redirects to `/login` when no login is
-   held. It doesn't call the server.
+   which mints the same login a password does, with the browser's half of the ceremony carried
+   by the library's WebAuthn bridge (`parseAssertionOptions`, `serializeAssertion`). A key tapped
+   with no user verification is one factor, so a person with a second factor is asked for their
+   code and taps again.
+2. **Per request**: the hook builds the `Session` and gates the request with `resolveOrRedirect`,
+   which redirects to `/login` when no login is held. It doesn't call the server.
 3. **Calls**: `Session.call` refreshes within thirty seconds of expiry, and on `Unauthenticated`
    refreshes and retries once. A successor is written back to the cookie. Requests that arrive
    together with the same cookie exchange its refresh token once between them, through the
@@ -212,12 +214,18 @@ for an OAuth2 token.
    `SharedExchangeCoordinator`.
 4. **Ended logins**: a refresh the server refuses clears the cookie. A page navigation
    redirects to `/login`, and a form action or API endpoint answers with its own error.
-5. **Sign-out**: `signOut`, which ends the login through `SignOut` and then clears the cookie.
+5. **Forced password changes**: somebody an operator has made change their password is signed in
+   anyway, and every other call is refused with `PASSWORD_CHANGE_REQUIRED`. Sign-in reads
+   `GetAuthStatus` and sends them to `/change_password` (`UpdatePassword`) when the change is
+   owed, and a call refused for it later redirects there too.
+6. **Sign-out**: `signOut`, which ends the login through `SignOut` and then clears the cookie.
 
 The consumer's account pages are platform's surfaces too: `/account/sessions` is `ListSignIns`,
 `EndSignIn` and `EndOtherSignIns`; `/account/passkeys` is `PasskeysService`; the reset and
 verification links are `PasswordResetService` and `SignInService.VerifyEmailAddress`. The admin
-app's per-user sessions page is `SignInAdministrationService`.
+app's per-user sessions page is `SignInAdministrationService`. A control the caller may or may
+not use, such as editing the household or inviting to it, is shown from the effective
+permissions `IdentityService.GetPrincipal` answers, never from the names of the caller's roles.
 
 **Implementation**: [`frontend/consumer/src/hooks.server.ts`](../frontend/consumer/src/hooks.server.ts),
 [`frontend/consumer/src/lib/auth/session.ts`](../frontend/consumer/src/lib/auth/session.ts),

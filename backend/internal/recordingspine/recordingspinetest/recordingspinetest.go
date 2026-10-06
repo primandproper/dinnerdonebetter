@@ -1,12 +1,12 @@
-// Package eventstest builds the recording spine for a unit test: platform's Emitter and
+// Package recordingspinetest builds the recording spine for a unit test: platform's Emitter and
 // Recorder over whatever outbox writer and audit recorder the test supplies, with no webhook
 // fan-out behind them.
 //
-// It exists so a test of a hook can read the event off the statement that would have enqueued
-// it, and the entry off the recorder it was handed, without building the four platform types by
-// hand in every test file. A test that needs the fan-out too uses the database-backed helper in
-// internal/repositories/postgres/testing instead.
-package eventstest
+// It exists so a test of a hook or a write can read the event off the statement that would have
+// enqueued it, and the entry off the recorder it was handed, without building the platform types
+// by hand in every test file. A test that needs the fan-out too uses the database-backed helper
+// in internal/repositories/postgres/testing instead.
+package recordingspinetest
 
 import (
 	"context"
@@ -16,7 +16,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/catalog"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/indexevents"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/recordingspine"
 
 	platformaudit "github.com/primandproper/platform-go/v15/audit"
 	"github.com/primandproper/platform-go/v15/outbox"
@@ -29,12 +29,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// New builds an Emitter whose events reach writer and whose entries reach recorder.
+// New builds a spine whose events reach writer and whose entries reach recorder.
 //
 // The dispatcher behind it knows this application's catalog and dispatches nothing: the gate is
 // exercised, the fan-out is not, which is the half a unit test over a mock executor can assert.
 // Filing follows production — by the subject where an entry names one.
-func New(t *testing.T, writer *outbox.Writer, recorder platformaudit.Recorder) *events.Emitter {
+func New(t *testing.T, writer *outbox.Writer, recorder platformaudit.Recorder) *recordingspine.Spine {
 	t.Helper()
 
 	dispatcher := &webhooksmock.DispatcherMock{
@@ -49,10 +49,7 @@ func New(t *testing.T, writer *outbox.Writer, recorder platformaudit.Recorder) *
 		platformrecording.WithScopeResolver(bySubject))
 	require.NoError(t, err)
 
-	e, err := events.NewEmitter(emitter, platformRecorder, writer)
-	require.NoError(t, err)
-
-	return e
+	return &recordingspine.Spine{Writer: writer, Emitter: emitter, Recorder: platformRecorder}
 }
 
 // IndexRules is the writer option that registers this application's search index rules, for a

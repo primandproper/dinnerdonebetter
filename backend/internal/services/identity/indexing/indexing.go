@@ -4,22 +4,11 @@ import (
 	"context"
 	"math"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/indexstamp"
-
 	platformidentity "github.com/primandproper/platform-go/v15/identity"
-	searchsync "github.com/primandproper/platform-go/v15/searchsync"
 	syncsource "github.com/primandproper/platform-go/v15/searchsync/source"
 	"github.com/primandproper/primitives-go/v2/database"
-	"github.com/primandproper/primitives-go/v2/observability/logging"
-	"github.com/primandproper/primitives-go/v2/observability/metrics"
-	"github.com/primandproper/primitives-go/v2/observability/tracing"
 	"github.com/primandproper/primitives-go/v2/tenancy"
 )
-
-// o11yName names the loggers, spans and metrics of the search sync sources built here. It
-// keeps the name the deleted internal/search/syncsource used, so nothing downstream of a log
-// query has to change.
-const o11yName = "search_sync_source"
 
 // UserSource reads users as search documents, for both the change feed and a reindex.
 //
@@ -71,10 +60,6 @@ func clampPage(limit int) uint8 {
 // answers with is dropped, because a set naming ids that have since been erased stamps fewer
 // rows than it named, and that is a directory being written to while it is indexed rather
 // than an error.
-//
-// It returns the write rather than the buffer so the buffer is still built by indexstamp,
-// which is what gives the container a Shutdown to call: a batching.Buffer owns a goroutine,
-// and one acquired anywhere else is one nothing retires.
 func UserStamps(client database.Client, store platformidentity.Store) func(context.Context, []string) error {
 	return func(ctx context.Context, ids []string) error {
 		return client.WithTransaction(ctx, func(tx database.Tx) error {
@@ -82,62 +67,5 @@ func UserStamps(client database.Client, store platformidentity.Store) func(conte
 
 			return err
 		})
-	}
-}
-
-// NewUserSyncer builds the Syncer that applies one users-index event.
-//
-// It replaces the scheduler that used to publish an index request for every user a sampler
-// thought looked stale. The events now come from the transactions that changed the rows.
-func NewUserSyncer(
-	client database.Client,
-	store platformidentity.Store,
-	index UserTextSearcher,
-	stamps *indexstamp.Buffer,
-	logger logging.Logger,
-	tracerProvider tracing.Provider,
-	metricsProvider metrics.Provider,
-) (*searchsync.Syncer[UserSearchSubset], error) {
-	src, err := UserSource(client, store)
-	if err != nil {
-		return nil, err
-	}
-
-	opts := append(
-		o11yOptions(logger, tracerProvider, metricsProvider),
-		syncsource.WithSyncerOptions(searchsync.WithSyncerStamper(stamps)),
-	)
-
-	return syncsource.NewSyncer(src, index, opts...)
-}
-
-// NewUserReindexer builds the reindex backstop for the users index.
-//
-// It is given no stamper on purpose. A reindex writes every document there is, so stamping it
-// would make last_indexed_at read as when the last rebuild ran rather than how current each
-// document is — which is the question the column exists to answer.
-func NewUserReindexer(
-	client database.Client,
-	store platformidentity.Store,
-	index UserTextSearcher,
-	logger logging.Logger,
-	tracerProvider tracing.Provider,
-	metricsProvider metrics.Provider,
-) (*searchsync.Reindexer[UserSearchSubset], error) {
-	src, err := UserSource(client, store)
-	if err != nil {
-		return nil, err
-	}
-
-	return syncsource.NewReindexer(src, index, o11yOptions(logger, tracerProvider, metricsProvider)...)
-}
-
-// o11yOptions is the three pillars as syncsource options. They arrive here separately rather
-// than as an observability.Pillars because that is how the container holds them.
-func o11yOptions(logger logging.Logger, tracerProvider tracing.Provider, metricsProvider metrics.Provider) []syncsource.Option {
-	return []syncsource.Option{
-		syncsource.WithLogger(logging.NewNamedLogger(logger, o11yName)),
-		syncsource.WithTracerProvider(tracerProvider),
-		syncsource.WithMetricsProvider(metricsProvider),
 	}
 }

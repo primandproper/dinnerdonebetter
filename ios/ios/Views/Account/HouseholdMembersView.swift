@@ -35,7 +35,7 @@ struct HouseholdMembersView: View {
       ScrollView {
         VStack(spacing: DSTheme.Spacing.xl) {
           membersSection(members: viewModel.members)
-          if viewModel.isAccountAdmin {
+          if viewModel.canInviteMembers {
             sendInvitationSection
           }
           if !viewModel.invitations.isEmpty {
@@ -62,7 +62,7 @@ struct HouseholdMembersView: View {
           MemberCard(
             member: member,
             currentUserID: viewModel.currentUserID,
-            isAccountAdmin: viewModel.isAccountAdmin,
+            canManageMembers: viewModel.canManageMembers,
             onRoleChange: { newRole, reason in
               Task {
                 await viewModel.updateMemberRole(
@@ -122,7 +122,7 @@ struct HouseholdMembersView: View {
       ForEach(viewModel.invitations, id: \.id) { invitation in
         InvitationCard(
           invitation: invitation,
-          isAccountAdmin: viewModel.isAccountAdmin,
+          canCancel: viewModel.canInviteMembers,
           onCancel: {
             _ = await viewModel.cancelInvitation(invitationID: invitation.id)
           }
@@ -137,7 +137,9 @@ struct HouseholdMembersView: View {
 struct MemberCard: View {
   let member: Primandproper_Platform_Identity_V1_MembershipWithUser
   let currentUserID: String
-  let isAccountAdmin: Bool
+  /// Whether the caller may change this member's role, from their effective permissions. The
+  /// role names below are only this member's label and the values the picker assigns.
+  let canManageMembers: Bool
   let onRoleChange: (String, String) -> Void
 
   @State private var selectedRole: String
@@ -149,12 +151,12 @@ struct MemberCard: View {
   init(
     member: Primandproper_Platform_Identity_V1_MembershipWithUser,
     currentUserID: String,
-    isAccountAdmin: Bool,
+    canManageMembers: Bool,
     onRoleChange: @escaping (String, String) -> Void
   ) {
     self.member = member
     self.currentUserID = currentUserID
-    self.isAccountAdmin = isAccountAdmin
+    self.canManageMembers = canManageMembers
     self.onRoleChange = onRoleChange
     let initialRole = member.membership.roles.contains("account_admin") ? "Admin" : "Member"
     _selectedRole = State(initialValue: initialRole)
@@ -186,7 +188,7 @@ struct MemberCard: View {
 
         Spacer()
 
-        if isAccountAdmin {
+        if canManageMembers {
           Picker(
             "Role",
             selection: Binding(
@@ -288,7 +290,8 @@ struct MemberCard: View {
 struct InvitationCard: View {
   @Environment(EventReporterService.self) private var eventReporterService
   let invitation: Primandproper_Platform_Identity_V1_Invitation
-  let isAccountAdmin: Bool
+  /// Whether the caller may withdraw invitations, from their effective permissions.
+  let canCancel: Bool
   let onCancel: (() async -> Void)?
 
   private var isPending: Bool {
@@ -318,7 +321,7 @@ struct InvitationCard: View {
         // for joining somebody else's household, and no read returns one — the sender
         // mints it, the store keeps a digest, and the only copy goes to the address it was
         // sent to. A sender who could copy the link could join as the person they invited.
-        if isPending && isAccountAdmin {
+        if isPending && canCancel {
           DSButton("Cancel", style: .ghost, size: .small) {
             Task {
               await onCancel?()

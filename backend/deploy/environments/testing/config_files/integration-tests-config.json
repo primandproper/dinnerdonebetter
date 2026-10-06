@@ -108,7 +108,8 @@
 		"dataChangesTopicName": "data_changes",
 		"outboundEmailsTopicName": "outbound_emails",
 		"searchIndexRequestsTopicName": "search_index_requests",
-		"mobileNotificationsTopicName": "mobile_notifications"
+		"mobileNotificationsTopicName": "mobile_notifications",
+		"queuedMailTopicName": "queued_mail"
 	},
 	"routing": {
 		"chiConfig": {

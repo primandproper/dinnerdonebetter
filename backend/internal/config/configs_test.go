@@ -380,6 +380,7 @@ func TestAPIServiceConfig_ValidateWithContext(T *testing.T) {
 				OutboundEmailsTopicName:      "outbound-emails",
 				SearchIndexRequestsTopicName: "search-index-requests",
 				MobileNotificationsTopicName: "mobile-notifications",
+				QueuedMailTopicName:          "queued-mail",
 			},
 			// Each of these has to name a provider: platform-go v9 reports an unset
 			// one rather than substituting a noop that looks configured.

@@ -24,6 +24,10 @@ class AuthenticationManager: AuthenticationManaging {
   var username: String = ""
   var userID: String = ""
   var accountID: String = ""
+  /// Whether an operator has forced this person to choose a new password. While it holds, the
+  /// server refuses every other call with PASSWORD_CHANGE_REQUIRED, so the app shows the
+  /// change-password form instead of anything that would make one.
+  var passwordChangeRequired: Bool = false
 
   // Client manager following grpc-swift issue #2211 pattern
   // Reuses a single GRPCClient instance across all service clients, and holds the Session
@@ -31,6 +35,11 @@ class AuthenticationManager: AuthenticationManaging {
 
   // Tracks which environment the current client was created for
   private var clientEnvironment: AppEnvironment?
+
+  /// The APNs token this launch was handed, kept so that a ClientManager made after it, for
+  /// another environment, is handed it too. Where it is registered, and under which login, is
+  /// the ClientManager's `Devices`, which persists it.
+  private var apnsToken: Data?
 
   // Mock support for UI tests
   private var mockManager: MockAuthenticationManager?
@@ -97,6 +106,15 @@ class AuthenticationManager: AuthenticationManaging {
       service: "\(Branding.keychainPrefix).session", account: environment.rawValue)
   }
 
+  /// The Keychain item `Devices` keeps this install's push registration in. One per
+  /// environment, like the login: a registration one server made means nothing to another.
+  private static func deviceRegistrationStore(
+    for environment: AppEnvironment
+  ) -> KeychainDeviceRegistrationStore {
+    KeychainDeviceRegistrationStore(
+      service: "\(Branding.keychainPrefix).device", account: environment.rawValue)
+  }
+
   /// Who the login belongs to, remembered so the app opens signed in without waiting on the
   /// Keychain or the network. None of it is a credential: the Session holds those.
   private enum ProfileKey: String, CaseIterable {
@@ -142,9 +160,17 @@ class AuthenticationManager: AuthenticationManaging {
   private func confirmRestoredSession() async {
     guard isAuthenticated else { return }
     do {
-      if try await getClientManager().session.held() == nil {
+      let manager = try getClientManager()
+      if try await manager.session.held() == nil {
         logger.info("a profile was remembered but the Session holds no login; signing out")
         await endLocally()
+        return
+      }
+      // A forced password change may have been imposed since the last launch.
+      if case .authenticated(let signedIn) = try await manager.session.getAuthStatus(
+        options: manager.defaultCallOptions)
+      {
+        passwordChangeRequired = signedIn.requiredActions.contains(.changePassword)
       }
     } catch {
       logger.error("loading the held session", error)
@@ -164,8 +190,29 @@ class AuthenticationManager: AuthenticationManaging {
       self.username =
         signedIn.status.user.username.isEmpty ? fallbackUsername : signedIn.status.user.username
       self.accountID = signedIn.status.activeAccountID
+      self.passwordChangeRequired = signedIn.requiredActions.contains(.changePassword)
       self.isAuthenticated = true
       persistProfile()
+    }
+  }
+
+  /// Called once the password has been changed. The server lifts a forced change as part of
+  /// the change, so the auth status is read again rather than assumed, and the profile with
+  /// it; if it cannot be read, the form is let go anyway, and the next refusal would bring it
+  /// back.
+  @MainActor
+  func passwordWasChanged() async {
+    let wasRequired = passwordChangeRequired
+    do {
+      try await loadAuthStatus(fallbackUsername: username)
+    } catch {
+      logger.error("reading the auth status after a password change", error)
+      passwordChangeRequired = false
+    }
+    // While the change was owed, the server refused the device registration along with every
+    // other call, so the token is handed over again now that it is lifted.
+    if wasRequired, !passwordChangeRequired, let apnsToken, let manager = try? getClientManager() {
+      handOver(apnsToken, to: manager)
     }
   }
 
@@ -231,11 +278,43 @@ class AuthenticationManager: AuthenticationManaging {
       "🔧 Creating ClientManager for \(env.displayName): \(host):\(port) (TLS: \(useTLS))"
     )
     let manager = try ClientManager<HTTP2ClientTransport.TransportServices>(
-      host: host, port: port, useTLS: useTLS, store: Self.credentialStore(for: env)
+      host: host, port: port, useTLS: useTLS, store: Self.credentialStore(for: env),
+      deviceStore: Self.deviceRegistrationStore(for: env)
     )
     clientManager = manager
     clientEnvironment = env
+    if let apnsToken {
+      handOver(apnsToken, to: manager)
+    }
     return manager
+  }
+
+  // MARK: - Push registration
+
+  /// Hands the APNs token iOS issued to the current ClientManager's `Devices`. Call from
+  /// `application(_:didRegisterForRemoteNotificationsWithDeviceToken:)`. Before sign-in the
+  /// token is held there and registered once the Session is authenticated, so nothing here
+  /// waits for a login.
+  func registerDeviceToken(_ token: Data) {
+    apnsToken = token
+    guard let manager = try? getClientManager() else { return }
+    handOver(token, to: manager)
+  }
+
+  private func handOver(
+    _ token: Data, to manager: ClientManager<HTTP2ClientTransport.TransportServices>
+  ) {
+    let devices = manager.devices
+    let logger = self.logger
+    Task {
+      do {
+        _ = try await devices.register(apnsToken: token, platform: .ios)
+      } catch is NotSignedInError {
+        // Held, and registered when somebody signs in.
+      } catch {
+        logger.error("registering the device token", error)
+      }
+    }
   }
 
   func login(username: String, password: String, totpToken: String? = nil) async -> LoginResult {
@@ -308,25 +387,34 @@ class AuthenticationManager: AuthenticationManaging {
           ]
         )
         reporter.track(event: "login_succeeded", properties: [:])
-        DeviceTokenRegistrationService.shared.tryReportStoredToken()
       }
       await logInToRevenueCatIfNeeded()
       await MainActor.run {
         UIApplication.shared.registerForRemoteNotifications()
       }
       return LoginResult(success: true, error: nil, requiresTOTP: false)
+    } catch let error as PlatformError where error.is(SignInReason.passwordChangeRequired) {
+      // Like a second factor, this is a refusal the person can act on rather than a failure:
+      // the login was made, and the server is holding it at the change-password form until
+      // a new password is chosen. The app routes there on `passwordChangeRequired`.
+      reporter.track(event: "login_password_change_required", properties: [:])
+      // GetAuthStatus is one of the calls the server still answers, so who the login belongs
+      // to is read and remembered here, as on any sign-in. If it can't be, the form still
+      // shows, and `passwordWasChanged` reads it again.
+      do {
+        try await loadAuthStatus(fallbackUsername: username)
+      } catch {
+        logger.error("reading the auth status of a login held for a password change", error)
+      }
+      await MainActor.run {
+        self.passwordChangeRequired = true
+        self.isAuthenticated = true
+        if self.username.isEmpty { self.username = username }
+      }
+      return LoginResult(success: true, error: nil, requiresTOTP: false)
     } catch let error as PlatformError {
       print("❌ Sign-in refused: \(error)")
-      switch error.code {
-      case .deadlineExceeded:
-        return failed("Request timed out. Please check your connection.")
-      case .unavailable:
-        return failed("Server is unavailable. Please try again later.")
-      case .unauthenticated:
-        return failed("Invalid username or password.")
-      default:
-        return failed("Login failed: \(error.serverMessage)")
-      }
+      return failed(Self.signInRefusalMessage(error))
     } catch is CancellationError {
       return failed("Login was cancelled")
     } catch {
@@ -378,13 +466,10 @@ class AuthenticationManager: AuthenticationManaging {
       return RegistrationResult(success: true, error: nil)
     } catch let error as PlatformError {
       print("❌ Registration refused: \(error)")
+      if isTransient(error) {
+        return RegistrationResult(success: false, error: Self.transientRefusalMessage)
+      }
       switch error.code {
-      case .deadlineExceeded:
-        return RegistrationResult(
-          success: false, error: "Request timed out. Please check your connection.")
-      case .unavailable:
-        return RegistrationResult(
-          success: false, error: "Server is unavailable. Please try again later.")
       case .alreadyExists:
         return RegistrationResult(
           success: false, error: "Username or email address already exists.")
@@ -405,11 +490,36 @@ class AuthenticationManager: AuthenticationManaging {
     }
   }
 
+  /// What a person is told when the server could not answer right now. Which code said so
+  /// (UNAVAILABLE, DEADLINE_EXCEEDED, RESOURCE_EXHAUSTED) is platform-client's `isTransient`,
+  /// so this never grows its own list.
+  static let transientRefusalMessage =
+    "We couldn't reach the server. Please check your connection and try again."
+
+  /// What a person is told when a password sign-in was refused. A second factor never reaches
+  /// here: `Session.signIn` answers it as `.secondFactorRequired`.
+  static func signInRefusalMessage(_ error: PlatformError) -> String {
+    if isTransient(error) {
+      return transientRefusalMessage
+    }
+    if error.is(SignInReason.invalidCredentials) || error.code == .unauthenticated {
+      return "Invalid username or password."
+    }
+    return "Login failed: \(error.serverMessage)"
+  }
+
   /// Signs the app out locally when a call failed because the login is over. The Session has
   /// already decided that by the time a call throws: it refreshes and retries an
   /// UNAUTHENTICATED once, and ends the login itself if the retry is refused too. What is left
   /// here is the UI's half.
+  ///
+  /// It also notices a call refused with PASSWORD_CHANGE_REQUIRED, which is not the login
+  /// ending but the server holding it at the form: the app sends the person there.
   func invalidateCredentialsIfSessionError(_ error: Error) async {
+    if error.platformError?.is(SignInReason.passwordChangeRequired) == true {
+      await MainActor.run { self.passwordChangeRequired = true }
+      return
+    }
     let underlying = (error as? ObservabilityError)?.underlying ?? error
     let ended = underlying is NotSignedInError || error.platformError?.code == .unauthenticated
     guard ended, isAuthenticated else { return }
@@ -417,12 +527,12 @@ class AuthenticationManager: AuthenticationManaging {
     await endLocally()
   }
 
-  /// Ends the login on the server, then here. The Session's signOut never throws: a sign-out
-  /// that could not be delivered still clears the login on this device.
+  /// Ends the login on the server, then here: the device's push registration is revoked first,
+  /// while the login can still make that call, then the Session signs out. Neither throws: a
+  /// sign-out that could not be delivered still clears the login on this device.
   func logout() async {
     if let manager = try? getClientManager() {
-      await DeviceTokenRegistrationService.shared.archiveCurrentDeviceToken(authManager: self)
-      await manager.session.signOut()
+      await manager.signOut()
     }
     await endLocally()
   }
@@ -440,6 +550,7 @@ class AuthenticationManager: AuthenticationManaging {
     self.username = ""
     self.userID = ""
     self.accountID = ""
+    self.passwordChangeRequired = false
     clearPersistedProfile()
   }
 }

@@ -1,60 +1,27 @@
 package indexing
 
 import (
-	"github.com/primandproper/dinnerdonebetter/backend/internal/indexstamp"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/searchindexes"
 
 	platformidentity "github.com/primandproper/platform-go/v15/identity"
 	searchsync "github.com/primandproper/platform-go/v15/searchsync"
 	"github.com/primandproper/primitives-go/v2/database"
-	"github.com/primandproper/primitives-go/v2/observability/logging"
-	"github.com/primandproper/primitives-go/v2/observability/metrics"
-	"github.com/primandproper/primitives-go/v2/observability/tracing"
 
 	"github.com/samber/do/v2"
 )
 
-// stampBufferName names the users index's stamp buffer in the container.
-const stampBufferName = indexstamp.NamePrefix + "users"
+var _ searchindexes.Registrar = RegisterIndexes
 
-// RegisterUserSyncer registers the Syncer that applies users-index events.
-//
-// It is registered for the process that consumes the index topic. Handle is a jobs.Handler, so
-// the Pool that runs it is wired where the other consumers are rather than here.
-func RegisterUserSyncer(i do.Injector) {
-	// The stamp buffer is named because there is one per index and they are all the same
-	// type. do retires it on container shutdown, which is where its goroutine is accounted for.
-	do.ProvideNamed(i, stampBufferName, func(i do.Injector) (*indexstamp.Buffer, error) {
-		return indexstamp.New(
-			UserStamps(do.MustInvoke[database.Client](i), do.MustInvoke[platformidentity.Store](i)),
-			do.MustInvoke[logging.Logger](i),
-			do.MustInvoke[tracing.Provider](i),
-			do.MustInvoke[metrics.Provider](i),
-		)
-	})
+// RegisterIndexes adds the users index to registry: its Syncer, its Reindexer, and the stamp
+// buffer behind the Syncer. It is a searchindexes.Registrar.
+func RegisterIndexes(i do.Injector, registry *searchsync.Registry) error {
+	client := do.MustInvoke[database.Client](i)
+	store := do.MustInvoke[platformidentity.Store](i)
 
-	do.Provide(i, func(i do.Injector) (*searchsync.Syncer[UserSearchSubset], error) {
-		return NewUserSyncer(
-			do.MustInvoke[database.Client](i),
-			do.MustInvoke[platformidentity.Store](i),
-			do.MustInvoke[UserTextSearcher](i),
-			do.MustInvokeNamed[*indexstamp.Buffer](i, stampBufferName),
-			do.MustInvoke[logging.Logger](i),
-			do.MustInvoke[tracing.Provider](i),
-			do.MustInvoke[metrics.Provider](i),
-		)
-	})
-}
+	source, err := UserSource(client, store)
+	if err != nil {
+		return err
+	}
 
-// RegisterUserReindexer registers the users reindex backstop, which runs as a scheduled job.
-func RegisterUserReindexer(i do.Injector) {
-	do.Provide(i, func(i do.Injector) (*searchsync.Reindexer[UserSearchSubset], error) {
-		return NewUserReindexer(
-			do.MustInvoke[database.Client](i),
-			do.MustInvoke[platformidentity.Store](i),
-			do.MustInvoke[UserTextSearcher](i),
-			do.MustInvoke[logging.Logger](i),
-			do.MustInvoke[tracing.Provider](i),
-			do.MustInvoke[metrics.Provider](i),
-		)
-	})
+	return searchindexes.RegisterTextIndex(registry, source, do.MustInvoke[UserTextSearcher](i), UserStamps(client, store))
 }

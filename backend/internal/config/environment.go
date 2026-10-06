@@ -462,6 +462,12 @@ func defaultWorkerPoolsConfig() WorkerPoolsConfig {
 	outboundEmails.Retry.MaxAttempts = 4
 	outboundEmails.Retry.MaxDelay = 30 * time.Second
 
+	// The mail platform's doors queue is the same third-party delivery, and is retried the same
+	// way.
+	queuedMail := standard()
+	queuedMail.Retry.MaxAttempts = 4
+	queuedMail.Retry.MaxDelay = 30 * time.Second
+
 	// There is no webhook pool here any more. Outbound delivery is not a queue topic: a
 	// dispatch row is claimed by the delivery worker, whose own concurrency, retry schedule,
 	// and per-endpoint circuit breaking live in the webhooks config.
@@ -472,6 +478,7 @@ func defaultWorkerPoolsConfig() WorkerPoolsConfig {
 		OutboundEmails:      outboundEmails,
 		SearchIndexRequests: standard(),
 		MobileNotifications: standard(),
+		QueuedMail:          queuedMail,
 	}
 }
 

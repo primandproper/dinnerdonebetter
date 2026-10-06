@@ -40,13 +40,11 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
-	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
 	"github.com/primandproper/platform-go/v15/callers"
 	"github.com/primandproper/platform-go/v15/links"
 	linkscfg "github.com/primandproper/platform-go/v15/links/config"
-	"github.com/primandproper/platform-go/v15/outbox"
+	"github.com/primandproper/platform-go/v15/notifications/mail"
 	platformwaitlists "github.com/primandproper/platform-go/v15/waitlists"
 	waitlistsgrpc "github.com/primandproper/platform-go/v15/waitlists/grpc"
 	"github.com/primandproper/platform-go/v15/waitlists/waitlistspb"
@@ -168,15 +166,11 @@ func RegisterWaitlistsService(i do.Injector) {
 		db := do.MustInvoke[database.Client](i)
 		store := do.MustInvoke[platformwaitlists.Store](i)
 
-		mailer, err := newConfirmationMailer(
-			db,
-			do.MustInvoke[*outbox.Writer](i),
-			do.MustInvoke[*queuescfg.Config](i).OutboundEmailsTopicName,
-			do.MustInvoke[*config.APIServiceConfig](i).BaseURL,
-		)
-		if err != nil {
-			return nil, err
-		}
+		// The confirmation is queued on the outbox by platform's QueuedMailer, once the
+		// signup has committed, and rendered and sent by the mail Drainer — so a mail
+		// provider's bad minute is a retry on the drain rather than a signup form that fails.
+		// See internal/build/queuedmail.
+		mailer := do.MustInvoke[*mail.QueuedMailer](i)
 
 		return waitlistsgrpc.NewServer(
 			store,

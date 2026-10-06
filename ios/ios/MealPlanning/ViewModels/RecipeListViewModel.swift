@@ -20,14 +20,21 @@ class RecipeListViewModel {
   var errorMessage: String?
   var searchError: String?
 
-  /// Recipe status filter for GetRecipes. Default "approved"; service admins can toggle to "submitted".
+  /// Recipe status filter for GetRecipes. Default "approved"; recipe reviewers can toggle to
+  /// "submitted".
   var recipeStatusFilter: String = "approved"
-  /// True when current user has service_role = "service_admin". Enables status toggle in UI.
-  var isServiceAdmin = false
+  /// The caller's effective permissions, as GetPrincipal answers them. Closed until loaded.
+  var permissions: CallerPermissions = .unloaded
+
+  /// Whether the caller reviews submitted recipes, which is what the status toggle is for. It
+  /// is the grant on UpdateRecipeStatus rather than a service role's name.
+  var canReviewRecipes: Bool {
+    permissions.allows(CallerPermissions.Name.updateRecipeStatus)
+  }
 
   private let authManager: AuthenticationManager
   private var searchTask: Task<Void, Never>?
-  private var hasCheckedServiceAdmin = false
+  private var hasLoadedPermissions = false
 
   init(authManager: AuthenticationManager) {
     self.authManager = authManager
@@ -113,22 +120,20 @@ class RecipeListViewModel {
     isSearching = false
   }
 
-  /// Fetches current user to determine if they are a service_admin. Call once when recipe list appears.
-  func loadCurrentUserForAdminCheck() async {
-    guard !hasCheckedServiceAdmin else { return }
-    hasCheckedServiceAdmin = true
+  /// Reads the caller's permissions, which decide whether the status toggle shows. Call once
+  /// when the recipe list appears.
+  func loadPermissions() async {
+    guard !hasLoadedPermissions else { return }
+    hasLoadedPermissions = true
 
     do {
-      // A set of roles rather than one. A service role is a grant and somebody may hold
-      // several, which is what the single column this replaced could not express.
-      let user = try await CurrentUserService.shared.currentUser(using: authManager)
-      isServiceAdmin = user.serviceRoles.contains("service_admin")
+      permissions = try await authManager.callerPermissions()
     } catch {
-      // Non-fatal: just leave isServiceAdmin false
+      // Non-fatal: the toggle stays hidden.
     }
   }
 
-  /// Updates recipe status filter and reloads. For service admin toggle.
+  /// Updates recipe status filter and reloads. For the recipe reviewers' toggle.
   func setRecipeStatusFilter(_ status: String) {
     recipeStatusFilter = status
   }

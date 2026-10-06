@@ -16,10 +16,10 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/recordingspine"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	authrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auth"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
 	settingsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/settings"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
@@ -309,7 +309,7 @@ func WithPasswordResetTokenStore(fn func(ctx context.Context, store passwordrese
 		if err != nil {
 			return err
 		}
-		store, err := authrepo.ProvidePasswordResetTokenStore(logger, tracerProvider, spine.Recorder(), dbClient)
+		store, err := authrepo.ProvidePasswordResetTokenStore(logger, tracerProvider, spine.Recorder, dbClient)
 		if err != nil {
 			return err
 		}
@@ -344,7 +344,7 @@ func WithMealPlanningRepository(fn func(ctx context.Context, repo mealplanning.R
 			return err
 		}
 
-		mealPlanningRepo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditLogRepo, identityStore, dbClient, spine, uploads)
+		mealPlanningRepo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditLogRepo, identityStore, dbClient, spine.Emitter, spine.Recorder, spine.Writer, uploads)
 		return fn(ctx, mealPlanningRepo, logger, tracerProvider)
 	}
 }
@@ -369,12 +369,12 @@ func WithSettingsRepository(fn func(ctx context.Context, store platformsettings.
 
 		// The recording spine the store's hooks write through, built the way a process
 		// does; a seed's writes are recorded like anybody else's.
-		spine, err := events.New(ctx, dbClient, auditRecorder)
+		spine, err := recordingspine.New(ctx, dbClient, auditRecorder)
 		if err != nil {
 			return err
 		}
 
-		settingsStore, err := settingsrepo.ProvideSettingsRepository(ctx, logger, tracerProvider, metricsnoop.NewMetricsProvider(), dbClient, spine.Recorder())
+		settingsStore, err := settingsrepo.ProvideSettingsRepository(ctx, logger, tracerProvider, metricsnoop.NewMetricsProvider(), dbClient, spine.Recorder)
 		if err != nil {
 			return err
 		}

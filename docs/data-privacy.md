@@ -34,6 +34,7 @@ authenticated call.
 | ------ | ----- | -------------- |
 | Submit | API server (`POST /privacy-requests`, `{"type": "export"}` or `"erasure"`) | Writes a `pending` row, stamps `due_at` from the response window, returns the request. |
 | Fulfill | Scheduler (`dataprivacy.Worker`) | Fans out over the registry; writes the artifact, or runs every eraser in one transaction. |
+| Notify | Scheduler (`dataprivacy.EmailNotifier`) | Tells the subject the request finished, at the address their user row names. The mail is queued on the outbound emails topic and sent by the async message handler, so a mail provider's outage never fails a fulfillment. It carries no link — artifacts are encrypted, so none is minted — and says to sign in. A subject an erasure removed is mailed nothing. |
 | Delivery | API server (`GET /privacy-requests/{requestID}/artifact`, platform's route) | `Open`s the artifact — decrypt, decompress — and streams the JSON. |
 | Expiry | Scheduler (`data_privacy_sweep`) | Deletes the artifact, then clears the reference and marks the request `expired`. |
 

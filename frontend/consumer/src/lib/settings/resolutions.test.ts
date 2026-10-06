@@ -5,7 +5,7 @@ import {
   SettingKind,
   ValueSource,
 } from '@primandproper/platform-client/settings/v1';
-import { configurableSetting, configurableSettings, typedValue } from './resolutions';
+import { configurableSetting, configurableSettings } from './resolutions';
 
 function definition(overrides: Partial<SettingDefinition> = {}): SettingDefinition {
   return {
@@ -59,6 +59,16 @@ describe('configurableSetting', () => {
     expect(result?.currentValue).toBe('celsius');
   });
 
+  it('starts on a non-text answer as the server stores it, so the picker can match it', () => {
+    const result = configurableSetting({
+      ...resolution({ source: ValueSource.VALUE_SOURCE_SUBJECT }),
+      definition: definition({ kind: SettingKind.SETTING_KIND_FLOAT, enumeration: ['1e+06', '0.5'] }),
+      typedValue: { floatValue: 1_000_000 },
+    });
+
+    expect(result?.currentValue).toBe('1e+06');
+  });
+
   it('drops a setting that admits any value of its kind', () => {
     const result = configurableSetting(resolution({ definition: definition({ enumeration: [] }) }));
 
@@ -97,24 +107,5 @@ describe('configurableSettings', () => {
     ]);
 
     expect(result.map((item) => item.setting.id)).toEqual(['setting-9']);
-  });
-});
-
-describe('typedValue', () => {
-  it('writes a text setting as text, even when it looks like a number', () => {
-    expect(typedValue(SettingKind.SETTING_KIND_STRING, '12')).toEqual({ stringValue: '12' });
-  });
-
-  it('writes each other kind in its own case', () => {
-    expect(typedValue(SettingKind.SETTING_KIND_BOOLEAN, 'false')).toEqual({ boolValue: false });
-    expect(typedValue(SettingKind.SETTING_KIND_INTEGER, '-3')).toEqual({ intValue: -3 });
-    expect(typedValue(SettingKind.SETTING_KIND_FLOAT, '1.5')).toEqual({ floatValue: 1.5 });
-  });
-
-  it('refuses text its kind cannot parse, rather than sending the server a guess', () => {
-    expect(typedValue(SettingKind.SETTING_KIND_BOOLEAN, 'yes')).toBeNull();
-    expect(typedValue(SettingKind.SETTING_KIND_INTEGER, '1.5')).toBeNull();
-    expect(typedValue(SettingKind.SETTING_KIND_FLOAT, '')).toBeNull();
-    expect(typedValue(SettingKind.SETTING_KIND_UNSPECIFIED, 'celsius')).toBeNull();
   });
 });

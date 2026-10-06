@@ -96,18 +96,18 @@ public class MediaUploadViewModel {
 
 /// Shared RPC error formatting for upload flows.
 enum UploadErrorFormatter {
+  /// Whether the server could not take the upload right now is platform-client's
+  /// `isTransient`; the rest are refusals the person can do something about.
   static func formatRPCError(_ error: PlatformError) -> String {
+    if isTransient(error) {
+      return
+        "The server couldn't take the upload right now. Try again in a moment, or try a smaller image."
+    }
     switch error.code {
     case .cancelled:
-      return
-        "Request was cancelled. This can happen if the connection was interrupted or the request took too long."
-    case .deadlineExceeded:
-      return "Request timed out. Try a smaller image."
+      return "The upload was cancelled."
     case .unauthenticated:
       return "Session expired. Please sign in again."
-    case .unavailable:
-      return
-        "Server unavailable. Is the backend running at \(APIConfiguration.grpcHost):\(APIConfiguration.grpcPort)?"
     case .permissionDenied:
       return "Permission denied."
     case .invalidArgument:

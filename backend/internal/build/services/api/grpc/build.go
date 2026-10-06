@@ -17,6 +17,7 @@ import (
 	passkeysbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/passkeys"
 	passwordresetbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/passwordreset"
 	paymentsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/payments"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/build/queuedmail"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/build/sagas"
 	settingsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/settings"
 	signinbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/signin"
@@ -102,6 +103,7 @@ func BuildInjector(
 	// every request with ErrUnknownKind.
 	dataprivacybuild.RegisterRegistry(i)
 	dataprivacybuild.RegisterOperationsRegistry(i)
+	dataprivacybuild.RegisterCompletionNotifier(i)
 	operationscfg.RegisterStore(i)
 	operationscfg.RegisterQueue(i)
 	operationscfg.RegisterService(i)
@@ -156,6 +158,9 @@ func BuildInjector(
 	// builds a session.
 	authorization.RegisterPolicyResolver(i)
 	identitystore.RegisterIdentityStore(i)
+	// The mailer the identity service hands an invitation to, and sign-in, password
+	// reset and waitlists their mail. See internal/build/queuedmail.
+	queuedmail.Register(i)
 	identitybuild.RegisterSessionBuilder(i)
 	issuereportsrepo.RegisterIssueReportsRepository(i)
 	uploadedmediarepo.RegisterUploadedMediaRepository(i)

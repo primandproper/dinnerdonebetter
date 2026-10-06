@@ -17,6 +17,7 @@ import SwiftUI
 // swiftlint:disable:next type_body_length
 class AccountSettingsViewModel {
   private struct FetchDataResult {
+    let permissions: CallerPermissions
     let account: Primandproper_Platform_Identity_V1_Account
     let members: [Primandproper_Platform_Identity_V1_MembershipWithUser]
     let user: Primandproper_Platform_Identity_V1_User
@@ -35,6 +36,9 @@ class AccountSettingsViewModel {
   var invitations: [Primandproper_Platform_Identity_V1_Invitation] = []
   var instrumentOwnerships: [Mealplanning_AccountInstrumentOwnership] = []
   var validInstruments: [Mealplanning_ValidInstrument] = []
+  /// What the caller may do in this household, as GetPrincipal answers it. Every gate below is
+  /// read from it rather than from the caller's role names; closed until loaded.
+  var permissions: CallerPermissions = .unloaded
 
   // Loading states
   var isLoading = false
@@ -65,11 +69,20 @@ class AccountSettingsViewModel {
   var newInstrumentNotes: String = ""
 
   // Computed properties
-  var isAccountAdmin: Bool {
-    guard let membership = currentUserMembership else { return false }
-    // A membership carries a set of roles rather than one, because a role is a grant and
-    // somebody may hold several.
-    return membership.membership.roles.contains("account_admin")
+
+  /// Whether the caller may edit the household's name and address.
+  var canUpdateAccount: Bool {
+    permissions.allows(CallerPermissions.Name.updateAccount)
+  }
+
+  /// Whether the caller may send invitations and cancel them.
+  var canInviteMembers: Bool {
+    permissions.allows(CallerPermissions.Name.inviteMembers)
+  }
+
+  /// Whether the caller may change other members' roles.
+  var canManageMembers: Bool {
+    permissions.allows(CallerPermissions.Name.manageMembers)
   }
 
   var currentUserMembership: Primandproper_Platform_Identity_V1_MembershipWithUser? {
@@ -106,6 +119,7 @@ class AccountSettingsViewModel {
 
     do {
       let result = try await fetchAllData()
+      self.permissions = result.permissions
       self.account = result.account
       self.members = result.members
       self.user = result.user
@@ -128,6 +142,7 @@ class AccountSettingsViewModel {
   }
 
   private func fetchAllData() async throws -> FetchDataResult {
+    async let permissionsTask = fetchPermissions()
     async let accountTask = fetchActiveAccount()
     async let membersTask = fetchMembers()
     async let userTask = fetchUser()
@@ -135,6 +150,7 @@ class AccountSettingsViewModel {
     async let instrumentOwnershipsTask = fetchInstrumentOwnerships()
     async let validInstrumentsTask = fetchValidInstruments()
     return FetchDataResult(
+      permissions: await permissionsTask,
       account: try await accountTask,
       members: try await membersTask,
       user: try await userTask,
@@ -142,6 +158,17 @@ class AccountSettingsViewModel {
       instrumentOwnerships: try await instrumentOwnershipsTask,
       validInstruments: try await validInstrumentsTask
     )
+  }
+
+  /// The caller's permissions, or every gate closed when they could not be read: the screen is
+  /// still worth showing read-only, and the server refuses whatever it would have refused.
+  private func fetchPermissions() async -> CallerPermissions {
+    do {
+      return try await authManager.callerPermissions()
+    } catch {
+      print("⚠️ Could not read the caller's permissions: \(error)")
+      return .unloaded
+    }
   }
 
   private func fetchActiveAccount() async throws -> Primandproper_Platform_Identity_V1_Account {
@@ -399,7 +426,7 @@ class AccountSettingsViewModel {
       return nil
     }
 
-    guard isAccountAdmin else {
+    guard canUpdateAccount else {
       errorMessage = "Only household admins can update household details"
       return nil
     }
@@ -463,7 +490,7 @@ class AccountSettingsViewModel {
       return false
     }
 
-    guard isAccountAdmin else {
+    guard canInviteMembers else {
       errorMessage = "Only household admins can send invitations"
       return false
     }
@@ -510,7 +537,7 @@ class AccountSettingsViewModel {
   }
 
   func cancelInvitation(invitationID: String) async -> Bool {
-    guard isAccountAdmin else {
+    guard canInviteMembers else {
       errorMessage = "Only household admins can cancel invitations"
       return false
     }
@@ -556,7 +583,7 @@ class AccountSettingsViewModel {
   private func validateMemberRoleUpdate(
     membershipID: String, reason: String
   ) -> Primandproper_Platform_Identity_V1_MembershipWithUser? {
-    guard isAccountAdmin else {
+    guard canManageMembers else {
       errorMessage = "Only household admins can change member roles"
       return nil
     }
