@@ -97,8 +97,13 @@ func (f *internalFailure) requireNoInternalText(t *testing.T, err error) {
 	assert.False(t, platformerrors.Is(decoded, f.sentinel), "the sentinel chain is still reconstructable from the status")
 }
 
-func buildTestAuthInterceptor() *interceptors.AuthInterceptor {
-	return interceptors.ProvideAuthInterceptor(nil, loggingnoop.NewLogger(), nil, nil, nil, nil, "", nil, nil, MethodPermissions())
+func buildTestAuthInterceptor(t *testing.T) *interceptors.AuthInterceptor {
+	t.Helper()
+
+	authInterceptor, err := interceptors.ProvideAuthInterceptor(loggingnoop.NewLogger(), nil, nil, MethodPermissions())
+	require.NoError(t, err)
+
+	return authInterceptor
 }
 
 func TestErrorEncodingInterceptor_leaksWithoutStripping(T *testing.T) {
@@ -125,7 +130,7 @@ func TestErrorEncodingInterceptor_leaksWithoutStripping(T *testing.T) {
 func TestBuildUnaryServerInterceptors_stripsTheEncodedChain(T *testing.T) {
 	T.Parallel()
 
-	authInterceptor := buildTestAuthInterceptor()
+	authInterceptor := buildTestAuthInterceptor(T)
 	enforcer, enforcerErr := ProvideAuthorizationEnforcer(MethodPermissions(), authInterceptor, loggingnoop.NewLogger(), metricsnoop.NewMetricsProvider(), false)
 	require.NoError(T, enforcerErr)
 
@@ -133,7 +138,7 @@ func TestBuildUnaryServerInterceptors_stripsTheEncodedChain(T *testing.T) {
 		return handler(ctx, req)
 	}
 
-	chain := BuildUnaryServerInterceptors(loggingnoop.NewLogger(), authInterceptor, enforcer, passthrough)
+	chain := BuildUnaryServerInterceptors(loggingnoop.NewLogger(), passthrough, authInterceptor, enforcer, passthrough)
 
 	// A method any phone may call without a session, so the failure is the handler's and not a
 	// refusal from the interceptors in front of it.
@@ -201,7 +206,7 @@ func TestBuildUnaryServerInterceptors_stripsTheEncodedChain(T *testing.T) {
 func TestBuildStreamServerInterceptors_stripsTheEncodedChain(T *testing.T) {
 	T.Parallel()
 
-	authInterceptor := buildTestAuthInterceptor()
+	authInterceptor := buildTestAuthInterceptor(T)
 	chain := BuildStreamServerInterceptors(loggingnoop.NewLogger(), authInterceptor)
 
 	public := authInterceptor.UnauthenticatedRoutes()

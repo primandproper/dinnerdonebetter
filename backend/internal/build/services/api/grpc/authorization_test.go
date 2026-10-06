@@ -114,9 +114,12 @@ func buildTestEnforcer(t *testing.T) *grpc.UnaryServerInterceptor {
 		billingpb.BillingService_ArchiveSubscription_FullMethodName: {billinggrpc.PermissionArchiveSubscriptions},
 	}
 
+	authInterceptor, err := interceptors.ProvideAuthInterceptor(loggingnoop.NewLogger(), nil, nil, perms)
+	require.NoError(t, err)
+
 	enforcer, err := ProvideAuthorizationEnforcer(
 		perms,
-		interceptors.ProvideAuthInterceptor(nil, loggingnoop.NewLogger(), nil, nil, nil, nil, "", nil, nil, perms),
+		authInterceptor,
 		loggingnoop.NewLogger(),
 		metricsnoop.NewMetricsProvider(),
 		true,

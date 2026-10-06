@@ -4,12 +4,14 @@ import (
 	"context"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc/interceptors"
 	paymentswebhook "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/http"
 
 	"github.com/primandproper/primitives-go/v2/healthcheck"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/metrics"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
+	"github.com/primandproper/primitives-go/v2/ratelimiting"
 	"github.com/primandproper/primitives-go/v2/routing"
 	routingcfg "github.com/primandproper/primitives-go/v2/routing/config"
 
@@ -19,6 +21,16 @@ import (
 // RegisterAPIRouter registers the API router provider with the injector.
 func RegisterAPIRouter(i do.Injector) {
 	do.Provide[*routing.Router](i, func(i do.Injector) (*routing.Router, error) {
+		authorizeThrottle, err := interceptors.NewAuthorizeFormThrottle(
+			do.MustInvoke[ratelimiting.RateLimiter](i),
+			do.MustInvoke[logging.Logger](i),
+			do.MustInvoke[tracing.Provider](i),
+			do.MustInvoke[metrics.Provider](i),
+		)
+		if err != nil {
+			return nil, err
+		}
+
 		return ProvideAPIRouter(
 			do.MustInvoke[context.Context](i),
 			*do.MustInvoke[*routingcfg.Config](i),
@@ -29,6 +41,7 @@ func RegisterAPIRouter(i do.Injector) {
 			do.MustInvoke[*paymentswebhook.WebhookHandler](i),
 			do.MustInvoke[healthcheck.Registry](i),
 			do.MustInvoke[*PlatformSurfaces](i),
+			authorizeThrottle,
 		)
 	})
 }

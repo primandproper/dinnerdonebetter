@@ -152,7 +152,7 @@ func TestBuildRouter(T *testing.T) {
 			oauth2server.PathAuthorize+"?"+authorizeQuery, nil))
 		require.Equal(t, http.StatusOK, res.Code)
 		assert.Contains(t, res.Body.String(), "Test Client")
-		assert.Contains(t, res.Body.String(), `name="totp_token"`)
+		assert.Contains(t, res.Body.String(), `name="`+oauth2server.FieldTOTPCode+`"`)
 
 		// 3. Signing in, which redirects back with an authorization code.
 		res = post(oauth2server.PathAuthorize+"?"+authorizeQuery, "application/x-www-form-urlencoded", "")

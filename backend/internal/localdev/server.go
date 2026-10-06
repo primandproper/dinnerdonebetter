@@ -455,7 +455,11 @@ func NewNonRedirectingHTTPClient() (*http.Client, error) {
 // PKCE is S256, and deliberately not configurable. The `plain` method this used to send is not
 // accepted at all any more, and a helper that could still choose it is one that eventually
 // would.
-func exchangeAuthorizationCodeWithJWT(ctx context.Context, oauth2Config *oauth2.Config, jwt string) (*oauth2.Token, error) {
+//
+// The token is asked for resource, the RFC 8707 name of the server it will be spent at. The API
+// server refuses an access token that names no resource: one that did would be spendable at every
+// resource server sharing the authorization server's store.
+func exchangeAuthorizationCodeWithJWT(ctx context.Context, oauth2Config *oauth2.Config, resource, jwt string) (*oauth2.Token, error) {
 	state, err := random.GenerateBase64EncodedString(ctx, 32)
 	if err != nil {
 		return nil, fmt.Errorf("generating state: %w", err)
@@ -463,7 +467,8 @@ func exchangeAuthorizationCodeWithJWT(ctx context.Context, oauth2Config *oauth2.
 
 	verifier := oauth2.GenerateVerifier()
 
-	authCodeURL := oauth2Config.AuthCodeURL(state, oauth2.S256ChallengeOption(verifier))
+	resourceParam := oauth2.SetAuthURLParam("resource", resource)
+	authCodeURL := oauth2Config.AuthCodeURL(state, oauth2.S256ChallengeOption(verifier), resourceParam)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, authCodeURL, http.NoBody)
 	if err != nil {
@@ -505,7 +510,7 @@ func exchangeAuthorizationCodeWithJWT(ctx context.Context, oauth2Config *oauth2.
 		return nil, fmt.Errorf("code not returned from oauth2 redirect")
 	}
 
-	oauth2Token, err := oauth2Config.Exchange(ctx, code, oauth2.VerifierOption(verifier))
+	oauth2Token, err := oauth2Config.Exchange(ctx, code, oauth2.VerifierOption(verifier), resourceParam)
 	if err != nil {
 		return nil, fmt.Errorf("exchanging OAuth2 code: %w", err)
 	}
@@ -519,11 +524,12 @@ func BuildInsecureOAuthedGRPCClient(
 	createdClientSecret,
 	httpTestServerAddress,
 	grpcServerAddress,
+	resource,
 	token string,
 ) (client.Client, error) {
 	oauth2Config := NewOAuth2ConfigForTestServer(createdClientID, createdClientSecret, httpTestServerAddress)
 
-	oauth2Token, err := exchangeAuthorizationCodeWithJWT(ctx, oauth2Config, token)
+	oauth2Token, err := exchangeAuthorizationCodeWithJWT(ctx, oauth2Config, resource, token)
 	if err != nil {
 		return nil, err
 	}
@@ -585,12 +591,33 @@ func FetchLoginTokenForUserWithClient(ctx context.Context, c client.Client, cred
 	return tokenRes.GetToken().GetToken(), nil
 }
 
+// FetchAdminLoginTokenForUser signs an operator in through SignInService.AdminLoginForToken and
+// returns the access token it issued.
+//
+// It is the only token an operator's grants ride on: one from LoginForToken carries the person
+// and none of the operator, however the account is configured. The token lives fifteen minutes.
+func FetchAdminLoginTokenForUser(ctx context.Context, grpcServerAddr string, credentials *signinpb.Credentials) (string, error) {
+	unauthedClient, err := client.BuildUnauthenticatedGRPCClient(grpcServerAddr)
+	if err != nil {
+		return "", fmt.Errorf("initializing client: %w", err)
+	}
+
+	tokenRes, err := unauthedClient.AdminLoginForToken(ctx, &signinpb.AdminLoginForTokenRequest{
+		Credentials: credentials,
+	})
+	if err != nil {
+		return "", fmt.Errorf("fetching admin login token: %w", err)
+	}
+
+	return tokenRes.GetToken().GetToken(), nil
+}
+
 // FetchOAuth2TokenForUser performs the OAuth2 authorization code flow as the person the
 // credentials sign in, and returns the OAuth2 access and refresh tokens. Used by integration
 // tests for token revocation.
 func FetchOAuth2TokenForUser(
 	ctx context.Context,
-	httpServerAddress, grpcServerAddress, clientID, clientSecret string,
+	httpServerAddress, grpcServerAddress, clientID, clientSecret, resource string,
 	credentials *signinpb.Credentials,
 ) (*oauth2.Token, error) {
 	jwt, err := FetchLoginTokenForUser(ctx, grpcServerAddress, credentials)
@@ -598,5 +625,5 @@ func FetchOAuth2TokenForUser(
 		return nil, fmt.Errorf("fetching JWT for OAuth2 exchange: %w", err)
 	}
 
-	return exchangeAuthorizationCodeWithJWT(ctx, NewOAuth2ConfigForTestServer(clientID, clientSecret, httpServerAddress), jwt)
+	return exchangeAuthorizationCodeWithJWT(ctx, NewOAuth2ConfigForTestServer(clientID, clientSecret, httpServerAddress), resource, jwt)
 }

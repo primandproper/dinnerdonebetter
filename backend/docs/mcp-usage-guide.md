@@ -109,13 +109,20 @@ A login form is rendered. Enter your:
 |---------------|----------------------------|
 | **Username**  | Your admin username        |
 | **Password**  | Your admin password        |
-| **TOTP Code** | Your 2FA code (if enabled) |
+| **TOTP Code** | Your 2FA code (required) |
 
 On success, the server redirects back to the client with an authorization code.
 
-**Only admin accounts can authenticate.** Regular user accounts will be rejected, with the
-same message a wrong password gets — telling the two apart would make this form an account
-enumeration oracle, and it is a public endpoint.
+**Only admin accounts can authenticate**, and only with a proven second factor. The form signs
+in through platform's administrative door, `signin.Service.AdminAuthenticate`. Regular user
+accounts are rejected with the same message a wrong password gets, and in the same time: the
+password is hashed before the role is read, and a username that names nobody is hashed against a
+decoy. Telling the cases apart by message or by stopwatch would make this public form an account
+enumeration oracle.
+
+The client must name this server in the `resource` parameter (RFC 8707), as the MCP specification
+requires. A token naming no resource is refused, since any resource server sharing the
+authorization server's store would accept it too.
 
 PKCE is mandatory and **S256 only**. There is no opt-out and no support for the `plain`
 method, which puts the verifier in the request PKCE exists to protect.
@@ -201,7 +208,8 @@ The server supports three transport modes (set via `--transport` flag):
 ## Troubleshooting
 
 **"Access denied. Admin credentials required."**
-Only admin accounts can log in. Ensure you're using admin credentials.
+Only admin accounts can log in, with their 2FA code. Ensure you're using admin credentials, and
+that the account has verified its second factor.
 
 **Token expired / "unknown token"**
 Access tokens last 15 minutes. Your MCP client should refresh automatically using the refresh

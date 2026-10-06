@@ -68,6 +68,10 @@ const (
 	// preferences, and ratings. There is no platform counterpart; this is the domain
 	// this application is.
 	CollectorKeyMealPlanning = "meal_planning"
+	// CollectorKeySignInDevices covers the address, browser and device each of the
+	// subject's logins was last renewed from. platform's sign-in stores none of it, so
+	// this application records it and answers for it — see internal/authentication/devices.
+	CollectorKeySignInDevices = "sign_in_devices"
 	// CollectorKeyAuditLog covers the audit entries recorded about the subject. It is
 	// platform's key, and the same one the audit eraser is registered under, so an
 	// export's audit section and an erasure's audit line describe the same log.

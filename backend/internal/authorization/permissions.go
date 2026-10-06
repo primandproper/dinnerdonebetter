@@ -65,7 +65,6 @@ var (
 		// would be for a caller who genuinely lacked it. See
 		// internal/build/services/api/grpc.TestMethodTableIsCoveredByThePolicy,
 		// which is the check that says so.
-		VerifyAuditChainPermission,
 		ReadAnyAuditLogEntriesPermission,
 		ReadAnyIssueReportsPermission,
 		ModerateCommentsPermission,
@@ -216,6 +215,14 @@ var (
 		RotateWebhookSecretPermission,
 		AddWebhookSubscriptionsPermission,
 		ArchiveWebhookSubscriptionsPermission,
+		// Verifying the account's audit chain, which is platform's own tiering: it carries no
+		// entry's content, but it is a question about everything the account did rather than
+		// about the caller. It was a service admin's alone, which made sense only while an
+		// impersonation carried the operator's grants — verifying an account's chain means
+		// being in it, and an operator was in it by impersonating its owner. An impersonation
+		// carries the subject's grants and nothing of the operator's now, so the owner is who
+		// can ask; a service admin still can, by inheriting account_admin.
+		VerifyAuditChainPermission,
 		// Everything an account administrator holds over the account itself, which is
 		// platform's identity surface now. See identity_permissions.go.
 	}, IdentityAccountPermissions...)

@@ -2636,6 +2636,34 @@ const (
 	// override `APIServiceConfig.Services.Auth.OAuth2.SweepJob.Timeout`.
 	ServiceAuthOauth2SweepJobTimeoutEnvVarKey = "DINNER_DONE_BETTER_SERVICE_AUTH_OAUTH2_SWEEP_JOB_TIMEOUT"
 
+	// ServiceAuthRateLimitingBurstSizeEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Services.Auth.RateLimiting.BurstSize`.
+	ServiceAuthRateLimitingBurstSizeEnvVarKey = "DINNER_DONE_BETTER_SERVICE_AUTH_RATE_LIMITING_BURST_SIZE"
+
+	// ServiceAuthRateLimitingMaxLimitersEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Services.Auth.RateLimiting.MaxLimiters`.
+	ServiceAuthRateLimitingMaxLimitersEnvVarKey = "DINNER_DONE_BETTER_SERVICE_AUTH_RATE_LIMITING_MAX_LIMITERS"
+
+	// ServiceAuthRateLimitingProviderEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Services.Auth.RateLimiting.Provider`.
+	ServiceAuthRateLimitingProviderEnvVarKey = "DINNER_DONE_BETTER_SERVICE_AUTH_RATE_LIMITING_PROVIDER"
+
+	// ServiceAuthRateLimitingRedisAddressesEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Services.Auth.RateLimiting.Redis.Addresses`.
+	ServiceAuthRateLimitingRedisAddressesEnvVarKey = "DINNER_DONE_BETTER_SERVICE_AUTH_RATE_LIMITING_REDIS_ADDRESSES"
+
+	// ServiceAuthRateLimitingRedisPasswordEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Services.Auth.RateLimiting.Redis.Password`.
+	ServiceAuthRateLimitingRedisPasswordEnvVarKey = "DINNER_DONE_BETTER_SERVICE_AUTH_RATE_LIMITING_REDIS_PASSWORD"
+
+	// ServiceAuthRateLimitingRedisUsernameEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Services.Auth.RateLimiting.Redis.Username`.
+	ServiceAuthRateLimitingRedisUsernameEnvVarKey = "DINNER_DONE_BETTER_SERVICE_AUTH_RATE_LIMITING_REDIS_USERNAME"
+
+	// ServiceAuthRateLimitingRequestsPerSecEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Services.Auth.RateLimiting.RequestsPerSec`.
+	ServiceAuthRateLimitingRequestsPerSecEnvVarKey = "DINNER_DONE_BETTER_SERVICE_AUTH_RATE_LIMITING_REQUESTS_PER_SEC"
+
 	// ServiceAuthTokensAudienceEnvVarKey is the environment variable name to set to override
 	// `APIServiceConfig.Services.Auth.Tokens.Config.Audience`.
 	ServiceAuthTokensAudienceEnvVarKey = "DINNER_DONE_BETTER_SERVICE_AUTH_TOKENS_AUDIENCE"

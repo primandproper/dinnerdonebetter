@@ -15,6 +15,7 @@ import {
 } from '@dinnerdonebetter/api-client';
 import {
   type CredentialStore,
+  type Metadata,
   NotSignedInError,
   Session,
   TokenCaller,
@@ -37,9 +38,11 @@ const anonymous = new TokenCaller({ transport });
  * exchange coordinator, so concurrent requests carrying the same cookie present its refresh
  * token once between them. That holds within one process only: more than one replica needs a
  * SharedExchangeCoordinator.
+ *
+ * `metadata` rides on every call the Session makes; see clientMetadata in $lib/auth/session.
  */
-export function newSession(store: CredentialStore): Session {
-  return new Session({ transport, store });
+export function newSession(store: CredentialStore, metadata: Metadata = {}): Session {
+  return new Session({ transport, store, metadata });
 }
 
 /**

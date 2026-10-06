@@ -150,13 +150,13 @@ func NewService(ctx context.Context, cfg *config.MCPServiceConfig, baseURL strin
 	// a second replica and a restart survivable: an authorization code issued by one
 	// replica is redeemed at whichever one serves /token, and a registered MCP client
 	// outlives a deploy.
+	signIn, err := NewAdminSignIn(dbClient, identityStore, authenticator, totpVerifier, pillars.Logger, pillars.TracerProvider)
+	if err != nil {
+		return nil, fmt.Errorf("building sign-in service: %w", err)
+	}
+
 	authServer, err := oauth2servercfg.NewServer(ctx, &cfg.OAuth2, dbClient,
-		&subjectAuthenticator{
-			directory:     identityStore,
-			db:            dbClient,
-			authenticator: authenticator,
-			totpVerifier:  totpVerifier,
-		},
+		&subjectAuthenticator{signIn: signIn},
 		oauth2servercfg.WithPillars(pillars),
 		// The store tier's config carries the server tier's option set through to it.
 		// The outer name says which package the options are handed to rather than

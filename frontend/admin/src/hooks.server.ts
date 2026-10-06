@@ -1,6 +1,6 @@
 import { redirect } from '@sveltejs/kit';
 import type { Handle, RequestEvent } from '@sveltejs/kit';
-import { sessionFor } from '$lib/auth/session';
+import { clientOf, sessionFor } from '$lib/auth/session';
 
 const LOGIN_PATH = '/login';
 
@@ -34,7 +34,7 @@ function toLogin(resolved: Response): Response {
 
 export const handle: Handle = async ({ event, resolve }) => {
   // Public pages get one too: signing in and signing out need it.
-  event.locals.session = sessionFor(event.cookies);
+  event.locals.session = sessionFor(event.cookies, clientOf(event));
 
   if (isPublicPath(event.url.pathname)) {
     return resolve(event);

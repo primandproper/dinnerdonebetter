@@ -1,6 +1,6 @@
 import { redirect } from '@sveltejs/kit';
 import type { Handle, RequestEvent } from '@sveltejs/kit';
-import { sessionFor } from '$lib/auth/session';
+import { clientOf, sessionFor } from '$lib/auth/session';
 import { initServerOtel } from '$lib/otel/server';
 import { recordRequest } from '$lib/otel/server-metrics';
 import { ServerTiming, ServerTimingHeaderName } from '$lib/server-timing';
@@ -57,7 +57,7 @@ export const handle: Handle = async ({ event, resolve }) => {
   const totalEvent = timing.addEvent('total', 'Total request time');
 
   // Public pages get one too: signing in, signing out and the passkey doors all need it.
-  event.locals.session = sessionFor(event.cookies);
+  event.locals.session = sessionFor(event.cookies, clientOf(event));
 
   if (isPublicPath(event.url.pathname)) {
     const response = await resolve(event);

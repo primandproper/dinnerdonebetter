@@ -1,10 +1,14 @@
 package integration
 
 import (
+	"fmt"
 	"net/http"
+	"strings"
 	"testing"
+	"time"
 
 	internalopssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/internalops"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/localdev"
 
 	"github.com/primandproper/platform-go/v15/authentication/signin"
 	"github.com/primandproper/platform-go/v15/authentication/signin/signinpb"
@@ -12,6 +16,7 @@ import (
 	webhookspb "github.com/primandproper/platform-go/v15/webhooks/webhookspb"
 	"github.com/primandproper/primitives-go/v2/pointer"
 
+	"github.com/pquerna/otp/totp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
@@ -62,6 +67,42 @@ func TestAdmin_BanningUsers(T *testing.T) {
 // token (an operator holding imitate.user, and nobody acting through one already), that the token
 // acts as the subject in the account it names, and that what it does is recorded as the
 // operator's. The token itself — its claims, its lifetime, its login — is platform's.
+// TestAdmin_OperatorGrantsRideOnlyOnTheAdministrativeDoor pins the claim that decides whether a
+// token carries an operator's grants: the administrative door sets it, and every other door does
+// not, whatever service roles the person holds.
+func TestAdmin_OperatorGrantsRideOnlyOnTheAdministrativeDoor(T *testing.T) {
+	T.Parallel()
+
+	T.Run("an operator signed in through the ordinary door is a person, not an operator", func(t *testing.T) {
+		t.Parallel()
+		ctx := t.Context()
+
+		code, err := totp.GenerateCode(strings.ToUpper(premadeAdminUser.TwoFactorSecret), time.Now().UTC())
+		require.NoError(t, err)
+
+		token, err := localdev.FetchLoginTokenForUser(ctx, fmt.Sprintf(":%d", apiServiceConfig.GRPCServer.Port), &signinpb.Credentials{
+			Username: premadeAdminUser.Username,
+			Password: adminUserPassword,
+			TotpCode: code,
+		})
+		require.NoError(t, err)
+
+		ordinary, err := buildAuthedGRPCClientWithBearerToken(token)
+		require.NoError(t, err)
+		t.Cleanup(func() { require.NoError(t, ordinary.Close()) })
+
+		user, _ := createUserAndClientForTest(t)
+
+		_, err = ordinary.ImpersonateUser(ctx, &internalopssvc.ImpersonateUserRequest{SubjectId: user.ID})
+		assert.Equal(t, codes.PermissionDenied, status.Code(err))
+
+		// The control: the same person through the administrative door.
+		res, err := adminClient.ImpersonateUser(ctx, &internalopssvc.ImpersonateUserRequest{SubjectId: user.ID})
+		require.NoError(t, err)
+		assert.NotEmpty(t, res.GetToken())
+	})
+}
+
 func TestAdmin_UserImpersonation(T *testing.T) {
 	T.Parallel()
 
@@ -116,6 +157,24 @@ func TestAdmin_UserImpersonation(T *testing.T) {
 		_, err := otherClient.ImpersonateUser(ctx, &internalopssvc.ImpersonateUserRequest{
 			SubjectId: user.ID,
 			AccountId: getAccountIDForTest(t, testClient),
+		})
+		assert.Equal(t, codes.PermissionDenied, status.Code(err))
+	})
+
+	T.Run("an impersonation carries the subject's grants and none of the operator's", func(t *testing.T) {
+		t.Parallel()
+		ctx := t.Context()
+
+		user, testClient := createUserAndClientForTest(t)
+		other, _ := createUserAndClientForTest(t)
+
+		impersonated := impersonationClientForTest(t, adminClient, user.ID, getAccountIDForTest(t, testClient))
+
+		// Banning somebody is an operator's, and the operator behind this token holds it.
+		_, err := impersonated.IdentityService().UpdateUserAccountStatus(ctx, &identitypb.UpdateUserAccountStatusRequest{
+			UserId:      other.ID,
+			Status:      identitypb.AccountStatus_ACCOUNT_STATUS_BANNED,
+			Explanation: t.Name(),
 		})
 		assert.Equal(t, codes.PermissionDenied, status.Code(err))
 	})

@@ -129,6 +129,7 @@ func TestWorkerWiring_Scheduler(T *testing.T) {
 		assert.ElementsMatch(t, []string{
 			ddbdataprivacy.CollectorKeyIdentity,
 			ddbdataprivacy.CollectorKeyMealPlanning,
+			ddbdataprivacy.CollectorKeySignInDevices,
 			ddbdataprivacy.CollectorKeySettings,
 			ddbdataprivacy.CollectorKeyNotificationsInbox,
 			ddbdataprivacy.CollectorKeyNotificationsDevices,

@@ -2,6 +2,7 @@
   import { enhance } from '$app/forms';
   import { PageContainer, Button, Alert, Link } from '@dinnerdonebetter/ui';
   import type { ActiveSignIn } from '@primandproper/platform-client/signin/v1';
+  import { describeDevice } from '$lib/signins/device';
 
   let { data } = $props();
   const signIns = $derived((data?.signIns ?? []) as ActiveSignIn[]);
@@ -64,6 +65,7 @@
     {#if signIns.length > 0}
       <div class="session-list">
         {#each signIns as signIn (signIn.familyId)}
+          {@const device = describeDevice(signIn.attributes)}
           <div class="session-card" class:session-current={signIn.current}>
             <div class="session-info">
               <div class="session-header">
@@ -74,6 +76,16 @@
                   <span class="current-badge">Current session</span>
                 {/if}
               </div>
+              {#if device.name || device.address}
+                <div class="session-details">
+                  {#if device.name}
+                    <span class="session-device-name">{device.name}</span>
+                  {/if}
+                  {#if device.address}
+                    <span class="session-address">{device.address}</span>
+                  {/if}
+                </div>
+              {/if}
               {#if signIn.actorId}
                 <div class="session-details">
                   <span>Opened by support staff signed in as you</span>

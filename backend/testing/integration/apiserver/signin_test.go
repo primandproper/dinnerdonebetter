@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/devices"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	mealplanningsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
 
@@ -195,6 +196,85 @@ func TestSignIn_ThisApplicationsRules(T *testing.T) {
 		})
 
 		assert.Equal(t, codes.InvalidArgument, status.Code(err))
+	})
+}
+
+// TestSignIn_AccountPasswordPolicy pins the half of the password rule that needs the account.
+func TestSignIn_AccountPasswordPolicy(T *testing.T) {
+	T.Parallel()
+
+	T.Run("a password change may not keep the password it is changing", func(t *testing.T) {
+		t.Parallel()
+		ctx := t.Context()
+
+		signIn := buildSignInClientForTest(t)
+		user := createServiceUserForTest(t, buildUserRegistrationInputForTest(t))
+		token, err := signIn.LoginForToken(ctx, &signinpb.LoginForTokenRequest{
+			Credentials: &signinpb.Credentials{
+				Username: user.Username,
+				Password: user.HashedPassword,
+				TotpCode: generateTOTPCodeForUserForTest(t, user),
+			},
+		})
+		require.NoError(t, err)
+
+		_, err = signIn.UpdatePassword(withBearerToken(ctx, token.GetToken().GetToken()), &signinpb.UpdatePasswordRequest{
+			CurrentPassword: user.HashedPassword,
+			NewPassword:     user.HashedPassword,
+			TotpCode:        generateTOTPCodeForUserForTest(t, user),
+		})
+
+		assert.Equal(t, codes.InvalidArgument, status.Code(err))
+		assert.Contains(t, status.Convert(err).Message(), "current password")
+	})
+}
+
+// TestSignIn_DevicesAreListedBesideTheirLogins pins "where you're signed in": the device a token
+// was issued to is recorded on the token's own transaction and answered as the login's attributes.
+func TestSignIn_DevicesAreListedBesideTheirLogins(T *testing.T) {
+	T.Parallel()
+
+	T.Run("a login lists the device it was signed in from", func(t *testing.T) {
+		t.Parallel()
+		ctx := t.Context()
+
+		signIn := buildSignInClientForTest(t)
+		user := createServiceUserForTest(t, buildUserRegistrationInputForTest(t))
+
+		address, userAgent, deviceName := "203.0.113.42", "integration-test/"+identifiers.New(), "test device "+identifiers.New()
+
+		// As a web app forwards the browser it is serving, and the iOS app names itself.
+		signingIn := metadata.AppendToOutgoingContext(ctx,
+			devices.ClientAddressMetadataKey, address,
+			devices.ClientUserAgentMetadataKey, userAgent,
+			devices.DeviceNameMetadataKey, deviceName,
+		)
+
+		token, err := signIn.LoginForToken(signingIn, &signinpb.LoginForTokenRequest{
+			Credentials: &signinpb.Credentials{
+				Username: user.Username,
+				Password: user.HashedPassword,
+				TotpCode: generateTOTPCodeForUserForTest(t, user),
+			},
+		})
+		require.NoError(t, err)
+
+		listed, err := signIn.ListSignIns(withBearerToken(ctx, token.GetToken().GetToken()), &signinpb.ListSignInsRequest{})
+		require.NoError(t, err)
+
+		var current *signinpb.ActiveSignIn
+		for _, candidate := range listed.GetSignIns() {
+			if candidate.GetCurrent() {
+				current = candidate
+			}
+		}
+		require.NotNil(t, current, "the login the listing was made through is listed")
+
+		assert.Equal(t, map[string]string{
+			devices.AttributeIPAddress:  address,
+			devices.AttributeUserAgent:  userAgent,
+			devices.AttributeDeviceName: deviceName,
+		}, current.GetAttributes())
 	})
 }
 

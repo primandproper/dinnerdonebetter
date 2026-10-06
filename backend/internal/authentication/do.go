@@ -1,6 +1,7 @@
 package authentication
 
 import (
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/devices"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
@@ -65,10 +66,14 @@ func RegisterAuth(i do.Injector) {
 		// The Recorder is the one recordingcfg.Register provides, which is what every other
 		// adopted store's hooks here are built over; events.Emitter is an adapter over it for
 		// the writes this application still describes itself.
-		hooks, err := signin.NewRecordingHooks(do.MustInvoke[*platformrecording.Recorder](i))
+		recordingHooks, err := signin.NewRecordingHooks(do.MustInvoke[*platformrecording.Recorder](i))
 		if err != nil {
 			return nil, err
 		}
+
+		// And where each token was issued to, on the same transaction — what "where you're
+		// signed in" shows beside each login. See internal/authentication/devices.
+		hooks := devices.NewHooks(recordingHooks, do.MustInvoke[devices.Store](i))
 
 		return signin.NewService(
 			do.MustInvoke[database.Client](i),
@@ -79,7 +84,9 @@ func RegisterAuth(i do.Injector) {
 			// the service requires a default of its own whatever a policy does.
 			[]string{authorization.AccountAdminRoleName},
 			signin.WithSecondFactorPolicy(signin.SecondFactorWhenEnrolled),
-			signin.WithAdminServiceRoles(authorization.ServiceAdminRoleName),
+			// Who the administrative door admits: every operator role, since a token from any
+			// other door carries none of them — see authorization.OrdinaryServiceRoles.
+			signin.WithAdminServiceRoles(authorization.AdministrativeServiceRoleNames()...),
 			signin.WithTOTPVerifier(do.MustInvoke[totp.Verifier](i)),
 			// The label an authenticator app shows beside the code, which has to match
 			// what the QR builder encodes or a re-enrollment renames the entry.
@@ -96,6 +103,9 @@ func RegisterAuth(i do.Injector) {
 			// service writes, so no door mounted from platform accepts a password this
 			// application refuses.
 			signin.WithPasswordPolicy(PasswordPolicy),
+			// And the half of it that needs the account: a change may not keep the password
+			// it is changing. Platform enforces nothing here by default.
+			signin.WithAccountPasswordPolicy(AccountPasswordPolicy),
 			// And the rest of this application's registration — standing, roles, the second
 			// factor, the agreements — applied to every registration SignInService.Register
 			// writes, which is open to anybody: this policy is what stands in front of it.
@@ -107,9 +117,9 @@ func RegisterAuth(i do.Injector) {
 			// The lifetimes are platform's defaults: an hour for an access token and thirty
 			// days for a sign-in, fifteen minutes and twelve hours for an administrative one.
 			// This application's own TokensConfig lifetimes are not reused — they are unset in
-			// every environment, which issues tokens with no lifetime at all, and an access
-			// token here is not checked against anything but its signature, so its lifetime
-			// is how long a sign-out takes to take effect.
+			// every environment, which issues tokens with no lifetime at all. A sign-out still
+			// takes effect at once rather than at the end of a lifetime: every request checks
+			// the login its token names through signin.Service.CheckSignIn.
 			signin.WithRefreshTokenStore(do.MustInvoke[*refreshtokens.SQLStore](i)),
 			// The two mails platform's own doors send — another verification link, and a
 			// reminder of somebody's username — go through this application's outbox and

@@ -39,6 +39,7 @@ func ProvideAPIRouter(
 	paymentsWebhookHandler *paymentswebhook.WebhookHandler,
 	healthRegistry healthcheck.Registry,
 	platformSurfaces *PlatformSurfaces,
+	authorizeThrottle routing.Middleware,
 ) (*routing.Router, error) {
 	encoder := encoding.NewServerEncoderDecoder(encoding.ContentTypeJSON, encoding.WithLogger(logger), encoding.WithTracerProvider(tracerProvider))
 
@@ -64,7 +65,15 @@ func ProvideAPIRouter(
 	// and is shown a login form. RFC 7591 registration is deliberately not routed.
 	router.Handle(http.MethodGet, oauth2server.PathAuthorizationServerMetadata, http.HandlerFunc(authService.AuthorizationServerMetadataHandler))
 	router.Handle(http.MethodGet, oauth2server.PathAuthorize, http.HandlerFunc(authService.AuthorizeHandler))
-	router.Handle(http.MethodPost, oauth2server.PathAuthorize, http.HandlerFunc(authService.AuthorizeHandler))
+	//
+	// The POST is throttled, because it is where the login form's password arrives — an anonymous
+	// door like the gRPC ones, and the only one on HTTP. A nil throttle is a router built in a
+	// test that is about the other routes.
+	var authorizeMiddleware []routing.Middleware
+	if authorizeThrottle != nil {
+		authorizeMiddleware = append(authorizeMiddleware, authorizeThrottle)
+	}
+	router.Handle(http.MethodPost, oauth2server.PathAuthorize, http.HandlerFunc(authService.AuthorizeHandler), authorizeMiddleware...)
 	router.Handle(http.MethodPost, oauth2server.PathToken, http.HandlerFunc(authService.TokenHandler))
 	router.Handle(http.MethodPost, oauth2server.PathRevoke, http.HandlerFunc(authService.RevokeHandler))
 

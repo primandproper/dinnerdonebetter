@@ -48,6 +48,7 @@ import (
 	tracingcfg "github.com/primandproper/primitives-go/v2/observability/tracing/config"
 	"github.com/primandproper/primitives-go/v2/observability/tracing/oteltrace"
 	"github.com/primandproper/primitives-go/v2/pointer"
+	ratelimitingcfg "github.com/primandproper/primitives-go/v2/ratelimiting/config"
 	"github.com/primandproper/primitives-go/v2/routing/backends/chi"
 	routingcfg "github.com/primandproper/primitives-go/v2/routing/config"
 	textsearchcfg "github.com/primandproper/primitives-go/v2/search/text/config"
@@ -344,7 +345,12 @@ func BuildLocalDevConfig() *config.APIServiceConfig {
 					// instead of being rewritten to the ten-minute default — platform-go#456.
 					SweepInterval: pointer.To(time.Duration(0)),
 				},
-				Debug:                 true,
+				Debug: true,
+				RateLimiting: ratelimitingcfg.Config{
+					Provider:       ratelimitingcfg.ProviderMemory,
+					RequestsPerSec: 10,
+					BurstSize:      50,
+				},
 				EnableUserSignup:      true,
 				MinimumUsernameLength: 3,
 				MinimumPasswordLength: 8,

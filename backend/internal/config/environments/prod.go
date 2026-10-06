@@ -50,6 +50,7 @@ import (
 	tracingcfg "github.com/primandproper/primitives-go/v2/observability/tracing/config"
 	"github.com/primandproper/primitives-go/v2/observability/tracing/oteltrace"
 	"github.com/primandproper/primitives-go/v2/pointer"
+	ratelimitingcfg "github.com/primandproper/primitives-go/v2/ratelimiting/config"
 	"github.com/primandproper/primitives-go/v2/routing/backends/chi"
 	routingcfg "github.com/primandproper/primitives-go/v2/routing/config"
 	"github.com/primandproper/primitives-go/v2/search/text/algolia"
@@ -356,6 +357,16 @@ func BuildProdConfig() *config.APIServiceConfig {
 					// made this a *time.Duration, so an explicit zero now means "no sweeper"
 					// instead of being rewritten to the ten-minute default — platform-go#456.
 					SweepInterval: pointer.To(time.Duration(0)),
+				},
+				// Per address, per door, per replica: memory rather than Redis because this
+				// deployment provisions no Redis yet, so a fleet of n replicas admits n times
+				// this. The address is the one Caddy stamps, which for a web app sign-in is the
+				// cluster's egress — every person signing in through the web app shares it — so
+				// the budget is sized for the site rather than for one browser.
+				RateLimiting: ratelimitingcfg.Config{
+					Provider:       ratelimitingcfg.ProviderMemory,
+					RequestsPerSec: 2,
+					BurstSize:      20,
 				},
 				Debug:                 false,
 				EnableUserSignup:      true,

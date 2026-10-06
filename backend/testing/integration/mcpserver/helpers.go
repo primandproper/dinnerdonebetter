@@ -201,12 +201,12 @@ func (i *instance) signIn(t *testing.T, clientID, totpToken string) *authorizati
 	form := i.get(t, i.address+oauth2server.PathAuthorize+"?"+query)
 	defer closeBody(t, form)
 	require.Equal(t, http.StatusOK, form.StatusCode)
-	require.Contains(t, readBody(t, form), `name="totp_token"`)
+	require.Contains(t, readBody(t, form), `name="`+oauth2server.FieldTOTPCode+`"`)
 
 	res := i.post(t, oauth2server.PathAuthorize+"?"+query, "application/x-www-form-urlencoded", url.Values{
-		"username":   {adminUser.Username},
-		"password":   {adminUserPassword},
-		"totp_token": {totpToken},
+		"username":                 {adminUser.Username},
+		"password":                 {adminUserPassword},
+		oauth2server.FieldTOTPCode: {totpToken},
 	}.Encode())
 	defer closeBody(t, res)
 

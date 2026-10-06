@@ -134,8 +134,11 @@ internal class ClientManager<Transport: GRPCCore.ClientTransport> {
       return options
     }()
   ) throws {
-    // Create a single GRPCClient instance
-    self.grpcTransportClient = GRPCCore.GRPCClient(transport: transport)
+    // Create a single GRPCClient instance. Every call it makes names this device, the
+    // Session's own sign-ins and refreshes among them, so the server can say where each login
+    // is held.
+    self.grpcTransportClient = GRPCCore.GRPCClient(
+      transport: transport, interceptors: [DeviceNameInterceptor.describingThisDevice()])
 
     // Create the unified client wrapper
     self.client = Client(grpcClient: grpcTransportClient)

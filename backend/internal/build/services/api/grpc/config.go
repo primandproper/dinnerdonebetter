@@ -28,6 +28,7 @@ import (
 	httpclientcfg "github.com/primandproper/primitives-go/v2/httpclient"
 	msgconfig "github.com/primandproper/primitives-go/v2/messagequeue/config"
 	"github.com/primandproper/primitives-go/v2/observability"
+	ratelimitingcfg "github.com/primandproper/primitives-go/v2/ratelimiting/config"
 	routingcfg "github.com/primandproper/primitives-go/v2/routing/config"
 	textsearchcfg "github.com/primandproper/primitives-go/v2/search/text/config"
 	"github.com/primandproper/primitives-go/v2/server/grpc"
@@ -142,6 +143,10 @@ func RegisterConfigs(i do.Injector) {
 	do.Provide[*oauth2servercfg.Config](i, func(i do.Injector) (*oauth2servercfg.Config, error) {
 		cfg := do.MustInvoke[*authentication.Config](i)
 		return &cfg.OAuth2, nil
+	})
+	do.Provide[*ratelimitingcfg.Config](i, func(i do.Injector) (*ratelimitingcfg.Config, error) {
+		cfg := do.MustInvoke[*authentication.Config](i)
+		return &cfg.RateLimiting, nil
 	})
 
 	// From ServicesConfig

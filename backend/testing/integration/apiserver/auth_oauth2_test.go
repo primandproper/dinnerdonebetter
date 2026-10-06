@@ -9,10 +9,12 @@ import (
 	"strings"
 	"testing"
 
+	internalopssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/internalops"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/localdev"
 
 	"github.com/primandproper/platform-go/v15/authentication/signin/signinpb"
 	identity "github.com/primandproper/platform-go/v15/identity"
+	"github.com/primandproper/platform-go/v15/identity/identitypb"
 	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
 
 	"github.com/stretchr/testify/assert"
@@ -101,6 +103,27 @@ func authorizeForTest(t *testing.T, jwt string, query url.Values) (*http.Respons
 	return res, location
 }
 
+// getAuthorizeForTest drives GET /authorize, with a session token when jwt is not empty.
+func getAuthorizeForTest(t *testing.T, jwt string, query url.Values) *http.Response {
+	t.Helper()
+
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, httpTestServerAddress+oauth2AuthorizePath+"?"+query.Encode(), http.NoBody)
+	require.NoError(t, err)
+
+	if jwt != "" {
+		req.Header.Set("Authorization", "Bearer "+jwt)
+	}
+
+	httpClient, err := localdev.NewNonRedirectingHTTPClient()
+	require.NoError(t, err)
+
+	res, err := httpClient.Do(req)
+	require.NoError(t, err)
+	t.Cleanup(func() { assert.NoError(t, res.Body.Close()) })
+
+	return res
+}
+
 // authorizeQueryForTest builds the query for an authorization request that would succeed, so a
 // caller can vary exactly the one parameter it is testing.
 func authorizeQueryForTest(state, codeChallenge, codeChallengeMethod string) url.Values {
@@ -109,6 +132,9 @@ func authorizeQueryForTest(state, codeChallenge, codeChallengeMethod string) url
 	query.Set("client_id", createdClientID)
 	query.Set("redirect_uri", oauth2RedirectURIForTest())
 	query.Set("state", state)
+	// The API server refuses an access token that names no resource, so every request the suite
+	// expects to spend a token from names this one.
+	query.Set("resource", oauth2ResourceForTest())
 
 	if codeChallenge != "" {
 		query.Set("code_challenge", codeChallenge)
@@ -155,6 +181,7 @@ func exchangeCodeFormForTest(code, verifier string) url.Values {
 	form.Set("client_secret", createdClientSecret)
 	form.Set("redirect_uri", oauth2RedirectURIForTest())
 	form.Set("code", code)
+	form.Set("resource", oauth2ResourceForTest())
 
 	if verifier != "" {
 		form.Set("code_verifier", verifier)
@@ -433,29 +460,30 @@ func TestAuth_OAuth2AuthorizationCodeFlow(T *testing.T) {
 		assert.Contains(t, res.Header.Get("Content-Type"), "text/html")
 	})
 
-	T.Run("GET on the authorize endpoint renders the login form rather than a code", func(t *testing.T) {
+	T.Run("GET on the authorize endpoint renders the login form to a visitor", func(t *testing.T) {
+		t.Parallel()
+
+		verifier := oauth2.GenerateVerifier()
+		res := getAuthorizeForTest(t, "", authorizeQueryForTest(t.Name(), oauth2.S256ChallengeFromVerifier(verifier), codeChallengeMethodS256))
+
+		assert.Equal(t, http.StatusOK, res.StatusCode)
+		assert.Contains(t, res.Header.Get("Content-Type"), "text/html")
+	})
+
+	T.Run("GET on the authorize endpoint issues a live session a code without a form", func(t *testing.T) {
 		t.Parallel()
 
 		_, jwt := createUserAndJWTForTest(t)
 
+		// The session resolver is consulted on GET and POST alike, which is platform's seam for
+		// a request that already carries proof: somebody signed in has nothing to type.
 		verifier := oauth2.GenerateVerifier()
-		query := authorizeQueryForTest(t.Name(), oauth2.S256ChallengeFromVerifier(verifier), codeChallengeMethodS256)
+		res := getAuthorizeForTest(t, jwt, authorizeQueryForTest(t.Name(), oauth2.S256ChallengeFromVerifier(verifier), codeChallengeMethodS256))
 
-		req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, httpTestServerAddress+oauth2AuthorizePath+"?"+query.Encode(), http.NoBody)
+		require.Equal(t, http.StatusFound, res.StatusCode)
+		location, err := res.Location()
 		require.NoError(t, err)
-		req.Header.Set("Authorization", "Bearer "+jwt)
-
-		httpClient, err := localdev.NewNonRedirectingHTTPClient()
-		require.NoError(t, err)
-
-		res, err := httpClient.Do(req)
-		require.NoError(t, err)
-		t.Cleanup(func() { assert.NoError(t, res.Body.Close()) })
-
-		// A GET is a browser asking to sign in, and no credential in a header changes that. This
-		// is the property every first-party client had to be changed for.
-		assert.Equal(t, http.StatusOK, res.StatusCode)
-		assert.Contains(t, res.Header.Get("Content-Type"), "text/html")
+		assert.NotEmpty(t, location.Query().Get("code"))
 	})
 
 	T.Run("GET on the token endpoint returns no token", func(t *testing.T) {
@@ -838,6 +866,7 @@ func TestAuth_OAuth2Revocation(T *testing.T) {
 			fmt.Sprintf(":%d", apiServiceConfig.GRPCServer.Port),
 			createdClientID,
 			createdClientSecret,
+			oauth2ResourceForTest(),
 			credentials,
 		)
 		require.NoError(t, err)
@@ -871,5 +900,79 @@ func TestAuth_OAuth2Revocation(T *testing.T) {
 		// Token should be invalid after revocation
 		_, err = clientWithToken.GetAuthStatus(ctx, &signinpb.GetAuthStatusRequest{})
 		assert.Error(t, err, "API calls with revoked token should fail")
+	})
+}
+
+// TestAuth_OAuth2AuthorizeRefusesSessionsThatNoLongerStand pins the session half of /authorize: a
+// bearer token reaches a code only on the terms it would reach any other API call. The
+// authenticator this replaced checked the token's signature and nothing more, so every one of
+// these got a code — and with it a credential outliving the session by weeks.
+//
+// A session that has ended or an impersonation is refused by being sent to the form, which a POST
+// with no credentials answers 401. A banned user is refused before that, 403, by the session
+// middleware every HTTP route sits behind.
+func TestAuth_OAuth2AuthorizeRefusesSessionsThatNoLongerStand(T *testing.T) {
+	T.Parallel()
+
+	refused := func(t *testing.T, jwt string, expectedStatus int) {
+		t.Helper()
+
+		verifier := oauth2.GenerateVerifier()
+		res, location := authorizeForTest(t, jwt, authorizeQueryForTest(t.Name(), oauth2.S256ChallengeFromVerifier(verifier), codeChallengeMethodS256))
+
+		assert.Equal(t, expectedStatus, res.StatusCode)
+		if location != nil {
+			assert.Empty(t, location.Query().Get("code"))
+		}
+	}
+
+	T.Run("the control: a live session gets a code", func(t *testing.T) {
+		t.Parallel()
+
+		_, jwt := createUserAndJWTForTest(t)
+
+		code, _ := fetchAuthorizationCodeForTest(t, jwt)
+		assert.NotEmpty(t, code)
+	})
+
+	T.Run("a signed-out session", func(t *testing.T) {
+		t.Parallel()
+
+		signIn := buildSignInClientForTest(t)
+		token, _ := signInForTest(t, signIn)
+
+		_, err := signIn.SignOut(t.Context(), &signinpb.SignOutRequest{RefreshToken: token.GetRefreshToken()})
+		require.NoError(t, err)
+
+		refused(t, token.GetToken(), http.StatusUnauthorized)
+	})
+
+	T.Run("a banned user", func(t *testing.T) {
+		t.Parallel()
+
+		user, jwt := createUserAndJWTForTest(t)
+
+		_, err := adminClient.IdentityService().UpdateUserAccountStatus(t.Context(), &identitypb.UpdateUserAccountStatusRequest{
+			UserId:      user.ID,
+			Status:      identitypb.AccountStatus_ACCOUNT_STATUS_BANNED,
+			Explanation: t.Name(),
+		})
+		require.NoError(t, err)
+
+		refused(t, jwt, http.StatusForbidden)
+	})
+
+	T.Run("an impersonation token", func(t *testing.T) {
+		t.Parallel()
+
+		user, testClient := createUserAndClientForTest(t)
+
+		res, err := adminClient.ImpersonateUser(t.Context(), &internalopssvc.ImpersonateUserRequest{
+			SubjectId: user.ID,
+			AccountId: getAccountIDForTest(t, testClient),
+		})
+		require.NoError(t, err)
+
+		refused(t, res.GetToken(), http.StatusUnauthorized)
 	})
 }

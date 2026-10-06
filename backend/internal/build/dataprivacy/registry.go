@@ -20,6 +20,7 @@ package dataprivacy
 import (
 	"context"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/devices"
 	ddbdataprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
 	identityprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/privacy"
 	issuereportsprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports/privacy"
@@ -225,6 +226,9 @@ func buildRegistry(i do.Injector) (*platformdataprivacy.Registry, error) {
 	collectors := map[string]platformdataprivacy.Collector{
 		ddbdataprivacy.CollectorKeyMealPlanning: mealplanningprivacy.NewCollector(
 			do.MustInvoke[mealplanning.Repository](i), resolveAccounts, logger, tracerProvider),
+		// Where each login came from. No eraser beside it: the rows carry a foreign key to the
+		// user, so the identity eraser takes them.
+		ddbdataprivacy.CollectorKeySignInDevices: devices.NewCollector(do.MustInvoke[devices.Store](i)),
 	}
 
 	for key, collector := range collectors {

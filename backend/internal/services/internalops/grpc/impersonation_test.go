@@ -5,11 +5,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	internalopssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/internalops"
 
 	"github.com/primandproper/platform-go/v15/authentication/signin"
 	platformidentity "github.com/primandproper/platform-go/v15/identity"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/identifiers"
 	msgconfig "github.com/primandproper/primitives-go/v2/messagequeue/config"
 	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
@@ -119,5 +121,19 @@ func TestServiceImpl_ImpersonateUser(T *testing.T) {
 			SubjectId: identifiers.New(),
 		})
 		require.Error(t, err)
+		assert.Equal(t, codes.PermissionDenied, status.Code(err))
+	})
+
+	T.Run("answers the impersonation policy's refusal as PermissionDenied", func(t *testing.T) {
+		t.Parallel()
+
+		// As signin hands it back: the policy's error wrapped.
+		impersonator := &fakeImpersonator{err: platformerrors.Wrap(authentication.ErrImpersonationNotPermitted, "the impersonation policy refused")}
+
+		_, err := buildImpersonationService(impersonator).ImpersonateUser(asCaller(t.Context(), identifiers.New(), ""), &internalopssvc.ImpersonateUserRequest{
+			SubjectId: identifiers.New(),
+		})
+		require.Error(t, err)
+		assert.Equal(t, codes.PermissionDenied, status.Code(err))
 	})
 }

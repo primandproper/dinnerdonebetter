@@ -48,6 +48,11 @@ func (authSessionIdentityGRPCMapper) Map(err error) (code codes.Code, ok bool) {
 		return codes.InvalidArgument, true
 	case errors.Is(err, sessions.ErrAuthenticationNotFound):
 		return codes.Unauthenticated, true
+	// This application's impersonation policy refusing an operator, which signin wraps and
+	// hands back. It is the operator's grants that are missing, not anything wrong with the
+	// server, and signin's own mapper does not know a consumer's sentinel.
+	case errors.Is(err, authentication.ErrImpersonationNotPermitted):
+		return codes.PermissionDenied, true
 	default:
 		return codes.Unknown, false
 	}

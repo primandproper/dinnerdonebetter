@@ -189,7 +189,16 @@ func buildRouter(ctx context.Context, mcpHandler http.Handler, authServer *oauth
 	// Wrap the MCP handler with bearer token auth middleware. The MCP transport
 	// serves multiple methods (GET for streaming, POST for messages, DELETE to
 	// terminate a session), so register the handler for each.
-	authMiddleware := auth.RequireBearerToken(newTokenVerifier(authServer, baseURL), &auth.RequireBearerTokenOptions{
+	verifier, err := oauth2server.NewVerifier(resourceMetadata, authServer,
+		oauth2server.WithVerifierLogger(pillars.Logger),
+		oauth2server.WithVerifierTracerProvider(pillars.TracerProvider),
+		oauth2server.WithVerifierMetricsProvider(pillars.MetricsProvider),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	authMiddleware := auth.RequireBearerToken(newTokenVerifier(verifier), &auth.RequireBearerTokenOptions{
 		ResourceMetadataURL: baseURL + oauth2server.PathProtectedResourceMetadata,
 	})
 	mcpWrapped := authMiddleware(mcpHandler)

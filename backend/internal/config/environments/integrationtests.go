@@ -37,6 +37,7 @@ import (
 	loggingcfg "github.com/primandproper/primitives-go/v2/observability/logging/config"
 	tracingcfg "github.com/primandproper/primitives-go/v2/observability/tracing/config"
 	"github.com/primandproper/primitives-go/v2/pointer"
+	ratelimitingcfg "github.com/primandproper/primitives-go/v2/ratelimiting/config"
 	"github.com/primandproper/primitives-go/v2/routing/backends/chi"
 	routingcfg "github.com/primandproper/primitives-go/v2/routing/config"
 	textsearchcfg "github.com/primandproper/primitives-go/v2/search/text/config"
@@ -236,6 +237,13 @@ func BuildIntegrationTestsConfig() *config.APIServiceConfig {
 					// made this a *time.Duration, so an explicit zero now means "no sweeper"
 					// instead of being rewritten to the ten-minute default — platform-go#456.
 					SweepInterval: pointer.To(time.Duration(0)),
+				},
+				// Generous, because the suite signs in hundreds of users from one address as
+				// fast as it can. The throttle itself is covered by its unit tests.
+				RateLimiting: ratelimitingcfg.Config{
+					Provider:       ratelimitingcfg.ProviderMemory,
+					RequestsPerSec: 10000,
+					BurstSize:      10000,
 				},
 				Debug:                 false,
 				EnableUserSignup:      true,
