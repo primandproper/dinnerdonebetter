@@ -50,6 +50,7 @@ import (
 	platformwaitlists "github.com/primandproper/platform-go/v15/waitlists"
 	waitlistsgrpc "github.com/primandproper/platform-go/v15/waitlists/grpc"
 	"github.com/primandproper/platform-go/v15/waitlists/waitlistspb"
+	platformauthz "github.com/primandproper/primitives-go/v2/authorization"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/metrics"
@@ -60,7 +61,13 @@ import (
 )
 
 // ownSignupOrAdmin is this deployment's withdrawal rule: the person who joined
-// may leave, and so may a service administrator.
+// may leave, and an operator holding WithdrawAnyWaitlistSignupsPermission may
+// take them off.
+//
+// Both operator halves read a permission off the caller's grants rather than
+// the name of their role, which is what waitlists/grpc's SignupAuthorizer
+// documentation asks for — and what keeps the next role that should answer a
+// support request a line in the role grid rather than a change here.
 //
 // A nil caller is an anonymous request naming a signup by its id, and it is
 // refused. The way off a list for somebody who is not signed in is the
@@ -68,7 +75,13 @@ import (
 // without asking this authorizer at all — the link is the authorization. An id
 // is not: it is not a secret, and a withdrawal by id alone would let anybody who
 // had seen one take its owner off a list.
-func ownSignupOrAdmin(store platformwaitlists.SignupStore, db database.Client) waitlistsgrpc.SignupAuthorizer {
+func ownSignupOrAdmin(store platformwaitlists.SignupStore, db database.Client, grants platformauthz.GrantsExtractor) waitlistsgrpc.SignupAuthorizer {
+	holds := func(ctx context.Context, permission authorization.Permission) bool {
+		held, ok := grants(ctx)
+
+		return ok && held.Has(permission)
+	}
+
 	return waitlistsgrpc.SignupAuthorizerFuncs{
 		Withdrawal: func(ctx context.Context, caller callers.Principal, scope tenancy.Scope, listID, signupID string) error {
 			if caller == nil {
@@ -87,7 +100,7 @@ func ownSignupOrAdmin(store platformwaitlists.SignupStore, db database.Client) w
 				return nil
 			}
 
-			if data := sessions.FromContext(ctx); data.GetServicePermissions().IsServiceAdmin() {
+			if holds(ctx, authorization.WithdrawAnyWaitlistSignupsPermission) {
 				return nil
 			}
 
@@ -104,10 +117,10 @@ func ownSignupOrAdmin(store platformwaitlists.SignupStore, db database.Client) w
 		// subject nobody has signed up and one belonging to somebody else are the
 		// same answer.
 		//
-		// A service admin is permitted because the four signup reads are already
-		// theirs; this is the fourth, reached under a narrower grant, and refusing
-		// them here would make the split subtract from the role it was carved out
-		// of.
+		// A holder of ReadWaitlistSignupsPermission is permitted because the
+		// four signup reads are already theirs under that grant; this is the
+		// fourth, reached under a narrower one, and refusing them here would make
+		// the split subtract from the grant it was carved out of.
 		SubjectRead: func(ctx context.Context, caller callers.Principal, _ tenancy.Scope, subject platformwaitlists.Subject) error {
 			if caller == nil {
 				return callers.ErrTargetNotPermitted
@@ -117,7 +130,7 @@ func ownSignupOrAdmin(store platformwaitlists.SignupStore, db database.Client) w
 				return nil
 			}
 
-			if data := sessions.FromContext(ctx); data.GetServicePermissions().IsServiceAdmin() {
+			if holds(ctx, authorization.ReadWaitlistSignupsPermission) {
 				return nil
 			}
 
@@ -169,7 +182,7 @@ func RegisterWaitlistsService(i do.Injector) {
 			store,
 			db,
 			sessions.PrincipalFromContext,
-			ownSignupOrAdmin(store, db),
+			ownSignupOrAdmin(store, db, sessions.GrantsFromContext),
 			waitlistsgrpc.WithConfirmation(do.MustInvoke[*links.Minter](i), mailer),
 			waitlistsgrpc.WithGrantsExtractor(sessions.GrantsFromContext),
 			waitlistsgrpc.WithLogger(do.MustInvoke[logging.Logger](i)),
@@ -190,12 +203,17 @@ func PublicMethods() []string {
 	return waitlistsgrpc.PublicMethods()
 }
 
-// Permissions is platform's map, the signup page declared public, and one read re-declared.
+// Permissions is platform's fragment as this application's table spells it: platform's map, and
+// the signup page declared public.
 //
 // Declaring the public five is not optional. The interceptor is fail-closed, so a method named
 // nowhere is denied: taking platform's map alone would leave the signup page refusing
 // everybody. An empty slice is how this application's table says "no permission", and the
-// authorization enforcer reads it as public.
+// authorization enforcer reads it as public — which is what platform's own Require declares
+// them as.
+//
+// It is the fragment unamended. What this deployment changes about it is PermissionOverrides,
+// which the enforcer applies through RequirementsBuilder.Override rather than by editing a copy.
 func Permissions() map[string][]authorization.Permission {
 	out := waitlistsgrpc.Permissions()
 
@@ -203,20 +221,25 @@ func Permissions() map[string][]authorization.Permission {
 		out[method] = []authorization.Permission{}
 	}
 
-	// And one of platform's fourteen is re-declared under a narrower grant than
-	// the one platform assigns it.
-	//
-	// platform puts four signup reads behind PermissionReadSignups and says in
-	// as many words that it is the grant to think hardest about, because
-	// GetSignupByContact turns it into an oracle over every address in the
-	// deployment. That grant is a service admin's here. But the fourth read is a
-	// member asking about themselves, and holding it hostage to the other three
-	// is what the SubjectRead authorizer above exists to undo: the grant says
-	// this caller may make this kind of call, and the authorizer says whose
-	// signups these are.
-	out[waitlistspb.WaitlistsService_ListSignupsForSubject_FullMethodName] = []authorization.Permission{
-		authorization.ReadOwnWaitlistSignupsPermission,
-	}
-
 	return out
+}
+
+// PermissionOverrides is the one of platform's fourteen this deployment re-declares, under a
+// narrower grant than the one platform assigns it.
+//
+// platform puts four signup reads behind PermissionReadSignups and says in as many words that
+// it is the grant to think hardest about, because GetSignupByContact turns it into an oracle
+// over every address in the deployment. That grant is a service admin's here. But the fourth
+// read is a member asking about themselves, and holding it hostage to the other three is what
+// the SubjectRead authorizer above exists to undo: the grant says this caller may make this
+// kind of call, and the authorizer says whose signups these are.
+//
+// An override of a method platform stops declaring fails the requirements build rather than
+// quietly declaring it, which is the reason this is an override and not an entry in Permissions.
+func PermissionOverrides() map[string][]authorization.Permission {
+	return map[string][]authorization.Permission{
+		waitlistspb.WaitlistsService_ListSignupsForSubject_FullMethodName: {
+			authorization.ReadOwnWaitlistSignupsPermission,
+		},
+	}
 }

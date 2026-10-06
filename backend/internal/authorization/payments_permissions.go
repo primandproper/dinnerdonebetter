@@ -65,3 +65,19 @@ const (
 // ListTransactionsForAccount, and a payment history is a page of transactions,
 // so the grant is the same one.
 const ReadPaymentHistoryPermission = billinggrpc.PermissionReadTransactions
+
+// ReadAnyBillingAccountPermission lets its holder past the account rule on the
+// billing surface: reading a subscription, purchase or transaction, or paging an
+// account's, when the account is not the one the caller has active.
+//
+// It is not a method's grant. The method grants above say a caller may make a
+// kind of read; whose ledger they may make it against is the AccountAuthorizer's
+// question, asked inside the handler, and this is the permission that authorizer
+// reads for the operator's answer. It replaces a check of the caller's role,
+// which made the next role that should read ledgers a code change rather than a
+// line in the role grid.
+//
+// platform declares none, because it ships no rule for one to bypass — see
+// billing/grpc's AccountAuthorizer — so the name is this application's. It is the
+// one platform's documentation suggests.
+const ReadAnyBillingAccountPermission Permission = "billing.accounts.read_any"

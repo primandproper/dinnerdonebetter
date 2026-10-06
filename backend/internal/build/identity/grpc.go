@@ -77,6 +77,13 @@ func RegisterIdentityService(i do.Injector) {
 			// The same grants decide whether a page honors include_archived.
 			identitygrpc.WithGrantsExtractor(sessions.GrantsFromContext),
 			identitygrpc.WithOperatorRecorder(do.MustInvoke[platformaudit.Recorder](i)),
+			// Named rather than left to platform's defaults, though today they are the same two
+			// strings. The operator grants are the ones IdentityOperatorPermissions gives a
+			// service admin, and naming them here is what keeps the permission the role grid
+			// grants and the one this server checks a single declaration: a rename upstream, or
+			// one here, moves both rather than leaving every operator refused by a server
+			// reading a name nobody holds.
+			identitygrpc.WithOperatorPermission(authorization.PermissionOperatorRead, authorization.PermissionOperatorAct),
 			// GetPrincipal answers what the caller may do in the account it resolved, off the
 			// same policy the session's grants are resolved from, so a client can shape its
 			// screens without guessing at roles.
@@ -106,58 +113,68 @@ func RegisterIdentityService(i do.Injector) {
 	})
 }
 
-// Permissions is platform's map, plus the eight RPCs it deliberately leaves out.
+// Permissions is platform's fragment as this application's table spells it: platform's map, and
+// the eight RPCs it deliberately leaves out of it declared public, which is what platform's own
+// Require declares them as.
 //
-// platform gates every RPC whose subject is somebody else and declines to gate the ones
-// whose subject is the caller — a grant on the method cannot say "only about yourself", so
-// it leaves that decision here rather than inventing a permission that would be a lie.
+// platform gates every RPC whose subject is somebody else and declines to gate the ones whose
+// subject is the caller — a grant on the method cannot say "only about yourself", so it leaves
+// that decision to the consumer rather than inventing a permission that would be a lie. An
+// empty slice is how this application's table says "no permission", and the authorization
+// enforcer reads it as public.
 //
-// This application's interceptor refuses a method it has no entry for, so leaving the map
-// unamended made those eight unreachable rather than public: every user was locked out of
-// editing their own name, accepting the terms, answering an invitation and choosing which
-// account they land in. They are declared below, granted to an account member, which is
-// everybody — registration mints an account. See internal/authorization for the grants and
-// waitlists' build package for the same arrangement.
-//
-// The registration path is not here at all: signing up happens on the auth surface, which
-// is where a caller with no session can reach it.
-//
-// The eight are identitygrpc.SelfServiceMethods(), and grpc_test.go asserts that this map
-// amends exactly that set — a ninth arriving in a later platform version is a failing test
-// here rather than a method the enforcer quietly refuses.
-//
-// platform's own suggestion is to declare them Public, which this application could also
-// do: its requirements builder reads an empty permission slice as Public, and roughly forty
-// methods already go through that path. Naming them instead is the arrangement waitlists
-// took for Join and Withdraw, and it keeps the policy tables answering "what may a member
-// do" in one place rather than two.
+// It is the fragment unamended. What this deployment changes about it is PermissionOverrides.
 func Permissions() map[string][]authorization.Permission {
 	out := identitygrpc.Permissions()
 
-	out[identitypb.IdentityService_UpdateProfile_FullMethodName] = []authorization.Permission{
-		authorization.UpdateOwnProfilePermission,
-	}
-	out[identitypb.IdentityService_RecordAgreement_FullMethodName] = []authorization.Permission{
-		authorization.RecordOwnAgreementPermission,
-	}
-	out[identitypb.IdentityService_GetPrincipal_FullMethodName] = []authorization.Permission{
-		authorization.ReadOwnPrincipalPermission,
-	}
-	out[identitypb.IdentityService_SetDefaultAccount_FullMethodName] = []authorization.Permission{
-		authorization.SetOwnDefaultAccountPermission,
-	}
-	out[identitypb.IdentityService_AcceptInvitation_FullMethodName] = []authorization.Permission{
-		authorization.AnswerOwnInvitationsPermission,
-	}
-	out[identitypb.IdentityService_RejectInvitation_FullMethodName] = []authorization.Permission{
-		authorization.AnswerOwnInvitationsPermission,
-	}
-	out[identitypb.IdentityService_ListInvitationsFromUser_FullMethodName] = []authorization.Permission{
-		authorization.ReadOwnInvitationsPermission,
-	}
-	out[identitypb.IdentityService_ListInvitationsForEmailAddress_FullMethodName] = []authorization.Permission{
-		authorization.ReadOwnInvitationsPermission,
+	for _, method := range identitygrpc.SelfServiceMethods() {
+		out[method] = []authorization.Permission{}
 	}
 
 	return out
+}
+
+// PermissionOverrides gates the eight self-service RPCs behind grants of this application's own,
+// where platform's fragment leaves them public.
+//
+// They are granted to an account member, which is everybody — registration mints an account.
+// See internal/authorization for the grants and waitlists' build package for the same
+// arrangement. The registration path is not here at all: signing up happens on the auth
+// surface, which is where a caller with no session can reach it.
+//
+// platform's own suggestion is to leave them Public, which this application could also do.
+// Naming them instead is the arrangement waitlists took for ListSignupsForSubject, and it keeps
+// the policy tables answering "what may a member do" in one place rather than two.
+//
+// The eight are identitygrpc.SelfServiceMethods(), and grpc_test.go asserts that this map
+// overrides exactly that set. They go through RequirementsBuilder.Override rather than into
+// Permissions, so a method platform stops declaring fails the requirements build instead of
+// being quietly declared here under a name nothing serves.
+func PermissionOverrides() map[string][]authorization.Permission {
+	return map[string][]authorization.Permission{
+		identitypb.IdentityService_UpdateProfile_FullMethodName: {
+			authorization.UpdateOwnProfilePermission,
+		},
+		identitypb.IdentityService_RecordAgreement_FullMethodName: {
+			authorization.RecordOwnAgreementPermission,
+		},
+		identitypb.IdentityService_GetPrincipal_FullMethodName: {
+			authorization.ReadOwnPrincipalPermission,
+		},
+		identitypb.IdentityService_SetDefaultAccount_FullMethodName: {
+			authorization.SetOwnDefaultAccountPermission,
+		},
+		identitypb.IdentityService_AcceptInvitation_FullMethodName: {
+			authorization.AnswerOwnInvitationsPermission,
+		},
+		identitypb.IdentityService_RejectInvitation_FullMethodName: {
+			authorization.AnswerOwnInvitationsPermission,
+		},
+		identitypb.IdentityService_ListInvitationsFromUser_FullMethodName: {
+			authorization.ReadOwnInvitationsPermission,
+		},
+		identitypb.IdentityService_ListInvitationsForEmailAddress_FullMethodName: {
+			authorization.ReadOwnInvitationsPermission,
+		},
+	}
 }
