@@ -10,7 +10,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/grocerylistpreparation"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/recipeanalysis"
-	notificationsmanager "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/manager"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/push"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
@@ -21,6 +20,7 @@ import (
 	internalopsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/internalops"
 	issuereportsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/issuereports"
 	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
+	notificationsstore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/notificationsstore"
 	oauth2clientsstore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/oauth2clientsstore"
 	paymentsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/payments"
 	settingsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/settings"
@@ -34,7 +34,7 @@ import (
 	mealplanfinalization "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_finalization"
 	mealplantasknotifications "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_task_notifications"
 
-	operationscfg "github.com/primandproper/platform-go/v14/operations/config"
+	operationscfg "github.com/primandproper/platform-go/v15/operations/config"
 	"github.com/primandproper/primitives-go/v2/database"
 	databasecfg "github.com/primandproper/primitives-go/v2/database/config"
 	"github.com/primandproper/primitives-go/v2/database/postgres"
@@ -92,6 +92,10 @@ func BuildInjector(
 	// process that claims has to be able to answer. It is paid once at startup — the pools and
 	// the tracer are constructed here regardless — rather than per request.
 	auditlogentries.RegisterAuditLogRepository(i)
+	auditlogentries.RegisterPlatformReader(i)
+	// And the recorder, which the recording spine registered below files every write's
+	// entry through.
+	auditlogentries.RegisterPlatformRecorder(i)
 	// No existence checks on the catalog: this process reads and erases comments
 	// but never writes one, and the catalog gates writes rather than reads.
 	commentstargets.RegisterReadOnlyTargets(i)
@@ -112,12 +116,11 @@ func BuildInjector(
 	// plan finalizer emits events like any request does.
 	webhooksstore.RegisterWebhooksStore(i)
 
-	// The notifications manager and the push fan-out over it. The manager registers the
-	// notifications repository on its own, which is why that one is absent from the list
-	// above. The fan-out is the part of mobile notifications that has nothing to do with why
-	// one is owed: device tokens in, pushes out, dead tokens retired — and the async message
-	// handler builds the same one.
-	notificationsmanager.RegisterNotificationsDataManager(i)
+	// The notifications store and the push fan-out over its device registry. The fan-out is
+	// the part of mobile notifications that has nothing to do with why one is owed: device
+	// tokens in, pushes out, dead tokens retired — and the async message handler builds the
+	// same one.
+	notificationsstore.RegisterNotificationsStore(i)
 	push.RegisterFanout(i)
 
 	// The two credential stores the privacy registry collects from and nothing else in

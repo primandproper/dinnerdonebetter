@@ -3,9 +3,9 @@ package comments
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 
-	platformcomments "github.com/primandproper/platform-go/v14/comments"
-	"github.com/primandproper/platform-go/v14/comments/commentspb"
-	commentsgrpc "github.com/primandproper/platform-go/v14/comments/grpc"
+	platformcomments "github.com/primandproper/platform-go/v15/comments"
+	"github.com/primandproper/platform-go/v15/comments/commentspb"
+	commentsgrpc "github.com/primandproper/platform-go/v15/comments/grpc"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/metrics"

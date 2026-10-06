@@ -49,6 +49,9 @@ func BuildInjector(ctx context.Context, cfg *config.MCPServiceConfig) *do.RootSc
 
 	// repositories
 	auditrepo.RegisterAuditLogRepository(i)
+	// The platform recorder behind it, which the recording spine registered below files
+	// every write's entry through.
+	auditrepo.RegisterPlatformRecorder(i)
 	// What a role grants, read from the policy tables the migrator seeds. The
 	// identity repository resolves a principal's role names through it when it
 	// builds a session.

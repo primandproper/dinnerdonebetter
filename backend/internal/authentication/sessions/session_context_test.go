@@ -7,6 +7,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 
 	"github.com/primandproper/primitives-go/v2/identifiers"
+	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -127,5 +128,53 @@ func TestContextData_gettersAreNilSafe(T *testing.T) {
 
 		require.NotNil(t, x.GetServicePermissions())
 		assert.False(t, x.GetServicePermissions().IsServiceAdmin())
+	})
+}
+
+func TestSessionContextData_AttachToLogger(T *testing.T) {
+	T.Parallel()
+
+	T.Run("standard", func(t *testing.T) {
+		t.Parallel()
+
+		x := &ContextData{
+			Requester: RequesterInfo{ServicePermissions: authorization.NewServiceRolePermissionChecker([]string{t.Name()}, nil)},
+		}
+
+		assert.NotNil(t, x.AttachToLogger(loggingnoop.NewLogger()))
+	})
+}
+
+func TestSessionContextData_AccountRolePermissionsChecker(T *testing.T) {
+	T.Parallel()
+
+	T.Run("standard", func(t *testing.T) {
+		t.Parallel()
+
+		x := &ContextData{
+			ActiveAccountID: t.Name(),
+			AccountPermissions: map[string]authorization.AccountRolePermissionsChecker{
+				t.Name(): authorization.NewAccountRolePermissionChecker(nil),
+			},
+		}
+
+		assert.NotNil(t, x.AccountRolePermissionsChecker())
+	})
+}
+
+func TestSessionContextData_ServiceRolePermissionChecker(T *testing.T) {
+	T.Parallel()
+
+	T.Run("standard", func(t *testing.T) {
+		t.Parallel()
+
+		x := &ContextData{
+			ActiveAccountID: t.Name(),
+			Requester: RequesterInfo{
+				ServicePermissions: authorization.NewServiceRolePermissionChecker([]string{t.Name()}, nil),
+			},
+		}
+
+		assert.NotNil(t, x.ServiceRolePermissionChecker())
 	})
 }

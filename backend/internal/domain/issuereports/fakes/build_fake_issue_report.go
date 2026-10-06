@@ -3,7 +3,7 @@ package fakes
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports"
 
-	platformissuereports "github.com/primandproper/platform-go/v14/issuereports"
+	platformissuereports "github.com/primandproper/platform-go/v15/issuereports"
 	"github.com/primandproper/primitives-go/v2/fake"
 	"github.com/primandproper/primitives-go/v2/filtering"
 

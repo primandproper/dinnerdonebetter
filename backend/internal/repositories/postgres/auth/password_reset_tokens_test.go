@@ -5,15 +5,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	"github.com/primandproper/platform-go/v14/authentication/passwordreset"
-	passwordresetmock "github.com/primandproper/platform-go/v14/authentication/passwordreset/mock"
+	platformaudit "github.com/primandproper/platform-go/v15/audit"
+	"github.com/primandproper/platform-go/v15/authentication/passwordreset"
 	"github.com/primandproper/primitives-go/v2/database"
-	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
-	"github.com/primandproper/primitives-go/v2/observability/tracing"
 	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
 	"github.com/primandproper/primitives-go/v2/tenancy"
 
@@ -23,24 +21,17 @@ import (
 
 const exampleTokenLifetime = 30 * time.Minute
 
-// buildAuditedStoreForTest wraps a store that does nothing but succeed, so the audit half
-// can be exercised without a database.
-func buildAuditedStoreForTest(inner passwordreset.Store, auditRepo audit.Repository) *auditedPasswordResetTokenStore {
-	return &auditedPasswordResetTokenStore{
-		Store:             inner,
-		auditLogEntryRepo: auditRepo,
-		tracer:            tracing.NewTracerForTest("test"),
-		logger:            loggingnoop.NewLogger(),
-	}
-}
-
 func TestQuerier_Integration_PasswordResetTokens(t *testing.T) {
 	ctx := t.Context()
 	dbc, auditRepo := buildDatabaseClientForTest(t)
 
+	auditRecorder, ok := auditlogentries.RecorderFrom(auditRepo)
+	require.True(t, ok)
+
 	user := pgtesting.CreateUserForTest(t, nil, dbc.Writer())
 
-	store, err := ProvidePasswordResetTokenStore(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), auditRepo, dbc)
+	store, err := ProvidePasswordResetTokenStore(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(),
+		pgtesting.NewRecorderForTest(t, ctx, dbc, auditRecorder), dbc)
 	require.NoError(t, err)
 
 	// issue
@@ -51,8 +42,12 @@ func TestQuerier_Integration_PasswordResetTokens(t *testing.T) {
 	assert.Equal(t, user.ID, issuance.Token.UserID)
 	assert.Nil(t, issuance.Token.RedeemedAt)
 
-	pgtesting.AssertAuditLogContainsForUser(t, ctx, auditRepo, user.ID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypePasswordResetTokens, RelevantID: issuance.Token.ID},
+	// A reset is asked for by somebody who cannot sign in, so there is no principal on the
+	// context and the entry names nobody as its actor. It is filed on the user's own chain all
+	// the same — platform's hooks name the token's user as the entry's subject — which is the
+	// chain "was a link issued for this account" is answered from.
+	pgtesting.AssertAuditLogContains(t, ctx, dbc, user.ID, []pgtesting.ExpectedAuditEntry{
+		{EventType: platformaudit.EventCreated, ResourceType: passwordreset.ResourceTypeToken, ResourceID: issuance.Token.ID},
 	})
 
 	// the row holds a digest, not the token. This is the property the hand-written store
@@ -75,9 +70,9 @@ func TestQuerier_Integration_PasswordResetTokens(t *testing.T) {
 	assert.Equal(t, issuance.Token.ID, consumed.ID)
 	assert.NotNil(t, consumed.RedeemedAt)
 
-	pgtesting.AssertAuditLogContainsForUser(t, ctx, auditRepo, user.ID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypePasswordResetTokens, RelevantID: issuance.Token.ID},
-		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypePasswordResetTokens, RelevantID: issuance.Token.ID},
+	pgtesting.AssertAuditLogContains(t, ctx, dbc, user.ID, []pgtesting.ExpectedAuditEntry{
+		{EventType: platformaudit.EventCreated, ResourceType: passwordreset.ResourceTypeToken, ResourceID: issuance.Token.ID},
+		{EventType: platformaudit.EventUpdated, ResourceType: passwordreset.ResourceTypeToken, ResourceID: issuance.Token.ID},
 	})
 
 	// a token is spendable exactly once, and the store is what says so
@@ -99,63 +94,14 @@ func TestQuerier_Integration_PasswordResetTokens(t *testing.T) {
 func TestProvidePasswordResetTokenStore(T *testing.T) {
 	T.Parallel()
 
-	T.Run("with nil database client", func(t *testing.T) {
+	T.Run("with nil recorder", func(t *testing.T) {
 		t.Parallel()
 
+		// Refused before the store is built: a token store that recorded nothing would be
+		// the one an investigation finds empty.
 		actual, err := ProvidePasswordResetTokenStore(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, nil)
-		require.Error(t, err)
+		require.ErrorIs(t, err, passwordreset.ErrNilRecorder)
 		assert.Nil(t, actual)
-	})
-}
-
-func TestAuditedPasswordResetTokenStore_Issue(T *testing.T) {
-	T.Parallel()
-
-	T.Run("with error issuing", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		expected := platformerrors.New("blah")
-
-		inner := &passwordresetmock.StoreMock{
-			IssueFunc: func(context.Context, database.Tx, tenancy.Scope, string, time.Duration) (*passwordreset.Issuance, error) {
-				return nil, expected
-			},
-		}
-
-		store := buildAuditedStoreForTest(inner, nil)
-
-		// database.NewTxForTesting exists for exactly this: the marker method on database.Tx
-		// is unexported, so a test double cannot implement one. Nothing is ever sent on this
-		// transaction — the inner store is mocked and refuses first.
-		actual, err := store.Issue(ctx, database.NewTxForTesting(nil), tenancy.Global(), t.Name(), exampleTokenLifetime)
-		require.ErrorIs(t, err, expected)
-		assert.Nil(t, actual)
-		require.Len(t, inner.IssueCalls(), 1)
-		assert.Equal(t, exampleTokenLifetime, inner.IssueCalls()[0].TTL)
-	})
-}
-
-func TestAuditedPasswordResetTokenStore_Consume(T *testing.T) {
-	T.Parallel()
-
-	T.Run("with error consuming", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-
-		inner := &passwordresetmock.StoreMock{
-			ConsumeFunc: func(context.Context, database.Tx, tenancy.Scope, string) (*passwordreset.Token, error) {
-				return nil, passwordreset.ErrTokenRedeemed
-			},
-		}
-
-		store := buildAuditedStoreForTest(inner, nil)
-
-		actual, err := store.Consume(ctx, database.NewTxForTesting(nil), tenancy.Global(), t.Name())
-		require.ErrorIs(t, err, passwordreset.ErrTokenRedeemed)
-		assert.Nil(t, actual)
-		assert.Len(t, inner.ConsumeCalls(), 1)
 	})
 }
 

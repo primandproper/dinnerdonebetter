@@ -12,7 +12,7 @@ package indexing
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 
-	syncsource "github.com/primandproper/platform-go/v14/searchsync/source"
+	syncsource "github.com/primandproper/platform-go/v15/searchsync/source"
 )
 
 type (

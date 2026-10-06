@@ -3,15 +3,15 @@ package identity
 import (
 	"context"
 
-	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/succession"
 
-	platformidentity "github.com/primandproper/platform-go/v14/identity"
-	"github.com/primandproper/platform-go/v14/identity/identitypb"
+	platformidentity "github.com/primandproper/platform-go/v15/identity"
+	"github.com/primandproper/platform-go/v15/identity/identitypb"
 	"github.com/primandproper/primitives-go/v2/database"
 	grpcerrors "github.com/primandproper/primitives-go/v2/errors/grpc"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"google.golang.org/grpc/codes"
 )
@@ -53,7 +53,7 @@ func (s *settlesAccountsOnArchival) ArchiveUser(
 
 	logger := s.logger.WithSpan(span).WithValue("user_id", request.GetUserId())
 
-	outcome, err := s.rule.SettleForArchival(ctx, s.directory, s.db.Reader(), ddbidentity.Scope(), request.GetUserId())
+	outcome, err := s.rule.SettleForArchival(ctx, s.directory, s.db.Reader(), tenancy.Global(), request.GetUserId())
 	if err != nil {
 		return nil, grpcerrors.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal,
 			"settling the households of user %q", request.GetUserId())

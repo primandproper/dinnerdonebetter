@@ -5,16 +5,17 @@ import (
 	"testing"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
-	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	platformidentity "github.com/primandproper/platform-go/v14/identity"
+	platformidentity "github.com/primandproper/platform-go/v15/identity"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/fake"
 	"github.com/primandproper/primitives-go/v2/filtering"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -303,12 +304,12 @@ func TestQuerier_Integration_MealPlanOptionVotes_CursorBasedPagination(t *testin
 	// tables now, and a row written into one without the other is a member who may do
 	// nothing — which is not the non-voting member this test wants.
 	addUserToAccountHelper := func(userID string) {
-		store, storeErr := platformidentity.NewSQLStore(dbc.Client, platformidentity.WithTablePrefix(ddbidentity.TablePrefix))
+		store, storeErr := platformidentity.NewSQLStore(dbc.Client, platformidentity.WithTablePrefix(branding.TablePrefix))
 		require.NoError(t, storeErr)
 
-		_, execErr := store.CreateMembership(ctx, database.NewTxForTesting(dbc.writeDB), ddbidentity.Scope(),
+		_, execErr := store.CreateMembership(ctx, database.NewTxForTesting(dbc.writeDB), tenancy.Global(),
 			&platformidentity.Membership{
-				Scope:            ddbidentity.Scope(),
+				Scope:            tenancy.Global(),
 				BelongsToUser:    userID,
 				BelongsToAccount: account.ID,
 				Roles:            []string{authorization.AccountMemberRoleName},

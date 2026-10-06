@@ -15,13 +15,13 @@ package privacy
 import (
 	"context"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
-	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/succession"
 
-	platformdataprivacy "github.com/primandproper/platform-go/v14/dataprivacy"
-	"github.com/primandproper/platform-go/v14/identity"
-	identityprivacy "github.com/primandproper/platform-go/v14/identity/privacy"
+	platformdataprivacy "github.com/primandproper/platform-go/v15/dataprivacy"
+	"github.com/primandproper/platform-go/v15/identity"
+	identityprivacy "github.com/primandproper/platform-go/v15/identity/privacy"
 	"github.com/primandproper/primitives-go/v2/database"
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/filtering"
@@ -33,7 +33,7 @@ import (
 // One directory, so one scope, for every subject. See internal/domain/identity's
 // Scope for why this deployment has exactly one.
 func Scopes() identityprivacy.ScopeResolver {
-	return platformdataprivacy.FixedScopes(ddbidentity.Scope())
+	return platformdataprivacy.FixedScopes(tenancy.Global())
 }
 
 // NewCollector builds the identity collector over platform's.
@@ -69,7 +69,7 @@ func NewCollector(store identity.Store, reader database.SQLQueryExecutor) (platf
 // in the succession rule blocks erasure for that subject until it is fixed — loud and
 // recoverable, where the alternative is a subject told they were erased who was not.
 func SuccessionStep(store identity.Store) (platformdataprivacy.Eraser, error) {
-	rule, err := succession.New(store, ddbidentity.TablePrefix)
+	rule, err := succession.New(store, branding.TablePrefix)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +89,7 @@ func (e *successionStep) Erase(
 	_ tenancy.Scope,
 	subject platformdataprivacy.Subject,
 ) (platformdataprivacy.ErasureOutcome, error) {
-	if _, err := e.rule.Apply(ctx, tx, ddbidentity.Scope(), subject.ID); err != nil {
+	if _, err := e.rule.Apply(ctx, tx, tenancy.Global(), subject.ID); err != nil {
 		return platformdataprivacy.ErasureOutcome{}, platformerrors.Wrap(err, "settling the subject's households")
 	}
 
@@ -104,7 +104,7 @@ func (e *successionStep) Erase(
 func ResolveAccountIDs(store identity.Store, reader database.SQLQueryExecutor) dataprivacy.AccountIDResolver {
 	return func(ctx context.Context, userID string) ([]string, error) {
 		accounts, err := platformdataprivacy.CollectAll(ctx, func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[identity.Account], error) {
-			return store.ListAccountsForUser(ctx, reader, ddbidentity.Scope(), userID, filter)
+			return store.ListAccountsForUser(ctx, reader, tenancy.Global(), userID, filter)
 		})
 		if err != nil {
 			return nil, err

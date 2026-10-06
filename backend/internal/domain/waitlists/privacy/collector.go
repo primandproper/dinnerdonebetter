@@ -17,8 +17,8 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists"
 
-	platformdataprivacy "github.com/primandproper/platform-go/v14/dataprivacy"
-	platformwaitlists "github.com/primandproper/platform-go/v14/waitlists"
+	platformdataprivacy "github.com/primandproper/platform-go/v15/dataprivacy"
+	platformwaitlists "github.com/primandproper/platform-go/v15/waitlists"
 	"github.com/primandproper/primitives-go/v2/database"
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/filtering"
@@ -36,10 +36,10 @@ import (
 // identifiable person to export.
 // The reader is taken at construction because dataprivacy.Collector.Collect is
 // handed no executor. The request scope is not consulted: every signup this
-// deployment writes is in waitlists.Scope.
+// deployment writes is in the global scope; see the waitlists package documentation.
 func NewCollector(store platformwaitlists.SignupStore, reader database.SQLQueryExecutor) platformdataprivacy.Collector {
 	return platformdataprivacy.CollectorFor(func(ctx context.Context, _ tenancy.Scope, subject platformdataprivacy.Subject, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[platformwaitlists.Signup], error) {
-		return store.ListSignupsForSubject(ctx, reader, waitlists.Scope(), waitlists.SubjectFor(subject.ID), filter)
+		return store.ListSignupsForSubject(ctx, reader, tenancy.Global(), waitlists.SubjectFor(subject.ID), filter)
 	})
 }
 
@@ -78,7 +78,7 @@ func NewEraser(store platformwaitlists.SignupStore) platformdataprivacy.Eraser {
 			everything := *filter
 			everything.IncludeArchived = pointer.To(true)
 
-			return store.ListSignupsForSubject(ctx, tx, waitlists.Scope(), waitlists.SubjectFor(subject.ID), &everything)
+			return store.ListSignupsForSubject(ctx, tx, tenancy.Global(), waitlists.SubjectFor(subject.ID), &everything)
 		})
 		if err != nil {
 			return outcome, platformerrors.Wrap(err, "reading the subject's waitlist signups")
@@ -87,7 +87,7 @@ func NewEraser(store platformwaitlists.SignupStore) platformdataprivacy.Eraser {
 		for i := range signups {
 			signup := signups[i]
 
-			if _, err = store.Withdraw(ctx, tx, waitlists.Scope(), signup.ListID, signup.ID); err != nil {
+			if _, err = store.Withdraw(ctx, tx, tenancy.Global(), signup.ListID, signup.ID); err != nil {
 				return outcome, platformerrors.Wrapf(err, "withdrawing waitlist signup %q", signup.ID)
 			}
 

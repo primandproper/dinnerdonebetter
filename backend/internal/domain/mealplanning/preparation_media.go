@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/primandproper/platform-go/v14/mediaregistry"
+	"github.com/primandproper/platform-go/v15/mediaregistry"
 )
 
 // PreparationMediaRow represents a row from preparation_media table.

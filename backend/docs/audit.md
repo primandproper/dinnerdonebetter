@@ -11,7 +11,7 @@ belongs to a *user* and usually to an *account*, where the platform speaks of an
 *actor* and a *scope*.
 
 The tables are `ddb_audit_log_entries` and `ddb_audit_log_chains`. The prefix is
-`audit.TablePrefix`, and it is deliberate: the platform's default renders
+`branding.TablePrefix`, and it is deliberate: the platform's default renders
 `audit_log_entries`, which is the name the hand-rolled log this replaced already
 held. Its DDL says `CREATE TABLE IF NOT EXISTS`, so against any database that ever
 applied the old migration the new schema would be a silent no-op and the audit code
@@ -34,21 +34,23 @@ return q.WithTransaction(ctx, func(tx database.Tx) error {
         return err
     }
 
-    changes, err := audit.Diff(before, after)
+    changes, err := platformaudit.Diff(before, after)
     if err != nil {
         return err
     }
 
-    return q.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
-        ResourceType:     resourceTypeRecipes,
-        RelevantID:       after.ID,
-        EventType:        audit.AuditLogEventTypeUpdated,
-        BelongsToUser:    userID,
-        BelongsToAccount: &accountID,
-        Changes:          changes,
-    })
+    entry := audit.NewEntry(userID, accountID, resourceTypeRecipes, after.ID, platformaudit.EventUpdated)
+    entry.Changes = changes
+
+    return q.auditLogEntryRepo.Record(ctx, tx, entry)
 })
 ```
+
+An entry is platform-go's `audit.Entry`, and `audit.NewEntry` is how one is built. A
+writer names who did it and the account it happened in — either may be empty — and
+`NewEntry` decides the actor and the chain from those two, which is the one place that
+rule is applied. `Record` refuses an entry with no scope, so an entry assembled by hand
+and missing one fails at the write rather than landing somewhere nothing reads.
 
 There is no way to record outside a transaction by accident: holding a
 `database.Tx` from `WithTransaction` means you are already in one.
@@ -64,11 +66,9 @@ return q.WithTransaction(ctx, func(tx database.Tx) error {
         return err
     }
 
-    return q.recorder.RecordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
-        ResourceType: resourceTypeRecipes,
-        RelevantID:   after.ID,
-        EventType:    audit.AuditLogEventTypeUpdated,
-    }, mealplanning.RecipeUpdatedServiceEventType, accountID, map[string]any{
+    return q.recorder.RecordAndEmit(ctx, tx, logger,
+        audit.NewEntry(userID, accountID, resourceTypeRecipes, after.ID, platformaudit.EventUpdated),
+        mealplanning.RecipeUpdatedServiceEventType, accountID, map[string]any{
         mealplanningkeys.RecipeIDKey: after.ID,
     })
 })
@@ -118,7 +118,7 @@ entries to one call rather than making three calls — one chain-head lookup and
 INSERT instead of three of each, and half the lock hold time on the scope's chain
 row. `SwapMealPlanEvents` and `MarkUserTwoFactorSecretAsUnverified` do this.
 
-Prefer `audit.Diff(before, after)` to a hand-assembled change map. Hand assembly is
+Prefer platform-go's `audit.Diff(before, after)` to a hand-assembled change map. Hand assembly is
 tedious where it is right and silently incomplete where it is wrong, and the field
 somebody forgot to add to the map when they added it to the struct is exactly the
 field an investigation will want. `Diff` needs both sides to be the same struct
@@ -231,11 +231,13 @@ already.
 
 ## Reading it
 
-In Go, `GetAuditLogEntriesForAccount` / `ForUser` (and the `AndResourceTypes` variants) and
-`GetAuditLogEntry` page with `filtering.QueryFilter`. An account's reads name its chain; a
-user's, and the read of one entry by id, go through the platform reader's `ListAcrossScopes` /
-`GetAcrossScopes`, because a user's entries are filed under whichever account they acted in.
-`VerifyChain(ctx, scope, from, to)` walks a chain and reports the first break.
+In Go, the log is read through platform-go's `audit.Reader`, which the repository builds at
+this application's prefix and exposes (`auditlogentries.RegisterPlatformReader`) so that a
+reader cannot be assembled against a different table than the recorder writes. An account's
+reads name its chain with `List`; a user's entries, and one entry by id, go through
+`ListAcrossScopes` / `GetAcrossScopes`, because a user's entries are filed under whichever
+account they acted in. `Verify` walks a chain and reports the first break. The application's
+own `audit.Repository` is write-only.
 
 Over the wire it is platform's `audit/grpc`, mounted in `internal/build/auditlog`:
 
@@ -270,8 +272,14 @@ which is the property the chain exists to provide.
 So the audit eraser does the one deletion the structure permits: **whole scopes**,
 entries and chain rows together. A scope that disappears entirely leaves no gap in
 any surviving chain, because there is nothing left to verify against. It is
-platform-go's `dataprivacy/auditerasure`, registered under the `audit` key with the
-scope resolver in `internal/domain/audit/privacy`.
+platform-go's `dataprivacy/auditerasure`, registered under the `audit` key. The
+export's audit section is registered under the same key: platform-go's
+`audit/privacy` collector. Which chains each one reads or deletes is decided by how
+the recorder files entries — by subject, `recordingcfg.FileBySubject` — so the two
+resolvers are platform's own for that rule, handed out together by
+`privacyadapters.AuditScopeResolvers` in `internal/build/dataprivacy`: the export
+reads the subject's chain, every account they belong to and every chain they acted
+in; the erasure deletes their chain and those of the accounts they own.
 
 `ScopeFor` is what makes that cover most of a departing user's trail:
 
@@ -320,7 +328,7 @@ populated record and record only *that* something changed, because they never re
 the prior state and so have nothing to diff against. Closing this means a `SELECT`
 before each `UPDATE`, inside the transaction — a real behaviour change per method,
 worth doing deliberately rather than in bulk. `UpdateAccount` is the shape to copy:
-it already fetches the prior record and now uses `audit.Diff`.
+it already fetches the prior record and now uses platform-go's `audit.Diff`.
 
 **No published head hashes.** Tamper *evidence* becomes tamper *proof* only when
 the head hash lives somewhere the database's owner does not control. `Record`

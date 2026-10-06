@@ -11,15 +11,16 @@ import (
 	"time"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
-	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	fakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
 
-	platformidentity "github.com/primandproper/platform-go/v14/identity"
+	platformidentity "github.com/primandproper/platform-go/v15/identity"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/database/dialect"
 	mockdatabase "github.com/primandproper/primitives-go/v2/database/mock"
 	"github.com/primandproper/primitives-go/v2/filtering"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 	"github.com/primandproper/primitives-go/v2/testutils/containers"
 	"github.com/primandproper/primitives-go/v2/testutils/containers/pgtest"
 
@@ -238,7 +239,7 @@ func CreateUserForTest(t *testing.T, exampleUser *platformidentity.User, db data
 
 	store := identityStoreForTest(t, db)
 
-	created, err := store.CreateUser(ctx, database.NewTxForTesting(db), ddbidentity.Scope(), exampleUser)
+	created, err := store.CreateUser(ctx, database.NewTxForTesting(db), tenancy.Global(), exampleUser)
 	require.NoError(t, err)
 	require.NotNil(t, created)
 
@@ -262,7 +263,7 @@ func identityStoreForTest(t *testing.T, db database.SQLQueryExecutor) platformid
 			CurrentTimeFunc: time.Now,
 			CloseFunc:       func() error { return nil },
 		},
-		platformidentity.WithTablePrefix(ddbidentity.TablePrefix),
+		platformidentity.WithTablePrefix(branding.TablePrefix),
 	)
 	require.NoError(t, err)
 
@@ -287,14 +288,14 @@ func CreateAccountForTest(t *testing.T, exampleAccount *platformidentity.Account
 	store := identityStoreForTest(t, db)
 	tx := database.NewTxForTesting(db)
 
-	created, err := store.CreateAccount(ctx, tx, ddbidentity.Scope(), exampleAccount)
+	created, err := store.CreateAccount(ctx, tx, tenancy.Global(), exampleAccount)
 	require.NoError(t, err)
 
 	// The owner's roles travel on the membership now rather than being a role assignment
 	// of their own: the membership type requires them, and a member with none is a member
 	// who may do nothing in the account they own.
-	_, err = store.CreateMembership(ctx, tx, ddbidentity.Scope(), &platformidentity.Membership{
-		Scope:            ddbidentity.Scope(),
+	_, err = store.CreateMembership(ctx, tx, tenancy.Global(), &platformidentity.Membership{
+		Scope:            tenancy.Global(),
 		BelongsToUser:    userID,
 		BelongsToAccount: created.ID,
 		Roles:            []string{authorization.AccountAdminRoleName},

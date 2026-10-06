@@ -1,8 +1,8 @@
 package push
 
 import (
-	platformnotifications "github.com/primandproper/platform-go/v14/notifications"
-	"github.com/primandproper/platform-go/v14/notifications/push"
+	platformnotifications "github.com/primandproper/platform-go/v15/notifications"
+	"github.com/primandproper/platform-go/v15/notifications/push"
 	mobile "github.com/primandproper/primitives-go/v2/notifications/mobile"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/metrics"

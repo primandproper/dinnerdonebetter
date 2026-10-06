@@ -5,12 +5,11 @@ package fakes
 import (
 	"time"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
-
-	"github.com/primandproper/platform-go/v14/billing"
+	"github.com/primandproper/platform-go/v15/billing"
 	"github.com/primandproper/primitives-go/v2/capitalism"
 	"github.com/primandproper/primitives-go/v2/fake"
 	"github.com/primandproper/primitives-go/v2/filtering"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	gofakeit "github.com/brianvoe/gofakeit/v7"
 )
@@ -40,7 +39,7 @@ func BuildFakeProduct() *billing.Product {
 	product.BillingIntervalMonths = int64(gofakeit.Number(1, 12))
 	product.Currency = currency
 	product.AmountCents = int64(gofakeit.Number(100, 10_000))
-	product.Scope = payments.Scope()
+	product.Scope = tenancy.Global()
 
 	return product
 }
@@ -75,7 +74,7 @@ func BuildFakeSubscription(accountID, productID string) *billing.Subscription {
 	subscription.BelongsToAccount = accountID
 	subscription.ProductID = productID
 	subscription.Status = capitalism.SubscriptionStatusActive
-	subscription.Scope = payments.Scope()
+	subscription.Scope = tenancy.Global()
 
 	// Truncated to the second, which is what a TIMESTAMPTZ read back holds
 	// through the driver, so a test comparing the period it wrote to the one it
@@ -102,7 +101,7 @@ func BuildFakePurchase(accountID, productID string) *billing.Purchase {
 	purchase.Currency = currency
 	purchase.AmountCents = int64(gofakeit.Number(100, 10_000))
 	purchase.CompletedAt = nil
-	purchase.Scope = payments.Scope()
+	purchase.Scope = tenancy.Global()
 
 	return purchase
 }
@@ -119,7 +118,7 @@ func BuildFakeTransaction(accountID string) *billing.Transaction {
 	transaction.Status = billing.TransactionSucceeded
 	transaction.Currency = currency
 	transaction.AmountCents = int64(gofakeit.Number(100, 10_000))
-	transaction.Scope = payments.Scope()
+	transaction.Scope = tenancy.Global()
 
 	return transaction
 }

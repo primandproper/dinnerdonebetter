@@ -6,18 +6,17 @@ import (
 	"fmt"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/internalops"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 	queuemessages "github.com/primandproper/dinnerdonebetter/backend/internal/queues/messages"
 
-	platformidentity "github.com/primandproper/platform-go/v14/identity"
-	"github.com/primandproper/platform-go/v14/notifications/push"
+	platformidentity "github.com/primandproper/platform-go/v15/identity"
+	"github.com/primandproper/platform-go/v15/notifications/push"
+	"github.com/primandproper/platform-go/v15/webhooks"
 	"github.com/primandproper/primitives-go/v2/analytics"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/email"
-	"github.com/primandproper/primitives-go/v2/encoding"
 	"github.com/primandproper/primitives-go/v2/jobs"
 	"github.com/primandproper/primitives-go/v2/messagequeue"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
@@ -42,7 +41,7 @@ const (
 
 // OutboundNotificationHandler handles outbound notifications for a domain's events.
 // Returns true if the event was handled. May return emails to be published by the caller.
-type OutboundNotificationHandler func(ctx context.Context, msg *audit.DataChangeMessage, user *platformidentity.User) (handled bool, emailType string, emails []*queuemessages.OutboundEmailMessage, err error)
+type OutboundNotificationHandler func(ctx context.Context, event *webhooks.Envelope) (handled bool, emailType string, emails []*queuemessages.OutboundEmailMessage, err error)
 
 var errRequiredDataIsNil = errors.New("required data is nil")
 
@@ -60,7 +59,6 @@ type AsyncDataChangeMessageHandler struct {
 	tracer                                    tracing.Tracer
 	internalOpsRepo                           internalops.InternalOpsDataManager
 	logger                                    logging.Logger
-	decoder                                   encoding.ServerEncoderDecoder
 	outboundEmailsPublisher                   messagequeue.Publisher
 	outboundEmailsExecutionTimeHistogram      metrics.Float64Histogram
 	analyticsEventReporter                    analytics.EventReporter
@@ -109,7 +107,6 @@ func NewAsyncDataChangeMessageHandler(
 	analyticsEventReporter analytics.EventReporter,
 	emailer email.Emailer,
 	metricsProvider metrics.Provider,
-	decoder encoding.ServerEncoderDecoder,
 	searchSyncers []SearchSyncer,
 	mealPlanRepo mealplanning.Repository,
 	pushFanout *push.Fanout,
@@ -199,7 +196,6 @@ func NewAsyncDataChangeMessageHandler(
 		handlerErrorsCounter:                      handlerErrorsCounter,
 		emailsSentCounter:                         emailsSentCounter,
 		emailsFailedCounter:                       emailsFailedCounter,
-		decoder:                                   decoder,
 		searchSyncers:                             searchSyncers,
 		mealPlanRepo:                              mealPlanRepo,
 		pushFanout:                                pushFanout,

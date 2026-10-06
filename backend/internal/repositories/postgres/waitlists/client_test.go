@@ -8,14 +8,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	ddbwaitlists "github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists/fakes"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	waitlists "github.com/primandproper/platform-go/v14/waitlists"
+	platformaudit "github.com/primandproper/platform-go/v15/audit"
+	waitlists "github.com/primandproper/platform-go/v15/waitlists"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/database/postgres"
 	"github.com/primandproper/primitives-go/v2/identifiers"
@@ -44,7 +44,7 @@ func TestMain(m *testing.M) {
 }
 
 // buildDatabaseClientForTest builds the store over a real database.
-func buildDatabaseClientForTest(t *testing.T) (waitlists.Store, audit.Repository, database.Client) {
+func buildDatabaseClientForTest(t *testing.T) (waitlists.Store, database.Client) {
 	t.Helper()
 
 	ctx := t.Context()
@@ -59,17 +59,19 @@ func buildDatabaseClientForTest(t *testing.T) (waitlists.Store, audit.Repository
 	auditLogEntryRepo, err := auditlogentries.ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), metricsnoop.NewMetricsProvider(), pgc)
 	require.NoError(t, err)
 
+	auditRecorder, ok := auditlogentries.RecorderFrom(auditLogEntryRepo)
+	require.True(t, ok)
+
 	c, err := ProvideWaitlistsRepository(
 		loggingnoop.NewLogger(),
 		tracingnoop.NewTracerProvider(),
 		metricsnoop.NewMetricsProvider(),
-		auditLogEntryRepo,
 		pgc,
-		nil,
+		pgtesting.NewRecorderForTest(t, ctx, pgc, auditRecorder),
 	)
 	require.NoError(t, err)
 
-	return c, auditLogEntryRepo, pgc
+	return c, pgc
 }
 
 // signatoryForTest creates a user and an account for them, and returns the user.
@@ -91,7 +93,7 @@ func openListForTest(t *testing.T, ctx context.Context, dbc waitlists.Store, db 
 	t.Helper()
 
 	list, err := writeT(ctx, db, func(tx database.Tx) (*waitlists.List, error) {
-		return dbc.CreateList(ctx, tx, ddbwaitlists.Scope(), fakes.BuildFakeWaitlist())
+		return dbc.CreateList(ctx, tx, tenancy.Global(), fakes.BuildFakeWaitlist())
 	})
 	require.NoError(t, err)
 
@@ -100,8 +102,8 @@ func openListForTest(t *testing.T, ctx context.Context, dbc waitlists.Store, db 
 
 func TestRepository_Integration_Waitlists(t *testing.T) {
 	ctx := t.Context()
-	dbc, auditRepo, db := buildDatabaseClientForTest(t)
-	scope := ddbwaitlists.Scope()
+	dbc, db := buildDatabaseClientForTest(t)
+	scope := tenancy.Global()
 
 	example := fakes.BuildFakeWaitlist()
 
@@ -116,8 +118,8 @@ func TestRepository_Integration_Waitlists(t *testing.T) {
 	// unattributed actor — the same shape the table this replaced recorded under,
 	// and the reason internal/domain/audit names that actor rather than leaving
 	// it blank.
-	pgtesting.AssertAuditLogContainsForUser(t, ctx, auditRepo, audit.UnattributedActorID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeWaitlists, RelevantID: created.ID},
+	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, platformaudit.ActorUnattributed, []pgtesting.ExpectedAuditEntry{
+		{EventType: platformaudit.EventCreated, ResourceType: waitlists.ResourceTypeList, ResourceID: created.ID},
 	})
 
 	fetched, err := dbc.GetList(ctx, db.Reader(), scope, created.ID)
@@ -160,10 +162,10 @@ func TestRepository_Integration_Waitlists(t *testing.T) {
 	assert.Nil(t, afterArchive)
 	require.ErrorIs(t, err, waitlists.ErrListNotFound)
 
-	pgtesting.AssertAuditLogContainsForUser(t, ctx, auditRepo, audit.UnattributedActorID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeWaitlists, RelevantID: created.ID},
-		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeWaitlists, RelevantID: created.ID},
-		{EventType: audit.AuditLogEventTypeArchived, ResourceType: resourceTypeWaitlists, RelevantID: created.ID},
+	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, platformaudit.ActorUnattributed, []pgtesting.ExpectedAuditEntry{
+		{EventType: platformaudit.EventCreated, ResourceType: waitlists.ResourceTypeList, ResourceID: created.ID},
+		{EventType: platformaudit.EventUpdated, ResourceType: waitlists.ResourceTypeList, ResourceID: created.ID},
+		{EventType: platformaudit.EventArchived, ResourceType: waitlists.ResourceTypeList, ResourceID: created.ID},
 	})
 }
 
@@ -171,11 +173,15 @@ func TestRepository_Integration_Waitlists(t *testing.T) {
 // list closes it immediately, whatever its closing time says.
 func TestRepository_Integration_ArchivedListTakesNoSignups(t *testing.T) {
 	ctx := t.Context()
-	dbc, _, db := buildDatabaseClientForTest(t)
-	scope := ddbwaitlists.Scope()
+	dbc, db := buildDatabaseClientForTest(t)
+	scope := tenancy.Global()
 
 	userID := signatoryForTest(t, db)
 	list := openListForTest(t, ctx, dbc, db)
+
+	// The signatory is the one making the requests from here on, which is who every entry
+	// below names as its actor; the list above was opened by nobody in particular.
+	ctx = pgtesting.AsRequester(ctx, userID)
 
 	_, err := writeT(ctx, db, func(tx database.Tx) (*waitlists.List, error) {
 		return dbc.ArchiveList(ctx, tx, scope, list.ID)
@@ -193,8 +199,8 @@ func TestRepository_Integration_ArchivedListTakesNoSignups(t *testing.T) {
 // list past its closing time refuses a signup and says why.
 func TestRepository_Integration_ClosedListTakesNoSignups(t *testing.T) {
 	ctx := t.Context()
-	dbc, _, db := buildDatabaseClientForTest(t)
-	scope := ddbwaitlists.Scope()
+	dbc, db := buildDatabaseClientForTest(t)
+	scope := tenancy.Global()
 
 	userID := signatoryForTest(t, db)
 
@@ -222,11 +228,15 @@ func TestRepository_Integration_ClosedListTakesNoSignups(t *testing.T) {
 
 func TestRepository_Integration_WaitlistSignups(t *testing.T) {
 	ctx := t.Context()
-	dbc, auditRepo, db := buildDatabaseClientForTest(t)
-	scope := ddbwaitlists.Scope()
+	dbc, db := buildDatabaseClientForTest(t)
+	scope := tenancy.Global()
 
 	userID := signatoryForTest(t, db)
 	list := openListForTest(t, ctx, dbc, db)
+
+	// The signatory is the one making the requests from here on, which is who every entry
+	// below names as its actor; the list above was opened by nobody in particular.
+	ctx = pgtesting.AsRequester(ctx, userID)
 
 	example := fakes.BuildFakeWaitlistSignupForUser(userID)
 
@@ -236,8 +246,14 @@ func TestRepository_Integration_WaitlistSignups(t *testing.T) {
 	assert.Equal(t, list.ID, joined.ListID)
 	assert.NotEmpty(t, joined.ContactDigest)
 
-	pgtesting.AssertAuditLogContainsForUser(t, ctx, auditRepo, userID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeWaitlistSignups, RelevantID: joined.ID},
+	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, userID, []pgtesting.ExpectedAuditEntry{
+		{EventType: platformaudit.EventCreated, ResourceType: waitlists.ResourceTypeSignup, ResourceID: joined.ID},
+	})
+
+	// And it is filed on the signatory's own chain, not the global one the list lives in:
+	// "which lists was this person on" is a chain the log can walk.
+	pgtesting.AssertAuditLogContains(t, ctx, db, userID, []pgtesting.ExpectedAuditEntry{
+		{EventType: platformaudit.EventCreated, ResourceType: waitlists.ResourceTypeSignup, ResourceID: joined.ID},
 	})
 
 	fetched, err := dbc.GetSignup(ctx, db.Reader(), scope, list.ID, joined.ID)
@@ -279,10 +295,10 @@ func TestRepository_Integration_WaitlistSignups(t *testing.T) {
 	assert.Nil(t, afterArchive)
 	require.ErrorIs(t, err, waitlists.ErrSignupNotFound)
 
-	pgtesting.AssertAuditLogContainsForUser(t, ctx, auditRepo, userID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeWaitlistSignups, RelevantID: joined.ID},
-		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeWaitlistSignups, RelevantID: joined.ID},
-		{EventType: audit.AuditLogEventTypeArchived, ResourceType: resourceTypeWaitlistSignups, RelevantID: joined.ID},
+	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, userID, []pgtesting.ExpectedAuditEntry{
+		{EventType: platformaudit.EventCreated, ResourceType: waitlists.ResourceTypeSignup, ResourceID: joined.ID},
+		{EventType: platformaudit.EventUpdated, ResourceType: waitlists.ResourceTypeSignup, ResourceID: joined.ID},
+		{EventType: platformaudit.EventArchived, ResourceType: waitlists.ResourceTypeSignup, ResourceID: joined.ID},
 	})
 }
 
@@ -292,11 +308,15 @@ func TestRepository_Integration_WaitlistSignups(t *testing.T) {
 // the second one's side.
 func TestRepository_Integration_SignupLifecycle(t *testing.T) {
 	ctx := t.Context()
-	dbc, auditRepo, db := buildDatabaseClientForTest(t)
-	scope := ddbwaitlists.Scope()
+	dbc, db := buildDatabaseClientForTest(t)
+	scope := tenancy.Global()
 
 	userID := signatoryForTest(t, db)
 	list := openListForTest(t, ctx, dbc, db)
+
+	// The signatory is the one making the requests from here on, which is who every entry
+	// below names as its actor; the list above was opened by nobody in particular.
+	ctx = pgtesting.AsRequester(ctx, userID)
 
 	joined, err := joinT(ctx, db, dbc, scope, list.ID, fakes.BuildFakeWaitlistSignupForUser(userID))
 	require.NoError(t, err)
@@ -329,9 +349,8 @@ func TestRepository_Integration_SignupLifecycle(t *testing.T) {
 
 	// Three entries: the join, and the two moves that took. The refused
 	// invitation is not among them.
-	entries, err := auditRepo.GetAuditLogEntriesForUser(ctx, userID, nil)
-	require.NoError(t, err)
-	assert.Len(t, entries.Data, 3)
+	entries := pgtesting.AuditEntriesForActor(t, ctx, db, userID)
+	assert.Len(t, entries, 3)
 }
 
 // TestRepository_Integration_ConfirmationIsRecorded pins the override platform's new
@@ -339,11 +358,15 @@ func TestRepository_Integration_SignupLifecycle(t *testing.T) {
 // where the embedded store alone would move it silently.
 func TestRepository_Integration_ConfirmationIsRecorded(t *testing.T) {
 	ctx := t.Context()
-	dbc, auditRepo, db := buildDatabaseClientForTest(t)
-	scope := ddbwaitlists.Scope()
+	dbc, db := buildDatabaseClientForTest(t)
+	scope := tenancy.Global()
 
 	userID := signatoryForTest(t, db)
 	list := openListForTest(t, ctx, dbc, db)
+
+	// The signatory is the one making the requests from here on, which is who every entry
+	// below names as its actor; the list above was opened by nobody in particular.
+	ctx = pgtesting.AsRequester(ctx, userID)
 
 	pending := fakes.BuildFakeWaitlistSignupForUser(userID)
 	pending.Status = waitlists.StatusPending
@@ -365,9 +388,8 @@ func TestRepository_Integration_ConfirmationIsRecorded(t *testing.T) {
 	require.ErrorIs(t, err, waitlists.ErrWrongStatus)
 
 	// Two entries: the join and the confirmation.
-	entries, err := auditRepo.GetAuditLogEntriesForUser(ctx, userID, nil)
-	require.NoError(t, err)
-	assert.Len(t, entries.Data, 2)
+	entries := pgtesting.AuditEntriesForActor(t, ctx, db, userID)
+	assert.Len(t, entries, 2)
 }
 
 // TestRepository_Integration_WithdrawalOutlivesTheAddress is the obligation this
@@ -378,11 +400,15 @@ func TestRepository_Integration_ConfirmationIsRecorded(t *testing.T) {
 // signup from the same person simply succeeded.
 func TestRepository_Integration_WithdrawalOutlivesTheAddress(t *testing.T) {
 	ctx := t.Context()
-	dbc, auditRepo, db := buildDatabaseClientForTest(t)
-	scope := ddbwaitlists.Scope()
+	dbc, db := buildDatabaseClientForTest(t)
+	scope := tenancy.Global()
 
 	userID := signatoryForTest(t, db)
 	list := openListForTest(t, ctx, dbc, db)
+
+	// The signatory is the one making the requests from here on, which is who every entry
+	// below names as its actor; the list above was opened by nobody in particular.
+	ctx = pgtesting.AsRequester(ctx, userID)
 
 	example := fakes.BuildFakeWaitlistSignupForUser(userID)
 
@@ -422,11 +448,12 @@ func TestRepository_Integration_WithdrawalOutlivesTheAddress(t *testing.T) {
 	require.Error(t, err)
 	require.ErrorIs(t, err, waitlists.ErrAlreadyWithdrawn)
 
-	// The audit entry still names them, which is the point of reading the signup
-	// before the store blanks it.
-	pgtesting.AssertAuditLogContainsForUser(t, ctx, auditRepo, userID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeWaitlistSignups, RelevantID: joined.ID},
-		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeWaitlistSignups, RelevantID: joined.ID},
+	// The audit entries are still on their chain, which is the point of platform reading the
+	// signup before the store blanks it: read afterwards, every withdrawal would belong to
+	// nobody.
+	pgtesting.AssertAuditLogContains(t, ctx, db, userID, []pgtesting.ExpectedAuditEntry{
+		{EventType: platformaudit.EventCreated, ResourceType: waitlists.ResourceTypeSignup, ResourceID: joined.ID},
+		{EventType: platformaudit.EventUpdated, ResourceType: waitlists.ResourceTypeSignup, ResourceID: joined.ID},
 	})
 }
 
@@ -435,11 +462,15 @@ func TestRepository_Integration_WithdrawalOutlivesTheAddress(t *testing.T) {
 // next attempt from it is a duplicate rather than an honored opt-out.
 func TestRepository_Integration_ArchivingIsNotWithdrawing(t *testing.T) {
 	ctx := t.Context()
-	dbc, _, db := buildDatabaseClientForTest(t)
-	scope := ddbwaitlists.Scope()
+	dbc, db := buildDatabaseClientForTest(t)
+	scope := tenancy.Global()
 
 	userID := signatoryForTest(t, db)
 	list := openListForTest(t, ctx, dbc, db)
+
+	// The signatory is the one making the requests from here on, which is who every entry
+	// below names as its actor; the list above was opened by nobody in particular.
+	ctx = pgtesting.AsRequester(ctx, userID)
 
 	example := fakes.BuildFakeWaitlistSignupForUser(userID)
 
@@ -464,11 +495,15 @@ func TestRepository_Integration_ArchivingIsNotWithdrawing(t *testing.T) {
 // a row that is not there is an error before anything is written down about it.
 func TestRepository_Integration_MissingRowsRecordNothing(t *testing.T) {
 	ctx := t.Context()
-	dbc, auditRepo, db := buildDatabaseClientForTest(t)
-	scope := ddbwaitlists.Scope()
+	dbc, db := buildDatabaseClientForTest(t)
+	scope := tenancy.Global()
 
 	userID := signatoryForTest(t, db)
 	list := openListForTest(t, ctx, dbc, db)
+
+	// The signatory is the one making the requests from here on, which is who every entry
+	// below names as its actor; the list above was opened by nobody in particular.
+	ctx = pgtesting.AsRequester(ctx, userID)
 
 	_, err := writeT(ctx, db, func(tx database.Tx) (*waitlists.List, error) {
 		return dbc.ArchiveList(ctx, tx, scope, identifiers.New())
@@ -490,9 +525,8 @@ func TestRepository_Integration_MissingRowsRecordNothing(t *testing.T) {
 		require.ErrorIs(t, err, waitlists.ErrSignupNotFound)
 	}
 
-	entries, err := auditRepo.GetAuditLogEntriesForUser(ctx, userID, nil)
-	require.NoError(t, err)
-	assert.Empty(t, entries.Data)
+	entries := pgtesting.AuditEntriesForActor(t, ctx, db, userID)
+	assert.Empty(t, entries)
 }
 
 // writeT runs one store write on a transaction of its own.

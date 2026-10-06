@@ -29,11 +29,10 @@ import (
 	"context"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
 
-	"github.com/primandproper/platform-go/v14/billing"
-	billingprivacy "github.com/primandproper/platform-go/v14/billing/privacy"
-	platformdataprivacy "github.com/primandproper/platform-go/v14/dataprivacy"
+	"github.com/primandproper/platform-go/v15/billing"
+	billingprivacy "github.com/primandproper/platform-go/v15/billing/privacy"
+	platformdataprivacy "github.com/primandproper/platform-go/v15/dataprivacy"
 	"github.com/primandproper/primitives-go/v2/database"
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/tenancy"
@@ -58,7 +57,7 @@ func NewCollector(store billing.Store, reader database.SQLQueryExecutor, resolve
 // platform's collector takes.
 //
 // Every account is in the one scope this application keeps its billing under, so
-// the resolver's only real work is naming the accounts; see payments.Scope.
+// the resolver's only real work is naming the accounts; see the payments package documentation.
 // AccountResolver turns this application's "which accounts is this subject in" into the
 // shape billing's collector wants: a list of accounts, each with the scope its rows are
 // filed under.
@@ -76,7 +75,7 @@ func AccountResolver(resolveAccounts dataprivacy.AccountIDResolver) billingpriva
 
 		accounts := make([]billingprivacy.Account, 0, len(accountIDs))
 		for _, accountID := range accountIDs {
-			accounts = append(accounts, billingprivacy.Account{ID: accountID, Scope: payments.Scope()})
+			accounts = append(accounts, billingprivacy.Account{ID: accountID, Scope: tenancy.Global()})
 		}
 
 		return accounts, nil

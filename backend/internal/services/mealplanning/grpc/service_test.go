@@ -8,8 +8,8 @@ import (
 	mealplanfinalization "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_finalization"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/testutils"
 
-	commentsmock "github.com/primandproper/platform-go/v14/comments/mock"
-	registrymock "github.com/primandproper/platform-go/v14/mediaregistry/mock"
+	commentsmock "github.com/primandproper/platform-go/v15/comments/mock"
+	registrymock "github.com/primandproper/platform-go/v15/mediaregistry/mock"
 	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
 	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
 	mockuploads "github.com/primandproper/primitives-go/v2/uploads/mock"

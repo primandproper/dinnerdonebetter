@@ -5,13 +5,12 @@ import (
 	"strings"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
-	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/converters"
 	internalopssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/internalops"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
 
-	"github.com/primandproper/platform-go/v14/authentication/signin"
+	"github.com/primandproper/platform-go/v15/authentication/signin"
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	errorsgrpc "github.com/primandproper/primitives-go/v2/errors/grpc"
 	"github.com/primandproper/primitives-go/v2/tenancy"
@@ -81,8 +80,8 @@ func (s *serviceImpl) ImpersonateUser(ctx context.Context, request *internalopss
 	// One directory for operators and customers alike, so the operator's scope and the
 	// subject's are the same one.
 	signedIn, err := s.impersonator.IssueImpersonationToken(ctx,
-		ddbidentity.Scope(), operatorID,
-		ddbidentity.Scope(), subjectID, strings.TrimSpace(request.GetAccountId()),
+		tenancy.Global(), operatorID,
+		tenancy.Global(), subjectID, strings.TrimSpace(request.GetAccountId()),
 	)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "impersonating a user")

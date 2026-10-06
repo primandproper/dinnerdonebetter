@@ -1,13 +1,17 @@
 package integration
 
 import (
+	"context"
 	"testing"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/converters"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/fakes"
 
-	notificationspb "github.com/primandproper/platform-go/v14/notifications/notificationspb"
+	platformnotifications "github.com/primandproper/platform-go/v15/notifications"
+	notificationspb "github.com/primandproper/platform-go/v15/notifications/notificationspb"
+	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/fake"
+	"github.com/primandproper/primitives-go/v2/identifiers"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -15,24 +19,37 @@ import (
 
 // The inbox's behavior is asserted by platform's notifications conformance suite, run against
 // this deployment in conformance_test.go. What remains here is this application's own: the
-// audit entries its store records, how its content maps onto platform's notification, and the
-// count MarkAllNotificationsRead reports, which the suite leaves to each deployment because it
+// audit entries its store records, and the count MarkAllNotificationsRead reports, which the suite leaves to each deployment because it
 // is exact only in an inbox nothing else writes to.
 
-func createUserNotificationForTest(t *testing.T, forUser string) *notifications.UserNotification {
+// createUserNotificationForTest files a notification the way this application's own
+// announcements are filed: through the decorated inbox, under the one topic it uses.
+func createUserNotificationForTest(t *testing.T, forUser string) *platformnotifications.Notification {
 	t.Helper()
 
-	ctx := t.Context()
-
-	creationRequestInput := fakes.BuildFakeUserNotification()
-	input := converters.ConvertUserNotificationToUserNotificationDatabaseCreationInput(creationRequestInput)
-	input.BelongsToUser = forUser
-
-	created, err := notifsRepo.CreateUserNotification(ctx, input)
+	created, err := createUserNotification(t.Context(), forUser)
 	require.NoError(t, err)
 	assert.NotNil(t, created)
 
 	return created
+}
+
+func createUserNotification(ctx context.Context, forUser string) (*platformnotifications.Notification, error) {
+	var created *platformnotifications.Notification
+
+	err := databaseClient.WithTransaction(ctx, func(tx database.Tx) error {
+		var writeErr error
+		created, writeErr = notifsInbox.CreateNotification(ctx, tx, tenancy.Global(), &platformnotifications.Notification{
+			ID:        identifiers.New(),
+			Principal: forUser,
+			Topic:     notifications.DefaultTopic,
+			Title:     fake.BuildFakeID(),
+		})
+
+		return writeErr
+	})
+
+	return created, err
 }
 
 func TestUserNotifications_Creating(T *testing.T) {
@@ -49,9 +66,7 @@ func TestUserNotifications_Creating(T *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, retrieved.GetResult())
 
-		// The content is the headline. platform splits a notification in two and this
-		// application only ever writes the first half — see notificationsstore.Adapter.
-		assert.Equal(t, created.Content, retrieved.GetResult().GetTitle())
+		assert.Equal(t, created.Title, retrieved.GetResult().GetTitle())
 
 		// The write that put it there is in the log. Marking it read would not be, on
 		// purpose: somebody opening their own inbox is not a change anybody investigates
@@ -59,8 +74,12 @@ func TestUserNotifications_Creating(T *testing.T) {
 		// of an inbox being opened. read_at is the record, and it is on the row. See
 		// notificationsstore/writes.go, which names this and the three other writes it
 		// leaves unrecorded.
-		AssertAuditLogContainsFuzzyForUser(t, ctx, testClient, user.ID, 15, []*ExpectedAuditEntry{
-			{EventType: "created", ResourceType: "user_notifications", RelevantID: created.ID},
+		//
+		// Read by resource rather than by actor: the suite's seeder wrote this notification
+		// with no session, so the entry names no actor — the recipient is its subject, not
+		// whoever put it there.
+		AssertAuditLogContainsFuzzyForResource(t, ctx, platformnotifications.ResourceTypeNotification, created.ID, 15, []*ExpectedAuditEntry{
+			{EventType: "created", ResourceType: platformnotifications.ResourceTypeNotification, RelevantID: created.ID},
 		})
 	})
 }
@@ -101,7 +120,7 @@ func TestUserNotifications_Archiving(T *testing.T) {
 		require.NoError(t, err)
 
 		AssertAuditLogContainsFuzzyForUser(t, ctx, testClient, user.ID, 15, []*ExpectedAuditEntry{
-			{EventType: "archived", ResourceType: "user_notifications", RelevantID: created.ID},
+			{EventType: "archived", ResourceType: platformnotifications.ResourceTypeNotification, RelevantID: created.ID},
 		})
 	})
 }

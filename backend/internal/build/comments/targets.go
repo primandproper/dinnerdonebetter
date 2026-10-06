@@ -21,7 +21,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningmanagers "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/managers"
 
-	platformcomments "github.com/primandproper/platform-go/v14/comments"
+	platformcomments "github.com/primandproper/platform-go/v15/comments"
 	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/samber/do/v2"

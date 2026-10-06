@@ -2,18 +2,18 @@ package fakes
 
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
-	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 
-	identity "github.com/primandproper/platform-go/v14/identity"
+	identity "github.com/primandproper/platform-go/v15/identity"
 	"github.com/primandproper/primitives-go/v2/fake"
 	"github.com/primandproper/primitives-go/v2/filtering"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
 // BuildFakeMembership builds a faked Membership.
 func BuildFakeMembership() *identity.Membership {
 	membership := fake.BuildFakeRecord[identity.Membership]()
 
-	membership.Scope = ddbidentity.Scope()
+	membership.Scope = tenancy.Global()
 
 	// A role the authorization package knows. The names are resolved to permissions by
 	// the policy resolver, which refuses the ones it has no policy for, so a generated

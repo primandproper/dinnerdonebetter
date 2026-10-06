@@ -1,7 +1,7 @@
 package authorization
 
 import (
-	identitygrpc "github.com/primandproper/platform-go/v14/identity/grpc"
+	identitygrpc "github.com/primandproper/platform-go/v15/identity/grpc"
 )
 
 // The identity permissions are platform's, re-exported under the names this

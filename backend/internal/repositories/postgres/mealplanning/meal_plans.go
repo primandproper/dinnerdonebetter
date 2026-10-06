@@ -12,6 +12,7 @@ import (
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
+	platformaudit "github.com/primandproper/platform-go/v15/audit"
 	"github.com/primandproper/primitives-go/v2/database"
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/filtering"
@@ -385,12 +386,7 @@ func (q *repository) CreateMealPlan(ctx context.Context, input *types.MealPlanDa
 			return observability.PrepareAndLogError(err, logger, span, "creating meal plan")
 		}
 
-		if err = q.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
-			BelongsToAccount: &input.BelongsToAccount,
-			ResourceType:     resourceTypeMealPlans,
-			RelevantID:       input.ID,
-			EventType:        audit.AuditLogEventTypeCreated,
-		}); err != nil {
+		if err = q.auditLogEntryRepo.Record(ctx, tx, audit.NewEntry("", input.BelongsToAccount, resourceTypeMealPlans, input.ID, platformaudit.EventCreated)); err != nil {
 			return observability.PrepareError(err, span, "creating audit log entry")
 		}
 
@@ -541,12 +537,7 @@ func (q *repository) UpdateMealPlan(ctx context.Context, updated *types.MealPlan
 			return sql.ErrNoRows
 		}
 
-		return q.recorder.RecordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
-			BelongsToAccount: &updated.BelongsToAccount,
-			ResourceType:     resourceTypeMealPlans,
-			RelevantID:       updated.ID,
-			EventType:        audit.AuditLogEventTypeUpdated,
-		}, types.MealPlanUpdatedServiceEventType, updated.BelongsToAccount, map[string]any{
+		return q.recorder.RecordAndEmit(ctx, tx, logger, audit.NewEntry("", updated.BelongsToAccount, resourceTypeMealPlans, updated.ID, platformaudit.EventUpdated), types.MealPlanUpdatedServiceEventType, updated.BelongsToAccount, map[string]any{
 			mealplanningkeys.MealPlanIDKey: updated.ID,
 		})
 	}); err != nil {
@@ -592,12 +583,7 @@ func (q *repository) ArchiveMealPlan(ctx context.Context, mealPlanID, accountID 
 			return sql.ErrNoRows
 		}
 
-		return q.recorder.RecordAndEmit(ctx, tx, logger, &audit.AuditLogEntry{
-			BelongsToAccount: &accountID,
-			ResourceType:     resourceTypeMealPlans,
-			RelevantID:       mealPlanID,
-			EventType:        audit.AuditLogEventTypeArchived,
-		}, types.MealPlanArchivedServiceEventType, accountID, map[string]any{
+		return q.recorder.RecordAndEmit(ctx, tx, logger, audit.NewEntry("", accountID, resourceTypeMealPlans, mealPlanID, platformaudit.EventArchived), types.MealPlanArchivedServiceEventType, accountID, map[string]any{
 			mealplanningkeys.MealPlanIDKey: mealPlanID,
 		})
 	})

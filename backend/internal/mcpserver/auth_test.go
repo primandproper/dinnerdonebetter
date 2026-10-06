@@ -14,8 +14,8 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	identityfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
 
-	identity "github.com/primandproper/platform-go/v14/identity"
-	identitymock "github.com/primandproper/platform-go/v14/identity/mock"
+	identity "github.com/primandproper/platform-go/v15/identity"
+	identitymock "github.com/primandproper/platform-go/v15/identity/mock"
 	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
 	oauth2memory "github.com/primandproper/primitives-go/v2/authentication/oauth2server/memory"
 	"github.com/primandproper/primitives-go/v2/authentication/totp"

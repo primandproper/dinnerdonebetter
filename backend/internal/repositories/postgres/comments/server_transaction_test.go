@@ -6,25 +6,22 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	commentsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/comments"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
-	ddbcomments "github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	platformcomments "github.com/primandproper/platform-go/v14/comments"
-	"github.com/primandproper/platform-go/v14/comments/commentspb"
-	commentsgrpc "github.com/primandproper/platform-go/v14/comments/grpc"
-	"github.com/primandproper/platform-go/v14/outbox"
+	platformaudit "github.com/primandproper/platform-go/v15/audit"
+	platformcomments "github.com/primandproper/platform-go/v15/comments"
+	"github.com/primandproper/platform-go/v15/comments/commentspb"
+	commentsgrpc "github.com/primandproper/platform-go/v15/comments/grpc"
 	"github.com/primandproper/primitives-go/v2/database"
-	"github.com/primandproper/primitives-go/v2/database/dialect"
 	"github.com/primandproper/primitives-go/v2/database/postgres"
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/identifiers"
 	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
 	metricsnoop "github.com/primandproper/primitives-go/v2/observability/metrics/noop"
 	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -46,11 +43,11 @@ import (
 //	    ...
 //	})
 //
-// So this package's decorator runs inside the server's transaction, and the two
-// statements it adds belong to that transaction. Before v14 they could not: the
-// store owned its own transaction and had already committed by the time the
-// decorator ran, which is what every `record` helper in these repositories used
-// to say in a comment.
+// So this package's hooks, which the store calls on the transaction it was
+// handed, run inside the server's transaction, and the two statements they add
+// belong to that transaction. Before v14 they could not: the store owned its own
+// transaction and had already committed by the time anything here ran, which is
+// what every `record` helper in these repositories used to say in a comment.
 //
 // Reading the signatures is not proof. These two tests are.
 
@@ -58,13 +55,13 @@ import (
 //
 // Embedded rather than mocked, so every other method is the actual one and the
 // only difference from production is the failure being induced.
-type failingAuditRepository struct {
-	audit.Repository
+type failingAuditRecorder struct {
+	platformaudit.Recorder
 
 	err error
 }
 
-func (f *failingAuditRepository) Record(context.Context, database.Tx, ...*audit.AuditLogEntry) error {
+func (f *failingAuditRecorder) Record(context.Context, database.Tx, tenancy.Scope, ...*platformaudit.Entry) error {
 	return f.err
 }
 
@@ -73,18 +70,17 @@ func (f *failingAuditRepository) Record(context.Context, database.Tx, ...*audit.
 type commentsFixture struct {
 	server commentspb.CommentsServiceServer
 	store  platformcomments.Store
-	audits audit.Repository
 	db     database.Client
 }
 
 // buildFixture wires the stack.
 //
 // decorate is how a test induces a failure in one of the three statements the
-// transaction carries: it is handed the actual audit repository and returns
-// whatever the repository should actually be given. Everything else is
+// transaction carries: it is handed the actual audit recorder and returns
+// whatever the recording spine should actually be given. Everything else is
 // production wiring — the same store constructor, the same emitter, the same
 // server.
-func buildFixture(t *testing.T, decorate func(audit.Repository) audit.Repository) *commentsFixture {
+func buildFixture(t *testing.T, decorate func(platformaudit.Recorder) platformaudit.Recorder) *commentsFixture {
 	t.Helper()
 
 	ctx := t.Context()
@@ -101,28 +97,20 @@ func buildFixture(t *testing.T, decorate func(audit.Repository) audit.Repository
 		loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), metricsnoop.NewMetricsProvider(), db)
 	require.NoError(t, err)
 
-	recording := audits
+	auditRecorder, ok := auditlogentries.RecorderFrom(audits)
+	require.True(t, ok)
 	if decorate != nil {
-		recording = decorate(audits)
+		auditRecorder = decorate(auditRecorder)
 	}
 
-	// A actual writer against the actual table, because an outbox row that rolls back
-	// is the half of the claim a fake emitter could not demonstrate.
-	writer, err := outbox.NewWriter(dialect.Postgres,
-		outbox.WithWriterLogger(loggingnoop.NewLogger()),
-		outbox.WithWriterTracerProvider(tracingnoop.NewTracerProvider()))
-	require.NoError(t, err)
-
-	emitter := events.NewEmitter(writer, "data_changes", nil, nil)
-	require.NotNil(t, emitter)
-
+	// The actual recording spine against the actual tables, because an outbox row that rolls
+	// back is the half of the claim a fake emitter could not demonstrate.
 	store, err := ProvideCommentsRepository(
 		loggingnoop.NewLogger(),
 		tracingnoop.NewTracerProvider(),
 		metricsnoop.NewMetricsProvider(),
-		recording,
 		db,
-		emitter,
+		pgtesting.NewRecorderForTest(t, ctx, db, auditRecorder),
 		commentsbuild.Catalog(),
 	)
 	require.NoError(t, err)
@@ -133,9 +121,7 @@ func buildFixture(t *testing.T, decorate func(audit.Repository) audit.Repository
 		commentsgrpc.WithMetricsProvider(metricsnoop.NewMetricsProvider()))
 	require.NoError(t, err)
 
-	// audits, not recording: a test asserting on the log reads through the real
-	// repository even when the one the write was given is the failing one.
-	return &commentsFixture{server: server, store: store, audits: audits, db: db}
+	return &commentsFixture{server: server, store: store, db: db}
 }
 
 // callerContext puts a session on the context, which is what
@@ -166,7 +152,7 @@ func (f *commentsFixture) rootsOn(t *testing.T, ctx context.Context, targetID st
 
 	target := platformcomments.Target{Type: mealplanning.CommentTargetTypeRecipes, ID: targetID}
 
-	page, err := f.store.ListRootComments(ctx, f.db.Reader(), ddbcomments.Scope(), target, nil)
+	page, err := f.store.ListRootComments(ctx, f.db.Reader(), tenancy.Global(), target, nil)
 	require.NoError(t, err)
 
 	return len(page.Data)
@@ -211,10 +197,10 @@ func TestServer_Integration_RecordingCommitsWithTheWrite(T *testing.T) {
 		// The row.
 		assert.Equal(t, 1, fixture.rootsOn(t, ctx, targetID))
 
-		// The entry, filed under the author — written by this package's decorator,
+		// The entry, filed under the author — written by this package's hooks,
 		// inside platform's transaction.
-		pgtesting.AssertAuditLogContainsForUser(t, ctx, fixture.audits, user.ID, []*audit.AuditLogEntry{
-			{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeComments, RelevantID: commentID},
+		pgtesting.AssertAuditLogContainsForUser(t, ctx, fixture.db, user.ID, []pgtesting.ExpectedAuditEntry{
+			{EventType: platformaudit.EventCreated, ResourceType: platformcomments.ResourceTypeComment, ResourceID: commentID},
 		})
 
 		// The event.
@@ -240,8 +226,8 @@ func TestServer_Integration_RecordingRollsBackWithTheWrite(T *testing.T) {
 
 		errAuditUnavailable := platformerrors.New("audit log is unavailable")
 
-		fixture := buildFixture(t, func(actual audit.Repository) audit.Repository {
-			return &failingAuditRepository{Repository: actual, err: errAuditUnavailable}
+		fixture := buildFixture(t, func(actual platformaudit.Recorder) platformaudit.Recorder {
+			return &failingAuditRecorder{Recorder: actual, err: errAuditUnavailable}
 		})
 
 		user := pgtesting.CreateUserForTest(t, nil, fixture.db.Writer())
@@ -287,9 +273,8 @@ func TestServer_Integration_AFailedWriteRecordsNothing(T *testing.T) {
 		require.Error(t, err)
 		assert.Nil(t, response)
 
-		entries, listErr := fixture.audits.GetAuditLogEntriesForUser(ctx, user.ID, nil)
-		require.NoError(t, listErr)
-		assert.Empty(t, entries.Data, "a refused write should have recorded no audit entry")
+		assert.Empty(t, pgtesting.AuditEntriesForActor(t, ctx, fixture.db, user.ID),
+			"a refused write should have recorded no audit entry")
 
 		assert.Zero(t, fixture.outboxDepth(t, ctx), "a refused write should have emitted no event")
 	})

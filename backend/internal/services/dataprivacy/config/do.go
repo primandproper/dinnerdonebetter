@@ -3,12 +3,11 @@ package config
 import (
 	"context"
 
-	ddbaudit "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
-	ddbdataprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 
-	platformdataprivacy "github.com/primandproper/platform-go/v14/dataprivacy"
-	platformdataprivacycfg "github.com/primandproper/platform-go/v14/dataprivacy/config"
-	"github.com/primandproper/platform-go/v14/operations"
+	platformdataprivacy "github.com/primandproper/platform-go/v15/dataprivacy"
+	platformdataprivacycfg "github.com/primandproper/platform-go/v15/dataprivacy/config"
+	"github.com/primandproper/platform-go/v15/operations"
 	"github.com/primandproper/primitives-go/v2/compression"
 	"github.com/primandproper/primitives-go/v2/cryptography/encryption"
 	encryptioncfg "github.com/primandproper/primitives-go/v2/cryptography/encryption/config"
@@ -175,9 +174,9 @@ func RegisterRequestService(i do.Injector) {
 // happens to be benign.
 func PlatformConfig(cfg *Config, client database.Client) *platformdataprivacycfg.Config {
 	requests := cfg.Requests
-	requests.TablePrefix = ddbdataprivacy.TablePrefix
+	requests.TablePrefix = branding.TablePrefix
 	requests.Dialect = client.Dialect()
-	requests.AuditErasure.TablePrefix = ddbaudit.TablePrefix
+	requests.AuditErasure.TablePrefix = branding.TablePrefix
 
 	return &requests
 }

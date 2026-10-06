@@ -1,15 +1,25 @@
+/*
+Package settings is platform-go's settings store, recording through platform's hooks.
+
+The catalog and the values are platform's, and so is the recording: settings.RecordingHooks
+writes an audit entry and emits an event for every write, on the write's transaction, through the
+recording.Recorder this application registers. A value's entries are filed under the person whose
+setting it is, because the Recorder files by subject; a definition's are filed where the write
+ran, because a definition belongs to nobody.
+
+What this package still decides is the table prefix, which has to match the prefix the migration
+was rendered with — see renderSettingsDDL.
+*/
 package settings
 
 import (
 	"context"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
-	ddbsettings "github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/recording"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 
-	platformsettings "github.com/primandproper/platform-go/v14/settings"
-	settingscfg "github.com/primandproper/platform-go/v14/settings/config"
+	platformrecording "github.com/primandproper/platform-go/v15/recording"
+	platformsettings "github.com/primandproper/platform-go/v15/settings"
+	settingscfg "github.com/primandproper/platform-go/v15/settings/config"
 	"github.com/primandproper/primitives-go/v2/database"
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
@@ -17,57 +27,36 @@ import (
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
 )
 
-const (
-	o11yName = "settings_db_client"
-)
-
-// repository is platform's settings store with this application's recording
-// around it.
+// ProvideSettingsRepository provides platform's settings store, with platform's recording hooks
+// on its writes.
 //
-// The store is embedded rather than held in a named field so that the reads —
-// the catalog, a subject's answers, and every resolution — are the platform's own
-// rather than forwarding stubs that could drift from it.
-type repository struct {
-	platformsettings.Store
-	tracer   tracing.Tracer
-	logger   logging.Logger
-	recorder *recording.Recorder
-}
-
-// ProvideSettingsRepository provides a new settings store.
-//
-// The store is assembled through platform's own settings/config rather than by
-// naming settings.NewSQLStore's options here, so the knobs are stated once
-// upstream. The table prefix is the one thing this application decides, and it
-// has to match the prefix the migration was rendered with — see
-// internal/repositories/postgres/migrations.
+// The store is assembled through platform's own settings/config rather than by naming
+// settings.NewSQLStore's options here, so the knobs are stated once upstream.
 func ProvideSettingsRepository(
 	ctx context.Context,
 	logger logging.Logger,
 	tracerProvider tracing.Provider,
 	metricsProvider metrics.Provider,
-	auditLogEntryRepo audit.Repository,
 	client database.Client,
-	eventEmitter *events.Emitter,
+	recorder *platformrecording.Recorder,
 ) (platformsettings.Store, error) {
+	hooks, err := platformsettings.NewRecordingHooks(recorder)
+	if err != nil {
+		return nil, platformerrors.Wrap(err, "building the settings recording hooks")
+	}
+
 	store, err := settingscfg.NewStore(
 		ctx,
-		&settingscfg.Config{TablePrefix: ddbsettings.TablePrefix},
+		&settingscfg.Config{TablePrefix: branding.TablePrefix},
 		client,
 		settingscfg.WithLogger(logger),
 		settingscfg.WithTracerProvider(tracerProvider),
 		settingscfg.WithMetricsProvider(metricsProvider),
+		settingscfg.WithStoreOptions(platformsettings.WithHooks(hooks)),
 	)
 	if err != nil {
 		return nil, platformerrors.Wrap(err, "building the settings store")
 	}
 
-	tracer := tracing.NewNamedTracer(tracerProvider, o11yName)
-
-	return &repository{
-		Store:    store,
-		tracer:   tracer,
-		logger:   logging.NewNamedLogger(logger, o11yName),
-		recorder: recording.NewRecorder(tracer, auditLogEntryRepo, eventEmitter),
-	}, nil
+	return store, nil
 }

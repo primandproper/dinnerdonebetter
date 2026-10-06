@@ -7,17 +7,16 @@ import (
 	"strings"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
-	ddbuploadedmedia "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc/interceptors"
 
-	"github.com/primandproper/platform-go/v14/callers"
-	platformdataprivacy "github.com/primandproper/platform-go/v14/dataprivacy"
-	dataprivacyhttp "github.com/primandproper/platform-go/v14/dataprivacy/http"
-	platformidentity "github.com/primandproper/platform-go/v14/identity"
-	"github.com/primandproper/platform-go/v14/mediaregistry"
-	mediaregistryhttp "github.com/primandproper/platform-go/v14/mediaregistry/http"
-	"github.com/primandproper/platform-go/v14/operations"
-	operationshttp "github.com/primandproper/platform-go/v14/operations/http"
+	"github.com/primandproper/platform-go/v15/callers"
+	platformdataprivacy "github.com/primandproper/platform-go/v15/dataprivacy"
+	dataprivacyhttp "github.com/primandproper/platform-go/v15/dataprivacy/http"
+	platformidentity "github.com/primandproper/platform-go/v15/identity"
+	"github.com/primandproper/platform-go/v15/mediaregistry"
+	mediaregistryhttp "github.com/primandproper/platform-go/v15/mediaregistry/http"
+	"github.com/primandproper/platform-go/v15/operations"
+	operationshttp "github.com/primandproper/platform-go/v15/operations/http"
 	authzhttp "github.com/primandproper/primitives-go/v2/authorization/http"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
@@ -205,5 +204,5 @@ func objectCaller(ctx context.Context) (mediaregistryhttp.Caller, error) {
 		return mediaregistryhttp.Caller{}, callers.ErrNoPrincipal
 	}
 
-	return mediaregistryhttp.Caller{PrincipalID: userID, Scope: ddbuploadedmedia.Scope()}, nil
+	return mediaregistryhttp.Caller{PrincipalID: userID, Scope: tenancy.Global()}, nil
 }

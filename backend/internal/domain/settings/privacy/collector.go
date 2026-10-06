@@ -16,8 +16,8 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings"
 
-	platformdataprivacy "github.com/primandproper/platform-go/v14/dataprivacy"
-	platformsettings "github.com/primandproper/platform-go/v14/settings"
+	platformdataprivacy "github.com/primandproper/platform-go/v15/dataprivacy"
+	platformsettings "github.com/primandproper/platform-go/v15/settings"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/filtering"
 	"github.com/primandproper/primitives-go/v2/tenancy"
@@ -35,9 +35,9 @@ import (
 //
 // The reader is taken at construction because dataprivacy.Collector.Collect is
 // handed no executor. The request scope is not consulted: every value this
-// deployment stores is in settings.Scope.
+// deployment stores is in the global scope; see the settings package documentation.
 func NewCollector(store platformsettings.ValueStore, reader database.SQLQueryExecutor) platformdataprivacy.Collector {
 	return platformdataprivacy.CollectorFor(func(ctx context.Context, _ tenancy.Scope, subject platformdataprivacy.Subject, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[platformsettings.Value], error) {
-		return store.ListValuesForSubject(ctx, reader, settings.Scope(), settings.SubjectFor(subject.ID), filter)
+		return store.ListValuesForSubject(ctx, reader, tenancy.Global(), settings.SubjectFor(subject.ID), filter)
 	})
 }

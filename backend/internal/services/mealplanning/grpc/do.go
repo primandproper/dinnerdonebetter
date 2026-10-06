@@ -5,8 +5,8 @@ import (
 	mealplanningsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
 	mealplanfinalization "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_finalization"
 
-	comments "github.com/primandproper/platform-go/v14/comments"
-	"github.com/primandproper/platform-go/v14/mediaregistry"
+	comments "github.com/primandproper/platform-go/v15/comments"
+	"github.com/primandproper/platform-go/v15/mediaregistry"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"

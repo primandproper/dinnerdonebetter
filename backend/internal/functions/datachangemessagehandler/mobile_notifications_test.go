@@ -8,9 +8,9 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 
-	platformnotifs "github.com/primandproper/platform-go/v14/notifications"
-	platformnotificationsmock "github.com/primandproper/platform-go/v14/notifications/mock"
-	"github.com/primandproper/platform-go/v14/notifications/push"
+	platformnotifs "github.com/primandproper/platform-go/v15/notifications"
+	platformnotificationsmock "github.com/primandproper/platform-go/v15/notifications/mock"
+	"github.com/primandproper/platform-go/v15/notifications/push"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/fake"
 	notifications "github.com/primandproper/primitives-go/v2/notifications/mobile"
@@ -45,7 +45,7 @@ func TestMobileNotificationsEventHandler(t *testing.T) {
 	t.Run("household invitation accepted pushes to every recipient", func(t *testing.T) {
 		t.Parallel()
 
-		handler, _, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
+		handler, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
 
 		recipient := fake.BuildFakeID()
 		devices := &platformnotificationsmock.RegistryMock{}
@@ -82,7 +82,7 @@ func TestMobileNotificationsEventHandler(t *testing.T) {
 	t.Run("household invitation accepted succeeds with no registered devices", func(t *testing.T) {
 		t.Parallel()
 
-		handler, _, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
+		handler, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
 
 		devices := &platformnotificationsmock.RegistryMock{}
 		withFanoutOver(t, handler, devices)
@@ -106,7 +106,7 @@ func TestMobileNotificationsEventHandler(t *testing.T) {
 	t.Run("invalid JSON", func(t *testing.T) {
 		t.Parallel()
 
-		handler, _, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
+		handler, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
 
 		err := handler.MobileNotificationsEventHandler("mobile_notifications")(t.Context(), []byte("not json"))
 
@@ -117,7 +117,7 @@ func TestMobileNotificationsEventHandler(t *testing.T) {
 	t.Run("missing title", func(t *testing.T) {
 		t.Parallel()
 
-		handler, _, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
+		handler, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
 
 		req := notifications.MobileNotificationRequest{
 			RequestType:      identity.MobileNotificationRequestTypeHouseholdInvitationAccepted,
@@ -137,7 +137,7 @@ func TestMobileNotificationsEventHandler(t *testing.T) {
 	t.Run("missing body", func(t *testing.T) {
 		t.Parallel()
 
-		handler, _, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
+		handler, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
 
 		req := notifications.MobileNotificationRequest{
 			RequestType:      identity.MobileNotificationRequestTypeHouseholdInvitationAccepted,
@@ -157,7 +157,7 @@ func TestMobileNotificationsEventHandler(t *testing.T) {
 	t.Run("missing request type", func(t *testing.T) {
 		t.Parallel()
 
-		handler, _, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
+		handler, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
 
 		req := notifications.MobileNotificationRequest{
 			RecipientUserIDs: []string{fake.BuildFakeID()},
@@ -179,7 +179,7 @@ func TestMobileNotificationsEventHandler(t *testing.T) {
 	t.Run("unknown request type", func(t *testing.T) {
 		t.Parallel()
 
-		handler, _, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
+		handler, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
 
 		req := notifications.MobileNotificationRequest{
 			RequestType:      "meal_plan_task",

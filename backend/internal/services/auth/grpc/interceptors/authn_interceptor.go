@@ -16,12 +16,11 @@ import (
 	passwordresetbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/passwordreset"
 	signinbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/signin"
 	waitlistsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/waitlists"
-	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 
-	"github.com/primandproper/platform-go/v14/authentication/signin"
-	"github.com/primandproper/platform-go/v14/authentication/signin/signinpb"
-	platformidentity "github.com/primandproper/platform-go/v14/identity"
-	"github.com/primandproper/platform-go/v14/identity/identitypb"
+	"github.com/primandproper/platform-go/v15/authentication/signin"
+	"github.com/primandproper/platform-go/v15/authentication/signin/signinpb"
+	platformidentity "github.com/primandproper/platform-go/v15/identity"
+	"github.com/primandproper/platform-go/v15/identity/identitypb"
 	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
 	"github.com/primandproper/primitives-go/v2/authentication/tokens"
 	"github.com/primandproper/primitives-go/v2/database"
@@ -244,7 +243,7 @@ func (s *AuthInterceptor) signInSessionContextData(
 
 	logger := s.logger.WithSpan(span)
 
-	if issuedIn != ddbidentity.Scope().Owner() {
+	if issuedIn != tenancy.Global().Owner() {
 		return nil, Unauthenticated("token was issued in another directory")
 	}
 
@@ -257,7 +256,7 @@ func (s *AuthInterceptor) signInSessionContextData(
 	// or a detected reuse stops this access token at once rather than when it expires — the
 	// same promise a token this application mints keeps through its session row.
 	if s.signIns != nil {
-		if err := s.signIns.CheckSignIn(ctx, ddbidentity.Scope(), familyID, claims.JTI()); err != nil {
+		if err := s.signIns.CheckSignIn(ctx, tenancy.Global(), familyID, claims.JTI()); err != nil {
 			logger.WithValue("signin.family_id", familyID).Info("refusing a token whose sign-in has ended")
 			return nil, Unauthenticated("sign-in has ended")
 		}
@@ -311,7 +310,7 @@ func (s *AuthInterceptor) applyImpersonator(ctx context.Context, claims tokens.C
 	}
 
 	// This application has one directory, operators and customers alike.
-	if actorScope != ddbidentity.Scope().Owner() {
+	if actorScope != tenancy.Global().Owner() {
 		return Unauthenticated("token names an operator in another directory")
 	}
 

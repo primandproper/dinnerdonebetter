@@ -14,24 +14,22 @@ import (
 	"time"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
-	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	internalopssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/internalops"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/indexevents"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/localdev"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identitystore"
+	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
 
-	"github.com/primandproper/platform-go/v14/authentication/signin/signinpb"
-	identity "github.com/primandproper/platform-go/v14/identity"
-	"github.com/primandproper/platform-go/v14/identity/identitypb"
-	"github.com/primandproper/platform-go/v14/outbox"
+	"github.com/primandproper/platform-go/v15/authentication/signin/signinpb"
+	identity "github.com/primandproper/platform-go/v15/identity"
+	"github.com/primandproper/platform-go/v15/identity/identitypb"
 	"github.com/primandproper/primitives-go/v2/database"
-	"github.com/primandproper/primitives-go/v2/database/dialect"
 	"github.com/primandproper/primitives-go/v2/identifiers"
 	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
 	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/pquerna/otp/totp"
 	"github.com/stretchr/testify/assert"
@@ -551,7 +549,7 @@ func inviteForTest(t *testing.T, fromUserID, accountID, toEmail string) *identit
 	// an argument that reads like a choice somebody made.
 	roles := []string{authorization.AccountMemberRoleName}
 
-	invitation, err := identityDirectoryWithHooks(t).Invite(ctx, ddbidentity.Scope(), &identity.Invitation{
+	invitation, err := identityDirectoryWithHooks(t).Invite(ctx, tenancy.Global(), &identity.Invitation{
 		BelongsToAccount: accountID,
 		FromUser:         fromUserID,
 		ToEmail:          toEmail,
@@ -568,27 +566,29 @@ func inviteForTest(t *testing.T, fromUserID, accountID, toEmail string) *identit
 }
 
 // identityDirectoryWithHooks builds the directory service this suite issues invitations
-// through: the same store the server holds, with the same hooks, over the same database.
+// through: the same store the server holds, with the same hooks and invitation mailer, over the
+// same database.
 func identityDirectoryWithHooks(t *testing.T) *identity.Service {
 	t.Helper()
 
 	auditLogRepo, err := auditlogentries.ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, databaseClient)
 	require.NoError(t, err)
 
-	outboxWriter, err := outbox.NewWriter(dialect.Postgres, outbox.WithWriterSideEffect(indexevents.SideEffectName, indexevents.SideEffect))
+	auditRecorder, ok := auditlogentries.RecorderFrom(auditLogRepo)
+	require.True(t, ok)
+
+	store, err := identity.NewSQLStore(databaseClient, identity.WithTablePrefix(branding.TablePrefix))
 	require.NoError(t, err)
 
-	store, err := identity.NewSQLStore(databaseClient, identity.WithTablePrefix(ddbidentity.TablePrefix))
+	emitter := pgtesting.NewEmitterForTest(t, t.Context(), databaseClient, auditRecorder)
+
+	hooks, err := identitystore.ProvideHooks(emitter)
 	require.NoError(t, err)
 
-	directory, err := identity.NewService(databaseClient, store,
-		identity.WithHooks(identitystore.ProvideHooks(
-			loggingnoop.NewLogger(),
-			tracingnoop.NewTracerProvider(),
-			auditLogRepo,
-			events.NewEmitter(outboxWriter, apiServiceConfig.Queues.DataChangesTopicName, nil, indexevents.SideEffect),
-		)),
-	)
+	mailer, err := identitystore.NewInvitationMailer(loggingnoop.NewLogger(), databaseClient, emitter)
+	require.NoError(t, err)
+
+	directory, err := identity.NewService(databaseClient, store, identity.WithHooks(hooks), identity.WithInvitationMailer(mailer))
 	require.NoError(t, err)
 
 	return directory
@@ -620,11 +620,11 @@ func verifyEmailAddressForTest(t *testing.T, userID string) {
 	t.Helper()
 	ctx := t.Context()
 
-	store, err := identity.NewSQLStore(databaseClient, identity.WithTablePrefix(ddbidentity.TablePrefix))
+	store, err := identity.NewSQLStore(databaseClient, identity.WithTablePrefix(branding.TablePrefix))
 	require.NoError(t, err)
 
 	require.NoError(t, databaseClient.WithTransaction(ctx, func(tx database.Tx) error {
-		return store.MarkUserEmailAddressProven(ctx, tx, ddbidentity.Scope(), userID)
+		return store.MarkUserEmailAddressProven(ctx, tx, tenancy.Global(), userID)
 	}))
 }
 

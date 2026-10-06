@@ -6,8 +6,8 @@ import (
 	uploadedmediasvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/testutils"
 
-	registrymock "github.com/primandproper/platform-go/v14/mediaregistry/mock"
-	meteringmock "github.com/primandproper/platform-go/v14/metering/mock"
+	registrymock "github.com/primandproper/platform-go/v15/mediaregistry/mock"
+	meteringmock "github.com/primandproper/platform-go/v15/metering/mock"
 	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
 	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
 	mockuploads "github.com/primandproper/primitives-go/v2/uploads/mock"

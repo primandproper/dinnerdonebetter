@@ -5,8 +5,8 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 
-	auditgrpc "github.com/primandproper/platform-go/v14/audit/auditpb"
-	"github.com/primandproper/platform-go/v14/identity/identitypb"
+	auditgrpc "github.com/primandproper/platform-go/v15/audit/auditpb"
+	"github.com/primandproper/platform-go/v15/identity/identitypb"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

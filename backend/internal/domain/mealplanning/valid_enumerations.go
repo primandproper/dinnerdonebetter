@@ -3,7 +3,7 @@ package mealplanning
 import (
 	"context"
 
-	"github.com/primandproper/platform-go/v14/mediaregistry"
+	"github.com/primandproper/platform-go/v15/mediaregistry"
 )
 
 type (

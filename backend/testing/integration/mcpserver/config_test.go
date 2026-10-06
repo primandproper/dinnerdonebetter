@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
-	ddboauth "github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
 
-	oauth2servercfg "github.com/primandproper/platform-go/v14/authentication/oauth2serverstore/config"
+	oauth2servercfg "github.com/primandproper/platform-go/v15/authentication/oauth2serverstore/config"
 	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
 
 	"github.com/stretchr/testify/assert"
@@ -68,7 +68,7 @@ func TestMCPServer_Configuration(T *testing.T) {
 		// prefix that drifted from the one migration 33 rendered its DDL with would be a
 		// server that comes up clean and cannot find a table.
 		require.Equal(t, oauth2servercfg.ProviderDatabase, mcpServiceConfig.OAuth2.Provider)
-		require.Equal(t, ddboauth.TablePrefix, mcpServiceConfig.OAuth2.Database.TablePrefix)
+		require.Equal(t, branding.TablePrefix, mcpServiceConfig.OAuth2.Database.TablePrefix)
 
 		registration := primary.registerClient(t)
 
@@ -77,7 +77,7 @@ func TestMCPServer_Configuration(T *testing.T) {
 		// only at the config would expect to find it.
 		var found int
 		require.NoError(t, rawDB.QueryRowContext(t.Context(),
-			fmt.Sprintf(`SELECT COUNT(*) FROM %s_oauth2_clients WHERE id = $1`, ddboauth.TablePrefix),
+			fmt.Sprintf(`SELECT COUNT(*) FROM %s_oauth2_clients WHERE id = $1`, branding.TablePrefix),
 			registration.ClientID).Scan(&found))
 
 		assert.Equal(t, 1, found)

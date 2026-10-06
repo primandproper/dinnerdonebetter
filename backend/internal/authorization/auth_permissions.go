@@ -1,7 +1,7 @@
 package authorization
 
 import (
-	signingrpc "github.com/primandproper/platform-go/v14/authentication/signin/grpc"
+	signingrpc "github.com/primandproper/platform-go/v15/authentication/signin/grpc"
 )
 
 // What is left here after the identity adoption: the two authority questions that

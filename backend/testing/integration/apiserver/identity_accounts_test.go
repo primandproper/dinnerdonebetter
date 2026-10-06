@@ -7,8 +7,9 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 
-	"github.com/primandproper/platform-go/v14/identity/identitypb"
-	webhookspb "github.com/primandproper/platform-go/v14/webhooks/webhookspb"
+	identity "github.com/primandproper/platform-go/v15/identity"
+	"github.com/primandproper/platform-go/v15/identity/identitypb"
+	webhookspb "github.com/primandproper/platform-go/v15/webhooks/webhookspb"
 	"github.com/primandproper/primitives-go/v2/pointer"
 
 	"github.com/stretchr/testify/assert"
@@ -55,8 +56,8 @@ func TestAccounts_Creating(T *testing.T) {
 
 		createdAccount := createAccountForTest(t, testClient)
 
-		AssertAuditLogContainsFuzzyForResource(t, ctx, "accounts", createdAccount.GetId(), 10, []*ExpectedAuditEntry{
-			{EventType: "created", ResourceType: "accounts", RelevantID: createdAccount.GetId()},
+		AssertAuditLogContainsFuzzyForResource(t, ctx, identity.ResourceTypeAccount, createdAccount.GetId(), 10, []*ExpectedAuditEntry{
+			{EventType: "created", ResourceType: identity.ResourceTypeAccount, RelevantID: createdAccount.GetId()},
 		})
 	})
 }
@@ -88,8 +89,8 @@ func TestAccounts_Updating(T *testing.T) {
 		assert.Equal(t, "Updated name", updated.GetAccount().GetName())
 
 		AssertAuditLogContainsFuzzy(t, ctx, testClient, createdAccount.GetId(), 10, []*ExpectedAuditEntry{
-			{EventType: "created", ResourceType: "accounts", RelevantID: createdAccount.GetId()},
-			{EventType: "updated", ResourceType: "accounts", RelevantID: createdAccount.GetId()},
+			{EventType: "created", ResourceType: identity.ResourceTypeAccount, RelevantID: createdAccount.GetId()},
+			{EventType: "updated", ResourceType: identity.ResourceTypeAccount, RelevantID: createdAccount.GetId()},
 		})
 	})
 }
@@ -112,9 +113,9 @@ func TestAccounts_Archiving(T *testing.T) {
 
 		// By resource rather than by chain: the account just created is one the caller is
 		// not inside, so its entries are not on any chain this session can read.
-		AssertAuditLogContainsFuzzyForResource(t, ctx, "accounts", createdAccount.GetId(), 10, []*ExpectedAuditEntry{
-			{EventType: "created", ResourceType: "accounts", RelevantID: createdAccount.GetId()},
-			{EventType: "archived", ResourceType: "accounts", RelevantID: createdAccount.GetId()},
+		AssertAuditLogContainsFuzzyForResource(t, ctx, identity.ResourceTypeAccount, createdAccount.GetId(), 10, []*ExpectedAuditEntry{
+			{EventType: "created", ResourceType: identity.ResourceTypeAccount, RelevantID: createdAccount.GetId()},
+			{EventType: "archived", ResourceType: identity.ResourceTypeAccount, RelevantID: createdAccount.GetId()},
 		})
 	})
 }
@@ -139,7 +140,7 @@ func TestAccounts_Inviting(T *testing.T) {
 		invitation := inviteForTest(t, selfIDForTest(t, testClient), accountID, input.GetUser().GetEmailAddress())
 
 		AssertAuditLogContainsFuzzy(t, ctx, testClient, accountID, 10, []*ExpectedAuditEntry{
-			{EventType: "created", ResourceType: "account_invitations", RelevantID: invitation.ID},
+			{EventType: "created", ResourceType: identity.ResourceTypeInvitation, RelevantID: invitation.ID},
 		})
 
 		_, err := inviteeClient.IdentityService().AcceptInvitation(ctx, &identitypb.AcceptInvitationRequest{
@@ -298,7 +299,7 @@ func TestAccounts_OwnershipTransfer(T *testing.T) {
 		// somebody are different acts, and doing both here would make the common case —
 		// handing over and staying on — impossible to express.
 		AssertAuditLogContainsFuzzy(t, ctx, testClient, accountID, 15, []*ExpectedAuditEntry{
-			{EventType: "updated", ResourceType: "accounts", RelevantID: accountID},
+			{EventType: "updated", ResourceType: identity.ResourceTypeAccount, RelevantID: accountID},
 		})
 	})
 }
@@ -352,9 +353,14 @@ func TestAccounts_RemovingMembers(T *testing.T) {
 
 		assert.Equal(t, inviteeOwnAccountID, getAccountIDForTest(t, inviteeClient))
 
+		// The invitation is on the account's chain. The ended membership is filed under the
+		// member it was about — platform's subject for a membership entry — so it is read as
+		// the member, from the chains their session covers.
 		AssertAuditLogContainsFuzzy(t, ctx, ownerClient, accountID, 20, []*ExpectedAuditEntry{
-			{EventType: "created", ResourceType: "account_invitations", RelevantID: invitation.ID},
-			{EventType: "archived", ResourceType: "account_user_memberships"},
+			{EventType: "created", ResourceType: identity.ResourceTypeInvitation, RelevantID: invitation.ID},
+		})
+		AssertAuditLogContainsFuzzy(t, ctx, inviteeClient, inviteeOwnAccountID, 20, []*ExpectedAuditEntry{
+			{EventType: "archived", ResourceType: identity.ResourceTypeMembership},
 		})
 	})
 }

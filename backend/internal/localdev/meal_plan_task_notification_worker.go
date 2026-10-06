@@ -4,16 +4,16 @@ import (
 	"context"
 	"fmt"
 
-	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
 	notificationsstore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/notificationsstore"
 	mealplantasknotifications "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_task_notifications"
 
-	platformidentity "github.com/primandproper/platform-go/v14/identity"
-	"github.com/primandproper/platform-go/v14/notifications/push"
-	"github.com/primandproper/platform-go/v14/workqueue"
-	workqueuecfg "github.com/primandproper/platform-go/v14/workqueue/config"
+	platformidentity "github.com/primandproper/platform-go/v15/identity"
+	"github.com/primandproper/platform-go/v15/notifications/push"
+	"github.com/primandproper/platform-go/v15/workqueue"
+	workqueuecfg "github.com/primandproper/platform-go/v15/workqueue/config"
 	"github.com/primandproper/primitives-go/v2/database"
 	platformnotifications "github.com/primandproper/primitives-go/v2/notifications/mobile"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
@@ -64,7 +64,7 @@ func NewMealPlanTaskNotificationWorker(
 	}
 
 	identityStore, err := platformidentity.NewSQLStore(databaseClient,
-		platformidentity.WithTablePrefix(ddbidentity.TablePrefix),
+		platformidentity.WithTablePrefix(branding.TablePrefix),
 		platformidentity.WithStoreLogger(logger),
 		platformidentity.WithStoreTracerProvider(tracerProvider),
 	)
@@ -72,13 +72,20 @@ func NewMealPlanTaskNotificationWorker(
 		return nil, nil, err
 	}
 
-	mealPlanningRepo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditRepo, identityStore, databaseClient, nil, uploads)
-	notificationsRepo, err := notificationsstore.ProvideAdapter(ctx, logger, tracerProvider, metricsnoop.NewMetricsProvider(), auditRepo, nil, databaseClient)
+	// The recording spine both stores record through, built by hand because this worker is
+	// assembled outside the injector.
+	spine, err := Spine(ctx, databaseClient, auditRepo, logger, tracerProvider)
+	if err != nil {
+		return nil, nil, fmt.Errorf("building the recording spine: %w", err)
+	}
+
+	mealPlanningRepo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditRepo, identityStore, databaseClient, spine, uploads)
+	_, deviceRegistry, err := notificationsstore.ProvideStores(ctx, logger, tracerProvider, metricsProvider, spine.Recorder(), databaseClient)
 	if err != nil {
 		return nil, nil, fmt.Errorf("building notifications repository: %w", err)
 	}
 
-	fanout, err := push.NewFanout(notificationsRepo.Registry(), sender,
+	fanout, err := push.NewFanout(deviceRegistry, sender,
 		push.WithLogger(logger),
 		push.WithTracerProvider(tracerProvider),
 		push.WithMetricsProvider(metricsProvider))

@@ -97,7 +97,7 @@ So, per package:
 
 Every prefix-only config package is refused for the same reason, and it is worth stating once. A
 prefix has to match the prefix the migration was rendered with. Both come from one Go constant —
-`ddbcomments.TablePrefix` and its siblings — read by `internal/repositories/postgres/migrations`
+`branding.TablePrefix` — read by `internal/repositories/postgres/migrations`
 when it renders the DDL and by the store when it builds its statements. An environment variable
 that could set one of those without the other is a way to point a store at tables that do not
 exist, and the failure is at the first query rather than at boot.

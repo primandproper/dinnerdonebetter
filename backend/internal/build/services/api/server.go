@@ -9,7 +9,7 @@ import (
 	httpapi "github.com/primandproper/dinnerdonebetter/backend/internal/build/services/api/http"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 
-	"github.com/primandproper/platform-go/v14/service"
+	"github.com/primandproper/platform-go/v15/service"
 	"github.com/primandproper/primitives-go/v2/observability"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/profiling"

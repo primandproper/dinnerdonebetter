@@ -27,14 +27,14 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
-	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 
-	platformpasskeys "github.com/primandproper/platform-go/v14/authentication/passkeys"
-	passkeysgrpc "github.com/primandproper/platform-go/v14/authentication/passkeys/grpc"
-	"github.com/primandproper/platform-go/v14/authentication/passkeys/passkeyspb"
-	"github.com/primandproper/platform-go/v14/authentication/signin"
-	webauthncfg "github.com/primandproper/platform-go/v14/authentication/webauthnsessions/config"
-	platformidentity "github.com/primandproper/platform-go/v14/identity"
+	platformpasskeys "github.com/primandproper/platform-go/v15/authentication/passkeys"
+	passkeysgrpc "github.com/primandproper/platform-go/v15/authentication/passkeys/grpc"
+	"github.com/primandproper/platform-go/v15/authentication/passkeys/passkeyspb"
+	"github.com/primandproper/platform-go/v15/authentication/signin"
+	webauthncfg "github.com/primandproper/platform-go/v15/authentication/webauthnsessions/config"
+	platformidentity "github.com/primandproper/platform-go/v15/identity"
+	platformrecording "github.com/primandproper/platform-go/v15/recording"
 	platformwebauthn "github.com/primandproper/primitives-go/v2/authentication/webauthn"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
@@ -78,6 +78,14 @@ func RegisterPasskeysService(i do.Injector) {
 			return nil, err
 		}
 
+		// A passkey added or removed is a credential write, recorded on its own transaction
+		// as a password change is; a failed login records nothing, as a failed password
+		// sign-in does not. Both decisions are platform's RecordingHooks'.
+		hooks, err := platformpasskeys.NewRecordingHooks(do.MustInvoke[*platformrecording.Recorder](i))
+		if err != nil {
+			return nil, err
+		}
+
 		return platformpasskeys.NewService(
 			db,
 			store,
@@ -86,6 +94,7 @@ func RegisterPasskeysService(i do.Injector) {
 			platformpasskeys.WithEnrollmentGate(platformpasskeys.AdmitEveryEnrollment),
 			platformpasskeys.WithUsernameResolver(resolveUsername(directory, db)),
 			platformpasskeys.WithAlternativeSignIn(holdsPassword(directory)),
+			platformpasskeys.WithHooks(hooks),
 			platformpasskeys.WithServiceLogger(do.MustInvoke[logging.Logger](i)),
 			platformpasskeys.WithServiceTracerProvider(do.MustInvoke[tracing.Provider](i)),
 			platformpasskeys.WithServiceMetricsProvider(do.MustInvoke[metrics.Provider](i)),
@@ -102,7 +111,7 @@ func RegisterPasskeysService(i do.Injector) {
 			// is named anyway, so that the day this application's directory is scoped, passkeys
 			// follow it.
 			passkeysgrpc.WithScopeResolver(func(context.Context) (tenancy.Scope, error) {
-				return ddbidentity.Scope(), nil
+				return tenancy.Global(), nil
 			}),
 			passkeysgrpc.WithLogger(do.MustInvoke[logging.Logger](i)),
 			passkeysgrpc.WithTracerProvider(do.MustInvoke[tracing.Provider](i)),
@@ -135,7 +144,7 @@ func ProvidePasskeyConfig(cfg *config.APIServiceConfig) *webauthncfg.Config {
 // resolveHandle answers which user a WebAuthn handle names: the handle is their ID.
 func resolveHandle(directory platformidentity.Store, db database.Client) platformpasskeys.UserResolver {
 	return func(ctx context.Context, handle []byte) (platformpasskeys.UserIdentity, error) {
-		user, err := directory.GetUser(ctx, db.Reader(), ddbidentity.Scope(), string(handle))
+		user, err := directory.GetUser(ctx, db.Reader(), tenancy.Global(), string(handle))
 		if err != nil {
 			return platformpasskeys.UserIdentity{}, err
 		}

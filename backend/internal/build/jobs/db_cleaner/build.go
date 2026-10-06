@@ -8,7 +8,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/internalops"
 	dbcleaner "github.com/primandproper/dinnerdonebetter/backend/internal/services/oauth/workers/db_cleaner"
 
-	oauth2servercfg "github.com/primandproper/platform-go/v14/authentication/oauth2serverstore/config"
+	oauth2servercfg "github.com/primandproper/platform-go/v15/authentication/oauth2serverstore/config"
 	databasecfg "github.com/primandproper/primitives-go/v2/database/config"
 	"github.com/primandproper/primitives-go/v2/database/postgres"
 	"github.com/primandproper/primitives-go/v2/observability"

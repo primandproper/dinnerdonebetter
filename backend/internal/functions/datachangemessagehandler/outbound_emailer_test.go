@@ -20,7 +20,7 @@ func TestAsyncDataChangeMessageHandler_OutboundEmailsEventHandler(t *testing.T) 
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		handler, _, _, _, analyticsEventReporter, emailer, _, _ := buildTestAsyncDataChangeMessageHandler(t)
+		handler, _, _, _, analyticsEventReporter, emailer, _ := buildTestAsyncDataChangeMessageHandler(t)
 
 		ctx := t.Context()
 
@@ -47,7 +47,7 @@ func TestAsyncDataChangeMessageHandler_OutboundEmailsEventHandler(t *testing.T) 
 	t.Run("with invalid JSON", func(t *testing.T) {
 		t.Parallel()
 
-		handler, _, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
+		handler, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
 
 		ctx := t.Context()
 		rawMsg := []byte("invalid json")
@@ -60,7 +60,7 @@ func TestAsyncDataChangeMessageHandler_OutboundEmailsEventHandler(t *testing.T) 
 	t.Run("with email sending error", func(t *testing.T) {
 		t.Parallel()
 
-		handler, _, _, _, _, emailer, _, _ := buildTestAsyncDataChangeMessageHandler(t)
+		handler, _, _, _, _, emailer, _ := buildTestAsyncDataChangeMessageHandler(t)
 
 		ctx := t.Context()
 
@@ -88,7 +88,7 @@ func TestAsyncDataChangeMessageHandler_OutboundEmailsEventHandler(t *testing.T) 
 	t.Run("with analytics error", func(t *testing.T) {
 		t.Parallel()
 
-		handler, _, _, _, analyticsEventReporter, emailer, _, _ := buildTestAsyncDataChangeMessageHandler(t)
+		handler, _, _, _, analyticsEventReporter, emailer, _ := buildTestAsyncDataChangeMessageHandler(t)
 
 		ctx := t.Context()
 
@@ -120,7 +120,7 @@ func TestAsyncDataChangeMessageHandler_handleEmailRequest(t *testing.T) {
 	t.Run("with nil email message", func(t *testing.T) {
 		t.Parallel()
 
-		handler, _, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
+		handler, _, _, _, _, _, _ := buildTestAsyncDataChangeMessageHandler(t)
 
 		ctx := t.Context()
 
@@ -132,7 +132,7 @@ func TestAsyncDataChangeMessageHandler_handleEmailRequest(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		handler, _, _, _, analyticsEventReporter, emailer, _, _ := buildTestAsyncDataChangeMessageHandler(t)
+		handler, _, _, _, analyticsEventReporter, emailer, _ := buildTestAsyncDataChangeMessageHandler(t)
 
 		ctx := t.Context()
 
@@ -156,7 +156,7 @@ func TestAsyncDataChangeMessageHandler_handleEmailRequest(t *testing.T) {
 	t.Run("with email sending error", func(t *testing.T) {
 		t.Parallel()
 
-		handler, _, _, _, _, emailer, _, _ := buildTestAsyncDataChangeMessageHandler(t)
+		handler, _, _, _, _, emailer, _ := buildTestAsyncDataChangeMessageHandler(t)
 
 		ctx := t.Context()
 
@@ -181,7 +181,7 @@ func TestAsyncDataChangeMessageHandler_handleEmailRequest(t *testing.T) {
 	t.Run("with analytics error", func(t *testing.T) {
 		t.Parallel()
 
-		handler, _, _, _, analyticsEventReporter, emailer, _, _ := buildTestAsyncDataChangeMessageHandler(t)
+		handler, _, _, _, analyticsEventReporter, emailer, _ := buildTestAsyncDataChangeMessageHandler(t)
 
 		ctx := t.Context()
 

@@ -9,13 +9,12 @@ import (
 	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
 	mealplanningindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
-	platformidentity "github.com/primandproper/platform-go/v14/identity"
-	"github.com/primandproper/platform-go/v14/notifications/push"
-	searchsync "github.com/primandproper/platform-go/v14/searchsync"
+	platformidentity "github.com/primandproper/platform-go/v15/identity"
+	"github.com/primandproper/platform-go/v15/notifications/push"
+	searchsync "github.com/primandproper/platform-go/v15/searchsync"
 	"github.com/primandproper/primitives-go/v2/analytics"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/email"
-	"github.com/primandproper/primitives-go/v2/encoding"
 	"github.com/primandproper/primitives-go/v2/messagequeue"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/metrics"
@@ -40,7 +39,6 @@ func RegisterAsyncDataChangeMessageHandler(i do.Injector) {
 			do.MustInvoke[analytics.EventReporter](i),
 			do.MustInvoke[email.Emailer](i),
 			do.MustInvoke[metrics.Provider](i),
-			do.MustInvoke[encoding.ServerEncoderDecoder](i),
 			searchSyncers(i),
 			do.MustInvoke[mealplanning.Repository](i),
 			do.MustInvoke[*push.Fanout](i),

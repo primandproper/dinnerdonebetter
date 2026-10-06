@@ -4,44 +4,56 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/datachanges"
 	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	eatingemails "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/emails"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	queuemessages "github.com/primandproper/dinnerdonebetter/backend/internal/queues/messages"
 
-	platformidentity "github.com/primandproper/platform-go/v14/identity"
+	"github.com/primandproper/platform-go/v15/webhooks"
 	"github.com/primandproper/primitives-go/v2/observability"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
 // handleMealPlanningOutboundNotification handles outbound notifications for meal planning domain events.
 func (a *AsyncDataChangeMessageHandler) handleMealPlanningOutboundNotification(
 	ctx context.Context,
-	changeMessage *audit.DataChangeMessage,
-	_ *platformidentity.User,
+	event *webhooks.Envelope,
 ) (
 	handled bool,
 	emailType string,
 	outgoingMessages []*queuemessages.OutboundEmailMessage,
 	err error,
 ) {
-	if changeMessage.EventType != mealplanning.MealPlanCreatedServiceEventType {
+	if event.EventType != webhooks.EventType(mealplanning.MealPlanCreatedServiceEventType) {
 		return false, "", nil, nil
+	}
+
+	const mealPlanCreated = "meal plan created"
+
+	changeMessage, err := payloadAs[datachanges.Message](event)
+	if err != nil {
+		return true, mealPlanCreated, nil, err
+	}
+
+	// A meal plan nobody made — a background job's — announces itself to nobody.
+	if changeMessage.UserID == "" {
+		return true, mealPlanCreated, nil, nil
 	}
 
 	msgs, err := a.handleMealPlanCreatedNotification(ctx, changeMessage)
 	if err != nil {
-		return true, "meal plan created", nil, err
+		return true, mealPlanCreated, nil, err
 	}
 
-	return true, "meal plan created", msgs, nil
+	return true, mealPlanCreated, msgs, nil
 }
 
 // handleMealPlanCreatedNotification builds email notifications for a newly created meal plan.
 func (a *AsyncDataChangeMessageHandler) handleMealPlanCreatedNotification(
 	ctx context.Context,
-	changeMessage *audit.DataChangeMessage,
+	changeMessage *datachanges.Message,
 ) ([]*queuemessages.OutboundEmailMessage, error) {
 	ctx, span := a.tracer.StartSpan(ctx)
 	defer span.End()
@@ -72,7 +84,7 @@ func (a *AsyncDataChangeMessageHandler) handleMealPlanCreatedNotification(
 		return nil, observability.PrepareError(err, span, "getting account members")
 	}
 
-	users, err := a.directory.ListUsersByIDs(ctx, a.db.Reader(), ddbidentity.Scope(), members)
+	users, err := a.directory.ListUsersByIDs(ctx, a.db.Reader(), tenancy.Global(), members)
 	if err != nil {
 		return nil, observability.PrepareError(err, span, "getting account members")
 	}

@@ -1,7 +1,7 @@
 package authorization
 
 import (
-	oauth2clientsgrpc "github.com/primandproper/platform-go/v14/authentication/oauth2clients/grpc"
+	oauth2clientsgrpc "github.com/primandproper/platform-go/v15/authentication/oauth2clients/grpc"
 )
 
 // The OAuth2 client permissions are platform's, re-exported under the names this

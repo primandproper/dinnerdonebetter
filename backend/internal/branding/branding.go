@@ -7,6 +7,24 @@ import (
 	"github.com/matcornic/hermes/v2"
 )
 
+// TablePrefix namespaces every platform-go table this application renders, so that
+// ddb_comments, ddb_identity_users, ddb_audit_log_entries and the rest say which
+// application created them in a database that may hold another's.
+//
+// The platform's own default is the empty prefix, and that matters more than tidiness.
+// Several platform tables carry exactly the name of a hand-rolled table they replaced —
+// audit_log_entries, password_reset_tokens, comments — and the platform's DDL says
+// CREATE TABLE IF NOT EXISTS. Against a database that ever applied the old migration,
+// an unprefixed schema would be a silent no-op followed by a store reading columns that
+// are not there.
+//
+// It is one constant rather than one per domain because every migration that renders a
+// table and every store that reads or writes it has to agree on it, and a prefix that
+// differs between a writer and its reader is the misconfiguration nobody notices until a
+// question gets an empty answer. Changing it renames every table, so it moves only with
+// a migration.
+const TablePrefix = "ddb"
+
 const (
 	// Core branding constants - change these to rebrand the project.
 	CompanyName     = "Dinner Done Better"

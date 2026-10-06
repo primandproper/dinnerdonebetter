@@ -3,7 +3,7 @@ package identity
 import (
 	"testing"
 
-	identitygrpc "github.com/primandproper/platform-go/v14/identity/grpc"
+	identitygrpc "github.com/primandproper/platform-go/v15/identity/grpc"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

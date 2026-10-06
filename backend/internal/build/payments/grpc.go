@@ -25,10 +25,10 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 
-	"github.com/primandproper/platform-go/v14/billing"
-	"github.com/primandproper/platform-go/v14/billing/billingpb"
-	billinggrpc "github.com/primandproper/platform-go/v14/billing/grpc"
-	"github.com/primandproper/platform-go/v14/callers"
+	"github.com/primandproper/platform-go/v15/billing"
+	"github.com/primandproper/platform-go/v15/billing/billingpb"
+	billinggrpc "github.com/primandproper/platform-go/v15/billing/grpc"
+	"github.com/primandproper/platform-go/v15/callers"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/metrics"

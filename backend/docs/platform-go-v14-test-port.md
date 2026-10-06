@@ -331,7 +331,7 @@ reason outright (`identity/hooks.go:11`):
 > write — an audit entry, a data change event, a search index stamp, an outbox
 > row — and those companions are the same fact as the row.
 
-`internal/repositories/postgres/identityspike` proves it against real Postgres,
+A spike (`identityspike`, since deleted) proved it against real Postgres,
 with platform's identity DDL migrated alongside this application's own schema:
 
 - **Commits together.** A `Register` leaves the user, the account, the
@@ -440,7 +440,7 @@ can start.
 `internal/domain/identity/succession` is that rule, and it is production code
 rather than spike code: it depends only on platform's `identity.Store` and a
 `database.Tx`, so it is finished and tested now and gets wired when the port
-lands. `internal/repositories/postgres/identityspike/succession_test.go` runs it
+lands. `internal/repositories/postgres/identitystore/succession_test.go` runs it
 against a real database, composed the way the erasure will be — the rule, then
 `EraseUser`, on one transaction:
 
@@ -525,7 +525,7 @@ So: **a caller holding `settings.values.write` can set a value for a definition
 marked `AdminOnly`, for themselves.** That is what the flag exists to prevent,
 and what this repo prevents today.
 
-`internal/repositories/postgres/settingsspike` demonstrates it rather than
+A spike (`settingsspike`, since moved) demonstrated it rather than
 asserting it — an ordinary service-user principal, platform's server wired with
 the self-service `SubjectAuthorizer` platform's own documentation supplies
 (`settings/grpc/authorizer.go:60`), and an admin-only definition. The write
@@ -578,7 +578,7 @@ definition read it did not previously make.
 
 Verified from both directions, because refusing is only half of correct: a rule
 that refused every member every setting would pass a one-sided test and remove
-self-service. `internal/repositories/postgres/settingsspike` now pins five
+self-service. `internal/build/settings/admin_only_test.go` now pins five
 cases — a member without the grant refused a reserved setting with
 `PermissionDenied` and nothing stored; **the same member setting an ordinary
 setting successfully**, identical call and grant and authorizer with only the

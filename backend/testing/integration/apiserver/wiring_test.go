@@ -13,14 +13,14 @@ import (
 	mealplanfinalization "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_finalization"
 	mealplantasknotifications "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_task_notifications"
 
-	platformdataprivacy "github.com/primandproper/platform-go/v14/dataprivacy"
-	"github.com/primandproper/platform-go/v14/dataprivacy/auditerasure"
-	"github.com/primandproper/platform-go/v14/metering"
-	"github.com/primandproper/platform-go/v14/operations"
-	"github.com/primandproper/platform-go/v14/outbox"
-	"github.com/primandproper/platform-go/v14/retention"
-	"github.com/primandproper/platform-go/v14/saga"
-	"github.com/primandproper/platform-go/v14/webhooks"
+	platformdataprivacy "github.com/primandproper/platform-go/v15/dataprivacy"
+	"github.com/primandproper/platform-go/v15/dataprivacy/auditerasure"
+	"github.com/primandproper/platform-go/v15/metering"
+	"github.com/primandproper/platform-go/v15/operations"
+	"github.com/primandproper/platform-go/v15/outbox"
+	"github.com/primandproper/platform-go/v15/retention"
+	"github.com/primandproper/platform-go/v15/saga"
+	"github.com/primandproper/platform-go/v15/webhooks"
 	"github.com/primandproper/primitives-go/v2/jobs"
 
 	"github.com/samber/do/v2"
@@ -130,7 +130,8 @@ func TestWorkerWiring_Scheduler(T *testing.T) {
 			ddbdataprivacy.CollectorKeyIdentity,
 			ddbdataprivacy.CollectorKeyMealPlanning,
 			ddbdataprivacy.CollectorKeySettings,
-			ddbdataprivacy.CollectorKeyNotifications,
+			ddbdataprivacy.CollectorKeyNotificationsInbox,
+			ddbdataprivacy.CollectorKeyNotificationsDevices,
 			ddbdataprivacy.CollectorKeyBilling,
 			ddbdataprivacy.CollectorKeyAuditLog,
 			ddbdataprivacy.CollectorKeyIssueReports,
@@ -146,10 +147,10 @@ func TestWorkerWiring_Scheduler(T *testing.T) {
 		// on in this deployment. An eraser missing here is data that survives a right-to-be-
 		// forgotten request.
 		//
-		// There are ten where there used to be five, and the five that arrived are the ones
-		// privacyadapters registers alongside their collectors: a domain's adapter builds
-		// both halves. Four of them delete rows the identity cascade would have taken
-		// anyway — settings values, issue reports, passkeys, reset tokens.
+		// Most of them are the ones privacyadapters registers alongside their collectors: a
+		// domain's adapter builds both halves. Six of them delete rows the identity cascade
+		// would have taken anyway — settings values, issue reports, passkeys, reset tokens,
+		// and the notification inbox and device registry.
 		//
 		// That redundancy reverses what docs/data-privacy.md used to argue, and the reason
 		// it reverses is in this repository's own history. Those statements are platform's
@@ -167,6 +168,8 @@ func TestWorkerWiring_Scheduler(T *testing.T) {
 			ddbdataprivacy.CollectorKeyMediaRegistry,
 			ddbdataprivacy.CollectorKeyPasskeys,
 			ddbdataprivacy.CollectorKeyPasswordReset,
+			ddbdataprivacy.CollectorKeyNotificationsInbox,
+			ddbdataprivacy.CollectorKeyNotificationsDevices,
 			ddbdataprivacy.EraserKeyIdentity,
 			auditerasure.DefaultKey,
 		}, registry.EraserKeys())

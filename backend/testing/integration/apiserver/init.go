@@ -11,14 +11,15 @@ import (
 	apiserver "github.com/primandproper/dinnerdonebetter/backend/internal/build/services/api"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/localdev"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	notificationsstore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/notificationsstore"
 	paymentsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/payments"
 
-	platformoauth2clients "github.com/primandproper/platform-go/v14/authentication/oauth2clients"
-	"github.com/primandproper/platform-go/v14/billing"
+	platformoauth2clients "github.com/primandproper/platform-go/v15/authentication/oauth2clients"
+	"github.com/primandproper/platform-go/v15/billing"
+	platformnotifications "github.com/primandproper/platform-go/v15/notifications"
 	"github.com/primandproper/primitives-go/v2/database"
 	msgconfig "github.com/primandproper/primitives-go/v2/messagequeue/config"
 	metricsnoop "github.com/primandproper/primitives-go/v2/observability/metrics/noop"
@@ -45,7 +46,8 @@ var (
 	createdClientID, createdClientSecret string
 	databaseClient                       database.Client
 	apiServiceConfig                     *config.APIServiceConfig
-	notifsRepo                           notifications.Repository
+	notifsInbox                          platformnotifications.Inbox
+	notifsRegistry                       platformnotifications.Registry
 
 	// billingStore seeds the rows two RPCs used to write.
 	//
@@ -153,13 +155,23 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	notifsRepo, err = notificationsstore.ProvideAdapter(ctx, pillars.Logger, pillars.TracerProvider,
-		metricsnoop.NewMetricsProvider(), auditLogRepo, nil, databaseClient)
+	auditRecorder, ok := auditlogentries.RecorderFrom(auditLogRepo)
+	if !ok {
+		log.Fatal("the audit log repository exposes no platform recorder")
+	}
+	// The recording spine the seeded stores record through: the same construction the
+	// server's injector makes, by hand, because this seeding runs beside the server.
+	spine, err := events.New(ctx, databaseClient, auditRecorder, events.WithPillars(pillars))
+	if err != nil {
+		log.Fatal(err)
+	}
+	notifsInbox, notifsRegistry, err = notificationsstore.ProvideStores(ctx, pillars.Logger, pillars.TracerProvider,
+		metricsnoop.NewMetricsProvider(), spine.Recorder(), databaseClient)
 	if err != nil {
 		log.Fatal(err)
 	}
 	billingStore, err = paymentsrepo.ProvidePaymentsRepository(ctx, pillars.Logger, pillars.TracerProvider,
-		metricsnoop.NewMetricsProvider(), auditLogRepo, databaseClient, nil)
+		metricsnoop.NewMetricsProvider(), spine.Recorder(), databaseClient)
 	if err != nil {
 		log.Fatal(err)
 	}

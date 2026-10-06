@@ -8,7 +8,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/handlers/authentication"
 	paymentscfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/config"
 
-	oauth2servercfg "github.com/primandproper/platform-go/v14/authentication/oauth2serverstore/config"
+	oauth2servercfg "github.com/primandproper/platform-go/v15/authentication/oauth2serverstore/config"
 	analyticscfg "github.com/primandproper/primitives-go/v2/analytics/config"
 	databasecfg "github.com/primandproper/primitives-go/v2/database/config"
 	emailcfg "github.com/primandproper/primitives-go/v2/email/config"

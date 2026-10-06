@@ -10,7 +10,7 @@ import (
 	mockmanagers "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/managers/mock"
 	mealplanninggrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
 
-	commentsmock "github.com/primandproper/platform-go/v14/comments/mock"
+	commentsmock "github.com/primandproper/platform-go/v15/comments/mock"
 	"github.com/primandproper/primitives-go/v2/fake"
 	"github.com/primandproper/primitives-go/v2/filtering"
 	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"

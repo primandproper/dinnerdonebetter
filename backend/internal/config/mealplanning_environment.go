@@ -6,7 +6,7 @@ package config
 import (
 	"time"
 
-	"github.com/primandproper/platform-go/v14/workqueue"
+	"github.com/primandproper/platform-go/v15/workqueue"
 )
 
 // defaultMealPlanningScheduledJobsConfig returns the schedules for the meal planning domain's

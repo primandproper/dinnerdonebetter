@@ -5,7 +5,7 @@ import (
 
 	ddbissuereports "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports"
 
-	issuereports "github.com/primandproper/platform-go/v14/issuereports"
+	issuereports "github.com/primandproper/platform-go/v15/issuereports"
 	"github.com/primandproper/primitives-go/v2/filtering"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"

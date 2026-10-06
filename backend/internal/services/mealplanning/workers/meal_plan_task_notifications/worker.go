@@ -8,15 +8,15 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
-	ddbnotifications "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers"
 
-	"github.com/primandproper/platform-go/v14/notifications/push"
+	"github.com/primandproper/platform-go/v15/notifications/push"
 	"github.com/primandproper/primitives-go/v2/database"
 	platformnotifications "github.com/primandproper/primitives-go/v2/notifications/mobile"
 	"github.com/primandproper/primitives-go/v2/observability"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/hashicorp/go-multierror"
 )
@@ -328,7 +328,7 @@ func (w *Worker) notify(ctx context.Context, logger logging.Logger, mealPlanTask
 
 	tracing.AttachToSpan(span, "notification.request_type", RequestType)
 
-	result, err := w.fanout.Push(ctx, w.db.Reader(), ddbnotifications.Scope(), recipients,
+	result, err := w.fanout.Push(ctx, w.db.Reader(), tenancy.Global(), recipients,
 		platformnotifications.PushMessage{Title: title, Body: body})
 
 	// A nil result is the read that resolves recipients to handsets having failed, which is

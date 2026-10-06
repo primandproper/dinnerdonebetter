@@ -28,13 +28,13 @@ package identity
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
-	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/succession"
 
-	platformaudit "github.com/primandproper/platform-go/v14/audit"
-	platformidentity "github.com/primandproper/platform-go/v14/identity"
-	identitygrpc "github.com/primandproper/platform-go/v14/identity/grpc"
-	"github.com/primandproper/platform-go/v14/identity/identitypb"
+	platformaudit "github.com/primandproper/platform-go/v15/audit"
+	platformidentity "github.com/primandproper/platform-go/v15/identity"
+	identitygrpc "github.com/primandproper/platform-go/v15/identity/grpc"
+	"github.com/primandproper/platform-go/v15/identity/identitypb"
 	platformauthz "github.com/primandproper/primitives-go/v2/authorization"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
@@ -90,7 +90,7 @@ func RegisterIdentityService(i do.Injector) {
 			return nil, err
 		}
 
-		rule, err := succession.New(store, ddbidentity.TablePrefix)
+		rule, err := succession.New(store, branding.TablePrefix)
 		if err != nil {
 			return nil, err
 		}

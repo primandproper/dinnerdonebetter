@@ -1,11 +1,12 @@
 package internalops
 
 import (
+	"encoding/json"
 	"fmt"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	queuemessages "github.com/primandproper/dinnerdonebetter/backend/internal/queues/messages"
 
+	"github.com/primandproper/platform-go/v15/webhooks"
 	notifications "github.com/primandproper/primitives-go/v2/notifications/mobile"
 )
 
@@ -13,11 +14,21 @@ import (
 // queue check enqueues; nothing reads it back apart from the check itself.
 const testMessageMarker = "test"
 
-// BuildQueueTestMessage returns a message with TestID set for the given topic. Non-empty TestID triggers queue test behavior.
+// QueueTestProbe is the event type of the probe the queue check publishes on the data changes
+// topic. Everything on that topic is a webhooks.Envelope naming its event, so the probe is one
+// too, and the consumer recognizes it by this name and acknowledges it by the envelope's ID.
+//
+// It is not a webhook event: nothing emits it through the recording spine, it is in no catalog,
+// and its name is deliberately not an *EventType constant, which is what the catalog generator
+// collects.
+const QueueTestProbe webhooks.EventType = "internalops.queue_test"
+
+// BuildQueueTestMessage returns the probe message for the given topic, carrying testID where
+// that topic's consumer looks for it.
 func BuildQueueTestMessage(topicName, testID, userID string) (any, error) {
 	switch topicName {
 	case "data_changes":
-		return &audit.DataChangeMessage{TestID: testID, UserID: userID}, nil
+		return &webhooks.Envelope{EventType: QueueTestProbe, ID: testID, Payload: json.RawMessage(`{}`)}, nil
 	case "outbound_emails":
 		return &queuemessages.OutboundEmailMessage{TestID: testID, UserID: userID}, nil
 	// There is no search_index_requests topic, no webhook_execution_requests topic and no

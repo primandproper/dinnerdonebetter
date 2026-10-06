@@ -6,9 +6,9 @@ import (
 	waitlistfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists/fakes"
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
 
-	"github.com/primandproper/platform-go/v14/authentication/signin/signinpb"
-	waitlists "github.com/primandproper/platform-go/v14/waitlists"
-	waitlistspb "github.com/primandproper/platform-go/v14/waitlists/waitlistspb"
+	"github.com/primandproper/platform-go/v15/authentication/signin/signinpb"
+	waitlists "github.com/primandproper/platform-go/v15/waitlists"
+	waitlistspb "github.com/primandproper/platform-go/v15/waitlists/waitlistspb"
 	"github.com/primandproper/primitives-go/v2/identifiers"
 	"github.com/primandproper/primitives-go/v2/tenancy"
 
@@ -125,9 +125,9 @@ func TestWaitlistSignups_Confirmation(T *testing.T) {
 		assert.Equal(t, pending.GetId(), confirmed.GetId())
 		assert.Equal(t, waitlistspb.SignupStatus_SIGNUP_STATUS_WAITING, confirmed.GetStatus())
 
-		AssertAuditLogContainsFuzzyForResource(t, ctx, "waitlist_signups", confirmed.GetId(), 10, []*ExpectedAuditEntry{
-			{EventType: "created", ResourceType: "waitlist_signups", RelevantID: confirmed.GetId()},
-			{EventType: "updated", ResourceType: "waitlist_signups", RelevantID: confirmed.GetId()},
+		AssertAuditLogContainsFuzzyForResource(t, ctx, waitlists.ResourceTypeSignup, confirmed.GetId(), 10, []*ExpectedAuditEntry{
+			{EventType: "created", ResourceType: waitlists.ResourceTypeSignup, RelevantID: confirmed.GetId()},
+			{EventType: "updated", ResourceType: waitlists.ResourceTypeSignup, RelevantID: confirmed.GetId()},
 		})
 	})
 }
@@ -161,8 +161,8 @@ func TestWaitlists_ThisDeploymentsAuthorization(T *testing.T) {
 		_, err = owner.Withdraw(ctx, request)
 		require.NoError(t, err)
 
-		AssertAuditLogContainsFuzzyForResource(t, ctx, "waitlist_signups", signup.GetId(), 10, []*ExpectedAuditEntry{
-			{EventType: "updated", ResourceType: "waitlist_signups", RelevantID: signup.GetId()},
+		AssertAuditLogContainsFuzzyForResource(t, ctx, waitlists.ResourceTypeSignup, signup.GetId(), 10, []*ExpectedAuditEntry{
+			{EventType: "updated", ResourceType: waitlists.ResourceTypeSignup, RelevantID: signup.GetId()},
 		})
 	})
 }

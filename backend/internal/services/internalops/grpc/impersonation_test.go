@@ -8,8 +8,8 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	internalopssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/internalops"
 
-	"github.com/primandproper/platform-go/v14/authentication/signin"
-	platformidentity "github.com/primandproper/platform-go/v14/identity"
+	"github.com/primandproper/platform-go/v15/authentication/signin"
+	platformidentity "github.com/primandproper/platform-go/v15/identity"
 	"github.com/primandproper/primitives-go/v2/identifiers"
 	msgconfig "github.com/primandproper/primitives-go/v2/messagequeue/config"
 	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"

@@ -4,12 +4,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 	mealplantasknotifications "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_task_notifications"
 
-	"github.com/primandproper/platform-go/v14/metering"
-	"github.com/primandproper/platform-go/v14/workqueue"
+	"github.com/primandproper/platform-go/v15/metering"
+	"github.com/primandproper/platform-go/v15/workqueue"
 	"github.com/primandproper/primitives-go/v2/identifiers"
 	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
 
@@ -44,7 +44,7 @@ func TestQuerier_Migrate(T *testing.T) {
 		require.NoError(t, migrator.Migrate(ctx, db))
 
 		entryID, scope, actorID := identifiers.New(), identifiers.New(), identifiers.New()
-		entries := audit.TablePrefix + "_audit_log_entries"
+		entries := branding.TablePrefix + "_audit_log_entries"
 
 		_, err = db.ExecContext(ctx,
 			`INSERT INTO `+entries+`
@@ -148,8 +148,8 @@ func TestRenderAuditDDL(T *testing.T) {
 		require.NoError(t, err)
 
 		// Prefixed, so that the DDL cannot land on the name the hand-rolled log used.
-		assert.Contains(t, body, audit.TablePrefix+"_audit_log_entries")
-		assert.Contains(t, body, audit.TablePrefix+"_audit_log_chains")
+		assert.Contains(t, body, branding.TablePrefix+"_audit_log_entries")
+		assert.Contains(t, body, branding.TablePrefix+"_audit_log_chains")
 
 		// The uniqueness constraint is the guarantee rather than an index for speed:
 		// it is what makes a forked chain something the table cannot hold, instead of
@@ -234,7 +234,7 @@ func TestQuerier_Migrate_OverLegacyAuditTable(T *testing.T) {
 		var seqColumns int
 		require.NoError(t, db.QueryRowContext(ctx,
 			`SELECT COUNT(*) FROM information_schema.columns WHERE table_name = $1 AND column_name = 'seq'`,
-			audit.TablePrefix+"_audit_log_entries").Scan(&seqColumns))
+			branding.TablePrefix+"_audit_log_entries").Scan(&seqColumns))
 		assert.Equal(t, 1, seqColumns, "the chained entries table must be the one that got created")
 
 		// And the legacy table is untouched rather than dropped.

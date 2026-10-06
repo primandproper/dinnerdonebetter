@@ -3,11 +3,10 @@ package fakes
 import (
 	"time"
 
-	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
-
-	identity "github.com/primandproper/platform-go/v14/identity"
+	identity "github.com/primandproper/platform-go/v15/identity"
 	"github.com/primandproper/primitives-go/v2/fake"
 	"github.com/primandproper/primitives-go/v2/filtering"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	gofakeit "github.com/brianvoe/gofakeit/v7"
 )
@@ -23,7 +22,7 @@ const fakeInvitationLifetime = time.Hour
 func BuildFakeInvitation() *identity.Invitation {
 	invitation := fake.BuildFakeRecord[identity.Invitation]()
 
-	invitation.Scope = ddbidentity.Scope()
+	invitation.Scope = tenancy.Global()
 	invitation.ExpiresAt = time.Now().Add(fakeInvitationLifetime).UTC()
 
 	// The invitation is addressed to an email rather than to a user, because the common

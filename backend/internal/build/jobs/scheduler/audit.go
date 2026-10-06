@@ -3,11 +3,11 @@ package scheduler
 import (
 	"context"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
-	ddbaudit "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 
-	auditcfg "github.com/primandproper/platform-go/v14/audit/config"
-	"github.com/primandproper/platform-go/v14/retention"
+	auditcfg "github.com/primandproper/platform-go/v15/audit/config"
+	"github.com/primandproper/platform-go/v15/retention"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/metrics"
@@ -49,7 +49,7 @@ func RegisterRetentionSweeper(i do.Injector) {
 		// Postgres. A deployment that set either differently would not be configuring
 		// retention, it would be pointing the sweep at tables that do not exist — and a
 		// sweep of a table that isn't there reports success forever.
-		cfg.TablePrefix = ddbaudit.TablePrefix
+		cfg.TablePrefix = branding.TablePrefix
 		cfg.Dialect = do.MustInvoke[database.Client](i).Dialect()
 
 		ctx := do.MustInvoke[context.Context](i)

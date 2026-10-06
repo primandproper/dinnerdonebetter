@@ -5,11 +5,11 @@ import (
 	"errors"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
-	ddbuploadedmedia "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 
-	"github.com/primandproper/platform-go/v14/mediaregistry"
+	"github.com/primandproper/platform-go/v15/mediaregistry"
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/observability"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
 var _ mealplanning.UploadedMediaFetcher = (*repository)(nil)
@@ -45,7 +45,7 @@ func (q *repository) GetUploadedMediaWithIDs(ctx context.Context, ids []string) 
 
 	objects := make([]*mediaregistry.Object, 0, len(ids))
 	for _, id := range ids {
-		object, err := q.uploads.GetObject(ctx, q.Reader(), ddbuploadedmedia.Scope(), id)
+		object, err := q.uploads.GetObject(ctx, q.Reader(), tenancy.Global(), id)
 		if err != nil {
 			if errors.Is(err, mediaregistry.ErrObjectNotFound) {
 				continue

@@ -297,7 +297,7 @@ func (s *serviceImpl) GetMealLists(ctx context.Context, request *mealplanningsvc
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
-	filter, err := filteringgrpc.FromProto(request.Filter)
+	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -419,7 +419,7 @@ func (s *serviceImpl) GetMealListItems(ctx context.Context, request *mealplannin
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
-	filter, err := filteringgrpc.FromProto(request.Filter)
+	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -831,7 +831,7 @@ func (s *serviceImpl) GetMealPlansForAccount(ctx context.Context, request *mealp
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
-	filter, err := filteringgrpc.FromProto(request.Filter)
+	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger.WithSpan(span), span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -901,7 +901,7 @@ func (s *serviceImpl) GetMealPlanEvents(ctx context.Context, request *mealplanni
 		mealplanningkeys.MealPlanIDKey: request.MealPlanId,
 	}, span, s.logger)
 
-	filter, err := filteringgrpc.FromProto(request.Filter)
+	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -965,7 +965,7 @@ func (s *serviceImpl) GetMealPlanGroceryListItemsForMealPlan(ctx context.Context
 		mealplanningkeys.MealPlanIDKey: request.MealPlanId,
 	}, span, s.logger)
 
-	filter, err := filteringgrpc.FromProto(request.Filter)
+	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -1038,7 +1038,7 @@ func (s *serviceImpl) GetMealPlanRecipeOptionSelectionsForMealPlanOption(ctx con
 		return nil, err
 	}
 
-	filter, err := filteringgrpc.FromProto(request.Filter)
+	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -1230,7 +1230,7 @@ func (s *serviceImpl) GetMealPlanOptionVotes(ctx context.Context, request *mealp
 		mealplanningkeys.MealPlanEventIDKey:  request.MealPlanEventId,
 	}, span, s.logger)
 
-	filter, err := filteringgrpc.FromProto(request.Filter)
+	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -1265,7 +1265,7 @@ func (s *serviceImpl) GetMealPlanOptions(ctx context.Context, request *mealplann
 		mealplanningkeys.MealPlanIDKey: request.MealPlanId,
 	}, span, s.logger)
 
-	filter, err := filteringgrpc.FromProto(request.Filter)
+	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -1329,7 +1329,7 @@ func (s *serviceImpl) GetMealPlanTasks(ctx context.Context, request *mealplannin
 		mealplanningkeys.MealPlanIDKey: request.MealPlanId,
 	}, span, s.logger)
 
-	filter, err := filteringgrpc.FromProto(request.Filter)
+	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -1363,7 +1363,7 @@ func (s *serviceImpl) GetMeals(ctx context.Context, request *mealplanningsvc.Get
 
 	logger := s.logger.WithSpan(span)
 
-	filter, err := filteringgrpc.FromProto(request.Filter)
+	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -1418,7 +1418,7 @@ func (s *serviceImpl) GetUserIngredientPreferences(ctx context.Context, request 
 	defer span.End()
 
 	logger := s.logger.WithSpan(span)
-	filter, err := filteringgrpc.FromProto(request.Filter)
+	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -1529,7 +1529,7 @@ func (s *serviceImpl) SearchForMeals(ctx context.Context, request *mealplannings
 
 	logger := s.logger.WithSpan(span)
 
-	filter, err := filteringgrpc.FromProto(request.Filter)
+	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -1888,7 +1888,7 @@ func (s *serviceImpl) GetAccountInstrumentOwnerships(ctx context.Context, reques
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
-	filter, err := filteringgrpc.FromProto(request.Filter)
+	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger.WithSpan(span), span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -1923,7 +1923,7 @@ func (s *serviceImpl) SearchForValidInstrumentsNotOwnedByAccount(ctx context.Con
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
-	filter, err := filteringgrpc.FromProto(request.Filter)
+	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, s.logger.WithSpan(span), span, codes.InvalidArgument, "invalid query filter")
 	}

@@ -11,8 +11,8 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/localdev"
 
-	"github.com/primandproper/platform-go/v14/authentication/signin/signinpb"
-	identity "github.com/primandproper/platform-go/v14/identity"
+	"github.com/primandproper/platform-go/v15/authentication/signin/signinpb"
+	identity "github.com/primandproper/platform-go/v15/identity"
 	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
 
 	"github.com/stretchr/testify/assert"

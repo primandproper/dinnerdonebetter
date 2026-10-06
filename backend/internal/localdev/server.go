@@ -2,6 +2,7 @@ package localdev
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"log/slog"
@@ -10,27 +11,25 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	apiserver "github.com/primandproper/dinnerdonebetter/backend/internal/build/services/api"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
-	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/oauth"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	authrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auth"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
-	notificationsstore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/notificationsstore"
 	settingsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/settings"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
 
-	platformoauth2clients "github.com/primandproper/platform-go/v14/authentication/oauth2clients"
-	"github.com/primandproper/platform-go/v14/authentication/passwordreset"
-	"github.com/primandproper/platform-go/v14/authentication/signin/signinpb"
-	platformidentity "github.com/primandproper/platform-go/v14/identity"
-	platformsettings "github.com/primandproper/platform-go/v14/settings"
+	platformoauth2clients "github.com/primandproper/platform-go/v15/authentication/oauth2clients"
+	"github.com/primandproper/platform-go/v15/authentication/passwordreset"
+	"github.com/primandproper/platform-go/v15/authentication/signin/signinpb"
+	platformidentity "github.com/primandproper/platform-go/v15/identity"
+	platformsettings "github.com/primandproper/platform-go/v15/settings"
 	"github.com/primandproper/primitives-go/v2/authentication/argon2"
 	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
 	"github.com/primandproper/primitives-go/v2/database"
@@ -101,14 +100,14 @@ func CreatePremadeAdminUser(
 	// administrator out of the deployment it exists to administer.
 	premadeAdminUser.AccountStatus = platformidentity.StatusGood
 
-	if existing, lookupErr := store.GetUserByUsername(ctx, dbClient.Reader(), ddbidentity.Scope(), premadeAdminUser.Username); lookupErr == nil && existing != nil {
+	if existing, lookupErr := store.GetUserByUsername(ctx, dbClient.Reader(), tenancy.Global(), premadeAdminUser.Username); lookupErr == nil && existing != nil {
 		return existing, nil
 	}
 
 	// Registered rather than inserted: a user, their account and the membership that puts
 	// them in it are one transaction, and the shape that rules out a user with no account
 	// is the reason Service ships it.
-	registration, err := directory.Register(ctx, ddbidentity.Scope(), premadeAdminUser, &platformidentity.Account{
+	registration, err := directory.Register(ctx, tenancy.Global(), premadeAdminUser, &platformidentity.Account{
 		Name: premadeAdminUser.Username + "'s account",
 	}, []string{authorization.AccountAdminRoleName})
 	if err != nil {
@@ -118,13 +117,13 @@ func CreatePremadeAdminUser(
 	// The service role is a write of its own, through the operation that exists for it
 	// rather than through two statements against a role-assignment table this application
 	// no longer owns.
-	user, err := directory.SetUserServiceRoles(ctx, ddbidentity.Scope(), registration.User.ID,
+	user, err := directory.SetUserServiceRoles(ctx, tenancy.Global(), registration.User.ID,
 		[]string{authorization.ServiceAdminRoleName})
 	if err != nil {
 		return nil, fmt.Errorf("failed to promote user to service admin: %w", err)
 	}
 
-	if _, err = directory.MarkUserTwoFactorSecretVerified(ctx, ddbidentity.Scope(), user.ID); err != nil {
+	if _, err = directory.MarkUserTwoFactorSecretVerified(ctx, tenancy.Global(), user.ID); err != nil {
 		return nil, fmt.Errorf("failed to mark user as verified: %w", err)
 	}
 
@@ -166,7 +165,7 @@ func CreateOAuth2ClientForService(
 // whose whole value is attribution. The API server's registrations go through
 // oauth2clientsstore and are recorded.
 func oauth2ClientRegistry(pgc database.Client, opts ...platformoauth2clients.ServiceOption) (*platformoauth2clients.Service, error) {
-	store, err := platformoauth2clients.NewSQLStore(pgc, platformoauth2clients.WithTablePrefix(oauth.TablePrefix))
+	store, err := platformoauth2clients.NewSQLStore(pgc, platformoauth2clients.WithTablePrefix(branding.TablePrefix))
 	if err != nil {
 		return nil, err
 	}
@@ -254,7 +253,7 @@ func IdentityDirectory(
 	dbClient database.Client,
 ) (*platformidentity.Service, platformidentity.Store, error) {
 	store, err := platformidentity.NewSQLStore(dbClient,
-		platformidentity.WithTablePrefix(ddbidentity.TablePrefix),
+		platformidentity.WithTablePrefix(branding.TablePrefix),
 		platformidentity.WithStoreLogger(logger),
 		platformidentity.WithStoreTracerProvider(tracerProvider),
 	)
@@ -306,7 +305,11 @@ func WithPasswordResetTokenStore(fn func(ctx context.Context, store passwordrese
 		if err != nil {
 			return err
 		}
-		store, err := authrepo.ProvidePasswordResetTokenStore(logger, tracerProvider, auditLogRepo, dbClient)
+		spine, err := Spine(ctx, dbClient, auditLogRepo, logger, tracerProvider)
+		if err != nil {
+			return err
+		}
+		store, err := authrepo.ProvidePasswordResetTokenStore(logger, tracerProvider, spine.Recorder(), dbClient)
 		if err != nil {
 			return err
 		}
@@ -328,7 +331,7 @@ func WithMealPlanningRepository(fn func(ctx context.Context, repo mealplanning.R
 			return err
 		}
 		identityStore, storeErr := platformidentity.NewSQLStore(dbClient,
-			platformidentity.WithTablePrefix(ddbidentity.TablePrefix),
+			platformidentity.WithTablePrefix(branding.TablePrefix),
 			platformidentity.WithStoreLogger(logger),
 			platformidentity.WithStoreTracerProvider(tracerProvider),
 		)
@@ -336,7 +339,12 @@ func WithMealPlanningRepository(fn func(ctx context.Context, repo mealplanning.R
 			return storeErr
 		}
 
-		mealPlanningRepo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditLogRepo, identityStore, dbClient, nil, uploads)
+		spine, err := Spine(ctx, dbClient, auditLogRepo, logger, tracerProvider)
+		if err != nil {
+			return err
+		}
+
+		mealPlanningRepo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditLogRepo, identityStore, dbClient, spine, uploads)
 		return fn(ctx, mealPlanningRepo, logger, tracerProvider)
 	}
 }
@@ -354,34 +362,24 @@ func WithSettingsRepository(fn func(ctx context.Context, store platformsettings.
 			return err
 		}
 
-		settingsStore, err := settingsrepo.ProvideSettingsRepository(ctx, logger, tracerProvider, metricsnoop.NewMetricsProvider(), auditLogRepo, dbClient, nil)
+		auditRecorder, ok := auditlogentries.RecorderFrom(auditLogRepo)
+		if !ok {
+			return errors.New("the audit log repository exposes no platform recorder")
+		}
+
+		// The recording spine the store's hooks write through, built the way a process
+		// does; a seed's writes are recorded like anybody else's.
+		spine, err := events.New(ctx, dbClient, auditRecorder)
+		if err != nil {
+			return err
+		}
+
+		settingsStore, err := settingsrepo.ProvideSettingsRepository(ctx, logger, tracerProvider, metricsnoop.NewMetricsProvider(), dbClient, spine.Recorder())
 		if err != nil {
 			return err
 		}
 
 		return fn(ctx, settingsStore, logger, tracerProvider, dbClient)
-	}
-}
-
-// WithWebhooksRepository is gone with the repository it provided.
-//
-// Nothing called it: it existed so a localdev hook could write webhooks
-// directly, and the endpoints are platform's now. A hook that wants one builds
-// webhooksstore.RegisterWebhooksStore's dependencies, or asks the API.
-
-// WithNotificationsRepository provides a notifications repository for custom operations.
-// The provided function receives a fully configured notifications.Repository along with logger and tracer.
-func WithNotificationsRepository(fn func(ctx context.Context, repo notifications.Repository, logger logging.Logger, tracerProvider tracing.Provider) error) DatabaseInitFunc {
-	return func(ctx context.Context, dbClient database.Client, dbCfg *dbcfg.Config, logger logging.Logger, tracerProvider tracing.Provider) error {
-		auditLogRepo, err := auditlogentries.ProvideAuditLogRepository(logger, tracerProvider, nil, dbClient)
-		if err != nil {
-			return err
-		}
-		notificationsRepo, err := notificationsstore.ProvideAdapter(ctx, logger, tracerProvider, metricsnoop.NewMetricsProvider(), auditLogRepo, nil, dbClient)
-		if err != nil {
-			return err
-		}
-		return fn(ctx, notificationsRepo, logger, tracerProvider)
 	}
 }
 

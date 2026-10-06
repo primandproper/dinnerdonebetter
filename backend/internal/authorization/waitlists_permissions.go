@@ -1,7 +1,7 @@
 package authorization
 
 import (
-	waitlistsgrpc "github.com/primandproper/platform-go/v14/waitlists/grpc"
+	waitlistsgrpc "github.com/primandproper/platform-go/v15/waitlists/grpc"
 )
 
 // The waitlist permissions are platform's, re-exported under the names this

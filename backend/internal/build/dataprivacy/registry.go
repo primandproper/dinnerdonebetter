@@ -20,42 +20,37 @@ package dataprivacy
 import (
 	"context"
 
-	auditdomain "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
-	auditprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit/privacy"
-	ddbcomments "github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments"
 	ddbdataprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
 	identityprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/privacy"
 	issuereportsprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports/privacy"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/privacy"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
-	notificationsprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/privacy"
 	paymentsprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/privacy"
-	ddbsettings "github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings"
-	ddbuploadedmedia "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
-	ddbwaitlists "github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists"
 	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
 
-	oauth2clients "github.com/primandproper/platform-go/v14/authentication/oauth2clients"
-	"github.com/primandproper/platform-go/v14/authentication/passkeys"
-	"github.com/primandproper/platform-go/v14/authentication/passwordreset"
-	"github.com/primandproper/platform-go/v14/billing"
-	platformcomments "github.com/primandproper/platform-go/v14/comments"
-	platformdataprivacy "github.com/primandproper/platform-go/v14/dataprivacy"
-	"github.com/primandproper/platform-go/v14/dataprivacy/auditerasure"
-	platformdataprivacycfg "github.com/primandproper/platform-go/v14/dataprivacy/config"
-	platformidentity "github.com/primandproper/platform-go/v14/identity"
-	issuereports "github.com/primandproper/platform-go/v14/issuereports"
-	uploadsregistry "github.com/primandproper/platform-go/v14/mediaregistry"
-	"github.com/primandproper/platform-go/v14/operations"
-	"github.com/primandproper/platform-go/v14/privacyadapters"
-	platformsettings "github.com/primandproper/platform-go/v14/settings"
-	platformwaitlists "github.com/primandproper/platform-go/v14/waitlists"
+	platformaudit "github.com/primandproper/platform-go/v15/audit"
+	oauth2clients "github.com/primandproper/platform-go/v15/authentication/oauth2clients"
+	"github.com/primandproper/platform-go/v15/authentication/passkeys"
+	"github.com/primandproper/platform-go/v15/authentication/passwordreset"
+	"github.com/primandproper/platform-go/v15/billing"
+	platformcomments "github.com/primandproper/platform-go/v15/comments"
+	platformdataprivacy "github.com/primandproper/platform-go/v15/dataprivacy"
+	platformdataprivacycfg "github.com/primandproper/platform-go/v15/dataprivacy/config"
+	platformidentity "github.com/primandproper/platform-go/v15/identity"
+	issuereports "github.com/primandproper/platform-go/v15/issuereports"
+	uploadsregistry "github.com/primandproper/platform-go/v15/mediaregistry"
+	platformnotifications "github.com/primandproper/platform-go/v15/notifications"
+	"github.com/primandproper/platform-go/v15/operations"
+	"github.com/primandproper/platform-go/v15/privacyadapters"
+	recordingcfg "github.com/primandproper/platform-go/v15/recording/config"
+	platformsettings "github.com/primandproper/platform-go/v15/settings"
+	platformwaitlists "github.com/primandproper/platform-go/v15/waitlists"
 	"github.com/primandproper/primitives-go/v2/database"
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/metrics"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/samber/do/v2"
 )
@@ -92,40 +87,39 @@ func buildRegistry(i do.Injector) (*platformdataprivacy.Registry, error) {
 	// cost is visible in one place.
 	resolveAccounts := identityprivacy.ResolveAccountIDs(identityStore, reader)
 
-	// The nine adapters platform ships that this deployment runs, registered in one call
-	// under each package's own DefaultKey.
+	// Every adapter platform ships that this deployment runs, registered in one call under
+	// each package's own DefaultKey.
 	//
-	// This replaces nine hand-written constructor calls, and the reason to prefer the call
-	// is not that it is shorter. Register is all-or-nothing: every adapter is built before
-	// any is registered, and the keys are checked against what the registry already holds
-	// first, so a nil store in the last field cannot leave a registry holding eight of
-	// nine. A half-registered registry is exactly the state that produces an export that
-	// is well-formed, reports success, and is missing a domain — which is the failure this
-	// application shipped for months and closed by hand two days ago.
+	// The reason to prefer the call to hand-written constructors is not that it is
+	// shorter. Register is all-or-nothing: every adapter is built before any is
+	// registered, and the keys are checked against what the registry already holds first,
+	// so a nil store in the last field cannot leave a registry holding all but one. A
+	// half-registered registry is exactly the state that produces an export that is
+	// well-formed, reports success, and is missing a domain — which is the failure this
+	// application shipped for months before it was closed by hand.
 	//
-	// It also fails upstream when platform adds a twelfth adapter: privacyadapters' own
-	// roster test requires every key the module ships to come back from Register, so a new
+	// It also fails upstream when platform adds an adapter: privacyadapters' own roster
+	// test requires every key the module ships to come back from Register, so a new
 	// domain is a compile or a test failure rather than a section nobody notices is absent.
 	//
-	// Three fields are deliberately nil, and nil means "this deployment does not run it",
-	// so each is a claim worth defending:
-	//
-	//   - Identity, because this application's eraser is not platform's. It is platform's
-	//     with the succession rule in front of it — the households a departing owner leaves
-	//     behind are transferred to their longest-tenured member before the user row goes.
-	//     IdentityAdapter takes a Store and a resolver and builds both halves itself, so
-	//     there is nowhere to hand it a decorated eraser. Registered by hand below.
-	//   - Notifications, because this application's collector reads its own Repository
-	//     rather than platform's Inbox and Registry, and answers as one section where
-	//     platform answers as two.
-	//   - AuditErasure, because whether the audit log is erased at all is a config flag
-	//     this deployment sets through dataprivacycfg.RegisterAuditEraser — which
-	//     privacyadapters' own documentation names as the deliberate alternative.
-	//
-	// The first of those is the one to revisit: identity is the domain whose absence from
-	// the roster guarantee matters most, and the only reason it is absent is an adapter
-	// that cannot take an eraser somebody else built.
+	// One field is deliberately nil, and nil means "this deployment does not run it":
+	// AuditErasure, because whether the audit log is erased at all is a config flag this
+	// deployment sets through dataprivacycfg.RegisterAuditEraser — which privacyadapters'
+	// own documentation names as the deliberate alternative.
 	credentialScopes := identityprivacy.Scopes()
+
+	// Where a subject's audit entries are, for the export and for the erasure. The recorder
+	// files by subject (events.RegisterOutboxEmitter), and the rule that files an entry is
+	// the one that knows where to find it again: platform hands out the two resolvers as a
+	// pair under that rule, so the export cannot read one rule's chains while the erasure
+	// deletes another's. A deployment filing by write would have to supply its own here.
+	auditReader := do.MustInvoke[platformaudit.Reader](i)
+
+	collectAuditScopes, eraseAuditScopes, resolversErr := privacyadapters.AuditScopeResolvers(
+		do.MustInvoke[*recordingcfg.Config](i).FileBy, identityStore, auditReader)
+	if resolversErr != nil {
+		return nil, platformerrors.Wrap(resolversErr, "choosing the audit scope resolvers")
+	}
 
 	successionStep, successionErr := identityprivacy.SuccessionStep(identityStore)
 	if successionErr != nil {
@@ -137,7 +131,7 @@ func buildRegistry(i do.Injector) (*platformdataprivacy.Registry, error) {
 
 		Comments: &privacyadapters.CommentsAdapter{
 			Store:   do.MustInvoke[platformcomments.Store](i),
-			Resolve: platformdataprivacy.FixedScopes(ddbcomments.Scope()),
+			Resolve: platformdataprivacy.FixedScopes(tenancy.Global()),
 		},
 		// Issue reports are filed per account, so the resolver turns this application's
 		// account ids into the scopes those rows live under. Same conversion the
@@ -148,15 +142,15 @@ func buildRegistry(i do.Injector) (*platformdataprivacy.Registry, error) {
 		},
 		Settings: &privacyadapters.SettingsAdapter{
 			Store:   do.MustInvoke[platformsettings.Store](i),
-			Resolve: platformdataprivacy.FixedScopes(ddbsettings.Scope()),
+			Resolve: platformdataprivacy.FixedScopes(tenancy.Global()),
 		},
 		Waitlists: &privacyadapters.WaitlistsAdapter{
 			Store:   do.MustInvoke[platformwaitlists.Store](i),
-			Resolve: platformdataprivacy.FixedScopes(ddbwaitlists.Scope()),
+			Resolve: platformdataprivacy.FixedScopes(tenancy.Global()),
 		},
 		MediaRegistry: &privacyadapters.MediaRegistryAdapter{
 			Store:   do.MustInvoke[uploadsregistry.Store](i),
-			Resolve: platformdataprivacy.FixedScopes(ddbuploadedmedia.Scope()),
+			Resolve: platformdataprivacy.FixedScopes(tenancy.Global()),
 		},
 
 		// The three credential domains, all under the one scope this directory has.
@@ -184,6 +178,26 @@ func buildRegistry(i do.Injector) (*platformdataprivacy.Registry, error) {
 			BeforeErase: successionStep,
 		},
 
+		// Notifications answers as two sections, the inbox and the device registry. It
+		// used to be one, from a collector over an adapter that translated platform's
+		// inbox back into this application's older vocabulary — and that collector never
+		// read the registry at all, so no export ever named a subject's handsets.
+		Notifications: &privacyadapters.NotificationsAdapter{
+			Inbox:    do.MustInvoke[platformnotifications.Inbox](i),
+			Registry: do.MustInvoke[platformnotifications.Registry](i),
+			Resolve:  platformdataprivacy.FixedScopes(tenancy.Global()),
+		},
+
+		// The audit log, read in every chain the subject's entries can be in. The chains are
+		// decided by the recorder's filing rule, so the resolver is read off that rule
+		// rather than chosen beside it — see auditScopes above. The collector is platform's,
+		// and reads what the subject was acted on in and what they did while impersonating
+		// somebody.
+		Audit: &privacyadapters.AuditAdapter{
+			Log:     auditReader,
+			Resolve: collectAuditScopes.On(reader),
+		},
+
 		// Billing takes a resolver of its own shape — accounts rather than scopes —
 		// because what it pages is filed per account. The conversion is this
 		// application's tenancy model and lives beside the payments domain.
@@ -198,11 +212,8 @@ func buildRegistry(i do.Injector) (*platformdataprivacy.Registry, error) {
 
 	logger.WithValue("keys", adopted).Info("registered platform's privacy adapters")
 
-	// And the three this application answers for itself, none of which platform ships a
-	// counterpart for that this deployment uses: meal planning is the domain this
-	// application is, the audit log is a hash chain nothing else models, and the
-	// notifications collector reads one repository and answers as one section where
-	// platform's reads an inbox and a device registry and answers as two.
+	// And the one this application answers for itself: meal planning, which is the domain
+	// this application is and has no platform counterpart.
 	//
 	// A collector whose whole body is "page one list read and encode the rows" is
 	// platformdataprivacy.CollectorFor and has no observability of its own to do: the
@@ -214,9 +225,6 @@ func buildRegistry(i do.Injector) (*platformdataprivacy.Registry, error) {
 	collectors := map[string]platformdataprivacy.Collector{
 		ddbdataprivacy.CollectorKeyMealPlanning: mealplanningprivacy.NewCollector(
 			do.MustInvoke[mealplanning.Repository](i), resolveAccounts, logger, tracerProvider),
-		ddbdataprivacy.CollectorKeyNotifications: notificationsprivacy.NewCollector(
-			do.MustInvoke[notifications.Repository](i), logger, tracerProvider),
-		ddbdataprivacy.CollectorKeyAuditLog: auditprivacy.NewCollector(do.MustInvoke[auditdomain.Repository](i)),
 	}
 
 	for key, collector := range collectors {
@@ -239,14 +247,13 @@ func buildRegistry(i do.Injector) (*platformdataprivacy.Registry, error) {
 	// so platform-go makes it a config flag rather than a code change — and reports
 	// which way it went, because "did this deployment erase audit records" gets asked
 	// long afterwards.
-	registered, err := platformdataprivacycfg.RegisterAuditEraser(
-		ctx,
-		prepareConfig(i),
-		registry,
-		platformdataprivacycfg.WithAuditEraserOptions(
-			auditerasure.WithScopeResolver(auditprivacy.ErasableScopeResolver(identityStore, reader)),
-		),
-	)
+	//
+	// The resolver names the chains an erasure deletes whole: the subject's own and those of
+	// the accounts they own, never one they merely belong to, whose history is other
+	// people's too. It reads the directory on the erasure's own transaction, so an account
+	// the succession step handed to another member earlier in the same request is no
+	// longer the subject's by the time this asks.
+	registered, err := platformdataprivacycfg.RegisterAuditEraser(ctx, prepareConfig(i), registry, eraseAuditScopes)
 	if err != nil {
 		return nil, platformerrors.Wrap(err, "registering audit data privacy eraser")
 	}

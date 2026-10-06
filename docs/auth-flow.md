@@ -33,9 +33,11 @@ What this application still decides, and where:
   has proven one. The administrative door demands one whatever the policy says.
 - **Who may impersonate** — `authentication.NewImpersonationPolicy`: an operator whose service
   roles grant `imitate.user`.
-- **What gets recorded** — the sign-in hooks (`authentication/signin_hooks.go`) write the "logged
-  in" event, the credential-change audit entries, and the impersonation record on sign-in's own
-  transaction; the mailers (`authentication/signin_mailers.go`) turn platform's mails into outbox
+- **What gets recorded** — nothing this application decides any more. The sign-in service is
+  built with platform's `signin.RecordingHooks`, which write every door's audit entry and event
+  (`signin.user.authenticated`, `signin.password.updated`, the second-factor and revocation
+  events) on the door's own transaction, filed under the user. What stays this application's is
+  the mail: the mailers (`authentication/signin_mailers.go`) turn platform's mails into outbox
   events the data change message handler renders.
 
 ## Tokens
@@ -91,8 +93,8 @@ they call `SignInService.VerifyTOTPSecret`, and nothing is asked of an unproven 
    optionally the account to sign into.
 2. `signin.Service` reads the user, proves the password (hashing even for a handle naming nobody),
    checks their standing, then the second factor, then resolves the account.
-3. The sign-in hook writes the `user_logged_in` event on the transaction that writes the refresh
-   token.
+3. platform's recording hook writes the `signin.user.authenticated` audit entry and event on the
+   transaction that writes the refresh token, naming the credential kind and the account.
 4. The client receives an `IssuedToken`: the access token, the refresh token, and their deadlines.
 
 **Refreshing**: `SignInService.ExchangeRefreshToken`. **Signing out**: `SignOut` (this login, by
@@ -146,11 +148,13 @@ which returns a fifteen-minute token with no refresh token, minted by
   operator named on it (`actor_id`). The interceptor carries the operator on the session
   (`ContextData.ImpersonatorID`) and gives the request the operator's service-level grants in
   place of the subject's, because an operator acting in an account is still doing operator work.
-- **What is recorded**: the impersonation itself, as an audit entry filed under the operator and a
-  `user_impersonated` event; and every audit entry the request writes as the subject names the
-  operator as its impersonator — DDB's own repositories through
-  `auditlogentries.attachImpersonator`, platform's surfaces through `callers.Delegated` on the
-  session's principal.
+- **What is recorded**: the impersonation itself, as the subject's `signin.user.authenticated`
+  entry and event with the operator named on both — the entry's actor is the subject with the
+  operator as its `Impersonator`, the event's `actorID` is the operator — written by platform's
+  recording hook through `RecordAs`, since the request that mints the token carries no principal
+  yet; and every audit entry the request then writes as the subject names the operator as its
+  impersonator — DDB's own repositories through `auditlogentries.attachImpersonator`, platform's
+  surfaces through `callers.Delegated` on the session's principal.
 - **Ending it**: it expires, or the subject ends it from `ListSignIns`, where it appears with the
   operator named. Suspending the operator stops it on their next request.
 
@@ -164,9 +168,12 @@ which returns a fifteen-minute token with no refresh token, minted by
    secret under `password_reset_token.secret`. The data change message handler renders the email.
 2. `VerifyPasswordResetToken` lets the form say whether a link is still good.
 3. `CompletePasswordReset(token, new_password)` checks the password against `PasswordPolicy`,
-   spends the token, writes the password and revokes the user's other links, on one transaction.
-   The password write goes through `authentication.PasswordResetDirectory`, which queues the
-   "your password was reset" mail (`password_reset_token_redeemed`) on that same transaction.
+   spends the token, writes the password through the identity store and revokes the user's other
+   links, on one transaction. Spending the token fires platform's recording hook on the token
+   store, which writes the `passwordreset.token.redeemed` audit entry and event on that same
+   transaction; the data change message handler renders the "your password was reset" mail from
+   that event. Issuing a link is recorded the same way, as `passwordreset.token.issued`; neither
+   event carries the secret.
 
 What the store guarantees:
 

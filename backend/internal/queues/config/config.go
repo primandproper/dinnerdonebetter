@@ -13,6 +13,15 @@ import (
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
 
+// DefaultDataChangesTopicName is the topic every data change event is published
+// on when no configuration names one.
+//
+// It is the one topic name a process may need without a queues config: a
+// process with no broker still writes its events to the outbox, under this
+// topic, for the worker that has one to relay. See
+// internal/repositories/postgres/events.
+const DefaultDataChangesTopicName = "data_changes"
+
 type (
 	// Config contains the various queue names.
 	Config struct {

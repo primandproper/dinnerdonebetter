@@ -9,6 +9,7 @@ import (
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
+	platformaudit "github.com/primandproper/platform-go/v15/audit"
 	"github.com/primandproper/primitives-go/v2/database"
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/filtering"
@@ -282,11 +283,7 @@ func (q *repository) createMealPlanEvent(ctx context.Context, querier database.T
 		x.Options = append(x.Options, opt)
 	}
 
-	if err := q.auditLogEntryRepo.Record(ctx, querier, &audit.AuditLogEntry{
-		ResourceType: resourceTypeMealPlanEvents,
-		RelevantID:   input.ID,
-		EventType:    audit.AuditLogEventTypeCreated,
-	}); err != nil {
+	if err := q.auditLogEntryRepo.Record(ctx, querier, audit.NewEntry("", "", resourceTypeMealPlanEvents, input.ID, platformaudit.EventCreated)); err != nil {
 		return nil, observability.PrepareError(err, span, "creating audit log entry")
 	}
 
@@ -356,11 +353,7 @@ func (q *repository) UpdateMealPlanEvent(ctx context.Context, updated *types.Mea
 			return updateErr
 		}
 
-		return q.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
-			ResourceType: resourceTypeMealPlanEvents,
-			RelevantID:   updated.ID,
-			EventType:    audit.AuditLogEventTypeUpdated,
-		})
+		return q.auditLogEntryRepo.Record(ctx, tx, audit.NewEntry("", "", resourceTypeMealPlanEvents, updated.ID, platformaudit.EventUpdated))
 	}); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "updating meal plan event")
 	}
@@ -427,16 +420,8 @@ func (q *repository) SwapMealPlanEvents(ctx context.Context, mealPlanID, mealPla
 		// investigation is concerned, they share a scope, and recording them together
 		// pays one chain-head lookup and one INSERT rather than two of each.
 		if err = q.auditLogEntryRepo.Record(ctx, tx,
-			&audit.AuditLogEntry{
-				ResourceType: resourceTypeMealPlanEvents,
-				RelevantID:   eventA.ID,
-				EventType:    audit.AuditLogEventTypeUpdated,
-			},
-			&audit.AuditLogEntry{
-				ResourceType: resourceTypeMealPlanEvents,
-				RelevantID:   eventB.ID,
-				EventType:    audit.AuditLogEventTypeUpdated,
-			},
+			audit.NewEntry("", "", resourceTypeMealPlanEvents, eventA.ID, platformaudit.EventUpdated),
+			audit.NewEntry("", "", resourceTypeMealPlanEvents, eventB.ID, platformaudit.EventUpdated),
 		); err != nil {
 			return observability.PrepareError(err, span, "creating audit log entries for swap")
 		}
@@ -495,11 +480,7 @@ func (q *repository) ArchiveMealPlanEvent(ctx context.Context, mealPlanID, mealP
 
 		// The audit log entry belongs in this transaction too: it describes the same
 		// write, and half of a write is not something to record.
-		if auditErr := q.auditLogEntryRepo.Record(ctx, tx, &audit.AuditLogEntry{
-			ResourceType: resourceTypeMealPlanEvents,
-			RelevantID:   mealPlanEventID,
-			EventType:    audit.AuditLogEventTypeArchived,
-		}); auditErr != nil {
+		if auditErr := q.auditLogEntryRepo.Record(ctx, tx, audit.NewEntry("", "", resourceTypeMealPlanEvents, mealPlanEventID, platformaudit.EventArchived)); auditErr != nil {
 			return observability.PrepareError(auditErr, span, "creating audit log entry")
 		}
 

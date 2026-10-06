@@ -1,7 +1,7 @@
 package authorization
 
 import (
-	issuereportsgrpc "github.com/primandproper/platform-go/v14/issuereports/grpc"
+	issuereportsgrpc "github.com/primandproper/platform-go/v15/issuereports/grpc"
 )
 
 // The issue report permissions are platform's, re-exported under the names this

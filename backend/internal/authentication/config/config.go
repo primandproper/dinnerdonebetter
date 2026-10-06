@@ -3,7 +3,7 @@ package authcfg
 import (
 	"context"
 
-	webauthncfg "github.com/primandproper/platform-go/v14/authentication/webauthnsessions/config"
+	webauthncfg "github.com/primandproper/platform-go/v15/authentication/webauthnsessions/config"
 	tokenscfg "github.com/primandproper/primitives-go/v2/authentication/tokens/config"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"

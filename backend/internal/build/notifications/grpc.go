@@ -7,7 +7,7 @@ the inbox and the device registry separated, plus the two this application had
 no equivalent for: an unread page, and marking a whole inbox read.
 
 The scope is global. A notification is addressed to a person rather than to an
-account — see internal/domain/notifications.Scope — so the principal extractor is
+account — see internal/domain/notifications — so the principal extractor is
 the global one.
 */
 package notifications
@@ -15,9 +15,9 @@ package notifications
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 
-	platformnotifications "github.com/primandproper/platform-go/v14/notifications"
-	notificationsgrpc "github.com/primandproper/platform-go/v14/notifications/grpc"
-	"github.com/primandproper/platform-go/v14/notifications/notificationspb"
+	platformnotifications "github.com/primandproper/platform-go/v15/notifications"
+	notificationsgrpc "github.com/primandproper/platform-go/v15/notifications/grpc"
+	"github.com/primandproper/platform-go/v15/notifications/notificationspb"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/metrics"

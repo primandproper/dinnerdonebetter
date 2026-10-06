@@ -391,6 +391,7 @@
 		}
 	},
 	"webhooks": {
+		"emitterTopic": "domain_events",
 		"circuitBreaker": {
 			"name": "webhook_delivery",
 			"circuitBreakerErrorPercentage": 0.5,

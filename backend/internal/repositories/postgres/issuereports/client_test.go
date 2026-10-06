@@ -6,14 +6,14 @@ import (
 	"os"
 	"testing"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	ddbissuereports "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports/fakes"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	issuereports "github.com/primandproper/platform-go/v14/issuereports"
+	platformaudit "github.com/primandproper/platform-go/v15/audit"
+	issuereports "github.com/primandproper/platform-go/v15/issuereports"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/database/postgres"
 	"github.com/primandproper/primitives-go/v2/identifiers"
@@ -42,7 +42,7 @@ func TestMain(m *testing.M) {
 }
 
 // buildDatabaseClientForTest builds the store over a real database.
-func buildDatabaseClientForTest(t *testing.T) (issuereports.Store, audit.Repository, database.Client) {
+func buildDatabaseClientForTest(t *testing.T) (issuereports.Store, database.Client) {
 	t.Helper()
 
 	ctx := t.Context()
@@ -57,17 +57,19 @@ func buildDatabaseClientForTest(t *testing.T) (issuereports.Store, audit.Reposit
 	auditLogEntryRepo, err := auditlogentries.ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), metricsnoop.NewMetricsProvider(), pgc)
 	require.NoError(t, err)
 
+	auditRecorder, ok := auditlogentries.RecorderFrom(auditLogEntryRepo)
+	require.True(t, ok)
+
 	c, err := ProvideIssueReportsRepository(
 		loggingnoop.NewLogger(),
 		tracingnoop.NewTracerProvider(),
 		metricsnoop.NewMetricsProvider(),
-		auditLogEntryRepo,
 		pgc,
-		nil,
+		pgtesting.NewRecorderForTest(t, ctx, pgc, auditRecorder),
 	)
 	require.NoError(t, err)
 
-	return c, auditLogEntryRepo, pgc
+	return c, pgc
 }
 
 // reporterForTest creates a user and an account for them, and returns both. Both
@@ -84,9 +86,12 @@ func reporterForTest(t *testing.T, db database.Client) (userID, accountID string
 
 func TestRepository_Integration_IssueReports(t *testing.T) {
 	ctx := t.Context()
-	dbc, auditRepo, db := buildDatabaseClientForTest(t)
+	dbc, db := buildDatabaseClientForTest(t)
 
 	userID, accountID := reporterForTest(t, db)
+
+	// The reporter is the one making the requests, which is who every entry names as actor.
+	ctx = pgtesting.AsRequester(ctx, userID)
 
 	report := fakes.BuildFakeIssueReportForScope(accountID)
 	report.Reporter = userID
@@ -95,8 +100,8 @@ func TestRepository_Integration_IssueReports(t *testing.T) {
 	created, err := createT(ctx, db, dbc, report)
 	require.NoError(t, err)
 	assert.Equal(t, issuereports.StatusOpen, created.Status)
-	pgtesting.AssertAuditLogContainsForUser(t, ctx, auditRepo, userID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeIssueReports, RelevantID: report.ID},
+	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, userID, []pgtesting.ExpectedAuditEntry{
+		{EventType: platformaudit.EventCreated, ResourceType: issuereports.ResourceTypeReport, ResourceID: report.ID},
 	})
 
 	fetched, err := dbc.GetReport(ctx, db.Reader(), ddbissuereports.Scope(accountID), report.ID)
@@ -122,9 +127,9 @@ func TestRepository_Integration_IssueReports(t *testing.T) {
 		return dbc.UpdateReport(ctx, tx, ddbissuereports.Scope(accountID), fetched)
 	})
 	require.NoError(t, err)
-	pgtesting.AssertAuditLogContainsForUser(t, ctx, auditRepo, userID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeIssueReports, RelevantID: report.ID},
-		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeIssueReports, RelevantID: report.ID},
+	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, userID, []pgtesting.ExpectedAuditEntry{
+		{EventType: platformaudit.EventCreated, ResourceType: issuereports.ResourceTypeReport, ResourceID: report.ID},
+		{EventType: platformaudit.EventUpdated, ResourceType: issuereports.ResourceTypeReport, ResourceID: report.ID},
 	})
 
 	updated, err := dbc.GetReport(ctx, db.Reader(), ddbissuereports.Scope(accountID), report.ID)
@@ -137,10 +142,10 @@ func TestRepository_Integration_IssueReports(t *testing.T) {
 		return dbc.ArchiveReport(ctx, tx, ddbissuereports.Scope(accountID), report.ID)
 	})
 	require.NoError(t, err)
-	pgtesting.AssertAuditLogContainsForUser(t, ctx, auditRepo, userID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeIssueReports, RelevantID: report.ID},
-		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeIssueReports, RelevantID: report.ID},
-		{EventType: audit.AuditLogEventTypeArchived, ResourceType: resourceTypeIssueReports, RelevantID: report.ID},
+	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, userID, []pgtesting.ExpectedAuditEntry{
+		{EventType: platformaudit.EventCreated, ResourceType: issuereports.ResourceTypeReport, ResourceID: report.ID},
+		{EventType: platformaudit.EventUpdated, ResourceType: issuereports.ResourceTypeReport, ResourceID: report.ID},
+		{EventType: platformaudit.EventArchived, ResourceType: issuereports.ResourceTypeReport, ResourceID: report.ID},
 	})
 
 	afterArchive, err := dbc.GetReport(ctx, db.Reader(), ddbissuereports.Scope(accountID), report.ID)
@@ -154,9 +159,12 @@ func TestRepository_Integration_IssueReports(t *testing.T) {
 // closed_at and stores the note, and reopening clears both.
 func TestRepository_Integration_TriageLifecycle(t *testing.T) {
 	ctx := t.Context()
-	dbc, auditRepo, db := buildDatabaseClientForTest(t)
+	dbc, db := buildDatabaseClientForTest(t)
 
 	userID, accountID := reporterForTest(t, db)
+
+	// The reporter is the one making the requests, which is who every entry names as actor.
+	ctx = pgtesting.AsRequester(ctx, userID)
 	scope := ddbissuereports.Scope(accountID)
 
 	report := fakes.BuildFakeIssueReportForScope(accountID)
@@ -185,11 +193,11 @@ func TestRepository_Integration_TriageLifecycle(t *testing.T) {
 
 	// Every move is recorded, so "who resolved this and when" is answerable from
 	// the audit log rather than from the one row the last write left behind.
-	pgtesting.AssertAuditLogContainsForUser(t, ctx, auditRepo, userID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeIssueReports, RelevantID: report.ID},
-		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeIssueReports, RelevantID: report.ID},
-		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeIssueReports, RelevantID: report.ID},
-		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeIssueReports, RelevantID: report.ID},
+	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, userID, []pgtesting.ExpectedAuditEntry{
+		{EventType: platformaudit.EventCreated, ResourceType: issuereports.ResourceTypeReport, ResourceID: report.ID},
+		{EventType: platformaudit.EventUpdated, ResourceType: issuereports.ResourceTypeReport, ResourceID: report.ID},
+		{EventType: platformaudit.EventUpdated, ResourceType: issuereports.ResourceTypeReport, ResourceID: report.ID},
+		{EventType: platformaudit.EventUpdated, ResourceType: issuereports.ResourceTypeReport, ResourceID: report.ID},
 	})
 }
 
@@ -198,9 +206,12 @@ func TestRepository_Integration_TriageLifecycle(t *testing.T) {
 // exactly what this looks like from the second one's side.
 func TestRepository_Integration_TransitionGuardRecordsNothing(t *testing.T) {
 	ctx := t.Context()
-	dbc, auditRepo, db := buildDatabaseClientForTest(t)
+	dbc, db := buildDatabaseClientForTest(t)
 
 	userID, accountID := reporterForTest(t, db)
+
+	// The reporter is the one making the requests, which is who every entry names as actor.
+	ctx = pgtesting.AsRequester(ctx, userID)
 	scope := ddbissuereports.Scope(accountID)
 
 	report := fakes.BuildFakeIssueReportForScope(accountID)
@@ -222,9 +233,8 @@ func TestRepository_Integration_TransitionGuardRecordsNothing(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "first", stored.Resolution)
 
-	entries, err := auditRepo.GetAuditLogEntriesForUser(ctx, userID, nil)
-	require.NoError(t, err)
-	assert.Len(t, entries.Data, 2)
+	entries := pgtesting.AuditEntriesForActor(t, ctx, db, userID)
+	assert.Len(t, entries, 2)
 }
 
 // TestRepository_Integration_ScopeIsTheAccountBoundary pins that a report filed in
@@ -232,9 +242,12 @@ func TestRepository_Integration_TransitionGuardRecordsNothing(t *testing.T) {
 // belongs_to_account check the service used to run after the read.
 func TestRepository_Integration_ScopeIsTheAccountBoundary(t *testing.T) {
 	ctx := t.Context()
-	dbc, _, db := buildDatabaseClientForTest(t)
+	dbc, db := buildDatabaseClientForTest(t)
 
 	userID, accountID := reporterForTest(t, db)
+
+	// The reporter is the one making the requests, which is who every entry names as actor.
+	ctx = pgtesting.AsRequester(ctx, userID)
 	_, otherAccountID := reporterForTest(t, db)
 
 	report := fakes.BuildFakeIssueReportForScope(accountID)
@@ -258,9 +271,12 @@ func TestRepository_Integration_ScopeIsTheAccountBoundary(t *testing.T) {
 // eraser never reaches.
 func TestRepository_Integration_ErasureFollowsTheReporter(t *testing.T) {
 	ctx := t.Context()
-	dbc, _, db := buildDatabaseClientForTest(t)
+	dbc, db := buildDatabaseClientForTest(t)
 
 	userID, accountID := reporterForTest(t, db)
+
+	// The reporter is the one making the requests, which is who every entry names as actor.
+	ctx = pgtesting.AsRequester(ctx, userID)
 
 	report := fakes.BuildFakeIssueReportForScope(accountID)
 	report.Reporter = userID
@@ -281,7 +297,7 @@ func TestRepository_Integration_ErasureFollowsTheReporter(t *testing.T) {
 // absent report an error before anything is written down about it.
 func TestRepository_Integration_ArchiveMissingRecordsNothing(t *testing.T) {
 	ctx := t.Context()
-	dbc, _, db := buildDatabaseClientForTest(t)
+	dbc, db := buildDatabaseClientForTest(t)
 
 	_, accountID := reporterForTest(t, db)
 

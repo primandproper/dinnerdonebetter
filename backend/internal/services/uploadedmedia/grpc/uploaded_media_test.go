@@ -13,10 +13,10 @@ import (
 	appmetering "github.com/primandproper/dinnerdonebetter/backend/internal/metering"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/testutils"
 
-	"github.com/primandproper/platform-go/v14/mediaregistry"
-	registrymock "github.com/primandproper/platform-go/v14/mediaregistry/mock"
-	"github.com/primandproper/platform-go/v14/metering"
-	meteringmock "github.com/primandproper/platform-go/v14/metering/mock"
+	"github.com/primandproper/platform-go/v15/mediaregistry"
+	registrymock "github.com/primandproper/platform-go/v15/mediaregistry/mock"
+	"github.com/primandproper/platform-go/v15/metering"
+	meteringmock "github.com/primandproper/platform-go/v15/metering/mock"
 	"github.com/primandproper/primitives-go/v2/database"
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/filtering"
@@ -216,7 +216,7 @@ func TestServiceImpl_CreateUploadedMedia(t *testing.T) {
 		// The owner is the session's user rather than anything the request carried: it is
 		// the whole of what a later read's permission check consults.
 		assert.Equal(t, testUserID, recorded.OwnerID)
-		assert.Equal(t, uploadedmedia.Scope(), recordedScope)
+		assert.Equal(t, tenancy.Global(), recordedScope)
 		assert.NotEmpty(t, recorded.ID)
 
 		assert.Len(t, uploadsRegistry.RecordObjectCalls(), 1)
@@ -383,7 +383,7 @@ func TestServiceImpl_GetUploadedMedia(t *testing.T) {
 		require.NotNil(t, response.Result)
 		assert.Equal(t, fakeObject.ID, response.Result.Id)
 		assert.Equal(t, fakeObject.Key, response.Result.ObjectKey)
-		assert.Equal(t, uploadedmedia.Scope(), readScope)
+		assert.Equal(t, tenancy.Global(), readScope)
 	})
 
 	t.Run("session context error", func(t *testing.T) {
@@ -801,7 +801,7 @@ func TestServiceImpl_Upload(t *testing.T) {
 		// rather than what the chunks claimed.
 		assert.Equal(t, savedKey, recorded.Key)
 		assert.Equal(t, testUserID, recorded.OwnerID)
-		assert.Equal(t, uploadedmedia.Scope(), recordedScope)
+		assert.Equal(t, tenancy.Global(), recordedScope)
 		assert.Equal(t, int64(len(chunk1)+len(chunk2)), recorded.Size)
 
 		require.Len(t, stream.closedWith, 1)

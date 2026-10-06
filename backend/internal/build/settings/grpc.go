@@ -6,8 +6,8 @@ live in internal/services/settings forwarded thirteen RPCs to the store,
 converted between two spellings of the same fields, and enforced AdminOnly —
 and platform-go v14 ships all three. The last of those arrived late: until
 platform asked PermissionWriteAdminValues inside the handler, mounting this
-surface would have let any member write a setting the catalog had reserved. See
-internal/repositories/postgres/settingsspike for the regression test.
+surface would have let any member write a setting the catalog had reserved.
+admin_only_test.go is the regression test.
 
 What this application still owns is the store it is given: the repository in
 internal/repositories/postgres/settings, which is platform's SQL store with an
@@ -20,10 +20,10 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 
-	"github.com/primandproper/platform-go/v14/callers"
-	platformsettings "github.com/primandproper/platform-go/v14/settings"
-	settingsgrpc "github.com/primandproper/platform-go/v14/settings/grpc"
-	"github.com/primandproper/platform-go/v14/settings/settingspb"
+	"github.com/primandproper/platform-go/v15/callers"
+	platformsettings "github.com/primandproper/platform-go/v15/settings"
+	settingsgrpc "github.com/primandproper/platform-go/v15/settings/grpc"
+	"github.com/primandproper/platform-go/v15/settings/settingspb"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/metrics"

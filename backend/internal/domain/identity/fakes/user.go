@@ -6,12 +6,12 @@ import (
 	"strings"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
-	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 
-	identity "github.com/primandproper/platform-go/v14/identity"
+	identity "github.com/primandproper/platform-go/v15/identity"
 	"github.com/primandproper/primitives-go/v2/fake"
 	"github.com/primandproper/primitives-go/v2/filtering"
 	"github.com/primandproper/primitives-go/v2/pointer"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	gofakeit "github.com/brianvoe/gofakeit/v7"
 )
@@ -22,7 +22,7 @@ func BuildFakeUser() *identity.User {
 
 	// The directory this application keeps. A generated scope names a tenancy no read in
 	// this deployment is made in, so a user carrying one is a user nothing finds.
-	user.Scope = ddbidentity.Scope()
+	user.Scope = tenancy.Global()
 
 	// Registration validates the address as an email, and a username has to be unique
 	// across every user a test suite creates — hence two of them and a number.

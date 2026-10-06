@@ -259,13 +259,13 @@ type XxxDataManager interface {
 
 - Wraps Repository
 - Adds: validation, multi-step logic, event publishing, ID generation
-- **o11yName**: `"<domain>_data_manager"` (e.g., `"webhook_data_manager"`)
+- **o11yName**: `"<domain>_data_manager"` (e.g., `"audit_data_manager"`)
 
 wire.go:
 
 - `ProvideXxxManager(...)` or `NewXxxDataManager(...)`
 
-**Reference**: [backend/internal/domain/webhooks/manager/](backend/internal/domain/webhooks/manager/)
+**Reference**: [backend/internal/domain/audit/manager/](backend/internal/domain/audit/manager/)
 
 ### 4c. Wire and Build
 

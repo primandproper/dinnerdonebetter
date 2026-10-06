@@ -16,7 +16,7 @@ import (
 	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	platformidentity "github.com/primandproper/platform-go/v14/identity"
+	platformidentity "github.com/primandproper/platform-go/v15/identity"
 	databasecfg "github.com/primandproper/primitives-go/v2/database/config"
 	"github.com/primandproper/primitives-go/v2/identifiers"
 )
@@ -156,7 +156,12 @@ func buildDatabase(ctx context.Context, cfg *config.MCPServiceConfig) (*sql.DB, 
 		return nil, err
 	}
 
-	mealPlanningRepo := mealplanningrepo.ProvideMealPlanningRepository(pillars.Logger, pillars.TracerProvider, auditRepo, identityStore, databaseClient, nil, uploads)
+	spine, err := localdev.Spine(ctx, databaseClient, auditRepo, pillars.Logger, pillars.TracerProvider)
+	if err != nil {
+		return nil, err
+	}
+
+	mealPlanningRepo := mealplanningrepo.ProvideMealPlanningRepository(pillars.Logger, pillars.TracerProvider, auditRepo, identityStore, databaseClient, spine, uploads)
 
 	seededIngredient, err = mealPlanningRepo.CreateValidIngredient(ctx,
 		mealplanningconverters.ConvertValidIngredientToValidIngredientDatabaseCreationInput(mealplanningfakes.BuildFakeValidIngredient()))

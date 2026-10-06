@@ -18,7 +18,7 @@ package indexstamp
 import (
 	"context"
 
-	searchsync "github.com/primandproper/platform-go/v14/searchsync"
+	searchsync "github.com/primandproper/platform-go/v15/searchsync"
 	"github.com/primandproper/primitives-go/v2/batching"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/metrics"

@@ -3,12 +3,11 @@ package webhooksstore
 import (
 	"context"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/catalog"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 
-	platformwebhooks "github.com/primandproper/platform-go/v14/webhooks"
-	webhookscfg "github.com/primandproper/platform-go/v14/webhooks/config"
+	platformrecording "github.com/primandproper/platform-go/v15/recording"
+	platformwebhooks "github.com/primandproper/platform-go/v15/webhooks"
+	webhookscfg "github.com/primandproper/platform-go/v15/webhooks/config"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/metrics"
@@ -17,35 +16,26 @@ import (
 	"github.com/samber/do/v2"
 )
 
-// RegisterWebhooksStore registers the decorated store and the dispatcher over it.
+// RegisterWebhooksStore registers the store, with its recording hooks installed,
+// and the dispatcher over it.
 //
-// The undecorated store is not registered under its own type. Every endpoint
-// write here owes an audit entry, and a second registration would be a way to
-// skip that by naming the wrong dependency — which is how the arrangement this
-// replaced lost them: it registered platform's raw store and kept the recording
-// on three local tables beside it.
+// There is no store without the hooks to register by mistake: they are built
+// into the one store there is. Every endpoint write here owes an audit entry,
+// and a second registration would be a way to skip that by naming the wrong
+// dependency — which is how the arrangement this replaced lost them: it
+// registered platform's raw store and kept the recording on three local tables
+// beside it.
 //
-// The dispatcher is built over the decorated store deliberately. A registration
-// that reaches the database through the dispatcher is still an endpoint write,
-// and an entry it did not produce would be a webhook the log does not know was
-// created.
+// The dispatcher is built over that store deliberately. A registration that
+// reaches the database through the dispatcher is still an endpoint write, and an
+// entry it did not produce would be a webhook the log does not know was created.
 func RegisterWebhooksStore(i do.Injector) {
 	do.Provide[platformwebhooks.Store](i, func(i do.Injector) (platformwebhooks.Store, error) {
-		inner, err := webhookscfg.NewStore(
+		return ProvideStore(
 			do.MustInvoke[context.Context](i),
 			config(i),
 			do.MustInvoke[database.Client](i),
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		return ProvideStore(
-			do.MustInvoke[logging.Logger](i),
-			do.MustInvoke[tracing.Provider](i),
-			do.MustInvoke[audit.Repository](i),
-			do.MustInvoke[*events.Emitter](i),
-			inner,
+			do.MustInvoke[*platformrecording.Recorder](i),
 		)
 	})
 

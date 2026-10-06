@@ -54,6 +54,10 @@ const (
 	// `SchedulerConfig.Audit.Retention.BatchSize`.
 	AuditBatchSizeEnvVarKey = "DINNER_DONE_BETTER_AUDIT_BATCH_SIZE"
 
+	// AuditCredentialRedactionDisabledEnvVarKey is the environment variable name to set to
+	// override `SchedulerConfig.Audit.CredentialRedactionDisabled`.
+	AuditCredentialRedactionDisabledEnvVarKey = "DINNER_DONE_BETTER_AUDIT_CREDENTIAL_REDACTION_DISABLED"
+
 	// AuditDialectEnvVarKey is the environment variable name to set to override
 	// `SchedulerConfig.Audit.Dialect`.
 	AuditDialectEnvVarKey = "DINNER_DONE_BETTER_AUDIT_DIALECT"
@@ -3158,6 +3162,10 @@ const (
 	// `APIServiceConfig.Webhooks.CircuitBreaker.Name`,
 	// `SchedulerConfig.Webhooks.CircuitBreaker.Name`.
 	WebhooksCircuitBreakingNameEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_CIRCUIT_BREAKING_NAME"
+
+	// WebhooksEmitterTopicEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Webhooks.EmitterTopic`, `SchedulerConfig.Webhooks.EmitterTopic`.
+	WebhooksEmitterTopicEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_EMITTER_TOPIC"
 
 	// WebhooksHTTPClientEnableTracingEnvVarKey is the environment variable name to set to override
 	// `APIServiceConfig.Webhooks.HTTPClient.EnableTracing`,

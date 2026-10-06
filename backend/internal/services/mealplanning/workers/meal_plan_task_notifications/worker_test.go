@@ -9,13 +9,12 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	mealplanningmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
-	domainnotifications "github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications"
 
-	platformidentity "github.com/primandproper/platform-go/v14/identity"
-	identitymock "github.com/primandproper/platform-go/v14/identity/mock"
-	platformnotifs "github.com/primandproper/platform-go/v14/notifications"
-	platformnotificationsmock "github.com/primandproper/platform-go/v14/notifications/mock"
-	"github.com/primandproper/platform-go/v14/notifications/push"
+	platformidentity "github.com/primandproper/platform-go/v15/identity"
+	identitymock "github.com/primandproper/platform-go/v15/identity/mock"
+	platformnotifs "github.com/primandproper/platform-go/v15/notifications"
+	platformnotificationsmock "github.com/primandproper/platform-go/v15/notifications/mock"
+	"github.com/primandproper/platform-go/v15/notifications/push"
 	"github.com/primandproper/primitives-go/v2/database"
 	databasemock "github.com/primandproper/primitives-go/v2/database/mock"
 	"github.com/primandproper/primitives-go/v2/errors"
@@ -222,19 +221,6 @@ func (w *testWorker) notifiable(t *testing.T, taskID string) (assignedUser strin
 
 		return devices, nil
 	}
-	_ = func(_ context.Context, userID string, _ *filtering.QueryFilter, _ *string) (*filtering.QueryFilteredResult[domainnotifications.UserDeviceToken], error) {
-		return &filtering.QueryFilteredResult[domainnotifications.UserDeviceToken]{
-			Data: []*domainnotifications.UserDeviceToken{
-				{
-					ID:            fake.BuildFakeID(),
-					DeviceToken:   fake.BuildFakeID(),
-					Platform:      domainnotifications.UserDeviceTokenPlatformIOS,
-					BelongsToUser: userID,
-				},
-			},
-		}, nil
-	}
-
 	return assignedUser
 }
 

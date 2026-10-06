@@ -8,6 +8,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit/fakes"
 	auditmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit/mock"
 
+	platformaudit "github.com/primandproper/platform-go/v15/audit"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/errors"
 	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
@@ -37,11 +38,11 @@ func TestRecorder_RecordAndEmit(T *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		entry := fakes.BuildFakeAuditLogEntry()
+		entry := fakes.BuildFakeEntry()
 
-		var recorded []*audit.AuditLogEntry
+		var recorded []*platformaudit.Entry
 		auditRepo := &auditmock.RepositoryMock{
-			RecordFunc: func(_ context.Context, _ database.Tx, entries ...*audit.AuditLogEntry) error {
+			RecordFunc: func(_ context.Context, _ database.Tx, entries ...*platformaudit.Entry) error {
 				recorded = append(recorded, entries...)
 				return nil
 			},
@@ -61,12 +62,12 @@ func TestRecorder_RecordAndEmit(T *testing.T) {
 		expected := errors.New("the log said no")
 
 		auditRepo := &auditmock.RepositoryMock{
-			RecordFunc: func(context.Context, database.Tx, ...*audit.AuditLogEntry) error {
+			RecordFunc: func(context.Context, database.Tx, ...*platformaudit.Entry) error {
 				return expected
 			},
 		}
 
-		err := newRecorderForTest(t, auditRepo).RecordAndEmit(ctx, nil, loggingnoop.NewLogger(), fakes.BuildFakeAuditLogEntry(), "event.type", "", nil)
+		err := newRecorderForTest(t, auditRepo).RecordAndEmit(ctx, nil, loggingnoop.NewLogger(), fakes.BuildFakeEntry(), "event.type", "", nil)
 
 		require.Error(t, err)
 		assert.ErrorIs(t, err, expected)

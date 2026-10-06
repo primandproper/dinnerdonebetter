@@ -6,7 +6,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/primandproper/platform-go/v14/mediaregistry"
+	"github.com/primandproper/platform-go/v15/mediaregistry"
 	"github.com/primandproper/primitives-go/v2/filtering"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"

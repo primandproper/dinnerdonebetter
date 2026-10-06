@@ -7,7 +7,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	queuemessages "github.com/primandproper/dinnerdonebetter/backend/internal/queues/messages"
 
-	identity "github.com/primandproper/platform-go/v14/identity"
+	identity "github.com/primandproper/platform-go/v15/identity"
 
 	"github.com/matcornic/hermes/v2"
 )

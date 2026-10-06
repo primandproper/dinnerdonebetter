@@ -7,9 +7,10 @@ import (
 	mealplanningsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
 
-	"github.com/primandproper/platform-go/v14/authentication/passkeys/passkeyspb"
-	"github.com/primandproper/platform-go/v14/authentication/signin/signinpb"
-	identity "github.com/primandproper/platform-go/v14/identity"
+	platformpasskeys "github.com/primandproper/platform-go/v15/authentication/passkeys"
+	"github.com/primandproper/platform-go/v15/authentication/passkeys/passkeyspb"
+	"github.com/primandproper/platform-go/v15/authentication/signin/signinpb"
+	identity "github.com/primandproper/platform-go/v15/identity"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -110,5 +111,26 @@ func TestPasskeys_ThisApplicationsWiring(T *testing.T) {
 		})
 		require.NoError(t, err)
 		require.NotEmpty(t, finished.GetToken().GetToken())
+	})
+
+	T.Run("adding and removing a passkey are both in the audit log", func(t *testing.T) {
+		t.Parallel()
+		ctx := t.Context()
+
+		_, testClient := createUserAndClientForTest(t)
+		registerPasskeyForTest(t, testClient)
+
+		listed, err := testClient.ListPasskeys(ctx, &passkeyspb.ListPasskeysRequest{})
+		require.NoError(t, err)
+		require.Len(t, listed.GetPasskeys(), 1)
+		passkeyID := listed.GetPasskeys()[0].GetId()
+
+		_, err = testClient.ArchivePasskey(ctx, &passkeyspb.ArchivePasskeyRequest{Id: passkeyID})
+		require.NoError(t, err)
+
+		AssertAuditLogContainsFuzzyForResource(t, ctx, platformpasskeys.ResourceTypeCredential, passkeyID, 10, []*ExpectedAuditEntry{
+			{EventType: "created", ResourceType: platformpasskeys.ResourceTypeCredential, RelevantID: passkeyID},
+			{EventType: "archived", ResourceType: platformpasskeys.ResourceTypeCredential, RelevantID: passkeyID},
+		})
 	})
 }

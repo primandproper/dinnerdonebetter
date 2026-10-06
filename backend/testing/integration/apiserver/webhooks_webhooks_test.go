@@ -3,10 +3,10 @@ package integration
 import (
 	"testing"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks"
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
 
-	webhookspb "github.com/primandproper/platform-go/v14/webhooks/webhookspb"
+	platformwebhooks "github.com/primandproper/platform-go/v15/webhooks"
+	webhookspb "github.com/primandproper/platform-go/v15/webhooks/webhookspb"
 	"github.com/primandproper/primitives-go/v2/identifiers"
 
 	"github.com/stretchr/testify/assert"
@@ -54,7 +54,7 @@ func endpointInputForTest(t *testing.T) *webhookspb.WebhookEndpointInput {
 		Name:        t.Name(),
 		Url:         "https://192.0.2.1/webhook/" + identifiers.New(),
 		ContentType: "application/json",
-		EventTypes:  []string{webhooks.WebhookCreatedServiceEventType},
+		EventTypes:  []string{platformwebhooks.EventEndpointCreated.String()},
 	}
 }
 
@@ -118,7 +118,7 @@ func TestWebhooks_Creating(T *testing.T) {
 		created := createWebhookForTest(t, testClient)
 
 		AssertAuditLogContainsFuzzy(t, ctx, testClient, getAccountIDForTest(t, testClient), 10, []*ExpectedAuditEntry{
-			{EventType: "created", ResourceType: "webhooks", RelevantID: created.GetId()},
+			{EventType: "created", ResourceType: platformwebhooks.ResourceTypeEndpoint, RelevantID: created.GetId()},
 		})
 	})
 }
@@ -139,7 +139,7 @@ func TestWebhooks_Archiving(T *testing.T) {
 		require.NoError(t, err)
 
 		AssertAuditLogContainsFuzzy(t, ctx, testClient, getAccountIDForTest(t, testClient), 10, []*ExpectedAuditEntry{
-			{EventType: "archived", ResourceType: "webhooks", RelevantID: created.GetId()},
+			{EventType: "archived", ResourceType: platformwebhooks.ResourceTypeEndpoint, RelevantID: created.GetId()},
 		})
 	})
 }
@@ -156,17 +156,15 @@ func TestWebhookSubscriptions_Adding(T *testing.T) {
 
 		added, err := testClient.WebhooksService().AddSubscription(ctx, &webhookspb.AddSubscriptionRequest{
 			EndpointId: created.GetId(),
-			EventType:  webhooks.WebhookArchivedServiceEventType,
+			EventType:  platformwebhooks.EventEndpointArchived.String(),
 		})
 		require.NoError(t, err)
 		require.NotNil(t, added.GetResult())
 
-		// webhook_trigger_configs, which is the name the table had before the store moved
-		// to platform. The audit log keeps it on purpose — an investigation asking what
-		// happened to a subscription should find the entries written on both sides of the
-		// adoption. See webhooksstore's constants.
+		// The entry is platform's, named with platform's resource type: the store's
+		// RecordingHooks write it, on the same transaction as the subscription.
 		AssertAuditLogContainsFuzzy(t, ctx, testClient, getAccountIDForTest(t, testClient), 15, []*ExpectedAuditEntry{
-			{EventType: "created", ResourceType: "webhook_trigger_configs", RelevantID: added.GetResult().GetId()},
+			{EventType: "created", ResourceType: platformwebhooks.ResourceTypeSubscription, RelevantID: added.GetResult().GetId()},
 		})
 	})
 }
@@ -202,7 +200,7 @@ func TestWebhookEventTypes_Listing(T *testing.T) {
 
 		// The one a subscription in this file is made against has to be in it, or the
 		// subscription above was accepted against an event nothing will ever fire.
-		assert.Contains(t, byType, webhooks.WebhookCreatedServiceEventType)
-		assert.Contains(t, byType, webhooks.WebhookArchivedServiceEventType)
+		assert.Contains(t, byType, platformwebhooks.EventEndpointCreated.String())
+		assert.Contains(t, byType, platformwebhooks.EventEndpointArchived.String())
 	})
 }

@@ -21,18 +21,18 @@ import (
 	"strings"
 	"time"
 
-	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/localdev"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
 	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
 	mealplanningindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
-	platformidentity "github.com/primandproper/platform-go/v14/identity"
-	"github.com/primandproper/platform-go/v14/mediaregistry"
-	searchsync "github.com/primandproper/platform-go/v14/searchsync"
-	syncsource "github.com/primandproper/platform-go/v14/searchsync/source"
+	platformidentity "github.com/primandproper/platform-go/v15/identity"
+	"github.com/primandproper/platform-go/v15/mediaregistry"
+	searchsync "github.com/primandproper/platform-go/v15/searchsync"
+	syncsource "github.com/primandproper/platform-go/v15/searchsync/source"
 	"github.com/primandproper/primitives-go/v2/database"
 	databasecfg "github.com/primandproper/primitives-go/v2/database/config"
 	"github.com/primandproper/primitives-go/v2/database/postgres"
@@ -166,7 +166,7 @@ func runInit(databaseURL, searchProvider, algoliaAppID, algoliaAPIKey, indicesSt
 	// through it. It needs no emitter or metrics — nothing here writes an object.
 	uploadsRegistry, err := mediaregistry.NewSQLStore(
 		client,
-		mediaregistry.WithTablePrefix(uploadedmedia.TablePrefix),
+		mediaregistry.WithTablePrefix(branding.TablePrefix),
 		mediaregistry.WithStoreLogger(logger),
 		mediaregistry.WithStoreTracerProvider(tracerProvider),
 	)
@@ -175,14 +175,19 @@ func runInit(databaseURL, searchProvider, algoliaAppID, algoliaAPIKey, indicesSt
 	}
 
 	identityStore, err := platformidentity.NewSQLStore(client,
-		platformidentity.WithTablePrefix(ddbidentity.TablePrefix),
+		platformidentity.WithTablePrefix(branding.TablePrefix),
 		platformidentity.WithStoreLogger(logger),
 		platformidentity.WithStoreTracerProvider(tracerProvider),
 	)
 	if err != nil {
 		return err
 	}
-	mealPlanningRepo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditRepo, identityStore, client, nil, uploadsRegistry)
+	spine, err := localdev.Spine(ctx, client, auditRepo, logger, tracerProvider)
+	if err != nil {
+		return fmt.Errorf("building the recording spine: %w", err)
+	}
+
+	mealPlanningRepo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditRepo, identityStore, client, spine, uploadsRegistry)
 
 	searchCfg := &textsearchcfg.Config{
 		Provider: searchProvider,

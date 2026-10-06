@@ -3,8 +3,8 @@ package scheduler
 import (
 	"context"
 
-	"github.com/primandproper/platform-go/v14/webhooks"
-	webhookscfg "github.com/primandproper/platform-go/v14/webhooks/config"
+	"github.com/primandproper/platform-go/v15/webhooks"
+	webhookscfg "github.com/primandproper/platform-go/v15/webhooks/config"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/metrics"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"

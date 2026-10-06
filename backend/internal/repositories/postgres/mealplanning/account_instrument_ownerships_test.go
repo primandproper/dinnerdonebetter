@@ -5,12 +5,12 @@ import (
 	"database/sql"
 	"testing"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
+	platformaudit "github.com/primandproper/platform-go/v15/audit"
 	"github.com/primandproper/primitives-go/v2/fake"
 	"github.com/primandproper/primitives-go/v2/filtering"
 
@@ -49,7 +49,7 @@ func createAccountInstrumentOwnershipForTest(t *testing.T, ctx context.Context, 
 
 func TestQuerier_Integration_AccountInstrumentOwnerships(t *testing.T) {
 	ctx := t.Context()
-	dbc, auditRepo := buildDatabaseClientForTest(t)
+	dbc, _ := buildDatabaseClientForTest(t)
 
 	user := pgtesting.CreateUserForTest(t, nil, dbc.writeDB)
 	account := pgtesting.CreateAccountForTest(t, nil, user.ID, dbc.writeDB)
@@ -64,8 +64,8 @@ func TestQuerier_Integration_AccountInstrumentOwnerships(t *testing.T) {
 	// create
 	createdAccountInstrumentOwnerships = append(createdAccountInstrumentOwnerships, createAccountInstrumentOwnershipForTest(t, ctx, exampleAccountInstrumentOwnership, dbc))
 
-	pgtesting.AssertAuditLogContains(t, ctx, auditRepo, account.ID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeAccountInstrumentOwnerships, RelevantID: createdAccountInstrumentOwnerships[0].ID},
+	pgtesting.AssertAuditLogContains(t, ctx, dbc, account.ID, []pgtesting.ExpectedAuditEntry{
+		{EventType: platformaudit.EventCreated, ResourceType: resourceTypeAccountInstrumentOwnerships, ResourceID: createdAccountInstrumentOwnerships[0].ID},
 	})
 
 	// update
@@ -86,17 +86,17 @@ func TestQuerier_Integration_AccountInstrumentOwnerships(t *testing.T) {
 	assert.NotEmpty(t, accountInstrumentOwnerships.Data)
 	assert.Len(t, accountInstrumentOwnerships.Data, len(createdAccountInstrumentOwnerships))
 
-	pgtesting.AssertAuditLogContains(t, ctx, auditRepo, account.ID, []*audit.AuditLogEntry{
-		{EventType: audit.AuditLogEventTypeCreated, ResourceType: resourceTypeAccountInstrumentOwnerships, RelevantID: createdAccountInstrumentOwnerships[0].ID},
-		{EventType: audit.AuditLogEventTypeUpdated, ResourceType: resourceTypeAccountInstrumentOwnerships, RelevantID: createdAccountInstrumentOwnerships[0].ID},
+	pgtesting.AssertAuditLogContains(t, ctx, dbc, account.ID, []pgtesting.ExpectedAuditEntry{
+		{EventType: platformaudit.EventCreated, ResourceType: resourceTypeAccountInstrumentOwnerships, ResourceID: createdAccountInstrumentOwnerships[0].ID},
+		{EventType: platformaudit.EventUpdated, ResourceType: resourceTypeAccountInstrumentOwnerships, ResourceID: createdAccountInstrumentOwnerships[0].ID},
 	})
 
 	// delete
 	for _, accountInstrumentOwnership := range createdAccountInstrumentOwnerships {
 		require.NoError(t, dbc.ArchiveAccountInstrumentOwnership(ctx, accountInstrumentOwnership.ID, account.ID))
 
-		pgtesting.AssertAuditLogContains(t, ctx, auditRepo, account.ID, []*audit.AuditLogEntry{
-			{EventType: audit.AuditLogEventTypeArchived, ResourceType: resourceTypeAccountInstrumentOwnerships, RelevantID: accountInstrumentOwnership.ID},
+		pgtesting.AssertAuditLogContains(t, ctx, dbc, account.ID, []pgtesting.ExpectedAuditEntry{
+			{EventType: platformaudit.EventArchived, ResourceType: resourceTypeAccountInstrumentOwnerships, ResourceID: accountInstrumentOwnership.ID},
 		})
 
 		var exists bool

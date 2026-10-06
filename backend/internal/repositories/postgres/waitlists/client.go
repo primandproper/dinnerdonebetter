@@ -1,12 +1,22 @@
+/*
+Package waitlists is platform-go's waitlist store, recording through platform's hooks.
+
+The lists and the signups are platform's: the schema, the paging, the tenancy column, the
+lifecycle and the withdrawal all live there. So is the recording now — waitlists.RecordingHooks
+writes an audit entry and emits an event for every write, on the write's transaction, through the
+recording.Recorder this application registers. A signup's entries are filed under the person on
+the list, because the Recorder files by subject; a list's are filed where the write ran, because
+a list is an administrative row that belongs to nobody.
+
+What this package still decides is the table prefix, and nothing else.
+*/
 package waitlists
 
 import (
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
-	ddbwaitlists "github.com/primandproper/dinnerdonebetter/backend/internal/domain/waitlists"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/recording"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 
-	platformwaitlists "github.com/primandproper/platform-go/v14/waitlists"
+	platformrecording "github.com/primandproper/platform-go/v15/recording"
+	platformwaitlists "github.com/primandproper/platform-go/v15/waitlists"
 	"github.com/primandproper/primitives-go/v2/database"
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
@@ -14,35 +24,24 @@ import (
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
 )
 
-const (
-	o11yName = "waitlists_db_client"
-)
-
-// repository is platform's waitlist store with this application's recording
-// around it.
-//
-// The store is embedded rather than held in a named field so that the reads —
-// every one of them, on both tables — are the platform's own rather than
-// forwarding stubs that could drift from it.
-type repository struct {
-	platformwaitlists.Store
-	tracer   tracing.Tracer
-	logger   logging.Logger
-	recorder *recording.Recorder
-}
-
-// ProvideWaitlistsRepository provides a new waitlist store.
+// ProvideWaitlistsRepository provides platform's waitlist store, with platform's recording
+// hooks on its writes.
 func ProvideWaitlistsRepository(
 	logger logging.Logger,
 	tracerProvider tracing.Provider,
 	metricsProvider metrics.Provider,
-	auditLogEntryRepo audit.Repository,
 	client database.Client,
-	eventEmitter *events.Emitter,
+	recorder *platformrecording.Recorder,
 ) (platformwaitlists.Store, error) {
+	hooks, err := platformwaitlists.NewRecordingHooks(recorder)
+	if err != nil {
+		return nil, platformerrors.Wrap(err, "building the waitlists recording hooks")
+	}
+
 	store, err := platformwaitlists.NewSQLStore(
 		client,
-		platformwaitlists.WithTablePrefix(ddbwaitlists.TablePrefix),
+		platformwaitlists.WithTablePrefix(branding.TablePrefix),
+		platformwaitlists.WithHooks(hooks),
 		platformwaitlists.WithStoreLogger(logger),
 		platformwaitlists.WithStoreTracerProvider(tracerProvider),
 		platformwaitlists.WithStoreMetricsProvider(metricsProvider),
@@ -51,12 +50,5 @@ func ProvideWaitlistsRepository(
 		return nil, platformerrors.Wrap(err, "building the waitlists store")
 	}
 
-	tracer := tracing.NewNamedTracer(tracerProvider, o11yName)
-
-	return &repository{
-		Store:    store,
-		tracer:   tracer,
-		logger:   logging.NewNamedLogger(logger, o11yName),
-		recorder: recording.NewRecorder(tracer, auditLogEntryRepo, eventEmitter),
-	}, nil
+	return store, nil
 }

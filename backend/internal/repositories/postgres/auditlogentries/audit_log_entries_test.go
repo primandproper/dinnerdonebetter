@@ -5,12 +5,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	identityfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	platformaudit "github.com/primandproper/platform-go/v14/audit"
-	identity "github.com/primandproper/platform-go/v14/identity"
+	platformaudit "github.com/primandproper/platform-go/v15/audit"
+	identity "github.com/primandproper/platform-go/v15/identity"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/identifiers"
 	"github.com/primandproper/primitives-go/v2/tenancy"
@@ -29,16 +30,10 @@ const resourceTypeForTest = "example"
 // the only way a repository is allowed to record: Record holds the scope's chain
 // row for the length of the caller's transaction, and against the pool that lock
 // lapses before the INSERT it exists to protect.
-func recordForTest(t *testing.T, ctx context.Context, dbc *repository, client database.Client, account *identity.Account, user *identity.User) *audit.AuditLogEntry {
+func recordForTest(t *testing.T, ctx context.Context, dbc *repository, client database.Client, account *identity.Account, user *identity.User) *platformaudit.Entry {
 	t.Helper()
 
-	entry := &audit.AuditLogEntry{
-		BelongsToAccount: &account.ID,
-		BelongsToUser:    user.ID,
-		ResourceType:     resourceTypeForTest,
-		RelevantID:       identifiers.New(),
-		EventType:        audit.AuditLogEventTypeUpdated,
-	}
+	entry := audit.NewEntry(user.ID, account.ID, resourceTypeForTest, identifiers.New(), platformaudit.EventUpdated)
 
 	require.NoError(t, client.WithTransaction(ctx, func(tx database.Tx) error {
 		return dbc.Record(ctx, tx, entry)
@@ -72,13 +67,13 @@ func TestQuerier_Integration_AuditLogChain(t *testing.T) {
 
 	user, account := accountForTest(t, client)
 
-	var recorded []*audit.AuditLogEntry
+	var recorded []*platformaudit.Entry
 	for range 3 {
 		recorded = append(recorded, recordForTest(t, ctx, dbc, client, account, user))
 	}
 
 	t.Run("verifies clean", func(t *testing.T) {
-		result, err := dbc.VerifyChain(ctx, tenancy.Of(account.ID), time.Time{}, time.Time{})
+		result, err := dbc.reader.Verify(ctx, client.Reader(), tenancy.Of(account.ID), time.Time{}, time.Time{}, platformaudit.ChainStart)
 		require.NoError(t, err)
 		require.NotNil(t, result)
 
@@ -92,7 +87,7 @@ func TestQuerier_Integration_AuditLogChain(t *testing.T) {
 		// something to be discovered afterwards, it is something the database will
 		// not do.
 		_, err := client.Writer().ExecContext(ctx,
-			"UPDATE "+audit.TablePrefix+"_audit_log_entries SET resource_type = $1 WHERE id = $2",
+			"UPDATE "+branding.TablePrefix+"_audit_log_entries SET resource_type = $1 WHERE id = $2",
 			"tampered", recorded[1].ID)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "append-only")
@@ -104,10 +99,10 @@ func TestQuerier_Integration_AuditLogChain(t *testing.T) {
 		// removing the middle entry must be detectable and must be attributed to the
 		// right position rather than merely somewhere.
 		_, err := client.Writer().ExecContext(ctx,
-			"DELETE FROM "+audit.TablePrefix+"_audit_log_entries WHERE id = $1", recorded[1].ID)
+			"DELETE FROM "+branding.TablePrefix+"_audit_log_entries WHERE id = $1", recorded[1].ID)
 		require.NoError(t, err)
 
-		result, err := dbc.VerifyChain(ctx, tenancy.Of(account.ID), time.Time{}, time.Time{})
+		result, err := dbc.reader.Verify(ctx, client.Reader(), tenancy.Of(account.ID), time.Time{}, time.Time{}, platformaudit.ChainStart)
 		require.NoError(t, err)
 		require.NotNil(t, result)
 
@@ -128,16 +123,10 @@ func TestQuerier_Integration_AuditLogRedaction(t *testing.T) {
 
 	user, account := accountForTest(t, client)
 
-	entry := &audit.AuditLogEntry{
-		BelongsToAccount: &account.ID,
-		BelongsToUser:    user.ID,
-		ResourceType:     "users",
-		RelevantID:       user.ID,
-		EventType:        audit.AuditLogEventTypeUpdated,
-		Changes: map[string]audit.Change{
-			"password":  {Old: "hunter2", New: "correct-horse-battery-staple"},
-			"firstName": {Old: "before", New: "after"},
-		},
+	entry := audit.NewEntry(user.ID, account.ID, "users", user.ID, platformaudit.EventUpdated)
+	entry.Changes = map[string]platformaudit.Change{
+		"password":  {Old: "hunter2", New: "correct-horse-battery-staple"},
+		"firstName": {Old: "before", New: "after"},
 	}
 
 	require.NoError(t, client.WithTransaction(ctx, func(tx database.Tx) error {
@@ -149,7 +138,7 @@ func TestQuerier_Integration_AuditLogRedaction(t *testing.T) {
 	assert.NotContains(t, entry.Changes, "password")
 	assert.Contains(t, entry.Changes, "firstName")
 
-	fetched, err := dbc.GetAuditLogEntry(ctx, entry.ID)
+	fetched, err := dbc.reader.GetAcrossScopes(ctx, client.Reader(), entry.ID)
 	require.NoError(t, err)
 	assert.NotContains(t, fetched.Changes, "password")
 	require.Contains(t, fetched.Changes, "firstName")
@@ -158,21 +147,25 @@ func TestQuerier_Integration_AuditLogRedaction(t *testing.T) {
 
 	var raw []byte
 	require.NoError(t, client.Reader().QueryRowContext(ctx,
-		"SELECT change_set FROM "+audit.TablePrefix+"_audit_log_entries WHERE id = $1", entry.ID).Scan(&raw))
+		"SELECT change_set FROM "+branding.TablePrefix+"_audit_log_entries WHERE id = $1", entry.ID).Scan(&raw))
 	assert.NotContains(t, string(raw), "hunter2")
 }
 
-func TestQuerier_GetAuditLogEntry(T *testing.T) {
-	T.Parallel()
+// TestQuerier_Integration_RecordRefusesAnUnscopedEntry pins the guard that keeps an entry
+// out of the log when nobody decided which chain it belongs to. Every read refuses the zero
+// scope, so recording one would write an entry nothing can find.
+func TestQuerier_Integration_RecordRefusesAnUnscopedEntry(t *testing.T) {
+	ctx := t.Context()
+	dbc, client := buildDatabaseClientForTest(t)
 
-	T.Run("with empty ID", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		c := buildInertClientForTest(t)
-
-		actual, err := c.GetAuditLogEntry(ctx, "")
-		require.Error(t, err)
-		assert.Nil(t, actual)
+	err := client.WithTransaction(ctx, func(tx database.Tx) error {
+		return dbc.Record(ctx, tx, &platformaudit.Entry{
+			Actor:        platformaudit.Actor{ID: identifiers.New(), Type: platformaudit.ActorUser},
+			ResourceType: resourceTypeForTest,
+			ResourceID:   identifiers.New(),
+			EventType:    platformaudit.EventCreated,
+		})
 	})
+
+	require.ErrorIs(t, err, errUnscopedEntry)
 }

@@ -1,7 +1,9 @@
 package authorization
 
 import (
-	authzdatabase "github.com/primandproper/platform-go/v14/rbac"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
+
+	authzdatabase "github.com/primandproper/platform-go/v15/rbac"
 	platformauthz "github.com/primandproper/primitives-go/v2/authorization"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/database/dialect"
@@ -47,7 +49,7 @@ func NewDatabaseResolver(
 	// constructor's result straight through would hand back a non-nil interface
 	// wrapping a nil pointer whenever construction failed.
 	resolver, err := authzdatabase.NewResolver(
-		&authzdatabase.Config{Dialect: dialect.Postgres, TablePrefix: TablePrefix},
+		&authzdatabase.Config{Dialect: dialect.Postgres, TablePrefix: branding.TablePrefix},
 		db,
 		opts...,
 	)

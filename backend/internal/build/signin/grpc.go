@@ -55,11 +55,10 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
-	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 
-	platformsignin "github.com/primandproper/platform-go/v14/authentication/signin"
-	signingrpc "github.com/primandproper/platform-go/v14/authentication/signin/grpc"
-	"github.com/primandproper/platform-go/v14/authentication/signin/signinpb"
+	platformsignin "github.com/primandproper/platform-go/v15/authentication/signin"
+	signingrpc "github.com/primandproper/platform-go/v15/authentication/signin/grpc"
+	"github.com/primandproper/platform-go/v15/authentication/signin/signinpb"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/metrics"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
@@ -78,7 +77,7 @@ func RegisterSignInService(i do.Injector) {
 			// too. It is named anyway, so that the day this application's directory is
 			// scoped, sign-in follows it rather than signing people into another one.
 			signingrpc.WithScopeResolver(func(context.Context) (tenancy.Scope, error) {
-				return ddbidentity.Scope(), nil
+				return tenancy.Global(), nil
 			}),
 			signingrpc.WithLogger(do.MustInvoke[logging.Logger](i)),
 			signingrpc.WithTracerProvider(do.MustInvoke[tracing.Provider](i)),

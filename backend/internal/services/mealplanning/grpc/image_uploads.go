@@ -15,11 +15,12 @@ import (
 	mealplanningsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
 
-	"github.com/primandproper/platform-go/v14/mediaregistry"
+	"github.com/primandproper/platform-go/v15/mediaregistry"
 	"github.com/primandproper/primitives-go/v2/database"
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	errorsgrpc "github.com/primandproper/primitives-go/v2/errors/grpc"
 	"github.com/primandproper/primitives-go/v2/identifiers"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -81,7 +82,7 @@ func (s *serviceImpl) storeAndRegister(
 	// uploads.UploadManager.Save outside the transaction and RecordObject inside a
 	// short one, which is the same two calls with the boundary drawn tighter.
 	return inTransaction(ctx, s.db, func(tx database.Tx) (*mediaregistry.Object, error) {
-		return mediaregistry.StoreAndRecord(ctx, tx, uploadedmedia.Scope(), s.uploadManager, s.registry, input, body)
+		return mediaregistry.StoreAndRecord(ctx, tx, tenancy.Global(), s.uploadManager, s.registry, input, body)
 	})
 }
 

@@ -3,10 +3,12 @@ package integration
 import (
 	"testing"
 
+	authkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth/keys"
 	ddbidentity "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 
-	"github.com/primandproper/platform-go/v14/authentication/passwordreset/passwordresetpb"
-	"github.com/primandproper/platform-go/v14/authentication/signin/signinpb"
+	"github.com/primandproper/platform-go/v15/authentication/passwordreset"
+	"github.com/primandproper/platform-go/v15/authentication/passwordreset/passwordresetpb"
+	"github.com/primandproper/platform-go/v15/authentication/signin/signinpb"
 	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/stretchr/testify/assert"
@@ -27,7 +29,7 @@ func TestPasswordReset_ThisApplicationsRules(T *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
-		user, testClient := createUserAndClientForTest(t)
+		user, _ := createUserAndClientForTest(t)
 		unauthedClient := buildUnauthenticatedGRPCClientForTest(t)
 
 		_, err := unauthedClient.RequestPasswordReset(ctx, &passwordresetpb.RequestPasswordResetRequest{
@@ -54,16 +56,23 @@ func TestPasswordReset_ThisApplicationsRules(T *testing.T) {
 		}})
 		require.NoError(t, err)
 
-		// The "your password was reset" mail is queued on the reset's own transaction.
+		// The "your password was reset" mail is rendered from the event platform's hooks on the
+		// token store emit when the link is spent, on the reset's own transaction.
 		redeemed, err := outboxPayloads(ctx,
 			`convert_from(payload, 'UTF8') LIKE '%' || $1 || '%' AND convert_from(payload, 'UTF8') LIKE '%' || $2 || '%'`,
-			user.ID, ddbidentity.PasswordResetTokenRedeemedEventType)
+			user.ID, passwordreset.EventTokenRedeemed.String())
 		require.NoError(t, err)
 		assert.Len(t, redeemed, 1)
 
-		AssertAuditLogContainsFuzzyForUser(t, ctx, testClient, user.ID, 15, []*ExpectedAuditEntry{
-			{EventType: "created", ResourceType: "password_reset_tokens"},
-			{EventType: "updated", ResourceType: "password_reset_tokens"},
+		// Issued, then spent: the two writes platform records. By resource rather than by actor,
+		// because a reset is anonymous — the request that asks for the link and the one that
+		// spends it carry no principal — so platform files both entries under the user as their
+		// subject and names nobody as the actor. The token's ID is on the mail request beside
+		// the secret.
+		tokenID := passwordResetTokenIDForTest(t, user.ID)
+		AssertAuditLogContainsFuzzyForResource(t, ctx, passwordreset.ResourceTypeToken, tokenID, 15, []*ExpectedAuditEntry{
+			{EventType: "created", ResourceType: passwordreset.ResourceTypeToken, RelevantID: tokenID},
+			{EventType: "updated", ResourceType: passwordreset.ResourceTypeToken, RelevantID: tokenID},
 		})
 	})
 
@@ -94,4 +103,26 @@ func TestPasswordReset_ThisApplicationsRules(T *testing.T) {
 		})
 		require.NoError(t, err)
 	})
+}
+
+// passwordResetTokenIDForTest reads the ID of the newest reset link mailed to userID off the mail
+// request that carries it, which is the only place a test can learn it: the response to the
+// request names nothing, deliberately.
+func passwordResetTokenIDForTest(t *testing.T, userID string) string {
+	t.Helper()
+
+	payloads, err := outboxPayloads(t.Context(),
+		`convert_from(payload, 'UTF8') LIKE '%' || $1 || '%' AND convert_from(payload, 'UTF8') LIKE '%' || $2 || '%'`,
+		userID, ddbidentity.PasswordResetTokenCreatedEventType)
+	require.NoError(t, err)
+
+	for _, payload := range payloads {
+		if id := findStringKey(payload, authkeys.PasswordResetTokenIDKey); id != "" {
+			return id
+		}
+	}
+
+	require.FailNow(t, "no reset mail request names a token for the user")
+
+	return ""
 }

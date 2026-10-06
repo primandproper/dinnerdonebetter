@@ -15,9 +15,9 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 
-	issuereports "github.com/primandproper/platform-go/v14/issuereports"
-	waitlists "github.com/primandproper/platform-go/v14/waitlists"
-	platformwebhooks "github.com/primandproper/platform-go/v14/webhooks"
+	issuereports "github.com/primandproper/platform-go/v15/issuereports"
+	waitlists "github.com/primandproper/platform-go/v15/waitlists"
+	platformwebhooks "github.com/primandproper/platform-go/v15/webhooks"
 	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/encoding"

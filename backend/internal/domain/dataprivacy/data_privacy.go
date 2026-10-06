@@ -26,30 +26,20 @@ package dataprivacy
 import (
 	"context"
 
-	oauth2clientsprivacy "github.com/primandproper/platform-go/v14/authentication/oauth2clients/privacy"
-	passkeysprivacy "github.com/primandproper/platform-go/v14/authentication/passkeys/privacy"
-	passwordresetprivacy "github.com/primandproper/platform-go/v14/authentication/passwordreset/privacy"
-	billingprivacy "github.com/primandproper/platform-go/v14/billing/privacy"
-	commentsprivacy "github.com/primandproper/platform-go/v14/comments/privacy"
-	identityprivacy "github.com/primandproper/platform-go/v14/identity/privacy"
-	issuereportsprivacy "github.com/primandproper/platform-go/v14/issuereports/privacy"
-	mediaregistryprivacy "github.com/primandproper/platform-go/v14/mediaregistry/privacy"
-	settingsprivacy "github.com/primandproper/platform-go/v14/settings/privacy"
-	waitlistsprivacy "github.com/primandproper/platform-go/v14/waitlists/privacy"
+	auditprivacy "github.com/primandproper/platform-go/v15/audit/privacy"
+	oauth2clientsprivacy "github.com/primandproper/platform-go/v15/authentication/oauth2clients/privacy"
+	passkeysprivacy "github.com/primandproper/platform-go/v15/authentication/passkeys/privacy"
+	passwordresetprivacy "github.com/primandproper/platform-go/v15/authentication/passwordreset/privacy"
+	billingprivacy "github.com/primandproper/platform-go/v15/billing/privacy"
+	commentsprivacy "github.com/primandproper/platform-go/v15/comments/privacy"
+	identityprivacy "github.com/primandproper/platform-go/v15/identity/privacy"
+	issuereportsprivacy "github.com/primandproper/platform-go/v15/issuereports/privacy"
+	mediaregistryprivacy "github.com/primandproper/platform-go/v15/mediaregistry/privacy"
+	notificationsprivacy "github.com/primandproper/platform-go/v15/notifications/privacy"
+	settingsprivacy "github.com/primandproper/platform-go/v15/settings/privacy"
+	waitlistsprivacy "github.com/primandproper/platform-go/v15/waitlists/privacy"
 	"github.com/primandproper/primitives-go/v2/tenancy"
 )
-
-// TablePrefix namespaces the platform's request table, rendering
-// ddb_dataprivacy_requests.
-//
-// A prefix rather than the platform's empty default, for the same reason
-// audit.TablePrefix carries one: the DDL says CREATE TABLE IF NOT EXISTS, so a
-// name that collides with something this repository already created is a silent
-// no-op followed by code running against the wrong columns. It is referenced by
-// the migration that creates the table and by the Store that reads and writes
-// it, and a prefix that differs between the two is the misconfiguration that
-// stays invisible until somebody asks for their data and gets an empty answer.
-const TablePrefix = "ddb"
 
 // Registration keys. These become section names in the export artifact and
 // attribute values in telemetry.
@@ -78,13 +68,10 @@ const (
 	// preferences, and ratings. There is no platform counterpart; this is the domain
 	// this application is.
 	CollectorKeyMealPlanning = "meal_planning"
-	// CollectorKeyNotifications covers in-app user notifications. platform ships a
-	// collector for its own inbox and device registry and this application does not use
-	// it — ours reads one repository and answers as one section where platform answers
-	// as two.
-	CollectorKeyNotifications = "notifications"
-	// CollectorKeyAuditLog covers the audit entries recorded about the subject.
-	CollectorKeyAuditLog = "audit_log"
+	// CollectorKeyAuditLog covers the audit entries recorded about the subject. It is
+	// platform's key, and the same one the audit eraser is registered under, so an
+	// export's audit section and an erasure's audit line describe the same log.
+	CollectorKeyAuditLog = auditprivacy.DefaultKey
 
 	// The sections platform's own adapters register, named by the packages that own
 	// them so that this application cannot drift from the artifact everybody else reads.
@@ -97,6 +84,11 @@ const (
 	CollectorKeyPasskeys      = passkeysprivacy.DefaultKey
 	CollectorKeyPasswordReset = passwordresetprivacy.DefaultKey
 	CollectorKeyOAuth2Clients = oauth2clientsprivacy.DefaultKey
+
+	// The notifications domain is two tables with two rulings, so it answers as two
+	// sections: the in-app inbox, and the handsets registered for push.
+	CollectorKeyNotificationsInbox   = notificationsprivacy.DefaultInboxKey
+	CollectorKeyNotificationsDevices = notificationsprivacy.DefaultDeviceKey
 
 	// EraserKeyIdentity is the eraser that deletes the user row, and with it every
 	// table in this schema that carries a foreign key to it.

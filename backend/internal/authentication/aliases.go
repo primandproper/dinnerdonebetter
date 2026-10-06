@@ -1,7 +1,7 @@
 package authentication
 
 import (
-	platformidentity "github.com/primandproper/platform-go/v14/identity"
+	platformidentity "github.com/primandproper/platform-go/v15/identity"
 	platformauth "github.com/primandproper/primitives-go/v2/authentication"
 	"github.com/primandproper/primitives-go/v2/authentication/argon2"
 	"github.com/primandproper/primitives-go/v2/authentication/totp"

@@ -26,9 +26,9 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 
-	platformoauth2clients "github.com/primandproper/platform-go/v14/authentication/oauth2clients"
-	oauth2clientsgrpc "github.com/primandproper/platform-go/v14/authentication/oauth2clients/grpc"
-	"github.com/primandproper/platform-go/v14/authentication/oauth2clients/oauth2clientspb"
+	platformoauth2clients "github.com/primandproper/platform-go/v15/authentication/oauth2clients"
+	oauth2clientsgrpc "github.com/primandproper/platform-go/v15/authentication/oauth2clients/grpc"
+	"github.com/primandproper/platform-go/v15/authentication/oauth2clients/oauth2clientspb"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/metrics"

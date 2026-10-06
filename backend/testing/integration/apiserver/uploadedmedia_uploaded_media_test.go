@@ -9,7 +9,7 @@ import (
 	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/grpc/converters"
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
 
-	"github.com/primandproper/platform-go/v14/mediaregistry"
+	"github.com/primandproper/platform-go/v15/mediaregistry"
 	"github.com/primandproper/primitives-go/v2/filtering/filteringpb"
 
 	"github.com/stretchr/testify/assert"
@@ -74,7 +74,7 @@ func TestUploadedMedia_Creating(T *testing.T) {
 		created := createUploadedMediaForTest(t, testClient)
 
 		AssertAuditLogContainsFuzzyForUser(t, ctx, testClient, user.ID, 10, []*ExpectedAuditEntry{
-			{EventType: "created", ResourceType: "uploaded_media", RelevantID: created.ID},
+			{EventType: "created", ResourceType: mediaregistry.ResourceTypeObject, RelevantID: created.ID},
 		})
 	})
 
@@ -313,7 +313,7 @@ func TestUploadedMedia_Archiving(T *testing.T) {
 		assert.Nil(t, retrieved)
 
 		AssertAuditLogContainsFuzzyForUser(t, ctx, testClient, user.ID, 15, []*ExpectedAuditEntry{
-			{EventType: "created", ResourceType: "uploaded_media", RelevantID: createdUploadedMedia.ID},
+			{EventType: "created", ResourceType: mediaregistry.ResourceTypeObject, RelevantID: createdUploadedMedia.ID},
 		})
 	})
 

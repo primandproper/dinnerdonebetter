@@ -3,9 +3,9 @@ package integration
 import (
 	"testing"
 
-	"github.com/primandproper/platform-go/v14/authentication/signin/signinpb"
-	identity "github.com/primandproper/platform-go/v14/identity"
-	"github.com/primandproper/platform-go/v14/identity/identitypb"
+	"github.com/primandproper/platform-go/v15/authentication/signin/signinpb"
+	identity "github.com/primandproper/platform-go/v15/identity"
+	"github.com/primandproper/platform-go/v15/identity/identitypb"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -21,9 +21,9 @@ func TestUsers_Creating(T *testing.T) {
 		user, testClient := createUserAndClientForTest(t)
 
 		AssertAuditLogContainsFuzzyForUser(t, ctx, testClient, user.ID, 15, []*ExpectedAuditEntry{
-			{EventType: "created", ResourceType: "users", RelevantID: user.ID},
-			{EventType: "created", ResourceType: "accounts"},
-			{EventType: "created", ResourceType: "account_user_memberships"},
+			{EventType: "created", ResourceType: identity.ResourceTypeUser, RelevantID: user.ID},
+			{EventType: "created", ResourceType: identity.ResourceTypeAccount},
+			{EventType: "created", ResourceType: identity.ResourceTypeMembership},
 		})
 	})
 
@@ -86,9 +86,9 @@ func TestUsers_Archiving(T *testing.T) {
 		// By resource rather than by actor, because the two entries have different actors:
 		// the registration is the user's own act and the archival is the administrator's.
 		// Filtering on either one would assert half of what this is checking.
-		AssertAuditLogContainsFuzzyForResource(t, ctx, "users", user.ID, 15, []*ExpectedAuditEntry{
-			{EventType: "created", ResourceType: "users", RelevantID: user.ID},
-			{EventType: "archived", ResourceType: "users", RelevantID: user.ID},
+		AssertAuditLogContainsFuzzyForResource(t, ctx, identity.ResourceTypeUser, user.ID, 15, []*ExpectedAuditEntry{
+			{EventType: "created", ResourceType: identity.ResourceTypeUser, RelevantID: user.ID},
+			{EventType: "archived", ResourceType: identity.ResourceTypeUser, RelevantID: user.ID},
 		})
 	})
 
@@ -142,8 +142,8 @@ func TestUsers_Archiving(T *testing.T) {
 		_, err = adminClient.IdentityService().GetAccount(ctx, &identitypb.GetAccountRequest{AccountId: accountID})
 		require.Error(t, err)
 
-		AssertAuditLogContainsFuzzyForResource(t, ctx, "accounts", accountID, 10, []*ExpectedAuditEntry{
-			{EventType: "archived", ResourceType: "accounts", RelevantID: accountID},
+		AssertAuditLogContainsFuzzyForResource(t, ctx, identity.ResourceTypeAccount, accountID, 10, []*ExpectedAuditEntry{
+			{EventType: "archived", ResourceType: identity.ResourceTypeAccount, RelevantID: accountID},
 		})
 	})
 }

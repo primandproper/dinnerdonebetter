@@ -4,9 +4,10 @@ import (
 	"testing"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	authzdatabase "github.com/primandproper/platform-go/v14/rbac"
+	authzdatabase "github.com/primandproper/platform-go/v15/rbac"
 	platformauthz "github.com/primandproper/primitives-go/v2/authorization"
 	"github.com/primandproper/primitives-go/v2/database/dialect"
 	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
@@ -42,7 +43,7 @@ func TestSeededPolicyMatchesTheDeclaredPolicy(T *testing.T) {
 		require.NoError(t, migrator.Migrate(ctx, db))
 
 		resolver, err := authzdatabase.NewResolver(
-			&authzdatabase.Config{Dialect: dialect.Postgres, TablePrefix: authorization.TablePrefix},
+			&authzdatabase.Config{Dialect: dialect.Postgres, TablePrefix: branding.TablePrefix},
 			db,
 		)
 		require.NoError(t, err)
@@ -119,7 +120,7 @@ func TestSeededPolicyMatchesTheDeclaredPolicy(T *testing.T) {
 
 		// And the policy that lands is the whole policy, not a partially rewritten one.
 		resolver, err := authzdatabase.NewResolver(
-			&authzdatabase.Config{Dialect: dialect.Postgres, TablePrefix: authorization.TablePrefix},
+			&authzdatabase.Config{Dialect: dialect.Postgres, TablePrefix: branding.TablePrefix},
 			db,
 		)
 		require.NoError(t, err)

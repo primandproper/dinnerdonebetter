@@ -3,9 +3,10 @@ package fakes
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 
-	"github.com/primandproper/platform-go/v14/mediaregistry"
+	"github.com/primandproper/platform-go/v15/mediaregistry"
 	"github.com/primandproper/primitives-go/v2/fake"
 	"github.com/primandproper/primitives-go/v2/filtering"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	gofakeit "github.com/brianvoe/gofakeit/v7"
 )
@@ -22,7 +23,7 @@ import (
 func BuildFakeUploadedMedia() *mediaregistry.Object {
 	object := fake.BuildFakeRecord[mediaregistry.Object]()
 
-	object.Scope = uploadedmedia.Scope()
+	object.Scope = tenancy.Global()
 	object.ContentType = uploadedmedia.MimeTypeImagePNG
 	object.Key = gofakeit.URL()
 	object.BelongsTo = mediaregistry.Subject{}

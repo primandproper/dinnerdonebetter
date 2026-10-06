@@ -1,10 +1,9 @@
 package auth
 
 import (
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
-
-	"github.com/primandproper/platform-go/v14/authentication/passwordreset"
-	"github.com/primandproper/platform-go/v14/authentication/signin/refreshtokens"
+	"github.com/primandproper/platform-go/v15/authentication/passwordreset"
+	"github.com/primandproper/platform-go/v15/authentication/signin/refreshtokens"
+	platformrecording "github.com/primandproper/platform-go/v15/recording"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/metrics"
@@ -22,18 +21,17 @@ func RegisterAuthRepository(i do.Injector) {
 		return ProvidePasswordResetTokenStore(
 			do.MustInvoke[logging.Logger](i),
 			do.MustInvoke[tracing.Provider](i),
-			do.MustInvoke[audit.Repository](i),
+			do.MustInvoke[*platformrecording.Recorder](i),
 			do.MustInvoke[database.Client](i),
 		)
 	})
 }
 
-// RegisterPasswordResetTokenSQLStore registers the unwrapped platform store with the injector.
+// RegisterPasswordResetTokenSQLStore registers the hookless platform store with the injector.
 //
 // It is separate from RegisterAuthRepository because the db-cleaner job wants this and nothing
-// else in that package: its container has a database client and no audit repository, and a
-// sweep is not an auditable event — there is no actor and no subject, only rows past their
-// deadline.
+// else in that package: its container has a database client and no recorder, and a sweep is not
+// an auditable event — there is no actor and no subject, only rows past their deadline.
 func RegisterPasswordResetTokenSQLStore(i do.Injector) {
 	do.Provide[*passwordreset.SQLStore](i, func(i do.Injector) (*passwordreset.SQLStore, error) {
 		return ProvidePasswordResetTokenSQLStore(

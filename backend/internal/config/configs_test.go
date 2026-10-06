@@ -12,8 +12,8 @@ import (
 	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
-	meteringcfg "github.com/primandproper/platform-go/v14/metering/config"
-	webhookscfg "github.com/primandproper/platform-go/v14/webhooks/config"
+	meteringcfg "github.com/primandproper/platform-go/v15/metering/config"
+	webhookscfg "github.com/primandproper/platform-go/v15/webhooks/config"
 	analyticscfg "github.com/primandproper/primitives-go/v2/analytics/config"
 	databasecfg "github.com/primandproper/primitives-go/v2/database/config"
 	emailcfg "github.com/primandproper/primitives-go/v2/email/config"
