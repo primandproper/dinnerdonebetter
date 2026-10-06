@@ -1,7 +1,7 @@
 /**
  * Client-safe enum constants for recipe creation.
  * Do NOT import from mealplanning_messages or mealplanning_service_types in client code—
- * they transitively import uploaded_media which pulls in @grpc/grpc-js (Node-only).
+ * they transitively import platform's mediaregistry messages, which pull in @grpc/grpc-js (Node-only).
  */
 export const RecipeStepProductType = {
   RECIPE_STEP_PRODUCT_TYPE_INGREDIENT: 0,

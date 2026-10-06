@@ -61,7 +61,7 @@ Analytics (API server, async handler, and CronJobs) uses **PostHog**. Feature fl
 
 | Variable                   | Description                                                                                                                                                          |
 |----------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `POSTHOG_API_KEY`          | PostHog project API key for event ingestion Injected as `DINNER_DONE_BETTER_ANALYTICS_POSTHOG_API_KEY`. |
+| `POSTHOG_API_KEY`          | PostHog project API key for event ingestion. Injected as `DINNER_DONE_BETTER_ANALYTICS_POSTHOG_API_KEY`.                                                             |
 | `POSTHOG_PERSONAL_API_KEY` | PostHog personal API key for feature flags API. Create in [PostHog Settings → Personal API Keys](https://app.posthog.com/settings/user-api-keys).                    |
 
 ### Observability (Grafana Cloud)

@@ -94,8 +94,89 @@ func TestUploadMealImage(T *testing.T) {
 		})
 		requireStreamSend(t, err)
 
+		// A body, so the refusal can only be the header's: a header alone is refused as an
+		// empty upload whatever it says.
+		err = stream.Send(&mealplanningsvc.UploadMealMediaRequest{
+			Upload: &mediaregistrypb.UploadObjectRequest{
+				Part: &mediaregistrypb.UploadObjectRequest_Chunk{Chunk: []byte(identifiers.New())},
+			},
+		})
+		requireStreamSend(t, err)
+
 		_, err = stream.CloseAndRecv()
 		assert.Equal(t, codes.InvalidArgument, status.Code(err))
+	})
+
+	T.Run("a belongs_to naming another meal is refused", func(t *testing.T) {
+		t.Parallel()
+		ctx := t.Context()
+
+		createdMeal := createMealForTest(t, adminClient, nil)
+		otherMeal := createMealForTest(t, adminClient, nil)
+
+		stream, err := adminClient.UploadMealImage(ctx)
+		require.NoError(t, err)
+
+		err = stream.Send(&mealplanningsvc.UploadMealMediaRequest{
+			MealId: createdMeal.ID,
+			Upload: &mediaregistrypb.UploadObjectRequest{
+				Part: &mediaregistrypb.UploadObjectRequest_Header{
+					Header: &mediaregistrypb.UploadObjectHeader{
+						Name:        identifiers.New() + ".jpg",
+						ContentType: uploadedmedia.MimeTypeImageJPEG,
+						BelongsTo:   &mediaregistrypb.Subject{Type: "meal", Id: otherMeal.ID},
+					},
+				},
+			},
+		})
+		requireStreamSend(t, err)
+
+		// A body, so the refusal can only be the header's: a header alone is refused as an
+		// empty upload whatever it says.
+		err = stream.Send(&mealplanningsvc.UploadMealMediaRequest{
+			Upload: &mediaregistrypb.UploadObjectRequest{
+				Part: &mediaregistrypb.UploadObjectRequest_Chunk{Chunk: []byte(identifiers.New())},
+			},
+		})
+		requireStreamSend(t, err)
+
+		_, err = stream.CloseAndRecv()
+		assert.Equal(t, codes.InvalidArgument, status.Code(err))
+	})
+
+	T.Run("a belongs_to naming the meal it uploads to is admitted", func(t *testing.T) {
+		t.Parallel()
+		ctx := t.Context()
+
+		createdMeal := createMealForTest(t, adminClient, nil)
+
+		stream, err := adminClient.UploadMealImage(ctx)
+		require.NoError(t, err)
+
+		err = stream.Send(&mealplanningsvc.UploadMealMediaRequest{
+			MealId: createdMeal.ID,
+			Upload: &mediaregistrypb.UploadObjectRequest{
+				Part: &mediaregistrypb.UploadObjectRequest_Header{
+					Header: &mediaregistrypb.UploadObjectHeader{
+						Name:        identifiers.New() + ".jpg",
+						ContentType: uploadedmedia.MimeTypeImageJPEG,
+						BelongsTo:   &mediaregistrypb.Subject{Type: "meal", Id: createdMeal.ID},
+					},
+				},
+			},
+		})
+		require.NoError(t, err)
+
+		err = stream.Send(&mealplanningsvc.UploadMealMediaRequest{
+			Upload: &mediaregistrypb.UploadObjectRequest{
+				Part: &mediaregistrypb.UploadObjectRequest_Chunk{Chunk: []byte(identifiers.New())},
+			},
+		})
+		require.NoError(t, err)
+
+		resp, err := stream.CloseAndRecv()
+		require.NoError(t, err)
+		assert.NotEmpty(t, resp.GetUploadedMediaId())
 	})
 
 	T.Run("requires auth", func(t *testing.T) {
