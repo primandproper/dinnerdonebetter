@@ -72,7 +72,7 @@ func StartSagaWorker(
 	registry := saga.NewRegistry()
 	if err = mealplanfinalization.Register(
 		registry,
-		mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditRepo, identityStore, databaseClient, spine, uploads),
+		mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditRepo, identityStore, databaseClient, spine.Emitter, spine.Recorder, spine.Writer, uploads),
 		recipeanalysis.NewRecipeAnalyzer(logger, tracerProvider),
 		grocerylistpreparation.NewGroceryListCreator(logger, tracerProvider),
 		logger,

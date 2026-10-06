@@ -10,8 +10,10 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 	queuemessages "github.com/primandproper/dinnerdonebetter/backend/internal/queues/messages"
+	coreemails "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/emails"
 
 	platformidentity "github.com/primandproper/platform-go/v15/identity"
+	"github.com/primandproper/platform-go/v15/notifications/mail"
 	"github.com/primandproper/platform-go/v15/notifications/push"
 	"github.com/primandproper/platform-go/v15/webhooks"
 	"github.com/primandproper/primitives-go/v2/analytics"
@@ -53,7 +55,7 @@ var errRequiredDataIsNil = errors.New("required data is nil")
 // It does not publish index events. It used to: a handler picked a row ID out of a data change
 // message and published an event onto the index's topic, which made indexing a dual write one
 // hop downstream of the write it described. Index events are now enqueued into the outbox by
-// the transaction that changed the row — see internal/repositories/postgres/events — and reach
+// the transaction that changed the row — see internal/recordingspine — and reach
 // this process the same way every other message does, on the topic its Syncer consumes.
 type AsyncDataChangeMessageHandler struct {
 	tracer                                    tracing.Tracer
@@ -65,6 +67,7 @@ type AsyncDataChangeMessageHandler struct {
 	dataChangesExecutionTimeHistogram         metrics.Float64Histogram
 	mobileNotificationsPublisher              messagequeue.Publisher
 	emailer                                   email.Emailer
+	mailDrainer                               *mail.Drainer
 	directory                                 platformidentity.Store
 	db                                        database.Client
 	consumerProvider                          messagequeue.ConsumerProvider
@@ -169,8 +172,17 @@ func NewAsyncDataChangeMessageHandler(
 		return nil, fmt.Errorf("configuring dead letter publisher: %w", err)
 	}
 
-	// One client for every delivery: a client built per delivery gets its own connection pool,
-	// so every webhook pays for a TLS handshake that no subsequent delivery can reuse.
+	// The mail platform's identity, sign-in, password reset and waitlist doors queue, taken off
+	// its own topic, rendered in this application's words and sent. platform owns the transport;
+	// the wording, and the one read it needs, is internal/services/identity/emails.
+	mailDrainer, err := mail.NewDrainer(emailer, coreemails.NewRenderer(directory, db, cfg.BaseURL),
+		mail.WithLogger(logger),
+		mail.WithTracerProvider(tracerProvider),
+		mail.WithMetricsProvider(metricsProvider),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("configuring the queued mail drainer: %w", err)
+	}
 
 	handler := &AsyncDataChangeMessageHandler{
 		tracer:                               tracing.NewNamedTracer(tracerProvider, o11yName),
@@ -188,6 +200,7 @@ func NewAsyncDataChangeMessageHandler(
 		queuesConfig:                         cfg.Queues,
 		mobileNotificationsPublisher:         mobileNotificationsPublisher,
 		emailer:                              emailer,
+		mailDrainer:                          mailDrainer,
 		dataChangesExecutionTimeHistogram:    dataChangesExecutionTimeHistogram,
 		outboundEmailsExecutionTimeHistogram: outboundEmailsExecutionTimeHistogram,
 		mobileNotificationsExecutionTimeHistogram: mobileNotificationsExecutionTimeHistogram,

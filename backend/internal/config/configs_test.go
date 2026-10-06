@@ -387,6 +387,7 @@ func TestAPIServiceConfig_ValidateWithContext(T *testing.T) {
 				OutboundEmailsTopicName:      "outbound-emails",
 				SearchIndexRequestsTopicName: "search-index-requests",
 				MobileNotificationsTopicName: "mobile-notifications",
+				QueuedMailTopicName:          "queued-mail",
 			},
 			Database: dbcfg.Config{
 				Config: databasecfg.Config{

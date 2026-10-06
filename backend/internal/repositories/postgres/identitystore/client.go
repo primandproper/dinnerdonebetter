@@ -15,23 +15,15 @@ payload's own field name. So this package is the constructor and nothing more.
 package identitystore
 
 import (
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
-
 	platformidentity "github.com/primandproper/platform-go/v15/identity"
-	platformerrors "github.com/primandproper/primitives-go/v2/errors"
+	platformrecording "github.com/primandproper/platform-go/v15/recording"
 )
-
-// ErrNilEmitter indicates a nil events.Emitter handed to ProvideHooks.
-var ErrNilEmitter = platformerrors.Wrap(platformerrors.ErrNilInputParameter, "nil identity events emitter")
 
 // Hooks is platform's identity.RecordingHooks.
 type Hooks = platformidentity.RecordingHooks
 
-// ProvideHooks builds platform's recording hooks over the spine's Recorder.
-func ProvideHooks(emitter *events.Emitter) (*Hooks, error) {
-	if emitter == nil {
-		return nil, ErrNilEmitter
-	}
-
-	return platformidentity.NewRecordingHooks(emitter.Recorder())
+// ProvideHooks builds platform's recording hooks over the spine's Recorder. A nil Recorder is
+// refused by platform.
+func ProvideHooks(recorder *platformrecording.Recorder) (*Hooks, error) {
+	return platformidentity.NewRecordingHooks(recorder)
 }

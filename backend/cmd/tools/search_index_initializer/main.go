@@ -187,7 +187,7 @@ func runInit(databaseURL, searchProvider, algoliaAppID, algoliaAPIKey, indicesSt
 		return fmt.Errorf("building the recording spine: %w", err)
 	}
 
-	mealPlanningRepo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditRepo, identityStore, client, spine, uploadsRegistry)
+	mealPlanningRepo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditRepo, identityStore, client, spine.Emitter, spine.Recorder, spine.Writer, uploadsRegistry)
 
 	searchCfg := &textsearchcfg.Config{
 		Provider: searchProvider,

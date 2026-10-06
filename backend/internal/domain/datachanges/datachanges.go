@@ -23,7 +23,9 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 
 	"github.com/primandproper/platform-go/v15/searchsync"
+	"github.com/primandproper/platform-go/v15/webhooks"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
+	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
 // A Message is what platform's search index bridge reads off the outbox: the
@@ -71,4 +73,37 @@ func MessageFromContext(ctx context.Context, logger logging.Logger, eventType st
 		UserID:    sessionContext.GetUserID(),
 		AccountID: sessionContext.GetActiveAccountID(),
 	}
+}
+
+// Event builds the platform event one of this application's writes announces itself with: a
+// Message attributed to the request's session, under eventType, for platform's webhooks.Emitter
+// to publish and fan out on the writer's transaction.
+//
+// accountID overrides the session's account and should be passed whenever the writer knows it,
+// because a background job has no session: the finalizer reaches the same repository method a
+// user request does, and on that path the context carries nobody. Pass "" only when the event
+// genuinely has no account.
+//
+// This is the whole of what this application adds to platform's Emitter. The payload is the
+// shape the async message handler, the analytics allowlist and the search index rules read, and
+// building it here is what keeps the hundred-odd writes that announce themselves from each
+// building it again.
+func Event(ctx context.Context, logger logging.Logger, eventType, accountID string, metadata map[string]any) (*webhooks.Event, *Message) {
+	msg := MessageFromContext(ctx, logging.EnsureLogger(logger), eventType, metadata)
+	if accountID != "" {
+		msg.AccountID = accountID
+	}
+
+	return &webhooks.Event{EventType: webhooks.EventType(eventType), Payload: msg}, msg
+}
+
+// Scope is the scope an event is published and fanned out in: the account's, or the global one
+// for an event that happened in no account — where no endpoint lives, so it reaches the broker
+// and no subscriber.
+func Scope(accountID string) tenancy.Scope {
+	if accountID == "" {
+		return tenancy.Global()
+	}
+
+	return tenancy.Of(accountID)
 }

@@ -164,6 +164,7 @@ func BuildProdConfig() *config.APIServiceConfig {
 			OutboundEmailsTopicName:      outboundEmailsTopicName,
 			SearchIndexRequestsTopicName: searchIndexRequestsTopicName,
 			MobileNotificationsTopicName: mobileNotificationsTopicName,
+			QueuedMailTopicName:          queuedMailTopicName,
 		},
 		Meta: config.MetaSettings{
 			Debug:   false,

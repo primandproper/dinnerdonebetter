@@ -79,8 +79,8 @@ func NewMealPlanTaskNotificationWorker(
 		return nil, nil, fmt.Errorf("building the recording spine: %w", err)
 	}
 
-	mealPlanningRepo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditRepo, identityStore, databaseClient, spine, uploads)
-	_, deviceRegistry, err := notificationsstore.ProvideStores(ctx, logger, tracerProvider, metricsProvider, spine.Recorder(), databaseClient)
+	mealPlanningRepo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditRepo, identityStore, databaseClient, spine.Emitter, spine.Recorder, spine.Writer, uploads)
+	_, deviceRegistry, err := notificationsstore.ProvideStores(ctx, logger, tracerProvider, metricsProvider, spine.Recorder, databaseClient)
 	if err != nil {
 		return nil, nil, fmt.Errorf("building notifications repository: %w", err)
 	}

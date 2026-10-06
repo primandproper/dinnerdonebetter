@@ -3,11 +3,11 @@ package authentication
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 
 	"github.com/primandproper/platform-go/v15/authentication/signin"
 	"github.com/primandproper/platform-go/v15/authentication/signin/refreshtokens"
 	platformidentity "github.com/primandproper/platform-go/v15/identity"
+	"github.com/primandproper/platform-go/v15/notifications/mail"
 	platformrecording "github.com/primandproper/platform-go/v15/recording"
 	"github.com/primandproper/primitives-go/v2/authentication/argon2"
 	"github.com/primandproper/primitives-go/v2/authentication/tokens"
@@ -52,19 +52,17 @@ func RegisterAuth(i do.Injector) {
 	// and demands a proven second factor whatever it says, which is platform's rule and
 	// the one this application already enforced by hand.
 	do.Provide[*signin.Service](i, func(i do.Injector) (*signin.Service, error) {
-		mailers := NewSignInMailers(
-			do.MustInvoke[logging.Logger](i),
-			do.MustInvoke[database.Client](i),
-			do.MustInvoke[*events.Emitter](i),
-		)
+		// The one mailer every door here hands its mail to: platform's, which queues it on the
+		// outbox for the mail Drainer the async message handler runs. See
+		// internal/build/queuedmail.
+		mailer := do.MustInvoke[*mail.QueuedMailer](i)
 
 		// platform's own recording of every sign-in door's writes: the authentication, the
 		// credential writes, the account switch, the revocations — each as an audit entry and
 		// an event on the door's own transaction, filed under the user. An impersonation is
 		// recorded as the subject's authentication with the operator as its Impersonator.
 		// The Recorder is the one recordingcfg.Register provides, which is what every other
-		// adopted store's hooks here are built over; events.Emitter is an adapter over it for
-		// the writes this application still describes itself.
+		// adopted store's hooks here are built over.
 		hooks, err := signin.NewRecordingHooks(do.MustInvoke[*platformrecording.Recorder](i))
 		if err != nil {
 			return nil, err
@@ -111,15 +109,15 @@ func RegisterAuth(i do.Injector) {
 			// token here is not checked against anything but its signature, so its lifetime
 			// is how long a sign-out takes to take effect.
 			signin.WithRefreshTokenStore(do.MustInvoke[*refreshtokens.SQLStore](i)),
-			// The two mails platform's own doors send — another verification link, and a
-			// reminder of somebody's username — go through this application's outbox and
-			// its data change message handler, which renders the email.
-			signin.WithVerificationMailer(mailers),
+			// The two mails platform's own doors send — a verification link, at registration
+			// and on request, and a reminder of somebody's username — are queued on the
+			// outbox and rendered in this application's words by the mail Drainer.
+			signin.WithVerificationMailer(mailer),
 			// The profile write the two handle doors make. identity's service rather than its
 			// store, so identity's AfterUpdateProfile hook records the change as it does for
 			// every other profile write; each door asks the current password first.
 			signin.WithProfileUpdater(do.MustInvoke[*platformidentity.Service](i)),
-			signin.WithHandleReminderMailer(mailers),
+			signin.WithHandleReminderMailer(mailer),
 			// Who may act as somebody else. Without a policy every impersonation is refused.
 			signin.WithImpersonationPolicy(NewImpersonationPolicy(do.MustInvoke[platformauthz.PolicyResolver](i))),
 			signin.WithHooks(hooks),

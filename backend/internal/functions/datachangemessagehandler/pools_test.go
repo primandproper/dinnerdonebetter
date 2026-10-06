@@ -10,6 +10,9 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 
+	"github.com/primandproper/platform-go/v15/notifications/mail"
+	"github.com/primandproper/primitives-go/v2/email"
+	emailmock "github.com/primandproper/primitives-go/v2/email/mock"
 	"github.com/primandproper/primitives-go/v2/jobs"
 	"github.com/primandproper/primitives-go/v2/messagequeue"
 	msgqueuemock "github.com/primandproper/primitives-go/v2/messagequeue/mock"
@@ -52,9 +55,16 @@ func buildTestPoolsHandler(t *testing.T, consumerProvider messagequeue.ConsumerP
 		OutboundEmailsTopicName:      "outbound-emails",
 		SearchIndexRequestsTopicName: "search-index-requests",
 		MobileNotificationsTopicName: "mobile-notifications",
+		QueuedMailTopicName:          "queued-mail",
 	}
 
+	drainer, err := mail.NewDrainer(&emailmock.EmailerMock{}, mail.RendererFunc(func(context.Context, *mail.Mail) (*email.OutboundEmailMessage, error) {
+		return nil, nil
+	}))
+	require.NoError(t, err)
+
 	handler := &AsyncDataChangeMessageHandler{
+		mailDrainer:      drainer,
 		logger:           loggingnoop.NewLogger(),
 		tracer:           tracing.NewTracerForTest(t.Name()),
 		tracerProvider:   tracingnoop.NewTracerProvider(),
@@ -75,9 +85,8 @@ func buildTestPoolsHandler(t *testing.T, consumerProvider messagequeue.ConsumerP
 		},
 	}
 
-	group, err := newPoolGroup(t.Context(), handler)
+	handler.poolGroup, err = newPoolGroup(t.Context(), handler)
 	require.NoError(t, err)
-	handler.poolGroup = group
 
 	return handler
 }
@@ -119,6 +128,8 @@ func TestAsyncDataChangeMessageHandler_Start(T *testing.T) {
 			"outbound-emails",
 			"search-users",
 			"mobile-notifications",
+			// The mail platform's doors queue, drained on a topic of its own.
+			"queued-mail",
 		}
 
 		// What the group says it drains, and what it actually subscribed to, are separate

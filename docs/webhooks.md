@@ -67,7 +67,7 @@ emitting one dispatches nothing.
 ## Dispatch is transactional
 
 Deliveries are rows written inside the transaction that caused the event, through
-`internal/repositories/postgres/events`. A delivery and the state change it describes commit
+platform's `webhooks.Emitter` (built in `internal/recordingspine`). A delivery and the state change it describes commit
 together or not at all — there is no window in which a meal plan exists and its notification was
 lost.
 
