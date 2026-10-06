@@ -38,7 +38,8 @@ package analytics
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments"
+
+	"github.com/primandproper/platform-go/v15/billing"
 )
 
 // reportable is the set of event types reported to the analytics platform.
@@ -65,8 +66,11 @@ var reportable = map[string]struct{}{
 	mealplanning.MealPlanOptionVoteCreatedServiceEventType: {},
 	mealplanning.MealPlanFinalizedServiceEventType:         {},
 
-	// Revenue.
-	payments.SubscriptionCreatedServiceEventType: {},
+	// Revenue. The event is platform's, emitted by billing's RecordingHooks. Until the broker
+	// envelope carries an event type (platform-go#1130), a billing event reaches this consumer
+	// as a payload it cannot name, so this row is the question's answer in waiting rather than
+	// a metric that flows today.
+	billing.EventSubscriptionCreated.String(): {},
 }
 
 // Reportable reports whether eventType is one the analytics platform should receive.

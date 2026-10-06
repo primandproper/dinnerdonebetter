@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/build/comments"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/comments/fakes"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
@@ -48,7 +47,7 @@ func TestMain(m *testing.M) {
 // The target catalog is the read-only one, with no existence checks: nothing here
 // creates the recipes and meals the fakes point at, and a checked catalog would
 // make every write in this file a test of the meal planning repository.
-func buildDatabaseClientForTest(t *testing.T) (platformcomments.Store, audit.Repository, database.Client) {
+func buildDatabaseClientForTest(t *testing.T) (platformcomments.Store, database.Client) {
 	t.Helper()
 
 	ctx := t.Context()
@@ -63,18 +62,20 @@ func buildDatabaseClientForTest(t *testing.T) (platformcomments.Store, audit.Rep
 	auditLogEntryRepo, err := auditlogentries.ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), metricsnoop.NewMetricsProvider(), pgc)
 	require.NoError(t, err)
 
+	auditRecorder, ok := auditlogentries.RecorderFrom(auditLogEntryRepo)
+	require.True(t, ok)
+
 	c, err := ProvideCommentsRepository(
 		loggingnoop.NewLogger(),
 		tracingnoop.NewTracerProvider(),
 		metricsnoop.NewMetricsProvider(),
-		auditLogEntryRepo,
 		pgc,
-		nil,
+		pgtesting.NewRecorderForTest(t, ctx, pgc, auditRecorder),
 		comments.Catalog(),
 	)
 	require.NoError(t, err)
 
-	return c, auditLogEntryRepo, pgc
+	return c, pgc
 }
 
 // createComment writes one comment on a transaction of its own.
@@ -100,10 +101,13 @@ func createComment(t *testing.T, ctx context.Context, db database.Client, store 
 
 func TestRepository_Integration_Comments(t *testing.T) {
 	ctx := t.Context()
-	dbc, _, db := buildDatabaseClientForTest(t)
+	dbc, db := buildDatabaseClientForTest(t)
 
 	user := pgtesting.CreateUserForTest(t, nil, db.Writer())
 	target := platformcomments.Target{Type: mealplanning.CommentTargetTypeRecipes, ID: identifiers.New()}
+
+	// The author is the one making the requests, which is who every entry below names.
+	ctx = pgtesting.AsRequester(ctx, user.ID)
 
 	comment := fakes.BuildFakeComment()
 	comment.Author = user.ID
@@ -113,7 +117,7 @@ func TestRepository_Integration_Comments(t *testing.T) {
 	_, err := createComment(t, ctx, db, dbc, comment)
 	require.NoError(t, err)
 	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, user.ID, []pgtesting.ExpectedAuditEntry{
-		{EventType: platformaudit.EventCreated, ResourceType: resourceTypeComments, ResourceID: comment.ID},
+		{EventType: platformaudit.EventCreated, ResourceType: platformcomments.ResourceTypeComment, ResourceID: comment.ID},
 	})
 
 	fetched, err := dbc.GetComment(ctx, db.Reader(), tenancy.Global(), comment.ID)
@@ -136,8 +140,8 @@ func TestRepository_Integration_Comments(t *testing.T) {
 		return updateErr
 	}))
 	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, user.ID, []pgtesting.ExpectedAuditEntry{
-		{EventType: platformaudit.EventCreated, ResourceType: resourceTypeComments, ResourceID: comment.ID},
-		{EventType: platformaudit.EventUpdated, ResourceType: resourceTypeComments, ResourceID: comment.ID},
+		{EventType: platformaudit.EventCreated, ResourceType: platformcomments.ResourceTypeComment, ResourceID: comment.ID},
+		{EventType: platformaudit.EventUpdated, ResourceType: platformcomments.ResourceTypeComment, ResourceID: comment.ID},
 	})
 
 	updated, err := dbc.GetComment(ctx, db.Reader(), tenancy.Global(), comment.ID)
@@ -152,9 +156,9 @@ func TestRepository_Integration_Comments(t *testing.T) {
 		return archiveErr
 	}))
 	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, user.ID, []pgtesting.ExpectedAuditEntry{
-		{EventType: platformaudit.EventCreated, ResourceType: resourceTypeComments, ResourceID: comment.ID},
-		{EventType: platformaudit.EventUpdated, ResourceType: resourceTypeComments, ResourceID: comment.ID},
-		{EventType: platformaudit.EventArchived, ResourceType: resourceTypeComments, ResourceID: comment.ID},
+		{EventType: platformaudit.EventCreated, ResourceType: platformcomments.ResourceTypeComment, ResourceID: comment.ID},
+		{EventType: platformaudit.EventUpdated, ResourceType: platformcomments.ResourceTypeComment, ResourceID: comment.ID},
+		{EventType: platformaudit.EventArchived, ResourceType: platformcomments.ResourceTypeComment, ResourceID: comment.ID},
 	})
 
 	fetchedAfterArchive, err := dbc.GetComment(ctx, db.Reader(), tenancy.Global(), comment.ID)
@@ -163,35 +167,46 @@ func TestRepository_Integration_Comments(t *testing.T) {
 	assert.ErrorIs(t, err, platformcomments.ErrCommentNotFound)
 }
 
-// TestRepository_Integration_ArchiveRecordsTheAuthor pins that an archive's entry
-// names whose comment it was, from the row platform hands AfterArchiveComment.
-func TestRepository_Integration_ArchiveRecordsTheAuthor(t *testing.T) {
+// TestRepository_Integration_ArchiveRecordsTheAuthorAndTheArchiver pins the two halves of an
+// entry about somebody else's comment: it is filed on the author's chain, from the row platform
+// hands AfterArchiveComment, and it names the archiver as the one who did it.
+//
+// The hooks this replaced filed the author as the actor, so an administrator archiving a comment
+// was recorded as the author archiving their own. Platform reads the actor off the request and
+// the subject off the row, which is the distinction an audit log exists to make.
+func TestRepository_Integration_ArchiveRecordsTheAuthorAndTheArchiver(t *testing.T) {
 	ctx := t.Context()
-	dbc, _, db := buildDatabaseClientForTest(t)
+	dbc, db := buildDatabaseClientForTest(t)
 
 	author := pgtesting.CreateUserForTest(t, nil, db.Writer())
 	archiver := pgtesting.CreateUserForTest(t, nil, db.Writer())
 
 	comment := fakes.BuildFakeComment()
 	comment.Author = author.ID
-	_, err := createComment(t, ctx, db, dbc, comment)
+	_, err := createComment(t, pgtesting.AsRequester(ctx, author.ID), db, dbc, comment)
 	require.NoError(t, err)
 
-	require.NoError(t, db.WithTransaction(ctx, func(tx database.Tx) error {
-		_, archiveErr := dbc.ArchiveComment(ctx, tx, tenancy.Global(), comment.ID)
+	archiving := pgtesting.AsRequester(ctx, archiver.ID)
+	require.NoError(t, db.WithTransaction(archiving, func(tx database.Tx) error {
+		_, archiveErr := dbc.ArchiveComment(archiving, tx, tenancy.Global(), comment.ID)
 
 		return archiveErr
 	}))
 
-	// The entry belongs to whoever wrote the comment, not to whoever happened to be
-	// signed in when it was archived.
-	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, author.ID, []pgtesting.ExpectedAuditEntry{
-		{EventType: platformaudit.EventCreated, ResourceType: resourceTypeComments, ResourceID: comment.ID},
-		{EventType: platformaudit.EventArchived, ResourceType: resourceTypeComments, ResourceID: comment.ID},
+	// Both entries are on the author's chain: it is their comment.
+	pgtesting.AssertAuditLogContains(t, ctx, db, author.ID, []pgtesting.ExpectedAuditEntry{
+		{EventType: platformaudit.EventCreated, ResourceType: platformcomments.ResourceTypeComment, ResourceID: comment.ID},
+		{EventType: platformaudit.EventArchived, ResourceType: platformcomments.ResourceTypeComment, ResourceID: comment.ID},
 	})
 
-	entries := pgtesting.AuditEntriesForActor(t, ctx, db, archiver.ID)
-	assert.Empty(t, entries)
+	// The author did the writing, and the archiver did the archiving.
+	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, author.ID, []pgtesting.ExpectedAuditEntry{
+		{EventType: platformaudit.EventCreated, ResourceType: platformcomments.ResourceTypeComment, ResourceID: comment.ID},
+	})
+	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, archiver.ID, []pgtesting.ExpectedAuditEntry{
+		{EventType: platformaudit.EventArchived, ResourceType: platformcomments.ResourceTypeComment, ResourceID: comment.ID},
+	})
+	assert.Len(t, pgtesting.AuditEntriesForActor(t, ctx, db, archiver.ID), 1)
 }
 
 // TestRepository_Integration_ArchiveMissingRecordsNothing pins that a failed
@@ -199,7 +214,7 @@ func TestRepository_Integration_ArchiveRecordsTheAuthor(t *testing.T) {
 // before the hook that would write anything down is called.
 func TestRepository_Integration_ArchiveMissingRecordsNothing(t *testing.T) {
 	ctx := t.Context()
-	dbc, _, db := buildDatabaseClientForTest(t)
+	dbc, db := buildDatabaseClientForTest(t)
 
 	err := db.WithTransaction(ctx, func(tx database.Tx) error {
 		_, archiveErr := dbc.ArchiveComment(ctx, tx, tenancy.Global(), identifiers.New())
@@ -215,7 +230,7 @@ func TestRepository_Integration_ArchiveMissingRecordsNothing(t *testing.T) {
 // lists.
 func TestRepository_Integration_UnknownTargetType(t *testing.T) {
 	ctx := t.Context()
-	dbc, _, db := buildDatabaseClientForTest(t)
+	dbc, db := buildDatabaseClientForTest(t)
 
 	user := pgtesting.CreateUserForTest(t, nil, db.Writer())
 
@@ -233,7 +248,7 @@ func TestRepository_Integration_UnknownTargetType(t *testing.T) {
 // makes the root list's count the count a client renders beside the discussion.
 func TestRepository_Integration_Replies(t *testing.T) {
 	ctx := t.Context()
-	dbc, _, db := buildDatabaseClientForTest(t)
+	dbc, db := buildDatabaseClientForTest(t)
 
 	user := pgtesting.CreateUserForTest(t, nil, db.Writer())
 	target := platformcomments.Target{Type: mealplanning.CommentTargetTypeRecipes, ID: identifiers.New()}

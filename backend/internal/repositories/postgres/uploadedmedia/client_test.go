@@ -6,7 +6,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia/fakes"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
@@ -41,8 +40,9 @@ func TestMain(m *testing.M) {
 	}))
 }
 
-// buildDatabaseClientForTest builds the store over a real database.
-func buildDatabaseClientForTest(t *testing.T) (mediaregistry.Store, audit.Repository, database.Client) {
+// buildDatabaseClientForTest builds the store over a real database, recording through the
+// real spine.
+func buildDatabaseClientForTest(t *testing.T) (mediaregistry.Store, database.Client) {
 	t.Helper()
 
 	ctx := t.Context()
@@ -57,17 +57,19 @@ func buildDatabaseClientForTest(t *testing.T) (mediaregistry.Store, audit.Reposi
 	auditLogEntryRepo, err := auditlogentries.ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), metricsnoop.NewMetricsProvider(), pgc)
 	require.NoError(t, err)
 
+	auditRecorder, ok := auditlogentries.RecorderFrom(auditLogEntryRepo)
+	require.True(t, ok)
+
 	c, err := ProvideUploadedMediaRepository(
 		loggingnoop.NewLogger(),
 		tracingnoop.NewTracerProvider(),
 		metricsnoop.NewMetricsProvider(),
-		auditLogEntryRepo,
+		pgtesting.NewRecorderForTest(t, ctx, pgc, auditRecorder),
 		pgc,
-		nil,
 	)
 	require.NoError(t, err)
 
-	return c, auditLogEntryRepo, pgc
+	return c, pgc
 }
 
 // ownedBy builds the RecordObject input for an object belonging to userID.
@@ -110,10 +112,10 @@ func writeT[T any](ctx context.Context, db database.Client, write func(tx databa
 }
 
 func TestRepository_Integration_UploadedMedia(t *testing.T) {
-	ctx := t.Context()
-	dbc, _, db := buildDatabaseClientForTest(t)
+	dbc, db := buildDatabaseClientForTest(t)
 
 	user := pgtesting.CreateUserForTest(t, nil, db.Writer())
+	ctx := pgtesting.AsRequester(t.Context(), user.ID)
 	input := ownedBy(user.ID)
 
 	// record
@@ -121,7 +123,7 @@ func TestRepository_Integration_UploadedMedia(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotZero(t, object.CreatedAt)
 	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, user.ID, []pgtesting.ExpectedAuditEntry{
-		{EventType: platformaudit.EventCreated, ResourceType: resourceTypeUploadedMedia, ResourceID: object.ID},
+		{EventType: platformaudit.EventCreated, ResourceType: mediaregistry.ResourceTypeObject, ResourceID: object.ID},
 	})
 
 	fetched, err := dbc.GetObject(ctx, db.Reader(), tenancy.Global(), object.ID)
@@ -145,8 +147,8 @@ func TestRepository_Integration_UploadedMedia(t *testing.T) {
 	_, err = archiveT(ctx, db, dbc, object.ID)
 	require.NoError(t, err)
 	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, user.ID, []pgtesting.ExpectedAuditEntry{
-		{EventType: platformaudit.EventCreated, ResourceType: resourceTypeUploadedMedia, ResourceID: object.ID},
-		{EventType: platformaudit.EventArchived, ResourceType: resourceTypeUploadedMedia, ResourceID: object.ID},
+		{EventType: platformaudit.EventCreated, ResourceType: mediaregistry.ResourceTypeObject, ResourceID: object.ID},
+		{EventType: platformaudit.EventArchived, ResourceType: mediaregistry.ResourceTypeObject, ResourceID: object.ID},
 	})
 
 	fetchedAfterArchive, err := dbc.GetObject(ctx, db.Reader(), tenancy.Global(), object.ID)
@@ -155,37 +157,39 @@ func TestRepository_Integration_UploadedMedia(t *testing.T) {
 	assert.ErrorIs(t, err, mediaregistry.ErrObjectNotFound)
 }
 
-// TestRepository_Integration_ArchiveRecordsTheOwner pins that the archive's audit entry
-// names whose the object was, from the archived row platform hands AfterArchiveObject.
-func TestRepository_Integration_ArchiveRecordsTheOwner(t *testing.T) {
-	ctx := t.Context()
-	dbc, _, db := buildDatabaseClientForTest(t)
+// TestRepository_Integration_ArchiveIsFiledUnderTheOwner pins the two halves of an
+// archive's entry: who did it is whoever was signed in, and whose object it was decides
+// which chain the entry lands on, from the archived row platform hands AfterArchiveObject.
+func TestRepository_Integration_ArchiveIsFiledUnderTheOwner(t *testing.T) {
+	dbc, db := buildDatabaseClientForTest(t)
 
 	owner := pgtesting.CreateUserForTest(t, nil, db.Writer())
 	archiver := pgtesting.CreateUserForTest(t, nil, db.Writer())
 
-	object, err := recordT(ctx, db, dbc, ownedBy(owner.ID))
+	object, err := recordT(pgtesting.AsRequester(t.Context(), owner.ID), db, dbc, ownedBy(owner.ID))
 	require.NoError(t, err)
 
+	ctx := pgtesting.AsRequester(t.Context(), archiver.ID)
 	_, err = archiveT(ctx, db, dbc, object.ID)
 	require.NoError(t, err)
 
-	// The entry belongs to whoever uploaded the object, not to whoever happened to be
-	// signed in when it was archived.
-	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, owner.ID, []pgtesting.ExpectedAuditEntry{
-		{EventType: platformaudit.EventCreated, ResourceType: resourceTypeUploadedMedia, ResourceID: object.ID},
-		{EventType: platformaudit.EventArchived, ResourceType: resourceTypeUploadedMedia, ResourceID: object.ID},
+	// The archiver did it, and the entry says so.
+	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, archiver.ID, []pgtesting.ExpectedAuditEntry{
+		{EventType: platformaudit.EventArchived, ResourceType: mediaregistry.ResourceTypeObject, ResourceID: object.ID},
 	})
 
-	entries := pgtesting.AuditEntriesForActor(t, ctx, db, archiver.ID)
-	assert.Empty(t, entries)
+	// Both entries are on the owner's chain, so "what happened to this person's uploads" is
+	// answerable from the log after the row itself no longer says.
+	ownerChain := pgtesting.AuditEntriesForAccount(t, ctx, db, owner.ID)
+	require.Len(t, ownerChain, 2)
+	assert.Empty(t, pgtesting.AuditEntriesForAccount(t, ctx, db, archiver.ID))
 }
 
 // TestRepository_Integration_ArchiveMissingRecordsNothing pins that a failed archive
 // records nothing: platform refuses an absent object before any hook runs.
 func TestRepository_Integration_ArchiveMissingRecordsNothing(t *testing.T) {
 	ctx := t.Context()
-	dbc, _, db := buildDatabaseClientForTest(t)
+	dbc, db := buildDatabaseClientForTest(t)
 
 	_, err := archiveT(ctx, db, dbc, identifiers.New())
 	require.Error(t, err)
@@ -198,7 +202,7 @@ func TestRepository_Integration_ArchiveMissingRecordsNothing(t *testing.T) {
 // exactly the drift this table exists to prevent.
 func TestRepository_Integration_KeyIsUniqueAcrossArchival(t *testing.T) {
 	ctx := t.Context()
-	dbc, _, db := buildDatabaseClientForTest(t)
+	dbc, db := buildDatabaseClientForTest(t)
 
 	user := pgtesting.CreateUserForTest(t, nil, db.Writer())
 
@@ -228,7 +232,7 @@ func TestRepository_Integration_KeyIsUniqueAcrossArchival(t *testing.T) {
 // covers uploads only for as long as this holds.
 func TestRepository_Integration_ErasingTheOwnerRemovesTheRow(t *testing.T) {
 	ctx := t.Context()
-	dbc, _, db := buildDatabaseClientForTest(t)
+	dbc, db := buildDatabaseClientForTest(t)
 
 	user := pgtesting.CreateUserForTest(t, nil, db.Writer())
 

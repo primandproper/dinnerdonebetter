@@ -39,12 +39,12 @@ func TestMain(m *testing.M) {
 }
 
 // inTx runs one store write in a transaction of its own, the way a handler's would.
-func inTx[T any](t *testing.T, db database.Client, write func(tx database.Tx) (T, error)) T {
+func inTx[T any](t *testing.T, ctx context.Context, db database.Client, write func(tx database.Tx) (T, error)) T {
 	t.Helper()
 
 	var out T
 
-	require.NoError(t, db.WithTransaction(t.Context(), func(tx database.Tx) error {
+	require.NoError(t, db.WithTransaction(ctx, func(tx database.Tx) error {
 		var err error
 		out, err = write(tx)
 
@@ -54,7 +54,7 @@ func inTx[T any](t *testing.T, db database.Client, write func(tx database.Tx) (T
 	return out
 }
 
-func TestHooks_Integration(T *testing.T) {
+func TestStore_Integration(T *testing.T) {
 	T.Parallel()
 
 	T.Run("every endpoint and subscription write lands its audit entry", func(t *testing.T) {
@@ -71,14 +71,19 @@ func TestHooks_Integration(T *testing.T) {
 		auditRepo, err := auditlogentries.ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), metricsnoop.NewMetricsProvider(), db)
 		require.NoError(t, err)
 
-		store, err := ProvideStore(ctx, &webhookscfg.Config{}, db, loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), auditRepo, nil)
+		auditRecorder, ok := auditlogentries.RecorderFrom(auditRepo)
+		require.True(t, ok)
+
+		store, err := ProvideStore(ctx, &webhookscfg.Config{}, db, pgtesting.NewRecorderForTest(t, ctx, db, auditRecorder))
 		require.NoError(t, err)
 
-		// The entries are filed under the endpoint's account, and the audit chain
-		// requires that account to exist.
+		// The entries are filed under the endpoint's account, which is the write's scope, and
+		// the audit chain requires that account to exist. Who did it is the principal on the
+		// context, so the owner is signed in for every write below.
 		owner := pgtesting.CreateUserForTest(t, nil, db.Writer())
 		account := pgtesting.CreateAccountForTest(t, nil, owner.ID, db.Writer())
 		scope := tenancy.Of(account.ID)
+		ctx = pgtesting.AsRequester(ctx, owner.ID)
 
 		endpoint := &platformwebhooks.Endpoint{
 			ID:            "endpoint-1",
@@ -86,48 +91,51 @@ func TestHooks_Integration(T *testing.T) {
 			URL:           "https://93.184.216.34/hooks",
 			ContentType:   platformwebhooks.DefaultContentType,
 			Secret:        platformwebhooks.Secret{Current: []byte("current")},
-			Subscriptions: platformwebhooks.SubscribeTo("webhook_created"),
+			Subscriptions: platformwebhooks.SubscribeTo(platformwebhooks.EventEndpointCreated),
 		}
 
-		created := inTx(t, db, func(tx database.Tx) (*platformwebhooks.Endpoint, error) {
+		created := inTx(t, ctx, db, func(tx database.Tx) (*platformwebhooks.Endpoint, error) {
 			return store.SaveEndpoint(ctx, tx, scope, endpoint)
 		})
 		require.True(t, created.Created)
 
 		endpoint.Name = "renamed"
-		inTx(t, db, func(tx database.Tx) (*platformwebhooks.Endpoint, error) {
+		inTx(t, ctx, db, func(tx database.Tx) (*platformwebhooks.Endpoint, error) {
 			return store.SaveEndpoint(ctx, tx, scope, endpoint)
 		})
 
-		inTx(t, db, func(tx database.Tx) (struct{}, error) {
+		inTx(t, ctx, db, func(tx database.Tx) (struct{}, error) {
 			return struct{}{}, store.RotateSecret(ctx, tx, scope, endpoint.ID, []byte("next"))
 		})
 
-		subscription := inTx(t, db, func(tx database.Tx) (*platformwebhooks.Subscription, error) {
-			return store.AddSubscription(ctx, tx, scope, endpoint.ID, "webhook_archived")
+		subscription := inTx(t, ctx, db, func(tx database.Tx) (*platformwebhooks.Subscription, error) {
+			return store.AddSubscription(ctx, tx, scope, endpoint.ID, platformwebhooks.EventEndpointArchived)
 		})
 
-		inTx(t, db, func(tx database.Tx) (*platformwebhooks.Subscription, error) {
+		inTx(t, ctx, db, func(tx database.Tx) (*platformwebhooks.Subscription, error) {
 			return store.ArchiveSubscription(ctx, tx, scope, subscription.ID)
 		})
 
-		inTx(t, db, func(tx database.Tx) (*platformwebhooks.Endpoint, error) {
+		inTx(t, ctx, db, func(tx database.Tx) (*platformwebhooks.Endpoint, error) {
 			return store.ArchiveEndpoint(ctx, tx, scope, endpoint.ID)
 		})
 
 		pgtesting.AssertAuditLogContains(t, ctx, db, account.ID, []pgtesting.ExpectedAuditEntry{
-			{EventType: platformaudit.EventCreated, ResourceType: resourceTypeWebhooks, ResourceID: endpoint.ID},
-			{EventType: platformaudit.EventUpdated, ResourceType: resourceTypeWebhooks, ResourceID: endpoint.ID},
-			{EventType: platformaudit.EventCreated, ResourceType: resourceTypeWebhookTriggerConfigs, ResourceID: subscription.ID},
-			{EventType: platformaudit.EventArchived, ResourceType: resourceTypeWebhookTriggerConfigs, ResourceID: subscription.ID},
-			{EventType: platformaudit.EventArchived, ResourceType: resourceTypeWebhooks, ResourceID: endpoint.ID},
+			{EventType: platformaudit.EventCreated, ResourceType: platformwebhooks.ResourceTypeEndpoint, ResourceID: endpoint.ID},
+			{EventType: platformaudit.EventUpdated, ResourceType: platformwebhooks.ResourceTypeEndpoint, ResourceID: endpoint.ID},
+			{EventType: platformaudit.EventCreated, ResourceType: platformwebhooks.ResourceTypeSubscription, ResourceID: subscription.ID},
+			{EventType: platformaudit.EventArchived, ResourceType: platformwebhooks.ResourceTypeSubscription, ResourceID: subscription.ID},
+			{EventType: platformaudit.EventArchived, ResourceType: platformwebhooks.ResourceTypeEndpoint, ResourceID: endpoint.ID},
 		})
 
-		// The save and the rotation are both updates to the endpoint; the save is the
-		// one that carries what changed, and no entry carries a key.
+		// Every entry names the signed-in owner as the one who did it, and the save and the
+		// rotation are both updates to the endpoint; the save is the one that carries what
+		// changed, and no entry carries a key.
 		var updates []*platformaudit.Entry
 		for _, entry := range pgtesting.AuditEntriesForAccount(t, ctx, db, account.ID) {
-			if entry.ResourceType == resourceTypeWebhooks && entry.EventType == platformaudit.EventUpdated {
+			assert.Equal(t, owner.ID, entry.Actor.ID)
+
+			if entry.ResourceType == platformwebhooks.ResourceTypeEndpoint && entry.EventType == platformaudit.EventUpdated {
 				updates = append(updates, entry)
 			}
 		}
@@ -143,5 +151,6 @@ func TestHooks_Integration(T *testing.T) {
 		assert.Contains(t, diffed.Changes, "name")
 		assert.NotContains(t, diffed.Changes, "secret")
 		assert.NotContains(t, diffed.Changes, "Secret")
+		assert.NotContains(t, diffed.Changes, "headers")
 	})
 }

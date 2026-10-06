@@ -13,6 +13,7 @@ import (
 	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/localdev"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	notificationsstore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/notificationsstore"
 	paymentsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/payments"
 
@@ -154,13 +155,23 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	auditRecorder, ok := auditlogentries.RecorderFrom(auditLogRepo)
+	if !ok {
+		log.Fatal("the audit log repository exposes no platform recorder")
+	}
+	// The recording spine the seeded stores record through: the same construction the
+	// server's injector makes, by hand, because this seeding runs beside the server.
+	spine, err := events.New(ctx, databaseClient, auditRecorder, events.WithPillars(pillars))
+	if err != nil {
+		log.Fatal(err)
+	}
 	notifsInbox, notifsRegistry, err = notificationsstore.ProvideStores(ctx, pillars.Logger, pillars.TracerProvider,
-		metricsnoop.NewMetricsProvider(), auditLogRepo, nil, databaseClient)
+		metricsnoop.NewMetricsProvider(), spine.Recorder(), databaseClient)
 	if err != nil {
 		log.Fatal(err)
 	}
 	billingStore, err = paymentsrepo.ProvidePaymentsRepository(ctx, pillars.Logger, pillars.TracerProvider,
-		metricsnoop.NewMetricsProvider(), auditLogRepo, databaseClient, nil)
+		metricsnoop.NewMetricsProvider(), spine.Recorder(), databaseClient)
 	if err != nil {
 		log.Fatal(err)
 	}

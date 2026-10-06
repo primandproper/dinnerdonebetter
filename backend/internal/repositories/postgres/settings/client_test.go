@@ -6,7 +6,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	ddbsettings "github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/settings/fakes"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
@@ -47,7 +46,7 @@ func TestMain(m *testing.M) {
 }
 
 // buildDatabaseClientForTest builds the store over a real database.
-func buildDatabaseClientForTest(t *testing.T) (settings.Store, audit.Repository, database.Client) {
+func buildDatabaseClientForTest(t *testing.T) (settings.Store, database.Client) {
 	t.Helper()
 
 	ctx := t.Context()
@@ -62,18 +61,20 @@ func buildDatabaseClientForTest(t *testing.T) (settings.Store, audit.Repository,
 	auditLogEntryRepo, err := auditlogentries.ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), metricsnoop.NewMetricsProvider(), pgc)
 	require.NoError(t, err)
 
+	auditRecorder, ok := auditlogentries.RecorderFrom(auditLogEntryRepo)
+	require.True(t, ok)
+
 	c, err := ProvideSettingsRepository(
 		ctx,
 		loggingnoop.NewLogger(),
 		tracingnoop.NewTracerProvider(),
 		metricsnoop.NewMetricsProvider(),
-		auditLogEntryRepo,
 		pgc,
-		nil,
+		pgtesting.NewRecorderForTest(t, ctx, pgc, auditRecorder),
 	)
 	require.NoError(t, err)
 
-	return c, auditLogEntryRepo, pgc
+	return c, pgc
 }
 
 // subjectForTest creates a user and an account for them, and returns the user.
@@ -103,7 +104,7 @@ func definitionForTest(t *testing.T, ctx context.Context, dbc settings.Store, db
 
 func TestRepository_Integration_SettingDefinitions(t *testing.T) {
 	ctx := t.Context()
-	dbc, _, db := buildDatabaseClientForTest(t)
+	dbc, db := buildDatabaseClientForTest(t)
 	scope := tenancy.Global()
 
 	example := fakes.BuildFakeSettingDefinition()
@@ -118,8 +119,8 @@ func TestRepository_Integration_SettingDefinitions(t *testing.T) {
 
 	// A definition belongs to nobody, so its entries are recorded under the
 	// unattributed actor — the same shape the table this replaced recorded under.
-	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, audit.UnattributedActorID, []pgtesting.ExpectedAuditEntry{
-		{EventType: platformaudit.EventCreated, ResourceType: resourceTypeSettingDefinitions, ResourceID: created.ID},
+	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, platformaudit.ActorUnattributed, []pgtesting.ExpectedAuditEntry{
+		{EventType: platformaudit.EventCreated, ResourceType: settings.ResourceTypeDefinition, ResourceID: created.ID},
 	})
 
 	fetched, err := dbc.GetDefinition(ctx, db.Reader(), scope, created.ID)
@@ -158,10 +159,10 @@ func TestRepository_Integration_SettingDefinitions(t *testing.T) {
 	assert.Nil(t, afterArchive)
 	require.ErrorIs(t, err, settings.ErrDefinitionNotFound)
 
-	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, audit.UnattributedActorID, []pgtesting.ExpectedAuditEntry{
-		{EventType: platformaudit.EventCreated, ResourceType: resourceTypeSettingDefinitions, ResourceID: created.ID},
-		{EventType: platformaudit.EventUpdated, ResourceType: resourceTypeSettingDefinitions, ResourceID: created.ID},
-		{EventType: platformaudit.EventArchived, ResourceType: resourceTypeSettingDefinitions, ResourceID: created.ID},
+	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, platformaudit.ActorUnattributed, []pgtesting.ExpectedAuditEntry{
+		{EventType: platformaudit.EventCreated, ResourceType: settings.ResourceTypeDefinition, ResourceID: created.ID},
+		{EventType: platformaudit.EventUpdated, ResourceType: settings.ResourceTypeDefinition, ResourceID: created.ID},
+		{EventType: platformaudit.EventArchived, ResourceType: settings.ResourceTypeDefinition, ResourceID: created.ID},
 	})
 }
 
@@ -170,7 +171,7 @@ func TestRepository_Integration_SettingDefinitions(t *testing.T) {
 // and a second definition inheriting the name would inherit them.
 func TestRepository_Integration_ArchivingKeepsTheNameClaimed(t *testing.T) {
 	ctx := t.Context()
-	dbc, _, db := buildDatabaseClientForTest(t)
+	dbc, db := buildDatabaseClientForTest(t)
 	scope := tenancy.Global()
 
 	example := fakes.BuildFakeSettingDefinition()
@@ -197,13 +198,16 @@ func TestRepository_Integration_ArchivingKeepsTheNameClaimed(t *testing.T) {
 
 func TestRepository_Integration_SettingValues(t *testing.T) {
 	ctx := t.Context()
-	dbc, _, db := buildDatabaseClientForTest(t)
+	dbc, db := buildDatabaseClientForTest(t)
 	scope := tenancy.Global()
 
 	userID := subjectForTest(t, db)
 	subject := ddbsettings.SubjectFor(userID)
 	definition := definitionForTest(t, ctx, dbc, db)
 	chosen := definition.Enumeration[0]
+
+	// The person is choosing their own setting, which is who the entries name as actor.
+	ctx = pgtesting.AsRequester(ctx, userID)
 
 	value, err := writeT(ctx, db, func(tx database.Tx) (*settings.Value, error) {
 		return dbc.SetValue(ctx, tx, scope, subject, definition.Name, chosen)
@@ -213,9 +217,13 @@ func TestRepository_Integration_SettingValues(t *testing.T) {
 	assert.Equal(t, chosen, value.Raw)
 	assert.Equal(t, subject, value.Subject)
 
-	// The entry belongs to the person whose setting it is, not to the request.
+	// A first answer is a creation, and the entry is filed on the chain of the person whose
+	// setting it is — not the global one the catalog lives in.
 	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, userID, []pgtesting.ExpectedAuditEntry{
-		{EventType: platformaudit.EventUpdated, ResourceType: resourceTypeSettingValues, ResourceID: value.ID},
+		{EventType: platformaudit.EventCreated, ResourceType: settings.ResourceTypeValue, ResourceID: value.ID},
+	})
+	pgtesting.AssertAuditLogContains(t, ctx, db, userID, []pgtesting.ExpectedAuditEntry{
+		{EventType: platformaudit.EventCreated, ResourceType: settings.ResourceTypeValue, ResourceID: value.ID},
 	})
 
 	fetched, err := dbc.GetValue(ctx, db.Reader(), scope, subject, definition.Name)
@@ -254,9 +262,11 @@ func TestRepository_Integration_SettingValues(t *testing.T) {
 	assert.Nil(t, afterClear)
 	require.ErrorIs(t, err, settings.ErrValueNotFound)
 
+	// The second answer is an update of the same row; clearing it is its archival.
 	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, userID, []pgtesting.ExpectedAuditEntry{
-		{EventType: platformaudit.EventUpdated, ResourceType: resourceTypeSettingValues, ResourceID: value.ID},
-		{EventType: platformaudit.EventArchived, ResourceType: resourceTypeSettingValues, ResourceID: value.ID},
+		{EventType: platformaudit.EventCreated, ResourceType: settings.ResourceTypeValue, ResourceID: value.ID},
+		{EventType: platformaudit.EventUpdated, ResourceType: settings.ResourceTypeValue, ResourceID: value.ID},
+		{EventType: platformaudit.EventArchived, ResourceType: settings.ResourceTypeValue, ResourceID: value.ID},
 	})
 }
 
@@ -266,7 +276,7 @@ func TestRepository_Integration_SettingValues(t *testing.T) {
 // one lands.
 func TestRepository_Integration_ValueOutsideTheEnumerationIsRefused(t *testing.T) {
 	ctx := t.Context()
-	dbc, _, db := buildDatabaseClientForTest(t)
+	dbc, db := buildDatabaseClientForTest(t)
 	scope := tenancy.Global()
 
 	subject := ddbsettings.SubjectFor(subjectForTest(t, db))
@@ -296,7 +306,7 @@ func TestRepository_Integration_ValueOutsideTheEnumerationIsRefused(t *testing.T
 // ones who picked the value an administrator has just made illegal.
 func TestRepository_Integration_EditRefusesToStrandStoredValues(t *testing.T) {
 	ctx := t.Context()
-	dbc, _, db := buildDatabaseClientForTest(t)
+	dbc, db := buildDatabaseClientForTest(t)
 	scope := tenancy.Global()
 
 	subject := ddbsettings.SubjectFor(subjectForTest(t, db))
@@ -331,7 +341,7 @@ func TestRepository_Integration_EditRefusesToStrandStoredValues(t *testing.T) {
 // fallback.
 func TestRepository_Integration_ResolutionHasThreeAnswers(t *testing.T) {
 	ctx := t.Context()
-	dbc, _, db := buildDatabaseClientForTest(t)
+	dbc, db := buildDatabaseClientForTest(t)
 	scope := tenancy.Global()
 
 	subject := ddbsettings.SubjectFor(subjectForTest(t, db))
@@ -402,7 +412,7 @@ func TestRepository_Integration_ResolutionHasThreeAnswers(t *testing.T) {
 // makes the key possible at all.
 func TestRepository_Integration_ErasingAUserTakesTheirSettings(t *testing.T) {
 	ctx := t.Context()
-	dbc, _, db := buildDatabaseClientForTest(t)
+	dbc, db := buildDatabaseClientForTest(t)
 	scope := tenancy.Global()
 
 	userID := subjectForTest(t, db)
@@ -432,7 +442,7 @@ func TestRepository_Integration_ErasingAUserTakesTheirSettings(t *testing.T) {
 // the id a client may already hold, under the kind platform's store understands.
 func TestRepository_Integration_TheSeededSettingSurvivedTheMigration(t *testing.T) {
 	ctx := t.Context()
-	dbc, _, db := buildDatabaseClientForTest(t)
+	dbc, db := buildDatabaseClientForTest(t)
 
 	seeded, err := dbc.GetDefinitionByName(ctx, db.Reader(), tenancy.Global(), "user_temperature_unit")
 	require.NoError(t, err)

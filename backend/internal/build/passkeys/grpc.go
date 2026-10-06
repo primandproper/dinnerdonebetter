@@ -23,14 +23,10 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/recording"
 
 	platformpasskeys "github.com/primandproper/platform-go/v15/authentication/passkeys"
 	passkeysgrpc "github.com/primandproper/platform-go/v15/authentication/passkeys/grpc"
@@ -38,6 +34,7 @@ import (
 	"github.com/primandproper/platform-go/v15/authentication/signin"
 	webauthncfg "github.com/primandproper/platform-go/v15/authentication/webauthnsessions/config"
 	platformidentity "github.com/primandproper/platform-go/v15/identity"
+	platformrecording "github.com/primandproper/platform-go/v15/recording"
 	platformwebauthn "github.com/primandproper/primitives-go/v2/authentication/webauthn"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
@@ -81,6 +78,14 @@ func RegisterPasskeysService(i do.Injector) {
 			return nil, err
 		}
 
+		// A passkey added or removed is a credential write, recorded on its own transaction
+		// as a password change is; a failed login records nothing, as a failed password
+		// sign-in does not. Both decisions are platform's RecordingHooks'.
+		hooks, err := platformpasskeys.NewRecordingHooks(do.MustInvoke[*platformrecording.Recorder](i))
+		if err != nil {
+			return nil, err
+		}
+
 		return platformpasskeys.NewService(
 			db,
 			store,
@@ -89,16 +94,7 @@ func RegisterPasskeysService(i do.Injector) {
 			platformpasskeys.WithEnrollmentGate(platformpasskeys.AdmitEveryEnrollment),
 			platformpasskeys.WithUsernameResolver(resolveUsername(directory, db)),
 			platformpasskeys.WithAlternativeSignIn(holdsPassword(directory)),
-			// A passkey added or removed is a credential write, recorded on its own transaction
-			// as a password change is. See authentication.NewPasskeyHooks.
-			platformpasskeys.WithHooks(authentication.NewPasskeyHooks(
-				do.MustInvoke[logging.Logger](i),
-				recording.NewRecorder(
-					tracing.NewNamedTracer(do.MustInvoke[tracing.Provider](i), "passkey_hooks"),
-					do.MustInvoke[audit.Repository](i),
-					do.MustInvoke[*events.Emitter](i),
-				),
-			)),
+			platformpasskeys.WithHooks(hooks),
 			platformpasskeys.WithServiceLogger(do.MustInvoke[logging.Logger](i)),
 			platformpasskeys.WithServiceTracerProvider(do.MustInvoke[tracing.Provider](i)),
 			platformpasskeys.WithServiceMetricsProvider(do.MustInvoke[metrics.Provider](i)),

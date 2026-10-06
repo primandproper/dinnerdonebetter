@@ -38,7 +38,8 @@ func TestMain(m *testing.M) {
 	}))
 }
 
-// buildStoresForTest builds the hooked inbox and registry over a real database.
+// buildStoresForTest builds the inbox and registry over a real database, recording through
+// the real spine.
 func buildStoresForTest(t *testing.T) (platformnotifications.Inbox, platformnotifications.Registry, database.Client) {
 	t.Helper()
 
@@ -54,13 +55,15 @@ func buildStoresForTest(t *testing.T) (platformnotifications.Inbox, platformnoti
 	auditLogEntryRepo, err := auditlogentries.ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), metricsnoop.NewMetricsProvider(), pgc)
 	require.NoError(t, err)
 
+	auditRecorder, ok := auditlogentries.RecorderFrom(auditLogEntryRepo)
+	require.True(t, ok)
+
 	inbox, registry, err := ProvideStores(
 		ctx,
 		loggingnoop.NewLogger(),
 		tracingnoop.NewTracerProvider(),
 		metricsnoop.NewMetricsProvider(),
-		auditLogEntryRepo,
-		nil,
+		pgtesting.NewRecorderForTest(t, ctx, pgc, auditRecorder),
 		pgc,
 	)
 	require.NoError(t, err)
@@ -71,11 +74,11 @@ func buildStoresForTest(t *testing.T) (platformnotifications.Inbox, platformnoti
 // TestRepository_Integration_InboxWritesAreRecorded pins which inbox writes land an
 // entry under the person they are about, and which deliberately do not.
 func TestRepository_Integration_InboxWritesAreRecorded(t *testing.T) {
-	ctx := t.Context()
 	inbox, _, db := buildStoresForTest(t)
 	scope := tenancy.Global()
 
 	userID := pgtesting.CreateUserForTest(t, nil, db.Writer()).ID
+	ctx := pgtesting.AsRequester(t.Context(), userID)
 
 	created, err := writeT(ctx, db, func(tx database.Tx) (*platformnotifications.Notification, error) {
 		return inbox.CreateNotification(ctx, tx, scope, &platformnotifications.Notification{
@@ -105,24 +108,29 @@ func TestRepository_Integration_InboxWritesAreRecorded(t *testing.T) {
 	assert.Equal(t, int64(1), erased)
 
 	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, userID, []pgtesting.ExpectedAuditEntry{
-		{EventType: platformaudit.EventCreated, ResourceType: resourceTypeUserNotifications, ResourceID: created.ID},
-		{EventType: platformaudit.EventArchived, ResourceType: resourceTypeUserNotifications, ResourceID: created.ID},
+		{EventType: platformaudit.EventCreated, ResourceType: platformnotifications.ResourceTypeNotification, ResourceID: created.ID},
+		{EventType: platformaudit.EventArchived, ResourceType: platformnotifications.ResourceTypeNotification, ResourceID: created.ID},
 	})
 	assert.Len(t, pgtesting.AuditEntriesForActor(t, ctx, db, userID), 2)
+
+	// Filed under the person the notification was for, which here is also who did it.
+	assert.Len(t, pgtesting.AuditEntriesForAccount(t, ctx, db, userID), 2)
 }
 
 // TestRepository_Integration_RegistryWritesAreRecorded pins the registry's entries,
 // including the one a handset changing hands writes under its new owner.
 func TestRepository_Integration_RegistryWritesAreRecorded(t *testing.T) {
-	ctx := t.Context()
 	_, registry, db := buildStoresForTest(t)
 	scope := tenancy.Global()
 
 	firstOwner := pgtesting.CreateUserForTest(t, nil, db.Writer()).ID
 	secondOwner := pgtesting.CreateUserForTest(t, nil, db.Writer()).ID
 
-	registered, err := writeT(ctx, db, func(tx database.Tx) (*platformnotifications.Device, error) {
-		return registry.RegisterDevice(ctx, tx, scope, &platformnotifications.Device{
+	asFirst := pgtesting.AsRequester(t.Context(), firstOwner)
+	asSecond := pgtesting.AsRequester(t.Context(), secondOwner)
+
+	registered, err := writeT(asFirst, db, func(tx database.Tx) (*platformnotifications.Device, error) {
+		return registry.RegisterDevice(asFirst, tx, scope, &platformnotifications.Device{
 			Principal: firstOwner,
 			Platform:  platformnotifications.PlatformIOS,
 			Token:     "token-a",
@@ -130,8 +138,8 @@ func TestRepository_Integration_RegistryWritesAreRecorded(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	moved, err := writeT(ctx, db, func(tx database.Tx) (*platformnotifications.Device, error) {
-		return registry.RegisterDevice(ctx, tx, scope, &platformnotifications.Device{
+	moved, err := writeT(asSecond, db, func(tx database.Tx) (*platformnotifications.Device, error) {
+		return registry.RegisterDevice(asSecond, tx, scope, &platformnotifications.Device{
 			Principal: secondOwner,
 			Platform:  platformnotifications.PlatformIOS,
 			Token:     "token-a",
@@ -140,32 +148,36 @@ func TestRepository_Integration_RegistryWritesAreRecorded(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, registered.ID, moved.ID)
 
-	_, err = writeT(ctx, db, func(tx database.Tx) (*platformnotifications.Device, error) {
-		return registry.RevokeDevice(ctx, tx, scope, secondOwner, moved.ID)
+	_, err = writeT(asSecond, db, func(tx database.Tx) (*platformnotifications.Device, error) {
+		return registry.RevokeDevice(asSecond, tx, scope, secondOwner, moved.ID)
 	})
 	require.NoError(t, err)
 
-	_, err = writeT(ctx, db, func(tx database.Tx) (int64, error) {
-		return registry.DeleteDevicesForPrincipal(ctx, tx, scope, firstOwner)
+	// The erasure records nothing; dataprivacy records it for itself.
+	_, err = writeT(asFirst, db, func(tx database.Tx) (int64, error) {
+		return registry.DeleteDevicesForPrincipal(asFirst, tx, scope, firstOwner)
 	})
 	require.NoError(t, err)
 
-	firstEntries := pgtesting.AuditEntriesForActor(t, ctx, db, firstOwner)
+	firstEntries := pgtesting.AuditEntriesForActor(t, asFirst, db, firstOwner)
 	require.Len(t, firstEntries, 1)
 	assert.Equal(t, platformaudit.EventCreated, firstEntries[0].EventType)
-	assert.Equal(t, resourceTypeUserDeviceTokens, firstEntries[0].ResourceType)
+	assert.Equal(t, platformnotifications.ResourceTypeDevice, firstEntries[0].ResourceType)
 	assert.Equal(t, registered.ID, firstEntries[0].ResourceID)
 	assert.Empty(t, firstEntries[0].Changes)
 
-	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, secondOwner, []pgtesting.ExpectedAuditEntry{
-		{EventType: platformaudit.EventCreated, ResourceType: resourceTypeUserDeviceTokens, ResourceID: moved.ID},
-		{EventType: platformaudit.EventArchived, ResourceType: resourceTypeUserDeviceTokens, ResourceID: moved.ID},
+	// A handset changing hands is an update to the one row, and a revocation deletes it;
+	// both are the second owner's doing and filed under them.
+	pgtesting.AssertAuditLogContainsForUser(t, asSecond, db, secondOwner, []pgtesting.ExpectedAuditEntry{
+		{EventType: platformaudit.EventUpdated, ResourceType: platformnotifications.ResourceTypeDevice, ResourceID: moved.ID},
+		{EventType: platformaudit.EventDeleted, ResourceType: platformnotifications.ResourceTypeDevice, ResourceID: moved.ID},
 	})
+	assert.Len(t, pgtesting.AuditEntriesForAccount(t, asSecond, db, secondOwner), 2)
 
 	// The re-registration says whose handset it was.
 	var reregistration *platformaudit.Entry
-	for _, e := range pgtesting.AuditEntriesForActor(t, ctx, db, secondOwner) {
-		if e.EventType == platformaudit.EventCreated {
+	for _, e := range pgtesting.AuditEntriesForActor(t, asSecond, db, secondOwner) {
+		if e.EventType == platformaudit.EventUpdated {
 			reregistration = e
 		}
 	}

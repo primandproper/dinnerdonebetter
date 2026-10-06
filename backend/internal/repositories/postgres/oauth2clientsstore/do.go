@@ -2,10 +2,9 @@ package oauth2clientsstore
 
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 
 	platformoauth2clients "github.com/primandproper/platform-go/v15/authentication/oauth2clients"
+	platformrecording "github.com/primandproper/platform-go/v15/recording"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/metrics"
@@ -15,7 +14,7 @@ import (
 )
 
 // RegisterOAuth2ClientsStore registers platform's client registry and the service over it,
-// with this application's recording hung off the service's writes.
+// with platform's recording hooks hung off the service's writes.
 //
 // The recording is on the service rather than the store because the service is the one
 // that opens the transaction, and every registration, revision and withdrawal in this
@@ -40,15 +39,15 @@ func RegisterOAuth2ClientsStore(i do.Injector) {
 		logger := do.MustInvoke[logging.Logger](i)
 		tracerProvider := do.MustInvoke[tracing.Provider](i)
 
+		hooks, err := ProvideHooks(do.MustInvoke[*platformrecording.Recorder](i))
+		if err != nil {
+			return nil, err
+		}
+
 		return platformoauth2clients.NewService(
 			do.MustInvoke[database.Client](i),
 			do.MustInvoke[platformoauth2clients.Store](i),
-			platformoauth2clients.WithHooks(ProvideHooks(
-				logger,
-				tracerProvider,
-				do.MustInvoke[audit.Repository](i),
-				do.MustInvoke[*events.Emitter](i),
-			)),
+			platformoauth2clients.WithHooks(hooks),
 			platformoauth2clients.WithServiceLogger(logger),
 			platformoauth2clients.WithServiceTracerProvider(tracerProvider),
 			platformoauth2clients.WithServiceMetricsProvider(do.MustInvoke[metrics.Provider](i)),

@@ -7,6 +7,7 @@ import (
 	mealplanningsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
 
+	platformpasskeys "github.com/primandproper/platform-go/v15/authentication/passkeys"
 	"github.com/primandproper/platform-go/v15/authentication/passkeys/passkeyspb"
 	"github.com/primandproper/platform-go/v15/authentication/signin/signinpb"
 	identity "github.com/primandproper/platform-go/v15/identity"
@@ -127,9 +128,9 @@ func TestPasskeys_ThisApplicationsWiring(T *testing.T) {
 		_, err = testClient.ArchivePasskey(ctx, &passkeyspb.ArchivePasskeyRequest{Id: passkeyID})
 		require.NoError(t, err)
 
-		AssertAuditLogContainsFuzzyForResource(t, ctx, "passkeys", passkeyID, 10, []*ExpectedAuditEntry{
-			{EventType: "created", ResourceType: "passkeys", RelevantID: passkeyID},
-			{EventType: "archived", ResourceType: "passkeys", RelevantID: passkeyID},
+		AssertAuditLogContainsFuzzyForResource(t, ctx, platformpasskeys.ResourceTypeCredential, passkeyID, 10, []*ExpectedAuditEntry{
+			{EventType: "created", ResourceType: platformpasskeys.ResourceTypeCredential, RelevantID: passkeyID},
+			{EventType: "archived", ResourceType: platformpasskeys.ResourceTypeCredential, RelevantID: passkeyID},
 		})
 	})
 }

@@ -164,6 +164,14 @@ func (e *Emitter) Record(
 
 	msg, event := e.event(ctx, logger, eventType, accountID, metadata, opts)
 
+	// A write that owes the log an entry and nobody an announcement names no event type, and
+	// platform's Record takes that as no event rather than an event with no name — which its
+	// Emitter refuses, rightly. The emitter this replaced enqueued the nameless message, which
+	// nothing downstream could route.
+	if eventType == "" {
+		event = nil
+	}
+
 	scope := entry.Scope
 	if scope == (tenancy.Scope{}) {
 		scope = scopeFor(msg.AccountID)

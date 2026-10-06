@@ -2,6 +2,7 @@ package localdev
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"log/slog"
@@ -18,6 +19,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	authrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auth"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
 	settingsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/settings"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
@@ -333,7 +335,12 @@ func WithMealPlanningRepository(fn func(ctx context.Context, repo mealplanning.R
 			return storeErr
 		}
 
-		mealPlanningRepo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditLogRepo, identityStore, dbClient, nil, uploads)
+		spine, err := Spine(ctx, dbClient, auditLogRepo, logger, tracerProvider)
+		if err != nil {
+			return err
+		}
+
+		mealPlanningRepo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditLogRepo, identityStore, dbClient, spine, uploads)
 		return fn(ctx, mealPlanningRepo, logger, tracerProvider)
 	}
 }
@@ -351,7 +358,19 @@ func WithSettingsRepository(fn func(ctx context.Context, store platformsettings.
 			return err
 		}
 
-		settingsStore, err := settingsrepo.ProvideSettingsRepository(ctx, logger, tracerProvider, metricsnoop.NewMetricsProvider(), auditLogRepo, dbClient, nil)
+		auditRecorder, ok := auditlogentries.RecorderFrom(auditLogRepo)
+		if !ok {
+			return errors.New("the audit log repository exposes no platform recorder")
+		}
+
+		// The recording spine the store's hooks write through, built the way a process
+		// does; a seed's writes are recorded like anybody else's.
+		spine, err := events.New(ctx, dbClient, auditRecorder)
+		if err != nil {
+			return err
+		}
+
+		settingsStore, err := settingsrepo.ProvideSettingsRepository(ctx, logger, tracerProvider, metricsnoop.NewMetricsProvider(), dbClient, spine.Recorder())
 		if err != nil {
 			return err
 		}

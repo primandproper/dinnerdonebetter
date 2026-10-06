@@ -21,15 +21,3 @@ targets are protected by the checks the owning service already runs before it
 delegates here, not by the column.
 */
 package comments
-
-// The data change events a comment write emits. They are declared in the webhook
-// event catalog (internal/domain/webhooks/catalog), so a subscriber is already
-// able to ask for them.
-const (
-	// CommentCreatedServiceEventType indicates a comment was created.
-	CommentCreatedServiceEventType = "comment_created"
-	// CommentUpdatedServiceEventType indicates a comment was updated.
-	CommentUpdatedServiceEventType = "comment_updated"
-	// CommentArchivedServiceEventType indicates a comment was archived.
-	CommentArchivedServiceEventType = "comment_archived"
-)

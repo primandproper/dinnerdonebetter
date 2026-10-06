@@ -29,16 +29,6 @@ a photograph from the household reading the recipe it belongs to.
 */
 package uploadedmedia
 
-// The data change events an uploaded media write emits. They are declared in the
-// webhook event catalog (internal/domain/webhooks/catalog), so a subscriber is
-// already able to ask for them.
-const (
-	// UploadedMediaCreatedServiceEventType indicates uploaded media was created.
-	UploadedMediaCreatedServiceEventType = "uploaded_media_created"
-	// UploadedMediaArchivedServiceEventType indicates uploaded media was archived.
-	UploadedMediaArchivedServiceEventType = "uploaded_media_archived"
-)
-
 // Supported MIME types for uploaded media.
 const (
 	MimeTypeImagePNG  = "image/png"

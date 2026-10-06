@@ -72,8 +72,15 @@ func NewMealPlanTaskNotificationWorker(
 		return nil, nil, err
 	}
 
-	mealPlanningRepo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditRepo, identityStore, databaseClient, nil, uploads)
-	_, deviceRegistry, err := notificationsstore.ProvideStores(ctx, logger, tracerProvider, metricsnoop.NewMetricsProvider(), auditRepo, nil, databaseClient)
+	// The recording spine both stores record through, built by hand because this worker is
+	// assembled outside the injector.
+	spine, err := Spine(ctx, databaseClient, auditRepo, logger, tracerProvider)
+	if err != nil {
+		return nil, nil, fmt.Errorf("building the recording spine: %w", err)
+	}
+
+	mealPlanningRepo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditRepo, identityStore, databaseClient, spine, uploads)
+	_, deviceRegistry, err := notificationsstore.ProvideStores(ctx, logger, tracerProvider, metricsProvider, spine.Recorder(), databaseClient)
 	if err != nil {
 		return nil, nil, fmt.Errorf("building notifications repository: %w", err)
 	}

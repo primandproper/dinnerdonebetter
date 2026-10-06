@@ -127,8 +127,8 @@ func TestPayments_ArchiveSubscription(T *testing.T) {
 		requireGRPCCode(t, err, codes.NotFound)
 
 		AssertAuditLogContainsFuzzy(t, ctx, accountClient, accountID, 15, []*ExpectedAuditEntry{
-			{EventType: "created", ResourceType: "subscriptions", RelevantID: created.ID},
-			{EventType: "archived", ResourceType: "subscriptions", RelevantID: created.ID},
+			{EventType: "created", ResourceType: billing.ResourceTypeSubscription, RelevantID: created.ID},
+			{EventType: "archived", ResourceType: billing.ResourceTypeSubscription, RelevantID: created.ID},
 		})
 	})
 }

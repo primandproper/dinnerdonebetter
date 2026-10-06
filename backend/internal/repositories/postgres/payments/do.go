@@ -3,10 +3,8 @@ package payments
 import (
 	"context"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
-
 	"github.com/primandproper/platform-go/v15/billing"
+	platformrecording "github.com/primandproper/platform-go/v15/recording"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/metrics"
@@ -23,9 +21,8 @@ func RegisterPaymentsRepository(i do.Injector) {
 			do.MustInvoke[logging.Logger](i),
 			do.MustInvoke[tracing.Provider](i),
 			do.MustInvoke[metrics.Provider](i),
-			do.MustInvoke[audit.Repository](i),
+			do.MustInvoke[*platformrecording.Recorder](i),
 			do.MustInvoke[database.Client](i),
-			do.MustInvoke[*events.Emitter](i),
 		)
 	})
 }

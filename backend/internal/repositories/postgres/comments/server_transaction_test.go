@@ -105,15 +105,12 @@ func buildFixture(t *testing.T, decorate func(platformaudit.Recorder) platformau
 
 	// The actual recording spine against the actual tables, because an outbox row that rolls
 	// back is the half of the claim a fake emitter could not demonstrate.
-	emitter := pgtesting.NewEmitterForTest(t, ctx, db, auditRecorder)
-
 	store, err := ProvideCommentsRepository(
 		loggingnoop.NewLogger(),
 		tracingnoop.NewTracerProvider(),
 		metricsnoop.NewMetricsProvider(),
-		audits,
 		db,
-		emitter,
+		pgtesting.NewRecorderForTest(t, ctx, db, auditRecorder),
 		commentsbuild.Catalog(),
 	)
 	require.NoError(t, err)
@@ -203,7 +200,7 @@ func TestServer_Integration_RecordingCommitsWithTheWrite(T *testing.T) {
 		// The entry, filed under the author — written by this package's hooks,
 		// inside platform's transaction.
 		pgtesting.AssertAuditLogContainsForUser(t, ctx, fixture.db, user.ID, []pgtesting.ExpectedAuditEntry{
-			{EventType: platformaudit.EventCreated, ResourceType: resourceTypeComments, ResourceID: commentID},
+			{EventType: platformaudit.EventCreated, ResourceType: platformcomments.ResourceTypeComment, ResourceID: commentID},
 		})
 
 		// The event.

@@ -6,7 +6,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/fakes"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
@@ -38,8 +37,9 @@ func TestMain(m *testing.M) {
 	}))
 }
 
-// buildDatabaseClientForTest builds the store over a real database.
-func buildDatabaseClientForTest(t *testing.T) (billing.Store, audit.Repository, database.Client) {
+// buildDatabaseClientForTest builds the store over a real database, recording through the
+// real spine.
+func buildDatabaseClientForTest(t *testing.T) (billing.Store, database.Client) {
 	t.Helper()
 
 	ctx := t.Context()
@@ -54,18 +54,20 @@ func buildDatabaseClientForTest(t *testing.T) (billing.Store, audit.Repository, 
 	auditLogEntryRepo, err := auditlogentries.ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), metricsnoop.NewMetricsProvider(), pgc)
 	require.NoError(t, err)
 
+	auditRecorder, ok := auditlogentries.RecorderFrom(auditLogEntryRepo)
+	require.True(t, ok)
+
 	c, err := ProvidePaymentsRepository(
 		ctx,
 		loggingnoop.NewLogger(),
 		tracingnoop.NewTracerProvider(),
 		metricsnoop.NewMetricsProvider(),
-		auditLogEntryRepo,
+		pgtesting.NewRecorderForTest(t, ctx, pgc, auditRecorder),
 		pgc,
-		nil,
 	)
 	require.NoError(t, err)
 
-	return c, auditLogEntryRepo, pgc
+	return c, pgc
 }
 
 // accountForTest creates a user and an account for them, and returns the account.

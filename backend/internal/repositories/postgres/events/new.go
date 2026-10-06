@@ -39,8 +39,12 @@ func WithTopic(topic string) Option {
 // WithWebhooksConfig is the webhooks configuration the emitter's fan-out store is built from —
 // its table prefix above all. The default is platform's defaults, which is what every process
 // here runs with.
-func WithWebhooksConfig(cfg webhookscfg.Config) Option {
-	return func(o *options) { o.webhooks = cfg }
+func WithWebhooksConfig(cfg *webhookscfg.Config) Option {
+	return func(o *options) {
+		if cfg != nil {
+			o.webhooks = *cfg
+		}
+	}
 }
 
 // WithPillars supplies the observability pillars. Absent means noop.

@@ -1,6 +1,6 @@
 /*
-Package webhooksstore is platform-go's webhook store with this application's
-recording around it.
+Package webhooksstore is platform-go's webhook store, with platform's own
+recording installed on it.
 
 It replaces internal/repositories/postgres/webhooks, which owned three tables of
 its own — webhooks, webhook_trigger_configs and webhook_trigger_events — and ran
@@ -14,48 +14,46 @@ while delivery went through platform's dispatcher — which posts. A client that
 asked for PUT was told PUT and sent POST. Dropping the column removes the lie
 rather than a capability.
 
-What is not platform's is the audit entry and the data change event every write
-owes, which is what lives here. Both are written from platform's webhooks.Hooks,
-which the store calls on the caller's transaction once each endpoint or
-subscription write has landed. A hook's error fails the write, so the row, the
-entry and the event commit together or not at all.
+The audit entry and the event every endpoint and subscription write owes are
+platform's too: recordinghooks.RecordingHooks records them through the
+recording.Recorder this application registers, on the caller's transaction, so
+the row, the entry and the event commit together or not at all. What this
+package decides is only that the hooks are installed — there is no store without
+them to register by mistake.
+
+The cycle an earlier version of this package resolved leniently — the store's
+hooks record through an emitter whose dispatcher reads this store — is gone:
+platform's emitter builds its own hookless fan-out store over the same tables
+(see platform's webhooks/recordinghooks, "Wiring it without a cycle"), and the
+dispatcher registered beside this store is for the writes that go through it.
 */
 package webhooksstore
 
 import (
 	"context"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/recording"
-
+	platformrecording "github.com/primandproper/platform-go/v15/recording"
 	platformwebhooks "github.com/primandproper/platform-go/v15/webhooks"
 	webhookscfg "github.com/primandproper/platform-go/v15/webhooks/config"
+	"github.com/primandproper/platform-go/v15/webhooks/recordinghooks"
 	"github.com/primandproper/primitives-go/v2/database"
-	"github.com/primandproper/primitives-go/v2/observability/logging"
-	"github.com/primandproper/primitives-go/v2/observability/tracing"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 )
 
-const o11yName = "webhooks_db_client"
-
-// ProvideStore builds platform's webhook store, with this application's
-// recording hung off its writes.
+// ProvideStore builds platform's webhook store, with platform's recording hooks
+// over recorder installed on it.
 func ProvideStore(
 	ctx context.Context,
 	cfg *webhookscfg.Config,
 	client database.Client,
-	logger logging.Logger,
-	tracerProvider tracing.Provider,
-	auditLogEntryRepo audit.Repository,
-	eventEmitter *events.Emitter,
+	recorder *platformrecording.Recorder,
 ) (platformwebhooks.Store, error) {
-	tracer := tracing.NewNamedTracer(tracerProvider, o11yName)
+	hooks, err := recordinghooks.NewRecordingHooks(recorder)
+	if err != nil {
+		return nil, platformerrors.Wrap(err, "building the webhooks recording hooks")
+	}
 
 	return webhookscfg.NewStore(ctx, cfg, client,
-		webhookscfg.WithStoreOptions(platformwebhooks.WithHooks(&hooks{
-			tracer:   tracer,
-			logger:   logging.NewNamedLogger(logger, o11yName),
-			recorder: recording.NewRecorder(tracer, auditLogEntryRepo, eventEmitter),
-		})),
+		webhookscfg.WithStoreOptions(platformwebhooks.WithHooks(hooks)),
 	)
 }

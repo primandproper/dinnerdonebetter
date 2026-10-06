@@ -67,22 +67,6 @@ import (
 // reading it off an event that cannot tell them. Clearing is its own event
 // because it leads somewhere different: "they no longer have an opinion" is not
 // a new preference to act on.
-const (
-	// SettingDefinitionCreatedServiceEventType indicates a setting was added to
-	// the catalog.
-	SettingDefinitionCreatedServiceEventType = "setting_definition_created"
-	// SettingDefinitionUpdatedServiceEventType indicates a setting's kind,
-	// default, enumeration or description changed.
-	SettingDefinitionUpdatedServiceEventType = "setting_definition_updated"
-	// SettingDefinitionArchivedServiceEventType indicates a setting was retired.
-	SettingDefinitionArchivedServiceEventType = "setting_definition_archived"
-
-	// SettingValueSetServiceEventType indicates somebody answered a setting.
-	SettingValueSetServiceEventType = "setting_value_set"
-	// SettingValueClearedServiceEventType indicates somebody took their answer back.
-	SettingValueClearedServiceEventType = "setting_value_cleared"
-)
-
 // SubjectFor is the principal a stored setting value belongs to.
 //
 // Every value this application writes names a user; see the package

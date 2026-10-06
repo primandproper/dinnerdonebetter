@@ -1,20 +1,5 @@
 package notifications
 
-// The data change events a notification write emits. The store emits them —
-// see internal/repositories/postgres/notificationsstore — and the webhook event
-// catalog collects them from here.
-const (
-	// UserNotificationCreatedServiceEventType indicates a user notification was created.
-	UserNotificationCreatedServiceEventType = "user_notification_created"
-	// UserNotificationUpdatedServiceEventType indicates a user notification was updated.
-	UserNotificationUpdatedServiceEventType = "user_notification_updated"
-
-	// UserDeviceTokenCreatedServiceEventType indicates a user device token was created.
-	UserDeviceTokenCreatedServiceEventType = "user_device_token_created"
-	// UserDeviceTokenArchivedServiceEventType indicates a user device token was archived.
-	UserDeviceTokenArchivedServiceEventType = "user_device_token_archived"
-)
-
 // DefaultTopic is the category every notification this application writes is filed under.
 //
 // platform requires one — a client groups, mutes and routes by it, and an inbox where every

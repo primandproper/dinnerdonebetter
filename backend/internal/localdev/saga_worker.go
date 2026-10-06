@@ -64,10 +64,15 @@ func StartSagaWorker(
 		return nil, err
 	}
 
+	spine, err := Spine(ctx, databaseClient, auditRepo, logger, tracerProvider)
+	if err != nil {
+		return nil, fmt.Errorf("building the recording spine: %w", err)
+	}
+
 	registry := saga.NewRegistry()
 	if err = mealplanfinalization.Register(
 		registry,
-		mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditRepo, identityStore, databaseClient, nil, uploads),
+		mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditRepo, identityStore, databaseClient, spine, uploads),
 		recipeanalysis.NewRecipeAnalyzer(logger, tracerProvider),
 		grocerylistpreparation.NewGroceryListCreator(logger, tracerProvider),
 		logger,

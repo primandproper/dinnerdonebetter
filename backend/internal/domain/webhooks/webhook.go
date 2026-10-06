@@ -15,24 +15,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/catalog"
 )
 
-// The descriptions below are subscriber-facing: `make webhook_catalog` renders
-// each doc comment into the catalog a client reads to decide what to subscribe
-// to, so they say what happened and nothing about why the constant exists.
-const (
-	// WebhookCreatedServiceEventType indicates a webhook was created.
-	WebhookCreatedServiceEventType = "webhook_created"
-	// WebhookUpdatedServiceEventType indicates a webhook's name, URL or content type changed.
-	WebhookUpdatedServiceEventType = "webhook_updated"
-	// WebhookArchivedServiceEventType indicates a webhook was archived.
-	WebhookArchivedServiceEventType = "webhook_archived"
-	// WebhookSecretRotatedServiceEventType indicates a webhook's signing secret changed, and carries no secret.
-	WebhookSecretRotatedServiceEventType = "webhook_secret_rotated"
-	// WebhookTriggerConfigCreatedServiceEventType indicates a webhook trigger config was created.
-	WebhookTriggerConfigCreatedServiceEventType = "webhook_trigger_config_created"
-	// WebhookTriggerConfigArchivedServiceEventType indicates a webhook trigger config was archived.
-	WebhookTriggerConfigArchivedServiceEventType = "webhook_trigger_config_archived"
-)
-
 // WebhookEventType is one subscribable event type, as the MCP server renders it.
 type WebhookEventType struct {
 	_ struct{} `json:"-"`

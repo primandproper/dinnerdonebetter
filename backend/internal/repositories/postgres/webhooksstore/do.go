@@ -3,10 +3,9 @@ package webhooksstore
 import (
 	"context"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/catalog"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/events"
 
+	platformrecording "github.com/primandproper/platform-go/v15/recording"
 	platformwebhooks "github.com/primandproper/platform-go/v15/webhooks"
 	webhookscfg "github.com/primandproper/platform-go/v15/webhooks/config"
 	"github.com/primandproper/primitives-go/v2/database"
@@ -36,10 +35,7 @@ func RegisterWebhooksStore(i do.Injector) {
 			do.MustInvoke[context.Context](i),
 			config(i),
 			do.MustInvoke[database.Client](i),
-			do.MustInvoke[logging.Logger](i),
-			do.MustInvoke[tracing.Provider](i),
-			do.MustInvoke[audit.Repository](i),
-			do.MustInvoke[*events.Emitter](i),
+			do.MustInvoke[*platformrecording.Recorder](i),
 		)
 	})
 

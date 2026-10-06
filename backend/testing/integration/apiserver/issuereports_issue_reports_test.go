@@ -6,6 +6,7 @@ import (
 	issuereportfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports/fakes"
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
 
+	platformissuereports "github.com/primandproper/platform-go/v15/issuereports"
 	issuereportspb "github.com/primandproper/platform-go/v15/issuereports/issuereportspb"
 
 	"github.com/stretchr/testify/assert"
@@ -74,7 +75,7 @@ func TestIssueReports_Creating(T *testing.T) {
 		created := createIssueReportForTest(t, testClient)
 
 		AssertAuditLogContainsFuzzy(t, ctx, testClient, getAccountIDForTest(t, testClient), 10, []*ExpectedAuditEntry{
-			{EventType: "created", ResourceType: "issue_reports", RelevantID: created.GetId()},
+			{EventType: "created", ResourceType: platformissuereports.ResourceTypeReport, RelevantID: created.GetId()},
 		})
 	})
 }
@@ -101,8 +102,8 @@ func TestIssueReports_Updating(T *testing.T) {
 		require.NoError(t, err)
 
 		AssertAuditLogContainsFuzzy(t, ctx, testClient, getAccountIDForTest(t, testClient), 15, []*ExpectedAuditEntry{
-			{EventType: "created", ResourceType: "issue_reports", RelevantID: created.GetId()},
-			{EventType: "updated", ResourceType: "issue_reports", RelevantID: created.GetId()},
+			{EventType: "created", ResourceType: platformissuereports.ResourceTypeReport, RelevantID: created.GetId()},
+			{EventType: "updated", ResourceType: platformissuereports.ResourceTypeReport, RelevantID: created.GetId()},
 		})
 	})
 }
@@ -121,8 +122,8 @@ func TestIssueReports_Archiving(T *testing.T) {
 		require.NoError(t, err)
 
 		AssertAuditLogContainsFuzzy(t, ctx, testClient, getAccountIDForTest(t, testClient), 15, []*ExpectedAuditEntry{
-			{EventType: "created", ResourceType: "issue_reports", RelevantID: created.GetId()},
-			{EventType: "archived", ResourceType: "issue_reports", RelevantID: created.GetId()},
+			{EventType: "created", ResourceType: platformissuereports.ResourceTypeReport, RelevantID: created.GetId()},
+			{EventType: "archived", ResourceType: platformissuereports.ResourceTypeReport, RelevantID: created.GetId()},
 		})
 	})
 }

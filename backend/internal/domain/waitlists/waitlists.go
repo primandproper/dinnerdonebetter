@@ -28,45 +28,6 @@ import (
 	platformwaitlists "github.com/primandproper/platform-go/v15/waitlists"
 )
 
-// The data change events a waitlist write emits. They are declared in the
-// webhook event catalog (internal/domain/webhooks/catalog), so a subscriber is
-// already able to ask for them.
-const (
-	// WaitlistCreatedServiceEventType indicates a waitlist was opened.
-	WaitlistCreatedServiceEventType = "waitlist_created"
-	// WaitlistUpdatedServiceEventType indicates a waitlist's name, description
-	// or closing time changed.
-	WaitlistUpdatedServiceEventType = "waitlist_updated"
-	// WaitlistArchivedServiceEventType indicates a waitlist was retired.
-	WaitlistArchivedServiceEventType = "waitlist_archived"
-
-	// WaitlistSignupCreatedServiceEventType indicates somebody joined a waitlist.
-	WaitlistSignupCreatedServiceEventType = "waitlist_signup_created"
-	// WaitlistSignupUpdatedServiceEventType indicates the operator's note against
-	// a signup was rewritten. It moves nobody through the queue.
-	WaitlistSignupUpdatedServiceEventType = "waitlist_signup_updated"
-	// WaitlistSignupTransitionedServiceEventType indicates a signup moved through
-	// the lifecycle — invited, or converted.
-	//
-	// It is distinct from the update event because the two answer different
-	// questions and only one of them is a queue. A subscriber that sends the
-	// invitation email cannot key off an event that also fires when somebody
-	// fixed a typo in a note.
-	WaitlistSignupTransitionedServiceEventType = "waitlist_signup_transitioned"
-	// WaitlistSignupWithdrawnServiceEventType indicates somebody asked to come
-	// off a list.
-	//
-	// It is its own event rather than a transition, because a withdrawal is the
-	// one move a subscriber must not treat as ordinary queue movement: it is a
-	// standing instruction to stop writing to that address, and a consumer that
-	// learned about it from a generic "transitioned" event would have to know to
-	// inspect the status before acting.
-	WaitlistSignupWithdrawnServiceEventType = "waitlist_signup_withdrawn"
-	// WaitlistSignupArchivedServiceEventType indicates a signup was retired
-	// administratively. It is not a withdrawal — see the platform package.
-	WaitlistSignupArchivedServiceEventType = "waitlist_signup_archived"
-)
-
 // SubjectFor is the principal a signup made by a signed-in user belongs to.
 //
 // A signup made by a signed-in caller names one, and it is the subject that makes

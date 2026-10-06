@@ -61,7 +61,7 @@ func TestUserDeviceTokens_Archive(T *testing.T) {
 		require.NoError(t, err)
 
 		AssertAuditLogContainsFuzzyForUser(t, ctx, testClient, user.ID, 15, []*ExpectedAuditEntry{
-			{EventType: "archived", ResourceType: "user_device_tokens", RelevantID: created.ID},
+			{EventType: "deleted", ResourceType: platformnotifications.ResourceTypeDevice, RelevantID: created.ID},
 		})
 	})
 }

@@ -46,31 +46,3 @@ The product kinds and the transaction statuses went the same way, to
 billing.Kind and billing.TransactionStatus.
 */
 package payments
-
-// The data change events a billing write emits. They are declared in the
-// webhook event catalog (internal/domain/webhooks/catalog), so a subscriber is
-// already able to ask for them.
-//
-// Purchases and ledger rows emit nothing, as they did before the store was
-// adopted: a purchase is written by a checkout flow this application does not
-// yet have, and a ledger row is what a provider already told us. Both are
-// recorded in the audit log.
-const (
-	// ProductCreatedServiceEventType indicates a product was added to the catalog.
-	ProductCreatedServiceEventType = "product_created"
-	// ProductUpdatedServiceEventType indicates a product's name, price, kind,
-	// interval or provider-side id changed.
-	ProductUpdatedServiceEventType = "product_updated"
-	// ProductArchivedServiceEventType indicates a product was withdrawn from sale.
-	ProductArchivedServiceEventType = "product_archived"
-
-	// SubscriptionCreatedServiceEventType indicates an agreement was opened.
-	SubscriptionCreatedServiceEventType = "subscription_created"
-	// SubscriptionUpdatedServiceEventType indicates a subscription's plan,
-	// status or paid period moved — whether by an administrative edit or by a
-	// provider's event.
-	SubscriptionUpdatedServiceEventType = "subscription_updated"
-	// SubscriptionArchivedServiceEventType indicates a subscription was retired
-	// administratively, which is not a cancellation.
-	SubscriptionArchivedServiceEventType = "subscription_archived"
-)

@@ -12,6 +12,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/localdev"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
 
@@ -141,7 +142,12 @@ func runImport(dbHost string, dbPort uint16, dbUser, dbPassword, dbName string, 
 	if err != nil {
 		return err
 	}
-	repo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditRepo, identityStore, client, nil, uploadsRegistry)
+	spine, err := localdev.Spine(ctx, client, auditRepo, logger, tracerProvider)
+	if err != nil {
+		return fmt.Errorf("building the recording spine: %w", err)
+	}
+
+	repo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditRepo, identityStore, client, spine, uploadsRegistry)
 
 	log.Println("Importing base enumerations...")
 	if err = importBaseEnumerations(ctx, repo, &export.Enumerations); err != nil {

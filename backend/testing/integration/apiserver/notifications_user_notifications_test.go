@@ -74,8 +74,12 @@ func TestUserNotifications_Creating(T *testing.T) {
 		// of an inbox being opened. read_at is the record, and it is on the row. See
 		// notificationsstore/writes.go, which names this and the three other writes it
 		// leaves unrecorded.
-		AssertAuditLogContainsFuzzyForUser(t, ctx, testClient, user.ID, 15, []*ExpectedAuditEntry{
-			{EventType: "created", ResourceType: "user_notifications", RelevantID: created.ID},
+		//
+		// Read by resource rather than by actor: the suite's seeder wrote this notification
+		// with no session, so the entry names no actor — the recipient is its subject, not
+		// whoever put it there.
+		AssertAuditLogContainsFuzzyForResource(t, ctx, platformnotifications.ResourceTypeNotification, created.ID, 15, []*ExpectedAuditEntry{
+			{EventType: "created", ResourceType: platformnotifications.ResourceTypeNotification, RelevantID: created.ID},
 		})
 	})
 }
@@ -116,7 +120,7 @@ func TestUserNotifications_Archiving(T *testing.T) {
 		require.NoError(t, err)
 
 		AssertAuditLogContainsFuzzyForUser(t, ctx, testClient, user.ID, 15, []*ExpectedAuditEntry{
-			{EventType: "archived", ResourceType: "user_notifications", RelevantID: created.ID},
+			{EventType: "archived", ResourceType: platformnotifications.ResourceTypeNotification, RelevantID: created.ID},
 		})
 	})
 }

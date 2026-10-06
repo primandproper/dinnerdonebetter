@@ -4,7 +4,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/fakes"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
@@ -25,7 +24,7 @@ import (
 
 func TestRepository_Integration_Products(t *testing.T) {
 	ctx := t.Context()
-	dbc, _, db := buildDatabaseClientForTest(t)
+	dbc, db := buildDatabaseClientForTest(t)
 	scope := tenancy.Global()
 
 	example := fakes.BuildFakeProduct()
@@ -38,10 +37,10 @@ func TestRepository_Integration_Products(t *testing.T) {
 	assert.False(t, created.CreatedAt.IsZero())
 	assert.Equal(t, example.Name, created.Name)
 
-	// A product belongs to nobody, so its entries are recorded under the
-	// unattributed actor — the same shape the table this replaced recorded under.
-	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, audit.UnattributedActorID, []pgtesting.ExpectedAuditEntry{
-		{EventType: platformaudit.EventCreated, ResourceType: resourceTypeProducts, ResourceID: created.ID},
+	// A product belongs to nobody and these writes carry no session, so the entries are
+	// recorded under the named absence of an actor.
+	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, platformaudit.ActorUnattributed, []pgtesting.ExpectedAuditEntry{
+		{EventType: platformaudit.EventCreated, ResourceType: billing.ResourceTypeProduct, ResourceID: created.ID},
 	})
 
 	fetched, err := dbc.GetProduct(ctx, db.Reader(), scope, created.ID)
@@ -81,10 +80,10 @@ func TestRepository_Integration_Products(t *testing.T) {
 	require.ErrorIs(t, err, billing.ErrProductNotFound)
 	assert.Nil(t, afterArchive)
 
-	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, audit.UnattributedActorID, []pgtesting.ExpectedAuditEntry{
-		{EventType: platformaudit.EventCreated, ResourceType: resourceTypeProducts, ResourceID: created.ID},
-		{EventType: platformaudit.EventUpdated, ResourceType: resourceTypeProducts, ResourceID: created.ID},
-		{EventType: platformaudit.EventArchived, ResourceType: resourceTypeProducts, ResourceID: created.ID},
+	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, platformaudit.ActorUnattributed, []pgtesting.ExpectedAuditEntry{
+		{EventType: platformaudit.EventCreated, ResourceType: billing.ResourceTypeProduct, ResourceID: created.ID},
+		{EventType: platformaudit.EventUpdated, ResourceType: billing.ResourceTypeProduct, ResourceID: created.ID},
+		{EventType: platformaudit.EventArchived, ResourceType: billing.ResourceTypeProduct, ResourceID: created.ID},
 	})
 
 	// Archiving a row that is not there is refused before anything is recorded
@@ -97,7 +96,7 @@ func TestRepository_Integration_Products(t *testing.T) {
 
 func TestRepository_Integration_Subscriptions(t *testing.T) {
 	ctx := t.Context()
-	dbc, _, db := buildDatabaseClientForTest(t)
+	dbc, db := buildDatabaseClientForTest(t)
 	scope := tenancy.Global()
 
 	accountID := accountForTest(t, db)
@@ -113,9 +112,10 @@ func TestRepository_Integration_Subscriptions(t *testing.T) {
 	assert.Equal(t, accountID, created.BelongsToAccount)
 	assert.Equal(t, capitalism.SubscriptionStatusActive, created.Status)
 
-	// A subscription is an account's, and is recorded under it.
+	// A subscription is an account's, and is filed under it: the account is the entry's
+	// subject, and the spine files by subject.
 	pgtesting.AssertAuditLogContains(t, ctx, db, accountID, []pgtesting.ExpectedAuditEntry{
-		{EventType: platformaudit.EventCreated, ResourceType: resourceTypeSubscriptions, ResourceID: created.ID},
+		{EventType: platformaudit.EventCreated, ResourceType: billing.ResourceTypeSubscription, ResourceID: created.ID},
 	})
 
 	byExternal, err := dbc.GetSubscriptionByExternalID(ctx, db.Reader(), scope, created.ExternalSubscriptionID)
@@ -166,16 +166,16 @@ func TestRepository_Integration_Subscriptions(t *testing.T) {
 	// One entry per write that changed something: the create, the status move,
 	// the update, and the archive. The refused replay left none.
 	pgtesting.AssertAuditLogContains(t, ctx, db, accountID, []pgtesting.ExpectedAuditEntry{
-		{EventType: platformaudit.EventCreated, ResourceType: resourceTypeSubscriptions, ResourceID: created.ID},
-		{EventType: platformaudit.EventUpdated, ResourceType: resourceTypeSubscriptions, ResourceID: created.ID},
-		{EventType: platformaudit.EventUpdated, ResourceType: resourceTypeSubscriptions, ResourceID: created.ID},
-		{EventType: platformaudit.EventArchived, ResourceType: resourceTypeSubscriptions, ResourceID: created.ID},
+		{EventType: platformaudit.EventCreated, ResourceType: billing.ResourceTypeSubscription, ResourceID: created.ID},
+		{EventType: platformaudit.EventUpdated, ResourceType: billing.ResourceTypeSubscription, ResourceID: created.ID},
+		{EventType: platformaudit.EventUpdated, ResourceType: billing.ResourceTypeSubscription, ResourceID: created.ID},
+		{EventType: platformaudit.EventArchived, ResourceType: billing.ResourceTypeSubscription, ResourceID: created.ID},
 	})
 }
 
 func TestRepository_Integration_Purchases(t *testing.T) {
 	ctx := t.Context()
-	dbc, _, db := buildDatabaseClientForTest(t)
+	dbc, db := buildDatabaseClientForTest(t)
 	scope := tenancy.Global()
 
 	accountID := accountForTest(t, db)
@@ -219,15 +219,15 @@ func TestRepository_Integration_Purchases(t *testing.T) {
 	require.NoError(t, err)
 
 	pgtesting.AssertAuditLogContains(t, ctx, db, accountID, []pgtesting.ExpectedAuditEntry{
-		{EventType: platformaudit.EventCreated, ResourceType: resourceTypePurchases, ResourceID: created.ID},
-		{EventType: platformaudit.EventUpdated, ResourceType: resourceTypePurchases, ResourceID: created.ID},
-		{EventType: platformaudit.EventArchived, ResourceType: resourceTypePurchases, ResourceID: created.ID},
+		{EventType: platformaudit.EventCreated, ResourceType: billing.ResourceTypePurchase, ResourceID: created.ID},
+		{EventType: platformaudit.EventUpdated, ResourceType: billing.ResourceTypePurchase, ResourceID: created.ID},
+		{EventType: platformaudit.EventArchived, ResourceType: billing.ResourceTypePurchase, ResourceID: created.ID},
 	})
 }
 
 func TestRepository_Integration_Transactions(t *testing.T) {
 	ctx := t.Context()
-	dbc, _, db := buildDatabaseClientForTest(t)
+	dbc, db := buildDatabaseClientForTest(t)
 	scope := tenancy.Global()
 
 	accountID := accountForTest(t, db)
@@ -271,9 +271,9 @@ func TestRepository_Integration_Transactions(t *testing.T) {
 	require.NoError(t, err)
 
 	pgtesting.AssertAuditLogContains(t, ctx, db, accountID, []pgtesting.ExpectedAuditEntry{
-		{EventType: platformaudit.EventCreated, ResourceType: resourceTypeSubscriptions, ResourceID: subscription.ID},
-		{EventType: platformaudit.EventCreated, ResourceType: resourceTypePaymentTransactions, ResourceID: recorded.ID},
-		{EventType: platformaudit.EventUpdated, ResourceType: resourceTypePaymentTransactions, ResourceID: recorded.ID},
-		{EventType: platformaudit.EventArchived, ResourceType: resourceTypePaymentTransactions, ResourceID: recorded.ID},
+		{EventType: platformaudit.EventCreated, ResourceType: billing.ResourceTypeSubscription, ResourceID: subscription.ID},
+		{EventType: platformaudit.EventCreated, ResourceType: billing.ResourceTypeTransaction, ResourceID: recorded.ID},
+		{EventType: platformaudit.EventUpdated, ResourceType: billing.ResourceTypeTransaction, ResourceID: recorded.ID},
+		{EventType: platformaudit.EventArchived, ResourceType: billing.ResourceTypeTransaction, ResourceID: recorded.ID},
 	})
 }

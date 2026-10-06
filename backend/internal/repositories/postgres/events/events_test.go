@@ -264,6 +264,23 @@ func TestEmitter_Record(T *testing.T) {
 		assert.True(t, h.chains[0].IsGlobal())
 	})
 
+	T.Run("records an entry and announces nothing when the write names no event", func(t *testing.T) {
+		t.Parallel()
+
+		// An account's membership row on registration: the log is owed the entry, and the
+		// registration event already announces the whole write.
+		h := buildHarness(t)
+		accountID := fake.BuildFakeID()
+		entry := audit.NewEntry("", accountID, "account_user_memberships", fake.BuildFakeID(), platformaudit.EventCreated)
+
+		err := h.emitter.Record(t.Context(), txForTest(), loggingnoop.NewLogger(), entry, "", accountID, nil)
+		require.NoError(t, err)
+
+		require.Len(t, h.recorded, 1)
+		assert.Empty(t, h.enqueued)
+		assert.Empty(t, h.dispatched)
+	})
+
 	T.Run("with a nil entry", func(t *testing.T) {
 		t.Parallel()
 
