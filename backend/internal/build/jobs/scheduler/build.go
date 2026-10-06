@@ -205,7 +205,7 @@ func BuildInjector(
 // job finds every task still owed a reminder from the database on each pass, so a refused one is
 // picked up by the next — but it is the wrong order, and the right one is a final-flush slot,
 // after the loops and before the database, which service gives its own operations queue and
-// does not offer an application. See platform-go#TBD-application-flush.
+// does not offer an application. See platform-go#1148.
 type NotificationQueue struct {
 	queue *mealplantasknotifications.TaskQueue
 	stop  chan struct{}

@@ -98,7 +98,7 @@ would build the wrong thing. Each of these is named where its field lives:
 
 | block | process | why it is not in `Service` |
 | --- | --- | --- |
-| `Outbox` | scheduler, API | Every outbox row this application writes goes through a writer carrying the search index side effect, and `outbox/config` builds its writer from configuration alone. The relay's settings are `SchedulerConfig.OutboxRelay` (`OUTBOX_RELAY_`). Without `Outbox` the recording spine is assembled by hand too, since `service.Register` builds it only beside `Audit`, `Webhooks` and `Outbox`. |
+| `Outbox` | scheduler, API | Every outbox row this application writes goes through a writer carrying the search index side effect, and `outbox/config` builds its writer from configuration alone. The relay's settings are `SchedulerConfig.OutboxRelay` (`OUTBOX_RELAY_`). Without `Outbox` the recording spine is assembled by hand too, since `service.Register` builds it only beside `Audit`, `Webhooks` and `Outbox`. Upstream: [platform-go#1147](https://github.com/primandproper/platform-go/issues/1147). |
 | `Audit` | scheduler, API | This application's recorder is platform's with the impersonating administrator attached to each entry. Retention reads `SchedulerConfig.AuditLog` (`AUDIT_LOG_`). |
 | `MobileNotifications` | scheduler, async messages | `service.Config` validates every block it holds, and a rendered file has no APNs credentials — they arrive from the environment at startup. `PushNotifications` stays a field of its own. |
 | `Routing` | API | The API server builds its router itself, with its routes on it; a `Routing` block would register a second, empty one. |

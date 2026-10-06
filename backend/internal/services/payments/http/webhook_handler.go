@@ -24,10 +24,10 @@ var ErrUnknownPaymentProvider = platformerrors.New("unknown payment provider")
 // for anything a redelivery could fix, one endpoint per provider — and reconciles through
 // billing/sync. Two gaps keep it out of reach, and both are upstream:
 //
-//   - primitives-go#TBD-subscription-product: capitalism.SubscriptionState carries no price or
+//   - primitives-go#63: capitalism.SubscriptionState carries no price or
 //     product identifier, so billing/sync's Place has nothing to answer Placement.ProductID with,
 //     and every delivery that opens a subscription would be refused with ErrNoPlacement.
-//   - platform-go#TBD-account-by-customer-id: identity has no read of an account by its payment
+//   - platform-go#1146: identity has no read of an account by its payment
 //     processor customer ID, so a Stripe Place cannot find the account a delivery is for.
 //
 // Until then this is the local handler, holding the line on the two defects billing/http's own

@@ -1,4 +1,20 @@
 {
+	"queues": {
+		"dataChangesTopicName": "data_changes",
+		"outboundEmailsTopicName": "outbound_emails",
+		"searchIndexRequestsTopicName": "search_index_requests",
+		"mobileNotificationsTopicName": "mobile_notifications"
+	},
+	"pushNotifications": {
+		"apns": {
+			"authKeyPath": "/mnt/apns/apns-auth-key.p8",
+			"teamID": "K8R2Q5UWQS",
+			"bundleID": "com.dinnerdonebetter.ios",
+			"production": true
+		},
+		"fcm": {},
+		"provider": "apns_fcm"
+	},
 	"service": {
 		"capitalism": {
 			"provider": "noop"
@@ -285,12 +301,6 @@
 		},
 		"shutdownTimeout": 60000000000
 	},
-	"queues": {
-		"dataChangesTopicName": "data_changes",
-		"outboundEmailsTopicName": "outbound_emails",
-		"searchIndexRequestsTopicName": "search_index_requests",
-		"mobileNotificationsTopicName": "mobile_notifications"
-	},
 	"search": {
 		"algolia": {
 			"appID": "placeholder",
@@ -302,34 +312,6 @@
 			"circuitBreakerErrorPercentage": 0.5,
 			"circuitBreakerMinimumOccurrenceThreshold": 100
 		}
-	},
-	"pushNotifications": {
-		"apns": {
-			"authKeyPath": "/mnt/apns/apns-auth-key.p8",
-			"teamID": "K8R2Q5UWQS",
-			"bundleID": "com.dinnerdonebetter.ios",
-			"production": true
-		},
-		"fcm": {},
-		"provider": "apns_fcm"
-	},
-	"outboxRelay": {
-		"claimMode": "skip_locked",
-		"backoff": {
-			"maxAttempts": 8,
-			"initialDelay": 1000000000,
-			"maxDelay": 60000000000,
-			"multiplier": 2,
-			"useJitter": true
-		},
-		"batchSize": 100,
-		"pollInterval": 1000000000,
-		"leaseDuration": 30000000000,
-		"retention": 604800000000000,
-		"quarantineRetention": 2592000000000000,
-		"reapInterval": 3600000000000,
-		"reapBatchSize": 1000,
-		"minWakeInterval": 100000000
 	},
 	"auditLog": {
 		"dialect": "postgres",
@@ -385,5 +367,23 @@
 				"maxClaimBatch": 100
 			}
 		}
+	},
+	"outboxRelay": {
+		"claimMode": "skip_locked",
+		"backoff": {
+			"maxAttempts": 8,
+			"initialDelay": 1000000000,
+			"maxDelay": 60000000000,
+			"multiplier": 2,
+			"useJitter": true
+		},
+		"batchSize": 100,
+		"pollInterval": 1000000000,
+		"leaseDuration": 30000000000,
+		"retention": 604800000000000,
+		"quarantineRetention": 2592000000000000,
+		"reapInterval": 3600000000000,
+		"reapBatchSize": 1000,
+		"minWakeInterval": 100000000
 	}
 }

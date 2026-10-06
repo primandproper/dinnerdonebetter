@@ -92,7 +92,7 @@ type (
 		// So the outbox — and with it the recording spine, which service.Register builds
 		// only when Audit, Webhooks and Outbox are all present — stays wired by hand. The
 		// prefix is OUTBOX_RELAY_ rather than OUTBOX_ so that nothing set for this block can
-		// switch Service.Outbox on.
+		// switch Service.Outbox on. See platform-go#1147.
 		OutboxRelay outbox.RelayConfig `envPrefix:"OUTBOX_RELAY_" json:"outboxRelay,omitzero"`
 	}
 
