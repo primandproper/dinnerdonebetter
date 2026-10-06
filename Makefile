@@ -35,9 +35,9 @@ PROTO_GO_FILTERING_MAP    := M$(PLATFORM_FILTERING_PROTO)=github.com/primandprop
 # type. No proto here imports it since AuthService was retired, but the
 # TypeScript api-client is still generated from it, so its messages come from the
 # module that defines them rather than from a copy that could disagree with the server.
-PLATFORM_IDENTITY_PROTO_PATH := $(shell cd backend && go list -m -f '{{.Dir}}' github.com/primandproper/platform-go/v14)/identity/proto
+PLATFORM_IDENTITY_PROTO_PATH := $(shell cd backend && go list -m -f '{{.Dir}}' github.com/primandproper/platform-go/v15)/identity/proto
 PLATFORM_IDENTITY_PROTO      := primandproper/platform/identity/v1/identity.proto
-PROTO_GO_IDENTITY_MAP        := M$(PLATFORM_IDENTITY_PROTO)=github.com/primandproper/platform-go/v14/identity/identitypb
+PROTO_GO_IDENTITY_MAP        := M$(PLATFORM_IDENTITY_PROTO)=github.com/primandproper/platform-go/v15/identity/identitypb
 PROTO_GO_OUTPUT_PATH      := backend
 PROTO_OUTPUT_BACKEND_PATH := backend/internal/grpc
 PROTO_OUTPUT_IOS_PATH     := ios/ios/Generated
