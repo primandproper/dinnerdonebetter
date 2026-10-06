@@ -47,9 +47,10 @@ Accounts represent organizations or groups that users can belong to. Most data i
 
 An account does **not** carry its members. The roster is a separate, paged read
 (`ListAccountMembers`), which is why a caller that wants every member walks the cursor to the end
-— see `MembersOfAccount` in [`internal/domain/identity/roster.go`](../backend/internal/domain/identity/roster.go),
-which exists so that no caller decides a meal plan's voting is complete on the strength of the
-first fifty.
+with platform's `identity.ListAllAccountMembers`, so that no caller decides a meal plan's voting is
+complete on the strength of the first page. `MembersOfAccount` in
+[`internal/domain/identity/roster.go`](../backend/internal/domain/identity/roster.go) is that walk
+projected to user ids, which is what every caller here wants.
 
 **Domain Definition**: platform-go's `identity.Account`.
 
