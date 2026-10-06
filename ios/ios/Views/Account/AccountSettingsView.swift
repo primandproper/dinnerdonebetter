@@ -165,6 +165,18 @@ struct AccountSettingsView: View {
         })
 
       DSListRowLink(
+        title: "Password",
+        subtitle: "Change your password",
+        icon: "key",
+        style: .card,
+        destination: ChangePasswordView()
+      )
+      .simultaneousGesture(
+        TapGesture().onEnded {
+          eventReporterService.reporter.track(event: "change_password_tapped", properties: [:])
+        })
+
+      DSListRowLink(
         title: "Active Sessions",
         subtitle: "Manage your signed-in devices",
         icon: "laptopcomputer.and.iphone",

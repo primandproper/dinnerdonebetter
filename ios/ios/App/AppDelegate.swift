@@ -16,6 +16,19 @@ import UserNotifications
 class AppDelegate: NSObject, UIApplicationDelegate {
   private let logger = PlatformServices.shared.logger("AppDelegate")
 
+  /// Where an APNs token goes: the AuthenticationManager, whose ClientManager's `Devices`
+  /// registers it and persists the registration. The app sets it on first appearance; a token
+  /// that arrives before then waits in `pendingDeviceToken`.
+  weak var authManager: AuthenticationManager? {
+    didSet {
+      if let authManager, let token = pendingDeviceToken {
+        pendingDeviceToken = nil
+        authManager.registerDeviceToken(token)
+      }
+    }
+  }
+  private var pendingDeviceToken: Data?
+
   override init() {
     super.init()
     if RevenueCatConfiguration.isConfigured {
@@ -35,7 +48,11 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     _ application: UIApplication,
     didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
   ) {
-    DeviceTokenRegistrationService.shared.reportDeviceToken(deviceToken)
+    if let authManager {
+      authManager.registerDeviceToken(deviceToken)
+    } else {
+      pendingDeviceToken = deviceToken
+    }
   }
 
   func application(

@@ -1,9 +1,10 @@
 import { redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { QueryFilter } from '@dinnerdonebetter/api-client';
+import { holds, Permission } from '$lib/auth/permissions';
 import {
   getActiveAccount,
-  getSelf,
+  getPrincipal,
   listAccountMembers,
   listInvitationsFromUser,
   invite,
@@ -17,7 +18,8 @@ const ACCOUNT_MEMBER_ROLE = 'account_member';
 export const load: PageServerLoad = async ({ locals, url, request }) => {
   const session = locals.session;
   try {
-    const account = (await getActiveAccount(session)) ?? null;
+    const principal = await getPrincipal(session);
+    const account = principal.activeAccount ?? null;
 
     if (!account) {
       return {
@@ -25,15 +27,15 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
         members: [],
         invitations: [],
         currentUserId: '',
-        isAdmin: false,
+        canManageMembers: false,
+        canInvite: false,
         baseUrl: buildBaseUrl(request),
         error: null,
         invited: false,
       };
     }
 
-    const self = await getSelf(session);
-    const currentUserId = self?.id ?? '';
+    const currentUserId = principal.principal?.user?.id ?? '';
 
     // The roster is a read of its own now. platform's Account carries no member list —
     // an account with thirty members would otherwise be thirty users on every read of it
@@ -45,13 +47,10 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
     });
     const members = membersRes.results ?? [];
 
-    let isAdmin = false;
-    for (const m of members) {
-      if (m.user?.id === currentUserId && (m.membership?.roles ?? []).includes(ACCOUNT_ADMIN_ROLE)) {
-        isAdmin = true;
-        break;
-      }
-    }
+    // The caller's own controls follow what they may do here. Which role each member
+    // holds is still read off the roster, since that labels other people.
+    const canManageMembers = holds(principal, Permission.manageMembers);
+    const canInvite = holds(principal, Permission.inviteMembers);
 
     const invRes = await listInvitationsFromUser(session, {
       filter: QueryFilter.create({ maxResponseSize: 50 }),
@@ -67,7 +66,8 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
       members,
       invitations,
       currentUserId,
-      isAdmin,
+      canManageMembers,
+      canInvite,
       baseUrl,
       error,
       invited,
@@ -78,7 +78,8 @@ export const load: PageServerLoad = async ({ locals, url, request }) => {
       members: [],
       invitations: [],
       currentUserId: '',
-      isAdmin: false,
+      canManageMembers: false,
+      canInvite: false,
       baseUrl: buildBaseUrl(request),
       error: 'server',
       invited: false,

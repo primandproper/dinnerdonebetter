@@ -1,9 +1,8 @@
+import { textFromTypedValue } from '@primandproper/platform-client';
 import {
   type ResolvedSetting,
   type SettingDefinition,
-  SettingKind,
   type SettingSubject,
-  type TypedValue,
   ValueSource,
 } from '@primandproper/platform-client/settings/v1';
 
@@ -22,35 +21,6 @@ export function settingsSubject(userId: string): SettingSubject {
   return { type: 'user', id: userId };
 }
 
-/** The text a picker compares against its options, whichever kind the value was. */
-export function rawOf(value: TypedValue | undefined): string {
-  if (value?.stringValue !== undefined) return value.stringValue;
-  if (value?.boolValue !== undefined) return String(value.boolValue);
-  if (value?.intValue !== undefined) return String(value.intValue);
-  if (value?.floatValue !== undefined) return String(value.floatValue);
-  return '';
-}
-
-/**
- * The typed value a write carries, from the text a form submitted. The server
- * checks the case against the setting's kind and refuses a mismatch, so a text
- * setting has to be written as text even when its answer looks like a number.
- */
-export function typedValue(kind: SettingKind, raw: string): TypedValue | null {
-  switch (kind) {
-    case SettingKind.SETTING_KIND_STRING:
-      return { stringValue: raw };
-    case SettingKind.SETTING_KIND_BOOLEAN:
-      return raw === 'true' || raw === 'false' ? { boolValue: raw === 'true' } : null;
-    case SettingKind.SETTING_KIND_INTEGER:
-      return /^-?\d+$/.test(raw) ? { intValue: Number(raw) } : null;
-    case SettingKind.SETTING_KIND_FLOAT:
-      return raw !== '' && Number.isFinite(Number(raw)) ? { floatValue: Number(raw) } : null;
-    default:
-      return null;
-  }
-}
-
 /**
  * Pair one resolved setting with the value its picker should start on, or drop
  * it if this page cannot render it.
@@ -60,7 +30,8 @@ export function typedValue(kind: SettingKind, raw: string): TypedValue | null {
  * stands in — which is what the picker would fall back to anyway. Every other
  * source already carries its answer in the typed value, whether the person chose
  * it ("subject") or the definition's default did ("default"); the distinction is
- * the server's to make and this no longer reimplements it.
+ * the server's to make and this no longer reimplements it. The value reads as the
+ * server stores it, which is the form the enumeration is compared in.
  */
 export function configurableSetting(resolution: ResolvedSetting): ConfigurableSetting | null {
   const setting = resolution.definition;
@@ -73,7 +44,7 @@ export function configurableSetting(resolution: ResolvedSetting): ConfigurableSe
   const currentValue =
     resolution.source === ValueSource.VALUE_SOURCE_UNSET
       ? (setting.enumeration[0] ?? '')
-      : rawOf(resolution.typedValue);
+      : (textFromTypedValue(resolution.typedValue) ?? '');
 
   return { setting, currentValue };
 }

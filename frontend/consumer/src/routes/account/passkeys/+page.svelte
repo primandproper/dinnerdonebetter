@@ -2,6 +2,7 @@
   import { enhance } from '$app/forms';
   import { PageContainer, Button, Alert, Link } from '@dinnerdonebetter/ui';
   import type { Passkey } from '@primandproper/platform-client/passkeys/v1';
+  import { parseRegistrationOptions, serializeRegistration } from '@primandproper/platform-client/webauthn';
 
   let { data } = $props();
   const passkeys = $derived((data?.passkeys ?? []) as Passkey[]);
@@ -56,19 +57,6 @@
     if (!btn || !window.PublicKeyCredential) return;
     btn.setAttribute('disabled', 'true');
 
-    function b64enc(buf: ArrayBuffer): string {
-      const b = new Uint8Array(buf);
-      let s = '';
-      for (let i = 0; i < b.length; i++) s += String.fromCharCode(b[i]);
-      return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-    }
-    function b64dec(s: string): ArrayBuffer {
-      const padded = s.replace(/-/g, '+').replace(/_/g, '/');
-      const padded2 = padded + '==='.slice((padded.length + 3) % 4);
-      const binary = atob(padded2);
-      return Uint8Array.from(binary, (c) => c.charCodeAt(0)).buffer;
-    }
-
     try {
       const optsRes = await fetch('/auth/passkey/registration/options', {
         method: 'POST',
@@ -77,35 +65,17 @@
         credentials: 'include',
       });
       if (!optsRes.ok) throw new Error('Failed to get options');
-      const opts = await optsRes.json();
+      const publicKey = parseRegistrationOptions(new Uint8Array(await optsRes.arrayBuffer()));
 
-      const obj = JSON.parse(atob(opts.options));
-      const pk = obj.publicKey || obj;
-      if (typeof pk.challenge === 'string') pk.challenge = b64dec(pk.challenge);
-      if (pk.user && typeof pk.user.id === 'string') pk.user.id = b64dec(pk.user.id);
-      for (const c of pk.excludeCredentials ?? []) {
-        if (typeof c.id === 'string') c.id = b64dec(c.id);
-      }
-      const cred = await navigator.credentials.create({ publicKey: pk });
+      const cred = await navigator.credentials.create({ publicKey });
       if (!cred) throw new Error('No credential');
-
-      const pkCred = cred as PublicKeyCredential;
-      const r = pkCred.response as AuthenticatorAttestationResponse;
-      const attestation = {
-        id: pkCred.id,
-        rawId: b64enc(pkCred.rawId),
-        type: pkCred.type,
-        response: {
-          clientDataJSON: b64enc(r.clientDataJSON),
-          attestationObject: b64enc(r.attestationObject),
-        },
-      };
+      const attestationResponse = new TextDecoder().decode(serializeRegistration(cred as PublicKeyCredential));
 
       const verifyRes = await fetch('/auth/passkey/registration/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          attestationResponse: attestation,
+          attestationResponse,
           friendlyName: friendlyName(),
         }),
         credentials: 'include',
