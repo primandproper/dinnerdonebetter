@@ -30,7 +30,13 @@ struct ContentView: View {
 
   var body: some View {
     Group {
-      if authManager.isAuthenticated {
+      if authManager.isAuthenticated && authManager.passwordChangeRequired {
+        // The server refuses every other call until the password is changed, so the form
+        // stands in for the whole app.
+        NavigationStack {
+          ChangePasswordView(isRequired: true)
+        }
+      } else if authManager.isAuthenticated {
         if RevenueCatConfiguration.isConfigured, let offering = launchOffering {
           HomeView()
             .presentPaywallIfNeeded(

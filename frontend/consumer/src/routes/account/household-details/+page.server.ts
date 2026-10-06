@@ -1,58 +1,40 @@
 import { redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import { QueryFilter } from '@dinnerdonebetter/api-client';
-import { getActiveAccount, getSelf, listAccountMembers, updateAccount } from '$lib/grpc/clients';
-
-const ACCOUNT_ADMIN_ROLE = 'account_admin';
+import { holds, Permission } from '$lib/auth/permissions';
+import { getActiveAccount, getPrincipal, updateAccount } from '$lib/grpc/clients';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
   const session = locals.session;
   try {
-    const account = (await getActiveAccount(session)) ?? null;
+    // One read answers both: the active account, and what the caller may do in it.
+    const principal = await getPrincipal(session);
+    const account = principal.activeAccount ?? null;
 
     if (!account) {
       return {
         account: null,
-        isAdmin: false,
+        canEdit: false,
         error: null,
         updated: false,
       };
     }
 
-    const self = await getSelf(session);
-    const currentUserId = self?.id ?? '';
-
-    // Who is an admin is a read of its own: platform's Account carries no member list,
-    // and a membership holds a set of roles rather than one. Same shape as the roster on
-    // /account/household-members.
-    const membersRes = await listAccountMembers(session, {
-      accountId: account.id,
-      filter: QueryFilter.create({ maxResponseSize: 50 }),
-    });
-
-    let isAdmin = false;
-    for (const m of membersRes.results ?? []) {
-      if (m.user?.id === currentUserId && (m.membership?.roles ?? []).includes(ACCOUNT_ADMIN_ROLE)) {
-        isAdmin = true;
-        break;
-      }
-    }
-
-    if (!isAdmin) {
+    const canEdit = holds(principal, Permission.updateAccount);
+    if (!canEdit) {
       throw redirect(302, '/account/settings');
     }
 
     const error = url.searchParams.get('error');
     const updated = url.searchParams.get('updated') === '1';
 
-    return { account, isAdmin, error, updated };
+    return { account, canEdit, error, updated };
   } catch (e) {
     if (e && typeof e === 'object' && 'status' in e && (e as { status: number }).status === 302) {
       throw e;
     }
     return {
       account: null,
-      isAdmin: false,
+      canEdit: false,
       error: 'server',
       updated: false,
     };

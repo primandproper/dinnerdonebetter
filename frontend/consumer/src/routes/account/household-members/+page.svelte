@@ -14,7 +14,8 @@
   const members = $derived((data?.members ?? []) as MembershipWithUser[]);
   const invitations = $derived((data?.invitations ?? []) as Invitation[]);
   const currentUserId = $derived(data?.currentUserId ?? '');
-  const isAdmin = $derived(data?.isAdmin ?? false);
+  const canManageMembers = $derived(data?.canManageMembers ?? false);
+  const canInvite = $derived(data?.canInvite ?? false);
   const error = $derived(data?.error as string | null | undefined);
   const invited = $derived(data?.invited ?? false);
 
@@ -73,7 +74,7 @@
                     <span class="member-you">(You)</span>
                   {/if}
                 </div>
-                {#if isAdmin && !isYou && m.user?.id}
+                {#if canManageMembers && !isYou && m.user?.id}
                   <form method="POST" action="?/update-role" use:enhance class="role-form">
                     <input type="hidden" name="user_id" value={m.user.id} data-testid="member-user-id" />
                     <div class="role-form-row">
@@ -102,7 +103,7 @@
         {/if}
       </section>
 
-      {#if isAdmin}
+      {#if canInvite}
         <section>
           <h2>Add Someone to Your Household</h2>
           <p class="muted">Send an invitation by email. They can join once they have an account.</p>
@@ -147,7 +148,7 @@
                 -->
                 {#if pending}
                   <div class="invitation-actions">
-                    {#if isAdmin}
+                    {#if canInvite}
                       <form method="POST" action="?/cancel-invitation" use:enhance class="inline-form">
                         <input type="hidden" name="invitation_id" value={inv.id} data-testid="cancel-invitation-id" />
                         <span class="cancel-btn"><Button type="submit" variant="default">Cancel</Button></span>

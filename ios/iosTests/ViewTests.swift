@@ -218,7 +218,7 @@ struct MemberCardTests {
     _ = MemberCard(
       member: member,
       currentUserID: "user-1",
-      isAccountAdmin: true,
+      canManageMembers: true,
       onRoleChange: { _, _ in }
     )
   }
@@ -237,7 +237,7 @@ struct MemberCardTests {
     _ = MemberCard(
       member: member,
       currentUserID: "user-1",
-      isAccountAdmin: true,
+      canManageMembers: true,
       onRoleChange: { _, _ in }
     )
   }
@@ -255,7 +255,7 @@ struct MemberCardTests {
     _ = MemberCard(
       member: member,
       currentUserID: "user-1",
-      isAccountAdmin: true,
+      canManageMembers: true,
       onRoleChange: { _, _ in }
     )
   }
@@ -269,7 +269,7 @@ struct MemberCardTests {
     _ = MemberCard(
       member: member,
       currentUserID: "user-1",
-      isAccountAdmin: true,
+      canManageMembers: true,
       onRoleChange: { _, _ in }
     )
   }
@@ -287,7 +287,7 @@ struct MemberCardTests {
     _ = MemberCard(
       member: member,
       currentUserID: "user-1",
-      isAccountAdmin: true,
+      canManageMembers: true,
       onRoleChange: { _, _ in }
     )
   }
@@ -304,7 +304,7 @@ struct MemberCardTests {
     _ = MemberCard(
       member: member,
       currentUserID: "user-2",
-      isAccountAdmin: true,
+      canManageMembers: true,
       onRoleChange: { _, _ in }
     )
   }
@@ -323,7 +323,7 @@ struct InvitationCardTests {
 
     _ = InvitationCard(
       invitation: invitation,
-      isAccountAdmin: false,
+      canCancel: false,
       onCancel: nil
     )
   }
@@ -338,7 +338,7 @@ struct InvitationCardTests {
 
     _ = InvitationCard(
       invitation: invitation,
-      isAccountAdmin: false,
+      canCancel: false,
       onCancel: nil
     )
   }
@@ -352,7 +352,7 @@ struct InvitationCardTests {
 
     _ = InvitationCard(
       invitation: invitation,
-      isAccountAdmin: false,
+      canCancel: false,
       onCancel: nil
     )
   }
@@ -367,7 +367,7 @@ struct InvitationCardTests {
 
     _ = InvitationCard(
       invitation: invitation,
-      isAccountAdmin: false,
+      canCancel: false,
       onCancel: nil
     )
   }
@@ -384,7 +384,7 @@ struct InvitationCardTests {
 
       _ = InvitationCard(
         invitation: invitation,
-        isAccountAdmin: false,
+        canCancel: false,
         onCancel: nil
       )
     }

@@ -51,8 +51,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/primandproper/platform-client-swift.git",
       "state" : {
-        "revision" : "c72aede9944c91b9d29953c5def1e72d0cc5e118",
-        "version" : "0.0.1"
+        "revision" : "2a9e43638795086898f24ff210d85fd1679d724b",
+        "version" : "0.0.2"
       }
     },
     {

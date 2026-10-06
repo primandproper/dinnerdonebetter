@@ -81,7 +81,7 @@ struct RecipeListView: View {
       .navigationTitle("Recipes")
       .navigationBarTitleDisplayMode(.large)
       .toolbar {
-        if let viewModel = viewModel, viewModel.isServiceAdmin {
+        if let viewModel = viewModel, viewModel.canReviewRecipes {
           ToolbarItem(placement: .primaryAction) {
             HStack(spacing: DSTheme.Spacing.sm) {
               Text("Submitted")
@@ -137,7 +137,7 @@ struct RecipeListView: View {
         }
         if let viewModel = viewModel {
           Task {
-            await viewModel.loadCurrentUserForAdminCheck()
+            await viewModel.loadPermissions()
             await viewModel.loadRecipes()
           }
         }
