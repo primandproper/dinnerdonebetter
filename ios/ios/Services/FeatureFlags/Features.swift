@@ -23,9 +23,6 @@ enum Features {
   /// Use the dedicated search service (vs. DB search). Production-only today.
   static var useSearchService: Bool { APIConfiguration.useSearchService }
 
-  /// Route analytics through the backend passthrough instead of Segment.
-  static var useAnalyticsBackend: Bool { AnalyticsConfiguration.useAnalyticsBackend }
-
   /// Running against the mock auth backend (UI tests).
   static var useMockAuth: Bool { ProcessInfo.processInfo.arguments.contains("--use-mock-auth") }
 

@@ -35,8 +35,6 @@
 	<string>$(OAUTH2_CLIENT_SECRET)</string>
 	<key>SegmentWriteKey</key>
 	<string>$(SEGMENT_WRITE_KEY)</string>
-	<key>UseAnalyticsBackend</key>
-	<string>$(USE_ANALYTICS_BACKEND)</string>
 	<key>RevenueCatAPIKey</key>
 	<string>$(REVENUECAT_API_KEY)</string>
 	<key>NSPhotoLibraryUsageDescription</key>

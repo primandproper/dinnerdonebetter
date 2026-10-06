@@ -6,8 +6,8 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/converters"
 	mealplanningsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
-	uploadedmediaconverters "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/grpc/converters"
 
+	mediaregistrygrpc "github.com/primandproper/platform-go/v15/mediaregistry/grpc"
 	"github.com/primandproper/primitives-go/v2/pointer"
 
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -853,7 +853,7 @@ func ConvertRecipeStepToGRPCRecipeStep(input *mealplanning.RecipeStep) *mealplan
 	}
 
 	for _, img := range input.StepImages {
-		step.StepImages = append(step.StepImages, uploadedmediaconverters.ConvertUploadedMediaToGRPCUploadedMedia(img))
+		step.StepImages = append(step.StepImages, mediaregistrygrpc.ObjectToProto(img))
 	}
 
 	return step

@@ -36,7 +36,7 @@ struct IOSApp: App {
 
     let am = AuthenticationManager()
     _authManager = State(initialValue: am)
-    _eventReporterService = State(initialValue: EventReporterService(authManager: am))
+    _eventReporterService = State(initialValue: EventReporterService())
   }
 
   var body: some Scene {

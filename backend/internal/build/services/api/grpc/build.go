@@ -11,6 +11,7 @@ import (
 	dataprivacybuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/dataprivacy"
 	identitybuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/identity"
 	issuereportsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/issuereports"
+	mediaregistrybuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/mediaregistry"
 	notificationsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/notifications"
 	oauth2clientsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/oauth2clients"
 	passkeysbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/passkeys"
@@ -40,18 +41,15 @@ import (
 	uploadedmediarepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/uploadedmedia"
 	waitlistsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/waitlists"
 	webhooksstore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhooksstore"
-	analyticssvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/analytics/grpc"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc/interceptors"
 	authhttpsvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/handlers/authentication"
 	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
 	internalopssvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/internalops/grpc"
 	paymentsadapters "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/adapters"
 	uploadedmediacfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/config"
-	uploadedmediasvc "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/grpc"
 
 	platformerrormappers "github.com/primandproper/platform-go/v15/errormappers"
 	operationscfg "github.com/primandproper/platform-go/v15/operations/config"
-	"github.com/primandproper/primitives-go/v2/analytics/multisource"
 	tokenscfg "github.com/primandproper/primitives-go/v2/authentication/tokens/config"
 	databasecfg "github.com/primandproper/primitives-go/v2/database/config"
 	featureflagscfg "github.com/primandproper/primitives-go/v2/featureflags/config"
@@ -131,7 +129,6 @@ func BuildInjector(
 
 	dataprivacycfg.RegisterRequestService(i)
 	featureflagscfg.RegisterFeatureFlagManager(i)
-	multisource.RegisterMultiSourceEventReporter(i)
 
 	// Usage metering. Only the ingest half runs here: the flusher that posts usage to a
 	// billing provider is a scheduled pass in the scheduler process. The enforcer is
@@ -189,7 +186,6 @@ func BuildInjector(
 
 	// services
 	authhttpsvc.RegisterAuthHTTPService(i)
-	analyticssvc.RegisterAnalyticsService(i)
 	auditrepo.RegisterPlatformReader(i)
 	auditrepo.RegisterPlatformRecorder(i)
 	auditbuild.RegisterAuditService(i)
@@ -202,7 +198,7 @@ func BuildInjector(
 	signinbuild.RegisterSignInService(i)
 	passwordresetbuild.RegisterPasswordResetService(i)
 	passkeysbuild.RegisterPasskeysService(i)
-	uploadedmediasvc.RegisterUploadedMediaService(i)
+	mediaregistrybuild.RegisterMediaRegistryService(i)
 	webhooksbuild.RegisterWebhooksService(i)
 	oauth2clientsbuild.RegisterOAuth2ClientsService(i)
 	paymentsbuild.RegisterPaymentsService(i)

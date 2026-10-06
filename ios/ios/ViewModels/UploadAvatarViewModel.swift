@@ -9,20 +9,12 @@ import GRPCNIOTransportHTTP2
 import PlatformClient
 import SwiftUI
 
-private let uploadChunkSize = 64 * 1024  // 64 KB
-private let uploadBucketName = "avatars"
-
 /// Uploading a user's avatar.
 ///
-/// It goes to the media service now, where every other image already went. The RPC it used
-/// to call was on the identity service, and platform's directory has no method for one —
-/// correctly, since an avatar is a row in the upload registry and a reference to it rather
-/// than a field of a user.
-///
-/// What is missing is the other half: nothing yet records that this object is *this user's*
-/// avatar, so the image lands in the bucket and no read hands it back. Reading one is a
-/// media-surface RPC that does not exist yet, which is why the avatar comes back as
-/// initials everywhere it is rendered.
+/// An avatar is an upload to the media registry attached to its uploader — belongs_to
+/// {user, their ID} — which is the one attachment the registry authorizes without asking
+/// anybody. The newest object attached to a user is their avatar, and ListObjectsBySubject is
+/// the read that hands it back; platform's User carries no avatar field.
 @Observable
 @MainActor
 class UploadAvatarViewModel {
@@ -41,36 +33,32 @@ class UploadAvatarViewModel {
     errorMessage = nil
     didSucceed = false
 
+    let userID = authManager.userID
+    guard !userID.isEmpty else {
+      errorMessage = "Upload failed: \(UploadErrorFormatter.notSignedIn)"
+      isUploading = false
+      return
+    }
+
     do {
 
       var uploadOptions = GRPCCore.CallOptions.defaults
       uploadOptions.timeout = .seconds(60)
 
-      _ = try await authManager.authenticatedCall("upload") { client, metadata, _ in
-        try await client.uploadedMedia.upload(
+      var subject = Primandproper_Platform_Mediaregistry_V1_Subject()
+      subject.type = mediaRegistryUserSubjectType
+      subject.id = userID
+
+      let parts = MediaUploadParts.make(
+        name: objectName, contentType: contentType, data: imageData, belongsTo: subject)
+
+      _ = try await authManager.authenticatedCall("uploadAvatar") { client, metadata, _ in
+        try await client.mediaRegistry.uploadObject(
           metadata: metadata,
           options: uploadOptions,
           requestProducer: { writer in
-            // 1. Send metadata
-            var meta = UploadedMedia_UploadMetadata()
-            meta.bucket = uploadBucketName
-            meta.objectName = objectName
-            meta.contentType = contentType
-
-            var metadataReq = UploadedMedia_UploadRequest()
-            metadataReq.payload = .metadata(meta)
-            try await writer.write(metadataReq)
-
-            // 2. Send chunks
-            var offset = 0
-            while offset < imageData.count {
-              let end = min(offset + uploadChunkSize, imageData.count)
-              let chunk = imageData.subdata(in: offset..<end)
-              offset = end
-
-              var chunkReq = UploadedMedia_UploadRequest()
-              chunkReq.payload = .chunk(chunk)
-              try await writer.write(chunkReq)
+            for part in parts {
+              try await writer.write(part)
             }
           }
         )
@@ -79,7 +67,7 @@ class UploadAvatarViewModel {
       didSucceed = true
     } catch {
       if let error = error.platformError {
-        let statusMessage = formatRPCError(error)
+        let statusMessage = UploadErrorFormatter.formatRPCError(error)
         errorMessage = "Upload failed: \(statusMessage)"
         print("❌ Avatar upload RPC error: \(error.code), \(error.serverMessage)")
       } else {
@@ -88,9 +76,5 @@ class UploadAvatarViewModel {
     }
 
     isUploading = false
-  }
-
-  private func formatRPCError(_ error: PlatformError) -> String {
-    UploadErrorFormatter.formatRPCError(error)
   }
 }

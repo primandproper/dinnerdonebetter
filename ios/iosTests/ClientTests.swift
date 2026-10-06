@@ -382,8 +382,7 @@ struct ServiceClientAccessTests {
     _ = client.mealPlanning
     _ = client.notifications
     _ = client.settings
-    _ = client.uploadedMedia
-    _ = client.analytics
+    _ = client.mediaRegistry
   }
 
   @Test("ClientManager provides access to unified client")

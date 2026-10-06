@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
+	mediaregistrybuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/mediaregistry"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc/interceptors"
 
 	"github.com/primandproper/platform-go/v15/callers"
@@ -94,9 +95,10 @@ func RegisterPlatformSurfaces(i do.Injector) {
 			do.MustInvoke[mediaregistry.Store](i),
 			do.MustInvoke[database.Client](i),
 			do.MustInvoke[uploads.UploadManager](i),
-			// The default entitlement, OwnerOnly, is the rule UploadedMediaService's reads
-			// already apply: an object is its uploader's.
-			mediaregistryhttp.WithCallerResolver(objectCaller),
+			// The default entitlement, OwnerOnly, is the rule the gRPC surface's reads apply
+			// too: an object is its uploader's. The caller is the one that surface is built
+			// with, so who owns an upload and who may read its bytes are one answer.
+			mediaregistryhttp.WithCallerResolver(mediaregistrybuild.Caller),
 			mediaregistryhttp.WithEnforcer(enforcer),
 			mediaregistryhttp.WithLogger(logger),
 			mediaregistryhttp.WithTracerProvider(tracerProvider),
@@ -195,14 +197,4 @@ func operationOwner(ctx context.Context) (tenancy.Scope, error) {
 	}
 
 	return tenancy.Of(userID), nil
-}
-
-// objectCaller is the signed-in user, in the directory the upload registry files under.
-func objectCaller(ctx context.Context) (mediaregistryhttp.Caller, error) {
-	userID := sessions.FromContext(ctx).GetUserID()
-	if userID == "" {
-		return mediaregistryhttp.Caller{}, callers.ErrNoPrincipal
-	}
-
-	return mediaregistryhttp.Caller{PrincipalID: userID, Scope: tenancy.Global()}, nil
 }

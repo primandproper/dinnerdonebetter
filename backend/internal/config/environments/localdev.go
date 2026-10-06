@@ -223,29 +223,6 @@ func BuildLocalDevConfig() *config.APIServiceConfig {
 			Provider: emailcfg.ProviderNoop,
 		},
 		Analytics: analyticscfg.Config{
-			// The multisource reporter resolves a source name to a reporter and refuses one
-			// it does not know, so the sources the clients send have to be declared even
-			// where nothing is actually reported. In v9 an unconfigured source fell through
-			// to the ambient reporter; in v10 it is ErrUnknownSource, which surfaces to the
-			// caller as a failed TrackEvent.
-			ProxySources: analyticscfg.ProxySourcesConfig{
-				iosPlatform: {
-					Provider: analyticscfg.ProviderNoop,
-					CircuitBreaker: circuitbreakingcfg.Config{
-						Name:                   iosAnalyticsSource,
-						ErrorRate:              .5,
-						MinimumSampleThreshold: 100,
-					},
-				},
-				webPlatform: {
-					Provider: analyticscfg.ProviderNoop,
-					CircuitBreaker: circuitbreakingcfg.Config{
-						Name:                   webAnalyticsSource,
-						ErrorRate:              .5,
-						MinimumSampleThreshold: 100,
-					},
-				},
-			},
 			SourceConfig: analyticscfg.SourceConfig{
 				// Analytics are off here, which the provider now says rather than
 				// leaving it to an unset value. The circuit breaker is still built.

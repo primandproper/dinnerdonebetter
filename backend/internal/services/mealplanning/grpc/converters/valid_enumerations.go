@@ -6,10 +6,10 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	converters "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/converters"
 	mealplanninggrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
-	uploadedmediasvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
-	uploadedmediaconverters "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/grpc/converters"
 
 	"github.com/primandproper/platform-go/v15/mediaregistry"
+	mediaregistrygrpc "github.com/primandproper/platform-go/v15/mediaregistry/grpc"
+	"github.com/primandproper/platform-go/v15/mediaregistry/mediaregistrypb"
 )
 
 func ConvertGRPCCreateValidIngredientRequestToValidIngredientCreationRequestInput(request *mealplanninggrpc.ValidIngredientCreationRequestInput) *mealplanning.ValidIngredientCreationRequestInput {
@@ -173,13 +173,13 @@ func ConvertValidIngredientToGRPCValidIngredient(x *mealplanning.ValidIngredient
 	}
 }
 
-func convertUploadedMediaSliceToGRPC(media []*mediaregistry.Object) []*uploadedmediasvc.UploadedMedia {
+func convertUploadedMediaSliceToGRPC(media []*mediaregistry.Object) []*mediaregistrypb.Object {
 	if len(media) == 0 {
 		return nil
 	}
-	out := make([]*uploadedmediasvc.UploadedMedia, len(media))
+	out := make([]*mediaregistrypb.Object, len(media))
 	for i, m := range media {
-		out[i] = uploadedmediaconverters.ConvertUploadedMediaToGRPCUploadedMedia(m)
+		out[i] = mediaregistrygrpc.ObjectToProto(m)
 	}
 	return out
 }

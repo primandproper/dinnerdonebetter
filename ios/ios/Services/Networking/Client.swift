@@ -42,11 +42,9 @@ internal struct Client<Transport> where Transport: GRPCCore.ClientTransport {
   /// Settings service client
   internal let settings: Primandproper_Platform_Settings_V1_SettingsService.Client<Transport>
 
-  /// Uploaded media service client
-  internal let uploadedMedia: UploadedMedia_UploadedMediaService.Client<Transport>
-
-  /// Analytics service client
-  internal let analytics: Analytics_AnalyticsService.Client<Transport>
+  /// Media registry service client: uploading, and reading back, the caller's own objects.
+  internal let mediaRegistry:
+    Primandproper_Platform_Mediaregistry_V1_MediaRegistryService.Client<Transport>
 
   /// Internal gRPC client - shared across all service clients
   private let grpcClient: GRPCCore.GRPCClient<Transport>
@@ -68,8 +66,8 @@ internal struct Client<Transport> where Transport: GRPCCore.ClientTransport {
       wrapping: grpcClient)
     self.settings = Primandproper_Platform_Settings_V1_SettingsService.Client(
       wrapping: grpcClient)
-    self.uploadedMedia = UploadedMedia_UploadedMediaService.Client(wrapping: grpcClient)
-    self.analytics = Analytics_AnalyticsService.Client(wrapping: grpcClient)
+    self.mediaRegistry = Primandproper_Platform_Mediaregistry_V1_MediaRegistryService.Client(
+      wrapping: grpcClient)
   }
 
   /// Start the connection for this client.

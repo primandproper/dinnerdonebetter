@@ -105,8 +105,8 @@ func BuildInjector(
 	identitystore.RegisterIdentityStore(i)
 	identitybuild.RegisterSessionBuilder(i)
 
-	// The upload registry, because the identity repository reads a user's avatar
-	// through it.
+	// The upload registry, because the media byte-serve reads an object's row
+	// through it before it serves the bytes.
 	uploadedmediarepo.RegisterUploadedMediaRepository(i)
 	oauth2clientsstore.RegisterOAuth2ClientsStore(i)
 	paymentsrepo.RegisterPaymentsRepository(i)

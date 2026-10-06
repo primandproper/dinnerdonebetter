@@ -5,7 +5,8 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	mealplanningsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
-	uploadedmediagrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
+
+	"github.com/primandproper/platform-go/v15/mediaregistry/mediaregistrypb"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -20,14 +21,14 @@ func uploadRecipeStepImageForTest(t *testing.T, recipeID, recipeStepID, filename
 	stream, err := adminClient.UploadRecipeStepImage(ctx)
 	require.NoError(t, err)
 
-	// First message: metadata
+	// First message: the upload header
 	err = stream.Send(&mealplanningsvc.UploadRecipeStepImageRequest{
 		RecipeId:     recipeID,
 		RecipeStepId: recipeStepID,
-		Upload: &uploadedmediagrpc.UploadRequest{
-			Payload: &uploadedmediagrpc.UploadRequest_Metadata{
-				Metadata: &uploadedmediagrpc.UploadMetadata{
-					ObjectName:  filename,
+		Upload: &mediaregistrypb.UploadObjectRequest{
+			Part: &mediaregistrypb.UploadObjectRequest_Header{
+				Header: &mediaregistrypb.UploadObjectHeader{
+					Name:        filename,
 					ContentType: contentType,
 				},
 			},
@@ -40,8 +41,8 @@ func uploadRecipeStepImageForTest(t *testing.T, recipeID, recipeStepID, filename
 		end := min(offset+recipeStepImageUploadChunkSize, len(fileData))
 		chunk := fileData[offset:end]
 		err = stream.Send(&mealplanningsvc.UploadRecipeStepImageRequest{
-			Upload: &uploadedmediagrpc.UploadRequest{
-				Payload: &uploadedmediagrpc.UploadRequest_Chunk{Chunk: chunk},
+			Upload: &mediaregistrypb.UploadObjectRequest{
+				Part: &mediaregistrypb.UploadObjectRequest_Chunk{Chunk: chunk},
 			},
 		})
 		require.NoError(t, err)
@@ -108,10 +109,10 @@ func TestUploadRecipeStepImage(T *testing.T) {
 		err = stream.Send(&mealplanningsvc.UploadRecipeStepImageRequest{
 			RecipeId:     createdRecipe.ID,
 			RecipeStepId: firstStep.ID,
-			Upload: &uploadedmediagrpc.UploadRequest{
-				Payload: &uploadedmediagrpc.UploadRequest_Metadata{
-					Metadata: &uploadedmediagrpc.UploadMetadata{
-						ObjectName:  "test.jpg",
+			Upload: &mediaregistrypb.UploadObjectRequest{
+				Part: &mediaregistrypb.UploadObjectRequest_Header{
+					Header: &mediaregistrypb.UploadObjectHeader{
+						Name:        "test.jpg",
 						ContentType: uploadedmedia.MimeTypeImageJPEG,
 					},
 				},
@@ -135,10 +136,10 @@ func TestUploadRecipeStepImage(T *testing.T) {
 		err = stream.Send(&mealplanningsvc.UploadRecipeStepImageRequest{
 			RecipeId:     createdRecipe.ID,
 			RecipeStepId: nonexistentID,
-			Upload: &uploadedmediagrpc.UploadRequest{
-				Payload: &uploadedmediagrpc.UploadRequest_Metadata{
-					Metadata: &uploadedmediagrpc.UploadMetadata{
-						ObjectName:  "test.jpg",
+			Upload: &mediaregistrypb.UploadObjectRequest{
+				Part: &mediaregistrypb.UploadObjectRequest_Header{
+					Header: &mediaregistrypb.UploadObjectHeader{
+						Name:        "test.jpg",
 						ContentType: uploadedmedia.MimeTypeImageJPEG,
 					},
 				},

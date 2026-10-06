@@ -5,4 +5,5 @@
 mapping {
   module_name: "PlatformClient"
   proto_file_path: "primandproper/platform/filtering/v1/filtering.proto"
+  proto_file_path: "primandproper/platform/mediaregistry/v1/mediaregistry.proto"
 }

@@ -8,10 +8,8 @@ import (
 	"log"
 	"net/http"
 
-	analyticsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/analytics"
 	internalopsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/internalops"
 	mealplanninggrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
-	uploadedmediagrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
 
 	auditgrpc "github.com/primandproper/platform-go/v15/audit/auditpb"
 	oauth2clientsgrpc "github.com/primandproper/platform-go/v15/authentication/oauth2clients/oauth2clientspb"
@@ -22,6 +20,7 @@ import (
 	commentsgrpc "github.com/primandproper/platform-go/v15/comments/commentspb"
 	identitygrpc "github.com/primandproper/platform-go/v15/identity/identitypb"
 	issuereportsgrpc "github.com/primandproper/platform-go/v15/issuereports/issuereportspb"
+	mediaregistrygrpc "github.com/primandproper/platform-go/v15/mediaregistry/mediaregistrypb"
 	notificationsgrpc "github.com/primandproper/platform-go/v15/notifications/notificationspb"
 	settingsgrpc "github.com/primandproper/platform-go/v15/settings/settingspb"
 	waitlistsgrpc "github.com/primandproper/platform-go/v15/waitlists/waitlistspb"
@@ -38,10 +37,10 @@ import (
 )
 
 type Client interface {
-	analyticsgrpc.AnalyticsServiceClient
 	auditgrpc.AuditServiceClient
 	internalopsgrpc.InternalOperationsClient
 	issuereportsgrpc.IssueReportsServiceClient
+	mediaregistrygrpc.MediaRegistryServiceClient
 	mealplanninggrpc.MealPlanningServiceClient
 	notificationsgrpc.NotificationsServiceClient
 	oauth2clientsgrpc.OAuth2ClientsServiceClient
@@ -50,7 +49,6 @@ type Client interface {
 	paymentsgrpc.BillingServiceClient
 	settingsgrpc.SettingsServiceClient
 	signingrpc.SignInServiceClient
-	uploadedmediagrpc.UploadedMediaServiceClient
 	waitlistsgrpc.WaitlistsServiceClient
 
 	// IdentityService returns the directory client: users, accounts, memberships and
@@ -86,10 +84,10 @@ type Client interface {
 }
 
 type client struct {
-	analyticsgrpc.AnalyticsServiceClient
 	auditgrpc.AuditServiceClient
 	internalopsgrpc.InternalOperationsClient
 	issuereportsgrpc.IssueReportsServiceClient
+	mediaregistrygrpc.MediaRegistryServiceClient
 	mealplanninggrpc.MealPlanningServiceClient
 	notificationsgrpc.NotificationsServiceClient
 	oauth2clientsgrpc.OAuth2ClientsServiceClient
@@ -98,7 +96,6 @@ type client struct {
 	paymentsgrpc.BillingServiceClient
 	settingsgrpc.SettingsServiceClient
 	signingrpc.SignInServiceClient
-	uploadedmediagrpc.UploadedMediaServiceClient
 	waitlistsgrpc.WaitlistsServiceClient
 
 	identityClient             identitygrpc.IdentityServiceClient
@@ -116,10 +113,10 @@ func BuildClient(grpcServerAddress string, opts ...grpc.DialOption) (Client, err
 	}
 
 	c := &client{
-		AnalyticsServiceClient:     analyticsgrpc.NewAnalyticsServiceClient(conn),
 		AuditServiceClient:         auditgrpc.NewAuditServiceClient(conn),
 		InternalOperationsClient:   internalopsgrpc.NewInternalOperationsClient(conn),
 		IssueReportsServiceClient:  issuereportsgrpc.NewIssueReportsServiceClient(conn),
+		MediaRegistryServiceClient: mediaregistrygrpc.NewMediaRegistryServiceClient(conn),
 		MealPlanningServiceClient:  mealplanninggrpc.NewMealPlanningServiceClient(conn),
 		NotificationsServiceClient: notificationsgrpc.NewNotificationsServiceClient(conn),
 		OAuth2ClientsServiceClient: oauth2clientsgrpc.NewOAuth2ClientsServiceClient(conn),
@@ -128,7 +125,6 @@ func BuildClient(grpcServerAddress string, opts ...grpc.DialOption) (Client, err
 		BillingServiceClient:       paymentsgrpc.NewBillingServiceClient(conn),
 		SettingsServiceClient:      settingsgrpc.NewSettingsServiceClient(conn),
 		SignInServiceClient:        signingrpc.NewSignInServiceClient(conn),
-		UploadedMediaServiceClient: uploadedmediagrpc.NewUploadedMediaServiceClient(conn),
 		WaitlistsServiceClient:     waitlistsgrpc.NewWaitlistsServiceClient(conn),
 		identityClient:             identitygrpc.NewIdentityServiceClient(conn),
 		signInAdministrationClient: signingrpc.NewSignInAdministrationServiceClient(conn),

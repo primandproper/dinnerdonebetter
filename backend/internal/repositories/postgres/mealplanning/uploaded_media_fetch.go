@@ -2,7 +2,6 @@ package mealplanning
 
 import (
 	"context"
-	"errors"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 
@@ -14,24 +13,15 @@ import (
 
 var _ mealplanning.UploadedMediaFetcher = (*repository)(nil)
 
-// GetUploadedMediaWithIDs fetches uploaded media by IDs.
+// GetUploadedMediaWithIDs fetches uploaded media by IDs, in the order the IDs were given.
 //
-// It is a read per id rather than one statement over the set, because the
-// registry ships no bulk read and this repository cannot write one: the table is
-// platform-go's, created by a generated migration rather than by a file in
-// migration_files, so sqlc — whose schema is migration_files — has never seen
-// it. Rolling a statement by hand against another package's schema is how a
-// column rename becomes a runtime error in the one place nothing regenerates.
+// The registry's batched read answers in id order, one row per distinct id; the order is put
+// back here because the callers' order is the bridge rows', which is the order a recipe step's
+// images are shown in.
 //
-// The cost is bounded by what actually calls this: the media on one ingredient
-// or preparation, the images on one recipe step. Each is a handful of rows on a
-// primary key. A caller looking to hydrate a whole page's worth of media should
-// not reach for this — it would multiply, and the fix is a bulk read upstream
-// rather than a wider loop here.
-//
-// An id with no row is skipped rather than failing the read. A bridge row
-// pointing at an archived or absent object is a broken reference, not a broken
-// request, and the caller asked for the media that is there.
+// An id with no row is absent from the result rather than failing the read. A bridge row
+// pointing at an archived or absent object is a broken reference, not a broken request, and the
+// caller asked for the media that is there.
 func (q *repository) GetUploadedMediaWithIDs(ctx context.Context, ids []string) ([]*mediaregistry.Object, error) {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
@@ -43,18 +33,21 @@ func (q *repository) GetUploadedMediaWithIDs(ctx context.Context, ids []string) 
 	}
 	logger = logger.WithValue("id_count", len(ids))
 
+	read, err := mediaregistry.ListObjectsByIDsInBatches(ctx, q.Reader(), tenancy.Global(), q.uploads, ids)
+	if err != nil {
+		return nil, observability.PrepareAndLogError(err, logger, span, "fetching uploaded media with IDs")
+	}
+
+	byID := make(map[string]*mediaregistry.Object, len(read))
+	for _, object := range read {
+		byID[object.ID] = object
+	}
+
 	objects := make([]*mediaregistry.Object, 0, len(ids))
 	for _, id := range ids {
-		object, err := q.uploads.GetObject(ctx, q.Reader(), tenancy.Global(), id)
-		if err != nil {
-			if errors.Is(err, mediaregistry.ErrObjectNotFound) {
-				continue
-			}
-
-			return nil, observability.PrepareAndLogError(err, logger, span, "fetching uploaded media with IDs")
+		if object, ok := byID[id]; ok {
+			objects = append(objects, object)
 		}
-
-		objects = append(objects, object)
 	}
 
 	return objects, nil

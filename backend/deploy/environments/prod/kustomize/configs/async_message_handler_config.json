@@ -85,30 +85,6 @@
 		}
 	},
 	"analytics": {
-		"proxySources": {
-			"ios": {
-				"posthog": {
-					"apiKey": "placeholder"
-				},
-				"provider": "posthog",
-				"circuitBreaker": {
-					"name": "ios_analytics",
-					"circuitBreakerErrorPercentage": 0.5,
-					"circuitBreakerMinimumOccurrenceThreshold": 100
-				}
-			},
-			"web": {
-				"posthog": {
-					"apiKey": "placeholder"
-				},
-				"provider": "posthog",
-				"circuitBreaker": {
-					"name": "web_analytics",
-					"circuitBreakerErrorPercentage": 0.5,
-					"circuitBreakerMinimumOccurrenceThreshold": 100
-				}
-			}
-		},
 		"posthog": {
 			"apiKey": "placeholder"
 		},

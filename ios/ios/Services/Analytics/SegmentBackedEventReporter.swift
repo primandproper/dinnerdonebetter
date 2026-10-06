@@ -18,8 +18,8 @@ import Foundation
 /// batches and POSTs to Segment's HTTP Tracking API over URLSession.
 ///
 /// The platform reporter is stateless with respect to identity, so this type tracks the current
-/// user id and a stable anonymous id itself (mirroring `BackendEventReporter`): `track` routes to
-/// `eventOccurred` when identified, else `eventOccurredAnonymous`.
+/// user id and a stable anonymous id itself: `track` routes to `eventOccurred` when identified,
+/// else `eventOccurredAnonymous`.
 ///
 /// Behavioral note vs. the previous analytics-swift SDK: automatic application-lifecycle / screen
 /// events are no longer emitted (the SDK provided those for free). Track those explicitly if needed.
