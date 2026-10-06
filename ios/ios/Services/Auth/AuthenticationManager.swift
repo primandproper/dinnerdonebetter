@@ -197,22 +197,23 @@ class AuthenticationManager: AuthenticationManaging {
   }
 
   /// Called once the password has been changed. The server lifts a forced change as part of
-  /// the change, so the auth status is read again rather than assumed; if it cannot be read,
-  /// the form is let go anyway, and the next refusal would bring it back.
+  /// the change, so the auth status is read again rather than assumed, and the profile with
+  /// it; if it cannot be read, the form is let go anyway, and the next refusal would bring it
+  /// back.
   @MainActor
   func passwordWasChanged() async {
+    let wasRequired = passwordChangeRequired
     do {
-      let manager = try getClientManager()
-      if case .authenticated(let signedIn) = try await manager.session.getAuthStatus(
-        options: manager.defaultCallOptions)
-      {
-        passwordChangeRequired = signedIn.requiredActions.contains(.changePassword)
-        return
-      }
+      try await loadAuthStatus(fallbackUsername: username)
     } catch {
       logger.error("reading the auth status after a password change", error)
+      passwordChangeRequired = false
     }
-    passwordChangeRequired = false
+    // While the change was owed, the server refused the device registration along with every
+    // other call, so the token is handed over again now that it is lifted.
+    if wasRequired, !passwordChangeRequired, let apnsToken, let manager = try? getClientManager() {
+      handOver(apnsToken, to: manager)
+    }
   }
 
   /// Log in to RevenueCat with the current account ID so purchases are tied to the user.
@@ -397,6 +398,14 @@ class AuthenticationManager: AuthenticationManaging {
       // the login was made, and the server is holding it at the change-password form until
       // a new password is chosen. The app routes there on `passwordChangeRequired`.
       reporter.track(event: "login_password_change_required", properties: [:])
+      // GetAuthStatus is one of the calls the server still answers, so who the login belongs
+      // to is read and remembered here, as on any sign-in. If it can't be, the form still
+      // shows, and `passwordWasChanged` reads it again.
+      do {
+        try await loadAuthStatus(fallbackUsername: username)
+      } catch {
+        logger.error("reading the auth status of a login held for a password change", error)
+      }
       await MainActor.run {
         self.passwordChangeRequired = true
         self.isAuthenticated = true
