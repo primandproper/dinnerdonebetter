@@ -35,6 +35,7 @@ package devices
 import (
 	"context"
 	"net"
+	"slices"
 	"strings"
 	"time"
 
@@ -173,8 +174,8 @@ func firstOf(md metadata.MD, key string) string {
 // lastForwardedFor is the rightmost address in a set of X-Forwarded-For values: the one the edge
 // wrote. Everything to its left is whatever the client sent.
 func lastForwardedFor(values []string) string {
-	for i := len(values) - 1; i >= 0; i-- {
-		parts := strings.Split(values[i], ",")
+	for _, value := range slices.Backward(values) {
+		parts := strings.Split(value, ",")
 		if last := strings.TrimSpace(parts[len(parts)-1]); last != "" {
 			return truncate(last)
 		}

@@ -12,13 +12,18 @@ import (
 	"testing"
 
 	identityfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/fakes"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc/interceptors"
 
 	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
 	oauth2memory "github.com/primandproper/primitives-go/v2/authentication/oauth2server/memory"
 	"github.com/primandproper/primitives-go/v2/observability"
+	"github.com/primandproper/primitives-go/v2/observability/logging/noop"
+	"github.com/primandproper/primitives-go/v2/ratelimiting"
+	"github.com/primandproper/primitives-go/v2/routing"
 	"github.com/primandproper/primitives-go/v2/routing/backends/chi"
 	routingcfg "github.com/primandproper/primitives-go/v2/routing/config"
 
+	"github.com/brianvoe/gofakeit/v7"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -35,7 +40,7 @@ const exampleCodeVerifier = "abcdefghijklmnopqrstuvwxyz0123456789-._~ABC"
 // the conformance suite for the latter. What this catches is a route mounted at
 // the wrong path, a verifier handed the wrong resource identifier, or a challenge
 // header pointing somewhere a client cannot follow.
-func buildTestRouter(t *testing.T, subject *oauth2server.Subject) (handler http.Handler, resource string) {
+func buildTestRouter(t *testing.T, subject *oauth2server.Subject, loginThrottle routing.Middleware) (handler http.Handler, resource string) {
 	t.Helper()
 
 	ctx := t.Context()
@@ -56,7 +61,7 @@ func buildTestRouter(t *testing.T, subject *oauth2server.Subject) (handler http.
 		res.WriteHeader(http.StatusTeapot)
 	})
 
-	router, err := buildRouter(ctx, mcpHandler, srv, resourceMetadata, &observability.Pillars{},
+	router, err := buildRouter(ctx, mcpHandler, srv, resourceMetadata, loginThrottle, &observability.Pillars{},
 		&routingcfg.Config{Provider: routingcfg.ProviderChi, Chi: &chi.Config{ServiceName: t.Name()}},
 		exampleResource,
 	)
@@ -71,7 +76,7 @@ func TestBuildRouter(T *testing.T) {
 	T.Run("publishes both discovery documents", func(t *testing.T) {
 		t.Parallel()
 
-		handler, resource := buildTestRouter(t, nil)
+		handler, resource := buildTestRouter(t, nil, nil)
 
 		for path, key := range map[string]string{
 			oauth2server.PathAuthorizationServerMetadata: "issuer",
@@ -91,7 +96,7 @@ func TestBuildRouter(T *testing.T) {
 	T.Run("challenges an unauthenticated MCP request", func(t *testing.T) {
 		t.Parallel()
 
-		handler, resource := buildTestRouter(t, nil)
+		handler, resource := buildTestRouter(t, nil, nil)
 
 		res := httptest.NewRecorder()
 		handler.ServeHTTP(res, httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/mcp", nil))
@@ -114,7 +119,7 @@ func TestBuildRouter(T *testing.T) {
 		handler, resource := buildTestRouter(t, &oauth2server.Subject{
 			ID:     exampleUser.ID,
 			Claims: map[string]string{claimAccountID: exampleAccountID},
-		})
+		}, nil)
 
 		post := func(path, contentType, body string) *httptest.ResponseRecorder {
 			t.Helper()
@@ -196,4 +201,61 @@ func readAll(t *testing.T, r io.Reader) string {
 	require.NoError(t, err)
 
 	return string(b)
+}
+
+func TestBuildRouter_LoginFormThrottle(T *testing.T) {
+	T.Parallel()
+
+	// buildThrottledRouter is the MCP surface with the login form throttled by a limiter that
+	// admits one request per address and then refuses for the rest of the test.
+	buildThrottledRouter := func(t *testing.T) http.Handler {
+		t.Helper()
+
+		limiter, err := ratelimiting.NewInMemoryRateLimiter(0.0001, 1)
+		require.NoError(t, err)
+		t.Cleanup(func() { assert.NoError(t, limiter.Close()) })
+
+		throttle, err := interceptors.NewAuthorizeFormThrottle(limiter, noop.NewLogger(), nil, nil)
+		require.NoError(t, err)
+
+		handler, _ := buildTestRouter(t, nil, throttle)
+
+		return handler
+	}
+
+	send := func(t *testing.T, handler http.Handler, method, path, address string) int {
+		t.Helper()
+
+		req := httptest.NewRequestWithContext(t.Context(), method, path, http.NoBody)
+		req.Header.Set("X-Forwarded-For", address)
+		res := httptest.NewRecorder()
+		handler.ServeHTTP(res, req)
+
+		return res.Code
+	}
+
+	T.Run("throttles the login form's POST by address", func(t *testing.T) {
+		t.Parallel()
+
+		handler := buildThrottledRouter(t)
+		address := gofakeit.IPv4Address()
+
+		assert.NotEqual(t, http.StatusTooManyRequests, send(t, handler, http.MethodPost, oauth2server.PathAuthorize, address))
+		assert.Equal(t, http.StatusTooManyRequests, send(t, handler, http.MethodPost, oauth2server.PathAuthorize, address))
+		assert.NotEqual(t, http.StatusTooManyRequests, send(t, handler, http.MethodPost, oauth2server.PathAuthorize, gofakeit.IPv4Address()))
+	})
+
+	T.Run("leaves every other authorization server endpoint alone", func(t *testing.T) {
+		t.Parallel()
+
+		handler := buildThrottledRouter(t)
+		address := gofakeit.IPv4Address()
+
+		for range 3 {
+			assert.NotEqual(t, http.StatusTooManyRequests, send(t, handler, http.MethodGet, oauth2server.PathAuthorize, address))
+			assert.NotEqual(t, http.StatusTooManyRequests, send(t, handler, http.MethodPost, oauth2server.PathToken, address))
+			assert.NotEqual(t, http.StatusTooManyRequests, send(t, handler, http.MethodPost, oauth2server.PathRevoke, address))
+			assert.NotEqual(t, http.StatusTooManyRequests, send(t, handler, http.MethodPost, oauth2server.PathRegister, address))
+		}
+	})
 }

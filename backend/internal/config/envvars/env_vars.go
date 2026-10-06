@@ -2283,6 +2283,34 @@ const (
 	// `AsyncMessageHandlerConfig.Queues.SearchIndexRequestsTopicName`.
 	QueuesSearchIndexRequestsTopicNameEnvVarKey = "DINNER_DONE_BETTER_QUEUES_SEARCH_INDEX_REQUESTS_TOPIC_NAME"
 
+	// RateLimitingBurstSizeEnvVarKey is the environment variable name to set to override
+	// `MCPServiceConfig.RateLimiting.BurstSize`.
+	RateLimitingBurstSizeEnvVarKey = "DINNER_DONE_BETTER_RATE_LIMITING_BURST_SIZE"
+
+	// RateLimitingMaxLimitersEnvVarKey is the environment variable name to set to override
+	// `MCPServiceConfig.RateLimiting.MaxLimiters`.
+	RateLimitingMaxLimitersEnvVarKey = "DINNER_DONE_BETTER_RATE_LIMITING_MAX_LIMITERS"
+
+	// RateLimitingProviderEnvVarKey is the environment variable name to set to override
+	// `MCPServiceConfig.RateLimiting.Provider`.
+	RateLimitingProviderEnvVarKey = "DINNER_DONE_BETTER_RATE_LIMITING_PROVIDER"
+
+	// RateLimitingRedisAddressesEnvVarKey is the environment variable name to set to override
+	// `MCPServiceConfig.RateLimiting.Redis.Addresses`.
+	RateLimitingRedisAddressesEnvVarKey = "DINNER_DONE_BETTER_RATE_LIMITING_REDIS_ADDRESSES"
+
+	// RateLimitingRedisPasswordEnvVarKey is the environment variable name to set to override
+	// `MCPServiceConfig.RateLimiting.Redis.Password`.
+	RateLimitingRedisPasswordEnvVarKey = "DINNER_DONE_BETTER_RATE_LIMITING_REDIS_PASSWORD"
+
+	// RateLimitingRedisUsernameEnvVarKey is the environment variable name to set to override
+	// `MCPServiceConfig.RateLimiting.Redis.Username`.
+	RateLimitingRedisUsernameEnvVarKey = "DINNER_DONE_BETTER_RATE_LIMITING_REDIS_USERNAME"
+
+	// RateLimitingRequestsPerSecEnvVarKey is the environment variable name to set to override
+	// `MCPServiceConfig.RateLimiting.RequestsPerSec`.
+	RateLimitingRequestsPerSecEnvVarKey = "DINNER_DONE_BETTER_RATE_LIMITING_REQUESTS_PER_SEC"
+
 	// RecipientEmailAddressEnvVarKey is the environment variable name to set to override
 	// `EmailDeliverabilityTestConfig.RecipientEmailAddress`.
 	RecipientEmailAddressEnvVarKey = "DINNER_DONE_BETTER_RECIPIENT_EMAIL_ADDRESS"

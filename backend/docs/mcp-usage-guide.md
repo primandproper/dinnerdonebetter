@@ -105,10 +105,10 @@ GET /authorize?response_type=code&client_id=...&redirect_uri=...&code_challenge=
 
 A login form is rendered. Enter your:
 
-| Field         | Description                |
-|---------------|----------------------------|
-| **Username**  | Your admin username        |
-| **Password**  | Your admin password        |
+| Field         | Description              |
+|---------------|--------------------------|
+| **Username**  | Your admin username      |
+| **Password**  | Your admin password      |
 | **TOTP Code** | Your 2FA code (required) |
 
 On success, the server redirects back to the client with an authorization code.

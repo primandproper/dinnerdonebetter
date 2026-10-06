@@ -1,27 +1,4 @@
 {
-	"database": {
-		"provider": "postgres",
-		"readConnection": {
-			"username": "mcp_server",
-			"password": "REPLACE_AT_DEPLOY",
-			"database": "dinner-done-better",
-			"hostname": "REPLACE_AT_DEPLOY",
-			"port": 5432
-		},
-		"writeConnection": {
-			"username": "mcp_server",
-			"password": "REPLACE_AT_DEPLOY",
-			"database": "dinner-done-better",
-			"hostname": "REPLACE_AT_DEPLOY",
-			"port": 5432
-		},
-		"pingWaitPeriod": 1000000000,
-		"maxPingAttempts": 50,
-		"connMaxLifetime": 1800000000000,
-		"maxIdleConns": 5,
-		"maxOpenConns": 7,
-		"runMigrations": true
-	},
 	"routing": {
 		"chiConfig": {
 			"serviceName": "dinner_done_better_mcp_server",
@@ -71,14 +48,42 @@
 	"meta": {
 		"runMode": "production"
 	},
-	"http": {
-		"startupDeadline": 60000000000,
-		"port": 8000
+	"rateLimiting": {
+		"provider": "memory",
+		"requestsPerSecond": 2,
+		"burstSize": 20
 	},
 	"oauth2": {
 		"provider": "database",
 		"database": {
 			"tablePrefix": "ddb"
 		}
+	},
+	"database": {
+		"provider": "postgres",
+		"readConnection": {
+			"username": "mcp_server",
+			"password": "REPLACE_AT_DEPLOY",
+			"database": "dinner-done-better",
+			"hostname": "REPLACE_AT_DEPLOY",
+			"port": 5432
+		},
+		"writeConnection": {
+			"username": "mcp_server",
+			"password": "REPLACE_AT_DEPLOY",
+			"database": "dinner-done-better",
+			"hostname": "REPLACE_AT_DEPLOY",
+			"port": 5432
+		},
+		"pingWaitPeriod": 1000000000,
+		"maxPingAttempts": 50,
+		"connMaxLifetime": 1800000000000,
+		"maxIdleConns": 5,
+		"maxOpenConns": 7,
+		"runMigrations": true
+	},
+	"http": {
+		"startupDeadline": 60000000000,
+		"port": 8000
 	}
 }

@@ -31,6 +31,7 @@ import (
 	msgconfig "github.com/primandproper/primitives-go/v2/messagequeue/config"
 	notificationscfg "github.com/primandproper/primitives-go/v2/notifications/mobile/config"
 	"github.com/primandproper/primitives-go/v2/observability"
+	ratelimitingcfg "github.com/primandproper/primitives-go/v2/ratelimiting/config"
 	routingcfg "github.com/primandproper/primitives-go/v2/routing/config"
 	textsearchcfg "github.com/primandproper/primitives-go/v2/search/text/config"
 	"github.com/primandproper/primitives-go/v2/server/grpc"
@@ -230,13 +231,16 @@ type (
 
 	// MCPServiceConfig configures an instance of the service. It is composed of all the other setting structs.
 	MCPServiceConfig struct {
-		_             struct{}               `json:"-"`
-		Database      dbcfg.Config           `envPrefix:"DATABASE_"      json:"database,omitzero"`
-		Routing       routingcfg.Config      `envPrefix:"ROUTING_"       json:"routing,omitzero"`
-		Observability observability.Config   `envPrefix:"OBSERVABILITY_" json:"observability,omitzero"`
-		Meta          MetaSettings           `envPrefix:"META_"          json:"meta,omitzero"`
-		HTTPServer    http.Config            `envPrefix:"HTTP_"          json:"http,omitzero"`
-		OAuth2        oauth2servercfg.Config `envPrefix:"OAUTH2_"        json:"oauth2,omitzero"`
+		_             struct{}             `json:"-"`
+		Routing       routingcfg.Config    `envPrefix:"ROUTING_"       json:"routing,omitzero"`
+		Observability observability.Config `envPrefix:"OBSERVABILITY_" json:"observability,omitzero"`
+		Meta          MetaSettings         `envPrefix:"META_"          json:"meta,omitzero"`
+		// RateLimiting throttles the login form's POST /authorize, the one door here that tests
+		// a password, the way the API server throttles its own.
+		RateLimiting ratelimitingcfg.Config `envPrefix:"RATE_LIMITING_" json:"rateLimiting,omitzero"`
+		OAuth2       oauth2servercfg.Config `envPrefix:"OAUTH2_"        json:"oauth2,omitzero"`
+		Database     dbcfg.Config           `envPrefix:"DATABASE_"      json:"database,omitzero"`
+		HTTPServer   http.Config            `envPrefix:"HTTP_"          json:"http,omitzero"`
 	}
 )
 
@@ -402,6 +406,7 @@ func (cfg *MCPServiceConfig) ValidateWithContext(ctx context.Context) error {
 		"Routing":            cfg.Routing.ValidateWithContext,
 		"HTTPServer":         cfg.HTTPServer.ValidateWithContext,
 		"OAuth2":             cfg.OAuth2.ValidateWithContext,
+		"RateLimiting":       cfg.RateLimiting.ValidateWithContext,
 	}
 
 	for name, validator := range validators {

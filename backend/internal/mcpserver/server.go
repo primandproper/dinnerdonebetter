@@ -159,7 +159,7 @@ func Run(ctx context.Context, transport, baseURL string) error {
 }
 
 // buildRouter creates a router with OAuth2 routes (unauthenticated) and the MCP handler (authenticated).
-func buildRouter(ctx context.Context, mcpHandler http.Handler, authServer *oauth2server.Server, resourceMetadata *oauth2server.ResourceMetadata, pillars *observability.Pillars, routingCfg *routingcfg.Config, baseURL string) (*routing.Router, error) {
+func buildRouter(ctx context.Context, mcpHandler http.Handler, authServer *oauth2server.Server, resourceMetadata *oauth2server.ResourceMetadata, loginThrottle routing.Middleware, pillars *observability.Pillars, routingCfg *routingcfg.Config, baseURL string) (*routing.Router, error) {
 	encoder := encoding.NewServerEncoderDecoder(encoding.ContentTypeJSON, encoding.WithLogger(pillars.Logger), encoding.WithTracerProvider(pillars.TracerProvider))
 
 	router, err := routingcfg.NewRouter(ctx, routingCfg, encoder, routingcfg.WithPillars(pillars))
@@ -182,8 +182,13 @@ func buildRouter(ctx context.Context, mcpHandler http.Handler, authServer *oauth
 	})
 
 	// The six authorization server endpoints, plus the protected resource document.
-	// No auth middleware: these are how a caller gets a token in the first place.
-	authServer.Mount(router)
+	// No auth middleware: these are how a caller gets a token in the first place. The login
+	// form's POST is throttled; a nil throttle is a router built in a test about the rest.
+	var authMountMiddleware []routing.Middleware
+	if loginThrottle != nil {
+		authMountMiddleware = append(authMountMiddleware, throttleLoginForm(loginThrottle))
+	}
+	authServer.Mount(router, authMountMiddleware...)
 	resourceMetadata.Mount(router)
 
 	// Wrap the MCP handler with bearer token auth middleware. The MCP transport
@@ -211,6 +216,26 @@ func buildRouter(ctx context.Context, mcpHandler http.Handler, authServer *oauth
 	}
 
 	return router, nil
+}
+
+// throttleLoginForm applies throttle to the login form's POST alone.
+//
+// Mount hands one middleware list to every endpoint it routes, and the POST to /authorize is the
+// only one of them that tests a password: the GET renders the form, and /token and /revoke
+// authenticate a client rather than a person. The API server throttles the same one route.
+func throttleLoginForm(throttle routing.Middleware) routing.Middleware {
+	return func(next http.Handler) http.Handler {
+		throttled := throttle(next)
+
+		return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+			if req.Method == http.MethodPost && req.URL.Path == oauth2server.PathAuthorize {
+				throttled.ServeHTTP(res, req)
+				return
+			}
+
+			next.ServeHTTP(res, req)
+		})
+	}
 }
 
 type mcpToolManager struct {

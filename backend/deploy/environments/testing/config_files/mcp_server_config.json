@@ -1,4 +1,41 @@
 {
+	"routing": {
+		"chiConfig": {
+			"serviceName": "dinner_done_better_mcp_server",
+			"enableCORSForLocalhost": true
+		},
+		"provider": "chi"
+	},
+	"observability": {
+		"profiling": {
+			"serviceName": "dinner_done_better_mcp_server"
+		},
+		"logging": {
+			"serviceName": "dinner_done_better_mcp_server",
+			"level": "info",
+			"provider": "slog"
+		},
+		"metrics": {
+			"serviceName": "dinner_done_better_mcp_server"
+		},
+		"tracing": {
+			"service_name": "dinner_done_better_mcp_server"
+		}
+	},
+	"meta": {
+		"runMode": "testing"
+	},
+	"rateLimiting": {
+		"provider": "memory",
+		"requestsPerSecond": 10000,
+		"burstSize": 10000
+	},
+	"oauth2": {
+		"provider": "database",
+		"database": {
+			"tablePrefix": "ddb"
+		}
+	},
 	"database": {
 		"provider": "postgres",
 		"readConnection": {
@@ -26,40 +63,8 @@
 		"logQueries": true,
 		"runMigrations": true
 	},
-	"routing": {
-		"chiConfig": {
-			"serviceName": "dinner_done_better_mcp_server",
-			"enableCORSForLocalhost": true
-		},
-		"provider": "chi"
-	},
-	"observability": {
-		"profiling": {
-			"serviceName": "dinner_done_better_mcp_server"
-		},
-		"logging": {
-			"serviceName": "dinner_done_better_mcp_server",
-			"level": "info",
-			"provider": "slog"
-		},
-		"metrics": {
-			"serviceName": "dinner_done_better_mcp_server"
-		},
-		"tracing": {
-			"service_name": "dinner_done_better_mcp_server"
-		}
-	},
-	"meta": {
-		"runMode": "testing"
-	},
 	"http": {
 		"startupDeadline": 60000000000,
 		"port": 8000
-	},
-	"oauth2": {
-		"provider": "database",
-		"database": {
-			"tablePrefix": "ddb"
-		}
 	}
 }

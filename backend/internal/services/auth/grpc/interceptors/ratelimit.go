@@ -98,8 +98,8 @@ func callerAddress(ctx context.Context, info *grpc.UnaryServerInfo) (string, err
 
 // lastForwardedFor is the rightmost address in a set of X-Forwarded-For values, or empty.
 func lastForwardedFor(values []string) string {
-	for i := len(values) - 1; i >= 0; i-- {
-		parts := strings.Split(values[i], ",")
+	for _, value := range slices.Backward(values) {
+		parts := strings.Split(value, ",")
 		if last := strings.TrimSpace(parts[len(parts)-1]); last != "" {
 			return last
 		}

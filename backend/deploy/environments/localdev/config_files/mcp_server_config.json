@@ -1,31 +1,4 @@
 {
-	"database": {
-		"provider": "postgres",
-		"readConnection": {
-			"username": "dbuser",
-			"password": "hunter2",
-			"database": "dinner-done-better",
-			"hostname": "pgdatabase",
-			"port": 5432,
-			"disableSSL": true
-		},
-		"writeConnection": {
-			"username": "dbuser",
-			"password": "hunter2",
-			"database": "dinner-done-better",
-			"hostname": "pgdatabase",
-			"port": 5432,
-			"disableSSL": true
-		},
-		"pingWaitPeriod": 1000000000,
-		"maxPingAttempts": 50,
-		"connMaxLifetime": 1800000000000,
-		"maxIdleConns": 5,
-		"maxOpenConns": 7,
-		"debug": true,
-		"logQueries": true,
-		"runMigrations": true
-	},
 	"routing": {
 		"chiConfig": {
 			"serviceName": "dinner_done_better_mcp_server",
@@ -75,14 +48,46 @@
 		"runMode": "development",
 		"debug": true
 	},
-	"http": {
-		"startupDeadline": 60000000000,
-		"port": 8000
+	"rateLimiting": {
+		"provider": "memory",
+		"requestsPerSecond": 10,
+		"burstSize": 50
 	},
 	"oauth2": {
 		"provider": "database",
 		"database": {
 			"tablePrefix": "ddb"
 		}
+	},
+	"database": {
+		"provider": "postgres",
+		"readConnection": {
+			"username": "dbuser",
+			"password": "hunter2",
+			"database": "dinner-done-better",
+			"hostname": "pgdatabase",
+			"port": 5432,
+			"disableSSL": true
+		},
+		"writeConnection": {
+			"username": "dbuser",
+			"password": "hunter2",
+			"database": "dinner-done-better",
+			"hostname": "pgdatabase",
+			"port": 5432,
+			"disableSSL": true
+		},
+		"pingWaitPeriod": 1000000000,
+		"maxPingAttempts": 50,
+		"connMaxLifetime": 1800000000000,
+		"maxIdleConns": 5,
+		"maxOpenConns": 7,
+		"debug": true,
+		"logQueries": true,
+		"runMigrations": true
+	},
+	"http": {
+		"startupDeadline": 60000000000,
+		"port": 8000
 	}
 }

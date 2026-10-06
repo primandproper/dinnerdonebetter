@@ -663,6 +663,10 @@ func (s *EnvironmentConfigSet) Render(ctx context.Context, outputDir string) err
 			Provider: oauth2servercfg.ProviderDatabase,
 			Database: oauth2database.Config{TablePrefix: branding.TablePrefix},
 		},
+		// The API server's budget: the login form is the same door on both servers. Caddy
+		// reaches the MCP server directly, so the address is the operator's own rather than
+		// the web apps' shared one, and the budget is more than one person needs.
+		RateLimiting: s.RootConfig.Services.Auth.RateLimiting,
 	}
 
 	// RenderJSONFiles validates every environment it is handed before writing any of that

@@ -310,11 +310,11 @@ credential stored as a digest; no password, client-credentials or implicit grant
 minted by the MCP server is in the table this server reads, and what stops it being spent here is
 that its audience names somewhere else.
 
-|                     | API server                         | MCP server                                          |
-|---------------------|------------------------------------|-----------------------------------------------------|
+|                     | API server                         | MCP server                                                                                 |
+|---------------------|------------------------------------|--------------------------------------------------------------------------------------------|
 | Who the subject is  | a sign-in token, or the login form | `signin.Service.AdminAuthenticate` — `service_admin` only, a proven second factor required |
-| Client registration | administered, via the gRPC surface | RFC 7591 dynamic, open, 90-day expiry               |
-| `POST /register`    | not served                         | served                                              |
+| Client registration | administered, via the gRPC surface | RFC 7591 dynamic, open, 90-day expiry                                                      |
+| `POST /register`    | not served                         | served                                                                                     |
 
 The MCP side is documented in [`backend/docs/mcp-usage-guide.md`](../backend/docs/mcp-usage-guide.md).
 
@@ -349,12 +349,15 @@ them, and swept once the login could no longer be alive.
 The doors a caller reaches with no credential and that test one or send mail —
 `LoginForToken`, `AdminLoginForToken`, `Register`, `RequestHandleReminder`,
 `RequestVerificationEmailByAddress`, `PasswordResetService.RequestPasswordReset`, and the OAuth2
-login form's `POST /authorize` — are throttled per address and per door, ahead of authentication,
+login form's `POST /authorize`, on both the API and the MCP server — are throttled per address and per door, ahead of authentication,
 by `primitives-go/ratelimiting`. The address is the last `X-Forwarded-For` entry, which Caddy
 writes and a client cannot, or the connection's when there is none; nothing a client writes is a
-key. The web apps reach the API through Caddy too, so their sign-ins share the cluster's egress
+key. Caddy sees the caller's own address only because its load balancer Service is
+`externalTrafficPolicy: Local`; under the default, a node rewrites the source to its own address
+and every caller would share that node's budget. The web apps reach the API through Caddy too, so their sign-ins share the cluster's egress
 address and its budget. A refusal is `RESOURCE_EXHAUSTED` (429 over HTTP) with when to retry.
-Configured under `services.auth.rateLimiting`; the limiter is in memory, so each replica holds a
+Configured under `services.auth.rateLimiting` (the MCP server's `rateLimiting` is rendered from
+the same block); the limiter is in memory, so each replica holds a
 budget of its own.
 
 **Implementation**: [`ratelimit.go`](../backend/internal/services/auth/grpc/interceptors/ratelimit.go).
