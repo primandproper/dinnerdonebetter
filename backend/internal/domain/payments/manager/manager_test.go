@@ -107,7 +107,7 @@ func TestPaymentsManager_ProcessWebhookEvent(T *testing.T) {
 			EventType:      "customer.subscription.updated",
 			SubscriptionID: subscription.ExternalSubscriptionID,
 			Status:         capitalism.SubscriptionStatusTrialing,
-		}, "")
+		})
 		require.NoError(t, err)
 
 		assert.Equal(t, []capitalism.SubscriptionStatus{capitalism.SubscriptionStatusTrialing}, *statuses)
@@ -128,7 +128,7 @@ func TestPaymentsManager_ProcessWebhookEvent(T *testing.T) {
 			EventType:      "subscription.updated",
 			SubscriptionID: subscription.ExternalSubscriptionID,
 			Status:         capitalism.SubscriptionStatusUnknown,
-		}, "")
+		})
 		require.NoError(t, err)
 
 		assert.Equal(t, []capitalism.SubscriptionStatus{capitalism.SubscriptionStatusActive}, *statuses)
@@ -154,7 +154,7 @@ func TestPaymentsManager_ProcessWebhookEvent(T *testing.T) {
 			EventType:      "customer.subscription.updated",
 			SubscriptionID: subscription.ExternalSubscriptionID,
 			Status:         capitalism.SubscriptionStatusActive,
-		}, "")
+		})
 		require.NoError(t, err)
 		assert.Len(t, *updates, 1)
 	})
@@ -169,7 +169,7 @@ func TestPaymentsManager_ProcessWebhookEvent(T *testing.T) {
 		err := pm.ProcessWebhookEvent(t.Context(), "stripe", &payments.ParsedWebhookEvent{
 			EventType:      "customer.subscription.deleted",
 			SubscriptionID: subscription.ExternalSubscriptionID,
-		}, "")
+		})
 		require.NoError(t, err)
 
 		assert.Equal(t, []capitalism.SubscriptionStatus{capitalism.SubscriptionStatusCanceled}, *statuses)
@@ -188,7 +188,7 @@ func TestPaymentsManager_ProcessWebhookEvent(T *testing.T) {
 			EventType:      "customer.subscription.updated",
 			SubscriptionID: fake.BuildFakeID(),
 			Status:         capitalism.SubscriptionStatusActive,
-		}, "")
+		})
 		require.ErrorIs(t, err, billing.ErrSubscriptionNotFound)
 		assert.Empty(t, *updates)
 	})
@@ -227,7 +227,7 @@ func TestPaymentsManager_ProcessWebhookEvent(T *testing.T) {
 			SubscriptionID: transactionID,
 			ProductID:      product.ExternalProductID,
 			Status:         capitalism.SubscriptionStatusActive,
-		}, "")
+		})
 		require.NoError(t, err)
 
 		require.NotNil(t, created)
@@ -259,7 +259,7 @@ func TestPaymentsManager_ProcessWebhookEvent(T *testing.T) {
 			AccountID:      subscription.BelongsToAccount,
 			SubscriptionID: subscription.ExternalSubscriptionID,
 			ProductID:      product.ExternalProductID,
-		}, "")
+		})
 		require.NoError(t, err)
 
 		assert.Equal(t, []capitalism.SubscriptionStatus{capitalism.SubscriptionStatusActive}, *statuses)
@@ -277,7 +277,7 @@ func TestPaymentsManager_ProcessWebhookEvent(T *testing.T) {
 			EventType:      "EXPIRATION",
 			AccountID:      subscription.BelongsToAccount,
 			SubscriptionID: subscription.ExternalSubscriptionID,
-		}, "")
+		})
 		require.NoError(t, err)
 
 		assert.Equal(t, []capitalism.SubscriptionStatus{capitalism.SubscriptionStatusCanceled}, *statuses)
@@ -296,7 +296,7 @@ func TestPaymentsManager_ProcessWebhookEvent(T *testing.T) {
 			EventType:      "EXPIRATION",
 			AccountID:      accountID,
 			SubscriptionID: fake.BuildFakeID(),
-		}, "")
+		})
 		require.NoError(t, err)
 
 		require.Len(t, *updates, 1)
@@ -314,7 +314,7 @@ func TestPaymentsManager_ProcessWebhookEvent(T *testing.T) {
 			EventType:      "CANCELLATION",
 			AccountID:      fake.BuildFakeID(),
 			SubscriptionID: fake.BuildFakeID(),
-		}, "")
+		})
 		require.NoError(t, err)
 		assert.Empty(t, *statuses)
 		assert.Empty(t, *updates)
@@ -331,7 +331,7 @@ func TestPaymentsManager_ProcessWebhookEvent(T *testing.T) {
 			EventType:      "CANCELLATION",
 			AccountID:      subscription.BelongsToAccount,
 			SubscriptionID: subscription.ExternalSubscriptionID,
-		}, "")
+		})
 		require.NoError(t, err)
 
 		// Access persists until EXPIRATION, so the standing is not touched here.
@@ -344,7 +344,7 @@ func TestPaymentsManager_ProcessWebhookEvent(T *testing.T) {
 
 		pm, updates := buildPaymentsManagerForTest(t, &billingmock.StoreMock{})
 
-		err := pm.ProcessWebhookEvent(t.Context(), "stripe", &payments.ParsedWebhookEvent{EventType: "something.new"}, "")
+		err := pm.ProcessWebhookEvent(t.Context(), "stripe", &payments.ParsedWebhookEvent{EventType: "something.new"})
 		require.NoError(t, err)
 		assert.Empty(t, *updates)
 	})
@@ -354,7 +354,7 @@ func TestPaymentsManager_ProcessWebhookEvent(T *testing.T) {
 
 		pm, _ := buildPaymentsManagerForTest(t, &billingmock.StoreMock{})
 
-		err := pm.ProcessWebhookEvent(t.Context(), "stripe", nil, "")
+		err := pm.ProcessWebhookEvent(t.Context(), "stripe", nil)
 		require.ErrorIs(t, err, platformerrors.ErrNilInputParameter)
 	})
 }
@@ -387,7 +387,7 @@ func TestPaymentsManager_UnrecognizedSubscriptionStatus(T *testing.T) {
 			SubscriptionID:     subscription.ExternalSubscriptionID,
 			Status:             capitalism.SubscriptionStatusUnknown,
 			StatusUnrecognized: true,
-		}, "")
+		})
 		require.NoError(t, err)
 
 		// Nothing written on either side. The subscription's own status is not moved
@@ -410,7 +410,7 @@ func TestPaymentsManager_UnrecognizedSubscriptionStatus(T *testing.T) {
 			EventType:      "customer.subscription.updated",
 			SubscriptionID: subscription.ExternalSubscriptionID,
 			Status:         capitalism.SubscriptionStatusUnknown,
-		}, "")
+		})
 		require.NoError(t, err)
 
 		assert.Equal(t, []capitalism.SubscriptionStatus{capitalism.SubscriptionStatusActive}, *statuses)

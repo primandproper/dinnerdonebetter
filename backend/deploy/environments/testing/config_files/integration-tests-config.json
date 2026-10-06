@@ -1,4 +1,93 @@
 {
+	"service": {
+		"database": {
+			"provider": "postgres",
+			"readConnection": {
+				"username": "dbuser",
+				"password": "hunter2",
+				"database": "dinner-done-better",
+				"hostname": "pgdatabase",
+				"port": 5432,
+				"disableSSL": true
+			},
+			"writeConnection": {
+				"username": "dbuser",
+				"password": "hunter2",
+				"database": "dinner-done-better",
+				"hostname": "pgdatabase",
+				"port": 5432,
+				"disableSSL": true
+			},
+			"pingWaitPeriod": 1500000000,
+			"maxPingAttempts": 50,
+			"connMaxLifetime": 1800000000000,
+			"maxIdleConns": 5,
+			"maxOpenConns": 7,
+			"debug": true,
+			"logQueries": true,
+			"runMigrations": true
+		},
+		"encoding": {
+			"contentType": "application/json"
+		},
+		"featureFlags": {
+			"provider": "noop",
+			"circuitBreakerConfig": {
+				"name": "feature_flagger",
+				"circuitBreakerErrorPercentage": 0.5,
+				"circuitBreakerMinimumOccurrenceThreshold": 100
+			}
+		},
+		"grpcServer": {
+			"port": 8001
+		},
+		"httpClient": {
+			"timeout": 10000000000,
+			"maxIdleConns": 100,
+			"maxIdleConnsPerHost": 100,
+			"enableTracing": true
+		},
+		"httpServer": {
+			"startupDeadline": 60000000000,
+			"port": 8000
+		},
+		"messageQueue": {
+			"consumer": {
+				"provider": "redis",
+				"redis": {
+					"queueAddresses": [
+						"worker_queue:6379"
+					]
+				}
+			},
+			"publisher": {
+				"provider": "redis",
+				"redis": {
+					"queueAddresses": [
+						"worker_queue:6379"
+					]
+				}
+			}
+		},
+		"name": "api_server",
+		"observability": {
+			"profiling": {
+				"serviceName": "api_server"
+			},
+			"logging": {
+				"serviceName": "api_server",
+				"level": "info",
+				"provider": "slog"
+			},
+			"metrics": {
+				"serviceName": "api_server"
+			},
+			"tracing": {
+				"service_name": "api_server"
+			}
+		},
+		"shutdownTimeout": 10000000000
+	},
 	"links": {
 		"actions": {
 			"waitlist_confirm": {
@@ -32,46 +121,6 @@
 	"pushNotifications": {
 		"provider": "noop"
 	},
-	"encoding": {
-		"contentType": "application/json"
-	},
-	"events": {
-		"consumer": {
-			"provider": "redis",
-			"redis": {
-				"queueAddresses": [
-					"worker_queue:6379"
-				]
-			}
-		},
-		"publisher": {
-			"provider": "redis",
-			"redis": {
-				"queueAddresses": [
-					"worker_queue:6379"
-				]
-			}
-		}
-	},
-	"observability": {
-		"profiling": {
-			"serviceName": "api_server"
-		},
-		"logging": {
-			"serviceName": "api_server",
-			"level": "info",
-			"provider": "slog"
-		},
-		"metrics": {
-			"serviceName": "api_server"
-		},
-		"tracing": {
-			"service_name": "api_server"
-		}
-	},
-	"grpc": {
-		"port": 8001
-	},
 	"meta": {
 		"runMode": "testing"
 	},
@@ -81,14 +130,6 @@
 	"analytics": {
 		"provider": "noop",
 		"circuitBreaker": {
-			"name": "feature_flagger",
-			"circuitBreakerErrorPercentage": 0.5,
-			"circuitBreakerMinimumOccurrenceThreshold": 100
-		}
-	},
-	"featureFlags": {
-		"provider": "noop",
-		"circuitBreakerConfig": {
 			"name": "feature_flagger",
 			"circuitBreakerErrorPercentage": 0.5,
 			"circuitBreakerMinimumOccurrenceThreshold": 100
@@ -115,37 +156,6 @@
 				"ceremonyTimeout": 120000000000
 			}
 		}
-	},
-	"database": {
-		"provider": "postgres",
-		"readConnection": {
-			"username": "dbuser",
-			"password": "hunter2",
-			"database": "dinner-done-better",
-			"hostname": "pgdatabase",
-			"port": 5432,
-			"disableSSL": true
-		},
-		"writeConnection": {
-			"username": "dbuser",
-			"password": "hunter2",
-			"database": "dinner-done-better",
-			"hostname": "pgdatabase",
-			"port": 5432,
-			"disableSSL": true
-		},
-		"pingWaitPeriod": 1500000000,
-		"maxPingAttempts": 50,
-		"connMaxLifetime": 1800000000000,
-		"maxIdleConns": 5,
-		"maxOpenConns": 7,
-		"debug": true,
-		"logQueries": true,
-		"runMigrations": true
-	},
-	"http": {
-		"startupDeadline": 60000000000,
-		"port": 8000
 	},
 	"idempotency": {
 		"enabled": false
@@ -197,18 +207,25 @@
 			"minimumPasswordLength": 8
 		},
 		"dataPrivacy": {
-			"encryption": {
-				"provider": "aes",
-				"currentKeyID": "v1"
-			},
 			"artifactEncryptionKey": "HEREISA32CHARSECRETWHICHISMADEUP",
-			"uploads": {
-				"storageConfig": {
-					"filesystem": {
-						"rootDirectory": "/tmp"
+			"platform": {
+				"artifacts": {
+					"storage": {
+						"filesystem": {
+							"rootDirectory": "/tmp"
+						},
+						"bucketName": "userdata",
+						"provider": "filesystem"
 					},
-					"bucketName": "userdata",
-					"provider": "filesystem"
+					"encryption": {
+						"provider": "aes",
+						"currentKeyID": "v1"
+					}
+				},
+				"dialect": "postgres",
+				"tablePrefix": "ddb",
+				"auditErasure": {
+					"tablePrefix": "ddb"
 				}
 			}
 		}

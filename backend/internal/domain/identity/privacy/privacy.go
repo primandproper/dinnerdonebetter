@@ -15,7 +15,6 @@ package privacy
 import (
 	"context"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/succession"
 
@@ -69,7 +68,7 @@ func NewCollector(store identity.Store, reader database.SQLQueryExecutor) (platf
 // in the succession rule blocks erasure for that subject until it is fixed — loud and
 // recoverable, where the alternative is a subject told they were erased who was not.
 func SuccessionStep(store identity.Store) (platformdataprivacy.Eraser, error) {
-	rule, err := succession.New(store, branding.TablePrefix)
+	rule, err := succession.New(store)
 	if err != nil {
 		return nil, err
 	}

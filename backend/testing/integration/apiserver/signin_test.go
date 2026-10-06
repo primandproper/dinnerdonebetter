@@ -31,7 +31,7 @@ func buildSignInClientForTest(t *testing.T) signinpb.SignInServiceClient {
 	t.Helper()
 
 	conn, err := grpc.NewClient(
-		fmt.Sprintf(":%d", apiServiceConfig.GRPCServer.Port),
+		fmt.Sprintf(":%d", apiServiceConfig.Service.GRPCServer.Port),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	require.NoError(t, err)

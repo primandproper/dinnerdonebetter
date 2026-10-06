@@ -1,4 +1,119 @@
 {
+	"service": {
+		"database": {
+			"provider": "postgres",
+			"readConnection": {
+				"username": "dbuser",
+				"password": "hunter2",
+				"database": "dinner-done-better",
+				"hostname": "pgdatabase",
+				"port": 5432,
+				"disableSSL": true
+			},
+			"writeConnection": {
+				"username": "dbuser",
+				"password": "hunter2",
+				"database": "dinner-done-better",
+				"hostname": "pgdatabase",
+				"port": 5432,
+				"disableSSL": true
+			},
+			"pingWaitPeriod": 1000000000,
+			"maxPingAttempts": 50,
+			"connMaxLifetime": 1800000000000,
+			"maxIdleConns": 5,
+			"maxOpenConns": 7,
+			"debug": true,
+			"logQueries": true,
+			"runMigrations": true
+		},
+		"encoding": {
+			"contentType": "application/json"
+		},
+		"featureFlags": {
+			"provider": "noop",
+			"circuitBreakerConfig": {
+				"name": "feature_flagger",
+				"circuitBreakerErrorPercentage": 0.5,
+				"circuitBreakerMinimumOccurrenceThreshold": 100
+			}
+		},
+		"grpcServer": {
+			"port": 8001
+		},
+		"httpClient": {
+			"timeout": 10000000000,
+			"maxIdleConns": 100,
+			"maxIdleConnsPerHost": 100,
+			"enableTracing": true
+		},
+		"httpServer": {
+			"appleAppSiteAssociation": {
+				"teamID": "K8R2Q5UWQS",
+				"bundleID": "com.dinnerdonebetter.ios"
+			},
+			"startupDeadline": 60000000000,
+			"port": 8000
+		},
+		"messageQueue": {
+			"consumer": {
+				"provider": "redis",
+				"redis": {
+					"queueAddresses": [
+						"worker_queue:6379"
+					]
+				}
+			},
+			"publisher": {
+				"provider": "redis",
+				"redis": {
+					"queueAddresses": [
+						"worker_queue:6379"
+					]
+				}
+			}
+		},
+		"name": "api_server",
+		"observability": {
+			"profiling": {
+				"pprof": {
+					"port": 6060
+				},
+				"serviceName": "api_server",
+				"provider": "pprof"
+			},
+			"logging": {
+				"serviceName": "api_server",
+				"level": "debug",
+				"otelslog": {
+					"endpointURL": "otel_collector:4317",
+					"insecure": true,
+					"timeout": 3000000000
+				},
+				"provider": "otelslog"
+			},
+			"metrics": {
+				"otelgrpc": {
+					"metricsCollectorEndpoint": "otel_collector:4317",
+					"collectionInterval": 1000000000,
+					"insecure": true
+				},
+				"serviceName": "api_server",
+				"provider": "otelgrpc",
+				"enabled": true
+			},
+			"tracing": {
+				"otelgrpc": {
+					"collector_endpoint": "otel_collector:4317",
+					"insecure": true
+				},
+				"service_name": "api_server",
+				"provider": "otelgrpc",
+				"spanCollectionProbability": 1
+			}
+		},
+		"shutdownTimeout": 10000000000
+	},
 	"links": {
 		"actions": {
 			"waitlist_confirm": {
@@ -32,65 +147,6 @@
 	"pushNotifications": {
 		"provider": "noop"
 	},
-	"encoding": {
-		"contentType": "application/json"
-	},
-	"events": {
-		"consumer": {
-			"provider": "redis",
-			"redis": {
-				"queueAddresses": [
-					"worker_queue:6379"
-				]
-			}
-		},
-		"publisher": {
-			"provider": "redis",
-			"redis": {
-				"queueAddresses": [
-					"worker_queue:6379"
-				]
-			}
-		}
-	},
-	"observability": {
-		"profiling": {
-			"pprof": {
-				"port": 6060
-			},
-			"serviceName": "api_server",
-			"provider": "pprof"
-		},
-		"logging": {
-			"serviceName": "api_server",
-			"level": "debug",
-			"otelslog": {
-				"endpointURL": "otel_collector:4317",
-				"insecure": true,
-				"timeout": 3000000000
-			},
-			"provider": "otelslog"
-		},
-		"metrics": {
-			"otelgrpc": {
-				"metricsCollectorEndpoint": "otel_collector:4317",
-				"collectionInterval": 1000000000,
-				"insecure": true
-			},
-			"serviceName": "api_server",
-			"provider": "otelgrpc",
-			"enabled": true
-		},
-		"tracing": {
-			"otelgrpc": {
-				"collector_endpoint": "otel_collector:4317",
-				"insecure": true
-			},
-			"service_name": "api_server",
-			"provider": "otelgrpc",
-			"spanCollectionProbability": 1
-		}
-	},
 	"meta": {
 		"runMode": "development",
 		"debug": true
@@ -101,14 +157,6 @@
 	"analytics": {
 		"provider": "noop",
 		"circuitBreaker": {
-			"name": "feature_flagger",
-			"circuitBreakerErrorPercentage": 0.5,
-			"circuitBreakerMinimumOccurrenceThreshold": 100
-		}
-	},
-	"featureFlags": {
-		"provider": "noop",
-		"circuitBreakerConfig": {
 			"name": "feature_flagger",
 			"circuitBreakerErrorPercentage": 0.5,
 			"circuitBreakerMinimumOccurrenceThreshold": 100
@@ -135,41 +183,6 @@
 				"ceremonyTimeout": 120000000000
 			}
 		}
-	},
-	"database": {
-		"provider": "postgres",
-		"readConnection": {
-			"username": "dbuser",
-			"password": "hunter2",
-			"database": "dinner-done-better",
-			"hostname": "pgdatabase",
-			"port": 5432,
-			"disableSSL": true
-		},
-		"writeConnection": {
-			"username": "dbuser",
-			"password": "hunter2",
-			"database": "dinner-done-better",
-			"hostname": "pgdatabase",
-			"port": 5432,
-			"disableSSL": true
-		},
-		"pingWaitPeriod": 1000000000,
-		"maxPingAttempts": 50,
-		"connMaxLifetime": 1800000000000,
-		"maxIdleConns": 5,
-		"maxOpenConns": 7,
-		"debug": true,
-		"logQueries": true,
-		"runMigrations": true
-	},
-	"http": {
-		"appleAppSiteAssociation": {
-			"teamID": "K8R2Q5UWQS",
-			"bundleID": "com.dinnerdonebetter.ios"
-		},
-		"startupDeadline": 60000000000,
-		"port": 8000
 	},
 	"idempotency": {
 		"manager": {
@@ -251,18 +264,25 @@
 			"minimumPasswordLength": 8
 		},
 		"dataPrivacy": {
-			"encryption": {
-				"provider": "aes",
-				"currentKeyID": "v1"
-			},
 			"artifactEncryptionKey": "HEREISA32CHARSECRETWHICHISMADEUP",
-			"uploads": {
-				"storageConfig": {
-					"filesystem": {
-						"rootDirectory": "/tmp"
+			"platform": {
+				"artifacts": {
+					"storage": {
+						"filesystem": {
+							"rootDirectory": "/tmp"
+						},
+						"bucketName": "userdata",
+						"provider": "filesystem"
 					},
-					"bucketName": "userdata",
-					"provider": "filesystem"
+					"encryption": {
+						"provider": "aes",
+						"currentKeyID": "v1"
+					}
+				},
+				"dialect": "postgres",
+				"tablePrefix": "ddb",
+				"auditErasure": {
+					"tablePrefix": "ddb"
 				}
 			}
 		}

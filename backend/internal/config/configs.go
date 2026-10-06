@@ -19,21 +19,18 @@ import (
 	linkscfg "github.com/primandproper/platform-go/v15/links/config"
 	meteringcfg "github.com/primandproper/platform-go/v15/metering/config"
 	operationscfg "github.com/primandproper/platform-go/v15/operations/config"
+	"github.com/primandproper/platform-go/v15/service"
 	webhookscfg "github.com/primandproper/platform-go/v15/webhooks/config"
 	analyticscfg "github.com/primandproper/primitives-go/v2/analytics/config"
 	platformconfig "github.com/primandproper/primitives-go/v2/config"
 	emailcfg "github.com/primandproper/primitives-go/v2/email/config"
-	"github.com/primandproper/primitives-go/v2/encoding"
-	featureflagscfg "github.com/primandproper/primitives-go/v2/featureflags/config"
 	httpclientcfg "github.com/primandproper/primitives-go/v2/httpclient"
 	idempotencycfg "github.com/primandproper/primitives-go/v2/idempotency/config"
 	"github.com/primandproper/primitives-go/v2/jobs"
-	msgconfig "github.com/primandproper/primitives-go/v2/messagequeue/config"
 	notificationscfg "github.com/primandproper/primitives-go/v2/notifications/mobile/config"
 	"github.com/primandproper/primitives-go/v2/observability"
 	routingcfg "github.com/primandproper/primitives-go/v2/routing/config"
 	textsearchcfg "github.com/primandproper/primitives-go/v2/search/text/config"
-	"github.com/primandproper/primitives-go/v2/server/grpc"
 	"github.com/primandproper/primitives-go/v2/server/http"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
@@ -47,6 +44,8 @@ const (
 	sectionDatabase      = "Database"
 	sectionObservability = "Observability"
 	sectionQueues        = "Queues"
+	sectionService       = "Service"
+	sectionMessageQueue  = "MessageQueue"
 )
 
 const (
@@ -85,8 +84,22 @@ type (
 
 	// APIServiceConfig configures an instance of the service. It is composed of all the other setting structs.
 	APIServiceConfig struct {
-		_          struct{}              `json:"-"`
-		HTTPClient *httpclientcfg.Config `envPrefix:"HTTP_CLIENT_" json:"httpClient,omitempty"`
+		_ struct{} `json:"-"`
+
+		// Service is what platform composes for the API server: its name and shutdown budget,
+		// the pillars, the database, the broker, both servers and the encoding they speak, the
+		// outbound HTTP client, and the feature flag manager. service.Register registers each
+		// block present with the same constructors this server used to call by hand.
+		//
+		// It carries no envPrefix, so each block keeps the prefix platform names it with —
+		// DATABASE_, OBSERVABILITY_, GRPC_SERVER_, HTTP_SERVER_, MESSAGE_QUEUE_.
+		//
+		// What is not in it is this application's to build, and each absence has a reason
+		// named where the field lives. The router is the one worth saying here: Routing stays
+		// below, because this server builds its router itself, with its routes on it, and a
+		// Routing block would register a second, empty one.
+		Service service.Config `json:"service,omitzero"`
+
 		// Links is the action-link minter: single-use secrets mailed as URLs. Its action
 		// registry names every link this server mints, where each points and how long it
 		// lives, and it is the only place those are decided — see DefaultLinksConfig.
@@ -94,19 +107,12 @@ type (
 		Queues            queuescfg.Config        `envPrefix:"QUEUES_"             json:"queues,omitzero"`
 		Routing           routingcfg.Config       `envPrefix:"ROUTING_"            json:"routing,omitzero"`
 		PushNotifications notificationscfg.Config `envPrefix:"PUSH_NOTIFICATIONS_" json:"pushNotifications,omitzero"`
-		Encoding          encoding.Config         `envPrefix:"ENCODING_"           json:"encoding,omitzero"`
 		BaseURL           string                  `env:"BASE_URL"                  json:"baseURL,omitempty"`
-		Events            msgconfig.Config        `envPrefix:"EVENTS_"             json:"events,omitzero"`
-		Observability     observability.Config    `envPrefix:"OBSERVABILITY_"      json:"observability,omitzero"`
-		GRPCServer        grpc.Config             `envPrefix:"GRPC_"               json:"grpc,omitzero"`
 		Meta              MetaSettings            `envPrefix:"META_"               json:"meta,omitzero"`
 		Email             emailcfg.Config         `envPrefix:"EMAIL_"              json:"email,omitzero"`
 		Analytics         analyticscfg.Config     `envPrefix:"ANALYTICS_"          json:"analytics,omitzero"`
-		FeatureFlags      featureflagscfg.Config  `envPrefix:"FEATURE_FLAGS_"      json:"featureFlags,omitzero"`
 		TextSearch        textsearchcfg.Config    `envPrefix:"SEARCH_"             json:"search,omitzero"`
 		Auth              authcfg.Config          `envPrefix:"AUTH_"               json:"auth,omitzero"`
-		Database          dbcfg.Config            `envPrefix:"DATABASE_"           json:"database,omitzero"`
-		HTTPServer        http.Config             `envPrefix:"HTTP_"               json:"http,omitzero"`
 
 		// Idempotency guards the mutations where running the work twice costs real money.
 		// A client that never sees a response and retries is indistinguishable from a
@@ -176,29 +182,38 @@ type (
 	DBCleanerConfig struct {
 		_ struct{} `json:"-"`
 
-		Observability observability.Config `envPrefix:"OBSERVABILITY_" json:"observability,omitzero"`
-
-		Database dbcfg.Config `envPrefix:"DATABASE_" json:"database,omitzero"`
+		// Service carries the job's name, its pillars and its database, which is all of
+		// platform this job is made of.
+		//
+		// The authorization server's block is the one thing it reads that is not in here.
+		// Service.OAuth2Server registers the authorization server along with its store, and a
+		// server needs a subject authenticator this job has no use for; a sweep needs the
+		// store alone. OAUTH2_ rather than OAUTH2_SERVER_, so nothing set for this block
+		// switches that one on.
+		Service service.Config `json:"service,omitzero"`
 
 		OAuth2 oauth2servercfg.Config `envPrefix:"OAUTH2_" json:"oauth2,omitzero"`
 	}
 
-	// AsyncMessageHandlerConfig configures an instance of the search data index scheduler job.
+	// AsyncMessageHandlerConfig configures the process that consumes the data change topic and
+	// runs its handlers.
 	AsyncMessageHandlerConfig struct {
-		_          struct{}              `json:"-"`
-		HTTPClient *httpclientcfg.Config `envPrefix:"HTTP_CLIENT_" json:"httpClient,omitempty"`
-		Queues     queuescfg.Config      `envPrefix:"QUEUES_"      json:"queues,omitzero"`
+		_ struct{} `json:"-"`
 
+		// Service carries what platform composes for this process: its pillars, the database,
+		// the broker it consumes from and publishes to, the encoding those messages are in, the
+		// outbound HTTP client, analytics, and the emailer.
+		Service service.Config `json:"service,omitzero"`
+
+		// PushNotifications is the push sender, kept out of Service for the reason
+		// SchedulerConfig.PushNotifications gives: its APNs credentials arrive at startup, so
+		// no rendered file can pass the validation Service gives every block it holds.
 		PushNotifications notificationscfg.Config `envPrefix:"PUSH_NOTIFICATIONS_" json:"pushNotifications,omitzero"`
-		Encoding          encoding.Config         `envPrefix:"ENCODING_"           json:"encoding,omitzero"`
-		BaseURL           string                  `env:"BASE_URL"                  json:"baseURL,omitempty"`
-		Events            msgconfig.Config        `envPrefix:"EVENTS_"             json:"events,omitzero"`
-		Observability     observability.Config    `envPrefix:"OBSERVABILITY_"      json:"observability,omitzero"`
-		Email             emailcfg.Config         `envPrefix:"EMAIL_"              json:"email,omitzero"`
-		Analytics         analyticscfg.Config     `envPrefix:"ANALYTICS_"          json:"analytics,omitzero"`
-		Search            textsearchcfg.Config    `envPrefix:"SEARCH_"             json:"search,omitzero"`
-		Database          dbcfg.Config            `envPrefix:"DATABASE_"           json:"database,omitzero"`
-		Pools             WorkerPoolsConfig       `envPrefix:"POOLS_"              json:"pools,omitzero"`
+
+		Queues  queuescfg.Config     `envPrefix:"QUEUES_" json:"queues,omitzero"`
+		BaseURL string               `env:"BASE_URL"      json:"baseURL,omitempty"`
+		Search  textsearchcfg.Config `envPrefix:"SEARCH_" json:"search,omitzero"`
+		Pools   WorkerPoolsConfig    `envPrefix:"POOLS_"  json:"pools,omitzero"`
 	}
 
 	// WorkerPoolsConfig configures the jobs.Pool draining each queue topic. Topics are not
@@ -270,27 +285,42 @@ func (cfg *APIServiceConfig) Commit() string {
 var _ validation.ValidatableWithContext = (*APIServiceConfig)(nil)
 
 // ValidateWithContext validates a APIServiceConfig struct.
+//
+// Service is validated first and on its own, for the reason SchedulerConfig.ValidateWithContext
+// gives: its validation releases the blocks nobody configured, and service.Register reads what is
+// left as what to build.
 func (cfg *APIServiceConfig) ValidateWithContext(ctx context.Context) error {
+	if err := cfg.Service.ValidateWithContext(ctx); err != nil {
+		return fmt.Errorf("error validating Service config: %w", err)
+	}
+
 	result := &multierror.Error{}
 
 	validators := map[string]func(context.Context) error{
-		"Routing":            cfg.Routing.ValidateWithContext,
-		"Meta":               cfg.Meta.ValidateWithContext,
-		sectionQueues:        cfg.Queues.ValidateWithContext,
-		"Encoding":           cfg.Encoding.ValidateWithContext,
-		sectionAnalytics:     cfg.Analytics.ValidateWithContext,
-		sectionObservability: cfg.Observability.ValidateWithContext,
-		sectionDatabase:      cfg.Database.ValidateWithContext,
-		"HTTPServer":         cfg.HTTPServer.ValidateWithContext,
-		"Email":              cfg.Email.ValidateWithContext,
-		"FeatureFlags":       cfg.FeatureFlags.ValidateWithContext,
-		"TextSearch":         cfg.TextSearch.ValidateWithContext,
-		"Idempotency":        cfg.Idempotency.ValidateWithContext,
-		"Webhooks":           cfg.Webhooks.ValidateWithContext,
-		"Metering":           cfg.Metering.ValidateWithContext,
-		"Entitlements":       cfg.Entitlements.ValidateWithContext,
-		"Operations":         cfg.Operations.ValidateWithContext,
-		"Links":              cfg.Links.ValidateWithContext,
+		"Routing":        cfg.Routing.ValidateWithContext,
+		"Meta":           cfg.Meta.ValidateWithContext,
+		sectionQueues:    cfg.Queues.ValidateWithContext,
+		sectionAnalytics: cfg.Analytics.ValidateWithContext,
+		"Email":          cfg.Email.ValidateWithContext,
+		"TextSearch":     cfg.TextSearch.ValidateWithContext,
+		sectionService: func(context.Context) error {
+			return requireBlocks(map[string]bool{
+				sectionDatabase:     cfg.Service.Database != nil,
+				sectionMessageQueue: cfg.Service.MessageQueue != nil,
+				"GRPCServer":        cfg.Service.GRPCServer != nil,
+				"HTTPServer":        cfg.Service.HTTPServer != nil,
+				"Encoding":          cfg.Service.Encoding != nil,
+				"FeatureFlags":      cfg.Service.FeatureFlags != nil,
+				// The feature flag manager's provider client is built over it.
+				"HTTPClient": cfg.Service.HTTPClient != nil,
+			})
+		},
+		"Idempotency":  cfg.Idempotency.ValidateWithContext,
+		"Webhooks":     cfg.Webhooks.ValidateWithContext,
+		"Metering":     cfg.Metering.ValidateWithContext,
+		"Entitlements": cfg.Entitlements.ValidateWithContext,
+		"Operations":   cfg.Operations.ValidateWithContext,
+		"Links":        cfg.Links.ValidateWithContext,
 		// no "Events" here, that's a collection of publisher/subscriber configs that can each optionally be setup
 	}
 
@@ -311,20 +341,13 @@ var _ validation.ValidatableWithContext = (*DBCleanerConfig)(nil)
 
 // ValidateWithContext validates a DBCleanerConfig struct.
 func (cfg *DBCleanerConfig) ValidateWithContext(ctx context.Context) error {
-	result := &multierror.Error{}
-
-	validators := map[string]func(context.Context) error{
-		sectionObservability: cfg.Observability.ValidateWithContext,
-		sectionDatabase:      cfg.Database.ValidateWithContext,
+	if err := cfg.Service.ValidateWithContext(ctx); err != nil {
+		return fmt.Errorf("error validating Service config: %w", err)
 	}
 
-	for name, validator := range validators {
-		if err := validator(ctx); err != nil {
-			result = multierror.Append(fmt.Errorf("error validating %s config: %w", name, err), result)
-		}
-	}
-
-	return result.ErrorOrNil()
+	return requireBlocks(map[string]bool{
+		"Service.Database": cfg.Service.Database != nil,
+	})
 }
 
 var _ validation.ValidatableWithContext = (*IdempotencyConfig)(nil)
@@ -356,16 +379,24 @@ var _ validation.ValidatableWithContext = (*AsyncMessageHandlerConfig)(nil)
 
 // ValidateWithContext validates a AsyncMessageHandlerConfig struct.
 func (cfg *AsyncMessageHandlerConfig) ValidateWithContext(ctx context.Context) error {
+	if err := cfg.Service.ValidateWithContext(ctx); err != nil {
+		return fmt.Errorf("error validating Service config: %w", err)
+	}
+
 	result := &multierror.Error{}
 
 	validators := map[string]func(context.Context) error{
-		sectionQueues:        cfg.Queues.ValidateWithContext,
-		sectionAnalytics:     cfg.Analytics.ValidateWithContext,
-		sectionObservability: cfg.Observability.ValidateWithContext,
-		sectionDatabase:      cfg.Database.ValidateWithContext,
-		"Email":              cfg.Email.ValidateWithContext,
-		"TextSearch":         cfg.Search.ValidateWithContext,
-		"Pools":              cfg.Pools.ValidateWithContext,
+		sectionQueues: cfg.Queues.ValidateWithContext,
+		"TextSearch":  cfg.Search.ValidateWithContext,
+		"Pools":       cfg.Pools.ValidateWithContext,
+		sectionService: func(context.Context) error {
+			return requireBlocks(map[string]bool{
+				sectionDatabase:     cfg.Service.Database != nil,
+				sectionMessageQueue: cfg.Service.MessageQueue != nil,
+				"Encoding":          cfg.Service.Encoding != nil,
+				"Email":             cfg.Service.Email != nil,
+			})
+		},
 	}
 
 	for name, validator := range validators {

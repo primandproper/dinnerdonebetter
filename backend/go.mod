@@ -20,7 +20,6 @@ require (
 	github.com/cristalhq/builq v0.15.0
 	github.com/dustin/go-humanize v1.0.1
 	github.com/fxamacker/cbor/v2 v2.9.2
-	github.com/go-chi/chi/v5 v5.3.0
 	github.com/go-ozzo/ozzo-validation/v4 v4.3.0
 	github.com/hako/durafmt v0.0.0-20210608085754-5c1018a4e16b
 	github.com/hashicorp/go-multierror v1.1.1
@@ -168,6 +167,7 @@ require (
 	github.com/getsentry/sentry-go v0.47.0 // indirect
 	github.com/gin-contrib/sse v1.1.0 // indirect
 	github.com/gin-gonic/gin v1.12.0 // indirect
+	github.com/go-chi/chi/v5 v5.3.0 // indirect
 	github.com/go-chi/cors v1.2.2 // indirect
 	github.com/go-faker/faker/v4 v4.7.0 // indirect
 	github.com/go-jose/go-jose/v4 v4.1.4 // indirect

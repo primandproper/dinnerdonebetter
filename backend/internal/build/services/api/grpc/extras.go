@@ -2,9 +2,7 @@ package grpcapi
 
 import (
 	"context"
-	"fmt"
 	"maps"
-	"runtime/debug"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	identitybuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/identity"
@@ -53,8 +51,6 @@ import (
 
 	"github.com/samber/do/v2"
 	grpc "google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 // RegisterExtras registers the helper functions with the injector.
@@ -77,7 +73,8 @@ func RegisterExtras(i do.Injector) {
 		authInterceptor := do.MustInvoke[*interceptors.AuthInterceptor](i)
 
 		authzEnforcer, err := ProvideAuthorizationEnforcer(
-			do.MustInvoke[interceptors.MethodPermissionsMap](i),
+			MethodPermissionFragments(),
+			MethodPermissionOverrides(),
 			authInterceptor,
 			logger,
 			do.MustInvoke[metrics.Provider](i),
@@ -99,13 +96,11 @@ func RegisterExtras(i do.Injector) {
 			return nil, err
 		}
 
-		return BuildUnaryServerInterceptors(logger, authInterceptor, authzEnforcer, idempotencyInterceptor), nil
+		return BuildUnaryServerInterceptors(authInterceptor, authzEnforcer, idempotencyInterceptor), nil
 	})
 
 	do.Provide(i, func(i do.Injector) ([]grpc.StreamServerInterceptor, error) {
-		logger := do.MustInvoke[logging.Logger](i)
-		authInterceptor := do.MustInvoke[*interceptors.AuthInterceptor](i)
-		return BuildStreamServerInterceptors(logger, authInterceptor), nil
+		return BuildStreamServerInterceptors(do.MustInvoke[*interceptors.AuthInterceptor](i)), nil
 	})
 
 	do.Provide(i, func(i do.Injector) ([]platformgrpc.RegistrationFunc, error) {
@@ -205,18 +200,35 @@ func registerWithAdministration(server *grpc.Server, impl any, plain func(*grpc.
 	plain(server)
 }
 
+// The interceptors this server adds, inside the two primitives-go's server installs ahead of every
+// list it is given: RecoveryInterceptor, outermost, and the logging interceptor after it. Recovery
+// is not repeated here. A second one would sit inside the first and catch nothing it does not.
+//
+// The first of this server's own strips the encoded error chain. The error encoding interceptors
+// put a failure on the wire twice: once as a client-safe status message, and once as the whole
+// wrapped chain, encoded into the status details so a trusted peer can reconstruct it with
+// errorsgrpc.DecodeErrorFromStatus. That second copy is unredacted — table names, the rule a query
+// broke, which of two refusals signin deliberately answers identically — and primitives-go is
+// explicit that a server reachable by untrusted clients must strip it at the edge.
+//
+// This server is that edge. The iOS app and the web frontend dial it directly, and nothing between
+// the handler and their transport removes a detail. Nor is there a trusted peer on the far side to
+// keep it for: nothing that calls this server decodes the chain. So it is stripped here, for every
+// method, rather than per service or behind a flag somebody has to remember to set.
+//
+// Only the encoded chain goes. The code, the message and the google.rpc.ErrorInfo a client branches
+// on are left exactly as the encoder built them — see errorsgrpc.StripEncodedErrorDetail.
+
+// BuildUnaryServerInterceptors is the unary chain this server adds, outermost first.
 func BuildUnaryServerInterceptors(
-	logger logging.Logger,
 	authInterceptor *interceptors.AuthInterceptor,
 	authzEnforcer *authzgrpc.Enforcer,
 	idempotencyInterceptor grpc.UnaryServerInterceptor,
 ) []grpc.UnaryServerInterceptor {
 	return []grpc.UnaryServerInterceptor{
-		// recovery must be outermost so it catches panics from downstream interceptors and handlers.
-		RecoveryUnaryServerInterceptor(logger),
-		// Next, so nothing any interceptor below returns reaches a client with the encoded error
-		// chain still attached. See error_details.go.
-		StripEncodedErrorDetailUnaryInterceptor(),
+		// First, so nothing any interceptor below returns reaches a client with the encoded error
+		// chain still attached. It must sit outside the error encoder, which is what attaches it.
+		errorsgrpc.StripEncodedErrorDetailUnaryServerInterceptor(),
 		// Outside authentication, so the refusals the interceptors below make are encoded the
 		// way a handler's are — with a client-safe reason where the error names one, which is
 		// how a forced password change says PASSWORD_CHANGE_REQUIRED.
@@ -231,44 +243,13 @@ func BuildUnaryServerInterceptors(
 	}
 }
 
-func BuildStreamServerInterceptors(logger logging.Logger, authInterceptor *interceptors.AuthInterceptor) []grpc.StreamServerInterceptor {
+// BuildStreamServerInterceptors is the stream chain this server adds, outermost first.
+func BuildStreamServerInterceptors(authInterceptor *interceptors.AuthInterceptor) []grpc.StreamServerInterceptor {
 	return []grpc.StreamServerInterceptor{
-		// recovery must be outermost so it catches panics from downstream interceptors and handlers.
-		RecoveryStreamServerInterceptor(logger),
-		// Next, so nothing any interceptor below returns reaches a client with the encoded error
-		// chain still attached. See error_details.go.
-		StripEncodedErrorDetailStreamInterceptor(),
+		// First, for the reason the unary chain's strip is.
+		errorsgrpc.StripEncodedErrorDetailStreamServerInterceptor(),
 		errorsgrpc.StreamErrorEncodingInterceptor(),
 		authInterceptor.StreamServerInterceptor(),
-	}
-}
-
-// RecoveryUnaryServerInterceptor recovers from panics in unary handlers, logs them, and maps them to codes.Internal
-// so a single nil-dereference degrades into a 500 rather than crashing the process.
-func RecoveryUnaryServerInterceptor(logger logging.Logger) grpc.UnaryServerInterceptor {
-	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
-		defer func() {
-			if r := recover(); r != nil {
-				logger.WithValue("method", info.FullMethod).WithValue("stack", string(debug.Stack())).Error("recovered from panic in gRPC unary handler", fmt.Errorf("%v", r))
-				err = status.Errorf(codes.Internal, "internal server error")
-			}
-		}()
-
-		return handler(ctx, req)
-	}
-}
-
-// RecoveryStreamServerInterceptor recovers from panics in stream handlers, logs them, and maps them to codes.Internal.
-func RecoveryStreamServerInterceptor(logger logging.Logger) grpc.StreamServerInterceptor {
-	return func(srv any, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) (err error) {
-		defer func() {
-			if r := recover(); r != nil {
-				logger.WithValue("method", info.FullMethod).WithValue("stack", string(debug.Stack())).Error("recovered from panic in gRPC stream handler", fmt.Errorf("%v", r))
-				err = status.Errorf(codes.Internal, "internal server error")
-			}
-		}()
-
-		return handler(srv, ss)
 	}
 }
 
@@ -289,13 +270,28 @@ func ProvideUserTextSearcher(
 	)
 }
 
-// MethodPermissions is the table the server's authorization interceptor enforces: every method
-// this deployment serves, and the permissions a caller must hold to make it.
+// MethodPermissions is the table the server's authentication interceptor enforces: every method
+// this deployment serves, and the permissions a caller must hold to make it. It is each surface's
+// fragment with this deployment's overrides applied.
 //
 // It is assembled here rather than in the injector so that what reads it outside the server —
 // the enforcer equivalence proof, and the conformance harness deriving which calls this
 // deployment reserves to an operator — reads the table the server enforces rather than a copy.
+//
+// The authorization enforcer does not read it. It is built from the two halves separately —
+// MethodPermissionFragments declared, MethodPermissionOverrides applied through
+// RequirementsBuilder.Override — so the equivalence proof compares two derivations of the table
+// rather than one table with itself.
 func MethodPermissions() interceptors.MethodPermissionsMap {
+	out := MethodPermissionFragments()
+	maps.Copy(out, MethodPermissionOverrides())
+
+	return out
+}
+
+// MethodPermissionFragments is every surface's table as it ships, before this deployment amends
+// any of it.
+func MethodPermissionFragments() interceptors.MethodPermissionsMap {
 	return AggregateMethodPermissions(
 		auditgrpc.Permissions(),
 		commentsgrpc.Permissions(),
@@ -313,6 +309,22 @@ func MethodPermissions() interceptors.MethodPermissionsMap {
 		waitlistsbuild.Permissions(),
 		webhooksgrpc.Permissions(),
 	)
+}
+
+// MethodPermissionOverrides is where this deployment amends a platform surface's fragment: each
+// entry replaces what a method the fragment already declares demands.
+//
+// They are kept apart from the fragments rather than written over a copy of them because the
+// requirements builder checks an override against what was declared: an override naming a
+// method no fragment declares — a typo, or an RPC the surface renamed — fails the build, where a
+// copy edited in place would declare it quietly and leave the real method on its default.
+func MethodPermissionOverrides() map[string][]authorization.Permission {
+	out := map[string][]authorization.Permission{}
+
+	maps.Copy(out, identitybuild.PermissionOverrides())
+	maps.Copy(out, waitlistsbuild.PermissionOverrides())
+
+	return out
 }
 
 // AggregateMethodPermissions combines method permissions from all services into a single map.

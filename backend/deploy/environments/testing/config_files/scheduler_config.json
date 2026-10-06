@@ -9,50 +9,278 @@
 	"pushNotifications": {
 		"provider": "noop"
 	},
-	"capitalism": {
-		"provider": "noop"
-	},
-	"events": {
-		"consumer": {
-			"provider": "redis",
-			"redis": {
-				"queueAddresses": [
-					"worker_queue:6379"
-				]
+	"dataPrivacyArtifactEncryptionKey": "HEREISA32CHARSECRETWHICHISMADEUP",
+	"service": {
+		"capitalism": {
+			"provider": "noop"
+		},
+		"dataPrivacy": {
+			"artifacts": {
+				"storage": {
+					"filesystem": {
+						"rootDirectory": "/tmp"
+					},
+					"bucketName": "userdata",
+					"provider": "filesystem"
+				},
+				"encryption": {
+					"provider": "aes",
+					"currentKeyID": "v1"
+				}
+			},
+			"dialect": "postgres",
+			"tablePrefix": "ddb",
+			"auditErasure": {
+				"tablePrefix": "ddb",
+				"retentionBasis": "audit records retained under legitimate interest and legal obligation; entries are cryptographically chained and cannot be removed without destroying the integrity guarantee"
+			},
+			"fulfiller": {
+				"artifactPathPrefix": "dataprivacy/exports",
+				"fulfillmentTimeout": 600000000000,
+				"collectorTimeout": 30000000000,
+				"artifactTTL": 604800000000000,
+				"maxDocumentBytes": 536870912,
+				"maxAttempts": 3,
+				"collectorConcurrency": 4
+			},
+			"service": {
+				"exportResponseWindow": 2592000000000000,
+				"erasureResponseWindow": 2592000000000000,
+				"signedURLTTL": 900000000000
+			},
+			"sweeper": {
+				"requestRetention": 94608000000000000,
+				"batchSize": 100
 			}
 		},
-		"publisher": {
-			"provider": "redis",
-			"redis": {
-				"queueAddresses": [
-					"worker_queue:6379"
-				]
+		"database": {
+			"provider": "postgres",
+			"readConnection": {
+				"username": "dbuser",
+				"password": "hunter2",
+				"database": "dinner-done-better",
+				"hostname": "pgdatabase",
+				"port": 5432,
+				"disableSSL": true
+			},
+			"writeConnection": {
+				"username": "dbuser",
+				"password": "hunter2",
+				"database": "dinner-done-better",
+				"hostname": "pgdatabase",
+				"port": 5432,
+				"disableSSL": true
+			},
+			"pingWaitPeriod": 1500000000,
+			"maxPingAttempts": 50,
+			"connMaxLifetime": 1800000000000,
+			"maxIdleConns": 5,
+			"maxOpenConns": 7,
+			"debug": true,
+			"logQueries": true,
+			"runMigrations": true
+		},
+		"distributedLock": {
+			"postgres": {
+				"connWaitTimeout": 5000000000
+			},
+			"provider": "postgres"
+		},
+		"jobsScheduler": {
+			"scheduler": {
+				"lockKeyPrefix": "dinner_done_better.scheduler.",
+				"timezone": "UTC",
+				"defaultLeaseTTL": 120000000000,
+				"defaultTimeout": 60000000000
+			},
+			"lock": {
+				"postgres": {
+					"connWaitTimeout": 5000000000
+				},
+				"provider": "postgres"
 			}
-		}
-	},
-	"observability": {
-		"profiling": {
-			"serviceName": "scheduler"
 		},
-		"logging": {
-			"serviceName": "scheduler",
-			"level": "info",
-			"provider": "slog"
+		"messageQueue": {
+			"consumer": {
+				"provider": "redis",
+				"redis": {
+					"queueAddresses": [
+						"worker_queue:6379"
+					]
+				}
+			},
+			"publisher": {
+				"provider": "redis",
+				"redis": {
+					"queueAddresses": [
+						"worker_queue:6379"
+					]
+				}
+			}
 		},
-		"metrics": {
-			"serviceName": "scheduler"
+		"metering": {
+			"enforcer": {
+				"cachePrefix": "metering:",
+				"staleness": 10000000000
+			},
+			"flusher": {
+				"backoff": {
+					"maxAttempts": 10,
+					"initialDelay": 1000000000,
+					"maxDelay": 300000000000,
+					"multiplier": 2,
+					"useJitter": true
+				},
+				"leaseDuration": 300000000000,
+				"flushTimeout": 30000000000,
+				"eventRetention": 7776000000000000,
+				"batchSize": 100,
+				"concurrency": 4,
+				"maxAttempts": 10,
+				"reapBatchSize": 1000
+			},
+			"recorder": {
+				"batchSize": 100
+			}
 		},
-		"tracing": {
-			"service_name": "scheduler"
-		}
-	},
-	"analytics": {
-		"provider": "noop",
-		"circuitBreaker": {
-			"name": "feature_flagger",
-			"circuitBreakerErrorPercentage": 0.5,
-			"circuitBreakerMinimumOccurrenceThreshold": 100
-		}
+		"operations": {
+			"operations": {
+				"queueName": "operations",
+				"retention": 2592000000000000,
+				"recoverAfter": 60000000000,
+				"reapBatchSize": 1000,
+				"recoverBatchSize": 200
+			},
+			"recover": {
+				"interval": 60000000000,
+				"leaseTTL": 60000000000
+			},
+			"reap": {
+				"interval": 3600000000000,
+				"leaseTTL": 600000000000
+			},
+			"queue": {
+				"name": "operations",
+				"retention": 86400000000000,
+				"maxClaimBatch": 500,
+				"reapBatchSize": 1000,
+				"writeAttempts": 3,
+				"minWakeInterval": 100000000
+			},
+			"worker": {
+				"poll": 5000000000,
+				"lease": 120000000000,
+				"retryDelay": 30000000000,
+				"progressInterval": 2000000000,
+				"batch": 4,
+				"concurrency": 2,
+				"maxAttempts": 5
+			},
+			"watcher": {
+				"poll": 2000000000,
+				"minReadInterval": 250000000,
+				"maxSubscriptions": 1024
+			}
+		},
+		"retention": {
+			"sweeper": {
+				"batchSize": 1000,
+				"maxBatches": 1000,
+				"backlogCeiling": 100000
+			}
+		},
+		"saga": {
+			"eventTopic": "saga.lifecycle",
+			"retention": {
+				"job": {
+					"interval": 3600000000000,
+					"leaseTTL": 1800000000000
+				},
+				"sweeper": {
+					"batchSize": 1000,
+					"maxBatches": 1000,
+					"backlogCeiling": 100000
+				},
+				"completed": 604800000000000,
+				"compensated": 2592000000000000
+			},
+			"worker": {
+				"lockKeyPrefix": "saga:instance:",
+				"idempotencyKeyPrefix": "saga:",
+				"backoff": {
+					"maxAttempts": 3,
+					"initialDelay": 1000000000,
+					"maxDelay": 60000000000,
+					"multiplier": 2,
+					"useJitter": true
+				},
+				"compensationBackoff": {
+					"maxAttempts": 10,
+					"initialDelay": 1000000000,
+					"maxDelay": 60000000000,
+					"multiplier": 2,
+					"useJitter": true
+				},
+				"pollInterval": 1000000000,
+				"statsInterval": 60000000000,
+				"leaseDuration": 600000000000,
+				"lockTTL": 600000000000,
+				"advanceTimeout": 300000000000,
+				"stepTimeout": 120000000000,
+				"batchSize": 10,
+				"concurrency": 4
+			}
+		},
+		"webhooks": {
+			"emitterTopic": "domain_events",
+			"circuitBreaker": {
+				"name": "webhook_delivery",
+				"circuitBreakerErrorPercentage": 0.5,
+				"circuitBreakerMinimumOccurrenceThreshold": 100
+			},
+			"worker": {
+				"userAgent": "Dinner Done Better Webhooks/1",
+				"backoff": {
+					"maxAttempts": 10,
+					"initialDelay": 5000000000,
+					"maxDelay": 3600000000000,
+					"multiplier": 2,
+					"useJitter": true
+				},
+				"pollInterval": 1000000000,
+				"leaseDuration": 120000000000,
+				"requestTimeout": 10000000000,
+				"circuitOpenRetryDelay": 30000000000,
+				"retention": 604800000000000,
+				"reapInterval": 300000000000,
+				"batchSize": 100,
+				"concurrency": 16,
+				"reapBatchSize": 1000
+			},
+			"httpClient": {
+				"timeout": 10000000000,
+				"maxIdleConns": 100,
+				"maxIdleConnsPerHost": 100
+			}
+		},
+		"name": "scheduler",
+		"observability": {
+			"profiling": {
+				"serviceName": "scheduler"
+			},
+			"logging": {
+				"serviceName": "scheduler",
+				"level": "info",
+				"provider": "slog"
+			},
+			"metrics": {
+				"serviceName": "scheduler"
+			},
+			"tracing": {
+				"service_name": "scheduler"
+			}
+		},
+		"shutdownTimeout": 60000000000
 	},
 	"search": {
 		"provider": "noop",
@@ -62,7 +290,7 @@
 			"circuitBreakerMinimumOccurrenceThreshold": 100
 		}
 	},
-	"audit": {
+	"auditLog": {
 		"dialect": "postgres",
 		"tablePrefix": "ddb",
 		"retention": {
@@ -72,62 +300,43 @@
 		}
 	},
 	"jobs": {
-		"scheduler": {
-			"lockKeyPrefix": "dinner_done_better.scheduler.",
-			"timezone": "UTC",
-			"defaultLeaseTTL": 120000000000,
-			"defaultTimeout": 60000000000
-		},
-		"lock": {
-			"postgres": {
-				"connWaitTimeout": 5000000000
-			},
-			"provider": "postgres"
-		},
 		"searchDataIndexScheduler": {
 			"schedule": "*/10 6-11 * * *",
 			"timeout": 300000000000,
 			"leaseTTL": 600000000000,
-			"enabled": true,
 			"runOnStart": true
 		},
 		"queueTest": {
 			"interval": 900000000000,
 			"timeout": 60000000000,
-			"leaseTTL": 120000000000,
-			"enabled": true
+			"leaseTTL": 120000000000
 		},
 		"dataPrivacySweep": {
 			"interval": 3600000000000,
 			"timeout": 300000000000,
 			"leaseTTL": 600000000000,
-			"enabled": true,
 			"runOnStart": true
 		},
 		"auditRetentionSweeper": {
 			"schedule": "17 7 * * *",
 			"timeout": 600000000000,
-			"leaseTTL": 1200000000000,
-			"enabled": true
+			"leaseTTL": 1200000000000
 		},
 		"meteringFlusher": {
 			"interval": 300000000000,
 			"timeout": 120000000000,
-			"leaseTTL": 600000000000,
-			"enabled": true
+			"leaseTTL": 600000000000
 		},
 		"mealPlanning": {
 			"mealPlanFinalizationStarter": {
 				"interval": 60000000000,
 				"timeout": 120000000000,
-				"leaseTTL": 300000000000,
-				"enabled": true
+				"leaseTTL": 300000000000
 			},
 			"mealPlanTaskNotifications": {
 				"schedule": "CRON_TZ=America/Chicago 0 8-21 * * *",
 				"timeout": 600000000000,
-				"leaseTTL": 1200000000000,
-				"enabled": true
+				"leaseTTL": 1200000000000
 			},
 			"mealPlanTaskNotificationQueue": {
 				"retention": 86400000000000,
@@ -136,60 +345,7 @@
 			}
 		}
 	},
-	"database": {
-		"provider": "postgres",
-		"readConnection": {
-			"username": "dbuser",
-			"password": "hunter2",
-			"database": "dinner-done-better",
-			"hostname": "pgdatabase",
-			"port": 5432,
-			"disableSSL": true
-		},
-		"writeConnection": {
-			"username": "dbuser",
-			"password": "hunter2",
-			"database": "dinner-done-better",
-			"hostname": "pgdatabase",
-			"port": 5432,
-			"disableSSL": true
-		},
-		"pingWaitPeriod": 1500000000,
-		"maxPingAttempts": 50,
-		"connMaxLifetime": 1800000000000,
-		"maxIdleConns": 5,
-		"maxOpenConns": 7,
-		"debug": true,
-		"logQueries": true,
-		"runMigrations": true
-	},
-	"sagas": {
-		"lockKeyPrefix": "saga:instance:",
-		"idempotencyKeyPrefix": "saga:",
-		"backoff": {
-			"maxAttempts": 3,
-			"initialDelay": 1000000000,
-			"maxDelay": 60000000000,
-			"multiplier": 2,
-			"useJitter": true
-		},
-		"compensationBackoff": {
-			"maxAttempts": 10,
-			"initialDelay": 1000000000,
-			"maxDelay": 60000000000,
-			"multiplier": 2,
-			"useJitter": true
-		},
-		"pollInterval": 1000000000,
-		"statsInterval": 60000000000,
-		"leaseDuration": 600000000000,
-		"lockTTL": 600000000000,
-		"advanceTimeout": 300000000000,
-		"stepTimeout": 120000000000,
-		"batchSize": 10,
-		"concurrency": 4
-	},
-	"outbox": {
+	"outboxRelay": {
 		"claimMode": "skip_locked",
 		"backoff": {
 			"maxAttempts": 8,
@@ -206,122 +362,5 @@
 		"reapInterval": 3600000000000,
 		"reapBatchSize": 1000,
 		"minWakeInterval": 100000000
-	},
-	"dataPrivacy": {
-		"encryption": {
-			"provider": "aes",
-			"currentKeyID": "v1"
-		},
-		"artifactEncryptionKey": "HEREISA32CHARSECRETWHICHISMADEUP",
-		"uploads": {
-			"storageConfig": {
-				"filesystem": {
-					"rootDirectory": "/tmp"
-				},
-				"bucketName": "userdata",
-				"provider": "filesystem"
-			}
-		}
-	},
-	"metering": {
-		"enforcer": {
-			"cachePrefix": "metering:",
-			"staleness": 10000000000
-		},
-		"flusher": {
-			"backoff": {
-				"maxAttempts": 10,
-				"initialDelay": 1000000000,
-				"maxDelay": 300000000000,
-				"multiplier": 2,
-				"useJitter": true
-			},
-			"leaseDuration": 300000000000,
-			"flushTimeout": 30000000000,
-			"eventRetention": 7776000000000000,
-			"batchSize": 100,
-			"concurrency": 4,
-			"maxAttempts": 10,
-			"reapBatchSize": 1000
-		},
-		"recorder": {
-			"batchSize": 100
-		}
-	},
-	"operations": {
-		"operations": {
-			"queueName": "operations",
-			"retention": 2592000000000000,
-			"recoverAfter": 60000000000,
-			"reapBatchSize": 1000,
-			"recoverBatchSize": 200
-		},
-		"recover": {
-			"interval": 60000000000,
-			"leaseTTL": 60000000000
-		},
-		"reap": {
-			"interval": 3600000000000,
-			"leaseTTL": 600000000000
-		},
-		"queue": {
-			"name": "operations",
-			"retention": 86400000000000,
-			"maxClaimBatch": 500,
-			"reapBatchSize": 1000,
-			"writeAttempts": 3,
-			"minWakeInterval": 100000000
-		},
-		"worker": {
-			"poll": 5000000000,
-			"lease": 120000000000,
-			"retryDelay": 30000000000,
-			"progressInterval": 2000000000,
-			"batch": 4,
-			"concurrency": 2,
-			"maxAttempts": 5
-		},
-		"watcher": {
-			"poll": 2000000000,
-			"minReadInterval": 250000000,
-			"maxSubscriptions": 1024
-		}
-	},
-	"webhooks": {
-		"emitterTopic": "domain_events",
-		"circuitBreaker": {
-			"name": "webhook_delivery",
-			"circuitBreakerErrorPercentage": 0.5,
-			"circuitBreakerMinimumOccurrenceThreshold": 100
-		},
-		"worker": {
-			"userAgent": "Dinner Done Better Webhooks/1",
-			"backoff": {
-				"maxAttempts": 10,
-				"initialDelay": 5000000000,
-				"maxDelay": 3600000000000,
-				"multiplier": 2,
-				"useJitter": true
-			},
-			"pollInterval": 1000000000,
-			"leaseDuration": 120000000000,
-			"requestTimeout": 10000000000,
-			"circuitOpenRetryDelay": 30000000000,
-			"retention": 604800000000000,
-			"reapInterval": 300000000000,
-			"batchSize": 100,
-			"concurrency": 16,
-			"reapBatchSize": 1000
-		},
-		"httpClient": {
-			"timeout": 10000000000,
-			"maxIdleConns": 100,
-			"maxIdleConnsPerHost": 100
-		}
-	},
-	"retention": {
-		"batchSize": 1000,
-		"maxBatches": 1000,
-		"backlogCeiling": 100000
 	}
 }

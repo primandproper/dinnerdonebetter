@@ -2,6 +2,7 @@ package grpcapi
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
@@ -49,70 +50,50 @@ import (
 	paymentsadapters "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/adapters"
 	uploadedmediacfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/config"
 
-	platformerrormappers "github.com/primandproper/platform-go/v15/errormappers"
 	operationscfg "github.com/primandproper/platform-go/v15/operations/config"
+	"github.com/primandproper/platform-go/v15/service"
 	tokenscfg "github.com/primandproper/primitives-go/v2/authentication/tokens/config"
-	databasecfg "github.com/primandproper/primitives-go/v2/database/config"
-	featureflagscfg "github.com/primandproper/primitives-go/v2/featureflags/config"
-	"github.com/primandproper/primitives-go/v2/httpclient"
-	msgconfig "github.com/primandproper/primitives-go/v2/messagequeue/config"
-	"github.com/primandproper/primitives-go/v2/observability"
-	loggingcfg "github.com/primandproper/primitives-go/v2/observability/logging/config"
-	metricscfg "github.com/primandproper/primitives-go/v2/observability/metrics/config"
-	tracingcfg "github.com/primandproper/primitives-go/v2/observability/tracing/config"
 	"github.com/primandproper/primitives-go/v2/qrcodes"
 	"github.com/primandproper/primitives-go/v2/random"
-	"github.com/primandproper/primitives-go/v2/server/grpc"
 	uploadscfg "github.com/primandproper/primitives-go/v2/uploads/config"
 	"github.com/primandproper/primitives-go/v2/uploads/objectstorage"
 
 	"github.com/samber/do/v2"
 )
 
-// BuildInjector creates and configures the dependency injection container.
+// BuildInjector validates cfg and composes the API server from it.
+//
+// service.Register builds what platform owns from cfg.Service: the pillars, the database, the
+// broker, the outbound HTTP client, the feature flag manager, both servers and the encoding they
+// speak, the health registry those servers mount, and the transport mappings for every platform
+// sentinel — the one errormappers.Register call this composition root used to make itself. What
+// follows it is this application's: the repositories, the services, the domain.
+//
+// Validation comes first and is not optional, for the reason the scheduler's BuildInjector gives.
 func BuildInjector(
 	ctx context.Context,
 	cfg *config.APIServiceConfig,
-) *do.RootScope {
-	i := do.New()
+) (*do.RootScope, error) {
+	if err := cfg.ValidateWithContext(ctx); err != nil {
+		return nil, fmt.Errorf("validating API server config: %w", err)
+	}
 
-	// The transport mappings for every platform-go sentinel, installed before anything can
-	// raise one. As of v14 the mappers do not register themselves — a package that installs
-	// itself into a process-wide registry by being linked in is a side effect a consumer
-	// cannot opt out of — so the composition root makes the one call. Without it every
-	// platform error reaches a client as whatever default code the handler happened to name,
-	// which compiles and passes every test that does not assert on a code.
-	//
-	// This repository's own mappers still register from an init, because their packages are
-	// imported for nothing else and there is no root they could be called from.
-	platformerrormappers.Register()
+	i := do.New()
 
 	do.ProvideValue(i, ctx)
 	do.ProvideValue(i, cfg)
 
+	service.Register(i, &cfg.Service)
+
 	// config field extraction
 	RegisterConfigs(i)
 
-	// platform providers
-	observability.RegisterO11yConfigs(i)
-	metricscfg.RegisterMetricsProvider(i)
-	loggingcfg.RegisterLogger(i)
-	tracingcfg.RegisterTracerProvider(i)
-	httpclient.RegisterHTTPClient(i)
-	msgconfig.RegisterMessageQueue(i)
-	random.RegisterGenerator(i)
 	repositories.RegisterMigrator(i)
-	databasecfg.RegisterDatabase(i)
-	grpc.RegisterGRPCServer(i)
+	random.RegisterGenerator(i)
 	do.ProvideValue(i, qrcodes.Issuer(branding.CompanyName))
 	qrcodes.RegisterBuilder(i)
 	uploadscfg.RegisterStorageConfig(i)
 	objectstorage.RegisterUploadManager(i)
-	// Export artifacts get an upload manager of their own, pointed at the user data bucket
-	// rather than the media bucket the ambient one above serves, plus the request store the
-	// Service reads and writes.
-	dataprivacycfg.RegisterArtifactStorage(i)
-
 	// The operations tier a privacy request is submitted as. Only the enqueue-and-read half
 	// runs here — the worker that claims and runs operations is in the scheduler — but the
 	// registry is not optional on this side: Start looks a kind up in the registry of the
@@ -120,6 +101,7 @@ func BuildInjector(
 	// every request with ErrUnknownKind.
 	dataprivacybuild.RegisterRegistry(i)
 	dataprivacybuild.RegisterOperationsRegistry(i)
+	dataprivacybuild.RegisterCompletionNotifier(i)
 	operationscfg.RegisterStore(i)
 	operationscfg.RegisterQueue(i)
 	operationscfg.RegisterService(i)
@@ -128,8 +110,11 @@ func BuildInjector(
 	// resolves and runs it.
 	operationscfg.RegisterWatcher(i)
 
-	dataprivacycfg.RegisterRequestService(i)
-	featureflagscfg.RegisterFeatureFlagManager(i)
+	// The request store, the artifact storage — a bucket and a keyring of its own, pointed at
+	// the user data bucket rather than the media bucket the ambient upload manager above serves
+	// — and the service a subject's request is submitted to. All platform's, built the way the
+	// scheduler builds them, from the same block; see RegisterRequestService for why by hand.
+	dataprivacycfg.RegisterRequestService(i, &cfg.Services.DataPrivacy)
 
 	// Usage metering. Only the ingest half runs here: the flusher that posts usage to a
 	// billing provider is a scheduled pass in the scheduler process. The enforcer is
@@ -211,6 +196,7 @@ func BuildInjector(
 
 	// The saga machinery, minus the worker: this process starts durable processes and does not
 	// advance them. Registered before the domain, which puts its definitions on the registry.
+	sagas.RegisterSagaStore(i)
 	sagas.RegisterSagas(i)
 
 	// Domain: mealplanning
@@ -219,14 +205,5 @@ func BuildInjector(
 	// extras (functions from extras.go)
 	RegisterExtras(i)
 
-	return i
-}
-
-// Build builds a server.
-func Build(
-	ctx context.Context,
-	cfg *config.APIServiceConfig,
-) (*GRPCService, error) {
-	i := BuildInjector(ctx, cfg)
-	return do.MustInvoke[*GRPCService](i), nil
+	return i, nil
 }

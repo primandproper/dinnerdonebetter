@@ -8,6 +8,7 @@ import (
 	paymentswebhook "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/http"
 
 	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
+	capitalismcfg "github.com/primandproper/primitives-go/v2/capitalism/config"
 	"github.com/primandproper/primitives-go/v2/encoding"
 	"github.com/primandproper/primitives-go/v2/healthcheck"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
@@ -68,8 +69,12 @@ func ProvideAPIRouter(
 	router.Handle(http.MethodPost, oauth2server.PathToken, http.HandlerFunc(authService.TokenHandler))
 	router.Handle(http.MethodPost, oauth2server.PathRevoke, http.HandlerFunc(authService.RevokeHandler))
 
+	// One route per provider this service takes deliveries from, rather than a /{provider}
+	// pattern: a path naming any other provider is the router's 404.
 	router.Group("/api/payments/webhooks", func(paymentsRouter *routing.Router) {
-		paymentsRouter.Handle(http.MethodPost, "/{provider}", http.HandlerFunc(paymentsWebhookHandler.Handle))
+		for _, provider := range []string{capitalismcfg.StripeProvider, capitalismcfg.RevenueCatProvider} {
+			paymentsRouter.Handle(http.MethodPost, "/"+provider, paymentsWebhookHandler.For(provider))
+		}
 	})
 
 	if err = router.Err(); err != nil {

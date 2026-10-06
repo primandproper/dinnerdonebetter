@@ -34,10 +34,17 @@ func runServe(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("could not load config from environment: %w", err)
 	}
 
-	buildCtx, cancel := context.WithTimeout(ctx, cfg.HTTPServer.StartupDeadline)
+	// Validated here as well as in the composition root, because the startup deadline and the
+	// pillars below are read before it runs, and until validation has released the blocks
+	// nobody configured every one of them is present.
+	if err = cfg.ValidateWithContext(ctx); err != nil {
+		return fmt.Errorf("invalid config: %w", err)
+	}
+
+	buildCtx, cancel := context.WithTimeout(ctx, cfg.Service.HTTPServer.StartupDeadline)
 	defer cancel()
 
-	pillars, err := cfg.Observability.NewPillars(buildCtx)
+	pillars, err := cfg.Service.Observability.NewPillars(buildCtx)
 	if err != nil {
 		return fmt.Errorf("could not create observability pillars: %w", err)
 	}

@@ -1,10 +1,116 @@
 {
-	"queues": {
-		"dataChangesTopicName": "data_changes",
-		"outboundEmailsTopicName": "outbound_emails",
-		"searchIndexRequestsTopicName": "search_index_requests",
-		"mobileNotificationsTopicName": "mobile_notifications",
-		"queuedMailTopicName": "queued_mail"
+	"service": {
+		"analytics": {
+			"posthog": {
+				"apiKey": "placeholder"
+			},
+			"provider": "posthog",
+			"circuitBreaker": {
+				"name": "api_analytics",
+				"circuitBreakerErrorPercentage": 0.5,
+				"circuitBreakerMinimumOccurrenceThreshold": 100
+			}
+		},
+		"database": {
+			"provider": "postgres",
+			"readConnection": {
+				"username": "async_message_handler",
+				"password": "REPLACE_AT_DEPLOY",
+				"database": "dinner-done-better",
+				"hostname": "REPLACE_AT_DEPLOY",
+				"port": 5432
+			},
+			"writeConnection": {
+				"username": "async_message_handler",
+				"password": "REPLACE_AT_DEPLOY",
+				"database": "dinner-done-better",
+				"hostname": "REPLACE_AT_DEPLOY",
+				"port": 5432
+			},
+			"pingWaitPeriod": 1000000000,
+			"maxPingAttempts": 50,
+			"connMaxLifetime": 1800000000000,
+			"maxIdleConns": 5,
+			"maxOpenConns": 7,
+			"runMigrations": true
+		},
+		"email": {
+			"resend": {
+				"apiToken": "placeholder"
+			},
+			"provider": "resend",
+			"circuitBreakerConfig": {
+				"name": "prod_emailer",
+				"circuitBreakerErrorPercentage": 0.5,
+				"circuitBreakerMinimumOccurrenceThreshold": 100
+			}
+		},
+		"encoding": {
+			"contentType": "application/json"
+		},
+		"httpClient": {
+			"timeout": 10000000000,
+			"maxIdleConns": 100,
+			"maxIdleConnsPerHost": 100,
+			"enableTracing": true
+		},
+		"messageQueue": {
+			"consumer": {
+				"provider": "pubsub",
+				"pubSub": {
+					"projectID": "dinner-done-better-prod"
+				}
+			},
+			"publisher": {
+				"provider": "pubsub",
+				"pubSub": {
+					"projectID": "dinner-done-better-prod"
+				}
+			}
+		},
+		"name": "async_message_handler",
+		"observability": {
+			"profiling": {
+				"pyroscope": {
+					"serverAddress": "https://profiles-prod-001.grafana.net",
+					"uploadRate": 15000000000
+				},
+				"serviceName": "async_message_handler",
+				"provider": "pyroscope"
+			},
+			"logging": {
+				"serviceName": "async_message_handler",
+				"level": "info",
+				"otelslog": {
+					"endpointURL": "otel-collector-svc.prod.svc.cluster.local:4317",
+					"insecure": true,
+					"timeout": 2000000000
+				},
+				"provider": "otelslog"
+			},
+			"metrics": {
+				"otelgrpc": {
+					"metricsCollectorEndpoint": "otel-collector-svc.prod.svc.cluster.local:4317",
+					"collectionInterval": 30000000000,
+					"insecure": true,
+					"enableRuntimeMetrics": true,
+					"enableHostMetrics": true
+				},
+				"serviceName": "async_message_handler",
+				"provider": "otelgrpc",
+				"enabled": true
+			},
+			"tracing": {
+				"otelgrpc": {
+					"collector_endpoint": "otel-collector-svc.prod.svc.cluster.local:4317",
+					"insecure": true
+				},
+				"service_name": "async_message_handler",
+				"provider": "otelgrpc",
+				"spanCollectionProbability": 1
+			}
+		},
+		"shutdownTimeout": 30000000000
 	},
 	"pushNotifications": {
 		"apns": {
@@ -16,85 +122,12 @@
 		"fcm": {},
 		"provider": "apns_fcm"
 	},
-	"encoding": {
-		"contentType": "application/json"
-	},
-	"events": {
-		"consumer": {
-			"provider": "pubsub",
-			"pubSub": {
-				"projectID": "dinner-done-better-prod"
-			}
-		},
-		"publisher": {
-			"provider": "pubsub",
-			"pubSub": {
-				"projectID": "dinner-done-better-prod"
-			}
-		}
-	},
-	"observability": {
-		"profiling": {
-			"pyroscope": {
-				"serverAddress": "https://profiles-prod-001.grafana.net",
-				"uploadRate": 15000000000
-			},
-			"serviceName": "async_message_handler",
-			"provider": "pyroscope"
-		},
-		"logging": {
-			"serviceName": "async_message_handler",
-			"level": "info",
-			"otelslog": {
-				"endpointURL": "otel-collector-svc.prod.svc.cluster.local:4317",
-				"insecure": true,
-				"timeout": 2000000000
-			},
-			"provider": "otelslog"
-		},
-		"metrics": {
-			"otelgrpc": {
-				"metricsCollectorEndpoint": "otel-collector-svc.prod.svc.cluster.local:4317",
-				"collectionInterval": 30000000000,
-				"insecure": true,
-				"enableRuntimeMetrics": true,
-				"enableHostMetrics": true
-			},
-			"serviceName": "async_message_handler",
-			"provider": "otelgrpc",
-			"enabled": true
-		},
-		"tracing": {
-			"otelgrpc": {
-				"collector_endpoint": "otel-collector-svc.prod.svc.cluster.local:4317",
-				"insecure": true
-			},
-			"service_name": "async_message_handler",
-			"provider": "otelgrpc",
-			"spanCollectionProbability": 1
-		}
-	},
-	"email": {
-		"resend": {
-			"apiToken": "placeholder"
-		},
-		"provider": "resend",
-		"circuitBreakerConfig": {
-			"name": "prod_emailer",
-			"circuitBreakerErrorPercentage": 0.5,
-			"circuitBreakerMinimumOccurrenceThreshold": 100
-		}
-	},
-	"analytics": {
-		"posthog": {
-			"apiKey": "placeholder"
-		},
-		"provider": "posthog",
-		"circuitBreaker": {
-			"name": "api_analytics",
-			"circuitBreakerErrorPercentage": 0.5,
-			"circuitBreakerMinimumOccurrenceThreshold": 100
-		}
+	"queues": {
+		"dataChangesTopicName": "data_changes",
+		"outboundEmailsTopicName": "outbound_emails",
+		"searchIndexRequestsTopicName": "search_index_requests",
+		"mobileNotificationsTopicName": "mobile_notifications",
+		"queuedMailTopicName": "queued_mail"
 	},
 	"search": {
 		"algolia": {
@@ -107,29 +140,6 @@
 			"circuitBreakerErrorPercentage": 0.5,
 			"circuitBreakerMinimumOccurrenceThreshold": 100
 		}
-	},
-	"database": {
-		"provider": "postgres",
-		"readConnection": {
-			"username": "async_message_handler",
-			"password": "REPLACE_AT_DEPLOY",
-			"database": "dinner-done-better",
-			"hostname": "REPLACE_AT_DEPLOY",
-			"port": 5432
-		},
-		"writeConnection": {
-			"username": "async_message_handler",
-			"password": "REPLACE_AT_DEPLOY",
-			"database": "dinner-done-better",
-			"hostname": "REPLACE_AT_DEPLOY",
-			"port": 5432
-		},
-		"pingWaitPeriod": 1000000000,
-		"maxPingAttempts": 50,
-		"connMaxLifetime": 1800000000000,
-		"maxIdleConns": 5,
-		"maxOpenConns": 7,
-		"runMigrations": true
 	},
 	"pools": {
 		"deadLetterTopicName": "dead_letter",

@@ -286,7 +286,7 @@ func conformanceExpectedSkips() []string {
 
 // dialConformance connects to this suite's server, carrying whatever credentials opts add.
 func dialConformance(opts ...grpc.DialOption) (*grpc.ClientConn, error) {
-	return grpc.NewClient(fmt.Sprintf("127.0.0.1:%d", apiServiceConfig.GRPCServer.Port),
+	return grpc.NewClient(fmt.Sprintf("127.0.0.1:%d", apiServiceConfig.Service.GRPCServer.Port),
 		append([]grpc.DialOption{
 			grpc.WithTransportCredentials(insecure.NewCredentials()),
 			identityclient.DefaultInterceptors(),
@@ -552,7 +552,7 @@ func loginForConformance(ctx context.Context, user *identity.User, desiredAccoun
 		password = adminUserPassword
 	}
 
-	return localdev.FetchLoginTokenForUser(ctx, fmt.Sprintf(":%d", apiServiceConfig.GRPCServer.Port), &signinpb.Credentials{
+	return localdev.FetchLoginTokenForUser(ctx, fmt.Sprintf(":%d", apiServiceConfig.Service.GRPCServer.Port), &signinpb.Credentials{
 		Username:        user.Username,
 		Password:        password,
 		TotpCode:        code,
@@ -1083,7 +1083,7 @@ func conformanceArtifactExpired(ctx context.Context, _ tenancy.Scope, requestID 
 	sweeper, err := platformdataprivacy.NewSweeper(ctx,
 		&platformdataprivacy.SweeperConfig{BatchSize: 1 << 16, DisableReap: true},
 		&oneRequestStore{Store: store, requestID: requestID},
-		platformdataprivacy.WithSweeperUploadManager(dataPrivacyFulfillment.Artifacts.UploadManager),
+		platformdataprivacy.WithSweeperUploadManager(dataPrivacyFulfillment.Artifacts),
 		platformdataprivacy.WithSweeperClock(stoppedClock{at: req.ExpiresAt.Add(time.Second)}),
 	)
 	if err != nil {

@@ -2,6 +2,9 @@ package datachangemessagehandler
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"sync"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	commentstargets "github.com/primandproper/dinnerdonebetter/backend/internal/build/comments"
@@ -25,47 +28,37 @@ import (
 	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
 	mealplanningindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
-	analyticscfg "github.com/primandproper/primitives-go/v2/analytics/config"
-	databasecfg "github.com/primandproper/primitives-go/v2/database/config"
-	"github.com/primandproper/primitives-go/v2/database/postgres"
-	emailcfg "github.com/primandproper/primitives-go/v2/email/config"
-	"github.com/primandproper/primitives-go/v2/encoding"
-	"github.com/primandproper/primitives-go/v2/httpclient"
-	msgconfig "github.com/primandproper/primitives-go/v2/messagequeue/config"
+	"github.com/primandproper/platform-go/v15/service"
 	notificationscfg "github.com/primandproper/primitives-go/v2/notifications/mobile/config"
-	"github.com/primandproper/primitives-go/v2/observability"
-	loggingcfg "github.com/primandproper/primitives-go/v2/observability/logging/config"
-	metricscfg "github.com/primandproper/primitives-go/v2/observability/metrics/config"
-	tracingcfg "github.com/primandproper/primitives-go/v2/observability/tracing/config"
 
 	"github.com/samber/do/v2"
 )
 
-// BuildInjector creates and configures the dependency injection container.
+// BuildInjector validates cfg and composes the async message handler from it.
+//
+// service.Register builds what platform owns from cfg.Service — the pillars, the database, the
+// broker, the encoding, the outbound HTTP client, analytics and the emailer — and what follows it
+// is this application's: the repositories, the indexers, and the handler that routes each message.
+// Validation comes first for the reason the scheduler's BuildInjector gives.
 func BuildInjector(
 	ctx context.Context,
 	cfg *config.AsyncMessageHandlerConfig,
-) *do.RootScope {
+) (*do.RootScope, error) {
+	if err := cfg.ValidateWithContext(ctx); err != nil {
+		return nil, fmt.Errorf("validating async message handler config: %w", err)
+	}
+
 	i := do.New()
 
 	do.ProvideValue(i, ctx)
 	do.ProvideValue(i, cfg)
 
-	// config field extraction
+	service.Register(i, &cfg.Service)
+
 	RegisterConfigs(i)
 
-	// platform providers
-	observability.RegisterO11yConfigs(i)
-	tracingcfg.RegisterTracerProvider(i)
-	loggingcfg.RegisterLogger(i)
-	metricscfg.RegisterMetricsProvider(i)
-	msgconfig.RegisterMessageQueue(i)
-	httpclient.RegisterHTTPClient(i)
-	encoding.RegisterServerEncoderDecoder(i)
-	analyticscfg.RegisterEventReporter(i)
-	emailcfg.RegisterEmailer(i)
-	databasecfg.RegisterClientConfig(i)
-	postgres.RegisterDatabaseClient(i)
+	// The push sender is registered by hand, configured outside Service — see
+	// config.AsyncMessageHandlerConfig.PushNotifications.
 	notificationscfg.RegisterPushSender(i)
 
 	// Domain: mealplanning
@@ -112,14 +105,56 @@ func BuildInjector(
 	// main handler
 	datachangemessagehandler.RegisterAsyncDataChangeMessageHandler(i)
 
-	return i
+	return i, nil
 }
 
-// Build builds a server.
-func Build(
-	ctx context.Context,
-	cfg *config.AsyncMessageHandlerConfig,
-) (*datachangemessagehandler.AsyncDataChangeMessageHandler, error) {
-	i := BuildInjector(ctx, cfg)
-	return do.MustInvoke[*datachangemessagehandler.AsyncDataChangeMessageHandler](i), nil
+// HandlerRunner joins the data change handler to a service.Service's lifecycle.
+//
+// The handler is the one loop this process exists for, and it is this application's rather than
+// platform's, so it arrives through service.WithRunners. An application runner is closed first,
+// which is the right place for a consumer: nothing upstream of it in this process is still
+// producing.
+//
+// Close also flushes the search syncers' stamp buffers, after the handler has drained and before
+// the service releases the database client those flushes write through. That is the slot
+// service.New gives a *searchsync.Registry; this process registers internal/searchindexes'
+// wrapper over one, which service does not resolve, so the flush is made here instead, by
+// retiring the wrapper — see searchindexes.Registry.
+type HandlerRunner struct {
+	handler *datachangemessagehandler.AsyncDataChangeMessageHandler
+	i       do.Injector
+	stop    chan struct{}
+	once    sync.Once
+}
+
+var _ service.Runner = (*HandlerRunner)(nil)
+
+// NewHandlerRunner resolves the handler from i and wraps it.
+func NewHandlerRunner(i do.Injector) (*HandlerRunner, error) {
+	handler, err := do.Invoke[*datachangemessagehandler.AsyncDataChangeMessageHandler](i)
+	if err != nil {
+		return nil, err
+	}
+
+	return &HandlerRunner{handler: handler, i: i, stop: make(chan struct{})}, nil
+}
+
+// Start subscribes the handler's pools. It is the one step that can fail, so the caller makes it
+// before running the service, and returns its error rather than running a process that drains
+// nothing.
+func (r *HandlerRunner) Start(ctx context.Context) error {
+	return r.handler.Start(ctx)
+}
+
+// Run blocks until Close.
+func (r *HandlerRunner) Run() {
+	<-r.stop
+}
+
+// Close stops each pool's consumer, lets the messages already being handled finish, and then
+// flushes the stamps those handlers produced.
+func (r *HandlerRunner) Close(ctx context.Context) error {
+	r.once.Do(func() { close(r.stop) })
+
+	return errors.Join(r.handler.Close(ctx), do.ShutdownWithContext[*searchindexes.Registry](ctx, r.i))
 }
