@@ -4,75 +4,237 @@ package envvars
 
 const (
 	// AnalyticsCircuitBreakerErrorRateEnvVarKey is the environment variable name to set to
-	// override `APIServiceConfig.Analytics.SourceConfig.CircuitBreaker.ErrorRate`,
-	// `SchedulerConfig.Analytics.SourceConfig.CircuitBreaker.ErrorRate`,
-	// `AsyncMessageHandlerConfig.Analytics.SourceConfig.CircuitBreaker.ErrorRate`.
+	// override `APIServiceConfig.Service.Analytics.SourceConfig.CircuitBreaker.ErrorRate`,
+	// `DBCleanerConfig.Service.Analytics.SourceConfig.CircuitBreaker.ErrorRate`,
+	// `SchedulerConfig.Service.Analytics.SourceConfig.CircuitBreaker.ErrorRate`,
+	// `AsyncMessageHandlerConfig.Service.Analytics.SourceConfig.CircuitBreaker.ErrorRate`.
 	AnalyticsCircuitBreakerErrorRateEnvVarKey = "DINNER_DONE_BETTER_ANALYTICS_CIRCUIT_BREAKER_ERROR_RATE"
 
 	// AnalyticsCircuitBreakerMinimumSampleThresholdEnvVarKey is the environment variable name to
 	// set to override
-	// `APIServiceConfig.Analytics.SourceConfig.CircuitBreaker.MinimumSampleThreshold`,
-	// `SchedulerConfig.Analytics.SourceConfig.CircuitBreaker.MinimumSampleThreshold`,
-	// `AsyncMessageHandlerConfig.Analytics.SourceConfig.CircuitBreaker.MinimumSampleThreshold`.
+	// `APIServiceConfig.Service.Analytics.SourceConfig.CircuitBreaker.MinimumSampleThreshold`,
+	// `DBCleanerConfig.Service.Analytics.SourceConfig.CircuitBreaker.MinimumSampleThreshold`,
+	// `SchedulerConfig.Service.Analytics.SourceConfig.CircuitBreaker.MinimumSampleThreshold`,
+	// `AsyncMessageHandlerConfig.Service.Analytics.SourceConfig.CircuitBreaker.MinimumSampleThreshold`.
 	AnalyticsCircuitBreakerMinimumSampleThresholdEnvVarKey = "DINNER_DONE_BETTER_ANALYTICS_CIRCUIT_BREAKER_MINIMUM_SAMPLE_THRESHOLD"
 
 	// AnalyticsCircuitBreakerNameEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Analytics.SourceConfig.CircuitBreaker.Name`,
-	// `SchedulerConfig.Analytics.SourceConfig.CircuitBreaker.Name`,
-	// `AsyncMessageHandlerConfig.Analytics.SourceConfig.CircuitBreaker.Name`.
+	// `APIServiceConfig.Service.Analytics.SourceConfig.CircuitBreaker.Name`,
+	// `DBCleanerConfig.Service.Analytics.SourceConfig.CircuitBreaker.Name`,
+	// `SchedulerConfig.Service.Analytics.SourceConfig.CircuitBreaker.Name`,
+	// `AsyncMessageHandlerConfig.Service.Analytics.SourceConfig.CircuitBreaker.Name`.
 	AnalyticsCircuitBreakerNameEnvVarKey = "DINNER_DONE_BETTER_ANALYTICS_CIRCUIT_BREAKER_NAME"
 
 	// AnalyticsPosthogAPIKeyEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Analytics.SourceConfig.Posthog.APIKey`,
-	// `SchedulerConfig.Analytics.SourceConfig.Posthog.APIKey`,
-	// `AsyncMessageHandlerConfig.Analytics.SourceConfig.Posthog.APIKey`.
+	// `APIServiceConfig.Service.Analytics.SourceConfig.Posthog.APIKey`,
+	// `DBCleanerConfig.Service.Analytics.SourceConfig.Posthog.APIKey`,
+	// `SchedulerConfig.Service.Analytics.SourceConfig.Posthog.APIKey`,
+	// `AsyncMessageHandlerConfig.Service.Analytics.SourceConfig.Posthog.APIKey`.
 	AnalyticsPosthogAPIKeyEnvVarKey = "DINNER_DONE_BETTER_ANALYTICS_POSTHOG_API_KEY"
 
 	// AnalyticsPosthogEndpointEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Analytics.SourceConfig.Posthog.Endpoint`,
-	// `SchedulerConfig.Analytics.SourceConfig.Posthog.Endpoint`,
-	// `AsyncMessageHandlerConfig.Analytics.SourceConfig.Posthog.Endpoint`.
+	// `APIServiceConfig.Service.Analytics.SourceConfig.Posthog.Endpoint`,
+	// `DBCleanerConfig.Service.Analytics.SourceConfig.Posthog.Endpoint`,
+	// `SchedulerConfig.Service.Analytics.SourceConfig.Posthog.Endpoint`,
+	// `AsyncMessageHandlerConfig.Service.Analytics.SourceConfig.Posthog.Endpoint`.
 	AnalyticsPosthogEndpointEnvVarKey = "DINNER_DONE_BETTER_ANALYTICS_POSTHOG_ENDPOINT"
 
 	// AnalyticsProviderEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Analytics.SourceConfig.Provider`,
-	// `SchedulerConfig.Analytics.SourceConfig.Provider`,
-	// `AsyncMessageHandlerConfig.Analytics.SourceConfig.Provider`.
+	// `APIServiceConfig.Service.Analytics.SourceConfig.Provider`,
+	// `DBCleanerConfig.Service.Analytics.SourceConfig.Provider`,
+	// `SchedulerConfig.Service.Analytics.SourceConfig.Provider`,
+	// `AsyncMessageHandlerConfig.Service.Analytics.SourceConfig.Provider`.
 	AnalyticsProviderEnvVarKey = "DINNER_DONE_BETTER_ANALYTICS_PROVIDER"
 
 	// AnalyticsSegmentAPITokenEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Analytics.SourceConfig.Segment.APIToken`,
-	// `SchedulerConfig.Analytics.SourceConfig.Segment.APIToken`,
-	// `AsyncMessageHandlerConfig.Analytics.SourceConfig.Segment.APIToken`.
+	// `APIServiceConfig.Service.Analytics.SourceConfig.Segment.APIToken`,
+	// `DBCleanerConfig.Service.Analytics.SourceConfig.Segment.APIToken`,
+	// `SchedulerConfig.Service.Analytics.SourceConfig.Segment.APIToken`,
+	// `AsyncMessageHandlerConfig.Service.Analytics.SourceConfig.Segment.APIToken`.
 	AnalyticsSegmentAPITokenEnvVarKey = "DINNER_DONE_BETTER_ANALYTICS_SEGMENT_API_TOKEN"
 
+	// AsyncNotificationsAblyAPIKeyEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.AsyncNotifications.Ably.APIKey`,
+	// `DBCleanerConfig.Service.AsyncNotifications.Ably.APIKey`,
+	// `SchedulerConfig.Service.AsyncNotifications.Ably.APIKey`,
+	// `AsyncMessageHandlerConfig.Service.AsyncNotifications.Ably.APIKey`.
+	AsyncNotificationsAblyAPIKeyEnvVarKey = "DINNER_DONE_BETTER_ASYNC_NOTIFICATIONS_ABLY_API_KEY"
+
+	// AsyncNotificationsProviderEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.AsyncNotifications.Provider`,
+	// `DBCleanerConfig.Service.AsyncNotifications.Provider`,
+	// `SchedulerConfig.Service.AsyncNotifications.Provider`,
+	// `AsyncMessageHandlerConfig.Service.AsyncNotifications.Provider`.
+	AsyncNotificationsProviderEnvVarKey = "DINNER_DONE_BETTER_ASYNC_NOTIFICATIONS_PROVIDER"
+
+	// AsyncNotificationsPusherAppIDEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.AsyncNotifications.Pusher.AppID`,
+	// `DBCleanerConfig.Service.AsyncNotifications.Pusher.AppID`,
+	// `SchedulerConfig.Service.AsyncNotifications.Pusher.AppID`,
+	// `AsyncMessageHandlerConfig.Service.AsyncNotifications.Pusher.AppID`.
+	AsyncNotificationsPusherAppIDEnvVarKey = "DINNER_DONE_BETTER_ASYNC_NOTIFICATIONS_PUSHER_APP_ID"
+
+	// AsyncNotificationsPusherClusterEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.AsyncNotifications.Pusher.Cluster`,
+	// `DBCleanerConfig.Service.AsyncNotifications.Pusher.Cluster`,
+	// `SchedulerConfig.Service.AsyncNotifications.Pusher.Cluster`,
+	// `AsyncMessageHandlerConfig.Service.AsyncNotifications.Pusher.Cluster`.
+	AsyncNotificationsPusherClusterEnvVarKey = "DINNER_DONE_BETTER_ASYNC_NOTIFICATIONS_PUSHER_CLUSTER"
+
+	// AsyncNotificationsPusherKeyEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.AsyncNotifications.Pusher.Key`,
+	// `DBCleanerConfig.Service.AsyncNotifications.Pusher.Key`,
+	// `SchedulerConfig.Service.AsyncNotifications.Pusher.Key`,
+	// `AsyncMessageHandlerConfig.Service.AsyncNotifications.Pusher.Key`.
+	AsyncNotificationsPusherKeyEnvVarKey = "DINNER_DONE_BETTER_ASYNC_NOTIFICATIONS_PUSHER_KEY"
+
+	// AsyncNotificationsPusherSecretEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.AsyncNotifications.Pusher.Secret`,
+	// `DBCleanerConfig.Service.AsyncNotifications.Pusher.Secret`,
+	// `SchedulerConfig.Service.AsyncNotifications.Pusher.Secret`,
+	// `AsyncMessageHandlerConfig.Service.AsyncNotifications.Pusher.Secret`.
+	AsyncNotificationsPusherSecretEnvVarKey = "DINNER_DONE_BETTER_ASYNC_NOTIFICATIONS_PUSHER_SECRET"
+
+	// AsyncNotificationsPusherSecureEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.AsyncNotifications.Pusher.Secure`,
+	// `DBCleanerConfig.Service.AsyncNotifications.Pusher.Secure`,
+	// `SchedulerConfig.Service.AsyncNotifications.Pusher.Secure`,
+	// `AsyncMessageHandlerConfig.Service.AsyncNotifications.Pusher.Secure`.
+	AsyncNotificationsPusherSecureEnvVarKey = "DINNER_DONE_BETTER_ASYNC_NOTIFICATIONS_PUSHER_SECURE"
+
+	// AsyncNotificationsTopologyEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.AsyncNotifications.Topology`,
+	// `DBCleanerConfig.Service.AsyncNotifications.Topology`,
+	// `SchedulerConfig.Service.AsyncNotifications.Topology`,
+	// `AsyncMessageHandlerConfig.Service.AsyncNotifications.Topology`.
+	AsyncNotificationsTopologyEnvVarKey = "DINNER_DONE_BETTER_ASYNC_NOTIFICATIONS_TOPOLOGY"
+
+	// AsyncNotificationsWebsocketHeartbeatIntervalEnvVarKey is the environment variable name to
+	// set to override `APIServiceConfig.Service.AsyncNotifications.WebSocket.HeartbeatInterval`,
+	// `DBCleanerConfig.Service.AsyncNotifications.WebSocket.HeartbeatInterval`,
+	// `SchedulerConfig.Service.AsyncNotifications.WebSocket.HeartbeatInterval`,
+	// `AsyncMessageHandlerConfig.Service.AsyncNotifications.WebSocket.HeartbeatInterval`.
+	AsyncNotificationsWebsocketHeartbeatIntervalEnvVarKey = "DINNER_DONE_BETTER_ASYNC_NOTIFICATIONS_WEBSOCKET_HEARTBEAT_INTERVAL"
+
+	// AsyncNotificationsWebsocketReadBufferSizeEnvVarKey is the environment variable name to set
+	// to override `APIServiceConfig.Service.AsyncNotifications.WebSocket.ReadBufferSize`,
+	// `DBCleanerConfig.Service.AsyncNotifications.WebSocket.ReadBufferSize`,
+	// `SchedulerConfig.Service.AsyncNotifications.WebSocket.ReadBufferSize`,
+	// `AsyncMessageHandlerConfig.Service.AsyncNotifications.WebSocket.ReadBufferSize`.
+	AsyncNotificationsWebsocketReadBufferSizeEnvVarKey = "DINNER_DONE_BETTER_ASYNC_NOTIFICATIONS_WEBSOCKET_READ_BUFFER_SIZE"
+
+	// AsyncNotificationsWebsocketWriteBufferSizeEnvVarKey is the environment variable name to set
+	// to override `APIServiceConfig.Service.AsyncNotifications.WebSocket.WriteBufferSize`,
+	// `DBCleanerConfig.Service.AsyncNotifications.WebSocket.WriteBufferSize`,
+	// `SchedulerConfig.Service.AsyncNotifications.WebSocket.WriteBufferSize`,
+	// `AsyncMessageHandlerConfig.Service.AsyncNotifications.WebSocket.WriteBufferSize`.
+	AsyncNotificationsWebsocketWriteBufferSizeEnvVarKey = "DINNER_DONE_BETTER_ASYNC_NOTIFICATIONS_WEBSOCKET_WRITE_BUFFER_SIZE"
+
 	// AuditBasisEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Audit.Retention.Basis`.
+	// `APIServiceConfig.Service.Audit.Retention.Basis`,
+	// `DBCleanerConfig.Service.Audit.Retention.Basis`,
+	// `SchedulerConfig.Service.Audit.Retention.Basis`,
+	// `AsyncMessageHandlerConfig.Service.Audit.Retention.Basis`.
 	AuditBasisEnvVarKey = "DINNER_DONE_BETTER_AUDIT_BASIS"
 
 	// AuditBatchSizeEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Audit.Retention.BatchSize`.
+	// `APIServiceConfig.Service.Audit.Retention.BatchSize`,
+	// `DBCleanerConfig.Service.Audit.Retention.BatchSize`,
+	// `SchedulerConfig.Service.Audit.Retention.BatchSize`,
+	// `AsyncMessageHandlerConfig.Service.Audit.Retention.BatchSize`.
 	AuditBatchSizeEnvVarKey = "DINNER_DONE_BETTER_AUDIT_BATCH_SIZE"
 
 	// AuditCredentialRedactionDisabledEnvVarKey is the environment variable name to set to
-	// override `SchedulerConfig.Audit.CredentialRedactionDisabled`.
+	// override `APIServiceConfig.Service.Audit.CredentialRedactionDisabled`,
+	// `DBCleanerConfig.Service.Audit.CredentialRedactionDisabled`,
+	// `SchedulerConfig.Service.Audit.CredentialRedactionDisabled`,
+	// `AsyncMessageHandlerConfig.Service.Audit.CredentialRedactionDisabled`.
 	AuditCredentialRedactionDisabledEnvVarKey = "DINNER_DONE_BETTER_AUDIT_CREDENTIAL_REDACTION_DISABLED"
 
 	// AuditDialectEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Audit.Dialect`.
+	// `APIServiceConfig.Service.Audit.Dialect`, `DBCleanerConfig.Service.Audit.Dialect`,
+	// `SchedulerConfig.Service.Audit.Dialect`, `AsyncMessageHandlerConfig.Service.Audit.Dialect`.
 	AuditDialectEnvVarKey = "DINNER_DONE_BETTER_AUDIT_DIALECT"
 
+	// AuditLogBasisEnvVarKey is the environment variable name to set to override
+	// `SchedulerConfig.AuditLog.Retention.Basis`.
+	AuditLogBasisEnvVarKey = "DINNER_DONE_BETTER_AUDIT_LOG_BASIS"
+
+	// AuditLogBatchSizeEnvVarKey is the environment variable name to set to override
+	// `SchedulerConfig.AuditLog.Retention.BatchSize`.
+	AuditLogBatchSizeEnvVarKey = "DINNER_DONE_BETTER_AUDIT_LOG_BATCH_SIZE"
+
+	// AuditLogCredentialRedactionDisabledEnvVarKey is the environment variable name to set to
+	// override `SchedulerConfig.AuditLog.CredentialRedactionDisabled`.
+	AuditLogCredentialRedactionDisabledEnvVarKey = "DINNER_DONE_BETTER_AUDIT_LOG_CREDENTIAL_REDACTION_DISABLED"
+
+	// AuditLogDialectEnvVarKey is the environment variable name to set to override
+	// `SchedulerConfig.AuditLog.Dialect`.
+	AuditLogDialectEnvVarKey = "DINNER_DONE_BETTER_AUDIT_LOG_DIALECT"
+
+	// AuditLogRetentionEnvVarKey is the environment variable name to set to override
+	// `SchedulerConfig.AuditLog.Retention.Retention`.
+	AuditLogRetentionEnvVarKey = "DINNER_DONE_BETTER_AUDIT_LOG_RETENTION"
+
+	// AuditLogScopePageSizeEnvVarKey is the environment variable name to set to override
+	// `SchedulerConfig.AuditLog.Retention.ScopePageSize`.
+	AuditLogScopePageSizeEnvVarKey = "DINNER_DONE_BETTER_AUDIT_LOG_SCOPE_PAGE_SIZE"
+
+	// AuditLogTablePrefixEnvVarKey is the environment variable name to set to override
+	// `SchedulerConfig.AuditLog.TablePrefix`.
+	AuditLogTablePrefixEnvVarKey = "DINNER_DONE_BETTER_AUDIT_LOG_TABLE_PREFIX"
+
 	// AuditRetentionEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Audit.Retention.Retention`.
+	// `APIServiceConfig.Service.Audit.Retention.Retention`,
+	// `DBCleanerConfig.Service.Audit.Retention.Retention`,
+	// `SchedulerConfig.Service.Audit.Retention.Retention`,
+	// `AsyncMessageHandlerConfig.Service.Audit.Retention.Retention`.
 	AuditRetentionEnvVarKey = "DINNER_DONE_BETTER_AUDIT_RETENTION"
 
 	// AuditScopePageSizeEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Audit.Retention.ScopePageSize`.
+	// `APIServiceConfig.Service.Audit.Retention.ScopePageSize`,
+	// `DBCleanerConfig.Service.Audit.Retention.ScopePageSize`,
+	// `SchedulerConfig.Service.Audit.Retention.ScopePageSize`,
+	// `AsyncMessageHandlerConfig.Service.Audit.Retention.ScopePageSize`.
 	AuditScopePageSizeEnvVarKey = "DINNER_DONE_BETTER_AUDIT_SCOPE_PAGE_SIZE"
 
 	// AuditTablePrefixEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Audit.TablePrefix`.
+	// `APIServiceConfig.Service.Audit.TablePrefix`, `DBCleanerConfig.Service.Audit.TablePrefix`,
+	// `SchedulerConfig.Service.Audit.TablePrefix`,
+	// `AsyncMessageHandlerConfig.Service.Audit.TablePrefix`.
 	AuditTablePrefixEnvVarKey = "DINNER_DONE_BETTER_AUDIT_TABLE_PREFIX"
+
+	// AuthorizationCacheTTLEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Authorization.Config.CacheTTL`,
+	// `DBCleanerConfig.Service.Authorization.Config.CacheTTL`,
+	// `SchedulerConfig.Service.Authorization.Config.CacheTTL`,
+	// `AsyncMessageHandlerConfig.Service.Authorization.Config.CacheTTL`.
+	AuthorizationCacheTTLEnvVarKey = "DINNER_DONE_BETTER_AUTHORIZATION_CACHE_TTL"
+
+	// AuthorizationDatabaseDialectEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Authorization.Database.Dialect`,
+	// `DBCleanerConfig.Service.Authorization.Database.Dialect`,
+	// `SchedulerConfig.Service.Authorization.Database.Dialect`,
+	// `AsyncMessageHandlerConfig.Service.Authorization.Database.Dialect`.
+	AuthorizationDatabaseDialectEnvVarKey = "DINNER_DONE_BETTER_AUTHORIZATION_DATABASE_DIALECT"
+
+	// AuthorizationDatabaseTablePrefixEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.Authorization.Database.TablePrefix`,
+	// `DBCleanerConfig.Service.Authorization.Database.TablePrefix`,
+	// `SchedulerConfig.Service.Authorization.Database.TablePrefix`,
+	// `AsyncMessageHandlerConfig.Service.Authorization.Database.TablePrefix`.
+	AuthorizationDatabaseTablePrefixEnvVarKey = "DINNER_DONE_BETTER_AUTHORIZATION_DATABASE_TABLE_PREFIX"
+
+	// AuthorizationProviderEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Authorization.Provider`,
+	// `APIServiceConfig.Service.Authorization.Config.Provider`,
+	// `DBCleanerConfig.Service.Authorization.Provider`,
+	// `DBCleanerConfig.Service.Authorization.Config.Provider`,
+	// `SchedulerConfig.Service.Authorization.Provider`,
+	// `SchedulerConfig.Service.Authorization.Config.Provider`,
+	// `AsyncMessageHandlerConfig.Service.Authorization.Provider`,
+	// `AsyncMessageHandlerConfig.Service.Authorization.Config.Provider`.
+	AuthorizationProviderEnvVarKey = "DINNER_DONE_BETTER_AUTHORIZATION_PROVIDER"
 
 	// AuthDebugEnvVarKey is the environment variable name to set to override
 	// `APIServiceConfig.Auth.Debug`.
@@ -197,737 +359,1130 @@ const (
 	// `APIServiceConfig.BaseURL`, `AsyncMessageHandlerConfig.BaseURL`.
 	BaseURLEnvVarKey = "DINNER_DONE_BETTER_BASE_URL"
 
+	// BillingTablePrefixEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Billing.TablePrefix`,
+	// `DBCleanerConfig.Service.Billing.TablePrefix`,
+	// `SchedulerConfig.Service.Billing.TablePrefix`,
+	// `AsyncMessageHandlerConfig.Service.Billing.TablePrefix`.
+	BillingTablePrefixEnvVarKey = "DINNER_DONE_BETTER_BILLING_TABLE_PREFIX"
+
 	// CapitalismProviderEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Capitalism.Provider`.
+	// `APIServiceConfig.Service.Capitalism.Provider`,
+	// `DBCleanerConfig.Service.Capitalism.Provider`,
+	// `SchedulerConfig.Service.Capitalism.Provider`,
+	// `AsyncMessageHandlerConfig.Service.Capitalism.Provider`.
 	CapitalismProviderEnvVarKey = "DINNER_DONE_BETTER_CAPITALISM_PROVIDER"
 
 	// CapitalismRevenuecatWebhookSecretEnvVarKey is the environment variable name to set to
-	// override `SchedulerConfig.Capitalism.RevenueCat.WebhookSecret`.
+	// override `APIServiceConfig.Service.Capitalism.RevenueCat.WebhookSecret`,
+	// `DBCleanerConfig.Service.Capitalism.RevenueCat.WebhookSecret`,
+	// `SchedulerConfig.Service.Capitalism.RevenueCat.WebhookSecret`,
+	// `AsyncMessageHandlerConfig.Service.Capitalism.RevenueCat.WebhookSecret`.
 	CapitalismRevenuecatWebhookSecretEnvVarKey = "DINNER_DONE_BETTER_CAPITALISM_REVENUECAT_WEBHOOK_SECRET"
 
 	// CapitalismStripeAPIKeyEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Capitalism.Stripe.APIKey`.
+	// `APIServiceConfig.Service.Capitalism.Stripe.APIKey`,
+	// `DBCleanerConfig.Service.Capitalism.Stripe.APIKey`,
+	// `SchedulerConfig.Service.Capitalism.Stripe.APIKey`,
+	// `AsyncMessageHandlerConfig.Service.Capitalism.Stripe.APIKey`.
 	CapitalismStripeAPIKeyEnvVarKey = "DINNER_DONE_BETTER_CAPITALISM_STRIPE_API_KEY"
 
 	// CapitalismStripeWebhookSecretEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Capitalism.Stripe.WebhookSecret`.
+	// `APIServiceConfig.Service.Capitalism.Stripe.WebhookSecret`,
+	// `DBCleanerConfig.Service.Capitalism.Stripe.WebhookSecret`,
+	// `SchedulerConfig.Service.Capitalism.Stripe.WebhookSecret`,
+	// `AsyncMessageHandlerConfig.Service.Capitalism.Stripe.WebhookSecret`.
 	CapitalismStripeWebhookSecretEnvVarKey = "DINNER_DONE_BETTER_CAPITALISM_STRIPE_WEBHOOK_SECRET"
 
+	// CircuitBreakingErrorRateEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.CircuitBreaking.ErrorRate`,
+	// `DBCleanerConfig.Service.CircuitBreaking.ErrorRate`,
+	// `SchedulerConfig.Service.CircuitBreaking.ErrorRate`,
+	// `AsyncMessageHandlerConfig.Service.CircuitBreaking.ErrorRate`.
+	CircuitBreakingErrorRateEnvVarKey = "DINNER_DONE_BETTER_CIRCUIT_BREAKING_ERROR_RATE"
+
+	// CircuitBreakingMinimumSampleThresholdEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.CircuitBreaking.MinimumSampleThreshold`,
+	// `DBCleanerConfig.Service.CircuitBreaking.MinimumSampleThreshold`,
+	// `SchedulerConfig.Service.CircuitBreaking.MinimumSampleThreshold`,
+	// `AsyncMessageHandlerConfig.Service.CircuitBreaking.MinimumSampleThreshold`.
+	CircuitBreakingMinimumSampleThresholdEnvVarKey = "DINNER_DONE_BETTER_CIRCUIT_BREAKING_MINIMUM_SAMPLE_THRESHOLD"
+
+	// CircuitBreakingNameEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.CircuitBreaking.Name`,
+	// `DBCleanerConfig.Service.CircuitBreaking.Name`,
+	// `SchedulerConfig.Service.CircuitBreaking.Name`,
+	// `AsyncMessageHandlerConfig.Service.CircuitBreaking.Name`.
+	CircuitBreakingNameEnvVarKey = "DINNER_DONE_BETTER_CIRCUIT_BREAKING_NAME"
+
+	// CommentsTablePrefixEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Comments.TablePrefix`,
+	// `DBCleanerConfig.Service.Comments.TablePrefix`,
+	// `SchedulerConfig.Service.Comments.TablePrefix`,
+	// `AsyncMessageHandlerConfig.Service.Comments.TablePrefix`.
+	CommentsTablePrefixEnvVarKey = "DINNER_DONE_BETTER_COMMENTS_TABLE_PREFIX"
+
+	// CookiesBlockKeyEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Cookies.Base64EncodedBlockKey`,
+	// `DBCleanerConfig.Service.Cookies.Base64EncodedBlockKey`,
+	// `SchedulerConfig.Service.Cookies.Base64EncodedBlockKey`,
+	// `AsyncMessageHandlerConfig.Service.Cookies.Base64EncodedBlockKey`.
+	CookiesBlockKeyEnvVarKey = "DINNER_DONE_BETTER_COOKIES_BLOCK_KEY"
+
+	// CookiesDomainEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Cookies.Domain`, `DBCleanerConfig.Service.Cookies.Domain`,
+	// `SchedulerConfig.Service.Cookies.Domain`,
+	// `AsyncMessageHandlerConfig.Service.Cookies.Domain`.
+	CookiesDomainEnvVarKey = "DINNER_DONE_BETTER_COOKIES_DOMAIN"
+
+	// CookiesHashKeyEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Cookies.Base64EncodedHashKey`,
+	// `DBCleanerConfig.Service.Cookies.Base64EncodedHashKey`,
+	// `SchedulerConfig.Service.Cookies.Base64EncodedHashKey`,
+	// `AsyncMessageHandlerConfig.Service.Cookies.Base64EncodedHashKey`.
+	CookiesHashKeyEnvVarKey = "DINNER_DONE_BETTER_COOKIES_HASH_KEY"
+
+	// CookiesLifetimeEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Cookies.Lifetime`, `DBCleanerConfig.Service.Cookies.Lifetime`,
+	// `SchedulerConfig.Service.Cookies.Lifetime`,
+	// `AsyncMessageHandlerConfig.Service.Cookies.Lifetime`.
+	CookiesLifetimeEnvVarKey = "DINNER_DONE_BETTER_COOKIES_LIFETIME"
+
+	// CookiesSameSiteEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Cookies.SameSite`, `DBCleanerConfig.Service.Cookies.SameSite`,
+	// `SchedulerConfig.Service.Cookies.SameSite`,
+	// `AsyncMessageHandlerConfig.Service.Cookies.SameSite`.
+	CookiesSameSiteEnvVarKey = "DINNER_DONE_BETTER_COOKIES_SAME_SITE"
+
+	// CookiesSecureOnlyEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Cookies.SecureOnly`, `DBCleanerConfig.Service.Cookies.SecureOnly`,
+	// `SchedulerConfig.Service.Cookies.SecureOnly`,
+	// `AsyncMessageHandlerConfig.Service.Cookies.SecureOnly`.
+	CookiesSecureOnlyEnvVarKey = "DINNER_DONE_BETTER_COOKIES_SECURE_ONLY"
+
 	// DatabaseConnMaxLifetimeEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Database.Config.ConnMaxLifetime`,
-	// `DBCleanerConfig.Database.Config.ConnMaxLifetime`,
-	// `SchedulerConfig.Database.Config.ConnMaxLifetime`,
-	// `AsyncMessageHandlerConfig.Database.Config.ConnMaxLifetime`,
+	// `APIServiceConfig.Service.Database.ConnMaxLifetime`,
+	// `DBCleanerConfig.Service.Database.ConnMaxLifetime`,
+	// `SchedulerConfig.Service.Database.ConnMaxLifetime`,
+	// `AsyncMessageHandlerConfig.Service.Database.ConnMaxLifetime`,
 	// `MCPServiceConfig.Database.Config.ConnMaxLifetime`. It defaults to `30m`.
 	DatabaseConnMaxLifetimeEnvVarKey = "DINNER_DONE_BETTER_DATABASE_CONN_MAX_LIFETIME"
 
 	// DatabaseDebugEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Database.Config.Debug`, `DBCleanerConfig.Database.Config.Debug`,
-	// `SchedulerConfig.Database.Config.Debug`, `AsyncMessageHandlerConfig.Database.Config.Debug`,
+	// `APIServiceConfig.Service.Database.Debug`, `DBCleanerConfig.Service.Database.Debug`,
+	// `SchedulerConfig.Service.Database.Debug`,
+	// `AsyncMessageHandlerConfig.Service.Database.Debug`,
 	// `MCPServiceConfig.Database.Config.Debug`.
 	DatabaseDebugEnvVarKey = "DINNER_DONE_BETTER_DATABASE_DEBUG"
 
 	// DatabaseEnableDatabaseMetricsEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Database.Config.EnableDatabaseMetrics`,
-	// `DBCleanerConfig.Database.Config.EnableDatabaseMetrics`,
-	// `SchedulerConfig.Database.Config.EnableDatabaseMetrics`,
-	// `AsyncMessageHandlerConfig.Database.Config.EnableDatabaseMetrics`,
+	// `APIServiceConfig.Service.Database.EnableDatabaseMetrics`,
+	// `DBCleanerConfig.Service.Database.EnableDatabaseMetrics`,
+	// `SchedulerConfig.Service.Database.EnableDatabaseMetrics`,
+	// `AsyncMessageHandlerConfig.Service.Database.EnableDatabaseMetrics`,
 	// `MCPServiceConfig.Database.Config.EnableDatabaseMetrics`.
 	DatabaseEnableDatabaseMetricsEnvVarKey = "DINNER_DONE_BETTER_DATABASE_ENABLE_DATABASE_METRICS"
 
 	// DatabaseLogQueriesEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Database.Config.LogQueries`, `DBCleanerConfig.Database.Config.LogQueries`,
-	// `SchedulerConfig.Database.Config.LogQueries`,
-	// `AsyncMessageHandlerConfig.Database.Config.LogQueries`,
+	// `APIServiceConfig.Service.Database.LogQueries`,
+	// `DBCleanerConfig.Service.Database.LogQueries`,
+	// `SchedulerConfig.Service.Database.LogQueries`,
+	// `AsyncMessageHandlerConfig.Service.Database.LogQueries`,
 	// `MCPServiceConfig.Database.Config.LogQueries`.
 	DatabaseLogQueriesEnvVarKey = "DINNER_DONE_BETTER_DATABASE_LOG_QUERIES"
 
 	// DatabaseMaxIdleConnsEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Database.Config.MaxIdleConns`,
-	// `DBCleanerConfig.Database.Config.MaxIdleConns`,
-	// `SchedulerConfig.Database.Config.MaxIdleConns`,
-	// `AsyncMessageHandlerConfig.Database.Config.MaxIdleConns`,
+	// `APIServiceConfig.Service.Database.MaxIdleConns`,
+	// `DBCleanerConfig.Service.Database.MaxIdleConns`,
+	// `SchedulerConfig.Service.Database.MaxIdleConns`,
+	// `AsyncMessageHandlerConfig.Service.Database.MaxIdleConns`,
 	// `MCPServiceConfig.Database.Config.MaxIdleConns`. It defaults to `5`.
 	DatabaseMaxIdleConnsEnvVarKey = "DINNER_DONE_BETTER_DATABASE_MAX_IDLE_CONNS"
 
 	// DatabaseMaxOpenConnsEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Database.Config.MaxOpenConns`,
-	// `DBCleanerConfig.Database.Config.MaxOpenConns`,
-	// `SchedulerConfig.Database.Config.MaxOpenConns`,
-	// `AsyncMessageHandlerConfig.Database.Config.MaxOpenConns`,
+	// `APIServiceConfig.Service.Database.MaxOpenConns`,
+	// `DBCleanerConfig.Service.Database.MaxOpenConns`,
+	// `SchedulerConfig.Service.Database.MaxOpenConns`,
+	// `AsyncMessageHandlerConfig.Service.Database.MaxOpenConns`,
 	// `MCPServiceConfig.Database.Config.MaxOpenConns`. It defaults to `7`.
 	DatabaseMaxOpenConnsEnvVarKey = "DINNER_DONE_BETTER_DATABASE_MAX_OPEN_CONNS"
 
 	// DatabaseMaxPingAttemptsEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Database.Config.MaxPingAttempts`,
-	// `DBCleanerConfig.Database.Config.MaxPingAttempts`,
-	// `SchedulerConfig.Database.Config.MaxPingAttempts`,
-	// `AsyncMessageHandlerConfig.Database.Config.MaxPingAttempts`,
+	// `APIServiceConfig.Service.Database.MaxPingAttempts`,
+	// `DBCleanerConfig.Service.Database.MaxPingAttempts`,
+	// `SchedulerConfig.Service.Database.MaxPingAttempts`,
+	// `AsyncMessageHandlerConfig.Service.Database.MaxPingAttempts`,
 	// `MCPServiceConfig.Database.Config.MaxPingAttempts`.
 	DatabaseMaxPingAttemptsEnvVarKey = "DINNER_DONE_BETTER_DATABASE_MAX_PING_ATTEMPTS"
 
 	// DatabasePingWaitPeriodEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Database.Config.PingWaitPeriod`,
-	// `DBCleanerConfig.Database.Config.PingWaitPeriod`,
-	// `SchedulerConfig.Database.Config.PingWaitPeriod`,
-	// `AsyncMessageHandlerConfig.Database.Config.PingWaitPeriod`,
+	// `APIServiceConfig.Service.Database.PingWaitPeriod`,
+	// `DBCleanerConfig.Service.Database.PingWaitPeriod`,
+	// `SchedulerConfig.Service.Database.PingWaitPeriod`,
+	// `AsyncMessageHandlerConfig.Service.Database.PingWaitPeriod`,
 	// `MCPServiceConfig.Database.Config.PingWaitPeriod`. It defaults to `1s`.
 	DatabasePingWaitPeriodEnvVarKey = "DINNER_DONE_BETTER_DATABASE_PING_WAIT_PERIOD"
 
 	// DatabaseProviderEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Database.Config.Provider`, `DBCleanerConfig.Database.Config.Provider`,
-	// `SchedulerConfig.Database.Config.Provider`,
-	// `AsyncMessageHandlerConfig.Database.Config.Provider`,
+	// `APIServiceConfig.Service.Database.Provider`, `DBCleanerConfig.Service.Database.Provider`,
+	// `SchedulerConfig.Service.Database.Provider`,
+	// `AsyncMessageHandlerConfig.Service.Database.Provider`,
 	// `MCPServiceConfig.Database.Config.Provider`. It defaults to `postgres`.
 	DatabaseProviderEnvVarKey = "DINNER_DONE_BETTER_DATABASE_PROVIDER"
 
 	// DatabaseReadConnectionDatabaseEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Database.Config.ReadConnection.Database`,
-	// `DBCleanerConfig.Database.Config.ReadConnection.Database`,
-	// `SchedulerConfig.Database.Config.ReadConnection.Database`,
-	// `AsyncMessageHandlerConfig.Database.Config.ReadConnection.Database`,
+	// `APIServiceConfig.Service.Database.ReadConnection.Database`,
+	// `DBCleanerConfig.Service.Database.ReadConnection.Database`,
+	// `SchedulerConfig.Service.Database.ReadConnection.Database`,
+	// `AsyncMessageHandlerConfig.Service.Database.ReadConnection.Database`,
 	// `MCPServiceConfig.Database.Config.ReadConnection.Database`.
 	DatabaseReadConnectionDatabaseEnvVarKey = "DINNER_DONE_BETTER_DATABASE_READ_CONNECTION_DATABASE"
 
 	// DatabaseReadConnectionDisableSslEnvVarKey is the environment variable name to set to
-	// override `APIServiceConfig.Database.Config.ReadConnection.DisableSSL`,
-	// `DBCleanerConfig.Database.Config.ReadConnection.DisableSSL`,
-	// `SchedulerConfig.Database.Config.ReadConnection.DisableSSL`,
-	// `AsyncMessageHandlerConfig.Database.Config.ReadConnection.DisableSSL`,
+	// override `APIServiceConfig.Service.Database.ReadConnection.DisableSSL`,
+	// `DBCleanerConfig.Service.Database.ReadConnection.DisableSSL`,
+	// `SchedulerConfig.Service.Database.ReadConnection.DisableSSL`,
+	// `AsyncMessageHandlerConfig.Service.Database.ReadConnection.DisableSSL`,
 	// `MCPServiceConfig.Database.Config.ReadConnection.DisableSSL`.
 	DatabaseReadConnectionDisableSslEnvVarKey = "DINNER_DONE_BETTER_DATABASE_READ_CONNECTION_DISABLE_SSL"
 
 	// DatabaseReadConnectionHostEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Database.Config.ReadConnection.Host`,
-	// `DBCleanerConfig.Database.Config.ReadConnection.Host`,
-	// `SchedulerConfig.Database.Config.ReadConnection.Host`,
-	// `AsyncMessageHandlerConfig.Database.Config.ReadConnection.Host`,
+	// `APIServiceConfig.Service.Database.ReadConnection.Host`,
+	// `DBCleanerConfig.Service.Database.ReadConnection.Host`,
+	// `SchedulerConfig.Service.Database.ReadConnection.Host`,
+	// `AsyncMessageHandlerConfig.Service.Database.ReadConnection.Host`,
 	// `MCPServiceConfig.Database.Config.ReadConnection.Host`.
 	DatabaseReadConnectionHostEnvVarKey = "DINNER_DONE_BETTER_DATABASE_READ_CONNECTION_HOST"
 
 	// DatabaseReadConnectionPasswordEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Database.Config.ReadConnection.Password`,
-	// `DBCleanerConfig.Database.Config.ReadConnection.Password`,
-	// `SchedulerConfig.Database.Config.ReadConnection.Password`,
-	// `AsyncMessageHandlerConfig.Database.Config.ReadConnection.Password`,
+	// `APIServiceConfig.Service.Database.ReadConnection.Password`,
+	// `DBCleanerConfig.Service.Database.ReadConnection.Password`,
+	// `SchedulerConfig.Service.Database.ReadConnection.Password`,
+	// `AsyncMessageHandlerConfig.Service.Database.ReadConnection.Password`,
 	// `MCPServiceConfig.Database.Config.ReadConnection.Password`.
 	DatabaseReadConnectionPasswordEnvVarKey = "DINNER_DONE_BETTER_DATABASE_READ_CONNECTION_PASSWORD"
 
 	// DatabaseReadConnectionPortEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Database.Config.ReadConnection.Port`,
-	// `DBCleanerConfig.Database.Config.ReadConnection.Port`,
-	// `SchedulerConfig.Database.Config.ReadConnection.Port`,
-	// `AsyncMessageHandlerConfig.Database.Config.ReadConnection.Port`,
+	// `APIServiceConfig.Service.Database.ReadConnection.Port`,
+	// `DBCleanerConfig.Service.Database.ReadConnection.Port`,
+	// `SchedulerConfig.Service.Database.ReadConnection.Port`,
+	// `AsyncMessageHandlerConfig.Service.Database.ReadConnection.Port`,
 	// `MCPServiceConfig.Database.Config.ReadConnection.Port`.
 	DatabaseReadConnectionPortEnvVarKey = "DINNER_DONE_BETTER_DATABASE_READ_CONNECTION_PORT"
 
 	// DatabaseReadConnectionUsernameEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Database.Config.ReadConnection.Username`,
-	// `DBCleanerConfig.Database.Config.ReadConnection.Username`,
-	// `SchedulerConfig.Database.Config.ReadConnection.Username`,
-	// `AsyncMessageHandlerConfig.Database.Config.ReadConnection.Username`,
+	// `APIServiceConfig.Service.Database.ReadConnection.Username`,
+	// `DBCleanerConfig.Service.Database.ReadConnection.Username`,
+	// `SchedulerConfig.Service.Database.ReadConnection.Username`,
+	// `AsyncMessageHandlerConfig.Service.Database.ReadConnection.Username`,
 	// `MCPServiceConfig.Database.Config.ReadConnection.Username`.
 	DatabaseReadConnectionUsernameEnvVarKey = "DINNER_DONE_BETTER_DATABASE_READ_CONNECTION_USERNAME"
 
 	// DatabaseRunMigrationsEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Database.Config.RunMigrations`,
-	// `DBCleanerConfig.Database.Config.RunMigrations`,
-	// `SchedulerConfig.Database.Config.RunMigrations`,
-	// `AsyncMessageHandlerConfig.Database.Config.RunMigrations`,
+	// `APIServiceConfig.Service.Database.RunMigrations`,
+	// `DBCleanerConfig.Service.Database.RunMigrations`,
+	// `SchedulerConfig.Service.Database.RunMigrations`,
+	// `AsyncMessageHandlerConfig.Service.Database.RunMigrations`,
 	// `MCPServiceConfig.Database.Config.RunMigrations`.
 	DatabaseRunMigrationsEnvVarKey = "DINNER_DONE_BETTER_DATABASE_RUN_MIGRATIONS"
 
 	// DatabaseWriteConnectionDatabaseEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Database.Config.WriteConnection.Database`,
-	// `DBCleanerConfig.Database.Config.WriteConnection.Database`,
-	// `SchedulerConfig.Database.Config.WriteConnection.Database`,
-	// `AsyncMessageHandlerConfig.Database.Config.WriteConnection.Database`,
+	// `APIServiceConfig.Service.Database.WriteConnection.Database`,
+	// `DBCleanerConfig.Service.Database.WriteConnection.Database`,
+	// `SchedulerConfig.Service.Database.WriteConnection.Database`,
+	// `AsyncMessageHandlerConfig.Service.Database.WriteConnection.Database`,
 	// `MCPServiceConfig.Database.Config.WriteConnection.Database`.
 	DatabaseWriteConnectionDatabaseEnvVarKey = "DINNER_DONE_BETTER_DATABASE_WRITE_CONNECTION_DATABASE"
 
 	// DatabaseWriteConnectionDisableSslEnvVarKey is the environment variable name to set to
-	// override `APIServiceConfig.Database.Config.WriteConnection.DisableSSL`,
-	// `DBCleanerConfig.Database.Config.WriteConnection.DisableSSL`,
-	// `SchedulerConfig.Database.Config.WriteConnection.DisableSSL`,
-	// `AsyncMessageHandlerConfig.Database.Config.WriteConnection.DisableSSL`,
+	// override `APIServiceConfig.Service.Database.WriteConnection.DisableSSL`,
+	// `DBCleanerConfig.Service.Database.WriteConnection.DisableSSL`,
+	// `SchedulerConfig.Service.Database.WriteConnection.DisableSSL`,
+	// `AsyncMessageHandlerConfig.Service.Database.WriteConnection.DisableSSL`,
 	// `MCPServiceConfig.Database.Config.WriteConnection.DisableSSL`.
 	DatabaseWriteConnectionDisableSslEnvVarKey = "DINNER_DONE_BETTER_DATABASE_WRITE_CONNECTION_DISABLE_SSL"
 
 	// DatabaseWriteConnectionHostEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Database.Config.WriteConnection.Host`,
-	// `DBCleanerConfig.Database.Config.WriteConnection.Host`,
-	// `SchedulerConfig.Database.Config.WriteConnection.Host`,
-	// `AsyncMessageHandlerConfig.Database.Config.WriteConnection.Host`,
+	// `APIServiceConfig.Service.Database.WriteConnection.Host`,
+	// `DBCleanerConfig.Service.Database.WriteConnection.Host`,
+	// `SchedulerConfig.Service.Database.WriteConnection.Host`,
+	// `AsyncMessageHandlerConfig.Service.Database.WriteConnection.Host`,
 	// `MCPServiceConfig.Database.Config.WriteConnection.Host`.
 	DatabaseWriteConnectionHostEnvVarKey = "DINNER_DONE_BETTER_DATABASE_WRITE_CONNECTION_HOST"
 
 	// DatabaseWriteConnectionPasswordEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Database.Config.WriteConnection.Password`,
-	// `DBCleanerConfig.Database.Config.WriteConnection.Password`,
-	// `SchedulerConfig.Database.Config.WriteConnection.Password`,
-	// `AsyncMessageHandlerConfig.Database.Config.WriteConnection.Password`,
+	// `APIServiceConfig.Service.Database.WriteConnection.Password`,
+	// `DBCleanerConfig.Service.Database.WriteConnection.Password`,
+	// `SchedulerConfig.Service.Database.WriteConnection.Password`,
+	// `AsyncMessageHandlerConfig.Service.Database.WriteConnection.Password`,
 	// `MCPServiceConfig.Database.Config.WriteConnection.Password`.
 	DatabaseWriteConnectionPasswordEnvVarKey = "DINNER_DONE_BETTER_DATABASE_WRITE_CONNECTION_PASSWORD"
 
 	// DatabaseWriteConnectionPortEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Database.Config.WriteConnection.Port`,
-	// `DBCleanerConfig.Database.Config.WriteConnection.Port`,
-	// `SchedulerConfig.Database.Config.WriteConnection.Port`,
-	// `AsyncMessageHandlerConfig.Database.Config.WriteConnection.Port`,
+	// `APIServiceConfig.Service.Database.WriteConnection.Port`,
+	// `DBCleanerConfig.Service.Database.WriteConnection.Port`,
+	// `SchedulerConfig.Service.Database.WriteConnection.Port`,
+	// `AsyncMessageHandlerConfig.Service.Database.WriteConnection.Port`,
 	// `MCPServiceConfig.Database.Config.WriteConnection.Port`.
 	DatabaseWriteConnectionPortEnvVarKey = "DINNER_DONE_BETTER_DATABASE_WRITE_CONNECTION_PORT"
 
 	// DatabaseWriteConnectionUsernameEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Database.Config.WriteConnection.Username`,
-	// `DBCleanerConfig.Database.Config.WriteConnection.Username`,
-	// `SchedulerConfig.Database.Config.WriteConnection.Username`,
-	// `AsyncMessageHandlerConfig.Database.Config.WriteConnection.Username`,
+	// `APIServiceConfig.Service.Database.WriteConnection.Username`,
+	// `DBCleanerConfig.Service.Database.WriteConnection.Username`,
+	// `SchedulerConfig.Service.Database.WriteConnection.Username`,
+	// `AsyncMessageHandlerConfig.Service.Database.WriteConnection.Username`,
 	// `MCPServiceConfig.Database.Config.WriteConnection.Username`.
 	DatabaseWriteConnectionUsernameEnvVarKey = "DINNER_DONE_BETTER_DATABASE_WRITE_CONNECTION_USERNAME"
 
+	// DataPrivacyArtifactsEncryptionCurrentKeyIDEnvVarKey is the environment variable name to set
+	// to override `APIServiceConfig.Service.DataPrivacy.Artifacts.Encryption.CurrentKeyID`,
+	// `DBCleanerConfig.Service.DataPrivacy.Artifacts.Encryption.CurrentKeyID`,
+	// `SchedulerConfig.Service.DataPrivacy.Artifacts.Encryption.CurrentKeyID`,
+	// `AsyncMessageHandlerConfig.Service.DataPrivacy.Artifacts.Encryption.CurrentKeyID`.
+	DataPrivacyArtifactsEncryptionCurrentKeyIDEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_ARTIFACTS_ENCRYPTION_CURRENT_KEY_ID"
+
+	// DataPrivacyArtifactsEncryptionProviderEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.DataPrivacy.Artifacts.Encryption.Provider`,
+	// `DBCleanerConfig.Service.DataPrivacy.Artifacts.Encryption.Provider`,
+	// `SchedulerConfig.Service.DataPrivacy.Artifacts.Encryption.Provider`,
+	// `AsyncMessageHandlerConfig.Service.DataPrivacy.Artifacts.Encryption.Provider`.
+	DataPrivacyArtifactsEncryptionProviderEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_ARTIFACTS_ENCRYPTION_PROVIDER"
+
+	// DataPrivacyArtifactsStorageBackblazeB2ApplicationKeyEnvVarKey is the environment variable
+	// name to set to override
+	// `APIServiceConfig.Service.DataPrivacy.Artifacts.Storage.BackblazeB2Config.ApplicationKey`,
+	// `DBCleanerConfig.Service.DataPrivacy.Artifacts.Storage.BackblazeB2Config.ApplicationKey`,
+	// `SchedulerConfig.Service.DataPrivacy.Artifacts.Storage.BackblazeB2Config.ApplicationKey`,
+	// `AsyncMessageHandlerConfig.Service.DataPrivacy.Artifacts.Storage.BackblazeB2Config.ApplicationKey`.
+	DataPrivacyArtifactsStorageBackblazeB2ApplicationKeyEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_ARTIFACTS_STORAGE_BACKBLAZE_B2_APPLICATION_KEY"
+
+	// DataPrivacyArtifactsStorageBackblazeB2ApplicationKeyIDEnvVarKey is the environment variable
+	// name to set to override
+	// `APIServiceConfig.Service.DataPrivacy.Artifacts.Storage.BackblazeB2Config.ApplicationKeyID`,
+	// `DBCleanerConfig.Service.DataPrivacy.Artifacts.Storage.BackblazeB2Config.ApplicationKeyID`,
+	// `SchedulerConfig.Service.DataPrivacy.Artifacts.Storage.BackblazeB2Config.ApplicationKeyID`,
+	// `AsyncMessageHandlerConfig.Service.DataPrivacy.Artifacts.Storage.BackblazeB2Config.ApplicationKeyID`.
+	DataPrivacyArtifactsStorageBackblazeB2ApplicationKeyIDEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_ARTIFACTS_STORAGE_BACKBLAZE_B2_APPLICATION_KEY_ID"
+
+	// DataPrivacyArtifactsStorageBackblazeB2RegionEnvVarKey is the environment variable name to
+	// set to override
+	// `APIServiceConfig.Service.DataPrivacy.Artifacts.Storage.BackblazeB2Config.Region`,
+	// `DBCleanerConfig.Service.DataPrivacy.Artifacts.Storage.BackblazeB2Config.Region`,
+	// `SchedulerConfig.Service.DataPrivacy.Artifacts.Storage.BackblazeB2Config.Region`,
+	// `AsyncMessageHandlerConfig.Service.DataPrivacy.Artifacts.Storage.BackblazeB2Config.Region`.
+	DataPrivacyArtifactsStorageBackblazeB2RegionEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_ARTIFACTS_STORAGE_BACKBLAZE_B2_REGION"
+
+	// DataPrivacyArtifactsStorageBucketNameEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.DataPrivacy.Artifacts.Storage.BucketName`,
+	// `DBCleanerConfig.Service.DataPrivacy.Artifacts.Storage.BucketName`,
+	// `SchedulerConfig.Service.DataPrivacy.Artifacts.Storage.BucketName`,
+	// `AsyncMessageHandlerConfig.Service.DataPrivacy.Artifacts.Storage.BucketName`.
+	DataPrivacyArtifactsStorageBucketNameEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_ARTIFACTS_STORAGE_BUCKET_NAME"
+
+	// DataPrivacyArtifactsStorageBucketPrefixEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.DataPrivacy.Artifacts.Storage.BucketPrefix`,
+	// `DBCleanerConfig.Service.DataPrivacy.Artifacts.Storage.BucketPrefix`,
+	// `SchedulerConfig.Service.DataPrivacy.Artifacts.Storage.BucketPrefix`,
+	// `AsyncMessageHandlerConfig.Service.DataPrivacy.Artifacts.Storage.BucketPrefix`.
+	DataPrivacyArtifactsStorageBucketPrefixEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_ARTIFACTS_STORAGE_BUCKET_PREFIX"
+
+	// DataPrivacyArtifactsStorageCircuitBreakingErrorRateEnvVarKey is the environment variable
+	// name to set to override
+	// `APIServiceConfig.Service.DataPrivacy.Artifacts.Storage.CircuitBreaker.ErrorRate`,
+	// `DBCleanerConfig.Service.DataPrivacy.Artifacts.Storage.CircuitBreaker.ErrorRate`,
+	// `SchedulerConfig.Service.DataPrivacy.Artifacts.Storage.CircuitBreaker.ErrorRate`,
+	// `AsyncMessageHandlerConfig.Service.DataPrivacy.Artifacts.Storage.CircuitBreaker.ErrorRate`.
+	DataPrivacyArtifactsStorageCircuitBreakingErrorRateEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_ARTIFACTS_STORAGE_CIRCUIT_BREAKING_ERROR_RATE"
+
+	// DataPrivacyArtifactsStorageCircuitBreakingMinimumSampleThresholdEnvVarKey is the environment
+	// variable name to set to override
+	// `APIServiceConfig.Service.DataPrivacy.Artifacts.Storage.CircuitBreaker.MinimumSampleThreshold`,
+	// `DBCleanerConfig.Service.DataPrivacy.Artifacts.Storage.CircuitBreaker.MinimumSampleThreshold`,
+	// `SchedulerConfig.Service.DataPrivacy.Artifacts.Storage.CircuitBreaker.MinimumSampleThreshold`,
+	// `AsyncMessageHandlerConfig.Service.DataPrivacy.Artifacts.Storage.CircuitBreaker.MinimumSampleThreshold`.
+	DataPrivacyArtifactsStorageCircuitBreakingMinimumSampleThresholdEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_ARTIFACTS_STORAGE_CIRCUIT_BREAKING_MINIMUM_SAMPLE_THRESHOLD"
+
+	// DataPrivacyArtifactsStorageCircuitBreakingNameEnvVarKey is the environment variable name to
+	// set to override
+	// `APIServiceConfig.Service.DataPrivacy.Artifacts.Storage.CircuitBreaker.Name`,
+	// `DBCleanerConfig.Service.DataPrivacy.Artifacts.Storage.CircuitBreaker.Name`,
+	// `SchedulerConfig.Service.DataPrivacy.Artifacts.Storage.CircuitBreaker.Name`,
+	// `AsyncMessageHandlerConfig.Service.DataPrivacy.Artifacts.Storage.CircuitBreaker.Name`.
+	DataPrivacyArtifactsStorageCircuitBreakingNameEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_ARTIFACTS_STORAGE_CIRCUIT_BREAKING_NAME"
+
+	// DataPrivacyArtifactsStorageFilesystemDirectoryModeEnvVarKey is the environment variable name
+	// to set to override
+	// `APIServiceConfig.Service.DataPrivacy.Artifacts.Storage.FilesystemConfig.DirectoryMode`,
+	// `DBCleanerConfig.Service.DataPrivacy.Artifacts.Storage.FilesystemConfig.DirectoryMode`,
+	// `SchedulerConfig.Service.DataPrivacy.Artifacts.Storage.FilesystemConfig.DirectoryMode`,
+	// `AsyncMessageHandlerConfig.Service.DataPrivacy.Artifacts.Storage.FilesystemConfig.DirectoryMode`.
+	DataPrivacyArtifactsStorageFilesystemDirectoryModeEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_ARTIFACTS_STORAGE_FILESYSTEM_DIRECTORY_MODE"
+
+	// DataPrivacyArtifactsStorageFilesystemRootDirectoryEnvVarKey is the environment variable name
+	// to set to override
+	// `APIServiceConfig.Service.DataPrivacy.Artifacts.Storage.FilesystemConfig.RootDirectory`,
+	// `DBCleanerConfig.Service.DataPrivacy.Artifacts.Storage.FilesystemConfig.RootDirectory`,
+	// `SchedulerConfig.Service.DataPrivacy.Artifacts.Storage.FilesystemConfig.RootDirectory`,
+	// `AsyncMessageHandlerConfig.Service.DataPrivacy.Artifacts.Storage.FilesystemConfig.RootDirectory`.
+	DataPrivacyArtifactsStorageFilesystemRootDirectoryEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_ARTIFACTS_STORAGE_FILESYSTEM_ROOT_DIRECTORY"
+
+	// DataPrivacyArtifactsStorageProviderEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.DataPrivacy.Artifacts.Storage.Provider`,
+	// `DBCleanerConfig.Service.DataPrivacy.Artifacts.Storage.Provider`,
+	// `SchedulerConfig.Service.DataPrivacy.Artifacts.Storage.Provider`,
+	// `AsyncMessageHandlerConfig.Service.DataPrivacy.Artifacts.Storage.Provider`.
+	DataPrivacyArtifactsStorageProviderEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_ARTIFACTS_STORAGE_PROVIDER"
+
+	// DataPrivacyArtifactsStorageR2AccessKeyIDEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.DataPrivacy.Artifacts.Storage.R2Config.AccessKeyID`,
+	// `DBCleanerConfig.Service.DataPrivacy.Artifacts.Storage.R2Config.AccessKeyID`,
+	// `SchedulerConfig.Service.DataPrivacy.Artifacts.Storage.R2Config.AccessKeyID`,
+	// `AsyncMessageHandlerConfig.Service.DataPrivacy.Artifacts.Storage.R2Config.AccessKeyID`.
+	DataPrivacyArtifactsStorageR2AccessKeyIDEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_ARTIFACTS_STORAGE_R2_ACCESS_KEY_ID"
+
+	// DataPrivacyArtifactsStorageR2AccountIDEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.DataPrivacy.Artifacts.Storage.R2Config.AccountID`,
+	// `DBCleanerConfig.Service.DataPrivacy.Artifacts.Storage.R2Config.AccountID`,
+	// `SchedulerConfig.Service.DataPrivacy.Artifacts.Storage.R2Config.AccountID`,
+	// `AsyncMessageHandlerConfig.Service.DataPrivacy.Artifacts.Storage.R2Config.AccountID`.
+	DataPrivacyArtifactsStorageR2AccountIDEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_ARTIFACTS_STORAGE_R2_ACCOUNT_ID"
+
+	// DataPrivacyArtifactsStorageR2SecretAccessKeyEnvVarKey is the environment variable name to
+	// set to override
+	// `APIServiceConfig.Service.DataPrivacy.Artifacts.Storage.R2Config.SecretAccessKey`,
+	// `DBCleanerConfig.Service.DataPrivacy.Artifacts.Storage.R2Config.SecretAccessKey`,
+	// `SchedulerConfig.Service.DataPrivacy.Artifacts.Storage.R2Config.SecretAccessKey`,
+	// `AsyncMessageHandlerConfig.Service.DataPrivacy.Artifacts.Storage.R2Config.SecretAccessKey`.
+	DataPrivacyArtifactsStorageR2SecretAccessKeyEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_ARTIFACTS_STORAGE_R2_SECRET_ACCESS_KEY"
+
 	// DataPrivacyArtifactEncryptionKeyEnvVarKey is the environment variable name to set to
-	// override `SchedulerConfig.DataPrivacy.ArtifactEncryptionKey`.
+	// override `SchedulerConfig.DataPrivacyArtifactEncryptionKey`.
 	DataPrivacyArtifactEncryptionKeyEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_ARTIFACT_ENCRYPTION_KEY"
 
-	// DataPrivacyEncryptionCurrentKeyIDEnvVarKey is the environment variable name to set to
-	// override `SchedulerConfig.DataPrivacy.Encryption.CurrentKeyID`.
-	DataPrivacyEncryptionCurrentKeyIDEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_ENCRYPTION_CURRENT_KEY_ID"
+	// DataPrivacyAuditErasureDisabledEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.DataPrivacy.AuditErasure.Disabled`,
+	// `DBCleanerConfig.Service.DataPrivacy.AuditErasure.Disabled`,
+	// `SchedulerConfig.Service.DataPrivacy.AuditErasure.Disabled`,
+	// `AsyncMessageHandlerConfig.Service.DataPrivacy.AuditErasure.Disabled`.
+	DataPrivacyAuditErasureDisabledEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_AUDIT_ERASURE_DISABLED"
 
-	// DataPrivacyEncryptionProviderEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.DataPrivacy.Encryption.Provider`.
-	DataPrivacyEncryptionProviderEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_ENCRYPTION_PROVIDER"
+	// DataPrivacyAuditErasureRetentionBasisEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.DataPrivacy.AuditErasure.RetentionBasis`,
+	// `DBCleanerConfig.Service.DataPrivacy.AuditErasure.RetentionBasis`,
+	// `SchedulerConfig.Service.DataPrivacy.AuditErasure.RetentionBasis`,
+	// `AsyncMessageHandlerConfig.Service.DataPrivacy.AuditErasure.RetentionBasis`.
+	DataPrivacyAuditErasureRetentionBasisEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_AUDIT_ERASURE_RETENTION_BASIS"
 
-	// DataPrivacyRequestsArtifactsEncryptionCurrentKeyIDEnvVarKey is the environment variable name
-	// to set to override `SchedulerConfig.DataPrivacy.Requests.Artifacts.Encryption.CurrentKeyID`.
-	DataPrivacyRequestsArtifactsEncryptionCurrentKeyIDEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_ARTIFACTS_ENCRYPTION_CURRENT_KEY_ID"
+	// DataPrivacyAuditErasureTablePrefixEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.DataPrivacy.AuditErasure.TablePrefix`,
+	// `DBCleanerConfig.Service.DataPrivacy.AuditErasure.TablePrefix`,
+	// `SchedulerConfig.Service.DataPrivacy.AuditErasure.TablePrefix`,
+	// `AsyncMessageHandlerConfig.Service.DataPrivacy.AuditErasure.TablePrefix`.
+	DataPrivacyAuditErasureTablePrefixEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_AUDIT_ERASURE_TABLE_PREFIX"
 
-	// DataPrivacyRequestsArtifactsEncryptionProviderEnvVarKey is the environment variable name to
-	// set to override `SchedulerConfig.DataPrivacy.Requests.Artifacts.Encryption.Provider`.
-	DataPrivacyRequestsArtifactsEncryptionProviderEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_ARTIFACTS_ENCRYPTION_PROVIDER"
+	// DataPrivacyDialectEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.DataPrivacy.Dialect`,
+	// `DBCleanerConfig.Service.DataPrivacy.Dialect`,
+	// `SchedulerConfig.Service.DataPrivacy.Dialect`,
+	// `AsyncMessageHandlerConfig.Service.DataPrivacy.Dialect`.
+	DataPrivacyDialectEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_DIALECT"
 
-	// DataPrivacyRequestsArtifactsStorageBackblazeB2ApplicationKeyEnvVarKey is the environment
-	// variable name to set to override
-	// `SchedulerConfig.DataPrivacy.Requests.Artifacts.Storage.BackblazeB2Config.ApplicationKey`.
-	DataPrivacyRequestsArtifactsStorageBackblazeB2ApplicationKeyEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_ARTIFACTS_STORAGE_BACKBLAZE_B2_APPLICATION_KEY"
+	// DataPrivacyFulfillerArtifactPathPrefixEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.DataPrivacy.Fulfiller.ArtifactPathPrefix`,
+	// `DBCleanerConfig.Service.DataPrivacy.Fulfiller.ArtifactPathPrefix`,
+	// `SchedulerConfig.Service.DataPrivacy.Fulfiller.ArtifactPathPrefix`,
+	// `AsyncMessageHandlerConfig.Service.DataPrivacy.Fulfiller.ArtifactPathPrefix`.
+	DataPrivacyFulfillerArtifactPathPrefixEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_FULFILLER_ARTIFACT_PATH_PREFIX"
 
-	// DataPrivacyRequestsArtifactsStorageBackblazeB2ApplicationKeyIDEnvVarKey is the environment
-	// variable name to set to override
-	// `SchedulerConfig.DataPrivacy.Requests.Artifacts.Storage.BackblazeB2Config.ApplicationKeyID`.
-	DataPrivacyRequestsArtifactsStorageBackblazeB2ApplicationKeyIDEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_ARTIFACTS_STORAGE_BACKBLAZE_B2_APPLICATION_KEY_ID"
+	// DataPrivacyFulfillerArtifactTTLEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.DataPrivacy.Fulfiller.ArtifactTTL`,
+	// `DBCleanerConfig.Service.DataPrivacy.Fulfiller.ArtifactTTL`,
+	// `SchedulerConfig.Service.DataPrivacy.Fulfiller.ArtifactTTL`,
+	// `AsyncMessageHandlerConfig.Service.DataPrivacy.Fulfiller.ArtifactTTL`.
+	DataPrivacyFulfillerArtifactTTLEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_FULFILLER_ARTIFACT_TTL"
 
-	// DataPrivacyRequestsArtifactsStorageBackblazeB2RegionEnvVarKey is the environment variable
+	// DataPrivacyFulfillerCollectorConcurrencyEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.DataPrivacy.Fulfiller.CollectorConcurrency`,
+	// `DBCleanerConfig.Service.DataPrivacy.Fulfiller.CollectorConcurrency`,
+	// `SchedulerConfig.Service.DataPrivacy.Fulfiller.CollectorConcurrency`,
+	// `AsyncMessageHandlerConfig.Service.DataPrivacy.Fulfiller.CollectorConcurrency`.
+	DataPrivacyFulfillerCollectorConcurrencyEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_FULFILLER_COLLECTOR_CONCURRENCY"
+
+	// DataPrivacyFulfillerCollectorTimeoutEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.DataPrivacy.Fulfiller.CollectorTimeout`,
+	// `DBCleanerConfig.Service.DataPrivacy.Fulfiller.CollectorTimeout`,
+	// `SchedulerConfig.Service.DataPrivacy.Fulfiller.CollectorTimeout`,
+	// `AsyncMessageHandlerConfig.Service.DataPrivacy.Fulfiller.CollectorTimeout`.
+	DataPrivacyFulfillerCollectorTimeoutEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_FULFILLER_COLLECTOR_TIMEOUT"
+
+	// DataPrivacyFulfillerFulfillmentTimeoutEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.DataPrivacy.Fulfiller.FulfillmentTimeout`,
+	// `DBCleanerConfig.Service.DataPrivacy.Fulfiller.FulfillmentTimeout`,
+	// `SchedulerConfig.Service.DataPrivacy.Fulfiller.FulfillmentTimeout`,
+	// `AsyncMessageHandlerConfig.Service.DataPrivacy.Fulfiller.FulfillmentTimeout`.
+	DataPrivacyFulfillerFulfillmentTimeoutEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_FULFILLER_FULFILLMENT_TIMEOUT"
+
+	// DataPrivacyFulfillerMaxAttemptsEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.DataPrivacy.Fulfiller.MaxAttempts`,
+	// `DBCleanerConfig.Service.DataPrivacy.Fulfiller.MaxAttempts`,
+	// `SchedulerConfig.Service.DataPrivacy.Fulfiller.MaxAttempts`,
+	// `AsyncMessageHandlerConfig.Service.DataPrivacy.Fulfiller.MaxAttempts`.
+	DataPrivacyFulfillerMaxAttemptsEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_FULFILLER_MAX_ATTEMPTS"
+
+	// DataPrivacyFulfillerMaxDocumentBytesEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.DataPrivacy.Fulfiller.MaxDocumentBytes`,
+	// `DBCleanerConfig.Service.DataPrivacy.Fulfiller.MaxDocumentBytes`,
+	// `SchedulerConfig.Service.DataPrivacy.Fulfiller.MaxDocumentBytes`,
+	// `AsyncMessageHandlerConfig.Service.DataPrivacy.Fulfiller.MaxDocumentBytes`.
+	DataPrivacyFulfillerMaxDocumentBytesEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_FULFILLER_MAX_DOCUMENT_BYTES"
+
+	// DataPrivacyServiceConfirmationWindowEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.DataPrivacy.Service.ConfirmationWindow`,
+	// `DBCleanerConfig.Service.DataPrivacy.Service.ConfirmationWindow`,
+	// `SchedulerConfig.Service.DataPrivacy.Service.ConfirmationWindow`,
+	// `AsyncMessageHandlerConfig.Service.DataPrivacy.Service.ConfirmationWindow`.
+	DataPrivacyServiceConfirmationWindowEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_SERVICE_CONFIRMATION_WINDOW"
+
+	// DataPrivacyServiceErasureResponseWindowEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.DataPrivacy.Service.ErasureResponseWindow`,
+	// `DBCleanerConfig.Service.DataPrivacy.Service.ErasureResponseWindow`,
+	// `SchedulerConfig.Service.DataPrivacy.Service.ErasureResponseWindow`,
+	// `AsyncMessageHandlerConfig.Service.DataPrivacy.Service.ErasureResponseWindow`.
+	DataPrivacyServiceErasureResponseWindowEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_SERVICE_ERASURE_RESPONSE_WINDOW"
+
+	// DataPrivacyServiceExportResponseWindowEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.DataPrivacy.Service.ExportResponseWindow`,
+	// `DBCleanerConfig.Service.DataPrivacy.Service.ExportResponseWindow`,
+	// `SchedulerConfig.Service.DataPrivacy.Service.ExportResponseWindow`,
+	// `AsyncMessageHandlerConfig.Service.DataPrivacy.Service.ExportResponseWindow`.
+	DataPrivacyServiceExportResponseWindowEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_SERVICE_EXPORT_RESPONSE_WINDOW"
+
+	// DataPrivacyServiceSignedURLTTLEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.DataPrivacy.Service.SignedURLTTL`,
+	// `DBCleanerConfig.Service.DataPrivacy.Service.SignedURLTTL`,
+	// `SchedulerConfig.Service.DataPrivacy.Service.SignedURLTTL`,
+	// `AsyncMessageHandlerConfig.Service.DataPrivacy.Service.SignedURLTTL`.
+	DataPrivacyServiceSignedURLTTLEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_SERVICE_SIGNED_URL_TTL"
+
+	// DataPrivacySweeperBatchSizeEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.DataPrivacy.Sweeper.BatchSize`,
+	// `DBCleanerConfig.Service.DataPrivacy.Sweeper.BatchSize`,
+	// `SchedulerConfig.Service.DataPrivacy.Sweeper.BatchSize`,
+	// `AsyncMessageHandlerConfig.Service.DataPrivacy.Sweeper.BatchSize`.
+	DataPrivacySweeperBatchSizeEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_SWEEPER_BATCH_SIZE"
+
+	// DataPrivacySweeperDisableReapEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.DataPrivacy.Sweeper.DisableReap`,
+	// `DBCleanerConfig.Service.DataPrivacy.Sweeper.DisableReap`,
+	// `SchedulerConfig.Service.DataPrivacy.Sweeper.DisableReap`,
+	// `AsyncMessageHandlerConfig.Service.DataPrivacy.Sweeper.DisableReap`.
+	DataPrivacySweeperDisableReapEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_SWEEPER_DISABLE_REAP"
+
+	// DataPrivacySweeperRequestRetentionEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.DataPrivacy.Sweeper.RequestRetention`,
+	// `DBCleanerConfig.Service.DataPrivacy.Sweeper.RequestRetention`,
+	// `SchedulerConfig.Service.DataPrivacy.Sweeper.RequestRetention`,
+	// `AsyncMessageHandlerConfig.Service.DataPrivacy.Sweeper.RequestRetention`.
+	DataPrivacySweeperRequestRetentionEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_SWEEPER_REQUEST_RETENTION"
+
+	// DataPrivacyTablePrefixEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.DataPrivacy.TablePrefix`,
+	// `DBCleanerConfig.Service.DataPrivacy.TablePrefix`,
+	// `SchedulerConfig.Service.DataPrivacy.TablePrefix`,
+	// `AsyncMessageHandlerConfig.Service.DataPrivacy.TablePrefix`.
+	DataPrivacyTablePrefixEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_TABLE_PREFIX"
+
+	// DistributedLockCircuitBreakingErrorRateEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.DistributedLock.CircuitBreaker.ErrorRate`,
+	// `DBCleanerConfig.Service.DistributedLock.CircuitBreaker.ErrorRate`,
+	// `SchedulerConfig.Service.DistributedLock.CircuitBreaker.ErrorRate`,
+	// `AsyncMessageHandlerConfig.Service.DistributedLock.CircuitBreaker.ErrorRate`.
+	DistributedLockCircuitBreakingErrorRateEnvVarKey = "DINNER_DONE_BETTER_DISTRIBUTED_LOCK_CIRCUIT_BREAKING_ERROR_RATE"
+
+	// DistributedLockCircuitBreakingMinimumSampleThresholdEnvVarKey is the environment variable
 	// name to set to override
-	// `SchedulerConfig.DataPrivacy.Requests.Artifacts.Storage.BackblazeB2Config.Region`.
-	DataPrivacyRequestsArtifactsStorageBackblazeB2RegionEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_ARTIFACTS_STORAGE_BACKBLAZE_B2_REGION"
+	// `APIServiceConfig.Service.DistributedLock.CircuitBreaker.MinimumSampleThreshold`,
+	// `DBCleanerConfig.Service.DistributedLock.CircuitBreaker.MinimumSampleThreshold`,
+	// `SchedulerConfig.Service.DistributedLock.CircuitBreaker.MinimumSampleThreshold`,
+	// `AsyncMessageHandlerConfig.Service.DistributedLock.CircuitBreaker.MinimumSampleThreshold`.
+	DistributedLockCircuitBreakingMinimumSampleThresholdEnvVarKey = "DINNER_DONE_BETTER_DISTRIBUTED_LOCK_CIRCUIT_BREAKING_MINIMUM_SAMPLE_THRESHOLD"
 
-	// DataPrivacyRequestsArtifactsStorageBucketNameEnvVarKey is the environment variable name to
-	// set to override `SchedulerConfig.DataPrivacy.Requests.Artifacts.Storage.BucketName`.
-	DataPrivacyRequestsArtifactsStorageBucketNameEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_ARTIFACTS_STORAGE_BUCKET_NAME"
+	// DistributedLockCircuitBreakingNameEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.DistributedLock.CircuitBreaker.Name`,
+	// `DBCleanerConfig.Service.DistributedLock.CircuitBreaker.Name`,
+	// `SchedulerConfig.Service.DistributedLock.CircuitBreaker.Name`,
+	// `AsyncMessageHandlerConfig.Service.DistributedLock.CircuitBreaker.Name`.
+	DistributedLockCircuitBreakingNameEnvVarKey = "DINNER_DONE_BETTER_DISTRIBUTED_LOCK_CIRCUIT_BREAKING_NAME"
 
-	// DataPrivacyRequestsArtifactsStorageBucketPrefixEnvVarKey is the environment variable name to
-	// set to override `SchedulerConfig.DataPrivacy.Requests.Artifacts.Storage.BucketPrefix`.
-	DataPrivacyRequestsArtifactsStorageBucketPrefixEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_ARTIFACTS_STORAGE_BUCKET_PREFIX"
+	// DistributedLockPostgresConnWaitTimeoutEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.DistributedLock.Postgres.ConnWaitTimeout`,
+	// `DBCleanerConfig.Service.DistributedLock.Postgres.ConnWaitTimeout`,
+	// `SchedulerConfig.Service.DistributedLock.Postgres.ConnWaitTimeout`,
+	// `AsyncMessageHandlerConfig.Service.DistributedLock.Postgres.ConnWaitTimeout`. It defaults to
+	// `5s`.
+	DistributedLockPostgresConnWaitTimeoutEnvVarKey = "DINNER_DONE_BETTER_DISTRIBUTED_LOCK_POSTGRES_CONN_WAIT_TIMEOUT"
 
-	// DataPrivacyRequestsArtifactsStorageCircuitBreakingErrorRateEnvVarKey is the environment
-	// variable name to set to override
-	// `SchedulerConfig.DataPrivacy.Requests.Artifacts.Storage.CircuitBreaker.ErrorRate`.
-	DataPrivacyRequestsArtifactsStorageCircuitBreakingErrorRateEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_ARTIFACTS_STORAGE_CIRCUIT_BREAKING_ERROR_RATE"
+	// DistributedLockPostgresNamespaceEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.DistributedLock.Postgres.Namespace`,
+	// `DBCleanerConfig.Service.DistributedLock.Postgres.Namespace`,
+	// `SchedulerConfig.Service.DistributedLock.Postgres.Namespace`,
+	// `AsyncMessageHandlerConfig.Service.DistributedLock.Postgres.Namespace`. It defaults to `0`.
+	DistributedLockPostgresNamespaceEnvVarKey = "DINNER_DONE_BETTER_DISTRIBUTED_LOCK_POSTGRES_NAMESPACE"
 
-	// DataPrivacyRequestsArtifactsStorageCircuitBreakingMinimumSampleThresholdEnvVarKey is the
-	// environment variable name to set to override
-	// `SchedulerConfig.DataPrivacy.Requests.Artifacts.Storage.CircuitBreaker.MinimumSampleThreshold`.
-	DataPrivacyRequestsArtifactsStorageCircuitBreakingMinimumSampleThresholdEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_ARTIFACTS_STORAGE_CIRCUIT_BREAKING_MINIMUM_SAMPLE_THRESHOLD"
+	// DistributedLockProviderEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.DistributedLock.Provider`,
+	// `DBCleanerConfig.Service.DistributedLock.Provider`,
+	// `SchedulerConfig.Service.DistributedLock.Provider`,
+	// `AsyncMessageHandlerConfig.Service.DistributedLock.Provider`.
+	DistributedLockProviderEnvVarKey = "DINNER_DONE_BETTER_DISTRIBUTED_LOCK_PROVIDER"
 
-	// DataPrivacyRequestsArtifactsStorageCircuitBreakingNameEnvVarKey is the environment variable
-	// name to set to override
-	// `SchedulerConfig.DataPrivacy.Requests.Artifacts.Storage.CircuitBreaker.Name`.
-	DataPrivacyRequestsArtifactsStorageCircuitBreakingNameEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_ARTIFACTS_STORAGE_CIRCUIT_BREAKING_NAME"
+	// DistributedLockRedisAddressesEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.DistributedLock.Redis.Addresses`,
+	// `DBCleanerConfig.Service.DistributedLock.Redis.Addresses`,
+	// `SchedulerConfig.Service.DistributedLock.Redis.Addresses`,
+	// `AsyncMessageHandlerConfig.Service.DistributedLock.Redis.Addresses`.
+	DistributedLockRedisAddressesEnvVarKey = "DINNER_DONE_BETTER_DISTRIBUTED_LOCK_REDIS_ADDRESSES"
 
-	// DataPrivacyRequestsArtifactsStorageFilesystemDirectoryModeEnvVarKey is the environment
-	// variable name to set to override
-	// `SchedulerConfig.DataPrivacy.Requests.Artifacts.Storage.FilesystemConfig.DirectoryMode`.
-	DataPrivacyRequestsArtifactsStorageFilesystemDirectoryModeEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_ARTIFACTS_STORAGE_FILESYSTEM_DIRECTORY_MODE"
+	// DistributedLockRedisKeyPrefixEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.DistributedLock.Redis.KeyPrefix`,
+	// `DBCleanerConfig.Service.DistributedLock.Redis.KeyPrefix`,
+	// `SchedulerConfig.Service.DistributedLock.Redis.KeyPrefix`,
+	// `AsyncMessageHandlerConfig.Service.DistributedLock.Redis.KeyPrefix`. It defaults to `lock:`.
+	DistributedLockRedisKeyPrefixEnvVarKey = "DINNER_DONE_BETTER_DISTRIBUTED_LOCK_REDIS_KEY_PREFIX"
 
-	// DataPrivacyRequestsArtifactsStorageFilesystemRootDirectoryEnvVarKey is the environment
-	// variable name to set to override
-	// `SchedulerConfig.DataPrivacy.Requests.Artifacts.Storage.FilesystemConfig.RootDirectory`.
-	DataPrivacyRequestsArtifactsStorageFilesystemRootDirectoryEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_ARTIFACTS_STORAGE_FILESYSTEM_ROOT_DIRECTORY"
+	// DistributedLockRedisPasswordEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.DistributedLock.Redis.Password`,
+	// `DBCleanerConfig.Service.DistributedLock.Redis.Password`,
+	// `SchedulerConfig.Service.DistributedLock.Redis.Password`,
+	// `AsyncMessageHandlerConfig.Service.DistributedLock.Redis.Password`.
+	DistributedLockRedisPasswordEnvVarKey = "DINNER_DONE_BETTER_DISTRIBUTED_LOCK_REDIS_PASSWORD"
 
-	// DataPrivacyRequestsArtifactsStorageProviderEnvVarKey is the environment variable name to set
-	// to override `SchedulerConfig.DataPrivacy.Requests.Artifacts.Storage.Provider`.
-	DataPrivacyRequestsArtifactsStorageProviderEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_ARTIFACTS_STORAGE_PROVIDER"
-
-	// DataPrivacyRequestsArtifactsStorageR2AccessKeyIDEnvVarKey is the environment variable name
-	// to set to override
-	// `SchedulerConfig.DataPrivacy.Requests.Artifacts.Storage.R2Config.AccessKeyID`.
-	DataPrivacyRequestsArtifactsStorageR2AccessKeyIDEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_ARTIFACTS_STORAGE_R2_ACCESS_KEY_ID"
-
-	// DataPrivacyRequestsArtifactsStorageR2AccountIDEnvVarKey is the environment variable name to
-	// set to override `SchedulerConfig.DataPrivacy.Requests.Artifacts.Storage.R2Config.AccountID`.
-	DataPrivacyRequestsArtifactsStorageR2AccountIDEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_ARTIFACTS_STORAGE_R2_ACCOUNT_ID"
-
-	// DataPrivacyRequestsArtifactsStorageR2SecretAccessKeyEnvVarKey is the environment variable
-	// name to set to override
-	// `SchedulerConfig.DataPrivacy.Requests.Artifacts.Storage.R2Config.SecretAccessKey`.
-	DataPrivacyRequestsArtifactsStorageR2SecretAccessKeyEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_ARTIFACTS_STORAGE_R2_SECRET_ACCESS_KEY"
-
-	// DataPrivacyRequestsAuditErasureDisabledEnvVarKey is the environment variable name to set to
-	// override `SchedulerConfig.DataPrivacy.Requests.AuditErasure.Disabled`.
-	DataPrivacyRequestsAuditErasureDisabledEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_AUDIT_ERASURE_DISABLED"
-
-	// DataPrivacyRequestsAuditErasureRetentionBasisEnvVarKey is the environment variable name to
-	// set to override `SchedulerConfig.DataPrivacy.Requests.AuditErasure.RetentionBasis`.
-	DataPrivacyRequestsAuditErasureRetentionBasisEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_AUDIT_ERASURE_RETENTION_BASIS"
-
-	// DataPrivacyRequestsAuditErasureTablePrefixEnvVarKey is the environment variable name to set
-	// to override `SchedulerConfig.DataPrivacy.Requests.AuditErasure.TablePrefix`.
-	DataPrivacyRequestsAuditErasureTablePrefixEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_AUDIT_ERASURE_TABLE_PREFIX"
-
-	// DataPrivacyRequestsDialectEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.DataPrivacy.Requests.Dialect`.
-	DataPrivacyRequestsDialectEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_DIALECT"
-
-	// DataPrivacyRequestsFulfillerArtifactPathPrefixEnvVarKey is the environment variable name to
-	// set to override `SchedulerConfig.DataPrivacy.Requests.Fulfiller.ArtifactPathPrefix`.
-	DataPrivacyRequestsFulfillerArtifactPathPrefixEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_FULFILLER_ARTIFACT_PATH_PREFIX"
-
-	// DataPrivacyRequestsFulfillerArtifactTTLEnvVarKey is the environment variable name to set to
-	// override `SchedulerConfig.DataPrivacy.Requests.Fulfiller.ArtifactTTL`.
-	DataPrivacyRequestsFulfillerArtifactTTLEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_FULFILLER_ARTIFACT_TTL"
-
-	// DataPrivacyRequestsFulfillerCollectorConcurrencyEnvVarKey is the environment variable name
-	// to set to override `SchedulerConfig.DataPrivacy.Requests.Fulfiller.CollectorConcurrency`.
-	DataPrivacyRequestsFulfillerCollectorConcurrencyEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_FULFILLER_COLLECTOR_CONCURRENCY"
-
-	// DataPrivacyRequestsFulfillerCollectorTimeoutEnvVarKey is the environment variable name to
-	// set to override `SchedulerConfig.DataPrivacy.Requests.Fulfiller.CollectorTimeout`.
-	DataPrivacyRequestsFulfillerCollectorTimeoutEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_FULFILLER_COLLECTOR_TIMEOUT"
-
-	// DataPrivacyRequestsFulfillerFulfillmentTimeoutEnvVarKey is the environment variable name to
-	// set to override `SchedulerConfig.DataPrivacy.Requests.Fulfiller.FulfillmentTimeout`.
-	DataPrivacyRequestsFulfillerFulfillmentTimeoutEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_FULFILLER_FULFILLMENT_TIMEOUT"
-
-	// DataPrivacyRequestsFulfillerMaxAttemptsEnvVarKey is the environment variable name to set to
-	// override `SchedulerConfig.DataPrivacy.Requests.Fulfiller.MaxAttempts`.
-	DataPrivacyRequestsFulfillerMaxAttemptsEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_FULFILLER_MAX_ATTEMPTS"
-
-	// DataPrivacyRequestsFulfillerMaxDocumentBytesEnvVarKey is the environment variable name to
-	// set to override `SchedulerConfig.DataPrivacy.Requests.Fulfiller.MaxDocumentBytes`.
-	DataPrivacyRequestsFulfillerMaxDocumentBytesEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_FULFILLER_MAX_DOCUMENT_BYTES"
-
-	// DataPrivacyRequestsServiceConfirmationWindowEnvVarKey is the environment variable name to
-	// set to override `SchedulerConfig.DataPrivacy.Requests.Service.ConfirmationWindow`.
-	DataPrivacyRequestsServiceConfirmationWindowEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_SERVICE_CONFIRMATION_WINDOW"
-
-	// DataPrivacyRequestsServiceErasureResponseWindowEnvVarKey is the environment variable name to
-	// set to override `SchedulerConfig.DataPrivacy.Requests.Service.ErasureResponseWindow`.
-	DataPrivacyRequestsServiceErasureResponseWindowEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_SERVICE_ERASURE_RESPONSE_WINDOW"
-
-	// DataPrivacyRequestsServiceExportResponseWindowEnvVarKey is the environment variable name to
-	// set to override `SchedulerConfig.DataPrivacy.Requests.Service.ExportResponseWindow`.
-	DataPrivacyRequestsServiceExportResponseWindowEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_SERVICE_EXPORT_RESPONSE_WINDOW"
-
-	// DataPrivacyRequestsServiceSignedURLTTLEnvVarKey is the environment variable name to set to
-	// override `SchedulerConfig.DataPrivacy.Requests.Service.SignedURLTTL`.
-	DataPrivacyRequestsServiceSignedURLTTLEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_SERVICE_SIGNED_URL_TTL"
-
-	// DataPrivacyRequestsSweeperBatchSizeEnvVarKey is the environment variable name to set to
-	// override `SchedulerConfig.DataPrivacy.Requests.Sweeper.BatchSize`.
-	DataPrivacyRequestsSweeperBatchSizeEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_SWEEPER_BATCH_SIZE"
-
-	// DataPrivacyRequestsSweeperDisableReapEnvVarKey is the environment variable name to set to
-	// override `SchedulerConfig.DataPrivacy.Requests.Sweeper.DisableReap`.
-	DataPrivacyRequestsSweeperDisableReapEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_SWEEPER_DISABLE_REAP"
-
-	// DataPrivacyRequestsSweeperRequestRetentionEnvVarKey is the environment variable name to set
-	// to override `SchedulerConfig.DataPrivacy.Requests.Sweeper.RequestRetention`.
-	DataPrivacyRequestsSweeperRequestRetentionEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_SWEEPER_REQUEST_RETENTION"
-
-	// DataPrivacyRequestsTablePrefixEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.DataPrivacy.Requests.TablePrefix`.
-	DataPrivacyRequestsTablePrefixEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_REQUESTS_TABLE_PREFIX"
-
-	// DataPrivacyUploadsDebugEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.DataPrivacy.Uploads.Debug`.
-	DataPrivacyUploadsDebugEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_UPLOADS_DEBUG"
-
-	// DataPrivacyUploadsStorageBackblazeB2ApplicationKeyEnvVarKey is the environment variable name
-	// to set to override
-	// `SchedulerConfig.DataPrivacy.Uploads.Storage.BackblazeB2Config.ApplicationKey`.
-	DataPrivacyUploadsStorageBackblazeB2ApplicationKeyEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_UPLOADS_STORAGE_BACKBLAZE_B2_APPLICATION_KEY"
-
-	// DataPrivacyUploadsStorageBackblazeB2ApplicationKeyIDEnvVarKey is the environment variable
-	// name to set to override
-	// `SchedulerConfig.DataPrivacy.Uploads.Storage.BackblazeB2Config.ApplicationKeyID`.
-	DataPrivacyUploadsStorageBackblazeB2ApplicationKeyIDEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_UPLOADS_STORAGE_BACKBLAZE_B2_APPLICATION_KEY_ID"
-
-	// DataPrivacyUploadsStorageBackblazeB2RegionEnvVarKey is the environment variable name to set
-	// to override `SchedulerConfig.DataPrivacy.Uploads.Storage.BackblazeB2Config.Region`.
-	DataPrivacyUploadsStorageBackblazeB2RegionEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_UPLOADS_STORAGE_BACKBLAZE_B2_REGION"
-
-	// DataPrivacyUploadsStorageBucketNameEnvVarKey is the environment variable name to set to
-	// override `SchedulerConfig.DataPrivacy.Uploads.Storage.BucketName`.
-	DataPrivacyUploadsStorageBucketNameEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_UPLOADS_STORAGE_BUCKET_NAME"
-
-	// DataPrivacyUploadsStorageBucketPrefixEnvVarKey is the environment variable name to set to
-	// override `SchedulerConfig.DataPrivacy.Uploads.Storage.BucketPrefix`.
-	DataPrivacyUploadsStorageBucketPrefixEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_UPLOADS_STORAGE_BUCKET_PREFIX"
-
-	// DataPrivacyUploadsStorageCircuitBreakingErrorRateEnvVarKey is the environment variable name
-	// to set to override `SchedulerConfig.DataPrivacy.Uploads.Storage.CircuitBreaker.ErrorRate`.
-	DataPrivacyUploadsStorageCircuitBreakingErrorRateEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_UPLOADS_STORAGE_CIRCUIT_BREAKING_ERROR_RATE"
-
-	// DataPrivacyUploadsStorageCircuitBreakingMinimumSampleThresholdEnvVarKey is the environment
-	// variable name to set to override
-	// `SchedulerConfig.DataPrivacy.Uploads.Storage.CircuitBreaker.MinimumSampleThreshold`.
-	DataPrivacyUploadsStorageCircuitBreakingMinimumSampleThresholdEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_UPLOADS_STORAGE_CIRCUIT_BREAKING_MINIMUM_SAMPLE_THRESHOLD"
-
-	// DataPrivacyUploadsStorageCircuitBreakingNameEnvVarKey is the environment variable name to
-	// set to override `SchedulerConfig.DataPrivacy.Uploads.Storage.CircuitBreaker.Name`.
-	DataPrivacyUploadsStorageCircuitBreakingNameEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_UPLOADS_STORAGE_CIRCUIT_BREAKING_NAME"
-
-	// DataPrivacyUploadsStorageFilesystemDirectoryModeEnvVarKey is the environment variable name
-	// to set to override
-	// `SchedulerConfig.DataPrivacy.Uploads.Storage.FilesystemConfig.DirectoryMode`.
-	DataPrivacyUploadsStorageFilesystemDirectoryModeEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_UPLOADS_STORAGE_FILESYSTEM_DIRECTORY_MODE"
-
-	// DataPrivacyUploadsStorageFilesystemRootDirectoryEnvVarKey is the environment variable name
-	// to set to override
-	// `SchedulerConfig.DataPrivacy.Uploads.Storage.FilesystemConfig.RootDirectory`.
-	DataPrivacyUploadsStorageFilesystemRootDirectoryEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_UPLOADS_STORAGE_FILESYSTEM_ROOT_DIRECTORY"
-
-	// DataPrivacyUploadsStorageProviderEnvVarKey is the environment variable name to set to
-	// override `SchedulerConfig.DataPrivacy.Uploads.Storage.Provider`.
-	DataPrivacyUploadsStorageProviderEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_UPLOADS_STORAGE_PROVIDER"
-
-	// DataPrivacyUploadsStorageR2AccessKeyIDEnvVarKey is the environment variable name to set to
-	// override `SchedulerConfig.DataPrivacy.Uploads.Storage.R2Config.AccessKeyID`.
-	DataPrivacyUploadsStorageR2AccessKeyIDEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_UPLOADS_STORAGE_R2_ACCESS_KEY_ID"
-
-	// DataPrivacyUploadsStorageR2AccountIDEnvVarKey is the environment variable name to set to
-	// override `SchedulerConfig.DataPrivacy.Uploads.Storage.R2Config.AccountID`.
-	DataPrivacyUploadsStorageR2AccountIDEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_UPLOADS_STORAGE_R2_ACCOUNT_ID"
-
-	// DataPrivacyUploadsStorageR2SecretAccessKeyEnvVarKey is the environment variable name to set
-	// to override `SchedulerConfig.DataPrivacy.Uploads.Storage.R2Config.SecretAccessKey`.
-	DataPrivacyUploadsStorageR2SecretAccessKeyEnvVarKey = "DINNER_DONE_BETTER_DATA_PRIVACY_UPLOADS_STORAGE_R2_SECRET_ACCESS_KEY"
+	// DistributedLockRedisUsernameEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.DistributedLock.Redis.Username`,
+	// `DBCleanerConfig.Service.DistributedLock.Redis.Username`,
+	// `SchedulerConfig.Service.DistributedLock.Redis.Username`,
+	// `AsyncMessageHandlerConfig.Service.DistributedLock.Redis.Username`.
+	DistributedLockRedisUsernameEnvVarKey = "DINNER_DONE_BETTER_DISTRIBUTED_LOCK_REDIS_USERNAME"
 
 	// EmailCircuitBreakingErrorRateEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Email.CircuitBreaker.ErrorRate`,
-	// `AsyncMessageHandlerConfig.Email.CircuitBreaker.ErrorRate`,
+	// `APIServiceConfig.Service.Email.CircuitBreaker.ErrorRate`,
+	// `DBCleanerConfig.Service.Email.CircuitBreaker.ErrorRate`,
+	// `SchedulerConfig.Service.Email.CircuitBreaker.ErrorRate`,
+	// `AsyncMessageHandlerConfig.Service.Email.CircuitBreaker.ErrorRate`,
 	// `EmailDeliverabilityTestConfig.Email.CircuitBreaker.ErrorRate`.
 	EmailCircuitBreakingErrorRateEnvVarKey = "DINNER_DONE_BETTER_EMAIL_CIRCUIT_BREAKING_ERROR_RATE"
 
 	// EmailCircuitBreakingMinimumSampleThresholdEnvVarKey is the environment variable name to set
-	// to override `APIServiceConfig.Email.CircuitBreaker.MinimumSampleThreshold`,
-	// `AsyncMessageHandlerConfig.Email.CircuitBreaker.MinimumSampleThreshold`,
+	// to override `APIServiceConfig.Service.Email.CircuitBreaker.MinimumSampleThreshold`,
+	// `DBCleanerConfig.Service.Email.CircuitBreaker.MinimumSampleThreshold`,
+	// `SchedulerConfig.Service.Email.CircuitBreaker.MinimumSampleThreshold`,
+	// `AsyncMessageHandlerConfig.Service.Email.CircuitBreaker.MinimumSampleThreshold`,
 	// `EmailDeliverabilityTestConfig.Email.CircuitBreaker.MinimumSampleThreshold`.
 	EmailCircuitBreakingMinimumSampleThresholdEnvVarKey = "DINNER_DONE_BETTER_EMAIL_CIRCUIT_BREAKING_MINIMUM_SAMPLE_THRESHOLD"
 
 	// EmailCircuitBreakingNameEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Email.CircuitBreaker.Name`,
-	// `AsyncMessageHandlerConfig.Email.CircuitBreaker.Name`,
+	// `APIServiceConfig.Service.Email.CircuitBreaker.Name`,
+	// `DBCleanerConfig.Service.Email.CircuitBreaker.Name`,
+	// `SchedulerConfig.Service.Email.CircuitBreaker.Name`,
+	// `AsyncMessageHandlerConfig.Service.Email.CircuitBreaker.Name`,
 	// `EmailDeliverabilityTestConfig.Email.CircuitBreaker.Name`.
 	EmailCircuitBreakingNameEnvVarKey = "DINNER_DONE_BETTER_EMAIL_CIRCUIT_BREAKING_NAME"
 
 	// EmailMailgunBaseURLEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Email.Mailgun.BaseURL`, `AsyncMessageHandlerConfig.Email.Mailgun.BaseURL`,
+	// `APIServiceConfig.Service.Email.Mailgun.BaseURL`,
+	// `DBCleanerConfig.Service.Email.Mailgun.BaseURL`,
+	// `SchedulerConfig.Service.Email.Mailgun.BaseURL`,
+	// `AsyncMessageHandlerConfig.Service.Email.Mailgun.BaseURL`,
 	// `EmailDeliverabilityTestConfig.Email.Mailgun.BaseURL`.
 	EmailMailgunBaseURLEnvVarKey = "DINNER_DONE_BETTER_EMAIL_MAILGUN_BASE_URL"
 
 	// EmailMailgunDomainEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Email.Mailgun.Domain`, `AsyncMessageHandlerConfig.Email.Mailgun.Domain`,
+	// `APIServiceConfig.Service.Email.Mailgun.Domain`,
+	// `DBCleanerConfig.Service.Email.Mailgun.Domain`,
+	// `SchedulerConfig.Service.Email.Mailgun.Domain`,
+	// `AsyncMessageHandlerConfig.Service.Email.Mailgun.Domain`,
 	// `EmailDeliverabilityTestConfig.Email.Mailgun.Domain`.
 	EmailMailgunDomainEnvVarKey = "DINNER_DONE_BETTER_EMAIL_MAILGUN_DOMAIN"
 
 	// EmailMailgunPrivateAPIKeyEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Email.Mailgun.PrivateAPIKey`,
-	// `AsyncMessageHandlerConfig.Email.Mailgun.PrivateAPIKey`,
+	// `APIServiceConfig.Service.Email.Mailgun.PrivateAPIKey`,
+	// `DBCleanerConfig.Service.Email.Mailgun.PrivateAPIKey`,
+	// `SchedulerConfig.Service.Email.Mailgun.PrivateAPIKey`,
+	// `AsyncMessageHandlerConfig.Service.Email.Mailgun.PrivateAPIKey`,
 	// `EmailDeliverabilityTestConfig.Email.Mailgun.PrivateAPIKey`.
 	EmailMailgunPrivateAPIKeyEnvVarKey = "DINNER_DONE_BETTER_EMAIL_MAILGUN_PRIVATE_API_KEY"
 
 	// EmailMailjetAPIKeyEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Email.Mailjet.APIKey`, `AsyncMessageHandlerConfig.Email.Mailjet.APIKey`,
+	// `APIServiceConfig.Service.Email.Mailjet.APIKey`,
+	// `DBCleanerConfig.Service.Email.Mailjet.APIKey`,
+	// `SchedulerConfig.Service.Email.Mailjet.APIKey`,
+	// `AsyncMessageHandlerConfig.Service.Email.Mailjet.APIKey`,
 	// `EmailDeliverabilityTestConfig.Email.Mailjet.APIKey`.
 	EmailMailjetAPIKeyEnvVarKey = "DINNER_DONE_BETTER_EMAIL_MAILJET_API_KEY"
 
 	// EmailMailjetSecretKeyEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Email.Mailjet.SecretKey`,
-	// `AsyncMessageHandlerConfig.Email.Mailjet.SecretKey`,
+	// `APIServiceConfig.Service.Email.Mailjet.SecretKey`,
+	// `DBCleanerConfig.Service.Email.Mailjet.SecretKey`,
+	// `SchedulerConfig.Service.Email.Mailjet.SecretKey`,
+	// `AsyncMessageHandlerConfig.Service.Email.Mailjet.SecretKey`,
 	// `EmailDeliverabilityTestConfig.Email.Mailjet.SecretKey`.
 	EmailMailjetSecretKeyEnvVarKey = "DINNER_DONE_BETTER_EMAIL_MAILJET_SECRET_KEY"
 
 	// EmailPostmarkBaseURLEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Email.Postmark.BaseURL`,
-	// `AsyncMessageHandlerConfig.Email.Postmark.BaseURL`,
+	// `APIServiceConfig.Service.Email.Postmark.BaseURL`,
+	// `DBCleanerConfig.Service.Email.Postmark.BaseURL`,
+	// `SchedulerConfig.Service.Email.Postmark.BaseURL`,
+	// `AsyncMessageHandlerConfig.Service.Email.Postmark.BaseURL`,
 	// `EmailDeliverabilityTestConfig.Email.Postmark.BaseURL`.
 	EmailPostmarkBaseURLEnvVarKey = "DINNER_DONE_BETTER_EMAIL_POSTMARK_BASE_URL"
 
 	// EmailPostmarkServerTokenEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Email.Postmark.ServerToken`,
-	// `AsyncMessageHandlerConfig.Email.Postmark.ServerToken`,
+	// `APIServiceConfig.Service.Email.Postmark.ServerToken`,
+	// `DBCleanerConfig.Service.Email.Postmark.ServerToken`,
+	// `SchedulerConfig.Service.Email.Postmark.ServerToken`,
+	// `AsyncMessageHandlerConfig.Service.Email.Postmark.ServerToken`,
 	// `EmailDeliverabilityTestConfig.Email.Postmark.ServerToken`.
 	EmailPostmarkServerTokenEnvVarKey = "DINNER_DONE_BETTER_EMAIL_POSTMARK_SERVER_TOKEN"
 
 	// EmailProviderEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Email.Provider`, `AsyncMessageHandlerConfig.Email.Provider`,
+	// `APIServiceConfig.Service.Email.Provider`, `DBCleanerConfig.Service.Email.Provider`,
+	// `SchedulerConfig.Service.Email.Provider`,
+	// `AsyncMessageHandlerConfig.Service.Email.Provider`,
 	// `EmailDeliverabilityTestConfig.Email.Provider`.
 	EmailProviderEnvVarKey = "DINNER_DONE_BETTER_EMAIL_PROVIDER"
 
 	// EmailResendAPITokenEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Email.Resend.APIToken`, `AsyncMessageHandlerConfig.Email.Resend.APIToken`,
+	// `APIServiceConfig.Service.Email.Resend.APIToken`,
+	// `DBCleanerConfig.Service.Email.Resend.APIToken`,
+	// `SchedulerConfig.Service.Email.Resend.APIToken`,
+	// `AsyncMessageHandlerConfig.Service.Email.Resend.APIToken`,
 	// `EmailDeliverabilityTestConfig.Email.Resend.APIToken`.
 	EmailResendAPITokenEnvVarKey = "DINNER_DONE_BETTER_EMAIL_RESEND_API_TOKEN"
 
 	// EmailSendgridAPITokenEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Email.Sendgrid.APIToken`,
-	// `AsyncMessageHandlerConfig.Email.Sendgrid.APIToken`,
+	// `APIServiceConfig.Service.Email.Sendgrid.APIToken`,
+	// `DBCleanerConfig.Service.Email.Sendgrid.APIToken`,
+	// `SchedulerConfig.Service.Email.Sendgrid.APIToken`,
+	// `AsyncMessageHandlerConfig.Service.Email.Sendgrid.APIToken`,
 	// `EmailDeliverabilityTestConfig.Email.Sendgrid.APIToken`.
 	EmailSendgridAPITokenEnvVarKey = "DINNER_DONE_BETTER_EMAIL_SENDGRID_API_TOKEN"
 
 	// EmailSesRegionEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Email.SES.Region`, `AsyncMessageHandlerConfig.Email.SES.Region`,
+	// `APIServiceConfig.Service.Email.SES.Region`, `DBCleanerConfig.Service.Email.SES.Region`,
+	// `SchedulerConfig.Service.Email.SES.Region`,
+	// `AsyncMessageHandlerConfig.Service.Email.SES.Region`,
 	// `EmailDeliverabilityTestConfig.Email.SES.Region`.
 	EmailSesRegionEnvVarKey = "DINNER_DONE_BETTER_EMAIL_SES_REGION"
 
+	// EmbeddingsCohereAPIKeyEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Embeddings.Cohere.APIKey`,
+	// `DBCleanerConfig.Service.Embeddings.Cohere.APIKey`,
+	// `SchedulerConfig.Service.Embeddings.Cohere.APIKey`,
+	// `AsyncMessageHandlerConfig.Service.Embeddings.Cohere.APIKey`.
+	EmbeddingsCohereAPIKeyEnvVarKey = "DINNER_DONE_BETTER_EMBEDDINGS_COHERE_API_KEY"
+
+	// EmbeddingsCohereBaseURLEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Embeddings.Cohere.BaseURL`,
+	// `DBCleanerConfig.Service.Embeddings.Cohere.BaseURL`,
+	// `SchedulerConfig.Service.Embeddings.Cohere.BaseURL`,
+	// `AsyncMessageHandlerConfig.Service.Embeddings.Cohere.BaseURL`.
+	EmbeddingsCohereBaseURLEnvVarKey = "DINNER_DONE_BETTER_EMBEDDINGS_COHERE_BASE_URL"
+
+	// EmbeddingsCohereDefaultModelEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Embeddings.Cohere.DefaultModel`,
+	// `DBCleanerConfig.Service.Embeddings.Cohere.DefaultModel`,
+	// `SchedulerConfig.Service.Embeddings.Cohere.DefaultModel`,
+	// `AsyncMessageHandlerConfig.Service.Embeddings.Cohere.DefaultModel`.
+	EmbeddingsCohereDefaultModelEnvVarKey = "DINNER_DONE_BETTER_EMBEDDINGS_COHERE_DEFAULT_MODEL"
+
+	// EmbeddingsCohereTimeoutEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Embeddings.Cohere.Timeout`,
+	// `DBCleanerConfig.Service.Embeddings.Cohere.Timeout`,
+	// `SchedulerConfig.Service.Embeddings.Cohere.Timeout`,
+	// `AsyncMessageHandlerConfig.Service.Embeddings.Cohere.Timeout`.
+	EmbeddingsCohereTimeoutEnvVarKey = "DINNER_DONE_BETTER_EMBEDDINGS_COHERE_TIMEOUT"
+
+	// EmbeddingsOllamaBaseURLEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Embeddings.Ollama.BaseURL`,
+	// `DBCleanerConfig.Service.Embeddings.Ollama.BaseURL`,
+	// `SchedulerConfig.Service.Embeddings.Ollama.BaseURL`,
+	// `AsyncMessageHandlerConfig.Service.Embeddings.Ollama.BaseURL`.
+	EmbeddingsOllamaBaseURLEnvVarKey = "DINNER_DONE_BETTER_EMBEDDINGS_OLLAMA_BASE_URL"
+
+	// EmbeddingsOllamaDefaultModelEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Embeddings.Ollama.DefaultModel`,
+	// `DBCleanerConfig.Service.Embeddings.Ollama.DefaultModel`,
+	// `SchedulerConfig.Service.Embeddings.Ollama.DefaultModel`,
+	// `AsyncMessageHandlerConfig.Service.Embeddings.Ollama.DefaultModel`.
+	EmbeddingsOllamaDefaultModelEnvVarKey = "DINNER_DONE_BETTER_EMBEDDINGS_OLLAMA_DEFAULT_MODEL"
+
+	// EmbeddingsOllamaTimeoutEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Embeddings.Ollama.Timeout`,
+	// `DBCleanerConfig.Service.Embeddings.Ollama.Timeout`,
+	// `SchedulerConfig.Service.Embeddings.Ollama.Timeout`,
+	// `AsyncMessageHandlerConfig.Service.Embeddings.Ollama.Timeout`.
+	EmbeddingsOllamaTimeoutEnvVarKey = "DINNER_DONE_BETTER_EMBEDDINGS_OLLAMA_TIMEOUT"
+
+	// EmbeddingsOpenaiAPIKeyEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Embeddings.OpenAI.APIKey`,
+	// `DBCleanerConfig.Service.Embeddings.OpenAI.APIKey`,
+	// `SchedulerConfig.Service.Embeddings.OpenAI.APIKey`,
+	// `AsyncMessageHandlerConfig.Service.Embeddings.OpenAI.APIKey`.
+	EmbeddingsOpenaiAPIKeyEnvVarKey = "DINNER_DONE_BETTER_EMBEDDINGS_OPENAI_API_KEY"
+
+	// EmbeddingsOpenaiBaseURLEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Embeddings.OpenAI.BaseURL`,
+	// `DBCleanerConfig.Service.Embeddings.OpenAI.BaseURL`,
+	// `SchedulerConfig.Service.Embeddings.OpenAI.BaseURL`,
+	// `AsyncMessageHandlerConfig.Service.Embeddings.OpenAI.BaseURL`.
+	EmbeddingsOpenaiBaseURLEnvVarKey = "DINNER_DONE_BETTER_EMBEDDINGS_OPENAI_BASE_URL"
+
+	// EmbeddingsOpenaiDefaultModelEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Embeddings.OpenAI.DefaultModel`,
+	// `DBCleanerConfig.Service.Embeddings.OpenAI.DefaultModel`,
+	// `SchedulerConfig.Service.Embeddings.OpenAI.DefaultModel`,
+	// `AsyncMessageHandlerConfig.Service.Embeddings.OpenAI.DefaultModel`.
+	EmbeddingsOpenaiDefaultModelEnvVarKey = "DINNER_DONE_BETTER_EMBEDDINGS_OPENAI_DEFAULT_MODEL"
+
+	// EmbeddingsOpenaiTimeoutEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Embeddings.OpenAI.Timeout`,
+	// `DBCleanerConfig.Service.Embeddings.OpenAI.Timeout`,
+	// `SchedulerConfig.Service.Embeddings.OpenAI.Timeout`,
+	// `AsyncMessageHandlerConfig.Service.Embeddings.OpenAI.Timeout`.
+	EmbeddingsOpenaiTimeoutEnvVarKey = "DINNER_DONE_BETTER_EMBEDDINGS_OPENAI_TIMEOUT"
+
+	// EmbeddingsProviderEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Embeddings.Provider`,
+	// `DBCleanerConfig.Service.Embeddings.Provider`,
+	// `SchedulerConfig.Service.Embeddings.Provider`,
+	// `AsyncMessageHandlerConfig.Service.Embeddings.Provider`.
+	EmbeddingsProviderEnvVarKey = "DINNER_DONE_BETTER_EMBEDDINGS_PROVIDER"
+
 	// EncodingContentTypeEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Encoding.ContentType`, `AsyncMessageHandlerConfig.Encoding.ContentType`.
+	// `APIServiceConfig.Service.Encoding.ContentType`,
+	// `DBCleanerConfig.Service.Encoding.ContentType`,
+	// `SchedulerConfig.Service.Encoding.ContentType`,
+	// `AsyncMessageHandlerConfig.Service.Encoding.ContentType`.
 	EncodingContentTypeEnvVarKey = "DINNER_DONE_BETTER_ENCODING_CONTENT_TYPE"
 
+	// EncryptionCurrentKeyIDEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Encryption.CurrentKeyID`,
+	// `DBCleanerConfig.Service.Encryption.CurrentKeyID`,
+	// `SchedulerConfig.Service.Encryption.CurrentKeyID`,
+	// `AsyncMessageHandlerConfig.Service.Encryption.CurrentKeyID`.
+	EncryptionCurrentKeyIDEnvVarKey = "DINNER_DONE_BETTER_ENCRYPTION_CURRENT_KEY_ID"
+
+	// EncryptionProviderEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Encryption.Provider`,
+	// `DBCleanerConfig.Service.Encryption.Provider`,
+	// `SchedulerConfig.Service.Encryption.Provider`,
+	// `AsyncMessageHandlerConfig.Service.Encryption.Provider`.
+	EncryptionProviderEnvVarKey = "DINNER_DONE_BETTER_ENCRYPTION_PROVIDER"
+
 	// EntitlementsCheckerCachePrefixEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Entitlements.Checker.CachePrefix`.
+	// `APIServiceConfig.Service.Entitlements.Checker.CachePrefix`,
+	// `DBCleanerConfig.Service.Entitlements.Checker.CachePrefix`,
+	// `SchedulerConfig.Service.Entitlements.Checker.CachePrefix`,
+	// `AsyncMessageHandlerConfig.Service.Entitlements.Checker.CachePrefix`.
 	EntitlementsCheckerCachePrefixEnvVarKey = "DINNER_DONE_BETTER_ENTITLEMENTS_CHECKER_CACHE_PREFIX"
 
 	// EntitlementsCheckerCacheTTLEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Entitlements.Checker.CacheTTL`.
+	// `APIServiceConfig.Service.Entitlements.Checker.CacheTTL`,
+	// `DBCleanerConfig.Service.Entitlements.Checker.CacheTTL`,
+	// `SchedulerConfig.Service.Entitlements.Checker.CacheTTL`,
+	// `AsyncMessageHandlerConfig.Service.Entitlements.Checker.CacheTTL`.
 	EntitlementsCheckerCacheTTLEnvVarKey = "DINNER_DONE_BETTER_ENTITLEMENTS_CHECKER_CACHE_TTL"
 
 	// EntitlementsCheckerFallbackPlanEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Entitlements.Checker.FallbackPlan`.
+	// `APIServiceConfig.Service.Entitlements.Checker.FallbackPlan`,
+	// `DBCleanerConfig.Service.Entitlements.Checker.FallbackPlan`,
+	// `SchedulerConfig.Service.Entitlements.Checker.FallbackPlan`,
+	// `AsyncMessageHandlerConfig.Service.Entitlements.Checker.FallbackPlan`.
 	EntitlementsCheckerFallbackPlanEnvVarKey = "DINNER_DONE_BETTER_ENTITLEMENTS_CHECKER_FALLBACK_PLAN"
 
-	// EventsConsumerKafkaBrokersEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Events.Consumer.Kafka.Brokers`,
-	// `SchedulerConfig.Events.Consumer.Kafka.Brokers`,
-	// `AsyncMessageHandlerConfig.Events.Consumer.Kafka.Brokers`.
-	EventsConsumerKafkaBrokersEnvVarKey = "DINNER_DONE_BETTER_EVENTS_CONSUMER_KAFKA_BROKERS"
+	// EventStreamProviderEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.EventStream.Provider`,
+	// `DBCleanerConfig.Service.EventStream.Provider`,
+	// `SchedulerConfig.Service.EventStream.Provider`,
+	// `AsyncMessageHandlerConfig.Service.EventStream.Provider`.
+	EventStreamProviderEnvVarKey = "DINNER_DONE_BETTER_EVENT_STREAM_PROVIDER"
 
-	// EventsConsumerKafkaGroupIDEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Events.Consumer.Kafka.GroupID`,
-	// `SchedulerConfig.Events.Consumer.Kafka.GroupID`,
-	// `AsyncMessageHandlerConfig.Events.Consumer.Kafka.GroupID`.
-	EventsConsumerKafkaGroupIDEnvVarKey = "DINNER_DONE_BETTER_EVENTS_CONSUMER_KAFKA_GROUP_ID"
+	// EventStreamWebsocketAllowedOriginsEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.EventStream.WebSocket.AllowedOrigins`,
+	// `DBCleanerConfig.Service.EventStream.WebSocket.AllowedOrigins`,
+	// `SchedulerConfig.Service.EventStream.WebSocket.AllowedOrigins`,
+	// `AsyncMessageHandlerConfig.Service.EventStream.WebSocket.AllowedOrigins`.
+	EventStreamWebsocketAllowedOriginsEnvVarKey = "DINNER_DONE_BETTER_EVENT_STREAM_WEBSOCKET_ALLOWED_ORIGINS"
 
-	// EventsConsumerProviderEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Events.Consumer.Provider`, `SchedulerConfig.Events.Consumer.Provider`,
-	// `AsyncMessageHandlerConfig.Events.Consumer.Provider`.
-	EventsConsumerProviderEnvVarKey = "DINNER_DONE_BETTER_EVENTS_CONSUMER_PROVIDER"
+	// EventStreamWebsocketHeartbeatIntervalEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.EventStream.WebSocket.HeartbeatInterval`,
+	// `DBCleanerConfig.Service.EventStream.WebSocket.HeartbeatInterval`,
+	// `SchedulerConfig.Service.EventStream.WebSocket.HeartbeatInterval`,
+	// `AsyncMessageHandlerConfig.Service.EventStream.WebSocket.HeartbeatInterval`.
+	EventStreamWebsocketHeartbeatIntervalEnvVarKey = "DINNER_DONE_BETTER_EVENT_STREAM_WEBSOCKET_HEARTBEAT_INTERVAL"
 
-	// EventsConsumerPubsubProjectIDEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Events.Consumer.PubSub.ProjectID`,
-	// `SchedulerConfig.Events.Consumer.PubSub.ProjectID`,
-	// `AsyncMessageHandlerConfig.Events.Consumer.PubSub.ProjectID`.
-	EventsConsumerPubsubProjectIDEnvVarKey = "DINNER_DONE_BETTER_EVENTS_CONSUMER_PUBSUB_PROJECT_ID"
+	// EventStreamWebsocketReadBufferSizeEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.EventStream.WebSocket.ReadBufferSize`,
+	// `DBCleanerConfig.Service.EventStream.WebSocket.ReadBufferSize`,
+	// `SchedulerConfig.Service.EventStream.WebSocket.ReadBufferSize`,
+	// `AsyncMessageHandlerConfig.Service.EventStream.WebSocket.ReadBufferSize`.
+	EventStreamWebsocketReadBufferSizeEnvVarKey = "DINNER_DONE_BETTER_EVENT_STREAM_WEBSOCKET_READ_BUFFER_SIZE"
 
-	// EventsConsumerRedisPasswordEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Events.Consumer.Redis.Password`,
-	// `SchedulerConfig.Events.Consumer.Redis.Password`,
-	// `AsyncMessageHandlerConfig.Events.Consumer.Redis.Password`.
-	EventsConsumerRedisPasswordEnvVarKey = "DINNER_DONE_BETTER_EVENTS_CONSUMER_REDIS_PASSWORD"
-
-	// EventsConsumerRedisQueueAddressesEnvVarKey is the environment variable name to set to
-	// override `APIServiceConfig.Events.Consumer.Redis.QueueAddresses`,
-	// `SchedulerConfig.Events.Consumer.Redis.QueueAddresses`,
-	// `AsyncMessageHandlerConfig.Events.Consumer.Redis.QueueAddresses`.
-	EventsConsumerRedisQueueAddressesEnvVarKey = "DINNER_DONE_BETTER_EVENTS_CONSUMER_REDIS_QUEUE_ADDRESSES"
-
-	// EventsConsumerRedisUsernameEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Events.Consumer.Redis.Username`,
-	// `SchedulerConfig.Events.Consumer.Redis.Username`,
-	// `AsyncMessageHandlerConfig.Events.Consumer.Redis.Username`.
-	EventsConsumerRedisUsernameEnvVarKey = "DINNER_DONE_BETTER_EVENTS_CONSUMER_REDIS_USERNAME"
-
-	// EventsConsumerSqsQueueAddressEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Events.Consumer.SQS.QueueAddress`,
-	// `SchedulerConfig.Events.Consumer.SQS.QueueAddress`,
-	// `AsyncMessageHandlerConfig.Events.Consumer.SQS.QueueAddress`.
-	EventsConsumerSqsQueueAddressEnvVarKey = "DINNER_DONE_BETTER_EVENTS_CONSUMER_SQS_QUEUE_ADDRESS"
-
-	// EventsPublisherKafkaBrokersEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Events.Publisher.Kafka.Brokers`,
-	// `SchedulerConfig.Events.Publisher.Kafka.Brokers`,
-	// `AsyncMessageHandlerConfig.Events.Publisher.Kafka.Brokers`.
-	EventsPublisherKafkaBrokersEnvVarKey = "DINNER_DONE_BETTER_EVENTS_PUBLISHER_KAFKA_BROKERS"
-
-	// EventsPublisherKafkaGroupIDEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Events.Publisher.Kafka.GroupID`,
-	// `SchedulerConfig.Events.Publisher.Kafka.GroupID`,
-	// `AsyncMessageHandlerConfig.Events.Publisher.Kafka.GroupID`.
-	EventsPublisherKafkaGroupIDEnvVarKey = "DINNER_DONE_BETTER_EVENTS_PUBLISHER_KAFKA_GROUP_ID"
-
-	// EventsPublisherProviderEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Events.Publisher.Provider`, `SchedulerConfig.Events.Publisher.Provider`,
-	// `AsyncMessageHandlerConfig.Events.Publisher.Provider`.
-	EventsPublisherProviderEnvVarKey = "DINNER_DONE_BETTER_EVENTS_PUBLISHER_PROVIDER"
-
-	// EventsPublisherPubsubProjectIDEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Events.Publisher.PubSub.ProjectID`,
-	// `SchedulerConfig.Events.Publisher.PubSub.ProjectID`,
-	// `AsyncMessageHandlerConfig.Events.Publisher.PubSub.ProjectID`.
-	EventsPublisherPubsubProjectIDEnvVarKey = "DINNER_DONE_BETTER_EVENTS_PUBLISHER_PUBSUB_PROJECT_ID"
-
-	// EventsPublisherRedisPasswordEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Events.Publisher.Redis.Password`,
-	// `SchedulerConfig.Events.Publisher.Redis.Password`,
-	// `AsyncMessageHandlerConfig.Events.Publisher.Redis.Password`.
-	EventsPublisherRedisPasswordEnvVarKey = "DINNER_DONE_BETTER_EVENTS_PUBLISHER_REDIS_PASSWORD"
-
-	// EventsPublisherRedisQueueAddressesEnvVarKey is the environment variable name to set to
-	// override `APIServiceConfig.Events.Publisher.Redis.QueueAddresses`,
-	// `SchedulerConfig.Events.Publisher.Redis.QueueAddresses`,
-	// `AsyncMessageHandlerConfig.Events.Publisher.Redis.QueueAddresses`.
-	EventsPublisherRedisQueueAddressesEnvVarKey = "DINNER_DONE_BETTER_EVENTS_PUBLISHER_REDIS_QUEUE_ADDRESSES"
-
-	// EventsPublisherRedisUsernameEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Events.Publisher.Redis.Username`,
-	// `SchedulerConfig.Events.Publisher.Redis.Username`,
-	// `AsyncMessageHandlerConfig.Events.Publisher.Redis.Username`.
-	EventsPublisherRedisUsernameEnvVarKey = "DINNER_DONE_BETTER_EVENTS_PUBLISHER_REDIS_USERNAME"
-
-	// EventsPublisherSqsQueueAddressEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Events.Publisher.SQS.QueueAddress`,
-	// `SchedulerConfig.Events.Publisher.SQS.QueueAddress`,
-	// `AsyncMessageHandlerConfig.Events.Publisher.SQS.QueueAddress`.
-	EventsPublisherSqsQueueAddressEnvVarKey = "DINNER_DONE_BETTER_EVENTS_PUBLISHER_SQS_QUEUE_ADDRESS"
+	// EventStreamWebsocketWriteBufferSizeEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.EventStream.WebSocket.WriteBufferSize`,
+	// `DBCleanerConfig.Service.EventStream.WebSocket.WriteBufferSize`,
+	// `SchedulerConfig.Service.EventStream.WebSocket.WriteBufferSize`,
+	// `AsyncMessageHandlerConfig.Service.EventStream.WebSocket.WriteBufferSize`.
+	EventStreamWebsocketWriteBufferSizeEnvVarKey = "DINNER_DONE_BETTER_EVENT_STREAM_WEBSOCKET_WRITE_BUFFER_SIZE"
 
 	// FeatureFlagsCircuitBreakingErrorRateEnvVarKey is the environment variable name to set to
-	// override `APIServiceConfig.FeatureFlags.CircuitBreaker.ErrorRate`.
+	// override `APIServiceConfig.Service.FeatureFlags.CircuitBreaker.ErrorRate`,
+	// `DBCleanerConfig.Service.FeatureFlags.CircuitBreaker.ErrorRate`,
+	// `SchedulerConfig.Service.FeatureFlags.CircuitBreaker.ErrorRate`,
+	// `AsyncMessageHandlerConfig.Service.FeatureFlags.CircuitBreaker.ErrorRate`.
 	FeatureFlagsCircuitBreakingErrorRateEnvVarKey = "DINNER_DONE_BETTER_FEATURE_FLAGS_CIRCUIT_BREAKING_ERROR_RATE"
 
 	// FeatureFlagsCircuitBreakingMinimumSampleThresholdEnvVarKey is the environment variable name
-	// to set to override `APIServiceConfig.FeatureFlags.CircuitBreaker.MinimumSampleThreshold`.
+	// to set to override
+	// `APIServiceConfig.Service.FeatureFlags.CircuitBreaker.MinimumSampleThreshold`,
+	// `DBCleanerConfig.Service.FeatureFlags.CircuitBreaker.MinimumSampleThreshold`,
+	// `SchedulerConfig.Service.FeatureFlags.CircuitBreaker.MinimumSampleThreshold`,
+	// `AsyncMessageHandlerConfig.Service.FeatureFlags.CircuitBreaker.MinimumSampleThreshold`.
 	FeatureFlagsCircuitBreakingMinimumSampleThresholdEnvVarKey = "DINNER_DONE_BETTER_FEATURE_FLAGS_CIRCUIT_BREAKING_MINIMUM_SAMPLE_THRESHOLD"
 
 	// FeatureFlagsCircuitBreakingNameEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.FeatureFlags.CircuitBreaker.Name`.
+	// `APIServiceConfig.Service.FeatureFlags.CircuitBreaker.Name`,
+	// `DBCleanerConfig.Service.FeatureFlags.CircuitBreaker.Name`,
+	// `SchedulerConfig.Service.FeatureFlags.CircuitBreaker.Name`,
+	// `AsyncMessageHandlerConfig.Service.FeatureFlags.CircuitBreaker.Name`.
 	FeatureFlagsCircuitBreakingNameEnvVarKey = "DINNER_DONE_BETTER_FEATURE_FLAGS_CIRCUIT_BREAKING_NAME"
 
 	// FeatureFlagsLaunchDarklyInitTimeoutEnvVarKey is the environment variable name to set to
-	// override `APIServiceConfig.FeatureFlags.LaunchDarkly.InitTimeout`.
+	// override `APIServiceConfig.Service.FeatureFlags.LaunchDarkly.InitTimeout`,
+	// `DBCleanerConfig.Service.FeatureFlags.LaunchDarkly.InitTimeout`,
+	// `SchedulerConfig.Service.FeatureFlags.LaunchDarkly.InitTimeout`,
+	// `AsyncMessageHandlerConfig.Service.FeatureFlags.LaunchDarkly.InitTimeout`.
 	FeatureFlagsLaunchDarklyInitTimeoutEnvVarKey = "DINNER_DONE_BETTER_FEATURE_FLAGS_LAUNCH_DARKLY_INIT_TIMEOUT"
 
 	// FeatureFlagsLaunchDarklySdkKeyEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.FeatureFlags.LaunchDarkly.SDKKey`.
+	// `APIServiceConfig.Service.FeatureFlags.LaunchDarkly.SDKKey`,
+	// `DBCleanerConfig.Service.FeatureFlags.LaunchDarkly.SDKKey`,
+	// `SchedulerConfig.Service.FeatureFlags.LaunchDarkly.SDKKey`,
+	// `AsyncMessageHandlerConfig.Service.FeatureFlags.LaunchDarkly.SDKKey`.
 	FeatureFlagsLaunchDarklySdkKeyEnvVarKey = "DINNER_DONE_BETTER_FEATURE_FLAGS_LAUNCH_DARKLY_SDK_KEY"
 
 	// FeatureFlagsPosthogEndpointEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.FeatureFlags.PostHog.Endpoint`.
+	// `APIServiceConfig.Service.FeatureFlags.PostHog.Endpoint`,
+	// `DBCleanerConfig.Service.FeatureFlags.PostHog.Endpoint`,
+	// `SchedulerConfig.Service.FeatureFlags.PostHog.Endpoint`,
+	// `AsyncMessageHandlerConfig.Service.FeatureFlags.PostHog.Endpoint`.
 	FeatureFlagsPosthogEndpointEnvVarKey = "DINNER_DONE_BETTER_FEATURE_FLAGS_POSTHOG_ENDPOINT"
 
 	// FeatureFlagsPosthogPersonalAPIKeyEnvVarKey is the environment variable name to set to
-	// override `APIServiceConfig.FeatureFlags.PostHog.PersonalAPIKey`.
+	// override `APIServiceConfig.Service.FeatureFlags.PostHog.PersonalAPIKey`,
+	// `DBCleanerConfig.Service.FeatureFlags.PostHog.PersonalAPIKey`,
+	// `SchedulerConfig.Service.FeatureFlags.PostHog.PersonalAPIKey`,
+	// `AsyncMessageHandlerConfig.Service.FeatureFlags.PostHog.PersonalAPIKey`.
 	FeatureFlagsPosthogPersonalAPIKeyEnvVarKey = "DINNER_DONE_BETTER_FEATURE_FLAGS_POSTHOG_PERSONAL_API_KEY"
 
 	// FeatureFlagsPosthogProjectAPIKeyEnvVarKey is the environment variable name to set to
-	// override `APIServiceConfig.FeatureFlags.PostHog.ProjectAPIKey`.
+	// override `APIServiceConfig.Service.FeatureFlags.PostHog.ProjectAPIKey`,
+	// `DBCleanerConfig.Service.FeatureFlags.PostHog.ProjectAPIKey`,
+	// `SchedulerConfig.Service.FeatureFlags.PostHog.ProjectAPIKey`,
+	// `AsyncMessageHandlerConfig.Service.FeatureFlags.PostHog.ProjectAPIKey`.
 	FeatureFlagsPosthogProjectAPIKeyEnvVarKey = "DINNER_DONE_BETTER_FEATURE_FLAGS_POSTHOG_PROJECT_API_KEY"
 
 	// FeatureFlagsProviderEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.FeatureFlags.Provider`.
+	// `APIServiceConfig.Service.FeatureFlags.Provider`,
+	// `DBCleanerConfig.Service.FeatureFlags.Provider`,
+	// `SchedulerConfig.Service.FeatureFlags.Provider`,
+	// `AsyncMessageHandlerConfig.Service.FeatureFlags.Provider`.
 	FeatureFlagsProviderEnvVarKey = "DINNER_DONE_BETTER_FEATURE_FLAGS_PROVIDER"
 
-	// GrpcMaxReceiveMessageSizeEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.GRPCServer.MaxReceiveMessageSize`.
-	GrpcMaxReceiveMessageSizeEnvVarKey = "DINNER_DONE_BETTER_GRPC_MAX_RECEIVE_MESSAGE_SIZE"
+	// GrpcServerMaxReceiveMessageSizeEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.GRPCServer.MaxReceiveMessageSize`,
+	// `DBCleanerConfig.Service.GRPCServer.MaxReceiveMessageSize`,
+	// `SchedulerConfig.Service.GRPCServer.MaxReceiveMessageSize`,
+	// `AsyncMessageHandlerConfig.Service.GRPCServer.MaxReceiveMessageSize`.
+	GrpcServerMaxReceiveMessageSizeEnvVarKey = "DINNER_DONE_BETTER_GRPC_SERVER_MAX_RECEIVE_MESSAGE_SIZE"
 
-	// GrpcMaxSendMessageSizeEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.GRPCServer.MaxSendMessageSize`.
-	GrpcMaxSendMessageSizeEnvVarKey = "DINNER_DONE_BETTER_GRPC_MAX_SEND_MESSAGE_SIZE"
+	// GrpcServerMaxSendMessageSizeEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.GRPCServer.MaxSendMessageSize`,
+	// `DBCleanerConfig.Service.GRPCServer.MaxSendMessageSize`,
+	// `SchedulerConfig.Service.GRPCServer.MaxSendMessageSize`,
+	// `AsyncMessageHandlerConfig.Service.GRPCServer.MaxSendMessageSize`.
+	GrpcServerMaxSendMessageSizeEnvVarKey = "DINNER_DONE_BETTER_GRPC_SERVER_MAX_SEND_MESSAGE_SIZE"
 
-	// GrpcPortEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.GRPCServer.Port`.
-	GrpcPortEnvVarKey = "DINNER_DONE_BETTER_GRPC_PORT"
+	// GrpcServerPortEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.GRPCServer.Port`, `DBCleanerConfig.Service.GRPCServer.Port`,
+	// `SchedulerConfig.Service.GRPCServer.Port`,
+	// `AsyncMessageHandlerConfig.Service.GRPCServer.Port`.
+	GrpcServerPortEnvVarKey = "DINNER_DONE_BETTER_GRPC_SERVER_PORT"
 
-	// GrpcTLSCertificateFilepathEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.GRPCServer.TLSCertificateFile`.
-	GrpcTLSCertificateFilepathEnvVarKey = "DINNER_DONE_BETTER_GRPC_TLS_CERTIFICATE_FILEPATH"
+	// GrpcServerTLSCertificateFilepathEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.GRPCServer.TLSCertificateFile`,
+	// `DBCleanerConfig.Service.GRPCServer.TLSCertificateFile`,
+	// `SchedulerConfig.Service.GRPCServer.TLSCertificateFile`,
+	// `AsyncMessageHandlerConfig.Service.GRPCServer.TLSCertificateFile`.
+	GrpcServerTLSCertificateFilepathEnvVarKey = "DINNER_DONE_BETTER_GRPC_SERVER_TLS_CERTIFICATE_FILEPATH"
 
-	// GrpcTLSCertificateKeyFilepathEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.GRPCServer.TLSCertificateKeyFile`.
-	GrpcTLSCertificateKeyFilepathEnvVarKey = "DINNER_DONE_BETTER_GRPC_TLS_CERTIFICATE_KEY_FILEPATH"
+	// GrpcServerTLSCertificateKeyFilepathEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.GRPCServer.TLSCertificateKeyFile`,
+	// `DBCleanerConfig.Service.GRPCServer.TLSCertificateKeyFile`,
+	// `SchedulerConfig.Service.GRPCServer.TLSCertificateKeyFile`,
+	// `AsyncMessageHandlerConfig.Service.GRPCServer.TLSCertificateKeyFile`.
+	GrpcServerTLSCertificateKeyFilepathEnvVarKey = "DINNER_DONE_BETTER_GRPC_SERVER_TLS_CERTIFICATE_KEY_FILEPATH"
 
 	// HTTPAppleAppSiteAssociationBundleIDEnvVarKey is the environment variable name to set to
-	// override `APIServiceConfig.HTTPServer.AppleAppSiteAssociation.BundleID`,
-	// `MCPServiceConfig.HTTPServer.AppleAppSiteAssociation.BundleID`.
+	// override `MCPServiceConfig.HTTPServer.AppleAppSiteAssociation.BundleID`.
 	HTTPAppleAppSiteAssociationBundleIDEnvVarKey = "DINNER_DONE_BETTER_HTTP_APPLE_APP_SITE_ASSOCIATION_BUNDLE_ID"
 
 	// HTTPAppleAppSiteAssociationPathsEnvVarKey is the environment variable name to set to
-	// override `APIServiceConfig.HTTPServer.AppleAppSiteAssociation.Paths`,
-	// `MCPServiceConfig.HTTPServer.AppleAppSiteAssociation.Paths`.
+	// override `MCPServiceConfig.HTTPServer.AppleAppSiteAssociation.Paths`.
 	HTTPAppleAppSiteAssociationPathsEnvVarKey = "DINNER_DONE_BETTER_HTTP_APPLE_APP_SITE_ASSOCIATION_PATHS"
 
 	// HTTPAppleAppSiteAssociationTeamIDEnvVarKey is the environment variable name to set to
-	// override `APIServiceConfig.HTTPServer.AppleAppSiteAssociation.TeamID`,
-	// `MCPServiceConfig.HTTPServer.AppleAppSiteAssociation.TeamID`.
+	// override `MCPServiceConfig.HTTPServer.AppleAppSiteAssociation.TeamID`.
 	HTTPAppleAppSiteAssociationTeamIDEnvVarKey = "DINNER_DONE_BETTER_HTTP_APPLE_APP_SITE_ASSOCIATION_TEAM_ID"
 
 	// HTTPAppleAppSiteAssociationWebCredentialsEnvVarKey is the environment variable name to set
-	// to override `APIServiceConfig.HTTPServer.AppleAppSiteAssociation.WebCredentials`,
-	// `MCPServiceConfig.HTTPServer.AppleAppSiteAssociation.WebCredentials`.
+	// to override `MCPServiceConfig.HTTPServer.AppleAppSiteAssociation.WebCredentials`.
 	HTTPAppleAppSiteAssociationWebCredentialsEnvVarKey = "DINNER_DONE_BETTER_HTTP_APPLE_APP_SITE_ASSOCIATION_WEB_CREDENTIALS"
 
 	// HTTPClientEnableTracingEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.HTTPClient.EnableTracing`,
-	// `AsyncMessageHandlerConfig.HTTPClient.EnableTracing`,
+	// `APIServiceConfig.Service.HTTPClient.EnableTracing`,
+	// `DBCleanerConfig.Service.HTTPClient.EnableTracing`,
+	// `SchedulerConfig.Service.HTTPClient.EnableTracing`,
+	// `AsyncMessageHandlerConfig.Service.HTTPClient.EnableTracing`,
 	// `EmailDeliverabilityTestConfig.HTTPClient.EnableTracing`.
 	HTTPClientEnableTracingEnvVarKey = "DINNER_DONE_BETTER_HTTP_CLIENT_ENABLE_TRACING"
 
 	// HTTPClientMaxIdleConnsEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.HTTPClient.MaxIdleConns`,
-	// `AsyncMessageHandlerConfig.HTTPClient.MaxIdleConns`,
+	// `APIServiceConfig.Service.HTTPClient.MaxIdleConns`,
+	// `DBCleanerConfig.Service.HTTPClient.MaxIdleConns`,
+	// `SchedulerConfig.Service.HTTPClient.MaxIdleConns`,
+	// `AsyncMessageHandlerConfig.Service.HTTPClient.MaxIdleConns`,
 	// `EmailDeliverabilityTestConfig.HTTPClient.MaxIdleConns`.
 	HTTPClientMaxIdleConnsEnvVarKey = "DINNER_DONE_BETTER_HTTP_CLIENT_MAX_IDLE_CONNS"
 
 	// HTTPClientMaxIdleConnsPerHostEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.HTTPClient.MaxIdleConnsPerHost`,
-	// `AsyncMessageHandlerConfig.HTTPClient.MaxIdleConnsPerHost`,
+	// `APIServiceConfig.Service.HTTPClient.MaxIdleConnsPerHost`,
+	// `DBCleanerConfig.Service.HTTPClient.MaxIdleConnsPerHost`,
+	// `SchedulerConfig.Service.HTTPClient.MaxIdleConnsPerHost`,
+	// `AsyncMessageHandlerConfig.Service.HTTPClient.MaxIdleConnsPerHost`,
 	// `EmailDeliverabilityTestConfig.HTTPClient.MaxIdleConnsPerHost`.
 	HTTPClientMaxIdleConnsPerHostEnvVarKey = "DINNER_DONE_BETTER_HTTP_CLIENT_MAX_IDLE_CONNS_PER_HOST"
 
 	// HTTPClientTimeoutEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.HTTPClient.Timeout`, `AsyncMessageHandlerConfig.HTTPClient.Timeout`,
+	// `APIServiceConfig.Service.HTTPClient.Timeout`, `DBCleanerConfig.Service.HTTPClient.Timeout`,
+	// `SchedulerConfig.Service.HTTPClient.Timeout`,
+	// `AsyncMessageHandlerConfig.Service.HTTPClient.Timeout`,
 	// `EmailDeliverabilityTestConfig.HTTPClient.Timeout`.
 	HTTPClientTimeoutEnvVarKey = "DINNER_DONE_BETTER_HTTP_CLIENT_TIMEOUT"
 
 	// HTTPIdleTimeoutEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.HTTPServer.IdleTimeout`, `MCPServiceConfig.HTTPServer.IdleTimeout`.
+	// `MCPServiceConfig.HTTPServer.IdleTimeout`.
 	HTTPIdleTimeoutEnvVarKey = "DINNER_DONE_BETTER_HTTP_IDLE_TIMEOUT"
 
 	// HTTPPortEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.HTTPServer.Port`, `MCPServiceConfig.HTTPServer.Port`.
+	// `MCPServiceConfig.HTTPServer.Port`.
 	HTTPPortEnvVarKey = "DINNER_DONE_BETTER_HTTP_PORT"
 
 	// HTTPReadTimeoutEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.HTTPServer.ReadTimeout`, `MCPServiceConfig.HTTPServer.ReadTimeout`.
+	// `MCPServiceConfig.HTTPServer.ReadTimeout`.
 	HTTPReadTimeoutEnvVarKey = "DINNER_DONE_BETTER_HTTP_READ_TIMEOUT"
 
+	// HTTPServerAppleAppSiteAssociationBundleIDEnvVarKey is the environment variable name to set
+	// to override `APIServiceConfig.Service.HTTPServer.AppleAppSiteAssociation.BundleID`,
+	// `DBCleanerConfig.Service.HTTPServer.AppleAppSiteAssociation.BundleID`,
+	// `SchedulerConfig.Service.HTTPServer.AppleAppSiteAssociation.BundleID`,
+	// `AsyncMessageHandlerConfig.Service.HTTPServer.AppleAppSiteAssociation.BundleID`.
+	HTTPServerAppleAppSiteAssociationBundleIDEnvVarKey = "DINNER_DONE_BETTER_HTTP_SERVER_APPLE_APP_SITE_ASSOCIATION_BUNDLE_ID"
+
+	// HTTPServerAppleAppSiteAssociationPathsEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.HTTPServer.AppleAppSiteAssociation.Paths`,
+	// `DBCleanerConfig.Service.HTTPServer.AppleAppSiteAssociation.Paths`,
+	// `SchedulerConfig.Service.HTTPServer.AppleAppSiteAssociation.Paths`,
+	// `AsyncMessageHandlerConfig.Service.HTTPServer.AppleAppSiteAssociation.Paths`.
+	HTTPServerAppleAppSiteAssociationPathsEnvVarKey = "DINNER_DONE_BETTER_HTTP_SERVER_APPLE_APP_SITE_ASSOCIATION_PATHS"
+
+	// HTTPServerAppleAppSiteAssociationTeamIDEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.HTTPServer.AppleAppSiteAssociation.TeamID`,
+	// `DBCleanerConfig.Service.HTTPServer.AppleAppSiteAssociation.TeamID`,
+	// `SchedulerConfig.Service.HTTPServer.AppleAppSiteAssociation.TeamID`,
+	// `AsyncMessageHandlerConfig.Service.HTTPServer.AppleAppSiteAssociation.TeamID`.
+	HTTPServerAppleAppSiteAssociationTeamIDEnvVarKey = "DINNER_DONE_BETTER_HTTP_SERVER_APPLE_APP_SITE_ASSOCIATION_TEAM_ID"
+
+	// HTTPServerAppleAppSiteAssociationWebCredentialsEnvVarKey is the environment variable name to
+	// set to override
+	// `APIServiceConfig.Service.HTTPServer.AppleAppSiteAssociation.WebCredentials`,
+	// `DBCleanerConfig.Service.HTTPServer.AppleAppSiteAssociation.WebCredentials`,
+	// `SchedulerConfig.Service.HTTPServer.AppleAppSiteAssociation.WebCredentials`,
+	// `AsyncMessageHandlerConfig.Service.HTTPServer.AppleAppSiteAssociation.WebCredentials`.
+	HTTPServerAppleAppSiteAssociationWebCredentialsEnvVarKey = "DINNER_DONE_BETTER_HTTP_SERVER_APPLE_APP_SITE_ASSOCIATION_WEB_CREDENTIALS"
+
+	// HTTPServerIdleTimeoutEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.HTTPServer.IdleTimeout`,
+	// `DBCleanerConfig.Service.HTTPServer.IdleTimeout`,
+	// `SchedulerConfig.Service.HTTPServer.IdleTimeout`,
+	// `AsyncMessageHandlerConfig.Service.HTTPServer.IdleTimeout`.
+	HTTPServerIdleTimeoutEnvVarKey = "DINNER_DONE_BETTER_HTTP_SERVER_IDLE_TIMEOUT"
+
+	// HTTPServerPortEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.HTTPServer.Port`, `DBCleanerConfig.Service.HTTPServer.Port`,
+	// `SchedulerConfig.Service.HTTPServer.Port`,
+	// `AsyncMessageHandlerConfig.Service.HTTPServer.Port`.
+	HTTPServerPortEnvVarKey = "DINNER_DONE_BETTER_HTTP_SERVER_PORT"
+
+	// HTTPServerReadTimeoutEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.HTTPServer.ReadTimeout`,
+	// `DBCleanerConfig.Service.HTTPServer.ReadTimeout`,
+	// `SchedulerConfig.Service.HTTPServer.ReadTimeout`,
+	// `AsyncMessageHandlerConfig.Service.HTTPServer.ReadTimeout`.
+	HTTPServerReadTimeoutEnvVarKey = "DINNER_DONE_BETTER_HTTP_SERVER_READ_TIMEOUT"
+
+	// HTTPServerSslCertificateFilepathEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.HTTPServer.SSLCertificateFile`,
+	// `DBCleanerConfig.Service.HTTPServer.SSLCertificateFile`,
+	// `SchedulerConfig.Service.HTTPServer.SSLCertificateFile`,
+	// `AsyncMessageHandlerConfig.Service.HTTPServer.SSLCertificateFile`.
+	HTTPServerSslCertificateFilepathEnvVarKey = "DINNER_DONE_BETTER_HTTP_SERVER_SSL_CERTIFICATE_FILEPATH"
+
+	// HTTPServerSslCertificateKeyFilepathEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.HTTPServer.SSLCertificateKeyFile`,
+	// `DBCleanerConfig.Service.HTTPServer.SSLCertificateKeyFile`,
+	// `SchedulerConfig.Service.HTTPServer.SSLCertificateKeyFile`,
+	// `AsyncMessageHandlerConfig.Service.HTTPServer.SSLCertificateKeyFile`.
+	HTTPServerSslCertificateKeyFilepathEnvVarKey = "DINNER_DONE_BETTER_HTTP_SERVER_SSL_CERTIFICATE_KEY_FILEPATH"
+
+	// HTTPServerStartupDeadlineEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.HTTPServer.StartupDeadline`,
+	// `DBCleanerConfig.Service.HTTPServer.StartupDeadline`,
+	// `SchedulerConfig.Service.HTTPServer.StartupDeadline`,
+	// `AsyncMessageHandlerConfig.Service.HTTPServer.StartupDeadline`.
+	HTTPServerStartupDeadlineEnvVarKey = "DINNER_DONE_BETTER_HTTP_SERVER_STARTUP_DEADLINE"
+
+	// HTTPServerWriteTimeoutEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.HTTPServer.WriteTimeout`,
+	// `DBCleanerConfig.Service.HTTPServer.WriteTimeout`,
+	// `SchedulerConfig.Service.HTTPServer.WriteTimeout`,
+	// `AsyncMessageHandlerConfig.Service.HTTPServer.WriteTimeout`.
+	HTTPServerWriteTimeoutEnvVarKey = "DINNER_DONE_BETTER_HTTP_SERVER_WRITE_TIMEOUT"
+
 	// HTTPSslCertificateFilepathEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.HTTPServer.SSLCertificateFile`,
 	// `MCPServiceConfig.HTTPServer.SSLCertificateFile`.
 	HTTPSslCertificateFilepathEnvVarKey = "DINNER_DONE_BETTER_HTTP_SSL_CERTIFICATE_FILEPATH"
 
 	// HTTPSslCertificateKeyFilepathEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.HTTPServer.SSLCertificateKeyFile`,
 	// `MCPServiceConfig.HTTPServer.SSLCertificateKeyFile`.
 	HTTPSslCertificateKeyFilepathEnvVarKey = "DINNER_DONE_BETTER_HTTP_SSL_CERTIFICATE_KEY_FILEPATH"
 
 	// HTTPStartupDeadlineEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.HTTPServer.StartupDeadline`,
 	// `MCPServiceConfig.HTTPServer.StartupDeadline`.
 	HTTPStartupDeadlineEnvVarKey = "DINNER_DONE_BETTER_HTTP_STARTUP_DEADLINE"
 
 	// HTTPWriteTimeoutEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.HTTPServer.WriteTimeout`, `MCPServiceConfig.HTTPServer.WriteTimeout`.
+	// `MCPServiceConfig.HTTPServer.WriteTimeout`.
 	HTTPWriteTimeoutEnvVarKey = "DINNER_DONE_BETTER_HTTP_WRITE_TIMEOUT"
 
 	// IdempotencyEnabledEnvVarKey is the environment variable name to set to override
@@ -1051,9 +1606,128 @@ const (
 	// `APIServiceConfig.Idempotency.Manager.TTL`.
 	IdempotencyManagerTTLEnvVarKey = "DINNER_DONE_BETTER_IDEMPOTENCY_MANAGER_TTL"
 
-	// JobsAuditRetentionSweeperEnabledEnvVarKey is the environment variable name to set to
-	// override `SchedulerConfig.Jobs.AuditRetentionSweeper.Enabled`.
-	JobsAuditRetentionSweeperEnabledEnvVarKey = "DINNER_DONE_BETTER_JOBS_AUDIT_RETENTION_SWEEPER_ENABLED"
+	// IdentityInvitationTTLEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Identity.InvitationTTL`,
+	// `DBCleanerConfig.Service.Identity.InvitationTTL`,
+	// `SchedulerConfig.Service.Identity.InvitationTTL`,
+	// `AsyncMessageHandlerConfig.Service.Identity.InvitationTTL`.
+	IdentityInvitationTTLEnvVarKey = "DINNER_DONE_BETTER_IDENTITY_INVITATION_TTL"
+
+	// IdentityMaxInvitationTTLEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Identity.MaxInvitationTTL`,
+	// `DBCleanerConfig.Service.Identity.MaxInvitationTTL`,
+	// `SchedulerConfig.Service.Identity.MaxInvitationTTL`,
+	// `AsyncMessageHandlerConfig.Service.Identity.MaxInvitationTTL`.
+	IdentityMaxInvitationTTLEnvVarKey = "DINNER_DONE_BETTER_IDENTITY_MAX_INVITATION_TTL"
+
+	// IdentityReturnInvitationTokenEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Identity.ReturnInvitationToken`,
+	// `DBCleanerConfig.Service.Identity.ReturnInvitationToken`,
+	// `SchedulerConfig.Service.Identity.ReturnInvitationToken`,
+	// `AsyncMessageHandlerConfig.Service.Identity.ReturnInvitationToken`.
+	IdentityReturnInvitationTokenEnvVarKey = "DINNER_DONE_BETTER_IDENTITY_RETURN_INVITATION_TOKEN"
+
+	// IdentityTablePrefixEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Identity.TablePrefix`,
+	// `DBCleanerConfig.Service.Identity.TablePrefix`,
+	// `SchedulerConfig.Service.Identity.TablePrefix`,
+	// `AsyncMessageHandlerConfig.Service.Identity.TablePrefix`.
+	IdentityTablePrefixEnvVarKey = "DINNER_DONE_BETTER_IDENTITY_TABLE_PREFIX"
+
+	// InboundWebhooksAdditionalSecretsEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.InboundWebhooks.AdditionalSecrets`,
+	// `DBCleanerConfig.Service.InboundWebhooks.AdditionalSecrets`,
+	// `SchedulerConfig.Service.InboundWebhooks.AdditionalSecrets`,
+	// `AsyncMessageHandlerConfig.Service.InboundWebhooks.AdditionalSecrets`.
+	InboundWebhooksAdditionalSecretsEnvVarKey = "DINNER_DONE_BETTER_INBOUND_WEBHOOKS_ADDITIONAL_SECRETS"
+
+	// InboundWebhooksForwardedHeadersEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.InboundWebhooks.ForwardedHeaders`,
+	// `DBCleanerConfig.Service.InboundWebhooks.ForwardedHeaders`,
+	// `SchedulerConfig.Service.InboundWebhooks.ForwardedHeaders`,
+	// `AsyncMessageHandlerConfig.Service.InboundWebhooks.ForwardedHeaders`.
+	InboundWebhooksForwardedHeadersEnvVarKey = "DINNER_DONE_BETTER_INBOUND_WEBHOOKS_FORWARDED_HEADERS"
+
+	// InboundWebhooksHmacDigestEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.InboundWebhooks.HMAC.Digest`,
+	// `DBCleanerConfig.Service.InboundWebhooks.HMAC.Digest`,
+	// `SchedulerConfig.Service.InboundWebhooks.HMAC.Digest`,
+	// `AsyncMessageHandlerConfig.Service.InboundWebhooks.HMAC.Digest`.
+	InboundWebhooksHmacDigestEnvVarKey = "DINNER_DONE_BETTER_INBOUND_WEBHOOKS_HMAC_DIGEST"
+
+	// InboundWebhooksHmacEncodingEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.InboundWebhooks.HMAC.Encoding`,
+	// `DBCleanerConfig.Service.InboundWebhooks.HMAC.Encoding`,
+	// `SchedulerConfig.Service.InboundWebhooks.HMAC.Encoding`,
+	// `AsyncMessageHandlerConfig.Service.InboundWebhooks.HMAC.Encoding`.
+	InboundWebhooksHmacEncodingEnvVarKey = "DINNER_DONE_BETTER_INBOUND_WEBHOOKS_HMAC_ENCODING"
+
+	// InboundWebhooksHmacHeaderEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.InboundWebhooks.HMAC.Header`,
+	// `DBCleanerConfig.Service.InboundWebhooks.HMAC.Header`,
+	// `SchedulerConfig.Service.InboundWebhooks.HMAC.Header`,
+	// `AsyncMessageHandlerConfig.Service.InboundWebhooks.HMAC.Header`.
+	InboundWebhooksHmacHeaderEnvVarKey = "DINNER_DONE_BETTER_INBOUND_WEBHOOKS_HMAC_HEADER"
+
+	// InboundWebhooksHmacPrefixEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.InboundWebhooks.HMAC.Prefix`,
+	// `DBCleanerConfig.Service.InboundWebhooks.HMAC.Prefix`,
+	// `SchedulerConfig.Service.InboundWebhooks.HMAC.Prefix`,
+	// `AsyncMessageHandlerConfig.Service.InboundWebhooks.HMAC.Prefix`.
+	InboundWebhooksHmacPrefixEnvVarKey = "DINNER_DONE_BETTER_INBOUND_WEBHOOKS_HMAC_PREFIX"
+
+	// InboundWebhooksHmacProviderEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.InboundWebhooks.HMAC.Provider`,
+	// `DBCleanerConfig.Service.InboundWebhooks.HMAC.Provider`,
+	// `SchedulerConfig.Service.InboundWebhooks.HMAC.Provider`,
+	// `AsyncMessageHandlerConfig.Service.InboundWebhooks.HMAC.Provider`.
+	InboundWebhooksHmacProviderEnvVarKey = "DINNER_DONE_BETTER_INBOUND_WEBHOOKS_HMAC_PROVIDER"
+
+	// InboundWebhooksMaxBodyBytesEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.InboundWebhooks.MaxBodyBytes`,
+	// `DBCleanerConfig.Service.InboundWebhooks.MaxBodyBytes`,
+	// `SchedulerConfig.Service.InboundWebhooks.MaxBodyBytes`,
+	// `AsyncMessageHandlerConfig.Service.InboundWebhooks.MaxBodyBytes`.
+	InboundWebhooksMaxBodyBytesEnvVarKey = "DINNER_DONE_BETTER_INBOUND_WEBHOOKS_MAX_BODY_BYTES"
+
+	// InboundWebhooksProviderEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.InboundWebhooks.Provider`,
+	// `DBCleanerConfig.Service.InboundWebhooks.Provider`,
+	// `SchedulerConfig.Service.InboundWebhooks.Provider`,
+	// `AsyncMessageHandlerConfig.Service.InboundWebhooks.Provider`.
+	InboundWebhooksProviderEnvVarKey = "DINNER_DONE_BETTER_INBOUND_WEBHOOKS_PROVIDER"
+
+	// InboundWebhooksSecretEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.InboundWebhooks.Secret`,
+	// `DBCleanerConfig.Service.InboundWebhooks.Secret`,
+	// `SchedulerConfig.Service.InboundWebhooks.Secret`,
+	// `AsyncMessageHandlerConfig.Service.InboundWebhooks.Secret`.
+	InboundWebhooksSecretEnvVarKey = "DINNER_DONE_BETTER_INBOUND_WEBHOOKS_SECRET"
+
+	// InboundWebhooksToleranceEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.InboundWebhooks.Tolerance`,
+	// `DBCleanerConfig.Service.InboundWebhooks.Tolerance`,
+	// `SchedulerConfig.Service.InboundWebhooks.Tolerance`,
+	// `AsyncMessageHandlerConfig.Service.InboundWebhooks.Tolerance`.
+	InboundWebhooksToleranceEnvVarKey = "DINNER_DONE_BETTER_INBOUND_WEBHOOKS_TOLERANCE"
+
+	// InboundWebhooksTopicEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.InboundWebhooks.Topic`,
+	// `DBCleanerConfig.Service.InboundWebhooks.Topic`,
+	// `SchedulerConfig.Service.InboundWebhooks.Topic`,
+	// `AsyncMessageHandlerConfig.Service.InboundWebhooks.Topic`.
+	InboundWebhooksTopicEnvVarKey = "DINNER_DONE_BETTER_INBOUND_WEBHOOKS_TOPIC"
+
+	// IssueReportsTablePrefixEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.IssueReports.TablePrefix`,
+	// `DBCleanerConfig.Service.IssueReports.TablePrefix`,
+	// `SchedulerConfig.Service.IssueReports.TablePrefix`,
+	// `AsyncMessageHandlerConfig.Service.IssueReports.TablePrefix`.
+	IssueReportsTablePrefixEnvVarKey = "DINNER_DONE_BETTER_ISSUE_REPORTS_TABLE_PREFIX"
+
+	// JobsAuditRetentionSweeperDisabledEnvVarKey is the environment variable name to set to
+	// override `SchedulerConfig.Jobs.AuditRetentionSweeper.Disabled`.
+	JobsAuditRetentionSweeperDisabledEnvVarKey = "DINNER_DONE_BETTER_JOBS_AUDIT_RETENTION_SWEEPER_DISABLED"
 
 	// JobsAuditRetentionSweeperIntervalEnvVarKey is the environment variable name to set to
 	// override `SchedulerConfig.Jobs.AuditRetentionSweeper.Interval`.
@@ -1075,9 +1749,9 @@ const (
 	// override `SchedulerConfig.Jobs.AuditRetentionSweeper.Timeout`.
 	JobsAuditRetentionSweeperTimeoutEnvVarKey = "DINNER_DONE_BETTER_JOBS_AUDIT_RETENTION_SWEEPER_TIMEOUT"
 
-	// JobsDataPrivacySweepEnabledEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Jobs.DataPrivacySweep.Enabled`.
-	JobsDataPrivacySweepEnabledEnvVarKey = "DINNER_DONE_BETTER_JOBS_DATA_PRIVACY_SWEEP_ENABLED"
+	// JobsDataPrivacySweepDisabledEnvVarKey is the environment variable name to set to override
+	// `SchedulerConfig.Jobs.DataPrivacySweep.Disabled`.
+	JobsDataPrivacySweepDisabledEnvVarKey = "DINNER_DONE_BETTER_JOBS_DATA_PRIVACY_SWEEP_DISABLED"
 
 	// JobsDataPrivacySweepIntervalEnvVarKey is the environment variable name to set to override
 	// `SchedulerConfig.Jobs.DataPrivacySweep.Interval`.
@@ -1099,49 +1773,10 @@ const (
 	// `SchedulerConfig.Jobs.DataPrivacySweep.Timeout`.
 	JobsDataPrivacySweepTimeoutEnvVarKey = "DINNER_DONE_BETTER_JOBS_DATA_PRIVACY_SWEEP_TIMEOUT"
 
-	// JobsLockCircuitBreakingErrorRateEnvVarKey is the environment variable name to set to
-	// override `SchedulerConfig.Jobs.Lock.CircuitBreaker.ErrorRate`.
-	JobsLockCircuitBreakingErrorRateEnvVarKey = "DINNER_DONE_BETTER_JOBS_LOCK_CIRCUIT_BREAKING_ERROR_RATE"
-
-	// JobsLockCircuitBreakingMinimumSampleThresholdEnvVarKey is the environment variable name to
-	// set to override `SchedulerConfig.Jobs.Lock.CircuitBreaker.MinimumSampleThreshold`.
-	JobsLockCircuitBreakingMinimumSampleThresholdEnvVarKey = "DINNER_DONE_BETTER_JOBS_LOCK_CIRCUIT_BREAKING_MINIMUM_SAMPLE_THRESHOLD"
-
-	// JobsLockCircuitBreakingNameEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Jobs.Lock.CircuitBreaker.Name`.
-	JobsLockCircuitBreakingNameEnvVarKey = "DINNER_DONE_BETTER_JOBS_LOCK_CIRCUIT_BREAKING_NAME"
-
-	// JobsLockPostgresConnWaitTimeoutEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Jobs.Lock.Postgres.ConnWaitTimeout`. It defaults to `5s`.
-	JobsLockPostgresConnWaitTimeoutEnvVarKey = "DINNER_DONE_BETTER_JOBS_LOCK_POSTGRES_CONN_WAIT_TIMEOUT"
-
-	// JobsLockPostgresNamespaceEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Jobs.Lock.Postgres.Namespace`. It defaults to `0`.
-	JobsLockPostgresNamespaceEnvVarKey = "DINNER_DONE_BETTER_JOBS_LOCK_POSTGRES_NAMESPACE"
-
-	// JobsLockProviderEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Jobs.Lock.Provider`.
-	JobsLockProviderEnvVarKey = "DINNER_DONE_BETTER_JOBS_LOCK_PROVIDER"
-
-	// JobsLockRedisAddressesEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Jobs.Lock.Redis.Addresses`.
-	JobsLockRedisAddressesEnvVarKey = "DINNER_DONE_BETTER_JOBS_LOCK_REDIS_ADDRESSES"
-
-	// JobsLockRedisKeyPrefixEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Jobs.Lock.Redis.KeyPrefix`. It defaults to `lock:`.
-	JobsLockRedisKeyPrefixEnvVarKey = "DINNER_DONE_BETTER_JOBS_LOCK_REDIS_KEY_PREFIX"
-
-	// JobsLockRedisPasswordEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Jobs.Lock.Redis.Password`.
-	JobsLockRedisPasswordEnvVarKey = "DINNER_DONE_BETTER_JOBS_LOCK_REDIS_PASSWORD"
-
-	// JobsLockRedisUsernameEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Jobs.Lock.Redis.Username`.
-	JobsLockRedisUsernameEnvVarKey = "DINNER_DONE_BETTER_JOBS_LOCK_REDIS_USERNAME"
-
-	// JobsMealPlanningMealPlanFinalizationStarterEnabledEnvVarKey is the environment variable name
-	// to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanFinalizationStarter.Enabled`.
-	JobsMealPlanningMealPlanFinalizationStarterEnabledEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_FINALIZATION_STARTER_ENABLED"
+	// JobsMealPlanningMealPlanFinalizationStarterDisabledEnvVarKey is the environment variable
+	// name to set to override
+	// `SchedulerConfig.Jobs.MealPlanning.MealPlanFinalizationStarter.Disabled`.
+	JobsMealPlanningMealPlanFinalizationStarterDisabledEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_FINALIZATION_STARTER_DISABLED"
 
 	// JobsMealPlanningMealPlanFinalizationStarterIntervalEnvVarKey is the environment variable
 	// name to set to override
@@ -1167,9 +1802,9 @@ const (
 	// to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanFinalizationStarter.Timeout`.
 	JobsMealPlanningMealPlanFinalizationStarterTimeoutEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_FINALIZATION_STARTER_TIMEOUT"
 
-	// JobsMealPlanningMealPlanTaskNotificationsEnabledEnvVarKey is the environment variable name
-	// to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanTaskNotifications.Enabled`.
-	JobsMealPlanningMealPlanTaskNotificationsEnabledEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_TASK_NOTIFICATIONS_ENABLED"
+	// JobsMealPlanningMealPlanTaskNotificationsDisabledEnvVarKey is the environment variable name
+	// to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanTaskNotifications.Disabled`.
+	JobsMealPlanningMealPlanTaskNotificationsDisabledEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_TASK_NOTIFICATIONS_DISABLED"
 
 	// JobsMealPlanningMealPlanTaskNotificationsIntervalEnvVarKey is the environment variable name
 	// to set to override `SchedulerConfig.Jobs.MealPlanning.MealPlanTaskNotifications.Interval`.
@@ -1236,9 +1871,9 @@ const (
 	// `SchedulerConfig.Jobs.MealPlanning.MealPlanTaskNotificationQueue.WriteAttempts`.
 	JobsMealPlanningMealPlanTaskNotificationQueueWriteAttemptsEnvVarKey = "DINNER_DONE_BETTER_JOBS_MEAL_PLANNING_MEAL_PLAN_TASK_NOTIFICATION_QUEUE_WRITE_ATTEMPTS"
 
-	// JobsMeteringFlusherEnabledEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Jobs.MeteringFlusher.Enabled`.
-	JobsMeteringFlusherEnabledEnvVarKey = "DINNER_DONE_BETTER_JOBS_METERING_FLUSHER_ENABLED"
+	// JobsMeteringFlusherDisabledEnvVarKey is the environment variable name to set to override
+	// `SchedulerConfig.Jobs.MeteringFlusher.Disabled`.
+	JobsMeteringFlusherDisabledEnvVarKey = "DINNER_DONE_BETTER_JOBS_METERING_FLUSHER_DISABLED"
 
 	// JobsMeteringFlusherIntervalEnvVarKey is the environment variable name to set to override
 	// `SchedulerConfig.Jobs.MeteringFlusher.Interval`.
@@ -1260,9 +1895,184 @@ const (
 	// `SchedulerConfig.Jobs.MeteringFlusher.Timeout`.
 	JobsMeteringFlusherTimeoutEnvVarKey = "DINNER_DONE_BETTER_JOBS_METERING_FLUSHER_TIMEOUT"
 
-	// JobsQueueTestEnabledEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Jobs.QueueTest.Enabled`.
-	JobsQueueTestEnabledEnvVarKey = "DINNER_DONE_BETTER_JOBS_QUEUE_TEST_ENABLED"
+	// JobsPoolConcurrencyEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.JobsPool.Pool.Concurrency`,
+	// `DBCleanerConfig.Service.JobsPool.Pool.Concurrency`,
+	// `SchedulerConfig.Service.JobsPool.Pool.Concurrency`,
+	// `AsyncMessageHandlerConfig.Service.JobsPool.Pool.Concurrency`.
+	JobsPoolConcurrencyEnvVarKey = "DINNER_DONE_BETTER_JOBS_POOL_CONCURRENCY"
+
+	// JobsPoolHandlerTimeoutEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.JobsPool.Pool.HandlerTimeout`,
+	// `DBCleanerConfig.Service.JobsPool.Pool.HandlerTimeout`,
+	// `SchedulerConfig.Service.JobsPool.Pool.HandlerTimeout`,
+	// `AsyncMessageHandlerConfig.Service.JobsPool.Pool.HandlerTimeout`.
+	JobsPoolHandlerTimeoutEnvVarKey = "DINNER_DONE_BETTER_JOBS_POOL_HANDLER_TIMEOUT"
+
+	// JobsPoolQueueConsumerKafkaBrokersEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.JobsPool.Queue.Consumer.Kafka.Brokers`,
+	// `DBCleanerConfig.Service.JobsPool.Queue.Consumer.Kafka.Brokers`,
+	// `SchedulerConfig.Service.JobsPool.Queue.Consumer.Kafka.Brokers`,
+	// `AsyncMessageHandlerConfig.Service.JobsPool.Queue.Consumer.Kafka.Brokers`.
+	JobsPoolQueueConsumerKafkaBrokersEnvVarKey = "DINNER_DONE_BETTER_JOBS_POOL_QUEUE_CONSUMER_KAFKA_BROKERS"
+
+	// JobsPoolQueueConsumerKafkaGroupIDEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.JobsPool.Queue.Consumer.Kafka.GroupID`,
+	// `DBCleanerConfig.Service.JobsPool.Queue.Consumer.Kafka.GroupID`,
+	// `SchedulerConfig.Service.JobsPool.Queue.Consumer.Kafka.GroupID`,
+	// `AsyncMessageHandlerConfig.Service.JobsPool.Queue.Consumer.Kafka.GroupID`.
+	JobsPoolQueueConsumerKafkaGroupIDEnvVarKey = "DINNER_DONE_BETTER_JOBS_POOL_QUEUE_CONSUMER_KAFKA_GROUP_ID"
+
+	// JobsPoolQueueConsumerProviderEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.JobsPool.Queue.Consumer.Provider`,
+	// `DBCleanerConfig.Service.JobsPool.Queue.Consumer.Provider`,
+	// `SchedulerConfig.Service.JobsPool.Queue.Consumer.Provider`,
+	// `AsyncMessageHandlerConfig.Service.JobsPool.Queue.Consumer.Provider`.
+	JobsPoolQueueConsumerProviderEnvVarKey = "DINNER_DONE_BETTER_JOBS_POOL_QUEUE_CONSUMER_PROVIDER"
+
+	// JobsPoolQueueConsumerPubsubProjectIDEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.JobsPool.Queue.Consumer.PubSub.ProjectID`,
+	// `DBCleanerConfig.Service.JobsPool.Queue.Consumer.PubSub.ProjectID`,
+	// `SchedulerConfig.Service.JobsPool.Queue.Consumer.PubSub.ProjectID`,
+	// `AsyncMessageHandlerConfig.Service.JobsPool.Queue.Consumer.PubSub.ProjectID`.
+	JobsPoolQueueConsumerPubsubProjectIDEnvVarKey = "DINNER_DONE_BETTER_JOBS_POOL_QUEUE_CONSUMER_PUBSUB_PROJECT_ID"
+
+	// JobsPoolQueueConsumerRedisPasswordEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.JobsPool.Queue.Consumer.Redis.Password`,
+	// `DBCleanerConfig.Service.JobsPool.Queue.Consumer.Redis.Password`,
+	// `SchedulerConfig.Service.JobsPool.Queue.Consumer.Redis.Password`,
+	// `AsyncMessageHandlerConfig.Service.JobsPool.Queue.Consumer.Redis.Password`.
+	JobsPoolQueueConsumerRedisPasswordEnvVarKey = "DINNER_DONE_BETTER_JOBS_POOL_QUEUE_CONSUMER_REDIS_PASSWORD"
+
+	// JobsPoolQueueConsumerRedisQueueAddressesEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.JobsPool.Queue.Consumer.Redis.QueueAddresses`,
+	// `DBCleanerConfig.Service.JobsPool.Queue.Consumer.Redis.QueueAddresses`,
+	// `SchedulerConfig.Service.JobsPool.Queue.Consumer.Redis.QueueAddresses`,
+	// `AsyncMessageHandlerConfig.Service.JobsPool.Queue.Consumer.Redis.QueueAddresses`.
+	JobsPoolQueueConsumerRedisQueueAddressesEnvVarKey = "DINNER_DONE_BETTER_JOBS_POOL_QUEUE_CONSUMER_REDIS_QUEUE_ADDRESSES"
+
+	// JobsPoolQueueConsumerRedisUsernameEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.JobsPool.Queue.Consumer.Redis.Username`,
+	// `DBCleanerConfig.Service.JobsPool.Queue.Consumer.Redis.Username`,
+	// `SchedulerConfig.Service.JobsPool.Queue.Consumer.Redis.Username`,
+	// `AsyncMessageHandlerConfig.Service.JobsPool.Queue.Consumer.Redis.Username`.
+	JobsPoolQueueConsumerRedisUsernameEnvVarKey = "DINNER_DONE_BETTER_JOBS_POOL_QUEUE_CONSUMER_REDIS_USERNAME"
+
+	// JobsPoolQueueConsumerSqsQueueAddressEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.JobsPool.Queue.Consumer.SQS.QueueAddress`,
+	// `DBCleanerConfig.Service.JobsPool.Queue.Consumer.SQS.QueueAddress`,
+	// `SchedulerConfig.Service.JobsPool.Queue.Consumer.SQS.QueueAddress`,
+	// `AsyncMessageHandlerConfig.Service.JobsPool.Queue.Consumer.SQS.QueueAddress`.
+	JobsPoolQueueConsumerSqsQueueAddressEnvVarKey = "DINNER_DONE_BETTER_JOBS_POOL_QUEUE_CONSUMER_SQS_QUEUE_ADDRESS"
+
+	// JobsPoolQueuePublisherKafkaBrokersEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.JobsPool.Queue.Publisher.Kafka.Brokers`,
+	// `DBCleanerConfig.Service.JobsPool.Queue.Publisher.Kafka.Brokers`,
+	// `SchedulerConfig.Service.JobsPool.Queue.Publisher.Kafka.Brokers`,
+	// `AsyncMessageHandlerConfig.Service.JobsPool.Queue.Publisher.Kafka.Brokers`.
+	JobsPoolQueuePublisherKafkaBrokersEnvVarKey = "DINNER_DONE_BETTER_JOBS_POOL_QUEUE_PUBLISHER_KAFKA_BROKERS"
+
+	// JobsPoolQueuePublisherKafkaGroupIDEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.JobsPool.Queue.Publisher.Kafka.GroupID`,
+	// `DBCleanerConfig.Service.JobsPool.Queue.Publisher.Kafka.GroupID`,
+	// `SchedulerConfig.Service.JobsPool.Queue.Publisher.Kafka.GroupID`,
+	// `AsyncMessageHandlerConfig.Service.JobsPool.Queue.Publisher.Kafka.GroupID`.
+	JobsPoolQueuePublisherKafkaGroupIDEnvVarKey = "DINNER_DONE_BETTER_JOBS_POOL_QUEUE_PUBLISHER_KAFKA_GROUP_ID"
+
+	// JobsPoolQueuePublisherProviderEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.JobsPool.Queue.Publisher.Provider`,
+	// `DBCleanerConfig.Service.JobsPool.Queue.Publisher.Provider`,
+	// `SchedulerConfig.Service.JobsPool.Queue.Publisher.Provider`,
+	// `AsyncMessageHandlerConfig.Service.JobsPool.Queue.Publisher.Provider`.
+	JobsPoolQueuePublisherProviderEnvVarKey = "DINNER_DONE_BETTER_JOBS_POOL_QUEUE_PUBLISHER_PROVIDER"
+
+	// JobsPoolQueuePublisherPubsubProjectIDEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.JobsPool.Queue.Publisher.PubSub.ProjectID`,
+	// `DBCleanerConfig.Service.JobsPool.Queue.Publisher.PubSub.ProjectID`,
+	// `SchedulerConfig.Service.JobsPool.Queue.Publisher.PubSub.ProjectID`,
+	// `AsyncMessageHandlerConfig.Service.JobsPool.Queue.Publisher.PubSub.ProjectID`.
+	JobsPoolQueuePublisherPubsubProjectIDEnvVarKey = "DINNER_DONE_BETTER_JOBS_POOL_QUEUE_PUBLISHER_PUBSUB_PROJECT_ID"
+
+	// JobsPoolQueuePublisherRedisPasswordEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.JobsPool.Queue.Publisher.Redis.Password`,
+	// `DBCleanerConfig.Service.JobsPool.Queue.Publisher.Redis.Password`,
+	// `SchedulerConfig.Service.JobsPool.Queue.Publisher.Redis.Password`,
+	// `AsyncMessageHandlerConfig.Service.JobsPool.Queue.Publisher.Redis.Password`.
+	JobsPoolQueuePublisherRedisPasswordEnvVarKey = "DINNER_DONE_BETTER_JOBS_POOL_QUEUE_PUBLISHER_REDIS_PASSWORD"
+
+	// JobsPoolQueuePublisherRedisQueueAddressesEnvVarKey is the environment variable name to set
+	// to override `APIServiceConfig.Service.JobsPool.Queue.Publisher.Redis.QueueAddresses`,
+	// `DBCleanerConfig.Service.JobsPool.Queue.Publisher.Redis.QueueAddresses`,
+	// `SchedulerConfig.Service.JobsPool.Queue.Publisher.Redis.QueueAddresses`,
+	// `AsyncMessageHandlerConfig.Service.JobsPool.Queue.Publisher.Redis.QueueAddresses`.
+	JobsPoolQueuePublisherRedisQueueAddressesEnvVarKey = "DINNER_DONE_BETTER_JOBS_POOL_QUEUE_PUBLISHER_REDIS_QUEUE_ADDRESSES"
+
+	// JobsPoolQueuePublisherRedisUsernameEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.JobsPool.Queue.Publisher.Redis.Username`,
+	// `DBCleanerConfig.Service.JobsPool.Queue.Publisher.Redis.Username`,
+	// `SchedulerConfig.Service.JobsPool.Queue.Publisher.Redis.Username`,
+	// `AsyncMessageHandlerConfig.Service.JobsPool.Queue.Publisher.Redis.Username`.
+	JobsPoolQueuePublisherRedisUsernameEnvVarKey = "DINNER_DONE_BETTER_JOBS_POOL_QUEUE_PUBLISHER_REDIS_USERNAME"
+
+	// JobsPoolQueuePublisherSqsQueueAddressEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.JobsPool.Queue.Publisher.SQS.QueueAddress`,
+	// `DBCleanerConfig.Service.JobsPool.Queue.Publisher.SQS.QueueAddress`,
+	// `SchedulerConfig.Service.JobsPool.Queue.Publisher.SQS.QueueAddress`,
+	// `AsyncMessageHandlerConfig.Service.JobsPool.Queue.Publisher.SQS.QueueAddress`.
+	JobsPoolQueuePublisherSqsQueueAddressEnvVarKey = "DINNER_DONE_BETTER_JOBS_POOL_QUEUE_PUBLISHER_SQS_QUEUE_ADDRESS"
+
+	// JobsPoolRetryInitialDelayEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.JobsPool.Pool.Retry.InitialDelay`,
+	// `DBCleanerConfig.Service.JobsPool.Pool.Retry.InitialDelay`,
+	// `SchedulerConfig.Service.JobsPool.Pool.Retry.InitialDelay`,
+	// `AsyncMessageHandlerConfig.Service.JobsPool.Pool.Retry.InitialDelay`.
+	JobsPoolRetryInitialDelayEnvVarKey = "DINNER_DONE_BETTER_JOBS_POOL_RETRY_INITIAL_DELAY"
+
+	// JobsPoolRetryMaxAttemptsEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.JobsPool.Pool.Retry.MaxAttempts`,
+	// `DBCleanerConfig.Service.JobsPool.Pool.Retry.MaxAttempts`,
+	// `SchedulerConfig.Service.JobsPool.Pool.Retry.MaxAttempts`,
+	// `AsyncMessageHandlerConfig.Service.JobsPool.Pool.Retry.MaxAttempts`.
+	JobsPoolRetryMaxAttemptsEnvVarKey = "DINNER_DONE_BETTER_JOBS_POOL_RETRY_MAX_ATTEMPTS"
+
+	// JobsPoolRetryMaxDelayEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.JobsPool.Pool.Retry.MaxDelay`,
+	// `DBCleanerConfig.Service.JobsPool.Pool.Retry.MaxDelay`,
+	// `SchedulerConfig.Service.JobsPool.Pool.Retry.MaxDelay`,
+	// `AsyncMessageHandlerConfig.Service.JobsPool.Pool.Retry.MaxDelay`.
+	JobsPoolRetryMaxDelayEnvVarKey = "DINNER_DONE_BETTER_JOBS_POOL_RETRY_MAX_DELAY"
+
+	// JobsPoolRetryMultiplierEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.JobsPool.Pool.Retry.Multiplier`,
+	// `DBCleanerConfig.Service.JobsPool.Pool.Retry.Multiplier`,
+	// `SchedulerConfig.Service.JobsPool.Pool.Retry.Multiplier`,
+	// `AsyncMessageHandlerConfig.Service.JobsPool.Pool.Retry.Multiplier`.
+	JobsPoolRetryMultiplierEnvVarKey = "DINNER_DONE_BETTER_JOBS_POOL_RETRY_MULTIPLIER"
+
+	// JobsPoolRetryProviderEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.JobsPool.Pool.Retry.Provider`,
+	// `DBCleanerConfig.Service.JobsPool.Pool.Retry.Provider`,
+	// `SchedulerConfig.Service.JobsPool.Pool.Retry.Provider`,
+	// `AsyncMessageHandlerConfig.Service.JobsPool.Pool.Retry.Provider`.
+	JobsPoolRetryProviderEnvVarKey = "DINNER_DONE_BETTER_JOBS_POOL_RETRY_PROVIDER"
+
+	// JobsPoolRetryUseJitterEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.JobsPool.Pool.Retry.UseJitter`,
+	// `DBCleanerConfig.Service.JobsPool.Pool.Retry.UseJitter`,
+	// `SchedulerConfig.Service.JobsPool.Pool.Retry.UseJitter`,
+	// `AsyncMessageHandlerConfig.Service.JobsPool.Pool.Retry.UseJitter`.
+	JobsPoolRetryUseJitterEnvVarKey = "DINNER_DONE_BETTER_JOBS_POOL_RETRY_USE_JITTER"
+
+	// JobsPoolTopicEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.JobsPool.Pool.Topic`,
+	// `DBCleanerConfig.Service.JobsPool.Pool.Topic`,
+	// `SchedulerConfig.Service.JobsPool.Pool.Topic`,
+	// `AsyncMessageHandlerConfig.Service.JobsPool.Pool.Topic`.
+	JobsPoolTopicEnvVarKey = "DINNER_DONE_BETTER_JOBS_POOL_TOPIC"
+
+	// JobsQueueTestDisabledEnvVarKey is the environment variable name to set to override
+	// `SchedulerConfig.Jobs.QueueTest.Disabled`.
+	JobsQueueTestDisabledEnvVarKey = "DINNER_DONE_BETTER_JOBS_QUEUE_TEST_DISABLED"
 
 	// JobsQueueTestIntervalEnvVarKey is the environment variable name to set to override
 	// `SchedulerConfig.Jobs.QueueTest.Interval`.
@@ -1285,24 +2095,110 @@ const (
 	JobsQueueTestTimeoutEnvVarKey = "DINNER_DONE_BETTER_JOBS_QUEUE_TEST_TIMEOUT"
 
 	// JobsSchedulerDefaultLeaseTTLEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Jobs.Scheduler.DefaultLeaseTTL`.
+	// `APIServiceConfig.Service.JobsScheduler.Scheduler.DefaultLeaseTTL`,
+	// `DBCleanerConfig.Service.JobsScheduler.Scheduler.DefaultLeaseTTL`,
+	// `SchedulerConfig.Service.JobsScheduler.Scheduler.DefaultLeaseTTL`,
+	// `AsyncMessageHandlerConfig.Service.JobsScheduler.Scheduler.DefaultLeaseTTL`.
 	JobsSchedulerDefaultLeaseTTLEnvVarKey = "DINNER_DONE_BETTER_JOBS_SCHEDULER_DEFAULT_LEASE_TTL"
 
 	// JobsSchedulerDefaultTimeoutEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Jobs.Scheduler.DefaultTimeout`.
+	// `APIServiceConfig.Service.JobsScheduler.Scheduler.DefaultTimeout`,
+	// `DBCleanerConfig.Service.JobsScheduler.Scheduler.DefaultTimeout`,
+	// `SchedulerConfig.Service.JobsScheduler.Scheduler.DefaultTimeout`,
+	// `AsyncMessageHandlerConfig.Service.JobsScheduler.Scheduler.DefaultTimeout`.
 	JobsSchedulerDefaultTimeoutEnvVarKey = "DINNER_DONE_BETTER_JOBS_SCHEDULER_DEFAULT_TIMEOUT"
 
+	// JobsSchedulerLockCircuitBreakingErrorRateEnvVarKey is the environment variable name to set
+	// to override `APIServiceConfig.Service.JobsScheduler.Lock.CircuitBreaker.ErrorRate`,
+	// `DBCleanerConfig.Service.JobsScheduler.Lock.CircuitBreaker.ErrorRate`,
+	// `SchedulerConfig.Service.JobsScheduler.Lock.CircuitBreaker.ErrorRate`,
+	// `AsyncMessageHandlerConfig.Service.JobsScheduler.Lock.CircuitBreaker.ErrorRate`.
+	JobsSchedulerLockCircuitBreakingErrorRateEnvVarKey = "DINNER_DONE_BETTER_JOBS_SCHEDULER_LOCK_CIRCUIT_BREAKING_ERROR_RATE"
+
+	// JobsSchedulerLockCircuitBreakingMinimumSampleThresholdEnvVarKey is the environment variable
+	// name to set to override
+	// `APIServiceConfig.Service.JobsScheduler.Lock.CircuitBreaker.MinimumSampleThreshold`,
+	// `DBCleanerConfig.Service.JobsScheduler.Lock.CircuitBreaker.MinimumSampleThreshold`,
+	// `SchedulerConfig.Service.JobsScheduler.Lock.CircuitBreaker.MinimumSampleThreshold`,
+	// `AsyncMessageHandlerConfig.Service.JobsScheduler.Lock.CircuitBreaker.MinimumSampleThreshold`.
+	JobsSchedulerLockCircuitBreakingMinimumSampleThresholdEnvVarKey = "DINNER_DONE_BETTER_JOBS_SCHEDULER_LOCK_CIRCUIT_BREAKING_MINIMUM_SAMPLE_THRESHOLD"
+
+	// JobsSchedulerLockCircuitBreakingNameEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.JobsScheduler.Lock.CircuitBreaker.Name`,
+	// `DBCleanerConfig.Service.JobsScheduler.Lock.CircuitBreaker.Name`,
+	// `SchedulerConfig.Service.JobsScheduler.Lock.CircuitBreaker.Name`,
+	// `AsyncMessageHandlerConfig.Service.JobsScheduler.Lock.CircuitBreaker.Name`.
+	JobsSchedulerLockCircuitBreakingNameEnvVarKey = "DINNER_DONE_BETTER_JOBS_SCHEDULER_LOCK_CIRCUIT_BREAKING_NAME"
+
 	// JobsSchedulerLockKeyPrefixEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Jobs.Scheduler.LockKeyPrefix`.
+	// `APIServiceConfig.Service.JobsScheduler.Scheduler.LockKeyPrefix`,
+	// `DBCleanerConfig.Service.JobsScheduler.Scheduler.LockKeyPrefix`,
+	// `SchedulerConfig.Service.JobsScheduler.Scheduler.LockKeyPrefix`,
+	// `AsyncMessageHandlerConfig.Service.JobsScheduler.Scheduler.LockKeyPrefix`.
 	JobsSchedulerLockKeyPrefixEnvVarKey = "DINNER_DONE_BETTER_JOBS_SCHEDULER_LOCK_KEY_PREFIX"
 
+	// JobsSchedulerLockPostgresConnWaitTimeoutEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.JobsScheduler.Lock.Postgres.ConnWaitTimeout`,
+	// `DBCleanerConfig.Service.JobsScheduler.Lock.Postgres.ConnWaitTimeout`,
+	// `SchedulerConfig.Service.JobsScheduler.Lock.Postgres.ConnWaitTimeout`,
+	// `AsyncMessageHandlerConfig.Service.JobsScheduler.Lock.Postgres.ConnWaitTimeout`. It defaults
+	// to `5s`.
+	JobsSchedulerLockPostgresConnWaitTimeoutEnvVarKey = "DINNER_DONE_BETTER_JOBS_SCHEDULER_LOCK_POSTGRES_CONN_WAIT_TIMEOUT"
+
+	// JobsSchedulerLockPostgresNamespaceEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.JobsScheduler.Lock.Postgres.Namespace`,
+	// `DBCleanerConfig.Service.JobsScheduler.Lock.Postgres.Namespace`,
+	// `SchedulerConfig.Service.JobsScheduler.Lock.Postgres.Namespace`,
+	// `AsyncMessageHandlerConfig.Service.JobsScheduler.Lock.Postgres.Namespace`. It defaults to
+	// `0`.
+	JobsSchedulerLockPostgresNamespaceEnvVarKey = "DINNER_DONE_BETTER_JOBS_SCHEDULER_LOCK_POSTGRES_NAMESPACE"
+
+	// JobsSchedulerLockProviderEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.JobsScheduler.Lock.Provider`,
+	// `DBCleanerConfig.Service.JobsScheduler.Lock.Provider`,
+	// `SchedulerConfig.Service.JobsScheduler.Lock.Provider`,
+	// `AsyncMessageHandlerConfig.Service.JobsScheduler.Lock.Provider`.
+	JobsSchedulerLockProviderEnvVarKey = "DINNER_DONE_BETTER_JOBS_SCHEDULER_LOCK_PROVIDER"
+
+	// JobsSchedulerLockRedisAddressesEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.JobsScheduler.Lock.Redis.Addresses`,
+	// `DBCleanerConfig.Service.JobsScheduler.Lock.Redis.Addresses`,
+	// `SchedulerConfig.Service.JobsScheduler.Lock.Redis.Addresses`,
+	// `AsyncMessageHandlerConfig.Service.JobsScheduler.Lock.Redis.Addresses`.
+	JobsSchedulerLockRedisAddressesEnvVarKey = "DINNER_DONE_BETTER_JOBS_SCHEDULER_LOCK_REDIS_ADDRESSES"
+
+	// JobsSchedulerLockRedisKeyPrefixEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.JobsScheduler.Lock.Redis.KeyPrefix`,
+	// `DBCleanerConfig.Service.JobsScheduler.Lock.Redis.KeyPrefix`,
+	// `SchedulerConfig.Service.JobsScheduler.Lock.Redis.KeyPrefix`,
+	// `AsyncMessageHandlerConfig.Service.JobsScheduler.Lock.Redis.KeyPrefix`. It defaults to
+	// `lock:`.
+	JobsSchedulerLockRedisKeyPrefixEnvVarKey = "DINNER_DONE_BETTER_JOBS_SCHEDULER_LOCK_REDIS_KEY_PREFIX"
+
+	// JobsSchedulerLockRedisPasswordEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.JobsScheduler.Lock.Redis.Password`,
+	// `DBCleanerConfig.Service.JobsScheduler.Lock.Redis.Password`,
+	// `SchedulerConfig.Service.JobsScheduler.Lock.Redis.Password`,
+	// `AsyncMessageHandlerConfig.Service.JobsScheduler.Lock.Redis.Password`.
+	JobsSchedulerLockRedisPasswordEnvVarKey = "DINNER_DONE_BETTER_JOBS_SCHEDULER_LOCK_REDIS_PASSWORD"
+
+	// JobsSchedulerLockRedisUsernameEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.JobsScheduler.Lock.Redis.Username`,
+	// `DBCleanerConfig.Service.JobsScheduler.Lock.Redis.Username`,
+	// `SchedulerConfig.Service.JobsScheduler.Lock.Redis.Username`,
+	// `AsyncMessageHandlerConfig.Service.JobsScheduler.Lock.Redis.Username`.
+	JobsSchedulerLockRedisUsernameEnvVarKey = "DINNER_DONE_BETTER_JOBS_SCHEDULER_LOCK_REDIS_USERNAME"
+
 	// JobsSchedulerTimezoneEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Jobs.Scheduler.Timezone`.
+	// `APIServiceConfig.Service.JobsScheduler.Scheduler.Timezone`,
+	// `DBCleanerConfig.Service.JobsScheduler.Scheduler.Timezone`,
+	// `SchedulerConfig.Service.JobsScheduler.Scheduler.Timezone`,
+	// `AsyncMessageHandlerConfig.Service.JobsScheduler.Scheduler.Timezone`.
 	JobsSchedulerTimezoneEnvVarKey = "DINNER_DONE_BETTER_JOBS_SCHEDULER_TIMEZONE"
 
-	// JobsSearchDataIndexSchedulerEnabledEnvVarKey is the environment variable name to set to
-	// override `SchedulerConfig.Jobs.SearchDataIndexScheduler.Enabled`.
-	JobsSearchDataIndexSchedulerEnabledEnvVarKey = "DINNER_DONE_BETTER_JOBS_SEARCH_DATA_INDEX_SCHEDULER_ENABLED"
+	// JobsSearchDataIndexSchedulerDisabledEnvVarKey is the environment variable name to set to
+	// override `SchedulerConfig.Jobs.SearchDataIndexScheduler.Disabled`.
+	JobsSearchDataIndexSchedulerDisabledEnvVarKey = "DINNER_DONE_BETTER_JOBS_SEARCH_DATA_INDEX_SCHEDULER_DISABLED"
 
 	// JobsSearchDataIndexSchedulerIntervalEnvVarKey is the environment variable name to set to
 	// override `SchedulerConfig.Jobs.SearchDataIndexScheduler.Interval`.
@@ -1324,29 +2220,250 @@ const (
 	// override `SchedulerConfig.Jobs.SearchDataIndexScheduler.Timeout`.
 	JobsSearchDataIndexSchedulerTimeoutEnvVarKey = "DINNER_DONE_BETTER_JOBS_SEARCH_DATA_INDEX_SCHEDULER_TIMEOUT"
 
+	// KeyedCircuitBreakingBaseErrorRateEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.KeyedCircuitBreaking.Base.ErrorRate`,
+	// `DBCleanerConfig.Service.KeyedCircuitBreaking.Base.ErrorRate`,
+	// `SchedulerConfig.Service.KeyedCircuitBreaking.Base.ErrorRate`,
+	// `AsyncMessageHandlerConfig.Service.KeyedCircuitBreaking.Base.ErrorRate`.
+	KeyedCircuitBreakingBaseErrorRateEnvVarKey = "DINNER_DONE_BETTER_KEYED_CIRCUIT_BREAKING_BASE_ERROR_RATE"
+
+	// KeyedCircuitBreakingBaseMinimumSampleThresholdEnvVarKey is the environment variable name to
+	// set to override `APIServiceConfig.Service.KeyedCircuitBreaking.Base.MinimumSampleThreshold`,
+	// `DBCleanerConfig.Service.KeyedCircuitBreaking.Base.MinimumSampleThreshold`,
+	// `SchedulerConfig.Service.KeyedCircuitBreaking.Base.MinimumSampleThreshold`,
+	// `AsyncMessageHandlerConfig.Service.KeyedCircuitBreaking.Base.MinimumSampleThreshold`.
+	KeyedCircuitBreakingBaseMinimumSampleThresholdEnvVarKey = "DINNER_DONE_BETTER_KEYED_CIRCUIT_BREAKING_BASE_MINIMUM_SAMPLE_THRESHOLD"
+
+	// KeyedCircuitBreakingBaseNameEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.KeyedCircuitBreaking.Base.Name`,
+	// `DBCleanerConfig.Service.KeyedCircuitBreaking.Base.Name`,
+	// `SchedulerConfig.Service.KeyedCircuitBreaking.Base.Name`,
+	// `AsyncMessageHandlerConfig.Service.KeyedCircuitBreaking.Base.Name`.
+	KeyedCircuitBreakingBaseNameEnvVarKey = "DINNER_DONE_BETTER_KEYED_CIRCUIT_BREAKING_BASE_NAME"
+
+	// KeyedCircuitBreakingKeysEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.KeyedCircuitBreaking.Keys`,
+	// `DBCleanerConfig.Service.KeyedCircuitBreaking.Keys`,
+	// `SchedulerConfig.Service.KeyedCircuitBreaking.Keys`,
+	// `AsyncMessageHandlerConfig.Service.KeyedCircuitBreaking.Keys`.
+	KeyedCircuitBreakingKeysEnvVarKey = "DINNER_DONE_BETTER_KEYED_CIRCUIT_BREAKING_KEYS"
+
 	// LinksAllowInsecureUrlsEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Links.AllowInsecureURLs`.
+	// `APIServiceConfig.Service.Links.AllowInsecureURLs`,
+	// `DBCleanerConfig.Service.Links.AllowInsecureURLs`,
+	// `SchedulerConfig.Service.Links.AllowInsecureURLs`,
+	// `AsyncMessageHandlerConfig.Service.Links.AllowInsecureURLs`.
 	LinksAllowInsecureUrlsEnvVarKey = "DINNER_DONE_BETTER_LINKS_ALLOW_INSECURE_URLS"
 
 	// LinksDatabaseTablePrefixEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Links.Database.TablePrefix`.
+	// `APIServiceConfig.Service.Links.Database.TablePrefix`,
+	// `DBCleanerConfig.Service.Links.Database.TablePrefix`,
+	// `SchedulerConfig.Service.Links.Database.TablePrefix`,
+	// `AsyncMessageHandlerConfig.Service.Links.Database.TablePrefix`.
 	LinksDatabaseTablePrefixEnvVarKey = "DINNER_DONE_BETTER_LINKS_DATABASE_TABLE_PREFIX"
 
 	// LinksMaxTokenLengthEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Links.MaxTokenLength`.
+	// `APIServiceConfig.Service.Links.MaxTokenLength`,
+	// `DBCleanerConfig.Service.Links.MaxTokenLength`,
+	// `SchedulerConfig.Service.Links.MaxTokenLength`,
+	// `AsyncMessageHandlerConfig.Service.Links.MaxTokenLength`.
 	LinksMaxTokenLengthEnvVarKey = "DINNER_DONE_BETTER_LINKS_MAX_TOKEN_LENGTH"
 
 	// LinksRetentionEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Links.Retention`.
+	// `APIServiceConfig.Service.Links.Retention`, `DBCleanerConfig.Service.Links.Retention`,
+	// `SchedulerConfig.Service.Links.Retention`,
+	// `AsyncMessageHandlerConfig.Service.Links.Retention`.
 	LinksRetentionEnvVarKey = "DINNER_DONE_BETTER_LINKS_RETENTION"
 
 	// LinksSweepIntervalEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Links.SweepInterval`.
+	// `APIServiceConfig.Service.Links.SweepInterval`,
+	// `DBCleanerConfig.Service.Links.SweepInterval`,
+	// `SchedulerConfig.Service.Links.SweepInterval`,
+	// `AsyncMessageHandlerConfig.Service.Links.SweepInterval`.
 	LinksSweepIntervalEnvVarKey = "DINNER_DONE_BETTER_LINKS_SWEEP_INTERVAL"
 
 	// LinksTokenBytesEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Links.TokenBytes`.
+	// `APIServiceConfig.Service.Links.TokenBytes`, `DBCleanerConfig.Service.Links.TokenBytes`,
+	// `SchedulerConfig.Service.Links.TokenBytes`,
+	// `AsyncMessageHandlerConfig.Service.Links.TokenBytes`.
 	LinksTokenBytesEnvVarKey = "DINNER_DONE_BETTER_LINKS_TOKEN_BYTES"
+
+	// LlmAnthropicAPIKeyEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.LLM.Anthropic.APIKey`,
+	// `DBCleanerConfig.Service.LLM.Anthropic.APIKey`,
+	// `SchedulerConfig.Service.LLM.Anthropic.APIKey`,
+	// `AsyncMessageHandlerConfig.Service.LLM.Anthropic.APIKey`.
+	LlmAnthropicAPIKeyEnvVarKey = "DINNER_DONE_BETTER_LLM_ANTHROPIC_API_KEY"
+
+	// LlmAnthropicBaseURLEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.LLM.Anthropic.BaseURL`,
+	// `DBCleanerConfig.Service.LLM.Anthropic.BaseURL`,
+	// `SchedulerConfig.Service.LLM.Anthropic.BaseURL`,
+	// `AsyncMessageHandlerConfig.Service.LLM.Anthropic.BaseURL`.
+	LlmAnthropicBaseURLEnvVarKey = "DINNER_DONE_BETTER_LLM_ANTHROPIC_BASE_URL"
+
+	// LlmAnthropicDefaultModelEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.LLM.Anthropic.DefaultModel`,
+	// `DBCleanerConfig.Service.LLM.Anthropic.DefaultModel`,
+	// `SchedulerConfig.Service.LLM.Anthropic.DefaultModel`,
+	// `AsyncMessageHandlerConfig.Service.LLM.Anthropic.DefaultModel`.
+	LlmAnthropicDefaultModelEnvVarKey = "DINNER_DONE_BETTER_LLM_ANTHROPIC_DEFAULT_MODEL"
+
+	// LlmAnthropicTimeoutEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.LLM.Anthropic.Timeout`,
+	// `DBCleanerConfig.Service.LLM.Anthropic.Timeout`,
+	// `SchedulerConfig.Service.LLM.Anthropic.Timeout`,
+	// `AsyncMessageHandlerConfig.Service.LLM.Anthropic.Timeout`.
+	LlmAnthropicTimeoutEnvVarKey = "DINNER_DONE_BETTER_LLM_ANTHROPIC_TIMEOUT"
+
+	// LlmOpenaiAPIKeyEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.LLM.OpenAI.APIKey`, `DBCleanerConfig.Service.LLM.OpenAI.APIKey`,
+	// `SchedulerConfig.Service.LLM.OpenAI.APIKey`,
+	// `AsyncMessageHandlerConfig.Service.LLM.OpenAI.APIKey`.
+	LlmOpenaiAPIKeyEnvVarKey = "DINNER_DONE_BETTER_LLM_OPENAI_API_KEY"
+
+	// LlmOpenaiBaseURLEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.LLM.OpenAI.BaseURL`, `DBCleanerConfig.Service.LLM.OpenAI.BaseURL`,
+	// `SchedulerConfig.Service.LLM.OpenAI.BaseURL`,
+	// `AsyncMessageHandlerConfig.Service.LLM.OpenAI.BaseURL`.
+	LlmOpenaiBaseURLEnvVarKey = "DINNER_DONE_BETTER_LLM_OPENAI_BASE_URL"
+
+	// LlmOpenaiDefaultModelEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.LLM.OpenAI.DefaultModel`,
+	// `DBCleanerConfig.Service.LLM.OpenAI.DefaultModel`,
+	// `SchedulerConfig.Service.LLM.OpenAI.DefaultModel`,
+	// `AsyncMessageHandlerConfig.Service.LLM.OpenAI.DefaultModel`.
+	LlmOpenaiDefaultModelEnvVarKey = "DINNER_DONE_BETTER_LLM_OPENAI_DEFAULT_MODEL"
+
+	// LlmOpenaiTimeoutEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.LLM.OpenAI.Timeout`, `DBCleanerConfig.Service.LLM.OpenAI.Timeout`,
+	// `SchedulerConfig.Service.LLM.OpenAI.Timeout`,
+	// `AsyncMessageHandlerConfig.Service.LLM.OpenAI.Timeout`.
+	LlmOpenaiTimeoutEnvVarKey = "DINNER_DONE_BETTER_LLM_OPENAI_TIMEOUT"
+
+	// LlmProviderEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.LLM.Provider`, `DBCleanerConfig.Service.LLM.Provider`,
+	// `SchedulerConfig.Service.LLM.Provider`, `AsyncMessageHandlerConfig.Service.LLM.Provider`.
+	LlmProviderEnvVarKey = "DINNER_DONE_BETTER_LLM_PROVIDER"
+
+	// MediaRegistryTablePrefixEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.MediaRegistry.TablePrefix`,
+	// `DBCleanerConfig.Service.MediaRegistry.TablePrefix`,
+	// `SchedulerConfig.Service.MediaRegistry.TablePrefix`,
+	// `AsyncMessageHandlerConfig.Service.MediaRegistry.TablePrefix`.
+	MediaRegistryTablePrefixEnvVarKey = "DINNER_DONE_BETTER_MEDIA_REGISTRY_TABLE_PREFIX"
+
+	// MessageQueueConsumerKafkaBrokersEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.MessageQueue.Consumer.Kafka.Brokers`,
+	// `DBCleanerConfig.Service.MessageQueue.Consumer.Kafka.Brokers`,
+	// `SchedulerConfig.Service.MessageQueue.Consumer.Kafka.Brokers`,
+	// `AsyncMessageHandlerConfig.Service.MessageQueue.Consumer.Kafka.Brokers`.
+	MessageQueueConsumerKafkaBrokersEnvVarKey = "DINNER_DONE_BETTER_MESSAGE_QUEUE_CONSUMER_KAFKA_BROKERS"
+
+	// MessageQueueConsumerKafkaGroupIDEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.MessageQueue.Consumer.Kafka.GroupID`,
+	// `DBCleanerConfig.Service.MessageQueue.Consumer.Kafka.GroupID`,
+	// `SchedulerConfig.Service.MessageQueue.Consumer.Kafka.GroupID`,
+	// `AsyncMessageHandlerConfig.Service.MessageQueue.Consumer.Kafka.GroupID`.
+	MessageQueueConsumerKafkaGroupIDEnvVarKey = "DINNER_DONE_BETTER_MESSAGE_QUEUE_CONSUMER_KAFKA_GROUP_ID"
+
+	// MessageQueueConsumerProviderEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.MessageQueue.Consumer.Provider`,
+	// `DBCleanerConfig.Service.MessageQueue.Consumer.Provider`,
+	// `SchedulerConfig.Service.MessageQueue.Consumer.Provider`,
+	// `AsyncMessageHandlerConfig.Service.MessageQueue.Consumer.Provider`.
+	MessageQueueConsumerProviderEnvVarKey = "DINNER_DONE_BETTER_MESSAGE_QUEUE_CONSUMER_PROVIDER"
+
+	// MessageQueueConsumerPubsubProjectIDEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.MessageQueue.Consumer.PubSub.ProjectID`,
+	// `DBCleanerConfig.Service.MessageQueue.Consumer.PubSub.ProjectID`,
+	// `SchedulerConfig.Service.MessageQueue.Consumer.PubSub.ProjectID`,
+	// `AsyncMessageHandlerConfig.Service.MessageQueue.Consumer.PubSub.ProjectID`.
+	MessageQueueConsumerPubsubProjectIDEnvVarKey = "DINNER_DONE_BETTER_MESSAGE_QUEUE_CONSUMER_PUBSUB_PROJECT_ID"
+
+	// MessageQueueConsumerRedisPasswordEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.MessageQueue.Consumer.Redis.Password`,
+	// `DBCleanerConfig.Service.MessageQueue.Consumer.Redis.Password`,
+	// `SchedulerConfig.Service.MessageQueue.Consumer.Redis.Password`,
+	// `AsyncMessageHandlerConfig.Service.MessageQueue.Consumer.Redis.Password`.
+	MessageQueueConsumerRedisPasswordEnvVarKey = "DINNER_DONE_BETTER_MESSAGE_QUEUE_CONSUMER_REDIS_PASSWORD"
+
+	// MessageQueueConsumerRedisQueueAddressesEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.MessageQueue.Consumer.Redis.QueueAddresses`,
+	// `DBCleanerConfig.Service.MessageQueue.Consumer.Redis.QueueAddresses`,
+	// `SchedulerConfig.Service.MessageQueue.Consumer.Redis.QueueAddresses`,
+	// `AsyncMessageHandlerConfig.Service.MessageQueue.Consumer.Redis.QueueAddresses`.
+	MessageQueueConsumerRedisQueueAddressesEnvVarKey = "DINNER_DONE_BETTER_MESSAGE_QUEUE_CONSUMER_REDIS_QUEUE_ADDRESSES"
+
+	// MessageQueueConsumerRedisUsernameEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.MessageQueue.Consumer.Redis.Username`,
+	// `DBCleanerConfig.Service.MessageQueue.Consumer.Redis.Username`,
+	// `SchedulerConfig.Service.MessageQueue.Consumer.Redis.Username`,
+	// `AsyncMessageHandlerConfig.Service.MessageQueue.Consumer.Redis.Username`.
+	MessageQueueConsumerRedisUsernameEnvVarKey = "DINNER_DONE_BETTER_MESSAGE_QUEUE_CONSUMER_REDIS_USERNAME"
+
+	// MessageQueueConsumerSqsQueueAddressEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.MessageQueue.Consumer.SQS.QueueAddress`,
+	// `DBCleanerConfig.Service.MessageQueue.Consumer.SQS.QueueAddress`,
+	// `SchedulerConfig.Service.MessageQueue.Consumer.SQS.QueueAddress`,
+	// `AsyncMessageHandlerConfig.Service.MessageQueue.Consumer.SQS.QueueAddress`.
+	MessageQueueConsumerSqsQueueAddressEnvVarKey = "DINNER_DONE_BETTER_MESSAGE_QUEUE_CONSUMER_SQS_QUEUE_ADDRESS"
+
+	// MessageQueuePublisherKafkaBrokersEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.MessageQueue.Publisher.Kafka.Brokers`,
+	// `DBCleanerConfig.Service.MessageQueue.Publisher.Kafka.Brokers`,
+	// `SchedulerConfig.Service.MessageQueue.Publisher.Kafka.Brokers`,
+	// `AsyncMessageHandlerConfig.Service.MessageQueue.Publisher.Kafka.Brokers`.
+	MessageQueuePublisherKafkaBrokersEnvVarKey = "DINNER_DONE_BETTER_MESSAGE_QUEUE_PUBLISHER_KAFKA_BROKERS"
+
+	// MessageQueuePublisherKafkaGroupIDEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.MessageQueue.Publisher.Kafka.GroupID`,
+	// `DBCleanerConfig.Service.MessageQueue.Publisher.Kafka.GroupID`,
+	// `SchedulerConfig.Service.MessageQueue.Publisher.Kafka.GroupID`,
+	// `AsyncMessageHandlerConfig.Service.MessageQueue.Publisher.Kafka.GroupID`.
+	MessageQueuePublisherKafkaGroupIDEnvVarKey = "DINNER_DONE_BETTER_MESSAGE_QUEUE_PUBLISHER_KAFKA_GROUP_ID"
+
+	// MessageQueuePublisherProviderEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.MessageQueue.Publisher.Provider`,
+	// `DBCleanerConfig.Service.MessageQueue.Publisher.Provider`,
+	// `SchedulerConfig.Service.MessageQueue.Publisher.Provider`,
+	// `AsyncMessageHandlerConfig.Service.MessageQueue.Publisher.Provider`.
+	MessageQueuePublisherProviderEnvVarKey = "DINNER_DONE_BETTER_MESSAGE_QUEUE_PUBLISHER_PROVIDER"
+
+	// MessageQueuePublisherPubsubProjectIDEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.MessageQueue.Publisher.PubSub.ProjectID`,
+	// `DBCleanerConfig.Service.MessageQueue.Publisher.PubSub.ProjectID`,
+	// `SchedulerConfig.Service.MessageQueue.Publisher.PubSub.ProjectID`,
+	// `AsyncMessageHandlerConfig.Service.MessageQueue.Publisher.PubSub.ProjectID`.
+	MessageQueuePublisherPubsubProjectIDEnvVarKey = "DINNER_DONE_BETTER_MESSAGE_QUEUE_PUBLISHER_PUBSUB_PROJECT_ID"
+
+	// MessageQueuePublisherRedisPasswordEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.MessageQueue.Publisher.Redis.Password`,
+	// `DBCleanerConfig.Service.MessageQueue.Publisher.Redis.Password`,
+	// `SchedulerConfig.Service.MessageQueue.Publisher.Redis.Password`,
+	// `AsyncMessageHandlerConfig.Service.MessageQueue.Publisher.Redis.Password`.
+	MessageQueuePublisherRedisPasswordEnvVarKey = "DINNER_DONE_BETTER_MESSAGE_QUEUE_PUBLISHER_REDIS_PASSWORD"
+
+	// MessageQueuePublisherRedisQueueAddressesEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.MessageQueue.Publisher.Redis.QueueAddresses`,
+	// `DBCleanerConfig.Service.MessageQueue.Publisher.Redis.QueueAddresses`,
+	// `SchedulerConfig.Service.MessageQueue.Publisher.Redis.QueueAddresses`,
+	// `AsyncMessageHandlerConfig.Service.MessageQueue.Publisher.Redis.QueueAddresses`.
+	MessageQueuePublisherRedisQueueAddressesEnvVarKey = "DINNER_DONE_BETTER_MESSAGE_QUEUE_PUBLISHER_REDIS_QUEUE_ADDRESSES"
+
+	// MessageQueuePublisherRedisUsernameEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.MessageQueue.Publisher.Redis.Username`,
+	// `DBCleanerConfig.Service.MessageQueue.Publisher.Redis.Username`,
+	// `SchedulerConfig.Service.MessageQueue.Publisher.Redis.Username`,
+	// `AsyncMessageHandlerConfig.Service.MessageQueue.Publisher.Redis.Username`.
+	MessageQueuePublisherRedisUsernameEnvVarKey = "DINNER_DONE_BETTER_MESSAGE_QUEUE_PUBLISHER_REDIS_USERNAME"
+
+	// MessageQueuePublisherSqsQueueAddressEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.MessageQueue.Publisher.SQS.QueueAddress`,
+	// `DBCleanerConfig.Service.MessageQueue.Publisher.SQS.QueueAddress`,
+	// `SchedulerConfig.Service.MessageQueue.Publisher.SQS.QueueAddress`,
+	// `AsyncMessageHandlerConfig.Service.MessageQueue.Publisher.SQS.QueueAddress`.
+	MessageQueuePublisherSqsQueueAddressEnvVarKey = "DINNER_DONE_BETTER_MESSAGE_QUEUE_PUBLISHER_SQS_QUEUE_ADDRESS"
 
 	// MetaDebugEnvVarKey is the environment variable name to set to override
 	// `APIServiceConfig.Meta.Debug`, `MCPServiceConfig.Meta.Debug`.
@@ -1357,101 +2474,205 @@ const (
 	MetaRunModeEnvVarKey = "DINNER_DONE_BETTER_META_RUN_MODE"
 
 	// MeteringEnforcerCachePrefixEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Metering.Enforcer.CachePrefix`,
-	// `SchedulerConfig.Metering.Enforcer.CachePrefix`.
+	// `APIServiceConfig.Service.Metering.Enforcer.CachePrefix`,
+	// `DBCleanerConfig.Service.Metering.Enforcer.CachePrefix`,
+	// `SchedulerConfig.Service.Metering.Enforcer.CachePrefix`,
+	// `AsyncMessageHandlerConfig.Service.Metering.Enforcer.CachePrefix`.
 	MeteringEnforcerCachePrefixEnvVarKey = "DINNER_DONE_BETTER_METERING_ENFORCER_CACHE_PREFIX"
 
 	// MeteringEnforcerFailOpenEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Metering.Enforcer.FailOpen`, `SchedulerConfig.Metering.Enforcer.FailOpen`.
+	// `APIServiceConfig.Service.Metering.Enforcer.FailOpen`,
+	// `DBCleanerConfig.Service.Metering.Enforcer.FailOpen`,
+	// `SchedulerConfig.Service.Metering.Enforcer.FailOpen`,
+	// `AsyncMessageHandlerConfig.Service.Metering.Enforcer.FailOpen`.
 	MeteringEnforcerFailOpenEnvVarKey = "DINNER_DONE_BETTER_METERING_ENFORCER_FAIL_OPEN"
 
 	// MeteringEnforcerStalenessEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Metering.Enforcer.Staleness`,
-	// `SchedulerConfig.Metering.Enforcer.Staleness`.
+	// `APIServiceConfig.Service.Metering.Enforcer.Staleness`,
+	// `DBCleanerConfig.Service.Metering.Enforcer.Staleness`,
+	// `SchedulerConfig.Service.Metering.Enforcer.Staleness`,
+	// `AsyncMessageHandlerConfig.Service.Metering.Enforcer.Staleness`.
 	MeteringEnforcerStalenessEnvVarKey = "DINNER_DONE_BETTER_METERING_ENFORCER_STALENESS"
 
 	// MeteringFlusherBackoffInitialDelayEnvVarKey is the environment variable name to set to
-	// override `APIServiceConfig.Metering.Flusher.Backoff.InitialDelay`,
-	// `SchedulerConfig.Metering.Flusher.Backoff.InitialDelay`.
+	// override `APIServiceConfig.Service.Metering.Flusher.Backoff.InitialDelay`,
+	// `DBCleanerConfig.Service.Metering.Flusher.Backoff.InitialDelay`,
+	// `SchedulerConfig.Service.Metering.Flusher.Backoff.InitialDelay`,
+	// `AsyncMessageHandlerConfig.Service.Metering.Flusher.Backoff.InitialDelay`.
 	MeteringFlusherBackoffInitialDelayEnvVarKey = "DINNER_DONE_BETTER_METERING_FLUSHER_BACKOFF_INITIAL_DELAY"
 
 	// MeteringFlusherBackoffMaxAttemptsEnvVarKey is the environment variable name to set to
-	// override `APIServiceConfig.Metering.Flusher.Backoff.MaxAttempts`,
-	// `SchedulerConfig.Metering.Flusher.Backoff.MaxAttempts`.
+	// override `APIServiceConfig.Service.Metering.Flusher.Backoff.MaxAttempts`,
+	// `DBCleanerConfig.Service.Metering.Flusher.Backoff.MaxAttempts`,
+	// `SchedulerConfig.Service.Metering.Flusher.Backoff.MaxAttempts`,
+	// `AsyncMessageHandlerConfig.Service.Metering.Flusher.Backoff.MaxAttempts`.
 	MeteringFlusherBackoffMaxAttemptsEnvVarKey = "DINNER_DONE_BETTER_METERING_FLUSHER_BACKOFF_MAX_ATTEMPTS"
 
 	// MeteringFlusherBackoffMaxDelayEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Metering.Flusher.Backoff.MaxDelay`,
-	// `SchedulerConfig.Metering.Flusher.Backoff.MaxDelay`.
+	// `APIServiceConfig.Service.Metering.Flusher.Backoff.MaxDelay`,
+	// `DBCleanerConfig.Service.Metering.Flusher.Backoff.MaxDelay`,
+	// `SchedulerConfig.Service.Metering.Flusher.Backoff.MaxDelay`,
+	// `AsyncMessageHandlerConfig.Service.Metering.Flusher.Backoff.MaxDelay`.
 	MeteringFlusherBackoffMaxDelayEnvVarKey = "DINNER_DONE_BETTER_METERING_FLUSHER_BACKOFF_MAX_DELAY"
 
 	// MeteringFlusherBackoffMultiplierEnvVarKey is the environment variable name to set to
-	// override `APIServiceConfig.Metering.Flusher.Backoff.Multiplier`,
-	// `SchedulerConfig.Metering.Flusher.Backoff.Multiplier`.
+	// override `APIServiceConfig.Service.Metering.Flusher.Backoff.Multiplier`,
+	// `DBCleanerConfig.Service.Metering.Flusher.Backoff.Multiplier`,
+	// `SchedulerConfig.Service.Metering.Flusher.Backoff.Multiplier`,
+	// `AsyncMessageHandlerConfig.Service.Metering.Flusher.Backoff.Multiplier`.
 	MeteringFlusherBackoffMultiplierEnvVarKey = "DINNER_DONE_BETTER_METERING_FLUSHER_BACKOFF_MULTIPLIER"
 
 	// MeteringFlusherBackoffProviderEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Metering.Flusher.Backoff.Provider`,
-	// `SchedulerConfig.Metering.Flusher.Backoff.Provider`.
+	// `APIServiceConfig.Service.Metering.Flusher.Backoff.Provider`,
+	// `DBCleanerConfig.Service.Metering.Flusher.Backoff.Provider`,
+	// `SchedulerConfig.Service.Metering.Flusher.Backoff.Provider`,
+	// `AsyncMessageHandlerConfig.Service.Metering.Flusher.Backoff.Provider`.
 	MeteringFlusherBackoffProviderEnvVarKey = "DINNER_DONE_BETTER_METERING_FLUSHER_BACKOFF_PROVIDER"
 
 	// MeteringFlusherBackoffUseJitterEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Metering.Flusher.Backoff.UseJitter`,
-	// `SchedulerConfig.Metering.Flusher.Backoff.UseJitter`.
+	// `APIServiceConfig.Service.Metering.Flusher.Backoff.UseJitter`,
+	// `DBCleanerConfig.Service.Metering.Flusher.Backoff.UseJitter`,
+	// `SchedulerConfig.Service.Metering.Flusher.Backoff.UseJitter`,
+	// `AsyncMessageHandlerConfig.Service.Metering.Flusher.Backoff.UseJitter`.
 	MeteringFlusherBackoffUseJitterEnvVarKey = "DINNER_DONE_BETTER_METERING_FLUSHER_BACKOFF_USE_JITTER"
 
 	// MeteringFlusherBatchSizeEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Metering.Flusher.BatchSize`, `SchedulerConfig.Metering.Flusher.BatchSize`.
+	// `APIServiceConfig.Service.Metering.Flusher.BatchSize`,
+	// `DBCleanerConfig.Service.Metering.Flusher.BatchSize`,
+	// `SchedulerConfig.Service.Metering.Flusher.BatchSize`,
+	// `AsyncMessageHandlerConfig.Service.Metering.Flusher.BatchSize`.
 	MeteringFlusherBatchSizeEnvVarKey = "DINNER_DONE_BETTER_METERING_FLUSHER_BATCH_SIZE"
 
 	// MeteringFlusherConcurrencyEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Metering.Flusher.Concurrency`,
-	// `SchedulerConfig.Metering.Flusher.Concurrency`.
+	// `APIServiceConfig.Service.Metering.Flusher.Concurrency`,
+	// `DBCleanerConfig.Service.Metering.Flusher.Concurrency`,
+	// `SchedulerConfig.Service.Metering.Flusher.Concurrency`,
+	// `AsyncMessageHandlerConfig.Service.Metering.Flusher.Concurrency`.
 	MeteringFlusherConcurrencyEnvVarKey = "DINNER_DONE_BETTER_METERING_FLUSHER_CONCURRENCY"
 
 	// MeteringFlusherDisableReapEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Metering.Flusher.DisableReap`,
-	// `SchedulerConfig.Metering.Flusher.DisableReap`.
+	// `APIServiceConfig.Service.Metering.Flusher.DisableReap`,
+	// `DBCleanerConfig.Service.Metering.Flusher.DisableReap`,
+	// `SchedulerConfig.Service.Metering.Flusher.DisableReap`,
+	// `AsyncMessageHandlerConfig.Service.Metering.Flusher.DisableReap`.
 	MeteringFlusherDisableReapEnvVarKey = "DINNER_DONE_BETTER_METERING_FLUSHER_DISABLE_REAP"
 
 	// MeteringFlusherEventRetentionEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Metering.Flusher.EventRetention`,
-	// `SchedulerConfig.Metering.Flusher.EventRetention`.
+	// `APIServiceConfig.Service.Metering.Flusher.EventRetention`,
+	// `DBCleanerConfig.Service.Metering.Flusher.EventRetention`,
+	// `SchedulerConfig.Service.Metering.Flusher.EventRetention`,
+	// `AsyncMessageHandlerConfig.Service.Metering.Flusher.EventRetention`.
 	MeteringFlusherEventRetentionEnvVarKey = "DINNER_DONE_BETTER_METERING_FLUSHER_EVENT_RETENTION"
 
 	// MeteringFlusherFlushTimeoutEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Metering.Flusher.FlushTimeout`,
-	// `SchedulerConfig.Metering.Flusher.FlushTimeout`.
+	// `APIServiceConfig.Service.Metering.Flusher.FlushTimeout`,
+	// `DBCleanerConfig.Service.Metering.Flusher.FlushTimeout`,
+	// `SchedulerConfig.Service.Metering.Flusher.FlushTimeout`,
+	// `AsyncMessageHandlerConfig.Service.Metering.Flusher.FlushTimeout`.
 	MeteringFlusherFlushTimeoutEnvVarKey = "DINNER_DONE_BETTER_METERING_FLUSHER_FLUSH_TIMEOUT"
 
 	// MeteringFlusherLeaseDurationEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Metering.Flusher.LeaseDuration`,
-	// `SchedulerConfig.Metering.Flusher.LeaseDuration`.
+	// `APIServiceConfig.Service.Metering.Flusher.LeaseDuration`,
+	// `DBCleanerConfig.Service.Metering.Flusher.LeaseDuration`,
+	// `SchedulerConfig.Service.Metering.Flusher.LeaseDuration`,
+	// `AsyncMessageHandlerConfig.Service.Metering.Flusher.LeaseDuration`.
 	MeteringFlusherLeaseDurationEnvVarKey = "DINNER_DONE_BETTER_METERING_FLUSHER_LEASE_DURATION"
 
 	// MeteringFlusherMaxAttemptsEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Metering.Flusher.MaxAttempts`,
-	// `SchedulerConfig.Metering.Flusher.MaxAttempts`.
+	// `APIServiceConfig.Service.Metering.Flusher.MaxAttempts`,
+	// `DBCleanerConfig.Service.Metering.Flusher.MaxAttempts`,
+	// `SchedulerConfig.Service.Metering.Flusher.MaxAttempts`,
+	// `AsyncMessageHandlerConfig.Service.Metering.Flusher.MaxAttempts`.
 	MeteringFlusherMaxAttemptsEnvVarKey = "DINNER_DONE_BETTER_METERING_FLUSHER_MAX_ATTEMPTS"
 
 	// MeteringFlusherReapBatchSizeEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Metering.Flusher.ReapBatchSize`,
-	// `SchedulerConfig.Metering.Flusher.ReapBatchSize`.
+	// `APIServiceConfig.Service.Metering.Flusher.ReapBatchSize`,
+	// `DBCleanerConfig.Service.Metering.Flusher.ReapBatchSize`,
+	// `SchedulerConfig.Service.Metering.Flusher.ReapBatchSize`,
+	// `AsyncMessageHandlerConfig.Service.Metering.Flusher.ReapBatchSize`.
 	MeteringFlusherReapBatchSizeEnvVarKey = "DINNER_DONE_BETTER_METERING_FLUSHER_REAP_BATCH_SIZE"
 
 	// MeteringRecorderAllowUnknownMetersEnvVarKey is the environment variable name to set to
-	// override `APIServiceConfig.Metering.Recorder.AllowUnknownMeters`,
-	// `SchedulerConfig.Metering.Recorder.AllowUnknownMeters`.
+	// override `APIServiceConfig.Service.Metering.Recorder.AllowUnknownMeters`,
+	// `DBCleanerConfig.Service.Metering.Recorder.AllowUnknownMeters`,
+	// `SchedulerConfig.Service.Metering.Recorder.AllowUnknownMeters`,
+	// `AsyncMessageHandlerConfig.Service.Metering.Recorder.AllowUnknownMeters`.
 	MeteringRecorderAllowUnknownMetersEnvVarKey = "DINNER_DONE_BETTER_METERING_RECORDER_ALLOW_UNKNOWN_METERS"
 
 	// MeteringRecorderBatchSizeEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Metering.Recorder.BatchSize`,
-	// `SchedulerConfig.Metering.Recorder.BatchSize`.
+	// `APIServiceConfig.Service.Metering.Recorder.BatchSize`,
+	// `DBCleanerConfig.Service.Metering.Recorder.BatchSize`,
+	// `SchedulerConfig.Service.Metering.Recorder.BatchSize`,
+	// `AsyncMessageHandlerConfig.Service.Metering.Recorder.BatchSize`.
 	MeteringRecorderBatchSizeEnvVarKey = "DINNER_DONE_BETTER_METERING_RECORDER_BATCH_SIZE"
 
 	// MeteringTablePrefixEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Metering.TablePrefix`, `SchedulerConfig.Metering.TablePrefix`.
+	// `APIServiceConfig.Service.Metering.TablePrefix`,
+	// `DBCleanerConfig.Service.Metering.TablePrefix`,
+	// `SchedulerConfig.Service.Metering.TablePrefix`,
+	// `AsyncMessageHandlerConfig.Service.Metering.TablePrefix`.
 	MeteringTablePrefixEnvVarKey = "DINNER_DONE_BETTER_METERING_TABLE_PREFIX"
+
+	// MobileNotificationsApnsAuthKeyPathEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.MobileNotifications.APNs.AuthKeyPath`,
+	// `DBCleanerConfig.Service.MobileNotifications.APNs.AuthKeyPath`,
+	// `SchedulerConfig.Service.MobileNotifications.APNs.AuthKeyPath`,
+	// `AsyncMessageHandlerConfig.Service.MobileNotifications.APNs.AuthKeyPath`.
+	MobileNotificationsApnsAuthKeyPathEnvVarKey = "DINNER_DONE_BETTER_MOBILE_NOTIFICATIONS_APNS_AUTH_KEY_PATH"
+
+	// MobileNotificationsApnsBundleIDEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.MobileNotifications.APNs.BundleID`,
+	// `DBCleanerConfig.Service.MobileNotifications.APNs.BundleID`,
+	// `SchedulerConfig.Service.MobileNotifications.APNs.BundleID`,
+	// `AsyncMessageHandlerConfig.Service.MobileNotifications.APNs.BundleID`.
+	MobileNotificationsApnsBundleIDEnvVarKey = "DINNER_DONE_BETTER_MOBILE_NOTIFICATIONS_APNS_BUNDLE_ID"
+
+	// MobileNotificationsApnsKeyIDEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.MobileNotifications.APNs.KeyID`,
+	// `DBCleanerConfig.Service.MobileNotifications.APNs.KeyID`,
+	// `SchedulerConfig.Service.MobileNotifications.APNs.KeyID`,
+	// `AsyncMessageHandlerConfig.Service.MobileNotifications.APNs.KeyID`.
+	MobileNotificationsApnsKeyIDEnvVarKey = "DINNER_DONE_BETTER_MOBILE_NOTIFICATIONS_APNS_KEY_ID"
+
+	// MobileNotificationsApnsProductionEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.MobileNotifications.APNs.Production`,
+	// `DBCleanerConfig.Service.MobileNotifications.APNs.Production`,
+	// `SchedulerConfig.Service.MobileNotifications.APNs.Production`,
+	// `AsyncMessageHandlerConfig.Service.MobileNotifications.APNs.Production`.
+	MobileNotificationsApnsProductionEnvVarKey = "DINNER_DONE_BETTER_MOBILE_NOTIFICATIONS_APNS_PRODUCTION"
+
+	// MobileNotificationsApnsTeamIDEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.MobileNotifications.APNs.TeamID`,
+	// `DBCleanerConfig.Service.MobileNotifications.APNs.TeamID`,
+	// `SchedulerConfig.Service.MobileNotifications.APNs.TeamID`,
+	// `AsyncMessageHandlerConfig.Service.MobileNotifications.APNs.TeamID`.
+	MobileNotificationsApnsTeamIDEnvVarKey = "DINNER_DONE_BETTER_MOBILE_NOTIFICATIONS_APNS_TEAM_ID"
+
+	// MobileNotificationsFcmCredentialsPathEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.MobileNotifications.FCM.CredentialsPath`,
+	// `DBCleanerConfig.Service.MobileNotifications.FCM.CredentialsPath`,
+	// `SchedulerConfig.Service.MobileNotifications.FCM.CredentialsPath`,
+	// `AsyncMessageHandlerConfig.Service.MobileNotifications.FCM.CredentialsPath`.
+	MobileNotificationsFcmCredentialsPathEnvVarKey = "DINNER_DONE_BETTER_MOBILE_NOTIFICATIONS_FCM_CREDENTIALS_PATH"
+
+	// MobileNotificationsProviderEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.MobileNotifications.Provider`,
+	// `DBCleanerConfig.Service.MobileNotifications.Provider`,
+	// `SchedulerConfig.Service.MobileNotifications.Provider`,
+	// `AsyncMessageHandlerConfig.Service.MobileNotifications.Provider`.
+	MobileNotificationsProviderEnvVarKey = "DINNER_DONE_BETTER_MOBILE_NOTIFICATIONS_PROVIDER"
+
+	// NameEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Name`, `DBCleanerConfig.Service.Name`,
+	// `SchedulerConfig.Service.Name`, `AsyncMessageHandlerConfig.Service.Name`.
+	NameEnvVarKey = "DINNER_DONE_BETTER_NAME"
+
+	// NotificationsTablePrefixEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Notifications.TablePrefix`,
+	// `DBCleanerConfig.Service.Notifications.TablePrefix`,
+	// `SchedulerConfig.Service.Notifications.TablePrefix`,
+	// `AsyncMessageHandlerConfig.Service.Notifications.TablePrefix`.
+	NotificationsTablePrefixEnvVarKey = "DINNER_DONE_BETTER_NOTIFICATIONS_TABLE_PREFIX"
 
 	// Oauth2AccessTokenTTLEnvVarKey is the environment variable name to set to override
 	// `DBCleanerConfig.OAuth2.Config.AccessTokenTTL`,
@@ -1462,6 +2683,13 @@ const (
 	// `DBCleanerConfig.OAuth2.Config.AuthorizationCodeTTL`,
 	// `MCPServiceConfig.OAuth2.Config.AuthorizationCodeTTL`.
 	Oauth2AuthorizationCodeTTLEnvVarKey = "DINNER_DONE_BETTER_OAUTH2_AUTHORIZATION_CODE_TTL"
+
+	// Oauth2ClientsTablePrefixEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.OAuth2Clients.TablePrefix`,
+	// `DBCleanerConfig.Service.OAuth2Clients.TablePrefix`,
+	// `SchedulerConfig.Service.OAuth2Clients.TablePrefix`,
+	// `AsyncMessageHandlerConfig.Service.OAuth2Clients.TablePrefix`.
+	Oauth2ClientsTablePrefixEnvVarKey = "DINNER_DONE_BETTER_OAUTH2_CLIENTS_TABLE_PREFIX"
 
 	// Oauth2ClientRegistrationTTLEnvVarKey is the environment variable name to set to override
 	// `DBCleanerConfig.OAuth2.Config.ClientRegistrationTTL`,
@@ -1506,6 +2734,143 @@ const (
 	// `DBCleanerConfig.OAuth2.Config.Scopes`, `MCPServiceConfig.OAuth2.Config.Scopes`.
 	Oauth2ScopesEnvVarKey = "DINNER_DONE_BETTER_OAUTH2_SCOPES"
 
+	// Oauth2ServerAccessTokenTTLEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.OAuth2Server.Config.AccessTokenTTL`,
+	// `DBCleanerConfig.Service.OAuth2Server.Config.AccessTokenTTL`,
+	// `SchedulerConfig.Service.OAuth2Server.Config.AccessTokenTTL`,
+	// `AsyncMessageHandlerConfig.Service.OAuth2Server.Config.AccessTokenTTL`.
+	Oauth2ServerAccessTokenTTLEnvVarKey = "DINNER_DONE_BETTER_OAUTH2_SERVER_ACCESS_TOKEN_TTL"
+
+	// Oauth2ServerAuthorizationCodeTTLEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.OAuth2Server.Config.AuthorizationCodeTTL`,
+	// `DBCleanerConfig.Service.OAuth2Server.Config.AuthorizationCodeTTL`,
+	// `SchedulerConfig.Service.OAuth2Server.Config.AuthorizationCodeTTL`,
+	// `AsyncMessageHandlerConfig.Service.OAuth2Server.Config.AuthorizationCodeTTL`.
+	Oauth2ServerAuthorizationCodeTTLEnvVarKey = "DINNER_DONE_BETTER_OAUTH2_SERVER_AUTHORIZATION_CODE_TTL"
+
+	// Oauth2ServerClientRegistrationTTLEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.OAuth2Server.Config.ClientRegistrationTTL`,
+	// `DBCleanerConfig.Service.OAuth2Server.Config.ClientRegistrationTTL`,
+	// `SchedulerConfig.Service.OAuth2Server.Config.ClientRegistrationTTL`,
+	// `AsyncMessageHandlerConfig.Service.OAuth2Server.Config.ClientRegistrationTTL`.
+	Oauth2ServerClientRegistrationTTLEnvVarKey = "DINNER_DONE_BETTER_OAUTH2_SERVER_CLIENT_REGISTRATION_TTL"
+
+	// Oauth2ServerDatabaseTablePrefixEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.OAuth2Server.Database.TablePrefix`,
+	// `DBCleanerConfig.Service.OAuth2Server.Database.TablePrefix`,
+	// `SchedulerConfig.Service.OAuth2Server.Database.TablePrefix`,
+	// `AsyncMessageHandlerConfig.Service.OAuth2Server.Database.TablePrefix`.
+	Oauth2ServerDatabaseTablePrefixEnvVarKey = "DINNER_DONE_BETTER_OAUTH2_SERVER_DATABASE_TABLE_PREFIX"
+
+	// Oauth2ServerDisableDynamicRegistrationEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.OAuth2Server.Config.DisableDynamicRegistration`,
+	// `DBCleanerConfig.Service.OAuth2Server.Config.DisableDynamicRegistration`,
+	// `SchedulerConfig.Service.OAuth2Server.Config.DisableDynamicRegistration`,
+	// `AsyncMessageHandlerConfig.Service.OAuth2Server.Config.DisableDynamicRegistration`.
+	Oauth2ServerDisableDynamicRegistrationEnvVarKey = "DINNER_DONE_BETTER_OAUTH2_SERVER_DISABLE_DYNAMIC_REGISTRATION"
+
+	// Oauth2ServerDisableRefreshReuseDetectionEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.OAuth2Server.Config.DisableRefreshReuseDetection`,
+	// `DBCleanerConfig.Service.OAuth2Server.Config.DisableRefreshReuseDetection`,
+	// `SchedulerConfig.Service.OAuth2Server.Config.DisableRefreshReuseDetection`,
+	// `AsyncMessageHandlerConfig.Service.OAuth2Server.Config.DisableRefreshReuseDetection`.
+	Oauth2ServerDisableRefreshReuseDetectionEnvVarKey = "DINNER_DONE_BETTER_OAUTH2_SERVER_DISABLE_REFRESH_REUSE_DETECTION"
+
+	// Oauth2ServerIssuerEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.OAuth2Server.Config.Issuer`,
+	// `DBCleanerConfig.Service.OAuth2Server.Config.Issuer`,
+	// `SchedulerConfig.Service.OAuth2Server.Config.Issuer`,
+	// `AsyncMessageHandlerConfig.Service.OAuth2Server.Config.Issuer`.
+	Oauth2ServerIssuerEnvVarKey = "DINNER_DONE_BETTER_OAUTH2_SERVER_ISSUER"
+
+	// Oauth2ServerProviderEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.OAuth2Server.Provider`,
+	// `APIServiceConfig.Service.OAuth2Server.Config.Provider`,
+	// `DBCleanerConfig.Service.OAuth2Server.Provider`,
+	// `DBCleanerConfig.Service.OAuth2Server.Config.Provider`,
+	// `SchedulerConfig.Service.OAuth2Server.Provider`,
+	// `SchedulerConfig.Service.OAuth2Server.Config.Provider`,
+	// `AsyncMessageHandlerConfig.Service.OAuth2Server.Provider`,
+	// `AsyncMessageHandlerConfig.Service.OAuth2Server.Config.Provider`. It defaults to `database`.
+	Oauth2ServerProviderEnvVarKey = "DINNER_DONE_BETTER_OAUTH2_SERVER_PROVIDER"
+
+	// Oauth2ServerRefreshTokenTTLEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.OAuth2Server.Config.RefreshTokenTTL`,
+	// `DBCleanerConfig.Service.OAuth2Server.Config.RefreshTokenTTL`,
+	// `SchedulerConfig.Service.OAuth2Server.Config.RefreshTokenTTL`,
+	// `AsyncMessageHandlerConfig.Service.OAuth2Server.Config.RefreshTokenTTL`.
+	Oauth2ServerRefreshTokenTTLEnvVarKey = "DINNER_DONE_BETTER_OAUTH2_SERVER_REFRESH_TOKEN_TTL"
+
+	// Oauth2ServerResourcesEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.OAuth2Server.Config.Resources`,
+	// `DBCleanerConfig.Service.OAuth2Server.Config.Resources`,
+	// `SchedulerConfig.Service.OAuth2Server.Config.Resources`,
+	// `AsyncMessageHandlerConfig.Service.OAuth2Server.Config.Resources`.
+	Oauth2ServerResourcesEnvVarKey = "DINNER_DONE_BETTER_OAUTH2_SERVER_RESOURCES"
+
+	// Oauth2ServerScopesEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.OAuth2Server.Config.Scopes`,
+	// `DBCleanerConfig.Service.OAuth2Server.Config.Scopes`,
+	// `SchedulerConfig.Service.OAuth2Server.Config.Scopes`,
+	// `AsyncMessageHandlerConfig.Service.OAuth2Server.Config.Scopes`.
+	Oauth2ServerScopesEnvVarKey = "DINNER_DONE_BETTER_OAUTH2_SERVER_SCOPES"
+
+	// Oauth2ServerServiceDocumentationEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.OAuth2Server.Config.ServiceDocumentation`,
+	// `DBCleanerConfig.Service.OAuth2Server.Config.ServiceDocumentation`,
+	// `SchedulerConfig.Service.OAuth2Server.Config.ServiceDocumentation`,
+	// `AsyncMessageHandlerConfig.Service.OAuth2Server.Config.ServiceDocumentation`.
+	Oauth2ServerServiceDocumentationEnvVarKey = "DINNER_DONE_BETTER_OAUTH2_SERVER_SERVICE_DOCUMENTATION"
+
+	// Oauth2ServerSweepIntervalEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.OAuth2Server.Config.SweepInterval`,
+	// `DBCleanerConfig.Service.OAuth2Server.Config.SweepInterval`,
+	// `SchedulerConfig.Service.OAuth2Server.Config.SweepInterval`,
+	// `AsyncMessageHandlerConfig.Service.OAuth2Server.Config.SweepInterval`.
+	Oauth2ServerSweepIntervalEnvVarKey = "DINNER_DONE_BETTER_OAUTH2_SERVER_SWEEP_INTERVAL"
+
+	// Oauth2ServerSweepJobDisabledEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.OAuth2Server.SweepJob.Disabled`,
+	// `DBCleanerConfig.Service.OAuth2Server.SweepJob.Disabled`,
+	// `SchedulerConfig.Service.OAuth2Server.SweepJob.Disabled`,
+	// `AsyncMessageHandlerConfig.Service.OAuth2Server.SweepJob.Disabled`.
+	Oauth2ServerSweepJobDisabledEnvVarKey = "DINNER_DONE_BETTER_OAUTH2_SERVER_SWEEP_JOB_DISABLED"
+
+	// Oauth2ServerSweepJobIntervalEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.OAuth2Server.SweepJob.Interval`,
+	// `DBCleanerConfig.Service.OAuth2Server.SweepJob.Interval`,
+	// `SchedulerConfig.Service.OAuth2Server.SweepJob.Interval`,
+	// `AsyncMessageHandlerConfig.Service.OAuth2Server.SweepJob.Interval`.
+	Oauth2ServerSweepJobIntervalEnvVarKey = "DINNER_DONE_BETTER_OAUTH2_SERVER_SWEEP_JOB_INTERVAL"
+
+	// Oauth2ServerSweepJobLeaseTTLEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.OAuth2Server.SweepJob.LeaseTTL`,
+	// `DBCleanerConfig.Service.OAuth2Server.SweepJob.LeaseTTL`,
+	// `SchedulerConfig.Service.OAuth2Server.SweepJob.LeaseTTL`,
+	// `AsyncMessageHandlerConfig.Service.OAuth2Server.SweepJob.LeaseTTL`.
+	Oauth2ServerSweepJobLeaseTTLEnvVarKey = "DINNER_DONE_BETTER_OAUTH2_SERVER_SWEEP_JOB_LEASE_TTL"
+
+	// Oauth2ServerSweepJobRunOnStartEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.OAuth2Server.SweepJob.RunOnStart`,
+	// `DBCleanerConfig.Service.OAuth2Server.SweepJob.RunOnStart`,
+	// `SchedulerConfig.Service.OAuth2Server.SweepJob.RunOnStart`,
+	// `AsyncMessageHandlerConfig.Service.OAuth2Server.SweepJob.RunOnStart`.
+	Oauth2ServerSweepJobRunOnStartEnvVarKey = "DINNER_DONE_BETTER_OAUTH2_SERVER_SWEEP_JOB_RUN_ON_START"
+
+	// Oauth2ServerSweepJobScheduleEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.OAuth2Server.SweepJob.Schedule`,
+	// `DBCleanerConfig.Service.OAuth2Server.SweepJob.Schedule`,
+	// `SchedulerConfig.Service.OAuth2Server.SweepJob.Schedule`,
+	// `AsyncMessageHandlerConfig.Service.OAuth2Server.SweepJob.Schedule`.
+	Oauth2ServerSweepJobScheduleEnvVarKey = "DINNER_DONE_BETTER_OAUTH2_SERVER_SWEEP_JOB_SCHEDULE"
+
+	// Oauth2ServerSweepJobTimeoutEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.OAuth2Server.SweepJob.Timeout`,
+	// `DBCleanerConfig.Service.OAuth2Server.SweepJob.Timeout`,
+	// `SchedulerConfig.Service.OAuth2Server.SweepJob.Timeout`,
+	// `AsyncMessageHandlerConfig.Service.OAuth2Server.SweepJob.Timeout`.
+	Oauth2ServerSweepJobTimeoutEnvVarKey = "DINNER_DONE_BETTER_OAUTH2_SERVER_SWEEP_JOB_TIMEOUT"
+
 	// Oauth2ServiceDocumentationEnvVarKey is the environment variable name to set to override
 	// `DBCleanerConfig.OAuth2.Config.ServiceDocumentation`,
 	// `MCPServiceConfig.OAuth2.Config.ServiceDocumentation`.
@@ -1541,534 +2906,879 @@ const (
 	Oauth2SweepJobTimeoutEnvVarKey = "DINNER_DONE_BETTER_OAUTH2_SWEEP_JOB_TIMEOUT"
 
 	// ObservabilityLoggingLevelEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Observability.Logging.Level`,
-	// `DBCleanerConfig.Observability.Logging.Level`,
-	// `SchedulerConfig.Observability.Logging.Level`,
-	// `AsyncMessageHandlerConfig.Observability.Logging.Level`,
+	// `APIServiceConfig.Service.Observability.Logging.Level`,
+	// `DBCleanerConfig.Service.Observability.Logging.Level`,
+	// `SchedulerConfig.Service.Observability.Logging.Level`,
+	// `AsyncMessageHandlerConfig.Service.Observability.Logging.Level`,
 	// `EmailDeliverabilityTestConfig.Observability.Logging.Level`,
 	// `MCPServiceConfig.Observability.Logging.Level`.
 	ObservabilityLoggingLevelEnvVarKey = "DINNER_DONE_BETTER_OBSERVABILITY_LOGGING_LEVEL"
 
 	// ObservabilityLoggingOtelSlogEndpointURLEnvVarKey is the environment variable name to set to
-	// override `APIServiceConfig.Observability.Logging.OtelSlog.CollectorEndpoint`,
-	// `DBCleanerConfig.Observability.Logging.OtelSlog.CollectorEndpoint`,
-	// `SchedulerConfig.Observability.Logging.OtelSlog.CollectorEndpoint`,
-	// `AsyncMessageHandlerConfig.Observability.Logging.OtelSlog.CollectorEndpoint`,
+	// override `APIServiceConfig.Service.Observability.Logging.OtelSlog.CollectorEndpoint`,
+	// `DBCleanerConfig.Service.Observability.Logging.OtelSlog.CollectorEndpoint`,
+	// `SchedulerConfig.Service.Observability.Logging.OtelSlog.CollectorEndpoint`,
+	// `AsyncMessageHandlerConfig.Service.Observability.Logging.OtelSlog.CollectorEndpoint`,
 	// `EmailDeliverabilityTestConfig.Observability.Logging.OtelSlog.CollectorEndpoint`,
 	// `MCPServiceConfig.Observability.Logging.OtelSlog.CollectorEndpoint`.
 	ObservabilityLoggingOtelSlogEndpointURLEnvVarKey = "DINNER_DONE_BETTER_OBSERVABILITY_LOGGING_OTEL_SLOG_ENDPOINT_URL"
 
 	// ObservabilityLoggingOtelSlogInsecureEnvVarKey is the environment variable name to set to
-	// override `APIServiceConfig.Observability.Logging.OtelSlog.Insecure`,
-	// `DBCleanerConfig.Observability.Logging.OtelSlog.Insecure`,
-	// `SchedulerConfig.Observability.Logging.OtelSlog.Insecure`,
-	// `AsyncMessageHandlerConfig.Observability.Logging.OtelSlog.Insecure`,
+	// override `APIServiceConfig.Service.Observability.Logging.OtelSlog.Insecure`,
+	// `DBCleanerConfig.Service.Observability.Logging.OtelSlog.Insecure`,
+	// `SchedulerConfig.Service.Observability.Logging.OtelSlog.Insecure`,
+	// `AsyncMessageHandlerConfig.Service.Observability.Logging.OtelSlog.Insecure`,
 	// `EmailDeliverabilityTestConfig.Observability.Logging.OtelSlog.Insecure`,
 	// `MCPServiceConfig.Observability.Logging.OtelSlog.Insecure`.
 	ObservabilityLoggingOtelSlogInsecureEnvVarKey = "DINNER_DONE_BETTER_OBSERVABILITY_LOGGING_OTEL_SLOG_INSECURE"
 
 	// ObservabilityLoggingOtelSlogTimeoutEnvVarKey is the environment variable name to set to
-	// override `APIServiceConfig.Observability.Logging.OtelSlog.Timeout`,
-	// `DBCleanerConfig.Observability.Logging.OtelSlog.Timeout`,
-	// `SchedulerConfig.Observability.Logging.OtelSlog.Timeout`,
-	// `AsyncMessageHandlerConfig.Observability.Logging.OtelSlog.Timeout`,
+	// override `APIServiceConfig.Service.Observability.Logging.OtelSlog.Timeout`,
+	// `DBCleanerConfig.Service.Observability.Logging.OtelSlog.Timeout`,
+	// `SchedulerConfig.Service.Observability.Logging.OtelSlog.Timeout`,
+	// `AsyncMessageHandlerConfig.Service.Observability.Logging.OtelSlog.Timeout`,
 	// `EmailDeliverabilityTestConfig.Observability.Logging.OtelSlog.Timeout`,
 	// `MCPServiceConfig.Observability.Logging.OtelSlog.Timeout`.
 	ObservabilityLoggingOtelSlogTimeoutEnvVarKey = "DINNER_DONE_BETTER_OBSERVABILITY_LOGGING_OTEL_SLOG_TIMEOUT"
 
 	// ObservabilityLoggingProviderEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Observability.Logging.Provider`,
-	// `DBCleanerConfig.Observability.Logging.Provider`,
-	// `SchedulerConfig.Observability.Logging.Provider`,
-	// `AsyncMessageHandlerConfig.Observability.Logging.Provider`,
+	// `APIServiceConfig.Service.Observability.Logging.Provider`,
+	// `DBCleanerConfig.Service.Observability.Logging.Provider`,
+	// `SchedulerConfig.Service.Observability.Logging.Provider`,
+	// `AsyncMessageHandlerConfig.Service.Observability.Logging.Provider`,
 	// `EmailDeliverabilityTestConfig.Observability.Logging.Provider`,
 	// `MCPServiceConfig.Observability.Logging.Provider`.
 	ObservabilityLoggingProviderEnvVarKey = "DINNER_DONE_BETTER_OBSERVABILITY_LOGGING_PROVIDER"
 
 	// ObservabilityLoggingServiceNameEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Observability.Logging.ServiceName`,
-	// `DBCleanerConfig.Observability.Logging.ServiceName`,
-	// `SchedulerConfig.Observability.Logging.ServiceName`,
-	// `AsyncMessageHandlerConfig.Observability.Logging.ServiceName`,
+	// `APIServiceConfig.Service.Observability.Logging.ServiceName`,
+	// `DBCleanerConfig.Service.Observability.Logging.ServiceName`,
+	// `SchedulerConfig.Service.Observability.Logging.ServiceName`,
+	// `AsyncMessageHandlerConfig.Service.Observability.Logging.ServiceName`,
 	// `EmailDeliverabilityTestConfig.Observability.Logging.ServiceName`,
 	// `MCPServiceConfig.Observability.Logging.ServiceName`.
 	ObservabilityLoggingServiceNameEnvVarKey = "DINNER_DONE_BETTER_OBSERVABILITY_LOGGING_SERVICE_NAME"
 
 	// ObservabilityMetricsEnabledEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Observability.Metrics.Enabled`,
-	// `DBCleanerConfig.Observability.Metrics.Enabled`,
-	// `SchedulerConfig.Observability.Metrics.Enabled`,
-	// `AsyncMessageHandlerConfig.Observability.Metrics.Enabled`,
+	// `APIServiceConfig.Service.Observability.Metrics.Enabled`,
+	// `DBCleanerConfig.Service.Observability.Metrics.Enabled`,
+	// `SchedulerConfig.Service.Observability.Metrics.Enabled`,
+	// `AsyncMessageHandlerConfig.Service.Observability.Metrics.Enabled`,
 	// `EmailDeliverabilityTestConfig.Observability.Metrics.Enabled`,
 	// `MCPServiceConfig.Observability.Metrics.Enabled`.
 	ObservabilityMetricsEnabledEnvVarKey = "DINNER_DONE_BETTER_OBSERVABILITY_METRICS_ENABLED"
 
 	// ObservabilityMetricsOtelCollectionIntervalEnvVarKey is the environment variable name to set
-	// to override `APIServiceConfig.Observability.Metrics.Otel.CollectionInterval`,
-	// `DBCleanerConfig.Observability.Metrics.Otel.CollectionInterval`,
-	// `SchedulerConfig.Observability.Metrics.Otel.CollectionInterval`,
-	// `AsyncMessageHandlerConfig.Observability.Metrics.Otel.CollectionInterval`,
+	// to override `APIServiceConfig.Service.Observability.Metrics.Otel.CollectionInterval`,
+	// `DBCleanerConfig.Service.Observability.Metrics.Otel.CollectionInterval`,
+	// `SchedulerConfig.Service.Observability.Metrics.Otel.CollectionInterval`,
+	// `AsyncMessageHandlerConfig.Service.Observability.Metrics.Otel.CollectionInterval`,
 	// `EmailDeliverabilityTestConfig.Observability.Metrics.Otel.CollectionInterval`,
 	// `MCPServiceConfig.Observability.Metrics.Otel.CollectionInterval`.
 	ObservabilityMetricsOtelCollectionIntervalEnvVarKey = "DINNER_DONE_BETTER_OBSERVABILITY_METRICS_OTEL_COLLECTION_INTERVAL"
 
 	// ObservabilityMetricsOtelCollectorEndpointEnvVarKey is the environment variable name to set
-	// to override `APIServiceConfig.Observability.Metrics.Otel.CollectorEndpoint`,
-	// `DBCleanerConfig.Observability.Metrics.Otel.CollectorEndpoint`,
-	// `SchedulerConfig.Observability.Metrics.Otel.CollectorEndpoint`,
-	// `AsyncMessageHandlerConfig.Observability.Metrics.Otel.CollectorEndpoint`,
+	// to override `APIServiceConfig.Service.Observability.Metrics.Otel.CollectorEndpoint`,
+	// `DBCleanerConfig.Service.Observability.Metrics.Otel.CollectorEndpoint`,
+	// `SchedulerConfig.Service.Observability.Metrics.Otel.CollectorEndpoint`,
+	// `AsyncMessageHandlerConfig.Service.Observability.Metrics.Otel.CollectorEndpoint`,
 	// `EmailDeliverabilityTestConfig.Observability.Metrics.Otel.CollectorEndpoint`,
 	// `MCPServiceConfig.Observability.Metrics.Otel.CollectorEndpoint`.
 	ObservabilityMetricsOtelCollectorEndpointEnvVarKey = "DINNER_DONE_BETTER_OBSERVABILITY_METRICS_OTEL_COLLECTOR_ENDPOINT"
 
 	// ObservabilityMetricsOtelEnableHostMetricsEnvVarKey is the environment variable name to set
-	// to override `APIServiceConfig.Observability.Metrics.Otel.EnableHostMetrics`,
-	// `DBCleanerConfig.Observability.Metrics.Otel.EnableHostMetrics`,
-	// `SchedulerConfig.Observability.Metrics.Otel.EnableHostMetrics`,
-	// `AsyncMessageHandlerConfig.Observability.Metrics.Otel.EnableHostMetrics`,
+	// to override `APIServiceConfig.Service.Observability.Metrics.Otel.EnableHostMetrics`,
+	// `DBCleanerConfig.Service.Observability.Metrics.Otel.EnableHostMetrics`,
+	// `SchedulerConfig.Service.Observability.Metrics.Otel.EnableHostMetrics`,
+	// `AsyncMessageHandlerConfig.Service.Observability.Metrics.Otel.EnableHostMetrics`,
 	// `EmailDeliverabilityTestConfig.Observability.Metrics.Otel.EnableHostMetrics`,
 	// `MCPServiceConfig.Observability.Metrics.Otel.EnableHostMetrics`.
 	ObservabilityMetricsOtelEnableHostMetricsEnvVarKey = "DINNER_DONE_BETTER_OBSERVABILITY_METRICS_OTEL_ENABLE_HOST_METRICS"
 
 	// ObservabilityMetricsOtelEnableRuntimeMetricsEnvVarKey is the environment variable name to
-	// set to override `APIServiceConfig.Observability.Metrics.Otel.EnableRuntimeMetrics`,
-	// `DBCleanerConfig.Observability.Metrics.Otel.EnableRuntimeMetrics`,
-	// `SchedulerConfig.Observability.Metrics.Otel.EnableRuntimeMetrics`,
-	// `AsyncMessageHandlerConfig.Observability.Metrics.Otel.EnableRuntimeMetrics`,
+	// set to override `APIServiceConfig.Service.Observability.Metrics.Otel.EnableRuntimeMetrics`,
+	// `DBCleanerConfig.Service.Observability.Metrics.Otel.EnableRuntimeMetrics`,
+	// `SchedulerConfig.Service.Observability.Metrics.Otel.EnableRuntimeMetrics`,
+	// `AsyncMessageHandlerConfig.Service.Observability.Metrics.Otel.EnableRuntimeMetrics`,
 	// `EmailDeliverabilityTestConfig.Observability.Metrics.Otel.EnableRuntimeMetrics`,
 	// `MCPServiceConfig.Observability.Metrics.Otel.EnableRuntimeMetrics`.
 	ObservabilityMetricsOtelEnableRuntimeMetricsEnvVarKey = "DINNER_DONE_BETTER_OBSERVABILITY_METRICS_OTEL_ENABLE_RUNTIME_METRICS"
 
 	// ObservabilityMetricsOtelInsecureEnvVarKey is the environment variable name to set to
-	// override `APIServiceConfig.Observability.Metrics.Otel.Insecure`,
-	// `DBCleanerConfig.Observability.Metrics.Otel.Insecure`,
-	// `SchedulerConfig.Observability.Metrics.Otel.Insecure`,
-	// `AsyncMessageHandlerConfig.Observability.Metrics.Otel.Insecure`,
+	// override `APIServiceConfig.Service.Observability.Metrics.Otel.Insecure`,
+	// `DBCleanerConfig.Service.Observability.Metrics.Otel.Insecure`,
+	// `SchedulerConfig.Service.Observability.Metrics.Otel.Insecure`,
+	// `AsyncMessageHandlerConfig.Service.Observability.Metrics.Otel.Insecure`,
 	// `EmailDeliverabilityTestConfig.Observability.Metrics.Otel.Insecure`,
 	// `MCPServiceConfig.Observability.Metrics.Otel.Insecure`.
 	ObservabilityMetricsOtelInsecureEnvVarKey = "DINNER_DONE_BETTER_OBSERVABILITY_METRICS_OTEL_INSECURE"
 
 	// ObservabilityMetricsProviderEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Observability.Metrics.Provider`,
-	// `DBCleanerConfig.Observability.Metrics.Provider`,
-	// `SchedulerConfig.Observability.Metrics.Provider`,
-	// `AsyncMessageHandlerConfig.Observability.Metrics.Provider`,
+	// `APIServiceConfig.Service.Observability.Metrics.Provider`,
+	// `DBCleanerConfig.Service.Observability.Metrics.Provider`,
+	// `SchedulerConfig.Service.Observability.Metrics.Provider`,
+	// `AsyncMessageHandlerConfig.Service.Observability.Metrics.Provider`,
 	// `EmailDeliverabilityTestConfig.Observability.Metrics.Provider`,
 	// `MCPServiceConfig.Observability.Metrics.Provider`.
 	ObservabilityMetricsProviderEnvVarKey = "DINNER_DONE_BETTER_OBSERVABILITY_METRICS_PROVIDER"
 
 	// ObservabilityMetricsServiceNameEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Observability.Metrics.ServiceName`,
-	// `DBCleanerConfig.Observability.Metrics.ServiceName`,
-	// `SchedulerConfig.Observability.Metrics.ServiceName`,
-	// `AsyncMessageHandlerConfig.Observability.Metrics.ServiceName`,
+	// `APIServiceConfig.Service.Observability.Metrics.ServiceName`,
+	// `DBCleanerConfig.Service.Observability.Metrics.ServiceName`,
+	// `SchedulerConfig.Service.Observability.Metrics.ServiceName`,
+	// `AsyncMessageHandlerConfig.Service.Observability.Metrics.ServiceName`,
 	// `EmailDeliverabilityTestConfig.Observability.Metrics.ServiceName`,
 	// `MCPServiceConfig.Observability.Metrics.ServiceName`.
 	ObservabilityMetricsServiceNameEnvVarKey = "DINNER_DONE_BETTER_OBSERVABILITY_METRICS_SERVICE_NAME"
 
 	// ObservabilityProfilingPprofEnableBlockProfileEnvVarKey is the environment variable name to
-	// set to override `APIServiceConfig.Observability.Profiling.Pprof.EnableBlockProfile`,
-	// `DBCleanerConfig.Observability.Profiling.Pprof.EnableBlockProfile`,
-	// `SchedulerConfig.Observability.Profiling.Pprof.EnableBlockProfile`,
-	// `AsyncMessageHandlerConfig.Observability.Profiling.Pprof.EnableBlockProfile`,
+	// set to override `APIServiceConfig.Service.Observability.Profiling.Pprof.EnableBlockProfile`,
+	// `DBCleanerConfig.Service.Observability.Profiling.Pprof.EnableBlockProfile`,
+	// `SchedulerConfig.Service.Observability.Profiling.Pprof.EnableBlockProfile`,
+	// `AsyncMessageHandlerConfig.Service.Observability.Profiling.Pprof.EnableBlockProfile`,
 	// `EmailDeliverabilityTestConfig.Observability.Profiling.Pprof.EnableBlockProfile`,
 	// `MCPServiceConfig.Observability.Profiling.Pprof.EnableBlockProfile`.
 	ObservabilityProfilingPprofEnableBlockProfileEnvVarKey = "DINNER_DONE_BETTER_OBSERVABILITY_PROFILING_PPROF_ENABLE_BLOCK_PROFILE"
 
 	// ObservabilityProfilingPprofEnableMutexProfileEnvVarKey is the environment variable name to
-	// set to override `APIServiceConfig.Observability.Profiling.Pprof.EnableMutexProfile`,
-	// `DBCleanerConfig.Observability.Profiling.Pprof.EnableMutexProfile`,
-	// `SchedulerConfig.Observability.Profiling.Pprof.EnableMutexProfile`,
-	// `AsyncMessageHandlerConfig.Observability.Profiling.Pprof.EnableMutexProfile`,
+	// set to override `APIServiceConfig.Service.Observability.Profiling.Pprof.EnableMutexProfile`,
+	// `DBCleanerConfig.Service.Observability.Profiling.Pprof.EnableMutexProfile`,
+	// `SchedulerConfig.Service.Observability.Profiling.Pprof.EnableMutexProfile`,
+	// `AsyncMessageHandlerConfig.Service.Observability.Profiling.Pprof.EnableMutexProfile`,
 	// `EmailDeliverabilityTestConfig.Observability.Profiling.Pprof.EnableMutexProfile`,
 	// `MCPServiceConfig.Observability.Profiling.Pprof.EnableMutexProfile`.
 	ObservabilityProfilingPprofEnableMutexProfileEnvVarKey = "DINNER_DONE_BETTER_OBSERVABILITY_PROFILING_PPROF_ENABLE_MUTEX_PROFILE"
 
 	// ObservabilityProfilingPprofPortEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Observability.Profiling.Pprof.Port`,
-	// `DBCleanerConfig.Observability.Profiling.Pprof.Port`,
-	// `SchedulerConfig.Observability.Profiling.Pprof.Port`,
-	// `AsyncMessageHandlerConfig.Observability.Profiling.Pprof.Port`,
+	// `APIServiceConfig.Service.Observability.Profiling.Pprof.Port`,
+	// `DBCleanerConfig.Service.Observability.Profiling.Pprof.Port`,
+	// `SchedulerConfig.Service.Observability.Profiling.Pprof.Port`,
+	// `AsyncMessageHandlerConfig.Service.Observability.Profiling.Pprof.Port`,
 	// `EmailDeliverabilityTestConfig.Observability.Profiling.Pprof.Port`,
 	// `MCPServiceConfig.Observability.Profiling.Pprof.Port`.
 	ObservabilityProfilingPprofPortEnvVarKey = "DINNER_DONE_BETTER_OBSERVABILITY_PROFILING_PPROF_PORT"
 
 	// ObservabilityProfilingProviderEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Observability.Profiling.Provider`,
-	// `DBCleanerConfig.Observability.Profiling.Provider`,
-	// `SchedulerConfig.Observability.Profiling.Provider`,
-	// `AsyncMessageHandlerConfig.Observability.Profiling.Provider`,
+	// `APIServiceConfig.Service.Observability.Profiling.Provider`,
+	// `DBCleanerConfig.Service.Observability.Profiling.Provider`,
+	// `SchedulerConfig.Service.Observability.Profiling.Provider`,
+	// `AsyncMessageHandlerConfig.Service.Observability.Profiling.Provider`,
 	// `EmailDeliverabilityTestConfig.Observability.Profiling.Provider`,
 	// `MCPServiceConfig.Observability.Profiling.Provider`.
 	ObservabilityProfilingProviderEnvVarKey = "DINNER_DONE_BETTER_OBSERVABILITY_PROFILING_PROVIDER"
 
 	// ObservabilityProfilingPyroscopeBasicAuthPasswordEnvVarKey is the environment variable name
-	// to set to override `APIServiceConfig.Observability.Profiling.Pyroscope.BasicAuthPassword`,
-	// `DBCleanerConfig.Observability.Profiling.Pyroscope.BasicAuthPassword`,
-	// `SchedulerConfig.Observability.Profiling.Pyroscope.BasicAuthPassword`,
-	// `AsyncMessageHandlerConfig.Observability.Profiling.Pyroscope.BasicAuthPassword`,
+	// to set to override
+	// `APIServiceConfig.Service.Observability.Profiling.Pyroscope.BasicAuthPassword`,
+	// `DBCleanerConfig.Service.Observability.Profiling.Pyroscope.BasicAuthPassword`,
+	// `SchedulerConfig.Service.Observability.Profiling.Pyroscope.BasicAuthPassword`,
+	// `AsyncMessageHandlerConfig.Service.Observability.Profiling.Pyroscope.BasicAuthPassword`,
 	// `EmailDeliverabilityTestConfig.Observability.Profiling.Pyroscope.BasicAuthPassword`,
 	// `MCPServiceConfig.Observability.Profiling.Pyroscope.BasicAuthPassword`.
 	ObservabilityProfilingPyroscopeBasicAuthPasswordEnvVarKey = "DINNER_DONE_BETTER_OBSERVABILITY_PROFILING_PYROSCOPE_BASIC_AUTH_PASSWORD"
 
 	// ObservabilityProfilingPyroscopeBasicAuthUserEnvVarKey is the environment variable name to
-	// set to override `APIServiceConfig.Observability.Profiling.Pyroscope.BasicAuthUser`,
-	// `DBCleanerConfig.Observability.Profiling.Pyroscope.BasicAuthUser`,
-	// `SchedulerConfig.Observability.Profiling.Pyroscope.BasicAuthUser`,
-	// `AsyncMessageHandlerConfig.Observability.Profiling.Pyroscope.BasicAuthUser`,
+	// set to override `APIServiceConfig.Service.Observability.Profiling.Pyroscope.BasicAuthUser`,
+	// `DBCleanerConfig.Service.Observability.Profiling.Pyroscope.BasicAuthUser`,
+	// `SchedulerConfig.Service.Observability.Profiling.Pyroscope.BasicAuthUser`,
+	// `AsyncMessageHandlerConfig.Service.Observability.Profiling.Pyroscope.BasicAuthUser`,
 	// `EmailDeliverabilityTestConfig.Observability.Profiling.Pyroscope.BasicAuthUser`,
 	// `MCPServiceConfig.Observability.Profiling.Pyroscope.BasicAuthUser`.
 	ObservabilityProfilingPyroscopeBasicAuthUserEnvVarKey = "DINNER_DONE_BETTER_OBSERVABILITY_PROFILING_PYROSCOPE_BASIC_AUTH_USER"
 
 	// ObservabilityProfilingPyroscopeEnableBlockProfileEnvVarKey is the environment variable name
-	// to set to override `APIServiceConfig.Observability.Profiling.Pyroscope.EnableBlockProfile`,
-	// `DBCleanerConfig.Observability.Profiling.Pyroscope.EnableBlockProfile`,
-	// `SchedulerConfig.Observability.Profiling.Pyroscope.EnableBlockProfile`,
-	// `AsyncMessageHandlerConfig.Observability.Profiling.Pyroscope.EnableBlockProfile`,
+	// to set to override
+	// `APIServiceConfig.Service.Observability.Profiling.Pyroscope.EnableBlockProfile`,
+	// `DBCleanerConfig.Service.Observability.Profiling.Pyroscope.EnableBlockProfile`,
+	// `SchedulerConfig.Service.Observability.Profiling.Pyroscope.EnableBlockProfile`,
+	// `AsyncMessageHandlerConfig.Service.Observability.Profiling.Pyroscope.EnableBlockProfile`,
 	// `EmailDeliverabilityTestConfig.Observability.Profiling.Pyroscope.EnableBlockProfile`,
 	// `MCPServiceConfig.Observability.Profiling.Pyroscope.EnableBlockProfile`.
 	ObservabilityProfilingPyroscopeEnableBlockProfileEnvVarKey = "DINNER_DONE_BETTER_OBSERVABILITY_PROFILING_PYROSCOPE_ENABLE_BLOCK_PROFILE"
 
 	// ObservabilityProfilingPyroscopeEnableMutexProfileEnvVarKey is the environment variable name
-	// to set to override `APIServiceConfig.Observability.Profiling.Pyroscope.EnableMutexProfile`,
-	// `DBCleanerConfig.Observability.Profiling.Pyroscope.EnableMutexProfile`,
-	// `SchedulerConfig.Observability.Profiling.Pyroscope.EnableMutexProfile`,
-	// `AsyncMessageHandlerConfig.Observability.Profiling.Pyroscope.EnableMutexProfile`,
+	// to set to override
+	// `APIServiceConfig.Service.Observability.Profiling.Pyroscope.EnableMutexProfile`,
+	// `DBCleanerConfig.Service.Observability.Profiling.Pyroscope.EnableMutexProfile`,
+	// `SchedulerConfig.Service.Observability.Profiling.Pyroscope.EnableMutexProfile`,
+	// `AsyncMessageHandlerConfig.Service.Observability.Profiling.Pyroscope.EnableMutexProfile`,
 	// `EmailDeliverabilityTestConfig.Observability.Profiling.Pyroscope.EnableMutexProfile`,
 	// `MCPServiceConfig.Observability.Profiling.Pyroscope.EnableMutexProfile`.
 	ObservabilityProfilingPyroscopeEnableMutexProfileEnvVarKey = "DINNER_DONE_BETTER_OBSERVABILITY_PROFILING_PYROSCOPE_ENABLE_MUTEX_PROFILE"
 
 	// ObservabilityProfilingPyroscopeInsecureEnvVarKey is the environment variable name to set to
-	// override `APIServiceConfig.Observability.Profiling.Pyroscope.Insecure`,
-	// `DBCleanerConfig.Observability.Profiling.Pyroscope.Insecure`,
-	// `SchedulerConfig.Observability.Profiling.Pyroscope.Insecure`,
-	// `AsyncMessageHandlerConfig.Observability.Profiling.Pyroscope.Insecure`,
+	// override `APIServiceConfig.Service.Observability.Profiling.Pyroscope.Insecure`,
+	// `DBCleanerConfig.Service.Observability.Profiling.Pyroscope.Insecure`,
+	// `SchedulerConfig.Service.Observability.Profiling.Pyroscope.Insecure`,
+	// `AsyncMessageHandlerConfig.Service.Observability.Profiling.Pyroscope.Insecure`,
 	// `EmailDeliverabilityTestConfig.Observability.Profiling.Pyroscope.Insecure`,
 	// `MCPServiceConfig.Observability.Profiling.Pyroscope.Insecure`.
 	ObservabilityProfilingPyroscopeInsecureEnvVarKey = "DINNER_DONE_BETTER_OBSERVABILITY_PROFILING_PYROSCOPE_INSECURE"
 
 	// ObservabilityProfilingPyroscopeServerAddressEnvVarKey is the environment variable name to
-	// set to override `APIServiceConfig.Observability.Profiling.Pyroscope.ServerAddress`,
-	// `DBCleanerConfig.Observability.Profiling.Pyroscope.ServerAddress`,
-	// `SchedulerConfig.Observability.Profiling.Pyroscope.ServerAddress`,
-	// `AsyncMessageHandlerConfig.Observability.Profiling.Pyroscope.ServerAddress`,
+	// set to override `APIServiceConfig.Service.Observability.Profiling.Pyroscope.ServerAddress`,
+	// `DBCleanerConfig.Service.Observability.Profiling.Pyroscope.ServerAddress`,
+	// `SchedulerConfig.Service.Observability.Profiling.Pyroscope.ServerAddress`,
+	// `AsyncMessageHandlerConfig.Service.Observability.Profiling.Pyroscope.ServerAddress`,
 	// `EmailDeliverabilityTestConfig.Observability.Profiling.Pyroscope.ServerAddress`,
 	// `MCPServiceConfig.Observability.Profiling.Pyroscope.ServerAddress`.
 	ObservabilityProfilingPyroscopeServerAddressEnvVarKey = "DINNER_DONE_BETTER_OBSERVABILITY_PROFILING_PYROSCOPE_SERVER_ADDRESS"
 
 	// ObservabilityProfilingPyroscopeUploadRateEnvVarKey is the environment variable name to set
-	// to override `APIServiceConfig.Observability.Profiling.Pyroscope.UploadRate`,
-	// `DBCleanerConfig.Observability.Profiling.Pyroscope.UploadRate`,
-	// `SchedulerConfig.Observability.Profiling.Pyroscope.UploadRate`,
-	// `AsyncMessageHandlerConfig.Observability.Profiling.Pyroscope.UploadRate`,
+	// to override `APIServiceConfig.Service.Observability.Profiling.Pyroscope.UploadRate`,
+	// `DBCleanerConfig.Service.Observability.Profiling.Pyroscope.UploadRate`,
+	// `SchedulerConfig.Service.Observability.Profiling.Pyroscope.UploadRate`,
+	// `AsyncMessageHandlerConfig.Service.Observability.Profiling.Pyroscope.UploadRate`,
 	// `EmailDeliverabilityTestConfig.Observability.Profiling.Pyroscope.UploadRate`,
 	// `MCPServiceConfig.Observability.Profiling.Pyroscope.UploadRate`.
 	ObservabilityProfilingPyroscopeUploadRateEnvVarKey = "DINNER_DONE_BETTER_OBSERVABILITY_PROFILING_PYROSCOPE_UPLOAD_RATE"
 
 	// ObservabilityProfilingServiceNameEnvVarKey is the environment variable name to set to
-	// override `APIServiceConfig.Observability.Profiling.ServiceName`,
-	// `DBCleanerConfig.Observability.Profiling.ServiceName`,
-	// `SchedulerConfig.Observability.Profiling.ServiceName`,
-	// `AsyncMessageHandlerConfig.Observability.Profiling.ServiceName`,
+	// override `APIServiceConfig.Service.Observability.Profiling.ServiceName`,
+	// `DBCleanerConfig.Service.Observability.Profiling.ServiceName`,
+	// `SchedulerConfig.Service.Observability.Profiling.ServiceName`,
+	// `AsyncMessageHandlerConfig.Service.Observability.Profiling.ServiceName`,
 	// `EmailDeliverabilityTestConfig.Observability.Profiling.ServiceName`,
 	// `MCPServiceConfig.Observability.Profiling.ServiceName`.
 	ObservabilityProfilingServiceNameEnvVarKey = "DINNER_DONE_BETTER_OBSERVABILITY_PROFILING_SERVICE_NAME"
 
 	// ObservabilityTracingCloudtraceGoogleCloudTraceProjectIDEnvVarKey is the environment variable
-	// name to set to override `APIServiceConfig.Observability.Tracing.CloudTrace.ProjectID`,
-	// `DBCleanerConfig.Observability.Tracing.CloudTrace.ProjectID`,
-	// `SchedulerConfig.Observability.Tracing.CloudTrace.ProjectID`,
-	// `AsyncMessageHandlerConfig.Observability.Tracing.CloudTrace.ProjectID`,
+	// name to set to override
+	// `APIServiceConfig.Service.Observability.Tracing.CloudTrace.ProjectID`,
+	// `DBCleanerConfig.Service.Observability.Tracing.CloudTrace.ProjectID`,
+	// `SchedulerConfig.Service.Observability.Tracing.CloudTrace.ProjectID`,
+	// `AsyncMessageHandlerConfig.Service.Observability.Tracing.CloudTrace.ProjectID`,
 	// `EmailDeliverabilityTestConfig.Observability.Tracing.CloudTrace.ProjectID`,
 	// `MCPServiceConfig.Observability.Tracing.CloudTrace.ProjectID`.
 	ObservabilityTracingCloudtraceGoogleCloudTraceProjectIDEnvVarKey = "DINNER_DONE_BETTER_OBSERVABILITY_TRACING_CLOUDTRACE_GOOGLE_CLOUD_TRACE_PROJECT_ID"
 
 	// ObservabilityTracingOtelgrpcCollectorEndpointEnvVarKey is the environment variable name to
-	// set to override `APIServiceConfig.Observability.Tracing.Otel.CollectorEndpoint`,
-	// `DBCleanerConfig.Observability.Tracing.Otel.CollectorEndpoint`,
-	// `SchedulerConfig.Observability.Tracing.Otel.CollectorEndpoint`,
-	// `AsyncMessageHandlerConfig.Observability.Tracing.Otel.CollectorEndpoint`,
+	// set to override `APIServiceConfig.Service.Observability.Tracing.Otel.CollectorEndpoint`,
+	// `DBCleanerConfig.Service.Observability.Tracing.Otel.CollectorEndpoint`,
+	// `SchedulerConfig.Service.Observability.Tracing.Otel.CollectorEndpoint`,
+	// `AsyncMessageHandlerConfig.Service.Observability.Tracing.Otel.CollectorEndpoint`,
 	// `EmailDeliverabilityTestConfig.Observability.Tracing.Otel.CollectorEndpoint`,
 	// `MCPServiceConfig.Observability.Tracing.Otel.CollectorEndpoint`.
 	ObservabilityTracingOtelgrpcCollectorEndpointEnvVarKey = "DINNER_DONE_BETTER_OBSERVABILITY_TRACING_OTELGRPC_COLLECTOR_ENDPOINT"
 
 	// ObservabilityTracingOtelgrpcInsecureEnvVarKey is the environment variable name to set to
-	// override `APIServiceConfig.Observability.Tracing.Otel.Insecure`,
-	// `DBCleanerConfig.Observability.Tracing.Otel.Insecure`,
-	// `SchedulerConfig.Observability.Tracing.Otel.Insecure`,
-	// `AsyncMessageHandlerConfig.Observability.Tracing.Otel.Insecure`,
+	// override `APIServiceConfig.Service.Observability.Tracing.Otel.Insecure`,
+	// `DBCleanerConfig.Service.Observability.Tracing.Otel.Insecure`,
+	// `SchedulerConfig.Service.Observability.Tracing.Otel.Insecure`,
+	// `AsyncMessageHandlerConfig.Service.Observability.Tracing.Otel.Insecure`,
 	// `EmailDeliverabilityTestConfig.Observability.Tracing.Otel.Insecure`,
 	// `MCPServiceConfig.Observability.Tracing.Otel.Insecure`.
 	ObservabilityTracingOtelgrpcInsecureEnvVarKey = "DINNER_DONE_BETTER_OBSERVABILITY_TRACING_OTELGRPC_INSECURE"
 
 	// ObservabilityTracingProviderEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Observability.Tracing.Provider`,
-	// `DBCleanerConfig.Observability.Tracing.Provider`,
-	// `SchedulerConfig.Observability.Tracing.Provider`,
-	// `AsyncMessageHandlerConfig.Observability.Tracing.Provider`,
+	// `APIServiceConfig.Service.Observability.Tracing.Provider`,
+	// `DBCleanerConfig.Service.Observability.Tracing.Provider`,
+	// `SchedulerConfig.Service.Observability.Tracing.Provider`,
+	// `AsyncMessageHandlerConfig.Service.Observability.Tracing.Provider`,
 	// `EmailDeliverabilityTestConfig.Observability.Tracing.Provider`,
 	// `MCPServiceConfig.Observability.Tracing.Provider`.
 	ObservabilityTracingProviderEnvVarKey = "DINNER_DONE_BETTER_OBSERVABILITY_TRACING_PROVIDER"
 
 	// ObservabilityTracingServiceNameEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Observability.Tracing.ServiceName`,
-	// `DBCleanerConfig.Observability.Tracing.ServiceName`,
-	// `SchedulerConfig.Observability.Tracing.ServiceName`,
-	// `AsyncMessageHandlerConfig.Observability.Tracing.ServiceName`,
+	// `APIServiceConfig.Service.Observability.Tracing.ServiceName`,
+	// `DBCleanerConfig.Service.Observability.Tracing.ServiceName`,
+	// `SchedulerConfig.Service.Observability.Tracing.ServiceName`,
+	// `AsyncMessageHandlerConfig.Service.Observability.Tracing.ServiceName`,
 	// `EmailDeliverabilityTestConfig.Observability.Tracing.ServiceName`,
 	// `MCPServiceConfig.Observability.Tracing.ServiceName`.
 	ObservabilityTracingServiceNameEnvVarKey = "DINNER_DONE_BETTER_OBSERVABILITY_TRACING_SERVICE_NAME"
 
 	// ObservabilityTracingSpanCollectionProbabilityEnvVarKey is the environment variable name to
-	// set to override `APIServiceConfig.Observability.Tracing.SpanCollectionProbability`,
-	// `DBCleanerConfig.Observability.Tracing.SpanCollectionProbability`,
-	// `SchedulerConfig.Observability.Tracing.SpanCollectionProbability`,
-	// `AsyncMessageHandlerConfig.Observability.Tracing.SpanCollectionProbability`,
+	// set to override `APIServiceConfig.Service.Observability.Tracing.SpanCollectionProbability`,
+	// `DBCleanerConfig.Service.Observability.Tracing.SpanCollectionProbability`,
+	// `SchedulerConfig.Service.Observability.Tracing.SpanCollectionProbability`,
+	// `AsyncMessageHandlerConfig.Service.Observability.Tracing.SpanCollectionProbability`,
 	// `EmailDeliverabilityTestConfig.Observability.Tracing.SpanCollectionProbability`,
 	// `MCPServiceConfig.Observability.Tracing.SpanCollectionProbability`.
 	ObservabilityTracingSpanCollectionProbabilityEnvVarKey = "DINNER_DONE_BETTER_OBSERVABILITY_TRACING_SPAN_COLLECTION_PROBABILITY"
 
 	// OperationsNotifyChannelEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Operations.Operations.NotifyChannel`,
-	// `SchedulerConfig.Operations.Operations.NotifyChannel`.
+	// `APIServiceConfig.Service.Operations.Operations.NotifyChannel`,
+	// `DBCleanerConfig.Service.Operations.Operations.NotifyChannel`,
+	// `SchedulerConfig.Service.Operations.Operations.NotifyChannel`,
+	// `AsyncMessageHandlerConfig.Service.Operations.Operations.NotifyChannel`.
 	OperationsNotifyChannelEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_NOTIFY_CHANNEL"
 
 	// OperationsQueueMaxAttemptsEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Operations.Queue.MaxAttempts`,
-	// `SchedulerConfig.Operations.Queue.MaxAttempts`.
+	// `APIServiceConfig.Service.Operations.Queue.MaxAttempts`,
+	// `DBCleanerConfig.Service.Operations.Queue.MaxAttempts`,
+	// `SchedulerConfig.Service.Operations.Queue.MaxAttempts`,
+	// `AsyncMessageHandlerConfig.Service.Operations.Queue.MaxAttempts`.
 	OperationsQueueMaxAttemptsEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_QUEUE_MAX_ATTEMPTS"
 
 	// OperationsQueueMaxClaimBatchEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Operations.Queue.MaxClaimBatch`,
-	// `SchedulerConfig.Operations.Queue.MaxClaimBatch`.
+	// `APIServiceConfig.Service.Operations.Queue.MaxClaimBatch`,
+	// `DBCleanerConfig.Service.Operations.Queue.MaxClaimBatch`,
+	// `SchedulerConfig.Service.Operations.Queue.MaxClaimBatch`,
+	// `AsyncMessageHandlerConfig.Service.Operations.Queue.MaxClaimBatch`.
 	OperationsQueueMaxClaimBatchEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_QUEUE_MAX_CLAIM_BATCH"
 
 	// OperationsQueueMinWakeIntervalEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Operations.Queue.MinWakeInterval`,
-	// `SchedulerConfig.Operations.Queue.MinWakeInterval`.
+	// `APIServiceConfig.Service.Operations.Queue.MinWakeInterval`,
+	// `DBCleanerConfig.Service.Operations.Queue.MinWakeInterval`,
+	// `SchedulerConfig.Service.Operations.Queue.MinWakeInterval`,
+	// `AsyncMessageHandlerConfig.Service.Operations.Queue.MinWakeInterval`.
 	OperationsQueueMinWakeIntervalEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_QUEUE_MIN_WAKE_INTERVAL"
 
 	// OperationsQueueNameEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Operations.Operations.QueueName`,
-	// `APIServiceConfig.Operations.Queue.Name`, `SchedulerConfig.Operations.Operations.QueueName`,
-	// `SchedulerConfig.Operations.Queue.Name`.
+	// `APIServiceConfig.Service.Operations.Operations.QueueName`,
+	// `APIServiceConfig.Service.Operations.Queue.Name`,
+	// `DBCleanerConfig.Service.Operations.Operations.QueueName`,
+	// `DBCleanerConfig.Service.Operations.Queue.Name`,
+	// `SchedulerConfig.Service.Operations.Operations.QueueName`,
+	// `SchedulerConfig.Service.Operations.Queue.Name`,
+	// `AsyncMessageHandlerConfig.Service.Operations.Operations.QueueName`,
+	// `AsyncMessageHandlerConfig.Service.Operations.Queue.Name`.
 	OperationsQueueNameEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_QUEUE_NAME"
 
 	// OperationsQueueNotifyChannelEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Operations.Queue.NotifyChannel`,
-	// `SchedulerConfig.Operations.Queue.NotifyChannel`.
+	// `APIServiceConfig.Service.Operations.Queue.NotifyChannel`,
+	// `DBCleanerConfig.Service.Operations.Queue.NotifyChannel`,
+	// `SchedulerConfig.Service.Operations.Queue.NotifyChannel`,
+	// `AsyncMessageHandlerConfig.Service.Operations.Queue.NotifyChannel`.
 	OperationsQueueNotifyChannelEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_QUEUE_NOTIFY_CHANNEL"
 
 	// OperationsQueueReapBatchSizeEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Operations.Queue.ReapBatchSize`,
-	// `SchedulerConfig.Operations.Queue.ReapBatchSize`.
+	// `APIServiceConfig.Service.Operations.Queue.ReapBatchSize`,
+	// `DBCleanerConfig.Service.Operations.Queue.ReapBatchSize`,
+	// `SchedulerConfig.Service.Operations.Queue.ReapBatchSize`,
+	// `AsyncMessageHandlerConfig.Service.Operations.Queue.ReapBatchSize`.
 	OperationsQueueReapBatchSizeEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_QUEUE_REAP_BATCH_SIZE"
 
 	// OperationsQueueRetentionEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Operations.Queue.Retention`, `SchedulerConfig.Operations.Queue.Retention`.
+	// `APIServiceConfig.Service.Operations.Queue.Retention`,
+	// `DBCleanerConfig.Service.Operations.Queue.Retention`,
+	// `SchedulerConfig.Service.Operations.Queue.Retention`,
+	// `AsyncMessageHandlerConfig.Service.Operations.Queue.Retention`.
 	OperationsQueueRetentionEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_QUEUE_RETENTION"
 
 	// OperationsQueueTablePrefixEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Operations.Queue.TablePrefix`,
-	// `SchedulerConfig.Operations.Queue.TablePrefix`.
+	// `APIServiceConfig.Service.Operations.Queue.TablePrefix`,
+	// `DBCleanerConfig.Service.Operations.Queue.TablePrefix`,
+	// `SchedulerConfig.Service.Operations.Queue.TablePrefix`,
+	// `AsyncMessageHandlerConfig.Service.Operations.Queue.TablePrefix`.
 	OperationsQueueTablePrefixEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_QUEUE_TABLE_PREFIX"
 
 	// OperationsQueueWriteAttemptsEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Operations.Queue.WriteAttempts`,
-	// `SchedulerConfig.Operations.Queue.WriteAttempts`.
+	// `APIServiceConfig.Service.Operations.Queue.WriteAttempts`,
+	// `DBCleanerConfig.Service.Operations.Queue.WriteAttempts`,
+	// `SchedulerConfig.Service.Operations.Queue.WriteAttempts`,
+	// `AsyncMessageHandlerConfig.Service.Operations.Queue.WriteAttempts`.
 	OperationsQueueWriteAttemptsEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_QUEUE_WRITE_ATTEMPTS"
 
 	// OperationsReapBatchSizeEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Operations.Operations.ReapBatchSize`,
-	// `SchedulerConfig.Operations.Operations.ReapBatchSize`.
+	// `APIServiceConfig.Service.Operations.Operations.ReapBatchSize`,
+	// `DBCleanerConfig.Service.Operations.Operations.ReapBatchSize`,
+	// `SchedulerConfig.Service.Operations.Operations.ReapBatchSize`,
+	// `AsyncMessageHandlerConfig.Service.Operations.Operations.ReapBatchSize`.
 	OperationsReapBatchSizeEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_REAP_BATCH_SIZE"
 
 	// OperationsReapDisabledEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Operations.Reap.Disabled`, `SchedulerConfig.Operations.Reap.Disabled`.
+	// `APIServiceConfig.Service.Operations.Reap.Disabled`,
+	// `DBCleanerConfig.Service.Operations.Reap.Disabled`,
+	// `SchedulerConfig.Service.Operations.Reap.Disabled`,
+	// `AsyncMessageHandlerConfig.Service.Operations.Reap.Disabled`.
 	OperationsReapDisabledEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_REAP_DISABLED"
 
 	// OperationsReapIntervalEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Operations.Reap.Interval`, `SchedulerConfig.Operations.Reap.Interval`.
+	// `APIServiceConfig.Service.Operations.Reap.Interval`,
+	// `DBCleanerConfig.Service.Operations.Reap.Interval`,
+	// `SchedulerConfig.Service.Operations.Reap.Interval`,
+	// `AsyncMessageHandlerConfig.Service.Operations.Reap.Interval`.
 	OperationsReapIntervalEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_REAP_INTERVAL"
 
 	// OperationsReapLeaseTTLEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Operations.Reap.LeaseTTL`, `SchedulerConfig.Operations.Reap.LeaseTTL`.
+	// `APIServiceConfig.Service.Operations.Reap.LeaseTTL`,
+	// `DBCleanerConfig.Service.Operations.Reap.LeaseTTL`,
+	// `SchedulerConfig.Service.Operations.Reap.LeaseTTL`,
+	// `AsyncMessageHandlerConfig.Service.Operations.Reap.LeaseTTL`.
 	OperationsReapLeaseTTLEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_REAP_LEASE_TTL"
 
 	// OperationsReapRunOnStartEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Operations.Reap.RunOnStart`, `SchedulerConfig.Operations.Reap.RunOnStart`.
+	// `APIServiceConfig.Service.Operations.Reap.RunOnStart`,
+	// `DBCleanerConfig.Service.Operations.Reap.RunOnStart`,
+	// `SchedulerConfig.Service.Operations.Reap.RunOnStart`,
+	// `AsyncMessageHandlerConfig.Service.Operations.Reap.RunOnStart`.
 	OperationsReapRunOnStartEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_REAP_RUN_ON_START"
 
 	// OperationsReapScheduleEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Operations.Reap.Schedule`, `SchedulerConfig.Operations.Reap.Schedule`.
+	// `APIServiceConfig.Service.Operations.Reap.Schedule`,
+	// `DBCleanerConfig.Service.Operations.Reap.Schedule`,
+	// `SchedulerConfig.Service.Operations.Reap.Schedule`,
+	// `AsyncMessageHandlerConfig.Service.Operations.Reap.Schedule`.
 	OperationsReapScheduleEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_REAP_SCHEDULE"
 
 	// OperationsReapTimeoutEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Operations.Reap.Timeout`, `SchedulerConfig.Operations.Reap.Timeout`.
+	// `APIServiceConfig.Service.Operations.Reap.Timeout`,
+	// `DBCleanerConfig.Service.Operations.Reap.Timeout`,
+	// `SchedulerConfig.Service.Operations.Reap.Timeout`,
+	// `AsyncMessageHandlerConfig.Service.Operations.Reap.Timeout`.
 	OperationsReapTimeoutEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_REAP_TIMEOUT"
 
 	// OperationsRecoverAfterEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Operations.Operations.RecoverAfter`,
-	// `SchedulerConfig.Operations.Operations.RecoverAfter`.
+	// `APIServiceConfig.Service.Operations.Operations.RecoverAfter`,
+	// `DBCleanerConfig.Service.Operations.Operations.RecoverAfter`,
+	// `SchedulerConfig.Service.Operations.Operations.RecoverAfter`,
+	// `AsyncMessageHandlerConfig.Service.Operations.Operations.RecoverAfter`.
 	OperationsRecoverAfterEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_RECOVER_AFTER"
 
 	// OperationsRecoverBatchSizeEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Operations.Operations.RecoverBatchSize`,
-	// `SchedulerConfig.Operations.Operations.RecoverBatchSize`.
+	// `APIServiceConfig.Service.Operations.Operations.RecoverBatchSize`,
+	// `DBCleanerConfig.Service.Operations.Operations.RecoverBatchSize`,
+	// `SchedulerConfig.Service.Operations.Operations.RecoverBatchSize`,
+	// `AsyncMessageHandlerConfig.Service.Operations.Operations.RecoverBatchSize`.
 	OperationsRecoverBatchSizeEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_RECOVER_BATCH_SIZE"
 
 	// OperationsRecoverDisabledEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Operations.Recover.Disabled`,
-	// `SchedulerConfig.Operations.Recover.Disabled`.
+	// `APIServiceConfig.Service.Operations.Recover.Disabled`,
+	// `DBCleanerConfig.Service.Operations.Recover.Disabled`,
+	// `SchedulerConfig.Service.Operations.Recover.Disabled`,
+	// `AsyncMessageHandlerConfig.Service.Operations.Recover.Disabled`.
 	OperationsRecoverDisabledEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_RECOVER_DISABLED"
 
 	// OperationsRecoverIntervalEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Operations.Recover.Interval`,
-	// `SchedulerConfig.Operations.Recover.Interval`.
+	// `APIServiceConfig.Service.Operations.Recover.Interval`,
+	// `DBCleanerConfig.Service.Operations.Recover.Interval`,
+	// `SchedulerConfig.Service.Operations.Recover.Interval`,
+	// `AsyncMessageHandlerConfig.Service.Operations.Recover.Interval`.
 	OperationsRecoverIntervalEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_RECOVER_INTERVAL"
 
 	// OperationsRecoverLeaseTTLEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Operations.Recover.LeaseTTL`,
-	// `SchedulerConfig.Operations.Recover.LeaseTTL`.
+	// `APIServiceConfig.Service.Operations.Recover.LeaseTTL`,
+	// `DBCleanerConfig.Service.Operations.Recover.LeaseTTL`,
+	// `SchedulerConfig.Service.Operations.Recover.LeaseTTL`,
+	// `AsyncMessageHandlerConfig.Service.Operations.Recover.LeaseTTL`.
 	OperationsRecoverLeaseTTLEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_RECOVER_LEASE_TTL"
 
 	// OperationsRecoverRunOnStartEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Operations.Recover.RunOnStart`,
-	// `SchedulerConfig.Operations.Recover.RunOnStart`.
+	// `APIServiceConfig.Service.Operations.Recover.RunOnStart`,
+	// `DBCleanerConfig.Service.Operations.Recover.RunOnStart`,
+	// `SchedulerConfig.Service.Operations.Recover.RunOnStart`,
+	// `AsyncMessageHandlerConfig.Service.Operations.Recover.RunOnStart`.
 	OperationsRecoverRunOnStartEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_RECOVER_RUN_ON_START"
 
 	// OperationsRecoverScheduleEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Operations.Recover.Schedule`,
-	// `SchedulerConfig.Operations.Recover.Schedule`.
+	// `APIServiceConfig.Service.Operations.Recover.Schedule`,
+	// `DBCleanerConfig.Service.Operations.Recover.Schedule`,
+	// `SchedulerConfig.Service.Operations.Recover.Schedule`,
+	// `AsyncMessageHandlerConfig.Service.Operations.Recover.Schedule`.
 	OperationsRecoverScheduleEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_RECOVER_SCHEDULE"
 
 	// OperationsRecoverTimeoutEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Operations.Recover.Timeout`, `SchedulerConfig.Operations.Recover.Timeout`.
+	// `APIServiceConfig.Service.Operations.Recover.Timeout`,
+	// `DBCleanerConfig.Service.Operations.Recover.Timeout`,
+	// `SchedulerConfig.Service.Operations.Recover.Timeout`,
+	// `AsyncMessageHandlerConfig.Service.Operations.Recover.Timeout`.
 	OperationsRecoverTimeoutEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_RECOVER_TIMEOUT"
 
 	// OperationsRetentionEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Operations.Operations.Retention`,
-	// `SchedulerConfig.Operations.Operations.Retention`.
+	// `APIServiceConfig.Service.Operations.Operations.Retention`,
+	// `DBCleanerConfig.Service.Operations.Operations.Retention`,
+	// `SchedulerConfig.Service.Operations.Operations.Retention`,
+	// `AsyncMessageHandlerConfig.Service.Operations.Operations.Retention`.
 	OperationsRetentionEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_RETENTION"
 
 	// OperationsTablePrefixEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Operations.Operations.TablePrefix`,
-	// `SchedulerConfig.Operations.Operations.TablePrefix`.
+	// `APIServiceConfig.Service.Operations.Operations.TablePrefix`,
+	// `DBCleanerConfig.Service.Operations.Operations.TablePrefix`,
+	// `SchedulerConfig.Service.Operations.Operations.TablePrefix`,
+	// `AsyncMessageHandlerConfig.Service.Operations.Operations.TablePrefix`.
 	OperationsTablePrefixEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_TABLE_PREFIX"
 
 	// OperationsWatcherMaxSubscriptionsEnvVarKey is the environment variable name to set to
-	// override `APIServiceConfig.Operations.Watcher.MaxSubscriptions`,
-	// `SchedulerConfig.Operations.Watcher.MaxSubscriptions`.
+	// override `APIServiceConfig.Service.Operations.Watcher.MaxSubscriptions`,
+	// `DBCleanerConfig.Service.Operations.Watcher.MaxSubscriptions`,
+	// `SchedulerConfig.Service.Operations.Watcher.MaxSubscriptions`,
+	// `AsyncMessageHandlerConfig.Service.Operations.Watcher.MaxSubscriptions`.
 	OperationsWatcherMaxSubscriptionsEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_WATCHER_MAX_SUBSCRIPTIONS"
 
 	// OperationsWatcherMinReadIntervalEnvVarKey is the environment variable name to set to
-	// override `APIServiceConfig.Operations.Watcher.MinReadInterval`,
-	// `SchedulerConfig.Operations.Watcher.MinReadInterval`.
+	// override `APIServiceConfig.Service.Operations.Watcher.MinReadInterval`,
+	// `DBCleanerConfig.Service.Operations.Watcher.MinReadInterval`,
+	// `SchedulerConfig.Service.Operations.Watcher.MinReadInterval`,
+	// `AsyncMessageHandlerConfig.Service.Operations.Watcher.MinReadInterval`.
 	OperationsWatcherMinReadIntervalEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_WATCHER_MIN_READ_INTERVAL"
 
 	// OperationsWatcherPollEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Operations.Watcher.Poll`, `SchedulerConfig.Operations.Watcher.Poll`.
+	// `APIServiceConfig.Service.Operations.Watcher.Poll`,
+	// `DBCleanerConfig.Service.Operations.Watcher.Poll`,
+	// `SchedulerConfig.Service.Operations.Watcher.Poll`,
+	// `AsyncMessageHandlerConfig.Service.Operations.Watcher.Poll`.
 	OperationsWatcherPollEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_WATCHER_POLL"
 
 	// OperationsWorkerBatchEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Operations.Worker.Batch`, `SchedulerConfig.Operations.Worker.Batch`.
+	// `APIServiceConfig.Service.Operations.Worker.Batch`,
+	// `DBCleanerConfig.Service.Operations.Worker.Batch`,
+	// `SchedulerConfig.Service.Operations.Worker.Batch`,
+	// `AsyncMessageHandlerConfig.Service.Operations.Worker.Batch`.
 	OperationsWorkerBatchEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_WORKER_BATCH"
 
 	// OperationsWorkerConcurrencyEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Operations.Worker.Concurrency`,
-	// `SchedulerConfig.Operations.Worker.Concurrency`.
+	// `APIServiceConfig.Service.Operations.Worker.Concurrency`,
+	// `DBCleanerConfig.Service.Operations.Worker.Concurrency`,
+	// `SchedulerConfig.Service.Operations.Worker.Concurrency`,
+	// `AsyncMessageHandlerConfig.Service.Operations.Worker.Concurrency`.
 	OperationsWorkerConcurrencyEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_WORKER_CONCURRENCY"
 
 	// OperationsWorkerLeaseEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Operations.Worker.Lease`, `SchedulerConfig.Operations.Worker.Lease`.
+	// `APIServiceConfig.Service.Operations.Worker.Lease`,
+	// `DBCleanerConfig.Service.Operations.Worker.Lease`,
+	// `SchedulerConfig.Service.Operations.Worker.Lease`,
+	// `AsyncMessageHandlerConfig.Service.Operations.Worker.Lease`.
 	OperationsWorkerLeaseEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_WORKER_LEASE"
 
 	// OperationsWorkerMaxAttemptsEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Operations.Worker.MaxAttempts`,
-	// `SchedulerConfig.Operations.Worker.MaxAttempts`.
+	// `APIServiceConfig.Service.Operations.Worker.MaxAttempts`,
+	// `DBCleanerConfig.Service.Operations.Worker.MaxAttempts`,
+	// `SchedulerConfig.Service.Operations.Worker.MaxAttempts`,
+	// `AsyncMessageHandlerConfig.Service.Operations.Worker.MaxAttempts`.
 	OperationsWorkerMaxAttemptsEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_WORKER_MAX_ATTEMPTS"
 
 	// OperationsWorkerPollEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Operations.Worker.Poll`, `SchedulerConfig.Operations.Worker.Poll`.
+	// `APIServiceConfig.Service.Operations.Worker.Poll`,
+	// `DBCleanerConfig.Service.Operations.Worker.Poll`,
+	// `SchedulerConfig.Service.Operations.Worker.Poll`,
+	// `AsyncMessageHandlerConfig.Service.Operations.Worker.Poll`.
 	OperationsWorkerPollEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_WORKER_POLL"
 
 	// OperationsWorkerProgressIntervalEnvVarKey is the environment variable name to set to
-	// override `APIServiceConfig.Operations.Worker.ProgressInterval`,
-	// `SchedulerConfig.Operations.Worker.ProgressInterval`.
+	// override `APIServiceConfig.Service.Operations.Worker.ProgressInterval`,
+	// `DBCleanerConfig.Service.Operations.Worker.ProgressInterval`,
+	// `SchedulerConfig.Service.Operations.Worker.ProgressInterval`,
+	// `AsyncMessageHandlerConfig.Service.Operations.Worker.ProgressInterval`.
 	OperationsWorkerProgressIntervalEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_WORKER_PROGRESS_INTERVAL"
 
 	// OperationsWorkerRetryDelayEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Operations.Worker.RetryDelay`,
-	// `SchedulerConfig.Operations.Worker.RetryDelay`.
+	// `APIServiceConfig.Service.Operations.Worker.RetryDelay`,
+	// `DBCleanerConfig.Service.Operations.Worker.RetryDelay`,
+	// `SchedulerConfig.Service.Operations.Worker.RetryDelay`,
+	// `AsyncMessageHandlerConfig.Service.Operations.Worker.RetryDelay`.
 	OperationsWorkerRetryDelayEnvVarKey = "DINNER_DONE_BETTER_OPERATIONS_WORKER_RETRY_DELAY"
 
 	// OutboxBackoffInitialDelayEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Outbox.Backoff.InitialDelay`.
+	// `APIServiceConfig.Service.Outbox.Relay.Backoff.InitialDelay`,
+	// `DBCleanerConfig.Service.Outbox.Relay.Backoff.InitialDelay`,
+	// `SchedulerConfig.Service.Outbox.Relay.Backoff.InitialDelay`,
+	// `AsyncMessageHandlerConfig.Service.Outbox.Relay.Backoff.InitialDelay`.
 	OutboxBackoffInitialDelayEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_BACKOFF_INITIAL_DELAY"
 
 	// OutboxBackoffMaxAttemptsEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Outbox.Backoff.MaxAttempts`.
+	// `APIServiceConfig.Service.Outbox.Relay.Backoff.MaxAttempts`,
+	// `DBCleanerConfig.Service.Outbox.Relay.Backoff.MaxAttempts`,
+	// `SchedulerConfig.Service.Outbox.Relay.Backoff.MaxAttempts`,
+	// `AsyncMessageHandlerConfig.Service.Outbox.Relay.Backoff.MaxAttempts`.
 	OutboxBackoffMaxAttemptsEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_BACKOFF_MAX_ATTEMPTS"
 
 	// OutboxBackoffMaxDelayEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Outbox.Backoff.MaxDelay`.
+	// `APIServiceConfig.Service.Outbox.Relay.Backoff.MaxDelay`,
+	// `DBCleanerConfig.Service.Outbox.Relay.Backoff.MaxDelay`,
+	// `SchedulerConfig.Service.Outbox.Relay.Backoff.MaxDelay`,
+	// `AsyncMessageHandlerConfig.Service.Outbox.Relay.Backoff.MaxDelay`.
 	OutboxBackoffMaxDelayEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_BACKOFF_MAX_DELAY"
 
 	// OutboxBackoffMultiplierEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Outbox.Backoff.Multiplier`.
+	// `APIServiceConfig.Service.Outbox.Relay.Backoff.Multiplier`,
+	// `DBCleanerConfig.Service.Outbox.Relay.Backoff.Multiplier`,
+	// `SchedulerConfig.Service.Outbox.Relay.Backoff.Multiplier`,
+	// `AsyncMessageHandlerConfig.Service.Outbox.Relay.Backoff.Multiplier`.
 	OutboxBackoffMultiplierEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_BACKOFF_MULTIPLIER"
 
 	// OutboxBackoffProviderEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Outbox.Backoff.Provider`.
+	// `APIServiceConfig.Service.Outbox.Relay.Backoff.Provider`,
+	// `DBCleanerConfig.Service.Outbox.Relay.Backoff.Provider`,
+	// `SchedulerConfig.Service.Outbox.Relay.Backoff.Provider`,
+	// `AsyncMessageHandlerConfig.Service.Outbox.Relay.Backoff.Provider`.
 	OutboxBackoffProviderEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_BACKOFF_PROVIDER"
 
 	// OutboxBackoffUseJitterEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Outbox.Backoff.UseJitter`.
+	// `APIServiceConfig.Service.Outbox.Relay.Backoff.UseJitter`,
+	// `DBCleanerConfig.Service.Outbox.Relay.Backoff.UseJitter`,
+	// `SchedulerConfig.Service.Outbox.Relay.Backoff.UseJitter`,
+	// `AsyncMessageHandlerConfig.Service.Outbox.Relay.Backoff.UseJitter`.
 	OutboxBackoffUseJitterEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_BACKOFF_USE_JITTER"
 
 	// OutboxBatchSizeEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Outbox.BatchSize`.
+	// `APIServiceConfig.Service.Outbox.Relay.BatchSize`,
+	// `DBCleanerConfig.Service.Outbox.Relay.BatchSize`,
+	// `SchedulerConfig.Service.Outbox.Relay.BatchSize`,
+	// `AsyncMessageHandlerConfig.Service.Outbox.Relay.BatchSize`.
 	OutboxBatchSizeEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_BATCH_SIZE"
 
 	// OutboxClaimModeEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Outbox.ClaimMode`.
+	// `APIServiceConfig.Service.Outbox.Relay.ClaimMode`,
+	// `DBCleanerConfig.Service.Outbox.Relay.ClaimMode`,
+	// `SchedulerConfig.Service.Outbox.Relay.ClaimMode`,
+	// `AsyncMessageHandlerConfig.Service.Outbox.Relay.ClaimMode`.
 	OutboxClaimModeEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_CLAIM_MODE"
 
 	// OutboxLeaseDurationEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Outbox.LeaseDuration`.
+	// `APIServiceConfig.Service.Outbox.Relay.LeaseDuration`,
+	// `DBCleanerConfig.Service.Outbox.Relay.LeaseDuration`,
+	// `SchedulerConfig.Service.Outbox.Relay.LeaseDuration`,
+	// `AsyncMessageHandlerConfig.Service.Outbox.Relay.LeaseDuration`.
 	OutboxLeaseDurationEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_LEASE_DURATION"
 
 	// OutboxMinWakeIntervalEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Outbox.MinWakeInterval`.
+	// `APIServiceConfig.Service.Outbox.Relay.MinWakeInterval`,
+	// `DBCleanerConfig.Service.Outbox.Relay.MinWakeInterval`,
+	// `SchedulerConfig.Service.Outbox.Relay.MinWakeInterval`,
+	// `AsyncMessageHandlerConfig.Service.Outbox.Relay.MinWakeInterval`.
 	OutboxMinWakeIntervalEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_MIN_WAKE_INTERVAL"
 
 	// OutboxNotifyChannelEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Outbox.NotifyChannel`.
+	// `APIServiceConfig.Service.Outbox.Relay.NotifyChannel`,
+	// `DBCleanerConfig.Service.Outbox.Relay.NotifyChannel`,
+	// `SchedulerConfig.Service.Outbox.Relay.NotifyChannel`,
+	// `AsyncMessageHandlerConfig.Service.Outbox.Relay.NotifyChannel`.
 	OutboxNotifyChannelEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_NOTIFY_CHANNEL"
 
 	// OutboxPollIntervalEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Outbox.PollInterval`.
+	// `APIServiceConfig.Service.Outbox.Relay.PollInterval`,
+	// `DBCleanerConfig.Service.Outbox.Relay.PollInterval`,
+	// `SchedulerConfig.Service.Outbox.Relay.PollInterval`,
+	// `AsyncMessageHandlerConfig.Service.Outbox.Relay.PollInterval`.
 	OutboxPollIntervalEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_POLL_INTERVAL"
 
 	// OutboxQuarantineRetentionEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Outbox.QuarantineRetention`.
+	// `APIServiceConfig.Service.Outbox.Relay.QuarantineRetention`,
+	// `DBCleanerConfig.Service.Outbox.Relay.QuarantineRetention`,
+	// `SchedulerConfig.Service.Outbox.Relay.QuarantineRetention`,
+	// `AsyncMessageHandlerConfig.Service.Outbox.Relay.QuarantineRetention`.
 	OutboxQuarantineRetentionEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_QUARANTINE_RETENTION"
 
+	// OutboxQueueKafkaBrokersEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Outbox.Queue.Kafka.Brokers`,
+	// `DBCleanerConfig.Service.Outbox.Queue.Kafka.Brokers`,
+	// `SchedulerConfig.Service.Outbox.Queue.Kafka.Brokers`,
+	// `AsyncMessageHandlerConfig.Service.Outbox.Queue.Kafka.Brokers`.
+	OutboxQueueKafkaBrokersEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_QUEUE_KAFKA_BROKERS"
+
+	// OutboxQueueKafkaGroupIDEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Outbox.Queue.Kafka.GroupID`,
+	// `DBCleanerConfig.Service.Outbox.Queue.Kafka.GroupID`,
+	// `SchedulerConfig.Service.Outbox.Queue.Kafka.GroupID`,
+	// `AsyncMessageHandlerConfig.Service.Outbox.Queue.Kafka.GroupID`.
+	OutboxQueueKafkaGroupIDEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_QUEUE_KAFKA_GROUP_ID"
+
+	// OutboxQueueProviderEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Outbox.Queue.Provider`,
+	// `DBCleanerConfig.Service.Outbox.Queue.Provider`,
+	// `SchedulerConfig.Service.Outbox.Queue.Provider`,
+	// `AsyncMessageHandlerConfig.Service.Outbox.Queue.Provider`.
+	OutboxQueueProviderEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_QUEUE_PROVIDER"
+
+	// OutboxQueuePubsubProjectIDEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Outbox.Queue.PubSub.ProjectID`,
+	// `DBCleanerConfig.Service.Outbox.Queue.PubSub.ProjectID`,
+	// `SchedulerConfig.Service.Outbox.Queue.PubSub.ProjectID`,
+	// `AsyncMessageHandlerConfig.Service.Outbox.Queue.PubSub.ProjectID`.
+	OutboxQueuePubsubProjectIDEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_QUEUE_PUBSUB_PROJECT_ID"
+
+	// OutboxQueueRedisPasswordEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Outbox.Queue.Redis.Password`,
+	// `DBCleanerConfig.Service.Outbox.Queue.Redis.Password`,
+	// `SchedulerConfig.Service.Outbox.Queue.Redis.Password`,
+	// `AsyncMessageHandlerConfig.Service.Outbox.Queue.Redis.Password`.
+	OutboxQueueRedisPasswordEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_QUEUE_REDIS_PASSWORD"
+
+	// OutboxQueueRedisQueueAddressesEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Outbox.Queue.Redis.QueueAddresses`,
+	// `DBCleanerConfig.Service.Outbox.Queue.Redis.QueueAddresses`,
+	// `SchedulerConfig.Service.Outbox.Queue.Redis.QueueAddresses`,
+	// `AsyncMessageHandlerConfig.Service.Outbox.Queue.Redis.QueueAddresses`.
+	OutboxQueueRedisQueueAddressesEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_QUEUE_REDIS_QUEUE_ADDRESSES"
+
+	// OutboxQueueRedisUsernameEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Outbox.Queue.Redis.Username`,
+	// `DBCleanerConfig.Service.Outbox.Queue.Redis.Username`,
+	// `SchedulerConfig.Service.Outbox.Queue.Redis.Username`,
+	// `AsyncMessageHandlerConfig.Service.Outbox.Queue.Redis.Username`.
+	OutboxQueueRedisUsernameEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_QUEUE_REDIS_USERNAME"
+
+	// OutboxQueueSqsQueueAddressEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Outbox.Queue.SQS.QueueAddress`,
+	// `DBCleanerConfig.Service.Outbox.Queue.SQS.QueueAddress`,
+	// `SchedulerConfig.Service.Outbox.Queue.SQS.QueueAddress`,
+	// `AsyncMessageHandlerConfig.Service.Outbox.Queue.SQS.QueueAddress`.
+	OutboxQueueSqsQueueAddressEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_QUEUE_SQS_QUEUE_ADDRESS"
+
 	// OutboxReapBatchSizeEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Outbox.ReapBatchSize`.
+	// `APIServiceConfig.Service.Outbox.Relay.ReapBatchSize`,
+	// `DBCleanerConfig.Service.Outbox.Relay.ReapBatchSize`,
+	// `SchedulerConfig.Service.Outbox.Relay.ReapBatchSize`,
+	// `AsyncMessageHandlerConfig.Service.Outbox.Relay.ReapBatchSize`.
 	OutboxReapBatchSizeEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_REAP_BATCH_SIZE"
 
 	// OutboxReapIntervalEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Outbox.ReapInterval`.
+	// `APIServiceConfig.Service.Outbox.Relay.ReapInterval`,
+	// `DBCleanerConfig.Service.Outbox.Relay.ReapInterval`,
+	// `SchedulerConfig.Service.Outbox.Relay.ReapInterval`,
+	// `AsyncMessageHandlerConfig.Service.Outbox.Relay.ReapInterval`.
 	OutboxReapIntervalEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_REAP_INTERVAL"
 
+	// OutboxRelayBackoffInitialDelayEnvVarKey is the environment variable name to set to override
+	// `SchedulerConfig.OutboxRelay.Backoff.InitialDelay`.
+	OutboxRelayBackoffInitialDelayEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_RELAY_BACKOFF_INITIAL_DELAY"
+
+	// OutboxRelayBackoffMaxAttemptsEnvVarKey is the environment variable name to set to override
+	// `SchedulerConfig.OutboxRelay.Backoff.MaxAttempts`.
+	OutboxRelayBackoffMaxAttemptsEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_RELAY_BACKOFF_MAX_ATTEMPTS"
+
+	// OutboxRelayBackoffMaxDelayEnvVarKey is the environment variable name to set to override
+	// `SchedulerConfig.OutboxRelay.Backoff.MaxDelay`.
+	OutboxRelayBackoffMaxDelayEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_RELAY_BACKOFF_MAX_DELAY"
+
+	// OutboxRelayBackoffMultiplierEnvVarKey is the environment variable name to set to override
+	// `SchedulerConfig.OutboxRelay.Backoff.Multiplier`.
+	OutboxRelayBackoffMultiplierEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_RELAY_BACKOFF_MULTIPLIER"
+
+	// OutboxRelayBackoffProviderEnvVarKey is the environment variable name to set to override
+	// `SchedulerConfig.OutboxRelay.Backoff.Provider`.
+	OutboxRelayBackoffProviderEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_RELAY_BACKOFF_PROVIDER"
+
+	// OutboxRelayBackoffUseJitterEnvVarKey is the environment variable name to set to override
+	// `SchedulerConfig.OutboxRelay.Backoff.UseJitter`.
+	OutboxRelayBackoffUseJitterEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_RELAY_BACKOFF_USE_JITTER"
+
+	// OutboxRelayBatchSizeEnvVarKey is the environment variable name to set to override
+	// `SchedulerConfig.OutboxRelay.BatchSize`.
+	OutboxRelayBatchSizeEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_RELAY_BATCH_SIZE"
+
+	// OutboxRelayClaimModeEnvVarKey is the environment variable name to set to override
+	// `SchedulerConfig.OutboxRelay.ClaimMode`.
+	OutboxRelayClaimModeEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_RELAY_CLAIM_MODE"
+
+	// OutboxRelayLeaseDurationEnvVarKey is the environment variable name to set to override
+	// `SchedulerConfig.OutboxRelay.LeaseDuration`.
+	OutboxRelayLeaseDurationEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_RELAY_LEASE_DURATION"
+
+	// OutboxRelayMinWakeIntervalEnvVarKey is the environment variable name to set to override
+	// `SchedulerConfig.OutboxRelay.MinWakeInterval`.
+	OutboxRelayMinWakeIntervalEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_RELAY_MIN_WAKE_INTERVAL"
+
+	// OutboxRelayNotifyChannelEnvVarKey is the environment variable name to set to override
+	// `SchedulerConfig.OutboxRelay.NotifyChannel`.
+	OutboxRelayNotifyChannelEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_RELAY_NOTIFY_CHANNEL"
+
+	// OutboxRelayPollIntervalEnvVarKey is the environment variable name to set to override
+	// `SchedulerConfig.OutboxRelay.PollInterval`.
+	OutboxRelayPollIntervalEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_RELAY_POLL_INTERVAL"
+
+	// OutboxRelayQuarantineRetentionEnvVarKey is the environment variable name to set to override
+	// `SchedulerConfig.OutboxRelay.QuarantineRetention`.
+	OutboxRelayQuarantineRetentionEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_RELAY_QUARANTINE_RETENTION"
+
+	// OutboxRelayReapBatchSizeEnvVarKey is the environment variable name to set to override
+	// `SchedulerConfig.OutboxRelay.ReapBatchSize`.
+	OutboxRelayReapBatchSizeEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_RELAY_REAP_BATCH_SIZE"
+
+	// OutboxRelayReapIntervalEnvVarKey is the environment variable name to set to override
+	// `SchedulerConfig.OutboxRelay.ReapInterval`.
+	OutboxRelayReapIntervalEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_RELAY_REAP_INTERVAL"
+
+	// OutboxRelayRetentionEnvVarKey is the environment variable name to set to override
+	// `SchedulerConfig.OutboxRelay.Retention`.
+	OutboxRelayRetentionEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_RELAY_RETENTION"
+
+	// OutboxRelayTablePrefixEnvVarKey is the environment variable name to set to override
+	// `SchedulerConfig.OutboxRelay.TablePrefix`.
+	OutboxRelayTablePrefixEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_RELAY_TABLE_PREFIX"
+
 	// OutboxRetentionEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Outbox.Retention`.
+	// `APIServiceConfig.Service.Outbox.Relay.Retention`,
+	// `DBCleanerConfig.Service.Outbox.Relay.Retention`,
+	// `SchedulerConfig.Service.Outbox.Relay.Retention`,
+	// `AsyncMessageHandlerConfig.Service.Outbox.Relay.Retention`.
 	OutboxRetentionEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_RETENTION"
 
 	// OutboxTablePrefixEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Outbox.TablePrefix`.
+	// `APIServiceConfig.Service.Outbox.Relay.TablePrefix`,
+	// `DBCleanerConfig.Service.Outbox.Relay.TablePrefix`,
+	// `SchedulerConfig.Service.Outbox.Relay.TablePrefix`,
+	// `AsyncMessageHandlerConfig.Service.Outbox.Relay.TablePrefix`.
 	OutboxTablePrefixEnvVarKey = "DINNER_DONE_BETTER_OUTBOX_TABLE_PREFIX"
+
+	// PasskeysTablePrefixEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Passkeys.TablePrefix`,
+	// `DBCleanerConfig.Service.Passkeys.TablePrefix`,
+	// `SchedulerConfig.Service.Passkeys.TablePrefix`,
+	// `AsyncMessageHandlerConfig.Service.Passkeys.TablePrefix`.
+	PasskeysTablePrefixEnvVarKey = "DINNER_DONE_BETTER_PASSKEYS_TABLE_PREFIX"
+
+	// PasswordResetRequestFloorEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.PasswordReset.RequestFloor`,
+	// `DBCleanerConfig.Service.PasswordReset.RequestFloor`,
+	// `SchedulerConfig.Service.PasswordReset.RequestFloor`,
+	// `AsyncMessageHandlerConfig.Service.PasswordReset.RequestFloor`.
+	PasswordResetRequestFloorEnvVarKey = "DINNER_DONE_BETTER_PASSWORD_RESET_REQUEST_FLOOR"
+
+	// PasswordResetSweepIntervalEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.PasswordReset.SweepInterval`,
+	// `DBCleanerConfig.Service.PasswordReset.SweepInterval`,
+	// `SchedulerConfig.Service.PasswordReset.SweepInterval`,
+	// `AsyncMessageHandlerConfig.Service.PasswordReset.SweepInterval`.
+	PasswordResetSweepIntervalEnvVarKey = "DINNER_DONE_BETTER_PASSWORD_RESET_SWEEP_INTERVAL"
+
+	// PasswordResetSweepJobDisabledEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.PasswordReset.SweepJob.Disabled`,
+	// `DBCleanerConfig.Service.PasswordReset.SweepJob.Disabled`,
+	// `SchedulerConfig.Service.PasswordReset.SweepJob.Disabled`,
+	// `AsyncMessageHandlerConfig.Service.PasswordReset.SweepJob.Disabled`.
+	PasswordResetSweepJobDisabledEnvVarKey = "DINNER_DONE_BETTER_PASSWORD_RESET_SWEEP_JOB_DISABLED"
+
+	// PasswordResetSweepJobIntervalEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.PasswordReset.SweepJob.Interval`,
+	// `DBCleanerConfig.Service.PasswordReset.SweepJob.Interval`,
+	// `SchedulerConfig.Service.PasswordReset.SweepJob.Interval`,
+	// `AsyncMessageHandlerConfig.Service.PasswordReset.SweepJob.Interval`.
+	PasswordResetSweepJobIntervalEnvVarKey = "DINNER_DONE_BETTER_PASSWORD_RESET_SWEEP_JOB_INTERVAL"
+
+	// PasswordResetSweepJobLeaseTTLEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.PasswordReset.SweepJob.LeaseTTL`,
+	// `DBCleanerConfig.Service.PasswordReset.SweepJob.LeaseTTL`,
+	// `SchedulerConfig.Service.PasswordReset.SweepJob.LeaseTTL`,
+	// `AsyncMessageHandlerConfig.Service.PasswordReset.SweepJob.LeaseTTL`.
+	PasswordResetSweepJobLeaseTTLEnvVarKey = "DINNER_DONE_BETTER_PASSWORD_RESET_SWEEP_JOB_LEASE_TTL"
+
+	// PasswordResetSweepJobRunOnStartEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.PasswordReset.SweepJob.RunOnStart`,
+	// `DBCleanerConfig.Service.PasswordReset.SweepJob.RunOnStart`,
+	// `SchedulerConfig.Service.PasswordReset.SweepJob.RunOnStart`,
+	// `AsyncMessageHandlerConfig.Service.PasswordReset.SweepJob.RunOnStart`.
+	PasswordResetSweepJobRunOnStartEnvVarKey = "DINNER_DONE_BETTER_PASSWORD_RESET_SWEEP_JOB_RUN_ON_START"
+
+	// PasswordResetSweepJobScheduleEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.PasswordReset.SweepJob.Schedule`,
+	// `DBCleanerConfig.Service.PasswordReset.SweepJob.Schedule`,
+	// `SchedulerConfig.Service.PasswordReset.SweepJob.Schedule`,
+	// `AsyncMessageHandlerConfig.Service.PasswordReset.SweepJob.Schedule`.
+	PasswordResetSweepJobScheduleEnvVarKey = "DINNER_DONE_BETTER_PASSWORD_RESET_SWEEP_JOB_SCHEDULE"
+
+	// PasswordResetSweepJobTimeoutEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.PasswordReset.SweepJob.Timeout`,
+	// `DBCleanerConfig.Service.PasswordReset.SweepJob.Timeout`,
+	// `SchedulerConfig.Service.PasswordReset.SweepJob.Timeout`,
+	// `AsyncMessageHandlerConfig.Service.PasswordReset.SweepJob.Timeout`.
+	PasswordResetSweepJobTimeoutEnvVarKey = "DINNER_DONE_BETTER_PASSWORD_RESET_SWEEP_JOB_TIMEOUT"
+
+	// PasswordResetTablePrefixEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.PasswordReset.TablePrefix`,
+	// `DBCleanerConfig.Service.PasswordReset.TablePrefix`,
+	// `SchedulerConfig.Service.PasswordReset.TablePrefix`,
+	// `AsyncMessageHandlerConfig.Service.PasswordReset.TablePrefix`.
+	PasswordResetTablePrefixEnvVarKey = "DINNER_DONE_BETTER_PASSWORD_RESET_TABLE_PREFIX"
+
+	// PasswordResetTokenLifetimeEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.PasswordReset.TokenLifetime`,
+	// `DBCleanerConfig.Service.PasswordReset.TokenLifetime`,
+	// `SchedulerConfig.Service.PasswordReset.TokenLifetime`,
+	// `AsyncMessageHandlerConfig.Service.PasswordReset.TokenLifetime`.
+	PasswordResetTokenLifetimeEnvVarKey = "DINNER_DONE_BETTER_PASSWORD_RESET_TOKEN_LIFETIME"
 
 	// PoolsDataChangesConcurrencyEnvVarKey is the environment variable name to set to override
 	// `AsyncMessageHandlerConfig.Pools.DataChanges.Concurrency`.
@@ -2325,30 +4035,58 @@ const (
 	QueuesSearchIndexRequestsTopicNameEnvVarKey = "DINNER_DONE_BETTER_QUEUES_SEARCH_INDEX_REQUESTS_TOPIC_NAME"
 
 	// RateLimitingBurstSizeEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.RateLimiting.BurstSize`,
+	// `DBCleanerConfig.Service.RateLimiting.BurstSize`,
+	// `SchedulerConfig.Service.RateLimiting.BurstSize`,
+	// `AsyncMessageHandlerConfig.Service.RateLimiting.BurstSize`,
 	// `MCPServiceConfig.RateLimiting.BurstSize`.
 	RateLimitingBurstSizeEnvVarKey = "DINNER_DONE_BETTER_RATE_LIMITING_BURST_SIZE"
 
 	// RateLimitingMaxLimitersEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.RateLimiting.MaxLimiters`,
+	// `DBCleanerConfig.Service.RateLimiting.MaxLimiters`,
+	// `SchedulerConfig.Service.RateLimiting.MaxLimiters`,
+	// `AsyncMessageHandlerConfig.Service.RateLimiting.MaxLimiters`,
 	// `MCPServiceConfig.RateLimiting.MaxLimiters`.
 	RateLimitingMaxLimitersEnvVarKey = "DINNER_DONE_BETTER_RATE_LIMITING_MAX_LIMITERS"
 
 	// RateLimitingProviderEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.RateLimiting.Provider`,
+	// `DBCleanerConfig.Service.RateLimiting.Provider`,
+	// `SchedulerConfig.Service.RateLimiting.Provider`,
+	// `AsyncMessageHandlerConfig.Service.RateLimiting.Provider`,
 	// `MCPServiceConfig.RateLimiting.Provider`.
 	RateLimitingProviderEnvVarKey = "DINNER_DONE_BETTER_RATE_LIMITING_PROVIDER"
 
 	// RateLimitingRedisAddressesEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.RateLimiting.Redis.Addresses`,
+	// `DBCleanerConfig.Service.RateLimiting.Redis.Addresses`,
+	// `SchedulerConfig.Service.RateLimiting.Redis.Addresses`,
+	// `AsyncMessageHandlerConfig.Service.RateLimiting.Redis.Addresses`,
 	// `MCPServiceConfig.RateLimiting.Redis.Addresses`.
 	RateLimitingRedisAddressesEnvVarKey = "DINNER_DONE_BETTER_RATE_LIMITING_REDIS_ADDRESSES"
 
 	// RateLimitingRedisPasswordEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.RateLimiting.Redis.Password`,
+	// `DBCleanerConfig.Service.RateLimiting.Redis.Password`,
+	// `SchedulerConfig.Service.RateLimiting.Redis.Password`,
+	// `AsyncMessageHandlerConfig.Service.RateLimiting.Redis.Password`,
 	// `MCPServiceConfig.RateLimiting.Redis.Password`.
 	RateLimitingRedisPasswordEnvVarKey = "DINNER_DONE_BETTER_RATE_LIMITING_REDIS_PASSWORD"
 
 	// RateLimitingRedisUsernameEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.RateLimiting.Redis.Username`,
+	// `DBCleanerConfig.Service.RateLimiting.Redis.Username`,
+	// `SchedulerConfig.Service.RateLimiting.Redis.Username`,
+	// `AsyncMessageHandlerConfig.Service.RateLimiting.Redis.Username`,
 	// `MCPServiceConfig.RateLimiting.Redis.Username`.
 	RateLimitingRedisUsernameEnvVarKey = "DINNER_DONE_BETTER_RATE_LIMITING_REDIS_USERNAME"
 
 	// RateLimitingRequestsPerSecEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.RateLimiting.RequestsPerSec`,
+	// `DBCleanerConfig.Service.RateLimiting.RequestsPerSec`,
+	// `SchedulerConfig.Service.RateLimiting.RequestsPerSec`,
+	// `AsyncMessageHandlerConfig.Service.RateLimiting.RequestsPerSec`,
 	// `MCPServiceConfig.RateLimiting.RequestsPerSec`.
 	RateLimitingRequestsPerSecEnvVarKey = "DINNER_DONE_BETTER_RATE_LIMITING_REQUESTS_PER_SEC"
 
@@ -2356,189 +4094,459 @@ const (
 	// `EmailDeliverabilityTestConfig.RecipientEmailAddress`.
 	RecipientEmailAddressEnvVarKey = "DINNER_DONE_BETTER_RECIPIENT_EMAIL_ADDRESS"
 
-	// RetentionBacklogCeilingEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Retention.BacklogCeiling`.
-	RetentionBacklogCeilingEnvVarKey = "DINNER_DONE_BETTER_RETENTION_BACKLOG_CEILING"
+	// RecordingFileByEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Recording.FileBy`, `DBCleanerConfig.Service.Recording.FileBy`,
+	// `SchedulerConfig.Service.Recording.FileBy`,
+	// `AsyncMessageHandlerConfig.Service.Recording.FileBy`.
+	RecordingFileByEnvVarKey = "DINNER_DONE_BETTER_RECORDING_FILE_BY"
 
-	// RetentionBatchPauseEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Retention.BatchPause`.
-	RetentionBatchPauseEnvVarKey = "DINNER_DONE_BETTER_RETENTION_BATCH_PAUSE"
+	// RetentionSweeperBacklogCeilingEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Retention.Sweeper.BacklogCeiling`,
+	// `DBCleanerConfig.Service.Retention.Sweeper.BacklogCeiling`,
+	// `SchedulerConfig.Service.Retention.Sweeper.BacklogCeiling`,
+	// `AsyncMessageHandlerConfig.Service.Retention.Sweeper.BacklogCeiling`.
+	RetentionSweeperBacklogCeilingEnvVarKey = "DINNER_DONE_BETTER_RETENTION_SWEEPER_BACKLOG_CEILING"
 
-	// RetentionBatchSizeEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Retention.BatchSize`.
-	RetentionBatchSizeEnvVarKey = "DINNER_DONE_BETTER_RETENTION_BATCH_SIZE"
+	// RetentionSweeperBatchPauseEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Retention.Sweeper.BatchPause`,
+	// `DBCleanerConfig.Service.Retention.Sweeper.BatchPause`,
+	// `SchedulerConfig.Service.Retention.Sweeper.BatchPause`,
+	// `AsyncMessageHandlerConfig.Service.Retention.Sweeper.BatchPause`.
+	RetentionSweeperBatchPauseEnvVarKey = "DINNER_DONE_BETTER_RETENTION_SWEEPER_BATCH_PAUSE"
 
-	// RetentionMaxBatchesEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Retention.MaxBatches`.
-	RetentionMaxBatchesEnvVarKey = "DINNER_DONE_BETTER_RETENTION_MAX_BATCHES"
+	// RetentionSweeperBatchSizeEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Retention.Sweeper.BatchSize`,
+	// `DBCleanerConfig.Service.Retention.Sweeper.BatchSize`,
+	// `SchedulerConfig.Service.Retention.Sweeper.BatchSize`,
+	// `AsyncMessageHandlerConfig.Service.Retention.Sweeper.BatchSize`.
+	RetentionSweeperBatchSizeEnvVarKey = "DINNER_DONE_BETTER_RETENTION_SWEEPER_BATCH_SIZE"
+
+	// RetentionSweeperMaxBatchesEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Retention.Sweeper.MaxBatches`,
+	// `DBCleanerConfig.Service.Retention.Sweeper.MaxBatches`,
+	// `SchedulerConfig.Service.Retention.Sweeper.MaxBatches`,
+	// `AsyncMessageHandlerConfig.Service.Retention.Sweeper.MaxBatches`.
+	RetentionSweeperMaxBatchesEnvVarKey = "DINNER_DONE_BETTER_RETENTION_SWEEPER_MAX_BATCHES"
+
+	// RetryInitialDelayEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Retry.InitialDelay`, `DBCleanerConfig.Service.Retry.InitialDelay`,
+	// `SchedulerConfig.Service.Retry.InitialDelay`,
+	// `AsyncMessageHandlerConfig.Service.Retry.InitialDelay`.
+	RetryInitialDelayEnvVarKey = "DINNER_DONE_BETTER_RETRY_INITIAL_DELAY"
+
+	// RetryMaxAttemptsEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Retry.MaxAttempts`, `DBCleanerConfig.Service.Retry.MaxAttempts`,
+	// `SchedulerConfig.Service.Retry.MaxAttempts`,
+	// `AsyncMessageHandlerConfig.Service.Retry.MaxAttempts`.
+	RetryMaxAttemptsEnvVarKey = "DINNER_DONE_BETTER_RETRY_MAX_ATTEMPTS"
+
+	// RetryMaxDelayEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Retry.MaxDelay`, `DBCleanerConfig.Service.Retry.MaxDelay`,
+	// `SchedulerConfig.Service.Retry.MaxDelay`,
+	// `AsyncMessageHandlerConfig.Service.Retry.MaxDelay`.
+	RetryMaxDelayEnvVarKey = "DINNER_DONE_BETTER_RETRY_MAX_DELAY"
+
+	// RetryMultiplierEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Retry.Multiplier`, `DBCleanerConfig.Service.Retry.Multiplier`,
+	// `SchedulerConfig.Service.Retry.Multiplier`,
+	// `AsyncMessageHandlerConfig.Service.Retry.Multiplier`.
+	RetryMultiplierEnvVarKey = "DINNER_DONE_BETTER_RETRY_MULTIPLIER"
+
+	// RetryProviderEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Retry.Provider`, `DBCleanerConfig.Service.Retry.Provider`,
+	// `SchedulerConfig.Service.Retry.Provider`,
+	// `AsyncMessageHandlerConfig.Service.Retry.Provider`.
+	RetryProviderEnvVarKey = "DINNER_DONE_BETTER_RETRY_PROVIDER"
+
+	// RetryUseJitterEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Retry.UseJitter`, `DBCleanerConfig.Service.Retry.UseJitter`,
+	// `SchedulerConfig.Service.Retry.UseJitter`,
+	// `AsyncMessageHandlerConfig.Service.Retry.UseJitter`.
+	RetryUseJitterEnvVarKey = "DINNER_DONE_BETTER_RETRY_USE_JITTER"
 
 	// RoutingChiEnableCorsForLocalhostEnvVarKey is the environment variable name to set to
-	// override `APIServiceConfig.Routing.Chi.EnableCORSForLocalhost`,
+	// override `APIServiceConfig.Service.Routing.Chi.EnableCORSForLocalhost`,
+	// `DBCleanerConfig.Service.Routing.Chi.EnableCORSForLocalhost`,
+	// `SchedulerConfig.Service.Routing.Chi.EnableCORSForLocalhost`,
+	// `AsyncMessageHandlerConfig.Service.Routing.Chi.EnableCORSForLocalhost`,
 	// `MCPServiceConfig.Routing.Chi.EnableCORSForLocalhost`.
 	RoutingChiEnableCorsForLocalhostEnvVarKey = "DINNER_DONE_BETTER_ROUTING_CHI_ENABLE_CORS_FOR_LOCALHOST"
 
 	// RoutingChiServiceNameEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Routing.Chi.ServiceName`, `MCPServiceConfig.Routing.Chi.ServiceName`.
+	// `APIServiceConfig.Service.Routing.Chi.ServiceName`,
+	// `DBCleanerConfig.Service.Routing.Chi.ServiceName`,
+	// `SchedulerConfig.Service.Routing.Chi.ServiceName`,
+	// `AsyncMessageHandlerConfig.Service.Routing.Chi.ServiceName`,
+	// `MCPServiceConfig.Routing.Chi.ServiceName`.
 	RoutingChiServiceNameEnvVarKey = "DINNER_DONE_BETTER_ROUTING_CHI_SERVICE_NAME"
 
 	// RoutingChiSilenceRouteLoggingEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Routing.Chi.SilenceRouteLogging`,
+	// `APIServiceConfig.Service.Routing.Chi.SilenceRouteLogging`,
+	// `DBCleanerConfig.Service.Routing.Chi.SilenceRouteLogging`,
+	// `SchedulerConfig.Service.Routing.Chi.SilenceRouteLogging`,
+	// `AsyncMessageHandlerConfig.Service.Routing.Chi.SilenceRouteLogging`,
 	// `MCPServiceConfig.Routing.Chi.SilenceRouteLogging`.
 	RoutingChiSilenceRouteLoggingEnvVarKey = "DINNER_DONE_BETTER_ROUTING_CHI_SILENCE_ROUTE_LOGGING"
 
 	// RoutingChiValidDomainsEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Routing.Chi.ValidDomains`, `MCPServiceConfig.Routing.Chi.ValidDomains`.
+	// `APIServiceConfig.Service.Routing.Chi.ValidDomains`,
+	// `DBCleanerConfig.Service.Routing.Chi.ValidDomains`,
+	// `SchedulerConfig.Service.Routing.Chi.ValidDomains`,
+	// `AsyncMessageHandlerConfig.Service.Routing.Chi.ValidDomains`,
+	// `MCPServiceConfig.Routing.Chi.ValidDomains`.
 	RoutingChiValidDomainsEnvVarKey = "DINNER_DONE_BETTER_ROUTING_CHI_VALID_DOMAINS"
 
 	// RoutingGinEnableCorsForLocalhostEnvVarKey is the environment variable name to set to
-	// override `APIServiceConfig.Routing.Gin.EnableCORSForLocalhost`,
+	// override `APIServiceConfig.Service.Routing.Gin.EnableCORSForLocalhost`,
+	// `DBCleanerConfig.Service.Routing.Gin.EnableCORSForLocalhost`,
+	// `SchedulerConfig.Service.Routing.Gin.EnableCORSForLocalhost`,
+	// `AsyncMessageHandlerConfig.Service.Routing.Gin.EnableCORSForLocalhost`,
 	// `MCPServiceConfig.Routing.Gin.EnableCORSForLocalhost`.
 	RoutingGinEnableCorsForLocalhostEnvVarKey = "DINNER_DONE_BETTER_ROUTING_GIN_ENABLE_CORS_FOR_LOCALHOST"
 
 	// RoutingGinServiceNameEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Routing.Gin.ServiceName`, `MCPServiceConfig.Routing.Gin.ServiceName`.
+	// `APIServiceConfig.Service.Routing.Gin.ServiceName`,
+	// `DBCleanerConfig.Service.Routing.Gin.ServiceName`,
+	// `SchedulerConfig.Service.Routing.Gin.ServiceName`,
+	// `AsyncMessageHandlerConfig.Service.Routing.Gin.ServiceName`,
+	// `MCPServiceConfig.Routing.Gin.ServiceName`.
 	RoutingGinServiceNameEnvVarKey = "DINNER_DONE_BETTER_ROUTING_GIN_SERVICE_NAME"
 
 	// RoutingGinSilenceRouteLoggingEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Routing.Gin.SilenceRouteLogging`,
+	// `APIServiceConfig.Service.Routing.Gin.SilenceRouteLogging`,
+	// `DBCleanerConfig.Service.Routing.Gin.SilenceRouteLogging`,
+	// `SchedulerConfig.Service.Routing.Gin.SilenceRouteLogging`,
+	// `AsyncMessageHandlerConfig.Service.Routing.Gin.SilenceRouteLogging`,
 	// `MCPServiceConfig.Routing.Gin.SilenceRouteLogging`.
 	RoutingGinSilenceRouteLoggingEnvVarKey = "DINNER_DONE_BETTER_ROUTING_GIN_SILENCE_ROUTE_LOGGING"
 
 	// RoutingGinValidDomainsEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Routing.Gin.ValidDomains`, `MCPServiceConfig.Routing.Gin.ValidDomains`.
+	// `APIServiceConfig.Service.Routing.Gin.ValidDomains`,
+	// `DBCleanerConfig.Service.Routing.Gin.ValidDomains`,
+	// `SchedulerConfig.Service.Routing.Gin.ValidDomains`,
+	// `AsyncMessageHandlerConfig.Service.Routing.Gin.ValidDomains`,
+	// `MCPServiceConfig.Routing.Gin.ValidDomains`.
 	RoutingGinValidDomainsEnvVarKey = "DINNER_DONE_BETTER_ROUTING_GIN_VALID_DOMAINS"
 
 	// RoutingHttprouterEnableCorsForLocalhostEnvVarKey is the environment variable name to set to
-	// override `APIServiceConfig.Routing.HTTPRouter.EnableCORSForLocalhost`,
+	// override `APIServiceConfig.Service.Routing.HTTPRouter.EnableCORSForLocalhost`,
+	// `DBCleanerConfig.Service.Routing.HTTPRouter.EnableCORSForLocalhost`,
+	// `SchedulerConfig.Service.Routing.HTTPRouter.EnableCORSForLocalhost`,
+	// `AsyncMessageHandlerConfig.Service.Routing.HTTPRouter.EnableCORSForLocalhost`,
 	// `MCPServiceConfig.Routing.HTTPRouter.EnableCORSForLocalhost`.
 	RoutingHttprouterEnableCorsForLocalhostEnvVarKey = "DINNER_DONE_BETTER_ROUTING_HTTPROUTER_ENABLE_CORS_FOR_LOCALHOST"
 
 	// RoutingHttprouterServiceNameEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Routing.HTTPRouter.ServiceName`,
+	// `APIServiceConfig.Service.Routing.HTTPRouter.ServiceName`,
+	// `DBCleanerConfig.Service.Routing.HTTPRouter.ServiceName`,
+	// `SchedulerConfig.Service.Routing.HTTPRouter.ServiceName`,
+	// `AsyncMessageHandlerConfig.Service.Routing.HTTPRouter.ServiceName`,
 	// `MCPServiceConfig.Routing.HTTPRouter.ServiceName`.
 	RoutingHttprouterServiceNameEnvVarKey = "DINNER_DONE_BETTER_ROUTING_HTTPROUTER_SERVICE_NAME"
 
 	// RoutingHttprouterSilenceRouteLoggingEnvVarKey is the environment variable name to set to
-	// override `APIServiceConfig.Routing.HTTPRouter.SilenceRouteLogging`,
+	// override `APIServiceConfig.Service.Routing.HTTPRouter.SilenceRouteLogging`,
+	// `DBCleanerConfig.Service.Routing.HTTPRouter.SilenceRouteLogging`,
+	// `SchedulerConfig.Service.Routing.HTTPRouter.SilenceRouteLogging`,
+	// `AsyncMessageHandlerConfig.Service.Routing.HTTPRouter.SilenceRouteLogging`,
 	// `MCPServiceConfig.Routing.HTTPRouter.SilenceRouteLogging`.
 	RoutingHttprouterSilenceRouteLoggingEnvVarKey = "DINNER_DONE_BETTER_ROUTING_HTTPROUTER_SILENCE_ROUTE_LOGGING"
 
 	// RoutingHttprouterValidDomainsEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Routing.HTTPRouter.ValidDomains`,
+	// `APIServiceConfig.Service.Routing.HTTPRouter.ValidDomains`,
+	// `DBCleanerConfig.Service.Routing.HTTPRouter.ValidDomains`,
+	// `SchedulerConfig.Service.Routing.HTTPRouter.ValidDomains`,
+	// `AsyncMessageHandlerConfig.Service.Routing.HTTPRouter.ValidDomains`,
 	// `MCPServiceConfig.Routing.HTTPRouter.ValidDomains`.
 	RoutingHttprouterValidDomainsEnvVarKey = "DINNER_DONE_BETTER_ROUTING_HTTPROUTER_VALID_DOMAINS"
 
 	// RoutingProviderEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Routing.Provider`, `MCPServiceConfig.Routing.Provider`.
+	// `APIServiceConfig.Service.Routing.Provider`, `DBCleanerConfig.Service.Routing.Provider`,
+	// `SchedulerConfig.Service.Routing.Provider`,
+	// `AsyncMessageHandlerConfig.Service.Routing.Provider`, `MCPServiceConfig.Routing.Provider`.
 	RoutingProviderEnvVarKey = "DINNER_DONE_BETTER_ROUTING_PROVIDER"
 
 	// RoutingStdlibEnableCorsForLocalhostEnvVarKey is the environment variable name to set to
-	// override `APIServiceConfig.Routing.Stdlib.EnableCORSForLocalhost`,
+	// override `APIServiceConfig.Service.Routing.Stdlib.EnableCORSForLocalhost`,
+	// `DBCleanerConfig.Service.Routing.Stdlib.EnableCORSForLocalhost`,
+	// `SchedulerConfig.Service.Routing.Stdlib.EnableCORSForLocalhost`,
+	// `AsyncMessageHandlerConfig.Service.Routing.Stdlib.EnableCORSForLocalhost`,
 	// `MCPServiceConfig.Routing.Stdlib.EnableCORSForLocalhost`.
 	RoutingStdlibEnableCorsForLocalhostEnvVarKey = "DINNER_DONE_BETTER_ROUTING_STDLIB_ENABLE_CORS_FOR_LOCALHOST"
 
 	// RoutingStdlibServiceNameEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Routing.Stdlib.ServiceName`,
+	// `APIServiceConfig.Service.Routing.Stdlib.ServiceName`,
+	// `DBCleanerConfig.Service.Routing.Stdlib.ServiceName`,
+	// `SchedulerConfig.Service.Routing.Stdlib.ServiceName`,
+	// `AsyncMessageHandlerConfig.Service.Routing.Stdlib.ServiceName`,
 	// `MCPServiceConfig.Routing.Stdlib.ServiceName`.
 	RoutingStdlibServiceNameEnvVarKey = "DINNER_DONE_BETTER_ROUTING_STDLIB_SERVICE_NAME"
 
 	// RoutingStdlibSilenceRouteLoggingEnvVarKey is the environment variable name to set to
-	// override `APIServiceConfig.Routing.Stdlib.SilenceRouteLogging`,
+	// override `APIServiceConfig.Service.Routing.Stdlib.SilenceRouteLogging`,
+	// `DBCleanerConfig.Service.Routing.Stdlib.SilenceRouteLogging`,
+	// `SchedulerConfig.Service.Routing.Stdlib.SilenceRouteLogging`,
+	// `AsyncMessageHandlerConfig.Service.Routing.Stdlib.SilenceRouteLogging`,
 	// `MCPServiceConfig.Routing.Stdlib.SilenceRouteLogging`.
 	RoutingStdlibSilenceRouteLoggingEnvVarKey = "DINNER_DONE_BETTER_ROUTING_STDLIB_SILENCE_ROUTE_LOGGING"
 
 	// RoutingStdlibValidDomainsEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Routing.Stdlib.ValidDomains`,
+	// `APIServiceConfig.Service.Routing.Stdlib.ValidDomains`,
+	// `DBCleanerConfig.Service.Routing.Stdlib.ValidDomains`,
+	// `SchedulerConfig.Service.Routing.Stdlib.ValidDomains`,
+	// `AsyncMessageHandlerConfig.Service.Routing.Stdlib.ValidDomains`,
 	// `MCPServiceConfig.Routing.Stdlib.ValidDomains`.
 	RoutingStdlibValidDomainsEnvVarKey = "DINNER_DONE_BETTER_ROUTING_STDLIB_VALID_DOMAINS"
 
-	// SagasAdvanceTimeoutEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Sagas.AdvanceTimeout`.
-	SagasAdvanceTimeoutEnvVarKey = "DINNER_DONE_BETTER_SAGAS_ADVANCE_TIMEOUT"
+	// SagaEventTopicEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Saga.EventTopic`, `DBCleanerConfig.Service.Saga.EventTopic`,
+	// `SchedulerConfig.Service.Saga.EventTopic`,
+	// `AsyncMessageHandlerConfig.Service.Saga.EventTopic`.
+	SagaEventTopicEnvVarKey = "DINNER_DONE_BETTER_SAGA_EVENT_TOPIC"
 
-	// SagasBackoffInitialDelayEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Sagas.Backoff.InitialDelay`.
-	SagasBackoffInitialDelayEnvVarKey = "DINNER_DONE_BETTER_SAGAS_BACKOFF_INITIAL_DELAY"
+	// SagaRetentionCompensatedEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Saga.Retention.Compensated`,
+	// `DBCleanerConfig.Service.Saga.Retention.Compensated`,
+	// `SchedulerConfig.Service.Saga.Retention.Compensated`,
+	// `AsyncMessageHandlerConfig.Service.Saga.Retention.Compensated`.
+	SagaRetentionCompensatedEnvVarKey = "DINNER_DONE_BETTER_SAGA_RETENTION_COMPENSATED"
 
-	// SagasBackoffMaxAttemptsEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Sagas.Backoff.MaxAttempts`.
-	SagasBackoffMaxAttemptsEnvVarKey = "DINNER_DONE_BETTER_SAGAS_BACKOFF_MAX_ATTEMPTS"
+	// SagaRetentionCompletedEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Saga.Retention.Completed`,
+	// `DBCleanerConfig.Service.Saga.Retention.Completed`,
+	// `SchedulerConfig.Service.Saga.Retention.Completed`,
+	// `AsyncMessageHandlerConfig.Service.Saga.Retention.Completed`.
+	SagaRetentionCompletedEnvVarKey = "DINNER_DONE_BETTER_SAGA_RETENTION_COMPLETED"
 
-	// SagasBackoffMaxDelayEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Sagas.Backoff.MaxDelay`.
-	SagasBackoffMaxDelayEnvVarKey = "DINNER_DONE_BETTER_SAGAS_BACKOFF_MAX_DELAY"
+	// SagaRetentionJobDisabledEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Saga.Retention.Job.Disabled`,
+	// `DBCleanerConfig.Service.Saga.Retention.Job.Disabled`,
+	// `SchedulerConfig.Service.Saga.Retention.Job.Disabled`,
+	// `AsyncMessageHandlerConfig.Service.Saga.Retention.Job.Disabled`.
+	SagaRetentionJobDisabledEnvVarKey = "DINNER_DONE_BETTER_SAGA_RETENTION_JOB_DISABLED"
 
-	// SagasBackoffMultiplierEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Sagas.Backoff.Multiplier`.
-	SagasBackoffMultiplierEnvVarKey = "DINNER_DONE_BETTER_SAGAS_BACKOFF_MULTIPLIER"
+	// SagaRetentionJobIntervalEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Saga.Retention.Job.Interval`,
+	// `DBCleanerConfig.Service.Saga.Retention.Job.Interval`,
+	// `SchedulerConfig.Service.Saga.Retention.Job.Interval`,
+	// `AsyncMessageHandlerConfig.Service.Saga.Retention.Job.Interval`.
+	SagaRetentionJobIntervalEnvVarKey = "DINNER_DONE_BETTER_SAGA_RETENTION_JOB_INTERVAL"
 
-	// SagasBackoffProviderEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Sagas.Backoff.Provider`.
-	SagasBackoffProviderEnvVarKey = "DINNER_DONE_BETTER_SAGAS_BACKOFF_PROVIDER"
+	// SagaRetentionJobLeaseTTLEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Saga.Retention.Job.LeaseTTL`,
+	// `DBCleanerConfig.Service.Saga.Retention.Job.LeaseTTL`,
+	// `SchedulerConfig.Service.Saga.Retention.Job.LeaseTTL`,
+	// `AsyncMessageHandlerConfig.Service.Saga.Retention.Job.LeaseTTL`.
+	SagaRetentionJobLeaseTTLEnvVarKey = "DINNER_DONE_BETTER_SAGA_RETENTION_JOB_LEASE_TTL"
 
-	// SagasBackoffUseJitterEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Sagas.Backoff.UseJitter`.
-	SagasBackoffUseJitterEnvVarKey = "DINNER_DONE_BETTER_SAGAS_BACKOFF_USE_JITTER"
+	// SagaRetentionJobRunOnStartEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Saga.Retention.Job.RunOnStart`,
+	// `DBCleanerConfig.Service.Saga.Retention.Job.RunOnStart`,
+	// `SchedulerConfig.Service.Saga.Retention.Job.RunOnStart`,
+	// `AsyncMessageHandlerConfig.Service.Saga.Retention.Job.RunOnStart`.
+	SagaRetentionJobRunOnStartEnvVarKey = "DINNER_DONE_BETTER_SAGA_RETENTION_JOB_RUN_ON_START"
 
-	// SagasBatchSizeEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Sagas.BatchSize`.
-	SagasBatchSizeEnvVarKey = "DINNER_DONE_BETTER_SAGAS_BATCH_SIZE"
+	// SagaRetentionJobScheduleEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Saga.Retention.Job.Schedule`,
+	// `DBCleanerConfig.Service.Saga.Retention.Job.Schedule`,
+	// `SchedulerConfig.Service.Saga.Retention.Job.Schedule`,
+	// `AsyncMessageHandlerConfig.Service.Saga.Retention.Job.Schedule`.
+	SagaRetentionJobScheduleEnvVarKey = "DINNER_DONE_BETTER_SAGA_RETENTION_JOB_SCHEDULE"
 
-	// SagasCompensationBackoffInitialDelayEnvVarKey is the environment variable name to set to
-	// override `SchedulerConfig.Sagas.CompensationBackoff.InitialDelay`.
-	SagasCompensationBackoffInitialDelayEnvVarKey = "DINNER_DONE_BETTER_SAGAS_COMPENSATION_BACKOFF_INITIAL_DELAY"
+	// SagaRetentionJobTimeoutEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Saga.Retention.Job.Timeout`,
+	// `DBCleanerConfig.Service.Saga.Retention.Job.Timeout`,
+	// `SchedulerConfig.Service.Saga.Retention.Job.Timeout`,
+	// `AsyncMessageHandlerConfig.Service.Saga.Retention.Job.Timeout`.
+	SagaRetentionJobTimeoutEnvVarKey = "DINNER_DONE_BETTER_SAGA_RETENTION_JOB_TIMEOUT"
 
-	// SagasCompensationBackoffMaxAttemptsEnvVarKey is the environment variable name to set to
-	// override `SchedulerConfig.Sagas.CompensationBackoff.MaxAttempts`.
-	SagasCompensationBackoffMaxAttemptsEnvVarKey = "DINNER_DONE_BETTER_SAGAS_COMPENSATION_BACKOFF_MAX_ATTEMPTS"
+	// SagaRetentionSweeperBacklogCeilingEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.Saga.Retention.Sweeper.BacklogCeiling`,
+	// `DBCleanerConfig.Service.Saga.Retention.Sweeper.BacklogCeiling`,
+	// `SchedulerConfig.Service.Saga.Retention.Sweeper.BacklogCeiling`,
+	// `AsyncMessageHandlerConfig.Service.Saga.Retention.Sweeper.BacklogCeiling`.
+	SagaRetentionSweeperBacklogCeilingEnvVarKey = "DINNER_DONE_BETTER_SAGA_RETENTION_SWEEPER_BACKLOG_CEILING"
 
-	// SagasCompensationBackoffMaxDelayEnvVarKey is the environment variable name to set to
-	// override `SchedulerConfig.Sagas.CompensationBackoff.MaxDelay`.
-	SagasCompensationBackoffMaxDelayEnvVarKey = "DINNER_DONE_BETTER_SAGAS_COMPENSATION_BACKOFF_MAX_DELAY"
+	// SagaRetentionSweeperBatchPauseEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Saga.Retention.Sweeper.BatchPause`,
+	// `DBCleanerConfig.Service.Saga.Retention.Sweeper.BatchPause`,
+	// `SchedulerConfig.Service.Saga.Retention.Sweeper.BatchPause`,
+	// `AsyncMessageHandlerConfig.Service.Saga.Retention.Sweeper.BatchPause`.
+	SagaRetentionSweeperBatchPauseEnvVarKey = "DINNER_DONE_BETTER_SAGA_RETENTION_SWEEPER_BATCH_PAUSE"
 
-	// SagasCompensationBackoffMultiplierEnvVarKey is the environment variable name to set to
-	// override `SchedulerConfig.Sagas.CompensationBackoff.Multiplier`.
-	SagasCompensationBackoffMultiplierEnvVarKey = "DINNER_DONE_BETTER_SAGAS_COMPENSATION_BACKOFF_MULTIPLIER"
+	// SagaRetentionSweeperBatchSizeEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Saga.Retention.Sweeper.BatchSize`,
+	// `DBCleanerConfig.Service.Saga.Retention.Sweeper.BatchSize`,
+	// `SchedulerConfig.Service.Saga.Retention.Sweeper.BatchSize`,
+	// `AsyncMessageHandlerConfig.Service.Saga.Retention.Sweeper.BatchSize`.
+	SagaRetentionSweeperBatchSizeEnvVarKey = "DINNER_DONE_BETTER_SAGA_RETENTION_SWEEPER_BATCH_SIZE"
 
-	// SagasCompensationBackoffProviderEnvVarKey is the environment variable name to set to
-	// override `SchedulerConfig.Sagas.CompensationBackoff.Provider`.
-	SagasCompensationBackoffProviderEnvVarKey = "DINNER_DONE_BETTER_SAGAS_COMPENSATION_BACKOFF_PROVIDER"
+	// SagaRetentionSweeperMaxBatchesEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Saga.Retention.Sweeper.MaxBatches`,
+	// `DBCleanerConfig.Service.Saga.Retention.Sweeper.MaxBatches`,
+	// `SchedulerConfig.Service.Saga.Retention.Sweeper.MaxBatches`,
+	// `AsyncMessageHandlerConfig.Service.Saga.Retention.Sweeper.MaxBatches`.
+	SagaRetentionSweeperMaxBatchesEnvVarKey = "DINNER_DONE_BETTER_SAGA_RETENTION_SWEEPER_MAX_BATCHES"
 
-	// SagasCompensationBackoffUseJitterEnvVarKey is the environment variable name to set to
-	// override `SchedulerConfig.Sagas.CompensationBackoff.UseJitter`.
-	SagasCompensationBackoffUseJitterEnvVarKey = "DINNER_DONE_BETTER_SAGAS_COMPENSATION_BACKOFF_USE_JITTER"
+	// SagaTablePrefixEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Saga.TablePrefix`, `DBCleanerConfig.Service.Saga.TablePrefix`,
+	// `SchedulerConfig.Service.Saga.TablePrefix`,
+	// `AsyncMessageHandlerConfig.Service.Saga.TablePrefix`.
+	SagaTablePrefixEnvVarKey = "DINNER_DONE_BETTER_SAGA_TABLE_PREFIX"
 
-	// SagasConcurrencyEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Sagas.Concurrency`.
-	SagasConcurrencyEnvVarKey = "DINNER_DONE_BETTER_SAGAS_CONCURRENCY"
+	// SagaWorkerAdvanceTimeoutEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Saga.Worker.AdvanceTimeout`,
+	// `DBCleanerConfig.Service.Saga.Worker.AdvanceTimeout`,
+	// `SchedulerConfig.Service.Saga.Worker.AdvanceTimeout`,
+	// `AsyncMessageHandlerConfig.Service.Saga.Worker.AdvanceTimeout`.
+	SagaWorkerAdvanceTimeoutEnvVarKey = "DINNER_DONE_BETTER_SAGA_WORKER_ADVANCE_TIMEOUT"
 
-	// SagasIdempotencyKeyPrefixEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Sagas.IdempotencyKeyPrefix`.
-	SagasIdempotencyKeyPrefixEnvVarKey = "DINNER_DONE_BETTER_SAGAS_IDEMPOTENCY_KEY_PREFIX"
+	// SagaWorkerBackoffInitialDelayEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Saga.Worker.Backoff.InitialDelay`,
+	// `DBCleanerConfig.Service.Saga.Worker.Backoff.InitialDelay`,
+	// `SchedulerConfig.Service.Saga.Worker.Backoff.InitialDelay`,
+	// `AsyncMessageHandlerConfig.Service.Saga.Worker.Backoff.InitialDelay`.
+	SagaWorkerBackoffInitialDelayEnvVarKey = "DINNER_DONE_BETTER_SAGA_WORKER_BACKOFF_INITIAL_DELAY"
 
-	// SagasLeaseDurationEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Sagas.LeaseDuration`.
-	SagasLeaseDurationEnvVarKey = "DINNER_DONE_BETTER_SAGAS_LEASE_DURATION"
+	// SagaWorkerBackoffMaxAttemptsEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Saga.Worker.Backoff.MaxAttempts`,
+	// `DBCleanerConfig.Service.Saga.Worker.Backoff.MaxAttempts`,
+	// `SchedulerConfig.Service.Saga.Worker.Backoff.MaxAttempts`,
+	// `AsyncMessageHandlerConfig.Service.Saga.Worker.Backoff.MaxAttempts`.
+	SagaWorkerBackoffMaxAttemptsEnvVarKey = "DINNER_DONE_BETTER_SAGA_WORKER_BACKOFF_MAX_ATTEMPTS"
 
-	// SagasLockKeyPrefixEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Sagas.LockKeyPrefix`.
-	SagasLockKeyPrefixEnvVarKey = "DINNER_DONE_BETTER_SAGAS_LOCK_KEY_PREFIX"
+	// SagaWorkerBackoffMaxDelayEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Saga.Worker.Backoff.MaxDelay`,
+	// `DBCleanerConfig.Service.Saga.Worker.Backoff.MaxDelay`,
+	// `SchedulerConfig.Service.Saga.Worker.Backoff.MaxDelay`,
+	// `AsyncMessageHandlerConfig.Service.Saga.Worker.Backoff.MaxDelay`.
+	SagaWorkerBackoffMaxDelayEnvVarKey = "DINNER_DONE_BETTER_SAGA_WORKER_BACKOFF_MAX_DELAY"
 
-	// SagasLockTTLEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Sagas.LockTTL`.
-	SagasLockTTLEnvVarKey = "DINNER_DONE_BETTER_SAGAS_LOCK_TTL"
+	// SagaWorkerBackoffMultiplierEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Saga.Worker.Backoff.Multiplier`,
+	// `DBCleanerConfig.Service.Saga.Worker.Backoff.Multiplier`,
+	// `SchedulerConfig.Service.Saga.Worker.Backoff.Multiplier`,
+	// `AsyncMessageHandlerConfig.Service.Saga.Worker.Backoff.Multiplier`.
+	SagaWorkerBackoffMultiplierEnvVarKey = "DINNER_DONE_BETTER_SAGA_WORKER_BACKOFF_MULTIPLIER"
 
-	// SagasPollIntervalEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Sagas.PollInterval`.
-	SagasPollIntervalEnvVarKey = "DINNER_DONE_BETTER_SAGAS_POLL_INTERVAL"
+	// SagaWorkerBackoffProviderEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Saga.Worker.Backoff.Provider`,
+	// `DBCleanerConfig.Service.Saga.Worker.Backoff.Provider`,
+	// `SchedulerConfig.Service.Saga.Worker.Backoff.Provider`,
+	// `AsyncMessageHandlerConfig.Service.Saga.Worker.Backoff.Provider`.
+	SagaWorkerBackoffProviderEnvVarKey = "DINNER_DONE_BETTER_SAGA_WORKER_BACKOFF_PROVIDER"
 
-	// SagasStatsIntervalEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Sagas.StatsInterval`.
-	SagasStatsIntervalEnvVarKey = "DINNER_DONE_BETTER_SAGAS_STATS_INTERVAL"
+	// SagaWorkerBackoffUseJitterEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Saga.Worker.Backoff.UseJitter`,
+	// `DBCleanerConfig.Service.Saga.Worker.Backoff.UseJitter`,
+	// `SchedulerConfig.Service.Saga.Worker.Backoff.UseJitter`,
+	// `AsyncMessageHandlerConfig.Service.Saga.Worker.Backoff.UseJitter`.
+	SagaWorkerBackoffUseJitterEnvVarKey = "DINNER_DONE_BETTER_SAGA_WORKER_BACKOFF_USE_JITTER"
 
-	// SagasStepTimeoutEnvVarKey is the environment variable name to set to override
-	// `SchedulerConfig.Sagas.StepTimeout`.
-	SagasStepTimeoutEnvVarKey = "DINNER_DONE_BETTER_SAGAS_STEP_TIMEOUT"
+	// SagaWorkerBatchSizeEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Saga.Worker.BatchSize`,
+	// `DBCleanerConfig.Service.Saga.Worker.BatchSize`,
+	// `SchedulerConfig.Service.Saga.Worker.BatchSize`,
+	// `AsyncMessageHandlerConfig.Service.Saga.Worker.BatchSize`.
+	SagaWorkerBatchSizeEnvVarKey = "DINNER_DONE_BETTER_SAGA_WORKER_BATCH_SIZE"
+
+	// SagaWorkerCompensationBackoffInitialDelayEnvVarKey is the environment variable name to set
+	// to override `APIServiceConfig.Service.Saga.Worker.CompensationBackoff.InitialDelay`,
+	// `DBCleanerConfig.Service.Saga.Worker.CompensationBackoff.InitialDelay`,
+	// `SchedulerConfig.Service.Saga.Worker.CompensationBackoff.InitialDelay`,
+	// `AsyncMessageHandlerConfig.Service.Saga.Worker.CompensationBackoff.InitialDelay`.
+	SagaWorkerCompensationBackoffInitialDelayEnvVarKey = "DINNER_DONE_BETTER_SAGA_WORKER_COMPENSATION_BACKOFF_INITIAL_DELAY"
+
+	// SagaWorkerCompensationBackoffMaxAttemptsEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.Saga.Worker.CompensationBackoff.MaxAttempts`,
+	// `DBCleanerConfig.Service.Saga.Worker.CompensationBackoff.MaxAttempts`,
+	// `SchedulerConfig.Service.Saga.Worker.CompensationBackoff.MaxAttempts`,
+	// `AsyncMessageHandlerConfig.Service.Saga.Worker.CompensationBackoff.MaxAttempts`.
+	SagaWorkerCompensationBackoffMaxAttemptsEnvVarKey = "DINNER_DONE_BETTER_SAGA_WORKER_COMPENSATION_BACKOFF_MAX_ATTEMPTS"
+
+	// SagaWorkerCompensationBackoffMaxDelayEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.Saga.Worker.CompensationBackoff.MaxDelay`,
+	// `DBCleanerConfig.Service.Saga.Worker.CompensationBackoff.MaxDelay`,
+	// `SchedulerConfig.Service.Saga.Worker.CompensationBackoff.MaxDelay`,
+	// `AsyncMessageHandlerConfig.Service.Saga.Worker.CompensationBackoff.MaxDelay`.
+	SagaWorkerCompensationBackoffMaxDelayEnvVarKey = "DINNER_DONE_BETTER_SAGA_WORKER_COMPENSATION_BACKOFF_MAX_DELAY"
+
+	// SagaWorkerCompensationBackoffMultiplierEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.Saga.Worker.CompensationBackoff.Multiplier`,
+	// `DBCleanerConfig.Service.Saga.Worker.CompensationBackoff.Multiplier`,
+	// `SchedulerConfig.Service.Saga.Worker.CompensationBackoff.Multiplier`,
+	// `AsyncMessageHandlerConfig.Service.Saga.Worker.CompensationBackoff.Multiplier`.
+	SagaWorkerCompensationBackoffMultiplierEnvVarKey = "DINNER_DONE_BETTER_SAGA_WORKER_COMPENSATION_BACKOFF_MULTIPLIER"
+
+	// SagaWorkerCompensationBackoffProviderEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.Saga.Worker.CompensationBackoff.Provider`,
+	// `DBCleanerConfig.Service.Saga.Worker.CompensationBackoff.Provider`,
+	// `SchedulerConfig.Service.Saga.Worker.CompensationBackoff.Provider`,
+	// `AsyncMessageHandlerConfig.Service.Saga.Worker.CompensationBackoff.Provider`.
+	SagaWorkerCompensationBackoffProviderEnvVarKey = "DINNER_DONE_BETTER_SAGA_WORKER_COMPENSATION_BACKOFF_PROVIDER"
+
+	// SagaWorkerCompensationBackoffUseJitterEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.Saga.Worker.CompensationBackoff.UseJitter`,
+	// `DBCleanerConfig.Service.Saga.Worker.CompensationBackoff.UseJitter`,
+	// `SchedulerConfig.Service.Saga.Worker.CompensationBackoff.UseJitter`,
+	// `AsyncMessageHandlerConfig.Service.Saga.Worker.CompensationBackoff.UseJitter`.
+	SagaWorkerCompensationBackoffUseJitterEnvVarKey = "DINNER_DONE_BETTER_SAGA_WORKER_COMPENSATION_BACKOFF_USE_JITTER"
+
+	// SagaWorkerConcurrencyEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Saga.Worker.Concurrency`,
+	// `DBCleanerConfig.Service.Saga.Worker.Concurrency`,
+	// `SchedulerConfig.Service.Saga.Worker.Concurrency`,
+	// `AsyncMessageHandlerConfig.Service.Saga.Worker.Concurrency`.
+	SagaWorkerConcurrencyEnvVarKey = "DINNER_DONE_BETTER_SAGA_WORKER_CONCURRENCY"
+
+	// SagaWorkerIdempotencyKeyPrefixEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Saga.Worker.IdempotencyKeyPrefix`,
+	// `DBCleanerConfig.Service.Saga.Worker.IdempotencyKeyPrefix`,
+	// `SchedulerConfig.Service.Saga.Worker.IdempotencyKeyPrefix`,
+	// `AsyncMessageHandlerConfig.Service.Saga.Worker.IdempotencyKeyPrefix`.
+	SagaWorkerIdempotencyKeyPrefixEnvVarKey = "DINNER_DONE_BETTER_SAGA_WORKER_IDEMPOTENCY_KEY_PREFIX"
+
+	// SagaWorkerLeaseDurationEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Saga.Worker.LeaseDuration`,
+	// `DBCleanerConfig.Service.Saga.Worker.LeaseDuration`,
+	// `SchedulerConfig.Service.Saga.Worker.LeaseDuration`,
+	// `AsyncMessageHandlerConfig.Service.Saga.Worker.LeaseDuration`.
+	SagaWorkerLeaseDurationEnvVarKey = "DINNER_DONE_BETTER_SAGA_WORKER_LEASE_DURATION"
+
+	// SagaWorkerLockKeyPrefixEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Saga.Worker.LockKeyPrefix`,
+	// `DBCleanerConfig.Service.Saga.Worker.LockKeyPrefix`,
+	// `SchedulerConfig.Service.Saga.Worker.LockKeyPrefix`,
+	// `AsyncMessageHandlerConfig.Service.Saga.Worker.LockKeyPrefix`.
+	SagaWorkerLockKeyPrefixEnvVarKey = "DINNER_DONE_BETTER_SAGA_WORKER_LOCK_KEY_PREFIX"
+
+	// SagaWorkerLockTTLEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Saga.Worker.LockTTL`,
+	// `DBCleanerConfig.Service.Saga.Worker.LockTTL`,
+	// `SchedulerConfig.Service.Saga.Worker.LockTTL`,
+	// `AsyncMessageHandlerConfig.Service.Saga.Worker.LockTTL`.
+	SagaWorkerLockTTLEnvVarKey = "DINNER_DONE_BETTER_SAGA_WORKER_LOCK_TTL"
+
+	// SagaWorkerPollIntervalEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Saga.Worker.PollInterval`,
+	// `DBCleanerConfig.Service.Saga.Worker.PollInterval`,
+	// `SchedulerConfig.Service.Saga.Worker.PollInterval`,
+	// `AsyncMessageHandlerConfig.Service.Saga.Worker.PollInterval`.
+	SagaWorkerPollIntervalEnvVarKey = "DINNER_DONE_BETTER_SAGA_WORKER_POLL_INTERVAL"
+
+	// SagaWorkerStatsIntervalEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Saga.Worker.StatsInterval`,
+	// `DBCleanerConfig.Service.Saga.Worker.StatsInterval`,
+	// `SchedulerConfig.Service.Saga.Worker.StatsInterval`,
+	// `AsyncMessageHandlerConfig.Service.Saga.Worker.StatsInterval`.
+	SagaWorkerStatsIntervalEnvVarKey = "DINNER_DONE_BETTER_SAGA_WORKER_STATS_INTERVAL"
+
+	// SagaWorkerStepTimeoutEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Saga.Worker.StepTimeout`,
+	// `DBCleanerConfig.Service.Saga.Worker.StepTimeout`,
+	// `SchedulerConfig.Service.Saga.Worker.StepTimeout`,
+	// `AsyncMessageHandlerConfig.Service.Saga.Worker.StepTimeout`.
+	SagaWorkerStepTimeoutEnvVarKey = "DINNER_DONE_BETTER_SAGA_WORKER_STEP_TIMEOUT"
 
 	// SearchAlgoliaAPIKeyEnvVarKey is the environment variable name to set to override
 	// `APIServiceConfig.TextSearch.Algolia.APIKey`, `SchedulerConfig.Search.Algolia.APIKey`,
@@ -2607,6 +4615,58 @@ const (
 	// `APIServiceConfig.TextSearch.Provider`, `SchedulerConfig.Search.Provider`,
 	// `AsyncMessageHandlerConfig.Search.Provider`.
 	SearchProviderEnvVarKey = "DINNER_DONE_BETTER_SEARCH_PROVIDER"
+
+	// SecretsCacheTTLEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Secrets.CacheTTL`, `DBCleanerConfig.Service.Secrets.CacheTTL`,
+	// `SchedulerConfig.Service.Secrets.CacheTTL`,
+	// `AsyncMessageHandlerConfig.Service.Secrets.CacheTTL`.
+	SecretsCacheTTLEnvVarKey = "DINNER_DONE_BETTER_SECRETS_CACHE_TTL"
+
+	// SecretsGcpProjectIDEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Secrets.GCP.ProjectID`,
+	// `DBCleanerConfig.Service.Secrets.GCP.ProjectID`,
+	// `SchedulerConfig.Service.Secrets.GCP.ProjectID`,
+	// `AsyncMessageHandlerConfig.Service.Secrets.GCP.ProjectID`.
+	SecretsGcpProjectIDEnvVarKey = "DINNER_DONE_BETTER_SECRETS_GCP_PROJECT_ID"
+
+	// SecretsKubernetesKubeconfigEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Secrets.Kubernetes.Kubeconfig`,
+	// `DBCleanerConfig.Service.Secrets.Kubernetes.Kubeconfig`,
+	// `SchedulerConfig.Service.Secrets.Kubernetes.Kubeconfig`,
+	// `AsyncMessageHandlerConfig.Service.Secrets.Kubernetes.Kubeconfig`.
+	SecretsKubernetesKubeconfigEnvVarKey = "DINNER_DONE_BETTER_SECRETS_KUBERNETES_KUBECONFIG"
+
+	// SecretsKubernetesNamespaceEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Secrets.Kubernetes.Namespace`,
+	// `DBCleanerConfig.Service.Secrets.Kubernetes.Namespace`,
+	// `SchedulerConfig.Service.Secrets.Kubernetes.Namespace`,
+	// `AsyncMessageHandlerConfig.Service.Secrets.Kubernetes.Namespace`.
+	SecretsKubernetesNamespaceEnvVarKey = "DINNER_DONE_BETTER_SECRETS_KUBERNETES_NAMESPACE"
+
+	// SecretsProviderEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Secrets.Provider`, `DBCleanerConfig.Service.Secrets.Provider`,
+	// `SchedulerConfig.Service.Secrets.Provider`,
+	// `AsyncMessageHandlerConfig.Service.Secrets.Provider`.
+	SecretsProviderEnvVarKey = "DINNER_DONE_BETTER_SECRETS_PROVIDER"
+
+	// SecretsRefreshIntervalEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Secrets.RefreshInterval`,
+	// `DBCleanerConfig.Service.Secrets.RefreshInterval`,
+	// `SchedulerConfig.Service.Secrets.RefreshInterval`,
+	// `AsyncMessageHandlerConfig.Service.Secrets.RefreshInterval`.
+	SecretsRefreshIntervalEnvVarKey = "DINNER_DONE_BETTER_SECRETS_REFRESH_INTERVAL"
+
+	// SecretsSsmPrefixEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Secrets.SSM.Prefix`, `DBCleanerConfig.Service.Secrets.SSM.Prefix`,
+	// `SchedulerConfig.Service.Secrets.SSM.Prefix`,
+	// `AsyncMessageHandlerConfig.Service.Secrets.SSM.Prefix`.
+	SecretsSsmPrefixEnvVarKey = "DINNER_DONE_BETTER_SECRETS_SSM_PREFIX"
+
+	// SecretsSsmRegionEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Secrets.SSM.Region`, `DBCleanerConfig.Service.Secrets.SSM.Region`,
+	// `SchedulerConfig.Service.Secrets.SSM.Region`,
+	// `AsyncMessageHandlerConfig.Service.Secrets.SSM.Region`.
+	SecretsSsmRegionEnvVarKey = "DINNER_DONE_BETTER_SECRETS_SSM_REGION"
 
 	// ServiceAuthDebugEnvVarKey is the environment variable name to set to override
 	// `APIServiceConfig.Services.Auth.Debug`.
@@ -2753,250 +4813,172 @@ const (
 	// override `APIServiceConfig.Services.DataPrivacy.ArtifactEncryptionKey`.
 	ServiceDataPrivacyArtifactEncryptionKeyEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_ARTIFACT_ENCRYPTION_KEY"
 
-	// ServiceDataPrivacyEncryptionCurrentKeyIDEnvVarKey is the environment variable name to set to
-	// override `APIServiceConfig.Services.DataPrivacy.Encryption.CurrentKeyID`.
-	ServiceDataPrivacyEncryptionCurrentKeyIDEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_ENCRYPTION_CURRENT_KEY_ID"
-
-	// ServiceDataPrivacyEncryptionProviderEnvVarKey is the environment variable name to set to
-	// override `APIServiceConfig.Services.DataPrivacy.Encryption.Provider`.
-	ServiceDataPrivacyEncryptionProviderEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_ENCRYPTION_PROVIDER"
-
-	// ServiceDataPrivacyRequestsArtifactsEncryptionCurrentKeyIDEnvVarKey is the environment
+	// ServiceDataPrivacyPlatformArtifactsEncryptionCurrentKeyIDEnvVarKey is the environment
 	// variable name to set to override
-	// `APIServiceConfig.Services.DataPrivacy.Requests.Artifacts.Encryption.CurrentKeyID`.
-	ServiceDataPrivacyRequestsArtifactsEncryptionCurrentKeyIDEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_ARTIFACTS_ENCRYPTION_CURRENT_KEY_ID"
+	// `APIServiceConfig.Services.DataPrivacy.Platform.Artifacts.Encryption.CurrentKeyID`.
+	ServiceDataPrivacyPlatformArtifactsEncryptionCurrentKeyIDEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_PLATFORM_ARTIFACTS_ENCRYPTION_CURRENT_KEY_ID"
 
-	// ServiceDataPrivacyRequestsArtifactsEncryptionProviderEnvVarKey is the environment variable
+	// ServiceDataPrivacyPlatformArtifactsEncryptionProviderEnvVarKey is the environment variable
 	// name to set to override
-	// `APIServiceConfig.Services.DataPrivacy.Requests.Artifacts.Encryption.Provider`.
-	ServiceDataPrivacyRequestsArtifactsEncryptionProviderEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_ARTIFACTS_ENCRYPTION_PROVIDER"
+	// `APIServiceConfig.Services.DataPrivacy.Platform.Artifacts.Encryption.Provider`.
+	ServiceDataPrivacyPlatformArtifactsEncryptionProviderEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_PLATFORM_ARTIFACTS_ENCRYPTION_PROVIDER"
 
-	// ServiceDataPrivacyRequestsArtifactsStorageBackblazeB2ApplicationKeyEnvVarKey is the
+	// ServiceDataPrivacyPlatformArtifactsStorageBackblazeB2ApplicationKeyEnvVarKey is the
 	// environment variable name to set to override
-	// `APIServiceConfig.Services.DataPrivacy.Requests.Artifacts.Storage.BackblazeB2Config.ApplicationKey`.
-	ServiceDataPrivacyRequestsArtifactsStorageBackblazeB2ApplicationKeyEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_ARTIFACTS_STORAGE_BACKBLAZE_B2_APPLICATION_KEY"
+	// `APIServiceConfig.Services.DataPrivacy.Platform.Artifacts.Storage.BackblazeB2Config.ApplicationKey`.
+	ServiceDataPrivacyPlatformArtifactsStorageBackblazeB2ApplicationKeyEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_PLATFORM_ARTIFACTS_STORAGE_BACKBLAZE_B2_APPLICATION_KEY"
 
-	// ServiceDataPrivacyRequestsArtifactsStorageBackblazeB2ApplicationKeyIDEnvVarKey is the
+	// ServiceDataPrivacyPlatformArtifactsStorageBackblazeB2ApplicationKeyIDEnvVarKey is the
 	// environment variable name to set to override
-	// `APIServiceConfig.Services.DataPrivacy.Requests.Artifacts.Storage.BackblazeB2Config.ApplicationKeyID`.
-	ServiceDataPrivacyRequestsArtifactsStorageBackblazeB2ApplicationKeyIDEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_ARTIFACTS_STORAGE_BACKBLAZE_B2_APPLICATION_KEY_ID"
+	// `APIServiceConfig.Services.DataPrivacy.Platform.Artifacts.Storage.BackblazeB2Config.ApplicationKeyID`.
+	ServiceDataPrivacyPlatformArtifactsStorageBackblazeB2ApplicationKeyIDEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_PLATFORM_ARTIFACTS_STORAGE_BACKBLAZE_B2_APPLICATION_KEY_ID"
 
-	// ServiceDataPrivacyRequestsArtifactsStorageBackblazeB2RegionEnvVarKey is the environment
+	// ServiceDataPrivacyPlatformArtifactsStorageBackblazeB2RegionEnvVarKey is the environment
 	// variable name to set to override
-	// `APIServiceConfig.Services.DataPrivacy.Requests.Artifacts.Storage.BackblazeB2Config.Region`.
-	ServiceDataPrivacyRequestsArtifactsStorageBackblazeB2RegionEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_ARTIFACTS_STORAGE_BACKBLAZE_B2_REGION"
+	// `APIServiceConfig.Services.DataPrivacy.Platform.Artifacts.Storage.BackblazeB2Config.Region`.
+	ServiceDataPrivacyPlatformArtifactsStorageBackblazeB2RegionEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_PLATFORM_ARTIFACTS_STORAGE_BACKBLAZE_B2_REGION"
 
-	// ServiceDataPrivacyRequestsArtifactsStorageBucketNameEnvVarKey is the environment variable
+	// ServiceDataPrivacyPlatformArtifactsStorageBucketNameEnvVarKey is the environment variable
 	// name to set to override
-	// `APIServiceConfig.Services.DataPrivacy.Requests.Artifacts.Storage.BucketName`.
-	ServiceDataPrivacyRequestsArtifactsStorageBucketNameEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_ARTIFACTS_STORAGE_BUCKET_NAME"
+	// `APIServiceConfig.Services.DataPrivacy.Platform.Artifacts.Storage.BucketName`.
+	ServiceDataPrivacyPlatformArtifactsStorageBucketNameEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_PLATFORM_ARTIFACTS_STORAGE_BUCKET_NAME"
 
-	// ServiceDataPrivacyRequestsArtifactsStorageBucketPrefixEnvVarKey is the environment variable
+	// ServiceDataPrivacyPlatformArtifactsStorageBucketPrefixEnvVarKey is the environment variable
 	// name to set to override
-	// `APIServiceConfig.Services.DataPrivacy.Requests.Artifacts.Storage.BucketPrefix`.
-	ServiceDataPrivacyRequestsArtifactsStorageBucketPrefixEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_ARTIFACTS_STORAGE_BUCKET_PREFIX"
+	// `APIServiceConfig.Services.DataPrivacy.Platform.Artifacts.Storage.BucketPrefix`.
+	ServiceDataPrivacyPlatformArtifactsStorageBucketPrefixEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_PLATFORM_ARTIFACTS_STORAGE_BUCKET_PREFIX"
 
-	// ServiceDataPrivacyRequestsArtifactsStorageCircuitBreakingErrorRateEnvVarKey is the
+	// ServiceDataPrivacyPlatformArtifactsStorageCircuitBreakingErrorRateEnvVarKey is the
 	// environment variable name to set to override
-	// `APIServiceConfig.Services.DataPrivacy.Requests.Artifacts.Storage.CircuitBreaker.ErrorRate`.
-	ServiceDataPrivacyRequestsArtifactsStorageCircuitBreakingErrorRateEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_ARTIFACTS_STORAGE_CIRCUIT_BREAKING_ERROR_RATE"
+	// `APIServiceConfig.Services.DataPrivacy.Platform.Artifacts.Storage.CircuitBreaker.ErrorRate`.
+	ServiceDataPrivacyPlatformArtifactsStorageCircuitBreakingErrorRateEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_PLATFORM_ARTIFACTS_STORAGE_CIRCUIT_BREAKING_ERROR_RATE"
 
-	// ServiceDataPrivacyRequestsArtifactsStorageCircuitBreakingMinimumSampleThresholdEnvVarKey is
+	// ServiceDataPrivacyPlatformArtifactsStorageCircuitBreakingMinimumSampleThresholdEnvVarKey is
 	// the environment variable name to set to override
-	// `APIServiceConfig.Services.DataPrivacy.Requests.Artifacts.Storage.CircuitBreaker.MinimumSampleThreshold`.
-	ServiceDataPrivacyRequestsArtifactsStorageCircuitBreakingMinimumSampleThresholdEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_ARTIFACTS_STORAGE_CIRCUIT_BREAKING_MINIMUM_SAMPLE_THRESHOLD"
+	// `APIServiceConfig.Services.DataPrivacy.Platform.Artifacts.Storage.CircuitBreaker.MinimumSampleThreshold`.
+	ServiceDataPrivacyPlatformArtifactsStorageCircuitBreakingMinimumSampleThresholdEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_PLATFORM_ARTIFACTS_STORAGE_CIRCUIT_BREAKING_MINIMUM_SAMPLE_THRESHOLD"
 
-	// ServiceDataPrivacyRequestsArtifactsStorageCircuitBreakingNameEnvVarKey is the environment
+	// ServiceDataPrivacyPlatformArtifactsStorageCircuitBreakingNameEnvVarKey is the environment
 	// variable name to set to override
-	// `APIServiceConfig.Services.DataPrivacy.Requests.Artifacts.Storage.CircuitBreaker.Name`.
-	ServiceDataPrivacyRequestsArtifactsStorageCircuitBreakingNameEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_ARTIFACTS_STORAGE_CIRCUIT_BREAKING_NAME"
+	// `APIServiceConfig.Services.DataPrivacy.Platform.Artifacts.Storage.CircuitBreaker.Name`.
+	ServiceDataPrivacyPlatformArtifactsStorageCircuitBreakingNameEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_PLATFORM_ARTIFACTS_STORAGE_CIRCUIT_BREAKING_NAME"
 
-	// ServiceDataPrivacyRequestsArtifactsStorageFilesystemDirectoryModeEnvVarKey is the
+	// ServiceDataPrivacyPlatformArtifactsStorageFilesystemDirectoryModeEnvVarKey is the
 	// environment variable name to set to override
-	// `APIServiceConfig.Services.DataPrivacy.Requests.Artifacts.Storage.FilesystemConfig.DirectoryMode`.
-	ServiceDataPrivacyRequestsArtifactsStorageFilesystemDirectoryModeEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_ARTIFACTS_STORAGE_FILESYSTEM_DIRECTORY_MODE"
+	// `APIServiceConfig.Services.DataPrivacy.Platform.Artifacts.Storage.FilesystemConfig.DirectoryMode`.
+	ServiceDataPrivacyPlatformArtifactsStorageFilesystemDirectoryModeEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_PLATFORM_ARTIFACTS_STORAGE_FILESYSTEM_DIRECTORY_MODE"
 
-	// ServiceDataPrivacyRequestsArtifactsStorageFilesystemRootDirectoryEnvVarKey is the
+	// ServiceDataPrivacyPlatformArtifactsStorageFilesystemRootDirectoryEnvVarKey is the
 	// environment variable name to set to override
-	// `APIServiceConfig.Services.DataPrivacy.Requests.Artifacts.Storage.FilesystemConfig.RootDirectory`.
-	ServiceDataPrivacyRequestsArtifactsStorageFilesystemRootDirectoryEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_ARTIFACTS_STORAGE_FILESYSTEM_ROOT_DIRECTORY"
+	// `APIServiceConfig.Services.DataPrivacy.Platform.Artifacts.Storage.FilesystemConfig.RootDirectory`.
+	ServiceDataPrivacyPlatformArtifactsStorageFilesystemRootDirectoryEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_PLATFORM_ARTIFACTS_STORAGE_FILESYSTEM_ROOT_DIRECTORY"
 
-	// ServiceDataPrivacyRequestsArtifactsStorageProviderEnvVarKey is the environment variable name
+	// ServiceDataPrivacyPlatformArtifactsStorageProviderEnvVarKey is the environment variable name
 	// to set to override
-	// `APIServiceConfig.Services.DataPrivacy.Requests.Artifacts.Storage.Provider`.
-	ServiceDataPrivacyRequestsArtifactsStorageProviderEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_ARTIFACTS_STORAGE_PROVIDER"
+	// `APIServiceConfig.Services.DataPrivacy.Platform.Artifacts.Storage.Provider`.
+	ServiceDataPrivacyPlatformArtifactsStorageProviderEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_PLATFORM_ARTIFACTS_STORAGE_PROVIDER"
 
-	// ServiceDataPrivacyRequestsArtifactsStorageR2AccessKeyIDEnvVarKey is the environment variable
+	// ServiceDataPrivacyPlatformArtifactsStorageR2AccessKeyIDEnvVarKey is the environment variable
 	// name to set to override
-	// `APIServiceConfig.Services.DataPrivacy.Requests.Artifacts.Storage.R2Config.AccessKeyID`.
-	ServiceDataPrivacyRequestsArtifactsStorageR2AccessKeyIDEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_ARTIFACTS_STORAGE_R2_ACCESS_KEY_ID"
+	// `APIServiceConfig.Services.DataPrivacy.Platform.Artifacts.Storage.R2Config.AccessKeyID`.
+	ServiceDataPrivacyPlatformArtifactsStorageR2AccessKeyIDEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_PLATFORM_ARTIFACTS_STORAGE_R2_ACCESS_KEY_ID"
 
-	// ServiceDataPrivacyRequestsArtifactsStorageR2AccountIDEnvVarKey is the environment variable
+	// ServiceDataPrivacyPlatformArtifactsStorageR2AccountIDEnvVarKey is the environment variable
 	// name to set to override
-	// `APIServiceConfig.Services.DataPrivacy.Requests.Artifacts.Storage.R2Config.AccountID`.
-	ServiceDataPrivacyRequestsArtifactsStorageR2AccountIDEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_ARTIFACTS_STORAGE_R2_ACCOUNT_ID"
+	// `APIServiceConfig.Services.DataPrivacy.Platform.Artifacts.Storage.R2Config.AccountID`.
+	ServiceDataPrivacyPlatformArtifactsStorageR2AccountIDEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_PLATFORM_ARTIFACTS_STORAGE_R2_ACCOUNT_ID"
 
-	// ServiceDataPrivacyRequestsArtifactsStorageR2SecretAccessKeyEnvVarKey is the environment
+	// ServiceDataPrivacyPlatformArtifactsStorageR2SecretAccessKeyEnvVarKey is the environment
 	// variable name to set to override
-	// `APIServiceConfig.Services.DataPrivacy.Requests.Artifacts.Storage.R2Config.SecretAccessKey`.
-	ServiceDataPrivacyRequestsArtifactsStorageR2SecretAccessKeyEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_ARTIFACTS_STORAGE_R2_SECRET_ACCESS_KEY"
+	// `APIServiceConfig.Services.DataPrivacy.Platform.Artifacts.Storage.R2Config.SecretAccessKey`.
+	ServiceDataPrivacyPlatformArtifactsStorageR2SecretAccessKeyEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_PLATFORM_ARTIFACTS_STORAGE_R2_SECRET_ACCESS_KEY"
 
-	// ServiceDataPrivacyRequestsAuditErasureDisabledEnvVarKey is the environment variable name to
-	// set to override `APIServiceConfig.Services.DataPrivacy.Requests.AuditErasure.Disabled`.
-	ServiceDataPrivacyRequestsAuditErasureDisabledEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_AUDIT_ERASURE_DISABLED"
+	// ServiceDataPrivacyPlatformAuditErasureDisabledEnvVarKey is the environment variable name to
+	// set to override `APIServiceConfig.Services.DataPrivacy.Platform.AuditErasure.Disabled`.
+	ServiceDataPrivacyPlatformAuditErasureDisabledEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_PLATFORM_AUDIT_ERASURE_DISABLED"
 
-	// ServiceDataPrivacyRequestsAuditErasureRetentionBasisEnvVarKey is the environment variable
+	// ServiceDataPrivacyPlatformAuditErasureRetentionBasisEnvVarKey is the environment variable
 	// name to set to override
-	// `APIServiceConfig.Services.DataPrivacy.Requests.AuditErasure.RetentionBasis`.
-	ServiceDataPrivacyRequestsAuditErasureRetentionBasisEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_AUDIT_ERASURE_RETENTION_BASIS"
+	// `APIServiceConfig.Services.DataPrivacy.Platform.AuditErasure.RetentionBasis`.
+	ServiceDataPrivacyPlatformAuditErasureRetentionBasisEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_PLATFORM_AUDIT_ERASURE_RETENTION_BASIS"
 
-	// ServiceDataPrivacyRequestsAuditErasureTablePrefixEnvVarKey is the environment variable name
+	// ServiceDataPrivacyPlatformAuditErasureTablePrefixEnvVarKey is the environment variable name
 	// to set to override
-	// `APIServiceConfig.Services.DataPrivacy.Requests.AuditErasure.TablePrefix`.
-	ServiceDataPrivacyRequestsAuditErasureTablePrefixEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_AUDIT_ERASURE_TABLE_PREFIX"
+	// `APIServiceConfig.Services.DataPrivacy.Platform.AuditErasure.TablePrefix`.
+	ServiceDataPrivacyPlatformAuditErasureTablePrefixEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_PLATFORM_AUDIT_ERASURE_TABLE_PREFIX"
 
-	// ServiceDataPrivacyRequestsDialectEnvVarKey is the environment variable name to set to
-	// override `APIServiceConfig.Services.DataPrivacy.Requests.Dialect`.
-	ServiceDataPrivacyRequestsDialectEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_DIALECT"
+	// ServiceDataPrivacyPlatformDialectEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Services.DataPrivacy.Platform.Dialect`.
+	ServiceDataPrivacyPlatformDialectEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_PLATFORM_DIALECT"
 
-	// ServiceDataPrivacyRequestsFulfillerArtifactPathPrefixEnvVarKey is the environment variable
+	// ServiceDataPrivacyPlatformFulfillerArtifactPathPrefixEnvVarKey is the environment variable
 	// name to set to override
-	// `APIServiceConfig.Services.DataPrivacy.Requests.Fulfiller.ArtifactPathPrefix`.
-	ServiceDataPrivacyRequestsFulfillerArtifactPathPrefixEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_FULFILLER_ARTIFACT_PATH_PREFIX"
+	// `APIServiceConfig.Services.DataPrivacy.Platform.Fulfiller.ArtifactPathPrefix`.
+	ServiceDataPrivacyPlatformFulfillerArtifactPathPrefixEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_PLATFORM_FULFILLER_ARTIFACT_PATH_PREFIX"
 
-	// ServiceDataPrivacyRequestsFulfillerArtifactTTLEnvVarKey is the environment variable name to
-	// set to override `APIServiceConfig.Services.DataPrivacy.Requests.Fulfiller.ArtifactTTL`.
-	ServiceDataPrivacyRequestsFulfillerArtifactTTLEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_FULFILLER_ARTIFACT_TTL"
+	// ServiceDataPrivacyPlatformFulfillerArtifactTTLEnvVarKey is the environment variable name to
+	// set to override `APIServiceConfig.Services.DataPrivacy.Platform.Fulfiller.ArtifactTTL`.
+	ServiceDataPrivacyPlatformFulfillerArtifactTTLEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_PLATFORM_FULFILLER_ARTIFACT_TTL"
 
-	// ServiceDataPrivacyRequestsFulfillerCollectorConcurrencyEnvVarKey is the environment variable
+	// ServiceDataPrivacyPlatformFulfillerCollectorConcurrencyEnvVarKey is the environment variable
 	// name to set to override
-	// `APIServiceConfig.Services.DataPrivacy.Requests.Fulfiller.CollectorConcurrency`.
-	ServiceDataPrivacyRequestsFulfillerCollectorConcurrencyEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_FULFILLER_COLLECTOR_CONCURRENCY"
+	// `APIServiceConfig.Services.DataPrivacy.Platform.Fulfiller.CollectorConcurrency`.
+	ServiceDataPrivacyPlatformFulfillerCollectorConcurrencyEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_PLATFORM_FULFILLER_COLLECTOR_CONCURRENCY"
 
-	// ServiceDataPrivacyRequestsFulfillerCollectorTimeoutEnvVarKey is the environment variable
+	// ServiceDataPrivacyPlatformFulfillerCollectorTimeoutEnvVarKey is the environment variable
 	// name to set to override
-	// `APIServiceConfig.Services.DataPrivacy.Requests.Fulfiller.CollectorTimeout`.
-	ServiceDataPrivacyRequestsFulfillerCollectorTimeoutEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_FULFILLER_COLLECTOR_TIMEOUT"
+	// `APIServiceConfig.Services.DataPrivacy.Platform.Fulfiller.CollectorTimeout`.
+	ServiceDataPrivacyPlatformFulfillerCollectorTimeoutEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_PLATFORM_FULFILLER_COLLECTOR_TIMEOUT"
 
-	// ServiceDataPrivacyRequestsFulfillerFulfillmentTimeoutEnvVarKey is the environment variable
+	// ServiceDataPrivacyPlatformFulfillerFulfillmentTimeoutEnvVarKey is the environment variable
 	// name to set to override
-	// `APIServiceConfig.Services.DataPrivacy.Requests.Fulfiller.FulfillmentTimeout`.
-	ServiceDataPrivacyRequestsFulfillerFulfillmentTimeoutEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_FULFILLER_FULFILLMENT_TIMEOUT"
+	// `APIServiceConfig.Services.DataPrivacy.Platform.Fulfiller.FulfillmentTimeout`.
+	ServiceDataPrivacyPlatformFulfillerFulfillmentTimeoutEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_PLATFORM_FULFILLER_FULFILLMENT_TIMEOUT"
 
-	// ServiceDataPrivacyRequestsFulfillerMaxAttemptsEnvVarKey is the environment variable name to
-	// set to override `APIServiceConfig.Services.DataPrivacy.Requests.Fulfiller.MaxAttempts`.
-	ServiceDataPrivacyRequestsFulfillerMaxAttemptsEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_FULFILLER_MAX_ATTEMPTS"
+	// ServiceDataPrivacyPlatformFulfillerMaxAttemptsEnvVarKey is the environment variable name to
+	// set to override `APIServiceConfig.Services.DataPrivacy.Platform.Fulfiller.MaxAttempts`.
+	ServiceDataPrivacyPlatformFulfillerMaxAttemptsEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_PLATFORM_FULFILLER_MAX_ATTEMPTS"
 
-	// ServiceDataPrivacyRequestsFulfillerMaxDocumentBytesEnvVarKey is the environment variable
+	// ServiceDataPrivacyPlatformFulfillerMaxDocumentBytesEnvVarKey is the environment variable
 	// name to set to override
-	// `APIServiceConfig.Services.DataPrivacy.Requests.Fulfiller.MaxDocumentBytes`.
-	ServiceDataPrivacyRequestsFulfillerMaxDocumentBytesEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_FULFILLER_MAX_DOCUMENT_BYTES"
+	// `APIServiceConfig.Services.DataPrivacy.Platform.Fulfiller.MaxDocumentBytes`.
+	ServiceDataPrivacyPlatformFulfillerMaxDocumentBytesEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_PLATFORM_FULFILLER_MAX_DOCUMENT_BYTES"
 
-	// ServiceDataPrivacyRequestsServiceConfirmationWindowEnvVarKey is the environment variable
+	// ServiceDataPrivacyPlatformServiceConfirmationWindowEnvVarKey is the environment variable
 	// name to set to override
-	// `APIServiceConfig.Services.DataPrivacy.Requests.Service.ConfirmationWindow`.
-	ServiceDataPrivacyRequestsServiceConfirmationWindowEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_SERVICE_CONFIRMATION_WINDOW"
+	// `APIServiceConfig.Services.DataPrivacy.Platform.Service.ConfirmationWindow`.
+	ServiceDataPrivacyPlatformServiceConfirmationWindowEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_PLATFORM_SERVICE_CONFIRMATION_WINDOW"
 
-	// ServiceDataPrivacyRequestsServiceErasureResponseWindowEnvVarKey is the environment variable
+	// ServiceDataPrivacyPlatformServiceErasureResponseWindowEnvVarKey is the environment variable
 	// name to set to override
-	// `APIServiceConfig.Services.DataPrivacy.Requests.Service.ErasureResponseWindow`.
-	ServiceDataPrivacyRequestsServiceErasureResponseWindowEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_SERVICE_ERASURE_RESPONSE_WINDOW"
+	// `APIServiceConfig.Services.DataPrivacy.Platform.Service.ErasureResponseWindow`.
+	ServiceDataPrivacyPlatformServiceErasureResponseWindowEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_PLATFORM_SERVICE_ERASURE_RESPONSE_WINDOW"
 
-	// ServiceDataPrivacyRequestsServiceExportResponseWindowEnvVarKey is the environment variable
+	// ServiceDataPrivacyPlatformServiceExportResponseWindowEnvVarKey is the environment variable
 	// name to set to override
-	// `APIServiceConfig.Services.DataPrivacy.Requests.Service.ExportResponseWindow`.
-	ServiceDataPrivacyRequestsServiceExportResponseWindowEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_SERVICE_EXPORT_RESPONSE_WINDOW"
+	// `APIServiceConfig.Services.DataPrivacy.Platform.Service.ExportResponseWindow`.
+	ServiceDataPrivacyPlatformServiceExportResponseWindowEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_PLATFORM_SERVICE_EXPORT_RESPONSE_WINDOW"
 
-	// ServiceDataPrivacyRequestsServiceSignedURLTTLEnvVarKey is the environment variable name to
-	// set to override `APIServiceConfig.Services.DataPrivacy.Requests.Service.SignedURLTTL`.
-	ServiceDataPrivacyRequestsServiceSignedURLTTLEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_SERVICE_SIGNED_URL_TTL"
+	// ServiceDataPrivacyPlatformServiceSignedURLTTLEnvVarKey is the environment variable name to
+	// set to override `APIServiceConfig.Services.DataPrivacy.Platform.Service.SignedURLTTL`.
+	ServiceDataPrivacyPlatformServiceSignedURLTTLEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_PLATFORM_SERVICE_SIGNED_URL_TTL"
 
-	// ServiceDataPrivacyRequestsSweeperBatchSizeEnvVarKey is the environment variable name to set
-	// to override `APIServiceConfig.Services.DataPrivacy.Requests.Sweeper.BatchSize`.
-	ServiceDataPrivacyRequestsSweeperBatchSizeEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_SWEEPER_BATCH_SIZE"
+	// ServiceDataPrivacyPlatformSweeperBatchSizeEnvVarKey is the environment variable name to set
+	// to override `APIServiceConfig.Services.DataPrivacy.Platform.Sweeper.BatchSize`.
+	ServiceDataPrivacyPlatformSweeperBatchSizeEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_PLATFORM_SWEEPER_BATCH_SIZE"
 
-	// ServiceDataPrivacyRequestsSweeperDisableReapEnvVarKey is the environment variable name to
-	// set to override `APIServiceConfig.Services.DataPrivacy.Requests.Sweeper.DisableReap`.
-	ServiceDataPrivacyRequestsSweeperDisableReapEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_SWEEPER_DISABLE_REAP"
+	// ServiceDataPrivacyPlatformSweeperDisableReapEnvVarKey is the environment variable name to
+	// set to override `APIServiceConfig.Services.DataPrivacy.Platform.Sweeper.DisableReap`.
+	ServiceDataPrivacyPlatformSweeperDisableReapEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_PLATFORM_SWEEPER_DISABLE_REAP"
 
-	// ServiceDataPrivacyRequestsSweeperRequestRetentionEnvVarKey is the environment variable name
+	// ServiceDataPrivacyPlatformSweeperRequestRetentionEnvVarKey is the environment variable name
 	// to set to override
-	// `APIServiceConfig.Services.DataPrivacy.Requests.Sweeper.RequestRetention`.
-	ServiceDataPrivacyRequestsSweeperRequestRetentionEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_SWEEPER_REQUEST_RETENTION"
+	// `APIServiceConfig.Services.DataPrivacy.Platform.Sweeper.RequestRetention`.
+	ServiceDataPrivacyPlatformSweeperRequestRetentionEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_PLATFORM_SWEEPER_REQUEST_RETENTION"
 
-	// ServiceDataPrivacyRequestsTablePrefixEnvVarKey is the environment variable name to set to
-	// override `APIServiceConfig.Services.DataPrivacy.Requests.TablePrefix`.
-	ServiceDataPrivacyRequestsTablePrefixEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_REQUESTS_TABLE_PREFIX"
-
-	// ServiceDataPrivacyUploadsDebugEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Services.DataPrivacy.Uploads.Debug`.
-	ServiceDataPrivacyUploadsDebugEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_UPLOADS_DEBUG"
-
-	// ServiceDataPrivacyUploadsStorageBackblazeB2ApplicationKeyEnvVarKey is the environment
-	// variable name to set to override
-	// `APIServiceConfig.Services.DataPrivacy.Uploads.Storage.BackblazeB2Config.ApplicationKey`.
-	ServiceDataPrivacyUploadsStorageBackblazeB2ApplicationKeyEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_UPLOADS_STORAGE_BACKBLAZE_B2_APPLICATION_KEY"
-
-	// ServiceDataPrivacyUploadsStorageBackblazeB2ApplicationKeyIDEnvVarKey is the environment
-	// variable name to set to override
-	// `APIServiceConfig.Services.DataPrivacy.Uploads.Storage.BackblazeB2Config.ApplicationKeyID`.
-	ServiceDataPrivacyUploadsStorageBackblazeB2ApplicationKeyIDEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_UPLOADS_STORAGE_BACKBLAZE_B2_APPLICATION_KEY_ID"
-
-	// ServiceDataPrivacyUploadsStorageBackblazeB2RegionEnvVarKey is the environment variable name
-	// to set to override
-	// `APIServiceConfig.Services.DataPrivacy.Uploads.Storage.BackblazeB2Config.Region`.
-	ServiceDataPrivacyUploadsStorageBackblazeB2RegionEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_UPLOADS_STORAGE_BACKBLAZE_B2_REGION"
-
-	// ServiceDataPrivacyUploadsStorageBucketNameEnvVarKey is the environment variable name to set
-	// to override `APIServiceConfig.Services.DataPrivacy.Uploads.Storage.BucketName`.
-	ServiceDataPrivacyUploadsStorageBucketNameEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_UPLOADS_STORAGE_BUCKET_NAME"
-
-	// ServiceDataPrivacyUploadsStorageBucketPrefixEnvVarKey is the environment variable name to
-	// set to override `APIServiceConfig.Services.DataPrivacy.Uploads.Storage.BucketPrefix`.
-	ServiceDataPrivacyUploadsStorageBucketPrefixEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_UPLOADS_STORAGE_BUCKET_PREFIX"
-
-	// ServiceDataPrivacyUploadsStorageCircuitBreakingErrorRateEnvVarKey is the environment
-	// variable name to set to override
-	// `APIServiceConfig.Services.DataPrivacy.Uploads.Storage.CircuitBreaker.ErrorRate`.
-	ServiceDataPrivacyUploadsStorageCircuitBreakingErrorRateEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_UPLOADS_STORAGE_CIRCUIT_BREAKING_ERROR_RATE"
-
-	// ServiceDataPrivacyUploadsStorageCircuitBreakingMinimumSampleThresholdEnvVarKey is the
-	// environment variable name to set to override
-	// `APIServiceConfig.Services.DataPrivacy.Uploads.Storage.CircuitBreaker.MinimumSampleThreshold`.
-	ServiceDataPrivacyUploadsStorageCircuitBreakingMinimumSampleThresholdEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_UPLOADS_STORAGE_CIRCUIT_BREAKING_MINIMUM_SAMPLE_THRESHOLD"
-
-	// ServiceDataPrivacyUploadsStorageCircuitBreakingNameEnvVarKey is the environment variable
-	// name to set to override
-	// `APIServiceConfig.Services.DataPrivacy.Uploads.Storage.CircuitBreaker.Name`.
-	ServiceDataPrivacyUploadsStorageCircuitBreakingNameEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_UPLOADS_STORAGE_CIRCUIT_BREAKING_NAME"
-
-	// ServiceDataPrivacyUploadsStorageFilesystemDirectoryModeEnvVarKey is the environment variable
-	// name to set to override
-	// `APIServiceConfig.Services.DataPrivacy.Uploads.Storage.FilesystemConfig.DirectoryMode`.
-	ServiceDataPrivacyUploadsStorageFilesystemDirectoryModeEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_UPLOADS_STORAGE_FILESYSTEM_DIRECTORY_MODE"
-
-	// ServiceDataPrivacyUploadsStorageFilesystemRootDirectoryEnvVarKey is the environment variable
-	// name to set to override
-	// `APIServiceConfig.Services.DataPrivacy.Uploads.Storage.FilesystemConfig.RootDirectory`.
-	ServiceDataPrivacyUploadsStorageFilesystemRootDirectoryEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_UPLOADS_STORAGE_FILESYSTEM_ROOT_DIRECTORY"
-
-	// ServiceDataPrivacyUploadsStorageProviderEnvVarKey is the environment variable name to set to
-	// override `APIServiceConfig.Services.DataPrivacy.Uploads.Storage.Provider`.
-	ServiceDataPrivacyUploadsStorageProviderEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_UPLOADS_STORAGE_PROVIDER"
-
-	// ServiceDataPrivacyUploadsStorageR2AccessKeyIDEnvVarKey is the environment variable name to
-	// set to override
-	// `APIServiceConfig.Services.DataPrivacy.Uploads.Storage.R2Config.AccessKeyID`.
-	ServiceDataPrivacyUploadsStorageR2AccessKeyIDEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_UPLOADS_STORAGE_R2_ACCESS_KEY_ID"
-
-	// ServiceDataPrivacyUploadsStorageR2AccountIDEnvVarKey is the environment variable name to set
-	// to override `APIServiceConfig.Services.DataPrivacy.Uploads.Storage.R2Config.AccountID`.
-	ServiceDataPrivacyUploadsStorageR2AccountIDEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_UPLOADS_STORAGE_R2_ACCOUNT_ID"
-
-	// ServiceDataPrivacyUploadsStorageR2SecretAccessKeyEnvVarKey is the environment variable name
-	// to set to override
-	// `APIServiceConfig.Services.DataPrivacy.Uploads.Storage.R2Config.SecretAccessKey`.
-	ServiceDataPrivacyUploadsStorageR2SecretAccessKeyEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_UPLOADS_STORAGE_R2_SECRET_ACCESS_KEY"
+	// ServiceDataPrivacyPlatformTablePrefixEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Services.DataPrivacy.Platform.TablePrefix`.
+	ServiceDataPrivacyPlatformTablePrefixEnvVarKey = "DINNER_DONE_BETTER_SERVICE_DATA_PRIVACY_PLATFORM_TABLE_PREFIX"
 
 	// ServiceEnvironmentEnvVarKey is the environment variable name to set to override
 	// `EmailDeliverabilityTestConfig.ServiceEnvironment`.
@@ -3245,123 +5227,701 @@ const (
 	// to override `APIServiceConfig.Services.Users.Uploads.Storage.R2Config.SecretAccessKey`.
 	ServiceUsersUploadsStorageR2SecretAccessKeyEnvVarKey = "DINNER_DONE_BETTER_SERVICE_USERS_UPLOADS_STORAGE_R2_SECRET_ACCESS_KEY"
 
+	// SettingsTablePrefixEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Settings.TablePrefix`,
+	// `DBCleanerConfig.Service.Settings.TablePrefix`,
+	// `SchedulerConfig.Service.Settings.TablePrefix`,
+	// `AsyncMessageHandlerConfig.Service.Settings.TablePrefix`.
+	SettingsTablePrefixEnvVarKey = "DINNER_DONE_BETTER_SETTINGS_TABLE_PREFIX"
+
+	// ShreddingInvalidationTopicEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Shredding.InvalidationTopic`,
+	// `DBCleanerConfig.Service.Shredding.InvalidationTopic`,
+	// `SchedulerConfig.Service.Shredding.InvalidationTopic`,
+	// `AsyncMessageHandlerConfig.Service.Shredding.InvalidationTopic`.
+	ShreddingInvalidationTopicEnvVarKey = "DINNER_DONE_BETTER_SHREDDING_INVALIDATION_TOPIC"
+
+	// ShreddingKeyTTLEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Shredding.KeyTTL`, `DBCleanerConfig.Service.Shredding.KeyTTL`,
+	// `SchedulerConfig.Service.Shredding.KeyTTL`,
+	// `AsyncMessageHandlerConfig.Service.Shredding.KeyTTL`.
+	ShreddingKeyTTLEnvVarKey = "DINNER_DONE_BETTER_SHREDDING_KEY_TTL"
+
+	// ShreddingMaxCachedKeysEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Shredding.MaxCachedKeys`,
+	// `DBCleanerConfig.Service.Shredding.MaxCachedKeys`,
+	// `SchedulerConfig.Service.Shredding.MaxCachedKeys`,
+	// `AsyncMessageHandlerConfig.Service.Shredding.MaxCachedKeys`.
+	ShreddingMaxCachedKeysEnvVarKey = "DINNER_DONE_BETTER_SHREDDING_MAX_CACHED_KEYS"
+
+	// ShreddingTablePrefixEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Shredding.TablePrefix`,
+	// `DBCleanerConfig.Service.Shredding.TablePrefix`,
+	// `SchedulerConfig.Service.Shredding.TablePrefix`,
+	// `AsyncMessageHandlerConfig.Service.Shredding.TablePrefix`.
+	ShreddingTablePrefixEnvVarKey = "DINNER_DONE_BETTER_SHREDDING_TABLE_PREFIX"
+
+	// ShutdownTimeoutEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.ShutdownTimeout`, `DBCleanerConfig.Service.ShutdownTimeout`,
+	// `SchedulerConfig.Service.ShutdownTimeout`,
+	// `AsyncMessageHandlerConfig.Service.ShutdownTimeout`. It defaults to `30s`.
+	ShutdownTimeoutEnvVarKey = "DINNER_DONE_BETTER_SHUTDOWN_TIMEOUT"
+
+	// SignInAdminServiceRolesEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.SignIn.AdminServiceRoles`,
+	// `DBCleanerConfig.Service.SignIn.AdminServiceRoles`,
+	// `SchedulerConfig.Service.SignIn.AdminServiceRoles`,
+	// `AsyncMessageHandlerConfig.Service.SignIn.AdminServiceRoles`.
+	SignInAdminServiceRolesEnvVarKey = "DINNER_DONE_BETTER_SIGN_IN_ADMIN_SERVICE_ROLES"
+
+	// SignInAdminTokenTTLEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.SignIn.AdminTokenTTL`,
+	// `DBCleanerConfig.Service.SignIn.AdminTokenTTL`,
+	// `SchedulerConfig.Service.SignIn.AdminTokenTTL`,
+	// `AsyncMessageHandlerConfig.Service.SignIn.AdminTokenTTL`.
+	SignInAdminTokenTTLEnvVarKey = "DINNER_DONE_BETTER_SIGN_IN_ADMIN_TOKEN_TTL"
+
+	// SignInDefaultOwnerRolesEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.SignIn.DefaultOwnerRoles`,
+	// `DBCleanerConfig.Service.SignIn.DefaultOwnerRoles`,
+	// `SchedulerConfig.Service.SignIn.DefaultOwnerRoles`,
+	// `AsyncMessageHandlerConfig.Service.SignIn.DefaultOwnerRoles`.
+	SignInDefaultOwnerRolesEnvVarKey = "DINNER_DONE_BETTER_SIGN_IN_DEFAULT_OWNER_ROLES"
+
+	// SignInHandleReminderFloorEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.SignIn.HandleReminderFloor`,
+	// `DBCleanerConfig.Service.SignIn.HandleReminderFloor`,
+	// `SchedulerConfig.Service.SignIn.HandleReminderFloor`,
+	// `AsyncMessageHandlerConfig.Service.SignIn.HandleReminderFloor`.
+	SignInHandleReminderFloorEnvVarKey = "DINNER_DONE_BETTER_SIGN_IN_HANDLE_REMINDER_FLOOR"
+
+	// SignInImpersonationTokenTTLEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.SignIn.ImpersonationTokenTTL`,
+	// `DBCleanerConfig.Service.SignIn.ImpersonationTokenTTL`,
+	// `SchedulerConfig.Service.SignIn.ImpersonationTokenTTL`,
+	// `AsyncMessageHandlerConfig.Service.SignIn.ImpersonationTokenTTL`.
+	SignInImpersonationTokenTTLEnvVarKey = "DINNER_DONE_BETTER_SIGN_IN_IMPERSONATION_TOKEN_TTL"
+
+	// SignInMagicLinksRequestFloorEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.SignIn.MagicLinks.RequestFloor`,
+	// `DBCleanerConfig.Service.SignIn.MagicLinks.RequestFloor`,
+	// `SchedulerConfig.Service.SignIn.MagicLinks.RequestFloor`,
+	// `AsyncMessageHandlerConfig.Service.SignIn.MagicLinks.RequestFloor`.
+	SignInMagicLinksRequestFloorEnvVarKey = "DINNER_DONE_BETTER_SIGN_IN_MAGIC_LINKS_REQUEST_FLOOR"
+
+	// SignInMagicLinksSweepIntervalEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.SignIn.MagicLinks.SweepInterval`,
+	// `DBCleanerConfig.Service.SignIn.MagicLinks.SweepInterval`,
+	// `SchedulerConfig.Service.SignIn.MagicLinks.SweepInterval`,
+	// `AsyncMessageHandlerConfig.Service.SignIn.MagicLinks.SweepInterval`.
+	SignInMagicLinksSweepIntervalEnvVarKey = "DINNER_DONE_BETTER_SIGN_IN_MAGIC_LINKS_SWEEP_INTERVAL"
+
+	// SignInMagicLinksTablePrefixEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.SignIn.MagicLinks.TablePrefix`,
+	// `DBCleanerConfig.Service.SignIn.MagicLinks.TablePrefix`,
+	// `SchedulerConfig.Service.SignIn.MagicLinks.TablePrefix`,
+	// `AsyncMessageHandlerConfig.Service.SignIn.MagicLinks.TablePrefix`.
+	SignInMagicLinksTablePrefixEnvVarKey = "DINNER_DONE_BETTER_SIGN_IN_MAGIC_LINKS_TABLE_PREFIX"
+
+	// SignInMagicLinksTTLEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.SignIn.MagicLinks.TTL`,
+	// `DBCleanerConfig.Service.SignIn.MagicLinks.TTL`,
+	// `SchedulerConfig.Service.SignIn.MagicLinks.TTL`,
+	// `AsyncMessageHandlerConfig.Service.SignIn.MagicLinks.TTL`.
+	SignInMagicLinksTTLEnvVarKey = "DINNER_DONE_BETTER_SIGN_IN_MAGIC_LINKS_TTL"
+
+	// SignInRecoveryCodesCountEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.SignIn.RecoveryCodes.Count`,
+	// `DBCleanerConfig.Service.SignIn.RecoveryCodes.Count`,
+	// `SchedulerConfig.Service.SignIn.RecoveryCodes.Count`,
+	// `AsyncMessageHandlerConfig.Service.SignIn.RecoveryCodes.Count`.
+	SignInRecoveryCodesCountEnvVarKey = "DINNER_DONE_BETTER_SIGN_IN_RECOVERY_CODES_COUNT"
+
+	// SignInRecoveryCodesTablePrefixEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.SignIn.RecoveryCodes.TablePrefix`,
+	// `DBCleanerConfig.Service.SignIn.RecoveryCodes.TablePrefix`,
+	// `SchedulerConfig.Service.SignIn.RecoveryCodes.TablePrefix`,
+	// `AsyncMessageHandlerConfig.Service.SignIn.RecoveryCodes.TablePrefix`.
+	SignInRecoveryCodesTablePrefixEnvVarKey = "DINNER_DONE_BETTER_SIGN_IN_RECOVERY_CODES_TABLE_PREFIX"
+
+	// SignInRefreshTokensAdminTTLEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.SignIn.RefreshTokens.AdminTTL`,
+	// `DBCleanerConfig.Service.SignIn.RefreshTokens.AdminTTL`,
+	// `SchedulerConfig.Service.SignIn.RefreshTokens.AdminTTL`,
+	// `AsyncMessageHandlerConfig.Service.SignIn.RefreshTokens.AdminTTL`.
+	SignInRefreshTokensAdminTTLEnvVarKey = "DINNER_DONE_BETTER_SIGN_IN_REFRESH_TOKENS_ADMIN_TTL"
+
+	// SignInRefreshTokensRefuseSupersededTokensEnvVarKey is the environment variable name to set
+	// to override `APIServiceConfig.Service.SignIn.RefreshTokens.RefuseSupersededTokens`,
+	// `DBCleanerConfig.Service.SignIn.RefreshTokens.RefuseSupersededTokens`,
+	// `SchedulerConfig.Service.SignIn.RefreshTokens.RefuseSupersededTokens`,
+	// `AsyncMessageHandlerConfig.Service.SignIn.RefreshTokens.RefuseSupersededTokens`.
+	SignInRefreshTokensRefuseSupersededTokensEnvVarKey = "DINNER_DONE_BETTER_SIGN_IN_REFRESH_TOKENS_REFUSE_SUPERSEDED_TOKENS"
+
+	// SignInRefreshTokensSweepIntervalEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.SignIn.RefreshTokens.SweepInterval`,
+	// `DBCleanerConfig.Service.SignIn.RefreshTokens.SweepInterval`,
+	// `SchedulerConfig.Service.SignIn.RefreshTokens.SweepInterval`,
+	// `AsyncMessageHandlerConfig.Service.SignIn.RefreshTokens.SweepInterval`.
+	SignInRefreshTokensSweepIntervalEnvVarKey = "DINNER_DONE_BETTER_SIGN_IN_REFRESH_TOKENS_SWEEP_INTERVAL"
+
+	// SignInRefreshTokensSweepJobDisabledEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.SignIn.RefreshTokens.SweepJob.Disabled`,
+	// `DBCleanerConfig.Service.SignIn.RefreshTokens.SweepJob.Disabled`,
+	// `SchedulerConfig.Service.SignIn.RefreshTokens.SweepJob.Disabled`,
+	// `AsyncMessageHandlerConfig.Service.SignIn.RefreshTokens.SweepJob.Disabled`.
+	SignInRefreshTokensSweepJobDisabledEnvVarKey = "DINNER_DONE_BETTER_SIGN_IN_REFRESH_TOKENS_SWEEP_JOB_DISABLED"
+
+	// SignInRefreshTokensSweepJobIntervalEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.SignIn.RefreshTokens.SweepJob.Interval`,
+	// `DBCleanerConfig.Service.SignIn.RefreshTokens.SweepJob.Interval`,
+	// `SchedulerConfig.Service.SignIn.RefreshTokens.SweepJob.Interval`,
+	// `AsyncMessageHandlerConfig.Service.SignIn.RefreshTokens.SweepJob.Interval`.
+	SignInRefreshTokensSweepJobIntervalEnvVarKey = "DINNER_DONE_BETTER_SIGN_IN_REFRESH_TOKENS_SWEEP_JOB_INTERVAL"
+
+	// SignInRefreshTokensSweepJobLeaseTTLEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.SignIn.RefreshTokens.SweepJob.LeaseTTL`,
+	// `DBCleanerConfig.Service.SignIn.RefreshTokens.SweepJob.LeaseTTL`,
+	// `SchedulerConfig.Service.SignIn.RefreshTokens.SweepJob.LeaseTTL`,
+	// `AsyncMessageHandlerConfig.Service.SignIn.RefreshTokens.SweepJob.LeaseTTL`.
+	SignInRefreshTokensSweepJobLeaseTTLEnvVarKey = "DINNER_DONE_BETTER_SIGN_IN_REFRESH_TOKENS_SWEEP_JOB_LEASE_TTL"
+
+	// SignInRefreshTokensSweepJobRunOnStartEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.SignIn.RefreshTokens.SweepJob.RunOnStart`,
+	// `DBCleanerConfig.Service.SignIn.RefreshTokens.SweepJob.RunOnStart`,
+	// `SchedulerConfig.Service.SignIn.RefreshTokens.SweepJob.RunOnStart`,
+	// `AsyncMessageHandlerConfig.Service.SignIn.RefreshTokens.SweepJob.RunOnStart`.
+	SignInRefreshTokensSweepJobRunOnStartEnvVarKey = "DINNER_DONE_BETTER_SIGN_IN_REFRESH_TOKENS_SWEEP_JOB_RUN_ON_START"
+
+	// SignInRefreshTokensSweepJobScheduleEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.SignIn.RefreshTokens.SweepJob.Schedule`,
+	// `DBCleanerConfig.Service.SignIn.RefreshTokens.SweepJob.Schedule`,
+	// `SchedulerConfig.Service.SignIn.RefreshTokens.SweepJob.Schedule`,
+	// `AsyncMessageHandlerConfig.Service.SignIn.RefreshTokens.SweepJob.Schedule`.
+	SignInRefreshTokensSweepJobScheduleEnvVarKey = "DINNER_DONE_BETTER_SIGN_IN_REFRESH_TOKENS_SWEEP_JOB_SCHEDULE"
+
+	// SignInRefreshTokensSweepJobTimeoutEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.SignIn.RefreshTokens.SweepJob.Timeout`,
+	// `DBCleanerConfig.Service.SignIn.RefreshTokens.SweepJob.Timeout`,
+	// `SchedulerConfig.Service.SignIn.RefreshTokens.SweepJob.Timeout`,
+	// `AsyncMessageHandlerConfig.Service.SignIn.RefreshTokens.SweepJob.Timeout`.
+	SignInRefreshTokensSweepJobTimeoutEnvVarKey = "DINNER_DONE_BETTER_SIGN_IN_REFRESH_TOKENS_SWEEP_JOB_TIMEOUT"
+
+	// SignInRefreshTokensTablePrefixEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.SignIn.RefreshTokens.TablePrefix`,
+	// `DBCleanerConfig.Service.SignIn.RefreshTokens.TablePrefix`,
+	// `SchedulerConfig.Service.SignIn.RefreshTokens.TablePrefix`,
+	// `AsyncMessageHandlerConfig.Service.SignIn.RefreshTokens.TablePrefix`.
+	SignInRefreshTokensTablePrefixEnvVarKey = "DINNER_DONE_BETTER_SIGN_IN_REFRESH_TOKENS_TABLE_PREFIX"
+
+	// SignInRefreshTokensTTLEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.SignIn.RefreshTokens.TTL`,
+	// `DBCleanerConfig.Service.SignIn.RefreshTokens.TTL`,
+	// `SchedulerConfig.Service.SignIn.RefreshTokens.TTL`,
+	// `AsyncMessageHandlerConfig.Service.SignIn.RefreshTokens.TTL`.
+	SignInRefreshTokensTTLEnvVarKey = "DINNER_DONE_BETTER_SIGN_IN_REFRESH_TOKENS_TTL"
+
+	// SignInRegistrationClosedEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.SignIn.Registration.Closed`,
+	// `DBCleanerConfig.Service.SignIn.Registration.Closed`,
+	// `SchedulerConfig.Service.SignIn.Registration.Closed`,
+	// `AsyncMessageHandlerConfig.Service.SignIn.Registration.Closed`.
+	SignInRegistrationClosedEnvVarKey = "DINNER_DONE_BETTER_SIGN_IN_REGISTRATION_CLOSED"
+
+	// SignInRegistrationDisabledEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.SignIn.Registration.Disabled`,
+	// `DBCleanerConfig.Service.SignIn.Registration.Disabled`,
+	// `SchedulerConfig.Service.SignIn.Registration.Disabled`,
+	// `AsyncMessageHandlerConfig.Service.SignIn.Registration.Disabled`.
+	SignInRegistrationDisabledEnvVarKey = "DINNER_DONE_BETTER_SIGN_IN_REGISTRATION_DISABLED"
+
+	// SignInRegistrationVerificationLinkTTLEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.SignIn.Registration.VerificationLinkTTL`,
+	// `DBCleanerConfig.Service.SignIn.Registration.VerificationLinkTTL`,
+	// `SchedulerConfig.Service.SignIn.Registration.VerificationLinkTTL`,
+	// `AsyncMessageHandlerConfig.Service.SignIn.Registration.VerificationLinkTTL`.
+	SignInRegistrationVerificationLinkTTLEnvVarKey = "DINNER_DONE_BETTER_SIGN_IN_REGISTRATION_VERIFICATION_LINK_TTL"
+
+	// SignInSecondFactorEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.SignIn.SecondFactor`,
+	// `DBCleanerConfig.Service.SignIn.SecondFactor`,
+	// `SchedulerConfig.Service.SignIn.SecondFactor`,
+	// `AsyncMessageHandlerConfig.Service.SignIn.SecondFactor`.
+	SignInSecondFactorEnvVarKey = "DINNER_DONE_BETTER_SIGN_IN_SECOND_FACTOR"
+
+	// SignInTokenTTLEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.SignIn.TokenTTL`, `DBCleanerConfig.Service.SignIn.TokenTTL`,
+	// `SchedulerConfig.Service.SignIn.TokenTTL`,
+	// `AsyncMessageHandlerConfig.Service.SignIn.TokenTTL`.
+	SignInTokenTTLEnvVarKey = "DINNER_DONE_BETTER_SIGN_IN_TOKEN_TTL"
+
+	// SignInTotpIssuerEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.SignIn.TOTPIssuer`, `DBCleanerConfig.Service.SignIn.TOTPIssuer`,
+	// `SchedulerConfig.Service.SignIn.TOTPIssuer`,
+	// `AsyncMessageHandlerConfig.Service.SignIn.TOTPIssuer`.
+	SignInTotpIssuerEnvVarKey = "DINNER_DONE_BETTER_SIGN_IN_TOTP_ISSUER"
+
+	// TokensAudienceEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Tokens.Audience`, `DBCleanerConfig.Service.Tokens.Audience`,
+	// `SchedulerConfig.Service.Tokens.Audience`,
+	// `AsyncMessageHandlerConfig.Service.Tokens.Audience`.
+	TokensAudienceEnvVarKey = "DINNER_DONE_BETTER_TOKENS_AUDIENCE"
+
+	// TokensIssuerEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Tokens.Issuer`, `DBCleanerConfig.Service.Tokens.Issuer`,
+	// `SchedulerConfig.Service.Tokens.Issuer`, `AsyncMessageHandlerConfig.Service.Tokens.Issuer`.
+	TokensIssuerEnvVarKey = "DINNER_DONE_BETTER_TOKENS_ISSUER"
+
+	// TokensProviderEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Tokens.Provider`, `DBCleanerConfig.Service.Tokens.Provider`,
+	// `SchedulerConfig.Service.Tokens.Provider`,
+	// `AsyncMessageHandlerConfig.Service.Tokens.Provider`.
+	TokensProviderEnvVarKey = "DINNER_DONE_BETTER_TOKENS_PROVIDER"
+
+	// TokensSigningKeyEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Tokens.Base64EncodedSigningKey`,
+	// `DBCleanerConfig.Service.Tokens.Base64EncodedSigningKey`,
+	// `SchedulerConfig.Service.Tokens.Base64EncodedSigningKey`,
+	// `AsyncMessageHandlerConfig.Service.Tokens.Base64EncodedSigningKey`.
+	TokensSigningKeyEnvVarKey = "DINNER_DONE_BETTER_TOKENS_SIGNING_KEY"
+
+	// UploadsDebugEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Uploads.Debug`, `DBCleanerConfig.Service.Uploads.Debug`,
+	// `SchedulerConfig.Service.Uploads.Debug`, `AsyncMessageHandlerConfig.Service.Uploads.Debug`.
+	UploadsDebugEnvVarKey = "DINNER_DONE_BETTER_UPLOADS_DEBUG"
+
+	// UploadsStorageBackblazeB2ApplicationKeyEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.Uploads.Storage.BackblazeB2Config.ApplicationKey`,
+	// `DBCleanerConfig.Service.Uploads.Storage.BackblazeB2Config.ApplicationKey`,
+	// `SchedulerConfig.Service.Uploads.Storage.BackblazeB2Config.ApplicationKey`,
+	// `AsyncMessageHandlerConfig.Service.Uploads.Storage.BackblazeB2Config.ApplicationKey`.
+	UploadsStorageBackblazeB2ApplicationKeyEnvVarKey = "DINNER_DONE_BETTER_UPLOADS_STORAGE_BACKBLAZE_B2_APPLICATION_KEY"
+
+	// UploadsStorageBackblazeB2ApplicationKeyIDEnvVarKey is the environment variable name to set
+	// to override `APIServiceConfig.Service.Uploads.Storage.BackblazeB2Config.ApplicationKeyID`,
+	// `DBCleanerConfig.Service.Uploads.Storage.BackblazeB2Config.ApplicationKeyID`,
+	// `SchedulerConfig.Service.Uploads.Storage.BackblazeB2Config.ApplicationKeyID`,
+	// `AsyncMessageHandlerConfig.Service.Uploads.Storage.BackblazeB2Config.ApplicationKeyID`.
+	UploadsStorageBackblazeB2ApplicationKeyIDEnvVarKey = "DINNER_DONE_BETTER_UPLOADS_STORAGE_BACKBLAZE_B2_APPLICATION_KEY_ID"
+
+	// UploadsStorageBackblazeB2RegionEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Uploads.Storage.BackblazeB2Config.Region`,
+	// `DBCleanerConfig.Service.Uploads.Storage.BackblazeB2Config.Region`,
+	// `SchedulerConfig.Service.Uploads.Storage.BackblazeB2Config.Region`,
+	// `AsyncMessageHandlerConfig.Service.Uploads.Storage.BackblazeB2Config.Region`.
+	UploadsStorageBackblazeB2RegionEnvVarKey = "DINNER_DONE_BETTER_UPLOADS_STORAGE_BACKBLAZE_B2_REGION"
+
+	// UploadsStorageBucketNameEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Uploads.Storage.BucketName`,
+	// `DBCleanerConfig.Service.Uploads.Storage.BucketName`,
+	// `SchedulerConfig.Service.Uploads.Storage.BucketName`,
+	// `AsyncMessageHandlerConfig.Service.Uploads.Storage.BucketName`.
+	UploadsStorageBucketNameEnvVarKey = "DINNER_DONE_BETTER_UPLOADS_STORAGE_BUCKET_NAME"
+
+	// UploadsStorageBucketPrefixEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Uploads.Storage.BucketPrefix`,
+	// `DBCleanerConfig.Service.Uploads.Storage.BucketPrefix`,
+	// `SchedulerConfig.Service.Uploads.Storage.BucketPrefix`,
+	// `AsyncMessageHandlerConfig.Service.Uploads.Storage.BucketPrefix`.
+	UploadsStorageBucketPrefixEnvVarKey = "DINNER_DONE_BETTER_UPLOADS_STORAGE_BUCKET_PREFIX"
+
+	// UploadsStorageCircuitBreakingErrorRateEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.Uploads.Storage.CircuitBreaker.ErrorRate`,
+	// `DBCleanerConfig.Service.Uploads.Storage.CircuitBreaker.ErrorRate`,
+	// `SchedulerConfig.Service.Uploads.Storage.CircuitBreaker.ErrorRate`,
+	// `AsyncMessageHandlerConfig.Service.Uploads.Storage.CircuitBreaker.ErrorRate`.
+	UploadsStorageCircuitBreakingErrorRateEnvVarKey = "DINNER_DONE_BETTER_UPLOADS_STORAGE_CIRCUIT_BREAKING_ERROR_RATE"
+
+	// UploadsStorageCircuitBreakingMinimumSampleThresholdEnvVarKey is the environment variable
+	// name to set to override
+	// `APIServiceConfig.Service.Uploads.Storage.CircuitBreaker.MinimumSampleThreshold`,
+	// `DBCleanerConfig.Service.Uploads.Storage.CircuitBreaker.MinimumSampleThreshold`,
+	// `SchedulerConfig.Service.Uploads.Storage.CircuitBreaker.MinimumSampleThreshold`,
+	// `AsyncMessageHandlerConfig.Service.Uploads.Storage.CircuitBreaker.MinimumSampleThreshold`.
+	UploadsStorageCircuitBreakingMinimumSampleThresholdEnvVarKey = "DINNER_DONE_BETTER_UPLOADS_STORAGE_CIRCUIT_BREAKING_MINIMUM_SAMPLE_THRESHOLD"
+
+	// UploadsStorageCircuitBreakingNameEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.Uploads.Storage.CircuitBreaker.Name`,
+	// `DBCleanerConfig.Service.Uploads.Storage.CircuitBreaker.Name`,
+	// `SchedulerConfig.Service.Uploads.Storage.CircuitBreaker.Name`,
+	// `AsyncMessageHandlerConfig.Service.Uploads.Storage.CircuitBreaker.Name`.
+	UploadsStorageCircuitBreakingNameEnvVarKey = "DINNER_DONE_BETTER_UPLOADS_STORAGE_CIRCUIT_BREAKING_NAME"
+
+	// UploadsStorageFilesystemDirectoryModeEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.Uploads.Storage.FilesystemConfig.DirectoryMode`,
+	// `DBCleanerConfig.Service.Uploads.Storage.FilesystemConfig.DirectoryMode`,
+	// `SchedulerConfig.Service.Uploads.Storage.FilesystemConfig.DirectoryMode`,
+	// `AsyncMessageHandlerConfig.Service.Uploads.Storage.FilesystemConfig.DirectoryMode`.
+	UploadsStorageFilesystemDirectoryModeEnvVarKey = "DINNER_DONE_BETTER_UPLOADS_STORAGE_FILESYSTEM_DIRECTORY_MODE"
+
+	// UploadsStorageFilesystemRootDirectoryEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.Uploads.Storage.FilesystemConfig.RootDirectory`,
+	// `DBCleanerConfig.Service.Uploads.Storage.FilesystemConfig.RootDirectory`,
+	// `SchedulerConfig.Service.Uploads.Storage.FilesystemConfig.RootDirectory`,
+	// `AsyncMessageHandlerConfig.Service.Uploads.Storage.FilesystemConfig.RootDirectory`.
+	UploadsStorageFilesystemRootDirectoryEnvVarKey = "DINNER_DONE_BETTER_UPLOADS_STORAGE_FILESYSTEM_ROOT_DIRECTORY"
+
+	// UploadsStorageProviderEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Uploads.Storage.Provider`,
+	// `DBCleanerConfig.Service.Uploads.Storage.Provider`,
+	// `SchedulerConfig.Service.Uploads.Storage.Provider`,
+	// `AsyncMessageHandlerConfig.Service.Uploads.Storage.Provider`.
+	UploadsStorageProviderEnvVarKey = "DINNER_DONE_BETTER_UPLOADS_STORAGE_PROVIDER"
+
+	// UploadsStorageR2AccessKeyIDEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Uploads.Storage.R2Config.AccessKeyID`,
+	// `DBCleanerConfig.Service.Uploads.Storage.R2Config.AccessKeyID`,
+	// `SchedulerConfig.Service.Uploads.Storage.R2Config.AccessKeyID`,
+	// `AsyncMessageHandlerConfig.Service.Uploads.Storage.R2Config.AccessKeyID`.
+	UploadsStorageR2AccessKeyIDEnvVarKey = "DINNER_DONE_BETTER_UPLOADS_STORAGE_R2_ACCESS_KEY_ID"
+
+	// UploadsStorageR2AccountIDEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Uploads.Storage.R2Config.AccountID`,
+	// `DBCleanerConfig.Service.Uploads.Storage.R2Config.AccountID`,
+	// `SchedulerConfig.Service.Uploads.Storage.R2Config.AccountID`,
+	// `AsyncMessageHandlerConfig.Service.Uploads.Storage.R2Config.AccountID`.
+	UploadsStorageR2AccountIDEnvVarKey = "DINNER_DONE_BETTER_UPLOADS_STORAGE_R2_ACCOUNT_ID"
+
+	// UploadsStorageR2SecretAccessKeyEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Uploads.Storage.R2Config.SecretAccessKey`,
+	// `DBCleanerConfig.Service.Uploads.Storage.R2Config.SecretAccessKey`,
+	// `SchedulerConfig.Service.Uploads.Storage.R2Config.SecretAccessKey`,
+	// `AsyncMessageHandlerConfig.Service.Uploads.Storage.R2Config.SecretAccessKey`.
+	UploadsStorageR2SecretAccessKeyEnvVarKey = "DINNER_DONE_BETTER_UPLOADS_STORAGE_R2_SECRET_ACCESS_KEY"
+
+	// WaitlistsTablePrefixEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.Waitlists.TablePrefix`,
+	// `DBCleanerConfig.Service.Waitlists.TablePrefix`,
+	// `SchedulerConfig.Service.Waitlists.TablePrefix`,
+	// `AsyncMessageHandlerConfig.Service.Waitlists.TablePrefix`.
+	WaitlistsTablePrefixEnvVarKey = "DINNER_DONE_BETTER_WAITLISTS_TABLE_PREFIX"
+
+	// WebauthnCacheCircuitBreakingErrorRateEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.WebAuthn.Config.Cache.CircuitBreaker.ErrorRate`,
+	// `DBCleanerConfig.Service.WebAuthn.Config.Cache.CircuitBreaker.ErrorRate`,
+	// `SchedulerConfig.Service.WebAuthn.Config.Cache.CircuitBreaker.ErrorRate`,
+	// `AsyncMessageHandlerConfig.Service.WebAuthn.Config.Cache.CircuitBreaker.ErrorRate`.
+	WebauthnCacheCircuitBreakingErrorRateEnvVarKey = "DINNER_DONE_BETTER_WEBAUTHN_CACHE_CIRCUIT_BREAKING_ERROR_RATE"
+
+	// WebauthnCacheCircuitBreakingMinimumSampleThresholdEnvVarKey is the environment variable name
+	// to set to override
+	// `APIServiceConfig.Service.WebAuthn.Config.Cache.CircuitBreaker.MinimumSampleThreshold`,
+	// `DBCleanerConfig.Service.WebAuthn.Config.Cache.CircuitBreaker.MinimumSampleThreshold`,
+	// `SchedulerConfig.Service.WebAuthn.Config.Cache.CircuitBreaker.MinimumSampleThreshold`,
+	// `AsyncMessageHandlerConfig.Service.WebAuthn.Config.Cache.CircuitBreaker.MinimumSampleThreshold`.
+	WebauthnCacheCircuitBreakingMinimumSampleThresholdEnvVarKey = "DINNER_DONE_BETTER_WEBAUTHN_CACHE_CIRCUIT_BREAKING_MINIMUM_SAMPLE_THRESHOLD"
+
+	// WebauthnCacheCircuitBreakingNameEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Service.WebAuthn.Config.Cache.CircuitBreaker.Name`,
+	// `DBCleanerConfig.Service.WebAuthn.Config.Cache.CircuitBreaker.Name`,
+	// `SchedulerConfig.Service.WebAuthn.Config.Cache.CircuitBreaker.Name`,
+	// `AsyncMessageHandlerConfig.Service.WebAuthn.Config.Cache.CircuitBreaker.Name`.
+	WebauthnCacheCircuitBreakingNameEnvVarKey = "DINNER_DONE_BETTER_WEBAUTHN_CACHE_CIRCUIT_BREAKING_NAME"
+
+	// WebauthnCacheEvictionPolicyEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.WebAuthn.Config.Cache.EvictionPolicy`,
+	// `DBCleanerConfig.Service.WebAuthn.Config.Cache.EvictionPolicy`,
+	// `SchedulerConfig.Service.WebAuthn.Config.Cache.EvictionPolicy`,
+	// `AsyncMessageHandlerConfig.Service.WebAuthn.Config.Cache.EvictionPolicy`. It defaults to
+	// `least_recently_used`.
+	WebauthnCacheEvictionPolicyEnvVarKey = "DINNER_DONE_BETTER_WEBAUTHN_CACHE_EVICTION_POLICY"
+
+	// WebauthnCacheExpiryEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.WebAuthn.Config.Cache.Expiry`,
+	// `DBCleanerConfig.Service.WebAuthn.Config.Cache.Expiry`,
+	// `SchedulerConfig.Service.WebAuthn.Config.Cache.Expiry`,
+	// `AsyncMessageHandlerConfig.Service.WebAuthn.Config.Cache.Expiry`. It defaults to `1h`.
+	WebauthnCacheExpiryEnvVarKey = "DINNER_DONE_BETTER_WEBAUTHN_CACHE_EXPIRY"
+
+	// WebauthnCacheJanitorIntervalEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.WebAuthn.Config.Cache.JanitorInterval`,
+	// `DBCleanerConfig.Service.WebAuthn.Config.Cache.JanitorInterval`,
+	// `SchedulerConfig.Service.WebAuthn.Config.Cache.JanitorInterval`,
+	// `AsyncMessageHandlerConfig.Service.WebAuthn.Config.Cache.JanitorInterval`. It defaults to
+	// `5m`.
+	WebauthnCacheJanitorIntervalEnvVarKey = "DINNER_DONE_BETTER_WEBAUTHN_CACHE_JANITOR_INTERVAL"
+
+	// WebauthnCacheMaxEntriesEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.WebAuthn.Config.Cache.MaxEntries`,
+	// `DBCleanerConfig.Service.WebAuthn.Config.Cache.MaxEntries`,
+	// `SchedulerConfig.Service.WebAuthn.Config.Cache.MaxEntries`,
+	// `AsyncMessageHandlerConfig.Service.WebAuthn.Config.Cache.MaxEntries`.
+	WebauthnCacheMaxEntriesEnvVarKey = "DINNER_DONE_BETTER_WEBAUTHN_CACHE_MAX_ENTRIES"
+
+	// WebauthnCacheProviderEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.WebAuthn.Config.Cache.Provider`,
+	// `DBCleanerConfig.Service.WebAuthn.Config.Cache.Provider`,
+	// `SchedulerConfig.Service.WebAuthn.Config.Cache.Provider`,
+	// `AsyncMessageHandlerConfig.Service.WebAuthn.Config.Cache.Provider`.
+	WebauthnCacheProviderEnvVarKey = "DINNER_DONE_BETTER_WEBAUTHN_CACHE_PROVIDER"
+
+	// WebauthnCacheRedisAddressesEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.WebAuthn.Config.Cache.Redis.Addresses`,
+	// `DBCleanerConfig.Service.WebAuthn.Config.Cache.Redis.Addresses`,
+	// `SchedulerConfig.Service.WebAuthn.Config.Cache.Redis.Addresses`,
+	// `AsyncMessageHandlerConfig.Service.WebAuthn.Config.Cache.Redis.Addresses`.
+	WebauthnCacheRedisAddressesEnvVarKey = "DINNER_DONE_BETTER_WEBAUTHN_CACHE_REDIS_ADDRESSES"
+
+	// WebauthnCacheRedisClusterEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.WebAuthn.Config.Cache.Redis.Cluster`,
+	// `DBCleanerConfig.Service.WebAuthn.Config.Cache.Redis.Cluster`,
+	// `SchedulerConfig.Service.WebAuthn.Config.Cache.Redis.Cluster`,
+	// `AsyncMessageHandlerConfig.Service.WebAuthn.Config.Cache.Redis.Cluster`.
+	WebauthnCacheRedisClusterEnvVarKey = "DINNER_DONE_BETTER_WEBAUTHN_CACHE_REDIS_CLUSTER"
+
+	// WebauthnCacheRedisNamespaceEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.WebAuthn.Config.Cache.Redis.Namespace`,
+	// `DBCleanerConfig.Service.WebAuthn.Config.Cache.Redis.Namespace`,
+	// `SchedulerConfig.Service.WebAuthn.Config.Cache.Redis.Namespace`,
+	// `AsyncMessageHandlerConfig.Service.WebAuthn.Config.Cache.Redis.Namespace`.
+	WebauthnCacheRedisNamespaceEnvVarKey = "DINNER_DONE_BETTER_WEBAUTHN_CACHE_REDIS_NAMESPACE"
+
+	// WebauthnCacheRedisPasswordEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.WebAuthn.Config.Cache.Redis.Password`,
+	// `DBCleanerConfig.Service.WebAuthn.Config.Cache.Redis.Password`,
+	// `SchedulerConfig.Service.WebAuthn.Config.Cache.Redis.Password`,
+	// `AsyncMessageHandlerConfig.Service.WebAuthn.Config.Cache.Redis.Password`.
+	WebauthnCacheRedisPasswordEnvVarKey = "DINNER_DONE_BETTER_WEBAUTHN_CACHE_REDIS_PASSWORD"
+
+	// WebauthnCacheRedisUsernameEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.WebAuthn.Config.Cache.Redis.Username`,
+	// `DBCleanerConfig.Service.WebAuthn.Config.Cache.Redis.Username`,
+	// `SchedulerConfig.Service.WebAuthn.Config.Cache.Redis.Username`,
+	// `AsyncMessageHandlerConfig.Service.WebAuthn.Config.Cache.Redis.Username`.
+	WebauthnCacheRedisUsernameEnvVarKey = "DINNER_DONE_BETTER_WEBAUTHN_CACHE_REDIS_USERNAME"
+
+	// WebauthnDatabaseTablePrefixEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.WebAuthn.Database.TablePrefix`,
+	// `DBCleanerConfig.Service.WebAuthn.Database.TablePrefix`,
+	// `SchedulerConfig.Service.WebAuthn.Database.TablePrefix`,
+	// `AsyncMessageHandlerConfig.Service.WebAuthn.Database.TablePrefix`.
+	WebauthnDatabaseTablePrefixEnvVarKey = "DINNER_DONE_BETTER_WEBAUTHN_DATABASE_TABLE_PREFIX"
+
+	// WebauthnProviderEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.WebAuthn.Provider`,
+	// `APIServiceConfig.Service.WebAuthn.Config.Provider`,
+	// `DBCleanerConfig.Service.WebAuthn.Provider`,
+	// `DBCleanerConfig.Service.WebAuthn.Config.Provider`,
+	// `SchedulerConfig.Service.WebAuthn.Provider`,
+	// `SchedulerConfig.Service.WebAuthn.Config.Provider`,
+	// `AsyncMessageHandlerConfig.Service.WebAuthn.Provider`,
+	// `AsyncMessageHandlerConfig.Service.WebAuthn.Config.Provider`. It defaults to `database`.
+	WebauthnProviderEnvVarKey = "DINNER_DONE_BETTER_WEBAUTHN_PROVIDER"
+
+	// WebauthnRpCeremonyTimeoutEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.WebAuthn.Config.RelyingParty.CeremonyTimeout`,
+	// `DBCleanerConfig.Service.WebAuthn.Config.RelyingParty.CeremonyTimeout`,
+	// `SchedulerConfig.Service.WebAuthn.Config.RelyingParty.CeremonyTimeout`,
+	// `AsyncMessageHandlerConfig.Service.WebAuthn.Config.RelyingParty.CeremonyTimeout`.
+	WebauthnRpCeremonyTimeoutEnvVarKey = "DINNER_DONE_BETTER_WEBAUTHN_RP_CEREMONY_TIMEOUT"
+
+	// WebauthnRpDisplayNameEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.WebAuthn.Config.RelyingParty.RPDisplayName`,
+	// `DBCleanerConfig.Service.WebAuthn.Config.RelyingParty.RPDisplayName`,
+	// `SchedulerConfig.Service.WebAuthn.Config.RelyingParty.RPDisplayName`,
+	// `AsyncMessageHandlerConfig.Service.WebAuthn.Config.RelyingParty.RPDisplayName`.
+	WebauthnRpDisplayNameEnvVarKey = "DINNER_DONE_BETTER_WEBAUTHN_RP_DISPLAY_NAME"
+
+	// WebauthnRpIDEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.WebAuthn.Config.RelyingParty.RPID`,
+	// `DBCleanerConfig.Service.WebAuthn.Config.RelyingParty.RPID`,
+	// `SchedulerConfig.Service.WebAuthn.Config.RelyingParty.RPID`,
+	// `AsyncMessageHandlerConfig.Service.WebAuthn.Config.RelyingParty.RPID`.
+	WebauthnRpIDEnvVarKey = "DINNER_DONE_BETTER_WEBAUTHN_RP_ID"
+
+	// WebauthnRpOriginsEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.WebAuthn.Config.RelyingParty.RPOrigins`,
+	// `DBCleanerConfig.Service.WebAuthn.Config.RelyingParty.RPOrigins`,
+	// `SchedulerConfig.Service.WebAuthn.Config.RelyingParty.RPOrigins`,
+	// `AsyncMessageHandlerConfig.Service.WebAuthn.Config.RelyingParty.RPOrigins`.
+	WebauthnRpOriginsEnvVarKey = "DINNER_DONE_BETTER_WEBAUTHN_RP_ORIGINS"
+
+	// WebauthnRpUserVerificationEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.WebAuthn.Config.RelyingParty.UserVerification`,
+	// `DBCleanerConfig.Service.WebAuthn.Config.RelyingParty.UserVerification`,
+	// `SchedulerConfig.Service.WebAuthn.Config.RelyingParty.UserVerification`,
+	// `AsyncMessageHandlerConfig.Service.WebAuthn.Config.RelyingParty.UserVerification`.
+	WebauthnRpUserVerificationEnvVarKey = "DINNER_DONE_BETTER_WEBAUTHN_RP_USER_VERIFICATION"
+
+	// WebauthnSweepIntervalEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Service.WebAuthn.SweepInterval`,
+	// `DBCleanerConfig.Service.WebAuthn.SweepInterval`,
+	// `SchedulerConfig.Service.WebAuthn.SweepInterval`,
+	// `AsyncMessageHandlerConfig.Service.WebAuthn.SweepInterval`.
+	WebauthnSweepIntervalEnvVarKey = "DINNER_DONE_BETTER_WEBAUTHN_SWEEP_INTERVAL"
+
 	// WebhooksCircuitBreakingErrorRateEnvVarKey is the environment variable name to set to
-	// override `APIServiceConfig.Webhooks.CircuitBreaker.ErrorRate`,
-	// `SchedulerConfig.Webhooks.CircuitBreaker.ErrorRate`.
+	// override `APIServiceConfig.Service.Webhooks.CircuitBreaker.ErrorRate`,
+	// `DBCleanerConfig.Service.Webhooks.CircuitBreaker.ErrorRate`,
+	// `SchedulerConfig.Service.Webhooks.CircuitBreaker.ErrorRate`,
+	// `AsyncMessageHandlerConfig.Service.Webhooks.CircuitBreaker.ErrorRate`.
 	WebhooksCircuitBreakingErrorRateEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_CIRCUIT_BREAKING_ERROR_RATE"
 
 	// WebhooksCircuitBreakingMinimumSampleThresholdEnvVarKey is the environment variable name to
-	// set to override `APIServiceConfig.Webhooks.CircuitBreaker.MinimumSampleThreshold`,
-	// `SchedulerConfig.Webhooks.CircuitBreaker.MinimumSampleThreshold`.
+	// set to override `APIServiceConfig.Service.Webhooks.CircuitBreaker.MinimumSampleThreshold`,
+	// `DBCleanerConfig.Service.Webhooks.CircuitBreaker.MinimumSampleThreshold`,
+	// `SchedulerConfig.Service.Webhooks.CircuitBreaker.MinimumSampleThreshold`,
+	// `AsyncMessageHandlerConfig.Service.Webhooks.CircuitBreaker.MinimumSampleThreshold`.
 	WebhooksCircuitBreakingMinimumSampleThresholdEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_CIRCUIT_BREAKING_MINIMUM_SAMPLE_THRESHOLD"
 
 	// WebhooksCircuitBreakingNameEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Webhooks.CircuitBreaker.Name`,
-	// `SchedulerConfig.Webhooks.CircuitBreaker.Name`.
+	// `APIServiceConfig.Service.Webhooks.CircuitBreaker.Name`,
+	// `DBCleanerConfig.Service.Webhooks.CircuitBreaker.Name`,
+	// `SchedulerConfig.Service.Webhooks.CircuitBreaker.Name`,
+	// `AsyncMessageHandlerConfig.Service.Webhooks.CircuitBreaker.Name`.
 	WebhooksCircuitBreakingNameEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_CIRCUIT_BREAKING_NAME"
 
 	// WebhooksEmitterTopicEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Webhooks.EmitterTopic`, `SchedulerConfig.Webhooks.EmitterTopic`.
+	// `APIServiceConfig.Service.Webhooks.EmitterTopic`,
+	// `DBCleanerConfig.Service.Webhooks.EmitterTopic`,
+	// `SchedulerConfig.Service.Webhooks.EmitterTopic`,
+	// `AsyncMessageHandlerConfig.Service.Webhooks.EmitterTopic`.
 	WebhooksEmitterTopicEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_EMITTER_TOPIC"
 
 	// WebhooksHTTPClientEnableTracingEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Webhooks.HTTPClient.EnableTracing`,
-	// `SchedulerConfig.Webhooks.HTTPClient.EnableTracing`.
+	// `APIServiceConfig.Service.Webhooks.HTTPClient.EnableTracing`,
+	// `DBCleanerConfig.Service.Webhooks.HTTPClient.EnableTracing`,
+	// `SchedulerConfig.Service.Webhooks.HTTPClient.EnableTracing`,
+	// `AsyncMessageHandlerConfig.Service.Webhooks.HTTPClient.EnableTracing`.
 	WebhooksHTTPClientEnableTracingEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_HTTP_CLIENT_ENABLE_TRACING"
 
 	// WebhooksHTTPClientMaxIdleConnsEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Webhooks.HTTPClient.MaxIdleConns`,
-	// `SchedulerConfig.Webhooks.HTTPClient.MaxIdleConns`.
+	// `APIServiceConfig.Service.Webhooks.HTTPClient.MaxIdleConns`,
+	// `DBCleanerConfig.Service.Webhooks.HTTPClient.MaxIdleConns`,
+	// `SchedulerConfig.Service.Webhooks.HTTPClient.MaxIdleConns`,
+	// `AsyncMessageHandlerConfig.Service.Webhooks.HTTPClient.MaxIdleConns`.
 	WebhooksHTTPClientMaxIdleConnsEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_HTTP_CLIENT_MAX_IDLE_CONNS"
 
 	// WebhooksHTTPClientMaxIdleConnsPerHostEnvVarKey is the environment variable name to set to
-	// override `APIServiceConfig.Webhooks.HTTPClient.MaxIdleConnsPerHost`,
-	// `SchedulerConfig.Webhooks.HTTPClient.MaxIdleConnsPerHost`.
+	// override `APIServiceConfig.Service.Webhooks.HTTPClient.MaxIdleConnsPerHost`,
+	// `DBCleanerConfig.Service.Webhooks.HTTPClient.MaxIdleConnsPerHost`,
+	// `SchedulerConfig.Service.Webhooks.HTTPClient.MaxIdleConnsPerHost`,
+	// `AsyncMessageHandlerConfig.Service.Webhooks.HTTPClient.MaxIdleConnsPerHost`.
 	WebhooksHTTPClientMaxIdleConnsPerHostEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_HTTP_CLIENT_MAX_IDLE_CONNS_PER_HOST"
 
 	// WebhooksHTTPClientTimeoutEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Webhooks.HTTPClient.Timeout`,
-	// `SchedulerConfig.Webhooks.HTTPClient.Timeout`.
+	// `APIServiceConfig.Service.Webhooks.HTTPClient.Timeout`,
+	// `DBCleanerConfig.Service.Webhooks.HTTPClient.Timeout`,
+	// `SchedulerConfig.Service.Webhooks.HTTPClient.Timeout`,
+	// `AsyncMessageHandlerConfig.Service.Webhooks.HTTPClient.Timeout`.
 	WebhooksHTTPClientTimeoutEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_HTTP_CLIENT_TIMEOUT"
 
 	// WebhooksTablePrefixEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Webhooks.TablePrefix`, `SchedulerConfig.Webhooks.TablePrefix`.
+	// `APIServiceConfig.Service.Webhooks.TablePrefix`,
+	// `DBCleanerConfig.Service.Webhooks.TablePrefix`,
+	// `SchedulerConfig.Service.Webhooks.TablePrefix`,
+	// `AsyncMessageHandlerConfig.Service.Webhooks.TablePrefix`.
 	WebhooksTablePrefixEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_TABLE_PREFIX"
 
 	// WebhooksWorkerBackoffInitialDelayEnvVarKey is the environment variable name to set to
-	// override `APIServiceConfig.Webhooks.Worker.Backoff.InitialDelay`,
-	// `SchedulerConfig.Webhooks.Worker.Backoff.InitialDelay`.
+	// override `APIServiceConfig.Service.Webhooks.Worker.Backoff.InitialDelay`,
+	// `DBCleanerConfig.Service.Webhooks.Worker.Backoff.InitialDelay`,
+	// `SchedulerConfig.Service.Webhooks.Worker.Backoff.InitialDelay`,
+	// `AsyncMessageHandlerConfig.Service.Webhooks.Worker.Backoff.InitialDelay`.
 	WebhooksWorkerBackoffInitialDelayEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_WORKER_BACKOFF_INITIAL_DELAY"
 
 	// WebhooksWorkerBackoffMaxAttemptsEnvVarKey is the environment variable name to set to
-	// override `APIServiceConfig.Webhooks.Worker.Backoff.MaxAttempts`,
-	// `SchedulerConfig.Webhooks.Worker.Backoff.MaxAttempts`.
+	// override `APIServiceConfig.Service.Webhooks.Worker.Backoff.MaxAttempts`,
+	// `DBCleanerConfig.Service.Webhooks.Worker.Backoff.MaxAttempts`,
+	// `SchedulerConfig.Service.Webhooks.Worker.Backoff.MaxAttempts`,
+	// `AsyncMessageHandlerConfig.Service.Webhooks.Worker.Backoff.MaxAttempts`.
 	WebhooksWorkerBackoffMaxAttemptsEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_WORKER_BACKOFF_MAX_ATTEMPTS"
 
 	// WebhooksWorkerBackoffMaxDelayEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Webhooks.Worker.Backoff.MaxDelay`,
-	// `SchedulerConfig.Webhooks.Worker.Backoff.MaxDelay`.
+	// `APIServiceConfig.Service.Webhooks.Worker.Backoff.MaxDelay`,
+	// `DBCleanerConfig.Service.Webhooks.Worker.Backoff.MaxDelay`,
+	// `SchedulerConfig.Service.Webhooks.Worker.Backoff.MaxDelay`,
+	// `AsyncMessageHandlerConfig.Service.Webhooks.Worker.Backoff.MaxDelay`.
 	WebhooksWorkerBackoffMaxDelayEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_WORKER_BACKOFF_MAX_DELAY"
 
 	// WebhooksWorkerBackoffMultiplierEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Webhooks.Worker.Backoff.Multiplier`,
-	// `SchedulerConfig.Webhooks.Worker.Backoff.Multiplier`.
+	// `APIServiceConfig.Service.Webhooks.Worker.Backoff.Multiplier`,
+	// `DBCleanerConfig.Service.Webhooks.Worker.Backoff.Multiplier`,
+	// `SchedulerConfig.Service.Webhooks.Worker.Backoff.Multiplier`,
+	// `AsyncMessageHandlerConfig.Service.Webhooks.Worker.Backoff.Multiplier`.
 	WebhooksWorkerBackoffMultiplierEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_WORKER_BACKOFF_MULTIPLIER"
 
 	// WebhooksWorkerBackoffProviderEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Webhooks.Worker.Backoff.Provider`,
-	// `SchedulerConfig.Webhooks.Worker.Backoff.Provider`.
+	// `APIServiceConfig.Service.Webhooks.Worker.Backoff.Provider`,
+	// `DBCleanerConfig.Service.Webhooks.Worker.Backoff.Provider`,
+	// `SchedulerConfig.Service.Webhooks.Worker.Backoff.Provider`,
+	// `AsyncMessageHandlerConfig.Service.Webhooks.Worker.Backoff.Provider`.
 	WebhooksWorkerBackoffProviderEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_WORKER_BACKOFF_PROVIDER"
 
 	// WebhooksWorkerBackoffUseJitterEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Webhooks.Worker.Backoff.UseJitter`,
-	// `SchedulerConfig.Webhooks.Worker.Backoff.UseJitter`.
+	// `APIServiceConfig.Service.Webhooks.Worker.Backoff.UseJitter`,
+	// `DBCleanerConfig.Service.Webhooks.Worker.Backoff.UseJitter`,
+	// `SchedulerConfig.Service.Webhooks.Worker.Backoff.UseJitter`,
+	// `AsyncMessageHandlerConfig.Service.Webhooks.Worker.Backoff.UseJitter`.
 	WebhooksWorkerBackoffUseJitterEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_WORKER_BACKOFF_USE_JITTER"
 
 	// WebhooksWorkerBatchSizeEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Webhooks.Worker.BatchSize`, `SchedulerConfig.Webhooks.Worker.BatchSize`.
+	// `APIServiceConfig.Service.Webhooks.Worker.BatchSize`,
+	// `DBCleanerConfig.Service.Webhooks.Worker.BatchSize`,
+	// `SchedulerConfig.Service.Webhooks.Worker.BatchSize`,
+	// `AsyncMessageHandlerConfig.Service.Webhooks.Worker.BatchSize`.
 	WebhooksWorkerBatchSizeEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_WORKER_BATCH_SIZE"
 
 	// WebhooksWorkerCircuitOpenRetryDelayEnvVarKey is the environment variable name to set to
-	// override `APIServiceConfig.Webhooks.Worker.CircuitOpenRetryDelay`,
-	// `SchedulerConfig.Webhooks.Worker.CircuitOpenRetryDelay`.
+	// override `APIServiceConfig.Service.Webhooks.Worker.CircuitOpenRetryDelay`,
+	// `DBCleanerConfig.Service.Webhooks.Worker.CircuitOpenRetryDelay`,
+	// `SchedulerConfig.Service.Webhooks.Worker.CircuitOpenRetryDelay`,
+	// `AsyncMessageHandlerConfig.Service.Webhooks.Worker.CircuitOpenRetryDelay`.
 	WebhooksWorkerCircuitOpenRetryDelayEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_WORKER_CIRCUIT_OPEN_RETRY_DELAY"
 
 	// WebhooksWorkerConcurrencyEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Webhooks.Worker.Concurrency`,
-	// `SchedulerConfig.Webhooks.Worker.Concurrency`.
+	// `APIServiceConfig.Service.Webhooks.Worker.Concurrency`,
+	// `DBCleanerConfig.Service.Webhooks.Worker.Concurrency`,
+	// `SchedulerConfig.Service.Webhooks.Worker.Concurrency`,
+	// `AsyncMessageHandlerConfig.Service.Webhooks.Worker.Concurrency`.
 	WebhooksWorkerConcurrencyEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_WORKER_CONCURRENCY"
 
 	// WebhooksWorkerLeaseDurationEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Webhooks.Worker.LeaseDuration`,
-	// `SchedulerConfig.Webhooks.Worker.LeaseDuration`.
+	// `APIServiceConfig.Service.Webhooks.Worker.LeaseDuration`,
+	// `DBCleanerConfig.Service.Webhooks.Worker.LeaseDuration`,
+	// `SchedulerConfig.Service.Webhooks.Worker.LeaseDuration`,
+	// `AsyncMessageHandlerConfig.Service.Webhooks.Worker.LeaseDuration`.
 	WebhooksWorkerLeaseDurationEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_WORKER_LEASE_DURATION"
 
 	// WebhooksWorkerPollIntervalEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Webhooks.Worker.PollInterval`,
-	// `SchedulerConfig.Webhooks.Worker.PollInterval`.
+	// `APIServiceConfig.Service.Webhooks.Worker.PollInterval`,
+	// `DBCleanerConfig.Service.Webhooks.Worker.PollInterval`,
+	// `SchedulerConfig.Service.Webhooks.Worker.PollInterval`,
+	// `AsyncMessageHandlerConfig.Service.Webhooks.Worker.PollInterval`.
 	WebhooksWorkerPollIntervalEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_WORKER_POLL_INTERVAL"
 
 	// WebhooksWorkerReapBatchSizeEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Webhooks.Worker.ReapBatchSize`,
-	// `SchedulerConfig.Webhooks.Worker.ReapBatchSize`.
+	// `APIServiceConfig.Service.Webhooks.Worker.ReapBatchSize`,
+	// `DBCleanerConfig.Service.Webhooks.Worker.ReapBatchSize`,
+	// `SchedulerConfig.Service.Webhooks.Worker.ReapBatchSize`,
+	// `AsyncMessageHandlerConfig.Service.Webhooks.Worker.ReapBatchSize`.
 	WebhooksWorkerReapBatchSizeEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_WORKER_REAP_BATCH_SIZE"
 
 	// WebhooksWorkerReapIntervalEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Webhooks.Worker.ReapInterval`,
-	// `SchedulerConfig.Webhooks.Worker.ReapInterval`.
+	// `APIServiceConfig.Service.Webhooks.Worker.ReapInterval`,
+	// `DBCleanerConfig.Service.Webhooks.Worker.ReapInterval`,
+	// `SchedulerConfig.Service.Webhooks.Worker.ReapInterval`,
+	// `AsyncMessageHandlerConfig.Service.Webhooks.Worker.ReapInterval`.
 	WebhooksWorkerReapIntervalEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_WORKER_REAP_INTERVAL"
 
 	// WebhooksWorkerRequestTimeoutEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Webhooks.Worker.RequestTimeout`,
-	// `SchedulerConfig.Webhooks.Worker.RequestTimeout`.
+	// `APIServiceConfig.Service.Webhooks.Worker.RequestTimeout`,
+	// `DBCleanerConfig.Service.Webhooks.Worker.RequestTimeout`,
+	// `SchedulerConfig.Service.Webhooks.Worker.RequestTimeout`,
+	// `AsyncMessageHandlerConfig.Service.Webhooks.Worker.RequestTimeout`.
 	WebhooksWorkerRequestTimeoutEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_WORKER_REQUEST_TIMEOUT"
 
 	// WebhooksWorkerRetentionEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Webhooks.Worker.Retention`, `SchedulerConfig.Webhooks.Worker.Retention`.
+	// `APIServiceConfig.Service.Webhooks.Worker.Retention`,
+	// `DBCleanerConfig.Service.Webhooks.Worker.Retention`,
+	// `SchedulerConfig.Service.Webhooks.Worker.Retention`,
+	// `AsyncMessageHandlerConfig.Service.Webhooks.Worker.Retention`.
 	WebhooksWorkerRetentionEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_WORKER_RETENTION"
 
 	// WebhooksWorkerUserAgentEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Webhooks.Worker.UserAgent`, `SchedulerConfig.Webhooks.Worker.UserAgent`.
+	// `APIServiceConfig.Service.Webhooks.Worker.UserAgent`,
+	// `DBCleanerConfig.Service.Webhooks.Worker.UserAgent`,
+	// `SchedulerConfig.Service.Webhooks.Worker.UserAgent`,
+	// `AsyncMessageHandlerConfig.Service.Webhooks.Worker.UserAgent`.
 	WebhooksWorkerUserAgentEnvVarKey = "DINNER_DONE_BETTER_WEBHOOKS_WORKER_USER_AGENT"
 )

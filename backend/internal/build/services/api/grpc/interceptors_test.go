@@ -12,6 +12,7 @@ import (
 	errorsgrpc "github.com/primandproper/primitives-go/v2/errors/grpc"
 	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
 	metricsnoop "github.com/primandproper/primitives-go/v2/observability/metrics/noop"
+	platformgrpc "github.com/primandproper/primitives-go/v2/server/grpc"
 
 	fake "github.com/brianvoe/gofakeit/v7"
 	"github.com/stretchr/testify/assert"
@@ -131,14 +132,14 @@ func TestBuildUnaryServerInterceptors_stripsTheEncodedChain(T *testing.T) {
 	T.Parallel()
 
 	authInterceptor := buildTestAuthInterceptor(T)
-	enforcer, enforcerErr := ProvideAuthorizationEnforcer(MethodPermissions(), authInterceptor, loggingnoop.NewLogger(), metricsnoop.NewMetricsProvider(), false)
+	enforcer, enforcerErr := ProvideAuthorizationEnforcer(MethodPermissionFragments(), MethodPermissionOverrides(), authInterceptor, loggingnoop.NewLogger(), metricsnoop.NewMetricsProvider(), false)
 	require.NoError(T, enforcerErr)
 
 	passthrough := func(ctx context.Context, req any, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 		return handler(ctx, req)
 	}
 
-	chain := BuildUnaryServerInterceptors(loggingnoop.NewLogger(), passthrough, authInterceptor, enforcer, passthrough)
+	chain := BuildUnaryServerInterceptors(passthrough, authInterceptor, enforcer, passthrough)
 
 	// A method any phone may call without a session, so the failure is the handler's and not a
 	// refusal from the interceptors in front of it.
@@ -207,7 +208,7 @@ func TestBuildStreamServerInterceptors_stripsTheEncodedChain(T *testing.T) {
 	T.Parallel()
 
 	authInterceptor := buildTestAuthInterceptor(T)
-	chain := BuildStreamServerInterceptors(loggingnoop.NewLogger(), authInterceptor)
+	chain := BuildStreamServerInterceptors(authInterceptor)
 
 	public := authInterceptor.UnauthenticatedRoutes()
 	require.NotEmpty(T, public)
@@ -225,5 +226,58 @@ func TestBuildStreamServerInterceptors_stripsTheEncodedChain(T *testing.T) {
 		assert.Equal(t, codes.FailedPrecondition, status.Code(err))
 		assert.Equal(t, f.description, status.Convert(err).Message())
 		f.requireNoInternalText(t, err)
+	})
+}
+
+// TestServerInterceptors_recoverOnlyInsidePrimitivesServer pins the arrangement that let this
+// server's own recovery interceptor go: primitives-go's server installs RecoveryInterceptor ahead
+// of every list it is given, so these chains carry none and a panic is recovered by that one.
+//
+// The chains are composed here the way platformgrpc.NewGRPCServer composes them — recovery first,
+// then this server's — rather than through a running server, so what is asserted is the shape and
+// not a listener.
+func TestServerInterceptors_recoverOnlyInsidePrimitivesServer(T *testing.T) {
+	T.Parallel()
+
+	authInterceptor := buildTestAuthInterceptor(T)
+
+	public := authInterceptor.UnauthenticatedRoutes()
+	require.NotEmpty(T, public)
+
+	T.Run("a panicking unary handler is answered Internal", func(t *testing.T) {
+		t.Parallel()
+
+		enforcer, err := ProvideAuthorizationEnforcer(MethodPermissionFragments(), MethodPermissionOverrides(), authInterceptor, loggingnoop.NewLogger(), metricsnoop.NewMetricsProvider(), false)
+		require.NoError(t, err)
+
+		passthrough := func(ctx context.Context, req any, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
+			return handler(ctx, req)
+		}
+
+		chain := append(
+			[]grpc.UnaryServerInterceptor{platformgrpc.RecoveryInterceptor(loggingnoop.NewLogger())},
+			BuildUnaryServerInterceptors(passthrough, authInterceptor, enforcer, passthrough)...,
+		)
+
+		_, err = chainUnary(chain, &grpc.UnaryServerInfo{FullMethod: public[0]}, func(context.Context, any) (any, error) {
+			panic(fake.Sentence())
+		})(t.Context(), nil)
+		require.Error(t, err)
+		assert.Equal(t, codes.Internal, status.Code(err))
+	})
+
+	T.Run("a panicking stream handler is answered Internal", func(t *testing.T) {
+		t.Parallel()
+
+		chain := append(
+			[]grpc.StreamServerInterceptor{platformgrpc.StreamRecoveryInterceptor(loggingnoop.NewLogger())},
+			BuildStreamServerInterceptors(authInterceptor)...,
+		)
+
+		err := chainStream(chain, &grpc.StreamServerInfo{FullMethod: public[0]}, func(any, grpc.ServerStream) error {
+			panic(fake.Sentence())
+		})(nil, &fakeServerStream{ctx: t.Context()})
+		require.Error(t, err)
+		assert.Equal(t, codes.Internal, status.Code(err))
 	})
 }

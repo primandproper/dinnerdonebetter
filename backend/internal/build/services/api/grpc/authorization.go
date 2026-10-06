@@ -17,8 +17,9 @@ import (
 // TestAuthorizationEnforcerMatchesTheHandRolledCheck drives every method the server declares
 // against every role a principal can hold — 2,920 decisions — and asserts the enforcer reaches
 // the same verdict as the hand-rolled check it replaces. Audit-only mode exists for services
-// that cannot make that comparison ahead of time; this one can, because both sides read the same
-// method table and the same permission checkers.
+// that cannot make that comparison ahead of time; this one can, because both sides are built from
+// the same fragments and overrides — the interceptor from them merged, the enforcer by declaring
+// one and overriding with the other — and read the same permission checkers.
 //
 // That test is load-bearing. It is what would catch a policy change here drifting from the
 // permission slices in internal/authorization, and it already caught one real divergence: 39
@@ -40,10 +41,14 @@ const auditOnlyAuthorization = false
 // Seed, at migration time, where a policy with an unknown parent or an inheritance cycle fails the
 // deploy rather than being noticed at boot and discarded.
 //
-// Nothing is derived twice: the required permissions come from the same aggregated map the
-// interceptor reads, and the public methods come from the interceptor's own allow-list.
+// The table is each surface's fragment, declared as it ships, with this deployment's amendments
+// applied through RequirementsBuilder.Override rather than written over a copy first. Override is
+// checked against what was declared, so an amendment to a method no fragment serves fails the
+// build here instead of being declared quietly. The public methods come from the interceptor's
+// own allow-list.
 func ProvideAuthorizationEnforcer(
-	methodPermissions interceptors.MethodPermissionsMap,
+	fragments interceptors.MethodPermissionsMap,
+	overrides map[string][]authorization.Permission,
 	authInterceptor *interceptors.AuthInterceptor,
 	logger logging.Logger,
 	metricsProvider metrics.Provider,
@@ -53,7 +58,7 @@ func ProvideAuthorizationEnforcer(
 
 	declared := map[string]struct{}{}
 
-	for method, perms := range methodPermissions {
+	for method, perms := range fragments {
 		declared[method] = struct{}{}
 
 		// A method mapped to an empty permission slice means "any authenticated caller" —
@@ -84,6 +89,10 @@ func ProvideAuthorizationEnforcer(
 		}
 
 		builder.Public(method)
+	}
+
+	for method, perms := range overrides {
+		builder.Override(method, authorization.ToPlatformPermissions(perms)...)
 	}
 
 	reqs, err := builder.Build()

@@ -12,6 +12,7 @@ import (
 	billingpb "github.com/primandproper/platform-go/v15/billing/billingpb"
 	billinggrpc "github.com/primandproper/platform-go/v15/billing/grpc"
 	platformauthz "github.com/primandproper/primitives-go/v2/authorization"
+	authzgrpc "github.com/primandproper/primitives-go/v2/authorization/grpc"
 	"github.com/primandproper/primitives-go/v2/authorization/static"
 	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
 	metricsnoop "github.com/primandproper/primitives-go/v2/observability/metrics/noop"
@@ -119,6 +120,7 @@ func buildTestEnforcer(t *testing.T) *grpc.UnaryServerInterceptor {
 
 	enforcer, err := ProvideAuthorizationEnforcer(
 		perms,
+		nil,
 		authInterceptor,
 		loggingnoop.NewLogger(),
 		metricsnoop.NewMetricsProvider(),
@@ -184,4 +186,107 @@ func TestProvideAuthorizationEnforcer(T *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, 1, called)
 	})
+}
+
+func TestProvideAuthorizationEnforcer_overrides(T *testing.T) {
+	T.Parallel()
+
+	logger, metricsProvider := loggingnoop.NewLogger(), metricsnoop.NewMetricsProvider()
+
+	T.Run("an override replaces what the fragment declared", func(t *testing.T) {
+		t.Parallel()
+
+		method := billingpb.BillingService_ArchiveSubscription_FullMethodName
+		fragment := interceptors.MethodPermissionsMap{method: {}}
+		overrides := map[string][]authorization.Permission{method: {billinggrpc.PermissionArchiveSubscriptions}}
+
+		enforcer, err := ProvideAuthorizationEnforcer(
+			fragment,
+			overrides,
+			testAuthInterceptor(t, fragment),
+			logger,
+			metricsProvider,
+			false,
+		)
+		require.NoError(t, err)
+
+		interceptor := enforcer.UnaryServerInterceptor()
+		info := &grpc.UnaryServerInfo{FullMethod: method}
+		handler := func(context.Context, any) (any, error) { return struct{}{}, nil }
+
+		// The fragment declared the method public. The override is what the enforcer holds a
+		// caller to, so one holding nothing is refused and one holding the grant is not.
+		without := sessions.AttachToContext(t.Context(), &sessions.ContextData{
+			Requester: sessions.RequesterInfo{
+				UserID:             "user_1",
+				ServicePermissions: authorization.NewServiceRolePermissionChecker(nil, nil),
+			},
+		})
+		_, err = interceptor(without, struct{}{}, info, handler)
+		require.Error(t, err)
+
+		with := sessions.AttachToContext(t.Context(), &sessions.ContextData{
+			Requester: sessions.RequesterInfo{
+				UserID: "user_1",
+				ServicePermissions: authorization.NewServiceRolePermissionChecker(
+					nil, []authorization.Permission{billinggrpc.PermissionArchiveSubscriptions}),
+			},
+		})
+		_, err = interceptor(with, struct{}{}, info, handler)
+		require.NoError(t, err)
+	})
+
+	T.Run("an override of a method no fragment declares fails the build", func(t *testing.T) {
+		t.Parallel()
+
+		fragment := interceptors.MethodPermissionsMap{
+			billingpb.BillingService_ArchiveSubscription_FullMethodName: {billinggrpc.PermissionArchiveSubscriptions},
+		}
+		overrides := map[string][]authorization.Permission{
+			billingpb.BillingService_ArchivePurchase_FullMethodName: {billinggrpc.PermissionArchivePurchases},
+		}
+
+		_, err := ProvideAuthorizationEnforcer(
+			fragment,
+			overrides,
+			testAuthInterceptor(t, fragment),
+			logger,
+			metricsProvider,
+			false,
+		)
+		require.ErrorIs(t, err, authzgrpc.ErrOverrideUndeclared)
+	})
+
+	T.Run("every override this deployment makes names a method a fragment declares", func(t *testing.T) {
+		t.Parallel()
+
+		fragments := MethodPermissionFragments()
+		overrides := MethodPermissionOverrides()
+		require.NotEmpty(t, overrides)
+
+		for method := range overrides {
+			assert.Contains(t, fragments, method)
+		}
+
+		_, err := ProvideAuthorizationEnforcer(
+			fragments,
+			overrides,
+			testAuthInterceptor(t, MethodPermissions()),
+			logger,
+			metricsProvider,
+			false,
+		)
+		require.NoError(t, err)
+	})
+}
+
+// testAuthInterceptor is an AuthInterceptor that resolves no principal, for tests about the
+// permission table it carries rather than about who is calling.
+func testAuthInterceptor(t *testing.T, perms interceptors.MethodPermissionsMap) *interceptors.AuthInterceptor {
+	t.Helper()
+
+	authInterceptor, err := interceptors.ProvideAuthInterceptor(loggingnoop.NewLogger(), nil, nil, perms)
+	require.NoError(t, err)
+
+	return authInterceptor
 }

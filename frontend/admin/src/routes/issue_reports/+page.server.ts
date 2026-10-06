@@ -1,14 +1,15 @@
 import type { PageServerLoad } from './$types';
-import { listIssueReports } from '$lib/grpc/clients';
+import { listIssueReportsAcrossScopes } from '$lib/grpc/clients';
 import { QueryFilter } from '@dinnerdonebetter/api-client';
+import { toOperatorRows } from './rows';
 
 export const load: PageServerLoad = async ({ locals }) => {
   const session = locals.session;
   try {
-    const res = (await listIssueReports(session, { filter: QueryFilter.create({ maxResponseSize: 100 }) })) as {
-      results?: Array<{ id?: string }>;
-    };
-    return { reports: res?.results ?? [] };
+    const res = await listIssueReportsAcrossScopes(session, {
+      filter: QueryFilter.create({ maxResponseSize: 100 }),
+    });
+    return { reports: toOperatorRows(res?.results ?? []) };
   } catch (e) {
     return {
       reports: [],

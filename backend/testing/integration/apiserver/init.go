@@ -20,7 +20,9 @@ import (
 	platformoauth2clients "github.com/primandproper/platform-go/v15/authentication/oauth2clients"
 	"github.com/primandproper/platform-go/v15/billing"
 	platformnotifications "github.com/primandproper/platform-go/v15/notifications"
+	"github.com/primandproper/platform-go/v15/service"
 	"github.com/primandproper/primitives-go/v2/database"
+	databasecfg "github.com/primandproper/primitives-go/v2/database/config"
 	msgconfig "github.com/primandproper/primitives-go/v2/messagequeue/config"
 	metricsnoop "github.com/primandproper/primitives-go/v2/observability/metrics/noop"
 )
@@ -65,8 +67,7 @@ var (
 
 	// The other two workloads' configurations, pointed at this suite's containers. They are
 	// what the container-resolution tests build their injectors from.
-	schedulerConfig           *config.SchedulerConfig
-	asyncMessageHandlerConfig *config.AsyncMessageHandlerConfig
+	schedulerConfig *config.SchedulerConfig
 )
 
 // getFreePort asks the OS for a free open port that is ready to use.
@@ -117,8 +118,8 @@ func init() {
 		log.Fatal(err)
 	}
 
-	cfg.HTTPServer.Port = uint16(httpPort)
-	cfg.GRPCServer.Port = uint16(grpcPort)
+	cfg.Service.HTTPServer.Port = uint16(httpPort)
+	cfg.Service.GRPCServer.Port = uint16(grpcPort)
 	httpTestServerAddress = fmt.Sprintf("http://localhost:%d", httpPort)
 
 	// The authorization server's identity, which the rendered config cannot know: the port is
@@ -130,7 +131,7 @@ func init() {
 
 	apiServiceConfig = cfg
 
-	pillars, err := cfg.Observability.NewPillars(ctx)
+	pillars, err := cfg.Service.Observability.NewPillars(ctx)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -207,29 +208,14 @@ func init() {
 	}
 
 	// The other two workloads' configurations, as a testing deployment renders them.
-	if schedulerConfig, err = config.LoadConfigFromPath[config.SchedulerConfig](schedulerConfigurationFilepath); err != nil {
+	workerDatabase, workerEvents = cfg.Service.Database, cfg.Service.MessageQueue
+	if schedulerConfig, err = loadSchedulerConfig(); err != nil {
 		log.Fatal(err)
 	}
-	if asyncMessageHandlerConfig, err = config.LoadConfigFromPath[config.AsyncMessageHandlerConfig](asyncMessageHandlerConfigurationFilepath); err != nil {
+	// Loaded here only so a file that does not decode fails the suite at once; the wiring test
+	// loads its own copy to compose from.
+	if _, err = loadAsyncMessageHandlerConfig(); err != nil {
 		log.Fatal(err)
-	}
-
-	// The two things a rendered config cannot know: which containers this suite started. Both
-	// are addresses rather than behavior, so everything else in those files is the deployment's
-	// own.
-	for _, workload := range []struct {
-		database *dbcfg.Config
-		events   *msgconfig.Config
-	}{
-		{&schedulerConfig.Database, &schedulerConfig.Events},
-		{&asyncMessageHandlerConfig.Database, &asyncMessageHandlerConfig.Events},
-	} {
-		workload.database.WriteConnection = cfg.Database.WriteConnection
-		workload.database.ReadConnection = cfg.Database.ReadConnection
-		// Migrations are the API server's job — see backend/docs/migrations.md — and a worker
-		// that ran them here would race the one that already has.
-		workload.database.RunMigrations = false
-		*workload.events = cfg.Events
 	}
 
 	// The other half the API server does not run: data privacy fulfillment. Submitting a
@@ -273,4 +259,56 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+var (
+	// workerDatabase and workerEvents are the API server's database and broker, which the two
+	// worker processes' configurations are pointed at — see pointAtSuiteContainers.
+	workerDatabase *databasecfg.Config
+	workerEvents   *msgconfig.Config
+)
+
+// loadSchedulerConfig loads the scheduler's configuration as a testing deployment renders it,
+// pointed at this suite's containers.
+//
+// Each call loads a copy of its own. Composing a process validates its config, and validation
+// normalizes and defaults the config's blocks in place, so two parallel tests composing from one
+// shared config would race on it.
+func loadSchedulerConfig() (*config.SchedulerConfig, error) {
+	cfg, err := config.LoadConfigFromPath[config.SchedulerConfig](schedulerConfigurationFilepath)
+	if err != nil {
+		return nil, err
+	}
+
+	pointAtSuiteContainers(&cfg.Service)
+
+	return cfg, nil
+}
+
+// loadAsyncMessageHandlerConfig is loadSchedulerConfig for the async message handler.
+func loadAsyncMessageHandlerConfig() (*config.AsyncMessageHandlerConfig, error) {
+	cfg, err := config.LoadConfigFromPath[config.AsyncMessageHandlerConfig](asyncMessageHandlerConfigurationFilepath)
+	if err != nil {
+		return nil, err
+	}
+
+	pointAtSuiteContainers(&cfg.Service)
+
+	return cfg, nil
+}
+
+// pointAtSuiteContainers overwrites the two things a rendered config cannot know: which
+// containers this suite started. Both are addresses rather than behavior, so everything else in
+// those files is the deployment's own.
+func pointAtSuiteContainers(workload *service.Config) {
+	databaseCfg := *workload.Database
+	databaseCfg.WriteConnection = workerDatabase.WriteConnection
+	databaseCfg.ReadConnection = workerDatabase.ReadConnection
+	// Migrations are the API server's job — see backend/docs/migrations.md — and a worker that
+	// ran them here would race the one that already has.
+	databaseCfg.RunMigrations = false
+	workload.Database = &databaseCfg
+
+	eventsCfg := *workerEvents
+	workload.MessageQueue = &eventsCfg
 }

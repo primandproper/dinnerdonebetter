@@ -2,6 +2,8 @@ package scheduler
 
 import (
 	"context"
+	"fmt"
+	"sync"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	commentstargets "github.com/primandproper/dinnerdonebetter/backend/internal/build/comments"
@@ -12,6 +14,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/grocerylistpreparation"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/recipeanalysis"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/notifications/push"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/catalog"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/recordingspine"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
@@ -28,7 +31,6 @@ import (
 	signindevicesrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/signindevices"
 	uploadedmediarepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/uploadedmedia"
 	waitlistsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/waitlists"
-	webhooksstore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhooksstore"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/searchindexes"
 	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
 	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
@@ -37,55 +39,46 @@ import (
 	mealplanfinalization "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_finalization"
 	mealplantasknotifications "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_task_notifications"
 
-	operationscfg "github.com/primandproper/platform-go/v15/operations/config"
-	"github.com/primandproper/primitives-go/v2/database"
-	databasecfg "github.com/primandproper/primitives-go/v2/database/config"
-	"github.com/primandproper/primitives-go/v2/database/postgres"
-	"github.com/primandproper/primitives-go/v2/distributedlock"
-	distributedlockcfg "github.com/primandproper/primitives-go/v2/distributedlock/config"
-	"github.com/primandproper/primitives-go/v2/jobs"
-	msgconfig "github.com/primandproper/primitives-go/v2/messagequeue/config"
+	"github.com/primandproper/platform-go/v15/service"
+	platformwebhooks "github.com/primandproper/platform-go/v15/webhooks"
 	notificationscfg "github.com/primandproper/primitives-go/v2/notifications/mobile/config"
-	"github.com/primandproper/primitives-go/v2/observability"
-	"github.com/primandproper/primitives-go/v2/observability/logging"
-	loggingcfg "github.com/primandproper/primitives-go/v2/observability/logging/config"
-	"github.com/primandproper/primitives-go/v2/observability/metrics"
-	metricscfg "github.com/primandproper/primitives-go/v2/observability/metrics/config"
-	"github.com/primandproper/primitives-go/v2/observability/tracing"
-	tracingcfg "github.com/primandproper/primitives-go/v2/observability/tracing/config"
 
 	"github.com/samber/do/v2"
 )
 
-// BuildInjector creates and configures the dependency injection container.
+// BuildInjector validates cfg and composes the scheduler process from it.
 //
 // The container is the union of what the six periodic jobs used to build separately, one
 // short-lived process each. Consolidating them means the connection pools, the tracer, and the
 // repositories are constructed once at startup rather than once per tick — which is most of the
 // cost of a job that runs every minute.
+//
+// service.Register builds the half of it platform owns, from cfg.Service: the database, the
+// broker, the pillars, the scheduler and its lock, and every platform loop this process runs. What
+// follows it is what platform cannot know — the repositories, the domain, the registries the
+// loops dispatch into, and the jobs. Validation comes first and is not optional: it is what
+// releases the blocks env parsing allocated and nobody configured, and Register reads presence as
+// the decision to build.
 func BuildInjector(
 	ctx context.Context,
 	cfg *config.SchedulerConfig,
-) *do.RootScope {
+) (*do.RootScope, error) {
+	if err := cfg.ValidateWithContext(ctx); err != nil {
+		return nil, fmt.Errorf("validating scheduler config: %w", err)
+	}
+
+	// The prefix and dialect of platform's data privacy tables are this application's, not
+	// the deployment's — see dataprivacycfg.Pin.
+	dataprivacycfg.Pin(cfg.Service.DataPrivacy)
+
 	i := do.New()
 
 	do.ProvideValue(i, ctx)
 	do.ProvideValue(i, cfg)
 
-	RegisterConfigs(i)
+	service.Register(i, &cfg.Service)
 
-	// platform providers
-	observability.RegisterO11yConfigs(i)
-	tracingcfg.RegisterTracerProvider(i)
-	loggingcfg.RegisterLogger(i)
-	metricscfg.RegisterMetricsProvider(i)
-	databasecfg.RegisterClientConfig(i)
-	postgres.RegisterDatabaseClient(i)
-	msgconfig.RegisterMessageQueue(i)
-	// The push sender. This process delivers prep task reminders itself rather than handing
-	// them to the async message handler over a topic — see the meal plan task notification
-	// worker for why the send has to happen under the queue lease that claimed the task.
-	notificationscfg.RegisterPushSender(i)
+	RegisterConfigs(i)
 
 	// repositories
 	//
@@ -117,15 +110,22 @@ func BuildInjector(
 	uploadedmediarepo.RegisterUploadedMediaRepository(i)
 	settingsrepo.RegisterSettingsRepository(i)
 	waitlistsrepo.RegisterWaitlistsRepository(i)
-	// This also registers the webhook Store and Dispatcher, which this process needs in both
-	// directions: dispatch happens inside the transaction that causes the event, and the meal
-	// plan finalizer emits events like any request does.
-	webhooksstore.RegisterWebhooksStore(i)
+
+	// The webhook store, dispatcher and delivery worker are platform's, from the Webhooks
+	// block. The catalog is this application's: what an event means is an application
+	// opinion, and generated Go rather than configuration. The dispatcher is needed in both
+	// directions here — dispatch happens inside the transaction that causes the event, and
+	// the meal plan finalizer emits events like any request does.
+	do.ProvideValue[platformwebhooks.Catalog](i, catalog.Catalog())
 
 	// The notifications store and the push fan-out over its device registry. The fan-out is
 	// the part of mobile notifications that has nothing to do with why one is owed: device
 	// tokens in, pushes out, dead tokens retired — and the async message handler builds the
-	// same one.
+	// same one. This process delivers prep task reminders itself rather than handing them to
+	// the async message handler over a topic — see the meal plan task notification worker for
+	// why the send has to happen under the queue lease that claimed the task — so it holds the
+	// push sender too, configured outside Service for the reason the config gives.
+	notificationscfg.RegisterPushSender(i)
 	notificationsstore.RegisterNotificationsStore(i)
 	push.RegisterFanout(i)
 
@@ -142,27 +142,22 @@ func BuildInjector(
 	signindevicesrepo.RegisterSignInDevicesRepository(i)
 	oauth2clientsstore.RegisterOAuth2ClientsStore(i)
 
-	// The data privacy machinery: the bucket and cipher artifacts are written with, the
-	// registry of who holds data about a person, the worker that fulfills, and the sweeper
-	// that expires. A deployment that ran the worker and not the sweeper would accumulate
-	// artifacts forever, which is why the sweeper is a registered job rather than a flag.
-	dataprivacycfg.RegisterArtifactStorage(i)
+	// The data privacy machinery is platform's, from the DataPrivacy block: the request store,
+	// the artifact storage — a bucket and a keyring of its own — the fulfiller, and the sweep
+	// that expires what it wrote. What it cannot build from configuration is registered here:
+	// the registry of who holds data about a person, the operations registry the fulfiller
+	// files its kinds into, the key the artifact keyring is built over, and the codec.
+	dataprivacycfg.RegisterKeyset(i, cfg.DataPrivacyArtifactEncryptionKey)
+	dataprivacycfg.RegisterCompressor(i)
 	dataprivacybuild.RegisterRegistry(i)
 	dataprivacybuild.RegisterOperationsRegistry(i)
-	dataprivacybuild.RegisterSweeper(i)
+	dataprivacybuild.RegisterCompletionNotifier(i)
 
-	// The operations tier privacy requests are now fulfilled through. This process runs the
-	// whole of it: the store and queue it shares with the API server, and the worker that
-	// claims operations and runs the kinds the registry above holds.
-	operationscfg.RegisterStore(i)
-	operationscfg.RegisterQueue(i)
-	operationscfg.RegisterService(i)
-	operationscfg.RegisterWorker(i)
-
-	// The delivery side: the worker that claims the dispatch rows the write side above
-	// produces, signs them, and sends them.
-	RegisterWebhookWorker(i)
 	// Domain: mealplanning
+	//
+	// recordingspine.Register is also where the recording spine is assembled — the outbox
+	// writer, the webhook emitter, and the recorder over them — for the reason
+	// config.SchedulerConfig.OutboxRelay gives.
 	recordingspine.Register(i)
 	mealplanningrepo.RegisterMealPlanningRepository(i)
 	grocerylistpreparation.RegisterGroceryListCreator(i)
@@ -177,8 +172,7 @@ func BuildInjector(
 	})
 
 	// The prep task reminder queue and the worker that fills and drains it. The queue owns a
-	// goroutine and is closed by cmd/ddb's shutdown rather than by the container, which is
-	// what every other background component in this process does with its Close.
+	// goroutine, and is joined to the service's lifecycle by cmd/ddb — see NotificationQueue.
 	mealplantasknotifications.RegisterQueue(i)
 	mealplantasknotifications.RegisterWorker(i)
 
@@ -186,37 +180,66 @@ func BuildInjector(
 	// the Syncers the consumer runs, because the two are halves of keeping one index right.
 	searchindexes.Register(ctx, i, identityindexing.RegisterIndexes, mealplanningindexing.RegisterIndexes)
 
-	// the lock that decides which replica runs a given tick
-	do.Provide[distributedlock.Locker](i, func(i do.Injector) (distributedlock.Locker, error) {
-		return distributedlockcfg.NewLocker(
-			do.MustInvoke[context.Context](i),
-			&do.MustInvoke[*config.ScheduledJobsConfig](i).Lock,
-			do.MustInvoke[database.Client](i),
-			distributedlockcfg.WithLogger(do.MustInvoke[logging.Logger](i)),
-			distributedlockcfg.WithTracerProvider(do.MustInvoke[tracing.Provider](i)),
-			distributedlockcfg.WithMetricsProvider(do.MustInvoke[metrics.Provider](i)),
-		)
-	})
-
-	// The saga machinery, and the one worker that advances every definition in the process.
-	// Registered after the lock, which it takes a per-instance scope of.
+	// The saga definitions, and the publisher and runners over them. The worker that advances
+	// every definition in the process is platform's, from the Saga block, along with its store
+	// and the job that prunes finished instances.
+	//
+	// It is built without an idempotency manager, and that is a decision rather than an
+	// omission. The manager suppresses a step whose result was recorded but whose instance row
+	// did not catch up, and it does so from a store that commits separately from the step — so
+	// for a step that writes to this database it is a weaker guarantee than the step already
+	// has. Meal plan finalization's steps each write their work and the flag saying they did it
+	// in one transaction, and re-read that flag before doing anything; a step that reached out
+	// to something that cannot join a transaction would need the manager, and there is not one
+	// yet. platform's worker takes one only if the container holds one, and this one does not.
 	sagas.RegisterSagas(i)
-	sagas.RegisterSagaWorker(i)
 
-	RegisterMeteringFlusher(i)
-
-	RegisterScheduler(i)
+	RegisterMetering(i)
+	RegisterRetentionPolicies(i)
 	RegisterOutboxRelay(i)
-	RegisterRetentionSweeper(i)
+	RegisterJobs(i)
 
-	return i
+	return i, nil
 }
 
-// Build builds the scheduler.
-func Build(
-	ctx context.Context,
-	cfg *config.SchedulerConfig,
-) (*jobs.Scheduler, error) {
-	i := BuildInjector(ctx, cfg)
-	return do.MustInvoke[*jobs.Scheduler](i), nil
+// NotificationQueue adapts the prep task reminder queue to the service.Runner its lifecycle is
+// joined through.
+//
+// The queue is not a loop — the scheduled job drives it — but it batches enqueues on a goroutine
+// of its own, and Close is what writes the last batch out. service.WithRunners is the one seam a
+// service.Service offers an application's own components, and an application runner is closed
+// first: before the scheduler whose job enqueues into it has drained. A reminder pass still
+// running at that moment has its remaining enqueues refused, which costs nothing durable — the
+// job finds every task still owed a reminder from the database on each pass, so a refused one is
+// picked up by the next — but it is the wrong order, and the right one is a final-flush slot,
+// after the loops and before the database, which service gives its own operations queue and
+// does not offer an application. See platform-go#1148.
+type NotificationQueue struct {
+	queue *mealplantasknotifications.TaskQueue
+	stop  chan struct{}
+	once  sync.Once
+}
+
+var _ service.Runner = (*NotificationQueue)(nil)
+
+// NewNotificationQueue resolves the reminder queue from i and wraps it.
+func NewNotificationQueue(i do.Injector) (*NotificationQueue, error) {
+	queue, err := do.Invoke[*mealplantasknotifications.TaskQueue](i)
+	if err != nil {
+		return nil, err
+	}
+
+	return &NotificationQueue{queue: queue, stop: make(chan struct{})}, nil
+}
+
+// Run blocks until Close.
+func (q *NotificationQueue) Run() {
+	<-q.stop
+}
+
+// Close writes out the queue's last batch and stops its goroutine.
+func (q *NotificationQueue) Close(ctx context.Context) error {
+	q.once.Do(func() { close(q.stop) })
+
+	return q.queue.Close(ctx)
 }

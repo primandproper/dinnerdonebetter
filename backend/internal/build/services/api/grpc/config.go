@@ -3,10 +3,8 @@ package grpcapi
 import (
 	authcfg "github.com/primandproper/dinnerdonebetter/backend/internal/authentication/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
-	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
 	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/handlers/authentication"
-	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
 	identitycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/config"
 	mealplanningcfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/config"
 	oauthcfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/oauth/config"
@@ -21,18 +19,10 @@ import (
 	webhookscfg "github.com/primandproper/platform-go/v15/webhooks/config"
 	analyticscfg "github.com/primandproper/primitives-go/v2/analytics/config"
 	tokenscfg "github.com/primandproper/primitives-go/v2/authentication/tokens/config"
-	databasecfg "github.com/primandproper/primitives-go/v2/database/config"
 	emailcfg "github.com/primandproper/primitives-go/v2/email/config"
-	"github.com/primandproper/primitives-go/v2/encoding"
-	featureflagscfg "github.com/primandproper/primitives-go/v2/featureflags/config"
-	httpclientcfg "github.com/primandproper/primitives-go/v2/httpclient"
-	msgconfig "github.com/primandproper/primitives-go/v2/messagequeue/config"
-	"github.com/primandproper/primitives-go/v2/observability"
 	ratelimitingcfg "github.com/primandproper/primitives-go/v2/ratelimiting/config"
 	routingcfg "github.com/primandproper/primitives-go/v2/routing/config"
 	textsearchcfg "github.com/primandproper/primitives-go/v2/search/text/config"
-	"github.com/primandproper/primitives-go/v2/server/grpc"
-	"github.com/primandproper/primitives-go/v2/server/http"
 
 	"github.com/samber/do/v2"
 )
@@ -80,26 +70,6 @@ func RegisterConfigs(i do.Injector) {
 		cfg := do.MustInvoke[*config.APIServiceConfig](i)
 		return &cfg.Links, nil
 	})
-	do.Provide[*featureflagscfg.Config](i, func(i do.Injector) (*featureflagscfg.Config, error) {
-		cfg := do.MustInvoke[*config.APIServiceConfig](i)
-		return &cfg.FeatureFlags, nil
-	})
-	do.Provide[*httpclientcfg.Config](i, func(i do.Injector) (*httpclientcfg.Config, error) {
-		cfg := do.MustInvoke[*config.APIServiceConfig](i)
-		return cfg.HTTPClient, nil
-	})
-	do.Provide[encoding.Config](i, func(i do.Injector) (encoding.Config, error) {
-		cfg := do.MustInvoke[*config.APIServiceConfig](i)
-		return cfg.Encoding, nil
-	})
-	do.Provide[*msgconfig.Config](i, func(i do.Injector) (*msgconfig.Config, error) {
-		cfg := do.MustInvoke[*config.APIServiceConfig](i)
-		return &cfg.Events, nil
-	})
-	do.Provide[*observability.Config](i, func(i do.Injector) (*observability.Config, error) {
-		cfg := do.MustInvoke[*config.APIServiceConfig](i)
-		return &cfg.Observability, nil
-	})
 	do.Provide[config.MetaSettings](i, func(i do.Injector) (config.MetaSettings, error) {
 		cfg := do.MustInvoke[*config.APIServiceConfig](i)
 		return cfg.Meta, nil
@@ -107,21 +77,6 @@ func RegisterConfigs(i do.Injector) {
 	do.Provide[*routingcfg.Config](i, func(i do.Injector) (*routingcfg.Config, error) {
 		cfg := do.MustInvoke[*config.APIServiceConfig](i)
 		return &cfg.Routing, nil
-	})
-	do.Provide[http.Config](i, func(i do.Injector) (http.Config, error) {
-		cfg := do.MustInvoke[*config.APIServiceConfig](i)
-		return cfg.HTTPServer, nil
-	})
-	do.Provide[*grpc.Config](i, func(i do.Injector) (*grpc.Config, error) {
-		cfg := do.MustInvoke[*config.APIServiceConfig](i)
-		return &cfg.GRPCServer, nil
-	})
-	do.Provide[*dbcfg.Config](i, func(i do.Injector) (*dbcfg.Config, error) {
-		cfg := do.MustInvoke[*config.APIServiceConfig](i)
-		return &cfg.Database, nil
-	})
-	do.Provide[*databasecfg.Config](i, func(i do.Injector) (*databasecfg.Config, error) {
-		return &do.MustInvoke[*dbcfg.Config](i).Config, nil
 	})
 	do.Provide[*config.ServicesConfig](i, func(i do.Injector) (*config.ServicesConfig, error) {
 		cfg := do.MustInvoke[*config.APIServiceConfig](i)
@@ -153,10 +108,6 @@ func RegisterConfigs(i do.Injector) {
 	do.Provide[*identitycfg.Config](i, func(i do.Injector) (*identitycfg.Config, error) {
 		svc := do.MustInvoke[*config.ServicesConfig](i)
 		return &svc.Users, nil
-	})
-	do.Provide[*dataprivacycfg.Config](i, func(i do.Injector) (*dataprivacycfg.Config, error) {
-		svc := do.MustInvoke[*config.ServicesConfig](i)
-		return &svc.DataPrivacy, nil
 	})
 	do.Provide[*mealplanningcfg.Config](i, func(i do.Injector) (*mealplanningcfg.Config, error) {
 		svc := do.MustInvoke[*config.ServicesConfig](i)

@@ -196,7 +196,7 @@ func (f *fixture) eraseWithSuccession(
 ) (succession.Outcome, error) {
 	t.Helper()
 
-	rule, err := succession.New(f.store, tablePrefix)
+	rule, err := succession.New(f.store)
 	require.NoError(t, err)
 
 	var outcome succession.Outcome
@@ -296,6 +296,36 @@ func TestSuccession_DeletesASoloHousehold(T *testing.T) {
 
 		_, found := f.accountOwner(t, ctx, h.account.ID)
 		assert.False(t, found, "a solo household should have been deleted, not left standing")
+	})
+
+	// The delete is identity.Store.DeleteAccount, which clears identity's rows and
+	// leaves this application's to it. They go anyway, because each references the
+	// account ON DELETE CASCADE — and this is the test that says so, because a key
+	// re-created without the cascade would make the delete fail rather than leave
+	// the household's contents behind, and one re-created as SET NULL would do the
+	// latter.
+	T.Run("the household's contents go with it", func(t *testing.T) {
+		t.Parallel()
+
+		f := buildFixture(t)
+		ctx := t.Context()
+
+		h := f.registerHousehold(t, ctx)
+
+		_, err := f.db.Writer().ExecContext(ctx,
+			`INSERT INTO account_instrument_ownerships (id, valid_instrument_id, belongs_to_account) VALUES ($1, $2, $3)`,
+			identifiers.New(), identifiers.New(), h.account.ID)
+		require.NoError(t, err)
+
+		_, err = f.eraseWithSuccession(t, ctx, h.owner.ID, nil)
+		require.NoError(t, err)
+
+		assert.Zero(t, f.count(t, ctx,
+			`SELECT COUNT(*) FROM account_instrument_ownerships WHERE belongs_to_account = $1`, h.account.ID),
+			"this application's rows should have gone with the household")
+		assert.Zero(t, f.count(t, ctx,
+			`SELECT COUNT(*) FROM `+tablePrefix+`_identity_memberships WHERE belongs_to_account = $1`, h.account.ID),
+			"identity's memberships should have gone with the household")
 	})
 }
 

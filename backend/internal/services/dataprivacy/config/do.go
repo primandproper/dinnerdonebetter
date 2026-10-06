@@ -1,182 +1,104 @@
 package config
 
 import (
-	"context"
-
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 
-	platformdataprivacy "github.com/primandproper/platform-go/v15/dataprivacy"
 	platformdataprivacycfg "github.com/primandproper/platform-go/v15/dataprivacy/config"
-	"github.com/primandproper/platform-go/v15/operations"
 	"github.com/primandproper/primitives-go/v2/compression"
 	"github.com/primandproper/primitives-go/v2/cryptography/encryption"
-	encryptioncfg "github.com/primandproper/primitives-go/v2/cryptography/encryption/config"
-	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/database/dialect"
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
-	"github.com/primandproper/primitives-go/v2/observability/logging"
-	"github.com/primandproper/primitives-go/v2/observability/metrics"
-	"github.com/primandproper/primitives-go/v2/observability/tracing"
-	"github.com/primandproper/primitives-go/v2/uploads"
-	"github.com/primandproper/primitives-go/v2/uploads/objectstorage"
 
 	"github.com/samber/do/v2"
 )
 
-type (
-	// ArtifactUploadManager is the bucket export artifacts live in, wrapped so the
-	// injector can tell it apart from the one holding user avatars. Every process
-	// that touches artifacts also registers an upload manager for ordinary media, and
-	// two registrations of one interface type is how the wrong bucket gets used.
-	ArtifactUploadManager struct{ uploads.UploadManager }
-
-	// ArtifactEncryptorDecryptor is the cipher artifacts are written and read with,
-	// wrapped for the same reason.
-	ArtifactEncryptorDecryptor struct{ encryption.EncryptorDecryptor }
-
-	// ArtifactCompressor compresses an artifact before it is encrypted, wrapped for
-	// the same reason.
-	ArtifactCompressor struct{ compression.Compressor }
-)
-
-// RegisterArtifactStorage registers what every process that touches an export
-// artifact needs: the bucket, the cipher, the compressor, and the request store.
+// Pin overwrites the two settings in platform's block that are not this deployment's to choose:
+// the table prefix, which has to be the one the migrations rendered the tables under, and the
+// dialect, which is Postgres because the migrations are. See docs/configuration.md for why a
+// prefix is never read from configuration here.
 //
-// Every such process calls this, so the four are chosen in one place rather than
-// once per process. Prerequisite: *Config and database.Client.
-func RegisterArtifactStorage(i do.Injector) {
-	do.Provide(i, func(i do.Injector) (ArtifactUploadManager, error) {
-		cfg := do.MustInvoke[*Config](i)
+// It writes through cfg, so it is called on the block a process is about to register, before
+// anything has read it.
+func Pin(cfg *platformdataprivacycfg.Config) {
+	if cfg == nil {
+		return
+	}
 
-		manager, err := objectstorage.NewUploadManager(
-			do.MustInvoke[context.Context](i),
-			&cfg.Uploads.Storage,
-			objectstorage.WithLogger(do.MustInvoke[logging.Logger](i)),
-			objectstorage.WithTracerProvider(do.MustInvoke[tracing.Provider](i)),
-			objectstorage.WithMetricsProvider(do.MustInvoke[metrics.Provider](i)),
-		)
+	cfg.TablePrefix = branding.TablePrefix
+	cfg.Dialect = dialect.Postgres
+	cfg.AuditErasure.TablePrefix = branding.TablePrefix
+}
+
+// RegisterKeyset registers the encryption.Keyset platform's RegisterArtifactStorage builds the
+// artifact keyring over: this deployment's one key, under the CurrentKeyID the block names.
+//
+// One key is all there has ever been. A rotation would add the next one here beside it rather
+// than replace it, because an artifact sealed before the rotation is otherwise unreadable — and
+// found to be so by the subject who asked for it.
+//
+// Prerequisites: *platformdataprivacycfg.Config.
+func RegisterKeyset(i do.Injector, key string) {
+	do.Provide(i, func(i do.Injector) (encryption.Keyset, error) {
+		if key == "" {
+			return nil, platformerrors.New("no data privacy artifact encryption key provided")
+		}
+
+		cfg, err := do.Invoke[*platformdataprivacycfg.Config](i)
 		if err != nil {
-			return ArtifactUploadManager{}, platformerrors.Wrap(err, "initializing disclosure artifact upload manager")
+			return nil, err
 		}
 
-		return ArtifactUploadManager{UploadManager: manager}, nil
+		if cfg.Artifacts == nil || cfg.Artifacts.Encryption == nil {
+			return nil, platformerrors.New("data privacy artifacts name no keyring to file the key under")
+		}
+
+		return encryption.Keyset{
+			encryption.KeyID(cfg.Artifacts.Encryption.CurrentKeyID): encryption.MasterKey(key),
+		}, nil
 	})
+}
 
-	do.Provide(i, func(i do.Injector) (ArtifactEncryptorDecryptor, error) {
-		cfg := do.MustInvoke[*Config](i)
-
-		// Caught here rather than during validation, because a rendered config for a
-		// real environment carries a blank secret and takes the value from the
-		// environment. Startup is the last moment at which "no key" is a crash rather
-		// than an artifact nobody can open.
-		if cfg.ArtifactEncryptionKey == "" {
-			return ArtifactEncryptorDecryptor{}, platformerrors.New("no disclosure artifact encryption key provided")
-		}
-
-		// One key, named by the configured current key ID. Rotating means adding the new key
-		// to this set and pointing CurrentKeyID at it; artifacts already written keep opening
-		// under the key their ciphertext names.
-		encDec, err := encryptioncfg.NewKeyring(
-			do.MustInvoke[context.Context](i),
-			&cfg.Encryption,
-			encryption.Keyset{
-				encryption.KeyID(cfg.Encryption.CurrentKeyID): encryption.MasterKey(cfg.ArtifactEncryptionKey),
-			},
-			encryptioncfg.WithLogger(do.MustInvoke[logging.Logger](i)),
-			encryptioncfg.WithTracerProvider(do.MustInvoke[tracing.Provider](i)),
-		)
-		if err != nil {
-			return ArtifactEncryptorDecryptor{}, platformerrors.Wrap(err, "initializing disclosure artifact encryptor")
-		}
-
-		return ArtifactEncryptorDecryptor{EncryptorDecryptor: encDec}, nil
-	})
-
-	do.Provide(i, func(do.Injector) (ArtifactCompressor, error) {
+// RegisterCompressor registers the compression.Compressor platform's fulfiller writes artifacts
+// with and its service reads them back with. Both resolve the one registration, so the codec an
+// artifact was written with is by construction the one it is read with.
+func RegisterCompressor(i do.Injector) {
+	do.Provide(i, func(do.Injector) (compression.Compressor, error) {
 		compressor, err := compression.NewCompressor(CompressionAlgorithm)
 		if err != nil {
-			return ArtifactCompressor{}, platformerrors.Wrap(err, "initializing disclosure artifact compressor")
+			return nil, platformerrors.Wrap(err, "initializing data privacy artifact compressor")
 		}
 
-		return ArtifactCompressor{Compressor: compressor}, nil
-	})
-
-	do.Provide(i, func(i do.Injector) (platformdataprivacy.Store, error) {
-		client := do.MustInvoke[database.Client](i)
-
-		return platformdataprivacycfg.NewStore(
-			do.MustInvoke[context.Context](i),
-			PlatformConfig(do.MustInvoke[*Config](i), client),
-			client,
-			platformdataprivacycfg.WithLogger(do.MustInvoke[logging.Logger](i)),
-			platformdataprivacycfg.WithTracerProvider(do.MustInvoke[tracing.Provider](i)),
-			platformdataprivacycfg.WithMetricsProvider(do.MustInvoke[metrics.Provider](i)),
-		)
+		return compressor, nil
 	})
 }
 
-// RegisterRequestService registers the Service subjects submit requests through and
-// read their artifacts back from.
+// RegisterRequestService registers what the API server needs of platform's data privacy
+// machinery: the request store, the artifact storage, and the service a subject's request is
+// submitted to and their export read back through.
 //
-// Prerequisite: RegisterArtifactStorage.
-func RegisterRequestService(i do.Injector) {
-	do.Provide(i, func(i do.Injector) (platformdataprivacy.Service, error) {
-		client := do.MustInvoke[database.Client](i)
-
-		// WithCompressor and WithEncryptor are what keep the reader's codecs the same
-		// as the writer's: NewFulfiller writes with them and NewService reads with
-		// them, from this one option set. Getting them apart is not a startup failure
-		// — it is an artifact that decodes to noise, discovered by a subject rather
-		// than by us. v14 replaced the EnsurePackaging helper that used to return the
-		// paired option slices, which is a strictly better shape: there is no longer a
-		// second slice a caller could forget to pass on.
-		serviceOpts := []platformdataprivacy.ServiceOption{}
-
-		// The upload manager is the read path, not a delivery path. Artifacts are
-		// encrypted, so Download is refused outright by platform-go and Open — which
-		// reads the object, decrypts, and decompresses — is the only way a subject
-		// gets their export. See the artifact route in
-		// internal/build/services/api/http/platform_surfaces.go.
-		serviceOpts = append(serviceOpts,
-			platformdataprivacy.WithServiceUploadManager(do.MustInvoke[ArtifactUploadManager](i).UploadManager),
-		)
-
-		return platformdataprivacycfg.NewService(
-			do.MustInvoke[context.Context](i),
-			PlatformConfig(do.MustInvoke[*Config](i), client),
-			client,
-			do.MustInvoke[platformdataprivacy.Store](i),
-			// v10 fulfills a privacy request as an operation, so submitting one is starting
-			// one. The kinds it starts have to be registered in this process's registry or
-			// Start refuses them — see dataprivacybuild.RegisterOperationsRegistry.
-			do.MustInvoke[operations.Service](i),
-			platformdataprivacycfg.WithLogger(do.MustInvoke[logging.Logger](i)),
-			platformdataprivacycfg.WithTracerProvider(do.MustInvoke[tracing.Provider](i)),
-			platformdataprivacycfg.WithMetricsProvider(do.MustInvoke[metrics.Provider](i)),
-			platformdataprivacycfg.WithCompressor(do.MustInvoke[ArtifactCompressor](i).Compressor),
-			platformdataprivacycfg.WithEncryptor(do.MustInvoke[ArtifactEncryptorDecryptor](i).EncryptorDecryptor),
-			platformdataprivacycfg.WithServiceOptions(serviceOpts...),
-		)
-	})
-}
-
-// PlatformConfig returns a copy of the platform config with the three fields that
-// are ours to decide rather than an operator's.
+// The API server builds these by hand rather than from a service.Config's DataPrivacy block,
+// because that block requires an Operations block beside it, and an Operations block registers
+// the operations worker and its reapers too. The worker runs in the scheduler, and an API server
+// that also claimed operations would fulfill privacy requests on the request path's replicas.
 //
-// Pinned, not validated. The prefixes have to equal the ones the migrations
-// rendered the tables under, and the dialect has to be the client's. A deployment
-// that set any of them differently would not be configuring anything, it would be
-// pointing the Store at a table that does not exist — and a Store reading a table
-// that isn't there finds no pending requests forever, which looks exactly like
-// nobody having asked.
+// They are platform's own registrations all the same, so the API server and the scheduler build
+// the artifact storage the same way from the same block. The fulfiller is registered too, and not
+// to run anything: building it is what registers the privacy kinds into the operations registry,
+// and the service depends on it for exactly that ordering — a kind is resolved at submission, so
+// an API server without the kinds would refuse every request.
 //
-// Copied rather than mutated in place: the Config is shared with whatever else
-// reads it, and several providers writing the same fields is a race that only
-// happens to be benign.
-func PlatformConfig(cfg *Config, client database.Client) *platformdataprivacycfg.Config {
-	requests := cfg.Requests
-	requests.TablePrefix = branding.TablePrefix
-	requests.Dialect = client.Dialect()
-	requests.AuditErasure.TablePrefix = branding.TablePrefix
+// Prerequisites: everything platform's RegisterStore, RegisterArtifactStorage, RegisterFulfiller
+// and RegisterService name, with the *platformdataprivacycfg.Config this registers from cfg.
+func RegisterRequestService(i do.Injector, cfg *Config) {
+	platform := cfg.Platform
+	Pin(&platform)
 
-	return &requests
+	do.ProvideValue(i, &platform)
+	RegisterKeyset(i, cfg.ArtifactEncryptionKey)
+	RegisterCompressor(i)
+
+	platformdataprivacycfg.RegisterStore(i)
+	platformdataprivacycfg.RegisterArtifactStorage(i)
+	platformdataprivacycfg.RegisterFulfiller(i)
+	platformdataprivacycfg.RegisterService(i)
 }

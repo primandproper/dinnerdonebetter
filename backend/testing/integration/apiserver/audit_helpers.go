@@ -228,7 +228,7 @@ func operatorAuditClient(ctx context.Context, t *testing.T) auditgrpc.AuditAdmin
 	token, err := fetchLoginTokenForUser(ctx, premadeAdminUser)
 	require.NoError(t, err)
 
-	conn, err := grpc.NewClient(fmt.Sprintf("127.0.0.1:%d", apiServiceConfig.GRPCServer.Port),
+	conn, err := grpc.NewClient(fmt.Sprintf("127.0.0.1:%d", apiServiceConfig.Service.GRPCServer.Port),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		client.WithBearerTokenCredentials(token),
 	)

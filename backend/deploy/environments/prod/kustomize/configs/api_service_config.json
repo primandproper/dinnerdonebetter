@@ -1,4 +1,118 @@
 {
+	"service": {
+		"database": {
+			"provider": "postgres",
+			"readConnection": {
+				"username": "api_db_user",
+				"password": "REPLACE_AT_DEPLOY",
+				"database": "dinner-done-better",
+				"hostname": "REPLACE_AT_DEPLOY",
+				"port": 5432
+			},
+			"writeConnection": {
+				"username": "api_db_user",
+				"password": "REPLACE_AT_DEPLOY",
+				"database": "dinner-done-better",
+				"hostname": "REPLACE_AT_DEPLOY",
+				"port": 5432
+			},
+			"pingWaitPeriod": 1000000000,
+			"maxPingAttempts": 50,
+			"connMaxLifetime": 1800000000000,
+			"maxIdleConns": 5,
+			"maxOpenConns": 7,
+			"runMigrations": true
+		},
+		"encoding": {
+			"contentType": "application/json"
+		},
+		"featureFlags": {
+			"posthog": {
+				"projectAPIKey": "placeholder",
+				"personalAPIKey": "placeholder"
+			},
+			"provider": "posthog",
+			"circuitBreakerConfig": {
+				"name": "feature_flagger",
+				"circuitBreakerErrorPercentage": 0.5,
+				"circuitBreakerMinimumOccurrenceThreshold": 100
+			}
+		},
+		"grpcServer": {
+			"port": 8001
+		},
+		"httpClient": {
+			"timeout": 10000000000,
+			"maxIdleConns": 100,
+			"maxIdleConnsPerHost": 100,
+			"enableTracing": true
+		},
+		"httpServer": {
+			"appleAppSiteAssociation": {
+				"teamID": "K8R2Q5UWQS",
+				"bundleID": "com.dinnerdonebetter.ios"
+			},
+			"startupDeadline": 60000000000,
+			"port": 8000
+		},
+		"messageQueue": {
+			"consumer": {
+				"provider": "pubsub",
+				"pubSub": {
+					"projectID": "dinner-done-better-prod"
+				}
+			},
+			"publisher": {
+				"provider": "pubsub",
+				"pubSub": {
+					"projectID": "dinner-done-better-prod"
+				}
+			}
+		},
+		"name": "api_server",
+		"observability": {
+			"profiling": {
+				"pyroscope": {
+					"serverAddress": "https://profiles-prod-001.grafana.net",
+					"uploadRate": 15000000000
+				},
+				"serviceName": "api_server",
+				"provider": "pyroscope"
+			},
+			"logging": {
+				"serviceName": "api_server",
+				"level": "info",
+				"otelslog": {
+					"endpointURL": "otel-collector-svc.prod.svc.cluster.local:4317",
+					"insecure": true,
+					"timeout": 2000000000
+				},
+				"provider": "otelslog"
+			},
+			"metrics": {
+				"otelgrpc": {
+					"metricsCollectorEndpoint": "otel-collector-svc.prod.svc.cluster.local:4317",
+					"collectionInterval": 30000000000,
+					"insecure": true,
+					"enableRuntimeMetrics": true,
+					"enableHostMetrics": true
+				},
+				"serviceName": "api_server",
+				"provider": "otelgrpc",
+				"enabled": true
+			},
+			"tracing": {
+				"otelgrpc": {
+					"collector_endpoint": "otel-collector-svc.prod.svc.cluster.local:4317",
+					"insecure": true
+				},
+				"service_name": "api_server",
+				"provider": "otelgrpc",
+				"spanCollectionProbability": 1
+			}
+		},
+		"shutdownTimeout": 10000000000
+	},
 	"links": {
 		"actions": {
 			"waitlist_confirm": {
@@ -37,67 +151,6 @@
 		},
 		"fcm": {},
 		"provider": "apns_fcm"
-	},
-	"encoding": {
-		"contentType": "application/json"
-	},
-	"events": {
-		"consumer": {
-			"provider": "pubsub",
-			"pubSub": {
-				"projectID": "dinner-done-better-prod"
-			}
-		},
-		"publisher": {
-			"provider": "pubsub",
-			"pubSub": {
-				"projectID": "dinner-done-better-prod"
-			}
-		}
-	},
-	"observability": {
-		"profiling": {
-			"pyroscope": {
-				"serverAddress": "https://profiles-prod-001.grafana.net",
-				"uploadRate": 15000000000
-			},
-			"serviceName": "api_server",
-			"provider": "pyroscope"
-		},
-		"logging": {
-			"serviceName": "api_server",
-			"level": "info",
-			"otelslog": {
-				"endpointURL": "otel-collector-svc.prod.svc.cluster.local:4317",
-				"insecure": true,
-				"timeout": 2000000000
-			},
-			"provider": "otelslog"
-		},
-		"metrics": {
-			"otelgrpc": {
-				"metricsCollectorEndpoint": "otel-collector-svc.prod.svc.cluster.local:4317",
-				"collectionInterval": 30000000000,
-				"insecure": true,
-				"enableRuntimeMetrics": true,
-				"enableHostMetrics": true
-			},
-			"serviceName": "api_server",
-			"provider": "otelgrpc",
-			"enabled": true
-		},
-		"tracing": {
-			"otelgrpc": {
-				"collector_endpoint": "otel-collector-svc.prod.svc.cluster.local:4317",
-				"insecure": true
-			},
-			"service_name": "api_server",
-			"provider": "otelgrpc",
-			"spanCollectionProbability": 1
-		}
-	},
-	"grpc": {
-		"port": 8001
 	},
 	"meta": {
 		"runMode": "production"
@@ -148,18 +201,6 @@
 			"circuitBreakerMinimumOccurrenceThreshold": 100
 		}
 	},
-	"featureFlags": {
-		"posthog": {
-			"projectAPIKey": "placeholder",
-			"personalAPIKey": "placeholder"
-		},
-		"provider": "posthog",
-		"circuitBreakerConfig": {
-			"name": "feature_flagger",
-			"circuitBreakerErrorPercentage": 0.5,
-			"circuitBreakerMinimumOccurrenceThreshold": 100
-		}
-	},
 	"search": {
 		"algolia": {
 			"appID": "placeholder",
@@ -195,37 +236,6 @@
 		"enableUserSignup": true,
 		"minimumUsernameLength": 3,
 		"minimumPasswordLength": 8
-	},
-	"database": {
-		"provider": "postgres",
-		"readConnection": {
-			"username": "api_db_user",
-			"password": "REPLACE_AT_DEPLOY",
-			"database": "dinner-done-better",
-			"hostname": "REPLACE_AT_DEPLOY",
-			"port": 5432
-		},
-		"writeConnection": {
-			"username": "api_db_user",
-			"password": "REPLACE_AT_DEPLOY",
-			"database": "dinner-done-better",
-			"hostname": "REPLACE_AT_DEPLOY",
-			"port": 5432
-		},
-		"pingWaitPeriod": 1000000000,
-		"maxPingAttempts": 50,
-		"connMaxLifetime": 1800000000000,
-		"maxIdleConns": 5,
-		"maxOpenConns": 7,
-		"runMigrations": true
-	},
-	"http": {
-		"appleAppSiteAssociation": {
-			"teamID": "K8R2Q5UWQS",
-			"bundleID": "com.dinnerdonebetter.ios"
-		},
-		"startupDeadline": 60000000000,
-		"port": 8000
 	},
 	"idempotency": {
 		"enabled": false
@@ -288,14 +298,21 @@
 			"minimumPasswordLength": 8
 		},
 		"dataPrivacy": {
-			"encryption": {
-				"provider": "aes",
-				"currentKeyID": "v1"
-			},
-			"uploads": {
-				"storageConfig": {
-					"bucketName": "userdata.dinnerdonebetter.com",
-					"provider": "gcp"
+			"platform": {
+				"artifacts": {
+					"storage": {
+						"bucketName": "userdata.dinnerdonebetter.com",
+						"provider": "gcp"
+					},
+					"encryption": {
+						"provider": "aes",
+						"currentKeyID": "v1"
+					}
+				},
+				"dialect": "postgres",
+				"tablePrefix": "ddb",
+				"auditErasure": {
+					"tablePrefix": "ddb"
 				}
 			}
 		},

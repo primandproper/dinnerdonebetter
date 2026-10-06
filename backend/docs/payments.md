@@ -223,9 +223,9 @@ one.
 
 ## Webhook Flow
 
-1. **Endpoint**: `POST /api/payments/webhooks/{provider}`
-   - `{provider}` selects the processor from `PaymentProcessorRegistry`: `stripe` or `revenuecat`.
-     An unregistered provider is a 400.
+1. **Endpoints**: `POST /api/payments/webhooks/stripe` and `POST /api/payments/webhooks/revenuecat`
+   - One route per provider, each mounted with `WebhookHandler.For(provider)`, rather than a
+     `/{provider}` pattern. Any other path under `/api/payments/webhooks/` is the router's 404.
 
 2. **Headers**: each adapter's `capitalism` manager reads its own. Stripe signs
    `Stripe-Signature`; RevenueCat signs `X-RevenueCat-Webhook-Signature`, in the same
@@ -235,17 +235,31 @@ one.
    alone and a delivery carrying only the header is rejected.
 
 3. **Processing**:
-   - `WebhookHandler.Handle` resolves the processor and hands it the whole request — it does not
+   - The handler resolves the route's processor and hands it the whole request — it does not
      read the body itself.
    - `processor.HandleWebhook(r)` verifies and returns a `ParsedWebhookEvent`.
-   - Calls `PaymentsDataManager.ProcessWebhookEvent(ctx, provider, event, accountID)`, where
-     `accountID` comes from the `account_id` query parameter and falls back to the event's own
-     (e.g. RevenueCat's `app_user_id`).
+   - Calls `PaymentsDataManager.ProcessWebhookEvent(ctx, provider, event)`. The account is the
+     signed event's own (RevenueCat's `app_user_id`) and nothing else's. There is no
+     `account_id` query parameter any more: it used to override the signed payload's account,
+     which let anybody who could reach the URL file a delivery against an account of their
+     choosing. A query string is now ignored.
    - Manager handles `subscription.updated`, `subscription.created`, `subscription.deleted`, the
      RevenueCat event types, etc.
    - Writes the status through the store's guarded `SetSubscriptionStatus` — a redelivery is
      `ErrStatusUnchanged`, which is acknowledged rather than failed — and updates the account's
      billing fields via `IdentityDataManager.UpdateAccountBillingFields`.
+
+   - **Status codes** are the whole answer, because they are all a provider reads. 400 is for
+     a delivery sending the same bytes again cannot fix: a failed signature, an unparseable
+     body, or a subscription or product this service has never heard of. 200 is a delivery
+     applied or acknowledged. Everything else — a store or transaction failure, a route with no
+     processor behind it — is 500, so the provider redelivers. This used to answer 400 to all
+     of it, which told the provider a database blip was a bad delivery.
+
+   The local handler is meant to be deleted in favor of platform-go's `billing/http` and
+   `billing/sync`, which already behave this way. Two upstream gaps block that, named in
+   `internal/services/payments/http/webhook_handler.go`: `capitalism.SubscriptionState` carries
+   no product, and identity cannot read an account by its processor customer ID.
 
 4. **Event types supported**:
    - `subscription.updated`, `subscription.created`, `customer.subscription.updated` → sync status, update account billing.
@@ -333,7 +347,8 @@ The container is `samber/do`. The relevant registrations:
 **Routes** (`internal/build/services/api/http/http_routes.go`):
 
 - `ProvideAPIRouter` receives `*paymentswebhook.WebhookHandler`.
-- Route: `router.Route("/api/payments/webhooks", ...)` with `Post("/{provider}", webhookHandler.Handle)`.
+- Routes: `router.Group("/api/payments/webhooks", ...)` with one `Handle(POST, "/"+provider, webhookHandler.For(provider))`
+  per provider in capitalism's vocabulary (`stripe`, `revenuecat`).
 
 The gRPC payments service is registered in `api/grpc/extras.go`.
 

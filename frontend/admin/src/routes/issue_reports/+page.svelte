@@ -5,7 +5,7 @@
 </script>
 
 <Heading level={1}>Issue Reports</Heading>
-<p class="subtitle">List and manage issue reports</p>
+<p class="subtitle">Every account's issue reports</p>
 
 {#if data?.error}
   <p class="error">{data.error}</p>
@@ -15,14 +15,24 @@
       <thead>
         <tr>
           <th>ID</th>
+          <th>Account</th>
+          <th>Kind</th>
+          <th>Status</th>
+          <th>Subject</th>
+          <th>Filed</th>
           <th></th>
         </tr>
       </thead>
       <tbody>
-        {#each data.reports as report ((report as Record<string, unknown>).id)}
+        {#each data.reports as report (report.id)}
           <tr>
-            <td><code>{(report as Record<string, unknown>).id ?? '-'}</code></td>
-            <td><Link href="/issue_reports/{(report as Record<string, unknown>).id}">View</Link></td>
+            <td><code>{report.id}</code></td>
+            <td><code>{report.accountID || '-'}</code></td>
+            <td>{report.kind || '-'}</td>
+            <td>{report.status}</td>
+            <td>{report.subject || '-'}</td>
+            <td>{report.createdAt ? new Date(report.createdAt).toLocaleString() : '-'}</td>
+            <td><Link href="/issue_reports/{report.id}">View</Link></td>
           </tr>
         {/each}
       </tbody>

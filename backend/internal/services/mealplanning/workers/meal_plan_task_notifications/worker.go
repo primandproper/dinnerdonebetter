@@ -10,6 +10,7 @@ import (
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers"
 
+	platformidentity "github.com/primandproper/platform-go/v15/identity"
 	"github.com/primandproper/platform-go/v15/notifications/push"
 	"github.com/primandproper/primitives-go/v2/database"
 	platformnotifications "github.com/primandproper/primitives-go/v2/notifications/mobile"
@@ -63,7 +64,7 @@ type Worker struct {
 
 	queue       Queue
 	dataManager mealplanning.Repository
-	roster      identity.AccountRoster
+	roster      platformidentity.DirectoryReader
 	db          database.Client
 	fanout      *push.Fanout
 }
@@ -85,7 +86,7 @@ func NewWorker(
 	tracerProvider tracing.Provider,
 	queue Queue,
 	dataManager mealplanning.Repository,
-	roster identity.AccountRoster,
+	roster platformidentity.DirectoryReader,
 	db database.Client,
 	fanout *push.Fanout,
 ) *Worker {

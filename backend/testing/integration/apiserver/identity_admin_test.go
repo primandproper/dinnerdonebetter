@@ -80,7 +80,7 @@ func TestAdmin_OperatorGrantsRideOnlyOnTheAdministrativeDoor(T *testing.T) {
 		code, err := totp.GenerateCode(strings.ToUpper(premadeAdminUser.TwoFactorSecret), time.Now().UTC())
 		require.NoError(t, err)
 
-		token, err := localdev.FetchLoginTokenForUser(ctx, fmt.Sprintf(":%d", apiServiceConfig.GRPCServer.Port), &signinpb.Credentials{
+		token, err := localdev.FetchLoginTokenForUser(ctx, fmt.Sprintf(":%d", apiServiceConfig.Service.GRPCServer.Port), &signinpb.Credentials{
 			Username: premadeAdminUser.Username,
 			Password: adminUserPassword,
 			TotpCode: code,

@@ -174,7 +174,7 @@ func oauth2ClientRegistry(pgc database.Client, opts ...platformoauth2clients.Ser
 }
 
 func BuildInProcessServer(ctx context.Context, cfg *config.APIServiceConfig) (server *apiserver.Server, databaseClient database.Client, dbCfg *dbcfg.Config, err error) {
-	pillars, err := cfg.Observability.NewPillars(ctx)
+	pillars, err := cfg.Service.Observability.NewPillars(ctx)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("setting up observability pillars: %w", err)
 	}
@@ -184,25 +184,25 @@ func BuildInProcessServer(ctx context.Context, cfg *config.APIServiceConfig) (se
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("connecting to redis: %w", err)
 	}
-	cfg.Events.Publisher.Provider = msgconfig.ProviderRedis
-	cfg.Events.Publisher.Redis = *redisConfig
-	cfg.Events.Consumer.Redis = *redisConfig
+	cfg.Service.MessageQueue.Publisher.Provider = msgconfig.ProviderRedis
+	cfg.Service.MessageQueue.Publisher.Redis = *redisConfig
+	cfg.Service.MessageQueue.Consumer.Redis = *redisConfig
 
 	// set up a database container, migrate it, and build a connection client
 	_, _, dbCfg, err = pgtesting.BuildDatabaseContainer(ctx, "integration_testing")
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("connecting to postgres: %w", err)
 	}
-	cfg.Database.WriteConnection = dbCfg.WriteConnection
-	cfg.Database.ReadConnection = dbCfg.ReadConnection
+	cfg.Service.Database.WriteConnection = dbCfg.WriteConnection
+	cfg.Service.Database.ReadConnection = dbCfg.ReadConnection
 
 	tracerProvider := tracingnoop.NewTracerProvider()
-	migrator, err := repositories.ProvideMigrator(&cfg.Database.Config, logger)
+	migrator, err := repositories.ProvideMigrator(cfg.Service.Database, logger)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("building migrator: %w", err)
 	}
 
-	databaseClient, err = databasecfg.NewDatabase(ctx, &cfg.Database.Config, migrator,
+	databaseClient, err = databasecfg.NewDatabase(ctx, cfg.Service.Database, migrator,
 		databasecfg.WithLogger(logger),
 		databasecfg.WithTracerProvider(tracerProvider),
 	)
@@ -216,7 +216,7 @@ func BuildInProcessServer(ctx context.Context, cfg *config.APIServiceConfig) (se
 		return nil, nil, nil, fmt.Errorf("building API server: %w", err)
 	}
 
-	return server, databaseClient, &cfg.Database, nil
+	return server, databaseClient, &dbcfg.Config{Config: *cfg.Service.Database}, nil
 }
 
 // DatabaseInitFunc is a function that performs database initialization operations.
@@ -393,7 +393,7 @@ func AllInOne(ctx context.Context, cfg *config.APIServiceConfig, initFuncs ...Da
 
 	log.Printf("%sDATABASE CONNECTION URL: %s%s", strings.Repeat("\n", 10), dbCfg.ReadConnection.URI(), strings.Repeat("\n", 10))
 
-	pillars, err := cfg.Observability.NewPillars(ctx)
+	pillars, err := cfg.Service.Observability.NewPillars(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("getting o11y pillars: %w", err)
 	}

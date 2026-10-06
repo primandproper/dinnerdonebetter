@@ -194,7 +194,10 @@ export const listSubscriptionsForAccount = authed(BillingServiceService.listSubs
 export const listSettingDefinitions = authed(SettingsServiceService.listDefinitions);
 export const listWaitlists = authed(WaitlistsServiceService.listLists);
 export const getWaitlist = authed(WaitlistsServiceService.getList);
-export const listIssueReports = authed(IssueReportsServiceService.listReports);
+// The operator's queue: every account's reports, behind issues.reports.read_any. The
+// account-scoped listReports answers only with the caller's own account, which for an
+// administrator is their own household rather than anybody's queue.
+export const listIssueReportsAcrossScopes = authed(IssueReportsServiceService.listReportsAcrossScopes);
 export const getIssueReport = authed(IssueReportsServiceService.getReport);
 // An operator's read is unscoped on the server, so a query by resource reaches every
 // chain an entry about that user or account could be on.

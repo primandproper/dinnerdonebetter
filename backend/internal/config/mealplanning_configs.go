@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"github.com/primandproper/platform-go/v15/workqueue"
+	jobscfg "github.com/primandproper/primitives-go/v2/jobs/config"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/hashicorp/go-multierror"
@@ -24,7 +25,7 @@ type (
 		// list. It only claims plans and writes a saga instance for each; the saga worker does
 		// the pipeline, so this interval is the delay before a plan enters the pipeline rather
 		// than the delay before it comes out the other end.
-		MealPlanFinalizationStarter ScheduledJobConfig `envPrefix:"MEAL_PLAN_FINALIZATION_STARTER_" json:"mealPlanFinalizationStarter,omitzero"`
+		MealPlanFinalizationStarter jobscfg.JobConfig `envPrefix:"MEAL_PLAN_FINALIZATION_STARTER_" json:"mealPlanFinalizationStarter,omitzero"`
 
 		// MealPlanTaskNotifications sends each prep task's reminder push. It replaces the
 		// job that published one message per unnotified task onto the mobile notifications
@@ -35,7 +36,7 @@ type (
 		// It sits with the meal planning jobs rather than among the generic ones because
 		// prep task reminders are the only thing it has ever sent. The topic it used to
 		// publish to still exists and still carries notifications from other domains.
-		MealPlanTaskNotifications ScheduledJobConfig `envPrefix:"MEAL_PLAN_TASK_NOTIFICATIONS_" json:"mealPlanTaskNotifications,omitzero"`
+		MealPlanTaskNotifications jobscfg.JobConfig `envPrefix:"MEAL_PLAN_TASK_NOTIFICATIONS_" json:"mealPlanTaskNotifications,omitzero"`
 
 		// MealPlanTaskNotificationQueue is the leased queue that job fills and drains.
 		//
