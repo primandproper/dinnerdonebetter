@@ -5,10 +5,14 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	mealplanningsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
-	uploadedmediagrpc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
+
+	"github.com/primandproper/platform-go/v15/mediaregistry/mediaregistrypb"
+	"github.com/primandproper/primitives-go/v2/identifiers"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 const mealImageUploadChunkSize = 32 * 1024
@@ -20,13 +24,13 @@ func uploadMealImageForTest(t *testing.T, mealID, filename, contentType string, 
 	stream, err := adminClient.UploadMealImage(ctx)
 	require.NoError(t, err)
 
-	// First message: metadata
+	// First message: the upload header
 	err = stream.Send(&mealplanningsvc.UploadMealMediaRequest{
 		MealId: mealID,
-		Upload: &uploadedmediagrpc.UploadRequest{
-			Payload: &uploadedmediagrpc.UploadRequest_Metadata{
-				Metadata: &uploadedmediagrpc.UploadMetadata{
-					ObjectName:  filename,
+		Upload: &mediaregistrypb.UploadObjectRequest{
+			Part: &mediaregistrypb.UploadObjectRequest_Header{
+				Header: &mediaregistrypb.UploadObjectHeader{
+					Name:        filename,
 					ContentType: contentType,
 				},
 			},
@@ -39,8 +43,8 @@ func uploadMealImageForTest(t *testing.T, mealID, filename, contentType string, 
 		end := min(offset+mealImageUploadChunkSize, len(fileData))
 		chunk := fileData[offset:end]
 		err = stream.Send(&mealplanningsvc.UploadMealMediaRequest{
-			Upload: &uploadedmediagrpc.UploadRequest{
-				Payload: &uploadedmediagrpc.UploadRequest_Chunk{Chunk: chunk},
+			Upload: &mediaregistrypb.UploadObjectRequest{
+				Part: &mediaregistrypb.UploadObjectRequest_Chunk{Chunk: chunk},
 			},
 		})
 		require.NoError(t, err)
@@ -68,6 +72,113 @@ func TestUploadMealImage(T *testing.T) {
 		assert.NotEmpty(t, uploadedMediaID)
 	})
 
+	T.Run("a name that walks out of its prefix is refused", func(t *testing.T) {
+		t.Parallel()
+		ctx := t.Context()
+
+		createdMeal := createMealForTest(t, adminClient, nil)
+
+		stream, err := adminClient.UploadMealImage(ctx)
+		require.NoError(t, err)
+
+		err = stream.Send(&mealplanningsvc.UploadMealMediaRequest{
+			MealId: createdMeal.ID,
+			Upload: &mediaregistrypb.UploadObjectRequest{
+				Part: &mediaregistrypb.UploadObjectRequest_Header{
+					Header: &mediaregistrypb.UploadObjectHeader{
+						Name:        "../../../" + identifiers.New() + "/" + identifiers.New() + ".jpg",
+						ContentType: uploadedmedia.MimeTypeImageJPEG,
+					},
+				},
+			},
+		})
+		requireStreamSend(t, err)
+
+		// A body, so the refusal can only be the header's: a header alone is refused as an
+		// empty upload whatever it says.
+		err = stream.Send(&mealplanningsvc.UploadMealMediaRequest{
+			Upload: &mediaregistrypb.UploadObjectRequest{
+				Part: &mediaregistrypb.UploadObjectRequest_Chunk{Chunk: []byte(identifiers.New())},
+			},
+		})
+		requireStreamSend(t, err)
+
+		_, err = stream.CloseAndRecv()
+		assert.Equal(t, codes.InvalidArgument, status.Code(err))
+	})
+
+	T.Run("a belongs_to naming another meal is refused", func(t *testing.T) {
+		t.Parallel()
+		ctx := t.Context()
+
+		createdMeal := createMealForTest(t, adminClient, nil)
+		otherMeal := createMealForTest(t, adminClient, nil)
+
+		stream, err := adminClient.UploadMealImage(ctx)
+		require.NoError(t, err)
+
+		err = stream.Send(&mealplanningsvc.UploadMealMediaRequest{
+			MealId: createdMeal.ID,
+			Upload: &mediaregistrypb.UploadObjectRequest{
+				Part: &mediaregistrypb.UploadObjectRequest_Header{
+					Header: &mediaregistrypb.UploadObjectHeader{
+						Name:        identifiers.New() + ".jpg",
+						ContentType: uploadedmedia.MimeTypeImageJPEG,
+						BelongsTo:   &mediaregistrypb.Subject{Type: "meal", Id: otherMeal.ID},
+					},
+				},
+			},
+		})
+		requireStreamSend(t, err)
+
+		// A body, so the refusal can only be the header's: a header alone is refused as an
+		// empty upload whatever it says.
+		err = stream.Send(&mealplanningsvc.UploadMealMediaRequest{
+			Upload: &mediaregistrypb.UploadObjectRequest{
+				Part: &mediaregistrypb.UploadObjectRequest_Chunk{Chunk: []byte(identifiers.New())},
+			},
+		})
+		requireStreamSend(t, err)
+
+		_, err = stream.CloseAndRecv()
+		assert.Equal(t, codes.InvalidArgument, status.Code(err))
+	})
+
+	T.Run("a belongs_to naming the meal it uploads to is admitted", func(t *testing.T) {
+		t.Parallel()
+		ctx := t.Context()
+
+		createdMeal := createMealForTest(t, adminClient, nil)
+
+		stream, err := adminClient.UploadMealImage(ctx)
+		require.NoError(t, err)
+
+		err = stream.Send(&mealplanningsvc.UploadMealMediaRequest{
+			MealId: createdMeal.ID,
+			Upload: &mediaregistrypb.UploadObjectRequest{
+				Part: &mediaregistrypb.UploadObjectRequest_Header{
+					Header: &mediaregistrypb.UploadObjectHeader{
+						Name:        identifiers.New() + ".jpg",
+						ContentType: uploadedmedia.MimeTypeImageJPEG,
+						BelongsTo:   &mediaregistrypb.Subject{Type: "meal", Id: createdMeal.ID},
+					},
+				},
+			},
+		})
+		require.NoError(t, err)
+
+		err = stream.Send(&mealplanningsvc.UploadMealMediaRequest{
+			Upload: &mediaregistrypb.UploadObjectRequest{
+				Part: &mediaregistrypb.UploadObjectRequest_Chunk{Chunk: []byte(identifiers.New())},
+			},
+		})
+		require.NoError(t, err)
+
+		resp, err := stream.CloseAndRecv()
+		require.NoError(t, err)
+		assert.NotEmpty(t, resp.GetUploadedMediaId())
+	})
+
 	T.Run("requires auth", func(t *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
@@ -80,10 +191,10 @@ func TestUploadMealImage(T *testing.T) {
 
 		err = stream.Send(&mealplanningsvc.UploadMealMediaRequest{
 			MealId: createdMeal.ID,
-			Upload: &uploadedmediagrpc.UploadRequest{
-				Payload: &uploadedmediagrpc.UploadRequest_Metadata{
-					Metadata: &uploadedmediagrpc.UploadMetadata{
-						ObjectName:  "test.jpg",
+			Upload: &mediaregistrypb.UploadObjectRequest{
+				Part: &mediaregistrypb.UploadObjectRequest_Header{
+					Header: &mediaregistrypb.UploadObjectHeader{
+						Name:        "test.jpg",
 						ContentType: uploadedmedia.MimeTypeImageJPEG,
 					},
 				},
@@ -104,10 +215,10 @@ func TestUploadMealImage(T *testing.T) {
 
 		err = stream.Send(&mealplanningsvc.UploadMealMediaRequest{
 			MealId: nonexistentID,
-			Upload: &uploadedmediagrpc.UploadRequest{
-				Payload: &uploadedmediagrpc.UploadRequest_Metadata{
-					Metadata: &uploadedmediagrpc.UploadMetadata{
-						ObjectName:  "test.jpg",
+			Upload: &mediaregistrypb.UploadObjectRequest{
+				Part: &mediaregistrypb.UploadObjectRequest_Header{
+					Header: &mediaregistrypb.UploadObjectHeader{
+						Name:        "test.jpg",
 						ContentType: uploadedmedia.MimeTypeImageJPEG,
 					},
 				},

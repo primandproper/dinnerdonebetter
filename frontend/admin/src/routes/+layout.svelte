@@ -29,7 +29,6 @@
         <Link href="/products">Products</Link>
         <Link href="/subscriptions">Subscriptions</Link>
         <Link href="/queue_test">Queue Test</Link>
-        <Link href="/analytics_test">Analytics Test</Link>
         <div class="nav-dropdown">
           <span class="nav-dropdown-label">Enumerations</span>
           <div class="nav-dropdown-content">

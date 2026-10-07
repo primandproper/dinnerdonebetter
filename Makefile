@@ -38,6 +38,13 @@ PROTO_GO_FILTERING_MAP    := M$(PLATFORM_FILTERING_PROTO)=github.com/primandprop
 PLATFORM_IDENTITY_PROTO_PATH := $(shell cd backend && go list -m -f '{{.Dir}}' github.com/primandproper/platform-go/v15)/identity/proto
 PLATFORM_IDENTITY_PROTO      := primandproper/platform/identity/v1/identity.proto
 PROTO_GO_IDENTITY_MAP        := M$(PLATFORM_IDENTITY_PROTO)=github.com/primandproper/platform-go/v15/identity/identitypb
+
+# mediaregistry's schema too: mealplanning's media are the registry's objects, and its uploads
+# are the registry's upload stream. The client libraries ship the stubs, so Swift maps the file
+# to PlatformClient (see PROTO_SWIFT_MODULE_MAPPINGS) and Go links against platform's bindings.
+PLATFORM_MEDIAREGISTRY_PROTO_PATH := $(shell cd backend && go list -m -f '{{.Dir}}' github.com/primandproper/platform-go/v15)/mediaregistry/proto
+PLATFORM_MEDIAREGISTRY_PROTO      := primandproper/platform/mediaregistry/v1/mediaregistry.proto
+PROTO_GO_MEDIAREGISTRY_MAP        := M$(PLATFORM_MEDIAREGISTRY_PROTO)=github.com/primandproper/platform-go/v15/mediaregistry/mediaregistrypb
 PROTO_GO_OUTPUT_PATH      := backend
 PROTO_OUTPUT_BACKEND_PATH := backend/internal/grpc
 PROTO_OUTPUT_IOS_PATH     := ios/ios/Generated
@@ -254,9 +261,12 @@ proto_golang: ensure_protoc_installed ensure_protoc-gen-go_installed ensure_prot
 		--go-grpc_opt=$(PROTO_GO_FILTERING_MAP) \
 		--go_opt=$(PROTO_GO_IDENTITY_MAP) \
 		--go-grpc_opt=$(PROTO_GO_IDENTITY_MAP) \
+		--go_opt=$(PROTO_GO_MEDIAREGISTRY_MAP) \
+		--go-grpc_opt=$(PROTO_GO_MEDIAREGISTRY_MAP) \
 		--proto_path proto/ \
 		--proto_path $(PLATFORM_PROTO_PATH) \
 		--proto_path $(PLATFORM_IDENTITY_PROTO_PATH) \
+		--proto_path $(PLATFORM_MEDIAREGISTRY_PROTO_PATH) \
 		$(PROTO_FILES_PATH);
 	rm -rf $(PROTO_OUTPUT_BACKEND_PATH)/generated
 	mv $(ARTIFACTS_DIR)/proto_golang/internal/grpc/generated $(PROTO_OUTPUT_BACKEND_PATH)/generated
@@ -275,6 +285,7 @@ proto_swift: ensure_protoc-gen-swift_installed ensure_protoc-gen-grpc-swift_inst
 		--swift_opt=Visibility=Public,ProtoPathModuleMappings=$(PROTO_SWIFT_MODULE_MAPPINGS) \
 		--proto_path proto/ \
 		--proto_path $(PLATFORM_PROTO_PATH) \
+		--proto_path $(PLATFORM_MEDIAREGISTRY_PROTO_PATH) \
 		$(PROTO_FILES_PATH)
 	rm -rf $(PROTO_OUTPUT_IOS_PATH)
 	mv $(ARTIFACTS_DIR)/proto_swift $(PROTO_OUTPUT_IOS_PATH)
@@ -308,6 +319,7 @@ proto_typescript: ensure_protoc_installed ensure_proto_ts_plugin_installed
 		--proto_path proto/ \
 		--proto_path $(PLATFORM_PROTO_PATH) \
 		--proto_path $(PLATFORM_IDENTITY_PROTO_PATH) \
+		--proto_path $(PLATFORM_MEDIAREGISTRY_PROTO_PATH) \
 		$(PROTO_FILES_PATH) $(PLATFORM_PROTO_PATH)/$(PLATFORM_FILTERING_PROTO) $(PLATFORM_IDENTITY_PROTO_PATH)/$(PLATFORM_IDENTITY_PROTO)
 	mkdir -p $(ARTIFACTS_DIR)/proto_ts_handwritten
 	for f in $(PROTO_TS_HANDWRITTEN); do \

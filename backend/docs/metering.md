@@ -16,9 +16,9 @@ document is only about the decisions that are ours.
 
 ## What is counted
 
-| Meter                  | Unit  | Aggregation | Period         | Recorded at                 |
-|------------------------|-------|-------------|----------------|-----------------------------|
-| `uploaded_media_bytes` | bytes | sum         | calendar month | `uploadedmedia/grpc.Upload` |
+| Meter                  | Unit  | Aggregation | Period         | Recorded at                       |
+|------------------------|-------|-------------|----------------|-----------------------------------|
+| `uploaded_media_bytes` | bytes | sum         | calendar month | `build/mediaregistry.uploadMeter` |
 
 One meter, on purpose. It is the one that maps most directly onto a bill we actually receive —
 object storage charges for what is held, and the upload endpoint is the only place anything gets
@@ -81,8 +81,9 @@ do not reference them from generated queries.
 
 ## Recording failures are swallowed
 
-`recordUploadUsage` logs and continues. By the time it runs the file is in the bucket and its row
-is in the database, so failing the call would tell a client an upload did not happen that did.
+`uploadMeter` runs as the media registry surface's after-upload hook, which records a failure on
+the upload's span and carries on. By the time it runs the file is in the bucket and its row is in
+the database, so failing the call would tell a client an upload did not happen that did.
 Nothing enforces this meter, so an uncounted record costs a gap in a dashboard rather than a
 wrong invoice.
 

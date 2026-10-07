@@ -19,7 +19,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	ddbuploadedmedia "github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	internalopssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/internalops"
-	uploadedmediasvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/localdev"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	mealplanninggenerated "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
@@ -43,7 +42,9 @@ import (
 	"github.com/primandproper/platform-go/v15/identity"
 	identityclient "github.com/primandproper/platform-go/v15/identity/grpc/client"
 	issuereportsclient "github.com/primandproper/platform-go/v15/issuereports/grpc/client"
+	mediaregistryclient "github.com/primandproper/platform-go/v15/mediaregistry/grpc/client"
 	mediaregistryhttp "github.com/primandproper/platform-go/v15/mediaregistry/http"
+	"github.com/primandproper/platform-go/v15/mediaregistry/mediaregistrypb"
 	notificationsclient "github.com/primandproper/platform-go/v15/notifications/grpc/client"
 	"github.com/primandproper/platform-go/v15/notifications/mail"
 	"github.com/primandproper/platform-go/v15/operations"
@@ -83,6 +84,10 @@ import (
 func TestPlatformConformance(T *testing.T) {
 	T.Parallel()
 
+	// The suites run as parallel subtests, so what they skipped is only known once they have
+	// all finished.
+	T.Cleanup(func() { assertConformanceSkips(T) })
+
 	conformanceall.Run(T, conformance.Seams{
 		NewSubject: newConformanceSubject,
 		Anonymous: func(context.Context) (grpc.ClientConnInterface, error) {
@@ -111,6 +116,9 @@ func TestPlatformConformance(T *testing.T) {
 			HandleReminder:     conformanceHandleReminder,
 			Operated:           conformanceOperated,
 			ArtifactExpired:    conformanceArtifactExpired,
+			// MagicLinkToken is left nil on purpose: this deployment names no magic link store,
+			// so platform refuses RequestMagicLink and RedeemMagicLink outright and no link is
+			// ever mailed — see internal/build/signin. signin/magic_links skips for it.
 		},
 		CommentTargetType: string(mealplanning.CommentTargetTypeRecipes),
 		OperatorMethods:   conformanceOperatorMethods(),
@@ -135,6 +143,10 @@ func TestPlatformConformance(T *testing.T) {
 		PrincipalPermissions: true,
 		// authentication.RegistrationPolicy registers somebody in good standing and issues them a
 		// second factor, unproven until they answer it.
+		// InvitationTokenReturned is left false on purpose: the identity server is built without
+		// identitygrpc.WithInvitationTokenReturned, so an invitation's token reaches only the
+		// invitee's inbox and a sender has no link to copy. The copied-link assertion skips.
+		InvitationTokenReturned:        false,
 		RegistrantsAdmittedUnverified:  true,
 		RegistrationIssuesSecondFactor: true,
 		// And refuses a registrant who names no password: this application has no passwordless
@@ -147,6 +159,129 @@ func TestPlatformConformance(T *testing.T) {
 			Origin: apiServiceConfig.Auth.Passkey.RelyingParty.RPOrigins[0],
 		},
 	})
+}
+
+// assertConformanceSkips fails the run on any skip but the ones this deployment expects, and on
+// an expected one that no longer happens, so a new wiring gap shows up as a diff here rather than
+// as a quietly longer list of skips.
+func assertConformanceSkips(t *testing.T) {
+	t.Helper()
+
+	skips := conformance.Skips(t)
+
+	actual := make([]string, 0, len(skips))
+	for i := range skips {
+		actual = append(actual, skips[i].Test)
+	}
+
+	expected := conformanceExpectedSkips()
+
+	for _, name := range actual {
+		if !slices.Contains(expected, name) {
+			t.Errorf("unexpected conformance skip: %s", name)
+		}
+	}
+
+	for _, name := range expected {
+		if !slices.Contains(actual, name) {
+			t.Errorf("expected conformance skip did not happen, so it now runs and belongs off the list: %s", name)
+		}
+	}
+}
+
+// conformanceExpectedSkips is every assertion the suites skip against this deployment, grouped
+// by why. Every one is either the shape of this deployment or a choice it made.
+func conformanceExpectedSkips() []string {
+	expected := []string{
+		// Global tenancy. Every surface but audit, issue reports and webhooks serves one directory,
+		// so there is no neighboring tenant for a cross-tenant assertion to stand in.
+		"billing/products/a_catalog_listing_pages_the_caller's_tenant_only",
+		"billing/products/a_product_is_stocked_in_the_caller's_catalog_and_nobody_else's",
+		"billing/products/a_revision_of_a_neighboring_tenant's_product_is_absent_and_changes_nothing",
+		"billing/products/archiving_a_neighboring_tenant's_product_is_absent_and_changes_nothing",
+		"billing/subscriptions/a_neighboring_tenant's_subscription_is_absent",
+		"billing/subscriptions/archiving_a_neighboring_tenant's_subscription_is_absent_and_changes_nothing",
+		"billing/subscriptions/the_scope-wide_listing_is_the_tenant's,_and_asks_about_no_account",
+		"comments/confinement/a_discussion's_listings_reach_the_caller's_tenant_only",
+		"comments/confinement/a_neighbor's_comment_is_absent_to_every_call_that_names_it",
+		"dataprivacy/a_request_is_absent_to_a_caller_in_another_tenant",
+		"identity/a_listing_pages_the_caller's_directory_only",
+		"identity/a_read_by_id_is_scoped_to_the_caller's_directory",
+		"identity/accounts/a_transfer_to_somebody_in_another_directory_is_refused",
+		"identity/accounts/an_account_listing_pages_the_caller's_directory_only",
+		"identity/accounts/an_account_read_is_confined_to_the_caller's_directory",
+		"identity/invitations/an_invitation_read_is_confined_to_the_sender's_directory",
+		"identity/memberships/a_user's_memberships_are_refused_to_a_caller_from_another_directory",
+		"identity/users/a_search_by_username_prefix_is_confined_to_the_caller's_directory",
+		"mediaregistry/the_resource_surface/another_tenant's_upload_is_absent_from_every_read,_exactly_as_an_unknown_one_is",
+		"mediaregistry/the_serve_route/another_tenant's_object_is_absent,_exactly_as_an_unknown_one_is",
+		"notifications/devices/a_device_listing_holds_nothing_from_another_tenant",
+		"notifications/the_inbox/an_inbox_holds_nothing_from_another_tenant",
+		"oauth2clients/reach/a_listing_pages_the_caller's_whole_registry_and_nobody_else's",
+		"oauth2clients/reach/a_registration_in_another_registry_is_absent_to_a_caller_naming_it",
+		"oauth2clients/reach/another_registry's_registration_is_answered_exactly_as_one_never_minted",
+		"operations/tenant-owned",
+		"settings/confinement/a_catalog_listing_pages_the_caller's_tenant_only",
+		"settings/confinement/a_neighbor_resolving_the_caller's_setting_finds_no_such_setting",
+		"settings/confinement/a_neighbor's_definition_is_absent_to_every_catalog_call_that_names_it",
+		"settings/confinement/an_account_in_a_neighboring_directory_is_not_the_caller's_to_resolve",
+		"waitlists/erasure/an_erasure_reaches_the_caller's_tenant_only",
+		"waitlists/lists/a_list_read_by_id_is_scoped_to_the_caller's_tenant",
+		"waitlists/lists/an_update_will_not_reach_another_tenant's_list",
+		"waitlists/lists/the_console's_catalog_is_the_caller's,_open_and_closed_alike",
+		"waitlists/lists/the_open_catalog_places_a_signed-in_caller_by_their_principal",
+		"waitlists/signups/a_list's_signups_are_its_own_and_its_tenant's",
+		"waitlists/signups/a_signup_read_by_id_is_scoped_to_the_caller's_tenant",
+		"waitlists/signups/a_signup_read_by_its_address_is_scoped_to_the_caller's_tenant",
+		"waitlists/signups/an_invitation_will_not_reach_another_tenant's_signup",
+		"waitlists/the_signup_page/a_signed-in_caller_cannot_join_another_tenant's_list",
+		"waitlists/the_signup_page/a_visitor_cannot_be_joined_to_a_list_outside_the_tenant_they_land_in",
+		"waitlists/the_signup_page/a_visitor_sees_the_open_catalog_of_the_tenant_they_land_in,_and_only_that",
+
+		// Settings have one subject type here, the user (Seams.AccountSettingsUnresolved).
+		"settings/confinement/an_account_the_caller_holds_no_membership_in_is_not_the_caller's_to_resolve",
+
+		// Two listings answer the suite's request with a refusal rather than a page —
+		// FailedPrecondition for the invitations, NotFound for the setting values — so there is
+		// no pagination to read.
+		"pagination/identity_ListInvitationsForEmailAddress/a_cursor_is_echoed_as_the_previous_one",
+		"pagination/identity_ListInvitationsForEmailAddress/a_page_size_too_large_to_narrow_is_clamped_rather_than_wrapped",
+		"pagination/identity_ListInvitationsForEmailAddress/a_sort_direction_is_reported_normalized",
+		"pagination/identity_ListInvitationsForEmailAddress/an_absent_page_size_is_reported_as_the_default",
+		"pagination/settings_ListValuesForDefinition/a_cursor_is_echoed_as_the_previous_one",
+		"pagination/settings_ListValuesForDefinition/a_page_size_too_large_to_narrow_is_clamped_rather_than_wrapped",
+		"pagination/settings_ListValuesForDefinition/a_sort_direction_is_reported_normalized",
+		"pagination/settings_ListValuesForDefinition/an_absent_page_size_is_reported_as_the_default",
+
+		// An address claimed through UpdateProfile is refused, so nobody holds an unverified one.
+		"identity/invitations/a_caller_who_has_not_verified_their_address_is_refused_its_invitations",
+
+		// Registration: a registrant must name a password (Seams.PasswordlessRegistrationRefused),
+		// is issued a second factor (Seams.RegistrationIssuesSecondFactor), and the sign-up door
+		// is open (Seams.RegistrationClosed).
+		"passkeys/last_passkey/the_last_passkey_of_somebody_with_no_password_stays",
+		"signin/registration/a_closed_sign-up_door_is_refused_by_name",
+		"signin/registration/a_mailed_link_cannot_replace_a_password_somebody_already_holds",
+		"signin/registration/a_registrant_with_no_password_attaches_one_through_the_mailed_link",
+		"signin/self/proving_a_second_factor_nobody_issued_is_refused_as_a_precondition",
+
+		// No magic link store, so Actions.MagicLinkToken is nil — see the Seams above.
+		"signin/magic_links",
+
+		// No invitation token comes back to its sender (Seams.InvitationTokenReturned).
+		"signin/registration/a_copied_invitation_link_registers_the_addressed_person_into_the_inviting_account",
+	}
+
+	// Every operator-only method of this application's own services. The reservation suite
+	// checks platform's methods; that a member is refused one of these is this application's
+	// own test.
+	for _, method := range conformanceOperatorMethods() {
+		if !strings.HasPrefix(method, "/primandproper.platform.") {
+			expected = append(expected, "reservations/"+method)
+		}
+	}
+
+	return expected
 }
 
 // dialConformance connects to this suite's server, carrying whatever credentials opts add.
@@ -391,6 +526,7 @@ func conformanceSubjectWithToken(ctx context.Context, userID, token string) (*co
 			Comments:      commentsclient.Wrap(conn),
 			Identity:      identityclient.Wrap(conn),
 			IssueReports:  issuereportsclient.Wrap(conn),
+			MediaRegistry: mediaregistryclient.Wrap(conn),
 			Notifications: notificationsclient.Wrap(conn),
 			OAuth2Clients: oauth2clientsclient.Wrap(conn),
 			Passkeys:      passkeyspb.NewPasskeysServiceClient(conn),
@@ -788,7 +924,11 @@ func (b bearerTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 }
 
 // conformanceRegistered uploads an object as userID through this application's own upload path —
-// UploadedMediaService.Upload, which stores the bytes and registers the row — and reports it.
+// platform's MediaRegistryService.UploadObject, which stores the bytes and registers the row — and
+// reports it.
+//
+// The resource surface's assertions upload through that RPC themselves; the byte-serve's start
+// here, because a deployment may store an object some other way and serve it all the same.
 func conformanceRegistered(ctx context.Context, _ tenancy.Scope, userID string) (*conformance.RegisteredObject, error) {
 	token, ok := conformanceTokens.Load(userID)
 	if !ok {
@@ -799,24 +939,25 @@ func conformanceRegistered(ctx context.Context, _ tenancy.Scope, userID string) 
 	if err != nil {
 		return nil, err
 	}
+	defer func() { _ = uploader.Close() }()
 
 	content := []byte("conformance object " + identifiers.New())
 
-	stream, err := uploader.Upload(ctx)
+	stream, err := uploader.UploadObject(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	if err = stream.Send(&uploadedmediasvc.UploadRequest{
-		Payload: &uploadedmediasvc.UploadRequest_Metadata{Metadata: &uploadedmediasvc.UploadMetadata{
-			ObjectName:  "conformance.png",
+	if err = stream.Send(&mediaregistrypb.UploadObjectRequest{
+		Part: &mediaregistrypb.UploadObjectRequest_Header{Header: &mediaregistrypb.UploadObjectHeader{
+			Name:        "conformance.png",
 			ContentType: ddbuploadedmedia.MimeTypeImagePNG,
 		}},
 	}); err != nil {
 		return nil, err
 	}
 
-	if err = stream.Send(&uploadedmediasvc.UploadRequest{Payload: &uploadedmediasvc.UploadRequest_Chunk{Chunk: content}}); err != nil {
+	if err = stream.Send(&mediaregistrypb.UploadObjectRequest{Part: &mediaregistrypb.UploadObjectRequest_Chunk{Chunk: content}}); err != nil {
 		return nil, err
 	}
 
@@ -825,20 +966,7 @@ func conformanceRegistered(ctx context.Context, _ tenancy.Scope, userID string) 
 		return nil, err
 	}
 
-	// The upload answers with where the object is stored and not with its row, so the row is
-	// found by that key among the uploader's own.
-	mine, err := uploader.GetUploadedMediaForUser(ctx, &uploadedmediasvc.GetUploadedMediaForUserRequest{UserId: userID})
-	if err != nil {
-		return nil, err
-	}
-
-	for _, object := range mine.GetResults() {
-		if object.GetObjectKey() == uploaded.GetObjectUrl() {
-			return &conformance.RegisteredObject{ID: object.GetId(), Content: content}, nil
-		}
-	}
-
-	return nil, fmt.Errorf("the upload stored %s and no row of the uploader's names it", uploaded.GetObjectUrl())
+	return &conformance.RegisteredObject{ID: uploaded.GetResult().GetId(), Content: content}, nil
 }
 
 // conformancePasswordResetToken reads the reset link's secret off the newest reset mail queued

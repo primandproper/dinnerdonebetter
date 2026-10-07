@@ -8,18 +8,12 @@
 import { env } from '$env/dynamic/private';
 import { redirect } from '@sveltejs/kit';
 import { CHANGE_PASSWORD_PATH, mustChangePassword } from '$lib/auth/required-actions';
-import {
-  AnalyticsServiceService,
-  MealPlanningServiceService,
-  QueryFilter,
-  createPlatformTransport,
-} from '@dinnerdonebetter/api-client';
+import { MealPlanningServiceService, QueryFilter, createPlatformTransport } from '@dinnerdonebetter/api-client';
 import {
   type CredentialStore,
   type Metadata,
   redirectOnNotSignedIn,
   Session,
-  TokenCaller,
   type UnaryMethod,
 } from '@primandproper/platform-client';
 import { IdentityServiceService } from '@primandproper/platform-client/identity/v1';
@@ -31,8 +25,6 @@ const transport = createPlatformTransport({
   serverUrl: env.GRPC_API_SERVER_URL ?? 'localhost:50051',
   insecure: env.DEVELOPING_LOCALLY === 'true',
 });
-
-const anonymous = new TokenCaller({ transport });
 
 /**
  * newSession is a Session over `store`. Sessions built per request share the process's
@@ -149,13 +141,3 @@ export const getValidIngredientStates = filtered(MealPlanningServiceService.getV
 export const searchForValidIngredientStates = filtered(MealPlanningServiceService.searchForValidIngredientStates);
 export const createRecipe = authed(MealPlanningServiceService.createRecipe);
 export const searchForRecipes = filtered(MealPlanningServiceService.searchForRecipes);
-
-export const trackEvent = (event: string, properties: Record<string, string> = {}) =>
-  anonymous.callAnonymous(AnalyticsServiceService.trackEvent, { source: 'web', event, properties });
-export const trackAnonymousEvent = (event: string, anonymousId: string, properties: Record<string, string> = {}) =>
-  anonymous.callAnonymous(AnalyticsServiceService.trackAnonymousEvent, {
-    source: 'web',
-    event,
-    anonymousId,
-    properties,
-  });

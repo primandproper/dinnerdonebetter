@@ -6,21 +6,18 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	identitybuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/identity"
+	mediaregistrybuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/mediaregistry"
 	oauth2clientsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/oauth2clients"
 	passkeysbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/passkeys"
 	signinbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/signin"
 	waitlistsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/waitlists"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
-	analyticspb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/analytics"
 	internalopssvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/internalops"
 	mealplanningsvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
-	uploadedmediasvcpb "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
-	analyticsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/analytics/grpc"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc/interceptors"
 	identityindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/indexing"
 	internalopsgrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/internalops/grpc"
 	mealplanninggrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/grpc"
-	uploadedmediagrpc "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/grpc"
 
 	auditpb "github.com/primandproper/platform-go/v15/audit/auditpb"
 	auditgrpc "github.com/primandproper/platform-go/v15/audit/grpc"
@@ -35,6 +32,7 @@ import (
 	"github.com/primandproper/platform-go/v15/identity/identitypb"
 	issuereportsgrpc "github.com/primandproper/platform-go/v15/issuereports/grpc"
 	issuereportspb "github.com/primandproper/platform-go/v15/issuereports/issuereportspb"
+	mediaregistrygrpc "github.com/primandproper/platform-go/v15/mediaregistry/grpc"
 	notificationsgrpc "github.com/primandproper/platform-go/v15/notifications/grpc"
 	notificationspb "github.com/primandproper/platform-go/v15/notifications/notificationspb"
 	settingsgrpc "github.com/primandproper/platform-go/v15/settings/grpc"
@@ -42,7 +40,6 @@ import (
 	waitlistspb "github.com/primandproper/platform-go/v15/waitlists/waitlistspb"
 	webhooksgrpc "github.com/primandproper/platform-go/v15/webhooks/grpc"
 	webhookspb "github.com/primandproper/platform-go/v15/webhooks/webhookspb"
-	analyticscfg "github.com/primandproper/primitives-go/v2/analytics/config"
 	authzgrpc "github.com/primandproper/primitives-go/v2/authorization/grpc"
 	"github.com/primandproper/primitives-go/v2/database"
 	errorsgrpc "github.com/primandproper/primitives-go/v2/errors/grpc"
@@ -59,11 +56,6 @@ import (
 
 // RegisterExtras registers the helper functions with the injector.
 func RegisterExtras(i do.Injector) {
-	do.Provide(i, func(i do.Injector) (map[string]*analyticscfg.SourceConfig, error) {
-		cfg := do.MustInvoke[*config.APIServiceConfig](i)
-		return ProvideAnalyticsProxySources(cfg), nil
-	})
-
 	do.Provide(i, func(i do.Injector) (identityindexing.UserTextSearcher, error) {
 		ctx := do.MustInvoke[context.Context](i)
 		logger := do.MustInvoke[logging.Logger](i)
@@ -124,7 +116,6 @@ func RegisterExtras(i do.Injector) {
 
 	do.Provide(i, func(i do.Injector) ([]platformgrpc.RegistrationFunc, error) {
 		return BuildRegistrationFuncs(
-			do.MustInvoke[analyticspb.AnalyticsServiceServer](i),
 			do.MustInvoke[auditpb.AuditServiceServer](i),
 			do.MustInvoke[commentspb.CommentsServiceServer](i),
 			do.MustInvoke[identitypb.IdentityServiceServer](i),
@@ -138,7 +129,7 @@ func RegisterExtras(i do.Injector) {
 			do.MustInvoke[signinpb.SignInServiceServer](i),
 			do.MustInvoke[passwordresetpb.PasswordResetServiceServer](i),
 			do.MustInvoke[passkeyspb.PasskeysServiceServer](i),
-			do.MustInvoke[uploadedmediasvcpb.UploadedMediaServiceServer](i),
+			do.MustInvoke[*mediaregistrygrpc.Server](i),
 			do.MustInvoke[waitlistspb.WaitlistsServiceServer](i),
 			do.MustInvoke[webhookspb.WebhooksServiceServer](i),
 		), nil
@@ -155,7 +146,6 @@ func RegisterExtras(i do.Injector) {
 			do.MustInvoke[oauth2clientspb.OAuth2ClientsServiceServer](i),
 			do.MustInvoke[billingpb.BillingServiceServer](i),
 			do.MustInvoke[settingspb.SettingsServiceServer](i),
-			do.MustInvoke[uploadedmediasvcpb.UploadedMediaServiceServer](i),
 			do.MustInvoke[webhookspb.WebhooksServiceServer](i),
 			do.MustInvoke[waitlistspb.WaitlistsServiceServer](i),
 			do.MustInvoke[*platformgrpc.Server](i),
@@ -164,7 +154,6 @@ func RegisterExtras(i do.Injector) {
 }
 
 func BuildRegistrationFuncs(
-	analyticsService analyticspb.AnalyticsServiceServer,
 	auditLogService auditpb.AuditServiceServer,
 	commentsService commentspb.CommentsServiceServer,
 	identityServiceServer identitypb.IdentityServiceServer,
@@ -178,13 +167,12 @@ func BuildRegistrationFuncs(
 	signInService signinpb.SignInServiceServer,
 	passwordResetService passwordresetpb.PasswordResetServiceServer,
 	passkeysService passkeyspb.PasskeysServiceServer,
-	uploadedMediaService uploadedmediasvcpb.UploadedMediaServiceServer,
+	mediaRegistryService *mediaregistrygrpc.Server,
 	waitlistsService waitlistspb.WaitlistsServiceServer,
 	webhooksService webhookspb.WebhooksServiceServer,
 ) []platformgrpc.RegistrationFunc {
 	return []platformgrpc.RegistrationFunc{
 		func(server *grpc.Server) {
-			analyticspb.RegisterAnalyticsServiceServer(server, analyticsService)
 			registerWithAdministration(server, auditLogService, func(server *grpc.Server) {
 				auditpb.RegisterAuditServiceServer(server, auditLogService)
 			})
@@ -202,7 +190,7 @@ func BuildRegistrationFuncs(
 			})
 			passwordresetpb.RegisterPasswordResetServiceServer(server, passwordResetService)
 			passkeyspb.RegisterPasskeysServiceServer(server, passkeysService)
-			uploadedmediasvcpb.RegisterUploadedMediaServiceServer(server, uploadedMediaService)
+			mediaRegistryService.RegisterOn(server)
 			waitlistspb.RegisterWaitlistsServiceServer(server, waitlistsService)
 			webhookspb.RegisterWebhooksServiceServer(server, webhooksService)
 		},
@@ -280,11 +268,6 @@ func BuildStreamServerInterceptors(authInterceptor *interceptors.AuthInterceptor
 	}
 }
 
-// ProvideAnalyticsProxySources extracts proxy sources config for the multisource reporter.
-func ProvideAnalyticsProxySources(cfg *config.APIServiceConfig) map[string]*analyticscfg.SourceConfig {
-	return cfg.Analytics.ProxySources.ToMap()
-}
-
 func ProvideUserTextSearcher(
 	ctx context.Context,
 	logger logging.Logger,
@@ -325,7 +308,6 @@ func MethodPermissions() interceptors.MethodPermissionsMap {
 // any of it.
 func MethodPermissionFragments() interceptors.MethodPermissionsMap {
 	return AggregateMethodPermissions(
-		analyticsgrpc.ProvideMethodPermissions(),
 		auditgrpc.Permissions(),
 		commentsgrpc.Permissions(),
 		identitybuild.Permissions(),
@@ -338,7 +320,7 @@ func MethodPermissionFragments() interceptors.MethodPermissionsMap {
 		paymentsgrpc.Permissions(),
 		settingsgrpc.Permissions(),
 		signinbuild.Permissions(),
-		uploadedmediagrpc.ProvideMethodPermissions(),
+		mediaregistrybuild.Permissions(),
 		waitlistsbuild.Permissions(),
 		webhooksgrpc.Permissions(),
 	)
@@ -362,7 +344,6 @@ func MethodPermissionOverrides() map[string][]authorization.Permission {
 
 // AggregateMethodPermissions combines method permissions from all services into a single map.
 func AggregateMethodPermissions(
-	analyticsPermissions analyticsgrpc.AnalyticsMethodPermissions,
 	auditPermissions map[string][]authorization.Permission,
 	commentsPermissions map[string][]authorization.Permission,
 	identityPermissions map[string][]authorization.Permission,
@@ -375,13 +356,12 @@ func AggregateMethodPermissions(
 	paymentsPermissions map[string][]authorization.Permission,
 	settingsPermissions map[string][]authorization.Permission,
 	signInPermissions map[string][]authorization.Permission,
-	uploadedmediaPermissions uploadedmediagrpc.UploadedMediaMethodPermissions,
+	mediaRegistryPermissions map[string][]authorization.Permission,
 	waitlistsPermissions map[string][]authorization.Permission,
 	webhooksPermissions map[string][]authorization.Permission,
 ) interceptors.MethodPermissionsMap {
 	result := make(interceptors.MethodPermissionsMap)
 
-	maps.Copy(result, analyticsPermissions)
 	maps.Copy(result, auditPermissions)
 	maps.Copy(result, commentsPermissions)
 	maps.Copy(result, identityPermissions)
@@ -394,7 +374,7 @@ func AggregateMethodPermissions(
 	maps.Copy(result, paymentsPermissions)
 	maps.Copy(result, settingsPermissions)
 	maps.Copy(result, signInPermissions)
-	maps.Copy(result, uploadedmediaPermissions)
+	maps.Copy(result, mediaRegistryPermissions)
 	maps.Copy(result, waitlistsPermissions)
 	maps.Copy(result, webhooksPermissions)
 

@@ -9,7 +9,6 @@ import { env } from '$env/dynamic/private';
 import { redirect } from '@sveltejs/kit';
 import { CHANGE_PASSWORD_PATH, mustChangePassword } from '$lib/auth/required-actions';
 import {
-  AnalyticsServiceService,
   InternalOperationsService,
   MealPlanningServiceService,
   createPlatformTransport,
@@ -87,8 +86,6 @@ export const endSignInForUser = authed(SignInAdministrationServiceService.endSig
 export const endAllSignInsForUser = authed(SignInAdministrationServiceService.endAllSignInsForUser);
 
 export const testQueueMessage = loose(InternalOperationsService.testQueueMessage);
-export const trackEvent = loose(AnalyticsServiceService.trackEvent);
-export const trackAnonymousEvent = loose(AnalyticsServiceService.trackAnonymousEvent);
 export const createRecipe = authed(MealPlanningServiceService.createRecipe);
 export const getRecipes = loose(MealPlanningServiceService.getRecipes);
 export const getRecipe = loose(MealPlanningServiceService.getRecipe);

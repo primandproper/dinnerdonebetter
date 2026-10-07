@@ -72,14 +72,9 @@ func ProvideAuthInterceptor(
 	sessionBuilder *identitybuild.SessionBuilder,
 	aggregatedPermissions MethodPermissionsMap,
 ) (*AuthInterceptor, error) {
-	unauthenticatedRoutes := []string{
-		// Analytics proxy: anonymous events (no auth)
-		"/analytics.AnalyticsService/TrackAnonymousEvent",
-	}
-
 	// platform's SignInService: its two sign-in doors, the refresh exchange, and sign-out.
 	// See internal/build/signin for which of its RPCs are exposed at all.
-	unauthenticatedRoutes = append(unauthenticatedRoutes, signinbuild.AnonymousMethods()...)
+	unauthenticatedRoutes := slices.Clone(signinbuild.AnonymousMethods())
 
 	// platform's PasswordResetService, every RPC of which is for somebody who cannot sign in,
 	// and PasskeysService's login ceremony. See internal/build/passwordreset and
@@ -207,7 +202,7 @@ func (s *serverStreamWithContext) Context() context.Context {
 }
 
 // StreamServerInterceptor is UnaryServerInterceptor for streaming RPCs. Without it, streaming RPCs
-// (e.g. UploadedMediaService.Upload) bypass auth and session context is never set.
+// (e.g. MediaRegistryService.UploadObject) bypass auth and session context is never set.
 func (s *AuthInterceptor) StreamServerInterceptor() grpc.StreamServerInterceptor {
 	var resolve grpc.StreamServerInterceptor
 	if s.extractor != nil {

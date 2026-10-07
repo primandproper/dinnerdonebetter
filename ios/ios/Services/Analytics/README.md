@@ -5,7 +5,6 @@ Event capture follows the same architecture as the Go backend: a generic interfa
 ## Implementations
 
 - **SegmentEventReporter**: Sends directly to Segment via Analytics-Swift (default when `SegmentWriteKey` is set).
-- **BackendEventReporter**: Sends to the backend's analytics passthrough gRPC service (source `ios`). Enable by adding `USE_ANALYTICS_BACKEND = 1` to `Secrets.xcconfig`. When the key is absent, Segment is used. Requires backend `proxySources.ios` to be configured.
 
 ## Deployment
 

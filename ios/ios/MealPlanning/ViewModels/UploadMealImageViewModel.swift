@@ -9,9 +9,6 @@ import GRPCNIOTransportHTTP2
 import PlatformClient
 import SwiftUI
 
-private let uploadChunkSize = 64 * 1024  // 64 KB
-private let uploadBucketName = "meals"
-
 @Observable
 @MainActor
 class UploadMealImageViewModel {
@@ -37,39 +34,20 @@ class UploadMealImageViewModel {
       var uploadOptions = GRPCCore.CallOptions.defaults
       uploadOptions.timeout = .seconds(60)
 
+      let parts = MediaUploadParts.make(name: objectName, contentType: contentType, data: imageData)
+
       _ = try await authManager.authenticatedCall("uploadMealImage") { client, metadata, _ in
         try await client.mealPlanning.uploadMealImage(
           metadata: metadata,
           options: uploadOptions,
           requestProducer: { writer in
-            // 1. Send metadata
-            var meta = UploadedMedia_UploadMetadata()
-            meta.bucket = uploadBucketName
-            meta.objectName = objectName
-            meta.contentType = contentType
-
-            var uploadReq = UploadedMedia_UploadRequest()
-            uploadReq.payload = .metadata(meta)
-
-            var mediaReq = Mealplanning_UploadMealMediaRequest()
-            mediaReq.mealID = self.mealID
-            mediaReq.upload = uploadReq
-            try await writer.write(mediaReq)
-
-            // 2. Send chunks
-            var offset = 0
-            while offset < imageData.count {
-              let end = min(offset + uploadChunkSize, imageData.count)
-              let chunk = imageData.subdata(in: offset..<end)
-              offset = end
-
-              var chunkUploadReq = UploadedMedia_UploadRequest()
-              chunkUploadReq.payload = .chunk(chunk)
-
-              var chunkMediaReq = Mealplanning_UploadMealMediaRequest()
-              chunkMediaReq.mealID = self.mealID
-              chunkMediaReq.upload = chunkUploadReq
-              try await writer.write(chunkMediaReq)
+            // The meal planning RPC carries the registry's upload stream — a header, then
+            // chunks — and names what it is attached to itself.
+            for part in parts {
+              var request = Mealplanning_UploadMealMediaRequest()
+              request.mealID = self.mealID
+              request.upload = part
+              try await writer.write(request)
             }
           }
         )

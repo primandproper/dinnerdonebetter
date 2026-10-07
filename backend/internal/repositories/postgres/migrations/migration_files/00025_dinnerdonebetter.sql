@@ -1167,25 +1167,6 @@ CREATE INDEX idx_ingredient_media_ingredient ON ingredient_media (valid_ingredie
 
 CREATE INDEX idx_recipe_step_images_step ON recipe_step_images (belongs_to_recipe_step) WHERE archived_at IS NULL;
 
--- =============================================================================
--- AVATARS
--- =============================================================================
-
--- Which of a user's uploaded objects is the one on show.
---
--- The registry says an object belongs to somebody; it does not say which of their
--- objects is their avatar, and that is what this answers. It is the last row of the
--- uploaded_media table this application used to own, and the only one that had no
--- counterpart in the registry that replaced it.
-CREATE TABLE IF NOT EXISTS user_avatars (
-    id TEXT NOT NULL PRIMARY KEY,
-    belongs_to_user TEXT NOT NULL REFERENCES ddb_identity_users("id") ON DELETE CASCADE,
-    uploaded_media_id TEXT NOT NULL REFERENCES ddb_uploads_objects(id) ON DELETE CASCADE,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-    archived_at TIMESTAMP WITH TIME ZONE,
-    UNIQUE(belongs_to_user, archived_at)
-);
-
 CREATE TABLE IF NOT EXISTS queue_test_messages (
     id TEXT NOT NULL PRIMARY KEY,
     queue_name TEXT NOT NULL,

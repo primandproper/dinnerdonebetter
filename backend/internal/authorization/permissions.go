@@ -238,13 +238,9 @@ var (
 
 	// AccountMemberPermissions is every account member permission.
 	AccountMemberPermissions = append([]Permission{
-		ReportAnalyticsEventsPermission,
 		ReadIssueReportsPermission,
 		ReadAuditLogEntriesPermission,
 		ReadSettingDefinitionsPermission,
-		CreateUploadedMediaPermission,
-		ReadUploadedMediaPermission,
-		ArchiveUploadedMediaPermission,
 		CreateMealsPermission,
 		ReadMealsPermission,
 		UpdateMealsPermission,

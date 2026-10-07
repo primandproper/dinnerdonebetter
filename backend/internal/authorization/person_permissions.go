@@ -2,14 +2,15 @@ package authorization
 
 import (
 	dataprivacyhttp "github.com/primandproper/platform-go/v15/dataprivacy/http"
-	mediaregistryhttp "github.com/primandproper/platform-go/v15/mediaregistry/http"
+	mediaregistrygrpc "github.com/primandproper/platform-go/v15/mediaregistry/grpc"
 	operationshttp "github.com/primandproper/platform-go/v15/operations/http"
 )
 
-// The permissions of platform's HTTP surfaces, which are about a person rather than an account:
-// a privacy request is about its subject, the operation fulfilling it is filed under them, and
-// an uploaded object is its uploader's. Every route is narrowed to the caller its resolver
-// answers, so holding one of these reaches the holder's own rows and nobody else's.
+// The permissions of platform's surfaces that are about a person rather than an account: a
+// privacy request is about its subject, the operation fulfilling it is filed under them, and an
+// uploaded object is its uploader's, filed under the global scope. Every route and method is
+// narrowed to the caller its resolver answers, so holding one of these reaches the holder's own
+// rows and nobody else's.
 const (
 	// SubmitPrivacyRequestsPermission allows asking for an export or an erasure of oneself.
 	SubmitPrivacyRequestsPermission = dataprivacyhttp.PermissionSubmitRequests
@@ -21,8 +22,15 @@ const (
 	ListOperationsPermission = operationshttp.PermissionListOperations
 	// CancelOperationsPermission allows cancelling one's own operation.
 	CancelOperationsPermission = operationshttp.PermissionCancelOperations
-	// ReadMediaObjectsPermission allows fetching an object one uploaded.
-	ReadMediaObjectsPermission = mediaregistryhttp.PermissionReadObjects
+	// CreateMediaObjectsPermission allows uploading an object as one's own, or registering bytes
+	// already in one's own part of the bucket.
+	CreateMediaObjectsPermission = mediaregistrygrpc.PermissionCreateObjects
+	// ReadMediaObjectsPermission allows reading an object one uploaded: its row over gRPC, and its
+	// bytes over HTTP. Platform declares one permission for the two, so the byte-serve and the
+	// row reads are one grant.
+	ReadMediaObjectsPermission = mediaregistrygrpc.PermissionReadObjects
+	// ArchiveMediaObjectsPermission allows hiding an object one uploaded.
+	ArchiveMediaObjectsPermission = mediaregistrygrpc.PermissionArchiveObjects
 )
 
 var (
@@ -35,6 +43,8 @@ var (
 		CancelPrivacyRequestsPermission,
 		ListOperationsPermission,
 		CancelOperationsPermission,
+		CreateMediaObjectsPermission,
 		ReadMediaObjectsPermission,
+		ArchiveMediaObjectsPermission,
 	}
 )

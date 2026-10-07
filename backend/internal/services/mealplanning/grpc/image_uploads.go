@@ -6,7 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"path/filepath"
+	"path"
+	"strings"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
@@ -16,6 +17,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
 
 	"github.com/primandproper/platform-go/v15/mediaregistry"
+	mediaregistrygrpc "github.com/primandproper/platform-go/v15/mediaregistry/grpc"
 	"github.com/primandproper/primitives-go/v2/database"
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	errorsgrpc "github.com/primandproper/primitives-go/v2/errors/grpc"
@@ -27,6 +29,44 @@ import (
 )
 
 const maxImageUploadSize = 5 * 1024 * 1024 // 5 MB
+
+// errInvalidObjectName is platform's refusal of the same name, so a client reads one error
+// whichever upload RPC it called.
+var errInvalidObjectName = mediaregistrygrpc.ErrInvalidObjectName
+
+// errBelongsToAnotherSubject refuses a header whose belongs_to names something other than the
+// subject the RPC uploads to.
+var errBelongsToAnotherSubject = platformerrors.New("an upload's belongs_to must name the subject it is uploaded to")
+
+// validObjectName reports whether a client's object name can be the last segment of a key:
+// present, one segment, and not one of the two that name a directory.
+//
+// The key is joined from the name, so a name carrying a separator or a ".." walks out of the
+// prefix the handler built — "../../../<somebody>/x.png" is an object under somebody else's
+// part of the bucket. It is the rule mediaregistry/grpc applies to its own uploads, which
+// platform does not export.
+func validObjectName(name string) bool {
+	switch {
+	case name == "", name == ".", name == "..":
+		return false
+	case strings.ContainsAny(name, `/\`):
+		return false
+	default:
+		return true
+	}
+}
+
+// belongsToAgrees reports whether a header's belongs_to can stand: absent, or naming the
+// subject the RPC files the object under.
+//
+// Each of these RPCs names its subject in its own field and attaches the object to it through
+// a bridge table, so that is the subject the registry records. The header is platform's, and a
+// client that fills in its belongs_to is saying the same thing a second time. One that says
+// something else is refused rather than overruled, so it is never told an upload succeeded
+// that was filed under a subject it did not name.
+func belongsToAgrees(claimed, subject mediaregistry.Subject) bool {
+	return claimed == (mediaregistry.Subject{}) || claimed == subject
+}
 
 // What a piece of media hangs off in the registry's belongs-to pair. The
 // vocabulary is this application's — the registry neither knows nor validates
@@ -137,29 +177,37 @@ func (s *serviceImpl) UploadMealImage(stream grpc.ClientStreamingServer[mealplan
 		)
 	}
 
-	metadata := upload.GetMetadata()
-	if metadata == nil {
+	header := upload.GetHeader()
+	if header == nil {
 		return errorsgrpc.PrepareAndLogGRPCStatus(
-			platformerrors.New("first message must contain metadata"),
-			logger, span, codes.InvalidArgument, "first message must contain metadata",
+			platformerrors.New("first message must contain an upload header"),
+			logger, span, codes.InvalidArgument, "first message must contain an upload header",
 		)
 	}
 
-	if metadata.ObjectName == "" {
+	if !validObjectName(header.Name) {
 		return errorsgrpc.PrepareAndLogGRPCStatus(
-			platformerrors.New("object_name is required"),
-			logger, span, codes.InvalidArgument, "object_name is required",
+			errInvalidObjectName,
+			logger, span, codes.InvalidArgument, "invalid object name",
 		)
 	}
 
-	if metadata.ContentType == "" {
+	subject := mediaregistry.Subject{Type: mealSubjectType, ID: mealID}
+	if !belongsToAgrees(mediaregistrygrpc.SubjectFromProto(header.GetBelongsTo()), subject) {
+		return errorsgrpc.PrepareAndLogGRPCStatus(
+			errBelongsToAnotherSubject,
+			logger, span, codes.InvalidArgument, "belongs_to names another subject",
+		)
+	}
+
+	if header.ContentType == "" {
 		return errorsgrpc.PrepareAndLogGRPCStatus(
 			platformerrors.New("content_type is required"),
 			logger, span, codes.InvalidArgument, "content_type is required",
 		)
 	}
 
-	mimeType := metadata.ContentType
+	mimeType := header.ContentType
 	if !uploadedmedia.IsValidMimeType(mimeType) {
 		return errorsgrpc.PrepareAndLogGRPCStatus(
 			fmt.Errorf("unsupported content type: %s", mimeType),
@@ -222,10 +270,10 @@ func (s *serviceImpl) UploadMealImage(stream grpc.ClientStreamingServer[mealplan
 	created, err := s.storeAndRegister(
 		ctx,
 		fileID,
-		filepath.Join("meals", mealID, fileID, metadata.ObjectName),
+		path.Join("meals", mealID, fileID, header.Name),
 		mimeType,
 		userID,
-		mediaregistry.Subject{Type: mealSubjectType, ID: mealID},
+		subject,
 		&fileData,
 	)
 	if err != nil {
@@ -302,29 +350,37 @@ func (s *serviceImpl) UploadRecipeImage(stream grpc.ClientStreamingServer[mealpl
 		)
 	}
 
-	metadata := upload.GetMetadata()
-	if metadata == nil {
+	header := upload.GetHeader()
+	if header == nil {
 		return errorsgrpc.PrepareAndLogGRPCStatus(
-			platformerrors.New("first message must contain metadata"),
-			logger, span, codes.InvalidArgument, "first message must contain metadata",
+			platformerrors.New("first message must contain an upload header"),
+			logger, span, codes.InvalidArgument, "first message must contain an upload header",
 		)
 	}
 
-	if metadata.ObjectName == "" {
+	if !validObjectName(header.Name) {
 		return errorsgrpc.PrepareAndLogGRPCStatus(
-			platformerrors.New("object_name is required"),
-			logger, span, codes.InvalidArgument, "object_name is required",
+			errInvalidObjectName,
+			logger, span, codes.InvalidArgument, "invalid object name",
 		)
 	}
 
-	if metadata.ContentType == "" {
+	subject := mediaregistry.Subject{Type: recipeSubjectType, ID: recipeID}
+	if !belongsToAgrees(mediaregistrygrpc.SubjectFromProto(header.GetBelongsTo()), subject) {
+		return errorsgrpc.PrepareAndLogGRPCStatus(
+			errBelongsToAnotherSubject,
+			logger, span, codes.InvalidArgument, "belongs_to names another subject",
+		)
+	}
+
+	if header.ContentType == "" {
 		return errorsgrpc.PrepareAndLogGRPCStatus(
 			platformerrors.New("content_type is required"),
 			logger, span, codes.InvalidArgument, "content_type is required",
 		)
 	}
 
-	mimeType := metadata.ContentType
+	mimeType := header.ContentType
 	if !uploadedmedia.IsValidMimeType(mimeType) {
 		return errorsgrpc.PrepareAndLogGRPCStatus(
 			fmt.Errorf("unsupported content type: %s", mimeType),
@@ -387,10 +443,10 @@ func (s *serviceImpl) UploadRecipeImage(stream grpc.ClientStreamingServer[mealpl
 	created, err := s.storeAndRegister(
 		ctx,
 		fileID,
-		filepath.Join("recipes", recipeID, fileID, metadata.ObjectName),
+		path.Join("recipes", recipeID, fileID, header.Name),
 		mimeType,
 		userID,
-		mediaregistry.Subject{Type: recipeSubjectType, ID: recipeID},
+		subject,
 		&fileData,
 	)
 	if err != nil {
@@ -462,29 +518,37 @@ func (s *serviceImpl) UploadPreparationMedia(stream grpc.ClientStreamingServer[m
 		)
 	}
 
-	metadata := upload.GetMetadata()
-	if metadata == nil {
+	header := upload.GetHeader()
+	if header == nil {
 		return errorsgrpc.PrepareAndLogGRPCStatus(
-			platformerrors.New("first message must contain metadata"),
-			logger, span, codes.InvalidArgument, "first message must contain metadata",
+			platformerrors.New("first message must contain an upload header"),
+			logger, span, codes.InvalidArgument, "first message must contain an upload header",
 		)
 	}
 
-	if metadata.ObjectName == "" {
+	if !validObjectName(header.Name) {
 		return errorsgrpc.PrepareAndLogGRPCStatus(
-			platformerrors.New("object_name is required"),
-			logger, span, codes.InvalidArgument, "object_name is required",
+			errInvalidObjectName,
+			logger, span, codes.InvalidArgument, "invalid object name",
 		)
 	}
 
-	if metadata.ContentType == "" {
+	subject := mediaregistry.Subject{Type: validPreparationSubjectType, ID: validPreparationID}
+	if !belongsToAgrees(mediaregistrygrpc.SubjectFromProto(header.GetBelongsTo()), subject) {
+		return errorsgrpc.PrepareAndLogGRPCStatus(
+			errBelongsToAnotherSubject,
+			logger, span, codes.InvalidArgument, "belongs_to names another subject",
+		)
+	}
+
+	if header.ContentType == "" {
 		return errorsgrpc.PrepareAndLogGRPCStatus(
 			platformerrors.New("content_type is required"),
 			logger, span, codes.InvalidArgument, "content_type is required",
 		)
 	}
 
-	mimeType := metadata.ContentType
+	mimeType := header.ContentType
 	if !uploadedmedia.IsValidMimeType(mimeType) {
 		return errorsgrpc.PrepareAndLogGRPCStatus(
 			fmt.Errorf("unsupported content type: %s", mimeType),
@@ -547,10 +611,10 @@ func (s *serviceImpl) UploadPreparationMedia(stream grpc.ClientStreamingServer[m
 	created, err := s.storeAndRegister(
 		ctx,
 		fileID,
-		filepath.Join("preparations", validPreparationID, fileID, metadata.ObjectName),
+		path.Join("preparations", validPreparationID, fileID, header.Name),
 		mimeType,
 		userID,
-		mediaregistry.Subject{Type: validPreparationSubjectType, ID: validPreparationID},
+		subject,
 		&fileData,
 	)
 	if err != nil {
@@ -627,29 +691,37 @@ func (s *serviceImpl) UploadIngredientMedia(stream grpc.ClientStreamingServer[me
 		)
 	}
 
-	metadata := upload.GetMetadata()
-	if metadata == nil {
+	header := upload.GetHeader()
+	if header == nil {
 		return errorsgrpc.PrepareAndLogGRPCStatus(
-			platformerrors.New("first message must contain metadata"),
-			logger, span, codes.InvalidArgument, "first message must contain metadata",
+			platformerrors.New("first message must contain an upload header"),
+			logger, span, codes.InvalidArgument, "first message must contain an upload header",
 		)
 	}
 
-	if metadata.ObjectName == "" {
+	if !validObjectName(header.Name) {
 		return errorsgrpc.PrepareAndLogGRPCStatus(
-			platformerrors.New("object_name is required"),
-			logger, span, codes.InvalidArgument, "object_name is required",
+			errInvalidObjectName,
+			logger, span, codes.InvalidArgument, "invalid object name",
 		)
 	}
 
-	if metadata.ContentType == "" {
+	subject := mediaregistry.Subject{Type: validIngredientSubjectType, ID: validIngredientID}
+	if !belongsToAgrees(mediaregistrygrpc.SubjectFromProto(header.GetBelongsTo()), subject) {
+		return errorsgrpc.PrepareAndLogGRPCStatus(
+			errBelongsToAnotherSubject,
+			logger, span, codes.InvalidArgument, "belongs_to names another subject",
+		)
+	}
+
+	if header.ContentType == "" {
 		return errorsgrpc.PrepareAndLogGRPCStatus(
 			platformerrors.New("content_type is required"),
 			logger, span, codes.InvalidArgument, "content_type is required",
 		)
 	}
 
-	mimeType := metadata.ContentType
+	mimeType := header.ContentType
 	if !uploadedmedia.IsValidMimeType(mimeType) {
 		return errorsgrpc.PrepareAndLogGRPCStatus(
 			fmt.Errorf("unsupported content type: %s", mimeType),
@@ -712,10 +784,10 @@ func (s *serviceImpl) UploadIngredientMedia(stream grpc.ClientStreamingServer[me
 	created, err := s.storeAndRegister(
 		ctx,
 		fileID,
-		filepath.Join("ingredients", validIngredientID, fileID, metadata.ObjectName),
+		path.Join("ingredients", validIngredientID, fileID, header.Name),
 		mimeType,
 		userID,
-		mediaregistry.Subject{Type: validIngredientSubjectType, ID: validIngredientID},
+		subject,
 		&fileData,
 	)
 	if err != nil {
@@ -812,29 +884,37 @@ func (s *serviceImpl) UploadRecipeStepImage(stream grpc.ClientStreamingServer[me
 		)
 	}
 
-	metadata := upload.GetMetadata()
-	if metadata == nil {
+	header := upload.GetHeader()
+	if header == nil {
 		return errorsgrpc.PrepareAndLogGRPCStatus(
-			platformerrors.New("first message must contain metadata"),
-			logger, span, codes.InvalidArgument, "first message must contain metadata",
+			platformerrors.New("first message must contain an upload header"),
+			logger, span, codes.InvalidArgument, "first message must contain an upload header",
 		)
 	}
 
-	if metadata.ObjectName == "" {
+	if !validObjectName(header.Name) {
 		return errorsgrpc.PrepareAndLogGRPCStatus(
-			platformerrors.New("object_name is required"),
-			logger, span, codes.InvalidArgument, "object_name is required",
+			errInvalidObjectName,
+			logger, span, codes.InvalidArgument, "invalid object name",
 		)
 	}
 
-	if metadata.ContentType == "" {
+	subject := mediaregistry.Subject{Type: recipeStepSubjectType, ID: recipeStepID}
+	if !belongsToAgrees(mediaregistrygrpc.SubjectFromProto(header.GetBelongsTo()), subject) {
+		return errorsgrpc.PrepareAndLogGRPCStatus(
+			errBelongsToAnotherSubject,
+			logger, span, codes.InvalidArgument, "belongs_to names another subject",
+		)
+	}
+
+	if header.ContentType == "" {
 		return errorsgrpc.PrepareAndLogGRPCStatus(
 			platformerrors.New("content_type is required"),
 			logger, span, codes.InvalidArgument, "content_type is required",
 		)
 	}
 
-	mimeType := metadata.ContentType
+	mimeType := header.ContentType
 	if !uploadedmedia.IsValidMimeType(mimeType) {
 		return errorsgrpc.PrepareAndLogGRPCStatus(
 			fmt.Errorf("unsupported content type: %s", mimeType),
@@ -897,10 +977,10 @@ func (s *serviceImpl) UploadRecipeStepImage(stream grpc.ClientStreamingServer[me
 	created, err := s.storeAndRegister(
 		ctx,
 		fileID,
-		filepath.Join("recipes", recipeID, "steps", recipeStepID, fileID, metadata.ObjectName),
+		path.Join("recipes", recipeID, "steps", recipeStepID, fileID, header.Name),
 		mimeType,
 		userID,
-		mediaregistry.Subject{Type: recipeStepSubjectType, ID: recipeStepID},
+		subject,
 		&fileData,
 	)
 	if err != nil {

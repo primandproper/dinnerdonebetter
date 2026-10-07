@@ -3,7 +3,7 @@ syntax = "proto3";
 package mealplanning;
 
 import "google/protobuf/timestamp.proto";
-import "uploaded_media/uploaded_media_messages.proto";
+import "primandproper/platform/mediaregistry/v1/mediaregistry.proto";
 
 option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning";
 
@@ -55,7 +55,7 @@ message ValidIngredient {
   bool is_acid = 35;
   bool is_heat = 36;
   bool contaminates_equipment = 37;
-  repeated uploaded_media.UploadedMedia media = 38;
+  repeated primandproper.platform.mediaregistry.v1.Object media = 38;
 }
 
 message ValidIngredientGroup {
@@ -211,7 +211,7 @@ message ValidPreparation {
   bool consumes_vessel = 17;
   bool only_for_vessels = 18;
   bool yields_nothing = 19;
-  repeated uploaded_media.UploadedMedia media = 20;
+  repeated primandproper.platform.mediaregistry.v1.Object media = 20;
 }
 
 message ValidPreparationInstrument {
@@ -403,7 +403,7 @@ message RecipeStep {
   uint32 index = 18;
   bool optional = 19;
   bool start_timer_automatically = 20;
-  repeated uploaded_media.UploadedMedia step_images = 21;
+  repeated primandproper.platform.mediaregistry.v1.Object step_images = 21;
 }
 
 message RecipeStepCompletionCondition {

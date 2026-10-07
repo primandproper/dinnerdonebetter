@@ -12,15 +12,11 @@ import (
 	retrycfg "github.com/primandproper/primitives-go/v2/retry/config"
 )
 
-// Names the environment builders below repeat: the service's own name, the analytics
-// and feature-flag sources, and the two placeholder markers a rendered prod config
+// Names the environment builders below repeat: the service's own name, the feature-flag
+// source, and the two placeholder markers a rendered prod config
 // carries until deploy substitutes them.
 const (
 	serviceName          = "dinner-done-better"
-	webPlatform          = "web"
-	iosPlatform          = "ios"
-	webAnalyticsSource   = "web_analytics"
-	iosAnalyticsSource   = "ios_analytics"
 	featureFlaggerSource = "feature_flagger"
 	otelCollectorAddress = "otel_collector:4317"
 	placeholderValue     = "placeholder"

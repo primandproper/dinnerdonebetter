@@ -9,7 +9,7 @@ import { BinaryReader, BinaryWriter } from '@bufbuild/protobuf/wire';
 import { ResponseDetails } from '../common';
 import { Timestamp } from '../google/protobuf/timestamp';
 import { Pagination, QueryFilter } from '../primandproper/platform/filtering/v1/filtering';
-import { UploadRequest } from '../uploaded_media/uploaded_media_messages';
+import { UploadObjectRequest } from '../primandproper/platform/mediaregistry/v1/mediaregistry';
 import {
   AccountInstrumentOwnership,
   Meal,
@@ -3202,14 +3202,19 @@ export interface AccountInstrumentOwnershipUpdateRequestInput {
   validInstrumentId?: string | undefined;
 }
 
+/**
+ * The upload carried by each of these is platform's media registry upload: a header, then
+ * chunks. The header's belongs_to is ignored here, because the RPC names what the object is
+ * attached to and checks the caller may attach to it.
+ */
 export interface UploadMealMediaRequest {
   mealId: string;
-  upload: UploadRequest | undefined;
+  upload: UploadObjectRequest | undefined;
 }
 
 export interface UploadRecipeMediaRequest {
   recipeId: string;
-  upload: UploadRequest | undefined;
+  upload: UploadObjectRequest | undefined;
 }
 
 export interface UploadMealImageResponse {
@@ -3225,7 +3230,7 @@ export interface UploadRecipeImageResponse {
 export interface UploadPreparationMediaRequest {
   validPreparationId: string;
   forIngredientId?: string | undefined;
-  upload: UploadRequest | undefined;
+  upload: UploadObjectRequest | undefined;
 }
 
 export interface UploadPreparationMediaResponse {
@@ -3235,7 +3240,7 @@ export interface UploadPreparationMediaResponse {
 
 export interface UploadIngredientMediaRequest {
   validIngredientId: string;
-  upload: UploadRequest | undefined;
+  upload: UploadObjectRequest | undefined;
 }
 
 export interface UploadIngredientMediaResponse {
@@ -3246,7 +3251,7 @@ export interface UploadIngredientMediaResponse {
 export interface UploadRecipeStepImageRequest {
   recipeId: string;
   recipeStepId: string;
-  upload: UploadRequest | undefined;
+  upload: UploadObjectRequest | undefined;
 }
 
 export interface UploadRecipeStepImageResponse {
@@ -58449,7 +58454,7 @@ export const UploadMealMediaRequest: MessageFns<UploadMealMediaRequest> = {
       writer.uint32(10).string(message.mealId);
     }
     if (message.upload !== undefined) {
-      UploadRequest.encode(message.upload, writer.uint32(18).fork()).join();
+      UploadObjectRequest.encode(message.upload, writer.uint32(18).fork()).join();
     }
     return writer;
   },
@@ -58474,7 +58479,7 @@ export const UploadMealMediaRequest: MessageFns<UploadMealMediaRequest> = {
             break;
           }
 
-          message.upload = UploadRequest.decode(reader, reader.uint32());
+          message.upload = UploadObjectRequest.decode(reader, reader.uint32());
           continue;
         }
       }
@@ -58493,7 +58498,7 @@ export const UploadMealMediaRequest: MessageFns<UploadMealMediaRequest> = {
         : isSet(object.meal_id)
           ? globalThis.String(object.meal_id)
           : '',
-      upload: isSet(object.upload) ? UploadRequest.fromJSON(object.upload) : undefined,
+      upload: isSet(object.upload) ? UploadObjectRequest.fromJSON(object.upload) : undefined,
     };
   },
 
@@ -58503,7 +58508,7 @@ export const UploadMealMediaRequest: MessageFns<UploadMealMediaRequest> = {
       obj.mealId = message.mealId;
     }
     if (message.upload !== undefined) {
-      obj.upload = UploadRequest.toJSON(message.upload);
+      obj.upload = UploadObjectRequest.toJSON(message.upload);
     }
     return obj;
   },
@@ -58515,7 +58520,9 @@ export const UploadMealMediaRequest: MessageFns<UploadMealMediaRequest> = {
     const message = createBaseUploadMealMediaRequest();
     message.mealId = object.mealId ?? '';
     message.upload =
-      object.upload !== undefined && object.upload !== null ? UploadRequest.fromPartial(object.upload) : undefined;
+      object.upload !== undefined && object.upload !== null
+        ? UploadObjectRequest.fromPartial(object.upload)
+        : undefined;
     return message;
   },
 };
@@ -58530,7 +58537,7 @@ export const UploadRecipeMediaRequest: MessageFns<UploadRecipeMediaRequest> = {
       writer.uint32(10).string(message.recipeId);
     }
     if (message.upload !== undefined) {
-      UploadRequest.encode(message.upload, writer.uint32(18).fork()).join();
+      UploadObjectRequest.encode(message.upload, writer.uint32(18).fork()).join();
     }
     return writer;
   },
@@ -58555,7 +58562,7 @@ export const UploadRecipeMediaRequest: MessageFns<UploadRecipeMediaRequest> = {
             break;
           }
 
-          message.upload = UploadRequest.decode(reader, reader.uint32());
+          message.upload = UploadObjectRequest.decode(reader, reader.uint32());
           continue;
         }
       }
@@ -58574,7 +58581,7 @@ export const UploadRecipeMediaRequest: MessageFns<UploadRecipeMediaRequest> = {
         : isSet(object.recipe_id)
           ? globalThis.String(object.recipe_id)
           : '',
-      upload: isSet(object.upload) ? UploadRequest.fromJSON(object.upload) : undefined,
+      upload: isSet(object.upload) ? UploadObjectRequest.fromJSON(object.upload) : undefined,
     };
   },
 
@@ -58584,7 +58591,7 @@ export const UploadRecipeMediaRequest: MessageFns<UploadRecipeMediaRequest> = {
       obj.recipeId = message.recipeId;
     }
     if (message.upload !== undefined) {
-      obj.upload = UploadRequest.toJSON(message.upload);
+      obj.upload = UploadObjectRequest.toJSON(message.upload);
     }
     return obj;
   },
@@ -58596,7 +58603,9 @@ export const UploadRecipeMediaRequest: MessageFns<UploadRecipeMediaRequest> = {
     const message = createBaseUploadRecipeMediaRequest();
     message.recipeId = object.recipeId ?? '';
     message.upload =
-      object.upload !== undefined && object.upload !== null ? UploadRequest.fromPartial(object.upload) : undefined;
+      object.upload !== undefined && object.upload !== null
+        ? UploadObjectRequest.fromPartial(object.upload)
+        : undefined;
     return message;
   },
 };
@@ -58788,7 +58797,7 @@ export const UploadPreparationMediaRequest: MessageFns<UploadPreparationMediaReq
       writer.uint32(18).string(message.forIngredientId);
     }
     if (message.upload !== undefined) {
-      UploadRequest.encode(message.upload, writer.uint32(26).fork()).join();
+      UploadObjectRequest.encode(message.upload, writer.uint32(26).fork()).join();
     }
     return writer;
   },
@@ -58821,7 +58830,7 @@ export const UploadPreparationMediaRequest: MessageFns<UploadPreparationMediaReq
             break;
           }
 
-          message.upload = UploadRequest.decode(reader, reader.uint32());
+          message.upload = UploadObjectRequest.decode(reader, reader.uint32());
           continue;
         }
       }
@@ -58845,7 +58854,7 @@ export const UploadPreparationMediaRequest: MessageFns<UploadPreparationMediaReq
         : isSet(object.for_ingredient_id)
           ? globalThis.String(object.for_ingredient_id)
           : undefined,
-      upload: isSet(object.upload) ? UploadRequest.fromJSON(object.upload) : undefined,
+      upload: isSet(object.upload) ? UploadObjectRequest.fromJSON(object.upload) : undefined,
     };
   },
 
@@ -58858,7 +58867,7 @@ export const UploadPreparationMediaRequest: MessageFns<UploadPreparationMediaReq
       obj.forIngredientId = message.forIngredientId;
     }
     if (message.upload !== undefined) {
-      obj.upload = UploadRequest.toJSON(message.upload);
+      obj.upload = UploadObjectRequest.toJSON(message.upload);
     }
     return obj;
   },
@@ -58873,7 +58882,9 @@ export const UploadPreparationMediaRequest: MessageFns<UploadPreparationMediaReq
     message.validPreparationId = object.validPreparationId ?? '';
     message.forIngredientId = object.forIngredientId ?? undefined;
     message.upload =
-      object.upload !== undefined && object.upload !== null ? UploadRequest.fromPartial(object.upload) : undefined;
+      object.upload !== undefined && object.upload !== null
+        ? UploadObjectRequest.fromPartial(object.upload)
+        : undefined;
     return message;
   },
 };
@@ -58977,7 +58988,7 @@ export const UploadIngredientMediaRequest: MessageFns<UploadIngredientMediaReque
       writer.uint32(10).string(message.validIngredientId);
     }
     if (message.upload !== undefined) {
-      UploadRequest.encode(message.upload, writer.uint32(18).fork()).join();
+      UploadObjectRequest.encode(message.upload, writer.uint32(18).fork()).join();
     }
     return writer;
   },
@@ -59002,7 +59013,7 @@ export const UploadIngredientMediaRequest: MessageFns<UploadIngredientMediaReque
             break;
           }
 
-          message.upload = UploadRequest.decode(reader, reader.uint32());
+          message.upload = UploadObjectRequest.decode(reader, reader.uint32());
           continue;
         }
       }
@@ -59021,7 +59032,7 @@ export const UploadIngredientMediaRequest: MessageFns<UploadIngredientMediaReque
         : isSet(object.valid_ingredient_id)
           ? globalThis.String(object.valid_ingredient_id)
           : '',
-      upload: isSet(object.upload) ? UploadRequest.fromJSON(object.upload) : undefined,
+      upload: isSet(object.upload) ? UploadObjectRequest.fromJSON(object.upload) : undefined,
     };
   },
 
@@ -59031,7 +59042,7 @@ export const UploadIngredientMediaRequest: MessageFns<UploadIngredientMediaReque
       obj.validIngredientId = message.validIngredientId;
     }
     if (message.upload !== undefined) {
-      obj.upload = UploadRequest.toJSON(message.upload);
+      obj.upload = UploadObjectRequest.toJSON(message.upload);
     }
     return obj;
   },
@@ -59043,7 +59054,9 @@ export const UploadIngredientMediaRequest: MessageFns<UploadIngredientMediaReque
     const message = createBaseUploadIngredientMediaRequest();
     message.validIngredientId = object.validIngredientId ?? '';
     message.upload =
-      object.upload !== undefined && object.upload !== null ? UploadRequest.fromPartial(object.upload) : undefined;
+      object.upload !== undefined && object.upload !== null
+        ? UploadObjectRequest.fromPartial(object.upload)
+        : undefined;
     return message;
   },
 };
@@ -59150,7 +59163,7 @@ export const UploadRecipeStepImageRequest: MessageFns<UploadRecipeStepImageReque
       writer.uint32(18).string(message.recipeStepId);
     }
     if (message.upload !== undefined) {
-      UploadRequest.encode(message.upload, writer.uint32(26).fork()).join();
+      UploadObjectRequest.encode(message.upload, writer.uint32(26).fork()).join();
     }
     return writer;
   },
@@ -59183,7 +59196,7 @@ export const UploadRecipeStepImageRequest: MessageFns<UploadRecipeStepImageReque
             break;
           }
 
-          message.upload = UploadRequest.decode(reader, reader.uint32());
+          message.upload = UploadObjectRequest.decode(reader, reader.uint32());
           continue;
         }
       }
@@ -59207,7 +59220,7 @@ export const UploadRecipeStepImageRequest: MessageFns<UploadRecipeStepImageReque
         : isSet(object.recipe_step_id)
           ? globalThis.String(object.recipe_step_id)
           : '',
-      upload: isSet(object.upload) ? UploadRequest.fromJSON(object.upload) : undefined,
+      upload: isSet(object.upload) ? UploadObjectRequest.fromJSON(object.upload) : undefined,
     };
   },
 
@@ -59220,7 +59233,7 @@ export const UploadRecipeStepImageRequest: MessageFns<UploadRecipeStepImageReque
       obj.recipeStepId = message.recipeStepId;
     }
     if (message.upload !== undefined) {
-      obj.upload = UploadRequest.toJSON(message.upload);
+      obj.upload = UploadObjectRequest.toJSON(message.upload);
     }
     return obj;
   },
@@ -59233,7 +59246,9 @@ export const UploadRecipeStepImageRequest: MessageFns<UploadRecipeStepImageReque
     message.recipeId = object.recipeId ?? '';
     message.recipeStepId = object.recipeStepId ?? '';
     message.upload =
-      object.upload !== undefined && object.upload !== null ? UploadRequest.fromPartial(object.upload) : undefined;
+      object.upload !== undefined && object.upload !== null
+        ? UploadObjectRequest.fromPartial(object.upload)
+        : undefined;
     return message;
   },
 };

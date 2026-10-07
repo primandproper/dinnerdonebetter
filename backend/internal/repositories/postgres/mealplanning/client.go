@@ -43,7 +43,8 @@ type repository struct {
 
 	// uploads answers what a bridge row's uploaded_media_id names. The media
 	// itself lives in platform-go's upload registry, whose table this repository's
-	// statements cannot join — see GetUploadedMediaWithIDs.
+	// statements cannot join, so it is read through the registry's batched read —
+	// see GetUploadedMediaWithIDs.
 	uploads mediaregistry.Store
 
 	readDB  database.SQLQueryExecutor

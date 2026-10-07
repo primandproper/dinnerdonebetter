@@ -7,7 +7,7 @@
 /* eslint-disable */
 import { BinaryReader, BinaryWriter } from '@bufbuild/protobuf/wire';
 import { Timestamp } from '../google/protobuf/timestamp';
-import { UploadedMedia } from '../uploaded_media/uploaded_media_messages';
+import { Object } from '../primandproper/platform/mediaregistry/v1/mediaregistry';
 
 export const protobufPackage = 'mealplanning';
 
@@ -587,7 +587,7 @@ export interface ValidIngredient {
   isAcid: boolean;
   isHeat: boolean;
   contaminatesEquipment: boolean;
-  media: UploadedMedia[];
+  media: Object[];
 }
 
 export interface ValidIngredientGroup {
@@ -743,7 +743,7 @@ export interface ValidPreparation {
   consumesVessel: boolean;
   onlyForVessels: boolean;
   yieldsNothing: boolean;
-  media: UploadedMedia[];
+  media: Object[];
 }
 
 export interface ValidPreparationInstrument {
@@ -937,7 +937,7 @@ export interface RecipeStep {
   index: number;
   optional: boolean;
   startTimerAutomatically: boolean;
-  stepImages: UploadedMedia[];
+  stepImages: Object[];
 }
 
 export interface RecipeStepCompletionCondition {
@@ -1663,7 +1663,7 @@ export const ValidIngredient: MessageFns<ValidIngredient> = {
       writer.uint32(296).bool(message.contaminatesEquipment);
     }
     for (const v of message.media) {
-      UploadedMedia.encode(v!, writer.uint32(306).fork()).join();
+      Object.encode(v!, writer.uint32(306).fork()).join();
     }
     return writer;
   },
@@ -1984,7 +1984,7 @@ export const ValidIngredient: MessageFns<ValidIngredient> = {
             break;
           }
 
-          message.media.push(UploadedMedia.decode(reader, reader.uint32()));
+          message.media.push(Object.decode(reader, reader.uint32()));
           continue;
         }
       }
@@ -2168,7 +2168,7 @@ export const ValidIngredient: MessageFns<ValidIngredient> = {
         : isSet(object.contaminates_equipment)
           ? globalThis.Boolean(object.contaminates_equipment)
           : false,
-      media: globalThis.Array.isArray(object?.media) ? object.media.map((e: any) => UploadedMedia.fromJSON(e)) : [],
+      media: globalThis.Array.isArray(object?.media) ? object.media.map((e: any) => Object.fromJSON(e)) : [],
     };
   },
 
@@ -2289,7 +2289,7 @@ export const ValidIngredient: MessageFns<ValidIngredient> = {
       obj.contaminatesEquipment = message.contaminatesEquipment;
     }
     if (message.media?.length) {
-      obj.media = message.media.map((e) => UploadedMedia.toJSON(e));
+      obj.media = message.media.map((e) => Object.toJSON(e));
     }
     return obj;
   },
@@ -2337,7 +2337,7 @@ export const ValidIngredient: MessageFns<ValidIngredient> = {
     message.isAcid = object.isAcid ?? false;
     message.isHeat = object.isHeat ?? false;
     message.contaminatesEquipment = object.contaminatesEquipment ?? false;
-    message.media = object.media?.map((e) => UploadedMedia.fromPartial(e)) || [];
+    message.media = object.media?.map((e) => Object.fromPartial(e)) || [];
     return message;
   },
 };
@@ -4842,7 +4842,7 @@ export const ValidPreparation: MessageFns<ValidPreparation> = {
       writer.uint32(152).bool(message.yieldsNothing);
     }
     for (const v of message.media) {
-      UploadedMedia.encode(v!, writer.uint32(162).fork()).join();
+      Object.encode(v!, writer.uint32(162).fork()).join();
     }
     return writer;
   },
@@ -5035,7 +5035,7 @@ export const ValidPreparation: MessageFns<ValidPreparation> = {
             break;
           }
 
-          message.media.push(UploadedMedia.decode(reader, reader.uint32()));
+          message.media.push(Object.decode(reader, reader.uint32()));
           continue;
         }
       }
@@ -5143,7 +5143,7 @@ export const ValidPreparation: MessageFns<ValidPreparation> = {
         : isSet(object.yields_nothing)
           ? globalThis.Boolean(object.yields_nothing)
           : false,
-      media: globalThis.Array.isArray(object?.media) ? object.media.map((e: any) => UploadedMedia.fromJSON(e)) : [],
+      media: globalThis.Array.isArray(object?.media) ? object.media.map((e: any) => Object.fromJSON(e)) : [],
     };
   },
 
@@ -5216,7 +5216,7 @@ export const ValidPreparation: MessageFns<ValidPreparation> = {
       obj.yieldsNothing = message.yieldsNothing;
     }
     if (message.media?.length) {
-      obj.media = message.media.map((e) => UploadedMedia.toJSON(e));
+      obj.media = message.media.map((e) => Object.toJSON(e));
     }
     return obj;
   },
@@ -5248,7 +5248,7 @@ export const ValidPreparation: MessageFns<ValidPreparation> = {
     message.consumesVessel = object.consumesVessel ?? false;
     message.onlyForVessels = object.onlyForVessels ?? false;
     message.yieldsNothing = object.yieldsNothing ?? false;
-    message.media = object.media?.map((e) => UploadedMedia.fromPartial(e)) || [];
+    message.media = object.media?.map((e) => Object.fromPartial(e)) || [];
     return message;
   },
 };
@@ -8202,7 +8202,7 @@ export const RecipeStep: MessageFns<RecipeStep> = {
       writer.uint32(160).bool(message.startTimerAutomatically);
     }
     for (const v of message.stepImages) {
-      UploadedMedia.encode(v!, writer.uint32(170).fork()).join();
+      Object.encode(v!, writer.uint32(170).fork()).join();
     }
     return writer;
   },
@@ -8395,7 +8395,7 @@ export const RecipeStep: MessageFns<RecipeStep> = {
             break;
           }
 
-          message.stepImages.push(UploadedMedia.decode(reader, reader.uint32()));
+          message.stepImages.push(Object.decode(reader, reader.uint32()));
           continue;
         }
       }
@@ -8488,9 +8488,9 @@ export const RecipeStep: MessageFns<RecipeStep> = {
           ? globalThis.Boolean(object.start_timer_automatically)
           : false,
       stepImages: globalThis.Array.isArray(object?.stepImages)
-        ? object.stepImages.map((e: any) => UploadedMedia.fromJSON(e))
+        ? object.stepImages.map((e: any) => Object.fromJSON(e))
         : globalThis.Array.isArray(object?.step_images)
-          ? object.step_images.map((e: any) => UploadedMedia.fromJSON(e))
+          ? object.step_images.map((e: any) => Object.fromJSON(e))
           : [],
     };
   },
@@ -8564,7 +8564,7 @@ export const RecipeStep: MessageFns<RecipeStep> = {
       obj.startTimerAutomatically = message.startTimerAutomatically;
     }
     if (message.stepImages?.length) {
-      obj.stepImages = message.stepImages.map((e) => UploadedMedia.toJSON(e));
+      obj.stepImages = message.stepImages.map((e) => Object.toJSON(e));
     }
     return obj;
   },
@@ -8600,7 +8600,7 @@ export const RecipeStep: MessageFns<RecipeStep> = {
     message.index = object.index ?? 0;
     message.optional = object.optional ?? false;
     message.startTimerAutomatically = object.startTimerAutomatically ?? false;
-    message.stepImages = object.stepImages?.map((e) => UploadedMedia.fromPartial(e)) || [];
+    message.stepImages = object.stepImages?.map((e) => Object.fromPartial(e)) || [];
     return message;
   },
 };

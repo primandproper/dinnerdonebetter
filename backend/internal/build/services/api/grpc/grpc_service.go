@@ -3,7 +3,6 @@ package grpcapi
 import (
 	internalopssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/internalops"
 	mealplanningsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
-	uploadedmediasvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/uploaded_media"
 
 	auditsvc "github.com/primandproper/platform-go/v15/audit/auditpb"
 	"github.com/primandproper/platform-go/v15/authentication/oauth2clients/oauth2clientspb"
@@ -27,7 +26,6 @@ type GRPCService struct {
 	oauth2clientspb.OAuth2ClientsServiceServer
 	paymentssvc.BillingServiceServer
 	settingssvc.SettingsServiceServer
-	uploadedmediasvc.UploadedMediaServiceServer
 	waitlistssvc.WaitlistsServiceServer
 	webhookssvc.WebhooksServiceServer
 	*grpc.Server
@@ -43,7 +41,6 @@ func NewGRPCService(
 	oauth2ClientsServiceServer oauth2clientspb.OAuth2ClientsServiceServer,
 	paymentsServiceServer paymentssvc.BillingServiceServer,
 	settingsServiceServer settingssvc.SettingsServiceServer,
-	uploadedMediaServiceServer uploadedmediasvc.UploadedMediaServiceServer,
 	webhooksServiceServer webhookssvc.WebhooksServiceServer,
 	waitlistsServiceServer waitlistssvc.WaitlistsServiceServer,
 	server *grpc.Server,
@@ -59,7 +56,6 @@ func NewGRPCService(
 		OAuth2ClientsServiceServer: oauth2ClientsServiceServer,
 		BillingServiceServer:       paymentsServiceServer,
 		SettingsServiceServer:      settingsServiceServer,
-		UploadedMediaServiceServer: uploadedMediaServiceServer,
 		WebhooksServiceServer:      webhooksServiceServer,
 		WaitlistsServiceServer:     waitlistsServiceServer,
 	}

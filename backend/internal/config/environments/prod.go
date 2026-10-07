@@ -248,26 +248,6 @@ func BuildProdConfig() *config.APIServiceConfig {
 			},
 		},
 		Analytics: analyticscfg.Config{
-			ProxySources: analyticscfg.ProxySourcesConfig{
-				iosPlatform: {
-					Provider: analyticscfg.ProviderPostHog,
-					Posthog:  &analyticsposthog.Config{APIKey: placeholderValue}, // overridden by env from api-service-config secret
-					CircuitBreaker: circuitbreakingcfg.Config{
-						Name:                   iosAnalyticsSource,
-						ErrorRate:              .5,
-						MinimumSampleThreshold: 100,
-					},
-				},
-				webPlatform: {
-					Provider: analyticscfg.ProviderPostHog,
-					Posthog:  &analyticsposthog.Config{APIKey: placeholderValue}, // overridden by env from api-service-config secret
-					CircuitBreaker: circuitbreakingcfg.Config{
-						Name:                   webAnalyticsSource,
-						ErrorRate:              .5,
-						MinimumSampleThreshold: 100,
-					},
-				},
-			},
 			SourceConfig: analyticscfg.SourceConfig{
 				Provider: analyticscfg.ProviderPostHog,
 				Posthog:  &analyticsposthog.Config{APIKey: placeholderValue}, // overridden by env from api-service-config secret

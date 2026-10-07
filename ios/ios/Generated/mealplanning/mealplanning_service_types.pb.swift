@@ -16042,6 +16042,9 @@ public struct Mealplanning_AccountInstrumentOwnershipUpdateRequestInput: Sendabl
   fileprivate var _validInstrumentID: String? = nil
 }
 
+/// The upload carried by each of these is platform's media registry upload: a header, then
+/// chunks. The header's belongs_to is ignored here, because the RPC names what the object is
+/// attached to and checks the caller may attach to it.
 public struct Mealplanning_UploadMealMediaRequest: Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
@@ -16049,8 +16052,8 @@ public struct Mealplanning_UploadMealMediaRequest: Sendable {
 
   public var mealID: String = String()
 
-  public var upload: UploadedMedia_UploadRequest {
-    get {return _upload ?? UploadedMedia_UploadRequest()}
+  public var upload: PlatformClient.Primandproper_Platform_Mediaregistry_V1_UploadObjectRequest {
+    get {return _upload ?? PlatformClient.Primandproper_Platform_Mediaregistry_V1_UploadObjectRequest()}
     set {_upload = newValue}
   }
   /// Returns true if `upload` has been explicitly set.
@@ -16062,7 +16065,7 @@ public struct Mealplanning_UploadMealMediaRequest: Sendable {
 
   public init() {}
 
-  fileprivate var _upload: UploadedMedia_UploadRequest? = nil
+  fileprivate var _upload: PlatformClient.Primandproper_Platform_Mediaregistry_V1_UploadObjectRequest? = nil
 }
 
 public struct Mealplanning_UploadRecipeMediaRequest: Sendable {
@@ -16072,8 +16075,8 @@ public struct Mealplanning_UploadRecipeMediaRequest: Sendable {
 
   public var recipeID: String = String()
 
-  public var upload: UploadedMedia_UploadRequest {
-    get {return _upload ?? UploadedMedia_UploadRequest()}
+  public var upload: PlatformClient.Primandproper_Platform_Mediaregistry_V1_UploadObjectRequest {
+    get {return _upload ?? PlatformClient.Primandproper_Platform_Mediaregistry_V1_UploadObjectRequest()}
     set {_upload = newValue}
   }
   /// Returns true if `upload` has been explicitly set.
@@ -16085,7 +16088,7 @@ public struct Mealplanning_UploadRecipeMediaRequest: Sendable {
 
   public init() {}
 
-  fileprivate var _upload: UploadedMedia_UploadRequest? = nil
+  fileprivate var _upload: PlatformClient.Primandproper_Platform_Mediaregistry_V1_UploadObjectRequest? = nil
 }
 
 public struct Mealplanning_UploadMealImageResponse: Sendable {
@@ -16166,8 +16169,8 @@ public struct Mealplanning_UploadPreparationMediaRequest: Sendable {
   /// Clears the value of `forIngredientID`. Subsequent reads from it will return its default value.
   public mutating func clearForIngredientID() {self._forIngredientID = nil}
 
-  public var upload: UploadedMedia_UploadRequest {
-    get {return _upload ?? UploadedMedia_UploadRequest()}
+  public var upload: PlatformClient.Primandproper_Platform_Mediaregistry_V1_UploadObjectRequest {
+    get {return _upload ?? PlatformClient.Primandproper_Platform_Mediaregistry_V1_UploadObjectRequest()}
     set {_upload = newValue}
   }
   /// Returns true if `upload` has been explicitly set.
@@ -16180,7 +16183,7 @@ public struct Mealplanning_UploadPreparationMediaRequest: Sendable {
   public init() {}
 
   fileprivate var _forIngredientID: String? = nil
-  fileprivate var _upload: UploadedMedia_UploadRequest? = nil
+  fileprivate var _upload: PlatformClient.Primandproper_Platform_Mediaregistry_V1_UploadObjectRequest? = nil
 }
 
 public struct Mealplanning_UploadPreparationMediaResponse: Sendable {
@@ -16221,8 +16224,8 @@ public struct Mealplanning_UploadIngredientMediaRequest: Sendable {
 
   public var validIngredientID: String = String()
 
-  public var upload: UploadedMedia_UploadRequest {
-    get {return _upload ?? UploadedMedia_UploadRequest()}
+  public var upload: PlatformClient.Primandproper_Platform_Mediaregistry_V1_UploadObjectRequest {
+    get {return _upload ?? PlatformClient.Primandproper_Platform_Mediaregistry_V1_UploadObjectRequest()}
     set {_upload = newValue}
   }
   /// Returns true if `upload` has been explicitly set.
@@ -16234,7 +16237,7 @@ public struct Mealplanning_UploadIngredientMediaRequest: Sendable {
 
   public init() {}
 
-  fileprivate var _upload: UploadedMedia_UploadRequest? = nil
+  fileprivate var _upload: PlatformClient.Primandproper_Platform_Mediaregistry_V1_UploadObjectRequest? = nil
 }
 
 public struct Mealplanning_UploadIngredientMediaResponse: Sendable {
@@ -16277,8 +16280,8 @@ public struct Mealplanning_UploadRecipeStepImageRequest: Sendable {
 
   public var recipeStepID: String = String()
 
-  public var upload: UploadedMedia_UploadRequest {
-    get {return _upload ?? UploadedMedia_UploadRequest()}
+  public var upload: PlatformClient.Primandproper_Platform_Mediaregistry_V1_UploadObjectRequest {
+    get {return _upload ?? PlatformClient.Primandproper_Platform_Mediaregistry_V1_UploadObjectRequest()}
     set {_upload = newValue}
   }
   /// Returns true if `upload` has been explicitly set.
@@ -16290,7 +16293,7 @@ public struct Mealplanning_UploadRecipeStepImageRequest: Sendable {
 
   public init() {}
 
-  fileprivate var _upload: UploadedMedia_UploadRequest? = nil
+  fileprivate var _upload: PlatformClient.Primandproper_Platform_Mediaregistry_V1_UploadObjectRequest? = nil
 }
 
 public struct Mealplanning_UploadRecipeStepImageResponse: Sendable {

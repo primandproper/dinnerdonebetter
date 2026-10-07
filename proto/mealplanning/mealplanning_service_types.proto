@@ -6,7 +6,7 @@ import "common.proto";
 import "google/protobuf/timestamp.proto";
 import "mealplanning/mealplanning_messages.proto";
 import "primandproper/platform/filtering/v1/filtering.proto";
-import "uploaded_media/uploaded_media_messages.proto";
+import "primandproper/platform/mediaregistry/v1/mediaregistry.proto";
 
 option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning";
 
@@ -3135,14 +3135,17 @@ message AccountInstrumentOwnershipUpdateRequestInput {
   optional string valid_instrument_id = 3;
 }
 
+// The upload carried by each of these is platform's media registry upload: a header, then
+// chunks. The header's belongs_to is ignored here, because the RPC names what the object is
+// attached to and checks the caller may attach to it.
 message UploadMealMediaRequest {
   string meal_id = 1;
-  uploaded_media.UploadRequest upload = 2;
+  primandproper.platform.mediaregistry.v1.UploadObjectRequest upload = 2;
 }
 
 message UploadRecipeMediaRequest {
   string recipe_id = 1;
-  uploaded_media.UploadRequest upload = 2;
+  primandproper.platform.mediaregistry.v1.UploadObjectRequest upload = 2;
 }
 
 message UploadMealImageResponse {
@@ -3158,7 +3161,7 @@ message UploadRecipeImageResponse {
 message UploadPreparationMediaRequest {
   string valid_preparation_id = 1;
   optional string for_ingredient_id = 2;
-  uploaded_media.UploadRequest upload = 3;
+  primandproper.platform.mediaregistry.v1.UploadObjectRequest upload = 3;
 }
 
 message UploadPreparationMediaResponse {
@@ -3168,7 +3171,7 @@ message UploadPreparationMediaResponse {
 
 message UploadIngredientMediaRequest {
   string valid_ingredient_id = 1;
-  uploaded_media.UploadRequest upload = 2;
+  primandproper.platform.mediaregistry.v1.UploadObjectRequest upload = 2;
 }
 
 message UploadIngredientMediaResponse {
@@ -3179,7 +3182,7 @@ message UploadIngredientMediaResponse {
 message UploadRecipeStepImageRequest {
   string recipe_id = 1;
   string recipe_step_id = 2;
-  uploaded_media.UploadRequest upload = 3;
+  primandproper.platform.mediaregistry.v1.UploadObjectRequest upload = 3;
 }
 
 message UploadRecipeStepImageResponse {

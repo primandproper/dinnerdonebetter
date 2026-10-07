@@ -29,6 +29,8 @@ a photograph from the household reading the recipe it belongs to.
 */
 package uploadedmedia
 
+import "slices"
+
 // Supported MIME types for uploaded media.
 const (
 	MimeTypeImagePNG  = "image/png"
@@ -37,18 +39,20 @@ const (
 	MimeTypeVideoMP4  = "video/mp4"
 )
 
-// IsValidMimeType checks if a MIME type is supported.
+// MaxUploadBytes is the largest object the media registry's upload surface accepts: 100 MiB.
+const MaxUploadBytes int64 = 100 << 20
+
+// SupportedMimeTypes is every content type this application stores.
 //
-// The registry stores whatever content type it is handed — a registry that
-// vetted the vocabulary would be one only this application's consumers could
-// use — so the list of what this deployment accepts is enforced at the service
-// boundary, before an object is stored. It is also what bounds the cardinality
-// of the mime_type dimension the upload meter records.
+// The registry stores whatever content type it is handed — a registry that vetted the
+// vocabulary would be one only this application's consumers could use — so the list of what
+// this deployment accepts is enforced at the service boundary, before an object is stored. It
+// is also what bounds the cardinality of the mime_type dimension the upload meter records.
+func SupportedMimeTypes() []string {
+	return []string{MimeTypeImagePNG, MimeTypeImageJPEG, MimeTypeImageGIF, MimeTypeVideoMP4}
+}
+
+// IsValidMimeType checks if a MIME type is supported. See SupportedMimeTypes.
 func IsValidMimeType(mimeType string) bool {
-	switch mimeType {
-	case MimeTypeImagePNG, MimeTypeImageJPEG, MimeTypeImageGIF, MimeTypeVideoMP4:
-		return true
-	default:
-		return false
-	}
+	return slices.Contains(SupportedMimeTypes(), mimeType)
 }
