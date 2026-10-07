@@ -32,13 +32,15 @@ func TestRecipeManager_ListRecipeLists(T *testing.T) {
 		expected := &filtering.QueryFilteredResult[types.RecipeList]{Data: []*types.RecipeList{recipeList}}
 
 		db := &mealplanningmock.RepositoryMock{
-			GetRecipeListsFunc: func(_ context.Context, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.RecipeList], error) {
+			GetRecipeListsFunc: func(_ context.Context, userID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.RecipeList], error) {
+				assert.Equal(t, recipeList.BelongsToUser, userID)
+
 				return expected, nil
 			},
 		}
 		attachRepositoryToManager(rm, db)
 
-		actual, err := rm.ListRecipeLists(ctx, nil)
+		actual, err := rm.ListRecipeLists(ctx, recipeList.BelongsToUser, nil)
 		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 

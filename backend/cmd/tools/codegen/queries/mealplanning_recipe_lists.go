@@ -42,7 +42,7 @@ func buildRecipeListsQueries(database string) []*Query {
 			pgGen.StandardCRUD(recipeListsTableName, recipeListsColumns,
 				querygen.WithEntity("RecipeList", "RecipeLists"),
 				querygen.WithOwnership(belongsToUserColumn),
-				querygen.WithOmitted(querygen.ExistsQuery, querygen.GetQuery, querygen.ListQuery),
+				querygen.WithOmitted(querygen.GetQuery, querygen.ListQuery),
 			),
 			[]*Query{
 				{
@@ -59,11 +59,13 @@ FROM %s
 WHERE %s
 %s;`,
 						strings.Join(fullSelectColumns, ",\n\t"),
-						pgGen.FilterCountSelect(recipeListsTableName, recipeListsColumns, []string{}),
-						pgGen.TotalCountSelect(recipeListsTableName, recipeListsColumns, []string{}),
+						pgGen.FilterCountSelect(recipeListsTableName, recipeListsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeListsTableName, belongsToUserColumn, belongsToUserColumn)),
+						pgGen.TotalCountSelect(recipeListsTableName, recipeListsColumns, []string{}, fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeListsTableName, belongsToUserColumn, belongsToUserColumn)),
 						recipeListsTableName,
 						recipeListItemsTableName, recipeListItemsTableName, "belongs_to_recipe_list", recipeListsTableName, idColumn, recipeListItemsTableName, archivedAtColumn,
-						pgGen.FilterConditions(recipeListsTableName, recipeListsColumns, querygen.Ascending),
+						pgGen.FilterConditions(recipeListsTableName, recipeListsColumns, querygen.Ascending,
+							fmt.Sprintf("%s.%s = sqlc.arg(%s)", recipeListsTableName, belongsToUserColumn, belongsToUserColumn),
+						),
 						pgGen.CursorLimitClause(recipeListsTableName, querygen.Ascending),
 					)),
 				},

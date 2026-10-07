@@ -32,6 +32,28 @@ func (q *Queries) ArchiveRecipeList(ctx context.Context, db DBTX, arg *ArchiveRe
 	return result.RowsAffected()
 }
 
+const checkRecipeListExistence = `-- name: CheckRecipeListExistence :one
+SELECT EXISTS (
+	SELECT recipe_lists.id
+	FROM recipe_lists
+	WHERE recipe_lists.archived_at IS NULL
+		AND recipe_lists.id = $1
+		AND recipe_lists.belongs_to_user = $2
+)
+`
+
+type CheckRecipeListExistenceParams struct {
+	ID            string
+	BelongsToUser string
+}
+
+func (q *Queries) CheckRecipeListExistence(ctx context.Context, db DBTX, arg *CheckRecipeListExistenceParams) (bool, error) {
+	row := db.QueryRowContext(ctx, checkRecipeListExistence, arg.ID, arg.BelongsToUser)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const createRecipeList = `-- name: CreateRecipeList :exec
 INSERT INTO recipe_lists (
 	id,
@@ -93,11 +115,13 @@ SELECT
 				OR recipe_lists.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 			)
 			AND (COALESCE($5, false)::boolean OR recipe_lists.archived_at IS NULL)
+			AND recipe_lists.belongs_to_user = $6
 	) AS filtered_count,
 	(
 		SELECT COUNT(recipe_lists.id)
 		FROM recipe_lists
 		WHERE (COALESCE($5, false)::boolean OR recipe_lists.archived_at IS NULL)
+			AND recipe_lists.belongs_to_user = $6
 	) AS total_count
 FROM recipe_lists
 	LEFT JOIN recipe_list_items ON recipe_list_items.belongs_to_recipe_list = recipe_lists.id AND recipe_list_items.archived_at IS NULL
@@ -112,9 +136,10 @@ WHERE recipe_lists.created_at > COALESCE($1, (SELECT CURRENT_TIMESTAMP - '999 ye
 		OR recipe_lists.last_updated_at < COALESCE($4, (SELECT CURRENT_TIMESTAMP + '999 years'::INTERVAL))
 	)
 	AND (COALESCE($5, false)::boolean OR recipe_lists.archived_at IS NULL)
-	AND recipe_lists.id > COALESCE($6, '')
+	AND recipe_lists.belongs_to_user = $6
+	AND recipe_lists.id > COALESCE($7, '')
 ORDER BY recipe_lists.id ASC
-LIMIT COALESCE($7, 50)
+LIMIT COALESCE($8, 50)
 `
 
 type GetRecipeListsParams struct {
@@ -123,6 +148,7 @@ type GetRecipeListsParams struct {
 	UpdatedAfter    sql.NullTime
 	UpdatedBefore   sql.NullTime
 	IncludeArchived sql.NullBool
+	BelongsToUser   string
 	PageCursor      sql.NullString
 	ResultLimit     interface{}
 }
@@ -153,6 +179,7 @@ func (q *Queries) GetRecipeLists(ctx context.Context, db DBTX, arg *GetRecipeLis
 		arg.UpdatedAfter,
 		arg.UpdatedBefore,
 		arg.IncludeArchived,
+		arg.BelongsToUser,
 		arg.PageCursor,
 		arg.ResultLimit,
 	)

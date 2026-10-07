@@ -1210,6 +1210,11 @@ func (s *serviceImpl) GetRecipeLists(ctx context.Context, request *mealplanning.
 
 	logger := s.logger.WithSpan(span)
 
+	sessionContextData, err := sessions.RequireFromContext(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
+	}
+
 	filter, err := decodeQueryFilter(span, request.Filter, filteringgrpc.ArchivedDenied)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
@@ -1219,7 +1224,7 @@ func (s *serviceImpl) GetRecipeLists(ctx context.Context, request *mealplanning.
 		tracing.AttachToSpan(span, key, value)
 	}
 
-	lists, err := s.mealPlanningManager.ListRecipeLists(ctx, filter)
+	lists, err := s.mealPlanningManager.ListRecipeLists(ctx, sessionContextData.GetUserID(), filter)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "fetching recipe lists")
 	}
@@ -1335,6 +1340,11 @@ func (s *serviceImpl) GetRecipeListItems(ctx context.Context, request *mealplann
 		mealplanningkeys.RecipeListIDKey: request.RecipeListId,
 	}, span, s.logger)
 
+	sessionContextData, err := sessions.RequireFromContext(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
+	}
+
 	filter, err := decodeQueryFilter(span, request.Filter, filteringgrpc.ArchivedDenied)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
@@ -1344,7 +1354,7 @@ func (s *serviceImpl) GetRecipeListItems(ctx context.Context, request *mealplann
 		tracing.AttachToSpan(span, key, value)
 	}
 
-	items, err := s.mealPlanningManager.ListRecipeListItems(ctx, request.RecipeListId, filter)
+	items, err := s.mealPlanningManager.ListRecipeListItems(ctx, request.RecipeListId, sessionContextData.GetUserID(), filter)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "fetching recipe list items")
 	}
@@ -1376,9 +1386,14 @@ func (s *serviceImpl) CreateRecipeListItem(ctx context.Context, request *mealpla
 		mealplanningkeys.RecipeIDKey:     request.Input.RecipeId,
 	}, span, s.logger)
 
+	sessionContextData, err := sessions.RequireFromContext(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
+	}
+
 	input := converters.ConvertGRPCRecipeListItemCreationRequestInputToRecipeListItemCreationRequestInput(request.Input)
 
-	created, err := s.mealPlanningManager.AddRecipeToRecipeList(ctx, request.Input.BelongsToRecipeList, input.RecipeID, input.Notes)
+	created, err := s.mealPlanningManager.AddRecipeToRecipeList(ctx, request.Input.BelongsToRecipeList, sessionContextData.GetUserID(), input.RecipeID, input.Notes)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "creating recipe list item")
 	}
@@ -1405,9 +1420,14 @@ func (s *serviceImpl) UpdateRecipeListItem(ctx context.Context, request *mealpla
 		mealplanningkeys.RecipeListItemIDKey: request.RecipeListItemId,
 	}, span, s.logger)
 
+	sessionContextData, err := sessions.RequireFromContext(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
+	}
+
 	input := converters.ConvertGRPCRecipeListItemUpdateRequestInputToRecipeListItemUpdateRequestInput(request.Input)
 
-	if err := s.mealPlanningManager.UpdateRecipeListItem(ctx, request.RecipeListItemId, request.Input.GetBelongsToRecipeList(), request.Input.GetRecipeId(), input); err != nil {
+	if err = s.mealPlanningManager.UpdateRecipeListItem(ctx, request.RecipeListItemId, request.Input.GetBelongsToRecipeList(), sessionContextData.GetUserID(), request.Input.GetRecipeId(), input); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "updating recipe list item")
 	}
 
@@ -1429,7 +1449,12 @@ func (s *serviceImpl) ArchiveRecipeListItem(ctx context.Context, request *mealpl
 		mealplanningkeys.RecipeListIDKey:     request.RecipeListId,
 	}, span, s.logger)
 
-	if err := s.mealPlanningManager.RemoveRecipeFromRecipeList(ctx, request.RecipeListId, request.RecipeListItemId); err != nil {
+	sessionContextData, err := sessions.RequireFromContext(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
+	}
+
+	if err = s.mealPlanningManager.RemoveRecipeFromRecipeList(ctx, request.RecipeListId, sessionContextData.GetUserID(), request.RecipeListItemId); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "archiving recipe list item")
 	}
 

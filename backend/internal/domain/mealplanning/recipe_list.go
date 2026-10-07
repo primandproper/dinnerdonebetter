@@ -61,7 +61,8 @@ type (
 
 	// RecipeListDataManager describes a structure capable of storing recipe lists permanently.
 	RecipeListDataManager interface {
-		GetRecipeLists(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[RecipeList], error)
+		RecipeListExists(ctx context.Context, recipeListID, userID string) (bool, error)
+		GetRecipeLists(ctx context.Context, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[RecipeList], error)
 		CreateRecipeList(ctx context.Context, input *RecipeListDatabaseCreationInput) (*RecipeList, error)
 		UpdateRecipeList(ctx context.Context, updated *RecipeList) error
 		ArchiveRecipeList(ctx context.Context, recipeListID, userID string) error

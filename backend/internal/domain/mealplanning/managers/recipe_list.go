@@ -15,13 +15,17 @@ import (
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
 )
 
-func (m *mealPlanningManager) ListRecipeLists(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.RecipeList], error) {
+func (m *mealPlanningManager) ListRecipeLists(ctx context.Context, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.RecipeList], error) {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
 	logger := m.logger.WithSpan(span)
 
-	res, err := m.db.GetRecipeLists(ctx, filter)
+	if userID == "" {
+		return nil, platformerrors.ErrEmptyInputParameter
+	}
+
+	res, err := m.db.GetRecipeLists(ctx, userID, filter)
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "listing recipe lists")
 	}

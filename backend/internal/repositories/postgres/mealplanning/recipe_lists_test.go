@@ -35,10 +35,25 @@ func TestIntegration_RecipeLists(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, createdList)
 
-	res, err := dbc.GetRecipeLists(ctx, nil)
+	otherUser := pgtesting.CreateUserForTest(t, nil, dbc.writeDB)
+	otherList, err := dbc.CreateRecipeList(ctx, buildRecipeListForTest(otherUser.ID))
+	require.NoError(t, err)
+
+	res, err := dbc.GetRecipeLists(ctx, user.ID, nil)
 	require.NoError(t, err)
 	require.Len(t, res.Data, 1)
+	assert.Equal(t, createdList.ID, res.Data[0].ID)
 	require.Empty(t, res.Data[0].Items)
+	assert.Equal(t, uint64(1), res.FilteredCount)
+	assert.Equal(t, uint64(1), res.TotalCount)
+
+	owned, err := dbc.RecipeListExists(ctx, createdList.ID, user.ID)
+	require.NoError(t, err)
+	assert.True(t, owned)
+
+	owned, err = dbc.RecipeListExists(ctx, otherList.ID, user.ID)
+	require.NoError(t, err)
+	assert.False(t, owned)
 
 	updated := &mealplanning.RecipeList{
 		ID:            createdList.ID,
@@ -50,7 +65,11 @@ func TestIntegration_RecipeLists(t *testing.T) {
 
 	require.NoError(t, dbc.ArchiveRecipeList(ctx, createdList.ID, user.ID))
 
-	resAfterArchive, err := dbc.GetRecipeLists(ctx, nil)
+	owned, err = dbc.RecipeListExists(ctx, createdList.ID, user.ID)
+	require.NoError(t, err)
+	assert.False(t, owned, "an archived list should not count as owned")
+
+	resAfterArchive, err := dbc.GetRecipeLists(ctx, user.ID, nil)
 	require.NoError(t, err)
 	assert.Empty(t, resAfterArchive.Data)
 }

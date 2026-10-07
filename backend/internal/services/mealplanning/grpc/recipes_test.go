@@ -317,9 +317,12 @@ func TestServiceImpl_GetRecipeLists(T *testing.T) {
 
 		list := &mealplanning.RecipeList{ID: fake.BuildFakeID()}
 		expected := &filtering.QueryFilteredResult[mealplanning.RecipeList]{Data: []*mealplanning.RecipeList{list}}
+		userID := sessionUserIDForTest(t, ctx)
 
 		mrm := &mockmanagers.MealPlanningManagerMock{
-			ListRecipeListsFunc: func(_ context.Context, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.RecipeList], error) {
+			ListRecipeListsFunc: func(_ context.Context, actualUserID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.RecipeList], error) {
+				assert.Equal(t, userID, actualUserID)
+
 				return expected, nil
 			},
 		}
@@ -457,10 +460,12 @@ func TestServiceImpl_GetRecipeListItems(T *testing.T) {
 		listID := fake.BuildFakeID()
 		item := &mealplanning.RecipeListItem{ID: fake.BuildFakeID(), Recipe: mealplanning.Recipe{ID: fake.BuildFakeID()}}
 		expected := &filtering.QueryFilteredResult[mealplanning.RecipeListItem]{Data: []*mealplanning.RecipeListItem{item}}
+		userID := sessionUserIDForTest(t, ctx)
 
 		mrm := &mockmanagers.MealPlanningManagerMock{
-			ListRecipeListItemsFunc: func(_ context.Context, recipeListID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.RecipeListItem], error) {
+			ListRecipeListItemsFunc: func(_ context.Context, recipeListID, actualUserID string, _ *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.RecipeListItem], error) {
 				assert.Equal(t, listID, recipeListID)
+				assert.Equal(t, userID, actualUserID)
 
 				return expected, nil
 			},
@@ -494,10 +499,12 @@ func TestServiceImpl_CreateRecipeListItem(T *testing.T) {
 		}
 
 		created := &mealplanning.RecipeListItem{ID: fake.BuildFakeID()}
+		userID := sessionUserIDForTest(t, ctx)
 
 		mrm := &mockmanagers.MealPlanningManagerMock{
-			AddRecipeToRecipeListFunc: func(_ context.Context, recipeListID string, actualRecipeID string, notes string) (*mealplanning.RecipeListItem, error) {
+			AddRecipeToRecipeListFunc: func(_ context.Context, recipeListID, actualUserID, actualRecipeID, notes string) (*mealplanning.RecipeListItem, error) {
 				assert.Equal(t, listID, recipeListID)
+				assert.Equal(t, userID, actualUserID)
 				assert.Equal(t, recipeID, actualRecipeID)
 				assert.Equal(t, input.Notes, notes)
 
@@ -533,11 +540,13 @@ func TestServiceImpl_UpdateRecipeListItem(T *testing.T) {
 			RecipeId:            &recipeID,
 			Notes:               notes,
 		}
+		userID := sessionUserIDForTest(t, ctx)
 
 		mrm := &mockmanagers.MealPlanningManagerMock{
-			UpdateRecipeListItemFunc: func(_ context.Context, recipeListItemID string, recipeListID string, actualRecipeID string, _ *mealplanning.RecipeListItemUpdateRequestInput) error {
+			UpdateRecipeListItemFunc: func(_ context.Context, recipeListItemID, recipeListID, actualUserID, actualRecipeID string, _ *mealplanning.RecipeListItemUpdateRequestInput) error {
 				assert.Equal(t, itemID, recipeListItemID)
 				assert.Equal(t, listID, recipeListID)
+				assert.Equal(t, userID, actualUserID)
 				assert.Equal(t, recipeID, actualRecipeID)
 
 				return nil
@@ -567,10 +576,12 @@ func TestServiceImpl_ArchiveRecipeListItem(T *testing.T) {
 
 		itemID := fake.BuildFakeID()
 		listID := fake.BuildFakeID()
+		userID := sessionUserIDForTest(t, ctx)
 
 		mrm := &mockmanagers.MealPlanningManagerMock{
-			RemoveRecipeFromRecipeListFunc: func(_ context.Context, recipeListID string, recipeListItemID string) error {
+			RemoveRecipeFromRecipeListFunc: func(_ context.Context, recipeListID, actualUserID, recipeListItemID string) error {
 				assert.Equal(t, listID, recipeListID)
+				assert.Equal(t, userID, actualUserID)
 				assert.Equal(t, itemID, recipeListItemID)
 
 				return nil
