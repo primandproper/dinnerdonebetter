@@ -14,21 +14,18 @@ import (
 	"github.com/primandproper/primitives-go/v2/tenancy"
 )
 
-// Scope is the tenancy an account's issue reports are filed under.
+// Scope is the tenancy every issue report is filed under, which is the global
+// one.
 //
-// The account is the tenant, which is the same reading webhooks takes of the
-// same column, and it is what replaced the belongs_to_account column the local
-// table carried. It is a decision rather than a default: reading an issue report
-// is an account member permission, so a deployment that filed every report in
-// one scope would let any member of any account read every report anybody had
-// ever filed.
+// A report is between the person who filed it and the service's administrators —
+// a bug, a complaint about another user, a creation somebody thinks is low
+// quality — and it is not the business of whoever administers the reporter's
+// household. Filing it under the reporter's account put it in that household's
+// queue, where its admins could page, revise, resolve and archive it, a complaint
+// about a fellow member included.
 //
-// What it costs is part of the operator's console. platform-go lists reports
-// across scopes for an operator (ListReportsAcrossScopes), but reads one only in
-// the caller's own scope, so the admin app can list another account's report and
-// not open it. See platform-go#1149.
-//
-// tenancy.Of maps the empty account to the zero scope rather than to the global
-// one, so a report filed by a session that lost its account is refused by the
-// store instead of landing somewhere every tenant can see.
-func Scope(accountID string) tenancy.Scope { return tenancy.Of(accountID) }
+// One scope makes one queue, so what confines a caller is the policy rather than
+// the tenancy: filing and reading one's own reports are every user's, the queue a
+// service administrator's (see internal/authorization), and a report's reporter
+// is the only other caller its reads admit (internal/build/issuereports).
+func Scope() tenancy.Scope { return tenancy.Global() }

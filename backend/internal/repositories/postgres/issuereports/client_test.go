@@ -72,28 +72,28 @@ func buildDatabaseClientForTest(t *testing.T) (issuereports.Store, database.Clie
 	return c, pgc
 }
 
-// reporterForTest creates a user and an account for them, and returns both. Both
-// rows have to exist: the rendered table re-creates the reporter and scope foreign
-// keys the local table carried.
-func reporterForTest(t *testing.T, db database.Client) (userID, accountID string) {
+// reporterForTest creates a user in a household of their own, and returns the user.
+// The user row has to exist, because the rendered table re-creates the reporter's
+// foreign key; the household is there so a reporter looks like every real one.
+func reporterForTest(t *testing.T, db database.Client) (userID string) {
 	t.Helper()
 
 	user := pgtesting.CreateUserForTest(t, nil, db.Writer())
-	account := pgtesting.CreateAccountForTest(t, nil, user.ID, db.Writer())
+	pgtesting.CreateAccountForTest(t, nil, user.ID, db.Writer())
 
-	return user.ID, account.ID
+	return user.ID
 }
 
 func TestRepository_Integration_IssueReports(t *testing.T) {
 	ctx := t.Context()
 	dbc, db := buildDatabaseClientForTest(t)
 
-	userID, accountID := reporterForTest(t, db)
+	userID := reporterForTest(t, db)
 
 	// The reporter is the one making the requests, which is who every entry names as actor.
 	ctx = pgtesting.AsRequester(ctx, userID)
 
-	report := fakes.BuildFakeIssueReportForScope(accountID)
+	report := fakes.BuildFakeIssueReport()
 	report.Reporter = userID
 
 	// create
@@ -104,27 +104,27 @@ func TestRepository_Integration_IssueReports(t *testing.T) {
 		{EventType: platformaudit.EventCreated, ResourceType: issuereports.ResourceTypeReport, ResourceID: report.ID},
 	})
 
-	fetched, err := dbc.GetReport(ctx, db.Reader(), ddbissuereports.Scope(accountID), report.ID)
+	fetched, err := dbc.GetReport(ctx, db.Reader(), ddbissuereports.Scope(), report.ID)
 	require.NoError(t, err)
 	assert.Equal(t, report.Kind, fetched.Kind)
 	assert.Equal(t, report.Details, fetched.Details)
 	assert.Equal(t, userID, fetched.Reporter)
 	assert.Nil(t, fetched.ClosedAt)
 
-	// read as the account's list, and as the open queue
-	page, err := dbc.ListReports(ctx, db.Reader(), ddbissuereports.Scope(accountID), nil)
+	// read as the whole queue, and as the open queue
+	page, err := dbc.ListReports(ctx, db.Reader(), ddbissuereports.Scope(), nil)
 	require.NoError(t, err)
 	require.Len(t, page.Data, 1)
 	assert.Equal(t, report.ID, page.Data[0].ID)
 
-	open, err := dbc.ListReportsByStatus(ctx, db.Reader(), ddbissuereports.Scope(accountID), issuereports.StatusOpen, nil)
+	open, err := dbc.ListReportsByStatus(ctx, db.Reader(), ddbissuereports.Scope(), issuereports.StatusOpen, nil)
 	require.NoError(t, err)
 	require.Len(t, open.Data, 1)
 
 	// update
 	fetched.Details = "updated details"
 	_, err = writeT(ctx, db, func(tx database.Tx) (*issuereports.Report, error) {
-		return dbc.UpdateReport(ctx, tx, ddbissuereports.Scope(accountID), fetched)
+		return dbc.UpdateReport(ctx, tx, ddbissuereports.Scope(), fetched)
 	})
 	require.NoError(t, err)
 	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, userID, []pgtesting.ExpectedAuditEntry{
@@ -132,14 +132,14 @@ func TestRepository_Integration_IssueReports(t *testing.T) {
 		{EventType: platformaudit.EventUpdated, ResourceType: issuereports.ResourceTypeReport, ResourceID: report.ID},
 	})
 
-	updated, err := dbc.GetReport(ctx, db.Reader(), ddbissuereports.Scope(accountID), report.ID)
+	updated, err := dbc.GetReport(ctx, db.Reader(), ddbissuereports.Scope(), report.ID)
 	require.NoError(t, err)
 	assert.Equal(t, "updated details", updated.Details)
 	assert.NotNil(t, updated.LastUpdatedAt)
 
 	// archive
 	_, err = writeT(ctx, db, func(tx database.Tx) (*issuereports.Report, error) {
-		return dbc.ArchiveReport(ctx, tx, ddbissuereports.Scope(accountID), report.ID)
+		return dbc.ArchiveReport(ctx, tx, ddbissuereports.Scope(), report.ID)
 	})
 	require.NoError(t, err)
 	pgtesting.AssertAuditLogContainsForUser(t, ctx, db, userID, []pgtesting.ExpectedAuditEntry{
@@ -148,7 +148,7 @@ func TestRepository_Integration_IssueReports(t *testing.T) {
 		{EventType: platformaudit.EventArchived, ResourceType: issuereports.ResourceTypeReport, ResourceID: report.ID},
 	})
 
-	afterArchive, err := dbc.GetReport(ctx, db.Reader(), ddbissuereports.Scope(accountID), report.ID)
+	afterArchive, err := dbc.GetReport(ctx, db.Reader(), ddbissuereports.Scope(), report.ID)
 	require.Error(t, err)
 	assert.Nil(t, afterArchive)
 	assert.ErrorIs(t, err, issuereports.ErrReportNotFound)
@@ -161,13 +161,13 @@ func TestRepository_Integration_TriageLifecycle(t *testing.T) {
 	ctx := t.Context()
 	dbc, db := buildDatabaseClientForTest(t)
 
-	userID, accountID := reporterForTest(t, db)
+	userID := reporterForTest(t, db)
 
 	// The reporter is the one making the requests, which is who every entry names as actor.
 	ctx = pgtesting.AsRequester(ctx, userID)
-	scope := ddbissuereports.Scope(accountID)
+	scope := ddbissuereports.Scope()
 
-	report := fakes.BuildFakeIssueReportForScope(accountID)
+	report := fakes.BuildFakeIssueReport()
 	report.Reporter = userID
 	_, err := createT(ctx, db, dbc, report)
 	require.NoError(t, err)
@@ -208,13 +208,13 @@ func TestRepository_Integration_TransitionGuardRecordsNothing(t *testing.T) {
 	ctx := t.Context()
 	dbc, db := buildDatabaseClientForTest(t)
 
-	userID, accountID := reporterForTest(t, db)
+	userID := reporterForTest(t, db)
 
 	// The reporter is the one making the requests, which is who every entry names as actor.
 	ctx = pgtesting.AsRequester(ctx, userID)
-	scope := ddbissuereports.Scope(accountID)
+	scope := ddbissuereports.Scope()
 
-	report := fakes.BuildFakeIssueReportForScope(accountID)
+	report := fakes.BuildFakeIssueReport()
 	report.Reporter = userID
 	_, err := createT(ctx, db, dbc, report)
 	require.NoError(t, err)
@@ -237,32 +237,37 @@ func TestRepository_Integration_TransitionGuardRecordsNothing(t *testing.T) {
 	assert.Len(t, entries, 2)
 }
 
-// TestRepository_Integration_ScopeIsTheAccountBoundary pins that a report filed in
-// one account is not readable from another. This is what replaced the
-// belongs_to_account check the service used to run after the read.
-func TestRepository_Integration_ScopeIsTheAccountBoundary(t *testing.T) {
+// TestRepository_Integration_OneQueueForEveryHousehold pins that reports filed by
+// members of different households land in the one queue a service administrator
+// works, rather than in a queue per household that household's admins could read.
+// Filing under the global scope is also what the dropped scope -> accounts foreign
+// key would have refused, so every create here proves it is gone.
+func TestRepository_Integration_OneQueueForEveryHousehold(t *testing.T) {
 	ctx := t.Context()
 	dbc, db := buildDatabaseClientForTest(t)
 
-	userID, accountID := reporterForTest(t, db)
+	var filed []string
 
-	// The reporter is the one making the requests, which is who every entry names as actor.
-	ctx = pgtesting.AsRequester(ctx, userID)
-	_, otherAccountID := reporterForTest(t, db)
+	for range 2 {
+		userID := reporterForTest(t, db)
 
-	report := fakes.BuildFakeIssueReportForScope(accountID)
-	report.Reporter = userID
-	_, err := createT(ctx, db, dbc, report)
+		report := fakes.BuildFakeIssueReport()
+		report.Reporter = userID
+		_, err := createT(pgtesting.AsRequester(ctx, userID), db, dbc, report)
+		require.NoError(t, err)
+
+		filed = append(filed, report.ID)
+	}
+
+	page, err := dbc.ListReports(ctx, db.Reader(), ddbissuereports.Scope(), nil)
 	require.NoError(t, err)
 
-	fetched, err := dbc.GetReport(ctx, db.Reader(), ddbissuereports.Scope(otherAccountID), report.ID)
-	require.Error(t, err)
-	assert.Nil(t, fetched)
-	require.ErrorIs(t, err, issuereports.ErrReportNotFound)
+	listed := make([]string, 0, len(page.Data))
+	for _, report := range page.Data {
+		listed = append(listed, report.ID)
+	}
 
-	page, err := dbc.ListReports(ctx, db.Reader(), ddbissuereports.Scope(otherAccountID), nil)
-	require.NoError(t, err)
-	assert.Empty(t, page.Data)
+	assert.ElementsMatch(t, filed, listed)
 }
 
 // TestRepository_Integration_ErasureFollowsTheReporter pins the cascade this
@@ -273,12 +278,12 @@ func TestRepository_Integration_ErasureFollowsTheReporter(t *testing.T) {
 	ctx := t.Context()
 	dbc, db := buildDatabaseClientForTest(t)
 
-	userID, accountID := reporterForTest(t, db)
+	userID := reporterForTest(t, db)
 
 	// The reporter is the one making the requests, which is who every entry names as actor.
 	ctx = pgtesting.AsRequester(ctx, userID)
 
-	report := fakes.BuildFakeIssueReportForScope(accountID)
+	report := fakes.BuildFakeIssueReport()
 	report.Reporter = userID
 	_, err := createT(ctx, db, dbc, report)
 	require.NoError(t, err)
@@ -286,7 +291,7 @@ func TestRepository_Integration_ErasureFollowsTheReporter(t *testing.T) {
 	_, err = db.Writer().ExecContext(ctx, "DELETE FROM ddb_identity_users WHERE id = $1", userID)
 	require.NoError(t, err)
 
-	fetched, err := dbc.GetReport(ctx, db.Reader(), ddbissuereports.Scope(accountID), report.ID)
+	fetched, err := dbc.GetReport(ctx, db.Reader(), ddbissuereports.Scope(), report.ID)
 	require.Error(t, err)
 	assert.Nil(t, fetched)
 	assert.ErrorIs(t, err, issuereports.ErrReportNotFound)
@@ -299,10 +304,8 @@ func TestRepository_Integration_ArchiveMissingRecordsNothing(t *testing.T) {
 	ctx := t.Context()
 	dbc, db := buildDatabaseClientForTest(t)
 
-	_, accountID := reporterForTest(t, db)
-
 	_, err := writeT(ctx, db, func(tx database.Tx) (*issuereports.Report, error) {
-		return dbc.ArchiveReport(ctx, tx, ddbissuereports.Scope(accountID), identifiers.New())
+		return dbc.ArchiveReport(ctx, tx, ddbissuereports.Scope(), identifiers.New())
 	})
 	require.Error(t, err)
 	assert.ErrorIs(t, err, issuereports.ErrReportNotFound)
@@ -326,10 +329,10 @@ func writeT[T any](ctx context.Context, db database.Client, write func(tx databa
 	return out, err
 }
 
-// createT files one report, in the scope the report itself names.
+// createT files one report, in the scope every report is filed under.
 func createT(ctx context.Context, db database.Client, dbc issuereports.Store, report *issuereports.Report) (*issuereports.Report, error) {
 	return writeT(ctx, db, func(tx database.Tx) (*issuereports.Report, error) {
-		return dbc.CreateReport(ctx, tx, ddbissuereports.Scope(report.Scope.Owner()), report)
+		return dbc.CreateReport(ctx, tx, ddbissuereports.Scope(), report)
 	})
 }
 

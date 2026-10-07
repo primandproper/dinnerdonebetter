@@ -23,7 +23,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/devices"
 	ddbdataprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
 	identityprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/privacy"
-	issuereportsprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports/privacy"
+	ddbissuereports "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/privacy"
 	paymentsprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/payments/privacy"
@@ -132,12 +132,12 @@ func buildRegistry(i do.Injector) (*platformdataprivacy.Registry, error) {
 			Store:   do.MustInvoke[platformcomments.Store](i),
 			Resolve: platformdataprivacy.FixedScopes(tenancy.Global()),
 		},
-		// Issue reports are filed per account, so the resolver turns this application's
-		// account ids into the scopes those rows live under. Same conversion the
-		// hand-written constructor made internally, now spelled at the wiring.
+		// Every issue report is filed under the global scope (see
+		// internal/domain/issuereports.Scope), so a subject's reports are all in one place
+		// whichever households they belong to, have left, or never joined.
 		IssueReports: &privacyadapters.IssueReportsAdapter{
 			Store:   do.MustInvoke[issuereports.Store](i),
-			Resolve: issuereportsprivacy.AccountScopes(resolveAccounts),
+			Resolve: platformdataprivacy.FixedScopes(ddbissuereports.Scope()),
 		},
 		Settings: &privacyadapters.SettingsAdapter{
 			Store:   do.MustInvoke[platformsettings.Store](i),

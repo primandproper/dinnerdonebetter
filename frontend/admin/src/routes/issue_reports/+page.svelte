@@ -5,7 +5,7 @@
 </script>
 
 <Heading level={1}>Issue Reports</Heading>
-<p class="subtitle">Every account's issue reports</p>
+<p class="subtitle">Every issue report anybody has filed</p>
 
 {#if data?.error}
   <p class="error">{data.error}</p>
@@ -15,7 +15,7 @@
       <thead>
         <tr>
           <th>ID</th>
-          <th>Account</th>
+          <th>Reporter</th>
           <th>Kind</th>
           <th>Status</th>
           <th>Subject</th>
@@ -27,7 +27,7 @@
         {#each data.reports as report (report.id)}
           <tr>
             <td><code>{report.id}</code></td>
-            <td><code>{report.accountID || '-'}</code></td>
+            <td><code>{report.reporter || '-'}</code></td>
             <td>{report.kind || '-'}</td>
             <td>{report.status}</td>
             <td>{report.subject || '-'}</td>

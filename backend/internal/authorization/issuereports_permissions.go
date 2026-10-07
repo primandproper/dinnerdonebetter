@@ -20,8 +20,7 @@ const (
 	// ArchiveIssueReportsPermission is a permission.
 	ArchiveIssueReportsPermission = issuereportsgrpc.PermissionArchiveReports
 
-	// ReadAnyIssueReportsPermission allows paging every account's reports at once, through the
-	// AcrossScopes reads. It is an operator's: the cross-account queue an account-scoped
-	// surface otherwise cannot answer.
-	ReadAnyIssueReportsPermission = issuereportsgrpc.PermissionReadAnyReports
+	// There is no ReadAnyIssueReportsPermission. platform's PermissionReadAnyReports pages every
+	// tenant's queue at once, which a deployment filing every report under the global scope does
+	// not have — see internal/build/issuereports.PermissionOverrides.
 )

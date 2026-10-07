@@ -78,7 +78,7 @@ import (
 // surface resolves, the hooks — on this application's dialect.
 //
 // This application's surfaces do not agree on one tenancy (see sessions.AccountScopedPrincipal):
-// issue reports, webhooks and the audit read are per account, and the rest are global. A
+// webhooks and the audit read are per account, and the rest are global. A
 // subject says so the way the suites ask — Scope is the global directory, and Scopes names the
 // account on each surface that confines to one.
 func TestPlatformConformance(T *testing.T) {
@@ -193,7 +193,7 @@ func assertConformanceSkips(t *testing.T) {
 // by why. Every one is either the shape of this deployment or a choice it made.
 func conformanceExpectedSkips() []string {
 	expected := []string{
-		// Global tenancy. Every surface but audit, issue reports and webhooks serves one directory,
+		// Global tenancy. Every surface but audit and webhooks serves one directory,
 		// so there is no neighboring tenant for a cross-tenant assertion to stand in.
 		"billing/products/a_catalog_listing_pages_the_caller's_tenant_only",
 		"billing/products/a_product_is_stocked_in_the_caller's_catalog_and_nobody_else's",
@@ -213,6 +213,16 @@ func conformanceExpectedSkips() []string {
 		"identity/invitations/an_invitation_read_is_confined_to_the_sender's_directory",
 		"identity/memberships/a_user's_memberships_are_refused_to_a_caller_from_another_directory",
 		"identity/users/a_search_by_username_prefix_is_confined_to_the_caller's_directory",
+		"issuereports/reading/a_report_in_another_tenant_is_absent",
+		"issuereports/the_lifecycle/a_report_in_another_tenant_cannot_be_archived_from_here",
+		"issuereports/the_lifecycle/a_report_in_another_tenant_cannot_be_moved_from_here",
+		"issuereports/the_lifecycle/a_report_in_another_tenant_cannot_be_revised_from_here",
+		"issuereports/the_queue/ListReportsByReporter_pages_the_caller's_tenant_and_no_other",
+		"issuereports/the_queue/ListReportsByStatus_pages_the_caller's_tenant_and_no_other",
+		"issuereports/the_queue/ListReportsBySubjectType_pages_the_caller's_tenant_and_no_other",
+		"issuereports/the_queue/ListReportsForSubject_pages_the_caller's_tenant_and_no_other",
+		"issuereports/the_queue/ListReports_pages_the_caller's_tenant_and_no_other",
+		"issuereports/the_queue/an_operator_pages_the_reports_of_two_tenants_and_is_told_whose_each_is",
 		"mediaregistry/the_resource_surface/another_tenant's_upload_is_absent_from_every_read,_exactly_as_an_unknown_one_is",
 		"mediaregistry/the_serve_route/another_tenant's_object_is_absent,_exactly_as_an_unknown_one_is",
 		"notifications/devices/a_device_listing_holds_nothing_from_another_tenant",
@@ -322,7 +332,7 @@ func newConformanceSubject(ctx context.Context, opts ...conformance.SubjectOptio
 
 // accountScopedSurfaces are the suites whose surface is built on
 // sessions.AccountScopedPrincipal, and so confines a caller to their active account.
-var accountScopedSurfaces = []string{"audit", "issuereports", "webhooks"}
+var accountScopedSurfaces = []string{"audit", "webhooks"}
 
 // conformanceAdmin is a service administrator of the suite's own: somebody registered the way
 // everybody is, in an account of their own, and then granted the service role. One per request,

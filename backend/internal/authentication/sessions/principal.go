@@ -118,10 +118,10 @@ func GrantsFromContext(ctx context.Context) (platformauthz.Grants, bool) {
 //
 // It exists because callers.Principal.Scope answers for the surface being
 // called, not for the caller, and this application's domains do not agree on
-// one tenancy. Comments, settings, waitlists and uploaded media are global — a
-// recipe's discussion reads the same for everybody, and scoping it per account
-// would make one recipe's comments depend on who was looking. Issue reports are
-// their account's, and that scoping is what closed a member-visible leak.
+// one tenancy. Comments, settings, waitlists, uploaded media and issue reports are
+// global — a recipe's discussion reads the same for everybody, and scoping it per
+// account would make one recipe's comments depend on who was looking. Webhooks
+// and the audit read are their account's.
 //
 // Wiring the wrong one is not a compile error and not a test failure unless the
 // test spans two accounts: a global principal handed to an account-scoped

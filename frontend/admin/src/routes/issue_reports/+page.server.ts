@@ -1,12 +1,12 @@
 import type { PageServerLoad } from './$types';
-import { listIssueReportsAcrossScopes } from '$lib/grpc/clients';
+import { listIssueReports } from '$lib/grpc/clients';
 import { QueryFilter } from '@dinnerdonebetter/api-client';
 import { toOperatorRows } from './rows';
 
 export const load: PageServerLoad = async ({ locals }) => {
   const session = locals.session;
   try {
-    const res = await listIssueReportsAcrossScopes(session, {
+    const res = await listIssueReports(session, {
       filter: QueryFilter.create({ maxResponseSize: 100 }),
     });
     return { reports: toOperatorRows(res?.results ?? []) };

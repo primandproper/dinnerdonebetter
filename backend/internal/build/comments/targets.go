@@ -46,13 +46,16 @@ func Catalog() platformcomments.Targets {
 // CatalogWithChecks is Catalog with an existence check on every type whose owning
 // domain can answer "is this there" from the scope and the ID alone.
 //
-// Two types are deliberately left unchecked, for the same reason from opposite
-// directions: the check platform runs is handed the comment's scope and nothing
-// else. Reading a meal plan takes an owner as well as an ID, and reading an issue
-// report takes the account it was filed under — while comments in this deployment
-// are all filed globally, so the scope the hook receives is not one either read
-// can use. Both services read their target as the caller before they delegate,
-// which is a stronger check than this one would be rather than a missing one.
+// Two types are left unchecked. The check platform runs is handed the comment's
+// scope and nothing else, and reading a meal plan takes an owner as well as an
+// ID, so the scope the hook receives is not one that read can use; the meal
+// planning service reads its target as the caller before it delegates, which is a
+// stronger check than this one would be rather than a missing one.
+//
+// Issue reports were unchecked for the same reason — they were filed per account
+// and comments globally — and that reason is gone: every report is filed under
+// the global scope now (see internal/domain/issuereports.Scope), so the hook's
+// scope is the report's and a check is possible. It has not been added yet.
 //
 // A check narrows the window in which a comment can be written about something
 // that is not there; it does not close it. A target deleted between the check and
