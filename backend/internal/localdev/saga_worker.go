@@ -15,6 +15,7 @@ import (
 	platformidentity "github.com/primandproper/platform-go/v15/identity"
 	"github.com/primandproper/platform-go/v15/outbox"
 	"github.com/primandproper/platform-go/v15/saga"
+	"github.com/primandproper/primitives-go/v2/clock"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/database/dialect"
 	pglock "github.com/primandproper/primitives-go/v2/distributedlock/postgres"
@@ -75,6 +76,7 @@ func StartSagaWorker(
 		registry,
 		mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditRepo, databaseClient, spine.Emitter, spine.Recorder, spine.Writer, uploads),
 		ddbidentity.NewAccountRoster(identityStore, databaseClient.Reader()),
+		clock.NewClock(),
 		recipeanalysis.NewRecipeAnalyzer(logger, tracerProvider),
 		grocerylistpreparation.NewGroceryListCreator(logger, tracerProvider),
 		logger,

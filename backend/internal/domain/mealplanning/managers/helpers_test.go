@@ -8,6 +8,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/recipeanalysis"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/searchindex"
 
+	"github.com/primandproper/primitives-go/v2/clock"
 	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
 	metricsnoop "github.com/primandproper/primitives-go/v2/observability/metrics/noop"
 	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
@@ -44,9 +45,16 @@ func (f *fakeElectorate) MembersOfAccount(context.Context, string) ([]string, er
 	return f.members, f.err
 }
 
-// newManagerForTest constructs a manager wired to unconfigured mocks. Tests swap in their own
-// configured repository via attachRepositoryToManager.
+// newManagerForTest constructs a manager wired to unconfigured mocks and the wall clock. Tests
+// swap in their own configured repository via attachRepositoryToManager, and a test that needs
+// to stand at a particular moment uses newManagerForTestWithClock.
 func newManagerForTest(t *testing.T, starter mealPlanFinalizationStarter) *mealPlanningManager {
+	t.Helper()
+
+	return newManagerForTestWithClock(t, starter, clock.NewClock())
+}
+
+func newManagerForTestWithClock(t *testing.T, starter mealPlanFinalizationStarter, wallClock clock.Clock) *mealPlanningManager {
 	t.Helper()
 
 	m, err := NewMealPlanningManager(
@@ -55,6 +63,7 @@ func newManagerForTest(t *testing.T, starter mealPlanFinalizationStarter) *mealP
 		tracingnoop.NewTracerProvider(),
 		&mealplanningmock.RepositoryMock{},
 		&fakeElectorate{},
+		wallClock,
 		&recipeanalysis.RecipeAnalyzerMock{},
 		&textsearchcfg.Config{Provider: textsearchcfg.ProviderNoop},
 		metricsnoop.NewMetricsProvider(),

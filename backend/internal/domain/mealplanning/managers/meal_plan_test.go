@@ -156,12 +156,10 @@ func TestMealPlanningManager_CreateMealPlan(T *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		mpm := buildMealPlanManagerForTest(t)
-
 		fakeInput := fakes.BuildFakeMealPlanCreationRequestInput()
-		mpm.clock = &clockmock.ClockMock{
+		mpm := newManagerForTestWithClock(t, nil, &clockmock.ClockMock{
 			NowFunc: func() time.Time { return fakeInput.VotingDeadline.Add(time.Minute) },
-		}
+		})
 
 		db := &mealplanningmock.RepositoryMock{}
 		attachRepositoryToManager(mpm, db)

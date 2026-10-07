@@ -375,6 +375,7 @@ func NewMealPlanningManager(
 	tracerProvider tracing.Provider,
 	db types.Repository,
 	electorate types.MealPlanElectorate,
+	wallClock clock.Clock,
 	recipeAnalyzer recipeanalysis.RecipeAnalyzer,
 	searchConfig *textsearchcfg.Config,
 	metricsProvider metrics.Provider,
@@ -421,7 +422,7 @@ func NewMealPlanningManager(
 	}
 
 	m := &mealPlanningManager{
-		clock:                            clock.NewClock(),
+		clock:                            wallClock,
 		db:                               db,
 		electorate:                       electorate,
 		tracer:                           tracing.NewNamedTracer(tracerProvider, mealPlannerName),

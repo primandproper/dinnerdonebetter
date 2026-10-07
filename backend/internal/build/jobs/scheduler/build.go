@@ -40,6 +40,7 @@ import (
 
 	"github.com/primandproper/platform-go/v15/service"
 	platformwebhooks "github.com/primandproper/platform-go/v15/webhooks"
+	"github.com/primandproper/primitives-go/v2/clock"
 	notificationscfg "github.com/primandproper/primitives-go/v2/notifications/mobile/config"
 
 	"github.com/samber/do/v2"
@@ -74,6 +75,7 @@ func BuildInjector(
 
 	do.ProvideValue(i, ctx)
 	do.ProvideValue(i, cfg)
+	do.ProvideValue[clock.Clock](i, clock.NewClock())
 
 	service.Register(i, &cfg.Service)
 

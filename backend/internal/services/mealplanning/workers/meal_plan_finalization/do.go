@@ -25,13 +25,14 @@ func Register(
 	registry *saga.Registry,
 	dataManager mealplanning.Repository,
 	electorate mealplanning.MealPlanElectorate,
+	wallClock clock.Clock,
 	analyzer recipeanalysis.RecipeAnalyzer,
 	groceryListCreator grocerylistpreparation.GroceryListCreator,
 	logger logging.Logger,
 ) error {
 	return saga.Register(registry, saga.Definition[mealplanning.MealPlanFinalizationState]{
 		Name:  mealplanning.MealPlanFinalizationSagaName,
-		Steps: steps(dataManager, electorate, clock.NewClock(), analyzer, groceryListCreator, logger),
+		Steps: steps(dataManager, electorate, wallClock, analyzer, groceryListCreator, logger),
 	})
 }
 

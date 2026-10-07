@@ -24,6 +24,7 @@ import (
 	platformidentity "github.com/primandproper/platform-go/v15/identity"
 	"github.com/primandproper/platform-go/v15/outbox"
 	"github.com/primandproper/platform-go/v15/saga"
+	"github.com/primandproper/primitives-go/v2/clock"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/metrics"
@@ -45,6 +46,7 @@ func RegisterSagas(i do.Injector) {
 			registry,
 			do.MustInvoke[mealplanning.Repository](i),
 			identity.NewAccountRoster(do.MustInvoke[platformidentity.Store](i), do.MustInvoke[database.Client](i).Reader()),
+			do.MustInvoke[clock.Clock](i),
 			do.MustInvoke[recipeanalysis.RecipeAnalyzer](i),
 			do.MustInvoke[grocerylistpreparation.GroceryListCreator](i),
 			do.MustInvoke[logging.Logger](i),
