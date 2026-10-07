@@ -1,8 +1,6 @@
 package metering
 
 import (
-	"math"
-
 	platformmetering "github.com/primandproper/platform-go/v15/metering"
 	"github.com/primandproper/primitives-go/v2/errors"
 )
@@ -22,15 +20,6 @@ const (
 	// decrement this meter, and nothing here pretends it does.
 	UploadedMediaBytesMeter = "uploaded_media_bytes"
 )
-
-// unlimited is the limit a quota carries when the answer is "no limit".
-//
-// The platform refuses to read an absent quota as an unlimited one — unmetered and unlimited
-// are different facts, and it makes an application say which it means. A limit of zero is not
-// the way to say it either: zero means no usage is allowed, which is a real configuration for a
-// feature switched off on a plan tier. So "unlimited" is spelled the way the platform documents
-// it, as a limit nobody reaches paired with BehaviorAllowOverage.
-const unlimited = int64(math.MaxInt64)
 
 // meters is the set this application counts. Adding one here is not enough to make it count:
 // something has to record against it, and a meter nothing records against is a row of zeroes.
@@ -62,12 +51,10 @@ func NewRegistry() (*platformmetering.Registry, error) {
 			return nil, errors.Wrapf(err, "registering meter %q", meter.Name)
 		}
 
-		if err := registry.RegisterQuota(platformmetering.Quota{
-			Meter:    meter.Name,
-			Behavior: platformmetering.BehaviorAllowOverage,
-			Period:   meter.Period,
-			Limit:    unlimited,
-		}); err != nil {
+		// The platform refuses to read an absent quota as an unlimited one — unmetered and
+		// unlimited are different facts — and a limit of zero means no usage is allowed. An
+		// unlimited quota is stated, and the registry reads its period off the meter.
+		if err := registry.RegisterUnlimitedQuota(meter.Name); err != nil {
 			return nil, errors.Wrapf(err, "registering quota for meter %q", meter.Name)
 		}
 	}

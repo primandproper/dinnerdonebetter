@@ -259,13 +259,7 @@ func (q *repository) GetValidMeasurementUnitConversionsForUnit(ctx context.Conte
 	logger = logger.WithValue(mealplanningkeys.ValidMeasurementUnitIDKey, validMeasurementUnitID)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidMeasurementUnitIDKey, validMeasurementUnitID)
 
-	if filter == nil {
-		filter = filtering.DefaultQueryFilter()
-	}
-	for key, value := range filter.ObservabilityValues() {
-		tracing.AttachToSpan(span, key, value)
-	}
-	logger = filter.AttachToLogger(logger)
+	filter, logger = filtering.Observe(ctx, logger, filter)
 
 	filterArgs := filtering.ToSQLArgs(filter)
 

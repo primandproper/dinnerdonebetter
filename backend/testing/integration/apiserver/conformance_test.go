@@ -625,7 +625,7 @@ func conformanceDirectory() (*identity.Service, identity.Store, error) {
 // conformanceAuditable records an entry in the account's chain, which is the chain the audit
 // read resolves for a caller whose active account it is.
 func conformanceAuditable(ctx context.Context, scope tenancy.Scope) (*conformance.Audited, error) {
-	repo, err := auditlogentries.ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, databaseClient)
+	repo, err := auditlogentries.ProvideAuditLog(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, databaseClient)
 	if err != nil {
 		return nil, err
 	}
@@ -634,7 +634,7 @@ func conformanceAuditable(ctx context.Context, scope tenancy.Scope) (*conformanc
 	entry := ddbaudit.NewEntry(identifiers.New(), accountID, "conformance_audited", identifiers.New(), platformaudit.EventOther)
 
 	if err = databaseClient.WithTransaction(context.WithoutCancel(ctx), func(tx database.Tx) error {
-		return repo.Record(ctx, tx, entry)
+		return repo.Recorder().Record(ctx, tx, entry.Scope, entry)
 	}); err != nil {
 		return nil, err
 	}

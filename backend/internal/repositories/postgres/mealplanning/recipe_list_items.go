@@ -32,13 +32,7 @@ func (q *repository) GetRecipeListItems(ctx context.Context, recipeListID string
 	logger = logger.WithValue(mealplanningkeys.RecipeListIDKey, recipeListID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeListIDKey, recipeListID)
 
-	if filter == nil {
-		filter = filtering.DefaultQueryFilter()
-	}
-	logger = filter.AttachToLogger(logger)
-	for key, value := range filter.ObservabilityValues() {
-		tracing.AttachToSpan(span, key, value)
-	}
+	filter, logger = filtering.Observe(ctx, logger, filter)
 
 	var (
 		data          []*types.RecipeListItem

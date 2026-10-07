@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
-	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/uploadedmedia"
 	mealplanningsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
@@ -22,6 +21,7 @@ import (
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	errorsgrpc "github.com/primandproper/primitives-go/v2/errors/grpc"
 	"github.com/primandproper/primitives-go/v2/identifiers"
+	platformkeys "github.com/primandproper/primitives-go/v2/observability/keys"
 	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"google.golang.org/grpc"
@@ -138,7 +138,7 @@ func (s *serviceImpl) UploadMealImage(stream grpc.ClientStreamingServer[mealplan
 		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 	userID := sessionContextData.GetUserID()
-	logger = logger.WithValue(identitykeys.UserIDKey, userID)
+	logger = logger.WithValue(platformkeys.UserIDKey, userID)
 
 	firstReq, err := stream.Recv()
 	if err != nil {
@@ -485,7 +485,7 @@ func (s *serviceImpl) UploadPreparationMedia(stream grpc.ClientStreamingServer[m
 		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 	userID := sessionContextData.GetUserID()
-	logger = logger.WithValue(identitykeys.UserIDKey, userID)
+	logger = logger.WithValue(platformkeys.UserIDKey, userID)
 
 	firstReq, err := stream.Recv()
 	if err != nil {
@@ -658,7 +658,7 @@ func (s *serviceImpl) UploadIngredientMedia(stream grpc.ClientStreamingServer[me
 		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 	userID := sessionContextData.GetUserID()
-	logger = logger.WithValue(identitykeys.UserIDKey, userID)
+	logger = logger.WithValue(platformkeys.UserIDKey, userID)
 
 	firstReq, err := stream.Recv()
 	if err != nil {
@@ -826,7 +826,7 @@ func (s *serviceImpl) UploadRecipeStepImage(stream grpc.ClientStreamingServer[me
 		return errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 	userID := sessionContextData.GetUserID()
-	logger = logger.WithValue(identitykeys.UserIDKey, userID)
+	logger = logger.WithValue(platformkeys.UserIDKey, userID)
 
 	firstReq, err := stream.Recv()
 	if err != nil {

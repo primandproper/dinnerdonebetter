@@ -1,28 +1,9 @@
 package audit
 
 import (
-	"context"
-
 	platformaudit "github.com/primandproper/platform-go/v15/audit"
-	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/tenancy"
 )
-
-// Repository writes the audit log. Reading it is platform's audit.Reader, which the gRPC
-// surface and the privacy collector take directly.
-type Repository interface {
-	// Record appends entries to the log inside the caller's transaction, so an entry commits
-	// with the change it describes or not at all. Each entry's assigned ID, timestamp and
-	// chain fields are written into the value it was passed.
-	//
-	// It is variadic because a transaction touching three resources should pay one
-	// chain-head lookup and one INSERT rather than three of each. Prefer one call with three
-	// entries to three calls with one.
-	//
-	// Every entry has to carry a scope, and NewEntry is how one gets it: an entry with the
-	// zero scope is refused rather than filed somewhere nobody reads.
-	Record(ctx context.Context, querier database.Tx, entries ...*platformaudit.Entry) error
-}
 
 // NewEntry builds an audit entry under this application's attribution rule.
 //

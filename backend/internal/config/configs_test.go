@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"path/filepath"
 	"strconv"
 	"testing"
 	"time"
@@ -523,4 +524,66 @@ func validAPIServiceBlocksForTest() service.Config {
 		FeatureFlags: &featureflagscfg.Config{Provider: featureflagscfg.ProviderNoop},
 		HTTPClient:   &httpclientcfg.Config{Timeout: time.Minute},
 	}
+}
+
+//nolint:paralleltest // because we set env vars for this, we can't
+func TestResolveDotEnvFilePathFromDir(T *testing.T) {
+	T.Run("with an explicit path", func(t *testing.T) {
+		explicit := filepath.Join(t.TempDir(), "explicit.env")
+		t.Setenv(DotEnvFilePathEnvVarKey, explicit)
+
+		// Returned as given, whether or not it exists: loading it is what reports a bad one.
+		actual, err := resolveDotEnvFilePathFromDir(t.TempDir())
+		require.NoError(t, err)
+		assert.Equal(t, explicit, actual)
+	})
+
+	T.Run("picks the file for the run mode", func(t *testing.T) {
+		t.Setenv(DotEnvFilePathEnvVarKey, "")
+		t.Setenv(EnvVarPrefix+"META_RUN_MODE", string(DevelopmentRunMode))
+
+		dir := t.TempDir()
+		require.NoError(t, os.WriteFile(filepath.Join(dir, ".env"), nil, 0o0644))
+		require.NoError(t, os.WriteFile(filepath.Join(dir, ".env.dev"), nil, 0o0644))
+
+		actual, err := resolveDotEnvFilePathFromDir(dir)
+		require.NoError(t, err)
+		assert.Equal(t, filepath.Join(dir, ".env.dev"), actual)
+	})
+
+	T.Run("with no run mode", func(t *testing.T) {
+		t.Setenv(DotEnvFilePathEnvVarKey, "")
+		t.Setenv(EnvVarPrefix+"META_RUN_MODE", "")
+
+		dir := t.TempDir()
+		require.NoError(t, os.WriteFile(filepath.Join(dir, ".env"), nil, 0o0644))
+
+		actual, err := resolveDotEnvFilePathFromDir(dir)
+		require.NoError(t, err)
+		assert.Equal(t, filepath.Join(dir, ".env"), actual)
+	})
+
+	T.Run("with no file for the run mode", func(t *testing.T) {
+		t.Setenv(DotEnvFilePathEnvVarKey, "")
+		t.Setenv(EnvVarPrefix+"META_RUN_MODE", string(TestingRunMode))
+
+		// A missing file is "skip loading", not a failure.
+		actual, err := resolveDotEnvFilePathFromDir(t.TempDir())
+		require.NoError(t, err)
+		assert.Empty(t, actual)
+	})
+
+	T.Run("with a base directory that cannot be read", func(t *testing.T) {
+		t.Setenv(DotEnvFilePathEnvVarKey, "")
+		t.Setenv(EnvVarPrefix+"META_RUN_MODE", "")
+
+		// A file standing where the directory should be is a stat error other than "does not
+		// exist", which is reported rather than read as no file.
+		notADir := filepath.Join(t.TempDir(), "file")
+		require.NoError(t, os.WriteFile(notADir, nil, 0o0644))
+
+		actual, err := resolveDotEnvFilePathFromDir(notADir)
+		require.Error(t, err)
+		assert.Empty(t, actual)
+	})
 }

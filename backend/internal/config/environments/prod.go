@@ -13,7 +13,6 @@ import (
 	identitycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/config"
 	mealplanningcfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/config"
 	paymentscfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/config"
-	uploadedmediacfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/testutils"
 
 	oauth2database "github.com/primandproper/platform-go/v15/authentication/oauth2serverstore"
@@ -374,11 +373,9 @@ func BuildProdConfig() *config.APIServiceConfig {
 					Debug:   false,
 				},
 			},
-			UploadedMedia: uploadedmediacfg.Config{
-				Uploads: uploadscfg.Config{
-					Storage: gcpMediaStorage,
-					Debug:   false,
-				},
+			UploadedMedia: uploadscfg.Config{
+				Storage: gcpMediaStorage,
+				Debug:   false,
 			},
 			MealPlanning: mealplanningcfg.Config{
 				UseSearchService: true,

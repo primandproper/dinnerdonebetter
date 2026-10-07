@@ -93,12 +93,11 @@ func buildFixture(t *testing.T, decorate func(platformaudit.Recorder) platformau
 	require.NoError(t, err)
 	require.NotNil(t, db)
 
-	audits, err := auditlogentries.ProvideAuditLogRepository(
+	audits, err := auditlogentries.ProvideAuditLog(
 		loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), metricsnoop.NewMetricsProvider(), db)
 	require.NoError(t, err)
 
-	auditRecorder, ok := auditlogentries.RecorderFrom(audits)
-	require.True(t, ok)
+	auditRecorder := audits.Recorder()
 	if decorate != nil {
 		auditRecorder = decorate(auditRecorder)
 	}

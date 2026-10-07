@@ -9,7 +9,8 @@ import (
 	identitycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/config"
 	mealplanningcfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/config"
 	paymentscfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/config"
-	uploadedmediacfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/config"
+
+	uploadscfg "github.com/primandproper/primitives-go/v2/uploads/config"
 
 	"github.com/hashicorp/go-multierror"
 )
@@ -19,12 +20,12 @@ type (
 	ServicesConfig struct {
 		_ struct{} `json:"-"`
 
-		Payments      paymentscfg.Config      `envPrefix:"PAYMENTS_"       json:"payments,omitzero"`
-		Users         identitycfg.Config      `envPrefix:"USERS_"          json:"users,omitzero"`
-		UploadedMedia uploadedmediacfg.Config `envPrefix:"UPLOADED_MEDIA_" json:"uploadedMedia,omitzero"`
-		MealPlanning  mealplanningcfg.Config  `envPrefix:"MEAL_PLANNING_"  json:"mealPlanning,omitzero"`
-		Auth          authentication.Config   `envPrefix:"AUTH_"           json:"auth,omitzero"`
-		DataPrivacy   dataprivacycfg.Config   `envPrefix:"DATA_PRIVACY_"   json:"dataPrivacy,omitzero"`
+		Payments      paymentscfg.Config     `envPrefix:"PAYMENTS_"       json:"payments,omitzero"`
+		Users         identitycfg.Config     `envPrefix:"USERS_"          json:"users,omitzero"`
+		UploadedMedia uploadscfg.Config      `envPrefix:"UPLOADED_MEDIA_" json:"uploadedMedia,omitzero"`
+		MealPlanning  mealplanningcfg.Config `envPrefix:"MEAL_PLANNING_"  json:"mealPlanning,omitzero"`
+		Auth          authentication.Config  `envPrefix:"AUTH_"           json:"auth,omitzero"`
+		DataPrivacy   dataprivacycfg.Config  `envPrefix:"DATA_PRIVACY_"   json:"dataPrivacy,omitzero"`
 	}
 )
 

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
@@ -262,10 +261,10 @@ func (m *mealPlanningManager) ArchiveRecipe(ctx context.Context, recipeID, owner
 
 	logger := m.logger.WithSpan(span).WithValues(map[string]any{
 		mealplanningkeys.RecipeIDKey: recipeID,
-		identitykeys.UserIDKey:       ownerID,
+		platformkeys.UserIDKey:       ownerID,
 	})
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeIDKey, recipeID)
-	tracing.AttachToSpan(span, identitykeys.UserIDKey, ownerID)
+	tracing.AttachToSpan(span, platformkeys.UserIDKey, ownerID)
 
 	if err := m.db.ArchiveRecipe(ctx, recipeID, ownerID); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "archiving recipe")
@@ -352,7 +351,7 @@ func (m *mealPlanningManager) CloneRecipe(ctx context.Context, recipeID, newOwne
 		mealplanningkeys.RecipeIDKey: recipeID,
 		"new_owner":                  newOwnerID,
 	})
-	tracing.AttachToSpan(span, identitykeys.UserIDKey, newOwnerID)
+	tracing.AttachToSpan(span, platformkeys.UserIDKey, newOwnerID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeIDKey, recipeID)
 
 	original, err := m.db.GetRecipe(ctx, recipeID)

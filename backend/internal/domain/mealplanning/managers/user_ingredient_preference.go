@@ -3,7 +3,6 @@ package managers
 import (
 	"context"
 
-	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
@@ -11,6 +10,7 @@ import (
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/filtering"
 	"github.com/primandproper/primitives-go/v2/observability"
+	platformkeys "github.com/primandproper/primitives-go/v2/observability/keys"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
 )
 
@@ -28,8 +28,8 @@ func (m *mealPlanningManager) ListUserIngredientPreferences(ctx context.Context,
 	if ownerID == "" {
 		return nil, platformerrors.ErrEmptyInputParameter
 	}
-	logger := m.logger.WithSpan(span).WithValue(identitykeys.UserIDKey, ownerID)
-	tracing.AttachToSpan(span, identitykeys.UserIDKey, ownerID)
+	logger := m.logger.WithSpan(span).WithValue(platformkeys.UserIDKey, ownerID)
+	tracing.AttachToSpan(span, platformkeys.UserIDKey, ownerID)
 
 	results, err := m.db.GetUserIngredientPreferences(ctx, ownerID, filter)
 	if err != nil {
@@ -43,8 +43,8 @@ func (m *mealPlanningManager) ReadUserIngredientPreference(ctx context.Context, 
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
-	logger := m.logger.WithSpan(span).WithValue(identitykeys.UserIDKey, ownerID)
-	tracing.AttachToSpan(span, identitykeys.UserIDKey, ownerID)
+	logger := m.logger.WithSpan(span).WithValue(platformkeys.UserIDKey, ownerID)
+	tracing.AttachToSpan(span, platformkeys.UserIDKey, ownerID)
 
 	result, err := m.db.GetUserIngredientPreference(ctx, ingredientPreferenceID, ownerID)
 	if err != nil {
@@ -98,10 +98,10 @@ func (m *mealPlanningManager) UpdateUserIngredientPreference(ctx context.Context
 
 	logger := m.logger.WithSpan(span).WithValues(map[string]any{
 		mealplanningkeys.UserIngredientPreferenceIDKey: ingredientPreferenceID,
-		identitykeys.UserIDKey:                         ownerID,
+		platformkeys.UserIDKey:                         ownerID,
 	})
 	tracing.AttachToSpan(span, mealplanningkeys.UserIngredientPreferenceIDKey, ingredientPreferenceID)
-	tracing.AttachToSpan(span, identitykeys.UserIDKey, ownerID)
+	tracing.AttachToSpan(span, platformkeys.UserIDKey, ownerID)
 
 	existingUserIngredientPreference, err := m.db.GetUserIngredientPreference(ctx, ingredientPreferenceID, ownerID)
 	if err != nil {
@@ -122,10 +122,10 @@ func (m *mealPlanningManager) ArchiveUserIngredientPreference(ctx context.Contex
 
 	logger := m.logger.WithSpan(span).WithValues(map[string]any{
 		mealplanningkeys.UserIngredientPreferenceIDKey: ingredientPreferenceID,
-		identitykeys.UserIDKey:                         ownerID,
+		platformkeys.UserIDKey:                         ownerID,
 	})
 	tracing.AttachToSpan(span, mealplanningkeys.UserIngredientPreferenceIDKey, ingredientPreferenceID)
-	tracing.AttachToSpan(span, identitykeys.UserIDKey, ownerID)
+	tracing.AttachToSpan(span, platformkeys.UserIDKey, ownerID)
 
 	if err := m.db.ArchiveUserIngredientPreference(ctx, ingredientPreferenceID, ownerID); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "archiving ingredient preference")

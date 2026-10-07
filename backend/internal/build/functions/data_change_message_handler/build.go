@@ -65,7 +65,7 @@ func BuildInjector(
 	mealplanningregistration.RegisterForDataChangeHandler(i)
 
 	// repos
-	auditlogentries.RegisterAuditLogRepository(i)
+	auditlogentries.RegisterAuditLog(i)
 	// The platform recorder behind it, which the recording spine the mealplanning
 	// registration above installs files every write's entry through.
 	auditlogentries.RegisterPlatformRecorder(i)

@@ -18,6 +18,7 @@ import (
 	"github.com/primandproper/primitives-go/v2/filtering"
 	"github.com/primandproper/primitives-go/v2/identifiers"
 	"github.com/primandproper/primitives-go/v2/observability"
+	platformkeys "github.com/primandproper/primitives-go/v2/observability/keys"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
 )
 
@@ -144,13 +145,7 @@ func (q *repository) GetMealPlansForAccount(ctx context.Context, accountID strin
 
 	logger := q.logger.Clone()
 
-	if filter == nil {
-		filter = filtering.DefaultQueryFilter()
-	}
-	logger = filter.AttachToLogger(logger)
-	for key, value := range filter.ObservabilityValues() {
-		tracing.AttachToSpan(span, key, value)
-	}
+	filter, logger = filtering.Observe(ctx, logger, filter)
 
 	var (
 		data          []*types.MealPlan
@@ -257,7 +252,7 @@ func (q *repository) GetMealPlanIDsVotedOnByUser(ctx context.Context, userID str
 	if userID == "" {
 		return nil, platformerrors.ErrInvalidIDProvided
 	}
-	tracing.AttachToSpan(span, identitykeys.UserIDKey, userID)
+	tracing.AttachToSpan(span, platformkeys.UserIDKey, userID)
 
 	if len(mealPlanIDs) == 0 {
 		return []string{}, nil
@@ -386,7 +381,7 @@ func (q *repository) CreateMealPlan(ctx context.Context, input *types.MealPlanDa
 			return observability.PrepareAndLogError(err, logger, span, "creating meal plan")
 		}
 
-		if err = q.auditLogEntryRepo.Record(ctx, tx, audit.NewEntry("", input.BelongsToAccount, resourceTypeMealPlans, input.ID, platformaudit.EventCreated)); err != nil {
+		if err = q.recordAuditOnly(ctx, tx, audit.NewEntry("", input.BelongsToAccount, resourceTypeMealPlans, input.ID, platformaudit.EventCreated)); err != nil {
 			return observability.PrepareError(err, span, "creating audit log entry")
 		}
 

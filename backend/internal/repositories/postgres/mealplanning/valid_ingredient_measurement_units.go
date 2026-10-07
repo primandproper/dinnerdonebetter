@@ -139,13 +139,7 @@ func (q *repository) GetValidIngredientMeasurementUnitsForIngredient(ctx context
 	logger = logger.WithValue(mealplanningkeys.ValidIngredientIDKey, ingredientID)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidPreparationInstrumentIDKey, ingredientID)
 
-	if filter == nil {
-		filter = filtering.DefaultQueryFilter()
-	}
-	logger = filter.AttachToLogger(logger)
-	for key, value := range filter.ObservabilityValues() {
-		tracing.AttachToSpan(span, key, value)
-	}
+	filter, logger = filtering.Observe(ctx, logger, filter)
 
 	filterArgs := filtering.ToSQLArgs(filter)
 
@@ -254,13 +248,7 @@ func (q *repository) GetValidIngredientMeasurementUnitsForMeasurementUnit(ctx co
 	logger = logger.WithValue(mealplanningkeys.ValidMeasurementUnitIDKey, validMeasurementUnitID)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidPreparationInstrumentIDKey, validMeasurementUnitID)
 
-	if filter == nil {
-		filter = filtering.DefaultQueryFilter()
-	}
-	logger = filter.AttachToLogger(logger)
-	for key, value := range filter.ObservabilityValues() {
-		tracing.AttachToSpan(span, key, value)
-	}
+	filter, logger = filtering.Observe(ctx, logger, filter)
 
 	filterArgs := filtering.ToSQLArgs(filter)
 
@@ -363,13 +351,7 @@ func (q *repository) GetValidIngredientMeasurementUnits(ctx context.Context, fil
 
 	logger := q.logger.Clone()
 
-	if filter == nil {
-		filter = filtering.DefaultQueryFilter()
-	}
-	logger = filter.AttachToLogger(logger)
-	for key, value := range filter.ObservabilityValues() {
-		tracing.AttachToSpan(span, key, value)
-	}
+	filter, logger = filtering.Observe(ctx, logger, filter)
 
 	filterArgs := filtering.ToSQLArgs(filter)
 

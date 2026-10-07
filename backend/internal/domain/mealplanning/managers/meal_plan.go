@@ -11,6 +11,7 @@ import (
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/filtering"
 	"github.com/primandproper/primitives-go/v2/observability"
+	platformkeys "github.com/primandproper/primitives-go/v2/observability/keys"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
 )
 
@@ -45,8 +46,8 @@ func (m *mealPlanningManager) AnnotateMealPlanSummaries(ctx context.Context, use
 		return nil, platformerrors.ErrEmptyInputParameter
 	}
 
-	logger := m.logger.WithSpan(span).WithValue(identitykeys.UserIDKey, userID)
-	tracing.AttachToSpan(span, identitykeys.UserIDKey, userID)
+	logger := m.logger.WithSpan(span).WithValue(platformkeys.UserIDKey, userID)
+	tracing.AttachToSpan(span, platformkeys.UserIDKey, userID)
 
 	annotations := &types.MealPlanSummaryAnnotations{
 		ChosenMealNamesByEventID: map[string]string{},
@@ -124,10 +125,10 @@ func (m *mealPlanningManager) ReadMealPlan(ctx context.Context, mealPlanID, owne
 
 	logger := m.logger.WithSpan(span).WithValues(map[string]any{
 		mealplanningkeys.MealPlanIDKey: mealPlanID,
-		identitykeys.UserIDKey:         ownerID,
+		platformkeys.UserIDKey:         ownerID,
 	})
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanIDKey, mealPlanID)
-	tracing.AttachToSpan(span, identitykeys.UserIDKey, ownerID)
+	tracing.AttachToSpan(span, platformkeys.UserIDKey, ownerID)
 
 	mealPlan, err := m.db.GetMealPlan(ctx, mealPlanID, ownerID)
 	if err != nil {
@@ -151,10 +152,10 @@ func (m *mealPlanningManager) UpdateMealPlan(ctx context.Context, mealPlanID, ow
 
 	logger := m.logger.WithSpan(span).WithValues(map[string]any{
 		mealplanningkeys.MealPlanIDKey: mealPlanID,
-		identitykeys.UserIDKey:         ownerID,
+		platformkeys.UserIDKey:         ownerID,
 	})
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanIDKey, mealPlanID)
-	tracing.AttachToSpan(span, identitykeys.UserIDKey, ownerID)
+	tracing.AttachToSpan(span, platformkeys.UserIDKey, ownerID)
 
 	existingMealPlan, err := m.db.GetMealPlan(ctx, mealPlanID, ownerID)
 	if err != nil {
@@ -175,10 +176,10 @@ func (m *mealPlanningManager) ArchiveMealPlan(ctx context.Context, mealPlanID, o
 
 	logger := m.logger.WithSpan(span).WithValues(map[string]any{
 		mealplanningkeys.MealPlanIDKey: mealPlanID,
-		identitykeys.UserIDKey:         ownerID,
+		platformkeys.UserIDKey:         ownerID,
 	})
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanIDKey, mealPlanID)
-	tracing.AttachToSpan(span, identitykeys.UserIDKey, ownerID)
+	tracing.AttachToSpan(span, platformkeys.UserIDKey, ownerID)
 
 	if err := m.db.ArchiveMealPlan(ctx, mealPlanID, ownerID); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "archiving meal plan")
@@ -193,10 +194,10 @@ func (m *mealPlanningManager) FinalizeMealPlan(ctx context.Context, mealPlanID, 
 
 	logger := m.logger.WithSpan(span).WithValues(map[string]any{
 		mealplanningkeys.MealPlanIDKey: mealPlanID,
-		identitykeys.UserIDKey:         ownerID,
+		platformkeys.UserIDKey:         ownerID,
 	})
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanIDKey, mealPlanID)
-	tracing.AttachToSpan(span, identitykeys.UserIDKey, ownerID)
+	tracing.AttachToSpan(span, platformkeys.UserIDKey, ownerID)
 
 	finalized, err := m.db.AttemptToFinalizeMealPlan(ctx, mealPlanID, ownerID)
 	if err != nil {

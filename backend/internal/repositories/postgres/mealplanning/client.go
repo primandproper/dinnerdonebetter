@@ -3,7 +3,6 @@ package mealplanning
 import (
 	"context"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/datachanges"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
@@ -15,6 +14,7 @@ import (
 	platformrecording "github.com/primandproper/platform-go/v15/recording"
 	"github.com/primandproper/platform-go/v15/webhooks"
 	"github.com/primandproper/primitives-go/v2/database"
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
 	"github.com/primandproper/primitives-go/v2/tenancy"
@@ -32,14 +32,13 @@ const (
 // application adds to them is the payload, which datachanges.Event builds.
 type repository struct {
 	database.Client
-	tracer            tracing.Tracer
-	logger            logging.Logger
-	generatedQuerier  generated.Querier
-	roster            platformidentity.DirectoryReader
-	auditLogEntryRepo audit.Repository
-	emitter           *webhooks.Emitter
-	recorder          *platformrecording.Recorder
-	writer            *outbox.Writer
+	tracer           tracing.Tracer
+	logger           logging.Logger
+	generatedQuerier generated.Querier
+	roster           platformidentity.DirectoryReader
+	emitter          *webhooks.Emitter
+	recorder         *platformrecording.Recorder
+	writer           *outbox.Writer
 
 	// uploads answers what a bridge row's uploaded_media_id names. The media
 	// itself lives in platform-go's upload registry, whose table this repository's
@@ -59,7 +58,6 @@ type repository struct {
 func ProvideMealPlanningRepository(
 	logger logging.Logger,
 	tracerProvider tracing.Provider,
-	auditLogEntryRepo audit.Repository,
 	roster platformidentity.DirectoryReader,
 	client database.Client,
 	emitter *webhooks.Emitter,
@@ -70,18 +68,17 @@ func ProvideMealPlanningRepository(
 	tracer := tracing.NewNamedTracer(tracerProvider, o11yName)
 
 	c := &repository{
-		Client:            client,
-		readDB:            client.Reader(),
-		writeDB:           client.Writer(),
-		tracer:            tracer,
-		generatedQuerier:  generated.New(),
-		auditLogEntryRepo: auditLogEntryRepo,
-		roster:            roster,
-		emitter:           emitter,
-		recorder:          recorder,
-		writer:            writer,
-		uploads:           uploads,
-		logger:            logging.NewNamedLogger(logger, o11yName),
+		Client:           client,
+		readDB:           client.Reader(),
+		writeDB:          client.Writer(),
+		tracer:           tracer,
+		generatedQuerier: generated.New(),
+		roster:           roster,
+		emitter:          emitter,
+		recorder:         recorder,
+		writer:           writer,
+		uploads:          uploads,
+		logger:           logging.NewNamedLogger(logger, o11yName),
 	}
 
 	return c
@@ -140,13 +137,52 @@ func (q *repository) record(
 		scope = datachanges.Scope(msg.AccountID)
 	}
 
-	return q.recorder.Record(ctx, tx, scope, event, &platformrecording.Entry{
+	return q.recorder.Record(ctx, tx, scope, event, recordingEntry(entry))
+}
+
+// recordAuditOnly writes entries to the audit log on tx and publishes nothing, through the same
+// platform Recorder record uses, so who did it is still the principal on the context and an
+// impersonated write still names its operator.
+//
+// It is for the writes that are audited and deliberately not announced. The name is the point:
+// a call here is a decision that no event describes the write.
+//
+// One call is one chain: the entries are filed under the scope they were built with, which has
+// to be the same for all of them. Entries bound for different chains are different calls.
+func (q *repository) recordAuditOnly(ctx context.Context, tx database.Tx, entries ...*platformaudit.Entry) error {
+	recorded := make([]*platformrecording.Entry, 0, len(entries))
+	for _, entry := range entries {
+		if entry == nil {
+			return platformrecording.ErrNilEntry
+		}
+
+		if entry.Scope != entries[0].Scope {
+			return errMixedAuditScopes
+		}
+
+		recorded = append(recorded, recordingEntry(entry))
+	}
+
+	if len(recorded) == 0 {
+		return platformrecording.ErrNothingToRecord
+	}
+
+	return q.recorder.Record(ctx, tx, entries[0].Scope, nil, recorded...)
+}
+
+// errMixedAuditScopes is recordAuditOnly's refusal of one call naming two chains.
+var errMixedAuditScopes = platformerrors.New("audit entries recorded together must share a scope")
+
+// recordingEntry is the caller-supplied half of entry, which is all platform's Recorder takes: the
+// actor comes off the context, and the scope off the write.
+func recordingEntry(entry *platformaudit.Entry) *platformrecording.Entry {
+	return &platformrecording.Entry{
 		ResourceType: entry.ResourceType,
 		ResourceID:   entry.ResourceID,
 		EventType:    entry.EventType,
 		Changes:      entry.Changes,
 		Metadata:     entry.Metadata,
-	})
+	}
 }
 
 // emitIndex enqueues the index events a trigger implies, without announcing anything.

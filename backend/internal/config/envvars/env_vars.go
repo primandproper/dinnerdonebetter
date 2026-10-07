@@ -453,14 +453,13 @@ const (
 	// `DBCleanerConfig.Service.Database.ConnMaxLifetime`,
 	// `SchedulerConfig.Service.Database.ConnMaxLifetime`,
 	// `AsyncMessageHandlerConfig.Service.Database.ConnMaxLifetime`,
-	// `MCPServiceConfig.Database.Config.ConnMaxLifetime`. It defaults to `30m`.
+	// `MCPServiceConfig.Database.ConnMaxLifetime`. It defaults to `30m`.
 	DatabaseConnMaxLifetimeEnvVarKey = "DINNER_DONE_BETTER_DATABASE_CONN_MAX_LIFETIME"
 
 	// DatabaseDebugEnvVarKey is the environment variable name to set to override
 	// `APIServiceConfig.Service.Database.Debug`, `DBCleanerConfig.Service.Database.Debug`,
 	// `SchedulerConfig.Service.Database.Debug`,
-	// `AsyncMessageHandlerConfig.Service.Database.Debug`,
-	// `MCPServiceConfig.Database.Config.Debug`.
+	// `AsyncMessageHandlerConfig.Service.Database.Debug`, `MCPServiceConfig.Database.Debug`.
 	DatabaseDebugEnvVarKey = "DINNER_DONE_BETTER_DATABASE_DEBUG"
 
 	// DatabaseEnableDatabaseMetricsEnvVarKey is the environment variable name to set to override
@@ -468,7 +467,7 @@ const (
 	// `DBCleanerConfig.Service.Database.EnableDatabaseMetrics`,
 	// `SchedulerConfig.Service.Database.EnableDatabaseMetrics`,
 	// `AsyncMessageHandlerConfig.Service.Database.EnableDatabaseMetrics`,
-	// `MCPServiceConfig.Database.Config.EnableDatabaseMetrics`.
+	// `MCPServiceConfig.Database.EnableDatabaseMetrics`.
 	DatabaseEnableDatabaseMetricsEnvVarKey = "DINNER_DONE_BETTER_DATABASE_ENABLE_DATABASE_METRICS"
 
 	// DatabaseLogQueriesEnvVarKey is the environment variable name to set to override
@@ -476,7 +475,7 @@ const (
 	// `DBCleanerConfig.Service.Database.LogQueries`,
 	// `SchedulerConfig.Service.Database.LogQueries`,
 	// `AsyncMessageHandlerConfig.Service.Database.LogQueries`,
-	// `MCPServiceConfig.Database.Config.LogQueries`.
+	// `MCPServiceConfig.Database.LogQueries`.
 	DatabaseLogQueriesEnvVarKey = "DINNER_DONE_BETTER_DATABASE_LOG_QUERIES"
 
 	// DatabaseMaxIdleConnsEnvVarKey is the environment variable name to set to override
@@ -484,7 +483,7 @@ const (
 	// `DBCleanerConfig.Service.Database.MaxIdleConns`,
 	// `SchedulerConfig.Service.Database.MaxIdleConns`,
 	// `AsyncMessageHandlerConfig.Service.Database.MaxIdleConns`,
-	// `MCPServiceConfig.Database.Config.MaxIdleConns`. It defaults to `5`.
+	// `MCPServiceConfig.Database.MaxIdleConns`. It defaults to `5`.
 	DatabaseMaxIdleConnsEnvVarKey = "DINNER_DONE_BETTER_DATABASE_MAX_IDLE_CONNS"
 
 	// DatabaseMaxOpenConnsEnvVarKey is the environment variable name to set to override
@@ -492,7 +491,7 @@ const (
 	// `DBCleanerConfig.Service.Database.MaxOpenConns`,
 	// `SchedulerConfig.Service.Database.MaxOpenConns`,
 	// `AsyncMessageHandlerConfig.Service.Database.MaxOpenConns`,
-	// `MCPServiceConfig.Database.Config.MaxOpenConns`. It defaults to `7`.
+	// `MCPServiceConfig.Database.MaxOpenConns`. It defaults to `7`.
 	DatabaseMaxOpenConnsEnvVarKey = "DINNER_DONE_BETTER_DATABASE_MAX_OPEN_CONNS"
 
 	// DatabaseMaxPingAttemptsEnvVarKey is the environment variable name to set to override
@@ -500,7 +499,7 @@ const (
 	// `DBCleanerConfig.Service.Database.MaxPingAttempts`,
 	// `SchedulerConfig.Service.Database.MaxPingAttempts`,
 	// `AsyncMessageHandlerConfig.Service.Database.MaxPingAttempts`,
-	// `MCPServiceConfig.Database.Config.MaxPingAttempts`.
+	// `MCPServiceConfig.Database.MaxPingAttempts`.
 	DatabaseMaxPingAttemptsEnvVarKey = "DINNER_DONE_BETTER_DATABASE_MAX_PING_ATTEMPTS"
 
 	// DatabasePingWaitPeriodEnvVarKey is the environment variable name to set to override
@@ -508,14 +507,14 @@ const (
 	// `DBCleanerConfig.Service.Database.PingWaitPeriod`,
 	// `SchedulerConfig.Service.Database.PingWaitPeriod`,
 	// `AsyncMessageHandlerConfig.Service.Database.PingWaitPeriod`,
-	// `MCPServiceConfig.Database.Config.PingWaitPeriod`. It defaults to `1s`.
+	// `MCPServiceConfig.Database.PingWaitPeriod`. It defaults to `1s`.
 	DatabasePingWaitPeriodEnvVarKey = "DINNER_DONE_BETTER_DATABASE_PING_WAIT_PERIOD"
 
 	// DatabaseProviderEnvVarKey is the environment variable name to set to override
 	// `APIServiceConfig.Service.Database.Provider`, `DBCleanerConfig.Service.Database.Provider`,
 	// `SchedulerConfig.Service.Database.Provider`,
-	// `AsyncMessageHandlerConfig.Service.Database.Provider`,
-	// `MCPServiceConfig.Database.Config.Provider`. It defaults to `postgres`.
+	// `AsyncMessageHandlerConfig.Service.Database.Provider`, `MCPServiceConfig.Database.Provider`.
+	// It defaults to `postgres`.
 	DatabaseProviderEnvVarKey = "DINNER_DONE_BETTER_DATABASE_PROVIDER"
 
 	// DatabaseReadConnectionDatabaseEnvVarKey is the environment variable name to set to override
@@ -523,7 +522,7 @@ const (
 	// `DBCleanerConfig.Service.Database.ReadConnection.Database`,
 	// `SchedulerConfig.Service.Database.ReadConnection.Database`,
 	// `AsyncMessageHandlerConfig.Service.Database.ReadConnection.Database`,
-	// `MCPServiceConfig.Database.Config.ReadConnection.Database`.
+	// `MCPServiceConfig.Database.ReadConnection.Database`.
 	DatabaseReadConnectionDatabaseEnvVarKey = "DINNER_DONE_BETTER_DATABASE_READ_CONNECTION_DATABASE"
 
 	// DatabaseReadConnectionDisableSslEnvVarKey is the environment variable name to set to
@@ -531,7 +530,7 @@ const (
 	// `DBCleanerConfig.Service.Database.ReadConnection.DisableSSL`,
 	// `SchedulerConfig.Service.Database.ReadConnection.DisableSSL`,
 	// `AsyncMessageHandlerConfig.Service.Database.ReadConnection.DisableSSL`,
-	// `MCPServiceConfig.Database.Config.ReadConnection.DisableSSL`.
+	// `MCPServiceConfig.Database.ReadConnection.DisableSSL`.
 	DatabaseReadConnectionDisableSslEnvVarKey = "DINNER_DONE_BETTER_DATABASE_READ_CONNECTION_DISABLE_SSL"
 
 	// DatabaseReadConnectionHostEnvVarKey is the environment variable name to set to override
@@ -539,7 +538,7 @@ const (
 	// `DBCleanerConfig.Service.Database.ReadConnection.Host`,
 	// `SchedulerConfig.Service.Database.ReadConnection.Host`,
 	// `AsyncMessageHandlerConfig.Service.Database.ReadConnection.Host`,
-	// `MCPServiceConfig.Database.Config.ReadConnection.Host`.
+	// `MCPServiceConfig.Database.ReadConnection.Host`.
 	DatabaseReadConnectionHostEnvVarKey = "DINNER_DONE_BETTER_DATABASE_READ_CONNECTION_HOST"
 
 	// DatabaseReadConnectionPasswordEnvVarKey is the environment variable name to set to override
@@ -547,7 +546,7 @@ const (
 	// `DBCleanerConfig.Service.Database.ReadConnection.Password`,
 	// `SchedulerConfig.Service.Database.ReadConnection.Password`,
 	// `AsyncMessageHandlerConfig.Service.Database.ReadConnection.Password`,
-	// `MCPServiceConfig.Database.Config.ReadConnection.Password`.
+	// `MCPServiceConfig.Database.ReadConnection.Password`.
 	DatabaseReadConnectionPasswordEnvVarKey = "DINNER_DONE_BETTER_DATABASE_READ_CONNECTION_PASSWORD"
 
 	// DatabaseReadConnectionPortEnvVarKey is the environment variable name to set to override
@@ -555,7 +554,7 @@ const (
 	// `DBCleanerConfig.Service.Database.ReadConnection.Port`,
 	// `SchedulerConfig.Service.Database.ReadConnection.Port`,
 	// `AsyncMessageHandlerConfig.Service.Database.ReadConnection.Port`,
-	// `MCPServiceConfig.Database.Config.ReadConnection.Port`.
+	// `MCPServiceConfig.Database.ReadConnection.Port`.
 	DatabaseReadConnectionPortEnvVarKey = "DINNER_DONE_BETTER_DATABASE_READ_CONNECTION_PORT"
 
 	// DatabaseReadConnectionUsernameEnvVarKey is the environment variable name to set to override
@@ -563,7 +562,7 @@ const (
 	// `DBCleanerConfig.Service.Database.ReadConnection.Username`,
 	// `SchedulerConfig.Service.Database.ReadConnection.Username`,
 	// `AsyncMessageHandlerConfig.Service.Database.ReadConnection.Username`,
-	// `MCPServiceConfig.Database.Config.ReadConnection.Username`.
+	// `MCPServiceConfig.Database.ReadConnection.Username`.
 	DatabaseReadConnectionUsernameEnvVarKey = "DINNER_DONE_BETTER_DATABASE_READ_CONNECTION_USERNAME"
 
 	// DatabaseRunMigrationsEnvVarKey is the environment variable name to set to override
@@ -571,7 +570,7 @@ const (
 	// `DBCleanerConfig.Service.Database.RunMigrations`,
 	// `SchedulerConfig.Service.Database.RunMigrations`,
 	// `AsyncMessageHandlerConfig.Service.Database.RunMigrations`,
-	// `MCPServiceConfig.Database.Config.RunMigrations`.
+	// `MCPServiceConfig.Database.RunMigrations`.
 	DatabaseRunMigrationsEnvVarKey = "DINNER_DONE_BETTER_DATABASE_RUN_MIGRATIONS"
 
 	// DatabaseWriteConnectionDatabaseEnvVarKey is the environment variable name to set to override
@@ -579,7 +578,7 @@ const (
 	// `DBCleanerConfig.Service.Database.WriteConnection.Database`,
 	// `SchedulerConfig.Service.Database.WriteConnection.Database`,
 	// `AsyncMessageHandlerConfig.Service.Database.WriteConnection.Database`,
-	// `MCPServiceConfig.Database.Config.WriteConnection.Database`.
+	// `MCPServiceConfig.Database.WriteConnection.Database`.
 	DatabaseWriteConnectionDatabaseEnvVarKey = "DINNER_DONE_BETTER_DATABASE_WRITE_CONNECTION_DATABASE"
 
 	// DatabaseWriteConnectionDisableSslEnvVarKey is the environment variable name to set to
@@ -587,7 +586,7 @@ const (
 	// `DBCleanerConfig.Service.Database.WriteConnection.DisableSSL`,
 	// `SchedulerConfig.Service.Database.WriteConnection.DisableSSL`,
 	// `AsyncMessageHandlerConfig.Service.Database.WriteConnection.DisableSSL`,
-	// `MCPServiceConfig.Database.Config.WriteConnection.DisableSSL`.
+	// `MCPServiceConfig.Database.WriteConnection.DisableSSL`.
 	DatabaseWriteConnectionDisableSslEnvVarKey = "DINNER_DONE_BETTER_DATABASE_WRITE_CONNECTION_DISABLE_SSL"
 
 	// DatabaseWriteConnectionHostEnvVarKey is the environment variable name to set to override
@@ -595,7 +594,7 @@ const (
 	// `DBCleanerConfig.Service.Database.WriteConnection.Host`,
 	// `SchedulerConfig.Service.Database.WriteConnection.Host`,
 	// `AsyncMessageHandlerConfig.Service.Database.WriteConnection.Host`,
-	// `MCPServiceConfig.Database.Config.WriteConnection.Host`.
+	// `MCPServiceConfig.Database.WriteConnection.Host`.
 	DatabaseWriteConnectionHostEnvVarKey = "DINNER_DONE_BETTER_DATABASE_WRITE_CONNECTION_HOST"
 
 	// DatabaseWriteConnectionPasswordEnvVarKey is the environment variable name to set to override
@@ -603,7 +602,7 @@ const (
 	// `DBCleanerConfig.Service.Database.WriteConnection.Password`,
 	// `SchedulerConfig.Service.Database.WriteConnection.Password`,
 	// `AsyncMessageHandlerConfig.Service.Database.WriteConnection.Password`,
-	// `MCPServiceConfig.Database.Config.WriteConnection.Password`.
+	// `MCPServiceConfig.Database.WriteConnection.Password`.
 	DatabaseWriteConnectionPasswordEnvVarKey = "DINNER_DONE_BETTER_DATABASE_WRITE_CONNECTION_PASSWORD"
 
 	// DatabaseWriteConnectionPortEnvVarKey is the environment variable name to set to override
@@ -611,7 +610,7 @@ const (
 	// `DBCleanerConfig.Service.Database.WriteConnection.Port`,
 	// `SchedulerConfig.Service.Database.WriteConnection.Port`,
 	// `AsyncMessageHandlerConfig.Service.Database.WriteConnection.Port`,
-	// `MCPServiceConfig.Database.Config.WriteConnection.Port`.
+	// `MCPServiceConfig.Database.WriteConnection.Port`.
 	DatabaseWriteConnectionPortEnvVarKey = "DINNER_DONE_BETTER_DATABASE_WRITE_CONNECTION_PORT"
 
 	// DatabaseWriteConnectionUsernameEnvVarKey is the environment variable name to set to override
@@ -619,7 +618,7 @@ const (
 	// `DBCleanerConfig.Service.Database.WriteConnection.Username`,
 	// `SchedulerConfig.Service.Database.WriteConnection.Username`,
 	// `AsyncMessageHandlerConfig.Service.Database.WriteConnection.Username`,
-	// `MCPServiceConfig.Database.Config.WriteConnection.Username`.
+	// `MCPServiceConfig.Database.WriteConnection.Username`.
 	DatabaseWriteConnectionUsernameEnvVarKey = "DINNER_DONE_BETTER_DATABASE_WRITE_CONNECTION_USERNAME"
 
 	// DataPrivacyArtifactsEncryptionCurrentKeyIDEnvVarKey is the environment variable name to set
@@ -5048,76 +5047,71 @@ const (
 	// `APIServiceConfig.Services.Payments.MobileProvider`.
 	ServicePaymentsMobileProviderEnvVarKey = "DINNER_DONE_BETTER_SERVICE_PAYMENTS_MOBILE_PROVIDER"
 
-	// ServiceUploadedMediaUploadsDebugEnvVarKey is the environment variable name to set to
-	// override `APIServiceConfig.Services.UploadedMedia.Uploads.Debug`.
-	ServiceUploadedMediaUploadsDebugEnvVarKey = "DINNER_DONE_BETTER_SERVICE_UPLOADED_MEDIA_UPLOADS_DEBUG"
+	// ServiceUploadedMediaDebugEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Services.UploadedMedia.Debug`.
+	ServiceUploadedMediaDebugEnvVarKey = "DINNER_DONE_BETTER_SERVICE_UPLOADED_MEDIA_DEBUG"
 
-	// ServiceUploadedMediaUploadsStorageBackblazeB2ApplicationKeyEnvVarKey is the environment
-	// variable name to set to override
-	// `APIServiceConfig.Services.UploadedMedia.Uploads.Storage.BackblazeB2Config.ApplicationKey`.
-	ServiceUploadedMediaUploadsStorageBackblazeB2ApplicationKeyEnvVarKey = "DINNER_DONE_BETTER_SERVICE_UPLOADED_MEDIA_UPLOADS_STORAGE_BACKBLAZE_B2_APPLICATION_KEY"
-
-	// ServiceUploadedMediaUploadsStorageBackblazeB2ApplicationKeyIDEnvVarKey is the environment
-	// variable name to set to override
-	// `APIServiceConfig.Services.UploadedMedia.Uploads.Storage.BackblazeB2Config.ApplicationKeyID`.
-	ServiceUploadedMediaUploadsStorageBackblazeB2ApplicationKeyIDEnvVarKey = "DINNER_DONE_BETTER_SERVICE_UPLOADED_MEDIA_UPLOADS_STORAGE_BACKBLAZE_B2_APPLICATION_KEY_ID"
-
-	// ServiceUploadedMediaUploadsStorageBackblazeB2RegionEnvVarKey is the environment variable
+	// ServiceUploadedMediaStorageBackblazeB2ApplicationKeyEnvVarKey is the environment variable
 	// name to set to override
-	// `APIServiceConfig.Services.UploadedMedia.Uploads.Storage.BackblazeB2Config.Region`.
-	ServiceUploadedMediaUploadsStorageBackblazeB2RegionEnvVarKey = "DINNER_DONE_BETTER_SERVICE_UPLOADED_MEDIA_UPLOADS_STORAGE_BACKBLAZE_B2_REGION"
+	// `APIServiceConfig.Services.UploadedMedia.Storage.BackblazeB2Config.ApplicationKey`.
+	ServiceUploadedMediaStorageBackblazeB2ApplicationKeyEnvVarKey = "DINNER_DONE_BETTER_SERVICE_UPLOADED_MEDIA_STORAGE_BACKBLAZE_B2_APPLICATION_KEY"
 
-	// ServiceUploadedMediaUploadsStorageBucketNameEnvVarKey is the environment variable name to
-	// set to override `APIServiceConfig.Services.UploadedMedia.Uploads.Storage.BucketName`.
-	ServiceUploadedMediaUploadsStorageBucketNameEnvVarKey = "DINNER_DONE_BETTER_SERVICE_UPLOADED_MEDIA_UPLOADS_STORAGE_BUCKET_NAME"
-
-	// ServiceUploadedMediaUploadsStorageBucketPrefixEnvVarKey is the environment variable name to
-	// set to override `APIServiceConfig.Services.UploadedMedia.Uploads.Storage.BucketPrefix`.
-	ServiceUploadedMediaUploadsStorageBucketPrefixEnvVarKey = "DINNER_DONE_BETTER_SERVICE_UPLOADED_MEDIA_UPLOADS_STORAGE_BUCKET_PREFIX"
-
-	// ServiceUploadedMediaUploadsStorageCircuitBreakingErrorRateEnvVarKey is the environment
-	// variable name to set to override
-	// `APIServiceConfig.Services.UploadedMedia.Uploads.Storage.CircuitBreaker.ErrorRate`.
-	ServiceUploadedMediaUploadsStorageCircuitBreakingErrorRateEnvVarKey = "DINNER_DONE_BETTER_SERVICE_UPLOADED_MEDIA_UPLOADS_STORAGE_CIRCUIT_BREAKING_ERROR_RATE"
-
-	// ServiceUploadedMediaUploadsStorageCircuitBreakingMinimumSampleThresholdEnvVarKey is the
-	// environment variable name to set to override
-	// `APIServiceConfig.Services.UploadedMedia.Uploads.Storage.CircuitBreaker.MinimumSampleThreshold`.
-	ServiceUploadedMediaUploadsStorageCircuitBreakingMinimumSampleThresholdEnvVarKey = "DINNER_DONE_BETTER_SERVICE_UPLOADED_MEDIA_UPLOADS_STORAGE_CIRCUIT_BREAKING_MINIMUM_SAMPLE_THRESHOLD"
-
-	// ServiceUploadedMediaUploadsStorageCircuitBreakingNameEnvVarKey is the environment variable
+	// ServiceUploadedMediaStorageBackblazeB2ApplicationKeyIDEnvVarKey is the environment variable
 	// name to set to override
-	// `APIServiceConfig.Services.UploadedMedia.Uploads.Storage.CircuitBreaker.Name`.
-	ServiceUploadedMediaUploadsStorageCircuitBreakingNameEnvVarKey = "DINNER_DONE_BETTER_SERVICE_UPLOADED_MEDIA_UPLOADS_STORAGE_CIRCUIT_BREAKING_NAME"
+	// `APIServiceConfig.Services.UploadedMedia.Storage.BackblazeB2Config.ApplicationKeyID`.
+	ServiceUploadedMediaStorageBackblazeB2ApplicationKeyIDEnvVarKey = "DINNER_DONE_BETTER_SERVICE_UPLOADED_MEDIA_STORAGE_BACKBLAZE_B2_APPLICATION_KEY_ID"
 
-	// ServiceUploadedMediaUploadsStorageFilesystemDirectoryModeEnvVarKey is the environment
-	// variable name to set to override
-	// `APIServiceConfig.Services.UploadedMedia.Uploads.Storage.FilesystemConfig.DirectoryMode`.
-	ServiceUploadedMediaUploadsStorageFilesystemDirectoryModeEnvVarKey = "DINNER_DONE_BETTER_SERVICE_UPLOADED_MEDIA_UPLOADS_STORAGE_FILESYSTEM_DIRECTORY_MODE"
+	// ServiceUploadedMediaStorageBackblazeB2RegionEnvVarKey is the environment variable name to
+	// set to override `APIServiceConfig.Services.UploadedMedia.Storage.BackblazeB2Config.Region`.
+	ServiceUploadedMediaStorageBackblazeB2RegionEnvVarKey = "DINNER_DONE_BETTER_SERVICE_UPLOADED_MEDIA_STORAGE_BACKBLAZE_B2_REGION"
 
-	// ServiceUploadedMediaUploadsStorageFilesystemRootDirectoryEnvVarKey is the environment
-	// variable name to set to override
-	// `APIServiceConfig.Services.UploadedMedia.Uploads.Storage.FilesystemConfig.RootDirectory`.
-	ServiceUploadedMediaUploadsStorageFilesystemRootDirectoryEnvVarKey = "DINNER_DONE_BETTER_SERVICE_UPLOADED_MEDIA_UPLOADS_STORAGE_FILESYSTEM_ROOT_DIRECTORY"
+	// ServiceUploadedMediaStorageBucketNameEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Services.UploadedMedia.Storage.BucketName`.
+	ServiceUploadedMediaStorageBucketNameEnvVarKey = "DINNER_DONE_BETTER_SERVICE_UPLOADED_MEDIA_STORAGE_BUCKET_NAME"
 
-	// ServiceUploadedMediaUploadsStorageProviderEnvVarKey is the environment variable name to set
-	// to override `APIServiceConfig.Services.UploadedMedia.Uploads.Storage.Provider`.
-	ServiceUploadedMediaUploadsStorageProviderEnvVarKey = "DINNER_DONE_BETTER_SERVICE_UPLOADED_MEDIA_UPLOADS_STORAGE_PROVIDER"
+	// ServiceUploadedMediaStorageBucketPrefixEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Services.UploadedMedia.Storage.BucketPrefix`.
+	ServiceUploadedMediaStorageBucketPrefixEnvVarKey = "DINNER_DONE_BETTER_SERVICE_UPLOADED_MEDIA_STORAGE_BUCKET_PREFIX"
 
-	// ServiceUploadedMediaUploadsStorageR2AccessKeyIDEnvVarKey is the environment variable name to
-	// set to override
-	// `APIServiceConfig.Services.UploadedMedia.Uploads.Storage.R2Config.AccessKeyID`.
-	ServiceUploadedMediaUploadsStorageR2AccessKeyIDEnvVarKey = "DINNER_DONE_BETTER_SERVICE_UPLOADED_MEDIA_UPLOADS_STORAGE_R2_ACCESS_KEY_ID"
-
-	// ServiceUploadedMediaUploadsStorageR2AccountIDEnvVarKey is the environment variable name to
-	// set to override
-	// `APIServiceConfig.Services.UploadedMedia.Uploads.Storage.R2Config.AccountID`.
-	ServiceUploadedMediaUploadsStorageR2AccountIDEnvVarKey = "DINNER_DONE_BETTER_SERVICE_UPLOADED_MEDIA_UPLOADS_STORAGE_R2_ACCOUNT_ID"
-
-	// ServiceUploadedMediaUploadsStorageR2SecretAccessKeyEnvVarKey is the environment variable
+	// ServiceUploadedMediaStorageCircuitBreakingErrorRateEnvVarKey is the environment variable
 	// name to set to override
-	// `APIServiceConfig.Services.UploadedMedia.Uploads.Storage.R2Config.SecretAccessKey`.
-	ServiceUploadedMediaUploadsStorageR2SecretAccessKeyEnvVarKey = "DINNER_DONE_BETTER_SERVICE_UPLOADED_MEDIA_UPLOADS_STORAGE_R2_SECRET_ACCESS_KEY"
+	// `APIServiceConfig.Services.UploadedMedia.Storage.CircuitBreaker.ErrorRate`.
+	ServiceUploadedMediaStorageCircuitBreakingErrorRateEnvVarKey = "DINNER_DONE_BETTER_SERVICE_UPLOADED_MEDIA_STORAGE_CIRCUIT_BREAKING_ERROR_RATE"
+
+	// ServiceUploadedMediaStorageCircuitBreakingMinimumSampleThresholdEnvVarKey is the environment
+	// variable name to set to override
+	// `APIServiceConfig.Services.UploadedMedia.Storage.CircuitBreaker.MinimumSampleThreshold`.
+	ServiceUploadedMediaStorageCircuitBreakingMinimumSampleThresholdEnvVarKey = "DINNER_DONE_BETTER_SERVICE_UPLOADED_MEDIA_STORAGE_CIRCUIT_BREAKING_MINIMUM_SAMPLE_THRESHOLD"
+
+	// ServiceUploadedMediaStorageCircuitBreakingNameEnvVarKey is the environment variable name to
+	// set to override `APIServiceConfig.Services.UploadedMedia.Storage.CircuitBreaker.Name`.
+	ServiceUploadedMediaStorageCircuitBreakingNameEnvVarKey = "DINNER_DONE_BETTER_SERVICE_UPLOADED_MEDIA_STORAGE_CIRCUIT_BREAKING_NAME"
+
+	// ServiceUploadedMediaStorageFilesystemDirectoryModeEnvVarKey is the environment variable name
+	// to set to override
+	// `APIServiceConfig.Services.UploadedMedia.Storage.FilesystemConfig.DirectoryMode`.
+	ServiceUploadedMediaStorageFilesystemDirectoryModeEnvVarKey = "DINNER_DONE_BETTER_SERVICE_UPLOADED_MEDIA_STORAGE_FILESYSTEM_DIRECTORY_MODE"
+
+	// ServiceUploadedMediaStorageFilesystemRootDirectoryEnvVarKey is the environment variable name
+	// to set to override
+	// `APIServiceConfig.Services.UploadedMedia.Storage.FilesystemConfig.RootDirectory`.
+	ServiceUploadedMediaStorageFilesystemRootDirectoryEnvVarKey = "DINNER_DONE_BETTER_SERVICE_UPLOADED_MEDIA_STORAGE_FILESYSTEM_ROOT_DIRECTORY"
+
+	// ServiceUploadedMediaStorageProviderEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Services.UploadedMedia.Storage.Provider`.
+	ServiceUploadedMediaStorageProviderEnvVarKey = "DINNER_DONE_BETTER_SERVICE_UPLOADED_MEDIA_STORAGE_PROVIDER"
+
+	// ServiceUploadedMediaStorageR2AccessKeyIDEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Services.UploadedMedia.Storage.R2Config.AccessKeyID`.
+	ServiceUploadedMediaStorageR2AccessKeyIDEnvVarKey = "DINNER_DONE_BETTER_SERVICE_UPLOADED_MEDIA_STORAGE_R2_ACCESS_KEY_ID"
+
+	// ServiceUploadedMediaStorageR2AccountIDEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Services.UploadedMedia.Storage.R2Config.AccountID`.
+	ServiceUploadedMediaStorageR2AccountIDEnvVarKey = "DINNER_DONE_BETTER_SERVICE_UPLOADED_MEDIA_STORAGE_R2_ACCOUNT_ID"
+
+	// ServiceUploadedMediaStorageR2SecretAccessKeyEnvVarKey is the environment variable name to
+	// set to override `APIServiceConfig.Services.UploadedMedia.Storage.R2Config.SecretAccessKey`.
+	ServiceUploadedMediaStorageR2SecretAccessKeyEnvVarKey = "DINNER_DONE_BETTER_SERVICE_UPLOADED_MEDIA_STORAGE_R2_SECRET_ACCESS_KEY"
 
 	// ServiceUsersPublicMediaURLPrefixEnvVarKey is the environment variable name to set to
 	// override `APIServiceConfig.Services.Users.PublicMediaURLPrefix`.

@@ -618,11 +618,10 @@ func inviteForTest(t *testing.T, fromUserID, accountID, toEmail string) *identit
 func identityDirectoryWithHooks(t *testing.T) *identity.Service {
 	t.Helper()
 
-	auditLogRepo, err := auditlogentries.ProvideAuditLogRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, databaseClient)
+	auditLogRepo, err := auditlogentries.ProvideAuditLog(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, databaseClient)
 	require.NoError(t, err)
 
-	auditRecorder, ok := auditlogentries.RecorderFrom(auditLogRepo)
-	require.True(t, ok)
+	auditRecorder := auditLogRepo.Recorder()
 
 	store, err := identity.NewSQLStore(databaseClient, identity.WithTablePrefix(branding.TablePrefix))
 	require.NoError(t, err)

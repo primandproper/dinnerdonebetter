@@ -336,13 +336,7 @@ func (q *repository) GetRecipePrepTasks(ctx context.Context, recipeID string, fi
 	logger = logger.WithValue(mealplanningkeys.RecipeIDKey, recipeID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeIDKey, recipeID)
 
-	if filter == nil {
-		filter = filtering.DefaultQueryFilter()
-	}
-	logger = filter.AttachToLogger(logger)
-	for key, value := range filter.ObservabilityValues() {
-		tracing.AttachToSpan(span, key, value)
-	}
+	filter, logger = filtering.Observe(ctx, logger, filter)
 
 	tasks, err := q.getRecipePrepTasksForRecipe(ctx, recipeID)
 	if err != nil {
