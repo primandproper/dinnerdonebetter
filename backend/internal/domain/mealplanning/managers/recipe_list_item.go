@@ -2,6 +2,7 @@ package managers
 
 import (
 	"context"
+	"database/sql"
 
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
@@ -13,7 +14,21 @@ import (
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
 )
 
-func (m *mealPlanningManager) UpdateRecipeListItem(ctx context.Context, recipeListItemID, recipeListID, recipeID string, input *types.RecipeListItemUpdateRequestInput) error {
+// verifyRecipeListOwnership confirms the recipe list exists and belongs to userID. Another user's
+// list answers sql.ErrNoRows, exactly as a missing one does, so a caller can't probe which list IDs exist.
+func (m *mealPlanningManager) verifyRecipeListOwnership(ctx context.Context, recipeListID, userID string) error {
+	owned, err := m.db.RecipeListExists(ctx, recipeListID, userID)
+	if err != nil {
+		return err
+	}
+	if !owned {
+		return sql.ErrNoRows
+	}
+
+	return nil
+}
+
+func (m *mealPlanningManager) UpdateRecipeListItem(ctx context.Context, recipeListItemID, recipeListID, userID, recipeID string, input *types.RecipeListItemUpdateRequestInput) error {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -29,11 +44,15 @@ func (m *mealPlanningManager) UpdateRecipeListItem(ctx context.Context, recipeLi
 	if input == nil {
 		return platformerrors.ErrNilInputParameter
 	}
-	if recipeListItemID == "" || recipeListID == "" || recipeID == "" {
+	if recipeListItemID == "" || recipeListID == "" || userID == "" || recipeID == "" {
 		return platformerrors.ErrEmptyInputParameter
 	}
 	if input.Notes == nil {
 		return platformerrors.ErrNilInputParameter
+	}
+
+	if err := m.verifyRecipeListOwnership(ctx, recipeListID, userID); err != nil {
+		return observability.PrepareAndLogError(err, logger, span, "verifying recipe list ownership")
 	}
 
 	updated := &types.RecipeListItem{
@@ -50,14 +69,18 @@ func (m *mealPlanningManager) UpdateRecipeListItem(ctx context.Context, recipeLi
 	return nil
 }
 
-func (m *mealPlanningManager) AddRecipeToRecipeList(ctx context.Context, recipeListID, recipeID, notes string) (*types.RecipeListItem, error) {
+func (m *mealPlanningManager) AddRecipeToRecipeList(ctx context.Context, recipeListID, userID, recipeID, notes string) (*types.RecipeListItem, error) {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
 	logger := m.logger.WithSpan(span)
 
-	if recipeListID == "" || recipeID == "" {
+	if recipeListID == "" || userID == "" || recipeID == "" {
 		return nil, platformerrors.ErrEmptyInputParameter
+	}
+
+	if err := m.verifyRecipeListOwnership(ctx, recipeListID, userID); err != nil {
+		return nil, observability.PrepareAndLogError(err, logger, span, "verifying recipe list ownership")
 	}
 
 	input := &types.RecipeListItemDatabaseCreationInput{
@@ -75,14 +98,18 @@ func (m *mealPlanningManager) AddRecipeToRecipeList(ctx context.Context, recipeL
 	return item, nil
 }
 
-func (m *mealPlanningManager) RemoveRecipeFromRecipeList(ctx context.Context, recipeListID, recipeListItemID string) error {
+func (m *mealPlanningManager) RemoveRecipeFromRecipeList(ctx context.Context, recipeListID, userID, recipeListItemID string) error {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
 	logger := m.logger.WithSpan(span)
 
-	if recipeListID == "" || recipeListItemID == "" {
+	if recipeListID == "" || userID == "" || recipeListItemID == "" {
 		return platformerrors.ErrEmptyInputParameter
+	}
+
+	if err := m.verifyRecipeListOwnership(ctx, recipeListID, userID); err != nil {
+		return observability.PrepareAndLogError(err, logger, span, "verifying recipe list ownership")
 	}
 
 	if err := m.db.ArchiveRecipeListItem(ctx, recipeListItemID, recipeListID); err != nil {
@@ -92,14 +119,18 @@ func (m *mealPlanningManager) RemoveRecipeFromRecipeList(ctx context.Context, re
 	return nil
 }
 
-func (m *mealPlanningManager) ListRecipeListItems(ctx context.Context, recipeListID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.RecipeListItem], error) {
+func (m *mealPlanningManager) ListRecipeListItems(ctx context.Context, recipeListID, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.RecipeListItem], error) {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
 	logger := m.logger.WithSpan(span)
 
-	if recipeListID == "" {
+	if recipeListID == "" || userID == "" {
 		return nil, platformerrors.ErrEmptyInputParameter
+	}
+
+	if err := m.verifyRecipeListOwnership(ctx, recipeListID, userID); err != nil {
+		return nil, observability.PrepareAndLogError(err, logger, span, "verifying recipe list ownership")
 	}
 
 	res, err := m.db.GetRecipeListItems(ctx, recipeListID, filter)

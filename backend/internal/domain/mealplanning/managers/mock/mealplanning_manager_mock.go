@@ -41,7 +41,7 @@ var _ managers.MealPlanningManager = &MealPlanningManagerMock{}
 //			AddRecipeStepImageFunc: func(ctx context.Context, recipeStepID string, uploadedMediaID string, uploadedByUser string) error {
 //				panic("mock out the AddRecipeStepImage method")
 //			},
-//			AddRecipeToRecipeListFunc: func(ctx context.Context, recipeListID string, recipeID string, notes string) (*types.RecipeListItem, error) {
+//			AddRecipeToRecipeListFunc: func(ctx context.Context, recipeListID string, userID string, recipeID string, notes string) (*types.RecipeListItem, error) {
 //				panic("mock out the AddRecipeToRecipeList method")
 //			},
 //			AnnotateMealPlanSummariesFunc: func(ctx context.Context, userID string, mealPlans []*types.MealPlan) (*types.MealPlanSummaryAnnotations, error) {
@@ -305,10 +305,10 @@ var _ managers.MealPlanningManager = &MealPlanningManagerMock{}
 //			ListMealsFunc: func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.Meal], error) {
 //				panic("mock out the ListMeals method")
 //			},
-//			ListRecipeListItemsFunc: func(ctx context.Context, recipeListID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.RecipeListItem], error) {
+//			ListRecipeListItemsFunc: func(ctx context.Context, recipeListID string, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.RecipeListItem], error) {
 //				panic("mock out the ListRecipeListItems method")
 //			},
-//			ListRecipeListsFunc: func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.RecipeList], error) {
+//			ListRecipeListsFunc: func(ctx context.Context, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.RecipeList], error) {
 //				panic("mock out the ListRecipeLists method")
 //			},
 //			ListRecipePrepTaskFunc: func(ctx context.Context, recipeID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.RecipePrepTask], error) {
@@ -512,7 +512,7 @@ var _ managers.MealPlanningManager = &MealPlanningManagerMock{}
 //			RemoveMealFromMealListFunc: func(ctx context.Context, mealListID string, mealListItemID string) error {
 //				panic("mock out the RemoveMealFromMealList method")
 //			},
-//			RemoveRecipeFromRecipeListFunc: func(ctx context.Context, recipeListID string, recipeListItemID string) error {
+//			RemoveRecipeFromRecipeListFunc: func(ctx context.Context, recipeListID string, userID string, recipeListItemID string) error {
 //				panic("mock out the RemoveRecipeFromRecipeList method")
 //			},
 //			SearchForMealEligibleRecipesFunc: func(ctx context.Context, query string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.Recipe], error) {
@@ -632,7 +632,7 @@ var _ managers.MealPlanningManager = &MealPlanningManagerMock{}
 //			UpdateRecipeListFunc: func(ctx context.Context, recipeListID string, userID string, input *types.RecipeListUpdateRequestInput) error {
 //				panic("mock out the UpdateRecipeList method")
 //			},
-//			UpdateRecipeListItemFunc: func(ctx context.Context, recipeListItemID string, recipeListID string, recipeID string, input *types.RecipeListItemUpdateRequestInput) error {
+//			UpdateRecipeListItemFunc: func(ctx context.Context, recipeListItemID string, recipeListID string, userID string, recipeID string, input *types.RecipeListItemUpdateRequestInput) error {
 //				panic("mock out the UpdateRecipeListItem method")
 //			},
 //			UpdateRecipePrepTaskFunc: func(ctx context.Context, recipeID string, recipePrepTaskID string, input *types.RecipePrepTaskUpdateRequestInput) error {
@@ -736,7 +736,7 @@ type MealPlanningManagerMock struct {
 	AddRecipeStepImageFunc func(ctx context.Context, recipeStepID string, uploadedMediaID string, uploadedByUser string) error
 
 	// AddRecipeToRecipeListFunc mocks the AddRecipeToRecipeList method.
-	AddRecipeToRecipeListFunc func(ctx context.Context, recipeListID string, recipeID string, notes string) (*types.RecipeListItem, error)
+	AddRecipeToRecipeListFunc func(ctx context.Context, recipeListID string, userID string, recipeID string, notes string) (*types.RecipeListItem, error)
 
 	// AnnotateMealPlanSummariesFunc mocks the AnnotateMealPlanSummaries method.
 	AnnotateMealPlanSummariesFunc func(ctx context.Context, userID string, mealPlans []*types.MealPlan) (*types.MealPlanSummaryAnnotations, error)
@@ -1000,10 +1000,10 @@ type MealPlanningManagerMock struct {
 	ListMealsFunc func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.Meal], error)
 
 	// ListRecipeListItemsFunc mocks the ListRecipeListItems method.
-	ListRecipeListItemsFunc func(ctx context.Context, recipeListID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.RecipeListItem], error)
+	ListRecipeListItemsFunc func(ctx context.Context, recipeListID string, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.RecipeListItem], error)
 
 	// ListRecipeListsFunc mocks the ListRecipeLists method.
-	ListRecipeListsFunc func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.RecipeList], error)
+	ListRecipeListsFunc func(ctx context.Context, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.RecipeList], error)
 
 	// ListRecipePrepTaskFunc mocks the ListRecipePrepTask method.
 	ListRecipePrepTaskFunc func(ctx context.Context, recipeID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.RecipePrepTask], error)
@@ -1207,7 +1207,7 @@ type MealPlanningManagerMock struct {
 	RemoveMealFromMealListFunc func(ctx context.Context, mealListID string, mealListItemID string) error
 
 	// RemoveRecipeFromRecipeListFunc mocks the RemoveRecipeFromRecipeList method.
-	RemoveRecipeFromRecipeListFunc func(ctx context.Context, recipeListID string, recipeListItemID string) error
+	RemoveRecipeFromRecipeListFunc func(ctx context.Context, recipeListID string, userID string, recipeListItemID string) error
 
 	// SearchForMealEligibleRecipesFunc mocks the SearchForMealEligibleRecipes method.
 	SearchForMealEligibleRecipesFunc func(ctx context.Context, query string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.Recipe], error)
@@ -1327,7 +1327,7 @@ type MealPlanningManagerMock struct {
 	UpdateRecipeListFunc func(ctx context.Context, recipeListID string, userID string, input *types.RecipeListUpdateRequestInput) error
 
 	// UpdateRecipeListItemFunc mocks the UpdateRecipeListItem method.
-	UpdateRecipeListItemFunc func(ctx context.Context, recipeListItemID string, recipeListID string, recipeID string, input *types.RecipeListItemUpdateRequestInput) error
+	UpdateRecipeListItemFunc func(ctx context.Context, recipeListItemID string, recipeListID string, userID string, recipeID string, input *types.RecipeListItemUpdateRequestInput) error
 
 	// UpdateRecipePrepTaskFunc mocks the UpdateRecipePrepTask method.
 	UpdateRecipePrepTaskFunc func(ctx context.Context, recipeID string, recipePrepTaskID string, input *types.RecipePrepTaskUpdateRequestInput) error
@@ -1480,6 +1480,8 @@ type MealPlanningManagerMock struct {
 			Ctx context.Context
 			// RecipeListID is the recipeListID argument value.
 			RecipeListID string
+			// UserID is the userID argument value.
+			UserID string
 			// RecipeID is the recipeID argument value.
 			RecipeID string
 			// Notes is the notes argument value.
@@ -2252,6 +2254,8 @@ type MealPlanningManagerMock struct {
 			Ctx context.Context
 			// RecipeListID is the recipeListID argument value.
 			RecipeListID string
+			// UserID is the userID argument value.
+			UserID string
 			// Filter is the filter argument value.
 			Filter *filtering.QueryFilter
 		}
@@ -2259,6 +2263,8 @@ type MealPlanningManagerMock struct {
 		ListRecipeLists []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
+			// UserID is the userID argument value.
+			UserID string
 			// Filter is the filter argument value.
 			Filter *filtering.QueryFilter
 		}
@@ -2807,6 +2813,8 @@ type MealPlanningManagerMock struct {
 			Ctx context.Context
 			// RecipeListID is the recipeListID argument value.
 			RecipeListID string
+			// UserID is the userID argument value.
+			UserID string
 			// RecipeListItemID is the recipeListItemID argument value.
 			RecipeListItemID string
 		}
@@ -3231,6 +3239,8 @@ type MealPlanningManagerMock struct {
 			RecipeListItemID string
 			// RecipeListID is the recipeListID argument value.
 			RecipeListID string
+			// UserID is the userID argument value.
+			UserID string
 			// RecipeID is the recipeID argument value.
 			RecipeID string
 			// Input is the input argument value.
@@ -3990,25 +4000,27 @@ func (mock *MealPlanningManagerMock) AddRecipeStepImageCalls() []struct {
 }
 
 // AddRecipeToRecipeList calls AddRecipeToRecipeListFunc.
-func (mock *MealPlanningManagerMock) AddRecipeToRecipeList(ctx context.Context, recipeListID string, recipeID string, notes string) (*types.RecipeListItem, error) {
+func (mock *MealPlanningManagerMock) AddRecipeToRecipeList(ctx context.Context, recipeListID string, userID string, recipeID string, notes string) (*types.RecipeListItem, error) {
 	if mock.AddRecipeToRecipeListFunc == nil {
 		panic("MealPlanningManagerMock.AddRecipeToRecipeListFunc: method is nil but MealPlanningManager.AddRecipeToRecipeList was just called")
 	}
 	callInfo := struct {
 		Ctx          context.Context
 		RecipeListID string
+		UserID       string
 		RecipeID     string
 		Notes        string
 	}{
 		Ctx:          ctx,
 		RecipeListID: recipeListID,
+		UserID:       userID,
 		RecipeID:     recipeID,
 		Notes:        notes,
 	}
 	mock.lockAddRecipeToRecipeList.Lock()
 	mock.calls.AddRecipeToRecipeList = append(mock.calls.AddRecipeToRecipeList, callInfo)
 	mock.lockAddRecipeToRecipeList.Unlock()
-	return mock.AddRecipeToRecipeListFunc(ctx, recipeListID, recipeID, notes)
+	return mock.AddRecipeToRecipeListFunc(ctx, recipeListID, userID, recipeID, notes)
 }
 
 // AddRecipeToRecipeListCalls gets all the calls that were made to AddRecipeToRecipeList.
@@ -4018,12 +4030,14 @@ func (mock *MealPlanningManagerMock) AddRecipeToRecipeList(ctx context.Context, 
 func (mock *MealPlanningManagerMock) AddRecipeToRecipeListCalls() []struct {
 	Ctx          context.Context
 	RecipeListID string
+	UserID       string
 	RecipeID     string
 	Notes        string
 } {
 	var calls []struct {
 		Ctx          context.Context
 		RecipeListID string
+		UserID       string
 		RecipeID     string
 		Notes        string
 	}
@@ -7470,23 +7484,25 @@ func (mock *MealPlanningManagerMock) ListMealsCalls() []struct {
 }
 
 // ListRecipeListItems calls ListRecipeListItemsFunc.
-func (mock *MealPlanningManagerMock) ListRecipeListItems(ctx context.Context, recipeListID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.RecipeListItem], error) {
+func (mock *MealPlanningManagerMock) ListRecipeListItems(ctx context.Context, recipeListID string, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.RecipeListItem], error) {
 	if mock.ListRecipeListItemsFunc == nil {
 		panic("MealPlanningManagerMock.ListRecipeListItemsFunc: method is nil but MealPlanningManager.ListRecipeListItems was just called")
 	}
 	callInfo := struct {
 		Ctx          context.Context
 		RecipeListID string
+		UserID       string
 		Filter       *filtering.QueryFilter
 	}{
 		Ctx:          ctx,
 		RecipeListID: recipeListID,
+		UserID:       userID,
 		Filter:       filter,
 	}
 	mock.lockListRecipeListItems.Lock()
 	mock.calls.ListRecipeListItems = append(mock.calls.ListRecipeListItems, callInfo)
 	mock.lockListRecipeListItems.Unlock()
-	return mock.ListRecipeListItemsFunc(ctx, recipeListID, filter)
+	return mock.ListRecipeListItemsFunc(ctx, recipeListID, userID, filter)
 }
 
 // ListRecipeListItemsCalls gets all the calls that were made to ListRecipeListItems.
@@ -7496,11 +7512,13 @@ func (mock *MealPlanningManagerMock) ListRecipeListItems(ctx context.Context, re
 func (mock *MealPlanningManagerMock) ListRecipeListItemsCalls() []struct {
 	Ctx          context.Context
 	RecipeListID string
+	UserID       string
 	Filter       *filtering.QueryFilter
 } {
 	var calls []struct {
 		Ctx          context.Context
 		RecipeListID string
+		UserID       string
 		Filter       *filtering.QueryFilter
 	}
 	mock.lockListRecipeListItems.RLock()
@@ -7510,21 +7528,23 @@ func (mock *MealPlanningManagerMock) ListRecipeListItemsCalls() []struct {
 }
 
 // ListRecipeLists calls ListRecipeListsFunc.
-func (mock *MealPlanningManagerMock) ListRecipeLists(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.RecipeList], error) {
+func (mock *MealPlanningManagerMock) ListRecipeLists(ctx context.Context, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.RecipeList], error) {
 	if mock.ListRecipeListsFunc == nil {
 		panic("MealPlanningManagerMock.ListRecipeListsFunc: method is nil but MealPlanningManager.ListRecipeLists was just called")
 	}
 	callInfo := struct {
 		Ctx    context.Context
+		UserID string
 		Filter *filtering.QueryFilter
 	}{
 		Ctx:    ctx,
+		UserID: userID,
 		Filter: filter,
 	}
 	mock.lockListRecipeLists.Lock()
 	mock.calls.ListRecipeLists = append(mock.calls.ListRecipeLists, callInfo)
 	mock.lockListRecipeLists.Unlock()
-	return mock.ListRecipeListsFunc(ctx, filter)
+	return mock.ListRecipeListsFunc(ctx, userID, filter)
 }
 
 // ListRecipeListsCalls gets all the calls that were made to ListRecipeLists.
@@ -7533,10 +7553,12 @@ func (mock *MealPlanningManagerMock) ListRecipeLists(ctx context.Context, filter
 //	len(mockedMealPlanningManager.ListRecipeListsCalls())
 func (mock *MealPlanningManagerMock) ListRecipeListsCalls() []struct {
 	Ctx    context.Context
+	UserID string
 	Filter *filtering.QueryFilter
 } {
 	var calls []struct {
 		Ctx    context.Context
+		UserID string
 		Filter *filtering.QueryFilter
 	}
 	mock.lockListRecipeLists.RLock()
@@ -10098,23 +10120,25 @@ func (mock *MealPlanningManagerMock) RemoveMealFromMealListCalls() []struct {
 }
 
 // RemoveRecipeFromRecipeList calls RemoveRecipeFromRecipeListFunc.
-func (mock *MealPlanningManagerMock) RemoveRecipeFromRecipeList(ctx context.Context, recipeListID string, recipeListItemID string) error {
+func (mock *MealPlanningManagerMock) RemoveRecipeFromRecipeList(ctx context.Context, recipeListID string, userID string, recipeListItemID string) error {
 	if mock.RemoveRecipeFromRecipeListFunc == nil {
 		panic("MealPlanningManagerMock.RemoveRecipeFromRecipeListFunc: method is nil but MealPlanningManager.RemoveRecipeFromRecipeList was just called")
 	}
 	callInfo := struct {
 		Ctx              context.Context
 		RecipeListID     string
+		UserID           string
 		RecipeListItemID string
 	}{
 		Ctx:              ctx,
 		RecipeListID:     recipeListID,
+		UserID:           userID,
 		RecipeListItemID: recipeListItemID,
 	}
 	mock.lockRemoveRecipeFromRecipeList.Lock()
 	mock.calls.RemoveRecipeFromRecipeList = append(mock.calls.RemoveRecipeFromRecipeList, callInfo)
 	mock.lockRemoveRecipeFromRecipeList.Unlock()
-	return mock.RemoveRecipeFromRecipeListFunc(ctx, recipeListID, recipeListItemID)
+	return mock.RemoveRecipeFromRecipeListFunc(ctx, recipeListID, userID, recipeListItemID)
 }
 
 // RemoveRecipeFromRecipeListCalls gets all the calls that were made to RemoveRecipeFromRecipeList.
@@ -10124,11 +10148,13 @@ func (mock *MealPlanningManagerMock) RemoveRecipeFromRecipeList(ctx context.Cont
 func (mock *MealPlanningManagerMock) RemoveRecipeFromRecipeListCalls() []struct {
 	Ctx              context.Context
 	RecipeListID     string
+	UserID           string
 	RecipeListItemID string
 } {
 	var calls []struct {
 		Ctx              context.Context
 		RecipeListID     string
+		UserID           string
 		RecipeListItemID string
 	}
 	mock.lockRemoveRecipeFromRecipeList.RLock()
@@ -11822,7 +11848,7 @@ func (mock *MealPlanningManagerMock) UpdateRecipeListCalls() []struct {
 }
 
 // UpdateRecipeListItem calls UpdateRecipeListItemFunc.
-func (mock *MealPlanningManagerMock) UpdateRecipeListItem(ctx context.Context, recipeListItemID string, recipeListID string, recipeID string, input *types.RecipeListItemUpdateRequestInput) error {
+func (mock *MealPlanningManagerMock) UpdateRecipeListItem(ctx context.Context, recipeListItemID string, recipeListID string, userID string, recipeID string, input *types.RecipeListItemUpdateRequestInput) error {
 	if mock.UpdateRecipeListItemFunc == nil {
 		panic("MealPlanningManagerMock.UpdateRecipeListItemFunc: method is nil but MealPlanningManager.UpdateRecipeListItem was just called")
 	}
@@ -11830,19 +11856,21 @@ func (mock *MealPlanningManagerMock) UpdateRecipeListItem(ctx context.Context, r
 		Ctx              context.Context
 		RecipeListItemID string
 		RecipeListID     string
+		UserID           string
 		RecipeID         string
 		Input            *types.RecipeListItemUpdateRequestInput
 	}{
 		Ctx:              ctx,
 		RecipeListItemID: recipeListItemID,
 		RecipeListID:     recipeListID,
+		UserID:           userID,
 		RecipeID:         recipeID,
 		Input:            input,
 	}
 	mock.lockUpdateRecipeListItem.Lock()
 	mock.calls.UpdateRecipeListItem = append(mock.calls.UpdateRecipeListItem, callInfo)
 	mock.lockUpdateRecipeListItem.Unlock()
-	return mock.UpdateRecipeListItemFunc(ctx, recipeListItemID, recipeListID, recipeID, input)
+	return mock.UpdateRecipeListItemFunc(ctx, recipeListItemID, recipeListID, userID, recipeID, input)
 }
 
 // UpdateRecipeListItemCalls gets all the calls that were made to UpdateRecipeListItem.
@@ -11853,6 +11881,7 @@ func (mock *MealPlanningManagerMock) UpdateRecipeListItemCalls() []struct {
 	Ctx              context.Context
 	RecipeListItemID string
 	RecipeListID     string
+	UserID           string
 	RecipeID         string
 	Input            *types.RecipeListItemUpdateRequestInput
 } {
@@ -11860,6 +11889,7 @@ func (mock *MealPlanningManagerMock) UpdateRecipeListItemCalls() []struct {
 		Ctx              context.Context
 		RecipeListItemID string
 		RecipeListID     string
+		UserID           string
 		RecipeID         string
 		Input            *types.RecipeListItemUpdateRequestInput
 	}

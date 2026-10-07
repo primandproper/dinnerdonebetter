@@ -133,13 +133,13 @@ type (
 		RecipeImageUpload(ctx context.Context) error
 
 		// Recipe lists
-		ListRecipeLists(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.RecipeList], error)
-		AddRecipeToRecipeList(ctx context.Context, recipeListID, recipeID, notes string) (*types.RecipeListItem, error)
-		RemoveRecipeFromRecipeList(ctx context.Context, recipeListID, recipeListItemID string) error
-		ListRecipeListItems(ctx context.Context, recipeListID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.RecipeListItem], error)
+		ListRecipeLists(ctx context.Context, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.RecipeList], error)
+		AddRecipeToRecipeList(ctx context.Context, recipeListID, userID, recipeID, notes string) (*types.RecipeListItem, error)
+		RemoveRecipeFromRecipeList(ctx context.Context, recipeListID, userID, recipeListItemID string) error
+		ListRecipeListItems(ctx context.Context, recipeListID, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.RecipeListItem], error)
 		CreateRecipeList(ctx context.Context, userID string, input *types.RecipeListCreationRequestInput) (*types.RecipeList, error)
 		UpdateRecipeList(ctx context.Context, recipeListID, userID string, input *types.RecipeListUpdateRequestInput) error
-		UpdateRecipeListItem(ctx context.Context, recipeListItemID, recipeListID, recipeID string, input *types.RecipeListItemUpdateRequestInput) error
+		UpdateRecipeListItem(ctx context.Context, recipeListItemID, recipeListID, userID, recipeID string, input *types.RecipeListItemUpdateRequestInput) error
 		ArchiveRecipeList(ctx context.Context, recipeListID, userID string) error
 
 		// Recipe steps

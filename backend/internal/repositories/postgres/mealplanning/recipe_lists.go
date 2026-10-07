@@ -20,12 +20,48 @@ var (
 	_ types.RecipeListDataManager = (*repository)(nil)
 )
 
-// GetRecipeLists fetches a list of recipe lists from the database that meet a particular filter.
-func (q *repository) GetRecipeLists(ctx context.Context, filter *filtering.QueryFilter) (x *filtering.QueryFilteredResult[types.RecipeList], err error) {
+// RecipeListExists reports whether an unarchived recipe list with the given ID belongs to the given user.
+func (q *repository) RecipeListExists(ctx context.Context, recipeListID, userID string) (bool, error) {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
 	logger := q.logger.Clone()
+
+	if recipeListID == "" {
+		return false, platformerrors.ErrInvalidIDProvided
+	}
+	logger = logger.WithValue(mealplanningkeys.RecipeListIDKey, recipeListID)
+	tracing.AttachToSpan(span, mealplanningkeys.RecipeListIDKey, recipeListID)
+
+	if userID == "" {
+		return false, platformerrors.ErrInvalidIDProvided
+	}
+	logger = logger.WithValue(identitykeys.UserIDKey, userID)
+	tracing.AttachToSpan(span, identitykeys.UserIDKey, userID)
+
+	result, err := q.generatedQuerier.CheckRecipeListExistence(ctx, q.readDB, &generated.CheckRecipeListExistenceParams{
+		ID:            recipeListID,
+		BelongsToUser: userID,
+	})
+	if err != nil {
+		return false, observability.PrepareAndLogError(err, logger, span, "performing recipe list existence check")
+	}
+
+	return result, nil
+}
+
+// GetRecipeLists fetches a list of the given user's recipe lists from the database that meet a particular filter.
+func (q *repository) GetRecipeLists(ctx context.Context, userID string, filter *filtering.QueryFilter) (x *filtering.QueryFilteredResult[types.RecipeList], err error) {
+	ctx, span := q.tracer.StartSpan(ctx)
+	defer span.End()
+
+	logger := q.logger.Clone()
+
+	if userID == "" {
+		return nil, platformerrors.ErrInvalidIDProvided
+	}
+	logger = logger.WithValue(identitykeys.UserIDKey, userID)
+	tracing.AttachToSpan(span, identitykeys.UserIDKey, userID)
 
 	if filter == nil {
 		filter = filtering.DefaultQueryFilter()
@@ -52,6 +88,7 @@ func (q *repository) GetRecipeLists(ctx context.Context, filter *filtering.Query
 		PageCursor:      filterArgs.Cursor,
 		ResultLimit:     filterArgs.ResultLimit,
 		IncludeArchived: filterArgs.IncludeArchived,
+		BelongsToUser:   userID,
 	})
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "executing recipe lists list retrieval query")

@@ -407,7 +407,7 @@ var _ mealplanning.Repository = &RepositoryMock{}
 //			GetRecipeListItemsFunc: func(ctx context.Context, recipeListID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.RecipeListItem], error) {
 //				panic("mock out the GetRecipeListItems method")
 //			},
-//			GetRecipeListsFunc: func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.RecipeList], error) {
+//			GetRecipeListsFunc: func(ctx context.Context, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.RecipeList], error) {
 //				panic("mock out the GetRecipeLists method")
 //			},
 //			GetRecipeMediaFunc: func(ctx context.Context, recipeMediaID string) (*mealplanning.RecipeMedia, error) {
@@ -715,6 +715,9 @@ var _ mealplanning.Repository = &RepositoryMock{}
 //			},
 //			RecipeExistsFunc: func(ctx context.Context, recipeID string) (bool, error) {
 //				panic("mock out the RecipeExists method")
+//			},
+//			RecipeListExistsFunc: func(ctx context.Context, recipeListID string, userID string) (bool, error) {
+//				panic("mock out the RecipeListExists method")
 //			},
 //			RecipeMediaExistsFunc: func(ctx context.Context, recipeMediaID string) (bool, error) {
 //				panic("mock out the RecipeMediaExists method")
@@ -1366,7 +1369,7 @@ type RepositoryMock struct {
 	GetRecipeListItemsFunc func(ctx context.Context, recipeListID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.RecipeListItem], error)
 
 	// GetRecipeListsFunc mocks the GetRecipeLists method.
-	GetRecipeListsFunc func(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.RecipeList], error)
+	GetRecipeListsFunc func(ctx context.Context, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.RecipeList], error)
 
 	// GetRecipeMediaFunc mocks the GetRecipeMedia method.
 	GetRecipeMediaFunc func(ctx context.Context, recipeMediaID string) (*mealplanning.RecipeMedia, error)
@@ -1673,6 +1676,9 @@ type RepositoryMock struct {
 
 	// RecipeExistsFunc mocks the RecipeExists method.
 	RecipeExistsFunc func(ctx context.Context, recipeID string) (bool, error)
+
+	// RecipeListExistsFunc mocks the RecipeListExists method.
+	RecipeListExistsFunc func(ctx context.Context, recipeListID string, userID string) (bool, error)
 
 	// RecipeMediaExistsFunc mocks the RecipeMediaExists method.
 	RecipeMediaExistsFunc func(ctx context.Context, recipeMediaID string) (bool, error)
@@ -2996,6 +3002,8 @@ type RepositoryMock struct {
 		GetRecipeLists []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
+			// UserID is the userID argument value.
+			UserID string
 			// Filter is the filter argument value.
 			Filter *filtering.QueryFilter
 		}
@@ -3836,6 +3844,15 @@ type RepositoryMock struct {
 			Ctx context.Context
 			// RecipeID is the recipeID argument value.
 			RecipeID string
+		}
+		// RecipeListExists holds details about calls to the RecipeListExists method.
+		RecipeListExists []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// RecipeListID is the recipeListID argument value.
+			RecipeListID string
+			// UserID is the userID argument value.
+			UserID string
 		}
 		// RecipeMediaExists holds details about calls to the RecipeMediaExists method.
 		RecipeMediaExists []struct {
@@ -4777,6 +4794,7 @@ type RepositoryMock struct {
 	lockMealPlanTaskExists                                   sync.RWMutex
 	lockMealPlanTaskNotificationHasBeenSent                  sync.RWMutex
 	lockRecipeExists                                         sync.RWMutex
+	lockRecipeListExists                                     sync.RWMutex
 	lockRecipeMediaExists                                    sync.RWMutex
 	lockRecipePrepTaskExists                                 sync.RWMutex
 	lockRecipeRatingExists                                   sync.RWMutex
@@ -9798,21 +9816,23 @@ func (mock *RepositoryMock) GetRecipeListItemsCalls() []struct {
 }
 
 // GetRecipeLists calls GetRecipeListsFunc.
-func (mock *RepositoryMock) GetRecipeLists(ctx context.Context, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.RecipeList], error) {
+func (mock *RepositoryMock) GetRecipeLists(ctx context.Context, userID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[mealplanning.RecipeList], error) {
 	if mock.GetRecipeListsFunc == nil {
 		panic("RepositoryMock.GetRecipeListsFunc: method is nil but Repository.GetRecipeLists was just called")
 	}
 	callInfo := struct {
 		Ctx    context.Context
+		UserID string
 		Filter *filtering.QueryFilter
 	}{
 		Ctx:    ctx,
+		UserID: userID,
 		Filter: filter,
 	}
 	mock.lockGetRecipeLists.Lock()
 	mock.calls.GetRecipeLists = append(mock.calls.GetRecipeLists, callInfo)
 	mock.lockGetRecipeLists.Unlock()
-	return mock.GetRecipeListsFunc(ctx, filter)
+	return mock.GetRecipeListsFunc(ctx, userID, filter)
 }
 
 // GetRecipeListsCalls gets all the calls that were made to GetRecipeLists.
@@ -9821,10 +9841,12 @@ func (mock *RepositoryMock) GetRecipeLists(ctx context.Context, filter *filterin
 //	len(mockedRepository.GetRecipeListsCalls())
 func (mock *RepositoryMock) GetRecipeListsCalls() []struct {
 	Ctx    context.Context
+	UserID string
 	Filter *filtering.QueryFilter
 } {
 	var calls []struct {
 		Ctx    context.Context
+		UserID string
 		Filter *filtering.QueryFilter
 	}
 	mock.lockGetRecipeLists.RLock()
@@ -13750,6 +13772,46 @@ func (mock *RepositoryMock) RecipeExistsCalls() []struct {
 	mock.lockRecipeExists.RLock()
 	calls = mock.calls.RecipeExists
 	mock.lockRecipeExists.RUnlock()
+	return calls
+}
+
+// RecipeListExists calls RecipeListExistsFunc.
+func (mock *RepositoryMock) RecipeListExists(ctx context.Context, recipeListID string, userID string) (bool, error) {
+	if mock.RecipeListExistsFunc == nil {
+		panic("RepositoryMock.RecipeListExistsFunc: method is nil but Repository.RecipeListExists was just called")
+	}
+	callInfo := struct {
+		Ctx          context.Context
+		RecipeListID string
+		UserID       string
+	}{
+		Ctx:          ctx,
+		RecipeListID: recipeListID,
+		UserID:       userID,
+	}
+	mock.lockRecipeListExists.Lock()
+	mock.calls.RecipeListExists = append(mock.calls.RecipeListExists, callInfo)
+	mock.lockRecipeListExists.Unlock()
+	return mock.RecipeListExistsFunc(ctx, recipeListID, userID)
+}
+
+// RecipeListExistsCalls gets all the calls that were made to RecipeListExists.
+// Check the length with:
+//
+//	len(mockedRepository.RecipeListExistsCalls())
+func (mock *RepositoryMock) RecipeListExistsCalls() []struct {
+	Ctx          context.Context
+	RecipeListID string
+	UserID       string
+} {
+	var calls []struct {
+		Ctx          context.Context
+		RecipeListID string
+		UserID       string
+	}
+	mock.lockRecipeListExists.RLock()
+	calls = mock.calls.RecipeListExists
+	mock.lockRecipeListExists.RUnlock()
 	return calls
 }
 

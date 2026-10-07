@@ -42,6 +42,16 @@ func buildSessionContextForTest(t *testing.T) context.Context {
 	})
 }
 
+// sessionUserIDForTest is the requester a context from buildSessionContextForTest carries.
+func sessionUserIDForTest(t *testing.T, ctx context.Context) string {
+	t.Helper()
+
+	sessionContextData, err := sessions.RequireFromContext(ctx)
+	require.NoError(t, err)
+
+	return sessionContextData.GetUserID()
+}
+
 func TestServiceImpl_ArchiveMeal(T *testing.T) {
 	T.Parallel()
 
