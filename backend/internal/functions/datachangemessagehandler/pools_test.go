@@ -53,7 +53,6 @@ func buildTestPoolsHandler(t *testing.T, consumerProvider messagequeue.ConsumerP
 	queues := queuescfg.Config{
 		DataChangesTopicName:         "data-changes",
 		OutboundEmailsTopicName:      "outbound-emails",
-		SearchIndexRequestsTopicName: "search-index-requests",
 		MobileNotificationsTopicName: "mobile-notifications",
 		QueuedMailTopicName:          "queued-mail",
 	}

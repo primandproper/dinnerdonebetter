@@ -23,21 +23,19 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// TestAdmin_BanningUsers pins a ban on this application's HTTP routes. That the gRPC surface
+// refuses a banned caller is conformance/identity's.
 func TestAdmin_BanningUsers(T *testing.T) {
 	T.Parallel()
 
-	T.Run("standard", func(t *testing.T) {
+	T.Run("a ban reaches the HTTP routes too", func(t *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
-		createdUser, testClient := createUserAndClientForTest(t)
+		createdUser, _ := createUserAndClientForTest(t)
 		token, err := loginForConformance(ctx, createdUser, "")
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, privacyRequestsStatusFor(t, token), "the control: the HTTP routes admit this caller before the ban")
-
-		authStatus, err := testClient.GetAuthStatus(ctx, &signinpb.GetAuthStatusRequest{})
-		require.NoError(t, err)
-		require.NotNil(t, authStatus)
 
 		_, err = adminClient.IdentityService().UpdateUserAccountStatus(ctx, &identitypb.UpdateUserAccountStatusRequest{
 			UserId:      createdUser.ID,
@@ -46,27 +44,12 @@ func TestAdmin_BanningUsers(T *testing.T) {
 		})
 		require.NoError(t, err)
 
-		// A ban takes effect on the next request, on every surface at once: the read every
-		// authenticated request makes refuses a status that does not admit signing in, so
-		// this session is not merely marked — it stops resolving. PermissionDenied rather
-		// than Unauthenticated, because the token is genuine and refreshing it would not help.
-		_, err = testClient.GetAuthStatus(ctx, &signinpb.GetAuthStatusRequest{})
-		require.Error(t, err)
-		assert.Equal(t, codes.PermissionDenied, status.Code(err))
-
-		// And on the HTTP routes, which would otherwise be the way around it.
+		// A ban takes effect on the next request, and the HTTP routes would otherwise be the
+		// way around it.
 		assert.Equal(t, http.StatusForbidden, privacyRequestsStatusFor(t, token))
-
-		banned, err := adminClient.IdentityService().GetUser(ctx, &identitypb.GetUserRequest{UserId: createdUser.ID})
-		require.NoError(t, err)
-		assert.Equal(t, identitypb.AccountStatus_ACCOUNT_STATUS_BANNED, banned.GetUser().GetAccountStatus())
 	})
 }
 
-// TestAdmin_UserImpersonation pins this application's half of impersonation: who may ask for a
-// token (an operator holding imitate.user, and nobody acting through one already), that the token
-// acts as the subject in the account it names, and that what it does is recorded as the
-// operator's. The token itself — its claims, its lifetime, its login — is platform's.
 // TestAdmin_OperatorGrantsRideOnlyOnTheAdministrativeDoor pins the claim that decides whether a
 // token carries an operator's grants: the administrative door sets it, and every other door does
 // not, whatever service roles the person holds.
@@ -103,6 +86,10 @@ func TestAdmin_OperatorGrantsRideOnlyOnTheAdministrativeDoor(T *testing.T) {
 	})
 }
 
+// TestAdmin_UserImpersonation pins this application's half of impersonation: who may ask for a
+// token (an operator holding imitate.user, and nobody acting through one already), that the token
+// acts as the subject in the account it names, and that what it does is recorded as the
+// operator's. The token itself — its claims, its lifetime, its login — is platform's.
 func TestAdmin_UserImpersonation(T *testing.T) {
 	T.Parallel()
 
@@ -193,12 +180,13 @@ func TestAdmin_UserImpersonation(T *testing.T) {
 	})
 }
 
-// TestAdmin_ForcedPasswordChange pins what a user told to change their password may still
-// do: learn who they are and change it, on either surface, and nothing else.
+// TestAdmin_ForcedPasswordChange pins what a user told to change their password may still do
+// beyond what conformance/signin asserts: read their principal, and reach no HTTP route. That
+// the change is reported and every other gRPC call refused until it is made is the suite's.
 func TestAdmin_ForcedPasswordChange(T *testing.T) {
 	T.Parallel()
 
-	T.Run("the caller may read who they are, and nothing else", func(t *testing.T) {
+	T.Run("the caller may read who they are, and no HTTP route", func(t *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
@@ -215,12 +203,6 @@ func TestAdmin_ForcedPasswordChange(T *testing.T) {
 		principal, err := testClient.IdentityService().GetPrincipal(ctx, &identitypb.GetPrincipalRequest{})
 		require.NoError(t, err)
 		assert.Equal(t, user.ID, principal.GetPrincipal().GetUser().GetId())
-
-		_, err = testClient.GetAuthStatus(ctx, &signinpb.GetAuthStatusRequest{})
-		require.NoError(t, err)
-
-		_, err = testClient.WebhooksService().ListEndpoints(ctx, &webhookspb.ListEndpointsRequest{})
-		assert.Equal(t, codes.FailedPrecondition, status.Code(err))
 
 		// No HTTP route is the change, so every one is refused.
 		assert.Equal(t, http.StatusForbidden, privacyRequestsStatusFor(t, token))

@@ -35,10 +35,9 @@ type (
 	Config struct {
 		_ struct{} `json:"-" yaml:"-"`
 
-		DataChangesTopicName         string `env:"DATA_CHANGES_TOPIC_NAME"          json:"dataChangesTopicName,omitempty"         yaml:"dataChangesTopicName,omitempty"`
-		OutboundEmailsTopicName      string `env:"OUTBOUND_EMAILS_TOPIC_NAME"       json:"outboundEmailsTopicName,omitempty"      yaml:"outboundEmailsTopicName,omitempty"`
-		SearchIndexRequestsTopicName string `env:"SEARCH_INDEX_REQUESTS_TOPIC_NAME" json:"searchIndexRequestsTopicName,omitempty" yaml:"searchIndexRequestsTopicName,omitempty"`
-		MobileNotificationsTopicName string `env:"MOBILE_NOTIFICATIONS_TOPIC_NAME"  json:"mobileNotificationsTopicName,omitempty" yaml:"mobileNotificationsTopicName,omitempty"`
+		DataChangesTopicName         string `env:"DATA_CHANGES_TOPIC_NAME"         json:"dataChangesTopicName,omitempty"         yaml:"dataChangesTopicName,omitempty"`
+		OutboundEmailsTopicName      string `env:"OUTBOUND_EMAILS_TOPIC_NAME"      json:"outboundEmailsTopicName,omitempty"      yaml:"outboundEmailsTopicName,omitempty"`
+		MobileNotificationsTopicName string `env:"MOBILE_NOTIFICATIONS_TOPIC_NAME" json:"mobileNotificationsTopicName,omitempty" yaml:"mobileNotificationsTopicName,omitempty"`
 		// QueuedMailTopicName is the mail Drainer's topic, and nothing else's: every message on
 		// it carries the secret its mail exists to deliver.
 		QueuedMailTopicName string `env:"QUEUED_MAIL_TOPIC_NAME" json:"queuedMailTopicName,omitempty" yaml:"queuedMailTopicName,omitempty"`
@@ -52,7 +51,6 @@ func (c *Config) ValidateWithContext(ctx context.Context) error {
 	return validation.ValidateStructWithContext(ctx, c,
 		validation.Field(&c.DataChangesTopicName, validation.Required),
 		validation.Field(&c.OutboundEmailsTopicName, validation.Required),
-		validation.Field(&c.SearchIndexRequestsTopicName, validation.Required),
 		validation.Field(&c.MobileNotificationsTopicName, validation.Required),
 		validation.Field(&c.QueuedMailTopicName, validation.Required),
 	)

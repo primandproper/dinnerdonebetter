@@ -272,8 +272,10 @@ interceptor and only renders what it resolved.
    ending their logins.
 5. **Build the session**: `SessionBuilder.SessionForPrincipal`, which turns the resolved
    principal's role names into permissions. It reads nothing; the extractor already did.
-6. **Permissions**: the method's required permissions, from the aggregated table in
-   `internal/build/services/api/grpc/extras.go`. A method no table names is denied.
+6. **Permissions**: primitives' authorization `Enforcer`, the next interceptor in both the unary
+   and the stream chain, checks the method's required permissions against the session's grants,
+   from the aggregated table in `internal/build/services/api/grpc/extras.go`. A method no table
+   names is denied. `AuthInterceptor` itself decides only who is calling.
 
 The HTTP routes resolve their caller the same way, through `AuthInterceptor.HTTPMiddleware`.
 

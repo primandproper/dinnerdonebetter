@@ -12,15 +12,12 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 // The billing surface's behavior — the catalog, subscription reads, confinement to an account and
 // a tenant — is asserted by platform's billing conformance suite, run against this deployment in
 // conformance_test.go, and its reach without a caller by the anonymous suite. What remains here
-// is this application's own: that the catalog is a service admin's to write, the product
-// validation the suite does not reach, and the audit entries its store records.
+// is this application's own: the audit entries its store records.
 //
 // The billing surface is platform's, and it is two RPCs shorter than the one it replaced.
 //
@@ -97,16 +94,6 @@ func createSubscriptionForTest(t *testing.T, productID, accountID string) *billi
 	return created
 }
 
-// requireGRPCCode is the assertion that a refusal was the right one, not merely
-// a refusal: the billing store's sentinels are mapped onto codes so that a
-// client can tell a malformed product from a broken server.
-func requireGRPCCode(t *testing.T, err error, expected codes.Code) {
-	t.Helper()
-
-	require.Error(t, err)
-	assert.Equal(t, expected, status.Code(err), "expected %s, got %v", expected, err)
-}
-
 func TestPayments_ArchiveSubscription(T *testing.T) {
 	T.Parallel()
 
@@ -122,10 +109,8 @@ func TestPayments_ArchiveSubscription(T *testing.T) {
 		_, err := adminClient.ArchiveSubscription(ctx, &billingpb.ArchiveSubscriptionRequest{SubscriptionId: created.ID})
 		require.NoError(t, err)
 
-		res, err := adminClient.GetSubscription(ctx, &billingpb.GetSubscriptionRequest{SubscriptionId: created.ID})
-		assert.Nil(t, res)
-		requireGRPCCode(t, err, codes.NotFound)
-
+		// That the archived subscription is withdrawn is conformance/billing's; the entries are
+		// this deployment's.
 		AssertAuditLogContainsFuzzy(t, ctx, accountClient, accountID, 15, []*ExpectedAuditEntry{
 			{EventType: "created", ResourceType: billing.ResourceTypeSubscription, RelevantID: created.ID},
 			{EventType: "archived", ResourceType: billing.ResourceTypeSubscription, RelevantID: created.ID},

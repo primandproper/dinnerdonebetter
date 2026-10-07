@@ -58,53 +58,19 @@ func endpointInputForTest(t *testing.T) *webhookspb.WebhookEndpointInput {
 	}
 }
 
-func checkEndpointEquality(t *testing.T, expected *webhookspb.WebhookEndpointInput, actual *webhookspb.WebhookEndpoint) {
-	t.Helper()
-
-	assert.NotEmpty(t, actual.GetId(), "expected endpoint to have ID")
-	assert.NotNil(t, actual.GetCreatedAt(), "expected endpoint to have CreatedAt")
-
-	assert.Equal(t, expected.GetName(), actual.GetName(), "expected endpoint Name")
-	assert.Equal(t, expected.GetUrl(), actual.GetUrl(), "expected endpoint URL")
-
-	// The subscriptions the input asked for are the subscriptions the endpoint has, each with
-	// an id of its own — which is what makes one removable without rewriting the endpoint.
-	require.Len(t, actual.GetSubscriptions(), len(expected.GetEventTypes()), "expected endpoint subscriptions length")
-	for i, eventType := range expected.GetEventTypes() {
-		if i >= len(actual.GetSubscriptions()) {
-			continue
-		}
-
-		subscription := actual.GetSubscriptions()[i]
-		assert.NotEmpty(t, subscription.GetId(), "expected subscription %d to have ID", i)
-		assert.NotNil(t, subscription.GetCreatedAt(), "expected subscription %d to have CreatedAt", i)
-		assert.Equal(t, eventType, subscription.GetEventType(), "expected subscription %d EventType", i)
-		assert.Equal(t, actual.GetId(), subscription.GetEndpointId(), "expected subscription %d EndpointID", i)
-	}
-}
-
-// createWebhookForTest registers one endpoint and reads it back.
+// createWebhookForTest registers one endpoint. What the save answers, and that it reads back
+// the same, is conformance/webhooks'.
 func createWebhookForTest(t *testing.T, testClient client.Client) *webhookspb.WebhookEndpoint {
 	t.Helper()
-	ctx := t.Context()
 
-	input := endpointInputForTest(t)
-
-	saved, err := testClient.WebhooksService().SaveEndpoint(ctx, &webhookspb.SaveEndpointRequest{
-		Endpoint:    input,
+	saved, err := testClient.WebhooksService().SaveEndpoint(t.Context(), &webhookspb.SaveEndpointRequest{
+		Endpoint:    endpointInputForTest(t),
 		SigningKeys: signingSecretForTest(),
 	})
 	require.NoError(t, err)
-	checkEndpointEquality(t, input, saved.GetResult())
+	require.NotNil(t, saved.GetResult())
 
-	retrieved, err := testClient.WebhooksService().GetEndpoint(ctx, &webhookspb.GetEndpointRequest{
-		EndpointId: saved.GetResult().GetId(),
-	})
-	require.NoError(t, err)
-	require.NotNil(t, retrieved.GetResult())
-	checkEndpointEquality(t, input, retrieved.GetResult())
-
-	return retrieved.GetResult()
+	return saved.GetResult()
 }
 
 func TestWebhooks_Creating(T *testing.T) {

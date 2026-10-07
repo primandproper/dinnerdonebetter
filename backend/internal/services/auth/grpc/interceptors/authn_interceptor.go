@@ -43,21 +43,24 @@ const (
 // does not know how to render a session for.
 var errNoIdentity = errors.New("the caller carries no identity to build a session from")
 
-// AuthInterceptor resolves who is calling and decides whether they may call the method.
+// AuthInterceptor resolves who is calling.
 //
 // Who is calling is platform's: signingrpc.PrincipalExtractor verifies the bearer, checks its
 // login is still live, reads the principal, refuses a user whose status does not admit sign-in,
 // grants service roles only to a token minted through the administrative door, stands an
 // impersonation's operator, falls back to an OAuth2 access token through oauth2server.Verifier,
 // and holds a caller who owes a forced password change at the form. What is left here is what
-// was never platform's: rendering that principal as this application's session, and the method
-// permission table.
+// was never platform's: rendering that principal as this application's session.
+//
+// What the caller may do is not decided here. The method permission table is enforced by
+// primitives' authorization Enforcer, which runs after this interceptor in both the unary and the
+// stream chain and reads the grants on the session this one attached. See
+// internal/build/services/api/grpc. The table is read here only to declare which methods exist.
 type AuthInterceptor struct {
 	logger                logging.Logger
 	extractor             *signingrpc.PrincipalExtractor
 	requirements          *signingrpc.AuthenticationRequirements
 	sessions              *identitybuild.SessionBuilder
-	methodPermissions     map[string][]authorization.Permission
 	unauthenticatedRoutes []string
 	optionalRoutes        []string
 }
@@ -106,7 +109,6 @@ func ProvideAuthInterceptor(
 		extractor:             extractor,
 		requirements:          requirements,
 		sessions:              sessionBuilder,
-		methodPermissions:     aggregatedPermissions,
 		unauthenticatedRoutes: unauthenticatedRoutes,
 		optionalRoutes:        optionalRoutes,
 	}, nil
@@ -160,8 +162,8 @@ func Unauthenticated(msg string) error {
 	return status.Error(codes.Unauthenticated, msg)
 }
 
-// UnaryServerInterceptor resolves the caller through the extractor, then renders their session
-// and checks the method's permissions.
+// UnaryServerInterceptor resolves the caller through the extractor, then renders and attaches
+// their session.
 //
 // A public method never reaches the extractor: it reads no credential, so there is nothing to
 // resolve, and a server built without one — a test's — can still serve it.
@@ -229,8 +231,8 @@ func (s *AuthInterceptor) StreamServerInterceptor() grpc.StreamServerInterceptor
 	}
 }
 
-// authorize renders the caller the extractor put on ctx as this application's session, checks
-// the method's permissions, and attaches the session.
+// authorize renders the caller the extractor put on ctx as this application's session and
+// attaches it.
 //
 // The extractor has already refused a required method's anonymous caller, so a context with
 // nobody on it here is an optional method. A visitor goes on as one. A caller who sent a token the
@@ -239,9 +241,6 @@ func (s *AuthInterceptor) StreamServerInterceptor() grpc.StreamServerInterceptor
 // difference is the point of GetAuthStatus — a client whose access token has expired has to be
 // told so, so that it refreshes, and not told that it is signed out — and of Register, where a
 // signed-in operator's registration must not quietly become a stranger's.
-//
-// No permission is asked on an optional method: they are public by design, and what a caller may
-// do on them is the handler's to decide from the session when there is one.
 func (s *AuthInterceptor) authorize(ctx context.Context, method string) (context.Context, error) {
 	principal, ok := signingrpc.PrincipalFromContext(ctx)
 	if !ok {
@@ -256,10 +255,6 @@ func (s *AuthInterceptor) authorize(ctx context.Context, method string) (context
 	if err != nil {
 		s.logger.WithValue("grpc.method", method).Error("building session context data", err)
 		return ctx, status.Error(codes.Internal, "building session context data for user")
-	}
-
-	if !slices.Contains(s.optionalRoutes, method) && !s.permitted(method, session) {
-		return ctx, status.Error(codes.PermissionDenied, "permission denied")
 	}
 
 	return sessions.AttachToContext(ctx, session), nil
@@ -279,25 +274,6 @@ func carriesCredential(ctx context.Context) bool {
 	}
 
 	return false
-}
-
-// permitted reports whether the session holds every permission the method requires, from the
-// service role or the active account's membership. A method the table does not name is refused.
-func (s *AuthInterceptor) permitted(method string, session *sessions.ContextData) bool {
-	required, declared := s.methodPermissions[method]
-	if !declared {
-		s.logger.WithValue("grpc.method", method).Info("missing required permissions for method")
-		return false
-	}
-
-	for _, permission := range required {
-		if !session.ServiceRolePermissionChecker().HasPermission(permission) &&
-			!session.AccountRolePermissionsChecker().HasPermission(permission) {
-			return false
-		}
-	}
-
-	return true
 }
 
 // sessionFor renders a resolved principal as session context.

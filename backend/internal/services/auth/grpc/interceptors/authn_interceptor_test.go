@@ -17,6 +17,7 @@ import (
 	"github.com/primandproper/platform-go/v15/authentication/signin/signinpb"
 	platformidentity "github.com/primandproper/platform-go/v15/identity"
 	"github.com/primandproper/primitives-go/v2/authentication/tokens/jwt"
+	authzgrpc "github.com/primandproper/primitives-go/v2/authorization/grpc"
 	"github.com/primandproper/primitives-go/v2/authorization/static"
 	"github.com/primandproper/primitives-go/v2/database"
 	databasemock "github.com/primandproper/primitives-go/v2/database/mock"
@@ -62,11 +63,13 @@ func (d *fakeDirectory) GetPrincipal(_ context.Context, _ database.SQLQueryExecu
 }
 
 // interceptorHarness is an AuthInterceptor over platform's real extractor and a real JWT signer,
-// with only the directory faked.
+// with only the directory faked, followed by an authorization Enforcer over the same table, as
+// the server chains them.
 type interceptorHarness struct {
 	signer      *jwt.Signer
 	directory   *fakeDirectory
 	interceptor *AuthInterceptor
+	enforcer    *authzgrpc.Enforcer
 }
 
 func newInterceptorHarness(t *testing.T) *interceptorHarness {
@@ -90,15 +93,37 @@ func newInterceptorHarness(t *testing.T) *interceptorHarness {
 	builder, err := identitybuild.NewSessionBuilder(policy, nil)
 	require.NoError(t, err)
 
-	interceptor, err := ProvideAuthInterceptor(loggingnoop.NewLogger(), extractor, builder, MethodPermissionsMap{
+	table := MethodPermissionsMap{
 		operatorMethod: {authorization.ImpersonateUserPermission},
 		personalMethod: {authorization.ReadMediaObjectsPermission},
 		accountMethod:  {authorization.ReadAuditLogEntriesPermission},
 		signinpb.SignInService_UpdatePassword_FullMethodName: {},
-	})
+	}
+
+	interceptor, err := ProvideAuthInterceptor(loggingnoop.NewLogger(), extractor, builder, table)
 	require.NoError(t, err)
 
-	return &interceptorHarness{signer: signer, directory: directory, interceptor: interceptor}
+	requirements := authzgrpc.NewRequirements()
+	for method, perms := range table {
+		if len(perms) == 0 {
+			requirements.Public(method)
+			continue
+		}
+		requirements.Require(method, authorization.ToPlatformPermissions(perms)...)
+	}
+	for _, method := range interceptor.UnauthenticatedRoutes() {
+		if _, declared := table[method]; !declared {
+			requirements.Public(method)
+		}
+	}
+
+	built, err := requirements.Build()
+	require.NoError(t, err)
+
+	enforcer, err := authzgrpc.NewEnforcer(built, sessions.GrantsFromContext)
+	require.NoError(t, err)
+
+	return &interceptorHarness{signer: signer, directory: directory, interceptor: interceptor, enforcer: enforcer}
 }
 
 // addUser puts somebody in the directory, a member of one account, holding the service roles
@@ -149,7 +174,8 @@ func (h *interceptorHarness) tokenFor(t *testing.T, principal *platformidentity.
 	return token
 }
 
-// call makes one unary call to method with token, and returns the session the handler saw.
+// call makes one unary call to method with token through the interceptor and then the enforcer,
+// and returns the session the handler saw.
 func (h *interceptorHarness) call(t *testing.T, method, token string) (*sessions.ContextData, error) {
 	t.Helper()
 
@@ -158,10 +184,15 @@ func (h *interceptorHarness) call(t *testing.T, method, token string) (*sessions
 		ctx = metadata.NewIncomingContext(ctx, metadata.Pairs("authorization", "Bearer "+token))
 	}
 
+	info := &grpc.UnaryServerInfo{FullMethod: method}
+	enforce := h.enforcer.UnaryServerInterceptor()
+
 	var seen *sessions.ContextData
-	_, err := h.interceptor.UnaryServerInterceptor()(ctx, nil, &grpc.UnaryServerInfo{FullMethod: method}, func(ctx context.Context, _ any) (any, error) {
-		seen = sessions.FromContext(ctx)
-		return nil, nil
+	_, err := h.interceptor.UnaryServerInterceptor()(ctx, nil, info, func(ctx context.Context, req any) (any, error) {
+		return enforce(ctx, req, info, func(ctx context.Context, _ any) (any, error) {
+			seen = sessions.FromContext(ctx)
+			return nil, nil
+		})
 	})
 
 	return seen, err
@@ -216,6 +247,28 @@ func TestAuthInterceptor_UnaryServerInterceptor(T *testing.T) {
 		for _, permission := range authorization.ServiceDataAdminPermissions {
 			assert.False(t, session.ServiceRolePermissionChecker().HasPermission(permission), permission)
 		}
+	})
+
+	T.Run("leaves the permission to the enforcer", func(t *testing.T) {
+		t.Parallel()
+
+		h := newInterceptorHarness(t)
+		operator := h.addUser(authorization.ServiceAdminRoleName)
+		token := h.tokenFor(t, operator, false, "")
+		ctx := metadata.NewIncomingContext(t.Context(), metadata.Pairs("authorization", "Bearer "+token))
+
+		// The interceptor alone admits a caller the enforcer refuses: who is calling is its
+		// question, and what they may do is the enforcer's.
+		called := false
+		_, err := h.interceptor.UnaryServerInterceptor()(ctx, nil, &grpc.UnaryServerInfo{FullMethod: operatorMethod}, func(context.Context, any) (any, error) {
+			called = true
+			return nil, nil
+		})
+		require.NoError(t, err)
+		assert.True(t, called)
+
+		_, err = h.call(t, operatorMethod, token)
+		assert.Equal(t, codes.PermissionDenied, status.Code(err))
 	})
 
 	T.Run("an impersonation token carries only the subject's permissions", func(t *testing.T) {

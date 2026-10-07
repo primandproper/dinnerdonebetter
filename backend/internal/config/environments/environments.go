@@ -38,7 +38,6 @@ const (
 	// message provider topics.
 	dataChangesTopicName         = queuescfg.DefaultDataChangesTopicName
 	outboundEmailsTopicName      = "outbound_emails"
-	searchIndexRequestsTopicName = "search_index_requests"
 	mobileNotificationsTopicName = "mobile_notifications"
 	queuedMailTopicName          = queuescfg.DefaultQueuedMailTopicName
 )

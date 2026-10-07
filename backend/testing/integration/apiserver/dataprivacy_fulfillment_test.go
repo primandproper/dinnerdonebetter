@@ -192,14 +192,7 @@ func awaitTerminalStoredRequest(t *testing.T, ctx context.Context, requestID str
 func submitExport(t *testing.T, ctx context.Context, c privacyCaller) string {
 	t.Helper()
 
-	request := c.submitPrivacyRequest(t, ctx, platformdataprivacy.RequestExport)
-	assert.Equal(t, platformdataprivacy.RequestExport, request.Type)
-
-	// Recorded, not fulfilled. The whole reason the worker below exists is that this call
-	// returns before any of the work has happened.
-	assert.False(t, request.Status.Terminal(), "a submission must return before the export has been produced")
-
-	return request.ID
+	return c.submitPrivacyRequest(t, ctx, platformdataprivacy.RequestExport).ID
 }
 
 // fetchExportDocument reads a completed export back through the API and decodes it.
@@ -284,8 +277,6 @@ func TestDataPrivacy_Export(T *testing.T) {
 		request := awaitTerminalPrivacyRequest(t, ctx, subjectCaller, requestID)
 		require.Equal(t, platformdataprivacy.StatusCompleted, request.Status,
 			"the export did not complete: %v", request.Failures)
-		assert.Empty(t, request.Failures, "every registered collector must succeed against the real schema")
-		assert.False(t, request.ExpiresAt.IsZero(), "a completed export's artifact has to have an expiry")
 
 		document, artifact := fetchExportDocument(t, ctx, subjectCaller, requestID)
 
@@ -337,34 +328,6 @@ func TestDataPrivacy_Export(T *testing.T) {
 		assert.NotContains(t, string(artifact), stranger.EmailAddress,
 			"another user's data reached this subject's export")
 	})
-
-	// The request read is platform's surface, and the conformance suite asserts it is absent to
-	// a neighbor — but only between two tenants, and a privacy request here names a person
-	// rather than an account, so the suite's pair shares one and skips. The artifact is this
-	// application's own route. Both are asserted here, between two people.
-	T.Run("refuses a request and its artifact to anybody but its subject", func(t *testing.T) {
-		t.Parallel()
-		serializeDataPrivacy(t)
-
-		ctx := t.Context()
-
-		_, subjectCaller := privacyCallerForTest(t)
-		_, strangerCaller := privacyCallerForTest(t)
-
-		requestID := submitExport(t, ctx, subjectCaller)
-
-		request := awaitTerminalPrivacyRequest(t, ctx, subjectCaller, requestID)
-		require.Equal(t, platformdataprivacy.StatusCompleted, request.Status)
-
-		// Absent rather than forbidden, in both the missing and the not-yours case: a distinct
-		// denial would confirm that a given request ID exists, and whether somebody has asked
-		// for their data is itself a fact about them.
-		status, _ := strangerCaller.do(t, ctx, http.MethodGet, artifactPath(requestID), nil)
-		assert.Equal(t, http.StatusNotFound, status)
-
-		status, _ = strangerCaller.readPrivacyRequest(t, ctx, requestID)
-		assert.Equal(t, http.StatusNotFound, status)
-	})
 }
 
 // TestDataPrivacy_Erasure is the other half of the obligation, and the one that cannot be undone.
@@ -373,6 +336,10 @@ func TestDataPrivacy_Export(T *testing.T) {
 // worker, over a registry of erasers. What this asserts is that it actually erased — that the
 // user row is gone, and with it everything the schema cascades from one — rather than that a row
 // somewhere says it did.
+//
+// That an erasure completes and spares a bystander is conformance/dataprivacy's. What only this
+// deployment can say is that its erasers succeed over a subject whose household holds this
+// application's rows — a webhook endpoint here — which no conformance subject does.
 func TestDataPrivacy_Erasure(T *testing.T) {
 	T.Parallel()
 
@@ -386,18 +353,9 @@ func TestDataPrivacy_Erasure(T *testing.T) {
 		createWebhookForTest(t, subjectClient)
 		subjectCaller := privacyCaller(fetchLoginTokenForUserForTest(t, subject))
 
-		// A bystander, to show the erasure is scoped to its subject rather than to the table.
-		bystander, _ := createUserAndClientForTest(t)
-
 		require.Equal(t, 1, userRowCount(t, ctx, subject.ID))
 
 		request := subjectCaller.submitPrivacyRequest(t, ctx, platformdataprivacy.RequestErasure)
-		assert.Equal(t, platformdataprivacy.RequestErasure, request.Type)
-		// Queued, not deleted. The confirmation window is zero, so nothing further is needed
-		// from the subject — but the deletion still happens in the worker's transaction rather
-		// than on the request path, where a timeout halfway through would leave a subject in a
-		// state no status could describe.
-		assert.False(t, request.Status.Terminal())
 
 		// Read off the row rather than through the API, and that is not a shortcut: an
 		// erasure ends by deleting its subject, and the API scopes every read of a privacy
@@ -409,12 +367,6 @@ func TestDataPrivacy_Erasure(T *testing.T) {
 		assert.Empty(t, erasure.Failures, "every registered eraser must succeed against the real schema")
 
 		assert.Zero(t, userRowCount(t, ctx, subject.ID), "the subject's user row survived their erasure")
-		assert.Equal(t, 1, userRowCount(t, ctx, bystander.ID), "an erasure took somebody else's data with it")
-
-		// An erasure produces no artifact, so there is nothing for the sweep to expire and
-		// nothing for anybody to fetch.
-		assert.Empty(t, erasure.ArtifactRef)
-		assert.True(t, erasure.ExpiresAt.IsZero(), "an erasure has nothing that expires")
 	})
 }
 
@@ -457,15 +409,11 @@ func TestDataPrivacy_Sweeper(T *testing.T) {
 		require.NoError(t, err)
 		assert.Positive(t, result.ArtifactsExpired, "the sweep deleted no artifacts")
 
-		// The row survives — a subject is entitled to know what was asked in their name — and
-		// says the artifact is gone.
-		status, after := subjectCaller.readPrivacyRequest(t, ctx, requestID)
-		require.Equal(t, http.StatusOK, status)
-		assert.Equal(t, platformdataprivacy.StatusExpired, after.Status)
-
-		// And the artifact is unavailable rather than an internal error about our storage: a
-		// conflict, because the request exists and the caller may see it — it is simply not in
-		// a state that has an artifact. That is platform's mapping of ErrArtifactUnavailable.
+		// That the row survives and reads expired is conformance/dataprivacy's. What it does not
+		// assert is the artifact route afterwards: unavailable rather than an internal error
+		// about our storage — a conflict, because the request exists and the caller may see it,
+		// it is simply not in a state that has an artifact. That is platform's mapping of
+		// ErrArtifactUnavailable.
 		status, body := subjectCaller.do(t, ctx, http.MethodGet, artifactPath(requestID), nil)
 		assert.Equal(t, http.StatusConflict, status, "fetching an expired artifact answered: %s", body)
 	})

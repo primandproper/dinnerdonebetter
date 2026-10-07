@@ -107,7 +107,6 @@
 	"queues": {
 		"dataChangesTopicName": "data_changes",
 		"outboundEmailsTopicName": "outbound_emails",
-		"searchIndexRequestsTopicName": "search_index_requests",
 		"mobileNotificationsTopicName": "mobile_notifications",
 		"queuedMailTopicName": "queued_mail"
 	},
@@ -205,11 +204,7 @@
 				"resources": [
 					"http://localhost:9000"
 				]
-			},
-			"jwtLifetime": 300000000000,
-			"enableUserSignup": true,
-			"minimumUsernameLength": 3,
-			"minimumPasswordLength": 8
+			}
 		},
 		"dataPrivacy": {
 			"artifactEncryptionKey": "HEREISA32CHARSECRETWHICHISMADEUP",

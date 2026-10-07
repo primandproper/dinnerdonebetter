@@ -245,7 +245,6 @@ func BuildLocalDevConfig() *config.APIServiceConfig {
 		Queues: queuescfg.Config{
 			DataChangesTopicName:         dataChangesTopicName,
 			OutboundEmailsTopicName:      outboundEmailsTopicName,
-			SearchIndexRequestsTopicName: searchIndexRequestsTopicName,
 			MobileNotificationsTopicName: mobileNotificationsTopicName,
 			QueuedMailTopicName:          queuedMailTopicName,
 		},
@@ -338,10 +337,6 @@ func BuildLocalDevConfig() *config.APIServiceConfig {
 					RequestsPerSec: 10,
 					BurstSize:      50,
 				},
-				EnableUserSignup:      true,
-				MinimumUsernameLength: 3,
-				MinimumPasswordLength: 8,
-				TokenLifetime:         5 * time.Minute,
 				Tokens: authcfg.TokensConfig{
 					Config: tokenscfg.Config{
 						Provider:                tokenscfg.ProviderPASETO,

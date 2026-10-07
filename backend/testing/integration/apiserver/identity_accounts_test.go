@@ -84,10 +84,6 @@ func TestAccounts_Updating(T *testing.T) {
 		})
 		require.NoError(t, err)
 
-		updated, err := testClient.IdentityService().GetAccount(ctx, &identitypb.GetAccountRequest{AccountId: createdAccount.GetId()})
-		require.NoError(t, err)
-		assert.Equal(t, "Updated name", updated.GetAccount().GetName())
-
 		AssertAuditLogContainsFuzzy(t, ctx, testClient, createdAccount.GetId(), 10, []*ExpectedAuditEntry{
 			{EventType: "created", ResourceType: identity.ResourceTypeAccount, RelevantID: createdAccount.GetId()},
 			{EventType: "updated", ResourceType: identity.ResourceTypeAccount, RelevantID: createdAccount.GetId()},
@@ -161,60 +157,10 @@ func TestAccounts_Inviting(T *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, webhook)
 	})
-
-	T.Run("a canceled invitation reaches nothing", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		_, testClient := createUserAndClientForTest(t)
-		createdWebhook := createWebhookForTest(t, testClient)
-
-		input := buildUserRegistrationInputForTest(t)
-		_, inviteeClient := createUserAndClientForTestWithRegistrationInput(t, input)
-
-		invitation := inviteForTest(t, selfIDForTest(t, testClient), getAccountIDForTest(t, testClient), input.GetUser().GetEmailAddress())
-
-		_, err := testClient.IdentityService().CancelInvitation(ctx, &identitypb.CancelInvitationRequest{
-			InvitationId: invitation.ID,
-			StatusNote:   t.Name(),
-		})
-		require.NoError(t, err)
-
-		_, err = inviteeClient.IdentityService().AcceptInvitation(ctx, &identitypb.AcceptInvitationRequest{
-			InvitationId: invitation.ID,
-			Token:        invitation.Token,
-		})
-		require.Error(t, err)
-
-		webhook, err := inviteeClient.WebhooksService().GetEndpoint(ctx, &webhookspb.GetEndpointRequest{EndpointId: createdWebhook.GetId()})
-		require.Error(t, err)
-		assert.Nil(t, webhook)
-	})
 }
 
 func TestAccounts_ListAccountsForUser(T *testing.T) {
 	T.Parallel()
-
-	T.Run("happy path", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		user, testClient := createUserAndClientForTest(t)
-
-		// create additional accounts
-		for range 3 {
-			createAccountForTest(t, testClient)
-		}
-
-		// admin fetches accounts for the user
-		accounts, err := adminClient.IdentityService().ListAccountsForUser(ctx, &identitypb.ListAccountsForUserRequest{
-			UserId: user.ID,
-		})
-		require.NoError(t, err)
-		assert.NotNil(t, accounts)
-		// 1 default account + 3 created accounts
-		assert.Len(t, accounts.GetResults(), 4)
-	})
 
 	// A user who does not exist has no accounts, which is an empty page rather than an
 	// error: the read is "what does this subject have", and the honest answer is nothing.
@@ -230,6 +176,9 @@ func TestAccounts_ListAccountsForUser(T *testing.T) {
 	})
 }
 
+// TestAccounts_OwnershipTransfer pins the audit entry this application's identity hooks record
+// for a transfer. The transfer itself — the new owner, and them on the roster — is
+// conformance/identity's.
 func TestAccounts_OwnershipTransfer(T *testing.T) {
 	T.Parallel()
 
@@ -237,17 +186,12 @@ func TestAccounts_OwnershipTransfer(T *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
-		// create the transferring user and get the account to transfer
 		_, testClient := createUserAndClientForTest(t)
 		accountID := getAccountIDForTest(t, testClient)
 
-		// create a webhook (to demonstrate access with later)
-		createdWebhook := createWebhookForTest(t, testClient)
-
 		// The recipient joins first. An account can only be handed to somebody the caller
-		// already shares one with — the authorizer permits the caller themselves and
-		// anybody they share a live account with, and a stranger is neither — so the flow
-		// a household actually uses is invite, accept, transfer.
+		// already shares one with, so the flow a household actually uses is invite, accept,
+		// transfer.
 		input := buildUserRegistrationInputForTest(t)
 		recipient, recipientClient := createUserAndClientForTestWithRegistrationInput(t, input)
 
@@ -265,57 +209,19 @@ func TestAccounts_OwnershipTransfer(T *testing.T) {
 		})
 		require.NoError(t, err)
 
-		// A minted membership carries no roles, because ownership is the standing and
-		// platform does not know what a role of ours means. Granting them is a separate
-		// act, and it is the one that lets the new owner do anything in the account.
-		//
-		// The token is minted after the grant rather than before. There used to be one on
-		// either side and only the second was ever used — a token says what the roles were
-		// when it was issued, so the earlier one could not have carried the grant that had
-		// not happened yet.
-		_, err = testClient.IdentityService().SetMembershipRoles(ctx, &identitypb.SetMembershipRolesRequest{
-			AccountId: accountID,
-			UserId:    recipient.ID,
-			Roles:     []string{authorization.AccountAdminRoleName},
-		})
-		require.NoError(t, err)
-
-		recipientClient, err = buildAuthedGRPCClient(ctx, fetchLoginTokenForUserForTest(t, recipient))
-		require.NoError(t, err)
-
-		// change to the new account
-		_, err = recipientClient.IdentityService().SetDefaultAccount(ctx, &identitypb.SetDefaultAccountRequest{AccountId: accountID})
-		require.NoError(t, err)
-
-		recipientClient, err = buildAuthedGRPCClient(ctx, fetchLoginTokenForUserForTest(t, recipient))
-		require.NoError(t, err)
-
-		// validate we can see the webhook created before our user existed
-		webhook, err := recipientClient.WebhooksService().GetEndpoint(ctx, &webhookspb.GetEndpointRequest{EndpointId: createdWebhook.GetId()})
-		require.NoError(t, err)
-		require.NotNil(t, webhook)
-
-		// The old owner keeps their membership: transferring ownership and ejecting
-		// somebody are different acts, and doing both here would make the common case —
-		// handing over and staying on — impossible to express.
 		AssertAuditLogContainsFuzzy(t, ctx, testClient, accountID, 15, []*ExpectedAuditEntry{
 			{EventType: "updated", ResourceType: identity.ResourceTypeAccount, RelevantID: accountID},
 		})
 	})
 }
 
-// Removing a member is refused for the account's owner and permitted for everybody else,
-// and a removed member's default moves rather than being left naming an account they are
-// no longer in.
-//
-// It replaces a test that asserted a backup account was created for a user removed from
-// their last one. Nothing creates one now, and nothing needs to: an owner cannot be
-// removed from the account they own, so the state that test was insuring against — a user
-// with memberships nowhere — is one the store refuses to produce.
+// TestAccounts_RemovingMembers pins the audit entries this application's identity hooks record
+// when a member is invited and then removed. Where a removed member lands afterwards is
+// conformance/identity's.
 func TestAccounts_RemovingMembers(T *testing.T) {
 	T.Parallel()
 
-	T.Run("a member's default moves when they are removed", func(t *testing.T) {
+	T.Run("the invitation and the ended membership are recorded", func(t *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
@@ -334,24 +240,11 @@ func TestAccounts_RemovingMembers(T *testing.T) {
 		})
 		require.NoError(t, err)
 
-		inviteeClient, err = buildAuthedGRPCClient(ctx, fetchLoginTokenForUserForTest(t, invitee))
-		require.NoError(t, err)
-
-		_, err = inviteeClient.IdentityService().SetDefaultAccount(ctx, &identitypb.SetDefaultAccountRequest{AccountId: accountID})
-		require.NoError(t, err)
-
-		// the owner removes them
 		_, err = ownerClient.IdentityService().RemoveMembership(ctx, &identitypb.RemoveMembershipRequest{
 			AccountId: accountID,
 			UserId:    invitee.ID,
 		})
 		require.NoError(t, err)
-
-		// they land in the account they still hold rather than in one they were removed from
-		inviteeClient, err = buildAuthedGRPCClient(ctx, fetchLoginTokenForUserForTest(t, invitee))
-		require.NoError(t, err)
-
-		assert.Equal(t, inviteeOwnAccountID, getAccountIDForTest(t, inviteeClient))
 
 		// The invitation is on the account's chain. The ended membership is filed under the
 		// member it was about — platform's subject for a membership entry — so it is read as

@@ -7,9 +7,10 @@ set -euo pipefail
 # 2) Build all packages (no VCS): build.sh <package_list>
 #    e.g. build.sh "$(go list ./...)"
 
-# Must track the platform-go major version the binary actually links, or every -X below silently
-# stamps a package that is not in the build and `ddb version` reports "unknown" forever.
-VERSION_PKG="github.com/primandproper/platform-go/v10/version"
+# Must name the version package the binary actually links — primitives-go's, at the primitives-go
+# major in go.mod — or every -X below silently stamps a package that is not in the build and
+# `ddb version` reports "unknown" forever. See TestBuildScriptStampsTheLinkedVersionPackage.
+VERSION_PKG="github.com/primandproper/primitives-go/v2/version"
 
 if [[ "${1:-}" == "-o" ]]; then
 	OUT="${2:?missing output path after -o}"

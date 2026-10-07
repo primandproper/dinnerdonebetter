@@ -112,12 +112,12 @@ func RegisterAuth(i do.Injector) {
 			// outlives its access token. With a store named, LoginForToken mints a rotating
 			// pair and the three refresh doors work; without one they refuse.
 			//
-			// The lifetimes are platform's defaults: an hour for an access token and thirty
-			// days for a sign-in, fifteen minutes and twelve hours for an administrative one.
-			// This application's own TokensConfig lifetimes are not reused — they are unset in
-			// every environment, which issues tokens with no lifetime at all. A sign-out still
-			// takes effect at once rather than at the end of a lifetime: every request checks
-			// the login its token names through signin.Service.CheckSignIn.
+			// The lifetimes are platform's defaults, deliberately: an hour for an access token
+			// and thirty days for a sign-in, fifteen minutes and twelve hours for an
+			// administrative one. No environment wants different ones, so there is no config
+			// for them; WithTokenTTL and its siblings are where one would go. A sign-out does
+			// not wait out a lifetime either way: every request checks the login its token
+			// names through signin.Service.CheckSignIn.
 			signin.WithRefreshTokenStore(do.MustInvoke[*refreshtokens.SQLStore](i)),
 			// The two mails platform's own doors send — a verification link, at registration
 			// and on request, and a reminder of somebody's username — are queued on the

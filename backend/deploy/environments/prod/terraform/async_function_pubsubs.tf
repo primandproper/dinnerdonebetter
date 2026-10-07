@@ -106,33 +106,6 @@ resource "google_pubsub_subscription" "dead_letter_topic" {
   }
 }
 
-resource "google_pubsub_topic" "search_index_requests_topic" {
-  name = "search_index_requests"
-}
-
-resource "google_pubsub_topic" "search_index_requests_deadletter_topic" {
-  name = "search_index_requests_deadletter"
-}
-
-resource "google_pubsub_subscription" "search_index_requests_topic" {
-  name  = google_pubsub_topic.search_index_requests_topic.name
-  topic = google_pubsub_topic.search_index_requests_topic.id
-
-  message_retention_duration = "604800s"
-  retain_acked_messages      = false
-  dead_letter_policy {
-    dead_letter_topic     = google_pubsub_topic.search_index_requests_deadletter_topic.id
-    max_delivery_attempts = 5
-  }
-
-  retry_policy {
-    minimum_backoff = "10s"
-    maximum_backoff = "600s"
-  }
-
-  enable_exactly_once_delivery = true
-}
-
 resource "google_pubsub_topic" "mobile_notifications_topic" {
   name = "mobile_notifications"
 }

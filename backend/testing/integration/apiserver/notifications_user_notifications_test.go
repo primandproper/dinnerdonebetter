@@ -59,19 +59,14 @@ func TestUserNotifications_Creating(T *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
-		user, testClient := createUserAndClientForTest(t)
+		user, _ := createUserAndClientForTest(t)
 		created := createUserNotificationForTest(t, user.ID)
 
-		retrieved, err := testClient.GetNotification(ctx, &notificationspb.GetNotificationRequest{NotificationId: created.ID})
-		require.NoError(t, err)
-		require.NotNil(t, retrieved.GetResult())
-
-		assert.Equal(t, created.Title, retrieved.GetResult().GetTitle())
-
-		// The write that put it there is in the log. Marking it read would not be, on
-		// purpose: somebody opening their own inbox is not a change anybody investigates
-		// later, and an entry per read would bury the ones that matter under the traffic
-		// of an inbox being opened. read_at is the record, and it is on the row. See
+		// That it reads back as the caller's own is conformance/notifications'. What is
+		// asserted here is that the write that put it there is in the log. Marking it read
+		// would not be, on purpose: somebody opening their own inbox is not a change anybody
+		// investigates later, and an entry per read would bury the ones that matter under the
+		// traffic of an inbox being opened. read_at is the record, and it is on the row. See
 		// notificationsstore/writes.go, which names this and the three other writes it
 		// leaves unrecorded.
 		//

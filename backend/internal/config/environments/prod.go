@@ -12,7 +12,6 @@ import (
 	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
 	identitycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/config"
 	mealplanningcfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/config"
-	oauthcfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/oauth/config"
 	paymentscfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/config"
 	uploadedmediacfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/testutils"
@@ -228,7 +227,6 @@ func BuildProdConfig() *config.APIServiceConfig {
 		Queues: queuescfg.Config{
 			DataChangesTopicName:         dataChangesTopicName,
 			OutboundEmailsTopicName:      outboundEmailsTopicName,
-			SearchIndexRequestsTopicName: searchIndexRequestsTopicName,
 			MobileNotificationsTopicName: mobileNotificationsTopicName,
 			QueuedMailTopicName:          queuedMailTopicName,
 		},
@@ -298,10 +296,7 @@ func BuildProdConfig() *config.APIServiceConfig {
 					Base64EncodedSigningKey: base64.URLEncoding.EncodeToString([]byte(testutils.Example32ByteKey)),
 				},
 			},
-			Debug:                 false,
-			EnableUserSignup:      true,
-			MinimumUsernameLength: 3,
-			MinimumPasswordLength: 8,
+			Debug: false,
 		},
 		Services: config.ServicesConfig{
 			// Both payment providers are named rather than left empty — the web checkout's
@@ -352,11 +347,7 @@ func BuildProdConfig() *config.APIServiceConfig {
 					RequestsPerSec: 2,
 					BurstSize:      20,
 				},
-				Debug:                 false,
-				EnableUserSignup:      true,
-				MinimumUsernameLength: 3,
-				MinimumPasswordLength: 8,
-				TokenLifetime:         5 * time.Minute,
+				Debug: false,
 				Tokens: authcfg.TokensConfig{
 					Config: tokenscfg.Config{
 						Provider:                tokenscfg.ProviderPASETO,
@@ -391,9 +382,6 @@ func BuildProdConfig() *config.APIServiceConfig {
 			},
 			MealPlanning: mealplanningcfg.Config{
 				UseSearchService: true,
-			},
-			OAuth2Clients: oauthcfg.Config{
-				OAuth2ClientCreationDisabled: true,
 			},
 		},
 		PushNotifications: notificationscfg.Config{

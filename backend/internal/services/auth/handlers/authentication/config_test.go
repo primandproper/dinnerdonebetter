@@ -18,10 +18,7 @@ func TestConfig_Validate(T *testing.T) {
 		ctx := t.Context()
 
 		cfg := &Config{
-			Debug:                 false,
-			EnableUserSignup:      false,
-			MinimumUsernameLength: 123,
-			MinimumPasswordLength: 123,
+			Debug: false,
 			OAuth2: oauth2servercfg.Config{
 				Provider: oauth2servercfg.ProviderMemory,
 				Issuer:   "https://example.com",
@@ -40,8 +37,6 @@ func TestConfig_Validate(T *testing.T) {
 		// The anonymous doors are throttled in every deployment, so a config that names no
 		// limiter is one that forgot, and it fails here rather than at the first sign-in.
 		cfg := &Config{
-			MinimumUsernameLength: 123,
-			MinimumPasswordLength: 123,
 			OAuth2: oauth2servercfg.Config{
 				Provider: oauth2servercfg.ProviderMemory,
 				Issuer:   "https://example.com",
@@ -61,10 +56,7 @@ func TestConfig_Validate(T *testing.T) {
 		// and an unrecognized one has to fail here: the alternative is a server that comes up
 		// on neither store.
 		cfg := &Config{
-			Debug:                 false,
-			EnableUserSignup:      false,
-			MinimumUsernameLength: 123,
-			MinimumPasswordLength: 123,
+			Debug: false,
 			OAuth2: oauth2servercfg.Config{
 				Provider: "postgres",
 				Issuer:   "https://example.com",

@@ -7,7 +7,6 @@ import (
 	dataprivacycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/dataprivacy/config"
 	identitycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/config"
 	mealplanningcfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/config"
-	oauthcfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/oauth/config"
 )
 
 func TestServicesConfig_ValidateWithContext(T *testing.T) {
@@ -18,11 +17,10 @@ func TestServicesConfig_ValidateWithContext(T *testing.T) {
 
 		ctx := t.Context()
 		cfg := &ServicesConfig{
-			Users:         identitycfg.Config{},
-			DataPrivacy:   dataprivacycfg.Config{},
-			MealPlanning:  mealplanningcfg.Config{},
-			Auth:          authentication.Config{},
-			OAuth2Clients: oauthcfg.Config{},
+			Users:        identitycfg.Config{},
+			DataPrivacy:  dataprivacycfg.Config{},
+			MealPlanning: mealplanningcfg.Config{},
+			Auth:         authentication.Config{},
 		}
 
 		err := cfg.ValidateWithContext(ctx)

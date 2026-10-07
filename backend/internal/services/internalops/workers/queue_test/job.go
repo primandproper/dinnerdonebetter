@@ -69,14 +69,17 @@ func NewJob(
 
 // topicNames returns the topic names from config for random selection.
 //
+// Every name here must be one internalops.BuildQueueTestMessage can build a probe for.
+//
 // Webhook execution and user data aggregation are not among them any more: a delivery and an
 // export are both rows a worker claims rather than messages on a topic, so there is no queue
-// here to probe.
+// here to probe. Neither is search indexing, which is one topic per index carrying an event a
+// Syncer resolves against the index rather than a message with room for a test ID, nor queued
+// mail, every message on which carries a live credential.
 func (j *Job) topicNames() []string {
 	return []string{
 		j.queues.DataChangesTopicName,
 		j.queues.OutboundEmailsTopicName,
-		j.queues.SearchIndexRequestsTopicName,
 		j.queues.MobileNotificationsTopicName,
 	}
 }
@@ -92,19 +95,21 @@ func (j *Job) Do(ctx context.Context) error {
 	testID := identifiers.New()
 	start := time.Now()
 
-	if err := j.internalOpsRepo.CreateQueueTestMessage(ctx, testID, topicName); err != nil {
-		return fmt.Errorf("creating queue test message record: %w", err)
-	}
-
 	// BuildQueueTestMessage expects logical names (e.g. "data_changes"); extract from full path if needed.
 	logicalName := topicName
 	if idx := strings.LastIndex(topicName, "/"); idx >= 0 {
 		logicalName = topicName[idx+1:]
 	}
 
+	// Built before the probe row is written, so a topic nothing can probe fails without leaving
+	// a row behind that no consumer will ever acknowledge.
 	msg, err := internalops.BuildQueueTestMessage(logicalName, testID, "")
 	if err != nil {
 		return fmt.Errorf("building queue test message: %w", err)
+	}
+
+	if err = j.internalOpsRepo.CreateQueueTestMessage(ctx, testID, topicName); err != nil {
+		return fmt.Errorf("creating queue test message record: %w", err)
 	}
 
 	publisher, err := j.publisherProvider.NewPublisher(ctx, topicName)

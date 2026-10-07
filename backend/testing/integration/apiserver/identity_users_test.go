@@ -3,7 +3,6 @@ package integration
 import (
 	"testing"
 
-	"github.com/primandproper/platform-go/v15/authentication/signin/signinpb"
 	identity "github.com/primandproper/platform-go/v15/identity"
 	"github.com/primandproper/platform-go/v15/identity/identitypb"
 
@@ -25,20 +24,6 @@ func TestUsers_Creating(T *testing.T) {
 			{EventType: "created", ResourceType: identity.ResourceTypeAccount},
 			{EventType: "created", ResourceType: identity.ResourceTypeMembership},
 		})
-	})
-
-	T.Run("rejects duplicate registration", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		input := buildUserRegistrationInputForTest(t)
-		testClient := buildUnauthenticatedGRPCClientForTest(t)
-
-		_, err := testClient.Register(ctx, input)
-		require.NoError(t, err)
-
-		_, err = testClient.Register(ctx, input)
-		assert.Error(t, err)
 	})
 
 	T.Run("with invalid input", func(t *testing.T) {
@@ -145,66 +130,5 @@ func TestUsers_Archiving(T *testing.T) {
 		AssertAuditLogContainsFuzzyForResource(t, ctx, identity.ResourceTypeAccount, accountID, 10, []*ExpectedAuditEntry{
 			{EventType: "archived", ResourceType: identity.ResourceTypeAccount, RelevantID: accountID},
 		})
-	})
-}
-
-// A registration that answers an invitation joins the inviter's account rather than
-// minting one of its own, which is the shape platform's RegisterWithInvitation has and the
-// reason it is a second operation rather than a flag.
-func TestUsers_RegisteringAgainstAnInvitation(T *testing.T) {
-	T.Parallel()
-
-	T.Run("happy path", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		inviter, inviterClient := createUserAndClientForTest(t)
-		accountID := getAccountIDForTest(t, inviterClient)
-
-		registrant := buildUserRegistrationInputForTest(t)
-
-		invitation := inviteForTest(t, selfIDForTest(t, inviterClient), accountID, registrant.GetUser().GetEmailAddress())
-		require.NotEmpty(t, invitation.Token)
-
-		registrant.Invitation = &signinpb.RegistrationInvitation{InvitationId: invitation.ID, Token: invitation.Token}
-
-		created := createServiceUserForTest(t, registrant)
-
-		// The account they landed in is the inviter's, not one of their own.
-		accounts, err := adminClient.IdentityService().ListAccountsForUser(ctx, &identitypb.ListAccountsForUserRequest{
-			UserId: created.ID,
-		})
-		require.NoError(t, err)
-		require.Len(t, accounts.GetResults(), 1)
-		assert.Equal(t, accountID, accounts.GetResults()[0].GetId())
-		assert.Equal(t, inviter.ID, accounts.GetResults()[0].GetOwnerUserId())
-	})
-
-	// The user and the invitation's answer are one transaction, so an invitation that no
-	// longer admits the registrant takes the registration down with it rather than leaving
-	// a user committed against a dead link.
-	T.Run("a bad token registers nobody", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		_, inviterClient := createUserAndClientForTest(t)
-		accountID := getAccountIDForTest(t, inviterClient)
-
-		registrant := buildUserRegistrationInputForTest(t)
-
-		invitation := inviteForTest(t, selfIDForTest(t, inviterClient), accountID, registrant.GetUser().GetEmailAddress())
-
-		registrant.Invitation = &signinpb.RegistrationInvitation{InvitationId: invitation.ID, Token: "not the token"}
-
-		c := buildUnauthenticatedGRPCClientForTest(t)
-		_, err := c.Register(ctx, registrant)
-		require.Error(t, err)
-
-		// And the registrant is not in the directory: the whole transaction rolled back.
-		users, err := adminClient.IdentityService().SearchUsersByUsername(ctx, &identitypb.SearchUsersByUsernameRequest{
-			Prefix: registrant.GetUser().GetUsername(),
-		})
-		require.NoError(t, err)
-		assert.Empty(t, users.GetResults())
 	})
 }

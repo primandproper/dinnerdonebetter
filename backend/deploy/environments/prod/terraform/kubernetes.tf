@@ -88,7 +88,6 @@ resource "kubernetes_config_map_v1" "pubsub_topics" {
   data = {
     data_changes               = google_pubsub_topic.data_changes_topic.id
     outbound_emails            = google_pubsub_topic.outbound_emails_topic.id
-    search_index_requests      = google_pubsub_topic.search_index_requests_topic.id
     mobile_notifications       = google_pubsub_topic.mobile_notifications_topic.id
     queued_mail                = google_pubsub_topic.queued_mail_topic.id
     user_data_aggregator       = google_pubsub_topic.user_data_aggregator_topic.id
