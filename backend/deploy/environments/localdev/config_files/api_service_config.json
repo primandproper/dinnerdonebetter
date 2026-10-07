@@ -213,19 +213,6 @@
 			},
 			"mobileProvider": "noop"
 		},
-		"users": {
-			"publicMediaURLPrefix": "http://localhost:8000/uploads",
-			"uploads": {
-				"storageConfig": {
-					"filesystem": {
-						"rootDirectory": "/uploads"
-					},
-					"bucketName": "avatars",
-					"provider": "filesystem"
-				},
-				"debug": true
-			}
-		},
 		"uploadedMedia": {
 			"uploads": {
 				"storageConfig": {
