@@ -154,8 +154,7 @@ func filterCapturingManager(t *testing.T) (manager *mockmanagers.MealPlanningMan
 	filterType := reflect.TypeFor[*filtering.QueryFilter]()
 	manager = &mockmanagers.MealPlanningManagerMock{}
 	value := reflect.ValueOf(manager).Elem()
-	for i := range value.NumField() {
-		field := value.Field(i)
+	for _, field := range value.Fields() {
 		if field.Kind() != reflect.Func || !field.CanSet() {
 			continue
 		}
