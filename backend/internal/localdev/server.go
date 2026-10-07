@@ -15,12 +15,10 @@ import (
 	apiserver "github.com/primandproper/dinnerdonebetter/backend/internal/build/services/api"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	dbcfg "github.com/primandproper/dinnerdonebetter/backend/internal/database/config"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/recordingspine"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	authrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auth"
-	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
 	settingsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/settings"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
@@ -314,38 +312,6 @@ func WithPasswordResetTokenStore(fn func(ctx context.Context, store passwordrese
 			return err
 		}
 		return fn(ctx, store, logger, tracerProvider)
-	}
-}
-
-// WithMealPlanningRepository provides a meal planning repository for custom operations.
-// The provided function receives a fully configured mealplanning.Repository along with logger and tracer.
-// This repository handles all meal planning entities including recipes, ingredients, preparations, vessels, instruments, etc.
-func WithMealPlanningRepository(fn func(ctx context.Context, repo mealplanning.Repository, logger logging.Logger, tracerProvider tracing.Provider) error) DatabaseInitFunc {
-	return func(ctx context.Context, dbClient database.Client, dbCfg *dbcfg.Config, logger logging.Logger, tracerProvider tracing.Provider) error {
-		auditLogRepo, err := auditlogentries.ProvideAuditLogRepository(logger, tracerProvider, nil, dbClient)
-		if err != nil {
-			return err
-		}
-		uploads, err := UploadsRegistry(logger, tracerProvider, dbClient)
-		if err != nil {
-			return err
-		}
-		identityStore, storeErr := platformidentity.NewSQLStore(dbClient,
-			platformidentity.WithTablePrefix(branding.TablePrefix),
-			platformidentity.WithStoreLogger(logger),
-			platformidentity.WithStoreTracerProvider(tracerProvider),
-		)
-		if storeErr != nil {
-			return storeErr
-		}
-
-		spine, err := Spine(ctx, dbClient, auditLogRepo, logger, tracerProvider)
-		if err != nil {
-			return err
-		}
-
-		mealPlanningRepo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditLogRepo, identityStore, dbClient, spine.Emitter, spine.Recorder, spine.Writer, uploads)
-		return fn(ctx, mealPlanningRepo, logger, tracerProvider)
 	}
 }
 
