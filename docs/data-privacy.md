@@ -66,7 +66,7 @@ inside one.
 | ----- | --------- | -------- |
 | `identity` | `identity/privacy` | The user, their accounts, invitations sent and received |
 | `meal_planning` | `mealplanning/privacy` | Recipes, meals, meal plans, ingredient preferences, ratings |
-| `sign_in_devices` | `internal/authentication/devices` | The address, user agent and device name each of the subject's logins was last renewed from. Erased with the user by foreign key; swept by the db-cleaner once the login has lapsed |
+| `signin_devices` | platform-go's `authentication/signin/devices/privacy` | The address, user agent and device name each of the subject's live logins was last renewed from. Erased by its own eraser and by foreign key; deleted when a login is ended, and swept by the db-cleaner once one has lapsed |
 | `settings` | `settings/privacy` over platform-go's | The setting values the subject stored about themselves |
 | `notifications.inbox` | platform-go's `notifications/privacy` | In-app notifications sent to the subject |
 | `notifications.devices` | platform-go's `notifications/privacy` | Handsets the subject registered for push, tokens included |
@@ -284,6 +284,10 @@ is one this repository has already had — `ddb_webauthn_credentials` carried
 `belongs_to_user REFERENCES users ON DELETE CASCADE`, the identity adoption replaced the table with
 platform's and dropped the key with it, and erasure stopped reaching a deleted user's passkeys with
 nothing raising. A registered eraser would have kept working through that.
+
+Sign-in devices arrived the same way when the table moved to platform's
+`authentication/signin/devices`: a sixth eraser beside a foreign key that `renderSignInDevicesDDL`
+re-creates. It sorts after `identity`, so in this deployment it finds nothing the cascade left.
 
 What makes a domain's own
 eraser worth writing is retention, anonymization, or — as with comments — no foreign key to

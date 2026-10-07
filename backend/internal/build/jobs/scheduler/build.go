@@ -28,7 +28,6 @@ import (
 	oauth2clientsstore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/oauth2clientsstore"
 	paymentsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/payments"
 	settingsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/settings"
-	signindevicesrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/signindevices"
 	uploadedmediarepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/uploadedmedia"
 	waitlistsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/waitlists"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/searchindexes"
@@ -137,9 +136,9 @@ func BuildInjector(
 	// sign in as them, which reset links are outstanding, and what holds API access on their
 	// behalf. A registry built in a container missing one of these fails when the worker
 	// starts; a registry that skipped it instead would deliver an export that looks complete.
+	// The auth repository includes the devices behind a person's sign-ins, which a subject
+	// access request exports.
 	authrepo.RegisterAuthRepository(i)
-	// The devices behind a person's sign-ins, which a subject access request exports.
-	signindevicesrepo.RegisterSignInDevicesRepository(i)
 	oauth2clientsstore.RegisterOAuth2ClientsStore(i)
 
 	// The data privacy machinery is platform's, from the DataPrivacy block: the request store,

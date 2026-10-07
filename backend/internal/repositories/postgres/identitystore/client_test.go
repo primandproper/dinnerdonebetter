@@ -119,8 +119,10 @@ func TestHooks_AfterRegister(T *testing.T) {
 		})
 		require.NoError(t, err)
 
-		// platform's three entries, as platform writes them.
-		require.Len(t, h.recorded, 3)
+		// platform's four entries, as platform writes them: the user, the account, and the
+		// membership twice — once on the member's chain and once on the account's, so an
+		// account's administrator reads who joined (platform-go v15.1.0).
+		require.Len(t, h.recorded, 4)
 		assert.Equal(t, platformidentity.ResourceTypeUser, h.recorded[0].ResourceType)
 		assert.Equal(t, user.ID, h.recorded[0].ResourceID)
 		assert.Equal(t, platformaudit.EventCreated, h.recorded[0].EventType)

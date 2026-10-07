@@ -30,6 +30,7 @@ import (
 	oauth2clientsprivacy "github.com/primandproper/platform-go/v15/authentication/oauth2clients/privacy"
 	passkeysprivacy "github.com/primandproper/platform-go/v15/authentication/passkeys/privacy"
 	passwordresetprivacy "github.com/primandproper/platform-go/v15/authentication/passwordreset/privacy"
+	signindevicesprivacy "github.com/primandproper/platform-go/v15/authentication/signin/devices/privacy"
 	billingprivacy "github.com/primandproper/platform-go/v15/billing/privacy"
 	commentsprivacy "github.com/primandproper/platform-go/v15/comments/privacy"
 	identityprivacy "github.com/primandproper/platform-go/v15/identity/privacy"
@@ -68,10 +69,6 @@ const (
 	// preferences, and ratings. There is no platform counterpart; this is the domain
 	// this application is.
 	CollectorKeyMealPlanning = "meal_planning"
-	// CollectorKeySignInDevices covers the address, browser and device each of the
-	// subject's logins was last renewed from. platform's sign-in stores none of it, so
-	// this application records it and answers for it — see internal/authentication/devices.
-	CollectorKeySignInDevices = "sign_in_devices"
 	// CollectorKeyAuditLog covers the audit entries recorded about the subject. It is
 	// platform's key, and the same one the audit eraser is registered under, so an
 	// export's audit section and an erasure's audit line describe the same log.
@@ -88,6 +85,7 @@ const (
 	CollectorKeyPasskeys      = passkeysprivacy.DefaultKey
 	CollectorKeyPasswordReset = passwordresetprivacy.DefaultKey
 	CollectorKeyOAuth2Clients = oauth2clientsprivacy.DefaultKey
+	CollectorKeySignInDevices = signindevicesprivacy.DefaultKey
 
 	// The notifications domain is two tables with two rulings, so it answers as two
 	// sections: the in-app inbox, and the handsets registered for push.

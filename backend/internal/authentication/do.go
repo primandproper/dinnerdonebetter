@@ -6,6 +6,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/branding"
 
 	"github.com/primandproper/platform-go/v15/authentication/signin"
+	platformdevices "github.com/primandproper/platform-go/v15/authentication/signin/devices"
 	"github.com/primandproper/platform-go/v15/authentication/signin/refreshtokens"
 	platformidentity "github.com/primandproper/platform-go/v15/identity"
 	"github.com/primandproper/platform-go/v15/notifications/mail"
@@ -70,8 +71,13 @@ func RegisterAuth(i do.Injector) {
 		}
 
 		// And where each token was issued to, on the same transaction — what "where you're
-		// signed in" shows beside each login. See internal/authentication/devices.
-		hooks := devices.NewHooks(recordingHooks, do.MustInvoke[devices.Store](i))
+		// signed in" shows beside each login — deleted again on the transaction that ends the
+		// login. The table and the hooks are platform's; which parts of a request to trust is
+		// this application's, and is internal/authentication/devices.
+		hooks, err := platformdevices.NewHooks(recordingHooks, do.MustInvoke[platformdevices.Store](i), devices.Extract)
+		if err != nil {
+			return nil, err
+		}
 
 		return signin.NewService(
 			do.MustInvoke[database.Client](i),

@@ -7,7 +7,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	authrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auth"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/internalops"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/signindevices"
 	dbcleaner "github.com/primandproper/dinnerdonebetter/backend/internal/services/oauth/workers/db_cleaner"
 
 	oauth2servercfg "github.com/primandproper/platform-go/v15/authentication/oauth2serverstore/config"
@@ -42,7 +41,7 @@ func BuildInjector(
 	oauth2servercfg.RegisterStore(i)
 	authrepo.RegisterPasswordResetTokenSQLStore(i)
 	authrepo.RegisterRefreshTokenSQLStore(i)
-	signindevices.RegisterSignInDevicesRepository(i)
+	authrepo.RegisterSignInDevicesSQLStore(i)
 	dbcleaner.RegisterDBCleaner(i)
 
 	return i, nil

@@ -189,9 +189,9 @@ func TestWorkerWiring_Scheduler(T *testing.T) {
 		// forgotten request.
 		//
 		// Most of them are the ones privacyadapters registers alongside their collectors: a
-		// domain's adapter builds both halves. Six of them delete rows the identity cascade
+		// domain's adapter builds both halves. Seven of them delete rows the identity cascade
 		// would have taken anyway — settings values, issue reports, passkeys, reset tokens,
-		// and the notification inbox and device registry.
+		// sign-in devices, and the notification inbox and device registry.
 		//
 		// That redundancy reverses what docs/data-privacy.md used to argue, and the reason
 		// it reverses is in this repository's own history. Those statements are platform's
@@ -209,6 +209,7 @@ func TestWorkerWiring_Scheduler(T *testing.T) {
 			ddbdataprivacy.CollectorKeyMediaRegistry,
 			ddbdataprivacy.CollectorKeyPasskeys,
 			ddbdataprivacy.CollectorKeyPasswordReset,
+			ddbdataprivacy.CollectorKeySignInDevices,
 			ddbdataprivacy.CollectorKeyNotificationsInbox,
 			ddbdataprivacy.CollectorKeyNotificationsDevices,
 			ddbdataprivacy.EraserKeyIdentity,
