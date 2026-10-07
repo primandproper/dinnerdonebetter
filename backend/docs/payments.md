@@ -159,10 +159,10 @@ pipeline they replaced — this repository's, which is the copy they were writte
 product, and a subscription row needs this application's account and product. That join is a
 `billingsync.Place`, consulted only when the subscription is not already stored:
 
-| Provider   | Account                                                                                                | Product (`external_product_id`) |
-|------------|--------------------------------------------------------------------------------------------------------|---------------------------------|
-| Stripe     | The account holding the Stripe customer, via `GetAccountByPaymentProcessorCustomerID`                  | The subscription's price ID     |
-| RevenueCat | The account whose ID is the `app_user_id` — the iOS app logs in to RevenueCat with its account ID       | The store product ID            |
+| Provider   | Account                                                                                           | Product (`external_product_id`) |
+|------------|---------------------------------------------------------------------------------------------------|---------------------------------|
+| Stripe     | The account holding the Stripe customer, via `GetAccountByPaymentProcessorCustomerID`             | The subscription's price ID     |
+| RevenueCat | The account whose ID is the `app_user_id` — the iOS app logs in to RevenueCat with its account ID | The store product ID            |
 
 The RevenueCat account is read rather than trusted: a purchase made before the app logged in is
 filed under an anonymous RevenueCat ID, and that has to be a refusal rather than a foreign key
