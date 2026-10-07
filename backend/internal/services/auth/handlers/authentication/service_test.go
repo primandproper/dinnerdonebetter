@@ -104,6 +104,7 @@ func TestProvideOAuth2Server(T *testing.T) {
 			oauth2server.SubjectAuthenticatorFunc(func(context.Context, *http.Request) (*oauth2server.Subject, error) {
 				return &oauth2server.Subject{ID: "test_user"}, nil
 			}),
+			nil,
 			&oauth2clientsmock.StoreMock{},
 		)
 
@@ -127,6 +128,7 @@ func TestProvideOAuth2Server(T *testing.T) {
 			oauth2server.SubjectAuthenticatorFunc(func(context.Context, *http.Request) (*oauth2server.Subject, error) {
 				return &oauth2server.Subject{ID: "test_user"}, nil
 			}),
+			nil,
 			&oauth2clientsmock.StoreMock{},
 		)
 

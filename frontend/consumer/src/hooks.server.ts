@@ -1,6 +1,6 @@
 import type { Handle } from '@sveltejs/kit';
 import { resolveOrRedirect } from '@primandproper/platform-client';
-import { sessionFor } from '$lib/auth/session';
+import { clientOf, sessionFor } from '$lib/auth/session';
 import { initServerOtel } from '$lib/otel/server';
 import { recordRequest } from '$lib/otel/server-metrics';
 import { ServerTiming, ServerTimingHeaderName } from '$lib/server-timing';
@@ -33,7 +33,7 @@ export const handle: Handle = async ({ event, resolve }) => {
   const totalEvent = timing.addEvent('total', 'Total request time');
 
   // Public pages get one too: signing in, signing out and the passkey doors all need it.
-  event.locals.session = sessionFor(event.cookies);
+  event.locals.session = sessionFor(event.cookies, clientOf(event));
 
   // Only whether a login is held is settled here. Whether it still works is settled by the
   // first call a page makes, which refreshes it if it has to; a page load that ended the

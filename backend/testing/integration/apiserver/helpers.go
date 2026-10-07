@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -21,6 +22,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/identitystore"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc/interceptors"
 	"github.com/primandproper/dinnerdonebetter/backend/pkg/client"
 
 	"github.com/primandproper/platform-go/v15/authentication/signin/signinpb"
@@ -36,6 +38,8 @@ import (
 	"github.com/pquerna/otp/totp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 const (
@@ -84,6 +88,7 @@ func buildAuthedGRPCClient(ctx context.Context, token string) (client.Client, er
 		createdClientSecret,
 		httpTestServerAddress,
 		fmt.Sprintf(":%d", apiServiceConfig.Service.GRPCServer.Port),
+		oauth2ResourceForTest(),
 		token,
 	)
 	if err != nil {
@@ -207,20 +212,6 @@ func verifyTOTPSecretForUser(ctx context.Context, username, password, twoFactorS
 	return nil
 }
 
-func createClientForUser(ctx context.Context, user *identity.User) (client.Client, error) {
-	token, err := fetchLoginTokenForUser(ctx, user)
-	if err != nil {
-		return nil, fmt.Errorf("fetching token for user %s: %w", user.Username, err)
-	}
-
-	oauthedClient, err := buildAuthedGRPCClient(ctx, token)
-	if err != nil {
-		return nil, fmt.Errorf("building oauthed client: %w", err)
-	}
-
-	return oauthedClient, nil
-}
-
 // buildUserRegistrationInputForTest is a sign-up, unique to the test, that this application's
 // registration policy admits: a password strong enough, and both agreements accepted.
 func buildUserRegistrationInputForTest(t *testing.T) *signinpb.RegisterRequest {
@@ -300,9 +291,63 @@ func fetchLoginTokenForUser(ctx context.Context, user *identity.User) (string, e
 	// wretched hack that unfortunately works
 	if user.Username == premadeAdminUser.Username {
 		credentials.Password = adminUserPassword
+
+		// The administrative door, because an operator's grants ride on no other token.
+		return localdev.FetchAdminLoginTokenForUser(ctx, fmt.Sprintf(":%d", apiServiceConfig.Service.GRPCServer.Port), credentials)
 	}
 
 	return localdev.FetchLoginTokenForUser(ctx, fmt.Sprintf(":%d", apiServiceConfig.Service.GRPCServer.Port), credentials)
+}
+
+// oauth2ResourceForTest is the RFC 8707 name the API server answers to, which every access token
+// the suite asks for has to name: the server refuses one that names no resource.
+func oauth2ResourceForTest() string {
+	return interceptors.ResourceIdentifier(&apiServiceConfig.Services.Auth.OAuth2)
+}
+
+// adminCredentials are the premade operator's, signed in through the administrative door and
+// signed in again before the token lapses.
+//
+// An administrative token lives fifteen minutes and has a refresh token, but the suite runs
+// longer than that and a fresh sign-in is the simpler way to stay inside it: the operator's
+// password and second factor are right here.
+type adminCredentials struct {
+	issuedAt time.Time
+	user     *identity.User
+	token    string
+	mu       sync.Mutex
+}
+
+// adminTokenRenewal is how old the operator's token may get before it is replaced, with the
+// rest of its fifteen minutes left for the call in flight.
+const adminTokenRenewal = 10 * time.Minute
+
+// GetRequestMetadata implements credentials.PerRPCCredentials.
+func (c *adminCredentials) GetRequestMetadata(ctx context.Context, _ ...string) (map[string]string, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if c.token == "" || time.Since(c.issuedAt) > adminTokenRenewal {
+		token, err := fetchLoginTokenForUser(ctx, c.user)
+		if err != nil {
+			return nil, err
+		}
+
+		c.token, c.issuedAt = token, time.Now()
+	}
+
+	return map[string]string{"authorization": "Bearer " + c.token}, nil
+}
+
+// RequireTransportSecurity implements credentials.PerRPCCredentials.
+func (*adminCredentials) RequireTransportSecurity() bool { return false }
+
+// createAdminClient is a client acting as the premade operator for the whole suite.
+func createAdminClient(user *identity.User) (client.Client, error) {
+	return client.BuildClient(fmt.Sprintf(":%d", apiServiceConfig.Service.GRPCServer.Port),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithPerRPCCredentials(&adminCredentials{user: user}),
+	)
 }
 
 //// ChatGPT Zone

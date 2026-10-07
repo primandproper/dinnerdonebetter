@@ -11,6 +11,7 @@ import (
 	platformoauth2clients "github.com/primandproper/platform-go/v15/authentication/oauth2clients"
 	"github.com/primandproper/platform-go/v15/authentication/oauth2clients/authserver"
 	oauth2servercfg "github.com/primandproper/platform-go/v15/authentication/oauth2serverstore/config"
+	"github.com/primandproper/platform-go/v15/authentication/signin"
 	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
@@ -21,22 +22,19 @@ import (
 // ProvideOAuth2Server builds the API server's OAuth 2.1 authorization server.
 //
 // The store is the platform's protocol store with its client half redirected at the
-// registry, which is authserver.NewStore — the seam this application used to spell for
-// itself in oauth2_store.go.
+// registry, which is authserver.NewStore. Codes, access tokens and refresh tokens are protocol
+// records that nothing outside the authorization server reads. A client registration is an
+// administered object with a listing endpoint, permissions, an archival lifecycle and an audit
+// trail, none of which oauth2server.Store models — its client half is sized for the anonymous
+// RFC 7591 registration this server does not serve.
 //
-// The split it makes is unchanged and is still the right one. Codes, access tokens and
-// refresh tokens are protocol records that nothing outside the authorization server reads.
-// A client registration is an administered object with a listing endpoint, permissions, an
-// archival lifecycle and an audit trail, none of which oauth2server.Store models — its
-// client half is sized for the anonymous RFC 7591 registration this server does not serve.
-//
-// What is not yet adopted is the other half of that package. authserver.NewAuthenticator
-// puts oauth2clients.Client.Admits on the path to a code, and it takes a signin.Service
-// this application has not migrated to — see subjectAuthenticator. Until it does, a
-// registration naming a scope or an owner would authorize any subject. Nothing here mints
-// one: every client this deployment registers is global and unowned, which Admits permits
-// for everybody by design. The check is missing rather than failing, and the column that
-// would make it matter has no writer.
+// The two ways to a code are the other two halves of that package, and both put
+// oauth2clients.Client.Admits on the path. authenticator is authserver.NewAuthenticator, the
+// login form: signin.Service.Authenticate, so a person typing a password there meets the same
+// decoy hash, status checks, second factor and failed-sign-in hook as every other door. resolver
+// is authserver.NewGuardedResolver over NewSessionResolver, for a first-party client presenting a
+// sign-in it already holds. The resolver is consulted first, on GET and POST alike, so a request
+// carrying a live sign-in never meets the form.
 func ProvideOAuth2Server(
 	ctx context.Context,
 	logger logging.Logger,
@@ -45,6 +43,7 @@ func ProvideOAuth2Server(
 	cfg *oauth2servercfg.Config,
 	dbClient database.Client,
 	authenticator oauth2server.SubjectAuthenticator,
+	resolver oauth2server.SubjectResolver,
 	clients platformoauth2clients.Store,
 ) (*oauth2server.Server, error) {
 	store, err := oauth2servercfg.NewStore(ctx, cfg, dbClient,
@@ -77,6 +76,7 @@ func ProvideOAuth2Server(
 		oauth2server.WithScopes(cfg.Scopes...),
 		oauth2server.WithServiceDocumentation(cfg.ServiceDocumentation),
 		oauth2server.WithLoginRenderer(newLoginRenderer(logger)),
+		oauth2server.WithSubjectResolver(resolver),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("building oauth2 authorization server: %w", err)
@@ -85,12 +85,39 @@ func ProvideOAuth2Server(
 	return srv, nil
 }
 
+// ProvideLoginFormAuthenticator is the login form's half of /authorize: platform's
+// authserver.Authenticator, which signs the person in through signin.Service.Authenticate and then
+// asks the client's registration whether it admits them.
+//
+// Through signin rather than beside it, so the form meets everything every other door does: the
+// decoy hash for a handle that names nobody, the standing and second-factor checks after the
+// password rather than before it, and the failed-sign-in hook. The form this replaced read the
+// user and returned before hashing anything when the username named nobody.
+func ProvideLoginFormAuthenticator(
+	signIn *signin.Service,
+	clients platformoauth2clients.Store,
+	dbClient database.Client,
+	logger logging.Logger,
+	tracerProvider tracing.Provider,
+	metricsProvider metrics.Provider,
+) (*authserver.Authenticator, error) {
+	return authserver.NewAuthenticator(signIn, clients, dbClient,
+		authserver.WithLogger(logger),
+		authserver.WithTracerProvider(tracerProvider),
+		authserver.WithMetricsProvider(metricsProvider),
+	)
+}
+
 // loginTemplateData is what the login form renders from: the platform's view of the
 // authorization request, plus the one thing branding owns.
 type loginTemplateData struct {
 	_ struct{} `json:"-"`
 
 	CompanyName string
+
+	// TOTPCodeField is the field the code is posted in, which is the one the platform's
+	// authenticator reads — oauth2server.FieldTOTPCode — rather than a spelling of its own.
+	TOTPCodeField string
 
 	oauth2server.LoginView
 }
@@ -133,8 +160,8 @@ var loginTemplate = template.Must(template.New("login").Parse(`<!DOCTYPE html>
             <label for="password">Password</label>
             <input type="password" id="password" name="password" required>
 
-            <label for="totp_token">TOTP Code</label>
-            <input type="text" id="totp_token" name="totp_token" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]*">
+            <label for="{{.TOTPCodeField}}">TOTP Code</label>
+            <input type="text" id="{{.TOTPCodeField}}" name="{{.TOTPCodeField}}" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]*">
 
             <button type="submit">Sign In</button>
         </form>
@@ -152,8 +179,9 @@ func newLoginRenderer(logger logging.Logger) oauth2server.LoginRenderer {
 		}
 
 		if err := loginTemplate.Execute(res, &loginTemplateData{
-			LoginView:   view,
-			CompanyName: branding.CompanyName,
+			LoginView:     view,
+			CompanyName:   branding.CompanyName,
+			TOTPCodeField: oauth2server.FieldTOTPCode,
 		}); err != nil {
 			logging.EnsureLogger(logger).WithValue("client_name", view.ClientName).Error("rendering login form", err)
 		}

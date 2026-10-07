@@ -215,7 +215,8 @@ func conformanceAdmin(ctx context.Context, req *conformance.SubjectRequest) (*co
 		return nil, fmt.Errorf("granting the service administrator role: %w", err)
 	}
 
-	token, err := loginForConformance(ctx, user, "")
+	// Through the administrative door: an operator's grants ride on no other token.
+	token, err := adminLoginForConformance(ctx, user)
 	if err != nil {
 		return nil, err
 	}
@@ -421,6 +422,20 @@ func loginForConformance(ctx context.Context, user *identity.User, desiredAccoun
 		Password:        password,
 		TotpCode:        code,
 		ActiveAccountId: desiredAccount,
+	})
+}
+
+// adminLoginForConformance signs an operator in through the administrative door.
+func adminLoginForConformance(ctx context.Context, user *identity.User) (string, error) {
+	code, err := totpCodeFor(user)
+	if err != nil {
+		return "", err
+	}
+
+	return localdev.FetchAdminLoginTokenForUser(ctx, fmt.Sprintf(":%d", apiServiceConfig.Service.GRPCServer.Port), &signinpb.Credentials{
+		Username: user.Username,
+		Password: user.HashedPassword,
+		TotpCode: code,
 	})
 }
 

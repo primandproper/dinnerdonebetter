@@ -264,6 +264,11 @@
 				"audience": "https://api.dinnerdonebetter.dev",
 				"base64EncodedSigningKey": "SEVSRUlTQTMyQ0hBUlNFQ1JFVFdISUNISVNNQURFVVA="
 			},
+			"rateLimiting": {
+				"provider": "memory",
+				"requestsPerSecond": 10,
+				"burstSize": 50
+			},
 			"oauth2": {
 				"provider": "database",
 				"database": {

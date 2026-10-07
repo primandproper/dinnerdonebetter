@@ -180,9 +180,16 @@ func BuildTLSGRPCClient(grpcServerAddr string, opts ...grpc.DialOption) (Client,
 	return BuildClient(grpcServerAddr, append([]grpc.DialOption{grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{}))}, opts...)...)
 }
 
+// WithOAuth2Credentials runs the OAuth2 authorization code flow with authToken, a sign-in token, and
+// dials with the access token it is exchanged for.
+//
+// resource is the RFC 8707 name of the server the token will be spent at, which both legs carry.
+// The API server refuses an access token that names no resource: one that did would be spendable
+// at every resource server sharing the authorization server's store.
 func WithOAuth2Credentials(
 	ctx context.Context,
 	authServerAddress,
+	resource,
 	clientID,
 	clientSecret,
 	authToken string,
@@ -206,9 +213,12 @@ func WithOAuth2Credentials(
 	// PKCE (RFC 7636) with the S256 challenge method.
 	pkceVerifier := oauth2.GenerateVerifier()
 
+	resourceParam := oauth2.SetAuthURLParam("resource", resource)
+
 	authCodeURL := oauth2Config.AuthCodeURL(
 		state,
 		oauth2.S256ChallengeOption(pkceVerifier),
+		resourceParam,
 	)
 
 	// POST rather than GET: the authorization server renders a login form on GET — the answer
@@ -261,7 +271,7 @@ func WithOAuth2Credentials(
 		return nil, errors.New("code not returned from oauth2 redirect")
 	}
 
-	oauth2Token, err := oauth2Config.Exchange(ctx, code, oauth2.VerifierOption(pkceVerifier))
+	oauth2Token, err := oauth2Config.Exchange(ctx, code, oauth2.VerifierOption(pkceVerifier), resourceParam)
 	if err != nil {
 		return nil, err
 	}

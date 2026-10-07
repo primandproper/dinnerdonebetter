@@ -3,15 +3,16 @@ package authentication
 import (
 	"context"
 
-	authn "github.com/primandproper/dinnerdonebetter/backend/internal/authentication"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/auth"
 
 	platformoauth2clients "github.com/primandproper/platform-go/v15/authentication/oauth2clients"
+	"github.com/primandproper/platform-go/v15/authentication/oauth2clients/authserver"
 	oauth2servercfg "github.com/primandproper/platform-go/v15/authentication/oauth2serverstore/config"
+	"github.com/primandproper/platform-go/v15/authentication/signin"
+	signingrpc "github.com/primandproper/platform-go/v15/authentication/signin/grpc"
 	platformidentity "github.com/primandproper/platform-go/v15/identity"
 	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
 	"github.com/primandproper/primitives-go/v2/authentication/tokens"
-	"github.com/primandproper/primitives-go/v2/authentication/totp"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/metrics"
@@ -27,21 +28,54 @@ func RegisterAuthHTTPService(i do.Injector) {
 	// instance: Authenticate is a Store lookup, and a second server would be a second
 	// Store with its own sweeper over the same rows.
 	do.Provide[*oauth2server.Server](i, func(i do.Injector) (*oauth2server.Server, error) {
+		logger := do.MustInvoke[logging.Logger](i)
+		tracerProvider := do.MustInvoke[tracing.Provider](i)
+		metricsProvider := do.MustInvoke[metrics.Provider](i)
+		dbClient := do.MustInvoke[database.Client](i)
+		clients := do.MustInvoke[platformoauth2clients.Store](i)
+		signIn := do.MustInvoke[*signin.Service](i)
+
+		authenticator, err := ProvideLoginFormAuthenticator(signIn, clients, dbClient, logger, tracerProvider, metricsProvider)
+		if err != nil {
+			return nil, err
+		}
+
+		// The sign-in half of the extractor every API request is resolved by. It is built here
+		// rather than resolved, because the API's extractor accepts this server's access
+		// tokens too and so cannot exist until this server does; this one only ever reads a
+		// sign-in token, and needs neither the access tokens nor the password change gate.
+		signIns, err := signingrpc.NewPrincipalExtractor(
+			do.MustInvoke[tokens.Issuer](i),
+			dbClient,
+			do.MustInvoke[platformidentity.Store](i),
+			signingrpc.WithSignInCheck(signIn),
+			signingrpc.WithoutPasswordChangeGate(),
+			signingrpc.WithExtractorLogger(logger),
+			signingrpc.WithExtractorTracerProvider(tracerProvider),
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		resolver, err := authserver.NewGuardedResolver(NewSessionResolver(signIns), clients, dbClient,
+			authserver.WithResolverLogger(logger),
+			authserver.WithResolverTracerProvider(tracerProvider),
+			authserver.WithResolverMetricsProvider(metricsProvider),
+		)
+		if err != nil {
+			return nil, err
+		}
+
 		return ProvideOAuth2Server(
 			do.MustInvoke[context.Context](i),
-			do.MustInvoke[logging.Logger](i),
-			do.MustInvoke[tracing.Provider](i),
-			do.MustInvoke[metrics.Provider](i),
+			logger,
+			tracerProvider,
+			metricsProvider,
 			do.MustInvoke[*oauth2servercfg.Config](i),
-			do.MustInvoke[database.Client](i),
-			&subjectAuthenticator{
-				directory:     do.MustInvoke[platformidentity.Store](i),
-				db:            do.MustInvoke[database.Client](i),
-				authenticator: do.MustInvoke[authn.Authenticator](i),
-				totpVerifier:  do.MustInvoke[totp.Verifier](i),
-				tokenIssuer:   do.MustInvoke[tokens.Issuer](i),
-			},
-			do.MustInvoke[platformoauth2clients.Store](i),
+			dbClient,
+			authenticator,
+			resolver,
+			clients,
 		)
 	})
 

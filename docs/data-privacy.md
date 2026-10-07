@@ -66,6 +66,7 @@ inside one.
 | ----- | --------- | -------- |
 | `identity` | `identity/privacy` | The user, their accounts, invitations sent and received |
 | `meal_planning` | `mealplanning/privacy` | Recipes, meals, meal plans, ingredient preferences, ratings |
+| `sign_in_devices` | `internal/authentication/devices` | The address, user agent and device name each of the subject's logins was last renewed from. Erased with the user by foreign key; swept by the db-cleaner once the login has lapsed |
 | `settings` | `settings/privacy` over platform-go's | The setting values the subject stored about themselves |
 | `notifications.inbox` | platform-go's `notifications/privacy` | In-app notifications sent to the subject |
 | `notifications.devices` | platform-go's `notifications/privacy` | Handsets the subject registered for push, tokens included |

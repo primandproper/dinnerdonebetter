@@ -9,6 +9,9 @@ import (
 	grpcconverters "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/converters"
 	internalopssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/internalops"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
+	// The mappers that give signin's refusals, and this application's impersonation policy's,
+	// their codes rather than Internal.
+	_ "github.com/primandproper/dinnerdonebetter/backend/internal/services/errors"
 
 	"github.com/primandproper/platform-go/v15/authentication/signin"
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"

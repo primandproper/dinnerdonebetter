@@ -7,7 +7,7 @@ It is the door every client signs in, refreshes and signs out through, and the o
 internal/authentication, with this application's password, registration, second-factor and
 impersonation policies, and its hooks and mailers. A token it issues names a login, rotates a
 refresh token through the store in internal/repositories/postgres/auth, and is checked against
-that login on every request — see AuthInterceptor.signInSessionContextData.
+that login on every request — see internal/services/auth/grpc/interceptors.
 
 Not every RPC on the surface is reachable. The interceptor denies a method no permission table
 names, so a method is exposed by being named below and withheld by being left out.
@@ -53,6 +53,7 @@ package signin
 import (
 	"context"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/devices"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 
@@ -79,6 +80,10 @@ func RegisterSignInService(i do.Injector) {
 			signingrpc.WithScopeResolver(func(context.Context) (tenancy.Scope, error) {
 				return tenancy.Global(), nil
 			}),
+			// What each listed login's attributes say: the address, browser and device it was
+			// last renewed from, which the sign-in hooks record. See
+			// internal/authentication/devices.
+			signingrpc.WithSignInAnnotator(devices.NewAnnotator(do.MustInvoke[devices.Store](i))),
 			signingrpc.WithLogger(do.MustInvoke[logging.Logger](i)),
 			signingrpc.WithTracerProvider(do.MustInvoke[tracing.Provider](i)),
 			signingrpc.WithMetricsProvider(do.MustInvoke[metrics.Provider](i)),

@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -22,6 +23,8 @@ import (
 	totpmock "github.com/primandproper/primitives-go/v2/authentication/totp/mock"
 	"github.com/primandproper/primitives-go/v2/database"
 	mockdatabase "github.com/primandproper/primitives-go/v2/database/mock"
+	"github.com/primandproper/primitives-go/v2/identifiers"
+	"github.com/primandproper/primitives-go/v2/pointer"
 	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"github.com/modelcontextprotocol/go-sdk/auth"
@@ -41,9 +44,9 @@ func authorizeRequest(ctx context.Context, t *testing.T, username, password, tot
 	t.Helper()
 
 	form := url.Values{}
-	form.Set("username", username)
-	form.Set("password", password)
-	form.Set("totp_token", totpToken)
+	form.Set(oauth2server.FieldUsername, username)
+	form.Set(oauth2server.FieldPassword, password)
+	form.Set(oauth2server.FieldTOTPCode, totpToken)
 
 	req := httptest.NewRequestWithContext(ctx, http.MethodPost, "/authorize", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -52,284 +55,222 @@ func authorizeRequest(ctx context.Context, t *testing.T, username, password, tot
 	return req
 }
 
+// loginHarness is the MCP login over a real sign-in service, with the directory and the hasher
+// faked. The hasher counts, because the number of hashes a refusal costs is what its timing is:
+// one argon2 run dwarfs everything else a sign-in does.
+type loginHarness struct {
+	readErr error
+	users   map[string]*identity.User
+	a       *subjectAuthenticator
+	hashes  atomic.Int32
+}
+
+func newLoginHarness(t *testing.T) *loginHarness {
+	t.Helper()
+
+	h := &loginHarness{users: map[string]*identity.User{}}
+
+	directory := &identitymock.StoreMock{
+		GetUserByUsernameFunc: func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, username string) (*identity.User, error) {
+			if h.readErr != nil {
+				return nil, h.readErr
+			}
+
+			user, ok := h.users[username]
+			if !ok {
+				return nil, identity.ErrUserNotFound
+			}
+
+			return user, nil
+		},
+		GetPrincipalFunc: func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, userID, _ string) (*identity.Principal, error) {
+			for _, user := range h.users {
+				if user.ID == userID {
+					return &identity.Principal{User: user, ActiveAccountID: user.ID + "_account"}, nil
+				}
+			}
+
+			return nil, identity.ErrUserNotFound
+		},
+	}
+
+	hasher := &authentication.AuthenticatorMock{
+		HashPasswordFunc: func(context.Context, string) (string, error) {
+			h.hashes.Add(1)
+			return identifiers.New(), nil
+		},
+		PasswordMatchesFunc: func(_ context.Context, _, password string) (bool, error) {
+			h.hashes.Add(1)
+			return password == examplePassword, nil
+		},
+	}
+
+	totpVerifier := &totpmock.VerifierMock{
+		VerifyFunc: func(_ context.Context, _, code string) error {
+			switch code {
+			case exampleTOTPToken:
+				return nil
+			case "":
+				return totp.ErrCodeRequired
+			default:
+				return totp.ErrInvalidCode
+			}
+		},
+	}
+
+	signIn, err := NewAdminSignIn(mockDBForTest(), directory, hasher, totpVerifier, nil, nil)
+	require.NoError(t, err)
+
+	h.a = &subjectAuthenticator{signIn: signIn}
+
+	return h
+}
+
+// addUser puts somebody in the directory with a proven second factor, holding the service role
+// named.
+func (h *loginHarness) addUser(serviceRole string) *identity.User {
+	user := identityfakes.BuildFakeUser()
+	user.ServiceRoles = []string{serviceRole}
+	user.HashedPassword = identifiers.New()
+	user.TwoFactorSecretVerifiedAt = pointer.To(time.Now().Add(-time.Hour))
+	h.users[user.Username] = user
+
+	return user
+}
+
+func (h *loginHarness) authenticate(t *testing.T, username, password, code string) (*oauth2server.Subject, error) {
+	t.Helper()
+
+	h.hashes.Store(0)
+
+	return h.a.AuthenticateSubject(t.Context(), authorizeRequest(t.Context(), t, username, password, code))
+}
+
+// requireAccessDenied asserts the form is re-rendered with the uninformative message, which is
+// what every refusal before the second factor says.
+func requireAccessDenied(t *testing.T, subject *oauth2server.Subject, err error) {
+	t.Helper()
+
+	assert.Nil(t, subject)
+	require.ErrorIs(t, err, oauth2server.ErrLoginFailed)
+
+	var loginErr *oauth2server.LoginError
+	require.ErrorAs(t, err, &loginErr)
+	assert.Equal(t, accessDeniedMessage, loginErr.Message)
+}
+
 func TestSubjectAuthenticator_AuthenticateSubject(T *testing.T) {
 	T.Parallel()
 
 	T.Run("standard", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
-		exampleUser := buildFakeAdminForTest()
-		exampleAccountID := identityfakes.BuildFakeAccount().ID
+		h := newLoginHarness(t)
+		admin := h.addUser(authorization.ServiceAdminRoleName)
 
-		directory := &identitymock.StoreMock{
-			GetUserByUsernameFunc: func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, username string) (*identity.User, error) {
-				assert.Equal(t, exampleUser.Username, username)
-				return exampleUser, nil
-			},
-			GetPrincipalFunc: func(_ context.Context, _ database.SQLQueryExecutor, _ tenancy.Scope, userID, _ string) (*identity.Principal, error) {
-				assert.Equal(t, exampleUser.ID, userID)
-
-				return &identity.Principal{User: exampleUser, ActiveAccountID: exampleAccountID}, nil
-			},
-		}
-
-		a := &subjectAuthenticator{
-			directory: directory,
-			db:        mockDBForTest(),
-			authenticator: &authentication.AuthenticatorMock{
-				PasswordMatchesFunc: func(context.Context, string, string) (bool, error) { return true, nil },
-			},
-			totpVerifier: &totpmock.VerifierMock{
-				VerifyFunc: func(context.Context, string, string) error { return nil },
-			},
-		}
-
-		subject, err := a.AuthenticateSubject(ctx, authorizeRequest(ctx, t, exampleUser.Username, examplePassword, exampleTOTPToken))
+		subject, err := h.authenticate(t, admin.Username, examplePassword, exampleTOTPToken)
 		require.NoError(t, err)
 		require.NotNil(t, subject)
 
-		assert.Equal(t, exampleUser.ID, subject.ID)
-		assert.Equal(t, exampleAccountID, subject.Claims[claimAccountID])
+		assert.Equal(t, admin.ID, subject.ID)
+		assert.Equal(t, admin.ID+"_account", subject.Claims[claimAccountID])
 	})
 
-	T.Run("with no such admin user", func(t *testing.T) {
+	T.Run("an unknown user, a non-administrator and a wrong password cost the same", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
-		exampleUser := buildFakeAdminForTest()
+		h := newLoginHarness(t)
+		admin := h.addUser(authorization.ServiceAdminRoleName)
+		member := h.addUser(authorization.ServiceUserRoleName)
 
-		a := &subjectAuthenticator{
-			db: mockDBForTest(),
-			directory: &identitymock.StoreMock{
-				GetUserByUsernameFunc: func(context.Context, database.SQLQueryExecutor, tenancy.Scope, string) (*identity.User, error) {
-					return nil, errors.New("blah")
-				},
-			},
-		}
+		subject, err := h.authenticate(t, identifiers.New(), examplePassword, exampleTOTPToken)
+		requireAccessDenied(t, subject, err)
+		assert.Equal(t, int32(1), h.hashes.Load(), "an unknown user")
 
-		subject, err := a.AuthenticateSubject(ctx, authorizeRequest(ctx, t, exampleUser.Username, examplePassword, exampleTOTPToken))
-		assert.Nil(t, subject)
+		subject, err = h.authenticate(t, member.Username, examplePassword, exampleTOTPToken)
+		requireAccessDenied(t, subject, err)
+		assert.Equal(t, int32(1), h.hashes.Load(), "a non-administrator")
 
-		// ErrLoginFailed re-renders the form; anything else fails the authorization
-		// request outright, which is the wrong answer to a human who can try again.
-		require.ErrorIs(t, err, oauth2server.ErrLoginFailed)
+		subject, err = h.authenticate(t, member.Username, "wrong", exampleTOTPToken)
+		requireAccessDenied(t, subject, err)
+		assert.Equal(t, int32(1), h.hashes.Load(), "a non-administrator's wrong password")
 
-		var loginErr *oauth2server.LoginError
-		require.ErrorAs(t, err, &loginErr)
-		assert.Equal(t, accessDeniedMessage, loginErr.Message)
+		subject, err = h.authenticate(t, admin.Username, "wrong", exampleTOTPToken)
+		requireAccessDenied(t, subject, err)
+		assert.Equal(t, int32(1), h.hashes.Load(), "an administrator's wrong password")
 	})
 
-	T.Run("with banned user", func(t *testing.T) {
+	T.Run("with a banned administrator", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
-		exampleUser := buildFakeAdminForTest()
-		exampleUser.AccountStatus = identity.StatusBanned
+		h := newLoginHarness(t)
+		admin := h.addUser(authorization.ServiceAdminRoleName)
+		admin.AccountStatus = identity.StatusBanned
 
-		a := &subjectAuthenticator{
-			db: mockDBForTest(),
-			directory: &identitymock.StoreMock{
-				GetUserByUsernameFunc: func(context.Context, database.SQLQueryExecutor, tenancy.Scope, string) (*identity.User, error) {
-					return exampleUser, nil
-				},
-				// The status is no longer checked here. GetPrincipal refuses one that
-				// does not admit signing in, before it reads a membership, which is what
-				// makes the check one thing rather than one per surface.
-				GetPrincipalFunc: func(context.Context, database.SQLQueryExecutor, tenancy.Scope, string, string) (*identity.Principal, error) {
-					return nil, identity.ErrSignInNotAdmitted
-				},
-			},
-			authenticator: &authentication.AuthenticatorMock{
-				PasswordMatchesFunc: func(context.Context, string, string) (bool, error) { return true, nil },
-			},
-			totpVerifier: &totpmock.VerifierMock{
-				VerifyFunc: func(context.Context, string, string) error { return nil },
-			},
-		}
-
-		subject, err := a.AuthenticateSubject(ctx, authorizeRequest(ctx, t, exampleUser.Username, examplePassword, exampleTOTPToken))
-		assert.Nil(t, subject)
-		require.ErrorIs(t, err, identity.ErrSignInNotAdmitted)
+		subject, err := h.authenticate(t, admin.Username, examplePassword, exampleTOTPToken)
+		requireAccessDenied(t, subject, err)
 	})
 
-	// The door is admin-only, and it is a role check rather than a filtered lookup — so a
-	// perfectly real user who holds no administrator role is refused with the message a
-	// missing user gets, and not with a different one.
-	T.Run("with a non-administrator", func(t *testing.T) {
+	T.Run("with a data administrator", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
-		exampleUser := identityfakes.BuildFakeUser()
+		h := newLoginHarness(t)
+		dataAdmin := h.addUser(authorization.ServiceDataAdminRoleName)
 
-		a := &subjectAuthenticator{
-			db: mockDBForTest(),
-			directory: &identitymock.StoreMock{
-				GetUserByUsernameFunc: func(context.Context, database.SQLQueryExecutor, tenancy.Scope, string) (*identity.User, error) {
-					return exampleUser, nil
-				},
-			},
-		}
-
-		subject, err := a.AuthenticateSubject(ctx, authorizeRequest(ctx, t, exampleUser.Username, examplePassword, exampleTOTPToken))
-		assert.Nil(t, subject)
-		require.ErrorIs(t, err, oauth2server.ErrLoginFailed)
-
-		var loginErr *oauth2server.LoginError
-		require.ErrorAs(t, err, &loginErr)
-		assert.Equal(t, accessDeniedMessage, loginErr.Message)
+		subject, err := h.authenticate(t, dataAdmin.Username, examplePassword, exampleTOTPToken)
+		requireAccessDenied(t, subject, err)
 	})
 
-	T.Run("with wrong password", func(t *testing.T) {
+	T.Run("with a missing TOTP code", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
-		exampleUser := buildFakeAdminForTest()
+		h := newLoginHarness(t)
+		admin := h.addUser(authorization.ServiceAdminRoleName)
 
-		a := &subjectAuthenticator{
-			db: mockDBForTest(),
-			directory: &identitymock.StoreMock{
-				GetUserByUsernameFunc: func(context.Context, database.SQLQueryExecutor, tenancy.Scope, string) (*identity.User, error) {
-					return exampleUser, nil
-				},
-			},
-			authenticator: &authentication.AuthenticatorMock{
-				PasswordMatchesFunc: func(context.Context, string, string) (bool, error) { return false, nil },
-			},
-		}
-
-		subject, err := a.AuthenticateSubject(ctx, authorizeRequest(ctx, t, exampleUser.Username, examplePassword, exampleTOTPToken))
+		subject, err := h.authenticate(t, admin.Username, examplePassword, "")
 		assert.Nil(t, subject)
-		require.ErrorIs(t, err, oauth2server.ErrLoginFailed)
 
-		// The same message a missing user gets. Two different answers here make the
-		// form an account enumeration oracle.
-		var loginErr *oauth2server.LoginError
-		require.ErrorAs(t, err, &loginErr)
-		assert.Equal(t, accessDeniedMessage, loginErr.Message)
-	})
-
-	T.Run("with missing TOTP code", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		exampleUser := buildFakeAdminForTest()
-
-		a := &subjectAuthenticator{
-			db: mockDBForTest(),
-			directory: &identitymock.StoreMock{
-				GetUserByUsernameFunc: func(context.Context, database.SQLQueryExecutor, tenancy.Scope, string) (*identity.User, error) {
-					return exampleUser, nil
-				},
-			},
-			authenticator: &authentication.AuthenticatorMock{
-				PasswordMatchesFunc: func(context.Context, string, string) (bool, error) { return true, nil },
-			},
-			totpVerifier: &totpmock.VerifierMock{
-				VerifyFunc: func(context.Context, string, string) error { return totp.ErrCodeRequired },
-			},
-		}
-
-		subject, err := a.AuthenticateSubject(ctx, authorizeRequest(ctx, t, exampleUser.Username, examplePassword, ""))
-		assert.Nil(t, subject)
-		require.ErrorIs(t, err, oauth2server.ErrLoginFailed)
-
-		// This one names its own cause, because a human who forgot the code can fix it.
 		var loginErr *oauth2server.LoginError
 		require.ErrorAs(t, err, &loginErr)
 		assert.Equal(t, "TOTP code is required.", loginErr.Message)
 	})
 
-	T.Run("with invalid TOTP code", func(t *testing.T) {
+	T.Run("with an invalid TOTP code", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
-		exampleUser := buildFakeAdminForTest()
+		h := newLoginHarness(t)
+		admin := h.addUser(authorization.ServiceAdminRoleName)
 
-		a := &subjectAuthenticator{
-			db: mockDBForTest(),
-			directory: &identitymock.StoreMock{
-				GetUserByUsernameFunc: func(context.Context, database.SQLQueryExecutor, tenancy.Scope, string) (*identity.User, error) {
-					return exampleUser, nil
-				},
-			},
-			authenticator: &authentication.AuthenticatorMock{
-				PasswordMatchesFunc: func(context.Context, string, string) (bool, error) { return true, nil },
-			},
-			totpVerifier: &totpmock.VerifierMock{
-				VerifyFunc: func(context.Context, string, string) error { return totp.ErrInvalidCode },
-			},
-		}
+		subject, err := h.authenticate(t, admin.Username, examplePassword, "000000")
+		requireAccessDenied(t, subject, err)
+	})
 
-		subject, err := a.AuthenticateSubject(ctx, authorizeRequest(ctx, t, exampleUser.Username, examplePassword, exampleTOTPToken))
+	T.Run("with an administrator who has not proven a second factor", func(t *testing.T) {
+		t.Parallel()
+
+		h := newLoginHarness(t)
+		admin := h.addUser(authorization.ServiceAdminRoleName)
+		admin.TwoFactorSecretVerifiedAt = nil
+
+		// The administrative door demands one whatever the account's own policy says.
+		subject, err := h.authenticate(t, admin.Username, examplePassword, "")
 		assert.Nil(t, subject)
 		require.ErrorIs(t, err, oauth2server.ErrLoginFailed)
 	})
 
-	T.Run("with unverified second factor skips TOTP", func(t *testing.T) {
+	T.Run("with a directory that cannot be read", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
-		exampleUser := buildFakeAdminForTest()
-		exampleUser.TwoFactorSecretVerifiedAt = nil
-		exampleAccountID := identityfakes.BuildFakeAccount().ID
+		h := newLoginHarness(t)
+		admin := h.addUser(authorization.ServiceAdminRoleName)
+		h.readErr = errors.New("blah")
 
-		verifier := &totpmock.VerifierMock{
-			VerifyFunc: func(context.Context, string, string) error { return totp.ErrInvalidCode },
-		}
-
-		a := &subjectAuthenticator{
-			db: mockDBForTest(),
-			directory: &identitymock.StoreMock{
-				GetUserByUsernameFunc: func(context.Context, database.SQLQueryExecutor, tenancy.Scope, string) (*identity.User, error) {
-					return exampleUser, nil
-				},
-				GetPrincipalFunc: func(context.Context, database.SQLQueryExecutor, tenancy.Scope, string, string) (*identity.Principal, error) {
-					return &identity.Principal{User: exampleUser, ActiveAccountID: exampleAccountID}, nil
-				},
-			},
-			authenticator: &authentication.AuthenticatorMock{
-				PasswordMatchesFunc: func(context.Context, string, string) (bool, error) { return true, nil },
-			},
-			totpVerifier: verifier,
-		}
-
-		subject, err := a.AuthenticateSubject(ctx, authorizeRequest(ctx, t, exampleUser.Username, examplePassword, ""))
-		require.NoError(t, err)
-		require.NotNil(t, subject)
-		assert.Empty(t, verifier.VerifyCalls())
-	})
-
-	T.Run("with error fetching default account", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		exampleUser := buildFakeAdminForTest()
-
-		a := &subjectAuthenticator{
-			db: mockDBForTest(),
-			directory: &identitymock.StoreMock{
-				GetUserByUsernameFunc: func(context.Context, database.SQLQueryExecutor, tenancy.Scope, string) (*identity.User, error) {
-					return exampleUser, nil
-				},
-				GetPrincipalFunc: func(context.Context, database.SQLQueryExecutor, tenancy.Scope, string, string) (*identity.Principal, error) {
-					return nil, errors.New("blah")
-				},
-			},
-			authenticator: &authentication.AuthenticatorMock{
-				PasswordMatchesFunc: func(context.Context, string, string) (bool, error) { return true, nil },
-			},
-			totpVerifier: &totpmock.VerifierMock{
-				VerifyFunc: func(context.Context, string, string) error { return nil },
-			},
-		}
-
-		subject, err := a.AuthenticateSubject(ctx, authorizeRequest(ctx, t, exampleUser.Username, examplePassword, exampleTOTPToken))
+		subject, err := h.authenticate(t, admin.Username, examplePassword, exampleTOTPToken)
 		assert.Nil(t, subject)
 		require.Error(t, err)
 
-		// Not a LoginError: the credentials were right, so re-rendering the form would
-		// ask the human to fix a broken record by typing.
+		// Not a LoginError: re-rendering the form would ask the human to fix an outage by
+		// typing.
 		require.NotErrorIs(t, err, oauth2server.ErrLoginFailed)
 	})
 }
@@ -361,7 +302,7 @@ func plantAccessToken(t *testing.T, store oauth2server.Store, audience []string)
 
 	ctx := t.Context()
 	bearer = "totally-opaque-access-token"
-	exampleUser := buildFakeAdminForTest()
+	exampleUser := identityfakes.BuildFakeUser()
 	exampleAccountID := identityfakes.BuildFakeAccount().ID
 
 	require.NoError(t, store.CreateAccessToken(ctx, &oauth2server.AccessToken{
@@ -381,6 +322,19 @@ func plantAccessToken(t *testing.T, store oauth2server.Store, audience []string)
 	return bearer, exampleUser.ID, exampleAccountID
 }
 
+// newVerifierForTest is the bearer check the router installs, over srv, for exampleResource.
+func newVerifierForTest(t *testing.T, srv *oauth2server.Server) auth.TokenVerifier {
+	t.Helper()
+
+	metadata, err := oauth2server.NewResourceMetadata(exampleResource, []string{exampleResource})
+	require.NoError(t, err)
+
+	verifier, err := oauth2server.NewVerifier(metadata, srv)
+	require.NoError(t, err)
+
+	return newTokenVerifier(verifier)
+}
+
 func TestNewTokenVerifier(T *testing.T) {
 	T.Parallel()
 
@@ -391,7 +345,7 @@ func TestNewTokenVerifier(T *testing.T) {
 		srv, store := newTestAuthServer(t)
 		bearer, userID, accountID := plantAccessToken(t, store, []string{exampleResource})
 
-		info, err := newTokenVerifier(srv, exampleResource)(ctx, bearer, nil)
+		info, err := newVerifierForTest(t, srv)(ctx, bearer, nil)
 		require.NoError(t, err)
 		require.NotNil(t, info)
 
@@ -410,10 +364,12 @@ func TestNewTokenVerifier(T *testing.T) {
 		bearer, _, _ := plantAccessToken(t, store, nil)
 
 		// A client that sends no RFC 8707 resource parameter gets a token naming no
-		// resource. Refusing those would make every such client unable to sign in.
-		info, err := newTokenVerifier(srv, exampleResource)(ctx, bearer, nil)
-		require.NoError(t, err)
-		assert.NotNil(t, info)
+		// resource, which every resource server sharing the store would accept — the API
+		// among them. The MCP specification requires a client to name this one.
+		info, err := newVerifierForTest(t, srv)(ctx, bearer, nil)
+		assert.Nil(t, info)
+		require.ErrorIs(t, err, auth.ErrInvalidToken)
+		require.ErrorIs(t, err, oauth2server.ErrTokenAudienceMismatch)
 	})
 
 	T.Run("with audience naming another resource server", func(t *testing.T) {
@@ -425,10 +381,10 @@ func TestNewTokenVerifier(T *testing.T) {
 
 		// This is the check no authorization server can make for us: the token is
 		// perfectly valid, and it was minted to be spent somewhere else.
-		info, err := newTokenVerifier(srv, exampleResource)(ctx, bearer, nil)
+		info, err := newVerifierForTest(t, srv)(ctx, bearer, nil)
 		assert.Nil(t, info)
 		require.ErrorIs(t, err, auth.ErrInvalidToken)
-		require.ErrorIs(t, err, errWrongAudience)
+		require.ErrorIs(t, err, oauth2server.ErrTokenAudienceMismatch)
 	})
 
 	T.Run("with unknown token", func(t *testing.T) {
@@ -437,7 +393,7 @@ func TestNewTokenVerifier(T *testing.T) {
 		ctx := t.Context()
 		srv, _ := newTestAuthServer(t)
 
-		info, err := newTokenVerifier(srv, exampleResource)(ctx, "nonsense", nil)
+		info, err := newVerifierForTest(t, srv)(ctx, "nonsense", nil)
 		assert.Nil(t, info)
 		require.ErrorIs(t, err, auth.ErrInvalidToken)
 	})
@@ -459,27 +415,21 @@ func TestNewTokenVerifier(T *testing.T) {
 
 		// Expiry is the store's answer, not one this verifier repeats — a second
 		// clock read here could disagree with the one the store used.
-		info, err := newTokenVerifier(srv, exampleResource)(ctx, bearer, nil)
+		info, err := newVerifierForTest(t, srv)(ctx, bearer, nil)
 		assert.Nil(t, info)
 		require.ErrorIs(t, err, auth.ErrInvalidToken)
 	})
 }
 
-// buildFakeAdminForTest is a user the MCP login form admits: a real user who holds the
-// service administrator role, which is what the door checks now that the lookup no longer
-// filters non-administrators out inside the query.
-func buildFakeAdminForTest() *identity.User {
-	user := identityfakes.BuildFakeUser()
-	user.ServiceRoles = []string{authorization.ServiceAdminRoleName}
-
-	return user
-}
-
 // mockDBForTest is a client whose executors are nil, because the store above them is a
-// mock and never sends a statement.
+// mock and never sends a statement. A transaction runs its function with no Tx, which is all
+// the sign-in service's no-op hooks need of one.
 func mockDBForTest() *mockdatabase.ClientMock {
 	return &mockdatabase.ClientMock{
 		ReaderFunc: func() database.SQLQueryExecutor { return nil },
 		WriterFunc: func() database.SQLQueryExecutor { return nil },
+		WithTransactionFunc: func(_ context.Context, fn func(database.Tx) error) error {
+			return fn(nil)
+		},
 	}
 }
