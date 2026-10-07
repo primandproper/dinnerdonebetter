@@ -372,10 +372,9 @@ func (h *mcpToolManager) setupServer() *mcp.Server {
 	mcp.AddTool(mcpServer, getRecipesTool, h.GetRecipes())
 	mcp.AddTool(mcpServer, searchForRecipesTool, h.SearchForRecipes())
 
-	// Issue Reports (read-only)
+	// Issue Reports (read-only, and only the caller's own: the queue is a service administrator's)
 	mcp.AddTool(mcpServer, getIssueReportTool, h.GetIssueReport())
 	mcp.AddTool(mcpServer, getIssueReportsTool, h.GetIssueReports())
-	mcp.AddTool(mcpServer, getIssueReportsByStatusTool, h.GetIssueReportsByStatus())
 
 	// Webhooks (read-only)
 	mcp.AddTool(mcpServer, getWebhookTool, h.GetWebhook())

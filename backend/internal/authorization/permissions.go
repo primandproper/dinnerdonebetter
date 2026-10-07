@@ -66,7 +66,6 @@ var (
 		// internal/build/services/api/grpc.TestMethodTableIsCoveredByThePolicy,
 		// which is the check that says so.
 		ReadAnyAuditLogEntriesPermission,
-		ReadAnyIssueReportsPermission,
 		ModerateCommentsPermission,
 		ReadAllSettingValuesPermission,
 		WriteAdminSettingValuesPermission,
@@ -120,9 +119,26 @@ var (
 		// surface's authorizer reads to admit an operator past "your own" — a ledger that
 		// is not the caller's active account, a signup somebody else made — and each
 		// replaced a check of the caller's role name inside that authorizer. The third
-		// such check, issue reports', reads ReadAnyIssueReportsPermission above.
+		// such check, issue reports', reads TriageIssueReportsPermission below.
 		ReadAnyBillingAccountPermission,
 		WithdrawAnyWaitlistSignupsPermission,
+
+		// Working the issue report queue. A report is between the person who filed it and the
+		// service's administrators — a bug, a harassment complaint, somebody's low-quality
+		// recipe — so the queue is the deployment's, filed under the global scope, and nobody
+		// administering a household belongs in it. These were an account admin's while reports
+		// were filed per account, which let a household admin page, revise, resolve and archive
+		// what their household's members reported, a complaint about a fellow member included.
+		//
+		// None of the four is row-gated: each reaches the whole queue in the caller's scope, and
+		// the scope is now everybody's. Moving them here is what makes the global scope safe.
+		// Triage is also what ownReportOrAdmin (internal/build/issuereports) reads to admit an
+		// administrator to somebody else's report, so the grant that pages the queue is the one
+		// that opens what is in it.
+		TriageIssueReportsPermission,
+		TransitionIssueReportsPermission,
+		UpdateIssueReportsPermission,
+		ArchiveIssueReportsPermission,
 
 		// The directory reads and the three operator writes, which are platform's now.
 		// They are not an account holder's: a support engineer reading a user does not
@@ -177,16 +193,6 @@ var (
 
 	// AccountAdminPermissions is every account admin permission.
 	AccountAdminPermissions = append([]Permission{
-		CreateIssueReportsPermission,
-		UpdateIssueReportsPermission,
-		ArchiveIssueReportsPermission,
-		// Working the queue is an account admin's, because the queue is the account's:
-		// a report is filed in the account it is about and no read crosses that line.
-		// These are the two halves of what "update.issue_reports" gated before the
-		// adoption split it — paging the queue by status or subject, and moving a
-		// report through it.
-		TriageIssueReportsPermission,
-		TransitionIssueReportsPermission,
 		CreateMealPlansPermission,
 		UpdateMealPlansPermission,
 		ArchiveMealPlansPermission,
@@ -238,7 +244,6 @@ var (
 
 	// AccountMemberPermissions is every account member permission.
 	AccountMemberPermissions = append([]Permission{
-		ReadIssueReportsPermission,
 		ReadAuditLogEntriesPermission,
 		ReadSettingDefinitionsPermission,
 		CreateMealsPermission,

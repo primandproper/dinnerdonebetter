@@ -6,6 +6,7 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	identitybuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/identity"
+	issuereportsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/issuereports"
 	mediaregistrybuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/mediaregistry"
 	oauth2clientsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/oauth2clients"
 	passkeysbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/passkeys"
@@ -352,6 +353,7 @@ func MethodPermissionOverrides() map[string][]authorization.Permission {
 	out := map[string][]authorization.Permission{}
 
 	maps.Copy(out, identitybuild.PermissionOverrides())
+	maps.Copy(out, issuereportsbuild.PermissionOverrides())
 	maps.Copy(out, waitlistsbuild.PermissionOverrides())
 
 	return out

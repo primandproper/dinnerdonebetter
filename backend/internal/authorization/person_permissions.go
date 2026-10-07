@@ -46,5 +46,13 @@ var (
 		CreateMediaObjectsPermission,
 		ReadMediaObjectsPermission,
 		ArchiveMediaObjectsPermission,
+
+		// Filing an issue report and reading back one's own. A report is a person's, filed under
+		// the global scope and owed to nobody but its reporter and the service's administrators,
+		// so filing one does not wait on a membership and reading one does not reach anybody
+		// else's: ownReportOrAdmin (internal/build/issuereports) confines both reads to the
+		// caller's own.
+		CreateIssueReportsPermission,
+		ReadIssueReportsPermission,
 	}
 )

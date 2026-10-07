@@ -72,7 +72,7 @@ inside one.
 | `notifications.devices` | platform-go's `notifications/privacy` | Handsets the subject registered for push, tokens included |
 | `payments` | `payments/privacy` over platform-go's `billing/privacy` | Subscriptions, purchases and payment transactions, in every account the subject appears in, archived rows included |
 | `audit` | platform-go's `audit/privacy`, with the chain resolvers platform ships for `FileBySubject` | Audit entries the subject acted in, was acted on in, or recorded while impersonating somebody — in their own chain, every account they belong to, and every chain they acted in, which reaches accounts they have left |
-| `issue_reports` | `issuereports/privacy` over platform-go's | Issue reports the subject filed, in every account they appear in |
+| `issue_reports` | platform-go's `issuereports/privacy` | Issue reports the subject filed, all under the one global scope whichever households they are in |
 | `uploaded_media` | `uploadedmedia/privacy` | Registry rows for objects the subject uploaded (not the bytes) |
 | `waitlists` | `waitlists/privacy` over platform-go's | Waitlist signups the subject made (withdrawn ones excluded — they no longer name anybody) |
 | `comments` | platform-go's `comments/privacy` | Comments the subject authored |

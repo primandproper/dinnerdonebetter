@@ -26,8 +26,8 @@ func buildFakeSubjectType() string {
 	return gofakeit.RandomString([]string{"users", "accounts", "recipes", "meals"})
 }
 
-// BuildFakeIssueReport builds a faked Report, open and belonging to a faked
-// account.
+// BuildFakeIssueReport builds a faked Report, open and filed under the scope
+// every report is.
 //
 // The status is fixed rather than randomized because a report is born open and
 // the store refuses one that arrives in any other status — a randomized status
@@ -39,26 +39,12 @@ func BuildFakeIssueReport() *platformissuereports.Report {
 	report.Status = platformissuereports.StatusOpen
 	report.Resolution = ""
 	report.ClosedAt = nil
-	report.Scope = issuereports.Scope(fake.BuildFakeID())
+	report.Scope = issuereports.Scope()
 
 	return report
 }
 
-// BuildFakeIssueReportForScope builds a faked Report filed under the given
-// account.
-func BuildFakeIssueReportForScope(accountID string) *platformissuereports.Report {
-	report := BuildFakeIssueReport()
-	report.Scope = issuereports.Scope(accountID)
-
-	return report
-}
-
-// BuildFakeIssueReportList builds a faked page of Reports in one scope.
-//
-// Every element carries the scope, because that is what the read path filtered
-// on: a page of one account's reports is the only page the read path returns.
-func BuildFakeIssueReportList(scope string) *filtering.QueryFilteredResult[platformissuereports.Report] {
-	return fake.BuildFakePage(func() *platformissuereports.Report {
-		return BuildFakeIssueReportForScope(scope)
-	})
+// BuildFakeIssueReportList builds a faked page of Reports.
+func BuildFakeIssueReportList() *filtering.QueryFilteredResult[platformissuereports.Report] {
+	return fake.BuildFakePage(BuildFakeIssueReport)
 }

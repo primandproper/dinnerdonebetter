@@ -9,6 +9,7 @@ import (
 
 	"github.com/primandproper/platform-go/v15/callers"
 	platformissuereports "github.com/primandproper/platform-go/v15/issuereports"
+	issuereportsgrpc "github.com/primandproper/platform-go/v15/issuereports/grpc"
 	"github.com/primandproper/primitives-go/v2/fake"
 
 	"github.com/stretchr/testify/assert"
@@ -27,7 +28,7 @@ func signedIn(t *testing.T, userID string, perms ...authorization.Permission) (c
 		ActiveAccountID: fake.BuildFakeID(),
 	})
 
-	principal, ok := sessions.AccountScopedPrincipalFromContext(ctx)
+	principal, ok := sessions.PrincipalFromContext(ctx)
 	require.True(t, ok)
 
 	return ctx, principal
@@ -47,7 +48,7 @@ func TestOwnReportOrAdmin_AuthorizeReport(T *testing.T) {
 		assert.NoError(t, authorizer.AuthorizeReport(ctx, principal, &platformissuereports.Report{Reporter: userID}))
 	})
 
-	T.Run("refuses somebody else's report to a caller without the grant", func(t *testing.T) {
+	T.Run("refuses somebody else's report to a household admin", func(t *testing.T) {
 		t.Parallel()
 
 		ctx, principal := signedIn(t, fake.BuildFakeID(), authorization.AccountAdminPermissions...)
@@ -59,7 +60,7 @@ func TestOwnReportOrAdmin_AuthorizeReport(T *testing.T) {
 	T.Run("permits somebody else's report to a holder of the grant", func(t *testing.T) {
 		t.Parallel()
 
-		ctx, principal := signedIn(t, fake.BuildFakeID(), authorization.ReadAnyIssueReportsPermission)
+		ctx, principal := signedIn(t, fake.BuildFakeID(), authorization.TriageIssueReportsPermission)
 
 		assert.NoError(t, authorizer.AuthorizeReport(ctx, principal, &platformissuereports.Report{Reporter: fake.BuildFakeID()}))
 	})
@@ -94,7 +95,7 @@ func TestOwnReportOrAdmin_AuthorizeReporter(T *testing.T) {
 		assert.NoError(t, authorizer.AuthorizeReporter(ctx, principal, userID))
 	})
 
-	T.Run("refuses somebody else to a caller without the grant", func(t *testing.T) {
+	T.Run("refuses somebody else to a household admin", func(t *testing.T) {
 		t.Parallel()
 
 		ctx, principal := signedIn(t, fake.BuildFakeID(), authorization.AccountAdminPermissions...)
@@ -105,7 +106,7 @@ func TestOwnReportOrAdmin_AuthorizeReporter(T *testing.T) {
 	T.Run("permits somebody else to a holder of the grant", func(t *testing.T) {
 		t.Parallel()
 
-		ctx, principal := signedIn(t, fake.BuildFakeID(), authorization.ReadAnyIssueReportsPermission)
+		ctx, principal := signedIn(t, fake.BuildFakeID(), authorization.TriageIssueReportsPermission)
 
 		assert.NoError(t, authorizer.AuthorizeReporter(ctx, principal, fake.BuildFakeID()))
 	})
@@ -116,5 +117,21 @@ func TestOwnReportOrAdmin_AuthorizeReporter(T *testing.T) {
 		ctx, principal := signedIn(t, fake.BuildFakeID(), authorization.ServiceAdminPermissions...)
 
 		assert.NoError(t, authorizer.AuthorizeReporter(ctx, principal, fake.BuildFakeID()))
+	})
+}
+
+func TestPermissionOverrides(T *testing.T) {
+	T.Parallel()
+
+	T.Run("puts the cross-scope reads behind the grant a service admin works the queue with", func(t *testing.T) {
+		t.Parallel()
+
+		overrides := PermissionOverrides()
+		require.Len(t, overrides, 2)
+
+		for method, required := range overrides {
+			assert.Equal(t, []authorization.Permission{authorization.TriageIssueReportsPermission}, required, method)
+			assert.NotContains(t, required, issuereportsgrpc.PermissionReadAnyReports, method)
+		}
 	})
 }

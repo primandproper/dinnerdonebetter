@@ -7,10 +7,10 @@ function randomID(): string {
 }
 
 describe('toOperatorRows', () => {
-  it('carries each report with the account it was filed in', () => {
-    const accountID = randomID();
+  it('carries each report with who filed it', () => {
     const report = IssueReport.create({
       id: randomID(),
+      reporter: randomID(),
       kind: randomID(),
       subjectType: randomID(),
       subjectId: randomID(),
@@ -18,12 +18,12 @@ describe('toOperatorRows', () => {
       createdAt: new Date(),
     });
 
-    const rows = toOperatorRows([{ scope: accountID, report }]);
+    const rows = toOperatorRows([report]);
 
     expect(rows).toEqual([
       {
         id: report.id,
-        accountID,
+        reporter: report.reporter,
         kind: report.kind,
         status: reportStatusToJSON(report.status),
         subject: `${report.subjectType}/${report.subjectId}`,
@@ -32,14 +32,10 @@ describe('toOperatorRows', () => {
     ]);
   });
 
-  it('skips an entry with no report rather than rendering an empty row', () => {
-    expect(toOperatorRows([{ scope: randomID(), report: undefined }])).toEqual([]);
-  });
-
   it('leaves the subject empty for a report about nothing in particular', () => {
     const report = IssueReport.create({ id: randomID(), kind: randomID() });
 
-    const [row] = toOperatorRows([{ scope: randomID(), report }]);
+    const [row] = toOperatorRows([report]);
 
     expect(row.subject).toBe('');
   });

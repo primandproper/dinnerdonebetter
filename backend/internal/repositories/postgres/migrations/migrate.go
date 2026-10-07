@@ -552,23 +552,19 @@ func renderBillingDDL() (string, error) {
 // followed by a store reading columns that are not there. This renders
 // ddb_issue_reports; see branding.TablePrefix.
 //
-// Both foreign keys are re-created, and neither is something platform could
-// ship: it does not know which of a consumer's tables holds a principal, and it
-// does not know that this consumer's tenants are rows in a table at all.
+// The reporter's foreign key is re-created, which is something platform could not
+// ship: it does not know which of a consumer's tables holds a principal.
 //
-// The reporter key is the one that matters. It is what keeps the single identity
-// eraser in internal/build/dataprivacy covering issue reports — the details are
-// free text somebody typed, so a report that outlived its reporter would be
-// personal data no erasure reaches. Without it this domain would need an eraser
-// of its own; platform ships one (issuereports/privacy) for consumers whose
-// reporters are not rows they own.
+// It is what keeps the single identity eraser in internal/build/dataprivacy
+// covering issue reports — the details are free text somebody typed, so a report
+// that outlived its reporter would be personal data no erasure reaches. Without it
+// this domain would rely on the eraser platform ships (issuereports/privacy) alone.
 //
-// The scope key re-creates what belongs_to_account did: a hard-deleted account
-// takes its reports with it rather than stranding them in a scope nothing can
-// list. It is safe only because this application never files a report in the
-// global scope, whose stored identifier is the empty string and would match no
-// account — see ddbissuereports.Scope, which maps an empty account to the scope
-// the store refuses rather than to the global one.
+// The scope column carries no key. Every report is filed under the global scope
+// (see ddbissuereports.Scope), whose stored identifier is the empty string and
+// names no account, so a key to the accounts table would refuse every report
+// anybody filed. Reports used to be filed per account, behind exactly that key; a
+// report is the reporter's and the service's administrators', not a household's.
 func renderIssueReportsDDL() (string, error) {
 	schema, err := issuereportsmigrations.SQL(dialect.Postgres, branding.TablePrefix)
 	if err != nil {
@@ -580,7 +576,6 @@ func renderIssueReportsDDL() (string, error) {
 	body := &strings.Builder{}
 	body.WriteString(schema)
 	body.WriteString("\n\nALTER TABLE " + table + "\n\tADD CONSTRAINT " + table + "_reporter_fk\n\tFOREIGN KEY (reporter) REFERENCES " + identityUsers + "(id) ON DELETE CASCADE;\n")
-	body.WriteString("\nALTER TABLE " + table + "\n\tADD CONSTRAINT " + table + "_scope_fk\n\tFOREIGN KEY (scope) REFERENCES " + identityAccounts + "(id) ON DELETE CASCADE;\n")
 
 	return body.String(), nil
 }

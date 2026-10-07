@@ -2,6 +2,7 @@ package mcpserver
 
 import (
 	"context"
+	"fmt"
 
 	ddbissuereports "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports"
 
@@ -28,7 +29,7 @@ var issueReportSchema = map[string]any{
 
 var getIssueReportTool = &mcp.Tool{
 	Name:        "GetIssueReport",
-	Description: "Get an issue report by its ID",
+	Description: "Get an issue report you filed, by its ID",
 	InputSchema: schemaObject(map[string]any{
 		"IssueReportID": stringField("The ID of the issue report to get"),
 	}),
@@ -39,21 +40,27 @@ type GetIssueReportInvocation struct {
 	IssueReportID string `jsonschema:"description=The issue report ID"`
 }
 
-// GetIssueReport reads one of the caller's account's reports.
+// GetIssueReport reads one report the caller filed.
 //
-// The account comes off the token rather than from the invocation, which is what
-// keeps a model from asking for a report in somebody else's account: a report
-// outside the scope reads as absent.
+// Every report is in the one global scope, so the scope keeps nobody out and the
+// reporter check is the whole boundary. Somebody else's report reads as absent,
+// exactly as one that was never filed does, so the tool is no oracle for which
+// reports exist. Working the queue is a service administrator's, and this server
+// mounts none of it.
 func (h *mcpToolManager) GetIssueReport() mcp.ToolHandlerFor[*GetIssueReportInvocation, *issuereports.Report] {
 	return func(ctx context.Context, req *mcp.CallToolRequest, x *GetIssueReportInvocation) (*mcp.CallToolResult, *issuereports.Report, error) {
-		accountID, err := h.userFromRequest(req)
+		userID, err := h.reporterFromRequest(req)
 		if err != nil {
 			return nil, nil, err
 		}
 
-		result, err := h.issueReports.GetReport(ctx, h.reader, ddbissuereports.Scope(accountID), x.IssueReportID)
+		result, err := h.issueReports.GetReport(ctx, h.reader, ddbissuereports.Scope(), x.IssueReportID)
 		if err != nil {
 			return nil, nil, err
+		}
+
+		if result.Reporter != userID {
+			return nil, nil, issuereports.ErrReportNotFound
 		}
 
 		return nil, result, nil
@@ -62,7 +69,7 @@ func (h *mcpToolManager) GetIssueReport() mcp.ToolHandlerFor[*GetIssueReportInvo
 
 var getIssueReportsTool = &mcp.Tool{
 	Name:        "GetIssueReports",
-	Description: "Get the active account's issue reports, with optional filtering",
+	Description: "Get the issue reports you filed, with optional filtering",
 	InputSchema: schemaObject(map[string]any{
 		fieldFilter: filtering.QueryFilterSchema(),
 	}),
@@ -81,14 +88,15 @@ type (
 	}
 )
 
+// GetIssueReports pages the reports the caller filed, and nobody else's.
 func (h *mcpToolManager) GetIssueReports() mcp.ToolHandlerFor[*GetIssueReportsInvocation, *GetIssueReportsResult] {
 	return func(ctx context.Context, req *mcp.CallToolRequest, x *GetIssueReportsInvocation) (*mcp.CallToolResult, *GetIssueReportsResult, error) {
-		accountID, err := h.userFromRequest(req)
+		userID, err := h.reporterFromRequest(req)
 		if err != nil {
 			return nil, nil, err
 		}
 
-		results, err := h.issueReports.ListReports(ctx, h.reader, ddbissuereports.Scope(accountID), x.Filter)
+		results, err := h.issueReports.ListReportsByReporter(ctx, h.reader, ddbissuereports.Scope(), userID, x.Filter)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -97,52 +105,14 @@ func (h *mcpToolManager) GetIssueReports() mcp.ToolHandlerFor[*GetIssueReportsIn
 	}
 }
 
-var getIssueReportsByStatusTool = &mcp.Tool{
-	Name:        "GetIssueReportsByStatus",
-	Description: "Get the active account's issue reports in one triage status: open, acknowledged, resolved or declined",
-	InputSchema: schemaObject(map[string]any{
-		"Status":    stringField("One of open, acknowledged, resolved or declined"),
-		fieldFilter: filtering.QueryFilterSchema(),
-	}),
-	OutputSchema: schemaObject(map[string]any{
-		fieldResults: arrayType(schemaObject(issueReportSchema)),
-	}),
-}
-
-type (
-	GetIssueReportsByStatusInvocation struct {
-		Filter *filtering.QueryFilter
-		Status string `jsonschema:"description=One of open, acknowledged, resolved or declined"`
-	}
-
-	GetIssueReportsByStatusResult struct {
-		Results []*issuereports.Report
-	}
-)
-
-// GetIssueReportsByStatus is the triage queue.
+// reporterFromRequest is the user the MCP request's token was issued to.
 //
-// A status this application does not serve is refused rather than answered with
-// an empty page, because an empty page is indistinguishable from a queue nobody
-// has filed into — and a model that asked for "closed" would report that
-// everything had been dealt with.
-func (h *mcpToolManager) GetIssueReportsByStatus() mcp.ToolHandlerFor[*GetIssueReportsByStatusInvocation, *GetIssueReportsByStatusResult] {
-	return func(ctx context.Context, req *mcp.CallToolRequest, x *GetIssueReportsByStatusInvocation) (*mcp.CallToolResult, *GetIssueReportsByStatusResult, error) {
-		accountID, err := h.userFromRequest(req)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		status, ok := issuereports.ParseStatus(x.Status)
-		if !ok {
-			return nil, nil, issuereports.ErrUnknownStatus
-		}
-
-		results, err := h.issueReports.ListReportsByStatus(ctx, h.reader, ddbissuereports.Scope(accountID), status, x.Filter)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		return nil, &GetIssueReportsByStatusResult{Results: results.Data}, nil
+// It refuses a token naming nobody rather than answering it, because a reporter
+// check against the empty string would match a report filed by nobody.
+func (h *mcpToolManager) reporterFromRequest(req *mcp.CallToolRequest) (string, error) {
+	if req.Extra == nil || req.Extra.TokenInfo == nil || req.Extra.TokenInfo.UserID == "" {
+		return "", fmt.Errorf("not authenticated")
 	}
+
+	return req.Extra.TokenInfo.UserID, nil
 }
