@@ -4,11 +4,6 @@ package common;
 
 option go_package = "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types";
 
-message NamedID {
-  string id = 1;
-  string name = 2;
-}
-
 message ResponseDetails {
   string current_account_id = 1;
   string trace_id = 2;
