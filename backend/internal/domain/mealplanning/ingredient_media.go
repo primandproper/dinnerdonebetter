@@ -7,6 +7,11 @@ import (
 	"github.com/primandproper/platform-go/v15/mediaregistry"
 )
 
+const (
+	// IngredientMediaCreatedServiceEventType indicates media was added to a valid ingredient.
+	IngredientMediaCreatedServiceEventType = "ingredient_media_created"
+)
+
 // IngredientMediaRow represents a row from ingredient_media table.
 type IngredientMediaRow struct {
 	CreatedAt         time.Time

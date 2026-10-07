@@ -1454,11 +1454,16 @@ func (q *repository) AddRecipeImage(ctx context.Context, recipeID, uploadedMedia
 	logger := q.logger.WithValue(mealplanningkeys.RecipeIDKey, recipeID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeIDKey, recipeID)
 
-	if err := q.generatedQuerier.CreateRecipeImage(ctx, q.writeDB, &generated.CreateRecipeImageParams{
-		ID:              identifiers.New(),
-		BelongsToRecipe: recipeID,
-		UploadedMediaID: uploadedMediaID,
-		UploadedByUser:  uploadedByUser,
+	if err := q.withEvent(ctx, logger, mealplanning.RecipeImageCreatedServiceEventType, "", map[string]any{
+		mealplanningkeys.RecipeIDKey:        recipeID,
+		mealplanningkeys.UploadedMediaIDKey: uploadedMediaID,
+	}, func(tx database.Tx) error {
+		return q.generatedQuerier.CreateRecipeImage(ctx, tx, &generated.CreateRecipeImageParams{
+			ID:              identifiers.New(),
+			BelongsToRecipe: recipeID,
+			UploadedMediaID: uploadedMediaID,
+			UploadedByUser:  uploadedByUser,
+		})
 	}); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "creating recipe image")
 	}

@@ -7,6 +7,11 @@ import (
 	"github.com/primandproper/platform-go/v15/mediaregistry"
 )
 
+const (
+	// RecipeStepImageCreatedServiceEventType indicates an image was added to a recipe step.
+	RecipeStepImageCreatedServiceEventType = "recipe_step_image_created"
+)
+
 // RecipeStepImageRow represents a row from recipe_step_images table.
 type RecipeStepImageRow struct {
 	CreatedAt           time.Time

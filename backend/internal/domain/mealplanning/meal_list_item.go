@@ -10,6 +10,15 @@ import (
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
 
+const (
+	// MealListItemCreatedServiceEventType indicates a meal list item was created.
+	MealListItemCreatedServiceEventType = "meal_list_item_created"
+	// MealListItemUpdatedServiceEventType indicates a meal list item was updated.
+	MealListItemUpdatedServiceEventType = "meal_list_item_updated"
+	// MealListItemArchivedServiceEventType indicates a meal list item was archived.
+	MealListItemArchivedServiceEventType = "meal_list_item_archived"
+)
+
 func init() {
 	gob.Register(new(MealListItem))
 	gob.Register(new(MealListItemCreationRequestInput))

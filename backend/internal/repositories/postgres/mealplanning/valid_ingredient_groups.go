@@ -375,7 +375,9 @@ func (q *repository) CreateValidIngredientGroup(ctx context.Context, input *meal
 		CreatedAt:   q.CurrentTime(),
 	}
 
-	if err := q.WithTransaction(ctx, func(tx database.Tx) error {
+	if err := q.withEvent(ctx, logger, mealplanning.ValidIngredientGroupCreatedServiceEventType, "", map[string]any{
+		mealplanningkeys.ValidIngredientGroupIDKey: input.ID,
+	}, func(tx database.Tx) error {
 		// create the valid ingredient group.
 		if err := q.generatedQuerier.CreateValidIngredientGroup(ctx, tx, &generated.CreateValidIngredientGroupParams{
 			ID:          input.ID,
@@ -387,7 +389,7 @@ func (q *repository) CreateValidIngredientGroup(ctx context.Context, input *meal
 		}
 
 		for i := range input.Members {
-			member, err := q.CreateValidIngredientGroupMember(ctx, tx, x.ID, input.Members[i])
+			member, err := q.createValidIngredientGroupMember(ctx, tx, x.ID, input.Members[i])
 			if err != nil {
 				return observability.PrepareAndLogError(err, logger, span, "creating valid ingredient group member")
 			}
@@ -405,8 +407,8 @@ func (q *repository) CreateValidIngredientGroup(ctx context.Context, input *meal
 	return x, nil
 }
 
-// CreateValidIngredientGroupMember creates a valid ingredient group member in the database.
-func (q *repository) CreateValidIngredientGroupMember(ctx context.Context, db database.SQLQueryExecutor, groupID string, input *mealplanning.ValidIngredientGroupMemberDatabaseCreationInput) (*mealplanning.ValidIngredientGroupMember, error) {
+// createValidIngredientGroupMember creates a valid ingredient group member in the database.
+func (q *repository) createValidIngredientGroupMember(ctx context.Context, db database.SQLQueryExecutor, groupID string, input *mealplanning.ValidIngredientGroupMemberDatabaseCreationInput) (*mealplanning.ValidIngredientGroupMember, error) {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 

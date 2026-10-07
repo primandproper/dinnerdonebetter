@@ -662,7 +662,7 @@ func (q *repository) createMeal(ctx context.Context, querier database.Tx, input 
 	}
 
 	for _, recipeID := range input.Components {
-		if err := q.CreateMealComponent(ctx, querier, x.ID, recipeID); err != nil {
+		if err := q.createMealComponent(ctx, querier, x.ID, recipeID); err != nil {
 			return nil, observability.PrepareAndLogError(err, logger, span, "creating meal recipe")
 		}
 	}
@@ -707,8 +707,8 @@ func (q *repository) CreateMeal(ctx context.Context, input *mealplanning.MealDat
 	return x, nil
 }
 
-// CreateMealComponent creates a meal component in the database.
-func (q *repository) CreateMealComponent(ctx context.Context, querier database.Tx, mealID string, input *mealplanning.MealComponentDatabaseCreationInput) error {
+// createMealComponent creates a meal component in the database.
+func (q *repository) createMealComponent(ctx context.Context, querier database.Tx, mealID string, input *mealplanning.MealComponentDatabaseCreationInput) error {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -822,11 +822,16 @@ func (q *repository) AddMealImage(ctx context.Context, mealID, uploadedMediaID, 
 	logger := q.logger.WithValue(mealplanningkeys.MealIDKey, mealID)
 	tracing.AttachToSpan(span, mealplanningkeys.MealIDKey, mealID)
 
-	if err := q.generatedQuerier.CreateMealImage(ctx, q.writeDB, &generated.CreateMealImageParams{
-		ID:              identifiers.New(),
-		BelongsToMeal:   mealID,
-		UploadedMediaID: uploadedMediaID,
-		UploadedByUser:  uploadedByUser,
+	if err := q.withEvent(ctx, logger, mealplanning.MealImageCreatedServiceEventType, "", map[string]any{
+		mealplanningkeys.MealIDKey:          mealID,
+		mealplanningkeys.UploadedMediaIDKey: uploadedMediaID,
+	}, func(tx database.Tx) error {
+		return q.generatedQuerier.CreateMealImage(ctx, tx, &generated.CreateMealImageParams{
+			ID:              identifiers.New(),
+			BelongsToMeal:   mealID,
+			UploadedMediaID: uploadedMediaID,
+			UploadedByUser:  uploadedByUser,
+		})
 	}); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "creating meal image")
 	}

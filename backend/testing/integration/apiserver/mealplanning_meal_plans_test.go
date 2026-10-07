@@ -161,14 +161,18 @@ func TestMealPlans_Listing(T *testing.T) {
 		// assert audit log entries for created meal plans (pre-cleanup)
 		accountID := getAccountIDForTest(t, userClient)
 		expectedAudit := make([]*ExpectedAuditEntry, 0, len(expected))
+		// Each plan files its own entry and one for every event it was created with, all in the
+		// account's chain, so the window is as wide as what these plans wrote.
+		window := 0
 		for _, mp := range expected {
 			expectedAudit = append(expectedAudit, &ExpectedAuditEntry{
 				EventType:    "created",
 				ResourceType: "meal_plans",
 				RelevantID:   mp.ID,
 			})
+			window += 1 + len(mp.Events)
 		}
-		AssertAuditLogContainsFuzzy(t, ctx, userClient, accountID, 15, expectedAudit)
+		AssertAuditLogContainsFuzzy(t, ctx, userClient, accountID, window, expectedAudit)
 
 		for _, createdMealPlan := range expected {
 			_, err = userClient.ArchiveMealPlan(ctx, &mealplanninggrpc.ArchiveMealPlanRequest{MealPlanId: createdMealPlan.ID})

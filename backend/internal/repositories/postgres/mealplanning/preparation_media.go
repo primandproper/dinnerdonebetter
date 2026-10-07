@@ -8,6 +8,7 @@ import (
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
+	"github.com/primandproper/primitives-go/v2/database"
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/identifiers"
 	"github.com/primandproper/primitives-go/v2/observability"
@@ -40,7 +41,12 @@ func (q *repository) AddPreparationMedia(ctx context.Context, validPreparationID
 		arg.ForIngredientID = sql.NullString{String: *forIngredientID, Valid: true}
 	}
 
-	if err := q.generatedQuerier.CreatePreparationMedia(ctx, q.writeDB, arg); err != nil {
+	if err := q.withEvent(ctx, logger, mealplanning.PreparationMediaCreatedServiceEventType, "", map[string]any{
+		mealplanningkeys.ValidPreparationIDKey: validPreparationID,
+		mealplanningkeys.UploadedMediaIDKey:    uploadedMediaID,
+	}, func(tx database.Tx) error {
+		return q.generatedQuerier.CreatePreparationMedia(ctx, tx, arg)
+	}); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "creating preparation media")
 	}
 

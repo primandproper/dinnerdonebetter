@@ -661,10 +661,16 @@ func (q *repository) FinalizeMealPlanOption(ctx context.Context, mealPlanID, mea
 
 	winner, tiebroken, chosen := q.decideOptionWinner(ctx, mealPlanEvent.Options)
 	if chosen {
-		if err = q.generatedQuerier.FinalizeMealPlanOption(ctx, q.readDB, &generated.FinalizeMealPlanOptionParams{
-			MealPlanEventID: database.NullStringFromString(mealPlanEventID),
-			ID:              winner,
-			Tiebroken:       tiebroken,
+		if err = q.withEvent(ctx, logger, mealplanning.MealPlanOptionFinalizedCreatedServiceEventType, accountID, map[string]any{
+			mealplanningkeys.MealPlanIDKey:       mealPlanID,
+			mealplanningkeys.MealPlanEventIDKey:  mealPlanEventID,
+			mealplanningkeys.MealPlanOptionIDKey: winner,
+		}, func(tx database.Tx) error {
+			return q.generatedQuerier.FinalizeMealPlanOption(ctx, tx, &generated.FinalizeMealPlanOptionParams{
+				MealPlanEventID: database.NullStringFromString(mealPlanEventID),
+				ID:              winner,
+				Tiebroken:       tiebroken,
+			})
 		}); err != nil {
 			return false, observability.PrepareAndLogError(err, logger, span, "finalizing meal plan option")
 		}

@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
@@ -184,20 +183,16 @@ func (q *repository) CreateAccountInstrumentOwnership(ctx context.Context, input
 	logger := q.logger.WithValue(mealplanningkeys.AccountInstrumentOwnershipIDKey, input.ID)
 
 	// create the account instrument ownership.
-	if err := q.withEvent(ctx, logger, types.AccountInstrumentOwnershipCreatedServiceEventType, input.BelongsToAccount, map[string]any{
+	if err := q.withRecord(ctx, logger, auditEntry(resourceTypeAccountInstrumentOwnerships, input.ID, platformaudit.EventCreated), types.AccountInstrumentOwnershipCreatedServiceEventType, input.BelongsToAccount, map[string]any{
 		mealplanningkeys.AccountInstrumentOwnershipIDKey: input.ID,
 	}, func(tx database.Tx) error {
-		if err := q.generatedQuerier.CreateAccountInstrumentOwnership(ctx, tx, &generated.CreateAccountInstrumentOwnershipParams{
+		return q.generatedQuerier.CreateAccountInstrumentOwnership(ctx, tx, &generated.CreateAccountInstrumentOwnershipParams{
 			ID:                input.ID,
 			Notes:             input.Notes,
 			ValidInstrumentID: input.ValidInstrumentID,
 			BelongsToAccount:  input.BelongsToAccount,
 			Quantity:          int32(input.Quantity),
-		}); err != nil {
-			return err
-		}
-
-		return q.recordAuditOnly(ctx, tx, audit.NewEntry("", input.BelongsToAccount, resourceTypeAccountInstrumentOwnerships, input.ID, platformaudit.EventCreated))
+		})
 	}); err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "performing account instrument ownership creation query")
 	}
@@ -227,20 +222,18 @@ func (q *repository) UpdateAccountInstrumentOwnership(ctx context.Context, updat
 	logger := q.logger.WithValue(mealplanningkeys.AccountInstrumentOwnershipIDKey, updated.ID)
 	tracing.AttachToSpan(span, mealplanningkeys.AccountInstrumentOwnershipIDKey, updated.ID)
 
-	if err := q.withEvent(ctx, logger, types.AccountInstrumentOwnershipUpdatedServiceEventType, updated.BelongsToAccount, map[string]any{
+	if err := q.withRecord(ctx, logger, auditEntry(resourceTypeAccountInstrumentOwnerships, updated.ID, platformaudit.EventUpdated), types.AccountInstrumentOwnershipUpdatedServiceEventType, updated.BelongsToAccount, map[string]any{
 		mealplanningkeys.AccountInstrumentOwnershipIDKey: updated.ID,
 	}, func(tx database.Tx) error {
-		if _, updateErr := q.generatedQuerier.UpdateAccountInstrumentOwnership(ctx, tx, &generated.UpdateAccountInstrumentOwnershipParams{
+		_, updateErr := q.generatedQuerier.UpdateAccountInstrumentOwnership(ctx, tx, &generated.UpdateAccountInstrumentOwnershipParams{
 			Notes:             updated.Notes,
 			ValidInstrumentID: updated.Instrument.ID,
 			ID:                updated.ID,
 			BelongsToAccount:  updated.BelongsToAccount,
 			Quantity:          int32(updated.Quantity),
-		}); updateErr != nil {
-			return updateErr
-		}
+		})
 
-		return q.recordAuditOnly(ctx, tx, audit.NewEntry("", updated.BelongsToAccount, resourceTypeAccountInstrumentOwnerships, updated.ID, platformaudit.EventUpdated))
+		return updateErr
 	}); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "updating account instrument ownership")
 	}
@@ -269,7 +262,7 @@ func (q *repository) ArchiveAccountInstrumentOwnership(ctx context.Context, acco
 	logger = logger.WithValue(identitykeys.AccountIDKey, accountID)
 	tracing.AttachToSpan(span, identitykeys.AccountIDKey, accountID)
 
-	return q.withEvent(ctx, logger, types.AccountInstrumentOwnershipArchivedServiceEventType, accountID, map[string]any{
+	return q.withRecord(ctx, logger, auditEntry(resourceTypeAccountInstrumentOwnerships, accountInstrumentOwnershipID, platformaudit.EventArchived), types.AccountInstrumentOwnershipArchivedServiceEventType, accountID, map[string]any{
 		mealplanningkeys.AccountInstrumentOwnershipIDKey: accountInstrumentOwnershipID,
 	}, func(tx database.Tx) error {
 		rowsAffected, archiveErr := q.generatedQuerier.ArchiveAccountInstrumentOwnership(ctx, tx, &generated.ArchiveAccountInstrumentOwnershipParams{
@@ -282,12 +275,6 @@ func (q *repository) ArchiveAccountInstrumentOwnership(ctx context.Context, acco
 
 		if rowsAffected == 0 {
 			return sql.ErrNoRows
-		}
-
-		// The audit log entry belongs in this transaction too: it describes the same
-		// write, and half of a write is not something to record.
-		if auditErr := q.recordAuditOnly(ctx, tx, audit.NewEntry("", accountID, resourceTypeAccountInstrumentOwnerships, accountInstrumentOwnershipID, platformaudit.EventArchived)); auditErr != nil {
-			return observability.PrepareError(auditErr, span, "creating audit log entry")
 		}
 
 		return nil

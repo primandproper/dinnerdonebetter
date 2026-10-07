@@ -36,6 +36,8 @@ const (
 	MealCreatedServiceEventType = "meal_created"
 	// MealArchivedServiceEventType indicates a meal was archived.
 	MealArchivedServiceEventType = "meal_archived"
+	// MealImageCreatedServiceEventType indicates an image was added to a meal.
+	MealImageCreatedServiceEventType = "meal_image_created"
 )
 
 var (

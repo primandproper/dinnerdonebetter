@@ -8,7 +8,6 @@ import (
 	"sync"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
-
 	"github.com/primandproper/platform-go/v15/mediaregistry"
 	"github.com/primandproper/primitives-go/v2/filtering"
 )
@@ -812,7 +811,7 @@ var _ mealplanning.Repository = &RepositoryMock{}
 //			SwapMealPlanEventsFunc: func(ctx context.Context, mealPlanID string, mealPlanEventIDA string, mealPlanEventIDB string) error {
 //				panic("mock out the SwapMealPlanEvents method")
 //			},
-//			UndoMealPlanGroceryListInitializationFunc: func(ctx context.Context, mealPlanID string, itemIDs []string) error {
+//			UndoMealPlanGroceryListInitializationFunc: func(ctx context.Context, mealPlanID string, accountID string, itemIDs []string) error {
 //				panic("mock out the UndoMealPlanGroceryListInitialization method")
 //			},
 //			UndoMealPlanTaskCreationFunc: func(ctx context.Context, mealPlanID string, taskIDs []string) error {
@@ -1774,7 +1773,7 @@ type RepositoryMock struct {
 	SwapMealPlanEventsFunc func(ctx context.Context, mealPlanID string, mealPlanEventIDA string, mealPlanEventIDB string) error
 
 	// UndoMealPlanGroceryListInitializationFunc mocks the UndoMealPlanGroceryListInitialization method.
-	UndoMealPlanGroceryListInitializationFunc func(ctx context.Context, mealPlanID string, itemIDs []string) error
+	UndoMealPlanGroceryListInitializationFunc func(ctx context.Context, mealPlanID string, accountID string, itemIDs []string) error
 
 	// UndoMealPlanTaskCreationFunc mocks the UndoMealPlanTaskCreation method.
 	UndoMealPlanTaskCreationFunc func(ctx context.Context, mealPlanID string, taskIDs []string) error
@@ -4155,6 +4154,8 @@ type RepositoryMock struct {
 			Ctx context.Context
 			// MealPlanID is the mealPlanID argument value.
 			MealPlanID string
+			// AccountID is the accountID argument value.
+			AccountID string
 			// ItemIDs is the itemIDs argument value.
 			ItemIDs []string
 		}
@@ -15088,23 +15089,25 @@ func (mock *RepositoryMock) SwapMealPlanEventsCalls() []struct {
 }
 
 // UndoMealPlanGroceryListInitialization calls UndoMealPlanGroceryListInitializationFunc.
-func (mock *RepositoryMock) UndoMealPlanGroceryListInitialization(ctx context.Context, mealPlanID string, itemIDs []string) error {
+func (mock *RepositoryMock) UndoMealPlanGroceryListInitialization(ctx context.Context, mealPlanID string, accountID string, itemIDs []string) error {
 	if mock.UndoMealPlanGroceryListInitializationFunc == nil {
 		panic("RepositoryMock.UndoMealPlanGroceryListInitializationFunc: method is nil but Repository.UndoMealPlanGroceryListInitialization was just called")
 	}
 	callInfo := struct {
 		Ctx        context.Context
 		MealPlanID string
+		AccountID  string
 		ItemIDs    []string
 	}{
 		Ctx:        ctx,
 		MealPlanID: mealPlanID,
+		AccountID:  accountID,
 		ItemIDs:    itemIDs,
 	}
 	mock.lockUndoMealPlanGroceryListInitialization.Lock()
 	mock.calls.UndoMealPlanGroceryListInitialization = append(mock.calls.UndoMealPlanGroceryListInitialization, callInfo)
 	mock.lockUndoMealPlanGroceryListInitialization.Unlock()
-	return mock.UndoMealPlanGroceryListInitializationFunc(ctx, mealPlanID, itemIDs)
+	return mock.UndoMealPlanGroceryListInitializationFunc(ctx, mealPlanID, accountID, itemIDs)
 }
 
 // UndoMealPlanGroceryListInitializationCalls gets all the calls that were made to UndoMealPlanGroceryListInitialization.
@@ -15114,11 +15117,13 @@ func (mock *RepositoryMock) UndoMealPlanGroceryListInitialization(ctx context.Co
 func (mock *RepositoryMock) UndoMealPlanGroceryListInitializationCalls() []struct {
 	Ctx        context.Context
 	MealPlanID string
+	AccountID  string
 	ItemIDs    []string
 } {
 	var calls []struct {
 		Ctx        context.Context
 		MealPlanID string
+		AccountID  string
 		ItemIDs    []string
 	}
 	mock.lockUndoMealPlanGroceryListInitialization.RLock()

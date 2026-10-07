@@ -15,6 +15,8 @@ const (
 	MealPlanTaskCreatedServiceEventType = "meal_plan_task_created"
 	// MealPlanTaskStatusChangedServiceEventType indicates a meal plan task's status was changed.
 	MealPlanTaskStatusChangedServiceEventType = "meal_plan_task_status_changed"
+	// MealPlanTaskCreationUndoneServiceEventType indicates the meal plan tasks a meal plan's finalization created were removed.
+	MealPlanTaskCreationUndoneServiceEventType = "meal_plan_task_creation_undone"
 
 	// MealPlanTaskStatusUnfinished represents the unfinished enum member for meal plan task status in the DB.
 	MealPlanTaskStatusUnfinished = "unfinished"

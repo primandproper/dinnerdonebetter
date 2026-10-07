@@ -21,6 +21,8 @@ const (
 	RecipeArchivedServiceEventType = "recipe_archived"
 	// RecipeClonedServiceEventType indicates a recipe was cloned.
 	RecipeClonedServiceEventType = "recipe_cloned"
+	// RecipeImageCreatedServiceEventType indicates an image was added to a recipe.
+	RecipeImageCreatedServiceEventType = "recipe_image_created"
 
 	RecipeStatusSubmitted     = "submitted"
 	RecipeStatusApproved      = "approved"

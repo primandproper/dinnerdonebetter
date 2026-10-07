@@ -116,11 +116,16 @@ func (q *repository) CreateRecipeListItem(ctx context.Context, input *types.Reci
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeListItemIDKey, input.ID)
 	logger := q.logger.WithValue(mealplanningkeys.RecipeListItemIDKey, input.ID)
 
-	if err := q.generatedQuerier.CreateRecipeListItem(ctx, q.writeDB, &generated.CreateRecipeListItemParams{
-		ID:                  input.ID,
-		RecipeID:            input.RecipeID,
-		Notes:               input.Notes,
-		BelongsToRecipeList: input.BelongsToRecipeList,
+	if err := q.withEvent(ctx, logger, types.RecipeListItemCreatedServiceEventType, "", map[string]any{
+		mealplanningkeys.RecipeListIDKey:     input.BelongsToRecipeList,
+		mealplanningkeys.RecipeListItemIDKey: input.ID,
+	}, func(tx database.Tx) error {
+		return q.generatedQuerier.CreateRecipeListItem(ctx, tx, &generated.CreateRecipeListItemParams{
+			ID:                  input.ID,
+			RecipeID:            input.RecipeID,
+			Notes:               input.Notes,
+			BelongsToRecipeList: input.BelongsToRecipeList,
+		})
 	}); err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "performing recipe list item creation query")
 	}
@@ -149,18 +154,27 @@ func (q *repository) UpdateRecipeListItem(ctx context.Context, updated *types.Re
 	logger := q.logger.WithValue(mealplanningkeys.RecipeListItemIDKey, updated.ID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeListItemIDKey, updated.ID)
 
-	rowsAffected, err := q.generatedQuerier.UpdateRecipeListItem(ctx, q.writeDB, &generated.UpdateRecipeListItemParams{
-		RecipeID:            updated.Recipe.ID,
-		Notes:               updated.Notes,
-		BelongsToRecipeList: updated.BelongsToRecipeList,
-		ID:                  updated.ID,
-	})
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "updating recipe list item")
-	}
+	if err := q.withEvent(ctx, logger, types.RecipeListItemUpdatedServiceEventType, "", map[string]any{
+		mealplanningkeys.RecipeListIDKey:     updated.BelongsToRecipeList,
+		mealplanningkeys.RecipeListItemIDKey: updated.ID,
+	}, func(tx database.Tx) error {
+		rowsAffected, writeErr := q.generatedQuerier.UpdateRecipeListItem(ctx, tx, &generated.UpdateRecipeListItemParams{
+			RecipeID:            updated.Recipe.ID,
+			Notes:               updated.Notes,
+			BelongsToRecipeList: updated.BelongsToRecipeList,
+			ID:                  updated.ID,
+		})
+		if writeErr != nil {
+			return observability.PrepareAndLogError(writeErr, logger, span, "updating recipe list item")
+		}
 
-	if rowsAffected == 0 {
-		return sql.ErrNoRows
+		if rowsAffected == 0 {
+			return sql.ErrNoRows
+		}
+
+		return nil
+	}); err != nil {
+		return err
 	}
 
 	logger.Info("recipe list item updated")
@@ -187,16 +201,25 @@ func (q *repository) ArchiveRecipeListItem(ctx context.Context, recipeListItemID
 	logger = logger.WithValue(mealplanningkeys.RecipeListItemIDKey, recipeListItemID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeListItemIDKey, recipeListItemID)
 
-	rowsAffected, err := q.generatedQuerier.ArchiveRecipeListItem(ctx, q.writeDB, &generated.ArchiveRecipeListItemParams{
-		BelongsToRecipeList: recipeListID,
-		ID:                  recipeListItemID,
-	})
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "archiving recipe list item")
-	}
+	if err := q.withEvent(ctx, logger, types.RecipeListItemArchivedServiceEventType, "", map[string]any{
+		mealplanningkeys.RecipeListIDKey:     recipeListID,
+		mealplanningkeys.RecipeListItemIDKey: recipeListItemID,
+	}, func(tx database.Tx) error {
+		rowsAffected, writeErr := q.generatedQuerier.ArchiveRecipeListItem(ctx, tx, &generated.ArchiveRecipeListItemParams{
+			BelongsToRecipeList: recipeListID,
+			ID:                  recipeListItemID,
+		})
+		if writeErr != nil {
+			return observability.PrepareAndLogError(writeErr, logger, span, "archiving recipe list item")
+		}
 
-	if rowsAffected == 0 {
-		return sql.ErrNoRows
+		if rowsAffected == 0 {
+			return sql.ErrNoRows
+		}
+
+		return nil
+	}); err != nil {
+		return err
 	}
 
 	logger.Info("recipe list item archived")

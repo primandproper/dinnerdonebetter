@@ -145,11 +145,15 @@ func (q *repository) CreateRecipeList(ctx context.Context, input *types.RecipeLi
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeListIDKey, input.ID)
 	logger := q.logger.WithValue(mealplanningkeys.RecipeListIDKey, input.ID)
 
-	if err := q.generatedQuerier.CreateRecipeList(ctx, q.writeDB, &generated.CreateRecipeListParams{
-		ID:            input.ID,
-		Name:          input.Name,
-		Description:   input.Description,
-		BelongsToUser: input.BelongsToUser,
+	if err := q.withEvent(ctx, logger, types.RecipeListCreatedServiceEventType, "", map[string]any{
+		mealplanningkeys.RecipeListIDKey: input.ID,
+	}, func(tx database.Tx) error {
+		return q.generatedQuerier.CreateRecipeList(ctx, tx, &generated.CreateRecipeListParams{
+			ID:            input.ID,
+			Name:          input.Name,
+			Description:   input.Description,
+			BelongsToUser: input.BelongsToUser,
+		})
 	}); err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "performing recipe list creation query")
 	}
@@ -178,18 +182,26 @@ func (q *repository) UpdateRecipeList(ctx context.Context, updated *types.Recipe
 	logger := q.logger.WithValue(mealplanningkeys.RecipeListIDKey, updated.ID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeListIDKey, updated.ID)
 
-	rowsAffected, err := q.generatedQuerier.UpdateRecipeList(ctx, q.writeDB, &generated.UpdateRecipeListParams{
-		Name:          updated.Name,
-		Description:   updated.Description,
-		BelongsToUser: updated.BelongsToUser,
-		ID:            updated.ID,
-	})
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "updating recipe list")
-	}
+	if err := q.withEvent(ctx, logger, types.RecipeListUpdatedServiceEventType, "", map[string]any{
+		mealplanningkeys.RecipeListIDKey: updated.ID,
+	}, func(tx database.Tx) error {
+		rowsAffected, writeErr := q.generatedQuerier.UpdateRecipeList(ctx, tx, &generated.UpdateRecipeListParams{
+			Name:          updated.Name,
+			Description:   updated.Description,
+			BelongsToUser: updated.BelongsToUser,
+			ID:            updated.ID,
+		})
+		if writeErr != nil {
+			return observability.PrepareAndLogError(writeErr, logger, span, "updating recipe list")
+		}
 
-	if rowsAffected == 0 {
-		return sql.ErrNoRows
+		if rowsAffected == 0 {
+			return sql.ErrNoRows
+		}
+
+		return nil
+	}); err != nil {
+		return err
 	}
 
 	logger.Info("recipe list updated")
@@ -216,16 +228,24 @@ func (q *repository) ArchiveRecipeList(ctx context.Context, recipeListID, userID
 	logger = logger.WithValue(mealplanningkeys.RecipeListIDKey, recipeListID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeListIDKey, recipeListID)
 
-	rowsAffected, err := q.generatedQuerier.ArchiveRecipeList(ctx, q.writeDB, &generated.ArchiveRecipeListParams{
-		BelongsToUser: userID,
-		ID:            recipeListID,
-	})
-	if err != nil {
-		return observability.PrepareAndLogError(err, logger, span, "archiving recipe list")
-	}
+	if err := q.withEvent(ctx, logger, types.RecipeListArchivedServiceEventType, "", map[string]any{
+		mealplanningkeys.RecipeListIDKey: recipeListID,
+	}, func(tx database.Tx) error {
+		rowsAffected, writeErr := q.generatedQuerier.ArchiveRecipeList(ctx, tx, &generated.ArchiveRecipeListParams{
+			BelongsToUser: userID,
+			ID:            recipeListID,
+		})
+		if writeErr != nil {
+			return observability.PrepareAndLogError(writeErr, logger, span, "archiving recipe list")
+		}
 
-	if rowsAffected == 0 {
-		return sql.ErrNoRows
+		if rowsAffected == 0 {
+			return sql.ErrNoRows
+		}
+
+		return nil
+	}); err != nil {
+		return err
 	}
 
 	logger.Info("recipe list archived")

@@ -243,7 +243,7 @@ func undoInitializeGroceryList(
 		return nil
 	}
 
-	if err := dataManager.UndoMealPlanGroceryListInitialization(ctx, state.MealPlanID, state.CreatedGroceryListItemIDs); err != nil {
+	if err := dataManager.UndoMealPlanGroceryListInitialization(ctx, state.MealPlanID, state.AccountID, state.CreatedGroceryListItemIDs); err != nil {
 		return err
 	}
 

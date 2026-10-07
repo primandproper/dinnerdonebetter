@@ -7,6 +7,7 @@ import (
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning/generated"
 
+	"github.com/primandproper/primitives-go/v2/database"
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/identifiers"
 	"github.com/primandproper/primitives-go/v2/observability"
@@ -32,11 +33,16 @@ func (q *repository) AddRecipeStepImage(ctx context.Context, recipeStepID, uploa
 	logger := q.logger.WithValue(mealplanningkeys.RecipeStepIDKey, recipeStepID)
 	tracing.AttachToSpan(span, mealplanningkeys.RecipeStepIDKey, recipeStepID)
 
-	if err := q.generatedQuerier.CreateRecipeStepImage(ctx, q.writeDB, &generated.CreateRecipeStepImageParams{
-		ID:                  identifiers.New(),
-		BelongsToRecipeStep: recipeStepID,
-		UploadedMediaID:     uploadedMediaID,
-		UploadedByUser:      uploadedByUser,
+	if err := q.withEvent(ctx, logger, mealplanning.RecipeStepImageCreatedServiceEventType, "", map[string]any{
+		mealplanningkeys.RecipeStepIDKey:    recipeStepID,
+		mealplanningkeys.UploadedMediaIDKey: uploadedMediaID,
+	}, func(tx database.Tx) error {
+		return q.generatedQuerier.CreateRecipeStepImage(ctx, tx, &generated.CreateRecipeStepImageParams{
+			ID:                  identifiers.New(),
+			BelongsToRecipeStep: recipeStepID,
+			UploadedMediaID:     uploadedMediaID,
+			UploadedByUser:      uploadedByUser,
+		})
 	}); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "creating recipe step image")
 	}

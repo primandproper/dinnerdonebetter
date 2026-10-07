@@ -379,7 +379,8 @@ func (q *repository) CreateMealPlanTasksForMealPlan(ctx context.Context, mealPla
 // An empty ID list still clears the flag. Compensation runs for the step that failed as well as the
 // steps that succeeded, so this is called for a Do whose transaction rolled back and left nothing
 // behind — the flag is already FALSE in that case and the update is a no-op, which is what an Undo
-// with nothing to undo is supposed to be.
+// with nothing to undo is supposed to be. Nor does it announce anything then; when it does delete
+// tasks, it announces their removal as CreateMealPlanTasksForMealPlan announced their creation.
 func (q *repository) UndoMealPlanTaskCreation(ctx context.Context, mealPlanID string, taskIDs []string) error {
 	ctx, span := q.tracer.StartSpan(ctx)
 	defer span.End()
@@ -397,6 +398,12 @@ func (q *repository) UndoMealPlanTaskCreation(ctx context.Context, mealPlanID st
 		if len(taskIDs) > 0 {
 			if deleteErr := q.generatedQuerier.DeleteMealPlanTasks(ctx, tx, taskIDs); deleteErr != nil {
 				return observability.PrepareAndLogError(deleteErr, logger, span, "deleting meal plan tasks")
+			}
+
+			if emitErr := q.emit(ctx, tx, logger, types.MealPlanTaskCreationUndoneServiceEventType, "", map[string]any{
+				mealplanningkeys.MealPlanIDKey: mealPlanID,
+			}); emitErr != nil {
+				return observability.PrepareError(emitErr, span, "enqueuing meal plan task creation undone event")
 			}
 		}
 
