@@ -11,6 +11,7 @@ package indexing
 
 import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/searchindex"
 
 	syncsource "github.com/primandproper/platform-go/v15/searchsync/source"
 )
@@ -18,89 +19,89 @@ import (
 type (
 	// MealSource and its siblings read one entity as search documents. Each is both a
 	// searchsync.Fetcher, for the change feed, and a searchsync.Scanner, for a reindex.
-	MealSource = syncsource.Source[mealplanning.Meal, MealSearchSubset]
+	MealSource = syncsource.Source[mealplanning.Meal, searchindex.MealSearchSubset]
 	// RecipeSource reads recipes as search documents.
-	RecipeSource = syncsource.Source[mealplanning.Recipe, RecipeSearchSubset]
+	RecipeSource = syncsource.Source[mealplanning.Recipe, searchindex.RecipeSearchSubset]
 	// ValidIngredientSource reads valid ingredients as search documents.
-	ValidIngredientSource = syncsource.Source[mealplanning.ValidIngredient, ValidIngredientSearchSubset]
+	ValidIngredientSource = syncsource.Source[mealplanning.ValidIngredient, searchindex.ValidIngredientSearchSubset]
 	// ValidInstrumentSource reads valid instruments as search documents.
-	ValidInstrumentSource = syncsource.Source[mealplanning.ValidInstrument, ValidInstrumentSearchSubset]
+	ValidInstrumentSource = syncsource.Source[mealplanning.ValidInstrument, searchindex.ValidInstrumentSearchSubset]
 	// ValidMeasurementUnitSource reads valid measurement units as search documents.
-	ValidMeasurementUnitSource = syncsource.Source[mealplanning.ValidMeasurementUnit, ValidMeasurementUnitSearchSubset]
+	ValidMeasurementUnitSource = syncsource.Source[mealplanning.ValidMeasurementUnit, searchindex.ValidMeasurementUnitSearchSubset]
 	// ValidPreparationSource reads valid preparations as search documents.
-	ValidPreparationSource = syncsource.Source[mealplanning.ValidPreparation, ValidPreparationSearchSubset]
+	ValidPreparationSource = syncsource.Source[mealplanning.ValidPreparation, searchindex.ValidPreparationSearchSubset]
 	// ValidIngredientStateSource reads valid ingredient states as search documents.
-	ValidIngredientStateSource = syncsource.Source[mealplanning.ValidIngredientState, ValidIngredientStateSearchSubset]
+	ValidIngredientStateSource = syncsource.Source[mealplanning.ValidIngredientState, searchindex.ValidIngredientStateSearchSubset]
 	// ValidVesselSource reads valid vessels as search documents.
-	ValidVesselSource = syncsource.Source[mealplanning.ValidVessel, ValidVesselSearchSubset]
+	ValidVesselSource = syncsource.Source[mealplanning.ValidVessel, searchindex.ValidVesselSearchSubset]
 )
 
 // NewMealSource builds the meals source.
 func NewMealSource(repo mealplanning.Repository) (*MealSource, error) {
-	return syncsource.New(IndexTypeMeals, repo.GetMeal, repo.ScanMealIDsForReindex, ConvertMealToMealSearchSubset)
+	return syncsource.New(searchindex.IndexTypeMeals, repo.GetMeal, repo.ScanMealIDsForReindex, searchindex.ConvertMealToMealSearchSubset)
 }
 
 // NewRecipeSource builds the recipes source.
 func NewRecipeSource(repo mealplanning.Repository) (*RecipeSource, error) {
-	return syncsource.New(IndexTypeRecipes, repo.GetRecipe, repo.ScanRecipeIDsForReindex, ConvertRecipeToRecipeSearchSubset)
+	return syncsource.New(searchindex.IndexTypeRecipes, repo.GetRecipe, repo.ScanRecipeIDsForReindex, searchindex.ConvertRecipeToRecipeSearchSubset)
 }
 
 // NewValidIngredientSource builds the valid ingredients source.
 func NewValidIngredientSource(repo mealplanning.Repository) (*ValidIngredientSource, error) {
 	return syncsource.New(
-		IndexTypeValidIngredients,
+		searchindex.IndexTypeValidIngredients,
 		repo.GetValidIngredient,
 		repo.ScanValidIngredientIDsForReindex,
-		ConvertValidIngredientToValidIngredientSearchSubset,
+		searchindex.ConvertValidIngredientToValidIngredientSearchSubset,
 	)
 }
 
 // NewValidInstrumentSource builds the valid instruments source.
 func NewValidInstrumentSource(repo mealplanning.Repository) (*ValidInstrumentSource, error) {
 	return syncsource.New(
-		IndexTypeValidInstruments,
+		searchindex.IndexTypeValidInstruments,
 		repo.GetValidInstrument,
 		repo.ScanValidInstrumentIDsForReindex,
-		ConvertValidInstrumentToValidInstrumentSearchSubset,
+		searchindex.ConvertValidInstrumentToValidInstrumentSearchSubset,
 	)
 }
 
 // NewValidMeasurementUnitSource builds the valid measurement units source.
 func NewValidMeasurementUnitSource(repo mealplanning.Repository) (*ValidMeasurementUnitSource, error) {
 	return syncsource.New(
-		IndexTypeValidMeasurementUnits,
+		searchindex.IndexTypeValidMeasurementUnits,
 		repo.GetValidMeasurementUnit,
 		repo.ScanValidMeasurementUnitIDsForReindex,
-		ConvertValidMeasurementUnitToValidMeasurementUnitSearchSubset,
+		searchindex.ConvertValidMeasurementUnitToValidMeasurementUnitSearchSubset,
 	)
 }
 
 // NewValidPreparationSource builds the valid preparations source.
 func NewValidPreparationSource(repo mealplanning.Repository) (*ValidPreparationSource, error) {
 	return syncsource.New(
-		IndexTypeValidPreparations,
+		searchindex.IndexTypeValidPreparations,
 		repo.GetValidPreparation,
 		repo.ScanValidPreparationIDsForReindex,
-		ConvertValidPreparationToValidPreparationSearchSubset,
+		searchindex.ConvertValidPreparationToValidPreparationSearchSubset,
 	)
 }
 
 // NewValidIngredientStateSource builds the valid ingredient states source.
 func NewValidIngredientStateSource(repo mealplanning.Repository) (*ValidIngredientStateSource, error) {
 	return syncsource.New(
-		IndexTypeValidIngredientStates,
+		searchindex.IndexTypeValidIngredientStates,
 		repo.GetValidIngredientState,
 		repo.ScanValidIngredientStateIDsForReindex,
-		ConvertValidIngredientStateToValidIngredientStateSearchSubset,
+		searchindex.ConvertValidIngredientStateToValidIngredientStateSearchSubset,
 	)
 }
 
 // NewValidVesselSource builds the valid vessels source.
 func NewValidVesselSource(repo mealplanning.Repository) (*ValidVesselSource, error) {
 	return syncsource.New(
-		IndexTypeValidVessels,
+		searchindex.IndexTypeValidVessels,
 		repo.GetValidVessel,
 		repo.ScanValidVesselIDsForReindex,
-		ConvertValidVesselToValidVesselSearchSubset,
+		searchindex.ConvertValidVesselToValidVesselSearchSubset,
 	)
 }

@@ -6,6 +6,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/recipeanalysis"
 
 	"github.com/primandproper/platform-go/v15/saga"
+	"github.com/primandproper/primitives-go/v2/clock"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/metrics"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
@@ -23,13 +24,14 @@ import (
 func Register(
 	registry *saga.Registry,
 	dataManager mealplanning.Repository,
+	electorate mealplanning.MealPlanElectorate,
 	analyzer recipeanalysis.RecipeAnalyzer,
 	groceryListCreator grocerylistpreparation.GroceryListCreator,
 	logger logging.Logger,
 ) error {
 	return saga.Register(registry, saga.Definition[mealplanning.MealPlanFinalizationState]{
 		Name:  mealplanning.MealPlanFinalizationSagaName,
-		Steps: steps(dataManager, analyzer, groceryListCreator, logger),
+		Steps: steps(dataManager, electorate, clock.NewClock(), analyzer, groceryListCreator, logger),
 	})
 }
 

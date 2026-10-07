@@ -15,11 +15,13 @@
 package sagas
 
 import (
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/grocerylistpreparation"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/recipeanalysis"
 	mealplanfinalization "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/workers/meal_plan_finalization"
 
+	platformidentity "github.com/primandproper/platform-go/v15/identity"
 	"github.com/primandproper/platform-go/v15/outbox"
 	"github.com/primandproper/platform-go/v15/saga"
 	"github.com/primandproper/primitives-go/v2/database"
@@ -42,6 +44,7 @@ func RegisterSagas(i do.Injector) {
 		if err := mealplanfinalization.Register(
 			registry,
 			do.MustInvoke[mealplanning.Repository](i),
+			identity.NewAccountRoster(do.MustInvoke[platformidentity.Store](i), do.MustInvoke[database.Client](i).Reader()),
 			do.MustInvoke[recipeanalysis.RecipeAnalyzer](i),
 			do.MustInvoke[grocerylistpreparation.GroceryListCreator](i),
 			do.MustInvoke[logging.Logger](i),

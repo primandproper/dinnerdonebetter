@@ -15,7 +15,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/auditlogentries"
 	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
 
-	platformidentity "github.com/primandproper/platform-go/v15/identity"
 	"github.com/primandproper/platform-go/v15/mediaregistry"
 	"github.com/primandproper/primitives-go/v2/database"
 	databasecfg "github.com/primandproper/primitives-go/v2/database/config"
@@ -123,20 +122,12 @@ func runExport(dbHost string, dbPort uint16, dbUser, dbPassword, dbName string, 
 		return fmt.Errorf("building upload registry store: %w", err)
 	}
 
-	identityStore, err := platformidentity.NewSQLStore(client,
-		platformidentity.WithTablePrefix(branding.TablePrefix),
-		platformidentity.WithStoreLogger(logger),
-		platformidentity.WithStoreTracerProvider(tracerProvider),
-	)
-	if err != nil {
-		return err
-	}
 	spine, err := localdev.Spine(ctx, client, auditRepo, logger, tracerProvider)
 	if err != nil {
 		return fmt.Errorf("building the recording spine: %w", err)
 	}
 
-	repo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditRepo, identityStore, client, spine.Emitter, spine.Recorder, spine.Writer, uploadsRegistry)
+	repo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditRepo, client, spine.Emitter, spine.Recorder, spine.Writer, uploadsRegistry)
 
 	export := &ExportData{
 		ExportedAt: time.Now().UTC(),

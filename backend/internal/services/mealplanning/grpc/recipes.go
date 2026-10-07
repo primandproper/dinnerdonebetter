@@ -21,30 +21,6 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
-func (s *serviceImpl) verifyRecipeOwnership(ctx context.Context, recipeID string, logger logging.Logger, span tracing.Span) (string, error) {
-	sessionContextData, err := sessions.RequireFromContext(ctx)
-	if err != nil {
-		return "", errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
-	}
-	userID := sessionContextData.GetUserID()
-
-	recipe, err := s.mealPlanningManager.ReadRecipe(ctx, recipeID)
-	if err != nil || recipe == nil {
-		return "", errorsgrpc.PrepareAndLogGRPCStatus(
-			fmt.Errorf("recipe not found or access denied: %w", err),
-			logger, span, codes.PermissionDenied, "recipe not found or access denied",
-		)
-	}
-	if recipe.CreatedByUser != userID {
-		return "", errorsgrpc.PrepareAndLogGRPCStatus(
-			platformerrors.New("permission denied"),
-			logger, span, codes.PermissionDenied, "permission denied",
-		)
-	}
-
-	return userID, nil
-}
-
 // verifyRecipeRatingOwnership loads a recipe rating and confirms it was authored by the requester,
 // returning a gRPC status error otherwise. Recipe ratings are user-authored, so mutation is limited
 // to the original author (mirroring the comments service).
@@ -80,10 +56,12 @@ func (s *serviceImpl) ArchiveRecipe(ctx context.Context, request *mealplanning.A
 		mealplanningkeys.RecipeIDKey: request.RecipeId,
 	}, span, s.logger)
 
-	userID, err := s.verifyRecipeOwnership(ctx, request.RecipeId, logger, span)
+	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
+
+	userID := sessionContextData.GetUserID()
 
 	if err = s.mealPlanningManager.ArchiveRecipe(ctx, request.RecipeId, userID); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "archiving recipe")
@@ -113,11 +91,12 @@ func (s *serviceImpl) ArchiveRecipePrepTask(ctx context.Context, request *mealpl
 		mealplanningkeys.RecipePrepTaskIDKey: request.RecipePrepTaskId,
 	}, span, s.logger)
 
-	if _, err := s.verifyRecipeOwnership(ctx, request.RecipeId, logger, span); err != nil {
-		return nil, err
+	sessionContextData, err := sessions.RequireFromContext(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
-	if err := s.mealPlanningManager.ArchiveRecipePrepTask(ctx, request.RecipeId, request.RecipePrepTaskId); err != nil {
+	if err = s.mealPlanningManager.ArchiveRecipePrepTask(ctx, request.RecipeId, request.RecipePrepTaskId, sessionContextData.GetUserID()); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "archiving recipe prep task")
 	}
 
@@ -165,11 +144,12 @@ func (s *serviceImpl) ArchiveRecipeStep(ctx context.Context, request *mealplanni
 		mealplanningkeys.RecipeStepIDKey: request.RecipeStepId,
 	}, span, s.logger)
 
-	if _, err := s.verifyRecipeOwnership(ctx, request.RecipeId, logger, span); err != nil {
-		return nil, err
+	sessionContextData, err := sessions.RequireFromContext(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
-	if err := s.mealPlanningManager.ArchiveRecipeStep(ctx, request.RecipeId, request.RecipeStepId); err != nil {
+	if err = s.mealPlanningManager.ArchiveRecipeStep(ctx, request.RecipeId, request.RecipeStepId, sessionContextData.GetUserID()); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "archiving recipe step")
 	}
 
@@ -192,11 +172,12 @@ func (s *serviceImpl) ArchiveRecipeStepCompletionCondition(ctx context.Context, 
 		mealplanningkeys.RecipeStepCompletionConditionIDKey: request.RecipeStepCompletionConditionId,
 	}, span, s.logger)
 
-	if _, err := s.verifyRecipeOwnership(ctx, request.RecipeId, logger, span); err != nil {
-		return nil, err
+	sessionContextData, err := sessions.RequireFromContext(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
-	if err := s.mealPlanningManager.ArchiveRecipeStepCompletionCondition(ctx, request.RecipeId, request.RecipeStepId, request.RecipeStepCompletionConditionId); err != nil {
+	if err = s.mealPlanningManager.ArchiveRecipeStepCompletionCondition(ctx, request.RecipeId, request.RecipeStepId, request.RecipeStepCompletionConditionId, sessionContextData.GetUserID()); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "archiving recipe step completion condition")
 	}
 
@@ -219,11 +200,12 @@ func (s *serviceImpl) ArchiveRecipeStepIngredient(ctx context.Context, request *
 		mealplanningkeys.RecipeStepIngredientIDKey: request.RecipeStepIngredientId,
 	}, span, s.logger)
 
-	if _, err := s.verifyRecipeOwnership(ctx, request.RecipeId, logger, span); err != nil {
-		return nil, err
+	sessionContextData, err := sessions.RequireFromContext(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
-	if err := s.mealPlanningManager.ArchiveRecipeStepIngredient(ctx, request.RecipeId, request.RecipeStepId, request.RecipeStepIngredientId); err != nil {
+	if err = s.mealPlanningManager.ArchiveRecipeStepIngredient(ctx, request.RecipeId, request.RecipeStepId, request.RecipeStepIngredientId, sessionContextData.GetUserID()); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "archiving recipe step ingredient")
 	}
 
@@ -246,11 +228,12 @@ func (s *serviceImpl) ArchiveRecipeStepInstrument(ctx context.Context, request *
 		mealplanningkeys.RecipeStepInstrumentIDKey: request.RecipeStepInstrumentId,
 	}, span, s.logger)
 
-	if _, err := s.verifyRecipeOwnership(ctx, request.RecipeId, logger, span); err != nil {
-		return nil, err
+	sessionContextData, err := sessions.RequireFromContext(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
-	if err := s.mealPlanningManager.ArchiveRecipeStepInstrument(ctx, request.RecipeId, request.RecipeStepId, request.RecipeStepInstrumentId); err != nil {
+	if err = s.mealPlanningManager.ArchiveRecipeStepInstrument(ctx, request.RecipeId, request.RecipeStepId, request.RecipeStepInstrumentId, sessionContextData.GetUserID()); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "archiving recipe step instrument")
 	}
 
@@ -273,11 +256,12 @@ func (s *serviceImpl) ArchiveRecipeStepProduct(ctx context.Context, request *mea
 		mealplanningkeys.RecipeStepProductIDKey: request.RecipeStepProductId,
 	}, span, s.logger)
 
-	if _, err := s.verifyRecipeOwnership(ctx, request.RecipeId, logger, span); err != nil {
-		return nil, err
+	sessionContextData, err := sessions.RequireFromContext(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
-	if err := s.mealPlanningManager.ArchiveRecipeStepProduct(ctx, request.RecipeId, request.RecipeStepId, request.RecipeStepProductId); err != nil {
+	if err = s.mealPlanningManager.ArchiveRecipeStepProduct(ctx, request.RecipeId, request.RecipeStepId, request.RecipeStepProductId, sessionContextData.GetUserID()); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "archiving recipe step product")
 	}
 
@@ -300,11 +284,12 @@ func (s *serviceImpl) ArchiveRecipeStepVessel(ctx context.Context, request *meal
 		mealplanningkeys.RecipeStepVesselIDKey: request.RecipeStepVesselId,
 	}, span, s.logger)
 
-	if _, err := s.verifyRecipeOwnership(ctx, request.RecipeId, logger, span); err != nil {
-		return nil, err
+	sessionContextData, err := sessions.RequireFromContext(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
-	if err := s.mealPlanningManager.ArchiveRecipeStepVessel(ctx, request.RecipeId, request.RecipeStepId, request.RecipeStepVesselId); err != nil {
+	if err = s.mealPlanningManager.ArchiveRecipeStepVessel(ctx, request.RecipeId, request.RecipeStepId, request.RecipeStepVesselId, sessionContextData.GetUserID()); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "archiving recipe step vessel")
 	}
 
@@ -389,13 +374,14 @@ func (s *serviceImpl) CreateRecipePrepTask(ctx context.Context, request *mealpla
 		mealplanningkeys.RecipeIDKey: request.RecipeId,
 	}, span, s.logger)
 
-	if _, err := s.verifyRecipeOwnership(ctx, request.RecipeId, logger, span); err != nil {
-		return nil, err
+	sessionContextData, err := sessions.RequireFromContext(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	input := converters.ConvertGRPCRecipePrepTaskCreationRequestInputToRecipePrepTaskCreationRequestInput(request.Input)
 
-	created, err := s.mealPlanningManager.CreateRecipePrepTask(ctx, request.RecipeId, input)
+	created, err := s.mealPlanningManager.CreateRecipePrepTask(ctx, request.RecipeId, sessionContextData.GetUserID(), input)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "creating recipe prep task")
 	}
@@ -457,13 +443,14 @@ func (s *serviceImpl) CreateRecipeStep(ctx context.Context, request *mealplannin
 		mealplanningkeys.RecipeIDKey: request.RecipeId,
 	}, span, s.logger)
 
-	if _, err := s.verifyRecipeOwnership(ctx, request.RecipeId, logger, span); err != nil {
-		return nil, err
+	sessionContextData, err := sessions.RequireFromContext(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	recipeStepInput := converters.ConvertGRPCRecipeStepCreationRequestInputToRecipeStepCreationRequestInput(request.Input)
 
-	created, err := s.mealPlanningManager.CreateRecipeStep(ctx, request.RecipeId, recipeStepInput)
+	created, err := s.mealPlanningManager.CreateRecipeStep(ctx, request.RecipeId, sessionContextData.GetUserID(), recipeStepInput)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "creating recipe step")
 	}
@@ -491,13 +478,14 @@ func (s *serviceImpl) CreateRecipeStepCompletionCondition(ctx context.Context, r
 		mealplanningkeys.RecipeStepIDKey: request.RecipeStepId,
 	}, span, s.logger)
 
-	if _, err := s.verifyRecipeOwnership(ctx, request.RecipeId, logger, span); err != nil {
-		return nil, err
+	sessionContextData, err := sessions.RequireFromContext(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	creationInput := converters.ConvertGRPCRecipeStepCompletionConditionForExistingRecipeCreationRequestInputToRecipeStepCompletionConditionForExistingRecipeCreationRequestInput(request.Input)
 
-	created, err := s.mealPlanningManager.CreateRecipeStepCompletionCondition(ctx, request.RecipeId, request.RecipeStepId, creationInput)
+	created, err := s.mealPlanningManager.CreateRecipeStepCompletionCondition(ctx, request.RecipeId, request.RecipeStepId, sessionContextData.GetUserID(), creationInput)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "creating recipe step completion condition")
 	}
@@ -525,13 +513,14 @@ func (s *serviceImpl) CreateRecipeStepIngredient(ctx context.Context, request *m
 		mealplanningkeys.RecipeStepIDKey: request.RecipeStepId,
 	}, span, s.logger)
 
-	if _, err := s.verifyRecipeOwnership(ctx, request.RecipeId, logger, span); err != nil {
-		return nil, err
+	sessionContextData, err := sessions.RequireFromContext(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	creationInput := converters.ConvertGRPCRecipeStepIngredientCreationRequestInputToRecipeStepIngredientCreationRequestInput(request.Input)
 
-	created, err := s.mealPlanningManager.CreateRecipeStepIngredient(ctx, request.RecipeId, request.RecipeStepId, creationInput)
+	created, err := s.mealPlanningManager.CreateRecipeStepIngredient(ctx, request.RecipeId, request.RecipeStepId, sessionContextData.GetUserID(), creationInput)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "creating recipe step ingredient")
 	}
@@ -559,13 +548,14 @@ func (s *serviceImpl) CreateRecipeStepInstrument(ctx context.Context, request *m
 		mealplanningkeys.RecipeStepIDKey: request.RecipeStepId,
 	}, span, s.logger)
 
-	if _, err := s.verifyRecipeOwnership(ctx, request.RecipeId, logger, span); err != nil {
-		return nil, err
+	sessionContextData, err := sessions.RequireFromContext(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	creationInput := converters.ConvertGRPCRecipeStepInstrumentCreationRequestInputToRecipeStepInstrumentCreationRequestInput(request.Input)
 
-	created, err := s.mealPlanningManager.CreateRecipeStepInstrument(ctx, request.RecipeId, request.RecipeStepId, creationInput)
+	created, err := s.mealPlanningManager.CreateRecipeStepInstrument(ctx, request.RecipeId, request.RecipeStepId, sessionContextData.GetUserID(), creationInput)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "creating recipe step instrument")
 	}
@@ -593,13 +583,14 @@ func (s *serviceImpl) CreateRecipeStepProduct(ctx context.Context, request *meal
 		mealplanningkeys.RecipeStepIDKey: request.RecipeStepId,
 	}, span, s.logger)
 
-	if _, err := s.verifyRecipeOwnership(ctx, request.RecipeId, logger, span); err != nil {
-		return nil, err
+	sessionContextData, err := sessions.RequireFromContext(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	creationInput := converters.ConvertGRPCRecipeStepProductCreationRequestInputToRecipeStepProductCreationRequestInput(request.Input)
 
-	created, err := s.mealPlanningManager.CreateRecipeStepProduct(ctx, request.RecipeId, request.RecipeStepId, creationInput)
+	created, err := s.mealPlanningManager.CreateRecipeStepProduct(ctx, request.RecipeId, request.RecipeStepId, sessionContextData.GetUserID(), creationInput)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "creating recipe step product")
 	}
@@ -627,13 +618,14 @@ func (s *serviceImpl) CreateRecipeStepVessel(ctx context.Context, request *mealp
 		mealplanningkeys.RecipeStepIDKey: request.RecipeStepId,
 	}, span, s.logger)
 
-	if _, err := s.verifyRecipeOwnership(ctx, request.RecipeId, logger, span); err != nil {
-		return nil, err
+	sessionContextData, err := sessions.RequireFromContext(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	creationInput := converters.ConvertGRPCRecipeStepVesselCreationRequestInputToRecipeStepVesselCreationRequestInput(request.Input)
 
-	created, err := s.mealPlanningManager.CreateRecipeStepVessel(ctx, request.RecipeId, request.RecipeStepId, creationInput)
+	created, err := s.mealPlanningManager.CreateRecipeStepVessel(ctx, request.RecipeId, request.RecipeStepId, sessionContextData.GetUserID(), creationInput)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "creating recipe step vessel")
 	}
@@ -1625,13 +1617,14 @@ func (s *serviceImpl) UpdateRecipe(ctx context.Context, request *mealplanning.Up
 		mealplanningkeys.RecipeIDKey: request.RecipeId,
 	}, span, s.logger)
 
-	if _, err := s.verifyRecipeOwnership(ctx, request.RecipeId, logger, span); err != nil {
-		return nil, err
+	sessionContextData, err := sessions.RequireFromContext(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	input := converters.ConvertGRPCRecipeUpdateRequestInputToRecipeUpdateRequestInput(request.Input)
 
-	if err := s.mealPlanningManager.UpdateRecipe(ctx, request.RecipeId, input); err != nil {
+	if err = s.mealPlanningManager.UpdateRecipe(ctx, request.RecipeId, sessionContextData.GetUserID(), input); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed updating recipe")
 	}
 
@@ -1690,13 +1683,14 @@ func (s *serviceImpl) UpdateRecipePrepTask(ctx context.Context, request *mealpla
 		mealplanningkeys.RecipePrepTaskIDKey: request.RecipePrepTaskId,
 	}, span, s.logger)
 
-	if _, err := s.verifyRecipeOwnership(ctx, request.RecipeId, logger, span); err != nil {
-		return nil, err
+	sessionContextData, err := sessions.RequireFromContext(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	input := converters.ConvertGRPCRecipePrepTaskUpdateRequestInputToRecipePrepTaskUpdateRequestInput(request.Input)
 
-	if err := s.mealPlanningManager.UpdateRecipePrepTask(ctx, request.RecipeId, request.RecipePrepTaskId, input); err != nil {
+	if err = s.mealPlanningManager.UpdateRecipePrepTask(ctx, request.RecipeId, request.RecipePrepTaskId, sessionContextData.GetUserID(), input); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed updating recipe prep task")
 	}
 
@@ -1766,13 +1760,14 @@ func (s *serviceImpl) UpdateRecipeStep(ctx context.Context, request *mealplannin
 		mealplanningkeys.RecipeStepIDKey: request.RecipeStepId,
 	}, span, s.logger)
 
-	if _, err := s.verifyRecipeOwnership(ctx, request.RecipeId, logger, span); err != nil {
-		return nil, err
+	sessionContextData, err := sessions.RequireFromContext(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	input := converters.ConvertGRPCRecipeStepUpdateRequestInputToRecipeStepUpdateRequestInput(request.Input)
 
-	if err := s.mealPlanningManager.UpdateRecipeStep(ctx, request.RecipeId, request.RecipeStepId, input); err != nil {
+	if err = s.mealPlanningManager.UpdateRecipeStep(ctx, request.RecipeId, request.RecipeStepId, sessionContextData.GetUserID(), input); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed updating recipe step")
 	}
 
@@ -1805,13 +1800,14 @@ func (s *serviceImpl) UpdateRecipeStepCompletionCondition(ctx context.Context, r
 		mealplanningkeys.RecipeStepCompletionConditionIDKey: request.RecipeStepCompletionConditionId,
 	}, span, s.logger)
 
-	if _, err := s.verifyRecipeOwnership(ctx, request.RecipeId, logger, span); err != nil {
-		return nil, err
+	sessionContextData, err := sessions.RequireFromContext(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	input := converters.ConvertGRPCRecipeStepCompletionConditionUpdateRequestInputToRecipeStepCompletionConditionUpdateRequestInput(request.Input)
 
-	if err := s.mealPlanningManager.UpdateRecipeStepCompletionCondition(ctx, request.RecipeId, request.RecipeStepId, request.RecipeStepCompletionConditionId, input); err != nil {
+	if err = s.mealPlanningManager.UpdateRecipeStepCompletionCondition(ctx, request.RecipeId, request.RecipeStepId, request.RecipeStepCompletionConditionId, sessionContextData.GetUserID(), input); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed updating recipe step completion condition")
 	}
 
@@ -1844,13 +1840,14 @@ func (s *serviceImpl) UpdateRecipeStepIngredient(ctx context.Context, request *m
 		mealplanningkeys.RecipeStepIngredientIDKey: request.RecipeStepIngredientId,
 	}, span, s.logger)
 
-	if _, err := s.verifyRecipeOwnership(ctx, request.RecipeId, logger, span); err != nil {
-		return nil, err
+	sessionContextData, err := sessions.RequireFromContext(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	input := converters.ConvertGRPCRecipeStepIngredientUpdateRequestInputToRecipeStepIngredientUpdateRequestInput(request.Input)
 
-	if err := s.mealPlanningManager.UpdateRecipeStepIngredient(ctx, request.RecipeId, request.RecipeStepId, request.RecipeStepIngredientId, input); err != nil {
+	if err = s.mealPlanningManager.UpdateRecipeStepIngredient(ctx, request.RecipeId, request.RecipeStepId, request.RecipeStepIngredientId, sessionContextData.GetUserID(), input); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed updating recipe step ingredient")
 	}
 
@@ -1883,13 +1880,14 @@ func (s *serviceImpl) UpdateRecipeStepInstrument(ctx context.Context, request *m
 		mealplanningkeys.RecipeStepInstrumentIDKey: request.RecipeStepInstrumentId,
 	}, span, s.logger)
 
-	if _, err := s.verifyRecipeOwnership(ctx, request.RecipeId, logger, span); err != nil {
-		return nil, err
+	sessionContextData, err := sessions.RequireFromContext(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	input := converters.ConvertGRPCRecipeStepInstrumentUpdateRequestInputToRecipeStepInstrumentUpdateRequestInput(request.Input)
 
-	if err := s.mealPlanningManager.UpdateRecipeStepInstrument(ctx, request.RecipeId, request.RecipeStepId, request.RecipeStepInstrumentId, input); err != nil {
+	if err = s.mealPlanningManager.UpdateRecipeStepInstrument(ctx, request.RecipeId, request.RecipeStepId, request.RecipeStepInstrumentId, sessionContextData.GetUserID(), input); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed updating recipe step instrument")
 	}
 
@@ -1922,13 +1920,14 @@ func (s *serviceImpl) UpdateRecipeStepProduct(ctx context.Context, request *meal
 		mealplanningkeys.RecipeStepProductIDKey: request.RecipeStepProductId,
 	}, span, s.logger)
 
-	if _, err := s.verifyRecipeOwnership(ctx, request.RecipeId, logger, span); err != nil {
-		return nil, err
+	sessionContextData, err := sessions.RequireFromContext(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	input := converters.ConvertGRPCRecipeStepProductUpdateRequestInputToRecipeStepProductUpdateRequestInput(request.Input)
 
-	if err := s.mealPlanningManager.UpdateRecipeStepProduct(ctx, request.RecipeId, request.RecipeStepId, request.RecipeStepProductId, input); err != nil {
+	if err = s.mealPlanningManager.UpdateRecipeStepProduct(ctx, request.RecipeId, request.RecipeStepId, request.RecipeStepProductId, sessionContextData.GetUserID(), input); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed updating recipe step product")
 	}
 
@@ -1961,13 +1960,14 @@ func (s *serviceImpl) UpdateRecipeStepVessel(ctx context.Context, request *mealp
 		mealplanningkeys.RecipeStepVesselIDKey: request.RecipeStepVesselId,
 	}, span, s.logger)
 
-	if _, err := s.verifyRecipeOwnership(ctx, request.RecipeId, logger, span); err != nil {
-		return nil, err
+	sessionContextData, err := sessions.RequireFromContext(ctx)
+	if err != nil {
+		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
 	input := converters.ConvertGRPCRecipeStepVesselUpdateRequestInputToRecipeStepVesselUpdateRequestInput(request.Input)
 
-	if err := s.mealPlanningManager.UpdateRecipeStepVessel(ctx, request.RecipeId, request.RecipeStepId, request.RecipeStepVesselId, input); err != nil {
+	if err = s.mealPlanningManager.UpdateRecipeStepVessel(ctx, request.RecipeId, request.RecipeStepId, request.RecipeStepVesselId, sessionContextData.GetUserID(), input); err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Internal, "failed updating recipe step vessel")
 	}
 

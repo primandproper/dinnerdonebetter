@@ -3,7 +3,6 @@ package managers
 import (
 	"context"
 
-	identitykeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/keys"
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/converters"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
@@ -14,7 +13,7 @@ import (
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
 )
 
-func (m *mealPlanningManager) ListMealPlanOptions(ctx context.Context, mealPlanID, mealPlanEventID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.MealPlanOption], error) {
+func (m *mealPlanningManager) ListMealPlanOptions(ctx context.Context, mealPlanID, mealPlanEventID, ownerID string, filter *filtering.QueryFilter) (*filtering.QueryFilteredResult[types.MealPlanOption], error) {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -29,50 +28,16 @@ func (m *mealPlanningManager) ListMealPlanOptions(ctx context.Context, mealPlanI
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanIDKey, mealPlanID)
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanEventIDKey, mealPlanEventID)
 
+	if err := m.requireMealPlanAccess(ctx, mealPlanID, ownerID); err != nil {
+		return nil, observability.PrepareError(err, span, "checking meal plan ownership")
+	}
+
 	results, err := m.db.GetMealPlanOptions(ctx, mealPlanID, mealPlanEventID, filter)
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching meal plan options")
 	}
 
 	return results, nil
-}
-
-func (m *mealPlanningManager) CreateMealPlanOption(ctx context.Context, input *types.MealPlanOptionCreationRequestInput) (*types.MealPlanOption, error) {
-	ctx, span := m.tracer.StartSpan(ctx)
-	defer span.End()
-
-	if input == nil {
-		return nil, platformerrors.ErrNilInputParameter
-	}
-
-	if err := input.ValidateWithContext(ctx); err != nil {
-		return nil, observability.PrepareError(err, span, "validating input")
-	}
-
-	convertedInput := converters.ConvertMealPlanOptionCreationRequestInputToMealPlanOptionDatabaseCreationInput(input)
-	if convertedInput.BelongsToMealPlanEvent != "" {
-		exists, err := m.db.MealExistsAsOptionInEvent(ctx, convertedInput.BelongsToMealPlanEvent, convertedInput.MealID)
-		if err != nil {
-			return nil, observability.PrepareAndLogError(err, m.logger.WithSpan(span), span, "checking if meal exists as option in event")
-		}
-		if exists {
-			return nil, types.ErrDuplicateMealPlanOption
-		}
-	}
-
-	logger := m.logger.WithSpan(span).WithValue(mealplanningkeys.MealPlanOptionIDKey, convertedInput.ID)
-	tracing.AttachToSpan(span, mealplanningkeys.MealPlanOptionIDKey, convertedInput.ID)
-
-	created, err := m.db.CreateMealPlanOption(ctx, convertedInput)
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "created meal plan option")
-	}
-
-	if err = m.createSelectionsForNewOption(ctx, created.ID, input.Selections); err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "creating selections for meal plan option")
-	}
-
-	return created, nil
 }
 
 // createSelectionsForNewOption persists the recipe-option selections provided inline on an option creation input.
@@ -95,7 +60,7 @@ func (m *mealPlanningManager) createSelectionsForNewOption(ctx context.Context, 
 	return nil
 }
 
-func (m *mealPlanningManager) CreateMealPlanOptionWithEventID(ctx context.Context, mealPlanEventID string, input *types.MealPlanOptionCreationRequestInput) (*types.MealPlanOption, error) {
+func (m *mealPlanningManager) CreateMealPlanOptionWithEventID(ctx context.Context, mealPlanID, mealPlanEventID, ownerID string, input *types.MealPlanOptionCreationRequestInput) (*types.MealPlanOption, error) {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -109,6 +74,10 @@ func (m *mealPlanningManager) CreateMealPlanOptionWithEventID(ctx context.Contex
 
 	if mealPlanEventID == "" {
 		return nil, platformerrors.ErrEmptyInputParameter
+	}
+
+	if err := m.requireMealPlanEventAccess(ctx, mealPlanID, mealPlanEventID, ownerID); err != nil {
+		return nil, observability.PrepareError(err, span, "checking meal plan ownership")
 	}
 
 	convertedInput := converters.ConvertMealPlanOptionCreationRequestInputToMealPlanOptionDatabaseCreationInput(input)
@@ -138,7 +107,7 @@ func (m *mealPlanningManager) CreateMealPlanOptionWithEventID(ctx context.Contex
 	return created, nil
 }
 
-func (m *mealPlanningManager) ReadMealPlanOption(ctx context.Context, mealPlanID, mealPlanEventID, mealPlanOptionID string) (*types.MealPlanOption, error) {
+func (m *mealPlanningManager) ReadMealPlanOption(ctx context.Context, mealPlanID, mealPlanEventID, mealPlanOptionID, ownerID string) (*types.MealPlanOption, error) {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -151,6 +120,10 @@ func (m *mealPlanningManager) ReadMealPlanOption(ctx context.Context, mealPlanID
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanEventIDKey, mealPlanEventID)
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanOptionIDKey, mealPlanOptionID)
 
+	if err := m.requireMealPlanAccess(ctx, mealPlanID, ownerID); err != nil {
+		return nil, observability.PrepareError(err, span, "checking meal plan ownership")
+	}
+
 	mealPlanOption, err := m.db.GetMealPlanOption(ctx, mealPlanID, mealPlanEventID, mealPlanOptionID)
 	if err != nil {
 		return nil, observability.PrepareAndLogError(err, logger, span, "fetching meal plan option")
@@ -159,26 +132,7 @@ func (m *mealPlanningManager) ReadMealPlanOption(ctx context.Context, mealPlanID
 	return mealPlanOption, nil
 }
 
-func (m *mealPlanningManager) MealPlanOptionBelongsToAccount(ctx context.Context, mealPlanOptionID, accountID string) (bool, error) {
-	ctx, span := m.tracer.StartSpan(ctx)
-	defer span.End()
-
-	logger := m.logger.WithSpan(span).WithValues(map[string]any{
-		mealplanningkeys.MealPlanOptionIDKey: mealPlanOptionID,
-		identitykeys.AccountIDKey:            accountID,
-	})
-	tracing.AttachToSpan(span, mealplanningkeys.MealPlanOptionIDKey, mealPlanOptionID)
-	tracing.AttachToSpan(span, identitykeys.AccountIDKey, accountID)
-
-	belongs, err := m.db.MealPlanOptionBelongsToAccount(ctx, mealPlanOptionID, accountID)
-	if err != nil {
-		return false, observability.PrepareAndLogError(err, logger, span, "checking meal plan option account ownership")
-	}
-
-	return belongs, nil
-}
-
-func (m *mealPlanningManager) UpdateMealPlanOption(ctx context.Context, mealPlanID, mealPlanEventID, mealPlanOptionID string, input *types.MealPlanOptionUpdateRequestInput) error {
+func (m *mealPlanningManager) UpdateMealPlanOption(ctx context.Context, mealPlanID, mealPlanEventID, mealPlanOptionID, ownerID string, input *types.MealPlanOptionUpdateRequestInput) error {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -199,6 +153,10 @@ func (m *mealPlanningManager) UpdateMealPlanOption(ctx context.Context, mealPlan
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanEventIDKey, mealPlanEventID)
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanOptionIDKey, mealPlanOptionID)
 
+	if err := m.requireMealPlanAccess(ctx, mealPlanID, ownerID); err != nil {
+		return observability.PrepareError(err, span, "checking meal plan ownership")
+	}
+
 	existingMealPlanOption, err := m.db.GetMealPlanOption(ctx, mealPlanID, mealPlanEventID, mealPlanOptionID)
 	if err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "fetching meal plan option to update")
@@ -212,7 +170,7 @@ func (m *mealPlanningManager) UpdateMealPlanOption(ctx context.Context, mealPlan
 	return nil
 }
 
-func (m *mealPlanningManager) ArchiveMealPlanOption(ctx context.Context, mealPlanID, mealPlanEventID, mealPlanOptionID string) error {
+func (m *mealPlanningManager) ArchiveMealPlanOption(ctx context.Context, mealPlanID, mealPlanEventID, mealPlanOptionID, ownerID string) error {
 	ctx, span := m.tracer.StartSpan(ctx)
 	defer span.End()
 
@@ -224,6 +182,10 @@ func (m *mealPlanningManager) ArchiveMealPlanOption(ctx context.Context, mealPla
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanIDKey, mealPlanID)
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanEventIDKey, mealPlanEventID)
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanOptionIDKey, mealPlanOptionID)
+
+	if err := m.requireMealPlanEventAccess(ctx, mealPlanID, mealPlanEventID, ownerID); err != nil {
+		return observability.PrepareError(err, span, "checking meal plan ownership")
+	}
 
 	if err := m.db.ArchiveMealPlanOption(ctx, mealPlanID, mealPlanEventID, mealPlanOptionID); err != nil {
 		return observability.PrepareAndLogError(err, logger, span, "archiving meal plan option")

@@ -130,14 +130,16 @@ WHERE %s = sqlc.arg(%s);`,
 						Name: "CheckMealPlanTaskExistence",
 						Type: OneType,
 					},
+					// Whether the task is the plan's, done or not: the manager asks it before
+					// reading a task or changing its status, and a finished task can be read and
+					// reopened.
 					Content: buildRawQuery((&builq.Builder{}).Addf(`SELECT EXISTS (
 	SELECT %s.%s
 	FROM %s
-		FULL OUTER JOIN %s ON %s.%s=%s.%s
-		FULL OUTER JOIN %s ON %s.%s=%s.%s
-		FULL OUTER JOIN %s ON %s.%s=%s.%s
-	WHERE %s.%s IS NULL
-		AND %s.%s = sqlc.arg(%s)
+		JOIN %s ON %s.%s=%s.%s
+		JOIN %s ON %s.%s=%s.%s
+		JOIN %s ON %s.%s=%s.%s
+	WHERE %s.%s = sqlc.arg(%s)
 		AND %s.%s IS NULL
 		AND %s.%s = sqlc.arg(%s)
 );`,
@@ -146,7 +148,6 @@ WHERE %s = sqlc.arg(%s);`,
 						mealPlanOptionsTableName, mealPlanTasksTableName, belongsToMealPlanOptionColumn, mealPlanOptionsTableName, idColumn,
 						mealPlanEventsTableName, mealPlanOptionsTableName, belongsToMealPlanEventColumn, mealPlanEventsTableName, idColumn,
 						mealPlansTableName, mealPlanEventsTableName, belongsToMealPlanColumn, mealPlansTableName, idColumn,
-						mealPlanTasksTableName, mealPlanTaskCompletedAtColumn,
 						mealPlansTableName, idColumn, mealPlanIDColumn,
 						mealPlansTableName, archivedAtColumn,
 						mealPlanTasksTableName, idColumn, mealPlanTaskIDColumn,

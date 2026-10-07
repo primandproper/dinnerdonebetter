@@ -7,7 +7,7 @@ import (
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	mealplanningmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
-	eatingindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/searchindex"
 
 	"github.com/primandproper/primitives-go/v2/fake"
 	"github.com/primandproper/primitives-go/v2/filtering"
@@ -86,14 +86,14 @@ func TestValidEnumerationManager_SearchValidIngredients(T *testing.T) {
 		}
 		attachRepositoryToManager(vem, db)
 
-		index := &mocksearch.IndexMock[eatingindexing.ValidIngredientSearchSubset]{
-			SearchFunc: func(_ context.Context, req textsearch.SearchRequest) (*textsearch.SearchResults[eatingindexing.ValidIngredientSearchSubset], error) {
+		index := &mocksearch.IndexMock[searchindex.ValidIngredientSearchSubset]{
+			SearchFunc: func(_ context.Context, req textsearch.SearchRequest) (*textsearch.SearchResults[searchindex.ValidIngredientSearchSubset], error) {
 				assert.Equal(t, exampleQuery, req.Query)
 				assert.Equal(t, 11, req.Limit)
 				assert.Equal(t, textsearch.Cursor(cursor), req.Cursor)
 
-				return &textsearch.SearchResults[eatingindexing.ValidIngredientSearchSubset]{
-					Hits:       []*eatingindexing.ValidIngredientSearchSubset{{ID: expected.ID}},
+				return &textsearch.SearchResults[searchindex.ValidIngredientSearchSubset]{
+					Hits:       []*searchindex.ValidIngredientSearchSubset{{ID: expected.ID}},
 					NextCursor: textsearch.Cursor("cursor-for-the-next-page"),
 				}, nil
 			},
@@ -124,8 +124,8 @@ func TestValidEnumerationManager_SearchValidIngredients(T *testing.T) {
 		db := &mealplanningmock.RepositoryMock{}
 		attachRepositoryToManager(vem, db)
 
-		index := &mocksearch.IndexMock[eatingindexing.ValidIngredientSearchSubset]{
-			SearchFunc: func(_ context.Context, _ textsearch.SearchRequest) (*textsearch.SearchResults[eatingindexing.ValidIngredientSearchSubset], error) {
+		index := &mocksearch.IndexMock[searchindex.ValidIngredientSearchSubset]{
+			SearchFunc: func(_ context.Context, _ textsearch.SearchRequest) (*textsearch.SearchResults[searchindex.ValidIngredientSearchSubset], error) {
 				return nil, textsearch.ErrResultWindowExceeded
 			},
 		}

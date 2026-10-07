@@ -10,10 +10,10 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/audit"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/datachanges"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/searchindex"
 	webhookfakes "github.com/primandproper/dinnerdonebetter/backend/internal/domain/webhooks/fakes"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/indexevents"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/recordingspine/recordingspinetest"
-	mealplanningindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
 
 	platformaudit "github.com/primandproper/platform-go/v15/audit"
 	auditmock "github.com/primandproper/platform-go/v15/audit/mock"
@@ -251,7 +251,7 @@ func TestRepository_emitIndex(T *testing.T) {
 				for _, arg := range args {
 					switch v := arg.(type) {
 					case string:
-						if v == mealplanningindexing.IndexTypeRecipes {
+						if v == searchindex.IndexTypeRecipes {
 							topics = append(topics, v)
 						}
 					case []byte:
@@ -279,7 +279,7 @@ func TestRepository_emitIndex(T *testing.T) {
 		// One row, on the recipes index's topic, naming the recipe — and nothing else, because
 		// the trigger is not an event anybody subscribes to.
 		require.Len(t, executor.ExecContextCalls(), 1)
-		assert.Equal(t, []string{mealplanningindexing.IndexTypeRecipes}, topics)
+		assert.Equal(t, []string{searchindex.IndexTypeRecipes}, topics)
 		require.Len(t, events, 1)
 		assert.Equal(t, recipeID, events[0].DocumentID)
 		assert.Equal(t, searchsync.OpUpsert, events[0].Op)

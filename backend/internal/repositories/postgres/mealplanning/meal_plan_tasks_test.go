@@ -10,6 +10,7 @@ import (
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
 	"github.com/primandproper/primitives-go/v2/fake"
+	"github.com/primandproper/primitives-go/v2/identifiers"
 	"github.com/primandproper/primitives-go/v2/pointer"
 
 	"github.com/stretchr/testify/assert"
@@ -153,8 +154,14 @@ func TestQuerier_Integration_MealPlanTasks(t *testing.T) {
 			MealPlanTaskID:    mealPlanTask.ID,
 		}))
 
+		// A finished task is still the plan's.
 		var exists bool
-		exists, err = dbc.MealPlanTaskExists(ctx, mealPlanTask.ID, account.ID)
+		exists, err = dbc.MealPlanTaskExists(ctx, mealPlan.ID, mealPlanTask.ID)
+		require.NoError(t, err)
+		assert.True(t, exists)
+
+		// It is no other plan's.
+		exists, err = dbc.MealPlanTaskExists(ctx, identifiers.New(), mealPlanTask.ID)
 		require.NoError(t, err)
 		assert.False(t, exists)
 	}

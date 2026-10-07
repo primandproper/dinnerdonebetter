@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
-	mealplanningrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/mealplanning"
 
 	"github.com/primandproper/primitives-go/v2/errors/grpc"
 
@@ -26,8 +25,13 @@ func (mealPlanningGRPCMapper) Map(err error) (code codes.Code, ok bool) {
 		errors.Is(err, mealplanning.ErrDuplicateMealInList),
 		errors.Is(err, mealplanning.ErrDuplicateMealPlanOption):
 		return codes.AlreadyExists, true
-	case errors.Is(err, mealplanningrepo.ErrAlreadyFinalized):
+	case errors.Is(err, mealplanning.ErrAlreadyFinalized),
+		errors.Is(err, mealplanning.ErrMealPlanEventNotEligibleForVoting):
 		return codes.FailedPrecondition, true
+	// A vote naming an option its event does not offer names something that, from where the
+	// caller stands, is not there.
+	case errors.Is(err, mealplanning.ErrMealPlanOptionNotFoundForEvent):
+		return codes.NotFound, true
 	// A recipe whose bridge-table references disagree with its steps is a malformed
 	// request, not a broken server. Without this it reached a client as Internal.
 	case errors.Is(err, mealplanning.ErrInvalidRecipeInput):

@@ -12,7 +12,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/migrations"
 	pgtesting "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/testing"
 
-	platformidentity "github.com/primandproper/platform-go/v15/identity"
 	"github.com/primandproper/platform-go/v15/mediaregistry"
 	registrymock "github.com/primandproper/platform-go/v15/mediaregistry/mock"
 	"github.com/primandproper/primitives-go/v2/database"
@@ -66,10 +65,6 @@ func buildDatabaseClientForTest(t *testing.T) (*repository, audit.Repository) {
 	uploadsRegistry, err := mediaregistry.NewSQLStore(pgc, mediaregistry.WithTablePrefix(branding.TablePrefix))
 	require.NoError(t, err)
 
-	// The roster read, which is all meal planning asks the directory for.
-	identityStore, err := platformidentity.NewSQLStore(pgc, platformidentity.WithTablePrefix(branding.TablePrefix))
-	require.NoError(t, err)
-
 	// The real recording spine, so the tests exercise the same path production does: the
 	// event and the entry are further statements in the repository's transaction.
 	auditRecorder, ok := auditlogentries.RecorderFrom(auditLogEntryRepo)
@@ -81,7 +76,6 @@ func buildDatabaseClientForTest(t *testing.T) (*repository, audit.Repository) {
 		loggingnoop.NewLogger(),
 		tracingnoop.NewTracerProvider(),
 		auditLogEntryRepo,
-		identityStore,
 		pgc,
 		spine.Emitter,
 		spine.Recorder,
@@ -95,7 +89,7 @@ func buildDatabaseClientForTest(t *testing.T) (*repository, audit.Repository) {
 func buildInertClientForTest(t *testing.T) *repository {
 	t.Helper()
 
-	c := ProvideMealPlanningRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, nil, &mockdatabase.ClientMock{ReaderFunc: func() database.SQLQueryExecutor { return nil }, WriterFunc: func() database.SQLQueryExecutor { return nil }}, nil, nil, nil, &registrymock.StoreMock{})
+	c := ProvideMealPlanningRepository(loggingnoop.NewLogger(), tracingnoop.NewTracerProvider(), nil, &mockdatabase.ClientMock{ReaderFunc: func() database.SQLQueryExecutor { return nil }, WriterFunc: func() database.SQLQueryExecutor { return nil }}, nil, nil, nil, &registrymock.StoreMock{})
 
 	return c.(*repository)
 }

@@ -6,17 +6,15 @@ import (
 
 	mealplanningmock "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/recipeanalysis"
-	queuescfg "github.com/primandproper/dinnerdonebetter/backend/internal/queues/config"
-	eatingindexing "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/indexing"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/searchindex"
 
-	"github.com/primandproper/primitives-go/v2/messagequeue"
-	mockpublishers "github.com/primandproper/primitives-go/v2/messagequeue/mock"
 	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
 	metricsnoop "github.com/primandproper/primitives-go/v2/observability/metrics/noop"
 	tracingnoop "github.com/primandproper/primitives-go/v2/observability/tracing/noop"
 	textsearch "github.com/primandproper/primitives-go/v2/search/text"
 	textsearchcfg "github.com/primandproper/primitives-go/v2/search/text/config"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -36,28 +34,27 @@ func (f *fakeFinalizationStarter) EnsureStarted(_ context.Context, mealPlanID, _
 	return f.err
 }
 
+// fakeElectorate answers every roster read with the same members.
+type fakeElectorate struct {
+	err     error
+	members []string
+}
+
+func (f *fakeElectorate) MembersOfAccount(context.Context, string) ([]string, error) {
+	return f.members, f.err
+}
+
 // newManagerForTest constructs a manager wired to unconfigured mocks. Tests swap in their own
 // configured repository via attachRepositoryToManager.
 func newManagerForTest(t *testing.T, starter mealPlanFinalizationStarter) *mealPlanningManager {
 	t.Helper()
-
-	queueCfg := &queuescfg.Config{
-		DataChangesTopicName: t.Name(),
-	}
-
-	mpp := &mockpublishers.PublisherProviderMock{
-		NewPublisherFunc: func(_ context.Context, _ string) (messagequeue.Publisher, error) {
-			return &mockpublishers.PublisherMock{}, nil
-		},
-	}
 
 	m, err := NewMealPlanningManager(
 		t.Context(),
 		loggingnoop.NewLogger(),
 		tracingnoop.NewTracerProvider(),
 		&mealplanningmock.RepositoryMock{},
-		queueCfg,
-		mpp,
+		&fakeElectorate{},
 		&recipeanalysis.RecipeAnalyzerMock{},
 		&textsearchcfg.Config{Provider: textsearchcfg.ProviderNoop},
 		metricsnoop.NewMetricsProvider(),
@@ -102,12 +99,12 @@ func attachRepositoryToManager(manager *mealPlanningManager, db *mealplanningmoc
 
 // attachRecipeSearchIndexToManager swaps in a configured recipe search index. The manager is
 // otherwise built against the noop index, which answers every query with no hits and no cursor.
-func attachRecipeSearchIndexToManager(manager *mealPlanningManager, index textsearch.IndexSearcher[eatingindexing.RecipeSearchSubset]) {
+func attachRecipeSearchIndexToManager(manager *mealPlanningManager, index textsearch.IndexSearcher[searchindex.RecipeSearchSubset]) {
 	manager.recipeSearchIndex = index
 }
 
 // attachValidIngredientSearchIndexToManager swaps in a configured valid ingredient search index.
-func attachValidIngredientSearchIndexToManager(manager *mealPlanningManager, index textsearch.IndexSearcher[eatingindexing.ValidIngredientSearchSubset]) {
+func attachValidIngredientSearchIndexToManager(manager *mealPlanningManager, index textsearch.IndexSearcher[searchindex.ValidIngredientSearchSubset]) {
 	manager.validIngredientSearchIndex = index
 }
 
@@ -120,4 +117,96 @@ func attachRepositoryAndAnalyzerToManager(manager *mealPlanningManager, db *meal
 		analyzer = &recipeanalysis.RecipeAnalyzerMock{}
 	}
 	manager.recipeAnalyzer = analyzer
+}
+
+// The stubs below answer the ownership checks the manager makes before it touches the repository.
+// Each asserts that it was asked about exactly the IDs the test passed in, and answers as told.
+
+func recipeIsOwnedByStub(t *testing.T, expectedRecipeID, expectedOwnerID string, owned bool) func(context.Context, string, string) (bool, error) {
+	t.Helper()
+
+	return func(_ context.Context, recipeID, userID string) (bool, error) {
+		assert.Equal(t, expectedRecipeID, recipeID)
+		assert.Equal(t, expectedOwnerID, userID)
+
+		return owned, nil
+	}
+}
+
+func recipeStepExistsStub(t *testing.T, expectedRecipeID, expectedRecipeStepID string, exists bool) func(context.Context, string, string) (bool, error) {
+	t.Helper()
+
+	return func(_ context.Context, recipeID, recipeStepID string) (bool, error) {
+		assert.Equal(t, expectedRecipeID, recipeID)
+		assert.Equal(t, expectedRecipeStepID, recipeStepID)
+
+		return exists, nil
+	}
+}
+
+func mealPlanExistsStub(t *testing.T, expectedMealPlanID, expectedAccountID string, exists bool) func(context.Context, string, string) (bool, error) {
+	t.Helper()
+
+	return func(_ context.Context, mealPlanID, accountID string) (bool, error) {
+		assert.Equal(t, expectedMealPlanID, mealPlanID)
+		assert.Equal(t, expectedAccountID, accountID)
+
+		return exists, nil
+	}
+}
+
+func mealPlanEventExistsStub(t *testing.T, expectedMealPlanID, expectedMealPlanEventID string, exists bool) func(context.Context, string, string) (bool, error) {
+	t.Helper()
+
+	return func(_ context.Context, mealPlanID, mealPlanEventID string) (bool, error) {
+		assert.Equal(t, expectedMealPlanID, mealPlanID)
+		assert.Equal(t, expectedMealPlanEventID, mealPlanEventID)
+
+		return exists, nil
+	}
+}
+
+func mealPlanTaskExistsStub(t *testing.T, expectedMealPlanID, expectedMealPlanTaskID string, exists bool) func(context.Context, string, string) (bool, error) {
+	t.Helper()
+
+	return func(_ context.Context, mealPlanID, mealPlanTaskID string) (bool, error) {
+		assert.Equal(t, expectedMealPlanID, mealPlanID)
+		assert.Equal(t, expectedMealPlanTaskID, mealPlanTaskID)
+
+		return exists, nil
+	}
+}
+
+func mealPlanGroceryListItemExistsStub(t *testing.T, expectedMealPlanID, expectedItemID string, exists bool) func(context.Context, string, string) (bool, error) {
+	t.Helper()
+
+	return func(_ context.Context, mealPlanID, itemID string) (bool, error) {
+		assert.Equal(t, expectedMealPlanID, mealPlanID)
+		assert.Equal(t, expectedItemID, itemID)
+
+		return exists, nil
+	}
+}
+
+func mealPlanOptionExistsStub(t *testing.T, expectedMealPlanID, expectedMealPlanEventID, expectedMealPlanOptionID string, exists bool) func(context.Context, string, string, string) (bool, error) {
+	t.Helper()
+
+	return func(_ context.Context, mealPlanID, mealPlanEventID, mealPlanOptionID string) (bool, error) {
+		assert.Equal(t, expectedMealPlanID, mealPlanID)
+		assert.Equal(t, expectedMealPlanEventID, mealPlanEventID)
+		assert.Equal(t, expectedMealPlanOptionID, mealPlanOptionID)
+
+		return exists, nil
+	}
+}
+
+func mealPlanOptionBelongsToAccountStub(t *testing.T, expectedMealPlanOptionID, expectedAccountID string, belongs bool) func(context.Context, string, string) (bool, error) {
+	t.Helper()
+
+	return func(_ context.Context, mealPlanOptionID, accountID string) (bool, error) {
+		assert.Equal(t, expectedMealPlanOptionID, mealPlanOptionID)
+		assert.Equal(t, expectedAccountID, accountID)
+
+		return belongs, nil
+	}
 }

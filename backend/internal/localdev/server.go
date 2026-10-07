@@ -330,21 +330,12 @@ func WithMealPlanningRepository(fn func(ctx context.Context, repo mealplanning.R
 		if err != nil {
 			return err
 		}
-		identityStore, storeErr := platformidentity.NewSQLStore(dbClient,
-			platformidentity.WithTablePrefix(branding.TablePrefix),
-			platformidentity.WithStoreLogger(logger),
-			platformidentity.WithStoreTracerProvider(tracerProvider),
-		)
-		if storeErr != nil {
-			return storeErr
-		}
-
 		spine, err := Spine(ctx, dbClient, auditLogRepo, logger, tracerProvider)
 		if err != nil {
 			return err
 		}
 
-		mealPlanningRepo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditLogRepo, identityStore, dbClient, spine.Emitter, spine.Recorder, spine.Writer, uploads)
+		mealPlanningRepo := mealplanningrepo.ProvideMealPlanningRepository(logger, tracerProvider, auditLogRepo, dbClient, spine.Emitter, spine.Recorder, spine.Writer, uploads)
 		return fn(ctx, mealPlanningRepo, logger, tracerProvider)
 	}
 }

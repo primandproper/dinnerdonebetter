@@ -8,6 +8,7 @@ import (
 	types "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/fakes"
 	mealplanningmocks "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/mocks"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/searchindex"
 
 	searchsync "github.com/primandproper/platform-go/v15/searchsync"
 	syncsource "github.com/primandproper/platform-go/v15/searchsync/source"
@@ -49,7 +50,7 @@ func TestSyncer_Stamping(T *testing.T) {
 		}
 
 		stamper := &recordingStamper{}
-		index := &textsearchmock.IndexMock[ValidInstrumentSearchSubset]{
+		index := &textsearchmock.IndexMock[searchindex.ValidInstrumentSearchSubset]{
 			IndexFunc: func(_ context.Context, _ string, _ any) error { return nil },
 		}
 
@@ -78,7 +79,7 @@ func TestSyncer_Stamping(T *testing.T) {
 		repo := &mealplanningmocks.RepositoryMock{}
 
 		stamper := &recordingStamper{}
-		index := &textsearchmock.IndexMock[ValidInstrumentSearchSubset]{
+		index := &textsearchmock.IndexMock[searchindex.ValidInstrumentSearchSubset]{
 			DeleteFunc: func(_ context.Context, _ string) error { return nil },
 		}
 

@@ -91,6 +91,10 @@ func (m *mealPlanningManager) CreateMealPlan(ctx context.Context, ownerID, creat
 		return nil, observability.PrepareError(err, span, "validating input")
 	}
 
+	if err := input.ValidateVotingDeadline(m.clock.Now()); err != nil {
+		return nil, observability.PrepareError(err, span, "validating voting deadline")
+	}
+
 	if creatorID == "" {
 		return nil, platformerrors.ErrEmptyInputParameter
 	}
@@ -102,6 +106,7 @@ func (m *mealPlanningManager) CreateMealPlan(ctx context.Context, ownerID, creat
 	convertedInput := converters.ConvertMealPlanCreationRequestInputToMealPlanDatabaseCreationInput(input)
 	convertedInput.CreatedByUser = creatorID
 	convertedInput.BelongsToAccount = ownerID
+	convertedInput.Status = string(types.InitialMealPlanStatus(convertedInput.Events))
 
 	logger := m.logger.WithSpan(span).WithValue(mealplanningkeys.MealPlanIDKey, convertedInput.ID)
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanIDKey, convertedInput.ID)
@@ -198,15 +203,20 @@ func (m *mealPlanningManager) FinalizeMealPlan(ctx context.Context, mealPlanID, 
 	tracing.AttachToSpan(span, mealplanningkeys.MealPlanIDKey, mealPlanID)
 	tracing.AttachToSpan(span, identitykeys.UserIDKey, ownerID)
 
-	finalized, err := m.db.AttemptToFinalizeMealPlan(ctx, mealPlanID, ownerID)
+	tally, err := types.FinalizeMealPlan(ctx, m.db, m.electorate, mealPlanID, ownerID, m.clock.Now(), types.RandomTiebreak)
 	if err != nil {
 		return false, observability.PrepareAndLogError(err, logger, span, "finalizing meal plan")
 	}
 
+	logger.WithValue("finalized", tally.Finalized).
+		WithValue("decisions", len(tally.Decisions)).
+		WithValue("awaiting_votes_from", tally.AwaitingVotesFrom).
+		Info("meal plan tallied")
+
 	// only enter the plan into the pipeline when it actually finalized.
-	if finalized {
+	if tally.Finalized {
 		m.startFinalizationPipeline(ctx, mealPlanID, ownerID, logger, span)
 	}
 
-	return finalized, nil
+	return tally.Finalized, nil
 }
