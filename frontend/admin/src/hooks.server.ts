@@ -1,6 +1,6 @@
 import type { Handle } from '@sveltejs/kit';
 import { resolveOrRedirect } from '@primandproper/platform-client';
-import { sessionFor } from '$lib/auth/session';
+import { clientOf, sessionFor } from '$lib/auth/session';
 
 const LOGIN_PATH = '/login';
 
@@ -15,7 +15,7 @@ function isPublicPath(pathname: string): boolean {
 // which refreshes it if it has to; a page load that ended the login while it ran goes to
 // sign in, keeping the cookies it cleared.
 export const handle: Handle = ({ event, resolve }) => {
-  event.locals.session = sessionFor(event.cookies);
+  event.locals.session = sessionFor(event.cookies, clientOf(event));
   return resolveOrRedirect(event.locals.session, event.request, async () => resolve(event), {
     isPublic: isPublicPath,
     loginPath: LOGIN_PATH,

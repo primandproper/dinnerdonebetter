@@ -46,6 +46,7 @@ import (
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/metrics"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
+	"github.com/primandproper/primitives-go/v2/ratelimiting"
 	textsearchcfg "github.com/primandproper/primitives-go/v2/search/text/config"
 	platformgrpc "github.com/primandproper/primitives-go/v2/server/grpc"
 
@@ -96,7 +97,17 @@ func RegisterExtras(i do.Injector) {
 			return nil, err
 		}
 
-		return BuildUnaryServerInterceptors(authInterceptor, authzEnforcer, idempotencyInterceptor), nil
+		throttle, err := interceptors.NewAnonymousDoorThrottle(
+			do.MustInvoke[ratelimiting.RateLimiter](i),
+			logger,
+			do.MustInvoke[tracing.Provider](i),
+			do.MustInvoke[metrics.Provider](i),
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		return BuildUnaryServerInterceptors(throttle, authInterceptor, authzEnforcer, idempotencyInterceptor), nil
 	})
 
 	do.Provide(i, func(i do.Injector) ([]grpc.StreamServerInterceptor, error) {
@@ -221,6 +232,7 @@ func registerWithAdministration(server *grpc.Server, impl any, plain func(*grpc.
 
 // BuildUnaryServerInterceptors is the unary chain this server adds, outermost first.
 func BuildUnaryServerInterceptors(
+	throttle grpc.UnaryServerInterceptor,
 	authInterceptor *interceptors.AuthInterceptor,
 	authzEnforcer *authzgrpc.Enforcer,
 	idempotencyInterceptor grpc.UnaryServerInterceptor,
@@ -233,6 +245,9 @@ func BuildUnaryServerInterceptors(
 		// way a handler's are — with a client-safe reason where the error names one, which is
 		// how a forced password change says PASSWORD_CHANGE_REQUIRED.
 		errorsgrpc.UnaryErrorEncodingInterceptor(),
+		// Ahead of authentication: the doors it throttles read no credential, and a caller it
+		// refuses should cost nothing past the bucket.
+		throttle,
 		authInterceptor.UnaryServerInterceptor(),
 		// Runs after the interceptor above so it sees the session that one established.
 		// Both enforce, and they are proven equivalent — see auditOnlyAuthorization.

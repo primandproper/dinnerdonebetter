@@ -20,6 +20,7 @@ import (
 	analyticscfg "github.com/primandproper/primitives-go/v2/analytics/config"
 	tokenscfg "github.com/primandproper/primitives-go/v2/authentication/tokens/config"
 	emailcfg "github.com/primandproper/primitives-go/v2/email/config"
+	ratelimitingcfg "github.com/primandproper/primitives-go/v2/ratelimiting/config"
 	routingcfg "github.com/primandproper/primitives-go/v2/routing/config"
 	textsearchcfg "github.com/primandproper/primitives-go/v2/search/text/config"
 
@@ -97,6 +98,10 @@ func RegisterConfigs(i do.Injector) {
 	do.Provide[*oauth2servercfg.Config](i, func(i do.Injector) (*oauth2servercfg.Config, error) {
 		cfg := do.MustInvoke[*authentication.Config](i)
 		return &cfg.OAuth2, nil
+	})
+	do.Provide[*ratelimitingcfg.Config](i, func(i do.Injector) (*ratelimitingcfg.Config, error) {
+		cfg := do.MustInvoke[*authentication.Config](i)
+		return &cfg.RateLimiting, nil
 	})
 
 	// From ServicesConfig

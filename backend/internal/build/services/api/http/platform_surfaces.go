@@ -2,9 +2,7 @@ package api
 
 import (
 	"context"
-	"errors"
 	"net/http"
-	"strings"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	mediaregistrybuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/mediaregistry"
@@ -13,7 +11,6 @@ import (
 	"github.com/primandproper/platform-go/v15/callers"
 	platformdataprivacy "github.com/primandproper/platform-go/v15/dataprivacy"
 	dataprivacyhttp "github.com/primandproper/platform-go/v15/dataprivacy/http"
-	platformidentity "github.com/primandproper/platform-go/v15/identity"
 	"github.com/primandproper/platform-go/v15/mediaregistry"
 	mediaregistryhttp "github.com/primandproper/platform-go/v15/mediaregistry/http"
 	"github.com/primandproper/platform-go/v15/operations"
@@ -37,14 +34,13 @@ import (
 // on HTTP because their flows are: a confirmation arrives as a link, progress is an event
 // stream, and an object is bytes under their own content type. What this application adds is
 // who is asking, resolved from the same session every gRPC surface reads — see
-// sessionFromAuthorization.
+// AuthInterceptor.HTTPMiddleware.
 type PlatformSurfaces struct {
-	sessions func(ctx context.Context, header string) (*sessions.ContextData, error)
-	// requiresChange is whether a user has been told to change their password.
-	requiresChange func(ctx context.Context, userID string) (bool, error)
-	privacy        *dataprivacyhttp.Handlers
-	operations     *operationshttp.Handlers
-	objects        *mediaregistryhttp.Handler
+	// sessions resolves a request's caller and attaches their session.
+	sessions   func(http.Handler) http.Handler
+	privacy    *dataprivacyhttp.Handlers
+	operations *operationshttp.Handlers
+	objects    *mediaregistryhttp.Handler
 }
 
 // RegisterPlatformSurfaces registers the HTTP surfaces with the injector.
@@ -108,11 +104,10 @@ func RegisterPlatformSurfaces(i do.Injector) {
 		}
 
 		return &PlatformSurfaces{
-			sessions:       do.MustInvoke[*interceptors.AuthInterceptor](i).SessionFromAuthorization,
-			requiresChange: do.MustInvoke[*interceptors.AuthInterceptor](i).RequiresPasswordChange,
-			privacy:        privacy,
-			operations:     ops,
-			objects:        objects,
+			sessions:   do.MustInvoke[*interceptors.AuthInterceptor](i).HTTPMiddleware,
+			privacy:    privacy,
+			operations: ops,
+			objects:    objects,
 		}, nil
 	})
 }
@@ -125,58 +120,19 @@ func (p *PlatformSurfaces) Mount(router *routing.Router) {
 		return
 	}
 
-	router.Use(p.sessionFromAuthorization)
+	// Global, so it reaches the OAuth2 and payment routes too, and it must not change what they
+	// answer: a request with no bearer token, or one that does not work, goes on with no session
+	// attached. The surfaces that need a caller refuse its absence themselves, as
+	// callers.ErrNoPrincipal, which the mapper answers 401. A banned user and one who owes a
+	// forced password change are refused here, because the gRPC interceptor refuses them and an
+	// HTTP door that did not would be the way around it.
+	router.Use(p.sessions)
 
 	// The privacy surface's Mount includes the artifact download, which serves a subject
 	// their own export and nobody else's.
 	p.privacy.Mount(router)
 	p.operations.Mount(router)
 	p.objects.Mount(router)
-}
-
-// sessionFromAuthorization attaches the caller a bearer token names.
-//
-// It is global middleware, so it reaches the OAuth2 and payment routes too, and it must not
-// change what they answer: a request with no bearer token, or one that does not work, goes on
-// with no session attached. The surfaces that need a caller refuse its absence themselves, as
-// callers.ErrNoPrincipal, which the mapper answers 401.
-//
-// Two genuine tokens are refused here, because the gRPC interceptor refuses them and an HTTP
-// door that did not would be the way around it: a user whose account status does not admit
-// sign-in is 403, as it is PermissionDenied there, and so is a user who has been told to change
-// their password, since no HTTP route is the change.
-func (p *PlatformSurfaces) sessionFromAuthorization(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-		header := req.Header.Get("Authorization")
-		if !strings.HasPrefix(header, "Bearer ") {
-			next.ServeHTTP(res, req)
-			return
-		}
-
-		data, err := p.sessions(req.Context(), header)
-		if errors.Is(err, platformidentity.ErrSignInNotAdmitted) {
-			http.Error(res, "this account may not sign in", http.StatusForbidden)
-			return
-		}
-
-		if err != nil || data == nil {
-			next.ServeHTTP(res, req)
-			return
-		}
-
-		requiresChange, err := p.requiresChange(req.Context(), data.GetUserID())
-		if err != nil {
-			http.Error(res, "checking password change requirement", http.StatusInternalServerError)
-			return
-		}
-
-		if requiresChange {
-			http.Error(res, "password change required", http.StatusForbidden)
-			return
-		}
-
-		next.ServeHTTP(res, req.WithContext(sessions.AttachToContext(req.Context(), data)))
-	})
 }
 
 // privacySubject is the signed-in user, as the subject of their own privacy requests.

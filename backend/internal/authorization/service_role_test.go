@@ -37,3 +37,29 @@ func TestServiceRoles(T *testing.T) {
 		assert.True(t, r.IsServiceAdmin())
 	})
 }
+
+func TestOrdinaryServiceRoles(T *testing.T) {
+	T.Parallel()
+
+	T.Run("keeps what a person holds about themselves", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Equal(t, []string{ServiceUserRoleName}, OrdinaryServiceRoles(t.Context(), []string{ServiceUserRoleName}))
+	})
+
+	T.Run("drops an operator's roles, leaving the person", func(t *testing.T) {
+		t.Parallel()
+
+		for _, role := range AdministrativeServiceRoleNames() {
+			kept := OrdinaryServiceRoles(t.Context(), []string{role})
+
+			assert.Equal(t, []string{ServiceUserRoleName}, kept, role)
+		}
+	})
+
+	T.Run("gives nobody a role they did not hold", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Empty(t, OrdinaryServiceRoles(t.Context(), nil))
+	})
+}

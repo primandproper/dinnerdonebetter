@@ -3,11 +3,10 @@ package interceptors
 import (
 	"context"
 	"errors"
-	"fmt"
+	"net/http"
 	"os"
 	"slices"
 	"strings"
-	"sync"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
@@ -17,18 +16,10 @@ import (
 	signinbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/signin"
 	waitlistsbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/waitlists"
 
-	"github.com/primandproper/platform-go/v15/authentication/signin"
-	"github.com/primandproper/platform-go/v15/authentication/signin/signinpb"
+	signingrpc "github.com/primandproper/platform-go/v15/authentication/signin/grpc"
+	"github.com/primandproper/platform-go/v15/callers"
 	platformidentity "github.com/primandproper/platform-go/v15/identity"
-	"github.com/primandproper/platform-go/v15/identity/identitypb"
-	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
-	"github.com/primandproper/primitives-go/v2/authentication/tokens"
-	"github.com/primandproper/primitives-go/v2/database"
-	errorsgrpc "github.com/primandproper/primitives-go/v2/errors/grpc"
-	"github.com/primandproper/primitives-go/v2/observability"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
-	"github.com/primandproper/primitives-go/v2/observability/tracing"
-	"github.com/primandproper/primitives-go/v2/tenancy"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -39,35 +30,36 @@ import (
 const (
 	o11yName = "auth_interceptor"
 
-	authHeaderName = "Authorization"
-	tokenPrefix    = "Bearer "
-
 	// runModeEnvVarKey is the environment variable describing the current run mode (development,
 	// testing, or production). Kept as a literal here to avoid importing internal/config.
 	runModeEnvVarKey = "DINNER_DONE_BETTER_META_RUN_MODE"
+
+	// authorizationHeader is where a bearer token travels, as gRPC metadata.
+	authorizationHeader = "authorization"
 )
 
-type AuthInterceptor struct {
-	tracer                      tracing.Tracer
-	logger                      logging.Logger
-	directory                   platformidentity.Store
-	db                          database.Client
-	sessions                    *identitybuild.SessionBuilder
-	methodPermissions           map[string][]authorization.Permission
-	oauth2Server                *oauth2server.Server
-	tokenIssuer                 tokens.Issuer
-	signIns                     SignInChecker
-	oauth2Resource              string
-	unauthenticatedRoutes       []string
-	optionalRoutes              []string
-	passwordChangeAllowedRoutes []string
-	methodScopesHat             sync.Mutex
-}
+// errNoIdentity is a principal that carries no directory answer, which every principal
+// platform's extractor resolves does. One that does not came from somewhere this interceptor
+// does not know how to render a session for.
+var errNoIdentity = errors.New("the caller carries no identity to build a session from")
 
-// SignInChecker reads whether the login a platform sign-in token belongs to is still live —
-// signin.Service.CheckSignIn.
-type SignInChecker interface {
-	CheckSignIn(ctx context.Context, scope tenancy.Scope, familyID, tokenID string) error
+// AuthInterceptor resolves who is calling and decides whether they may call the method.
+//
+// Who is calling is platform's: signingrpc.PrincipalExtractor verifies the bearer, checks its
+// login is still live, reads the principal, refuses a user whose status does not admit sign-in,
+// grants service roles only to a token minted through the administrative door, stands an
+// impersonation's operator, falls back to an OAuth2 access token through oauth2server.Verifier,
+// and holds a caller who owes a forced password change at the form. What is left here is what
+// was never platform's: rendering that principal as this application's session, and the method
+// permission table.
+type AuthInterceptor struct {
+	logger                logging.Logger
+	extractor             *signingrpc.PrincipalExtractor
+	requirements          *signingrpc.AuthenticationRequirements
+	sessions              *identitybuild.SessionBuilder
+	methodPermissions     map[string][]authorization.Permission
+	unauthenticatedRoutes []string
+	optionalRoutes        []string
 }
 
 // MethodPermissionsMap is a map of gRPC method full names to the permissions required to call them.
@@ -75,17 +67,11 @@ type SignInChecker interface {
 type MethodPermissionsMap map[string][]authorization.Permission
 
 func ProvideAuthInterceptor(
-	tracerProvider tracing.Provider,
 	logger logging.Logger,
-	directory platformidentity.Store,
-	db database.Client,
+	extractor *signingrpc.PrincipalExtractor,
 	sessionBuilder *identitybuild.SessionBuilder,
-	oauth2Server *oauth2server.Server,
-	oauth2Resource string,
-	tokenIssuer tokens.Issuer,
-	signIns SignInChecker,
 	aggregatedPermissions MethodPermissionsMap,
-) *AuthInterceptor {
+) (*AuthInterceptor, error) {
 	// platform's SignInService: its two sign-in doors, the refresh exchange, and sign-out.
 	// See internal/build/signin for which of its RPCs are exposed at all.
 	unauthenticatedRoutes := slices.Clone(signinbuild.AnonymousMethods())
@@ -106,32 +92,57 @@ func ProvideAuthInterceptor(
 		)
 	}
 
-	return &AuthInterceptor{
-		tracer:            tracing.NewNamedTracer(tracerProvider, o11yName),
-		logger:            logging.NewNamedLogger(logger, o11yName),
-		directory:         directory,
-		db:                db,
-		sessions:          sessionBuilder,
-		oauth2Server:      oauth2Server,
-		oauth2Resource:    oauth2Resource,
-		tokenIssuer:       tokenIssuer,
-		signIns:           signIns,
-		methodPermissions: aggregatedPermissions,
-		// Routes allowed when requires_password_change is true.
-		passwordChangeAllowedRoutes: []string{
-			// A client told to change its password has to be able to learn whose password it
-			// is changing.
-			identitypb.IdentityService_GetPrincipal_FullMethodName,
-			// The change itself.
-			signinpb.SignInService_UpdatePassword_FullMethodName,
-			// And signing out instead, which a person handed somebody else's device needs.
-			signinpb.SignInService_SignOutEverywhere_FullMethodName,
-		},
-		unauthenticatedRoutes: unauthenticatedRoutes,
-		// The signup page answers a visitor and reads a signed-in caller's session when one
-		// is sent: see internal/build/waitlists.
-		optionalRoutes: append(signinbuild.OptionallyAuthenticatedMethods(), waitlistsbuild.PublicMethods()...),
+	// The signup page answers a visitor and reads a signed-in caller's session when one is
+	// sent: see internal/build/waitlists.
+	optionalRoutes := append(signinbuild.OptionallyAuthenticatedMethods(), waitlistsbuild.PublicMethods()...)
+
+	requirements, err := buildRequirements(unauthenticatedRoutes, optionalRoutes, aggregatedPermissions)
+	if err != nil {
+		return nil, err
 	}
+
+	return &AuthInterceptor{
+		logger:                logging.NewNamedLogger(logger, o11yName),
+		extractor:             extractor,
+		requirements:          requirements,
+		sessions:              sessionBuilder,
+		methodPermissions:     aggregatedPermissions,
+		unauthenticatedRoutes: unauthenticatedRoutes,
+		optionalRoutes:        optionalRoutes,
+	}, nil
+}
+
+// buildRequirements declares every method this interceptor knows to the extractor: the public
+// ones as anonymous, the ones that read a session when one is sent as optional, and every method
+// the permission table names as required.
+//
+// The table is what decides a method exists here. A method it does not name is undeclared, and
+// the extractor refuses an undeclared method as PermissionDenied before it reads a credential —
+// which is the answer this interceptor always gave one, for the same reason: a method nobody
+// declared permissions for is a method nobody decided was safe to expose.
+func buildRequirements(anonymous, optional []string, permissions MethodPermissionsMap) (*signingrpc.AuthenticationRequirements, error) {
+	declared := map[string]struct{}{}
+	builder := signingrpc.NewAuthenticationRequirements()
+
+	declare := func(requirement signingrpc.Authentication, methods ...string) {
+		for _, method := range methods {
+			if _, taken := declared[method]; taken {
+				continue
+			}
+
+			declared[method] = struct{}{}
+			builder.Declare(requirement, method)
+		}
+	}
+
+	declare(signingrpc.AuthenticationAnonymous, anonymous...)
+	declare(signingrpc.AuthenticationOptional, optional...)
+
+	for method := range permissions {
+		declare(signingrpc.AuthenticationRequired, method)
+	}
+
+	return builder.Build()
 }
 
 // grpcReflectionEnabled reports whether gRPC reflection should be reachable without authentication.
@@ -145,283 +156,39 @@ func grpcReflectionEnabled() bool {
 	}
 }
 
-// errPasswordChangeRequired refuses a caller who owes a password change, carrying platform's
-// sentinel so the error encoder attaches its client-safe reason — PASSWORD_CHANGE_REQUIRED, the
-// one a client sends them to the form on — whichever door they signed in through.
-func errPasswordChangeRequired() error {
-	return observability.GRPCStatusError(signin.ErrPasswordChangeRequired, codes.FailedPrecondition, "password change required")
-}
-
 func Unauthenticated(msg string) error {
 	return status.Error(codes.Unauthenticated, msg)
 }
 
-func (s *AuthInterceptor) extractSessionContextData(ctx context.Context, metaData metadata.MD) (*sessions.ContextData, error) {
-	ctx, span := s.tracer.StartSpan(ctx)
-	defer span.End()
-
-	logger := s.logger.WithSpan(span)
-
-	authHeader := metaData.Get("authorization")
-	if len(authHeader) == 0 {
-		return nil, errorsgrpc.PrepareAndLogGRPCStatus(status.Error(codes.Unauthenticated, "missing authorization header"), logger, span, codes.Unauthenticated, "missing authorization header")
-	}
-
-	accessToken := strings.TrimPrefix(authHeader[0], tokenPrefix)
-
-	// Try OAuth2 token first. The token is opaque, so this is a store lookup rather than a
-	// signature check — which is what makes a revoked token stop working on the next request
-	// rather than at the end of its lifetime.
-	if token, err := s.oauth2Server.Authenticate(ctx, accessToken); err == nil {
-		if audErr := s.checkAudience(token); audErr != nil {
-			return nil, errorsgrpc.PrepareAndLogGRPCStatus(audErr, logger, span, codes.Unauthenticated, "token audience does not name this resource server")
-		}
-
-		if userID := token.Subject.ID; userID != "" {
-			// The user's current default account, not the one named in the token's claims.
-			//
-			// The authorization server does record which account the authorization was granted
-			// against — see the account_id claim it mints — and pinning to it would be the more
-			// literal reading of a scoped token. It is not what this server can do: an access
-			// token is opaque and long-lived relative to a session, SetDefaultAccount and
-			// ChangeActiveAccount are how a user moves between accounts, and there is no way to
-			// re-mint an OAuth2 access token when they do. Pinning would mean an account switch
-			// silently not applying until the next full authorization.
-			//
-			// So the claim is recorded and not spent. Honoring it needs a way for a client to
-			// ask for a token on a named account and a way to notice when that account is no
-			// longer the one in use — neither of which exists yet.
-			sessionCtxData, sessionErr := s.sessions.BuildSessionContextDataForUser(ctx, userID, "")
-			if sessionErr != nil {
-				return nil, observability.PrepareAndLogError(sessionErr, logger, span, "fetching user info for oauth2 token")
-			}
-
-			return sessionCtxData, nil
-		}
-	}
-
-	// Otherwise the token has to be one platform's sign-in minted. It says which directory it
-	// was issued in, and the claim cannot be added to a token by anybody but the server, which
-	// signs it. It is read by its presence: the directory is named by its owner, and the
-	// global directory this application's is has none, so the claim is present and empty.
-	claims, parseErr := s.tokenIssuer.ParseToken(ctx, accessToken)
-	if parseErr == nil {
-		if userID := claims.Subject(); userID != "" {
-			if issuedIn, ok := claims.GetString(signin.ClaimScope); ok {
-				return s.signInSessionContextData(ctx, claims, userID, issuedIn)
-			}
-		}
-	}
-
-	return nil, Unauthenticated("invalid or expired token")
-}
-
-// signInSessionContextData turns a token platform's sign-in minted into a caller.
+// UnaryServerInterceptor resolves the caller through the extractor, then renders their session
+// and checks the method's permissions.
 //
-// The token names a login — its sid is the refresh token family — and the login is read on
-// every request through signin.Service.CheckSignIn, so a sign-out, an ended sign-in or a
-// detected refresh-token reuse stops the access token on its next request rather than when it
-// expires. The read is on the write pool, for the reason CheckSignIn gives: a refresh's
-// successor is presented at once, and a lagging replica would refuse it.
-//
-// So the checks are the signature, which ParseToken has already made; the directory, which
-// has to be this application's; the login, which has to be named, because a token that names
-// none is not one platform issued; that the login is still live; and, on an impersonation,
-// that the operator still stands.
-func (s *AuthInterceptor) signInSessionContextData(
-	ctx context.Context,
-	claims tokens.Claims,
-	userID, issuedIn string,
-) (*sessions.ContextData, error) {
-	ctx, span := s.tracer.StartSpan(ctx)
-	defer span.End()
-
-	logger := s.logger.WithSpan(span)
-
-	if issuedIn != tenancy.Global().Owner() {
-		return nil, Unauthenticated("token was issued in another directory")
-	}
-
-	familyID, _ := claims.GetString(signin.ClaimFamilyID)
-	if familyID == "" {
-		return nil, Unauthenticated("token names no login")
-	}
-
-	// The login has to still be live, read on every request, so a sign-out, an ended sign-in
-	// or a detected reuse stops this access token at once rather than when it expires — the
-	// same promise a token this application mints keeps through its session row.
-	if s.signIns != nil {
-		if err := s.signIns.CheckSignIn(ctx, tenancy.Global(), familyID, claims.JTI()); err != nil {
-			logger.WithValue("signin.family_id", familyID).Info("refusing a token whose sign-in has ended")
-			return nil, Unauthenticated("sign-in has ended")
-		}
-	}
-
-	accountID, _ := claims.GetString(signin.ClaimAccountID)
-
-	sessionCtxData, err := s.sessions.BuildSessionContextDataForUser(ctx, userID, accountID)
-	if err != nil {
-		return nil, observability.PrepareAndLogError(err, logger, span, "fetching user info from sign-in token")
-	}
-
-	// Which login is asking, so the doors that act on "this one" or "every other one" can tell.
-	sessionCtxData.SignInFamilyID = familyID
-
-	if err = s.applyImpersonator(ctx, claims, sessionCtxData); err != nil {
-		return nil, err
-	}
-
-	return sessionCtxData, nil
-}
-
-// applyImpersonator puts the operator acting through an impersonation token on the session, and
-// leaves every other token's session as it is.
-//
-// The request stays the subject's: their identity, their account, their memberships, their
-// rows. What the token adds is who is really at the keyboard — signin.ClaimActor, which signin
-// stamps on an impersonation and strips from everything else, so a claims builder can neither
-// forge nor drop it — and the session carries it so that the audit log records the operator
-// beside the subject.
-//
-// It also carries the operator's service-level grants in place of the subject's, which is this
-// application's answer to the question platform leaves to it. An operator acting in somebody's
-// account is still an operator — verifying that account's audit chain, say, is operator work —
-// and a customer's service role grants nothing an operator lacks. What the subject's account
-// lets them do is unchanged: that is the subject's membership, read from the subject's
-// principal.
-//
-// The operator is read again on every request, in the scope the token says they are in, for
-// platform's extractor's reason: suspending an operator mid-impersonation has to stop them on
-// their next request, not when the token lapses.
-func (s *AuthInterceptor) applyImpersonator(ctx context.Context, claims tokens.Claims, session *sessions.ContextData) error {
-	actorID, _ := claims.GetString(signin.ClaimActor)
-	if actorID == "" || actorID == session.GetUserID() {
-		return nil
-	}
-
-	actorScope, present := claims.GetString(signin.ClaimActorScope)
-	if !present {
-		return Unauthenticated("token names an operator and no directory for them")
-	}
-
-	// This application has one directory, operators and customers alike.
-	if actorScope != tenancy.Global().Owner() {
-		return Unauthenticated("token names an operator in another directory")
-	}
-
-	operator, err := s.sessions.BuildSessionContextDataForUser(ctx, actorID, "")
-	if err != nil {
-		return observability.PrepareError(err, nil, "resolving an impersonation's operator")
-	}
-
-	session.ImpersonatorID = actorID
-	session.Requester.ServicePermissions = operator.Requester.ServicePermissions
-
-	return nil
-}
-
+// A public method never reaches the extractor: it reads no credential, so there is nothing to
+// resolve, and a server built without one — a test's — can still serve it.
 func (s *AuthInterceptor) UnaryServerInterceptor() grpc.UnaryServerInterceptor {
-	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
-		logger := s.logger.WithValue("grpc.method", info.FullMethod)
+	var resolve grpc.UnaryServerInterceptor
+	if s.extractor != nil {
+		resolve = s.extractor.UnaryServerInterceptor(s.requirements)
+	}
 
+	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 		if slices.Contains(s.unauthenticatedRoutes, info.FullMethod) {
-			logger.Info("skipping authentication for method")
 			return handler(ctx, req)
 		}
 
-		md, ok := metadata.FromIncomingContext(ctx)
-
-		if slices.Contains(s.optionalRoutes, info.FullMethod) {
-			return s.optionallyAuthenticated(ctx, md, req, handler)
+		if resolve == nil {
+			return nil, Unauthenticated("no caller can be resolved")
 		}
 
-		if !ok {
-			return nil, Unauthenticated("missing metadata")
-		}
-
-		authHeader := md.Get(authHeaderName)
-		if len(authHeader) == 0 {
-			return nil, status.Error(codes.Unauthenticated, "missing authorization header")
-		}
-
-		sessionContextData, err := s.extractSessionContextData(ctx, md)
-		if err != nil {
-			return nil, sessionFailure(err)
-		}
-
-		proceed := true
-		permissionEvaluation := map[string]bool{}
-
-		s.methodScopesHat.Lock()
-		if requiredPermissions, methodHasDefinedScopes := s.methodPermissions[info.FullMethod]; methodHasDefinedScopes {
-			for _, scope := range requiredPermissions {
-				hasPerm := sessionContextData.ServiceRolePermissionChecker().HasPermission(scope) || sessionContextData.AccountRolePermissionsChecker().HasPermission(scope)
-				permissionEvaluation[string(scope)] = hasPerm
-
-				if !hasPerm {
-					proceed = false
-				}
+		return resolve(ctx, req, info, func(ctx context.Context, req any) (any, error) {
+			ctx, err := s.authorize(ctx, info.FullMethod)
+			if err != nil {
+				return nil, err
 			}
-		} else {
-			logger.Info(fmt.Sprintf("missing required permissions for method %q", info.FullMethod))
-			proceed = false
-		}
-		s.methodScopesHat.Unlock()
 
-		if !proceed {
-			return nil, status.Error(codes.PermissionDenied, "permission denied")
-		}
-
-		requiresChange, pcErr := s.userRequiresPasswordChange(ctx, sessionContextData.GetUserID())
-		if pcErr != nil {
-			return nil, status.Error(codes.Internal, "checking password change requirement")
-		}
-		if requiresChange && !slices.Contains(s.passwordChangeAllowedRoutes, info.FullMethod) {
-			return nil, errPasswordChangeRequired()
-		}
-
-		ctx = sessions.AttachToContext(ctx, sessionContextData)
-
-		return handler(ctx, req)
+			return handler(ctx, req)
+		})
 	}
-}
-
-// SessionFromAuthorization builds the caller an Authorization header names, the way the gRPC
-// interceptors do for a request's metadata.
-//
-// It is the HTTP routes' way in. The platform surfaces this server mounts on its router —
-// privacy requests, the operations that fulfill them, the object read — resolve their caller
-// from the session context the same as every gRPC surface does, and a second token parser for
-// HTTP would be a second place for the two protocols to disagree about who somebody is.
-func (s *AuthInterceptor) SessionFromAuthorization(ctx context.Context, header string) (*sessions.ContextData, error) {
-	return s.extractSessionContextData(ctx, metadata.Pairs(authHeaderName, header))
-}
-
-// RequiresPasswordChange reports whether userID has been told to change their password, which
-// the gRPC interceptor answers by refusing everything but the change itself. It is exported so
-// the HTTP routes can hold a caller to the same rule.
-func (s *AuthInterceptor) RequiresPasswordChange(ctx context.Context, userID string) (bool, error) {
-	return s.userRequiresPasswordChange(ctx, userID)
-}
-
-// sessionFailure is the status a caller is answered with when their session could not be built.
-//
-// A status the extraction already chose (a genuine Unauthenticated, say) is propagated rather
-// than masked, because masking every failure as Internal breaks a client's token-refresh retry.
-// A user whose account status does not admit sign-in — banned, terminated — is a caller the
-// directory refuses rather than a server fault, and is answered PermissionDenied: the token is
-// genuine, so Unauthenticated would send the client to refresh a token that works. Anything
-// else is Internal.
-func sessionFailure(err error) error {
-	if _, isStatusErr := status.FromError(err); isStatusErr {
-		return err
-	}
-
-	if errors.Is(err, platformidentity.ErrSignInNotAdmitted) {
-		return status.Error(codes.PermissionDenied, "this account may not sign in")
-	}
-
-	return status.Error(codes.Internal, "building session context data for user")
 }
 
 // serverStreamWithContext wraps grpc.ServerStream to inject a modified context.
@@ -434,90 +201,175 @@ func (s *serverStreamWithContext) Context() context.Context {
 	return s.ctx
 }
 
-// StreamServerInterceptor returns an interceptor that authenticates and authorizes streaming RPCs.
-// Without this, streaming RPCs (e.g. MediaRegistryService.UploadObject) bypass auth and session context is never set.
+// StreamServerInterceptor is UnaryServerInterceptor for streaming RPCs. Without it, streaming RPCs
+// (e.g. MediaRegistryService.UploadObject) bypass auth and session context is never set.
 func (s *AuthInterceptor) StreamServerInterceptor() grpc.StreamServerInterceptor {
-	return func(srv any, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
-		logger := s.logger.WithValue("grpc.method", info.FullMethod)
+	var resolve grpc.StreamServerInterceptor
+	if s.extractor != nil {
+		resolve = s.extractor.StreamServerInterceptor(s.requirements)
+	}
 
+	return func(srv any, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 		if slices.Contains(s.unauthenticatedRoutes, info.FullMethod) {
-			logger.Info("skipping authentication for streaming method")
 			return handler(srv, ss)
 		}
 
-		md, ok := metadata.FromIncomingContext(ss.Context())
-		if !ok {
-			return Unauthenticated("missing metadata")
+		if resolve == nil {
+			return Unauthenticated("no caller can be resolved")
 		}
 
-		authHeader := md.Get(authHeaderName)
-		if len(authHeader) == 0 {
-			return status.Error(codes.Unauthenticated, "missing authorization header")
-		}
-
-		sessionContextData, err := s.extractSessionContextData(ss.Context(), md)
-		if err != nil {
-			return sessionFailure(err)
-		}
-
-		proceed := true
-		s.methodScopesHat.Lock()
-		if requiredPermissions, methodHasDefinedScopes := s.methodPermissions[info.FullMethod]; methodHasDefinedScopes {
-			for _, scope := range requiredPermissions {
-				hasPerm := sessionContextData.ServiceRolePermissionChecker().HasPermission(scope) ||
-					sessionContextData.AccountRolePermissionsChecker().HasPermission(scope)
-				if !hasPerm {
-					proceed = false
-					break
-				}
+		return resolve(srv, ss, info, func(srv any, ss grpc.ServerStream) error {
+			ctx, err := s.authorize(ss.Context(), info.FullMethod)
+			if err != nil {
+				return err
 			}
-		} else {
-			logger.Info(fmt.Sprintf("missing required permissions for streaming method %q", info.FullMethod))
-			proceed = false
-		}
-		s.methodScopesHat.Unlock()
 
-		if !proceed {
-			return status.Error(codes.PermissionDenied, "permission denied")
-		}
-
-		requiresChange, pcErr := s.userRequiresPasswordChange(ss.Context(), sessionContextData.GetUserID())
-		if pcErr != nil {
-			return status.Error(codes.Internal, "checking password change requirement")
-		}
-		if requiresChange && !slices.Contains(s.passwordChangeAllowedRoutes, info.FullMethod) {
-			return errPasswordChangeRequired()
-		}
-
-		newCtx := sessions.AttachToContext(ss.Context(), sessionContextData)
-		wrappedStream := &serverStreamWithContext{ServerStream: ss, ctx: newCtx}
-
-		return handler(srv, wrappedStream)
+			return handler(srv, &serverStreamWithContext{ServerStream: ss, ctx: ctx})
+		})
 	}
 }
 
-// optionallyAuthenticated serves a method that answers anonymous and signed-in callers alike.
+// authorize renders the caller the extractor put on ctx as this application's session, checks
+// the method's permissions, and attaches the session.
 //
-// A call with no token is anonymous and goes straight through. A call with one is held to it:
-// a token that no longer works is refused as Unauthenticated, exactly as on any other method,
-// rather than quietly answered as though nobody had asked. The difference matters to
-// GetAuthStatus — a client whose access token has expired has to be told so, so that it
-// refreshes, and not told that it is signed out — and to the waitlist signup page, where a
-// signed-in caller's join is theirs and an expired token must not quietly make it a visitor's.
+// The extractor has already refused a required method's anonymous caller, so a context with
+// nobody on it here is an optional method. A visitor goes on as one. A caller who sent a token the
+// extractor could not resolve does not: the extractor reads an optional method's dead token as no
+// token, and this interceptor refuses it as Unauthenticated as it would on any other method. That
+// difference is the point of GetAuthStatus — a client whose access token has expired has to be
+// told so, so that it refreshes, and not told that it is signed out — and of Register, where a
+// signed-in operator's registration must not quietly become a stranger's.
 //
-// No permission is asked for. These methods are public by design; what a caller may do on
-// them is decided by the handler, which reads the session when there is one.
-func (s *AuthInterceptor) optionallyAuthenticated(ctx context.Context, md metadata.MD, req any, handler grpc.UnaryHandler) (any, error) {
-	if len(md.Get(authHeaderName)) == 0 {
-		return handler(ctx, req)
+// No permission is asked on an optional method: they are public by design, and what a caller may
+// do on them is the handler's to decide from the session when there is one.
+func (s *AuthInterceptor) authorize(ctx context.Context, method string) (context.Context, error) {
+	principal, ok := signingrpc.PrincipalFromContext(ctx)
+	if !ok {
+		if slices.Contains(s.optionalRoutes, method) && !carriesCredential(ctx) {
+			return ctx, nil
+		}
+
+		return ctx, Unauthenticated("authentication required")
 	}
 
-	sessionContextData, err := s.extractSessionContextData(ctx, md)
+	session, err := s.sessionFor(ctx, principal)
 	if err != nil {
-		return nil, sessionFailure(err)
+		s.logger.WithValue("grpc.method", method).Error("building session context data", err)
+		return ctx, status.Error(codes.Internal, "building session context data for user")
 	}
 
-	return handler(sessions.AttachToContext(ctx, sessionContextData), req)
+	if !slices.Contains(s.optionalRoutes, method) && !s.permitted(method, session) {
+		return ctx, status.Error(codes.PermissionDenied, "permission denied")
+	}
+
+	return sessions.AttachToContext(ctx, session), nil
+}
+
+// carriesCredential reports whether a gRPC request sent an Authorization header at all.
+func carriesCredential(ctx context.Context) bool {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return false
+	}
+
+	for _, value := range md.Get(authorizationHeader) {
+		if strings.TrimSpace(value) != "" {
+			return true
+		}
+	}
+
+	return false
+}
+
+// permitted reports whether the session holds every permission the method requires, from the
+// service role or the active account's membership. A method the table does not name is refused.
+func (s *AuthInterceptor) permitted(method string, session *sessions.ContextData) bool {
+	required, declared := s.methodPermissions[method]
+	if !declared {
+		s.logger.WithValue("grpc.method", method).Info("missing required permissions for method")
+		return false
+	}
+
+	for _, permission := range required {
+		if !session.ServiceRolePermissionChecker().HasPermission(permission) &&
+			!session.AccountRolePermissionsChecker().HasPermission(permission) {
+			return false
+		}
+	}
+
+	return true
+}
+
+// sessionFor renders a resolved principal as session context.
+//
+// The service roles are the ones the extractor left on the principal, which for a token minted
+// through an ordinary door is none: an operator's grants ride only on a token from the
+// administrative door, so a password typed into the consumer app's login form carries none of
+// them. An impersonation is the subject's session with the operator named beside it, and carries
+// the subject's grants and nothing of the operator's — the operator acts as the subject, and
+// operator work is done with the operator's own token.
+func (s *AuthInterceptor) sessionFor(ctx context.Context, principal callers.Principal) (*sessions.ContextData, error) {
+	carrier, ok := principal.(interface {
+		Identity() *platformidentity.Principal
+	})
+	if !ok {
+		return nil, errNoIdentity
+	}
+
+	session, err := s.sessions.SessionForPrincipal(ctx, carrier.Identity())
+	if err != nil {
+		return nil, err
+	}
+
+	// Which login is asking, so the doors that act on "this one" or "every other one" can tell.
+	// An OAuth2 access token names none.
+	if family, isSignIn := principal.(signingrpc.FamilyIdentifier); isSignIn {
+		session.SignInFamilyID = family.FamilyID()
+	}
+
+	// Who is really at the keyboard, which the audit log records beside the subject.
+	if delegated, isDelegated := principal.(callers.Delegated); isDelegated {
+		session.ImpersonatorID = delegated.ActorID()
+	}
+
+	return session, nil
+}
+
+// HTTPMiddleware resolves the caller of an HTTP request the way the gRPC interceptors do, and
+// attaches their session.
+//
+// It is the HTTP routes' way in. The platform surfaces this server mounts on its router —
+// privacy requests, the operations that fulfill them, the object read — resolve their caller from
+// the session context the same as every gRPC surface does, and a second token parser for HTTP
+// would be a second place for the two protocols to disagree about who somebody is.
+//
+// The extractor's middleware treats every request as optional: a request with no bearer token, or
+// one that names nobody, goes on with no session, and the surfaces that need a caller refuse its
+// absence themselves. It answers a banned user 403 and a directory it cannot read 503, and holds a
+// caller who owes a forced password change with a 403, since no HTTP route is the change.
+func (s *AuthInterceptor) HTTPMiddleware(next http.Handler) http.Handler {
+	attach := http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+		principal, ok := signingrpc.PrincipalFromContext(req.Context())
+		if !ok {
+			next.ServeHTTP(res, req)
+			return
+		}
+
+		session, err := s.sessionFor(req.Context(), principal)
+		if err != nil {
+			s.logger.WithValue("http.path", req.URL.Path).Error("building session context data", err)
+			http.Error(res, "building session context data for user", http.StatusInternalServerError)
+			return
+		}
+
+		next.ServeHTTP(res, req.WithContext(sessions.AttachToContext(req.Context(), session)))
+	})
+
+	if s.extractor == nil {
+		return next
+	}
+
+	return s.extractor.HTTPMiddleware(attach)
 }
 
 // UnauthenticatedRoutes returns the methods this interceptor lets through without a session:
@@ -530,47 +382,8 @@ func (s *AuthInterceptor) UnauthenticatedRoutes() []string {
 	return append(slices.Clone(s.unauthenticatedRoutes), s.optionalRoutes...)
 }
 
-// errWrongAudience is the refusal the store cannot make.
-//
-// Expiry and revocation are already Authenticate's answer, so this is the only condition left
-// for a resource server to check for itself: a token minted for a different resource — the MCP
-// server, say, which shares this database and therefore this store — must not be spendable
-// here. RFC 8707 exists to make that detectable and explicitly leaves the check to whoever is
-// being handed the token.
-var errWrongAudience = errors.New("token audience does not name this resource server")
-
-// checkAudience refuses a token whose audience names somewhere that is not this server.
-//
-// An empty audience is accepted: a client that sends no resource parameter gets a token with
-// none, and refusing those would make every such client unable to call anything. What must not
-// be accepted is an audience that names a different resource.
-//
-// An unset oauth2Resource disables the check rather than failing every request, because a
-// deployment that has not declared its own identifier cannot say whether a token names it.
-func (s *AuthInterceptor) checkAudience(token *oauth2server.AccessToken) error {
-	if s.oauth2Resource == "" || len(token.Audience) == 0 {
-		return nil
-	}
-
-	if !slices.Contains(token.Audience, s.oauth2Resource) {
-		return errWrongAudience
-	}
-
-	return nil
-}
-
-// userRequiresPasswordChange reports whether this user must change their password before
-// they may do anything else.
-//
-// It is a field on the row rather than a method of its own now, so this is a read of the
-// user. The read this replaced was a dedicated query, which is the shape a repository of
-// this application's own could have and a general directory should not: platform answers
-// with the user and lets a caller ask whatever it wanted to know.
-func (s *AuthInterceptor) userRequiresPasswordChange(ctx context.Context, userID string) (bool, error) {
-	user, err := s.directory.GetUser(ctx, s.db.Reader(), tenancy.Global(), userID)
-	if err != nil {
-		return false, err
-	}
-
-	return user.RequiresPasswordChange, nil
+// AnonymousRoutes returns the methods that never read a credential: the doors a caller signs in,
+// signs up, or recovers an account through, and the few that answer anybody.
+func (s *AuthInterceptor) AnonymousRoutes() []string {
+	return slices.Clone(s.unauthenticatedRoutes)
 }

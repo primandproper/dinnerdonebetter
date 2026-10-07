@@ -1,6 +1,8 @@
 package dbcleaner
 
 import (
+	"github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/signindevices"
+
 	"github.com/primandproper/platform-go/v15/authentication/passwordreset"
 	"github.com/primandproper/platform-go/v15/authentication/signin/refreshtokens"
 	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
@@ -21,6 +23,7 @@ func RegisterDBCleaner(i do.Injector) {
 			do.MustInvoke[oauth2server.Store](i),
 			do.MustInvoke[*passwordreset.SQLStore](i),
 			do.MustInvoke[*refreshtokens.SQLStore](i),
+			do.MustInvoke[*signindevices.Repository](i),
 		)
 	})
 }

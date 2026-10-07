@@ -98,8 +98,13 @@ func (f *internalFailure) requireNoInternalText(t *testing.T, err error) {
 	assert.False(t, platformerrors.Is(decoded, f.sentinel), "the sentinel chain is still reconstructable from the status")
 }
 
-func buildTestAuthInterceptor() *interceptors.AuthInterceptor {
-	return interceptors.ProvideAuthInterceptor(nil, loggingnoop.NewLogger(), nil, nil, nil, nil, "", nil, nil, MethodPermissions())
+func buildTestAuthInterceptor(t *testing.T) *interceptors.AuthInterceptor {
+	t.Helper()
+
+	authInterceptor, err := interceptors.ProvideAuthInterceptor(loggingnoop.NewLogger(), nil, nil, MethodPermissions())
+	require.NoError(t, err)
+
+	return authInterceptor
 }
 
 func TestErrorEncodingInterceptor_leaksWithoutStripping(T *testing.T) {
@@ -126,7 +131,7 @@ func TestErrorEncodingInterceptor_leaksWithoutStripping(T *testing.T) {
 func TestBuildUnaryServerInterceptors_stripsTheEncodedChain(T *testing.T) {
 	T.Parallel()
 
-	authInterceptor := buildTestAuthInterceptor()
+	authInterceptor := buildTestAuthInterceptor(T)
 	enforcer, enforcerErr := ProvideAuthorizationEnforcer(MethodPermissionFragments(), MethodPermissionOverrides(), authInterceptor, loggingnoop.NewLogger(), metricsnoop.NewMetricsProvider(), false)
 	require.NoError(T, enforcerErr)
 
@@ -134,7 +139,7 @@ func TestBuildUnaryServerInterceptors_stripsTheEncodedChain(T *testing.T) {
 		return handler(ctx, req)
 	}
 
-	chain := BuildUnaryServerInterceptors(authInterceptor, enforcer, passthrough)
+	chain := BuildUnaryServerInterceptors(passthrough, authInterceptor, enforcer, passthrough)
 
 	// A method any phone may call without a session, so the failure is the handler's and not a
 	// refusal from the interceptors in front of it.
@@ -202,7 +207,7 @@ func TestBuildUnaryServerInterceptors_stripsTheEncodedChain(T *testing.T) {
 func TestBuildStreamServerInterceptors_stripsTheEncodedChain(T *testing.T) {
 	T.Parallel()
 
-	authInterceptor := buildTestAuthInterceptor()
+	authInterceptor := buildTestAuthInterceptor(T)
 	chain := BuildStreamServerInterceptors(authInterceptor)
 
 	public := authInterceptor.UnauthenticatedRoutes()
@@ -234,7 +239,7 @@ func TestBuildStreamServerInterceptors_stripsTheEncodedChain(T *testing.T) {
 func TestServerInterceptors_recoverOnlyInsidePrimitivesServer(T *testing.T) {
 	T.Parallel()
 
-	authInterceptor := buildTestAuthInterceptor()
+	authInterceptor := buildTestAuthInterceptor(T)
 
 	public := authInterceptor.UnauthenticatedRoutes()
 	require.NotEmpty(T, public)
@@ -251,7 +256,7 @@ func TestServerInterceptors_recoverOnlyInsidePrimitivesServer(T *testing.T) {
 
 		chain := append(
 			[]grpc.UnaryServerInterceptor{platformgrpc.RecoveryInterceptor(loggingnoop.NewLogger())},
-			BuildUnaryServerInterceptors(authInterceptor, enforcer, passthrough)...,
+			BuildUnaryServerInterceptors(passthrough, authInterceptor, enforcer, passthrough)...,
 		)
 
 		_, err = chainUnary(chain, &grpc.UnaryServerInfo{FullMethod: public[0]}, func(context.Context, any) (any, error) {

@@ -53,6 +53,12 @@ type Job struct {
 	oauth2Store           oauth2server.Store
 	passwordResetStore    *passwordreset.SQLStore
 	refreshTokenStore     *refreshtokens.SQLStore
+	signInDevices         Sweeper
+}
+
+// Sweeper deletes what can no longer be wanted, and reports how much.
+type Sweeper interface {
+	Sweep(ctx context.Context) (int64, error)
 }
 
 func NewDBCleaner(
@@ -62,6 +68,7 @@ func NewDBCleaner(
 	oauth2Store oauth2server.Store,
 	passwordResetStore *passwordreset.SQLStore,
 	refreshTokenStore *refreshtokens.SQLStore,
+	signInDevices Sweeper,
 ) (*Job, error) {
 	handledRecordsCounter, err := metricsProvider.NewInt64Counter("db_cleaner.handled_records")
 	if err != nil {
@@ -75,6 +82,7 @@ func NewDBCleaner(
 		oauth2Store:           oauth2Store,
 		passwordResetStore:    passwordResetStore,
 		refreshTokenStore:     refreshTokenStore,
+		signInDevices:         signInDevices,
 	}, nil
 }
 
@@ -86,6 +94,7 @@ func (j *Job) Do(ctx context.Context) error {
 		j.sweepOAuth2(ctx),
 		j.sweepPasswordResetTokens(ctx),
 		j.sweepRefreshTokens(ctx),
+		j.sweepSignInDevices(ctx),
 	)
 }
 
@@ -140,6 +149,23 @@ func (j *Job) sweepRefreshTokens(ctx context.Context) error {
 
 	j.recordSwept(ctx, "signin_refresh_tokens", deleted)
 	j.logger.WithValue("swept", deleted).Info("swept purgeable refresh tokens")
+
+	return nil
+}
+
+// sweepSignInDevices deletes the device recorded for every login that could no longer be alive:
+// one whose refresh token, or for a login with none, whose access token, has lapsed. A device is an
+// address and a browser, and keeping it past the login it describes would be keeping it for
+// nothing.
+func (j *Job) sweepSignInDevices(ctx context.Context) error {
+	deleted, err := j.signInDevices.Sweep(ctx)
+	if err != nil {
+		j.logger.Error("sweeping expired sign-in devices", err)
+		return err
+	}
+
+	j.recordSwept(ctx, "sign_in_devices", deleted)
+	j.logger.WithValue("swept", deleted).Info("swept expired sign-in devices")
 
 	return nil
 }

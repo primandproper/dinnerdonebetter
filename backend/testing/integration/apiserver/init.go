@@ -255,7 +255,7 @@ func init() {
 	// accursed, but nevertheless we ball.
 	time.Sleep(1 * time.Second)
 
-	adminClient, err = createClientForUser(ctx, adminUser)
+	adminClient, err = createAdminClient(adminUser)
 	if err != nil {
 		log.Fatal(err)
 	}

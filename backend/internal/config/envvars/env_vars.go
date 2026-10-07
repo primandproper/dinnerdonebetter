@@ -4038,49 +4038,56 @@ const (
 	// `APIServiceConfig.Service.RateLimiting.BurstSize`,
 	// `DBCleanerConfig.Service.RateLimiting.BurstSize`,
 	// `SchedulerConfig.Service.RateLimiting.BurstSize`,
-	// `AsyncMessageHandlerConfig.Service.RateLimiting.BurstSize`.
+	// `AsyncMessageHandlerConfig.Service.RateLimiting.BurstSize`,
+	// `MCPServiceConfig.RateLimiting.BurstSize`.
 	RateLimitingBurstSizeEnvVarKey = "DINNER_DONE_BETTER_RATE_LIMITING_BURST_SIZE"
 
 	// RateLimitingMaxLimitersEnvVarKey is the environment variable name to set to override
 	// `APIServiceConfig.Service.RateLimiting.MaxLimiters`,
 	// `DBCleanerConfig.Service.RateLimiting.MaxLimiters`,
 	// `SchedulerConfig.Service.RateLimiting.MaxLimiters`,
-	// `AsyncMessageHandlerConfig.Service.RateLimiting.MaxLimiters`.
+	// `AsyncMessageHandlerConfig.Service.RateLimiting.MaxLimiters`,
+	// `MCPServiceConfig.RateLimiting.MaxLimiters`.
 	RateLimitingMaxLimitersEnvVarKey = "DINNER_DONE_BETTER_RATE_LIMITING_MAX_LIMITERS"
 
 	// RateLimitingProviderEnvVarKey is the environment variable name to set to override
 	// `APIServiceConfig.Service.RateLimiting.Provider`,
 	// `DBCleanerConfig.Service.RateLimiting.Provider`,
 	// `SchedulerConfig.Service.RateLimiting.Provider`,
-	// `AsyncMessageHandlerConfig.Service.RateLimiting.Provider`.
+	// `AsyncMessageHandlerConfig.Service.RateLimiting.Provider`,
+	// `MCPServiceConfig.RateLimiting.Provider`.
 	RateLimitingProviderEnvVarKey = "DINNER_DONE_BETTER_RATE_LIMITING_PROVIDER"
 
 	// RateLimitingRedisAddressesEnvVarKey is the environment variable name to set to override
 	// `APIServiceConfig.Service.RateLimiting.Redis.Addresses`,
 	// `DBCleanerConfig.Service.RateLimiting.Redis.Addresses`,
 	// `SchedulerConfig.Service.RateLimiting.Redis.Addresses`,
-	// `AsyncMessageHandlerConfig.Service.RateLimiting.Redis.Addresses`.
+	// `AsyncMessageHandlerConfig.Service.RateLimiting.Redis.Addresses`,
+	// `MCPServiceConfig.RateLimiting.Redis.Addresses`.
 	RateLimitingRedisAddressesEnvVarKey = "DINNER_DONE_BETTER_RATE_LIMITING_REDIS_ADDRESSES"
 
 	// RateLimitingRedisPasswordEnvVarKey is the environment variable name to set to override
 	// `APIServiceConfig.Service.RateLimiting.Redis.Password`,
 	// `DBCleanerConfig.Service.RateLimiting.Redis.Password`,
 	// `SchedulerConfig.Service.RateLimiting.Redis.Password`,
-	// `AsyncMessageHandlerConfig.Service.RateLimiting.Redis.Password`.
+	// `AsyncMessageHandlerConfig.Service.RateLimiting.Redis.Password`,
+	// `MCPServiceConfig.RateLimiting.Redis.Password`.
 	RateLimitingRedisPasswordEnvVarKey = "DINNER_DONE_BETTER_RATE_LIMITING_REDIS_PASSWORD"
 
 	// RateLimitingRedisUsernameEnvVarKey is the environment variable name to set to override
 	// `APIServiceConfig.Service.RateLimiting.Redis.Username`,
 	// `DBCleanerConfig.Service.RateLimiting.Redis.Username`,
 	// `SchedulerConfig.Service.RateLimiting.Redis.Username`,
-	// `AsyncMessageHandlerConfig.Service.RateLimiting.Redis.Username`.
+	// `AsyncMessageHandlerConfig.Service.RateLimiting.Redis.Username`,
+	// `MCPServiceConfig.RateLimiting.Redis.Username`.
 	RateLimitingRedisUsernameEnvVarKey = "DINNER_DONE_BETTER_RATE_LIMITING_REDIS_USERNAME"
 
 	// RateLimitingRequestsPerSecEnvVarKey is the environment variable name to set to override
 	// `APIServiceConfig.Service.RateLimiting.RequestsPerSec`,
 	// `DBCleanerConfig.Service.RateLimiting.RequestsPerSec`,
 	// `SchedulerConfig.Service.RateLimiting.RequestsPerSec`,
-	// `AsyncMessageHandlerConfig.Service.RateLimiting.RequestsPerSec`.
+	// `AsyncMessageHandlerConfig.Service.RateLimiting.RequestsPerSec`,
+	// `MCPServiceConfig.RateLimiting.RequestsPerSec`.
 	RateLimitingRequestsPerSecEnvVarKey = "DINNER_DONE_BETTER_RATE_LIMITING_REQUESTS_PER_SEC"
 
 	// RecipientEmailAddressEnvVarKey is the environment variable name to set to override
@@ -4757,6 +4764,34 @@ const (
 	// ServiceAuthOauth2SweepJobTimeoutEnvVarKey is the environment variable name to set to
 	// override `APIServiceConfig.Services.Auth.OAuth2.SweepJob.Timeout`.
 	ServiceAuthOauth2SweepJobTimeoutEnvVarKey = "DINNER_DONE_BETTER_SERVICE_AUTH_OAUTH2_SWEEP_JOB_TIMEOUT"
+
+	// ServiceAuthRateLimitingBurstSizeEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Services.Auth.RateLimiting.BurstSize`.
+	ServiceAuthRateLimitingBurstSizeEnvVarKey = "DINNER_DONE_BETTER_SERVICE_AUTH_RATE_LIMITING_BURST_SIZE"
+
+	// ServiceAuthRateLimitingMaxLimitersEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Services.Auth.RateLimiting.MaxLimiters`.
+	ServiceAuthRateLimitingMaxLimitersEnvVarKey = "DINNER_DONE_BETTER_SERVICE_AUTH_RATE_LIMITING_MAX_LIMITERS"
+
+	// ServiceAuthRateLimitingProviderEnvVarKey is the environment variable name to set to override
+	// `APIServiceConfig.Services.Auth.RateLimiting.Provider`.
+	ServiceAuthRateLimitingProviderEnvVarKey = "DINNER_DONE_BETTER_SERVICE_AUTH_RATE_LIMITING_PROVIDER"
+
+	// ServiceAuthRateLimitingRedisAddressesEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Services.Auth.RateLimiting.Redis.Addresses`.
+	ServiceAuthRateLimitingRedisAddressesEnvVarKey = "DINNER_DONE_BETTER_SERVICE_AUTH_RATE_LIMITING_REDIS_ADDRESSES"
+
+	// ServiceAuthRateLimitingRedisPasswordEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Services.Auth.RateLimiting.Redis.Password`.
+	ServiceAuthRateLimitingRedisPasswordEnvVarKey = "DINNER_DONE_BETTER_SERVICE_AUTH_RATE_LIMITING_REDIS_PASSWORD"
+
+	// ServiceAuthRateLimitingRedisUsernameEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Services.Auth.RateLimiting.Redis.Username`.
+	ServiceAuthRateLimitingRedisUsernameEnvVarKey = "DINNER_DONE_BETTER_SERVICE_AUTH_RATE_LIMITING_REDIS_USERNAME"
+
+	// ServiceAuthRateLimitingRequestsPerSecEnvVarKey is the environment variable name to set to
+	// override `APIServiceConfig.Services.Auth.RateLimiting.RequestsPerSec`.
+	ServiceAuthRateLimitingRequestsPerSecEnvVarKey = "DINNER_DONE_BETTER_SERVICE_AUTH_RATE_LIMITING_REQUESTS_PER_SEC"
 
 	// ServiceAuthTokensAudienceEnvVarKey is the environment variable name to set to override
 	// `APIServiceConfig.Services.Auth.Tokens.Config.Audience`.

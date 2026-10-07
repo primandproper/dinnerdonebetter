@@ -131,7 +131,7 @@ struct SessionsView: View {
 
         // Details
         VStack(alignment: .leading, spacing: 4) {
-          if let address = session.attributes["client_ip"], !address.isEmpty {
+          if let address = session.attributes[Self.ipAddressAttribute], !address.isEmpty {
             detailRow(icon: "network", text: address)
           }
           if session.hasSignedInAt {
@@ -170,10 +170,19 @@ struct SessionsView: View {
     }
   }
 
-  /// The device a login is on, as the server's sign-in annotator recorded it. Empty when the
-  /// server records nothing, which this one does not yet.
+  /// The attributes the server's sign-in annotator answers each login with. See
+  /// internal/authentication/devices in the backend.
+  static let ipAddressAttribute = "ip_address"
+  static let userAgentAttribute = "user_agent"
+  static let deviceNameAttribute = "device_name"
+
+  /// The device a login is on, as the server recorded it: the name a client gave its device, or
+  /// the user agent it signed in with. Empty for a login nothing was recorded for.
   private func deviceName(_ session: SignIn) -> String {
-    session.attributes["device_name"] ?? session.attributes["user_agent"] ?? ""
+    if let name = session.attributes[Self.deviceNameAttribute], !name.isEmpty {
+      return name
+    }
+    return session.attributes[Self.userAgentAttribute] ?? ""
   }
 
   private func iconForDevice(_ deviceName: String) -> String {

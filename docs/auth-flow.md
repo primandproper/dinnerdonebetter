@@ -28,11 +28,16 @@ What this application still decides, and where:
   gate), the `service_user` role, an issued but unproven TOTP secret, ownership of their account,
   and both agreements, refused without them.
 - **What a password must be** — `authentication.PasswordPolicy`, applied by every door that
-  writes one: registration, change, and reset.
+  writes one: registration, change, and reset. `authentication.AccountPasswordPolicy` adds the
+  rule that needs the account: a change may not keep the password it is changing.
 - **When a second factor is asked for** — `signin.SecondFactorWhenEnrolled`: only once somebody
   has proven one. The administrative door demands one whatever the policy says.
 - **Who may impersonate** — `authentication.NewImpersonationPolicy`: an operator whose service
   roles grant `imitate.user`.
+- **Who is an operator** — `authorization.AdministrativeServiceRoleNames` (`service_admin` and
+  `service_data_admin`), admitted only through the administrative door. A token from any other
+  door keeps `authorization.OrdinaryServiceRoles`: the person (`service_user`), never the
+  operator.
 - **What gets recorded** — nothing this application decides any more. The sign-in service is
   built with platform's `signin.RecordingHooks`, which write every door's audit entry and event
   (`signin.user.authenticated`, `signin.password.updated`, the second-factor and revocation
@@ -71,7 +76,7 @@ when it expires.
 Opaque and looked up rather than signed and verified locally: that is what makes a revoked
 token stop working on the next request rather than at the end of its lifetime.
 
-**Implementation**: [`internal/services/auth/handlers/authentication/oauth2.go`](../backend/internal/services/auth/handlers/authentication/oauth2.go), [`oauth2_authenticator.go`](../backend/internal/services/auth/handlers/authentication/oauth2_authenticator.go)
+**Implementation**: [`internal/services/auth/handlers/authentication/oauth2.go`](../backend/internal/services/auth/handlers/authentication/oauth2.go), [`oauth2_session_resolver.go`](../backend/internal/services/auth/handlers/authentication/oauth2_session_resolver.go)
 
 ## Signing up
 
@@ -144,10 +149,12 @@ which returns a fifteen-minute token with no refresh token, minted by
 - **Who may**: an operator holding `imitate.user` (the permission table refuses everybody else,
   and `NewImpersonationPolicy` refuses again inside the sign-in service). Somebody already acting
   through an impersonation may not start another.
-- **What the token is**: the subject's — their identity, account, memberships and rows — with the
-  operator named on it (`actor_id`). The interceptor carries the operator on the session
-  (`ContextData.ImpersonatorID`) and gives the request the operator's service-level grants in
-  place of the subject's, because an operator acting in an account is still doing operator work.
+- **What the token is**: the subject's — their identity, account, memberships, rows and grants —
+  with the operator named on it (`actor_id`). The interceptor carries the operator on the session
+  (`ContextData.ImpersonatorID`) and nothing of the operator's grants: an impersonation is not an
+  administrative login, so it carries no service role, and operator work is done with the
+  operator's own token. Verifying an account's audit chain is an account admin's grant for this
+  reason, so impersonating the owner can still ask.
 - **What is recorded**: the impersonation itself, as the subject's `signin.user.authenticated`
   entry and event with the operator named on both — the entry's actor is the subject with the
   operator as its `Impersonator`, the event's `actorID` is the operator — written by platform's
@@ -239,45 +246,60 @@ The iOS app has not been moved off the deleted AuthService, and is fixed separat
 Every gRPC request goes through `AuthInterceptor`
 ([`authn_interceptor.go`](../backend/internal/services/auth/grpc/interceptors/authn_interceptor.go)):
 
+Who is calling is platform's: the interceptor runs `signingrpc.PrincipalExtractor`'s own
+interceptor and only renders what it resolved.
+
 1. **Unauthenticated routes** go straight through: `SignInService`'s sign-in, refresh, account
    switch and sign-out doors and those whose authority is a mailed link (see
    `internal/build/signin`); every `PasswordResetService` RPC; `PasskeysService.BeginLogin`
-   and `FinishLogin`; and the anonymous analytics event.
+   and `FinishLogin`; and the anonymous analytics event. The six that test a credential or send
+   mail are throttled first — see [Rate limiting](#rate-limiting).
 2. **Optionally authenticated routes** (`SignInService.GetAuthStatus` and `Register`, the waitlist
-   signup page)
-   answer an anonymous caller, and hold a caller who sends a token to it.
-3. **Resolve the caller** from `Authorization: Bearer <token>`:
-   - **OAuth2 first**: a store lookup by digest. The token's audience is checked against this
-     server's resource identifier (RFC 8707); one naming somewhere else — the MCP server, which
-     shares this store — is refused.
-   - **Otherwise a sign-in token**: its signature, its directory (`scope` has to be this one), its
-     login (`sid` has to name one, and that login has to be live), and on an impersonation, that
-     the operator still stands.
-4. **Build the session**: `SessionBuilder.BuildSessionContextDataForUser(user, account)`, which
-   refuses a user whose standing does not admit sign-in (`PermissionDenied`, not
-   `Unauthenticated`: the token is genuine).
-5. **Permissions**: the method's required permissions, from the aggregated table in
+   signup page) answer an anonymous caller, and hold a caller who sends a token to it: a token
+   that no longer works is `Unauthenticated`, not a visitor.
+3. **Resolve the caller** from `Authorization: Bearer <token>`, through the extractor:
+   - **A sign-in token first**: its signature, its login (`sid` has to name one, and that login has
+     to be live), the principal (refusing a user whose standing does not admit sign-in with
+     `PermissionDenied`: the token is genuine), and on an impersonation, that the operator still
+     stands. Service roles ride only on a token whose `administrative` claim is set — the
+     administrative door's.
+   - **Otherwise an OAuth2 access token**, through `oauth2server.Verifier`: a store lookup by
+     digest, and an audience that has to name this server (RFC 8707). A token naming no resource
+     is refused as well as one naming somewhere else — the MCP server shares this store. Its
+     subject keeps the person's service roles and none of the operator's.
+4. **Forced password change**: the extractor's gate holds a user told to change their password
+   at platform's `PasswordChangeMethods` — reading who they are, changing it, resetting it, and
+   ending their logins.
+5. **Build the session**: `SessionBuilder.SessionForPrincipal`, which turns the resolved
+   principal's role names into permissions. It reads nothing; the extractor already did.
+6. **Permissions**: the method's required permissions, from the aggregated table in
    `internal/build/services/api/grpc/extras.go`. A method no table names is denied.
-6. **Forced password change**: a user told to change their password may only read who they are
-   (`IdentityService.GetPrincipal`, `SignInService.GetAuthStatus`), change it
-   (`SignInService.UpdatePassword`), or `SignOutEverywhere`.
+
+The HTTP routes resolve their caller the same way, through `AuthInterceptor.HTTPMiddleware`.
 
 ## OAuth2 Flow (for gRPC clients)
 
 1. The client has a sign-in token.
 2. It calls `POST /authorize?client_id=X&state=Y&code_challenge=…&code_challenge_method=S256&…`
    with `Authorization: Bearer <token>`.
-3. The `SubjectAuthenticator` resolves the user, and the account the authorization is granted
-   against.
+3. The session resolver (`NewSessionResolver`, wrapped in `authserver.NewGuardedResolver`)
+   resolves the user and their account through the same extractor every API request is resolved
+   by. A signed-out session, a banned user, and an impersonation token are sent to the login
+   form instead, which does not take a token. The login form itself is
+   `authserver.NewAuthenticator`, which signs in through `signin.Service.Authenticate`. Both
+   check `oauth2clients.Client.Admits` against the registration.
 4. The authorization server redirects to `redirect_uri?code=Z`, echoing `state` and the RFC 9207
    `iss` parameter.
 5. The client reads `code` off the `Location` header without following it, and calls
    `POST /token` with `code`, `code_verifier`, `client_id`, `client_secret`.
 6. It uses the OAuth2 access token for gRPC.
 
-**POST, not GET, at step 2.** A `GET /authorize` renders the login form — the answer for a
-browser arriving without a session — and only a POST runs the authenticator that reads the
-bearer token.
+**Name the resource.** Both legs carry `resource=<this server's identifier>` (RFC 8707). The API
+server refuses an access token with no audience.
+
+**GET or POST at step 2.** The session resolver is consulted on both, so a request carrying a live
+sign-in gets a code either way. A request carrying none gets the login form on GET, and is signed
+in from the form's fields on POST.
 
 **Endpoints** (API server): `GET /.well-known/oauth-authorization-server`, `GET|POST /authorize`,
 `POST /token` (`authorization_code` and `refresh_token` only), `POST /revoke` (RFC 7009).
@@ -296,11 +318,11 @@ credential stored as a digest; no password, client-credentials or implicit grant
 minted by the MCP server is in the table this server reads, and what stops it being spent here is
 that its audience names somewhere else.
 
-|                     | API server                         | MCP server                                          |
-|---------------------|------------------------------------|-----------------------------------------------------|
-| Who the subject is  | a sign-in token                    | a username, argon2 password, and TOTP — admins only |
-| Client registration | administered, via the gRPC surface | RFC 7591 dynamic, open, 90-day expiry               |
-| `POST /register`    | not served                         | served                                              |
+|                     | API server                         | MCP server                                                                                 |
+|---------------------|------------------------------------|--------------------------------------------------------------------------------------------|
+| Who the subject is  | a sign-in token, or the login form | `signin.Service.AdminAuthenticate` — `service_admin` only, a proven second factor required |
+| Client registration | administered, via the gRPC surface | RFC 7591 dynamic, open, 90-day expiry                                                      |
+| `POST /register`    | not served                         | served                                                                                     |
 
 The MCP side is documented in [`backend/docs/mcp-usage-guide.md`](../backend/docs/mcp-usage-guide.md).
 
@@ -317,12 +339,43 @@ After auth, handlers receive `sessions.ContextData` in the request context:
 Platform's surfaces read the same session through `sessions.PrincipalFromContext`, whose
 principal reports the impersonator as `callers.Delegated`.
 
+## Where you're signed in
+
+Every token issued for a login records the device it was issued to — the address, the user agent,
+and a device name the client gave — on the token's own transaction, in `sign_in_devices`, keyed by
+the login. `ListSignIns` and `ListSignInsForUser` answer each login with it as `attributes`
+(`ip_address`, `user_agent`, `device_name`). The web apps forward the browser they are serving in
+`x-client-address` and `x-client-user-agent`; the iOS app names itself in `x-device-name`.
+An impersonation records nothing: the request behind it is the operator's. What a client forwards
+is display and decides nothing. The rows are exported with the rest of a person's data, erased with
+them, and swept once the login could no longer be alive.
+
+**Implementation**: [`internal/authentication/devices`](../backend/internal/authentication/devices).
+
+## Rate limiting
+
+The doors a caller reaches with no credential and that test one or send mail —
+`LoginForToken`, `AdminLoginForToken`, `Register`, `RequestHandleReminder`,
+`RequestVerificationEmailByAddress`, `PasswordResetService.RequestPasswordReset`, and the OAuth2
+login form's `POST /authorize`, on both the API and the MCP server — are throttled per address and per door, ahead of authentication,
+by `primitives-go/ratelimiting`. The address is the last `X-Forwarded-For` entry, which Caddy
+writes and a client cannot, or the connection's when there is none; nothing a client writes is a
+key. Caddy sees the caller's own address only because its load balancer Service is
+`externalTrafficPolicy: Local`; under the default, a node rewrites the source to its own address
+and every caller would share that node's budget. The web apps reach the API through Caddy too, so their sign-ins share the cluster's egress
+address and its budget. A refusal is `RESOURCE_EXHAUSTED` (429 over HTTP) with when to retry.
+Configured under `services.auth.rateLimiting` (the MCP server's `rateLimiting` is rendered from
+the same block); the limiter is in memory, so each replica holds a
+budget of its own.
+
+**Implementation**: [`ratelimit.go`](../backend/internal/services/auth/grpc/interceptors/ratelimit.go).
+
 ## Sweeping
 
 `ddb job db-cleaner` removes expired rows from the authorization server's tables, the password
-reset tokens and the sign-in refresh tokens — one scheduled sweep for the fleet rather than a
-sweeper goroutine in every replica. It is a garbage collector, not a security control: every read
-already refuses an expired row.
+reset tokens, the sign-in refresh tokens and the sign-in devices — one scheduled sweep for the
+fleet rather than a sweeper goroutine in every replica. It is a garbage collector, not a security
+control: every read already refuses an expired row.
 
 ## Key File Reference
 
@@ -334,7 +387,9 @@ already refuses an expired row.
 | PasskeysService mount, relying party              | `internal/build/passkeys/grpc.go`                                        |
 | Impersonation RPC                                 | `internal/services/internalops/grpc/impersonation.go`                    |
 | Auth interceptor                                  | `internal/services/auth/grpc/interceptors/authn_interceptor.go`          |
-| OAuth2 server and subject authenticator           | `internal/services/auth/handlers/authentication/`                        |
+| OAuth2 server and session resolver                | `internal/services/auth/handlers/authentication/`                        |
+| Sign-in devices                                   | `internal/authentication/devices/`                                       |
+| Anonymous door rate limiting                      | `internal/services/auth/grpc/interceptors/ratelimit.go`                  |
 | Password reset store (audit wrapper)              | `internal/repositories/postgres/auth/password_reset_tokens.go`           |
 | Sign-in refresh token store                       | `internal/repositories/postgres/auth/refresh_tokens.go`                  |
 | Expired-row sweep                                 | `internal/services/oauth/workers/db_cleaner/db_cleaner.go`               |

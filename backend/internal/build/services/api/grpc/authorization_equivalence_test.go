@@ -55,7 +55,8 @@ func TestAuthorizationEnforcerMatchesTheHandRolledCheck(t *testing.T) {
 	perms := MethodPermissions()
 	require.NotEmpty(t, perms)
 
-	authInterceptor := interceptors.ProvideAuthInterceptor(nil, loggingnoop.NewLogger(), nil, nil, nil, nil, "", nil, nil, perms)
+	authInterceptor, err := interceptors.ProvideAuthInterceptor(loggingnoop.NewLogger(), nil, nil, perms)
+	require.NoError(t, err)
 
 	// Built enforcing, not audit-only: an audit-only enforcer allows everything, so comparing
 	// one against the real check would prove nothing.

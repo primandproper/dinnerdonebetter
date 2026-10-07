@@ -9,6 +9,12 @@ metadata:
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
 spec:
   type: LoadBalancer
+  # Local, not the default Cluster: under Cluster a node forwards a connection to a Caddy pod on
+  # another node by rewriting its source to the node's own address, so Caddy, and the
+  # X-Forwarded-For it writes, would see a node rather than the caller. The sign-in throttle
+  # keys on that address, and every caller would share a node's bucket. The load balancer's
+  # health check sends traffic only to nodes running a Caddy pod.
+  externalTrafficPolicy: Local
   selector:
     app: caddy
   ports:

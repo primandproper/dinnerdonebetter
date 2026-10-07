@@ -168,8 +168,11 @@ internal class ClientManager<Transport: GRPCCore.ClientTransport> {
       return options
     }()
   ) throws {
-    // Create a single GRPCClient instance
-    let grpcClient = GRPCCore.GRPCClient(transport: transport)
+    // Create a single GRPCClient instance. Every call it makes names this device, the
+    // Session's own sign-ins and refreshes among them, so the server can say where each login
+    // is held.
+    let grpcClient = GRPCCore.GRPCClient(
+      transport: transport, interceptors: [DeviceNameInterceptor.describingThisDevice()])
     self.init(
       client: grpcClient, store: store, deviceStore: deviceStore,
       defaultCallOptions: defaultCallOptions)

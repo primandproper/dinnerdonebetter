@@ -2,6 +2,7 @@ package mcpserver
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 	mcpbuild "github.com/primandproper/dinnerdonebetter/backend/internal/build/services/mcp"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/config"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
+	"github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc/interceptors"
 
 	oauth2servercfg "github.com/primandproper/platform-go/v15/authentication/oauth2serverstore/config"
 	platformidentity "github.com/primandproper/platform-go/v15/identity"
@@ -22,6 +24,9 @@ import (
 	"github.com/primandproper/primitives-go/v2/authentication/totp"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/observability"
+	"github.com/primandproper/primitives-go/v2/ratelimiting"
+	ratelimitingcfg "github.com/primandproper/primitives-go/v2/ratelimiting/config"
+	"github.com/primandproper/primitives-go/v2/routing"
 	routingcfg "github.com/primandproper/primitives-go/v2/routing/config"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -46,6 +51,8 @@ type Service struct {
 	mcpServer        *mcp.Server
 	authServer       *oauth2server.Server
 	resourceMetadata *oauth2server.ResourceMetadata
+	limiter          ratelimiting.RateLimiter
+	loginThrottle    routing.Middleware
 	routingConfig    *routingcfg.Config
 	baseURL          string
 }
@@ -150,13 +157,13 @@ func NewService(ctx context.Context, cfg *config.MCPServiceConfig, baseURL strin
 	// a second replica and a restart survivable: an authorization code issued by one
 	// replica is redeemed at whichever one serves /token, and a registered MCP client
 	// outlives a deploy.
+	signIn, err := NewAdminSignIn(dbClient, identityStore, authenticator, totpVerifier, pillars.Logger, pillars.TracerProvider)
+	if err != nil {
+		return nil, fmt.Errorf("building sign-in service: %w", err)
+	}
+
 	authServer, err := oauth2servercfg.NewServer(ctx, &cfg.OAuth2, dbClient,
-		&subjectAuthenticator{
-			directory:     identityStore,
-			db:            dbClient,
-			authenticator: authenticator,
-			totpVerifier:  totpVerifier,
-		},
+		&subjectAuthenticator{signIn: signIn},
 		oauth2servercfg.WithPillars(pillars),
 		// The store tier's config carries the server tier's option set through to it.
 		// The outer name says which package the options are handed to rather than
@@ -179,6 +186,27 @@ func NewService(ctx context.Context, cfg *config.MCPServiceConfig, baseURL strin
 		return nil, fmt.Errorf("building protected resource metadata: %w", err)
 	}
 
+	// The login form's POST is where an operator's password arrives, so it is throttled per
+	// address like the API server's: the same middleware, keyed on the address Caddy stamps.
+	// Built last, so that nothing after it can fail and leave its limiter open.
+	limiter, err := ratelimitingcfg.NewRateLimiter(ctx, &cfg.RateLimiting,
+		ratelimitingcfg.WithLogger(pillars.Logger),
+		ratelimitingcfg.WithTracerProvider(pillars.TracerProvider),
+		ratelimitingcfg.WithMetricsProvider(pillars.MetricsProvider),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("building rate limiter: %w", err)
+	}
+
+	loginThrottle, err := interceptors.NewAuthorizeFormThrottle(limiter, pillars.Logger, pillars.TracerProvider, pillars.MetricsProvider)
+	if err != nil {
+		if closeErr := limiter.Close(); closeErr != nil {
+			pillars.Logger.Error("closing rate limiter after a failed build", closeErr)
+		}
+
+		return nil, fmt.Errorf("building login form throttle: %w", err)
+	}
+
 	helper := &mcpToolManager{
 		reader:           dbClient.Reader(),
 		mealplanningRepo: mealplanningRepo,
@@ -193,6 +221,8 @@ func NewService(ctx context.Context, cfg *config.MCPServiceConfig, baseURL strin
 		mcpServer:        helper.setupServer(),
 		authServer:       authServer,
 		resourceMetadata: resourceMetadata,
+		limiter:          limiter,
+		loginThrottle:    loginThrottle,
 		routingConfig:    &cfg.Routing,
 		baseURL:          baseURL,
 	}, nil
@@ -222,7 +252,7 @@ func (s *Service) Handler(ctx context.Context, transport string) (http.Handler, 
 		return nil, fmt.Errorf("transport %q is not served over HTTP", transport)
 	}
 
-	router, err := buildRouter(ctx, mcpHandler, s.authServer, s.resourceMetadata, s.pillars, s.routingConfig, s.baseURL)
+	router, err := buildRouter(ctx, mcpHandler, s.authServer, s.resourceMetadata, s.loginThrottle, s.pillars, s.routingConfig, s.baseURL)
 	if err != nil {
 		return nil, fmt.Errorf("building router: %w", err)
 	}
@@ -244,8 +274,14 @@ func (s *Service) ServeStdio(ctx context.Context) error {
 // It stops no HTTP server: the listener belongs to whoever bound it, and shutting that
 // down first is how a caller drains in-flight requests before the pool goes away.
 func (s *Service) Shutdown(ctx context.Context) error {
+	limiterErr := s.limiter.Close()
+
 	if report := s.injector.ShutdownWithContext(ctx); report != nil && !report.Succeed {
-		return fmt.Errorf("shutting down MCP service container: %w", *report)
+		return errors.Join(fmt.Errorf("shutting down MCP service container: %w", *report), limiterErr)
+	}
+
+	if limiterErr != nil {
+		return fmt.Errorf("closing rate limiter: %w", limiterErr)
 	}
 
 	return nil

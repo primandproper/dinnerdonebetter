@@ -115,10 +115,13 @@ func buildTestEnforcer(t *testing.T) *grpc.UnaryServerInterceptor {
 		billingpb.BillingService_ArchiveSubscription_FullMethodName: {billinggrpc.PermissionArchiveSubscriptions},
 	}
 
+	authInterceptor, err := interceptors.ProvideAuthInterceptor(loggingnoop.NewLogger(), nil, nil, perms)
+	require.NoError(t, err)
+
 	enforcer, err := ProvideAuthorizationEnforcer(
 		perms,
 		nil,
-		interceptors.ProvideAuthInterceptor(nil, loggingnoop.NewLogger(), nil, nil, nil, nil, "", nil, nil, perms),
+		authInterceptor,
 		loggingnoop.NewLogger(),
 		metricsnoop.NewMetricsProvider(),
 		true,
@@ -200,7 +203,7 @@ func TestProvideAuthorizationEnforcer_overrides(T *testing.T) {
 		enforcer, err := ProvideAuthorizationEnforcer(
 			fragment,
 			overrides,
-			interceptors.ProvideAuthInterceptor(nil, logger, nil, nil, nil, nil, "", nil, nil, fragment),
+			testAuthInterceptor(t, fragment),
 			logger,
 			metricsProvider,
 			false,
@@ -246,7 +249,7 @@ func TestProvideAuthorizationEnforcer_overrides(T *testing.T) {
 		_, err := ProvideAuthorizationEnforcer(
 			fragment,
 			overrides,
-			interceptors.ProvideAuthInterceptor(nil, logger, nil, nil, nil, nil, "", nil, nil, fragment),
+			testAuthInterceptor(t, fragment),
 			logger,
 			metricsProvider,
 			false,
@@ -268,11 +271,22 @@ func TestProvideAuthorizationEnforcer_overrides(T *testing.T) {
 		_, err := ProvideAuthorizationEnforcer(
 			fragments,
 			overrides,
-			interceptors.ProvideAuthInterceptor(nil, logger, nil, nil, nil, nil, "", nil, nil, MethodPermissions()),
+			testAuthInterceptor(t, MethodPermissions()),
 			logger,
 			metricsProvider,
 			false,
 		)
 		require.NoError(t, err)
 	})
+}
+
+// testAuthInterceptor is an AuthInterceptor that resolves no principal, for tests about the
+// permission table it carries rather than about who is calling.
+func testAuthInterceptor(t *testing.T, perms interceptors.MethodPermissionsMap) *interceptors.AuthInterceptor {
+	t.Helper()
+
+	authInterceptor, err := interceptors.ProvideAuthInterceptor(loggingnoop.NewLogger(), nil, nil, perms)
+	require.NoError(t, err)
+
+	return authInterceptor
 }
