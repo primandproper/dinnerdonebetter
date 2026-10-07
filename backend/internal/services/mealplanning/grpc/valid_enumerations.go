@@ -3,6 +3,7 @@ package grpc
 import (
 	"context"
 
+	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 	mealplanningkeys "github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning/keys"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
@@ -625,7 +626,7 @@ func (s *serviceImpl) GetValidIngredientGroups(ctx context.Context, request *mea
 	defer span.End()
 
 	logger := s.logger.WithSpan(span)
-	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
+	filter, err := decodeQueryFilter(span, request.Filter, archivedIfHeld(ctx, authorization.ArchiveValidIngredientGroupsPermission))
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -673,7 +674,7 @@ func (s *serviceImpl) GetValidIngredientMeasurementUnits(ctx context.Context, re
 	defer span.End()
 
 	logger := s.logger.WithSpan(span)
-	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
+	filter, err := decodeQueryFilter(span, request.Filter, archivedIfHeld(ctx, authorization.ArchiveValidIngredientMeasurementUnitsPermission))
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -703,7 +704,7 @@ func (s *serviceImpl) GetValidIngredientMeasurementUnitsByIngredient(ctx context
 
 	logger := s.logger.WithSpan(span).WithValue(mealplanningkeys.ValidIngredientIDKey, request.ValidIngredientId)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidIngredientIDKey, request.ValidIngredientId)
-	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
+	filter, err := decodeQueryFilter(span, request.Filter, archivedIfHeld(ctx, authorization.ArchiveValidIngredientMeasurementUnitsPermission))
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -733,7 +734,7 @@ func (s *serviceImpl) GetValidIngredientMeasurementUnitsByMeasurementUnit(ctx co
 	defer span.End()
 
 	logger := s.logger.WithSpan(span)
-	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
+	filter, err := decodeQueryFilter(span, request.Filter, archivedIfHeld(ctx, authorization.ArchiveValidIngredientMeasurementUnitsPermission))
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -782,7 +783,7 @@ func (s *serviceImpl) GetValidIngredientPreparations(ctx context.Context, reques
 	defer span.End()
 
 	logger := s.logger.WithSpan(span)
-	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
+	filter, err := decodeQueryFilter(span, request.Filter, archivedIfHeld(ctx, authorization.ArchiveValidIngredientPreparationsPermission))
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -813,7 +814,7 @@ func (s *serviceImpl) GetValidIngredientPreparationsByIngredient(ctx context.Con
 
 	logger := s.logger.WithSpan(span).WithValue(mealplanningkeys.ValidIngredientIDKey, request.ValidIngredientId)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidIngredientIDKey, request.ValidIngredientId)
-	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
+	filter, err := decodeQueryFilter(span, request.Filter, archivedIfHeld(ctx, authorization.ArchiveValidIngredientPreparationsPermission))
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -844,7 +845,7 @@ func (s *serviceImpl) GetValidIngredientPreparationsByPreparation(ctx context.Co
 
 	logger := s.logger.WithSpan(span).WithValue(mealplanningkeys.ValidPreparationIDKey, request.ValidPreparationId)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidPreparationIDKey, request.ValidPreparationId)
-	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
+	filter, err := decodeQueryFilter(span, request.Filter, archivedIfHeld(ctx, authorization.ArchiveValidIngredientPreparationsPermission))
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -893,7 +894,7 @@ func (s *serviceImpl) GetValidPrepTaskConfigs(ctx context.Context, request *meal
 	defer span.End()
 
 	logger := s.logger.WithSpan(span)
-	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
+	filter, err := decodeQueryFilter(span, request.Filter, archivedIfHeld(ctx, authorization.ArchiveValidPrepTaskConfigsPermission))
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -924,7 +925,7 @@ func (s *serviceImpl) GetValidPrepTaskConfigsByIngredient(ctx context.Context, r
 
 	logger := s.logger.WithSpan(span).WithValue(mealplanningkeys.ValidIngredientIDKey, request.ValidIngredientId)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidIngredientIDKey, request.ValidIngredientId)
-	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
+	filter, err := decodeQueryFilter(span, request.Filter, archivedIfHeld(ctx, authorization.ArchiveValidPrepTaskConfigsPermission))
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -955,7 +956,7 @@ func (s *serviceImpl) GetValidPrepTaskConfigsByPreparation(ctx context.Context, 
 
 	logger := s.logger.WithSpan(span).WithValue(mealplanningkeys.ValidPreparationIDKey, request.ValidPreparationId)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidPreparationIDKey, request.ValidPreparationId)
-	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
+	filter, err := decodeQueryFilter(span, request.Filter, archivedIfHeld(ctx, authorization.ArchiveValidPrepTaskConfigsPermission))
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -989,7 +990,7 @@ func (s *serviceImpl) GetValidPrepTaskConfigsByIngredientAndPreparation(ctx cont
 		WithValue(mealplanningkeys.ValidPreparationIDKey, request.ValidPreparationId)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidIngredientIDKey, request.ValidIngredientId)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidPreparationIDKey, request.ValidPreparationId)
-	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
+	filter, err := decodeQueryFilter(span, request.Filter, archivedIfHeld(ctx, authorization.ArchiveValidPrepTaskConfigsPermission))
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -1057,7 +1058,7 @@ func (s *serviceImpl) GetValidIngredientStateIngredients(ctx context.Context, re
 	defer span.End()
 
 	logger := s.logger.WithSpan(span)
-	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
+	filter, err := decodeQueryFilter(span, request.Filter, archivedIfHeld(ctx, authorization.ArchiveValidIngredientStateIngredientsPermission))
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -1088,7 +1089,7 @@ func (s *serviceImpl) GetValidIngredientStateIngredientsByIngredient(ctx context
 
 	logger := s.logger.WithSpan(span).WithValue(mealplanningkeys.ValidIngredientIDKey, request.ValidIngredientId)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidIngredientIDKey, request.ValidIngredientId)
-	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
+	filter, err := decodeQueryFilter(span, request.Filter, archivedIfHeld(ctx, authorization.ArchiveValidIngredientStateIngredientsPermission))
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -1119,7 +1120,7 @@ func (s *serviceImpl) GetValidIngredientStateIngredientsByIngredientState(ctx co
 
 	logger := s.logger.WithSpan(span).WithValue(mealplanningkeys.ValidIngredientStateIDKey, request.ValidIngredientStateId)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidIngredientStateIDKey, request.ValidIngredientStateId)
-	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
+	filter, err := decodeQueryFilter(span, request.Filter, archivedIfHeld(ctx, authorization.ArchiveValidIngredientStateIngredientsPermission))
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -1149,7 +1150,7 @@ func (s *serviceImpl) GetValidIngredientStates(ctx context.Context, request *mea
 	defer span.End()
 
 	logger := s.logger.WithSpan(span)
-	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
+	filter, err := decodeQueryFilter(span, request.Filter, archivedIfHeld(ctx, authorization.ArchiveValidIngredientStatesPermission))
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -1179,7 +1180,7 @@ func (s *serviceImpl) GetValidIngredients(ctx context.Context, request *mealplan
 	defer span.End()
 
 	logger := s.logger.WithSpan(span)
-	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
+	filter, err := decodeQueryFilter(span, request.Filter, archivedIfHeld(ctx, authorization.ArchiveValidIngredientsPermission))
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -1230,7 +1231,7 @@ func (s *serviceImpl) GetValidInstruments(ctx context.Context, request *mealplan
 	defer span.End()
 
 	logger := s.logger.WithSpan(span)
-	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
+	filter, err := decodeQueryFilter(span, request.Filter, archivedIfHeld(ctx, authorization.ArchiveValidInstrumentsPermission))
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -1300,7 +1301,7 @@ func (s *serviceImpl) GetValidMeasurementUnitConversionsForUnit(ctx context.Cont
 	logger := s.logger.WithSpan(span).WithValue(mealplanningkeys.ValidMeasurementUnitIDKey, request.ValidMeasurementUnitId)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidMeasurementUnitIDKey, request.ValidMeasurementUnitId)
 
-	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
+	filter, err := decodeQueryFilter(span, request.Filter, archivedIfHeld(ctx, authorization.ArchiveValidMeasurementUnitConversionsPermission))
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -1371,7 +1372,7 @@ func (s *serviceImpl) GetValidMeasurementUnits(ctx context.Context, request *mea
 	defer span.End()
 
 	logger := s.logger.WithSpan(span)
-	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
+	filter, err := decodeQueryFilter(span, request.Filter, archivedIfHeld(ctx, authorization.ArchiveValidMeasurementUnitsPermission))
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -1439,7 +1440,7 @@ func (s *serviceImpl) GetValidPreparationInstruments(ctx context.Context, reques
 	defer span.End()
 
 	logger := s.logger.WithSpan(span)
-	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
+	filter, err := decodeQueryFilter(span, request.Filter, archivedIfHeld(ctx, authorization.ArchiveValidPreparationInstrumentsPermission))
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -1470,7 +1471,7 @@ func (s *serviceImpl) GetValidPreparationInstrumentsByInstrument(ctx context.Con
 
 	logger := s.logger.WithSpan(span).WithValue(mealplanningkeys.ValidInstrumentIDKey, request.ValidInstrumentId)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidInstrumentIDKey, request.ValidInstrumentId)
-	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
+	filter, err := decodeQueryFilter(span, request.Filter, archivedIfHeld(ctx, authorization.ArchiveValidPreparationInstrumentsPermission))
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -1501,7 +1502,7 @@ func (s *serviceImpl) GetValidPreparationInstrumentsByPreparation(ctx context.Co
 
 	logger := s.logger.WithSpan(span).WithValue(mealplanningkeys.ValidPreparationIDKey, request.ValidPreparationId)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidPreparationIDKey, request.ValidPreparationId)
-	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
+	filter, err := decodeQueryFilter(span, request.Filter, archivedIfHeld(ctx, authorization.ArchiveValidPreparationInstrumentsPermission))
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -1550,7 +1551,7 @@ func (s *serviceImpl) GetValidPreparationVessels(ctx context.Context, request *m
 	defer span.End()
 
 	logger := s.logger.WithSpan(span)
-	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
+	filter, err := decodeQueryFilter(span, request.Filter, archivedIfHeld(ctx, authorization.ArchiveValidPreparationVesselsPermission))
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -1581,7 +1582,7 @@ func (s *serviceImpl) GetValidPreparationVesselsByPreparation(ctx context.Contex
 
 	logger := s.logger.WithSpan(span).WithValue(mealplanningkeys.ValidPreparationIDKey, request.ValidPreparationId)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidPreparationIDKey, request.ValidPreparationId)
-	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
+	filter, err := decodeQueryFilter(span, request.Filter, archivedIfHeld(ctx, authorization.ArchiveValidPreparationVesselsPermission))
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -1612,7 +1613,7 @@ func (s *serviceImpl) GetValidPreparationVesselsByVessel(ctx context.Context, re
 
 	logger := s.logger.WithSpan(span).WithValue(mealplanningkeys.ValidVesselIDKey, request.ValidVesselId)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidVesselIDKey, request.ValidVesselId)
-	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
+	filter, err := decodeQueryFilter(span, request.Filter, archivedIfHeld(ctx, authorization.ArchiveValidPreparationVesselsPermission))
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -1642,7 +1643,7 @@ func (s *serviceImpl) GetValidPreparations(ctx context.Context, request *mealpla
 	defer span.End()
 
 	logger := s.logger.WithSpan(span)
-	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
+	filter, err := decodeQueryFilter(span, request.Filter, archivedIfHeld(ctx, authorization.ArchiveValidPreparationsPermission))
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -1691,7 +1692,7 @@ func (s *serviceImpl) GetValidVessels(ctx context.Context, request *mealplanning
 	defer span.End()
 
 	logger := s.logger.WithSpan(span)
-	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
+	filter, err := decodeQueryFilter(span, request.Filter, archivedIfHeld(ctx, authorization.ArchiveValidVesselsPermission))
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -1721,7 +1722,7 @@ func (s *serviceImpl) SearchForValidIngredientGroups(ctx context.Context, reques
 	defer span.End()
 
 	logger := s.logger.WithSpan(span)
-	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
+	filter, err := decodeQueryFilter(span, request.Filter, archivedIfHeld(ctx, authorization.ArchiveValidIngredientGroupsPermission))
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -1751,7 +1752,7 @@ func (s *serviceImpl) SearchForValidIngredientStates(ctx context.Context, reques
 	defer span.End()
 
 	logger := s.logger.WithSpan(span)
-	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
+	filter, err := decodeQueryFilter(span, request.Filter, archivedIfHeld(ctx, authorization.ArchiveValidIngredientStatesPermission))
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -1781,7 +1782,7 @@ func (s *serviceImpl) SearchForValidIngredients(ctx context.Context, request *me
 	defer span.End()
 
 	logger := s.logger.WithSpan(span)
-	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
+	filter, err := decodeQueryFilter(span, request.Filter, archivedIfHeld(ctx, authorization.ArchiveValidIngredientsPermission))
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -1811,7 +1812,7 @@ func (s *serviceImpl) SearchForValidInstruments(ctx context.Context, request *me
 	defer span.End()
 
 	logger := s.logger.WithSpan(span)
-	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
+	filter, err := decodeQueryFilter(span, request.Filter, archivedIfHeld(ctx, authorization.ArchiveValidInstrumentsPermission))
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -1841,7 +1842,7 @@ func (s *serviceImpl) SearchForValidMeasurementUnits(ctx context.Context, reques
 	defer span.End()
 
 	logger := s.logger.WithSpan(span)
-	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
+	filter, err := decodeQueryFilter(span, request.Filter, archivedIfHeld(ctx, authorization.ArchiveValidMeasurementUnitsPermission))
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -1871,7 +1872,7 @@ func (s *serviceImpl) SearchForValidPreparations(ctx context.Context, request *m
 	defer span.End()
 
 	logger := s.logger.WithSpan(span)
-	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
+	filter, err := decodeQueryFilter(span, request.Filter, archivedIfHeld(ctx, authorization.ArchiveValidPreparationsPermission))
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -1901,7 +1902,7 @@ func (s *serviceImpl) SearchForValidVessels(ctx context.Context, request *mealpl
 	defer span.End()
 
 	logger := s.logger.WithSpan(span)
-	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
+	filter, err := decodeQueryFilter(span, request.Filter, archivedIfHeld(ctx, authorization.ArchiveValidVesselsPermission))
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -1932,7 +1933,7 @@ func (s *serviceImpl) SearchValidIngredientsByPreparation(ctx context.Context, r
 
 	logger := s.logger.WithSpan(span).WithValue(mealplanningkeys.ValidPreparationIDKey, request.ValidPreparationId)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidPreparationIDKey, request.ValidPreparationId)
-	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
+	filter, err := decodeQueryFilter(span, request.Filter, archivedIfHeld(ctx, authorization.ArchiveValidIngredientsPermission))
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -1963,7 +1964,7 @@ func (s *serviceImpl) SearchValidMeasurementUnitsByIngredient(ctx context.Contex
 
 	logger := s.logger.WithSpan(span).WithValue(mealplanningkeys.ValidIngredientIDKey, request.ValidIngredientId)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidIngredientIDKey, request.ValidIngredientId)
-	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
+	filter, err := decodeQueryFilter(span, request.Filter, archivedIfHeld(ctx, authorization.ArchiveValidMeasurementUnitsPermission))
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}

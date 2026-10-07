@@ -717,7 +717,7 @@ func (s *serviceImpl) GetRecipePrepTasks(ctx context.Context, request *mealplann
 		mealplanningkeys.RecipeIDKey: request.RecipeId,
 	}, span, s.logger)
 
-	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
+	filter, err := decodeQueryFilter(span, request.Filter, filteringgrpc.ArchivedDenied)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -777,7 +777,7 @@ func (s *serviceImpl) GetRecipeRatingsForRecipe(ctx context.Context, request *me
 		mealplanningkeys.RecipeIDKey: request.RecipeId,
 	}, span, s.logger)
 
-	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
+	filter, err := decodeQueryFilter(span, request.Filter, filteringgrpc.ArchivedDenied)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -862,7 +862,7 @@ func (s *serviceImpl) GetRecipeStepCompletionConditions(ctx context.Context, req
 		mealplanningkeys.RecipeStepIDKey: request.RecipeStepId,
 	}, span, s.logger)
 
-	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
+	filter, err := decodeQueryFilter(span, request.Filter, filteringgrpc.ArchivedDenied)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -923,7 +923,7 @@ func (s *serviceImpl) GetRecipeStepIngredients(ctx context.Context, request *mea
 		mealplanningkeys.RecipeStepIDKey: request.RecipeStepId,
 	}, span, s.logger)
 
-	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
+	filter, err := decodeQueryFilter(span, request.Filter, filteringgrpc.ArchivedDenied)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -984,7 +984,7 @@ func (s *serviceImpl) GetRecipeStepInstruments(ctx context.Context, request *mea
 		mealplanningkeys.RecipeStepIDKey: request.RecipeStepId,
 	}, span, s.logger)
 
-	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
+	filter, err := decodeQueryFilter(span, request.Filter, filteringgrpc.ArchivedDenied)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -1045,7 +1045,7 @@ func (s *serviceImpl) GetRecipeStepProducts(ctx context.Context, request *mealpl
 		mealplanningkeys.RecipeStepIDKey: request.RecipeStepId,
 	}, span, s.logger)
 
-	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
+	filter, err := decodeQueryFilter(span, request.Filter, filteringgrpc.ArchivedDenied)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -1106,7 +1106,7 @@ func (s *serviceImpl) GetRecipeStepVessels(ctx context.Context, request *mealpla
 		mealplanningkeys.RecipeStepIDKey: request.RecipeStepId,
 	}, span, s.logger)
 
-	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
+	filter, err := decodeQueryFilter(span, request.Filter, filteringgrpc.ArchivedDenied)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -1141,7 +1141,7 @@ func (s *serviceImpl) GetRecipeSteps(ctx context.Context, request *mealplanning.
 		mealplanningkeys.RecipeIDKey: request.RecipeId,
 	}, span, s.logger)
 
-	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
+	filter, err := decodeQueryFilter(span, request.Filter, filteringgrpc.ArchivedDenied)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -1174,7 +1174,7 @@ func (s *serviceImpl) GetRecipeLists(ctx context.Context, request *mealplanning.
 
 	logger := s.logger.WithSpan(span)
 
-	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
+	filter, err := decodeQueryFilter(span, request.Filter, filteringgrpc.ArchivedDenied)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -1291,7 +1291,7 @@ func (s *serviceImpl) GetRecipeListItems(ctx context.Context, request *mealplann
 		mealplanningkeys.RecipeListIDKey: request.RecipeListId,
 	}, span, s.logger)
 
-	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
+	filter, err := decodeQueryFilter(span, request.Filter, filteringgrpc.ArchivedDenied)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -1396,7 +1396,7 @@ func (s *serviceImpl) GetRecipes(ctx context.Context, request *mealplanning.GetR
 
 	logger := s.logger.WithSpan(span)
 
-	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
+	filter, err := decodeQueryFilter(span, request.Filter, filteringgrpc.ArchivedDenied)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -1431,7 +1431,7 @@ func (s *serviceImpl) SearchForRecipes(ctx context.Context, request *mealplannin
 		platformkeys.SearchQueryKey: request.Query,
 	}, span, s.logger)
 
-	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
+	filter, err := decodeQueryFilter(span, request.Filter, filteringgrpc.ArchivedDenied)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -1467,7 +1467,7 @@ func (s *serviceImpl) SearchForMealEligibleRecipes(ctx context.Context, request 
 		platformkeys.SearchQueryKey: request.Query,
 	}, span, s.logger)
 
-	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
+	filter, err := decodeQueryFilter(span, request.Filter, filteringgrpc.ArchivedDenied)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
@@ -1508,7 +1508,7 @@ func (s *serviceImpl) SearchForRecipesWithInstrumentOwnership(ctx context.Contex
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.Unauthenticated, "fetching session context data")
 	}
 
-	filter, _, err := filteringgrpc.QueryFilterFromProto(request.Filter, filteringgrpc.ArchivedAllowed)
+	filter, err := decodeQueryFilter(span, request.Filter, filteringgrpc.ArchivedDenied)
 	if err != nil {
 		return nil, errorsgrpc.PrepareAndLogGRPCStatus(err, logger, span, codes.InvalidArgument, "invalid query filter")
 	}
