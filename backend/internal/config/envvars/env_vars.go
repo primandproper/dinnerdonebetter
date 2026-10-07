@@ -240,18 +240,6 @@ const (
 	// `APIServiceConfig.Auth.Debug`.
 	AuthDebugEnvVarKey = "DINNER_DONE_BETTER_AUTH_DEBUG"
 
-	// AuthEnableUserSignupEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Auth.EnableUserSignup`.
-	AuthEnableUserSignupEnvVarKey = "DINNER_DONE_BETTER_AUTH_ENABLE_USER_SIGNUP"
-
-	// AuthMinimumPasswordLengthEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Auth.MinimumPasswordLength`.
-	AuthMinimumPasswordLengthEnvVarKey = "DINNER_DONE_BETTER_AUTH_MINIMUM_PASSWORD_LENGTH"
-
-	// AuthMinimumUsernameLengthEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Auth.MinimumUsernameLength`.
-	AuthMinimumUsernameLengthEnvVarKey = "DINNER_DONE_BETTER_AUTH_MINIMUM_USERNAME_LENGTH"
-
 	// AuthPasskeyCacheCircuitBreakingErrorRateEnvVarKey is the environment variable name to set to
 	// override `APIServiceConfig.Auth.Passkey.Config.Cache.CircuitBreaker.ErrorRate`.
 	AuthPasskeyCacheCircuitBreakingErrorRateEnvVarKey = "DINNER_DONE_BETTER_AUTH_PASSKEY_CACHE_CIRCUIT_BREAKING_ERROR_RATE"
@@ -4028,12 +4016,6 @@ const (
 	// `AsyncMessageHandlerConfig.Queues.QueuedMailTopicName`.
 	QueuesQueuedMailTopicNameEnvVarKey = "DINNER_DONE_BETTER_QUEUES_QUEUED_MAIL_TOPIC_NAME"
 
-	// QueuesSearchIndexRequestsTopicNameEnvVarKey is the environment variable name to set to
-	// override `APIServiceConfig.Queues.SearchIndexRequestsTopicName`,
-	// `SchedulerConfig.Queues.SearchIndexRequestsTopicName`,
-	// `AsyncMessageHandlerConfig.Queues.SearchIndexRequestsTopicName`.
-	QueuesSearchIndexRequestsTopicNameEnvVarKey = "DINNER_DONE_BETTER_QUEUES_SEARCH_INDEX_REQUESTS_TOPIC_NAME"
-
 	// RateLimitingBurstSizeEnvVarKey is the environment variable name to set to override
 	// `APIServiceConfig.Service.RateLimiting.BurstSize`,
 	// `DBCleanerConfig.Service.RateLimiting.BurstSize`,
@@ -4672,22 +4654,6 @@ const (
 	// `APIServiceConfig.Services.Auth.Debug`.
 	ServiceAuthDebugEnvVarKey = "DINNER_DONE_BETTER_SERVICE_AUTH_DEBUG"
 
-	// ServiceAuthEnableUserSignupEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Services.Auth.EnableUserSignup`.
-	ServiceAuthEnableUserSignupEnvVarKey = "DINNER_DONE_BETTER_SERVICE_AUTH_ENABLE_USER_SIGNUP"
-
-	// ServiceAuthJwtLifetimeEnvVarKey is the environment variable name to set to override
-	// `APIServiceConfig.Services.Auth.TokenLifetime`.
-	ServiceAuthJwtLifetimeEnvVarKey = "DINNER_DONE_BETTER_SERVICE_AUTH_JWT_LIFETIME"
-
-	// ServiceAuthMinimumPasswordLengthEnvVarKey is the environment variable name to set to
-	// override `APIServiceConfig.Services.Auth.MinimumPasswordLength`.
-	ServiceAuthMinimumPasswordLengthEnvVarKey = "DINNER_DONE_BETTER_SERVICE_AUTH_MINIMUM_PASSWORD_LENGTH"
-
-	// ServiceAuthMinimumUsernameLengthEnvVarKey is the environment variable name to set to
-	// override `APIServiceConfig.Services.Auth.MinimumUsernameLength`.
-	ServiceAuthMinimumUsernameLengthEnvVarKey = "DINNER_DONE_BETTER_SERVICE_AUTH_MINIMUM_USERNAME_LENGTH"
-
 	// ServiceAuthOauth2AccessTokenTTLEnvVarKey is the environment variable name to set to override
 	// `APIServiceConfig.Services.Auth.OAuth2.Config.AccessTokenTTL`.
 	ServiceAuthOauth2AccessTokenTTLEnvVarKey = "DINNER_DONE_BETTER_SERVICE_AUTH_OAUTH2_ACCESS_TOKEN_TTL"
@@ -5061,10 +5027,6 @@ const (
 	// ServiceMealPlanningUseSearchServiceEnvVarKey is the environment variable name to set to
 	// override `APIServiceConfig.Services.MealPlanning.UseSearchService`.
 	ServiceMealPlanningUseSearchServiceEnvVarKey = "DINNER_DONE_BETTER_SERVICE_MEAL_PLANNING_USE_SEARCH_SERVICE"
-
-	// ServiceOauth2ClientsCreationDisabledEnvVarKey is the environment variable name to set to
-	// override `APIServiceConfig.Services.OAuth2Clients.OAuth2ClientCreationDisabled`.
-	ServiceOauth2ClientsCreationDisabledEnvVarKey = "DINNER_DONE_BETTER_SERVICE_OAUTH2_CLIENTS_CREATION_DISABLED"
 
 	// ServicePaymentsCapitalismProviderEnvVarKey is the environment variable name to set to
 	// override `APIServiceConfig.Services.Payments.Capitalism.Provider`.

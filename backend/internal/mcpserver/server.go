@@ -21,6 +21,7 @@ import (
 	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
 	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/encoding"
+	"github.com/primandproper/primitives-go/v2/healthcheck"
 	"github.com/primandproper/primitives-go/v2/observability"
 	"github.com/primandproper/primitives-go/v2/routing"
 	routingcfg "github.com/primandproper/primitives-go/v2/routing/config"
@@ -159,7 +160,9 @@ func Run(ctx context.Context, transport, baseURL string) error {
 }
 
 // buildRouter creates a router with OAuth2 routes (unauthenticated) and the MCP handler (authenticated).
-func buildRouter(ctx context.Context, mcpHandler http.Handler, authServer *oauth2server.Server, resourceMetadata *oauth2server.ResourceMetadata, loginThrottle routing.Middleware, pillars *observability.Pillars, routingCfg *routingcfg.Config, baseURL string) (*routing.Router, error) {
+//
+// health is what /_ops_/ready asks. Every check it holds must pass for the probe to answer 200.
+func buildRouter(ctx context.Context, mcpHandler http.Handler, authServer *oauth2server.Server, resourceMetadata *oauth2server.ResourceMetadata, loginThrottle routing.Middleware, health healthcheck.Registry, pillars *observability.Pillars, routingCfg *routingcfg.Config, baseURL string) (*routing.Router, error) {
 	encoder := encoding.NewServerEncoderDecoder(encoding.ContentTypeJSON, encoding.WithLogger(pillars.Logger), encoding.WithTracerProvider(pillars.TracerProvider))
 
 	router, err := routingcfg.NewRouter(ctx, routingCfg, encoder, routingcfg.WithPillars(pillars))
@@ -172,8 +175,18 @@ func buildRouter(ctx context.Context, mcpHandler http.Handler, authServer *oauth
 		opsRouter.Handle(http.MethodGet, "/live", http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 			res.WriteHeader(http.StatusOK)
 		}))
+		// Readiness: every registered component reported up. A replica whose database is
+		// unreachable can serve neither a token nor a tool, so it is taken out of rotation
+		// rather than left answering 500s.
 		opsRouter.Handle(http.MethodGet, "/ready", http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-			res.WriteHeader(http.StatusOK)
+			result := health.CheckAll(req.Context())
+
+			status := http.StatusOK
+			if result.Status != healthcheck.StatusUp {
+				status = http.StatusServiceUnavailable
+			}
+
+			encoder.EncodeResponseWithStatus(req.Context(), res, result, status)
 		}))
 		opsRouter.Handle(http.MethodGet, "/version", http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 			res.Header().Set("Content-Type", "application/json")

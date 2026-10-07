@@ -25,11 +25,6 @@ var (
 	// ErrTOTPRequired indicates that the user has TOTP enabled but did not provide a code.
 	// Alias for totp.ErrCodeRequired, retained for the same reason as ErrInvalidTOTPToken.
 	ErrTOTPRequired = totp.ErrCodeRequired
-	// ErrPasswordDoesNotMatch is returned by login flows when a password does not match the stored hash.
-	// Platform no longer exports a dedicated sentinel (platformauth.Authenticator.PasswordMatches returns
-	// (false, nil) on mismatch); we keep a local sentinel so the HTTP/gRPC error mappers can continue to
-	// convert password mismatches into 401 responses.
-	ErrPasswordDoesNotMatch = platformerrors.New("password does not match")
 	// ErrUserBanned is what a login gets when the user's account status does not admit
 	// signing in. It is platform's sentinel rather than one of this package's: the check
 	// is no longer made here — Store.GetPrincipal refuses before it reads a membership —

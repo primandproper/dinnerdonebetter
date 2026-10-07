@@ -97,13 +97,11 @@ func buildTestAsyncDataChangeMessageHandler(t *testing.T) (*AsyncDataChangeMessa
 		handlerErrorsCounter:                      noopCounter,
 		emailsSentCounter:                         noopCounter,
 		emailsFailedCounter:                       noopCounter,
-		queuesConfig: queuescfg.Config{
-			SearchIndexRequestsTopicName: "search-index-requests",
-		},
-		outboundEmailsPublisher:      mockPublisher,
-		mobileNotificationsPublisher: mockPublisher,
-		mealPlanRepo:                 mealPlanRepo,
-		pushFanout:                   pushFanout,
+		queuesConfig:                              queuescfg.Config{},
+		outboundEmailsPublisher:                   mockPublisher,
+		mobileNotificationsPublisher:              mockPublisher,
+		mealPlanRepo:                              mealPlanRepo,
+		pushFanout:                                pushFanout,
 	}
 
 	handler.outboundNotificationHandlers = []OutboundNotificationHandler{
@@ -127,7 +125,6 @@ func TestNewAsyncDataChangeMessageHandler(t *testing.T) {
 			Queues: queuescfg.Config{
 				DataChangesTopicName:         "data-changes",
 				OutboundEmailsTopicName:      "outbound-emails",
-				SearchIndexRequestsTopicName: "search-index-requests",
 				MobileNotificationsTopicName: "mobile-notifications",
 				QueuedMailTopicName:          "queued-mail",
 			},

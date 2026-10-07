@@ -8,6 +8,7 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/grpc/interceptors"
 
+	authzgrpc "github.com/primandproper/primitives-go/v2/authorization/grpc"
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	errorsgrpc "github.com/primandproper/primitives-go/v2/errors/grpc"
 	loggingnoop "github.com/primandproper/primitives-go/v2/observability/logging/noop"
@@ -105,6 +106,16 @@ func buildTestAuthInterceptor(t *testing.T) *interceptors.AuthInterceptor {
 	require.NoError(t, err)
 
 	return authInterceptor
+}
+
+// buildServerEnforcer is the enforcer the server builds, over its real table.
+func buildServerEnforcer(t *testing.T, authInterceptor *interceptors.AuthInterceptor) *authzgrpc.Enforcer {
+	t.Helper()
+
+	enforcer, err := ProvideAuthorizationEnforcer(MethodPermissionFragments(), MethodPermissionOverrides(), authInterceptor, loggingnoop.NewLogger(), metricsnoop.NewMetricsProvider(), auditOnlyAuthorization)
+	require.NoError(t, err)
+
+	return enforcer
 }
 
 func TestErrorEncodingInterceptor_leaksWithoutStripping(T *testing.T) {
@@ -208,7 +219,7 @@ func TestBuildStreamServerInterceptors_stripsTheEncodedChain(T *testing.T) {
 	T.Parallel()
 
 	authInterceptor := buildTestAuthInterceptor(T)
-	chain := BuildStreamServerInterceptors(authInterceptor)
+	chain := BuildStreamServerInterceptors(authInterceptor, buildServerEnforcer(T, authInterceptor))
 
 	public := authInterceptor.UnauthenticatedRoutes()
 	require.NotEmpty(T, public)
@@ -271,7 +282,7 @@ func TestServerInterceptors_recoverOnlyInsidePrimitivesServer(T *testing.T) {
 
 		chain := append(
 			[]grpc.StreamServerInterceptor{platformgrpc.StreamRecoveryInterceptor(loggingnoop.NewLogger())},
-			BuildStreamServerInterceptors(authInterceptor)...,
+			BuildStreamServerInterceptors(authInterceptor, buildServerEnforcer(T, authInterceptor))...,
 		)
 
 		err := chainStream(chain, &grpc.StreamServerInfo{FullMethod: public[0]}, func(any, grpc.ServerStream) error {

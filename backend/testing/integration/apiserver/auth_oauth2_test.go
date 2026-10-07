@@ -26,6 +26,13 @@ import (
 // discovery document names. This file drives those routes directly, so the negative cases and
 // the parameters the login helper never varies are reachable.
 //
+// conformance/oauth2server asserts the server's storage promises against this deployment — a
+// code redeemed once and a replay ending what it issued, refresh rotation ending a replayed
+// family, revocation, client authentication by secret, and the discovery document's endpoints —
+// and nothing here repeats those. What remains is what that suite does not reach: PKCE, redirect
+// URI matching, the /authorize login form and the sessions it refuses, the grants this server
+// does not offer, and whether an access token still works on this resource server afterwards.
+//
 // It began as a characterization suite against the go-oauth2 server this replaced (#1339), and
 // several of its cases pinned behavior that was wrong: a lookup miss answered 500 with
 // "sql: no rows in result set" on the wire, `plain` PKCE was accepted, a rejected redirect_uri
@@ -242,16 +249,12 @@ func TestAuth_OAuth2AuthorizationCodeFlow(T *testing.T) {
 		user, jwt := createUserAndJWTForTest(t)
 
 		verifier := oauth2.GenerateVerifier()
-		state := t.Name()
 
-		res, location := authorizeForTest(t, jwt, authorizeQueryForTest(state, oauth2.S256ChallengeFromVerifier(verifier), codeChallengeMethodS256))
+		// That the redirect echoes the state and names its issuer (RFC 9207) is asserted on
+		// every authorization conformance/oauth2server makes.
+		res, location := authorizeForTest(t, jwt, authorizeQueryForTest(t.Name(), oauth2.S256ChallengeFromVerifier(verifier), codeChallengeMethodS256))
 		require.Equal(t, http.StatusFound, res.StatusCode)
 		require.NotNil(t, location)
-
-		assert.Equal(t, state, location.Query().Get("state"), "state must be echoed back on the redirect")
-		// RFC 9207. A client holding more than one authorization server cannot detect a mix-up
-		// without it, and this server sets it on every authorization response.
-		assert.NotEmpty(t, location.Query().Get("iss"))
 
 		code := location.Query().Get("code")
 		require.NotEmpty(t, code)
@@ -317,22 +320,7 @@ func TestAuth_OAuth2AuthorizationCodeFlow(T *testing.T) {
 		assert.NotEmpty(t, token.Error)
 	})
 
-	T.Run("an authorization code is single use", func(t *testing.T) {
-		t.Parallel()
-
-		_, jwt := createUserAndJWTForTest(t)
-
-		code, verifier := fetchAuthorizationCodeForTest(t, jwt)
-
-		status, token := requestTokenForTest(t, http.MethodPost, exchangeCodeFormForTest(code, verifier))
-		require.Equal(t, http.StatusOK, status, "first exchange failed: %s", token.ErrorDescription)
-		require.NotEmpty(t, token.AccessToken)
-
-		status, replayed := requestTokenForTest(t, http.MethodPost, exchangeCodeFormForTest(code, verifier))
-		assertGrantRefused(t, status, replayed)
-	})
-
-	T.Run("a replayed authorization code is refused but does not revoke what it issued", func(t *testing.T) {
+	T.Run("a replayed authorization code ends the access token it issued, on this resource server", func(t *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
@@ -351,14 +339,9 @@ func TestAuth_OAuth2AuthorizationCodeFlow(T *testing.T) {
 		// second redemption is either a client retrying or somebody else holding the code, and
 		// the server cannot tell which, so it assumes the worse of the two.
 		//
-		// This assertion used to be its own inverse, characterizing a platform gap:
-		// AuthorizationCode carried no FamilyID, so oauth2server could count a replay and log
-		// it but had no way to name the tokens the first redemption minted. platform-go v12
-		// closed that, and the characterization turned red on the version bump exactly as it
-		// was pinned to.
-		//
-		// Refresh reuse detection, which has always had a family, is asserted in
-		// TestAuth_OAuth2RefreshTokenGrant.
+		// conformance/oauth2server asserts the replay ends the refresh token the first
+		// redemption issued. Whether the access token stops working is a resource server's
+		// question, and this is the resource server.
 		c, err := buildAuthedGRPCClientWithBearerToken(token.AccessToken)
 		require.NoError(t, err)
 
@@ -408,22 +391,6 @@ func TestAuth_OAuth2AuthorizationCodeFlow(T *testing.T) {
 		status, token := requestTokenForTest(t, http.MethodPost, form)
 		assert.Equal(t, http.StatusBadRequest, status)
 		assert.Equal(t, "invalid_grant", token.Error)
-		assert.Empty(t, token.AccessToken)
-	})
-
-	T.Run("a wrong client secret is rejected at the token endpoint", func(t *testing.T) {
-		t.Parallel()
-
-		_, jwt := createUserAndJWTForTest(t)
-
-		code, verifier := fetchAuthorizationCodeForTest(t, jwt)
-
-		form := exchangeCodeFormForTest(code, verifier)
-		form.Set("client_secret", "not-the-client-secret")
-
-		status, token := requestTokenForTest(t, http.MethodPost, form)
-		assert.Equal(t, http.StatusUnauthorized, status)
-		assert.Equal(t, "invalid_client", token.Error)
 		assert.Empty(t, token.AccessToken)
 	})
 
@@ -555,10 +522,11 @@ func TestAuth_OAuth2AuthorizationCodeFlow(T *testing.T) {
 // TestAuth_OAuth2RedirectURIValidation covers redirect URI matching, which the happy path never
 // exercises because it only ever passes the exact registered value.
 //
-// Every case but the first used to pass: the old validateRedirectURI matched on hostname with a
-// dot boundary and deliberately ignored ports, so a subdomain and a different port were both
+// Every case here used to pass: the old validateRedirectURI matched on hostname with a dot
+// boundary and deliberately ignored ports, so a subdomain and a different port were both
 // accepted. Matching is now byte for byte, which is what OAuth 2.1 requires and what makes the
-// registered list mean what it says.
+// registered list mean what it says. The registered URI being accepted is every authorization
+// conformance/oauth2server makes.
 func TestAuth_OAuth2RedirectURIValidation(T *testing.T) {
 	T.Parallel()
 
@@ -590,12 +558,6 @@ func TestAuth_OAuth2RedirectURIValidation(T *testing.T) {
 
 		return false
 	}
-
-	T.Run("the registered URI is accepted", func(t *testing.T) {
-		t.Parallel()
-
-		assert.True(t, authorizeWithRedirectURIForTest(t, oauth2RedirectURIForTest()))
-	})
 
 	T.Run("a different port on the registered host is rejected", func(t *testing.T) {
 		t.Parallel()
@@ -813,19 +775,15 @@ func TestAuth_OAuth2Metadata(T *testing.T) {
 
 		var metadata struct {
 			Issuer                        string   `json:"issuer"`
-			AuthorizationEndpoint         string   `json:"authorization_endpoint"`
-			TokenEndpoint                 string   `json:"token_endpoint"`
 			RegistrationEndpoint          string   `json:"registration_endpoint"`
 			GrantTypesSupported           []string `json:"grant_types_supported"`
 			CodeChallengeMethodsSupported []string `json:"code_challenge_methods_supported"`
 		}
 		require.NoError(t, json.NewDecoder(res.Body).Decode(&metadata))
 
-		// The endpoints have to be where they are actually mounted, which is what mounting at
-		// the paths the document derives buys.
+		// That the endpoints are named where they are mounted is conformance/oauth2server's.
+		// The issuer is this deployment's configuration.
 		assert.Equal(t, httpTestServerAddress, metadata.Issuer)
-		assert.Equal(t, httpTestServerAddress+oauth2AuthorizePath, metadata.AuthorizationEndpoint)
-		assert.Equal(t, httpTestServerAddress+oauth2TokenPath, metadata.TokenEndpoint)
 
 		// Absent, because this server does not serve RFC 7591 registration: a client here is
 		// created through the permission-gated gRPC surface. Advertising an endpoint that
@@ -911,6 +869,9 @@ func TestAuth_OAuth2Revocation(T *testing.T) {
 // A session that has ended or an impersonation is refused by being sent to the form, which a POST
 // with no credentials answers 401. A banned user is refused before that, 403, by the session
 // middleware every HTTP route sits behind.
+//
+// The control — a live session gets a code — is every authorization conformance/oauth2server
+// makes, through conformanceAuthorized's POST with the person's bearer token.
 func TestAuth_OAuth2AuthorizeRefusesSessionsThatNoLongerStand(T *testing.T) {
 	T.Parallel()
 
@@ -925,15 +886,6 @@ func TestAuth_OAuth2AuthorizeRefusesSessionsThatNoLongerStand(T *testing.T) {
 			assert.Empty(t, location.Query().Get("code"))
 		}
 	}
-
-	T.Run("the control: a live session gets a code", func(t *testing.T) {
-		t.Parallel()
-
-		_, jwt := createUserAndJWTForTest(t)
-
-		code, _ := fetchAuthorizationCodeForTest(t, jwt)
-		assert.NotEmpty(t, code)
-	})
 
 	T.Run("a signed-out session", func(t *testing.T) {
 		t.Parallel()

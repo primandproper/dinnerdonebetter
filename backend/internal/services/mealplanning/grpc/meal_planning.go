@@ -329,6 +329,10 @@ func (s *serviceImpl) CreateMealList(ctx context.Context, request *mealplannings
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
+	if request.Input == nil {
+		return nil, platformerrors.ErrEmptyInputParameter
+	}
+
 	logger := s.logger.WithSpan(span)
 
 	sessionContextData, err := sessions.RequireFromContext(ctx)
@@ -356,6 +360,10 @@ func (s *serviceImpl) CreateMealList(ctx context.Context, request *mealplannings
 func (s *serviceImpl) UpdateMealList(ctx context.Context, request *mealplanningsvc.UpdateMealListRequest) (*mealplanningsvc.UpdateMealListResponse, error) {
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
+
+	if request.Input == nil {
+		return nil, platformerrors.ErrEmptyInputParameter
+	}
 
 	logger := observability.ObserveValues(map[string]any{
 		mealplanningkeys.MealListIDKey: request.MealListId,
@@ -481,6 +489,10 @@ func (s *serviceImpl) UpdateMealListItem(ctx context.Context, request *mealplann
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
+	if request.Input == nil {
+		return nil, platformerrors.ErrEmptyInputParameter
+	}
+
 	logger := observability.ObserveValues(map[string]any{
 		mealplanningkeys.MealListItemIDKey: request.MealListItemId,
 	}, span, s.logger)
@@ -526,6 +538,10 @@ func (s *serviceImpl) CreateMealPlan(ctx context.Context, request *mealplannings
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
+	if request.Input == nil {
+		return nil, platformerrors.ErrEmptyInputParameter
+	}
+
 	logger := s.logger.WithSpan(span)
 
 	sessionContextData, err := sessions.RequireFromContext(ctx)
@@ -553,6 +569,10 @@ func (s *serviceImpl) CreateMealPlan(ctx context.Context, request *mealplannings
 func (s *serviceImpl) CreateMealPlanEvent(ctx context.Context, request *mealplanningsvc.CreateMealPlanEventRequest) (*mealplanningsvc.CreateMealPlanEventResponse, error) {
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
+
+	if request.Input == nil {
+		return nil, platformerrors.ErrEmptyInputParameter
+	}
 
 	logger := observability.ObserveValues(map[string]any{
 		mealplanningkeys.MealPlanIDKey: request.MealPlanId,
@@ -583,6 +603,10 @@ func (s *serviceImpl) CreateMealPlanOption(ctx context.Context, request *mealpla
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
+	if request.Input == nil {
+		return nil, platformerrors.ErrEmptyInputParameter
+	}
+
 	logger := observability.ObserveValues(map[string]any{
 		mealplanningkeys.MealPlanIDKey: request.MealPlanId,
 	}, span, s.logger)
@@ -611,6 +635,10 @@ func (s *serviceImpl) CreateMealPlanOption(ctx context.Context, request *mealpla
 func (s *serviceImpl) CreateMealPlanOptionVote(ctx context.Context, request *mealplanningsvc.CreateMealPlanOptionVoteRequest) (*mealplanningsvc.CreateMealPlanOptionVoteResponse, error) {
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
+
+	if request.Input == nil {
+		return nil, platformerrors.ErrEmptyInputParameter
+	}
 
 	logger := observability.ObserveValues(map[string]any{
 		mealplanningkeys.MealPlanIDKey: request.MealPlanId,
@@ -659,6 +687,10 @@ func (s *serviceImpl) CreateMealPlanTask(ctx context.Context, request *mealplann
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
+	if request.Input == nil {
+		return nil, platformerrors.ErrEmptyInputParameter
+	}
+
 	logger := observability.ObserveValues(map[string]any{
 		mealplanningkeys.MealPlanIDKey: request.MealPlanId,
 	}, span, s.logger)
@@ -687,6 +719,10 @@ func (s *serviceImpl) CreateMealPlanTask(ctx context.Context, request *mealplann
 func (s *serviceImpl) CreateUserIngredientPreference(ctx context.Context, request *mealplanningsvc.CreateUserIngredientPreferenceRequest) (*mealplanningsvc.CreateUserIngredientPreferenceResponse, error) {
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
+
+	if request.Input == nil {
+		return nil, platformerrors.ErrEmptyInputParameter
+	}
 
 	logger := s.logger.WithSpan(span)
 
@@ -1098,6 +1134,10 @@ func (s *serviceImpl) CreateMealPlanRecipeOptionSelection(ctx context.Context, r
 func (s *serviceImpl) UpdateMealPlanRecipeOptionSelection(ctx context.Context, request *mealplanningsvc.UpdateMealPlanRecipeOptionSelectionRequest) (*mealplanningsvc.UpdateMealPlanRecipeOptionSelectionResponse, error) {
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
+
+	if request.Input == nil {
+		return nil, platformerrors.ErrEmptyInputParameter
+	}
 
 	logger := observability.ObserveValues(map[string]any{
 		mealplanningkeys.MealPlanOptionIDKey: request.MealPlanOptionId,
@@ -1557,6 +1597,10 @@ func (s *serviceImpl) UpdateMealPlan(ctx context.Context, request *mealplannings
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
+	if request.Input == nil {
+		return nil, platformerrors.ErrEmptyInputParameter
+	}
+
 	logger := observability.ObserveValues(map[string]any{
 		mealplanningkeys.MealPlanIDKey: request.MealPlanId,
 	}, span, s.logger)
@@ -1590,6 +1634,10 @@ func (s *serviceImpl) UpdateMealPlan(ctx context.Context, request *mealplannings
 func (s *serviceImpl) UpdateMealPlanEvent(ctx context.Context, request *mealplanningsvc.UpdateMealPlanEventRequest) (*mealplanningsvc.UpdateMealPlanEventResponse, error) {
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
+
+	if request.Input == nil {
+		return nil, platformerrors.ErrEmptyInputParameter
+	}
 
 	logger := observability.ObserveValues(map[string]any{
 		mealplanningkeys.MealPlanIDKey:      request.MealPlanId,
@@ -1651,6 +1699,10 @@ func (s *serviceImpl) UpdateMealPlanGroceryListItem(ctx context.Context, request
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
+	if request.Input == nil {
+		return nil, platformerrors.ErrEmptyInputParameter
+	}
+
 	logger := observability.ObserveValues(map[string]any{
 		mealplanningkeys.MealPlanIDKey:                request.MealPlanId,
 		mealplanningkeys.MealPlanGroceryListItemIDKey: request.MealPlanGroceryListItemId,
@@ -1684,6 +1736,10 @@ func (s *serviceImpl) UpdateMealPlanGroceryListItem(ctx context.Context, request
 func (s *serviceImpl) UpdateMealPlanOption(ctx context.Context, request *mealplanningsvc.UpdateMealPlanOptionRequest) (*mealplanningsvc.UpdateMealPlanOptionResponse, error) {
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
+
+	if request.Input == nil {
+		return nil, platformerrors.ErrEmptyInputParameter
+	}
 
 	logger := observability.ObserveValues(map[string]any{
 		mealplanningkeys.MealPlanIDKey:       request.MealPlanId,
@@ -1720,6 +1776,10 @@ func (s *serviceImpl) UpdateMealPlanOptionVote(ctx context.Context, request *mea
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
+	if request.Input == nil {
+		return nil, platformerrors.ErrEmptyInputParameter
+	}
+
 	logger := observability.ObserveValues(map[string]any{
 		mealplanningkeys.MealPlanIDKey:           request.MealPlanId,
 		mealplanningkeys.MealPlanOptionIDKey:     request.MealPlanOptionId,
@@ -1754,6 +1814,10 @@ func (s *serviceImpl) UpdateMealPlanOptionVote(ctx context.Context, request *mea
 func (s *serviceImpl) UpdateMealPlanTaskStatus(ctx context.Context, request *mealplanningsvc.UpdateMealPlanTaskStatusRequest) (*mealplanningsvc.UpdateMealPlanTaskStatusResponse, error) {
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
+
+	if request.Input == nil {
+		return nil, platformerrors.ErrEmptyInputParameter
+	}
 
 	logger := observability.ObserveValues(map[string]any{
 		mealplanningkeys.MealPlanIDKey:     request.MealPlanId,
@@ -1790,6 +1854,10 @@ func (s *serviceImpl) UpdateUserIngredientPreference(ctx context.Context, reques
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
+	if request.Input == nil {
+		return nil, platformerrors.ErrEmptyInputParameter
+	}
+
 	logger := observability.ObserveValues(map[string]any{
 		mealplanningkeys.UserIngredientPreferenceIDKey: request.UserIngredientPreferenceId,
 	}, span, s.logger)
@@ -1823,6 +1891,10 @@ func (s *serviceImpl) UpdateUserIngredientPreference(ctx context.Context, reques
 func (s *serviceImpl) CreateAccountInstrumentOwnership(ctx context.Context, request *mealplanningsvc.CreateAccountInstrumentOwnershipRequest) (*mealplanningsvc.CreateAccountInstrumentOwnershipResponse, error) {
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
+
+	if request.Input == nil {
+		return nil, platformerrors.ErrEmptyInputParameter
+	}
 
 	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {
@@ -1952,6 +2024,10 @@ func (s *serviceImpl) SearchForValidInstrumentsNotOwnedByAccount(ctx context.Con
 func (s *serviceImpl) UpdateAccountInstrumentOwnership(ctx context.Context, request *mealplanningsvc.UpdateAccountInstrumentOwnershipRequest) (*mealplanningsvc.UpdateAccountInstrumentOwnershipResponse, error) {
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
+
+	if request.Input == nil {
+		return nil, platformerrors.ErrEmptyInputParameter
+	}
 
 	sessionContextData, err := sessions.RequireFromContext(ctx)
 	if err != nil {

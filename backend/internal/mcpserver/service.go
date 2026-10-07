@@ -23,6 +23,7 @@ import (
 	baseoauth2cfg "github.com/primandproper/primitives-go/v2/authentication/oauth2server/config"
 	"github.com/primandproper/primitives-go/v2/authentication/totp"
 	"github.com/primandproper/primitives-go/v2/database"
+	"github.com/primandproper/primitives-go/v2/healthcheck"
 	"github.com/primandproper/primitives-go/v2/observability"
 	"github.com/primandproper/primitives-go/v2/ratelimiting"
 	ratelimitingcfg "github.com/primandproper/primitives-go/v2/ratelimiting/config"
@@ -53,6 +54,7 @@ type Service struct {
 	resourceMetadata *oauth2server.ResourceMetadata
 	limiter          ratelimiting.RateLimiter
 	loginThrottle    routing.Middleware
+	health           healthcheck.Registry
 	routingConfig    *routingcfg.Config
 	baseURL          string
 }
@@ -152,6 +154,19 @@ func NewService(ctx context.Context, cfg *config.MCPServiceConfig, baseURL strin
 		return nil, fmt.Errorf("resolving database client: %w", err)
 	}
 
+	// What the readiness probe asks: the database every token and every tool reads through.
+	health, err := healthcheck.NewRegistry(healthcheck.WithPillars(pillars))
+	if err != nil {
+		return nil, fmt.Errorf("building health check registry: %w", err)
+	}
+
+	ready, ok := dbClient.(healthcheck.DatabaseReadyChecker)
+	if !ok {
+		return nil, fmt.Errorf("database client %T cannot report readiness", dbClient)
+	}
+
+	health.Register(healthcheck.NewDatabaseChecker("database", ready))
+
 	// The authorization server this process runs. Its records live in the four
 	// ddb_oauth2_* tables rather than in this process's memory, which is what makes
 	// a second replica and a restart survivable: an authorization code issued by one
@@ -223,6 +238,7 @@ func NewService(ctx context.Context, cfg *config.MCPServiceConfig, baseURL strin
 		resourceMetadata: resourceMetadata,
 		limiter:          limiter,
 		loginThrottle:    loginThrottle,
+		health:           health,
 		routingConfig:    &cfg.Routing,
 		baseURL:          baseURL,
 	}, nil
@@ -252,7 +268,7 @@ func (s *Service) Handler(ctx context.Context, transport string) (http.Handler, 
 		return nil, fmt.Errorf("transport %q is not served over HTTP", transport)
 	}
 
-	router, err := buildRouter(ctx, mcpHandler, s.authServer, s.resourceMetadata, s.loginThrottle, s.pillars, s.routingConfig, s.baseURL)
+	router, err := buildRouter(ctx, mcpHandler, s.authServer, s.resourceMetadata, s.loginThrottle, s.health, s.pillars, s.routingConfig, s.baseURL)
 	if err != nil {
 		return nil, fmt.Errorf("building router: %w", err)
 	}

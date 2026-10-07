@@ -35,10 +35,7 @@ type (
 		// fraction of passkey logins in a way that reads as a browser bug.
 		Passkey webauthncfg.Config `envPrefix:"PASSKEY_" json:"passkey,omitzero"`
 
-		Debug                 bool  `env:"DEBUG"                   json:"debug,omitempty"`
-		EnableUserSignup      bool  `env:"ENABLE_USER_SIGNUP"      json:"enableUserSignup,omitempty"`
-		MinimumUsernameLength uint8 `env:"MINIMUM_USERNAME_LENGTH" json:"minimumUsernameLength,omitempty"`
-		MinimumPasswordLength uint8 `env:"MINIMUM_PASSWORD_LENGTH" json:"minimumPasswordLength,omitempty"`
+		Debug bool `env:"DEBUG" json:"debug,omitempty"`
 	}
 )
 
@@ -47,8 +44,6 @@ var _ validation.ValidatableWithContext = (*Config)(nil)
 // ValidateWithContext validates a Config struct.
 func (cfg *Config) ValidateWithContext(ctx context.Context) error {
 	return validation.ValidateStructWithContext(ctx, cfg,
-		validation.Field(&cfg.MinimumUsernameLength, validation.Required),
-		validation.Field(&cfg.MinimumPasswordLength, validation.Required),
 		validation.Field(&cfg.Tokens, validation.Required),
 		validation.Field(&cfg.Passkey, validation.By(func(any) error {
 			return cfg.Passkey.ValidateWithContext(ctx)

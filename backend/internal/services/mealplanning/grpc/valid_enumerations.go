@@ -8,6 +8,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/types"
 	mealplanningconverters "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/grpc/converters"
 
+	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	errorsgrpc "github.com/primandproper/primitives-go/v2/errors/grpc"
 	filteringgrpc "github.com/primandproper/primitives-go/v2/filtering/grpc"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
@@ -243,6 +244,10 @@ func (s *serviceImpl) CreateValidIngredient(ctx context.Context, request *mealpl
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
+	if request.Input == nil {
+		return nil, platformerrors.ErrEmptyInputParameter
+	}
+
 	logger := s.logger.WithSpan(span)
 
 	created, err := s.mealPlanningManager.CreateValidIngredient(ctx, mealplanningconverters.ConvertGRPCCreateValidIngredientRequestToValidIngredientCreationRequestInput(request.Input))
@@ -261,6 +266,10 @@ func (s *serviceImpl) CreateValidIngredient(ctx context.Context, request *mealpl
 func (s *serviceImpl) CreateValidIngredientGroup(ctx context.Context, request *mealplanning.CreateValidIngredientGroupRequest) (*mealplanning.CreateValidIngredientGroupResponse, error) {
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
+
+	if request.Input == nil {
+		return nil, platformerrors.ErrEmptyInputParameter
+	}
 
 	logger := s.logger.WithSpan(span)
 
@@ -281,6 +290,10 @@ func (s *serviceImpl) CreateValidIngredientMeasurementUnit(ctx context.Context, 
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
+	if request.Input == nil {
+		return nil, platformerrors.ErrEmptyInputParameter
+	}
+
 	logger := s.logger.WithSpan(span)
 
 	created, err := s.mealPlanningManager.CreateValidIngredientMeasurementUnit(ctx, mealplanningconverters.ConvertGRPCCreateValidIngredientMeasurementUnitRequestToValidIngredientMeasurementUnitCreationRequestInput(request.Input))
@@ -299,6 +312,10 @@ func (s *serviceImpl) CreateValidIngredientMeasurementUnit(ctx context.Context, 
 func (s *serviceImpl) CreateValidIngredientPreparation(ctx context.Context, request *mealplanning.CreateValidIngredientPreparationRequest) (*mealplanning.CreateValidIngredientPreparationResponse, error) {
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
+
+	if request.Input == nil {
+		return nil, platformerrors.ErrEmptyInputParameter
+	}
 
 	logger := s.logger.WithSpan(span)
 
@@ -319,6 +336,10 @@ func (s *serviceImpl) CreateValidPrepTaskConfig(ctx context.Context, request *me
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
+	if request.Input == nil {
+		return nil, platformerrors.ErrEmptyInputParameter
+	}
+
 	logger := s.logger.WithSpan(span)
 
 	created, err := s.mealPlanningManager.CreateValidPrepTaskConfig(ctx, mealplanningconverters.ConvertGRPCValidPrepTaskConfigCreationRequestInputToValidPrepTaskConfigCreationRequestInput(request.Input))
@@ -337,6 +358,10 @@ func (s *serviceImpl) CreateValidPrepTaskConfig(ctx context.Context, request *me
 func (s *serviceImpl) CreateValidIngredientState(ctx context.Context, request *mealplanning.CreateValidIngredientStateRequest) (*mealplanning.CreateValidIngredientStateResponse, error) {
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
+
+	if request.Input == nil {
+		return nil, platformerrors.ErrEmptyInputParameter
+	}
 
 	logger := s.logger.WithSpan(span)
 
@@ -358,6 +383,10 @@ func (s *serviceImpl) CreateValidIngredientStateIngredient(ctx context.Context, 
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
+	if request.Input == nil {
+		return nil, platformerrors.ErrEmptyInputParameter
+	}
+
 	logger := s.logger.WithSpan(span)
 
 	created, err := s.mealPlanningManager.CreateValidIngredientStateIngredient(ctx, mealplanningconverters.ConvertGRPCCreateValidIngredientStateIngredientRequestToValidIngredientStateIngredientCreationRequestInput(request.Input))
@@ -376,6 +405,10 @@ func (s *serviceImpl) CreateValidIngredientStateIngredient(ctx context.Context, 
 func (s *serviceImpl) CreateValidInstrument(ctx context.Context, request *mealplanning.CreateValidInstrumentRequest) (*mealplanning.CreateValidInstrumentResponse, error) {
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
+
+	if request.Input == nil {
+		return nil, platformerrors.ErrEmptyInputParameter
+	}
 
 	logger := s.logger.WithSpan(span)
 
@@ -396,6 +429,10 @@ func (s *serviceImpl) CreateValidMeasurementUnit(ctx context.Context, request *m
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
+	if request.Input == nil {
+		return nil, platformerrors.ErrEmptyInputParameter
+	}
+
 	logger := s.logger.WithSpan(span)
 
 	created, err := s.mealPlanningManager.CreateValidMeasurementUnit(ctx, mealplanningconverters.ConvertGRPCValidMeasurementUnitCreationRequestInputToValidMeasurementUnitCreationRequestInput(request.Input))
@@ -414,6 +451,10 @@ func (s *serviceImpl) CreateValidMeasurementUnit(ctx context.Context, request *m
 func (s *serviceImpl) CreateValidMeasurementUnitConversion(ctx context.Context, request *mealplanning.CreateValidMeasurementUnitConversionRequest) (*mealplanning.CreateValidMeasurementUnitConversionResponse, error) {
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
+
+	if request.Input == nil {
+		return nil, platformerrors.ErrEmptyInputParameter
+	}
 
 	logger := s.logger.WithSpan(span)
 
@@ -434,6 +475,10 @@ func (s *serviceImpl) CreateValidPreparation(ctx context.Context, request *mealp
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
+	if request.Input == nil {
+		return nil, platformerrors.ErrEmptyInputParameter
+	}
+
 	logger := s.logger.WithSpan(span)
 
 	created, err := s.mealPlanningManager.CreateValidPreparation(ctx, mealplanningconverters.ConvertGRPCValidPreparationCreationRequestInputToValidPreparationCreationRequestInput(request.Input))
@@ -452,6 +497,10 @@ func (s *serviceImpl) CreateValidPreparation(ctx context.Context, request *mealp
 func (s *serviceImpl) CreateValidPreparationInstrument(ctx context.Context, request *mealplanning.CreateValidPreparationInstrumentRequest) (*mealplanning.CreateValidPreparationInstrumentResponse, error) {
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
+
+	if request.Input == nil {
+		return nil, platformerrors.ErrEmptyInputParameter
+	}
 
 	logger := s.logger.WithSpan(span)
 
@@ -472,6 +521,10 @@ func (s *serviceImpl) CreateValidPreparationVessel(ctx context.Context, request 
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
+	if request.Input == nil {
+		return nil, platformerrors.ErrEmptyInputParameter
+	}
+
 	logger := s.logger.WithSpan(span)
 
 	created, err := s.mealPlanningManager.CreateValidPreparationVessel(ctx, mealplanningconverters.ConvertGRPCCreateValidPreparationVesselRequestToValidPreparationVesselCreationRequestInput(request.Input))
@@ -490,6 +543,10 @@ func (s *serviceImpl) CreateValidPreparationVessel(ctx context.Context, request 
 func (s *serviceImpl) CreateValidVessel(ctx context.Context, request *mealplanning.CreateValidVesselRequest) (*mealplanning.CreateValidVesselResponse, error) {
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
+
+	if request.Input == nil {
+		return nil, platformerrors.ErrEmptyInputParameter
+	}
 
 	logger := s.logger.WithSpan(span)
 
@@ -1992,6 +2049,10 @@ func (s *serviceImpl) UpdateValidIngredient(ctx context.Context, request *mealpl
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
+	if request.Input == nil {
+		return nil, platformerrors.ErrEmptyInputParameter
+	}
+
 	logger := s.logger.WithSpan(span).WithValue(mealplanningkeys.ValidIngredientIDKey, request.ValidIngredientId)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidIngredientIDKey, request.ValidIngredientId)
 
@@ -2011,6 +2072,10 @@ func (s *serviceImpl) UpdateValidIngredient(ctx context.Context, request *mealpl
 func (s *serviceImpl) UpdateValidIngredientGroup(ctx context.Context, request *mealplanning.UpdateValidIngredientGroupRequest) (*mealplanning.UpdateValidIngredientGroupResponse, error) {
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
+
+	if request.Input == nil {
+		return nil, platformerrors.ErrEmptyInputParameter
+	}
 
 	logger := s.logger.WithSpan(span).WithValue(mealplanningkeys.ValidIngredientGroupIDKey, request.ValidIngredientGroupId)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidIngredientGroupIDKey, request.ValidIngredientGroupId)
@@ -2033,6 +2098,10 @@ func (s *serviceImpl) UpdateValidIngredientMeasurementUnit(ctx context.Context, 
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
+	if request.Input == nil {
+		return nil, platformerrors.ErrEmptyInputParameter
+	}
+
 	logger := s.logger.WithSpan(span).WithValue(mealplanningkeys.ValidIngredientMeasurementUnitIDKey, request.ValidIngredientMeasurementUnitId)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidIngredientMeasurementUnitIDKey, request.ValidIngredientMeasurementUnitId)
 
@@ -2053,6 +2122,10 @@ func (s *serviceImpl) UpdateValidIngredientMeasurementUnit(ctx context.Context, 
 func (s *serviceImpl) UpdateValidIngredientPreparation(ctx context.Context, request *mealplanning.UpdateValidIngredientPreparationRequest) (*mealplanning.UpdateValidIngredientPreparationResponse, error) {
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
+
+	if request.Input == nil {
+		return nil, platformerrors.ErrEmptyInputParameter
+	}
 
 	logger := s.logger.WithSpan(span).WithValue(mealplanningkeys.ValidIngredientPreparationIDKey, request.ValidIngredientPreparationId)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidIngredientPreparationIDKey, request.ValidIngredientPreparationId)
@@ -2075,6 +2148,10 @@ func (s *serviceImpl) UpdateValidPrepTaskConfig(ctx context.Context, request *me
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
+	if request.Input == nil {
+		return nil, platformerrors.ErrEmptyInputParameter
+	}
+
 	logger := s.logger.WithSpan(span).WithValue(mealplanningkeys.ValidPrepTaskConfigIDKey, request.ValidPrepTaskConfigId)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidPrepTaskConfigIDKey, request.ValidPrepTaskConfigId)
 
@@ -2095,6 +2172,10 @@ func (s *serviceImpl) UpdateValidPrepTaskConfig(ctx context.Context, request *me
 func (s *serviceImpl) UpdateValidIngredientState(ctx context.Context, request *mealplanning.UpdateValidIngredientStateRequest) (*mealplanning.UpdateValidIngredientStateResponse, error) {
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
+
+	if request.Input == nil {
+		return nil, platformerrors.ErrEmptyInputParameter
+	}
 
 	logger := s.logger.WithSpan(span).WithValue(mealplanningkeys.ValidIngredientStateIDKey, request.ValidIngredientStateId)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidIngredientStateIDKey, request.ValidIngredientStateId)
@@ -2117,6 +2198,10 @@ func (s *serviceImpl) UpdateValidIngredientStateIngredient(ctx context.Context, 
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
+	if request.Input == nil {
+		return nil, platformerrors.ErrEmptyInputParameter
+	}
+
 	logger := s.logger.WithSpan(span).WithValue(mealplanningkeys.ValidIngredientStateIngredientIDKey, request.ValidIngredientStateIngredientId)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidIngredientStateIngredientIDKey, request.ValidIngredientStateIngredientId)
 
@@ -2137,6 +2222,10 @@ func (s *serviceImpl) UpdateValidIngredientStateIngredient(ctx context.Context, 
 func (s *serviceImpl) UpdateValidInstrument(ctx context.Context, request *mealplanning.UpdateValidInstrumentRequest) (*mealplanning.UpdateValidInstrumentResponse, error) {
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
+
+	if request.Input == nil {
+		return nil, platformerrors.ErrEmptyInputParameter
+	}
 
 	logger := s.logger.WithSpan(span).WithValue(mealplanningkeys.ValidInstrumentIDKey, request.ValidInstrumentId)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidInstrumentIDKey, request.ValidInstrumentId)
@@ -2159,6 +2248,10 @@ func (s *serviceImpl) UpdateValidMeasurementUnit(ctx context.Context, request *m
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
+	if request.Input == nil {
+		return nil, platformerrors.ErrEmptyInputParameter
+	}
+
 	logger := s.logger.WithSpan(span).WithValue(mealplanningkeys.ValidMeasurementUnitIDKey, request.ValidMeasurementUnitId)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidMeasurementUnitIDKey, request.ValidMeasurementUnitId)
 
@@ -2179,6 +2272,10 @@ func (s *serviceImpl) UpdateValidMeasurementUnit(ctx context.Context, request *m
 func (s *serviceImpl) UpdateValidMeasurementUnitConversion(ctx context.Context, request *mealplanning.UpdateValidMeasurementUnitConversionRequest) (*mealplanning.UpdateValidMeasurementUnitConversionResponse, error) {
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
+
+	if request.Input == nil {
+		return nil, platformerrors.ErrEmptyInputParameter
+	}
 
 	logger := s.logger.WithSpan(span).WithValue(mealplanningkeys.ValidMeasurementUnitConversionIDKey, request.ValidMeasurementUnitConversionId)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidMeasurementUnitConversionIDKey, request.ValidMeasurementUnitConversionId)
@@ -2201,6 +2298,10 @@ func (s *serviceImpl) UpdateValidPreparation(ctx context.Context, request *mealp
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
+	if request.Input == nil {
+		return nil, platformerrors.ErrEmptyInputParameter
+	}
+
 	logger := s.logger.WithSpan(span).WithValue(mealplanningkeys.ValidPreparationIDKey, request.ValidPreparationId)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidPreparationIDKey, request.ValidPreparationId)
 
@@ -2221,6 +2322,10 @@ func (s *serviceImpl) UpdateValidPreparation(ctx context.Context, request *mealp
 func (s *serviceImpl) UpdateValidPreparationInstrument(ctx context.Context, request *mealplanning.UpdateValidPreparationInstrumentRequest) (*mealplanning.UpdateValidPreparationInstrumentResponse, error) {
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
+
+	if request.Input == nil {
+		return nil, platformerrors.ErrEmptyInputParameter
+	}
 
 	logger := s.logger.WithSpan(span).WithValue(mealplanningkeys.ValidPreparationInstrumentIDKey, request.ValidPreparationInstrumentId)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidPreparationInstrumentIDKey, request.ValidPreparationInstrumentId)
@@ -2243,6 +2348,10 @@ func (s *serviceImpl) UpdateValidPreparationVessel(ctx context.Context, request 
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
 
+	if request.Input == nil {
+		return nil, platformerrors.ErrEmptyInputParameter
+	}
+
 	logger := s.logger.WithSpan(span).WithValue(mealplanningkeys.ValidPreparationVesselIDKey, request.ValidPreparationVesselId)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidPreparationVesselIDKey, request.ValidPreparationVesselId)
 
@@ -2263,6 +2372,10 @@ func (s *serviceImpl) UpdateValidPreparationVessel(ctx context.Context, request 
 func (s *serviceImpl) UpdateValidVessel(ctx context.Context, request *mealplanning.UpdateValidVesselRequest) (*mealplanning.UpdateValidVesselResponse, error) {
 	ctx, span := s.tracer.StartSpan(ctx)
 	defer span.End()
+
+	if request.Input == nil {
+		return nil, platformerrors.ErrEmptyInputParameter
+	}
 
 	logger := s.logger.WithSpan(span).WithValue(mealplanningkeys.ValidVesselIDKey, request.ValidVesselId)
 	tracing.AttachToSpan(span, mealplanningkeys.ValidVesselIDKey, request.ValidVesselId)

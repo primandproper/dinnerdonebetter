@@ -7,7 +7,6 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/services/auth/handlers/authentication"
 	identitycfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/identity/config"
 	mealplanningcfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/mealplanning/config"
-	oauthcfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/oauth/config"
 	paymentscfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/payments/config"
 	uploadedmediacfg "github.com/primandproper/dinnerdonebetter/backend/internal/services/uploadedmedia/config"
 
@@ -112,10 +111,6 @@ func RegisterConfigs(i do.Injector) {
 	do.Provide[*mealplanningcfg.Config](i, func(i do.Injector) (*mealplanningcfg.Config, error) {
 		svc := do.MustInvoke[*config.ServicesConfig](i)
 		return &svc.MealPlanning, nil
-	})
-	do.Provide[*oauthcfg.Config](i, func(i do.Injector) (*oauthcfg.Config, error) {
-		svc := do.MustInvoke[*config.ServicesConfig](i)
-		return &svc.OAuth2Clients, nil
 	})
 	do.Provide[*uploadedmediacfg.Config](i, func(i do.Injector) (*uploadedmediacfg.Config, error) {
 		svc := do.MustInvoke[*config.ServicesConfig](i)

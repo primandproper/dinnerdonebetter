@@ -17,10 +17,10 @@ import (
 	"google.golang.org/grpc"
 )
 
-// interceptorWouldAllow reimplements the hand-rolled check exactly as AuthInterceptor performs
-// it: every required permission must be held by the service-wide or the per-account checker, and
-// a method with no entry in the table is refused.
-func interceptorWouldAllow(
+// tableAllows reads the merged method permission table the way AuthInterceptor's own check used
+// to before the enforcer became the only one: every required permission must be held by the
+// service-wide or the per-account checker, and a method with no entry in the table is refused.
+func tableAllows(
 	perms interceptors.MethodPermissionsMap,
 	method string,
 	service authorization.ServiceRolePermissionChecker,
@@ -40,16 +40,18 @@ func interceptorWouldAllow(
 	return true
 }
 
-// TestAuthorizationEnforcerMatchesTheHandRolledCheck is what makes enforcement safe to turn on.
+// TestAuthorizationEnforcerMatchesTheMethodPermissionTable proves the enforcer enforces the table
+// this deployment declares.
 //
-// The argument for audit-only mode is that flipping enforcement across a large hand-written
-// permission table is a coin flip on whether the two tables agree. This test replaces that coin
-// flip with a proof: for every method the server actually declares and every role a principal
-// can actually hold, the platform enforcer reaches the same verdict as the check it replaces.
+// The enforcer is the only permission check on either chain, and it is built from the fragments
+// with the overrides applied through RequirementsBuilder.Override. MethodPermissions is the same
+// two halves merged, and it is what everything outside the server reads — the conformance harness
+// derives which calls are reserved to an operator from it. For every method the server declares
+// and every role a principal can actually hold, the two derivations must reach the same verdict.
 //
-// If this test ever fails, the enforcer and the interceptor have diverged, and the deployed
-// service is refusing or admitting something the other would not.
-func TestAuthorizationEnforcerMatchesTheHandRolledCheck(t *testing.T) {
+// If this test ever fails, the table the server enforces and the table everything else reads have
+// diverged.
+func TestAuthorizationEnforcerMatchesTheMethodPermissionTable(t *testing.T) {
 	t.Parallel()
 
 	perms := MethodPermissions()
@@ -128,15 +130,15 @@ func TestAuthorizationEnforcerMatchesTheHandRolledCheck(t *testing.T) {
 		})
 
 		for method := range perms {
-			// Public methods never reach the permission check in either implementation.
+			// Public methods are admitted to anybody the interceptor let through.
 			if _, ok := public[method]; ok {
 				continue
 			}
 
 			_, enforcerErr := interceptor(ctx, struct{}{}, &grpc.UnaryServerInfo{FullMethod: method}, handler)
 
-			assert.Equal(t, interceptorWouldAllow(perms, method, service, account), enforcerErr == nil,
-				"enforcer and interceptor disagree on %q for a %s", method, roleName)
+			assert.Equal(t, tableAllows(perms, method, service, account), enforcerErr == nil,
+				"enforcer and table disagree on %q for a %s", method, roleName)
 			compared++
 		}
 	}

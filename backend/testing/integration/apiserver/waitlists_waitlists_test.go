@@ -21,8 +21,8 @@ import (
 
 // The waitlists surface is platform's, and conformance/waitlists asserts it: the catalog, the
 // public signup page and its double opt-in, the queue's lifecycle, withdrawal and erasure. What
-// is left here is what only this deployment can say — who among its roles may do what, the
-// confirmation mail it actually queues, and the audit entries its repository records.
+// is left here is what only this deployment can say — who among its roles may do what, and the
+// audit entries its repository records.
 
 // createWaitlistForTest opens a list. Lists are administrative rows in one global catalog, so
 // the admin client opens every one.
@@ -92,38 +92,21 @@ func subjectRequestFor(t *testing.T, testClient client.Client) *waitlistspb.List
 	}
 }
 
-// TestWaitlistSignups_Confirmation pins this deployment's half of the double opt-in: the mail it
-// queues on the outbound-emails topic carries links that work, a signed-in caller's join is
-// attributed to them while it waits on its link, and the repository records the join and the
-// confirmation as it records every other signup write.
+// TestWaitlistSignups_Confirmation pins the audit entries the repository records for the join
+// and the confirmation of the double opt-in. The loop itself — held pending until the mailed link
+// is followed, attributed to a signed-in caller, the unsubscribe link beside it — is
+// conformance/waitlists', which reads the links off the mail this deployment queues.
 func TestWaitlistSignups_Confirmation(T *testing.T) {
 	T.Parallel()
 
-	T.Run("a signed-in caller's join is held pending until its mailed link is followed", func(t *testing.T) {
+	T.Run("the join and the confirmation are recorded", func(t *testing.T) {
 		t.Parallel()
 		ctx := t.Context()
 
 		_, testClient := createUserAndClientForTest(t)
 		waitlist := createWaitlistForTest(t)
-		contact := identifiers.New() + "@example.invalid"
 
-		_, err := testClient.Join(ctx, &waitlistspb.JoinRequest{ListId: waitlist.GetId(), Contact: contact})
-		require.NoError(t, err)
-
-		pending := signupForSubject(t, testClient, waitlist.GetId())
-		assert.Equal(t, waitlistspb.SignupStatus_SIGNUP_STATUS_PENDING, pending.GetStatus())
-		assert.Equal(t, contact, pending.GetContact(), "the address stated is the one the mail went to")
-
-		links, err := conformanceWaitlistLinks(ctx, tenancy.Global(), waitlist.GetId(), contact)
-		require.NoError(t, err, "the join queued no confirmation mail")
-		require.NotEmpty(t, links.Unsubscribe, "the confirmation mail carries no way off the list")
-
-		_, err = buildUnauthenticatedGRPCClientForTest(t).Confirm(ctx, &waitlistspb.ConfirmRequest{Token: links.Confirm})
-		require.NoError(t, err)
-
-		confirmed := signupForSubject(t, testClient, waitlist.GetId())
-		assert.Equal(t, pending.GetId(), confirmed.GetId())
-		assert.Equal(t, waitlistspb.SignupStatus_SIGNUP_STATUS_WAITING, confirmed.GetStatus())
+		confirmed := joinAndConfirmForTest(t, testClient, waitlist.GetId())
 
 		AssertAuditLogContainsFuzzyForResource(t, ctx, waitlists.ResourceTypeSignup, confirmed.GetId(), 10, []*ExpectedAuditEntry{
 			{EventType: "created", ResourceType: waitlists.ResourceTypeSignup, RelevantID: confirmed.GetId()},

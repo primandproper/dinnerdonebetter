@@ -141,7 +141,6 @@ func BuildIntegrationTestsConfig() *config.APIServiceConfig {
 		Queues: queuescfg.Config{
 			DataChangesTopicName:         dataChangesTopicName,
 			OutboundEmailsTopicName:      outboundEmailsTopicName,
-			SearchIndexRequestsTopicName: searchIndexRequestsTopicName,
 			MobileNotificationsTopicName: mobileNotificationsTopicName,
 			QueuedMailTopicName:          queuedMailTopicName,
 		},
@@ -226,11 +225,7 @@ func BuildIntegrationTestsConfig() *config.APIServiceConfig {
 					RequestsPerSec: 10000,
 					BurstSize:      10000,
 				},
-				Debug:                 false,
-				EnableUserSignup:      true,
-				MinimumUsernameLength: 3,
-				MinimumPasswordLength: 8,
-				TokenLifetime:         5 * time.Minute,
+				Debug: false,
 				Tokens: authcfg.TokensConfig{
 					Config: tokenscfg.Config{
 						Provider:                tokenscfg.ProviderPASETO,

@@ -419,8 +419,10 @@ member read another account's billing by asking.
 **`testing/integration/apiserver/payments_test.go`**:
 
 - `createProductForTest`, `createSubscriptionForTest` helpers, built from `payments/fakes`
-- Tests for CreateProduct, GetProduct, CreateSubscription, GetSubscription, etc., including that
-  the store's refusals arrive as the right gRPC codes (`internal/services/payments/errors`)
+- `TestPayments_ArchiveSubscription`: the audit entry this application's hooks write. What the
+  billing surface itself promises — reads, writes, and the gRPC codes platform's
+  `billing.GRPCMapper` maps the store's refusals to — is platform's `conformance/billing` suite,
+  run by `conformance_test.go`
 - Uses `StubPaymentProcessor` (no external calls)
 
 **`internal/repositories/postgres/payments/`** pins the recording half against a real database: every
@@ -440,7 +442,6 @@ asserts the behaviour #466 asked for.
 | Manager               | `internal/domain/payments/manager/`                                          |
 | Repository            | `internal/repositories/postgres/payments/`                                   |
 | Fakes                 | `internal/domain/payments/fakes/`                                            |
-| gRPC error mapping    | `internal/services/payments/errors/`                                         |
 | Stripe adapter        | `internal/services/payments/adapters/stripe.go`                              |
 | RevenueCat adapter    | `internal/services/payments/adapters/revenuecat.go`                          |
 | Stub adapter          | `internal/services/payments/adapters/stub.go`                                |

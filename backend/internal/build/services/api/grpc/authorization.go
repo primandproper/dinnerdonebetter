@@ -13,22 +13,23 @@ import (
 
 // auditOnlyAuthorization decides whether the platform enforcer records its verdict or acts on it.
 //
-// It is false: the enforcer denies. That is safe because it is not a guess.
-// TestAuthorizationEnforcerMatchesTheHandRolledCheck drives every method the server declares
-// against every role a principal can hold — 2,920 decisions — and asserts the enforcer reaches
-// the same verdict as the hand-rolled check it replaces. Audit-only mode exists for services
-// that cannot make that comparison ahead of time; this one can, because both sides are built from
-// the same fragments and overrides — the interceptor from them merged, the enforcer by declaring
-// one and overriding with the other — and read the same permission checkers.
+// It is false: the enforcer denies, and it is the only permission check on either chain.
+// TestAuthorizationEnforcerMatchesTheMethodPermissionTable drives every method the server
+// declares against every role a principal can hold and asserts the enforcer reaches the verdict
+// the merged table — MethodPermissions — gives. Both are built from the same fragments and
+// overrides: the table from them merged, the enforcer by declaring one and overriding with the
+// other.
 //
 // That test is load-bearing. It is what would catch a policy change here drifting from the
-// permission slices in internal/authorization, and it already caught one real divergence: 39
-// methods mapped to an empty permission slice, which the interceptor admits and the platform
-// would have refused as undeclared.
+// permission slices in internal/authorization, and it caught one real divergence when the
+// enforcer was introduced beside AuthInterceptor's own check, since deleted: 39 methods mapped to
+// an empty permission slice, which that check admitted and the platform would have refused as
+// undeclared.
 const auditOnlyAuthorization = false
 
-// ProvideAuthorizationEnforcer builds platform-go's authorization enforcer over the method table
-// the hand-rolled AuthInterceptor already uses.
+// ProvideAuthorizationEnforcer builds primitives' authorization enforcer over this deployment's
+// method permission table. It is the server's only permission check, on the unary and the stream
+// chain alike.
 //
 // It takes no resolver. Enforcement reads a caller's Grants, which the session already carries,
 // and resolution — turning the roles a principal holds into the permissions they carry — happens
@@ -62,8 +63,8 @@ func ProvideAuthorizationEnforcer(
 		declared[method] = struct{}{}
 
 		// A method mapped to an empty permission slice means "any authenticated caller" —
-		// AuthInterceptor still demands a session, then loops over zero permissions and
-		// admits the request. The platform refuses to express that as a requirement, for
+		// AuthInterceptor demands a session for it, and nothing more is asked. The platform
+		// refuses to express that as a requirement, for
 		// good reason: zero required permissions reads as a check while behaving as an
 		// allow. Public is how it says the same thing honestly. Authentication is still
 		// enforced by the interceptor ahead of this one, so Public here scopes to

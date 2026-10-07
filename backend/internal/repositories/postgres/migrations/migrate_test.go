@@ -30,6 +30,36 @@ func TestQuerier_Migrate(T *testing.T) {
 		require.NoError(t, migrator.Migrate(ctx, db))
 	})
 
+	// Every replica migrates and then seeds the authorization policy at startup, and nothing
+	// serializes the seeds: the migrator's lock covers only the schema. They need not be
+	// serialized, because platform's Seed converges when several run at once — which is what
+	// let the advisory lock this repo held around it go.
+	T.Run("replicas migrating at once all succeed", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		db, _ := pgtesting.BuildDatabaseContainerForTest(t)
+
+		const replicas = 4
+
+		errs := make(chan error, replicas)
+		for range replicas {
+			go func() {
+				migrator, err := NewMigrator(loggingnoop.NewLogger())
+				if err != nil {
+					errs <- err
+					return
+				}
+
+				errs <- migrator.Migrate(ctx, db)
+			}()
+		}
+
+		for range replicas {
+			require.NoError(t, <-errs)
+		}
+	})
+
 	// The audit tables are append-only at the database, not merely by convention.
 	// This is the assertion that the trigger survived being rendered, fenced, and
 	// applied — an UPDATE that quietly succeeded would mean the chain is the only

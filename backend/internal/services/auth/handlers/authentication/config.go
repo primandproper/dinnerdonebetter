@@ -2,7 +2,6 @@ package authentication
 
 import (
 	"context"
-	"time"
 
 	authcfg "github.com/primandproper/dinnerdonebetter/backend/internal/authentication/config"
 
@@ -20,13 +19,9 @@ type (
 		Tokens authcfg.TokensConfig `envPrefix:"TOKENS_" json:"tokens,omitzero"`
 		// RateLimiting throttles the doors a caller reaches without a credential: signing in,
 		// signing up, and asking for a mail. Each door has a budget of its own per address.
-		RateLimiting          ratelimitingcfg.Config `envPrefix:"RATE_LIMITING_"    json:"rateLimiting,omitzero"`
-		OAuth2                oauth2servercfg.Config `envPrefix:"OAUTH2_"           json:"oauth2,omitzero"`
-		TokenLifetime         time.Duration          `env:"JWT_LIFETIME"            json:"jwtLifetime,omitempty"`
-		Debug                 bool                   `env:"DEBUG"                   json:"debug,omitempty"`
-		EnableUserSignup      bool                   `env:"ENABLE_USER_SIGNUP"      json:"enableUserSignup,omitempty"`
-		MinimumUsernameLength uint8                  `env:"MINIMUM_USERNAME_LENGTH" json:"minimumUsernameLength,omitempty"`
-		MinimumPasswordLength uint8                  `env:"MINIMUM_PASSWORD_LENGTH" json:"minimumPasswordLength,omitempty"`
+		RateLimiting ratelimitingcfg.Config `envPrefix:"RATE_LIMITING_" json:"rateLimiting,omitzero"`
+		OAuth2       oauth2servercfg.Config `envPrefix:"OAUTH2_"        json:"oauth2,omitzero"`
+		Debug        bool                   `env:"DEBUG"                json:"debug,omitempty"`
 	}
 )
 
@@ -35,8 +30,6 @@ var _ validation.ValidatableWithContext = (*Config)(nil)
 // ValidateWithContext validates a Config struct.
 func (cfg *Config) ValidateWithContext(ctx context.Context) error {
 	return validation.ValidateStructWithContext(ctx, cfg,
-		validation.Field(&cfg.MinimumUsernameLength, validation.Required),
-		validation.Field(&cfg.MinimumPasswordLength, validation.Required),
 		validation.Field(&cfg.Tokens, validation.Required),
 		// Called explicitly rather than left to ozzo's nested-struct handling: the platform's
 		// Config implements ValidatableWithContext on its pointer receiver, and ozzo hands

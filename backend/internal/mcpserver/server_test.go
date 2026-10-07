@@ -16,6 +16,7 @@ import (
 
 	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
 	oauth2memory "github.com/primandproper/primitives-go/v2/authentication/oauth2server/memory"
+	"github.com/primandproper/primitives-go/v2/healthcheck"
 	"github.com/primandproper/primitives-go/v2/observability"
 	"github.com/primandproper/primitives-go/v2/observability/logging/noop"
 	"github.com/primandproper/primitives-go/v2/ratelimiting"
@@ -43,6 +44,22 @@ const exampleCodeVerifier = "abcdefghijklmnopqrstuvwxyz0123456789-._~ABC"
 func buildTestRouter(t *testing.T, subject *oauth2server.Subject, loginThrottle routing.Middleware) (handler http.Handler, resource string) {
 	t.Helper()
 
+	return buildTestRouterWithHealth(t, subject, loginThrottle, &stubHealth{result: &healthcheck.Result{Status: healthcheck.StatusUp}})
+}
+
+// stubHealth answers every readiness check with the result it was given.
+type stubHealth struct {
+	result *healthcheck.Result
+}
+
+func (*stubHealth) Register(healthcheck.Checker) {}
+
+func (h *stubHealth) CheckAll(context.Context) *healthcheck.Result { return h.result }
+
+// buildTestRouterWithHealth is buildTestRouter with the readiness probe asking health.
+func buildTestRouterWithHealth(t *testing.T, subject *oauth2server.Subject, loginThrottle routing.Middleware, health healthcheck.Registry) (handler http.Handler, resource string) {
+	t.Helper()
+
 	ctx := t.Context()
 
 	srv, err := oauth2server.NewServer(exampleResource, oauth2memory.NewStore(),
@@ -61,7 +78,7 @@ func buildTestRouter(t *testing.T, subject *oauth2server.Subject, loginThrottle 
 		res.WriteHeader(http.StatusTeapot)
 	})
 
-	router, err := buildRouter(ctx, mcpHandler, srv, resourceMetadata, loginThrottle, &observability.Pillars{},
+	router, err := buildRouter(ctx, mcpHandler, srv, resourceMetadata, loginThrottle, health, &observability.Pillars{},
 		&routingcfg.Config{Provider: routingcfg.ProviderChi, Chi: &chi.Config{ServiceName: t.Name()}},
 		exampleResource,
 	)
@@ -72,6 +89,38 @@ func buildTestRouter(t *testing.T, subject *oauth2server.Subject, loginThrottle 
 
 func TestBuildRouter(T *testing.T) {
 	T.Parallel()
+
+	T.Run("is ready when every component is up", func(t *testing.T) {
+		t.Parallel()
+
+		handler, _ := buildTestRouterWithHealth(t, nil, nil, &stubHealth{result: &healthcheck.Result{
+			Status:     healthcheck.StatusUp,
+			Components: map[string]healthcheck.ComponentResult{"database": {Status: healthcheck.StatusUp}},
+		}})
+
+		res := httptest.NewRecorder()
+		handler.ServeHTTP(res, httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/_ops_/ready", nil))
+
+		assert.Equal(t, http.StatusOK, res.Code)
+	})
+
+	T.Run("is not ready when a component is down", func(t *testing.T) {
+		t.Parallel()
+
+		handler, _ := buildTestRouterWithHealth(t, nil, nil, &stubHealth{result: &healthcheck.Result{
+			Status:     healthcheck.StatusDown,
+			Components: map[string]healthcheck.ComponentResult{"database": {Status: healthcheck.StatusDown}},
+		}})
+
+		res := httptest.NewRecorder()
+		handler.ServeHTTP(res, httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/_ops_/ready", nil))
+
+		assert.Equal(t, http.StatusServiceUnavailable, res.Code)
+
+		var body healthcheck.Result
+		require.NoError(t, json.Unmarshal(res.Body.Bytes(), &body))
+		assert.Equal(t, healthcheck.StatusDown, body.Status)
+	})
 
 	T.Run("publishes both discovery documents", func(t *testing.T) {
 		t.Parallel()

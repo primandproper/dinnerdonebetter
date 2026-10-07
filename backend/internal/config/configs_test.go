@@ -378,7 +378,6 @@ func TestAPIServiceConfig_ValidateWithContext(T *testing.T) {
 			Queues: queuescfg.Config{
 				DataChangesTopicName:         "data-changes",
 				OutboundEmailsTopicName:      "outbound-emails",
-				SearchIndexRequestsTopicName: "search-index-requests",
 				MobileNotificationsTopicName: "mobile-notifications",
 				QueuedMailTopicName:          "queued-mail",
 			},
@@ -423,9 +422,8 @@ func TestAPIServiceConfig_ValidateWithContext(T *testing.T) {
 				RunMode: DevelopmentRunMode,
 			},
 			Queues: queuescfg.Config{
-				DataChangesTopicName:         "data-changes",
-				OutboundEmailsTopicName:      "outbound-emails",
-				SearchIndexRequestsTopicName: "search-index-requests",
+				DataChangesTopicName:    "data-changes",
+				OutboundEmailsTopicName: "outbound-emails",
 			},
 			Services: ServicesConfig{},
 		}

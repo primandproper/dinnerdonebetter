@@ -132,7 +132,6 @@
 	"queues": {
 		"dataChangesTopicName": "data_changes",
 		"outboundEmailsTopicName": "outbound_emails",
-		"searchIndexRequestsTopicName": "search_index_requests",
 		"mobileNotificationsTopicName": "mobile_notifications",
 		"queuedMailTopicName": "queued_mail"
 	},
@@ -208,10 +207,7 @@
 				],
 				"ceremonyTimeout": 120000000000
 			}
-		},
-		"enableUserSignup": true,
-		"minimumUsernameLength": 3,
-		"minimumPasswordLength": 8
+		}
 	},
 	"idempotency": {
 		"enabled": false
@@ -267,11 +263,7 @@
 				"resources": [
 					"https://http-api.dinnerdonebetter.com"
 				]
-			},
-			"jwtLifetime": 300000000000,
-			"enableUserSignup": true,
-			"minimumUsernameLength": 3,
-			"minimumPasswordLength": 8
+			}
 		},
 		"dataPrivacy": {
 			"platform": {
@@ -291,9 +283,6 @@
 					"tablePrefix": "ddb"
 				}
 			}
-		},
-		"oauth2Clients": {
-			"creationEnabled": true
 		}
 	},
 	"metering": {

@@ -9,26 +9,12 @@ import (
 	platformissuereports "github.com/primandproper/platform-go/v15/issuereports"
 	issuereportspb "github.com/primandproper/platform-go/v15/issuereports/issuereportspb"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 // The issue reports surface's behavior is asserted by platform's issuereports conformance suite,
 // run against this deployment in conformance_test.go. What remains here is the audit entries this
-// application's store records, and two update behaviors that suite does not assert yet.
-
-func checkIssueReportEquality(t *testing.T, expected, actual *issuereportspb.IssueReport) {
-	t.Helper()
-
-	assert.NotEmpty(t, actual.GetId(), "expected IssueReport to have ID")
-	assert.NotNil(t, actual.GetCreatedAt(), "expected IssueReport to have CreatedAt")
-
-	assert.Equal(t, expected.GetKind(), actual.GetKind(), "expected IssueReport Kind")
-	assert.Equal(t, expected.GetDetails(), actual.GetDetails(), "expected IssueReport Details")
-	assert.Equal(t, expected.GetSubjectType(), actual.GetSubjectType(), "expected IssueReport SubjectType")
-	assert.Equal(t, expected.GetSubjectId(), actual.GetSubjectId(), "expected IssueReport SubjectID")
-	assert.NotEmpty(t, actual.GetReporter(), "expected IssueReport to have Reporter")
-}
+// application's store records.
 
 // creationInputForTest builds what a client sends to file a report.
 func creationInputForTest() *issuereportspb.IssueReportCreationInput {
@@ -42,26 +28,16 @@ func creationInputForTest() *issuereportspb.IssueReportCreationInput {
 	}
 }
 
-// createIssueReportForTest files one report and reads it back.
+// createIssueReportForTest files one report. What the filing answers, and that the filer reads
+// it back, is conformance/issuereports'.
 func createIssueReportForTest(t *testing.T, testClient client.Client) *issuereportspb.IssueReport {
 	t.Helper()
-	ctx := t.Context()
 
-	created, err := testClient.CreateReport(ctx, &issuereportspb.CreateReportRequest{Input: creationInputForTest()})
+	created, err := testClient.CreateReport(t.Context(), &issuereportspb.CreateReportRequest{Input: creationInputForTest()})
 	require.NoError(t, err)
 	require.NotNil(t, created.GetResult())
 
-	// A report is born open, whatever the client sent.
-	assert.Equal(t, issuereportspb.ReportStatus_REPORT_STATUS_OPEN, created.GetResult().GetStatus())
-	assert.Empty(t, created.GetResult().GetResolution())
-	assert.Nil(t, created.GetResult().GetClosedAt())
-
-	retrieved, err := testClient.GetReport(ctx, &issuereportspb.GetReportRequest{ReportId: created.GetResult().GetId()})
-	require.NoError(t, err)
-	require.NotNil(t, retrieved.GetResult())
-	checkIssueReportEquality(t, created.GetResult(), retrieved.GetResult())
-
-	return retrieved.GetResult()
+	return created.GetResult()
 }
 
 func TestIssueReports_Creating(T *testing.T) {

@@ -10,6 +10,7 @@ import (
 	internalopssvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/internalops"
 
 	"github.com/primandproper/platform-go/v15/authentication/signin"
+	"github.com/primandproper/platform-go/v15/errormappers"
 	platformidentity "github.com/primandproper/platform-go/v15/identity"
 	platformerrors "github.com/primandproper/primitives-go/v2/errors"
 	"github.com/primandproper/primitives-go/v2/identifiers"
@@ -23,6 +24,13 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
+
+// The transport mappings for platform's sentinels, which every process gets from service.Register.
+// This test passes signin's refusals along and asserts the code they reach the caller as, which
+// is signin's mapper's answer.
+func init() {
+	errormappers.Register()
+}
 
 // fakeImpersonator answers from its fields and records who it was asked to impersonate as.
 type fakeImpersonator struct {

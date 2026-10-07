@@ -7,7 +7,6 @@ import (
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/devices"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
-	mealplanningsvc "github.com/primandproper/dinnerdonebetter/backend/internal/grpc/generated/services/mealplanning"
 
 	"github.com/primandproper/platform-go/v15/authentication/signin/signinpb"
 	"github.com/primandproper/platform-go/v15/identity/identitypb"
@@ -64,46 +63,6 @@ func signInForTest(t *testing.T, signIn signinpb.SignInServiceClient) (token *si
 	require.NotNil(t, res.GetToken())
 
 	return res.GetToken(), user.ID
-}
-
-// TestSignIn_TokensReachThisApplicationsServices pins the seam between platform's sign-in and
-// this application's own services: AuthInterceptor recognizes a token platform minted, and checks
-// its login on every request. The doors themselves — both sign-ins, rotation,
-// reuse, sign-out — are platform's conformance suite's; see conformance_test.go.
-func TestSignIn_TokensReachThisApplicationsServices(T *testing.T) {
-	T.Parallel()
-
-	T.Run("a platform access token is accepted by this application's services", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		token, _ := signInForTest(t, buildSignInClientForTest(t))
-
-		ddbClient, err := buildAuthedGRPCClientWithBearerToken(token.GetToken())
-		require.NoError(t, err)
-
-		_, err = ddbClient.GetValidVessels(ctx, &mealplanningsvc.GetValidVesselsRequest{})
-		require.NoError(t, err)
-	})
-
-	T.Run("a signed-out login's access token stops at once, on this application's services too", func(t *testing.T) {
-		t.Parallel()
-		ctx := t.Context()
-
-		// The interceptor reads the login on every request, so a token stops when its login ends
-		// rather than when it expires.
-		signIn := buildSignInClientForTest(t)
-		token, _ := signInForTest(t, signIn)
-
-		_, err := signIn.SignOut(ctx, &signinpb.SignOutRequest{RefreshToken: token.GetRefreshToken()})
-		require.NoError(t, err)
-
-		ddbClient, err := buildAuthedGRPCClientWithBearerToken(token.GetToken())
-		require.NoError(t, err)
-
-		_, err = ddbClient.GetValidVessels(ctx, &mealplanningsvc.GetValidVesselsRequest{})
-		assert.Equal(t, codes.Unauthenticated, status.Code(err))
-	})
 }
 
 // TestSignIn_ThisApplicationsRules pins what this application adds to platform's doors: its

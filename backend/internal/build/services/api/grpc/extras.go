@@ -69,21 +69,23 @@ func RegisterExtras(i do.Injector) {
 		return MethodPermissions(), nil
 	})
 
-	do.Provide(i, func(i do.Injector) ([]grpc.UnaryServerInterceptor, error) {
-		logger := do.MustInvoke[logging.Logger](i)
-		authInterceptor := do.MustInvoke[*interceptors.AuthInterceptor](i)
-
-		authzEnforcer, err := ProvideAuthorizationEnforcer(
+	// One enforcer, shared by both chains, so a stream and a unary call are refused by the same
+	// table.
+	do.Provide(i, func(i do.Injector) (*authzgrpc.Enforcer, error) {
+		return ProvideAuthorizationEnforcer(
 			MethodPermissionFragments(),
 			MethodPermissionOverrides(),
-			authInterceptor,
-			logger,
+			do.MustInvoke[*interceptors.AuthInterceptor](i),
+			do.MustInvoke[logging.Logger](i),
 			do.MustInvoke[metrics.Provider](i),
 			auditOnlyAuthorization,
 		)
-		if err != nil {
-			return nil, err
-		}
+	})
+
+	do.Provide(i, func(i do.Injector) ([]grpc.UnaryServerInterceptor, error) {
+		logger := do.MustInvoke[logging.Logger](i)
+		authInterceptor := do.MustInvoke[*interceptors.AuthInterceptor](i)
+		authzEnforcer := do.MustInvoke[*authzgrpc.Enforcer](i)
 
 		idempotencyInterceptor, err := ProvideIdempotencyInterceptor(
 			do.MustInvoke[context.Context](i),
@@ -111,7 +113,10 @@ func RegisterExtras(i do.Injector) {
 	})
 
 	do.Provide(i, func(i do.Injector) ([]grpc.StreamServerInterceptor, error) {
-		return BuildStreamServerInterceptors(do.MustInvoke[*interceptors.AuthInterceptor](i)), nil
+		return BuildStreamServerInterceptors(
+			do.MustInvoke[*interceptors.AuthInterceptor](i),
+			do.MustInvoke[*authzgrpc.Enforcer](i),
+		), nil
 	})
 
 	do.Provide(i, func(i do.Injector) ([]platformgrpc.RegistrationFunc, error) {
@@ -249,8 +254,9 @@ func BuildUnaryServerInterceptors(
 		// refuses should cost nothing past the bucket.
 		throttle,
 		authInterceptor.UnaryServerInterceptor(),
-		// Runs after the interceptor above so it sees the session that one established.
-		// Both enforce, and they are proven equivalent — see auditOnlyAuthorization.
+		// Runs after the interceptor above so it sees the session that one established. It is
+		// the only permission check: the interceptor above decides who is calling, not what
+		// they may do.
 		authzEnforcer.UnaryServerInterceptor(),
 		// after auth, because the key is scoped to the authenticated principal, and inside the
 		// error encoder, because it records the handler's status code rather than a rendered one.
@@ -259,12 +265,21 @@ func BuildUnaryServerInterceptors(
 }
 
 // BuildStreamServerInterceptors is the stream chain this server adds, outermost first.
-func BuildStreamServerInterceptors(authInterceptor *interceptors.AuthInterceptor) []grpc.StreamServerInterceptor {
+//
+// It enforces the method permission table exactly as the unary chain does. A stream —
+// MediaRegistryService.UploadObject is one — is no less a call than a unary one, and a chain
+// without the enforcer would admit any signed-in caller to it.
+func BuildStreamServerInterceptors(
+	authInterceptor *interceptors.AuthInterceptor,
+	authzEnforcer *authzgrpc.Enforcer,
+) []grpc.StreamServerInterceptor {
 	return []grpc.StreamServerInterceptor{
 		// First, for the reason the unary chain's strip is.
 		errorsgrpc.StripEncodedErrorDetailStreamServerInterceptor(),
 		errorsgrpc.StreamErrorEncodingInterceptor(),
 		authInterceptor.StreamServerInterceptor(),
+		// After authentication, for the reason the unary chain's enforcer is.
+		authzEnforcer.StreamServerInterceptor(),
 	}
 }
 

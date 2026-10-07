@@ -350,21 +350,6 @@ type Migrator struct {
 
 var _ database.Migrator = (*Migrator)(nil)
 
-// seedLockKey names the advisory lock that serializes policy seeding.
-//
-// Migrations run at startup on every replica, and Seed is not safe to run
-// concurrently with itself: it clears a role's grants and re-inserts them one
-// statement at a time, and the insert carries no ON CONFLICT clause, so two
-// replicas seeding the same policy either block on each other's row locks or
-// collide on the (role_id, permission_id) primary key. The schema half is
-// already serialized by the migrator's own lock; this covers the half that
-// follows it.
-//
-// Filed as platform-go#463 — the fix belongs there, since a consumer holding a
-// lock is not something the package can check. This is the local workaround that
-// keeps a boot from failing meanwhile, and it goes when that lands.
-const seedLockKey = "dinnerdonebetter.authorization.seed"
-
 // Migrate applies every pending migration, then seeds the authorization policy.
 func (m *Migrator) Migrate(ctx context.Context, db *sql.DB) error {
 	if err := m.schema.Migrate(ctx, db); err != nil {
@@ -388,11 +373,10 @@ func (m *Migrator) seedPolicy(ctx context.Context, db *sql.DB) error {
 		}
 	}()
 
-	// Held for the transaction, released by the commit below.
-	if _, err = tx.ExecContext(ctx, "SELECT pg_advisory_xact_lock(hashtext($1))", seedLockKey); err != nil {
-		return errors.Wrap(err, "locking authorization policy")
-	}
-
+	// Every replica migrates and then seeds at once, and the migrator's lock
+	// covers only the schema. Nothing serializes the seeds, and nothing needs to:
+	// two seeds of one policy converge on it rather than colliding (see rbac's
+	// Resolver.Seed).
 	// Built against the transaction so the reads Seed makes to resolve role and
 	// permission ids see the rows it has just written.
 	resolver, err := authzdatabase.NewResolver(
