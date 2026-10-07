@@ -6,7 +6,7 @@ import {
   searchForValidMeasurementUnits,
 } from '$lib/grpc/clients';
 import { logger } from '$lib/logger';
-import { QueryFilter } from '@dinnerdonebetter/api-client';
+import { QueryFilter } from '@primandproper/platform-client/filtering/v1';
 
 const DEFAULT_LIST_FILTER = QueryFilter.create({ maxResponseSize: 100 });
 

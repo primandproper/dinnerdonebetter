@@ -12,8 +12,12 @@
     NumberInput,
     Card,
   } from '@dinnerdonebetter/ui';
-  import { createRecipeCreatorState, type RecipeCreatorState, type StepHelper } from '$lib/recipes/RecipeCreatorState';
-  import { renderMermaidForRecipeCreationInput } from '$lib/recipes/recipeMermaid';
+  import {
+    createRecipeCreatorState,
+    type RecipeCreatorState,
+    type StepHelper,
+  } from '@dinnerdonebetter/recipes/RecipeCreatorState';
+  import { renderMermaidForRecipeCreationInput } from '@dinnerdonebetter/recipes/recipeMermaid';
   import type {
     ValidPreparation,
     ValidIngredient,
@@ -23,12 +27,12 @@
     ValidPreparationInstrument,
     ValidMeasurementUnit,
     RecipePrepTaskStepWithinRecipeCreationRequestInput,
-  } from '$lib/recipes/client-types';
-  import { RecipeStepProductType, MealComponentType } from '$lib/recipes/client-enums';
+  } from '@dinnerdonebetter/recipes/client-types';
+  import { RecipeStepProductType, MealComponentType } from '@dinnerdonebetter/recipes/client-enums';
   import type {
     RecipeStepCreationRequestInput,
     RecipeStepProductCreationRequestInput,
-  } from '$lib/recipes/client-types';
+  } from '@dinnerdonebetter/recipes/client-types';
   import mermaid from 'mermaid';
 
   /** Previous-step product option for use as ingredient/instrument/vessel. */

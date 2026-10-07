@@ -1,15 +1,18 @@
 import { randomBytes, randomUUID } from 'node:crypto';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import type { Cookies } from '@sveltejs/kit';
 import { IssuedToken } from '@primandproper/platform-client';
+import { type CookieStoreConfig, cookieStore as storeWith } from './cookies';
 
-vi.mock('$env/dynamic/private', () => ({
-  env: { COOKIE_ENCRYPTION_KEY: randomBytes(32).toString('base64'), COOKIE_NAME: `session_${randomUUID()}` },
-}));
-// The store never calls the API; this keeps the module from dialing it.
-vi.mock('$lib/grpc/clients', () => ({ newSession: vi.fn() }));
+const config: CookieStoreConfig = {
+  name: `session_${randomUUID()}`,
+  key: randomBytes(32).toString('base64'),
+  secure: true,
+};
 
-const { clientMetadata, clientOf, cookieStore, getCookieName } = await import('./session');
+function cookieStore(cookies: Cookies) {
+  return storeWith(cookies, config);
+}
 
 interface SetCall {
   value: string;
@@ -68,7 +71,7 @@ describe('cookieStore', () => {
 
     expect(sets[0].value).not.toContain(token.refreshToken);
     expect(Buffer.from(sets[0].value, 'base64').toString('latin1')).not.toContain(token.refreshToken);
-    expect(sets[0].options).toMatchObject({ httpOnly: true, path: '/' });
+    expect(sets[0].options).toMatchObject({ httpOnly: true, path: '/', secure: true });
   });
 
   it('lasts as long as the refresh token does', async () => {
@@ -101,9 +104,23 @@ describe('cookieStore', () => {
 
   it('holds no login for a cookie that does not decrypt', async () => {
     const { cookies, jar } = fakeCookies();
-    jar.set(getCookieName(), randomBytes(64).toString('base64'));
+    jar.set(config.name, randomBytes(64).toString('base64'));
 
     expect(await cookieStore(cookies).load()).toBeUndefined();
+  });
+
+  it('is served over plain HTTP only when told to', async () => {
+    const { cookies, sets } = fakeCookies();
+
+    await storeWith(cookies, { ...config, secure: false }).save(fakeToken());
+
+    expect(sets[0].options.secure).toBe(false);
+  });
+
+  it('refuses to run without a key', () => {
+    const { cookies } = fakeCookies();
+
+    expect(() => storeWith(cookies, { ...config, key: undefined })).toThrow();
   });
 
   it('holds no login after clear', async () => {
@@ -114,57 +131,5 @@ describe('cookieStore', () => {
     await store.clear();
 
     expect(await store.load()).toBeUndefined();
-  });
-});
-
-/** requestFrom is the part of a RequestEvent clientOf reads. */
-function requestFrom(headers: Record<string, string>, socketAddress?: string) {
-  return {
-    request: new Request('http://localhost/', { headers }),
-    getClientAddress: () => {
-      if (!socketAddress) {
-        throw new Error('no address');
-      }
-      return socketAddress;
-    },
-  };
-}
-
-describe('clientOf', () => {
-  it('reads the address Caddy stamped, and the browser', () => {
-    const stamped = `203.0.113.${Math.floor(Math.random() * 250)}`;
-    const userAgent = `Mozilla/5.0 ${randomUUID()}`;
-
-    const client = clientOf(
-      requestFrom({ 'x-forwarded-for': `198.51.100.1, ${stamped}`, 'user-agent': userAgent }, '10.0.0.1'),
-    );
-
-    expect(client).toEqual({ address: stamped, userAgent });
-  });
-
-  it('falls back to the connection', () => {
-    const socket = `10.0.0.${Math.floor(Math.random() * 250)}`;
-
-    expect(clientOf(requestFrom({}, socket)).address).toBe(socket);
-  });
-
-  it('survives a request with neither', () => {
-    expect(clientOf(requestFrom({}))).toEqual({ address: undefined, userAgent: undefined });
-  });
-});
-
-describe('clientMetadata', () => {
-  it('forwards what it knows', () => {
-    const address = `203.0.113.${Math.floor(Math.random() * 250)}`;
-    const userAgent = `Mozilla/5.0 ${randomUUID()}`;
-
-    expect(clientMetadata({ address, userAgent })).toEqual({
-      'x-client-address': address,
-      'x-client-user-agent': userAgent,
-    });
-  });
-
-  it('forwards nothing it does not', () => {
-    expect(clientMetadata({})).toEqual({});
   });
 });

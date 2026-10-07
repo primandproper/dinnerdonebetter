@@ -6,10 +6,10 @@
 
 /* eslint-disable */
 import { BinaryReader, BinaryWriter } from '@bufbuild/protobuf/wire';
+import { Pagination, QueryFilter } from '@primandproper/platform-client/filtering/v1';
+import { UploadObjectRequest } from '@primandproper/platform-client/mediaregistry/v1';
 import { ResponseDetails } from '../common';
 import { Timestamp } from '../google/protobuf/timestamp';
-import { Pagination, QueryFilter } from '../primandproper/platform/filtering/v1/filtering';
-import { UploadObjectRequest } from '../primandproper/platform/mediaregistry/v1/mediaregistry';
 import {
   AccountInstrumentOwnership,
   Meal,
