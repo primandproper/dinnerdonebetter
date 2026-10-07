@@ -74,14 +74,6 @@ func local() webhooks.Catalog {
 	return out
 }
 
-// Known reports whether eventType may be delivered to a webhook: published, and not internal.
-//
-// The parameter is a plain string rather than a webhooks.EventType because the domains name their
-// events with untyped constants and this is where the two vocabularies meet.
-func Known(eventType string) bool {
-	return Catalog().Subscribable(webhooks.EventType(eventType))
-}
-
 // Published reports whether eventType is one this application or platform emits at all,
 // deliverable or not.
 func Published(eventType string) bool {

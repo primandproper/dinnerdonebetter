@@ -94,7 +94,7 @@ func TestCatalog(T *testing.T) {
 		} {
 			require.True(t, Published(eventType), "event type %q is no longer published; update this test", eventType)
 			assert.True(t, Excluded(eventType), "event type %q must not be deliverable to a webhook", eventType)
-			assert.False(t, Known(eventType), "event type %q must not be subscribable", eventType)
+			assert.False(t, Catalog().Subscribable(webhooks.EventType(eventType)), "event type %q must not be subscribable", eventType)
 		}
 	})
 
@@ -134,6 +134,6 @@ func TestCatalog(T *testing.T) {
 			}
 		}
 		require.NotEmpty(t, known)
-		assert.True(t, Known(known.String()))
+		assert.True(t, Catalog().Subscribable(known))
 	})
 }

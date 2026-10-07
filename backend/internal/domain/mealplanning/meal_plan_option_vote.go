@@ -2,7 +2,6 @@ package mealplanning
 
 import (
 	"context"
-	"database/sql"
 	"time"
 
 	"github.com/primandproper/primitives-go/v2/filtering"
@@ -33,21 +32,6 @@ type (
 		ByUser                  string     `json:"byUser"`
 		Rank                    uint8      `json:"rank"`
 		Abstain                 bool       `json:"abstain"`
-	}
-
-	// NullableMealPlanOptionVote represents a fully nullable meal plan option vote.
-	NullableMealPlanOptionVote struct {
-		_ struct{} `json:"-"`
-
-		Rank                    *uint8
-		ID                      *string
-		Notes                   *string
-		BelongsToMealPlanOption *string
-		ByUser                  *string
-		Abstain                 *bool
-		LastUpdatedAt           sql.NullTime
-		CreatedAt               sql.NullTime
-		ArchivedAt              sql.NullTime
 	}
 
 	// MealPlanOptionVoteCreationInput represents what a user could set as input for creating meal plan option votes.

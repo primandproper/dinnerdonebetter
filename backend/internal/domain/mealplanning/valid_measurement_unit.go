@@ -48,25 +48,6 @@ type (
 		Imperial      bool       `json:"imperial"`
 	}
 
-	// NullableValidMeasurementUnit represents a nullable valid measurement unit.
-	NullableValidMeasurementUnit struct {
-		_ struct{} `json:"-"`
-
-		CreatedAt     *time.Time
-		LastUpdatedAt *time.Time
-		ArchivedAt    *time.Time
-		Name          *string
-		IconPath      *string
-		ID            *string
-		Description   *string
-		PluralName    *string
-		Slug          *string
-		Volumetric    *bool
-		Universal     *bool
-		Metric        *bool
-		Imperial      *bool
-	}
-
 	// ValidMeasurementUnitCreationRequestInput represents what a user could set as input for creating valid measurement units.
 	ValidMeasurementUnitCreationRequestInput struct {
 		_ struct{} `json:"-"`

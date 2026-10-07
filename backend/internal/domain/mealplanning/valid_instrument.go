@@ -37,24 +37,6 @@ type (
 		UsableForStorage               bool       `json:"usableForStorage"`
 	}
 
-	// NullableValidInstrument represents a fully nullable valid instrument.
-	NullableValidInstrument struct {
-		_ struct{} `json:"-"`
-
-		LastUpdatedAt                  *time.Time
-		ArchivedAt                     *time.Time
-		Description                    *string
-		IconPath                       *string
-		ID                             *string
-		Name                           *string
-		Slug                           *string
-		DisplayInSummaryLists          *bool
-		IncludeInGeneratedInstructions *bool
-		PluralName                     *string
-		UsableForStorage               *bool
-		CreatedAt                      *time.Time
-	}
-
 	// ValidInstrumentCreationRequestInput represents what a user could set as input for creating valid instruments.
 	ValidInstrumentCreationRequestInput struct {
 		_ struct{} `json:"-"`
