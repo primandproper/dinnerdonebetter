@@ -6,11 +6,3 @@ const (
 	// PublishArbitraryQueueMessagePermission is a service admin permission.
 	PublishArbitraryQueueMessagePermission Permission = "queues.publish.message"
 )
-
-var (
-	// AdminPermissions contains all admin-specific permissions.
-	AdminPermissions = []Permission{
-		ReadUserDataPermission,
-		PublishArbitraryQueueMessagePermission,
-	}
-)

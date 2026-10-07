@@ -14,12 +14,3 @@ const (
 	// ArchiveOAuth2ClientsPermission is a permission.
 	ArchiveOAuth2ClientsPermission = oauth2clientsgrpc.PermissionArchiveClients
 )
-
-var (
-	// OAuthPermissions contains all OAuth-related permissions.
-	OAuthPermissions = []Permission{
-		CreateOAuth2ClientsPermission,
-		ReadOAuth2ClientsPermission,
-		ArchiveOAuth2ClientsPermission,
-	}
-)

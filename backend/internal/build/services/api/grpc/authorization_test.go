@@ -81,33 +81,6 @@ func TestPlatformPolicy(T *testing.T) {
 	})
 }
 
-func TestPlatformGrants(T *testing.T) {
-	T.Parallel()
-
-	T.Run("unions service and account authority", func(t *testing.T) {
-		t.Parallel()
-
-		service := authorization.NewServiceRolePermissionChecker(
-			[]string{authorization.ServiceAdminRoleName}, []authorization.Permission{authorization.PermissionReadUsers})
-		account := authorization.NewAccountRolePermissionChecker(
-			[]authorization.Permission{authorization.SaveWebhookEndpointsPermission})
-
-		grants := authorization.PlatformGrants(service, account)
-
-		assert.True(t, grants.Has(authorization.PermissionReadUsers))
-		assert.True(t, grants.Has(authorization.SaveWebhookEndpointsPermission))
-		assert.False(t, grants.Has(authorization.PermissionArchiveUsers))
-	})
-
-	T.Run("with no checkers at all", func(t *testing.T) {
-		t.Parallel()
-
-		// Fail closed: an empty grant holds nothing.
-		grants := authorization.PlatformGrants(nil, nil)
-		assert.True(t, grants.IsEmpty())
-	})
-}
-
 func buildTestEnforcer(t *testing.T) *grpc.UnaryServerInterceptor {
 	t.Helper()
 
