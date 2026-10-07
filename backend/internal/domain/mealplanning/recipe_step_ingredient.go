@@ -2,7 +2,6 @@ package mealplanning
 
 import (
 	"context"
-	"encoding/gob"
 	"errors"
 	"time"
 
@@ -25,12 +24,6 @@ const (
 	// RecipeStepIngredientArchivedServiceEventType indicates a recipe step ingredient was archived.
 	RecipeStepIngredientArchivedServiceEventType = "recipe_step_ingredient_archived"
 )
-
-func init() {
-	gob.Register(new(RecipeStepIngredient))
-	gob.Register(new(RecipeStepIngredientCreationRequestInput))
-	gob.Register(new(RecipeStepIngredientUpdateRequestInput))
-}
 
 type (
 	// RecipeStepIngredient represents a recipe step ingredient.

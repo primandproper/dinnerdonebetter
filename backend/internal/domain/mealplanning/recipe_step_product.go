@@ -2,7 +2,6 @@ package mealplanning
 
 import (
 	"context"
-	"encoding/gob"
 	"time"
 
 	"github.com/primandproper/primitives-go/v2/filtering"
@@ -25,12 +24,6 @@ const (
 	// RecipeStepProductArchivedServiceEventType indicates a recipe step product was archived.
 	RecipeStepProductArchivedServiceEventType = "recipe_step_product_archived"
 )
-
-func init() {
-	gob.Register(new(RecipeStepProduct))
-	gob.Register(new(RecipeStepProductCreationRequestInput))
-	gob.Register(new(RecipeStepProductUpdateRequestInput))
-}
 
 type (
 	// RecipeStepProduct represents a recipe step product.

@@ -2,7 +2,6 @@ package mealplanning
 
 import (
 	"context"
-	"encoding/gob"
 	"errors"
 	"time"
 
@@ -24,12 +23,6 @@ const (
 var (
 	errMustBeEitherMetricOrImperial = errors.New("cannot be both metric and imperial")
 )
-
-func init() {
-	gob.Register(new(ValidMeasurementUnit))
-	gob.Register(new(ValidMeasurementUnitCreationRequestInput))
-	gob.Register(new(ValidMeasurementUnitUpdateRequestInput))
-}
 
 type (
 	/*

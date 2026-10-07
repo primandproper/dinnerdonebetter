@@ -2,7 +2,6 @@ package mealplanning
 
 import (
 	"context"
-	"encoding/gob"
 	"time"
 
 	"github.com/primandproper/primitives-go/v2/filtering"
@@ -37,12 +36,6 @@ const (
 	// ValidIngredientStateAttributeTypeOther represents the ingredient attribute type for other.
 	ValidIngredientStateAttributeTypeOther = "other"
 )
-
-func init() {
-	gob.Register(new(ValidIngredientState))
-	gob.Register(new(ValidIngredientStateCreationRequestInput))
-	gob.Register(new(ValidIngredientStateUpdateRequestInput))
-}
 
 type (
 	// ValidIngredientState represents a valid ingredient state.

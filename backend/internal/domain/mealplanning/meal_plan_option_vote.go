@@ -3,7 +3,6 @@ package mealplanning
 import (
 	"context"
 	"database/sql"
-	"encoding/gob"
 	"time"
 
 	"github.com/primandproper/primitives-go/v2/filtering"
@@ -19,12 +18,6 @@ const (
 	// MealPlanOptionVoteArchivedServiceEventType indicates a meal plan option vote was archived.
 	MealPlanOptionVoteArchivedServiceEventType = "meal_plan_option_vote_archived"
 )
-
-func init() {
-	gob.Register(new(MealPlanOptionVote))
-	gob.Register(new(MealPlanOptionVoteCreationRequestInput))
-	gob.Register(new(MealPlanOptionVoteUpdateRequestInput))
-}
 
 type (
 	// MealPlanOptionVote represents a meal plan option vote.

@@ -2,19 +2,12 @@ package mealplanning
 
 import (
 	"context"
-	"encoding/gob"
 	"time"
 
 	"github.com/primandproper/primitives-go/v2/filtering"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
-
-func init() {
-	gob.Register(new(RecipeListItem))
-	gob.Register(new(RecipeListItemCreationRequestInput))
-	gob.Register(new(RecipeListItemUpdateRequestInput))
-}
 
 type (
 	// RecipeListItem represents a single entry in a recipe list.

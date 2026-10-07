@@ -2,7 +2,6 @@ package mealplanning
 
 import (
 	"context"
-	"encoding/gob"
 	"time"
 
 	"github.com/primandproper/primitives-go/v2/filtering"
@@ -35,12 +34,6 @@ const (
 	// VesselShapeOther represents any other vessel shape.
 	VesselShapeOther = "other"
 )
-
-func init() {
-	gob.Register(new(ValidVessel))
-	gob.Register(new(ValidVesselCreationRequestInput))
-	gob.Register(new(ValidVesselUpdateRequestInput))
-}
 
 type (
 	// ValidVessel represents a valid vessel.

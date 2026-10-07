@@ -1,15 +1,5 @@
 package mealplanning
 
-import (
-	"encoding/gob"
-)
-
-func init() {
-	gob.Register(new(RecipePrepTask))
-	gob.Register(new(RecipePrepTaskCreationRequestInput))
-	gob.Register(new(RecipePrepTaskUpdateRequestInput))
-}
-
 type (
 	// RecipePrepTaskStep represents a recipe prep task step.
 	RecipePrepTaskStep struct {
