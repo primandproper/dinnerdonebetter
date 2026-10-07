@@ -2,6 +2,7 @@ package auth
 
 import (
 	"github.com/primandproper/platform-go/v15/authentication/passwordreset"
+	"github.com/primandproper/platform-go/v15/authentication/signin/devices"
 	"github.com/primandproper/platform-go/v15/authentication/signin/refreshtokens"
 	platformrecording "github.com/primandproper/platform-go/v15/recording"
 	"github.com/primandproper/primitives-go/v2/database"
@@ -16,6 +17,7 @@ import (
 func RegisterAuthRepository(i do.Injector) {
 	RegisterPasswordResetTokenSQLStore(i)
 	RegisterRefreshTokenSQLStore(i)
+	RegisterSignInDevicesSQLStore(i)
 
 	do.Provide[passwordreset.Store](i, func(i do.Injector) (passwordreset.Store, error) {
 		return ProvidePasswordResetTokenStore(
@@ -54,5 +56,26 @@ func RegisterRefreshTokenSQLStore(i do.Injector) {
 			do.MustInvoke[metrics.Provider](i),
 			do.MustInvoke[database.Client](i),
 		)
+	})
+}
+
+// RegisterSignInDevicesSQLStore registers the platform's sign-in device store with the injector,
+// as itself — the db-cleaner sweeps it — and as the store the sign-in hooks, the annotator and the
+// privacy adapter read.
+//
+// It is separate from RegisterAuthRepository for the reason the refresh token store is: the
+// db-cleaner job's container has nothing else from this package.
+func RegisterSignInDevicesSQLStore(i do.Injector) {
+	do.Provide[*devices.SQLStore](i, func(i do.Injector) (*devices.SQLStore, error) {
+		return ProvideSignInDevicesSQLStore(
+			do.MustInvoke[logging.Logger](i),
+			do.MustInvoke[tracing.Provider](i),
+			do.MustInvoke[metrics.Provider](i),
+			do.MustInvoke[database.Client](i),
+		)
+	})
+
+	do.Provide[devices.Store](i, func(i do.Injector) (devices.Store, error) {
+		return do.MustInvoke[*devices.SQLStore](i), nil
 	})
 }

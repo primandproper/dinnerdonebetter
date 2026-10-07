@@ -164,7 +164,7 @@ func (j *Job) sweepSignInDevices(ctx context.Context) error {
 		return err
 	}
 
-	j.recordSwept(ctx, "sign_in_devices", deleted)
+	j.recordSwept(ctx, "signin_devices", deleted)
 	j.logger.WithValue("swept", deleted).Info("swept expired sign-in devices")
 
 	return nil

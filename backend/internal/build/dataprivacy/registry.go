@@ -20,7 +20,6 @@ package dataprivacy
 import (
 	"context"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/devices"
 	ddbdataprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/dataprivacy"
 	identityprivacy "github.com/primandproper/dinnerdonebetter/backend/internal/domain/identity/privacy"
 	ddbissuereports "github.com/primandproper/dinnerdonebetter/backend/internal/domain/issuereports"
@@ -32,6 +31,7 @@ import (
 	oauth2clients "github.com/primandproper/platform-go/v15/authentication/oauth2clients"
 	"github.com/primandproper/platform-go/v15/authentication/passkeys"
 	"github.com/primandproper/platform-go/v15/authentication/passwordreset"
+	signindevices "github.com/primandproper/platform-go/v15/authentication/signin/devices"
 	"github.com/primandproper/platform-go/v15/billing"
 	platformcomments "github.com/primandproper/platform-go/v15/comments"
 	platformdataprivacy "github.com/primandproper/platform-go/v15/dataprivacy"
@@ -161,6 +161,14 @@ func buildRegistry(i do.Injector) (*platformdataprivacy.Registry, error) {
 			Store:   do.MustInvoke[passkeys.Store](i),
 			Resolve: credentialScopes,
 		},
+		// Where each login came from, which the sign-in hooks record. The rows also carry a
+		// foreign key to the user (see migrations.renderSignInDevicesDDL), so the identity
+		// eraser would take them too; the eraser is registered anyway, for the reason the
+		// wiring test gives — a cascade is the thing that goes missing silently.
+		SignInDevices: &privacyadapters.SignInDevicesAdapter{
+			Store:   do.MustInvoke[signindevices.Store](i),
+			Resolve: credentialScopes,
+		},
 		PasswordReset: &privacyadapters.PasswordResetAdapter{
 			Store:   do.MustInvoke[passwordreset.Store](i),
 			Resolve: credentialScopes,
@@ -224,9 +232,6 @@ func buildRegistry(i do.Injector) (*platformdataprivacy.Registry, error) {
 	collectors := map[string]platformdataprivacy.Collector{
 		ddbdataprivacy.CollectorKeyMealPlanning: mealplanningprivacy.NewCollector(
 			do.MustInvoke[mealplanning.Repository](i), resolveAccounts, logger, tracerProvider),
-		// Where each login came from. No eraser beside it: the rows carry a foreign key to the
-		// user, so the identity eraser takes them.
-		ddbdataprivacy.CollectorKeySignInDevices: devices.NewCollector(do.MustInvoke[devices.Store](i)),
 	}
 
 	for key, collector := range collectors {

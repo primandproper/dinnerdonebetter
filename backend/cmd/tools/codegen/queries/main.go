@@ -29,7 +29,6 @@ func main() {
 
 	queryOutput := map[string][]*Query{
 		"internalops/sqlc_queries/internalops":                                   buildMaintenanceQueries(databaseToUse),
-		"signindevices/sqlc_queries/sign_in_devices":                             buildSignInDevicesQueries(databaseToUse),
 		"mealplanning/sqlc_queries/valid_ingredients":                            buildValidIngredientsQueries(databaseToUse),
 		"mealplanning/sqlc_queries/valid_instruments":                            buildValidInstrumentsQueries(databaseToUse),
 		"mealplanning/sqlc_queries/valid_preparations":                           buildValidPreparationsQueries(databaseToUse),

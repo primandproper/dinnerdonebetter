@@ -29,9 +29,18 @@ constants in `migrations/migrate.go`). A platform package renders its own DDL ra
 it copied here, but the version number belongs to us, because numbering belongs to whoever owns
 the sequence.
 
-So: take the next free number, whichever side it comes from, and **never renumber an applied
-migration** — goose keys applied migrations by version, so renumbering makes an applied migration
-look unapplied. A version already claimed fails `New` rather than the first `Migrate`.
+Today the platform tables hold 1–25 and this application's one hand-written file,
+`00026_dinnerdonebetter.sql`, comes last, because its foreign keys name platform tables and a key
+cannot reference a table that does not exist yet. Identity is 1 for the same reason: nearly every
+other table points at it.
+
+So a newly adopted platform table goes before the hand-written file, and the file moves up a
+number. Ordinarily that would be forbidden — goose keys applied migrations by version, so
+renumbering makes an applied migration look unapplied and re-runs it — but nothing is deployed, so
+the only databases that have applied anything are local ones, and the cost is the one the next
+section describes: drop and recreate your local database. Once something is deployed, the rule
+becomes **never renumber an applied migration**, and new tables take the next free number at the
+end. A version already claimed fails `New` rather than the first `Migrate`.
 
 ## Editing an existing migration
 

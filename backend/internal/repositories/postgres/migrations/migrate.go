@@ -16,6 +16,7 @@ import (
 	oauth2migrations "github.com/primandproper/platform-go/v15/authentication/oauth2serverstore/migrations"
 	passkeysmigrations "github.com/primandproper/platform-go/v15/authentication/passkeys/migrations"
 	passwordresetmigrations "github.com/primandproper/platform-go/v15/authentication/passwordreset/migrations"
+	signindevicesmigrations "github.com/primandproper/platform-go/v15/authentication/signin/devices/migrations"
 	refreshtokensmigrations "github.com/primandproper/platform-go/v15/authentication/signin/refreshtokens/migrations"
 	webauthndatabase "github.com/primandproper/platform-go/v15/authentication/webauthnsessions"
 	webauthnmigrations "github.com/primandproper/platform-go/v15/authentication/webauthnsessions/migrations"
@@ -66,41 +67,41 @@ const lockKey = "dinnerdonebetter"
 // collide the moment either side added one — and hands us the DDL instead.
 //
 // The numbering is one sequence shared with migration_files, so these must not collide with a
-// filename and must never be renumbered once applied. Adding another means taking the next
-// free number, whichever side it comes from.
+// filename. The sequence is contiguous and ends with this application's own file; see
+// docs/migrations.md for why renumbering it is allowed while nothing is deployed, and what it
+// costs a local database.
 const (
 	// identity is first, and has to be: every other table in this schema that names a
-	// user or an account has a foreign key into it. It took the number the hand-written
-	// identity migration vacated rather than a free one at the end, because a foreign key
-	// cannot reference a table that does not exist yet.
-	identityMigrationVersion      = 1
-	outboxMigrationVersion        = 2
-	sagaMigrationVersion          = 3
-	webhooksMigrationVersion      = 4
-	auditMigrationVersion         = 5
-	dataPrivacyMigrationVersion   = 6
-	meteringMigrationVersion      = 7
-	operationsMigrationVersion    = 8
-	webauthnMigrationVersion      = 9
-	oauth2MigrationVersion        = 10
-	passwordResetMigrationVersion = 11
-	// 12 was this application's own session store, retired when sign-in moved to platform's
-	// SignInService, whose logins are refresh token families (refreshTokensMigrationVersion).
-	// The number stays unused rather than renumbering everything after it.
-	workQueueMigrationVersion       = 13
-	commentsMigrationVersion        = 14
-	uploadsRegistryMigrationVersion = 15
-	issueReportsMigrationVersion    = 16
-	waitlistsMigrationVersion       = 17
-	settingsMigrationVersion        = 18
-	authorizationMigrationVersion   = 19
-	billingMigrationVersion         = 20
-	notificationsMigrationVersion   = 21
-	oauth2ClientsMigrationVersion   = 22
-	refreshTokensMigrationVersion   = 23
-	passkeysMigrationVersion        = 24
-	// 25 is migration_files/00025_dinnerdonebetter.sql.
-	actionLinksMigrationVersion = 26
+	// user or an account has a foreign key into it, and a foreign key cannot reference a
+	// table that does not exist yet.
+	identityMigrationVersion        = 1
+	outboxMigrationVersion          = 2
+	sagaMigrationVersion            = 3
+	webhooksMigrationVersion        = 4
+	auditMigrationVersion           = 5
+	dataPrivacyMigrationVersion     = 6
+	meteringMigrationVersion        = 7
+	operationsMigrationVersion      = 8
+	webauthnMigrationVersion        = 9
+	oauth2MigrationVersion          = 10
+	passwordResetMigrationVersion   = 11
+	workQueueMigrationVersion       = 12
+	commentsMigrationVersion        = 13
+	uploadsRegistryMigrationVersion = 14
+	issueReportsMigrationVersion    = 15
+	waitlistsMigrationVersion       = 16
+	settingsMigrationVersion        = 17
+	authorizationMigrationVersion   = 18
+	billingMigrationVersion         = 19
+	notificationsMigrationVersion   = 20
+	oauth2ClientsMigrationVersion   = 21
+	refreshTokensMigrationVersion   = 22
+	passkeysMigrationVersion        = 23
+	actionLinksMigrationVersion     = 24
+	signInDevicesMigrationVersion   = 25
+	// 26 is migration_files/00026_dinnerdonebetter.sql, and it is last on purpose: its foreign
+	// keys name the platform tables above, so it runs once every one of them exists. A platform
+	// table adopted later goes before it, and the file moves up a number.
 )
 
 // The identity tables other schemas reference.
@@ -292,6 +293,11 @@ func NewMigrator(logger logging.Logger) (*Migrator, error) {
 		return nil, err
 	}
 
+	signInDevicesDDL, err := renderSignInDevicesDDL()
+	if err != nil {
+		return nil, err
+	}
+
 	migrator, err := migrate.New(
 		dialect.Postgres,
 		migrationFiles,
@@ -321,6 +327,7 @@ func NewMigrator(logger logging.Logger) (*Migrator, error) {
 		migrate.WithGeneratedMigration(identityMigrationVersion, "create_identity_tables", identityDDL),
 		migrate.WithGeneratedMigration(passkeysMigrationVersion, "create_passkey_credentials_table", passkeysDDL),
 		migrate.WithGeneratedMigration(actionLinksMigrationVersion, "create_action_links_table", actionLinksDDL),
+		migrate.WithGeneratedMigration(signInDevicesMigrationVersion, "create_signin_devices_table", signInDevicesDDL),
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "building migrator")
@@ -832,9 +839,6 @@ func renderPasswordResetDDL() (string, error) {
 // column is subject_id, which in this deployment is always a user — a refresh token is
 // minted only by a password sign-in, and nothing signs in but a person.
 //
-// It took 23, the one gap left in the sequence, rather than the next number at the end. The
-// sequence is ordered by version, and nothing after 23 depends on this table either way.
-//
 // The prefix is branding.TablePrefix, so this renders ddb_signin_refresh_tokens, beside the
 // other two tables this application's sign-in writes.
 func renderRefreshTokensDDL() (string, error) {
@@ -849,6 +853,33 @@ func renderRefreshTokensDDL() (string, error) {
 
 	body.WriteString(schema)
 	body.WriteString(userCascade(table, "subject_id"))
+
+	return body.String(), nil
+}
+
+// renderSignInDevicesDDL renders the table "where you're signed in" reads each login's device
+// from: one row per login, recorded by platform's sign-in device hooks when a token is minted
+// and deleted when the login is ended.
+//
+// See userCascade: the rows are an address and a browser somebody signed in from, which is
+// personal data, and platform's table names its user by a bare column. The privacy adapter
+// registers an eraser for them too — see internal/build/dataprivacy — so the key is the second
+// of two things that reach them rather than the only one.
+//
+// The prefix is branding.TablePrefix, so this renders ddb_signin_devices beside the refresh
+// token table whose families it is keyed on.
+func renderSignInDevicesDDL() (string, error) {
+	schema, err := signindevicesmigrations.SQL(dialect.Postgres, branding.TablePrefix)
+	if err != nil {
+		return "", errors.Wrap(err, "rendering sign-in device migration")
+	}
+
+	table := ddl.Qualify(branding.TablePrefix) + "signin_devices"
+
+	body := &strings.Builder{}
+
+	body.WriteString(schema)
+	body.WriteString(userCascade(table, "user_id"))
 
 	return body.String(), nil
 }

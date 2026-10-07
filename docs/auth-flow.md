@@ -344,15 +344,19 @@ principal reports the impersonator as `callers.Delegated`.
 ## Where you're signed in
 
 Every token issued for a login records the device it was issued to — the address, the user agent,
-and a device name the client gave — on the token's own transaction, in `sign_in_devices`, keyed by
-the login. `ListSignIns` and `ListSignInsForUser` answer each login with it as `attributes`
+and a device name the client gave — on the token's own transaction, in `ddb_signin_devices`, keyed
+by the login, and deletes it on the transaction that ends the login. `ListSignIns` and `ListSignInsForUser` answer each login with it as `attributes`
 (`ip_address`, `user_agent`, `device_name`). The web apps forward the browser they are serving in
 `x-client-address` and `x-client-user-agent`; the iOS app names itself in `x-device-name`.
 An impersonation records nothing: the request behind it is the operator's. What a client forwards
 is display and decides nothing. The rows are exported with the rest of a person's data, erased with
-them, and swept once the login could no longer be alive.
+them, and swept once a login that lapsed on its own could no longer be alive.
 
-**Implementation**: [`internal/authentication/devices`](../backend/internal/authentication/devices).
+The table, the hooks, the annotator, the privacy adapter and the sweep are platform-go's
+`authentication/signin/devices`. What is this application's is which parts of a request to trust,
+which is the extractor.
+
+**Implementation**: [`internal/authentication/devices`](../backend/internal/authentication/devices) (the extractor).
 
 ## Rate limiting
 

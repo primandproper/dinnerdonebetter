@@ -33,6 +33,9 @@ import (
 // adoption rather than after: a refresh token is a credential that would go on signing in
 // somebody the service has erased.
 //
+// signin_devices is the address and browser behind each of those refresh token families, which
+// is personal data rather than a credential; it was keyed at adoption for the same reason.
+//
 // webauthn_credentials is the sharpest case, because it is a regression rather than an
 // omission: the hand-written table carried REFERENCES users(id) ON DELETE CASCADE, and
 // adopting platform's passkeys schema dropped the key with the table. A passkey is a
@@ -95,6 +98,14 @@ func TestQuerier_Migrate_ErasingAUserTakesTheirCredentials(T *testing.T) {
 					(hash, scope, family_id, subject_id, active_account_id, administrative, signed_in_at, issued_at, expires_at, purge_after)
 					VALUES ($1, $2, $3, $4, '', false, NOW(), NOW(), NOW() + INTERVAL '1 hour', NOW() + INTERVAL '2 hours')`,
 				args: []any{"digest", scope, "family_1", userID},
+			},
+			{
+				table:  "ddb_signin_devices",
+				column: "user_id",
+				statement: `INSERT INTO ddb_signin_devices
+					(scope, family_id, user_id, ip_address, user_agent, device_name, first_seen_at, last_seen_at, expires_at)
+					VALUES ($1, $2, $3, '', '', '', NOW(), NOW(), NOW() + INTERVAL '1 hour')`,
+				args: []any{scope, "family_1", userID},
 			},
 		}
 

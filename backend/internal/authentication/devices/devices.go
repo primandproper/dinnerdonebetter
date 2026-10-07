@@ -1,16 +1,13 @@
 /*
-Package devices records where each sign-in came from, and answers it back on "where you're signed
-in".
+Package devices reads where a sign-in came from, for "where you're signed in".
 
-platform's sign-in lists a person's logins and records how each one happened, and stores nothing
-about the device behind one: whether a device is recorded at all, under which keys and for how
-long is the consumer's. This is this application's answer. A row per login, keyed by its refresh
-token family, written by the AfterIssueToken hook on the token's own transaction and renewed on
-every refresh; read back by the annotator that fills each listed login's attributes; exported
-with the rest of what this application holds about a person; and swept by the db-cleaner job once
-the login could no longer be alive.
+Everything else about the device list is platform's authentication/signin/devices: the table, the
+hook that records a row on every mint and deletes it when the login ends, the annotator that
+answers it back on the listing RPCs, the privacy adapter and the sweep. What platform leaves to
+the consumer is the one decision that depends on the deployment — which parts of a request to
+trust — and Extract is this application's answer to it.
 
-# What is recorded, and how far to trust it
+# What is read, and how far to trust it
 
 The address, the user agent, and a device name. Each is read from the request that minted the
 token, in this order:
@@ -29,6 +26,9 @@ What a client says about itself is display, not evidence. Somebody signing in to
 account can make their own screen say what they like, which tells nobody anything; this is never
 read for a decision. The rate limiter in front of the sign-in doors reads only what the edge
 stamped, for exactly that reason.
+
+The values are bounded — trimmed, made valid UTF-8, cut to a length — by platform's store when
+they are written, not here.
 */
 package devices
 
@@ -37,10 +37,8 @@ import (
 	"net"
 	"slices"
 	"strings"
-	"time"
 
-	"github.com/primandproper/platform-go/v15/authentication/signin"
-	"github.com/primandproper/primitives-go/v2/database"
+	platformdevices "github.com/primandproper/platform-go/v15/authentication/signin/devices"
 
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
@@ -58,113 +56,40 @@ const (
 
 	forwardedForMetadataKey = "x-forwarded-for"
 	userAgentMetadataKey    = "user-agent"
-
-	// AttributeIPAddress is the listed login attribute naming the address it was last renewed
-	// from.
-	AttributeIPAddress = "ip_address"
-	// AttributeUserAgent is the listed login attribute naming the user agent it was last
-	// renewed by.
-	AttributeUserAgent = "user_agent"
-	// AttributeDeviceName is the listed login attribute naming the device that holds it, when
-	// the client said.
-	AttributeDeviceName = "device_name"
-
-	// maxFieldLength bounds every recorded field. They arrive from clients, and a user agent a
-	// client chose to make a megabyte long is not one to store a megabyte of.
-	maxFieldLength = 512
 )
 
-// Device is where one login was last renewed from.
-type Device struct {
-	_ struct{} `json:"-"`
+var _ platformdevices.Extractor = Extract
 
-	CreatedAt  time.Time `json:"createdAt"`
-	LastSeenAt time.Time `json:"lastSeenAt"`
-	ExpiresAt  time.Time `json:"expiresAt"`
-	FamilyID   string    `json:"familyID"`
-	UserID     string    `json:"-"`
-	IPAddress  string    `json:"ipAddress,omitempty"`
-	UserAgent  string    `json:"userAgent,omitempty"`
-	DeviceName string    `json:"deviceName,omitempty"`
-}
-
-// Attributes renders a device as a listed login's attributes, naming only what is known.
-func (d *Device) Attributes() map[string]string {
-	attributes := map[string]string{}
-
-	for key, value := range map[string]string{
-		AttributeIPAddress:  d.IPAddress,
-		AttributeUserAgent:  d.UserAgent,
-		AttributeDeviceName: d.DeviceName,
-	} {
-		if value != "" {
-			attributes[key] = value
-		}
-	}
-
-	return attributes
-}
-
-// Store keeps devices.
-type Store interface {
-	// RecordSignInDevice writes where a login was renewed from, on the executor it is handed,
-	// replacing what was recorded for it before.
-	RecordSignInDevice(ctx context.Context, q database.SQLQueryExecutor, device *Device) error
-	// GetSignInDevicesForFamilies reads the devices recorded for a user's logins among
-	// familyIDs. A login with nothing recorded is absent from the answer.
-	GetSignInDevicesForFamilies(ctx context.Context, userID string, familyIDs []string) ([]*Device, error)
-	// GetSignInDevicesForUser reads every device recorded for a user.
-	GetSignInDevicesForUser(ctx context.Context, userID string) ([]*Device, error)
-}
-
-// FromIncomingContext reads the device behind a gRPC request. Every field it cannot read is empty.
-func FromIncomingContext(ctx context.Context) *Device {
+// Extract reads the origin of a gRPC request: the platformdevices.Extractor this application's
+// sign-in hooks are built with. Every field it cannot read is empty.
+func Extract(ctx context.Context) platformdevices.Origin {
 	md, _ := metadata.FromIncomingContext(ctx)
 
-	device := &Device{
+	origin := platformdevices.Origin{
 		IPAddress:  firstOf(md, ClientAddressMetadataKey),
 		UserAgent:  firstOf(md, ClientUserAgentMetadataKey),
 		DeviceName: firstOf(md, DeviceNameMetadataKey),
 	}
 
-	if device.IPAddress == "" {
-		device.IPAddress = lastForwardedFor(md.Get(forwardedForMetadataKey))
+	if origin.IPAddress == "" {
+		origin.IPAddress = lastForwardedFor(md.Get(forwardedForMetadataKey))
 	}
 
-	if device.IPAddress == "" {
-		device.IPAddress = peerAddress(ctx)
+	if origin.IPAddress == "" {
+		origin.IPAddress = peerAddress(ctx)
 	}
 
-	if device.UserAgent == "" {
-		device.UserAgent = firstOf(md, userAgentMetadataKey)
+	if origin.UserAgent == "" {
+		origin.UserAgent = firstOf(md, userAgentMetadataKey)
 	}
 
-	return device
-}
-
-// ForSignIn is the device a sign-in was just issued for, read from the request issuing it.
-func ForSignIn(ctx context.Context, signIn *signin.SignIn) *Device {
-	device := FromIncomingContext(ctx)
-
-	device.FamilyID = signIn.FamilyID
-	if signIn.Principal != nil && signIn.Principal.User != nil {
-		device.UserID = signIn.Principal.User.ID
-	}
-
-	// The row lives as long as the login could: until its refresh token would lapse, or, for a
-	// login that has none, until its access token does.
-	device.ExpiresAt = signIn.RefreshTokenExpiresAt
-	if signIn.ExpiresAt.After(device.ExpiresAt) {
-		device.ExpiresAt = signIn.ExpiresAt
-	}
-
-	return device
+	return origin
 }
 
 func firstOf(md metadata.MD, key string) string {
 	for _, value := range md.Get(key) {
 		if trimmed := strings.TrimSpace(value); trimmed != "" {
-			return truncate(trimmed)
+			return trimmed
 		}
 	}
 
@@ -177,7 +102,7 @@ func lastForwardedFor(values []string) string {
 	for _, value := range slices.Backward(values) {
 		parts := strings.Split(value, ",")
 		if last := strings.TrimSpace(parts[len(parts)-1]); last != "" {
-			return truncate(last)
+			return last
 		}
 	}
 
@@ -195,13 +120,5 @@ func peerAddress(ctx context.Context) string {
 		address = host
 	}
 
-	return truncate(address)
-}
-
-func truncate(value string) string {
-	if len(value) <= maxFieldLength {
-		return value
-	}
-
-	return value[:maxFieldLength]
+	return address
 }

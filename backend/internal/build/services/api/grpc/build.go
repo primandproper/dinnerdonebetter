@@ -40,7 +40,6 @@ import (
 	oauth2clientsstore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/oauth2clientsstore"
 	paymentsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/payments"
 	settingsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/settings"
-	signindevicesrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/signindevices"
 	uploadedmediarepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/uploadedmedia"
 	waitlistsrepo "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/waitlists"
 	webhooksstore "github.com/primandproper/dinnerdonebetter/backend/internal/repositories/postgres/webhooksstore"
@@ -150,7 +149,6 @@ func BuildInjector(
 	// repositories (core)
 	auditrepo.RegisterAuditLogRepository(i)
 	authrepo.RegisterAuthRepository(i)
-	signindevicesrepo.RegisterSignInDevicesRepository(i)
 	commentsrepo.RegisterCommentsRepository(i)
 	// What a role grants, read from the policy tables the migrator seeds. The
 	// identity repository resolves a principal's role names through it when it

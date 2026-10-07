@@ -53,13 +53,14 @@ package signin
 import (
 	"context"
 
-	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/devices"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/sessions"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 
 	platformsignin "github.com/primandproper/platform-go/v15/authentication/signin"
+	"github.com/primandproper/platform-go/v15/authentication/signin/devices"
 	signingrpc "github.com/primandproper/platform-go/v15/authentication/signin/grpc"
 	"github.com/primandproper/platform-go/v15/authentication/signin/signinpb"
+	"github.com/primandproper/primitives-go/v2/database"
 	"github.com/primandproper/primitives-go/v2/observability/logging"
 	"github.com/primandproper/primitives-go/v2/observability/metrics"
 	"github.com/primandproper/primitives-go/v2/observability/tracing"
@@ -71,6 +72,17 @@ import (
 // RegisterSignInService registers platform's sign-in surface with the injector.
 func RegisterSignInService(i do.Injector) {
 	do.Provide[signinpb.SignInServiceServer](i, func(i do.Injector) (signinpb.SignInServiceServer, error) {
+		// What each listed login's attributes say: the address, browser and device it was last
+		// renewed from, which the sign-in hooks record. A listing is a read, so it runs on the
+		// reader. See internal/authentication/devices.
+		signInAnnotator, err := devices.NewAnnotator(
+			do.MustInvoke[devices.Store](i),
+			do.MustInvoke[database.Client](i).Reader(),
+		)
+		if err != nil {
+			return nil, err
+		}
+
 		return signingrpc.NewServer(
 			do.MustInvoke[*platformsignin.Service](i),
 			sessions.PrincipalFromContext,
@@ -80,10 +92,7 @@ func RegisterSignInService(i do.Injector) {
 			signingrpc.WithScopeResolver(func(context.Context) (tenancy.Scope, error) {
 				return tenancy.Global(), nil
 			}),
-			// What each listed login's attributes say: the address, browser and device it was
-			// last renewed from, which the sign-in hooks record. See
-			// internal/authentication/devices.
-			signingrpc.WithSignInAnnotator(devices.NewAnnotator(do.MustInvoke[devices.Store](i))),
+			signingrpc.WithSignInAnnotator(signInAnnotator),
 			signingrpc.WithLogger(do.MustInvoke[logging.Logger](i)),
 			signingrpc.WithTracerProvider(do.MustInvoke[tracing.Provider](i)),
 			signingrpc.WithMetricsProvider(do.MustInvoke[metrics.Provider](i)),

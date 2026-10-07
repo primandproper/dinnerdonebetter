@@ -8,6 +8,7 @@ import (
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authentication/devices"
 	"github.com/primandproper/dinnerdonebetter/backend/internal/authorization"
 
+	platformdevices "github.com/primandproper/platform-go/v15/authentication/signin/devices"
 	"github.com/primandproper/platform-go/v15/authentication/signin/signinpb"
 	"github.com/primandproper/platform-go/v15/identity/identitypb"
 	"github.com/primandproper/primitives-go/v2/identifiers"
@@ -230,9 +231,9 @@ func TestSignIn_DevicesAreListedBesideTheirLogins(T *testing.T) {
 		require.NotNil(t, current, "the login the listing was made through is listed")
 
 		assert.Equal(t, map[string]string{
-			devices.AttributeIPAddress:  address,
-			devices.AttributeUserAgent:  userAgent,
-			devices.AttributeDeviceName: deviceName,
+			platformdevices.AttributeIPAddress:  address,
+			platformdevices.AttributeUserAgent:  userAgent,
+			platformdevices.AttributeDeviceName: deviceName,
 		}, current.GetAttributes())
 	})
 }
