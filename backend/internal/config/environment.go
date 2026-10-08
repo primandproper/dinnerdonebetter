@@ -38,6 +38,7 @@ import (
 	jobscfg "github.com/primandproper/primitives-go/v2/jobs/config"
 	"github.com/primandproper/primitives-go/v2/observability"
 	retrycfg "github.com/primandproper/primitives-go/v2/retry/config"
+	textsearchcfg "github.com/primandproper/primitives-go/v2/search/text/config"
 
 	"github.com/hashicorp/go-multierror"
 )
@@ -755,6 +756,15 @@ func (s *EnvironmentConfigSet) Derive() *DerivedConfigs {
 		// reaches the MCP server directly, so the address is the operator's own rather than
 		// the web apps' shared one, and the budget is more than one person needs.
 		RateLimiting: s.RootConfig.Services.Auth.RateLimiting,
+		// The manager the tools read through opens its index clients when it is built, and
+		// no tool queries them: every search here reads the database, as the tools over the
+		// repository did. A no-op index is the honest rendering of that — the API's Algolia
+		// credentials have no business in a process that never calls Algolia — and the
+		// circuit breaker is the root's so that the one config validates.
+		Search: textsearchcfg.Config{
+			Provider:       textsearchcfg.ProviderNoop,
+			CircuitBreaker: s.RootConfig.TextSearch.CircuitBreaker,
+		},
 	}
 
 	return &DerivedConfigs{

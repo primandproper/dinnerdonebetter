@@ -4,108 +4,64 @@ import (
 	"context"
 
 	"github.com/primandproper/dinnerdonebetter/backend/internal/domain/mealplanning"
-	"github.com/primandproper/dinnerdonebetter/backend/internal/mcptools"
 
 	"github.com/primandproper/primitives-go/v2/filtering"
 
 	sdkmcp "github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-type (
-	GetRecipeStepCompletionConditionInvocation struct {
-		RecipeID                        string `jsonschema:"description=The recipe ID"`
-		RecipeStepID                    string `jsonschema:"description=The recipe step ID"`
-		RecipeStepCompletionConditionID string `jsonschema:"description=The recipe step completion condition ID"`
-	}
-)
-
-var recipeStepCompletionConditionIngredientSchema = map[string]any{
-	"ID":                                     mcptools.StringField("The ID of the recipe step completion condition ingredient"),
-	mcptools.FieldCreatedAt:                  mcptools.TimestampField("When the recipe step completion condition ingredient was created"),
-	mcptools.FieldLastUpdatedAt:              mcptools.TimestampField("When the recipe step completion condition ingredient was last updated"),
-	mcptools.FieldArchivedAt:                 mcptools.TimestampField("When the recipe step completion condition ingredient was soft deleted"),
-	"BelongsToRecipeStepCompletionCondition": mcptools.StringField("The ID of the recipe step completion condition this ingredient belongs to"),
-	"RecipeStepIngredient":                   mcptools.StringField("The ID of the recipe step ingredient"),
-}
-
-var recipeStepCompletionConditionsSchema = map[string]any{
-	"ID":                        mcptools.StringField("The ID of the recipe step completion condition"),
-	mcptools.FieldCreatedAt:     mcptools.TimestampField("When the recipe step completion condition was created"),
-	mcptools.FieldLastUpdatedAt: mcptools.TimestampField("When the recipe step completion condition was last updated"),
-	mcptools.FieldArchivedAt:    mcptools.TimestampField("When the recipe step completion condition was soft deleted"),
-	fieldBelongsToRecipeStep:    mcptools.StringField("The ID of the recipe step this completion condition belongs to"),
-	"IngredientState":           mcptools.ObjectType(validIngredientStatesSchema),
-	fieldNotes:                  mcptools.StringField("Notes about the completion condition"),
-	"Ingredients":               mcptools.ArrayType(mcptools.SchemaObject(recipeStepCompletionConditionIngredientSchema)),
-	fieldOptional:               mcptools.BoolField("Whether this completion condition is optional"),
+// GetRecipeStepCompletionConditionInput is what GetRecipeStepCompletionCondition takes.
+type GetRecipeStepCompletionConditionInput struct {
+	RecipeID                        string `json:"recipeID"                        jsonschema:"The identifier of the recipe"`
+	RecipeStepID                    string `json:"recipeStepID"                    jsonschema:"The identifier of the step"`
+	RecipeStepCompletionConditionID string `json:"recipeStepCompletionConditionID" jsonschema:"The identifier of the completion condition to read"`
 }
 
 var getRecipeStepCompletionConditionTool = &sdkmcp.Tool{
 	Name:        "GetRecipeStepCompletionCondition",
-	Description: "Get a recipe step completion condition by it's ID",
-	InputSchema: mcptools.SchemaObject(map[string]any{
-		fieldRecipeID:                     mcptools.StringField("The ID of the recipe"),
-		fieldRecipeStepID:                 mcptools.StringField("The ID of the recipe step"),
-		"RecipeStepCompletionConditionID": mcptools.StringField("The ID of the recipe step completion condition to get"),
-	}),
-	OutputSchema: mcptools.SchemaObject(recipeStepCompletionConditionsSchema),
+	Description: "Get a completion condition of a recipe step by its ID",
+	Annotations: readOnly(),
 }
 
-func (t *Tools) GetRecipeStepCompletionCondition() sdkmcp.ToolHandlerFor[*GetRecipeStepCompletionConditionInvocation, *mealplanning.RecipeStepCompletionCondition] {
-	return func(ctx context.Context, req *sdkmcp.CallToolRequest, x *GetRecipeStepCompletionConditionInvocation) (*sdkmcp.CallToolResult, *mealplanning.RecipeStepCompletionCondition, error) {
-		if _, err := mcptools.AccountFromRequest(req); err != nil {
-			return nil, nil, err
-		}
-
-		result, err := t.repo.GetRecipeStepCompletionCondition(ctx, x.RecipeID, x.RecipeStepID, x.RecipeStepCompletionConditionID)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		return nil, result, nil
+// GetRecipeStepCompletionCondition reads one completion condition of a recipe step.
+func (t *Tools) GetRecipeStepCompletionCondition(ctx context.Context, req *sdkmcp.CallToolRequest, in GetRecipeStepCompletionConditionInput) (*sdkmcp.CallToolResult, *mealplanning.RecipeStepCompletionCondition, error) {
+	ctx, err := t.begin(ctx, req, getRecipeStepCompletionConditionTool)
+	if err != nil {
+		return nil, nil, err
 	}
+
+	result, err := t.manager.ReadRecipeStepCompletionCondition(ctx, in.RecipeID, in.RecipeStepID, in.RecipeStepCompletionConditionID)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return nil, result, nil
 }
 
-type (
-	GetRecipeStepCompletionConditionsInvocation struct {
-		Filter       *filtering.QueryFilter
-		RecipeID     string
-		RecipeStepID string
-	}
-
-	GetRecipeStepCompletionConditionsResult struct {
-		Results []*mealplanning.RecipeStepCompletionCondition
-	}
-)
+// GetRecipeStepCompletionConditionsInput is what GetRecipeStepCompletionConditions takes.
+type GetRecipeStepCompletionConditionsInput struct {
+	Filter       *filtering.QueryFilter `json:"filter,omitempty" jsonschema:"The page to read; absent reads the first page, oldest first"`
+	RecipeID     string                 `json:"recipeID"         jsonschema:"The identifier of the recipe"`
+	RecipeStepID string                 `json:"recipeStepID"     jsonschema:"The identifier of the step"`
+}
 
 var getRecipeStepCompletionConditionsTool = &sdkmcp.Tool{
 	Name:        "GetRecipeStepCompletionConditions",
-	Description: "Get recipe step completion conditions with optional filtering",
-	InputSchema: mcptools.SchemaObject(map[string]any{
-		fieldRecipeID:        mcptools.StringField("The ID of the recipe"),
-		fieldRecipeStepID:    mcptools.StringField("The ID of the recipe step"),
-		mcptools.FieldFilter: filtering.QueryFilterSchema(),
-	}),
-	OutputSchema: mcptools.SchemaObject(map[string]any{
-		mcptools.FieldResults: mcptools.ArrayType(mcptools.SchemaObject(recipeStepCompletionConditionsSchema)),
-	}),
+	Description: "Page the completion conditions of a recipe step",
+	Annotations: readOnly(),
 }
 
-func (t *Tools) GetRecipeStepCompletionConditions() sdkmcp.ToolHandlerFor[*GetRecipeStepCompletionConditionsInvocation, *GetRecipeStepCompletionConditionsResult] {
-	return func(ctx context.Context, req *sdkmcp.CallToolRequest, x *GetRecipeStepCompletionConditionsInvocation) (*sdkmcp.CallToolResult, *GetRecipeStepCompletionConditionsResult, error) {
-		if _, err := mcptools.AccountFromRequest(req); err != nil {
-			return nil, nil, err
-		}
-
-		results, err := t.repo.GetRecipeStepCompletionConditions(ctx, x.RecipeID, x.RecipeStepID, x.Filter)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		out := &GetRecipeStepCompletionConditionsResult{}
-		out.Results = results.Data
-		return nil, out, nil
+// GetRecipeStepCompletionConditions pages the completion conditions of a recipe step.
+func (t *Tools) GetRecipeStepCompletionConditions(ctx context.Context, req *sdkmcp.CallToolRequest, in GetRecipeStepCompletionConditionsInput) (*sdkmcp.CallToolResult, *filtering.QueryFilteredResult[mealplanning.RecipeStepCompletionCondition], error) {
+	ctx, err := t.begin(ctx, req, getRecipeStepCompletionConditionsTool)
+	if err != nil {
+		return nil, nil, err
 	}
-}
 
-//
+	result, err := t.manager.ListRecipeStepCompletionConditions(ctx, in.RecipeID, in.RecipeStepID, in.Filter)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return nil, result, nil
+}

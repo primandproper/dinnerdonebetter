@@ -21,6 +21,7 @@ require (
 	github.com/dustin/go-humanize v1.0.1
 	github.com/fxamacker/cbor/v2 v2.9.2
 	github.com/go-ozzo/ozzo-validation/v4 v4.3.0
+	github.com/google/jsonschema-go v0.4.3
 	github.com/hako/durafmt v0.0.0-20210608085754-5c1018a4e16b
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/heimdalr/dag v1.5.1
@@ -206,7 +207,6 @@ require (
 	github.com/google/gnostic-models v0.7.1 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/go-tpm v0.9.8 // indirect
-	github.com/google/jsonschema-go v0.4.3 // indirect
 	github.com/google/renameio/v2 v2.0.2 // indirect
 	github.com/google/s2a-go v0.1.9 // indirect
 	github.com/google/safehtml v0.1.0 // indirect

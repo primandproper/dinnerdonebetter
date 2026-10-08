@@ -16,9 +16,6 @@ import (
 
 	oauth2servercfg "github.com/primandproper/platform-go/v15/authentication/oauth2serverstore/config"
 	platformidentity "github.com/primandproper/platform-go/v15/identity"
-	issuereports "github.com/primandproper/platform-go/v15/issuereports"
-	waitlists "github.com/primandproper/platform-go/v15/waitlists"
-	platformwebhooks "github.com/primandproper/platform-go/v15/webhooks"
 	"github.com/primandproper/primitives-go/v2/authentication/oauth2server"
 	baseoauth2cfg "github.com/primandproper/primitives-go/v2/authentication/oauth2server/config"
 	"github.com/primandproper/primitives-go/v2/authentication/totp"
@@ -56,7 +53,6 @@ type Service struct {
 	loginThrottle    routing.Middleware
 	health           healthcheck.Registry
 	routingConfig    *routingcfg.Config
-	baseURL          string
 }
 
 // NewService builds the MCP server's dependencies from an already-loaded configuration.
@@ -115,26 +111,12 @@ func NewService(ctx context.Context, cfg *config.MCPServiceConfig, baseURL strin
 	// this whole seam exists to make visible, and it is worth more as a named error than
 	// as a panic in whatever goroutine happened to be building the server.
 	//
-	// The domains' tools are one resolution: the build lists them, and a domain whose
-	// repository is missing fails here, before the server it would have served on exists.
+	// Every tool surface is one resolution: the build lists them, and a surface whose
+	// manager or store is missing fails here, before the server it would have served on
+	// exists.
 	toolsets, err := do.Invoke[[]mcptools.Toolset](injector)
 	if err != nil {
-		return nil, fmt.Errorf("resolving the domains' tools: %w", err)
-	}
-
-	webhooksStore, err := do.Invoke[platformwebhooks.Store](injector)
-	if err != nil {
-		return nil, fmt.Errorf("resolving webhooks store: %w", err)
-	}
-
-	waitlistStore, err := do.Invoke[waitlists.Store](injector)
-	if err != nil {
-		return nil, fmt.Errorf("resolving waitlists store: %w", err)
-	}
-
-	issueReportsStore, err := do.Invoke[issuereports.Store](injector)
-	if err != nil {
-		return nil, fmt.Errorf("resolving issue reports store: %w", err)
+		return nil, fmt.Errorf("resolving the tool surfaces: %w", err)
 	}
 
 	identityStore, err := do.Invoke[platformidentity.Store](injector)
@@ -225,25 +207,16 @@ func NewService(ctx context.Context, cfg *config.MCPServiceConfig, baseURL strin
 		return nil, fmt.Errorf("building login form throttle: %w", err)
 	}
 
-	helper := &mcpToolManager{
-		reader:       dbClient.Reader(),
-		webhooks:     webhooksStore,
-		waitlists:    waitlistStore,
-		issueReports: issueReportsStore,
-		toolsets:     toolsets,
-	}
-
 	return &Service{
 		injector:         injector,
 		pillars:          pillars,
-		mcpServer:        helper.setupServer(),
+		mcpServer:        newToolServer(toolsets),
 		authServer:       authServer,
 		resourceMetadata: resourceMetadata,
 		limiter:          limiter,
 		loginThrottle:    loginThrottle,
 		health:           health,
 		routingConfig:    &cfg.Routing,
-		baseURL:          baseURL,
 	}, nil
 }
 
@@ -271,7 +244,7 @@ func (s *Service) Handler(ctx context.Context, transport string) (http.Handler, 
 		return nil, fmt.Errorf("transport %q is not served over HTTP", transport)
 	}
 
-	router, err := buildRouter(ctx, mcpHandler, s.authServer, s.resourceMetadata, s.loginThrottle, s.health, s.pillars, s.routingConfig, s.baseURL)
+	router, err := buildRouter(ctx, mcpHandler, s.authServer, s.resourceMetadata, s.loginThrottle, s.health, s.pillars, s.routingConfig)
 	if err != nil {
 		return nil, fmt.Errorf("building router: %w", err)
 	}

@@ -25,6 +25,14 @@
 	"meta": {
 		"runMode": "testing"
 	},
+	"search": {
+		"provider": "noop",
+		"circuitBreakerConfig": {
+			"name": "feature_flagger",
+			"circuitBreakerErrorPercentage": 0.5,
+			"circuitBreakerMinimumOccurrenceThreshold": 100
+		}
+	},
 	"rateLimiting": {
 		"provider": "memory",
 		"requestsPerSecond": 10000,

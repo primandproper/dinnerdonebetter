@@ -124,20 +124,36 @@ func OutboundNotifications(i do.Injector) (datachangemessagehandler.OutboundNoti
 	return notifier.Handle, nil
 }
 
-// RegisterForMCP registers mealplanning components needed by the MCP server: the repository
-// its tools read through. The tools arrive through MCPTools.
+// RegisterForMCP registers mealplanning components needed by the MCP server: the manager its
+// tools read through, and what the manager is built over — the repository, the analyzer and
+// grocery list creator the finalization saga's steps run, and the saga starter. The tools
+// arrive through MCPTools.
+//
+// The manager rather than the repository, because the manager is where the domain's rules
+// are: eligibility, DAG validation, ownership. Every tool is a read today, and a read through
+// the repository would answer the same rows; what holding the manager buys is that the first
+// write tool to arrive here is a write with a rule in front of it.
 func RegisterForMCP(i do.Injector) {
 	registerRepository(i)
+	mealplanningmgr.RegisterManagers(i)
+	mealplanfinalization.RegisterStarter(i)
+	recipeanalysis.RegisterRecipeAnalyzer(i)
+	grocerylistpreparation.RegisterGroceryListCreator(i)
 }
 
 // MCPTools is this domain's tool surface, the MCP server's one entry for it.
 func MCPTools(i do.Injector) (mcptools.Toolset, error) {
-	repo, err := do.Invoke[mealplanning.Repository](i)
+	manager, err := do.Invoke[mealplanningmgr.MealPlanningManager](i)
 	if err != nil {
 		return nil, err
 	}
 
-	return mealplanningmcp.NewTools(repo)
+	gate, err := do.Invoke[*mcptools.Gate](i)
+	if err != nil {
+		return nil, err
+	}
+
+	return mealplanningmcp.NewTools(manager, gate)
 }
 
 // RegisterForSearchIndexInitializer registers mealplanning components needed by a process that

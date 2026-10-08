@@ -161,6 +161,31 @@ All tool calls go to `POST /mcp` with the bearer token:
 Authorization: Bearer <access_token>
 ```
 
+The endpoint is behind `primitives-go`'s `oauth2server/mcp.Protect`: the token is looked up,
+its RFC 8707 audience is checked against this server, and a refusal answers with the
+`WWW-Authenticate` challenge that names the resource metadata document.
+
+### What a token may do
+
+A verified token is not yet a caller. On every tool call, `mcptools.Gate` resolves the token's
+subject in the directory — so a ban, an ended membership or an archived account takes effect on
+the next call — and renders them as the same session the API's interceptor builds, grants
+included. The grants are the operator's: the login form is the administrative door, so a token
+minted here carries what `service_admin` grants, where an access token presented to the API
+carries only `service_user`.
+
+Each tool then requires the permission its gRPC counterpart requires:
+
+- The meal planning tools are named for the `MealPlanningService` methods they mirror
+  (`GetRecipe`, `SearchForValidIngredients`, …) and read the gRPC surface's permission table
+  for that method. They read through the domain manager, as the gRPC handlers do.
+- `platform-go`'s own tool surfaces — `list_issue_reports`, `list_waitlists`,
+  `list_webhook_event_types` and their siblings — check the same permissions their gRPC
+  servers declare, through the same `sessions.GrantsFromContext`.
+
+A tool's input and output schemas are reflected off the Go types, so the property names a model
+sees are the ones the wire carries (`recipeID`, `filter`, `createdAt`).
+
 ### Revocation
 
 ```bash

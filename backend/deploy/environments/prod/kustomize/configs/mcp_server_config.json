@@ -48,6 +48,14 @@
 	"meta": {
 		"runMode": "production"
 	},
+	"search": {
+		"provider": "noop",
+		"circuitBreakerConfig": {
+			"name": "prod_text_searcher",
+			"circuitBreakerErrorPercentage": 0.5,
+			"circuitBreakerMinimumOccurrenceThreshold": 100
+		}
+	},
 	"rateLimiting": {
 		"provider": "memory",
 		"requestsPerSecond": 2,

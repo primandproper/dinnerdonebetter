@@ -49,6 +49,12 @@ type ownReportOrAdmin struct {
 	grants platformauthz.GrantsExtractor
 }
 
+// OwnReportOrAdmin is the rule above over grants, for a surface other than the gRPC one —
+// the MCP tools — so that who may read a report is decided once.
+func OwnReportOrAdmin(grants platformauthz.GrantsExtractor) issuereportsgrpc.ReportAuthorizer {
+	return ownReportOrAdmin{grants: grants}
+}
+
 // operator reports whether the caller holds the grant that works the queue.
 func (a ownReportOrAdmin) operator(ctx context.Context) bool {
 	grants, ok := a.grants(ctx)

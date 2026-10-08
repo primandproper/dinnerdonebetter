@@ -286,11 +286,19 @@ func (i *instance) connect(t *testing.T, accessToken string) (*mcp.ClientSession
 // getValidIngredient opens a session and reads one row back through the MCP tool that
 // serves it.
 //
-// One tool stands in for all of them here. What varies between them is the repository
+// One tool stands in for all of them here. What varies between them is the manager
 // method behind the handler, which is covered elsewhere; what this suite is asking is
-// whether a call arrives authenticated, with an account on the token, at a repository
-// pointed at a real database — and any of the sixty tools would ask that the same way.
+// whether a call arrives authenticated, resolved to a caller holding the read's grant, at
+// a manager pointed at a real database — and any of the domain's tools would ask that the
+// same way.
 func (i *instance) getValidIngredient(t *testing.T, accessToken, ingredientID string) (*mcp.CallToolResult, error) {
+	t.Helper()
+
+	return i.callTool(t, accessToken, "GetValidIngredient", map[string]any{"validIngredientID": ingredientID})
+}
+
+// callTool opens a session and calls one tool with the given arguments.
+func (i *instance) callTool(t *testing.T, accessToken, name string, arguments map[string]any) (*mcp.CallToolResult, error) {
 	t.Helper()
 
 	session, err := i.connect(t, accessToken)
@@ -299,10 +307,7 @@ func (i *instance) getValidIngredient(t *testing.T, accessToken, ingredientID st
 	}
 	defer func() { require.NoError(t, session.Close()) }()
 
-	return session.CallTool(t.Context(), &mcp.CallToolParams{
-		Name:      "GetValidIngredient",
-		Arguments: map[string]any{"ValidIngredientID": ingredientID},
-	})
+	return session.CallTool(t.Context(), &mcp.CallToolParams{Name: name, Arguments: arguments})
 }
 
 // listTools opens a session and asks the replica what it serves.
